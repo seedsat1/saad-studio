@@ -3150,19 +3150,77 @@ app.post('/api/auth/register', loginLimiter, (req, res) => {
     updateUser(user.id, { tokens: [token] });
     auditLog('user.register', 'email="' + user.email + '" plan="starter" credits=0', req);
     const { passwordHash, salt, hashVersion, tokens, ...safeUser } = user;
-    res.json({ ok: true, token, user: { ...safeUser, nanoBananaFree: true } });
+    res.json({ ok: true, token, user: { ...safeUser, nanoBananaFree: true, role: 'user' } });
   } catch(e){ res.status(500).json({ error: 'حدث خطأ داخلي' }); }
 });
 
-// POST /api/auth/login
+// POST /api/auth/login — unified login (admin + user)
 app.post('/api/auth/login', loginLimiter, (req, res) => {
   try {
     const { email, password } = req.body || {};
     if(!email || !password) return res.status(400).json({ error: 'البريد وكلمة المرور مطلوبان' });
     if (String(email).length > 254 || String(password).length > 128)
       return res.status(400).json({ error: 'بيانات غير صالحة' });
-    const user = findUserByEmail(email);
-    // Always run verifyAndMaybeUpgradePassword to avoid timing leak on unknown emails
+
+    // 1. Check if credentials match admin env vars (independent of DB)
+    const isAdminCreds = !!(ADMIN_USERNAME && ADMIN_PASSWORD &&
+      timingSafeEqual(String(email), ADMIN_USERNAME) &&
+      timingSafeEqual(String(password), ADMIN_PASSWORD));
+
+    // 2. Find user in DB
+    let user = findUserByEmail(email);
+
+    // 3. Admin login: env var match takes priority
+    if (isAdminCreds) {
+      if (!user) {
+        // Auto-create admin record in DB
+        const db = loadUsers();
+        const newSalt = crypto.randomBytes(32).toString('hex');
+        user = {
+          id: crypto.randomBytes(12).toString('hex'),
+          email: email.toLowerCase().trim(),
+          passwordHash: hashPasswordV2(password, newSalt),
+          salt: newSalt,
+          hashVersion: 2,
+          plan: 'creator',
+          credits: 99999,
+          maxCredits: 99999,
+          isAdmin: true,
+          nanoBananaFree: true,
+          renewDate: null,
+          tokens: [],
+          createdAt: new Date().toISOString(),
+          subscriptionStartDate: null,
+          subscriptionEndDate: null,
+          pendingPlan: null
+        };
+        db.users.push(user);
+        saveUsers(db);
+      }
+      const token = genToken();
+      const tokens = [...(user.tokens || []).slice(-4), token];
+      updateUser(user.id, { tokens, isAdmin: true });
+      auditLog('user.login.success', 'email="' + String(email).slice(0,80) + '" role=admin', req);
+      const { passwordHash: _ph, salt: _s, hashVersion: _hv, tokens: _tk, ...safeUser } = user;
+      safeUser.isAdmin = true;
+      safeUser.role = 'admin';
+      // Create admin session with cookie + CSRF
+      const sessionId = genToken();
+      const csrfToken = genToken();
+      const expiry = Date.now() + ADMIN_SESSION_HOURS * 60 * 60 * 1000;
+      adminSessions.set(sessionId, { expiry, csrf: csrfToken });
+      saveAdminSessions(adminSessions);
+      res.cookie('admin_sid', sessionId, {
+        httpOnly: true,
+        secure: IS_PROD,
+        sameSite: 'strict',
+        path: '/',
+        maxAge: ADMIN_SESSION_HOURS * 60 * 60 * 1000
+      });
+      return res.json({ ok: true, token, user: safeUser, csrfToken });
+    }
+
+    // 4. Regular user login — must exist in DB with valid password
     const dummyHash = hashPasswordLegacy('dummy-timing-prevention');
     const dummyUser = { passwordHash: dummyHash, hashVersion: 1 };
     const valid = verifyAndMaybeUpgradePassword(user || dummyUser, password);
@@ -3170,16 +3228,13 @@ app.post('/api/auth/login', loginLimiter, (req, res) => {
       auditLog('user.login.fail', 'email="' + String(email).slice(0,80) + '"', req);
       return res.status(401).json({ error: 'بيانات الدخول غير صحيحة' });
     }
-    // Check if this user matches admin env vars
-    const isAdmin = !!(ADMIN_USERNAME && ADMIN_PASSWORD &&
-      timingSafeEqual(String(email), ADMIN_USERNAME) &&
-      timingSafeEqual(String(password), ADMIN_PASSWORD));
     const token = genToken();
     const tokens = [...(user.tokens || []).slice(-4), token];
-    updateUser(user.id, { tokens, isAdmin });
-    auditLog('user.login.success', 'email="' + String(user.email).slice(0,80) + '" isAdmin=' + isAdmin, req);
+    updateUser(user.id, { tokens, isAdmin: false });
+    auditLog('user.login.success', 'email="' + String(user.email).slice(0,80) + '" role=user', req);
     const { passwordHash, salt, hashVersion, tokens: _t, ...safeUser } = user;
-    safeUser.isAdmin = isAdmin;
+    safeUser.isAdmin = false;
+    safeUser.role = 'user';
     res.json({ ok: true, token, user: safeUser });
   } catch(e){ res.status(500).json({ error: 'حدث خطأ داخلي' }); }
 });
@@ -3189,6 +3244,7 @@ app.get('/api/auth/me', (req, res) => {
   if(!req.currentUser) return res.status(401).json({ error: 'غير مسجل' });
   // Never expose password hash, salt, hashVersion, or session tokens
   const { passwordHash, salt, hashVersion, tokens, ...safeUser } = req.currentUser;
+  safeUser.role = safeUser.isAdmin ? 'admin' : 'user';
   res.json({ user: safeUser });
 });
 
@@ -3345,37 +3401,8 @@ function requireAdmin(req, res, next){
 function loadOrders(){ try{ return JSON.parse(fs.readFileSync(ORDERS_FILE,'utf8')); } catch{ return { orders:[] }; } }
 function saveOrders(db){ fs.writeFileSync(ORDERS_FILE, JSON.stringify(db, null, 2)); }
 
-// POST /api/admin/login
-app.post('/api/admin/login', adminLoginLimiter, (req, res) => {
-  const { username, password } = req.body || {};
-  if (!username || !password || typeof username !== 'string' || typeof password !== 'string') {
-    return res.status(400).json({ error: 'اسم المستخدم وكلمة المرور مطلوبان' });
-  }
-  if (username.length > 200 || password.length > 200) {
-    return res.status(400).json({ error: 'بيانات غير صالحة' });
-  }
-  // Use timing-safe comparison to prevent username/password enumeration
-  const usernameMatch = timingSafeEqual(String(username), ADMIN_USERNAME);
-  const passwordMatch = timingSafeEqual(String(password), ADMIN_PASSWORD);
-  if (!usernameMatch || !passwordMatch) {
-    auditLog('admin.login.fail', 'user="' + String(username).slice(0,50) + '"', req);
-    return res.status(401).json({ error: 'اسم المستخدم أو كلمة المرور غير صحيحة' });
-  }
-  const sessionId = genToken();
-  const csrfToken = genToken();
-  const expiry = Date.now() + ADMIN_SESSION_HOURS * 60 * 60 * 1000;
-  adminSessions.set(sessionId, { expiry, csrf: csrfToken });
-  saveAdminSessions(adminSessions);
-  auditLog('admin.login.success', null, req);
-  res.cookie('admin_sid', sessionId, {
-    httpOnly: true,
-    secure: IS_PROD,
-    sameSite: 'strict',
-    path: '/',
-    maxAge: ADMIN_SESSION_HOURS * 60 * 60 * 1000
-  });
-  res.json({ ok: true, csrfToken });
-});
+// POST /api/admin/login — REMOVED (unified into /api/auth/login)
+
 
 // GET /api/admin/session — validate existing session and return CSRF token
 app.get('/api/admin/session', requireAdmin, (req, res) => {
@@ -3576,6 +3603,7 @@ app.post('/api/auth/google', loginLimiter, async (req, res) => {
     const updated = updateUser(user.id, { tokens: [...(user.tokens||[]).slice(-4), token], isAdmin: false });
     const { passwordHash, salt, hashVersion, tokens: _t, ...safeUser } = (updated || user);
     safeUser.isAdmin = false;
+    safeUser.role = 'user';
     res.json({ ok: true, token, user: safeUser });
   } catch(e){ res.status(500).json({ error: 'حدث خطأ داخلي' }); }
 });

@@ -8,7 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Kufi+Arabic:wght@300;400;600;700&family=JetBrains+Mono:wght@400;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,500,0,0" rel="stylesheet">
 <link rel="stylesheet" href="/api/site-config.css" id="site-theme-override">
-<script src="https://accounts.google.com/gsi/client" async></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
 :root {
   --bg:#0b1e34; --bg1:#0f2a44; --bg2:#0c243d; --bg3:#12314f; --bg4:#173a5c;
@@ -8132,14 +8132,14 @@ function fillPromptIdea(el, text){
     const btn = document.querySelector('#control-locked .btn-generate');
     if(btn){ btn.disabled = true; btn.textContent = '...'; }
     try{
-      const r = await fetch('/api/admin/login', {
+      const r = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'same-origin',
-        body: JSON.stringify({ username, password: pass })
+        body: JSON.stringify({ email: username, password: pass })
       });
       const data = await r.json();
-      if(r.ok && data.csrfToken){
+      if(r.ok && data.user && data.user.role === 'admin' && data.csrfToken){
         _adminCsrf = data.csrfToken;
         localStorage.setItem(CONTROL_SESSION_KEY, JSON.stringify({ ts: Date.now() }));
         document.getElementById('nav-control').style.display = '';
@@ -13630,12 +13630,10 @@ function clearLibrary(){
       const el = document.getElementById(id);
       if(el) el.value = '';
     });
-    // focus first field + render Google button after modal animation completes
-    setTimeout(() => {
-      const f = tab === 'login' ? document.getElementById('a-login-email') : document.getElementById('a-reg-email');
-      f?.focus();
-      renderGoogleBtn();
-    }, 300);
+    // focus first field + re-render Google button
+    const f = tab === 'login' ? document.getElementById('a-login-email') : document.getElementById('a-reg-email');
+    f?.focus();
+    renderGoogleBtn();
   }
 
   function closeAuthModal(){
@@ -13686,12 +13684,14 @@ function clearLibrary(){
         const r = await fetch('/api/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
           body: JSON.stringify({ email, password: pw })
         });
         const data = await r.json();
         if(!r.ok){ errEl.textContent = data.error || 'خطأ في تسجيل الدخول'; return; }
-        // If server says this user is admin, redirect to admin dashboard
-        if(data.user && data.user.isAdmin === true){
+        // If admin role, store CSRF and redirect to dashboard
+        if(data.user && data.user.role === 'admin'){
+          if(data.csrfToken){ _adminCsrf = data.csrfToken; localStorage.setItem(CONTROL_SESSION_KEY, JSON.stringify({ ts: Date.now() })); }
           window.location.href = '/dashboard.html';
           return;
         }
@@ -13804,6 +13804,7 @@ function clearLibrary(){
         cancel_on_tap_outside: true
       });
       _googleReady = true;
+      renderGoogleBtn();
     } catch(_){}
   }
 
@@ -13882,8 +13883,21 @@ function clearLibrary(){
     setTimeout(() => selectPlan(plan), 50);
   }
 
-  // Init Google after page load
-  window.addEventListener('load', () => { initGoogleAuth(); });
+  // Init Google on DOMContentLoaded + render immediately
+  document.addEventListener('DOMContentLoaded', () => {
+    initGoogleAuth().then(() => renderGoogleBtn());
+    // Fallback: if Google SDK failed to load, retry after 1s
+    setTimeout(() => {
+      if (!window.google?.accounts?.id) {
+        const s = document.createElement('script');
+        s.src = 'https://accounts.google.com/gsi/client';
+        s.onload = () => initGoogleAuth().then(() => renderGoogleBtn());
+        document.head.appendChild(s);
+      } else if (!_googleReady) {
+        initGoogleAuth().then(() => renderGoogleBtn());
+      }
+    }, 1000);
+  });
 
   // ── Global fetch interceptor: auto-inject auth token + handle 401 ──────────
   (function(){
