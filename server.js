@@ -2765,9 +2765,9 @@ function isAllowedUpload(file, allowedMimes) {
 const USERS_FILE = path.join(VAULT_DIR, 'users.json');
 const USAGE_FILE  = path.join(VAULT_DIR, 'usage.json');
 const PLANS = {
-  starter: { price: 10, credits: 1000, nanoBananaFree: true, label: 'Starter' },
-  pro:     { price: 25, credits: 2800, nanoBananaFree: true,  label: 'Pro'     },
-  creator: { price: 50, credits: 6000, nanoBananaFree: true,  label: 'Creator' }
+  starter: { price: 0,  credits: 0,    nanoBananaFree: true, label: 'Starter (مجاني)' },
+  pro:     { price: 25, credits: 0,    nanoBananaFree: true,  label: 'Pro'     },
+  creator: { price: 50, credits: 0,    nanoBananaFree: true,  label: 'Creator' }
 };
 
 // â•â•â• PLAN-BASED ACCESS CONTROL â•â•â•
@@ -2916,9 +2916,11 @@ function deductCreditsForGeneration(req, res, model, params) {
     res.status(401).json({ error: 'يجب تسجيل الدخول لاستخدام هذه الميزة' });
     return false;
   }
-  // Subscription check — enforce server-side before any credit deduction
-  if (!isSubscriptionActive(req.currentUser)) {
-    res.status(403).json({ error: 'Subscription expired', code: 'subscription_expired' });
+  // Subscription check — starter users with free gift credits can use them
+  // Paid plan users must have active subscription
+  const isStarter = (req.currentUser.plan || 'starter') === 'starter';
+  if (!isStarter && !isSubscriptionActive(req.currentUser)) {
+    res.status(403).json({ error: 'الاشتراك منتهي — يرجى تجديد الخطة', code: 'subscription_expired' });
     return false;
   }
   const cost    = applyProfitMargin(serverCalcCreditCost(model, params));
@@ -3109,22 +3111,20 @@ function attachUser(req, res, next){
 // POST /api/auth/register
 app.post('/api/auth/register', loginLimiter, (req, res) => {
   try {
-    const { email, password, plan = 'starter' } = req.body || {};
+    const { email, password } = req.body || {};
     if(!email || !password) return res.status(400).json({ error: 'البريد وكلمة المرور مطلوبان' });
     // Input validation
     if (String(email).length > 254) return res.status(400).json({ error: 'البريد الإلكتروني طويل جداً' });
     if (String(password).length < 12) return res.status(400).json({ error: 'كلمة المرور يجب أن تكون 12 حرفاً على الأقل' });
     if (String(password).length > 128) return res.status(400).json({ error: 'كلمة المرور طويلة جداً' });
     if (!String(email).match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) return res.status(400).json({ error: 'البريد الإلكتروني غير صالح' });
-    // Accept any valid plan on self-registration
-    const chosenPlan = ['starter', 'pro', 'creator'].includes(String(plan)) ? String(plan) : 'starter';
-    if(!PLANS[chosenPlan]) return res.status(400).json({ error: 'خطة غير صالحة' });
+    // All new users start on starter — must request plan upgrade (admin approval required)
+    const chosenPlan = 'starter';
+    const FREE_GIFT_CREDITS = 0;
     const db = loadUsers();
     if(db.users.find(u => u.email.toLowerCase() === email.toLowerCase()))
       return res.status(409).json({ error: 'البريد الإلكتروني مستخدم بالفعل' });
-    const planInfo = PLANS[chosenPlan];
     const now = new Date();
-    const renewDate = new Date(now); renewDate.setMonth(renewDate.getMonth() + 1);
     const newSalt = crypto.randomBytes(32).toString('hex');
     const user = {
       id: crypto.randomBytes(12).toString('hex'),
@@ -3133,22 +3133,24 @@ app.post('/api/auth/register', loginLimiter, (req, res) => {
       salt: newSalt,
       hashVersion: 2,
       plan: chosenPlan,
-      credits: planInfo.credits,
-      maxCredits: planInfo.credits,
-      nanoBananaFree: planInfo.nanoBananaFree,
-      renewDate: renewDate.toISOString().split('T')[0],
+      credits: 0,
+      maxCredits: 0,
+      isAdmin: false,
+      nanoBananaFree: true,
+      renewDate: null,
       tokens: [],
       createdAt: now.toISOString(),
-      subscriptionStartDate: now.toISOString(),
-      subscriptionEndDate: new Date(now.getTime() + 30*24*60*60*1000).toISOString()
+      subscriptionStartDate: null,
+      subscriptionEndDate: null,
+      pendingPlan: null
     };
     db.users.push(user);
     saveUsers(db);
     const token = genToken();
     updateUser(user.id, { tokens: [token] });
-    auditLog('user.register', 'email="' + user.email + '" plan="' + chosenPlan + '"', req);
+    auditLog('user.register', 'email="' + user.email + '" plan="starter" credits=0', req);
     const { passwordHash, salt, hashVersion, tokens, ...safeUser } = user;
-    res.json({ ok: true, token, user: { ...safeUser, nanoBananaFree: planInfo.nanoBananaFree } });
+    res.json({ ok: true, token, user: { ...safeUser, nanoBananaFree: true } });
   } catch(e){ res.status(500).json({ error: 'حدث خطأ داخلي' }); }
 });
 
@@ -3168,11 +3170,16 @@ app.post('/api/auth/login', loginLimiter, (req, res) => {
       auditLog('user.login.fail', 'email="' + String(email).slice(0,80) + '"', req);
       return res.status(401).json({ error: 'بيانات الدخول غير صحيحة' });
     }
+    // Check if this user matches admin env vars
+    const isAdmin = !!(ADMIN_USERNAME && ADMIN_PASSWORD &&
+      timingSafeEqual(String(email), ADMIN_USERNAME) &&
+      timingSafeEqual(String(password), ADMIN_PASSWORD));
     const token = genToken();
     const tokens = [...(user.tokens || []).slice(-4), token];
-    updateUser(user.id, { tokens });
-    auditLog('user.login.success', 'email="' + String(user.email).slice(0,80) + '"', req);
+    updateUser(user.id, { tokens, isAdmin });
+    auditLog('user.login.success', 'email="' + String(user.email).slice(0,80) + '" isAdmin=' + isAdmin, req);
     const { passwordHash, salt, hashVersion, tokens: _t, ...safeUser } = user;
+    safeUser.isAdmin = isAdmin;
     res.json({ ok: true, token, user: safeUser });
   } catch(e){ res.status(500).json({ error: 'حدث خطأ داخلي' }); }
 });
@@ -3305,6 +3312,18 @@ if (adminSessions.size >= 0) saveAdminSessions(adminSessions);
 
 const ADMIN_SESSION_HOURS = Math.min(24, Math.max(1, Number(process.env.ADMIN_SESSION_HOURS) || 10));
 
+// ─── Protect dashboard.html: only admin sessions can access it ───
+// dashboard.html lives at project root (NOT in public/) so express.static cannot serve it
+app.get('/dashboard.html', (req, res) => {
+  const sessionId = (req.cookies && req.cookies.admin_sid) || '';
+  const session = adminSessions.get(sessionId);
+  if (!session || Date.now() > session.expiry) {
+    if (session) { adminSessions.delete(sessionId); saveAdminSessions(adminSessions); }
+    return res.redirect('/');
+  }
+  res.sendFile(path.join(__dirname, 'dashboard.html'));
+});
+
 function requireAdmin(req, res, next){
   const sessionId = (req.cookies && req.cookies.admin_sid) || '';
   const session = adminSessions.get(sessionId);
@@ -3406,16 +3425,19 @@ app.post('/api/admin/users/:id/plan', requireAdmin, (req, res) => {
   const u = db.users.find(x => x.id === req.params.id);
   if(!u) return res.status(404).json({ error: 'User not found' });
   const planInfo = PLANS[plan];
-  // Set renewDate 30 days from today
-  const renewDate = new Date();
+  const now = new Date();
+  const renewDate = new Date(now);
   renewDate.setDate(renewDate.getDate() + 30);
   u.plan = plan;
   u.nanoBananaFree = planInfo.nanoBananaFree;
   u.maxCredits = planInfo.credits;
+  u.credits = planInfo.credits;
   u.renewDate = renewDate.toISOString().split('T')[0];
-  if(u.credits < planInfo.credits){ u.credits = planInfo.credits; }
+  u.subscriptionStartDate = now.toISOString();
+  u.subscriptionEndDate = new Date(now.getTime() + 30*24*60*60*1000).toISOString();
+  u.pendingPlan = null;
   saveUsers(db);
-  auditLog('admin.user.plan', 'userId="'+req.params.id+'" plan="'+plan+'"', req);
+  auditLog('admin.user.plan', 'userId="'+req.params.id+'" plan="'+plan+'" credits='+planInfo.credits, req);
   res.json({ ok: true, user: { id:u.id, email:u.email, plan:u.plan, credits:u.credits, maxCredits:u.maxCredits } });
 });
 
@@ -3447,16 +3469,25 @@ app.post('/api/admin/orders/:id/approve', requireAdmin, (req, res) => {
   if(!u) return res.status(404).json({ error: 'User not found' });
 
   if(order.type === 'plan') {
-    // Plan-change approval: update user plan
+    // Plan-change approval: update user plan, assign credits, activate subscription
+    const planInfo = PLANS[order.newPlan] || {};
+    const planCredits = planInfo.credits || 0;
+    const now = new Date();
+    const renewDate = new Date(now); renewDate.setDate(renewDate.getDate() + 30);
     u.plan = order.newPlan;
-    const PLAN_MAX = { starter: 1500, pro: 5000, creator: 15000 };
-    u.maxCredits = PLAN_MAX[order.newPlan] || u.maxCredits;
+    u.maxCredits = planCredits;
+    u.credits = planCredits;
+    u.nanoBananaFree = planInfo.nanoBananaFree !== false;
+    u.renewDate = renewDate.toISOString().split('T')[0];
+    u.subscriptionStartDate = now.toISOString();
+    u.subscriptionEndDate = new Date(now.getTime() + 30*24*60*60*1000).toISOString();
+    u.pendingPlan = null;
     saveUsers(uDb);
     order.status = 'approved';
-    order.approvedAt = new Date().toISOString();
+    order.approvedAt = now.toISOString();
     saveOrders(oDb);
-    auditLog('admin.order.approve', 'orderId="'+req.params.id+'" type=plan newPlan="'+order.newPlan+'" userId="'+order.userId+'"', req);
-    return res.json({ ok: true, plan: u.plan });
+    auditLog('admin.order.approve', 'orderId="'+req.params.id+'" type=plan newPlan="'+order.newPlan+'" credits='+planCredits+' userId="'+order.userId+'"', req);
+    return res.json({ ok: true, plan: u.plan, credits: u.credits });
   }
 
   // Credit top-up approval
@@ -3510,26 +3541,27 @@ app.post('/api/auth/google', loginLimiter, async (req, res) => {
     const db = loadUsers();
     let user = db.users.find(u => u.email.toLowerCase() === email);
     if(!user){
-      // New user — use requested plan (default starter)
-      const chosenPlan = ['starter', 'pro', 'creator'].includes(String(requestedPlan)) ? String(requestedPlan) : 'starter';
-      const planInfo = PLANS[chosenPlan];
+      // New user — always starts on starter with 0 credits
+      // Must request plan upgrade (admin approval required)
+      const FREE_GIFT_CREDITS = 0;
       const now = new Date();
-      const renewDate = new Date(now); renewDate.setMonth(renewDate.getMonth() + 1);
       user = {
         id: crypto.randomBytes(12).toString('hex'),
         email,
         passwordHash: '',   // no password — Google only
         googleId,
         provider: 'google',
-        plan: chosenPlan,
-        credits: planInfo.credits,
-        maxCredits: planInfo.credits,
-        nanoBananaFree: planInfo.nanoBananaFree,
-        renewDate: renewDate.toISOString().split('T')[0],
+        plan: 'starter',
+        credits: 0,
+        maxCredits: 0,
+        isAdmin: false,
+        nanoBananaFree: true,
+        renewDate: null,
         tokens: [],
         createdAt: now.toISOString(),
-        subscriptionStartDate: now.toISOString(),
-        subscriptionEndDate: new Date(now.getTime() + 30*24*60*60*1000).toISOString()
+        subscriptionStartDate: null,
+        subscriptionEndDate: null,
+        pendingPlan: null
       };
       db.users.push(user);
       saveUsers(db);
@@ -3541,8 +3573,9 @@ app.post('/api/auth/google', loginLimiter, async (req, res) => {
     }
 
     const token = genToken();
-    const updated = updateUser(user.id, { tokens: [...(user.tokens||[]).slice(-4), token] });
+    const updated = updateUser(user.id, { tokens: [...(user.tokens||[]).slice(-4), token], isAdmin: false });
     const { passwordHash, salt, hashVersion, tokens: _t, ...safeUser } = (updated || user);
+    safeUser.isAdmin = false;
     res.json({ ok: true, token, user: safeUser });
   } catch(e){ res.status(500).json({ error: 'حدث خطأ داخلي' }); }
 });
@@ -3862,17 +3895,21 @@ app.get('/api/user/dashboard', requireSignedIn, (req, res) => {
     const u = req.currentUser;
     const usage = getUserUsageData(u.id);
     const { passwordHash, salt, hashVersion, tokens, ...safeUser } = u;
+    const isStarter = (u.plan || 'starter') === 'starter';
+    const subActive = isSubscriptionActive(u);
+    const status = isStarter ? (u.credits > 0 ? 'free' : 'no_credits') : (subActive ? 'active' : 'expired');
     res.json({
       user: safeUser,
       usage,
       subscription: {
         plan:                u.plan,
-        status:              isSubscriptionActive(u) ? 'active' : 'expired',
+        status,
         subscriptionStartDate: u.subscriptionStartDate || null,
         subscriptionEndDate:   u.subscriptionEndDate   || null,
         renewDate:           u.renewDate || null,
         credits:             u.credits   || 0,
-        maxCredits:          u.maxCredits || 0
+        maxCredits:          u.maxCredits || 0,
+        pendingPlan:         u.pendingPlan || null
       }
     });
   } catch(e) { res.status(500).json({ error: 'خطأ داخلي' }); }

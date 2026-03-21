@@ -13690,6 +13690,11 @@ function clearLibrary(){
         });
         const data = await r.json();
         if(!r.ok){ errEl.textContent = data.error || 'خطأ في تسجيل الدخول'; return; }
+        // If server says this user is admin, redirect to admin dashboard
+        if(data.user && data.user.isAdmin === true){
+          window.location.href = '/dashboard.html';
+          return;
+        }
         // Clear any admin session on regular user login
         _adminCsrf = '';
         localStorage.removeItem(CONTROL_SESSION_KEY);
