@@ -3405,19 +3405,54 @@ function saveOrders(db){ fs.writeFileSync(ORDERS_FILE, JSON.stringify(db, null, 
 // POST /api/admin/login — REMOVED (unified into /api/auth/login)
 
 
-// GET /api/admin/kie-balance — fetch KIE API balance
-app.get('/api/admin/kie-balance', requireAdmin, async (req, res) => {
+// GET /api/admin/kie-balance — read stored KIE balance + spent credits
+const KIE_BALANCE_FILE = path.join(VAULT_DIR, 'kie_balance.json');
+function loadKieBalance() {
+  try { return JSON.parse(fs.readFileSync(KIE_BALANCE_FILE, 'utf8')); }
+  catch { return { balance: 0, updatedAt: null }; }
+}
+function saveKieBalance(data) {
+  fs.writeFileSync(KIE_BALANCE_FILE, JSON.stringify(data, null, 2));
+}
+function getTotalSpentCredits() {
   try {
-    const response = await axios.get('https://api.kie.ai/v1/user/balance', {
-      headers: {
-        Authorization: `Bearer ${process.env.KIE_API_KEY}`
+    const raw = loadUsage();
+    let total = 0;
+    for (const userId of Object.keys(raw)) {
+      for (const [key, val] of Object.entries(raw[userId])) {
+        if (/^\d{4}-\d{2}$/.test(key)) total += (val.credits || 0);
       }
-    });
-    res.json({ success: true, balance: response.data.balance });
-  } catch (err) {
-    console.error(err.response?.data || err.message);
-    res.status(500).json({ success: false, message: 'Failed to fetch balance' });
+    }
+    return total;
+  } catch { return 0; }
+}
+
+app.get('/api/admin/kie-balance', requireAdmin, (req, res) => {
+  const data = loadKieBalance();
+  const spent = getTotalSpentCredits();
+  const remaining = Math.max(0, (data.balance || 0) - spent);
+  res.json({
+    success: true,
+    balance: data.balance || 0,
+    spent,
+    remaining,
+    updatedAt: data.updatedAt
+  });
+});
+
+// POST /api/admin/kie-balance — admin updates the stored balance
+app.post('/api/admin/kie-balance', requireAdmin, (req, res) => {
+  const csrf = req.headers['x-csrf-token'] || '';
+  if (!csrf || csrf !== req.adminSession.csrf) {
+    return res.status(403).json({ success: false, message: 'Invalid CSRF' });
   }
+  const newBalance = Number(req.body.balance);
+  if (isNaN(newBalance) || newBalance < 0) {
+    return res.status(400).json({ success: false, message: 'Invalid balance value' });
+  }
+  saveKieBalance({ balance: newBalance, updatedAt: new Date().toISOString() });
+  const spent = getTotalSpentCredits();
+  res.json({ success: true, balance: newBalance, spent, remaining: Math.max(0, newBalance - spent) });
 });
 
 // GET /api/admin/session — validate existing session and return CSRF token

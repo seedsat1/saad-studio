@@ -560,8 +560,15 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:var(--fm)
 <div class="dashboard-header">
   <a href="/" class="back-btn">← الرجوع إلى الموقع</a>
   <div class="kie-balance-box">
-    <h3>رصيد KIE</h3>
+    <h3>💰 رصيد KIE</h3>
     <div id="kie-balance">جارٍ التحميل...</div>
+    <div id="kie-spent" style="font-size:13px;color:var(--tx2);margin-top:6px;"></div>
+    <div id="kie-remaining" style="font-size:15px;color:var(--green);margin-top:4px;font-weight:700;"></div>
+    <div style="margin-top:10px;display:flex;gap:6px;align-items:center;justify-content:center;">
+      <input id="kie-bal-input" type="number" class="cr-input" style="width:100px;" placeholder="رصيد جديد">
+      <button class="act-save" onclick="updateKieBalance()">تحديث</button>
+    </div>
+    <div id="kie-updated" style="font-size:10px;color:var(--tx3);margin-top:6px;"></div>
   </div>
 </div>
 <!-- ═══ DASHBOARD ═══ -->
@@ -1015,12 +1022,39 @@ async function loadKieBalance() {
     const res = await fetch('/api/admin/kie-balance', { credentials: 'same-origin' });
     const data = await res.json();
     if (data.success) {
-      document.getElementById('kie-balance').innerText = data.balance + ' Credits';
+      $('kie-balance').innerText = data.balance.toLocaleString() + ' Credits';
+      $('kie-spent').innerText = 'مصروف: ' + data.spent.toLocaleString();
+      $('kie-remaining').innerText = 'متبقي: ' + data.remaining.toLocaleString() + ' Credits';
+      if (data.updatedAt) {
+        $('kie-updated').innerText = 'آخر تحديث: ' + new Date(data.updatedAt).toLocaleString('ar');
+      }
+      $('kie-bal-input').value = data.balance;
     } else {
-      document.getElementById('kie-balance').innerText = 'تعذر جلب الرصيد';
+      $('kie-balance').innerText = 'تعذر جلب الرصيد';
     }
   } catch (err) {
-    document.getElementById('kie-balance').innerText = 'خطأ في الاتصال';
+    $('kie-balance').innerText = 'خطأ في الاتصال';
+  }
+}
+async function updateKieBalance() {
+  const val = Number($('kie-bal-input').value);
+  if (isNaN(val) || val < 0) return toast('أدخل رقم صحيح', 'red');
+  try {
+    const res = await fetch('/api/admin/kie-balance', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+      body: JSON.stringify({ balance: val })
+    });
+    const data = await res.json();
+    if (data.success) {
+      toast('تم تحديث الرصيد ✅', 'green');
+      loadKieBalance();
+    } else {
+      toast(data.message || 'فشل التحديث', 'red');
+    }
+  } catch (e) {
+    toast('خطأ في الاتصال', 'red');
   }
 }
 loadKieBalance();
