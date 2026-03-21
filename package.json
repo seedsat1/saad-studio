@@ -1,0 +1,17 @@
+{
+  "name": "saad-studio",
+  "version": "2.0.0",
+  "description": "SAAD STUDIO - AI Creative Platform",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "express-rate-limit": "^8.3.1",
+    "form-data": "^4.0.0",
+    "helmet": "^8.1.0",
+    "multer": "^1.4.5-lts.1",
+    "node-fetch": "^3.3.2"
+  }
+}

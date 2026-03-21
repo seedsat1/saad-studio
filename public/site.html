@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SAAD STUDIO</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#080e18;--bg2:#0d1525;--bg3:#111d33;
+  --b1:rgba(255,255,255,.07);--b2:rgba(255,255,255,.11);
+  --cyan:#5fe2ff;--amber:#f2b544;--green:#3cdc78;--red:#ff6060;--purple:#c4b5fd;
+  --tx:#e8edf5;--tx2:#8899aa;--tx3:#4a5568;
+  --fm:'Inter',system-ui,sans-serif;--r:14px;
+}
+html,body{background:var(--bg);color:var(--tx);font-family:var(--fm);min-height:100vh;}
+
+/* ── PROMO BAR ── */
+.promo-bar{
+  width:100%;display:flex;align-items:center;justify-content:center;
+  gap:16px;padding:18px 28px;font-size:14px;font-weight:700;
+  transition:all .3s;flex-wrap:wrap;position:relative;z-index:200;
+}
+.promo-bar.fixed{position:fixed;top:0;left:0;right:0;z-index:9999;}
+.promo-bar.in-content{max-width:1200px;margin:20px auto;border-radius:14px;}
+.promo-bar-text{display:flex;flex-direction:column;align-items:center;gap:4px;}
+.promo-bar-sub{font-size:12px;opacity:.85;font-weight:400;}
+.promo-bar-btn{
+  background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);
+  border-radius:24px;padding:9px 22px;font-size:13px;font-weight:700;
+  cursor:pointer;text-decoration:none;color:inherit;transition:all .18s;
+  white-space:nowrap;flex-shrink:0;
+}
+.promo-bar-btn:hover{background:rgba(255,255,255,.3);transform:translateY(-1px);}
+.promo-bar-close{
+  position:absolute;inset-inline-end:14px;top:50%;transform:translateY(-50%);
+  background:none;border:none;cursor:pointer;color:inherit;opacity:.6;
+  font-size:16px;padding:6px;line-height:1;
+}
+.promo-bar-close:hover{opacity:1;}
+#promo-above-main-content{padding:0 24px;}
+#promo-in-navbar{flex:1;display:flex;justify-content:center;align-items:center;padding:0 12px;min-width:0;overflow:hidden;}
+#promo-in-navbar:empty{display:none;}
+#promo-in-navbar .promo-bar{position:static!important;height:auto!important;min-height:32px;padding:5px 14px!important;width:100%;max-width:500px;border-radius:8px;font-size:13px;}
+
+/* ── NAVBAR ── */
+.site-nav{
+  background:rgba(8,14,24,.92);backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--b1);position:sticky;top:0;z-index:100;
+  padding:14px 40px;display:flex;align-items:center;gap:24px;
+}
+.site-nav-logo{
+  font-size:20px;font-weight:900;
+  background:linear-gradient(135deg,var(--cyan),#7c3aed);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  letter-spacing:.06em;white-space:nowrap;text-decoration:none;
+}
+.site-nav-links{display:flex;gap:6px;flex:1;flex-wrap:wrap;}
+.site-nav-link{
+  color:var(--tx2);text-decoration:none;font-size:13px;font-weight:500;
+  padding:6px 12px;border-radius:8px;transition:all .15s;
+}
+.site-nav-link:hover{color:var(--tx);background:rgba(255,255,255,.05);}
+.site-nav-link.active{color:var(--cyan);}
+.site-nav-cta{
+  background:linear-gradient(135deg,var(--cyan),#3b82f6);
+  color:#000;font-weight:800;font-size:13px;padding:8px 20px;
+  border-radius:10px;text-decoration:none;transition:opacity .15s;
+}
+.site-nav-cta:hover{opacity:.85;}
+
+/* ── PAGE WRAPPER ── */
+.site-page{max-width:1200px;margin:0 auto;padding:0 24px;}
+
+/* ── LOADING / ERROR ── */
+.site-loading{
+  display:flex;align-items:center;justify-content:center;
+  min-height:60vh;flex-direction:column;gap:16px;
+}
+.site-spinner{
+  width:44px;height:44px;border-radius:50%;
+  border:3px solid rgba(95,226,255,.15);
+  border-top-color:var(--cyan);animation:spin .8s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+.site-error{
+  text-align:center;padding:80px 24px;
+}
+.site-error-code{font-size:80px;font-weight:900;color:rgba(255,255,255,.05);}
+.site-error-msg{font-size:20px;font-weight:700;color:var(--tx);margin-top:-20px;margin-bottom:12px;}
+.site-error-sub{color:var(--tx2);font-size:14px;}
+
+/* ── SECTION: HERO ── */
+.s-hero{
+  text-align:center;padding:100px 24px 80px;
+  background:radial-gradient(ellipse 80% 50% at 50% 0%,rgba(95,226,255,.08),transparent);
+}
+.s-hero-title{
+  font-size:clamp(36px,6vw,72px);font-weight:900;line-height:1.1;
+  background:linear-gradient(135deg,#e8edf5 0%,var(--cyan) 60%,#7c3aed 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  margin-bottom:20px;
+}
+.s-hero-subtitle{font-size:clamp(16px,2.5vw,22px);color:var(--tx2);margin-bottom:28px;max-width:600px;margin-left:auto;margin-right:auto;}
+.s-hero-desc{font-size:15px;color:var(--tx2);margin-bottom:36px;max-width:560px;margin-left:auto;margin-right:auto;line-height:1.7;}
+.s-hero-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+.s-hero-btn{
+  background:linear-gradient(135deg,var(--cyan),#3b82f6);
+  color:#000;font-weight:800;font-size:15px;padding:14px 32px;
+  border-radius:12px;text-decoration:none;transition:opacity .15s;
+  border:none;cursor:pointer;
+}
+.s-hero-btn:hover{opacity:.85;}
+.s-hero-btn.secondary{
+  background:rgba(255,255,255,.06);color:var(--tx);border:1px solid var(--b2);
+}
+.s-hero-btn.secondary:hover{background:rgba(255,255,255,.1);}
+.s-hero-img{margin-top:48px;border-radius:16px;max-width:100%;box-shadow:0 40px 80px rgba(0,0,0,.5);}
+
+/* ── SECTION: TEXT ── */
+.s-text{padding:64px 24px;max-width:800px;margin:0 auto;}
+.s-text-title{font-size:clamp(24px,3vw,36px);font-weight:800;margin-bottom:16px;}
+.s-text-subtitle{font-size:18px;color:var(--tx2);margin-bottom:16px;}
+.s-text-body{font-size:15px;color:var(--tx2);line-height:1.8;}
+
+/* ── SECTION: FEATURES ── */
+.s-features{padding:64px 24px;}
+.s-features-title{font-size:clamp(24px,3vw,36px);font-weight:800;text-align:center;margin-bottom:8px;}
+.s-features-subtitle{font-size:16px;color:var(--tx2);text-align:center;margin-bottom:40px;}
+.s-features-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px;}
+.s-feature-card{
+  background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r);
+  padding:24px;transition:border-color .2s;
+}
+.s-feature-card:hover{border-color:rgba(95,226,255,.2);}
+.s-feature-icon{font-size:28px;margin-bottom:12px;}
+.s-feature-title{font-size:15px;font-weight:700;margin-bottom:8px;}
+.s-feature-desc{font-size:13px;color:var(--tx2);line-height:1.6;}
+
+/* ── SECTION: STATS ── */
+.s-stats{padding:64px 24px;background:var(--bg2);}
+.s-stats-title{font-size:clamp(22px,3vw,32px);font-weight:800;text-align:center;margin-bottom:40px;}
+.s-stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:24px;max-width:900px;margin:0 auto;}
+.s-stat{text-align:center;}
+.s-stat-num{font-size:clamp(36px,5vw,56px);font-weight:900;color:var(--cyan);line-height:1;}
+.s-stat-label{font-size:13px;color:var(--tx2);margin-top:6px;}
+
+/* ── SECTION: TEAM ── */
+.s-team{padding:64px 24px;}
+.s-team-title{font-size:clamp(24px,3vw,36px);font-weight:800;text-align:center;margin-bottom:8px;}
+.s-team-subtitle{font-size:15px;color:var(--tx2);text-align:center;margin-bottom:40px;}
+.s-team-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;}
+.s-team-card{
+  background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r);
+  padding:24px;text-align:center;
+}
+.s-team-avatar{width:72px;height:72px;border-radius:50%;object-fit:cover;margin:0 auto 12px;background:var(--bg3);}
+.s-team-name{font-size:15px;font-weight:700;margin-bottom:4px;}
+.s-team-role{font-size:12px;color:var(--cyan);}
+.s-team-bio{font-size:12px;color:var(--tx2);margin-top:8px;line-height:1.5;}
+
+/* ── SECTION: FAQ ── */
+.s-faq{padding:64px 24px;max-width:800px;margin:0 auto;}
+.s-faq-title{font-size:clamp(24px,3vw,36px);font-weight:800;margin-bottom:32px;text-align:center;}
+.faq-item{border:1px solid var(--b1);border-radius:var(--r);margin-bottom:8px;overflow:hidden;}
+.faq-q{
+  padding:16px 20px;font-size:14px;font-weight:600;cursor:pointer;
+  display:flex;justify-content:space-between;align-items:center;
+  background:var(--bg2);transition:background .15s;
+}
+.faq-q:hover{background:var(--bg3);}
+.faq-q-icon{font-size:16px;transition:transform .2s;flex-shrink:0;}
+.faq-a{padding:14px 20px;font-size:13px;color:var(--tx2);line-height:1.7;display:none;background:var(--bg);}
+.faq-item.open .faq-a{display:block;}
+.faq-item.open .faq-q-icon{transform:rotate(45deg);}
+
+/* ── SECTION: PRICING ── */
+.s-pricing{padding:64px 24px;}
+.s-pricing-title{font-size:clamp(24px,3vw,36px);font-weight:800;text-align:center;margin-bottom:8px;}
+.s-pricing-subtitle{font-size:15px;color:var(--tx2);text-align:center;margin-bottom:40px;}
+.s-pricing-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;max-width:1000px;margin:0 auto;}
+.s-price-card{
+  background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r);
+  padding:28px;position:relative;
+}
+.s-price-card.highlight{border-color:var(--cyan);background:rgba(95,226,255,.04);}
+.s-price-popular{
+  position:absolute;top:-10px;inset-inline-start:50%;transform:translateX(50%);
+  background:var(--cyan);color:#000;font-size:10px;font-weight:800;
+  padding:3px 12px;border-radius:20px;white-space:nowrap;
+}
+.s-price-name{font-size:14px;color:var(--tx2);font-weight:600;margin-bottom:8px;}
+.s-price-amount{font-size:40px;font-weight:900;margin-bottom:4px;}
+.s-price-period{font-size:13px;color:var(--tx2);margin-bottom:20px;}
+.s-price-feats{list-style:none;margin-bottom:24px;}
+.s-price-feats li{font-size:13px;color:var(--tx2);padding:5px 0;display:flex;gap:8px;align-items:flex-start;}
+.s-price-feats li::before{content:'✓';color:var(--green);font-weight:700;flex-shrink:0;}
+.s-price-btn{width:100%;padding:12px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;text-decoration:none;display:block;text-align:center;transition:opacity .15s;}
+.s-price-btn.primary{background:linear-gradient(135deg,var(--cyan),#3b82f6);color:#000;border:none;}
+.s-price-btn.outline{background:none;color:var(--tx);border:1px solid var(--b2);}
+.s-price-btn:hover{opacity:.85;}
+
+/* ── SECTION: CTA ── */
+.s-cta{
+  padding:80px 24px;text-align:center;
+  background:radial-gradient(ellipse 70% 60% at 50% 50%,rgba(95,226,255,.06),transparent);
+}
+.s-cta-title{font-size:clamp(28px,4vw,48px);font-weight:900;margin-bottom:16px;}
+.s-cta-desc{font-size:16px;color:var(--tx2);margin-bottom:32px;max-width:500px;margin-left:auto;margin-right:auto;}
+.s-cta-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+
+/* ── SECTION: BANNER ── */
+.s-banner{
+  padding:40px 24px;text-align:center;
+  border-radius:var(--r);margin:32px 0;
+  background:linear-gradient(135deg,rgba(95,226,255,.1),rgba(124,58,237,.1));
+  border:1px solid rgba(95,226,255,.15);
+}
+.s-banner-title{font-size:24px;font-weight:800;margin-bottom:8px;}
+.s-banner-desc{font-size:14px;color:var(--tx2);margin-bottom:20px;}
+
+/* ── SECTION: PROMO ── */
+.s-promo{
+  background:linear-gradient(135deg,#1a3a6c,#0d1f45);
+  padding:40px 24px;text-align:center;border-radius:var(--r);margin:32px 0;
+}
+.s-promo-title{font-size:22px;font-weight:800;color:#fff;margin-bottom:8px;}
+.s-promo-desc{font-size:14px;color:rgba(255,255,255,.7);margin-bottom:20px;}
+
+/* ── SECTION: CONTACT ── */
+.s-contact{padding:64px 24px;max-width:600px;margin:0 auto;}
+.s-contact-title{font-size:clamp(24px,3vw,36px);font-weight:800;margin-bottom:8px;}
+.s-contact-desc{font-size:15px;color:var(--tx2);margin-bottom:32px;}
+.s-contact-form{display:flex;flex-direction:column;gap:14px;}
+.s-input,.s-textarea{
+  background:rgba(255,255,255,.05);border:1px solid var(--b2);
+  border-radius:10px;padding:12px 16px;color:var(--tx);font-size:14px;
+  outline:none;font-family:var(--fm);transition:border-color .15s;
+}
+.s-input:focus,.s-textarea:focus{border-color:var(--cyan);}
+.s-textarea{resize:vertical;min-height:100px;}
+.s-contact-btn{
+  background:linear-gradient(135deg,var(--cyan),#3b82f6);
+  color:#000;font-weight:800;font-size:14px;padding:13px 28px;
+  border-radius:10px;border:none;cursor:pointer;transition:opacity .15s;
+  align-self:flex-start;
+}
+.s-contact-btn:hover{opacity:.85;}
+.s-contact-info{display:flex;gap:20px;margin-top:16px;flex-wrap:wrap;}
+.s-contact-info-item{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--tx2);}
+
+/* ── SECTION: GALLERY ── */
+.s-gallery{padding:64px 24px;}
+.s-gallery-title{font-size:clamp(24px,3vw,36px);font-weight:800;text-align:center;margin-bottom:32px;}
+.s-gallery-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;}
+.s-gallery-img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;transition:transform .2s;}
+.s-gallery-img:hover{transform:scale(1.03);}
+
+/* ── SECTION: TESTIMONIALS ── */
+.s-testimonials{padding:64px 24px;}
+.s-testimonials-title{font-size:clamp(24px,3vw,36px);font-weight:800;text-align:center;margin-bottom:40px;}
+.s-testimonials-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;}
+.s-testimonial-card{
+  background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r);
+  padding:24px;
+}
+.s-testimonial-text{font-size:14px;line-height:1.7;margin-bottom:16px;font-style:italic;}
+.s-testimonial-author{display:flex;align-items:center;gap:10px;}
+.s-testimonial-avatar{width:36px;height:36px;border-radius:50%;background:var(--bg3);object-fit:cover;}
+.s-testimonial-name{font-size:13px;font-weight:700;}
+.s-testimonial-role{font-size:11px;color:var(--tx2);}
+.s-testimonial-stars{color:var(--amber);font-size:14px;margin-bottom:12px;}
+
+/* ── SECTION: VIDEO ── */
+.s-video{padding:64px 24px;text-align:center;}
+.s-video-title{font-size:clamp(24px,3vw,36px);font-weight:800;margin-bottom:16px;}
+.s-video-desc{font-size:15px;color:var(--tx2);margin-bottom:28px;}
+.s-video-embed{
+  position:relative;padding-bottom:56.25%;border-radius:var(--r);
+  overflow:hidden;max-width:900px;margin:0 auto;
+  background:var(--bg2);border:1px solid var(--b1);
+}
+.s-video-embed iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:none;}
+
+/* ── SECTION: IMAGE ── */
+.s-image{padding:48px 24px;text-align:center;}
+.s-image-title{font-size:clamp(20px,2.5vw,28px);font-weight:800;margin-bottom:8px;}
+.s-image-desc{font-size:14px;color:var(--tx2);margin-bottom:20px;}
+.s-image-img{max-width:100%;border-radius:var(--r);box-shadow:0 20px 60px rgba(0,0,0,.4);}
+
+/* ── SECTION: CUSTOM ── */
+.s-custom{padding:48px 24px;}
+.s-custom-content{font-size:14px;line-height:1.7;color:var(--tx2);}
+
+/* ── FOOTER ── */
+.site-footer{
+  border-top:1px solid var(--b1);padding:40px 40px 24px;margin-top:48px;
+  display:flex;flex-wrap:wrap;gap:24px;justify-content:space-between;align-items:flex-start;
+}
+.site-footer-brand{display:flex;flex-direction:column;gap:6px;}
+.site-footer-logo{
+  font-size:18px;font-weight:900;
+  background:linear-gradient(135deg,var(--cyan),#7c3aed);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.site-footer-tagline{font-size:12px;color:var(--tx2);}
+.site-footer-links{display:flex;gap:16px;flex-wrap:wrap;}
+.site-footer-link{color:var(--tx2);text-decoration:none;font-size:13px;transition:color .15s;}
+.site-footer-link:hover{color:var(--tx);}
+.site-footer-copy{font-size:11px;color:var(--tx3);width:100%;text-align:center;margin-top:16px;padding-top:16px;border-top:1px solid var(--b1);}
+
+/* Utilities */
+.btn-primary{
+  background:linear-gradient(135deg,var(--cyan),#3b82f6);
+  color:#000;font-weight:800;font-size:14px;padding:12px 28px;
+  border-radius:10px;text-decoration:none;border:none;cursor:pointer;display:inline-block;
+}
+.section-divider{height:1px;background:var(--b1);margin:0 24px;}
+
+/* ═══════════════════════════════════════════════════
+   SITE.HTML RESPONSIVE
+═══════════════════════════════════════════════════ */
+/* Nav hamburger */
+.site-nav-hamburger{
+  display:none;background:none;border:1px solid rgba(95,226,255,.2);
+  border-radius:8px;color:var(--tx);font-size:20px;cursor:pointer;
+  width:38px;height:38px;align-items:center;justify-content:center;
+  transition:all .15s;flex-shrink:0;
+}
+.site-nav-hamburger:hover{background:rgba(95,226,255,.08);}
+.site-nav-links.open{display:flex!important;}
+
+@media(max-width:768px){
+  /* Nav */
+  .site-nav{padding:12px 20px;gap:12px;position:relative;flex-wrap:wrap;}
+  .site-nav-hamburger{display:flex;}
+  .site-nav-links{
+    display:none;width:100%;flex-direction:column;gap:4px;
+    padding:8px 0;order:99;
+  }
+  .site-nav-links.open{display:flex;}
+  .site-nav-link{padding:10px 12px;width:100%;}
+  #promo-in-navbar{display:none!important;}
+  /* Sections */
+  .s-hero{padding:60px 20px 48px;}
+  .s-hero-btns{flex-direction:column;align-items:center;}
+  .s-hero-btn{width:100%;max-width:300px;text-align:center;}
+  .s-features{padding:40px 20px;}
+  .s-features-grid{grid-template-columns:1fr;}
+  .s-stats{padding:40px 20px;}
+  .s-stats-grid{grid-template-columns:1fr 1fr;}
+  .s-team{padding:40px 20px;}
+  .s-team-grid{grid-template-columns:1fr 1fr;}
+  .s-pricing{padding:40px 20px;}
+  .s-pricing-grid{grid-template-columns:1fr;}
+  .s-gallery-grid{grid-template-columns:1fr 1fr;}
+  .s-testimonials{padding:40px 20px;}
+  .s-testimonials-grid{grid-template-columns:1fr;}
+  .s-faq{padding:40px 20px;}
+  .site-footer{padding:32px 20px 20px;}
+  /* Promo bars on mobile */
+  .promo-bar{flex-wrap:wrap;height:auto!important;padding:10px 16px!important;gap:6px;}
+  .promo-bar-text{text-align:center;}
+  .promo-bar.fixed{position:static!important;}
+  #promo-above-main-content{padding:0 12px;}
+}
+
+@media(max-width:480px){
+  .site-nav-cta{display:none;}
+  .s-stats-grid{grid-template-columns:1fr 1fr;}
+  .s-team-grid{grid-template-columns:1fr;}
+  .s-gallery-grid{grid-template-columns:1fr 1fr;}
+  .site-footer{flex-direction:column;}
+}
+</style>
+</head>
+<body>
+
+<div id="promo-above-navbar"></div>
+
+<nav class="site-nav" id="site-nav">
+  <a class="site-nav-logo" href="/" id="site-logo">SAAD STUDIO</a>
+  <div class="site-nav-links" id="site-nav-links"></div>
+  <div id="promo-in-navbar"></div>
+  <a class="site-nav-cta" href="/" id="site-nav-cta">تجربة المنصة</a>
+  <button class="site-nav-hamburger" id="site-nav-hamburger" onclick="toggleSiteNav()" aria-label="Menu">&#9776;</button>
+</nav>
+
+<div id="promo-below-navbar"></div>
+
+<main id="site-main">
+  <div id="promo-above-main-content"></div>
+  <div class="site-loading" id="site-loading">
+    <div class="site-spinner"></div>
+    <div style="color:var(--tx2);font-size:14px;">جارٍ تحميل المحتوى...</div>
+  </div>
+  <div id="site-content" style="display:none;"></div>
+</main>
+
+<div id="promo-above-footer"></div>
+
+<footer class="site-footer" id="site-footer" style="display:none;">
+  <div class="site-footer-brand">
+    <div class="site-footer-logo" id="footer-logo">SAAD STUDIO</div>
+    <div class="site-footer-tagline" id="footer-tagline">Creative AI Platform</div>
+  </div>
+  <div class="site-footer-links" id="footer-links"></div>
+  <div class="site-footer-copy" id="footer-copy">© 2026 SAAD STUDIO. All rights reserved.</div>
+</footer>
+
+<script>
+(async function(){
+
+  // ─── Determine slug from URL ───
+  function getSlug(){
+    const p = window.location.pathname.replace(/\/$/, '');
+    // /p/about → about | /about → about | /home → home
+    const m = p.match(/^\/p\/(.+)/) || p.match(/^\/([^/]+)$/);
+    return m ? m[1] : 'home';
+  }
+
+  const slug = getSlug();
+
+  // ─── Helpers ───
+  function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  
+  function setActive(link){ document.querySelectorAll('.site-nav-link').forEach(a=>a.classList.toggle('active', a.getAttribute('href')===window.location.pathname || a.getAttribute('href')==='/'+slug)); }
+  function toggleSiteNav(){
+    const links=document.getElementById('site-nav-links');
+    links.classList.toggle('open');
+  }
+  // close nav on link click on mobile
+  document.addEventListener('click', e=>{
+    if(e.target && e.target.classList.contains('site-nav-link') && window.innerWidth<=768){
+      document.getElementById('site-nav-links').classList.remove('open');
+    }
+  });
+
+  // ─── Nav & Settings load ───
+  async function loadNav(){
+    try{
+      const [navRes, settingsRes] = await Promise.all([
+        fetch('/api/cms/nav').then(r=>r.json()).catch(()=>({navigation:{header:[],footer:[]}})),
+        fetch('/api/cms/settings').then(r=>r.json()).catch(()=>({}))
+      ]);
+      const nav = navRes.navigation || {};
+      const headerLinks = nav.header || [];
+      const footerLinks = nav.footer || [];
+      const s = settingsRes;
+
+      // Logo
+      if(s.siteTitle){ document.getElementById('site-logo').textContent = s.siteTitle; document.getElementById('footer-logo').textContent = s.siteTitle; }
+      if(s.siteDescription) document.getElementById('footer-tagline').textContent = s.siteDescription;
+      if(s.seoTitle) document.title = s.seoTitle;
+
+      // Header nav
+      const navEl = document.getElementById('site-nav-links');
+      if(headerLinks.length){
+        navEl.innerHTML = headerLinks.map(l=>`<a class="site-nav-link" href="${esc(l.href)}" target="${esc(l.target||'_self')}">${esc(l.label)}</a>`).join('');
+      }
+
+      // Footer nav
+      const footerLinksEl = document.getElementById('footer-links');
+      if(footerLinks.length){
+        footerLinksEl.innerHTML = footerLinks.map(l=>`<a class="site-footer-link" href="${esc(l.href)}" target="${esc(l.target||'_self')}">${esc(l.label)}</a>`).join('');
+      }
+
+      document.getElementById('site-footer').style.display = 'flex';
+      setActive();
+
+      // Favicon
+      if(s.favicon){ const lnk=document.createElement('link'); lnk.rel='icon'; lnk.href=s.favicon; document.head.appendChild(lnk); }
+    }catch(e){ console.warn('loadNav error', e); }
+  }
+
+  // ─── Render promo bar ───
+  function renderPromoBar(bar, container){
+    const placement = bar.placement || 'above-navbar';
+    const inContent = placement === 'above-main-content';
+    // Background
+    let bg;
+    if(bar.gradientStart && bar.gradientEnd){
+      bg = `linear-gradient(135deg,${bar.gradientStart},${bar.gradientEnd})`;
+    } else {
+      bg = bar.bgColor || '#1a3a6c';
+    }
+    const height   = bar.height   || (inContent ? '72px' : '48px');
+    const paddingY = bar.paddingY || (inContent ? '20px' : '12px');
+    const paddingX = bar.paddingX || (inContent ? '32px' : '24px');
+    const radius   = inContent ? (bar.borderRadius || '14px') : (bar.fixed ? '0' : (bar.borderRadius || '0'));
+    const textColor  = bar.textColor  || '#ffffff';
+    const align    = bar.align    || 'center';
+    const justify  = align==='left' ? 'flex-start' : align==='right' ? 'flex-end' : 'center';
+    const textAlign = bar.textAlign || align;
+    const mainSize   = bar.mainFontSize   || '14px';
+    const mainWeight = bar.mainFontWeight || '700';
+    // Effects
+    let extra = '';
+    if(bar.borderWidth && bar.borderWidth !== '0' && bar.borderColor)
+      extra += `border:${bar.borderWidth} solid ${bar.borderColor};`;
+    const shadows = [];
+    if(bar.shadowEnabled) shadows.push('0 8px 32px rgba(0,0,0,.35)');
+    if(bar.glowEnabled){
+      const gc = bar.gradientStart || bar.bgColor || '#5fe2ff';
+      shadows.push(`0 0 40px ${gc}55`);
+    }
+    if(shadows.length) extra += `box-shadow:${shadows.join(',')};`;
+    if(bar.glassEffect) extra += 'backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);';
+    if(bar.letterSpacing) extra += `letter-spacing:${bar.letterSpacing};`;
+    if(bar.lineHeight)    extra += `line-height:${bar.lineHeight};`;
+    const el = document.createElement('div');
+    el.className = 'promo-bar' + (bar.fixed && !inContent ? ' fixed' : '') + (inContent && !bar.fullWidth ? ' in-content' : '');
+    if(bar.id) el.dataset.barId = bar.id;
+    const cssParts = [`background:${bg}`,`color:${textColor}`,`min-height:${height}`,`justify-content:${justify}`,`text-align:${textAlign}`,`padding:${paddingY} ${paddingX}`,radius?`border-radius:${radius}`:'',`font-size:${mainSize}`,`font-weight:${mainWeight}`,extra].filter(Boolean);
+    el.style.cssText = cssParts.join(';') + ';';
+    // Button
+    const btnA = [];
+    if(bar.btnBgColor)    btnA.push(`background:${bar.btnBgColor}`);
+    if(bar.btnTextColor)  btnA.push(`color:${bar.btnTextColor}`);
+    if(bar.btnBorderColor) btnA.push(`border-color:${bar.btnBorderColor}`);
+    if(bar.btnFontSize)   btnA.push(`font-size:${bar.btnFontSize}`);
+    if(bar.btnFontWeight) btnA.push(`font-weight:${bar.btnFontWeight}`);
+    const btnStyle = btnA.length ? ` style="${btnA.join(';')}"` : '';
+    const btnHTML = bar.buttonText && bar.buttonLink
+      ? `<a class="promo-bar-btn" href="${esc(bar.buttonLink)}"${btnStyle}>${esc(bar.buttonText)}</a>` : '';
+    // Subtext
+    const subA = [];
+    if(bar.subtextFontSize)   subA.push(`font-size:${bar.subtextFontSize}`);
+    if(bar.subtextFontWeight) subA.push(`font-weight:${bar.subtextFontWeight}`);
+    if(bar.subtextColor)      subA.push(`color:${bar.subtextColor}`);
+    const subStyle = subA.length ? ` style="${subA.join(';')}"` : '';
+    const subHTML = bar.subtext ? `<div class="promo-bar-sub"${subStyle}>${esc(bar.subtext)}</div>` : '';
+    el.innerHTML = `<div class="promo-bar-text"><span>${esc(bar.text)}</span>${subHTML}</div>${btnHTML}<button class="promo-bar-close" onclick="this.parentElement.remove()" aria-label="Close">✕</button>`;
+    container.appendChild(el);
+  }
+
+  // ─── Render sections ───
+  function renderSection(s){
+    const d = s.data || {};
+    let html = '';
+
+    switch((s.type||'').toLowerCase()){
+
+      case 'hero':
+        html = `<section class="s-hero">
+          ${d.title?`<h1 class="s-hero-title">${esc(d.title)}</h1>`:''}
+          ${d.subtitle?`<p class="s-hero-subtitle">${esc(d.subtitle)}</p>`:''}
+          ${d.description?`<p class="s-hero-desc">${esc(d.description)}</p>`:''}
+          ${(d.buttonText||d.buttonText2)?`<div class="s-hero-btns">
+            ${d.buttonText?`<a href="${esc(d.buttonLink||'/')}" class="s-hero-btn">${esc(d.buttonText)}</a>`:''}
+            ${d.buttonText2?`<a href="${esc(d.buttonLink2||'/')}" class="s-hero-btn secondary">${esc(d.buttonText2)}</a>`:''}
+          </div>`:''}
+          ${d.image?`<img class="s-hero-img" src="${esc(d.image)}" alt="${esc(d.title||'')}">`:''}
+        </section>`;
+        break;
+
+      case 'text':
+        html = `<section class="s-text" style="${d.maxWidth?`max-width:${esc(d.maxWidth)}`:''}">
+          ${d.title?`<h2 class="s-text-title">${esc(d.title)}</h2>`:''}
+          ${d.subtitle?`<p class="s-text-subtitle">${esc(d.subtitle)}</p>`:''}
+          ${d.description?`<p class="s-text-body">${esc(d.description)}</p>`:''}
+        </section>`;
+        break;
+
+      case 'features': {
+        const items = d.items || [];
+        html = `<section class="s-features site-page">
+          ${d.title?`<h2 class="s-features-title">${esc(d.title)}</h2>`:''}
+          ${d.subtitle?`<p class="s-features-subtitle">${esc(d.subtitle)}</p>`:''}
+          <div class="s-features-grid">
+            ${items.map(it=>{
+              const itObj = typeof it==='object'?it:{title:it};
+              return `<div class="s-feature-card">
+                ${itObj.icon?`<div class="s-feature-icon">${esc(itObj.icon)}</div>`:''}
+                ${itObj.title?`<div class="s-feature-title">${esc(itObj.title)}</div>`:''}
+                ${itObj.description?`<p class="s-feature-desc">${esc(itObj.description)}</p>`:''}
+              </div>`;
+            }).join('')}
+          </div>
+        </section>`;
+        break;
+      }
+
+      case 'stats': {
+        const items = d.items || [];
+        html = `<section class="s-stats">
+          <div class="site-page">
+            ${d.title?`<h2 class="s-stats-title">${esc(d.title)}</h2>`:''}
+            <div class="s-stats-grid">
+              ${items.map(it=>{
+                const itObj = typeof it==='object'?it:{label:it};
+                return `<div class="s-stat">
+                  <div class="s-stat-num">${esc(itObj.value||itObj.num||'')}</div>
+                  <div class="s-stat-label">${esc(itObj.label||itObj.title||'')}</div>
+                </div>`;
+              }).join('')}
+            </div>
+          </div>
+        </section>`;
+        break;
+      }
+
+      case 'team': {
+        const members = d.members || d.items || [];
+        html = `<section class="s-team site-page">
+          ${d.title?`<h2 class="s-team-title">${esc(d.title)}</h2>`:''}
+          ${d.subtitle?`<p class="s-team-subtitle">${esc(d.subtitle)}</p>`:''}
+          <div class="s-team-grid">
+            ${members.map(m=>{
+              const mo = typeof m==='object'?m:{name:m};
+              return `<div class="s-team-card">
+                ${mo.avatar?`<img class="s-team-avatar" src="${esc(mo.avatar)}" alt="${esc(mo.name||'')}">`:
+                  `<div class="s-team-avatar" style="display:flex;align-items:center;justify-content:center;font-size:24px;background:var(--bg3);">👤</div>`}
+                ${mo.name?`<div class="s-team-name">${esc(mo.name)}</div>`:''}
+                ${mo.role?`<div class="s-team-role">${esc(mo.role)}</div>`:''}
+                ${mo.bio?`<p class="s-team-bio">${esc(mo.bio)}</p>`:''}
+              </div>`;
+            }).join('')}
+          </div>
+        </section>`;
+        break;
+      }
+
+      case 'faq': {
+        const items = d.items || d.faqs || [];
+        html = `<section class="s-faq">
+          ${d.title?`<h2 class="s-faq-title">${esc(d.title)}</h2>`:''}
+          ${items.map((it,i)=>{
+            const itObj = typeof it==='object'?it:{question:it};
+            return `<div class="faq-item" onclick="this.classList.toggle('open')">
+              <div class="faq-q">${esc(itObj.question||itObj.q||'')} <span class="faq-q-icon">+</span></div>
+              <div class="faq-a">${esc(itObj.answer||itObj.a||'')}</div>
+            </div>`;
+          }).join('')}
+        </section>`;
+        break;
+      }
+
+      case 'pricing': {
+        const plans = d.plans || d.items || [];
+        html = `<section class="s-pricing site-page">
+          ${d.title?`<h2 class="s-pricing-title">${esc(d.title)}</h2>`:''}
+          ${d.subtitle?`<p class="s-pricing-subtitle">${esc(d.subtitle)}</p>`:''}
+          <div class="s-pricing-grid">
+            ${plans.map(pl=>{
+              const plObj = typeof pl==='object'?pl:{name:pl};
+              const feats = plObj.features||plObj.items||[];
+              return `<div class="s-price-card ${plObj.highlight?'highlight':''}">
+                ${plObj.popular?`<div class="s-price-popular">الأكثر شيوعاً</div>`:''}
+                <div class="s-price-name">${esc(plObj.name||'')}</div>
+                <div class="s-price-amount">${esc(plObj.price||'')}</div>
+                ${plObj.period?`<div class="s-price-period">${esc(plObj.period)}</div>`:''}
+                <ul class="s-price-feats">${feats.map(f=>`<li>${esc(f)}</li>`).join('')}</ul>
+                ${plObj.buttonText?`<a href="${esc(plObj.buttonLink||'/')}" class="s-price-btn ${plObj.highlight?'primary':'outline'}">${esc(plObj.buttonText)}</a>`:''}
+              </div>`;
+            }).join('')}
+          </div>
+        </section>`;
+        break;
+      }
+
+      case 'cta':
+        html = `<section class="s-cta site-page">
+          ${d.title?`<h2 class="s-cta-title">${esc(d.title)}</h2>`:''}
+          ${d.description?`<p class="s-cta-desc">${esc(d.description)}</p>`:''}
+          <div class="s-cta-btns">
+            ${d.buttonText?`<a href="${esc(d.buttonLink||'/')}" class="s-hero-btn">${esc(d.buttonText)}</a>`:''}
+            ${d.buttonText2?`<a href="${esc(d.buttonLink2||'/')}" class="s-hero-btn secondary">${esc(d.buttonText2)}</a>`:''}
+          </div>
+        </section>`;
+        break;
+
+      case 'banner':
+        html = `<section class="site-page"><div class="s-banner">
+          ${d.title?`<div class="s-banner-title">${esc(d.title)}</div>`:''}
+          ${d.description?`<p class="s-banner-desc">${esc(d.description)}</p>`:''}
+          ${d.buttonText?`<a href="${esc(d.buttonLink||'/')}" class="btn-primary">${esc(d.buttonText)}</a>`:''}
+        </div></section>`;
+        break;
+
+      case 'promo':
+        html = `<section class="site-page"><div class="s-promo" style="${d.bgColor?`background:${esc(d.bgColor)}`:''}">
+          ${d.title?`<div class="s-promo-title">${esc(d.title)}</div>`:''}
+          ${d.description?`<p class="s-promo-desc">${esc(d.description)}</p>`:''}
+          ${d.buttonText?`<a href="${esc(d.buttonLink||'/')}" class="btn-primary">${esc(d.buttonText)}</a>`:''}
+        </div></section>`;
+        break;
+
+      case 'contact':
+        html = `<section class="s-contact">
+          ${d.title?`<h2 class="s-contact-title">${esc(d.title)}</h2>`:''}
+          ${d.description?`<p class="s-contact-desc">${esc(d.description)}</p>`:''}
+          <form class="s-contact-form" onsubmit="handleContactSubmit(event)">
+            <input class="s-input" type="text" name="name" placeholder="الاسم الكامل" required>
+            <input class="s-input" type="email" name="email" placeholder="البريد الإلكتروني" required>
+            <input class="s-input" type="text" name="subject" placeholder="الموضوع">
+            <textarea class="s-textarea" name="message" placeholder="رسالتك..." required></textarea>
+            <button class="s-contact-btn" type="submit">📤 إرسال</button>
+          </form>
+          ${(d.email||d.phone)?`<div class="s-contact-info">
+            ${d.email?`<div class="s-contact-info-item">📧 ${esc(d.email)}</div>`:''}
+            ${d.phone?`<div class="s-contact-info-item">📞 ${esc(d.phone)}</div>`:''}
+          </div>`:''}
+        </section>`;
+        break;
+
+      case 'gallery': {
+        const imgs = d.images || d.items || [];
+        html = `<section class="s-gallery site-page">
+          ${d.title?`<h2 class="s-gallery-title">${esc(d.title)}</h2>`:''}
+          <div class="s-gallery-grid">
+            ${imgs.map(img=>{
+              const src = typeof img==='object'?img.src||img.url:img;
+              const alt = typeof img==='object'?img.alt||img.title||'':'';
+              return `<img class="s-gallery-img" src="${esc(src)}" alt="${esc(alt)}" loading="lazy">`;
+            }).join('')}
+          </div>
+        </section>`;
+        break;
+      }
+
+      case 'testimonials': {
+        const items = d.items || d.testimonials || [];
+        html = `<section class="s-testimonials site-page">
+          ${d.title?`<h2 class="s-testimonials-title">${esc(d.title)}</h2>`:''}
+          <div class="s-testimonials-grid">
+            ${items.map(it=>{
+              const itObj = typeof it==='object'?it:{text:it};
+              const stars = Number(itObj.stars||5);
+              return `<div class="s-testimonial-card">
+                ${stars?`<div class="s-testimonial-stars">${'★'.repeat(stars)}</div>`:''}
+                <p class="s-testimonial-text">"${esc(itObj.text||itObj.content||'')}"</p>
+                <div class="s-testimonial-author">
+                  ${itObj.avatar?`<img class="s-testimonial-avatar" src="${esc(itObj.avatar)}" alt="${esc(itObj.name||'')}">`:
+                    `<div class="s-testimonial-avatar" style="display:flex;align-items:center;justify-content:center;font-size:16px;background:var(--bg3);">👤</div>`}
+                  <div>
+                    ${itObj.name?`<div class="s-testimonial-name">${esc(itObj.name)}</div>`:''}
+                    ${itObj.role?`<div class="s-testimonial-role">${esc(itObj.role)}</div>`:''}
+                  </div>
+                </div>
+              </div>`;
+            }).join('')}
+          </div>
+        </section>`;
+        break;
+      }
+
+      case 'video':
+        html = `<section class="s-video site-page">
+          ${d.title?`<h2 class="s-video-title">${esc(d.title)}</h2>`:''}
+          ${d.description?`<p class="s-video-desc">${esc(d.description)}</p>`:''}
+          ${d.url?`<div class="s-video-embed"><iframe src="${esc(d.url)}" allowfullscreen allow="autoplay; encrypted-media"></iframe></div>`:''}
+        </section>`;
+        break;
+
+      case 'image':
+        html = `<section class="s-image site-page">
+          ${d.title?`<h2 class="s-image-title">${esc(d.title)}</h2>`:''}
+          ${d.description?`<p class="s-image-desc">${esc(d.description)}</p>`:''}
+          ${d.url||d.src?`<img class="s-image-img" src="${esc(d.url||d.src)}" alt="${esc(d.alt||d.title||'')}">`:''}
+        </section>`;
+        break;
+
+      default: // custom / unknown
+        if(d.html){
+          html = `<section class="s-custom site-page"><div class="s-custom-content">${d.html}</div></section>`;
+        } else {
+          const lines = Object.entries(d).map(([k,v])=>`<div><strong>${esc(k)}:</strong> ${esc(String(v))}</div>`).join('');
+          html = `<section class="s-custom site-page"><div class="s-custom-content">${lines||esc(s.label||s.type)}</div></section>`;
+        }
+    }
+    return html;
+  }
+
+  // ─── Contact form handler ───
+  window.handleContactSubmit = function(e){
+    e.preventDefault();
+    const btn = e.target.querySelector('button[type="submit"]');
+    if(btn){ btn.textContent='✅ تم الإرسال!'; btn.disabled=true; }
+    setTimeout(()=>{ if(btn){btn.textContent='📤 إرسال'; btn.disabled=false;} e.target.reset(); }, 2000);
+  };
+
+  // ─── Main load ───
+  try {
+    const [navP, pageP] = await Promise.all([
+      loadNav(),
+      fetch(`/api/cms/pages/${encodeURIComponent(slug)}`).then(r=>{
+        if(r.status===404) return null;
+        if(!r.ok) throw new Error(r.status);
+        return r.json();
+      })
+    ]);
+
+    const loading = document.getElementById('site-loading');
+    const content = document.getElementById('site-content');
+
+    if(!pageP){
+      loading.innerHTML = `<div class="site-error"><div class="site-error-code">404</div><div class="site-error-msg">الصفحة غير موجودة</div><div class="site-error-sub">لا توجد صفحة بهذا العنوان</div><br><a href="/" class="btn-primary" style="margin-top:20px;">العودة للرئيسية</a></div>`;
+      return;
+    }
+
+    // SEO
+    if(pageP.seoTitle) document.title = pageP.seoTitle;
+    if(pageP.seoDescription){
+      let meta = document.querySelector('meta[name="description"]');
+      if(!meta){ meta=document.createElement('meta'); meta.name='description'; document.head.appendChild(meta); }
+      meta.content = pageP.seoDescription;
+    }
+
+    // Render promo bars by placement
+    const bars = pageP.promoBars || [];
+    const getPromoContainer = p => document.getElementById('promo-'+p.replace(/-/g,'-'));
+    bars.forEach(b => {
+      const c = getPromoContainer(b.placement||'above-navbar');
+      if(c) renderPromoBar(b, c);
+    });
+
+    // Render sections
+    const aboveHeroSection = document.getElementById('promo-above-hero');
+    const sections = pageP.sections || [];
+
+    let sectionHTML = '';
+    let heroRendered = false;
+    sections.forEach((s,i) => {
+      // Inject "above-hero" promo bars before hero section
+      if(!heroRendered && (s.type==='hero'||i===0)){
+        heroRendered = true;
+        const aboveBars = bars.filter(b=>b.placement==='above-hero');
+        if(aboveBars.length){
+          const tmp = document.createElement('div');
+          aboveBars.forEach(b=>renderPromoBar(b,tmp));
+          sectionHTML += tmp.innerHTML;
+        }
+      }
+      sectionHTML += renderSection(s);
+
+      // "between-sections" promo bars after each section
+      const betweenBars = bars.filter(b=>b.placement==='between-sections');
+      if(betweenBars.length && i < sections.length-1){
+        const tmp = document.createElement('div');
+        betweenBars.forEach(b=>renderPromoBar(b,tmp));
+        sectionHTML += tmp.innerHTML;
+      }
+    });
+
+    content.innerHTML = sectionHTML;
+    loading.style.display = 'none';
+    content.style.display = 'block';
+
+    // Inject "above-footer" promo bars
+    const footerBars = bars.filter(b=>b.placement==='above-footer');
+    const footerPromoEl = document.getElementById('promo-above-footer');
+    footerBars.forEach(b=>renderPromoBar(b, footerPromoEl));
+
+  } catch(err){
+    console.error('CMS load error', err);
+    document.getElementById('site-loading').innerHTML = `<div class="site-error"><div class="site-error-code">500</div><div class="site-error-msg">خطأ في التحميل</div><div class="site-error-sub">${err.message}</div></div>`;
+  }
+
+})();
+</script>
+</body>
+</html>

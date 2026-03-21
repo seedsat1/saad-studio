@@ -1,0 +1,49 @@
+# Environment — NEVER commit
+.env
+.env.local
+.env.*.local
+
+# Runtime data (entire vault directory)
+vault/
+
+# Uploads
+uploads/
+
+# Workflows (ComfyUI JSON configs)
+workflows/
+
+# Media folders
+photo H/
+photo W/
+
+# Node
+node_modules/
+npm-debug.log*
+
+# Logs & temp
+*.log
+*.tmp
+security.log
+
+# Archives & large files
+*.rar
+*.zip
+*.7z
+*.tar.gz
+
+# Build artifacts & misc
+_patch_out.txt
+_patch_report.txt
+_ps_out.txt
+response.json
+New folder/
+
+# Private documents
+*.pdf
+*.docx
+*.bat
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
