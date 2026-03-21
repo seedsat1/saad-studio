@@ -7,6 +7,7 @@ const fetch = (...args) => import('node-fetch').then(({default: f}) => f(...args
 const FormData = require('form-data');
 const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
+const axios = require('axios');
 
 function loadEnvFile() {
   const envPath = path.join(__dirname, '.env');
@@ -3403,6 +3404,21 @@ function saveOrders(db){ fs.writeFileSync(ORDERS_FILE, JSON.stringify(db, null, 
 
 // POST /api/admin/login — REMOVED (unified into /api/auth/login)
 
+
+// GET /api/admin/kie-balance — fetch KIE API balance
+app.get('/api/admin/kie-balance', requireAdmin, async (req, res) => {
+  try {
+    const response = await axios.get('https://api.kie.ai/v1/user/balance', {
+      headers: {
+        Authorization: `Bearer ${process.env.KIE_API_KEY}`
+      }
+    });
+    res.json({ success: true, balance: response.data.balance });
+  } catch (err) {
+    console.error(err.response?.data || err.message);
+    res.status(500).json({ success: false, message: 'Failed to fetch balance' });
+  }
+});
 
 // GET /api/admin/session — validate existing session and return CSRF token
 app.get('/api/admin/session', requireAdmin, (req, res) => {

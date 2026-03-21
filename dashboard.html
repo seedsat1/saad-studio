@@ -522,6 +522,13 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:var(--fm)
 .page-select-label{font-size:11px;color:var(--tx2);font-weight:700;white-space:nowrap;}
 .maintenance-banner{background:rgba(255,96,96,.1);border:1px solid rgba(255,96,96,.3);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:11px;color:var(--red);display:none;}
 .maintenance-banner.active{display:block;}
+/* ── Back button + KIE balance ── */
+.dashboard-header{position:absolute;top:20px;left:20px;z-index:200;}
+.back-btn{padding:10px 18px;background:linear-gradient(135deg,#1f5d8f,#2e6fa3);color:#fff;border-radius:10px;text-decoration:none;font-size:14px;transition:opacity .15s;}
+.back-btn:hover{opacity:.85;}
+.kie-balance-box{margin-top:14px;padding:20px 30px;background:var(--bg3);border:1px solid var(--b1);border-radius:16px;text-align:center;color:#fff;width:320px;}
+.kie-balance-box h3{font-size:14px;color:var(--tx2);margin-bottom:8px;}
+#kie-balance{font-size:32px;color:#00ffcc;font-weight:900;margin-top:6px;}
 </style>
 </head>
 <body>
@@ -549,6 +556,14 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:var(--fm)
   </div>
 </div>
 
+<!-- ═══ HEADER: BACK + KIE ═══ -->
+<div class="dashboard-header">
+  <a href="/" class="back-btn">← الرجوع إلى الموقع</a>
+  <div class="kie-balance-box">
+    <h3>رصيد KIE</h3>
+    <div id="kie-balance">جارٍ التحميل...</div>
+  </div>
+</div>
 <!-- ═══ DASHBOARD ═══ -->
 <div id="dashboard">
 
@@ -993,6 +1008,22 @@ let usersPage  = 1;
 
 // ── Helpers ──
 function $(id){ return document.getElementById(id); }
+
+// ── KIE Balance ──
+async function loadKieBalance() {
+  try {
+    const res = await fetch('/api/admin/kie-balance', { credentials: 'same-origin' });
+    const data = await res.json();
+    if (data.success) {
+      document.getElementById('kie-balance').innerText = data.balance + ' Credits';
+    } else {
+      document.getElementById('kie-balance').innerText = 'تعذر جلب الرصيد';
+    }
+  } catch (err) {
+    document.getElementById('kie-balance').innerText = 'خطأ في الاتصال';
+  }
+}
+loadKieBalance();
 function toast(msg, type='ok'){
   const el = $('toast');
   el.textContent = msg;
