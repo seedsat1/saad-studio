@@ -4072,7 +4072,7 @@ Professional photography look.</textarea>
             </div>
           </div>
           <div class="card-body">
-            <div class="txt-output" id="flo-result" style="min-height:170px;">ستظهر نتيجة Florence2 هنا...</div>
+            <div class="txt-output" id="flo-result" style="min-height:170px;">ستظهر نتيجة تحليل الصورة هنا...</div>
           </div>
         </div>
       </div>
@@ -9417,7 +9417,7 @@ if(document.readyState === 'loading'){
 // ═══════════════════════════
 async function generate(type) {
   if(!AUTH.checkCredits(10)) return;
-  if(!['promptstudio','t2p'].includes(type) && !S.connected){ toast('اتصل بـ ComfyUI أولاً','error'); return; }
+  if(!['promptstudio','t2p','florence'].includes(type) && !S.connected){ toast('اتصل بـ ComfyUI أولاً','error'); return; }
   const btnId = {video:'vid-btn',clothes:'clothes-btn',edit:'edit-btn',scene:'scene-btn',story:'story-btn',florence:'flo-btn',t2p:'t2p-btn',promptstudio:'ps-btn-generate'}[type];
   const btn = document.getElementById(btnId);
   if(btn){ btn.disabled=true; btn.innerHTML='<div class="spinner"></div> جاري الإرسال...'; }
@@ -11623,18 +11623,47 @@ async function runGeminiPromptLab(){
 }
 
 async function buildFlorence(){
-  const img=await uploadImage('dz-flo'); if(!img){toast('ارفع الصورة أولاً','error');return null;}
+  const file = S.files['dz-flo'];
+  if(!file){toast('ارفع الصورة أولاً','error');return null;}
   const task=document.getElementById('flo-task').value;
-  const graph = {
-    "1":{class_type:"LoadImage",inputs:{image:img}},
-    "2":{class_type:"DownloadAndLoadFlorence2Model",inputs:{model:"MiaoshouAI/Florence-2-large-PromptGen-v2.0",precision:"fp16",attention:"sdpa",convert_to_safetensors:false}},
-    "3":{class_type:"Florence2Run",inputs:{text_input:"",task:task,fill_mask:"",keep_model_loaded:true,max_new_tokens:1024,num_beams:3,do_sample:1,output_mask_select:"",seed:1,image:["1",0],florence2_model:["2",0]}},
-    "4":{class_type:"ShowText|pysssss",inputs:{text:["3",2]}}
+  const taskMap = {
+    'more_detailed_caption': 'Describe this image in extensive detail. Include every visible element, colors, textures, lighting, composition, mood, and spatial relationships.',
+    'detailed_caption': 'Describe this image in detail, including the main subject, background, colors, and composition.',
+    'caption': 'Describe this image briefly in one or two sentences.'
   };
-  const r=await fetch('/api/prompt',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:graph})});
-  const d=await r.json();
-  if(d.error){toast('خطأ: '+JSON.stringify(d.error).substring(0,120),'error');return null;}
-  if(d.prompt_id){AUTH.consumeCredits(10);toast('تم الإرسال ⏳','success');showProg('florence');pollResults(d.prompt_id,'florence');}
+  const prompt = taskMap[task] || taskMap['more_detailed_caption'];
+  const btn = document.getElementById('flo-btn');
+  if(btn){ btn.disabled=true; btn.innerHTML='<div class="spinner"></div> جاري التحليل...'; }
+  try {
+    const base64 = await new Promise((resolve,reject)=>{
+      const reader = new FileReader();
+      reader.onload = ()=> resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+    const [meta, data] = base64.split(',');
+    const mime = (meta.match(/data:(.*);base64/)||[])[1]||'image/png';
+    const r = await fetch('/api/generate',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'gemini-2.5-flash',
+        parts:[
+          {text: prompt},
+          {inlineData:{mimeType:mime, data:data}}
+        ]
+      })
+    });
+    const d = await r.json();
+    if(!r.ok){ toast('خطأ: '+(d.error||'request failed').substring(0,120),'error'); return null; }
+    const el = document.getElementById('flo-result');
+    if(el) el.textContent = d.text || 'لم يتم استخراج نص';
+    toast('✅ اكتمل!','success');
+  } catch(e){
+    toast('خطأ: '+e.message.substring(0,80),'error');
+  } finally {
+    if(btn){ btn.disabled=false; btn.innerHTML='Generate'; }
+  }
   return null;
 }
 
