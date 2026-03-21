@@ -3405,20 +3405,25 @@ function saveOrders(db){ fs.writeFileSync(ORDERS_FILE, JSON.stringify(db, null, 
 // POST /api/admin/login — REMOVED (unified into /api/auth/login)
 
 
-// GET /api/admin/kie-balance — fetch KIE API balance
+// GET /api/admin/kie-balance — fetch KIE API balance (same method as /api/kie/credits)
 app.get('/api/admin/kie-balance', requireAdmin, async (req, res) => {
-  if (!process.env.KIE_API_KEY) {
+  if (!KIE_API_KEY) {
     return res.json({ success: false, noKey: true, message: 'KIE_API_KEY not set' });
   }
   try {
-    const response = await axios.get('https://api.kie.ai/v1/user/balance', {
-      headers: {
-        Authorization: `Bearer ${process.env.KIE_API_KEY}`
-      }
-    });
-    res.json({ success: true, balance: response.data.balance });
+    let data;
+    try {
+      data = await kieFetch('/chat/credit');
+    } catch (_) {
+      data = await kieFetch('/user/credits');
+    }
+    const creditInfo = data?.data || data?.result || data || {};
+    const balance = typeof creditInfo === 'number'
+      ? creditInfo
+      : creditInfo?.credits ?? creditInfo?.remainingCredits ?? creditInfo?.balance ?? null;
+    res.json({ success: true, balance });
   } catch (err) {
-    console.error(err.response?.data || err.message);
+    console.error(err.message);
     res.status(500).json({ success: false, message: 'Failed to fetch balance' });
   }
 });
