@@ -3407,6 +3407,9 @@ function saveOrders(db){ fs.writeFileSync(ORDERS_FILE, JSON.stringify(db, null, 
 
 // GET /api/admin/kie-balance — fetch KIE API balance
 app.get('/api/admin/kie-balance', requireAdmin, async (req, res) => {
+  if (!process.env.KIE_API_KEY) {
+    return res.json({ success: false, noKey: true, message: 'KIE_API_KEY not set' });
+  }
   try {
     const response = await axios.get('https://api.kie.ai/v1/user/balance', {
       headers: {

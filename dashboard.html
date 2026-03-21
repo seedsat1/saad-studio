@@ -1014,16 +1014,19 @@ async function loadKieBalance() {
   try {
     const res = await fetch('/api/admin/kie-balance', { credentials: 'same-origin' });
     const data = await res.json();
+    const el = document.getElementById('kie-balance');
     if (data.success) {
-      document.getElementById('kie-balance').innerText = data.balance + ' Credits';
+      el.innerText = data.balance + ' Credits';
+    } else if (data.noKey) {
+      el.innerText = '⚠️ أدخل API Key';
     } else {
-      document.getElementById('kie-balance').innerText = 'تعذر جلب الرصيد';
+      el.innerText = '❌ خطأ';
     }
-  } catch (err) {
-    document.getElementById('kie-balance').innerText = 'خطأ في الاتصال';
+  } catch (e) {
+    document.getElementById('kie-balance').innerText = '⚠️ فشل الاتصال';
   }
 }
-loadKieBalance();
+window.addEventListener('DOMContentLoaded', loadKieBalance);
 function toast(msg, type='ok'){
   const el = $('toast');
   el.textContent = msg;
