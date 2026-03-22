@@ -32,7 +32,12 @@ function registerMultiPageRoutes(app) {
     ['/dashboard', 'dashboard.html'], ['/dashboard.html', 'dashboard.html'],
   ];
   pages.forEach(([route, file]) => {
-    app.get(route, (req, res) => res.sendFile(path.join(pub, file)));
+    app.get(route, (req, res) => {
+      res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.set('Pragma', 'no-cache');
+      res.set('Expires', '0');
+      res.sendFile(path.join(pub, file));
+    });
   });
   console.log(`[MultiPage] ${pages.length} routes registered`);
 }
