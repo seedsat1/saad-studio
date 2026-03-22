@@ -4481,9 +4481,9 @@ Professional photography look.</textarea>
           <div class="field">
             <div class="flabel">الموديل</div>
             <div class="qw2-btn-group">
-              <button class="qw2-opt active" onclick="setGbarModel('nanopro')">Pro</button>
-              <button class="qw2-opt" onclick="setGbarModel('nano2')">Nano 2</button>
-              <button class="qw2-opt" onclick="setGbarModel('nano')">Nano</button>
+              <button class="qw2-opt active" data-sidebar-model="nanopro" onclick="setGbarModel('nanopro')">Pro</button>
+              <button class="qw2-opt" data-sidebar-model="nano2" onclick="setGbarModel('nano2')">Nano 2</button>
+              <button class="qw2-opt" data-sidebar-model="nano" onclick="setGbarModel('nano')">Nano</button>
             </div>
           </div>
         </div>
@@ -4494,16 +4494,16 @@ Professional photography look.</textarea>
           <div class="field">
             <div class="flabel">Aspect Ratio</div>
             <div class="qw2-btn-group qw2-btn-group-4">
-              <button class="qw2-opt" onclick="setGbarRatioPill('1:1')">1:1</button>
-              <button class="qw2-opt" onclick="setGbarRatioPill('4:3')">4:3</button>
-              <button class="qw2-opt active" onclick="setGbarRatioPill('16:9')">16:9</button>
-              <button class="qw2-opt" onclick="setGbarRatioPill('9:16')">9:16</button>
+              <button class="qw2-opt" data-gbar-ratio="1:1" onclick="setGbarRatioPill('1:1')">1:1</button>
+              <button class="qw2-opt" data-gbar-ratio="4:3" onclick="setGbarRatioPill('4:3')">4:3</button>
+              <button class="qw2-opt active" data-gbar-ratio="16:9" onclick="setGbarRatioPill('16:9')">16:9</button>
+              <button class="qw2-opt" data-gbar-ratio="9:16" onclick="setGbarRatioPill('9:16')">9:16</button>
             </div>
             <div class="qw2-btn-group qw2-btn-group-4" style="margin-top:4px;">
-              <button class="qw2-opt" onclick="setGbarRatioPill('3:4')">3:4</button>
-              <button class="qw2-opt" onclick="setGbarRatioPill('2:3')">2:3</button>
-              <button class="qw2-opt" onclick="setGbarRatioPill('3:2')">3:2</button>
-              <button class="qw2-opt" onclick="setGbarRatioPill('21:9')">21:9</button>
+              <button class="qw2-opt" data-gbar-ratio="3:4" onclick="setGbarRatioPill('3:4')">3:4</button>
+              <button class="qw2-opt" data-gbar-ratio="2:3" onclick="setGbarRatioPill('2:3')">2:3</button>
+              <button class="qw2-opt" data-gbar-ratio="3:2" onclick="setGbarRatioPill('3:2')">3:2</button>
+              <button class="qw2-opt" data-gbar-ratio="21:9" onclick="setGbarRatioPill('21:9')">21:9</button>
             </div>
             <!-- Hidden selects for compatibility -->
             <select id="gbar-ratio" onchange="setGbarChoice('ratio', this.value)" style="display:none;"><option value="1:1">1:1</option><option value="4:3">4:3</option><option value="3:4">3:4</option><option value="16:9" selected>16:9</option><option value="9:16">9:16</option><option value="2:3">2:3</option><option value="3:2">3:2</option><option value="21:9">21:9</option></select>
@@ -4511,9 +4511,9 @@ Professional photography look.</textarea>
           <div class="field">
             <div class="flabel">Quality</div>
             <div class="qw2-btn-group">
-              <button class="qw2-opt" onclick="document.getElementById('gbar-quality').value='1K'">1K</button>
-              <button class="qw2-opt active" onclick="document.getElementById('gbar-quality').value='2K'">2K</button>
-              <button class="qw2-opt" onclick="document.getElementById('gbar-quality').value='4K'">4K</button>
+              <button class="qw2-opt" data-gbar-quality="1K" onclick="setGbarChoice('quality','1K')">1K</button>
+              <button class="qw2-opt active" data-gbar-quality="2K" onclick="setGbarChoice('quality','2K')">2K</button>
+              <button class="qw2-opt" data-gbar-quality="4K" onclick="setGbarChoice('quality','4K')">4K</button>
             </div>
             <select id="gbar-quality" onchange="setGbarChoice('quality', this.value)" style="display:none;"><option value="1K">1K</option><option value="2K" selected>2K</option><option value="4K">4K</option></select>
           </div>
@@ -9114,6 +9114,10 @@ function setGbarModel(model, silent){
     const isActive = item.dataset.model === model;
     item.classList.toggle('active', isActive);
   });
+  // Sync NANO SETTINGS sidebar model buttons
+  document.querySelectorAll('[data-sidebar-model]').forEach(btn=>{
+    btn.classList.toggle('active', btn.dataset.sidebarModel === model);
+  });
   if(!silent){
     setGoogleTab(model);
   }
@@ -9138,6 +9142,12 @@ function setGbarChoice(group, value, silent){
   // Update quality label
   const qualityLabel = document.getElementById('gbar-quality-label');
   if(group === 'quality' && qualityLabel){ qualityLabel.textContent = value; }
+  // Sync NANO SETTINGS sidebar quality buttons
+  if(group === 'quality'){
+    document.querySelectorAll('[data-gbar-quality]').forEach(btn=>{
+      btn.classList.toggle('active', btn.dataset.gbarQuality === value);
+    });
+  }
   const ratioSelect = document.getElementById('gbar-ratio');
   if(group === 'ratio' && ratioSelect){ ratioSelect.value = value; }
   // Update ratio label
@@ -9147,6 +9157,10 @@ function setGbarChoice(group, value, silent){
   if(group === 'ratio'){
     document.querySelectorAll('.gbar-ratio-pill').forEach(btn=>{
       btn.classList.toggle('active', btn.dataset.ratio === value);
+    });
+    // Sync NANO SETTINGS sidebar ratio buttons
+    document.querySelectorAll('[data-gbar-ratio]').forEach(btn=>{
+      btn.classList.toggle('active', btn.dataset.gbarRatio === value);
     });
   }
   if(!silent){
@@ -11057,6 +11071,13 @@ document.addEventListener('DOMContentLoaded', normalizeAllRatioSelects);
 // GLOBAL CONTROLS
 // ═══════════════════════════
 
+// ── Constants required by the global controls system ──
+const GLOBAL_RATIO_OPTIONS    = ['1:1','4:3','3:4','16:9','9:16','2:3','3:2','21:9'];
+const GLOBAL_RES_OPTIONS      = ['1K','2K','4K'];
+const GLOBAL_DURATION_OPTIONS = ['5','6','8','10','16','20'];
+const VIDEO_PAGES = new Set(['sora2','hailuo','grok','seedance','wan','kling','video','edit','scene','story']);
+let GLOBAL_CONTROLS = { aspectRatio: '16:9', resolution: '2K', duration: '10' };
+
 function buildGlobalControlCard(){
   const card = document.createElement('div');
   card.className = 'card global-ctrl-card';
@@ -11161,14 +11182,22 @@ function applyGlobalControlsToFields(){
   const ratioIds = [
     'sora-ratio','hailuo-ratio','grok-ratio','seedream-ratio','zimage-ratio','seedance-ratio',
     'wan-ratio','infinitalk-ratio','flux2-ratio','fk-ratio','kling-text-ratio','kling-image-ratio','kling-motion-ratio',
-    'gbar-ratio','g-nano-ratio','g-nano2-ratio','g-nanopro-ratio','g-veo3-ratio','g-nano-ratio',
-    'g-nano2-ratio','g-nanopro-ratio'
+    'gbar-ratio','g-nano-ratio','g-nano2-ratio','g-nanopro-ratio','g-veo3-ratio'
   ];
 
   ratioIds.forEach(id => {
     const el = document.getElementById(id);
     setSelectIfAvailable(el, ratio);
   });
+
+  // Sync googleBarState for NANO tools
+  if(typeof googleBarState !== 'undefined'){
+    setGbarChoice('ratio', ratio, true);
+    // Map global resolution to NANO quality (1K/2K/4K are the same)
+    if(GLOBAL_RES_OPTIONS.includes(resolution)){
+      setGbarChoice('quality', resolution, true);
+    }
+  }
 
   const resolutionIds = [
     'hailuo-resolution','grok-resolution','infinitalk-resolution','seedance-resolution','wan-resolution',
@@ -11191,16 +11220,19 @@ document.addEventListener('change', (e)=>{
   if(e.target.classList.contains('global-aspect')){
     GLOBAL_CONTROLS.aspectRatio = e.target.value;
     applyGlobalControlsToFields();
+    saveUiState({ globalControls: GLOBAL_CONTROLS });
     return;
   }
   if(e.target.classList.contains('global-resolution')){
     GLOBAL_CONTROLS.resolution = e.target.value;
     applyGlobalControlsToFields();
+    saveUiState({ globalControls: GLOBAL_CONTROLS });
     return;
   }
   if(e.target.classList.contains('global-duration')){
     GLOBAL_CONTROLS.duration = e.target.value;
     applyGlobalControlsToFields();
+    saveUiState({ globalControls: GLOBAL_CONTROLS });
     return;
   }
 });
@@ -13495,6 +13527,11 @@ function clearLibrary(){
     applyProfessionalIcons();
     renderGoogleBudget();
     const ui = loadUiState();
+  // Restore global controls state (ratio/quality/duration shared across all pages)
+  if(ui.globalControls && typeof ui.globalControls === 'object'){
+    Object.assign(GLOBAL_CONTROLS, ui.globalControls);
+  }
+  initGlobalControls();
   initGoogleBar(ui.googleBar || {});
   setNanoTab(ui.nanoTab || 'nanopro');
   const _igt = ui.googleTab; setGoogleTab((!_igt||['nano','nano2','nanopro'].includes(_igt))?'veo3':_igt);
