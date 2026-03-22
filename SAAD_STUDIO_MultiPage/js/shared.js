@@ -7067,7 +7067,7 @@ function openLightbox(mediaUrl, prompt, isVideo=false){
   const historyBtn = document.getElementById('lb-history');
   const deleteBtn = document.getElementById('lb-delete');
 
-  // helper: fetch image URL → File → load into dropzone
+  // helper: fetch image URL → File → persist to localStorage → navigate
   async function sendToTool(pageId, dzId, promptId, promptText) {
     closeLightbox();
     toast('جاري تحميل الصورة...', 'info');
@@ -7078,10 +7078,16 @@ function openLightbox(mediaUrl, prompt, isVideo=false){
       const objUrl = URL.createObjectURL(file);
       S.files[dzId] = file;
       renderDropzonePreview(dzId, file, objUrl);
-      persistImageDropzone(dzId, file);
+      await persistImageDropzone(dzId, file);
       if (promptId && promptText) {
         const el = document.getElementById(promptId);
         if (el && !el.value) el.value = promptText;
+        // Persist prompt to localStorage so it survives cross-page navigation
+        const formState = getFormState();
+        if (!formState[promptId] || !formState[promptId].v) {
+          formState[promptId] = { t: 'v', v: promptText };
+          saveFormState(formState);
+        }
       }
       showPage(pageId);
     } catch(e) {
@@ -7090,62 +7096,60 @@ function openLightbox(mediaUrl, prompt, isVideo=false){
   }
 
   if(modifyBtn){
-    // ✦ Modify → Google Nano Banana (images only)
-    modifyBtn.onclick = () => {
+    modifyBtn.onclick = async () => {
       if (isVideo) { toast('التعديل متاح للصور فقط', 'error'); return; }
-      sendToTool('google', 'dz-g-nano', 'g-nano-prompt', prompt || '');
-      showPage('nano');
-      setTimeout(() => setNanoTab && setNanoTab('nano'), 300);
+      await sendToTool('nano', 'dz-g-nano', 'g-nano-prompt', prompt || '');
     };
   }
   if(extendBtn){
-    // + Extend → Extract last frame from video → Kling Image-to-Video (videos only)
-    extendBtn.onclick = () => {
-      if (!isVideo) { toast('التمديد متاح للفيديوهات فقط', 'error'); return; }
+    extendBtn.onclick = async () => {
+      if (!isVideo) {
+        // For images: send to Nano for editing
+        await sendToTool('nano', 'dz-g-nanopro', 'g-nanopro-prompt', prompt || '');
+        return;
+      }
       closeLightbox();
       toast('جاري استخراج آخر فريم...', 'info');
-      const vid = document.createElement('video');
-      vid.crossOrigin = 'anonymous';
-      vid.src = mediaUrl;
-      vid.preload = 'metadata';
-      vid.onloadedmetadata = () => {
-        vid.currentTime = Math.max(0, vid.duration - 0.1);
+      const tempVid = document.createElement('video');
+      tempVid.crossOrigin = 'anonymous';
+      tempVid.src = mediaUrl;
+      tempVid.preload = 'metadata';
+      tempVid.onloadedmetadata = () => {
+        tempVid.currentTime = Math.max(0, tempVid.duration - 0.1);
       };
-      vid.onseeked = () => {
+      tempVid.onseeked = async () => {
         try {
           const canvas = document.createElement('canvas');
-          canvas.width = vid.videoWidth || 1280;
-          canvas.height = vid.videoHeight || 720;
-          canvas.getContext('2d').drawImage(vid, 0, 0);
-          canvas.toBlob(blob => {
-            if (!blob) { toast('تعذّر استخراج الفريم', 'error'); return; }
-            const file = new File([blob], 'last-frame.png', { type: 'image/png' });
-            const objUrl = URL.createObjectURL(file);
-            S.files['dz-kling-image-start'] = file;
-            renderDropzonePreview('dz-kling-image-start', file, objUrl);
-            persistImageDropzone('dz-kling-image-start', file);
-            showPage('kling');
-            setTimeout(() => setKlingTab && setKlingTab('image'), 300);
-            toast('تم تحميل آخر فريم في Kling Image-to-Video ✓', 'success');
-          }, 'image/png');
+          canvas.width = tempVid.videoWidth || 1280;
+          canvas.height = tempVid.videoHeight || 720;
+          canvas.getContext('2d').drawImage(tempVid, 0, 0);
+          const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+          if (!blob) { toast('تعذّر استخراج الفريم', 'error'); return; }
+          const file = new File([blob], 'last-frame.png', { type: 'image/png' });
+          const objUrl = URL.createObjectURL(file);
+          S.files['dz-kling-image-start'] = file;
+          renderDropzonePreview('dz-kling-image-start', file, objUrl);
+          await persistImageDropzone('dz-kling-image-start', file);
+          toast('تم تحميل آخر فريم ✓', 'success');
+          showPage('kling');
         } catch(e) {
           toast('تعذّر استخراج الفريم: ' + String(e.message || e).substring(0,60), 'error');
         }
       };
-      vid.onerror = () => toast('تعذّر تحميل الفيديو', 'error');
+      tempVid.onerror = () => toast('تعذّر تحميل الفيديو', 'error');
     };
   }
   if(changeBtn){
-    // 👤 Change subject → Qwen2 Image Edit
-    changeBtn.onclick = () => isVideo
-      ? toast('تغيير الموضوع متاح للصور فقط', 'error')
-      : sendToTool('qwen2', 'dz-qwen2-image', 'qwen2-prompt', prompt || '');
+    changeBtn.onclick = async () => {
+      if (isVideo) { toast('تغيير الموضوع متاح للصور فقط', 'error'); return; }
+      await sendToTool('qwen2', 'dz-qwen2-image', 'qwen2-prompt', prompt || '');
+    };
   }
   if(reframeBtn){
-    // ♪ Reframe → Ideogram Reframe
-    reframeBtn.onclick = () => isVideo
-      ? toast('إعادة الكادر متاحة للصور فقط', 'error')
-      : sendToTool('ideogram-reframe', 'dz-ideogram-reframe-image', 'ideogram-reframe-prompt', '');
+    reframeBtn.onclick = async () => {
+      if (isVideo) { toast('إعادة الكادر متاحة للصور فقط', 'error'); return; }
+      await sendToTool('ideogram-reframe', 'dz-ideogram-reframe-image', 'ideogram-reframe-prompt', '');
+    };
   }
   if(promptBtn){ promptBtn.onclick = () => copyLbPrompt(); }
   if(historyBtn){ historyBtn.onclick = () => toast('قريباً: السجل','info'); }
