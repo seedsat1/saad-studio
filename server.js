@@ -3712,18 +3712,27 @@ app.get('/api/admin/generations', requireAdmin, (req, res) => {
   try {
     let log = loadGenerations();
     const limit  = Math.min(200, Math.max(1, parseInt(req.query.limit)  || 50));
-    const offset = Math.max(0,              parseInt(req.query.offset) || 0);
+    const page   = Math.max(1, parseInt(req.query.page) || 1);
+    const offset = Math.max(0, parseInt(req.query.offset) || ((page - 1) * limit));
     const type   = req.query.type || '';
     const search = (req.query.search || '').toLowerCase();
     let filtered = log;
     if (type === 'image') filtered = filtered.filter(e => !e.isVideo);
     if (type === 'video') filtered = filtered.filter(e => e.isVideo);
+    if (type === 'audio') filtered = filtered.filter(e => e.type === 'audio');
     if (search) filtered = filtered.filter(e =>
       (e.email  || '').toLowerCase().includes(search) ||
       (e.model  || '').toLowerCase().includes(search) ||
       (e.prompt || '').toLowerCase().includes(search)
     );
-    res.json({ generations: filtered.slice(offset, offset + limit), total: filtered.length });
+    const images = log.filter(e => !e.isVideo && e.type !== 'audio').length;
+    const videos = log.filter(e => e.isVideo || e.type === 'video').length;
+    const audio  = log.filter(e => e.type === 'audio').length;
+    res.json({
+      generations: filtered.slice(offset, offset + limit),
+      total: filtered.length,
+      stats: { total: log.length, images, videos, audio }
+    });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -4176,6 +4185,46 @@ app.post('/api/admin/fonts', requireAdmin, async (req, res) => {
   res.json({ ok: true });
 });
 
+// Admin: read current API key status (masked)
+app.get('/api/admin/credentials', requireAdmin, (req, res) => {
+  const keys = {};
+  const envKeys = {
+    kieApiKey: 'KIE_API_KEY',
+    googleApiKey: 'GOOGLE_API_KEY',
+    openaiApiKey: 'OPENAI_API_KEY',
+    elevenlabsApiKey: 'ELEVENLABS_API_KEY',
+    replicateApiKey: 'REPLICATE_API_KEY',
+    falApiKey: 'FAL_API_KEY'
+  };
+  for (const [jsonKey, envKey] of Object.entries(envKeys)) {
+    const val = process.env[envKey] || '';
+    if (val) keys[jsonKey] = val.slice(0, 4) + '••••' + val.slice(-4);
+  }
+  res.json(keys);
+});
+
+// Admin: save KIE API key
+app.post('/api/admin/kie-api-key', requireAdmin, (req, res) => {
+  const { key } = req.body || {};
+  if (!key) return res.status(400).json({ error: 'key required' });
+  const envPath = path.join(__dirname, '.env');
+  let envContent = '';
+  try { envContent = fs.existsSync(envPath) ? fs.readFileSync(envPath, 'utf8') : ''; } catch {}
+  if (/^KIE_API_KEY=.*/m.test(envContent)) { envContent = envContent.replace(/^KIE_API_KEY=.*/m, `KIE_API_KEY=${String(key).trim()}`); }
+  else { envContent += `\nKIE_API_KEY=${String(key).trim()}`; }
+  fs.writeFileSync(envPath, envContent);
+  auditLog('admin.kie-key.change', null, req);
+  res.json({ ok: true });
+});
+
+// Admin: test KIE API key
+app.post('/api/admin/kie-test', requireAdmin, async (req, res) => {
+  try {
+    if (!KIE_API_KEY) return res.json({ ok: false, error: 'No KIE_API_KEY set' });
+    res.json({ ok: true, message: 'Key is configured' });
+  } catch (e) { res.json({ ok: false, error: e.message }); }
+});
+
 // Admin credentials change
 app.post('/api/admin/credentials', passwordChangeLimiter, requireAdmin, (req, res) => {
   const { newUsername, newPassword, currentPassword } = req.body || {};
@@ -4368,6 +4417,91 @@ app.post('/api/admin/homepage/upload-image', requireAdmin, uploadLimiter, mediaM
     auditLog('admin.homepage.upload', 'file="' + safeName + '" type="' + targetDir + '"', req);
     res.json({ ok: true, url });
   } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// --- STUB API ROUTES for new dashboard sections ---
+
+// Analytics
+app.get('/api/admin/analytics', requireAdmin, (req, res) => {
+  res.json({ labels: [], generations: [], revenue: [], newUsers: [], models: {} });
+});
+
+// Notifications
+app.post('/api/admin/notifications', requireAdmin, (req, res) => {
+  res.json({ ok: true });
+});
+app.get('/api/admin/notifications', requireAdmin, (req, res) => {
+  res.json({ notifications: [] });
+});
+
+// Coupons
+app.get('/api/admin/coupons', requireAdmin, (req, res) => {
+  res.json({ coupons: [], stats: {} });
+});
+app.post('/api/admin/coupons', requireAdmin, (req, res) => {
+  res.json({ ok: true, coupon: req.body });
+});
+app.post('/api/admin/coupons/:id/toggle', requireAdmin, (req, res) => {
+  res.json({ ok: true });
+});
+app.delete('/api/admin/coupons/:id', requireAdmin, (req, res) => {
+  res.json({ ok: true });
+});
+
+// Backups
+app.get('/api/admin/backups', requireAdmin, (req, res) => {
+  res.json({ backups: [] });
+});
+
+// Export
+app.get('/api/admin/export', requireAdmin, (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Content-Disposition', 'attachment; filename="export.json"');
+  res.json({ exported: true, date: new Date().toISOString(), data: {} });
+});
+
+// Model Settings
+app.get('/api/admin/model-settings', requireAdmin, (req, res) => {
+  res.json({});
+});
+app.post('/api/admin/model-settings', requireAdmin, (req, res) => {
+  res.json({ ok: true });
+});
+
+// Credit Log
+app.get('/api/admin/credit-log', requireAdmin, (req, res) => {
+  res.json({ log: [] });
+});
+
+// Bulk Credits
+app.post('/api/admin/bulk-credits', requireAdmin, (req, res) => {
+  res.json({ ok: true, count: 0 });
+});
+
+// User Credits (direct email-based)
+app.post('/api/admin/user-credits', requireAdmin, (req, res) => {
+  res.json({ ok: true });
+});
+
+// Plan Settings
+app.get('/api/admin/plan-settings', requireAdmin, (req, res) => {
+  res.json({ plans: [], topups: [] });
+});
+app.post('/api/admin/plan-settings', requireAdmin, (req, res) => {
+  res.json({ ok: true });
+});
+
+// Moderation
+app.get('/api/admin/moderation', requireAdmin, (req, res) => {
+  res.json({ items: [], pending: 0, blocked: 0, approved: 0 });
+});
+app.post('/api/admin/moderation/:id', requireAdmin, (req, res) => {
+  res.json({ ok: true });
+});
+
+// Reports
+app.get('/api/admin/reports/:type', requireAdmin, (req, res) => {
+  res.json({});
 });
 
 // === ADS MANAGER (Supabase) ===

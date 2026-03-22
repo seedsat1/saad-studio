@@ -3810,6 +3810,10 @@ function runGoogleFromBar(){
   S.gbarTrigger = true;
   const cfg = GOOGLE_IMAGE_TOOL_CONFIG[googleBarState.model];
   if(!cfg) return;
+  // Find the actual visible generate button (nano page has btn-generate, google page has .gbar-gen)
+  const callerBtn = document.querySelector('.btn-generate.gen-action') || document.querySelector('#gbar .gbar-gen');
+  const callerOriginal = callerBtn ? callerBtn.innerHTML : '';
+  if(callerBtn){ callerBtn.disabled = true; callerBtn.innerHTML = '<div class="spinner"></div> جارٍ التوليد...'; }
   const promptEl = document.getElementById('gbar-prompt');
   if(promptEl) googleBarState.prompt = promptEl.value;
   if(S.gbarFiles.length){
@@ -3828,7 +3832,9 @@ function runGoogleFromBar(){
   if(qualityTarget) qualityTarget.value = googleBarState.quality || qualityTarget.value;
   saveUiState({ googleBar: googleBarState, nanoTab: googleBarState.model });
   setNanoTab(googleBarState.model);
-  runGoogleImageTool(googleBarState.model);
+  runGoogleImageTool(googleBarState.model).finally(()=>{
+    if(callerBtn){ callerBtn.disabled = false; callerBtn.innerHTML = callerOriginal; }
+  });
 }
 
 function toggleGoogleProducts(force){
@@ -4066,7 +4072,7 @@ async function runPromptStudio(mode){
     'ps-btn-transition':'توليد انتقال'
   };
   const activeBtn={list:'ps-btn-generate',project:'ps-btn-project',transition:'ps-btn-transition'}[mode];
-  buttons.forEach(btn=>{ btn.disabled=true; if(btn.id===activeBtn) btn.textContent='Generating...'; });
+  buttons.forEach(btn=>{ btn.disabled=true; if(btn.id===activeBtn) btn.innerHTML='<div class="spinner"></div> جارٍ التوليد...'; });
   clearPromptStudioStatus();
   try{
     const idea=document.getElementById('ps-idea').value.trim();
@@ -5813,7 +5819,7 @@ async function runKling(mode){
     if(multiShots && multiPrompt.length === 0) throw new Error('Write at least one multi-shot prompt');
 
     syncKlingModelLabel(modelName);
-    if(btn){ btn.disabled = true; btn.innerHTML = '<div class="spinner"></div> Sending to Kling...'; }
+    if(btn){ btn.disabled = true; btn.innerHTML = '<div class="spinner"></div> جارٍ الإرسال إلى Kling...'; }
     clearResults(isMotion ? 'kling-results-motion' : (isImage ? 'kling-results-image' : 'kling-results'));
     clearKlingResult();
     updateKlingShowButtons();
@@ -5918,7 +5924,7 @@ async function runKlingAvatar(){
     if(!audioFile) throw new Error('ارفع ملف الصوت أولاً');
 
     syncKlingModelLabel(modelName);
-    if(btn){ btn.disabled = true; btn.innerHTML = '<div class="spinner"></div> Sending to Kling...'; }
+    if(btn){ btn.disabled = true; btn.innerHTML = '<div class="spinner"></div> جارٍ الإرسال إلى Kling...'; }
     clearResults('kling-results-avatar');
     clearKlingResult();
     updateKlingShowButtons();
@@ -6049,7 +6055,7 @@ async function runKieRemoveBg(){
     const model = document.getElementById('kie-removebg-model')?.value || 'recraft/remove-background';
     const cost = calcCreditCost(model, {});
     if(!AUTH.checkCredits(cost)) return;
-    if(btn){ btn.disabled = true; btn.innerHTML = '<div class="spinner"></div> Processing...'; }
+    if(btn){ btn.disabled = true; btn.innerHTML = '<div class="spinner"></div> جارٍ المعالجة...'; }
     clearResults('kie-image-results');
     setImageToolStatus(statusId, 'جاري رفع الصورة...');
     const imageUrl = await uploadKieBinaryFile(file);
@@ -6088,7 +6094,7 @@ async function runKieUpscale(){
     const cost = calcCreditCost(model, {});
     if(!AUTH.checkCredits(cost)) return;
     const factor = document.getElementById('kie-upscale-factor')?.value || '2';
-    if(btn){ btn.disabled = true; btn.innerHTML = '<div class="spinner"></div> Upscaling...'; }
+    if(btn){ btn.disabled = true; btn.innerHTML = '<div class="spinner"></div> جارٍ التكبير...'; }
     clearResults('kie-upscale-results');
     setImageToolStatus(statusId, 'جاري رفع الصورة...');
     const imageUrl = await uploadKieBinaryFile(file);
@@ -6329,10 +6335,10 @@ async function runElevenDialogue(){
     const dialogue = [{ voice: voice1, text: text1 }];
     if(text2) dialogue.push({ voice: voice2 || 'Adam', text: text2 });
 
-    if(btn){ btn.disabled = true; btn.innerHTML = '<div class="spinner"></div> Sending to ElevenLabs...'; }
+    if(btn){ btn.disabled = true; btn.innerHTML = '<div class="spinner"></div> جارٍ الإرسال إلى ElevenLabs...'; }
     const container = document.getElementById('eleven-results');
     if(container){
-      container.innerHTML = '<div class="result-empty"><div class="result-empty-icon">11</div><div class="result-empty-text">Generating audio...</div></div>';
+      container.innerHTML = '<div class="result-empty"><div class="result-empty-icon">11</div><div class="result-empty-text">جارٍ توليد الصوت...</div></div>';
     }
 
     syncElevenModelLabel(model);
@@ -6392,10 +6398,10 @@ async function runElevenTTS(){
     const _elCost = calcCreditCost(model, { duration: _estSec });
     if(!AUTH.checkCredits(_elCost)) return;
 
-    if(btn){ btn.disabled = true; btn.innerHTML = '<div class="spinner"></div> Sending TTS...'; }
+    if(btn){ btn.disabled = true; btn.innerHTML = '<div class="spinner"></div> جارٍ إرسال TTS...'; }
     const container = document.getElementById('eleven-results');
     if(container){
-      container.innerHTML = '<div class="result-empty"><div class="result-empty-icon">11</div><div class="result-empty-text">Generating audio...</div></div>';
+      container.innerHTML = '<div class="result-empty"><div class="result-empty-icon">11</div><div class="result-empty-text">جارٍ توليد الصوت...</div></div>';
     }
 
     syncElevenModelLabel(model);
@@ -7048,7 +7054,7 @@ function renderTransitionList(filter){
     const duration = document.getElementById('tr-duration')?.value || '5';
     const _trCost = calcCreditCost('kling/v2-5-turbo-image-to-video-pro', { duration: Number(duration), mode: 'pro', audio: false });
     if(!AUTH.checkCredits(_trCost)){ return; }
-    if(btn){ btn.disabled = true; btn.innerHTML = '<div class="spinner"></div> Generating AI transition...'; }
+    if(btn){ btn.disabled = true; btn.innerHTML = '<div class="spinner"></div> جارٍ توليد الانتقال...'; }
     try{
       // Step 1: Extract key frames
       const isVideoA = a.type.startsWith('video/') || /\.(mp4|mov|mkv|webm)$/i.test(a.name);
@@ -8247,7 +8253,7 @@ function clearLibrary(){
     const btn = document.querySelector('#cs-image-content .cs-gen-btn');
     const original = btn ? btn.innerHTML : '';
     try {
-      if (btn) { btn.disabled = true; btn.innerHTML = '<div class="spinner"></div> Generating...'; }
+      if (btn) { btn.disabled = true; btn.innerHTML = '<div class="spinner"></div> جارٍ التوليد...'; }
       const gallery = document.getElementById('cs-image-gallery');
       if (gallery) { const emp = gallery.querySelector('.cs-gallery-empty'); if (emp) emp.remove(); }
       const ratio = cinemaState.ratio;
@@ -8293,7 +8299,7 @@ function clearLibrary(){
     const btn = document.querySelector('#cs-video-content .cs-bar .cs-gen-btn');
     const original = btn ? btn.innerHTML : '';
     try {
-      if (btn) { btn.disabled = true; btn.innerHTML = '<div class="spinner"></div> Sending to Kling...'; }
+      if (btn) { btn.disabled = true; btn.innerHTML = '<div class="spinner"></div> جارٍ الإرسال إلى Kling...'; }
       const gallery = document.getElementById('cs-video-gallery');
       if (gallery) { const emp = gallery.querySelector('.cs-gallery-empty'); if (emp) emp.remove(); }
       const mov = cinemaState.movement !== 'Auto' ? ` Camera movement: ${cinemaState.movement}.` : '';
@@ -8334,7 +8340,7 @@ function clearLibrary(){
     const btn = document.querySelector('#cs-audio-content .cs-gen-btn');
     const original = btn ? btn.innerHTML : '';
     try {
-      if (btn) { btn.disabled = true; btn.innerHTML = '<div class="spinner"></div> Generating...'; }
+      if (btn) { btn.disabled = true; btn.innerHTML = '<div class="spinner"></div> جارٍ التوليد...'; }
       const voiceMap = { TALLULAH: 'Rachel', ADAM: 'Adam', BELLA: 'Bella', JOSH: 'Josh', SAM: 'Sam', ARIA: 'Aria', FREYA: 'Freya' };
       const presetName = (document.getElementById('cs-vp-name')?.textContent || 'TALLULAH').trim().toUpperCase();
       const voice = voiceMap[presetName] || 'Rachel';
@@ -8367,7 +8373,7 @@ function clearLibrary(){
     const btn = document.querySelector('#cs-cast-content .cs-cast-bar .cs-gen-btn');
     const original = btn ? btn.innerHTML : '';
     try {
-      if (btn) { btn.disabled = true; btn.innerHTML = '<div class="spinner"></div> Generating...'; }
+      if (btn) { btn.disabled = true; btn.innerHTML = '<div class="spinner"></div> جارٍ التوليد...'; }
       const gallery = document.getElementById('cs-cast-results');
       if (gallery) { const emp = gallery.querySelector('.cs-gallery-empty'); if (emp) emp.remove(); }
       const getActive = (id) => [...(document.querySelectorAll(`#${id} .cs-cast-option.active`) || [])].map(el => el.textContent.trim());

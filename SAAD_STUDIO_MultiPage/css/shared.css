@@ -85,7 +85,7 @@ body::after{content:'';position:fixed;inset:auto -120px -140px auto;width:540px;
 .cost-preview .cost-val{color:var(--amber);font-weight:700;font-size:13px;}
 .cost-preview .cost-icon{font-size:14px;}
 .btn-generate:hover{transform:translateY(-2px) scale(1.01);box-shadow:0 16px 36px rgba(242,181,68,0.26),0 0 18px rgba(95,226,255,0.08);}
-.btn-generate:disabled{opacity:0.85;cursor:not-allowed;transform:none;animation:gen-glow 1.8s ease-in-out infinite;}
+.btn-generate:disabled{opacity:0.9;cursor:not-allowed;transform:none;animation:gen-glow 1.8s ease-in-out infinite;pointer-events:none;}
 @keyframes gen-glow{0%,100%{box-shadow:0 4px 18px rgba(242,181,68,0.18);}50%{box-shadow:0 4px 28px rgba(242,181,68,0.45),0 0 38px rgba(95,226,255,0.13);}}
 .btn-generate.gen-action::after{
   content:"";
@@ -269,7 +269,10 @@ body::after{content:'';position:fixed;inset:auto -120px -140px auto;width:540px;
 
 .prog-wrap{height:2px;background:var(--bg4);border-radius:1px;overflow:hidden;}
 .prog-fill{height:100%;background:linear-gradient(90deg,var(--amber),var(--amber3));border-radius:1px;transition:width 0.4s ease;width:0%;}
-.spinner{width:16px;height:16px;border:2px solid var(--bg4);border-top-color:var(--amber);border-radius:50%;animation:spin 0.65s linear infinite;display:inline-block;flex-shrink:0;}
+.spinner{width:16px;height:16px;border:2px solid rgba(95,226,255,0.2);border-top-color:var(--cyan,#5fe2ff);border-radius:50%;animation:spin 0.65s linear infinite;display:inline-block;flex-shrink:0;vertical-align:middle;}
+.btn-generate .spinner{width:18px;height:18px;border-width:2.5px;border-color:rgba(7,17,26,0.2);border-top-color:#07111a;}
+.gbar-gen .spinner{width:18px;height:18px;border-width:2.5px;border-color:rgba(11,28,48,0.2);border-top-color:#0b1c30;}
+.cs-gen-btn .spinner{width:16px;height:16px;border-color:rgba(7,17,26,0.2);border-top-color:#07111a;}
 @keyframes spin{to{transform:rotate(360deg);}}
 
 .toast-container{position:fixed;bottom:18px;left:18px;z-index:9999;display:flex;flex-direction:column;gap:5px;}

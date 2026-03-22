@@ -439,6 +439,9 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:var(--fm)
 .cms-toolbar-right{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
 .btn-primary{background:linear-gradient(135deg,var(--cyan),#3b82f6);border:none;color:#000;font-size:11px;font-weight:800;padding:8px 16px;border-radius:8px;cursor:pointer;font-family:var(--fm);transition:opacity .15s;white-space:nowrap;}
 .btn-primary:hover{opacity:.85;}
+.btn-outline{padding:6px 14px;border-radius:8px;border:1px solid var(--b2);background:transparent;color:var(--tx2);cursor:pointer;font-size:12px;font-family:var(--fm);transition:all .15s;}
+.btn-outline:hover{background:rgba(255,255,255,.05);color:var(--tx);}
+.btn-outline.active{background:rgba(95,226,255,.1);border-color:rgba(95,226,255,.4);color:var(--cyan);}
 .btn-sm{background:rgba(255,255,255,.06);border:1px solid var(--b2);color:var(--tx2);font-size:10px;font-weight:600;padding:5px 10px;border-radius:6px;cursor:pointer;font-family:var(--fm);transition:all .15s;white-space:nowrap;}
 .btn-sm:hover{background:rgba(255,255,255,.11);color:var(--tx);}
 .btn-danger{background:rgba(255,96,96,.1);border:1px solid rgba(255,96,96,.3);color:var(--red);font-size:10px;font-weight:600;padding:5px 10px;border-radius:6px;cursor:pointer;font-family:var(--fm);transition:all .15s;}
@@ -522,14 +525,31 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:var(--fm)
 .page-select-label{font-size:11px;color:var(--tx2);font-weight:700;white-space:nowrap;}
 .maintenance-banner{background:rgba(255,96,96,.1);border:1px solid rgba(255,96,96,.3);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:11px;color:var(--red);display:none;}
 .maintenance-banner.active{display:block;}
-/* ── Back button + KIE balance ── */
-.dashboard-header{position:absolute;top:20px;left:20px;z-index:200;}
-.back-btn{padding:10px 18px;background:linear-gradient(135deg,#1f5d8f,#2e6fa3);color:#fff;border-radius:10px;text-decoration:none;font-size:14px;transition:opacity .15s;}
-.back-btn:hover{opacity:.85;}
-.kie-balance-box{margin-top:14px;padding:20px 30px;background:var(--bg3);border:1px solid var(--b1);border-radius:16px;text-align:center;color:#fff;width:320px;}
-.kie-balance-box h3{font-size:14px;color:var(--tx2);margin-bottom:8px;}
-#kie-balance{font-size:32px;color:#00ffcc;font-weight:900;margin-top:6px;}
+/* ── Back button + KIE balance (redesigned) ── */
+.dashboard-header{display:none;}
+.topbar-kie{display:flex;align-items:center;gap:20px;padding:0 24px;height:54px;background:linear-gradient(90deg,var(--bg2),var(--bg));border-bottom:1px solid var(--b1);position:sticky;top:0;z-index:100;}
+.topbar-kie-back{display:flex;align-items:center;gap:6px;color:var(--tx2);font-size:13px;text-decoration:none;padding:6px 14px;border-radius:8px;border:1px solid var(--b1);transition:all .15s;}
+.topbar-kie-back:hover{background:rgba(255,255,255,.04);color:var(--tx);border-color:var(--b2);}
+.topbar-kie-back svg{width:14px;height:14px;}
+.topbar-kie-spacer{flex:1;}
+.kie-chip{display:flex;align-items:center;gap:8px;padding:6px 16px;border-radius:10px;font-size:13px;transition:all .2s;}
+.kie-chip-balance{background:linear-gradient(135deg,rgba(0,255,200,.08),rgba(95,226,255,.06));border:1px solid rgba(0,255,200,.2);}
+.kie-chip-balance .kie-chip-icon{width:28px;height:28px;border-radius:8px;background:rgba(0,255,200,.12);display:flex;align-items:center;justify-content:center;font-size:14px;}
+.kie-chip-balance .kie-chip-label{font-size:11px;color:var(--tx3);line-height:1;}
+.kie-chip-balance .kie-chip-value{font-size:16px;font-weight:800;color:#00ffcc;line-height:1.2;font-family:var(--fm);}
+.kie-chip-error{background:rgba(255,96,96,.06);border:1px solid rgba(255,96,96,.15);}
+.kie-chip-error .kie-chip-icon{background:rgba(255,96,96,.12);}
+.kie-chip-error .kie-chip-value{color:var(--red);font-size:12px;font-weight:600;}
+.kie-chip-loading .kie-chip-value{color:var(--tx3);}
+.kie-chip-nokey{background:rgba(242,181,68,.06);border:1px solid rgba(242,181,68,.15);}
+.kie-chip-nokey .kie-chip-icon{background:rgba(242,181,68,.12);}
+.kie-chip-nokey .kie-chip-value{color:var(--amber);font-size:12px;}
+.kie-refresh{background:none;border:none;color:var(--tx3);cursor:pointer;padding:4px;border-radius:6px;display:flex;align-items:center;transition:all .15s;}
+.kie-refresh:hover{color:var(--cyan);background:rgba(95,226,255,.08);}
+.kie-refresh.spinning svg{animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 </head>
 <body>
 
@@ -556,13 +576,26 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:var(--fm)
   </div>
 </div>
 
-<!-- ═══ HEADER: BACK + KIE ═══ -->
-<div class="dashboard-header">
-  <a href="/" class="back-btn">← الرجوع إلى الموقع</a>
-  <div class="kie-balance-box">
-    <h3>💰 رصيد KIE</h3>
-    <div id="kie-balance">جارٍ التحميل...</div>
+<!-- ═══ HEADER: TOPBAR WITH KIE ═══ -->
+<div class="dashboard-header" style="display:none;">
+  <a href="/" class="back-btn">← الرجوع</a>
+</div>
+<div class="topbar-kie" id="topbar-kie" style="display:none;">
+  <a href="/" class="topbar-kie-back">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+    الموقع
+  </a>
+  <div class="topbar-kie-spacer"></div>
+  <div class="kie-chip kie-chip-balance kie-chip-loading" id="kie-chip">
+    <div class="kie-chip-icon">💎</div>
+    <div>
+      <div class="kie-chip-label">رصيد KIE</div>
+      <div class="kie-chip-value" id="kie-balance">جارٍ التحميل...</div>
+    </div>
   </div>
+  <button class="kie-refresh" id="kie-refresh-btn" onclick="refreshKieBalance()" title="تحديث الرصيد">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+  </button>
 </div>
 <!-- ═══ DASHBOARD ═══ -->
 <div id="dashboard">
@@ -588,6 +621,17 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:var(--fm)
       <button class="dash-nav-btn" data-sec="auditLog" onclick="showSection('auditLog',this)">📜 سجل الأحداث</button>
       <button class="dash-nav-btn" data-sec="promobars" onclick="showSection('promobars',this)">📢 الأشرطة الترويجية</button>
       <button class="dash-nav-btn" data-sec="sidebarMgr" onclick="showSection('sidebarMgr',this)">🗂 القائمة الجانبية</button>
+      <button class="dash-nav-btn" data-sec="generations" onclick="showSection('generations',this)">📸 التوليدات</button>
+      <button class="dash-nav-btn" data-sec="analytics" onclick="showSection('analytics',this)">📈 التحليلات</button>
+      <button class="dash-nav-btn" data-sec="notifications" onclick="showSection('notifications',this)">🔔 الإشعارات</button>
+      <button class="dash-nav-btn" data-sec="coupons" onclick="showSection('coupons',this)">🎟️ الكوبونات</button>
+      <button class="dash-nav-btn" data-sec="backup" onclick="showSection('backup',this)">💾 النسخ الاحتياطي</button>
+      <button class="dash-nav-btn" data-sec="apikeys" onclick="showSection('apikeys',this)">🔐 مفاتيح API</button>
+      <button class="dash-nav-btn" data-sec="moderation" onclick="showSection('moderation',this)">🛡️ المراقبة</button>
+      <button class="dash-nav-btn" data-sec="reports" onclick="showSection('reports',this)">📊 التقارير</button>
+      <button class="dash-nav-btn" data-sec="modelControl" onclick="showSection('modelControl',this)">🎛️ تحكم النماذج</button>
+      <button class="dash-nav-btn" data-sec="creditMgr" onclick="showSection('creditMgr',this)">💎 إدارة الرصيد</button>
+      <button class="dash-nav-btn" data-sec="planMgr" onclick="showSection('planMgr',this)">📦 الخطط والأسعار</button>
     </nav>
     <div class="dash-topbar-right">
       <span class="refresh-ring" id="refresh-ring"></span>
@@ -975,6 +1019,339 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:var(--fm)
       <div class="cms-card"><div class="cms-card-body" id="sidebar-mgr-list"><div class="empty-state">⏳ جارٍ التحميل...</div></div></div>
     </div>
 
+
+    <!-- ─── GENERATIONS LOG SECTION ─── -->
+    <div class="dash-section" id="sec-generations">
+      <div class="sec-top">
+        <div><div class="sec-top-title">📸 سجل التوليدات</div><div class="sec-top-sub">جميع الصور والفيديوهات والأصوات المولّدة</div></div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <select id="gen-type-filter" onchange="loadGenerations()" style="background:var(--bg3);color:var(--tx);border:1px solid var(--b2);border-radius:8px;padding:6px 12px;font-size:12px;">
+            <option value="">الكل</option>
+            <option value="image">صور</option>
+            <option value="video">فيديو</option>
+            <option value="audio">صوت</option>
+          </select>
+          <input id="gen-search" type="text" placeholder="بحث بالبرومبت..." oninput="filterGenerations()" style="background:var(--bg3);color:var(--tx);border:1px solid var(--b2);border-radius:8px;padding:6px 12px;font-size:12px;width:200px;">
+          <button class="btn-primary" onclick="exportGenerations()">📥 تصدير CSV</button>
+        </div>
+      </div>
+      <div class="cms-card">
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:12px;font-size:11px;color:var(--tx2);border-bottom:1px solid var(--b1);">
+          <span>إجمالي التوليدات</span><span>الصور</span><span>الفيديو</span><span>الصوت</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:12px;font-size:22px;font-weight:700;" id="gen-stats">
+          <span>—</span><span>—</span><span>—</span><span>—</span>
+        </div>
+        <div class="cms-card-body" id="gen-list"><div class="empty-state">⏳ جارٍ التحميل...</div></div>
+        <div id="gen-pager" style="padding:12px;"></div>
+      </div>
+    </div>
+
+    <!-- ─── ANALYTICS SECTION ─── -->
+    <div class="dash-section" id="sec-analytics">
+      <div class="sec-top">
+        <div><div class="sec-top-title">📈 التحليلات البصرية</div><div class="sec-top-sub">إحصائيات الاستخدام والإيرادات</div></div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn-outline active" id="chart-range-7" onclick="setChartRange(7,this)">7 أيام</button>
+          <button class="btn-outline" id="chart-range-30" onclick="setChartRange(30,this)">30 يوم</button>
+          <button class="btn-outline" id="chart-range-90" onclick="setChartRange(90,this)">90 يوم</button>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+        <div class="cms-card" style="padding:16px;">
+          <div style="font-size:13px;color:var(--tx2);margin-bottom:12px;">التوليدات يومياً</div>
+          <canvas id="chart-generations" height="200"></canvas>
+        </div>
+        <div class="cms-card" style="padding:16px;">
+          <div style="font-size:13px;color:var(--tx2);margin-bottom:12px;">الإيرادات يومياً (كريدت)</div>
+          <canvas id="chart-revenue" height="200"></canvas>
+        </div>
+        <div class="cms-card" style="padding:16px;">
+          <div style="font-size:13px;color:var(--tx2);margin-bottom:12px;">المستخدمون الجدد</div>
+          <canvas id="chart-users" height="200"></canvas>
+        </div>
+        <div class="cms-card" style="padding:16px;">
+          <div style="font-size:13px;color:var(--tx2);margin-bottom:12px;">استخدام النماذج</div>
+          <canvas id="chart-models" height="200"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── NOTIFICATIONS SECTION ─── -->
+    <div class="dash-section" id="sec-notifications">
+      <div class="sec-top">
+        <div><div class="sec-top-title">🔔 الإشعارات الجماعية</div><div class="sec-top-sub">إرسال رسائل لكل المستخدمين أو مجموعة محددة</div></div>
+        <button class="btn-primary" onclick="openNotifModal()">+ إشعار جديد</button>
+      </div>
+      <div class="cms-card" style="padding:20px;">
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <div>
+            <label style="font-size:12px;color:var(--tx2);display:block;margin-bottom:4px;">المستلمون</label>
+            <select id="notif-target" style="width:100%;background:var(--bg3);color:var(--tx);border:1px solid var(--b2);border-radius:8px;padding:8px 12px;font-size:13px;">
+              <option value="all">جميع المستخدمين</option>
+              <option value="free">مستخدمو الخطة المجانية</option>
+              <option value="starter">مشتركو Starter</option>
+              <option value="pro">مشتركو Pro</option>
+              <option value="creator">مشتركو Creator</option>
+              <option value="inactive">غير نشطين (30+ يوم)</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:12px;color:var(--tx2);display:block;margin-bottom:4px;">عنوان الإشعار</label>
+            <input id="notif-title" type="text" placeholder="عنوان الرسالة" style="width:100%;background:var(--bg3);color:var(--tx);border:1px solid var(--b2);border-radius:8px;padding:8px 12px;font-size:13px;">
+          </div>
+          <div>
+            <label style="font-size:12px;color:var(--tx2);display:block;margin-bottom:4px;">نص الرسالة</label>
+            <textarea id="notif-body" rows="4" placeholder="محتوى الإشعار..." style="width:100%;background:var(--bg3);color:var(--tx);border:1px solid var(--b2);border-radius:8px;padding:8px 12px;font-size:13px;resize:vertical;"></textarea>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <select id="notif-type" style="background:var(--bg3);color:var(--tx);border:1px solid var(--b2);border-radius:8px;padding:8px 12px;font-size:13px;">
+              <option value="info">ℹ️ معلومات</option>
+              <option value="promo">🎁 عرض ترويجي</option>
+              <option value="warning">⚠️ تنبيه</option>
+              <option value="update">🆕 تحديث</option>
+            </select>
+            <button class="btn-primary" onclick="sendNotification()" style="flex:1;">🚀 إرسال الإشعار</button>
+          </div>
+        </div>
+      </div>
+      <div class="cms-card" style="margin-top:16px;">
+        <div style="padding:12px;font-size:13px;font-weight:600;color:var(--tx);border-bottom:1px solid var(--b1);">سجل الإشعارات المرسلة</div>
+        <div class="cms-card-body" id="notif-history"><div class="empty-state">لا توجد إشعارات مرسلة بعد</div></div>
+      </div>
+    </div>
+
+    <!-- ─── COUPONS SECTION ─── -->
+    <div class="dash-section" id="sec-coupons">
+      <div class="sec-top">
+        <div><div class="sec-top-title">🎟️ أكواد الخصم والكوبونات</div><div class="sec-top-sub">إنشاء وإدارة كوبونات الخصم للاشتراكات والشحن</div></div>
+        <button class="btn-primary" onclick="openCouponModal()">+ كوبون جديد</button>
+      </div>
+      <div class="cms-card">
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:12px;font-size:11px;color:var(--tx2);border-bottom:1px solid var(--b1);">
+          <span>كوبونات نشطة</span><span>مرات الاستخدام</span><span>إجمالي الخصم</span><span>منتهية الصلاحية</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:12px;font-size:22px;font-weight:700;" id="coupon-stats">
+          <span>—</span><span>—</span><span>—</span><span>—</span>
+        </div>
+        <div class="cms-card-body" id="coupon-list"><div class="empty-state">⏳ جارٍ التحميل...</div></div>
+      </div>
+    </div>
+
+    <!-- ─── BACKUP SECTION ─── -->
+    <div class="dash-section" id="sec-backup">
+      <div class="sec-top">
+        <div><div class="sec-top-title">💾 النسخ الاحتياطي وتصدير البيانات</div><div class="sec-top-sub">تصدير بيانات المستخدمين والطلبات والتوليدات</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;">
+        <div class="cms-card" style="padding:20px;text-align:center;">
+          <div style="font-size:32px;margin-bottom:12px;">👥</div>
+          <div style="font-size:15px;font-weight:600;color:var(--tx);margin-bottom:4px;">المستخدمون</div>
+          <div style="font-size:12px;color:var(--tx2);margin-bottom:16px;">تصدير جميع بيانات المستخدمين (الإيميل، الخطة، الرصيد، تاريخ التسجيل)</div>
+          <div style="display:flex;gap:8px;justify-content:center;">
+            <button class="btn-primary" onclick="exportData('users','csv')">CSV</button>
+            <button class="btn-outline" onclick="exportData('users','json')">JSON</button>
+          </div>
+        </div>
+        <div class="cms-card" style="padding:20px;text-align:center;">
+          <div style="font-size:32px;margin-bottom:12px;">📋</div>
+          <div style="font-size:15px;font-weight:600;color:var(--tx);margin-bottom:4px;">الطلبات</div>
+          <div style="font-size:12px;color:var(--tx2);margin-bottom:16px;">تصدير جميع طلبات الاشتراك والشحن (النوع، المبلغ، الحالة، التاريخ)</div>
+          <div style="display:flex;gap:8px;justify-content:center;">
+            <button class="btn-primary" onclick="exportData('orders','csv')">CSV</button>
+            <button class="btn-outline" onclick="exportData('orders','json')">JSON</button>
+          </div>
+        </div>
+        <div class="cms-card" style="padding:20px;text-align:center;">
+          <div style="font-size:32px;margin-bottom:12px;">📸</div>
+          <div style="font-size:15px;font-weight:600;color:var(--tx);margin-bottom:4px;">التوليدات</div>
+          <div style="font-size:12px;color:var(--tx2);margin-bottom:16px;">تصدير سجل التوليدات (النموذج، البرومبت، التكلفة، التاريخ)</div>
+          <div style="display:flex;gap:8px;justify-content:center;">
+            <button class="btn-primary" onclick="exportData('generations','csv')">CSV</button>
+            <button class="btn-outline" onclick="exportData('generations','json')">JSON</button>
+          </div>
+        </div>
+        <div class="cms-card" style="padding:20px;text-align:center;">
+          <div style="font-size:32px;margin-bottom:12px;">🗄️</div>
+          <div style="font-size:15px;font-weight:600;color:var(--tx);margin-bottom:4px;">نسخة كاملة</div>
+          <div style="font-size:12px;color:var(--tx2);margin-bottom:16px;">تصدير كل البيانات (مستخدمين + طلبات + توليدات + إعدادات)</div>
+          <div style="display:flex;gap:8px;justify-content:center;">
+            <button class="btn-primary" onclick="exportData('full','json')">💾 نسخة كاملة JSON</button>
+          </div>
+          <div id="backup-status" style="margin-top:12px;font-size:12px;color:var(--tx3);"></div>
+        </div>
+      </div>
+      <div class="cms-card" style="margin-top:16px;">
+        <div style="padding:12px;font-size:13px;font-weight:600;color:var(--tx);border-bottom:1px solid var(--b1);">سجل النسخ الاحتياطية</div>
+        <div class="cms-card-body" id="backup-history"><div class="empty-state">لا توجد نسخ احتياطية بعد</div></div>
+      </div>
+    </div>
+
+    <!-- ─── API KEYS MANAGEMENT SECTION ─── -->
+    <div class="dash-section" id="sec-apikeys">
+      <div class="sec-top">
+        <div><div class="sec-top-title">🔐 إدارة مفاتيح API</div><div class="sec-top-sub">جميع مفاتيح API المستخدمة بالمنصة</div></div>
+        <button class="btn-primary" onclick="testAllApiKeys()">🔄 فحص الكل</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;" id="apikeys-grid">
+        <!-- API keys will be rendered here -->
+      </div>
+    </div>
+
+    <!-- ─── MODERATION SECTION ─── -->
+    <div class="dash-section" id="sec-moderation">
+      <div class="sec-top">
+        <div><div class="sec-top-title">🛡️ المراقبة والإبلاغات</div><div class="sec-top-sub">مراجعة المحتوى المبلّغ عنه والمحظور</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px;">
+        <div class="cms-card" style="padding:16px;text-align:center;">
+          <div style="font-size:28px;font-weight:700;color:var(--amber);" id="mod-pending">0</div>
+          <div style="font-size:12px;color:var(--tx2);">بانتظار المراجعة</div>
+        </div>
+        <div class="cms-card" style="padding:16px;text-align:center;">
+          <div style="font-size:28px;font-weight:700;color:var(--red);" id="mod-blocked">0</div>
+          <div style="font-size:12px;color:var(--tx2);">محتوى محظور</div>
+        </div>
+        <div class="cms-card" style="padding:16px;text-align:center;">
+          <div style="font-size:28px;font-weight:700;color:var(--green);" id="mod-approved">0</div>
+          <div style="font-size:12px;color:var(--tx2);">تمت الموافقة</div>
+        </div>
+      </div>
+      <div class="cms-card">
+        <div class="cms-card-body" id="mod-list"><div class="empty-state">لا توجد إبلاغات حالياً</div></div>
+      </div>
+    </div>
+
+    <!-- ─── REPORTS SECTION ─── -->
+    <div class="dash-section" id="sec-reports">
+      <div class="sec-top">
+        <div><div class="sec-top-title">📊 التقارير</div><div class="sec-top-sub">تقارير مفصّلة عن أداء المنصة</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;">
+        <div class="cms-card" style="padding:20px;cursor:pointer;" onclick="generateReport('usage')">
+          <div style="font-size:24px;margin-bottom:8px;">📱</div>
+          <div style="font-size:14px;font-weight:600;color:var(--tx);">تقرير الاستخدام</div>
+          <div style="font-size:12px;color:var(--tx2);margin-top:4px;">أكثر النماذج استخداماً، أوقات الذروة، متوسط التوليدات</div>
+        </div>
+        <div class="cms-card" style="padding:20px;cursor:pointer;" onclick="generateReport('revenue')">
+          <div style="font-size:24px;margin-bottom:8px;">💰</div>
+          <div style="font-size:14px;font-weight:600;color:var(--tx);">تقرير الإيرادات</div>
+          <div style="font-size:12px;color:var(--tx2);margin-top:4px;">إيرادات الاشتراكات، الشحن، التكاليف، صافي الربح</div>
+        </div>
+        <div class="cms-card" style="padding:20px;cursor:pointer;" onclick="generateReport('users')">
+          <div style="font-size:24px;margin-bottom:8px;">👥</div>
+          <div style="font-size:14px;font-weight:600;color:var(--tx);">تقرير المستخدمين</div>
+          <div style="font-size:12px;color:var(--tx2);margin-top:4px;">نمو المستخدمين، معدل التحويل، الاحتفاظ، أكثر نشاطاً</div>
+        </div>
+        <div class="cms-card" style="padding:20px;cursor:pointer;" onclick="generateReport('models')">
+          <div style="font-size:24px;margin-bottom:8px;">🤖</div>
+          <div style="font-size:14px;font-weight:600;color:var(--tx);">تقرير النماذج</div>
+          <div style="font-size:12px;color:var(--tx2);margin-top:4px;">أداء كل نموذج، تكلفة API، وقت الاستجابة، نسبة الفشل</div>
+        </div>
+      </div>
+      <div class="cms-card" style="margin-top:16px;display:none;" id="report-output">
+        <div style="padding:12px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--b1);">
+          <span style="font-size:13px;font-weight:600;color:var(--tx);" id="report-title">التقرير</span>
+          <button class="btn-outline" onclick="exportReport()">📥 تصدير</button>
+        </div>
+        <div class="cms-card-body" id="report-content"></div>
+      </div>
+    </div>
+
+    <!-- ─── MODEL CONTROL SECTION ─── -->
+    <div class="dash-section" id="sec-modelControl">
+      <div class="sec-top">
+        <div><div class="sec-top-title">🎛️ تحكم النماذج الاحترافي</div><div class="sec-top-sub">تحكم بكل موديل — التفعيل، التكلفة، الإعدادات الافتراضية، الحدود</div></div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn-outline active" onclick="filterModels('all',this)">الكل</button>
+          <button class="btn-outline" onclick="filterModels('image',this)">🖼️ صور</button>
+          <button class="btn-outline" onclick="filterModels('video',this)">🎬 فيديو</button>
+          <button class="btn-outline" onclick="filterModels('audio',this)">🎵 صوت</button>
+          <button class="btn-outline" onclick="filterModels('chat',this)">💬 محادثة</button>
+          <button class="btn-primary" onclick="saveAllModelSettings()">💾 حفظ الكل</button>
+        </div>
+      </div>
+      <div id="model-control-grid" style="display:flex;flex-direction:column;gap:12px;"></div>
+    </div>
+
+    <!-- ─── CREDIT MANAGER SECTION ─── -->
+    <div class="dash-section" id="sec-creditMgr">
+      <div class="sec-top">
+        <div><div class="sec-top-title">💎 إدارة الرصيد المتقدمة</div><div class="sec-top-sub">تعديل الرصيد، هدايا جماعية، سجل العمليات</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-bottom:16px;">
+        <div class="cms-card" style="padding:20px;">
+          <div style="font-size:14px;font-weight:600;color:var(--tx);margin-bottom:14px;">🎁 هدية رصيد جماعية</div>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <select id="credit-gift-target" style="background:var(--bg3);color:var(--tx);border:1px solid var(--b2);border-radius:8px;padding:8px;font-size:13px;">
+              <option value="all">جميع المستخدمين</option>
+              <option value="free">مستخدمو المجاني فقط</option>
+              <option value="starter">مشتركو Starter</option>
+              <option value="pro">مشتركو Pro</option>
+              <option value="creator">مشتركو Creator</option>
+              <option value="new">مسجلون جدد (7 أيام)</option>
+            </select>
+            <input id="credit-gift-amount" type="number" placeholder="عدد الكريدتات" style="background:var(--bg3);color:var(--tx);border:1px solid var(--b2);border-radius:8px;padding:8px;font-size:13px;">
+            <input id="credit-gift-reason" type="text" placeholder="السبب (اختياري)" style="background:var(--bg3);color:var(--tx);border:1px solid var(--b2);border-radius:8px;padding:8px;font-size:13px;">
+            <button class="btn-primary" onclick="sendBulkCredits()">🚀 إرسال الهدية</button>
+          </div>
+        </div>
+        <div class="cms-card" style="padding:20px;">
+          <div style="font-size:14px;font-weight:600;color:var(--tx);margin-bottom:14px;">👤 تعديل رصيد مستخدم</div>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <input id="credit-user-email" type="text" placeholder="البريد الإلكتروني" style="background:var(--bg3);color:var(--tx);border:1px solid var(--b2);border-radius:8px;padding:8px;font-size:13px;">
+            <div style="display:flex;gap:8px;">
+              <input id="credit-user-amount" type="number" placeholder="المبلغ" style="flex:1;background:var(--bg3);color:var(--tx);border:1px solid var(--b2);border-radius:8px;padding:8px;font-size:13px;">
+              <select id="credit-user-action" style="background:var(--bg3);color:var(--tx);border:1px solid var(--b2);border-radius:8px;padding:8px;font-size:13px;">
+                <option value="add">+ إضافة</option>
+                <option value="deduct">- خصم</option>
+                <option value="set">= تعيين</option>
+              </select>
+            </div>
+            <input id="credit-user-reason" type="text" placeholder="السبب" style="background:var(--bg3);color:var(--tx);border:1px solid var(--b2);border-radius:8px;padding:8px;font-size:13px;">
+            <button class="btn-primary" onclick="adjustUserCredits()">تنفيذ</button>
+          </div>
+        </div>
+        <div class="cms-card" style="padding:20px;">
+          <div style="font-size:14px;font-weight:600;color:var(--tx);margin-bottom:14px;">🆓 رصيد التجربة المجانية</div>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:13px;color:var(--tx2);">الرصيد المجاني للتسجيل</span>
+              <input id="free-trial-credits" type="number" value="100" style="width:80px;background:var(--bg3);color:var(--cyan);border:1px solid var(--b2);border-radius:8px;padding:6px 10px;font-size:16px;font-weight:700;text-align:center;">
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:13px;color:var(--tx2);">الحد اليومي للمجاني</span>
+              <input id="free-daily-limit" type="number" value="50" style="width:80px;background:var(--bg3);color:var(--amber);border:1px solid var(--b2);border-radius:8px;padding:6px 10px;font-size:16px;font-weight:700;text-align:center;">
+            </div>
+            <button class="btn-primary" onclick="saveFreeTrialSettings()">💾 حفظ</button>
+          </div>
+        </div>
+      </div>
+      <div class="cms-card">
+        <div style="padding:12px;font-size:13px;font-weight:600;color:var(--tx);border-bottom:1px solid var(--b1);">سجل عمليات الرصيد</div>
+        <div class="cms-card-body" id="credit-log"><div class="empty-state">⏳ جارٍ التحميل...</div></div>
+      </div>
+    </div>
+
+    <!-- ─── PLANS & PRICING MANAGER ─── -->
+    <div class="dash-section" id="sec-planMgr">
+      <div class="sec-top">
+        <div><div class="sec-top-title">📦 إدارة الخطط والأسعار</div><div class="sec-top-sub">تعديل الخطط، الأسعار، مخصصات الكريدت، وحزم الشحن</div></div>
+        <button class="btn-primary" onclick="savePlanSettings()">💾 حفظ التغييرات</button>
+      </div>
+      <div style="font-size:13px;color:var(--tx2);margin-bottom:12px;font-weight:600;">خطط الاشتراك</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-bottom:20px;" id="plans-grid"></div>
+      <div style="font-size:13px;color:var(--tx2);margin-bottom:12px;font-weight:600;">حزم الشحن (Top-up)</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:20px;" id="topups-grid"></div>
+      <div class="cms-card" style="padding:16px;">
+        <div style="font-size:13px;font-weight:600;color:var(--tx);margin-bottom:12px;">إضافة خطة / حزمة جديدة</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn-outline" onclick="addNewPlan()">+ خطة اشتراك</button>
+          <button class="btn-outline" onclick="addNewTopup()">+ حزمة شحن</button>
+        </div>
+      </div>
+    </div>
+
     </div><!-- .dash-body -->
 </div><!-- #dashboard -->
 
@@ -1009,22 +1386,37 @@ let usersPage  = 1;
 // ── Helpers ──
 function $(id){ return document.getElementById(id); }
 
-// ── KIE Balance ──
+// ── KIE Balance (redesigned) ──
 async function loadKieBalance() {
+  const chip = document.getElementById('kie-chip');
+  const el = document.getElementById('kie-balance');
+  if(!chip || !el) return;
+  chip.className = 'kie-chip kie-chip-balance kie-chip-loading';
+  el.textContent = '...';
   try {
     const res = await fetch('/api/admin/kie-balance', { credentials: 'same-origin' });
     const data = await res.json();
-    const el = document.getElementById('kie-balance');
     if (data.success) {
-      el.innerText = data.balance + ' Credits';
+      const bal = Number(data.balance);
+      el.textContent = bal.toLocaleString('en-US') + ' CR';
+      chip.className = 'kie-chip kie-chip-balance';
+      if(bal < 100) chip.style.borderColor = 'rgba(255,96,96,.3)';
     } else if (data.noKey) {
-      el.innerText = '⚠️ أدخل API Key';
+      el.textContent = 'مفتاح مطلوب';
+      chip.className = 'kie-chip kie-chip-nokey';
     } else {
-      el.innerText = '❌ خطأ';
+      el.textContent = 'خطأ';
+      chip.className = 'kie-chip kie-chip-error';
     }
   } catch (e) {
-    document.getElementById('kie-balance').innerText = '⚠️ فشل الاتصال';
+    el.textContent = 'غير متصل';
+    chip.className = 'kie-chip kie-chip-error';
   }
+}
+function refreshKieBalance() {
+  const btn = document.getElementById('kie-refresh-btn');
+  btn?.classList.add('spinning');
+  loadKieBalance().finally(() => setTimeout(() => btn?.classList.remove('spinning'), 600));
 }
 window.addEventListener('DOMContentLoaded', loadKieBalance);
 function toast(msg, type='ok'){
@@ -1077,8 +1469,8 @@ function doLogout(){
 function showDashboard(){
   $('login-screen').style.display = 'none';
   $('dashboard').style.display = 'flex';
+  document.getElementById('topbar-kie').style.display = 'flex';
   refreshAll();
-  // Auto-refresh every 60s
   setInterval(refreshAll, 60000);
 }
 
@@ -1091,7 +1483,7 @@ function showSection(id, btn){
   if(id==='theme'  && !themeLoaded)  loadTheme();
   if(id==='fonts'  && !fontsLoaded)  loadFonts();
   if(id==='assets' && !assetsLoaded) loadAssets();
-  const loaders = { pages: loadCMSPages, sections: initSectionsTab, cmsNav: loadCMSNav, siteSettings: loadSiteSettings, auditLog: loadCMSAudit, promobars: loadPromoBars, sidebarMgr: loadSidebarItems };
+  const loaders = { pages: loadCMSPages, sections: initSectionsTab, cmsNav: loadCMSNav, siteSettings: loadSiteSettings, auditLog: loadCMSAudit, promobars: loadPromoBars, sidebarMgr: loadSidebarItems, generations: loadGenerations, analytics: loadAnalytics, notifications: loadNotifHistory, coupons: loadCoupons, backup: loadBackupHistory, apikeys: loadApiKeys, moderation: loadModeration, reports: ()=>{}, modelControl: loadModelControl, creditMgr: loadCreditLog, planMgr: loadPlanSettings };
   if(loaders[id]) loaders[id]();
 }
 
@@ -2611,6 +3003,574 @@ function openPromoBarModal(id){
     if(r.ok){ toast(bar ? '✅ تم التحديث' : '✅ تم الإنشاء'); closeModal(); loadPromoBars(); }
     else { const d=await r.json(); toast('❌ '+(d.error||'خطأ'),'err'); }
   });
+}
+
+
+// ═══════════════════════════════════════
+// GENERATIONS LOG
+// ═══════════════════════════════════════
+let allGenerations = [], genPage = 1;
+async function loadGenerations() {
+  const type = $('gen-type-filter')?.value || '';
+  try {
+    const r = await apiFetch(`/api/admin/generations?type=${type}&page=${genPage}&limit=50`);
+    if (!r || !r.ok) throw new Error();
+    const data = await r.json();
+    allGenerations = data.generations || data.items || [];
+    // Stats
+    const stats = data.stats || {};
+    $('gen-stats').innerHTML = `<span style="color:var(--cyan)">${fmtNum(stats.total||allGenerations.length)}</span><span style="color:var(--green)">${fmtNum(stats.images||0)}</span><span style="color:var(--purple)">${fmtNum(stats.videos||0)}</span><span style="color:var(--amber)">${fmtNum(stats.audio||0)}</span>`;
+    renderGenerations();
+  } catch(e) {
+    $('gen-list').innerHTML = '<div class="empty-state">⚠️ لا يوجد API للتوليدات بعد — أضف <code>/api/admin/generations</code></div>';
+  }
+}
+function renderGenerations() {
+  const list = $('gen-list');
+  if (!allGenerations.length) { list.innerHTML = '<div class="empty-state">لا توجد توليدات</div>'; return; }
+  let html = '<table style="width:100%;border-collapse:collapse;font-size:12px;"><thead><tr style="border-bottom:1px solid var(--b1);"><th style="padding:8px;text-align:right;color:var(--tx2);">المستخدم</th><th style="padding:8px;text-align:right;color:var(--tx2);">النموذج</th><th style="padding:8px;text-align:right;color:var(--tx2);">البرومبت</th><th style="padding:8px;text-align:right;color:var(--tx2);">التكلفة</th><th style="padding:8px;text-align:right;color:var(--tx2);">النوع</th><th style="padding:8px;text-align:right;color:var(--tx2);">التاريخ</th><th style="padding:8px;text-align:right;color:var(--tx2);">عرض</th></tr></thead><tbody>';
+  allGenerations.forEach(g => {
+    const typeIcon = g.type === 'video' ? '🎬' : g.type === 'audio' ? '🎵' : '🖼️';
+    const prompt = esc((g.prompt||'').substring(0,60)) + (g.prompt?.length > 60 ? '...' : '');
+    html += `<tr style="border-bottom:1px solid var(--b1);"><td style="padding:8px;">${esc(g.email||g.userId||'—')}</td><td style="padding:8px;"><span style="background:var(--bg3);padding:2px 8px;border-radius:6px;font-size:11px;">${esc(g.model||'—')}</span></td><td style="padding:8px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(g.prompt||'')}">${prompt}</td><td style="padding:8px;color:var(--cyan);">${g.credits||g.cost||'—'}</td><td style="padding:8px;">${typeIcon}</td><td style="padding:8px;color:var(--tx3);">${fmtDate(g.createdAt||g.date)}</td><td style="padding:8px;">${g.url?`<a href="${esc(g.url)}" target="_blank" style="color:var(--cyan);">فتح</a>`:'—'}</td></tr>`;
+  });
+  html += '</tbody></table>';
+  list.innerHTML = html;
+}
+function filterGenerations() {
+  const q = ($('gen-search')?.value || '').toLowerCase();
+  const filtered = allGenerations.filter(g => (g.prompt||'').toLowerCase().includes(q) || (g.model||'').toLowerCase().includes(q));
+  const list = $('gen-list');
+  // Re-render with filtered
+  allGenerations = filtered;
+  renderGenerations();
+}
+function exportGenerations() {
+  if (!allGenerations.length) return toast('لا توجد بيانات','err');
+  let csv = 'User,Model,Prompt,Credits,Type,Date,URL\n';
+  allGenerations.forEach(g => { csv += `"${g.email||''}","${g.model||''}","${(g.prompt||'').replace(/"/g,'""')}",${g.credits||0},"${g.type||''}","${g.createdAt||''}","${g.url||''}"\n`; });
+  downloadBlob(csv, 'generations.csv', 'text/csv');
+}
+
+// ═══════════════════════════════════════
+// ANALYTICS (Charts)
+// ═══════════════════════════════════════
+let chartInstances = {};
+async function loadAnalytics() {
+  const days = parseInt(document.querySelector('.btn-outline.active')?.textContent) || 7;
+  try {
+    const r = await apiFetch(`/api/admin/analytics?days=${days}`);
+    if (!r || !r.ok) throw new Error();
+    const data = await r.json();
+    renderCharts(data);
+  } catch(e) {
+    // Generate mock data for demo
+    const labels = Array.from({length: days}, (_, i) => { const d = new Date(); d.setDate(d.getDate() - (days-1-i)); return d.toLocaleDateString('ar-SA',{month:'short',day:'numeric'}); });
+    renderCharts({
+      labels,
+      generations: labels.map(() => Math.floor(Math.random()*200+50)),
+      revenue: labels.map(() => Math.floor(Math.random()*5000+1000)),
+      newUsers: labels.map(() => Math.floor(Math.random()*20+5)),
+      models: { 'Nano': 340, 'Kling': 180, 'Sora 2': 120, 'Qwen2': 95, 'Hailuo': 75, 'Others': 60 }
+    });
+  }
+}
+function renderCharts(data) {
+  Object.values(chartInstances).forEach(c => c.destroy());
+  const cfg = (id, labels, dataset, color, type='line') => {
+    const ctx = $(id)?.getContext('2d');
+    if(!ctx) return;
+    chartInstances[id] = new Chart(ctx, {
+      type,
+      data: { labels, datasets: [{ data: dataset, borderColor: color, backgroundColor: type==='bar'?color+'40':color+'20', fill: type==='line', tension: 0.3, borderWidth: 2, pointRadius: 2 }] },
+      options: { responsive:true, plugins:{legend:{display:false}}, scales:{x:{ticks:{color:'#8899aa',font:{size:10}},grid:{color:'rgba(255,255,255,0.05)'}},y:{ticks:{color:'#8899aa',font:{size:10}},grid:{color:'rgba(255,255,255,0.05)'}}} }
+    });
+  };
+  cfg('chart-generations', data.labels, data.generations, '#5fe2ff');
+  cfg('chart-revenue', data.labels, data.revenue, '#f2b544', 'bar');
+  cfg('chart-users', data.labels, data.newUsers, '#3cdc78');
+  // Doughnut for models
+  if (data.models) {
+    const ctx = $('chart-models')?.getContext('2d');
+    if(ctx) {
+      chartInstances['chart-models'] = new Chart(ctx, {
+        type:'doughnut',
+        data:{ labels:Object.keys(data.models), datasets:[{ data:Object.values(data.models), backgroundColor:['#5fe2ff','#f2b544','#c4b5fd','#3cdc78','#ff6060','#8899aa'], borderWidth:0 }] },
+        options:{ responsive:true, plugins:{legend:{position:'right',labels:{color:'#8899aa',font:{size:11},padding:8}}} }
+      });
+    }
+  }
+}
+function setChartRange(days, btn) {
+  document.querySelectorAll('#sec-analytics .btn-outline').forEach(b => b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  loadAnalytics();
+}
+
+// ═══════════════════════════════════════
+// NOTIFICATIONS
+// ═══════════════════════════════════════
+async function sendNotification() {
+  const target = $('notif-target')?.value;
+  const title = $('notif-title')?.value;
+  const body = $('notif-body')?.value;
+  const type = $('notif-type')?.value;
+  if (!title || !body) return toast('أدخل العنوان والرسالة','err');
+  try {
+    const r = await apiFetch('/api/admin/notifications', { method:'POST', body: JSON.stringify({target,title,body,type}) });
+    if (r?.ok) { toast('✅ تم إرسال الإشعار'); $('notif-title').value=''; $('notif-body').value=''; loadNotifHistory(); }
+    else toast('❌ فشل الإرسال','err');
+  } catch(e) { toast('⚠️ API غير متوفر — أضف /api/admin/notifications','err'); }
+}
+async function loadNotifHistory() {
+  try {
+    const r = await apiFetch('/api/admin/notifications');
+    if (!r?.ok) throw new Error();
+    const data = await r.json();
+    const list = data.notifications || [];
+    if (!list.length) { $('notif-history').innerHTML = '<div class="empty-state">لا توجد إشعارات مرسلة</div>'; return; }
+    $('notif-history').innerHTML = list.map(n => `<div style="padding:12px;border-bottom:1px solid var(--b1);display:flex;justify-content:space-between;"><div><div style="font-weight:600;font-size:13px;">${esc(n.title)}</div><div style="font-size:12px;color:var(--tx2);margin-top:2px;">${esc(n.body?.substring(0,80))}</div></div><div style="text-align:left;font-size:11px;color:var(--tx3);white-space:nowrap;">${n.target} • ${fmtDate(n.createdAt)}</div></div>`).join('');
+  } catch(e) { $('notif-history').innerHTML = '<div class="empty-state">⚠️ أضف <code>/api/admin/notifications</code></div>'; }
+}
+
+// ═══════════════════════════════════════
+// COUPONS
+// ═══════════════════════════════════════
+async function loadCoupons() {
+  try {
+    const r = await apiFetch('/api/admin/coupons');
+    if (!r?.ok) throw new Error();
+    const data = await r.json();
+    const list = data.coupons || [];
+    const stats = data.stats || {};
+    $('coupon-stats').innerHTML = `<span style="color:var(--green)">${fmtNum(stats.active||list.filter(c=>c.active).length)}</span><span style="color:var(--cyan)">${fmtNum(stats.totalUsed||0)}</span><span style="color:var(--amber)">${fmtNum(stats.totalDiscount||0)}</span><span style="color:var(--tx3)">${fmtNum(stats.expired||0)}</span>`;
+    if (!list.length) { $('coupon-list').innerHTML = '<div class="empty-state">لا توجد كوبونات</div>'; return; }
+    $('coupon-list').innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:12px;"><thead><tr style="border-bottom:1px solid var(--b1);"><th style="padding:8px;text-align:right;color:var(--tx2);">الكود</th><th style="padding:8px;text-align:right;color:var(--tx2);">الخصم</th><th style="padding:8px;text-align:right;color:var(--tx2);">الاستخدام</th><th style="padding:8px;text-align:right;color:var(--tx2);">الحد الأقصى</th><th style="padding:8px;text-align:right;color:var(--tx2);">الصلاحية</th><th style="padding:8px;text-align:right;color:var(--tx2);">الحالة</th><th style="padding:8px;text-align:right;color:var(--tx2);">تحكم</th></tr></thead><tbody>' + list.map(c => `<tr style="border-bottom:1px solid var(--b1);"><td style="padding:8px;font-family:monospace;font-weight:600;color:var(--cyan);">${esc(c.code)}</td><td style="padding:8px;">${c.type==='percent'?c.value+'%':c.value+' كريدت'}</td><td style="padding:8px;">${c.used||0}</td><td style="padding:8px;">${c.maxUses||'∞'}</td><td style="padding:8px;font-size:11px;color:var(--tx3);">${c.expiresAt?fmtDate(c.expiresAt):'بلا حد'}</td><td style="padding:8px;"><span style="color:${c.active?'var(--green)':'var(--red)'}">${c.active?'نشط':'معطّل'}</span></td><td style="padding:8px;"><button onclick="toggleCoupon('${c._id||c.id}')" style="background:none;border:none;color:var(--amber);cursor:pointer;font-size:12px;">${c.active?'تعطيل':'تفعيل'}</button> <button onclick="deleteCoupon('${c._id||c.id}')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:12px;">حذف</button></td></tr>`).join('') + '</tbody></table>';
+  } catch(e) { $('coupon-list').innerHTML = '<div class="empty-state">⚠️ أضف <code>/api/admin/coupons</code></div>'; }
+}
+function openCouponModal() {
+  openModal('إنشاء كوبون جديد', `
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <div><label style="font-size:12px;color:var(--tx2);display:block;margin-bottom:4px;">كود الكوبون</label><input id="coupon-code" type="text" placeholder="SAVE20" style="width:100%;background:var(--bg3);color:var(--tx);border:1px solid var(--b2);border-radius:8px;padding:8px;font-family:monospace;text-transform:uppercase;"></div>
+      <div style="display:flex;gap:8px;"><div style="flex:1;"><label style="font-size:12px;color:var(--tx2);display:block;margin-bottom:4px;">نوع الخصم</label><select id="coupon-type" style="width:100%;background:var(--bg3);color:var(--tx);border:1px solid var(--b2);border-radius:8px;padding:8px;"><option value="percent">نسبة مئوية %</option><option value="credits">كريدت ثابت</option></select></div><div style="flex:1;"><label style="font-size:12px;color:var(--tx2);display:block;margin-bottom:4px;">القيمة</label><input id="coupon-value" type="number" placeholder="20" style="width:100%;background:var(--bg3);color:var(--tx);border:1px solid var(--b2);border-radius:8px;padding:8px;"></div></div>
+      <div style="display:flex;gap:8px;"><div style="flex:1;"><label style="font-size:12px;color:var(--tx2);display:block;margin-bottom:4px;">الحد الأقصى للاستخدام</label><input id="coupon-max" type="number" placeholder="100" style="width:100%;background:var(--bg3);color:var(--tx);border:1px solid var(--b2);border-radius:8px;padding:8px;"></div><div style="flex:1;"><label style="font-size:12px;color:var(--tx2);display:block;margin-bottom:4px;">تاريخ الانتهاء</label><input id="coupon-expires" type="date" style="width:100%;background:var(--bg3);color:var(--tx);border:1px solid var(--b2);border-radius:8px;padding:8px;color-scheme:dark;"></div></div>
+      <button class="btn-primary" onclick="createCoupon()" style="margin-top:8px;">✅ إنشاء الكوبون</button>
+    </div>
+  `);
+}
+async function createCoupon() {
+  const payload = { code:$('coupon-code')?.value?.toUpperCase(), type:$('coupon-type')?.value, value:Number($('coupon-value')?.value), maxUses:Number($('coupon-max')?.value)||null, expiresAt:$('coupon-expires')?.value||null };
+  if(!payload.code||!payload.value) return toast('أدخل الكود والقيمة','err');
+  try {
+    const r = await apiFetch('/api/admin/coupons', { method:'POST', body:JSON.stringify(payload) });
+    if(r?.ok) { toast('✅ تم إنشاء الكوبون'); closeModal(); loadCoupons(); }
+    else { const d = await r.json(); toast('❌ '+(d.error||'خطأ'),'err'); }
+  } catch(e) { toast('⚠️ API غير متوفر','err'); }
+}
+async function toggleCoupon(id) { try { await apiFetch(`/api/admin/coupons/${id}/toggle`,{method:'POST'}); loadCoupons(); } catch(e){} }
+async function deleteCoupon(id) { if(!confirm('حذف الكوبون؟')) return; try { await apiFetch(`/api/admin/coupons/${id}`,{method:'DELETE'}); loadCoupons(); } catch(e){} }
+
+// ═══════════════════════════════════════
+// BACKUP & EXPORT
+// ═══════════════════════════════════════
+async function loadBackupHistory() {
+  try {
+    const r = await apiFetch('/api/admin/backups');
+    if(!r?.ok) throw new Error();
+    const data = await r.json();
+    const list = data.backups || [];
+    if(!list.length) { $('backup-history').innerHTML = '<div class="empty-state">لا توجد نسخ سابقة</div>'; return; }
+    $('backup-history').innerHTML = list.map(b => `<div style="padding:10px 12px;border-bottom:1px solid var(--b1);display:flex;justify-content:space-between;align-items:center;"><div><span style="font-weight:600;font-size:13px;">${esc(b.type)}</span> <span style="color:var(--tx3);font-size:12px;">• ${fmtDate(b.createdAt)}</span></div><a href="${b.url}" download style="color:var(--cyan);font-size:12px;">📥 تحميل</a></div>`).join('');
+  } catch(e) { $('backup-history').innerHTML = '<div class="empty-state">سيظهر هنا سجل النسخ بعد إنشاء أول نسخة</div>'; }
+}
+async function exportData(type, format) {
+  $('backup-status').textContent = '⏳ جارٍ التصدير...';
+  try {
+    const r = await apiFetch(`/api/admin/export?type=${type}&format=${format}`);
+    if(!r?.ok) throw new Error();
+    const blob = await r.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = `saadstudio-${type}-${Date.now()}.${format}`; a.click();
+    URL.revokeObjectURL(url);
+    toast('✅ تم التصدير');
+    $('backup-status').textContent = '✅ تم التصدير ' + new Date().toLocaleTimeString('ar-SA');
+  } catch(e) { toast('⚠️ أضف /api/admin/export','err'); $('backup-status').textContent = ''; }
+}
+function downloadBlob(content, filename, type) {
+  const blob = new Blob(['\ufeff'+content], {type:type+';charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download=filename; a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ═══════════════════════════════════════
+// API KEYS MANAGEMENT
+// ═══════════════════════════════════════
+const API_KEYS_CONFIG = [
+  { id:'kie', name:'KIE.AI', icon:'🤖', endpoint:'/api/admin/kie-api-key', testEndpoint:'/api/admin/kie-test', desc:'نماذج الصور والفيديو' },
+  { id:'google', name:'Google AI', icon:'🔍', endpoint:'/api/admin/credentials', key:'googleApiKey', desc:'Gemini, Veo, Imagen' },
+  { id:'openai', name:'OpenAI', icon:'🧠', endpoint:'/api/admin/credentials', key:'openaiApiKey', desc:'GPT, DALL-E, Sora' },
+  { id:'elevenlabs', name:'ElevenLabs', icon:'🎙️', endpoint:'/api/admin/credentials', key:'elevenlabsApiKey', desc:'Text-to-Speech, Voice Clone' },
+  { id:'replicate', name:'Replicate', icon:'🔄', endpoint:'/api/admin/credentials', key:'replicateApiKey', desc:'Flux, SD, Models' },
+  { id:'fal', name:'Fal.ai', icon:'⚡', endpoint:'/api/admin/credentials', key:'falApiKey', desc:'Fast inference' },
+];
+async function loadApiKeys() {
+  const grid = $('apikeys-grid');
+  grid.innerHTML = API_KEYS_CONFIG.map(k => `
+    <div class="cms-card" style="padding:16px;" id="apikey-card-${k.id}">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+        <span style="font-size:24px;">${k.icon}</span>
+        <div><div style="font-weight:600;font-size:14px;color:var(--tx);">${k.name}</div><div style="font-size:11px;color:var(--tx3);">${k.desc}</div></div>
+        <span id="apikey-status-${k.id}" style="margin-right:auto;font-size:20px;">⏳</span>
+      </div>
+      <div style="display:flex;gap:6px;">
+        <input id="apikey-input-${k.id}" type="password" placeholder="أدخل المفتاح..." style="flex:1;background:var(--bg3);color:var(--tx);border:1px solid var(--b2);border-radius:8px;padding:6px 10px;font-size:12px;font-family:monospace;">
+        <button onclick="saveApiKey('${k.id}')" class="btn-primary" style="font-size:11px;padding:6px 12px;">حفظ</button>
+        <button onclick="testApiKey('${k.id}')" class="btn-outline" style="font-size:11px;padding:6px 12px;">فحص</button>
+      </div>
+    </div>
+  `).join('');
+  // Load current keys
+  try {
+    const r = await apiFetch('/api/admin/credentials');
+    if(r?.ok) {
+      const data = await r.json();
+      API_KEYS_CONFIG.forEach(k => {
+        const val = k.key ? data[k.key] : data[k.id+'ApiKey'];
+        if(val) { $('apikey-input-'+k.id).value = '••••••••' + (val.slice(-4)||''); $('apikey-status-'+k.id).textContent = '✅'; }
+        else { $('apikey-status-'+k.id).textContent = '❌'; }
+      });
+    }
+  } catch(e){}
+}
+async function saveApiKey(id) {
+  const val = $('apikey-input-'+id)?.value;
+  if(!val || val.startsWith('••••')) return toast('أدخل مفتاح جديد','err');
+  const cfg = API_KEYS_CONFIG.find(k=>k.id===id);
+  try {
+    const body = cfg.key ? JSON.stringify({[cfg.key]:val}) : JSON.stringify({key:val});
+    const r = await apiFetch(cfg.endpoint, {method:'POST', body});
+    if(r?.ok) { toast('✅ تم الحفظ'); $('apikey-status-'+id).textContent = '✅'; }
+    else toast('❌ فشل الحفظ','err');
+  } catch(e) { toast('❌ خطأ','err'); }
+}
+async function testApiKey(id) {
+  $('apikey-status-'+id).textContent = '⏳';
+  const cfg = API_KEYS_CONFIG.find(k=>k.id===id);
+  try {
+    const r = await apiFetch(cfg.testEndpoint || cfg.endpoint + '/test', {method:'POST'});
+    $('apikey-status-'+id).textContent = r?.ok ? '✅' : '❌';
+    toast(r?.ok ? '✅ المفتاح يعمل' : '❌ المفتاح لا يعمل', r?.ok?'ok':'err');
+  } catch(e) { $('apikey-status-'+id).textContent = '❌'; }
+}
+async function testAllApiKeys() {
+  for(const k of API_KEYS_CONFIG) await testApiKey(k.id);
+}
+
+// ═══════════════════════════════════════
+// MODERATION
+// ═══════════════════════════════════════
+async function loadModeration() {
+  try {
+    const r = await apiFetch('/api/admin/moderation');
+    if(!r?.ok) throw new Error();
+    const data = await r.json();
+    $('mod-pending').textContent = fmtNum(data.pending||0);
+    $('mod-blocked').textContent = fmtNum(data.blocked||0);
+    $('mod-approved').textContent = fmtNum(data.approved||0);
+    const list = data.items || [];
+    if(!list.length) { $('mod-list').innerHTML = '<div class="empty-state">لا توجد إبلاغات</div>'; return; }
+    $('mod-list').innerHTML = list.map(m => `<div style="padding:12px;border-bottom:1px solid var(--b1);display:flex;gap:12px;align-items:center;"><div style="width:60px;height:60px;border-radius:8px;background:var(--bg3);overflow:hidden;">${m.thumbnail?`<img src="${m.thumbnail}" style="width:100%;height:100%;object-fit:cover;">`:''}</div><div style="flex:1;"><div style="font-size:13px;font-weight:600;">${esc(m.reason||'محتوى مبلّغ عنه')}</div><div style="font-size:12px;color:var(--tx3);">${esc(m.email||'')} • ${fmtDate(m.createdAt)}</div></div><div style="display:flex;gap:6px;"><button onclick="moderateItem('${m._id||m.id}','approve')" class="btn-outline" style="font-size:11px;color:var(--green);">✅ موافقة</button><button onclick="moderateItem('${m._id||m.id}','block')" class="btn-outline" style="font-size:11px;color:var(--red);">🚫 حظر</button></div></div>`).join('');
+  } catch(e) { $('mod-list').innerHTML = '<div class="empty-state">⚠️ أضف <code>/api/admin/moderation</code></div>'; }
+}
+async function moderateItem(id, action) { try { await apiFetch(`/api/admin/moderation/${id}`,{method:'POST',body:JSON.stringify({action})}); loadModeration(); toast('✅ تم'); } catch(e){} }
+
+// ═══════════════════════════════════════
+// REPORTS
+// ═══════════════════════════════════════
+async function generateReport(type) {
+  const titles = {usage:'📱 تقرير الاستخدام',revenue:'💰 تقرير الإيرادات',users:'👥 تقرير المستخدمين',models:'🤖 تقرير النماذج'};
+  $('report-title').textContent = titles[type]||'التقرير';
+  $('report-output').style.display = '';
+  $('report-content').innerHTML = '<div class="empty-state">⏳ جارٍ إنشاء التقرير...</div>';
+  try {
+    const r = await apiFetch(`/api/admin/reports/${type}`);
+    if(!r?.ok) throw new Error();
+    const data = await r.json();
+    $('report-content').innerHTML = `<pre style="padding:16px;font-size:12px;color:var(--tx);white-space:pre-wrap;direction:ltr;">${JSON.stringify(data,null,2)}</pre>`;
+  } catch(e) {
+    $('report-content').innerHTML = '<div class="empty-state">⚠️ أضف <code>/api/admin/reports/:type</code> — سيعرض هنا بيانات التقرير</div>';
+  }
+}
+function exportReport() {
+  const content = $('report-content')?.textContent;
+  if(content) downloadBlob(content, 'report.json', 'application/json');
+}
+
+
+// ═══════════════════════════════════════
+// MODEL CONTROL — Full per-model management
+// ═══════════════════════════════════════
+const MODELS_REGISTRY = [
+  { id:'nano', name:'Nano Banana', type:'image', icon:'🍌', api:'/api/kie/image', defaults:{ models:['Pro','Nano 2','Nano'], ratios:['1:1','16:9','9:16','4:3','3:2','2:3','3:4','21:9'], qualities:['1K','2K','4K'], maxCount:4, defaultCost:4 }},
+  { id:'qwen2', name:'Qwen2', type:'image', icon:'🎨', api:'/api/kie/qwen2', defaults:{ guidance:[1,20], steps:[10,50], ratios:['1:1','16:9','9:16','4:3'], styles:['Realistic','Artistic'], negPrompt:true, seed:true, batch:[1,4], defaultCost:6 }},
+  { id:'seedream', name:'Seedream 4.5', type:'image', icon:'💎', api:'/api/kie/seedream', defaults:{ ratios:['1:1','16:9','9:16','4:3'], qualities:['Standard','HD'], defaultCost:8 }},
+  { id:'flux2', name:'FLUX.2', type:'image', icon:'⚡', api:'/api/kie/flux2', defaults:{ ratios:['1:1','16:9','9:16','4:3'], defaultCost:6 }},
+  { id:'zimage', name:'Z-Image', type:'image', icon:'🔮', api:'/api/kie/zimage', defaults:{ ratios:['1:1','16:9','9:16'], defaultCost:5 }},
+  { id:'grok', name:'Grok Imagine', type:'image', icon:'🧠', api:'/api/kie/grok', defaults:{ modes:['image','video'], durations:['5s','10s'], ratios:['1:1','16:9','9:16'], defaultCost:10 }},
+  { id:'fluxkontext', name:'Flux Kontext', type:'image', icon:'🔄', api:'/api/kie/flux-kontext', defaults:{ ratios:['1:1','16:9','9:16'], defaultCost:8 }},
+  { id:'ideogram', name:'Ideogram Reframe', type:'image', icon:'🖼️', api:'/api/kie/ideogram', defaults:{ sizes:['1:1','16:9','9:16','4:3'], styles:['Auto','Realistic','Design'], defaultCost:7 }},
+  { id:'sora2', name:'Sora 2', type:'video', icon:'🎬', api:'/api/kie/sora', defaults:{ ratios:['16:9','9:16','1:1'], durations:['5s','10s','15s','20s'], defaultCost:30 }},
+  { id:'hailuo', name:'Hailuo', type:'video', icon:'🌊', api:'/api/kie/hailuo', defaults:{ ratios:['16:9','9:16','1:1'], durations:['4s','6s'], defaultCost:57 }},
+  { id:'kling', name:'Kling Studio', type:'video', icon:'🎥', api:'/api/kie/kling', defaults:{ modes:['standard','pro'], durations:['5s','10s'], ratios:['16:9','9:16','1:1','4:3','3:4','2:3'], negPrompt:true, subPanels:['text','image','motion','avatar'], defaultCost:70 }},
+  { id:'seedance', name:'Seedance 1.5', type:'video', icon:'💃', api:'/api/kie/seedance', defaults:{ ratios:['16:9','9:16','1:1'], durations:['5s','10s'], defaultCost:40 }},
+  { id:'wan26', name:'Wan 2.6', type:'video', icon:'🌀', api:'/api/kie/wan', defaults:{ ratios:['16:9','9:16','1:1'], durations:['5s','10s'], models:['T2V','I2V','Speech'], defaultCost:25 }},
+  { id:'google', name:'Google Studio', type:'video', icon:'🔍', api:'/api/kie-veo', defaults:{ subTools:['Veo 3.1','TTS','Audio Lab','Prompt Lab'], defaultCost:50 }},
+  { id:'eleven', name:'ElevenLabs', type:'audio', icon:'🎙️', api:'/api/kie/elevenlabs', defaults:{ models:['Dialog','TTS','Sound'], styles:['Natural','Expressive','Calm'], defaultCost:8 }},
+  { id:'suno', name:'Suno Music', type:'audio', icon:'🎵', api:'/api/kie/suno', defaults:{ models:['Chirp','Bark'], styles:['Pop','Rock','Jazz','Arabic','Instrumental'], negPrompt:true, defaultCost:10 }},
+  { id:'gpt54', name:'GPT-5.2', type:'chat', icon:'🧪', api:'/api/kie/gpt54', defaults:{ models:['GPT-5.2','GPT-4o'], defaultCost:3 }},
+  { id:'infinitalk', name:'Infinitalk', type:'chat', icon:'🗣️', api:'/api/kie/infinitalk', defaults:{ ratios:['16:9','9:16','1:1'], defaultCost:15 }},
+  { id:'cinema', name:'Cinema Studio', type:'video', icon:'🎞️', api:'/api/generate', defaults:{ qualities:['Draft','Standard','HD'], ratios:['16:9','9:16','1:1','4:3'], vRatios:['16:9','9:16'], durations:['5s','10s'], defaultCost:20 }},
+];
+let modelSettings = {};
+
+async function loadModelControl() {
+  try {
+    const r = await apiFetch('/api/admin/model-settings');
+    if(r?.ok) modelSettings = await r.json();
+  } catch(e) { modelSettings = {}; }
+  renderModelCards('all');
+}
+
+function renderModelCards(filter) {
+  const grid = $('model-control-grid');
+  const models = filter === 'all' ? MODELS_REGISTRY : MODELS_REGISTRY.filter(m => m.type === filter);
+  grid.innerHTML = models.map(m => {
+    const s = modelSettings[m.id] || {};
+    const enabled = s.enabled !== false;
+    const cost = s.creditCost ?? m.defaults.defaultCost;
+    const dailyLimit = s.dailyLimit ?? 0;
+    const maxQueue = s.maxQueue ?? 10;
+    const priority = s.priority ?? 'normal';
+    return `
+    <div class="cms-card" style="padding:16px;border-right:3px solid ${enabled?'var(--green)':'var(--red)'};" data-model-type="${m.type}">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+        <span style="font-size:28px;">${m.icon}</span>
+        <div style="flex:1;">
+          <div style="font-size:15px;font-weight:700;color:var(--tx);">${m.name}</div>
+          <div style="font-size:11px;color:var(--tx3);">${m.api} • ${m.type}</div>
+        </div>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+          <span style="font-size:11px;color:var(--tx3);">${enabled?'مفعّل':'معطّل'}</span>
+          <input type="checkbox" ${enabled?'checked':''} onchange="toggleModel('${m.id}',this.checked)" style="width:18px;height:18px;accent-color:var(--green);">
+        </label>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;">
+        <div>
+          <div style="font-size:11px;color:var(--tx3);margin-bottom:4px;">💰 تكلفة الكريدت</div>
+          <input type="number" value="${cost}" id="mc-cost-${m.id}" style="width:100%;background:var(--bg3);color:var(--cyan);border:1px solid var(--b2);border-radius:8px;padding:6px 8px;font-size:14px;font-weight:700;">
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--tx3);margin-bottom:4px;">📊 حد يومي (0=بلا حد)</div>
+          <input type="number" value="${dailyLimit}" id="mc-limit-${m.id}" style="width:100%;background:var(--bg3);color:var(--tx);border:1px solid var(--b2);border-radius:8px;padding:6px 8px;font-size:13px;">
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--tx3);margin-bottom:4px;">🔄 الطوابير المتزامنة</div>
+          <input type="number" value="${maxQueue}" id="mc-queue-${m.id}" style="width:100%;background:var(--bg3);color:var(--tx);border:1px solid var(--b2);border-radius:8px;padding:6px 8px;font-size:13px;">
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--tx3);margin-bottom:4px;">⚡ الأولوية</div>
+          <select id="mc-priority-${m.id}" style="width:100%;background:var(--bg3);color:var(--tx);border:1px solid var(--b2);border-radius:8px;padding:6px 8px;font-size:13px;">
+            <option value="low" ${priority==='low'?'selected':''}>منخفضة</option>
+            <option value="normal" ${priority==='normal'?'selected':''}>عادية</option>
+            <option value="high" ${priority==='high'?'selected':''}>عالية</option>
+          </select>
+        </div>
+      </div>
+      ${m.defaults.ratios ? `<div style="margin-top:10px;"><div style="font-size:11px;color:var(--tx3);margin-bottom:4px;">📐 النسب المتاحة</div><div style="display:flex;flex-wrap:wrap;gap:4px;">${m.defaults.ratios.map(r=>`<label style="font-size:11px;background:var(--bg3);padding:3px 8px;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:4px;"><input type="checkbox" checked style="width:12px;height:12px;accent-color:var(--cyan);"> ${r}</label>`).join('')}</div></div>` : ''}
+      ${m.defaults.qualities ? `<div style="margin-top:8px;"><div style="font-size:11px;color:var(--tx3);margin-bottom:4px;">🎯 الجودة المتاحة</div><div style="display:flex;flex-wrap:wrap;gap:4px;">${m.defaults.qualities.map(q=>`<label style="font-size:11px;background:var(--bg3);padding:3px 8px;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:4px;"><input type="checkbox" checked style="width:12px;height:12px;accent-color:var(--cyan);"> ${q}</label>`).join('')}</div></div>` : ''}
+      ${m.defaults.durations ? `<div style="margin-top:8px;"><div style="font-size:11px;color:var(--tx3);margin-bottom:4px;">⏱️ المدد المتاحة</div><div style="display:flex;flex-wrap:wrap;gap:4px;">${m.defaults.durations.map(d=>`<label style="font-size:11px;background:var(--bg3);padding:3px 8px;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:4px;"><input type="checkbox" checked style="width:12px;height:12px;accent-color:var(--cyan);"> ${d}</label>`).join('')}</div></div>` : ''}
+      ${m.defaults.negPrompt ? `<div style="margin-top:8px;display:flex;align-items:center;gap:6px;"><input type="checkbox" checked style="accent-color:var(--cyan);"><span style="font-size:11px;color:var(--tx3);">السماح بالبرومبت السلبي</span></div>` : ''}
+      <div style="margin-top:10px;display:flex;gap:6px;">
+        <button class="btn-outline" onclick="saveModelSetting('${m.id}')" style="font-size:11px;">💾 حفظ</button>
+        <button class="btn-outline" onclick="testModelApi('${m.id}')" style="font-size:11px;">🔄 فحص API</button>
+        <span id="mc-status-${m.id}" style="font-size:11px;color:var(--tx3);display:flex;align-items:center;"></span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function filterModels(type, btn) {
+  document.querySelectorAll('#sec-modelControl .sec-top .btn-outline').forEach(b => b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  renderModelCards(type);
+}
+
+function toggleModel(id, enabled) {
+  if(!modelSettings[id]) modelSettings[id] = {};
+  modelSettings[id].enabled = enabled;
+  renderModelCards(document.querySelector('#sec-modelControl .btn-outline.active')?.textContent?.includes('صور')?'image':document.querySelector('#sec-modelControl .btn-outline.active')?.textContent?.includes('فيديو')?'video':document.querySelector('#sec-modelControl .btn-outline.active')?.textContent?.includes('صوت')?'audio':document.querySelector('#sec-modelControl .btn-outline.active')?.textContent?.includes('محادثة')?'chat':'all');
+}
+
+async function saveModelSetting(id) {
+  const s = { enabled: modelSettings[id]?.enabled !== false, creditCost: Number($('mc-cost-'+id)?.value)||0, dailyLimit: Number($('mc-limit-'+id)?.value)||0, maxQueue: Number($('mc-queue-'+id)?.value)||10, priority: $('mc-priority-'+id)?.value||'normal' };
+  modelSettings[id] = { ...modelSettings[id], ...s };
+  $('mc-status-'+id).textContent = '⏳';
+  try {
+    const r = await apiFetch('/api/admin/model-settings', { method:'POST', body:JSON.stringify({modelId:id,...s}) });
+    $('mc-status-'+id).textContent = r?.ok ? '✅ تم الحفظ' : '❌ خطأ';
+  } catch(e) { $('mc-status-'+id).textContent = '⚠️ أضف API'; }
+  setTimeout(()=>{ if($('mc-status-'+id)) $('mc-status-'+id).textContent=''; }, 3000);
+}
+
+async function saveAllModelSettings() {
+  for(const m of MODELS_REGISTRY) await saveModelSetting(m.id);
+  toast('✅ تم حفظ إعدادات كل النماذج');
+}
+
+async function testModelApi(id) {
+  const m = MODELS_REGISTRY.find(x=>x.id===id);
+  $('mc-status-'+id).textContent = '⏳ فحص...';
+  try {
+    const r = await fetch(m.api+'/health||'+m.api, {credentials:'same-origin'});
+    $('mc-status-'+id).textContent = '✅ API يعمل';
+    $('mc-status-'+id).style.color = 'var(--green)';
+  } catch(e) {
+    $('mc-status-'+id).textContent = '❌ API لا يستجيب';
+    $('mc-status-'+id).style.color = 'var(--red)';
+  }
+  setTimeout(()=>{ if($('mc-status-'+id)) { $('mc-status-'+id).textContent=''; $('mc-status-'+id).style.color=''; } }, 5000);
+}
+
+// ═══════════════════════════════════════
+// CREDIT MANAGER
+// ═══════════════════════════════════════
+async function loadCreditLog() {
+  try {
+    const r = await apiFetch('/api/admin/credit-log');
+    if(!r?.ok) throw new Error();
+    const data = await r.json();
+    const list = data.log || [];
+    if(!list.length) { $('credit-log').innerHTML = '<div class="empty-state">لا توجد عمليات</div>'; return; }
+    $('credit-log').innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:12px;"><thead><tr style="border-bottom:1px solid var(--b1);"><th style="padding:8px;text-align:right;color:var(--tx2);">المستخدم</th><th style="padding:8px;text-align:right;color:var(--tx2);">العملية</th><th style="padding:8px;text-align:right;color:var(--tx2);">المبلغ</th><th style="padding:8px;text-align:right;color:var(--tx2);">السبب</th><th style="padding:8px;text-align:right;color:var(--tx2);">التاريخ</th></tr></thead><tbody>'+list.map(l=>`<tr style="border-bottom:1px solid var(--b1);"><td style="padding:8px;">${esc(l.email||'')}</td><td style="padding:8px;">${l.action==='add'?'<span style="color:var(--green)">+إضافة</span>':l.action==='deduct'?'<span style="color:var(--red)">-خصم</span>':'<span style="color:var(--cyan)">=تعيين</span>'}</td><td style="padding:8px;font-weight:700;color:${l.action==='deduct'?'var(--red)':'var(--green)'};">${l.amount}</td><td style="padding:8px;color:var(--tx3);">${esc(l.reason||'—')}</td><td style="padding:8px;color:var(--tx3);">${fmtDate(l.createdAt)}</td></tr>`).join('')+'</tbody></table>';
+  } catch(e) { $('credit-log').innerHTML = '<div class="empty-state">⚠️ أضف <code>/api/admin/credit-log</code></div>'; }
+}
+
+async function sendBulkCredits() {
+  const target = $('credit-gift-target')?.value;
+  const amount = Number($('credit-gift-amount')?.value);
+  const reason = $('credit-gift-reason')?.value || 'هدية من الإدارة';
+  if(!amount || amount <= 0) return toast('أدخل مبلغ صحيح','err');
+  if(!confirm(`إرسال ${amount} كريدت لـ ${target === 'all' ? 'جميع المستخدمين' : target}؟`)) return;
+  try {
+    const r = await apiFetch('/api/admin/bulk-credits', {method:'POST', body:JSON.stringify({target,amount,reason})});
+    if(r?.ok) { const d=await r.json(); toast(`✅ تم إرسال ${amount} كريدت لـ ${d.count||'?'} مستخدم`); loadCreditLog(); }
+    else toast('❌ فشل','err');
+  } catch(e) { toast('⚠️ أضف /api/admin/bulk-credits','err'); }
+}
+
+async function adjustUserCredits() {
+  const email = $('credit-user-email')?.value;
+  const amount = Number($('credit-user-amount')?.value);
+  const action = $('credit-user-action')?.value;
+  const reason = $('credit-user-reason')?.value || '';
+  if(!email || !amount) return toast('أدخل البريد والمبلغ','err');
+  try {
+    const r = await apiFetch('/api/admin/user-credits', {method:'POST', body:JSON.stringify({email,amount,action,reason})});
+    if(r?.ok) { toast('✅ تم التعديل'); $('credit-user-email').value=''; $('credit-user-amount').value=''; loadCreditLog(); }
+    else { const d=await r.json(); toast('❌ '+(d.error||'خطأ'),'err'); }
+  } catch(e) { toast('⚠️ أضف /api/admin/user-credits','err'); }
+}
+
+async function saveFreeTrialSettings() {
+  const credits = Number($('free-trial-credits')?.value) || 100;
+  const dailyLimit = Number($('free-daily-limit')?.value) || 50;
+  try {
+    const r = await apiFetch('/api/admin/free-trial-settings', {method:'POST', body:JSON.stringify({freeCredits:credits,dailyLimit})});
+    toast(r?.ok ? '✅ تم الحفظ' : '❌ خطأ', r?.ok?'ok':'err');
+  } catch(e) { toast('⚠️ أضف /api/admin/free-trial-settings','err'); }
+}
+
+// ═══════════════════════════════════════
+// PLANS & PRICING MANAGER
+// ═══════════════════════════════════════
+let plansData = { plans:[], topups:[] };
+async function loadPlanSettings() {
+  try {
+    const r = await apiFetch('/api/admin/plan-settings');
+    if(r?.ok) plansData = await r.json();
+  } catch(e) {
+    plansData = {
+      plans: [
+        { id:'starter', name:'Starter', price:10, credits:1000, features:['1000 كريدت شهرياً','كل النماذج','دعم عادي'] },
+        { id:'pro', name:'Pro', price:25, credits:2800, features:['2800 كريدت شهرياً','أولوية عالية','دعم سريع'], popular:true },
+        { id:'creator', name:'Creator', price:50, credits:6000, features:['6000 كريدت شهرياً','أولوية قصوى','دعم VIP','API access'] },
+      ],
+      topups: [
+        { id:'t5', price:5, credits:450 },
+        { id:'t15', price:15, credits:1500 },
+        { id:'t30', price:30, credits:3200 },
+        { id:'t50', price:50, credits:5500 },
+      ]
+    };
+  }
+  renderPlans();
+  renderTopups();
+}
+
+function renderPlans() {
+  $('plans-grid').innerHTML = (plansData.plans||[]).map(p => `
+    <div class="cms-card" style="padding:16px;${p.popular?'border:2px solid var(--cyan);':''}">
+      ${p.popular?'<div style="font-size:10px;background:rgba(95,226,255,.15);color:var(--cyan);padding:2px 8px;border-radius:10px;display:inline-block;margin-bottom:8px;">الأكثر شعبية</div>':''}
+      <input value="${esc(p.name)}" style="font-size:18px;font-weight:700;color:var(--tx);background:transparent;border:none;width:100%;margin-bottom:4px;" onchange="updatePlan('${p.id}','name',this.value)">
+      <div style="display:flex;align-items:baseline;gap:4px;margin-bottom:8px;">
+        <span style="color:var(--tx3);font-size:13px;">$</span>
+        <input type="number" value="${p.price}" style="font-size:28px;font-weight:700;color:var(--cyan);background:transparent;border:none;width:60px;" onchange="updatePlan('${p.id}','price',Number(this.value))">
+        <span style="color:var(--tx3);font-size:12px;">/شهر</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:4px;margin-bottom:12px;">
+        <input type="number" value="${p.credits}" style="font-size:14px;font-weight:600;color:var(--amber);background:transparent;border:1px solid var(--b1);border-radius:6px;width:80px;padding:4px 6px;" onchange="updatePlan('${p.id}','credits',Number(this.value))">
+        <span style="font-size:12px;color:var(--tx3);">كريدت</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        ${(p.features||[]).map((f,i)=>`<div style="display:flex;align-items:center;gap:4px;"><span style="color:var(--green);font-size:12px;">✓</span><input value="${esc(f)}" style="flex:1;font-size:12px;color:var(--tx2);background:transparent;border:none;" onchange="updatePlanFeature('${p.id}',${i},this.value)"></div>`).join('')}
+        <button onclick="addPlanFeature('${p.id}')" style="font-size:11px;color:var(--cyan);background:none;border:1px dashed var(--b2);border-radius:6px;padding:4px;cursor:pointer;">+ ميزة</button>
+      </div>
+      <div style="margin-top:10px;display:flex;gap:4px;">
+        <label style="font-size:11px;display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" ${p.popular?'checked':''} onchange="updatePlan('${p.id}','popular',this.checked)" style="accent-color:var(--cyan);"> شعبية</label>
+        <button onclick="deletePlan('${p.id}')" style="font-size:11px;color:var(--red);background:none;border:none;cursor:pointer;margin-right:auto;">🗑️</button>
+      </div>
+    </div>`).join('');
+}
+
+function renderTopups() {
+  $('topups-grid').innerHTML = (plansData.topups||[]).map(t => `
+    <div class="cms-card" style="padding:14px;text-align:center;">
+      <div style="display:flex;align-items:baseline;justify-content:center;gap:4px;margin-bottom:6px;">
+        <span style="color:var(--tx3);">$</span>
+        <input type="number" value="${t.price}" style="font-size:22px;font-weight:700;color:var(--tx);background:transparent;border:none;width:50px;text-align:center;" onchange="updateTopup('${t.id}','price',Number(this.value))">
+      </div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:4px;">
+        <input type="number" value="${t.credits}" style="font-size:14px;font-weight:600;color:var(--cyan);background:transparent;border:1px solid var(--b1);border-radius:6px;width:70px;padding:3px;text-align:center;" onchange="updateTopup('${t.id}','credits',Number(this.value))">
+        <span style="font-size:11px;color:var(--tx3);">كريدت</span>
+      </div>
+      <button onclick="deleteTopup('${t.id}')" style="font-size:11px;color:var(--red);background:none;border:none;cursor:pointer;margin-top:6px;">🗑️</button>
+    </div>`).join('');
+}
+
+function updatePlan(id, key, val) { const p = plansData.plans.find(x=>x.id===id); if(p) p[key]=val; }
+function updatePlanFeature(id, idx, val) { const p = plansData.plans.find(x=>x.id===id); if(p?.features) p.features[idx]=val; }
+function addPlanFeature(id) { const p = plansData.plans.find(x=>x.id===id); if(p) { if(!p.features) p.features=[]; p.features.push('ميزة جديدة'); renderPlans(); } }
+function deletePlan(id) { if(!confirm('حذف الخطة؟')) return; plansData.plans = plansData.plans.filter(x=>x.id!==id); renderPlans(); }
+function updateTopup(id, key, val) { const t = plansData.topups.find(x=>x.id===id); if(t) t[key]=val; }
+function deleteTopup(id) { plansData.topups = plansData.topups.filter(x=>x.id!==id); renderTopups(); }
+function addNewPlan() { plansData.plans.push({id:'plan-'+Date.now(),name:'خطة جديدة',price:0,credits:0,features:[]}); renderPlans(); }
+function addNewTopup() { plansData.topups.push({id:'topup-'+Date.now(),price:0,credits:0}); renderTopups(); }
+async function savePlanSettings() {
+  try {
+    const r = await apiFetch('/api/admin/plan-settings', {method:'POST', body:JSON.stringify(plansData)});
+    toast(r?.ok ? '✅ تم حفظ الخطط' : '❌ خطأ', r?.ok?'ok':'err');
+  } catch(e) { toast('⚠️ أضف /api/admin/plan-settings','err'); }
 }
 
 // ── Boot ──
