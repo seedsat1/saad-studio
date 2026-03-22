@@ -3588,15 +3588,7 @@ app.use('/admin', (req, res, next) => {
   next();
 });
 
-app.get('/dashboard.html', (req, res) => {
-  const sessionId = (req.cookies && req.cookies.admin_sid) || '';
-  const session = adminSessions.get(sessionId);
-  if (!session || Date.now() > session.expiry) {
-    if (session) { adminSessions.delete(sessionId); saveAdminSessions(adminSessions); }
-    return res.redirect('/');
-  }
-  res.redirect('/admin/');
-});
+// dashboard.html is now served from SAAD_STUDIO_MultiPage via registerMultiPageRoutes
 
 function requireAdmin(req, res, next){
   const sessionId = (req.cookies && req.cookies.admin_sid) || '';
