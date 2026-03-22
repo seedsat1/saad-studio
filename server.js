@@ -503,7 +503,9 @@ app.post('/api/store-image', requireSignedIn, async (req, res) => {
     const name = `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2,8)}.${ext}`;
     const filePath = path.join(dir, name);
     fs.writeFileSync(filePath, Buffer.from(base64, 'base64'));
-    res.json({ url: `/uploads/gallery/${name}` });
+    const savedUrl = `/uploads/gallery/${name}`;
+    if (req.currentUser?.id) attachActivityImage(req.currentUser.id, savedUrl);
+    res.json({ url: savedUrl });
   } catch (e) {
     res.status(500).json({ error: "حدث خطأ في الخادم" });
   }
@@ -3044,17 +3046,39 @@ function logActivity(userId, email, type, model, credits, prompt) {
     let log = [];
     try { log = JSON.parse(fs.readFileSync(ACTIVITY_FILE, 'utf8')); } catch {}
     if (!Array.isArray(log)) log = [];
+    const id = crypto.randomBytes(8).toString('hex');
     log.unshift({
-      id      : crypto.randomBytes(8).toString('hex'),
+      id,
       userId  : String(userId  || ''),
       email   : String(email   || ''),
       type    : String(type    || 'task'),
       model   : String(model   || ''),
       credits : Number(credits) || 0,
       prompt  : String(prompt  || '').slice(0, 150),
+      imageUrl: '',
       createdAt: new Date().toISOString()
     });
     if (log.length > 2000) log = log.slice(0, 2000);
+    fs.writeFileSync(ACTIVITY_FILE, JSON.stringify(log));
+    return id;
+  } catch (_) { return ''; }
+}
+
+// Attach an image URL to the most-recent activity entry for this user
+// (called from /api/store-image after the file is saved on disk)
+function attachActivityImage(userId, imageUrl) {
+  try {
+    let log = [];
+    try { log = JSON.parse(fs.readFileSync(ACTIVITY_FILE, 'utf8')); } catch {}
+    if (!Array.isArray(log)) return;
+    const cutoff = Date.now() - 5 * 60 * 1000; // within last 5 minutes
+    const idx = log.findIndex(e =>
+      e.userId === String(userId) &&
+      !e.imageUrl &&
+      new Date(e.createdAt).getTime() > cutoff
+    );
+    if (idx === -1) return;
+    log[idx].imageUrl = String(imageUrl);
     fs.writeFileSync(ACTIVITY_FILE, JSON.stringify(log));
   } catch (_) {}
 }

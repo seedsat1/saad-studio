@@ -253,6 +253,7 @@
                     <table class="table table-hover mb-0 align-middle">
                       <thead class="table-light">
                         <tr>
+                          <th style="width:60px">Image</th>
                           <th style="min-width:190px">User</th>
                           <th style="min-width:150px">Model</th>
                           <th>Type</th>
@@ -262,7 +263,7 @@
                         </tr>
                       </thead>
                       <tbody id="activityBody">
-                        <tr><td colspan="6" class="text-center py-4 text-body-secondary">Loading...</td></tr>
+                        <tr><td colspan="7" class="text-center py-4 text-body-secondary">Loading...</td></tr>
                       </tbody>
                     </table>
                   </div>
@@ -404,7 +405,7 @@
         if (search) params.append('search', search);
 
         const body = document.getElementById('activityBody');
-        body.innerHTML = '<tr><td colspan="6" class="text-center py-3 text-body-secondary">' +
+        body.innerHTML = '<tr><td colspan="7" class="text-center py-3 text-body-secondary">' +
           '<span style="display:inline-block;width:16px;height:16px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite;vertical-align:middle;margin-right:6px;"></span>Loading…</td></tr>';
 
         try {
@@ -420,7 +421,7 @@
           document.getElementById('activityNext').disabled = activityOffset + PAGE_SIZE >= activityTotalCount;
 
           if (!activity || activity.length === 0) {
-            body.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-body-secondary">No activity yet.</td></tr>';
+            body.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-body-secondary">No activity yet.</td></tr>';
             return;
           }
 
@@ -429,7 +430,11 @@
             const color    = avatarColor(e.email);
             const modelShort = (e.model || '').replace(/\/.*/, '').slice(0, 28);
             const promptText = e.prompt ? e.prompt.replace(/</g,'&lt;').replace(/>/g,'&gt;') : '—';
+            const imgCell = e.imageUrl
+              ? `<td style="padding:6px 8px"><a href="${e.imageUrl}" target="_blank" rel="noopener"><img src="${e.imageUrl}" style="width:48px;height:48px;object-fit:cover;border-radius:6px;border:1px solid rgba(128,128,128,0.25);display:block;" loading="lazy"></a></td>`
+              : `<td style="text-align:center;opacity:0.3;font-size:16px;">—</td>`;
             return `<tr>
+              ${imgCell}
               <td>
                 <div class="d-flex align-items-center gap-2">
                   <div class="activity-avatar" style="background:${color}">${initials}</div>
@@ -447,7 +452,7 @@
             </tr>`;
           }).join('');
         } catch(err) {
-          body.innerHTML = `<tr><td colspan="6" class="text-center py-3 text-danger">Error: ${err.message}</td></tr>`;
+          body.innerHTML = `<tr><td colspan="7" class="text-center py-3 text-danger">Error: ${err.message}</td></tr>`;
         }
       }
 
