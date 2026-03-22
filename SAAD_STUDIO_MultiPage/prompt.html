@@ -1,0 +1,385 @@
+﻿<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SAAD STUDIO — Prompt Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Kufi+Arabic:wght@300;400;600;700&family=JetBrains+Mono:wght@400;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,500,0,0" rel="stylesheet">
+<link rel="stylesheet" href="/api/site-config.css" id="site-theme-override">
+<link rel="stylesheet" href="/css/shared.css">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="logo-area" onclick="showPage('dash',null)">
+    <div class="logo-stack">
+      <div class="logo-text">SAAD STUDIO</div>
+      <div class="logo-sub">AI Creative Platform v2.0</div>
+      <div class="brand-status">
+        <span class="status-dot connected"></span>
+        <span class="status-text">Connected</span>
+      </div>
+    </div>
+    </div>
+  </div>
+    <nav class="nav-section">
+    <div class="nav-label">Discover</div>
+    <div class="nav-item active" onclick="window.location.href='/'">
+      <div class="nav-icon"><img class="nav-logo" src="/assets/logo-saad.png" alt="SAAD STUDIO"></div><span class="nav-name">Discover</span>
+    </div>
+    <div class="nav-label" style="margin-top:6px">Production</div>
+    <div class="nav-item" onclick="window.location.href='/image-tools.html'">
+      <div class="nav-icon"><img class="nav-logo" src="/assets/logo-image-tools.png" alt="Image Tools"></div><span class="nav-name">Image Tools</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='/transitions.html'">
+      <div class="nav-icon">🎞️</div><span class="nav-name">Transitions</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='/nano.html'">
+      <div class="nav-icon">🍌</div><span class="nav-name">Nano Banana</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='/google.html'">
+      <div class="nav-icon"><img class="nav-logo" src="/assets/logo-google-studio.png" alt="Google Studio"></div><span class="nav-name">Google Studio</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='/kling.html'">
+      <div class="nav-icon"><img class="nav-logo" src="/assets/logo-kling-studio.png" alt="Kling Studio"></div><span class="nav-name">Kling Studio</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='/eleven.html'">
+      <div class="nav-icon"><img class="nav-logo" src="/assets/logo-elevenlabs-studio.png" alt="ElevenLabs Studio"></div><span class="nav-name">ElevenLabs Studio</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='/cinema.html'">
+      <div class="nav-icon">🎬</div><span class="nav-name">Cinema Studio</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='/prompt.html'">
+      <div class="nav-icon">🔍</div><span class="nav-name">Prompt Studio</span>
+    </div>
+    <div class="nav-label" style="margin-top:6px">Models</div>
+    <div class="nav-item" onclick="window.location.href='/sora2.html'">
+      <div class="nav-icon"><img class="nav-logo" src="/assets/logo-sora-2.png" alt="Sora 2"></div><span class="nav-name">Sora 2</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='/gpt54.html'">
+      <div class="nav-icon"><img class="nav-logo" src="/assets/logo-gpt-52.png" alt="GPT-5.2"></div><span class="nav-name">GPT-5.2</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='/hailuo.html'">
+      <div class="nav-icon"><img class="nav-logo" src="/assets/logo-hailuo.png" alt="Hailuo"></div><span class="nav-name">Hailuo</span>
+    </div>
+      <div class="nav-item" onclick="window.location.href='/grok.html'">
+        <div class="nav-icon"><img class="nav-logo" src="/assets/logo-grok.png" alt="Grok"></div><span class="nav-name">Grok</span>
+      </div>
+      <div class="nav-item" onclick="window.location.href='/seedream.html'">
+        <div class="nav-icon"><img class="nav-logo" src="/assets/logo-seedream-45.png" alt="Seedream 4.5"></div><span class="nav-name">Seedream 4.5</span>
+      </div>
+      <div class="nav-item" onclick="window.location.href='/flux2.html'">
+        <div class="nav-icon"><img class="nav-logo" src="/assets/logo-flux-2.png" alt="FLUX.2"></div><span class="nav-name">FLUX.2</span>
+      </div>
+      <div class="nav-item" onclick="window.location.href='/zimage.html'">
+        <div class="nav-icon"><img class="nav-logo" src="/assets/logo-z-image.png" alt="Z-Image"></div><span class="nav-name">Z-Image</span>
+      </div>
+      <div class="nav-item" onclick="window.location.href='/wan26.html'">
+        <div class="nav-icon"><img class="nav-logo" src="/assets/logo-wan-26.png" alt="Wan 2.6"></div><span class="nav-name">Wan 2.6</span>
+      </div>
+      <div class="nav-item" onclick="window.location.href='/seedance.html'">
+        <div class="nav-icon"><img class="nav-logo" src="/assets/logo-seedance-15-pro.png" alt="Seedance 1.5 Pro"></div><span class="nav-name">Seedance 1.5</span>
+      </div>
+      <div class="nav-item" onclick="window.location.href='/fluxkontext.html'">
+        <div class="nav-icon"><img class="nav-logo" src="/assets/logo-flux-kontext.png" alt="Flux Kontext"></div><span class="nav-name">Flux Kontext</span>
+      </div>
+    <div class="nav-item" onclick="window.location.href='/ideogram-reframe.html'">
+        <div class="nav-icon"><img class="nav-logo" src="/assets/logo-ideogram-reframe.png" alt="Ideogram Reframe"></div><span class="nav-name">Ideogram Reframe</span>
+      </div>
+      <div class="nav-item" onclick="window.location.href='/infinitalk.html'">
+        <div class="nav-icon"><img class="nav-logo" src="/assets/logo-infinitalk.png" alt="Infinitalk"></div><span class="nav-name">Infinitalk</span>
+      </div>
+        <div class="nav-item" onclick="window.location.href='/qwen2.html'">
+          <div class="nav-icon"><img class="nav-logo" src="/assets/logo-qwen2.png" alt="Qwen2"></div><span class="nav-name">Qwen2</span>
+        </div>
+      <div class="nav-item" onclick="window.location.href='/ideogram-reframe.html'">
+        <div class="nav-icon"><img class="nav-logo" src="/assets/logo-ideogram-character.png" alt="Ideogram Character"></div><span class="nav-name">Ideogram Character</span>
+      </div>
+      <div class="nav-label" style="margin-top:6px">Library</div>
+    <div class="nav-item" onclick="window.location.href='/gallery.html'">
+      <div class="nav-icon">🗄️</div><span class="nav-name">Gallery</span>
+    </div>
+      <div class="nav-item" onclick="window.location.href='/library.html'">
+        <div class="nav-icon">📁</div><span class="nav-name">Library</span>
+      </div>
+      <div class="nav-item" onclick="window.location.href='/legal.html'">
+        <div class="nav-icon">🛡️</div><span class="nav-name">Legal</span>
+      </div>
+      <div class="nav-item" id="nav-control" style="display:none" onclick="showPage('control',this);verifyAndRenderControl()">
+        <div class="nav-icon">⚙️</div><span class="nav-name">Control Panel</span>
+      </div>
+      <div class="nav-item" id="nav-dashboard" style="display:none" onclick="window.open('/dashboard.html','_blank')">
+        <div class="nav-icon">📊</div><span class="nav-name">Dashboard</span>
+      </div>
+    </nav>
+
+</aside>
+
+<main class="main">
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+  <header class="topbar">
+    <button class="hamburger-btn" id="hamburger-btn" onclick="toggleSidebar()" aria-label="Menu">&#9776;</button>
+    <div class="topbar-logo-wrap">
+      <img class="topbar-logo" src="/assets/logo-saad.png" alt="SAAD STUDIO Logo">
+    </div>
+    <span class="topbar-title" id="pageTitle">Discover</span>
+    <div id="promo-in-navbar"></div>
+    <div class="topbar-actions" id="topbar-actions">
+      <button class="topbar-btn" id="langToggle" onclick="toggleLanguage()">EN</button>
+      <button class="topbar-btn pricing" onclick="showPage('pricing')">Pricing</button>
+      <!-- guest buttons -->
+      <span id="topbar-guest">
+        <button class="topbar-btn" onclick="openAuthModal('login')">Login</button>
+        <button class="topbar-btn primary" onclick="openAuthModal('register')">Sign up</button>
+      </span>
+      <!-- logged-in state -->
+      <span id="topbar-loggedin" style="display:none" class="topbar-user">
+        <!-- Avatar button -->
+        <div class="user-avatar-wrap topbar-avatar-wrap" id="user-avatar-wrap" onclick="toggleProfileCard()">
+          <div class="user-avatar" id="user-avatar-el">•</div>
+        </div>
+        <!-- Profile dropdown card -->
+        <div class="profile-card" id="profile-card" style="display:none;">
+          <div class="profile-card-header">
+            <div class="profile-card-avatar" id="pcard-avatar">•</div>
+            <div>
+              <div class="profile-card-email" id="pcard-email">—</div>
+              <span class="topbar-plan-badge starter" id="pcard-plan-badge" style="margin-top:4px;display:inline-block;">—</span>
+            </div>
+          </div>
+          <div class="profile-card-divider"></div>
+          <div class="profile-card-row">
+            <span class="profile-card-label">💳 رصيدك</span>
+            <span class="profile-card-value" id="pcard-credits">—</span>
+          </div>
+          <div class="profile-card-row">
+            <span class="profile-card-label">📅 تاريخ الاشتراك</span>
+            <span class="profile-card-value" id="pcard-created">—</span>
+          </div>
+          <div class="profile-card-row" id="pcard-renew-row">
+            <span class="profile-card-label">⏳ ينتهي في</span>
+            <span class="profile-card-value" id="pcard-renew">—</span>
+          </div>
+          <div class="profile-card-row" id="pcard-days-row">
+            <span class="profile-card-label">⭐ باقي</span>
+            <span class="profile-card-value" id="pcard-days">—</span>
+          </div>
+          <div class="profile-card-divider"></div>
+          <button class="profile-card-nav-btn" onclick="closeProfileCard();showPage('user-dashboard')"><span class="pcnb-icon">📊</span> لوحتي</button>
+          <button class="profile-card-nav-btn" onclick="closeProfileCard();showPage('billing')"><span class="pcnb-icon">💳</span> الاشتراك والفوترة</button>
+          <button class="profile-card-logout" onclick="doLogout()">&#x2192; تسجيل الخروج</button>
+        </div>
+      </span>
+    </div>
+  </header>
+
+  <div class="gs-billing kie-global" id="user-credits-bar" style="display:none">
+    <div class="gs-kpi">
+      <div class="gs-kpi-label">رصيد حسابك</div>
+      <div class="gs-kpi-value" id="kie-credits-value" style="color:var(--cyan)">--</div>
+    </div>
+    <button class="btn btn-ghost" onclick="AUTH.refreshMe().then(()=>syncUserCreditsBar())">تحديث الرصيد</button>
+  </div>
+
+  <!-- MARKET -->
+
+<div class="page active" id="page-prompt">
+    <div class="ps-layout">
+      <div class="ps-sidebar">
+        <div class="card">
+          <div class="card-head">IDEA ENGINE</div>
+          <div class="card-body">
+            <div class="field">
+              <div class="flabel">الفكرة الأساسية</div>
+              <input class="finput" id="ps-idea" placeholder="Luxury electric car reveal at night in Tokyo with rain reflections">
+            </div>
+            <div class="field">
+              <div class="flabel">حركة الكاميرا</div>
+              <select class="fselect" id="ps-move">
+                <option>Orbit 180°</option>
+                <option>Slow Push Forward</option>
+                <option>Reveal (Rise + Tilt)</option>
+                <option>Side Glide (Parallax)</option>
+                <option>Top-down Flyover</option>
+              </select>
+            </div>
+            <div class="ps-pills">
+              <button class="ps-pill active" type="button" onclick="fillPromptIdea(this,'Luxury perfume hero shot in a gold-lit palace hallway')">Luxury</button>
+              <button class="ps-pill" type="button" onclick="fillPromptIdea(this,'Cinematic gaming setup reveal with neon reflections and floating dust')">Gaming</button>
+              <button class="ps-pill" type="button" onclick="fillPromptIdea(this,'Fashion runway entrance with slow dramatic camera movement and spotlight haze')">Fashion</button>
+              <button class="ps-pill" type="button" onclick="fillPromptIdea(this,'Epic Iraqi city street scene at sunset with realistic atmosphere')">Iraq Scene</button>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head">TRANSITION CONTROL</div>
+          <div class="card-body">
+            <div class="row2">
+              <div class="field">
+                <div class="flabel">Transition Type</div>
+                <select class="fselect" id="ps-transition-type">
+                  <option value="Auto">Auto (Best Match)</option>
+                  <option value="Raven Transition">Raven Transition</option>
+                  <option value="Morph">Morph</option>
+                  <option value="Air Bending">Air Bending</option>
+                  <option value="Shadow Smoke">Shadow Smoke</option>
+                  <option value="Water Bending">Water Bending</option>
+                  <option value="Firelava">Firelava</option>
+                  <option value="Seamless Transition">Seamless Transition</option>
+                  <option value="Flying Cam Transition">Flying Cam Transition</option>
+                  <option value="Melt Transition">Melt Transition</option>
+                  <option value="Splash Transition">Splash Transition</option>
+                  <option value="Flame Transition">Flame Transition</option>
+                  <option value="Smoke Transition">Smoke Transition</option>
+                  <option value="Logo Transform">Logo Transform</option>
+                  <option value="Jump Transition">Jump Transition</option>
+                  <option value="Hand Transition">Hand Transition</option>
+                  <option value="Column Wipe">Column Wipe</option>
+                  <option value="Hole Transition">Hole Transition</option>
+                  <option value="Display Transition">Display Transition</option>
+                  <option value="Trucksition">Trucksition</option>
+                  <option value="Gorilla Transfer">Gorilla Transfer</option>
+                  <option value="Intermission">Intermission</option>
+                  <option value="Stranger Transition">Stranger Transition</option>
+                </select>
+              </div>
+              <div class="field">
+                <div class="flabel">Intensity</div>
+                <select class="fselect" id="ps-transition-intensity">
+                  <option value="Low">Low</option>
+                  <option value="Medium" selected>Medium</option>
+                  <option value="High">High</option>
+                </select>
+              </div>
+            </div>
+            <div class="field">
+              <div class="flabel">المدة بالثواني</div>
+              <input class="finput" id="ps-seconds" type="number" min="3" max="12" value="5" style="direction:ltr;">
+            </div>
+            <div class="ps-split">
+              <div class="field">
+                <div class="flabel">Image A</div>
+                <div class="dropzone" id="dz-ps-a" onclick="triggerUpload('up-ps-a')"><div id="dz-ps-a-inner"><div class="dz-icon">A</div><div class="dz-text">آخر لقطة من المشهد الأول</div></div></div>
+                <input type="file" id="up-ps-a" accept="image/*" style="display:none" onchange="handleFile(this,'dz-ps-a')">
+              </div>
+              <div class="field">
+                <div class="flabel">Image B</div>
+                <div class="dropzone" id="dz-ps-b" onclick="triggerUpload('up-ps-b')"><div id="dz-ps-b-inner"><div class="dz-icon">B</div><div class="dz-text">بداية المشهد التالي</div></div></div>
+                <input type="file" id="up-ps-b" accept="image/*" style="display:none" onchange="handleFile(this,'dz-ps-b')">
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head">FLORENCE2</div>
+          <div class="card-body">
+            <div class="dropzone" id="dz-flo" onclick="triggerUpload('up-flo')"><div id="dz-flo-inner"><div class="dz-icon">🔍</div><div class="dz-text">ارفع صورة للتحليل</div><div class="dz-sub">استخراج وصف سريع من الصورة</div></div></div>
+            <input type="file" id="up-flo" accept="image/*" style="display:none" onchange="handleFile(this,'dz-flo')">
+            <div class="field">
+              <div class="flabel">TASK</div>
+              <select class="fselect" id="flo-task">
+                <option value="more_detailed_caption">More Detailed Caption</option>
+                <option value="detailed_caption">Detailed Caption</option>
+                <option value="caption">Caption</option>
+              </select>
+            </div>
+            <button class="btn-generate gen-action" id="flo-btn" onclick="generate('florence')">Generate</button>
+            <div class="prog-wrap" id="flo-prog" style="display:none"><div class="prog-fill" id="flo-prog-fill"></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="ps-main">
+        <div class="card">
+          <div class="card-head">PROMPT COMMAND CENTER</div>
+          <div class="card-body">
+            <div class="ps-actions-wrap">
+              <div class="ps-action-grid">
+                <button class="ps-mini-btn main primary" id="ps-btn-generate" type="button" onclick="runPromptStudio('list')">توليد قائمة برومبت</button>
+                <button class="ps-mini-btn main" id="ps-btn-project" type="button" onclick="runPromptStudio('project')">توليد مشروع 25 ثانية</button>
+                <button class="ps-mini-btn main" id="ps-btn-transition" type="button" onclick="runPromptStudio('transition')">توليد انتقال</button>
+              </div>
+              <div class="ps-action-secondary">
+                <button class="ps-mini-btn copy" type="button" onclick="copyPromptStudioOutput()">نسخ الناتج</button>
+              </div>
+            </div>
+            <div id="ps-status" class="ps-status"></div>
+            <textarea class="ftextarea ps-output" id="ps-output" placeholder="Generated prompt output will appear here..."></textarea>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head">
+            <span>FLORENCE OUTPUT</span>
+            <div style="display:flex;gap:6px;">
+              <button class="btn btn-ghost" style="font-size:9px;padding:3px 8px;" onclick="copyFlo()">📋 نسخ</button>
+              <button class="btn btn-ghost" style="font-size:9px;padding:3px 8px;" onclick="sendFloToEdit()">→ تعديل صورة</button>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="txt-output" id="flo-result" style="min-height:170px;">ستظهر نتيجة تحليل الصورة هنا...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- NANO BANANA PAGE -->
+  
+<div class="page active" id="page-prompt-legacy" style="display:none!important">
+    <div class="ph"><div class="ph-title">PROMPT STUDIO</div><div class="ph-sub">Florence2 — استخراج وصف تلقائي من الصورة</div></div>
+    <div class="layout2">
+      <div class="ctrl-panel">
+        <div class="card"><div class="card-head">🖼️ الصورة</div><div class="card-body">
+          <div class="dropzone" id="dz-flo-legacy" onclick="triggerUpload('up-flo-legacy')"><div id="dz-flo-legacy-inner"><div class="dz-icon">🔍</div><div class="dz-text">ارفع صورة للتحليل</div><div class="dz-sub">Florence2 سيصف محتواها</div></div></div>
+          <input type="file" id="up-flo-legacy" accept="image/*" style="display:none" onchange="handleFile(this,'dz-flo-legacy')">
+        </div></div>
+        <div class="card"><div class="card-head">⚙️ نوع التحليل</div><div class="card-body">
+          <div class="field"><div class="flabel">TASK</div>
+            <select class="fselect" id="flo-task-legacy">
+              <option value="more_detailed_caption">More Detailed Caption ← مفضّل</option>
+              <option value="detailed_caption">Detailed Caption</option>
+              <option value="caption">Caption — قصير</option>
+            </select>
+          </div>
+        </div></div>
+        <button class="btn-generate gen-action" id="flo-btn-legacy" onclick="generate('florence')">Generate</button>
+        <div class="prog-wrap" id="flo-prog-legacy" style="display:none"><div class="prog-fill" id="flo-prog-fill-legacy"></div></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:14px;overflow:hidden;">
+        <div class="card" style="flex:1;overflow:auto;">
+          <div class="card-head">
+            <span>📋 الوصف المستخرج</span>
+            <div style="display:flex;gap:6px;">
+              <button class="btn btn-ghost" style="font-size:9px;padding:3px 8px;" onclick="copyFlo()">📋 نسخ</button>
+              <button class="btn btn-ghost" style="font-size:9px;padding:3px 8px;" onclick="sendFloToEdit()">→ تعديل صورة</button>
+            </div>
+          </div>
+          <div class="card-body"><div class="txt-output" id="flo-result-legacy" style="min-height:200px;">ستظهر النتيجة هنا...</div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  
+
+</main>
+
+
+
+<div class="toast-container" id="toasts"></div>
+
+
+
+<script src="/js/shared.js"></script>
+<script src="/js/sidebar-scripts.js"></script><script src="/js/sidebar-toggle.js"></script>
+<script>
+(function() {
+  var p = new URLSearchParams(window.location.search).get('page');
+  if (p) showPage(p);
+})();
+</script>
+</body>
+</html>

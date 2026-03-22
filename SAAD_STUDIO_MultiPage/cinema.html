@@ -1,0 +1,430 @@
+﻿<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SAAD STUDIO — Cinema Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Kufi+Arabic:wght@300;400;600;700&family=JetBrains+Mono:wght@400;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,500,0,0" rel="stylesheet">
+<link rel="stylesheet" href="/api/site-config.css" id="site-theme-override">
+<link rel="stylesheet" href="/css/shared.css">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="logo-area" onclick="showPage('dash',null)">
+    <div class="logo-stack">
+      <div class="logo-text">SAAD STUDIO</div>
+      <div class="logo-sub">AI Creative Platform v2.0</div>
+      <div class="brand-status">
+        <span class="status-dot connected"></span>
+        <span class="status-text">Connected</span>
+      </div>
+    </div>
+    </div>
+  </div>
+    <nav class="nav-section">
+    <div class="nav-label">Discover</div>
+    <div class="nav-item active" onclick="window.location.href='/'">
+      <div class="nav-icon"><img class="nav-logo" src="/assets/logo-saad.png" alt="SAAD STUDIO"></div><span class="nav-name">Discover</span>
+    </div>
+    <div class="nav-label" style="margin-top:6px">Production</div>
+    <div class="nav-item" onclick="window.location.href='/image-tools.html'">
+      <div class="nav-icon"><img class="nav-logo" src="/assets/logo-image-tools.png" alt="Image Tools"></div><span class="nav-name">Image Tools</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='/transitions.html'">
+      <div class="nav-icon">🎞️</div><span class="nav-name">Transitions</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='/nano.html'">
+      <div class="nav-icon">🍌</div><span class="nav-name">Nano Banana</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='/google.html'">
+      <div class="nav-icon"><img class="nav-logo" src="/assets/logo-google-studio.png" alt="Google Studio"></div><span class="nav-name">Google Studio</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='/kling.html'">
+      <div class="nav-icon"><img class="nav-logo" src="/assets/logo-kling-studio.png" alt="Kling Studio"></div><span class="nav-name">Kling Studio</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='/eleven.html'">
+      <div class="nav-icon"><img class="nav-logo" src="/assets/logo-elevenlabs-studio.png" alt="ElevenLabs Studio"></div><span class="nav-name">ElevenLabs Studio</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='/cinema.html'">
+      <div class="nav-icon">🎬</div><span class="nav-name">Cinema Studio</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='/prompt.html'">
+      <div class="nav-icon">🔍</div><span class="nav-name">Prompt Studio</span>
+    </div>
+    <div class="nav-label" style="margin-top:6px">Models</div>
+    <div class="nav-item" onclick="window.location.href='/sora2.html'">
+      <div class="nav-icon"><img class="nav-logo" src="/assets/logo-sora-2.png" alt="Sora 2"></div><span class="nav-name">Sora 2</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='/gpt54.html'">
+      <div class="nav-icon"><img class="nav-logo" src="/assets/logo-gpt-52.png" alt="GPT-5.2"></div><span class="nav-name">GPT-5.2</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='/hailuo.html'">
+      <div class="nav-icon"><img class="nav-logo" src="/assets/logo-hailuo.png" alt="Hailuo"></div><span class="nav-name">Hailuo</span>
+    </div>
+      <div class="nav-item" onclick="window.location.href='/grok.html'">
+        <div class="nav-icon"><img class="nav-logo" src="/assets/logo-grok.png" alt="Grok"></div><span class="nav-name">Grok</span>
+      </div>
+      <div class="nav-item" onclick="window.location.href='/seedream.html'">
+        <div class="nav-icon"><img class="nav-logo" src="/assets/logo-seedream-45.png" alt="Seedream 4.5"></div><span class="nav-name">Seedream 4.5</span>
+      </div>
+      <div class="nav-item" onclick="window.location.href='/flux2.html'">
+        <div class="nav-icon"><img class="nav-logo" src="/assets/logo-flux-2.png" alt="FLUX.2"></div><span class="nav-name">FLUX.2</span>
+      </div>
+      <div class="nav-item" onclick="window.location.href='/zimage.html'">
+        <div class="nav-icon"><img class="nav-logo" src="/assets/logo-z-image.png" alt="Z-Image"></div><span class="nav-name">Z-Image</span>
+      </div>
+      <div class="nav-item" onclick="window.location.href='/wan26.html'">
+        <div class="nav-icon"><img class="nav-logo" src="/assets/logo-wan-26.png" alt="Wan 2.6"></div><span class="nav-name">Wan 2.6</span>
+      </div>
+      <div class="nav-item" onclick="window.location.href='/seedance.html'">
+        <div class="nav-icon"><img class="nav-logo" src="/assets/logo-seedance-15-pro.png" alt="Seedance 1.5 Pro"></div><span class="nav-name">Seedance 1.5</span>
+      </div>
+      <div class="nav-item" onclick="window.location.href='/fluxkontext.html'">
+        <div class="nav-icon"><img class="nav-logo" src="/assets/logo-flux-kontext.png" alt="Flux Kontext"></div><span class="nav-name">Flux Kontext</span>
+      </div>
+    <div class="nav-item" onclick="window.location.href='/ideogram-reframe.html'">
+        <div class="nav-icon"><img class="nav-logo" src="/assets/logo-ideogram-reframe.png" alt="Ideogram Reframe"></div><span class="nav-name">Ideogram Reframe</span>
+      </div>
+      <div class="nav-item" onclick="window.location.href='/infinitalk.html'">
+        <div class="nav-icon"><img class="nav-logo" src="/assets/logo-infinitalk.png" alt="Infinitalk"></div><span class="nav-name">Infinitalk</span>
+      </div>
+        <div class="nav-item" onclick="window.location.href='/qwen2.html'">
+          <div class="nav-icon"><img class="nav-logo" src="/assets/logo-qwen2.png" alt="Qwen2"></div><span class="nav-name">Qwen2</span>
+        </div>
+      <div class="nav-item" onclick="window.location.href='/ideogram-reframe.html'">
+        <div class="nav-icon"><img class="nav-logo" src="/assets/logo-ideogram-character.png" alt="Ideogram Character"></div><span class="nav-name">Ideogram Character</span>
+      </div>
+      <div class="nav-label" style="margin-top:6px">Library</div>
+    <div class="nav-item" onclick="window.location.href='/gallery.html'">
+      <div class="nav-icon">🗄️</div><span class="nav-name">Gallery</span>
+    </div>
+      <div class="nav-item" onclick="window.location.href='/library.html'">
+        <div class="nav-icon">📁</div><span class="nav-name">Library</span>
+      </div>
+      <div class="nav-item" onclick="window.location.href='/legal.html'">
+        <div class="nav-icon">🛡️</div><span class="nav-name">Legal</span>
+      </div>
+      <div class="nav-item" id="nav-control" style="display:none" onclick="showPage('control',this);verifyAndRenderControl()">
+        <div class="nav-icon">⚙️</div><span class="nav-name">Control Panel</span>
+      </div>
+      <div class="nav-item" id="nav-dashboard" style="display:none" onclick="window.open('/dashboard.html','_blank')">
+        <div class="nav-icon">📊</div><span class="nav-name">Dashboard</span>
+      </div>
+    </nav>
+
+</aside>
+
+<main class="main">
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+  <header class="topbar">
+    <button class="hamburger-btn" id="hamburger-btn" onclick="toggleSidebar()" aria-label="Menu">&#9776;</button>
+    <div class="topbar-logo-wrap">
+      <img class="topbar-logo" src="/assets/logo-saad.png" alt="SAAD STUDIO Logo">
+    </div>
+    <span class="topbar-title" id="pageTitle">Discover</span>
+    <div id="promo-in-navbar"></div>
+    <div class="topbar-actions" id="topbar-actions">
+      <button class="topbar-btn" id="langToggle" onclick="toggleLanguage()">EN</button>
+      <button class="topbar-btn pricing" onclick="showPage('pricing')">Pricing</button>
+      <!-- guest buttons -->
+      <span id="topbar-guest">
+        <button class="topbar-btn" onclick="openAuthModal('login')">Login</button>
+        <button class="topbar-btn primary" onclick="openAuthModal('register')">Sign up</button>
+      </span>
+      <!-- logged-in state -->
+      <span id="topbar-loggedin" style="display:none" class="topbar-user">
+        <!-- Avatar button -->
+        <div class="user-avatar-wrap topbar-avatar-wrap" id="user-avatar-wrap" onclick="toggleProfileCard()">
+          <div class="user-avatar" id="user-avatar-el">•</div>
+        </div>
+        <!-- Profile dropdown card -->
+        <div class="profile-card" id="profile-card" style="display:none;">
+          <div class="profile-card-header">
+            <div class="profile-card-avatar" id="pcard-avatar">•</div>
+            <div>
+              <div class="profile-card-email" id="pcard-email">—</div>
+              <span class="topbar-plan-badge starter" id="pcard-plan-badge" style="margin-top:4px;display:inline-block;">—</span>
+            </div>
+          </div>
+          <div class="profile-card-divider"></div>
+          <div class="profile-card-row">
+            <span class="profile-card-label">💳 رصيدك</span>
+            <span class="profile-card-value" id="pcard-credits">—</span>
+          </div>
+          <div class="profile-card-row">
+            <span class="profile-card-label">📅 تاريخ الاشتراك</span>
+            <span class="profile-card-value" id="pcard-created">—</span>
+          </div>
+          <div class="profile-card-row" id="pcard-renew-row">
+            <span class="profile-card-label">⏳ ينتهي في</span>
+            <span class="profile-card-value" id="pcard-renew">—</span>
+          </div>
+          <div class="profile-card-row" id="pcard-days-row">
+            <span class="profile-card-label">⭐ باقي</span>
+            <span class="profile-card-value" id="pcard-days">—</span>
+          </div>
+          <div class="profile-card-divider"></div>
+          <button class="profile-card-nav-btn" onclick="closeProfileCard();showPage('user-dashboard')"><span class="pcnb-icon">📊</span> لوحتي</button>
+          <button class="profile-card-nav-btn" onclick="closeProfileCard();showPage('billing')"><span class="pcnb-icon">💳</span> الاشتراك والفوترة</button>
+          <button class="profile-card-logout" onclick="doLogout()">&#x2192; تسجيل الخروج</button>
+        </div>
+      </span>
+    </div>
+  </header>
+
+  <div class="gs-billing kie-global" id="user-credits-bar" style="display:none">
+    <div class="gs-kpi">
+      <div class="gs-kpi-label">رصيد حسابك</div>
+      <div class="gs-kpi-value" id="kie-credits-value" style="color:var(--cyan)">--</div>
+    </div>
+    <button class="btn btn-ghost" onclick="AUTH.refreshMe().then(()=>syncUserCreditsBar())">تحديث الرصيد</button>
+  </div>
+
+  <!-- MARKET -->
+
+<div class="page active" id="page-cinema">
+    <!-- Top navigation tabs -->
+    <div class="cs-topnav">
+      <button class="cs-tab active" data-tab="image" onclick="setCinemaTab('image',this)">🖼 Image</button>
+      <button class="cs-tab" data-tab="video" onclick="setCinemaTab('video',this)">📹 Video</button>
+      <button class="cs-tab" data-tab="audio" onclick="setCinemaTab('audio',this)">🎵 Audio</button>
+      <button class="cs-tab" data-tab="cast" onclick="setCinemaTab('cast',this)">👥 Cast</button>
+      <button class="cs-tab" data-tab="all" onclick="setCinemaTab('all',this)">All</button>
+      <button class="cs-tab" data-tab="liked" onclick="setCinemaTab('liked',this)">♡ Liked</button>
+    </div>
+    <!-- Workspace -->
+    <div class="cs-workspace">
+      <!-- ============ IMAGE TAB ============ -->
+      <div class="cs-content active" id="cs-image-content">
+        <div class="cs-gallery" id="cs-image-gallery"><div class="cs-gallery-empty"><span style="font-size:36px">🎬</span><span>Your generated images will appear here</span></div></div>
+        <!-- Image prompt bar -->
+        <div class="cs-bar" id="cs-image-bar">
+          <!-- Characters & Locations panel -->
+          <div class="cs-cl-panel" id="cs-cl-panel">
+            <div class="cs-cl-panel-head">
+              <div class="cs-cl-tab active" onclick="setCLTab('recent',this)">Recently attached</div>
+              <div class="cs-cl-tab" onclick="setCLTab('gens',this)">Image Generations</div>
+              <div class="cs-cl-tab" onclick="setCLTab('liked',this)">Liked</div>
+              <div class="cs-cl-tab" onclick="setCLTab('chars',this)">Characters &amp; Locations</div>
+              <button class="cs-cl-upload-btn">⬆ Upload</button>
+              <button class="cs-cl-close-btn" onclick="toggleCLPanel()">×</button>
+            </div>
+            <div class="cs-cl-body" id="cs-cl-body"></div>
+          </div>
+          <!-- Model panel -->
+          <div style="position:relative" id="cs-model-wrap">
+            <div class="cs-model-panel" id="cs-model-panel">
+              <div class="cs-model-section-label">Cinema 2.5</div>
+              <div class="cs-model-item active" data-model="scenes" onclick="setCinemaModel('scenes',this)"><span>🎬 Scenes</span><span class="cs-model-check">✓</span></div>
+              <div class="cs-model-item" data-model="characters" onclick="setCinemaModel('characters',this)"><span>👤 Characters</span><span class="cs-model-check">✓</span></div>
+              <div class="cs-model-item" data-model="locations" onclick="setCinemaModel('locations',this)"><span>🏔 Locations</span><span class="cs-model-check">✓</span></div>
+              <div class="cs-model-section-label" style="margin-top:4px">Other</div>
+              <div class="cs-model-item" data-model="soul" onclick="setCinemaModel('soul',this)"><span>✨ Soul Cinema</span><span class="cs-model-check">✓</span></div>
+              <div class="cs-model-item" data-model="cinema20" onclick="setCinemaModel('cinema20',this)"><span>🎥 Cinema 2.0</span><span class="cs-model-check">✓</span></div>
+            </div>
+          </div>
+          <div class="cs-bar-row1">
+            <button class="cs-bar-plus">+</button>
+            <textarea class="cs-bar-textarea" id="cs-image-prompt" placeholder="Describe your scene - use @ to add characters &amp; locations" rows="2"></textarea>
+          </div>
+          <div class="cs-bar-controls">
+            <div style="position:relative">
+              <button class="cs-ctrl" onclick="toggleCinemaModelPanel()">🎬 <span id="cs-model-label">Scenes</span></button>
+            </div>
+            <div class="cs-ctrl-count">
+              <button class="cs-cnt-btn" onclick="csCntChange(-1,'image')">—</button>
+              <span id="cs-image-count">1/4</span>
+              <button class="cs-cnt-btn" onclick="csCntChange(1,'image')">+</button>
+            </div>
+            <div style="position:relative" id="cs-ratio-wrap">
+              <button class="cs-ctrl" onclick="toggleCsDD('cs-ratio-dd')">🖥 <span id="cs-ratio-label">16:9</span></button>
+              <div class="cs-ratio-dd" id="cs-ratio-dd">
+                <div class="cs-ratio-item" onclick="setCsRatio('4:3')"><span style="color:rgba(255,255,255,0.35)">▭</span> 4:3</div>
+                <div class="cs-ratio-item" onclick="setCsRatio('16:9')"><span style="color:rgba(255,255,255,0.35)">▬</span> 16:9 <span class="cs-ratio-badge">Cinematic</span></div>
+                <div class="cs-ratio-item" onclick="setCsRatio('21:9')"><span style="color:rgba(255,255,255,0.35)">▬</span> 21:9 <span class="cs-ratio-badge">Cinematic</span></div>
+              </div>
+            </div>
+            <div style="position:relative" id="cs-quality-wrap">
+              <button class="cs-ctrl" onclick="toggleCsDD('cs-quality-dd')">♦ <span id="cs-quality-label">2K</span></button>
+              <div class="cs-quality-dd" id="cs-quality-dd">
+                <div class="cs-quality-item" onclick="setCsQuality('1K')"><span class="cs-quality-name">1K</span><span class="cs-quality-desc">Fast - Quick Generation, Good Resolution</span></div>
+                <div class="cs-quality-item active" onclick="setCsQuality('2K')"><span class="cs-quality-name">2K <span class="cs-quality-check">✓</span></span><span class="cs-quality-desc">Balanced - Recommended For Most Use Cases</span></div>
+                <div class="cs-quality-item" onclick="setCsQuality('4K')"><span class="cs-quality-name">4K</span><span class="cs-quality-desc">Ultra - Highest Detail, Longer Processing</span></div>
+              </div>
+            </div>
+            <button class="cs-ctrl" onclick="toggleCLPanel()">@</button>
+            <div class="cs-bar-spacer"></div>
+            <button class="cs-char-btn" onclick="toggleCLPanel()"><span style="font-size:18px">👥</span>Characters<br>and Locations</button>
+            <button class="cs-gen-btn" onclick="runCinemaImage()">Generate<span class="cs-gen-sub">5 Free Gens</span></button>
+          </div>
+        </div>
+      </div>
+      <!-- ============ VIDEO TAB ============ -->
+      <div class="cs-content" id="cs-video-content">
+        <!-- Camera movement overlay backdrop -->
+        <div class="cs-backdrop" id="cs-backdrop" onclick="closeMovementOverlay()"></div>
+        <!-- Camera movement overlay -->
+        <div class="cs-move-overlay" id="cs-move-overlay">
+          <div class="cs-move-head"><span class="cs-move-title">Camera movement</span><button class="cs-move-cls" onclick="closeMovementOverlay()">×</button></div>
+          <div class="cs-move-grid" id="cs-move-grid"></div>
+        </div>
+        <!-- Director Panel -->
+        <div class="cs-director" id="cs-director">
+          <div class="cs-director-head" onclick="toggleDirectorPanel()">🎬 Director Panel<span class="cs-director-toggle">⌃</span></div>
+          <div class="cs-director-body">
+            <div class="cs-char-slot">👤</div>
+            <div class="cs-char-slot"></div>
+            <div class="cs-char-slot"></div>
+            <div class="cs-movement-wrap">
+              <div class="cs-movement-label">Movement</div>
+              <div class="cs-movement-ctrl" onclick="openMovementOverlay()"><span id="cs-movement-label">Auto</span><div class="cs-movement-arrows"><span>▲</span><span>▼</span></div></div>
+            </div>
+            <canvas class="cs-speed-curve" id="cs-speed-curve" width="300" height="44"></canvas>
+            <div class="cs-movement-wrap">
+              <div class="cs-movement-label">Speed ramp</div>
+              <div class="cs-movement-ctrl"><span>Auto</span><div class="cs-movement-arrows"><span>▲</span><span>▼</span></div></div>
+            </div>
+            <div class="cs-duration-wrap">
+              <div class="cs-movement-label">Duration</div>
+              <input class="cs-duration-input" id="cs-duration" type="text" value="5s">
+            </div>
+          </div>
+        </div>
+        <!-- Video gallery -->
+        <div class="cs-gallery" id="cs-video-gallery"><div class="cs-gallery-empty"><span style="font-size:36px">🎬</span><span>Your generated videos will appear here</span></div></div>
+        <!-- Genre overlay -->
+        <div class="cs-genre-overlay" id="cs-genre-overlay"></div>
+        <!-- Video Bar -->
+        <div class="cs-bar">
+          <div class="cs-bar-row1">
+            <button class="cs-bar-plus">+</button>
+            <textarea class="cs-bar-textarea" id="cs-video-prompt" placeholder="Describe your scene - use @ to add characters &amp; locations" rows="2"></textarea>
+          </div>
+          <div class="cs-bar-controls">
+            <div style="position:relative" id="cs-shot-wrap">
+              <button class="cs-ctrl" onclick="toggleCsDD('cs-shot-dd')">🎬 <span id="cs-shot-label">Single shot</span></button>
+              <div class="cs-shot-dd" id="cs-shot-dd">
+                <div class="cs-shot-item active" onclick="setCsShot('single',this)">Single shot <span class="cs-shot-check">✓</span></div>
+                <div class="cs-shot-item" onclick="setCsShot('multi-auto',this)">Multi-shot Auto</div>
+                <div class="cs-shot-item" onclick="setCsShot('multi-manual',this)">Multi-shot Manual</div>
+              </div>
+            </div>
+            <div style="position:relative" id="cs-vratio-wrap">
+              <button class="cs-ctrl" onclick="toggleCsDD('cs-vratio-dd')">🖥 <span id="cs-vratio-label">16:9</span></button>
+              <div class="cs-ratio-dd" id="cs-vratio-dd">
+                <div class="cs-ratio-item" onclick="setCsVRatio('4:3')">4:3</div>
+                <div class="cs-ratio-item" onclick="setCsVRatio('16:9')">16:9</div>
+                <div class="cs-ratio-item" onclick="setCsVRatio('9:16')">9:16</div>
+              </div>
+            </div>
+            <button class="cs-ctrl">♦ 1080p</button>
+            <div style="position:relative" id="cs-vgenre-wrap">
+              <button class="cs-ctrl" onclick="toggleCsDD('cs-genre-overlay')">🔥 <span id="cs-genre-label">General</span></button>
+            </div>
+            <button class="cs-ctrl">🔈 On</button>
+            <div class="cs-ctrl-count">
+              <button class="cs-cnt-btn" onclick="csCntChange(-1,'video')">—</button>
+              <span id="cs-video-count">1/4</span>
+              <button class="cs-cnt-btn" onclick="csCntChange(1,'video')">+</button>
+            </div>
+            <div class="cs-bar-spacer"></div>
+            <button class="cs-frame-btn"><span class="cs-frame-icon">+</span>START<br>FRAME</button>
+            <button class="cs-frame-btn"><span class="cs-frame-icon">+</span>END<br>FRAME</button>
+            <button class="cs-gen-btn" onclick="runCinemaVideo()">GENERATE ➜ <span style="font-size:11px">10</span></button>
+          </div>
+        </div>
+      </div>
+      <!-- ============ AUDIO TAB ============ -->
+      <div class="cs-content" id="cs-audio-content">
+        <div class="cs-audio-main">
+          <p class="cs-audio-sub-label">CINEMA STUDIO 2.5</p>
+          <h2 class="cs-audio-title">Ready to give your<br>scene a voice?</h2>
+          <div class="cs-audio-eq" id="cs-audio-eq"></div>
+        </div>
+        <div id="cs-audio-results" style="display:flex;flex-wrap:wrap;gap:10px;padding:0 20px 8px;flex-shrink:0;max-height:220px;overflow-y:auto;"></div>
+        <div class="cs-audio-bar">
+          <div class="cs-voice-disc-wrap">
+            <div class="cs-voice-disc" onclick="toggleVoiceTypeMenu()"><span class="cs-voice-disc-label">Voice<br>over</span></div>
+            <div class="cs-voice-type-menu" id="cs-voice-type-menu">
+              <div class="cs-voice-type-item" onclick="setVoiceType('Voiceover')">Voiceover</div>
+              <div class="cs-voice-type-item" onclick="setVoiceType('Change Voice')">Change Voice</div>
+              <div class="cs-voice-type-item" onclick="setVoiceType('Translate')">Translate</div>
+            </div>
+          </div>
+          <textarea class="cs-audio-textarea" id="cs-audio-prompt" placeholder="Describe the sound you imagine..."></textarea>
+          <div class="cs-voice-preset">
+            <div><div class="cs-vp-name" id="cs-vp-name">TALLULAH</div><div class="cs-vp-bars"><div class="cs-vp-bar" style="--h:10px;--d:0.4s"></div><div class="cs-vp-bar" style="--h:16px;--d:0.6s"></div><div class="cs-vp-bar" style="--h:12px;--d:0.3s"></div><div class="cs-vp-bar" style="--h:18px;--d:0.5s"></div><div class="cs-vp-bar" style="--h:8px;--d:0.7s"></div></div></div>
+            <button class="cs-vp-play">▶</button>
+          </div>
+          <span class="cs-model-lbl">Eleven v3</span>
+          <button class="cs-gen-btn" onclick="runCinemaAudio()">GENERATE ➜</button>
+        </div>
+      </div>
+      <!-- ============ CAST TAB ============ -->
+      <div class="cs-content" id="cs-cast-content">
+        <div class="cs-cast-hero"><div class="cs-cast-orbs" id="cs-cast-orbs"></div><h2 class="cs-cast-title">Craft Your Dream Movie Cast</h2><p class="cs-cast-sub">Select options of your cast to generate</p></div>
+        <div class="cs-cast-steps">
+          <div class="cs-cast-step active" onclick="setCastStep('genre',this)">Genre</div>
+          <div class="cs-cast-step" onclick="setCastStep('budget',this)">Budget in millions</div>
+          <div class="cs-cast-step" onclick="setCastStep('era',this)">Era</div>
+          <div class="cs-cast-step" onclick="setCastStep('archetype',this)">Archetype</div>
+          <div class="cs-cast-step" onclick="setCastStep('identity',this)">Identity</div>
+          <div class="cs-cast-step" onclick="setCastStep('appearance',this)">Physical Appearance</div>
+          <div class="cs-cast-step" onclick="setCastStep('details',this)">Details</div>
+          <div class="cs-cast-step" onclick="setCastStep('outfit',this)">Outfit</div>
+        </div>
+        <div class="cs-cast-main">
+          <div class="cs-cast-step-content active" id="cs-step-genre">
+            <p class="cs-cast-step-label">Select the genre of your movie</p>
+            <div class="cs-genre-carousel-wrap">
+              <button class="cs-carousel-nav" onclick="document.getElementById('cs-genre-carousel').scrollBy({left:-280,behavior:'smooth'})">‹</button>
+              <div class="cs-genre-carousel" id="cs-genre-carousel"></div>
+              <button class="cs-carousel-nav" onclick="document.getElementById('cs-genre-carousel').scrollBy({left:280,behavior:'smooth'})">›</button>
+            </div>
+          </div>
+          <div class="cs-cast-step-content" id="cs-step-budget"><p class="cs-cast-step-label">Select the budget range of your movie</p><div class="cs-cast-options"><div class="cs-cast-option" onclick="setCastOption(this)">$1M–$10M</div><div class="cs-cast-option" onclick="setCastOption(this)">$10M–$50M</div><div class="cs-cast-option active" onclick="setCastOption(this)">$50M–$150M</div><div class="cs-cast-option" onclick="setCastOption(this)">$150M–$300M</div><div class="cs-cast-option" onclick="setCastOption(this)">$300M+</div></div></div>
+          <div class="cs-cast-step-content" id="cs-step-era"><p class="cs-cast-step-label">Select the time era of your movie</p><div class="cs-cast-options"><div class="cs-cast-option" onclick="setCastOption(this)">Ancient</div><div class="cs-cast-option" onclick="setCastOption(this)">Medieval</div><div class="cs-cast-option" onclick="setCastOption(this)">1900s</div><div class="cs-cast-option" onclick="setCastOption(this)">1950s</div><div class="cs-cast-option active" onclick="setCastOption(this)">Modern</div><div class="cs-cast-option" onclick="setCastOption(this)">Near Future</div><div class="cs-cast-option" onclick="setCastOption(this)">Far Future</div></div></div>
+          <div class="cs-cast-step-content" id="cs-step-archetype"><p class="cs-cast-step-label">Select the character archetype</p><div class="cs-cast-options"><div class="cs-cast-option" onclick="setCastOption(this)">Hero</div><div class="cs-cast-option" onclick="setCastOption(this)">Anti-Hero</div><div class="cs-cast-option" onclick="setCastOption(this)">Villain</div><div class="cs-cast-option" onclick="setCastOption(this)">Mentor</div><div class="cs-cast-option" onclick="setCastOption(this)">Sidekick</div><div class="cs-cast-option" onclick="setCastOption(this)">Trickster</div><div class="cs-cast-option" onclick="setCastOption(this)">Lover</div><div class="cs-cast-option" onclick="setCastOption(this)">Sage</div></div></div>
+          <div class="cs-cast-step-content" id="cs-step-identity"><p class="cs-cast-step-label">Select character identity</p><div class="cs-cast-options"><div class="cs-cast-option" onclick="setCastOption(this)">Male</div><div class="cs-cast-option" onclick="setCastOption(this)">Female</div><div class="cs-cast-option" onclick="setCastOption(this)">Non-binary</div></div><div class="cs-cast-options" style="margin-top:10px"><div class="cs-cast-option" onclick="setCastOption(this)">Child</div><div class="cs-cast-option" onclick="setCastOption(this)">Teen</div><div class="cs-cast-option active" onclick="setCastOption(this)">Young Adult</div><div class="cs-cast-option" onclick="setCastOption(this)">Middle-aged</div><div class="cs-cast-option" onclick="setCastOption(this)">Elderly</div></div></div>
+          <div class="cs-cast-step-content" id="cs-step-appearance"><p class="cs-cast-step-label">Select physical appearance</p><div class="cs-cast-options"><div class="cs-cast-option" onclick="setCastOption(this)">Slim</div><div class="cs-cast-option" onclick="setCastOption(this)">Average</div><div class="cs-cast-option" onclick="setCastOption(this)">Athletic</div><div class="cs-cast-option" onclick="setCastOption(this)">Muscular</div><div class="cs-cast-option" onclick="setCastOption(this)">Heavyset</div></div><div class="cs-cast-options" style="margin-top:10px"><div class="cs-cast-option" onclick="setCastOption(this)">Black hair</div><div class="cs-cast-option" onclick="setCastOption(this)">Blonde hair</div><div class="cs-cast-option" onclick="setCastOption(this)">Brown hair</div><div class="cs-cast-option" onclick="setCastOption(this)">Red hair</div><div class="cs-cast-option" onclick="setCastOption(this)">White hair</div></div></div>
+          <div class="cs-cast-step-content" id="cs-step-details"><p class="cs-cast-step-label">Describe additional character details</p><textarea class="cs-cast-details-ta" placeholder="Distinctive features, personality traits, backstory..."></textarea></div>
+          <div class="cs-cast-step-content" id="cs-step-outfit"><p class="cs-cast-step-label">Select character outfit style</p><div class="cs-cast-options"><div class="cs-cast-option" onclick="setCastOption(this)">Casual</div><div class="cs-cast-option" onclick="setCastOption(this)">Formal</div><div class="cs-cast-option" onclick="setCastOption(this)">Military</div><div class="cs-cast-option" onclick="setCastOption(this)">Fantasy Armor</div><div class="cs-cast-option" onclick="setCastOption(this)">Sci-Fi Suit</div><div class="cs-cast-option" onclick="setCastOption(this)">Historical</div><div class="cs-cast-option" onclick="setCastOption(this)">Athletic</div><div class="cs-cast-option" onclick="setCastOption(this)">Streetwear</div></div></div>
+        </div>
+        <div id="cs-cast-results" style="display:flex;flex-wrap:wrap;gap:12px;padding:8px 20px;max-height:200px;overflow-y:auto;flex-shrink:0;"></div>
+        <div class="cs-cast-bar">
+          <button class="cs-shuffle-btn" title="Shuffle">⇄</button>
+          <button class="cs-gen-btn" onclick="runCinemaCast()" style="min-width:150px;font-size:15px;padding:12px 32px">Generate ✦</button>
+        </div>
+      </div>
+      <!-- ============ ALL TAB ============ -->
+      <div class="cs-content" id="cs-all-content"><div class="cs-gallery"><div class="cs-gallery-empty"><span style="font-size:36px">🎬</span><span>All your Cinema Studio creations</span></div></div></div>
+      <!-- ============ LIKED TAB ============ -->
+      <div class="cs-content" id="cs-liked-content"><div class="cs-gallery"><div class="cs-gallery-empty"><span style="font-size:36px">♡</span><span>Liked items will appear here</span></div></div></div>
+    </div>
+  </div>
+
+  <!-- GALLERY -->
+  
+
+</main>
+
+
+
+<div class="toast-container" id="toasts"></div>
+
+
+
+<script src="/js/shared.js"></script>
+<script src="/js/sidebar-scripts.js"></script><script src="/js/sidebar-toggle.js"></script>
+<script>
+(function() {
+  var p = new URLSearchParams(window.location.search).get('page');
+  if (p) showPage(p);
+})();
+</script>
+</body>
+</html>

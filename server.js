@@ -368,6 +368,12 @@ app.use((req, res, next) => {
   next();
 });
 
+// ─── MULTI-PAGE ARCHITECTURE ──────────────────────────────────────────────────
+const MULTIPAGE_DIR = path.join(__dirname, 'SAAD_STUDIO_MultiPage');
+const { registerMultiPageRoutes } = require(path.join(MULTIPAGE_DIR, 'routes-multipage'));
+registerMultiPageRoutes(app);
+app.use(express.static(MULTIPAGE_DIR));
+
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static(UPLOADS_DIR));
 

@@ -1,0 +1,501 @@
+﻿<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SAAD STUDIO — Kling Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Kufi+Arabic:wght@300;400;600;700&family=JetBrains+Mono:wght@400;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,500,0,0" rel="stylesheet">
+<link rel="stylesheet" href="/api/site-config.css" id="site-theme-override">
+<link rel="stylesheet" href="/css/shared.css">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="logo-area" onclick="showPage('dash',null)">
+    <div class="logo-stack">
+      <div class="logo-text">SAAD STUDIO</div>
+      <div class="logo-sub">AI Creative Platform v2.0</div>
+      <div class="brand-status">
+        <span class="status-dot connected"></span>
+        <span class="status-text">Connected</span>
+      </div>
+    </div>
+    </div>
+  </div>
+    <nav class="nav-section">
+    <div class="nav-label">Discover</div>
+    <div class="nav-item active" onclick="window.location.href='/'">
+      <div class="nav-icon"><img class="nav-logo" src="/assets/logo-saad.png" alt="SAAD STUDIO"></div><span class="nav-name">Discover</span>
+    </div>
+    <div class="nav-label" style="margin-top:6px">Production</div>
+    <div class="nav-item" onclick="window.location.href='/image-tools.html'">
+      <div class="nav-icon"><img class="nav-logo" src="/assets/logo-image-tools.png" alt="Image Tools"></div><span class="nav-name">Image Tools</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='/transitions.html'">
+      <div class="nav-icon">🎞️</div><span class="nav-name">Transitions</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='/nano.html'">
+      <div class="nav-icon">🍌</div><span class="nav-name">Nano Banana</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='/google.html'">
+      <div class="nav-icon"><img class="nav-logo" src="/assets/logo-google-studio.png" alt="Google Studio"></div><span class="nav-name">Google Studio</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='/kling.html'">
+      <div class="nav-icon"><img class="nav-logo" src="/assets/logo-kling-studio.png" alt="Kling Studio"></div><span class="nav-name">Kling Studio</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='/eleven.html'">
+      <div class="nav-icon"><img class="nav-logo" src="/assets/logo-elevenlabs-studio.png" alt="ElevenLabs Studio"></div><span class="nav-name">ElevenLabs Studio</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='/cinema.html'">
+      <div class="nav-icon">🎬</div><span class="nav-name">Cinema Studio</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='/prompt.html'">
+      <div class="nav-icon">🔍</div><span class="nav-name">Prompt Studio</span>
+    </div>
+    <div class="nav-label" style="margin-top:6px">Models</div>
+    <div class="nav-item" onclick="window.location.href='/sora2.html'">
+      <div class="nav-icon"><img class="nav-logo" src="/assets/logo-sora-2.png" alt="Sora 2"></div><span class="nav-name">Sora 2</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='/gpt54.html'">
+      <div class="nav-icon"><img class="nav-logo" src="/assets/logo-gpt-52.png" alt="GPT-5.2"></div><span class="nav-name">GPT-5.2</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='/hailuo.html'">
+      <div class="nav-icon"><img class="nav-logo" src="/assets/logo-hailuo.png" alt="Hailuo"></div><span class="nav-name">Hailuo</span>
+    </div>
+      <div class="nav-item" onclick="window.location.href='/grok.html'">
+        <div class="nav-icon"><img class="nav-logo" src="/assets/logo-grok.png" alt="Grok"></div><span class="nav-name">Grok</span>
+      </div>
+      <div class="nav-item" onclick="window.location.href='/seedream.html'">
+        <div class="nav-icon"><img class="nav-logo" src="/assets/logo-seedream-45.png" alt="Seedream 4.5"></div><span class="nav-name">Seedream 4.5</span>
+      </div>
+      <div class="nav-item" onclick="window.location.href='/flux2.html'">
+        <div class="nav-icon"><img class="nav-logo" src="/assets/logo-flux-2.png" alt="FLUX.2"></div><span class="nav-name">FLUX.2</span>
+      </div>
+      <div class="nav-item" onclick="window.location.href='/zimage.html'">
+        <div class="nav-icon"><img class="nav-logo" src="/assets/logo-z-image.png" alt="Z-Image"></div><span class="nav-name">Z-Image</span>
+      </div>
+      <div class="nav-item" onclick="window.location.href='/wan26.html'">
+        <div class="nav-icon"><img class="nav-logo" src="/assets/logo-wan-26.png" alt="Wan 2.6"></div><span class="nav-name">Wan 2.6</span>
+      </div>
+      <div class="nav-item" onclick="window.location.href='/seedance.html'">
+        <div class="nav-icon"><img class="nav-logo" src="/assets/logo-seedance-15-pro.png" alt="Seedance 1.5 Pro"></div><span class="nav-name">Seedance 1.5</span>
+      </div>
+      <div class="nav-item" onclick="window.location.href='/fluxkontext.html'">
+        <div class="nav-icon"><img class="nav-logo" src="/assets/logo-flux-kontext.png" alt="Flux Kontext"></div><span class="nav-name">Flux Kontext</span>
+      </div>
+    <div class="nav-item" onclick="window.location.href='/ideogram-reframe.html'">
+        <div class="nav-icon"><img class="nav-logo" src="/assets/logo-ideogram-reframe.png" alt="Ideogram Reframe"></div><span class="nav-name">Ideogram Reframe</span>
+      </div>
+      <div class="nav-item" onclick="window.location.href='/infinitalk.html'">
+        <div class="nav-icon"><img class="nav-logo" src="/assets/logo-infinitalk.png" alt="Infinitalk"></div><span class="nav-name">Infinitalk</span>
+      </div>
+        <div class="nav-item" onclick="window.location.href='/qwen2.html'">
+          <div class="nav-icon"><img class="nav-logo" src="/assets/logo-qwen2.png" alt="Qwen2"></div><span class="nav-name">Qwen2</span>
+        </div>
+      <div class="nav-item" onclick="window.location.href='/ideogram-reframe.html'">
+        <div class="nav-icon"><img class="nav-logo" src="/assets/logo-ideogram-character.png" alt="Ideogram Character"></div><span class="nav-name">Ideogram Character</span>
+      </div>
+      <div class="nav-label" style="margin-top:6px">Library</div>
+    <div class="nav-item" onclick="window.location.href='/gallery.html'">
+      <div class="nav-icon">🗄️</div><span class="nav-name">Gallery</span>
+    </div>
+      <div class="nav-item" onclick="window.location.href='/library.html'">
+        <div class="nav-icon">📁</div><span class="nav-name">Library</span>
+      </div>
+      <div class="nav-item" onclick="window.location.href='/legal.html'">
+        <div class="nav-icon">🛡️</div><span class="nav-name">Legal</span>
+      </div>
+      <div class="nav-item" id="nav-control" style="display:none" onclick="showPage('control',this);verifyAndRenderControl()">
+        <div class="nav-icon">⚙️</div><span class="nav-name">Control Panel</span>
+      </div>
+      <div class="nav-item" id="nav-dashboard" style="display:none" onclick="window.open('/dashboard.html','_blank')">
+        <div class="nav-icon">📊</div><span class="nav-name">Dashboard</span>
+      </div>
+    </nav>
+
+</aside>
+
+<main class="main">
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+  <header class="topbar">
+    <button class="hamburger-btn" id="hamburger-btn" onclick="toggleSidebar()" aria-label="Menu">&#9776;</button>
+    <div class="topbar-logo-wrap">
+      <img class="topbar-logo" src="/assets/logo-saad.png" alt="SAAD STUDIO Logo">
+    </div>
+    <span class="topbar-title" id="pageTitle">Discover</span>
+    <div id="promo-in-navbar"></div>
+    <div class="topbar-actions" id="topbar-actions">
+      <button class="topbar-btn" id="langToggle" onclick="toggleLanguage()">EN</button>
+      <button class="topbar-btn pricing" onclick="showPage('pricing')">Pricing</button>
+      <!-- guest buttons -->
+      <span id="topbar-guest">
+        <button class="topbar-btn" onclick="openAuthModal('login')">Login</button>
+        <button class="topbar-btn primary" onclick="openAuthModal('register')">Sign up</button>
+      </span>
+      <!-- logged-in state -->
+      <span id="topbar-loggedin" style="display:none" class="topbar-user">
+        <!-- Avatar button -->
+        <div class="user-avatar-wrap topbar-avatar-wrap" id="user-avatar-wrap" onclick="toggleProfileCard()">
+          <div class="user-avatar" id="user-avatar-el">•</div>
+        </div>
+        <!-- Profile dropdown card -->
+        <div class="profile-card" id="profile-card" style="display:none;">
+          <div class="profile-card-header">
+            <div class="profile-card-avatar" id="pcard-avatar">•</div>
+            <div>
+              <div class="profile-card-email" id="pcard-email">—</div>
+              <span class="topbar-plan-badge starter" id="pcard-plan-badge" style="margin-top:4px;display:inline-block;">—</span>
+            </div>
+          </div>
+          <div class="profile-card-divider"></div>
+          <div class="profile-card-row">
+            <span class="profile-card-label">💳 رصيدك</span>
+            <span class="profile-card-value" id="pcard-credits">—</span>
+          </div>
+          <div class="profile-card-row">
+            <span class="profile-card-label">📅 تاريخ الاشتراك</span>
+            <span class="profile-card-value" id="pcard-created">—</span>
+          </div>
+          <div class="profile-card-row" id="pcard-renew-row">
+            <span class="profile-card-label">⏳ ينتهي في</span>
+            <span class="profile-card-value" id="pcard-renew">—</span>
+          </div>
+          <div class="profile-card-row" id="pcard-days-row">
+            <span class="profile-card-label">⭐ باقي</span>
+            <span class="profile-card-value" id="pcard-days">—</span>
+          </div>
+          <div class="profile-card-divider"></div>
+          <button class="profile-card-nav-btn" onclick="closeProfileCard();showPage('user-dashboard')"><span class="pcnb-icon">📊</span> لوحتي</button>
+          <button class="profile-card-nav-btn" onclick="closeProfileCard();showPage('billing')"><span class="pcnb-icon">💳</span> الاشتراك والفوترة</button>
+          <button class="profile-card-logout" onclick="doLogout()">&#x2192; تسجيل الخروج</button>
+        </div>
+      </span>
+    </div>
+  </header>
+
+  <div class="gs-billing kie-global" id="user-credits-bar" style="display:none">
+    <div class="gs-kpi">
+      <div class="gs-kpi-label">رصيد حسابك</div>
+      <div class="gs-kpi-value" id="kie-credits-value" style="color:var(--cyan)">--</div>
+    </div>
+    <button class="btn btn-ghost" onclick="AUTH.refreshMe().then(()=>syncUserCreditsBar())">تحديث الرصيد</button>
+  </div>
+
+  <!-- MARKET -->
+
+<div class="page active" id="page-kling">
+    <div class="gs-inline-note" id="kling-status" style="margin-bottom:10px;display:none;">اختر الأداة المناسبة ثم ابدأ التوليد من اللوحة الخاصة بها.</div>
+
+    <div class="kie-suite-panel active" id="kie-suite-video">
+
+      <!-- ─ Sub-tabs ────────────────────────────────── -->
+      <div class="cine-tab-strip sora-tabs" style="margin-bottom:10px;">
+        <button class="sora-tab active" id="ks-tab-text" onclick="setKlingTab('text')">Text to Video</button>
+        <button class="sora-tab" id="ks-tab-image" onclick="setKlingTab('image')">Image to Video</button>
+        <button class="sora-tab" id="ks-tab-motion" onclick="setKlingTab('motion')">Motion Control</button>
+        <button class="sora-tab" id="ks-tab-avatar" onclick="setKlingTab('avatar')">AI Avatar</button>
+      </div>
+
+      <!-- ══ TEXT TO VIDEO ══════════════════════════════ -->
+      <div class="gs-content active" id="ks-content-text" style="display:flex;flex-direction:column;padding:0;border:none;background:none;">
+        <div class="qw2-layout">
+          <div class="qw2-main">
+            <div class="cine-shell">
+          <div class="cine-canvas-wrap">
+            <div class="result-head">
+              <span class="result-head-txt">Kling Results</span>
+              <button class="btn btn-ghost kling-show-btn" style="font-size:10px;display:none;" onclick="showPendingKlingResults()">عرض النتيجة</button>
+              <button class="btn btn-ghost" style="font-size:10px;margin-left:auto;" onclick="clearResults('kling-results')">Clear</button>
+            </div>
+            <div class="result-grid gs-result" id="kling-results">
+              <div class="result-empty"><div class="result-empty-icon">K</div><div class="result-empty-text">Kling videos will appear here</div></div>
+            </div>
+          </div>
+          <div class="cine-composer">
+            <div class="cine-prompt-row">
+              <textarea class="ftextarea" id="kling-text-prompt" rows="3" placeholder="Describe the video you want..."></textarea>
+              <button class="cine-settings-btn" onclick="document.getElementById('kling-text-panel').classList.toggle('qw2-sb-hidden')" title="Settings">
+                <span class="material-symbols-outlined" style="font-size:20px;">tune</span>
+              </button>
+            </div>
+            <div class="cine-ctrl-bar">
+              <div class="cine-ctrl-item">
+                <span class="cine-ctrl-label">Duration</span>
+                <select class="fselect" id="kling-text-duration">
+                  <option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option selected>10</option><option>11</option><option>12</option><option>13</option><option>14</option><option>15</option>
+                </select>
+              </div>
+              <div class="cine-ctrl-item">
+                <span class="cine-ctrl-label">Ratio</span>
+                <select class="fselect" id="kling-text-ratio">
+                  <option value="1:1">1:1</option><option value="3:4">3:4</option><option value="4:3">4:3</option><option value="9:16">9:16</option><option value="16:9" selected>16:9</option><option value="2:3">2:3</option><option value="3:2">3:2</option><option value="21:9">21:9</option>
+                </select>
+              </div>
+              <div class="cine-ctrl-item">
+                <span class="cine-ctrl-label">Resolution</span>
+                <select class="fselect" id="kling-text-mode"><option value="1K">1K</option><option value="2K" selected>2K</option><option value="4K">4K</option></select>
+              </div>
+              <div class="cine-spacer"></div>
+              <div class="cost-preview" id="kling-text-cost-preview"><span class="cost-icon">💳</span> <span class="cost-val" id="kling-text-cost-val">—</span> كريدت</div>
+              <button class="btn-generate gen-action" id="kling-text-btn" onclick="runKling('text')">Generate</button>
+            </div>
+          </div>
+        </div>
+        <!-- Settings panel -->
+        </div>
+
+          <div class="qw2-sidebar" id="kling-text-panel">
+          <div class="qw2-sb-header">
+            <span class="qw2-sb-title">KLING T2V</span>
+            <button class="qw2-sb-close" onclick="document.getElementById('kling-text-panel').classList.toggle('qw2-sb-hidden')">✕</button>
+          </div>
+          <div class="card"><div class="card-head">Model</div><div class="card-body">
+            <select class="fselect" id="kling-text-model" onchange="applyKlingModelPreset('text', this.value)" style="width:100%"><option value="kling-3.0/video" selected>Kling 3.0 Video</option></select>
+          </div></div>
+          <div class="card"><div class="card-head">Sound & Multi-shot</div><div class="card-body">
+            <div class="field"><div class="flabel">Sound</div><select class="fselect" id="kling-text-sound" style="width:100%"><option value="true" selected>On</option><option value="false">Off</option></select></div>
+            <div class="field"><div class="flabel">Multi-shot</div><select class="fselect" id="kling-text-multishot" onchange="toggleKlingMultishot('text', this.value === 'true')" style="width:100%"><option value="false" selected>Off</option><option value="true">On</option></select></div>
+            <div id="kling-text-multishot-panel" style="display:none;">
+              <textarea class="ftextarea" id="kling-text-shot-1" rows="3" placeholder="Shot 1 prompt..."></textarea>
+              <textarea class="ftextarea" id="kling-text-shot-2" rows="3" placeholder="Shot 2 prompt..."></textarea>
+              <textarea class="ftextarea" id="kling-text-shot-3" rows="3" placeholder="Shot 3 prompt (optional)..."></textarea>
+            </div>
+          </div></div>
+        </div>
+        </div>
+        
+      </div>
+
+      <!-- ══ IMAGE TO VIDEO ═════════════════════════════ -->
+      <div class="gs-content" id="ks-content-image" style="display:none;flex-direction:column;padding:0;border:none;background:none;">
+        <div class="qw2-layout">
+          <div class="qw2-main">
+            <div class="cine-shell">
+          <div class="cine-canvas-wrap">
+            <div class="result-head">
+              <span class="result-head-txt">Shared Kling Results</span>
+              <button class="btn btn-ghost kling-show-btn" style="font-size:10px;display:none;" onclick="showPendingKlingResults()">عرض النتيجة</button>
+              <button class="btn btn-ghost" style="font-size:10px;margin-left:auto;" onclick="clearResults('kling-results')">Clear</button>
+            </div>
+            <div class="result-grid gs-result" id="kling-results-image">
+              <div class="result-empty"><div class="result-empty-icon">K</div><div class="result-empty-text">Results stay unified inside one Kling panel</div></div>
+            </div>
+          </div>
+          <div class="cine-composer">
+            <!-- Start / End frame uploads -->
+            <div style="display:flex;gap:8px;">
+              <div style="flex:1;">
+                <div class="dropzone" id="dz-kling-image-start" onclick="triggerUpload('up-kling-image-start')"><div id="dz-kling-image-start-inner"><div class="dz-icon">K</div><div class="dz-text">Start frame</div><div class="dz-sub">Optional</div></div></div>
+                <input type="file" id="up-kling-image-start" accept="image/*" style="display:none" onchange="handleFile(this,'dz-kling-image-start')">
+              </div>
+              <div style="flex:1;">
+                <div class="dropzone" id="dz-kling-image-end" onclick="triggerUpload('up-kling-image-end')"><div id="dz-kling-image-end-inner"><div class="dz-icon">K</div><div class="dz-text">End frame</div><div class="dz-sub">Optional</div></div></div>
+                <input type="file" id="up-kling-image-end" accept="image/*" style="display:none" onchange="handleFile(this,'dz-kling-image-end')">
+              </div>
+            </div>
+            <div class="cine-prompt-row">
+              <textarea class="ftextarea" id="kling-image-prompt" rows="3" placeholder="Describe the motion or scene..."></textarea>
+              <button class="cine-settings-btn" onclick="document.getElementById('kling-image-panel').classList.toggle('qw2-sb-hidden')" title="Settings">
+                <span class="material-symbols-outlined" style="font-size:20px;">tune</span>
+              </button>
+            </div>
+            <div class="cine-ctrl-bar">
+              <div class="cine-ctrl-item">
+                <span class="cine-ctrl-label">Duration</span>
+                <select class="fselect" id="kling-image-duration"><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option selected>10</option><option>11</option><option>12</option><option>13</option><option>14</option><option>15</option></select>
+              </div>
+              <div class="cine-ctrl-item">
+                <span class="cine-ctrl-label">Ratio</span>
+                <select class="fselect" id="kling-image-ratio"><option value="1:1">1:1</option><option value="3:4">3:4</option><option value="4:3">4:3</option><option value="9:16">9:16</option><option value="16:9" selected>16:9</option><option value="2:3">2:3</option><option value="3:2">3:2</option><option value="21:9">21:9</option></select>
+              </div>
+              <div class="cine-ctrl-item">
+                <span class="cine-ctrl-label">Resolution</span>
+                <select class="fselect" id="kling-image-mode"><option value="1K">1K</option><option value="2K" selected>2K</option><option value="4K">4K</option></select>
+              </div>
+              <div class="cine-spacer"></div>
+              <div class="cost-preview" id="kling-image-cost-preview"><span class="cost-icon">💳</span> <span class="cost-val" id="kling-image-cost-val">—</span> كريدت</div>
+              <button class="btn-generate gen-action" id="kling-image-btn" onclick="runKling('image')">Generate</button>
+            </div>
+          </div>
+        </div>
+        <!-- Settings panel -->
+        </div>
+
+          <div class="qw2-sidebar" id="kling-image-panel">
+          <div class="qw2-sb-header">
+            <span class="qw2-sb-title">KLING I2V</span>
+            <button class="qw2-sb-close" onclick="document.getElementById('kling-image-panel').classList.toggle('qw2-sb-hidden')">✕</button>
+          </div>
+          <div class="card"><div class="card-head">Model</div><div class="card-body">
+            <select class="fselect" id="kling-image-model" onchange="applyKlingModelPreset('image', this.value)" style="width:100%">
+              <option value="kling-3.0/video" selected>Kling 3.0 Video</option>
+              <option value="kling-2.6/image-to-video">Kling 2.6 Image to Video</option>
+              <option value="kling/v2-5-turbo-image-to-video-pro">Kling 2.5 Turbo I2V Pro</option>
+            </select>
+          </div></div>
+          <div class="card"><div class="card-head">Advanced</div><div class="card-body">
+            <div class="field"><div class="flabel">Negative Prompt</div><textarea class="ftextarea" id="kling-image-negative" rows="3" placeholder="What should be avoided..."></textarea></div>
+            <div class="field"><div class="flabel">CFG Scale</div><input class="finput" id="kling-image-cfg" type="number" min="0" max="1" step="0.1" value="0.5"></div>
+            <div class="field"><div class="flabel">Sound</div><select class="fselect" id="kling-image-sound" style="width:100%"><option value="true" selected>On</option><option value="false">Off</option></select></div>
+            <div class="field"><div class="flabel">Multi-shot</div><select class="fselect" id="kling-image-multishot" onchange="toggleKlingMultishot('image', this.value === 'true')" style="width:100%"><option value="false" selected>Off</option><option value="true">On</option></select></div>
+            <div id="kling-image-multishot-panel" style="display:none;">
+              <textarea class="ftextarea" id="kling-image-shot-1" rows="3" placeholder="Shot 1 prompt..."></textarea>
+              <textarea class="ftextarea" id="kling-image-shot-2" rows="3" placeholder="Shot 2 prompt..."></textarea>
+              <textarea class="ftextarea" id="kling-image-shot-3" rows="3" placeholder="Shot 3 prompt (optional)..."></textarea>
+            </div>
+          </div></div>
+        </div>
+        </div>
+        
+      </div>
+
+      <!-- ══ MOTION CONTROL ═════════════════════════════ -->
+      <div class="gs-content" id="ks-content-motion" style="display:none;flex-direction:column;padding:0;border:none;background:none;">
+        <div class="qw2-layout">
+          <div class="qw2-main">
+            <div class="cine-shell">
+          <div class="cine-canvas-wrap">
+            <div class="result-head">
+              <span class="result-head-txt">Motion Control Results</span>
+              <button class="btn btn-ghost kling-show-btn" style="font-size:10px;display:none;" onclick="showPendingKlingResults()">عرض النتيجة</button>
+              <button class="btn btn-ghost" style="font-size:10px;margin-left:auto;" onclick="clearResults('kling-results')">Clear</button>
+            </div>
+            <div class="result-grid gs-result" id="kling-results-motion">
+              <div class="result-empty"><div class="result-empty-icon">K</div><div class="result-empty-text">Motion Control videos will appear in the shared Kling results</div></div>
+            </div>
+          </div>
+          <div class="cine-composer">
+            <!-- Uploads row -->
+            <div style="display:flex;gap:8px;">
+              <div style="flex:1;">
+                <div class="dropzone" id="dz-kling-motion-image" onclick="triggerUpload('up-kling-motion-image')"><div id="dz-kling-motion-image-inner"><div class="dz-icon">K</div><div class="dz-text">Character image</div><div class="dz-sub">Reference</div></div></div>
+                <input type="file" id="up-kling-motion-image" accept="image/*" style="display:none" onchange="handleFile(this,'dz-kling-motion-image')">
+              </div>
+              <div style="flex:1;">
+                <div class="dropzone" id="dz-kling-motion-video" onclick="triggerUpload('up-kling-motion-video')"><div id="dz-kling-motion-video-inner"><div class="dz-icon">🎬</div><div class="dz-text">Motion video</div><div class="dz-sub">Reference clip</div></div></div>
+                <input type="file" id="up-kling-motion-video" accept="video/mp4,video/quicktime" style="display:none" onchange="handleFile(this,'dz-kling-motion-video')">
+              </div>
+            </div>
+            <div class="cine-prompt-row">
+              <textarea class="ftextarea" id="kling-motion-prompt" rows="3" placeholder="Optional motion prompt..."></textarea>
+              <button class="cine-settings-btn" onclick="document.getElementById('kling-motion-panel').classList.toggle('qw2-sb-hidden')" title="Settings">
+                <span class="material-symbols-outlined" style="font-size:20px;">tune</span>
+              </button>
+            </div>
+            <div class="cine-ctrl-bar">
+              <div class="cine-ctrl-item">
+                <span class="cine-ctrl-label">Ratio</span>
+                <select class="fselect" id="kling-motion-ratio"><option value="1:1">1:1</option><option value="3:4">3:4</option><option value="4:3">4:3</option><option value="9:16">9:16</option><option value="16:9" selected>16:9</option><option value="2:3">2:3</option><option value="3:2">3:2</option><option value="21:9">21:9</option></select>
+              </div>
+              <div class="cine-ctrl-item">
+                <span class="cine-ctrl-label">Resolution</span>
+                <select class="fselect" id="kling-motion-res"><option value="1K">1K</option><option value="2K" selected>2K</option><option value="4K">4K</option></select>
+              </div>
+              <div class="cine-spacer"></div>
+              <div class="cost-preview" id="kling-motion-cost-preview"><span class="cost-icon">💳</span> <span class="cost-val" id="kling-motion-cost-val">—</span> كريدت <small style="opacity:0.6">(تقديري 10ث)</small></div>
+              <button class="btn-generate gen-action" id="kling-motion-btn" onclick="runKling('motion')">Generate</button>
+            </div>
+          </div>
+        </div>
+        <!-- Settings panel -->
+        </div>
+
+          <div class="qw2-sidebar" id="kling-motion-panel">
+          <div class="qw2-sb-header">
+            <span class="qw2-sb-title">MOTION CONTROL</span>
+            <button class="qw2-sb-close" onclick="document.getElementById('kling-motion-panel').classList.toggle('qw2-sb-hidden')">✕</button>
+          </div>
+          <div class="card"><div class="card-head">Settings</div><div class="card-body">
+            <div class="field"><div class="flabel">Model</div><select class="fselect" id="kling-motion-model" onchange="syncKlingModelLabel(this.value)" style="width:100%"><option value="kling-3.0/motion-control" selected>Kling 3.0 Motion Control</option></select></div>
+            <div class="field"><div class="flabel">Character Orientation</div><select class="fselect" id="kling-motion-orientation" style="width:100%"><option value="video" selected>Video</option><option value="image">Image</option></select></div>
+          </div></div>
+        </div>
+        </div>
+        
+      </div>
+
+      <!-- ══ AI AVATAR ══════════════════════════════════ -->
+      <div class="gs-content" id="ks-content-avatar" style="display:none;flex-direction:column;padding:0;border:none;background:none;">
+        <div class="qw2-layout">
+          <div class="qw2-main">
+            <div class="cine-shell">
+          <div class="cine-canvas-wrap">
+            <div class="result-head">
+              <span class="result-head-txt">AI Avatar Results</span>
+              <button class="btn btn-ghost kling-show-btn" style="font-size:10px;display:none;" onclick="showPendingKlingResults()">عرض النتيجة</button>
+              <button class="btn btn-ghost" style="font-size:10px;margin-left:auto;" onclick="clearResults('kling-results-avatar')">Clear</button>
+            </div>
+            <div class="result-grid gs-result" id="kling-results-avatar">
+              <div class="result-empty"><div class="result-empty-icon">K</div><div class="result-empty-text">AI Avatar videos will appear here</div></div>
+            </div>
+          </div>
+          <div class="cine-composer">
+            <!-- Avatar + Audio uploads -->
+            <div style="display:flex;gap:8px;">
+              <div style="flex:1;">
+                <div class="dropzone" id="dz-kling-avatar-image" onclick="triggerUpload('up-kling-avatar-image')"><div id="dz-kling-avatar-image-inner"><div class="dz-icon">🖼️</div><div class="dz-text">Avatar image</div><div class="dz-sub">PNG/JPG/WEBP</div></div></div>
+                <input type="file" id="up-kling-avatar-image" accept="image/png,image/jpeg,image/jpg,image/webp" style="display:none" onchange="handleFile(this,'dz-kling-avatar-image')">
+              </div>
+              <div style="flex:1;">
+                <div class="dropzone" id="dz-kling-avatar-audio" onclick="triggerUpload('up-kling-avatar-audio')"><div id="dz-kling-avatar-audio-inner"><div class="dz-icon">🎧</div><div class="dz-text">Audio clip</div><div class="dz-sub">MP3/WAV/AAC</div></div></div>
+                <input type="file" id="up-kling-avatar-audio" accept="audio/mpeg,audio/wav,audio/x-wav,audio/aac,audio/mp4,audio/ogg" style="display:none" onchange="handleFile(this,'dz-kling-avatar-audio')">
+              </div>
+            </div>
+            <div class="cine-prompt-row">
+              <textarea class="ftextarea" id="kling-avatar-prompt" rows="3" placeholder="Describe emotion, pacing, or speaking style..."></textarea>
+              <button class="cine-settings-btn" onclick="document.getElementById('kling-avatar-panel').classList.toggle('qw2-sb-hidden')" title="Settings">
+                <span class="material-symbols-outlined" style="font-size:20px;">tune</span>
+              </button>
+            </div>
+            <div class="cine-ctrl-bar">
+              <div class="cine-spacer"></div>
+              <div class="cost-preview" id="kling-avatar-cost-preview"><span class="cost-icon">💳</span> <span class="cost-val" id="kling-avatar-cost-val">50</span> كريدت</div>
+              <button class="btn-generate gen-action" id="kling-avatar-btn" onclick="runKlingAvatar()">Generate</button>
+            </div>
+          </div>
+        </div>
+        <!-- Settings panel -->
+        </div>
+
+          <div class="qw2-sidebar" id="kling-avatar-panel">
+          <div class="qw2-sb-header">
+            <span class="qw2-sb-title">AI AVATAR</span>
+            <button class="qw2-sb-close" onclick="document.getElementById('kling-avatar-panel').classList.toggle('qw2-sb-hidden')">✕</button>
+          </div>
+          <div class="card"><div class="card-head">Model</div><div class="card-body">
+            <select class="fselect" id="kling-avatar-model" onchange="syncKlingModelLabel(this.value)" style="width:100%">
+              <option value="kling/ai-avatar-standard" selected>Kling AI Avatar Standard</option>
+              <option value="kling/ai-avatar-pro">Kling AI Avatar Pro</option>
+            </select>
+          </div></div>
+        </div>
+        </div>
+        
+      </div>
+
+    </div>
+  </div>
+
+  
+
+</main>
+
+
+
+<div class="toast-container" id="toasts"></div>
+
+
+
+<script src="/js/shared.js"></script>
+<script src="/js/sidebar-scripts.js"></script><script src="/js/sidebar-toggle.js"></script>
+<script>
+(function() {
+  var p = new URLSearchParams(window.location.search).get('page');
+  if (p) showPage(p);
+})();
+</script>
+</body>
+</html>

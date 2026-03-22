@@ -1,0 +1,68 @@
+<main class="main">
+  <!-- sidebar overlay for mobile -->
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+  <header class="topbar">
+    <button class="hamburger-btn" id="hamburger-btn" onclick="toggleSidebar()" aria-label="Menu">&#9776;</button>
+    <div class="topbar-logo-wrap">
+      <img class="topbar-logo" src="/assets/logo-saad.png" alt="SAAD STUDIO Logo">
+    </div>
+    <span class="topbar-title" id="pageTitle">Discover</span>
+    <div id="promo-in-navbar"></div>
+    <div class="topbar-actions" id="topbar-actions">
+      <button class="topbar-btn" id="langToggle" onclick="toggleLanguage()">EN</button>
+      <button class="topbar-btn pricing" onclick="showPage('pricing')">Pricing</button>
+      <!-- guest buttons -->
+      <span id="topbar-guest">
+        <button class="topbar-btn" onclick="openAuthModal('login')">Login</button>
+        <button class="topbar-btn primary" onclick="openAuthModal('register')">Sign up</button>
+      </span>
+      <!-- logged-in state -->
+      <span id="topbar-loggedin" style="display:none" class="topbar-user">
+        <!-- Avatar button -->
+        <div class="user-avatar-wrap topbar-avatar-wrap" id="user-avatar-wrap" onclick="toggleProfileCard()">
+          <div class="user-avatar" id="user-avatar-el">•</div>
+        </div>
+        <!-- Profile dropdown card -->
+        <div class="profile-card" id="profile-card" style="display:none;">
+          <div class="profile-card-header">
+            <div class="profile-card-avatar" id="pcard-avatar">•</div>
+            <div>
+              <div class="profile-card-email" id="pcard-email">—</div>
+              <span class="topbar-plan-badge starter" id="pcard-plan-badge" style="margin-top:4px;display:inline-block;">—</span>
+            </div>
+          </div>
+          <div class="profile-card-divider"></div>
+          <div class="profile-card-row">
+            <span class="profile-card-label">💳 رصيدك</span>
+            <span class="profile-card-value" id="pcard-credits">—</span>
+          </div>
+          <div class="profile-card-row">
+            <span class="profile-card-label">📅 تاريخ الاشتراك</span>
+            <span class="profile-card-value" id="pcard-created">—</span>
+          </div>
+          <div class="profile-card-row" id="pcard-renew-row">
+            <span class="profile-card-label">⏳ ينتهي في</span>
+            <span class="profile-card-value" id="pcard-renew">—</span>
+          </div>
+          <div class="profile-card-row" id="pcard-days-row">
+            <span class="profile-card-label">⭐ باقي</span>
+            <span class="profile-card-value" id="pcard-days">—</span>
+          </div>
+          <div class="profile-card-divider"></div>
+          <button class="profile-card-nav-btn" onclick="closeProfileCard();showPage('user-dashboard')"><span class="pcnb-icon">📊</span> لوحتي</button>
+          <button class="profile-card-nav-btn" onclick="closeProfileCard();showPage('billing')"><span class="pcnb-icon">💳</span> الاشتراك والفوترة</button>
+          <button class="profile-card-logout" onclick="doLogout()">&#x2192; تسجيل الخروج</button>
+        </div>
+      </span>
+    </div>
+  </header>
+
+  <div class="gs-billing kie-global" id="user-credits-bar" style="display:none">
+    <div class="gs-kpi">
+      <div class="gs-kpi-label">رصيد حسابك</div>
+      <div class="gs-kpi-value" id="kie-credits-value" style="color:var(--cyan)">--</div>
+    </div>
+    <button class="btn btn-ghost" onclick="AUTH.refreshMe().then(()=>syncUserCreditsBar())">تحديث الرصيد</button>
+  </div>
+
+  <!-- MARKET -->

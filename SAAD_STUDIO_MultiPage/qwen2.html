@@ -1,0 +1,375 @@
+﻿<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SAAD STUDIO — Qwen2 Image</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Kufi+Arabic:wght@300;400;600;700&family=JetBrains+Mono:wght@400;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,500,0,0" rel="stylesheet">
+<link rel="stylesheet" href="/api/site-config.css" id="site-theme-override">
+<link rel="stylesheet" href="/css/shared.css">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="logo-area" onclick="showPage('dash',null)">
+    <div class="logo-stack">
+      <div class="logo-text">SAAD STUDIO</div>
+      <div class="logo-sub">AI Creative Platform v2.0</div>
+      <div class="brand-status">
+        <span class="status-dot connected"></span>
+        <span class="status-text">Connected</span>
+      </div>
+    </div>
+    </div>
+  </div>
+    <nav class="nav-section">
+    <div class="nav-label">Discover</div>
+    <div class="nav-item active" onclick="window.location.href='/'">
+      <div class="nav-icon"><img class="nav-logo" src="/assets/logo-saad.png" alt="SAAD STUDIO"></div><span class="nav-name">Discover</span>
+    </div>
+    <div class="nav-label" style="margin-top:6px">Production</div>
+    <div class="nav-item" onclick="window.location.href='/image-tools.html'">
+      <div class="nav-icon"><img class="nav-logo" src="/assets/logo-image-tools.png" alt="Image Tools"></div><span class="nav-name">Image Tools</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='/transitions.html'">
+      <div class="nav-icon">🎞️</div><span class="nav-name">Transitions</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='/nano.html'">
+      <div class="nav-icon">🍌</div><span class="nav-name">Nano Banana</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='/google.html'">
+      <div class="nav-icon"><img class="nav-logo" src="/assets/logo-google-studio.png" alt="Google Studio"></div><span class="nav-name">Google Studio</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='/kling.html'">
+      <div class="nav-icon"><img class="nav-logo" src="/assets/logo-kling-studio.png" alt="Kling Studio"></div><span class="nav-name">Kling Studio</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='/eleven.html'">
+      <div class="nav-icon"><img class="nav-logo" src="/assets/logo-elevenlabs-studio.png" alt="ElevenLabs Studio"></div><span class="nav-name">ElevenLabs Studio</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='/cinema.html'">
+      <div class="nav-icon">🎬</div><span class="nav-name">Cinema Studio</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='/prompt.html'">
+      <div class="nav-icon">🔍</div><span class="nav-name">Prompt Studio</span>
+    </div>
+    <div class="nav-label" style="margin-top:6px">Models</div>
+    <div class="nav-item" onclick="window.location.href='/sora2.html'">
+      <div class="nav-icon"><img class="nav-logo" src="/assets/logo-sora-2.png" alt="Sora 2"></div><span class="nav-name">Sora 2</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='/gpt54.html'">
+      <div class="nav-icon"><img class="nav-logo" src="/assets/logo-gpt-52.png" alt="GPT-5.2"></div><span class="nav-name">GPT-5.2</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='/hailuo.html'">
+      <div class="nav-icon"><img class="nav-logo" src="/assets/logo-hailuo.png" alt="Hailuo"></div><span class="nav-name">Hailuo</span>
+    </div>
+      <div class="nav-item" onclick="window.location.href='/grok.html'">
+        <div class="nav-icon"><img class="nav-logo" src="/assets/logo-grok.png" alt="Grok"></div><span class="nav-name">Grok</span>
+      </div>
+      <div class="nav-item" onclick="window.location.href='/seedream.html'">
+        <div class="nav-icon"><img class="nav-logo" src="/assets/logo-seedream-45.png" alt="Seedream 4.5"></div><span class="nav-name">Seedream 4.5</span>
+      </div>
+      <div class="nav-item" onclick="window.location.href='/flux2.html'">
+        <div class="nav-icon"><img class="nav-logo" src="/assets/logo-flux-2.png" alt="FLUX.2"></div><span class="nav-name">FLUX.2</span>
+      </div>
+      <div class="nav-item" onclick="window.location.href='/zimage.html'">
+        <div class="nav-icon"><img class="nav-logo" src="/assets/logo-z-image.png" alt="Z-Image"></div><span class="nav-name">Z-Image</span>
+      </div>
+      <div class="nav-item" onclick="window.location.href='/wan26.html'">
+        <div class="nav-icon"><img class="nav-logo" src="/assets/logo-wan-26.png" alt="Wan 2.6"></div><span class="nav-name">Wan 2.6</span>
+      </div>
+      <div class="nav-item" onclick="window.location.href='/seedance.html'">
+        <div class="nav-icon"><img class="nav-logo" src="/assets/logo-seedance-15-pro.png" alt="Seedance 1.5 Pro"></div><span class="nav-name">Seedance 1.5</span>
+      </div>
+      <div class="nav-item" onclick="window.location.href='/fluxkontext.html'">
+        <div class="nav-icon"><img class="nav-logo" src="/assets/logo-flux-kontext.png" alt="Flux Kontext"></div><span class="nav-name">Flux Kontext</span>
+      </div>
+    <div class="nav-item" onclick="window.location.href='/ideogram-reframe.html'">
+        <div class="nav-icon"><img class="nav-logo" src="/assets/logo-ideogram-reframe.png" alt="Ideogram Reframe"></div><span class="nav-name">Ideogram Reframe</span>
+      </div>
+      <div class="nav-item" onclick="window.location.href='/infinitalk.html'">
+        <div class="nav-icon"><img class="nav-logo" src="/assets/logo-infinitalk.png" alt="Infinitalk"></div><span class="nav-name">Infinitalk</span>
+      </div>
+        <div class="nav-item" onclick="window.location.href='/qwen2.html'">
+          <div class="nav-icon"><img class="nav-logo" src="/assets/logo-qwen2.png" alt="Qwen2"></div><span class="nav-name">Qwen2</span>
+        </div>
+      <div class="nav-item" onclick="window.location.href='/ideogram-reframe.html'">
+        <div class="nav-icon"><img class="nav-logo" src="/assets/logo-ideogram-character.png" alt="Ideogram Character"></div><span class="nav-name">Ideogram Character</span>
+      </div>
+      <div class="nav-label" style="margin-top:6px">Library</div>
+    <div class="nav-item" onclick="window.location.href='/gallery.html'">
+      <div class="nav-icon">🗄️</div><span class="nav-name">Gallery</span>
+    </div>
+      <div class="nav-item" onclick="window.location.href='/library.html'">
+        <div class="nav-icon">📁</div><span class="nav-name">Library</span>
+      </div>
+      <div class="nav-item" onclick="window.location.href='/legal.html'">
+        <div class="nav-icon">🛡️</div><span class="nav-name">Legal</span>
+      </div>
+      <div class="nav-item" id="nav-control" style="display:none" onclick="showPage('control',this);verifyAndRenderControl()">
+        <div class="nav-icon">⚙️</div><span class="nav-name">Control Panel</span>
+      </div>
+      <div class="nav-item" id="nav-dashboard" style="display:none" onclick="window.open('/dashboard.html','_blank')">
+        <div class="nav-icon">📊</div><span class="nav-name">Dashboard</span>
+      </div>
+    </nav>
+
+</aside>
+
+<main class="main">
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+  <header class="topbar">
+    <button class="hamburger-btn" id="hamburger-btn" onclick="toggleSidebar()" aria-label="Menu">&#9776;</button>
+    <div class="topbar-logo-wrap">
+      <img class="topbar-logo" src="/assets/logo-saad.png" alt="SAAD STUDIO Logo">
+    </div>
+    <span class="topbar-title" id="pageTitle">Discover</span>
+    <div id="promo-in-navbar"></div>
+    <div class="topbar-actions" id="topbar-actions">
+      <button class="topbar-btn" id="langToggle" onclick="toggleLanguage()">EN</button>
+      <button class="topbar-btn pricing" onclick="showPage('pricing')">Pricing</button>
+      <!-- guest buttons -->
+      <span id="topbar-guest">
+        <button class="topbar-btn" onclick="openAuthModal('login')">Login</button>
+        <button class="topbar-btn primary" onclick="openAuthModal('register')">Sign up</button>
+      </span>
+      <!-- logged-in state -->
+      <span id="topbar-loggedin" style="display:none" class="topbar-user">
+        <!-- Avatar button -->
+        <div class="user-avatar-wrap topbar-avatar-wrap" id="user-avatar-wrap" onclick="toggleProfileCard()">
+          <div class="user-avatar" id="user-avatar-el">•</div>
+        </div>
+        <!-- Profile dropdown card -->
+        <div class="profile-card" id="profile-card" style="display:none;">
+          <div class="profile-card-header">
+            <div class="profile-card-avatar" id="pcard-avatar">•</div>
+            <div>
+              <div class="profile-card-email" id="pcard-email">—</div>
+              <span class="topbar-plan-badge starter" id="pcard-plan-badge" style="margin-top:4px;display:inline-block;">—</span>
+            </div>
+          </div>
+          <div class="profile-card-divider"></div>
+          <div class="profile-card-row">
+            <span class="profile-card-label">💳 رصيدك</span>
+            <span class="profile-card-value" id="pcard-credits">—</span>
+          </div>
+          <div class="profile-card-row">
+            <span class="profile-card-label">📅 تاريخ الاشتراك</span>
+            <span class="profile-card-value" id="pcard-created">—</span>
+          </div>
+          <div class="profile-card-row" id="pcard-renew-row">
+            <span class="profile-card-label">⏳ ينتهي في</span>
+            <span class="profile-card-value" id="pcard-renew">—</span>
+          </div>
+          <div class="profile-card-row" id="pcard-days-row">
+            <span class="profile-card-label">⭐ باقي</span>
+            <span class="profile-card-value" id="pcard-days">—</span>
+          </div>
+          <div class="profile-card-divider"></div>
+          <button class="profile-card-nav-btn" onclick="closeProfileCard();showPage('user-dashboard')"><span class="pcnb-icon">📊</span> لوحتي</button>
+          <button class="profile-card-nav-btn" onclick="closeProfileCard();showPage('billing')"><span class="pcnb-icon">💳</span> الاشتراك والفوترة</button>
+          <button class="profile-card-logout" onclick="doLogout()">&#x2192; تسجيل الخروج</button>
+        </div>
+      </span>
+    </div>
+  </header>
+
+  <div class="gs-billing kie-global" id="user-credits-bar" style="display:none">
+    <div class="gs-kpi">
+      <div class="gs-kpi-label">رصيد حسابك</div>
+      <div class="gs-kpi-value" id="kie-credits-value" style="color:var(--cyan)">--</div>
+    </div>
+    <button class="btn btn-ghost" onclick="AUTH.refreshMe().then(()=>syncUserCreditsBar())">تحديث الرصيد</button>
+  </div>
+
+  <!-- MARKET -->
+
+<div class="page active" id="page-qwen2">
+
+    <!-- Model tabs -->
+    <div class="cine-tab-strip sora-tabs">
+      <button class="sora-tab active" id="qwen2-tab-qwen2-text-to-image" onclick="selectQwen2Model('qwen2/text-to-image')">Text To Image</button>
+      <button class="sora-tab" id="qwen2-tab-qwen2-image-edit" onclick="selectQwen2Model('qwen2/image-edit')">Image Edit</button>
+    </div>
+
+    <div class="qw2-layout">
+
+      <!-- ═══ MAIN AREA: Results + Composer ═══ -->
+      <div class="qw2-main">
+        <div class="cine-shell">
+          <!-- Results canvas -->
+          <div class="cine-canvas-wrap">
+            <div class="result-head">
+              <span class="result-head-txt">Qwen Results</span>
+              <span class="cine-model-chip" id="qwen2-model-chip">qwen2/text-to-image</span>
+              <button class="btn btn-ghost" style="font-size:10px;margin-left:auto;" onclick="clearResults('qwen2-results')">Clear</button>
+            </div>
+            <div class="result-grid" id="qwen2-results">
+              <div class="result-empty"><div class="result-empty-icon">🖼️</div><div class="result-empty-text">ستظهر النتائج هنا</div></div>
+            </div>
+          </div>
+
+          <!-- Composer -->
+          <div class="cine-composer">
+            <input type="hidden" id="qwen2-model" value="qwen2/text-to-image">
+
+            <!-- Image slot (edit mode) -->
+            <div class="cine-img-slot" id="qwen2-image-field">
+              <div class="dropzone" id="dz-qwen2-image" onclick="triggerUpload('up-qwen2-image')">
+                <div id="dz-qwen2-image-inner"><div class="dz-icon">🖼️</div><div class="dz-text">ارفع الصورة للتعديل</div><div class="dz-sub">PNG / JPG / WEBP · 10MB</div></div>
+              </div>
+              <input type="file" id="up-qwen2-image" accept="image/png,image/jpeg,image/jpg,image/webp" style="display:none" onchange="handleFile(this,'dz-qwen2-image')">
+            </div>
+
+            <!-- Prompt row -->
+            <div class="cine-prompt-row">
+              <textarea class="ftextarea" id="qwen2-prompt" rows="3" placeholder="اكتب التعديل أو وصف الصورة المطلوب..."></textarea>
+              <button class="cine-settings-btn qw2-toggle-settings" onclick="document.getElementById('qw2-sidebar').classList.toggle('qw2-sb-hidden')" title="إظهار/إخفاء الإعدادات">
+                <span class="material-symbols-outlined" style="font-size:20px;">tune</span>
+              </button>
+            </div>
+
+            <!-- Control bar -->
+            <div class="cine-ctrl-bar">
+              <div class="cine-ctrl-item">
+                <span class="cine-ctrl-label">Size</span>
+                <select class="fselect" id="qwen2-size">
+                  <option value="1:1" selected>1:1</option>
+                  <option value="2:3">2:3</option>
+                  <option value="3:2">3:2</option>
+                  <option value="3:4">3:4</option>
+                  <option value="4:3">4:3</option>
+                  <option value="9:16">9:16</option>
+                  <option value="16:9">16:9</option>
+                  <option value="21:9">21:9</option>
+                </select>
+              </div>
+              <div class="cine-ctrl-item">
+                <span class="cine-ctrl-label">Format</span>
+                <select class="fselect" id="qwen2-format">
+                  <option value="png" selected>PNG</option>
+                  <option value="jpeg">JPEG</option>
+                </select>
+              </div>
+              <div class="cine-spacer"></div>
+              <div class="cost-preview" id="qwen2-cost-preview"><span class="cost-icon">💳</span> <span class="cost-val" id="qwen2-cost-val">6</span> كريدت</div>
+              <button class="btn-generate gen-action" id="qwen2-btn" onclick="runQwen2()">Generate</button>
+            </div>
+            <div class="cine-status" id="qwen2-status">جاهز للتوليد.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ SETTINGS SIDEBAR (Leonardo style) ═══ -->
+      <div class="qw2-sidebar" id="qw2-sidebar">
+        <div class="qw2-sb-header">
+          <span class="qw2-sb-title">QWEN 2 SETTINGS</span>
+          <button class="qw2-sb-close" onclick="document.getElementById('qw2-sidebar').classList.add('qw2-sb-hidden')">✕</button>
+        </div>
+
+        <!-- GENERATION -->
+        <div class="qw2-sb-section">
+          <div class="qw2-sb-label">GENERATION</div>
+          <div class="field">
+            <div class="flabel">Quality</div>
+            <div class="qw2-btn-group">
+              <button class="qw2-opt" data-qw2-quality="draft">Draft</button>
+              <button class="qw2-opt active" data-qw2-quality="standard">Standard</button>
+              <button class="qw2-opt" data-qw2-quality="hd">HD</button>
+            </div>
+          </div>
+          <div class="field">
+            <div class="flabel">Aspect Ratio</div>
+            <div class="qw2-btn-group qw2-btn-group-4">
+              <button class="qw2-opt active">1:1</button>
+              <button class="qw2-opt">3:4</button>
+              <button class="qw2-opt">16:9</button>
+              <button class="qw2-opt">9:16</button>
+            </div>
+          </div>
+          <div class="field">
+            <div class="qw2-slider-head">
+              <span class="flabel">Guidance Scale</span>
+              <span class="qw2-slider-val" id="qw2-guidance-val" style="color:var(--cyan);">7.5</span>
+            </div>
+            <input type="range" class="qw2-range qw2-range-cyan" id="qw2-guidance" min="1" max="20" step="0.5" value="7.5" oninput="document.getElementById('qw2-guidance-val').textContent=parseFloat(this.value).toFixed(1)">
+          </div>
+          <div class="field">
+            <div class="qw2-slider-head">
+              <span class="flabel">Steps</span>
+              <span class="qw2-slider-val" id="qw2-steps-val" style="color:var(--amber);">30</span>
+            </div>
+            <input type="range" class="qw2-range qw2-range-amber" id="qw2-steps" min="10" max="60" step="1" value="30" oninput="document.getElementById('qw2-steps-val').textContent=this.value">
+          </div>
+        </div>
+
+        <!-- STYLE -->
+        <div class="qw2-sb-section">
+          <div class="qw2-sb-label">STYLE</div>
+          <div class="field">
+            <div class="qw2-btn-group qw2-btn-group-2">
+              <button class="qw2-opt active">Realistic</button>
+              <button class="qw2-opt">Artistic</button>
+            </div>
+          </div>
+          <div class="field">
+            <div class="flabel">Negative Prompt</div>
+            <textarea class="finput qw2-neg-prompt" id="qwen2-neg-prompt" rows="2" placeholder="blurry, watermark, deformed..."></textarea>
+          </div>
+        </div>
+
+        <!-- ADVANCED -->
+        <div class="qw2-sb-section">
+          <div class="qw2-sb-label">ADVANCED</div>
+          <div class="qw2-adv-grid">
+            <div class="field">
+              <div class="flabel">Seed</div>
+              <input class="finput" id="qwen2-seed" type="number" placeholder="0" style="width:100%;">
+            </div>
+            <div class="field">
+              <div class="flabel">Batch</div>
+              <div class="qw2-btn-group">
+                <button class="qw2-opt active">1</button>
+                <button class="qw2-opt">2</button>
+                <button class="qw2-opt">4</button>
+              </div>
+            </div>
+          </div>
+          <div class="qw2-toggle-row">
+            <span class="qw2-toggle-label">Auto-enhance prompt</span>
+            <label class="qw2-switch"><input type="checkbox" id="qw2-autoenhance" checked><span class="qw2-switch-slider"></span></label>
+          </div>
+          <div class="qw2-toggle-row">
+            <span class="qw2-toggle-label">Save to gallery</span>
+            <label class="qw2-switch"><input type="checkbox" id="qw2-autosave"><span class="qw2-switch-slider"></span></label>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- IDEOGRAM V3 REFRAME -->
+  <!-- IDEOGRAM V3 REFRAME -->
+  
+
+</main>
+
+
+
+<div class="toast-container" id="toasts"></div>
+
+
+
+<script src="/js/shared.js"></script>
+<script src="/js/sidebar-scripts.js"></script><script src="/js/sidebar-toggle.js"></script>
+<script>
+(function() {
+  var p = new URLSearchParams(window.location.search).get('page');
+  if (p) showPage(p);
+})();
+</script>
+</body>
+</html>
