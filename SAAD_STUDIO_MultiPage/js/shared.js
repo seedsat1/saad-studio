@@ -3473,16 +3473,32 @@ function setGbarChoice(group, value, silent){
   // Update quality label
   const qualityLabel = document.getElementById('gbar-quality-label');
   if(group === 'quality' && qualityLabel){ qualityLabel.textContent = value; }
+  // Sync quality pill buttons active state
+  if(group === 'quality'){
+    const qParent = qualitySelect && qualitySelect.previousElementSibling;
+    if(qParent && qParent.classList.contains('qw2-btn-group')){
+      qParent.querySelectorAll('.qw2-opt').forEach(btn=>{
+        btn.classList.toggle('active', btn.textContent.trim() === value);
+      });
+    }
+  }
   const ratioSelect = document.getElementById('gbar-ratio');
   if(group === 'ratio' && ratioSelect){ ratioSelect.value = value; }
   // Update ratio label
   const ratioLabel = document.getElementById('gbar-ratio-label');
   if(group === 'ratio' && ratioLabel){ ratioLabel.textContent = value; }
-  // Sync ratio pills in dropdown
+  // Sync ratio pill buttons active state
   if(group === 'ratio'){
     document.querySelectorAll('.gbar-ratio-pill').forEach(btn=>{
       btn.classList.toggle('active', btn.dataset.ratio === value);
     });
+    // Also sync qw2-opt ratio buttons by matching text
+    const rParent = ratioSelect && ratioSelect.parentElement;
+    if(rParent){
+      rParent.querySelectorAll('.qw2-btn-group .qw2-opt').forEach(btn=>{
+        btn.classList.toggle('active', btn.textContent.trim() === value);
+      });
+    }
   }
   if(!silent){
     saveUiState({ googleBar: googleBarState });

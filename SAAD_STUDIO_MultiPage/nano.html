@@ -298,9 +298,9 @@
           <div class="field">
             <div class="flabel">Quality</div>
             <div class="qw2-btn-group">
-              <button class="qw2-opt" onclick="document.getElementById('gbar-quality').value='1K'">1K</button>
-              <button class="qw2-opt active" onclick="document.getElementById('gbar-quality').value='2K'">2K</button>
-              <button class="qw2-opt" onclick="document.getElementById('gbar-quality').value='4K'">4K</button>
+              <button class="qw2-opt" onclick="setGbarChoice('quality','1K')">1K</button>
+              <button class="qw2-opt active" onclick="setGbarChoice('quality','2K')">2K</button>
+              <button class="qw2-opt" onclick="setGbarChoice('quality','4K')">4K</button>
             </div>
             <select id="gbar-quality" onchange="setGbarChoice('quality', this.value)" style="display:none;"><option value="1K">1K</option><option value="2K" selected>2K</option><option value="4K">4K</option></select>
           </div>
