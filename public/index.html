@@ -1758,12 +1758,63 @@ input[type="url"], textarea, select {
   .topbar-btn:not(.primary) { padding: 4px 7px; font-size: 9px; }
 }
 /* ── Legal Page ── */
-.legal-sections-wrap { display: flex; flex-direction: column; gap: 20px; max-width: 820px; }
-.legal-card { background: linear-gradient(180deg,rgba(255,255,255,0.035),rgba(255,255,255,0.014)); border: 1px solid var(--b); border-radius: var(--r); padding: 24px 28px; }
-.legal-card-icon { font-size: 26px; margin-bottom: 10px; }
-.legal-card-title { font-family: var(--fd,inherit); font-size: 20px; font-weight: 800; letter-spacing: 0.06em; color: var(--amber2,#f5c04a); margin-bottom: 14px; }
-.legal-card-body { font-size: 13px; color: var(--tx2,rgba(255,255,255,.55)); line-height: 1.85; white-space: pre-wrap; word-break: break-word; }
-.legal-card-body strong { color: var(--tx,#fff); font-weight: 700; }
+.legal-hero{position:relative;border-radius:var(--r);overflow:hidden;min-height:200px;display:flex;align-items:center;justify-content:center;margin-bottom:24px;}
+.legal-hero-bg{position:absolute;inset:0;background:linear-gradient(135deg,rgba(0,229,255,0.08),rgba(255,158,44,0.06),rgba(0,229,255,0.04));animation:legalShift 12s ease-in-out infinite alternate;}
+@keyframes legalShift{0%{background-position:0% 50%;}100%{background-position:100% 50%;}}
+.legal-hero-content{position:relative;z-index:2;text-align:center;padding:40px 20px;}
+.legal-hero-icon{color:var(--cyan);margin-bottom:16px;opacity:0.7;}
+.legal-hero-title{font-family:var(--fd);font-size:42px;letter-spacing:0.12em;color:var(--tx);margin-bottom:8px;}
+.legal-hero-sub{font-size:14px;color:var(--tx2);letter-spacing:0.04em;}
+.legal-hero-sub-ar{font-size:13px;color:var(--tx3);margin-top:4px;direction:rtl;}
+.legal-tabs{display:flex;gap:8px;margin-bottom:20px;padding:4px;background:rgba(255,255,255,0.02);border:1px solid var(--b);border-radius:var(--r);width:fit-content;}
+.legal-tab{padding:10px 24px;border-radius:12px;border:1px solid transparent;background:transparent;color:var(--tx3);font-size:12px;font-weight:700;font-family:var(--far);cursor:pointer;transition:all 0.2s;white-space:nowrap;}
+.legal-tab:hover{color:var(--tx2);background:rgba(255,255,255,0.03);}
+.legal-tab.active{background:rgba(0,229,255,0.08);border-color:rgba(0,229,255,0.3);color:var(--cyan);}
+.legal-section{display:none;}
+.legal-section.active{display:block;}
+.legal-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;}
+.legal-card{background:linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.012));border:1px solid var(--b);border-radius:var(--r);padding:22px 20px;position:relative;overflow:hidden;transition:border-color 0.3s,transform 0.2s;}
+.legal-card:hover{border-color:rgba(62,201,255,0.35);transform:translateY(-2px);}
+.legal-card::before{content:attr(data-num);position:absolute;top:14px;left:14px;font-family:var(--fd);font-size:48px;color:rgba(0,229,255,0.06);line-height:1;letter-spacing:0.05em;pointer-events:none;}
+.legal-card-title{font-size:15px;font-weight:700;color:var(--tx);margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+.legal-ar-inline{font-size:12px;color:var(--cyan);opacity:0.6;font-weight:400;}
+.legal-list{list-style:none;display:flex;flex-direction:column;gap:10px;margin:0;padding:0;}
+.legal-list li{font-size:12px;color:var(--tx2);line-height:1.6;padding-right:14px;position:relative;}
+.legal-list li::before{content:'';position:absolute;right:0;top:7px;width:5px;height:5px;border-radius:50%;background:var(--cyan);opacity:0.4;}
+.legal-ar{display:block;color:var(--tx3);font-size:11px;direction:rtl;margin-top:3px;text-align:right;}
+.legal-p-en{font-size:12px;color:var(--tx2);line-height:1.7;margin-bottom:6px;}
+.legal-p-ar{font-size:11px;color:var(--tx3);direction:rtl;text-align:right;line-height:1.7;}
+.legal-intro-card{grid-column:1/-1;background:linear-gradient(135deg,rgba(0,229,255,0.04),rgba(255,158,44,0.03));border-color:rgba(0,229,255,0.2);text-align:center;padding:28px;}
+.legal-intro-card::before{display:none;}
+.legal-intro-badge{display:inline-block;font-size:10px;font-family:var(--fm);letter-spacing:0.14em;color:var(--cyan);background:rgba(0,229,255,0.08);border:1px solid rgba(0,229,255,0.2);border-radius:20px;padding:4px 14px;margin-bottom:14px;}
+.legal-intro-en{font-size:14px;color:var(--tx);line-height:1.7;margin-bottom:8px;}
+.legal-intro-ar{font-size:13px;color:var(--tx2);direction:rtl;line-height:1.7;}
+.legal-card-warn{border-color:rgba(255,96,96,0.25);background:linear-gradient(180deg,rgba(255,96,96,0.03),rgba(255,96,96,0.01));}
+.legal-card-warn .legal-list li::before{background:var(--red);}
+.legal-card-warn .legal-card-title{color:var(--red);}
+.legal-card-highlight{border-color:rgba(0,229,255,0.25);background:linear-gradient(180deg,rgba(0,229,255,0.03),rgba(0,229,255,0.01));}
+.legal-own-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.legal-own-item{padding:12px;border-radius:10px;background:rgba(255,255,255,0.02);border:1px solid var(--b);}
+.legal-own-badge{font-size:10px;font-weight:800;font-family:var(--fm);letter-spacing:0.1em;padding:3px 10px;border-radius:6px;display:inline-block;margin-bottom:8px;}
+.legal-own-you{background:rgba(89,217,138,0.1);color:var(--green);border:1px solid rgba(89,217,138,0.25);}
+.legal-own-us{background:rgba(0,229,255,0.08);color:var(--cyan);border:1px solid rgba(0,229,255,0.2);}
+.legal-data-cols{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.legal-data-head{font-size:11px;font-weight:700;color:var(--cyan);margin-bottom:8px;font-family:var(--fm);letter-spacing:0.06em;}
+.legal-list-sm{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:4px;}
+.legal-list-sm li{font-size:11px;color:var(--tx2);padding-right:10px;position:relative;}
+.legal-list-sm li::before{content:'';position:absolute;right:0;top:6px;width:4px;height:4px;border-radius:50%;background:rgba(0,229,255,0.3);}
+.legal-no-sell{display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:10px;background:rgba(89,217,138,0.06);border:1px solid rgba(89,217,138,0.15);color:var(--green);font-size:12px;font-weight:700;flex-wrap:wrap;}
+.legal-no-sell .legal-ar{display:inline;margin:0;font-size:11px;color:rgba(89,217,138,0.7);}
+.legal-security-badges{display:flex;gap:6px;flex-wrap:wrap;}
+.legal-sec-badge{font-size:10px;font-family:var(--fm);letter-spacing:0.08em;padding:5px 12px;border-radius:8px;background:rgba(0,229,255,0.06);border:1px solid rgba(0,229,255,0.15);color:var(--cyan);}
+.legal-rights-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+.legal-right{text-align:center;padding:12px 6px;border-radius:10px;background:rgba(255,255,255,0.02);border:1px solid var(--b);font-size:11px;color:var(--tx2);transition:border-color 0.2s;}
+.legal-right:hover{border-color:rgba(0,229,255,0.3);}
+.legal-right-icon{font-size:18px;display:block;margin-bottom:6px;}
+.legal-right .legal-ar{font-size:10px;}
+.legal-footer{text-align:center;padding:30px 0 10px;border-top:1px solid var(--b);margin-top:24px;color:var(--tx3);font-size:11px;}
+.legal-footer p{margin:4px 0;}
+@media(max-width:640px){.legal-grid{grid-template-columns:1fr;}.legal-data-cols{grid-template-columns:1fr;}.legal-rights-grid{grid-template-columns:repeat(2,1fr);}.legal-own-grid{grid-template-columns:1fr;}}
 </style>
 </head>
 <body>
@@ -5799,13 +5850,298 @@ Professional photography look.</textarea>
 
 <!-- ═══ LEGAL PAGE ═══ -->
 <div class="page" id="page-legal">
-  <div class="ph">
-    <div class="ph-title">⚖️ Legal</div>
-    <div class="ph-sub">TERMS · PRIVACY · REFUND</div>
+  <div class="legal-hero">
+    <div class="legal-hero-bg"></div>
+    <div class="legal-hero-content">
+      <div class="legal-hero-icon">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+      </div>
+      <h1 class="legal-hero-title">Legal</h1>
+      <p class="legal-hero-sub">Terms of Service & Privacy Policy</p>
+      <p class="legal-hero-sub-ar">شروط الخدمة وسياسة الخصوصية</p>
+    </div>
   </div>
-  <div id="legal-loading" style="text-align:center;padding:60px 40px;"><div class="spinner" style="margin:auto"></div></div>
-  <div id="legal-content" class="legal-sections-wrap" style="display:none"></div>
-  <div id="legal-error" style="display:none;text-align:center;color:var(--tx3);padding:60px">تعذر تحميل المحتوى القانوني.</div>
+
+  <div class="legal-tabs">
+    <button class="legal-tab active" onclick="setLegalTab('tos',this)">Terms of Service</button>
+    <button class="legal-tab" onclick="setLegalTab('privacy',this)">Privacy Policy</button>
+  </div>
+
+  <!-- ═══ TERMS OF SERVICE ═══ -->
+  <div class="legal-section active" id="legal-tos">
+
+    <div class="legal-card legal-intro-card">
+      <div class="legal-intro-badge">EFFECTIVE DATE: 2026-03-22</div>
+      <p class="legal-intro-en">By accessing or using SAAD STUDIO, you agree to be bound by these Terms of Service. If you do not agree, you must not use the Platform.</p>
+      <p class="legal-intro-ar">باستخدامك أو وصولك إلى SAAD STUDIO فإنك توافق على الالتزام بشروط الخدمة هذه. إذا لم توافق، يجب عليك عدم استخدام المنصة.</p>
+    </div>
+
+    <div class="legal-grid">
+
+      <div class="legal-card" data-num="01">
+        <h3 class="legal-card-title">Eligibility <span class="legal-ar-inline">الأهلية</span></h3>
+        <ul class="legal-list">
+          <li>You must be at least 18 years old.<br><span class="legal-ar">يجب أن يكون عمرك 18 عاماً على الأقل.</span></li>
+          <li>You must provide accurate registration information.<br><span class="legal-ar">يجب تقديم معلومات تسجيل دقيقة وكاملة.</span></li>
+          <li>You are responsible for your account security.<br><span class="legal-ar">أنت مسؤول عن أمان حسابك.</span></li>
+          <li>You are responsible for all account activities.<br><span class="legal-ar">أنت مسؤول عن جميع أنشطة حسابك.</span></li>
+        </ul>
+      </div>
+
+      <div class="legal-card" data-num="02">
+        <h3 class="legal-card-title">Services <span class="legal-ar-inline">الخدمات</span></h3>
+        <p class="legal-p-en">SAAD STUDIO provides a cloud-based AI creative platform for generating images, videos, music, and text using multiple AI models from third-party providers.</p>
+        <p class="legal-p-ar">توفر SAAD STUDIO منصة إبداعية سحابية لتوليد الصور والفيديو والموسيقى والنصوص باستخدام نماذج AI متعددة من مزودين خارجيين.</p>
+      </div>
+
+      <div class="legal-card" data-num="03" style="grid-column:1/-1;">
+        <h3 class="legal-card-title">Credits & Payment <span class="legal-ar-inline">الرصيد والدفع</span></h3>
+
+        <div style="background:linear-gradient(135deg,rgba(89,217,138,0.06),rgba(0,229,255,0.04));border:2px solid rgba(89,217,138,0.3);border-radius:14px;padding:20px;margin-bottom:20px;position:relative;overflow:hidden;">
+          <div style="position:absolute;top:12px;left:12px;font-size:36px;opacity:0.12;">🎁</div>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+            <div style="font-size:22px;">🎁</div>
+            <div class="legal-p-en" style="font-size:15px;font-weight:800;color:var(--green);margin:0;">Free Trial: 100 Credits Before Any Payment</div>
+          </div>
+          <div class="legal-p-ar" style="font-size:14px;font-weight:700;color:var(--green);margin-bottom:14px;">تجربة مجانية: 100 كريدت قبل أي دفع</div>
+          <div class="legal-p-en" style="font-size:13px;line-height:1.8;margin-bottom:8px;">Every new user receives <strong style="color:var(--cyan);">100 free credits</strong> upon registration — no credit card required, no payment needed. These free credits allow you to fully test the Platform, try different AI models, evaluate output quality, and experience all features before making any purchase decision.</div>
+          <div class="legal-p-ar" style="font-size:12px;line-height:1.8;margin-bottom:14px;">يحصل كل مستخدم جديد على <strong style="color:var(--cyan);">100 كريدت مجاني</strong> عند التسجيل — بدون بطاقة ائتمان وبدون أي دفع. هذه الكريدتات المجانية تتيح لك اختبار المنصة بالكامل، تجربة نماذج AI مختلفة، تقييم جودة المخرجات، واستكشاف جميع الميزات قبل اتخاذ أي قرار شراء.</div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-bottom:14px;">
+            <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(89,217,138,0.15);border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:8px;">
+              <div style="font-size:16px;">✅</div>
+              <div>
+                <div class="legal-p-en" style="font-size:11px;font-weight:700;margin:0;">Test all AI models</div>
+                <div class="legal-p-ar" style="font-size:11px;margin:0;">جرّب جميع نماذج AI</div>
+              </div>
+            </div>
+            <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(89,217,138,0.15);border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:8px;">
+              <div style="font-size:16px;">✅</div>
+              <div>
+                <div class="legal-p-en" style="font-size:11px;font-weight:700;margin:0;">Evaluate output quality</div>
+                <div class="legal-p-ar" style="font-size:11px;margin:0;">قيّم جودة المخرجات</div>
+              </div>
+            </div>
+            <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(89,217,138,0.15);border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:8px;">
+              <div style="font-size:16px;">✅</div>
+              <div>
+                <div class="legal-p-en" style="font-size:11px;font-weight:700;margin:0;">No credit card required</div>
+                <div class="legal-p-ar" style="font-size:11px;margin:0;">بدون بطاقة ائتمان</div>
+              </div>
+            </div>
+            <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(89,217,138,0.15);border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:8px;">
+              <div style="font-size:16px;">✅</div>
+              <div>
+                <div class="legal-p-en" style="font-size:11px;font-weight:700;margin:0;">Full features access</div>
+                <div class="legal-p-ar" style="font-size:11px;margin:0;">وصول كامل للميزات</div>
+              </div>
+            </div>
+          </div>
+          <div style="background:rgba(255,158,44,0.08);border:1px solid rgba(255,158,44,0.2);border-radius:10px;padding:12px 14px;">
+            <div class="legal-p-en" style="font-size:12px;font-weight:700;color:var(--amber);margin-bottom:4px;">⚠️ Important Legal Note:</div>
+            <div class="legal-p-en" style="font-size:12px;line-height:1.7;margin-bottom:6px;">By providing free trial credits, we give you the opportunity to evaluate the Platform and its AI output quality before any financial commitment. Therefore, purchasing a subscription or top-up credits after using your free trial constitutes your informed acceptance that you have tested and are satisfied with the service quality. Refund requests based on dissatisfaction with AI output quality will not be accepted for paid credits, as you had the opportunity to evaluate the service at no cost beforehand.</div>
+            <div class="legal-p-ar" style="font-size:11px;line-height:1.7;">بتوفير كريدتات تجريبية مجانية، نمنحك فرصة تقييم المنصة وجودة مخرجات AI قبل أي التزام مالي. لذلك، شراء اشتراك أو رصيد إضافي بعد استخدام تجربتك المجانية يُعتبر قبولاً مستنيراً بأنك اختبرت الخدمة وراضٍ عن جودتها. لن تُقبل طلبات الاسترداد المبنية على عدم الرضا عن جودة مخرجات AI للرصيد المدفوع، لأنك حظيت بفرصة تقييم الخدمة مجاناً مسبقاً.</div>
+          </div>
+        </div>
+
+        <div class="legal-p-en" style="font-size:13px;font-weight:600;color:var(--cyan);margin-bottom:12px;">How Credits Work / كيف يعمل نظام الرصيد</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-bottom:18px;">
+          <div style="background:rgba(0,229,255,0.04);border:1px solid rgba(0,229,255,0.12);border-radius:12px;padding:14px;">
+            <div style="font-size:20px;margin-bottom:6px;">💳</div>
+            <div class="legal-p-en" style="font-weight:700;font-size:12px;margin-bottom:4px;">1. You purchase credits</div>
+            <div class="legal-p-en">Credits are purchased through subscription plans ($10, $25, $50/month) or one-time top-up packs ($5, $15, $30, $50). Each plan provides a specific monthly credit allocation.</div>
+            <div class="legal-p-ar">يتم شراء الرصيد من خلال خطط اشتراك ($10، $25، $50 شهرياً) أو حزم شحن لمرة واحدة ($5، $15، $30، $50). كل خطة توفر مخصصات رصيد شهرية محددة.</div>
+          </div>
+          <div style="background:rgba(255,158,44,0.04);border:1px solid rgba(255,158,44,0.12);border-radius:12px;padding:14px;">
+            <div style="font-size:20px;margin-bottom:6px;">⚡</div>
+            <div class="legal-p-en" style="font-weight:700;font-size:12px;margin-bottom:4px;">2. Credits are consumed instantly</div>
+            <div class="legal-p-en">When you click "Generate", credits are deducted immediately. The cost is displayed before generation. Different AI models have different costs (e.g., Kling video = 70-270 credits, Nano image = 4 credits, Sora video = 30 credits).</div>
+            <div class="legal-p-ar">عند الضغط على "Generate" يُخصم الرصيد فوراً. التكلفة تظهر قبل التوليد. النماذج المختلفة لها تكاليف مختلفة (مثال: فيديو Kling = 70-270 كريدت، صورة Nano = 4 كريدت، فيديو Sora = 30 كريدت).</div>
+          </div>
+          <div style="background:rgba(255,96,96,0.04);border:1px solid rgba(255,96,96,0.12);border-radius:12px;padding:14px;">
+            <div style="font-size:20px;margin-bottom:6px;">🔄</div>
+            <div class="legal-p-en" style="font-weight:700;font-size:12px;margin-bottom:4px;">3. Third-party costs are incurred</div>
+            <div class="legal-p-en">Each generation request is sent to a third-party AI provider (KIE.AI, Google, OpenAI, etc.) who charges us in real-time. This cost is irreversible once the request is processed, regardless of whether the output meets your expectations.</div>
+            <div class="legal-p-ar">كل طلب توليد يُرسل لمزود AI خارجي (KIE.AI، Google، OpenAI، إلخ) الذي يحاسبنا فورياً. هذه التكلفة لا رجعة فيها بمجرد معالجة الطلب، بغض النظر عن رضاك عن النتيجة.</div>
+          </div>
+        </div>
+
+        <div style="background:rgba(255,96,96,0.05);border:1px solid rgba(255,96,96,0.15);border-radius:12px;padding:16px;margin-bottom:14px;">
+          <div class="legal-p-en" style="font-weight:700;font-size:13px;color:var(--red);margin-bottom:8px;">Why credits are non-refundable / لماذا الرصيد غير قابل للاسترداد</div>
+          <ul class="legal-list">
+            <li>Each generation incurs real costs paid to third-party AI providers at the moment of processing. These costs cannot be reversed.<br><span class="legal-ar">كل عملية توليد تتحمل تكاليف حقيقية تُدفع لمزودي AI الخارجيين لحظة المعالجة. لا يمكن عكس هذه التكاليف.</span></li>
+            <li>An estimated credit cost is displayed before generation. The actual cost may vary depending on model processing, output duration, and resolution. The displayed cost is approximate and not a guaranteed final amount.<br><span class="legal-ar">تُعرض تكلفة تقديرية للرصيد قبل التوليد. التكلفة الفعلية قد تختلف حسب معالجة النموذج ومدة المخرجات والدقة. التكلفة المعروضة تقريبية وليست مبلغاً نهائياً مضموناً.</span></li>
+            <li>AI output quality is inherently variable. A generation that doesn't match your vision is not a service failure — it is a characteristic of AI technology.<br><span class="legal-ar">جودة مخرجات AI متغيرة بطبيعتها. توليد لا يطابق رؤيتك ليس فشلاً في الخدمة — بل هو سمة من سمات تقنية الذكاء الاصطناعي.</span></li>
+            <li>We recommend starting with lower-cost models to test prompts before using premium models.<br><span class="legal-ar">ننصح بالبدء بنماذج أقل تكلفة لاختبار الأوامر قبل استخدام النماذج المتقدمة.</span></li>
+          </ul>
+        </div>
+
+        <div style="background:rgba(89,217,138,0.05);border:1px solid rgba(89,217,138,0.15);border-radius:12px;padding:16px;margin-bottom:14px;">
+          <div class="legal-p-en" style="font-weight:700;font-size:13px;color:var(--green);margin-bottom:8px;">Exceptions — When you MAY get credits back / استثناءات — متى قد تسترد الرصيد</div>
+          <ul class="legal-list">
+            <li>System error: If the Platform fails to deliver any output due to a server or system error (not AI model limitations), we will refund the consumed credits.<br><span class="legal-ar">خطأ نظام: إذا فشلت المنصة في تقديم أي مخرجات بسبب خطأ في السيرفر أو النظام (وليس قيود نموذج AI)، سنعيد الرصيد المستهلك.</span></li>
+            <li>Double charge: If credits are deducted multiple times for a single generation due to a technical glitch.<br><span class="legal-ar">خصم مزدوج: إذا خُصم الرصيد عدة مرات لتوليد واحد بسبب خلل تقني.</span></li>
+            <li>Service outage: If a paid generation request is lost due to a platform-wide outage.<br><span class="legal-ar">انقطاع الخدمة: إذا فُقد طلب توليد مدفوع بسبب انقطاع شامل في المنصة.</span></li>
+          </ul>
+          <div class="legal-p-en" style="margin-top:10px;font-size:11px;opacity:0.7;">To request a credit refund for the above cases, contact support@saadstudio.com with your generation ID and details.</div>
+          <div class="legal-p-ar" style="font-size:11px;">لطلب استرداد الرصيد في الحالات أعلاه، تواصل عبر support@saadstudio.com مع معرّف التوليد والتفاصيل.</div>
+        </div>
+
+        <ul class="legal-list">
+          <li>Subscription plans renew automatically each month. You may cancel anytime — cancellation takes effect at the end of the current billing period.<br><span class="legal-ar">تتجدد خطط الاشتراك تلقائياً كل شهر. يمكنك الإلغاء في أي وقت — يسري الإلغاء في نهاية فترة الفوترة الحالية.</span></li>
+          <li>Unused monthly credits do not carry over to the next billing cycle. Top-up credits remain until used or account termination.<br><span class="legal-ar">لا يُنقل رصيد الاشتراك الشهري غير المستخدم للشهر التالي. رصيد الشحن يبقى حتى الاستخدام أو إنهاء الحساب.</span></li>
+          <li>Pricing and credit allocations may change. We will notify you at least 30 days before any price increase.<br><span class="legal-ar">قد تتغير الأسعار والمخصصات. سنبلغك قبل 30 يوماً على الأقل من أي زيادة في الأسعار.</span></li>
+        </ul>
+      </div>
+
+      <div class="legal-card legal-card-warn" data-num="04">
+        <h3 class="legal-card-title">Prohibited Uses <span class="legal-ar-inline">الاستخدامات المحظورة</span></h3>
+        <ul class="legal-list">
+          <li>Illegal, harmful, abusive, or defamatory content<br><span class="legal-ar">محتوى غير قانوني أو ضار أو مسيء أو تشهيري</span></li>
+          <li>Child exploitation or CSAM<br><span class="legal-ar">استغلال الأطفال أو مواد الاعتداء الجنسي</span></li>
+          <li>Non-consensual deepfakes of real people<br><span class="legal-ar">صور مزيفة غير رضائية لأشخاص حقيقيين</span></li>
+          <li>Impersonation or identity fraud<br><span class="legal-ar">انتحال الشخصية أو احتيال الهوية</span></li>
+          <li>IP infringement or copyright violation<br><span class="legal-ar">انتهاك الملكية الفكرية أو حقوق النشر</span></li>
+          <li>Reverse engineering or circumventing security<br><span class="legal-ar">الهندسة العكسية أو تجاوز الأمان</span></li>
+          <li>Spam, malware, phishing, or scraping<br><span class="legal-ar">رسائل مزعجة أو برمجيات خبيثة أو تصيد</span></li>
+          <li>Building competing AI services<br><span class="legal-ar">بناء خدمات AI منافسة</span></li>
+        </ul>
+      </div>
+
+      <div class="legal-card" data-num="05">
+        <h3 class="legal-card-title">Content Ownership <span class="legal-ar-inline">ملكية المحتوى</span></h3>
+        <div class="legal-own-grid">
+          <div class="legal-own-item">
+            <div class="legal-own-badge legal-own-you">YOU OWN</div>
+            <p class="legal-p-en">Your uploads (Input) and generated content (Output), subject to these Terms.</p>
+            <p class="legal-p-ar">تحمّلاتك (المدخلات) والمحتوى المولّد (المخرجات) بموجب هذه الشروط.</p>
+          </div>
+          <div class="legal-own-item">
+            <div class="legal-own-badge legal-own-us">WE OWN</div>
+            <p class="legal-p-en">The Platform design, code, features, and branding.</p>
+            <p class="legal-p-ar">تصميم المنصة والكود والميزات والعلامة التجارية.</p>
+          </div>
+        </div>
+        <p class="legal-p-en" style="margin-top:10px;opacity:0.7;font-size:11px;">AI output is not guaranteed to be unique. Similar content may be generated for other users.</p>
+        <p class="legal-p-ar" style="font-size:11px;">لا نضمن تفرد المخرجات. قد يُولّد محتوى مشابه لمستخدمين آخرين.</p>
+      </div>
+
+      <div class="legal-card" data-num="06">
+        <h3 class="legal-card-title">AI Disclaimers <span class="legal-ar-inline">إخلاء مسؤولية AI</span></h3>
+        <ul class="legal-list">
+          <li>AI content may contain errors, biases, or artifacts.<br><span class="legal-ar">قد يحتوي محتوى AI على أخطاء أو تحيزات.</span></li>
+          <li>Output does not represent SAAD STUDIO views.<br><span class="legal-ar">المخرجات لا تمثل آراء SAAD STUDIO.</span></li>
+          <li>You must review all Output before use.<br><span class="legal-ar">يجب مراجعة المخرجات قبل استخدامها.</span></li>
+          <li>Do not represent AI content as human-made when disclosure is required.<br><span class="legal-ar">لا تقدم محتوى AI على أنه بشري عندما يكون الإفصاح مطلوباً.</span></li>
+        </ul>
+      </div>
+
+      <div class="legal-card" data-num="07">
+        <h3 class="legal-card-title">Liability & Termination <span class="legal-ar-inline">المسؤولية والإنهاء</span></h3>
+        <p class="legal-p-en">The Platform is provided "AS IS" without warranties. We are not liable for indirect or consequential damages. Total liability is limited to amounts paid in the preceding 12 months. We may terminate accounts that violate these Terms or are inactive for 12+ months.</p>
+        <p class="legal-p-ar">تُقدم المنصة "كما هي" بدون ضمانات. لن نكون مسؤولين عن الأضرار غير المباشرة. لا تتجاوز المسؤولية المبلغ المدفوع خلال 12 شهراً. يجوز لنا إنهاء الحسابات المخالفة أو غير النشطة لأكثر من 12 شهراً.</p>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══ PRIVACY POLICY ═══ -->
+  <div class="legal-section" id="legal-privacy">
+
+    <div class="legal-card legal-intro-card">
+      <div class="legal-intro-badge">EFFECTIVE DATE: 2026-03-22</div>
+      <p class="legal-intro-en">SAAD STUDIO is committed to protecting your privacy. This policy explains how we collect, use, and safeguard your information.</p>
+      <p class="legal-intro-ar">SAAD STUDIO ملتزمة بحماية خصوصيتك. توضح هذه السياسة كيف نجمع ونستخدم ونحمي معلوماتك.</p>
+    </div>
+
+    <div class="legal-grid">
+
+      <div class="legal-card" data-num="01">
+        <h3 class="legal-card-title">Data We Collect <span class="legal-ar-inline">البيانات التي نجمعها</span></h3>
+        <div class="legal-data-cols">
+          <div>
+            <div class="legal-data-head">You Provide / تقدمها أنت</div>
+            <ul class="legal-list-sm">
+              <li>Name, email, auth credentials</li>
+              <li>Payment info (via secure processors)</li>
+              <li>Images, prompts, uploads</li>
+            </ul>
+          </div>
+          <div>
+            <div class="legal-data-head">Automatic / تلقائي</div>
+            <ul class="legal-list-sm">
+              <li>Usage data & generation history</li>
+              <li>Device info (browser, OS)</li>
+              <li>IP address & log data</li>
+              <li>Session cookies (no ad cookies)</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="legal-card" data-num="02">
+        <h3 class="legal-card-title">How We Use It <span class="legal-ar-inline">كيف نستخدمها</span></h3>
+        <ul class="legal-list">
+          <li>Provide, maintain, and improve the Platform.<br><span class="legal-ar">لتوفير وصيانة وتحسين المنصة.</span></li>
+          <li>Process transactions and manage subscriptions.<br><span class="legal-ar">لمعالجة المعاملات وإدارة الاشتراكات.</span></li>
+          <li>Enforce Terms and detect fraud/abuse.<br><span class="legal-ar">لتطبيق الشروط وكشف الاحتيال.</span></li>
+          <li>Comply with legal obligations.<br><span class="legal-ar">للامتثال للالتزامات القانونية.</span></li>
+        </ul>
+      </div>
+
+      <div class="legal-card legal-card-highlight" data-num="03">
+        <h3 class="legal-card-title">AI Processing <span class="legal-ar-inline">معالجة AI</span></h3>
+        <ul class="legal-list">
+          <li>Prompts are processed by third-party AI providers.<br><span class="legal-ar">تُعالج الأوامر بواسطة مزودي AI خارجيين.</span></li>
+          <li>Generated content is stored in your gallery.<br><span class="legal-ar">يُخزن المحتوى المولّد في معرضك.</span></li>
+          <li><strong>We do NOT use your data to train AI models without consent.</strong><br><span class="legal-ar"><strong>لا نستخدم بياناتك لتدريب نماذج AI بدون موافقتك.</strong></span></li>
+        </ul>
+      </div>
+
+      <div class="legal-card legal-card-highlight" data-num="04">
+        <h3 class="legal-card-title">Data Sharing <span class="legal-ar-inline">مشاركة البيانات</span></h3>
+        <div class="legal-no-sell">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M4.93 4.93l14.14 14.14"/></svg>
+          <span>We do NOT sell your personal information.</span>
+          <span class="legal-ar">لا نبيع معلوماتك الشخصية.</span>
+        </div>
+        <ul class="legal-list" style="margin-top:10px;">
+          <li>Third-Party AI: Only necessary processing data.<br><span class="legal-ar">مزودو AI: فقط البيانات اللازمة للمعالجة.</span></li>
+          <li>Payment Processors: For secure transactions.<br><span class="legal-ar">معالجات الدفع: للمعاملات الآمنة.</span></li>
+          <li>Legal Authorities: When required by law.<br><span class="legal-ar">السلطات القانونية: عند الطلب بموجب القانون.</span></li>
+        </ul>
+      </div>
+
+      <div class="legal-card" data-num="05">
+        <h3 class="legal-card-title">Security <span class="legal-ar-inline">الأمان</span></h3>
+        <div class="legal-security-badges">
+          <div class="legal-sec-badge">TLS/SSL</div>
+          <div class="legal-sec-badge">HttpOnly</div>
+          <div class="legal-sec-badge">CSRF</div>
+          <div class="legal-sec-badge">Encrypted</div>
+        </div>
+        <p class="legal-p-en" style="margin-top:10px;">Regular security audits and access controls. No method is 100% secure.</p>
+        <p class="legal-p-ar">تدقيقات أمنية منتظمة وضوابط وصول. لا توجد طريقة آمنة 100%.</p>
+      </div>
+
+      <div class="legal-card" data-num="06">
+        <h3 class="legal-card-title">Your Rights <span class="legal-ar-inline">حقوقك</span></h3>
+        <div class="legal-rights-grid">
+          <div class="legal-right"><span class="legal-right-icon">👁️</span><div>Access<br><span class="legal-ar">الوصول</span></div></div>
+          <div class="legal-right"><span class="legal-right-icon">✏️</span><div>Correction<br><span class="legal-ar">التصحيح</span></div></div>
+          <div class="legal-right"><span class="legal-right-icon">🗑️</span><div>Deletion<br><span class="legal-ar">الحذف</span></div></div>
+          <div class="legal-right"><span class="legal-right-icon">📦</span><div>Portability<br><span class="legal-ar">نقل البيانات</span></div></div>
+        </div>
+        <p class="legal-p-en" style="margin-top:10px;font-size:11px;">Contact support@saadstudio.com. Response within 30 days.</p>
+        <p class="legal-p-ar" style="font-size:11px;">تواصل عبر support@saadstudio.com. الرد خلال 30 يوماً.</p>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="legal-footer">
+    <p>© 2025 SAAD STUDIO. All rights reserved. جميع الحقوق محفوظة.</p>
+    <p>Contact: support@saadstudio.com</p>
+  </div>
 </div>
 
 </main>
@@ -6113,7 +6449,7 @@ function showPage(name, el) {
   }
   if(name==='user-dashboard') { try{ loadUserDashboard(); }catch(e){ console.error(e); } }
   if(name==='billing')        { try{ loadBillingPage();   }catch(e){ console.error(e); } }
-  if(name==='legal')           { try{ loadLegalPage();      }catch(e){ console.error(e); } }
+  if(name==='legal')           { setLegalTab('tos'); }
   applyLanguage(currentLang, true);
   saveUiState({ page: name });
 }
@@ -14641,36 +14977,12 @@ function clearLibrary(){
     } catch(e){ console.error('loadUserDashboard:', e); }
   }
 
-  async function loadLegalPage(){
-    const loading = document.getElementById('legal-loading');
-    const content  = document.getElementById('legal-content');
-    const errEl    = document.getElementById('legal-error');
-    if(!loading||!content||!errEl) return;
-    loading.style.display = 'block';
-    content.style.display = 'none';
-    errEl.style.display   = 'none';
-    try{
-      const r = await fetch('/api/cms/pages/legal');
-      if(!r.ok) throw new Error('not found');
-      const page = await r.json();
-      const sections = (page.sections || []).filter(s => s.enabled !== false).sort((a,b)=>(a.order||0)-(b.order||0));
-      content.innerHTML = sections.map(s => {
-        const d = s.data || {};
-        const bodyHtml = (d.body || '')
-          .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-          .replace(/\n/g, '<br>');
-        return `<div class="legal-card">
-  <div class="legal-card-icon">${d.icon || '📄'}</div>
-  <div class="legal-card-title">${d.title || s.label || ''}</div>
-  <div class="legal-card-body">${bodyHtml}</div>
-</div>`;
-      }).join('');
-      loading.style.display = 'none';
-      content.style.display = 'flex';
-    }catch(e){
-      loading.style.display = 'none';
-      errEl.style.display   = 'block';
-    }
+  function setLegalTab(tab, btn){
+    document.querySelectorAll('#page-legal .legal-tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('#page-legal .legal-section').forEach(s=>s.classList.remove('active'));
+    if(btn) btn.classList.add('active');
+    const el = document.getElementById('legal-'+tab);
+    if(el) el.classList.add('active');
   }
 
   async function loadBillingPage(){
