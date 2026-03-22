@@ -427,7 +427,7 @@ body::after{content:'';position:fixed;inset:auto -120px -140px auto;width:540px;
 .gs-content{display:none;grid-template-columns:minmax(260px,320px) minmax(0,1fr);gap:18px;min-height:420px;margin-bottom:18px;padding:14px;border:1px solid var(--b);border-radius:var(--r);background:linear-gradient(180deg,rgba(255,255,255,0.01),rgba(255,255,255,0.005));justify-content:center;}
 .gs-content.active{display:grid;}
 #page-nano .gs-content.active{grid-template-columns:1fr;}
-#nano-all-results{display:flex;flex-direction:column;gap:0;margin-top:14px;}
+#nano-all-results{display:flex;flex-direction:column;gap:0;flex:1;overflow:hidden;}
 #nano-all-results .result-grid:empty{display:none;}
 #page-eleven .ctrl-panel.gs-content.active{display:flex;flex-direction:column;}
 #page-google .gs-content.active{display:block;min-height:calc(100vh - 180px);}
@@ -9454,6 +9454,15 @@ function setGbarModel(model, silent){
   document.querySelectorAll('[data-sidebar-model]').forEach(btn=>{
     btn.classList.toggle('active', btn.dataset.sidebarModel === model);
   });
+  // Update nano-model-chip label
+  const chip = document.getElementById('nano-model-chip');
+  if(chip) chip.textContent = cfg.title || model;
+  // Show only the active result grid
+  const nanoGridMap = { nano: 'g-nano-results', nano2: 'g-nano2-results', nanopro: 'g-nanopro-results' };
+  Object.entries(nanoGridMap).forEach(([m, id]) => {
+    const g = document.getElementById(id);
+    if(g) g.style.display = (m === model) ? '' : 'none';
+  });
   if(!silent){
     setGoogleTab(model);
   }
@@ -10873,6 +10882,9 @@ async function runGoogleImageTool(mode){
   if(!cfg) return;
   const btn = document.getElementById(cfg.buttonId);
   const original = btn ? btn.textContent : '';
+  // Also handle the composer Generate button in page-nano
+  const genBtn = document.querySelector('#page-nano .btn-generate');
+  const genBtnOriginal = genBtn ? genBtn.innerHTML : '';
   const gbarTriggered = !!S.gbarTrigger;
   const gbarBtn = document.querySelector('#gbar .gbar-gen');
   const gbarOriginal = gbarBtn ? gbarBtn.innerHTML : '';
@@ -10881,14 +10893,15 @@ async function runGoogleImageTool(mode){
     const promptEl = document.getElementById(cfg.promptId);
     const prompt = (promptEl?.value || googleBarState.prompt || '').trim();
     const neg = (document.getElementById(cfg.negId)?.value || '').trim();
-    const ratio = document.getElementById(cfg.ratioId)?.value || '1:1';
-    const quality = document.getElementById(cfg.qualityId)?.value || '1K';
+    const ratio = googleBarState.ratio || document.getElementById(cfg.ratioId)?.value || '16:9';
+    const quality = googleBarState.quality || document.getElementById(cfg.qualityId)?.value || '2K';
     const file = S.files[cfg.fileKey] || null;
     const estimatedCost = Number(cfg.cost?.(quality) || 0);
     const count = Math.max(1, Math.min(4, Number(googleBarState.count || 1)));
     if(!prompt) throw new Error('اكتب الوصف أولاً');
 
     if(btn){ btn.disabled = true; btn.innerHTML = '<div class="spinner"></div> جاري التوليد...'; }
+    if(genBtn){ genBtn.disabled = true; genBtn.innerHTML = '<div class="spinner" style="border-top-color:#07111a;border-color:rgba(7,17,26,0.2);border-top-color:#07111a;width:16px;height:16px;"></div>'; }
     if(gbarTriggered && gbarBtn){
       gbarBtn.disabled = true;
       gbarBtn.classList.add('gbar-gen-loading');
@@ -10897,7 +10910,6 @@ async function runGoogleImageTool(mode){
     if(gbarTriggered && gbarStatus){
       gbarStatus.textContent = count > 1 ? `توليد ${count} صور...` : 'توليد...';
     }
-    clearResults(cfg.resultId);
 
       const qualityMap = {
         '1K':'around 1024px class output quality',
@@ -10973,6 +10985,7 @@ async function runGoogleImageTool(mode){
     }
   } finally {
     if(btn){ btn.disabled = false; btn.textContent = original || cfg.title; }
+    if(genBtn){ genBtn.disabled = false; genBtn.innerHTML = genBtnOriginal || 'Generate'; }
     if(gbarTriggered && gbarBtn){
       gbarBtn.disabled = false;
       gbarBtn.classList.remove('gbar-gen-loading');
