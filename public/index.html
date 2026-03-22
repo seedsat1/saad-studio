@@ -111,8 +111,11 @@ body::after{content:'';position:fixed;inset:auto -120px -140px auto;width:540px;
 .cost-preview .cost-val{color:var(--amber);font-weight:700;font-size:13px;}
 .cost-preview .cost-icon{font-size:14px;}
 .btn-generate:hover{transform:translateY(-2px) scale(1.01);box-shadow:0 16px 36px rgba(242,181,68,0.26),0 0 18px rgba(95,226,255,0.08);}
-.btn-generate:disabled{opacity:0.82;cursor:not-allowed;transform:none;}
-.btn-generate:disabled::after{content:'';width:15px;height:15px;border:2.5px solid rgba(7,17,26,0.2);border-top-color:#07111a;border-radius:50%;animation:spin 0.65s linear infinite;background:none !important;-webkit-mask:none !important;mask:none !important;}
+.btn-generate:disabled{opacity:0.88;cursor:not-allowed;transform:none;}
+/* When button has internal .spinner div — hide the star ::after to avoid double-spinner */
+.btn-generate.gen-action:has(.spinner)::after{display:none !important;}
+/* When button is disabled but has NO internal spinner — show CSS rotating spinner instead of star */
+.btn-generate.gen-action:disabled:not(:has(.spinner))::after{content:'';width:15px;height:15px;border:2.5px solid rgba(7,17,26,0.2);border-top-color:#07111a;border-radius:50%;animation:spin 0.65s linear infinite;background:none !important;-webkit-mask:none !important;mask:none !important;}
 .btn-generate.gen-action::after{
   content:"";
   width:12px;
@@ -9595,7 +9598,10 @@ async function runPromptStudio(mode){
     'ps-btn-transition':'توليد انتقال'
   };
   const activeBtn={list:'ps-btn-generate',project:'ps-btn-project',transition:'ps-btn-transition'}[mode];
-  buttons.forEach(btn=>{ btn.disabled=true; if(btn.id===activeBtn) btn.textContent='Generating...'; });
+  buttons.forEach(btn=>{
+    btn.disabled=true;
+    if(btn.id===activeBtn) btn.innerHTML='<div class="spinner"></div> جاري التوليد...';
+  });
   clearPromptStudioStatus();
   try{
     const idea=document.getElementById('ps-idea').value.trim();
@@ -9627,7 +9633,7 @@ async function runPromptStudio(mode){
   } catch(e){
     setPromptStudioStatus(e.message||'حدث خطأ','error');
   } finally {
-    buttons.forEach(btn=>{ btn.disabled=false; btn.textContent=labels[btn.id]||btn.textContent; });
+    buttons.forEach(btn=>{ btn.disabled=false; btn.textContent=labels[btn.id]||'Generate'; });
   }
 }
 
