@@ -4554,6 +4554,13 @@ function addResultItem(containerId, url, isVideo=false, prompt='', save=true){
   if(save){
     saveResult(containerId, url, isVideo, prompt);
     syncGalleryFromResult(url, isVideo, prompt);
+    // Log to server for admin gallery
+    const _m = window._lastGenModel || containerId.replace(/-results?$/,'').replace(/-gallery$/,'');
+    fetch('/api/log-generation', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url, isVideo, model: _m, prompt })
+    }).catch(() => {});
   }
 }
 

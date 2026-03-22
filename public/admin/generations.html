@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <base href="/admin/">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
+    <meta name="description" content="Saad Studio - User Generations">
+    <title>Saad Studio &#8212; Generations</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/logo.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/assets/logo.png">
+    <link rel="apple-touch-icon" href="/assets/logo.png">
+    <meta name="theme-color" content="#ffffff">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="SAAD STUDIO Admin">
+    <link rel="stylesheet" href="vendors/simplebar/css/simplebar.css">
+    <link rel="stylesheet" href="css/vendors/simplebar.css">
+    <link href="css/style.css" rel="stylesheet">
+    <link href="css/pwa-responsive.css" rel="stylesheet">
+    <link href="css/rtl.css" rel="stylesheet" id="rtlStylesheet" disabled>
+    <script src="js/config.js"></script>
+    <script src="js/color-modes.js"></script>
+    <script src="js/i18n.js"></script>
+    <style>
+      .gen-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; }
+      .gen-card { position: relative; border-radius: .5rem; overflow: hidden; background: var(--cui-tertiary-bg); }
+      .gen-card .gen-media { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; cursor: pointer; transition: opacity .2s; }
+      .gen-card:hover .gen-media { opacity: .7; }
+      .gen-card .gen-overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .4rem; opacity: 0; transition: opacity .2s; background: rgba(0,0,0,.5); pointer-events: none; }
+      .gen-card:hover .gen-overlay { opacity: 1; pointer-events: auto; }
+      .gen-overlay .btn { font-size: .78rem; padding: .25rem .6rem; }
+      .gen-card .gen-info { padding: .5rem .6rem; font-size: .75rem; background: var(--cui-body-bg); border-top: 1px solid var(--cui-border-color); }
+      .gen-card .gen-info .gen-email { color: var(--cui-primary); font-weight: 600; }
+      .gen-card .gen-info .gen-date { color: var(--cui-body-color-secondary); }
+      .gen-card .gen-info .gen-prompt { color: var(--cui-body-color); opacity: .8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; display: block; margin-top: 2px; }
+      .gen-card .gen-badge { position: absolute; top: 6px; left: 6px; font-size: .65rem; padding: 2px 6px; border-radius: 4px; z-index: 2; }
+      .gen-card .model-badge { position: absolute; top: 6px; right: 6px; font-size: .6rem; padding: 2px 5px; border-radius: 4px; z-index: 2; background: rgba(0,0,0,.65); color: #ccc; }
+      .empty-state { text-align: center; padding: 3rem 1rem; opacity: .6; }
+      .toast-container { position: fixed; top: 1rem; right: 1rem; z-index: 9999; }
+      .filter-bar { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
+      .filter-bar .form-control, .filter-bar .form-select { max-width: 220px; }
+      /* Lightbox */
+      .gen-lightbox-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.85); z-index: 10000; display: none; align-items: center; justify-content: center; }
+      .gen-lightbox-backdrop.active { display: flex; }
+      .gen-lightbox-content { max-width: 90vw; max-height: 90vh; border-radius: 8px; }
+      .gen-lightbox-close { position: fixed; top: 1rem; right: 1rem; z-index: 10001; background: rgba(255,255,255,.15); color: #fff; border: none; border-radius: 50%; width: 36px; height: 36px; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    </style>
+  </head>
+  <body>
+    <!-- SIDEBAR -->
+    <div class="sidebar sidebar-dark sidebar-fixed border-end" id="sidebar">
+      <div class="sidebar-header border-bottom">
+        <div class="sidebar-brand">
+          <span class="sidebar-brand-full fw-semibold fs-5 text-white">Saad Studio</span>
+          <span class="sidebar-brand-narrow fw-bold text-white">SS</span>
+        </div>
+        <button class="btn-close d-lg-none" type="button" data-coreui-theme="dark" aria-label="Close" onclick="coreui.Sidebar.getInstance(document.querySelector('#sidebar')).toggle()"></button>
+      </div>
+      <ul class="sidebar-nav" data-coreui="navigation" data-simplebar="">
+        <li class="nav-item"><a class="nav-link" href="index.html">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-speedometer"></use></svg> <span>Dashboard</span></a></li>
+        <li class="nav-item"><a class="nav-link" href="users.html">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-people"></use></svg> <span>Users</span></a></li>
+        <li class="nav-item"><a class="nav-link" href="orders.html">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-cart"></use></svg> <span>Orders</span></a></li>
+        <li class="nav-item"><a class="nav-link" href="pages.html">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-file"></use></svg> <span>Pages</span></a></li>
+        <li class="nav-item"><a class="nav-link" href="sidebar.html">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-list"></use></svg> <span>Sidebar Items</span></a></li>
+        <li class="nav-item"><a class="nav-link" href="media.html">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-image"></use></svg> <span>Media</span></a></li>
+        <li class="nav-item"><a class="nav-link active" href="generations.html">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-camera"></use></svg> <span>Generations</span></a></li>
+        <li class="nav-item"><a class="nav-link" href="ads.html">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-bullhorn"></use></svg> <span>Ads</span></a></li>
+        <li class="nav-item"><a class="nav-link" href="settings.html">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-settings"></use></svg> <span>Settings</span></a></li>
+        <li class="nav-item"><a class="nav-link" href="theme.html">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-color-palette"></use></svg> <span>Theme</span></a></li>
+      </ul>
+      <div class="sidebar-footer border-top d-none d-md-flex">
+        <button class="sidebar-toggler" type="button" data-coreui-toggle="unfoldable"></button>
+      </div>
+    </div>
+
+    <!-- MAIN WRAPPER -->
+    <div class="wrapper d-flex flex-column min-vh-100">
+      <header class="header header-sticky p-0 mb-4">
+        <div class="container-fluid border-bottom px-4">
+          <button class="header-toggler" type="button" onclick="coreui.Sidebar.getInstance(document.querySelector('#sidebar')).toggle()" style="margin-inline-start: -14px;">
+            <svg class="icon icon-lg"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-menu"></use></svg>
+          </button>
+          <ul class="header-nav d-none d-lg-flex">
+            <li class="nav-item"><a class="nav-link" href="index.html">Dashboard</a></li>
+            <li class="nav-item"><a class="nav-link" href="generations.html">Generations</a></li>
+          </ul>
+          <ul class="header-nav ms-auto">
+            <li class="nav-item"><a class="nav-link lang-switch-btn" href="#" id="langSwitchBtn">🌐</a></li>
+            <li class="nav-item"><a class="nav-link" href="#">
+                <svg class="icon icon-lg"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-bell"></use></svg></a></li>
+          </ul>
+          <ul class="header-nav">
+            <li class="nav-item py-1"><div class="vr h-100 mx-2 text-body text-opacity-75"></div></li>
+            <li class="nav-item dropdown">
+              <button class="btn btn-link nav-link py-2 px-2 d-flex align-items-center" type="button" aria-expanded="false" data-coreui-toggle="dropdown">
+                <svg class="icon icon-lg theme-icon-active"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-contrast"></use></svg>
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end" style="--cui-dropdown-min-width: 8rem;">
+                <li><button class="dropdown-item d-flex align-items-center" type="button" data-coreui-theme-value="light">
+                    <svg class="icon icon-lg me-3"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-sun"></use></svg>Light</button></li>
+                <li><button class="dropdown-item d-flex align-items-center" type="button" data-coreui-theme-value="dark">
+                    <svg class="icon icon-lg me-3"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-moon"></use></svg>Dark</button></li>
+                <li><button class="dropdown-item d-flex align-items-center active" type="button" data-coreui-theme-value="auto">
+                    <svg class="icon icon-lg me-3"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-contrast"></use></svg>Auto</button></li>
+              </ul>
+            </li>
+            <li class="nav-item py-1"><div class="vr h-100 mx-2 text-body text-opacity-75"></div></li>
+            <li class="nav-item dropdown"><a class="nav-link py-0 pe-0" data-coreui-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">
+                <div class="avatar avatar-md bg-primary text-white d-flex align-items-center justify-content-center rounded-circle" style="width:36px;height:36px;font-size:14px;">A</div></a>
+              <div class="dropdown-menu dropdown-menu-end pt-0">
+                <div class="dropdown-header bg-body-tertiary text-body-secondary fw-semibold rounded-top mb-2">Account</div>
+                <a class="dropdown-item" href="settings.html"><svg class="icon me-2"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-settings"></use></svg> Settings</a>
+                <div class="dropdown-divider"></div>
+                <a class="dropdown-item" href="#" id="logoutBtn"><svg class="icon me-2"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-account-logout"></use></svg> Logout</a>
+              </div>
+            </li>
+          </ul>
+        </div>
+        <div class="container-fluid px-4">
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb my-0">
+              <li class="breadcrumb-item"><a href="index.html">Home</a></li>
+              <li class="breadcrumb-item active"><span>Generations</span></li>
+            </ol>
+          </nav>
+        </div>
+      </header>
+
+      <!-- MAIN CONTENT -->
+      <div class="body flex-grow-1">
+        <div class="container-lg px-4">
+
+          <!-- Filters Card -->
+          <div class="card mb-4">
+            <div class="card-body">
+              <div class="filter-bar">
+                <input class="form-control form-control-sm" type="search" id="searchInput" placeholder="Search by email, prompt, model...">
+                <select class="form-select form-select-sm" id="typeFilter">
+                  <option value="">All Types</option>
+                  <option value="image">Images Only</option>
+                  <option value="video">Videos Only</option>
+                </select>
+                <button class="btn btn-sm btn-primary" id="searchBtn">Search</button>
+                <button class="btn btn-sm btn-outline-secondary" id="resetBtn">Reset</button>
+                <span class="text-body-secondary small ms-auto" id="genCount">...</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Gallery Card -->
+          <div class="card mb-4">
+            <div class="card-header d-flex align-items-center justify-content-between">
+              <strong>User Generations</strong>
+            </div>
+            <div class="card-body">
+              <div id="loadingState" class="text-center py-4">
+                <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div> Loading generations...
+              </div>
+              <div class="gen-grid d-none" id="genGrid"></div>
+              <div class="empty-state d-none" id="emptyState">No generations found</div>
+              <div class="text-center mt-3 d-none" id="loadMoreWrap">
+                <button class="btn btn-outline-primary btn-sm" id="loadMoreBtn">Load More</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <footer class="footer px-4"><div>Saad Studio &copy; 2025</div></footer>
+    </div>
+
+    <!-- Lightbox -->
+    <div class="gen-lightbox-backdrop" id="genLightbox">
+      <button class="gen-lightbox-close" id="genLightboxClose">&times;</button>
+      <div id="genLightboxBody"></div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast-container">
+      <div class="toast align-items-center text-bg-success border-0" id="toastOk" role="alert">
+        <div class="d-flex"><div class="toast-body" id="toastMsg"></div>
+          <button type="button" class="btn-close btn-close-white me-2 m-auto" data-coreui-dismiss="toast"></button>
+        </div>
+      </div>
+    </div>
+
+    <script src="vendors/@coreui/coreui/js/coreui.bundle.min.js"></script>
+    <script src="vendors/simplebar/js/simplebar.min.js"></script>
+    <script>
+    (function(){
+      let csrfToken = '';
+      let allData = [];
+      let currentOffset = 0;
+      const PAGE_SIZE = 50;
+
+      const header = document.querySelector('header.header');
+      document.addEventListener('scroll', () => {
+        if (header) header.classList.toggle('shadow-sm', document.documentElement.scrollTop > 0);
+      });
+
+      async function apiFetch(path, opts = {}) {
+        const headers = { 'x-csrf-token': csrfToken, ...opts.headers };
+        const r = await fetch(path, { ...opts, headers, credentials: 'same-origin' });
+        if (r.status === 401) { window.location.href = '/'; return null; }
+        return r;
+      }
+
+      function showToast(msg, type) {
+        const el = document.getElementById('toastOk');
+        el.className = 'toast align-items-center border-0 text-bg-' + (type || 'success');
+        document.getElementById('toastMsg').textContent = msg;
+        coreui.Toast.getOrCreateInstance(el).show();
+      }
+
+      function escHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+      function timeAgo(iso) {
+        const diff = Date.now() - new Date(iso).getTime();
+        const mins = Math.floor(diff / 60000);
+        if (mins < 1) return 'Just now';
+        if (mins < 60) return mins + 'm ago';
+        const hrs = Math.floor(mins / 60);
+        if (hrs < 24) return hrs + 'h ago';
+        const days = Math.floor(hrs / 24);
+        if (days < 30) return days + 'd ago';
+        return new Date(iso).toLocaleDateString();
+      }
+
+      // --- Init ---
+      async function init() {
+        try {
+          const r = await fetch('/api/admin/session', { credentials: 'same-origin' });
+          if (!r.ok) { window.location.href = '/'; return; }
+          const data = await r.json();
+          csrfToken = data.csrfToken;
+          await loadGenerations();
+        } catch (e) {
+          document.getElementById('loadingState').innerHTML = '<span class="text-danger">Failed to connect: ' + escHtml(e.message) + '</span>';
+        }
+      }
+
+      // --- Load ---
+      async function loadGenerations(append) {
+        if (!append) {
+          currentOffset = 0;
+          document.getElementById('loadingState').classList.remove('d-none');
+          document.getElementById('genGrid').classList.add('d-none');
+          document.getElementById('emptyState').classList.add('d-none');
+          document.getElementById('loadMoreWrap').classList.add('d-none');
+        }
+
+        const search = document.getElementById('searchInput').value.trim();
+        const type = document.getElementById('typeFilter').value;
+        let qs = '?limit=' + PAGE_SIZE + '&offset=' + currentOffset;
+        if (search) qs += '&search=' + encodeURIComponent(search);
+        if (type) qs += '&type=' + encodeURIComponent(type);
+
+        const r = await apiFetch('/api/admin/generations' + qs);
+        if (!r) return;
+        const data = await r.json();
+        const items = data.generations || [];
+        const total = data.total || 0;
+
+        document.getElementById('loadingState').classList.add('d-none');
+        document.getElementById('genCount').textContent = total + ' total';
+
+        if (!append) allData = items;
+        else allData = allData.concat(items);
+
+        if (!allData.length) {
+          document.getElementById('emptyState').classList.remove('d-none');
+          document.getElementById('genGrid').classList.add('d-none');
+          return;
+        }
+
+        renderGrid();
+        currentOffset += items.length;
+
+        if (currentOffset < total) {
+          document.getElementById('loadMoreWrap').classList.remove('d-none');
+        } else {
+          document.getElementById('loadMoreWrap').classList.add('d-none');
+        }
+      }
+
+      function renderGrid() {
+        const grid = document.getElementById('genGrid');
+        grid.classList.remove('d-none');
+        grid.innerHTML = allData.map(g => {
+          const isVid = g.isVideo;
+          const mediaTag = isVid
+            ? '<video class="gen-media" src="' + escHtml(g.url) + '" muted loop preload="metadata" onclick="app.preview(\'' + escHtml(g.id) + '\')"></video>'
+            : '<img class="gen-media" src="' + escHtml(g.url) + '" loading="lazy" onclick="app.preview(\'' + escHtml(g.id) + '\')">';
+          const badge = isVid
+            ? '<span class="gen-badge badge bg-danger">Video</span>'
+            : '<span class="gen-badge badge bg-info">Image</span>';
+          const model = g.model ? '<span class="model-badge">' + escHtml(g.model) + '</span>' : '';
+          return '<div class="gen-card" data-id="' + escHtml(g.id) + '">' +
+            badge + model + mediaTag +
+            '<div class="gen-overlay">' +
+              '<button class="btn btn-sm btn-light" onclick="app.preview(\'' + escHtml(g.id) + '\')">View</button>' +
+              '<a class="btn btn-sm btn-success" href="' + escHtml(g.url) + '" download target="_blank">Download</a>' +
+              '<button class="btn btn-sm btn-danger" onclick="app.deleteGen(\'' + escHtml(g.id) + '\')">Delete</button>' +
+            '</div>' +
+            '<div class="gen-info">' +
+              '<div class="gen-email">' + escHtml(g.email || 'Unknown') + '</div>' +
+              '<div class="gen-date">' + timeAgo(g.createdAt) + '</div>' +
+              (g.prompt ? '<span class="gen-prompt" title="' + escHtml(g.prompt) + '">' + escHtml(g.prompt) + '</span>' : '') +
+            '</div>' +
+          '</div>';
+        }).join('');
+      }
+
+      // --- Preview / Lightbox ---
+      function preview(id) {
+        const g = allData.find(x => x.id === id);
+        if (!g) return;
+        const lb = document.getElementById('genLightbox');
+        const body = document.getElementById('genLightboxBody');
+        if (g.isVideo) {
+          body.innerHTML = '<video class="gen-lightbox-content" src="' + escHtml(g.url) + '" controls autoplay loop style="max-width:90vw;max-height:85vh;border-radius:8px;"></video>';
+        } else {
+          body.innerHTML = '<img class="gen-lightbox-content" src="' + escHtml(g.url) + '" style="max-width:90vw;max-height:85vh;border-radius:8px;">';
+        }
+        lb.classList.add('active');
+      }
+
+      document.getElementById('genLightboxClose').onclick = closeLightbox;
+      document.getElementById('genLightbox').onclick = function(e) {
+        if (e.target === this) closeLightbox();
+      };
+      function closeLightbox() {
+        const lb = document.getElementById('genLightbox');
+        lb.classList.remove('active');
+        const vid = lb.querySelector('video');
+        if (vid) vid.pause();
+        document.getElementById('genLightboxBody').innerHTML = '';
+      }
+      document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
+
+      // --- Delete ---
+      async function deleteGen(id) {
+        if (!confirm('Delete this generation? This cannot be undone.')) return;
+        try {
+          const r = await apiFetch('/api/admin/generations/' + encodeURIComponent(id), { method: 'DELETE' });
+          if (!r) return;
+          if (r.ok) {
+            showToast('Deleted successfully', 'success');
+            allData = allData.filter(g => g.id !== id);
+            if (allData.length) renderGrid();
+            else { document.getElementById('genGrid').classList.add('d-none'); document.getElementById('emptyState').classList.remove('d-none'); }
+            const cnt = document.getElementById('genCount');
+            const cur = parseInt(cnt.textContent) || 0;
+            if (cur > 0) cnt.textContent = (cur - 1) + ' total';
+          } else {
+            const d = await r.json();
+            showToast(d.error || 'Delete failed', 'danger');
+          }
+        } catch (e) { showToast('Error: ' + e.message, 'danger'); }
+      }
+
+      // --- Search / Filter ---
+      document.getElementById('searchBtn').onclick = () => loadGenerations(false);
+      document.getElementById('resetBtn').onclick = () => {
+        document.getElementById('searchInput').value = '';
+        document.getElementById('typeFilter').value = '';
+        loadGenerations(false);
+      };
+      document.getElementById('searchInput').addEventListener('keydown', e => {
+        if (e.key === 'Enter') loadGenerations(false);
+      });
+      document.getElementById('typeFilter').addEventListener('change', () => loadGenerations(false));
+      document.getElementById('loadMoreBtn').onclick = () => loadGenerations(true);
+
+      window.app = { preview, deleteGen };
+      init();
+    })();
+    </script>
+  </body>
+</html>

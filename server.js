@@ -518,6 +518,24 @@ app.post('/api/store-image', requireSignedIn, async (req, res) => {
 });
 
 // â•â•â• RUN WORKFLOW FROM FILE â•â•â•
+// --- LOG GENERATION (called by client after result is ready) ---
+app.post('/api/log-generation', requireSignedIn, (req, res) => {
+  try {
+    const { url, isVideo, model, prompt } = req.body || {};
+    if (!url || typeof url !== 'string') return res.status(400).json({ error: 'url required' });
+    logGeneration(
+      req.currentUser.id,
+      req.currentUser.email,
+      url,
+      !!isVideo,
+      String(model || '').slice(0, 100),
+      String(prompt || '').slice(0, 200)
+    );
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: 'server error' });
+  }
+});
 app.post('/api/run', requireSignedIn, async (req, res) => {
   try {
     const {workflow_file, inject} = req.body;
@@ -2762,6 +2780,7 @@ function isAllowedUpload(file, allowedMimes) {
 // â•â•â• USER AUTH SYSTEM â•â•â•
 const USAGE_FILE     = path.join(VAULT_DIR, 'usage.json');
 const ACTIVITY_FILE  = path.join(VAULT_DIR, 'activity.json');
+const GENERATIONS_FILE = path.join(VAULT_DIR, 'generations.json');
 const PLANS = {
   starter: { price: 0,  credits: 0,    nanoBananaFree: true, label: 'Starter (مجاني)' },
   pro:     { price: 25, credits: 0,    nanoBananaFree: true,  label: 'Pro'     },
@@ -3086,6 +3105,32 @@ function attachActivityImage(userId, imageUrl) {
     if (idx === -1) return;
     log[idx].imageUrl = String(imageUrl);
     fs.writeFileSync(ACTIVITY_FILE, JSON.stringify(log));
+  } catch (_) {}
+}
+
+// ─── GENERATIONS LOG (admin media viewer) ─────────────────────────────────────
+function loadGenerations() {
+  try { const d = JSON.parse(fs.readFileSync(GENERATIONS_FILE, 'utf8')); return Array.isArray(d) ? d : []; }
+  catch { return []; }
+}
+function saveGenerations(arr) {
+  fs.writeFileSync(GENERATIONS_FILE, JSON.stringify(arr));
+}
+function logGeneration(userId, email, url, isVideo, model, prompt) {
+  try {
+    const log = loadGenerations();
+    log.unshift({
+      id: crypto.randomBytes(8).toString('hex'),
+      userId: String(userId || ''),
+      email: String(email || ''),
+      url: String(url || ''),
+      isVideo: !!isVideo,
+      model: String(model || ''),
+      prompt: String(prompt || '').slice(0, 200),
+      createdAt: new Date().toISOString()
+    });
+    if (log.length > 5000) log.length = 5000;
+    saveGenerations(log);
   } catch (_) {}
 }
 
@@ -3592,6 +3637,45 @@ app.get('/api/admin/activity', requireAdmin, (req, res) => {
       (e.prompt || '').toLowerCase().includes(search)
     );
     res.json({ activity: filtered.slice(offset, offset + limit), total: filtered.length });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// GET /api/admin/generations — list all user generations
+app.get('/api/admin/generations', requireAdmin, (req, res) => {
+  try {
+    let log = loadGenerations();
+    const limit  = Math.min(200, Math.max(1, parseInt(req.query.limit)  || 50));
+    const offset = Math.max(0,              parseInt(req.query.offset) || 0);
+    const type   = req.query.type || '';
+    const search = (req.query.search || '').toLowerCase();
+    let filtered = log;
+    if (type === 'image') filtered = filtered.filter(e => !e.isVideo);
+    if (type === 'video') filtered = filtered.filter(e => e.isVideo);
+    if (search) filtered = filtered.filter(e =>
+      (e.email  || '').toLowerCase().includes(search) ||
+      (e.model  || '').toLowerCase().includes(search) ||
+      (e.prompt || '').toLowerCase().includes(search)
+    );
+    res.json({ generations: filtered.slice(offset, offset + limit), total: filtered.length });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// DELETE /api/admin/generations/:id — delete a generation entry
+app.delete('/api/admin/generations/:id', requireAdmin, (req, res) => {
+  try {
+    const log = loadGenerations();
+    const idx = log.findIndex(g => g.id === req.params.id);
+    if (idx === -1) return res.status(404).json({ error: 'not found' });
+    const removed = log.splice(idx, 1)[0];
+    saveGenerations(log);
+    // Also delete local file if it exists
+    if (removed.url && removed.url.startsWith('/uploads/')) {
+      const fp = path.join(__dirname, 'public', removed.url);
+      if (fp.startsWith(path.join(__dirname, 'public', 'uploads')) && fs.existsSync(fp)) {
+        fs.unlinkSync(fp);
+      }
+    }
+    res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
