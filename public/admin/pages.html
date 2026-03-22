@@ -12,8 +12,10 @@
     <link rel="stylesheet" href="vendors/simplebar/css/simplebar.css">
     <link rel="stylesheet" href="css/vendors/simplebar.css">
     <link href="css/style.css" rel="stylesheet">
+    <link href="css/rtl.css" rel="stylesheet" id="rtlStylesheet" disabled>
     <script src="js/config.js"></script>
     <script src="js/color-modes.js"></script>
+    <script src="js/i18n.js"></script>
     <style>
       .table-actions .btn { padding: .2rem .5rem; font-size: .78rem; }
       .empty-state { text-align: center; padding: 3rem 1rem; opacity: .6; }
@@ -30,28 +32,28 @@
     <div class="sidebar sidebar-dark sidebar-fixed border-end" id="sidebar">
       <div class="sidebar-header border-bottom">
         <div class="sidebar-brand">
-          <span class="sidebar-brand-full fw-semibold fs-5 text-white">Saad Studio</span>
-          <span class="sidebar-brand-narrow fw-bold text-white">SS</span>
+          <span class="sidebar-brand-full fw-semibold fs-5 text-white" data-i18n="sidebar.brand">Saad Studio</span>
+          <span class="sidebar-brand-narrow fw-bold text-white" data-i18n="sidebar.brandShort">SS</span>
         </div>
         <button class="btn-close d-lg-none" type="button" data-coreui-theme="dark" aria-label="Close" onclick="coreui.Sidebar.getInstance(document.querySelector('#sidebar')).toggle()"></button>
       </div>
       <ul class="sidebar-nav" data-coreui="navigation" data-simplebar="">
         <li class="nav-item"><a class="nav-link" href="index.html">
-            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-speedometer"></use></svg> Dashboard</a></li>
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-speedometer"></use></svg> <span data-i18n="sidebar.dashboard">Dashboard</span></a></li>
         <li class="nav-item"><a class="nav-link" href="users.html">
-            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-people"></use></svg> Users</a></li>
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-people"></use></svg> <span data-i18n="sidebar.users">Users</span></a></li>
         <li class="nav-item"><a class="nav-link" href="orders.html">
-            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-cart"></use></svg> Orders</a></li>
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-cart"></use></svg> <span data-i18n="sidebar.orders">Orders</span></a></li>
         <li class="nav-item"><a class="nav-link active" href="pages.html">
-            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-file"></use></svg> Pages</a></li>
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-file"></use></svg> <span data-i18n="sidebar.pages">Pages</span></a></li>
         <li class="nav-item"><a class="nav-link" href="media.html">
-            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-image"></use></svg> Media</a></li>
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-image"></use></svg> <span data-i18n="sidebar.media">Media</span></a></li>
         <li class="nav-item"><a class="nav-link" href="ads.html">
-            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-bullhorn"></use></svg> Ads</a></li>
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-bullhorn"></use></svg> <span data-i18n="sidebar.ads">Ads</span></a></li>
         <li class="nav-item"><a class="nav-link" href="settings.html">
-            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-settings"></use></svg> Settings</a></li>
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-settings"></use></svg> <span data-i18n="sidebar.settings">Settings</span></a></li>
         <li class="nav-item"><a class="nav-link" href="theme.html">
-            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-color-palette"></use></svg> Theme</a></li>
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-color-palette"></use></svg> <span data-i18n="sidebar.theme">Theme</span></a></li>
       </ul>
       <div class="sidebar-footer border-top d-none d-md-flex">
         <button class="sidebar-toggler" type="button" data-coreui-toggle="unfoldable"></button>
@@ -66,19 +68,19 @@
             <svg class="icon icon-lg"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-menu"></use></svg>
           </button>
           <ul class="header-nav d-none d-lg-flex">
-            <li class="nav-item"><a class="nav-link" href="index.html">Dashboard</a></li>
-            <li class="nav-item"><a class="nav-link" href="pages.html">Pages</a></li>
+            <li class="nav-item"><a class="nav-link" href="index.html" data-i18n="header.dashboard">Dashboard</a></li>
+            <li class="nav-item"><a class="nav-link" href="pages.html" data-i18n="header.pages">Pages</a></li>
           </ul>
-          <ul class="header-nav ms-auto"></ul>
+          <ul class="header-nav ms-auto"><li class="nav-item"><a class="nav-link lang-switch-btn" href="#" id="langSwitchBtn">عربي</a></li></ul>
           <ul class="header-nav">
             <li class="nav-item py-1"><div class="vr h-100 mx-2 text-body text-opacity-75"></div></li>
             <li class="nav-item dropdown"><a class="nav-link py-0 pe-0" data-coreui-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">
                 <div class="avatar avatar-md bg-primary text-white d-flex align-items-center justify-content-center rounded-circle" style="width:36px;height:36px;font-size:14px;">A</div></a>
               <div class="dropdown-menu dropdown-menu-end pt-0">
-                <div class="dropdown-header bg-body-tertiary text-body-secondary fw-semibold rounded-top mb-2">Account</div>
-                <a class="dropdown-item" href="settings.html"><svg class="icon me-2"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-settings"></use></svg> Settings</a>
+                <div class="dropdown-header bg-body-tertiary text-body-secondary fw-semibold rounded-top mb-2" data-i18n="account.label">Account</div>
+                <a class="dropdown-item" href="settings.html"><svg class="icon me-2"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-settings"></use></svg> <span data-i18n="account.settings">Settings</span></a>
                 <div class="dropdown-divider"></div>
-                <a class="dropdown-item" href="#" id="logoutBtn"><svg class="icon me-2"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-account-logout"></use></svg> Logout</a>
+                <a class="dropdown-item" href="#" id="logoutBtn"><svg class="icon me-2"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-account-logout"></use></svg> <span data-i18n="account.logout">Logout</span></a>
               </div>
             </li>
           </ul>
@@ -86,8 +88,8 @@
         <div class="container-fluid px-4">
           <nav aria-label="breadcrumb">
             <ol class="breadcrumb my-0">
-              <li class="breadcrumb-item"><a href="index.html">Home</a></li>
-              <li class="breadcrumb-item active"><span>Pages</span></li>
+              <li class="breadcrumb-item"><a href="index.html" data-i18n="breadcrumb.home">Home</a></li>
+              <li class="breadcrumb-item active"><span data-i18n="breadcrumb.pages">Pages</span></li>
             </ol>
           </nav>
         </div>
@@ -101,30 +103,30 @@
           <div id="listView">
             <div class="card mb-4">
               <div class="card-header d-flex align-items-center justify-content-between">
-                <strong>CMS Pages</strong>
-                <button class="btn btn-sm btn-primary" id="addPageBtn">+ New Page</button>
+                <strong data-i18n="pages.title">CMS Pages</strong>
+                <button class="btn btn-sm btn-primary" id="addPageBtn" data-i18n="pages.newPage">+ New Page</button>
               </div>
               <div class="card-body">
                 <div id="loadingState" class="text-center py-4">
-                  <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div> Loading pages...
+                  <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div> <span data-i18n="pages.loading">Loading pages...</span>
                 </div>
                 <div class="table-responsive d-none" id="tableWrap">
                   <table class="table table-hover table-striped align-middle mb-0">
                     <thead>
                       <tr>
-                        <th>Title</th>
-                        <th>Slug</th>
-                        <th class="text-center">Category</th>
-                        <th class="text-center">Published</th>
-                        <th class="text-center">Sections</th>
-                        <th>Updated</th>
-                        <th class="text-end">Actions</th>
+                        <th data-i18n="pages.colTitle">Title</th>
+                        <th data-i18n="pages.colSlug">Slug</th>
+                        <th class="text-center" data-i18n="pages.colCategory">Category</th>
+                        <th class="text-center" data-i18n="pages.colPublished">Published</th>
+                        <th class="text-center" data-i18n="pages.colSections">Sections</th>
+                        <th data-i18n="pages.colUpdated">Updated</th>
+                        <th class="text-end" data-i18n="pages.colActions">Actions</th>
                       </tr>
                     </thead>
                     <tbody id="pagesBody"></tbody>
                   </table>
                 </div>
-                <div class="empty-state d-none" id="emptyState">No pages yet. Click "+ New Page" to create one.</div>
+                <div class="empty-state d-none" id="emptyState" data-i18n="pages.empty">No pages yet. Click "+ New Page" to create one.</div>
               </div>
               <div class="card-footer small text-body-secondary" id="pageCount">...</div>
             </div>
@@ -133,60 +135,60 @@
           <!-- Page Editor View -->
           <div id="editorView" class="d-none">
             <div class="d-flex align-items-center justify-content-between mb-3">
-              <button class="btn btn-sm btn-outline-secondary" id="backToList">&larr; Back to Pages</button>
-              <h5 class="mb-0" id="editorTitle">Edit Page</h5>
+              <button class="btn btn-sm btn-outline-secondary" id="backToList" data-i18n-html="pages.backToList">&larr; Back to Pages</button>
+              <h5 class="mb-0" id="editorTitle" data-i18n="pages.editPage">Edit Page</h5>
             </div>
 
             <!-- Page Properties -->
             <div class="card mb-4">
-              <div class="card-header"><strong>Page Properties</strong></div>
+              <div class="card-header"><strong data-i18n="pages.properties">Page Properties</strong></div>
               <div class="card-body">
                 <div class="row g-3">
                   <div class="col-md-6">
-                    <label class="form-label">Title <span class="text-danger">*</span></label>
+                    <label class="form-label" data-i18n="pages.titleLabel">Title <span class="text-danger">*</span></label>
                     <input type="text" class="form-control" id="pageTitle" maxlength="200">
                   </div>
                   <div class="col-md-6">
-                    <label class="form-label">Slug <span class="text-danger">*</span></label>
+                    <label class="form-label" data-i18n="pages.slugLabel">Slug <span class="text-danger">*</span></label>
                     <input type="text" class="form-control font-monospace" id="pageSlug" maxlength="200">
                   </div>
                   <div class="col-md-4">
-                    <label class="form-label">Category</label>
+                    <label class="form-label" data-i18n="pages.categoryLabel">Category</label>
                     <input type="text" class="form-control" id="pageCategory" value="main" maxlength="100">
                   </div>
                   <div class="col-md-4">
-                    <label class="form-label">SEO Title</label>
+                    <label class="form-label" data-i18n="pages.seoTitle">SEO Title</label>
                     <input type="text" class="form-control" id="pageSeoTitle" maxlength="200">
                   </div>
                   <div class="col-md-4">
-                    <label class="form-label">SEO Description</label>
+                    <label class="form-label" data-i18n="pages.seoDesc">SEO Description</label>
                     <input type="text" class="form-control" id="pageSeoDesc" maxlength="500">
                   </div>
                   <div class="col-12 d-flex gap-3">
                     <div class="form-check form-switch">
                       <input class="form-check-input" type="checkbox" id="pagePublished" checked>
-                      <label class="form-check-label" for="pagePublished">Published</label>
+                      <label class="form-check-label" for="pagePublished" data-i18n="pages.published">Published</label>
                     </div>
                     <div class="form-check form-switch">
                       <input class="form-check-input" type="checkbox" id="pageVisible" checked>
-                      <label class="form-check-label" for="pageVisible">Visible in nav</label>
+                      <label class="form-check-label" for="pageVisible" data-i18n="pages.visibleInNav">Visible in nav</label>
                     </div>
                   </div>
                 </div>
               </div>
               <div class="card-footer d-flex gap-2">
-                <button class="btn btn-primary" id="savePageBtn">Save Page</button>
+                <button class="btn btn-primary" id="savePageBtn" data-i18n="pages.savePage">Save Page</button>
               </div>
             </div>
 
             <!-- Page Sections -->
             <div class="card mb-4">
               <div class="card-header d-flex align-items-center justify-content-between">
-                <strong>Sections</strong>
-                <button class="btn btn-sm btn-outline-primary" id="addSectionBtn">+ Add Section</button>
+                <strong data-i18n="pages.sections">Sections</strong>
+                <button class="btn btn-sm btn-outline-primary" id="addSectionBtn" data-i18n="pages.addSection">+ Add Section</button>
               </div>
               <div class="card-body" id="sectionsList">
-                <div class="text-center text-body-secondary py-3" id="noSections">No sections yet.</div>
+                <div class="text-center text-body-secondary py-3" id="noSections" data-i18n="pages.noSections">No sections yet.</div>
               </div>
             </div>
           </div>
@@ -194,7 +196,7 @@
         </div>
       </div>
 
-      <footer class="footer px-4"><div>Saad Studio &copy; 2025</div></footer>
+      <footer class="footer px-4"><div data-i18n="footer.copy">Saad Studio &copy; 2025</div></footer>
     </div>
 
     <!-- Page Modal (Create) -->

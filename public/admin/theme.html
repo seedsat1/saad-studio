@@ -12,8 +12,10 @@
     <link rel="stylesheet" href="vendors/simplebar/css/simplebar.css">
     <link rel="stylesheet" href="css/vendors/simplebar.css">
     <link href="css/style.css" rel="stylesheet">
+    <link href="css/rtl.css" rel="stylesheet" id="rtlStylesheet" disabled>
     <script src="js/config.js"></script>
     <script src="js/color-modes.js"></script>
+    <script src="js/i18n.js"></script>
     <style>
       .toast-container { position: fixed; top: 1rem; right: 1rem; z-index: 9999; }
       .color-row { display: flex; align-items: center; gap: .75rem; padding: .5rem 0; }
@@ -35,28 +37,28 @@
     <div class="sidebar sidebar-dark sidebar-fixed border-end" id="sidebar">
       <div class="sidebar-header border-bottom">
         <div class="sidebar-brand">
-          <span class="sidebar-brand-full fw-semibold fs-5 text-white">Saad Studio</span>
-          <span class="sidebar-brand-narrow fw-bold text-white">SS</span>
+          <span class="sidebar-brand-full fw-semibold fs-5 text-white" data-i18n="sidebar.brand">Saad Studio</span>
+          <span class="sidebar-brand-narrow fw-bold text-white" data-i18n="sidebar.brandShort">SS</span>
         </div>
         <button class="btn-close d-lg-none" type="button" data-coreui-theme="dark" aria-label="Close" onclick="coreui.Sidebar.getInstance(document.querySelector('#sidebar')).toggle()"></button>
       </div>
       <ul class="sidebar-nav" data-coreui="navigation" data-simplebar="">
         <li class="nav-item"><a class="nav-link" href="index.html">
-            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-speedometer"></use></svg> Dashboard</a></li>
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-speedometer"></use></svg> <span data-i18n="sidebar.dashboard">Dashboard</span></a></li>
         <li class="nav-item"><a class="nav-link" href="users.html">
-            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-people"></use></svg> Users</a></li>
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-people"></use></svg> <span data-i18n="sidebar.users">Users</span></a></li>
         <li class="nav-item"><a class="nav-link" href="orders.html">
-            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-cart"></use></svg> Orders</a></li>
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-cart"></use></svg> <span data-i18n="sidebar.orders">Orders</span></a></li>
         <li class="nav-item"><a class="nav-link" href="pages.html">
-            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-file"></use></svg> Pages</a></li>
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-file"></use></svg> <span data-i18n="sidebar.pages">Pages</span></a></li>
         <li class="nav-item"><a class="nav-link" href="media.html">
-            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-image"></use></svg> Media</a></li>
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-image"></use></svg> <span data-i18n="sidebar.media">Media</span></a></li>
         <li class="nav-item"><a class="nav-link" href="ads.html">
-            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-bullhorn"></use></svg> Ads</a></li>
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-bullhorn"></use></svg> <span data-i18n="sidebar.ads">Ads</span></a></li>
         <li class="nav-item"><a class="nav-link" href="settings.html">
-            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-settings"></use></svg> Settings</a></li>
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-settings"></use></svg> <span data-i18n="sidebar.settings">Settings</span></a></li>
         <li class="nav-item"><a class="nav-link active" href="theme.html">
-            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-color-palette"></use></svg> Theme</a></li>
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-color-palette"></use></svg> <span data-i18n="sidebar.theme">Theme</span></a></li>
       </ul>
       <div class="sidebar-footer border-top d-none d-md-flex">
         <button class="sidebar-toggler" type="button" data-coreui-toggle="unfoldable"></button>
@@ -71,19 +73,19 @@
             <svg class="icon icon-lg"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-menu"></use></svg>
           </button>
           <ul class="header-nav d-none d-lg-flex">
-            <li class="nav-item"><a class="nav-link" href="index.html">Dashboard</a></li>
-            <li class="nav-item"><a class="nav-link" href="theme.html">Theme</a></li>
+            <li class="nav-item"><a class="nav-link" href="index.html" data-i18n="header.dashboard">Dashboard</a></li>
+            <li class="nav-item"><a class="nav-link" href="theme.html" data-i18n="header.theme">Theme</a></li>
           </ul>
-          <ul class="header-nav ms-auto"></ul>
+          <ul class="header-nav ms-auto"><li class="nav-item"><a class="nav-link lang-switch-btn" href="#" id="langSwitchBtn">عربي</a></li></ul>
           <ul class="header-nav">
             <li class="nav-item py-1"><div class="vr h-100 mx-2 text-body text-opacity-75"></div></li>
             <li class="nav-item dropdown"><a class="nav-link py-0 pe-0" data-coreui-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">
                 <div class="avatar avatar-md bg-primary text-white d-flex align-items-center justify-content-center rounded-circle" style="width:36px;height:36px;font-size:14px;">A</div></a>
               <div class="dropdown-menu dropdown-menu-end pt-0">
-                <div class="dropdown-header bg-body-tertiary text-body-secondary fw-semibold rounded-top mb-2">Account</div>
-                <a class="dropdown-item" href="settings.html"><svg class="icon me-2"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-settings"></use></svg> Settings</a>
+                <div class="dropdown-header bg-body-tertiary text-body-secondary fw-semibold rounded-top mb-2" data-i18n="account.label">Account</div>
+                <a class="dropdown-item" href="settings.html"><svg class="icon me-2"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-settings"></use></svg> <span data-i18n="account.settings">Settings</span></a>
                 <div class="dropdown-divider"></div>
-                <a class="dropdown-item" href="#" id="logoutBtn"><svg class="icon me-2"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-account-logout"></use></svg> Logout</a>
+                <a class="dropdown-item" href="#" id="logoutBtn"><svg class="icon me-2"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-account-logout"></use></svg> <span data-i18n="account.logout">Logout</span></a>
               </div>
             </li>
           </ul>
@@ -91,8 +93,8 @@
         <div class="container-fluid px-4">
           <nav aria-label="breadcrumb">
             <ol class="breadcrumb my-0">
-              <li class="breadcrumb-item"><a href="index.html">Home</a></li>
-              <li class="breadcrumb-item active"><span>Theme</span></li>
+              <li class="breadcrumb-item"><a href="index.html" data-i18n="breadcrumb.home">Home</a></li>
+              <li class="breadcrumb-item active"><span data-i18n="breadcrumb.theme">Theme</span></li>
             </ol>
           </nav>
         </div>
@@ -103,7 +105,7 @@
         <div class="container-lg px-4">
 
           <div id="loadingState" class="text-center py-5">
-            <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div> Loading theme...
+            <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div> <span data-i18n="themeEditor.loading">Loading theme...</span>
           </div>
 
           <div id="themeEditor" class="d-none">
@@ -113,8 +115,8 @@
               <div class="col-lg-7">
                 <div class="card mb-4">
                   <div class="card-header d-flex align-items-center justify-content-between">
-                    <strong>Site Colors</strong>
-                    <button class="btn btn-sm btn-outline-secondary" id="resetColorsBtn">Reset to Defaults</button>
+                    <strong data-i18n="themeEditor.colors">Site Colors</strong>
+                    <button class="btn btn-sm btn-outline-secondary" id="resetColorsBtn" data-i18n="themeEditor.resetColors">Reset to Defaults</button>
                   </div>
                   <div class="card-body" id="colorsContainer"></div>
                 </div>
@@ -122,24 +124,24 @@
                 <!-- Fonts -->
                 <div class="card mb-4">
                   <div class="card-header d-flex align-items-center justify-content-between">
-                    <strong>Fonts</strong>
-                    <button class="btn btn-sm btn-outline-secondary" id="resetFontsBtn">Reset to Defaults</button>
+                    <strong data-i18n="themeEditor.fonts">Fonts</strong>
+                    <button class="btn btn-sm btn-outline-secondary" id="resetFontsBtn" data-i18n="themeEditor.resetFonts">Reset to Defaults</button>
                   </div>
                   <div class="card-body">
                     <div class="font-row">
-                      <label>Primary Font (--far)</label>
+                      <label data-i18n="themeEditor.fontPrimary">Primary Font (--far)</label>
                       <input type="text" class="form-control form-control-sm" id="fontFar">
                     </div>
                     <div class="font-row">
-                      <label>Display Font (--fd)</label>
+                      <label data-i18n="themeEditor.fontDisplay">Display Font (--fd)</label>
                       <input type="text" class="form-control form-control-sm" id="fontFd">
                     </div>
                     <div class="font-row">
-                      <label>Mono Font (--fm)</label>
+                      <label data-i18n="themeEditor.fontMono">Mono Font (--fm)</label>
                       <input type="text" class="form-control form-control-sm" id="fontFm">
                     </div>
                     <div class="font-row">
-                      <label>Google Fonts URL</label>
+                      <label data-i18n="themeEditor.fontUrl">Google Fonts URL</label>
                       <input type="text" class="form-control form-control-sm" id="fontUrl">
                     </div>
                   </div>
@@ -149,17 +151,17 @@
               <!-- Preview Column -->
               <div class="col-lg-5">
                 <div class="card mb-4 position-sticky" style="top:5rem">
-                  <div class="card-header"><strong>Live Preview</strong></div>
+                  <div class="card-header"><strong data-i18n="themeEditor.preview">Live Preview</strong></div>
                   <div class="card-body p-0">
                     <div class="preview-box" id="previewBox">
-                      <h3 id="previewTitle">SAAD STUDIO</h3>
-                      <p id="previewSubtitle">AI Creative Platform</p>
+                      <h3 id="previewTitle" data-i18n="themeEditor.previewTitle">SAAD STUDIO</h3>
+                      <p id="previewSubtitle" data-i18n="themeEditor.previewSubtitle">AI Creative Platform</p>
                       <div class="mt-3">
-                        <span class="preview-btn" id="previewBtnPrimary">Generate</span>
-                        <span class="preview-btn" id="previewBtnSecondary">Explore</span>
+                        <span class="preview-btn" id="previewBtnPrimary" data-i18n="themeEditor.previewBtn1">Generate</span>
+                        <span class="preview-btn" id="previewBtnSecondary" data-i18n="themeEditor.previewBtn2">Explore</span>
                       </div>
                       <div class="mt-3">
-                        <small id="previewMuted">Secondary text sample</small>
+                        <small id="previewMuted" data-i18n="themeEditor.previewMuted">Secondary text sample</small>
                       </div>
                     </div>
                   </div>
@@ -168,7 +170,7 @@
                 <div class="d-grid gap-2">
                   <button class="btn btn-primary btn-lg" id="saveThemeBtn">
                     <span class="spinner-border spinner-border-sm d-none me-2" id="saveSpin" role="status"></span>
-                    Save Theme &amp; Fonts
+                    <span data-i18n="themeEditor.save">Save Theme &amp; Fonts</span>
                   </button>
                 </div>
               </div>
@@ -179,7 +181,7 @@
         </div>
       </div>
 
-      <footer class="footer px-4"><div>Saad Studio &copy; 2025</div></footer>
+      <footer class="footer px-4"><div data-i18n="footer.copy">Saad Studio &copy; 2025</div></footer>
     </div>
 
     <!-- Toast -->

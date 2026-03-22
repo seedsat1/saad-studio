@@ -12,8 +12,10 @@
     <link rel="stylesheet" href="vendors/simplebar/css/simplebar.css">
     <link rel="stylesheet" href="css/vendors/simplebar.css">
     <link href="css/style.css" rel="stylesheet">
+    <link href="css/rtl.css" rel="stylesheet" id="rtlStylesheet" disabled>
     <script src="js/config.js"></script>
     <script src="js/color-modes.js"></script>
+    <script src="js/i18n.js"></script>
     <style>
       .media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1rem; }
       .media-card { position: relative; border-radius: .5rem; overflow: hidden; background: var(--cui-tertiary-bg); aspect-ratio: 1; }
@@ -40,28 +42,28 @@
     <div class="sidebar sidebar-dark sidebar-fixed border-end" id="sidebar">
       <div class="sidebar-header border-bottom">
         <div class="sidebar-brand">
-          <span class="sidebar-brand-full fw-semibold fs-5 text-white">Saad Studio</span>
-          <span class="sidebar-brand-narrow fw-bold text-white">SS</span>
+          <span class="sidebar-brand-full fw-semibold fs-5 text-white" data-i18n="sidebar.brand">Saad Studio</span>
+          <span class="sidebar-brand-narrow fw-bold text-white" data-i18n="sidebar.brandShort">SS</span>
         </div>
         <button class="btn-close d-lg-none" type="button" data-coreui-theme="dark" aria-label="Close" onclick="coreui.Sidebar.getInstance(document.querySelector('#sidebar')).toggle()"></button>
       </div>
       <ul class="sidebar-nav" data-coreui="navigation" data-simplebar="">
         <li class="nav-item"><a class="nav-link" href="index.html">
-            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-speedometer"></use></svg> Dashboard</a></li>
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-speedometer"></use></svg> <span data-i18n="sidebar.dashboard">Dashboard</span></a></li>
         <li class="nav-item"><a class="nav-link" href="users.html">
-            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-people"></use></svg> Users</a></li>
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-people"></use></svg> <span data-i18n="sidebar.users">Users</span></a></li>
         <li class="nav-item"><a class="nav-link" href="orders.html">
-            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-cart"></use></svg> Orders</a></li>
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-cart"></use></svg> <span data-i18n="sidebar.orders">Orders</span></a></li>
         <li class="nav-item"><a class="nav-link" href="pages.html">
-            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-file"></use></svg> Pages</a></li>
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-file"></use></svg> <span data-i18n="sidebar.pages">Pages</span></a></li>
         <li class="nav-item"><a class="nav-link active" href="media.html">
-            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-image"></use></svg> Media</a></li>
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-image"></use></svg> <span data-i18n="sidebar.media">Media</span></a></li>
         <li class="nav-item"><a class="nav-link" href="ads.html">
-            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-bullhorn"></use></svg> Ads</a></li>
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-bullhorn"></use></svg> <span data-i18n="sidebar.ads">Ads</span></a></li>
         <li class="nav-item"><a class="nav-link" href="settings.html">
-            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-settings"></use></svg> Settings</a></li>
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-settings"></use></svg> <span data-i18n="sidebar.settings">Settings</span></a></li>
         <li class="nav-item"><a class="nav-link" href="theme.html">
-            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-color-palette"></use></svg> Theme</a></li>
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-color-palette"></use></svg> <span data-i18n="sidebar.theme">Theme</span></a></li>
       </ul>
       <div class="sidebar-footer border-top d-none d-md-flex">
         <button class="sidebar-toggler" type="button" data-coreui-toggle="unfoldable"></button>
@@ -76,10 +78,11 @@
             <svg class="icon icon-lg"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-menu"></use></svg>
           </button>
           <ul class="header-nav d-none d-lg-flex">
-            <li class="nav-item"><a class="nav-link" href="index.html">Dashboard</a></li>
-            <li class="nav-item"><a class="nav-link" href="media.html">Media</a></li>
+            <li class="nav-item"><a class="nav-link" href="index.html" data-i18n="header.dashboard">Dashboard</a></li>
+            <li class="nav-item"><a class="nav-link" href="media.html" data-i18n="header.media">Media</a></li>
           </ul>
           <ul class="header-nav ms-auto">
+            <li class="nav-item"><a class="nav-link lang-switch-btn" href="#" id="langSwitchBtn">عربي</a></li>
             <li class="nav-item"><a class="nav-link" href="#">
                 <svg class="icon icon-lg"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-bell"></use></svg></a></li>
           </ul>
@@ -91,21 +94,21 @@
               </button>
               <ul class="dropdown-menu dropdown-menu-end" style="--cui-dropdown-min-width: 8rem;">
                 <li><button class="dropdown-item d-flex align-items-center" type="button" data-coreui-theme-value="light">
-                    <svg class="icon icon-lg me-3"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-sun"></use></svg>Light</button></li>
+                    <svg class="icon icon-lg me-3"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-sun"></use></svg><span data-i18n="theme.light">Light</span></button></li>
                 <li><button class="dropdown-item d-flex align-items-center" type="button" data-coreui-theme-value="dark">
-                    <svg class="icon icon-lg me-3"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-moon"></use></svg>Dark</button></li>
+                    <svg class="icon icon-lg me-3"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-moon"></use></svg><span data-i18n="theme.dark">Dark</span></button></li>
                 <li><button class="dropdown-item d-flex align-items-center active" type="button" data-coreui-theme-value="auto">
-                    <svg class="icon icon-lg me-3"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-contrast"></use></svg>Auto</button></li>
+                    <svg class="icon icon-lg me-3"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-contrast"></use></svg><span data-i18n="theme.auto">Auto</span></button></li>
               </ul>
             </li>
             <li class="nav-item py-1"><div class="vr h-100 mx-2 text-body text-opacity-75"></div></li>
             <li class="nav-item dropdown"><a class="nav-link py-0 pe-0" data-coreui-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">
                 <div class="avatar avatar-md bg-primary text-white d-flex align-items-center justify-content-center rounded-circle" style="width:36px;height:36px;font-size:14px;">A</div></a>
               <div class="dropdown-menu dropdown-menu-end pt-0">
-                <div class="dropdown-header bg-body-tertiary text-body-secondary fw-semibold rounded-top mb-2">Account</div>
-                <a class="dropdown-item" href="settings.html"><svg class="icon me-2"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-settings"></use></svg> Settings</a>
+                <div class="dropdown-header bg-body-tertiary text-body-secondary fw-semibold rounded-top mb-2" data-i18n="account.label">Account</div>
+                <a class="dropdown-item" href="settings.html"><svg class="icon me-2"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-settings"></use></svg> <span data-i18n="account.settings">Settings</span></a>
                 <div class="dropdown-divider"></div>
-                <a class="dropdown-item" href="#" id="logoutBtn"><svg class="icon me-2"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-account-logout"></use></svg> Logout</a>
+                <a class="dropdown-item" href="#" id="logoutBtn"><svg class="icon me-2"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-account-logout"></use></svg> <span data-i18n="account.logout">Logout</span></a>
               </div>
             </li>
           </ul>
@@ -113,8 +116,8 @@
         <div class="container-fluid px-4">
           <nav aria-label="breadcrumb">
             <ol class="breadcrumb my-0">
-              <li class="breadcrumb-item"><a href="index.html">Home</a></li>
-              <li class="breadcrumb-item active"><span>Media</span></li>
+              <li class="breadcrumb-item"><a href="index.html" data-i18n="breadcrumb.home">Home</a></li>
+              <li class="breadcrumb-item active"><span data-i18n="breadcrumb.media">Media</span></li>
             </ol>
           </nav>
         </div>
@@ -126,40 +129,40 @@
 
           <!-- Upload Card -->
           <div class="card mb-4">
-            <div class="card-header"><strong>Upload Images</strong></div>
+            <div class="card-header"><strong data-i18n="media.uploadTitle">Upload Images</strong></div>
             <div class="card-body">
               <div class="upload-zone" id="uploadZone">
                 <input type="file" id="fileInput" accept="image/jpeg,image/png,image/gif,image/webp,image/avif,image/svg+xml" multiple>
                 <svg class="icon icon-xl text-body-secondary mb-2" style="width:48px;height:48px"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-cloud-upload"></use></svg>
-                <p class="mb-0 text-body-secondary">Drag &amp; drop images here or <strong class="text-primary">click to browse</strong></p>
-                <small class="text-body-tertiary">JPEG, PNG, GIF, WebP, AVIF, SVG &bull; Max 10 MB each</small>
+                <p class="mb-0 text-body-secondary"><span data-i18n="media.dragDrop">Drag &amp; drop images here or</span> <strong class="text-primary" data-i18n="media.clickBrowse">click to browse</strong></p>
+                <small class="text-body-tertiary" data-i18n="media.fileTypes">JPEG, PNG, GIF, WebP, AVIF, SVG &bull; Max 10 MB each</small>
               </div>
               <div class="preview-area" id="previewArea"></div>
               <div class="progress upload-progress d-none" id="uploadProgress">
                 <div class="progress-bar progress-bar-striped progress-bar-animated" id="uploadBar" style="width:0%"></div>
               </div>
-              <button class="btn btn-primary mt-3 d-none" id="uploadBtn">Upload Selected</button>
+              <button class="btn btn-primary mt-3 d-none" id="uploadBtn" data-i18n="media.uploadSelected">Upload Selected</button>
             </div>
           </div>
 
           <!-- Gallery Card -->
           <div class="card mb-4">
             <div class="card-header d-flex align-items-center justify-content-between">
-              <strong>Media Library</strong>
+              <strong data-i18n="media.libraryTitle">Media Library</strong>
               <span class="text-body-secondary small" id="mediaCount">...</span>
             </div>
             <div class="card-body">
               <div id="loadingState" class="text-center py-4">
-                <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div> Loading media...
+                <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div> <span data-i18n="media.loading">Loading media...</span>
               </div>
               <div class="media-grid d-none" id="mediaGrid"></div>
-              <div class="empty-state d-none" id="emptyState">No images uploaded yet</div>
+              <div class="empty-state d-none" id="emptyState" data-i18n="media.empty">No images uploaded yet</div>
             </div>
           </div>
         </div>
       </div>
 
-      <footer class="footer px-4"><div>Saad Studio &copy; 2025</div></footer>
+      <footer class="footer px-4"><div data-i18n="footer.copy">Saad Studio &copy; 2025</div></footer>
     </div>
 
     <!-- Toast -->
