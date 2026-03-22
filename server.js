@@ -2899,38 +2899,84 @@ function isSubscriptionActive(user) {
   return new Date().toISOString() <= user.subscriptionEndDate;
 }
 
-// ═══ SUPABASE AUTH HELPERS ═══════════════════════════════════════════════════
-// All user data lives in Supabase: auth.users (credentials) + public.profiles (app data)
-// No local users.json — Supabase is the single source of truth.
+// ═══ USER DATA HELPERS ═══════════════════════════════════════════════════════
+// Supabase is primary when configured; vault/users.json is local fallback.
+const USERS_FILE = path.join(VAULT_DIR, 'users.json');
 
-/**
- * Load a user profile from public.profiles by Supabase auth UID.
- * Returns the profile row or null.
- */
-async function getProfile(userId) {
-  if (!supabaseAdmin) return null;
-  const { data, error } = await supabaseAdmin
-    .from('profiles')
-    .select('*')
-    .eq('id', userId)
-    .single();
-  if (error || !data) return null;
-  return data;
+function getVaultUsers() {
+  try { return JSON.parse(fs.readFileSync(USERS_FILE, 'utf8')).users || []; }
+  catch { return []; }
+}
+function saveVaultUsers(users) {
+  fs.writeFileSync(USERS_FILE, JSON.stringify({ users }, null, 2));
+}
+function getVaultUser(userId) {
+  return getVaultUsers().find(u => u.id === userId) || null;
+}
+function updateVaultUser(userId, changes) {
+  const users = getVaultUsers();
+  const idx = users.findIndex(u => u.id === userId);
+  if (idx < 0) return null;
+  Object.assign(users[idx], changes);
+  saveVaultUsers(users);
+  return users[idx];
 }
 
 /**
- * Update fields on a profile row. Returns updated row or null.
+ * Load a user profile by ID. Supabase first, vault fallback.
+ */
+async function getProfile(userId) {
+  if (supabaseAdmin) {
+    const { data, error } = await supabaseAdmin
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
+    if (!error && data) return data;
+  }
+  const vu = getVaultUser(userId);
+  if (!vu) return null;
+  return {
+    id: vu.id, email: vu.email, credits: vu.credits, plan: vu.plan || 'starter',
+    max_credits: vu.maxCredits || 0, is_admin: vu.isAdmin || false,
+    nano_banana_free: vu.nanoBananaFree !== false,
+    renew_date: vu.renewDate || null,
+    subscription_start_date: vu.subscriptionStartDate || null,
+    subscription_end_date: vu.subscriptionEndDate || null,
+    created_at: vu.createdAt || null, pending_plan: vu.pendingPlan || null
+  };
+}
+
+/**
+ * Update fields on a profile. Supabase first, vault fallback.
  */
 async function updateProfile(userId, changes) {
-  if (!supabaseAdmin) return null;
-  const { data, error } = await supabaseAdmin
-    .from('profiles')
-    .update({ ...changes, updated_at: new Date().toISOString() })
-    .eq('id', userId)
-    .select()
-    .single();
-  if (error) { console.error('[updateProfile]', error.message); return null; }
-  return data;
+  if (supabaseAdmin) {
+    const { data, error } = await supabaseAdmin
+      .from('profiles')
+      .update({ ...changes, updated_at: new Date().toISOString() })
+      .eq('id', userId)
+      .select()
+      .single();
+    if (!error && data) return data;
+  }
+  // Map Supabase column names to vault field names
+  const vaultMap = {};
+  if ('credits' in changes) vaultMap.credits = changes.credits;
+  if ('plan' in changes) vaultMap.plan = changes.plan;
+  if ('max_credits' in changes) vaultMap.maxCredits = changes.max_credits;
+  if ('nano_banana_free' in changes) vaultMap.nanoBananaFree = changes.nano_banana_free;
+  if ('renew_date' in changes) vaultMap.renewDate = changes.renew_date;
+  if ('subscription_start_date' in changes) vaultMap.subscriptionStartDate = changes.subscription_start_date;
+  if ('subscription_end_date' in changes) vaultMap.subscriptionEndDate = changes.subscription_end_date;
+  if ('pending_plan' in changes) vaultMap.pendingPlan = changes.pending_plan;
+  const updated = updateVaultUser(userId, vaultMap);
+  if (!updated) return null;
+  return {
+    id: updated.id, email: updated.email, credits: updated.credits,
+    plan: updated.plan, max_credits: updated.maxCredits,
+    is_admin: updated.isAdmin, nano_banana_free: updated.nanoBananaFree
+  };
 }
 
 /**
@@ -3576,7 +3622,27 @@ async function getAllOrders(){if(supabaseAdmin){try{const{data,error}=await supa
 async function createOrder(order){if(supabaseAdmin){try{await supabaseAdmin.from('orders').insert(orderToDb(order));return;}catch(e){console.error('createOrder:',e.message);}}try{const db=JSON.parse(fs.readFileSync(ORDERS_FILE,'utf8'));db.orders.push(order);fs.writeFileSync(ORDERS_FILE,JSON.stringify(db,null,2));}catch{try{fs.writeFileSync(ORDERS_FILE,JSON.stringify({orders:[order]},null,2));}catch{}}}
 async function updateOrder(order){if(supabaseAdmin){try{await supabaseAdmin.from('orders').update(orderToDb(order)).eq('id',order.id);return;}catch(e){console.error('updateOrder:',e.message);}}try{const db=JSON.parse(fs.readFileSync(ORDERS_FILE,'utf8'));const idx=db.orders.findIndex(o=>o.id===order.id);if(idx>=0){db.orders[idx]=order;fs.writeFileSync(ORDERS_FILE,JSON.stringify(db,null,2));}}catch{}}
 
-// POST /api/admin/login — REMOVED (unified into /api/auth/login)
+// POST /api/admin/login — dashboard.html login (username + password from .env)
+app.post('/api/admin/login', adminLoginLimiter, (req, res) => {
+  const { username, password } = req.body || {};
+  if (!username || !password) return res.status(400).json({ error: 'بيانات غير مكتملة' });
+  if (!timingSafeEqual(String(username).trim(), ADMIN_USERNAME) ||
+      !timingSafeEqual(String(password), ADMIN_PASSWORD)) {
+    auditLog('admin.login.fail', 'user="' + String(username).slice(0, 80) + '"', req);
+    return res.status(401).json({ error: 'بيانات غير صحيحة' });
+  }
+  const sessionId = crypto.randomBytes(32).toString('hex');
+  const csrfToken = crypto.randomBytes(32).toString('hex');
+  const expiry = Date.now() + ADMIN_SESSION_HOURS * 60 * 60 * 1000;
+  adminSessions.set(sessionId, { expiry, csrf: csrfToken });
+  saveAdminSessions(adminSessions);
+  res.cookie('admin_sid', sessionId, {
+    httpOnly: true, secure: IS_PROD, sameSite: 'strict', path: '/',
+    maxAge: ADMIN_SESSION_HOURS * 60 * 60 * 1000
+  });
+  auditLog('admin.login.success', 'user="' + String(username).slice(0, 80) + '"', req);
+  res.json({ ok: true, csrfToken });
+});
 
 
 // GET /api/admin/kie-balance — fetch KIE API balance (same method as /api/kie/credits)
@@ -3683,15 +3749,20 @@ app.delete('/api/admin/generations/:id', requireAdmin, (req, res) => {
 // GET /api/admin/stats — dashboard statistics
 app.get('/api/admin/stats', requireAdmin, async (req, res) => {
   try {
-    // Users count + total credits from Supabase profiles
-    const { data: profiles, error: pErr } = await supabaseAdmin
-      .from('profiles')
-      .select('credits');
-    if (pErr) return res.status(500).json({ error: pErr.message });
-    const totalUsers = (profiles || []).length;
-    const totalCredits = (profiles || []).reduce((s, p) => s + (p.credits || 0), 0);
+    let totalUsers = 0, totalCredits = 0;
+    if (supabaseAdmin) {
+      const { data: profiles, error: pErr } = await supabaseAdmin.from('profiles').select('credits');
+      if (!pErr && profiles) {
+        totalUsers = profiles.length;
+        totalCredits = profiles.reduce((s, p) => s + (p.credits || 0), 0);
+      }
+    }
+    if (!totalUsers) {
+      const vUsers = getVaultUsers();
+      totalUsers = vUsers.length;
+      totalCredits = vUsers.reduce((s, u) => s + (u.credits || 0), 0);
+    }
 
-    // Orders from Supabase
     const orders = await getAllOrders();
     const totalOrders = orders.length;
     const totalRevenue = orders
@@ -3701,18 +3772,30 @@ app.get('/api/admin/stats', requireAdmin, async (req, res) => {
     res.json({ totalUsers, totalCredits, totalOrders, totalRevenue });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
-// GET /api/admin/users — list all profiles from Supabase
+// GET /api/admin/users — list all profiles (Supabase or vault fallback)
 app.get('/api/admin/users', requireAdmin, async (req, res) => {
   try {
-    const { data, error } = await supabaseAdmin.from('profiles').select('*').order('created_at', { ascending: false });
-    if (error) return res.status(500).json({ error: error.message });
-    const safe = (data || []).map(p => ({
-      id: p.id, email: p.email, credits: p.credits, plan: p.plan || 'starter',
-      maxCredits: p.max_credits || 0, isAdmin: p.is_admin, nanoBananaFree: p.nano_banana_free,
-      renewDate: p.renew_date, subscriptionStartDate: p.subscription_start_date,
-      subscriptionEndDate: p.subscription_end_date, createdAt: p.created_at, pendingPlan: p.pending_plan
+    if (supabaseAdmin) {
+      const { data, error } = await supabaseAdmin.from('profiles').select('*').order('created_at', { ascending: false });
+      if (!error && data) {
+        const safe = (data || []).map(p => ({
+          id: p.id, email: p.email, credits: p.credits, plan: p.plan || 'starter',
+          maxCredits: p.max_credits || 0, isAdmin: p.is_admin, nanoBananaFree: p.nano_banana_free,
+          renewDate: p.renew_date, subscriptionStartDate: p.subscription_start_date,
+          subscriptionEndDate: p.subscription_end_date, createdAt: p.created_at, pendingPlan: p.pending_plan
+        }));
+        return res.json({ users: safe });
+      }
+    }
+    // Vault fallback
+    const users = getVaultUsers().map(u => ({
+      id: u.id, email: u.email, credits: u.credits, plan: u.plan || 'starter',
+      maxCredits: u.maxCredits || 0, isAdmin: u.isAdmin || false, nanoBananaFree: u.nanoBananaFree !== false,
+      renewDate: u.renewDate, subscriptionStartDate: u.subscriptionStartDate,
+      subscriptionEndDate: u.subscriptionEndDate, createdAt: u.createdAt, pendingPlan: u.pendingPlan,
+      provider: u.provider || 'email'
     }));
-    res.json({ users: safe });
+    res.json({ users });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -3756,10 +3839,17 @@ app.post('/api/admin/users/:id/plan', requireAdmin, async (req, res) => {
   res.json({ ok: true, user: { id: req.params.id, email: updated?.email, plan, credits: updated?.credits, maxCredits: planInfo.credits } });
 });
 
-// POST /api/admin/users/:id/kick — sign out user by invalidating Supabase sessions
+// POST /api/admin/users/:id/kick — sign out user
 app.post('/api/admin/users/:id/kick', requireAdmin, async (req, res) => {
   try {
-    await supabaseAdmin.auth.admin.signOut(req.params.id, 'global');
+    if (supabaseAdmin) {
+      await supabaseAdmin.auth.admin.signOut(req.params.id, 'global');
+    } else {
+      // Vault fallback: clear user tokens
+      const users = getVaultUsers();
+      const idx = users.findIndex(u => u.id === req.params.id);
+      if (idx >= 0) { users[idx].tokens = []; saveVaultUsers(users); }
+    }
   } catch (_) {}
   auditLog('admin.user.kick', 'userId="' + req.params.id + '"', req);
   res.json({ ok: true });
