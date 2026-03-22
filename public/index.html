@@ -1753,6 +1753,13 @@ input[type="url"], textarea, select {
   .topbar-title { display: none; }
   .topbar-btn:not(.primary) { padding: 4px 7px; font-size: 9px; }
 }
+/* ── Legal Page ── */
+.legal-sections-wrap { display: flex; flex-direction: column; gap: 20px; max-width: 820px; }
+.legal-card { background: linear-gradient(180deg,rgba(255,255,255,0.035),rgba(255,255,255,0.014)); border: 1px solid var(--b); border-radius: var(--r); padding: 24px 28px; }
+.legal-card-icon { font-size: 26px; margin-bottom: 10px; }
+.legal-card-title { font-family: var(--fd,inherit); font-size: 20px; font-weight: 800; letter-spacing: 0.06em; color: var(--amber2,#f5c04a); margin-bottom: 14px; }
+.legal-card-body { font-size: 13px; color: var(--tx2,rgba(255,255,255,.55)); line-height: 1.85; white-space: pre-wrap; word-break: break-word; }
+.legal-card-body strong { color: var(--tx,#fff); font-weight: 700; }
 </style>
 </head>
 <body>
@@ -1850,6 +1857,9 @@ input[type="url"], textarea, select {
     </div>
       <div class="nav-item" onclick="showPage('library',this)">
         <div class="nav-icon">📁</div><span class="nav-name">Library</span>
+      </div>
+      <div class="nav-item" onclick="showPage('legal',this)">
+        <div class="nav-icon">⚖️</div><span class="nav-name">Legal</span>
       </div>
       <div class="nav-item" id="nav-control" style="display:none" onclick="showPage('control',this);verifyAndRenderControl()">
         <div class="nav-icon">⚙️</div><span class="nav-name">Control Panel</span>
@@ -5783,6 +5793,17 @@ Professional photography look.</textarea>
   </div>
 </div>
 
+<!-- ═══ LEGAL PAGE ═══ -->
+<div class="page" id="page-legal">
+  <div class="ph">
+    <div class="ph-title">⚖️ Legal</div>
+    <div class="ph-sub">TERMS · PRIVACY · REFUND</div>
+  </div>
+  <div id="legal-loading" style="text-align:center;padding:60px 40px;"><div class="spinner" style="margin:auto"></div></div>
+  <div id="legal-content" class="legal-sections-wrap" style="display:none"></div>
+  <div id="legal-error" style="display:none;text-align:center;color:var(--tx3);padding:60px">تعذر تحميل المحتوى القانوني.</div>
+</div>
+
 </main>
 
 <div class="toast-container" id="toasts"></div>
@@ -6053,8 +6074,8 @@ function addScene(){
 // ═══════════════════════════
 // NAVIGATION
 // ═══════════════════════════
-const pageTitlesEn = {dash:'DISCOVER',pricing:'PRICING',video:'VIDEO GENERATION',image:'IMAGE EDITING','image-tools':'IMAGE TOOLS',transitions:'TRANSITIONS LAB',nano:'NANO BANANA',google:'GOOGLE STUDIO',kling:'KLING STUDIO',eleven:'ELEVENLABS STUDIO',prompt:'PROMPT STUDIO',gallery:'GALLERY',library:'LIBRARY',control:'CONTROL PANEL',model:'MODEL',suno:'SUNO',sora2:'SORA 2',hailuo:'HAILUO 2.3',gpt54:'GPT-5.2',grok:'GROK',infinitalk:'INFINITALK',qwen2:'QWEN 2','ideogram-reframe':'IDEOGRAM V3 REFRAME',seedream45:'SEEDREAM 4.5',seedance15:'SEEDANCE 1.5',wan26:'WAN 2.6',flux2:'FLUX 2',fluxkontext:'FLUX KONTEXT',zimage:'Z-IMAGE'};
-const pageTitlesAr = {dash:'اكتشف مالجديد',pricing:'التسعير',video:'توليد الفيديو',image:'تعديل الصور','image-tools':'أدوات الصور',transitions:'مختبر الانتقالات',nano:'Nano Banana',google:'Google Studio',kling:'Kling Studio',eleven:'ElevenLabs Studio',prompt:'توليد البرومبت',gallery:'المعرض',library:'مكتبة الأعمال',control:'لوحة التحكم',model:'الموديل',suno:'Suno',sora2:'Sora 2',hailuo:'Hailuo 2.3',gpt54:'GPT-5.2',grok:'Grok',infinitalk:'Infinitalk',qwen2:'Qwen2','ideogram-reframe':'Ideogram V3 Reframe',seedream45:'Seedream 4.5',seedance15:'Seedance 1.5',wan26:'Wan 2.6',flux2:'FLUX 2',fluxkontext:'Flux Kontext',zimage:'Z-Image'};
+const pageTitlesEn = {dash:'DISCOVER',pricing:'PRICING',video:'VIDEO GENERATION',image:'IMAGE EDITING','image-tools':'IMAGE TOOLS',transitions:'TRANSITIONS LAB',nano:'NANO BANANA',google:'GOOGLE STUDIO',kling:'KLING STUDIO',eleven:'ELEVENLABS STUDIO',prompt:'PROMPT STUDIO',gallery:'GALLERY',library:'LIBRARY',control:'CONTROL PANEL',model:'MODEL',suno:'SUNO',sora2:'SORA 2',hailuo:'HAILUO 2.3',gpt54:'GPT-5.2',grok:'GROK',infinitalk:'INFINITALK',qwen2:'QWEN 2','ideogram-reframe':'IDEOGRAM V3 REFRAME',seedream45:'SEEDREAM 4.5',seedance15:'SEEDANCE 1.5',wan26:'WAN 2.6',flux2:'FLUX 2',fluxkontext:'FLUX KONTEXT',zimage:'Z-IMAGE',legal:'LEGAL'};
+const pageTitlesAr = {dash:'اكتشف مالجديد',pricing:'التسعير',video:'توليد الفيديو',image:'تعديل الصور','image-tools':'أدوات الصور',transitions:'مختبر الانتقالات',nano:'Nano Banana',google:'Google Studio',kling:'Kling Studio',eleven:'ElevenLabs Studio',prompt:'توليد البرومبت',gallery:'المعرض',library:'مكتبة الأعمال',control:'لوحة التحكم',model:'الموديل',suno:'Suno',sora2:'Sora 2',hailuo:'Hailuo 2.3',gpt54:'GPT-5.2',grok:'Grok',infinitalk:'Infinitalk',qwen2:'Qwen2','ideogram-reframe':'Ideogram V3 Reframe',seedream45:'Seedream 4.5',seedance15:'Seedance 1.5',wan26:'Wan 2.6',flux2:'FLUX 2',fluxkontext:'Flux Kontext',zimage:'Z-Image',legal:'الشروط والأحكام'};
 const LANG_KEY='saad_lang';
 let currentLang = localStorage.getItem(LANG_KEY) || 'ar';
 let currentPage = 'dash';
@@ -6088,6 +6109,7 @@ function showPage(name, el) {
   }
   if(name==='user-dashboard') { try{ loadUserDashboard(); }catch(e){ console.error(e); } }
   if(name==='billing')        { try{ loadBillingPage();   }catch(e){ console.error(e); } }
+  if(name==='legal')           { try{ loadLegalPage();      }catch(e){ console.error(e); } }
   applyLanguage(currentLang, true);
   saveUiState({ page: name });
 }
@@ -14571,6 +14593,38 @@ function clearLibrary(){
       setText('udash-all-credits', allTime.credits ?? 0);
       applyLanguage(currentLang, true);
     } catch(e){ console.error('loadUserDashboard:', e); }
+  }
+
+  async function loadLegalPage(){
+    const loading = document.getElementById('legal-loading');
+    const content  = document.getElementById('legal-content');
+    const errEl    = document.getElementById('legal-error');
+    if(!loading||!content||!errEl) return;
+    loading.style.display = 'block';
+    content.style.display = 'none';
+    errEl.style.display   = 'none';
+    try{
+      const r = await fetch('/api/cms/pages/legal');
+      if(!r.ok) throw new Error('not found');
+      const page = await r.json();
+      const sections = (page.sections || []).filter(s => s.enabled !== false).sort((a,b)=>(a.order||0)-(b.order||0));
+      content.innerHTML = sections.map(s => {
+        const d = s.data || {};
+        const bodyHtml = (d.body || '')
+          .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+          .replace(/\n/g, '<br>');
+        return `<div class="legal-card">
+  <div class="legal-card-icon">${d.icon || '📄'}</div>
+  <div class="legal-card-title">${d.title || s.label || ''}</div>
+  <div class="legal-card-body">${bodyHtml}</div>
+</div>`;
+      }).join('');
+      loading.style.display = 'none';
+      content.style.display = 'flex';
+    }catch(e){
+      loading.style.display = 'none';
+      errEl.style.display   = 'block';
+    }
   }
 
   async function loadBillingPage(){

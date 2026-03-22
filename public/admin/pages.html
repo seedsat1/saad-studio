@@ -243,6 +243,7 @@
             <option value="hero">Hero</option>
             <option value="features">Features</option>
             <option value="text">Text Block</option>
+            <option value="richtext">Rich Text (Legal / Article)</option>
             <option value="gallery">Gallery</option>
             <option value="contact">Contact</option>
             <option value="cta">Call to Action</option>
@@ -489,8 +490,29 @@
         document.getElementById('sectionType').value = 'hero';
         document.getElementById('sectionLabel').value = '';
         document.getElementById('sectionData').value = '';
+        updateSectionDataPlaceholder('hero');
         coreui.Modal.getOrCreateInstance(document.getElementById('sectionModal')).show();
       });
+
+      document.getElementById('sectionType').addEventListener('change', function(){
+        updateSectionDataPlaceholder(this.value);
+      });
+
+      function updateSectionDataPlaceholder(type){
+        const ta = document.getElementById('sectionData');
+        const templates = {
+          richtext: JSON.stringify({title:'عنوان القسم',icon:'📋',body:'الفقرة الأولى...\n\n**عنوان فرعي**\nمزيد من التفاصيل هنا.'}, null, 2),
+          hero: JSON.stringify({title:'...',subtitle:'...',description:'...',buttonText:'ابدأ',buttonLink:'/'}, null, 2),
+          text: JSON.stringify({title:'...',description:'...'}, null, 2),
+          features: JSON.stringify({title:'...',items:['ميزة 1','ميزة 2']}, null, 2),
+          contact: JSON.stringify({title:'...',email:'info@example.com',description:'...'}, null, 2),
+          cta: JSON.stringify({title:'...',buttonText:'...',buttonLink:'/'}, null, 2),
+          gallery: JSON.stringify({title:'...',items:[]}, null, 2),
+          custom: JSON.stringify({html:''}, null, 2),
+        };
+        if(!ta.value && templates[type]) ta.value = templates[type];
+        ta.placeholder = templates[type] || '{"key":"value"}';
+      }
 
       document.getElementById('saveSectionBtn').addEventListener('click', async () => {
         if (!currentPageId) return;
