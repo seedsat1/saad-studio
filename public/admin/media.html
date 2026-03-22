@@ -1,0 +1,351 @@
+﻿<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <base href="/admin/">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
+    <meta name="description" content="Saad Studio - Media Manager">
+    <title>Saad Studio &#8212; Media</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon/favicon-32x32.png">
+    <meta name="theme-color" content="#ffffff">
+    <link rel="stylesheet" href="vendors/simplebar/css/simplebar.css">
+    <link rel="stylesheet" href="css/vendors/simplebar.css">
+    <link href="css/style.css" rel="stylesheet">
+    <script src="js/config.js"></script>
+    <script src="js/color-modes.js"></script>
+    <style>
+      .media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1rem; }
+      .media-card { position: relative; border-radius: .5rem; overflow: hidden; background: var(--cui-tertiary-bg); aspect-ratio: 1; }
+      .media-card img { width: 100%; height: 100%; object-fit: cover; display: block; transition: opacity .2s; }
+      .media-card:hover img { opacity: .6; }
+      .media-overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .4rem; opacity: 0; transition: opacity .2s; background: rgba(0,0,0,.45); }
+      .media-card:hover .media-overlay { opacity: 1; }
+      .media-overlay .btn { font-size: .78rem; padding: .25rem .6rem; }
+      .media-card .media-name { position: absolute; bottom: 0; left: 0; right: 0; padding: .25rem .5rem; background: rgba(0,0,0,.65); color: #fff; font-size: .7rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .empty-state { text-align: center; padding: 3rem 1rem; opacity: .6; }
+      .toast-container { position: fixed; top: 1rem; right: 1rem; z-index: 9999; }
+      .upload-zone { border: 2px dashed var(--cui-border-color); border-radius: .5rem; padding: 2rem; text-align: center; cursor: pointer; transition: border-color .2s, background .2s; }
+      .upload-zone:hover, .upload-zone.dragover { border-color: var(--cui-primary); background: rgba(var(--cui-primary-rgb), .06); }
+      .upload-zone input[type=file] { display: none; }
+      .preview-area { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1rem; }
+      .preview-item { position: relative; width: 100px; height: 100px; border-radius: .375rem; overflow: hidden; }
+      .preview-item img { width: 100%; height: 100%; object-fit: cover; }
+      .preview-item .remove-preview { position: absolute; top: 2px; right: 2px; background: rgba(0,0,0,.7); color: #fff; border: none; border-radius: 50%; width: 20px; height: 20px; font-size: 12px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+      .upload-progress { height: 4px; margin-top: .5rem; }
+    </style>
+  </head>
+  <body>
+    <!-- SIDEBAR -->
+    <div class="sidebar sidebar-dark sidebar-fixed border-end" id="sidebar">
+      <div class="sidebar-header border-bottom">
+        <div class="sidebar-brand">
+          <span class="sidebar-brand-full fw-semibold fs-5 text-white">Saad Studio</span>
+          <span class="sidebar-brand-narrow fw-bold text-white">SS</span>
+        </div>
+        <button class="btn-close d-lg-none" type="button" data-coreui-theme="dark" aria-label="Close" onclick="coreui.Sidebar.getInstance(document.querySelector('#sidebar')).toggle()"></button>
+      </div>
+      <ul class="sidebar-nav" data-coreui="navigation" data-simplebar="">
+        <li class="nav-item"><a class="nav-link" href="index.html">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-speedometer"></use></svg> Dashboard</a></li>
+        <li class="nav-item"><a class="nav-link" href="users.html">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-people"></use></svg> Users</a></li>
+        <li class="nav-item"><a class="nav-link" href="orders.html">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-cart"></use></svg> Orders</a></li>
+        <li class="nav-item"><a class="nav-link" href="#pages">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-file"></use></svg> Pages</a></li>
+        <li class="nav-item"><a class="nav-link active" href="media.html">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-image"></use></svg> Media</a></li>
+        <li class="nav-item"><a class="nav-link" href="ads.html">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-bullhorn"></use></svg> Ads</a></li>
+        <li class="nav-item"><a class="nav-link" href="#settings">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-settings"></use></svg> Settings</a></li>
+      </ul>
+      <div class="sidebar-footer border-top d-none d-md-flex">
+        <button class="sidebar-toggler" type="button" data-coreui-toggle="unfoldable"></button>
+      </div>
+    </div>
+
+    <!-- MAIN WRAPPER -->
+    <div class="wrapper d-flex flex-column min-vh-100">
+      <header class="header header-sticky p-0 mb-4">
+        <div class="container-fluid border-bottom px-4">
+          <button class="header-toggler" type="button" onclick="coreui.Sidebar.getInstance(document.querySelector('#sidebar')).toggle()" style="margin-inline-start: -14px;">
+            <svg class="icon icon-lg"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-menu"></use></svg>
+          </button>
+          <ul class="header-nav d-none d-lg-flex">
+            <li class="nav-item"><a class="nav-link" href="index.html">Dashboard</a></li>
+            <li class="nav-item"><a class="nav-link" href="media.html">Media</a></li>
+          </ul>
+          <ul class="header-nav ms-auto">
+            <li class="nav-item"><a class="nav-link" href="#">
+                <svg class="icon icon-lg"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-bell"></use></svg></a></li>
+          </ul>
+          <ul class="header-nav">
+            <li class="nav-item py-1"><div class="vr h-100 mx-2 text-body text-opacity-75"></div></li>
+            <li class="nav-item dropdown">
+              <button class="btn btn-link nav-link py-2 px-2 d-flex align-items-center" type="button" aria-expanded="false" data-coreui-toggle="dropdown">
+                <svg class="icon icon-lg theme-icon-active"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-contrast"></use></svg>
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end" style="--cui-dropdown-min-width: 8rem;">
+                <li><button class="dropdown-item d-flex align-items-center" type="button" data-coreui-theme-value="light">
+                    <svg class="icon icon-lg me-3"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-sun"></use></svg>Light</button></li>
+                <li><button class="dropdown-item d-flex align-items-center" type="button" data-coreui-theme-value="dark">
+                    <svg class="icon icon-lg me-3"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-moon"></use></svg>Dark</button></li>
+                <li><button class="dropdown-item d-flex align-items-center active" type="button" data-coreui-theme-value="auto">
+                    <svg class="icon icon-lg me-3"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-contrast"></use></svg>Auto</button></li>
+              </ul>
+            </li>
+            <li class="nav-item py-1"><div class="vr h-100 mx-2 text-body text-opacity-75"></div></li>
+            <li class="nav-item dropdown"><a class="nav-link py-0 pe-0" data-coreui-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">
+                <div class="avatar avatar-md bg-primary text-white d-flex align-items-center justify-content-center rounded-circle" style="width:36px;height:36px;font-size:14px;">A</div></a>
+              <div class="dropdown-menu dropdown-menu-end pt-0">
+                <div class="dropdown-header bg-body-tertiary text-body-secondary fw-semibold rounded-top mb-2">Account</div>
+                <a class="dropdown-item" href="#settings"><svg class="icon me-2"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-settings"></use></svg> Settings</a>
+                <div class="dropdown-divider"></div>
+                <a class="dropdown-item" href="#" id="logoutBtn"><svg class="icon me-2"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-account-logout"></use></svg> Logout</a>
+              </div>
+            </li>
+          </ul>
+        </div>
+        <div class="container-fluid px-4">
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb my-0">
+              <li class="breadcrumb-item"><a href="index.html">Home</a></li>
+              <li class="breadcrumb-item active"><span>Media</span></li>
+            </ol>
+          </nav>
+        </div>
+      </header>
+
+      <!-- MAIN CONTENT -->
+      <div class="body flex-grow-1">
+        <div class="container-lg px-4">
+
+          <!-- Upload Card -->
+          <div class="card mb-4">
+            <div class="card-header"><strong>Upload Images</strong></div>
+            <div class="card-body">
+              <div class="upload-zone" id="uploadZone">
+                <input type="file" id="fileInput" accept="image/jpeg,image/png,image/gif,image/webp,image/avif,image/svg+xml" multiple>
+                <svg class="icon icon-xl text-body-secondary mb-2" style="width:48px;height:48px"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-cloud-upload"></use></svg>
+                <p class="mb-0 text-body-secondary">Drag &amp; drop images here or <strong class="text-primary">click to browse</strong></p>
+                <small class="text-body-tertiary">JPEG, PNG, GIF, WebP, AVIF, SVG &bull; Max 10 MB each</small>
+              </div>
+              <div class="preview-area" id="previewArea"></div>
+              <div class="progress upload-progress d-none" id="uploadProgress">
+                <div class="progress-bar progress-bar-striped progress-bar-animated" id="uploadBar" style="width:0%"></div>
+              </div>
+              <button class="btn btn-primary mt-3 d-none" id="uploadBtn">Upload Selected</button>
+            </div>
+          </div>
+
+          <!-- Gallery Card -->
+          <div class="card mb-4">
+            <div class="card-header d-flex align-items-center justify-content-between">
+              <strong>Media Library</strong>
+              <span class="text-body-secondary small" id="mediaCount">...</span>
+            </div>
+            <div class="card-body">
+              <div id="loadingState" class="text-center py-4">
+                <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div> Loading media...
+              </div>
+              <div class="media-grid d-none" id="mediaGrid"></div>
+              <div class="empty-state d-none" id="emptyState">No images uploaded yet</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <footer class="footer px-4"><div>Saad Studio &copy; 2025</div></footer>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast-container">
+      <div class="toast align-items-center text-bg-success border-0" id="toastOk" role="alert">
+        <div class="d-flex"><div class="toast-body" id="toastMsg"></div>
+          <button type="button" class="btn-close btn-close-white me-2 m-auto" data-coreui-dismiss="toast"></button>
+        </div>
+      </div>
+    </div>
+
+    <script src="vendors/@coreui/coreui/js/coreui.bundle.min.js"></script>
+    <script src="vendors/simplebar/js/simplebar.min.js"></script>
+    <script>
+    (function(){
+      let csrfToken = '';
+      let pendingFiles = [];
+
+      const header = document.querySelector('header.header');
+      document.addEventListener('scroll', () => {
+        if (header) header.classList.toggle('shadow-sm', document.documentElement.scrollTop > 0);
+      });
+
+      async function apiFetch(path, opts = {}) {
+        const headers = { 'x-csrf-token': csrfToken, ...opts.headers };
+        const r = await fetch(path, { ...opts, headers, credentials: 'same-origin' });
+        if (r.status === 401) { window.location.href = '/'; return null; }
+        return r;
+      }
+
+      function showToast(msg, type) {
+        const el = document.getElementById('toastOk');
+        el.className = 'toast align-items-center border-0 text-bg-' + (type || 'success');
+        document.getElementById('toastMsg').textContent = msg;
+        coreui.Toast.getOrCreateInstance(el).show();
+      }
+
+      function escHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+      // --- Init ---
+      async function init() {
+        try {
+          const r = await fetch('/api/admin/session', { credentials: 'same-origin' });
+          if (!r.ok) { window.location.href = '/'; return; }
+          const data = await r.json();
+          csrfToken = data.csrfToken;
+          await loadMedia();
+        } catch (e) {
+          document.getElementById('loadingState').innerHTML = '<span class="text-danger">Failed to connect: ' + escHtml(e.message) + '</span>';
+        }
+      }
+
+      // --- Load Media ---
+      async function loadMedia() {
+        document.getElementById('loadingState').classList.remove('d-none');
+        document.getElementById('mediaGrid').classList.add('d-none');
+        document.getElementById('emptyState').classList.add('d-none');
+
+        const r = await apiFetch('/api/admin/media');
+        if (!r) return;
+        const data = await r.json();
+        const files = data.files || [];
+
+        document.getElementById('loadingState').classList.add('d-none');
+
+        if (!files.length) {
+          document.getElementById('emptyState').classList.remove('d-none');
+          document.getElementById('mediaCount').textContent = '0 images';
+          return;
+        }
+
+        document.getElementById('mediaCount').textContent = files.length + ' image' + (files.length > 1 ? 's' : '');
+        const grid = document.getElementById('mediaGrid');
+        grid.classList.remove('d-none');
+        grid.innerHTML = files.map(f =>
+          '<div class="media-card">' +
+            '<img src="' + escHtml(f.url) + '" alt="' + escHtml(f.name) + '" loading="lazy">' +
+            '<div class="media-overlay">' +
+              '<button class="btn btn-sm btn-light" onclick="app.copyUrl(\'' + escHtml(f.url.replace(/'/g, "\\'")) + '\')">Copy URL</button>' +
+              '<button class="btn btn-sm btn-danger" onclick="app.deleteFile(\'' + escHtml(f.name.replace(/'/g, "\\'")) + '\')">Delete</button>' +
+            '</div>' +
+            '<div class="media-name">' + escHtml(f.name) + '</div>' +
+          '</div>'
+        ).join('');
+      }
+
+      // --- Upload Zone ---
+      const zone = document.getElementById('uploadZone');
+      const fileInput = document.getElementById('fileInput');
+      const previewArea = document.getElementById('previewArea');
+      const uploadBtn = document.getElementById('uploadBtn');
+
+      zone.addEventListener('click', () => fileInput.click());
+      zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
+      zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+      zone.addEventListener('drop', e => {
+        e.preventDefault(); zone.classList.remove('dragover');
+        addFiles(e.dataTransfer.files);
+      });
+      fileInput.addEventListener('change', () => { addFiles(fileInput.files); fileInput.value = ''; });
+
+      function addFiles(fileList) {
+        for (const f of fileList) {
+          if (!f.type.startsWith('image/')) continue;
+          if (f.size > 10 * 1024 * 1024) { showToast(f.name + ' is too large (max 10 MB)', 'danger'); continue; }
+          pendingFiles.push(f);
+        }
+        renderPreviews();
+      }
+
+      function renderPreviews() {
+        previewArea.innerHTML = '';
+        if (!pendingFiles.length) { uploadBtn.classList.add('d-none'); return; }
+        uploadBtn.classList.remove('d-none');
+        pendingFiles.forEach((f, i) => {
+          const div = document.createElement('div');
+          div.className = 'preview-item';
+          const img = document.createElement('img');
+          img.src = URL.createObjectURL(f);
+          img.onload = () => URL.revokeObjectURL(img.src);
+          div.appendChild(img);
+          const btn = document.createElement('button');
+          btn.className = 'remove-preview';
+          btn.textContent = '\u00d7';
+          btn.onclick = () => { pendingFiles.splice(i, 1); renderPreviews(); };
+          div.appendChild(btn);
+          previewArea.appendChild(div);
+        });
+      }
+
+      // --- Upload ---
+      uploadBtn.addEventListener('click', async () => {
+        if (!pendingFiles.length) return;
+        uploadBtn.disabled = true;
+        const progressWrap = document.getElementById('uploadProgress');
+        const bar = document.getElementById('uploadBar');
+        progressWrap.classList.remove('d-none');
+
+        let done = 0;
+        const total = pendingFiles.length;
+        let errors = 0;
+
+        for (const f of [...pendingFiles]) {
+          const fd = new FormData();
+          fd.append('file', f);
+          try {
+            const r = await apiFetch('/api/admin/media/upload', { method: 'POST', body: fd });
+            if (!r || !r.ok) errors++;
+          } catch { errors++; }
+          done++;
+          bar.style.width = Math.round((done / total) * 100) + '%';
+        }
+
+        pendingFiles = [];
+        previewArea.innerHTML = '';
+        uploadBtn.classList.add('d-none');
+        progressWrap.classList.add('d-none');
+        bar.style.width = '0%';
+        uploadBtn.disabled = false;
+
+        if (errors) showToast((total - errors) + ' uploaded, ' + errors + ' failed', 'warning');
+        else showToast(total + ' image' + (total > 1 ? 's' : '') + ' uploaded', 'success');
+
+        await loadMedia();
+      });
+
+      // --- Copy URL ---
+      function copyUrl(url) {
+        navigator.clipboard.writeText(url).then(
+          () => showToast('URL copied to clipboard', 'success'),
+          () => { showToast('Copy failed', 'danger'); }
+        );
+      }
+
+      // --- Delete ---
+      async function deleteFile(name) {
+        if (!confirm('Delete "' + name + '"? This cannot be undone.')) return;
+        try {
+          const r = await apiFetch('/api/admin/media/' + encodeURIComponent(name), { method: 'DELETE' });
+          if (!r) return;
+          if (r.ok) { showToast('Deleted', 'success'); await loadMedia(); }
+          else { const d = await r.json(); showToast(d.error || 'Delete failed', 'danger'); }
+        } catch (e) { showToast('Error: ' + e.message, 'danger'); }
+      }
+
+      window.app = { copyUrl, deleteFile };
+      init();
+    })();
+    </script>
+  </body>
+</html>

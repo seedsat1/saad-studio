@@ -1,0 +1,427 @@
+﻿<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <base href="/admin/">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
+    <meta name="description" content="Saad Studio - Ads Manager">
+    <title>Saad Studio &#8212; Ads</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon/favicon-32x32.png">
+    <meta name="theme-color" content="#ffffff">
+    <link rel="stylesheet" href="vendors/simplebar/css/simplebar.css">
+    <link rel="stylesheet" href="css/vendors/simplebar.css">
+    <link href="css/style.css" rel="stylesheet">
+    <script src="js/config.js"></script>
+    <script src="js/color-modes.js"></script>
+    <style>
+      .table-actions .btn { padding: .2rem .5rem; font-size: .78rem; }
+      .empty-state { text-align: center; padding: 3rem 1rem; opacity: .6; }
+      .toast-container { position: fixed; top: 1rem; right: 1rem; z-index: 9999; }
+      .ad-thumb { width: 60px; height: 40px; object-fit: cover; border-radius: .25rem; background: var(--cui-tertiary-bg); }
+      .form-check-input.toggle-active { width: 2.5em; }
+      .media-picker-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: .5rem; max-height: 300px; overflow-y: auto; }
+      .media-picker-item { aspect-ratio: 1; border-radius: .375rem; overflow: hidden; cursor: pointer; border: 2px solid transparent; transition: border-color .15s; }
+      .media-picker-item:hover, .media-picker-item.selected { border-color: var(--cui-primary); }
+      .media-picker-item img { width: 100%; height: 100%; object-fit: cover; }
+      .img-preview-sm { max-width: 120px; max-height: 80px; border-radius: .375rem; }
+    </style>
+  </head>
+  <body>
+    <!-- SIDEBAR -->
+    <div class="sidebar sidebar-dark sidebar-fixed border-end" id="sidebar">
+      <div class="sidebar-header border-bottom">
+        <div class="sidebar-brand">
+          <span class="sidebar-brand-full fw-semibold fs-5 text-white">Saad Studio</span>
+          <span class="sidebar-brand-narrow fw-bold text-white">SS</span>
+        </div>
+        <button class="btn-close d-lg-none" type="button" data-coreui-theme="dark" aria-label="Close" onclick="coreui.Sidebar.getInstance(document.querySelector('#sidebar')).toggle()"></button>
+      </div>
+      <ul class="sidebar-nav" data-coreui="navigation" data-simplebar="">
+        <li class="nav-item"><a class="nav-link" href="index.html">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-speedometer"></use></svg> Dashboard</a></li>
+        <li class="nav-item"><a class="nav-link" href="users.html">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-people"></use></svg> Users</a></li>
+        <li class="nav-item"><a class="nav-link" href="orders.html">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-cart"></use></svg> Orders</a></li>
+        <li class="nav-item"><a class="nav-link" href="#pages">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-file"></use></svg> Pages</a></li>
+        <li class="nav-item"><a class="nav-link" href="media.html">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-image"></use></svg> Media</a></li>
+        <li class="nav-item"><a class="nav-link active" href="ads.html">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-bullhorn"></use></svg> Ads</a></li>
+        <li class="nav-item"><a class="nav-link" href="#settings">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-settings"></use></svg> Settings</a></li>
+      </ul>
+      <div class="sidebar-footer border-top d-none d-md-flex">
+        <button class="sidebar-toggler" type="button" data-coreui-toggle="unfoldable"></button>
+      </div>
+    </div>
+
+    <!-- MAIN WRAPPER -->
+    <div class="wrapper d-flex flex-column min-vh-100">
+      <header class="header header-sticky p-0 mb-4">
+        <div class="container-fluid border-bottom px-4">
+          <button class="header-toggler" type="button" onclick="coreui.Sidebar.getInstance(document.querySelector('#sidebar')).toggle()" style="margin-inline-start: -14px;">
+            <svg class="icon icon-lg"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-menu"></use></svg>
+          </button>
+          <ul class="header-nav d-none d-lg-flex">
+            <li class="nav-item"><a class="nav-link" href="index.html">Dashboard</a></li>
+            <li class="nav-item"><a class="nav-link" href="ads.html">Ads</a></li>
+          </ul>
+          <ul class="header-nav ms-auto">
+            <li class="nav-item"><a class="nav-link" href="#">
+                <svg class="icon icon-lg"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-bell"></use></svg></a></li>
+          </ul>
+          <ul class="header-nav">
+            <li class="nav-item py-1"><div class="vr h-100 mx-2 text-body text-opacity-75"></div></li>
+            <li class="nav-item dropdown">
+              <button class="btn btn-link nav-link py-2 px-2 d-flex align-items-center" type="button" aria-expanded="false" data-coreui-toggle="dropdown">
+                <svg class="icon icon-lg theme-icon-active"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-contrast"></use></svg>
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end" style="--cui-dropdown-min-width: 8rem;">
+                <li><button class="dropdown-item d-flex align-items-center" type="button" data-coreui-theme-value="light">
+                    <svg class="icon icon-lg me-3"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-sun"></use></svg>Light</button></li>
+                <li><button class="dropdown-item d-flex align-items-center" type="button" data-coreui-theme-value="dark">
+                    <svg class="icon icon-lg me-3"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-moon"></use></svg>Dark</button></li>
+                <li><button class="dropdown-item d-flex align-items-center active" type="button" data-coreui-theme-value="auto">
+                    <svg class="icon icon-lg me-3"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-contrast"></use></svg>Auto</button></li>
+              </ul>
+            </li>
+            <li class="nav-item py-1"><div class="vr h-100 mx-2 text-body text-opacity-75"></div></li>
+            <li class="nav-item dropdown"><a class="nav-link py-0 pe-0" data-coreui-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">
+                <div class="avatar avatar-md bg-primary text-white d-flex align-items-center justify-content-center rounded-circle" style="width:36px;height:36px;font-size:14px;">A</div></a>
+              <div class="dropdown-menu dropdown-menu-end pt-0">
+                <div class="dropdown-header bg-body-tertiary text-body-secondary fw-semibold rounded-top mb-2">Account</div>
+                <a class="dropdown-item" href="#settings"><svg class="icon me-2"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-settings"></use></svg> Settings</a>
+                <div class="dropdown-divider"></div>
+                <a class="dropdown-item" href="#" id="logoutBtn"><svg class="icon me-2"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-account-logout"></use></svg> Logout</a>
+              </div>
+            </li>
+          </ul>
+        </div>
+        <div class="container-fluid px-4">
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb my-0">
+              <li class="breadcrumb-item"><a href="index.html">Home</a></li>
+              <li class="breadcrumb-item active"><span>Ads</span></li>
+            </ol>
+          </nav>
+        </div>
+      </header>
+
+      <!-- MAIN CONTENT -->
+      <div class="body flex-grow-1">
+        <div class="container-lg px-4">
+          <div class="card mb-4">
+            <div class="card-header d-flex align-items-center justify-content-between">
+              <strong>Ads Management</strong>
+              <button class="btn btn-sm btn-primary" id="addAdBtn">+ New Ad</button>
+            </div>
+            <div class="card-body">
+              <div id="loadingState" class="text-center py-4">
+                <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div> Loading ads...
+              </div>
+              <div class="table-responsive d-none" id="tableWrap">
+                <table class="table table-hover table-striped align-middle mb-0">
+                  <thead>
+                    <tr>
+                      <th style="width:70px">Image</th>
+                      <th>Title</th>
+                      <th class="text-center">Type</th>
+                      <th>Link</th>
+                      <th class="text-center">Active</th>
+                      <th>Created</th>
+                      <th class="text-end">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="adsBody"></tbody>
+                </table>
+              </div>
+              <div class="empty-state d-none" id="emptyState">No ads yet. Click "+ New Ad" to create one.</div>
+            </div>
+            <div class="card-footer small text-body-secondary" id="adCount">...</div>
+          </div>
+        </div>
+      </div>
+
+      <footer class="footer px-4"><div>Saad Studio &copy; 2025</div></footer>
+    </div>
+
+    <!-- Ad Modal (Create / Edit) -->
+    <div class="modal fade" id="adModal" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title" id="adModalTitle">New Ad</h5><button type="button" class="btn-close" data-coreui-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">Title <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" id="adTitle" maxlength="200">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Type <span class="text-danger">*</span></label>
+            <select class="form-select" id="adType">
+              <option value="banner">Banner</option>
+              <option value="popup">Popup</option>
+              <option value="hero">Hero</option>
+            </select>
+          </div>
+          <div class="col-12">
+            <label class="form-label">Link (URL)</label>
+            <input type="url" class="form-control" id="adLink" placeholder="https://...">
+          </div>
+          <div class="col-12">
+            <label class="form-label">Image</label>
+            <div class="d-flex align-items-center gap-3 mb-2">
+              <input type="text" class="form-control form-control-sm" id="adImageUrl" placeholder="Image URL (or pick from media below)">
+              <img id="adImagePreview" class="img-preview-sm d-none" alt="preview">
+            </div>
+            <button class="btn btn-sm btn-outline-secondary mb-2" type="button" id="toggleMediaPicker">Pick from Media Library</button>
+            <div class="media-picker-grid d-none" id="mediaPickerGrid">
+              <div class="text-center text-body-secondary small py-3" id="mediaPickerLoading">Loading media...</div>
+            </div>
+          </div>
+          <div class="col-12">
+            <div class="form-check form-switch">
+              <input class="form-check-input toggle-active" type="checkbox" id="adActive" checked>
+              <label class="form-check-label" for="adActive">Active</label>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-coreui-dismiss="modal">Cancel</button>
+        <button class="btn btn-primary" id="adSaveBtn">Save</button>
+      </div>
+    </div></div></div>
+
+    <!-- Toast -->
+    <div class="toast-container">
+      <div class="toast align-items-center text-bg-success border-0" id="toastOk" role="alert">
+        <div class="d-flex"><div class="toast-body" id="toastMsg"></div>
+          <button type="button" class="btn-close btn-close-white me-2 m-auto" data-coreui-dismiss="toast"></button>
+        </div>
+      </div>
+    </div>
+
+    <script src="vendors/@coreui/coreui/js/coreui.bundle.min.js"></script>
+    <script src="vendors/simplebar/js/simplebar.min.js"></script>
+    <script>
+    (function(){
+      let csrfToken = '';
+      let allAds = [];
+      let editingId = null;
+      let mediaFiles = null; // cached
+
+      const header = document.querySelector('header.header');
+      document.addEventListener('scroll', () => {
+        if (header) header.classList.toggle('shadow-sm', document.documentElement.scrollTop > 0);
+      });
+
+      async function apiFetch(path, opts = {}) {
+        const headers = { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken, ...opts.headers };
+        const r = await fetch(path, { ...opts, headers, credentials: 'same-origin' });
+        if (r.status === 401) { window.location.href = '/'; return null; }
+        return r;
+      }
+
+      function showToast(msg, type) {
+        const el = document.getElementById('toastOk');
+        el.className = 'toast align-items-center border-0 text-bg-' + (type || 'success');
+        document.getElementById('toastMsg').textContent = msg;
+        coreui.Toast.getOrCreateInstance(el).show();
+      }
+
+      function escHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+      // --- Init ---
+      async function init() {
+        try {
+          const r = await fetch('/api/admin/session', { credentials: 'same-origin' });
+          if (!r.ok) { window.location.href = '/'; return; }
+          const data = await r.json();
+          csrfToken = data.csrfToken;
+          await loadAds();
+        } catch (e) {
+          document.getElementById('loadingState').innerHTML = '<span class="text-danger">Failed to connect: ' + escHtml(e.message) + '</span>';
+        }
+      }
+
+      // --- Load Ads ---
+      async function loadAds() {
+        document.getElementById('loadingState').classList.remove('d-none');
+        document.getElementById('tableWrap').classList.add('d-none');
+        document.getElementById('emptyState').classList.add('d-none');
+
+        const r = await apiFetch('/api/admin/ads');
+        if (!r) return;
+        const data = await r.json();
+        allAds = data.ads || [];
+
+        document.getElementById('loadingState').classList.add('d-none');
+
+        if (!allAds.length) {
+          document.getElementById('emptyState').classList.remove('d-none');
+          document.getElementById('adCount').textContent = '0 ads';
+          return;
+        }
+
+        document.getElementById('adCount').textContent = allAds.length + ' ad' + (allAds.length > 1 ? 's' : '');
+        document.getElementById('tableWrap').classList.remove('d-none');
+        renderAds();
+      }
+
+      function renderAds() {
+        const tbody = document.getElementById('adsBody');
+        tbody.innerHTML = allAds.map(a => {
+          const typeBg = a.type === 'hero' ? 'bg-warning text-dark' : a.type === 'popup' ? 'bg-info text-white' : 'bg-secondary';
+          const created = a.created_at ? new Date(a.created_at).toLocaleDateString() : '-';
+          const thumb = a.image_url ? '<img src="' + escHtml(a.image_url) + '" class="ad-thumb" loading="lazy">' : '<div class="ad-thumb d-flex align-items-center justify-content-center text-body-tertiary" style="font-size:10px">No img</div>';
+          return '<tr>' +
+            '<td>' + thumb + '</td>' +
+            '<td class="fw-semibold">' + escHtml(a.title) + '</td>' +
+            '<td class="text-center"><span class="badge ' + typeBg + ' text-capitalize">' + escHtml(a.type) + '</span></td>' +
+            '<td><small class="text-truncate d-inline-block" style="max-width:180px">' + escHtml(a.link || '-') + '</small></td>' +
+            '<td class="text-center"><div class="form-check form-switch d-flex justify-content-center mb-0">' +
+              '<input class="form-check-input toggle-active" type="checkbox" ' + (a.is_active ? 'checked' : '') + ' onchange="app.toggleActive(\'' + a.id + '\', this.checked)">' +
+            '</div></td>' +
+            '<td>' + created + '</td>' +
+            '<td class="text-end table-actions">' +
+              '<button class="btn btn-sm btn-outline-primary me-1" onclick="app.editAd(\'' + a.id + '\')">Edit</button>' +
+              '<button class="btn btn-sm btn-outline-danger" onclick="app.deleteAd(\'' + a.id + '\')">Delete</button>' +
+            '</td></tr>';
+        }).join('');
+      }
+
+      // --- Toggle Active ---
+      async function toggleActive(id, active) {
+        const r = await apiFetch('/api/admin/ads/' + encodeURIComponent(id), {
+          method: 'PUT', body: JSON.stringify({ is_active: active })
+        });
+        if (!r) return;
+        if (r.ok) showToast(active ? 'Ad activated' : 'Ad deactivated', 'success');
+        else showToast('Failed to update', 'danger');
+        await loadAds();
+      }
+
+      // --- Delete ---
+      async function deleteAd(id) {
+        if (!confirm('Delete this ad permanently?')) return;
+        const r = await apiFetch('/api/admin/ads/' + encodeURIComponent(id), { method: 'DELETE' });
+        if (!r) return;
+        if (r.ok) { showToast('Ad deleted', 'success'); await loadAds(); }
+        else showToast('Failed to delete', 'danger');
+      }
+
+      // --- Modal: New / Edit ---
+      const modal = () => coreui.Modal.getOrCreateInstance(document.getElementById('adModal'));
+
+      document.getElementById('addAdBtn').addEventListener('click', () => {
+        editingId = null;
+        document.getElementById('adModalTitle').textContent = 'New Ad';
+        document.getElementById('adTitle').value = '';
+        document.getElementById('adType').value = 'banner';
+        document.getElementById('adLink').value = '';
+        document.getElementById('adImageUrl').value = '';
+        document.getElementById('adActive').checked = true;
+        hidePreview();
+        modal().show();
+      });
+
+      function editAd(id) {
+        const ad = allAds.find(a => a.id === id);
+        if (!ad) return;
+        editingId = id;
+        document.getElementById('adModalTitle').textContent = 'Edit Ad';
+        document.getElementById('adTitle').value = ad.title || '';
+        document.getElementById('adType').value = ad.type || 'banner';
+        document.getElementById('adLink').value = ad.link || '';
+        document.getElementById('adImageUrl').value = ad.image_url || '';
+        document.getElementById('adActive').checked = !!ad.is_active;
+        updatePreview(ad.image_url);
+        modal().show();
+      }
+
+      // --- Save ---
+      document.getElementById('adSaveBtn').addEventListener('click', async function() {
+        const title = document.getElementById('adTitle').value.trim();
+        const type = document.getElementById('adType').value;
+        const link = document.getElementById('adLink').value.trim();
+        const image_url = document.getElementById('adImageUrl').value.trim();
+        const is_active = document.getElementById('adActive').checked;
+        if (!title) { showToast('Title is required', 'danger'); return; }
+        this.disabled = true;
+        try {
+          let r;
+          if (editingId) {
+            r = await apiFetch('/api/admin/ads/' + encodeURIComponent(editingId), {
+              method: 'PUT', body: JSON.stringify({ title, type, link, image_url, is_active })
+            });
+          } else {
+            r = await apiFetch('/api/admin/ads', {
+              method: 'POST', body: JSON.stringify({ title, type, link, image_url, is_active })
+            });
+          }
+          if (!r) { this.disabled = false; return; }
+          const data = await r.json();
+          if (r.ok) {
+            showToast(editingId ? 'Ad updated' : 'Ad created', 'success');
+            modal().hide();
+            await loadAds();
+          } else {
+            showToast(data.error || 'Failed', 'danger');
+          }
+        } catch (e) { showToast('Error: ' + e.message, 'danger'); }
+        this.disabled = false;
+      });
+
+      // --- Image Preview ---
+      const imgUrlInput = document.getElementById('adImageUrl');
+      const imgPreview = document.getElementById('adImagePreview');
+
+      imgUrlInput.addEventListener('input', () => updatePreview(imgUrlInput.value));
+
+      function updatePreview(url) {
+        if (url) { imgPreview.src = url; imgPreview.classList.remove('d-none'); }
+        else hidePreview();
+      }
+      function hidePreview() { imgPreview.classList.add('d-none'); imgPreview.src = ''; }
+      imgPreview.addEventListener('error', hidePreview);
+
+      // --- Media Picker ---
+      const pickerGrid = document.getElementById('mediaPickerGrid');
+      document.getElementById('toggleMediaPicker').addEventListener('click', async () => {
+        if (!pickerGrid.classList.contains('d-none')) { pickerGrid.classList.add('d-none'); return; }
+        pickerGrid.classList.remove('d-none');
+        if (mediaFiles !== null) return renderPicker();
+        pickerGrid.innerHTML = '<div class="text-center text-body-secondary small py-3">Loading media...</div>';
+        const r = await apiFetch('/api/admin/media');
+        if (!r) return;
+        const data = await r.json();
+        mediaFiles = data.files || [];
+        renderPicker();
+      });
+
+      function renderPicker() {
+        if (!mediaFiles.length) { pickerGrid.innerHTML = '<div class="text-center text-body-secondary small py-3">No media uploaded</div>'; return; }
+        pickerGrid.innerHTML = mediaFiles.map(f =>
+          '<div class="media-picker-item" data-url="' + escHtml(f.url) + '">' +
+            '<img src="' + escHtml(f.url) + '" loading="lazy" alt="' + escHtml(f.name) + '">' +
+          '</div>'
+        ).join('');
+        pickerGrid.querySelectorAll('.media-picker-item').forEach(el => {
+          el.addEventListener('click', () => {
+            pickerGrid.querySelectorAll('.selected').forEach(s => s.classList.remove('selected'));
+            el.classList.add('selected');
+            const url = el.dataset.url;
+            imgUrlInput.value = url;
+            updatePreview(url);
+          });
+        });
+      }
+
+      window.app = { toggleActive, deleteAd, editAd };
+      init();
+    })();
+    </script>
+  </body>
+</html>

@@ -8,6 +8,7 @@ const FormData = require('form-data');
 const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
 const axios = require('axios');
+const { createClient: createSupabaseClient } = require('@supabase/supabase-js');
 
 function loadEnvFile() {
   const envPath = path.join(__dirname, '.env');
@@ -72,7 +73,21 @@ const KIE_CODEX_BASE_URL = 'https://api.kie.ai/codex/v1';
 const KIE_UPLOAD_BASE_URL = 'https://kieai.redpandaai.co';
 const SUPABASE_URL = process.env.SUPABASE_URL || '';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || '';
-const REQUIRE_AUTH = String(process.env.REQUIRE_AUTH || '').toLowerCase() === 'true';
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+
+// ─── SUPABASE CLIENTS ─────────────────────────────────────────────────────────
+// supabase  — anon key, used for auth sign-in / sign-up (safe for user-facing ops)
+// supabaseAdmin — service role key, used for profiles table + admin auth operations
+const supabase = (SUPABASE_URL && SUPABASE_ANON_KEY)
+  ? createSupabaseClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: { autoRefreshToken: false, persistSession: false }
+    })
+  : null;
+const supabaseAdmin = (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY)
+  ? createSupabaseClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+      auth: { autoRefreshToken: false, persistSession: false }
+    })
+  : null;
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
 const KIE_GPT_FALLBACKS = (process.env.KIE_GPT_FALLBACKS || 'gpt-5-2,gpt-5-4,gpt-4.1,gpt-4o-mini')
   .split(',')
@@ -334,7 +349,7 @@ app.use((req, res, next) => {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Access-Control-Allow-Credentials', 'true');
     res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization,x-user-token,x-csrf-token');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization,x-csrf-token');
   }
   if (req.method === 'OPTIONS') return res.sendStatus(204);
   next();
@@ -364,35 +379,9 @@ app.get('/p/:slug', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'site.html'));
 });
 
-async function verifySupabaseToken(token){
-  if(!SUPABASE_URL || !SUPABASE_ANON_KEY) return false;
-  const r = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      apikey: SUPABASE_ANON_KEY
-    }
-  });
-  return r.ok;
-}
-
-async function requireAuth(req, res, next){
-  // REQUIRE_AUTH bypass removed — always enforce auth
-  const auth = req.headers.authorization || '';
-  const token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
-  if(!token) return res.status(401).json({ error: 'Unauthorized' });
-  try{
-    const ok = await verifySupabaseToken(token);
-    if(!ok) return res.status(401).json({ error: 'Unauthorized' });
-    return next();
-  } catch {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-}
-
-// Replace old requireAuth (which was bypassable with REQUIRE_AUTH=false) with requireSignedIn
-// requireSignedIn is defined later in the file but used by closure at request-time (safe)
 // attachUser MUST run before requireSignedIn so req.currentUser is populated
-app.use(function(req, res, next){ return attachUser(req, res, next); });
+// attachUser is async (Supabase verification) — Express 4 handles this via callback-style next()
+app.use((req, res, next) => { attachUser(req, res, next); });
 app.use('/api/kie', (req, res, next) => requireSignedIn(req, res, next));
 app.use('/api/generate', (req, res, next) => requireSignedIn(req, res, next));
 app.use('/api/google-video', (req, res, next) => requireSignedIn(req, res, next));
@@ -588,7 +577,7 @@ app.post('/api/generate', async (req, res) => {
       }
     }
     // Deduct credits (1 per Gemini call)
-    if (!deductCreditsForGeneration(req, res, 'gemini', {})) return;
+    if (!(await deductCreditsForGeneration(req, res, 'gemini', {}))) return;
 
     const r = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(GEMINI_API_KEY)}`,
@@ -660,7 +649,7 @@ app.post('/api/google-video', async (req, res) => {
     }
     if (String(prompt).length > 2000)
       return res.status(400).json({ error: 'النص طويل جداً' });
-    if (!deductCreditsForGeneration(req, res, 'veo', {})) return;
+    if (!(await deductCreditsForGeneration(req, res, 'veo', {}))) return;
 
     const instance = { prompt: String(prompt).trim() };
     if (imageBase64) {
@@ -757,7 +746,7 @@ app.post('/api/kie-veo/generate', async (req, res) => {
     const { prompt, model = 'veo3_fast', generationType, aspect_ratio = '16:9', imageUrls, seeds, enableTranslation = true } = req.body || {};
     if (!String(prompt || '').trim()) return res.status(400).json({ error: 'prompt is required' });
     if (String(prompt).length > 2000) return res.status(400).json({ error: 'النص طويل جداً' });
-    if (!deductCreditsForGeneration(req, res, 'veo', {})) return;
+    if (!(await deductCreditsForGeneration(req, res, 'veo', {}))) return;
     const body = { prompt: String(prompt).trim(), model, aspect_ratio, enableTranslation };
     if (generationType && generationType !== 'auto') body.generationType = generationType;
     if (imageUrls && imageUrls.length) body.imageUrls = imageUrls;
@@ -1062,7 +1051,7 @@ app.post('/api/kie/kling/create', async (req, res) => {
     if (String(negativePrompt || '').length > 500)
       return res.status(400).json({ error: 'النص السلبي طويل جداً' });
     // Deduct credits server-side
-    if (!deductCreditsForGeneration(req, res, modelName, { duration: Number(duration)||5, mode: generationMode, audio: sound, resolution: String(modelName).includes('/motion-control') ? (generationMode === 'pro' ? '1080p' : '720p') : '720p' })) return;
+    if (!(await deductCreditsForGeneration(req, res, modelName, { duration: Number(duration)||5, mode: generationMode, audio: sound, resolution: String(modelName).includes('/motion-control') ? (generationMode === 'pro' ? '1080p' : '720p') : '720p' }))) return;
 
     const input = {};
     if (String(modelName).startsWith('kling/ai-avatar')) {
@@ -1173,7 +1162,7 @@ app.post('/api/kie/image/create', async (req, res) => {
     }
     if (String(input?.prompt || '').length > 2000)
       return res.status(400).json({ error: 'النص طويل جداً' });
-    if (!deductCreditsForGeneration(req, res, String(model), {})) return;
+    if (!(await deductCreditsForGeneration(req, res, String(model), {}))) return;
 
     const data = await kieFetch('/jobs/createTask', {
       method: 'POST',
@@ -1321,7 +1310,7 @@ app.post('/api/kie/elevenlabs/create', async (req, res) => {
     }
     if (String(input?.text || input?.prompt || '').length > 2000)
       return res.status(400).json({ error: 'النص طويل جداً' });
-    if (!deductCreditsForGeneration(req, res, String(model), { textLength: String(input?.text || input?.prompt || '').length })) return;
+    if (!(await deductCreditsForGeneration(req, res, String(model), { textLength: String(input?.text || input?.prompt || '').length }))) return;
 
     const data = await kieFetch('/jobs/createTask', {
       method: 'POST',
@@ -1433,7 +1422,7 @@ app.post('/api/kie/suno/create', async (req, res) => {
       return res.status(400).json({ error: 'Prompt is required' });
     }
     if (String(prompt).length > 500) return res.status(400).json({ error: 'الوصف طويل جداً' });
-    if (!deductCreditsForGeneration(req, res, 'suno', { sunoModel: model })) return;
+    if (!(await deductCreditsForGeneration(req, res, 'suno', { sunoModel: model }))) return;
 
     const payload = {
       prompt,
@@ -1546,7 +1535,7 @@ app.post('/api/kie/hailuo/create', async (req, res) => {
     if (!checkPlanAccess(req, res, model)) return;
     if (String(input?.prompt || '').length > 2000)
       return res.status(400).json({ error: 'النص طويل جداً' });
-    if (!deductCreditsForGeneration(req, res, String(model), { duration: Number(input?.duration||6), resolution: String(input?.resolution||'720p') })) return;
+    if (!(await deductCreditsForGeneration(req, res, String(model), { duration: Number(input?.duration||6), resolution: String(input?.resolution||'720p') }))) return;
 
     const data = await kieFetch('/jobs/createTask', {
       method: 'POST',
@@ -1631,7 +1620,7 @@ app.post('/api/kie/gpt54/create', async (req, res) => {
     }
     if (String(prompt).length > 8000)
       return res.status(400).json({ error: 'النص طويل جداً' });
-    if (!deductCreditsForGeneration(req, res, String(model || 'gpt-5-2'), {})) return;
+    if (!(await deductCreditsForGeneration(req, res, String(model || 'gpt-5-2'), {}))) return;
 
     const content = [{ type: 'input_text', text: prompt }];
     if (imageUrl) {
@@ -1811,7 +1800,7 @@ app.post('/api/kie/sora/create', async (req, res) => {
     const { model = 'sora-2-text-to-video', input = {} } = req.body || {};
     if (String(input?.prompt || '').length > 2000)
       return res.status(400).json({ error: 'النص طويل جداً' });
-    if (!deductCreditsForGeneration(req, res, String(model), { duration: Number(input?.duration||5) })) return;
+    if (!(await deductCreditsForGeneration(req, res, String(model), { duration: Number(input?.duration||5) }))) return;
     const soraPayload = { model, input };
     const data = await kieFetch('/jobs/createTask', {
       method: 'POST',
@@ -1891,7 +1880,7 @@ app.post('/api/kie/grok/create', async (req, res) => {
     const { model = 'grok-imagine/text-to-video', input = {} } = req.body || {};
     if (String(input?.prompt || '').length > 2000)
       return res.status(400).json({ error: 'النص طويل جداً' });
-    if (!deductCreditsForGeneration(req, res, String(model), {})) return;
+    if (!(await deductCreditsForGeneration(req, res, String(model), {}))) return;
     const payload = { model, input };
     const data = await kieFetch('/jobs/createTask', {
       method: 'POST',
@@ -1952,7 +1941,7 @@ app.post('/api/kie/infinitalk/create', async (req, res) => {
       return res.status(400).json({ error: 'model is required' });
     }
     if (!checkPlanAccess(req, res, model)) return;
-    if (!deductCreditsForGeneration(req, res, String(model), {})) return;
+    if (!(await deductCreditsForGeneration(req, res, String(model), {}))) return;
 
     const data = await kieFetch('/jobs/createTask', {
       method: 'POST',
@@ -2037,7 +2026,7 @@ app.post('/api/kie/qwen2/create', async (req, res) => {
     }
     if (String(input?.prompt || '').length > 2000)
       return res.status(400).json({ error: 'النص طويل جداً' });
-    if (!deductCreditsForGeneration(req, res, String(model), {})) return;
+    if (!(await deductCreditsForGeneration(req, res, String(model), {}))) return;
 
     const data = await kieFetch('/jobs/createTask', {
       method: 'POST',
@@ -2131,7 +2120,7 @@ app.post('/api/kie/ideogram/create', async (req, res) => {
     if (!String(input.image_size || '').trim()) {
       return res.status(400).json({ error: 'image_size is required' });
     }
-    if (!deductCreditsForGeneration(req, res, String(model), {})) return;
+    if (!(await deductCreditsForGeneration(req, res, String(model), {}))) return;
 
     const data = await kieFetch('/jobs/createTask', {
       method: 'POST',
@@ -2216,7 +2205,7 @@ app.post('/api/kie/zimage/create', async (req, res) => {
     }
     if (String(input?.prompt || '').length > 2000)
       return res.status(400).json({ error: 'النص طويل جداً' });
-    if (!deductCreditsForGeneration(req, res, String(model), {})) return;
+    if (!(await deductCreditsForGeneration(req, res, String(model), {}))) return;
 
     const data = await kieFetch('/jobs/createTask', {
       method: 'POST',
@@ -2301,7 +2290,7 @@ app.post('/api/kie/seedream/create', async (req, res) => {
     }
     if (String(input?.prompt || '').length > 2000)
       return res.status(400).json({ error: 'النص طويل جداً' });
-    if (!deductCreditsForGeneration(req, res, String(model), {})) return;
+    if (!(await deductCreditsForGeneration(req, res, String(model), {}))) return;
 
     const data = await kieFetch('/jobs/createTask', {
       method: 'POST',
@@ -2387,7 +2376,7 @@ app.post('/api/kie/seedance/create', async (req, res) => {
     if (!checkPlanAccess(req, res, model)) return;
     if (String(input?.prompt || '').length > 2000)
       return res.status(400).json({ error: 'النص طويل جداً' });
-    if (!deductCreditsForGeneration(req, res, String(model), { duration: Number(input?.duration||5), resolution: String(input?.resolution||'720p') })) return;
+    if (!(await deductCreditsForGeneration(req, res, String(model), { duration: Number(input?.duration||5), resolution: String(input?.resolution||'720p') }))) return;
 
     const data = await kieFetch('/jobs/createTask', {
       method: 'POST',
@@ -2473,7 +2462,7 @@ app.post('/api/kie/wan/create', async (req, res) => {
     if (!checkPlanAccess(req, res, model)) return;
     if (String(input?.prompt || '').length > 2000)
       return res.status(400).json({ error: 'النص طويل جداً' });
-    if (!deductCreditsForGeneration(req, res, String(model), { duration: Number(input?.duration||5), resolution: String(input?.resolution||'720p') })) return;
+    if (!(await deductCreditsForGeneration(req, res, String(model), { duration: Number(input?.duration||5), resolution: String(input?.resolution||'720p') }))) return;
 
     const data = await kieFetch('/jobs/createTask', {
       method: 'POST',
@@ -2558,7 +2547,7 @@ app.post('/api/kie/flux2/create', async (req, res) => {
     }
     if (String(input?.prompt || '').length > 2000)
       return res.status(400).json({ error: 'النص طويل جداً' });
-    if (!deductCreditsForGeneration(req, res, String(model), {})) return;
+    if (!(await deductCreditsForGeneration(req, res, String(model), {}))) return;
 
     const data = await kieFetch('/jobs/createTask', {
       method: 'POST',
@@ -2643,7 +2632,7 @@ app.post('/api/kie/flux-kontext/create', async (req, res) => {
     }
     if (String(payload.prompt || '').length > 2000)
       return res.status(400).json({ error: 'النص طويل جداً' });
-    if (!deductCreditsForGeneration(req, res, 'flux-kontext', {})) return;
+    if (!(await deductCreditsForGeneration(req, res, 'flux-kontext', {}))) return;
 
     const data = await kieFetch('/flux/kontext/generate', {
       method: 'POST',
@@ -2763,7 +2752,6 @@ function isAllowedUpload(file, allowedMimes) {
 }
 
 // â•â•â• USER AUTH SYSTEM â•â•â•
-const USERS_FILE = path.join(VAULT_DIR, 'users.json');
 const USAGE_FILE  = path.join(VAULT_DIR, 'usage.json');
 const PLANS = {
   starter: { price: 0,  credits: 0,    nanoBananaFree: true, label: 'Starter (مجاني)' },
@@ -2784,40 +2772,12 @@ function checkPlanAccess(req, res, modelName, generationMode) {
 }
 
 // â”€â”€â”€ Secure password hashing (PBKDF2 with per-user salt, v2) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-const HASH_ITERATIONS = 100000;
-const HASH_KEYLEN     = 64;
-const HASH_DIGEST     = 'sha512';
-
-function hashPasswordV2(pw, salt) {
-  return crypto.pbkdf2Sync(String(pw), String(salt), HASH_ITERATIONS, HASH_KEYLEN, HASH_DIGEST).toString('hex');
-}
-function hashPasswordLegacy(pw) {
-  // kept only for migration verification â€” do NOT use for new accounts
-  return crypto.createHash('sha256').update(String(pw) + 'saad-salt-2026').digest('hex');
-}
-// Timing-safe string comparison via HMAC
+// Timing-safe string comparison via HMAC (kept for CSRF validation)
 function timingSafeEqual(a, b) {
   const key = Buffer.alloc(32);
   const hA  = crypto.createHmac('sha256', key).update(String(a)).digest();
   const hB  = crypto.createHmac('sha256', key).update(String(b)).digest();
   return crypto.timingSafeEqual(hA, hB);
-}
-function verifyAndMaybeUpgradePassword(user, plaintext) {
-  if (user.hashVersion === 2) {
-    const expected = hashPasswordV2(plaintext, user.salt);
-    return timingSafeEqual(expected, user.passwordHash);
-  }
-  // Legacy SHA-256 â€” verify and upgrade in-place
-  const legacyHash = hashPasswordLegacy(plaintext);
-  if (!timingSafeEqual(legacyHash, user.passwordHash)) return false;
-  // Upgrade to v2
-  const newSalt = crypto.randomBytes(32).toString('hex');
-  updateUser(user.id, {
-    passwordHash: hashPasswordV2(plaintext, newSalt),
-    salt: newSalt,
-    hashVersion: 2
-  });
-  return true;
 }
 // â”€â”€â”€ Server-side credit cost calculator (mirrors frontend calcCreditCost) â”€â”€â”€â”€
 function serverCalcCreditCost(model, params = {}) {
@@ -2910,56 +2870,165 @@ function isSubscriptionActive(user) {
   return new Date().toISOString() <= user.subscriptionEndDate;
 }
 
-// Attempt to deduct credits for a generation; returns true on success, sends error response and returns false on failure.
-// On success, sets req.creditInfo = { creditsUsed, remainingCredits } for inclusion in the endpoint response.
-function deductCreditsForGeneration(req, res, model, params) {
-  if (!req.currentUser) {
-    res.status(401).json({ error: 'يجب تسجيل الدخول لاستخدام هذه الميزة' });
-    return false;
-  }
-  // Subscription check — starter users with free gift credits can use them
-  // Paid plan users must have active subscription
-  const isStarter = (req.currentUser.plan || 'starter') === 'starter';
-  if (!isStarter && !isSubscriptionActive(req.currentUser)) {
-    res.status(403).json({ error: 'الاشتراك منتهي — يرجى تجديد الخطة', code: 'subscription_expired' });
-    return false;
-  }
-  const cost    = applyProfitMargin(serverCalcCreditCost(model, params));
-  // Daily/monthly usage limits check
-  const limCheck = checkUsageLimits(req.currentUser, model, cost);
-  if (limCheck.exceeded) {
-    res.status(429).json({ error: `تجاوزت الحد المسموح لك (الحد الـ${limCheck.period === 'daily' ? 'يومي' : 'شهري'} لـ${limCheck.field}: ${limCheck.limit})`, code: 'limit_exceeded' });
-    return false;
-  }
-  const current = req.currentUser.credits ?? 0;
-  if (current < cost) {
-    res.status(402).json({ error: 'رصيد غير كافٍ', credits: current, required: cost });
-    return false;
-  }
-  const updated = updateUser(req.currentUser.id, { credits: current - cost });
-  if (updated) req.currentUser = updated;
-  req.creditInfo = { creditsUsed: cost, remainingCredits: req.currentUser.credits ?? (current - cost) };
-  // Track usage after successful deduction
-  trackUsage(req.currentUser.id, model, cost);
-  return true;
+// ═══ SUPABASE AUTH HELPERS ═══════════════════════════════════════════════════
+// All user data lives in Supabase: auth.users (credentials) + public.profiles (app data)
+// No local users.json — Supabase is the single source of truth.
+
+/**
+ * Load a user profile from public.profiles by Supabase auth UID.
+ * Returns the profile row or null.
+ */
+async function getProfile(userId) {
+  if (!supabaseAdmin) return null;
+  const { data, error } = await supabaseAdmin
+    .from('profiles')
+    .select('*')
+    .eq('id', userId)
+    .single();
+  if (error || !data) return null;
+  return data;
 }
-// Middleware: require authenticated user or 401
+
+/**
+ * Update fields on a profile row. Returns updated row or null.
+ */
+async function updateProfile(userId, changes) {
+  if (!supabaseAdmin) return null;
+  const { data, error } = await supabaseAdmin
+    .from('profiles')
+    .update({ ...changes, updated_at: new Date().toISOString() })
+    .eq('id', userId)
+    .select()
+    .single();
+  if (error) { console.error('[updateProfile]', error.message); return null; }
+  return data;
+}
+
+/**
+ * Middleware: extract Supabase access_token from cookie or Authorization header,
+ * verify it with supabaseAdmin.auth.getUser(), load profile, attach to req.
+ *
+ * Sets: req.user (Supabase auth user), req.profile (public.profiles row),
+ *       req.currentUser (alias for req.profile — backward compat for existing code)
+ */
+async function attachUser(req, res, next) {
+  req.user = null;
+  req.profile = null;
+  req.currentUser = null;
+
+  // 1. Extract token — prefer HttpOnly cookie, fall back to header
+  const cookieToken = req.cookies && req.cookies.sb_access_token;
+  const headerAuth = req.headers['authorization'] || '';
+  const token = cookieToken || (headerAuth.startsWith('Bearer ') ? headerAuth.slice(7) : '') || '';
+
+  if (!token || !supabaseAdmin) return next();
+
+  try {
+    // 2. Verify token with Supabase Auth (server-side, service role)
+    const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
+    if (error || !user) return next();
+
+    // 3. Load profile from public.profiles
+    let profile = await getProfile(user.id);
+
+    // 4. Auto-create profile if missing (edge case: trigger didn't fire)
+    if (!profile) {
+      const { data: newP } = await supabaseAdmin
+        .from('profiles')
+        .insert({
+          id: user.id,
+          email: user.email,
+          credits: 100,
+          is_admin: false
+        })
+        .select()
+        .single();
+      profile = newP;
+    }
+
+    if (!profile) return next();
+
+    // 5. Map profile fields to the shape existing code expects
+    req.user = user;                            // Supabase auth user
+    req.profile = profile;                      // raw profile row
+    req.currentUser = {                         // backward-compat shape
+      id:                    profile.id,
+      email:                 profile.email,
+      credits:               profile.credits        ?? 0,
+      plan:                  profile.plan            || 'starter',
+      maxCredits:            profile.max_credits     ?? 0,
+      isAdmin:               profile.is_admin        === true,
+      nanoBananaFree:        profile.nano_banana_free !== false,
+      renewDate:             profile.renew_date      || null,
+      subscriptionStartDate: profile.subscription_start_date || null,
+      subscriptionEndDate:   profile.subscription_end_date   || null,
+      pendingPlan:           profile.pending_plan    || null,
+      createdAt:             profile.created_at,
+    };
+  } catch (err) {
+    console.error('[attachUser]', err.message);
+  }
+  next();
+}
+
+/**
+ * Middleware: require authenticated user or 401.
+ */
 function requireSignedIn(req, res, next) {
   if (!req.currentUser) {
     if (req.method !== 'GET' && req.method !== 'HEAD') {
-      auditLog('auth.rejected', 'path="' + (req.path || '').slice(0,100) + '"', req);
+      auditLog('auth.rejected', 'path="' + (req.path || '').slice(0, 100) + '"', req);
     }
     return res.status(401).json({ error: 'يجب تسجيل الدخول' });
   }
   next();
 }
 
-function hashPassword(pw){ return hashPasswordLegacy(pw); } // legacy alias â€” kept for backwards compat of existing data
-function genToken(){ return crypto.randomBytes(32).toString('hex'); }
-function loadUsers(){
-  try{ return JSON.parse(fs.readFileSync(USERS_FILE,'utf8')); } catch{ return { users:[] }; }
+/**
+ * Async credit deduction — reads from Supabase, deducts, writes back.
+ * Returns true on success (sets req.creditInfo), false on failure (sends HTTP error).
+ */
+async function deductCreditsForGeneration(req, res, model, params) {
+  if (!req.currentUser) {
+    res.status(401).json({ error: 'يجب تسجيل الدخول لاستخدام هذه الميزة' });
+    return false;
+  }
+  // Subscription check
+  const isStarter = (req.currentUser.plan || 'starter') === 'starter';
+  if (!isStarter && !isSubscriptionActive(req.currentUser)) {
+    res.status(403).json({ error: 'الاشتراك منتهي — يرجى تجديد الخطة', code: 'subscription_expired' });
+    return false;
+  }
+  const cost = applyProfitMargin(serverCalcCreditCost(model, params));
+  // Usage limits check (still vault-based for now)
+  const limCheck = checkUsageLimits(req.currentUser, model, cost);
+  if (limCheck.exceeded) {
+    res.status(429).json({ error: `تجاوزت الحد المسموح لك (الحد الـ${limCheck.period === 'daily' ? 'يومي' : 'شهري'} لـ${limCheck.field}: ${limCheck.limit})`, code: 'limit_exceeded' });
+    return false;
+  }
+  // Re-read current credits from Supabase to prevent race conditions
+  const freshProfile = await getProfile(req.currentUser.id);
+  const current = freshProfile?.credits ?? 0;
+  if (current < cost) {
+    res.status(402).json({ error: 'رصيد غير كافٍ', credits: current, required: cost });
+    return false;
+  }
+  // Atomic decrement via Supabase RPC or update
+  const updated = await updateProfile(req.currentUser.id, { credits: current - cost });
+  if (updated) {
+    req.currentUser.credits = updated.credits;
+    req.profile = updated;
+  }
+  req.creditInfo = { creditsUsed: cost, remainingCredits: updated?.credits ?? (current - cost) };
+  // Track usage (still vault-based)
+  trackUsage(req.currentUser.id, model, cost);
+  return true;
 }
-function saveUsers(db){ fs.writeFileSync(USERS_FILE, JSON.stringify(db, null, 2)); }
+
+function genToken() { return crypto.randomBytes(32).toString('hex'); }
+// ═══ END SUPABASE AUTH HELPERS ═══════════════════════════════════════════════
+
+
 
 
 // ─── USAGE TRACKING ──────────────────────────────────────────────────────────
@@ -3067,234 +3136,225 @@ function checkUsageLimits(user, model, cost) {
   return { exceeded: false };
 }
 // ─── END USAGE TRACKING ───────────────────────────────────────────────────────
-function findUserByEmail(email){ return loadUsers().users.find(u => u.email.toLowerCase() === email.toLowerCase()); }
-function findUserByToken(token){
-  if(!token) return null;
-  return loadUsers().users.find(u => Array.isArray(u.tokens) && u.tokens.includes(token)) || null;
-}
-function updateUser(id, changes){
-  const db = loadUsers();
-  const idx = db.users.findIndex(u => u.id === id);
-  if(idx === -1) return;
-  db.users[idx] = { ...db.users[idx], ...changes };
-  saveUsers(db);
-  return db.users[idx];
-}
 
-// Check if user plan has expired â€” downgrade to starter if so
-function checkAndExpirePlan(user){
-  if(!user || !user.renewDate || user.plan === 'starter') return user;
-  const today = new Date().toISOString().split('T')[0];
-  if(today > user.renewDate){
-    const starterInfo = PLANS.starter;
-    const changes = {
-      plan: 'starter',
-      maxCredits: starterInfo.credits,
-      nanoBananaFree: starterInfo.nanoBananaFree,
-      renewDate: null
-    };
-    return updateUser(user.id, changes) || { ...user, ...changes };
-  }
-  return user;
-}
 
-// Middleware: attach user to req if valid token
-function attachUser(req, res, next){
-  const auth = req.headers['x-user-token'] || req.headers.authorization || '';
-  const token = auth.startsWith('Bearer ') ? auth.slice(7) : auth;
-  let user = findUserByToken(token) || null;
-  if(user) user = checkAndExpirePlan(user);
-  req.currentUser = user;
-  next();
-}
-// attachUser already registered above (via app.use at middleware setup)
 
-// POST /api/auth/register
-app.post('/api/auth/register', loginLimiter, (req, res) => {
+// POST /api/auth/register — Supabase Auth sign-up + profile creation
+app.post('/api/auth/register', loginLimiter, async (req, res) => {
   try {
+    if (!supabaseAdmin) return res.status(500).json({ error: 'Auth service not configured' });
     const { email, password } = req.body || {};
-    if(!email || !password) return res.status(400).json({ error: 'البريد وكلمة المرور مطلوبان' });
-    // Input validation
+    if (!email || !password) return res.status(400).json({ error: 'البريد وكلمة المرور مطلوبان' });
     if (String(email).length > 254) return res.status(400).json({ error: 'البريد الإلكتروني طويل جداً' });
-    if (String(password).length < 12) return res.status(400).json({ error: 'كلمة المرور يجب أن تكون 12 حرفاً على الأقل' });
+    if (String(password).length < 8) return res.status(400).json({ error: 'كلمة المرور يجب أن تكون 8 أحرف على الأقل' });
     if (String(password).length > 128) return res.status(400).json({ error: 'كلمة المرور طويلة جداً' });
     if (!String(email).match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) return res.status(400).json({ error: 'البريد الإلكتروني غير صالح' });
-    // All new users start on starter — must request plan upgrade (admin approval required)
-    const chosenPlan = 'starter';
-    const FREE_GIFT_CREDITS = 0;
-    const db = loadUsers();
-    if(db.users.find(u => u.email.toLowerCase() === email.toLowerCase()))
-      return res.status(409).json({ error: 'البريد الإلكتروني مستخدم بالفعل' });
-    const now = new Date();
-    const newSalt = crypto.randomBytes(32).toString('hex');
-    const user = {
-      id: crypto.randomBytes(12).toString('hex'),
+
+    // Create user in Supabase Auth
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email: email.toLowerCase().trim(),
-      passwordHash: hashPasswordV2(password, newSalt),
-      salt: newSalt,
-      hashVersion: 2,
-      plan: chosenPlan,
-      credits: 0,
-      maxCredits: 0,
-      isAdmin: false,
+      password,
+      email_confirm: true  // auto-confirm for now
+    });
+    if (authError) {
+      if (authError.message.includes('already been registered') || authError.message.includes('duplicate'))
+        return res.status(409).json({ error: 'البريد الإلكتروني مستخدم بالفعل' });
+      return res.status(400).json({ error: authError.message });
+    }
+
+    // Sign in to get session tokens
+    const { data: session, error: signInErr } = await supabaseAdmin.auth.admin.generateLink({
+      type: 'magiclink', email: email.toLowerCase().trim()
+    });
+    // Generate real session (use anon client for user-facing auth)
+    const { data: signInData, error: loginErr } = await supabase.auth.signInWithPassword({
+      email: email.toLowerCase().trim(), password
+    });
+
+    if (loginErr || !signInData?.session) {
+      // User created but auto-login failed — still return success
+      auditLog('user.register', 'email="' + email + '" plan="starter" credits=100 (auto-login failed)', req);
+      return res.status(201).json({ ok: true, message: 'تم إنشاء الحساب، يرجى تسجيل الدخول' });
+    }
+
+    // Load the profile (auto-created by trigger)
+    const profile = await getProfile(authData.user.id);
+    const safeUser = {
+      id: authData.user.id,
+      email: authData.user.email,
+      credits: profile?.credits ?? 100,
+      plan: profile?.plan || 'starter',
+      maxCredits: profile?.max_credits ?? 0,
+      isAdmin: profile?.is_admin === true,
       nanoBananaFree: true,
-      renewDate: null,
-      tokens: [],
-      createdAt: now.toISOString(),
-      subscriptionStartDate: null,
-      subscriptionEndDate: null,
-      pendingPlan: null
+      role: 'user',
+      createdAt: authData.user.created_at,
     };
-    db.users.push(user);
-    saveUsers(db);
-    const token = genToken();
-    updateUser(user.id, { tokens: [token] });
-    auditLog('user.register', 'email="' + user.email + '" plan="starter" credits=0', req);
-    const { passwordHash, salt, hashVersion, tokens, ...safeUser } = user;
-    res.json({ ok: true, token, user: { ...safeUser, nanoBananaFree: true, role: 'user' } });
-  } catch(e){ res.status(500).json({ error: 'حدث خطأ داخلي' }); }
+
+    // Set HttpOnly cookies
+    const sess = signInData.session;
+    res.cookie('sb_access_token', sess.access_token, {
+      httpOnly: true, secure: IS_PROD, sameSite: 'lax', path: '/', maxAge: sess.expires_in * 1000
+    });
+    res.cookie('sb_refresh_token', sess.refresh_token, {
+      httpOnly: true, secure: IS_PROD, sameSite: 'lax', path: '/', maxAge: 30 * 24 * 60 * 60 * 1000
+    });
+
+    auditLog('user.register', 'email="' + safeUser.email + '" plan="starter" credits=100', req);
+    res.json({ ok: true, user: safeUser });
+  } catch (e) { console.error('[register]', e); res.status(500).json({ error: 'حدث خطأ داخلي' }); }
 });
 
-// POST /api/auth/login — unified login (admin + user)
-app.post('/api/auth/login', loginLimiter, (req, res) => {
+// POST /api/auth/login — unified login (admin + regular users) via Supabase Auth
+app.post('/api/auth/login', loginLimiter, async (req, res) => {
   try {
+    if (!supabase || !supabaseAdmin) return res.status(500).json({ error: 'Auth service not configured' });
     const { email, password } = req.body || {};
-    if(!email || !password) return res.status(400).json({ error: 'البريد وكلمة المرور مطلوبان' });
+    if (!email || !password) return res.status(400).json({ error: 'البريد وكلمة المرور مطلوبان' });
     if (String(email).length > 254 || String(password).length > 128)
       return res.status(400).json({ error: 'بيانات غير صالحة' });
 
-    // 1. Check if credentials match admin env vars (independent of DB)
-    const isAdminCreds = !!(ADMIN_USERNAME && ADMIN_PASSWORD &&
-      timingSafeEqual(String(email), ADMIN_USERNAME) &&
-      timingSafeEqual(String(password), ADMIN_PASSWORD));
+    // Sign in via Supabase Auth (anon client for user-facing auth)
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: String(email).toLowerCase().trim(), password
+    });
+    if (error || !data?.session) {
+      auditLog('user.login.fail', 'email="' + String(email).slice(0, 80) + '"', req);
+      return res.status(401).json({ error: 'بيانات الدخول غير صحيحة' });
+    }
 
-    // 2. Find user in DB
-    let user = findUserByEmail(email);
+    const sess = data.session;
+    const profile = await getProfile(data.user.id);
+    const isAdmin = profile?.is_admin === true;
 
-    // 3. Admin login: env var match takes priority
-    if (isAdminCreds) {
-      if (!user) {
-        // Auto-create admin record in DB
-        const db = loadUsers();
-        const newSalt = crypto.randomBytes(32).toString('hex');
-        user = {
-          id: crypto.randomBytes(12).toString('hex'),
-          email: email.toLowerCase().trim(),
-          passwordHash: hashPasswordV2(password, newSalt),
-          salt: newSalt,
-          hashVersion: 2,
-          plan: 'creator',
-          credits: 99999,
-          maxCredits: 99999,
-          isAdmin: true,
-          nanoBananaFree: true,
-          renewDate: null,
-          tokens: [],
-          createdAt: new Date().toISOString(),
-          subscriptionStartDate: null,
-          subscriptionEndDate: null,
-          pendingPlan: null
-        };
-        db.users.push(user);
-        saveUsers(db);
-      }
-      const token = genToken();
-      const tokens = [...(user.tokens || []).slice(-4), token];
-      updateUser(user.id, { tokens, isAdmin: true });
-      auditLog('user.login.success', 'email="' + String(email).slice(0,80) + '" role=admin', req);
-      const { passwordHash: _ph, salt: _s, hashVersion: _hv, tokens: _tk, ...safeUser } = user;
-      safeUser.isAdmin = true;
-      safeUser.role = 'admin';
-      // Create admin session with cookie + CSRF
+    // Set HttpOnly cookies
+    res.cookie('sb_access_token', sess.access_token, {
+      httpOnly: true, secure: IS_PROD, sameSite: 'lax', path: '/', maxAge: sess.expires_in * 1000
+    });
+    res.cookie('sb_refresh_token', sess.refresh_token, {
+      httpOnly: true, secure: IS_PROD, sameSite: 'lax', path: '/', maxAge: 30 * 24 * 60 * 60 * 1000
+    });
+
+    const safeUser = {
+      id: data.user.id,
+      email: data.user.email,
+      credits: profile?.credits ?? 0,
+      plan: profile?.plan || 'starter',
+      maxCredits: profile?.max_credits ?? 0,
+      isAdmin,
+      nanoBananaFree: profile?.nano_banana_free !== false,
+      role: isAdmin ? 'admin' : 'user',
+      createdAt: data.user.created_at,
+      renewDate: profile?.renew_date || null,
+      subscriptionStartDate: profile?.subscription_start_date || null,
+      subscriptionEndDate: profile?.subscription_end_date || null,
+    };
+
+    // Admin: also create admin session cookie + CSRF
+    if (isAdmin) {
       const sessionId = genToken();
       const csrfToken = genToken();
       const expiry = Date.now() + ADMIN_SESSION_HOURS * 60 * 60 * 1000;
       adminSessions.set(sessionId, { expiry, csrf: csrfToken });
       saveAdminSessions(adminSessions);
       res.cookie('admin_sid', sessionId, {
-        httpOnly: true,
-        secure: IS_PROD,
-        sameSite: 'strict',
-        path: '/',
+        httpOnly: true, secure: IS_PROD, sameSite: 'strict', path: '/',
         maxAge: ADMIN_SESSION_HOURS * 60 * 60 * 1000
       });
-      return res.json({ ok: true, token, user: safeUser, csrfToken });
+      auditLog('user.login.success', 'email="' + String(email).slice(0, 80) + '" role=admin', req);
+      return res.json({ ok: true, user: safeUser, csrfToken });
     }
 
-    // 4. Regular user login — must exist in DB with valid password
-    const dummyHash = hashPasswordLegacy('dummy-timing-prevention');
-    const dummyUser = { passwordHash: dummyHash, hashVersion: 1 };
-    const valid = verifyAndMaybeUpgradePassword(user || dummyUser, password);
-    if (!user || !valid) {
-      auditLog('user.login.fail', 'email="' + String(email).slice(0,80) + '"', req);
-      return res.status(401).json({ error: 'بيانات الدخول غير صحيحة' });
-    }
-    const token = genToken();
-    const tokens = [...(user.tokens || []).slice(-4), token];
-    updateUser(user.id, { tokens, isAdmin: false });
-    auditLog('user.login.success', 'email="' + String(user.email).slice(0,80) + '" role=user', req);
-    const { passwordHash, salt, hashVersion, tokens: _t, ...safeUser } = user;
-    safeUser.isAdmin = false;
-    safeUser.role = 'user';
-    res.json({ ok: true, token, user: safeUser });
-  } catch(e){ res.status(500).json({ error: 'حدث خطأ داخلي' }); }
+    auditLog('user.login.success', 'email="' + String(email).slice(0, 80) + '" role=user', req);
+    res.json({ ok: true, user: safeUser });
+  } catch (e) { console.error('[login]', e); res.status(500).json({ error: 'حدث خطأ داخلي' }); }
 });
 
-// GET /api/auth/me
+// GET /api/auth/me — return current user from Supabase session
 app.get('/api/auth/me', (req, res) => {
-  if(!req.currentUser) return res.status(401).json({ error: 'غير مسجل' });
-  // Never expose password hash, salt, hashVersion, or session tokens
-  const { passwordHash, salt, hashVersion, tokens, ...safeUser } = req.currentUser;
+  if (!req.currentUser) return res.status(401).json({ error: 'غير مسجل' });
+  const safeUser = { ...req.currentUser };
   safeUser.role = safeUser.isAdmin ? 'admin' : 'user';
   res.json({ user: safeUser });
 });
 
-// POST /api/auth/logout
+// POST /api/auth/logout — clear cookies
 app.post('/api/auth/logout', (req, res) => {
-  if(req.currentUser){
-    const auth = req.headers['x-user-token'] || req.headers.authorization || '';
-    const token = auth.startsWith('Bearer ') ? auth.slice(7) : auth;
-    const tokens = (req.currentUser.tokens || []).filter(t => t !== token);
-    updateUser(req.currentUser.id, { tokens });
-    auditLog('user.logout', 'email="' + (req.currentUser.email||'').slice(0,80) + '"', req);
+  if (req.currentUser) {
+    auditLog('user.logout', 'email="' + (req.currentUser.email || '').slice(0, 80) + '"', req);
   }
+  res.clearCookie('sb_access_token', { httpOnly: true, secure: IS_PROD, sameSite: 'lax', path: '/' });
+  res.clearCookie('sb_refresh_token', { httpOnly: true, secure: IS_PROD, sameSite: 'lax', path: '/' });
   res.json({ ok: true });
 });
 
-// POST /api/auth/credits/consume  â€” server-validated credit deduction
-// Client must send {model, params} so server computes the real cost.
-// Sending raw {amount} alone is ignored (cannot be trusted).
-app.post('/api/auth/credits/consume', requireSignedIn, (req, res) => {
+// POST /api/auth/refresh — refresh Supabase session using refresh_token cookie
+app.post('/api/auth/refresh', async (req, res) => {
+  try {
+    const refreshToken = req.cookies && req.cookies.sb_refresh_token;
+    if (!refreshToken || !supabase) return res.status(401).json({ error: 'No refresh token' });
+
+    const { data, error } = await supabase.auth.refreshSession({ refresh_token: refreshToken });
+    if (error || !data?.session) return res.status(401).json({ error: 'Session expired' });
+
+    const sess = data.session;
+    res.cookie('sb_access_token', sess.access_token, {
+      httpOnly: true, secure: IS_PROD, sameSite: 'lax', path: '/', maxAge: sess.expires_in * 1000
+    });
+    res.cookie('sb_refresh_token', sess.refresh_token, {
+      httpOnly: true, secure: IS_PROD, sameSite: 'lax', path: '/', maxAge: 30 * 24 * 60 * 60 * 1000
+    });
+
+    const profile = await getProfile(data.user.id);
+    res.json({
+      ok: true,
+      user: {
+        id: data.user.id,
+        email: data.user.email,
+        credits: profile?.credits ?? 0,
+        plan: profile?.plan || 'starter',
+        maxCredits: profile?.max_credits ?? 0,
+        isAdmin: profile?.is_admin === true,
+        nanoBananaFree: profile?.nano_banana_free !== false,
+        role: profile?.is_admin ? 'admin' : 'user',
+        createdAt: data.user.created_at,
+      }
+    });
+  } catch (e) { res.status(500).json({ error: 'خطأ داخلي' }); }
+});
+
+// POST /api/auth/credits/consume — server-validated credit deduction
+app.post('/api/auth/credits/consume', requireSignedIn, async (req, res) => {
   const { model, params } = req.body || {};
   if (!model) {
-    // No model provided â€” just return current balance without changing it
     return res.json({ ok: true, credits: req.currentUser.credits ?? 0 });
   }
   const cost = applyProfitMargin(serverCalcCreditCost(String(model), params || {}));
   if (cost <= 0) return res.json({ ok: true, credits: req.currentUser.credits ?? 0 });
-  const current = req.currentUser.credits ?? 0;
+  const freshProfile = await getProfile(req.currentUser.id);
+  const current = freshProfile?.credits ?? 0;
   if (current < cost) return res.status(402).json({ error: 'رصيد غير كافِ', credits: current, required: cost });
-  const updated = updateUser(req.currentUser.id, { credits: current - cost });
+  const updated = await updateProfile(req.currentUser.id, { credits: current - cost });
   res.json({ ok: true, credits: updated?.credits ?? (current - cost) });
 });
 
 // GET /api/auth/plans
 app.get('/api/auth/plans', (req, res) => res.json({ plans: PLANS }));
 
-// POST /api/auth/order - user requests a credit top-up OR plan change (pending admin approval)
+// POST /api/auth/order — user requests credit top-up OR plan change (pending admin approval)
 app.post('/api/auth/order', requireSignedIn, (req, res) => {
   // -- Plan-change order --
-  if(req.body?.type === 'plan') {
-    const PLANS = ['starter', 'pro', 'creator'];
+  if (req.body?.type === 'plan') {
+    const PLAN_NAMES = ['starter', 'pro', 'creator'];
     const newPlan = (req.body?.newPlan || '').toLowerCase();
-    if(!PLANS.includes(newPlan)) return res.status(400).json({ error: 'خطة غير صالحة' });
-    if((req.currentUser.plan || 'starter') === newPlan)
+    if (!PLAN_NAMES.includes(newPlan)) return res.status(400).json({ error: 'خطة غير صالحة' });
+    if ((req.currentUser.plan || 'starter') === newPlan)
       return res.status(400).json({ error: 'أنت بالفعل على هذه الخطة' });
     const db = loadOrders();
     const dupe = db.orders.find(o =>
       o.userId === req.currentUser.id && o.type === 'plan' &&
       o.newPlan === newPlan && o.status === 'pending');
-    if(dupe) return res.status(409).json({ error: 'لديك طلب معلّق لتغيير الخطة، انتظر مراجعة المدير' });
+    if (dupe) return res.status(409).json({ error: 'لديك طلب معلّق لتغيير الخطة، انتظر مراجعة المدير' });
     const order = {
       id: crypto.randomBytes(10).toString('hex'),
       userId: req.currentUser.id,
@@ -3302,8 +3362,7 @@ app.post('/api/auth/order', requireSignedIn, (req, res) => {
       type: 'plan',
       currentPlan: req.currentUser.plan || 'starter',
       newPlan,
-      pack: 0,
-      credits: 0,
+      pack: 0, credits: 0,
       status: 'pending',
       createdAt: new Date().toISOString()
     };
@@ -3316,11 +3375,10 @@ app.post('/api/auth/order', requireSignedIn, (req, res) => {
   const PACKS = { 5: 450, 15: 1500, 30: 3200, 50: 5500 };
   const pack = Number(req.body?.pack || 0);
   const credits = PACKS[pack];
-  if(!credits) return res.status(400).json({ error: 'باقة غير صالحة' });
+  if (!credits) return res.status(400).json({ error: 'باقة غير صالحة' });
   const db = loadOrders();
-  // Prevent duplicate pending for same pack
   const dupe = db.orders.find(o => o.userId === req.currentUser.id && o.pack === pack && o.status === 'pending');
-  if(dupe) return res.status(409).json({ error: 'لديك طلب معلّق بنفس الباقة، انتظر مراجعة المدير' });
+  if (dupe) return res.status(409).json({ error: 'لديك طلب معلّق بنفس الباقة، انتظر مراجعة المدير' });
   const order = {
     id: crypto.randomBytes(10).toString('hex'),
     userId: req.currentUser.id,
@@ -3334,6 +3392,8 @@ app.post('/api/auth/order', requireSignedIn, (req, res) => {
   saveOrders(db);
   res.json({ ok: true, orderId: order.id, credits });
 });
+
+
 
 // â•â•â• ADMIN SYSTEM â•â•â•
 let ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '';
@@ -3369,8 +3429,17 @@ if (adminSessions.size >= 0) saveAdminSessions(adminSessions);
 
 const ADMIN_SESSION_HOURS = Math.min(24, Math.max(1, Number(process.env.ADMIN_SESSION_HOURS) || 10));
 
-// ─── Protect dashboard.html: only admin sessions can access it ───
-// dashboard.html lives at project root (NOT in public/) so express.static cannot serve it
+// ─── Protect /admin/ pages: only admin sessions can access ───
+app.use('/admin', (req, res, next) => {
+  const sessionId = (req.cookies && req.cookies.admin_sid) || '';
+  const session = adminSessions.get(sessionId);
+  if (!session || Date.now() > session.expiry) {
+    if (session) { adminSessions.delete(sessionId); saveAdminSessions(adminSessions); }
+    return res.redirect('/');
+  }
+  next();
+});
+
 app.get('/dashboard.html', (req, res) => {
   const sessionId = (req.cookies && req.cookies.admin_sid) || '';
   const session = adminSessions.get(sessionId);
@@ -3378,7 +3447,7 @@ app.get('/dashboard.html', (req, res) => {
     if (session) { adminSessions.delete(sessionId); saveAdminSessions(adminSessions); }
     return res.redirect('/');
   }
-  res.sendFile(path.join(__dirname, 'dashboard.html'));
+  res.redirect('/admin/');
 });
 
 function requireAdmin(req, res, next){
@@ -3445,193 +3514,250 @@ app.post('/api/admin/logout', (req, res) => {
   res.json({ ok: true });
 });
 
-// GET /api/admin/users
-app.get('/api/admin/users', requireAdmin, (req, res) => {
-  const db = loadUsers();
-  const safe = db.users.map(({ passwordHash, tokens, ...u }) => u);
-  res.json({ users: safe });
+
+// GET /api/admin/stats — dashboard statistics
+app.get('/api/admin/stats', requireAdmin, async (req, res) => {
+  try {
+    // Users count + total credits from Supabase profiles
+    const { data: profiles, error: pErr } = await supabaseAdmin
+      .from('profiles')
+      .select('credits');
+    if (pErr) return res.status(500).json({ error: pErr.message });
+    const totalUsers = (profiles || []).length;
+    const totalCredits = (profiles || []).reduce((s, p) => s + (p.credits || 0), 0);
+
+    // Orders from local vault
+    const oDb = loadOrders();
+    const orders = oDb.orders || [];
+    const totalOrders = orders.length;
+    const totalRevenue = orders
+      .filter(o => o.status === 'approved')
+      .reduce((s, o) => s + (o.amount || o.credits || 0), 0);
+
+    res.json({ totalUsers, totalCredits, totalOrders, totalRevenue });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+// GET /api/admin/users — list all profiles from Supabase
+app.get('/api/admin/users', requireAdmin, async (req, res) => {
+  try {
+    const { data, error } = await supabaseAdmin.from('profiles').select('*').order('created_at', { ascending: false });
+    if (error) return res.status(500).json({ error: error.message });
+    const safe = (data || []).map(p => ({
+      id: p.id, email: p.email, credits: p.credits, plan: p.plan || 'starter',
+      maxCredits: p.max_credits || 0, isAdmin: p.is_admin, nanoBananaFree: p.nano_banana_free,
+      renewDate: p.renew_date, subscriptionStartDate: p.subscription_start_date,
+      subscriptionEndDate: p.subscription_end_date, createdAt: p.created_at, pendingPlan: p.pending_plan
+    }));
+    res.json({ users: safe });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// POST /api/admin/users/:id/credits
-app.post('/api/admin/users/:id/credits', requireAdmin, (req, res) => {
+// POST /api/admin/users/:id/credits — add credits to user profile
+app.post('/api/admin/users/:id/credits', requireAdmin, async (req, res) => {
   const n = Number(req.body?.amount || 0);
-  if(!n) return res.status(400).json({ error: 'Invalid amount' });
-  const db = loadUsers();
-  const u = db.users.find(x => x.id === req.params.id);
-  if(!u) return res.status(404).json({ error: 'User not found' });
-  u.credits = (u.credits || 0) + n;
-  const _subNow = new Date().toISOString();
-  u.subscriptionStartDate = _subNow;
-  u.subscriptionEndDate = new Date(Date.now() + 30*24*60*60*1000).toISOString();
-  saveUsers(db);
-  auditLog('admin.user.credits', 'userId="'+req.params.id+'" amount='+n, req);
-  res.json({ ok: true, credits: u.credits });
+  if (!n) return res.status(400).json({ error: 'Invalid amount' });
+  const profile = await getProfile(req.params.id);
+  if (!profile) return res.status(404).json({ error: 'User not found' });
+  const newCredits = (profile.credits || 0) + n;
+  const now = new Date().toISOString();
+  const updated = await updateProfile(req.params.id, {
+    credits: newCredits,
+    subscription_start_date: now,
+    subscription_end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+  });
+  auditLog('admin.user.credits', 'userId="' + req.params.id + '" amount=' + n, req);
+  res.json({ ok: true, credits: updated?.credits ?? newCredits });
 });
 
-// POST /api/admin/users/:id/plan
-app.post('/api/admin/users/:id/plan', requireAdmin, (req, res) => {
+// POST /api/admin/users/:id/plan — change user plan
+app.post('/api/admin/users/:id/plan', requireAdmin, async (req, res) => {
   const { plan } = req.body || {};
-  if(!PLANS[plan]) return res.status(400).json({ error: 'Invalid plan' });
-  const db = loadUsers();
-  const u = db.users.find(x => x.id === req.params.id);
-  if(!u) return res.status(404).json({ error: 'User not found' });
+  if (!PLANS[plan]) return res.status(400).json({ error: 'Invalid plan' });
+  const profile = await getProfile(req.params.id);
+  if (!profile) return res.status(404).json({ error: 'User not found' });
   const planInfo = PLANS[plan];
   const now = new Date();
-  const renewDate = new Date(now);
-  renewDate.setDate(renewDate.getDate() + 30);
-  u.plan = plan;
-  u.nanoBananaFree = planInfo.nanoBananaFree;
-  u.maxCredits = planInfo.credits;
-  u.credits = planInfo.credits;
-  u.renewDate = renewDate.toISOString().split('T')[0];
-  u.subscriptionStartDate = now.toISOString();
-  u.subscriptionEndDate = new Date(now.getTime() + 30*24*60*60*1000).toISOString();
-  u.pendingPlan = null;
-  saveUsers(db);
-  auditLog('admin.user.plan', 'userId="'+req.params.id+'" plan="'+plan+'" credits='+planInfo.credits, req);
-  res.json({ ok: true, user: { id:u.id, email:u.email, plan:u.plan, credits:u.credits, maxCredits:u.maxCredits } });
+  const renewDate = new Date(now); renewDate.setDate(renewDate.getDate() + 30);
+  const updated = await updateProfile(req.params.id, {
+    plan,
+    nano_banana_free: planInfo.nanoBananaFree,
+    max_credits: planInfo.credits,
+    credits: planInfo.credits,
+    renew_date: renewDate.toISOString().split('T')[0],
+    subscription_start_date: now.toISOString(),
+    subscription_end_date: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+    pending_plan: null
+  });
+  auditLog('admin.user.plan', 'userId="' + req.params.id + '" plan="' + plan + '" credits=' + planInfo.credits, req);
+  res.json({ ok: true, user: { id: req.params.id, email: updated?.email, plan, credits: updated?.credits, maxCredits: planInfo.credits } });
 });
 
-// POST /api/admin/users/:id/kick  (clear all tokens = force logout)
-app.post('/api/admin/users/:id/kick', requireAdmin, (req, res) => {
-  const db = loadUsers();
-  const u = db.users.find(x => x.id === req.params.id);
-  if(!u) return res.status(404).json({ error: 'User not found' });
-  u.tokens = [];
-  saveUsers(db);
-  auditLog('admin.user.kick', 'userId="'+req.params.id+'" email="'+(u.email||'')+'"', req);
+// POST /api/admin/users/:id/kick — sign out user by invalidating Supabase sessions
+app.post('/api/admin/users/:id/kick', requireAdmin, async (req, res) => {
+  try {
+    await supabaseAdmin.auth.admin.signOut(req.params.id, 'global');
+  } catch (_) {}
+  auditLog('admin.user.kick', 'userId="' + req.params.id + '"', req);
   res.json({ ok: true });
 });
 
 // GET /api/admin/orders
 app.get('/api/admin/orders', requireAdmin, (req, res) => {
   const db = loadOrders();
-  res.json({ orders: db.orders.slice().reverse() }); // newest first
+  res.json({ orders: db.orders.slice().reverse() });
 });
 
-// POST /api/admin/orders/:id/approve
-app.post('/api/admin/orders/:id/approve', requireAdmin, (req, res) => {
+// POST /api/admin/orders/:id/approve — approve order, update Supabase profile
+app.post('/api/admin/orders/:id/approve', requireAdmin, async (req, res) => {
   const oDb = loadOrders();
   const order = oDb.orders.find(o => o.id === req.params.id);
-  if(!order) return res.status(404).json({ error: 'Order not found' });
-  if(order.status !== 'pending') return res.status(400).json({ error: 'Order is not pending' });
-  const uDb = loadUsers();
-  const u = uDb.users.find(x => x.id === order.userId);
-  if(!u) return res.status(404).json({ error: 'User not found' });
+  if (!order) return res.status(404).json({ error: 'Order not found' });
+  if (order.status !== 'pending') return res.status(400).json({ error: 'Order is not pending' });
+  const profile = await getProfile(order.userId);
+  if (!profile) return res.status(404).json({ error: 'User not found' });
 
-  if(order.type === 'plan') {
-    // Plan-change approval: update user plan, assign credits, activate subscription
+  if (order.type === 'plan') {
     const planInfo = PLANS[order.newPlan] || {};
     const planCredits = planInfo.credits || 0;
     const now = new Date();
     const renewDate = new Date(now); renewDate.setDate(renewDate.getDate() + 30);
-    u.plan = order.newPlan;
-    u.maxCredits = planCredits;
-    u.credits = planCredits;
-    u.nanoBananaFree = planInfo.nanoBananaFree !== false;
-    u.renewDate = renewDate.toISOString().split('T')[0];
-    u.subscriptionStartDate = now.toISOString();
-    u.subscriptionEndDate = new Date(now.getTime() + 30*24*60*60*1000).toISOString();
-    u.pendingPlan = null;
-    saveUsers(uDb);
+    await updateProfile(order.userId, {
+      plan: order.newPlan,
+      max_credits: planCredits,
+      credits: planCredits,
+      nano_banana_free: planInfo.nanoBananaFree !== false,
+      renew_date: renewDate.toISOString().split('T')[0],
+      subscription_start_date: now.toISOString(),
+      subscription_end_date: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      pending_plan: null
+    });
     order.status = 'approved';
     order.approvedAt = now.toISOString();
     saveOrders(oDb);
-    auditLog('admin.order.approve', 'orderId="'+req.params.id+'" type=plan newPlan="'+order.newPlan+'" credits='+planCredits+' userId="'+order.userId+'"', req);
-    return res.json({ ok: true, plan: u.plan, credits: u.credits });
+    auditLog('admin.order.approve', 'orderId="' + req.params.id + '" type=plan newPlan="' + order.newPlan + '"', req);
+    return res.json({ ok: true, plan: order.newPlan, credits: planCredits });
   }
 
   // Credit top-up approval
-  u.credits = (u.credits || 0) + order.credits;
-  const _subNow = new Date().toISOString();
-  u.subscriptionStartDate = _subNow;
-  u.subscriptionEndDate = new Date(Date.now() + 30*24*60*60*1000).toISOString();
-  saveUsers(uDb);
+  const newCredits = (profile.credits || 0) + order.credits;
+  const now = new Date().toISOString();
+  await updateProfile(order.userId, {
+    credits: newCredits,
+    subscription_start_date: now,
+    subscription_end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+  });
   order.status = 'approved';
-  order.approvedAt = new Date().toISOString();
+  order.approvedAt = now;
   saveOrders(oDb);
-  auditLog('admin.order.approve', 'orderId="'+req.params.id+'" type=credits amount='+order.credits+' userId="'+order.userId+'"', req);
-  res.json({ ok: true, credits: u.credits });
+  auditLog('admin.order.approve', 'orderId="' + req.params.id + '" type=credits amount=' + order.credits, req);
+  res.json({ ok: true, credits: newCredits });
 });
 
 // POST /api/admin/orders/:id/reject
 app.post('/api/admin/orders/:id/reject', requireAdmin, (req, res) => {
   const oDb = loadOrders();
   const order = oDb.orders.find(o => o.id === req.params.id);
-  if(!order) return res.status(404).json({ error: 'Order not found' });
+  if (!order) return res.status(404).json({ error: 'Order not found' });
   order.status = 'rejected';
   order.rejectedAt = new Date().toISOString();
   saveOrders(oDb);
-  auditLog('admin.order.reject', 'orderId="'+req.params.id+'" userId="'+order.userId+'"', req);
+  auditLog('admin.order.reject', 'orderId="' + req.params.id + '" userId="' + order.userId + '"', req);
   res.json({ ok: true });
 });
+
 
 // GET /api/config â€” public client config (safe values only)
 app.get('/api/config', (req, res) => res.json({ googleClientId: GOOGLE_CLIENT_ID }));
 
-// POST /api/auth/google â€” verify Google ID token, create/find user
+// POST /api/auth/google -- Google ID token -> Supabase sign-in
 app.post('/api/auth/google', loginLimiter, async (req, res) => {
   try {
-    const { credential, plan: requestedPlan = 'starter' } = req.body || {};
-    if(!credential) return res.status(400).json({ error: 'No credential provided' });
+    if (!supabaseAdmin) return res.status(500).json({ error: 'Auth service not configured' });
+    const { credential } = req.body || {};
+    if (!credential) return res.status(400).json({ error: 'No credential provided' });
 
-    // Verify token via Google tokeninfo endpoint
-    const verifyResp = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(credential)}`);
+    // Verify Google ID token
+    const verifyResp = await fetch('https://oauth2.googleapis.com/tokeninfo?id_token=' + encodeURIComponent(credential));
     const payload = await verifyResp.json();
-    if(!verifyResp.ok || payload.error_description) return res.status(401).json({ error: 'Invalid Google token: ' + (payload.error_description || '') });
-    if (GOOGLE_CLIENT_ID) {
-      if (payload.aud !== GOOGLE_CLIENT_ID) return res.status(401).json({ error: 'Token audience mismatch' });
-    } else if (IS_PROD) {
-      return res.status(500).json({ error: 'Google auth not configured — set GOOGLE_CLIENT_ID' });
-    }
+    if (!verifyResp.ok || payload.error_description)
+      return res.status(401).json({ error: 'Invalid Google token: ' + (payload.error_description || '') });
+    if (GOOGLE_CLIENT_ID && payload.aud !== GOOGLE_CLIENT_ID)
+      return res.status(401).json({ error: 'Token audience mismatch' });
 
     const email = (payload.email || '').toLowerCase().trim();
-    const googleId = payload.sub || '';
-    if(!email) return res.status(400).json({ error: 'No email in Google token' });
+    if (!email) return res.status(400).json({ error: 'No email in Google token' });
 
-    const db = loadUsers();
-    let user = db.users.find(u => u.email.toLowerCase() === email);
-    if(!user){
-      // New user — always starts on starter with 0 credits
-      // Must request plan upgrade (admin approval required)
-      const FREE_GIFT_CREDITS = 0;
-      const now = new Date();
-      user = {
-        id: crypto.randomBytes(12).toString('hex'),
-        email,
-        passwordHash: '',   // no password — Google only
-        googleId,
-        provider: 'google',
-        plan: 'starter',
-        credits: 0,
-        maxCredits: 0,
-        isAdmin: false,
-        nanoBananaFree: true,
-        renewDate: null,
-        tokens: [],
-        createdAt: now.toISOString(),
-        subscriptionStartDate: null,
-        subscriptionEndDate: null,
-        pendingPlan: null
-      };
-      db.users.push(user);
-      saveUsers(db);
-    } else if(!user.googleId) {
-      // Existing email/password account â€“ link Google
-      user.googleId = googleId;
-      user.provider = user.provider || 'email';
-      saveUsers(db);
+    // Check if user exists in Supabase Auth
+    const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
+    const existing = (existingUsers?.users || []).find(u => u.email === email);
+    let userId;
+
+    if (existing) {
+      userId = existing.id;
+    } else {
+      // Create new user in Supabase Auth (random password, Google-only)
+      const randomPw = crypto.randomBytes(32).toString('base64');
+      const { data: newUser, error: createErr } = await supabaseAdmin.auth.admin.createUser({
+        email, password: randomPw, email_confirm: true,
+        user_metadata: { provider: 'google', google_id: payload.sub }
+      });
+      if (createErr) return res.status(500).json({ error: 'Failed to create account' });
+      userId = newUser.user.id;
     }
 
-    const token = genToken();
-    const updated = updateUser(user.id, { tokens: [...(user.tokens||[]).slice(-4), token], isAdmin: false });
-    const { passwordHash, salt, hashVersion, tokens: _t, ...safeUser } = (updated || user);
-    safeUser.isAdmin = false;
-    safeUser.role = 'user';
-    res.json({ ok: true, token, user: safeUser });
-  } catch(e){ res.status(500).json({ error: 'حدث خطأ داخلي' }); }
-});
+    // Generate a session for this user
+    // Use admin API to generate a link then exchange for session, or use signInWithPassword workaround
+    // Best approach: use admin.generateLink to get session
+    const { data: linkData, error: linkErr } = await supabaseAdmin.auth.admin.generateLink({
+      type: 'magiclink', email
+    });
 
+    // Get the token_hash from the link and verify it to create a session
+    if (linkErr || !linkData) {
+      return res.status(500).json({ error: 'Failed to generate session' });
+    }
+
+    const tokenHash = linkData.properties?.hashed_token;
+    if (!tokenHash) {
+      return res.status(500).json({ error: 'Failed to generate session token' });
+    }
+
+    // Verify OTP to get a real session
+    const { data: otpData, error: otpErr } = await supabaseAdmin.auth.verifyOtp({
+      token_hash: tokenHash, type: 'magiclink'
+    });
+
+    if (otpErr || !otpData?.session) {
+      return res.status(500).json({ error: 'Failed to create session' });
+    }
+
+    const sess = otpData.session;
+    const profile = await getProfile(userId);
+
+    // Set HttpOnly cookies
+    res.cookie('sb_access_token', sess.access_token, {
+      httpOnly: true, secure: IS_PROD, sameSite: 'lax', path: '/', maxAge: sess.expires_in * 1000
+    });
+    res.cookie('sb_refresh_token', sess.refresh_token, {
+      httpOnly: true, secure: IS_PROD, sameSite: 'lax', path: '/', maxAge: 30 * 24 * 60 * 60 * 1000
+    });
+
+    const safeUser = {
+      id: userId,
+      email: email,
+      credits: profile?.credits ?? 100,
+      plan: profile?.plan || 'starter',
+      maxCredits: profile?.max_credits ?? 0,
+      isAdmin: profile?.is_admin === true,
+      nanoBananaFree: profile?.nano_banana_free !== false,
+      role: profile?.is_admin ? 'admin' : 'user',
+      createdAt: profile?.created_at || new Date().toISOString(),
+    };
+
+    auditLog('user.login.google', 'email="' + email + '"', req);
+    res.json({ ok: true, user: safeUser });
+  } catch (e) { console.error('[google-auth]', e); res.status(500).json({ error: 'Internal error' }); }
+});
 
 const vaultUpload = multer({ dest: VAULT_DIR, limits:{fileSize:100*1024*1024} });
 
@@ -3836,6 +3962,99 @@ app.post('/api/admin/assets/upload', requireAdmin, uploadLimiter, assetsMemUploa
   res.json({ ok: true, url: '/assets/' + targetPath });
 });
 
+
+// === MEDIA MANAGER (Supabase Storage) ===
+const MEDIA_BUCKET = 'media';
+const MEDIA_ALLOWED = new Set(['image/jpeg','image/png','image/gif','image/webp','image/avif','image/svg+xml']);
+const mediaMemUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10*1024*1024 } });
+
+app.get('/api/admin/media', requireAdmin, async (req, res) => {
+  if (!supabaseAdmin) return res.status(500).json({ error: 'Supabase not configured' });
+  const { data, error } = await supabaseAdmin.storage.from(MEDIA_BUCKET).list('', { limit: 1000, sortBy: { column: 'created_at', order: 'desc' } });
+  if (error) return res.status(500).json({ error: error.message });
+  const files = (data || []).filter(f => f.name && !f.name.endsWith('/')).map(f => {
+    const { data: urlData } = supabaseAdmin.storage.from(MEDIA_BUCKET).getPublicUrl(f.name);
+    return { name: f.name, size: f.metadata?.size || 0, type: f.metadata?.mimetype || '', created: f.created_at, url: urlData?.publicUrl || '' };
+  });
+  res.json({ files });
+});
+
+app.post('/api/admin/media/upload', requireAdmin, uploadLimiter, mediaMemUpload.single('file'), async (req, res) => {
+  if (!supabaseAdmin) return res.status(500).json({ error: 'Supabase not configured' });
+  if (!req.file) return res.status(400).json({ error: 'file required' });
+  if (!MEDIA_ALLOWED.has(req.file.mimetype)) return res.status(400).json({ error: 'File type not allowed' });
+  const ext = path.extname(req.file.originalname) || '.png';
+  const safeName = Date.now() + '_' + crypto.randomBytes(6).toString('hex') + ext;
+  const { error } = await supabaseAdmin.storage.from(MEDIA_BUCKET).upload(safeName, req.file.buffer, { contentType: req.file.mimetype, upsert: false });
+  if (error) return res.status(500).json({ error: error.message });
+  const { data: urlData } = supabaseAdmin.storage.from(MEDIA_BUCKET).getPublicUrl(safeName);
+  auditLog('admin.media.upload', 'file="' + safeName + '"', req);
+  res.json({ ok: true, name: safeName, url: urlData?.publicUrl || '' });
+});
+
+app.delete('/api/admin/media/:name', requireAdmin, async (req, res) => {
+  if (!supabaseAdmin) return res.status(500).json({ error: 'Supabase not configured' });
+  const name = req.params.name;
+  if (!name) return res.status(400).json({ error: 'name required' });
+  const { error } = await supabaseAdmin.storage.from(MEDIA_BUCKET).remove([name]);
+  if (error) return res.status(500).json({ error: error.message });
+  auditLog('admin.media.delete', 'file="' + name + '"', req);
+  res.json({ ok: true });
+});
+
+// === ADS MANAGER (Supabase) ===
+
+app.get('/api/admin/ads', requireAdmin, async (req, res) => {
+  if (!supabaseAdmin) return res.status(500).json({ error: 'Supabase not configured' });
+  const { data, error } = await supabaseAdmin.from('ads').select('*').order('created_at', { ascending: false });
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ ads: data || [] });
+});
+
+app.post('/api/admin/ads', requireAdmin, async (req, res) => {
+  if (!supabaseAdmin) return res.status(500).json({ error: 'Supabase not configured' });
+  const { type, title, image_url, link, is_active } = req.body || {};
+  if (!type || !title) return res.status(400).json({ error: 'type and title are required' });
+  const allowed = ['banner', 'popup', 'hero'];
+  if (!allowed.includes(type)) return res.status(400).json({ error: 'type must be banner, popup, or hero' });
+  const { data, error } = await supabaseAdmin.from('ads').insert({
+    type, title: String(title).slice(0, 200), image_url: String(image_url || '').slice(0, 2000),
+    link: String(link || '').slice(0, 2000), is_active: is_active !== false
+  }).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  auditLog('admin.ad.create', 'id="' + data.id + '" title="' + data.title + '"', req);
+  res.json({ ok: true, ad: data });
+});
+
+app.put('/api/admin/ads/:id', requireAdmin, async (req, res) => {
+  if (!supabaseAdmin) return res.status(500).json({ error: 'Supabase not configured' });
+  const id = req.params.id;
+  const updates = {};
+  const b = req.body || {};
+  if (b.type !== undefined) {
+    const allowed = ['banner', 'popup', 'hero'];
+    if (!allowed.includes(b.type)) return res.status(400).json({ error: 'type must be banner, popup, or hero' });
+    updates.type = b.type;
+  }
+  if (b.title !== undefined) updates.title = String(b.title).slice(0, 200);
+  if (b.image_url !== undefined) updates.image_url = String(b.image_url).slice(0, 2000);
+  if (b.link !== undefined) updates.link = String(b.link).slice(0, 2000);
+  if (b.is_active !== undefined) updates.is_active = !!b.is_active;
+  if (!Object.keys(updates).length) return res.status(400).json({ error: 'No fields to update' });
+  const { data, error } = await supabaseAdmin.from('ads').update(updates).eq('id', id).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  auditLog('admin.ad.update', 'id="' + id + '"', req);
+  res.json({ ok: true, ad: data });
+});
+
+app.delete('/api/admin/ads/:id', requireAdmin, async (req, res) => {
+  if (!supabaseAdmin) return res.status(500).json({ error: 'Supabase not configured' });
+  const id = req.params.id;
+  const { error } = await supabaseAdmin.from('ads').delete().eq('id', id);
+  if (error) return res.status(500).json({ error: error.message });
+  auditLog('admin.ad.delete', 'id="' + id + '"', req);
+  res.json({ ok: true });
+});
 // â•â•â• DIRECT PROMPT â•â•â•
 
 // CMS_SYSTEM_START
@@ -3946,7 +4165,7 @@ app.get('/api/user/dashboard', requireSignedIn, (req, res) => {
   try {
     const u = req.currentUser;
     const usage = getUserUsageData(u.id);
-    const { passwordHash, salt, hashVersion, tokens, ...safeUser } = u;
+    const safeUser = u;
     const isStarter = (u.plan || 'starter') === 'starter';
     const subActive = isSubscriptionActive(u);
     const status = isStarter ? (u.credits > 0 ? 'free' : 'no_credits') : (subActive ? 'active' : 'expired');

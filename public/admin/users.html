@@ -1,0 +1,349 @@
+﻿<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <base href="/admin/">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
+    <meta name="description" content="Saad Studio - Users Management">
+    <title>Saad Studio — Users</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon/favicon-32x32.png">
+    <meta name="theme-color" content="#ffffff">
+    <link rel="stylesheet" href="vendors/simplebar/css/simplebar.css">
+    <link rel="stylesheet" href="css/vendors/simplebar.css">
+    <link href="css/style.css" rel="stylesheet">
+    <script src="js/config.js"></script>
+    <script src="js/color-modes.js"></script>
+    <style>
+      .table-actions .btn { padding: .2rem .5rem; font-size: .78rem; }
+      .badge-plan { text-transform: capitalize; }
+      #userSearch { max-width: 320px; }
+      .empty-state { text-align: center; padding: 3rem 1rem; opacity: .6; }
+      .loading-row td { text-align: center; }
+      .toast-container { position: fixed; top: 1rem; right: 1rem; z-index: 9999; }
+    </style>
+  </head>
+  <body>
+    <!-- SIDEBAR -->
+    <div class="sidebar sidebar-dark sidebar-fixed border-end" id="sidebar">
+      <div class="sidebar-header border-bottom">
+        <div class="sidebar-brand">
+          <span class="sidebar-brand-full fw-semibold fs-5 text-white">Saad Studio</span>
+          <span class="sidebar-brand-narrow fw-bold text-white">SS</span>
+        </div>
+        <button class="btn-close d-lg-none" type="button" data-coreui-theme="dark" aria-label="Close" onclick="coreui.Sidebar.getInstance(document.querySelector('#sidebar')).toggle()"></button>
+      </div>
+      <ul class="sidebar-nav" data-coreui="navigation" data-simplebar="">
+        <li class="nav-item"><a class="nav-link" href="index.html">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-speedometer"></use></svg> Dashboard</a></li>
+        <li class="nav-item"><a class="nav-link active" href="users.html">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-people"></use></svg> Users</a></li>
+        <li class="nav-item"><a class="nav-link" href="orders.html">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-cart"></use></svg> Orders</a></li>
+        <li class="nav-item"><a class="nav-link" href="#pages">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-file"></use></svg> Pages</a></li>
+        <li class="nav-item"><a class="nav-link" href="media.html">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-image"></use></svg> Media</a></li>
+        <li class="nav-item"><a class="nav-link" href="ads.html">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-bullhorn"></use></svg> Ads</a></li>
+        <li class="nav-item"><a class="nav-link" href="#settings">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-settings"></use></svg> Settings</a></li>
+      </ul>
+      <div class="sidebar-footer border-top d-none d-md-flex">
+        <button class="sidebar-toggler" type="button" data-coreui-toggle="unfoldable"></button>
+      </div>
+    </div>
+
+    <!-- MAIN WRAPPER -->
+    <div class="wrapper d-flex flex-column min-vh-100">
+      <header class="header header-sticky p-0 mb-4">
+        <div class="container-fluid border-bottom px-4">
+          <button class="header-toggler" type="button" onclick="coreui.Sidebar.getInstance(document.querySelector('#sidebar')).toggle()" style="margin-inline-start: -14px;">
+            <svg class="icon icon-lg"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-menu"></use></svg>
+          </button>
+          <ul class="header-nav d-none d-lg-flex">
+            <li class="nav-item"><a class="nav-link" href="index.html">Dashboard</a></li>
+            <li class="nav-item"><a class="nav-link" href="users.html">Users</a></li>
+          </ul>
+          <ul class="header-nav ms-auto">
+            <li class="nav-item"><a class="nav-link" href="#">
+                <svg class="icon icon-lg"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-bell"></use></svg></a></li>
+          </ul>
+          <ul class="header-nav">
+            <li class="nav-item py-1"><div class="vr h-100 mx-2 text-body text-opacity-75"></div></li>
+            <li class="nav-item dropdown">
+              <button class="btn btn-link nav-link py-2 px-2 d-flex align-items-center" type="button" aria-expanded="false" data-coreui-toggle="dropdown">
+                <svg class="icon icon-lg theme-icon-active"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-contrast"></use></svg>
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end" style="--cui-dropdown-min-width: 8rem;">
+                <li><button class="dropdown-item d-flex align-items-center" type="button" data-coreui-theme-value="light">
+                    <svg class="icon icon-lg me-3"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-sun"></use></svg>Light</button></li>
+                <li><button class="dropdown-item d-flex align-items-center" type="button" data-coreui-theme-value="dark">
+                    <svg class="icon icon-lg me-3"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-moon"></use></svg>Dark</button></li>
+                <li><button class="dropdown-item d-flex align-items-center active" type="button" data-coreui-theme-value="auto">
+                    <svg class="icon icon-lg me-3"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-contrast"></use></svg>Auto</button></li>
+              </ul>
+            </li>
+            <li class="nav-item py-1"><div class="vr h-100 mx-2 text-body text-opacity-75"></div></li>
+            <li class="nav-item dropdown"><a class="nav-link py-0 pe-0" data-coreui-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">
+                <div class="avatar avatar-md bg-primary text-white d-flex align-items-center justify-content-center rounded-circle" style="width:36px;height:36px;font-size:14px;">A</div></a>
+              <div class="dropdown-menu dropdown-menu-end pt-0">
+                <div class="dropdown-header bg-body-tertiary text-body-secondary fw-semibold rounded-top mb-2">Account</div>
+                <a class="dropdown-item" href="#settings"><svg class="icon me-2"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-settings"></use></svg> Settings</a>
+                <div class="dropdown-divider"></div>
+                <a class="dropdown-item" href="#" id="logoutBtn"><svg class="icon me-2"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-account-logout"></use></svg> Logout</a>
+              </div>
+            </li>
+          </ul>
+        </div>
+        <div class="container-fluid px-4">
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb my-0">
+              <li class="breadcrumb-item"><a href="index.html">Home</a></li>
+              <li class="breadcrumb-item active"><span>Users</span></li>
+            </ol>
+          </nav>
+        </div>
+      </header>
+
+      <!-- MAIN CONTENT -->
+      <div class="body flex-grow-1">
+        <div class="container-lg px-4">
+          <div class="card mb-4">
+            <div class="card-header d-flex align-items-center justify-content-between">
+              <strong>Users Management</strong>
+              <input type="search" class="form-control form-control-sm" id="userSearch" placeholder="Search by email...">
+            </div>
+            <div class="card-body">
+              <div class="table-responsive">
+                <table class="table table-hover table-striped align-middle mb-0" id="usersTable">
+                  <thead>
+                    <tr>
+                      <th>Email</th>
+                      <th class="text-center">Credits</th>
+                      <th class="text-center">Plan</th>
+                      <th class="text-center">Admin</th>
+                      <th>Created</th>
+                      <th class="text-end">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="usersBody">
+                    <tr class="loading-row"><td colspan="6">
+                      <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div> Loading users...
+                    </td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div class="card-footer small text-body-secondary" id="userCount">—</div>
+          </div>
+        </div>
+      </div>
+
+      <footer class="footer px-4"><div>Saad Studio &copy; 2025</div></footer>
+    </div>
+
+    <!-- Add Credits Modal -->
+    <div class="modal fade" id="creditsModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title">Add Credits</h5><button type="button" class="btn-close" data-coreui-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <p class="mb-2">User: <strong id="creditsModalEmail"></strong></p>
+        <label class="form-label" for="creditsAmount">Credits to add</label>
+        <input type="number" class="form-control" id="creditsAmount" min="1" value="100">
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-coreui-dismiss="modal">Cancel</button>
+        <button class="btn btn-primary" id="creditsSubmitBtn">Add Credits</button>
+      </div>
+    </div></div></div>
+
+    <!-- Change Plan Modal -->
+    <div class="modal fade" id="planModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title">Change Plan</h5><button type="button" class="btn-close" data-coreui-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <p class="mb-2">User: <strong id="planModalEmail"></strong></p>
+        <label class="form-label" for="planSelect">New Plan</label>
+        <select class="form-select" id="planSelect">
+          <option value="starter">Starter</option>
+          <option value="pro">Pro</option>
+          <option value="creator">Creator</option>
+        </select>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-coreui-dismiss="modal">Cancel</button>
+        <button class="btn btn-warning" id="planSubmitBtn">Change Plan</button>
+      </div>
+    </div></div></div>
+
+    <!-- Toast -->
+    <div class="toast-container">
+      <div class="toast align-items-center text-bg-success border-0" id="toastOk" role="alert">
+        <div class="d-flex"><div class="toast-body" id="toastMsg"></div>
+          <button type="button" class="btn-close btn-close-white me-2 m-auto" data-coreui-dismiss="toast"></button>
+        </div>
+      </div>
+    </div>
+
+    <script src="vendors/@coreui/coreui/js/coreui.bundle.min.js"></script>
+    <script src="vendors/simplebar/js/simplebar.min.js"></script>
+    <script>
+    (function(){
+      // --- State ---
+      let csrfToken = '';
+      let allUsers = [];
+      let selectedUserId = '';
+
+      const header = document.querySelector('header.header');
+      document.addEventListener('scroll', () => {
+        if (header) header.classList.toggle('shadow-sm', document.documentElement.scrollTop > 0);
+      });
+
+      // --- API helper ---
+      async function apiFetch(path, opts = {}) {
+        const headers = { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken, ...opts.headers };
+        const r = await fetch(path, { ...opts, headers, credentials: 'same-origin' });
+        if (r.status === 401) { window.location.href = '/'; return null; }
+        return r;
+      }
+
+      function showToast(msg, type) {
+        const el = document.getElementById('toastOk');
+        el.className = 'toast align-items-center border-0 text-bg-' + (type || 'success');
+        document.getElementById('toastMsg').textContent = msg;
+        coreui.Toast.getOrCreateInstance(el).show();
+      }
+
+      // --- Init: get CSRF token then load users ---
+      async function init() {
+        try {
+          const r = await fetch('/api/admin/session', { credentials: 'same-origin' });
+          if (!r.ok) { window.location.href = '/'; return; }
+          const data = await r.json();
+          csrfToken = data.csrfToken;
+          await loadUsers();
+        } catch (e) {
+          document.getElementById('usersBody').innerHTML =
+            '<tr><td colspan="6" class="text-danger text-center">Failed to connect: ' + e.message + '</td></tr>';
+        }
+      }
+
+      // --- Load Users ---
+      async function loadUsers() {
+        const r = await apiFetch('/api/admin/users');
+        if (!r) return;
+        const data = await r.json();
+        allUsers = data.users || [];
+        renderUsers(allUsers);
+      }
+
+      function renderUsers(users) {
+        const tbody = document.getElementById('usersBody');
+        if (!users.length) {
+          tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No users found</td></tr>';
+          document.getElementById('userCount').textContent = '0 users';
+          return;
+        }
+        document.getElementById('userCount').textContent = users.length + ' user' + (users.length > 1 ? 's' : '');
+        tbody.innerHTML = users.map(u => {
+          const planBg = u.plan === 'creator' ? 'bg-warning text-dark' : u.plan === 'pro' ? 'bg-info text-white' : 'bg-secondary';
+          const created = u.createdAt ? new Date(u.createdAt).toLocaleDateString() : '—';
+          return '<tr>' +
+            '<td>' + escHtml(u.email || '—') + '</td>' +
+            '<td class="text-center fw-semibold">' + Number(u.credits || 0).toLocaleString() + '</td>' +
+            '<td class="text-center"><span class="badge badge-plan ' + planBg + '">' + escHtml(u.plan || 'starter') + '</span></td>' +
+            '<td class="text-center">' + (u.isAdmin ? '<span class="badge bg-danger">Admin</span>' : '—') + '</td>' +
+            '<td>' + created + '</td>' +
+            '<td class="text-end table-actions">' +
+              '<button class="btn btn-sm btn-outline-primary me-1" onclick="app.openCredits(\'' + u.id + '\',\'' + escAttr(u.email) + '\')" title="Add Credits">+ Credits</button>' +
+              '<button class="btn btn-sm btn-outline-warning me-1" onclick="app.openPlan(\'' + u.id + '\',\'' + escAttr(u.email) + '\',\'' + escAttr(u.plan) + '\')" title="Change Plan">Plan</button>' +
+              '<button class="btn btn-sm btn-outline-danger" onclick="app.kickUser(\'' + u.id + '\',\'' + escAttr(u.email) + '\')" title="Kick User">Kick</button>' +
+            '</td></tr>';
+        }).join('');
+      }
+
+      function escHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+      function escAttr(s) { return String(s || '').replace(/'/g, "\\'").replace(/"/g, '&quot;'); }
+
+      // --- Search ---
+      document.getElementById('userSearch').addEventListener('input', function() {
+        const q = this.value.toLowerCase().trim();
+        if (!q) return renderUsers(allUsers);
+        renderUsers(allUsers.filter(u => (u.email || '').toLowerCase().includes(q)));
+      });
+
+      // --- Add Credits ---
+      function openCredits(userId, email) {
+        selectedUserId = userId;
+        document.getElementById('creditsModalEmail').textContent = email;
+        document.getElementById('creditsAmount').value = 100;
+        coreui.Modal.getOrCreateInstance(document.getElementById('creditsModal')).show();
+      }
+
+      document.getElementById('creditsSubmitBtn').addEventListener('click', async function() {
+        const amount = parseInt(document.getElementById('creditsAmount').value, 10);
+        if (!amount || amount < 1) return;
+        this.disabled = true;
+        try {
+          const r = await apiFetch('/api/admin/users/' + encodeURIComponent(selectedUserId) + '/credits', {
+            method: 'POST', body: JSON.stringify({ amount })
+          });
+          if (!r) return;
+          const data = await r.json();
+          if (r.ok) {
+            showToast('Added ' + amount + ' credits. New balance: ' + (data.credits || 0), 'success');
+            coreui.Modal.getInstance(document.getElementById('creditsModal')).hide();
+            await loadUsers();
+          } else {
+            showToast(data.error || 'Failed', 'danger');
+          }
+        } catch (e) { showToast('Error: ' + e.message, 'danger'); }
+        this.disabled = false;
+      });
+
+      // --- Change Plan ---
+      function openPlan(userId, email, currentPlan) {
+        selectedUserId = userId;
+        document.getElementById('planModalEmail').textContent = email;
+        document.getElementById('planSelect').value = currentPlan || 'starter';
+        coreui.Modal.getOrCreateInstance(document.getElementById('planModal')).show();
+      }
+
+      document.getElementById('planSubmitBtn').addEventListener('click', async function() {
+        const plan = document.getElementById('planSelect').value;
+        this.disabled = true;
+        try {
+          const r = await apiFetch('/api/admin/users/' + encodeURIComponent(selectedUserId) + '/plan', {
+            method: 'POST', body: JSON.stringify({ plan })
+          });
+          if (!r) return;
+          const data = await r.json();
+          if (r.ok) {
+            showToast('Plan changed to ' + plan, 'success');
+            coreui.Modal.getInstance(document.getElementById('planModal')).hide();
+            await loadUsers();
+          } else {
+            showToast(data.error || 'Failed', 'danger');
+          }
+        } catch (e) { showToast('Error: ' + e.message, 'danger'); }
+        this.disabled = false;
+      });
+
+      // --- Kick ---
+      async function kickUser(userId, email) {
+        if (!confirm('Kick user ' + email + '? This will invalidate all their sessions.')) return;
+        try {
+          const r = await apiFetch('/api/admin/users/' + encodeURIComponent(userId) + '/kick', { method: 'POST' });
+          if (!r) return;
+          if (r.ok) showToast('User ' + email + ' has been kicked', 'success');
+          else showToast('Failed to kick user', 'danger');
+        } catch (e) { showToast('Error: ' + e.message, 'danger'); }
+      }
+
+      // Expose to onclick handlers
+      window.app = { openCredits, openPlan, kickUser };
+
+      init();
+    })();
+    </script>
+  </body>
+</html>

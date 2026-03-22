@@ -47,3 +47,6 @@ New folder/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# CoreUI template source
+coreui-free-bootstrap-admin-template-main/
