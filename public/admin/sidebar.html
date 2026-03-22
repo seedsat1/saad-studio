@@ -416,18 +416,31 @@
             '<td><span class="badge bg-secondary badge-group">' + escHtml(item.group || '—') + '</span></td>' +
             '<td class="text-center">' +
               '<div class="form-check form-switch d-flex justify-content-center mb-0">' +
-                '<input class="form-check-input" type="checkbox" ' + (item.visible ? 'checked' : '') + ' onchange="app.toggleFlag(\'' + item.id + '\', \'visible\', this.checked)">' +
+                '<input class="form-check-input chk-flag" type="checkbox" data-id="' + escHtml(item.id) + '" data-field="visible" ' + (item.visible ? 'checked' : '') + '>' +
               '</div></td>' +
             '<td class="text-center">' +
               '<div class="form-check form-switch d-flex justify-content-center mb-0">' +
-                '<input class="form-check-input" type="checkbox" ' + (item.enabled ? 'checked' : '') + ' onchange="app.toggleFlag(\'' + item.id + '\', \'enabled\', this.checked)">' +
+                '<input class="form-check-input chk-flag" type="checkbox" data-id="' + escHtml(item.id) + '" data-field="enabled" ' + (item.enabled ? 'checked' : '') + '>' +
               '</div></td>' +
             '<td class="text-center">' + (flags.join(' ') || '<span class="text-body-tertiary small">—</span>') + '</td>' +
             '<td class="text-end table-actions">' +
-              '<button class="btn btn-sm btn-outline-primary me-1" onclick="app.editItem(\'' + item.id + '\')">Edit</button>' +
-              '<button class="btn btn-sm btn-outline-danger" onclick="app.confirmDelete(\'' + item.id + '\', \'' + escHtml(item.title) + '\')">Delete</button>' +
+              '<button class="btn btn-sm btn-outline-primary me-1 btn-edit-item" data-id="' + escHtml(item.id) + '">Edit</button>' +
+              '<button class="btn btn-sm btn-outline-danger btn-delete-item" data-id="' + escHtml(item.id) + '" data-title="' + escHtml(item.title) + '">Delete</button>' +
             '</td></tr>';
         }).join('');
+        bindTableEvents(tbody);
+      }
+
+      function bindTableEvents(tbody) {
+        tbody.querySelectorAll('.btn-edit-item').forEach(btn => {
+          btn.addEventListener('click', function() { editItem(this.dataset.id); });
+        });
+        tbody.querySelectorAll('.btn-delete-item').forEach(btn => {
+          btn.addEventListener('click', function() { confirmDelete(this.dataset.id, this.dataset.title); });
+        });
+        tbody.querySelectorAll('.chk-flag').forEach(chk => {
+          chk.addEventListener('change', function() { toggleFlag(this.dataset.id, this.dataset.field, this.checked); });
+        });
       }
 
       // ---- Drag & Drop Reorder ----
@@ -567,7 +580,7 @@
         document.getElementById('fTitle').value = item.title || '';
         document.getElementById('fPageId').value = item.pageId || '';
         document.getElementById('fGroup').value = item.group || '';
-        document.getElementById('fBadge').value = item.badge || '';
+        document.getElementById('fBadge').value = (item.badge && item.badge.text) ? item.badge.text : (item.badge || '');
         document.getElementById('fIcon').value = item.icon || '';
         document.getElementById('fIconImg').value = item.iconImg || '';
         document.getElementById('fExternalUrl').value = item.externalUrl || '';
@@ -643,10 +656,13 @@
         }
         grid.innerHTML = files.map(f => {
           const url = f.url || ('/uploads/gallery/' + f.name);
-          return '<div class="media-picker-item" onclick="app.pickMedia(\'' + escHtml(url) + '\')" title="' + escHtml(f.name) + '">' +
+          return '<div class="media-picker-item" data-url="' + escHtml(url) + '" title="' + escHtml(f.name) + '">' +
             '<img src="' + escHtml(url) + '" loading="lazy" onerror="this.parentElement.style.display=\'none\'">' +
             '</div>';
         }).join('');
+        grid.querySelectorAll('.media-picker-item').forEach(el => {
+          el.addEventListener('click', function() { pickMedia(this.dataset.url); });
+        });
       }
 
       function pickMedia(url) {
@@ -664,12 +680,13 @@
         if (!title) { showToast('Title is required', 'danger'); return; }
         if (!pageId) { showToast('Page ID is required', 'danger'); return; }
 
+        const badgeText = document.getElementById('fBadge').value.trim();
         const iconType = getIconType();
         const body = {
           title,
           pageId,
           group: document.getElementById('fGroup').value.trim(),
-          badge: document.getElementById('fBadge').value.trim() || null,
+          badge: badgeText ? { text: badgeText, color: '#5fe2ff' } : null,
           iconType,
           icon: iconType === 'emoji' ? document.getElementById('fIcon').value.trim() : '',
           iconImg: iconType === 'img' ? document.getElementById('fIconImg').value.trim() : '',
@@ -706,9 +723,6 @@
         } catch (e) { showToast('Error: ' + e.message, 'danger'); }
         this.disabled = false;
       });
-
-      // expose needed functions
-      window.app = { editItem, confirmDelete, toggleFlag, pickMedia };
 
       init();
     })();
