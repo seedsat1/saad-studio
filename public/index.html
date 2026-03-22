@@ -1612,8 +1612,11 @@ img[class],[class] video{backface-visibility:hidden;-webkit-backface-visibility:
 .qw2-switch input:checked + .qw2-switch-slider{background:var(--cyan);}
 .qw2-switch input:checked + .qw2-switch-slider::before{transform:translateX(16px);background:var(--bg);}
 @media(max-width:900px){.qw2-sidebar{position:fixed;top:56px;left:-300px;width:280px;height:calc(100vh - 56px);z-index:300;box-shadow:16px 0 48px rgba(0,0,0,0.4);transition:left 0.32s cubic-bezier(0.16,1,0.3,1);}
-.qw2-sidebar:not(.qw2-sb-hidden){left:0;}
+.qw2-sidebar.qw2-sb-open{left:0;}
 .qw2-sidebar.qw2-sb-hidden{left:-300px;opacity:1;width:280px;}
+/* Overlay backdrop for mobile sidebar */
+.qw2-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:299;}
+.qw2-overlay.active{display:block;}
 }
 
 /* ── Tab strip (horizontal scrolling model tabs) ─────────── */
@@ -1707,7 +1710,7 @@ input[type="url"], textarea, select {
     max-width: 320px !important;
     height: calc(100vh - 52px) !important;
   }
-  .qw2-sidebar:not(.qw2-sb-hidden) { left: 0 !important; }
+  .qw2-sidebar.qw2-sb-open { left: 0 !important; }
   .qw2-sidebar.qw2-sb-hidden { left: -300px !important; opacity: 1 !important; }
   .cine-ctrl-bar { flex-wrap: wrap; }
   .cine-ctrl-bar .cine-ctrl-item { flex: 1 1 auto; min-width: 80px; }
@@ -1753,6 +1756,8 @@ input[type="url"], textarea, select {
 </style>
 </head>
 <body>
+<!-- Mobile sidebar overlay backdrop -->
+<div id="qw2-overlay" class="qw2-overlay" onclick="closeAllSidebars()"></div>
 
 <aside class="sidebar">
   <div class="logo-area" onclick="showPage('dash',null)">
@@ -2366,7 +2371,7 @@ input[type="url"], textarea, select {
         <!-- Prompt row -->
         <div class="cine-prompt-row" id="sora-prompt-wrap">
           <textarea class="ftextarea" id="sora-prompt" rows="3" placeholder="Describe the desired motion, scene, or visual style..."></textarea>
-          <button class="cine-settings-btn" onclick="document.getElementById('sora-settings-panel').classList.toggle('qw2-sb-hidden')" title="الإعدادات المتقدمة">
+          <button class="cine-settings-btn" onclick="toggleSidebar('sora-settings-panel')" title="الإعدادات المتقدمة">
             <span class="material-symbols-outlined" style="font-size:20px;">tune</span>
           </button>
         </div>
@@ -2419,7 +2424,7 @@ input[type="url"], textarea, select {
       <div class="qw2-sidebar" id="sora-settings-panel">
       <div class="qw2-sb-header">
         <span class="qw2-sb-title">SORA SETTINGS</span>
-        <button class="qw2-sb-close" onclick="document.getElementById('sora-settings-panel').classList.toggle('qw2-sb-hidden')">✕</button>
+        <button class="qw2-sb-close" onclick="closeSidebar('sora-settings-panel')">✕</button>
       </div>
 
       <div class="card">
@@ -2538,7 +2543,7 @@ input[type="url"], textarea, select {
         <!-- Prompt row -->
         <div class="cine-prompt-row">
           <textarea class="ftextarea" id="hailuo-prompt" rows="3" placeholder="Describe the desired motion or scene..."></textarea>
-          <button class="cine-settings-btn" onclick="document.getElementById('hailuo-settings-panel').classList.toggle('qw2-sb-hidden')" title="الإعدادات">
+          <button class="cine-settings-btn" onclick="toggleSidebar('hailuo-settings-panel')" title="الإعدادات">
             <span class="material-symbols-outlined" style="font-size:20px;">tune</span>
           </button>
         </div>
@@ -2582,7 +2587,7 @@ input[type="url"], textarea, select {
       <div class="qw2-sidebar" id="hailuo-settings-panel">
       <div class="qw2-sb-header">
         <span class="qw2-sb-title">HAILUO SETTINGS</span>
-        <button class="qw2-sb-close" onclick="document.getElementById('hailuo-settings-panel').classList.toggle('qw2-sb-hidden')">✕</button>
+        <button class="qw2-sb-close" onclick="closeSidebar('hailuo-settings-panel')">✕</button>
       </div>
 
       <div class="card">
@@ -2740,7 +2745,7 @@ input[type="url"], textarea, select {
         <!-- Prompt row -->
         <div class="cine-prompt-row" id="grok-field-prompt">
           <textarea class="ftextarea" id="grok-prompt" rows="3" placeholder="Describe the desired motion, image, or scene..."></textarea>
-          <button class="cine-settings-btn" onclick="document.getElementById('grok-settings-panel').classList.toggle('qw2-sb-hidden')" title="Advanced Settings">
+          <button class="cine-settings-btn" onclick="toggleSidebar('grok-settings-panel')" title="Advanced Settings">
             <span class="material-symbols-outlined" style="font-size:20px;">tune</span>
           </button>
         </div>
@@ -2790,7 +2795,7 @@ input[type="url"], textarea, select {
       <div class="qw2-sidebar" id="grok-settings-panel">
       <div class="qw2-sb-header">
         <span class="qw2-sb-title">GROK SETTINGS</span>
-        <button class="qw2-sb-close" onclick="document.getElementById('grok-settings-panel').classList.toggle('qw2-sb-hidden')">✕</button>
+        <button class="qw2-sb-close" onclick="closeSidebar('grok-settings-panel')">✕</button>
       </div>
       <div class="card">
         <div class="card-head">🧾 النموذج</div>
@@ -2867,7 +2872,7 @@ input[type="url"], textarea, select {
         <!-- Prompt row -->
         <div class="cine-prompt-row">
           <textarea class="ftextarea" id="infinitalk-prompt" rows="3" placeholder="اكتب وصف الشخصية أو المشهد (اختياري)..."></textarea>
-          <button class="cine-settings-btn" onclick="document.getElementById('infinitalk-settings-panel').classList.toggle('qw2-sb-hidden')" title="Advanced Settings">
+          <button class="cine-settings-btn" onclick="toggleSidebar('infinitalk-settings-panel')" title="Advanced Settings">
             <span class="material-symbols-outlined" style="font-size:20px;">tune</span>
           </button>
         </div>
@@ -2909,7 +2914,7 @@ input[type="url"], textarea, select {
       <div class="qw2-sidebar" id="infinitalk-settings-panel">
       <div class="qw2-sb-header">
         <span class="qw2-sb-title">INFINITALK SETTINGS</span>
-        <button class="qw2-sb-close" onclick="document.getElementById('infinitalk-settings-panel').classList.toggle('qw2-sb-hidden')">✕</button>
+        <button class="qw2-sb-close" onclick="closeSidebar('infinitalk-settings-panel')">✕</button>
       </div>
       <div class="card">
         <div class="card-head">⚙️ متقدم</div>
@@ -2967,7 +2972,7 @@ input[type="url"], textarea, select {
             <!-- Prompt row -->
             <div class="cine-prompt-row">
               <textarea class="ftextarea" id="qwen2-prompt" rows="3" placeholder="اكتب التعديل أو وصف الصورة المطلوب..."></textarea>
-              <button class="cine-settings-btn qw2-toggle-settings" onclick="document.getElementById('qw2-sidebar').classList.toggle('qw2-sb-hidden')" title="إظهار/إخفاء الإعدادات">
+              <button class="cine-settings-btn qw2-toggle-settings" onclick="toggleSidebar('qw2-sidebar')" title="إظهار/إخفاء الإعدادات">
                 <span class="material-symbols-outlined" style="font-size:20px;">tune</span>
               </button>
             </div>
@@ -3007,7 +3012,7 @@ input[type="url"], textarea, select {
       <div class="qw2-sidebar" id="qw2-sidebar">
         <div class="qw2-sb-header">
           <span class="qw2-sb-title">QWEN 2 SETTINGS</span>
-          <button class="qw2-sb-close" onclick="document.getElementById('qw2-sidebar').classList.add('qw2-sb-hidden')">✕</button>
+          <button class="qw2-sb-close" onclick="closeSidebar('qw2-sidebar')">✕</button>
         </div>
 
         <!-- GENERATION -->
@@ -4417,7 +4422,7 @@ Professional photography look.</textarea>
             <!-- Prompt row -->
             <div class="cine-prompt-row">
               <textarea class="ftextarea" id="gbar-prompt" rows="3" placeholder="Describe the scene you imagine..."></textarea>
-              <button class="cine-settings-btn" onclick="document.getElementById('nano-settings-sidebar').classList.toggle('qw2-sb-hidden')" title="إظهار/إخفاء الإعدادات">
+              <button class="cine-settings-btn" onclick="toggleSidebar('nano-settings-sidebar')" title="إظهار/إخفاء الإعدادات">
                 <span class="material-symbols-outlined" style="font-size:20px;">tune</span>
               </button>
             </div>
@@ -4453,7 +4458,7 @@ Professional photography look.</textarea>
       <div class="qw2-sidebar" id="nano-settings-sidebar">
         <div class="qw2-sb-header">
           <span class="qw2-sb-title">NANO SETTINGS</span>
-          <button class="qw2-sb-close" onclick="document.getElementById('nano-settings-sidebar').classList.add('qw2-sb-hidden')">✕</button>
+          <button class="qw2-sb-close" onclick="closeSidebar('nano-settings-sidebar')">✕</button>
         </div>
 
         <!-- MODEL -->
@@ -14894,6 +14899,38 @@ document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeSidebar(); })
 </script>
 <!-- PWA Service Worker Registration -->
 <script>
+/* ── Sidebar toggle helpers (works for all qw2-sidebar panels) ── */
+function toggleSidebar(id) {
+  const sb = document.getElementById(id);
+  const overlay = document.getElementById('qw2-overlay');
+  if (window.innerWidth <= 900) {
+    const isOpen = sb.classList.contains('qw2-sb-open');
+    // Close any other open sidebars first
+    document.querySelectorAll('.qw2-sidebar.qw2-sb-open').forEach(s => s.classList.remove('qw2-sb-open'));
+    if (!isOpen) {
+      sb.classList.add('qw2-sb-open');
+      overlay.classList.add('active');
+    } else {
+      overlay.classList.remove('active');
+    }
+  } else {
+    sb.classList.toggle('qw2-sb-hidden');
+  }
+}
+function closeSidebar(id) {
+  const sb = document.getElementById(id);
+  if (window.innerWidth <= 900) {
+    sb.classList.remove('qw2-sb-open');
+  } else {
+    sb.classList.add('qw2-sb-hidden');
+  }
+  document.getElementById('qw2-overlay').classList.remove('active');
+}
+function closeAllSidebars() {
+  document.querySelectorAll('.qw2-sidebar').forEach(sb => sb.classList.remove('qw2-sb-open'));
+  document.getElementById('qw2-overlay').classList.remove('active');
+}
+
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function() {
     navigator.serviceWorker.register('/sw.js', { scope: '/' })
