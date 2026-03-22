@@ -10051,8 +10051,8 @@ async function runGoogleImageTool(mode){
     const promptEl = document.getElementById(cfg.promptId);
     const prompt = (promptEl?.value || googleBarState.prompt || '').trim();
     const neg = (document.getElementById(cfg.negId)?.value || '').trim();
-    const ratio = document.getElementById(cfg.ratioId)?.value || '1:1';
-    const quality = document.getElementById(cfg.qualityId)?.value || '1K';
+    const ratio = document.getElementById(cfg.ratioId)?.value || googleBarState.ratio || '1:1';
+    const quality = document.getElementById(cfg.qualityId)?.value || googleBarState.quality || '1K';
     const file = S.files[cfg.fileKey] || null;
     const estimatedCost = Number(cfg.cost?.(quality) || 0);
     const count = Math.max(1, Math.min(4, Number(googleBarState.count || 1)));
