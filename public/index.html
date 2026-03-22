@@ -1573,7 +1573,7 @@ img[class],[class] video{backface-visibility:hidden;-webkit-backface-visibility:
 /* ═══ QWEN2 LEONARDO-STYLE LAYOUT ═══ */
 .qw2-layout{display:flex;gap:0;min-height:calc(100vh - 120px);}
 .qw2-main{flex:1;min-width:0;}
-.qw2-sidebar{width:268px;flex-shrink:0;background:linear-gradient(180deg,rgba(9,25,41,0.98),rgba(7,17,26,0.96));border-right:1px solid rgba(0,229,255,0.08);display:flex;flex-direction:column;overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(0,229,255,0.15) transparent;transition:width 0.3s cubic-bezier(0.16,1,0.3,1),opacity 0.3s,margin 0.3s;}
+.qw2-sidebar{width:268px;flex-shrink:0;background:linear-gradient(180deg,#0a1929 0%,#061320 100%);border-right:1px solid rgba(0,229,255,0.14);display:flex;flex-direction:column;overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(0,229,255,0.2) transparent;transition:width 0.3s cubic-bezier(0.16,1,0.3,1),opacity 0.3s,margin 0.3s;}
 .qw2-sidebar::-webkit-scrollbar{width:3px;}
 .qw2-sidebar::-webkit-scrollbar-thumb{background:rgba(0,229,255,0.15);border-radius:2px;}
 .qw2-sidebar.qw2-sb-hidden{width:0;opacity:0;overflow:hidden;margin-right:0;border:none;}
@@ -1583,13 +1583,13 @@ img[class],[class] video{backface-visibility:hidden;-webkit-backface-visibility:
 .qw2-sb-close:hover{background:rgba(255,255,255,0.12);color:var(--tx);}
 .qw2-sb-section{padding:14px 16px;border-bottom:1px solid rgba(0,229,255,0.05);display:flex;flex-direction:column;gap:12px;}
 .qw2-sb-section:last-child{border-bottom:none;}
-.qw2-sb-label{font-size:9px;font-weight:700;color:rgba(0,229,255,0.5);letter-spacing:0.14em;font-family:var(--fm);text-transform:uppercase;}
+.qw2-sb-label{font-size:9px;font-weight:700;color:rgba(0,229,255,0.75);letter-spacing:0.14em;font-family:var(--fm);text-transform:uppercase;}
 .qw2-btn-group{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;}
 .qw2-btn-group-2{grid-template-columns:1fr 1fr;}
 .qw2-btn-group-4{grid-template-columns:repeat(4,1fr);}
-.qw2-opt{padding:6px 4px;border-radius:var(--r3);text-align:center;font-size:11px;font-weight:600;font-family:var(--far);background:rgba(255,255,255,0.025);border:1px solid rgba(62,201,255,0.1);color:var(--tx3);cursor:pointer;transition:all 0.18s;white-space:nowrap;}
-.qw2-opt:hover{border-color:rgba(62,201,255,0.25);color:var(--tx2);}
-.qw2-opt.active{background:rgba(0,229,255,0.08);border-color:rgba(0,229,255,0.4);color:var(--cyan);}
+.qw2-opt{padding:7px 4px;border-radius:var(--r3);text-align:center;font-size:11px;font-weight:600;font-family:var(--far);background:rgba(255,255,255,0.07);border:1px solid rgba(62,201,255,0.18);color:rgba(255,255,255,0.7);cursor:pointer;transition:all 0.18s;white-space:nowrap;}
+.qw2-opt:hover{border-color:rgba(62,201,255,0.4);color:#fff;background:rgba(255,255,255,0.12);}
+.qw2-opt.active{background:rgba(0,229,255,0.14);border-color:rgba(0,229,255,0.55);color:var(--cyan);}
 .qw2-slider-head{display:flex;align-items:center;justify-content:space-between;}
 .qw2-slider-val{font-size:12px;font-weight:700;font-family:var(--fm);}
 .qw2-range{-webkit-appearance:none;appearance:none;width:100%;height:4px;border-radius:2px;outline:none;cursor:pointer;}
@@ -14899,18 +14899,6 @@ function clearLibrary(){
   }).catch(()=>{/* CMS offline - keep existing sidebar as-is */});
 })();
 
-// ── Sidebar Drawer for Mobile ──
-function toggleSidebar(){
-  const sb=document.querySelector('.sidebar');
-  const ov=document.getElementById('sidebar-overlay');
-  const isOpen=sb.classList.contains('drawer-open');
-  if(isOpen){ sb.classList.remove('drawer-open'); ov.classList.remove('open'); }
-  else{ sb.classList.add('drawer-open'); ov.classList.add('open'); }
-}
-function closeSidebar(){
-  document.querySelector('.sidebar').classList.remove('drawer-open');
-  document.getElementById('sidebar-overlay').classList.remove('open');
-}
 // close drawer on any nav item click (mobile)
 document.querySelectorAll('.nav-item').forEach(el=>el.addEventListener('click',()=>{
   if(window.innerWidth<=980) closeSidebar();
@@ -14953,36 +14941,54 @@ document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeSidebar(); })
 </script>
 <!-- PWA Service Worker Registration -->
 <script>
-/* ── Sidebar toggle helpers (works for all qw2-sidebar panels) ── */
+/* ── Sidebar toggle helpers ── */
 function toggleSidebar(id) {
+  // No id = main navigation sidebar drawer
+  if (!id) {
+    const sb  = document.querySelector('.sidebar');
+    const ov  = document.getElementById('sidebar-overlay');
+    if (!sb) return;
+    const isOpen = sb.classList.contains('drawer-open');
+    if (isOpen) { sb.classList.remove('drawer-open'); if(ov) ov.classList.remove('open'); }
+    else         { sb.classList.add('drawer-open');    if(ov) ov.classList.add('open');    }
+    return;
+  }
+  // With id = settings/tool sidebar panel
   const sb = document.getElementById(id);
+  if (!sb) return;
   const overlay = document.getElementById('qw2-overlay');
   if (window.innerWidth <= 900) {
     const isOpen = sb.classList.contains('qw2-sb-open');
-    // Close any other open sidebars first
     document.querySelectorAll('.qw2-sidebar.qw2-sb-open').forEach(s => s.classList.remove('qw2-sb-open'));
     if (!isOpen) {
       sb.classList.add('qw2-sb-open');
-      overlay.classList.add('active');
+      if(overlay) overlay.classList.add('active');
     } else {
-      overlay.classList.remove('active');
+      if(overlay) overlay.classList.remove('active');
     }
   } else {
     sb.classList.toggle('qw2-sb-hidden');
   }
 }
 function closeSidebar(id) {
+  // No id = main navigation sidebar drawer
+  if (!id) {
+    document.querySelector('.sidebar')?.classList.remove('drawer-open');
+    document.getElementById('sidebar-overlay')?.classList.remove('open');
+    return;
+  }
   const sb = document.getElementById(id);
+  if (!sb) return;
   if (window.innerWidth <= 900) {
     sb.classList.remove('qw2-sb-open');
   } else {
     sb.classList.add('qw2-sb-hidden');
   }
-  document.getElementById('qw2-overlay').classList.remove('active');
+  document.getElementById('qw2-overlay')?.classList.remove('active');
 }
 function closeAllSidebars() {
   document.querySelectorAll('.qw2-sidebar').forEach(sb => sb.classList.remove('qw2-sb-open'));
-  document.getElementById('qw2-overlay').classList.remove('active');
+  document.getElementById('qw2-overlay')?.classList.remove('active');
 }
 
 /* ══════════════════════════════════════════════════════════
