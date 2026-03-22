@@ -366,7 +366,7 @@
         const r = await apiFetch('/api/admin/cms/sidebar');
         if (!r) return;
         const data = await r.json();
-        allItems = (data.items || data || []).sort((a, b) => (a.order || 0) - (b.order || 0));
+        allItems = (data.sidebar || data.items || []).sort((a, b) => (a.order || 0) - (b.order || 0));
 
         document.getElementById('loadingState').classList.add('d-none');
         document.getElementById('itemCount').textContent = allItems.length + ' item' + (allItems.length !== 1 ? 's' : '');
