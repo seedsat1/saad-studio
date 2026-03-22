@@ -201,6 +201,24 @@ function injectSharedModals() {
 </div>`;
     while (lb.firstChild) document.body.appendChild(lb.firstChild);
   }
+
+  // Inject transition-modal if not already present
+  if (!document.getElementById('transition-modal')) {
+    const tm = document.createElement('div');
+    tm.innerHTML = `
+<div id="transition-modal" class="tr-modal" onclick="if(event.target===this)closeTransitionModal()">
+  <div class="tr-modal-panel">
+    <div class="tr-modal-head">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(95,226,255,0.8)" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 12l2.5 2.5L16 9"/></svg>
+      <div class="tr-modal-title">TRANSITIONS</div>
+      <input class="tr-search" id="tr-search" placeholder="...Search transitions" oninput="renderTransitionList(this.value)">
+      <button onclick="closeTransitionModal()" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);color:#fff;border-radius:50px;padding:6px 14px;font-size:10px;cursor:pointer;font-family:var(--fm);letter-spacing:0.1em;white-space:nowrap;">Close</button>
+    </div>
+    <div class="tr-modal-grid" id="tr-modal-grid"></div>
+  </div>
+</div>`;
+    while (tm.firstChild) document.body.appendChild(tm.firstChild);
+  }
 }
 
 function readJson(key, fallback){
