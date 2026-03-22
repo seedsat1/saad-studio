@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <base href="/admin/">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
+    <meta name="description" content="Saad Studio - Site Settings">
+    <title>Saad Studio &#8212; Settings</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon/favicon-32x32.png">
+    <meta name="theme-color" content="#ffffff">
+    <link rel="stylesheet" href="vendors/simplebar/css/simplebar.css">
+    <link rel="stylesheet" href="css/vendors/simplebar.css">
+    <link href="css/style.css" rel="stylesheet">
+    <script src="js/config.js"></script>
+    <script src="js/color-modes.js"></script>
+    <style>
+      .toast-container { position: fixed; top: 1rem; right: 1rem; z-index: 9999; }
+      .settings-section { margin-bottom: 1.5rem; }
+      .img-preview { max-width: 200px; max-height: 60px; border-radius: .375rem; background: var(--cui-tertiary-bg); }
+    </style>
+  </head>
+  <body>
+    <!-- SIDEBAR -->
+    <div class="sidebar sidebar-dark sidebar-fixed border-end" id="sidebar">
+      <div class="sidebar-header border-bottom">
+        <div class="sidebar-brand">
+          <span class="sidebar-brand-full fw-semibold fs-5 text-white">Saad Studio</span>
+          <span class="sidebar-brand-narrow fw-bold text-white">SS</span>
+        </div>
+        <button class="btn-close d-lg-none" type="button" data-coreui-theme="dark" aria-label="Close" onclick="coreui.Sidebar.getInstance(document.querySelector('#sidebar')).toggle()"></button>
+      </div>
+      <ul class="sidebar-nav" data-coreui="navigation" data-simplebar="">
+        <li class="nav-item"><a class="nav-link" href="index.html">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-speedometer"></use></svg> Dashboard</a></li>
+        <li class="nav-item"><a class="nav-link" href="users.html">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-people"></use></svg> Users</a></li>
+        <li class="nav-item"><a class="nav-link" href="orders.html">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-cart"></use></svg> Orders</a></li>
+        <li class="nav-item"><a class="nav-link" href="pages.html">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-file"></use></svg> Pages</a></li>
+        <li class="nav-item"><a class="nav-link" href="media.html">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-image"></use></svg> Media</a></li>
+        <li class="nav-item"><a class="nav-link" href="ads.html">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-bullhorn"></use></svg> Ads</a></li>
+        <li class="nav-item"><a class="nav-link active" href="settings.html">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-settings"></use></svg> Settings</a></li>
+        <li class="nav-item"><a class="nav-link" href="theme.html">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-color-palette"></use></svg> Theme</a></li>
+      </ul>
+      <div class="sidebar-footer border-top d-none d-md-flex">
+        <button class="sidebar-toggler" type="button" data-coreui-toggle="unfoldable"></button>
+      </div>
+    </div>
+
+    <!-- MAIN WRAPPER -->
+    <div class="wrapper d-flex flex-column min-vh-100">
+      <header class="header header-sticky p-0 mb-4">
+        <div class="container-fluid border-bottom px-4">
+          <button class="header-toggler" type="button" onclick="coreui.Sidebar.getInstance(document.querySelector('#sidebar')).toggle()" style="margin-inline-start: -14px;">
+            <svg class="icon icon-lg"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-menu"></use></svg>
+          </button>
+          <ul class="header-nav d-none d-lg-flex">
+            <li class="nav-item"><a class="nav-link" href="index.html">Dashboard</a></li>
+            <li class="nav-item"><a class="nav-link" href="settings.html">Settings</a></li>
+          </ul>
+          <ul class="header-nav ms-auto"></ul>
+          <ul class="header-nav">
+            <li class="nav-item py-1"><div class="vr h-100 mx-2 text-body text-opacity-75"></div></li>
+            <li class="nav-item dropdown"><a class="nav-link py-0 pe-0" data-coreui-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">
+                <div class="avatar avatar-md bg-primary text-white d-flex align-items-center justify-content-center rounded-circle" style="width:36px;height:36px;font-size:14px;">A</div></a>
+              <div class="dropdown-menu dropdown-menu-end pt-0">
+                <div class="dropdown-header bg-body-tertiary text-body-secondary fw-semibold rounded-top mb-2">Account</div>
+                <a class="dropdown-item" href="settings.html"><svg class="icon me-2"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-settings"></use></svg> Settings</a>
+                <div class="dropdown-divider"></div>
+                <a class="dropdown-item" href="#" id="logoutBtn"><svg class="icon me-2"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-account-logout"></use></svg> Logout</a>
+              </div>
+            </li>
+          </ul>
+        </div>
+        <div class="container-fluid px-4">
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb my-0">
+              <li class="breadcrumb-item"><a href="index.html">Home</a></li>
+              <li class="breadcrumb-item active"><span>Settings</span></li>
+            </ol>
+          </nav>
+        </div>
+      </header>
+
+      <!-- MAIN CONTENT -->
+      <div class="body flex-grow-1">
+        <div class="container-lg px-4">
+
+          <div id="loadingState" class="text-center py-5">
+            <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div> Loading settings...
+          </div>
+
+          <div id="settingsForm" class="d-none">
+
+            <!-- General -->
+            <div class="card mb-4">
+              <div class="card-header"><strong>General</strong></div>
+              <div class="card-body">
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <label class="form-label">Site Title</label>
+                    <input type="text" class="form-control" id="siteTitle" maxlength="200">
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Site Description</label>
+                    <input type="text" class="form-control" id="siteDescription" maxlength="500">
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Logo URL</label>
+                    <div class="d-flex gap-2 align-items-center">
+                      <input type="text" class="form-control" id="logo" maxlength="500" placeholder="/assets/logo.png">
+                      <img id="logoPreview" class="img-preview d-none" alt="logo">
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Favicon URL</label>
+                    <div class="d-flex gap-2 align-items-center">
+                      <input type="text" class="form-control" id="favicon" maxlength="500" placeholder="/assets/favicon.ico">
+                      <img id="faviconPreview" class="img-preview d-none" alt="favicon" style="max-width:32px;max-height:32px">
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- SEO -->
+            <div class="card mb-4">
+              <div class="card-header"><strong>SEO</strong></div>
+              <div class="card-body">
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <label class="form-label">SEO Title</label>
+                    <input type="text" class="form-control" id="seoTitle" maxlength="200">
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">SEO Description</label>
+                    <textarea class="form-control" id="seoDescription" rows="2" maxlength="500"></textarea>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Contact -->
+            <div class="card mb-4">
+              <div class="card-header"><strong>Contact Information</strong></div>
+              <div class="card-body">
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <label class="form-label">Contact Email</label>
+                    <input type="email" class="form-control" id="contactEmail" maxlength="300">
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Contact Phone</label>
+                    <input type="text" class="form-control" id="contactPhone" maxlength="100">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Social Links -->
+            <div class="card mb-4">
+              <div class="card-header"><strong>Social Links</strong></div>
+              <div class="card-body">
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <label class="form-label">Twitter / X</label>
+                    <input type="url" class="form-control" id="socialTwitter" maxlength="300" placeholder="https://twitter.com/...">
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Instagram</label>
+                    <input type="url" class="form-control" id="socialInstagram" maxlength="300" placeholder="https://instagram.com/...">
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">YouTube</label>
+                    <input type="url" class="form-control" id="socialYoutube" maxlength="300" placeholder="https://youtube.com/...">
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">TikTok</label>
+                    <input type="url" class="form-control" id="socialTiktok" maxlength="300" placeholder="https://tiktok.com/...">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Analytics -->
+            <div class="card mb-4">
+              <div class="card-header"><strong>Analytics</strong></div>
+              <div class="card-body">
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <label class="form-label">Google Tag ID</label>
+                    <input type="text" class="form-control" id="googleTagId" maxlength="100" placeholder="G-XXXXXXXXXX">
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Facebook Pixel ID</label>
+                    <input type="text" class="form-control" id="facebookPixelId" maxlength="100" placeholder="123456789...">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Maintenance -->
+            <div class="card mb-4">
+              <div class="card-header"><strong>Maintenance Mode</strong></div>
+              <div class="card-body">
+                <div class="row g-3">
+                  <div class="col-12">
+                    <div class="form-check form-switch">
+                      <input class="form-check-input" type="checkbox" id="maintenanceMode" style="width:2.5em">
+                      <label class="form-check-label" for="maintenanceMode">Enable Maintenance Mode</label>
+                    </div>
+                  </div>
+                  <div class="col-12">
+                    <label class="form-label">Maintenance Message</label>
+                    <input type="text" class="form-control" id="maintenanceMessage" maxlength="500" placeholder="الموقع قيد الصيانة">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Save -->
+            <div class="mb-4">
+              <button class="btn btn-primary btn-lg" id="saveSettingsBtn">
+                <span class="spinner-border spinner-border-sm d-none me-2" id="saveSpin" role="status"></span>
+                Save Settings
+              </button>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <footer class="footer px-4"><div>Saad Studio &copy; 2025</div></footer>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast-container">
+      <div class="toast align-items-center text-bg-success border-0" id="toastOk" role="alert">
+        <div class="d-flex"><div class="toast-body" id="toastMsg"></div>
+          <button type="button" class="btn-close btn-close-white me-2 m-auto" data-coreui-dismiss="toast"></button>
+        </div>
+      </div>
+    </div>
+
+    <script src="vendors/@coreui/coreui/js/coreui.bundle.min.js"></script>
+    <script src="vendors/simplebar/js/simplebar.min.js"></script>
+    <script>
+    (function(){
+      let csrfToken = '';
+
+      async function apiFetch(path, opts = {}) {
+        const headers = { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken, ...opts.headers };
+        const r = await fetch(path, { ...opts, headers, credentials: 'same-origin' });
+        if (r.status === 401) { window.location.href = '/'; return null; }
+        return r;
+      }
+
+      function showToast(msg, type) {
+        const el = document.getElementById('toastOk');
+        el.className = 'toast align-items-center border-0 text-bg-' + (type || 'success');
+        document.getElementById('toastMsg').textContent = msg;
+        coreui.Toast.getOrCreateInstance(el).show();
+      }
+
+      function setPreview(inputId, previewId) {
+        const inp = document.getElementById(inputId);
+        const prev = document.getElementById(previewId);
+        function update() {
+          if (inp.value.trim()) { prev.src = inp.value.trim(); prev.classList.remove('d-none'); }
+          else prev.classList.add('d-none');
+        }
+        inp.addEventListener('input', update);
+        update();
+      }
+
+      async function init() {
+        try {
+          const r = await fetch('/api/admin/session', { credentials: 'same-origin' });
+          if (!r.ok) { window.location.href = '/'; return; }
+          const data = await r.json();
+          csrfToken = data.csrfToken;
+          await loadSettings();
+        } catch(e) {
+          document.getElementById('loadingState').innerHTML = '<span class="text-danger">Failed: ' + e.message + '</span>';
+        }
+      }
+
+      async function loadSettings() {
+        const r = await apiFetch('/api/admin/cms/settings');
+        if (!r) return;
+        const data = await r.json();
+        const s = data.settings || {};
+
+        document.getElementById('siteTitle').value = s.siteTitle || '';
+        document.getElementById('siteDescription').value = s.siteDescription || '';
+        document.getElementById('logo').value = s.logo || '';
+        document.getElementById('favicon').value = s.favicon || '';
+        document.getElementById('seoTitle').value = s.seoTitle || '';
+        document.getElementById('seoDescription').value = s.seoDescription || '';
+        document.getElementById('contactEmail').value = s.contactEmail || '';
+        document.getElementById('contactPhone').value = s.contactPhone || '';
+        document.getElementById('socialTwitter').value = s.socialLinks?.twitter || '';
+        document.getElementById('socialInstagram').value = s.socialLinks?.instagram || '';
+        document.getElementById('socialYoutube').value = s.socialLinks?.youtube || '';
+        document.getElementById('socialTiktok').value = s.socialLinks?.tiktok || '';
+        document.getElementById('googleTagId').value = s.analytics?.googleTagId || '';
+        document.getElementById('facebookPixelId').value = s.analytics?.facebookPixelId || '';
+        document.getElementById('maintenanceMode').checked = !!s.maintenanceMode;
+        document.getElementById('maintenanceMessage').value = s.maintenanceMessage || '';
+
+        setPreview('logo', 'logoPreview');
+        setPreview('favicon', 'faviconPreview');
+
+        document.getElementById('loadingState').classList.add('d-none');
+        document.getElementById('settingsForm').classList.remove('d-none');
+      }
+
+      document.getElementById('saveSettingsBtn').addEventListener('click', async () => {
+        const spin = document.getElementById('saveSpin');
+        spin.classList.remove('d-none');
+        const body = {
+          siteTitle: document.getElementById('siteTitle').value.trim(),
+          siteDescription: document.getElementById('siteDescription').value.trim(),
+          logo: document.getElementById('logo').value.trim(),
+          favicon: document.getElementById('favicon').value.trim(),
+          seoTitle: document.getElementById('seoTitle').value.trim(),
+          seoDescription: document.getElementById('seoDescription').value.trim(),
+          contactEmail: document.getElementById('contactEmail').value.trim(),
+          contactPhone: document.getElementById('contactPhone').value.trim(),
+          socialLinks: {
+            twitter: document.getElementById('socialTwitter').value.trim(),
+            instagram: document.getElementById('socialInstagram').value.trim(),
+            youtube: document.getElementById('socialYoutube').value.trim(),
+            tiktok: document.getElementById('socialTiktok').value.trim()
+          },
+          analytics: {
+            googleTagId: document.getElementById('googleTagId').value.trim(),
+            facebookPixelId: document.getElementById('facebookPixelId').value.trim()
+          },
+          maintenanceMode: document.getElementById('maintenanceMode').checked,
+          maintenanceMessage: document.getElementById('maintenanceMessage').value.trim()
+        };
+
+        const r = await apiFetch('/api/admin/cms/settings', {
+          method: 'PUT', body: JSON.stringify(body)
+        });
+        spin.classList.add('d-none');
+        if (!r) return;
+        if (r.ok) showToast('Settings saved successfully');
+        else {
+          const err = await r.json();
+          showToast(err.error || 'Failed to save', 'danger');
+        }
+      });
+
+      // Logout
+      document.getElementById('logoutBtn')?.addEventListener('click', async (e) => {
+        e.preventDefault();
+        await fetch('/api/admin/logout', { method: 'POST', credentials: 'same-origin', headers: { 'x-csrf-token': csrfToken } });
+        window.location.href = '/';
+      });
+
+      init();
+    })();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <base href="/admin/">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
+    <meta name="description" content="Saad Studio - Pages Management">
+    <title>Saad Studio &#8212; Pages</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon/favicon-32x32.png">
+    <meta name="theme-color" content="#ffffff">
+    <link rel="stylesheet" href="vendors/simplebar/css/simplebar.css">
+    <link rel="stylesheet" href="css/vendors/simplebar.css">
+    <link href="css/style.css" rel="stylesheet">
+    <script src="js/config.js"></script>
+    <script src="js/color-modes.js"></script>
+    <style>
+      .table-actions .btn { padding: .2rem .5rem; font-size: .78rem; }
+      .empty-state { text-align: center; padding: 3rem 1rem; opacity: .6; }
+      .toast-container { position: fixed; top: 1rem; right: 1rem; z-index: 9999; }
+      .badge-slug { font-family: monospace; font-size: .75rem; }
+      .section-card { border-left: 3px solid var(--cui-primary); }
+      .section-card .btn-sm { padding: .15rem .4rem; font-size: .72rem; }
+      #sectionsList .card { transition: background .15s; }
+      #sectionsList .card:hover { background: var(--cui-tertiary-bg); }
+    </style>
+  </head>
+  <body>
+    <!-- SIDEBAR -->
+    <div class="sidebar sidebar-dark sidebar-fixed border-end" id="sidebar">
+      <div class="sidebar-header border-bottom">
+        <div class="sidebar-brand">
+          <span class="sidebar-brand-full fw-semibold fs-5 text-white">Saad Studio</span>
+          <span class="sidebar-brand-narrow fw-bold text-white">SS</span>
+        </div>
+        <button class="btn-close d-lg-none" type="button" data-coreui-theme="dark" aria-label="Close" onclick="coreui.Sidebar.getInstance(document.querySelector('#sidebar')).toggle()"></button>
+      </div>
+      <ul class="sidebar-nav" data-coreui="navigation" data-simplebar="">
+        <li class="nav-item"><a class="nav-link" href="index.html">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-speedometer"></use></svg> Dashboard</a></li>
+        <li class="nav-item"><a class="nav-link" href="users.html">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-people"></use></svg> Users</a></li>
+        <li class="nav-item"><a class="nav-link" href="orders.html">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-cart"></use></svg> Orders</a></li>
+        <li class="nav-item"><a class="nav-link active" href="pages.html">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-file"></use></svg> Pages</a></li>
+        <li class="nav-item"><a class="nav-link" href="media.html">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-image"></use></svg> Media</a></li>
+        <li class="nav-item"><a class="nav-link" href="ads.html">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-bullhorn"></use></svg> Ads</a></li>
+        <li class="nav-item"><a class="nav-link" href="settings.html">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-settings"></use></svg> Settings</a></li>
+        <li class="nav-item"><a class="nav-link" href="theme.html">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-color-palette"></use></svg> Theme</a></li>
+      </ul>
+      <div class="sidebar-footer border-top d-none d-md-flex">
+        <button class="sidebar-toggler" type="button" data-coreui-toggle="unfoldable"></button>
+      </div>
+    </div>
+
+    <!-- MAIN WRAPPER -->
+    <div class="wrapper d-flex flex-column min-vh-100">
+      <header class="header header-sticky p-0 mb-4">
+        <div class="container-fluid border-bottom px-4">
+          <button class="header-toggler" type="button" onclick="coreui.Sidebar.getInstance(document.querySelector('#sidebar')).toggle()" style="margin-inline-start: -14px;">
+            <svg class="icon icon-lg"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-menu"></use></svg>
+          </button>
+          <ul class="header-nav d-none d-lg-flex">
+            <li class="nav-item"><a class="nav-link" href="index.html">Dashboard</a></li>
+            <li class="nav-item"><a class="nav-link" href="pages.html">Pages</a></li>
+          </ul>
+          <ul class="header-nav ms-auto"></ul>
+          <ul class="header-nav">
+            <li class="nav-item py-1"><div class="vr h-100 mx-2 text-body text-opacity-75"></div></li>
+            <li class="nav-item dropdown"><a class="nav-link py-0 pe-0" data-coreui-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">
+                <div class="avatar avatar-md bg-primary text-white d-flex align-items-center justify-content-center rounded-circle" style="width:36px;height:36px;font-size:14px;">A</div></a>
+              <div class="dropdown-menu dropdown-menu-end pt-0">
+                <div class="dropdown-header bg-body-tertiary text-body-secondary fw-semibold rounded-top mb-2">Account</div>
+                <a class="dropdown-item" href="settings.html"><svg class="icon me-2"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-settings"></use></svg> Settings</a>
+                <div class="dropdown-divider"></div>
+                <a class="dropdown-item" href="#" id="logoutBtn"><svg class="icon me-2"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-account-logout"></use></svg> Logout</a>
+              </div>
+            </li>
+          </ul>
+        </div>
+        <div class="container-fluid px-4">
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb my-0">
+              <li class="breadcrumb-item"><a href="index.html">Home</a></li>
+              <li class="breadcrumb-item active"><span>Pages</span></li>
+            </ol>
+          </nav>
+        </div>
+      </header>
+
+      <!-- MAIN CONTENT -->
+      <div class="body flex-grow-1">
+        <div class="container-lg px-4">
+
+          <!-- Pages List View -->
+          <div id="listView">
+            <div class="card mb-4">
+              <div class="card-header d-flex align-items-center justify-content-between">
+                <strong>CMS Pages</strong>
+                <button class="btn btn-sm btn-primary" id="addPageBtn">+ New Page</button>
+              </div>
+              <div class="card-body">
+                <div id="loadingState" class="text-center py-4">
+                  <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div> Loading pages...
+                </div>
+                <div class="table-responsive d-none" id="tableWrap">
+                  <table class="table table-hover table-striped align-middle mb-0">
+                    <thead>
+                      <tr>
+                        <th>Title</th>
+                        <th>Slug</th>
+                        <th class="text-center">Category</th>
+                        <th class="text-center">Published</th>
+                        <th class="text-center">Sections</th>
+                        <th>Updated</th>
+                        <th class="text-end">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="pagesBody"></tbody>
+                  </table>
+                </div>
+                <div class="empty-state d-none" id="emptyState">No pages yet. Click "+ New Page" to create one.</div>
+              </div>
+              <div class="card-footer small text-body-secondary" id="pageCount">...</div>
+            </div>
+          </div>
+
+          <!-- Page Editor View -->
+          <div id="editorView" class="d-none">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+              <button class="btn btn-sm btn-outline-secondary" id="backToList">&larr; Back to Pages</button>
+              <h5 class="mb-0" id="editorTitle">Edit Page</h5>
+            </div>
+
+            <!-- Page Properties -->
+            <div class="card mb-4">
+              <div class="card-header"><strong>Page Properties</strong></div>
+              <div class="card-body">
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <label class="form-label">Title <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="pageTitle" maxlength="200">
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Slug <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control font-monospace" id="pageSlug" maxlength="200">
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label">Category</label>
+                    <input type="text" class="form-control" id="pageCategory" value="main" maxlength="100">
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label">SEO Title</label>
+                    <input type="text" class="form-control" id="pageSeoTitle" maxlength="200">
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label">SEO Description</label>
+                    <input type="text" class="form-control" id="pageSeoDesc" maxlength="500">
+                  </div>
+                  <div class="col-12 d-flex gap-3">
+                    <div class="form-check form-switch">
+                      <input class="form-check-input" type="checkbox" id="pagePublished" checked>
+                      <label class="form-check-label" for="pagePublished">Published</label>
+                    </div>
+                    <div class="form-check form-switch">
+                      <input class="form-check-input" type="checkbox" id="pageVisible" checked>
+                      <label class="form-check-label" for="pageVisible">Visible in nav</label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="card-footer d-flex gap-2">
+                <button class="btn btn-primary" id="savePageBtn">Save Page</button>
+              </div>
+            </div>
+
+            <!-- Page Sections -->
+            <div class="card mb-4">
+              <div class="card-header d-flex align-items-center justify-content-between">
+                <strong>Sections</strong>
+                <button class="btn btn-sm btn-outline-primary" id="addSectionBtn">+ Add Section</button>
+              </div>
+              <div class="card-body" id="sectionsList">
+                <div class="text-center text-body-secondary py-3" id="noSections">No sections yet.</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <footer class="footer px-4"><div>Saad Studio &copy; 2025</div></footer>
+    </div>
+
+    <!-- Page Modal (Create) -->
+    <div class="modal fade" id="pageModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title">New Page</h5><button type="button" class="btn-close" data-coreui-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label">Page Title <span class="text-danger">*</span></label>
+          <input type="text" class="form-control" id="newPageTitle" maxlength="200">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Slug <span class="text-danger">*</span></label>
+          <input type="text" class="form-control font-monospace" id="newPageSlug" maxlength="200">
+          <div class="form-text">Auto-generated from title. URL-safe characters only.</div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Category</label>
+          <input type="text" class="form-control" id="newPageCategory" value="main" maxlength="100">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-coreui-dismiss="modal">Cancel</button>
+        <button class="btn btn-primary" id="createPageBtn">Create</button>
+      </div>
+    </div></div></div>
+
+    <!-- Section Modal -->
+    <div class="modal fade" id="sectionModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title" id="sectionModalTitle">Add Section</h5><button type="button" class="btn-close" data-coreui-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label">Type</label>
+          <select class="form-select" id="sectionType">
+            <option value="hero">Hero</option>
+            <option value="features">Features</option>
+            <option value="text">Text Block</option>
+            <option value="gallery">Gallery</option>
+            <option value="contact">Contact</option>
+            <option value="cta">Call to Action</option>
+            <option value="custom">Custom</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Label</label>
+          <input type="text" class="form-control" id="sectionLabel" maxlength="200">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Content / Data (JSON)</label>
+          <textarea class="form-control font-monospace" id="sectionData" rows="5" placeholder='{"title":"...","body":"..."}'></textarea>
+          <div class="form-text">Optional JSON data for this section</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-coreui-dismiss="modal">Cancel</button>
+        <button class="btn btn-primary" id="saveSectionBtn">Save Section</button>
+      </div>
+    </div></div></div>
+
+    <!-- Toast -->
+    <div class="toast-container">
+      <div class="toast align-items-center text-bg-success border-0" id="toastOk" role="alert">
+        <div class="d-flex"><div class="toast-body" id="toastMsg"></div>
+          <button type="button" class="btn-close btn-close-white me-2 m-auto" data-coreui-dismiss="toast"></button>
+        </div>
+      </div>
+    </div>
+
+    <script src="vendors/@coreui/coreui/js/coreui.bundle.min.js"></script>
+    <script src="vendors/simplebar/js/simplebar.min.js"></script>
+    <script>
+    (function(){
+      let csrfToken = '';
+      let allPages = [];
+      let currentPageId = null;
+      let currentPage = null;
+      let editingSectionId = null;
+
+      async function apiFetch(path, opts = {}) {
+        const headers = { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken, ...opts.headers };
+        const r = await fetch(path, { ...opts, headers, credentials: 'same-origin' });
+        if (r.status === 401) { window.location.href = '/'; return null; }
+        return r;
+      }
+
+      function showToast(msg, type) {
+        const el = document.getElementById('toastOk');
+        el.className = 'toast align-items-center border-0 text-bg-' + (type || 'success');
+        document.getElementById('toastMsg').textContent = msg;
+        coreui.Toast.getOrCreateInstance(el).show();
+      }
+
+      function escHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+      function slugify(t) { return t.toLowerCase().replace(/[^\w\u0621-\u064A\s-]/g,'').replace(/[\s_]+/g,'-').replace(/^-+|-+$/g,'').substring(0,200); }
+
+      // --- Init ---
+      async function init() {
+        try {
+          const r = await fetch('/api/admin/session', { credentials: 'same-origin' });
+          if (!r.ok) { window.location.href = '/'; return; }
+          const data = await r.json();
+          csrfToken = data.csrfToken;
+          await loadPages();
+        } catch(e) {
+          document.getElementById('loadingState').innerHTML = '<span class="text-danger">Failed: ' + escHtml(e.message) + '</span>';
+        }
+      }
+
+      // --- Load Pages ---
+      async function loadPages() {
+        document.getElementById('loadingState').classList.remove('d-none');
+        document.getElementById('tableWrap').classList.add('d-none');
+        document.getElementById('emptyState').classList.add('d-none');
+        const r = await apiFetch('/api/admin/cms/pages');
+        if (!r) return;
+        const data = await r.json();
+        allPages = data.pages || [];
+        document.getElementById('loadingState').classList.add('d-none');
+        if (!allPages.length) {
+          document.getElementById('emptyState').classList.remove('d-none');
+          document.getElementById('pageCount').textContent = '0 pages';
+          return;
+        }
+        document.getElementById('pageCount').textContent = allPages.length + ' page' + (allPages.length > 1 ? 's' : '');
+        document.getElementById('tableWrap').classList.remove('d-none');
+        renderPages();
+      }
+
+      function renderPages() {
+        document.getElementById('pagesBody').innerHTML = allPages.map(p => {
+          const updated = p.updatedAt ? new Date(p.updatedAt).toLocaleDateString() : '-';
+          const pubBadge = p.published !== false ? '<span class="badge bg-success">Yes</span>' : '<span class="badge bg-secondary">Draft</span>';
+          const secCount = (p.sections || []).length;
+          return '<tr>' +
+            '<td class="fw-semibold">' + escHtml(p.title) + '</td>' +
+            '<td><code class="badge-slug">' + escHtml(p.slug) + '</code></td>' +
+            '<td class="text-center"><span class="badge bg-body-secondary text-body">' + escHtml(p.category || 'main') + '</span></td>' +
+            '<td class="text-center">' + pubBadge + '</td>' +
+            '<td class="text-center">' + secCount + '</td>' +
+            '<td>' + updated + '</td>' +
+            '<td class="text-end table-actions">' +
+              '<button class="btn btn-sm btn-outline-primary me-1" onclick="app.editPage(\'' + p.id + '\')">Edit</button>' +
+              '<button class="btn btn-sm btn-outline-info me-1" onclick="app.dupPage(\'' + p.id + '\')">Dup</button>' +
+              '<button class="btn btn-sm btn-outline-danger" onclick="app.deletePage(\'' + p.id + '\')">Del</button>' +
+            '</td></tr>';
+        }).join('');
+      }
+
+      // --- Create Page ---
+      document.getElementById('newPageTitle').addEventListener('input', function() {
+        document.getElementById('newPageSlug').value = slugify(this.value);
+      });
+
+      document.getElementById('addPageBtn').addEventListener('click', () => {
+        document.getElementById('newPageTitle').value = '';
+        document.getElementById('newPageSlug').value = '';
+        document.getElementById('newPageCategory').value = 'main';
+        coreui.Modal.getOrCreateInstance(document.getElementById('pageModal')).show();
+      });
+
+      document.getElementById('createPageBtn').addEventListener('click', async () => {
+        const title = document.getElementById('newPageTitle').value.trim();
+        const slug = document.getElementById('newPageSlug').value.trim();
+        const category = document.getElementById('newPageCategory').value.trim() || 'main';
+        if (!title || !slug) return showToast('Title and slug required', 'danger');
+        const r = await apiFetch('/api/admin/cms/pages', {
+          method: 'POST', body: JSON.stringify({ title, slug, category })
+        });
+        if (!r) return;
+        if (r.ok) {
+          coreui.Modal.getOrCreateInstance(document.getElementById('pageModal')).hide();
+          showToast('Page created');
+          await loadPages();
+        } else {
+          const err = await r.json();
+          showToast(err.error || 'Failed', 'danger');
+        }
+      });
+
+      // --- Edit Page ---
+      function editPage(id) {
+        currentPage = allPages.find(p => p.id === id);
+        if (!currentPage) return;
+        currentPageId = id;
+        document.getElementById('listView').classList.add('d-none');
+        document.getElementById('editorView').classList.remove('d-none');
+        document.getElementById('editorTitle').textContent = 'Edit: ' + currentPage.title;
+        document.getElementById('pageTitle').value = currentPage.title || '';
+        document.getElementById('pageSlug').value = currentPage.slug || '';
+        document.getElementById('pageCategory').value = currentPage.category || 'main';
+        document.getElementById('pageSeoTitle').value = currentPage.seoTitle || '';
+        document.getElementById('pageSeoDesc').value = currentPage.seoDescription || '';
+        document.getElementById('pagePublished').checked = currentPage.published !== false;
+        document.getElementById('pageVisible').checked = currentPage.visible !== false;
+        renderSections();
+      }
+
+      document.getElementById('backToList').addEventListener('click', () => {
+        document.getElementById('editorView').classList.add('d-none');
+        document.getElementById('listView').classList.remove('d-none');
+        currentPageId = null;
+        currentPage = null;
+      });
+
+      // --- Save Page ---
+      document.getElementById('savePageBtn').addEventListener('click', async () => {
+        if (!currentPageId) return;
+        const body = {
+          title: document.getElementById('pageTitle').value.trim(),
+          slug: document.getElementById('pageSlug').value.trim(),
+          category: document.getElementById('pageCategory').value.trim(),
+          seoTitle: document.getElementById('pageSeoTitle').value.trim(),
+          seoDescription: document.getElementById('pageSeoDesc').value.trim(),
+          published: document.getElementById('pagePublished').checked,
+          visible: document.getElementById('pageVisible').checked
+        };
+        if (!body.title || !body.slug) return showToast('Title and slug required', 'danger');
+        const r = await apiFetch('/api/admin/cms/pages/' + encodeURIComponent(currentPageId), {
+          method: 'PUT', body: JSON.stringify(body)
+        });
+        if (!r) return;
+        if (r.ok) {
+          showToast('Page saved');
+          const d = await r.json();
+          currentPage = d.page;
+          // refresh list
+          const idx = allPages.findIndex(p => p.id === currentPageId);
+          if (idx !== -1) allPages[idx] = currentPage;
+        } else {
+          const err = await r.json();
+          showToast(err.error || 'Failed', 'danger');
+        }
+      });
+
+      // --- Duplicate ---
+      async function dupPage(id) {
+        const r = await apiFetch('/api/admin/cms/pages/' + encodeURIComponent(id) + '/duplicate', { method: 'POST' });
+        if (!r) return;
+        if (r.ok) { showToast('Page duplicated'); await loadPages(); }
+        else showToast('Failed to duplicate', 'danger');
+      }
+
+      // --- Delete ---
+      async function deletePage(id) {
+        if (!confirm('Delete this page permanently?')) return;
+        const r = await apiFetch('/api/admin/cms/pages/' + encodeURIComponent(id), { method: 'DELETE' });
+        if (!r) return;
+        if (r.ok) { showToast('Page deleted'); await loadPages(); }
+        else showToast('Failed to delete', 'danger');
+      }
+
+      // --- Sections ---
+      function renderSections() {
+        const list = document.getElementById('sectionsList');
+        const sections = currentPage?.sections || [];
+        document.getElementById('noSections').classList.toggle('d-none', sections.length > 0);
+        if (!sections.length) { list.querySelectorAll('.card').forEach(c => c.remove()); return; }
+        const html = sections.map((s, i) => {
+          const typeBadge = '<span class="badge bg-primary">' + escHtml(s.type || 'custom') + '</span>';
+          const dataPreview = s.data && Object.keys(s.data).length ? '<pre class="mb-0 mt-2 small text-body-secondary" style="max-height:80px;overflow:auto">' + escHtml(JSON.stringify(s.data, null, 2)) + '</pre>' : '';
+          return '<div class="card section-card mb-2 p-3">' +
+            '<div class="d-flex align-items-center justify-content-between">' +
+              '<div><strong class="me-2">' + escHtml(s.label || s.type) + '</strong>' + typeBadge + '</div>' +
+              '<div class="table-actions">' +
+                '<button class="btn btn-sm btn-outline-primary me-1" onclick="app.editSection(\'' + s.id + '\')">Edit</button>' +
+                '<button class="btn btn-sm btn-outline-danger" onclick="app.deleteSection(\'' + s.id + '\')">Del</button>' +
+              '</div>' +
+            '</div>' +
+            dataPreview +
+          '</div>';
+        }).join('');
+        // Keep noSections element, replace cards
+        list.querySelectorAll('.card').forEach(c => c.remove());
+        list.insertAdjacentHTML('beforeend', html);
+      }
+
+      document.getElementById('addSectionBtn').addEventListener('click', () => {
+        editingSectionId = null;
+        document.getElementById('sectionModalTitle').textContent = 'Add Section';
+        document.getElementById('sectionType').value = 'hero';
+        document.getElementById('sectionLabel').value = '';
+        document.getElementById('sectionData').value = '';
+        coreui.Modal.getOrCreateInstance(document.getElementById('sectionModal')).show();
+      });
+
+      document.getElementById('saveSectionBtn').addEventListener('click', async () => {
+        if (!currentPageId) return;
+        const type = document.getElementById('sectionType').value;
+        const label = document.getElementById('sectionLabel').value.trim() || type;
+        let data = {};
+        const raw = document.getElementById('sectionData').value.trim();
+        if (raw) {
+          try { data = JSON.parse(raw); } catch { return showToast('Invalid JSON data', 'danger'); }
+        }
+
+        if (editingSectionId) {
+          // Update section
+          const r = await apiFetch('/api/admin/cms/pages/' + encodeURIComponent(currentPageId) + '/sections/' + encodeURIComponent(editingSectionId), {
+            method: 'PUT', body: JSON.stringify({ type, label, data })
+          });
+          if (!r) return;
+          if (r.ok) {
+            const d = await r.json();
+            const si = (currentPage.sections || []).findIndex(s => s.id === editingSectionId);
+            if (si !== -1) currentPage.sections[si] = d.section || { ...currentPage.sections[si], type, label, data };
+            showToast('Section updated');
+          } else showToast('Failed to update', 'danger');
+        } else {
+          // Create section
+          const r = await apiFetch('/api/admin/cms/pages/' + encodeURIComponent(currentPageId) + '/sections', {
+            method: 'POST', body: JSON.stringify({ type, label, data })
+          });
+          if (!r) return;
+          if (r.ok) {
+            const d = await r.json();
+            if (!currentPage.sections) currentPage.sections = [];
+            currentPage.sections.push(d.section);
+            showToast('Section added');
+          } else {
+            const err = await r.json();
+            showToast(err.error || 'Failed', 'danger');
+          }
+        }
+        coreui.Modal.getOrCreateInstance(document.getElementById('sectionModal')).hide();
+        renderSections();
+      });
+
+      function editSection(id) {
+        const s = (currentPage?.sections || []).find(s => s.id === id);
+        if (!s) return;
+        editingSectionId = id;
+        document.getElementById('sectionModalTitle').textContent = 'Edit Section';
+        document.getElementById('sectionType').value = s.type || 'custom';
+        document.getElementById('sectionLabel').value = s.label || '';
+        document.getElementById('sectionData').value = s.data && Object.keys(s.data).length ? JSON.stringify(s.data, null, 2) : '';
+        coreui.Modal.getOrCreateInstance(document.getElementById('sectionModal')).show();
+      }
+
+      async function deleteSection(id) {
+        if (!confirm('Delete this section?')) return;
+        const r = await apiFetch('/api/admin/cms/pages/' + encodeURIComponent(currentPageId) + '/sections/' + encodeURIComponent(id), { method: 'DELETE' });
+        if (!r) return;
+        if (r.ok) {
+          currentPage.sections = (currentPage.sections || []).filter(s => s.id !== id);
+          showToast('Section deleted');
+          renderSections();
+        } else showToast('Failed to delete', 'danger');
+      }
+
+      // --- Logout ---
+      document.getElementById('logoutBtn')?.addEventListener('click', async (e) => {
+        e.preventDefault();
+        await fetch('/api/admin/logout', { method: 'POST', credentials: 'same-origin', headers: { 'x-csrf-token': csrfToken } });
+        window.location.href = '/';
+      });
+
+      // Global api
+      window.app = { editPage, dupPage, deletePage, editSection, deleteSection };
+
+      init();
+    })();
+    </script>
+  </body>
+</html>

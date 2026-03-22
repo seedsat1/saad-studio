@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <base href="/admin/">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
+    <meta name="description" content="Saad Studio - Theme Editor">
+    <title>Saad Studio &#8212; Theme</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon/favicon-32x32.png">
+    <meta name="theme-color" content="#ffffff">
+    <link rel="stylesheet" href="vendors/simplebar/css/simplebar.css">
+    <link rel="stylesheet" href="css/vendors/simplebar.css">
+    <link href="css/style.css" rel="stylesheet">
+    <script src="js/config.js"></script>
+    <script src="js/color-modes.js"></script>
+    <style>
+      .toast-container { position: fixed; top: 1rem; right: 1rem; z-index: 9999; }
+      .color-row { display: flex; align-items: center; gap: .75rem; padding: .5rem 0; }
+      .color-row label { min-width: 130px; font-weight: 500; font-size: .88rem; }
+      .color-row .var-name { font-family: monospace; font-size: .75rem; color: var(--cui-body-color-secondary); min-width: 80px; }
+      .color-row input[type=color] { width: 44px; height: 34px; border: 1px solid var(--cui-border-color); border-radius: .375rem; padding: 2px; cursor: pointer; }
+      .color-row input[type=text] { max-width: 110px; font-family: monospace; font-size: .85rem; }
+      .preview-box { border-radius: .75rem; padding: 2rem; min-height: 180px; transition: all .3s; }
+      .preview-box h3 { margin: 0 0 .5rem; }
+      .preview-box p { margin: 0; opacity: .85; }
+      .preview-btn { padding: .5rem 1.5rem; border-radius: .5rem; border: none; font-weight: 600; cursor: default; margin-right: .5rem; }
+      .font-row { display: flex; align-items: center; gap: .75rem; padding: .5rem 0; }
+      .font-row label { min-width: 160px; font-weight: 500; }
+      .font-row input { flex: 1; font-family: monospace; font-size: .85rem; }
+    </style>
+  </head>
+  <body>
+    <!-- SIDEBAR -->
+    <div class="sidebar sidebar-dark sidebar-fixed border-end" id="sidebar">
+      <div class="sidebar-header border-bottom">
+        <div class="sidebar-brand">
+          <span class="sidebar-brand-full fw-semibold fs-5 text-white">Saad Studio</span>
+          <span class="sidebar-brand-narrow fw-bold text-white">SS</span>
+        </div>
+        <button class="btn-close d-lg-none" type="button" data-coreui-theme="dark" aria-label="Close" onclick="coreui.Sidebar.getInstance(document.querySelector('#sidebar')).toggle()"></button>
+      </div>
+      <ul class="sidebar-nav" data-coreui="navigation" data-simplebar="">
+        <li class="nav-item"><a class="nav-link" href="index.html">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-speedometer"></use></svg> Dashboard</a></li>
+        <li class="nav-item"><a class="nav-link" href="users.html">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-people"></use></svg> Users</a></li>
+        <li class="nav-item"><a class="nav-link" href="orders.html">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-cart"></use></svg> Orders</a></li>
+        <li class="nav-item"><a class="nav-link" href="pages.html">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-file"></use></svg> Pages</a></li>
+        <li class="nav-item"><a class="nav-link" href="media.html">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-image"></use></svg> Media</a></li>
+        <li class="nav-item"><a class="nav-link" href="ads.html">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-bullhorn"></use></svg> Ads</a></li>
+        <li class="nav-item"><a class="nav-link" href="settings.html">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-settings"></use></svg> Settings</a></li>
+        <li class="nav-item"><a class="nav-link active" href="theme.html">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-color-palette"></use></svg> Theme</a></li>
+      </ul>
+      <div class="sidebar-footer border-top d-none d-md-flex">
+        <button class="sidebar-toggler" type="button" data-coreui-toggle="unfoldable"></button>
+      </div>
+    </div>
+
+    <!-- MAIN WRAPPER -->
+    <div class="wrapper d-flex flex-column min-vh-100">
+      <header class="header header-sticky p-0 mb-4">
+        <div class="container-fluid border-bottom px-4">
+          <button class="header-toggler" type="button" onclick="coreui.Sidebar.getInstance(document.querySelector('#sidebar')).toggle()" style="margin-inline-start: -14px;">
+            <svg class="icon icon-lg"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-menu"></use></svg>
+          </button>
+          <ul class="header-nav d-none d-lg-flex">
+            <li class="nav-item"><a class="nav-link" href="index.html">Dashboard</a></li>
+            <li class="nav-item"><a class="nav-link" href="theme.html">Theme</a></li>
+          </ul>
+          <ul class="header-nav ms-auto"></ul>
+          <ul class="header-nav">
+            <li class="nav-item py-1"><div class="vr h-100 mx-2 text-body text-opacity-75"></div></li>
+            <li class="nav-item dropdown"><a class="nav-link py-0 pe-0" data-coreui-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">
+                <div class="avatar avatar-md bg-primary text-white d-flex align-items-center justify-content-center rounded-circle" style="width:36px;height:36px;font-size:14px;">A</div></a>
+              <div class="dropdown-menu dropdown-menu-end pt-0">
+                <div class="dropdown-header bg-body-tertiary text-body-secondary fw-semibold rounded-top mb-2">Account</div>
+                <a class="dropdown-item" href="settings.html"><svg class="icon me-2"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-settings"></use></svg> Settings</a>
+                <div class="dropdown-divider"></div>
+                <a class="dropdown-item" href="#" id="logoutBtn"><svg class="icon me-2"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-account-logout"></use></svg> Logout</a>
+              </div>
+            </li>
+          </ul>
+        </div>
+        <div class="container-fluid px-4">
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb my-0">
+              <li class="breadcrumb-item"><a href="index.html">Home</a></li>
+              <li class="breadcrumb-item active"><span>Theme</span></li>
+            </ol>
+          </nav>
+        </div>
+      </header>
+
+      <!-- MAIN CONTENT -->
+      <div class="body flex-grow-1">
+        <div class="container-lg px-4">
+
+          <div id="loadingState" class="text-center py-5">
+            <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div> Loading theme...
+          </div>
+
+          <div id="themeEditor" class="d-none">
+            <div class="row g-4">
+
+              <!-- Colors Column -->
+              <div class="col-lg-7">
+                <div class="card mb-4">
+                  <div class="card-header d-flex align-items-center justify-content-between">
+                    <strong>Site Colors</strong>
+                    <button class="btn btn-sm btn-outline-secondary" id="resetColorsBtn">Reset to Defaults</button>
+                  </div>
+                  <div class="card-body" id="colorsContainer"></div>
+                </div>
+
+                <!-- Fonts -->
+                <div class="card mb-4">
+                  <div class="card-header d-flex align-items-center justify-content-between">
+                    <strong>Fonts</strong>
+                    <button class="btn btn-sm btn-outline-secondary" id="resetFontsBtn">Reset to Defaults</button>
+                  </div>
+                  <div class="card-body">
+                    <div class="font-row">
+                      <label>Primary Font (--far)</label>
+                      <input type="text" class="form-control form-control-sm" id="fontFar">
+                    </div>
+                    <div class="font-row">
+                      <label>Display Font (--fd)</label>
+                      <input type="text" class="form-control form-control-sm" id="fontFd">
+                    </div>
+                    <div class="font-row">
+                      <label>Mono Font (--fm)</label>
+                      <input type="text" class="form-control form-control-sm" id="fontFm">
+                    </div>
+                    <div class="font-row">
+                      <label>Google Fonts URL</label>
+                      <input type="text" class="form-control form-control-sm" id="fontUrl">
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Preview Column -->
+              <div class="col-lg-5">
+                <div class="card mb-4 position-sticky" style="top:5rem">
+                  <div class="card-header"><strong>Live Preview</strong></div>
+                  <div class="card-body p-0">
+                    <div class="preview-box" id="previewBox">
+                      <h3 id="previewTitle">SAAD STUDIO</h3>
+                      <p id="previewSubtitle">AI Creative Platform</p>
+                      <div class="mt-3">
+                        <span class="preview-btn" id="previewBtnPrimary">Generate</span>
+                        <span class="preview-btn" id="previewBtnSecondary">Explore</span>
+                      </div>
+                      <div class="mt-3">
+                        <small id="previewMuted">Secondary text sample</small>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="d-grid gap-2">
+                  <button class="btn btn-primary btn-lg" id="saveThemeBtn">
+                    <span class="spinner-border spinner-border-sm d-none me-2" id="saveSpin" role="status"></span>
+                    Save Theme &amp; Fonts
+                  </button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <footer class="footer px-4"><div>Saad Studio &copy; 2025</div></footer>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast-container">
+      <div class="toast align-items-center text-bg-success border-0" id="toastOk" role="alert">
+        <div class="d-flex"><div class="toast-body" id="toastMsg"></div>
+          <button type="button" class="btn-close btn-close-white me-2 m-auto" data-coreui-dismiss="toast"></button>
+        </div>
+      </div>
+    </div>
+
+    <script src="vendors/@coreui/coreui/js/coreui.bundle.min.js"></script>
+    <script src="vendors/simplebar/js/simplebar.min.js"></script>
+    <script>
+    (function(){
+      let csrfToken = '';
+      let currentTheme = {};
+      let defaultTheme = {};
+      let currentFonts = {};
+      let defaultFonts = {};
+
+      const COLOR_LABELS = {
+        '--bg':  'Background',
+        '--bg1': 'Background Alt 1',
+        '--bg2': 'Background Alt 2',
+        '--bg3': 'Background Alt 3',
+        '--bg4': 'Background Alt 4',
+        '--amber':  'Primary Accent',
+        '--amber2': 'Primary Accent 2',
+        '--amber3': 'Primary Accent 3',
+        '--cyan':   'Secondary Accent',
+        '--cyan2':  'Secondary Accent 2',
+        '--red':    'Danger / Error',
+        '--green':  'Success / Green',
+        '--tx':  'Text Primary',
+        '--tx2': 'Text Secondary',
+        '--tx3': 'Text Muted'
+      };
+
+      async function apiFetch(path, opts = {}) {
+        const headers = { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken, ...opts.headers };
+        const r = await fetch(path, { ...opts, headers, credentials: 'same-origin' });
+        if (r.status === 401) { window.location.href = '/'; return null; }
+        return r;
+      }
+
+      function showToast(msg, type) {
+        const el = document.getElementById('toastOk');
+        el.className = 'toast align-items-center border-0 text-bg-' + (type || 'success');
+        document.getElementById('toastMsg').textContent = msg;
+        coreui.Toast.getOrCreateInstance(el).show();
+      }
+
+      // Expand shorthand hex (#abc -> #aabbcc)
+      function expandHex(h) {
+        if (/^#[0-9a-f]{3}$/i.test(h)) return '#' + h[1]+h[1]+h[2]+h[2]+h[3]+h[3];
+        return h;
+      }
+
+      // --- Build color rows ---
+      function buildColorRows(theme) {
+        const container = document.getElementById('colorsContainer');
+        container.innerHTML = '';
+        for (const [varName, label] of Object.entries(COLOR_LABELS)) {
+          const val = theme[varName] || defaultTheme[varName] || '#000000';
+          const row = document.createElement('div');
+          row.className = 'color-row';
+          row.innerHTML =
+            '<span class="var-name">' + varName + '</span>' +
+            '<label>' + label + '</label>' +
+            '<input type="color" class="color-picker" data-var="' + varName + '" value="' + expandHex(val) + '">' +
+            '<input type="text" class="form-control form-control-sm color-hex" data-var="' + varName + '" value="' + val + '">';
+          container.appendChild(row);
+        }
+        // Bind events
+        container.querySelectorAll('.color-picker').forEach(inp => {
+          inp.addEventListener('input', function() {
+            const v = this.dataset.var;
+            currentTheme[v] = this.value;
+            container.querySelector('.color-hex[data-var="' + v + '"]').value = this.value;
+            updatePreview();
+          });
+        });
+        container.querySelectorAll('.color-hex').forEach(inp => {
+          inp.addEventListener('input', function() {
+            const v = this.dataset.var;
+            if (/^#[0-9a-f]{3,6}$/i.test(this.value)) {
+              currentTheme[v] = this.value;
+              container.querySelector('.color-picker[data-var="' + v + '"]').value = expandHex(this.value);
+              updatePreview();
+            }
+          });
+        });
+      }
+
+      // --- Preview ---
+      function updatePreview() {
+        const t = currentTheme;
+        const box = document.getElementById('previewBox');
+        box.style.background = t['--bg'] || '#0b1e34';
+        document.getElementById('previewTitle').style.color = t['--tx'] || '#f2f6ff';
+        document.getElementById('previewSubtitle').style.color = t['--tx2'] || '#b5c7dd';
+        document.getElementById('previewMuted').style.color = t['--tx3'] || '#7c93aa';
+        const btn1 = document.getElementById('previewBtnPrimary');
+        btn1.style.background = t['--amber'] || '#ff9e2c';
+        btn1.style.color = t['--bg'] || '#0b1e34';
+        const btn2 = document.getElementById('previewBtnSecondary');
+        btn2.style.background = 'transparent';
+        btn2.style.border = '2px solid ' + (t['--cyan'] || '#00e5ff');
+        btn2.style.color = t['--cyan'] || '#00e5ff';
+      }
+
+      // --- Init ---
+      async function init() {
+        try {
+          const r = await fetch('/api/admin/session', { credentials: 'same-origin' });
+          if (!r.ok) { window.location.href = '/'; return; }
+          const data = await r.json();
+          csrfToken = data.csrfToken;
+
+          // Load theme and fonts in parallel
+          const [themeRes, fontsRes] = await Promise.all([
+            apiFetch('/api/admin/theme'),
+            apiFetch('/api/admin/fonts')
+          ]);
+          if (!themeRes || !fontsRes) return;
+
+          const themeData = await themeRes.json();
+          const fontsData = await fontsRes.json();
+
+          defaultTheme = themeData.defaults || {};
+          currentTheme = { ...defaultTheme, ...(themeData.theme || {}) };
+          defaultFonts = fontsData.defaults || {};
+          currentFonts = { ...defaultFonts, ...(fontsData.fonts || {}) };
+
+          buildColorRows(currentTheme);
+          updatePreview();
+
+          // Fonts
+          document.getElementById('fontFar').value = currentFonts['--far'] || '';
+          document.getElementById('fontFd').value = currentFonts['--fd'] || '';
+          document.getElementById('fontFm').value = currentFonts['--fm'] || '';
+          document.getElementById('fontUrl').value = currentFonts.googleFontsUrl || '';
+
+          document.getElementById('loadingState').classList.add('d-none');
+          document.getElementById('themeEditor').classList.remove('d-none');
+        } catch(e) {
+          document.getElementById('loadingState').innerHTML = '<span class="text-danger">Failed: ' + e.message + '</span>';
+        }
+      }
+
+      // --- Reset ---
+      document.getElementById('resetColorsBtn').addEventListener('click', () => {
+        currentTheme = { ...defaultTheme };
+        buildColorRows(currentTheme);
+        updatePreview();
+        showToast('Colors reset to defaults (not saved yet)', 'info');
+      });
+
+      document.getElementById('resetFontsBtn').addEventListener('click', () => {
+        currentFonts = { ...defaultFonts };
+        document.getElementById('fontFar').value = currentFonts['--far'] || '';
+        document.getElementById('fontFd').value = currentFonts['--fd'] || '';
+        document.getElementById('fontFm').value = currentFonts['--fm'] || '';
+        document.getElementById('fontUrl').value = currentFonts.googleFontsUrl || '';
+        showToast('Fonts reset to defaults (not saved yet)', 'info');
+      });
+
+      // --- Save ---
+      document.getElementById('saveThemeBtn').addEventListener('click', async () => {
+        const spin = document.getElementById('saveSpin');
+        spin.classList.remove('d-none');
+
+        // Collect current hex values from text inputs
+        document.querySelectorAll('.color-hex').forEach(inp => {
+          if (inp.value.trim()) currentTheme[inp.dataset.var] = inp.value.trim();
+        });
+
+        const fonts = {
+          '--far': document.getElementById('fontFar').value.trim(),
+          '--fd': document.getElementById('fontFd').value.trim(),
+          '--fm': document.getElementById('fontFm').value.trim(),
+          googleFontsUrl: document.getElementById('fontUrl').value.trim()
+        };
+
+        const [r1, r2] = await Promise.all([
+          apiFetch('/api/admin/theme', { method: 'POST', body: JSON.stringify({ theme: currentTheme }) }),
+          apiFetch('/api/admin/fonts', { method: 'POST', body: JSON.stringify({ fonts }) })
+        ]);
+
+        spin.classList.add('d-none');
+        if (r1?.ok && r2?.ok) showToast('Theme & fonts saved!');
+        else showToast('Failed to save (check console)', 'danger');
+      });
+
+      // Logout
+      document.getElementById('logoutBtn')?.addEventListener('click', async (e) => {
+        e.preventDefault();
+        await fetch('/api/admin/logout', { method: 'POST', credentials: 'same-origin', headers: { 'x-csrf-token': csrfToken } });
+        window.location.href = '/';
+      });
+
+      init();
+    })();
+    </script>
+  </body>
+</html>

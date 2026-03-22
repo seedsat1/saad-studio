@@ -42,14 +42,16 @@
             <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-people"></use></svg> Users</a></li>
         <li class="nav-item"><a class="nav-link" href="orders.html">
             <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-cart"></use></svg> Orders</a></li>
-        <li class="nav-item"><a class="nav-link" href="#pages">
+        <li class="nav-item"><a class="nav-link" href="pages.html">
             <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-file"></use></svg> Pages</a></li>
         <li class="nav-item"><a class="nav-link" href="media.html">
             <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-image"></use></svg> Media</a></li>
         <li class="nav-item"><a class="nav-link" href="ads.html">
             <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-bullhorn"></use></svg> Ads</a></li>
-        <li class="nav-item"><a class="nav-link" href="#settings">
+        <li class="nav-item"><a class="nav-link" href="settings.html">
             <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-settings"></use></svg> Settings</a></li>
+        <li class="nav-item"><a class="nav-link" href="theme.html">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-color-palette"></use></svg> Theme</a></li>
       </ul>
       <div class="sidebar-footer border-top d-none d-md-flex">
         <button class="sidebar-toggler" type="button" data-coreui-toggle="unfoldable"></button>
@@ -91,7 +93,7 @@
                 <div class="avatar avatar-md bg-primary text-white d-flex align-items-center justify-content-center rounded-circle" style="width:36px;height:36px;font-size:14px;">A</div></a>
               <div class="dropdown-menu dropdown-menu-end pt-0">
                 <div class="dropdown-header bg-body-tertiary text-body-secondary fw-semibold rounded-top mb-2">Account</div>
-                <a class="dropdown-item" href="#settings"><svg class="icon me-2"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-settings"></use></svg> Settings</a>
+                <a class="dropdown-item" href="settings.html"><svg class="icon me-2"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-settings"></use></svg> Settings</a>
                 <div class="dropdown-divider"></div>
                 <a class="dropdown-item" href="#" id="logoutBtn"><svg class="icon me-2"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-account-logout"></use></svg> Logout</a>
               </div>
@@ -161,6 +163,36 @@
               </div>
             </div>
           </div>
+
+          <!-- KIE API Balance -->
+          <div class="row g-4 mb-4">
+            <div class="col-12 col-xl-6">
+              <div class="card h-100">
+                <div class="card-header d-flex align-items-center justify-content-between">
+                  <strong>KIE API Balance</strong>
+                  <button class="btn btn-sm btn-outline-primary" id="refreshKie">Refresh</button>
+                </div>
+                <div class="card-body d-flex align-items-center">
+                  <div id="kieLoading" class="w-100 text-center py-3">
+                    <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div> Checking balance...
+                  </div>
+                  <div id="kieResult" class="d-none w-100">
+                    <div class="d-flex align-items-center gap-3">
+                      <svg style="width:48px;height:48px;opacity:.5"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-wallet"></use></svg>
+                      <div>
+                        <div class="fs-2 fw-bold" id="kieBalance">—</div>
+                        <div class="text-body-secondary small">Available KIE Credits</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div id="kieError" class="d-none w-100 text-center py-3 text-danger">
+                    <svg style="width:24px;height:24px" class="me-2"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-warning"></use></svg>
+                    <span id="kieErrorMsg">Failed to load</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -196,6 +228,31 @@
           });
         }
       })();
+
+      // KIE Balance
+      async function loadKieBalance() {
+        document.getElementById('kieLoading').classList.remove('d-none');
+        document.getElementById('kieResult').classList.add('d-none');
+        document.getElementById('kieError').classList.add('d-none');
+        try {
+          const r = await fetch('/api/admin/kie-balance', { credentials: 'same-origin' });
+          const data = await r.json();
+          document.getElementById('kieLoading').classList.add('d-none');
+          if (data.success && data.balance !== null) {
+            document.getElementById('kieBalance').textContent = Number(data.balance).toLocaleString();
+            document.getElementById('kieResult').classList.remove('d-none');
+          } else {
+            document.getElementById('kieErrorMsg').textContent = data.message || (data.noKey ? 'KIE_API_KEY not configured' : 'No balance data');
+            document.getElementById('kieError').classList.remove('d-none');
+          }
+        } catch(e) {
+          document.getElementById('kieLoading').classList.add('d-none');
+          document.getElementById('kieErrorMsg').textContent = e.message;
+          document.getElementById('kieError').classList.remove('d-none');
+        }
+      }
+      loadKieBalance();
+      document.getElementById('refreshKie').addEventListener('click', loadKieBalance);
     </script>
   </body>
 </html>
