@@ -10055,6 +10055,7 @@ async function runGoogleImageTool(mode){
     const quality = document.getElementById(cfg.qualityId)?.value || '1K';
     const file = S.files[cfg.fileKey] || null;
     const estimatedCost = Number(cfg.cost?.(quality) || 0);
+    const count = Math.max(1, Math.min(4, Number(googleBarState.count || 1)));
     if(!prompt) throw new Error('اكتب الوصف أولاً');
 
     if(btn){ btn.disabled = true; btn.innerHTML = '<div class="spinner"></div> جاري التوليد...'; }
@@ -10063,7 +10064,7 @@ async function runGoogleImageTool(mode){
       gbarBtn.classList.add('gbar-gen-loading');
     }
     if(gbarTriggered && gbarStatus){
-      gbarStatus.textContent = 'توليد...';
+      gbarStatus.textContent = count > 1 ? `توليد ${count} صور...` : 'توليد...';
     }
     clearResults(cfg.resultId);
 
@@ -10093,18 +10094,28 @@ async function runGoogleImageTool(mode){
       parts.push({ inlineData: { mimeType: mime, data } });
     }
 
-    const r = await fetch('/api/generate',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        model: cfg.model,
-        generationConfig:{ responseModalities:['TEXT','IMAGE'] },
-        parts
-      })
-    });
-    const d = await r.json();
-    if(!r.ok || d.error) throw new Error(d.error || `فشل ${cfg.title}`);
-    if(!Array.isArray(d.images) || d.images.length===0) throw new Error('لم يتم إرجاع صور');
+    const genBody = {
+      model: cfg.model,
+      generationConfig:{ responseModalities:['TEXT','IMAGE'] },
+      parts
+    };
+
+    // Fire parallel requests for requested count
+    const requests = [];
+    for(let i = 0; i < count; i++){
+      requests.push(
+        fetch('/api/generate',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify(genBody)
+        }).then(r => r.json()).catch(e => ({ error: e.message }))
+      );
+    }
+    const results = await Promise.all(requests);
+
+    let totalImages = 0;
+    for(const d of results){
+      if(d.error || !Array.isArray(d.images)) continue;
       for(const img of d.images){
         let finalImg = img;
         try{
@@ -10117,10 +10128,13 @@ async function runGoogleImageTool(mode){
         addGoogleGalleryItem(stored, prompt, cfg.title);
         S.lastT2PImage = finalImg;
         S.lastT2PPrompt = prompt;
+        totalImages++;
       }
-    consumeGoogleBudget(estimatedCost);
-    AUTH.consumeCredits(10);
-    toast(`تم التوليد عبر ${cfg.title} - التكلفة التقديرية ${formatUsd(estimatedCost)}`,'success');
+    }
+    if(totalImages === 0) throw new Error('لم يتم إرجاع صور');
+    consumeGoogleBudget(estimatedCost * count);
+    AUTH.consumeCredits(10 * count);
+    toast(`تم التوليد عبر ${cfg.title} (${totalImages} صور) - التكلفة التقديرية ${formatUsd(estimatedCost * count)}`,'success');
   } catch(e){
     toast('خطأ: '+String(e.message||e).substring(0,140),'error');
     if(gbarTriggered && gbarStatus){
