@@ -5,6 +5,8 @@
 
 # Runtime data (entire vault directory)
 vault/
+# But allow homepage.json (needed for production)
+!vault/homepage.json
 
 # Uploads
 uploads/

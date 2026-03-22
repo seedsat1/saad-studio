@@ -1,0 +1,34 @@
+{
+  "header": {
+    "title": "اكتشف ماالجديد",
+    "subtitle": "اختر الموديل المطلوب واضغط للاستخدام المباشر"
+  },
+  "slides": [
+    { "id": "s1", "tag": "Text to Music", "title": "Suno", "desc": "Professional music generation from text with rich performance and dynamic effects.", "image": "/assets/market-w/hero-suno.jpg", "link": "/suno.html", "order": 0 },
+    { "id": "s2", "tag": "Image Pro", "title": "Nano Banana Pro", "desc": "High-quality image generation and editing with cinematic, realistic detail.", "image": "/assets/market-w/hero-nano-pro.jpg", "link": "/nano.html", "order": 1 },
+    { "id": "s3", "tag": "Text to Video", "title": "Veo 3.1", "desc": "Cinematic text-to-video with duration, resolution, and direction control.", "image": "/assets/market-w/hero-veo3.jpg", "link": "/google.html", "order": 2 },
+    { "id": "s4", "tag": "Video Generation", "title": "Kling", "desc": "Text or image to video with motion and shot control.", "image": "/assets/market-w/hero-kling.jpg", "link": "/kling.html", "order": 3 },
+    { "id": "s5", "tag": "Chat / Multimodal", "title": "GPT-5.2", "desc": "Multimodal chat for ideas, writing, and analysis.", "image": "/assets/market-w/hero-gpt52.jpg", "link": "/gpt54.html", "order": 4 }
+  ],
+  "models": [
+    { "id": "m1",  "pill": "Text to Music",       "title": "Suno",              "sub": "موسيقى مولدة من النص",           "image": "/assets/market-h/card-suno.png",              "link": "/suno.html",             "order": 0 },
+    { "id": "m2",  "pill": "Image Pro",            "title": "Nano Banana Pro",   "sub": "جودة عالية للصور",              "image": "/assets/market-h/card-nano-pro.png",           "link": "/nano.html",             "order": 1 },
+    { "id": "m3",  "pill": "Image Gen",            "title": "Grok Imagine",      "sub": "توليد صور بأسلوب خيالي",         "image": "/assets/market-h/card-grok.png",               "link": "/grok.html",             "order": 2 },
+    { "id": "m4",  "pill": "Text to Video",        "title": "Veo 3.1",           "sub": "فيديو احترافي من النص",           "image": "/assets/market-h/card-veo3.jpg",               "link": "/google.html",           "order": 3 },
+    { "id": "m5",  "pill": "Text to Video",        "title": "Sora 2",            "sub": "سرد بصري واقعي",                "image": "/assets/market-h/card-sora2.jpg",              "link": "/sora2.html",            "order": 4 },
+    { "id": "m6",  "pill": "Video Gen",            "title": "Hailuo 2.3",        "sub": "تحويل نص أو صورة إلى فيديو",     "image": "/assets/market-h/card-hailuo.png",             "link": "/hailuo.html",           "order": 5 },
+    { "id": "m7",  "pill": "Video Gen",            "title": "Kling",             "sub": "نص/صورة إلى فيديو",             "image": "/assets/market-h/card-kling.png",              "link": "/kling.html",            "order": 6 },
+    { "id": "m8",  "pill": "Chat / Multimodal",    "title": "GPT-5.2",           "sub": "محادثة وتحليل",                  "image": "/assets/market-h/card-gpt52.png",              "link": "/gpt54.html",            "order": 7 },
+    { "id": "m9",  "pill": "Text to Image",        "title": "Seedream 4.5",      "sub": "صور واقعية فائقة",               "image": "/assets/market-h/card-seedream45.png",         "link": "/seedream.html",         "order": 8 },
+    { "id": "m10", "pill": "Text / Image",         "title": "FLUX.2",            "sub": "دقة عالية وتفاصيل غنية",         "image": "/assets/market-h/card-flux2.png",              "link": "/flux2.html",            "order": 9 },
+    { "id": "m11", "pill": "Text to Image",        "title": "Z-Image",           "sub": "إخراج فوتوريالي سريع",           "image": "/assets/market-h/card-zimage.png",             "link": "/zimage.html",           "order": 10 },
+    { "id": "m12", "pill": "Text / Image to Video", "title": "Wan 2.6",          "sub": "فيديوهات بجودة واضحة",           "image": "/assets/market-h/card-wan26.png",              "link": "/wan26.html",            "order": 11 },
+    { "id": "m13", "pill": "Speech to Video",      "title": "Wan 2.2 Turbo",     "sub": "صوت + صورة لتحريك الوجه",        "image": "/assets/market-h/card-wan22-turbo.png",        "link": "/wan26.html",            "order": 12 },
+    { "id": "m14", "pill": "Text / Image to Video", "title": "Seedance 1.5 Pro", "sub": "حركة سينمائية ناعمة",            "image": "/assets/market-h/card-seedance15.png",         "link": "/seedance.html",         "order": 13 },
+    { "id": "m15", "pill": "Text / Image",         "title": "Flux Kontext",      "sub": "سياق بصري أعمق",                "image": "/assets/market-h/card-flux-kontext.png",       "link": "/fluxkontext.html",      "order": 14 },
+    { "id": "m16", "pill": "Image to Image",       "title": "Ideogram Reframe",  "sub": "إعادة تأطير ذكية",              "image": "/assets/market-h/card-ideogram-reframe.png",   "link": "/ideogram-reframe.html", "order": 15 },
+    { "id": "m17", "pill": "Lip Sync",             "title": "Infinitalk",        "sub": "مزامنة شفاه احترافية",           "image": "/assets/market-h/card-infinitalk.png",         "link": "/infinitalk.html",       "order": 16 },
+    { "id": "m18", "pill": "Image Edit",           "title": "Qwen2 Image Edit",  "sub": "تحرير صور احترافي بنص واضح",     "image": "https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=1200&q=80", "link": "/qwen2.html", "order": 17 },
+    { "id": "m19", "pill": "Character",            "title": "Ideogram Character","sub": "ثبات الشخصية عبر المشاهد",       "image": "/assets/market-h/card-ideogram-character.png", "link": "/ideogram-reframe.html", "order": 18 }
+  ]
+}
