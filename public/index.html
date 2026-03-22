@@ -4254,60 +4254,143 @@ Professional photography look.</textarea>
   </div>
 
   <!-- NANO BANANA PAGE -->
+  <!-- NANO BANANA PAGE -->
   <div class="page" id="page-nano">
-    <div class="gbar" id="gbar">
-      <div class="gbar-body">
-        <div class="gbar-input-wrap" id="gbar-input-wrap">
-          <button class="gbar-plus" onclick="triggerGoogleImageUpload()" title="Upload images">+</button>
-          <div class="gbar-upload-list" id="gbar-upload-list" style="display:none;"></div>
-          <textarea class="gbar-input" id="gbar-prompt" rows="2" placeholder="Describe the scene you imagine..."></textarea>
-          <input type="file" id="gbar-upload" accept="image/*" multiple style="display:none" onchange="handleGbarUpload(this)">
-          <div class="gbar-drop-hint" id="gbar-drop-hint">Drop images here</div>
-        </div>
-        <div class="gbar-row" id="gbar-row">
-          <div class="gbar-model-wrap" id="gbar-model-wrap">
-            <button class="gbar-ctrl-btn gbar-model-btn" id="gbar-model-btn" onclick="toggleGbarModels()">
-              <span class="gbar-g-icon">G</span>
-              <span id="gbar-model-label">Nano Banana Pro</span>
-              <span class="gbar-ctrl-chev">›</span>
-            </button>
-            <div class="gbar-model-menu" id="gbar-model-menu">
-              <input class="gbar-search" id="gbar-search" placeholder="Search models..." oninput="filterGbarModels(this.value)">
-              <button class="gbar-model-item" data-model="nanopro" data-name="nano banana pro" onclick="setGbarModel('nanopro')"><span class="gbar-model-name">Nano Banana Pro</span></button>
-              <button class="gbar-model-item" data-model="nano2" data-name="nano banana 2" onclick="setGbarModel('nano2')"><span class="gbar-model-name">Nano Banana 2</span></button>
-              <button class="gbar-model-item" data-model="nano" data-name="nano banana" onclick="setGbarModel('nano')"><span class="gbar-model-name">Nano Banana</span></button>
+    <div class="qw2-layout">
+
+      <!-- ═══ MAIN: Results + Composer ═══ -->
+      <div class="qw2-main">
+        <div class="cine-shell">
+          <!-- Results canvas -->
+          <div class="cine-canvas-wrap">
+            <div class="result-head">
+              <span class="result-head-txt">Nano Banana Results</span>
+              <span class="cine-model-chip" id="nano-model-chip">Nano Banana Pro</span>
+              <button class="btn btn-ghost" style="font-size:10px;margin-left:auto;" onclick="clearResults('g-nanopro-results');clearResults('g-nano2-results');clearResults('g-nano-results')">Clear</button>
+            </div>
+            <div id="nano-all-results">
+              <div class="result-grid gs-result" id="g-nanopro-results"><div class="result-empty"><div class="result-empty-icon">🍌</div><div class="result-empty-text">ستظهر النتائج هنا</div></div></div>
+              <div class="result-grid gs-result" id="g-nano2-results"></div>
+              <div class="result-grid gs-result" id="g-nano-results"></div>
             </div>
           </div>
-          <div class="gbar-dd-wrap" id="gbar-ratio-ddwrap">
-            <button class="gbar-ctrl-btn" onclick="toggleGbarDD('gbar-ratio-ddwrap')"><span class="gbar-ctrl-ico">⬛</span><span id="gbar-ratio-label">16:9</span></button>
-            <div class="gbar-ratio-dd" id="gbar-ratio-dd">
-              <button class="gbar-ratio-pill" data-ratio="1:1" onclick="setGbarRatioPill('1:1')">1:1</button>
-              <button class="gbar-ratio-pill" data-ratio="4:3" onclick="setGbarRatioPill('4:3')">4:3</button>
-              <button class="gbar-ratio-pill" data-ratio="3:4" onclick="setGbarRatioPill('3:4')">3:4</button>
-              <button class="gbar-ratio-pill active" data-ratio="16:9" onclick="setGbarRatioPill('16:9')">16:9</button>
-              <button class="gbar-ratio-pill" data-ratio="9:16" onclick="setGbarRatioPill('9:16')">9:16</button>
-              <button class="gbar-ratio-pill" data-ratio="2:3" onclick="setGbarRatioPill('2:3')">2:3</button>
-              <button class="gbar-ratio-pill" data-ratio="3:2" onclick="setGbarRatioPill('3:2')">3:2</button>
-              <button class="gbar-ratio-pill" data-ratio="21:9" onclick="setGbarRatioPill('21:9')">21:9</button>
+
+          <!-- Composer -->
+          <div class="cine-composer">
+            <!-- Image upload slot -->
+            <div class="cine-img-slot visible" style="display:block;">
+              <div class="dropzone" id="dz-nano-gbar" onclick="triggerGoogleImageUpload()" style="min-height:46px;padding:6px 12px;flex-direction:row;gap:10px;">
+                <div id="dz-nano-gbar-inner" style="display:flex;align-items:center;gap:8px;width:100%;">
+                  <span style="font-size:18px;opacity:0.4;">🖼️</span>
+                  <span class="dz-text">ارفع صور مرجعية (اختياري)</span>
+                </div>
+              </div>
+              <input type="file" id="gbar-upload" accept="image/*" multiple style="display:none" onchange="handleGbarUpload(this)">
+              <div class="gbar-upload-list" id="gbar-upload-list" style="display:none;"></div>
             </div>
+
+            <!-- Prompt row -->
+            <div class="cine-prompt-row">
+              <textarea class="ftextarea" id="gbar-prompt" rows="3" placeholder="Describe the scene you imagine..."></textarea>
+              <button class="cine-settings-btn" onclick="document.getElementById('nano-settings-sidebar').classList.toggle('qw2-sb-hidden')" title="إظهار/إخفاء الإعدادات">
+                <span class="material-symbols-outlined" style="font-size:20px;">tune</span>
+              </button>
+            </div>
+
+            <!-- Control bar -->
+            <div class="cine-ctrl-bar">
+              <div class="cine-ctrl-item">
+                <span class="cine-ctrl-label">Model</span>
+                <div class="gbar-model-wrap" id="gbar-model-wrap">
+                  <button class="gbar-ctrl-btn gbar-model-btn" id="gbar-model-btn" onclick="toggleGbarModels()" style="min-width:140px;">
+                    <span class="gbar-g-icon">G</span>
+                    <span id="gbar-model-label">Nano Banana Pro</span>
+                    <span class="gbar-ctrl-chev">›</span>
+                  </button>
+                  <div class="gbar-model-menu" id="gbar-model-menu">
+                    <input class="gbar-search" id="gbar-search" placeholder="Search models..." oninput="filterGbarModels(this.value)">
+                    <button class="gbar-model-item" data-model="nanopro" data-name="nano banana pro" onclick="setGbarModel('nanopro')"><span class="gbar-model-name">Nano Banana Pro</span></button>
+                    <button class="gbar-model-item" data-model="nano2" data-name="nano banana 2" onclick="setGbarModel('nano2')"><span class="gbar-model-name">Nano Banana 2</span></button>
+                    <button class="gbar-model-item" data-model="nano" data-name="nano banana" onclick="setGbarModel('nano')"><span class="gbar-model-name">Nano Banana</span></button>
+                  </div>
+                </div>
+              </div>
+              <div class="cine-spacer"></div>
+              <div class="cost-preview" id="nano-cost-preview"><span class="cost-icon">💳</span> <span class="cost-val" id="nano-cost-val">4</span> كريدت</div>
+              <button class="btn-generate gen-action" onclick="runGoogleFromBar()">Generate</button>
+            </div>
+            <div class="cine-status" id="gbar-status"></div>
           </div>
-          <button class="gbar-ctrl-btn" id="gbar-quality-ctrl-btn" onclick="cycleGbarQuality()"><span class="gbar-ctrl-ico">◈</span><span id="gbar-quality-label">2K</span></button>
-          <div class="gbar-count"><button onclick="adjustGbarCount(-1)">-</button><span id="gbar-count-val">1/4</span><button onclick="adjustGbarCount(1)">+</button></div>
-          <span class="gbar-row-spacer"></span>
-          <select id="gbar-ratio" onchange="setGbarChoice('ratio', this.value)" style="display:none;"><option value="1:1">1:1</option><option value="4:3">4:3</option><option value="3:4">3:4</option><option value="16:9" selected>16:9</option><option value="9:16">9:16</option><option value="2:3">2:3</option><option value="3:2">3:2</option><option value="21:9">21:9</option></select>
-          <select id="gbar-quality" onchange="setGbarChoice('quality', this.value)" style="display:none;"><option value="1K">1K</option><option value="2K">2K</option><option value="4K">4K</option></select>
         </div>
       </div>
-      <div class="gbar-action">
-        <div class="gbar-status" id="gbar-status"></div>
-        <button class="gbar-gen gen-action" onclick="runGoogleFromBar()"><span class="gbar-gen-text">Generate</span><span class="gbar-gen-star">✦</span></button>
+
+      <!-- ═══ SETTINGS SIDEBAR (Leonardo style) ═══ -->
+      <div class="qw2-sidebar" id="nano-settings-sidebar">
+        <div class="qw2-sb-header">
+          <span class="qw2-sb-title">NANO SETTINGS</span>
+          <button class="qw2-sb-close" onclick="document.getElementById('nano-settings-sidebar').classList.add('qw2-sb-hidden')">✕</button>
+        </div>
+
+        <!-- MODEL -->
+        <div class="qw2-sb-section">
+          <div class="qw2-sb-label">MODEL</div>
+          <div class="field">
+            <div class="flabel">الموديل</div>
+            <div class="qw2-btn-group">
+              <button class="qw2-opt active" onclick="setGbarModel('nanopro')">Pro</button>
+              <button class="qw2-opt" onclick="setGbarModel('nano2')">Nano 2</button>
+              <button class="qw2-opt" onclick="setGbarModel('nano')">Nano</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- SIZE & QUALITY -->
+        <div class="qw2-sb-section">
+          <div class="qw2-sb-label">SIZE &amp; QUALITY</div>
+          <div class="field">
+            <div class="flabel">Aspect Ratio</div>
+            <div class="qw2-btn-group qw2-btn-group-4">
+              <button class="qw2-opt" onclick="setGbarRatioPill('1:1')">1:1</button>
+              <button class="qw2-opt" onclick="setGbarRatioPill('4:3')">4:3</button>
+              <button class="qw2-opt active" onclick="setGbarRatioPill('16:9')">16:9</button>
+              <button class="qw2-opt" onclick="setGbarRatioPill('9:16')">9:16</button>
+            </div>
+            <div class="qw2-btn-group qw2-btn-group-4" style="margin-top:4px;">
+              <button class="qw2-opt" onclick="setGbarRatioPill('3:4')">3:4</button>
+              <button class="qw2-opt" onclick="setGbarRatioPill('2:3')">2:3</button>
+              <button class="qw2-opt" onclick="setGbarRatioPill('3:2')">3:2</button>
+              <button class="qw2-opt" onclick="setGbarRatioPill('21:9')">21:9</button>
+            </div>
+            <!-- Hidden selects for compatibility -->
+            <select id="gbar-ratio" onchange="setGbarChoice('ratio', this.value)" style="display:none;"><option value="1:1">1:1</option><option value="4:3">4:3</option><option value="3:4">3:4</option><option value="16:9" selected>16:9</option><option value="9:16">9:16</option><option value="2:3">2:3</option><option value="3:2">3:2</option><option value="21:9">21:9</option></select>
+          </div>
+          <div class="field">
+            <div class="flabel">Quality</div>
+            <div class="qw2-btn-group">
+              <button class="qw2-opt" onclick="document.getElementById('gbar-quality').value='1K'">1K</button>
+              <button class="qw2-opt active" onclick="document.getElementById('gbar-quality').value='2K'">2K</button>
+              <button class="qw2-opt" onclick="document.getElementById('gbar-quality').value='4K'">4K</button>
+            </div>
+            <select id="gbar-quality" onchange="setGbarChoice('quality', this.value)" style="display:none;"><option value="1K">1K</option><option value="2K" selected>2K</option><option value="4K">4K</option></select>
+          </div>
+        </div>
+
+        <!-- GENERATION -->
+        <div class="qw2-sb-section">
+          <div class="qw2-sb-label">GENERATION</div>
+          <div class="field">
+            <div class="flabel">عدد الصور</div>
+            <div class="qw2-btn-group qw2-btn-group-4">
+              <button class="qw2-opt active" onclick="setNanoCount(1)">1</button>
+              <button class="qw2-opt" onclick="setNanoCount(2)">2</button>
+              <button class="qw2-opt" onclick="setNanoCount(3)">3</button>
+              <button class="qw2-opt" onclick="setNanoCount(4)">4</button>
+            </div>
+            <div id="gbar-count-val" style="display:none;">1/4</div>
+          </div>
+        </div>
       </div>
-    </div>
-    <!-- Nano results - all models combined -->
-    <div id="nano-all-results">
-      <div class="result-grid gs-result" id="g-nanopro-results"><div class="result-empty"><div class="result-empty-icon">🍌</div><div class="result-empty-text">ستظهر النتائج هنا</div></div></div>
-      <div class="result-grid gs-result" id="g-nano2-results"></div>
-      <div class="result-grid gs-result" id="g-nano-results"></div>
+
     </div>
   </div>
 
@@ -8951,6 +9034,11 @@ function updateGbarCount(silent){
 function adjustGbarCount(delta){
   googleBarState.count = Math.max(1, Math.min(4, (Number(googleBarState.count || 1) + delta)));
   updateGbarCount();
+}
+function setNanoCount(n){
+  googleBarState.count = n;
+  updateGbarCount();
+  document.querySelectorAll('#page-nano .qw2-sb-section:last-child .qw2-opt').forEach((b,i)=>b.classList.toggle('active', i===n-1));
 }
 
 function syncGbarToggles(silent){
