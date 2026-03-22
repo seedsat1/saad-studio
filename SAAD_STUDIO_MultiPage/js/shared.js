@@ -164,6 +164,43 @@ function injectSharedModals() {
   </div>
 </div>`;
   while (wrapper.firstChild) document.body.appendChild(wrapper.firstChild);
+
+  // Inject lightbox if not already present
+  if (!document.getElementById('lightbox')) {
+    const lb = document.createElement('div');
+    lb.innerHTML = `
+<div id="lightbox" class="lb-overlay" onclick="if(event.target===this)closeLightbox()">
+  <div class="lb-shell">
+    <div class="lb-media">
+      <button class="lb-close" onclick="closeLightbox()">×</button>
+      <img id="lb-img" src="">
+      <video id="lb-video" controls style="display:none;"></video>
+    </div>
+    <div class="lb-side">
+      <div class="lb-card">
+        <div class="lb-title">Prompt</div>
+        <div id="lb-prompt" class="lb-prompt"></div>
+        <div class="lb-note" id="lb-note">This AI generated media may be used for personal and commercial use.</div>
+      </div>
+      <div class="lb-actions">
+        <button class="lb-action" id="lb-extend">Extend +</button>
+        <button class="lb-action" id="lb-modify">Modify ✨</button>
+        <button class="lb-action wide" id="lb-change">Change subject 👤</button>
+        <button class="lb-action wide" id="lb-reframe">Reframe ⤴</button>
+      </div>
+      <div class="lb-actions">
+        <button class="lb-action secondary" id="lb-prompt-btn">Prompt 📋</button>
+        <button class="lb-action secondary" id="lb-history">History 🕒</button>
+      </div>
+      <div class="lb-bottom">
+        <a id="lb-dl" download class="lb-action lb-download">Download ⬇</a>
+        <button class="lb-trash" id="lb-delete">🗑</button>
+      </div>
+    </div>
+  </div>
+</div>`;
+    while (lb.firstChild) document.body.appendChild(lb.firstChild);
+  }
 }
 
 function readJson(key, fallback){
