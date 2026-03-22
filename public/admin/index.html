@@ -31,6 +31,24 @@
       .stat-label { font-size: .85rem; opacity: .85; }
       .stat-icon { font-size: 2.5rem; opacity: .3; }
       .placeholder-glow .placeholder { border-radius: 4px; }
+
+      /* Activity Feed */
+      .activity-avatar {
+        width: 36px; height: 36px; border-radius: 50%;
+        display: inline-flex; align-items: center; justify-content: center;
+        font-weight: 700; font-size: 13px; flex-shrink: 0;
+        background: var(--cui-primary); color: #fff;
+      }
+      .activity-model { font-size: 11px; opacity: .65; }
+      .activity-prompt { font-size: 12px; max-width: 260px; overflow: hidden;
+        text-overflow: ellipsis; white-space: nowrap; opacity: .8; }
+      .badge-image  { background: #0d6efd22; color: #0d6efd; border: 1px solid #0d6efd55; }
+      .badge-video  { background: #6f42c122; color: #6f42c1; border: 1px solid #6f42c155; }
+      .badge-audio  { background: #20c99722; color: #20c997; border: 1px solid #20c99755; }
+      .badge-task   { background: #6c757d22; color: #6c757d; border: 1px solid #6c757d55; }
+      .activity-time { font-size: 11px; white-space: nowrap; opacity: .6; }
+      .spin { animation: spin 1s linear infinite; }
+      @keyframes spin { to { transform: rotate(360deg); } }
     </style>
   </head>
   <body>
@@ -204,6 +222,62 @@
               </div>
             </div>
           </div>
+
+          <!-- ═══ ACTIVITY FEED ═══ -->
+          <div class="row g-4 mb-4">
+            <div class="col-12">
+              <div class="card">
+                <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+                  <div class="d-flex align-items-center gap-2">
+                    <strong>🎬 User Activity Feed</strong>
+                    <span class="badge bg-secondary" id="activityTotal">0</span>
+                  </div>
+                  <div class="d-flex gap-2 flex-wrap">
+                    <input type="search" id="activitySearch" class="form-control form-control-sm"
+                      placeholder="Search email / model…" style="width:180px;"
+                      oninput="debounceLoadActivity()">
+                    <select class="form-select form-select-sm" id="activityType" style="width:110px;"
+                      onchange="loadActivity()">
+                      <option value="">All Types</option>
+                      <option value="image">🖼 Image</option>
+                      <option value="video">🎬 Video</option>
+                      <option value="audio">🎵 Audio</option>
+                      <option value="task">⚙️ Task</option>
+                    </select>
+                    <button class="btn btn-sm btn-outline-primary" onclick="loadActivity()">↻ Refresh</button>
+                    <button class="btn btn-sm btn-outline-success" id="autoRefreshBtn" onclick="toggleAutoRefresh()">⏱ Auto OFF</button>
+                  </div>
+                </div>
+                <div class="card-body p-0">
+                  <div class="table-responsive">
+                    <table class="table table-hover mb-0 align-middle">
+                      <thead class="table-light">
+                        <tr>
+                          <th style="min-width:190px">User</th>
+                          <th style="min-width:150px">Model</th>
+                          <th>Type</th>
+                          <th>Credits</th>
+                          <th style="min-width:240px">Prompt</th>
+                          <th>Time</th>
+                        </tr>
+                      </thead>
+                      <tbody id="activityBody">
+                        <tr><td colspan="6" class="text-center py-4 text-body-secondary">Loading...</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                  <small class="text-body-secondary" id="activityShowing">Showing 0 of 0</small>
+                  <div class="d-flex gap-2">
+                    <button class="btn btn-sm btn-outline-secondary" id="activityPrev" onclick="activityPage(-1)" disabled>‹ Prev</button>
+                    <button class="btn btn-sm btn-outline-secondary" id="activityNext" onclick="activityPage(1)" disabled>Next ›</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
 
@@ -264,6 +338,120 @@
       }
       loadKieBalance();
       document.getElementById('refreshKie').addEventListener('click', loadKieBalance);
+
+      // ════════════════════════════════════════════════════════
+      //  ACTIVITY FEED
+      // ════════════════════════════════════════════════════════
+      const PAGE_SIZE = 50;
+      let activityOffset = 0;
+      let activityTotalCount = 0;
+      let autoRefreshTimer = null;
+      let debounceTimer = null;
+
+      function debounceLoadActivity() {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => { activityOffset = 0; loadActivity(); }, 400);
+      }
+
+      function activityPage(dir) {
+        activityOffset = Math.max(0, activityOffset + dir * PAGE_SIZE);
+        loadActivity();
+      }
+
+      function toggleAutoRefresh() {
+        const btn = document.getElementById('autoRefreshBtn');
+        if (autoRefreshTimer) {
+          clearInterval(autoRefreshTimer);
+          autoRefreshTimer = null;
+          btn.textContent = '⏱ Auto OFF';
+          btn.classList.replace('btn-success', 'btn-outline-success');
+        } else {
+          autoRefreshTimer = setInterval(loadActivity, 15000);
+          btn.textContent = '⏱ Auto ON (15s)';
+          btn.classList.replace('btn-outline-success', 'btn-success');
+          loadActivity();
+        }
+      }
+
+      function timeAgo(iso) {
+        const diff = (Date.now() - new Date(iso).getTime()) / 1000;
+        if (diff < 60)   return Math.round(diff) + 's ago';
+        if (diff < 3600) return Math.round(diff / 60) + 'm ago';
+        if (diff < 86400)return Math.round(diff / 3600) + 'h ago';
+        return new Date(iso).toLocaleDateString();
+      }
+
+      function typeBadge(type) {
+        const map = { image: ['badge-image','🖼 Image'], video: ['badge-video','🎬 Video'],
+                      audio: ['badge-audio','🎵 Audio'], task:  ['badge-task', '⚙️ Task'] };
+        const [cls, label] = map[type] || ['badge-task','⚙️ '+type];
+        return `<span class="badge ${cls} rounded-pill fw-normal">${label}</span>`;
+      }
+
+      function avatarColor(email) {
+        let h = 0;
+        for (const c of (email||'A')) h = (h * 31 + c.charCodeAt(0)) & 0xffffffff;
+        const colors = ['#0d6efd','#6610f2','#6f42c1','#d63384','#dc3545',
+                        '#fd7e14','#ffc107','#198754','#20c997','#0dcaf0'];
+        return colors[Math.abs(h) % colors.length];
+      }
+
+      async function loadActivity() {
+        const search = document.getElementById('activitySearch').value.trim();
+        const type   = document.getElementById('activityType').value;
+        const params = new URLSearchParams({ limit: PAGE_SIZE, offset: activityOffset });
+        if (type)   params.append('type',   type);
+        if (search) params.append('search', search);
+
+        const body = document.getElementById('activityBody');
+        body.innerHTML = '<tr><td colspan="6" class="text-center py-3 text-body-secondary">' +
+          '<span style="display:inline-block;width:16px;height:16px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite;vertical-align:middle;margin-right:6px;"></span>Loading…</td></tr>';
+
+        try {
+          const r = await fetch('/api/admin/activity?' + params, { credentials: 'same-origin' });
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          const { activity, total } = await r.json();
+          activityTotalCount = total || 0;
+
+          document.getElementById('activityTotal').textContent = activityTotalCount.toLocaleString();
+          document.getElementById('activityShowing').textContent =
+            `Showing ${activityOffset + 1}–${Math.min(activityOffset + PAGE_SIZE, activityTotalCount)} of ${activityTotalCount}`;
+          document.getElementById('activityPrev').disabled = activityOffset <= 0;
+          document.getElementById('activityNext').disabled = activityOffset + PAGE_SIZE >= activityTotalCount;
+
+          if (!activity || activity.length === 0) {
+            body.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-body-secondary">No activity yet.</td></tr>';
+            return;
+          }
+
+          body.innerHTML = activity.map(e => {
+            const initials = (e.email || '?').slice(0, 2).toUpperCase();
+            const color    = avatarColor(e.email);
+            const modelShort = (e.model || '').replace(/\/.*/, '').slice(0, 28);
+            const promptText = e.prompt ? e.prompt.replace(/</g,'&lt;').replace(/>/g,'&gt;') : '—';
+            return `<tr>
+              <td>
+                <div class="d-flex align-items-center gap-2">
+                  <div class="activity-avatar" style="background:${color}">${initials}</div>
+                  <div>
+                    <div class="fw-semibold" style="font-size:13px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${e.email||''}">${e.email||'—'}</div>
+                    <div class="activity-model" style="font-size:10px;">${e.userId ? e.userId.slice(0,8)+'…' : ''}</div>
+                  </div>
+                </div>
+              </td>
+              <td><span class="fw-medium" style="font-size:13px;">${modelShort}</span></td>
+              <td>${typeBadge(e.type)}</td>
+              <td><span class="fw-bold text-warning">${e.credits||0}</span></td>
+              <td><div class="activity-prompt" title="${promptText}">${promptText||'<span class="opacity-50">—</span>'}</div></td>
+              <td class="activity-time">${timeAgo(e.createdAt)}</td>
+            </tr>`;
+          }).join('');
+        } catch(err) {
+          body.innerHTML = `<tr><td colspan="6" class="text-center py-3 text-danger">Error: ${err.message}</td></tr>`;
+        }
+      }
+
+      loadActivity();
     </script>
   
 <!-- PWA Service Worker Registration -->

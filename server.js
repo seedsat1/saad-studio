@@ -2752,7 +2752,8 @@ function isAllowedUpload(file, allowedMimes) {
 }
 
 // â•â•â• USER AUTH SYSTEM â•â•â•
-const USAGE_FILE  = path.join(VAULT_DIR, 'usage.json');
+const USAGE_FILE     = path.join(VAULT_DIR, 'usage.json');
+const ACTIVITY_FILE  = path.join(VAULT_DIR, 'activity.json');
 const PLANS = {
   starter: { price: 0,  credits: 0,    nanoBananaFree: true, label: 'Starter (مجاني)' },
   pro:     { price: 25, credits: 0,    nanoBananaFree: true,  label: 'Pro'     },
@@ -3022,6 +3023,12 @@ async function deductCreditsForGeneration(req, res, model, params) {
   req.creditInfo = { creditsUsed: cost, remainingCredits: updated?.credits ?? (current - cost) };
   // Track usage (still vault-based)
   trackUsage(req.currentUser.id, model, cost);
+  // Log individual activity event for admin feed
+  const _prompt = String(
+    req.body?.prompt || req.body?.input?.prompt || req.body?.input?.content ||
+    req.body?.text   || req.body?.lyrics       || req.body?.description    || ''
+  ).trim().slice(0, 150);
+  logActivity(req.currentUser.id, req.currentUser.email, inferUsageType(model), model, cost, _prompt);
   return true;
 }
 
@@ -3030,6 +3037,27 @@ function genToken() { return crypto.randomBytes(32).toString('hex'); }
 
 
 
+
+// ─── ACTIVITY LOG ─────────────────────────────────────────────────────────────
+function logActivity(userId, email, type, model, credits, prompt) {
+  try {
+    let log = [];
+    try { log = JSON.parse(fs.readFileSync(ACTIVITY_FILE, 'utf8')); } catch {}
+    if (!Array.isArray(log)) log = [];
+    log.unshift({
+      id      : crypto.randomBytes(8).toString('hex'),
+      userId  : String(userId  || ''),
+      email   : String(email   || ''),
+      type    : String(type    || 'task'),
+      model   : String(model   || ''),
+      credits : Number(credits) || 0,
+      prompt  : String(prompt  || '').slice(0, 150),
+      createdAt: new Date().toISOString()
+    });
+    if (log.length > 2000) log = log.slice(0, 2000);
+    fs.writeFileSync(ACTIVITY_FILE, JSON.stringify(log));
+  } catch (_) {}
+}
 
 // ─── USAGE TRACKING ──────────────────────────────────────────────────────────
 // Default per-user daily/monthly limits (null = no limit; admin can set per-user overrides)
@@ -3515,6 +3543,27 @@ app.post('/api/admin/logout', (req, res) => {
   res.json({ ok: true });
 });
 
+
+// GET /api/admin/activity — live activity feed
+app.get('/api/admin/activity', requireAdmin, (req, res) => {
+  try {
+    let log = [];
+    try { log = JSON.parse(fs.readFileSync(ACTIVITY_FILE, 'utf8')); } catch {}
+    if (!Array.isArray(log)) log = [];
+    const limit  = Math.min(200, Math.max(1, parseInt(req.query.limit)  || 50));
+    const offset = Math.max(0,              parseInt(req.query.offset) || 0);
+    const type   = req.query.type || '';   // filter by type
+    const search = (req.query.search || '').toLowerCase();
+    let filtered = log;
+    if (type)   filtered = filtered.filter(e => e.type === type);
+    if (search) filtered = filtered.filter(e =>
+      (e.email  || '').toLowerCase().includes(search) ||
+      (e.model  || '').toLowerCase().includes(search) ||
+      (e.prompt || '').toLowerCase().includes(search)
+    );
+    res.json({ activity: filtered.slice(offset, offset + limit), total: filtered.length });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
 
 // GET /api/admin/stats — dashboard statistics
 app.get('/api/admin/stats', requireAdmin, async (req, res) => {
