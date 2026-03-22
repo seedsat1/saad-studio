@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+  <head>
+    <base href="/admin/">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
+    <title>Saad Studio — Homepage Editor</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/logo.png">
+    <link rel="stylesheet" href="vendors/simplebar/css/simplebar.css">
+    <link rel="stylesheet" href="css/vendors/simplebar.css">
+    <link href="css/style.css" rel="stylesheet">
+    <link href="css/pwa-responsive.css" rel="stylesheet">
+    <link href="css/rtl.css" rel="stylesheet" id="rtlStylesheet">
+    <script src="js/config.js"></script>
+    <script src="js/color-modes.js"></script>
+    <style>
+      .hp-card { border: 1px solid var(--cui-border-color); border-radius: .5rem; padding: .75rem; margin-bottom: .75rem; background: var(--cui-tertiary-bg); display: flex; gap: .75rem; align-items: flex-start; position: relative; }
+      .hp-card .hp-thumb { width: 120px; min-width: 120px; height: 80px; border-radius: .4rem; object-fit: cover; background: var(--cui-body-bg); cursor: pointer; border: 2px dashed var(--cui-border-color); display: flex; align-items: center; justify-content: center; overflow: hidden; }
+      .hp-card .hp-thumb img { width: 100%; height: 100%; object-fit: cover; }
+      .hp-card .hp-thumb:hover { border-color: var(--cui-primary); }
+      .hp-card .hp-fields { flex: 1; display: flex; flex-direction: column; gap: .4rem; }
+      .hp-card .hp-fields input, .hp-card .hp-fields textarea { font-size: .82rem; }
+      .hp-card .hp-actions { display: flex; flex-direction: column; gap: .3rem; align-items: center; min-width: 36px; }
+      .hp-card .hp-actions button { width: 30px; height: 30px; border: none; border-radius: .3rem; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; background: var(--cui-body-bg); color: var(--cui-body-color); }
+      .hp-card .hp-actions button:hover { opacity: .7; }
+      .hp-card .hp-actions .btn-del { color: var(--cui-danger); }
+      .toast-container { position: fixed; top: 1rem; left: 1rem; z-index: 9999; }
+      .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: .75rem; }
+      .section-header h5 { margin: 0; }
+      .hp-upload-input { display: none; }
+      .drag-over { outline: 2px dashed var(--cui-primary) !important; outline-offset: -2px; }
+      .thumb-placeholder { font-size: 22px; opacity: .4; }
+    </style>
+  </head>
+  <body>
+    <!-- SIDEBAR -->
+    <div class="sidebar sidebar-dark sidebar-fixed border-end" id="sidebar">
+      <div class="sidebar-header border-bottom">
+        <div class="sidebar-brand">
+          <span class="sidebar-brand-full fw-semibold fs-5 text-white">Saad Studio</span>
+          <span class="sidebar-brand-narrow fw-bold text-white">SS</span>
+        </div>
+        <button class="btn-close d-lg-none" type="button" data-coreui-theme="dark" aria-label="Close" onclick="coreui.Sidebar.getInstance(document.querySelector('#sidebar')).toggle()"></button>
+      </div>
+      <ul class="sidebar-nav" data-coreui="navigation" data-simplebar="">
+        <li class="nav-item"><a class="nav-link" href="index.html">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-speedometer"></use></svg> <span>Dashboard</span></a></li>
+        <li class="nav-item"><a class="nav-link" href="users.html">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-people"></use></svg> <span>Users</span></a></li>
+        <li class="nav-item"><a class="nav-link" href="orders.html">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-cart"></use></svg> <span>Orders</span></a></li>
+        <li class="nav-item"><a class="nav-link" href="pages.html">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-file"></use></svg> <span>Pages</span></a></li>
+        <li class="nav-item"><a class="nav-link" href="sidebar.html">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-list"></use></svg> <span>Sidebar Items</span></a></li>
+        <li class="nav-item"><a class="nav-link" href="media.html">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-image"></use></svg> <span>Media</span></a></li>
+        <li class="nav-item"><a class="nav-link" href="generations.html">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-camera"></use></svg> <span>Generations</span></a></li>
+        <li class="nav-item"><a class="nav-link active" href="homepage.html">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-home"></use></svg> <span>Homepage</span></a></li>
+        <li class="nav-item"><a class="nav-link" href="ads.html">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-bullhorn"></use></svg> <span>Ads</span></a></li>
+        <li class="nav-item"><a class="nav-link" href="settings.html">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-settings"></use></svg> <span>Settings</span></a></li>
+        <li class="nav-item"><a class="nav-link" href="theme.html">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-color-palette"></use></svg> <span>Theme</span></a></li>
+      </ul>
+      <div class="sidebar-footer border-top d-none d-md-flex">
+        <button class="sidebar-toggler" type="button" data-coreui-toggle="unfoldable"></button>
+      </div>
+    </div>
+
+    <!-- MAIN WRAPPER -->
+    <div class="wrapper d-flex flex-column min-vh-100">
+      <header class="header header-sticky p-0 mb-4">
+        <div class="container-fluid border-bottom px-4">
+          <button class="header-toggler" type="button" onclick="coreui.Sidebar.getInstance(document.querySelector('#sidebar')).toggle()" style="margin-inline-start: -14px;">
+            <svg class="icon icon-lg"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-menu"></use></svg>
+          </button>
+          <ul class="header-nav d-none d-lg-flex">
+            <li class="nav-item"><a class="nav-link" href="index.html">Dashboard</a></li>
+            <li class="nav-item"><a class="nav-link" href="homepage.html">Homepage Editor</a></li>
+          </ul>
+          <ul class="header-nav ms-auto">
+            <li class="nav-item dropdown">
+              <button class="btn btn-link nav-link py-2 px-2 d-flex align-items-center" type="button" data-coreui-toggle="dropdown">
+                <svg class="icon icon-lg theme-icon-active"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-contrast"></use></svg>
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end" style="--cui-dropdown-min-width:8rem;">
+                <li><button class="dropdown-item" type="button" data-coreui-theme-value="light">Light</button></li>
+                <li><button class="dropdown-item" type="button" data-coreui-theme-value="dark">Dark</button></li>
+                <li><button class="dropdown-item active" type="button" data-coreui-theme-value="auto">Auto</button></li>
+              </ul>
+            </li>
+            <li class="nav-item py-1"><div class="vr h-100 mx-2 text-body text-opacity-75"></div></li>
+            <li class="nav-item dropdown"><a class="nav-link py-0 pe-0" data-coreui-toggle="dropdown" href="#" role="button">
+                <div class="avatar avatar-md bg-primary text-white d-flex align-items-center justify-content-center rounded-circle" style="width:36px;height:36px;font-size:14px;">A</div></a>
+              <div class="dropdown-menu dropdown-menu-end pt-0">
+                <div class="dropdown-header bg-body-tertiary text-body-secondary fw-semibold rounded-top mb-2">Account</div>
+                <a class="dropdown-item" href="settings.html">Settings</a>
+                <div class="dropdown-divider"></div>
+                <a class="dropdown-item" href="#" id="logoutBtn">Logout</a>
+              </div>
+            </li>
+          </ul>
+        </div>
+        <div class="container-fluid px-4">
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb my-0">
+              <li class="breadcrumb-item"><a href="index.html">Home</a></li>
+              <li class="breadcrumb-item active"><span>Homepage Editor</span></li>
+            </ol>
+          </nav>
+        </div>
+      </header>
+
+      <div class="body flex-grow-1">
+        <div class="container-lg px-4">
+
+          <!-- Loading -->
+          <div id="loadingState" class="text-center py-5">
+            <div class="spinner-border spinner-border-sm text-primary me-2"></div> Loading...
+          </div>
+
+          <div id="editorWrap" class="d-none">
+
+            <!-- Page Header -->
+            <div class="card mb-4">
+              <div class="card-header"><strong>عنوان الصفحة الرئيسية</strong></div>
+              <div class="card-body">
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <label class="form-label">العنوان الرئيسي</label>
+                    <input class="form-control" id="headerTitle" dir="rtl">
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">العنوان الفرعي</label>
+                    <input class="form-control" id="headerSubtitle" dir="rtl">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- SLIDES -->
+            <div class="card mb-4">
+              <div class="card-header">
+                <div class="section-header">
+                  <h5>السلايدر (Hero Slides)</h5>
+                  <button class="btn btn-sm btn-primary" id="addSlideBtn">+ إضافة سلايد</button>
+                </div>
+              </div>
+              <div class="card-body" id="slidesContainer"></div>
+            </div>
+
+            <!-- MODELS -->
+            <div class="card mb-4">
+              <div class="card-header">
+                <div class="section-header">
+                  <h5>الموديلات (Model Cards)</h5>
+                  <button class="btn btn-sm btn-primary" id="addModelBtn">+ إضافة موديل</button>
+                </div>
+              </div>
+              <div class="card-body" id="modelsContainer"></div>
+            </div>
+
+            <!-- Save -->
+            <div class="d-flex gap-2 mb-4">
+              <button class="btn btn-success px-4" id="saveBtn">💾 حفظ التغييرات</button>
+              <button class="btn btn-outline-secondary" id="reloadBtn">↻ إعادة تحميل</button>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <footer class="footer px-4"><div>Saad Studio &copy; 2025</div></footer>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast-container">
+      <div class="toast align-items-center text-bg-success border-0" id="toastOk" role="alert">
+        <div class="d-flex"><div class="toast-body" id="toastMsg"></div>
+          <button type="button" class="btn-close btn-close-white me-2 m-auto" data-coreui-dismiss="toast"></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hidden file input for image uploads -->
+    <input type="file" class="hp-upload-input" id="globalFileInput" accept="image/jpeg,image/png,image/gif,image/webp,image/avif,image/jpg">
+
+    <script src="vendors/@coreui/coreui/js/coreui.bundle.min.js"></script>
+    <script src="vendors/simplebar/js/simplebar.min.js"></script>
+    <script>
+    (function(){
+      let csrfToken = '';
+      let hpData = { header: { title: '', subtitle: '' }, slides: [], models: [] };
+      let uploadTarget = null; // { section: 'slides'|'models', index: number }
+
+      const header = document.querySelector('header.header');
+      document.addEventListener('scroll', () => {
+        if (header) header.classList.toggle('shadow-sm', document.documentElement.scrollTop > 0);
+      });
+
+      async function apiFetch(path, opts = {}) {
+        const headers = { 'x-csrf-token': csrfToken, ...opts.headers };
+        const r = await fetch(path, { ...opts, headers, credentials: 'same-origin' });
+        if (r.status === 401) { window.location.href = '/'; return null; }
+        return r;
+      }
+
+      function showToast(msg, type) {
+        const el = document.getElementById('toastOk');
+        el.className = 'toast align-items-center border-0 text-bg-' + (type || 'success');
+        document.getElementById('toastMsg').textContent = msg;
+        coreui.Toast.getOrCreateInstance(el).show();
+      }
+
+      function escHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+      function genId() { return 'hp' + Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+
+      // --- Init ---
+      async function init() {
+        try {
+          const r = await fetch('/api/admin/session', { credentials: 'same-origin' });
+          if (!r.ok) { window.location.href = '/'; return; }
+          const data = await r.json();
+          csrfToken = data.csrfToken;
+          await loadData();
+        } catch (e) {
+          document.getElementById('loadingState').innerHTML = '<span class="text-danger">Failed: ' + escHtml(e.message) + '</span>';
+        }
+      }
+
+      async function loadData() {
+        const r = await apiFetch('/api/admin/homepage');
+        if (!r) return;
+        hpData = await r.json();
+        hpData.slides = (hpData.slides || []).sort((a, b) => (a.order || 0) - (b.order || 0));
+        hpData.models = (hpData.models || []).sort((a, b) => (a.order || 0) - (b.order || 0));
+        document.getElementById('loadingState').classList.add('d-none');
+        document.getElementById('editorWrap').classList.remove('d-none');
+        renderAll();
+      }
+
+      function renderAll() {
+        document.getElementById('headerTitle').value = hpData.header?.title || '';
+        document.getElementById('headerSubtitle').value = hpData.header?.subtitle || '';
+        renderSlides();
+        renderModels();
+      }
+
+      // ======== SLIDES ========
+      function renderSlides() {
+        const c = document.getElementById('slidesContainer');
+        c.innerHTML = '';
+        if (!hpData.slides.length) {
+          c.innerHTML = '<div class="text-center text-body-secondary py-3">لا توجد سلايدات. اضغط "إضافة سلايد" لإنشاء واحدة.</div>';
+          return;
+        }
+        hpData.slides.forEach((s, i) => {
+          c.appendChild(createSlideCard(s, i));
+        });
+      }
+
+      function createSlideCard(s, idx) {
+        const card = document.createElement('div');
+        card.className = 'hp-card';
+        card.dataset.idx = idx;
+        card.dataset.section = 'slides';
+        card.innerHTML = `
+          <div class="hp-thumb" title="اضغط لتغيير الصورة" data-section="slides" data-idx="${idx}">
+            ${s.image ? '<img src="' + escHtml(s.image) + '">' : '<span class="thumb-placeholder">🖼</span>'}
+          </div>
+          <div class="hp-fields">
+            <div class="row g-2">
+              <div class="col-sm-4"><input class="form-control form-control-sm" placeholder="Badge (مثال: Text to Video)" value="${escHtml(s.tag || '')}" data-field="tag"></div>
+              <div class="col-sm-4"><input class="form-control form-control-sm" placeholder="العنوان" value="${escHtml(s.title || '')}" data-field="title"></div>
+              <div class="col-sm-4"><input class="form-control form-control-sm" placeholder="الرابط (مثال: /google.html)" value="${escHtml(s.link || '')}" data-field="link"></div>
+            </div>
+            <textarea class="form-control form-control-sm" rows="2" placeholder="الوصف" data-field="desc">${escHtml(s.desc || '')}</textarea>
+          </div>
+          <div class="hp-actions">
+            <button title="أعلى" onclick="moveItem('slides',${idx},-1)">▲</button>
+            <button title="أسفل" onclick="moveItem('slides',${idx},1)">▼</button>
+            <button class="btn-del" title="حذف" onclick="deleteItem('slides',${idx})">🗑</button>
+          </div>
+        `;
+        // Bind field changes
+        card.querySelectorAll('[data-field]').forEach(el => {
+          el.addEventListener('input', () => {
+            hpData.slides[idx][el.dataset.field] = el.value;
+          });
+        });
+        // Bind thumb click for upload
+        card.querySelector('.hp-thumb').addEventListener('click', () => {
+          uploadTarget = { section: 'slides', index: idx };
+          document.getElementById('globalFileInput').click();
+        });
+        return card;
+      }
+
+      // ======== MODELS ========
+      function renderModels() {
+        const c = document.getElementById('modelsContainer');
+        c.innerHTML = '';
+        if (!hpData.models.length) {
+          c.innerHTML = '<div class="text-center text-body-secondary py-3">لا توجد موديلات. اضغط "إضافة موديل" لإنشاء واحد.</div>';
+          return;
+        }
+        hpData.models.forEach((m, i) => {
+          c.appendChild(createModelCard(m, i));
+        });
+      }
+
+      function createModelCard(m, idx) {
+        const card = document.createElement('div');
+        card.className = 'hp-card';
+        card.dataset.idx = idx;
+        card.dataset.section = 'models';
+        card.innerHTML = `
+          <div class="hp-thumb" title="اضغط لتغيير الصورة" data-section="models" data-idx="${idx}" style="width:90px;min-width:90px;height:90px;">
+            ${m.image ? '<img src="' + escHtml(m.image) + '">' : '<span class="thumb-placeholder">🖼</span>'}
+          </div>
+          <div class="hp-fields">
+            <div class="row g-2">
+              <div class="col-sm-3"><input class="form-control form-control-sm" placeholder="Badge (مثال: Text to Image)" value="${escHtml(m.pill || '')}" data-field="pill"></div>
+              <div class="col-sm-3"><input class="form-control form-control-sm" placeholder="العنوان" value="${escHtml(m.title || '')}" data-field="title"></div>
+              <div class="col-sm-3"><input class="form-control form-control-sm" placeholder="الوصف" value="${escHtml(m.sub || '')}" data-field="sub" dir="rtl"></div>
+              <div class="col-sm-3"><input class="form-control form-control-sm" placeholder="الرابط" value="${escHtml(m.link || '')}" data-field="link"></div>
+            </div>
+          </div>
+          <div class="hp-actions">
+            <button title="أعلى" onclick="moveItem('models',${idx},-1)">▲</button>
+            <button title="أسفل" onclick="moveItem('models',${idx},1)">▼</button>
+            <button class="btn-del" title="حذف" onclick="deleteItem('models',${idx})">🗑</button>
+          </div>
+        `;
+        card.querySelectorAll('[data-field]').forEach(el => {
+          el.addEventListener('input', () => {
+            hpData.models[idx][el.dataset.field] = el.value;
+          });
+        });
+        card.querySelector('.hp-thumb').addEventListener('click', () => {
+          uploadTarget = { section: 'models', index: idx };
+          document.getElementById('globalFileInput').click();
+        });
+        return card;
+      }
+
+      // ======== ACTIONS ========
+      window.moveItem = function(section, idx, dir) {
+        const arr = hpData[section];
+        const newIdx = idx + dir;
+        if (newIdx < 0 || newIdx >= arr.length) return;
+        [arr[idx], arr[newIdx]] = [arr[newIdx], arr[idx]];
+        arr.forEach((item, i) => item.order = i);
+        if (section === 'slides') renderSlides();
+        else renderModels();
+      };
+
+      window.deleteItem = function(section, idx) {
+        if (!confirm('هل أنت متأكد من الحذف؟')) return;
+        hpData[section].splice(idx, 1);
+        hpData[section].forEach((item, i) => item.order = i);
+        if (section === 'slides') renderSlides();
+        else renderModels();
+      };
+
+      document.getElementById('addSlideBtn').addEventListener('click', () => {
+        hpData.slides.push({
+          id: genId(), tag: '', title: '', desc: '', image: '', link: '',
+          order: hpData.slides.length
+        });
+        renderSlides();
+        document.getElementById('slidesContainer').lastElementChild?.scrollIntoView({ behavior: 'smooth' });
+      });
+
+      document.getElementById('addModelBtn').addEventListener('click', () => {
+        hpData.models.push({
+          id: genId(), pill: '', title: '', sub: '', image: '', link: '',
+          order: hpData.models.length
+        });
+        renderModels();
+        document.getElementById('modelsContainer').lastElementChild?.scrollIntoView({ behavior: 'smooth' });
+      });
+
+      // ======== IMAGE UPLOAD ========
+      document.getElementById('globalFileInput').addEventListener('change', async function() {
+        if (!this.files.length || !uploadTarget) return;
+        const file = this.files[0];
+        this.value = '';
+
+        const type = uploadTarget.section === 'slides' ? 'slide' : 'model';
+        const fd = new FormData();
+        fd.append('file', file);
+        fd.append('type', type);
+
+        try {
+          const r = await apiFetch('/api/admin/homepage/upload-image', { method: 'POST', body: fd });
+          if (!r || !r.ok) {
+            const d = await r?.json().catch(() => ({}));
+            showToast(d.error || 'فشل الرفع', 'danger');
+            return;
+          }
+          const d = await r.json();
+          hpData[uploadTarget.section][uploadTarget.index].image = d.url;
+          showToast('تم رفع الصورة', 'success');
+          if (uploadTarget.section === 'slides') renderSlides();
+          else renderModels();
+        } catch (e) {
+          showToast('خطأ: ' + e.message, 'danger');
+        }
+      });
+
+      // ======== SAVE ========
+      document.getElementById('saveBtn').addEventListener('click', async () => {
+        // Read header from inputs
+        hpData.header = {
+          title: document.getElementById('headerTitle').value,
+          subtitle: document.getElementById('headerSubtitle').value
+        };
+        // Ensure orders
+        hpData.slides.forEach((s, i) => s.order = i);
+        hpData.models.forEach((m, i) => m.order = i);
+
+        const btn = document.getElementById('saveBtn');
+        btn.disabled = true;
+        btn.textContent = 'جاري الحفظ...';
+
+        try {
+          const r = await apiFetch('/api/admin/homepage', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(hpData)
+          });
+          if (!r) return;
+          if (r.ok) {
+            showToast('تم الحفظ بنجاح! ✅', 'success');
+          } else {
+            const d = await r.json().catch(() => ({}));
+            showToast(d.error || 'فشل الحفظ', 'danger');
+          }
+        } catch (e) {
+          showToast('خطأ: ' + e.message, 'danger');
+        } finally {
+          btn.disabled = false;
+          btn.textContent = '💾 حفظ التغييرات';
+        }
+      });
+
+      document.getElementById('reloadBtn').addEventListener('click', () => {
+        if (confirm('إعادة تحميل البيانات؟ ستفقد التغييرات غير المحفوظة.')) loadData();
+      });
+
+      init();
+    })();
+    </script>
+  </body>
+</html>

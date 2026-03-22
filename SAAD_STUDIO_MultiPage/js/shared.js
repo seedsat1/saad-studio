@@ -762,6 +762,62 @@ function initMarketHero(){
   marketHeroTimer = setInterval(marketNext, 10000);
 }
 
+async function loadHomepageData(){
+  try {
+    const res = await fetch('/api/homepage-data');
+    if(!res.ok) return;
+    const data = await res.json();
+
+    // Header
+    const titleEl = document.getElementById('dash-ph-title');
+    const subEl   = document.getElementById('dash-ph-sub');
+    if(titleEl && data.header?.title) titleEl.textContent = data.header.title;
+    if(subEl   && data.header?.subtitle) subEl.textContent = data.header.subtitle;
+
+    // Slides
+    const heroC = document.getElementById('market-hero-container');
+    if(heroC && data.slides?.length){
+      let html = '';
+      data.slides.forEach((s, i) => {
+        html += `<div class="market-hero-slide${i===0?' active':''}" style="background-image:url('${s.image}')" onclick="window.location.href='${s.link}'">
+          <div class="market-hero-content">
+            <span class="market-hero-tag">${s.tag}</span>
+            <h2 class="market-hero-title">${s.title}</h2>
+            <p class="market-hero-desc">${s.desc}</p>
+            <button class="market-hero-btn" onclick="event.stopPropagation();window.location.href='${s.link}'">جرب الآن</button>
+          </div>
+        </div>`;
+      });
+      html += `<button class="market-nav market-prev" onclick="event.stopPropagation();marketPrev()">&#10094;</button>`;
+      html += `<button class="market-nav market-next" onclick="event.stopPropagation();marketNext()">&#10095;</button>`;
+      html += `<div class="market-dots">`;
+      data.slides.forEach((_, i) => {
+        html += `<span class="market-dot${i===0?' active':''}" onclick="event.stopPropagation();setMarketHero(${i})"></span>`;
+      });
+      html += `</div>`;
+      heroC.innerHTML = html;
+    }
+
+    // Model cards
+    const gridC = document.getElementById('market-grid-container');
+    if(gridC && data.models?.length){
+      let html = '';
+      data.models.forEach(m => {
+        html += `<div class="market-card" style="--card-bg:url('${m.image}')" onclick="window.location.href='${m.link}'">
+          <div class="market-card-content">
+            <div class="market-pill">${m.pill}</div>
+            <div class="market-card-title">${m.title}</div>
+            <div class="market-card-sub">${m.sub}</div>
+          </div>
+        </div>`;
+      });
+      gridC.innerHTML = html;
+    }
+
+    initMarketHero();
+  } catch(e){ console.warn('loadHomepageData error', e); }
+}
+
 function setModelPage(key){
   const info = MODEL_LIBRARY[key] || { title: key, tag: 'Model', desc: 'تفاصيل هذا الموديل غير متوفرة حالياً.', status: 'الحالة: غير معروفة', image: '' };
   const titleEl = document.getElementById('model-page-title');
@@ -7941,7 +7997,7 @@ function clearLibrary(){
   restoreFileState();
   updateKlingShowButtons();
   resumePendingKling();
-  initMarketHero();
+  loadHomepageData();
     // Multi-page: honour ?page= query param, else detect from DOM
     const _qPage = new URLSearchParams(window.location.search).get('page');
     const _activePageEl = _qPage ? document.getElementById('page-' + _qPage) : document.querySelector('.page.active');

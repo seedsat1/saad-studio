@@ -2781,6 +2781,7 @@ function isAllowedUpload(file, allowedMimes) {
 const USAGE_FILE     = path.join(VAULT_DIR, 'usage.json');
 const ACTIVITY_FILE  = path.join(VAULT_DIR, 'activity.json');
 const GENERATIONS_FILE = path.join(VAULT_DIR, 'generations.json');
+const HOMEPAGE_FILE  = path.join(VAULT_DIR, 'homepage.json');
 const PLANS = {
   starter: { price: 0,  credits: 0,    nanoBananaFree: true, label: 'Starter (مجاني)' },
   pro:     { price: 25, credits: 0,    nanoBananaFree: true,  label: 'Pro'     },
@@ -4191,6 +4192,92 @@ app.delete('/api/admin/media/:name', requireAdmin, async (req, res) => {
   if (error) return res.status(500).json({ error: error.message });
   auditLog('admin.media.delete', 'file="' + name + '"', req);
   res.json({ ok: true });
+});
+
+
+// --- HOMEPAGE CMS (slider + model cards) ---
+function loadHomepage() {
+  try { return JSON.parse(fs.readFileSync(HOMEPAGE_FILE, 'utf8')); }
+  catch { return { header: { title: '', subtitle: '' }, slides: [], models: [] }; }
+}
+function saveHomepage(data) {
+  fs.writeFileSync(HOMEPAGE_FILE, JSON.stringify(data, null, 2));
+}
+
+// Public: frontend fetches this to render the homepage dynamically
+app.get('/api/homepage-data', (req, res) => {
+  try {
+    const hp = loadHomepage();
+    hp.slides = (hp.slides || []).sort((a, b) => (a.order || 0) - (b.order || 0));
+    hp.models = (hp.models || []).sort((a, b) => (a.order || 0) - (b.order || 0));
+    res.json(hp);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Admin: get full homepage data for editing
+app.get('/api/admin/homepage', requireAdmin, (req, res) => {
+  try { res.json(loadHomepage()); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Admin: save full homepage data
+app.put('/api/admin/homepage', requireAdmin, (req, res) => {
+  try {
+    const { header, slides, models } = req.body || {};
+    if (!header || !Array.isArray(slides) || !Array.isArray(models))
+      return res.status(400).json({ error: 'Invalid data structure' });
+    // Sanitize
+    const clean = {
+      header: {
+        title: String(header.title || '').slice(0, 200),
+        subtitle: String(header.subtitle || '').slice(0, 500)
+      },
+      slides: slides.map((s, i) => ({
+        id: String(s.id || crypto.randomBytes(6).toString('hex')),
+        tag: String(s.tag || '').slice(0, 100),
+        title: String(s.title || '').slice(0, 100),
+        desc: String(s.desc || '').slice(0, 500),
+        image: String(s.image || ''),
+        link: String(s.link || '').slice(0, 200),
+        order: typeof s.order === 'number' ? s.order : i
+      })),
+      models: models.map((m, i) => ({
+        id: String(m.id || crypto.randomBytes(6).toString('hex')),
+        pill: String(m.pill || '').slice(0, 100),
+        title: String(m.title || '').slice(0, 100),
+        sub: String(m.sub || '').slice(0, 200),
+        image: String(m.image || ''),
+        link: String(m.link || '').slice(0, 200),
+        order: typeof m.order === 'number' ? m.order : i
+      }))
+    };
+    saveHomepage(clean);
+    auditLog('admin.homepage.update', 'slides=' + clean.slides.length + ' models=' + clean.models.length, req);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Admin: upload image for homepage (slider or model card)
+app.post('/api/admin/homepage/upload-image', requireAdmin, uploadLimiter, mediaMemUpload.single('file'), (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'file required' });
+    if (!ALLOWED_IMAGE_MIMES.has(req.file.mimetype))
+      return res.status(400).json({ error: 'Only images allowed' });
+    const targetDir = req.body.type === 'slide' ? 'market-w' : 'market-h';
+    const dir = path.join(__dirname, 'public', 'assets', targetDir);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    const ext = path.extname(req.file.originalname || '.png').toLowerCase() || '.png';
+    const safeName = 'hp-' + Date.now() + '-' + crypto.randomBytes(4).toString('hex') + ext;
+    const filePath = path.join(dir, safeName);
+    // Ensure path stays within expected directory
+    if (!filePath.startsWith(dir + path.sep) && filePath !== dir) {
+      return res.status(400).json({ error: 'Invalid path' });
+    }
+    fs.writeFileSync(filePath, req.file.buffer);
+    const url = '/assets/' + targetDir + '/' + safeName;
+    auditLog('admin.homepage.upload', 'file="' + safeName + '" type="' + targetDir + '"', req);
+    res.json({ ok: true, url });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 // === ADS MANAGER (Supabase) ===
