@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en" dir="ltr">
   <head>
     <base href="/admin/">
@@ -11,9 +11,15 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/assets/logo.png">
     <link rel="apple-touch-icon" href="/assets/logo.png">
     <meta name="theme-color" content="#ffffff">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="SAAD STUDIO Admin">
     <link rel="stylesheet" href="vendors/simplebar/css/simplebar.css">
     <link rel="stylesheet" href="css/vendors/simplebar.css">
     <link href="css/style.css" rel="stylesheet">
+    <link href="css/pwa-responsive.css" rel="stylesheet">
     <link href="css/rtl.css" rel="stylesheet" id="rtlStylesheet" disabled>
     <script src="js/config.js"></script>
     <script src="js/color-modes.js"></script>
@@ -78,7 +84,7 @@
             <li class="nav-item"><a class="nav-link" href="ads.html" data-i18n="header.ads">Ads</a></li>
           </ul>
           <ul class="header-nav ms-auto">
-            <li class="nav-item"><a class="nav-link lang-switch-btn" href="#" id="langSwitchBtn">عربي</a></li>
+            <li class="nav-item"><a class="nav-link lang-switch-btn" href="#" id="langSwitchBtn">????</a></li>
             <li class="nav-item"><a class="nav-link" href="#">
                 <svg class="icon icon-lg"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-bell"></use></svg></a></li>
           </ul>
@@ -432,5 +438,16 @@
       init();
     })();
     </script>
-  </body>
+  
+<!-- PWA Service Worker Registration -->
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('/sw.js', { scope: '/' })
+      .then(function(reg) { console.log('[PWA] SW registered:', reg.scope); })
+      .catch(function(err) { console.warn('[PWA] SW registration failed:', err); });
+  });
+}
+</script>
+</body>
 </html>

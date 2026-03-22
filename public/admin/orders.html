@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en" dir="ltr">
   <head>
     <base href="/admin/">
@@ -6,14 +6,20 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
     <meta name="description" content="Saad Studio - Orders Management">
-    <title>Saad Studio — Orders</title>
+    <title>Saad Studio � Orders</title>
     <link rel="icon" type="image/png" sizes="32x32" href="/assets/logo.png">
     <link rel="icon" type="image/png" sizes="16x16" href="/assets/logo.png">
     <link rel="apple-touch-icon" href="/assets/logo.png">
     <meta name="theme-color" content="#ffffff">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="SAAD STUDIO Admin">
     <link rel="stylesheet" href="vendors/simplebar/css/simplebar.css">
     <link rel="stylesheet" href="css/vendors/simplebar.css">
     <link href="css/style.css" rel="stylesheet">
+    <link href="css/pwa-responsive.css" rel="stylesheet">
     <link href="css/rtl.css" rel="stylesheet" id="rtlStylesheet" disabled>
     <script src="js/config.js"></script>
     <script src="js/color-modes.js"></script>
@@ -74,7 +80,7 @@
             <li class="nav-item"><a class="nav-link" href="orders.html" data-i18n="header.orders">Orders</a></li>
           </ul>
           <ul class="header-nav ms-auto">
-            <li class="nav-item"><a class="nav-link lang-switch-btn" href="#" id="langSwitchBtn">عربي</a></li>
+            <li class="nav-item"><a class="nav-link lang-switch-btn" href="#" id="langSwitchBtn">????</a></li>
             <li class="nav-item"><a class="nav-link" href="#">
                 <svg class="icon icon-lg"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-bell"></use></svg></a></li>
           </ul>
@@ -150,12 +156,12 @@
                 </table>
               </div>
             </div>
-            <div class="card-footer small text-body-secondary" id="orderCount">—</div>
+            <div class="card-footer small text-body-secondary" id="orderCount">�</div>
           </div>
         </div>
       </div>
 
-      <footer class="footer px-4"><div data-i18n="footer.copy">Saad Studio © 2025</div></footer>
+      <footer class="footer px-4"><div data-i18n="footer.copy">Saad Studio � 2025</div></footer>
     </div>
 
     <!-- Toast -->
@@ -233,11 +239,11 @@
         document.getElementById('orderCount').textContent = orders.length + ' order' + (orders.length > 1 ? 's' : '');
         tbody.innerHTML = orders.map(o => {
           const statusBg = o.status === 'approved' ? 'bg-success' : o.status === 'rejected' ? 'bg-danger' : 'bg-warning text-dark';
-          const created = o.createdAt ? new Date(o.createdAt).toLocaleDateString() : '—';
+          const created = o.createdAt ? new Date(o.createdAt).toLocaleDateString() : '�';
 
           let details = '';
           if (o.type === 'plan') {
-            details = escHtml((o.currentPlan || '?') + ' → ' + (o.newPlan || '?'));
+            details = escHtml((o.currentPlan || '?') + ' ? ' + (o.newPlan || '?'));
           } else {
             details = o.pack + ' credits';
           }
@@ -246,8 +252,8 @@
           const isPending = o.status === 'pending';
 
           return '<tr>' +
-            '<td>' + escHtml(o.email || '—') + '</td>' +
-            '<td class="text-center"><span class="badge ' + typeBg + ' text-capitalize">' + escHtml(o.type || '—') + '</span></td>' +
+            '<td>' + escHtml(o.email || '�') + '</td>' +
+            '<td class="text-center"><span class="badge ' + typeBg + ' text-capitalize">' + escHtml(o.type || '�') + '</span></td>' +
             '<td class="text-center">' + details + '</td>' +
             '<td class="text-center"><span class="badge ' + statusBg + ' text-capitalize">' + escHtml(o.status) + '</span></td>' +
             '<td>' + created + '</td>' +
@@ -255,7 +261,7 @@
               (isPending
                 ? '<button class="btn btn-sm btn-outline-success me-1" onclick="app.approveOrder(\'' + o.id + '\')">Approve</button>' +
                   '<button class="btn btn-sm btn-outline-danger" onclick="app.rejectOrder(\'' + o.id + '\')">Reject</button>'
-                : '<span class="text-body-secondary small">—</span>') +
+                : '<span class="text-body-secondary small">�</span>') +
             '</td></tr>';
         }).join('');
       }
@@ -302,5 +308,16 @@
       init();
     })();
     </script>
-  </body>
+  
+<!-- PWA Service Worker Registration -->
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('/sw.js', { scope: '/' })
+      .then(function(reg) { console.log('[PWA] SW registered:', reg.scope); })
+      .catch(function(err) { console.warn('[PWA] SW registration failed:', err); });
+  });
+}
+</script>
+</body>
 </html>

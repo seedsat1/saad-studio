@@ -1,0 +1,159 @@
+/* ================================================================
+   SAAD STUDIO — Admin PWA Responsive Supplement
+   Extra mobile/tablet polish on top of CoreUI/Bootstrap
+   ================================================================ */
+
+/* ── Safe area insets (iPhone notch / Dynamic Island) ── */
+body {
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+/* ── Ensure images/media never overflow ── */
+img, video, iframe, embed, object {
+  max-width: 100%;
+  height: auto;
+}
+
+/* ── Tables: always scrollable on small screens ── */
+.table-responsive-sm, table {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ── Touch-friendly tap targets ── */
+.nav-link, .btn, .dropdown-item, .list-group-item {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
+
+/* ── Cards: full width on mobile ── */
+@media (max-width: 576px) {
+  .card {
+    margin-bottom: 1rem;
+    border-radius: 10px;
+  }
+
+  .container-fluid {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  /* Stat cards stack full width */
+  .col-sm-6, .col-md-3, .col-md-4, .col-lg-3 {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+
+  /* Topbar: compact */
+  .header-toggler {
+    padding: 6px 8px;
+  }
+
+  /* Typography scale down */
+  .stat-value { font-size: 1.6rem !important; }
+  .h4, h4 { font-size: 1.1rem; }
+  .h5, h5 { font-size: 1rem; }
+
+  /* Forms: full width */
+  .form-control, .form-select {
+    font-size: 16px; /* prevent iOS zoom */
+  }
+
+  /* Buttons: larger tap area */
+  .btn {
+    min-height: 44px;
+    padding: 10px 16px;
+  }
+
+  /* Modals: fill screen */
+  .modal-dialog {
+    margin: 8px;
+    max-width: calc(100vw - 16px);
+  }
+}
+
+/* ── Tablet (577px – 991px) ── */
+@media (min-width: 577px) and (max-width: 991px) {
+  .container-fluid {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  /* 2-column stat grid */
+  .col-md-3 {
+    flex: 0 0 50%;
+    max-width: 50%;
+  }
+
+  /* Form inputs: prevent zoom */
+  .form-control, .form-select {
+    font-size: 16px;
+  }
+}
+
+/* ── Landscape phone ── */
+@media (max-width: 768px) and (orientation: landscape) {
+  .sidebar {
+    width: 200px;
+  }
+}
+
+/* ── Sidebar: ensure it doesn't overflow on any device ── */
+.sidebar {
+  max-width: 100vw;
+}
+
+/* ── Tables: responsive wrapper if not already ── */
+.table-wrapper-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 8px;
+}
+
+/* ── Input groups: wrap on small screens ── */
+@media (max-width: 480px) {
+  .input-group {
+    flex-wrap: wrap;
+  }
+  .input-group .btn {
+    border-radius: 6px !important;
+    margin-top: 6px;
+    width: 100%;
+  }
+}
+
+/* ── Pagination: center on mobile ── */
+@media (max-width: 576px) {
+  .pagination {
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 2px;
+  }
+  .page-item .page-link {
+    padding: 8px 12px;
+  }
+}
+
+/* ── Alerts: full width ── */
+@media (max-width: 576px) {
+  .alert {
+    padding: 10px 14px;
+    font-size: 13px;
+  }
+}
+
+/* ── PWA standalone mode fixes ── */
+@media (display-mode: standalone) {
+  /* Extra top padding for status bar */
+  .header {
+    padding-top: env(safe-area-inset-top);
+  }
+  /* Avoid content behind home indicator */
+  .footer, .wrapper {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}

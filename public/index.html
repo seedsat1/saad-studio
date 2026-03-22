@@ -2,8 +2,23 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>SAAD STUDIO</title>
+<!-- PWA -->
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#0b1e34">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SAAD STUDIO">
+<link rel="apple-touch-icon" href="/assets/logo.png">
+<link rel="apple-touch-icon" sizes="152x152" href="/assets/logo.png">
+<link rel="apple-touch-icon" sizes="167x167" href="/assets/logo.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/assets/logo.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/assets/logo.png">
+<link rel="icon" type="image/png" sizes="512x512" href="/assets/logo.png">
+<link rel="shortcut icon" href="/assets/logo.png">
+<meta name="description" content="SAAD STUDIO – AI Creative Platform for image, video, audio and more.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Kufi+Arabic:wght@300;400;600;700&family=JetBrains+Mono:wght@400;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,500,0,0" rel="stylesheet">
@@ -1624,6 +1639,116 @@ img[class],[class] video{backface-visibility:hidden;-webkit-backface-visibility:
   .cine-ctrl-bar .btn-generate{min-width:90px;padding:0 14px;}
   .cine-shell{min-height:auto;}
   .cine-settings-panel{width:100%;max-width:100%;}
+}
+
+/* ═══════════════════════════════════════════════════════
+   PWA & MOBILE POLISH — Safe areas, touch targets, overflow
+   ═══════════════════════════════════════════════════════ */
+
+/* Safe area insets for iPhone notch / Dynamic Island */
+body {
+  padding-top: env(safe-area-inset-top);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+/* Standalone PWA: extra top space for status bar */
+@media (display-mode: standalone) {
+  .topbar { padding-top: env(safe-area-inset-top); height: calc(56px + env(safe-area-inset-top)); }
+  .sidebar { padding-top: env(safe-area-inset-top); }
+  body { padding-bottom: env(safe-area-inset-bottom); }
+}
+
+/* Ensure all images and media never overflow containers */
+img, video, iframe, canvas, svg { max-width: 100%; }
+
+/* Touch-friendly: nav items min tap size */
+.nav-item { min-height: 44px; }
+.topbar-btn, .btn { min-height: 36px; }
+
+/* ── Pricing banner: stack on mobile ── */
+@media (max-width: 640px) {
+  .pricing-banner {
+    flex-direction: column;
+    text-align: center;
+    padding: 16px;
+    gap: 12px;
+  }
+  .pricing-banner .headline { font-size: 18px; }
+  .pricing-banner .subhead  { font-size: 14px; }
+  .pricing-banner .cta      { width: 100%; }
+}
+
+/* ── Comparison table: horizontal scroll ── */
+.pricing-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.pricing-compare-table { min-width: 480px; }
+
+/* ── Form inputs: prevent iOS zoom ── */
+input[type="text"], input[type="email"], input[type="password"],
+input[type="search"], input[type="number"], input[type="tel"],
+input[type="url"], textarea, select {
+  font-size: max(16px, 1em);  /* ≥16px prevents iOS auto-zoom */
+}
+@media (min-width: 640px) {
+  input[type="text"], input[type="email"], input[type="password"],
+  input[type="search"], input[type="number"], input[type="tel"],
+  input[type="url"], textarea, select {
+    font-size: inherit;  /* restore on desktop */
+  }
+}
+
+/* ── QW2 layout: full stack on very small phones ── */
+@media (max-width: 480px) {
+  .qw2-layout { flex-direction: column; }
+  .qw2-sidebar {
+    position: fixed !important;
+    top: 52px !important;
+    left: -300px !important;
+    width: 100% !important;
+    max-width: 320px !important;
+    height: calc(100vh - 52px) !important;
+  }
+  .qw2-sidebar:not(.qw2-sb-hidden) { left: 0 !important; }
+  .qw2-sidebar.qw2-sb-hidden { left: -300px !important; opacity: 1 !important; }
+  .cine-ctrl-bar { flex-wrap: wrap; }
+  .cine-ctrl-bar .cine-ctrl-item { flex: 1 1 auto; min-width: 80px; }
+  .cine-ctrl-bar .fselect { width: 100%; max-width: none; }
+  .cine-ctrl-bar .btn-generate { flex: 1 1 100%; height: 44px; justify-self: stretch; }
+  .cine-spacer { display: none; }
+  /* Ensure result cards don't shrink too small */
+  .result-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+}
+
+/* ── Landscape phone: compact topbar ── */
+@media (max-width: 768px) and (orientation: landscape) {
+  .topbar { height: 48px; }
+  .main { margin-right: 0; }
+  .page { padding: 10px 14px; }
+}
+
+/* ── Gbar (nano banana bar): scroll on very small screens ── */
+@media (max-width: 480px) {
+  .gbar-row { overflow-x: auto; -webkit-overflow-scrolling: touch; flex-wrap: nowrap; padding-bottom: 4px; }
+  .gbar-ratio-dd { right: auto; left: 0; }
+}
+
+/* ── Scrollable tabs on all sizes ── */
+.sora-tabs, .grok-tabs, .seedream-tabs {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  flex-wrap: nowrap !important;
+  padding-bottom: 4px;
+}
+
+/* ── Gallery / rcard grid: adaptive ── */
+@media (max-width: 480px) {
+  .result-grid { gap: 6px; }
+  .rcard { border-radius: 8px; }
+}
+
+/* ── Topbar actions: hide low-priority items on very small ── */
+@media (max-width: 360px) {
+  .topbar-title { display: none; }
+  .topbar-btn:not(.primary) { padding: 4px 7px; font-size: 9px; }
 }
 </style>
 </head>
@@ -14766,5 +14891,25 @@ document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeSidebar(); })
     slot.appendChild(el);
   }).catch(()=>{ slot.style.display='none'; });
 })();
+</script>
+<!-- PWA Service Worker Registration -->
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('/sw.js', { scope: '/' })
+      .then(function(reg) {
+        console.log('[PWA] Service Worker registered, scope:', reg.scope);
+        reg.addEventListener('updatefound', function() {
+          const newWorker = reg.installing;
+          newWorker.addEventListener('statechange', function() {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              console.log('[PWA] New version available – reload to update.');
+            }
+          });
+        });
+      })
+      .catch(function(err) { console.warn('[PWA] Service Worker registration failed:', err); });
+  });
+}
 </script>
 

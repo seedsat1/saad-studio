@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en" dir="ltr">
   <head>
     <base href="/admin/">
@@ -6,14 +6,20 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
     <meta name="description" content="Saad Studio - Admin Dashboard">
-    <title>Saad Studio — Dashboard</title>
+    <title>Saad Studio � Dashboard</title>
     <link rel="icon" type="image/png" sizes="32x32" href="/assets/logo.png">
     <link rel="icon" type="image/png" sizes="16x16" href="/assets/logo.png">
     <link rel="apple-touch-icon" href="/assets/logo.png">
     <meta name="theme-color" content="#ffffff">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="SAAD STUDIO Admin">
     <link rel="stylesheet" href="vendors/simplebar/css/simplebar.css">
     <link rel="stylesheet" href="css/vendors/simplebar.css">
     <link href="css/style.css" rel="stylesheet">
+    <link href="css/pwa-responsive.css" rel="stylesheet">
     <link href="css/rtl.css" rel="stylesheet" id="rtlStylesheet" disabled>
     <script src="js/config.js"></script>
     <script src="js/color-modes.js"></script>
@@ -74,7 +80,7 @@
             <li class="nav-item"><a class="nav-link" href="index.html" data-i18n="header.dashboard">Dashboard</a></li>
           </ul>
           <ul class="header-nav ms-auto">
-            <li class="nav-item"><a class="nav-link lang-switch-btn" href="#" id="langSwitchBtn">عربي</a></li>
+            <li class="nav-item"><a class="nav-link lang-switch-btn" href="#" id="langSwitchBtn">????</a></li>
             <li class="nav-item"><a class="nav-link" href="#">
                 <svg class="icon icon-lg"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-bell"></use></svg></a></li>
           </ul>
@@ -185,7 +191,7 @@
                     <div class="d-flex align-items-center gap-3">
                       <svg style="width:48px;height:48px;opacity:.5"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-wallet"></use></svg>
                       <div>
-                        <div class="fs-2 fw-bold" id="kieBalance">—</div>
+                        <div class="fs-2 fw-bold" id="kieBalance">�</div>
                         <div class="text-body-secondary small" data-i18n="dash.kieCredits">Available KIE Credits</div>
                       </div>
                     </div>
@@ -203,7 +209,7 @@
 
       <!-- Footer -->
       <footer class="footer px-4">
-        <div data-i18n="footer.copy">Saad Studio © 2025</div>
+        <div data-i18n="footer.copy">Saad Studio � 2025</div>
       </footer>
     </div>
 
@@ -229,7 +235,7 @@
         } catch (err) {
           console.error('Stats load error:', err);
           document.querySelectorAll('.stat-value').forEach(el => {
-            el.textContent = '—';
+            el.textContent = '�';
           });
         }
       })();
@@ -259,5 +265,16 @@
       loadKieBalance();
       document.getElementById('refreshKie').addEventListener('click', loadKieBalance);
     </script>
-  </body>
+  
+<!-- PWA Service Worker Registration -->
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('/sw.js', { scope: '/' })
+      .then(function(reg) { console.log('[PWA] SW registered:', reg.scope); })
+      .catch(function(err) { console.warn('[PWA] SW registration failed:', err); });
+  });
+}
+</script>
+</body>
 </html>

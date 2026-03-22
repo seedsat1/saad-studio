@@ -1,0 +1,51 @@
+{
+  "name": "SAAD STUDIO",
+  "short_name": "Saad Studio",
+  "description": "AI Creative Platform – Generate images, videos, audio and more.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#0b1e34",
+  "background_color": "#0b1e34",
+  "lang": "ar",
+  "dir": "rtl",
+  "categories": ["productivity", "utilities"],
+  "icons": [
+    {
+      "src": "/assets/logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/assets/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/assets/logo.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Nano Banana",
+      "short_name": "Nano",
+      "description": "Open Nano Banana image generation",
+      "url": "/?page=nano",
+      "icons": [{"src": "/assets/logo.png", "sizes": "96x96"}]
+    },
+    {
+      "name": "Google Studio",
+      "short_name": "Google",
+      "description": "Open Google Studio",
+      "url": "/?page=google",
+      "icons": [{"src": "/assets/logo-google-studio.png", "sizes": "96x96"}]
+    }
+  ]
+}
