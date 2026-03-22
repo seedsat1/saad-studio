@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <base href="/admin/">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
+    <meta name="description" content="Saad Studio - Sidebar Manager">
+    <title>Saad Studio &#8212; Sidebar</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/logo.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/assets/logo.png">
+    <link rel="apple-touch-icon" href="/assets/logo.png">
+    <meta name="theme-color" content="#ffffff">
+    <link rel="stylesheet" href="vendors/simplebar/css/simplebar.css">
+    <link rel="stylesheet" href="css/vendors/simplebar.css">
+    <link href="css/style.css" rel="stylesheet">
+    <link href="css/rtl.css" rel="stylesheet" id="rtlStylesheet" disabled>
+    <script src="js/config.js"></script>
+    <script src="js/color-modes.js"></script>
+    <script src="js/i18n.js"></script>
+    <style>
+      .table-actions .btn { padding: .2rem .5rem; font-size: .78rem; }
+      .empty-state { text-align: center; padding: 3rem 1rem; opacity: .6; }
+      .toast-container { position: fixed; top: 1rem; right: 1rem; z-index: 9999; }
+      .icon-preview { width: 36px; height: 36px; object-fit: contain; border-radius: .375rem; background: var(--cui-tertiary-bg); }
+      .icon-emoji-preview { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; font-size: 22px; background: var(--cui-tertiary-bg); border-radius: .375rem; }
+      .form-check-input.toggle-vis { width: 2.5em; }
+      .badge-group { font-size: .7rem; padding: .2em .5em; }
+      .drag-handle { cursor: grab; color: var(--cui-body-color); opacity: .4; font-size: 1.1rem; padding: 0 .3rem; }
+      .drag-handle:hover { opacity: .9; }
+      tr.dragging { opacity: .4; }
+      tr.drag-over { outline: 2px dashed var(--cui-primary); }
+      .img-preview-sm { max-width: 120px; max-height: 80px; border-radius: .375rem; }
+      .media-picker-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: .5rem; max-height: 260px; overflow-y: auto; }
+      .media-picker-item { aspect-ratio: 1; border-radius: .375rem; overflow: hidden; cursor: pointer; border: 2px solid transparent; transition: border-color .15s; }
+      .media-picker-item:hover, .media-picker-item.selected { border-color: var(--cui-primary); }
+      .media-picker-item img { width: 100%; height: 100%; object-fit: cover; }
+    </style>
+  </head>
+  <body>
+    <!-- SIDEBAR -->
+    <div class="sidebar sidebar-dark sidebar-fixed border-end" id="sidebar">
+      <div class="sidebar-header border-bottom">
+        <div class="sidebar-brand">
+          <span class="sidebar-brand-full fw-semibold fs-5 text-white" data-i18n="sidebar.brand">Saad Studio</span>
+          <span class="sidebar-brand-narrow fw-bold text-white" data-i18n="sidebar.brandShort">SS</span>
+        </div>
+        <button class="btn-close d-lg-none" type="button" data-coreui-theme="dark" aria-label="Close" onclick="coreui.Sidebar.getInstance(document.querySelector('#sidebar')).toggle()"></button>
+      </div>
+      <ul class="sidebar-nav" data-coreui="navigation" data-simplebar="">
+        <li class="nav-item"><a class="nav-link" href="index.html">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-speedometer"></use></svg> <span data-i18n="sidebar.dashboard">Dashboard</span></a></li>
+        <li class="nav-item"><a class="nav-link" href="users.html">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-people"></use></svg> <span data-i18n="sidebar.users">Users</span></a></li>
+        <li class="nav-item"><a class="nav-link" href="orders.html">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-cart"></use></svg> <span data-i18n="sidebar.orders">Orders</span></a></li>
+        <li class="nav-item"><a class="nav-link" href="pages.html">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-file"></use></svg> <span data-i18n="sidebar.pages">Pages</span></a></li>
+        <li class="nav-item"><a class="nav-link active" href="sidebar.html">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-list"></use></svg> <span>Sidebar Items</span></a></li>
+        <li class="nav-item"><a class="nav-link" href="media.html">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-image"></use></svg> <span data-i18n="sidebar.media">Media</span></a></li>
+        <li class="nav-item"><a class="nav-link" href="ads.html">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-bullhorn"></use></svg> <span data-i18n="sidebar.ads">Ads</span></a></li>
+        <li class="nav-item"><a class="nav-link" href="settings.html">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-settings"></use></svg> <span data-i18n="sidebar.settings">Settings</span></a></li>
+        <li class="nav-item"><a class="nav-link" href="theme.html">
+            <svg class="nav-icon"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-color-palette"></use></svg> <span data-i18n="sidebar.theme">Theme</span></a></li>
+      </ul>
+      <div class="sidebar-footer border-top d-none d-md-flex">
+        <button class="sidebar-toggler" type="button" data-coreui-toggle="unfoldable"></button>
+      </div>
+    </div>
+
+    <!-- MAIN WRAPPER -->
+    <div class="wrapper d-flex flex-column min-vh-100">
+      <header class="header header-sticky p-0 mb-4">
+        <div class="container-fluid border-bottom px-4">
+          <button class="header-toggler" type="button" onclick="coreui.Sidebar.getInstance(document.querySelector('#sidebar')).toggle()" style="margin-inline-start: -14px;">
+            <svg class="icon icon-lg"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-menu"></use></svg>
+          </button>
+          <ul class="header-nav d-none d-lg-flex">
+            <li class="nav-item"><a class="nav-link" href="index.html" data-i18n="header.dashboard">Dashboard</a></li>
+            <li class="nav-item"><a class="nav-link" href="sidebar.html">Sidebar Items</a></li>
+          </ul>
+          <ul class="header-nav ms-auto">
+            <li class="nav-item"><a class="nav-link lang-switch-btn" href="#" id="langSwitchBtn">عربي</a></li>
+            <li class="nav-item"><a class="nav-link" href="#">
+                <svg class="icon icon-lg"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-bell"></use></svg></a></li>
+          </ul>
+          <ul class="header-nav">
+            <li class="nav-item py-1"><div class="vr h-100 mx-2 text-body text-opacity-75"></div></li>
+            <li class="nav-item dropdown">
+              <button class="btn btn-link nav-link py-2 px-2 d-flex align-items-center" type="button" aria-expanded="false" data-coreui-toggle="dropdown">
+                <svg class="icon icon-lg theme-icon-active"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-contrast"></use></svg>
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end" style="--cui-dropdown-min-width: 8rem;">
+                <li><button class="dropdown-item d-flex align-items-center" type="button" data-coreui-theme-value="light">
+                    <svg class="icon icon-lg me-3"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-sun"></use></svg><span data-i18n="theme.light">Light</span></button></li>
+                <li><button class="dropdown-item d-flex align-items-center" type="button" data-coreui-theme-value="dark">
+                    <svg class="icon icon-lg me-3"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-moon"></use></svg><span data-i18n="theme.dark">Dark</span></button></li>
+                <li><button class="dropdown-item d-flex align-items-center active" type="button" data-coreui-theme-value="auto">
+                    <svg class="icon icon-lg me-3"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-contrast"></use></svg><span data-i18n="theme.auto">Auto</span></button></li>
+              </ul>
+            </li>
+            <li class="nav-item py-1"><div class="vr h-100 mx-2 text-body text-opacity-75"></div></li>
+            <li class="nav-item dropdown"><a class="nav-link py-0 pe-0" data-coreui-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">
+                <div class="avatar avatar-md bg-primary text-white d-flex align-items-center justify-content-center rounded-circle" style="width:36px;height:36px;font-size:14px;">A</div></a>
+              <div class="dropdown-menu dropdown-menu-end pt-0">
+                <div class="dropdown-header bg-body-tertiary text-body-secondary fw-semibold rounded-top mb-2" data-i18n="account.label">Account</div>
+                <a class="dropdown-item" href="settings.html"><svg class="icon me-2"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-settings"></use></svg> <span data-i18n="account.settings">Settings</span></a>
+                <div class="dropdown-divider"></div>
+                <a class="dropdown-item" href="#" id="logoutBtn"><svg class="icon me-2"><use xlink:href="vendors/@coreui/icons/svg/free.svg#cil-account-logout"></use></svg> <span data-i18n="account.logout">Logout</span></a>
+              </div>
+            </li>
+          </ul>
+        </div>
+        <div class="container-fluid px-4">
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb my-0">
+              <li class="breadcrumb-item"><a href="index.html" data-i18n="breadcrumb.home">Home</a></li>
+              <li class="breadcrumb-item active">Sidebar Items</li>
+            </ol>
+          </nav>
+        </div>
+      </header>
+
+      <!-- MAIN CONTENT -->
+      <div class="body flex-grow-1">
+        <div class="container-lg px-4">
+          <div class="card mb-4">
+            <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+              <strong>Sidebar Items Management</strong>
+              <div class="d-flex gap-2">
+                <button class="btn btn-sm btn-outline-secondary" id="saveOrderBtn" disabled>&#8597; Save Order</button>
+                <button class="btn btn-sm btn-primary" id="addItemBtn">+ New Item</button>
+              </div>
+            </div>
+            <div class="card-body p-0">
+              <div id="loadingState" class="text-center py-4">
+                <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div> Loading sidebar items...
+              </div>
+              <div class="table-responsive d-none" id="tableWrap">
+                <table class="table table-hover align-middle mb-0">
+                  <thead class="table-light">
+                    <tr>
+                      <th style="width:30px"></th>
+                      <th style="width:48px">Icon</th>
+                      <th>Title</th>
+                      <th>Page ID</th>
+                      <th>Group</th>
+                      <th class="text-center">Visible</th>
+                      <th class="text-center">Enabled</th>
+                      <th class="text-center">Flags</th>
+                      <th class="text-end">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="itemsBody"></tbody>
+                </table>
+              </div>
+              <div class="empty-state d-none" id="emptyState">No sidebar items yet. Click "+ New Item" to start.</div>
+            </div>
+            <div class="card-footer small text-body-secondary" id="itemCount">...</div>
+          </div>
+        </div>
+      </div>
+
+      <footer class="footer px-4"><div>Saad Studio &copy; 2025</div></footer>
+    </div>
+
+    <!-- Item Modal (Create / Edit) -->
+    <div class="modal fade" id="itemModal" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="itemModalTitle">New Sidebar Item</h5>
+        <button type="button" class="btn-close" data-coreui-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-3">
+          <!-- Title -->
+          <div class="col-md-6">
+            <label class="form-label">Title <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" id="fTitle" maxlength="100" placeholder="e.g. Image Tools">
+          </div>
+          <!-- Page ID -->
+          <div class="col-md-6">
+            <label class="form-label">Page ID <span class="text-danger">*</span>
+              <small class="text-body-secondary">(matches app route)</small>
+            </label>
+            <input type="text" class="form-control" id="fPageId" maxlength="100" placeholder="e.g. image-tools">
+          </div>
+          <!-- Group -->
+          <div class="col-md-6">
+            <label class="form-label">Group</label>
+            <input type="text" class="form-control" id="fGroup" maxlength="80" list="groupSuggestions" placeholder="e.g. Production">
+            <datalist id="groupSuggestions"></datalist>
+          </div>
+          <!-- Badge -->
+          <div class="col-md-6">
+            <label class="form-label">Badge <small class="text-body-secondary">(optional, e.g. NEW, PRO)</small></label>
+            <input type="text" class="form-control" id="fBadge" maxlength="20" placeholder="Leave empty for none">
+          </div>
+
+          <!-- Icon Type -->
+          <div class="col-12">
+            <label class="form-label">Icon Type</label>
+            <div class="d-flex gap-3">
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="iconType" id="iconTypeImg" value="img" checked>
+                <label class="form-check-label" for="iconTypeImg">Image / URL</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="iconType" id="iconTypeEmoji" value="emoji">
+                <label class="form-check-label" for="iconTypeEmoji">Emoji / Text</label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Icon Image -->
+          <div class="col-12" id="iconImgWrap">
+            <label class="form-label">Icon Image URL</label>
+            <div class="d-flex align-items-center gap-3 mb-2">
+              <input type="text" class="form-control form-control-sm" id="fIconImg" placeholder="/assets/logo-xxx.png">
+              <img id="iconImgPreview" class="img-preview-sm d-none" alt="icon preview">
+            </div>
+            <button class="btn btn-sm btn-outline-secondary mb-2" type="button" id="toggleMediaPickerBtn">Pick from Media Library</button>
+            <div class="media-picker-grid d-none" id="mediaPickerGrid">
+              <div class="text-center text-body-secondary small py-3" id="mediaPickerLoading">Loading media...</div>
+            </div>
+          </div>
+
+          <!-- Emoji -->
+          <div class="col-12 d-none" id="iconEmojiWrap">
+            <label class="form-label">Emoji / Icon Character</label>
+            <input type="text" class="form-control" id="fIcon" maxlength="10" placeholder="e.g. 🍌 or 🎬">
+          </div>
+
+          <!-- External Link -->
+          <div class="col-12">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="fExternal">
+              <label class="form-check-label" for="fExternal">External Link</label>
+            </div>
+          </div>
+          <div class="col-12 d-none" id="externalUrlWrap">
+            <label class="form-label">External URL</label>
+            <input type="url" class="form-control" id="fExternalUrl" placeholder="https://...">
+          </div>
+
+          <!-- Flags -->
+          <div class="col-12">
+            <div class="d-flex flex-wrap gap-4">
+              <div class="form-check form-switch">
+                <input class="form-check-input toggle-vis" type="checkbox" id="fVisible" checked>
+                <label class="form-check-label" for="fVisible">Visible</label>
+              </div>
+              <div class="form-check form-switch">
+                <input class="form-check-input toggle-vis" type="checkbox" id="fEnabled" checked>
+                <label class="form-check-label" for="fEnabled">Enabled</label>
+              </div>
+              <div class="form-check form-switch">
+                <input class="form-check-input toggle-vis" type="checkbox" id="fFeatured">
+                <label class="form-check-label" for="fFeatured">Featured</label>
+              </div>
+              <div class="form-check form-switch">
+                <input class="form-check-input toggle-vis" type="checkbox" id="fIsNew">
+                <label class="form-check-label" for="fIsNew">Is New</label>
+              </div>
+              <div class="form-check form-switch">
+                <input class="form-check-input toggle-vis" type="checkbox" id="fIsPro">
+                <label class="form-check-label" for="fIsPro">Is Pro</label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-coreui-dismiss="modal">Cancel</button>
+        <button class="btn btn-primary" id="itemSaveBtn">Save</button>
+      </div>
+    </div></div></div>
+
+    <!-- Delete Confirm Modal -->
+    <div class="modal fade" id="deleteModal" tabindex="-1"><div class="modal-dialog modal-sm"><div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title">Delete Item</h5><button type="button" class="btn-close" data-coreui-dismiss="modal"></button></div>
+      <div class="modal-body">Are you sure you want to delete <strong id="deleteItemName"></strong>?</div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary btn-sm" data-coreui-dismiss="modal">Cancel</button>
+        <button class="btn btn-danger btn-sm" id="confirmDeleteBtn">Delete</button>
+      </div>
+    </div></div></div>
+
+    <!-- Toast -->
+    <div class="toast-container">
+      <div class="toast align-items-center text-bg-success border-0" id="toastEl" role="alert">
+        <div class="d-flex"><div class="toast-body" id="toastMsg"></div>
+          <button type="button" class="btn-close btn-close-white me-2 m-auto" data-coreui-dismiss="toast"></button>
+        </div>
+      </div>
+    </div>
+
+    <script src="vendors/@coreui/coreui/js/coreui.bundle.min.js"></script>
+    <script src="vendors/simplebar/js/simplebar.min.js"></script>
+    <script>
+    (function(){
+      let csrfToken = '';
+      let allItems = [];
+      let editingId = null;
+      let deletingId = null;
+      let mediaCache = null;
+      let orderDirty = false;
+
+      // ---- Scroll header shadow ----
+      const headerEl = document.querySelector('header.header');
+      document.addEventListener('scroll', () => {
+        if (headerEl) headerEl.classList.toggle('shadow-sm', document.documentElement.scrollTop > 0);
+      });
+
+      // ---- Logout ----
+      document.getElementById('logoutBtn').addEventListener('click', async (e) => {
+        e.preventDefault();
+        await fetch('/api/admin/logout', { method: 'POST', credentials: 'same-origin' });
+        window.location.href = '/';
+      });
+
+      // ---- API helper ----
+      async function apiFetch(path, opts = {}) {
+        const headers = { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken, ...opts.headers };
+        const r = await fetch(path, { ...opts, headers, credentials: 'same-origin' });
+        if (r.status === 401) { window.location.href = '/'; return null; }
+        return r;
+      }
+
+      // ---- Toast ----
+      function showToast(msg, type) {
+        const el = document.getElementById('toastEl');
+        el.className = 'toast align-items-center border-0 text-bg-' + (type || 'success');
+        document.getElementById('toastMsg').textContent = msg;
+        coreui.Toast.getOrCreateInstance(el).show();
+      }
+
+      function escHtml(s) {
+        const d = document.createElement('div');
+        d.textContent = s == null ? '' : String(s);
+        return d.innerHTML;
+      }
+
+      // ---- Init ----
+      async function init() {
+        try {
+          const r = await fetch('/api/admin/session', { credentials: 'same-origin' });
+          if (!r.ok) { window.location.href = '/'; return; }
+          const data = await r.json();
+          csrfToken = data.csrfToken;
+          await loadItems();
+        } catch (e) {
+          document.getElementById('loadingState').innerHTML = '<span class="text-danger">Connection error: ' + escHtml(e.message) + '</span>';
+        }
+      }
+
+      // ---- Load ----
+      async function loadItems() {
+        document.getElementById('loadingState').classList.remove('d-none');
+        document.getElementById('tableWrap').classList.add('d-none');
+        document.getElementById('emptyState').classList.add('d-none');
+
+        const r = await apiFetch('/api/admin/cms/sidebar');
+        if (!r) return;
+        const data = await r.json();
+        allItems = (data.items || data || []).sort((a, b) => (a.order || 0) - (b.order || 0));
+
+        document.getElementById('loadingState').classList.add('d-none');
+        document.getElementById('itemCount').textContent = allItems.length + ' item' + (allItems.length !== 1 ? 's' : '');
+        orderDirty = false;
+        document.getElementById('saveOrderBtn').disabled = true;
+
+        updateGroupSuggestions();
+
+        if (!allItems.length) {
+          document.getElementById('emptyState').classList.remove('d-none');
+          return;
+        }
+        document.getElementById('tableWrap').classList.remove('d-none');
+        renderItems();
+        initDragDrop();
+      }
+
+      function updateGroupSuggestions() {
+        const groups = [...new Set(allItems.map(i => i.group).filter(Boolean))];
+        const dl = document.getElementById('groupSuggestions');
+        dl.innerHTML = groups.map(g => '<option value="' + escHtml(g) + '">').join('');
+      }
+
+      function iconHtml(item) {
+        if (item.iconType === 'img' && item.iconImg) {
+          return '<img src="' + escHtml(item.iconImg) + '" class="icon-preview" onerror="this.style.display=\'none\'">';
+        }
+        const emo = item.icon || '';
+        if (emo) return '<div class="icon-emoji-preview">' + escHtml(emo) + '</div>';
+        return '<div class="icon-emoji-preview text-body-tertiary" style="font-size:12px">none</div>';
+      }
+
+      function renderItems() {
+        const tbody = document.getElementById('itemsBody');
+        tbody.innerHTML = allItems.map((item, idx) => {
+          const flags = [];
+          if (item.isNew) flags.push('<span class="badge bg-success badge-group">NEW</span>');
+          if (item.isPro) flags.push('<span class="badge bg-warning text-dark badge-group">PRO</span>');
+          if (item.featured) flags.push('<span class="badge bg-info text-white badge-group">★</span>');
+          if (item.external) flags.push('<span class="badge bg-secondary badge-group">EXT</span>');
+
+          return '<tr data-id="' + escHtml(item.id) + '" data-idx="' + idx + '">' +
+            '<td><span class="drag-handle" title="Drag to reorder">&#9776;</span></td>' +
+            '<td>' + iconHtml(item) + '</td>' +
+            '<td class="fw-semibold">' + escHtml(item.title) + '</td>' +
+            '<td><code class="small">' + escHtml(item.pageId) + '</code></td>' +
+            '<td><span class="badge bg-secondary badge-group">' + escHtml(item.group || '—') + '</span></td>' +
+            '<td class="text-center">' +
+              '<div class="form-check form-switch d-flex justify-content-center mb-0">' +
+                '<input class="form-check-input" type="checkbox" ' + (item.visible ? 'checked' : '') + ' onchange="app.toggleFlag(\'' + item.id + '\', \'visible\', this.checked)">' +
+              '</div></td>' +
+            '<td class="text-center">' +
+              '<div class="form-check form-switch d-flex justify-content-center mb-0">' +
+                '<input class="form-check-input" type="checkbox" ' + (item.enabled ? 'checked' : '') + ' onchange="app.toggleFlag(\'' + item.id + '\', \'enabled\', this.checked)">' +
+              '</div></td>' +
+            '<td class="text-center">' + (flags.join(' ') || '<span class="text-body-tertiary small">—</span>') + '</td>' +
+            '<td class="text-end table-actions">' +
+              '<button class="btn btn-sm btn-outline-primary me-1" onclick="app.editItem(\'' + item.id + '\')">Edit</button>' +
+              '<button class="btn btn-sm btn-outline-danger" onclick="app.confirmDelete(\'' + item.id + '\', \'' + escHtml(item.title) + '\')">Delete</button>' +
+            '</td></tr>';
+        }).join('');
+      }
+
+      // ---- Drag & Drop Reorder ----
+      function initDragDrop() {
+        const tbody = document.getElementById('itemsBody');
+        let dragSrcIdx = null;
+
+        tbody.querySelectorAll('tr').forEach(row => {
+          row.setAttribute('draggable', 'true');
+
+          row.addEventListener('dragstart', e => {
+            dragSrcIdx = parseInt(row.dataset.idx);
+            row.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+          });
+
+          row.addEventListener('dragend', () => {
+            row.classList.remove('dragging');
+            tbody.querySelectorAll('tr').forEach(r => r.classList.remove('drag-over'));
+          });
+
+          row.addEventListener('dragover', e => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            tbody.querySelectorAll('tr').forEach(r => r.classList.remove('drag-over'));
+            row.classList.add('drag-over');
+          });
+
+          row.addEventListener('drop', e => {
+            e.preventDefault();
+            const targetIdx = parseInt(row.dataset.idx);
+            if (dragSrcIdx === targetIdx) return;
+            const moved = allItems.splice(dragSrcIdx, 1)[0];
+            allItems.splice(targetIdx, 0, moved);
+            allItems.forEach((it, i) => { it.order = i; });
+            orderDirty = true;
+            document.getElementById('saveOrderBtn').disabled = false;
+            renderItems();
+            initDragDrop();
+          });
+        });
+      }
+
+      // ---- Save Order ----
+      document.getElementById('saveOrderBtn').addEventListener('click', async () => {
+        const ids = allItems.map(i => i.id);
+        const r = await apiFetch('/api/admin/cms/sidebar/reorder', {
+          method: 'POST', body: JSON.stringify({ ids })
+        });
+        if (!r) return;
+        if (r.ok) {
+          showToast('Order saved', 'success');
+          orderDirty = false;
+          document.getElementById('saveOrderBtn').disabled = true;
+        } else {
+          const d = await r.json().catch(() => ({}));
+          showToast(d.error || 'Failed to save order', 'danger');
+        }
+      });
+
+      // ---- Toggle Flag (visible / enabled) ----
+      async function toggleFlag(id, field, value) {
+        const body = {};
+        body[field] = value;
+        const r = await apiFetch('/api/admin/cms/sidebar/' + encodeURIComponent(id), {
+          method: 'PUT', body: JSON.stringify(body)
+        });
+        if (!r) return;
+        if (r.ok) {
+          showToast(field + ' updated', 'success');
+          const item = allItems.find(i => i.id === id);
+          if (item) item[field] = value;
+        } else {
+          showToast('Failed to update', 'danger');
+          await loadItems();
+        }
+      }
+
+      // ---- Delete ----
+      function confirmDelete(id, name) {
+        deletingId = id;
+        document.getElementById('deleteItemName').textContent = name;
+        coreui.Modal.getOrCreateInstance(document.getElementById('deleteModal')).show();
+      }
+
+      document.getElementById('confirmDeleteBtn').addEventListener('click', async () => {
+        if (!deletingId) return;
+        const r = await apiFetch('/api/admin/cms/sidebar/' + encodeURIComponent(deletingId), { method: 'DELETE' });
+        coreui.Modal.getOrCreateInstance(document.getElementById('deleteModal')).hide();
+        if (!r) return;
+        if (r.ok) { showToast('Item deleted', 'success'); await loadItems(); }
+        else showToast('Failed to delete', 'danger');
+        deletingId = null;
+      });
+
+      // ---- Modal: New / Edit ----
+      const itemModal = () => coreui.Modal.getOrCreateInstance(document.getElementById('itemModal'));
+
+      document.getElementById('addItemBtn').addEventListener('click', () => {
+        editingId = null;
+        document.getElementById('itemModalTitle').textContent = 'New Sidebar Item';
+        clearForm();
+        itemModal().show();
+      });
+
+      function editItem(id) {
+        const item = allItems.find(i => i.id === id);
+        if (!item) return;
+        editingId = id;
+        document.getElementById('itemModalTitle').textContent = 'Edit: ' + item.title;
+        fillForm(item);
+        itemModal().show();
+      }
+
+      function clearForm() {
+        document.getElementById('fTitle').value = '';
+        document.getElementById('fPageId').value = '';
+        document.getElementById('fGroup').value = '';
+        document.getElementById('fBadge').value = '';
+        document.getElementById('fIcon').value = '';
+        document.getElementById('fIconImg').value = '';
+        document.getElementById('fExternalUrl').value = '';
+        document.getElementById('fVisible').checked = true;
+        document.getElementById('fEnabled').checked = true;
+        document.getElementById('fFeatured').checked = false;
+        document.getElementById('fIsNew').checked = false;
+        document.getElementById('fIsPro').checked = false;
+        document.getElementById('fExternal').checked = false;
+        document.getElementById('iconTypeImg').checked = true;
+        document.getElementById('iconImgPreview').classList.add('d-none');
+        document.getElementById('mediaPickerGrid').classList.add('d-none');
+        updateIconTypeUI('img');
+        updateExternalUI(false);
+      }
+
+      function fillForm(item) {
+        document.getElementById('fTitle').value = item.title || '';
+        document.getElementById('fPageId').value = item.pageId || '';
+        document.getElementById('fGroup').value = item.group || '';
+        document.getElementById('fBadge').value = item.badge || '';
+        document.getElementById('fIcon').value = item.icon || '';
+        document.getElementById('fIconImg').value = item.iconImg || '';
+        document.getElementById('fExternalUrl').value = item.externalUrl || '';
+        document.getElementById('fVisible').checked = !!item.visible;
+        document.getElementById('fEnabled').checked = !!item.enabled;
+        document.getElementById('fFeatured').checked = !!item.featured;
+        document.getElementById('fIsNew').checked = !!item.isNew;
+        document.getElementById('fIsPro').checked = !!item.isPro;
+        document.getElementById('fExternal').checked = !!item.external;
+        const type = item.iconType === 'emoji' ? 'emoji' : 'img';
+        document.getElementById(type === 'img' ? 'iconTypeImg' : 'iconTypeEmoji').checked = true;
+        updateIconTypeUI(type);
+        updateExternalUI(!!item.external);
+        // preview
+        if (item.iconImg) {
+          const prev = document.getElementById('iconImgPreview');
+          prev.src = item.iconImg; prev.classList.remove('d-none');
+        } else {
+          document.getElementById('iconImgPreview').classList.add('d-none');
+        }
+      }
+
+      function getIconType() {
+        return document.querySelector('input[name="iconType"]:checked').value;
+      }
+
+      function updateIconTypeUI(type) {
+        document.getElementById('iconImgWrap').classList.toggle('d-none', type !== 'img');
+        document.getElementById('iconEmojiWrap').classList.toggle('d-none', type !== 'emoji');
+      }
+
+      function updateExternalUI(val) {
+        document.getElementById('externalUrlWrap').classList.toggle('d-none', !val);
+      }
+
+      document.querySelectorAll('input[name="iconType"]').forEach(r => {
+        r.addEventListener('change', () => updateIconTypeUI(r.value));
+      });
+
+      document.getElementById('fExternal').addEventListener('change', function() {
+        updateExternalUI(this.checked);
+      });
+
+      // Icon image preview
+      document.getElementById('fIconImg').addEventListener('input', function() {
+        const prev = document.getElementById('iconImgPreview');
+        if (this.value) { prev.src = this.value; prev.classList.remove('d-none'); }
+        else prev.classList.add('d-none');
+      });
+      document.getElementById('iconImgPreview').addEventListener('error', function() {
+        this.classList.add('d-none');
+      });
+
+      // ---- Media Picker ----
+      document.getElementById('toggleMediaPickerBtn').addEventListener('click', async () => {
+        const grid = document.getElementById('mediaPickerGrid');
+        if (!grid.classList.contains('d-none')) { grid.classList.add('d-none'); return; }
+        grid.classList.remove('d-none');
+        if (mediaCache) { renderMediaPicker(mediaCache); return; }
+        document.getElementById('mediaPickerLoading').classList.remove('d-none');
+        const r = await apiFetch('/api/admin/media');
+        if (!r) return;
+        const data = await r.json();
+        mediaCache = data.files || [];
+        renderMediaPicker(mediaCache);
+      });
+
+      function renderMediaPicker(files) {
+        const grid = document.getElementById('mediaPickerGrid');
+        if (!files.length) {
+          grid.innerHTML = '<div class="text-center text-body-secondary small py-3">No media files found</div>';
+          return;
+        }
+        grid.innerHTML = files.map(f => {
+          const url = f.url || ('/uploads/gallery/' + f.name);
+          return '<div class="media-picker-item" onclick="app.pickMedia(\'' + escHtml(url) + '\')" title="' + escHtml(f.name) + '">' +
+            '<img src="' + escHtml(url) + '" loading="lazy" onerror="this.parentElement.style.display=\'none\'">' +
+            '</div>';
+        }).join('');
+      }
+
+      function pickMedia(url) {
+        document.getElementById('fIconImg').value = url;
+        const prev = document.getElementById('iconImgPreview');
+        prev.src = url; prev.classList.remove('d-none');
+        document.getElementById('mediaPickerGrid').classList.add('d-none');
+        document.querySelectorAll('.media-picker-item').forEach(el => el.classList.remove('selected'));
+      }
+
+      // ---- Save Item ----
+      document.getElementById('itemSaveBtn').addEventListener('click', async function() {
+        const title = document.getElementById('fTitle').value.trim();
+        const pageId = document.getElementById('fPageId').value.trim();
+        if (!title) { showToast('Title is required', 'danger'); return; }
+        if (!pageId) { showToast('Page ID is required', 'danger'); return; }
+
+        const iconType = getIconType();
+        const body = {
+          title,
+          pageId,
+          group: document.getElementById('fGroup').value.trim(),
+          badge: document.getElementById('fBadge').value.trim() || null,
+          iconType,
+          icon: iconType === 'emoji' ? document.getElementById('fIcon').value.trim() : '',
+          iconImg: iconType === 'img' ? document.getElementById('fIconImg').value.trim() : '',
+          visible: document.getElementById('fVisible').checked,
+          enabled: document.getElementById('fEnabled').checked,
+          featured: document.getElementById('fFeatured').checked,
+          isNew: document.getElementById('fIsNew').checked,
+          isPro: document.getElementById('fIsPro').checked,
+          external: document.getElementById('fExternal').checked,
+          externalUrl: document.getElementById('fExternalUrl').value.trim()
+        };
+
+        this.disabled = true;
+        try {
+          let r;
+          if (editingId) {
+            r = await apiFetch('/api/admin/cms/sidebar/' + encodeURIComponent(editingId), {
+              method: 'PUT', body: JSON.stringify(body)
+            });
+          } else {
+            r = await apiFetch('/api/admin/cms/sidebar', {
+              method: 'POST', body: JSON.stringify(body)
+            });
+          }
+          if (!r) { this.disabled = false; return; }
+          const data = await r.json().catch(() => ({}));
+          if (r.ok) {
+            showToast(editingId ? 'Item updated' : 'Item created', 'success');
+            itemModal().hide();
+            await loadItems();
+          } else {
+            showToast(data.error || 'Failed', 'danger');
+          }
+        } catch (e) { showToast('Error: ' + e.message, 'danger'); }
+        this.disabled = false;
+      });
+
+      // expose needed functions
+      window.app = { editItem, confirmDelete, toggleFlag, pickMedia };
+
+      init();
+    })();
+    </script>
+  </body>
+</html>
