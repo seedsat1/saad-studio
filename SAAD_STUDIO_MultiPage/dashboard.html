@@ -1538,7 +1538,7 @@ function showSection(id, btn){
   if(id==='theme'  && !themeLoaded)  loadTheme();
   if(id==='fonts'  && !fontsLoaded)  loadFonts();
   if(id==='assets' && !assetsLoaded) loadAssets();
-  const loaders = { pages: loadCMSPages, sections: initSectionsTab, cmsNav: loadCMSNav, siteSettings: loadSiteSettings, auditLog: loadCMSAudit, promobars: loadPromoBars, sidebarMgr: loadSidebarItems, generations: loadGenerations, analytics: loadAnalytics, notifications: loadNotifHistory, coupons: loadCoupons, backup: loadBackupHistory, apikeys: loadApiKeys, moderation: loadModeration, reports: ()=>{}, modelControl: loadModelControl, creditMgr: async ()=>{ await loadCreditLog(); await loadFreeTrialSettings(); }, planMgr: loadPlanSettings };
+  const loaders = { pages: loadCMSPages, sections: initSectionsTab, cmsNav: loadCMSNav, siteSettings: loadSiteSettings, auditLog: loadCMSAudit, promobars: loadPromoBars, sidebarMgr: loadSidebarItems, generations: loadGenerations, analytics: loadAnalytics, notifications: loadNotifHistory, coupons: loadCoupons, backup: loadBackupHistory, apikeys: loadApiKeys, moderation: loadModeration, reports: ()=>generateReport('usage'), modelControl: loadModelControl, creditMgr: async ()=>{ await loadCreditLog(); await loadFreeTrialSettings(); }, planMgr: loadPlanSettings };
   if(loaders[id]) loaders[id]();
 }
 
@@ -3499,6 +3499,7 @@ function toggleModel(id, enabled) {
   if(!modelSettings[id]) modelSettings[id] = {};
   modelSettings[id].enabled = enabled;
   renderModelCards(document.querySelector('#sec-modelControl .btn-outline.active')?.textContent?.includes('صور')?'image':document.querySelector('#sec-modelControl .btn-outline.active')?.textContent?.includes('فيديو')?'video':document.querySelector('#sec-modelControl .btn-outline.active')?.textContent?.includes('صوت')?'audio':document.querySelector('#sec-modelControl .btn-outline.active')?.textContent?.includes('محادثة')?'chat':'all');
+  saveModelSetting(id); // auto-save on toggle
 }
 
 async function saveModelSetting(id) {

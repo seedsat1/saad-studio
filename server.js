@@ -3009,12 +3009,19 @@ async function attachUser(req, res, next) {
 
     // 4. Auto-create profile if missing (edge case: trigger didn't fire)
     if (!profile) {
+      // Read free trial credits from vault settings (set via admin dashboard)
+      let initialCredits = 100;
+      try {
+        const ftPath = path.join(__dirname, 'vault', 'free_trial.json');
+        const ft = JSON.parse(fs.readFileSync(ftPath, 'utf8'));
+        if (typeof ft.freeCredits === 'number' && ft.freeCredits >= 0) initialCredits = ft.freeCredits;
+      } catch {}
       const { data: newP } = await supabaseAdmin
         .from('profiles')
         .insert({
           id: user.id,
           email: user.email,
-          credits: 100,
+          credits: initialCredits,
           is_admin: false
         })
         .select()
@@ -4958,9 +4965,28 @@ app.post('/api/admin/plan-settings', requireAdmin, (req, res) => {
   if (!Array.isArray(plans)) return res.status(400).json({ error: 'plans array required' });
   const data = { plans, topups: Array.isArray(topups) ? topups : [], updatedAt: new Date().toISOString() };
   vaultWrite(PLAN_SETTINGS_FILE, data);
+  // Sync runtime PLANS object so order processing uses the updated values immediately
+  for (const p of plans) {
+    if (p.id && ['starter','pro','creator'].includes(p.id)) {
+      PLANS[p.id] = { price: p.price || 0, credits: p.credits || 0, nanoBananaFree: true, label: p.name || p.id };
+    }
+  }
   auditLog('admin.plans.update', `plans=${plans.length} topups=${(topups || []).length}`, req);
   res.json({ ok: true });
 });
+
+// Load plan settings from vault on startup to sync PLANS object
+try {
+  const savedPlans = JSON.parse(fs.readFileSync(PLAN_SETTINGS_FILE, 'utf8'));
+  if (Array.isArray(savedPlans.plans)) {
+    for (const p of savedPlans.plans) {
+      if (p.id && ['starter','pro','creator'].includes(p.id)) {
+        PLANS[p.id] = { price: p.price || 0, credits: p.credits || 0, nanoBananaFree: true, label: p.name || p.id };
+      }
+    }
+    console.log('[Plans] Loaded from vault:', Object.keys(PLANS).map(k => `${k}=${PLANS[k].credits}cr`).join(', '));
+  }
+} catch { /* no saved plan settings yet, use defaults */ }
 
 // ══════════════════════════════════════
 // MODERATION — content review queue
