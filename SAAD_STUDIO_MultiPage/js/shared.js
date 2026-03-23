@@ -5209,6 +5209,7 @@ async function runGoogleImageTool(mode){
 
     const genBody = {
       model: cfg.model,
+      nanoKey: mode,
       generationConfig:{ responseModalities:['TEXT','IMAGE'] },
       parts
     };

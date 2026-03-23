@@ -3265,7 +3265,14 @@ async function deductCreditsForGeneration(req, res, model, params) {
     res.status(403).json({ error: 'الاشتراك منتهي — يرجى تجديد الخطة', code: 'subscription_expired' });
     return false;
   }
-  const cost = applyProfitMargin(serverCalcCreditCost(model, params));
+
+  // أسعار Nano Banana الثابتة (بدون هامش ربح)
+  const NANO_FLAT = { nano: 1, nano2: 10, nanopro: 5 };
+  const nkParam = String(params.nanoKey || '').toLowerCase();
+  const cost = nkParam in NANO_FLAT
+    ? NANO_FLAT[nkParam]
+    : applyProfitMargin(serverCalcCreditCost(model, params));
+
   // Usage limits check (still vault-based for now)
   const limCheck = checkUsageLimits(req.currentUser, model, cost);
   if (limCheck.exceeded) {
