@@ -126,8 +126,8 @@ const KIE_GPT_FALLBACKS = (process.env.KIE_GPT_FALLBACKS || 'gpt-5-2,gpt-5-4,gpt
   .filter(Boolean);
 
 // ─── PROFIT MARGIN ────────────────────────────────────────────────────────────
-// هامش الربح — غيّره في .env: PROFIT_MARGIN=0.40 يعني 40%
-const PROFIT_MARGIN = Math.max(0, Number(process.env.PROFIT_MARGIN || 0));
+// هامش الربح — افتراضي 40% ، يمكن تغييره عبر .env: PROFIT_MARGIN=0.30
+const PROFIT_MARGIN = Math.max(0, Number(process.env.PROFIT_MARGIN ?? 0.40));
 
 const WORKFLOWS_DIR = path.join(__dirname, 'workflows');
 const UPLOADS_DIR   = path.join(__dirname, 'uploads');
@@ -2998,15 +2998,15 @@ function serverCalcCreditCost(model, params = {}) {
   if (m.includes('infinitalk'))                             return 15;
   if (m.includes('grok-imagine') || m.includes('grok/imagine')) return 4;
   if (m.includes('grok'))                                   return 4;
-  // nano banana image models — costs include 40% profit margin (base KIE cost × 1.4)
+  // nano banana image models — تكاليف KIE الأساسية (هامش 40% يضاف بواسطة applyProfitMargin)
   if (m.includes('gemini-3.1-flash-image') || m.includes('gemini-3-pro-image')) {
     const q  = String(params.quality || '2K').toUpperCase();
     const nk = String(params.nanoKey || '').toLowerCase();
-    if (m.includes('gemini-3-pro-image')) return q === '4K' ? 34 : 26; // nanopro: 24×1.4=34 / 18×1.4=26
-    if (nk === 'nano') return 6;   // nano base: 4×1.4
-    if (q === '1K')    return 12;  // nano2 1K: 8×1.4
-    if (q === '4K')    return 26;  // nano2 4K: 18×1.4
-    return 17;                     // nano2 2K (default): 12×1.4
+    if (m.includes('gemini-3-pro-image')) return q === '4K' ? 24 : 18; // nanopro 4K=24 / 1-2K=18
+    if (nk === 'nano') return 4;   // nano base
+    if (q === '1K')    return 8;   // nano2 1K
+    if (q === '4K')    return 18;  // nano2 4K
+    return 12;                     // nano2 2K (default)
   }
   if (m.includes('gpt-5') || m.includes('gpt5') || m.includes('gpt-4') || m.includes('gpt4') || m.includes('gemini')) return 1;
   if (m.includes('ai-avatar'))                              return 50;
