@@ -15,8 +15,11 @@ CREATE TABLE IF NOT EXISTS cms_settings (
 -- Enable Row Level Security (service role can bypass)
 ALTER TABLE cms_settings ENABLE ROW LEVEL SECURITY;
 -- Allow service role full access
-CREATE POLICY IF NOT EXISTS "service_role_all"
-  ON cms_settings FOR ALL USING (true) WITH CHECK (true);
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='cms_settings' AND policyname='service_role_all') THEN
+    CREATE POLICY "service_role_all" ON cms_settings FOR ALL USING (true) WITH CHECK (true);
+  END IF;
+END $$;
 
 -- 2. orders — stores upgrade/plan/credit orders
 CREATE TABLE IF NOT EXISTS orders (
@@ -36,8 +39,11 @@ CREATE TABLE IF NOT EXISTS orders (
 );
 
 ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
-CREATE POLICY IF NOT EXISTS "service_role_all"
-  ON orders FOR ALL USING (true) WITH CHECK (true);
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='orders' AND policyname='service_role_all') THEN
+    CREATE POLICY "service_role_all" ON orders FOR ALL USING (true) WITH CHECK (true);
+  END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS orders_user_id_idx ON orders(user_id);
 CREATE INDEX IF NOT EXISTS orders_status_idx ON orders(status);

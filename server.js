@@ -4249,6 +4249,51 @@ app.post('/api/admin/kie-test', requireAdmin, async (req, res) => {
   } catch (e) { res.json({ ok: false, error: e.message }); }
 });
 
+// Admin: save any API key (google, openai, elevenlabs, replicate, fal)
+const ALLOWED_API_KEY_NAMES = {
+  googleApiKey: 'GOOGLE_API_KEY',
+  openaiApiKey: 'OPENAI_API_KEY',
+  elevenlabsApiKey: 'ELEVENLABS_API_KEY',
+  replicateApiKey: 'REPLICATE_API_KEY',
+  falApiKey: 'FAL_API_KEY'
+};
+app.post('/api/admin/api-key', requireAdmin, (req, res) => {
+  const { keyName, value } = req.body || {};
+  const envVar = ALLOWED_API_KEY_NAMES[keyName];
+  if (!envVar) return res.status(400).json({ error: 'مفتاح غير مسموح به' });
+  if (!value || typeof value !== 'string' || value.trim().length < 8)
+    return res.status(400).json({ error: 'قيمة المفتاح غير صالحة' });
+  const envPath = path.join(__dirname, '.env');
+  let envContent = '';
+  try { envContent = fs.existsSync(envPath) ? fs.readFileSync(envPath, 'utf8') : ''; } catch {}
+  const cleanVal = value.trim().replace(/[^\x20-\x7E]/g, '');
+  const regex = new RegExp(`^${envVar}=.*`, 'm');
+  if (regex.test(envContent)) { envContent = envContent.replace(regex, `${envVar}=${cleanVal}`); }
+  else { envContent += `\n${envVar}=${cleanVal}`; }
+  fs.writeFileSync(envPath, envContent);
+  process.env[envVar] = cleanVal;
+  auditLog('admin.api-key.change', `keyName=${keyName}`, req);
+  res.json({ ok: true });
+});
+
+// Admin: test any API key (just checks if it's configured)
+app.post('/api/admin/api-key/test', requireAdmin, (req, res) => {
+  const { keyName } = req.body || {};
+  const envVar = ALLOWED_API_KEY_NAMES[keyName];
+  if (!envVar) return res.status(400).json({ ok: false, error: 'مفتاح غير معروف' });
+  const val = process.env[envVar] || '';
+  res.json({ ok: !!val, configured: !!val });
+});
+
+// Admin: test model API reachability
+app.post('/api/admin/model-test', requireAdmin, async (req, res) => {
+  const { modelId } = req.body || {};
+  if (!modelId) return res.status(400).json({ ok: false });
+  // Just check if the server is running and key is set
+  const hasKey = !!KIE_API_KEY;
+  res.json({ ok: hasKey, modelId, message: hasKey ? 'KIE key is configured' : 'KIE_API_KEY not set' });
+});
+
 // Admin credentials change
 app.post('/api/admin/credentials', passwordChangeLimiter, requireAdmin, (req, res) => {
   const { newUsername, newPassword, currentPassword } = req.body || {};
