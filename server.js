@@ -3637,6 +3637,31 @@ app.post('/api/admin/login', adminLoginLimiter, (req, res) => {
 });
 
 
+// GET /api/admin/health — check which Supabase tables exist and are writable
+app.get('/api/admin/health', requireAdmin, async (req, res) => {
+  const result = { supabaseConnected: !!supabaseAdmin, tables: {}, vaultMode: !supabaseAdmin };
+  if (supabaseAdmin) {
+    const checks = ['profiles', 'orders', 'cms_settings'];
+    for (const tbl of checks) {
+      try {
+        const { error } = await supabaseAdmin.from(tbl).select('count').limit(1);
+        result.tables[tbl] = error ? `ERROR: ${error.message}` : 'OK';
+      } catch (e) {
+        result.tables[tbl] = `ERROR: ${e.message}`;
+      }
+    }
+    // Check writable
+    try {
+      await supabaseAdmin.from('cms_settings').upsert({ key: '__health_check__', value: { ok: true }, updated_at: new Date().toISOString() });
+      result.tables['cms_settings_write'] = 'OK';
+    } catch (e) {
+      result.tables['cms_settings_write'] = `ERROR: ${e.message}`;
+    }
+  }
+  result.vaultMode = !supabaseAdmin || Object.values(result.tables).some(v => v !== 'OK' && v !== undefined);
+  res.json(result);
+});
+
 // GET /api/admin/kie-balance — fetch KIE API balance (same method as /api/kie/credits)
 app.get('/api/admin/kie-balance', requireAdmin, async (req, res) => {
   if (!KIE_API_KEY) {
@@ -4151,12 +4176,13 @@ app.get('/api/admin/theme', requireAdmin, async (req, res) => {
 app.post('/api/admin/theme', requireAdmin, async (req, res) => {
   const { theme } = req.body || {};
   if(!theme || typeof theme !== 'object') return res.status(400).json({ error: 'Invalid theme' });
+  let savedToSupabase = false;
   if (supabaseAdmin) {
-    try { await supabaseAdmin.from('cms_settings').upsert({key:'theme',value:theme,updated_at:new Date().toISOString()}); } catch {}
+    try { await supabaseAdmin.from('cms_settings').upsert({key:'theme',value:theme,updated_at:new Date().toISOString()}); savedToSupabase = true; } catch(e) { console.error('theme save supabase:', e.message); }
   }
   try { fs.writeFileSync(THEME_FILE, JSON.stringify(theme, null, 2)); } catch {}
   auditLog('admin.theme.change', null, req);
-  res.json({ ok: true });
+  res.json({ ok: true, savedToSupabase, warning: !savedToSupabase ? 'تحذير: تم الحفظ في الذاكرة المؤقتة فقط — الجدول cms_settings غير موجود في Supabase' : undefined });
 });
 
 app.get('/api/admin/fonts', requireAdmin, async (req, res) => {
@@ -4174,12 +4200,13 @@ app.get('/api/admin/fonts', requireAdmin, async (req, res) => {
 app.post('/api/admin/fonts', requireAdmin, async (req, res) => {
   const { fonts } = req.body || {};
   if(!fonts) return res.status(400).json({ error: 'fonts required' });
+  let savedToSupabase = false;
   if (supabaseAdmin) {
-    try { await supabaseAdmin.from('cms_settings').upsert({key:'fonts',value:fonts,updated_at:new Date().toISOString()}); } catch {}
+    try { await supabaseAdmin.from('cms_settings').upsert({key:'fonts',value:fonts,updated_at:new Date().toISOString()}); savedToSupabase = true; } catch(e) { console.error('fonts save supabase:', e.message); }
   }
   try { fs.writeFileSync(FONTS_FILE, JSON.stringify(fonts, null, 2)); } catch {}
   auditLog('admin.fonts.change', null, req);
-  res.json({ ok: true });
+  res.json({ ok: true, savedToSupabase, warning: !savedToSupabase ? 'تحذير: تم الحفظ في الذاكرة المؤقتة فقط — الجدول cms_settings غير موجود في Supabase' : undefined });
 });
 
 // Admin: read current API key status (masked)
@@ -5085,7 +5112,7 @@ app.delete('/api/admin/ads/:id', requireAdmin, async (req, res) => {
 const CMS_FILE = path.join(VAULT_DIR, 'cms.json'); // file fallback for local dev
 function getDefaultCMS(){return{pages:[],sidebar:[],promoBars:[],navigation:{header:[],footer:[]},settings:{siteTitle:'SAAD STUDIO',siteDescription:'Creative AI Platform',logo:'',favicon:'',seoTitle:'SAAD STUDIO - Creative AI',seoDescription:'',contactEmail:'',contactPhone:'',socialLinks:{twitter:'',instagram:'',youtube:'',tiktok:''},analytics:{googleTagId:'',facebookPixelId:''},maintenanceMode:false,maintenanceMessage:'الموقع قيد الصيانة'},auditLog:[]};}
 async function loadCMS(){if(supabaseAdmin){try{const{data,error}=await supabaseAdmin.from('cms_settings').select('value').eq('key','cms_state').single();if(!error&&data&&data.value)return data.value;}catch(e){console.error('loadCMS supabase:',e.message);}}try{if(fs.existsSync(CMS_FILE))return JSON.parse(fs.readFileSync(CMS_FILE,'utf8'));}catch{}return getDefaultCMS();}
-async function saveCMS(d){if(supabaseAdmin){try{await supabaseAdmin.from('cms_settings').upsert({key:'cms_state',value:d,updated_at:new Date().toISOString()});return;}catch(e){console.error('saveCMS supabase:',e.message);}}try{fs.writeFileSync(CMS_FILE,JSON.stringify(d,null,2));}catch{}}
+async function saveCMS(d){let ok=false;if(supabaseAdmin){try{await supabaseAdmin.from('cms_settings').upsert({key:'cms_state',value:d,updated_at:new Date().toISOString()});ok=true;return ok;}catch(e){console.error('saveCMS supabase:',e.message);}}try{fs.writeFileSync(CMS_FILE,JSON.stringify(d,null,2));}catch{}return ok;}
 function cmsLog(cms,action,detail){if(!Array.isArray(cms.auditLog))cms.auditLog=[];cms.auditLog.unshift({id:crypto.randomBytes(6).toString('hex'),action,detail,at:new Date().toISOString()});if(cms.auditLog.length>200)cms.auditLog=cms.auditLog.slice(0,200);}
 function cmsId(){return crypto.randomBytes(10).toString('hex');}
 function sStr(v,max=500){return String(v||'').trim().slice(0,max);}
