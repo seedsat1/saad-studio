@@ -530,6 +530,7 @@ function setNanoTab(name){
   if(subEl) subEl.textContent = subtitles[name] || '';
   syncGbarModel(name);
   saveUiState({ nanoTab: name });
+  refreshNanoCost();
 }
 
 function setGoogleTab(name){
@@ -1100,6 +1101,12 @@ function selectFlux2Model(key){
   const imageField = document.getElementById('flux2-image-field');
   if(imageField) imageField.style.display = info.requiresImages ? 'block' : 'none';
   saveUiState({ flux2Model: key });
+  refreshFlux2Cost();
+}
+
+function refreshFlux2Cost(){
+  const model = document.getElementById('flux2-model')?.value || 'flux-2/pro-image-to-image';
+  updateCostPreview('flux2-cost-val', applyProfitMargin(calcCreditCost(model)));
 }
 
 function selectFluxKontextMode(mode){
@@ -1406,7 +1413,7 @@ async function runHailuo(){
   const _hDurSec = Number(document.getElementById('hailuo-duration')?.value || '6');
   const _hResUi  = document.getElementById('hailuo-resolution')?.value || '2K';
   const _hRes    = (_hResUi === '4K') ? '1080P' : '768P';
-  const _hCost   = calcCreditCost(_hModel, { duration: _hDurSec, resolution: _hRes });
+  const _hCost   = applyProfitMargin(calcCreditCost(_hModel, { duration: _hDurSec, resolution: _hRes }));
   if(!checkPlanAccess(_hModel)) return;
   if(!AUTH.checkCredits(_hCost)) return;
   const btn = document.getElementById('hailuo-btn');
@@ -1675,7 +1682,7 @@ async function runSora(){
   const _sModel  = document.getElementById('sora-model')?.value || 'sora-2-text-to-video';
   const _sMInfo  = SORA_MODEL_INFO[_sModel] || SORA_MODEL_INFO['sora-2-text-to-video'];
   const _snFr    = document.getElementById('sora-frames')?.value || '10';
-  const _sCost   = _sMInfo?.watermark ? 5 : _sMInfo?.characters ? 30 : (Number(_snFr) >= 14 ? 35 : 30);
+  const _sCost   = _sMInfo?.watermark ? applyProfitMargin(5) : _sMInfo?.characters ? applyProfitMargin(30) : (Number(_snFr) >= 14 ? applyProfitMargin(35) : applyProfitMargin(30));
   if(!AUTH.checkCredits(_sCost)) return;
   const btn = document.getElementById('sora-btn');
   const original = btn ? btn.textContent : '';
@@ -1854,7 +1861,7 @@ async function runSuno(){
     } else if(!prompt) {
       throw new Error('اكتب فكرة الموسيقى أولاً');
     }
-    const _sunoCost = (model === 'V3_5' || model === 'V3') ? 8 : 10;
+    const _sunoCost = applyProfitMargin((model === 'V3_5' || model === 'V3') ? 8 : 10);
     if(!AUTH.checkCredits(_sunoCost)) return;
 
     if(btn){ btn.disabled = true; btn.innerHTML = '<div class="spinner"></div> إرسال إلى Suno...'; }
@@ -2017,7 +2024,7 @@ async function pollInfinitalkTask(taskId){
 
 async function runInfinitalk(){
   if(!checkPlanAccess('infinitalk')) return;
-  if(!AUTH.checkCredits(15)) return;
+  if(!AUTH.checkCredits(applyProfitMargin(15))) return;
   const btn = document.getElementById('infinitalk-btn');
   const original = btn ? btn.textContent : '';
   try{
@@ -2065,7 +2072,7 @@ async function runInfinitalk(){
     if(urls.length === 0) throw new Error('انتهت المهمة بدون روابط نتائج');
     urls.forEach(url => addResultItem('infinitalk-results', url, isVideoUrl(url) || true, prompt));
     setInfinitalkStatus('تم توليد النتائج.','success');
-    AUTH.consumeCredits(15);
+    AUTH.consumeCredits(applyProfitMargin(15));
   } catch(e){
     setInfinitalkStatus(String(e.message || e).substring(0,160), 'error');
     toast('خطأ: '+String(e.message || e).substring(0,140), 'error');
@@ -2095,7 +2102,7 @@ async function pollQwen2Task(taskId){
 }
 
 async function runQwen2(){
-  if(!AUTH.checkCredits(6)) return;
+  if(!AUTH.checkCredits(applyProfitMargin(6))) return;
   const btn = document.getElementById('qwen2-btn');
   const original = btn ? btn.textContent : '';
   try{
@@ -2143,7 +2150,7 @@ async function runQwen2(){
     if(urls.length === 0) throw new Error('انتهت المهمة بدون روابط نتائج');
     urls.forEach(url => addResultItem('qwen2-results', url, false, prompt));
     setQwen2Status('تم توليد النتائج.','success');
-    AUTH.consumeCredits(6);
+    AUTH.consumeCredits(applyProfitMargin(6));
   } catch(e){
     setQwen2Status(String(e.message || e).substring(0,160), 'error');
     toast('خطأ: '+String(e.message || e).substring(0,140), 'error');
@@ -2173,7 +2180,7 @@ async function pollIdeogramReframeTask(taskId){
 }
 
 async function runIdeogramReframe(){
-  if(!AUTH.checkCredits(7)) return;
+  if(!AUTH.checkCredits(applyProfitMargin(7))) return;
   const btn = document.getElementById('ideogram-reframe-btn');
   const original = btn ? btn.textContent : '';
   try{
@@ -2228,7 +2235,7 @@ async function runIdeogramReframe(){
     if(urls.length === 0) throw new Error('انتهت المهمة بدون روابط نتائج');
     urls.forEach(url => addResultItem('ideogram-reframe-results', url, false, prompt));
     setIdeogramReframeStatus('تم توليد النتائج.','success');
-    AUTH.consumeCredits(7);
+    AUTH.consumeCredits(applyProfitMargin(7));
   } catch(e){
     setIdeogramReframeStatus(String(e.message || e).substring(0,160), 'error');
     toast('خطأ: '+String(e.message || e).substring(0,140), 'error');
@@ -2258,7 +2265,7 @@ async function pollZImageTask(taskId){
 }
 
 async function runZImage(){
-  if(!AUTH.checkCredits(1)) return;
+  if(!AUTH.checkCredits(applyProfitMargin(1))) return;
   const btn = document.getElementById('zimage-btn');
   const original = btn ? btn.textContent : '';
   try{
@@ -2287,7 +2294,7 @@ async function runZImage(){
     if(urls.length === 0) throw new Error('انتهت المهمة بدون روابط نتائج');
     urls.forEach(url => addResultItem('zimage-results', url, false, prompt));
     setZImageStatus('تم توليد النتائج.','success');
-    AUTH.consumeCredits(1);
+    AUTH.consumeCredits(applyProfitMargin(1));
   } catch(e){
     setZImageStatus(String(e.message || e).substring(0,160), 'error');
     toast('خطأ: '+String(e.message || e).substring(0,140), 'error');
@@ -2317,7 +2324,7 @@ async function pollSeedreamTask(taskId){
 }
 
 async function runSeedream(){
-  if(!AUTH.checkCredits(7)) return;
+  if(!AUTH.checkCredits(applyProfitMargin(7))) return;
   const btn = document.getElementById('seedream-btn');
   const original = btn ? btn.textContent : '';
   try{
@@ -2363,7 +2370,7 @@ async function runSeedream(){
     if(urls.length === 0) throw new Error('انتهت المهمة بدون روابط نتائج');
     urls.forEach(url => addResultItem('seedream-results', url, false, prompt));
     setSeedreamStatus('تم توليد النتائج.','success');
-    AUTH.consumeCredits(7);
+    AUTH.consumeCredits(applyProfitMargin(7));
   } catch(e){
     setSeedreamStatus(String(e.message || e).substring(0,160), 'error');
     toast('خطأ: '+String(e.message || e).substring(0,140), 'error');
@@ -2397,7 +2404,7 @@ async function runSeedance(){
   const _sdResUi = document.getElementById('seedance-resolution')?.value || '2K';
   const _sdRes   = mapUiResolution(_sdResUi, { '1K':'480p', '2K':'720p', '4K':'1080p' }, '720p');
   const _sdDur   = Number(document.getElementById('seedance-duration')?.value || '4');
-  const _sdCost  = calcCreditCost(_sdModel, { duration: _sdDur, resolution: _sdRes });
+  const _sdCost  = applyProfitMargin(calcCreditCost(_sdModel, { duration: _sdDur, resolution: _sdRes }));
   if(!checkPlanAccess(_sdModel)) return;
   if(!AUTH.checkCredits(_sdCost)) return;
   const btn = document.getElementById('seedance-btn');
@@ -2488,7 +2495,7 @@ async function runWan(){
   const _wDur    = Number(document.getElementById('wan-duration')?.value || '5');
   const _wResUi  = document.getElementById('wan-resolution')?.value || '2K';
   const _wRes    = mapUiResolution(_wResUi, { '1K':'720p', '2K':'1080p', '4K':'1080p' }, '720p');
-  const _wCost   = calcCreditCost(_wModel, { duration: _wDur, resolution: _wRes });
+  const _wCost   = applyProfitMargin(calcCreditCost(_wModel, { duration: _wDur, resolution: _wRes }));
   if(!checkPlanAccess(_wModel)) return;
   if(!AUTH.checkCredits(_wCost)) return;
   const btn = document.getElementById('wan-btn');
@@ -2630,7 +2637,9 @@ async function pollFlux2Task(taskId){
 }
 
 async function runFlux2(){
-  if(!AUTH.checkCredits(7)) return;
+  const _f2Model = document.getElementById('flux2-model')?.value || 'flux-2/pro-image-to-image';
+  const _f2Cost  = applyProfitMargin(calcCreditCost(_f2Model));
+  if(!AUTH.checkCredits(_f2Cost)) return;
   const btn = document.getElementById('flux2-btn');
   const original = btn ? btn.textContent : '';
   try{
@@ -2678,7 +2687,7 @@ async function runFlux2(){
     if(urls.length === 0) throw new Error('انتهت المهمة بدون روابط نتائج');
     urls.forEach(url => addResultItem('flux2-results', url, false, prompt));
     setFlux2Status('تم توليد النتائج.','success');
-    AUTH.consumeCredits(7);
+    AUTH.consumeCredits(_f2Cost);
   } catch(e){
     setFlux2Status(String(e.message || e).substring(0,160), 'error');
     toast('خطأ: '+String(e.message || e).substring(0,140), 'error');
@@ -2708,7 +2717,7 @@ async function pollFluxKontextTask(taskId){
 }
 
 async function runFluxKontext(){
-  if(!AUTH.checkCredits(7)) return;
+  if(!AUTH.checkCredits(applyProfitMargin(7))) return;
   const btn = document.getElementById('fk-btn');
   const original = btn ? btn.textContent : '';
   try{
@@ -2765,7 +2774,7 @@ async function runFluxKontext(){
     if(urls.length === 0) throw new Error('انتهت المهمة بدون روابط نتائج');
     urls.forEach(url => addResultItem('fk-results', url, false, prompt));
     setFluxKontextStatus('تم توليد النتائج.','success');
-    AUTH.consumeCredits(7);
+    AUTH.consumeCredits(applyProfitMargin(7));
   } catch(e){
     setFluxKontextStatus(String(e.message || e).substring(0,160), 'error');
     toast('خطأ: '+String(e.message || e).substring(0,140), 'error');
@@ -4121,9 +4130,11 @@ async function copyPromptStudioOutput(){
 
 // ═══════════════════════════════════════════════════════════
 // DYNAMIC CREDIT COST CALCULATOR
-// Based on KIE.ai official prices  ·  1 site credit ≈ 1 KIE credit → ~40% profit margin
-// (site credit = $0.00833,  KIE credit = $0.005)
+// Based on KIE.ai official prices — profit margin 40% applied on top (mirrors server)
 // ═══════════════════════════════════════════════════════════
+const FRONTEND_PROFIT_MARGIN = 0.40;
+function applyProfitMargin(cost){ return Math.ceil(cost * (1 + FRONTEND_PROFIT_MARGIN)); }
+
 function calcCreditCost(model, params){
   const dur  = Number(params.duration || 5);
   const res  = String(params.resolution || '720p').toLowerCase();
@@ -4205,6 +4216,7 @@ function calcCreditCost(model, params){
   if(model.includes('seedream'))                                 return 7;   // real: 6.5
   if(model.includes('ideogram'))                                 return 7;
   if(model.includes('flux-kontext') || model.includes('fluxkontext')) return 7;
+  if(model.includes('flex'))                                         return 24;  // flux-2/flex real: 24 KIE credits
   if(model.includes('flux-2') || model.includes('flux2'))        return 7;
   if(model.includes('zimage') || model.includes('z-image') ||
      model === 'z-image')                                        return 1;   // real: 0.8 → min 1
@@ -4235,15 +4247,15 @@ function refreshHailuoCost(){
   const dur    = Number(document.getElementById('hailuo-duration')?.value || 6);
   const resUi  = document.getElementById('hailuo-resolution')?.value || '2K';
   const res    = resUi === '4K' ? '1080P' : '768P';
-  updateCostPreview('hailuo-cost-val', calcCreditCost(model, {duration:dur, resolution:res}));
+  updateCostPreview('hailuo-cost-val', applyProfitMargin(calcCreditCost(model, {duration:dur, resolution:res})));
 }
 
 function refreshSoraCost(){
   const model  = document.getElementById('sora-model')?.value || 'sora-2-text-to-video';
   const mInfo  = SORA_MODEL_INFO[model] || SORA_MODEL_INFO['sora-2-text-to-video'];
   const nFr    = document.getElementById('sora-frames')?.value || '10';
-  const cost   = mInfo?.watermark ? 5 : mInfo?.characters ? 30 : (Number(nFr)>=14 ? 35 : 30);
-  updateCostPreview('sora-cost-val', cost);
+  const base   = mInfo?.watermark ? 5 : mInfo?.characters ? 30 : (Number(nFr)>=14 ? 35 : 30);
+  updateCostPreview('sora-cost-val', applyProfitMargin(base));
 }
 
 function refreshSeedanceCost(){
@@ -4251,7 +4263,7 @@ function refreshSeedanceCost(){
   const resUi  = document.getElementById('seedance-resolution')?.value || '2K';
   const res    = mapUiResolution(resUi, {'1K':'480p','2K':'720p','4K':'1080p'}, '720p');
   const dur    = Number(document.getElementById('seedance-duration')?.value || 4);
-  updateCostPreview('seedance-cost-val', calcCreditCost(model, {duration:dur, resolution:res}));
+  updateCostPreview('seedance-cost-val', applyProfitMargin(calcCreditCost(model, {duration:dur, resolution:res})));
 }
 
 function refreshWanCost(){
@@ -4259,7 +4271,7 @@ function refreshWanCost(){
   const dur    = Number(document.getElementById('wan-duration')?.value || 5);
   const resUi  = document.getElementById('wan-resolution')?.value || '2K';
   const res    = mapUiResolution(resUi, {'1K':'720p','2K':'1080p','4K':'1080p'}, '720p');
-  updateCostPreview('wan-cost-val', calcCreditCost(model, {duration:dur, resolution:res}));
+  updateCostPreview('wan-cost-val', applyProfitMargin(calcCreditCost(model, {duration:dur, resolution:res})));
 }
 
 function refreshKlingCost(tab){
@@ -4273,7 +4285,7 @@ function refreshKlingCost(tab){
   const sound    = isMotion ? false : (document.getElementById(`${prefix}-sound`)?.value||'true') === 'true';
   const resRaw   = isMotion ? (document.getElementById('kling-motion-res')?.value||'2K') : '1K';
   const res      = mapUiResolution(resRaw, {'1K':'720p','2K':'1080p','4K':'1080p'}, '720p');
-  const cost     = calcCreditCost(model, {duration:dur, mode:gmode, audio:sound, resolution:res});
+  const cost     = applyProfitMargin(calcCreditCost(model, {duration:dur, mode:gmode, audio:sound, resolution:res}));
   if(isMotion){
     updateCostPreview('kling-motion-cost-val', cost);
   } else {
@@ -4283,7 +4295,7 @@ function refreshKlingCost(tab){
 
 function refreshTransitionCost(){
   const dur  = Number(document.getElementById('tr-duration')?.value || 5);
-  const cost = calcCreditCost('kling/v2-5-turbo-image-to-video-pro', { duration:dur, mode:'pro', audio:false });
+  const cost = applyProfitMargin(calcCreditCost('kling/v2-5-turbo-image-to-video-pro', { duration:dur, mode:'pro', audio:false }));
   updateCostPreview('tr-cost-val', cost);
 }
 
@@ -4292,7 +4304,7 @@ function refreshElevenTTSCost(){
   const text = document.getElementById('eleven-tts-text')?.value || '';
   const model = document.getElementById('eleven-tts-model')?.value || 'elevenlabs/text-to-speech-turbo-2-5';
   const estSec = Math.max(1, Math.ceil(text.length / 4)); // ~4 chars per second avg
-  const cost = calcCreditCost(model, { duration: estSec });
+  const cost = applyProfitMargin(calcCreditCost(model, { duration: estSec }));
   const el = document.getElementById('eleven-tts-cost-val');
   if(el) el.textContent = text.length > 0 ? `~${cost}` : '—';
 }
@@ -4300,15 +4312,27 @@ function refreshElevenTTSCost(){
 // Suno: ~10 credits per standard generation (2 songs), more for longer
 function refreshSunoCost(){
   const model = document.getElementById('suno-model')?.value || 'V5';
-  // Suno V5/V4 = ~10 KIE credits per generation (2 clips)
-  const cost = (model === 'V3_5' || model === 'V3') ? 8 : 10;
-  updateCostPreview('suno-cost-val', cost);
+  const base = (model === 'V3_5' || model === 'V3') ? 8 : 10;
+  updateCostPreview('suno-cost-val', applyProfitMargin(base));
 }
 
 function refreshKieUpscaleCost(){
   const model = document.getElementById('kie-upscale-model')?.value || 'topaz/image-upscale';
-  const cost  = calcCreditCost(model, {});
+  const cost  = applyProfitMargin(calcCreditCost(model, {}));
   updateCostPreview('kie-upscale-cost-val', cost);
+}
+
+function refreshNanoCost(){
+  const tabName = document.querySelector('#page-nano .ns-tab.active')?.dataset?.tab
+               || document.querySelector('#gbar-model-btn [id="gbar-model-label"]')?.closest('[data-model]')?.dataset?.model
+               || 'nanopro';
+  const model  = tabName === 'nano'    ? 'gemini-3.1-flash-image-preview'
+               : tabName === 'nano2'   ? 'gemini-3.1-flash-image-preview'
+               :                        'gemini-3-pro-image-preview'; // nanopro
+  const quality = document.getElementById('gbar-quality')?.value || '2K';
+  const nanoKey = tabName === 'nano' ? 'nano' : '';
+  const base = calcCreditCost(model, { quality, nanoKey });
+  updateCostPreview('nano-cost-val', applyProfitMargin(base));
 }
 
 function initCostPreviews(){
@@ -4350,10 +4374,12 @@ function initCostPreviews(){
   document.getElementById('suno-model')?.addEventListener('change', refreshSunoCost);
   // KIE Upscale model listener
   document.getElementById('kie-upscale-model')?.addEventListener('change', refreshKieUpscaleCost);
+  // Nano quality listener (quality pill buttons call setGbarChoice which triggers refreshNanoCost)
   // Initial values
   refreshHailuoCost(); refreshSoraCost(); refreshSeedanceCost(); refreshWanCost();
   refreshKlingCost('text'); refreshKlingCost('image'); refreshKlingCost('motion');
-  refreshTransitionCost(); refreshSunoCost(); refreshKieUpscaleCost();
+  refreshTransitionCost(); refreshSunoCost(); refreshKieUpscaleCost(); refreshNanoCost();
+  refreshFlux2Cost();
 }
 
 // Run after DOM ready
@@ -5272,13 +5298,13 @@ function updateVeo3UI(){
   const dz2 = document.getElementById('dz-g-veo3-2');
   if(dz2) dz2.style.outline = (gentype === 'FIRST_AND_LAST_FRAMES_2_VIDEO') ? '2px dashed var(--orange,#f90)' : '';
   // Cost estimate
-  if(costEl) costEl.textContent = model === 'veo3' ? '100' : '50';
+  if(costEl) costEl.textContent = applyProfitMargin(model === 'veo3' ? 100 : 50);
 }
 
 async function runKieVeo3(){
   if(!checkPlanAccess('google-video')) return;
   const model = document.getElementById('g-veo3-model')?.value || 'veo3_fast';
-  const cost = model === 'veo3' ? 100 : 50;
+  const cost = applyProfitMargin(model === 'veo3' ? 100 : 50);
   if(!AUTH.checkCredits(cost)) return;
   const btn = document.getElementById('g-veo3-btn');
   try{
@@ -5791,7 +5817,7 @@ async function runKling(mode){
   const _klSound  = isMotion ? false : (document.getElementById(`${prefix}-sound`)?.value || 'true') === 'true';
   const _klResRaw = isMotion ? (document.getElementById('kling-motion-res')?.value || '2K') : '1K';
   const _klRes    = mapUiResolution(_klResRaw, { '1K':'720p', '2K':'1080p', '4K':'1080p' }, '720p');
-  const _klCost   = calcCreditCost(_klModel, { duration: _klDur, mode: _klGMode, audio: _klSound, resolution: _klRes });
+  const _klCost   = applyProfitMargin(calcCreditCost(_klModel, { duration: _klDur, mode: _klGMode, audio: _klSound, resolution: _klRes }));
   if(!checkPlanAccess(_klModel, _klGMode)) return;
   if(!AUTH.checkCredits(_klCost)) return;
   const btn = document.getElementById(`${prefix}-btn`);

@@ -528,19 +528,26 @@ app.post('/api/upload', requireSignedIn, uploadLimiter, upload.single('image'), 
 
 app.post('/api/store-image', requireSignedIn, async (req, res) => {
   try {
-    const { dataUrl = '', prefix = 'img' } = req.body || {};
+    const { dataUrl = '' } = req.body || {};
     if (!dataUrl || !String(dataUrl).startsWith('data:image/')) {
       return res.status(400).json({ error: 'Invalid image data' });
     }
     const match = String(dataUrl).match(/^data:(image\/[a-zA-Z0-9+.-]+);base64,(.*)$/);
     if (!match) return res.status(400).json({ error: 'Invalid data URL' });
     const mime = match[1];
+    // Reject SVG to prevent stored XSS
+    if (mime === 'image/svg+xml') return res.status(400).json({ error: 'SVG not allowed' });
     const base64 = match[2];
-    const ext = mime.split('/')[1].replace('jpeg', 'jpg');
+    const ext = mime.split('/')[1].replace('jpeg', 'jpg').replace(/[^a-z0-9]/gi, '');
     const dir = path.join(UPLOADS_DIR, 'gallery');
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    const name = `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2,8)}.${ext}`;
+    // prefix is NOT taken from user input — use fixed safe prefix
+    const name = `img-${Date.now()}-${Math.random().toString(36).slice(2,8)}.${ext}`;
     const filePath = path.join(dir, name);
+    // Verify path stays within gallery dir (path traversal protection)
+    if (!path.resolve(filePath).startsWith(path.resolve(dir) + path.sep)) {
+      return res.status(400).json({ error: 'Invalid file path' });
+    }
     fs.writeFileSync(filePath, Buffer.from(base64, 'base64'));
     const savedUrl = `/uploads/gallery/${name}`;
     if (req.currentUser?.id) attachActivityImage(req.currentUser.id, savedUrl);
@@ -556,13 +563,26 @@ app.post('/api/log-generation', requireSignedIn, (req, res) => {
   try {
     const { url, isVideo, model, prompt } = req.body || {};
     if (!url || typeof url !== 'string') return res.status(400).json({ error: 'url required' });
+    // Look up credits from the most recent activity log entry for this user+model (within 10 min)
+    let credits = 0;
+    try {
+      const actLog = JSON.parse(fs.readFileSync(ACTIVITY_FILE, 'utf8'));
+      const cutoff = Date.now() - 10 * 60 * 1000;
+      const match = actLog.find(e =>
+        e.userId === String(req.currentUser.id) &&
+        e.model === String(model || '') &&
+        new Date(e.createdAt).getTime() > cutoff
+      );
+      if (match) credits = match.credits || 0;
+    } catch (_) {}
     logGeneration(
       req.currentUser.id,
       req.currentUser.email,
       url,
       !!isVideo,
       String(model || '').slice(0, 100),
-      String(prompt || '').slice(0, 200)
+      String(prompt || '').slice(0, 200),
+      credits
     );
     res.json({ ok: true });
   } catch (e) {
@@ -872,6 +892,20 @@ app.get('/api/kie-veo/get-1080p', async (req, res) => {
 });
 
 // === RUNWAY VIDEO API ===
+// Validate user-supplied URLs to prevent SSRF — only allow known CDN/storage domains
+function isSafeExternalUrl(url) {
+  if (!url || typeof url !== 'string') return false;
+  try {
+    const u = new URL(url);
+    if (u.protocol !== 'https:') return false;
+    // Block private/internal IP ranges
+    const h = u.hostname.toLowerCase();
+    if (/^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|169\.254\.|0\.0\.0\.|\[::1\])/.test(h)) return false;
+    if (h.endsWith('.local') || h.endsWith('.internal') || h.endsWith('.localhost')) return false;
+    return true;
+  } catch { return false; }
+}
+
 app.post('/api/runway-gen/generate', async (req, res) => {
   try {
     const { prompt, imageUrl, duration, quality, aspectRatio, waterMark = '' } = req.body || {};
@@ -882,7 +916,8 @@ app.post('/api/runway-gen/generate', async (req, res) => {
     if (quality === '1080p' && Number(duration) === 10) return res.status(400).json({ error: '1080p is only available for 5-second videos' });
     if (!await deductCreditsForGeneration(req, res, 'runway', { duration: Number(duration), quality })) return;
     const body = { prompt: String(prompt).trim(), duration: Number(duration), quality, waterMark: String(waterMark || '') };
-    if (imageUrl && typeof imageUrl === 'string' && imageUrl.startsWith('https://')) body.imageUrl = imageUrl;
+    if (imageUrl && isSafeExternalUrl(imageUrl)) body.imageUrl = imageUrl;
+    else if (imageUrl) return res.status(400).json({ error: 'Invalid or unsafe imageUrl' });
     if (!imageUrl && aspectRatio) body.aspectRatio = aspectRatio;
     const data = await kieFetch('/runway/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     res.json({ taskId: data?.data?.taskId || '', ...(req.creditInfo || {}) });
@@ -929,7 +964,7 @@ app.post('/api/runway-gen/aleph', async (req, res) => {
   try {
     const { prompt, videoUrl, aspectRatio, waterMark = '' } = req.body || {};
     if (!String(prompt || '').trim()) return res.status(400).json({ error: 'prompt is required' });
-    if (!videoUrl || typeof videoUrl !== 'string' || !videoUrl.startsWith('https://')) return res.status(400).json({ error: 'valid https videoUrl is required' });
+    if (!videoUrl || !isSafeExternalUrl(videoUrl)) return res.status(400).json({ error: 'valid https videoUrl is required' });
     if (!await deductCreditsForGeneration(req, res, 'aleph', {})) return;
     const body = { prompt: String(prompt).trim(), videoUrl: String(videoUrl), waterMark: String(waterMark || '') };
     if (aspectRatio) body.aspectRatio = aspectRatio;
@@ -2879,7 +2914,7 @@ function auditLog(action, detail, req) {
 }
 
 // ─── FILE UPLOAD VALIDATION ─────────────────────────────────────────────────
-const ALLOWED_IMAGE_MIMES = new Set(['image/jpeg','image/png','image/gif','image/webp','image/avif','image/svg+xml']);
+const ALLOWED_IMAGE_MIMES = new Set(['image/jpeg','image/png','image/gif','image/webp','image/avif']); // SVG removed — XSS risk
 const ALLOWED_MEDIA_MIMES = new Set([
   ...ALLOWED_IMAGE_MIMES,
   'video/mp4','video/webm','video/quicktime',
@@ -2991,6 +3026,7 @@ function serverCalcCreditCost(model, params = {}) {
   if (m.includes('seedream'))                               return 7;
   if (m.includes('ideogram'))                               return 7;
   if (m.includes('flux-kontext') || m.includes('fluxkontext')) return 7;
+  if (m.includes('flex'))                                    return 24;  // flux-2/flex real: 24 KIE credits
   if (m.includes('flux-2') || m.includes('flux2'))          return 7;
   if (m.includes('zimage') || m.includes('z-image') || m === 'z-image') return 1;
   if (m.includes('recraft'))                                return 1;
@@ -3312,7 +3348,7 @@ function loadGenerations() {
 function saveGenerations(arr) {
   fs.writeFileSync(GENERATIONS_FILE, JSON.stringify(arr));
 }
-function logGeneration(userId, email, url, isVideo, model, prompt) {
+function logGeneration(userId, email, url, isVideo, model, prompt, credits = 0) {
   try {
     const log = loadGenerations();
     log.unshift({
@@ -3323,6 +3359,7 @@ function logGeneration(userId, email, url, isVideo, model, prompt) {
       isVideo: !!isVideo,
       model: String(model || ''),
       prompt: String(prompt || '').slice(0, 200),
+      credits: Number(credits) || 0,
       createdAt: new Date().toISOString()
     });
     if (log.length > 5000) log.length = 5000;
@@ -3856,7 +3893,7 @@ app.get('/api/admin/session', requireAdmin, (req, res) => {
 });
 
 // POST /api/admin/logout
-app.post('/api/admin/logout', (req, res) => {
+app.post('/api/admin/logout', requireAdmin, (req, res) => {
   const sessionId = (req.cookies && req.cookies.admin_sid) || '';
   if (sessionId && adminSessions.has(sessionId)) {
     adminSessions.delete(sessionId);
@@ -4191,7 +4228,9 @@ app.post('/api/auth/google', loginLimiter, async (req, res) => {
     const payload = await verifyResp.json();
     if (!verifyResp.ok || payload.error_description)
       return res.status(401).json({ error: 'Invalid Google token: ' + (payload.error_description || '') });
-    if (GOOGLE_CLIENT_ID && payload.aud !== GOOGLE_CLIENT_ID)
+    // Always enforce audience check — reject tokens from other Google apps
+    if (!GOOGLE_CLIENT_ID) return res.status(500).json({ error: 'Google auth not configured' });
+    if (payload.aud !== GOOGLE_CLIENT_ID)
       return res.status(401).json({ error: 'Token audience mismatch' });
 
     const email = (payload.email || '').toLowerCase().trim();
@@ -4300,23 +4339,27 @@ app.post('/api/vault/upload', requireSignedIn, uploadLimiter, vaultUpload.single
   } catch(e){ res.status(500).json({error:'Upload failed'}); }
 });
 
-app.get('/api/vault/file/:name', requireSignedIn, (req, res) => {
+app.get('/api/vault/file/:name', requireAdmin, (req, res) => {
   const name = safeVaultName(req.params.name);
   if (!name) return res.status(400).end();
   const file = path.resolve(VAULT_DIR, name);
   // Prevent path traversal
   if (!file.startsWith(path.resolve(VAULT_DIR) + path.sep)) return res.status(400).end();
+  // Only allow media files — no JSON data files
+  const ext = path.extname(file).toLowerCase();
+  const allowedExts = ['.jpg','.jpeg','.png','.gif','.webp','.avif','.mp4','.mov','.webm'];
+  if (!allowedExts.includes(ext)) return res.status(403).end();
   if(!fs.existsSync(file)) return res.status(404).end();
   res.sendFile(file);
 });
 
-app.get('/api/vault/list', requireSignedIn, (req, res) => {
+app.get('/api/vault/list', requireAdmin, (req, res) => {
   try {
     const files = fs.readdirSync(VAULT_DIR)
       .filter(f => {
-        // Exclude JSON data files from the vault file listing
-        const skip = ['users.json','orders.json','admin_sessions.json','theme.json','fonts.json','usage.json'];
-        return !skip.includes(f);
+        // Only list uploaded media files (not JSON data files)
+        const ext = path.extname(f).toLowerCase();
+        return ['.jpg','.jpeg','.png','.gif','.webp','.avif','.mp4','.mov','.webm'].includes(ext);
       })
       .map(f => ({
         name: f,
@@ -4327,7 +4370,7 @@ app.get('/api/vault/list', requireSignedIn, (req, res) => {
   } catch(e){ res.json([]); }
 });
 
-app.delete('/api/vault/file/:name', requireSignedIn, (req, res) => {
+app.delete('/api/vault/file/:name', requireAdmin, (req, res) => {
   try {
     const name = safeVaultName(req.params.name);
     if (!name) return res.status(400).json({ error: 'Invalid file name' });
@@ -4590,7 +4633,7 @@ app.post('/api/admin/assets/upload', requireAdmin, uploadLimiter, assetsMemUploa
 
 // === MEDIA MANAGER (Supabase Storage) ===
 const MEDIA_BUCKET = 'media';
-const MEDIA_ALLOWED = new Set(['image/jpeg','image/png','image/gif','image/webp','image/avif','image/svg+xml']);
+const MEDIA_ALLOWED = new Set(['image/jpeg','image/png','image/gif','image/webp','image/avif']); // SVG removed — XSS risk
 const mediaMemUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10*1024*1024 } });
 
 app.get('/api/admin/media', requireAdmin, async (req, res) => {

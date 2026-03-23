@@ -10,6 +10,125 @@
 <link rel="stylesheet" href="/api/site-config.css" id="site-theme-override">
 <link rel="stylesheet" href="/css/shared.css">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+/* ═══════════════════════════════════════════════════════
+   NANO BANANA — Full Viewport Sticky Layout
+   الإعدادات والمحرر يبقيان ثابتَين عند السكرول
+   ═══════════════════════════════════════════════════════ */
+#page-nano {
+  padding: 0 !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  height: calc(100vh - 56px);
+  overflow: hidden;
+}
+#page-nano .qw2-layout {
+  height: 100%;
+  min-height: 0 !important;
+  overflow: hidden;
+}
+#page-nano .qw2-main {
+  height: 100%;
+  overflow: hidden;
+}
+#page-nano .cine-shell {
+  height: 100%;
+  min-height: 0 !important;
+}
+#page-nano .cine-canvas-wrap {
+  min-height: 0 !important;
+}
+/* منطقة النتائج تتمرر بمفردها */
+#nano-all-results {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 229, 255, 0.18) transparent;
+}
+#nano-all-results::-webkit-scrollbar { width: 4px; }
+#nano-all-results::-webkit-scrollbar-thumb {
+  background: rgba(0, 229, 255, 0.22);
+  border-radius: 2px;
+}
+/* الشريط الجانبي للإعدادات يملأ الارتفاع بالكامل */
+#nano-settings-sidebar {
+  height: 100% !important;
+  max-height: 100% !important;
+}
+
+/* ═══════════════════════════════════════════════════════
+   NANO BANANA — Attractive Image Grid
+   شبكة صور منظمة وجذابة
+   ═══════════════════════════════════════════════════════ */
+#nano-all-results .gs-result {
+  min-height: unset !important;
+}
+#nano-all-results .result-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 14px;
+  padding: 18px;
+  align-content: start;
+  overflow: visible !important;
+  flex: unset !important;
+}
+#nano-all-results .result-empty {
+  grid-column: 1 / -1;
+  min-height: 280px;
+}
+#nano-all-results .result-item {
+  border-radius: 12px !important;
+  overflow: hidden !important;
+  position: relative !important;
+  background: #0d1f30 !important;
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(0, 229, 255, 0.07) !important;
+  transition:
+    transform 0.24s cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 0.24s cubic-bezier(0.2, 0.8, 0.2, 1) !important;
+  animation: nano-card-in 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@keyframes nano-card-in {
+  from { opacity: 0; transform: scale(0.92) translateY(16px); }
+  to   { opacity: 1; transform: scale(1)    translateY(0); }
+}
+#nano-all-results .result-item:hover {
+  transform: translateY(-5px) !important;
+  box-shadow:
+    0 16px 44px rgba(0, 0, 0, 0.65),
+    0 0 0 1px rgba(0, 229, 255, 0.28) !important;
+}
+#nano-all-results .result-item img {
+  width: 100%;
+  display: block;
+  transition: transform 0.36s cubic-bezier(0.2, 0.8, 0.2, 1) !important;
+}
+#nano-all-results .result-item:hover img {
+  transform: scale(1.05) !important;
+}
+/* زر الحذف يظهر عند التحويم فقط */
+#nano-all-results .result-item > button {
+  opacity: 0;
+  transition: opacity 0.18s !important;
+}
+#nano-all-results .result-item:hover > button {
+  opacity: 1 !important;
+}
+
+/* Mobile adjustments */
+@media (max-width: 480px) {
+  #page-nano { height: calc(100vh - 52px); }
+}
+@media (max-width: 900px) {
+  #nano-all-results .result-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 10px;
+    padding: 12px;
+  }
+}
+</style>
 </head>
 <body>
 
@@ -250,7 +369,7 @@
                 </div>
               </div>
               <div class="cine-spacer"></div>
-              <div class="cost-preview" id="nano-cost-preview"><span class="cost-icon">💳</span> <span class="cost-val" id="nano-cost-val">4</span> كريدت</div>
+              <div class="cost-preview" id="nano-cost-preview"><span class="cost-icon">💳</span> <span class="cost-val" id="nano-cost-val">26</span> كريدت</div>
               <button class="btn-generate gen-action" onclick="runGoogleFromBar()">Generate</button>
             </div>
             <div class="cine-status" id="gbar-status"></div>
