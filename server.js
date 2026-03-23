@@ -2958,6 +2958,7 @@ async function updateProfile(userId, changes) {
       .eq('id', userId)
       .select()
       .single();
+    if (error) console.error('[updateProfile] Supabase error:', error.message, '| userId:', userId, '| fields:', Object.keys(changes).join(','));
     if (!error && data) return data;
   }
   // Map Supabase column names to vault field names
@@ -3833,12 +3834,8 @@ app.post('/api/admin/users/:id/credits', requireAdmin, async (req, res) => {
     const profile = await getProfile(req.params.id);
     if (!profile) return res.status(404).json({ error: 'User not found' });
     const newCredits = (profile.credits || 0) + n;
-    const now = new Date().toISOString();
-    const updated = await updateProfile(req.params.id, {
-      credits: newCredits,
-      subscription_start_date: now,
-      subscription_end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
-    });
+    const updated = await updateProfile(req.params.id, { credits: newCredits });
+    if (!updated) console.error('[credits] updateProfile returned null for userId:', req.params.id);
     auditLog('admin.user.credits', 'userId="' + req.params.id + '" amount=' + n, req);
     try { logCreditOp(profile.email, 'add', n, 'إضافة يدوية من الداشبورد'); } catch {}
     res.json({ ok: true, credits: updated?.credits ?? newCredits });
@@ -3926,11 +3923,7 @@ app.post('/api/admin/orders/:id/approve', requireAdmin, async (req, res) => {
   // Credit top-up approval
   const newCredits = (profile.credits || 0) + order.credits;
   const now = new Date().toISOString();
-  await updateProfile(order.userId, {
-    credits: newCredits,
-    subscription_start_date: now,
-    subscription_end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
-  });
+  await updateProfile(order.userId, { credits: newCredits });
   order.status = 'approved';
   order.approvedAt = now;
   await updateOrder(order);
