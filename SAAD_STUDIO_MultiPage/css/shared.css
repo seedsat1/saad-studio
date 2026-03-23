@@ -1615,6 +1615,245 @@ img[class],[class] video{backface-visibility:hidden;-webkit-backface-visibility:
 .legal-tab.active{background:rgba(0,229,255,0.08);border-color:rgba(0,229,255,0.3);color:var(--cyan);}
 .legal-section{display:none;}
 .legal-section.active{display:block;}
+
+/* ═══════════════════════════════════════════════════════════════
+   UNIVERSAL QW2 STICKY VIEWPORT LAYOUT
+   — يجعل كل صفحات qw2-layout ثابتة (لا يسكرول الكومبوزر والسايدبار)
+   — فقط منطقة النتائج تتمرر بمفردها
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Group 1 — single qw2-layout pages */
+#page-flux2, #page-fluxkontext, #page-zimage, #page-seedream45,
+#page-grok, #page-hailuo, #page-ideogram-reframe, #page-qwen2,
+#page-infinitalk, #page-seedance15, #page-sora2, #page-wan26 {
+  padding: 0 !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  height: calc(100vh - 56px);
+  overflow: hidden;
+}
+
+/* Group 2 — google: tab-strip at top, then gs-content fills rest */
+#page-google {
+  padding: 0 !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  height: calc(100vh - 56px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+#page-google > .cine-tab-strip { flex-shrink: 0; }
+#page-google > .gs-content { flex: 1; min-height: 0; overflow: hidden; }
+#page-google > .gs-content.active { display: flex !important; flex-direction: column; }
+
+/* Group 3 — kling: inline-note + kie-suite-panel */
+#page-kling {
+  padding: 0 !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  height: calc(100vh - 56px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+#page-kling > .gs-inline-note { flex-shrink: 0; }
+#page-kling .kie-suite-panel.active {
+  flex: 1;
+  min-height: 0;
+  display: flex !important;
+  flex-direction: column;
+  overflow: hidden;
+}
+#page-kling .kie-suite-panel > .cine-tab-strip { flex-shrink: 0; }
+#page-kling .kie-suite-panel > .gs-content {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+#page-kling .kie-suite-panel > .gs-content.active {
+  display: flex !important;
+  flex-direction: column;
+}
+
+/* Make page containers flex columns so tab-strip + qw2-layout stack correctly */
+#page-flux2, #page-fluxkontext, #page-zimage, #page-seedream45,
+#page-grok, #page-hailuo, #page-ideogram-reframe, #page-qwen2,
+#page-infinitalk, #page-seedance15, #page-sora2, #page-wan26 {
+  display: flex !important;
+  flex-direction: column !important;
+}
+/* Tab strips stay at their natural height */
+#page-flux2 > .cine-tab-strip, #page-fluxkontext > .cine-tab-strip,
+#page-grok > .cine-tab-strip, #page-hailuo > .cine-tab-strip,
+#page-seedream45 > .cine-tab-strip, #page-qwen2 > .cine-tab-strip,
+#page-sora2 > .cine-tab-strip, #page-wan26 > .cine-tab-strip {
+  flex-shrink: 0;
+}
+/* qw2-layout fills remaining height (works for both tabbed and non-tabbed pages) */
+#page-flux2 > .qw2-layout, #page-fluxkontext > .qw2-layout,
+#page-zimage > .qw2-layout, #page-seedream45 > .qw2-layout,
+#page-grok > .qw2-layout, #page-hailuo > .qw2-layout,
+#page-ideogram-reframe > .qw2-layout, #page-qwen2 > .qw2-layout,
+#page-infinitalk > .qw2-layout, #page-seedance15 > .qw2-layout,
+#page-sora2 > .qw2-layout, #page-wan26 > .qw2-layout,
+#page-google .gs-content > .qw2-layout,
+#page-kling .gs-content > .qw2-layout {
+  flex: 1 !important;
+  height: auto !important;
+  min-height: 0 !important;
+  overflow: hidden;
+}
+/* qw2-main fills qw2-layout height */
+#page-flux2 .qw2-main, #page-fluxkontext .qw2-main,
+#page-zimage .qw2-main, #page-seedream45 .qw2-main,
+#page-grok .qw2-main, #page-hailuo .qw2-main,
+#page-ideogram-reframe .qw2-main, #page-qwen2 .qw2-main,
+#page-infinitalk .qw2-main, #page-seedance15 .qw2-main,
+#page-sora2 .qw2-main, #page-wan26 .qw2-main,
+#page-google .gs-content .qw2-main,
+#page-kling .gs-content .qw2-main {
+  height: 100%;
+  min-height: 0 !important;
+  overflow: hidden;
+}
+/* cine-shell fills qw2-main */
+#page-flux2 .cine-shell, #page-fluxkontext .cine-shell,
+#page-zimage .cine-shell, #page-seedream45 .cine-shell,
+#page-grok .cine-shell, #page-hailuo .cine-shell,
+#page-ideogram-reframe .cine-shell, #page-qwen2 .cine-shell,
+#page-infinitalk .cine-shell, #page-seedance15 .cine-shell,
+#page-sora2 .cine-shell, #page-wan26 .cine-shell,
+#page-google .gs-content .cine-shell,
+#page-kling .gs-content .cine-shell {
+  height: 100%;
+  min-height: 0 !important;
+}
+/* cine-canvas-wrap can grow (flex:1 already set in base styles) */
+#page-flux2 .cine-canvas-wrap, #page-fluxkontext .cine-canvas-wrap,
+#page-zimage .cine-canvas-wrap, #page-seedream45 .cine-canvas-wrap,
+#page-grok .cine-canvas-wrap, #page-hailuo .cine-canvas-wrap,
+#page-ideogram-reframe .cine-canvas-wrap, #page-qwen2 .cine-canvas-wrap,
+#page-infinitalk .cine-canvas-wrap, #page-seedance15 .cine-canvas-wrap,
+#page-sora2 .cine-canvas-wrap, #page-wan26 .cine-canvas-wrap,
+#page-google .gs-content .cine-canvas-wrap,
+#page-kling .gs-content .cine-canvas-wrap {
+  min-height: 0 !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   UNIVERSAL ATTRACTIVE RESULT GRID
+   — شبكة صور/فيديو منظمة وجذابة لكل الصفحات
+   ═══════════════════════════════════════════════════════════════ */
+.result-item {
+  border-radius: 12px !important;
+  overflow: hidden !important;
+  position: relative !important;
+  background: #0d1f30 !important;
+  box-shadow: 0 4px 24px rgba(0,0,0,.55), 0 0 0 1px rgba(0,229,255,.07) !important;
+  transition: transform .24s cubic-bezier(.2,.8,.2,1), box-shadow .24s cubic-bezier(.2,.8,.2,1) !important;
+  animation: result-card-in 0.42s cubic-bezier(.2,.8,.2,1) both;
+}
+@keyframes result-card-in {
+  from { opacity:0; transform:scale(0.92) translateY(14px); }
+  to   { opacity:1; transform:scale(1)    translateY(0); }
+}
+.result-item:hover {
+  transform: translateY(-5px) !important;
+  box-shadow: 0 16px 44px rgba(0,0,0,.65), 0 0 0 1px rgba(0,229,255,.28) !important;
+}
+.result-item img {
+  width: 100%;
+  display: block;
+  transition: transform 0.36s cubic-bezier(.2,.8,.2,1) !important;
+}
+.result-item:hover img { transform: scale(1.05) !important; }
+.result-item > button { opacity: 0; transition: opacity .18s !important; }
+.result-item:hover > button { opacity: 1 !important; }
+
+/* Wider grid columns for a more polished look */
+.cine-canvas-wrap .result-grid {
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)) !important;
+  gap: 14px !important;
+  padding: 18px !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   UNIVERSAL SKELETON LOADING CARDS
+   — بطاقات انتظار مشتركة لكل الصفحات
+   ═══════════════════════════════════════════════════════════════ */
+.nano-skeleton {
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+  background: #0d1f30;
+  box-shadow: 0 4px 24px rgba(0,0,0,.55), 0 0 0 1px rgba(0,229,255,.07);
+  animation: result-card-in 0.35s cubic-bezier(.2,.8,.2,1) both;
+}
+.nano-skeleton-inner {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: linear-gradient(110deg,
+    rgba(0,229,255,.03) 0%, rgba(0,229,255,.03) 35%,
+    rgba(0,229,255,.10) 50%, rgba(0,229,255,.03) 65%,
+    rgba(0,229,255,.03) 100%);
+  background-size: 200% 100%;
+  animation: nano-shimmer 1.6s ease-in-out infinite;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 10px;
+}
+@keyframes nano-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+.nano-skeleton-icon {
+  font-size: 28px; opacity: .22;
+  animation: nano-pulse 1.6s ease-in-out infinite;
+}
+.nano-skeleton-label {
+  font-size: 10px; font-family: var(--fm);
+  letter-spacing: .12em; color: rgba(0,229,255,.28);
+  animation: nano-pulse 1.6s ease-in-out infinite;
+}
+@keyframes nano-pulse { 0%,100%{opacity:.4;} 50%{opacity:.9;} }
+.nano-skeleton-inner[data-ratio="9:16"]  { aspect-ratio: 9/16; }
+.nano-skeleton-inner[data-ratio="1:1"]   { aspect-ratio: 1/1; }
+.nano-skeleton-inner[data-ratio="4:3"]   { aspect-ratio: 4/3; }
+.nano-skeleton-inner[data-ratio="3:4"]   { aspect-ratio: 3/4; }
+.nano-skeleton-inner[data-ratio="2:3"]   { aspect-ratio: 2/3; }
+.nano-skeleton-inner[data-ratio="3:2"]   { aspect-ratio: 3/2; }
+.nano-skeleton-inner[data-ratio="21:9"]  { aspect-ratio: 21/9; }
+.nano-skeleton-inner[data-ratio="16:9"]  { aspect-ratio: 16/9; }
+
+/* ═══════════════════════════════════════════════════════════════
+   RESPONSIVE — Mobile, Tablet, Laptop
+   ═══════════════════════════════════════════════════════════════ */
+@media (max-width: 900px) {
+  #page-flux2, #page-fluxkontext, #page-zimage, #page-seedream45,
+  #page-grok, #page-hailuo, #page-ideogram-reframe, #page-qwen2,
+  #page-infinitalk, #page-seedance15, #page-sora2, #page-wan26,
+  #page-google, #page-kling {
+    height: calc(100vh - 56px);
+  }
+  .cine-canvas-wrap .result-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)) !important;
+    gap: 10px !important;
+    padding: 12px !important;
+  }
+}
+@media (max-width: 480px) {
+  #page-flux2, #page-fluxkontext, #page-zimage, #page-seedream45,
+  #page-grok, #page-hailuo, #page-ideogram-reframe, #page-qwen2,
+  #page-infinitalk, #page-seedance15, #page-sora2, #page-wan26,
+  #page-google, #page-kling {
+    height: calc(100vh - 52px);
+  }
+  .cine-canvas-wrap .result-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+    padding: 10px !important;
+  }
+}
 .legal-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;}
 .legal-card{background:linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.012));border:1px solid var(--b);border-radius:var(--r);padding:22px 20px;position:relative;overflow:hidden;transition:border-color 0.3s,transform 0.2s;}
 .legal-card:hover{border-color:rgba(62,201,255,0.35);transform:translateY(-2px);}
