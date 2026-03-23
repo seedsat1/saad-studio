@@ -9,6 +9,36 @@ const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
 const axios = require('axios');
 const { createClient: createSupabaseClient } = require('@supabase/supabase-js');
+const nodemailer = require('nodemailer');
+
+// ── Email (Namecheap Private Email / SMTP) ─────────────────────────────────
+let emailTransporter = null;
+function initEmail() {
+  const host = process.env.EMAIL_HOST || 'mail.privateemail.com';
+  const user = process.env.EMAIL_USER || '';
+  const pass = process.env.EMAIL_PASSWORD || '';
+  if (!user || !pass) { console.warn('[Email] EMAIL_USER or EMAIL_PASSWORD not set — emails disabled'); return; }
+  emailTransporter = nodemailer.createTransport({
+    host, port: 587, secure: false,
+    auth: { user, pass },
+    tls: { rejectUnauthorized: true }
+  });
+  emailTransporter.verify(err => {
+    if (err) { console.warn('[Email] SMTP verify failed:', err.message); emailTransporter = null; }
+    else console.log('[Email] SMTP ready —', user);
+  });
+}
+
+async function sendEmail({ to, subject, html, text }) {
+  if (!emailTransporter) return;
+  try {
+    await emailTransporter.sendMail({
+      from: `"SAAD STUDIO" <${process.env.EMAIL_USER}>`,
+      to, subject, html, text
+    });
+  } catch (e) { console.error('[Email] send error:', e.message); }
+}
+// ────────────────────────────────────────────────────────────────────────────
 
 function loadEnvFile() {
   const envPath = path.join(__dirname, '.env');
@@ -29,6 +59,7 @@ function loadEnvFile() {
 }
 
 loadEnvFile();
+initEmail();
 
 // ─── REQUIRED ENV VARS (crash fast if missing in production) ──────────────────
 const IS_PROD = process.env.NODE_ENV === 'production';
@@ -3359,6 +3390,22 @@ app.post('/api/auth/register', loginLimiter, async (req, res) => {
     });
 
     auditLog('user.register', 'email="' + safeUser.email + '" plan="starter" credits=100', req);
+
+    // Welcome email
+    sendEmail({
+      to: safeUser.email,
+      subject: 'مرحباً بك في SAAD STUDIO 🎨',
+      html: `<div dir="rtl" style="font-family:Arial,sans-serif;max-width:600px;margin:auto;padding:24px;background:#0f0f0f;color:#fff;border-radius:12px">
+        <h2 style="color:#a78bfa">مرحباً بك في SAAD STUDIO!</h2>
+        <p>تم إنشاء حسابك بنجاح على البريد: <strong>${safeUser.email}</strong></p>
+        <p>رصيدك الحالي: <strong style="color:#34d399">${safeUser.credits} كردت</strong></p>
+        <p>يمكنك الآن البدء في استخدام أدوات الذكاء الاصطناعي لإنشاء الصور والفيديوهات.</p>
+        <a href="https://saadstudio.app" style="display:inline-block;margin-top:16px;padding:12px 24px;background:#7c3aed;color:#fff;text-decoration:none;border-radius:8px">ابدأ الآن</a>
+        <hr style="margin:24px 0;border-color:#333">
+        <p style="color:#888;font-size:12px">إذا لم تقم بإنشاء هذا الحساب، يرجى تجاهل هذا البريد.</p>
+      </div>`
+    });
+
     res.json({ ok: true, user: safeUser });
   } catch (e) { console.error('[register]', e); res.status(500).json({ error: 'حدث خطأ داخلي' }); }
 });
@@ -3924,6 +3971,19 @@ app.post('/api/admin/orders/:id/approve', requireAdmin, async (req, res) => {
     order.approvedAt = now.toISOString();
     await updateOrder(order);
     auditLog('admin.order.approve', 'orderId="' + req.params.id + '" type=plan newPlan="' + order.newPlan + '"', req);
+
+    // Notify user
+    sendEmail({
+      to: order.email,
+      subject: '✅ تم تفعيل اشتراكك في SAAD STUDIO',
+      html: `<div dir="rtl" style="font-family:Arial,sans-serif;max-width:600px;margin:auto;padding:24px;background:#0f0f0f;color:#fff;border-radius:12px">
+        <h2 style="color:#34d399">تم تفعيل اشتراكك! ✅</h2>
+        <p>تهانينا! تم تفعيل خطة <strong style="color:#a78bfa">${order.newPlan}</strong> لحسابك.</p>
+        <p>رصيدك الجديد: <strong style="color:#34d399">${planCredits} كردت</strong></p>
+        <a href="https://saadstudio.app" style="display:inline-block;margin-top:16px;padding:12px 24px;background:#7c3aed;color:#fff;text-decoration:none;border-radius:8px">ابدأ الاستخدام</a>
+      </div>`
+    });
+
     return res.json({ ok: true, plan: order.newPlan, credits: planCredits });
   }
 
@@ -3935,6 +3995,19 @@ app.post('/api/admin/orders/:id/approve', requireAdmin, async (req, res) => {
   order.approvedAt = now;
   await updateOrder(order);
   auditLog('admin.order.approve', 'orderId="' + req.params.id + '" type=credits amount=' + order.credits, req);
+
+  // Notify user
+  sendEmail({
+    to: order.email,
+    subject: '✅ تم إضافة الكردت لحسابك',
+    html: `<div dir="rtl" style="font-family:Arial,sans-serif;max-width:600px;margin:auto;padding:24px;background:#0f0f0f;color:#fff;border-radius:12px">
+      <h2 style="color:#34d399">تم شحن رصيدك! ✅</h2>
+      <p>تمت إضافة <strong style="color:#a78bfa">${order.credits} كردت</strong> لحسابك.</p>
+      <p>رصيدك الحالي: <strong style="color:#34d399">${newCredits} كردت</strong></p>
+      <a href="https://saadstudio.app" style="display:inline-block;margin-top:16px;padding:12px 24px;background:#7c3aed;color:#fff;text-decoration:none;border-radius:8px">ابدأ الاستخدام</a>
+    </div>`
+  });
+
   res.json({ ok: true, credits: newCredits });
 });
 
@@ -3947,6 +4020,18 @@ app.post('/api/admin/orders/:id/reject', requireAdmin, async (req, res) => {
   order.rejectedAt = new Date().toISOString();
   await updateOrder(order);
   auditLog('admin.order.reject', 'orderId="' + req.params.id + '" userId="' + order.userId + '"', req);
+
+  // Notify user
+  sendEmail({
+    to: order.email,
+    subject: '❌ تعذّر معالجة طلبك في SAAD STUDIO',
+    html: `<div dir="rtl" style="font-family:Arial,sans-serif;max-width:600px;margin:auto;padding:24px;background:#0f0f0f;color:#fff;border-radius:12px">
+      <h2 style="color:#f87171">تعذّر معالجة الطلب</h2>
+      <p>نأسف، لم نتمكن من معالجة طلبك حالياً.</p>
+      <p>يرجى التواصل معنا على <a href="mailto:support@saadstudio.app" style="color:#a78bfa">support@saadstudio.app</a> لمزيد من المساعدة.</p>
+    </div>`
+  });
+
   res.json({ ok: true });
 });
 
