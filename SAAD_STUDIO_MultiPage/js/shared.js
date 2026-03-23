@@ -4372,15 +4372,11 @@ function refreshKieUpscaleCost(){
 
 function refreshNanoCost(){
   const tabName = document.querySelector('#page-nano .ns-tab.active')?.dataset?.tab
-               || document.querySelector('#gbar-model-btn [id="gbar-model-label"]')?.closest('[data-model]')?.dataset?.model
+               || googleBarState.model
                || 'nanopro';
-  const model  = tabName === 'nano'    ? 'gemini-3.1-flash-image-preview'
-               : tabName === 'nano2'   ? 'gemini-3.1-flash-image-preview'
-               :                        'gemini-3-pro-image-preview'; // nanopro
-  const quality = document.getElementById('gbar-quality')?.value || '2K';
-  const nanoKey = tabName === 'nano' ? 'nano' : '';
-  const base = calcCreditCost(model, { quality, nanoKey });
-  updateCostPreview('nano-cost-val', applyProfitMargin(base));
+  const count = Math.max(1, Math.min(4, Number(googleBarState.count || 1)));
+  const costPerImage = NANO_CREDIT_COSTS[tabName] || 5;
+  updateCostPreview('nano-cost-val', costPerImage * count);
 }
 
 function initCostPreviews(){
@@ -5068,11 +5064,16 @@ async function buildT2P(){
   return null;
 }
 
+// تكلفة الكريدت لكل نموذج Nano Banana
+const NANO_CREDIT_COSTS = { nano: 1, nano2: 10, nanopro: 5 };
+
 async function runGoogleImageTool(mode){
-  if(!AUTH.checkCredits(10)) return;
-  // Nano Banana Pro: مفتوح لكل الخطط — الكريدت هو الحد الوحيد
+  // نحسب التكلفة ديناميكياً حسب النموذج
   const cfg = GOOGLE_IMAGE_TOOL_CONFIG[mode];
   if(!cfg) return;
+  const count = Math.max(1, Math.min(4, Number(googleBarState.count || 1)));
+  const nanoCostPerImage = NANO_CREDIT_COSTS[mode] || 5;
+  if(!AUTH.checkCredits(nanoCostPerImage * count)) return;
   const btn = document.getElementById(cfg.buttonId);
   const original = btn ? btn.textContent : '';
   const gbarTriggered = !!S.gbarTrigger;
@@ -5087,7 +5088,6 @@ async function runGoogleImageTool(mode){
     const quality = document.getElementById(cfg.qualityId)?.value || googleBarState.quality || '1K';
     const file = S.files[cfg.fileKey] || null;
     const estimatedCost = Number(cfg.cost?.(quality) || 0);
-    const count = Math.max(1, Math.min(4, Number(googleBarState.count || 1)));
     if(!prompt) throw new Error('اكتب الوصف أولاً');
 
     if(btn){ btn.disabled = true; btn.innerHTML = '<div class="spinner"></div> جاري التوليد...'; }
@@ -5167,8 +5167,8 @@ async function runGoogleImageTool(mode){
     removeNanoSkeletons(cfg.resultId);
     if(totalImages === 0) throw new Error('لم يتم إرجاع صور');
     consumeGoogleBudget(estimatedCost * count);
-    AUTH.consumeCredits(10 * count);
-    toast(`تم التوليد عبر ${cfg.title} (${totalImages} صور) - التكلفة التقديرية ${formatUsd(estimatedCost * count)}`,'success');
+    AUTH.consumeCredits(nanoCostPerImage * count);
+    toast(`تم التوليد عبر ${cfg.title} (${totalImages} صور) - تكلفة: ${nanoCostPerImage * count} كريدت`,'success');
   } catch(e){
     removeNanoSkeletons(cfg.resultId);
     toast('خطأ: '+String(e.message||e).substring(0,140),'error');
