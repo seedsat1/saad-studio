@@ -9314,6 +9314,16 @@ async function dataUrlToFile(dataUrl, filename='image.png'){
   return new File([blob], filename, { type: blob.type || 'image/png' });
 }
 
+function calcNanoCreditCost(mode, quality) {
+  const q = String(quality || '2K').toUpperCase();
+  if (mode === 'nanopro') return q === '4K' ? 34 : 26;
+  if (mode === 'nano')    return 6;
+  // nano2
+  if (q === '1K') return 12;
+  if (q === '4K') return 26;
+  return 17; // 2K
+}
+
 const GOOGLE_IMAGE_TOOL_CONFIG = {
   nano: {
     title: 'Nano Banana',
@@ -10918,7 +10928,9 @@ async function buildT2P(){
 }
 
 async function runGoogleImageTool(mode){
-  if(!AUTH.checkCredits(10)) return;
+  const _q0 = googleBarState.quality || document.getElementById(GOOGLE_IMAGE_TOOL_CONFIG[mode]?.qualityId)?.value || '2K';
+  const _cost0 = calcNanoCreditCost(mode, _q0);
+  if(!AUTH.checkCredits(_cost0)) return;
   // Nano Banana Pro: مفتوح لكل الخطط — الكريدت هو الحد الوحيد
   const cfg = GOOGLE_IMAGE_TOOL_CONFIG[mode];
   if(!cfg) return;
@@ -10982,6 +10994,8 @@ async function runGoogleImageTool(mode){
 
     const genBody = {
       model: cfg.model,
+      nanoKey: mode,
+      quality,
       generationConfig:{ responseModalities:['TEXT','IMAGE'] },
       parts
     };
@@ -11022,7 +11036,7 @@ async function runGoogleImageTool(mode){
     }
     if(totalImages === 0) throw new Error('لم يتم إرجاع صور');
     consumeGoogleBudget(estimatedCost * count);
-    AUTH.consumeCredits(10 * count);
+    AUTH.consumeCredits(calcNanoCreditCost(mode, quality) * totalImages);
     toast(`تم التوليد عبر ${cfg.title} (${totalImages} صور) - التكلفة التقديرية ${formatUsd(estimatedCost * count)}`,'success');
   } catch(e){
     removeAllSkeletons(skeletons);

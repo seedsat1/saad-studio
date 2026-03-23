@@ -625,7 +625,7 @@ app.post('/api/generate', async (req, res) => {
     if (!GEMINI_API_KEY) {
       return res.status(500).json({ error: 'حدث خطأ في الإعداد' });
     }
-    const { model = 'gemini-2.5-flash', parts, generationConfig } = req.body || {};
+    const { model = 'gemini-2.5-flash', parts, generationConfig, nanoKey, quality } = req.body || {};
     if (!Array.isArray(parts) || parts.length === 0) {
       return res.status(400).json({ error: 'parts is required' });
     }
@@ -635,8 +635,7 @@ app.post('/api/generate', async (req, res) => {
         return res.status(400).json({ error: 'النص طويل جداً (الحد الأقصى 32000 حرف)' });
       }
     }
-    // Deduct credits (1 per Gemini call)
-    if (!(await deductCreditsForGeneration(req, res, 'gemini', {}))) return;
+    if (!(await deductCreditsForGeneration(req, res, model, { nanoKey, quality }))) return;
 
     const r = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(GEMINI_API_KEY)}`,
@@ -2995,6 +2994,16 @@ function serverCalcCreditCost(model, params = {}) {
   if (m.includes('infinitalk'))                             return 15;
   if (m.includes('grok-imagine') || m.includes('grok/imagine')) return 4;
   if (m.includes('grok'))                                   return 4;
+  // nano banana image models — costs include 40% profit margin (base KIE cost × 1.4)
+  if (m.includes('gemini-3.1-flash-image') || m.includes('gemini-3-pro-image')) {
+    const q  = String(params.quality || '2K').toUpperCase();
+    const nk = String(params.nanoKey || '').toLowerCase();
+    if (m.includes('gemini-3-pro-image')) return q === '4K' ? 34 : 26; // nanopro: 24×1.4=34 / 18×1.4=26
+    if (nk === 'nano') return 6;   // nano base: 4×1.4
+    if (q === '1K')    return 12;  // nano2 1K: 8×1.4
+    if (q === '4K')    return 26;  // nano2 4K: 18×1.4
+    return 17;                     // nano2 2K (default): 12×1.4
+  }
   if (m.includes('gpt-5') || m.includes('gpt5') || m.includes('gpt-4') || m.includes('gpt4') || m.includes('gemini')) return 1;
   if (m.includes('ai-avatar'))                              return 50;
   if (m === 'suno' || m.startsWith('suno/')) {
