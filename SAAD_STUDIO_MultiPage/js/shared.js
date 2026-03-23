@@ -5178,7 +5178,6 @@ async function runGoogleImageTool(mode){
     if(gbarTriggered && gbarStatus){
       gbarStatus.textContent = count > 1 ? `توليد ${count} صور...` : 'توليد...';
     }
-    clearResults(cfg.resultId);
     addNanoSkeletons(cfg.resultId, count, ratio);
 
       const qualityMap = {
