@@ -837,10 +837,11 @@ app.post('/api/kie-veo/extend', async (req, res) => {
     if (!checkPlanAccess(req, res, 'google-video')) return;
     const { taskId, prompt, model = 'fast', seeds } = req.body || {};
     if (!taskId || !String(prompt || '').trim()) return res.status(400).json({ error: 'taskId and prompt are required' });
+    if (!(await deductCreditsForGeneration(req, res, 'veo', {}))) return;
     const body = { taskId, prompt: String(prompt).trim(), model };
     if (seeds) body.seeds = Number(seeds);
     const data = await kieFetch('/veo/extend', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-    res.json({ taskId: data?.data?.taskId || data?.taskId || '' });
+    res.json({ taskId: data?.data?.taskId || data?.taskId || '', ...(req.creditInfo || {}) });
   } catch (e) {
     res.status(500).json({ error: "حدث خطأ في الخادم" });
   }
@@ -1947,7 +1948,10 @@ app.post('/api/kie/sora/create', async (req, res) => {
     const { model = 'sora-2-text-to-video', input = {} } = req.body || {};
     if (String(input?.prompt || '').length > 2000)
       return res.status(400).json({ error: 'النص طويل جداً' });
-    if (!(await deductCreditsForGeneration(req, res, String(model), { duration: Number(input?.duration||5) }))) return;
+    if (!(await deductCreditsForGeneration(req, res, String(model), {
+      duration: Number(input?.duration || 5),
+      n_frames: Number(input?.n_frames || input?.frames || 10)
+    }))) return;
     const soraPayload = { model, input };
     const data = await kieFetch('/jobs/createTask', {
       method: 'POST',
