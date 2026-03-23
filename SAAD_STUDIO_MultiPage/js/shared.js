@@ -3815,6 +3815,30 @@ function initFluxDropzone(){
   });
 }
 
+function addNanoSkeletons(containerId, count, ratio){
+  const c = document.getElementById(containerId);
+  if(!c) return;
+  const emp = c.querySelector('.result-empty');
+  if(emp) emp.remove();
+  for(let i = 0; i < count; i++){
+    const card = document.createElement('div');
+    card.className = 'nano-skeleton';
+    card.style.animationDelay = (i * 80) + 'ms';
+    const inner = document.createElement('div');
+    inner.className = 'nano-skeleton-inner';
+    if(ratio) inner.setAttribute('data-ratio', ratio);
+    inner.innerHTML = '<div class="nano-skeleton-icon">🍌</div><div class="nano-skeleton-label">جارٍ التوليد...</div>';
+    card.appendChild(inner);
+    c.appendChild(card);
+  }
+}
+
+function removeNanoSkeletons(containerId){
+  const c = document.getElementById(containerId);
+  if(!c) return;
+  c.querySelectorAll('.nano-skeleton').forEach(el => el.remove());
+}
+
 function runGoogleFromBar(){
   S.gbarTrigger = true;
   const cfg = GOOGLE_IMAGE_TOOL_CONFIG[googleBarState.model];
@@ -5051,6 +5075,7 @@ async function runGoogleImageTool(mode){
       gbarStatus.textContent = count > 1 ? `توليد ${count} صور...` : 'توليد...';
     }
     clearResults(cfg.resultId);
+    addNanoSkeletons(cfg.resultId, count, ratio);
 
       const qualityMap = {
         '1K':'around 1024px class output quality',
@@ -5115,11 +5140,13 @@ async function runGoogleImageTool(mode){
         totalImages++;
       }
     }
+    removeNanoSkeletons(cfg.resultId);
     if(totalImages === 0) throw new Error('لم يتم إرجاع صور');
     consumeGoogleBudget(estimatedCost * count);
     AUTH.consumeCredits(10 * count);
     toast(`تم التوليد عبر ${cfg.title} (${totalImages} صور) - التكلفة التقديرية ${formatUsd(estimatedCost * count)}`,'success');
   } catch(e){
+    removeNanoSkeletons(cfg.resultId);
     toast('خطأ: '+String(e.message||e).substring(0,140),'error');
     if(gbarTriggered && gbarStatus){
       gbarStatus.textContent = 'حدث خطأ';
