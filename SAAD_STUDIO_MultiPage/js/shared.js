@@ -507,6 +507,54 @@ function syncSidebarActiveNav() {
     }
   });
 }
+
+// حقن محوّل الموديلات تلقائياً في كل qw2-sidebar على الصفحة
+function injectModelSwitchersIntoSidebars() {
+  const tabButtons = Array.from(document.querySelectorAll('.cine-tab-strip .sora-tab'));
+  if (tabButtons.length < 2) return;
+
+  function syncActive() {
+    document.querySelectorAll('.sb-model-btn').forEach(sbBtn => {
+      const tab = document.getElementById(sbBtn.dataset.tabId);
+      sbBtn.classList.toggle('active', !!tab?.classList.contains('active'));
+    });
+  }
+
+  const sidebars = document.querySelectorAll('.qw2-sidebar');
+  sidebars.forEach(sidebar => {
+    if (sidebar.querySelector('.sb-model-switcher')) return;
+
+    const section = document.createElement('div');
+    section.className = 'sb-model-switcher';
+
+    const label = document.createElement('div');
+    label.className = 'sb-ms-label';
+    label.textContent = 'الموديلات';
+    section.appendChild(label);
+
+    const list = document.createElement('div');
+    list.className = 'sb-ms-list';
+    tabButtons.forEach(tabBtn => {
+      const btn = document.createElement('button');
+      btn.className = 'sb-model-btn';
+      btn.dataset.tabId = tabBtn.id;
+      btn.textContent = tabBtn.textContent.trim();
+      if (tabBtn.classList.contains('active')) btn.classList.add('active');
+      btn.addEventListener('click', () => tabBtn.click());
+      list.appendChild(btn);
+    });
+    section.appendChild(list);
+
+    const header = sidebar.querySelector('.qw2-sb-header');
+    if (header) header.insertAdjacentElement('afterend', section);
+    else sidebar.prepend(section);
+  });
+
+  tabButtons.forEach(btn => {
+    new MutationObserver(syncActive).observe(btn, { attributes: true, attributeFilter: ['class'] });
+  });
+  syncActive();
+}
 const tabMap={'tab-clothes':'tc-clothes','tab-edit':'tc-edit','tab-scene':'tc-scene','tab-story':'tc-story','tab-t2p':'tc-t2p'};
 function setTab(id){
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
@@ -8117,6 +8165,7 @@ function clearLibrary(){
     initTransitionLibrary();
     initCinemaStudio();
     syncSidebarActiveNav();
+    injectModelSwitchersIntoSidebars();
 
     // Secret admin access: URL hash #control or Ctrl+Shift+A
     if(window.location.hash === '#control'){
