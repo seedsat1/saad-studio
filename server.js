@@ -3802,43 +3802,47 @@ app.get('/api/admin/users', requireAdmin, async (req, res) => {
 
 // POST /api/admin/users/:id/credits — add credits to user profile
 app.post('/api/admin/users/:id/credits', requireAdmin, async (req, res) => {
-  const n = Number(req.body?.amount || 0);
-  if (!n) return res.status(400).json({ error: 'Invalid amount' });
-  const profile = await getProfile(req.params.id);
-  if (!profile) return res.status(404).json({ error: 'User not found' });
-  const newCredits = (profile.credits || 0) + n;
-  const now = new Date().toISOString();
-  const updated = await updateProfile(req.params.id, {
-    credits: newCredits,
-    subscription_start_date: now,
-    subscription_end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
-  });
-  auditLog('admin.user.credits', 'userId="' + req.params.id + '" amount=' + n, req);
-  try { logCreditOp(profile.email, 'add', n, 'إضافة يدوية من الداشبورد'); } catch {}
-  res.json({ ok: true, credits: updated?.credits ?? newCredits });
+  try {
+    const n = Number(req.body?.amount || 0);
+    if (!n) return res.status(400).json({ error: 'Invalid amount' });
+    const profile = await getProfile(req.params.id);
+    if (!profile) return res.status(404).json({ error: 'User not found' });
+    const newCredits = (profile.credits || 0) + n;
+    const now = new Date().toISOString();
+    const updated = await updateProfile(req.params.id, {
+      credits: newCredits,
+      subscription_start_date: now,
+      subscription_end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+    });
+    auditLog('admin.user.credits', 'userId="' + req.params.id + '" amount=' + n, req);
+    try { logCreditOp(profile.email, 'add', n, 'إضافة يدوية من الداشبورد'); } catch {}
+    res.json({ ok: true, credits: updated?.credits ?? newCredits });
+  } catch (e) { console.error('credits error:', e.message); res.status(500).json({ error: e.message }); }
 });
 
 // POST /api/admin/users/:id/plan — change user plan
 app.post('/api/admin/users/:id/plan', requireAdmin, async (req, res) => {
-  const { plan } = req.body || {};
-  if (!PLANS[plan]) return res.status(400).json({ error: 'Invalid plan' });
-  const profile = await getProfile(req.params.id);
-  if (!profile) return res.status(404).json({ error: 'User not found' });
-  const planInfo = PLANS[plan];
-  const now = new Date();
-  const renewDate = new Date(now); renewDate.setDate(renewDate.getDate() + 30);
-  const updated = await updateProfile(req.params.id, {
-    plan,
-    nano_banana_free: planInfo.nanoBananaFree,
-    max_credits: planInfo.credits,
-    credits: planInfo.credits,
-    renew_date: renewDate.toISOString().split('T')[0],
-    subscription_start_date: now.toISOString(),
-    subscription_end_date: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-    pending_plan: null
-  });
-  auditLog('admin.user.plan', 'userId="' + req.params.id + '" plan="' + plan + '" credits=' + planInfo.credits, req);
-  res.json({ ok: true, user: { id: req.params.id, email: updated?.email, plan, credits: updated?.credits, maxCredits: planInfo.credits } });
+  try {
+    const { plan } = req.body || {};
+    if (!PLANS[plan]) return res.status(400).json({ error: 'Invalid plan' });
+    const profile = await getProfile(req.params.id);
+    if (!profile) return res.status(404).json({ error: 'User not found' });
+    const planInfo = PLANS[plan];
+    const now = new Date();
+    const renewDate = new Date(now); renewDate.setDate(renewDate.getDate() + 30);
+    const updated = await updateProfile(req.params.id, {
+      plan,
+      nano_banana_free: planInfo.nanoBananaFree,
+      max_credits: planInfo.credits,
+      credits: planInfo.credits,
+      renew_date: renewDate.toISOString().split('T')[0],
+      subscription_start_date: now.toISOString(),
+      subscription_end_date: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      pending_plan: null
+    });
+    auditLog('admin.user.plan', 'userId="' + req.params.id + '" plan="' + plan + '" credits=' + planInfo.credits, req);
+    res.json({ ok: true, user: { id: req.params.id, email: updated?.email, plan, credits: updated?.credits, maxCredits: planInfo.credits } });
+  } catch (e) { console.error('plan error:', e.message); res.status(500).json({ error: e.message }); }
 });
 
 // POST /api/admin/users/:id/kick — sign out user

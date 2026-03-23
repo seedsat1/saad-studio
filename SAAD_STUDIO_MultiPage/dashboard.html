@@ -1728,35 +1728,41 @@ function renderPager(id, pages, cur, onPage){
 
 // ── Credits / Plan / Kick ──
 async function adjustCredits(userId, sign){
-  const inp = $('cr-' + userId);
-  const n = Number(inp?.value || 0);
-  if(!n || n <= 0){ toast('أدخل مقدار الكريدت', 'err'); return; }
-  const amount = sign * n;
-  const r = await apiFetch(`/api/admin/users/${encodeURIComponent(userId)}/credits`, {
-    method:'POST', body:JSON.stringify({amount})
-  });
-  if(!r) return;
-  if(r.ok){ const d=await r.json(); toast(`✅ الكريدت الآن: ${fmtNum(d.credits)}`); inp.value=''; await refreshAll(); }
-  else { const d=await r.json(); toast('❌ ' + (d.error||'خطأ'), 'err'); }
+  try {
+    const inp = $('cr-' + userId);
+    const n = Number(inp?.value || 0);
+    if(!n || n <= 0){ toast('أدخل مقدار الكريدت', 'err'); return; }
+    const amount = sign * n;
+    const r = await apiFetch(`/api/admin/users/${encodeURIComponent(userId)}/credits`, {
+      method:'POST', body:JSON.stringify({amount})
+    });
+    if(!r) return;
+    if(r.ok){ const d=await r.json(); toast(`✅ الكريدت الآن: ${fmtNum(d.credits)}`); inp.value=''; await refreshAll(); }
+    else { const d=await r.json().catch(()=>({})); toast('❌ ' + (d.error||'خطأ في الاستجابة'), 'err'); }
+  } catch(e){ console.error('adjustCredits error:', e); toast('❌ خطأ: ' + e.message, 'err'); }
 }
 
 async function changePlan(userId){
-  const plan = $('plan-' + userId)?.value;
-  if(!plan) return;
-  const r = await apiFetch(`/api/admin/users/${encodeURIComponent(userId)}/plan`, {
-    method:'POST', body:JSON.stringify({plan})
-  });
-  if(!r) return;
-  if(r.ok){ toast('✅ تم تغيير الخطة إلى ' + plan.toUpperCase()); await refreshAll(); }
-  else { const d=await r.json(); toast('❌ ' + (d.error||'خطأ'), 'err'); }
+  try {
+    const plan = $('plan-' + userId)?.value;
+    if(!plan) return;
+    const r = await apiFetch(`/api/admin/users/${encodeURIComponent(userId)}/plan`, {
+      method:'POST', body:JSON.stringify({plan})
+    });
+    if(!r) return;
+    if(r.ok){ toast('✅ تم تغيير الخطة إلى ' + plan.toUpperCase()); await refreshAll(); }
+    else { const d=await r.json().catch(()=>({})); toast('❌ ' + (d.error||'خطأ'), 'err'); }
+  } catch(e){ console.error('changePlan error:', e); toast('❌ خطأ: ' + e.message, 'err'); }
 }
 
 async function kickUser(userId, email){
-  if(!confirm(`طرد المستخدم ${email}؟ سيُلغى دخوله الآن.`)) return;
-  const r = await apiFetch(`/api/admin/users/${encodeURIComponent(userId)}/kick`, {method:'POST'});
-  if(!r) return;
-  if(r.ok){ toast('🚪 تم طرد المستخدم'); await loadUsers(); }
-  else { const d=await r.json(); toast('❌ ' + (d.error||'خطأ'), 'err'); }
+  try {
+    if(!confirm(`طرد المستخدم ${email}؟ سيُلغى دخوله الآن.`)) return;
+    const r = await apiFetch(`/api/admin/users/${encodeURIComponent(userId)}/kick`, {method:'POST'});
+    if(!r) return;
+    if(r.ok){ toast('🚪 تم طرد المستخدم'); await loadUsers(); }
+    else { const d=await r.json().catch(()=>({})); toast('❌ ' + (d.error||'خطأ'), 'err'); }
+  } catch(e){ console.error('kickUser error:', e); toast('❌ خطأ: ' + e.message, 'err'); }
 }
 
 // ── Pagination ──
