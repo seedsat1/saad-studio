@@ -880,6 +880,7 @@ app.post('/api/runway-gen/generate', async (req, res) => {
     if (![5, 10].includes(Number(duration))) return res.status(400).json({ error: 'duration must be 5 or 10' });
     if (!['720p', '1080p'].includes(quality)) return res.status(400).json({ error: 'quality must be 720p or 1080p' });
     if (quality === '1080p' && Number(duration) === 10) return res.status(400).json({ error: '1080p is only available for 5-second videos' });
+    if (!await deductCreditsForGeneration(req, res, 'runway', { duration: Number(duration), quality })) return;
     const body = { prompt: String(prompt).trim(), duration: Number(duration), quality, waterMark: String(waterMark || '') };
     if (imageUrl && typeof imageUrl === 'string' && imageUrl.startsWith('https://')) body.imageUrl = imageUrl;
     if (!imageUrl && aspectRatio) body.aspectRatio = aspectRatio;
@@ -916,6 +917,7 @@ app.post('/api/runway-gen/extend', async (req, res) => {
     if (!taskId || !/^[a-zA-Z0-9_\-]{8,72}$/.test(taskId)) return res.status(400).json({ error: 'invalid taskId' });
     if (!String(prompt || '').trim()) return res.status(400).json({ error: 'prompt is required' });
     if (!['720p', '1080p'].includes(quality)) return res.status(400).json({ error: 'quality must be 720p or 1080p' });
+    if (!await deductCreditsForGeneration(req, res, 'runway', { duration: 5, quality })) return;
     const data = await kieFetch('/runway/extend', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ taskId, prompt: String(prompt).trim(), quality, waterMark: String(waterMark || '') }) });
     res.json({ taskId: data?.data?.taskId || '' });
   } catch (e) {
@@ -928,6 +930,7 @@ app.post('/api/runway-gen/aleph', async (req, res) => {
     const { prompt, videoUrl, aspectRatio, waterMark = '' } = req.body || {};
     if (!String(prompt || '').trim()) return res.status(400).json({ error: 'prompt is required' });
     if (!videoUrl || typeof videoUrl !== 'string' || !videoUrl.startsWith('https://')) return res.status(400).json({ error: 'valid https videoUrl is required' });
+    if (!await deductCreditsForGeneration(req, res, 'aleph', {})) return;
     const body = { prompt: String(prompt).trim(), videoUrl: String(videoUrl), waterMark: String(waterMark || '') };
     if (aspectRatio) body.aspectRatio = aspectRatio;
     const data = await kieFetch('/aleph/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
@@ -3003,6 +3006,12 @@ function serverCalcCreditCost(model, params = {}) {
     return Math.max(1, Math.ceil(tlen / 4));
   }
   if (m.includes('veo'))                                    return 50;
+  if (m.includes('runway')) {
+    const is1080 = String(params.resolution || params.quality || '720p').includes('1080');
+    const dur    = Number(params.duration || 5);
+    return is1080 ? 20 : (dur >= 9 ? 20 : 10);
+  }
+  if (m.includes('aleph'))                                  return 15;
   return 20; // safe default
 }
 
