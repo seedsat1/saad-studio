@@ -4469,12 +4469,14 @@ Professional photography look.</textarea>
             <div class="result-head">
               <span class="result-head-txt">Nano Banana Results</span>
               <span class="cine-model-chip" id="nano-model-chip">Nano Banana Pro</span>
-              <button class="btn btn-ghost" style="font-size:10px;margin-left:auto;" onclick="clearResults('g-nanopro-results');clearResults('g-nano2-results');clearResults('g-nano-results')">Clear</button>
+              <button class="btn btn-ghost" style="font-size:10px;margin-left:auto;" onclick="clearResults('g-nano-unified')">Clear</button>
             </div>
             <div id="nano-all-results">
-              <div class="result-grid gs-result" id="g-nanopro-results"><div class="result-empty"><div class="result-empty-icon">🍌</div><div class="result-empty-text">ستظهر النتائج هنا</div></div></div>
-              <div class="result-grid gs-result" id="g-nano2-results"></div>
-              <div class="result-grid gs-result" id="g-nano-results"></div>
+              <div class="result-grid" id="g-nano-unified"><div class="result-empty"><div class="result-empty-icon">🍌</div><div class="result-empty-text">ستظهر النتائج هنا</div></div></div>
+              <!-- legacy IDs kept for backward-compat with localStorage -->
+              <div style="display:none" id="g-nanopro-results"></div>
+              <div style="display:none" id="g-nano2-results"></div>
+              <div style="display:none" id="g-nano-results"></div>
             </div>
           </div>
 
@@ -9313,7 +9315,7 @@ const GOOGLE_IMAGE_TOOL_CONFIG = {
   nano: {
     title: 'Nano Banana',
     model: 'gemini-3.1-flash-image-preview',
-    resultId: 'g-nano-results',
+    resultId: 'g-nano-unified',
     promptId: 'g-nano-prompt',
     negId: 'g-nano-neg',
     ratioId: 'g-nano-ratio',
@@ -9326,7 +9328,7 @@ const GOOGLE_IMAGE_TOOL_CONFIG = {
   nano2: {
     title: 'Nano Banana 2',
     model: 'gemini-3.1-flash-image-preview',
-    resultId: 'g-nano2-results',
+    resultId: 'g-nano-unified',
     promptId: 'g-nano2-prompt',
     negId: 'g-nano2-neg',
     ratioId: 'g-nano2-ratio',
@@ -9339,7 +9341,7 @@ const GOOGLE_IMAGE_TOOL_CONFIG = {
   nanopro: {
     title: 'Nano Banana Pro',
     model: 'gemini-3-pro-image-preview',
-    resultId: 'g-nanopro-results',
+    resultId: 'g-nano-unified',
     promptId: 'g-nanopro-prompt',
     negId: 'g-nanopro-neg',
     ratioId: 'g-nanopro-ratio',
@@ -10452,8 +10454,12 @@ function saveResult(containerId, url, isVideo, prompt){
 
 function loadSavedResults(){
   try {
+    const nanoOldIds = new Set(['g-nanopro-results','g-nano2-results','g-nano-results']);
     const saved = JSON.parse(localStorage.getItem(getResKey())||'[]');
-    saved.forEach(r => addResultItem(r.containerId, r.url, r.isVideo, r.prompt, false));
+    saved.forEach(r => {
+      const cid = nanoOldIds.has(r.containerId) ? 'g-nano-unified' : r.containerId;
+      addResultItem(cid, r.url, r.isVideo, r.prompt, false);
+    });
   } catch(e){}
 }
 
