@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SAAD STUDIO — Runway Video</title>
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Kufi+Arabic:wght@300;400;600;700&family=JetBrains+Mono:wght@400;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/api/site-config.css" id="site-theme-override">
+<link rel="stylesheet" href="/css/shared.css">
+<style>
+/* ===== Runway Page Styles ===== */
+.rw-container{display:flex;height:calc(100vh - 56px);overflow:hidden;}
+/* In RTL: first child = right side (composer), second child = left side (results) */
+.rw-composer{width:400px;flex-shrink:0;display:flex;flex-direction:column;overflow:hidden;border-left:1px solid var(--b);background:linear-gradient(180deg,rgba(11,30,52,0.7),rgba(9,24,44,0.5));}
+.rw-results{flex:1;overflow-y:auto;padding:20px;background:transparent;}
+
+/* Tabs */
+.rw-tabs{display:flex;gap:0;border-bottom:1px solid var(--b);flex-shrink:0;}
+.rw-tab-btn{flex:1;padding:13px 8px;background:transparent;border:none;border-bottom:2px solid transparent;color:var(--tx3);font-size:12px;font-weight:700;cursor:pointer;font-family:var(--far);transition:.15s;letter-spacing:.04em;}
+.rw-tab-btn:hover{color:var(--tx2);background:rgba(255,255,255,.03);}
+.rw-tab-btn.active{color:var(--amber);border-bottom-color:var(--amber);background:rgba(255,158,44,.05);}
+
+/* Form */
+.rw-form{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:14px;}
+.rw-section{display:flex;flex-direction:column;gap:6px;}
+.rw-label{font-size:10px;color:var(--tx3);text-transform:uppercase;letter-spacing:.15em;font-family:var(--fm);}
+.rw-label span.req{color:var(--red);}
+.rw-label span.opt{color:var(--tx3);font-weight:400;text-transform:none;letter-spacing:0;}
+.rw-textarea{width:100%;background:rgba(12,36,61,.7);border:1px solid var(--b2);border-radius:10px;color:var(--tx);font-family:var(--far);font-size:13px;padding:10px 12px;resize:none;outline:none;line-height:1.5;transition:.15s;}
+.rw-textarea:focus{border-color:rgba(0,229,255,.4);box-shadow:0 0 0 3px rgba(0,229,255,.06);}
+.rw-input{width:100%;background:rgba(12,36,61,.7);border:1px solid var(--b2);border-radius:8px;color:var(--tx);font-family:var(--far);font-size:12px;padding:8px 10px;outline:none;transition:.15s;}
+.rw-input:focus{border-color:rgba(0,229,255,.4);}
+.rw-char-count{text-align:right;font-size:10px;color:var(--tx3);font-family:var(--fm);}
+
+/* Toggle */
+.rw-toggle{display:flex;gap:3px;background:rgba(255,255,255,.04);border:1px solid var(--b);border-radius:8px;padding:3px;}
+.rw-toggle-btn{flex:1;padding:7px 10px;border-radius:6px;border:none;background:transparent;color:var(--tx2);font-size:11px;font-weight:700;cursor:pointer;transition:.15s;font-family:var(--far);}
+.rw-toggle-btn.active{background:var(--bg3);color:var(--amber);box-shadow:0 2px 8px rgba(0,0,0,.3);}
+
+/* Option pills */
+.rw-opts{display:flex;gap:6px;flex-wrap:wrap;}
+.rw-opt{padding:5px 11px;border-radius:6px;border:1px solid var(--b);background:transparent;color:var(--tx2);font-size:11px;font-weight:600;cursor:pointer;font-family:var(--far);transition:.13s;}
+.rw-opt:hover{border-color:var(--b2);color:var(--tx);}
+.rw-opt.active{border-color:var(--cyan);color:var(--cyan);background:rgba(0,229,255,.08);}
+.rw-opt:disabled{opacity:.4;cursor:not-allowed;}
+
+/* Hint text */
+.rw-hint{font-size:10px;color:var(--tx3);font-family:var(--fm);line-height:1.5;}
+.rw-hint.warn{color:var(--amber);}
+
+/* Info box */
+.rw-info{padding:10px 12px;background:rgba(255,158,44,.07);border:1px solid rgba(255,158,44,.18);border-radius:10px;font-size:11px;color:var(--tx2);line-height:1.6;}
+
+/* Generate button */
+.rw-gen-btn{width:100%;padding:12px 20px;border-radius:12px;border:none;font-family:var(--far);font-size:13px;font-weight:700;cursor:pointer;transition:all .18s;display:flex;align-items:center;justify-content:center;gap:7px;flex-shrink:0;margin-top:auto;}
+.rw-gen-btn.runway{background:linear-gradient(135deg,#00e5ff,#00b4d8);color:#040e18;box-shadow:0 8px 24px rgba(0,229,255,.2);}
+.rw-gen-btn.runway:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 14px 32px rgba(0,229,255,.3);}
+.rw-gen-btn.extend{background:linear-gradient(135deg,#59d98a,#2bbf6a);color:#040e18;box-shadow:0 8px 24px rgba(89,217,138,.2);}
+.rw-gen-btn.aleph{background:linear-gradient(135deg,#ff9e2c,#ff7a00);color:#040e18;box-shadow:0 8px 24px rgba(255,158,44,.2);}
+.rw-gen-btn:disabled{opacity:.85;cursor:not-allowed;transform:none;animation:rw-glow 1.8s ease-in-out infinite;}
+@keyframes rw-glow{0%,100%{filter:brightness(1);}50%{filter:brightness(1.18);}}
+
+/* Results area */
+.rw-results-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.rw-results-title{font-family:var(--fd);font-size:24px;letter-spacing:.1em;color:var(--tx);}
+.rw-clear-btn{padding:5px 12px;border-radius:6px;border:1px solid var(--b2);background:transparent;color:var(--tx3);font-size:11px;cursor:pointer;font-family:var(--far);transition:.13s;}
+.rw-clear-btn:hover{border-color:var(--red);color:var(--red);}
+
+/* Cards grid */
+.rw-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;align-content:start;}
+.rw-empty{grid-column:1/-1;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:320px;gap:14px;color:var(--tx3);text-align:center;padding:40px;}
+.rw-empty-icon{font-size:52px;opacity:.25;}
+.rw-empty-text{font-size:13px;line-height:1.7;}
+
+/* Card */
+.rw-card{background:var(--bg2);border:1px solid var(--b);border-radius:14px;overflow:hidden;transition:.2s;}
+.rw-card:hover{border-color:var(--b2);transform:translateY(-2px);box-shadow:0 14px 36px rgba(0,0,0,.35);}
+.rw-card-preview{position:relative;overflow:hidden;background:var(--bg3);cursor:pointer;}
+.rw-card-preview video,.rw-card-preview img{width:100%;display:block;object-fit:cover;}
+.rw-card-spinner-wrap{display:flex;align-items:center;justify-content:center;aspect-ratio:16/9;background:var(--bg3);}
+.rw-card-fail-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;aspect-ratio:16/9;background:rgba(255,107,107,.04);gap:8px;padding:12px;}
+.rw-card-status{position:absolute;top:8px;right:8px;padding:3px 9px;border-radius:99px;font-size:9px;font-weight:800;font-family:var(--fm);text-transform:uppercase;letter-spacing:.08em;}
+.rw-card-status.waiting,.rw-card-status.queueing{background:rgba(255,255,255,.12);color:var(--tx2);}
+.rw-card-status.generating{background:rgba(255,158,44,.2);color:var(--amber);animation:status-pulse 1.5s ease-in-out infinite;}
+.rw-card-status.success{background:rgba(89,217,138,.2);color:var(--green);}
+.rw-card-status.failed{background:rgba(255,107,107,.2);color:var(--red);}
+@keyframes status-pulse{0%,100%{opacity:1;}50%{opacity:.55;}}
+.rw-card-body{padding:10px 12px 12px;}
+.rw-card-prompt{font-size:11px;color:var(--tx2);line-height:1.45;max-height:30px;overflow:hidden;margin-bottom:8px;}
+.rw-card-meta{display:flex;gap:5px;align-items:center;flex-wrap:wrap;margin-bottom:8px;}
+.rw-badge{padding:2px 7px;border-radius:99px;font-size:9px;font-weight:800;font-family:var(--fm);text-transform:uppercase;}
+.rw-badge.runway{background:rgba(0,229,255,.12);color:var(--cyan);}
+.rw-badge.aleph{background:rgba(255,158,44,.12);color:var(--amber);}
+.rw-badge.extend{background:rgba(89,217,138,.12);color:var(--green);}
+.rw-badge.meta{background:rgba(255,255,255,.06);color:var(--tx3);}
+.rw-card-time{font-size:9px;color:var(--tx3);font-family:var(--fm);margin-right:auto;}
+.rw-card-actions{display:flex;gap:5px;align-items:center;}
+.rw-card-btn{flex:1;padding:5px 8px;border-radius:7px;border:1px solid var(--b2);background:transparent;color:var(--tx2);font-size:10px;font-weight:700;cursor:pointer;font-family:var(--far);transition:.13s;white-space:nowrap;}
+.rw-card-btn:hover{border-color:var(--cyan);color:var(--cyan);background:rgba(0,229,255,.07);}
+.rw-card-del{width:26px;height:26px;min-width:26px;border-radius:6px;border:1px solid rgba(255,107,107,.2);background:transparent;color:rgba(255,107,107,.5);font-size:14px;cursor:pointer;transition:.13s;display:flex;align-items:center;justify-content:center;line-height:1;}
+.rw-card-del:hover{border-color:var(--red);color:var(--red);background:rgba(255,107,107,.08);}
+
+/* Spinner */
+.rw-spinner{width:32px;height:32px;border-radius:50%;border:3px solid rgba(255,255,255,.08);border-top-color:var(--cyan);animation:rw-spin .7s linear infinite;}
+@keyframes rw-spin{to{transform:rotate(360deg);}}
+
+/* Toast */
+#rw-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--bg2);border:1px solid var(--b2);border-radius:10px;padding:10px 20px;font-size:13px;color:var(--tx);z-index:9999;box-shadow:0 12px 32px rgba(0,0,0,.45);display:none;animation:rw-toast-in .25s ease;white-space:nowrap;max-width:90vw;text-align:center;}
+#rw-toast.err{border-color:rgba(255,107,107,.4);color:var(--red);}
+#rw-toast.ok{border-color:rgba(89,217,138,.4);color:var(--green);}
+@keyframes rw-toast-in{from{opacity:0;bottom:14px;}to{opacity:1;bottom:24px;}}
+
+/* Mobile */
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:99;}
+.sidebar-overlay.show{display:block;}
+.hamburger-btn{display:none;background:none;border:none;color:var(--tx);font-size:22px;cursor:pointer;padding:4px 8px;line-height:1;}
+@media(max-width:900px){
+  .hamburger-btn{display:flex;align-items:center;}
+  .main{margin-right:0!important;}
+  .sidebar{transform:translateX(100%);transition:transform .25s;z-index:100;}
+  .sidebar.open{transform:translateX(0);}
+  .rw-container{flex-direction:column;}
+  .rw-composer{width:100%;max-height:55vh;border-left:none;border-top:1px solid var(--b);}
+  .rw-results{padding:14px;}
+}
+</style>
+</head>
+<body>
+
+<div id="sidebar-overlay" class="sidebar-overlay" onclick="closeSidebar()"></div>
+
+<aside class="sidebar">
+  <div class="logo-area" onclick="window.location.href='/'">
+    <div class="logo-stack">
+      <div class="logo-text">SAAD STUDIO</div>
+      <div class="logo-sub">AI Creative Platform v2.0</div>
+      <div class="brand-status">
+        <span class="status-dot connected"></span>
+        <span class="status-text">Connected</span>
+      </div>
+    </div>
+  </div>
+  <nav class="nav-section">
+    <div class="nav-label">Discover</div>
+    <div class="nav-item" onclick="window.location.href='/'">
+      <div class="nav-icon"><img class="nav-logo" src="/assets/logo-saad.png" alt="SAAD STUDIO"></div><span class="nav-name">Discover</span>
+    </div>
+    <div class="nav-label" style="margin-top:6px">Production</div>
+    <div class="nav-item" onclick="window.location.href='/image-tools.html'">
+      <div class="nav-icon"><img class="nav-logo" src="/assets/logo-image-tools.png" alt="Image Tools"></div><span class="nav-name">Image Tools</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='/transitions.html'">
+      <div class="nav-icon">🎞️</div><span class="nav-name">Transitions</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='/nano.html'">
+      <div class="nav-icon">🍌</div><span class="nav-name">Nano Banana</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='/google.html'">
+      <div class="nav-icon"><img class="nav-logo" src="/assets/logo-google-studio.png" alt="Google Studio"></div><span class="nav-name">Google Studio</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='/kling.html'">
+      <div class="nav-icon"><img class="nav-logo" src="/assets/logo-kling-studio.png" alt="Kling Studio"></div><span class="nav-name">Kling Studio</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='/eleven.html'">
+      <div class="nav-icon"><img class="nav-logo" src="/assets/logo-elevenlabs-studio.png" alt="ElevenLabs Studio"></div><span class="nav-name">ElevenLabs Studio</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='/cinema.html'">
+      <div class="nav-icon">🎬</div><span class="nav-name">Cinema Studio</span>
+    </div>
+    <div class="nav-item active" onclick="window.location.href='/runway.html'">
+      <div class="nav-icon">🛫</div><span class="nav-name">Runway Video</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='/prompt.html'">
+      <div class="nav-icon">🔍</div><span class="nav-name">Prompt Studio</span>
+    </div>
+    <div class="nav-label" style="margin-top:6px">Models</div>
+    <div class="nav-item" onclick="window.location.href='/sora2.html'">
+      <div class="nav-icon"><img class="nav-logo" src="/assets/logo-sora-2.png" alt="Sora 2"></div><span class="nav-name">Sora 2</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='/gpt54.html'">
+      <div class="nav-icon"><img class="nav-logo" src="/assets/logo-gpt-52.png" alt="GPT-5.2"></div><span class="nav-name">GPT-5.2</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='/hailuo.html'">
+      <div class="nav-icon"><img class="nav-logo" src="/assets/logo-hailuo.png" alt="Hailuo"></div><span class="nav-name">Hailuo</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='/grok.html'">
+      <div class="nav-icon"><img class="nav-logo" src="/assets/logo-grok.png" alt="Grok"></div><span class="nav-name">Grok</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='/seedream.html'">
+      <div class="nav-icon"><img class="nav-logo" src="/assets/logo-seedream-45.png" alt="Seedream 4.5"></div><span class="nav-name">Seedream 4.5</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='/flux2.html'">
+      <div class="nav-icon"><img class="nav-logo" src="/assets/logo-flux-2.png" alt="FLUX.2"></div><span class="nav-name">FLUX.2</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='/zimage.html'">
+      <div class="nav-icon"><img class="nav-logo" src="/assets/logo-z-image.png" alt="Z-Image"></div><span class="nav-name">Z-Image</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='/wan26.html'">
+      <div class="nav-icon"><img class="nav-logo" src="/assets/logo-wan-26.png" alt="Wan 2.6"></div><span class="nav-name">Wan 2.6</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='/seedance.html'">
+      <div class="nav-icon"><img class="nav-logo" src="/assets/logo-seedance-15-pro.png" alt="Seedance 1.5"></div><span class="nav-name">Seedance 1.5</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='/fluxkontext.html'">
+      <div class="nav-icon"><img class="nav-logo" src="/assets/logo-flux-kontext.png" alt="Flux Kontext"></div><span class="nav-name">Flux Kontext</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='/ideogram-reframe.html'">
+      <div class="nav-icon"><img class="nav-logo" src="/assets/logo-ideogram-reframe.png" alt="Ideogram Reframe"></div><span class="nav-name">Ideogram Reframe</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='/infinitalk.html'">
+      <div class="nav-icon"><img class="nav-logo" src="/assets/logo-infinitalk.png" alt="Infinitalk"></div><span class="nav-name">Infinitalk</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='/qwen2.html'">
+      <div class="nav-icon"><img class="nav-logo" src="/assets/logo-qwen2.png" alt="Qwen2"></div><span class="nav-name">Qwen2</span>
+    </div>
+    <div class="nav-label" style="margin-top:6px">Library</div>
+    <div class="nav-item" onclick="window.location.href='/gallery.html'">
+      <div class="nav-icon">🗄️</div><span class="nav-name">Gallery</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='/library.html'">
+      <div class="nav-icon">📁</div><span class="nav-name">Library</span>
+    </div>
+    <div class="nav-item" onclick="window.location.href='/legal.html'">
+      <div class="nav-icon">🛡️</div><span class="nav-name">Legal</span>
+    </div>
+  </nav>
+</aside>
+
+<main class="main">
+  <header class="topbar">
+    <button class="hamburger-btn" id="hamburger-btn" aria-label="Menu">&#9776;</button>
+    <div class="topbar-logo-wrap">
+      <img class="topbar-logo" src="/assets/logo-saad.png" alt="SAAD STUDIO">
+    </div>
+    <span class="topbar-title">RUNWAY VIDEO</span>
+    <div class="topbar-actions">
+      <span id="topbar-guest" style="display:flex;gap:8px;align-items:center;">
+        <button class="topbar-btn" onclick="window.location.href='/'">Log In</button>
+        <button class="topbar-btn primary" onclick="window.location.href='/'">Sign Up</button>
+      </span>
+      <span id="topbar-loggedin" style="display:none;align-items:center;gap:10px;">
+        <span id="user-credits-badge" style="font-size:11px;color:var(--amber);font-family:var(--fm);padding:4px 11px;background:rgba(255,158,44,.1);border:1px solid rgba(255,158,44,.22);border-radius:99px;white-space:nowrap;"></span>
+        <div id="user-avatar-el" style="width:32px;height:32px;border-radius:50%;background:var(--bg3);border:1px solid var(--b2);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--amber2);cursor:pointer;flex-shrink:0;" title="Account">?</div>
+      </span>
+    </div>
+  </header>
+
+  <!-- Main content -->
+  <div class="rw-container">
+
+    <!-- ===== COMPOSER (right in RTL = first in DOM) ===== -->
+    <div class="rw-composer">
+
+      <!-- Tabs -->
+      <div class="rw-tabs">
+        <button class="rw-tab-btn active" data-tab="generate" onclick="setTab('generate')">⚡ Generate</button>
+        <button class="rw-tab-btn" data-tab="extend" onclick="setTab('extend')">↗ Extend</button>
+        <button class="rw-tab-btn" data-tab="aleph" onclick="setTab('aleph')">🎞 Aleph</button>
+      </div>
+
+      <!-- ===== GENERATE TAB ===== -->
+      <div class="rw-form" id="tab-generate">
+
+        <!-- Mode toggle -->
+        <div class="rw-section">
+          <label class="rw-label">Generation Mode</label>
+          <div class="rw-toggle">
+            <button class="rw-toggle-btn active" id="mode-text" onclick="setGenMode('text')">📝 Text-to-Video</button>
+            <button class="rw-toggle-btn" id="mode-image" onclick="setGenMode('image')">🖼 Image-to-Video</button>
+          </div>
+        </div>
+
+        <!-- Reference Image URL (image mode only) -->
+        <div class="rw-section" id="image-url-wrap" style="display:none">
+          <label class="rw-label">Reference Image URL <span class="req">*</span></label>
+          <input type="url" class="rw-input" id="gen-image-url" placeholder="https://example.com/reference-image.jpg" autocomplete="off">
+          <div class="rw-hint">The AI will animate or extend this image. Must be a public HTTPS URL.</div>
+        </div>
+
+        <!-- Prompt -->
+        <div class="rw-section">
+          <label class="rw-label">Prompt <span class="req">*</span></label>
+          <textarea class="rw-textarea" id="gen-prompt" rows="5"
+            placeholder="Describe your video... e.g. A fluffy orange cat dancing energetically in a colorful room with disco lights, cinematic lighting, slow-motion"
+            maxlength="1800" oninput="document.getElementById('gen-pc').textContent=this.value.length"></textarea>
+          <div class="rw-char-count"><span id="gen-pc">0</span>/1800</div>
+        </div>
+
+        <!-- Duration -->
+        <div class="rw-section">
+          <label class="rw-label">Duration</label>
+          <div class="rw-opts" id="gen-dur-opts">
+            <button class="rw-opt active" data-v="5" onclick="setDuration(5)">5 seconds</button>
+            <button class="rw-opt" data-v="10" onclick="setDuration(10)">10 seconds</button>
+          </div>
+        </div>
+
+        <!-- Quality -->
+        <div class="rw-section">
+          <label class="rw-label">Quality</label>
+          <div class="rw-opts" id="gen-quality-opts">
+            <button class="rw-opt active" data-v="720p" onclick="setQuality('720p')">720p HD</button>
+            <button class="rw-opt" data-v="1080p" onclick="setQuality('1080p')" id="opt-1080p">1080p Full HD</button>
+          </div>
+          <div class="rw-hint" id="quality-hint"></div>
+        </div>
+
+        <!-- Aspect Ratio (text mode only) -->
+        <div class="rw-section" id="ratio-wrap">
+          <label class="rw-label">Aspect Ratio</label>
+          <div class="rw-opts" id="gen-ratio-opts">
+            <button class="rw-opt active" data-v="16:9" onclick="setRatio('16:9')">16:9</button>
+            <button class="rw-opt" data-v="9:16" onclick="setRatio('9:16')">9:16</button>
+            <button class="rw-opt" data-v="1:1" onclick="setRatio('1:1')">1:1</button>
+            <button class="rw-opt" data-v="4:3" onclick="setRatio('4:3')">4:3</button>
+            <button class="rw-opt" data-v="3:4" onclick="setRatio('3:4')">3:4</button>
+          </div>
+        </div>
+
+        <!-- Watermark -->
+        <div class="rw-section">
+          <label class="rw-label">Watermark <span class="opt">(optional)</span></label>
+          <input type="text" class="rw-input" id="gen-watermark" placeholder="Leave empty for no watermark" maxlength="50">
+        </div>
+
+        <button class="rw-gen-btn runway" id="gen-btn" onclick="generateVideo()">
+          ⚡ Generate Video
+        </button>
+      </div><!-- /tab-generate -->
+
+      <!-- ===== EXTEND TAB ===== -->
+      <div class="rw-form" id="tab-extend" style="display:none">
+
+        <div class="rw-section">
+          <label class="rw-label">Original Task ID <span class="req">*</span></label>
+          <input type="text" class="rw-input" id="ext-task-id" placeholder="ee603959-debb-48d1-98c4-a6d1c717eba6" autocomplete="off">
+          <div class="rw-hint">Click "Extend" on any completed video to auto-fill this field.</div>
+        </div>
+
+        <div class="rw-section">
+          <label class="rw-label">Continuation Prompt <span class="req">*</span></label>
+          <textarea class="rw-textarea" id="ext-prompt" rows="5"
+            placeholder="Describe what happens next... e.g. The cat continues dancing with even more energy, spinning and jumping with lights intensifying"
+            maxlength="1800" oninput="document.getElementById('ext-pc').textContent=this.value.length"></textarea>
+          <div class="rw-char-count"><span id="ext-pc">0</span>/1800</div>
+        </div>
+
+        <div class="rw-section">
+          <label class="rw-label">Quality</label>
+          <div class="rw-opts" id="ext-quality-opts">
+            <button class="rw-opt active" data-v="720p" onclick="setExtQuality('720p')">720p HD</button>
+            <button class="rw-opt" data-v="1080p" onclick="setExtQuality('1080p')">1080p Full HD</button>
+          </div>
+        </div>
+
+        <div class="rw-section">
+          <label class="rw-label">Watermark <span class="opt">(optional)</span></label>
+          <input type="text" class="rw-input" id="ext-watermark" placeholder="Leave empty for no watermark" maxlength="50">
+        </div>
+
+        <button class="rw-gen-btn extend" id="ext-btn" onclick="extendVideo()">
+          ↗ Extend Video
+        </button>
+      </div><!-- /tab-extend -->
+
+      <!-- ===== ALEPH TAB ===== -->
+      <div class="rw-form" id="tab-aleph" style="display:none">
+
+        <div class="rw-info">
+          🎞 <strong style="color:var(--amber)">Aleph</strong> — Video-to-Video transformation using Runway's advanced Aleph model. Provide an input video and a prompt to guide the transformation.
+        </div>
+
+        <div class="rw-section">
+          <label class="rw-label">Input Video URL <span class="req">*</span></label>
+          <input type="url" class="rw-input" id="aleph-video-url" placeholder="https://example.com/input-video.mp4" autocomplete="off">
+          <div class="rw-hint">Must be a public HTTPS video URL (MP4 recommended).</div>
+        </div>
+
+        <div class="rw-section">
+          <label class="rw-label">Transformation Prompt <span class="req">*</span></label>
+          <textarea class="rw-textarea" id="aleph-prompt" rows="5"
+            placeholder="Describe the transformation... e.g. Transform into a dreamy watercolor painting style with soft flowing movements and ethereal lighting"
+            maxlength="1800" oninput="document.getElementById('aleph-pc').textContent=this.value.length"></textarea>
+          <div class="rw-char-count"><span id="aleph-pc">0</span>/1800</div>
+        </div>
+
+        <div class="rw-section">
+          <label class="rw-label">Output Aspect Ratio</label>
+          <div class="rw-opts" id="aleph-ratio-opts">
+            <button class="rw-opt active" data-v="16:9" onclick="setAlephRatio('16:9')">16:9</button>
+            <button class="rw-opt" data-v="9:16" onclick="setAlephRatio('9:16')">9:16</button>
+            <button class="rw-opt" data-v="1:1" onclick="setAlephRatio('1:1')">1:1</button>
+            <button class="rw-opt" data-v="4:3" onclick="setAlephRatio('4:3')">4:3</button>
+            <button class="rw-opt" data-v="3:4" onclick="setAlephRatio('3:4')">3:4</button>
+            <button class="rw-opt" data-v="21:9" onclick="setAlephRatio('21:9')">21:9</button>
+          </div>
+        </div>
+
+        <div class="rw-section">
+          <label class="rw-label">Watermark <span class="opt">(optional)</span></label>
+          <input type="text" class="rw-input" id="aleph-watermark" placeholder="Leave empty for no watermark" maxlength="50">
+        </div>
+
+        <button class="rw-gen-btn aleph" id="aleph-btn" onclick="generateAlephVideo()">
+          🎞 Transform Video
+        </button>
+      </div><!-- /tab-aleph -->
+
+    </div><!-- /rw-composer -->
+
+    <!-- ===== RESULTS (left in RTL = second in DOM) ===== -->
+    <div class="rw-results">
+      <div class="rw-results-header">
+        <span class="rw-results-title">RESULTS</span>
+        <button class="rw-clear-btn" onclick="clearAllResults()">Clear All</button>
+      </div>
+      <div id="rw-cards" class="rw-cards">
+        <div class="rw-empty" id="rw-empty">
+          <div class="rw-empty-icon">🎬</div>
+          <div class="rw-empty-text">Your generated videos will appear here.<br>Use the form on the right to create your first video.</div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /rw-container -->
+</main>
+
+<div id="rw-toast"></div>
+
+<script>
+// =====================================
+//  STATE
+// =====================================
+const S = {
+  tab: 'generate',
+  genMode: 'text',
+  duration: 5,
+  quality: '720p',
+  ratio: '16:9',
+  extQuality: '720p',
+  alephRatio: '16:9',
+  tasks: [],
+  user: null,
+  pollTimer: null
+};
+
+// =====================================
+//  AUTH
+// =====================================
+const TK = 'ss_auth_token';
+const UK = 'ss_auth_user';
+
+function getToken() { return localStorage.getItem(TK) || ''; }
+function getCachedUser() { try { return JSON.parse(localStorage.getItem(UK) || 'null'); } catch { return null; } }
+
+async function initAuth() {
+  const cached = getCachedUser();
+  if (cached) { S.user = cached; updateTopbar(cached); }
+  const token = getToken();
+  if (!token) { S.user = null; updateTopbar(null); return; }
+  try {
+    const r = await fetch('/api/auth/me', { headers: { 'Authorization': 'Bearer ' + token } });
+    if (r.ok) {
+      const d = await r.json();
+      const user = d.user || d;
+      localStorage.setItem(UK, JSON.stringify(user));
+      S.user = user;
+      updateTopbar(user);
+    } else {
+      S.user = null;
+      updateTopbar(null);
+    }
+  } catch {
+    // use cached
+    S.user = cached;
+    updateTopbar(cached);
+  }
+}
+
+function updateTopbar(user) {
+  const g = document.getElementById('topbar-guest');
+  const l = document.getElementById('topbar-loggedin');
+  const av = document.getElementById('user-avatar-el');
+  const cr = document.getElementById('user-credits-badge');
+  if (user) {
+    g.style.display = 'none';
+    l.style.display = 'flex';
+    const name = user.name || user.email || '';
+    if (av) av.textContent = name ? name[0].toUpperCase() : '?';
+    if (cr) {
+      const bal = user.credits ?? user.balance ?? user.credit_balance ?? null;
+      cr.textContent = bal != null ? '💳 ' + bal : '';
+      cr.style.display = bal != null ? '' : 'none';
+    }
+  } else {
+    g.style.display = 'flex';
+    l.style.display = 'none';
+  }
+}
+
+// =====================================
+//  TASK STORAGE
+// =====================================
+function tasksKey() {
+  return 'rw_tasks_' + (S.user?.id || S.user?.email || 'guest');
+}
+function loadTasks() {
+  try { return JSON.parse(localStorage.getItem(tasksKey()) || '[]'); } catch { return []; }
+}
+function saveTasks() {
+  try { localStorage.setItem(tasksKey(), JSON.stringify(S.tasks)); } catch {}
+}
+
+// =====================================
+//  TABS & FORM CONTROLS
+// =====================================
+function setTab(tab) {
+  S.tab = tab;
+  document.querySelectorAll('.rw-tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  ['generate','extend','aleph'].forEach(t => {
+    document.getElementById('tab-' + t).style.display = t === tab ? 'flex' : 'none';
+  });
+}
+
+function setGenMode(mode) {
+  S.genMode = mode;
+  document.getElementById('mode-text').classList.toggle('active', mode === 'text');
+  document.getElementById('mode-image').classList.toggle('active', mode === 'image');
+  document.getElementById('image-url-wrap').style.display = mode === 'image' ? 'flex' : 'none';
+  document.getElementById('ratio-wrap').style.display = mode === 'text' ? 'flex' : 'none';
+}
+
+function setDuration(v) {
+  S.duration = v;
+  document.querySelectorAll('#gen-dur-opts .rw-opt').forEach(b => b.classList.toggle('active', parseInt(b.dataset.v) === v));
+  if (v === 10 && S.quality === '1080p') setQuality('720p');
+  updateQualityHint();
+}
+
+function setQuality(v) {
+  S.quality = v;
+  document.querySelectorAll('#gen-quality-opts .rw-opt').forEach(b => b.classList.toggle('active', b.dataset.v === v));
+  if (v === '1080p' && S.duration === 10) setDuration(5);
+  updateQualityHint();
+}
+
+function updateQualityHint() {
+  const h = document.getElementById('quality-hint');
+  if (S.quality === '1080p') { h.textContent = '⚠ 1080p is only available for 5-second videos'; h.className = 'rw-hint warn'; }
+  else if (S.duration === 10) { h.textContent = 'ℹ 10-second videos support 720p only'; h.className = 'rw-hint'; }
+  else { h.textContent = ''; }
+}
+
+function setRatio(v) {
+  S.ratio = v;
+  document.querySelectorAll('#gen-ratio-opts .rw-opt').forEach(b => b.classList.toggle('active', b.dataset.v === v));
+}
+
+function setExtQuality(v) {
+  S.extQuality = v;
+  document.querySelectorAll('#ext-quality-opts .rw-opt').forEach(b => b.classList.toggle('active', b.dataset.v === v));
+}
+
+function setAlephRatio(v) {
+  S.alephRatio = v;
+  document.querySelectorAll('#aleph-ratio-opts .rw-opt').forEach(b => b.classList.toggle('active', b.dataset.v === v));
+}
+
+// =====================================
+//  TOAST
+// =====================================
+let _toastTimer;
+function showToast(msg, type) {
+  clearTimeout(_toastTimer);
+  const t = document.getElementById('rw-toast');
+  t.className = 'rw-toast' + (type === 'error' ? ' err' : type === 'success' ? ' ok' : '');
+  t.textContent = msg;
+  t.style.display = 'block';
+  _toastTimer = setTimeout(() => { t.style.opacity = '0'; setTimeout(() => { t.style.display = 'none'; t.style.opacity = ''; }, 300); }, 3500);
+}
+
+// =====================================
+//  API HELPERS
+// =====================================
+async function apiPost(url, body) {
+  const token = getToken();
+  if (!token) throw new Error('Please log in at saadstudio.app to generate videos');
+  const r = await fetch(url, {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error || d.msg || 'Request failed (' + r.status + ')');
+  return d;
+}
+
+async function apiGet(url) {
+  const token = getToken();
+  if (!token) throw new Error('Not signed in');
+  const r = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error || d.msg || 'Request failed');
+  return d;
+}
+
+// =====================================
+//  GENERATE
+// =====================================
+async function generateVideo() {
+  if (!S.user) { showToast('Please log in to generate videos', 'error'); window.location.href = '/'; return; }
+  const prompt = document.getElementById('gen-prompt').value.trim();
+  if (!prompt) { showToast('Please enter a prompt', 'error'); return; }
+  const imageUrl = S.genMode === 'image' ? document.getElementById('gen-image-url').value.trim() : '';
+  if (S.genMode === 'image' && !imageUrl) { showToast('Please enter a reference image URL', 'error'); return; }
+  const waterMark = document.getElementById('gen-watermark').value.trim();
+
+  const btn = document.getElementById('gen-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Submitting...';
+
+  try {
+    const body = { prompt, duration: S.duration, quality: S.quality, waterMark };
+    if (imageUrl) body.imageUrl = imageUrl;
+    else body.aspectRatio = S.ratio;
+
+    const data = await apiPost('/api/runway-gen/generate', body);
+    if (!data.taskId) throw new Error('No task ID returned from server');
+
+    addTask({ taskId: data.taskId, type: 'runway', prompt, status: 'wait',
+      quality: S.quality, duration: S.duration, aspectRatio: imageUrl ? 'auto' : S.ratio });
+
+    showToast('Video generation started! (' + data.taskId.slice(0,8) + '...)', 'success');
+    document.getElementById('gen-prompt').value = '';
+    document.getElementById('gen-pc').textContent = '0';
+    if (imageUrl) document.getElementById('gen-image-url').value = '';
+  } catch (e) {
+    showToast(e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '⚡ Generate Video';
+  }
+}
+
+async function extendVideo() {
+  if (!S.user) { showToast('Please log in to extend videos', 'error'); window.location.href = '/'; return; }
+  const taskId = document.getElementById('ext-task-id').value.trim();
+  const prompt = document.getElementById('ext-prompt').value.trim();
+  if (!taskId) { showToast('Please enter the original Task ID', 'error'); return; }
+  if (!prompt) { showToast('Please enter a continuation prompt', 'error'); return; }
+  const waterMark = document.getElementById('ext-watermark').value.trim();
+
+  const btn = document.getElementById('ext-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Submitting...';
+
+  try {
+    const data = await apiPost('/api/runway-gen/extend', { taskId, prompt, quality: S.extQuality, waterMark });
+    if (!data.taskId) throw new Error('No task ID returned from server');
+
+    addTask({ taskId: data.taskId, type: 'runway', subtype: 'extend', prompt, status: 'wait',
+      quality: S.extQuality, parentTaskId: taskId });
+
+    showToast('Video extension started! (' + data.taskId.slice(0,8) + '...)', 'success');
+    document.getElementById('ext-prompt').value = '';
+    document.getElementById('ext-pc').textContent = '0';
+  } catch (e) {
+    showToast(e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '↗ Extend Video';
+  }
+}
+
+async function generateAlephVideo() {
+  if (!S.user) { showToast('Please log in to use Aleph', 'error'); window.location.href = '/'; return; }
+  const videoUrl = document.getElementById('aleph-video-url').value.trim();
+  const prompt = document.getElementById('aleph-prompt').value.trim();
+  if (!videoUrl) { showToast('Please enter an input video URL', 'error'); return; }
+  if (!videoUrl.startsWith('https://')) { showToast('Video URL must start with https://', 'error'); return; }
+  if (!prompt) { showToast('Please enter a transformation prompt', 'error'); return; }
+  const waterMark = document.getElementById('aleph-watermark').value.trim();
+
+  const btn = document.getElementById('aleph-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Submitting...';
+
+  try {
+    const data = await apiPost('/api/runway-gen/aleph', { videoUrl, prompt, aspectRatio: S.alephRatio, waterMark });
+    if (!data.taskId) throw new Error('No task ID returned from server');
+
+    addTask({ taskId: data.taskId, type: 'aleph', prompt, status: 'generating',
+      aspectRatio: S.alephRatio, videoUrlRef: videoUrl });
+
+    showToast('Aleph transformation started! (' + data.taskId.slice(0,8) + '...)', 'success');
+    document.getElementById('aleph-prompt').value = '';
+    document.getElementById('aleph-pc').textContent = '0';
+    document.getElementById('aleph-video-url').value = '';
+  } catch (e) {
+    showToast(e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🎞 Transform Video';
+  }
+}
+
+// =====================================
+//  TASK MANAGEMENT
+// =====================================
+function addTask(fields) {
+  const task = { id: Date.now().toString(), videoUrl: '', imageUrl: '', failMsg: '', createdAt: Date.now(), ...fields };
+  S.tasks.unshift(task);
+  saveTasks();
+  renderCards();
+}
+
+function deleteTask(id) {
+  S.tasks = S.tasks.filter(t => t.id !== id);
+  saveTasks();
+  renderCards();
+}
+
+function clearAllResults() {
+  if (!S.tasks.length) return;
+  if (!confirm('Clear all results from this session?')) return;
+  S.tasks = [];
+  saveTasks();
+  renderCards();
+}
+
+function fillExtend(taskId) {
+  setTab('extend');
+  document.getElementById('ext-task-id').value = taskId;
+  document.getElementById('ext-prompt').focus();
+}
+
+function downloadVideo(url) {
+  const a = document.createElement('a');
+  a.href = url;
+  a.target = '_blank';
+  a.rel = 'noopener noreferrer';
+  a.click();
+}
+
+// =====================================
+//  POLLING
+// =====================================
+function startPolling() {
+  if (S.pollTimer) clearInterval(S.pollTimer);
+  pollPending();
+  S.pollTimer = setInterval(pollPending, 7000);
+}
+
+async function pollPending() {
+  const pending = S.tasks.filter(t => !['success','failed'].includes(t.status));
+  if (!pending.length) return;
+  for (const task of pending) {
+    try {
+      let d;
+      if (task.type === 'aleph') {
+        d = await apiGet('/api/runway-gen/aleph-status?taskId=' + encodeURIComponent(task.taskId));
+        if (d.done) { task.status = 'success'; task.videoUrl = d.videoUrl || ''; task.imageUrl = d.imageUrl || ''; }
+        else if (d.failed) { task.status = 'failed'; task.failMsg = d.errorMessage || 'Generation failed'; }
+      } else {
+        d = await apiGet('/api/runway-gen/status?taskId=' + encodeURIComponent(task.taskId));
+        task.status = d.state || task.status;
+        if (d.done) { task.videoUrl = d.videoUrl || ''; task.imageUrl = d.imageUrl || ''; }
+        else if (d.failed) { task.failMsg = d.failMsg || 'Generation failed'; }
+      }
+      saveTasks();
+      updateCard(task);
+    } catch {}
+  }
+}
+
+// =====================================
+//  RENDERING
+// =====================================
+function escH(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function timeAgo(ts) {
+  const d = Date.now() - ts;
+  if (d < 60000) return 'just now';
+  if (d < 3600000) return Math.floor(d / 60000) + 'm ago';
+  if (d < 86400000) return Math.floor(d / 3600000) + 'h ago';
+  return Math.floor(d / 86400000) + 'd ago';
+}
+
+function renderCards() {
+  const container = document.getElementById('rw-cards');
+  const empty = document.getElementById('rw-empty');
+
+  if (!S.tasks.length) { empty.style.display = 'flex'; return; }
+  empty.style.display = 'none';
+
+  // Remove stale cards
+  const taskIdSet = new Set(S.tasks.map(t => t.id));
+  container.querySelectorAll('.rw-card').forEach(el => { if (!taskIdSet.has(el.dataset.id)) el.remove(); });
+
+  S.tasks.forEach(task => {
+    let el = container.querySelector('[data-id="' + task.id + '"]');
+    if (!el) {
+      el = document.createElement('div');
+      el.className = 'rw-card';
+      el.dataset.id = task.id;
+      container.insertBefore(el, container.firstChild);
+    }
+    buildCardEl(el, task);
+  });
+}
+
+function updateCard(task) {
+  const el = document.getElementById('rw-cards').querySelector('[data-id="' + task.id + '"]');
+  if (el) buildCardEl(el, task);
+  else renderCards();
+}
+
+function buildCardEl(el, task) {
+  const stMap = { wait:'Waiting', queueing:'Queued', generating:'Generating...', success:'Done ✓', failed:'Failed ✗' };
+  const stCls = { wait:'waiting', queueing:'waiting', generating:'generating', success:'success', failed:'failed' };
+  const status = stMap[task.status] || task.status;
+  const statusCls = stCls[task.status] || 'waiting';
+  const ratio = (task.aspectRatio && task.aspectRatio !== 'auto') ? task.aspectRatio.replace(':', '/') : '16/9';
+
+  // Badge
+  let badgeType = 'runway';
+  let badgeLabel = 'Runway';
+  if (task.type === 'aleph') { badgeType = 'aleph'; badgeLabel = 'Aleph'; }
+  else if (task.subtype === 'extend') { badgeType = 'extend'; badgeLabel = 'Extend'; }
+
+  // Preview area
+  let preview = '';
+  if (task.status === 'success' && task.videoUrl) {
+    preview = `<video src="${escH(task.videoUrl)}" poster="${escH(task.imageUrl)}" controls muted loop playsinline style="width:100%;display:block;aspect-ratio:${ratio};object-fit:cover;"></video>`;
+  } else if (task.imageUrl) {
+    preview = `<img src="${escH(task.imageUrl)}" alt="" loading="lazy" style="width:100%;display:block;aspect-ratio:${ratio};object-fit:cover;">`;
+  } else if (task.status === 'failed') {
+    preview = `<div class="rw-card-fail-wrap" style="aspect-ratio:${ratio}"><span style="font-size:24px">⚠️</span><span style="font-size:10px;color:var(--red);text-align:center">${escH(task.failMsg || 'Generation failed')}</span></div>`;
+  } else {
+    preview = `<div class="rw-card-spinner-wrap" style="aspect-ratio:${ratio}"><div class="rw-spinner"></div></div>`;
+  }
+
+  // Action buttons
+  let actions = '';
+  if (task.status === 'success' && task.videoUrl) {
+    actions += `<button class="rw-card-btn" onclick="downloadVideo('${escH(task.videoUrl)}')">⬇ Save</button>`;
+    if (task.type !== 'aleph') {
+      actions += `<button class="rw-card-btn" onclick="fillExtend('${escH(task.taskId)}')">↗ Extend</button>`;
+    }
+  }
+  actions += `<div style="flex:1"></div><button class="rw-card-del" onclick="deleteTask('${escH(task.id)}')" title="Remove">✕</button>`;
+
+  // Meta pills
+  let meta = `<span class="rw-badge ${badgeType}">${badgeLabel}</span>`;
+  if (task.quality) meta += `<span class="rw-badge meta">${escH(task.quality)}</span>`;
+  if (task.duration) meta += `<span class="rw-badge meta">${task.duration}s</span>`;
+
+  el.innerHTML = `
+    <div class="rw-card-preview">
+      ${preview}
+      <span class="rw-card-status ${statusCls}">${status}</span>
+    </div>
+    <div class="rw-card-body">
+      <div class="rw-card-prompt" title="${escH(task.prompt)}">${escH(task.prompt.slice(0, 100))}${task.prompt.length > 100 ? '…' : ''}</div>
+      <div class="rw-card-meta">
+        ${meta}
+        <span class="rw-card-time">${timeAgo(task.createdAt)}</span>
+      </div>
+      <div class="rw-card-actions">${actions}</div>
+    </div>
+  `;
+}
+
+// =====================================
+//  SIDEBAR (mobile)
+// =====================================
+function toggleSidebar() {
+  document.querySelector('.sidebar').classList.toggle('open');
+  document.getElementById('sidebar-overlay').classList.toggle('show');
+}
+function closeSidebar() {
+  document.querySelector('.sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('show');
+}
+
+// =====================================
+//  INIT
+// =====================================
+async function init() {
+  document.getElementById('hamburger-btn').addEventListener('click', toggleSidebar);
+
+  await initAuth();
+
+  S.tasks = loadTasks();
+  renderCards();
+  startPolling();
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>

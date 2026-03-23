@@ -428,6 +428,8 @@ app.use('/api/kie', generationLimiter);
 app.use('/api/generate', generationLimiter);
 app.use('/api/google-video', generationLimiter);
 app.use('/api/kie-veo', generationLimiter);
+app.use('/api/runway-gen', (req, res, next) => requireSignedIn(req, res, next));
+app.use('/api/runway-gen', generationLimiter);
 const upload = multer({ dest: UPLOADS_DIR, limits: { fileSize: 50 * 1024 * 1024 } }); // 50MB max
 
 // â•â•â• LITEGRAPH â†’ API CONVERTER â•â•â•
@@ -866,6 +868,92 @@ app.get('/api/kie-veo/get-1080p', async (req, res) => {
     res.json(data?.data || data || {});
   } catch (e) {
     res.status(500).json({ error: "حدث خطأ في الخادم" });
+  }
+});
+
+// === RUNWAY VIDEO API ===
+app.post('/api/runway-gen/generate', async (req, res) => {
+  try {
+    const { prompt, imageUrl, duration, quality, aspectRatio, waterMark = '' } = req.body || {};
+    if (!String(prompt || '').trim()) return res.status(400).json({ error: 'prompt is required' });
+    if (String(prompt).length > 1800) return res.status(400).json({ error: 'prompt too long (max 1800 chars)' });
+    if (![5, 10].includes(Number(duration))) return res.status(400).json({ error: 'duration must be 5 or 10' });
+    if (!['720p', '1080p'].includes(quality)) return res.status(400).json({ error: 'quality must be 720p or 1080p' });
+    if (quality === '1080p' && Number(duration) === 10) return res.status(400).json({ error: '1080p is only available for 5-second videos' });
+    const body = { prompt: String(prompt).trim(), duration: Number(duration), quality, waterMark: String(waterMark || '') };
+    if (imageUrl && typeof imageUrl === 'string' && imageUrl.startsWith('https://')) body.imageUrl = imageUrl;
+    if (!imageUrl && aspectRatio) body.aspectRatio = aspectRatio;
+    const data = await kieFetch('/runway/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    res.json({ taskId: data?.data?.taskId || '', ...(req.creditInfo || {}) });
+  } catch (e) {
+    res.status(e.statusCode || 500).json({ error: e.message || 'حدث خطأ في الخادم' });
+  }
+});
+
+app.get('/api/runway-gen/status', async (req, res) => {
+  try {
+    const taskId = String(req.query.taskId || '');
+    if (!taskId || !/^[a-zA-Z0-9_\-]{8,72}$/.test(taskId)) return res.status(400).json({ error: 'invalid taskId' });
+    const data = await kieFetch(`/runway/record-detail?taskId=${encodeURIComponent(taskId)}`);
+    const info = data?.data || {};
+    res.json({
+      state: info.state || 'wait',
+      done: info.state === 'success',
+      failed: info.state === 'fail',
+      videoUrl: info.videoInfo?.videoUrl || '',
+      imageUrl: info.videoInfo?.imageUrl || '',
+      failMsg: info.failMsg || '',
+      expireFlag: info.expireFlag || 0
+    });
+  } catch (e) {
+    res.status(e.statusCode || 500).json({ error: e.message || 'حدث خطأ في الخادم' });
+  }
+});
+
+app.post('/api/runway-gen/extend', async (req, res) => {
+  try {
+    const { taskId, prompt, quality = '720p', waterMark = '' } = req.body || {};
+    if (!taskId || !/^[a-zA-Z0-9_\-]{8,72}$/.test(taskId)) return res.status(400).json({ error: 'invalid taskId' });
+    if (!String(prompt || '').trim()) return res.status(400).json({ error: 'prompt is required' });
+    if (!['720p', '1080p'].includes(quality)) return res.status(400).json({ error: 'quality must be 720p or 1080p' });
+    const data = await kieFetch('/runway/extend', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ taskId, prompt: String(prompt).trim(), quality, waterMark: String(waterMark || '') }) });
+    res.json({ taskId: data?.data?.taskId || '' });
+  } catch (e) {
+    res.status(e.statusCode || 500).json({ error: e.message || 'حدث خطأ في الخادم' });
+  }
+});
+
+app.post('/api/runway-gen/aleph', async (req, res) => {
+  try {
+    const { prompt, videoUrl, aspectRatio, waterMark = '' } = req.body || {};
+    if (!String(prompt || '').trim()) return res.status(400).json({ error: 'prompt is required' });
+    if (!videoUrl || typeof videoUrl !== 'string' || !videoUrl.startsWith('https://')) return res.status(400).json({ error: 'valid https videoUrl is required' });
+    const body = { prompt: String(prompt).trim(), videoUrl: String(videoUrl), waterMark: String(waterMark || '') };
+    if (aspectRatio) body.aspectRatio = aspectRatio;
+    const data = await kieFetch('/aleph/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    res.json({ taskId: data?.data?.taskId || '' });
+  } catch (e) {
+    res.status(e.statusCode || 500).json({ error: e.message || 'حدث خطأ في الخادم' });
+  }
+});
+
+app.get('/api/runway-gen/aleph-status', async (req, res) => {
+  try {
+    const taskId = String(req.query.taskId || '');
+    if (!taskId || !/^[a-zA-Z0-9_\-]{8,72}$/.test(taskId)) return res.status(400).json({ error: 'invalid taskId' });
+    const data = await kieFetch(`/aleph/record-info?taskId=${encodeURIComponent(taskId)}`);
+    const info = data?.data || {};
+    const done = info.successFlag === 1;
+    const failed = !done && (info.errorCode !== 0 || !!info.errorMessage);
+    res.json({
+      done,
+      failed,
+      videoUrl: info.response?.resultVideoUrl || '',
+      imageUrl: info.response?.resultImageUrl || '',
+      errorMessage: info.errorMessage || ''
+    });
+  } catch (e) {
+    res.status(e.statusCode || 500).json({ error: e.message || 'حدث خطأ في الخادم' });
   }
 });
 
