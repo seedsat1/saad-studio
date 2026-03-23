@@ -773,11 +773,29 @@ html,body{background:var(--bg);color:var(--tx);font-family:var(--fm);min-height:
   }
 
   // ─── Contact form handler ───
-  window.handleContactSubmit = function(e){
+  window.handleContactSubmit = async function(e){
     e.preventDefault();
     const btn = e.target.querySelector('button[type="submit"]');
-    if(btn){ btn.textContent='✅ تم الإرسال!'; btn.disabled=true; }
-    setTimeout(()=>{ if(btn){btn.textContent='📤 إرسال'; btn.disabled=false;} e.target.reset(); }, 2000);
+    const form = e.target;
+    const data = Object.fromEntries(new FormData(form));
+    if(btn){ btn.textContent='⏳ جاري الإرسال...'; btn.disabled=true; }
+    try {
+      const r = await fetch('/api/contact', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify(data)
+      });
+      const j = await r.json();
+      if(r.ok && j.ok){
+        if(btn){ btn.textContent='✅ تم الإرسال!'; }
+        form.reset();
+        setTimeout(()=>{ if(btn){btn.textContent='📤 إرسال'; btn.disabled=false;} }, 3000);
+      } else {
+        if(btn){ btn.textContent='❌ حدث خطأ، حاول مرة أخرى'; btn.disabled=false; }
+      }
+    } catch {
+      if(btn){ btn.textContent='❌ تعذر الإرسال'; btn.disabled=false; }
+    }
   };
 
   // ─── Main load ───
