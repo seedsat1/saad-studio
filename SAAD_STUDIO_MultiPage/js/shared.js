@@ -1433,6 +1433,7 @@ async function runHailuo(){
 
     if(btn){ btn.disabled = true; btn.innerHTML = '<div class="spinner"></div> إرسال إلى Hailuo...'; }
     clearResults('hailuo-results');
+    addNanoSkeletons('hailuo-results', 1, null);
 
     let imageUrl = '';
     if(isImage && file){
@@ -1465,6 +1466,7 @@ async function runHailuo(){
     setHailuoStatus(String(e.message || e).substring(0,160), 'error');
     toast('خطأ: '+String(e.message || e).substring(0,140), 'error');
   } finally {
+    removeNanoSkeletons('hailuo-results');
     if(btn){ btn.disabled = false; btn.textContent = original || 'Generate'; }
   }
 }
@@ -1732,6 +1734,7 @@ async function runSora(){
 
     if(btn){ btn.disabled = true; btn.innerHTML = '<div class="spinner"></div> إرسال إلى Sora...'; }
     clearResults('sora-results');
+    addNanoSkeletons('sora-results', 1, aspectRatio);
     if(modelInfo.watermark){
       setSoraStatus('تحضير رابط الفيديو...');
     } else {
@@ -1808,6 +1811,7 @@ async function runSora(){
     setSoraStatus(String(e.message || e).substring(0,160), 'error');
     toast('خطأ: '+String(e.message || e).substring(0,140), 'error');
   } finally {
+    removeNanoSkeletons('sora-results');
     if(btn){ btn.disabled = false; btn.textContent = original || 'Generate'; }
   }
 }
@@ -1939,6 +1943,7 @@ async function runGrok(){
 
     if(btn){ btn.disabled = true; btn.innerHTML = '<div class="spinner"></div> إرسال إلى Grok...'; }
     clearResults('grok-results');
+    addNanoSkeletons('grok-results', 1, aspectRatio);
 
     const input = {};
     let usingExternalImage = false;
@@ -1998,6 +2003,7 @@ async function runGrok(){
     setGrokStatus(String(e.message || e).substring(0,160), 'error');
     toast('خطأ: '+String(e.message || e).substring(0,140), 'error');
   } finally {
+    removeNanoSkeletons('grok-results');
     if(btn){ btn.disabled = false; btn.textContent = original || 'Generate'; }
   }
 }
@@ -2042,6 +2048,7 @@ async function runInfinitalk(){
 
     if(btn){ btn.disabled = true; btn.innerHTML = '<div class="spinner"></div> إرسال إلى Infinitalk...'; }
     clearResults('infinitalk-results');
+    addNanoSkeletons('infinitalk-results', 1, null);
 
     setInfinitalkStatus('رفع الصورة...');
     const imageUrl = await uploadKieBinaryFile(imageFile);
@@ -2077,6 +2084,7 @@ async function runInfinitalk(){
     setInfinitalkStatus(String(e.message || e).substring(0,160), 'error');
     toast('خطأ: '+String(e.message || e).substring(0,140), 'error');
   } finally {
+    removeNanoSkeletons('infinitalk-results');
     if(btn){ btn.disabled = false; btn.textContent = original || 'Generate'; }
   }
 }
@@ -2119,6 +2127,7 @@ async function runQwen2(){
 
     if(btn){ btn.disabled = true; btn.innerHTML = '<div class="spinner"></div> إرسال إلى Qwen2...'; }
     clearResults('qwen2-results');
+    addNanoSkeletons('qwen2-results', 1, imageSize);
     let imageUrl = '';
     if(isEdit){
       setQwen2Status('رفع الصورة...');
@@ -2155,6 +2164,7 @@ async function runQwen2(){
     setQwen2Status(String(e.message || e).substring(0,160), 'error');
     toast('خطأ: '+String(e.message || e).substring(0,140), 'error');
   } finally {
+    removeNanoSkeletons('qwen2-results');
     if(btn){ btn.disabled = false; btn.textContent = original || 'Generate'; }
   }
 }
@@ -2206,6 +2216,7 @@ async function runIdeogramReframe(){
 
     if(btn){ btn.disabled = true; btn.innerHTML = '<div class="spinner"></div> إرسال إلى Ideogram...'; }
     clearResults('ideogram-reframe-results');
+    addNanoSkeletons('ideogram-reframe-results', parseInt(numImages||'1'), ratioRaw);
     setIdeogramReframeStatus('رفع الصورة...');
     const imageUrl = await uploadKieBinaryFile(imageFile);
 
@@ -2240,6 +2251,7 @@ async function runIdeogramReframe(){
     setIdeogramReframeStatus(String(e.message || e).substring(0,160), 'error');
     toast('خطأ: '+String(e.message || e).substring(0,140), 'error');
   } finally {
+    removeNanoSkeletons('ideogram-reframe-results');
     if(btn){ btn.disabled = false; btn.textContent = original || 'Generate'; }
   }
 }
@@ -2276,6 +2288,7 @@ async function runZImage(){
 
     if(btn){ btn.disabled = true; btn.innerHTML = '<div class="spinner"></div> إرسال إلى Z-Image...'; }
     clearResults('zimage-results');
+    addNanoSkeletons('zimage-results', 1, aspectRatio);
 
     setZImageStatus('إنشاء المهمة...');
     const input = { prompt, aspect_ratio: aspectRatio };
@@ -2299,6 +2312,7 @@ async function runZImage(){
     setZImageStatus(String(e.message || e).substring(0,160), 'error');
     toast('خطأ: '+String(e.message || e).substring(0,140), 'error');
   } finally {
+    removeNanoSkeletons('zimage-results');
     if(btn){ btn.disabled = false; btn.textContent = original || 'Generate'; }
   }
 }
@@ -2340,6 +2354,7 @@ async function runSeedream(){
 
     if(btn){ btn.disabled = true; btn.innerHTML = '<div class="spinner"></div> إرسال إلى Seedream...'; }
     clearResults('seedream-results');
+    addNanoSkeletons('seedream-results', 1, aspectRatio);
 
     let imageUrl = '';
     if(requiresImage){
@@ -2375,6 +2390,7 @@ async function runSeedream(){
     setSeedreamStatus(String(e.message || e).substring(0,160), 'error');
     toast('خطأ: '+String(e.message || e).substring(0,140), 'error');
   } finally {
+    removeNanoSkeletons('seedream-results');
     if(btn){ btn.disabled = false; btn.textContent = original || 'Generate'; }
   }
 }
@@ -2424,6 +2440,7 @@ async function runSeedance(){
 
     if(btn){ btn.disabled = true; btn.innerHTML = '<div class="spinner"></div> إرسال إلى Seedance...'; }
     clearResults('seedance-results');
+    addNanoSkeletons('seedance-results', 1, aspect_ratio);
 
     const input_urls = [];
     if(img1){
@@ -2466,6 +2483,7 @@ async function runSeedance(){
     setSeedanceStatus(String(e.message || e).substring(0,160), 'error');
     toast('خطأ: '+String(e.message || e).substring(0,140), 'error');
   } finally {
+    removeNanoSkeletons('seedance-results');
     if(btn){ btn.disabled = false; btn.textContent = original || 'Generate'; }
   }
 }
@@ -2520,6 +2538,7 @@ async function runWan(){
 
     if(btn){ btn.disabled = true; btn.innerHTML = '<div class="spinner"></div> إرسال إلى Wan...'; }
     clearResults('wan-results');
+    addNanoSkeletons('wan-results', 1, aspect_ratio);
 
     if(isSpeech){
       setWanStatus('رفع الصورة...');
@@ -2612,6 +2631,7 @@ async function runWan(){
     setWanStatus(String(e.message || e).substring(0,160), 'error');
     toast('خطأ: '+String(e.message || e).substring(0,140), 'error');
   } finally {
+    removeNanoSkeletons('wan-results');
     if(btn){ btn.disabled = false; btn.textContent = original || 'Generate'; }
   }
 }
@@ -2656,6 +2676,7 @@ async function runFlux2(){
 
     if(btn){ btn.disabled = true; btn.innerHTML = '<div class="spinner"></div> إرسال إلى Flux 2...'; }
     clearResults('flux2-results');
+    addNanoSkeletons('flux2-results', 1, aspect_ratio);
 
     let input_urls = [];
     if(info.requiresImages){
@@ -2692,6 +2713,7 @@ async function runFlux2(){
     setFlux2Status(String(e.message || e).substring(0,160), 'error');
     toast('خطأ: '+String(e.message || e).substring(0,140), 'error');
   } finally {
+    removeNanoSkeletons('flux2-results');
     if(btn){ btn.disabled = false; btn.textContent = original || 'Generate'; }
   }
 }
@@ -2738,6 +2760,7 @@ async function runFluxKontext(){
 
     if(btn){ btn.disabled = true; btn.innerHTML = '<div class="spinner"></div> إرسال إلى Flux Kontext...'; }
     clearResults('fk-results');
+    addNanoSkeletons('fk-results', 1, aspectRatio);
 
     let inputImage = '';
     if(mode === 'edit' && imageFile){
@@ -2779,6 +2802,7 @@ async function runFluxKontext(){
     setFluxKontextStatus(String(e.message || e).substring(0,160), 'error');
     toast('خطأ: '+String(e.message || e).substring(0,140), 'error');
   } finally {
+    removeNanoSkeletons('fk-results');
     if(btn){ btn.disabled = false; btn.textContent = original || 'Generate'; }
   }
 }
@@ -5344,6 +5368,7 @@ async function runKieVeo3(){
     if(gentype === 'FIRST_AND_LAST_FRAMES_2_VIDEO' && (!file1 || !file2)) throw new Error('First & Last Frames يحتاج صورتين — الأولى والأخيرة');
     if(gentype === 'REFERENCE_2_VIDEO' && !file1) throw new Error('Reference يحتاج صورة مرجعية واحدة على الأقل');
     clearResults('g-veo3-results');
+    addNanoSkeletons('g-veo3-results', 1, ratio);
 
     // Upload images if present
     const imageUrls = [];
@@ -5392,6 +5417,7 @@ async function runKieVeo3(){
   } catch(e){
     toast('خطأ: '+String(e.message||e).substring(0,140),'error');
   } finally {
+    removeNanoSkeletons('g-veo3-results');
     if(btn){ btn.disabled = false; btn.textContent = 'Generate'; }
   }
 }
@@ -5874,6 +5900,7 @@ async function runKling(mode){
     syncKlingModelLabel(modelName);
     if(btn){ btn.disabled = true; btn.innerHTML = '<div class="spinner"></div> جارٍ الإرسال إلى Kling...'; }
     clearResults(isMotion ? 'kling-results-motion' : (isImage ? 'kling-results-image' : 'kling-results'));
+    addNanoSkeletons(isMotion ? 'kling-results-motion' : (isImage ? 'kling-results-image' : 'kling-results'), 1, null);
     clearKlingResult();
     updateKlingShowButtons();
     setKlingStatus('Preparing request...');
@@ -5955,6 +5982,7 @@ async function runKling(mode){
     setKlingStatus(String(e.message || e).substring(0,160), 'error');
     toast('خطأ: '+String(e.message || e).substring(0,140),'error');
   } finally {
+    removeNanoSkeletons(isMotion ? 'kling-results-motion' : (isImage ? 'kling-results-image' : 'kling-results'));
     if(btn){ btn.disabled = false; btn.textContent = original || 'Generate'; }
   }
 }
@@ -5979,6 +6007,7 @@ async function runKlingAvatar(){
     syncKlingModelLabel(modelName);
     if(btn){ btn.disabled = true; btn.innerHTML = '<div class="spinner"></div> جارٍ الإرسال إلى Kling...'; }
     clearResults('kling-results-avatar');
+    addNanoSkeletons('kling-results-avatar', 1, null);
     clearKlingResult();
     updateKlingShowButtons();
     setKlingStatus('Uploading image...');
@@ -6018,6 +6047,7 @@ async function runKlingAvatar(){
     setKlingStatus(String(e.message || e).substring(0,160), 'error');
     toast('خطأ: '+String(e.message || e).substring(0,140),'error');
   } finally {
+    removeNanoSkeletons('kling-results-avatar');
     if(btn){ btn.disabled = false; btn.textContent = original || 'Generate'; }
   }
 }
