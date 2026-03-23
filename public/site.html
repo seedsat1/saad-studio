@@ -469,7 +469,8 @@ html,body{background:var(--bg);color:var(--tx);font-family:var(--fm);min-height:
       setActive();
 
       // Favicon
-      if(s.favicon){ const lnk=document.createElement('link'); lnk.rel='icon'; lnk.href=s.favicon; document.head.appendChild(lnk); }
+      const faviconUrl = s.favicon || '/favicon.png';
+      const lnk=document.createElement('link'); lnk.rel='icon'; lnk.href=faviconUrl; document.head.appendChild(lnk);
     }catch(e){ console.warn('loadNav error', e); }
   }
 
