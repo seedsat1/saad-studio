@@ -3267,7 +3267,7 @@ async function deductCreditsForGeneration(req, res, model, params) {
   }
 
   // أسعار Nano Banana الثابتة (بدون هامش ربح)
-  const NANO_FLAT = { nano: 1, nano2: 10, nanopro: 5 };
+  const NANO_FLAT = { nano: 2, nano2: 10, nanopro: 5 };
   const nkParam = String(params.nanoKey || '').toLowerCase();
   const cost = nkParam in NANO_FLAT
     ? NANO_FLAT[nkParam]

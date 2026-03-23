@@ -5145,7 +5145,7 @@ async function buildT2P(){
 }
 
 // تكلفة الكريدت لكل نموذج Nano Banana
-const NANO_CREDIT_COSTS = { nano: 1, nano2: 10, nanopro: 5 };
+const NANO_CREDIT_COSTS = { nano: 2, nano2: 10, nanopro: 5 };
 
 async function runGoogleImageTool(mode){
   // نحسب التكلفة ديناميكياً حسب النموذج
