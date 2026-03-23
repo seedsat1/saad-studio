@@ -3040,15 +3040,12 @@ function serverCalcCreditCost(model, params = {}) {
   if (m.includes('infinitalk'))                             return 15;
   if (m.includes('grok-imagine') || m.includes('grok/imagine')) return 4;
   if (m.includes('grok'))                                   return 4;
-  // nano banana image models — تكاليف KIE الأساسية (هامش 40% يضاف بواسطة applyProfitMargin)
+  // nano banana — أسعار ثابتة نهائية (بدون هامش ربح) — تُستخدم مباشرة من deductCreditsForGeneration
   if (m.includes('gemini-3.1-flash-image') || m.includes('gemini-3-pro-image')) {
-    const q  = String(params.quality || '2K').toUpperCase();
     const nk = String(params.nanoKey || '').toLowerCase();
-    if (m.includes('gemini-3-pro-image')) return q === '4K' ? 24 : 18; // nanopro 4K=24 / 1-2K=18
-    if (nk === 'nano') return 4;   // nano base
-    if (q === '1K')    return 8;   // nano2 1K
-    if (q === '4K')    return 18;  // nano2 4K
-    return 12;                     // nano2 2K (default)
+    if (m.includes('gemini-3-pro-image')) return 5;  // nanopro = 5 كريدت (دائماً)
+    if (nk === 'nano') return 2;                     // nano    = 2 كريدت
+    return 10;                                        // nano2   = 10 كريدت
   }
   if (m.includes('gpt-5') || m.includes('gpt5') || m.includes('gpt-4') || m.includes('gpt4') || m.includes('gemini')) return 1;
   if (m.includes('ai-avatar'))                              return 50;
@@ -3266,12 +3263,17 @@ async function deductCreditsForGeneration(req, res, model, params) {
     return false;
   }
 
-  // أسعار Nano Banana الثابتة (بدون هامش ربح)
+  // أسعار Nano Banana الثابتة (بدون هامش ربح) — طبقة حماية إضافية عبر nanoKey
   const NANO_FLAT = { nano: 2, nano2: 10, nanopro: 5 };
   const nkParam = String(params.nanoKey || '').toLowerCase();
-  const cost = nkParam in NANO_FLAT
+  // إذا كان nanoKey محدداً — نستخدم السعر الثابت مباشرة
+  // وإلا نستخدم serverCalcCreditCost التي ترجع السعر الصحيح أيضاً (applyProfitMargin لا تؤثر على نانو)
+  const rawCost = nkParam in NANO_FLAT
     ? NANO_FLAT[nkParam]
-    : applyProfitMargin(serverCalcCreditCost(model, params));
+    : serverCalcCreditCost(model, params);
+  // لمنع تضاعف الهامش على نانو: serverCalcCreditCost ترجع السعر النهائي بالفعل
+  const isNanoModel = String(model || '').toLowerCase().includes('gemini-3');
+  const cost = (isNanoModel || nkParam in NANO_FLAT) ? rawCost : applyProfitMargin(rawCost);
 
   // Usage limits check (still vault-based for now)
   const limCheck = checkUsageLimits(req.currentUser, model, cost);
