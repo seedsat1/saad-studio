@@ -74,8 +74,7 @@
   flex: unset !important;
 }
 #nano-all-results .result-empty {
-  grid-column: 1 / -1;
-  min-height: 280px;
+  display: none !important;
 }
 #nano-all-results .result-item {
   border-radius: 12px !important;
@@ -385,7 +384,7 @@
               <button class="btn btn-ghost" style="font-size:10px;margin-left:auto;" onclick="clearResults('g-nanopro-results');clearResults('g-nano2-results');clearResults('g-nano-results')">Clear</button>
             </div>
             <div id="nano-all-results">
-              <div class="result-grid gs-result" id="g-nanopro-results"><div class="result-empty"><div class="result-empty-icon">🍌</div><div class="result-empty-text">ستظهر النتائج هنا</div></div></div>
+              <div class="result-grid gs-result" id="g-nanopro-results"></div>
               <div class="result-grid gs-result" id="g-nano2-results"></div>
               <div class="result-grid gs-result" id="g-nano-results"></div>
             </div>
