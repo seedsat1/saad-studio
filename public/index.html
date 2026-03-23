@@ -428,8 +428,15 @@ body::after{content:'';position:fixed;inset:auto -120px -140px auto;width:540px;
 .gs-content{display:none;grid-template-columns:minmax(260px,320px) minmax(0,1fr);gap:18px;min-height:420px;margin-bottom:18px;padding:14px;border:1px solid var(--b);border-radius:var(--r);background:linear-gradient(180deg,rgba(255,255,255,0.01),rgba(255,255,255,0.005));justify-content:center;}
 .gs-content.active{display:grid;}
 #page-nano .gs-content.active{grid-template-columns:1fr;}
-#nano-all-results{display:flex;flex-direction:column;gap:0;flex:1;overflow:hidden;}
+#nano-all-results{display:block;flex:1;overflow-y:auto;}
 #nano-all-results .result-grid:empty{display:none;}
+#nano-all-results .result-grid{display:block;columns:5 140px;column-gap:9px;padding:13px;overflow-y:visible;}
+#nano-all-results .result-grid .result-item{break-inside:avoid;margin-bottom:9px;}
+#nano-all-results .result-empty{column-span:all;}
+@keyframes nano-shimmer{0%{background-position:-400% 0}100%{background-position:400% 0}}
+.result-skeleton{border-radius:8px;break-inside:avoid;margin-bottom:9px;overflow:hidden;display:block;}
+.result-skeleton::after{content:'';display:block;width:100%;min-height:160px;background:linear-gradient(90deg,#161616 25%,#252525 50%,#161616 75%);background-size:400% 100%;animation:nano-shimmer 1.4s ease infinite;}
+@media(max-width:768px){#nano-all-results .result-grid{columns:2 120px;}}
 #page-eleven .ctrl-panel.gs-content.active{display:flex;flex-direction:column;}
 #page-google .gs-content.active{display:block;min-height:calc(100vh - 180px);}
 .gs-gallery{margin:16px 0 24px;padding:16px;border:1px solid var(--b);border-radius:var(--r);background:linear-gradient(180deg,rgba(255,255,255,0.01),rgba(255,255,255,0.005));}
@@ -10468,6 +10475,31 @@ async function storeLocalImageUrl(url, prefix='img'){
   return url;
 }
 
+function addSkeletonCards(containerId, count, ratio='1:1'){
+  const c=document.getElementById(containerId); if(!c) return [];
+  const emp=c.querySelector('.result-empty'); if(emp) emp.remove();
+  const ratioMap={'16:9':'16/9','9:16':'9/16','4:3':'4/3','3:4':'3/4','3:2':'3/2','2:3':'2/3','21:9':'21/9','1:1':'1/1'};
+  const cssRatio=ratioMap[ratio]||'1/1';
+  const skeletons=[];
+  for(let i=0;i<count;i++){
+    const sk=document.createElement('div');
+    sk.className='result-skeleton';
+    sk.style.cssText=`aspect-ratio:${cssRatio};`;
+    c.prepend(sk);
+    skeletons.push(sk);
+  }
+  return skeletons;
+}
+function removeNextSkeleton(skeletons){
+  if(!skeletons||!skeletons.length) return;
+  const sk=skeletons.find(s=>s.isConnected);
+  if(sk) sk.remove();
+}
+function removeAllSkeletons(skeletons){
+  if(!skeletons) return;
+  skeletons.forEach(sk=>{try{if(sk.isConnected)sk.remove();}catch(e){}});
+}
+
 function addResultItem(containerId, url, isVideo=false, prompt='', save=true){
   const c=document.getElementById(containerId); if(!c) return;
   const emp=c.querySelector('.result-empty'); if(emp) emp.remove();
@@ -10881,6 +10913,7 @@ async function runGoogleImageTool(mode){
   // Nano Banana Pro: مفتوح لكل الخطط — الكريدت هو الحد الوحيد
   const cfg = GOOGLE_IMAGE_TOOL_CONFIG[mode];
   if(!cfg) return;
+  let skeletons = [];
   const btn = document.getElementById(cfg.buttonId);
   const original = btn ? btn.textContent : '';
   // Also handle the composer Generate button in page-nano
@@ -10944,6 +10977,8 @@ async function runGoogleImageTool(mode){
       parts
     };
 
+    skeletons = addSkeletonCards(cfg.resultId, count, ratio);
+
     // Fire parallel requests for requested count
     const requests = [];
     for(let i = 0; i < count; i++){
@@ -10968,6 +11003,7 @@ async function runGoogleImageTool(mode){
           }
         } catch(e){}
         const stored = await storeLocalImageUrl(finalImg, 'google');
+        removeNextSkeleton(skeletons);
         addResultItem(cfg.resultId, stored, false, prompt);
         addGoogleGalleryItem(stored, prompt, cfg.title);
         S.lastT2PImage = finalImg;
@@ -10980,11 +11016,13 @@ async function runGoogleImageTool(mode){
     AUTH.consumeCredits(10 * count);
     toast(`تم التوليد عبر ${cfg.title} (${totalImages} صور) - التكلفة التقديرية ${formatUsd(estimatedCost * count)}`,'success');
   } catch(e){
+    removeAllSkeletons(skeletons);
     toast('خطأ: '+String(e.message||e).substring(0,140),'error');
     if(gbarTriggered && gbarStatus){
       gbarStatus.textContent = 'حدث خطأ';
     }
   } finally {
+    removeAllSkeletons(skeletons);
     if(btn){ btn.disabled = false; btn.textContent = original || cfg.title; }
     if(genBtn){ genBtn.disabled = false; genBtn.innerHTML = genBtnOriginal || 'Generate'; }
     if(gbarTriggered && gbarBtn){
