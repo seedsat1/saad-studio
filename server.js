@@ -3814,6 +3814,7 @@ app.post('/api/admin/users/:id/credits', requireAdmin, async (req, res) => {
     subscription_end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
   });
   auditLog('admin.user.credits', 'userId="' + req.params.id + '" amount=' + n, req);
+  try { logCreditOp(profile.email, 'add', n, 'إضافة يدوية من الداشبورد'); } catch {}
   res.json({ ok: true, credits: updated?.credits ?? newCredits });
 });
 
@@ -4411,89 +4412,614 @@ app.post('/api/admin/homepage/upload-image', requireAdmin, uploadLimiter, mediaM
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// --- STUB API ROUTES for new dashboard sections ---
+// ═══════════════════════════════════════════════════════════════════════════════
+// REAL DASHBOARD API ROUTES (vault-backed)
+// ═══════════════════════════════════════════════════════════════════════════════
 
-// Analytics
-app.get('/api/admin/analytics', requireAdmin, (req, res) => {
-  res.json({ labels: [], generations: [], revenue: [], newUsers: [], models: {} });
+const NOTIFICATIONS_FILE = path.join(VAULT_DIR, 'notifications.json');
+const COUPONS_FILE       = path.join(VAULT_DIR, 'coupons.json');
+const MODEL_SETTINGS_FILE = path.join(VAULT_DIR, 'model_settings.json');
+const CREDIT_LOG_FILE    = path.join(VAULT_DIR, 'credit_log.json');
+const PLAN_SETTINGS_FILE = path.join(VAULT_DIR, 'plan_settings.json');
+const MODERATION_FILE    = path.join(VAULT_DIR, 'moderation.json');
+const BACKUPS_DIR        = path.join(VAULT_DIR, 'backups');
+if (!fs.existsSync(BACKUPS_DIR)) fs.mkdirSync(BACKUPS_DIR, { recursive: true });
+
+// ── Generic vault helpers ──
+function vaultRead(file, fallback) {
+  try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch { return fallback; }
+}
+function vaultWrite(file, data) {
+  fs.writeFileSync(file, JSON.stringify(data, null, 2));
+}
+
+// ══════════════════════════════════════
+// ANALYTICS — aggregate real data from usage.json + activity.json + users
+// ══════════════════════════════════════
+app.get('/api/admin/analytics', requireAdmin, async (req, res) => {
+  try {
+    const days = Math.min(Math.max(parseInt(req.query.days) || 7, 1), 90);
+    const usage = loadUsage();
+    const activity = vaultRead(ACTIVITY_FILE, []);
+    const labels = [];
+    const genCounts = [];
+    const revCounts = [];
+    const newUserCounts = [];
+    const modelMap = {};
+
+    // Build date labels
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(); d.setDate(d.getDate() - i);
+      const key = d.toISOString().split('T')[0]; // YYYY-MM-DD
+      labels.push(d.toLocaleDateString('ar-SA', { month: 'short', day: 'numeric' }));
+
+      // Count generations per day from activity log
+      const dayGens = Array.isArray(activity) ? activity.filter(a => a.createdAt && a.createdAt.startsWith(key)).length : 0;
+      genCounts.push(dayGens);
+
+      // Revenue: sum credits from approved orders for this day
+      let dayRev = 0;
+      try {
+        const orders = await getAllOrders();
+        orders.filter(o => o.status === 'approved' && o.approvedAt && o.approvedAt.startsWith(key))
+              .forEach(o => { dayRev += (o.pack || 0); });
+      } catch {}
+      revCounts.push(dayRev);
+
+      // New users: count users created on this day
+      let dayNewUsers = 0;
+      try {
+        if (supabaseAdmin) {
+          const { count } = await supabaseAdmin.from('profiles').select('id', { count: 'exact', head: true })
+            .gte('created_at', key + 'T00:00:00').lt('created_at', key + 'T23:59:59');
+          dayNewUsers = count || 0;
+        } else {
+          dayNewUsers = getVaultUsers().filter(u => u.createdAt && u.createdAt.startsWith(key)).length;
+        }
+      } catch {}
+      newUserCounts.push(dayNewUsers);
+    }
+
+    // Model usage distribution from activity log
+    if (Array.isArray(activity)) {
+      const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - days);
+      activity.filter(a => new Date(a.createdAt) >= cutoff).forEach(a => {
+        const m = a.model || 'Other';
+        modelMap[m] = (modelMap[m] || 0) + 1;
+      });
+    }
+
+    // Also aggregate from usage.json per-user data
+    if (Object.keys(modelMap).length === 0) {
+      for (const uid of Object.keys(usage)) {
+        for (const dateKey of Object.keys(usage[uid])) {
+          if (dateKey.includes('-') && dateKey.length === 10) {
+            const u = usage[uid][dateKey];
+            if (u.images) modelMap['Images'] = (modelMap['Images'] || 0) + u.images;
+            if (u.videos) modelMap['Videos'] = (modelMap['Videos'] || 0) + u.videos;
+          }
+        }
+      }
+    }
+
+    res.json({ labels, generations: genCounts, revenue: revCounts, newUsers: newUserCounts, models: modelMap });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// Notifications
+// ══════════════════════════════════════
+// NOTIFICATIONS
+// ══════════════════════════════════════
 app.post('/api/admin/notifications', requireAdmin, (req, res) => {
-  res.json({ ok: true });
+  const { target, title, body, type } = req.body || {};
+  if (!title || !body) return res.status(400).json({ error: 'title and body required' });
+  const notifications = vaultRead(NOTIFICATIONS_FILE, []);
+  const notif = {
+    id: crypto.randomBytes(8).toString('hex'),
+    target: String(target || 'all'),
+    title: String(title).slice(0, 200),
+    body: String(body).slice(0, 1000),
+    type: String(type || 'info'),
+    createdAt: new Date().toISOString()
+  };
+  notifications.unshift(notif);
+  if (notifications.length > 500) notifications.length = 500;
+  vaultWrite(NOTIFICATIONS_FILE, notifications);
+  auditLog('admin.notification.send', `target=${notif.target} title="${notif.title}"`, req);
+  res.json({ ok: true, notification: notif });
 });
 app.get('/api/admin/notifications', requireAdmin, (req, res) => {
-  res.json({ notifications: [] });
+  const notifications = vaultRead(NOTIFICATIONS_FILE, []);
+  res.json({ notifications });
 });
 
-// Coupons
+// ══════════════════════════════════════
+// COUPONS
+// ══════════════════════════════════════
 app.get('/api/admin/coupons', requireAdmin, (req, res) => {
-  res.json({ coupons: [], stats: {} });
+  const coupons = vaultRead(COUPONS_FILE, []);
+  const active = coupons.filter(c => c.active).length;
+  const totalUsed = coupons.reduce((s, c) => s + (c.used || 0), 0);
+  const totalDiscount = coupons.reduce((s, c) => s + ((c.used || 0) * (c.value || 0)), 0);
+  const expired = coupons.filter(c => c.expiresAt && new Date(c.expiresAt) < new Date()).length;
+  res.json({ coupons, stats: { active, totalUsed, totalDiscount, expired } });
 });
 app.post('/api/admin/coupons', requireAdmin, (req, res) => {
-  res.json({ ok: true, coupon: req.body });
+  const { code, type, value, maxUses, expiresAt } = req.body || {};
+  if (!code || !value) return res.status(400).json({ error: 'code and value required' });
+  const coupons = vaultRead(COUPONS_FILE, []);
+  // Check duplicate code
+  if (coupons.find(c => c.code === String(code).toUpperCase())) {
+    return res.status(400).json({ error: 'كود الكوبون موجود مسبقاً' });
+  }
+  const coupon = {
+    id: crypto.randomBytes(8).toString('hex'),
+    code: String(code).toUpperCase().slice(0, 30),
+    type: type === 'credits' ? 'credits' : 'percent',
+    value: Math.max(0, Number(value)),
+    maxUses: maxUses ? Math.max(0, Number(maxUses)) : null,
+    expiresAt: expiresAt || null,
+    used: 0,
+    active: true,
+    createdAt: new Date().toISOString()
+  };
+  coupons.unshift(coupon);
+  vaultWrite(COUPONS_FILE, coupons);
+  auditLog('admin.coupon.create', `code=${coupon.code} type=${coupon.type} value=${coupon.value}`, req);
+  res.json({ ok: true, coupon });
 });
 app.post('/api/admin/coupons/:id/toggle', requireAdmin, (req, res) => {
-  res.json({ ok: true });
+  const coupons = vaultRead(COUPONS_FILE, []);
+  const c = coupons.find(x => x.id === req.params.id);
+  if (!c) return res.status(404).json({ error: 'Coupon not found' });
+  c.active = !c.active;
+  vaultWrite(COUPONS_FILE, coupons);
+  auditLog('admin.coupon.toggle', `code=${c.code} active=${c.active}`, req);
+  res.json({ ok: true, active: c.active });
 });
 app.delete('/api/admin/coupons/:id', requireAdmin, (req, res) => {
+  let coupons = vaultRead(COUPONS_FILE, []);
+  const removed = coupons.find(x => x.id === req.params.id);
+  coupons = coupons.filter(x => x.id !== req.params.id);
+  vaultWrite(COUPONS_FILE, coupons);
+  if (removed) auditLog('admin.coupon.delete', `code=${removed.code}`, req);
   res.json({ ok: true });
 });
 
-// Backups
+// ══════════════════════════════════════
+// BACKUPS & EXPORT
+// ══════════════════════════════════════
 app.get('/api/admin/backups', requireAdmin, (req, res) => {
-  res.json({ backups: [] });
+  try {
+    const files = fs.readdirSync(BACKUPS_DIR).filter(f => f.endsWith('.json') || f.endsWith('.zip'))
+      .map(f => ({
+        id: f,
+        type: f.includes('users') ? 'مستخدمين' : f.includes('orders') ? 'طلبات' : f.includes('full') ? 'نسخة كاملة' : 'بيانات',
+        createdAt: fs.statSync(path.join(BACKUPS_DIR, f)).mtime.toISOString(),
+        url: `/api/admin/backups/${encodeURIComponent(f)}`
+      }))
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    res.json({ backups: files });
+  } catch { res.json({ backups: [] }); }
 });
 
-// Export
-app.get('/api/admin/export', requireAdmin, (req, res) => {
-  res.setHeader('Content-Type', 'application/json');
-  res.setHeader('Content-Disposition', 'attachment; filename="export.json"');
-  res.json({ exported: true, date: new Date().toISOString(), data: {} });
+// Download a specific backup
+app.get('/api/admin/backups/:filename', requireAdmin, (req, res) => {
+  const safeName = path.basename(req.params.filename);
+  const filePath = path.join(BACKUPS_DIR, safeName);
+  if (!fs.existsSync(filePath) || !filePath.startsWith(path.resolve(BACKUPS_DIR))) {
+    return res.status(404).json({ error: 'Not found' });
+  }
+  res.download(filePath);
 });
 
-// Model Settings
+// Create backup
+app.post('/api/admin/backups', requireAdmin, async (req, res) => {
+  try {
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const backupData = {
+      date: new Date().toISOString(),
+      users: [],
+      orders: [],
+      cms: vaultRead(path.join(VAULT_DIR, 'cms.json'), {}),
+      theme: vaultRead(THEME_FILE, {}),
+      homepage: vaultRead(HOMEPAGE_FILE, {}),
+      notifications: vaultRead(NOTIFICATIONS_FILE, []),
+      coupons: vaultRead(COUPONS_FILE, []),
+      modelSettings: vaultRead(MODEL_SETTINGS_FILE, {}),
+      planSettings: vaultRead(PLAN_SETTINGS_FILE, {}),
+    };
+    try {
+      if (supabaseAdmin) {
+        const { data } = await supabaseAdmin.from('profiles').select('*').order('created_at', { ascending: false });
+        backupData.users = data || getVaultUsers();
+      } else { backupData.users = getVaultUsers(); }
+    } catch { backupData.users = getVaultUsers(); }
+    try { backupData.orders = await getAllOrders(); } catch {}
+    const filename = `full-backup-${stamp}.json`;
+    fs.writeFileSync(path.join(BACKUPS_DIR, filename), JSON.stringify(backupData, null, 2));
+    auditLog('admin.backup.create', filename, req);
+    res.json({ ok: true, filename });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Export (CSV/JSON download)
+app.get('/api/admin/export', requireAdmin, async (req, res) => {
+  const type = String(req.query.type || 'users');
+  const format = String(req.query.format || 'json');
+  try {
+    let data;
+    if (type === 'users') {
+      let users = [];
+      try {
+        if (supabaseAdmin) {
+          const { data: d } = await supabaseAdmin.from('profiles').select('*').order('created_at', { ascending: false });
+          users = d || [];
+        } else { users = getVaultUsers(); }
+      } catch { users = getVaultUsers(); }
+      data = users;
+    } else if (type === 'orders') {
+      data = await getAllOrders();
+    } else if (type === 'generations') {
+      data = vaultRead(GENERATIONS_FILE, []);
+    } else if (type === 'activity') {
+      data = vaultRead(ACTIVITY_FILE, []);
+    } else if (type === 'full') {
+      // Full backup — create and return as download
+      const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const backupData = {
+        date: new Date().toISOString(),
+        users: [],
+        orders: [],
+        cms: vaultRead(path.join(VAULT_DIR, 'cms.json'), {}),
+        theme: vaultRead(THEME_FILE, {}),
+        homepage: vaultRead(HOMEPAGE_FILE, {}),
+        activity: vaultRead(ACTIVITY_FILE, []),
+        coupons: vaultRead(COUPONS_FILE, []),
+        modelSettings: vaultRead(MODEL_SETTINGS_FILE, {}),
+        planSettings: vaultRead(PLAN_SETTINGS_FILE, {}),
+      };
+      try {
+        if (supabaseAdmin) {
+          const { data: d } = await supabaseAdmin.from('profiles').select('*');
+          backupData.users = d || getVaultUsers();
+        } else { backupData.users = getVaultUsers(); }
+      } catch { backupData.users = getVaultUsers(); }
+      try { backupData.orders = await getAllOrders(); } catch {}
+      // Save backup to disk
+      const filename = `full-backup-${stamp}.json`;
+      fs.writeFileSync(path.join(BACKUPS_DIR, filename), JSON.stringify(backupData, null, 2));
+      auditLog('admin.export.full', filename, req);
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      return res.json(backupData);
+    } else {
+      data = [];
+    }
+
+    if (format === 'csv') {
+      if (!Array.isArray(data) || !data.length) {
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+        res.setHeader('Content-Disposition', `attachment; filename="${type}.csv"`);
+        return res.send('No data');
+      }
+      const headers = Object.keys(data[0]);
+      const csvRows = [headers.join(',')];
+      data.forEach(row => {
+        csvRows.push(headers.map(h => `"${String(row[h] || '').replace(/"/g, '""')}"`).join(','));
+      });
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="${type}-${Date.now()}.csv"`);
+      return res.send('\ufeff' + csvRows.join('\n'));
+    }
+
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename="${type}-${Date.now()}.json"`);
+    res.json({ exported: true, date: new Date().toISOString(), type, count: Array.isArray(data) ? data.length : 0, data });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ══════════════════════════════════════
+// MODEL SETTINGS — per-model cost, limits, enable/disable
+// ══════════════════════════════════════
 app.get('/api/admin/model-settings', requireAdmin, (req, res) => {
-  res.json({});
+  const settings = vaultRead(MODEL_SETTINGS_FILE, {});
+  res.json(settings);
 });
 app.post('/api/admin/model-settings', requireAdmin, (req, res) => {
+  const { modelId, enabled, creditCost, dailyLimit, maxQueue, priority } = req.body || {};
+  if (!modelId) return res.status(400).json({ error: 'modelId required' });
+  const settings = vaultRead(MODEL_SETTINGS_FILE, {});
+  settings[modelId] = {
+    ...(settings[modelId] || {}),
+    enabled: enabled !== false,
+    creditCost: Math.max(0, Number(creditCost) || 0),
+    dailyLimit: Math.max(0, Number(dailyLimit) || 0),
+    maxQueue: Math.max(1, Number(maxQueue) || 10),
+    priority: ['low', 'normal', 'high'].includes(priority) ? priority : 'normal',
+    updatedAt: new Date().toISOString()
+  };
+  vaultWrite(MODEL_SETTINGS_FILE, settings);
+  auditLog('admin.model.settings', `model=${modelId} cost=${creditCost} enabled=${enabled}`, req);
   res.json({ ok: true });
 });
 
-// Credit Log
+// ══════════════════════════════════════
+// CREDIT LOG — tracks all credit operations
+// ══════════════════════════════════════
+function logCreditOp(email, action, amount, reason, adminReq) {
+  const log = vaultRead(CREDIT_LOG_FILE, []);
+  log.unshift({
+    id: crypto.randomBytes(8).toString('hex'),
+    email: String(email || ''),
+    action: String(action || 'add'),
+    amount: Number(amount) || 0,
+    reason: String(reason || '').slice(0, 200),
+    createdAt: new Date().toISOString()
+  });
+  if (log.length > 5000) log.length = 5000;
+  vaultWrite(CREDIT_LOG_FILE, log);
+}
+
 app.get('/api/admin/credit-log', requireAdmin, (req, res) => {
-  res.json({ log: [] });
+  const log = vaultRead(CREDIT_LOG_FILE, []);
+  res.json({ log });
 });
 
-// Bulk Credits
-app.post('/api/admin/bulk-credits', requireAdmin, (req, res) => {
-  res.json({ ok: true, count: 0 });
+// ══════════════════════════════════════
+// BULK CREDITS — send credits to all or group of users
+// ══════════════════════════════════════
+app.post('/api/admin/bulk-credits', requireAdmin, async (req, res) => {
+  const { target, amount, reason } = req.body || {};
+  const n = Number(amount);
+  if (!n || n <= 0) return res.status(400).json({ error: 'Invalid amount' });
+  try {
+    let users = [];
+    if (supabaseAdmin) {
+      const { data } = await supabaseAdmin.from('profiles').select('id, email, credits');
+      users = data || [];
+    } else {
+      users = getVaultUsers().map(u => ({ id: u.id, email: u.email, credits: u.credits || 0 }));
+    }
+
+    // Filter by target
+    let targetUsers = users;
+    if (target && target !== 'all') {
+      const planFilter = String(target).toLowerCase();
+      if (['starter', 'pro', 'creator'].includes(planFilter)) {
+        if (supabaseAdmin) {
+          const { data } = await supabaseAdmin.from('profiles').select('id, email, credits').eq('plan', planFilter);
+          targetUsers = data || [];
+        } else {
+          targetUsers = getVaultUsers().filter(u => (u.plan || 'starter') === planFilter)
+            .map(u => ({ id: u.id, email: u.email, credits: u.credits || 0 }));
+        }
+      }
+    }
+
+    let count = 0;
+    for (const u of targetUsers) {
+      const newCredits = (u.credits || 0) + n;
+      await updateProfile(u.id, { credits: newCredits });
+      logCreditOp(u.email, 'add', n, reason || 'هدية جماعية من الإدارة', req);
+      count++;
+    }
+
+    auditLog('admin.bulk-credits', `target=${target} amount=${n} count=${count}`, req);
+    res.json({ ok: true, count });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// User Credits (direct email-based)
-app.post('/api/admin/user-credits', requireAdmin, (req, res) => {
+// ══════════════════════════════════════
+// USER CREDITS (direct email-based add/deduct/set)
+// ══════════════════════════════════════
+app.post('/api/admin/user-credits', requireAdmin, async (req, res) => {
+  const { email, amount, action, reason } = req.body || {};
+  const n = Number(amount);
+  if (!email || !n) return res.status(400).json({ error: 'email and amount required' });
+  try {
+    // Find user by email
+    let user = null;
+    if (supabaseAdmin) {
+      const { data } = await supabaseAdmin.from('profiles').select('*').eq('email', String(email).trim()).single();
+      user = data;
+    }
+    if (!user) {
+      user = getVaultUsers().find(u => u.email === String(email).trim());
+    }
+    if (!user) return res.status(404).json({ error: 'المستخدم غير موجود' });
+
+    let newCredits;
+    if (action === 'set') {
+      newCredits = Math.max(0, n);
+    } else if (action === 'deduct') {
+      newCredits = Math.max(0, (user.credits || 0) - n);
+    } else {
+      newCredits = (user.credits || 0) + n;
+    }
+
+    await updateProfile(user.id, { credits: newCredits });
+    logCreditOp(email, action || 'add', n, reason || '', req);
+    auditLog('admin.user-credits', `email=${email} action=${action} amount=${n}`, req);
+    res.json({ ok: true, credits: newCredits });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ══════════════════════════════════════
+// FREE TRIAL SETTINGS
+// ══════════════════════════════════════
+const FREE_TRIAL_FILE = path.join(VAULT_DIR, 'free_trial.json');
+app.get('/api/admin/free-trial-settings', requireAdmin, (req, res) => {
+  const settings = vaultRead(FREE_TRIAL_FILE, { freeCredits: 100, dailyLimit: 50 });
+  res.json(settings);
+});
+app.post('/api/admin/free-trial-settings', requireAdmin, (req, res) => {
+  const { freeCredits, dailyLimit } = req.body || {};
+  const settings = {
+    freeCredits: Math.max(0, Number(freeCredits) || 100),
+    dailyLimit: Math.max(0, Number(dailyLimit) || 50),
+    updatedAt: new Date().toISOString()
+  };
+  vaultWrite(FREE_TRIAL_FILE, settings);
+  auditLog('admin.free-trial.update', `credits=${settings.freeCredits} daily=${settings.dailyLimit}`, req);
   res.json({ ok: true });
 });
 
-// Plan Settings
+// ══════════════════════════════════════
+// PLAN SETTINGS — manage subscription plans and top-ups
+// ══════════════════════════════════════
+const DEFAULT_PLANS = {
+  plans: [
+    { id: 'starter', name: 'Starter', price: 10, credits: 1000, features: ['1000 كريدت شهرياً', 'كل النماذج', 'دعم عادي'] },
+    { id: 'pro', name: 'Pro', price: 25, credits: 2800, popular: true, features: ['2800 كريدت شهرياً', 'أولوية عالية', 'دعم سريع'] },
+    { id: 'creator', name: 'Creator', price: 50, credits: 6000, features: ['6000 كريدت شهرياً', 'أولوية قصوى', 'دعم VIP', 'API access'] }
+  ],
+  topups: [
+    { id: 't5', price: 5, credits: 450 },
+    { id: 't15', price: 15, credits: 1500 },
+    { id: 't30', price: 30, credits: 3200 },
+    { id: 't50', price: 50, credits: 5500 }
+  ]
+};
 app.get('/api/admin/plan-settings', requireAdmin, (req, res) => {
-  res.json({ plans: [], topups: [] });
+  const data = vaultRead(PLAN_SETTINGS_FILE, DEFAULT_PLANS);
+  res.json(data);
 });
 app.post('/api/admin/plan-settings', requireAdmin, (req, res) => {
+  const { plans, topups } = req.body || {};
+  if (!Array.isArray(plans)) return res.status(400).json({ error: 'plans array required' });
+  const data = { plans, topups: Array.isArray(topups) ? topups : [], updatedAt: new Date().toISOString() };
+  vaultWrite(PLAN_SETTINGS_FILE, data);
+  auditLog('admin.plans.update', `plans=${plans.length} topups=${(topups || []).length}`, req);
   res.json({ ok: true });
 });
 
-// Moderation
+// ══════════════════════════════════════
+// MODERATION — content review queue
+// ══════════════════════════════════════
 app.get('/api/admin/moderation', requireAdmin, (req, res) => {
-  res.json({ items: [], pending: 0, blocked: 0, approved: 0 });
+  const items = vaultRead(MODERATION_FILE, []);
+  const pending = items.filter(i => i.status === 'pending').length;
+  const blocked = items.filter(i => i.status === 'blocked').length;
+  const approved = items.filter(i => i.status === 'approved').length;
+  res.json({ items: items.filter(i => i.status === 'pending'), pending, blocked, approved });
+});
+app.post('/api/admin/moderation', requireAdmin, (req, res) => {
+  // Add item to moderation queue (can be called from generation pipeline)
+  const { userId, email, reason, thumbnail, contentUrl } = req.body || {};
+  const items = vaultRead(MODERATION_FILE, []);
+  const item = {
+    id: crypto.randomBytes(8).toString('hex'),
+    userId: String(userId || ''),
+    email: String(email || ''),
+    reason: String(reason || 'محتوى مبلّغ عنه').slice(0, 300),
+    thumbnail: thumbnail || '',
+    contentUrl: contentUrl || '',
+    status: 'pending',
+    createdAt: new Date().toISOString()
+  };
+  items.unshift(item);
+  if (items.length > 2000) items.length = 2000;
+  vaultWrite(MODERATION_FILE, items);
+  res.json({ ok: true, item });
 });
 app.post('/api/admin/moderation/:id', requireAdmin, (req, res) => {
+  const { action } = req.body || {};
+  if (!['approve', 'block'].includes(action)) return res.status(400).json({ error: 'action must be approve or block' });
+  const items = vaultRead(MODERATION_FILE, []);
+  const item = items.find(i => i.id === req.params.id);
+  if (!item) return res.status(404).json({ error: 'Item not found' });
+  item.status = action === 'approve' ? 'approved' : 'blocked';
+  item.moderatedAt = new Date().toISOString();
+  vaultWrite(MODERATION_FILE, items);
+  auditLog('admin.moderation.' + action, `item=${req.params.id} email=${item.email}`, req);
   res.json({ ok: true });
 });
 
-// Reports
-app.get('/api/admin/reports/:type', requireAdmin, (req, res) => {
-  res.json({});
+// ══════════════════════════════════════
+// REPORTS — generate real reports from data
+// ══════════════════════════════════════
+app.get('/api/admin/reports/:type', requireAdmin, async (req, res) => {
+  const type = req.params.type;
+  try {
+    if (type === 'usage') {
+      const usage = loadUsage();
+      const activity = vaultRead(ACTIVITY_FILE, []);
+      const totalGens = Array.isArray(activity) ? activity.length : 0;
+      const todayKey = new Date().toISOString().split('T')[0];
+      const todayGens = Array.isArray(activity) ? activity.filter(a => a.createdAt && a.createdAt.startsWith(todayKey)).length : 0;
+      const totalCreditsUsed = Array.isArray(activity) ? activity.reduce((s, a) => s + (a.credits || 0), 0) : 0;
+      const modelBreakdown = {};
+      if (Array.isArray(activity)) {
+        activity.forEach(a => { const m = a.model || 'Other'; modelBreakdown[m] = (modelBreakdown[m] || 0) + 1; });
+      }
+      res.json({
+        title: 'تقرير الاستخدام',
+        generatedAt: new Date().toISOString(),
+        summary: { totalGenerations: totalGens, todayGenerations: todayGens, totalCreditsUsed, activeUsers: Object.keys(usage).length },
+        modelBreakdown,
+        recentActivity: (Array.isArray(activity) ? activity.slice(0, 20) : [])
+      });
+    } else if (type === 'revenue') {
+      const orders = await getAllOrders();
+      const approved = orders.filter(o => o.status === 'approved');
+      const totalRevenue = approved.reduce((s, o) => s + (o.pack || 0), 0);
+      const totalCredits = approved.reduce((s, o) => s + (o.credits || 0), 0);
+      const monthlyBreakdown = {};
+      approved.forEach(o => {
+        const month = (o.approvedAt || o.createdAt || '').substring(0, 7);
+        if (month) {
+          if (!monthlyBreakdown[month]) monthlyBreakdown[month] = { revenue: 0, credits: 0, count: 0 };
+          monthlyBreakdown[month].revenue += (o.pack || 0);
+          monthlyBreakdown[month].credits += (o.credits || 0);
+          monthlyBreakdown[month].count++;
+        }
+      });
+      res.json({
+        title: 'تقرير الإيرادات',
+        generatedAt: new Date().toISOString(),
+        summary: { totalRevenue, totalCreditsDistributed: totalCredits, totalApprovedOrders: approved.length, totalOrders: orders.length },
+        monthlyBreakdown
+      });
+    } else if (type === 'users') {
+      let users = [];
+      try {
+        if (supabaseAdmin) {
+          const { data } = await supabaseAdmin.from('profiles').select('*').order('created_at', { ascending: false });
+          users = data || [];
+        } else { users = getVaultUsers(); }
+      } catch { users = getVaultUsers(); }
+      const planDist = {};
+      users.forEach(u => { const p = u.plan || u.plan || 'starter'; planDist[p] = (planDist[p] || 0) + 1; });
+      const totalCreditsHeld = users.reduce((s, u) => s + (u.credits || 0), 0);
+      res.json({
+        title: 'تقرير المستخدمين',
+        generatedAt: new Date().toISOString(),
+        summary: { totalUsers: users.length, totalCreditsHeld, planDistribution: planDist },
+        recentUsers: users.slice(0, 20).map(u => ({ email: u.email, plan: u.plan || 'starter', credits: u.credits || 0, createdAt: u.created_at || u.createdAt }))
+      });
+    } else if (type === 'models') {
+      const activity = vaultRead(ACTIVITY_FILE, []);
+      const modelStats = {};
+      if (Array.isArray(activity)) {
+        activity.forEach(a => {
+          const m = a.model || 'Other';
+          if (!modelStats[m]) modelStats[m] = { count: 0, credits: 0, types: {} };
+          modelStats[m].count++;
+          modelStats[m].credits += (a.credits || 0);
+          const t = a.type || 'task';
+          modelStats[m].types[t] = (modelStats[m].types[t] || 0) + 1;
+        });
+      }
+      res.json({
+        title: 'تقرير النماذج',
+        generatedAt: new Date().toISOString(),
+        modelStats,
+        totalModelsUsed: Object.keys(modelStats).length
+      });
+    } else {
+      res.status(400).json({ error: 'Unknown report type. Use: usage, revenue, users, models' });
+    }
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 // === ADS MANAGER (Supabase) ===
