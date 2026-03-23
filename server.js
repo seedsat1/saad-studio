@@ -1961,6 +1961,12 @@ app.post('/api/kie/gpt54/create', async (req, res) => {
           return result.join('\n');
         };
         outputText = dedupeLines(collapseRepeatedText(outputText));
+        if (!outputText) {
+          // نص فارغ → نستمر في Fallback
+          const emptyErr = new Error(`Model ${modelName} returned empty response`);
+          emptyErr.statusCode = 502;
+          throw emptyErr;
+        }
         return res.json({
           outputText,
           modelUsed: modelName,

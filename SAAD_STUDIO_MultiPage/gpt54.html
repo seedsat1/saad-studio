@@ -236,7 +236,7 @@
               </button>
             </div>
           </div>
-          <textarea class="gpt-input" id="gpt54-input" rows="1" placeholder="اسأل عن أي شيء"></textarea>
+          <textarea class="gpt-input" id="gpt54-input" rows="1" placeholder="اسأل عن أي شيء" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();runGpt54();}"></textarea>
           <button class="gpt-send" id="gpt54-btn" type="button" onclick="runGpt54()">
             <span class="material-symbols-outlined">send</span>
           </button>

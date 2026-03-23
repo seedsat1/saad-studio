@@ -1631,6 +1631,38 @@ function initGpt54UI(){
       }
     });
   }
+
+  // Drag & Drop on composer
+  const composerWrap = document.querySelector('#page-gpt54 .gpt-composer-wrap');
+  if(composerWrap && !composerWrap.dataset.dropBound){
+    composerWrap.dataset.dropBound = '1';
+    composerWrap.addEventListener('dragover', (e)=>{
+      e.preventDefault();
+      composerWrap.classList.add('gpt-drag-over');
+    });
+    composerWrap.addEventListener('dragleave', (e)=>{
+      if(!composerWrap.contains(e.relatedTarget))
+        composerWrap.classList.remove('gpt-drag-over');
+    });
+    composerWrap.addEventListener('drop', (e)=>{
+      e.preventDefault();
+      composerWrap.classList.remove('gpt-drag-over');
+      const file = e.dataTransfer?.files?.[0];
+      if(!file) return;
+      if(!file.type.startsWith('image/')){
+        toast('يسمح فقط بالصور (PNG, JPG, WEBP)', 'error');
+        return;
+      }
+      S.files['gpt54-file'] = file;
+      const url = URL.createObjectURL(file);
+      const wrap = document.getElementById('gpt54-attachments');
+      if(wrap){
+        wrap.style.display = 'flex';
+        wrap.innerHTML = `<div class="gpt-attach-chip"><img class="gpt-attach-thumb" src="${url}" alt=""><span>${file.name}</span><button class="gpt-attach-remove" type="button" onclick="clearGpt54Attachment()">\u2715</button></div>`;
+      }
+      toast('تم إضافة الصورة — يمكنك إرسال رسالتك الآن', 'success');
+    });
+  }
   if(!document.body.dataset.gpt54MenuBound){
     document.body.dataset.gpt54MenuBound = '1';
     document.addEventListener('click', (e)=>{
