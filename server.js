@@ -562,6 +562,68 @@ app.post('/api/store-image', requireSignedIn, async (req, res) => {
   }
 });
 
+app.post('/api/store-image-url', requireSignedIn, async (req, res) => {
+  try {
+    const { url = '' } = req.body || {};
+    const remoteUrl = String(url || '').trim();
+    if (!remoteUrl) return res.status(400).json({ error: 'url required' });
+
+    let parsed;
+    try { parsed = new URL(remoteUrl); } catch (_) { return res.status(400).json({ error: 'Invalid URL' }); }
+    if (!['http:', 'https:'].includes(parsed.protocol)) {
+      return res.status(400).json({ error: 'Invalid URL protocol' });
+    }
+
+    const host = String(parsed.hostname || '').toLowerCase();
+    const isPrivateHost =
+      host === 'localhost' ||
+      host === '::1' ||
+      host === '0.0.0.0' ||
+      host === '127.0.0.1' ||
+      host.endsWith('.local') ||
+      /^10\./.test(host) ||
+      /^192\.168\./.test(host) ||
+      /^172\.(1[6-9]|2\d|3[0-1])\./.test(host);
+    if (isPrivateHost) return res.status(400).json({ error: 'Blocked host' });
+
+    const ctrl = new AbortController();
+    const timeout = setTimeout(() => ctrl.abort(), 15000);
+    let rr;
+    try {
+      rr = await fetch(remoteUrl, { signal: ctrl.signal, redirect: 'follow' });
+    } finally {
+      clearTimeout(timeout);
+    }
+    if (!rr || !rr.ok) {
+      return res.status(400).json({ error: 'Failed to fetch image' });
+    }
+
+    const ctype = String(rr.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
+    if (!ctype.startsWith('image/')) return res.status(400).json({ error: 'URL is not an image' });
+    if (ctype === 'image/svg+xml') return res.status(400).json({ error: 'SVG not allowed' });
+
+    const raw = Buffer.from(await rr.arrayBuffer());
+    if (!raw.length) return res.status(400).json({ error: 'Empty image' });
+    if (raw.length > 12 * 1024 * 1024) return res.status(413).json({ error: 'Image too large' });
+
+    const ext = ctype.split('/')[1].replace('jpeg', 'jpg').replace(/[^a-z0-9]/gi, '') || 'png';
+    const dir = path.join(UPLOADS_DIR, 'gallery');
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    const name = `img-${Date.now()}-${Math.random().toString(36).slice(2,8)}.${ext}`;
+    const filePath = path.join(dir, name);
+    if (!path.resolve(filePath).startsWith(path.resolve(dir) + path.sep)) {
+      return res.status(400).json({ error: 'Invalid file path' });
+    }
+
+    fs.writeFileSync(filePath, raw);
+    const savedUrl = `/uploads/gallery/${name}`;
+    if (req.currentUser?.id) attachActivityImage(req.currentUser.id, savedUrl);
+    res.json({ url: savedUrl });
+  } catch (e) {
+    res.status(500).json({ error: "حدث خطأ في الخادم" });
+  }
+});
+
 // â•â•â• RUN WORKFLOW FROM FILE â•â•â•
 // --- LOG GENERATION (called by client after result is ready) ---
 app.post('/api/log-generation', requireSignedIn, (req, res) => {
