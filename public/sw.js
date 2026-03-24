@@ -3,14 +3,12 @@
    Caches static assets for offline support + fast repeat loads
    ================================================================ */
 
-const CACHE_VERSION = 'saad-studio-v1';
+const CACHE_VERSION = 'saad-studio-v2';
 const STATIC_CACHE  = `${CACHE_VERSION}-static`;
 const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
 
 /* Core assets to pre-cache on install */
 const PRE_CACHE_URLS = [
-  '/',
-  '/index.html',
   '/manifest.json',
   /* Fonts (Google Fonts are CDN – cache what we can) */
   /* App assets */
@@ -98,9 +96,9 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  /* Stale-while-revalidate: HTML pages */
-  if (request.headers.get('accept')?.includes('text/html')) {
-    event.respondWith(staleWhileRevalidate(request));
+  /* Network-first: navigations/HTML pages (avoid stale UI after deployments) */
+  if (request.mode === 'navigate' || request.headers.get('accept')?.includes('text/html')) {
+    event.respondWith(networkFirstHtml(request));
     return;
   }
 
@@ -144,4 +142,18 @@ async function staleWhileRevalidate(request) {
   }).catch(() => null);
 
   return cached || await fetchPromise || new Response('Offline', { status: 503 });
+}
+
+async function networkFirstHtml(request) {
+  const cache = await caches.open(DYNAMIC_CACHE);
+  try {
+    const response = await fetch(request);
+    if (response && response.ok) {
+      cache.put(request, response.clone());
+    }
+    return response;
+  } catch {
+    const cached = await cache.match(request);
+    return cached || new Response('Offline', { status: 503 });
+  }
 }

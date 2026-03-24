@@ -2005,13 +2005,40 @@ app.post('/api/kie/sora/create', async (req, res) => {
       body: JSON.stringify(soraPayload)
     });
 
-    const taskId = data?.data?.taskId || data?.taskId || data?.data?.id || '';
+    const taskId =
+      data?.data?.taskId ||
+      data?.data?.task_id ||
+      data?.taskId ||
+      data?.task_id ||
+      data?.data?.id ||
+      data?.id ||
+      data?.result?.taskId ||
+      data?.result?.task_id ||
+      '';
     if (!taskId) {
-      return res.status(502).json({ error: 'Kie did not return taskId' });
+      const providerMessage =
+        data?.message ||
+        data?.msg ||
+        data?.error?.message ||
+        data?.error ||
+        data?.data?.message ||
+        data?.data?.msg ||
+        data?.result?.message ||
+        data?.result?.msg ||
+        '';
+      console.error(`[sora/create] Missing taskId for model="${model}". Response:`, JSON.stringify(data).substring(0, 600));
+      return res.status(502).json({
+        error: providerMessage || 'Kie did not return taskId',
+        details: {
+          code: data?.code ?? data?.status ?? null,
+          model
+        }
+      });
     }
     res.json({ taskId, ...(req.creditInfo || {}) });
   } catch (e) {
-    res.status(500).json({ error: "حدث خطأ في الخادم" });
+    console.error(`[sora/create] ERROR model="${req.body?.model}":`, e.message, e.payload ? JSON.stringify(e.payload).substring(0,600) : '');
+    res.status(e.statusCode || 500).json({ error: e.message || "حدث خطأ في الخادم" });
   }
 });
 
@@ -3738,7 +3765,8 @@ app.post('/api/auth/order', requireSignedIn, async (req, res) => {
       status: 'pending',
       createdAt: new Date().toISOString()
     };
-    await createOrder(order);
+    const ok = await createOrder(order);
+    if (!ok) return res.status(500).json({ error: 'تعذر حفظ الطلب، حاول مرة أخرى' });
     return res.json({ ok: true, orderId: order.id });
   }
 
@@ -3759,7 +3787,8 @@ app.post('/api/auth/order', requireSignedIn, async (req, res) => {
     status: 'pending',
     createdAt: new Date().toISOString()
   };
-  await createOrder(order);
+  const ok = await createOrder(order);
+  if (!ok) return res.status(500).json({ error: 'تعذر حفظ الطلب، حاول مرة أخرى' });
   res.json({ ok: true, orderId: order.id, credits });
 });
 
@@ -3833,8 +3862,55 @@ function requireAdmin(req, res, next){
 function orderToDb(o){return{id:o.id,user_id:o.userId,email:o.email,type:o.type,current_plan:o.currentPlan||null,new_plan:o.newPlan||null,pack:o.pack||0,credits:o.credits||0,status:o.status||'pending',created_at:o.createdAt,approved_at:o.approvedAt||null,rejected_at:o.rejectedAt||null,amount:o.amount||null};}
 function dbToOrder(r){return{id:r.id,userId:r.user_id,email:r.email,type:r.type,currentPlan:r.current_plan||null,newPlan:r.new_plan||null,pack:r.pack||0,credits:r.credits||0,status:r.status,createdAt:r.created_at,approvedAt:r.approved_at||null,rejectedAt:r.rejected_at||null,amount:r.amount||null};}
 async function getAllOrders(){if(supabaseAdmin){try{const{data,error}=await supabaseAdmin.from('orders').select('*').order('created_at',{ascending:false});if(!error&&data)return data.map(dbToOrder);}catch(e){console.error('getAllOrders:',e.message);}}try{return(JSON.parse(fs.readFileSync(ORDERS_FILE,'utf8')).orders||[]);}catch{return[];}}
-async function createOrder(order){if(supabaseAdmin){try{await supabaseAdmin.from('orders').insert(orderToDb(order));return;}catch(e){console.error('createOrder:',e.message);}}try{const db=JSON.parse(fs.readFileSync(ORDERS_FILE,'utf8'));db.orders.push(order);fs.writeFileSync(ORDERS_FILE,JSON.stringify(db,null,2));}catch{try{fs.writeFileSync(ORDERS_FILE,JSON.stringify({orders:[order]},null,2));}catch{}}}
-async function updateOrder(order){if(supabaseAdmin){try{await supabaseAdmin.from('orders').update(orderToDb(order)).eq('id',order.id);return;}catch(e){console.error('updateOrder:',e.message);}}try{const db=JSON.parse(fs.readFileSync(ORDERS_FILE,'utf8'));const idx=db.orders.findIndex(o=>o.id===order.id);if(idx>=0){db.orders[idx]=order;fs.writeFileSync(ORDERS_FILE,JSON.stringify(db,null,2));}}catch{}}
+async function createOrder(order){
+  if(supabaseAdmin){
+    try{
+      const { error } = await supabaseAdmin.from('orders').insert(orderToDb(order));
+      if(!error) return true;
+      console.error('createOrder(supabase):', error.message || error);
+    }catch(e){
+      console.error('createOrder(supabase):', e.message);
+    }
+  }
+  try{
+    const db=JSON.parse(fs.readFileSync(ORDERS_FILE,'utf8'));
+    db.orders = Array.isArray(db.orders) ? db.orders : [];
+    db.orders.push(order);
+    fs.writeFileSync(ORDERS_FILE,JSON.stringify(db,null,2));
+    return true;
+  }catch{
+    try{
+      fs.writeFileSync(ORDERS_FILE,JSON.stringify({orders:[order]},null,2));
+      return true;
+    }catch{
+      return false;
+    }
+  }
+}
+async function updateOrder(order){
+  if(supabaseAdmin){
+    try{
+      const { error } = await supabaseAdmin.from('orders').update(orderToDb(order)).eq('id',order.id);
+      if(!error) return true;
+      console.error('updateOrder(supabase):', error.message || error);
+    }catch(e){
+      console.error('updateOrder(supabase):', e.message);
+    }
+  }
+  try{
+    const db=JSON.parse(fs.readFileSync(ORDERS_FILE,'utf8'));
+    db.orders = Array.isArray(db.orders) ? db.orders : [];
+    const idx=db.orders.findIndex(o=>o.id===order.id);
+    if(idx>=0){
+      db.orders[idx]=order;
+      fs.writeFileSync(ORDERS_FILE,JSON.stringify(db,null,2));
+      return true;
+    }
+    return false;
+  }catch{
+    return false;
+  }
+}
 
 // POST /api/admin/login — dashboard.html login (username + password from .env)
 app.post('/api/admin/login', adminLoginLimiter, (req, res) => {
