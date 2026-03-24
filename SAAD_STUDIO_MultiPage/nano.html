@@ -12,6 +12,56 @@
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
 /* ═══════════════════════════════════════════════════════
+   NANO BANANA — page-specific overrides
+   (الهيكل العام في shared.css)
+   ═══════════════════════════════════════════════════════ */
+
+/* صفحة نانو: نفس المعالجة العامة */
+#page-nano {
+  padding: 0 !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  height: calc(100vh - 56px);
+  overflow: hidden;
+}
+#page-nano .qw2-layout { height: 100%; min-height: 0 !important; overflow: hidden; }
+#page-nano .qw2-main   { height: 100%; overflow: hidden; }
+#page-nano .cine-shell { height: 100%; min-height: 0 !important; }
+#page-nano .cine-canvas-wrap { min-height: 0 !important; }
+
+/* منطقة النتائج الخاصة بنانو تتمرر داخلياً */
+#nano-all-results {
+  flex: 1; min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0,229,255,.18) transparent;
+}
+#nano-all-results::-webkit-scrollbar { width: 4px; }
+#nano-all-results::-webkit-scrollbar-thumb { background: rgba(0,229,255,.22); border-radius: 2px; }
+
+/* شبكة النتائج داخل nano-all-results */
+#nano-all-results .gs-result { min-height: unset !important; }
+#nano-all-results .result-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 14px; padding: 18px;
+  align-content: start;
+  overflow: visible !important; flex: unset !important;
+}
+#nano-all-results .result-empty { display: none !important; }
+
+#nano-settings-sidebar { height: 100% !important; max-height: 100% !important; }
+
+@media (max-width: 480px) { #page-nano { height: calc(100vh - 52px); } }
+@media (max-width: 900px) {
+  #nano-all-results .result-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 10px; padding: 12px;
+  }
+}
+</style>
+</head>
+/* ═══════════════════════════════════════════════════════
    NANO BANANA — Full Viewport Sticky Layout
    الإعدادات والمحرر يبقيان ثابتَين عند السكرول
    ═══════════════════════════════════════════════════════ */
