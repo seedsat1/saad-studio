@@ -408,6 +408,11 @@ app.use(express.static(MULTIPAGE_DIR));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static(UPLOADS_DIR));
 
+// Keep the full studio accessible at /app after introducing Explore as homepage.
+app.get('/app', (req, res) => {
+  res.sendFile(path.join(MULTIPAGE_DIR, 'app.html'));
+});
+
 // ─── CMS Frontend Routes ─── serve site.html for all CMS-driven pages
 app.get(['/home', '/about', '/contact', '/pricing', '/features', '/blog', '/team', '/faq', '/terms', '/privacy'], (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'site.html'));

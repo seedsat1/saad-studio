@@ -1,409 +1,106 @@
-﻿<!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SAAD STUDIO — Home</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Kufi+Arabic:wght@300;400;600;700&family=JetBrains+Mono:wght@400;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,500,0,0" rel="stylesheet">
-<link rel="stylesheet" href="/api/site-config.css" id="site-theme-override">
-<link rel="stylesheet" href="/css/shared.css">
-<script src="https://accounts.google.com/gsi/client" async defer></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Explore - SAAD STUDIO</title>
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root{--bg:#0b1e34;--bg2:#0f2a44;--line:rgba(62,201,255,.25);--line2:rgba(255,158,44,.32);--tx:#f2f6ff;--tx2:#b5c7dd;--tx3:#7c93aa;--cyan2:#2ff3d7;--amber:#ff9e2c;--amber2:#ffa94a;--fw:'Inter',sans-serif;--fd:'Bebas Neue',sans-serif;--fm:'JetBrains Mono',monospace}
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:var(--fw);color:var(--tx);min-height:100vh;background:radial-gradient(circle at 8% 14%,rgba(0,229,255,.14),transparent 28%),radial-gradient(circle at 82% 8%,rgba(255,158,44,.18),transparent 28%),linear-gradient(180deg,var(--bg) 0%,var(--bg2) 45%,#0a1b2f 100%);overflow-x:hidden}
+    body::before{content:'';position:fixed;inset:0;pointer-events:none;opacity:.16;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 600 600' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='rgba(255,255,255,0.05)' stroke-width='1'%3E%3Cpath d='M0 60h600M0 180h600M0 300h600M0 420h600M0 540h600'/%3E%3Cpath d='M60 0v600M180 0v600M300 0v600M420 0v600M540 0v600'/%3E%3C/g%3E%3C/svg%3E");z-index:0}
+    .shell{position:relative;z-index:1;max-width:1220px;margin:0 auto;padding:0 22px}
+    .topbar{height:74px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);backdrop-filter:blur(10px)}
+    .brand{display:flex;align-items:center;gap:12px;text-decoration:none;color:inherit}
+    .brand img{width:38px;height:38px;border-radius:10px;border:1px solid var(--line);object-fit:cover}
+    .brand h1{font-family:var(--fd);letter-spacing:.1em;font-size:29px;line-height:1;background:linear-gradient(130deg,var(--tx) 8%,var(--cyan2) 54%,var(--amber2) 100%);background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+    .brand small{display:block;font-family:var(--fm);color:var(--tx3);font-size:9px;letter-spacing:.14em;text-transform:uppercase}
+    .actions{display:flex;align-items:center;gap:10px}
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 15px;border-radius:999px;font-size:12px;font-weight:700;text-decoration:none;transition:.2s}
+    .btn.ghost{color:var(--tx2);border:1px solid var(--line);background:rgba(255,255,255,.03)}
+    .btn.ghost:hover{color:var(--tx);border-color:var(--cyan2);background:rgba(0,229,255,.12)}
+    .btn.primary{color:#06111b;border:1px solid rgba(255,169,74,.35);background:linear-gradient(135deg,var(--amber),var(--amber2));box-shadow:0 10px 24px rgba(255,158,44,.2)}
+    .btn.primary:hover{transform:translateY(-1px)}
+    .hero{padding:56px 0 28px;display:grid;grid-template-columns:1.1fr .9fr;gap:20px;align-items:stretch}
+    .hero-panel{border:1px solid var(--line);border-radius:18px;background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.01));min-height:420px;padding:28px;box-shadow:0 24px 54px rgba(0,0,0,.24)}
+    .eyebrow{display:inline-flex;align-items:center;gap:8px;padding:5px 11px;border-radius:999px;font-family:var(--fm);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--cyan2);border:1px solid var(--line);background:rgba(0,229,255,.1)}
+    .hero h2{margin-top:14px;font-family:var(--fd);font-size:72px;letter-spacing:.05em;line-height:.95;background:linear-gradient(145deg,var(--tx) 10%,var(--cyan2) 48%,var(--amber2) 94%);background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+    .hero p{margin-top:14px;font-size:15px;line-height:1.8;color:var(--tx2);max-width:62ch}
+    .cta{margin-top:20px;display:flex;gap:10px;flex-wrap:wrap}
+    .cards{display:grid;grid-template-columns:1fr 1fr;gap:12px;height:100%}
+    .card{border:1px solid var(--line);border-radius:16px;background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.015));padding:16px;position:relative;overflow:hidden}
+    .card::before{content:'';position:absolute;inset:auto -30% -55% auto;width:180px;height:180px;background:radial-gradient(circle,rgba(0,229,255,.2),transparent 66%)}
+    .card h3{font-size:15px;font-weight:700}.card p{margin-top:8px;font-size:12px;line-height:1.65;color:var(--tx2)}
+    .card .chip{margin-top:10px;display:inline-flex;padding:4px 8px;border-radius:999px;font-size:10px;color:var(--amber2);border:1px solid var(--line2);background:rgba(255,158,44,.12)}
+    .section{padding:14px 0 24px}.section .head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+    .section .head h4{font-family:var(--fm);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--tx3)}
+    .section .head a{font-size:12px;color:var(--cyan2);text-decoration:none}
+    .tools{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+    .tool{border:1px solid var(--line);border-radius:14px;padding:14px;background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,255,255,.01));text-decoration:none;color:inherit;transition:.2s}
+    .tool:hover{border-color:var(--cyan2);transform:translateY(-2px)}
+    .tool b{font-size:13px;display:block}.tool span{margin-top:6px;display:block;font-size:11px;color:var(--tx2);line-height:1.6}
+    .banner{margin-top:8px;border:1px solid var(--line);border-radius:16px;padding:18px;background:linear-gradient(135deg,rgba(255,158,44,.14),rgba(0,229,255,.11));display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+    .banner b{font-size:18px;font-family:var(--fd);letter-spacing:.08em}.banner p{font-size:13px;color:var(--tx);opacity:.9}
+    footer{padding:28px 0 36px;color:var(--tx3);font-size:12px;text-align:center}
+    @media (max-width:1024px){.hero{grid-template-columns:1fr}.hero h2{font-size:58px}.tools{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    @media (max-width:640px){.topbar{height:auto;padding:12px 0;gap:10px;flex-wrap:wrap}.actions{width:100%;justify-content:flex-start}.hero h2{font-size:44px}.hero-panel{padding:20px;min-height:auto}.cards{grid-template-columns:1fr}.tools{grid-template-columns:1fr}}
+  </style>
 </head>
 <body>
-
-<aside class="sidebar">
-  <div class="logo-area" onclick="showPage('dash',null)">
-    <div class="logo-stack">
-      <div class="logo-text">SAAD STUDIO</div>
-      <div class="logo-sub">AI Creative Platform v2.0</div>
-      <div class="brand-status">
-        <span class="status-dot connected"></span>
-        <span class="status-text">Connected</span>
+  <div class="shell">
+    <header class="topbar">
+      <a class="brand" href="/">
+        <img src="/logo-512.jpg" alt="SAAD STUDIO">
+        <div><h1>SAAD STUDIO</h1><small>Explore</small></div>
+      </a>
+      <div class="actions">
+        <a class="btn ghost" href="/pricing">Pricing</a>
+        <a class="btn ghost" href="/gallery.html">Gallery</a>
+        <a class="btn primary" href="/app">Open Studio</a>
       </div>
-    </div>
-    </div>
+    </header>
+
+    <section class="hero">
+      <div class="hero-panel">
+        <div class="eyebrow">Explore • AI Creative Platform</div>
+        <h2>EXPLORE<br>WHAT'S NEXT</h2>
+        <p>Create cinematic visuals, video scenes, prompts, and edits from one workspace. Fast model switching, clear controls, and production-ready flow built for creators.</p>
+        <div class="cta">
+          <a class="btn primary" href="/app">Start Creating</a>
+          <a class="btn ghost" href="/cinema.html">Try Cinema Studio</a>
+        </div>
+      </div>
+      <div class="hero-panel">
+        <div class="cards">
+          <article class="card"><h3>Cinema Pipeline</h3><p>From prompt to stylized shot with transitions and scene continuity.</p><span class="chip">Video + Image</span></article>
+          <article class="card"><h3>Model Playground</h3><p>Jump between GPT, Flux, Wan, Seedance, Sora, and more without friction.</p><span class="chip">Multi-Model</span></article>
+          <article class="card"><h3>Prompt Studio</h3><p>Generate cleaner prompts and reframe results quickly for better outputs.</p><span class="chip">Guided Workflow</span></article>
+          <article class="card"><h3>Creator Library</h3><p>Keep generated assets organized in Gallery and Library for production use.</p><span class="chip">Asset Control</span></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="head"><h4>Top Choice</h4><a href="/app">See all in app</a></div>
+      <div class="tools">
+        <a class="tool" href="/nano.html"><b>Nano Banana</b><span>Flash-speed image generation with consistency.</span></a>
+        <a class="tool" href="/cinema.html"><b>Cinema Studio</b><span>Film-like compositions and transition-ready scenes.</span></a>
+        <a class="tool" href="/kling.html"><b>Kling Studio</b><span>Video workflows with better movement control.</span></a>
+        <a class="tool" href="/prompt.html"><b>Prompt Studio</b><span>Refine prompts and boost output quality quickly.</span></a>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="banner">
+        <div><b>One platform. Real production flow.</b><p>Use Explore as your first stop, then jump into the full studio in one click.</p></div>
+        <a class="btn primary" href="/app">Enter Full App</a>
+      </div>
+    </section>
+
+    <footer>SAAD STUDIO • Explore Homepage</footer>
   </div>
-    <nav class="nav-section">
-    <div class="nav-label">Discover</div>
-    <div class="nav-item active" onclick="window.location.href='/'">
-      <div class="nav-icon"><img class="nav-logo" src="/assets/logo-saad.png" alt="SAAD STUDIO"></div><span class="nav-name">Discover</span>
-    </div>
-    <div class="nav-label" style="margin-top:6px">Production</div>
-    <div class="nav-item" onclick="window.location.href='/image-tools.html'">
-      <div class="nav-icon"><img class="nav-logo" src="/assets/logo-image-tools.png" alt="Image Tools"></div><span class="nav-name">Image Tools</span>
-    </div>
-    <div class="nav-item" onclick="window.location.href='/transitions.html'">
-      <div class="nav-icon">🎞️</div><span class="nav-name">Transitions</span>
-    </div>
-    <div class="nav-item" onclick="window.location.href='/nano.html'">
-      <div class="nav-icon">🍌</div><span class="nav-name">Nano Banana</span>
-    </div>
-    <div class="nav-item" onclick="window.location.href='/google.html'">
-      <div class="nav-icon"><img class="nav-logo" src="/assets/logo-google-studio.png" alt="Google Studio"></div><span class="nav-name">Google Studio</span>
-    </div>
-    <div class="nav-item" onclick="window.location.href='/kling.html'">
-      <div class="nav-icon"><img class="nav-logo" src="/assets/logo-kling-studio.png" alt="Kling Studio"></div><span class="nav-name">Kling Studio</span>
-    </div>
-    <div class="nav-item" onclick="window.location.href='/eleven.html'">
-      <div class="nav-icon"><img class="nav-logo" src="/assets/logo-elevenlabs-studio.png" alt="ElevenLabs Studio"></div><span class="nav-name">ElevenLabs Studio</span>
-    </div>
-    <div class="nav-item" onclick="window.location.href='/cinema.html'">
-      <div class="nav-icon">🎬</div><span class="nav-name">Cinema Studio</span>
-    </div>
-    <div class="nav-item" onclick="window.location.href='/runway.html'">
-      <div class="nav-icon">🛫</div><span class="nav-name">Runway Video</span>
-    </div>
-    <div class="nav-item" onclick="window.location.href='/prompt.html'">
-      <div class="nav-icon">🔍</div><span class="nav-name">Prompt Studio</span>
-    </div>
-    <div class="nav-label" style="margin-top:6px">Models</div>
-    <div class="nav-item" onclick="window.location.href='/sora2.html'">
-      <div class="nav-icon"><img class="nav-logo" src="/assets/logo-sora-2.png" alt="Sora 2"></div><span class="nav-name">Sora 2</span>
-    </div>
-    <div class="nav-item" onclick="window.location.href='/gpt54.html'">
-      <div class="nav-icon"><img class="nav-logo" src="/assets/logo-gpt-52.png" alt="GPT-5.2"></div><span class="nav-name">GPT-5.2</span>
-    </div>
-    <div class="nav-item" onclick="window.location.href='/hailuo.html'">
-      <div class="nav-icon"><img class="nav-logo" src="/assets/logo-hailuo.png" alt="Hailuo"></div><span class="nav-name">Hailuo</span>
-    </div>
-      <div class="nav-item" onclick="window.location.href='/grok.html'">
-        <div class="nav-icon"><img class="nav-logo" src="/assets/logo-grok.png" alt="Grok"></div><span class="nav-name">Grok</span>
-      </div>
-      <div class="nav-item" onclick="window.location.href='/seedream.html'">
-        <div class="nav-icon"><img class="nav-logo" src="/assets/logo-seedream-45.png" alt="Seedream 4.5"></div><span class="nav-name">Seedream 4.5</span>
-      </div>
-      <div class="nav-item" onclick="window.location.href='/flux2.html'">
-        <div class="nav-icon"><img class="nav-logo" src="/assets/logo-flux-2.png" alt="FLUX.2"></div><span class="nav-name">FLUX.2</span>
-      </div>
-      <div class="nav-item" onclick="window.location.href='/zimage.html'">
-        <div class="nav-icon"><img class="nav-logo" src="/assets/logo-z-image.png" alt="Z-Image"></div><span class="nav-name">Z-Image</span>
-      </div>
-      <div class="nav-item" onclick="window.location.href='/wan26.html'">
-        <div class="nav-icon"><img class="nav-logo" src="/assets/logo-wan-26.png" alt="Wan 2.6"></div><span class="nav-name">Wan 2.6</span>
-      </div>
-      <div class="nav-item" onclick="window.location.href='/seedance.html'">
-        <div class="nav-icon"><img class="nav-logo" src="/assets/logo-seedance-15-pro.png" alt="Seedance 1.5 Pro"></div><span class="nav-name">Seedance 1.5</span>
-      </div>
-      <div class="nav-item" onclick="window.location.href='/fluxkontext.html'">
-        <div class="nav-icon"><img class="nav-logo" src="/assets/logo-flux-kontext.png" alt="Flux Kontext"></div><span class="nav-name">Flux Kontext</span>
-      </div>
-    <div class="nav-item" onclick="window.location.href='/ideogram-reframe.html'">
-        <div class="nav-icon"><img class="nav-logo" src="/assets/logo-ideogram-reframe.png" alt="Ideogram Reframe"></div><span class="nav-name">Ideogram Reframe</span>
-      </div>
-      <div class="nav-item" onclick="window.location.href='/infinitalk.html'">
-        <div class="nav-icon"><img class="nav-logo" src="/assets/logo-infinitalk.png" alt="Infinitalk"></div><span class="nav-name">Infinitalk</span>
-      </div>
-        <div class="nav-item" onclick="window.location.href='/qwen2.html'">
-          <div class="nav-icon"><img class="nav-logo" src="/assets/logo-qwen2.png" alt="Qwen2"></div><span class="nav-name">Qwen2</span>
-        </div>
-      <div class="nav-item" onclick="window.location.href='/ideogram-reframe.html'">
-        <div class="nav-icon"><img class="nav-logo" src="/assets/logo-ideogram-character.png" alt="Ideogram Character"></div><span class="nav-name">Ideogram Character</span>
-      </div>
-      <div class="nav-label" style="margin-top:6px">Library</div>
-    <div class="nav-item" onclick="window.location.href='/gallery.html'">
-      <div class="nav-icon">🗄️</div><span class="nav-name">Gallery</span>
-    </div>
-      <div class="nav-item" onclick="window.location.href='/library.html'">
-        <div class="nav-icon">📁</div><span class="nav-name">Library</span>
-      </div>
-      <div class="nav-item" onclick="window.location.href='/legal.html'">
-        <div class="nav-icon">🛡️</div><span class="nav-name">Legal</span>
-      </div>
-      <div class="nav-item" id="nav-control" style="display:none" onclick="showPage('control',this);verifyAndRenderControl()">
-        <div class="nav-icon">⚙️</div><span class="nav-name">Control Panel</span>
-      </div>
-      <div class="nav-item" id="nav-dashboard" style="display:none" onclick="window.open('/dashboard.html','_blank')">
-        <div class="nav-icon">📊</div><span class="nav-name">Dashboard</span>
-      </div>
-    </nav>
-
-</aside>
-
-<main class="main">
-  <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
-  <header class="topbar">
-    <button class="hamburger-btn" id="hamburger-btn" onclick="toggleSidebar()" aria-label="Menu">&#9776;</button>
-    <div class="topbar-logo-wrap">
-      <img class="topbar-logo" src="/assets/logo-saad.png" alt="SAAD STUDIO Logo">
-    </div>
-    <span class="topbar-title" id="pageTitle">Discover</span>
-    <div id="promo-in-navbar"></div>
-    <div class="topbar-actions" id="topbar-actions">
-      <button class="topbar-btn" id="langToggle" onclick="toggleLanguage()">EN</button>
-      <button class="topbar-btn pricing" onclick="showPage('pricing')">Pricing</button>
-      <!-- guest buttons -->
-      <span id="topbar-guest">
-        <button class="topbar-btn" onclick="openAuthModal('login')">Login</button>
-        <button class="topbar-btn primary" onclick="openAuthModal('register')">Sign up</button>
-      </span>
-      <!-- logged-in state -->
-      <span id="topbar-loggedin" style="display:none" class="topbar-user">
-        <!-- Avatar button -->
-        <div class="user-avatar-wrap topbar-avatar-wrap" id="user-avatar-wrap" onclick="toggleProfileCard()">
-          <div class="user-avatar" id="user-avatar-el">•</div>
-        </div>
-        <!-- Profile dropdown card -->
-        <div class="profile-card" id="profile-card" style="display:none;">
-          <div class="profile-card-header">
-            <div class="profile-card-avatar" id="pcard-avatar">•</div>
-            <div>
-              <div class="profile-card-email" id="pcard-email">—</div>
-              <span class="topbar-plan-badge starter" id="pcard-plan-badge" style="margin-top:4px;display:inline-block;">—</span>
-            </div>
-          </div>
-          <div class="profile-card-divider"></div>
-          <div class="profile-card-row">
-            <span class="profile-card-label">💳 رصيدك</span>
-            <span class="profile-card-value" id="pcard-credits">—</span>
-          </div>
-          <div class="profile-card-row">
-            <span class="profile-card-label">📅 تاريخ الاشتراك</span>
-            <span class="profile-card-value" id="pcard-created">—</span>
-          </div>
-          <div class="profile-card-row" id="pcard-renew-row">
-            <span class="profile-card-label">⏳ ينتهي في</span>
-            <span class="profile-card-value" id="pcard-renew">—</span>
-          </div>
-          <div class="profile-card-row" id="pcard-days-row">
-            <span class="profile-card-label">⭐ باقي</span>
-            <span class="profile-card-value" id="pcard-days">—</span>
-          </div>
-          <div class="profile-card-divider"></div>
-          <button class="profile-card-nav-btn" onclick="closeProfileCard();showPage('user-dashboard')"><span class="pcnb-icon">📊</span> لوحتي</button>
-          <button class="profile-card-nav-btn" onclick="closeProfileCard();showPage('billing')"><span class="pcnb-icon">💳</span> الاشتراك والفوترة</button>
-          <button class="profile-card-logout" onclick="doLogout()">&#x2192; تسجيل الخروج</button>
-        </div>
-      </span>
-    </div>
-  </header>
-
-  <div class="gs-billing kie-global" id="user-credits-bar" style="display:none">
-    <div class="gs-kpi">
-      <div class="gs-kpi-label">رصيد حسابك</div>
-      <div class="gs-kpi-value" id="kie-credits-value" style="color:var(--cyan)">--</div>
-    </div>
-    <button class="btn btn-ghost" onclick="AUTH.refreshMe().then(()=>syncUserCreditsBar())">تحديث الرصيد</button>
-  </div>
-
-  <!-- MARKET -->
-
-<div class="page active" id="page-dash">
-    <div class="ph">
-      <div class="ph-title" id="dash-ph-title">اكتشف ماالجديد</div>
-      <div class="ph-sub" id="dash-ph-sub">اختر الموديل المطلوب واضغط للاستخدام المباشر</div>
-    </div>
-    <div class="market-hero" id="market-hero-container">
-      <!-- slides rendered dynamically -->
-    </div>
-
-    <div class="stitle">النماذج</div>
-    <div class="market-grid" id="market-grid-container">
-      <!-- model cards rendered dynamically -->
-    </div>
-  </div>
-
-  <!-- PRICING -->
-  
-<div class="page active" id="page-pricing">
-    <div class="ph">
-      <div class="ph-title">Pricing</div>
-      <div class="ph-sub">Subscription plans and extra credit packs.</div>
-    </div>
-
-    <div class="pricing-banner" style="margin-bottom:22px;">
-      <div>
-        <div class="badge-row">
-          <span class="badge">SPECIAL</span>
-          <span class="badge">PREMIUM</span>
-        </div>
-        <div class="headline">Exclusive Nano Banana Pro & Nano Banana 2 offers</div>
-        <div class="subhead">Free for $25 and $50 subscribers only</div>
-        <div class="desc">Upgrade your production with advanced perks and flexible options for your projects.</div>
-      </div>
-      <button class="cta" onclick="choosePlan('pro')">Start now</button>
-    </div>
-
-    <div class="pricing-grid">
-      <div class="plan-card">
-        <div class="plan-title">Starter</div>
-        <div class="plan-price">$10</div>
-        <div class="plan-period">/ month</div>
-        <div class="plan-credits">1,000 credits per month</div>
-        <div class="plan-features">
-          <div>• Great for getting started</div>
-          <div>• Full access to models</div>
-          <div>• Gallery and saved results</div>
-        </div>
-        <button class="plan-action" onclick="choosePlan('starter')">اختر الخطة</button>
-      </div>
-      <div class="plan-card featured">
-        <div class="plan-tag">Most Popular</div>
-        <div class="plan-title">Pro</div>
-        <div class="plan-price">$25</div>
-        <div class="plan-period">/ month</div>
-        <div class="plan-credits">2,800 credits per month</div>
-        <div class="plan-features">
-          <div>• Faster generations</div>
-          <div>• Built for larger projects</div>
-          <div>• Nano Banana free for subscribers</div>
-          <div>• Video duration controls</div>
-        </div>
-        <button class="plan-action" onclick="choosePlan('pro')">اختر الخطة</button>
-      </div>
-      <div class="plan-card">
-        <div class="plan-title">Creator</div>
-        <div class="plan-price">$50</div>
-        <div class="plan-period">/ month</div>
-        <div class="plan-credits">6000 credits per month</div>
-        <div class="plan-features">
-          <div>• Highest usage tier</div>
-          <div>• Best for studios</div>
-          <div>• Nano Banana free for subscribers</div>
-          <div>• Expanded video and image features</div>
-        </div>
-        <button class="plan-action" onclick="choosePlan('creator')">اختر الخطة</button>
-      </div>
-    </div>
-
-    <div class="topup-wrap">
-      <div class="topup-title">Buy extra credits</div>
-      <div class="topup-grid">
-        <button class="topup-card" onclick="requestTopup(5,450)">
-          <div class="topup-price">$5</div>
-          <div class="topup-credits">450 credits</div>
-        </button>
-        <button class="topup-card" onclick="requestTopup(15,1500)">
-          <div class="topup-price">$15</div>
-          <div class="topup-credits">1,500 credits</div>
-        </button>
-        <button class="topup-card" onclick="requestTopup(30,3200)">
-          <div class="topup-price">$30</div>
-          <div class="topup-credits">3,200 credits</div>
-        </button>
-        <button class="topup-card" onclick="requestTopup(50,5500)">
-          <div class="topup-price">$50</div>
-          <div class="topup-credits">5,500 credits</div>
-        </button>
-      </div>
-      
-    </div>
-
-    <div class="compare-wrap">
-      <div class="compare-title">COMPARE PLANS</div>
-      <table class="compare-table">
-        <thead>
-          <tr>
-            <th></th>
-            <th>
-              Starter
-              <div class="compare-tag">$10 / month</div>
-            </th>
-            <th>
-              Pro
-              <div class="compare-tag">$25 / month</div>
-            </th>
-            <th>
-              Creator
-              <div class="compare-tag">$50 / month</div>
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td class="compare-section" colspan="4">Video</td>
-          </tr>
-          <tr>
-            <td>Concurrent Jobs</td>
-            <td>2</td>
-            <td>4</td>
-            <td>8</td>
-          </tr>
-          <tr>
-            <td>Nano Banana (free)</td>
-            <td>Available</td>
-            <td>Available</td>
-            <td>Available</td>
-          </tr>
-          <tr>
-            <td>Kling Std 5s no-audio (70 cr)</td>
-            <td>~17 videos</td>
-            <td>~42 videos</td>
-            <td>~85 videos</td>
-          </tr>
-          <tr>
-            <td>Kling Pro 10s + audio (270 cr)</td>
-            <td>~4 videos</td>
-            <td>~11 videos</td>
-            <td>~22 videos</td>
-          </tr>
-          <tr>
-            <td>Hailuo/02 Pro 6s (57 cr)</td>
-            <td>~21 videos</td>
-            <td>~52 videos</td>
-            <td>~105 videos</td>
-          </tr>
-          <tr>
-            <td>Hailuo/02 Pro 10s (114 cr)</td>
-            <td>~10 videos</td>
-            <td>~26 videos</td>
-            <td>~52 videos</td>
-          </tr>
-          <tr>
-            <td>Wan 2.6 HD 5s (105 cr)</td>
-            <td>~11 videos</td>
-            <td>~28 videos</td>
-            <td>~57 videos</td>
-          </tr>
-          <tr>
-            <td>Sora 2 basic 10s (30 cr)</td>
-            <td>~40 videos</td>
-            <td>~100 videos</td>
-            <td>~200 videos</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- MODEL DETAIL -->
-  
-<div class="page active" id="page-model">
-    <div class="ph">
-      <div class="ph-title" id="model-page-title">MODEL</div>
-      <div class="ph-sub" id="model-page-sub">Model details</div>
-    </div>
-    <div class="model-panel">
-      <div class="model-hero" id="model-page-hero"></div>
-      <div class="model-info">
-        <div class="market-hero-tag" id="model-page-tag">Coming Soon</div>
-        <div class="market-hero-title" style="font-size:26px;" id="model-page-name">Model Name</div>
-        <div class="market-hero-sub" id="model-page-desc">This page shows the model status and links to its workspace.</div>
-        <div class="model-status" id="model-page-status">Status: linking</div>
-        <button class="btn btn-ghost model-action" id="model-page-action" style="display:none;" onclick="openModelAction()">Open tool</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- SUNO -->
-  
-
-</main>
-
-
-
-<div class="toast-container" id="toasts"></div>
-
-
-
-<script src="/js/shared.js"></script>
-<script src="/js/sidebar-scripts.js"></script><script src="/js/sidebar-toggle.js"></script>
-<script>
-(function() {
-  var p = new URLSearchParams(window.location.search).get('page');
-  if (p) showPage(p);
-})();
-</script>
 </body>
 </html>
