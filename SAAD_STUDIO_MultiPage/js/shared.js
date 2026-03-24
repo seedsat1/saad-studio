@@ -1,4 +1,4 @@
-
+﻿
 // ═══════════════════════════
 // STATE
 // ═══════════════════════════
@@ -4574,11 +4574,17 @@ function clearResults(id){
   const icons={'vid-results':'🎬','clothes-results':'👗','edit-results':'✏️','scene-results':'🎭','story-results':'📖'};
   const txts={'vid-results':'ستظهر الفيديوهات هنا','clothes-results':'ستظهر النتائج هنا','edit-results':'ستظهر النتائج هنا','scene-results':'ستظهر النتائج هنا','story-results':'ستظهر المشاهد هنا'};
   el.innerHTML=`<div class="result-empty"><div class="result-empty-icon">${icons[id]||'🖼️'}</div><div class="result-empty-text">${txts[id]||'ستظهر النتائج هنا'}</div></div>`;
-  // Remove from localStorage
+  // Remove from localStorage (all keys: scoped, base, nano cache)
   try {
     const saved = JSON.parse(localStorage.getItem(getResKey())||'[]');
-    const filtered = saved.filter(r => r.containerId !== id);
-    localStorage.setItem(getResKey(), JSON.stringify(filtered));
+    localStorage.setItem(getResKey(), JSON.stringify(saved.filter(r => r.containerId !== id)));
+    const baseKey = STORAGE_KEY;
+    if(getResKey() !== baseKey){
+      const savedBase = JSON.parse(localStorage.getItem(baseKey)||'[]');
+      localStorage.setItem(baseKey, JSON.stringify(savedBase.filter(r => r.containerId !== id)));
+    }
+    const nc = JSON.parse(localStorage.getItem('saad_nano_cache_v1')||'[]');
+    localStorage.setItem('saad_nano_cache_v1', JSON.stringify(nc.filter(r => r.containerId !== id)));
   } catch(e){}
 }
 
@@ -4592,11 +4598,15 @@ function deleteResult(btn){
 
 function removeGalleryEntry(url){
   if(!url) return;
-  // Remove from saved results
+  const _urlN = url.replace(location.origin, '');
+  // Remove from saved results (all keys incl. nano cache)
   try {
     const saved = JSON.parse(localStorage.getItem(getResKey())||'[]');
-    const filtered = saved.filter(r => r.url !== url && !url.endsWith(r.url));
-    localStorage.setItem(getResKey(), JSON.stringify(filtered));
+    localStorage.setItem(getResKey(), JSON.stringify(saved.filter(r => r.url !== url && r.url !== _urlN)));
+    const _bk = STORAGE_KEY;
+    if(getResKey() !== _bk){ const _sb = JSON.parse(localStorage.getItem(_bk)||'[]'); localStorage.setItem(_bk, JSON.stringify(_sb.filter(r => r.url !== url && r.url !== _urlN))); }
+    const _nc = JSON.parse(localStorage.getItem('saad_nano_cache_v1')||'[]');
+    localStorage.setItem('saad_nano_cache_v1', JSON.stringify(_nc.filter(r => r.url !== url && r.url !== _urlN)));
   } catch(e){}
   // Remove from lightweight gallery store
   try{
@@ -4706,8 +4716,18 @@ function saveResult(containerId, url, isVideo, prompt){
 
 function loadSavedResults(){
   try {
+    // Primary: user-scoped key
     const saved = JSON.parse(localStorage.getItem(getResKey())||'[]');
     saved.forEach(r => addResultItem(r.containerId, r.url, r.isVideo, r.prompt, false));
+    // Fallback: non-scoped key (covers results saved while not logged in)
+    const baseKey = STORAGE_KEY;
+    if(getResKey() !== baseKey){
+      const savedBase = JSON.parse(localStorage.getItem(baseKey)||'[]');
+      savedBase.forEach(r => addResultItem(r.containerId, r.url, r.isVideo, r.prompt, false));
+    }
+    // Nano cache: independent per-page cache immune to auth key changes
+    const nanoCache = JSON.parse(localStorage.getItem('saad_nano_cache_v1')||'[]');
+    nanoCache.forEach(r => addResultItem(r.containerId, r.url, false, r.prompt||'', false));
   } catch(e){}
 }
 
@@ -4731,6 +4751,8 @@ async function storeLocalImageUrl(url, prefix='img'){
 
 function addResultItem(containerId, url, isVideo=false, prompt='', save=true){
   const c=document.getElementById(containerId); if(!c) return;
+  // Dedup: skip if this exact URL is already displayed in this container
+  if(url && Array.from(c.querySelectorAll('img,video')).some(el => { const s = el.src||el.getAttribute('src')||''; return s === url || s.endsWith(url) || url.endsWith(s.replace(location.origin,'')); })) return;
   const emp=c.querySelector('.result-empty'); if(emp) emp.remove();
   const item=document.createElement('div');
   item.className='result-item';
@@ -5239,6 +5261,13 @@ async function runGoogleImageTool(mode){
         const stored = await storeLocalImageUrl(finalImg, 'google');
         addResultItem(cfg.resultId, stored, false, prompt);
         addGoogleGalleryItem(stored, prompt, cfg.title);
+        // Save to nano cache (auth-independent, survives navigation)
+        try {
+          const _nc = JSON.parse(localStorage.getItem('saad_nano_cache_v1')||'[]');
+          if(!_nc.some(x => x.url === stored)) _nc.unshift({ containerId: cfg.resultId, url: stored, prompt, time: Date.now() });
+          if(_nc.length > 60) _nc.splice(60);
+          localStorage.setItem('saad_nano_cache_v1', JSON.stringify(_nc));
+        } catch(_ncErr) {}
         S.lastT2PImage = finalImg;
         S.lastT2PPrompt = prompt;
         totalImages++;
