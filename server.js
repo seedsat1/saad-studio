@@ -3269,7 +3269,8 @@ async function attachUser(req, res, next) {
   // 1. Extract token — prefer HttpOnly cookie, fall back to header
   const cookieToken = req.cookies && req.cookies.sb_access_token;
   const headerAuth = req.headers['authorization'] || '';
-  const token = cookieToken || (headerAuth.startsWith('Bearer ') ? headerAuth.slice(7) : '') || '';
+  const legacyHeaderToken = String(req.headers['x-user-token'] || '').trim();
+  const token = cookieToken || (headerAuth.startsWith('Bearer ') ? headerAuth.slice(7) : '') || legacyHeaderToken || '';
 
   if (!token || !supabaseAdmin) return next();
 
@@ -4087,7 +4088,38 @@ app.get('/api/admin/activity', requireAdmin, (req, res) => {
 // GET /api/admin/generations — list all user generations
 app.get('/api/admin/generations', requireAdmin, (req, res) => {
   try {
-    let log = loadGenerations();
+    const directLog = loadGenerations();
+    let activityLog = [];
+    try { activityLog = JSON.parse(fs.readFileSync(ACTIVITY_FILE, 'utf8')); } catch {}
+    if (!Array.isArray(activityLog)) activityLog = [];
+
+    // Fallback source: activity entries that have a persisted media URL.
+    const fromActivity = activityLog
+      .filter(e => !!e?.imageUrl)
+      .map(e => ({
+        id: `act-${e.id || crypto.randomBytes(4).toString('hex')}`,
+        userId: String(e.userId || ''),
+        email: String(e.email || ''),
+        url: String(e.imageUrl || ''),
+        isVideo: String(e.type || '').toLowerCase() === 'video',
+        type: String(e.type || ''),
+        model: String(e.model || ''),
+        prompt: String(e.prompt || ''),
+        credits: Number(e.credits) || 0,
+        createdAt: e.createdAt || new Date().toISOString()
+      }));
+
+    const seen = new Set();
+    const log = [...directLog, ...fromActivity]
+      .filter(e => e && e.url)
+      .filter(e => {
+        const key = `${e.userId || ''}|${e.url}|${String(e.createdAt || '').slice(0, 16)}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+      .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+
     const limit  = Math.min(200, Math.max(1, parseInt(req.query.limit)  || 50));
     const page   = Math.max(1, parseInt(req.query.page) || 1);
     const offset = Math.max(0, parseInt(req.query.offset) || ((page - 1) * limit));

@@ -2,9 +2,36 @@
 (function applyCMSSidebar(){
   // Map each .nav-item to its pageId extracted from onclick attribute
   function getPageId(el){
+    const explicit = (el.getAttribute('data-pageid') || '').trim();
+    if(explicit) return explicit;
+
     const oc = el.getAttribute('onclick') || '';
-    const m = oc.match(/showPage\('([^']+)'/);
-    return m ? m[1] : (el.id === 'nav-dashboard' ? 'nav-dashboard' : null);
+    const mShowPage = oc.match(/showPage\('([^']+)'/);
+    if(mShowPage) return mShowPage[1];
+
+    // Multi-page routes: onclick="window.location.href='/kling.html'"
+    const mHref = oc.match(/window\.location\.href\s*=\s*['"]([^'"]+)['"]/);
+    // External open: onclick="window.open('/dashboard.html','_blank')"
+    const mOpen = oc.match(/window\.open\(\s*['"]([^'"]+)['"]/);
+    const rawRoute = (mHref && mHref[1]) || (mOpen && mOpen[1]) || '';
+
+    if(rawRoute){
+      let slug = String(rawRoute).split('?')[0].split('#')[0].trim();
+      slug = slug.replace(/^\//,'').replace(/\.html$/i,'').toLowerCase();
+
+      if(!slug || slug === 'index') return 'dash';
+
+      // The "Ideogram Character" item can be wired to ideogram-reframe route in legacy markup.
+      // If label indicates Character, bind it to CMS pageId "model".
+      const navName = (el.querySelector('.nav-name')?.textContent || '').toLowerCase();
+      if(slug === 'ideogram-reframe' && navName.includes('character')) return 'model';
+
+      return slug;
+    }
+
+    if(el.id === 'nav-dashboard') return 'nav-dashboard';
+    if(el.id === 'nav-control') return 'control';
+    return null;
   }
 
   // Build badge HTML

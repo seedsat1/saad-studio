@@ -191,16 +191,75 @@
 
 <div class="page active" id="page-dash">
     <div class="ph">
-      <div class="ph-title" id="dash-ph-title">اكتشف ماالجديد</div>
-      <div class="ph-sub" id="dash-ph-sub">اختر الموديل المطلوب واضغط للاستخدام المباشر</div>
-    </div>
-    <div class="market-hero" id="market-hero-container">
-      <!-- slides rendered dynamically -->
+      <div class="ph-title" id="dash-ph-title">استكشف ما هو قادم</div>
+      <div class="ph-sub" id="dash-ph-sub">منصة إنتاج واحدة وتدفق واضح للمبدعين</div>
     </div>
 
-    <div class="stitle">النماذج</div>
-    <div class="market-grid" id="market-grid-container">
-      <!-- model cards rendered dynamically -->
+    <div class="dash-explore-hero">
+      <div class="dash-explore-panel">
+        <div class="dash-explore-cards">
+          <article class="dash-explore-card">
+            <h3>Model Playground</h3>
+            <p>تنقل بين GPT و Flux و Wan و Seedance و Sora بسهولة.</p>
+            <span class="chip">متعدد النماذج</span>
+          </article>
+          <article class="dash-explore-card">
+            <h3>Cinema Pipeline</h3>
+            <p>من البرومبت إلى لقطة سينمائية مع انتقالات وتسلسل مشاهد متماسك.</p>
+            <span class="chip">فيديو + صورة</span>
+          </article>
+          <article class="dash-explore-card">
+            <h3>Creator Library</h3>
+            <p>نظّم أصولك المولّدة داخل Gallery و Library لسهولة الإنتاج.</p>
+            <span class="chip">إدارة الأصول</span>
+          </article>
+          <article class="dash-explore-card">
+            <h3>Prompt Studio</h3>
+            <p>أنشئ برومبتات أدق وأعد صياغة النتائج بسرعة لمخرجات أقوى.</p>
+            <span class="chip">سير عمل موجّه</span>
+          </article>
+        </div>
+      </div>
+      <div class="dash-explore-panel dash-explore-copy">
+        <div class="dash-explore-kicker">EXPLORE • منصة إبداعية بالذكاء الاصطناعي</div>
+        <h2>استكشف<br>ما هو قادم</h2>
+        <p>أنشئ مشاهد سينمائية، فيديوهات، برومبتات وتعديلات من مساحة عمل واحدة. تنقل سريع بين النماذج وتحكم واضح وتدفق إنتاجي جاهز للمبدعين.</p>
+        <div class="dash-explore-cta">
+          <button class="btn btn-generate" onclick="showPage('cinema')">جرّب Cinema Studio</button>
+          <button class="btn btn-ghost" onclick="showPage('prompt')">ابدأ الآن</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="dash-explore-head">
+      <h4>اختر سكة عمل</h4>
+      <span>جرّب الآن بكل لحظة</span>
+    </div>
+    <div class="dash-explore-tools">
+      <button class="dash-explore-tool" onclick="showPage('prompt')">
+        <b>Prompt Studio</b>
+        <span>أنشئ برومبتات دقيقة وواضحة.</span>
+      </button>
+      <button class="dash-explore-tool" onclick="showPage('kling')">
+        <b>Kling Studio</b>
+        <span>تحكم أوضح في الحركة.</span>
+      </button>
+      <button class="dash-explore-tool" onclick="showPage('cinema')">
+        <b>Cinema Studio</b>
+        <span>مشاهد سينمائية وانتقالات.</span>
+      </button>
+      <button class="dash-explore-tool" onclick="showPage('nano')">
+        <b>Nano Banana</b>
+        <span>صور عالية الجودة بسرعة.</span>
+      </button>
+    </div>
+
+    <div class="dash-explore-banner">
+      <button class="btn btn-generate" onclick="window.location.href='/'">الدخول للتطبيق الكامل</button>
+      <div>
+        <b>منصة واحدة. تدفق إنتاج حقيقي.</b>
+        <p>ابدأ من Explore ثم انتقل إلى الاستوديو الكامل بضغطة واحدة.</p>
+      </div>
     </div>
   </div>
 

@@ -30,23 +30,66 @@
     .hero h2{margin-top:14px;font-family:var(--fd);font-size:72px;letter-spacing:.05em;line-height:.95;background:linear-gradient(145deg,var(--tx) 10%,var(--cyan2) 48%,var(--amber2) 94%);background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent}
     .hero p{margin-top:14px;font-size:15px;line-height:1.8;color:var(--tx2);max-width:62ch}
     .cta{margin-top:20px;display:flex;gap:10px;flex-wrap:wrap}
+    .trust{margin-top:14px;display:flex;gap:8px;flex-wrap:wrap}
+    .trust span{display:inline-flex;align-items:center;padding:5px 10px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.03);font-size:10px;color:var(--tx2);font-family:var(--fm);letter-spacing:.06em}
     .cards{display:grid;grid-template-columns:1fr 1fr;gap:12px;height:100%}
-    .card{border:1px solid var(--line);border-radius:16px;background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.015));padding:16px;position:relative;overflow:hidden}
+    .card{border:1px solid var(--line);border-radius:16px;background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.015));padding:16px;position:relative;overflow:hidden;transition:transform .22s,border-color .22s,box-shadow .22s}
     .card::before{content:'';position:absolute;inset:auto -30% -55% auto;width:180px;height:180px;background:radial-gradient(circle,rgba(0,229,255,.2),transparent 66%)}
+    .card:hover{transform:translateY(-3px);border-color:var(--cyan2);box-shadow:0 16px 36px rgba(0,0,0,.24)}
     .card h3{font-size:15px;font-weight:700}.card p{margin-top:8px;font-size:12px;line-height:1.65;color:var(--tx2)}
     .card .chip{margin-top:10px;display:inline-flex;padding:4px 8px;border-radius:999px;font-size:10px;color:var(--amber2);border:1px solid var(--line2);background:rgba(255,158,44,.12)}
     .section{padding:14px 0 24px}.section .head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
     .section .head h4{font-family:var(--fm);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--tx3)}
     .section .head a{font-size:12px;color:var(--cyan2);text-decoration:none}
     .tools{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
-    .tool{border:1px solid var(--line);border-radius:14px;padding:14px;background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,255,255,.01));text-decoration:none;color:inherit;transition:.2s}
-    .tool:hover{border-color:var(--cyan2);transform:translateY(-2px)}
-    .tool b{font-size:13px;display:block}.tool span{margin-top:6px;display:block;font-size:11px;color:var(--tx2);line-height:1.6}
+    .tool{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:linear-gradient(180deg,rgba(20,54,84,.65),rgba(12,40,66,.45));text-decoration:none;color:inherit;transition:.2s;min-height:66px}
+    .tool:hover{border-color:var(--cyan2);transform:translateY(-2px);box-shadow:0 12px 30px rgba(0,0,0,.2)}
+    .tool-icon{width:30px;height:30px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;font-size:15px;background:linear-gradient(135deg,rgba(255,255,255,.11),rgba(255,255,255,.03));border:1px solid rgba(255,255,255,.14);color:#d8efff;flex-shrink:0}
+    .tool-meta{display:flex;flex-direction:column;gap:4px;min-width:0}
+    .tool b{font-size:12px;display:block;line-height:1.2}
+    .tool span{display:block;font-size:10px;color:var(--tx2);line-height:1.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+    .quick-start{margin:10px 0 20px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+    .qitem{border:1px solid var(--line);border-radius:12px;padding:12px;background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.015));text-decoration:none;color:inherit;display:flex;align-items:center;justify-content:space-between;gap:8px;transition:.2s}
+    .qitem:hover{transform:translateY(-2px);border-color:var(--amber2);box-shadow:0 12px 28px rgba(0,0,0,.2)}
+    .qitem b{font-size:12px}
+    .qitem span{font-size:10px;color:var(--tx2)}
+    .qtag{font-family:var(--fm);font-size:9px;color:var(--amber2);border:1px solid var(--line2);border-radius:999px;padding:3px 7px;background:rgba(255,158,44,.12)}
     .banner{margin-top:8px;border:1px solid var(--line);border-radius:16px;padding:18px;background:linear-gradient(135deg,rgba(255,158,44,.14),rgba(0,229,255,.11));display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
     .banner b{font-size:18px;font-family:var(--fd);letter-spacing:.08em}.banner p{font-size:13px;color:var(--tx);opacity:.9}
+
+    .market{margin-top:8px;border:none;border-radius:0;padding:0;background:transparent}
+    .market-hero{position:relative;border:1px solid var(--line);border-radius:14px;overflow:hidden;min-height:220px;background:#0b1722;margin-bottom:14px}
+    .market-hero-slide{position:absolute;inset:0;background-size:cover;background-position:center;display:none;cursor:pointer}
+    .market-hero-slide.active{display:block}
+    .market-hero-slide::before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,rgba(7,17,26,.92) 0%,rgba(7,17,26,.58) 55%,rgba(7,17,26,.18) 100%)}
+    .market-hero-content{position:relative;z-index:2;padding:22px;max-width:520px;display:flex;flex-direction:column;gap:8px}
+    .market-hero-tag{display:inline-flex;align-items:center;gap:6px;padding:4px 9px;border-radius:999px;font-size:9px;font-family:var(--fm);letter-spacing:.14em;text-transform:uppercase;background:rgba(95,226,255,.12);border:1px solid var(--line);color:var(--cyan2);width:max-content}
+    .market-hero-title{font-family:var(--fd);font-size:42px;letter-spacing:.06em;color:var(--tx)}
+    .market-hero-sub{font-size:12px;color:var(--tx2);line-height:1.6}
+    .market-hero-btn{margin-top:8px;width:max-content}
+    .market-dots{position:absolute;bottom:12px;right:0;left:0;display:flex;justify-content:center;gap:7px;z-index:3}
+    .market-dot{width:8px;height:8px;border-radius:50%;border:1px solid var(--line);background:rgba(255,255,255,.08);cursor:pointer}
+    .market-dot.active{background:var(--amber);border-color:var(--amber)}
+    .market-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px}
+    .market-card{position:relative;height:126px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#0b1622;cursor:pointer;transition:transform .18s,border-color .18s;text-decoration:none;color:inherit}
+    .market-card::before{content:'';position:absolute;inset:0;background-image:var(--card-bg);background-size:cover;background-position:center;filter:saturate(1.08);transition:transform .34s}
+    .market-card::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(7,17,26,.05) 0%,rgba(7,17,26,.72) 70%,rgba(7,17,26,.9) 100%)}
+    .market-card:hover{transform:translateY(-2px);border-color:var(--cyan2)}
+    .market-card:hover::before{transform:scale(1.04)}
+    .market-card-content{position:relative;z-index:2;height:100%;display:flex;flex-direction:column;justify-content:flex-end;gap:5px;padding:10px;text-decoration:none}
+    .market-pill{display:inline-flex;align-items:center;gap:6px;padding:2px 7px;border-radius:999px;font-size:8px;font-family:var(--fm);letter-spacing:.12em;text-transform:uppercase;background:rgba(242,181,68,.14);border:1px solid var(--line2);color:var(--amber2);width:max-content}
+    .market-card-title{font-size:15px;font-weight:700;color:var(--tx)}
+    .market-card-sub{font-size:10px;color:var(--tx2);font-family:var(--fm)}
+
+    .mobile-cta{display:none}
+
+    .reveal{opacity:1;transform:none}
+    .reveal.in{opacity:1;transform:none}
+
     footer{padding:28px 0 36px;color:var(--tx3);font-size:12px;text-align:center}
-    @media (max-width:1024px){.hero{grid-template-columns:1fr}.hero h2{font-size:58px}.tools{grid-template-columns:repeat(2,minmax(0,1fr))}}
-    @media (max-width:640px){.topbar{height:auto;padding:12px 0;gap:10px;flex-wrap:wrap}.actions{width:100%;justify-content:flex-start}.hero h2{font-size:44px}.hero-panel{padding:20px;min-height:auto}.cards{grid-template-columns:1fr}.tools{grid-template-columns:1fr}}
+    @media (max-width:1024px){.hero{grid-template-columns:1fr}.hero h2{font-size:58px}.tools{grid-template-columns:repeat(2,minmax(0,1fr))}.market-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.quick-start{grid-template-columns:1fr}}
+    @media (max-width:640px){.topbar{height:auto;padding:12px 0;gap:10px;flex-wrap:wrap}.actions{width:100%;justify-content:flex-start}.hero h2{font-size:44px}.hero-panel{padding:20px;min-height:auto}.cards{grid-template-columns:1fr}.tools{grid-template-columns:1fr}.tool{min-height:58px}.market-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.market-card{height:112px}.market-hero-title{font-size:28px}.market-hero-content{padding:16px}.mobile-cta{display:flex;position:fixed;left:12px;right:12px;bottom:12px;z-index:20;padding:10px 14px;border-radius:12px;justify-content:space-between;align-items:center;background:linear-gradient(135deg,rgba(255,158,44,.95),rgba(255,169,74,.95));color:#07111a;text-decoration:none;font-weight:800;box-shadow:0 16px 30px rgba(0,0,0,.28)}body{padding-bottom:72px}}
   </style>
 </head>
 <body>
@@ -63,44 +106,140 @@
       </div>
     </header>
 
-    <section class="hero">
-      <div class="hero-panel">
+    <section class="hero reveal">
+      <div class="hero-panel reveal">
         <div class="eyebrow">Explore • منصة إبداعية بالذكاء الاصطناعي</div>
         <h2>استكشف<br>ما هو قادم</h2>
         <p>أنشئ مشاهد سينمائية، فيديوهات، برومبتات وتعديلات من مساحة عمل واحدة. تنقل سريع بين النماذج وتحكم واضح وتدفق إنتاجي جاهز للمبدعين.</p>
+        <div class="trust">
+          <span>سريع</span>
+          <span>متعدد النماذج</span>
+          <span>واجهة عربية</span>
+          <span>نتائج احترافية</span>
+        </div>
         <div class="cta">
           <a class="btn primary" href="/app">ابدأ الآن</a>
           <a class="btn ghost" href="/cinema.html">جرّب Cinema Studio</a>
         </div>
       </div>
-      <div class="hero-panel">
+      <div class="hero-panel reveal">
         <div class="cards">
-          <article class="card"><h3>Cinema Pipeline</h3><p>من البرومبت إلى لقطة سينمائية مع انتقالات وتسلسل مشاهد متماسك.</p><span class="chip">فيديو + صورة</span></article>
           <article class="card"><h3>Model Playground</h3><p>تنقل بين GPT و Flux و Wan و Seedance و Sora وغيرها بسهولة.</p><span class="chip">متعدد النماذج</span></article>
-          <article class="card"><h3>Prompt Studio</h3><p>أنشئ برومبتات أدق وأعد صياغة النتائج بسرعة لمخرجات أقوى.</p><span class="chip">سير عمل موجّه</span></article>
+          <article class="card"><h3>Cinema Pipeline</h3><p>من البرومبت إلى لقطة سينمائية مع انتقالات وتسلسل مشاهد متماسك.</p><span class="chip">فيديو + صورة</span></article>
           <article class="card"><h3>Creator Library</h3><p>نظّم أصولك المولّدة داخل Gallery و Library لسهولة الإنتاج.</p><span class="chip">إدارة الأصول</span></article>
+          <article class="card"><h3>Prompt Studio</h3><p>أنشئ برومبتات أدق وأعد صياغة النتائج بسرعة لمخرجات أقوى.</p><span class="chip">سير عمل موجّه</span></article>
         </div>
       </div>
     </section>
 
-    <section class="section">
-      <div class="head"><h4>الأكثر استخدامًا</h4><a href="/app">عرض الكل داخل التطبيق</a></div>
-      <div class="tools">
-        <a class="tool" href="/nano.html"><b>Nano Banana</b><span>توليد صور بسرعة عالية مع ثبات أفضل.</span></a>
-        <a class="tool" href="/cinema.html"><b>Cinema Studio</b><span>تكوينات سينمائية ومشاهد جاهزة للانتقال.</span></a>
-        <a class="tool" href="/kling.html"><b>Kling Studio</b><span>سير عمل فيديو بتحكم أدق في الحركة.</span></a>
-        <a class="tool" href="/prompt.html"><b>Prompt Studio</b><span>حسّن البرومبت وارفع جودة الناتج بسرعة.</span></a>
+    <section class="section reveal">
+      <div class="head"><h4>Quick Start</h4><a href="/app">ابدأ فورًا</a></div>
+      <div class="quick-start">
+        <a class="qitem" href="/nano.html"><div><b>توليد صورة الآن</b><span>Nano Banana • 15-30 ثانية</span></div><span class="qtag">IMAGE</span></a>
+        <a class="qitem" href="/kling.html"><div><b>توليد فيديو الآن</b><span>Kling Studio • 30-90 ثانية</span></div><span class="qtag">VIDEO</span></a>
+        <a class="qitem" href="/prompt.html"><div><b>تحسين برومبت الآن</b><span>Prompt Studio • أقل من 10 ثواني</span></div><span class="qtag">PROMPT</span></a>
       </div>
     </section>
 
-    <section class="section">
+    <section class="section reveal">
+      <div class="head"><h4>جرّب الآن بكل لحظة</h4><a href="/app">اختر سكة عمل</a></div>
+      <div class="tools">
+        <a class="tool" href="/prompt.html"><span class="tool-icon">✦</span><span class="tool-meta"><b>Prompt Studio</b><span>أنشئ برومبتات دقيقة وواضحة.</span></span></a>
+        <a class="tool" href="/kling.html"><span class="tool-icon">🎞</span><span class="tool-meta"><b>Kling Studio</b><span>تحكم أوضح في الحركة.</span></span></a>
+        <a class="tool" href="/cinema.html"><span class="tool-icon">🎬</span><span class="tool-meta"><b>Cinema Studio</b><span>مشاهد سينمائية وانتقالات.</span></span></a>
+        <a class="tool" href="/nano.html"><span class="tool-icon">◎</span><span class="tool-meta"><b>Nano Banana</b><span>صور عالية الجودة بسرعة.</span></span></a>
+      </div>
+    </section>
+
+    <section class="section reveal">
       <div class="banner">
         <div><b>منصة واحدة. تدفق إنتاج حقيقي.</b><p>ابدأ من Explore ثم انتقل إلى الاستوديو الكامل بضغطة واحدة.</p></div>
         <a class="btn primary" href="/app">الدخول للتطبيق الكامل</a>
       </div>
     </section>
 
+    <section class="section reveal">
+      <div class="market">
+        <div class="market-hero" id="market-hero-container"></div>
+        <div class="market-grid" id="market-grid-container"></div>
+      </div>
+    </section>
+
     <footer>SAAD STUDIO • الصفحة الرئيسية للاستكشاف</footer>
   </div>
+
+  <a class="mobile-cta" href="/app"><span>الدخول السريع للاستوديو</span><span>ابدأ</span></a>
+
+  <script>
+    (function(){
+      let heroIndex = 0;
+      let heroTimer = null;
+
+      function setHero(index){
+        const slides = Array.from(document.querySelectorAll('.market-hero-slide'));
+        const dots = Array.from(document.querySelectorAll('.market-dot'));
+        if(!slides.length) return;
+        heroIndex = (index + slides.length) % slides.length;
+        slides.forEach((s,i)=>s.classList.toggle('active', i === heroIndex));
+        dots.forEach((d,i)=>d.classList.toggle('active', i === heroIndex));
+      }
+
+      function initHero(){
+        setHero(0);
+        if(heroTimer) clearInterval(heroTimer);
+        heroTimer = setInterval(()=>setHero(heroIndex + 1), 9000);
+      }
+
+      function buildHero(slides){
+        const c = document.getElementById('market-hero-container');
+        if(!c || !slides.length) return;
+        let html = '';
+        slides.forEach((s,i)=>{
+          html += `<div class="market-hero-slide${i===0?' active':''}" style="background-image:url('${s.image}')" onclick="window.location.href='${s.link}'"><div class="market-hero-content"><span class="market-hero-tag">${s.tag||''}</span><h2 class="market-hero-title">${s.title||''}</h2><p class="market-hero-sub">${s.desc||''}</p><a class="btn primary market-hero-btn" href="${s.link||'/app'}" onclick="event.stopPropagation()">جرب الآن</a></div></div>`;
+        });
+        html += '<div class="market-dots">';
+        slides.forEach((_,i)=>{ html += `<span class="market-dot${i===0?' active':''}" data-idx="${i}"></span>`; });
+        html += '</div>';
+        c.innerHTML = html;
+        c.querySelectorAll('.market-dot').forEach(d=>d.addEventListener('click', (e)=>{ e.stopPropagation(); setHero(Number(d.getAttribute('data-idx')||0)); }));
+        initHero();
+      }
+
+      function buildModels(models){
+        const c = document.getElementById('market-grid-container');
+        if(!c || !models.length) return;
+        c.innerHTML = models.map(m => `<a class="market-card" href="${m.link||'/app'}" style="--card-bg:url('${m.image}')"><div class="market-card-content"><div class="market-pill">${m.pill||''}</div><div class="market-card-title">${m.title||''}</div><div class="market-card-sub">${m.sub||''}</div></div></a>`).join('');
+      }
+
+      fetch('/api/homepage-data')
+        .then(r => r.ok ? r.json() : Promise.reject('homepage_fetch_failed'))
+        .then(data => {
+          const slides = Array.isArray(data?.slides) ? data.slides.slice().sort((a,b)=>(a.order||0)-(b.order||0)) : [];
+          const models = Array.isArray(data?.models) ? data.models.slice().sort((a,b)=>(a.order||0)-(b.order||0)) : [];
+          buildHero(slides);
+          buildModels(models);
+        })
+        .catch(() => {
+          const fallbackModels = [
+            {pill:'Text to Video', title:'Sora 2', sub:'سرد بصري واقعي', image:'/assets/market-h/card-sora2.jpg', link:'/sora2.html'},
+            {pill:'Text to Video', title:'Veo 3.1', sub:'فيديو احترافي من النص', image:'/assets/market-h/card-veo3.jpg', link:'/google.html'},
+            {pill:'Image Gen', title:'Grok Imagine', sub:'توليد صور بأسلوب خيالي', image:'/assets/market-h/card-grok.png', link:'/grok.html'},
+            {pill:'Image Pro', title:'Nano Banana Pro', sub:'جودة عالية للصور', image:'/assets/market-h/card-nano-pro.png', link:'/nano.html'},
+            {pill:'Text to Music', title:'Suno', sub:'موسيقى مولدة من النص', image:'/assets/market-h/card-suno.png', link:'/suno.html'}
+          ];
+          buildModels(fallbackModels);
+        });
+
+      const observer = new IntersectionObserver((entries)=>{
+        entries.forEach(entry=>{
+          if(entry.isIntersecting){
+            entry.target.classList.add('in');
+            observer.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.12 });
+      document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+    })();
+  </script>
 </body>
 </html>
