@@ -1512,12 +1512,65 @@ app.get('/api/kie/kling/status', async (req, res) => {
           })()
         : resultJson;
 
-    let videoUrls =
-      parsedResult?.resultUrls ||
-      parsedResult?.videoUrls ||
-      info?.resultUrls ||
-      info?.videoUrls ||
-      [];
+    const collected = [];
+    const seen = new Set();
+    const addUrl = (value) => {
+      if (typeof value !== 'string') return;
+      const url = value.trim();
+      if (!url || seen.has(url)) return;
+      seen.add(url);
+      collected.push(url);
+    };
+
+    const walkUrlFields = (node, depth = 0) => {
+      if (!node || depth > 4) return;
+      if (typeof node === 'string') {
+        addUrl(node);
+        return;
+      }
+      if (Array.isArray(node)) {
+        for (const item of node) walkUrlFields(item, depth + 1);
+        return;
+      }
+      if (typeof node !== 'object') return;
+
+      const keys = [
+        'resultUrls', 'videoUrls', 'result_urls', 'video_urls',
+        'resultUrl', 'videoUrl', 'result_url', 'video_url',
+        'downloadUrl', 'download_url', 'fileUrl', 'file_url',
+        'url', 'urls', 'results', 'result', 'output', 'outputs', 'data'
+      ];
+      for (const key of keys) {
+        if (Object.prototype.hasOwnProperty.call(node, key)) {
+          walkUrlFields(node[key], depth + 1);
+        }
+      }
+    };
+
+    const directCandidates = [
+      parsedResult?.resultUrls,
+      parsedResult?.videoUrls,
+      parsedResult?.result_urls,
+      parsedResult?.video_urls,
+      parsedResult?.resultUrl,
+      parsedResult?.videoUrl,
+      parsedResult?.result_url,
+      parsedResult?.video_url,
+      info?.resultUrls,
+      info?.videoUrls,
+      info?.result_urls,
+      info?.video_urls,
+      info?.resultUrl,
+      info?.videoUrl,
+      info?.result_url,
+      info?.video_url
+    ];
+
+    for (const candidate of directCandidates) walkUrlFields(candidate, 0);
+    walkUrlFields(parsedResult, 0);
+    walkUrlFields(info?.result, 0);
+
+    let videoUrls = collected;
 
     if (!Array.isArray(videoUrls)) videoUrls = videoUrls ? [videoUrls] : [];
 
@@ -1541,7 +1594,8 @@ app.get('/api/kie/kling/status', async (req, res) => {
       failed: ['fail', 'failed', 'error'].includes(status),
       failMsg: info?.failMsg || data?.msg || '',
       taskId,
-      videoUrls: normalizedUrls
+      videoUrls: normalizedUrls,
+      resultUrls: normalizedUrls
     });
   } catch (e) {
     res.status(500).json({ error: "حدث خطأ في الخادم" });
