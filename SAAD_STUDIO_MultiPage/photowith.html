@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SAAD STUDIO — Photo With Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Space+Grotesk:wght@400;500;600;700&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/shared.css">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#08090f;--bg2:#0d0f18;--bg-card:#111320;--bg-card-h:#171a2c;
+  --electric:#4de1ff;--electric-g:rgba(77,225,255,.1);
+  --violet:#a78bfa;--violet-g:rgba(167,139,250,.1);
+  --amber:#f59e0b;--amber-g:rgba(245,158,11,.1);
+  --emerald:#34d399;--emerald-g:rgba(52,211,153,.1);
+  --pink:#f472b6;--pink-g:rgba(244,114,182,.1);
+  --orange:#fb923c;--orange-g:rgba(251,146,60,.1);
+  --red:#f87171;--red-g:rgba(248,113,113,.1);
+  --txt:#e8ecf4;--txt2:#8490a8;--txt3:#525d75;
+  --brd:rgba(255,255,255,.06);--brd-h:rgba(77,225,255,.25);
+  --r:16px;--rs:10px;
+  --far:'Cairo',sans-serif;--fen:'Space Grotesk',sans-serif;--fh:'Syne',sans-serif;
+  --ease:all .35s cubic-bezier(.4,0,.2,1);
+}
+html{scroll-behavior:smooth}
+body{font-family:var(--far);background:var(--bg);color:var(--txt);min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+
+.amb{position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:radial-gradient(ellipse 500px 400px at 25% 15%,rgba(77,225,255,.04),transparent),
+  radial-gradient(ellipse 600px 500px at 75% 75%,rgba(167,139,250,.03),transparent),
+  radial-gradient(ellipse 400px 300px at 50% 50%,rgba(52,211,153,.02),transparent)}
+
+/* HEADER */
+.hdr{position:relative;z-index:2;padding:48px 40px 14px;text-align:center}
+.hdr .st{font-family:var(--fen);font-size:.72rem;text-transform:uppercase;letter-spacing:6px;color:var(--electric);margin-bottom:14px;font-weight:600}
+.hdr h1{font-family:var(--fh);font-size:clamp(2rem,5vw,3.4rem);font-weight:800;
+  background:linear-gradient(135deg,var(--electric),#fff 40%,var(--violet) 70%,var(--electric));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:10px;letter-spacing:-1px}
+.hdr p{font-size:.95rem;color:var(--txt2);max-width:540px;margin:0 auto;line-height:1.8}
+
+/* TABS */
+.tabs{position:relative;z-index:2;display:flex;align-items:center;justify-content:center;gap:7px;padding:24px 16px 28px;flex-wrap:wrap}
+.tab{font-family:var(--far);padding:9px 22px;border-radius:100px;border:1.5px solid var(--brd);background:transparent;color:var(--txt2);font-size:.82rem;font-weight:700;cursor:pointer;transition:var(--ease);display:flex;align-items:center;gap:7px}
+.tab .cnt{font-family:var(--fen);font-size:.65rem;padding:2px 7px;border-radius:100px;background:rgba(255,255,255,.05);color:var(--txt3);transition:var(--ease)}
+.tab:hover{border-color:var(--electric);color:var(--electric)}
+.tab.on{border-color:var(--electric);color:var(--electric);background:var(--electric-g);box-shadow:0 0 20px rgba(77,225,255,.08)}
+.tab.on .cnt{background:rgba(77,225,255,.2);color:var(--electric)}
+/* colored tabs */
+.tab[data-c="celeb"].on{border-color:var(--amber);color:var(--amber);background:var(--amber-g)}.tab[data-c="celeb"].on .cnt{background:rgba(245,158,11,.2);color:var(--amber)}
+.tab[data-c="cartoon"].on{border-color:var(--violet);color:var(--violet);background:var(--violet-g)}.tab[data-c="cartoon"].on .cnt{background:rgba(167,139,250,.2);color:var(--violet)}
+.tab[data-c="animal"].on{border-color:var(--emerald);color:var(--emerald);background:var(--emerald-g)}.tab[data-c="animal"].on .cnt{background:rgba(52,211,153,.2);color:var(--emerald)}
+.tab[data-c="place"].on{border-color:var(--electric);color:var(--electric);background:var(--electric-g)}.tab[data-c="place"].on .cnt{background:rgba(77,225,255,.2);color:var(--electric)}
+.tab[data-c="time"].on{border-color:var(--orange);color:var(--orange);background:var(--orange-g)}.tab[data-c="time"].on .cnt{background:rgba(251,146,60,.2);color:var(--orange)}
+.tab[data-c="clone"].on{border-color:var(--pink);color:var(--pink);background:var(--pink-g)}.tab[data-c="clone"].on .cnt{background:rgba(244,114,182,.2);color:var(--pink)}
+.tab[data-c="funny"].on{border-color:var(--red);color:var(--red);background:var(--red-g)}.tab[data-c="funny"].on .cnt{background:rgba(248,113,113,.2);color:var(--red)}
+
+/* GRID */
+.gw{position:relative;z-index:2;max-width:1440px;margin:0 auto;padding:0 24px 80px}
+.g{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:16px}
+
+/* CARD */
+.cd{position:relative;background:var(--bg-card);border:1px solid var(--brd);border-radius:var(--r);overflow:hidden;cursor:pointer;transition:var(--ease);animation:cI .5s ease both}
+@keyframes cI{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.cd:hover{border-color:var(--brd-h);transform:translateY(-5px);box-shadow:0 16px 44px rgba(0,0,0,.45),0 0 24px rgba(77,225,255,.06)}
+.cd .th{position:relative;width:100%;aspect-ratio:16/9;overflow:hidden;background:var(--bg2);display:flex;align-items:center;justify-content:center}
+.cd .th .ph{font-family:var(--fen);font-size:.7rem;color:var(--txt3);text-align:center;padding:12px;line-height:1.5}
+.cd .th .ovl{position:absolute;inset:0;background:linear-gradient(0deg,var(--bg-card) 0%,transparent 40%)}
+.cd .th img{width:100%;height:100%;object-fit:cover}
+.cd .bd{position:absolute;top:10px;left:10px;padding:3px 10px;border-radius:100px;font-family:var(--fen);font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;z-index:2}
+.bh{background:var(--red);color:#fff}.bn{background:var(--emerald);color:var(--bg)}.bp{background:var(--amber);color:var(--bg)}.bv{background:var(--violet);color:#fff}
+.cd .oc{position:absolute;top:10px;right:10px;padding:3px 10px;border-radius:100px;font-family:var(--fen);font-size:.6rem;font-weight:600;background:rgba(0,0,0,.55);backdrop-filter:blur(6px);color:var(--txt2);z-index:2}
+.cd .inf{padding:14px 16px 16px}
+.cd .inf h3{font-family:var(--fh);font-size:1rem;font-weight:700;margin-bottom:3px;color:var(--txt);transition:color .3s;letter-spacing:-.3px}
+.cd:hover .inf h3{color:var(--electric)}
+.cd .inf .ds{font-size:.76rem;color:var(--txt2);line-height:1.6}
+
+/* WORKSPACE */
+.wo{position:fixed;inset:0;z-index:1000;background:rgba(5,6,12,.95);backdrop-filter:blur(24px);opacity:0;visibility:hidden;transition:all .4s ease;overflow-y:auto}
+.wo.on{opacity:1;visibility:visible}
+.ws{max-width:860px;margin:0 auto;padding:36px 28px 80px;transform:translateY(30px);transition:transform .4s cubic-bezier(.4,0,.2,1)}
+.wo.on .ws{transform:translateY(0)}
+.wb{display:inline-flex;align-items:center;gap:8px;font-family:var(--far);font-size:.88rem;color:var(--txt2);cursor:pointer;background:none;border:none;padding:8px 0;margin-bottom:20px;transition:color .3s}
+.wb:hover{color:var(--electric)}
+.wb svg{width:18px;height:18px;transform:scaleX(-1)}
+.wh{text-align:center;margin-bottom:28px}
+.wh h2{font-family:var(--fh);font-size:1.8rem;font-weight:800;margin-bottom:8px;letter-spacing:-.5px;
+  background:linear-gradient(135deg,var(--electric),#fff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.wh p{color:var(--txt2);font-size:.88rem;line-height:1.7;max-width:500px;margin:0 auto}
+
+/* STEPS */
+.steps{display:flex;align-items:center;justify-content:center;gap:28px;margin-bottom:30px}
+.step{display:flex;align-items:center;gap:7px;font-family:var(--fen);font-size:.78rem;color:var(--txt3);font-weight:600}
+.step .sn{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700;border:1.5px solid var(--brd);color:var(--txt3);transition:var(--ease)}
+.step.ac .sn{border-color:var(--electric);color:var(--bg);background:var(--electric)}.step.ac{color:var(--electric)}
+.step.dn .sn{border-color:var(--emerald);color:var(--bg);background:var(--emerald)}.step.dn{color:var(--emerald)}
+.steps .ln{width:36px;height:1px;background:var(--brd)}
+
+.sl{font-family:var(--fh);font-size:1rem;font-weight:700;color:var(--txt);margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--brd);letter-spacing:-.3px}
+
+/* UPLOAD */
+.uz{position:relative;border:2px dashed rgba(77,225,255,.12);border-radius:var(--r);padding:40px 20px;text-align:center;cursor:pointer;transition:var(--ease);background:rgba(77,225,255,.02);min-height:180px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;margin-bottom:26px}
+.uz:hover{border-color:rgba(77,225,255,.4);background:var(--electric-g)}
+.uz.hf{border-color:var(--emerald);border-style:solid;background:rgba(52,211,153,.04)}
+.uz svg{width:40px;height:40px;stroke:var(--txt3);fill:none;stroke-width:1.5}
+.uz .ut{font-size:.85rem;color:var(--txt3)}.uz .ut strong{color:var(--electric)}
+.uz .ux{font-size:.7rem;color:var(--txt3)}
+.uz input[type="file"]{position:absolute;inset:0;opacity:0;cursor:pointer}
+.uz .pi{max-width:100%;max-height:200px;border-radius:var(--rs);object-fit:contain;display:none}
+.uz.hf svg,.uz.hf .ut,.uz.hf .ux{display:none}.uz.hf .pi{display:block}
+
+/* OPTIONS GRID */
+.og{display:grid;gap:11px;margin-bottom:26px}
+.og.c3{grid-template-columns:repeat(3,1fr)}
+.og.c4{grid-template-columns:repeat(4,1fr)}
+.og.c5{grid-template-columns:repeat(5,1fr)}
+.oc2{position:relative;border:2px solid var(--brd);border-radius:var(--rs);overflow:hidden;cursor:pointer;transition:var(--ease);background:var(--bg2)}
+.oc2:hover{border-color:rgba(77,225,255,.2)}
+.oc2.sel{border-color:var(--electric);box-shadow:0 0 18px rgba(77,225,255,.12)}
+.oc2 input[type="radio"]{position:absolute;opacity:0;pointer-events:none}
+.oc2 .oi{width:100%;aspect-ratio:3/4;background:var(--bg2);display:flex;align-items:center;justify-content:center;overflow:hidden}
+.oc2 .oi img{width:100%;height:100%;object-fit:cover}
+.oc2 .oi .op{font-family:var(--fen);font-size:.55rem;text-transform:uppercase;letter-spacing:1px;color:var(--txt3);text-align:center;padding:8px;line-height:1.5}
+.oc2 .ol2{padding:7px 8px;text-align:center;border-top:1px solid var(--brd)}
+.oc2 .ol2 .on2{font-family:var(--fen);font-size:.74rem;font-weight:700;color:var(--txt);transition:color .3s}
+.oc2.sel .ol2 .on2{color:var(--electric)}
+.oc2 .ol2 .od2{font-size:.6rem;color:var(--txt3);line-height:1.3;margin-top:1px}
+.oc2 .chk{position:absolute;top:7px;right:7px;width:20px;height:20px;border-radius:50%;background:var(--electric);display:none;align-items:center;justify-content:center;z-index:2}
+.oc2 .chk svg{width:11px;height:11px;fill:#fff;stroke:none}
+.oc2.sel .chk{display:flex}
+
+/* GENERATE */
+.gb{width:100%;padding:15px;border:none;border-radius:var(--rs);background:linear-gradient(135deg,var(--electric),#0099cc);color:var(--bg);font-family:var(--fen);font-size:1.05rem;font-weight:700;cursor:pointer;transition:var(--ease);display:flex;align-items:center;justify-content:center;gap:10px}
+.gb:hover{transform:translateY(-2px);box-shadow:0 12px 36px rgba(77,225,255,.2)}
+.gb:active{transform:translateY(0)}
+.gb:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none}
+.gb svg{width:20px;height:20px}
+.ra{margin-top:26px;display:none}.ra.vi{display:block}
+.rl{text-align:center;padding:50px 20px;background:var(--bg-card);border-radius:var(--r);border:1px solid var(--brd)}
+.sp{width:44px;height:44px;border-radius:50%;border:3px solid var(--brd);border-top-color:var(--electric);animation:sn 1s linear infinite;margin:0 auto 14px}
+@keyframes sn{to{transform:rotate(360deg)}}
+.rl p{color:var(--txt2);font-size:.88rem}
+.ro{background:var(--bg-card);border-radius:var(--r);border:1px solid var(--brd);padding:20px;text-align:center}
+.rx{display:flex;gap:10px;justify-content:center;margin-top:14px}
+.rb{padding:10px 24px;border-radius:100px;font-family:var(--far);font-size:.82rem;font-weight:600;cursor:pointer;transition:var(--ease)}
+.rdl{background:var(--electric);color:var(--bg);border:none}.rdl:hover{box-shadow:0 4px 18px rgba(77,225,255,.3)}
+.rrt{background:transparent;color:var(--txt2);border:1.5px solid var(--brd)}.rrt:hover{border-color:var(--electric);color:var(--electric)}
+
+@media(max-width:768px){.hdr{padding:32px 16px 8px}.hdr h1{font-size:1.6rem}.tabs{padding:16px 12px 20px;gap:6px}.gw{padding:0 12px 60px}.g{grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}.ws{padding:16px 14px 60px}.og.c5,.og.c4{grid-template-columns:repeat(3,1fr)}.og.c3{grid-template-columns:repeat(2,1fr)}.steps{gap:14px}.steps .ln{width:16px}}
+@media(max-width:480px){.og.c5,.og.c4,.og.c3{grid-template-columns:repeat(2,1fr)}}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:rgba(77,225,255,.1);border-radius:3px}
+</style>
+</head>
+<body>
+<div class="amb"></div>
+<main class="main">
+<header class="topbar">
+  <div class="topbar-logo-wrap">
+    <img class="topbar-logo" src="/assets/logo-saad.png" alt="SAAD STUDIO Logo">
+  </div>
+  <nav class="site-nav">
+    <a href="/index.html">Explore</a>
+    <a href="/images.html">Image</a>
+    <a href="/videos.html">Video</a>
+    <a href="/audio.html">Audio</a>
+    <a href="/tools.html">Tools</a>
+    <a href="/photowith" class="on">Photo With</a>
+    <a href="/transitions2">Transitions 2</a>
+    <a href="/trends">Trends</a>
+    <a href="/gallery.html">Gallery</a>
+  </nav>
+  <div id="promo-in-navbar"></div>
+  <div class="topbar-actions" id="topbar-actions">
+    <button class="topbar-btn" id="langToggle" onclick="toggleLanguage()">EN</button>
+    <button class="topbar-btn pricing" onclick="showPage('pricing')">Pricing</button>
+    <span id="topbar-guest">
+      <button class="topbar-btn" onclick="openAuthModal('login')">Login</button>
+      <button class="topbar-btn primary" onclick="openAuthModal('register')">Sign up</button>
+    </span>
+    <span id="topbar-loggedin" style="display:none" class="topbar-user">
+      <div class="user-avatar-wrap topbar-avatar-wrap" id="user-avatar-wrap" onclick="toggleProfileCard()">
+        <div class="user-avatar" id="user-avatar-el">•</div>
+      </div>
+      <div class="profile-card" id="profile-card" style="display:none;">
+        <div class="profile-card-header">
+          <div class="profile-card-avatar" id="pcard-avatar">•</div>
+          <div>
+            <div class="profile-card-email" id="pcard-email">—</div>
+            <span class="topbar-plan-badge starter" id="pcard-plan-badge" style="margin-top:4px;display:inline-block;">—</span>
+          </div>
+        </div>
+        <div class="profile-card-divider"></div>
+        <div class="profile-card-row">
+          <span class="profile-card-label">💳 رصيدك</span>
+          <span class="profile-card-value" id="pcard-credits">—</span>
+        </div>
+        <div class="profile-card-row">
+          <span class="profile-card-label">📅 تاريخ الاشتراك</span>
+          <span class="profile-card-value" id="pcard-created">—</span>
+        </div>
+        <div class="profile-card-row" id="pcard-renew-row">
+          <span class="profile-card-label">⏳ ينتهي في</span>
+          <span class="profile-card-value" id="pcard-renew">—</span>
+        </div>
+        <div class="profile-card-row" id="pcard-days-row">
+          <span class="profile-card-label">⭐ باقي</span>
+          <span class="profile-card-value" id="pcard-days">—</span>
+        </div>
+        <div class="profile-card-divider"></div>
+        <button class="profile-card-nav-btn" onclick="closeProfileCard();window.location.href='/dashboard.html'"><span class="pcnb-icon">📊</span> لوحتي</button>
+        <button class="profile-card-nav-btn" onclick="closeProfileCard();window.location.href='/account.html'"><span class="pcnb-icon">💳</span> الاشتراك والفوترة</button>
+        <button class="profile-card-logout" onclick="doLogout()">&#x2192; تسجيل الخروج</button>
+      </div>
+    </span>
+  </div>
+</header>
+<header class="hdr">
+  <div class="st">SAAD STUDIO</div>
+  <h1>Photo With... Studio</h1>
+  <p>التقط صورة مع أي شخص أو شخصية أو في أي مكان — ارفع صورتك واختر المشهد</p>
+</header>
+<div class="tabs" id="tabs"></div>
+<div class="gw"><div class="g" id="gd"></div></div>
+<div class="wo" id="wO"><div class="ws" id="wS"></div></div>
+
+<script src="js/creative-tools.js"></script>
+<script src="/js/shared.js"></script>
+<script>
+const T=[
+// ═══ CELEBRITIES (10) ═══
+{id:'cel-selfie',n:'Celebrity Selfie',d:'سيلفي مع مشهور — كأنك التقيت فيه',cat:'celeb',b:'hot',cols:4,opts:[
+  {id:'cafe',n:'Coffee Shop',ar:'كوفي شوب',d:'سيلفي بالكافيه',img:''},
+  {id:'redcarpet',n:'Red Carpet',ar:'سجادة حمراء',d:'على السجادة الحمراء',img:''},
+  {id:'backstage',n:'Backstage',ar:'كواليس',d:'خلف الكواليس',img:''},
+  {id:'street',n:'Street',ar:'بالشارع',d:'لقاء عفوي بالشارع',img:''},
+]},
+{id:'cel-interview',n:'Interview Together',d:'أنت والمشهور بمقابلة تلفزيونية',cat:'celeb',b:'hot',cols:3,opts:[
+  {id:'talk-show',n:'Talk Show',ar:'توك شو',d:'على كرسي البرنامج',img:''},
+  {id:'podcast',n:'Podcast',ar:'بودكاست',d:'استوديو بودكاست',img:''},
+  {id:'press-conf',n:'Press',ar:'مؤتمر صحفي',d:'مؤتمر صحفي رسمي',img:''},
+]},
+{id:'cel-concert',n:'Concert VIP',d:'أنت بجنب المشهور بحفلة موسيقية',cat:'celeb',b:'pop',cols:3,opts:[
+  {id:'front-row',n:'Front Row',ar:'الصف الأول',d:'الصف الأمامي',img:''},
+  {id:'on-stage',n:'On Stage',ar:'على المسرح',d:'معه على المسرح',img:''},
+  {id:'meet-greet',n:'Meet & Greet',ar:'لقاء خاص',d:'لقاء VIP خاص',img:''},
+]},
+{id:'cel-stadium',n:'Stadium Match',d:'أنت والمشهور بالملعب يشجعون',cat:'celeb',b:'new',cols:3,opts:[
+  {id:'vip-box',n:'VIP Box',ar:'لوج VIP',d:'لوج كبار الشخصيات',img:''},
+  {id:'pitch-side',n:'Pitch Side',ar:'جنب الملعب',d:'على حافة الملعب',img:''},
+  {id:'celebration',n:'Celebration',ar:'احتفال',d:'يحتفلون بالفوز',img:''},
+]},
+{id:'cel-gym',n:'Gym Buddy',d:'تتمرن مع مشهور بالجيم',cat:'celeb',b:'new',cols:3,opts:[
+  {id:'weights',n:'Weights',ar:'أوزان',d:'يرفعون أوزان',img:''},
+  {id:'boxing',n:'Boxing',ar:'ملاكمة',d:'حلبة ملاكمة',img:''},
+  {id:'yoga',n:'Yoga',ar:'يوقا',d:'جلسة يوقا',img:''},
+]},
+{id:'cel-dinner',n:'Dinner Date',d:'عشاء مع مشهور بمطعم فاخر',cat:'celeb',b:'pop',cols:3,opts:[
+  {id:'fine-dining',n:'Fine Dining',ar:'مطعم فاخر',d:'مطعم 5 نجوم',img:''},
+  {id:'rooftop',n:'Rooftop',ar:'سطح',d:'مطعم على السطح',img:''},
+  {id:'sushi-bar',n:'Sushi Bar',ar:'سوشي بار',d:'بار سوشي ياباني',img:''},
+]},
+{id:'cel-travel',n:'Travel Buddy',d:'تسافر مع المشهور',cat:'celeb',b:'new',cols:4,opts:[
+  {id:'airplane',n:'First Class',ar:'درجة أولى',d:'بالطيارة درجة أولى',img:''},
+  {id:'yacht',n:'Yacht',ar:'يخت',d:'على يخت فاخر',img:''},
+  {id:'limo',n:'Limousine',ar:'ليموزين',d:'بالليموزين',img:''},
+  {id:'helicopter',n:'Helicopter',ar:'هليكوبتر',d:'بالمروحية',img:''},
+]},
+{id:'cel-award',n:'Award Show',d:'أنت والمشهور بحفل جوائز',cat:'celeb',b:'pop',cols:3,opts:[
+  {id:'oscars',n:'Oscars Style',ar:'ستايل أوسكار',d:'حفل أوسكار',img:''},
+  {id:'grammy',n:'Grammy Style',ar:'ستايل قرامي',d:'حفل قرامي',img:''},
+  {id:'trophy',n:'With Trophy',ar:'مع الجائزة',d:'يمسكون الجائزة',img:''},
+]},
+{id:'cel-movie',n:'Movie Scene',d:'أنت والمشهور بمشهد فيلم',cat:'celeb',b:'hot',cols:4,opts:[
+  {id:'action-scene',n:'Action',ar:'أكشن',d:'مشهد أكشن',img:''},
+  {id:'romance-scene',n:'Romance',ar:'رومانس',d:'مشهد رومانسي',img:''},
+  {id:'comedy-scene',n:'Comedy',ar:'كوميدي',d:'مشهد كوميدي',img:''},
+  {id:'thriller-scene',n:'Thriller',ar:'إثارة',d:'مشهد تشويقي',img:''},
+]},
+{id:'cel-gaming',n:'Gaming Session',d:'تلعب قيمز مع المشهور',cat:'celeb',b:'new',cols:3,opts:[
+  {id:'console',n:'Console',ar:'كونسول',d:'يلعبون بلاي ستيشن',img:''},
+  {id:'pc-gaming',n:'PC Gaming',ar:'كمبيوتر',d:'قيمنق PC',img:''},
+  {id:'vr-gaming',n:'VR',ar:'واقع افتراضي',d:'يلعبون VR',img:''},
+]},
+
+// ═══ CARTOON CHARACTERS (10) ═══
+{id:'car-anime',n:'With Anime Character',d:'التقط صورة مع شخصية أنمي مفضلة',cat:'cartoon',b:'hot',cols:4,opts:[
+  {id:'shonen',n:'Shonen Hero',ar:'بطل شونن',d:'مع بطل أنمي شونن',img:''},
+  {id:'magical-girl',n:'Magical Girl',ar:'فتاة سحرية',d:'مع شخصية فتاة سحرية',img:''},
+  {id:'mecha-pilot',n:'Mecha Pilot',ar:'طيار ميكا',d:'مع طيار روبوت عملاق',img:''},
+  {id:'slice-of-life',n:'Slice of Life',ar:'حياة يومية',d:'مشهد أنمي يومي',img:''},
+]},
+{id:'car-superhero',n:'With Superhero',d:'أنت وبطل خارق ينقذون العالم',cat:'cartoon',b:'hot',cols:4,opts:[
+  {id:'flying',n:'Flying',ar:'يطيرون',d:'تطير مع البطل',img:''},
+  {id:'city-save',n:'City Save',ar:'إنقاذ مدينة',d:'ينقذون المدينة',img:''},
+  {id:'team-up',n:'Team Up',ar:'فريق',d:'فريق أبطال',img:''},
+  {id:'training',n:'Training',ar:'تدريب',d:'تتدرب مع البطل',img:''},
+]},
+{id:'car-disney',n:'With Disney Character',d:'مع شخصية ديزني الكلاسيكية',cat:'cartoon',b:'pop',cols:4,opts:[
+  {id:'castle',n:'Castle',ar:'القلعة',d:'أمام قلعة ديزني',img:''},
+  {id:'garden',n:'Magic Garden',ar:'حديقة سحرية',d:'بحديقة سحرية',img:''},
+  {id:'ball',n:'Royal Ball',ar:'حفل ملكي',d:'بحفل ملكي',img:''},
+  {id:'adventure',n:'Adventure',ar:'مغامرة',d:'بمغامرة معاً',img:''},
+]},
+{id:'car-pixar',n:'With Pixar Character',d:'مع شخصية بيكسار ثلاثية الأبعاد',cat:'cartoon',b:'new',cols:3,opts:[
+  {id:'toy-room',n:'Toy Room',ar:'غرفة ألعاب',d:'بغرفة الألعاب',img:''},
+  {id:'underwater',n:'Underwater',ar:'تحت الماء',d:'تحت البحر',img:''},
+  {id:'kitchen',n:'Kitchen',ar:'المطبخ',d:'بالمطبخ يطبخون',img:''},
+]},
+{id:'car-gaming-char',n:'With Game Character',d:'مع شخصية من لعبة فيديو',cat:'cartoon',b:'hot',cols:4,opts:[
+  {id:'rpg-hero',n:'RPG Hero',ar:'بطل RPG',d:'مع بطل لعبة RPG',img:''},
+  {id:'racing',n:'Racing',ar:'سباق',d:'سباق سيارات',img:''},
+  {id:'battle',n:'Battle',ar:'معركة',d:'بمعركة ملحمية',img:''},
+  {id:'exploration',n:'Exploration',ar:'استكشاف',d:'يستكشفون عالم',img:''},
+]},
+{id:'car-comic',n:'Inside Comic Panel',d:'أنت داخل لوحة كوميك مع الأبطال',cat:'cartoon',b:'new',cols:3,opts:[
+  {id:'action-panel',n:'Action Panel',ar:'لوحة أكشن',d:'مشهد أكشن',img:''},
+  {id:'dialogue',n:'Dialogue',ar:'حوار',d:'فقاعة حوار',img:''},
+  {id:'splash-page',n:'Splash Page',ar:'صفحة كاملة',d:'صفحة ملحمية',img:''},
+]},
+{id:'car-ghibli-scene',n:'In Ghibli World',d:'أنت داخل عالم ستوديو جيبلي',cat:'cartoon',b:'pop',cols:4,opts:[
+  {id:'forest',n:'Enchanted Forest',ar:'غابة مسحورة',d:'بغابة سحرية',img:''},
+  {id:'flying-castle',n:'Flying Castle',ar:'قلعة طائرة',d:'على قلعة طائرة',img:''},
+  {id:'bathhouse',n:'Bathhouse',ar:'دار الاستحمام',d:'عالم الأرواح',img:''},
+  {id:'countryside',n:'Countryside',ar:'ريف',d:'بالريف الياباني',img:''},
+]},
+{id:'car-robot',n:'With Giant Robot',d:'أنت بجنب روبوت عملاق',cat:'cartoon',b:'new',cols:3,opts:[
+  {id:'cockpit',n:'In Cockpit',ar:'بالقمرة',d:'داخل قمرة القيادة',img:''},
+  {id:'shoulder',n:'On Shoulder',ar:'على الكتف',d:'على كتف الروبوت',img:''},
+  {id:'city-battle',n:'City Battle',ar:'معركة مدينة',d:'معركة بالمدينة',img:''},
+]},
+{id:'car-villain',n:'With Villain',d:'صورة مع الشرير — أنت الخصم',cat:'cartoon',b:'new',cols:3,opts:[
+  {id:'confrontation',n:'Confrontation',ar:'مواجهة',d:'وجهاً لوجه',img:''},
+  {id:'evil-lair',n:'Evil Lair',ar:'وكر الشر',d:'بوكر الشرير',img:''},
+  {id:'unlikely-ally',n:'Unlikely Ally',ar:'تحالف',d:'تحالف مؤقت',img:''},
+]},
+{id:'car-fairy-tale',n:'Fairy Tale Scene',d:'أنت بقصة خيالية كلاسيكية',cat:'cartoon',b:'pop',cols:4,opts:[
+  {id:'dragon',n:'With Dragon',ar:'مع تنين',d:'تركب تنين',img:''},
+  {id:'enchanted',n:'Enchanted',ar:'مسحور',d:'غابة مسحورة',img:''},
+  {id:'throne',n:'Throne Room',ar:'قاعة العرش',d:'على العرش',img:''},
+  {id:'magic-portal',n:'Portal',ar:'بوابة سحرية',d:'عند البوابة',img:''},
+]},
+
+// ═══ ANIMALS (10) ═══
+{id:'ani-lion',n:'With Lion',d:'صورة ملحمية مع أسد — ملك الغابة',cat:'animal',b:'hot',cols:3,opts:[
+  {id:'savanna',n:'Savanna',ar:'سافانا',d:'بالسافانا الأفريقية',img:''},
+  {id:'lion-cave',n:'Cave',ar:'كهف',d:'بكهف الأسد',img:''},
+  {id:'sunset-lion',n:'Sunset',ar:'غروب',d:'مع غروب الشمس',img:''},
+]},
+{id:'ani-wolf',n:'With Wolf Pack',d:'مع قطيع ذئاب بالثلج',cat:'animal',b:'hot',cols:3,opts:[
+  {id:'snow-forest',n:'Snow Forest',ar:'غابة ثلجية',d:'بالغابة الثلجية',img:''},
+  {id:'moonlight',n:'Moonlight',ar:'ضوء القمر',d:'تحت ضوء القمر',img:''},
+  {id:'mountain',n:'Mountain',ar:'جبل',d:'على قمة الجبل',img:''},
+]},
+{id:'ani-eagle',n:'With Eagle',d:'نسر عملاق يحلق بجنبك',cat:'animal',b:'new',cols:3,opts:[
+  {id:'cliff',n:'Cliff Edge',ar:'حافة جرف',d:'على حافة الجرف',img:''},
+  {id:'flying-eagle',n:'Flying',ar:'يطير',d:'تطير معه',img:''},
+  {id:'nest',n:'Eagle Nest',ar:'العش',d:'عند العش',img:''},
+]},
+{id:'ani-horse',n:'With Horse',d:'مع حصان أصيل',cat:'animal',b:'pop',cols:4,opts:[
+  {id:'riding',n:'Riding',ar:'تركب',d:'تركب الحصان',img:''},
+  {id:'beach-horse',n:'Beach',ar:'شاطئ',d:'على الشاطئ',img:''},
+  {id:'desert-horse',n:'Desert',ar:'صحراء',d:'بالصحراء',img:''},
+  {id:'stable',n:'Stable',ar:'إسطبل',d:'بالإسطبل',img:''},
+]},
+{id:'ani-dolphin',n:'With Dolphin',d:'تسبح مع دولفين',cat:'animal',b:'pop',cols:3,opts:[
+  {id:'ocean',n:'Open Ocean',ar:'بحر مفتوح',d:'بالمحيط المفتوح',img:''},
+  {id:'lagoon',n:'Lagoon',ar:'بحيرة',d:'ببحيرة زرقاء',img:''},
+  {id:'jump',n:'Jumping',ar:'يقفز',d:'الدولفين يقفز',img:''},
+]},
+{id:'ani-tiger',n:'With Tiger',d:'صورة مع نمر — خطير وجميل',cat:'animal',b:'hot',cols:3,opts:[
+  {id:'jungle',n:'Jungle',ar:'أدغال',d:'بالأدغال',img:''},
+  {id:'waterfall-tiger',n:'Waterfall',ar:'شلال',d:'عند الشلال',img:''},
+  {id:'temple-tiger',n:'Temple',ar:'معبد',d:'بمعبد قديم',img:''},
+]},
+{id:'ani-bear',n:'With Bear',d:'مع دب ضخم بالغابة',cat:'animal',b:'new',cols:3,opts:[
+  {id:'river',n:'River',ar:'نهر',d:'عند النهر',img:''},
+  {id:'forest-bear',n:'Forest',ar:'غابة',d:'بالغابة',img:''},
+  {id:'snow-bear',n:'Snow',ar:'ثلج',d:'بالثلج',img:''},
+]},
+{id:'ani-dragon2',n:'With Dragon',d:'تنين حقيقي — مشهد أسطوري',cat:'animal',b:'hot',cols:4,opts:[
+  {id:'riding-dragon',n:'Riding',ar:'تركب',d:'تركب التنين',img:''},
+  {id:'fire-breath',n:'Fire',ar:'نار',d:'التنين ينفث نار',img:''},
+  {id:'dragon-cave',n:'Cave',ar:'كهف',d:'كهف التنين',img:''},
+  {id:'sky-dragon',n:'Sky',ar:'سماء',d:'يطير بالسماء',img:''},
+]},
+{id:'ani-panda',n:'With Panda',d:'صورة لطيفة مع باندا',cat:'animal',b:'new',cols:3,opts:[
+  {id:'bamboo',n:'Bamboo Forest',ar:'غابة خيزران',d:'بغابة الخيزران',img:''},
+  {id:'hugging-panda',n:'Hugging',ar:'حضن',d:'تحضن الباندا',img:''},
+  {id:'eating',n:'Eating',ar:'يأكل',d:'يأكلون معاً',img:''},
+]},
+{id:'ani-shark',n:'With Shark',d:'صورة تحت الماء مع قرش',cat:'animal',b:'pop',cols:3,opts:[
+  {id:'cage-dive',n:'Cage Dive',ar:'قفص',d:'من داخل قفص',img:''},
+  {id:'free-swim',n:'Free Swim',ar:'سباحة حرة',d:'تسبح بجنبه',img:''},
+  {id:'coral-reef',n:'Coral Reef',ar:'شعاب مرجانية',d:'عند الشعاب',img:''},
+]},
+
+// ═══ IMPOSSIBLE PLACES (10) ═══
+{id:'pl-moon',n:'On The Moon',d:'أنت واقف على سطح القمر',cat:'place',b:'hot',cols:3,opts:[
+  {id:'flag',n:'Planting Flag',ar:'ترفع علم',d:'ترفع علمك',img:''},
+  {id:'earth-view',n:'Earth View',ar:'يشوف الأرض',d:'والأرض بالخلفية',img:''},
+  {id:'moon-walk',n:'Moon Walk',ar:'يمشي',d:'تمشي على القمر',img:''},
+]},
+{id:'pl-mars',n:'On Mars',d:'أول شخص على المريخ — أنت',cat:'place',b:'hot',cols:3,opts:[
+  {id:'mars-rover',n:'With Rover',ar:'مع الروفر',d:'بجنب المركبة',img:''},
+  {id:'mars-base',n:'Mars Base',ar:'قاعدة',d:'بالقاعدة',img:''},
+  {id:'mars-sunset',n:'Mars Sunset',ar:'غروب',d:'غروب مريخي',img:''},
+]},
+{id:'pl-everest',n:'Top of Everest',d:'على قمة إيفرست',cat:'place',b:'pop',cols:3,opts:[
+  {id:'summit',n:'Summit',ar:'القمة',d:'على أعلى نقطة',img:''},
+  {id:'climbing',n:'Climbing',ar:'تتسلق',d:'أثناء التسلق',img:''},
+  {id:'camp',n:'Base Camp',ar:'مخيم',d:'بالمخيم',img:''},
+]},
+{id:'pl-underwater',n:'Deep Underwater',d:'بأعماق المحيط',cat:'place',b:'pop',cols:4,opts:[
+  {id:'titanic',n:'Titanic Wreck',ar:'حطام تايتنك',d:'عند حطام السفينة',img:''},
+  {id:'atlantis',n:'Atlantis',ar:'أطلنطس',d:'مدينة أطلنطس',img:''},
+  {id:'deep-trench',n:'Deep Trench',ar:'خندق عميق',d:'بأعمق نقطة',img:''},
+  {id:'coral-city',n:'Coral City',ar:'مدينة مرجانية',d:'بين الشعاب',img:''},
+]},
+{id:'pl-volcano',n:'Inside Volcano',d:'داخل بركان نشط',cat:'place',b:'hot',cols:3,opts:[
+  {id:'crater',n:'Crater Edge',ar:'حافة الفوهة',d:'على حافة الفوهة',img:''},
+  {id:'lava-flow',n:'Lava Flow',ar:'حمم',d:'بجنب الحمم',img:''},
+  {id:'eruption',n:'Eruption',ar:'انفجار',d:'أثناء الانفجار',img:''},
+]},
+{id:'pl-space',n:'In Space Station',d:'بمحطة الفضاء الدولية',cat:'place',b:'new',cols:3,opts:[
+  {id:'floating',n:'Floating',ar:'يطفو',d:'تطفو بانعدام الجاذبية',img:''},
+  {id:'window',n:'Window View',ar:'من النافذة',d:'تشوف الأرض',img:''},
+  {id:'spacewalk',n:'Space Walk',ar:'مشي فضائي',d:'خارج المحطة',img:''},
+]},
+{id:'pl-aurora',n:'Northern Lights',d:'تحت الشفق القطبي',cat:'place',b:'pop',cols:3,opts:[
+  {id:'iceland-aurora',n:'Iceland',ar:'آيسلندا',d:'بآيسلندا',img:''},
+  {id:'norway-aurora',n:'Norway',ar:'النرويج',d:'بالنرويج',img:''},
+  {id:'cabin-aurora',n:'Cabin',ar:'كوخ',d:'أمام كوخ ثلجي',img:''},
+]},
+{id:'pl-cloud',n:'Walking on Clouds',d:'تمشي فوق الغيوم',cat:'place',b:'new',cols:3,opts:[
+  {id:'sunrise-cloud',n:'Sunrise',ar:'شروق',d:'شروق فوق الغيوم',img:''},
+  {id:'rainbow',n:'Rainbow',ar:'قوس قزح',d:'عند قوس القزح',img:''},
+  {id:'cloud-castle',n:'Cloud Castle',ar:'قلعة غيوم',d:'قلعة من الغيوم',img:''},
+]},
+{id:'pl-pyramid',n:'Top of Pyramid',d:'على قمة الهرم الأكبر',cat:'place',b:'new',cols:3,opts:[
+  {id:'pyramid-top',n:'Summit',ar:'القمة',d:'على أعلى الهرم',img:''},
+  {id:'sphinx',n:'With Sphinx',ar:'مع أبو الهول',d:'بجنب أبو الهول',img:''},
+  {id:'inside-pyramid',n:'Inside',ar:'داخل',d:'داخل الهرم',img:''},
+]},
+{id:'pl-niagara',n:'Niagara Falls Edge',d:'على حافة شلالات نياغرا',cat:'place',b:'new',cols:3,opts:[
+  {id:'falls-edge',n:'Edge',ar:'الحافة',d:'على الحافة مباشرة',img:''},
+  {id:'falls-boat',n:'Boat',ar:'قارب',d:'بالقارب تحت الشلال',img:''},
+  {id:'falls-rainbow',n:'Rainbow',ar:'قوس قزح',d:'مع قوس القزح',img:''},
+]},
+
+// ═══ TIME TRAVEL (8) ═══
+{id:'tm-egypt',n:'Ancient Egypt',d:'بمصر الفرعونية القديمة',cat:'time',b:'hot',cols:4,opts:[
+  {id:'pharaoh',n:'As Pharaoh',ar:'فرعون',d:'أنت الفرعون',img:''},
+  {id:'pyramid-build',n:'Building',ar:'بناء الهرم',d:'تبني الهرم',img:''},
+  {id:'nile',n:'Nile River',ar:'نهر النيل',d:'على النيل',img:''},
+  {id:'temple-eg',n:'Temple',ar:'معبد',d:'بالمعبد',img:''},
+]},
+{id:'tm-rome',n:'Ancient Rome',d:'بروما القديمة — مصارع أو إمبراطور',cat:'time',b:'hot',cols:3,opts:[
+  {id:'gladiator',n:'Gladiator',ar:'مصارع',d:'بالكولوسيوم',img:''},
+  {id:'emperor',n:'Emperor',ar:'إمبراطور',d:'على العرش',img:''},
+  {id:'forum',n:'Roman Forum',ar:'المنتدى',d:'بالمنتدى الروماني',img:''},
+]},
+{id:'tm-medieval',n:'Medieval Era',d:'بالعصور الوسطى — فارس أو ملك',cat:'time',b:'pop',cols:4,opts:[
+  {id:'knight',n:'Knight',ar:'فارس',d:'فارس بدرع',img:''},
+  {id:'king',n:'King/Queen',ar:'ملك/ملكة',d:'على العرش',img:''},
+  {id:'castle-med',n:'Castle',ar:'قلعة',d:'بالقلعة',img:''},
+  {id:'tournament',n:'Tournament',ar:'بطولة',d:'بمبارزة',img:''},
+]},
+{id:'tm-viking',n:'Viking Age',d:'مع الفايكنج — محارب شمالي',cat:'time',b:'new',cols:3,opts:[
+  {id:'longship',n:'Longship',ar:'سفينة',d:'على سفينة فايكنج',img:''},
+  {id:'raid',n:'Battle',ar:'معركة',d:'بالمعركة',img:''},
+  {id:'feast',n:'Feast',ar:'وليمة',d:'بالوليمة',img:''},
+]},
+{id:'tm-samurai',n:'Samurai Japan',d:'باليابان القديمة — ساموراي',cat:'time',b:'pop',cols:3,opts:[
+  {id:'dojo',n:'Dojo',ar:'دوجو',d:'بالدوجو يتدرب',img:''},
+  {id:'cherry',n:'Cherry Blossom',ar:'ساكورا',d:'تحت الساكورا',img:''},
+  {id:'samurai-battle',n:'Battle',ar:'معركة',d:'بمعركة ساموراي',img:''},
+]},
+{id:'tm-70s',n:'The 70s',d:'بالسبعينات — ديسكو وموضة ريترو',cat:'time',b:'new',cols:3,opts:[
+  {id:'disco',n:'Disco',ar:'ديسكو',d:'بحلبة الديسكو',img:''},
+  {id:'muscle-car',n:'Muscle Car',ar:'سيارة كلاسيك',d:'مع سيارة كلاسيكية',img:''},
+  {id:'hippie',n:'Hippie',ar:'هيبي',d:'ستايل هيبي',img:''},
+]},
+{id:'tm-pirate',n:'Pirate Era',d:'قرصان بالبحار — كابتن السفينة',cat:'time',b:'pop',cols:3,opts:[
+  {id:'ship-deck',n:'Ship Deck',ar:'سطح السفينة',d:'على سطح السفينة',img:''},
+  {id:'treasure',n:'Treasure',ar:'كنز',d:'يلاقي الكنز',img:''},
+  {id:'sea-battle',n:'Sea Battle',ar:'معركة بحرية',d:'بمعركة بحرية',img:''},
+]},
+{id:'tm-future',n:'Year 2100',d:'بالمستقبل — تكنولوجيا متقدمة',cat:'time',b:'hot',cols:4,opts:[
+  {id:'flying-car',n:'Flying Car',ar:'سيارة طائرة',d:'بسيارة طائرة',img:''},
+  {id:'cyber-city',n:'Cyber City',ar:'مدينة سايبر',d:'بمدينة المستقبل',img:''},
+  {id:'space-elev',n:'Space Elevator',ar:'مصعد فضائي',d:'بالمصعد الفضائي',img:''},
+  {id:'hologram',n:'Hologram',ar:'هولوقرام',d:'مع هولوقرامات',img:''},
+]},
+
+// ═══ CLONE / TWIN (8) ═══
+{id:'cl-twin',n:'Meet Your Twin',d:'التقي بتوأمك — نسخة طبق الأصل',cat:'clone',b:'hot',cols:3,opts:[
+  {id:'mirror',n:'Mirror',ar:'مرآة',d:'كأنه مرآة حية',img:''},
+  {id:'handshake',n:'Handshake',ar:'مصافحة',d:'تصافح نفسك',img:''},
+  {id:'back-to-back',n:'Back to Back',ar:'ظهر لظهر',d:'واقفين ظهر لظهر',img:''},
+]},
+{id:'cl-younger',n:'Meet Younger You',d:'التقي بنفسك وأنت صغير',cat:'clone',b:'hot',cols:3,opts:[
+  {id:'child-hug',n:'Hug',ar:'حضن',d:'تحضن نفسك الصغير',img:''},
+  {id:'child-play',n:'Playing',ar:'يلعبون',d:'تلعب مع نفسك',img:''},
+  {id:'child-advice',n:'Advice',ar:'نصيحة',d:'تنصح نفسك الصغير',img:''},
+]},
+{id:'cl-older',n:'Meet Older You',d:'التقي بنفسك بعد 30 سنة',cat:'clone',b:'pop',cols:3,opts:[
+  {id:'old-bench',n:'Park Bench',ar:'كرسي حديقة',d:'جالسين بالحديقة',img:''},
+  {id:'old-coffee',n:'Coffee',ar:'قهوة',d:'يشربون قهوة',img:''},
+  {id:'old-wisdom',n:'Wisdom',ar:'حكمة',d:'يعطيك حكمة',img:''},
+]},
+{id:'cl-gender',n:'Gender Swap You',d:'التقي بنسختك من الجنس الآخر',cat:'clone',b:'pop',cols:3,opts:[
+  {id:'selfie-gender',n:'Selfie',ar:'سيلفي',d:'سيلفي مع نسختك',img:''},
+  {id:'formal-gender',n:'Formal',ar:'رسمي',d:'بملابس رسمية',img:''},
+  {id:'casual-gender',n:'Casual',ar:'كاجوال',d:'بملابس كاجوال',img:''},
+]},
+{id:'cl-army',n:'Clone Army',d:'جيش من النسخ — أنت مضروب عشر مرات',cat:'clone',b:'hot',cols:3,opts:[
+  {id:'army-line',n:'Line Up',ar:'صف',d:'واقفين بصف',img:''},
+  {id:'army-circle',n:'Circle',ar:'دائرة',d:'بشكل دائرة',img:''},
+  {id:'army-chaos',n:'Chaos',ar:'فوضى',d:'كل واحد يسوي شي',img:''},
+]},
+{id:'cl-good-evil',n:'Good vs Evil You',d:'نسختك الطيبة ضد نسختك الشريرة',cat:'clone',b:'pop',cols:3,opts:[
+  {id:'face-off',n:'Face Off',ar:'مواجهة',d:'وجهاً لوجه',img:''},
+  {id:'angel-demon',n:'Angel/Demon',ar:'ملاك/شيطان',d:'ملاك وشيطان',img:''},
+  {id:'chess',n:'Chess Match',ar:'شطرنج',d:'يلعبون شطرنج',img:''},
+]},
+{id:'cl-multiverse',n:'Multiverse You',d:'نسخ منك من أكوان مختلفة',cat:'clone',b:'new',cols:4,opts:[
+  {id:'cowboy',n:'Cowboy You',ar:'كاوبوي',d:'نسختك الكاوبوي',img:''},
+  {id:'astronaut',n:'Astronaut You',ar:'رائد فضاء',d:'نسختك رائد فضاء',img:''},
+  {id:'pirate-you',n:'Pirate You',ar:'قرصان',d:'نسختك القرصان',img:''},
+  {id:'royal-you',n:'Royal You',ar:'ملكي',d:'نسختك الملكية',img:''},
+]},
+{id:'cl-ages',n:'All Ages You',d:'صورة جماعية — أنت بكل الأعمار',cat:'clone',b:'new',cols:4,opts:[
+  {id:'baby-to-old',n:'Baby to Old',ar:'من رضيع لكبير',d:'كل المراحل',img:''},
+  {id:'teen-adult',n:'Teen & Adult',ar:'مراهق وبالغ',d:'مراهق وبالغ',img:''},
+  {id:'decades',n:'By Decades',ar:'كل عقد',d:'كل 10 سنين',img:''},
+  {id:'timeline',n:'Timeline',ar:'خط زمني',d:'بشكل خط زمني',img:''},
+]},
+
+// ═══ FUNNY SCENES (10) ═══
+{id:'fn-fbi',n:'FBI Most Wanted',d:'صورتك على ملصق "مطلوب من FBI"',cat:'funny',b:'hot',cols:3,opts:[
+  {id:'wanted-poster',n:'Wanted Poster',ar:'ملصق مطلوب',d:'ملصق كلاسيكي',img:''},
+  {id:'mugshot',n:'Mugshot',ar:'صورة اعتقال',d:'صورة جنائية',img:''},
+  {id:'crime-board',n:'Crime Board',ar:'لوحة تحقيق',d:'على لوحة التحقيقات',img:''},
+]},
+{id:'fn-time',n:'TIME Magazine Cover',d:'أنت على غلاف مجلة TIME',cat:'funny',b:'hot',cols:3,opts:[
+  {id:'person-year',n:'Person of Year',ar:'شخصية السنة',d:'شخصية العام',img:''},
+  {id:'most-influential',n:'Most Influential',ar:'الأكثر تأثيراً',d:'100 الأكثر تأثيراً',img:''},
+  {id:'breaking-news',n:'Breaking News',ar:'خبر عاجل',d:'غلاف خبر عاجل',img:''},
+]},
+{id:'fn-money',n:'On Currency',d:'وجهك على عملة نقدية',cat:'funny',b:'pop',cols:4,opts:[
+  {id:'dollar',n:'Dollar Bill',ar:'دولار',d:'على ورقة دولار',img:''},
+  {id:'coin',n:'Gold Coin',ar:'عملة ذهبية',d:'على عملة ذهبية',img:''},
+  {id:'stamp',n:'Postage Stamp',ar:'طابع بريد',d:'على طابع بريد',img:''},
+  {id:'bitcoin',n:'Crypto Coin',ar:'عملة رقمية',d:'على عملة كريبتو',img:''},
+]},
+{id:'fn-movie-poster',n:'Movie Poster Star',d:'أنت بطل فيلم — على البوستر',cat:'funny',b:'hot',cols:4,opts:[
+  {id:'action-poster',n:'Action',ar:'أكشن',d:'بوستر فيلم أكشن',img:''},
+  {id:'horror-poster',n:'Horror',ar:'رعب',d:'بوستر فيلم رعب',img:''},
+  {id:'romance-poster',n:'Romance',ar:'رومانسي',d:'بوستر فيلم رومانسي',img:''},
+  {id:'scifi-poster',n:'Sci-Fi',ar:'خيال علمي',d:'بوستر فيلم خيال علمي',img:''},
+]},
+{id:'fn-playing-card',n:'Playing Card',d:'أنت على ورقة لعب — ملك أو ملكة',cat:'funny',b:'pop',cols:4,opts:[
+  {id:'king-card',n:'King',ar:'ملك',d:'كرت الملك',img:''},
+  {id:'queen-card',n:'Queen',ar:'ملكة',d:'كرت الملكة',img:''},
+  {id:'joker-card',n:'Joker',ar:'جوكر',d:'كرت الجوكر',img:''},
+  {id:'ace-card',n:'Ace',ar:'آص',d:'كرت الآص',img:''},
+]},
+{id:'fn-statue',n:'Famous Statue',d:'وجهك على تمثال شهير',cat:'funny',b:'new',cols:3,opts:[
+  {id:'liberty',n:'Liberty',ar:'الحرية',d:'تمثال الحرية',img:''},
+  {id:'thinker',n:'The Thinker',ar:'المفكر',d:'تمثال المفكر',img:''},
+  {id:'david',n:'David',ar:'ديفيد',d:'تمثال ديفيد',img:''},
+]},
+{id:'fn-news',n:'Breaking News',d:'أنت بنشرة أخبار عاجلة',cat:'funny',b:'new',cols:3,opts:[
+  {id:'anchor',n:'News Anchor',ar:'مذيع',d:'أنت المذيع',img:''},
+  {id:'reporter',n:'Field Reporter',ar:'مراسل',d:'مراسل ميداني',img:''},
+  {id:'headline',n:'Headline Star',ar:'بطل الخبر',d:'أنت الخبر',img:''},
+]},
+{id:'fn-album',n:'Album Cover',d:'أنت على غلاف ألبوم موسيقي',cat:'funny',b:'pop',cols:4,opts:[
+  {id:'rap-album',n:'Rap',ar:'راب',d:'غلاف ألبوم راب',img:''},
+  {id:'rock-album',n:'Rock',ar:'روك',d:'غلاف ألبوم روك',img:''},
+  {id:'pop-album',n:'Pop',ar:'بوب',d:'غلاف ألبوم بوب',img:''},
+  {id:'classical-album',n:'Classical',ar:'كلاسيكي',d:'غلاف كلاسيكي',img:''},
+]},
+{id:'fn-cereal',n:'Cereal Box Star',d:'وجهك على علبة سيريال',cat:'funny',b:'new',cols:3,opts:[
+  {id:'kids-cereal',n:'Kids',ar:'أطفال',d:'سيريال أطفال',img:''},
+  {id:'fitness-cereal',n:'Fitness',ar:'رياضي',d:'سيريال رياضي',img:''},
+  {id:'luxury-cereal',n:'Luxury',ar:'فاخر',d:'سيريال فاخر',img:''},
+]},
+{id:'fn-passport',n:'Fake Passport',d:'جواز سفر من دولة خيالية',cat:'funny',b:'new',cols:3,opts:[
+  {id:'wakanda',n:'Wakanda',ar:'واكندا',d:'جواز واكندا',img:''},
+  {id:'hogwarts',n:'Hogwarts',ar:'هوقوارتس',d:'جواز هوقوارتس',img:''},
+  {id:'mars-pass',n:'Mars Colony',ar:'مستعمرة المريخ',d:'جواز المريخ',img:''},
+]},
+];
+
+// STATE
+let aC='all';
+const cats=[
+  {id:'all',l:'الكل'},{id:'celeb',l:'مشاهير'},{id:'cartoon',l:'كارتون'},
+  {id:'animal',l:'حيوانات'},{id:'place',l:'أماكن مستحيلة'},
+  {id:'time',l:'عبر الزمن'},{id:'clone',l:'نسخة منك'},{id:'funny',l:'مواقف طريفة'}
+];
+const cF=c=>c==='all'?T.length:T.filter(t=>t.cat===c).length;
+
+const $t=document.getElementById('tabs'),$g=document.getElementById('gd');
+
+function rTabs(){
+  $t.innerHTML=cats.map(c=>`<button class="tab ${aC===c.id?'on':''}" data-c="${c.id}">${c.l}<span class="cnt">${cF(c.id)}</span></button>`).join('');
+  $t.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{aC=b.dataset.c;rTabs();rGrid()});
+}
+function rGrid(){
+  let l=aC==='all'?T:T.filter(t=>t.cat===aC);
+  $g.innerHTML='';
+  l.forEach((t,i)=>{
+    const e=document.createElement('div');e.className='cd';
+    e.style.animationDelay=`${i*.025}s`;e.onclick=()=>openWS(t);
+    const bc=t.b==='hot'?'bh':t.b==='new'?'bn':t.b==='pop'?'bp':'bv';
+    const bl=t.b==='hot'?'HOT':t.b==='new'?'NEW':'POPULAR';
+    e.innerHTML=`<div class="th"><div class="ph">${t.d}</div><div class="ovl"></div><span class="bd ${bc}">${bl}</span><span class="oc">${t.opts.length} خيارات</span></div><div class="inf"><h3>${t.n}</h3><p class="ds">${t.d}</p></div>`;
+    $g.appendChild(e);
+  });
+}
+rTabs();rGrid();
+
+// WORKSPACE
+const $o=document.getElementById('wO'),$w=document.getElementById('wS');
+let uFile=null,sOpt=null;
+
+function openWS(t){
+  uFile=null;sOpt=null;
+  const cc=`c${t.cols||4}`;
+  const oH=t.opts.map(o=>{
+    const ic=o.img?`<img src="${o.img}" alt="${o.n}">`:`<div class="op">${o.ar}<br><span style="font-size:.45rem;opacity:.4">صورة قريباً</span></div>`;
+    return`<div class="oc2" data-id="${o.id}" onclick="sO(this,'${o.id}')"><input type="radio" name="opt" value="${o.id}"><div class="chk"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div><div class="oi">${ic}</div><div class="ol2"><div class="on2">${o.n}</div><div class="od2">${o.d}</div></div></div>`;
+  }).join('');
+
+  $w.innerHTML=`
+    <button class="wb" onclick="cWS()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>رجوع</button>
+    <div class="wh"><h2>${t.n}</h2><p>${t.d}</p></div>
+    <div class="steps"><div class="step ac" id="s1"><span class="sn">1</span>ارفع صورتك</div><div class="ln"></div><div class="step" id="s2"><span class="sn">2</span>اختر المشهد</div><div class="ln"></div><div class="step" id="s3"><span class="sn">3</span>النتيجة</div></div>
+    <div class="sl">الخطوة 1 — ارفع صورتك</div>
+    <div class="uz" id="upZ" onclick="this.querySelector('input').click()"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg><div class="ut"><strong>اضغط لرفع صورتك</strong></div><div class="ux">JPG, PNG, WEBP</div><img class="pi" alt=""><input type="file" accept="image/*" onchange="hUp(this)"></div>
+    <div class="sl">الخطوة 2 — اختر المشهد</div>
+    <div class="og ${cc}" id="opG">${oH}</div>
+    <button class="gb" id="gB" onclick="dG('${t.id}')" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10"/></svg>Generate — إنشاء</button>
+    <div class="ra" id="rA"><div class="rl" id="rL"><div class="sp"></div><p>جاري إنشاء المشهد...</p></div><div class="ro" id="rO" style="display:none"></div></div>`;
+  $o.classList.add('on');document.body.style.overflow='hidden';$o.scrollTop=0;
+}
+function cWS(){$o.classList.remove('on');document.body.style.overflow=''}
+$o.addEventListener('click',e=>{if(e.target===$o)cWS()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')cWS()});
+
+function hUp(inp){
+  const f=inp.files[0];if(!f)return;uFile=f;
+  const z=document.getElementById('upZ');z.classList.add('hf');
+  z.querySelector('.pi').src=URL.createObjectURL(f);z.querySelector('.pi').style.display='block';
+  document.getElementById('s1').className='step dn';
+  document.getElementById('s2').className='step ac';
+  chk();
+}
+function sO(c,id){
+  document.querySelectorAll('.oc2').forEach(x=>x.classList.remove('sel'));
+  c.classList.add('sel');c.querySelector('input').checked=true;sOpt=id;chk();
+}
+function chk(){document.getElementById('gB').disabled=!(uFile&&sOpt)}
+
+async function dG(tid){
+  if(!uFile||!sOpt)return;
+  const template=T.find(x=>x.id===tid);
+  const option=template?.opts?.find(x=>x.id===sOpt);
+  const b=document.getElementById('gB'),ra=document.getElementById('rA'),rl=document.getElementById('rL'),ro=document.getElementById('rO');
+  b.disabled=true;b.innerHTML=`<div class="sp" style="width:20px;height:20px;border-width:2px;margin:0"></div> جاري الإنشاء...`;
+  ra.classList.add('vi');rl.style.display='block';ro.style.display='none';
+  document.getElementById('s2').className='step dn';document.getElementById('s3').className='step ac';
+  const status=(msg)=>{const p=rl.querySelector('p');if(p)p.textContent=msg;};
+  try{
+    const prompt=`حوّل الصورة المرفوعة إلى مشهد "${template?.n||tid}" مع تطبيق خيار "${option?.n||sOpt}". ${template?.d||''}. ${option?.d||''}. حافظ على ملامح الشخص والهوية والوجه بشكل واضح وواقعي. اجعل النتيجة عالية الجودة ومناسبة للنشر. ${option?.ar?`النسخة المطلوبة: ${option.ar}.`:''}`;
+    const resultUrl=await SaadCreative.runSeedreamEdit({
+      prompt,
+      imageFiles:[uFile],
+      statusCb:status
+    });
+    rl.style.display='none';ro.style.display='block';
+    ro.innerHTML=`<div style="padding:20px 20px 12px;text-align:center"><div style="font-family:var(--fh);font-size:1.2rem;font-weight:700;color:var(--electric);margin-bottom:6px">تم الإنشاء بنجاح!</div></div><div style="padding:0 18px 18px"><img src="${resultUrl}" alt="result" style="width:100%;display:block;border-radius:22px;border:1px solid rgba(255,255,255,.08)"></div><div class="rx">${SaadCreative.buildDownload(resultUrl,'تحميل الصورة')}<button class="rb rrt" onclick="dG('${tid}')">إعادة</button></div>`;
+  }catch(err){
+    rl.style.display='none';ro.style.display='block';
+    ro.innerHTML=`<div style="padding:36px;text-align:center"><div style="font-family:var(--fh);font-size:1.1rem;font-weight:700;color:#ff7b7b;margin-bottom:6px">تعذر إكمال الإنشاء</div><p style="color:var(--txt2);font-size:.8rem">${String(err.message||err)}</p></div><div class="rx"><button class="rb rrt" onclick="dG('${tid}')">إعادة المحاولة</button></div>`;
+  }finally{
+    b.disabled=false;b.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10"/></svg> Generate — إنشاء`;
+  }
+}
+</script>
+</main>
+</body>
+</html>

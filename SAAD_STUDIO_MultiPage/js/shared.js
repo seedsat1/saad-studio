@@ -8196,13 +8196,19 @@ function clearLibrary(){
   updateKlingShowButtons();
   resumePendingKling();
   loadHomepageData();
-    // Multi-page: honour ?page= query param, else detect from DOM
+  // Run showPage only for documents that actually use inline .page sections.
+  const _hasInlinePages = !!document.querySelector('.page');
+  if (_hasInlinePages) {
     const _qPage = new URLSearchParams(window.location.search).get('page');
     const _activePageEl = _qPage ? document.getElementById('page-' + _qPage) : document.querySelector('.page.active');
     const _currentPageId = _activePageEl ? _activePageEl.id.replace('page-', '') : (_qPage || 'dash');
     showPage(_currentPageId);
-  if(_currentPageId === 'model' && ui.modelKey){
-    setModelPage(ui.modelKey);
+    if(_currentPageId === 'model' && ui.modelKey){
+      setModelPage(ui.modelKey);
+    }
+  } else {
+    // Standalone pages like /audio should not be auto-routed to discover.
+    try { syncSidebarActiveNav(); } catch(_) {}
   }
   updateHailuoFields();
   updateSoraFields();
@@ -9334,3 +9340,4 @@ function clearLibrary(){
       applyLanguage(currentLang, true);
     } catch(e){ console.error('loadBillingPage:', e); }
   }
+

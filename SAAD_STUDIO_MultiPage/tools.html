@@ -1,0 +1,288 @@
+﻿<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NexaAI – Tools</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/shared.css">
+<style>
+:root{--c0:#0b1e34;--c1:#0f2a44;--c2:#0c243d;--c3:#12314f;--c4:#173a5c;--c5:#1a4a79;--t1:#f2f6ff;--t2:#b5c7dd;--t3:#7c93aa;--t4:#5f84a6;--b1:rgba(62,201,255,.13);--b2:rgba(62,201,255,.22);--b3:rgba(62,201,255,.32);--ac:#00e5ff;--ac2:#2ff3d7;--ac3:rgba(0,229,255,.14);--ac4:rgba(0,229,255,.06);--cyan:#00e5ff;--rose:#ff9e2c;--violet:#3f68d9;--sky:#3eb1df;--green:#59d98a;--red:#ff6b6b;--orange:#ff9e2c;--r:10px;--r2:14px;--r3:20px;--f:'Inter','Tajawal','DM Sans',system-ui,sans-serif;--fm:'JetBrains Mono','IBM Plex Mono',monospace;--ease:cubic-bezier(.22,1,.36,1)}
+*{margin:0;padding:0;box-sizing:border-box}html{font-size:16px}body{font-family:var(--f);background:radial-gradient(circle at 15% 20%,rgba(0,229,255,.12),transparent 24%),radial-gradient(circle at 85% 10%,rgba(255,158,44,.14),transparent 22%),linear-gradient(180deg,#0b1e34 0%,#0f2a44 45%,#0b1c30 100%);color:var(--t1);overflow-x:hidden;-webkit-font-smoothing:antialiased;min-height:100vh}
+::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--c4);border-radius:10px}::-webkit-scrollbar-thumb:hover{background:var(--c5)}
+a{color:inherit;text-decoration:none}button{font-family:var(--f);cursor:pointer;border:none;background:none}input,select,textarea{font-family:var(--f);color:var(--t1)}
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;opacity:.03;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='0.75' numOctaves='4' type='fractalNoise' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+.amb{display:none}
+.shell{display:flex;min-height:100vh;position:relative;z-index:1}
+.page.active.shell{display:flex;max-width:none;padding:0;margin:0}
+.sb{display:none}
+.mn{flex:1;display:flex;flex-direction:column;min-height:100vh}
+.tb{position:sticky;top:0;z-index:60;height:56px;display:flex;align-items:center;padding:0 18px;background:rgba(11,30,52,.88);backdrop-filter:blur(20px) saturate(1.4);border-bottom:1px solid var(--b1)}.tb-nav{display:flex;gap:4px;order:3;flex:1;justify-content:flex-start;overflow:hidden;direction:ltr;}.tb-nav a{padding:8px 15px;font-size:1rem;font-weight:500;color:var(--t3);border-radius:var(--r);transition:all .2s}.tb-nav a:hover{color:var(--t2);background:rgba(0,229,255,.05)}.tb-nav a.on{color:var(--t1);background:rgba(0,229,255,.09)}.tb-end{display:flex;align-items:center;gap:8px;order:2;margin-left:auto;}.tb-btn{padding:7px 14px;border-radius:var(--r);font-size:.92rem;font-weight:600;color:var(--t3);background:var(--c3);transition:all .2s}.tb-btn:hover{color:var(--t1);background:var(--c4)}.tb-av{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--ac),var(--rose));display:grid;place-items:center;font-size:.78rem;font-weight:700;color:var(--c0)}
+.ws{display:flex;flex:1;overflow:visible}
+.ws-c{flex:1;display:flex;flex-direction:column;padding-bottom:168px}.canvas-wrap{flex:1;display:flex;align-items:stretch;justify-content:stretch;padding:12px 12px 14px;position:relative}
+.canvas{width:100%;max-width:none;min-height:0;border-radius:0;background:transparent;border:none;position:relative;overflow:visible;box-shadow:none;padding:0}
+.gallery-head,#galleryCount,.gallery-empty{display:none !important;visibility:hidden !important;height:0 !important;margin:0 !important;padding:0 !important}
+.gallery{position:relative;z-index:2;display:grid;grid-template-columns:repeat(12,1fr);gap:6px;align-content:start;grid-auto-flow:dense;min-height:0}.v-card{position:relative;border-radius:10px;overflow:hidden;border:1px solid rgba(62,201,255,.08);background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,255,255,.005));box-shadow:0 4px 14px rgba(0,0,0,.18);aspect-ratio:var(--ar,16/9);cursor:pointer;display:block}.v-card::before{content:'';position:absolute;inset:0;background:linear-gradient(180deg,transparent 45%,rgba(6,12,20,.72) 100%);z-index:1}.v-card .thumb{position:absolute;inset:0;background-size:cover;background-position:center;filter:saturate(1.05) contrast(1.02)}.v-card .meta{position:absolute;left:0;right:0;bottom:0;z-index:2;padding:8px 10px;display:flex;justify-content:space-between;align-items:flex-end;gap:8px}.v-card .title{font-size:.78rem;font-weight:700;color:var(--t1);line-height:1.2;text-shadow:0 1px 2px rgba(0,0,0,.35)}.v-card .sub{font-size:.54rem;color:var(--t2);margin-top:2px}.v-card .badge{padding:3px 7px;border-radius:999px;font-size:.5rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:rgba(0,229,255,.12);color:var(--ac);border:1px solid rgba(0,229,255,.18)}.v-card:hover{border-color:rgba(0,229,255,.35);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.3)}.span-12{grid-column:span 12}.span-8{grid-column:span 8}.span-7{grid-column:span 7}.span-6{grid-column:span 6}.span-5{grid-column:span 5}.span-4{grid-column:span 4}.span-3{grid-column:span 3}
+.comp{position:fixed;left:300px;right:0;bottom:0;z-index:120;background:linear-gradient(180deg,rgba(11,30,52,.84),rgba(11,30,52,.96));backdrop-filter:blur(18px) saturate(1.2);border-top:1px solid var(--b1);padding:16px 18px 18px;box-shadow:0 -14px 34px rgba(0,0,0,.25)}.comp-main{display:flex;gap:10px;align-items:stretch}.comp-input{flex:1;position:relative}.comp-input textarea{width:100%;padding:16px 18px;background:var(--c2);border:1px solid var(--b1);border-radius:var(--r);font-size:1rem;line-height:1.65;color:var(--t1);resize:none;outline:none;min-height:92px;max-height:180px;transition:border .2s}.comp-input textarea:focus{border-color:var(--ac)}.comp-input textarea::placeholder{color:var(--t4)}
+.gen{padding:0 38px;border-radius:var(--r);font-size:1.02rem;font-weight:700;color:var(--c0);background:linear-gradient(135deg,var(--orange),#f4b35a);letter-spacing:-.01em;transition:all .25s var(--ease);position:relative;overflow:hidden;flex:0 0 170px;min-height:64px;display:flex;align-items:center;justify-content:center;box-shadow:0 10px 24px rgba(240,160,63,.22)}.gen:hover{background:linear-gradient(135deg,#f4b35a,var(--orange));transform:translateY(-1px);box-shadow:0 12px 28px rgba(240,160,63,.32)}.gen:active{transform:scale(.97)}.gen::after{content:'';position:absolute;inset:0;background:linear-gradient(105deg,transparent 40%,rgba(255,255,255,.22) 50%,transparent 60%);transform:translateX(-150%)}.gen:hover::after{animation:shine .5s ease}@keyframes shine{to{transform:translateX(150%)}}
+.ctrl{display:flex;align-items:center;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--b1);flex-wrap:wrap}.ctrl-div{width:1px;height:18px;background:var(--b2);margin:0 2px}
+.pills{display:flex;gap:4px}.pl{padding:6px 13px;border-radius:var(--r);font-size:.86rem;font-weight:600;background:var(--c2);border:1px solid var(--b1);color:var(--t3);cursor:pointer;transition:all .18s;white-space:nowrap}.pl:hover{border-color:var(--b3);color:var(--t2)}.pl.on{background:var(--ac3);border-color:rgba(0,229,255,.22);color:var(--ac)}
+.ws-s{width:300px;background:var(--c1);border-right:1px solid var(--b1);overflow:visible;flex-shrink:0;position:relative}.ss-top{padding:14px 18px;border-bottom:1px solid var(--b1);display:flex;align-items:center;justify-content:center;position:relative;min-height:158px}.ss-top h3{display:none !important}.ss-top .cost-badge{display:none !important}.ss-body{padding:16px 18px;max-height:none;overflow:visible}
+.hero-ad{position:relative;display:block;width:100%;height:94px;border-radius:14px;overflow:hidden;border:1px solid rgba(121,138,255,.72);background-image:url('https://images.unsplash.com/photo-1611532736597-de2d4265fba3?auto=format&fit=crop&w=1200&q=80');background-size:cover;background-position:center;box-shadow:0 0 22px rgba(121,138,255,.22),inset 0 0 26px rgba(0,0,0,.35);text-decoration:none;transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease}
+.hero-ad:hover{transform:translateY(-2px);border-color:rgba(240,160,63,.62);box-shadow:0 12px 30px rgba(4,10,22,.45)}
+.hero-ad::before{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(4,10,22,.24) 0%,rgba(4,10,22,.72) 100%)}
+.hero-ad .hero-title{position:absolute;left:0;right:0;top:40%;transform:translateY(-50%);text-align:center;color:#f2f6ff;font-size:1.02rem;font-weight:800;z-index:1}
+.hero-ad .hero-sub{position:absolute;left:0;right:0;top:66%;transform:translateY(-50%);text-align:center;color:#d8e5ff;font-size:.78rem;font-weight:700;z-index:1}
+.sg{margin-bottom:18px}.sg-l{font-size:.72rem;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;display:flex;align-items:center;gap:4px}
+.hidden{display:none !important}
+.switch-row{display:flex;justify-content:space-between;gap:8px}.switch-btn{flex:1;padding:9px 10px;border-radius:10px;border:1px solid var(--b2);background:rgba(255,255,255,.01);color:var(--t2);font-size:.86rem;font-weight:700;cursor:pointer;transition:all .18s;text-align:center;text-decoration:none}.switch-btn.on{background:rgba(240,160,63,.18);border-color:rgba(240,160,63,.6);color:#f0a03f}
+.feature-grid{display:flex;flex-wrap:wrap;gap:7px}.feature-btn{padding:7px 10px;border-radius:999px;border:1px solid var(--b2);background:rgba(255,255,255,.02);color:var(--t2);font-size:.72rem;font-weight:700;cursor:pointer;transition:all .18s}.feature-btn.on{background:rgba(240,160,63,.16);border-color:rgba(240,160,63,.62);color:#f0a03f}
+.acc{border:1px solid var(--b1);border-radius:var(--r2);background:linear-gradient(180deg,rgba(255,255,255,.01),rgba(255,255,255,.005));overflow:hidden;margin-bottom:14px}.acc-head{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;background:rgba(255,255,255,.01);cursor:pointer;color:var(--t1);text-align:right}.acc-head:hover{background:rgba(255,255,255,.02)}.acc-title{font-size:.72rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--t3)}.acc-val{font-size:.98rem;font-weight:700;color:#f2f6ff}.acc-arrow{font-size:.55rem;color:var(--violet);transition:transform .2s}.acc.open .acc-arrow{transform:rotate(180deg)}.acc-body{display:none;padding:12px}.acc.open .acc-body{display:block}.acc-list{display:flex;flex-direction:column;gap:6px}.acc-item{display:flex;align-items:center;gap:12px;padding:9px 10px;border-radius:10px;border:1px solid transparent;cursor:pointer;transition:all .16s ease;color:var(--t1);background:rgba(255,255,255,.01)}.acc-item:hover{background:rgba(109,124,255,.08);border-color:rgba(109,124,255,.2)}.acc-item.sel{background:rgba(255,255,255,.06);border-color:rgba(109,124,255,.36)}.acc-box{width:16px;height:16px;border-radius:4px;border:1.5px solid rgba(242,246,255,.62);flex-shrink:0;background:transparent;position:relative}.acc-item.sel .acc-box{border-color:var(--violet);background:#2a2a2a}.acc-item.sel .acc-box::after{content:'✓';position:absolute;inset:-1px;display:grid;place-items:center;font-size:.64rem;line-height:1;color:var(--violet)}.acc-text{flex:1;font-size:.92rem;font-weight:600}.acc-item.sel .acc-text{color:#f2f6ff}
+.cost-badge{display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border-radius:50px;font-size:1rem;font-weight:700;background:rgba(255,158,44,.1);border:1px solid rgba(255,169,74,.28);color:var(--orange)}
+.panel-price{margin-top:12px;display:flex;justify-content:flex-end}
+.panel-price .cost-badge{width:100%;justify-content:center;padding:16px 14px;border-radius:16px;font-size:1.08rem;background:rgba(255,255,255,.01);border:1px solid rgba(231,147,49,.45);box-shadow:inset 0 0 0 1px rgba(231,147,49,.08)}
+.ads-stack{margin-top:12px;display:flex;flex-direction:column;gap:10px}
+.ad-card{position:relative;display:block;height:92px;border-radius:14px;overflow:hidden;border:1px solid rgba(57,215,255,.42);background:linear-gradient(135deg,#0d3251 0%,#11466e 52%,#0e2e4a 100%);box-shadow:0 10px 22px rgba(6,13,36,.34);text-decoration:none;transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease;background-size:cover;background-position:center}
+.ad-card:hover{transform:translateY(-2px);border-color:rgba(240,160,63,.55);box-shadow:0 14px 28px rgba(6,13,36,.42)}
+.ad-card::before{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(3,16,33,.25) 0%,rgba(3,16,33,.72) 100%),radial-gradient(circle at 25% 30%,rgba(57,215,255,.3),transparent 40%)}
+.ad-card .ad-overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;text-align:center;padding:8px}
+.ad-card .ad-title{font-size:.95rem;font-weight:800;color:#f2f6ff;line-height:1.15}
+.ad-card .ad-sub{font-size:.72rem;font-weight:600;color:#d2dbf8}
+.ad-card .ad-tag{position:absolute;top:8px;left:8px;padding:3px 8px;border-radius:999px;background:rgba(240,160,63,.18);border:1px solid rgba(240,160,63,.5);color:#f0a03f;font-size:.58rem;font-weight:800}
+.acc.open .acc-head{background:#f0a03f;border-bottom:1px solid rgba(9,16,38,.2)}
+.acc.open .acc-title,.acc.open .acc-val,.acc.open .acc-arrow{color:#091026}
+.acc.open .acc-item.sel{background:#f0a03f;border-color:#f0a03f}
+.acc.open .acc-item.sel .acc-text,.acc.open .acc-item.sel .acc-box::after{color:#091026}
+.acc.open .acc-item.sel .acc-box{border-color:#091026;background:rgba(9,16,38,.08)}
+.ss-div{height:1px;background:var(--b1);margin:16px 0}
+.model-cascade{position:relative}
+.model-cascade-btn{width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;background:var(--c2);border:1px solid var(--b2);border-radius:var(--r);color:var(--t1);font-size:.92rem;font-weight:700}
+.model-cascade-arr{color:var(--violet);font-size:.7rem}
+.model-cascade-menu{position:absolute;top:calc(100% + 6px);right:0;left:0;z-index:720;display:none;background:var(--c1);border:1px solid var(--b2);border-radius:12px;overflow:visible}
+.model-cascade.open .model-cascade-menu{display:block}
+.cascade-item{position:relative;padding:10px 12px;color:var(--t2);font-size:.9rem;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.04);display:block;text-decoration:none}
+.cascade-item:last-child{border-bottom:none}
+.cascade-item:hover{background:rgba(40,198,234,.08);color:var(--t1)}
+.cascade-item.sel{background:rgba(40,198,234,.12);color:#d8f3ff}
+@media(max-width:1200px){
+  .ws{flex-direction:column}
+  .ws-s{width:100%;border-right:none;border-top:1px solid var(--b1)}
+  .ss-top{min-height:120px;padding:12px 14px}
+  .ss-body{padding:14px}
+  .comp{left:0;right:0}
+}
+@media(max-width:980px){
+  .tb{height:auto;min-height:56px;flex-wrap:wrap;row-gap:8px;padding:10px 12px}
+  .tb-nav{order:3;width:100%;overflow:auto;white-space:nowrap;padding-bottom:2px}
+  .tb-nav a{padding:7px 12px;font-size:.86rem}
+  .tb-end{order:2;margin-left:0;}
+  .canvas-wrap{padding:8px}
+  .gallery{grid-template-columns:repeat(8,1fr)}
+  .comp{padding:12px}
+  .comp-main{flex-direction:column}
+  .gen{width:100%;min-height:52px;flex:0 0 auto}
+  .comp-input textarea{min-height:78px}
+}
+@media(max-width:700px){
+  .gallery{grid-template-columns:repeat(2,1fr);gap:8px}
+  .span-12,.span-8,.span-7,.span-6,.span-5,.span-4,.span-3{grid-column:span 2}
+  .ws-c{padding-bottom:210px}
+  .comp{padding:10px}
+  .comp-input textarea{font-size:.94rem;line-height:1.55}
+  .gen{font-size:.95rem}
+}
+</style>
+</head>
+<body>
+<div class="amb"><i></i><i></i><i></i></div>
+<div id="page-image-tools" class="page active shell">
+<aside class="sb"><div class="sb-brand" onclick="location.href='index.html'"><h1>Nexa<em>AI</em></h1><p>Creative Platform</p></div><div class="sb-scroll"><div class="sb-g"><div class="sb-g-title">Explore</div><a href="index.html" class="sb-a"><i>◎</i> Discover</a></div><div class="sb-g"><div class="sb-g-title">Studios</div><a href="videos.html" class="sb-a"><i>▸</i> Video <span class="tag tag-hot">HOT</span></a><a href="images.html" class="sb-a"><i>◻</i> Image</a><a href="audio.html" class="sb-a"><i>♪</i> Audio</a><a href="transitions.html" class="sb-a"><i>⇌</i> Transitions</a><a href="tools.html" class="sb-a on"><i>⚙</i> Tools</a><a href="cinema.html" class="sb-a"><i>◉</i> Cinema Studio <span class="tag tag-pro">PRO</span></a></div></div></aside>
+<div class="mn">
+<header class="topbar">
+  <button class="hamburger-btn" id="hamburger-btn" onclick="toggleSidebar()" aria-label="Menu">&#9776;</button>
+  <div class="topbar-logo-wrap">
+    <img class="topbar-logo" src="/assets/logo-saad.png" alt="SAAD STUDIO Logo">
+  </div>
+  <nav class="site-nav">
+    <a href="/index.html">Explore</a>
+    <a href="/images.html">Image</a>
+    <a href="/videos.html">Video</a>
+    <a href="/audio.html">Audio</a>
+    <a href="/transitions.html">Transitions</a>
+    <a href="/tools.html" class="on">Tools</a>
+    <a href="/photowith">Photo With</a>
+    <a href="/transitions2">Transitions 2</a>
+    <a href="/trends">Trends</a>
+    <a href="/cinema.html">Cinema Studio</a>
+    <a href="/gallery.html">Gallery</a>
+    <a href="/legal.html">Legal</a>
+  </nav>
+  <div id="promo-in-navbar"></div>
+  <div class="topbar-actions" id="topbar-actions">
+    <button class="topbar-btn" id="langToggle" onclick="toggleLanguage()">EN</button>
+    <button class="topbar-btn pricing" onclick="showPage('pricing')">Pricing</button>
+    <span id="topbar-guest">
+      <button class="topbar-btn" onclick="openAuthModal('login')">Login</button>
+      <button class="topbar-btn primary" onclick="openAuthModal('register')">Sign up</button>
+    </span>
+    <span id="topbar-loggedin" style="display:none" class="topbar-user">
+      <div class="user-avatar-wrap topbar-avatar-wrap" id="user-avatar-wrap" onclick="toggleProfileCard()">
+        <div class="user-avatar" id="user-avatar-el">•</div>
+      </div>
+      <div class="profile-card" id="profile-card" style="display:none;">
+        <div class="profile-card-header">
+          <div class="profile-card-avatar" id="pcard-avatar">•</div>
+          <div>
+            <div class="profile-card-email" id="pcard-email">—</div>
+            <span class="topbar-plan-badge starter" id="pcard-plan-badge" style="margin-top:4px;display:inline-block;">—</span>
+          </div>
+        </div>
+        <div class="profile-card-divider"></div>
+        <div class="profile-card-row">
+          <span class="profile-card-label">💳 رصيدك</span>
+          <span class="profile-card-value" id="pcard-credits">—</span>
+        </div>
+        <div class="profile-card-row">
+          <span class="profile-card-label">📅 تاريخ الاشتراك</span>
+          <span class="profile-card-value" id="pcard-created">—</span>
+        </div>
+        <div class="profile-card-row" id="pcard-renew-row">
+          <span class="profile-card-label">⏳ ينتهي في</span>
+          <span class="profile-card-value" id="pcard-renew">—</span>
+        </div>
+        <div class="profile-card-row" id="pcard-days-row">
+          <span class="profile-card-label">⭐ باقي</span>
+          <span class="profile-card-value" id="pcard-days">—</span>
+        </div>
+        <div class="profile-card-divider"></div>
+        <button class="profile-card-nav-btn" onclick="closeProfileCard();showPage('user-dashboard')"><span class="pcnb-icon">📊</span> لوحتي</button>
+        <button class="profile-card-nav-btn" onclick="closeProfileCard();showPage('billing')"><span class="pcnb-icon">💳</span> الاشتراك والفوترة</button>
+        <button class="profile-card-logout" onclick="doLogout()">&#x2192; تسجيل الخروج</button>
+      </div>
+    </span>
+  </div>
+</header>
+<div class="ws">
+<div class="ws-c">
+<div class="canvas-wrap"><div class="canvas" id="canvas"><div class="gallery" id="gallery">
+  <a href="/image-tools.html" class="v-card span-4" style="--ar:16/9">
+    <div class="thumb" style="background-image:linear-gradient(180deg,rgba(0,229,255,.15),rgba(11,30,52,.82)),url('https://images.unsplash.com/photo-1611532736597-de2d4265fba3?auto=format&fit=crop&w=800&q=80')"></div>
+    <div class="meta">
+      <div>
+        <div class="title">Image Tools</div>
+        <div class="sub">أدوات تحرير الصور — قص، تحسين، إزالة خلفية</div>
+      </div>
+      <span class="badge">Editing</span>
+    </div>
+  </a>
+  <a href="/ideogram-reframe.html" class="v-card span-4" style="--ar:16/9">
+    <div class="thumb" style="background-image:linear-gradient(180deg,rgba(255,158,44,.12),rgba(11,30,52,.82)),url('https://images.unsplash.com/photo-1561998338-13ad7883b20f?auto=format&fit=crop&w=800&q=80')"></div>
+    <div class="meta">
+      <div>
+        <div class="title">Ideogram Reframe</div>
+        <div class="sub">إعادة تأطير الصور بالذكاء الاصطناعي</div>
+      </div>
+      <span class="badge">Reframe</span>
+    </div>
+  </a>
+  <a href="/fluxkontext.html" class="v-card span-4" style="--ar:16/9">
+    <div class="thumb" style="background-image:linear-gradient(180deg,rgba(47,243,215,.12),rgba(11,30,52,.82)),url('https://images.unsplash.com/photo-1558618666-fcd25c85f82e?auto=format&fit=crop&w=800&q=80')"></div>
+    <div class="meta">
+      <div>
+        <div class="title">Flux Kontext</div>
+        <div class="sub">تحرير الصور بالسياق — تعديل دقيق</div>
+      </div>
+      <span class="badge">Context</span>
+    </div>
+  </a>
+  <a href="/transitions.html" class="v-card span-4" style="--ar:16/9">
+    <div class="thumb" style="background-image:linear-gradient(180deg,rgba(0,229,255,.15),rgba(11,30,52,.82)),url('https://images.unsplash.com/photo-1478720568477-152d9b164e26?auto=format&fit=crop&w=800&q=80')"></div>
+    <div class="meta">
+      <div>
+        <div class="title">Transitions</div>
+        <div class="sub">إنشاء انتقالات سينمائية احترافية</div>
+      </div>
+      <span class="badge">Cinematic</span>
+    </div>
+  </a>
+  <a href="/prompt.html" class="v-card span-4" style="--ar:16/9">
+    <div class="thumb" style="background-image:linear-gradient(180deg,rgba(255,158,44,.14),rgba(11,30,52,.82)),url('https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=800&q=80')"></div>
+    <div class="meta">
+      <div>
+        <div class="title">Prompt Studio</div>
+        <div class="sub">توليد وتحسين البرومبتات باحتراف</div>
+      </div>
+      <span class="badge">Prompt</span>
+    </div>
+  </a>
+  <a href="/qwen2.html" class="v-card span-4" style="--ar:16/9">
+    <div class="thumb" style="background-image:linear-gradient(180deg,rgba(47,243,215,.12),rgba(11,30,52,.82)),url('https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&w=800&q=80')"></div>
+    <div class="meta">
+      <div>
+        <div class="title">Qwen2 Vision</div>
+        <div class="sub">تحليل الصور والفيديو بالذكاء الاصطناعي</div>
+      </div>
+      <span class="badge">AI Vision</span>
+    </div>
+  </a>
+  <a href="/photowith" class="v-card span-4" style="--ar:16/9">
+    <div class="thumb" style="background-image:linear-gradient(180deg,rgba(255,158,44,.14),rgba(11,30,52,.82)),url('https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=800&q=80')"></div>
+    <div class="meta">
+      <div>
+        <div class="title">Photo With</div>
+        <div class="sub">دمج الصور داخل مشاهد وقوالب جاهزة بسرعة.</div>
+      </div>
+      <span class="badge">Template</span>
+    </div>
+  </a>
+  <a href="/transitions2" class="v-card span-4" style="--ar:16/9">
+    <div class="thumb" style="background-image:linear-gradient(180deg,rgba(0,229,255,.15),rgba(11,30,52,.82)),url('https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?auto=format&fit=crop&w=800&q=80')"></div>
+    <div class="meta">
+      <div>
+        <div class="title">Transitions 2</div>
+        <div class="sub">بناء انتقالات مخصصة بين لقطتين أو ملفين.</div>
+      </div>
+      <span class="badge">Motion</span>
+    </div>
+  </a>
+  <a href="/trends" class="v-card span-4" style="--ar:16/9">
+    <div class="thumb" style="background-image:linear-gradient(180deg,rgba(47,243,215,.12),rgba(11,30,52,.82)),url('https://images.unsplash.com/photo-1522542550221-31fd19575a2d?auto=format&fit=crop&w=800&q=80')"></div>
+    <div class="meta">
+      <div>
+        <div class="title">Trends</div>
+        <div class="sub">تشغيل قوالب ترند للصورة والفيديو والأفاتار.</div>
+      </div>
+      <span class="badge">Trending</span>
+    </div>
+  </a>
+</div></div></div>
+<div class="comp"><div class="comp-main"><div class="comp-input"><textarea rows="2" placeholder="اختر الأداة المناسبة من القائمة أعلاه — كل أداة تفتح في صفحتها المخصصة..." id="promptArea" readonly></textarea></div><button class="gen" onclick="location.href='/photowith'">Open Tool</button></div><div class="ctrl"><div class="pills"><span class="pl on" onclick="location.href='/image-tools.html'">Image Tools</span><span class="pl" onclick="location.href='/ideogram-reframe.html'">Reframe</span><span class="pl" onclick="location.href='/fluxkontext.html'">Flux Kontext</span><span class="pl" onclick="location.href='/transitions.html'">Transitions</span><span class="pl" onclick="location.href='/prompt.html'">Prompt</span><span class="pl" onclick="location.href='/qwen2.html'">Qwen2</span><span class="pl" onclick="location.href='/photowith'">Photo With</span><span class="pl" onclick="location.href='/transitions2'">Transitions 2</span><span class="pl" onclick="location.href='/trends'">Trends</span></div></div></div>
+</div>
+<div class="ws-s"><div class="ss-top"><h3><svg viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>Settings</h3><span class="cost-badge">◈ Tools Hub</span><a class="hero-ad" href="/image-tools.html" style="background-image:url('https://images.unsplash.com/photo-1611532736597-de2d4265fba3?auto=format&fit=crop&w=1200&q=80')"><span class="hero-title">AI Tools Suite</span><span class="hero-sub">أدوات ذكاء اصطناعي متخصصة</span></a></div><div class="ss-body">
+<div class="sg"><div class="sg-l">Quick Access</div><div class="feature-grid"><a href="/image-tools.html" class="feature-btn on" style="text-decoration:none">✂️ Image Tools</a><a href="/ideogram-reframe.html" class="feature-btn on" style="text-decoration:none">🖼️ Reframe</a><a href="/fluxkontext.html" class="feature-btn on" style="text-decoration:none">⚡ Flux Kontext</a><a href="/transitions.html" class="feature-btn on" style="text-decoration:none">🎞️ Transitions</a><a href="/prompt.html" class="feature-btn on" style="text-decoration:none">🔍 Prompt</a><a href="/qwen2.html" class="feature-btn on" style="text-decoration:none">🤖 Qwen2</a><a href="/photowith" class="feature-btn on" style="text-decoration:none">🖼 Photo With</a><a href="/transitions2" class="feature-btn on" style="text-decoration:none">↔ Transitions 2</a><a href="/trends" class="feature-btn on" style="text-decoration:none">▲ Trends</a></div></div>
+<div class="sg"><div class="sg-l">Category</div><div class="model-cascade" id="modelCascade"><button type="button" class="model-cascade-btn" onclick="this.closest('.model-cascade').classList.toggle('open')"><span id="sideModelLabel">All Tools</span><span class="model-cascade-arr">▾</span></button><div class="model-cascade-menu" id="modelCascadeMenu"><a class="cascade-item sel" href="/image-tools.html" style="text-decoration:none">Image Tools — تحرير الصور</a><a class="cascade-item" href="/ideogram-reframe.html" style="text-decoration:none">Ideogram Reframe — إعادة تأطير</a><a class="cascade-item" href="/fluxkontext.html" style="text-decoration:none">Flux Kontext — تحرير سياقي</a><a class="cascade-item" href="/transitions.html" style="text-decoration:none">Transitions — انتقالات</a><a class="cascade-item" href="/prompt.html" style="text-decoration:none">Prompt Studio — برومبت</a><a class="cascade-item" href="/qwen2.html" style="text-decoration:none">Qwen2 Vision — تحليل AI</a><a class="cascade-item" href="/photowith" style="text-decoration:none">Photo With — تركيب الصور بالقوالب</a><a class="cascade-item" href="/transitions2" style="text-decoration:none">Transitions 2 — انتقالات مخصصة</a><a class="cascade-item" href="/trends" style="text-decoration:none">Trends — قوالب ترند جاهزة</a></div></div></div>
+<div class="acc" data-acc="type"><button class="acc-head" type="button" onclick="this.closest('.acc').classList.toggle('open')"><span class="acc-title">Tool Type</span><span class="acc-val">All</span><span class="acc-arrow">▾</span></button><div class="acc-body"><div class="acc-list"><div class="acc-item sel"><span class="acc-box"></span><span class="acc-text">All</span></div><div class="acc-item"><span class="acc-box"></span><span class="acc-text">Image Editing</span></div><div class="acc-item"><span class="acc-box"></span><span class="acc-text">AI Analysis</span></div><div class="acc-item"><span class="acc-box"></span><span class="acc-text">Generation</span></div></div></div></div>
+<div class="ads-stack">
+  <a class="ad-card" href="videos.html" style="background-image:url('https://images.unsplash.com/photo-1478720568477-152d9b164e26?auto=format&fit=crop&w=1200&q=80');">
+    <span class="ad-tag">HOT</span>
+    <div class="ad-overlay"><div class="ad-title">Video Studio</div><div class="ad-sub">توليد فيديوهات احترافية</div></div>
+  </a>
+  <a class="ad-card" href="images.html" style="background-image:url('https://images.unsplash.com/photo-1545239351-1141bd82e8a6?auto=format&fit=crop&w=1200&q=80');">
+    <span class="ad-tag">PROMO</span>
+    <div class="ad-overlay"><div class="ad-title">Nano Banana Pro</div><div class="ad-sub">جودة خيالية للصور</div></div>
+  </a>
+  <a class="ad-card" href="audio.html" style="background-image:url('https://images.unsplash.com/photo-1511379938547-c1f69419868d?auto=format&fit=crop&w=1200&q=80');">
+    <span class="ad-tag">NEW</span>
+    <div class="ad-overlay"><div class="ad-title">Audio Studio</div><div class="ad-sub">أصوات وموسيقى بالذكاء الاصطناعي</div></div>
+  </a>
+</div>
+<div class="panel-price"><span class="cost-badge">9 أدوات متاحة</span></div>
+</div></div>
+</div>
+</div>
+</div>
+<script src="/js/shared.js"></script>
+<script src="/js/sidebar-scripts.js"></script>
+<script src="/js/sidebar-toggle.js"></script>
+</body>
+</html>

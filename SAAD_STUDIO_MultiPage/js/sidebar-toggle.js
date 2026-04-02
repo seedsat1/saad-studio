@@ -125,6 +125,18 @@ function closeAllSidebars() {
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function() {
+    const host = String(location.hostname || '').toLowerCase();
+    const isLocalHost = host === 'localhost' || host === '127.0.0.1' || host === '::1';
+
+    // Avoid offline-cache interference during local development.
+    if (isLocalHost) {
+      navigator.serviceWorker.getRegistrations()
+        .then(function(regs) { return Promise.all(regs.map(function(r) { return r.unregister(); })); })
+        .then(function() { console.log('[PWA] Service Worker disabled on localhost.'); })
+        .catch(function(err) { console.warn('[PWA] Failed to disable local Service Worker:', err); });
+      return;
+    }
+
     navigator.serviceWorker.register('/sw.js', { scope: '/' })
       .then(function(reg) {
         console.log('[PWA] Service Worker registered, scope:', reg.scope);

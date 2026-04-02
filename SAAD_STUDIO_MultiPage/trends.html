@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SAAD STUDIO — AI Trends</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/shared.css">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0e1a;--bg2:#0f1526;--bg-card:#141b2d;--bg-card-h:#1a2340;
+  --cyan:#00e5ff;--cyan-g:rgba(0,229,255,.15);--cyan-d:rgba(0,229,255,.5);
+  --magenta:#ff2d7b;--pink:#ff6b9d;--rose:#e91e63;--gold:#ffc107;--green:#00e676;
+  --red:#ff5252;--purple:#b388ff;--orange:#ff9100;
+  --txt:#e8eaf6;--txt2:#8892b0;--txt3:#5a6380;
+  --brd:rgba(255,255,255,.06);--brd-h:rgba(0,229,255,.3);
+  --r:16px;--rs:10px;
+  --far:'Cairo',sans-serif;--fen:'Outfit',sans-serif;
+  --ease:all .35s cubic-bezier(.4,0,.2,1);
+}
+html{scroll-behavior:smooth}
+body{font-family:var(--far);background:var(--bg);color:var(--txt);min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+
+.ambient{position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:radial-gradient(ellipse 600px 400px at 20% 10%,rgba(0,229,255,.04),transparent),
+  radial-gradient(ellipse 500px 500px at 80% 80%,rgba(255,45,123,.03),transparent),
+  radial-gradient(ellipse 800px 600px at 50% 50%,rgba(0,229,255,.02),transparent)}
+
+.hdr{position:relative;z-index:2;padding:50px 40px 24px;text-align:center}
+.hdr h1{font-family:var(--fen);font-size:clamp(2rem,5vw,3.5rem);font-weight:900;letter-spacing:-1px;
+  background:linear-gradient(135deg,var(--cyan),#fff 50%,var(--cyan));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:10px}
+.hdr p{font-size:1.05rem;color:var(--txt2);max-width:600px;margin:0 auto;line-height:1.8}
+
+.cat-tabs{position:relative;z-index:2;display:flex;align-items:center;justify-content:center;gap:8px;padding:20px 20px 10px;flex-wrap:wrap}
+.cat-tab{
+  font-family:var(--far);padding:10px 28px;border-radius:100px;
+  border:1.5px solid var(--brd);background:transparent;color:var(--txt2);
+  font-size:.92rem;font-weight:700;cursor:pointer;transition:var(--ease);
+  display:flex;align-items:center;gap:7px;
+}
+.cat-tab .tc{font-family:var(--fen);font-size:.72rem;padding:2px 8px;border-radius:100px;background:rgba(255,255,255,.06);color:var(--txt3);transition:var(--ease)}
+.cat-tab:hover{border-color:var(--cyan);color:var(--cyan)}
+.cat-tab.active{border-color:var(--cyan);color:var(--cyan);background:var(--cyan-g);box-shadow:0 0 24px rgba(0,229,255,.1)}
+.cat-tab.active .tc{background:rgba(0,229,255,.2);color:var(--cyan)}
+.cat-tab[data-c="romantic"].active{border-color:var(--pink);color:var(--pink);background:rgba(255,107,157,.12);box-shadow:0 0 24px rgba(255,107,157,.1)}
+.cat-tab[data-c="romantic"].active .tc{background:rgba(255,107,157,.2);color:var(--pink)}
+.cat-tab[data-c="cartoon"].active{border-color:var(--purple);color:var(--purple);background:rgba(179,136,255,.12);box-shadow:0 0 24px rgba(179,136,255,.1)}
+.cat-tab[data-c="cartoon"].active .tc{background:rgba(179,136,255,.2);color:var(--purple)}
+.cat-tab[data-c="realistic"].active{border-color:var(--green);color:var(--green);background:rgba(0,230,118,.1);box-shadow:0 0 24px rgba(0,230,118,.1)}
+.cat-tab[data-c="realistic"].active .tc{background:rgba(0,230,118,.2);color:var(--green)}
+
+.sub-f{position:relative;z-index:2;display:flex;align-items:center;justify-content:center;gap:8px;padding:8px 20px 24px;flex-wrap:wrap}
+.sf{font-family:var(--far);padding:6px 18px;border-radius:100px;border:1px solid rgba(255,255,255,.05);background:rgba(255,255,255,.03);color:var(--txt3);font-size:.8rem;font-weight:600;cursor:pointer;transition:var(--ease)}
+.sf:hover,.sf.on{border-color:rgba(255,255,255,.15);color:var(--txt2);background:rgba(255,255,255,.06)}
+
+.gw{position:relative;z-index:2;max-width:1440px;margin:0 auto;padding:0 24px 80px}
+.g{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:18px}
+
+.cd{position:relative;background:var(--bg-card);border:1px solid var(--brd);border-radius:var(--r);overflow:hidden;cursor:pointer;transition:var(--ease);animation:cI .5s ease both}
+@keyframes cI{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+.cd:hover{border-color:var(--brd-h);transform:translateY(-5px);box-shadow:0 16px 48px rgba(0,0,0,.4),0 0 28px var(--cyan-g)}
+.cd .v{position:relative;width:100%;aspect-ratio:16/10;overflow:hidden;background:var(--bg2)}
+.cd .v .ic{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:3.2rem}
+.cd .v .ol{position:absolute;inset:0;background:linear-gradient(0deg,var(--bg-card) 0%,transparent 50%)}
+.cd .bd{position:absolute;top:10px;left:10px;padding:3px 10px;border-radius:100px;font-family:var(--fen);font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;z-index:2}
+.bh{background:var(--magenta);color:#fff}.bn{background:var(--green);color:#0a0e1a}.bf{background:var(--orange);color:#fff}.bl{background:var(--rose);color:#fff}
+.cd .ti{position:absolute;top:10px;right:10px;width:30px;height:30px;border-radius:8px;background:rgba(0,0,0,.5);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;z-index:2}
+.cd .ti svg{width:14px;height:14px;fill:var(--txt2)}
+.cd .nf{padding:14px 16px 18px}
+.cd .nf h3{font-family:var(--fen);font-size:1rem;font-weight:700;margin-bottom:4px;color:var(--txt);transition:color .3s}
+.cd:hover .nf h3{color:var(--cyan)}
+.cd .nf .ds{font-size:.8rem;color:var(--txt2);line-height:1.65;margin-bottom:10px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.cd .nf .tg{display:flex;gap:5px;flex-wrap:wrap}
+.tgi{font-family:var(--fen);font-size:.65rem;padding:2px 8px;border-radius:100px;background:rgba(255,255,255,.04);color:var(--txt3);border:1px solid rgba(255,255,255,.05)}
+.cd[data-c="romantic"] .v .ic{background:linear-gradient(135deg,rgba(255,107,157,.1),rgba(233,30,99,.06))}
+.cd[data-c="cartoon"] .v .ic{background:linear-gradient(135deg,rgba(179,136,255,.1),rgba(103,58,183,.06))}
+.cd[data-c="realistic"] .v .ic{background:linear-gradient(135deg,rgba(0,230,118,.08),rgba(0,229,255,.06))}
+
+.wo{position:fixed;inset:0;z-index:1000;background:rgba(5,8,18,.93);backdrop-filter:blur(20px);opacity:0;visibility:hidden;transition:all .4s ease;overflow-y:auto}
+.wo.on{opacity:1;visibility:visible}
+.ws{max-width:780px;margin:0 auto;padding:36px 28px 80px;transform:translateY(36px);transition:transform .4s cubic-bezier(.4,0,.2,1)}
+.wo.on .ws{transform:translateY(0)}
+.wb{display:inline-flex;align-items:center;gap:8px;font-family:var(--far);font-size:.9rem;color:var(--txt2);cursor:pointer;background:none;border:none;padding:8px 0;margin-bottom:20px;transition:color .3s}
+.wb:hover{color:var(--cyan)}
+.wb svg{width:18px;height:18px;transform:scaleX(-1)}
+.wh{text-align:center;margin-bottom:32px}
+.wh .we{font-size:3rem;margin-bottom:12px;display:block}
+.wh h2{font-family:var(--fen);font-size:1.8rem;font-weight:800;margin-bottom:6px;background:linear-gradient(135deg,var(--cyan),#fff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.wh p{color:var(--txt2);font-size:.9rem;line-height:1.7;max-width:480px;margin:0 auto}
+.us{margin-bottom:24px}
+.us>label{display:block;font-size:.85rem;font-weight:600;color:var(--txt2);margin-bottom:8px}
+.uz-w{display:grid;gap:14px}
+.uz-w.du{grid-template-columns:1fr 1fr}
+.uz{position:relative;border:2px dashed rgba(255,255,255,.1);border-radius:var(--r);padding:36px 16px;text-align:center;cursor:pointer;transition:var(--ease);background:rgba(255,255,255,.02);min-height:160px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px}
+.uz:hover{border-color:var(--cyan-d);background:var(--cyan-g)}
+.uz.hf{border-color:var(--green);border-style:solid;background:rgba(0,230,118,.05)}
+.uz svg{width:36px;height:36px;stroke:var(--txt3);fill:none;stroke-width:1.5}
+.uz .ut{font-size:.82rem;color:var(--txt3)}.uz .ut strong{color:var(--cyan);font-weight:600}
+.uz .ux{font-size:.68rem;color:var(--txt3);margin-top:1px}
+.uz input[type="file"]{position:absolute;inset:0;opacity:0;cursor:pointer}
+.uz .pi{max-width:100%;max-height:140px;border-radius:var(--rs);object-fit:contain;display:none}
+.uz .pv{max-width:100%;max-height:140px;border-radius:var(--rs);display:none}
+.uz.hf svg,.uz.hf .ut,.uz.hf .ux{display:none}
+.uz.hf .pi,.uz.hf .pv{display:block}
+.uz .pa{display:none;color:var(--green);font-size:.82rem}.uz.hf .pa{display:block}
+.ps{margin-bottom:24px}
+.ps label{display:block;font-size:.85rem;font-weight:600;color:var(--txt2);margin-bottom:8px}
+.px{width:100%;padding:12px 16px;border-radius:var(--rs);border:1.5px solid var(--brd);background:var(--bg2);color:var(--txt);font-family:var(--far);font-size:.9rem;resize:vertical;min-height:70px;transition:var(--ease)}
+.px:focus{outline:none;border-color:var(--cyan);box-shadow:0 0 18px rgba(0,229,255,.1)}
+.px::placeholder{color:var(--txt3)}
+.gb{width:100%;padding:15px;border:none;border-radius:var(--rs);background:linear-gradient(135deg,var(--cyan),#00b8d4);color:#0a0e1a;font-family:var(--fen);font-size:1.05rem;font-weight:700;cursor:pointer;transition:var(--ease);letter-spacing:.5px;display:flex;align-items:center;justify-content:center;gap:10px}
+.gb:hover{transform:translateY(-2px);box-shadow:0 10px 36px rgba(0,229,255,.3)}
+.gb:active{transform:translateY(0)}
+.gb:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
+.gb svg{width:20px;height:20px}
+.ra{margin-top:24px;display:none}.ra.vi{display:block}
+.rl{text-align:center;padding:50px 20px;background:var(--bg-card);border-radius:var(--r);border:1px solid var(--brd)}
+.sp{width:44px;height:44px;border-radius:50%;border:3px solid var(--brd);border-top-color:var(--cyan);animation:sn 1s linear infinite;margin:0 auto 14px}
+@keyframes sn{to{transform:rotate(360deg)}}
+.rl p{color:var(--txt2);font-size:.9rem}
+.ro{background:var(--bg-card);border-radius:var(--r);border:1px solid var(--brd);padding:20px;text-align:center}
+.rx{display:flex;gap:10px;justify-content:center;margin-top:14px}
+.rb{padding:9px 22px;border-radius:100px;font-family:var(--far);font-size:.82rem;font-weight:600;cursor:pointer;transition:var(--ease)}
+.rdl{background:var(--cyan);color:#0a0e1a;border:none}.rdl:hover{box-shadow:0 4px 18px rgba(0,229,255,.3)}
+.rrt{background:transparent;color:var(--txt2);border:1.5px solid var(--brd)}.rrt:hover{border-color:var(--cyan);color:var(--cyan)}
+
+@media(max-width:768px){
+  .hdr{padding:36px 16px 16px}.hdr h1{font-size:1.7rem}
+  .cat-tabs,.sub-f{padding-left:16px;padding-right:16px}
+  .gw{padding:0 12px 60px}
+  .g{grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+  .ws{padding:18px 14px 60px}
+  .uz-w.du{grid-template-columns:1fr}
+}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:3px}
+</style>
+</head>
+<body>
+<div class="ambient"></div>
+<main class="main">
+<header class="topbar">
+  <div class="topbar-logo-wrap">
+    <img class="topbar-logo" src="/assets/logo-saad.png" alt="SAAD STUDIO Logo">
+  </div>
+  <nav class="site-nav">
+    <a href="/index.html">Explore</a>
+    <a href="/images.html">Image</a>
+    <a href="/videos.html">Video</a>
+    <a href="/audio.html">Audio</a>
+    <a href="/tools.html">Tools</a>
+    <a href="/photowith">Photo With</a>
+    <a href="/transitions2">Transitions 2</a>
+    <a href="/trends" class="on">Trends</a>
+    <a href="/gallery.html">Gallery</a>
+  </nav>
+  <div id="promo-in-navbar"></div>
+  <div class="topbar-actions" id="topbar-actions">
+    <button class="topbar-btn" id="langToggle" onclick="toggleLanguage()">EN</button>
+    <button class="topbar-btn pricing" onclick="showPage('pricing')">Pricing</button>
+    <span id="topbar-guest">
+      <button class="topbar-btn" onclick="openAuthModal('login')">Login</button>
+      <button class="topbar-btn primary" onclick="openAuthModal('register')">Sign up</button>
+    </span>
+    <span id="topbar-loggedin" style="display:none" class="topbar-user">
+      <div class="user-avatar-wrap topbar-avatar-wrap" id="user-avatar-wrap" onclick="toggleProfileCard()">
+        <div class="user-avatar" id="user-avatar-el">•</div>
+      </div>
+      <div class="profile-card" id="profile-card" style="display:none;">
+        <div class="profile-card-header">
+          <div class="profile-card-avatar" id="pcard-avatar">•</div>
+          <div>
+            <div class="profile-card-email" id="pcard-email">—</div>
+            <span class="topbar-plan-badge starter" id="pcard-plan-badge" style="margin-top:4px;display:inline-block;">—</span>
+          </div>
+        </div>
+        <div class="profile-card-divider"></div>
+        <div class="profile-card-row">
+          <span class="profile-card-label">💳 رصيدك</span>
+          <span class="profile-card-value" id="pcard-credits">—</span>
+        </div>
+        <div class="profile-card-row">
+          <span class="profile-card-label">📅 تاريخ الاشتراك</span>
+          <span class="profile-card-value" id="pcard-created">—</span>
+        </div>
+        <div class="profile-card-row" id="pcard-renew-row">
+          <span class="profile-card-label">⏳ ينتهي في</span>
+          <span class="profile-card-value" id="pcard-renew">—</span>
+        </div>
+        <div class="profile-card-row" id="pcard-days-row">
+          <span class="profile-card-label">⭐ باقي</span>
+          <span class="profile-card-value" id="pcard-days">—</span>
+        </div>
+        <div class="profile-card-divider"></div>
+        <button class="profile-card-nav-btn" onclick="closeProfileCard();window.location.href='/dashboard.html'"><span class="pcnb-icon">📊</span> لوحتي</button>
+        <button class="profile-card-nav-btn" onclick="closeProfileCard();window.location.href='/account.html'"><span class="pcnb-icon">💳</span> الاشتراك والفوترة</button>
+        <button class="profile-card-logout" onclick="doLogout()">&#x2192; تسجيل الخروج</button>
+      </div>
+    </span>
+  </div>
+</header>
+<header class="hdr">
+  <h1>AI Trends Studio</h1>
+  <p>اكتشف أحدث ترندات الذكاء الاصطناعي — ارفع صورتك واصنع محتوى فايرل بثوانٍ</p>
+</header>
+<div class="cat-tabs" id="cT"></div>
+<div class="sub-f" id="sF"></div>
+<div class="gw"><div class="g" id="gd"></div></div>
+<div class="wo" id="wO"><div class="ws" id="wS"></div></div>
+
+<script src="js/creative-tools.js"></script>
+<script src="/js/shared.js"></script>
+<script>
+const T=[
+// ═══ ROMANTIC 15 ═══
+{id:'r01',n:'AI Hug',ar:'حضن رومانسي',d:'ارفع صورتين واصنع لحظة حضن دافئة وواقعية',ic:'🤗',b:'hot',c:'romantic',s:'image',tg:['image-to-image','viral'],inp:[{id:'i1',l:'صورتك',a:'image/*',t:'image'},{id:'i2',l:'صورة الشخص الآخر',a:'image/*',t:'image'}],pr:true,ph:'وصف المشهد (اختياري)...',o:'image'},
+{id:'r02',n:'AI Kiss',ar:'قبلة رومانسية',d:'اصنع لحظة قبلة سينمائية خيالية من صورتين',ic:'💋',b:'hot',c:'romantic',s:'image',tg:['image-to-image','romantic'],inp:[{id:'i1',l:'الصورة الأولى',a:'image/*',t:'image'},{id:'i2',l:'الصورة الثانية',a:'image/*',t:'image'}],pr:true,ph:'وصف المشهد...',o:'image'},
+{id:'r03',n:'Hug My Younger Self',ar:'احضن نفسك الصغير',d:'احضن نسختك من الطفولة — صورة حالية + صورة قديمة',ic:'👶',b:'hot',c:'romantic',s:'image',tg:['emotional','nostalgic'],inp:[{id:'i1',l:'صورتك الحالية',a:'image/*',t:'image'},{id:'i2',l:'صورتك من الطفولة',a:'image/*',t:'image'}],pr:true,ph:'وصف إضافي...',o:'image'},
+{id:'r04',n:'Couple Goals',ar:'أهداف الكابل',d:'اصنع صورة كابل مثالية — حضن، مشي، لحظة رومانسية',ic:'💑',b:'fire',c:'romantic',s:'image',tg:['couple','goals'],inp:[{id:'i1',l:'صورتك',a:'image/*',t:'image'},{id:'i2',l:'صورة الشريك',a:'image/*',t:'image'}],pr:true,ph:'وصف المشهد الرومانسي...',o:'image'},
+{id:'r05',n:'AI Wedding',ar:'زفاف بالذكاء الاصطناعي',d:'شوف نفسك وشريكك بفستان وبدلة زفاف — لحظة الأحلام',ic:'💒',b:'love',c:'romantic',s:'image',tg:['wedding','dream'],inp:[{id:'i1',l:'صورتك',a:'image/*',t:'image'},{id:'i2',l:'صورة الشريك',a:'image/*',t:'image'}],pr:true,ph:'وصف ثيم الزفاف...',o:'image'},
+{id:'r06',n:'Romantic Dinner',ar:'عشاء رومانسي',d:'مشهد عشاء على ضوء الشموع مع شريكك',ic:'🕯️',b:'new',c:'romantic',s:'image',tg:['dinner','romantic'],inp:[{id:'i1',l:'صورتك',a:'image/*',t:'image'},{id:'i2',l:'صورة الشريك',a:'image/*',t:'image'}],pr:true,ph:'وصف الأجواء...',o:'image'},
+{id:'r07',n:'Romantic Dance',ar:'رقصة رومانسية',d:'رقصة بطيئة رومانسية — مثل مشاهد الأفلام',ic:'💃',b:'new',c:'romantic',s:'image',tg:['dance','cinematic'],inp:[{id:'i1',l:'صورتك',a:'image/*',t:'image'},{id:'i2',l:'صورة الشريك',a:'image/*',t:'image'}],pr:true,ph:'وصف المشهد...',o:'image'},
+{id:'r08',n:'Sunset Together',ar:'غروب مع الحبيب',d:'لحظة رومانسية عند غروب الشمس على البحر',ic:'🌅',b:'new',c:'romantic',s:'image',tg:['sunset','beach'],inp:[{id:'i1',l:'صورتك',a:'image/*',t:'image'},{id:'i2',l:'صورة الشريك',a:'image/*',t:'image'}],pr:true,ph:'وصف المكان...',o:'image'},
+{id:'r09',n:'AI Proposal',ar:'طلب زواج',d:'مشهد طلب زواج حالم — على الركبة مع خاتم',ic:'💍',b:'love',c:'romantic',s:'image',tg:['proposal','dream'],inp:[{id:'i1',l:'صورتك',a:'image/*',t:'image'},{id:'i2',l:'صورة الشريك',a:'image/*',t:'image'}],pr:true,ph:'وصف المشهد...',o:'image'},
+{id:'r10',n:'Forehead Kiss',ar:'قبلة الجبين',d:'لحظة حنان — قبلة على الجبين مليئة بالمشاعر',ic:'😘',b:'love',c:'romantic',s:'image',tg:['tender','sweet'],inp:[{id:'i1',l:'صورتك',a:'image/*',t:'image'},{id:'i2',l:'صورة الشريك',a:'image/*',t:'image'}],pr:false,o:'image'},
+{id:'r11',n:'Hug Video',ar:'فيديو حضن',d:'حوّل صورة واحدة لفيديو حضن متحرك وواقعي',ic:'🎬',b:'hot',c:'romantic',s:'video',tg:['image-to-video','animated'],inp:[{id:'i1',l:'ارفع صورتك',a:'image/*',t:'image'}],pr:true,ph:'وصف حركة الحضن...',o:'video'},
+{id:'r12',n:'Kiss Video',ar:'فيديو قبلة',d:'فيديو قبلة متحركة من صورة واحدة — سينمائي',ic:'💕',b:'hot',c:'romantic',s:'video',tg:['image-to-video','cinematic'],inp:[{id:'i1',l:'ارفع صورتك',a:'image/*',t:'image'}],pr:true,ph:'وصف المشهد...',o:'video'},
+{id:'r13',n:'Couple Video',ar:'فيديو كابل',d:'فيديو لحظات رومانسية متحركة — مشي، ضحك، حضن',ic:'🎥',b:'fire',c:'romantic',s:'video',tg:['image-to-video','couple'],inp:[{id:'i1',l:'صورتك',a:'image/*',t:'image'},{id:'i2',l:'صورة الشريك',a:'image/*',t:'image'}],pr:true,ph:'وصف اللحظة...',o:'video'},
+{id:'r14',n:'Dance Together',ar:'فيديو رقص معاً',d:'فيديو رقص رومانسي بطيء مع شريكك',ic:'🩰',b:'new',c:'romantic',s:'video',tg:['motion','dance'],inp:[{id:'i1',l:'صورتك',a:'image/*',t:'image'},{id:'v1',l:'فيديو الرقص المرجعي',a:'video/*',t:'video'}],pr:false,o:'video'},
+{id:'r15',n:'Reunion Video',ar:'فيديو لقاء بعد الفراق',d:'مشهد لقاء عاطفي بعد غياب — جري وحضن',ic:'🏃',b:'love',c:'romantic',s:'video',tg:['emotional','reunion'],inp:[{id:'i1',l:'ارفع صورتك',a:'image/*',t:'image'}],pr:true,ph:'وصف مشهد اللقاء...',o:'video'},
+
+// ═══ CARTOON 14 ═══
+{id:'c01',n:'Ghibli Style',ar:'ستايل جيبلي',d:'حوّل صورتك لعمل فني بأسلوب ستوديو جيبلي الساحر',ic:'🏯',b:'hot',c:'cartoon',s:'image',tg:['anime','art'],inp:[{id:'i1',l:'ارفع صورتك',a:'image/*',t:'image'}],pr:true,ph:'تفاصيل المشهد...',o:'image'},
+{id:'c02',n:'Anime Style',ar:'ستايل أنمي',d:'حوّل صورتك لشخصية أنمي بجودة عالية وألوان حيوية',ic:'⚡',b:'hot',c:'cartoon',s:'image',tg:['anime','japanese'],inp:[{id:'i1',l:'ارفع صورتك',a:'image/*',t:'image'}],pr:true,ph:'وصف الستايل...',o:'image'},
+{id:'c03',n:'Claymation',ar:'ستايل صلصال',d:'حوّل صورتك لمجسم صلصال بستايل Wallace & Gromit',ic:'🎨',b:'new',c:'cartoon',s:'image',tg:['clay','3D'],inp:[{id:'i1',l:'ارفع صورتك',a:'image/*',t:'image'}],pr:false,o:'image'},
+{id:'c04',n:'Disney Style',ar:'ستايل ديزني',d:'شوف نفسك كشخصية ديزني كلاسيكية بعيون كبيرة',ic:'🏰',b:'hot',c:'cartoon',s:'image',tg:['disney','princess'],inp:[{id:'i1',l:'ارفع صورتك',a:'image/*',t:'image'}],pr:true,ph:'وصف الشخصية...',o:'image'},
+{id:'c05',n:'Pixar Style',ar:'ستايل بيكسار',d:'تحويل لستايل بيكسار ثلاثي الأبعاد مثل شخصيات الأفلام',ic:'🎬',b:'new',c:'cartoon',s:'image',tg:['pixar','3D'],inp:[{id:'i1',l:'ارفع صورتك',a:'image/*',t:'image'}],pr:true,ph:'وصف الشخصية...',o:'image'},
+{id:'c06',n:'Chibi Diorama',ar:'تشيبي ديوراما',d:'شخصية أنمي تشيبي صغيرة في عالم مصغر ملون',ic:'🎭',b:'new',c:'cartoon',s:'image',tg:['chibi','miniature'],inp:[{id:'i1',l:'ارفع صورتك',a:'image/*',t:'image'}],pr:true,ph:'وصف العالم المصغر...',o:'image'},
+{id:'c07',n:'Comic Book',ar:'ستايل كوميك',d:'حوّل صورتك لرسمة كوميك مع فقاعات حوار وتأثيرات',ic:'💥',b:'new',c:'cartoon',s:'image',tg:['comic','pop-art'],inp:[{id:'i1',l:'ارفع صورتك',a:'image/*',t:'image'}],pr:true,ph:'نص فقاعة الحوار...',o:'image'},
+{id:'c08',n:'LEGO Style',ar:'ستايل ليقو',d:'حوّل صورتك لمجسم ليقو مع قاعدة وعلبة تغليف',ic:'🧱',b:'new',c:'cartoon',s:'image',tg:['lego','toy'],inp:[{id:'i1',l:'ارفع صورتك',a:'image/*',t:'image'}],pr:true,ph:'وصف الإكسسوارات...',o:'image'},
+{id:'c09',n:'POP MART Style',ar:'ستايل بوب مارت',d:'مجسم POP MART اللطيف — ترند شائع جداً',ic:'🎀',b:'hot',c:'cartoon',s:'image',tg:['popmart','cute'],inp:[{id:'i1',l:'ارفع صورتك',a:'image/*',t:'image'}],pr:true,ph:'وصف الستايل...',o:'image'},
+{id:'c10',n:'Italian Brainrot',ar:'إيطالي باروكي',d:'ستايل سريالي باروكي درامي من أجنن ترندات تيك توك',ic:'🎭',b:'fire',c:'cartoon',s:'image',tg:['surreal','baroque'],inp:[{id:'i1',l:'ارفع صورتك',a:'image/*',t:'image'}],pr:false,o:'image'},
+{id:'c11',n:'Watercolor Art',ar:'رسمة مائية',d:'حوّل صورتك للوحة مائية فنية بألوان هادئة ودافئة',ic:'🖌️',b:'new',c:'cartoon',s:'image',tg:['watercolor','art'],inp:[{id:'i1',l:'ارفع صورتك',a:'image/*',t:'image'}],pr:false,o:'image'},
+{id:'c12',n:'AI Caricature',ar:'كاريكاتير',d:'كاريكاتير مبالغ فيه ومضحك مثالي للسوشال ميديا',ic:'😂',b:'new',c:'cartoon',s:'image',tg:['caricature','funny'],inp:[{id:'i1',l:'ارفع صورتك',a:'image/*',t:'image'}],pr:false,o:'image'},
+{id:'c13',n:'Anime Video',ar:'فيديو أنمي',d:'حوّل صورتك لفيديو أنمي قصير متحرك بجودة عالية',ic:'📺',b:'hot',c:'cartoon',s:'video',tg:['anime','video'],inp:[{id:'i1',l:'ارفع صورتك',a:'image/*',t:'image'}],pr:true,ph:'وصف المشهد...',o:'video'},
+{id:'c14',n:'Cartoon Transform',ar:'فيديو تحول كرتوني',d:'فيديو تحول من حقيقي لكرتوني — مؤثر بصرياً',ic:'✨',b:'new',c:'cartoon',s:'video',tg:['transform','cartoon'],inp:[{id:'i1',l:'ارفع صورتك',a:'image/*',t:'image'}],pr:true,ph:'وصف التحول...',o:'video'},
+
+// ═══ REALISTIC 13 ═══
+{id:'x01',n:'AI Action Figure',ar:'مجسم أكشن فيقر',d:'حوّل صورتك لمجسم ألعاب داخل علبة مع إكسسوارات',ic:'🎎',b:'hot',c:'realistic',s:'image',tg:['3D','packaging'],inp:[{id:'i1',l:'ارفع صورتك',a:'image/*',t:'image'}],pr:true,ph:'وصف الإكسسوارات والعنوان...',o:'image'},
+{id:'x02',n:'3D Figurine',ar:'مجسم ثلاثي الأبعاد',d:'مجسم 3D واقعي منك — ترند Nano Banana الشهير',ic:'🗿',b:'hot',c:'realistic',s:'image',tg:['3D','figurine'],inp:[{id:'i1',l:'ارفع صورتك',a:'image/*',t:'image'}],pr:true,ph:'وصف ستايل المجسم...',o:'image'},
+{id:'x03',n:'AI Muscle',ar:'جسم رياضي',d:'شوف نفسك بجسم رياضي مفتول — ترند العضلات',ic:'💪',b:'hot',c:'realistic',s:'image',tg:['body','fitness'],inp:[{id:'i1',l:'ارفع صورتك',a:'image/*',t:'image'}],pr:false,o:'image'},
+{id:'x04',n:'AI Headshot',ar:'صورة بروفايل احترافية',d:'سيلفي عادية تتحول لصورة بروفايل احترافية بإضاءة ستوديو',ic:'📸',b:'new',c:'realistic',s:'image',tg:['headshot','professional'],inp:[{id:'i1',l:'ارفع صورتك',a:'image/*',t:'image'}],pr:true,ph:'وصف الخلفية...',o:'image'},
+{id:'x05',n:'Celebrity Selfie',ar:'سيلفي مع المشاهير',d:'اصنع سيلفي واقعية مع أي شخص مشهور تحبه',ic:'🤳',b:'fire',c:'realistic',s:'image',tg:['celebrity','selfie'],inp:[{id:'i1',l:'صورتك',a:'image/*',t:'image'},{id:'i2',l:'صورة المشهور',a:'image/*',t:'image'}],pr:true,ph:'وصف المكان...',o:'image'},
+{id:'x06',n:'Age Transform',ar:'تحول العمر',d:'شوف شكلك بعد 30 سنة أو ارجع لعمر 20',ic:'⏰',b:'new',c:'realistic',s:'image',tg:['age','transform'],inp:[{id:'i1',l:'ارفع صورتك',a:'image/*',t:'image'}],pr:true,ph:'العمر المطلوب...',o:'image'},
+{id:'x07',n:'Gender Swap',ar:'تبديل الجنس',d:'شوف شكلك لو كنت بجنس مختلف — نتائج مذهلة',ic:'🔄',b:'new',c:'realistic',s:'image',tg:['gender','swap'],inp:[{id:'i1',l:'ارفع صورتك',a:'image/*',t:'image'}],pr:false,o:'image'},
+{id:'x08',n:'Outfit Change',ar:'تغيير الملابس',d:'غيّر ملابسك لأي ستايل — رسمي، كاجوال، تاريخي',ic:'👔',b:'new',c:'realistic',s:'image',tg:['outfit','fashion'],inp:[{id:'i1',l:'ارفع صورتك',a:'image/*',t:'image'}],pr:true,ph:'وصف الملابس...',o:'image'},
+{id:'x09',n:'Face Swap Video',ar:'تبديل الوجه بفيديو',d:'بدّل وجهك في أي فيديو شهير — أفلام، رقص، كليبات',ic:'🎭',b:'hot',c:'realistic',s:'video',tg:['face-swap','viral'],inp:[{id:'i1',l:'صورة وجهك',a:'image/*',t:'image'},{id:'v1',l:'الفيديو المستهدف',a:'video/*',t:'video'}],pr:false,o:'video'},
+{id:'x10',n:'Talking Avatar',ar:'أفاتار يتكلم',d:'حوّل صورتك لأفاتار يتكلم بصوتك — مثالي للمحتوى',ic:'🗣️',b:'hot',c:'realistic',s:'video',tg:['lipsync','audio'],inp:[{id:'i1',l:'صورة الوجه',a:'image/*',t:'image'},{id:'a1',l:'ملف الصوت',a:'audio/*',t:'audio'}],pr:false,o:'video'},
+{id:'x11',n:'AI Fighting',ar:'مشهد قتالي',d:'اصنع مشهد أكشن قتالي سينمائي من صورتك',ic:'🥊',b:'new',c:'realistic',s:'video',tg:['action','cinematic'],inp:[{id:'i1',l:'ارفع صورتك',a:'image/*',t:'image'}],pr:true,ph:'وصف مشهد القتال...',o:'video'},
+{id:'x12',n:'Earth Zoom Out',ar:'زوم من الفضاء',d:'تأثير زوم سينمائي من موقعك للفضاء الخارجي',ic:'🌍',b:'new',c:'realistic',s:'video',tg:['zoom','cinematic'],inp:[{id:'i1',l:'ارفع صورتك',a:'image/*',t:'image'}],pr:true,ph:'اسم الموقع...',o:'video'},
+{id:'x13',n:'Motion Control',ar:'تحكم بالحركة',d:'انقل حركة من فيديو لصورتك — رقص، إيماءات، رياضة',ic:'🕺',b:'new',c:'realistic',s:'video',tg:['motion','transfer'],inp:[{id:'i1',l:'صورتك',a:'image/*',t:'image'},{id:'v1',l:'فيديو الحركة المرجعي',a:'video/*',t:'video'}],pr:false,o:'video'},
+];
+
+let aC='all',aS='all';
+const cs=[{id:'all',l:'الكل',e:'✦'},{id:'romantic',l:'رومانسي',e:'❤️'},{id:'cartoon',l:'كارتوني',e:'🎨'},{id:'realistic',l:'واقعي',e:'⚡'}];
+const ss=[{id:'all',l:'الكل'},{id:'image',l:'صور'},{id:'video',l:'فيديو'}];
+const cnt=c=>c==='all'?T.length:T.filter(t=>t.c===c).length;
+
+const $t=document.getElementById('cT'),$s=document.getElementById('sF'),$g=document.getElementById('gd');
+const sI=`<svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>`;
+const sV=`<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>`;
+
+function rT(){
+  $t.innerHTML=cs.map(c=>`<button class="cat-tab ${aC===c.id?'active':''}" data-c="${c.id}">${c.e} ${c.l}<span class="tc">${cnt(c.id)}</span></button>`).join('');
+  $t.querySelectorAll('.cat-tab').forEach(b=>b.onclick=()=>{aC=b.dataset.c;aS='all';rT();rS();rG()});
+}
+function rS(){
+  const f=aC==='all'?T:T.filter(t=>t.c===aC);
+  if(!f.some(t=>t.s==='image')||!f.some(t=>t.s==='video')){$s.innerHTML='';return}
+  $s.innerHTML=ss.map(s=>`<button class="sf ${aS===s.id?'on':''}" data-s="${s.id}">${s.l}</button>`).join('');
+  $s.querySelectorAll('.sf').forEach(b=>b.onclick=()=>{aS=b.dataset.s;rS();rG()});
+}
+function rG(){
+  let l=T;if(aC!=='all')l=l.filter(t=>t.c===aC);if(aS!=='all')l=l.filter(t=>t.s===aS);
+  $g.innerHTML='';
+  l.forEach((t,i)=>{
+    const e=document.createElement('div');e.className='cd';e.dataset.c=t.c;
+    e.style.animationDelay=`${i*.03}s`;e.onclick=()=>oW(t);
+    const bc=t.b==='hot'?'bh':t.b==='new'?'bn':t.b==='fire'?'bf':'bl';
+    const bl=t.b==='hot'?'HOT':t.b==='new'?'NEW':t.b==='fire'?'FIRE':'LOVE';
+    e.innerHTML=`<div class="v"><div class="ic">${t.ic}</div><div class="ol"></div><span class="bd ${bc}">${bl}</span><span class="ti">${t.s==='video'?sV:sI}</span></div><div class="nf"><h3>${t.n}</h3><p class="ds">${t.d}</p><div class="tg">${t.tg.map(g=>`<span class="tgi">${g}</span>`).join('')}</div></div>`;
+    $g.appendChild(e);
+  });
+}
+rT();rS();rG();
+
+// ═══ WORKSPACE ═══
+const $o=document.getElementById('wO'),$w=document.getElementById('wS');
+const fl={};
+function oW(t){
+  Object.keys(fl).forEach(k=>delete fl[k]);
+  const iH=t.inp.map(p=>{
+    const pv=p.t==='image'?`<img class="pi" alt="">`
+      :p.t==='video'?`<video class="pv" controls muted></video>`
+      :`<div class="pa"></div>`;
+    return`<div class="uz" id="z-${p.id}" onclick="this.querySelector('input').click()">
+      <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      <div class="ut"><strong>اضغط لرفع</strong> ${p.l}</div><div class="ux">${p.a.replace('/*','').toUpperCase()}</div>${pv}
+      <input type="file" accept="${p.a}" onchange="hF(this,'${p.id}','${p.t}')"></div>`;
+  }).join('');
+  const du=t.inp.filter(p=>p.t==='image'||p.t==='video').length===2;
+  const prH=t.pr?`<div class="ps"><label>البرومبت / الوصف</label><textarea class="px" id="wP" placeholder="${t.ph||'اكتب وصف...'}" rows="3"></textarea></div>`:'';
+  $w.innerHTML=`
+    <button class="wb" onclick="cW()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>رجوع للترندات</button>
+    <div class="wh"><span class="we">${t.ic}</span><h2>${t.n}</h2><p>${t.d}</p></div>
+    <div class="us"><label>${t.inp.length>1?'ارفع الملفات المطلوبة':'ارفع الملف'}</label><div class="uz-w ${du?'du':''}">${iH}</div></div>
+    ${prH}
+    <button class="gb" id="gB" onclick="dG('${t.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10"/></svg>Generate — إنشاء</button>
+    <div class="ra" id="rA"><div class="rl" id="rL"><div class="sp"></div><p>جاري الإنشاء... يرجى الانتظار</p></div><div class="ro" id="rO" style="display:none"></div></div>`;
+  $o.classList.add('on');document.body.style.overflow='hidden';$o.scrollTop=0;
+}
+function cW(){$o.classList.remove('on');document.body.style.overflow=''}
+$o.addEventListener('click',e=>{if(e.target===$o)cW()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')cW()});
+
+function hF(inp,zId,ft){
+  const f=inp.files[0];if(!f)return;fl[zId]=f;
+  const z=document.getElementById(`z-${zId}`);z.classList.add('hf');
+  if(ft==='image'){const m=z.querySelector('.pi');m.src=URL.createObjectURL(f);m.style.display='block'}
+  else if(ft==='video'){const v=z.querySelector('.pv');v.src=URL.createObjectURL(f);v.style.display='block'}
+  else{const a=z.querySelector('.pa');a.textContent=`✓ ${f.name}`;a.style.display='block'}
+}
+
+async function dG(tId){
+  const t=T.find(x=>x.id===tId);if(!t)return;
+  for(const p of t.inp){if(!fl[p.id]){alert(`يرجى رفع: ${p.l}`);return}}
+  const userPrompt=(document.getElementById('wP')?.value||'').trim();
+  const filesByType={
+    image:t.inp.filter(p=>p.t==='image').map(p=>fl[p.id]).filter(Boolean),
+    video:t.inp.filter(p=>p.t==='video').map(p=>fl[p.id]).filter(Boolean),
+    audio:t.inp.filter(p=>p.t==='audio').map(p=>fl[p.id]).filter(Boolean)
+  };
+  const basePrompt=`نفّذ ترند "${t.n}". ${t.d}. ${userPrompt||''}`.trim();
+  const b=document.getElementById('gB'),ra=document.getElementById('rA'),rl=document.getElementById('rL'),ro=document.getElementById('rO');
+  b.disabled=true;b.innerHTML=`<div class="sp" style="width:20px;height:20px;border-width:2px;margin:0"></div> جاري الإنشاء...`;
+  ra.classList.add('vi');rl.style.display='block';ro.style.display='none';
+  const status=(msg)=>{const p=rl.querySelector('p');if(p)p.textContent=msg;};
+  try{
+    let resultUrl='';
+    if(t.o==='image'){
+      const prompt=`${basePrompt} حافظ على هوية الشخص الأساسية والملامح والوجه. أنشئ نسخة نهائية عالية الجودة تطابق ستايل الترند وتبقى مقنعة بصرياً.`;
+      resultUrl=await SaadCreative.runSeedreamEdit({ prompt, imageFiles: filesByType.image, statusCb: status });
+      rl.style.display='none';ro.style.display='block';
+      ro.innerHTML=`<div style="padding:18px 18px 10px;text-align:center"><div style="font-size:2rem;margin-bottom:8px">🖼️</div><p style="color:var(--cyan);font-weight:600;margin-bottom:4px">تم إنشاء الترند بنجاح!</p></div><div style="padding:0 16px 16px"><img src="${resultUrl}" alt="trend result" style="width:100%;display:block;border-radius:20px;border:1px solid rgba(255,255,255,.08)"></div><div class="rx">${SaadCreative.buildDownload(resultUrl,'تحميل الصورة')}<button class="rb rrt" onclick="dG('${tId}')">إعادة</button></div>`;
+    }else if(filesByType.audio.length){
+      const prompt=`${basePrompt} حرّك ملامح الوجه بشكل طبيعي ومتزامن مع الصوت مع الحفاظ على الهوية البصرية.`;
+      resultUrl=await SaadCreative.runInfinitalk({ prompt, imageFile: filesByType.image[0], audioFile: filesByType.audio[0], statusCb: status });
+      rl.style.display='none';ro.style.display='block';
+      ro.innerHTML=`<div style="padding:18px 18px 10px;text-align:center"><div style="font-size:2rem;margin-bottom:8px">🎬</div><p style="color:var(--cyan);font-weight:600;margin-bottom:4px">تم إنشاء الترند بنجاح!</p></div><div style="padding:0 16px 16px"><video src="${resultUrl}" controls playsinline style="width:100%;display:block;border-radius:20px;border:1px solid rgba(255,255,255,.08);background:#000"></video></div><div class="rx">${SaadCreative.buildDownload(resultUrl,'تحميل الفيديو')}<button class="rb rrt" onclick="dG('${tId}')">إعادة</button></div>`;
+    }else if(filesByType.video.length && filesByType.image.length){
+      const prompt=`${basePrompt} استخدم صورة الشخص كهوية أساسية، واستلهم الحركة من الفيديو المرجعي لإنتاج فيديو نهائي مقنع وسلس.`;
+      resultUrl=await SaadCreative.runKlingMotion({ prompt, imageFile: filesByType.image[0], videoFile: filesByType.video[0], statusCb: status });
+      rl.style.display='none';ro.style.display='block';
+      ro.innerHTML=`<div style="padding:18px 18px 10px;text-align:center"><div style="font-size:2rem;margin-bottom:8px">🎬</div><p style="color:var(--cyan);font-weight:600;margin-bottom:4px">تم إنشاء الترند بنجاح!</p></div><div style="padding:0 16px 16px"><video src="${resultUrl}" controls playsinline style="width:100%;display:block;border-radius:20px;border:1px solid rgba(255,255,255,.08);background:#000"></video></div><div class="rx">${SaadCreative.buildDownload(resultUrl,'تحميل الفيديو')}<button class="rb rrt" onclick="dG('${tId}')">إعادة</button></div>`;
+    }else{
+      const prompt=`${basePrompt} أنشئ فيديو قصير جذاب بأسلوب هذا الترند، مع الحفاظ على هوية الشخص وتكوين سينمائي واضح.`;
+      resultUrl=await SaadCreative.runKlingImageVideo({ prompt, imageFile: filesByType.image[0], tailImageFile: filesByType.image[1], statusCb: status, duration: 5 });
+      rl.style.display='none';ro.style.display='block';
+      ro.innerHTML=`<div style="padding:18px 18px 10px;text-align:center"><div style="font-size:2rem;margin-bottom:8px">🎬</div><p style="color:var(--cyan);font-weight:600;margin-bottom:4px">تم إنشاء الترند بنجاح!</p></div><div style="padding:0 16px 16px"><video src="${resultUrl}" controls playsinline style="width:100%;display:block;border-radius:20px;border:1px solid rgba(255,255,255,.08);background:#000"></video></div><div class="rx">${SaadCreative.buildDownload(resultUrl,'تحميل الفيديو')}<button class="rb rrt" onclick="dG('${tId}')">إعادة</button></div>`;
+    }
+  }catch(err){
+    rl.style.display='none';ro.style.display='block';
+    ro.innerHTML=`<div style="padding:32px;text-align:center"><div style="font-size:2rem;margin-bottom:12px">⚠️</div><p style="color:#ff9b9b;font-weight:600;margin-bottom:6px">فشل تنفيذ الترند</p><p style="color:var(--txt2);font-size:.8rem">${String(err.message||err)}</p></div><div class="rx"><button class="rb rrt" onclick="dG('${tId}')">إعادة المحاولة</button></div>`;
+  }finally{
+    b.disabled=false;b.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10"/></svg> Generate — إنشاء`;
+  }
+}
+</script>
+</main>
+</body>
+</html>

@@ -1,257 +1,200 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SAAD STUDIO — Transitions</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Kufi+Arabic:wght@300;400;600;700&family=JetBrains+Mono:wght@400;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,500,0,0" rel="stylesheet">
-<link rel="stylesheet" href="/api/site-config.css" id="site-theme-override">
+<title>NexaAI - Smooth Transitions</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&family=DM+Sans:wght@400;500;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/css/shared.css">
-<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+:root{--bg0:#0b1e34;--bg1:#0f2a44;--bg2:#0c243d;--tx:#f2f6ff;--tx2:#b5c7dd;--line:rgba(62,201,255,.26);--line2:rgba(255,158,44,.58);--ac:#ff9e2c;--ac2:#00e5ff;--r:14px;--mono:'IBM Plex Mono',monospace;--ui:'Tajawal','DM Sans',sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--ui);background:radial-gradient(circle at 15% 20%,rgba(0,229,255,.12),transparent 24%),radial-gradient(circle at 85% 10%,rgba(255,158,44,.14),transparent 22%),linear-gradient(180deg,#0b1e34 0%,#0f2a44 45%,#0b1c30 100%);color:var(--tx);min-height:100vh}
+a{color:inherit;text-decoration:none}
+button{font-family:var(--ui);cursor:pointer}
+.main-wrap{max-width:1120px;margin:0 auto;padding:18px 16px 80px}
+.crumb{font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--tx2);margin-bottom:8px;opacity:.85}
+.h1{font-size:44px;line-height:.95;font-weight:800;letter-spacing:.02em;margin-bottom:8px}
+.sub{font-size:14px;color:var(--tx2);margin-bottom:18px;max-width:72ch}
+
+.hero{display:grid;grid-template-columns:minmax(320px,420px) minmax(0,1fr);gap:16px;align-items:start;direction:ltr}
+.hero > *{direction:rtl}
+.panel{background:linear-gradient(180deg,var(--bg1),var(--bg2));border:1px solid var(--line);border-radius:var(--r);box-shadow:0 20px 50px rgba(0,0,0,.28)}
+.ctrl{padding:10px;border:1px solid rgba(255,0,0,.0)}
+.ctrl-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;align-items:stretch;direction:ltr}
+.ctrl-grid > *{direction:rtl}
+.slot{border:1px solid rgba(255,0,0,.0);display:flex;flex-direction:column;gap:6px}
+.slot h4{font-size:11px;color:#fff;text-align:center;line-height:1.4;min-height:64px}
+.small-label{text-align:center;font-family:var(--mono);font-size:10px;color:#fff;opacity:.9}
+.dropzone{height:170px;border:1.5px dashed var(--line2);border-radius:12px;background:rgba(255,255,255,.015);display:flex;flex-direction:column;justify-content:center;align-items:center;gap:6px;cursor:pointer;transition:.2s}
+.dropzone:hover{border-color:var(--ac2);background:rgba(0,229,255,.06)}
+.dropzone.has-file{border-style:solid}
+.dz-icon{font-size:29px;font-weight:800;color:var(--ac)}
+.dz-text{font-size:10px;color:var(--tx2)}
+.dz-sub{font-size:9px;color:var(--tx2);font-family:var(--mono)}
+
+.mid{display:flex;flex-direction:column;justify-content:space-between;gap:8px}
+.tr-card{height:170px;border:1px solid var(--line);border-radius:12px;background:linear-gradient(180deg,rgba(0,229,255,.1),rgba(0,229,255,.04));display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;cursor:pointer;padding:10px}
+.tr-thumb{font-size:14px;font-weight:800;color:var(--ac2)}
+.tr-hint{font-size:10px;color:var(--tx2)}
+.tr-duration-title{text-align:center;font-size:12px;font-weight:700}
+.dur-row{display:flex;gap:6px;justify-content:center}
+.pill{padding:5px 12px;border-radius:8px;border:1px solid var(--line);background:rgba(255,255,255,.03);color:var(--tx);font-weight:700;font-size:12px}
+.pill.on{background:rgba(0,229,255,.12);border-color:rgba(0,229,255,.35);color:var(--ac2)}
+
+.gen{margin-top:8px;width:100%;height:36px;border-radius:8px;background:linear-gradient(135deg,var(--ac),#f4b35a);border:1px solid rgba(255,158,44,.62);color:#0b1e34;font-weight:800;font-size:13px}
+
+.preview{padding:10px}
+.preview-box{height:324px;border:2px solid rgba(62,201,255,.24);border-radius:12px;overflow:hidden;position:relative;background:#0f2a44}
+.preview-box .result-grid{height:100%;display:grid;grid-template-columns:1fr;gap:0;padding:0}
+.preview-box .result-empty{height:100%;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;color:#d9e3f3}
+.preview-note{position:absolute;left:-180px;top:50%;transform:translateY(-50%);font-size:44px;font-weight:800;opacity:.0;pointer-events:none}
+
+.after-hero-title{font-size:42px;font-weight:800;text-align:center;margin:18px 0 8px}
+.feature-head{margin-top:8px;border:1px solid var(--line);border-radius:10px;padding:16px;text-align:center;background:linear-gradient(180deg,#12314f,#0f2a44)}
+.feature-head h3{font-size:48px;line-height:1;font-weight:900;letter-spacing:.02em}
+.feature-head p{color:var(--tx2);font-size:13px;margin-top:8px}
+.feature-grid{margin-top:14px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.feature{border:1px solid var(--line);border-radius:12px;padding:16px;background:linear-gradient(180deg,#12314f,#0f2a44);min-height:170px}
+.feature .k{font-size:12px;color:var(--ac);margin-bottom:8px;font-family:var(--mono)}
+.feature b{font-size:20px;display:block;margin-bottom:8px}
+.feature p{font-size:13px;color:var(--tx2);line-height:1.6}
+.dynamic{margin:40px 0 0;text-align:center;font-size:52px;font-weight:900}
+
+.run-status{margin-top:10px;padding:10px 12px;border-radius:10px;font-size:12px;line-height:1.6;border:1px solid var(--line);background:rgba(255,255,255,.02);color:var(--tx2);white-space:pre-wrap}
+.run-status.hidden{display:none}
+
+@media (max-width:980px){
+  .hero{grid-template-columns:1fr;direction:rtl}
+  .h1{font-size:32px}
+  .feature-grid{grid-template-columns:1fr 1fr}
+  .feature-head h3{font-size:34px}
+  .dynamic{font-size:36px}
+}
+@media (max-width:640px){
+  .ctrl-grid{grid-template-columns:1fr}
+  .dropzone,.tr-card{height:146px}
+  .preview-box{height:260px}
+  .feature-grid{grid-template-columns:1fr}
+}
+</style>
 </head>
 <body>
-
-<aside class="sidebar">
-  <div class="logo-area" onclick="showPage('dash',null)">
-    <div class="logo-stack">
-      <div class="logo-text">SAAD STUDIO</div>
-      <div class="logo-sub">AI Creative Platform v2.0</div>
-      <div class="brand-status">
-        <span class="status-dot connected"></span>
-        <span class="status-text">Connected</span>
-      </div>
-    </div>
-    </div>
-  </div>
-    <nav class="nav-section">
-    <div class="nav-label">Discover</div>
-    <div class="nav-item active" onclick="window.location.href='/'">
-      <div class="nav-icon"><img class="nav-logo" src="/assets/logo-saad.png" alt="SAAD STUDIO"></div><span class="nav-name">Discover</span>
-    </div>
-    <div class="nav-label" style="margin-top:6px">Production</div>
-    <div class="nav-item" onclick="window.location.href='/image-tools.html'">
-      <div class="nav-icon"><img class="nav-logo" src="/assets/logo-image-tools.png" alt="Image Tools"></div><span class="nav-name">Image Tools</span>
-    </div>
-    <div class="nav-item" onclick="window.location.href='/transitions.html'">
-      <div class="nav-icon">🎞️</div><span class="nav-name">Transitions</span>
-    </div>
-    <div class="nav-item" onclick="window.location.href='/nano.html'">
-      <div class="nav-icon">🍌</div><span class="nav-name">Nano Banana</span>
-    </div>
-    <div class="nav-item" onclick="window.location.href='/google.html'">
-      <div class="nav-icon"><img class="nav-logo" src="/assets/logo-google-studio.png" alt="Google Studio"></div><span class="nav-name">Google Studio</span>
-    </div>
-    <div class="nav-item" onclick="window.location.href='/kling.html'">
-      <div class="nav-icon"><img class="nav-logo" src="/assets/logo-kling-studio.png" alt="Kling Studio"></div><span class="nav-name">Kling Studio</span>
-    </div>
-    <div class="nav-item" onclick="window.location.href='/eleven.html'">
-      <div class="nav-icon"><img class="nav-logo" src="/assets/logo-elevenlabs-studio.png" alt="ElevenLabs Studio"></div><span class="nav-name">ElevenLabs Studio</span>
-    </div>
-    <div class="nav-item" onclick="window.location.href='/cinema.html'">
-      <div class="nav-icon">🎬</div><span class="nav-name">Cinema Studio</span>
-    </div>
-    <div class="nav-item" onclick="window.location.href='/runway.html'">
-      <div class="nav-icon">🛫</div><span class="nav-name">Runway Video</span>
-    </div>
-    <div class="nav-item" onclick="window.location.href='/prompt.html'">
-      <div class="nav-icon">🔍</div><span class="nav-name">Prompt Studio</span>
-    </div>
-    <div class="nav-label" style="margin-top:6px">Models</div>
-    <div class="nav-item" onclick="window.location.href='/sora2.html'">
-      <div class="nav-icon"><img class="nav-logo" src="/assets/logo-sora-2.png" alt="Sora 2"></div><span class="nav-name">Sora 2</span>
-    </div>
-    <div class="nav-item" onclick="window.location.href='/gpt54.html'">
-      <div class="nav-icon"><img class="nav-logo" src="/assets/logo-gpt-52.png" alt="GPT-5.2"></div><span class="nav-name">GPT-5.2</span>
-    </div>
-    <div class="nav-item" onclick="window.location.href='/hailuo.html'">
-      <div class="nav-icon"><img class="nav-logo" src="/assets/logo-hailuo.png" alt="Hailuo"></div><span class="nav-name">Hailuo</span>
-    </div>
-      <div class="nav-item" onclick="window.location.href='/grok.html'">
-        <div class="nav-icon"><img class="nav-logo" src="/assets/logo-grok.png" alt="Grok"></div><span class="nav-name">Grok</span>
-      </div>
-      <div class="nav-item" onclick="window.location.href='/seedream.html'">
-        <div class="nav-icon"><img class="nav-logo" src="/assets/logo-seedream-45.png" alt="Seedream 4.5"></div><span class="nav-name">Seedream 4.5</span>
-      </div>
-      <div class="nav-item" onclick="window.location.href='/flux2.html'">
-        <div class="nav-icon"><img class="nav-logo" src="/assets/logo-flux-2.png" alt="FLUX.2"></div><span class="nav-name">FLUX.2</span>
-      </div>
-      <div class="nav-item" onclick="window.location.href='/zimage.html'">
-        <div class="nav-icon"><img class="nav-logo" src="/assets/logo-z-image.png" alt="Z-Image"></div><span class="nav-name">Z-Image</span>
-      </div>
-      <div class="nav-item" onclick="window.location.href='/wan26.html'">
-        <div class="nav-icon"><img class="nav-logo" src="/assets/logo-wan-26.png" alt="Wan 2.6"></div><span class="nav-name">Wan 2.6</span>
-      </div>
-      <div class="nav-item" onclick="window.location.href='/seedance.html'">
-        <div class="nav-icon"><img class="nav-logo" src="/assets/logo-seedance-15-pro.png" alt="Seedance 1.5 Pro"></div><span class="nav-name">Seedance 1.5</span>
-      </div>
-      <div class="nav-item" onclick="window.location.href='/fluxkontext.html'">
-        <div class="nav-icon"><img class="nav-logo" src="/assets/logo-flux-kontext.png" alt="Flux Kontext"></div><span class="nav-name">Flux Kontext</span>
-      </div>
-    <div class="nav-item" onclick="window.location.href='/ideogram-reframe.html'">
-        <div class="nav-icon"><img class="nav-logo" src="/assets/logo-ideogram-reframe.png" alt="Ideogram Reframe"></div><span class="nav-name">Ideogram Reframe</span>
-      </div>
-      <div class="nav-item" onclick="window.location.href='/infinitalk.html'">
-        <div class="nav-icon"><img class="nav-logo" src="/assets/logo-infinitalk.png" alt="Infinitalk"></div><span class="nav-name">Infinitalk</span>
-      </div>
-        <div class="nav-item" onclick="window.location.href='/qwen2.html'">
-          <div class="nav-icon"><img class="nav-logo" src="/assets/logo-qwen2.png" alt="Qwen2"></div><span class="nav-name">Qwen2</span>
-        </div>
-      <div class="nav-item" onclick="window.location.href='/ideogram-reframe.html'">
-        <div class="nav-icon"><img class="nav-logo" src="/assets/logo-ideogram-character.png" alt="Ideogram Character"></div><span class="nav-name">Ideogram Character</span>
-      </div>
-      <div class="nav-label" style="margin-top:6px">Library</div>
-    <div class="nav-item" onclick="window.location.href='/gallery.html'">
-      <div class="nav-icon">🗄️</div><span class="nav-name">Gallery</span>
-    </div>
-      <div class="nav-item" onclick="window.location.href='/library.html'">
-        <div class="nav-icon">📁</div><span class="nav-name">Library</span>
-      </div>
-      <div class="nav-item" onclick="window.location.href='/legal.html'">
-        <div class="nav-icon">🛡️</div><span class="nav-name">Legal</span>
-      </div>
-      <div class="nav-item" id="nav-control" style="display:none" onclick="showPage('control',this);verifyAndRenderControl()">
-        <div class="nav-icon">⚙️</div><span class="nav-name">Control Panel</span>
-      </div>
-      <div class="nav-item" id="nav-dashboard" style="display:none" onclick="window.open('/dashboard.html','_blank')">
-        <div class="nav-icon">📊</div><span class="nav-name">Dashboard</span>
-      </div>
-    </nav>
-
-</aside>
-
 <main class="main">
-  <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
   <header class="topbar">
     <button class="hamburger-btn" id="hamburger-btn" onclick="toggleSidebar()" aria-label="Menu">&#9776;</button>
-    <div class="topbar-logo-wrap">
-      <img class="topbar-logo" src="/assets/logo-saad.png" alt="SAAD STUDIO Logo">
-    </div>
-    <span class="topbar-title" id="pageTitle">Discover</span>
+    <div class="topbar-logo-wrap"><img class="topbar-logo" src="/assets/logo-saad.png" alt="SAAD STUDIO Logo"></div>
+    <nav class="site-nav">
+      <a href="/index.html">Explore</a>
+      <a href="/images.html">Image</a>
+      <a href="/videos.html">Video</a>
+      <a href="/audio.html">Audio</a>
+      <a href="/transitions.html" class="on">Transitions</a>
+      <a href="/tools.html">Tools</a>
+      <a href="/cinema.html">Cinema Studio</a>
+      <a href="/gallery.html">Gallery</a>
+      <a href="/legal.html">Legal</a>
+    </nav>
     <div id="promo-in-navbar"></div>
     <div class="topbar-actions" id="topbar-actions">
       <button class="topbar-btn" id="langToggle" onclick="toggleLanguage()">EN</button>
       <button class="topbar-btn pricing" onclick="showPage('pricing')">Pricing</button>
-      <!-- guest buttons -->
       <span id="topbar-guest">
         <button class="topbar-btn" onclick="openAuthModal('login')">Login</button>
         <button class="topbar-btn primary" onclick="openAuthModal('register')">Sign up</button>
       </span>
-      <!-- logged-in state -->
       <span id="topbar-loggedin" style="display:none" class="topbar-user">
-        <!-- Avatar button -->
-        <div class="user-avatar-wrap topbar-avatar-wrap" id="user-avatar-wrap" onclick="toggleProfileCard()">
-          <div class="user-avatar" id="user-avatar-el">•</div>
-        </div>
-        <!-- Profile dropdown card -->
-        <div class="profile-card" id="profile-card" style="display:none;">
-          <div class="profile-card-header">
-            <div class="profile-card-avatar" id="pcard-avatar">•</div>
-            <div>
-              <div class="profile-card-email" id="pcard-email">—</div>
-              <span class="topbar-plan-badge starter" id="pcard-plan-badge" style="margin-top:4px;display:inline-block;">—</span>
-            </div>
-          </div>
-          <div class="profile-card-divider"></div>
-          <div class="profile-card-row">
-            <span class="profile-card-label">💳 رصيدك</span>
-            <span class="profile-card-value" id="pcard-credits">—</span>
-          </div>
-          <div class="profile-card-row">
-            <span class="profile-card-label">📅 تاريخ الاشتراك</span>
-            <span class="profile-card-value" id="pcard-created">—</span>
-          </div>
-          <div class="profile-card-row" id="pcard-renew-row">
-            <span class="profile-card-label">⏳ ينتهي في</span>
-            <span class="profile-card-value" id="pcard-renew">—</span>
-          </div>
-          <div class="profile-card-row" id="pcard-days-row">
-            <span class="profile-card-label">⭐ باقي</span>
-            <span class="profile-card-value" id="pcard-days">—</span>
-          </div>
-          <div class="profile-card-divider"></div>
-          <button class="profile-card-nav-btn" onclick="closeProfileCard();showPage('user-dashboard')"><span class="pcnb-icon">📊</span> لوحتي</button>
-          <button class="profile-card-nav-btn" onclick="closeProfileCard();showPage('billing')"><span class="pcnb-icon">💳</span> الاشتراك والفوترة</button>
-          <button class="profile-card-logout" onclick="doLogout()">&#x2192; تسجيل الخروج</button>
-        </div>
+        <div class="user-avatar-wrap topbar-avatar-wrap" id="user-avatar-wrap" onclick="toggleProfileCard()"><div class="user-avatar" id="user-avatar-el">•</div></div>
       </span>
     </div>
   </header>
 
-  <div class="gs-billing kie-global" id="user-credits-bar" style="display:none">
-    <div class="gs-kpi">
-      <div class="gs-kpi-label">رصيد حسابك</div>
-      <div class="gs-kpi-value" id="kie-credits-value" style="color:var(--cyan)">--</div>
-    </div>
-    <button class="btn btn-ghost" onclick="AUTH.refreshMe().then(()=>syncUserCreditsBar())">تحديث الرصيد</button>
-  </div>
+  <div id="page-transitions" class="page active">
+    <div class="main-wrap">
+      <div class="crumb">Apps / Transitions</div>
+      <h1 class="h1">SMOOTH TRANSITIONS</h1>
+      <p class="sub">Combine videos, images, or both with stunning transitions. Upload your two clips, choose an effect, and create one seamless video.</p>
 
-  <!-- MARKET -->
-
-<div class="page active" id="page-transitions">
-    <div class="transitions-stack">
-      <div class="card transition-lab">
-        <div class="card-head">TRANSITIONS LAB</div>
-        <div class="card-body">
-          <div class="tr-grid">
-            <div class="tr-slot">
-              <div class="tr-title">Start Frame</div>
-              <div class="dropzone" id="dz-tr-start" onclick="triggerUpload('up-tr-start')"><div id="dz-tr-start-inner"><div class="dz-icon">A</div><div class="dz-text">Upload image or video</div><div class="dz-sub">PNG / JPG / WEBP / MP4</div></div></div>
+      <section class="hero">
+        <div class="panel ctrl">
+          <div class="ctrl-grid">
+            <div class="slot">
+              <div class="dropzone" id="dz-tr-start" onclick="triggerUpload('up-tr-start')">
+                <div id="dz-tr-start-inner">
+                  <div class="dz-icon">A</div>
+                  <div class="dz-text">Start Frame</div>
+                  <div class="dz-sub">Add image or video</div>
+                </div>
+              </div>
               <input type="file" id="up-tr-start" accept="image/*,video/*" style="display:none" onchange="handleFile(this,'dz-tr-start')">
             </div>
-            <div class="tr-slot tr-center" onclick="openTransitionModal()">
-              <div class="tr-title">Transition</div>
-              <div class="tr-card">
-                <div class="tr-thumb" id="tr-selected">Smoke Transition</div>
-                <div class="tr-hint">Click to choose effect</div>
+
+            <div class="mid">
+              <div class="tr-card" onclick="openTransitionModal()">
+                <div class="tr-thumb" id="tr-selected">Raven Transition</div>
+                <div class="tr-hint">Transition</div>
+                <input type="hidden" id="tr-transition" value="Smoke Transition">
               </div>
-              <input type="hidden" id="tr-transition" value="Smoke Transition">
+              <div>
+                <div class="dur-row">
+                  <button type="button" class="pill on" onclick="event.stopPropagation();document.getElementById('tr-duration').value='5';this.parentNode.querySelectorAll('.pill').forEach(p=>p.classList.remove('on'));this.classList.add('on')">5s</button>
+                  <button type="button" class="pill" onclick="event.stopPropagation();document.getElementById('tr-duration').value='10';this.parentNode.querySelectorAll('.pill').forEach(p=>p.classList.remove('on'));this.classList.add('on')">10s</button>
+                </div>
+                <input type="hidden" id="tr-duration" value="5">
+              </div>
             </div>
-            <div class="tr-slot">
-              <div class="tr-title">End Frame</div>
-              <div class="dropzone" id="dz-tr-end" onclick="triggerUpload('up-tr-end')"><div id="dz-tr-end-inner"><div class="dz-icon">B</div><div class="dz-text">Upload image or video</div><div class="dz-sub">PNG / JPG / WEBP / MP4</div></div></div>
+
+            <div class="slot">
+              <div class="dropzone" id="dz-tr-end" onclick="triggerUpload('up-tr-end')">
+                <div id="dz-tr-end-inner">
+                  <div class="dz-icon">B</div>
+                  <div class="dz-text">End Frame</div>
+                  <div class="dz-sub">Add image or video</div>
+                </div>
+              </div>
               <input type="file" id="up-tr-end" accept="image/*,video/*" style="display:none" onchange="handleFile(this,'dz-tr-end')">
             </div>
           </div>
-          <div class="row2" style="margin-top:10px;">
-            <div class="field">
-              <div class="flabel">Duration (seconds)</div>
-              <select class="fselect" id="tr-duration">
-                <option value="5" selected>5</option>
-                <option value="10">10</option>
-              </select>
-            </div>
-            <div class="cost-preview" id="tr-cost-preview"><span class="cost-icon">💳</span> التكلفة المتوقعة: <span class="cost-val" id="tr-cost-val">—</span> كريدت</div>
-            <button class="btn-generate gen-action" id="tr-generate-btn" onclick="runTransition()">Generate</button>
-          </div>
-          <div class="gs-inline-note" id="tr-status">اختر التأثير وحدد المدة ثم اضغط Generate — سيولّد Kling AI الانتقال.</div>
+          <button class="gen" id="tr-generate-btn" onclick="runTransition()">Generate Video ✦</button>
+          <div id="tr-status" class="run-status hidden"></div>
         </div>
-      </div>
-      <div class="result-area">
-        <div class="result-head"><span class="result-head-txt">نتائج الانتقالات</span><button class="btn btn-ghost" style="font-size:10px;" onclick="clearResults('transition-results')">Clear</button></div>
-        <div class="result-grid gs-result" id="transition-results"><div class="result-empty"><div class="result-empty-icon">🎬</div><div class="result-empty-text">ستظهر النتائج هنا</div></div></div>
-      </div>
+
+        <div class="panel preview">
+          <div class="preview-box">
+            <div class="result-grid gs-result" id="transition-results">
+              <div class="result-empty">
+                <div class="result-empty-icon">🎬</div>
+                <div class="result-empty-text">Results will appear here</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="feature-head">
+        <div class="crumb" style="margin:0 0 6px 0">Key Features</div>
+        <h3>CREATE A FLAWLESS VISUAL FLOW</h3>
+        <p>Connect your clips with stunning transitions that turn static images into living, animated videos.</p>
+      </section>
+
+      <section class="feature-grid">
+        <article class="feature"><div class="k">01</div><b>Flexible File Support</b><p>Get total flexibility. Combine photo-to-photo, video-to-video, or combine both.</p></article>
+        <article class="feature"><div class="k">02</div><b>Rich Transition Library</b><p>Explore our rich library of transition effects to add a seamless, professional polish.</p></article>
+        <article class="feature"><div class="k">03</div><b>Consistent Framing</b><p>Your final video automatically locks to the aspect ratio of your first clip.</p></article>
+        <article class="feature"><div class="k">04</div><b>Social Media Ready</b><p>Generate short videos perfect for TikTok, Instagram Reels, and more.</p></article>
+      </section>
+
+      <div class="crumb" style="margin-top:26px;text-align:center">Generate with Higgsfield</div>
+      <div class="dynamic">DYNAMIC SCENE BLENDING</div>
+
+      <textarea id="promptArea" style="display:none" readonly></textarea>
     </div>
   </div>
-
-  
-
 </main>
 
-
-
 <div class="toast-container" id="toasts"></div>
-
-
-
 <script src="/js/shared.js"></script>
-<script src="/js/sidebar-scripts.js"></script><script src="/js/sidebar-toggle.js"></script>
-<script>
-(function() {
-  var p = new URLSearchParams(window.location.search).get('page');
-  if (p) showPage(p);
-})();
-</script>
+<script src="/js/sidebar-scripts.js"></script>
+<script src="/js/sidebar-toggle.js"></script>
 </body>
 </html>

@@ -7,7 +7,6 @@
   <link rel="icon" type="image/png" href="/favicon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/shared.css">
   <style>
     :root{--bg:#0b1e34;--bg2:#0f2a44;--line:rgba(62,201,255,.25);--line2:rgba(255,158,44,.32);--tx:#f2f6ff;--tx2:#b5c7dd;--tx3:#7c93aa;--cyan2:#2ff3d7;--amber:#ff9e2c;--amber2:#ffa94a;--fw:'Inter',sans-serif;--fd:'Bebas Neue',sans-serif;--fm:'JetBrains Mono',monospace}
     *{box-sizing:border-box;margin:0;padding:0}
@@ -94,66 +93,16 @@
   </style>
 </head>
 <body>
-  <div id="page-dash" class="page active shell">
+  <div class="shell">
     <header class="topbar">
-      <button class="hamburger-btn" id="hamburger-btn" onclick="toggleSidebar()" aria-label="Menu">&#9776;</button>
-      <div class="topbar-logo-wrap">
-        <img class="topbar-logo" src="/assets/logo-saad.png" alt="SAAD STUDIO Logo">
-      </div>
-      <nav class="site-nav">
-        <a href="/index.html" class="on">Explore</a>
-        <a href="/images.html">Image</a>
-        <a href="/videos.html">Video</a>
-        <a href="/audio.html">Audio</a>
-        <a href="/transitions.html">Transitions</a>
-        <a href="/tools.html">Tools</a>
-        <a href="/cinema.html">Cinema Studio</a>
-        <a href="/gallery.html">Gallery</a>
-        <a href="/legal.html">Legal</a>
-      </nav>
-      <div id="promo-in-navbar"></div>
-      <div class="topbar-actions" id="topbar-actions">
-        <button class="topbar-btn" id="langToggle" onclick="toggleLanguage()">EN</button>
-        <button class="topbar-btn pricing" onclick="showPage('pricing')">Pricing</button>
-        <span id="topbar-guest">
-          <button class="topbar-btn" onclick="openAuthModal('login')">Login</button>
-          <button class="topbar-btn primary" onclick="openAuthModal('register')">Sign up</button>
-        </span>
-        <span id="topbar-loggedin" style="display:none" class="topbar-user">
-          <div class="user-avatar-wrap topbar-avatar-wrap" id="user-avatar-wrap" onclick="toggleProfileCard()">
-            <div class="user-avatar" id="user-avatar-el">•</div>
-          </div>
-          <div class="profile-card" id="profile-card" style="display:none;">
-            <div class="profile-card-header">
-              <div class="profile-card-avatar" id="pcard-avatar">•</div>
-              <div>
-                <div class="profile-card-email" id="pcard-email">—</div>
-                <span class="topbar-plan-badge starter" id="pcard-plan-badge" style="margin-top:4px;display:inline-block;">—</span>
-              </div>
-            </div>
-            <div class="profile-card-divider"></div>
-            <div class="profile-card-row">
-              <span class="profile-card-label">💳 رصيدك</span>
-              <span class="profile-card-value" id="pcard-credits">—</span>
-            </div>
-            <div class="profile-card-row">
-              <span class="profile-card-label">📅 تاريخ الاشتراك</span>
-              <span class="profile-card-value" id="pcard-created">—</span>
-            </div>
-            <div class="profile-card-row" id="pcard-renew-row">
-              <span class="profile-card-label">⏳ ينتهي في</span>
-              <span class="profile-card-value" id="pcard-renew">—</span>
-            </div>
-            <div class="profile-card-row" id="pcard-days-row">
-              <span class="profile-card-label">⭐ باقي</span>
-              <span class="profile-card-value" id="pcard-days">—</span>
-            </div>
-            <div class="profile-card-divider"></div>
-            <button class="profile-card-nav-btn" onclick="closeProfileCard();showPage('user-dashboard')"><span class="pcnb-icon">📊</span> لوحتي</button>
-            <button class="profile-card-nav-btn" onclick="closeProfileCard();showPage('billing')"><span class="pcnb-icon">💳</span> الاشتراك والفوترة</button>
-            <button class="profile-card-logout" onclick="doLogout()">&#x2192; تسجيل الخروج</button>
-          </div>
-        </span>
+      <a class="brand" href="/">
+        <img src="/assets/logo-saad.png" alt="SAAD STUDIO" onerror="this.src='/favicon.png'">
+        <div><h1>SAAD STUDIO</h1><small>استكشاف</small></div>
+      </a>
+      <div class="actions">
+        <a class="btn ghost" href="/pricing">الأسعار</a>
+        <a class="btn ghost" href="/gallery.html">المعرض</a>
+        <a class="btn primary" href="/app">دخول الاستوديو</a>
       </div>
     </header>
 
@@ -186,8 +135,8 @@
     <section class="section reveal">
       <div class="head"><h4>Quick Start</h4><a href="/app">ابدأ فورًا</a></div>
       <div class="quick-start">
-        <a class="qitem" href="/images.html"><div><b>توليد صورة الآن</b><span>Image Studio • 15-30 ثانية</span></div><span class="qtag">IMAGE</span></a>
-        <a class="qitem" href="/videos.html"><div><b>توليد فيديو الآن</b><span>Video Studio • 30-90 ثانية</span></div><span class="qtag">VIDEO</span></a>
+        <a class="qitem" href="/nano.html"><div><b>توليد صورة الآن</b><span>Nano Banana • 15-30 ثانية</span></div><span class="qtag">IMAGE</span></a>
+        <a class="qitem" href="/kling.html"><div><b>توليد فيديو الآن</b><span>Kling Studio • 30-90 ثانية</span></div><span class="qtag">VIDEO</span></a>
         <a class="qitem" href="/prompt.html"><div><b>تحسين برومبت الآن</b><span>Prompt Studio • أقل من 10 ثواني</span></div><span class="qtag">PROMPT</span></a>
       </div>
     </section>
@@ -196,12 +145,9 @@
       <div class="head"><h4>جرّب الآن بكل لحظة</h4><a href="/app">اختر سكة عمل</a></div>
       <div class="tools">
         <a class="tool" href="/prompt.html"><span class="tool-icon">✦</span><span class="tool-meta"><b>Prompt Studio</b><span>أنشئ برومبتات دقيقة وواضحة.</span></span></a>
-        <a class="tool" href="/videos.html"><span class="tool-icon">🎞</span><span class="tool-meta"><b>Video Studio</b><span>توليد فيديو بأحدث النماذج.</span></span></a>
+        <a class="tool" href="/kling.html"><span class="tool-icon">🎞</span><span class="tool-meta"><b>Kling Studio</b><span>تحكم أوضح في الحركة.</span></span></a>
         <a class="tool" href="/cinema.html"><span class="tool-icon">🎬</span><span class="tool-meta"><b>Cinema Studio</b><span>مشاهد سينمائية وانتقالات.</span></span></a>
-        <a class="tool" href="/images.html"><span class="tool-icon">◎</span><span class="tool-meta"><b>Image Studio</b><span>صور عالية الجودة بسرعة.</span></span></a>
-        <a class="tool" href="/photowith"><span class="tool-icon">🖼</span><span class="tool-meta"><b>Photo With</b><span>تركيب وتعديل الصور داخل قوالب جاهزة.</span></span></a>
-        <a class="tool" href="/transitions2"><span class="tool-icon">↔</span><span class="tool-meta"><b>Transitions 2</b><span>انتقالات مخصصة بين مشهدين بصورة أو فيديو.</span></span></a>
-        <a class="tool" href="/trends"><span class="tool-icon">▲</span><span class="tool-meta"><b>Trends</b><span>قوالب ترند جاهزة للصورة والفيديو والأفاتار.</span></span></a>
+        <a class="tool" href="/nano.html"><span class="tool-icon">◎</span><span class="tool-meta"><b>Nano Banana</b><span>صور عالية الجودة بسرعة.</span></span></a>
       </div>
     </section>
 
@@ -225,8 +171,65 @@
   <a class="mobile-cta" href="/app"><span>الدخول السريع للاستوديو</span><span>ابدأ</span></a>
 
   <script>
-    // reveal animation observer only
     (function(){
+      let heroIndex = 0;
+      let heroTimer = null;
+
+      function setHero(index){
+        const slides = Array.from(document.querySelectorAll('.market-hero-slide'));
+        const dots = Array.from(document.querySelectorAll('.market-dot'));
+        if(!slides.length) return;
+        heroIndex = (index + slides.length) % slides.length;
+        slides.forEach((s,i)=>s.classList.toggle('active', i === heroIndex));
+        dots.forEach((d,i)=>d.classList.toggle('active', i === heroIndex));
+      }
+
+      function initHero(){
+        setHero(0);
+        if(heroTimer) clearInterval(heroTimer);
+        heroTimer = setInterval(()=>setHero(heroIndex + 1), 9000);
+      }
+
+      function buildHero(slides){
+        const c = document.getElementById('market-hero-container');
+        if(!c || !slides.length) return;
+        let html = '';
+        slides.forEach((s,i)=>{
+          html += `<div class="market-hero-slide${i===0?' active':''}" style="background-image:url('${s.image}')" onclick="window.location.href='${s.link}'"><div class="market-hero-content"><span class="market-hero-tag">${s.tag||''}</span><h2 class="market-hero-title">${s.title||''}</h2><p class="market-hero-sub">${s.desc||''}</p><a class="btn primary market-hero-btn" href="${s.link||'/app'}" onclick="event.stopPropagation()">جرب الآن</a></div></div>`;
+        });
+        html += '<div class="market-dots">';
+        slides.forEach((_,i)=>{ html += `<span class="market-dot${i===0?' active':''}" data-idx="${i}"></span>`; });
+        html += '</div>';
+        c.innerHTML = html;
+        c.querySelectorAll('.market-dot').forEach(d=>d.addEventListener('click', (e)=>{ e.stopPropagation(); setHero(Number(d.getAttribute('data-idx')||0)); }));
+        initHero();
+      }
+
+      function buildModels(models){
+        const c = document.getElementById('market-grid-container');
+        if(!c || !models.length) return;
+        c.innerHTML = models.map(m => `<a class="market-card" href="${m.link||'/app'}" style="--card-bg:url('${m.image}')"><div class="market-card-content"><div class="market-pill">${m.pill||''}</div><div class="market-card-title">${m.title||''}</div><div class="market-card-sub">${m.sub||''}</div></div></a>`).join('');
+      }
+
+      fetch('/api/homepage-data')
+        .then(r => r.ok ? r.json() : Promise.reject('homepage_fetch_failed'))
+        .then(data => {
+          const slides = Array.isArray(data?.slides) ? data.slides.slice().sort((a,b)=>(a.order||0)-(b.order||0)) : [];
+          const models = Array.isArray(data?.models) ? data.models.slice().sort((a,b)=>(a.order||0)-(b.order||0)) : [];
+          buildHero(slides);
+          buildModels(models);
+        })
+        .catch(() => {
+          const fallbackModels = [
+            {pill:'Text to Video', title:'Sora 2', sub:'سرد بصري واقعي', image:'/assets/market-h/card-sora2.jpg', link:'/sora2.html'},
+            {pill:'Text to Video', title:'Veo 3.1', sub:'فيديو احترافي من النص', image:'/assets/market-h/card-veo3.jpg', link:'/google.html'},
+            {pill:'Image Gen', title:'Grok Imagine', sub:'توليد صور بأسلوب خيالي', image:'/assets/market-h/card-grok.png', link:'/grok.html'},
+            {pill:'Image Pro', title:'Nano Banana Pro', sub:'جودة عالية للصور', image:'/assets/market-h/card-nano-pro.png', link:'/nano.html'},
+            {pill:'Text to Music', title:'Suno', sub:'موسيقى مولدة من النص', image:'/assets/market-h/card-suno.png', link:'/suno.html'}
+          ];
+          buildModels(fallbackModels);
+        });
+
       const observer = new IntersectionObserver((entries)=>{
         entries.forEach(entry=>{
           if(entry.isIntersecting){
@@ -238,8 +241,5 @@
       document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
     })();
   </script>
-<script src="/js/shared.js"></script>
-<script src="/js/sidebar-scripts.js"></script>
-<script src="/js/sidebar-toggle.js"></script>
 </body>
 </html>

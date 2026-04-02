@@ -7,23 +7,23 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
 :root{
-  --bg:#0b1e34;
-  --bg2:#0f2a44;
-  --bg3:#12314f;
-  --b1:rgba(62,201,255,.13);
-  --b2:rgba(62,201,255,.22);
-  --cyan:#00e5ff;
-  --amber:#ff9e2c;
-  --green:#59d98a;
-  --red:#ff6b6b;
+  --bg:#080e18;
+  --bg2:#0d1525;
+  --bg3:#111d33;
+  --b1:rgba(255,255,255,.07);
+  --b2:rgba(255,255,255,.11);
+  --cyan:#5fe2ff;
+  --amber:#f2b544;
+  --green:#3cdc78;
+  --red:#ff6060;
   --purple:#c4b5fd;
-  --tx:#f2f6ff;
-  --tx2:#b5c7dd;
-  --tx3:#7c93aa;
+  --tx:#e8edf5;
+  --tx2:#8899aa;
+  --tx3:#4a5568;
   --fm:'Inter',system-ui,sans-serif;
   --r:14px;
 }
-html,body{height:100%;background:radial-gradient(circle at 15% 20%,rgba(0,229,255,.12),transparent 24%),radial-gradient(circle at 85% 10%,rgba(255,158,44,.14),transparent 22%),linear-gradient(180deg,#0b1e34 0%,#0f2a44 45%,#0b1c30 100%);color:var(--tx);font-family:var(--fm);font-size:14px;}
+html,body{height:100%;background:var(--bg);color:var(--tx);font-family:var(--fm);font-size:14px;}
 
 /* ── LOGIN SCREEN ── */
 #login-screen{
@@ -555,74 +555,6 @@ html,body{height:100%;background:radial-gradient(circle at 15% 20%,rgba(0,229,25
 .kie-refresh:hover{color:var(--cyan);background:rgba(95,226,255,.08);}
 .kie-refresh.spinning svg{animation:spin .8s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg);}}
-
-/* ── PAGE BUILDER ── */
-.pb-layout{display:grid;grid-template-columns:260px minmax(560px,1fr) 300px;gap:14px;align-items:start;}
-.pb-col{background:var(--bg2);border:1px solid var(--b1);border-radius:14px;overflow:hidden;}
-.pb-head{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--b1);background:rgba(255,255,255,.02);}
-.pb-head-title{font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--tx2);}
-.pb-body{padding:12px;}
-.pb-pages{display:flex;flex-direction:column;gap:6px;max-height:600px;overflow:auto;}
-.pb-page-btn{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px;border-radius:10px;background:rgba(255,255,255,.03);border:1px solid transparent;color:var(--tx2);cursor:pointer;font-size:12px;font-family:var(--fm);}
-.pb-page-btn.active{border-color:rgba(95,226,255,.4);background:rgba(95,226,255,.1);color:var(--cyan);}
-.pb-page-meta{font-size:10px;color:var(--tx3);}
-.pb-library{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
-.pb-lib-btn{padding:8px 10px;font-size:11px;border-radius:8px;border:1px solid var(--b2);background:rgba(255,255,255,.04);color:var(--tx2);cursor:pointer;}
-.pb-lib-btn:hover{border-color:rgba(95,226,255,.4);color:var(--tx);}
-.pb-canvas-wrap{padding:12px;max-height:calc(100vh - 280px);overflow:auto;}
-.pb-canvas-wrap.pb-fit-view{display:flex;justify-content:center;align-items:flex-start;}
-.pb-canvas{position:relative;width:1200px;min-width:100%;min-height:700px;height:700px;border-radius:14px;border:1px dashed rgba(95,226,255,.35);background:
-  linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px) 0 0/24px 24px,
-  linear-gradient(0deg,rgba(255,255,255,.04) 1px,transparent 1px) 0 0/24px 24px,
-  radial-gradient(circle at 20% 10%,rgba(0,229,255,.08),transparent 30%),
-  linear-gradient(180deg,#0c243d 0%,#0a1a2e 100%);
-  overflow:hidden;
-}
-.pb-real-preview{position:absolute;left:0;top:0;border:0;border-radius:12px;pointer-events:auto;opacity:1;transform-origin:top left;z-index:1;background:#0a1a2e;}
-.pb-canvas .pb-node{z-index:2;}
-.pb-node{position:absolute;border:1px solid rgba(255,255,255,.22);border-radius:10px;background:rgba(8,20,35,.86);box-shadow:0 8px 22px rgba(0,0,0,.35);cursor:move;user-select:none;}
-.pb-node.locked{cursor:not-allowed;border-style:dashed;opacity:.85;}
-.pb-node.hidden{opacity:.35;}
-.pb-node.active{border-color:var(--cyan);box-shadow:0 0 0 1px rgba(0,229,255,.5),0 12px 28px rgba(0,0,0,.5);}
-.pb-node-title{font-size:10px;color:var(--tx2);padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;justify-content:space-between;align-items:center;}
-.pb-node-content{padding:8px;font-size:12px;color:var(--tx);height:calc(100% - 28px);overflow:hidden;}
-.pb-resize{position:absolute;width:12px;height:12px;right:-6px;bottom:-6px;background:var(--cyan);border:2px solid #032;border-radius:50%;cursor:nwse-resize;}
-.pb-guide-v,.pb-guide-h{position:absolute;background:rgba(0,229,255,.7);pointer-events:none;display:none;}
-.pb-guide-v{width:1px;top:0;bottom:0;}
-.pb-guide-h{height:1px;left:0;right:0;}
-.pb-props{display:flex;flex-direction:column;gap:10px;}
-.pb-prop{display:flex;flex-direction:column;gap:5px;}
-.pb-prop label{font-size:10px;color:var(--tx2);font-weight:700;letter-spacing:.05em;}
-.pb-prop input,.pb-prop textarea,.pb-prop select{background:rgba(255,255,255,.05);border:1px solid var(--b2);border-radius:8px;padding:7px 10px;color:var(--tx);font-size:12px;font-family:var(--fm);}
-.pb-prop textarea{min-height:94px;resize:vertical;}
-.pb-toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
-.pb-status{font-size:11px;color:var(--tx2);padding:8px 12px;border-radius:8px;background:rgba(255,255,255,.04);border:1px solid var(--b1);}
-.pb-layout.pb-fullscreen{position:fixed;inset:8px;z-index:260;background:var(--bg1);border:1px solid var(--b1);border-radius:14px;padding:10px;box-shadow:0 24px 70px rgba(0,0,0,.55);grid-template-columns:220px minmax(0,1fr) 280px;height:calc(100vh - 16px);}
-.pb-layout.pb-fullscreen .pb-col{display:flex;flex-direction:column;min-height:0;}
-.pb-layout.pb-fullscreen .pb-col:nth-child(2) .pb-canvas-wrap{flex:1;max-height:none;}
-.pb-live-overlay{position:fixed;inset:10px;z-index:360;background:rgba(5,13,24,.96);border:1px solid var(--b1);border-radius:12px;display:none;flex-direction:column;overflow:hidden;}
-.pb-live-overlay.show{display:flex;}
-.pb-live-head{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid var(--b1);background:rgba(255,255,255,.03);}
-.pb-live-title{font-size:12px;color:var(--tx2);font-weight:700;letter-spacing:.04em;}
-.pb-live-frame{border:0;flex:1;width:100%;background:#08131f;}
-.rpe-wrap{background:var(--bg2);border:1px solid var(--b1);border-radius:14px;overflow:hidden;}
-.rpe-toolbar{display:flex;gap:8px;flex-wrap:wrap;padding:10px;border-bottom:1px solid var(--b1);background:rgba(255,255,255,.02);}
-.rpe-main{display:grid;grid-template-columns:minmax(0,1fr) 280px;min-height:calc(100vh - 260px);}
-.rpe-iframe{width:100%;height:calc(100vh - 260px);border:0;background:#08131f;}
-.rpe-side{border-right:1px solid var(--b1);padding:10px;display:flex;flex-direction:column;gap:10px;max-height:calc(100vh - 300px);overflow:auto;}
-.rpe-side-title{font-size:11px;color:var(--tx2);font-weight:800;letter-spacing:.06em;text-transform:uppercase;}
-.rpe-field{display:flex;flex-direction:column;gap:4px;}
-.rpe-field label{font-size:10px;color:var(--tx2);font-weight:700;}
-.rpe-field input,.rpe-field textarea{background:rgba(255,255,255,.05);border:1px solid var(--b2);border-radius:8px;padding:7px 9px;color:var(--tx);font-size:12px;font-family:var(--fm);}
-.rpe-status{font-size:11px;color:var(--tx2);padding:8px;border:1px dashed var(--b2);border-radius:8px;}
-.rpe-toolbox{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
-.rpe-tool{background:rgba(95,226,255,.1);border:1px dashed rgba(95,226,255,.45);color:var(--tx);font-size:11px;font-weight:700;border-radius:8px;padding:8px;cursor:grab;text-align:center;}
-.rpe-tool:active{cursor:grabbing;}
-.rpe-tool-hint{font-size:10px;color:var(--tx3);line-height:1.5;padding:6px 8px;border:1px dashed var(--b2);border-radius:8px;background:rgba(255,255,255,.02);}
-@media(max-width:1200px){.rpe-main{grid-template-columns:1fr;}.rpe-side{max-height:none;border-right:none;border-top:1px solid var(--b1);}.rpe-iframe{height:62vh;}}
-@media(max-width:1280px){.pb-layout.pb-fullscreen{grid-template-columns:minmax(0,1fr);}.pb-layout.pb-fullscreen .pb-col:first-child,.pb-layout.pb-fullscreen .pb-col:last-child{display:none;}}
-body.pb-fullscreen-open{overflow:hidden;}
-@media(max-width:1200px){.pb-layout{grid-template-columns:1fr;}.pb-canvas{min-height:560px;}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 </head>
@@ -1094,103 +1026,10 @@ body.pb-fullscreen-open{overflow:hidden;}
     <!-- ─── SIDEBAR MANAGER SECTION ─── -->
     <div class="dash-section" id="sec-sidebarMgr">
       <div class="sec-top">
-        <div><div class="sec-top-title">🧱 Visual Page Builder</div><div class="sec-top-sub">اسحب وأعد ترتيب مكونات الصفحة، ثم احفظ وانشر على الصفحات الحقيقية</div></div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button class="dash-refresh-btn" onclick="initRealPageEditor(true)">🔄 تحديث</button>
-          <button class="btn-primary" onclick="rpeSavePage()">💾 حفظ الصفحة الفعلية</button>
-          <button class="btn-primary" onclick="builderOpenLivePreview()">🌐 معاينة كاملة 1:1</button>
-        </div>
+        <div><div class="sec-top-title">🗂 القائمة الجانبية</div><div class="sec-top-sub">تحكّم في عناصر القائمة - الظهور، العنوان، الشارة، الترتيب</div></div>
+        <button class="btn-primary" onclick="openSidebarModal()">+ عنصر جديد</button>
       </div>
-      <div class="rpe-wrap" id="rpe-wrap">
-        <div class="rpe-toolbar">
-          <span class="pb-status">الصفحة</span>
-          <select id="rpe-page-select" class="cms-select" onchange="rpeChangePage(this.value)" style="min-width:200px;max-width:260px;"></select>
-          <button class="btn-sm" onclick="rpeSelectRootSection()">📦 تحديد أول Section</button>
-          <button class="btn-sm" onclick="rpeMoveSelected(-1)">⬆ تحريك لأعلى</button>
-          <button class="btn-sm" onclick="rpeMoveSelected(1)">⬇ تحريك لأسفل</button>
-          <button class="btn-sm" onclick="rpeDuplicateSelected()">📋 تكرار</button>
-          <button class="btn-sm" id="rpe-free-move-btn" onclick="rpeToggleFreeMove()">🖱 تحريك حر: OFF</button>
-          <button class="btn-sm" onclick="rpeToggleHideSelected()">👁 إخفاء/إظهار</button>
-          <button class="btn-sm" onclick="rpeEnableTextEdit()">✏ تعديل النص</button>
-          <button class="btn-sm" onclick="rpeReplaceImage()">🖼 استبدال صورة</button>
-          <button class="btn-danger" onclick="rpeDeleteSelected()">🗑 حذف</button>
-          <button class="btn-sm" onclick="rpeAddSection()">➕ إضافة Section</button>
-        </div>
-        <div class="rpe-main">
-          <iframe id="rpe-iframe" class="rpe-iframe"></iframe>
-          <div class="rpe-side">
-            <div class="rpe-side-title">Real Page Inspector</div>
-            <div class="rpe-status" id="rpe-status">لم يتم تحديد عنصر بعد.</div>
-            <div class="rpe-field"><label>Margin Top</label><input id="rpe-margin-top" type="number" value="0"></div>
-            <div class="rpe-field"><label>Margin Bottom</label><input id="rpe-margin-bottom" type="number" value="0"></div>
-            <div class="rpe-field"><label>Padding</label><input id="rpe-padding" type="number" value="0"></div>
-            <button class="btn-sm" onclick="rpeApplySpacing()">📐 تطبيق المسافات</button>
-            <div class="rpe-side-title">Drag & Drop Tools</div>
-            <div class="rpe-toolbox" id="rpe-toolbox">
-              <div class="rpe-tool" draggable="true" data-rpe-tool="section-title">🧩 عنوان + وصف</div>
-              <div class="rpe-tool" draggable="true" data-rpe-tool="cta">🔘 زر CTA</div>
-              <div class="rpe-tool" draggable="true" data-rpe-tool="image">🖼 صورة</div>
-              <div class="rpe-tool" draggable="true" data-rpe-tool="card">🪪 بطاقة</div>
-            </div>
-            <div class="rpe-tool-hint">اسحب أداة وأسقطها داخل الصفحة. ويمكنك أيضًا سحب عناصر الصفحة نفسها بالماوس لإعادة ترتيبها يمين/يسار/أعلى/أسفل.</div>
-            <div class="rpe-field"><label>HTML مخصص لقسم جديد</label><textarea id="rpe-new-section-html" rows="8" placeholder="<section class='section reveal'><div class='head'><h4>عنوان</h4></div><p>نص...</p></section>"></textarea></div>
-          </div>
-        </div>
-      </div>
-      <div class="pb-layout" id="pb-layout-root" style="display:none;">
-        <div class="pb-col">
-          <div class="pb-head"><span class="pb-head-title">Site Pages</span></div>
-          <div class="pb-body">
-            <div class="pb-pages" id="pb-pages-list"><div class="empty-state">⏳ جارٍ التحميل...</div></div>
-          </div>
-        </div>
-        <div class="pb-col">
-          <div class="pb-head">
-            <span class="pb-head-title">Canvas</span>
-            <span class="pb-status" id="pb-page-status">—</span>
-          </div>
-          <div class="pb-body" style="border-bottom:1px solid var(--b1);">
-            <div class="pb-library">
-              <button class="pb-lib-btn" onclick="addBuilderComponent('text')">+ Text</button>
-              <button class="pb-lib-btn" onclick="addBuilderComponent('image')">+ Image</button>
-              <button class="pb-lib-btn" onclick="addBuilderComponent('button')">+ Button</button>
-              <button class="pb-lib-btn" onclick="addBuilderComponent('video')">+ Video</button>
-              <button class="pb-lib-btn" onclick="addBuilderComponent('card')">+ Card</button>
-            </div>
-            <div class="pb-toolbar">
-              <button class="btn-sm" id="pb-fullscreen-btn" onclick="builderToggleFullscreen()">⛶ ملء الصفحة</button>
-              <button class="btn-sm" onclick="builderOpenLivePreview()">🌐 الصفحة كاملة 1:1</button>
-              <button class="btn-sm" onclick="builderDuplicate()">📋 Duplicate</button>
-              <button class="btn-sm" onclick="builderBringForward()">🔼 Bring Front</button>
-              <button class="btn-sm" onclick="builderSendBackward()">🔽 Send Back</button>
-              <button class="btn-sm" onclick="builderToggleLock()">🔒/🔓 Lock</button>
-              <button class="btn-sm" onclick="builderToggleHide()">👁 Hide/Show</button>
-              <button class="btn-danger" onclick="builderDelete()">🗑 Delete</button>
-            </div>
-          </div>
-          <div class="pb-canvas-wrap">
-            <div class="pb-canvas" id="pb-canvas">
-              <div class="pb-guide-v" id="pb-guide-v"></div>
-              <div class="pb-guide-h" id="pb-guide-h"></div>
-            </div>
-          </div>
-        </div>
-        <div class="pb-col">
-          <div class="pb-head"><span class="pb-head-title">Properties</span></div>
-          <div class="pb-body">
-            <div class="pb-props" id="pb-props-wrap">
-              <div class="empty-state">اختر عنصرًا من الـ Canvas لعرض الخصائص.</div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="pb-live-overlay" id="pb-live-overlay">
-        <div class="pb-live-head">
-          <span class="pb-live-title" id="pb-live-title">Live Page Preview</span>
-          <button class="btn-sm" onclick="builderCloseLivePreview()">✕ إغلاق</button>
-        </div>
-        <iframe class="pb-live-frame" id="pb-live-frame"></iframe>
-      </div>
+      <div class="cms-card"><div class="cms-card-body" id="sidebar-mgr-list"><div class="empty-state">⏳ جارٍ التحميل...</div></div></div>
     </div>
 
 
@@ -1251,23 +1090,182 @@ body.pb-fullscreen-open{overflow:hidden;}
       </div>
     </div>
 
-    <!-- ─── REPORTS SECTION ─── -->
-    <div class="dash-section" id="sec-reports">
+    <!-- ─── NOTIFICATIONS SECTION ─── -->
+    <div class="dash-section" id="sec-notifications">
       <div class="sec-top">
-        <div><div class="sec-top-title">📊 التقارير</div><div class="sec-top-sub">تقرير فوري للاستخدام والإيرادات والمستخدمين</div></div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button class="btn-outline" onclick="generateReport('usage')">Usage</button>
-          <button class="btn-outline" onclick="generateReport('revenue')">Revenue</button>
-          <button class="btn-outline" onclick="generateReport('users')">Users</button>
-          <button class="btn-outline" onclick="generateReport('models')">Models</button>
+        <div><div class="sec-top-title">🔔 الإشعارات الجماعية</div><div class="sec-top-sub">إرسال رسائل لكل المستخدمين أو مجموعة محددة</div></div>
+        <button class="btn-primary" onclick="openNotifModal()">+ إشعار جديد</button>
+      </div>
+      <div class="cms-card" style="padding:20px;">
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <div>
+            <label style="font-size:12px;color:var(--tx2);display:block;margin-bottom:4px;">المستلمون</label>
+            <select id="notif-target" style="width:100%;background:var(--bg3);color:var(--tx);border:1px solid var(--b2);border-radius:8px;padding:8px 12px;font-size:13px;">
+              <option value="all">جميع المستخدمين</option>
+              <option value="free">مستخدمو الخطة المجانية</option>
+              <option value="starter">مشتركو Starter</option>
+              <option value="pro">مشتركو Pro</option>
+              <option value="creator">مشتركو Creator</option>
+              <option value="inactive">غير نشطين (30+ يوم)</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:12px;color:var(--tx2);display:block;margin-bottom:4px;">عنوان الإشعار</label>
+            <input id="notif-title" type="text" placeholder="عنوان الرسالة" style="width:100%;background:var(--bg3);color:var(--tx);border:1px solid var(--b2);border-radius:8px;padding:8px 12px;font-size:13px;">
+          </div>
+          <div>
+            <label style="font-size:12px;color:var(--tx2);display:block;margin-bottom:4px;">نص الرسالة</label>
+            <textarea id="notif-body" rows="4" placeholder="محتوى الإشعار..." style="width:100%;background:var(--bg3);color:var(--tx);border:1px solid var(--b2);border-radius:8px;padding:8px 12px;font-size:13px;resize:vertical;"></textarea>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <select id="notif-type" style="background:var(--bg3);color:var(--tx);border:1px solid var(--b2);border-radius:8px;padding:8px 12px;font-size:13px;">
+              <option value="info">ℹ️ معلومات</option>
+              <option value="promo">🎁 عرض ترويجي</option>
+              <option value="warning">⚠️ تنبيه</option>
+              <option value="update">🆕 تحديث</option>
+            </select>
+            <button class="btn-primary" onclick="sendNotification()" style="flex:1;">🚀 إرسال الإشعار</button>
+          </div>
+        </div>
+      </div>
+      <div class="cms-card" style="margin-top:16px;">
+        <div style="padding:12px;font-size:13px;font-weight:600;color:var(--tx);border-bottom:1px solid var(--b1);">سجل الإشعارات المرسلة</div>
+        <div class="cms-card-body" id="notif-history"><div class="empty-state">لا توجد إشعارات مرسلة بعد</div></div>
+      </div>
+    </div>
+
+    <!-- ─── COUPONS SECTION ─── -->
+    <div class="dash-section" id="sec-coupons">
+      <div class="sec-top">
+        <div><div class="sec-top-title">🎟️ أكواد الخصم والكوبونات</div><div class="sec-top-sub">إنشاء وإدارة كوبونات الخصم للاشتراكات والشحن</div></div>
+        <button class="btn-primary" onclick="openCouponModal()">+ كوبون جديد</button>
+      </div>
+      <div class="cms-card">
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:12px;font-size:11px;color:var(--tx2);border-bottom:1px solid var(--b1);">
+          <span>كوبونات نشطة</span><span>مرات الاستخدام</span><span>إجمالي الخصم</span><span>منتهية الصلاحية</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:12px;font-size:22px;font-weight:700;" id="coupon-stats">
+          <span>—</span><span>—</span><span>—</span><span>—</span>
+        </div>
+        <div class="cms-card-body" id="coupon-list"><div class="empty-state">⏳ جارٍ التحميل...</div></div>
+      </div>
+    </div>
+
+    <!-- ─── BACKUP SECTION ─── -->
+    <div class="dash-section" id="sec-backup">
+      <div class="sec-top">
+        <div><div class="sec-top-title">💾 النسخ الاحتياطي وتصدير البيانات</div><div class="sec-top-sub">تصدير بيانات المستخدمين والطلبات والتوليدات</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;">
+        <div class="cms-card" style="padding:20px;text-align:center;">
+          <div style="font-size:32px;margin-bottom:12px;">👥</div>
+          <div style="font-size:15px;font-weight:600;color:var(--tx);margin-bottom:4px;">المستخدمون</div>
+          <div style="font-size:12px;color:var(--tx2);margin-bottom:16px;">تصدير جميع بيانات المستخدمين (الإيميل، الخطة، الرصيد، تاريخ التسجيل)</div>
+          <div style="display:flex;gap:8px;justify-content:center;">
+            <button class="btn-primary" onclick="exportData('users','csv')">CSV</button>
+            <button class="btn-outline" onclick="exportData('users','json')">JSON</button>
+          </div>
+        </div>
+        <div class="cms-card" style="padding:20px;text-align:center;">
+          <div style="font-size:32px;margin-bottom:12px;">📋</div>
+          <div style="font-size:15px;font-weight:600;color:var(--tx);margin-bottom:4px;">الطلبات</div>
+          <div style="font-size:12px;color:var(--tx2);margin-bottom:16px;">تصدير جميع طلبات الاشتراك والشحن (النوع، المبلغ، الحالة، التاريخ)</div>
+          <div style="display:flex;gap:8px;justify-content:center;">
+            <button class="btn-primary" onclick="exportData('orders','csv')">CSV</button>
+            <button class="btn-outline" onclick="exportData('orders','json')">JSON</button>
+          </div>
+        </div>
+        <div class="cms-card" style="padding:20px;text-align:center;">
+          <div style="font-size:32px;margin-bottom:12px;">📸</div>
+          <div style="font-size:15px;font-weight:600;color:var(--tx);margin-bottom:4px;">التوليدات</div>
+          <div style="font-size:12px;color:var(--tx2);margin-bottom:16px;">تصدير سجل التوليدات (النموذج، البرومبت، التكلفة، التاريخ)</div>
+          <div style="display:flex;gap:8px;justify-content:center;">
+            <button class="btn-primary" onclick="exportData('generations','csv')">CSV</button>
+            <button class="btn-outline" onclick="exportData('generations','json')">JSON</button>
+          </div>
+        </div>
+        <div class="cms-card" style="padding:20px;text-align:center;">
+          <div style="font-size:32px;margin-bottom:12px;">🗄️</div>
+          <div style="font-size:15px;font-weight:600;color:var(--tx);margin-bottom:4px;">نسخة كاملة</div>
+          <div style="font-size:12px;color:var(--tx2);margin-bottom:16px;">تصدير كل البيانات (مستخدمين + طلبات + توليدات + إعدادات)</div>
+          <div style="display:flex;gap:8px;justify-content:center;">
+            <button class="btn-primary" onclick="exportData('full','json')">💾 نسخة كاملة JSON</button>
+          </div>
+          <div id="backup-status" style="margin-top:12px;font-size:12px;color:var(--tx3);"></div>
+        </div>
+      </div>
+      <div class="cms-card" style="margin-top:16px;">
+        <div style="padding:12px;font-size:13px;font-weight:600;color:var(--tx);border-bottom:1px solid var(--b1);display:flex;justify-content:space-between;align-items:center;">سجل النسخ الاحتياطية<button class="btn-primary" style="font-size:12px;padding:6px 14px;" onclick="createBackup()">💾 إنشاء نسخة الآن</button></div>
+        <div class="cms-card-body" id="backup-history"><div class="empty-state">لا توجد نسخ احتياطية بعد</div></div>
+      </div>
+    </div>
+
+    <!-- ─── API KEYS MANAGEMENT SECTION ─── -->
+    <div class="dash-section" id="sec-apikeys">
+      <div class="sec-top">
+        <div><div class="sec-top-title">🔐 إدارة مفاتيح API</div><div class="sec-top-sub">جميع مفاتيح API المستخدمة بالمنصة</div></div>
+        <button class="btn-primary" onclick="testAllApiKeys()">🔄 فحص الكل</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;" id="apikeys-grid">
+        <!-- API keys will be rendered here -->
+      </div>
+    </div>
+
+    <!-- ─── MODERATION SECTION ─── -->
+    <div class="dash-section" id="sec-moderation">
+      <div class="sec-top">
+        <div><div class="sec-top-title">🛡️ المراقبة والإبلاغات</div><div class="sec-top-sub">مراجعة المحتوى المبلّغ عنه والمحظور</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px;">
+        <div class="cms-card" style="padding:16px;text-align:center;">
+          <div style="font-size:28px;font-weight:700;color:var(--amber);" id="mod-pending">0</div>
+          <div style="font-size:12px;color:var(--tx2);">بانتظار المراجعة</div>
+        </div>
+        <div class="cms-card" style="padding:16px;text-align:center;">
+          <div style="font-size:28px;font-weight:700;color:var(--red);" id="mod-blocked">0</div>
+          <div style="font-size:12px;color:var(--tx2);">محتوى محظور</div>
+        </div>
+        <div class="cms-card" style="padding:16px;text-align:center;">
+          <div style="font-size:28px;font-weight:700;color:var(--green);" id="mod-approved">0</div>
+          <div style="font-size:12px;color:var(--tx2);">تمت الموافقة</div>
         </div>
       </div>
       <div class="cms-card">
-        <div class="cms-card-header">
-          <div>
-            <div class="cms-card-title">Report Output</div>
-            <div class="cms-card-sub">اختر نوع التقرير من الأعلى</div>
-          </div>
+        <div class="cms-card-body" id="mod-list"><div class="empty-state">لا توجد إبلاغات حالياً</div></div>
+      </div>
+    </div>
+
+    <!-- ─── REPORTS SECTION ─── -->
+    <div class="dash-section" id="sec-reports">
+      <div class="sec-top">
+        <div><div class="sec-top-title">📊 التقارير</div><div class="sec-top-sub">تقارير مفصّلة عن أداء المنصة</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;">
+        <div class="cms-card" style="padding:20px;cursor:pointer;" onclick="generateReport('usage')">
+          <div style="font-size:24px;margin-bottom:8px;">📱</div>
+          <div style="font-size:14px;font-weight:600;color:var(--tx);">تقرير الاستخدام</div>
+          <div style="font-size:12px;color:var(--tx2);margin-top:4px;">أكثر النماذج استخداماً، أوقات الذروة، متوسط التوليدات</div>
+        </div>
+        <div class="cms-card" style="padding:20px;cursor:pointer;" onclick="generateReport('revenue')">
+          <div style="font-size:24px;margin-bottom:8px;">💰</div>
+          <div style="font-size:14px;font-weight:600;color:var(--tx);">تقرير الإيرادات</div>
+          <div style="font-size:12px;color:var(--tx2);margin-top:4px;">إيرادات الاشتراكات، الشحن، التكاليف، صافي الربح</div>
+        </div>
+        <div class="cms-card" style="padding:20px;cursor:pointer;" onclick="generateReport('users')">
+          <div style="font-size:24px;margin-bottom:8px;">👥</div>
+          <div style="font-size:14px;font-weight:600;color:var(--tx);">تقرير المستخدمين</div>
+          <div style="font-size:12px;color:var(--tx2);margin-top:4px;">نمو المستخدمين، معدل التحويل، الاحتفاظ، أكثر نشاطاً</div>
+        </div>
+        <div class="cms-card" style="padding:20px;cursor:pointer;" onclick="generateReport('models')">
+          <div style="font-size:24px;margin-bottom:8px;">🤖</div>
+          <div style="font-size:14px;font-weight:600;color:var(--tx);">تقرير النماذج</div>
+          <div style="font-size:12px;color:var(--tx2);margin-top:4px;">أداء كل نموذج، تكلفة API، وقت الاستجابة، نسبة الفشل</div>
+        </div>
+      </div>
+      <div class="cms-card" style="margin-top:16px;display:none;" id="report-output">
+        <div style="padding:12px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--b1);">
+          <span style="font-size:13px;font-weight:600;color:var(--tx);" id="report-title">التقرير</span>
+          <button class="btn-outline" onclick="exportReport()">📥 تصدير</button>
         </div>
         <div class="cms-card-body" id="report-content"></div>
       </div>
@@ -1481,18 +1479,13 @@ function doLogout(){
   $('login-screen').style.display = 'flex';
   $('l-pass').value = '';
 }
-
 function showDashboard(){
   $('login-screen').style.display = 'none';
   $('dashboard').style.display = 'flex';
-  const topbarKie = document.getElementById('topbar-kie');
-  if(topbarKie) topbarKie.style.display = 'flex';
-  const initial = getInitialDashboardSection();
-  showSection(initial, document.querySelector(`.dash-nav-btn[data-sec="${initial}"]`));
+  document.getElementById('topbar-kie').style.display = 'flex';
   refreshAll();
   checkDbHealth();
-  if(window.__dashRefreshInterval) clearInterval(window.__dashRefreshInterval);
-  window.__dashRefreshInterval = setInterval(refreshAll, 60000);
+  setInterval(refreshAll, 60000);
 }
 
 // ── Database Health Check ──
@@ -1500,7 +1493,6 @@ async function checkDbHealth(){
   const banner = $('health-banner');
   const icon = $('health-icon');
   const msg = $('health-msg');
-  if(!banner || !icon || !msg) return;
   banner.style.display = 'flex';
   icon.textContent = '⏳';
   msg.textContent = 'جارٍ فحص قاعدة البيانات...';
@@ -1515,7 +1507,7 @@ async function checkDbHealth(){
       msg.innerHTML = '<strong>Supabase غير متصل!</strong> كل التغييرات مؤقتة وستُفقد عند إعادة تشغيل الخادم. تحقق من متغيرات البيئة SUPABASE_URL و SUPABASE_SERVICE_KEY على Render.';
       return;
     }
-    const broken = Object.entries(d.tables || {}).filter(([k,v])=>v!=='OK').map(([k])=>k);
+    const broken = Object.entries(d.tables).filter(([k,v])=>v!=='OK').map(([k])=>k);
     if(broken.length) {
       banner.className = 'health-banner err';
       icon.textContent = '⚠️';
@@ -1541,31 +1533,13 @@ async function checkDbHealth(){
 function showSection(id, btn){
   document.querySelectorAll('.dash-section').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.dash-nav-btn').forEach(b => b.classList.remove('active'));
-  const sectionEl = $('sec-' + id);
-  if(!sectionEl) return;
-  sectionEl.classList.add('active');
-  if(!btn) btn = document.querySelector(`.dash-nav-btn[data-sec="${id}"]`);
+  $('sec-' + id).classList.add('active');
   if(btn) btn.classList.add('active');
-  try { localStorage.setItem(DASH_LAST_SECTION_KEY, id); } catch(e) {}
   if(id==='theme'  && !themeLoaded)  loadTheme();
   if(id==='fonts'  && !fontsLoaded)  loadFonts();
   if(id==='assets' && !assetsLoaded) loadAssets();
-  const loaders = { pages: loadCMSPages, sections: initSectionsTab, cmsNav: loadCMSNav, siteSettings: loadSiteSettings, auditLog: loadCMSAudit, promobars: loadPromoBars, sidebarMgr: ()=>initRealPageEditor(true), generations: loadGenerations, analytics: loadAnalytics, notifications: loadNotifHistory, coupons: loadCoupons, backup: loadBackupHistory, apikeys: loadApiKeys, moderation: loadModeration, reports: ()=>generateReport('usage'), modelControl: loadModelControl, creditMgr: async ()=>{ await loadCreditLog(); await loadFreeTrialSettings(); }, planMgr: loadPlanSettings };
+  const loaders = { pages: loadCMSPages, sections: initSectionsTab, cmsNav: loadCMSNav, siteSettings: loadSiteSettings, auditLog: loadCMSAudit, promobars: loadPromoBars, sidebarMgr: loadSidebarItems, generations: loadGenerations, analytics: loadAnalytics, notifications: loadNotifHistory, coupons: loadCoupons, backup: loadBackupHistory, apikeys: loadApiKeys, moderation: loadModeration, reports: ()=>generateReport('usage'), modelControl: loadModelControl, creditMgr: async ()=>{ await loadCreditLog(); await loadFreeTrialSettings(); }, planMgr: loadPlanSettings };
   if(loaders[id]) loaders[id]();
-}
-
-function getInitialDashboardSection(){
-  const valid = new Set(Array.from(document.querySelectorAll('.dash-nav-btn')).map(b => b.dataset.sec));
-  const qs = new URLSearchParams(location.search);
-  const qSection = (qs.get('sec') || qs.get('section') || '').trim();
-  if(qSection && valid.has(qSection)) return qSection;
-  const hashSection = (location.hash || '').replace(/^#/, '').trim();
-  if(hashSection && valid.has(hashSection)) return hashSection;
-  try {
-    const saved = (localStorage.getItem(DASH_LAST_SECTION_KEY) || '').trim();
-    if(saved && valid.has(saved)) return saved;
-  } catch(e) {}
-  return 'sidebarMgr';
 }
 
 // ── Refresh ──
@@ -2529,1121 +2503,6 @@ async function saveSiteSettings() {
   } catch(e) { toast('❌ '+e.message,'err'); }
 }
 
-// ─── VISUAL PAGE BUILDER ───
-const BUILDER_TYPES = {
-  text: { title: 'Text', defaults: { title: 'Heading', body: 'Write your text here', color: '#f2f6ff', align: 'start' } },
-  image: { title: 'Image', defaults: { url: '/assets/hero.png', align: 'start' } },
-  button: { title: 'Button', defaults: { label: 'Explore', url: '/tools', bg: '#00e5ff', color: '#032133', align: 'start' } },
-  video: { title: 'Video', defaults: { url: '', align: 'start' } },
-  card: { title: 'Card', defaults: { title: 'Card title', body: 'Card description', bg: 'rgba(11,30,52,.9)', color: '#f2f6ff', align: 'start' } }
-};
-let builderPages = [];
-let builderCurrentPageId = '';
-let builderLayout = [];
-let builderSelectedId = '';
-let builderDrag = null;
-let builderFullscreen = false;
-let builderCanvasScale = 1;
-let builderCanvasLogicalWidth = 1200;
-let builderCanvasLogicalHeight = 700;
-const RPE_STATE = { pageId: 'discover', selected: null, dirty: false, initialized: false, dragNode: null, dropNode: null, dropPos: 'after', freeMove: false, moveDrag: null, pages: [] };
-const RPE_FALLBACK_PAGES = [
-  { id: 'discover', title: 'Discover', route: '/', file: 'index.html' },
-  { id: 'images', title: 'Images', route: '/images', file: 'images.html' },
-  { id: 'videos', title: 'Videos', route: '/videos', file: 'videos.html' },
-  { id: 'audio', title: 'Audio', route: '/audio', file: 'audio.html' },
-  { id: 'transitions', title: 'Transitions', route: '/transitions', file: 'transitions.html' },
-  { id: 'tools', title: 'Tools', route: '/tools', file: 'tools.html' },
-  { id: 'cinema', title: 'Cinema', route: '/cinema', file: 'cinema.html' },
-  { id: 'gallery', title: 'Gallery', route: '/gallery', file: 'gallery.html' },
-  { id: 'library', title: 'Library', route: '/library', file: 'library.html' },
-  { id: 'prompt', title: 'Prompt', route: '/prompt', file: 'prompt.html' },
-  { id: 'qwen2', title: 'Qwen2', route: '/qwen2', file: 'qwen2.html' },
-  { id: 'fluxkontext', title: 'FluxKontext', route: '/fluxkontext', file: 'fluxkontext.html' },
-  { id: 'ideogram-reframe', title: 'Ideogram Reframe', route: '/ideogram-reframe', file: 'ideogram-reframe.html' },
-  { id: 'image-tools', title: 'Image Tools', route: '/image-tools', file: 'image-tools.html' },
-  { id: 'suno', title: 'Suno', route: '/suno', file: 'suno.html' },
-  { id: 'account', title: 'Account', route: '/account', file: 'account.html' },
-  { id: 'legal', title: 'Legal', route: '/legal', file: 'legal.html' }
-];
-const DASH_LAST_SECTION_KEY = 'saad.dashboard.lastSection';
-const BUILDER_FALLBACK_PAGES = [
-  { id: 'discover', title: 'Discover', route: '/', file: 'index.html', components: 0 }
-];
-
-function builderCurrentPage(){
-  return builderPages.find(p => p.id === builderCurrentPageId) || null;
-}
-function builderSelected(){
-  return builderLayout.find(c => c.id === builderSelectedId) || null;
-}
-function builderUid(){
-  return 'pb-' + Math.random().toString(16).slice(2) + Date.now().toString(16);
-}
-function hideBuilderGuides(){
-  $('pb-guide-v').style.display = 'none';
-  $('pb-guide-h').style.display = 'none';
-}
-function builderNodeTitle(c){
-  return BUILDER_TYPES[c.type]?.title || c.type;
-}
-function builderSetFullscreen(on){
-  const root = $('pb-layout-root');
-  if(!root) return;
-  builderFullscreen = !!on;
-  root.classList.toggle('pb-fullscreen', builderFullscreen);
-  document.body.classList.toggle('pb-fullscreen-open', builderFullscreen);
-  const wrap = $('pb-canvas')?.parentElement;
-  if(wrap){
-    wrap.scrollTop = 0;
-    wrap.scrollLeft = 0;
-  }
-  const btn = $('pb-fullscreen-btn');
-  if(btn) btn.textContent = builderFullscreen ? '🗗 تصغير المنطقة' : '⛶ ملء الصفحة';
-}
-function builderToggleFullscreen(){
-  builderSetFullscreen(!builderFullscreen);
-  renderBuilderCanvas();
-}
-
-function rpeDoc(){ return $('rpe-iframe')?.contentDocument || null; }
-function rpeSetStatus(msg){ const el = $('rpe-status'); if(el) el.textContent = msg; }
-function rpeMarkDirty(){ RPE_STATE.dirty = true; }
-function rpeUpdateFreeMoveButton(){
-  const btn = $('rpe-free-move-btn');
-  if(!btn) return;
-  btn.textContent = '🖱 تحريك حر (Alt+Drag): ' + (RPE_STATE.freeMove ? 'ON' : 'OFF');
-  btn.style.borderColor = RPE_STATE.freeMove ? 'rgba(95,226,255,.55)' : '';
-  btn.style.background = RPE_STATE.freeMove ? 'rgba(95,226,255,.12)' : '';
-}
-function rpeToggleFreeMove(){
-  RPE_STATE.freeMove = !RPE_STATE.freeMove;
-  rpeRefreshDragNodes();
-  rpeUpdateFreeMoveButton();
-  rpeSetStatus(RPE_STATE.freeMove ? 'وضع التحريك الحر مفعّل: اضغط Alt مع السحب لتحريك العنصر المحدد فقط.' : 'وضع التحريك الحر متوقف.');
-}
-function rpeApplyFreeMove(el, tx, ty){
-  if(!el) return;
-  if(typeof el.dataset.rpeBaseTransform === 'undefined'){
-    const base = (el.style.transform || '').trim();
-    el.dataset.rpeBaseTransform = base && base !== 'none' ? base : '';
-  }
-  const nx = Math.round(Number(tx || 0));
-  const ny = Math.round(Number(ty || 0));
-  const base = String(el.dataset.rpeBaseTransform || '').trim();
-  const move = `translate(${nx}px, ${ny}px)`;
-  el.style.transform = base ? `${base} ${move}`.trim() : move;
-  el.dataset.rpeTx = String(nx);
-  el.dataset.rpeTy = String(ny);
-}
-function rpeNodeLabel(el){
-  if(!el) return '—';
-  const id = el.id ? `#${el.id}` : '';
-  const cls = el.classList && el.classList.length ? '.' + Array.from(el.classList).slice(0,3).join('.') : '';
-  return `${el.tagName.toLowerCase()}${id}${cls}`;
-}
-function rpeSelect(el){
-  const doc = rpeDoc();
-  if(!doc || !el) return;
-  if(RPE_STATE.selected && RPE_STATE.selected.classList) RPE_STATE.selected.classList.remove('rpe-selected-el');
-  RPE_STATE.selected = el;
-  RPE_STATE.selected.classList.add('rpe-selected-el');
-  rpeSetStatus('العنصر المحدد: ' + rpeNodeLabel(el));
-}
-function rpeGetSelected(){
-  const doc = rpeDoc();
-  const el = RPE_STATE.selected;
-  if(!doc || !el || !el.isConnected) return null;
-  return el;
-}
-function rpeRequireSelected(actionLabel){
-  const el = rpeGetSelected();
-  if(!el){
-    toast('⚠️ حدّد عنصرًا أولًا قبل ' + actionLabel, 'err');
-    rpeSetStatus('لم يتم تنفيذ العملية: لا يوجد عنصر محدد.');
-    return null;
-  }
-  return el;
-}
-function rpeValidTarget(el){
-  if(!el) return false;
-  const t = (el.tagName || '').toLowerCase();
-  return !['html','head','body','script','style','meta','link'].includes(t);
-}
-function rpeResolveDraggable(node){
-  if(!node || !node.closest) return null;
-  return node.closest('[data-rpe-draggable="1"], section, article, li, .market-card, .market-hero-slide, .card, .tile, [class*="card"]') || null;
-}
-function rpeRefreshDragNodes(){
-  const doc = rpeDoc();
-  if(!doc) return;
-  const nodes = doc.querySelectorAll('main section, section, article, li, .market-card, .market-hero-slide, .card, .tile, [class*="card"]');
-  nodes.forEach((el) => {
-    if(!rpeValidTarget(el)) return;
-    el.setAttribute('draggable', RPE_STATE.freeMove ? 'false' : 'true');
-    el.setAttribute('data-rpe-draggable', '1');
-  });
-}
-function rpeClearDropHints(doc){
-  if(!doc) return;
-  doc.querySelectorAll('.rpe-drop-target,.rpe-drop-before,.rpe-drop-after').forEach((el)=>{
-    el.classList.remove('rpe-drop-target','rpe-drop-before','rpe-drop-after');
-  });
-}
-function rpeMarkDropHint(node, pos){
-  const doc = rpeDoc();
-  if(!doc || !node) return;
-  rpeClearDropHints(doc);
-  node.classList.add('rpe-drop-target');
-  node.classList.add(pos === 'before' ? 'rpe-drop-before' : 'rpe-drop-after');
-}
-function rpePickDropPosition(node, ev){
-  const r = node.getBoundingClientRect();
-  const horizontal = r.width > (r.height * 1.2);
-  if(horizontal){
-    return ev.clientX < (r.left + r.width / 2) ? 'before' : 'after';
-  }
-  return ev.clientY < (r.top + r.height / 2) ? 'before' : 'after';
-}
-function rpeInsertRelative(refNode, node, pos){
-  if(!refNode || !refNode.parentNode || !node) return;
-  if(pos === 'before') refNode.parentNode.insertBefore(node, refNode);
-  else refNode.parentNode.insertBefore(node, refNode.nextSibling);
-}
-function rpeCurrentPageMeta(){
-  return (RPE_STATE.pages || []).find((p) => p.id === RPE_STATE.pageId) || null;
-}
-async function rpeLoadPagesList(force=false){
-  if(!force && Array.isArray(RPE_STATE.pages) && RPE_STATE.pages.length) return;
-  let pages = [];
-  try {
-    const r = await apiFetch('/api/admin/real-editor/pages');
-    if(r){
-      const d = await r.json();
-      if(r.ok && Array.isArray(d.pages) && d.pages.length) pages = d.pages;
-    }
-  } catch(_) {}
-
-  // Merge server result with a complete local fallback so UI remains usable even on stale backend.
-  const merged = [];
-  const seen = new Set();
-  const pushPage = (p) => {
-    if(!p) return;
-    const route = String(p.route || '').trim() || '/';
-    const idRaw = String(p.id || '').trim().toLowerCase();
-    const id = idRaw === 'index' ? 'discover' : idRaw;
-    if(!id || seen.has(id)) return;
-    seen.add(id);
-    merged.push({
-      id,
-      title: String(p.title || id),
-      route,
-      file: String(p.file || '')
-    });
-  };
-  (Array.isArray(pages) ? pages : []).forEach(pushPage);
-  RPE_FALLBACK_PAGES.forEach(pushPage);
-
-  RPE_STATE.pages = merged;
-  const sel = $('rpe-page-select');
-  if(sel){
-    sel.innerHTML = merged.map((p) => `<option value="${esc(p.id)}">${esc(p.title)} (${esc(p.route || '/')})</option>`).join('');
-  }
-  if(!merged.some((p) => p.id === RPE_STATE.pageId)){
-    RPE_STATE.pageId = merged[0]?.id || 'discover';
-  }
-  if(sel) sel.value = RPE_STATE.pageId;
-}
-async function rpeChangePage(pageId){
-  const nextId = String(pageId || '').trim();
-  if(!nextId || nextId === RPE_STATE.pageId) return;
-  if(RPE_STATE.dirty){
-    const ok = confirm('لديك تعديلات غير محفوظة. هل تريد الانتقال للصفحة الأخرى بدون حفظ؟');
-    if(!ok){
-      const sel = $('rpe-page-select');
-      if(sel) sel.value = RPE_STATE.pageId;
-      return;
-    }
-  }
-  RPE_STATE.pageId = nextId;
-  RPE_STATE.initialized = false;
-  await rpeLoadPage(true);
-}
-function rpeCreateToolNode(doc, tool){
-  const wrap = doc.createElement('div');
-  if(tool === 'section-title'){
-    wrap.innerHTML = '<section class="section reveal"><div class="head"><h4>عنوان جديد</h4></div><p>وصف مختصر لهذا القسم.</p></section>';
-  } else if(tool === 'cta'){
-    wrap.innerHTML = '<div class="rpe-cta-block" style="padding:16px;border:1px dashed rgba(95,226,255,.5);border-radius:12px;display:flex;align-items:center;justify-content:space-between;gap:10px;"><span>دعوة لاتخاذ إجراء</span><a href="/pricing" style="padding:8px 12px;border-radius:10px;background:#00e5ff;color:#032133;text-decoration:none;font-weight:700;">ابدأ الآن</a></div>';
-  } else if(tool === 'image'){
-    wrap.innerHTML = '<img src="/assets/market-w/hero-nano-pro.jpg" alt="image" style="width:100%;max-width:540px;border-radius:12px;display:block;">';
-  } else {
-    wrap.innerHTML = '<div class="rpe-card" style="padding:14px;border:1px solid rgba(255,255,255,.12);border-radius:12px;background:rgba(8,21,35,.6);"><h4 style="margin:0 0 6px 0;">بطاقة جديدة</h4><p style="margin:0;opacity:.8;">محتوى البطاقة قابل للتعديل.</p></div>';
-  }
-  return wrap.firstElementChild;
-}
-function rpeBindToolboxDnd(){
-  const box = $('rpe-toolbox');
-  if(!box || box.dataset.rpeBound === '1') return;
-  box.dataset.rpeBound = '1';
-  box.querySelectorAll('[data-rpe-tool]').forEach((item) => {
-    item.addEventListener('dragstart', (ev) => {
-      const type = item.getAttribute('data-rpe-tool') || '';
-      if(!ev.dataTransfer) return;
-      ev.dataTransfer.effectAllowed = 'copy';
-      ev.dataTransfer.setData('text/rpe-tool', type);
-      ev.dataTransfer.setData('text/plain', type);
-    });
-  });
-}
-function rpeInjectEditorHooks(){
-  const doc = rpeDoc();
-  if(!doc) return;
-  if(doc.__rpeHooksBound) return;
-  doc.__rpeHooksBound = true;
-  const styleId = 'rpe-editor-style';
-  if(!doc.getElementById(styleId)){
-    const st = doc.createElement('style');
-    st.id = styleId;
-    st.textContent = ''+
-      'html[data-rpe-edit="1"] a,html[data-rpe-edit="1"] button,html[data-rpe-edit="1"] input,html[data-rpe-edit="1"] textarea,html[data-rpe-edit="1"] select,html[data-rpe-edit="1"] label[for]{pointer-events:none !important;}' +
-      'html[data-rpe-edit="1"] .rpe-hover-el{outline:1px dashed rgba(0,229,255,.7) !important;outline-offset:1px !important;}' +
-      'html[data-rpe-edit="1"] .rpe-selected-el{outline:2px solid #00e5ff !important;outline-offset:2px !important;cursor:pointer !important;}' +
-      'html[data-rpe-edit="1"] [data-rpe-draggable="1"]{cursor:grab !important;}' +
-      'html[data-rpe-edit="1"] .rpe-moving-el{outline:2px solid #5fe2ff !important;outline-offset:2px !important;}' +
-      'html[data-rpe-edit="1"] .rpe-drop-target{outline:2px dashed #ffd166 !important;outline-offset:2px !important;}' +
-      'html[data-rpe-edit="1"] .rpe-drop-before{box-shadow:inset 0 4px 0 #ffd166 !important;}' +
-      'html[data-rpe-edit="1"] .rpe-drop-after{box-shadow:inset 0 -4px 0 #ffd166 !important;}';
-    doc.head.appendChild(st);
-  }
-  doc.documentElement.setAttribute('data-rpe-edit', '1');
-  rpeRefreshDragNodes();
-  doc.querySelectorAll('input[type="file"]').forEach((inp) => {
-    inp.setAttribute('data-rpe-disabled', '1');
-    inp.disabled = true;
-    inp.tabIndex = -1;
-  });
-
-  let hoverEl = null;
-  const onMove = (ev) => {
-    const t = ev.target;
-    if(!rpeValidTarget(t)) return;
-    if(hoverEl && hoverEl.classList) hoverEl.classList.remove('rpe-hover-el');
-    hoverEl = t;
-    hoverEl.classList.add('rpe-hover-el');
-  };
-  const onPick = (ev) => {
-    const t = ev.target;
-    if(!rpeValidTarget(t)) return;
-    if(t.matches && (t.matches('input[type="file"]') || t.matches('label[for]'))){
-      ev.preventDefault();
-      if(ev.stopImmediatePropagation) ev.stopImmediatePropagation();
-      ev.stopPropagation();
-      rpeSelect(t);
-      return;
-    }
-    ev.preventDefault();
-    if(ev.stopImmediatePropagation) ev.stopImmediatePropagation();
-    ev.stopPropagation();
-    rpeSelect(t);
-    if(RPE_STATE.freeMove && ev.altKey){
-      const dragEl = t;
-      const tx0 = Number(dragEl.dataset.rpeTx || 0);
-      const ty0 = Number(dragEl.dataset.rpeTy || 0);
-      RPE_STATE.moveDrag = {
-        el: dragEl,
-        startX: Number(ev.clientX || 0),
-        startY: Number(ev.clientY || 0),
-        tx0,
-        ty0,
-        moved: false
-      };
-      dragEl.classList.add('rpe-moving-el');
-      rpeSetStatus('اسحب بالماوس لتحريك العنصر بحرية.');
-    } else if(RPE_STATE.freeMove) {
-      RPE_STATE.moveDrag = null;
-      rpeSetStatus('تم تحديد العنصر. للتحريك الحر استخدم Alt + سحب.');
-    }
-  };
-  const blockInteractive = (ev) => {
-    if(doc.documentElement.getAttribute('data-rpe-edit') !== '1') return;
-    if(ev.type === 'keydown'){
-      const k = ev.key || '';
-      if(k !== 'Enter' && k !== ' ') return;
-    }
-    ev.preventDefault();
-    if(ev.stopImmediatePropagation) ev.stopImmediatePropagation();
-    ev.stopPropagation();
-  };
-  const onDragStart = (ev) => {
-    if(RPE_STATE.freeMove){
-      ev.preventDefault();
-      return;
-    }
-    const n = rpeResolveDraggable(ev.target);
-    if(!n) return;
-    RPE_STATE.dragNode = n;
-    rpeSelect(n);
-    if(ev.dataTransfer){
-      ev.dataTransfer.effectAllowed = 'move';
-      ev.dataTransfer.setData('text/rpe-internal', '1');
-      ev.dataTransfer.setData('text/plain', 'move');
-    }
-  };
-  const onDragOver = (ev) => {
-    const fromTool = ev.dataTransfer?.getData('text/rpe-tool') || '';
-    const fromInternal = ev.dataTransfer?.getData('text/rpe-internal') === '1';
-    if(!fromTool && !fromInternal) return;
-    const dropNode = rpeResolveDraggable(ev.target);
-    if(!dropNode) return;
-    if(fromInternal && RPE_STATE.dragNode && (dropNode === RPE_STATE.dragNode || dropNode.contains(RPE_STATE.dragNode))) return;
-    ev.preventDefault();
-    const pos = rpePickDropPosition(dropNode, ev);
-    RPE_STATE.dropNode = dropNode;
-    RPE_STATE.dropPos = pos;
-    rpeMarkDropHint(dropNode, pos);
-    if(ev.dataTransfer) ev.dataTransfer.dropEffect = fromTool ? 'copy' : 'move';
-  };
-  const onDrop = (ev) => {
-    const fromTool = ev.dataTransfer?.getData('text/rpe-tool') || '';
-    const fromInternal = ev.dataTransfer?.getData('text/rpe-internal') === '1';
-    if(!fromTool && !fromInternal) return;
-    ev.preventDefault();
-    const dropNode = RPE_STATE.dropNode || rpeResolveDraggable(ev.target);
-    const pos = RPE_STATE.dropPos || 'after';
-    if(!dropNode) return;
-
-    if(fromTool){
-      const node = rpeCreateToolNode(doc, fromTool);
-      if(!node) return;
-      rpeInsertRelative(dropNode, node, pos);
-      rpeRefreshDragNodes();
-      rpeSelect(node);
-      rpeMarkDirty();
-      rpeSetStatus('تم إسقاط أداة جديدة داخل الصفحة.');
-      rpeClearDropHints(doc);
-      return;
-    }
-
-    if(fromInternal && RPE_STATE.dragNode){
-      const dragNode = RPE_STATE.dragNode;
-      if(dragNode !== dropNode && !dropNode.contains(dragNode)){
-        rpeInsertRelative(dropNode, dragNode, pos);
-        rpeRefreshDragNodes();
-        rpeSelect(dragNode);
-        rpeMarkDirty();
-        rpeSetStatus('تم تحريك العنصر بالسحب والإفلات.');
-      }
-      rpeClearDropHints(doc);
-    }
-  };
-  const onDragEnd = () => {
-    rpeClearDropHints(doc);
-    RPE_STATE.dragNode = null;
-    RPE_STATE.dropNode = null;
-    RPE_STATE.dropPos = 'after';
-  };
-  const onPointerMove = (ev) => {
-    if(!RPE_STATE.freeMove || !RPE_STATE.moveDrag || !RPE_STATE.moveDrag.el) return;
-    ev.preventDefault();
-    if(ev.stopImmediatePropagation) ev.stopImmediatePropagation();
-    ev.stopPropagation();
-    const d = RPE_STATE.moveDrag;
-    const dx = Number(ev.clientX || 0) - d.startX;
-    const dy = Number(ev.clientY || 0) - d.startY;
-    if(Math.abs(dx) > 1 || Math.abs(dy) > 1) d.moved = true;
-    rpeApplyFreeMove(d.el, d.tx0 + dx, d.ty0 + dy);
-  };
-  const onPointerUp = (ev) => {
-    if(!RPE_STATE.freeMove || !RPE_STATE.moveDrag || !RPE_STATE.moveDrag.el) return;
-    ev.preventDefault();
-    if(ev.stopImmediatePropagation) ev.stopImmediatePropagation();
-    ev.stopPropagation();
-    const moved = !!RPE_STATE.moveDrag.moved;
-    RPE_STATE.moveDrag.el.classList.remove('rpe-moving-el');
-    RPE_STATE.moveDrag = null;
-    if(moved){
-      rpeMarkDirty();
-      rpeSetStatus('تم التحريك الحر بنجاح.');
-    }
-  };
-  doc.addEventListener('mousemove', onMove, true);
-  doc.addEventListener('pointerdown', onPick, true);
-  doc.addEventListener('pointermove', onPointerMove, true);
-  doc.addEventListener('pointerup', onPointerUp, true);
-  doc.addEventListener('pointercancel', onPointerUp, true);
-  doc.addEventListener('dragstart', onDragStart, true);
-  doc.addEventListener('dragover', onDragOver, true);
-  doc.addEventListener('drop', onDrop, true);
-  doc.addEventListener('dragend', onDragEnd, true);
-  doc.addEventListener('click', blockInteractive, true);
-  doc.addEventListener('auxclick', blockInteractive, true);
-  doc.addEventListener('dblclick', blockInteractive, true);
-  doc.addEventListener('submit', blockInteractive, true);
-  doc.addEventListener('keydown', blockInteractive, true);
-  if(doc.defaultView){
-    doc.defaultView.addEventListener('pointerdown', onPick, true);
-  }
-}
-async function rpeLoadPage(force=false){
-  if(!force && RPE_STATE.initialized) return;
-  const iframe = $('rpe-iframe');
-  if(!iframe) return;
-  const page = rpeCurrentPageMeta();
-  const route = page?.route || '/';
-  iframe.onload = () => {
-    RPE_STATE.initialized = true;
-    RPE_STATE.selected = null;
-    RPE_STATE.dirty = false;
-    rpeInjectEditorHooks();
-    rpeSelectRootSection();
-    rpeSetStatus(`تم تحميل الصفحة: ${page?.title || RPE_STATE.pageId}. اختر عنصرًا للتعديل.`);
-  };
-  iframe.src = route + (route.includes('?') ? '&' : '?') + 'rpe=1&t=' + Date.now();
-}
-async function initRealPageEditor(force=false){
-  rpeBindToolboxDnd();
-  rpeUpdateFreeMoveButton();
-  await rpeLoadPagesList(force);
-  await rpeLoadPage(force);
-}
-function rpeSelectRootSection(){
-  const doc = rpeDoc();
-  if(!doc) return;
-  const el = doc.querySelector('main section, .page section, section');
-  if(el) rpeSelect(el);
-}
-function rpeDeleteSelected(){
-  const target = rpeRequireSelected('الحذف');
-  if(!target) return;
-  RPE_STATE.selected = null;
-  target.remove();
-  rpeMarkDirty();
-  rpeSetStatus('تم حذف العنصر.');
-}
-function rpeDuplicateSelected(){
-  const el = rpeRequireSelected('النسخ');
-  if(!el || !el.parentNode) return;
-  const clone = el.cloneNode(true);
-  el.parentNode.insertBefore(clone, el.nextSibling);
-  rpeRefreshDragNodes();
-  rpeSelect(clone);
-  rpeMarkDirty();
-  rpeSetStatus('تم نسخ العنصر المحدد.');
-}
-function rpeToggleHideSelected(){
-  const el = rpeRequireSelected('الإخفاء/الإظهار');
-  if(!el) return;
-  if(el.dataset.rpeDisplayPrev){
-    el.style.display = el.dataset.rpeDisplayPrev;
-    delete el.dataset.rpeDisplayPrev;
-  } else {
-    el.dataset.rpeDisplayPrev = el.style.display || '';
-    el.style.display = 'none';
-  }
-  rpeMarkDirty();
-}
-function rpeMoveSelected(dir){
-  const el = rpeRequireSelected('التحريك');
-  if(!el || !el.parentNode) return;
-  if(dir < 0 && el.previousElementSibling){
-    el.parentNode.insertBefore(el, el.previousElementSibling);
-  } else if(dir > 0 && el.nextElementSibling){
-    el.parentNode.insertBefore(el.nextElementSibling, el);
-  } else {
-    rpeSetStatus('لا يمكن تحريك العنصر أكثر في هذا الاتجاه.');
-    return;
-  }
-  rpeMarkDirty();
-  rpeSetStatus('تم تحريك العنصر بنجاح.');
-}
-function rpeEnableTextEdit(){
-  const el = rpeRequireSelected('تعديل النص');
-  if(!el) return;
-  const tag = (el.tagName || '').toLowerCase();
-  const textTags = new Set(['h1','h2','h3','h4','h5','h6','p','span','li','a','button','label','small','strong','em','div']);
-  if(!textTags.has(tag) && !el.textContent?.trim()){
-    toast('⚠️ العنصر المحدد ليس عنصر نص مناسب', 'err');
-    rpeSetStatus('اختر عنصر نص (عنوان/فقرة/زر...) ثم أعد المحاولة.');
-    return;
-  }
-  el.contentEditable = 'true';
-  el.focus();
-  rpeSetStatus('وضع تحرير النص مفعّل للعنصر المحدد.');
-  el.addEventListener('blur', () => { el.contentEditable = 'false'; rpeMarkDirty(); }, { once:true });
-}
-function rpePickLocalImageFile(){
-  return new Promise((resolve) => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/png,image/jpeg,image/webp,image/gif,image/avif';
-    input.style.position = 'fixed';
-    input.style.left = '-9999px';
-    const cleanup = () => {
-      try { input.remove(); } catch(_) {}
-    };
-    input.addEventListener('change', () => {
-      const file = input.files && input.files[0] ? input.files[0] : null;
-      cleanup();
-      resolve(file);
-    }, { once:true });
-    document.body.appendChild(input);
-    input.click();
-  });
-}
-function rpeFileToDataUrl(file){
-  return new Promise((resolve, reject) => {
-    const rd = new FileReader();
-    rd.onload = () => resolve(String(rd.result || ''));
-    rd.onerror = () => reject(new Error('تعذر قراءة الملف'));
-    rd.readAsDataURL(file);
-  });
-}
-async function rpeUploadLocalImage(file){
-  const dataUrl = await rpeFileToDataUrl(file);
-  const r = await apiFetch('/api/store-image', {
-    method: 'POST',
-    body: JSON.stringify({ dataUrl })
-  });
-  if(!r) throw new Error('غير مصرح');
-  const d = await r.json();
-  if(!r.ok || !d.url) throw new Error(d.error || 'فشل رفع الصورة');
-  return String(d.url);
-}
-async function rpeReplaceImage(){
-  const doc = rpeDoc();
-  if(!doc) return;
-  const el = rpeRequireSelected('استبدال الصورة');
-  if(!el){ toast('⚠️ حدّد عنصر صورة أولًا', 'err'); return; }
-
-  const readUrl = (raw) => {
-    const s = String(raw || '').trim();
-    if(!s || s === 'none') return '';
-    const m = s.match(/url\((['"]?)(.*?)\1\)/i);
-    return m ? (m[2] || '') : '';
-  };
-  const getBgUrl = (node) => {
-    const raw = (node?.style?.backgroundImage || '').trim();
-    return readUrl(raw);
-  };
-  const getVarUrl = (node, prop) => {
-    const raw = (node?.style?.getPropertyValue(prop) || '').trim();
-    return readUrl(raw);
-  };
-  const setBgUrl = (node, url) => {
-    node.style.backgroundImage = 'url("' + url + '")';
-  };
-  const setVarUrl = (node, prop, url) => {
-    node.style.setProperty(prop, 'url("' + url + '")');
-  };
-
-  const asImg = (node) => (node && (node.tagName || '').toLowerCase() === 'img') ? node : null;
-  const cssVars = ['--card-bg','--bg','--image','--hero-bg','--thumb-bg'];
-
-  const resolveTarget = (startNode) => {
-    let node = startNode;
-    for(let i=0; node && i<10; i++, node=node.parentElement){
-      const imgSelf = asImg(node);
-      if(imgSelf) return { kind:'img', node: imgSelf, current: imgSelf.getAttribute('src') || '' };
-
-      const imgInside = node.querySelector?.('img');
-      if(imgInside) return { kind:'img', node: imgInside, current: imgInside.getAttribute('src') || '' };
-
-      const bg = getBgUrl(node);
-      if(bg) return { kind:'bg', node, current: bg };
-
-      for(const prop of cssVars){
-        const u = getVarUrl(node, prop);
-        if(u) return { kind:'var', node, prop, current: u };
-      }
-    }
-
-    const fallbackBg = startNode.closest?.('[style*="background-image"]') || null;
-    if(fallbackBg) return { kind:'bg', node: fallbackBg, current: getBgUrl(fallbackBg) };
-
-    const fallbackVar = startNode.closest?.('[style*="--card-bg"],[style*="--bg"],[style*="--image"],[style*="--hero-bg"],[style*="--thumb-bg"]') || null;
-    if(fallbackVar){
-      for(const prop of cssVars){
-        const u = getVarUrl(fallbackVar, prop);
-        if(u) return { kind:'var', node: fallbackVar, prop, current: u };
-      }
-    }
-
-    return null;
-  };
-
-  const target = resolveTarget(el);
-  if(!target){
-    toast('⚠️ لا توجد صورة مباشرة أو صورة خلفية داخل العنصر المحدد', 'err');
-    return;
-  }
-
-  const file = await rpePickLocalImageFile();
-  if(!file){
-    rpeSetStatus('تم إلغاء اختيار الصورة.');
-    return;
-  }
-  if(!String(file.type || '').startsWith('image/')){
-    toast('⚠️ الملف المختار ليس صورة', 'err');
-    return;
-  }
-  if(String(file.type) === 'image/svg+xml'){
-    toast('⚠️ صيغة SVG غير مدعومة', 'err');
-    return;
-  }
-  if(Number(file.size || 0) > 12 * 1024 * 1024){
-    toast('⚠️ الصورة كبيرة جدًا (الحد 12MB)', 'err');
-    return;
-  }
-
-  rpeSetStatus('جاري رفع الصورة...');
-  let savedUrl = '';
-  try {
-    savedUrl = await rpeUploadLocalImage(file);
-  } catch (e) {
-    toast('❌ فشل رفع الصورة: ' + (e?.message || 'unknown error'), 'err');
-    return;
-  }
-
-  if(target.kind === 'img'){
-    rpeSelect(target.node);
-    target.node.setAttribute('src', savedUrl);
-    rpeMarkDirty();
-    rpeSetStatus('تم رفع الصورة واستبدالها بنجاح.');
-    return;
-  }
-
-  if(target.kind === 'bg'){
-    rpeSelect(target.node);
-    setBgUrl(target.node, savedUrl);
-    rpeMarkDirty();
-    rpeSetStatus('تم رفع الصورة واستبدال الخلفية بنجاح.');
-    return;
-  }
-
-  if(target.kind === 'var'){
-    rpeSelect(target.node);
-    setVarUrl(target.node, target.prop, savedUrl);
-    rpeMarkDirty();
-    rpeSetStatus('تم رفع الصورة واستبدال الخلفية بنجاح.');
-    return;
-  }
-}
-function rpeApplySpacing(){
-  const el = rpeRequireSelected('تطبيق المسافات');
-  if(!el) return;
-  const mt = Number($('rpe-margin-top')?.value || 0);
-  const mb = Number($('rpe-margin-bottom')?.value || 0);
-  const pd = Number($('rpe-padding')?.value || 0);
-  el.style.marginTop = mt + 'px';
-  el.style.marginBottom = mb + 'px';
-  el.style.padding = pd + 'px';
-  rpeMarkDirty();
-}
-function rpeAddSection(){
-  const doc = rpeDoc();
-  if(!doc) return;
-  const host = doc.querySelector('main') || doc.body;
-  if(!host) return;
-  const custom = ($('rpe-new-section-html')?.value || '').trim();
-  const wrapper = doc.createElement('div');
-  wrapper.innerHTML = custom || '<section class="section reveal"><div class="head"><h4>قسم جديد</h4></div><p>حرّر هذا القسم مباشرة من الصفحة.</p></section>';
-  const node = wrapper.firstElementChild;
-  if(!node) return;
-  host.appendChild(node);
-  rpeRefreshDragNodes();
-  rpeSelect(node);
-  rpeMarkDirty();
-}
-async function rpeSavePage(){
-  const doc = rpeDoc();
-  if(!doc) return;
-  if(RPE_STATE.selected) RPE_STATE.selected.classList.remove('rpe-selected-el');
-  doc.querySelectorAll('[contenteditable="true"]').forEach(el => el.setAttribute('contenteditable', 'false'));
-  const html = '<!DOCTYPE html>\n' + doc.documentElement.outerHTML;
-  if(RPE_STATE.selected) RPE_STATE.selected.classList.add('rpe-selected-el');
-  const r = await apiFetch('/api/admin/real-editor/page/' + encodeURIComponent(RPE_STATE.pageId), {
-    method: 'POST',
-    body: JSON.stringify({ html })
-  });
-  if(!r) return;
-  const d = await r.json();
-  if(r.ok){
-    RPE_STATE.dirty = false;
-    toast('✅ تم حفظ الصفحة الحقيقية بنجاح');
-  } else {
-    toast('❌ ' + (d.error || 'فشل حفظ الصفحة'), 'err');
-  }
-}
-function builderOpenLivePreview(){
-  const page = builderCurrentPage();
-  const route = page?.route || '/';
-  const overlay = $('pb-live-overlay');
-  const frame = $('pb-live-frame');
-  const title = $('pb-live-title');
-  if(!overlay || !frame) return;
-  if(title) title.textContent = `Live Preview: ${page?.title || 'Page'} (${route})`;
-  frame.src = route + (route.includes('?') ? '&' : '?') + 'builderPreview=1';
-  overlay.classList.add('show');
-  document.body.classList.add('pb-fullscreen-open');
-}
-function builderCloseLivePreview(){
-  const overlay = $('pb-live-overlay');
-  const frame = $('pb-live-frame');
-  if(frame) frame.src = 'about:blank';
-  if(overlay) overlay.classList.remove('show');
-  if(!builderFullscreen) document.body.classList.remove('pb-fullscreen-open');
-}
-
-window.addEventListener('keydown', (ev) => {
-  if(ev.key === 'Escape' && $('pb-live-overlay')?.classList.contains('show')){
-    builderCloseLivePreview();
-    return;
-  }
-  if(ev.key === 'Escape' && builderFullscreen){
-    builderSetFullscreen(false);
-    renderBuilderCanvas();
-  }
-});
-
-async function loadSidebarItems(){
-  if(!$('pb-pages-list')) return;
-  $('pb-pages-list').innerHTML = '<div class="empty-state">⏳ جارٍ التحميل...</div>';
-  try {
-    const r = await apiFetch('/api/admin/page-builder/pages');
-    if(!r) throw new Error('unauthorized');
-    const d = await r.json();
-    if(!r.ok) throw new Error(d.error || 'failed_to_load_pages');
-    builderPages = Array.isArray(d.pages) && d.pages.length ? d.pages : BUILDER_FALLBACK_PAGES.slice();
-  } catch (e) {
-    builderPages = BUILDER_FALLBACK_PAGES.slice();
-    toast('⚠️ تعذر تحميل قائمة الصفحات من السيرفر، تم فتح Discover مباشرة', 'err');
-  }
-  if(!builderCurrentPageId && builderPages.length) builderCurrentPageId = builderPages[0].id;
-  renderBuilderPages();
-  if(builderCurrentPageId) await loadBuilderLayout(builderCurrentPageId);
-}
-
-function renderBuilderPages(){
-  const wrap = $('pb-pages-list');
-  if(!wrap) return;
-  if(!builderPages.length){ wrap.innerHTML = '<div class="empty-state">لا توجد صفحات متاحة.</div>'; return; }
-  wrap.innerHTML = builderPages.map(p => `
-    <button class="pb-page-btn ${p.id===builderCurrentPageId?'active':''}" onclick="selectBuilderPage('${escH(p.id)}')">
-      <span>${escH(p.title)}</span>
-      <span class="pb-page-meta">${(p.components||0)} comps</span>
-    </button>`).join('');
-  const cur = builderCurrentPage();
-  if($('pb-page-status')) $('pb-page-status').textContent = cur ? `${cur.title} · ${cur.route}` : '—';
-}
-
-async function selectBuilderPage(pageId){
-  if(!pageId || pageId===builderCurrentPageId) return;
-  if(builderFullscreen) builderSetFullscreen(false);
-  builderCurrentPageId = pageId;
-  builderSelectedId = '';
-  renderBuilderPages();
-  await loadBuilderLayout(pageId);
-}
-
-async function loadBuilderLayout(pageId){
-  try {
-    const r = await apiFetch('/api/admin/page-builder/layout/' + encodeURIComponent(pageId));
-    if(!r) throw new Error('unauthorized');
-    const d = await r.json();
-    if(!r.ok) throw new Error(d.error || 'failed_to_load_layout');
-    builderLayout = Array.isArray(d.layout) ? d.layout : [];
-    const pageRec = builderPages.find(p => p.id === pageId);
-    if(pageRec){
-      pageRec.components = builderLayout.length;
-      renderBuilderPages();
-    }
-    builderSelectedId = '';
-    renderBuilderCanvas();
-    renderBuilderProps();
-    if(d.importedFromReal) toast('✅ تم تحميل المحتوى الحقيقي من الصفحة إلى المحرر');
-  } catch (e) {
-    builderLayout = [];
-    builderSelectedId = '';
-    renderBuilderCanvas();
-    renderBuilderProps();
-    if($('pb-canvas')) {
-      $('pb-canvas').innerHTML = '<div class="empty-state" style="padding:24px;position:absolute;left:50%;top:40%;transform:translate(-50%,-50%);">❌ فشل تحميل محتوى الصفحة الحقيقي. أعد تحديث الصفحة بعد تشغيل السيرفر.</div>';
-    }
-    toast('❌ فشل تحميل محتوى الصفحة من السيرفر', 'err');
-  }
-}
-
-function renderBuilderCanvas(){
-  const canvas = $('pb-canvas');
-  if(!canvas) return;
-  const wrap = canvas.parentElement;
-  const guideV = $('pb-guide-v');
-  const guideH = $('pb-guide-h');
-  const calcCanvasHeight = () => {
-    if(!builderLayout.length) return 700;
-    let bottom = 0;
-    for(const c of builderLayout){
-      const y = Number(c.y) || 0;
-      const h = Number(c.h) || 0;
-      bottom = Math.max(bottom, y + h);
-    }
-    return Math.max(700, Math.min(5000, bottom + 80));
-  };
-  const calcCanvasWidth = () => {
-    const baseMin = builderFullscreen ? 780 : 1200;
-    const visibleWidth = Math.max(baseMin, (wrap?.clientWidth || 0) - 2);
-    if(!builderLayout.length) return visibleWidth;
-    let right = 0;
-    for(const c of builderLayout){
-      const x = Number(c.x) || 0;
-      const w = Number(c.w) || 0;
-      right = Math.max(right, x + w);
-    }
-    return Math.max(visibleWidth, Math.min(6000, right + 80));
-  };
-  const logicalWidth = calcCanvasWidth();
-  const logicalHeight = calcCanvasHeight();
-  let scale = 1;
-  if(builderFullscreen && wrap){
-    const availW = Math.max(120, (wrap.clientWidth || 0) - 24);
-    const availH = Math.max(120, (wrap.clientHeight || 0) - 24);
-    const fitScale = Math.min(availW / logicalWidth, availH / logicalHeight);
-    scale = Math.min(1, Number.isFinite(fitScale) ? fitScale : 1);
-  }
-  builderCanvasScale = scale;
-  builderCanvasLogicalWidth = logicalWidth;
-  builderCanvasLogicalHeight = logicalHeight;
-  canvas.style.width = Math.max(1, Math.floor(logicalWidth * scale)) + 'px';
-  canvas.style.height = Math.max(1, Math.floor(logicalHeight * scale)) + 'px';
-  if(wrap) wrap.classList.toggle('pb-fit-view', builderFullscreen && scale < 1);
-  canvas.innerHTML = '';
-  canvas.appendChild(guideV);
-  canvas.appendChild(guideH);
-
-  if(!builderLayout.length){
-    const e = document.createElement('div');
-    e.className = 'empty-state';
-    e.style.cssText = 'padding:24px;position:absolute;left:50%;top:40%;transform:translate(-50%,-50%);';
-    e.textContent = 'أضف عنصرًا من المكتبة لبدء التصميم';
-    canvas.appendChild(e);
-    return;
-  }
-  builderLayout.slice().sort((a,b)=>(a.z||0)-(b.z||0)).forEach(c => {
-    const node = document.createElement('div');
-    node.className = 'pb-node' + (c.id===builderSelectedId ? ' active' : '') + (c.locked ? ' locked' : '') + (c.hidden ? ' hidden' : '');
-    node.style.left = ((c.x||0) * builderCanvasScale) + 'px';
-    node.style.top = ((c.y||0) * builderCanvasScale) + 'px';
-    node.style.width = ((c.w||200) * builderCanvasScale) + 'px';
-    node.style.height = ((c.h||120) * builderCanvasScale) + 'px';
-    node.style.zIndex = c.z || 0;
-    node.dataset.id = c.id;
-    node.innerHTML = `<div class="pb-node-title"><span>${builderNodeTitle(c)}</span><span>${c.w}×${c.h}</span></div><div class="pb-node-content">${previewBuilderNode(c)}</div><span class="pb-resize"></span>`;
-    node.addEventListener('pointerdown', ev => startBuilderDrag(ev, c.id));
-    node.querySelector('.pb-resize').addEventListener('pointerdown', ev => startBuilderResize(ev, c.id));
-    canvas.appendChild(node);
-  });
-}
-
-function previewBuilderNode(c){
-  if(c.type==='image') return `<img src="${escAttr(c.props?.url||'')}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;">`;
-  if(c.type==='button') return `<div style="display:inline-flex;padding:8px 12px;border-radius:8px;background:${escAttr(c.props?.bg||'#00e5ff')};color:${escAttr(c.props?.color||'#00131d')};font-weight:800;">${escH(c.props?.label||'Button')}</div>`;
-  if(c.type==='video') return `<div style="height:100%;display:flex;align-items:center;justify-content:center;background:#000;border-radius:8px;color:#9ab;">Video</div>`;
-  if(c.type==='card') return `<div style="height:100%;padding:8px;border-radius:8px;background:${escAttr(c.props?.bg||'rgba(11,30,52,.9)')};color:${escAttr(c.props?.color||'#f2f6ff')};"><strong>${escH(c.props?.title||'Card')}</strong><div style="font-size:11px;margin-top:5px;opacity:.8;">${escH(c.props?.body||'')}</div></div>`;
-  return `<div style="font-size:11px;"><strong>${escH(c.props?.title||'Heading')}</strong><div style="margin-top:4px;opacity:.85;">${escH(c.props?.body||'')}</div></div>`;
-}
-
-function selectBuilderComponent(id){
-  builderSelectedId = id;
-  renderBuilderCanvas();
-  renderBuilderProps();
-}
-
-function startBuilderDrag(ev, id){
-  const target = builderLayout.find(c => c.id === id);
-  if(!target) return;
-  selectBuilderComponent(id);
-  if(target.locked) return;
-  if(ev.target && ev.target.classList && ev.target.classList.contains('pb-resize')) return;
-  ev.preventDefault();
-  const canvasRect = $('pb-canvas').getBoundingClientRect();
-  const scale = builderCanvasScale || 1;
-  const ox = ((ev.clientX - canvasRect.left) / scale) - target.x;
-  const oy = ((ev.clientY - canvasRect.top) / scale) - target.y;
-  builderDrag = { id, mode: 'move', ox, oy };
-  window.addEventListener('pointermove', onBuilderPointerMove);
-  window.addEventListener('pointerup', stopBuilderPointer);
-}
-
-function startBuilderResize(ev, id){
-  const target = builderLayout.find(c => c.id === id);
-  if(!target || target.locked) return;
-  ev.preventDefault();
-  ev.stopPropagation();
-  builderDrag = { id, mode: 'resize', sx: ev.clientX, sy: ev.clientY, sw: target.w, sh: target.h };
-  window.addEventListener('pointermove', onBuilderPointerMove);
-  window.addEventListener('pointerup', stopBuilderPointer);
-}
-
-function onBuilderPointerMove(ev){
-  if(!builderDrag) return;
-  const c = builderLayout.find(x => x.id === builderDrag.id);
-  if(!c) return;
-  const canvas = $('pb-canvas');
-  const rect = canvas.getBoundingClientRect();
-  const scale = builderCanvasScale || 1;
-  const logicalW = builderCanvasLogicalWidth || Math.round(canvas.clientWidth / scale);
-  const logicalH = builderCanvasLogicalHeight || Math.round(canvas.clientHeight / scale);
-  if(builderDrag.mode==='move'){
-    let x = ((ev.clientX - rect.left) / scale) - builderDrag.ox;
-    let y = ((ev.clientY - rect.top) / scale) - builderDrag.oy;
-    const centerX = Math.round((logicalW - c.w) / 2);
-    const centerY = Math.round((logicalH - c.h) / 2);
-    const snap = 8;
-    if(Math.abs(x - centerX) <= snap){ x = centerX; $('pb-guide-v').style.left = ((x + c.w/2) * scale) + 'px'; $('pb-guide-v').style.display = 'block'; }
-    else $('pb-guide-v').style.display = 'none';
-    if(Math.abs(y - centerY) <= snap){ y = centerY; $('pb-guide-h').style.top = ((y + c.h/2) * scale) + 'px'; $('pb-guide-h').style.display = 'block'; }
-    else $('pb-guide-h').style.display = 'none';
-    c.x = Math.max(0, Math.min(x, logicalW - c.w));
-    c.y = Math.max(0, Math.min(y, logicalH - c.h));
-  } else {
-    const dx = (ev.clientX - builderDrag.sx) / scale;
-    const dy = (ev.clientY - builderDrag.sy) / scale;
-    c.w = Math.max(120, Math.min(logicalW - c.x, builderDrag.sw + dx));
-    c.h = Math.max(40, Math.min(logicalH - c.y, builderDrag.sh + dy));
-  }
-  renderBuilderCanvas();
-  renderBuilderProps();
-}
-
-function stopBuilderPointer(){
-  builderDrag = null;
-  hideBuilderGuides();
-  window.removeEventListener('pointermove', onBuilderPointerMove);
-  window.removeEventListener('pointerup', stopBuilderPointer);
-}
-
-function addBuilderComponent(type){
-  const cfg = BUILDER_TYPES[type];
-  if(!cfg) return;
-  const z = builderLayout.length ? Math.max(...builderLayout.map(c => c.z || 0)) + 1 : 1;
-  const comp = { id: builderUid(), type, x: 30 + (builderLayout.length*12)%220, y: 30 + (builderLayout.length*18)%180, w: type==='button' ? 220 : 340, h: type==='button' ? 68 : (type==='text' ? 170 : 210), z, hidden:false, locked:false, props: { ...cfg.defaults } };
-  builderLayout.push(comp);
-  builderSelectedId = comp.id;
-  renderBuilderCanvas();
-  renderBuilderProps();
-}
-
-function renderBuilderProps(){
-  const wrap = $('pb-props-wrap');
-  if(!wrap) return;
-  const c = builderSelected();
-  if(!c){ wrap.innerHTML = '<div class="empty-state">اختر عنصرًا من الـ Canvas لعرض الخصائص.</div>'; return; }
-  wrap.innerHTML = `
-    <div class="pb-prop"><label>Type</label><input value="${escAttr(c.type)}" disabled></div>
-    <div class="pb-prop"><label>X</label><input type="number" value="${Number(c.x)||0}" onchange="builderPatchNum('x',this.value)"></div>
-    <div class="pb-prop"><label>Y</label><input type="number" value="${Number(c.y)||0}" onchange="builderPatchNum('y',this.value)"></div>
-    <div class="pb-prop"><label>Width</label><input type="number" value="${Number(c.w)||0}" onchange="builderPatchNum('w',this.value)"></div>
-    <div class="pb-prop"><label>Height</label><input type="number" value="${Number(c.h)||0}" onchange="builderPatchNum('h',this.value)"></div>
-    <div class="pb-prop"><label>Z Index</label><input type="number" value="${Number(c.z)||0}" onchange="builderPatchNum('z',this.value)"></div>
-    <div class="pb-prop"><label>Align</label>
-      <select onchange="builderPatchProp('align',this.value)">
-        <option value="start" ${(c.props?.align||'start')==='start'?'selected':''}>Start</option>
-        <option value="center" ${(c.props?.align||'start')==='center'?'selected':''}>Center</option>
-        <option value="end" ${(c.props?.align||'start')==='end'?'selected':''}>End</option>
-      </select>
-    </div>
-    <div class="pb-prop"><label>Title</label><input value="${escAttr(c.props?.title||'')}" oninput="builderPatchProp('title',this.value)"></div>
-    <div class="pb-prop"><label>Body</label><textarea oninput="builderPatchProp('body',this.value)">${escH(c.props?.body||'')}</textarea></div>
-    <div class="pb-prop"><label>URL</label><input value="${escAttr(c.props?.url||'')}" oninput="builderPatchProp('url',this.value)"></div>
-    <div class="pb-prop"><label>Button Label</label><input value="${escAttr(c.props?.label||'')}" oninput="builderPatchProp('label',this.value)"></div>
-    <div class="pb-prop"><label>Background</label><input value="${escAttr(c.props?.bg||'')}" oninput="builderPatchProp('bg',this.value)"></div>
-    <div class="pb-prop"><label>Color</label><input value="${escAttr(c.props?.color||'')}" oninput="builderPatchProp('color',this.value)"></div>
-  `;
-}
-
-function builderPatchNum(field, value){
-  const c = builderSelected();
-  if(!c) return;
-  c[field] = Number(value) || 0;
-  renderBuilderCanvas();
-}
-function builderPatchProp(field, value){
-  const c = builderSelected();
-  if(!c) return;
-  c.props = c.props || {};
-  c.props[field] = value;
-  renderBuilderCanvas();
-}
-
-function builderDelete(){
-  if(!builderSelectedId) return;
-  builderLayout = builderLayout.filter(c => c.id !== builderSelectedId);
-  builderSelectedId = '';
-  renderBuilderCanvas();
-  renderBuilderProps();
-}
-function builderDuplicate(){
-  const c = builderSelected();
-  if(!c) return;
-  const dup = JSON.parse(JSON.stringify(c));
-  dup.id = builderUid();
-  dup.x += 24;
-  dup.y += 24;
-  dup.z = (Math.max(...builderLayout.map(x => x.z || 0), 0) + 1);
-  builderLayout.push(dup);
-  builderSelectedId = dup.id;
-  renderBuilderCanvas();
-  renderBuilderProps();
-}
-function builderBringForward(){
-  const c = builderSelected();
-  if(!c) return;
-  c.z = (Math.max(...builderLayout.map(x => x.z || 0), 0) + 1);
-  renderBuilderCanvas();
-}
-function builderSendBackward(){
-  const c = builderSelected();
-  if(!c) return;
-  c.z = Math.max(0, (c.z || 0) - 1);
-  renderBuilderCanvas();
-}
-function builderToggleLock(){
-  const c = builderSelected();
-  if(!c) return;
-  c.locked = !c.locked;
-  renderBuilderCanvas();
-}
-function builderToggleHide(){
-  const c = builderSelected();
-  if(!c) return;
-  c.hidden = !c.hidden;
-  renderBuilderCanvas();
-}
-
-async function saveBuilderLayout(){
-  if(!builderCurrentPageId) return;
-  const r = await apiFetch('/api/admin/page-builder/layout/' + encodeURIComponent(builderCurrentPageId), {
-    method:'POST',
-    body: JSON.stringify({ layout: builderLayout })
-  });
-  if(!r) return;
-  if(r.ok){ toast('✅ تم حفظ Layout الصفحة'); loadSidebarItems(); }
-  else { const d = await r.json(); toast('❌ ' + (d.error||'فشل الحفظ'), 'err'); }
-}
-
-async function publishBuilderPage(){
-  if(!builderCurrentPageId) return;
-  const r = await apiFetch('/api/admin/page-builder/publish/' + encodeURIComponent(builderCurrentPageId), {
-    method:'POST',
-    body: JSON.stringify({})
-  });
-  if(!r) return;
-  const d = await r.json();
-  if(r.ok){ toast('🚀 تم نشر الصفحة: ' + (d.page?.title || builderCurrentPageId)); loadSidebarItems(); }
-  else { toast('❌ ' + (d.error || 'فشل النشر'), 'err'); }
-}
-
 // ─── AUDIT LOG ───
 async function loadCMSAudit() {
   $('audit-list').innerHTML = '<div class="empty-state">⏳ جارٍ التحميل...</div>';
@@ -3758,6 +2617,183 @@ async function saveSiteSettings() {
   if(!r) return;
   if(r.ok) toast('✅ تم حفظ الإعدادات');
   else { const d = await r.json(); toast('❌ '+(d.error||'خطأ'),'err'); }
+}
+
+// ─── SIDEBAR MANAGER ───
+let sidebarItemsList = [];
+
+async function loadSidebarItems(){
+  $('sidebar-mgr-list').innerHTML = '<div class="empty-state">⏳ جارٍ التحميل...</div>';
+  const r = await apiFetch('/api/admin/cms/sidebar');
+  if(!r) return;
+  const d = await r.json();
+  sidebarItemsList = (d.sidebar || []).sort((a,b)=>(a.order||0)-(b.order||0));
+  renderSidebarItems();
+}
+
+function renderSidebarItems(){
+  const wrap = $('sidebar-mgr-list');
+  if(!sidebarItemsList.length){
+    wrap.innerHTML = '<div class="empty-state">لا توجد عناصر في القائمة الجانبية.</div>';
+    return;
+  }
+  const groups = {};
+  sidebarItemsList.forEach(item => {
+    const g = item.group || 'Main';
+    if(!groups[g]) groups[g] = [];
+    groups[g].push(item);
+  });
+  let html = '';
+  Object.entries(groups).forEach(([group, items]) => {
+    html += `<div style="font-size:11px;font-weight:700;color:var(--cyan);padding:10px 0 4px;border-bottom:1px solid var(--b1);margin-bottom:6px;letter-spacing:.07em;">${escH(group)}</div>`;
+    items.forEach(item => {
+      const iconHtml = item.iconType === 'img' && item.iconImg
+        ? `<img src="${escH(item.iconImg)}" style="width:20px;height:20px;border-radius:4px;object-fit:contain;flex-shrink:0;" onerror="this.style.display='none'">`
+        : `<span style="font-size:16px;flex-shrink:0;">${escH(item.icon||'📄')}</span>`;
+      const badgeHtml = item.badge ? `<span style="font-size:9px;font-weight:800;padding:2px 7px;border-radius:10px;background:${escH(item.badge.color||'#5fe2ff')};color:#000;">${escH(item.badge.text)}</span>` : '';
+      const newBadge = item.isNew ? `<span style="font-size:9px;padding:2px 7px;border-radius:10px;background:#3cdc78;color:#000;font-weight:800;">NEW</span>` : '';
+      const proBadge = item.isPro ? `<span style="font-size:9px;padding:2px 7px;border-radius:10px;background:#f2b544;color:#000;font-weight:800;">PRO</span>` : '';
+      html += `
+        <div class="nav-item" style="flex-wrap:wrap;gap:8px;padding:10px 12px;">
+          <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">
+            ${iconHtml}
+            <div style="min-width:0;">
+              <div style="font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escH(item.title)} ${badgeHtml}${newBadge}${proBadge}</div>
+              <div style="font-size:11px;color:var(--tx2);">pageId: ${escH(item.pageId||'')} · ${item.visible?'<span style="color:var(--green)">ظاهر</span>':'<span style="color:var(--tx3)">مخفي</span>'} · ${item.enabled?'<span style="color:var(--green)">مفعّل</span>':'<span style="color:var(--tx3)">معطّل</span>'} · ترتيب: ${item.order}</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:5px;flex-shrink:0;">
+            <button class="btn-sm" onclick="toggleSidebarItem('${escH(item.id)}','visible',${!item.visible})">${item.visible?'👁 إخفاء':'👁 إظهار'}</button>
+            <button class="btn-sm" onclick="toggleSidebarItem('${escH(item.id)}','enabled',${!item.enabled})">${item.enabled?'⏸ تعطيل':'▶ تفعيل'}</button>
+            <button class="btn-sm" onclick="openSidebarModal('${escH(item.id)}')">✏️ تعديل</button>
+            <button class="btn-sm" style="color:var(--red)" onclick="deleteSidebarItem('${escH(item.id)}')">🗑️</button>
+          </div>
+        </div>`;
+    });
+  });
+  wrap.innerHTML = html;
+}
+
+async function toggleSidebarItem(id, field, value){
+  const r = await apiFetch(`/api/admin/cms/sidebar/${encodeURIComponent(id)}`, { method:'PUT', body: JSON.stringify({ [field]: value }) });
+  if(!r) return;
+  if(r.ok){ toast(value ? '✅ تم التفعيل' : '⏸ تم التعطيل'); loadSidebarItems(); }
+  else { const d=await r.json(); toast('❌ '+(d.error||'خطأ'),'err'); }
+}
+
+async function deleteSidebarItem(id){
+  if(!confirm('هل تريد حذف هذا العنصر من القائمة؟')) return;
+  const r = await apiFetch(`/api/admin/cms/sidebar/${encodeURIComponent(id)}`, { method:'DELETE' });
+  if(!r) return;
+  if(r.ok){ toast('🗑️ تم الحذف'); loadSidebarItems(); }
+  else { const d=await r.json(); toast('❌ '+(d.error||'خطأ'),'err'); }
+}
+
+function openSidebarModal(id){
+  const item = id ? sidebarItemsList.find(i=>i.id===id) : null;
+  const title = item ? 'تعديل عنصر القائمة الجانبية' : 'عنصر جديد في القائمة';
+  const v = item || { pageId:'', title:'', group:'Main', icon:'📄', iconType:'emoji', iconImg:'', order:0, visible:true, enabled:true, badge:null, external:false, externalUrl:'', isNew:false, isPro:false, featured:false };
+  openModal(title, `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div class="field-group">
+        <label class="field-label">اسم الصفحة (pageId) *</label>
+        <input class="field-input" id="si-pageId" value="${escAttr(v.pageId)}" placeholder="dash, nano, kling ...">
+      </div>
+      <div class="field-group">
+        <label class="field-label">العنوان *</label>
+        <input class="field-input" id="si-title" value="${escAttr(v.title)}" placeholder="اسم العنصر">
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div class="field-group">
+        <label class="field-label">المجموعة/الفئة</label>
+        <input class="field-input" id="si-group" value="${escAttr(v.group)}" placeholder="Main, Production, Models ...">
+      </div>
+      <div class="field-group">
+        <label class="field-label">الترتيب</label>
+        <input class="field-input" type="number" id="si-order" value="${v.order}">
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:end;">
+      <div class="field-group">
+        <label class="field-label">نوع الأيقونة</label>
+        <select class="field-input" id="si-iconType" onchange="toggleSiIconFields()">
+          <option value="emoji" ${v.iconType==='emoji'?'selected':''}>إيموجي</option>
+          <option value="img" ${v.iconType==='img'?'selected':''}>صورة</option>
+        </select>
+      </div>
+      <div id="si-icon-emoji-wrap" style="${v.iconType!=='emoji'?'display:none':''}">
+        <div class="field-group">
+          <label class="field-label">الإيموجي</label>
+          <input class="field-input" id="si-icon" value="${escAttr(v.icon||'')}" placeholder="🏠">
+        </div>
+      </div>
+      <div id="si-icon-img-wrap" style="${v.iconType!=='img'?'display:none':''}">
+        <div class="field-group">
+          <label class="field-label">مسار الصورة</label>
+          <input class="field-input" id="si-iconImg" value="${escAttr(v.iconImg||'')}" placeholder="/assets/logo-xxx.png">
+        </div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div class="field-group">
+        <label class="field-label">نص الشارة (اختياري)</label>
+        <input class="field-input" id="si-badgeText" value="${escAttr(v.badge?.text||'')}" placeholder="NEW أو PRO أو قريباً">
+      </div>
+      <div class="field-group">
+        <label class="field-label">لون الشارة</label>
+        <input class="field-input" type="color" id="si-badgeColor" value="${escAttr(v.badge?.color||'#5fe2ff')}">
+      </div>
+    </div>
+    <div id="si-external-wrap" style="${v.external?'':'display:none'}">
+      <div class="field-group">
+        <label class="field-label">الرابط الخارجي</label>
+        <input class="field-input" id="si-externalUrl" value="${escAttr(v.externalUrl||'')}" placeholder="https://... أو /dashboard.html">
+      </div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:16px;margin-top:4px;">
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;"><input type="checkbox" id="si-visible" ${v.visible?'checked':''}> ظاهر</label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;"><input type="checkbox" id="si-enabled" ${v.enabled?'checked':''}> مفعّل</label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;"><input type="checkbox" id="si-external-chk" ${v.external?'checked':''} onchange="$('si-external-wrap').style.display=this.checked?'block':'none'"> رابط خارجي</label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;"><input type="checkbox" id="si-isNew" ${v.isNew?'checked':''}> NEW</label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;"><input type="checkbox" id="si-isPro" ${v.isPro?'checked':''}> PRO</label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;"><input type="checkbox" id="si-featured" ${v.featured?'checked':''}> مميّز</label>
+    </div>
+  `, async () => {
+    const pageId = $('si-pageId')?.value?.trim() || '';
+    const siTitle = $('si-title')?.value?.trim() || '';
+    if(!pageId || !siTitle){ toast('❌ اسم الصفحة والعنوان مطلوبان','err'); return; }
+    const iconType = $('si-iconType')?.value || 'emoji';
+    const badgeText = $('si-badgeText')?.value?.trim() || '';
+    const payload = {
+      pageId, title: siTitle,
+      group: $('si-group')?.value?.trim() || 'Main',
+      order: Number($('si-order')?.value) || 0,
+      iconType,
+      icon: iconType === 'emoji' ? ($('si-icon')?.value?.trim() || '📄') : '',
+      iconImg: iconType === 'img' ? ($('si-iconImg')?.value?.trim() || '') : '',
+      badge: badgeText ? { text: badgeText, color: $('si-badgeColor')?.value || '#5fe2ff' } : null,
+      visible: $('si-visible')?.checked ?? true,
+      enabled: $('si-enabled')?.checked ?? true,
+      external: $('si-external-chk')?.checked ?? false,
+      externalUrl: $('si-externalUrl')?.value?.trim() || '',
+      isNew: $('si-isNew')?.checked ?? false,
+      isPro: $('si-isPro')?.checked ?? false,
+      featured: $('si-featured')?.checked ?? false,
+    };
+    const url = item ? `/api/admin/cms/sidebar/${encodeURIComponent(id)}` : '/api/admin/cms/sidebar';
+    const method = item ? 'PUT' : 'POST';
+    const r = await apiFetch(url, { method, body: JSON.stringify(payload) });
+    if(!r) return;
+    if(r.ok){ toast(item ? '✅ تم التحديث' : '✅ تم الإنشاء'); closeModal(); loadSidebarItems(); }
+    else { const d=await r.json(); toast('❌ '+(d.error||'خطأ'),'err'); }
+  });
+}
+
+function toggleSiIconFields(){
+  const t = $('si-iconType')?.value;
+  if($('si-icon-emoji-wrap')) $('si-icon-emoji-wrap').style.display = t==='emoji' ? '' : 'none';
+  if($('si-icon-img-wrap'))  $('si-icon-img-wrap').style.display  = t==='img'   ? '' : 'none';
 }
 
 // ─── AUDIT LOG ───
@@ -4238,7 +3274,7 @@ function downloadBlob(content, filename, type) {
 // API KEYS MANAGEMENT
 // ═══════════════════════════════════════
 const API_KEYS_CONFIG = [
-  { id:'kie', name:'KIE.ai', icon:'🧩', endpoint:'/api/admin/credentials', key:'kieApiKey', desc:'Google Studio, Gemini, Veo, Nano Banana' },
+  { id:'google', name:'Google AI', icon:'🔍', endpoint:'/api/admin/credentials', key:'googleApiKey', desc:'Gemini, Veo, Imagen' },
   { id:'openai', name:'OpenAI', icon:'🧠', endpoint:'/api/admin/credentials', key:'openaiApiKey', desc:'GPT, DALL-E, Sora' },
   { id:'elevenlabs', name:'ElevenLabs', icon:'🎙️', endpoint:'/api/admin/credentials', key:'elevenlabsApiKey', desc:'Text-to-Speech, Voice Clone' },
   { id:'replicate', name:'Replicate', icon:'🔄', endpoint:'/api/admin/credentials', key:'replicateApiKey', desc:'Flux, SD, Models' },

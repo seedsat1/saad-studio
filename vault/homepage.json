@@ -20,7 +20,10 @@
     { "id": "s14", "tag": "Image Editing",         "title": "Flux Kontext",       "desc": "Deep visual context editing — modify images with intelligent scene understanding.",                  "image": "/assets/market-w/hero-flux-kontext.png",       "link": "/fluxkontext.html",      "order": 13 },
     { "id": "s15", "tag": "Image to Image",        "title": "Ideogram Reframe",   "desc": "Smart reframing and intelligent composition for your existing images.",                             "image": "/assets/market-w/hero-ideogram-reframe.png",   "link": "/ideogram-reframe.html", "order": 14 },
     { "id": "s16", "tag": "Lip Sync",              "title": "Infinitalk",         "desc": "Professional lip-sync animation — bring still images to life with perfect audio sync.",             "image": "/assets/market-w/hero-infinitalk.jpg",         "link": "/infinitalk.html",       "order": 15 },
-    { "id": "s17", "tag": "Character Consistency", "title": "Ideogram Character", "desc": "Maintain character identity across multiple scenes with precise visual consistency.",               "image": "/assets/market-w/hero-ideogram-character.jpg", "link": "/ideogram-reframe.html", "order": 16 }
+    { "id": "s17", "tag": "Character Consistency", "title": "Ideogram Character", "desc": "Maintain character identity across multiple scenes with precise visual consistency.",               "image": "/assets/market-w/hero-ideogram-character.jpg", "link": "/ideogram-reframe.html", "order": 16 },
+    { "id": "s18", "tag": "Creative Templates",    "title": "Photo With",         "desc": "Place yourself inside ready-made scenes, characters, locations, and storytelling templates.",         "image": "/assets/logo-saad.png",                         "link": "/photowith",             "order": 17 },
+    { "id": "s19", "tag": "Scene Editing",         "title": "Transitions 2",      "desc": "Build custom AI transition ideas between two shots with clearer structure and guided templates.",      "image": "/assets/logo-saad.png",                         "link": "/transitions2",          "order": 18 },
+    { "id": "s20", "tag": "Viral Content",         "title": "Trends",             "desc": "Launch viral-ready image, video, and avatar trends from curated templates in one place.",               "image": "/assets/logo-saad.png",                         "link": "/trends",                "order": 19 }
   ],
   "models": [
     { "id": "m1",  "pill": "Text to Music",       "title": "Suno",              "sub": "موسيقى مولدة من النص",           "image": "/assets/market-h/card-suno.png",              "link": "/suno.html",             "order": 0 },
@@ -41,6 +44,9 @@
     { "id": "m16", "pill": "Image to Image",       "title": "Ideogram Reframe",  "sub": "إعادة تأطير ذكية",              "image": "/assets/market-h/card-ideogram-reframe.png",   "link": "/ideogram-reframe.html", "order": 15 },
     { "id": "m17", "pill": "Lip Sync",             "title": "Infinitalk",        "sub": "مزامنة شفاه احترافية",           "image": "/assets/market-h/card-infinitalk.png",         "link": "/infinitalk.html",       "order": 16 },
     { "id": "m18", "pill": "Image Edit",           "title": "Qwen2 Image Edit",  "sub": "تحرير صور احترافي بنص واضح",     "image": "https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=1200&q=80", "link": "/qwen2.html", "order": 17 },
-    { "id": "m19", "pill": "Character",            "title": "Ideogram Character","sub": "ثبات الشخصية عبر المشاهد",       "image": "/assets/market-h/card-ideogram-character.png", "link": "/ideogram-reframe.html", "order": 18 }
+    { "id": "m19", "pill": "Character",            "title": "Ideogram Character","sub": "ثبات الشخصية عبر المشاهد",       "image": "/assets/market-h/card-ideogram-character.png", "link": "/ideogram-reframe.html", "order": 18 },
+    { "id": "m20", "pill": "Templates",            "title": "Photo With",       "sub": "تركيب الصور داخل مشاهد جاهزة",   "image": "/assets/logo-saad.png",                       "link": "/photowith",             "order": 19 },
+    { "id": "m21", "pill": "Scene Flow",           "title": "Transitions 2",    "sub": "انتقالات بين لقطتين بوضوح أكبر", "image": "/assets/logo-saad.png",                       "link": "/transitions2",          "order": 20 },
+    { "id": "m22", "pill": "Viral AI",             "title": "Trends",           "sub": "ترندات جاهزة للصورة والفيديو",   "image": "/assets/logo-saad.png",                       "link": "/trends",                "order": 21 }
   ]
 }

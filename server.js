@@ -104,7 +104,7 @@ const KIE_CODEX_BASE_URL = 'https://api.kie.ai/codex/v1';
 const KIE_UPLOAD_BASE_URL = 'https://kieai.redpandaai.co';
 const SUPABASE_URL = process.env.SUPABASE_URL || '';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || '';
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '';
 
 // ─── SUPABASE CLIENTS ─────────────────────────────────────────────────────────
 // supabase  — anon key, used for auth sign-in / sign-up (safe for user-facing ops)
@@ -124,6 +124,42 @@ const KIE_GPT_FALLBACKS = (process.env.KIE_GPT_FALLBACKS || 'gpt-5-2,gpt-5-4,gpt
   .split(',')
   .map(s => s.trim())
   .filter(Boolean);
+const KIE_GEMINI_CHAT_ENDPOINTS = {
+  'gemini-2.5-flash': '/gemini-2.5-flash/v1/chat/completions',
+  'gemini-2.5-pro': '/gemini-2.5-pro/v1/chat/completions'
+};
+const KIE_GOOGLE_IMAGE_MODEL_MAP = {
+  'gemini-3.1-flash-image-preview': {
+    taskModel: 'nano-banana-2',
+    imageField: 'image_input',
+    ratioField: 'aspect_ratio',
+    resolutionField: 'resolution',
+    defaultResolution: '1K',
+    outputFormat: 'jpg'
+  },
+  'gemini-3-pro-image-preview': {
+    taskModel: 'nano-banana-pro',
+    imageField: 'image_input',
+    ratioField: 'aspect_ratio',
+    resolutionField: 'resolution',
+    defaultResolution: '1K',
+    outputFormat: 'png'
+  }
+};
+const KIE_TTS_MODEL_MAP = {
+  'gemini-2.5-flash-preview-tts': 'elevenlabs/text-to-speech-turbo-2-5',
+  'gemini-2.5-pro-preview-tts': 'elevenlabs/text-to-speech-multilingual-v2'
+};
+const KIE_TTS_VOICE_MAP = {
+  Aoede: 'Rachel',
+  Charon: 'Adam',
+  Kore: 'Bella',
+  Fenrir: 'Josh',
+  Puck: 'Sam',
+  Leda: 'Freya',
+  Zephyr: 'Aria',
+  Orus: 'Brian'
+};
 
 // ─── PROFIT MARGIN ────────────────────────────────────────────────────────────
 // هامش الربح — افتراضي 40% ، يمكن تغييره عبر .env: PROFIT_MARGIN=0.30
@@ -137,6 +173,307 @@ function parseDataUrl(dataUrl) {
   const match = String(dataUrl || '').match(/^data:(.+?);base64,(.+)$/);
   if (!match) throw new Error('Invalid data URL');
   return { mimeType: match[1], data: match[2] };
+}
+
+function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function mimeTypeToExtension(mimeType) {
+  const normalized = String(mimeType || 'application/octet-stream').split(';')[0].trim().toLowerCase();
+  const directMap = {
+    'image/jpeg': 'jpg',
+    'image/jpg': 'jpg',
+    'image/png': 'png',
+    'image/webp': 'webp',
+    'image/gif': 'gif',
+    'audio/mpeg': 'mp3',
+    'audio/mp3': 'mp3',
+    'audio/wav': 'wav',
+    'audio/x-wav': 'wav',
+    'audio/mp4': 'm4a',
+    'audio/aac': 'aac',
+    'video/mp4': 'mp4',
+    'video/webm': 'webm'
+  };
+  if (directMap[normalized]) return directMap[normalized];
+  const fallback = normalized.split('/')[1] || 'bin';
+  return fallback.replace(/[^a-z0-9]/gi, '') || 'bin';
+}
+
+function extractPromptTextFromParts(parts) {
+  return (Array.isArray(parts) ? parts : [])
+    .map(part => (typeof part?.text === 'string' ? part.text.trim() : ''))
+    .filter(Boolean)
+    .join('\n\n')
+    .trim();
+}
+
+function extractAspectRatioHint(text) {
+  const match = String(text || '').match(/(?:aspect\s*ratio|image\s*size|ratio)\s*:\s*(auto|\d+:\d+)/i);
+  return match ? match[1] : '';
+}
+
+function extractResolutionHint(text) {
+  const match = String(text || '').match(/(?:target\s*quality|resolution|quality)\s*:\s*(1K|2K|4K|1024px|2048px|4096px)/i);
+  if (!match) return '';
+  const value = String(match[1]).toUpperCase();
+  if (value === '1024PX') return '1K';
+  if (value === '2048PX') return '2K';
+  if (value === '4096PX') return '4K';
+  return value;
+}
+
+function parseKieTaskResult(info) {
+  const resultJson = info?.resultJson || info?.result || info?.output || {};
+  if (typeof resultJson === 'string') {
+    try {
+      return JSON.parse(resultJson);
+    } catch {
+      return {};
+    }
+  }
+  return resultJson && typeof resultJson === 'object' ? resultJson : {};
+}
+
+function extractKieTaskUrls(info) {
+  const parsed = parseKieTaskResult(info);
+  const raw = [
+    parsed?.resultUrls,
+    parsed?.images,
+    parsed?.imageUrls,
+    parsed?.audioUrls,
+    parsed?.videos,
+    parsed?.videoUrls,
+    info?.resultUrls,
+    info?.imageUrls,
+    info?.audioUrls,
+    info?.videoUrls,
+    info?.url,
+    parsed?.url,
+    parsed?.image_url,
+    parsed?.audio_url,
+    parsed?.video_url
+  ];
+  const urls = [];
+  for (const entry of raw) {
+    if (!entry) continue;
+    if (Array.isArray(entry)) {
+      for (const value of entry) {
+        if (typeof value === 'string' && value.trim()) urls.push(value.trim());
+      }
+      continue;
+    }
+    if (typeof entry === 'string' && entry.trim()) urls.push(entry.trim());
+  }
+  return Array.from(new Set(urls));
+}
+
+async function kieGeminiChatFetch(model, payload) {
+  if (!KIE_API_KEY) {
+    throw new Error('Missing KIE_API_KEY in environment');
+  }
+  const endpoint = KIE_GEMINI_CHAT_ENDPOINTS[String(model || '').trim()];
+  if (!endpoint) {
+    throw new Error(`Unsupported KIE Gemini model: ${model}`);
+  }
+
+  const response = await fetch(`${KIE_GPT52_BASE_URL}${endpoint}`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${KIE_API_KEY}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(payload)
+  });
+
+  const text = await response.text();
+  let data = {};
+  try {
+    data = text ? JSON.parse(text) : {};
+  } catch {
+    data = { raw: text };
+  }
+
+  if (!response.ok) {
+    const message =
+      data?.error?.message ||
+      data?.msg ||
+      data?.message ||
+      data?.error ||
+      'Kie Gemini request failed';
+    const error = new Error(message);
+    error.statusCode = response.status;
+    error.payload = data;
+    throw error;
+  }
+
+  return data;
+}
+
+async function uploadInlineDataToKieUrl(inlineData, prefix = 'media') {
+  const mimeType = String(inlineData?.mimeType || 'application/octet-stream');
+  const data = String(inlineData?.data || '');
+  if (!data) throw new Error('Missing inline media payload');
+  const buffer = Buffer.from(data, 'base64');
+  const ext = mimeTypeToExtension(mimeType);
+  const fileName = `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  const uploaded = await kieUploadFile(buffer, fileName, mimeType);
+  if (!uploaded?.response?.ok || !uploaded?.fileUrl) {
+    const errorText = uploaded?.data?.msg || uploaded?.data?.message || uploaded?.data?.error || 'KIE upload failed';
+    throw new Error(errorText);
+  }
+  return uploaded.fileUrl;
+}
+
+async function partsToKieMessageContent(parts) {
+  const content = [];
+  const list = Array.isArray(parts) ? parts : [];
+  for (let index = 0; index < list.length; index += 1) {
+    const part = list[index];
+    if (typeof part?.text === 'string' && part.text.trim()) {
+      content.push({ type: 'text', text: part.text.trim() });
+    }
+    if (part?.inlineData?.data) {
+      const fileUrl = await uploadInlineDataToKieUrl(part.inlineData, `gemini_${index}`);
+      content.push({ type: 'image_url', image_url: { url: fileUrl } });
+    }
+  }
+  return content;
+}
+
+async function pollKieJobRecord(taskId, timeoutMs = 180000, intervalMs = 2500) {
+  const startedAt = Date.now();
+  while ((Date.now() - startedAt) < timeoutMs) {
+    const data = await kieFetch(`/jobs/recordInfo?taskId=${encodeURIComponent(taskId)}`);
+    const info = data?.data || data?.result || {};
+    const state = String(info?.state || info?.status || info?.taskStatus || '').toLowerCase();
+    if (['success', 'succeed', 'completed'].includes(state)) {
+      return info;
+    }
+    if (['fail', 'failed', 'error'].includes(state)) {
+      throw new Error(info?.failMsg || data?.msg || 'KIE task failed');
+    }
+    await delay(intervalMs);
+  }
+  throw new Error('KIE task timed out');
+}
+
+async function getKieDownloadUrl(fileUrl) {
+  if (!fileUrl) return '';
+  try {
+    const data = await kieFetch('/files/download-url', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fileUrl })
+    });
+    return data?.data?.downloadUrl || data?.downloadUrl || fileUrl;
+  } catch {
+    return fileUrl;
+  }
+}
+
+async function downloadAsDataUrl(url) {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Failed to download generated file (${response.status})`);
+  }
+  const mimeType = response.headers.get('content-type') || 'application/octet-stream';
+  const buffer = Buffer.from(await response.arrayBuffer());
+  return `data:${mimeType};base64,${buffer.toString('base64')}`;
+}
+
+async function generateViaKieGeminiChat(model, parts) {
+  const data = await kieGeminiChatFetch(model, {
+    messages: [{ role: 'user', content: await partsToKieMessageContent(parts) }],
+    stream: false,
+    include_thoughts: false
+  });
+  return String(data?.choices?.[0]?.message?.content || '').trim();
+}
+
+async function generateViaKieGoogleImage(model, parts) {
+  const config = KIE_GOOGLE_IMAGE_MODEL_MAP[String(model || '').trim()];
+  if (!config) throw new Error(`Unsupported KIE image model: ${model}`);
+
+  const prompt = extractPromptTextFromParts(parts);
+  const imageUrls = [];
+  for (let index = 0; index < (Array.isArray(parts) ? parts.length : 0); index += 1) {
+    const part = parts[index];
+    if (part?.inlineData?.data) {
+      imageUrls.push(await uploadInlineDataToKieUrl(part.inlineData, `google_image_${index}`));
+    }
+  }
+
+  const ratio = extractAspectRatioHint(prompt) || 'auto';
+  const resolution = extractResolutionHint(prompt) || config.defaultResolution;
+  const input = {
+    prompt: prompt || 'Generate image',
+    output_format: config.outputFormat
+  };
+  input[config.ratioField] = ratio;
+  if (config.resolutionField) input[config.resolutionField] = resolution;
+  if (imageUrls.length > 0) input[config.imageField] = imageUrls;
+
+  const created = await kieFetch('/jobs/createTask', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model: config.taskModel, input })
+  });
+  const taskId = created?.data?.taskId || created?.taskId || created?.data?.id || '';
+  if (!taskId) {
+    throw new Error(created?.msg || 'KIE image task did not return taskId');
+  }
+
+  const info = await pollKieJobRecord(taskId);
+  const resultUrls = extractKieTaskUrls(info);
+  if (resultUrls.length === 0) {
+    throw new Error('KIE image task completed without result URLs');
+  }
+
+  const images = [];
+  for (const rawUrl of resultUrls) {
+    const downloadUrl = await getKieDownloadUrl(rawUrl);
+    images.push(await downloadAsDataUrl(downloadUrl));
+  }
+  return images;
+}
+
+async function generateViaKieTts(model, parts, generationConfig) {
+  const elevenlabsModel = KIE_TTS_MODEL_MAP[String(model || '').trim()] || 'elevenlabs/text-to-speech-turbo-2-5';
+  const text = extractPromptTextFromParts(parts);
+  if (!text) throw new Error('TTS text is required');
+
+  const voiceName = generationConfig?.speechConfig?.voiceConfig?.prebuiltVoiceConfig?.voiceName || 'Aoede';
+  const input = {
+    text,
+    voice: KIE_TTS_VOICE_MAP[String(voiceName)] || 'Rachel',
+    speed: 1,
+    stability: 0.5,
+    similarity_boost: 0.75,
+    style: 0
+  };
+  if (/[\u0600-\u06FF]/.test(text)) input.language_code = 'ar';
+
+  const created = await kieFetch('/jobs/createTask', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model: elevenlabsModel, input })
+  });
+  const taskId = created?.data?.taskId || created?.taskId || created?.data?.id || '';
+  if (!taskId) {
+    throw new Error(created?.msg || 'KIE TTS task did not return taskId');
+  }
+
+  const info = await pollKieJobRecord(taskId);
+  const audioUrls = [];
+  for (const rawUrl of extractKieTaskUrls(info)) {
+    audioUrls.push(await getKieDownloadUrl(rawUrl));
+  }
+  if (audioUrls.length === 0) {
+    throw new Error('KIE TTS task completed without audio URLs');
+  }
+  return audioUrls;
 }
 
 async function kieFetch(endpoint, options = {}) {
@@ -372,10 +709,17 @@ app.use(helmet({
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || '';
 app.use((req, res, next) => {
   const origin = req.headers.origin || '';
-  // In production only allow the configured origin; in dev allow all localhost
+  // In production only allow the configured origin.
+  // In dev allow localhost and file:// pages (origin = "null") for local static testing.
   const allowed = ALLOWED_ORIGIN
     ? origin === ALLOWED_ORIGIN
-    : IS_PROD ? false : /^https?:\/\/localhost(:\d+)?$/.test(origin);
+    : IS_PROD
+      ? false
+      : (
+          /^https?:\/\/localhost(:\d+)?$/.test(origin) ||
+          /^https?:\/\/127\.0\.0\.1(:\d+)?$/.test(origin) ||
+          origin === 'null'
+        );
   if (allowed) {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Access-Control-Allow-Credentials', 'true');
@@ -403,9 +747,13 @@ app.use((req, res, next) => {
 const MULTIPAGE_DIR = path.join(__dirname, 'SAAD_STUDIO_MultiPage');
 const { registerMultiPageRoutes } = require(path.join(MULTIPAGE_DIR, 'routes-multipage'));
 registerMultiPageRoutes(app);
-app.use(express.static(MULTIPAGE_DIR));
+app.get(['/', '/index.html', '/discover'], (req, res) => {
+  res.sendFile(path.join(MULTIPAGE_DIR, 'app.html'));
+});
+app.use(express.static(MULTIPAGE_DIR, { index: false }));
+app.use('/SAAD_STUDIO_MultiPage', express.static(MULTIPAGE_DIR, { index: false }));
 
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public'), { index: false }));
 app.use('/uploads', express.static(UPLOADS_DIR));
 
 // Keep the full studio accessible at /app after introducing Explore as homepage.
@@ -413,12 +761,12 @@ app.get('/app', (req, res) => {
   res.sendFile(path.join(MULTIPAGE_DIR, 'app.html'));
 });
 
-// ─── CMS Frontend Routes ─── serve site.html for all CMS-driven pages
+// ─── Legacy CMS Frontend Routes ─── redirect old site URLs to the new multipage home
 app.get(['/home', '/about', '/contact', '/pricing', '/features', '/blog', '/team', '/faq', '/terms', '/privacy'], (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'site.html'));
+  res.redirect(302, '/app');
 });
 app.get('/p/:slug', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'site.html'));
+  res.redirect(302, '/app');
 });
 
 // attachUser MUST run before requireSignedIn so req.currentUser is populated
@@ -709,9 +1057,6 @@ app.get('/api/workflows', (req,res) => {
 
 app.post('/api/generate', async (req, res) => {
   try {
-    if (!GEMINI_API_KEY) {
-      return res.status(500).json({ error: 'حدث خطأ في الإعداد' });
-    }
     const { model = 'gemini-2.5-flash', parts, generationConfig, nanoKey, quality } = req.body || {};
     if (!Array.isArray(parts) || parts.length === 0) {
       return res.status(400).json({ error: 'parts is required' });
@@ -723,6 +1068,37 @@ app.post('/api/generate', async (req, res) => {
       }
     }
     if (!(await deductCreditsForGeneration(req, res, model, { nanoKey, quality }))) return;
+
+    const normalizedModel = String(model || '').trim();
+    const responseModalities = Array.isArray(generationConfig?.responseModalities)
+      ? generationConfig.responseModalities.map(value => String(value).toUpperCase())
+      : [];
+    const isKieImageModel = !!KIE_GOOGLE_IMAGE_MODEL_MAP[normalizedModel];
+    const isKieTtsModel = !!KIE_TTS_MODEL_MAP[normalizedModel] || responseModalities.includes('AUDIO');
+    const isKieChatModel = !!KIE_GEMINI_CHAT_ENDPOINTS[normalizedModel];
+
+    if (KIE_API_KEY && (isKieImageModel || isKieTtsModel || isKieChatModel)) {
+      if (isKieImageModel) {
+        const images = await generateViaKieGoogleImage(normalizedModel, parts);
+        return res.json({ text: '', images, audios: [], ...(req.creditInfo || {}) });
+      }
+      if (isKieTtsModel) {
+        const audios = await generateViaKieTts(normalizedModel, parts, generationConfig);
+        return res.json({ text: '', images: [], audios, ...(req.creditInfo || {}) });
+      }
+      if (isKieChatModel) {
+        const text = await generateViaKieGeminiChat(normalizedModel, parts);
+        return res.json({ text, images: [], audios: [], ...(req.creditInfo || {}) });
+      }
+    }
+
+    if (isKieImageModel || isKieTtsModel || isKieChatModel || normalizedModel.toLowerCase().startsWith('gemini-')) {
+      return res.status(500).json({ error: 'Missing KIE_API_KEY in environment' });
+    }
+
+    if (!GEMINI_API_KEY) {
+      return res.status(500).json({ error: 'حدث خطأ في الإعداد' });
+    }
 
     const r = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(GEMINI_API_KEY)}`,
@@ -768,16 +1144,15 @@ app.post('/api/generate', async (req, res) => {
 
     res.json({ text, images, audios, ...(req.creditInfo || {}) });
   } catch (e) {
-    res.status(500).json({ error: "حدث خطأ في الخادم" });
+    res.status(500).json({ error: e?.message || "حدث خطأ في الخادم" });
   }
 });
 
 app.post('/api/google-video', async (req, res) => {
   try {
     if (!checkPlanAccess(req, res, 'google-video')) return;
-
-    if (!GEMINI_API_KEY) {
-      return res.status(500).json({ error: 'حدث خطأ في الإعداد' });
+    if (!KIE_API_KEY) {
+      return res.status(500).json({ error: 'Missing KIE_API_KEY in environment' });
     }
 
     const {
@@ -796,91 +1171,73 @@ app.post('/api/google-video', async (req, res) => {
       return res.status(400).json({ error: 'النص طويل جداً' });
     if (!(await deductCreditsForGeneration(req, res, 'veo', {}))) return;
 
-    const instance = { prompt: String(prompt).trim() };
+    const imageUrls = [];
     if (imageBase64) {
       const img = parseDataUrl(imageBase64);
-      instance.image = { inlineData: { mimeType: img.mimeType, data: img.data } };
+      imageUrls.push(await uploadInlineDataToKieUrl(img, 'veo_first'));
     }
-
-    const parameters = { aspectRatio, resolution, durationSeconds: Number(durationSeconds) || 8 };
     if (lastFrameBase64) {
       const last = parseDataUrl(lastFrameBase64);
-      parameters.lastFrame = { inlineData: { mimeType: last.mimeType, data: last.data } };
+      imageUrls.push(await uploadInlineDataToKieUrl(last, 'veo_last'));
     }
 
-    const r = await fetch(`${GEMINI_BASE_URL}/models/veo-3.1-generate-preview:predictLongRunning`, {
+    const generationType = imageUrls.length >= 2 ? 'FIRST_AND_LAST_FRAMES_2_VIDEO' : undefined;
+    const model = String(resolution || '').toLowerCase() === '1080p' ? 'veo3' : 'veo3_fast';
+    const body = {
+      prompt: String(prompt).trim(),
+      model,
+      aspect_ratio: aspectRatio,
+      enableTranslation: true
+    };
+    if (generationType) body.generationType = generationType;
+    if (imageUrls.length) body.imageUrls = imageUrls;
+    if (Number(durationSeconds) > 0) body.durationSeconds = Number(durationSeconds);
+
+    const data = await kieFetch('/veo/generate', {
       method: 'POST',
-      headers: {
-        'x-goog-api-key': GEMINI_API_KEY,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        instances: [instance],
-        parameters
-      })
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
     });
 
-    const data = await r.json();
-    if (!r.ok) {
-      return res.status(r.status).json({ error: data?.error?.message || 'Video generation request failed' });
+    const taskId = data?.data?.taskId || data?.taskId || '';
+    if (!taskId) {
+      return res.status(502).json({ error: data?.msg || 'KIE did not return taskId' });
     }
 
-    res.json({ operationName: data?.name || '', ...(req.creditInfo || {}) });
+    res.json({ operationName: taskId, taskId, ...(req.creditInfo || {}) });
   } catch (e) {
-    res.status(500).json({ error: "حدث خطأ في الخادم" });
+    res.status(500).json({ error: e?.message || "حدث خطأ في الخادم" });
   }
 });
 
 app.get('/api/google-video/status', async (req, res) => {
   try {
-    if (!GEMINI_API_KEY) {
-      return res.status(500).json({ error: 'Missing GEMINI_API_KEY in environment' });
+    if (!KIE_API_KEY) {
+      return res.status(500).json({ error: 'Missing KIE_API_KEY in environment' });
     }
 
     const operationName = String(req.query.operation || '');
     if (!operationName) {
       return res.status(400).json({ error: 'operation is required' });
     }
-    if (!/^operations\/[a-zA-Z0-9\-_\/]+$/.test(operationName)) {
-      return res.status(400).json({ error: 'Invalid operation name' });
+    const data = await kieFetch(`/generate/record-info?taskId=${encodeURIComponent(operationName)}`);
+    const info = data?.data || data?.result || {};
+    const status = String(info?.status || info?.state || '').toLowerCase();
+    const veoInfo = info?.response?.videoResponse || info?.response?.veoData || info?.response || info?.info || {};
+    const resultUrls = veoInfo?.resultUrls || veoInfo?.videoUrls || (veoInfo?.url ? [veoInfo.url] : []) || [];
+
+    if (!['success', 'completed', 'succeed'].includes(status)) {
+      if (['fail', 'failed', 'error'].includes(status)) {
+        return res.status(500).json({ error: info?.failMsg || data?.msg || 'Video generation failed' });
+      }
+      return res.json({ done: false, status });
     }
 
-    const r = await fetch(`${GEMINI_BASE_URL}/${operationName}`, {
-      headers: { 'x-goog-api-key': GEMINI_API_KEY }
-    });
-    const data = await r.json();
-    if (!r.ok) {
-      return res.status(r.status).json({ error: data?.error?.message || 'Failed to fetch operation status' });
-    }
-
-    if (!data.done) {
-      return res.json({ done: false });
-    }
-
-    const videoUri = data?.response?.generateVideoResponse?.generatedSamples?.[0]?.video?.uri || '';
-    if (!videoUri) {
-      return res.json({ done: true, videoUrl: '' });
-    }
-
-    const videoResp = await fetch(videoUri, {
-      headers: { 'x-goog-api-key': GEMINI_API_KEY }
-    });
-    if (!videoResp.ok) {
-      return res.status(videoResp.status).json({ error: 'Failed to download generated video from Google' });
-    }
-
-    const buffer = Buffer.from(await videoResp.arrayBuffer());
-    const fileName = `veo_${Date.now()}_${Math.random().toString(36).slice(2)}.mp4`;
-    const filePath = path.join(VAULT_DIR, fileName);
-    fs.writeFileSync(filePath, buffer);
-
-    res.json({
-      done: true,
-      videoUrl: `/api/vault/file/${fileName}`,
-      fileName
-    });
+    const firstUrl = Array.isArray(resultUrls) ? resultUrls[0] : '';
+    const videoUrl = await getKieDownloadUrl(firstUrl);
+    res.json({ done: true, status, videoUrl, resultUrls });
   } catch (e) {
-    res.status(500).json({ error: "حدث خطأ في الخادم" });
+    res.status(500).json({ error: e?.message || "حدث خطأ في الخادم" });
   }
 });
 
@@ -4054,7 +4411,12 @@ app.post('/api/admin/login', adminLoginLimiter, (req, res) => {
 
 // GET /api/admin/health — check which Supabase tables exist and are writable
 app.get('/api/admin/health', requireAdmin, async (req, res) => {
-  const result = { supabaseConnected: !!supabaseAdmin, tables: {}, vaultMode: !supabaseAdmin };
+  const result = {
+    supabaseConnected: !!supabaseAdmin,
+    anonConnected: !!supabase,
+    tables: {},
+    vaultMode: !supabaseAdmin
+  };
   if (supabaseAdmin) {
     const checks = ['profiles', 'orders', 'cms_settings'];
     for (const tbl of checks) {
@@ -4726,7 +5088,6 @@ app.get('/api/admin/credentials', requireAdmin, (req, res) => {
   const keys = {};
   const envKeys = {
     kieApiKey: 'KIE_API_KEY',
-    googleApiKey: 'GOOGLE_API_KEY',
     openaiApiKey: 'OPENAI_API_KEY',
     elevenlabsApiKey: 'ELEVENLABS_API_KEY',
     replicateApiKey: 'REPLICATE_API_KEY',
@@ -4748,6 +5109,9 @@ app.post('/api/admin/kie-api-key', requireAdmin, (req, res) => {
   try { envContent = fs.existsSync(envPath) ? fs.readFileSync(envPath, 'utf8') : ''; } catch {}
   if (/^KIE_API_KEY=.*/m.test(envContent)) { envContent = envContent.replace(/^KIE_API_KEY=.*/m, `KIE_API_KEY=${String(key).trim()}`); }
   else { envContent += `\nKIE_API_KEY=${String(key).trim()}`; }
+  envContent = envContent
+    .replace(/^GOOGLE_API_KEY=.*\r?\n?/gm, '')
+    .replace(/^GEMINI_API_KEY=.*\r?\n?/gm, '');
   fs.writeFileSync(envPath, envContent);
   auditLog('admin.kie-key.change', null, req);
   res.json({ ok: true });
@@ -4761,9 +5125,8 @@ app.post('/api/admin/kie-test', requireAdmin, async (req, res) => {
   } catch (e) { res.json({ ok: false, error: e.message }); }
 });
 
-// Admin: save any API key (google, openai, elevenlabs, replicate, fal)
+// Admin: save any API key (openai, elevenlabs, replicate, fal)
 const ALLOWED_API_KEY_NAMES = {
-  googleApiKey: 'GOOGLE_API_KEY',
   openaiApiKey: 'OPENAI_API_KEY',
   elevenlabsApiKey: 'ELEVENLABS_API_KEY',
   replicateApiKey: 'REPLICATE_API_KEY',
@@ -5692,6 +6055,580 @@ async function saveCMS(d){let ok=false;if(supabaseAdmin){try{await supabaseAdmin
 function cmsLog(cms,action,detail){if(!Array.isArray(cms.auditLog))cms.auditLog=[];cms.auditLog.unshift({id:crypto.randomBytes(6).toString('hex'),action,detail,at:new Date().toISOString()});if(cms.auditLog.length>200)cms.auditLog=cms.auditLog.slice(0,200);}
 function cmsId(){return crypto.randomBytes(10).toString('hex');}
 function sStr(v,max=500){return String(v||'').trim().slice(0,max);}
+const PAGE_BUILDER_FILE = path.join(VAULT_DIR, 'page_builder.json');
+const BUILDER_PAGES = [
+  { id: 'discover', title: 'Discover', route: '/', file: 'index.html' },
+  { id: 'videos', title: 'Videos', route: '/videos', file: 'videos.html' },
+  { id: 'images', title: 'Images', route: '/images', file: 'images.html' },
+  { id: 'transitions', title: 'Transitions', route: '/transitions', file: 'transitions.html' },
+  { id: 'tools', title: 'Tools', route: '/tools', file: 'tools.html' },
+  { id: 'audio', title: 'Audio', route: '/audio', file: 'audio.html' },
+  { id: 'cinema', title: 'Cinema Studio', route: '/cinema', file: 'cinema.html' },
+  { id: 'profile', title: 'Profile', route: '/account', file: 'account.html' }
+];
+const BUILDER_IMPORT_VERSION = 4;
+function builderDefaults(){
+  const pages = {};
+  for (const p of BUILDER_PAGES) {
+    pages[p.id] = {
+      id: p.id,
+      title: p.title,
+      route: p.route,
+      file: p.file,
+      layout: [],
+      importMeta: null,
+      updatedAt: null,
+      publishedAt: null
+    };
+  }
+  return { pages, updatedAt: null };
+}
+function loadBuilderState(){
+  const seed = builderDefaults();
+  const saved = vaultRead(PAGE_BUILDER_FILE, null);
+  if (!saved || typeof saved !== 'object' || !saved.pages || typeof saved.pages !== 'object') return seed;
+  for (const p of BUILDER_PAGES) {
+    const rec = saved.pages[p.id] || {};
+    seed.pages[p.id] = {
+      id: p.id,
+      title: p.title,
+      route: p.route,
+      file: p.file,
+      layout: Array.isArray(rec.layout) ? rec.layout : [],
+      importMeta: rec.importMeta && typeof rec.importMeta === 'object' ? rec.importMeta : null,
+      updatedAt: rec.updatedAt || null,
+      publishedAt: rec.publishedAt || null
+    };
+  }
+  seed.updatedAt = saved.updatedAt || null;
+  return seed;
+}
+function saveBuilderState(state){
+  state.updatedAt = new Date().toISOString();
+  vaultWrite(PAGE_BUILDER_FILE, state);
+}
+function clamp(n, min, max){
+  const x = Number(n);
+  if (!Number.isFinite(x)) return min;
+  return Math.max(min, Math.min(max, x));
+}
+function sanitizeBuilderComponent(raw){
+  const types = new Set(['text', 'image', 'button', 'video', 'card']);
+  const type = types.has(String(raw?.type || '')) ? String(raw.type) : 'text';
+  const props = raw && typeof raw.props === 'object' ? raw.props : {};
+  return {
+    id: sStr(raw?.id || cmsId(), 80),
+    type,
+    x: clamp(raw?.x, 0, 1160),
+    y: clamp(raw?.y, 0, 5000),
+    w: clamp(raw?.w, 120, 1160),
+    h: clamp(raw?.h, 40, 1800),
+    z: clamp(raw?.z, 0, 999),
+    hidden: Boolean(raw?.hidden),
+    locked: Boolean(raw?.locked),
+    props: {
+      title: sStr(props.title || '', 160),
+      body: sStr(props.body || '', 6000),
+      url: sStr(props.url || '', 2000),
+      label: sStr(props.label || '', 120),
+      bg: sStr(props.bg || '', 40),
+      color: sStr(props.color || '', 40),
+      align: ['start', 'center', 'end'].includes(props.align) ? props.align : 'start'
+    }
+  };
+}
+function sanitizeBuilderLayout(layout){
+  if (!Array.isArray(layout)) return [];
+  return layout.slice(0, 300).map(sanitizeBuilderComponent);
+}
+function stripHtmlToText(v){
+  return String(v || '')
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+function importDiscoverLayoutFromRealPage(){
+  const target = path.join(__dirname, 'SAAD_STUDIO_MultiPage', 'index.html');
+  if (!fs.existsSync(target)) return [];
+  const html = fs.readFileSync(target, 'utf8');
+  const out = [];
+  let y = 24;
+  let z = 1;
+
+  const push = (c) => {
+    out.push(sanitizeBuilderComponent({
+      id: cmsId(),
+      hidden: false,
+      locked: false,
+      z: z++,
+      ...c
+    }));
+  };
+
+  const heroMatch = html.match(/<section class="hero[\s\S]*?<\/section>/i);
+  if (heroMatch) {
+    const h2 = stripHtmlToText((heroMatch[0].match(/<h2[^>]*>([\s\S]*?)<\/h2>/i) || [])[1] || 'Hero');
+    const p = stripHtmlToText((heroMatch[0].match(/<p[^>]*>([\s\S]*?)<\/p>/i) || [])[1] || '');
+    push({ type: 'text', x: 30, y, w: 520, h: 180, props: { title: h2, body: p, color: '#f2f6ff', align: 'start' } });
+
+    const ctaBtns = [...heroMatch[0].matchAll(/<a class="btn[^\"]*"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi)];
+    let by = y + 190;
+    for (const b of ctaBtns.slice(0, 2)) {
+      push({ type: 'button', x: 30, y: by, w: 260, h: 66, props: { label: stripHtmlToText(b[2]), url: b[1], bg: '#00e5ff', color: '#042135', align: 'start' } });
+      by += 74;
+    }
+
+    const heroCards = [...heroMatch[0].matchAll(/<article class="card">([\s\S]*?)<\/article>/gi)];
+    let cx = 580;
+    let cy = y;
+    let col = 0;
+    for (const m of heroCards.slice(0, 4)) {
+      const t = stripHtmlToText((m[1].match(/<h3[^>]*>([\s\S]*?)<\/h3>/i) || [])[1] || 'Card');
+      const d = stripHtmlToText((m[1].match(/<p[^>]*>([\s\S]*?)<\/p>/i) || [])[1] || '');
+      push({ type: 'card', x: cx, y: cy, w: 290, h: 170, props: { title: t, body: d, bg: 'rgba(11,30,52,.92)', color: '#f2f6ff', align: 'start' } });
+      col++;
+      if (col % 2 === 0) {
+        cx = 580;
+        cy += 182;
+      } else {
+        cx += 302;
+      }
+    }
+    y = Math.max(by + 14, cy + 190);
+  }
+
+  const quickStartSection = html.match(/<section class="section reveal">[\s\S]*?<h4>Quick Start<\/h4>[\s\S]*?<\/section>/i);
+  if (quickStartSection) {
+    push({ type: 'text', x: 30, y, w: 520, h: 90, props: { title: 'Quick Start', body: 'Existing quick-start actions from Discover page.', color: '#f2f6ff', align: 'start' } });
+    const qItems = [...quickStartSection[0].matchAll(/<a class="qitem"[^>]*href="([^"]+)"[^>]*>[\s\S]*?<b>([\s\S]*?)<\/b>[\s\S]*?<\/a>/gi)];
+    let qx = 30;
+    for (const q of qItems.slice(0, 3)) {
+      push({ type: 'button', x: qx, y: y + 98, w: 330, h: 66, props: { label: stripHtmlToText(q[2]), url: q[1], bg: '#1b3a5b', color: '#e9f7ff', align: 'start' } });
+      qx += 342;
+    }
+    y += 184;
+  }
+
+  const toolsSection = html.match(/<section class="section reveal">[\s\S]*?<div class="tools">([\s\S]*?)<\/div>[\s\S]*?<\/section>/i);
+  if (toolsSection) {
+    push({ type: 'text', x: 30, y, w: 460, h: 80, props: { title: 'Tools / Models', body: 'Real tool links loaded from page content.', color: '#f2f6ff', align: 'start' } });
+    const tools = [...toolsSection[1].matchAll(/<a class="tool"[^>]*href="([^"]+)"[^>]*>[\s\S]*?<b>([\s\S]*?)<\/b>[\s\S]*?<\/a>/gi)];
+    let tx = 30;
+    let ty = y + 88;
+    let tcol = 0;
+    for (const t of tools.slice(0, 8)) {
+      push({ type: 'card', x: tx, y: ty, w: 255, h: 96, props: { title: stripHtmlToText(t[2]), body: t[1], bg: 'rgba(13,39,62,.92)', color: '#dff3ff', align: 'start' } });
+      tcol++;
+      tx += 268;
+      if (tcol % 4 === 0) {
+        tx = 30;
+        ty += 108;
+      }
+    }
+    y = ty + 120;
+  }
+
+  const bannerSection = html.match(/<section class="section reveal">[\s\S]*?<div class="banner">([\s\S]*?)<\/div>[\s\S]*?<\/section>/i);
+  if (bannerSection) {
+    const bt = stripHtmlToText((bannerSection[1].match(/<b>([\s\S]*?)<\/b>/i) || [])[1] || 'Banner');
+    const bp = stripHtmlToText((bannerSection[1].match(/<p[^>]*>([\s\S]*?)<\/p>/i) || [])[1] || '');
+    const ba = bannerSection[1].match(/<a[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/i);
+    push({ type: 'card', x: 30, y, w: 980, h: 130, props: { title: bt, body: bp, bg: 'rgba(31,55,79,.93)', color: '#f2f6ff', align: 'start' } });
+    if (ba) {
+      push({ type: 'button', x: 1030, y: y + 36, w: 210, h: 62, props: { label: stripHtmlToText(ba[2]), url: ba[1], bg: '#ff9e2c', color: '#091320', align: 'center' } });
+    }
+    y += 150;
+  }
+
+  // Market section is rendered dynamically from homepage CMS data, so map it directly.
+  const hp = loadHomepage();
+  const slides = Array.isArray(hp?.slides) ? hp.slides.slice().sort((a, b) => (a.order || 0) - (b.order || 0)) : [];
+  const models = Array.isArray(hp?.models) ? hp.models.slice().sort((a, b) => (a.order || 0) - (b.order || 0)) : [];
+
+  if (slides.length || models.length) {
+    push({
+      type: 'text',
+      x: 30,
+      y,
+      w: 560,
+      h: 90,
+      props: {
+        title: stripHtmlToText(hp?.header?.title || 'Market Showcase'),
+        body: stripHtmlToText(hp?.header?.subtitle || 'Dynamic slides and models from homepage settings.'),
+        color: '#f2f6ff',
+        align: 'start'
+      }
+    });
+    y += 96;
+
+    let sy = y;
+    for (const s of slides.slice(0, 8)) {
+      push({
+        type: 'card',
+        x: 30,
+        y: sy,
+        w: 860,
+        h: 110,
+        props: {
+          title: stripHtmlToText(s.title || 'Slide'),
+          body: stripHtmlToText(`${s.tag ? '[' + s.tag + '] ' : ''}${s.desc || ''}`),
+          bg: 'rgba(16,43,67,.93)',
+          color: '#eaf6ff',
+          align: 'start'
+        }
+      });
+      if (s.link) {
+        push({ type: 'button', x: 910, y: sy + 34, w: 300, h: 54, props: { label: 'Open Slide Link', url: s.link, bg: '#1b3a5b', color: '#e9f7ff', align: 'center' } });
+      }
+      sy += 122;
+    }
+    y = sy + 18;
+
+    if (models.length) {
+      push({ type: 'text', x: 30, y, w: 520, h: 78, props: { title: 'Models Grid', body: `${models.length} dynamic model cards`, color: '#f2f6ff', align: 'start' } });
+      y += 86;
+      let mx = 30;
+      let my = y;
+      let mcol = 0;
+      for (const m of models.slice(0, 48)) {
+        push({
+          type: 'card',
+          x: mx,
+          y: my,
+          w: 232,
+          h: 110,
+          props: {
+            title: stripHtmlToText(m.title || 'Model'),
+            body: stripHtmlToText(`${m.pill ? m.pill + ' • ' : ''}${m.sub || ''}`),
+            bg: 'rgba(13,39,62,.92)',
+            color: '#dff3ff',
+            align: 'start'
+          }
+        });
+        mcol++;
+        mx += 244;
+        if (mcol % 5 === 0) {
+          mx = 30;
+          my += 122;
+        }
+      }
+      y = my + 132;
+    }
+  }
+
+  if (!out.length) {
+    push({ type: 'text', x: 30, y: 40, w: 700, h: 120, props: { title: 'Discover', body: 'Failed to map real content. Please verify source page structure.', color: '#f2f6ff', align: 'start' } });
+  }
+  return sanitizeBuilderLayout(out);
+}
+function importGenericLayoutFromRealPage(page){
+  const safeTitle = sStr(page?.title || 'Page', 120) || 'Page';
+  const safeFile = sStr(page?.file || '', 160);
+  const target = safeFile ? path.join(__dirname, 'SAAD_STUDIO_MultiPage', safeFile) : '';
+  if (!target || !fs.existsSync(target)) {
+    return sanitizeBuilderLayout([
+      {
+        id: cmsId(),
+        type: 'text',
+        x: 30,
+        y: 40,
+        w: 760,
+        h: 140,
+        z: 1,
+        hidden: false,
+        locked: false,
+        props: {
+          title: safeTitle,
+          body: `No source file found for ${safeTitle}. Expected: ${safeFile || 'unknown file'}`,
+          color: '#f2f6ff',
+          align: 'start'
+        }
+      }
+    ]);
+  }
+
+  const html = fs.readFileSync(target, 'utf8');
+  const out = [];
+  let y = 24;
+  let z = 1;
+  const push = (c) => {
+    out.push(sanitizeBuilderComponent({ id: cmsId(), hidden: false, locked: false, z: z++, ...c }));
+  };
+
+  const headingMatch = html.match(/<h[1-4][^>]*>([\s\S]*?)<\/h[1-4]>/i);
+  const bodyMatch = html.match(/<p[^>]*>([\s\S]*?)<\/p>/i);
+  const heading = stripHtmlToText((headingMatch || [])[1] || safeTitle) || safeTitle;
+  const body = stripHtmlToText((bodyMatch || [])[1] || `Imported from ${safeFile}`) || `Imported from ${safeFile}`;
+  push({ type: 'text', x: 30, y, w: 820, h: 140, props: { title: heading, body, color: '#f2f6ff', align: 'start' } });
+
+  const links = [];
+  const seen = new Set();
+  for (const m of html.matchAll(/<a[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi)) {
+    const href = sStr(m[1], 2000);
+    if (!href || href === '#' || href.toLowerCase().startsWith('javascript:')) continue;
+    const label = stripHtmlToText(m[2] || '').slice(0, 70) || href;
+    const key = `${href}::${label}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    links.push({ href, label });
+    if (links.length >= 8) break;
+  }
+  if (links.length) {
+    let x = 30;
+    let rowY = y + 154;
+    let col = 0;
+    for (const l of links) {
+      push({ type: 'button', x, y: rowY, w: 270, h: 64, props: { label: l.label, url: l.href, bg: '#1b3a5b', color: '#e9f7ff', align: 'start' } });
+      col++;
+      x += 282;
+      if (col % 3 === 0) {
+        x = 30;
+        rowY += 74;
+      }
+    }
+    y = rowY + 18;
+  } else {
+    y += 166;
+  }
+
+  const blocks = [...html.matchAll(/<(article|section|div|li)[^>]*>([\s\S]*?)<\/(article|section|div|li)>/gi)];
+  let cx = 30;
+  let cy = y;
+  let ccol = 0;
+  for (const b of blocks) {
+    const t = stripHtmlToText((b[2].match(/<h[2-6][^>]*>([\s\S]*?)<\/h[2-6]>/i) || [])[1] || 'Section');
+    const p = stripHtmlToText((b[2].match(/<p[^>]*>([\s\S]*?)<\/p>/i) || [])[1] || '');
+    if (!t && !p) continue;
+    push({ type: 'card', x: cx, y: cy, w: 360, h: 150, props: { title: t || safeTitle, body: p || `Imported block from ${safeFile}`, bg: 'rgba(13,39,62,.92)', color: '#dff3ff', align: 'start' } });
+    ccol++;
+    cx += 372;
+    if (ccol % 3 === 0) {
+      cx = 30;
+      cy += 162;
+    }
+    if (ccol >= 9) break;
+  }
+
+  if (!out.length) {
+    push({ type: 'text', x: 30, y: 40, w: 760, h: 120, props: { title: safeTitle, body: `Imported file ${safeFile}, but no mappable content was found.`, color: '#f2f6ff', align: 'start' } });
+  }
+  return sanitizeBuilderLayout(out);
+}
+function importSpecificLayoutFromRealPage(page){
+  const safeTitle = sStr(page?.title || 'Page', 120) || 'Page';
+  const safeFile = sStr(page?.file || '', 160);
+  const target = safeFile ? path.join(__dirname, 'SAAD_STUDIO_MultiPage', safeFile) : '';
+  if (!target || !fs.existsSync(target)) return [];
+  const html = fs.readFileSync(target, 'utf8');
+
+  const out = [];
+  let y = 24;
+  let z = 1;
+  const push = (c) => {
+    out.push(sanitizeBuilderComponent({ id: cmsId(), hidden: false, locked: false, z: z++, ...c }));
+  };
+  const textOr = (rx, fallback = '') => stripHtmlToText((html.match(rx) || [])[1] || fallback);
+  const addNavButtons = (baseY) => {
+    const nav = html.match(/<nav class="site-nav">([\s\S]*?)<\/nav>/i);
+    if (!nav) return baseY;
+    const links = [...nav[1].matchAll(/<a[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi)].slice(0, 8);
+    let x = 30;
+    let rowY = baseY;
+    let col = 0;
+    for (const m of links) {
+      push({ type: 'button', x, y: rowY, w: 250, h: 60, props: { label: stripHtmlToText(m[2]), url: m[1], bg: '#1b3a5b', color: '#e9f7ff', align: 'start' } });
+      x += 262;
+      col++;
+      if (col % 4 === 0) {
+        x = 30;
+        rowY += 70;
+      }
+    }
+    return rowY + 84;
+  };
+
+  if (page.id === 'transitions') {
+    const title = textOr(/<h1 class="h1">([\s\S]*?)<\/h1>/i, 'Transitions');
+    const body = textOr(/<p class="sub">([\s\S]*?)<\/p>/i, 'Smooth transitions workspace');
+    push({ type: 'text', x: 30, y, w: 980, h: 130, props: { title, body, color: '#f2f6ff', align: 'start' } });
+    y += 146;
+    const startLabel = textOr(/id="dz-tr-start-inner"[\s\S]*?<div class="dz-text">([\s\S]*?)<\/div>/i, 'Start Frame');
+    const endLabel = textOr(/id="dz-tr-end-inner"[\s\S]*?<div class="dz-text">([\s\S]*?)<\/div>/i, 'End Frame');
+    const transitionName = textOr(/id="tr-selected">([\s\S]*?)<\/div>/i, 'Transition');
+    const gen = textOr(/id="tr-generate-btn"[^>]*>([\s\S]*?)<\/button>/i, 'Generate Video');
+    push({ type: 'card', x: 30, y, w: 380, h: 130, props: { title: startLabel, body: 'Upload first frame/video', bg: 'rgba(13,39,62,.92)', color: '#dff3ff', align: 'start' } });
+    push({ type: 'card', x: 422, y, w: 380, h: 130, props: { title: transitionName, body: 'Choose transition effect and duration', bg: 'rgba(13,39,62,.92)', color: '#dff3ff', align: 'start' } });
+    push({ type: 'card', x: 814, y, w: 380, h: 130, props: { title: endLabel, body: 'Upload second frame/video', bg: 'rgba(13,39,62,.92)', color: '#dff3ff', align: 'start' } });
+    y += 142;
+    push({ type: 'button', x: 30, y, w: 320, h: 64, props: { label: gen, url: '#', bg: '#00e5ff', color: '#042135', align: 'center' } });
+    y += 90;
+    addNavButtons(y);
+    return sanitizeBuilderLayout(out);
+  }
+
+  if (page.id === 'tools') {
+    const title = textOr(/<a href="\/tools\.html" class="on">([\s\S]*?)<\/a>/i, safeTitle) || safeTitle;
+    push({ type: 'text', x: 30, y, w: 980, h: 110, props: { title, body: 'Tools catalog imported from real page cards.', color: '#f2f6ff', align: 'start' } });
+    y += 122;
+    const cards = [...html.matchAll(/<a href="([^"]+)" class="v-card[^"]*"[\s\S]*?<div class="title">([\s\S]*?)<\/div>[\s\S]*?<div class="sub">([\s\S]*?)<\/div>[\s\S]*?<\/a>/gi)].slice(0, 9);
+    let x = 30;
+    let col = 0;
+    for (const c of cards) {
+      push({ type: 'card', x, y, w: 370, h: 155, props: { title: stripHtmlToText(c[2]), body: stripHtmlToText(c[3]), bg: 'rgba(13,39,62,.92)', color: '#dff3ff', align: 'start' } });
+      push({ type: 'button', x: x + 12, y: y + 96, w: 220, h: 48, props: { label: 'Open', url: c[1], bg: '#1b3a5b', color: '#e9f7ff', align: 'start' } });
+      x += 382;
+      col++;
+      if (col % 3 === 0) {
+        x = 30;
+        y += 168;
+      }
+    }
+    return sanitizeBuilderLayout(out);
+  }
+
+  if (page.id === 'images') {
+    const title = textOr(/<h2>([\s\S]*?)<\/h2>/i, 'Image Studio');
+    const body = textOr(/<div class="hero-welcome"[\s\S]*?<p>([\s\S]*?)<\/p>/i, 'Image creation workspace');
+    const promptPh = textOr(/<textarea[^>]*id="promptArea"[^>]*placeholder="([^"]+)"/i, 'اكتب وصف الصورة');
+    push({ type: 'text', x: 30, y, w: 980, h: 130, props: { title, body, color: '#f2f6ff', align: 'start' } });
+    y += 142;
+    push({ type: 'card', x: 30, y, w: 760, h: 140, props: { title: 'Prompt Input', body: promptPh, bg: 'rgba(13,39,62,.92)', color: '#dff3ff', align: 'start' } });
+    const modelLabel = textOr(/id="composerModelLabel">([\s\S]*?)<\/span>/i, 'Model');
+    const ratio = textOr(/id="ratioLabel">([\s\S]*?)<\/span>/i, '1:1');
+    const quality = textOr(/id="qualityLabel">([\s\S]*?)<\/span>/i, '1K');
+    push({ type: 'button', x: 806, y, w: 190, h: 54, props: { label: `Model: ${modelLabel}`, url: '#', bg: '#1b3a5b', color: '#e9f7ff', align: 'start' } });
+    push({ type: 'button', x: 806, y: y + 62, w: 190, h: 54, props: { label: `Ratio: ${ratio}`, url: '#', bg: '#1b3a5b', color: '#e9f7ff', align: 'start' } });
+    push({ type: 'button', x: 1006, y, w: 190, h: 54, props: { label: `Quality: ${quality}`, url: '#', bg: '#1b3a5b', color: '#e9f7ff', align: 'start' } });
+    y += 164;
+    addNavButtons(y);
+    return sanitizeBuilderLayout(out);
+  }
+
+  if (page.id === 'videos' || page.id === 'audio') {
+    const promptPh = textOr(/<textarea[^>]*id="promptArea"[^>]*placeholder="([^"]+)"/i, 'Describe your prompt');
+    const modelLabel = textOr(/id="msLabel">([\s\S]*?)<\/span>/i, 'Model');
+    const title = page.id === 'audio' ? 'Audio Studio' : 'Video Studio';
+    push({ type: 'text', x: 30, y, w: 980, h: 120, props: { title, body: promptPh, color: '#f2f6ff', align: 'start' } });
+    y += 132;
+    push({ type: 'card', x: 30, y, w: 760, h: 140, props: { title: 'Composer', body: promptPh, bg: 'rgba(13,39,62,.92)', color: '#dff3ff', align: 'start' } });
+    push({ type: 'button', x: 806, y, w: 390, h: 62, props: { label: `Model: ${modelLabel}`, url: '#', bg: '#1b3a5b', color: '#e9f7ff', align: 'start' } });
+    const ads = [...html.matchAll(/<a class="ad-card"[^>]*href="([^"]+)"[\s\S]*?<div class="ad-title">([\s\S]*?)<\/div>[\s\S]*?<div class="ad-sub">([\s\S]*?)<\/div>/gi)].slice(0, 3);
+    let ax = 806;
+    let ay = y + 72;
+    for (const a of ads) {
+      push({ type: 'card', x: ax, y: ay, w: 390, h: 92, props: { title: stripHtmlToText(a[2]), body: stripHtmlToText(a[3]), bg: 'rgba(31,55,79,.93)', color: '#f2f6ff', align: 'start' } });
+      push({ type: 'button', x: ax + 250, y: ay + 44, w: 128, h: 38, props: { label: 'Open', url: a[1], bg: '#ff9e2c', color: '#091320', align: 'center' } });
+      ay += 100;
+    }
+    y += 160;
+    addNavButtons(y);
+    return sanitizeBuilderLayout(out);
+  }
+
+  if (page.id === 'cinema') {
+    push({ type: 'text', x: 30, y, w: 980, h: 120, props: { title: 'Cinema Studio', body: 'Cinema workspace imported from real tabbed editor.', color: '#f2f6ff', align: 'start' } });
+    y += 132;
+    const tabs = [...html.matchAll(/<button class="cs-tab[^\"]*"[^>]*>([\s\S]*?)<\/button>/gi)].slice(0, 8);
+    let x = 30;
+    for (const t of tabs) {
+      push({ type: 'button', x, y, w: 150, h: 52, props: { label: stripHtmlToText(t[1]), url: '#', bg: '#1b3a5b', color: '#e9f7ff', align: 'center' } });
+      x += 162;
+    }
+    y += 66;
+    const models = [...html.matchAll(/<div class="cs-model-item[^\"]*"[^>]*><span>([\s\S]*?)<\/span>/gi)].slice(0, 6);
+    let my = y;
+    for (const m of models) {
+      push({ type: 'card', x: 30, y: my, w: 560, h: 72, props: { title: stripHtmlToText(m[1]), body: 'Cinema model option', bg: 'rgba(13,39,62,.92)', color: '#dff3ff', align: 'start' } });
+      my += 82;
+    }
+    return sanitizeBuilderLayout(out);
+  }
+
+  if (page.id === 'profile') {
+    const title = textOr(/<div class="udash-title">([\s\S]*?)<\/div>/i, 'Profile Dashboard');
+    const body = textOr(/<div class="udash-sub">([\s\S]*?)<\/div>/i, 'Usage and account stats');
+    push({ type: 'text', x: 30, y, w: 980, h: 120, props: { title, body, color: '#f2f6ff', align: 'start' } });
+    y += 132;
+    const kpis = [...html.matchAll(/<div class="udash-kpi-label">([\s\S]*?)<\/div>/gi)].slice(0, 8);
+    let x = 30;
+    let col = 0;
+    for (const k of kpis) {
+      push({ type: 'card', x, y, w: 285, h: 118, props: { title: stripHtmlToText(k[1]), body: 'KPI block', bg: 'rgba(13,39,62,.92)', color: '#dff3ff', align: 'start' } });
+      x += 297;
+      col++;
+      if (col % 4 === 0) {
+        x = 30;
+        y += 130;
+      }
+    }
+    return sanitizeBuilderLayout(out);
+  }
+
+  return [];
+}
+function importPageLayoutFromRealPage(page){
+  if (!page || typeof page !== 'object') return [];
+  if (page.id === 'discover') return importDiscoverLayoutFromRealPage();
+  const specific = importSpecificLayoutFromRealPage(page);
+  if (specific.length) return specific;
+  return importGenericLayoutFromRealPage(page);
+}
+function shouldAutoImportLayout(rec){
+  const layout = Array.isArray(rec?.layout) ? rec.layout : [];
+  if (!layout.length) return true;
+  const meta = rec?.importMeta && typeof rec.importMeta === 'object' ? rec.importMeta : null;
+  return Boolean(meta && meta.source === 'auto-real' && Number(meta.version || 0) < BUILDER_IMPORT_VERSION);
+}
+function escHtml(v){
+  return String(v || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+function renderBuilderComponent(c){
+  const alignMap = { start: 'flex-start', center: 'center', end: 'flex-end' };
+  const baseStyle = `position:absolute;left:${c.x}px;top:${c.y}px;width:${c.w}px;height:${c.h}px;z-index:${c.z};overflow:hidden;display:flex;justify-content:${alignMap[c.props.align] || 'flex-start'};`;
+  if (c.type === 'image') {
+    return `<div class="pb-item pb-image" data-pb-id="${escHtml(c.id)}" style="${baseStyle}"><img src="${escHtml(c.props.url || '/public/site.html')}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:14px;"></div>`;
+  }
+  if (c.type === 'button') {
+    return `<div class="pb-item pb-button" data-pb-id="${escHtml(c.id)}" style="${baseStyle};align-items:center;"><a href="${escHtml(c.props.url || '#')}" style="display:inline-flex;align-items:center;justify-content:center;padding:10px 18px;border-radius:10px;background:${escHtml(c.props.bg || '#00e5ff')};color:${escHtml(c.props.color || '#00131d')};font-weight:800;text-decoration:none;max-width:100%;">${escHtml(c.props.label || 'Button')}</a></div>`;
+  }
+  if (c.type === 'video') {
+    return `<div class="pb-item pb-video" data-pb-id="${escHtml(c.id)}" style="${baseStyle}"><video src="${escHtml(c.props.url || '')}" controls style="width:100%;height:100%;object-fit:cover;border-radius:14px;background:#000;"></video></div>`;
+  }
+  if (c.type === 'card') {
+    return `<div class="pb-item pb-card" data-pb-id="${escHtml(c.id)}" style="${baseStyle};padding:16px;border:1px solid rgba(255,255,255,.12);border-radius:14px;background:${escHtml(c.props.bg || 'rgba(11,30,52,.9)')};color:${escHtml(c.props.color || '#f2f6ff')};flex-direction:column;gap:8px;"><h3 style="font-size:20px;line-height:1.2;margin:0;">${escHtml(c.props.title || 'Card Title')}</h3><p style="font-size:14px;line-height:1.6;opacity:.9;margin:0;">${escHtml(c.props.body || 'Card body')}</p></div>`;
+  }
+  return `<div class="pb-item pb-text" data-pb-id="${escHtml(c.id)}" style="${baseStyle};padding:8px 10px;color:${escHtml(c.props.color || '#f2f6ff')};align-items:flex-start;flex-direction:column;"><h3 style="font-size:32px;line-height:1.15;margin:0 0 8px;">${escHtml(c.props.title || 'Heading')}</h3><p style="font-size:15px;line-height:1.7;margin:0;opacity:.92;">${escHtml(c.props.body || 'Description text')}</p></div>`;
+}
+function renderBuilderBlock(page, layout){
+  const visible = layout.filter(c => !c.hidden).sort((a,b)=>(a.z||0)-(b.z||0));
+  const content = visible.length
+    ? visible.map(renderBuilderComponent).join('')
+    : `<div style="position:absolute;left:24px;top:24px;padding:10px 14px;border-radius:10px;background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.2);color:#fff;font-size:13px;">No published components yet for ${escHtml(page.title)}.</div>`;
+  return `\n<!-- PAGE_BUILDER_START -->\n<section id="page-builder-published" data-page-builder="${escHtml(page.id)}" style="position:relative;max-width:1200px;min-height:640px;margin:28px auto 34px;padding:8px;">${content}</section>\n<!-- PAGE_BUILDER_END -->\n`;
+}
+function injectBuilderBlock(html, block){
+  const rx = /<!-- PAGE_BUILDER_START -->[\s\S]*?<!-- PAGE_BUILDER_END -->/m;
+  if (rx.test(html)) return html.replace(rx, block.trim());
+  if (/<\/main>/i.test(html)) return html.replace(/<\/main>/i, `${block}</main>`);
+  if (/<\/body>/i.test(html)) return html.replace(/<\/body>/i, `${block}</body>`);
+  return html + block;
+}
+function getBuilderPage(pageId){
+  return BUILDER_PAGES.find(p => p.id === String(pageId || '').trim());
+}
 function validatePageBody(b){const title=sStr(b.title,200);if(!title)return{error:'title is required'};const slug=(sStr(b.slug,100).replace(/[^a-z0-9_/-]/gi,'-').toLowerCase())||'page';return{title,slug,category:sStr(b.category,100)||'main',visible:b.visible!==false,published:b.published===true,order:Number(b.order)||0,seoTitle:sStr(b.seoTitle||b.seo?.title,200),seoDescription:sStr(b.seoDescription||b.seo?.description,500)};}
 async function ensureCMSSeed(){try{const cms=await loadCMS();let changed=false;if(!cms.pages||!cms.pages.length){const now=new Date().toISOString();cms.pages=[{id:cmsId(),title:'الرئيسية',slug:'home',category:'main',visible:true,published:true,order:0,seoTitle:'SAAD STUDIO - ذكاء اصطناعي إبداعي',seoDescription:'منصة SAAD STUDIO للذكاء الاصطناعي الإبداعي',sections:[{id:cmsId(),type:'hero',label:'القسم الرئيسي',enabled:true,order:0,data:{title:'SAAD STUDIO',subtitle:'منصة الذكاء الاصطناعي الإبداعي',description:'أنشئ صور ومقاطع فيديو مذهلة بالذكاء الاصطناعي.',buttonText:'ابدأ الآن',buttonLink:'/#tools'},createdAt:now,updatedAt:now},{id:cmsId(),type:'features',label:'مميزات المنصة',enabled:true,order:1,data:{title:'لماذا SAAD STUDIO؟',items:['توليد صور احترافية','إنشاء فيديو بالذكاء الاصطناعي','أدوات تحرير متقدمة']},createdAt:now,updatedAt:now}],createdAt:now,updatedAt:now},{id:cmsId(),title:'من نحن',slug:'about',category:'main',visible:true,published:true,order:1,seoTitle:'من نحن - SAAD STUDIO',seoDescription:'تعرف على منصة SAAD STUDIO وفريق العمل',sections:[{id:cmsId(),type:'text',label:'نص تعريفي',enabled:true,order:0,data:{title:'من نحن',description:'SAAD STUDIO منصة متخصصة في الذكاء الاصطناعي الإبداعي.'},createdAt:now,updatedAt:now}],createdAt:now,updatedAt:now},{id:cmsId(),title:'تواصل معنا',slug:'contact',category:'main',visible:true,published:true,order:2,seoTitle:'تواصل معنا - SAAD STUDIO',seoDescription:'تواصل مع فريق SAAD STUDIO',sections:[{id:cmsId(),type:'contact',label:'نموذج التواصل',enabled:true,order:0,data:{title:'تواصل معنا',email:'info@saadstudio.com',description:'يسعدنا سماع استفساراتك.'},createdAt:now,updatedAt:now}],createdAt:now,updatedAt:now},{id:cmsId(),title:'Legal',slug:'legal',category:'legal',visible:true,published:true,order:10,seoTitle:'الشروط والأحكام - SAAD STUDIO',seoDescription:'شروط الاستخدام وسياسة الخصوصية وسياسة الاسترداد',sections:[{id:cmsId(),type:'richtext',label:'شروط الاستخدام',enabled:true,order:0,data:{title:'شروط الخدمة — Terms of Service',icon:'📋',body:'آخر تحديث: 2026-03-22\n\n**1. قبول الشروط**\nباستخدامك أو وصولك إلى SAAD STUDIO ("المنصة") بما في ذلك جميع المواقع والتطبيقات وواجهات API، فإنك توافق على الالتزام بشروط الخدمة هذه. إذا لم توافق، يجب عدم استخدام المنصة. تشكل هذه الشروط اتفاقية ملزمة قانونياً بينك ("المستخدم") وSAAD STUDIO. نحتفظ بحق تعديل الشروط في أي وقت. استمرارك يعني قبولك.\n\n**2. الأهلية**\n• يجب أن يكون عمرك 18 عاماً على الأقل.\n• يجب تقديم معلومات تسجيل دقيقة وكاملة.\n• أنت مسؤول عن أمان حسابك وجميع الأنشطة تحته.\n\n**3. وصف الخدمات**\nSAAD STUDIO منصة إبداعية سحابية لتوليد الصور والفيديو والموسيقى والنصوص باستخدام نماذج AI متعددة من مزودين خارجيين.\n\n**5. سياسة الاستخدام المقبول**\nتوافق على عدم استخدام المنصة لـ:\n• توليد محتوى غير قانوني أو ضار أو مسيء أو تشهيري.\n• إنشاء مواد استغلال الأطفال (CSAM).\n• توليد صور مزيفة غير رضائية لأشخاص حقيقيين.\n• انتحال شخصيات أو كيانات.\n• انتهاك الملكية الفكرية أو العلامات التجارية أو حقوق النشر.\n• الهندسة العكسية أو تجاوز الأمان.\n• توليد رسائل مزعجة أو برمجيات خبيثة أو تصيد.\n• بناء خدمات AI منافسة باستخدام منصتنا.\n\n**6. ملكية المحتوى**\nتحميلاتك (المدخلات): تحتفظ بملكيتها وتمنحنا ترخيصاً محدوداً للمعالجة. المحتوى المولّد (المخرجات): تملكه بموجب الشروط، لا ضمان للتفرد. الملكية الفكرية للمنصة (التصميم، الكود، العلامات التجارية) تبقى لنا.\n\n**7. إخلاء مسؤولية AI**\nقد يحتوي محتوى AI على أخطاء أو تحيزات أو اتجاهات. المخرجات لا تمثل آراءنا. أنت المسؤول الوحيد عن مراجعة المخرجات. لا تقدمها على أنها بشرية عندما يكون الإفصاح مطلوباً.\n\n**8. المسؤولية والإنهاء**\nالمنصة تُقدم "كما هي". لسنا مسؤولين عن أضرار غير مباشرة. المسؤولية الإجمالية محدودة برسوم 12 شهراً مدفوعة. يجوز الإنهاء للمخالفات أو مخاطر أمنية أو متطلبات قانونية أو عدم النشاط 12+ شهراً. توافق على تعويض SAAD STUDIO من مطالبات ناتجة عن استخدامك.\n\nللتواصل: support@saadstudio.com'},createdAt:now,updatedAt:now},{id:cmsId(),type:'richtext',label:'سياسة الخصوصية',enabled:true,order:1,data:{title:'سياسة الخصوصية — Privacy Policy',icon:'🔒',body:'آخر تحديث: 2026-03-22\n\n**1. المقدمة**\nSAAD STUDIO ملتزمة بحماية خصوصيتك. توضح هذه السياسة كيف نجمع ونستخدم ونكشف ونحمي معلوماتك.\n\n**2. المعلومات التي نجمعها**\n• معلومات الحساب: الاسم، البريد الإلكتروني، بيانات المصادقة.\n• الدفع: فواتير عبر معالجات آمنة — لا نخزن أرقام البطاقات الكاملة.\n• المحتوى: الصور والأوامر (prompts) والملفات المُحمَّلة.\n• تلقائي: بيانات الاستخدام، معلومات الجهاز، عنوان IP، كوكيز الجلسة (بدون كوكيز إعلانية).\n\n**3. كيف نستخدم المعلومات**\n• توفير وصيانة وتحسين المنصة.\n• معالجة المعاملات وإدارة الاشتراكات.\n• تطبيق الشروط وكشف الاحتيال.\n• الامتثال للمتطلبات القانونية.\n\n**4. معالجة AI**\nتُعالج الأوامر بواسطة مزودي AI خارجيين. يُخزن المحتوى المولّد في معرضك الشخصي.\nلا نستخدم بياناتك لتدريب نماذج AI بدون موافقتك الصريحة.\n\n**5. مشاركة البيانات**\nلا نبيع معلوماتك الشخصية أبداً.\n• مزودو AI الخارجيون: فقط البيانات اللازمة للمعالجة.\n• معالجات الدفع: للمعاملات الآمنة فقط.\n• السلطات القانونية: عند الطلب بموجب القانون النافذ.\n\n**6. الأمان**\n• تشفير TLS/SSL أثناء النقل والتخزين.\n• كوكيز HttpOnly وحماية CSRF.\n• تدقيقات أمنية دورية وضوابط وصول صارمة.\n\n**7. حقوقك**\n• الوصول: طلب نسخة من بياناتك الشخصية.\n• التصحيح: تصحيح المعلومات غير الدقيقة أو غير المكتملة.\n• الحذف: طلب حذف بياناتك من أنظمتنا.\n• النقل: الحصول على بياناتك بتنسيق منظم وقابل للقراءة آلياً.\n\nتواصل: support@saadstudio.com — الرد خلال 30 يوماً.\n\n**8. الأطفال**\nالمنصة غير مخصصة لمن هم دون 18 عاماً. لا نجمع بيانات الأطفال عمداً. إذا اكتُشف ذلك، سنحذفها فوراً.\n\n© 2025 SAAD STUDIO. جميع الحقوق محفوظة.'},createdAt:now,updatedAt:now},{id:cmsId(),type:'richtext',label:'سياسة الاسترداد',enabled:true,order:2,data:{title:'نظام الرصيد والدفع — Credits & Payment',icon:'💳',body:'آخر تحديث: 2026-03-22\n\n**4.1 كيف يعمل نظام الرصيد**\nالرصيد هو العملة الافتراضية في المنصة. يتم شراؤه عبر خطط اشتراك شهرية أو حزم شحن.\n\nخطط الاشتراك الشهرية:\n• Starter — $10/شهر — 1,000 كريدت\n• Pro — $25/شهر — 2,800 كريدت\n• Creator — $50/شهر — 6,000 كريدت\n\nحزم الشحن (لا تنتهي حتى الاستخدام أو إنهاء الحساب):\n• $5 = 450 كريدت\n• $15 = 1,500 كريدت\n• $30 = 3,200 كريدت\n• $50 = 5,500 كريدت\n\n**4.2 كيف يُستهلك الرصيد**\n• عند الضغط على "Generate" يُخصم الرصيد فوراً من رصيدك.\n• تكلفة الرصيد الدقيقة تظهر قبل تأكيد التوليد — لديك دائماً فرصة المراجعة والقرار.\n• النماذج المختلفة لها تكاليف مختلفة. طلبك يُرسل لمزود AI خارجي يحاسبنا فورياً.\n\nأمثلة التكاليف:\n• Nano Banana Image = 4 كريدت (~$0.04)\n• Qwen2 Image = 6 كريدت (~$0.06)\n• Kling Std 5s Video (بدون صوت) = 70 كريدت (~$0.70)\n• Kling Pro 10s + صوت = 270 كريدت (~$2.70)\n• Hailuo 6s Video = 57 كريدت (~$0.57)\n• Sora 2 Basic 10s Video = 30 كريدت (~$0.30)\n• Suno Music Track = 10 كريدت (~$0.10)\n• Veo 3.1 Fast Video = 50 كريدت (~$0.50)\n\n**4.3 لماذا الرصيد غير قابل للاسترداد**\nكل عملية توليد تتحمل تكاليف حقيقية تُدفع فوراً لمزودي AI الخارجيين (KIE.AI، Google، OpenAI وغيرهم) لحظة المعالجة. هذه التكاليف تُحاسبنا فورياً ولا يمكن عكسها. تكلفة الرصيد تُعرض بوضوح قبل التأكيد. جودة مخرجات AI متغيرة بطبيعتها وليست فشلاً في الخدمة. ننصح باختبار الأوامر بنماذج أقل تكلفة قبل استخدام النماذج المتقدمة.\n\n**4.4 حالات استرداد الرصيد**\n• خطأ نظام: إذا فشلت المنصة في تقديم أي مخرجات بسبب خطأ في السيرفر (وليس قيود النموذج).\n• خصم مزدوج: إذا خُصم الرصيد عدة مرات لتوليد واحد بسبب خلل تقني.\n• انقطاع الخدمة: إذا فُقد طلب توليد مدفوع بسبب انقطاع شامل في المنصة.\n\nلطلب الاسترداد: تواصل عبر support@saadstudio.com مع معرّف التوليد والتفاصيل. سنراجع ونرد خلال 7 أيام عمل.\n\n**4.5 الاشتراكات والفوترة**\n• تتجدد الاشتراكات تلقائياً كل شهر. يمكن الإلغاء في أي وقت — يسري في نهاية فترة الفوترة الحالية.\n• رصيد الاشتراك غير المستخدم لا يُنقل للشهر التالي. رصيد الشحن يبقى حتى الاستخدام.\n• قد تتغير الأسعار مع إشعار مسبق بـ 30 يوماً على الأقل. سيُبلغ المشتركون عبر البريد الإلكتروني.'},createdAt:now,updatedAt:now}],createdAt:now,updatedAt:now}];changed=true;console.log('  ✅ CMS: تم إنشاء الصفحات الافتراضية');}// Always ensure legal page exists even if other pages were already seeded
 if(Array.isArray(cms.pages)&&!cms.pages.find(p=>p.slug==='legal')){const now=new Date().toISOString();cms.pages.push({id:cmsId(),title:'Legal',slug:'legal',category:'legal',visible:true,published:true,order:10,seoTitle:'الشروط والأحكام - SAAD STUDIO',seoDescription:'شروط الاستخدام وسياسة الخصوصية وسياسة الاسترداد',sections:[{id:cmsId(),type:'richtext',label:'شروط الاستخدام',enabled:true,order:0,data:{title:'شروط الخدمة — Terms of Service',icon:'📋',body:'آخر تحديث: 2026-03-22\n\n**1. قبول الشروط**\nباستخدامك أو وصولك إلى SAAD STUDIO ("المنصة") بما في ذلك جميع المواقع والتطبيقات وواجهات API، فإنك توافق على الالتزام بشروط الخدمة هذه. إذا لم توافق، يجب عدم استخدام المنصة. تشكل هذه الشروط اتفاقية ملزمة قانونياً بينك ("المستخدم") وSAAD STUDIO. نحتفظ بحق تعديل الشروط في أي وقت. استمرارك يعني قبولك.\n\n**2. الأهلية**\n• يجب أن يكون عمرك 18 عاماً على الأقل.\n• يجب تقديم معلومات تسجيل دقيقة وكاملة.\n• أنت مسؤول عن أمان حسابك وجميع الأنشطة تحته.\n\n**3. وصف الخدمات**\nSAAD STUDIO منصة إبداعية سحابية لتوليد الصور والفيديو والموسيقى والنصوص باستخدام نماذج AI متعددة من مزودين خارجيين.\n\n**5. سياسة الاستخدام المقبول**\nتوافق على عدم استخدام المنصة لـ:\n• توليد محتوى غير قانوني أو ضار أو مسيء أو تشهيري.\n• إنشاء مواد استغلال الأطفال (CSAM).\n• توليد صور مزيفة غير رضائية لأشخاص حقيقيين.\n• انتحال شخصيات أو كيانات.\n• انتهاك الملكية الفكرية أو العلامات التجارية أو حقوق النشر.\n• الهندسة العكسية أو تجاوز الأمان.\n• توليد رسائل مزعجة أو برمجيات خبيثة أو تصيد.\n• بناء خدمات AI منافسة باستخدام منصتنا.\n\n**6. ملكية المحتوى**\nتحميلاتك (المدخلات): تحتفظ بملكيتها وتمنحنا ترخيصاً محدوداً للمعالجة. المحتوى المولّد (المخرجات): تملكه بموجب الشروط، لا ضمان للتفرد. الملكية الفكرية للمنصة (التصميم، الكود، العلامات التجارية) تبقى لنا.\n\n**7. إخلاء مسؤولية AI**\nقد يحتوي محتوى AI على أخطاء أو تحيزات أو اتجاهات. المخرجات لا تمثل آراءنا. أنت المسؤول الوحيد عن مراجعة المخرجات. لا تقدمها على أنها بشرية عندما يكون الإفصاح مطلوباً.\n\n**8. المسؤولية والإنهاء**\nالمنصة تُقدم "كما هي". لسنا مسؤولين عن أضرار غير مباشرة. المسؤولية الإجمالية محدودة برسوم 12 شهراً مدفوعة. يجوز الإنهاء للمخالفات أو مخاطر أمنية أو متطلبات قانونية أو عدم النشاط 12+ شهراً. توافق على تعويض SAAD STUDIO من مطالبات ناتجة عن استخدامك.\n\nللتواصل: support@saadstudio.com'},createdAt:now,updatedAt:now},{id:cmsId(),type:'richtext',label:'سياسة الخصوصية',enabled:true,order:1,data:{title:'سياسة الخصوصية — Privacy Policy',icon:'🔒',body:'آخر تحديث: 2026-03-22\n\n**1. المقدمة**\nSAAD STUDIO ملتزمة بحماية خصوصيتك. توضح هذه السياسة كيف نجمع ونستخدم ونكشف ونحمي معلوماتك.\n\n**2. المعلومات التي نجمعها**\n• معلومات الحساب: الاسم، البريد الإلكتروني، بيانات المصادقة.\n• الدفع: فواتير عبر معالجات آمنة — لا نخزن أرقام البطاقات الكاملة.\n• المحتوى: الصور والأوامر (prompts) والملفات المُحمَّلة.\n• تلقائي: بيانات الاستخدام، معلومات الجهاز، عنوان IP، كوكيز الجلسة (بدون كوكيز إعلانية).\n\n**3. كيف نستخدم المعلومات**\n• توفير وصيانة وتحسين المنصة.\n• معالجة المعاملات وإدارة الاشتراكات.\n• تطبيق الشروط وكشف الاحتيال.\n• الامتثال للمتطلبات القانونية.\n\n**4. معالجة AI**\nتُعالج الأوامر بواسطة مزودي AI خارجيين. يُخزن المحتوى المولّد في معرضك الشخصي.\nلا نستخدم بياناتك لتدريب نماذج AI بدون موافقتك الصريحة.\n\n**5. مشاركة البيانات**\nلا نبيع معلوماتك الشخصية أبداً.\n• مزودو AI الخارجيون: فقط البيانات اللازمة للمعالجة.\n• معالجات الدفع: للمعاملات الآمنة فقط.\n• السلطات القانونية: عند الطلب بموجب القانون النافذ.\n\n**6. الأمان**\n• تشفير TLS/SSL أثناء النقل والتخزين.\n• كوكيز HttpOnly وحماية CSRF.\n• تدقيقات أمنية دورية وضوابط وصول صارمة.\n\n**7. حقوقك**\n• الوصول: طلب نسخة من بياناتك الشخصية.\n• التصحيح: تصحيح المعلومات غير الدقيقة أو غير المكتملة.\n• الحذف: طلب حذف بياناتك من أنظمتنا.\n• النقل: الحصول على بياناتك بتنسيق منظم وقابل للقراءة آلياً.\n\nتواصل: support@saadstudio.com — الرد خلال 30 يوماً.\n\n**8. الأطفال**\nالمنصة غير مخصصة لمن هم دون 18 عاماً. لا نجمع بيانات الأطفال عمداً. إذا اكتُشف ذلك، سنحذفها فوراً.\n\n© 2025 SAAD STUDIO. جميع الحقوق محفوظة.'},createdAt:now,updatedAt:now},{id:cmsId(),type:'richtext',label:'سياسة الاسترداد',enabled:true,order:2,data:{title:'نظام الرصيد والدفع — Credits & Payment',icon:'💳',body:'آخر تحديث: 2026-03-22\n\n**4.1 كيف يعمل نظام الرصيد**\nالرصيد هو العملة الافتراضية في المنصة. يتم شراؤه عبر خطط اشتراك شهرية أو حزم شحن.\n\nخطط الاشتراك الشهرية:\n• Starter — $10/شهر — 1,000 كريدت\n• Pro — $25/شهر — 2,800 كريدت\n• Creator — $50/شهر — 6,000 كريدت\n\nحزم الشحن (لا تنتهي حتى الاستخدام أو إنهاء الحساب):\n• $5 = 450 كريدت\n• $15 = 1,500 كريدت\n• $30 = 3,200 كريدت\n• $50 = 5,500 كريدت\n\n**4.2 كيف يُستهلك الرصيد**\n• عند الضغط على "Generate" يُخصم الرصيد فوراً من رصيدك.\n• تكلفة الرصيد الدقيقة تظهر قبل تأكيد التوليد — لديك دائماً فرصة المراجعة والقرار.\n• النماذج المختلفة لها تكاليف مختلفة. طلبك يُرسل لمزود AI خارجي يحاسبنا فورياً.\n\nأمثلة التكاليف:\n• Nano Banana Image = 4 كريدت (~$0.04)\n• Qwen2 Image = 6 كريدت (~$0.06)\n• Kling Std 5s Video (بدون صوت) = 70 كريدت (~$0.70)\n• Kling Pro 10s + صوت = 270 كريدت (~$2.70)\n• Hailuo 6s Video = 57 كريدت (~$0.57)\n• Sora 2 Basic 10s Video = 30 كريدت (~$0.30)\n• Suno Music Track = 10 كريدت (~$0.10)\n• Veo 3.1 Fast Video = 50 كريدت (~$0.50)\n\n**4.3 لماذا الرصيد غير قابل للاسترداد**\nكل عملية توليد تتحمل تكاليف حقيقية تُدفع فوراً لمزودي AI الخارجيين (KIE.AI، Google، OpenAI وغيرهم) لحظة المعالجة. هذه التكاليف تُحاسبنا فورياً ولا يمكن عكسها. تكلفة الرصيد تُعرض بوضوح قبل التأكيد. جودة مخرجات AI متغيرة بطبيعتها وليست فشلاً في الخدمة. ننصح باختبار الأوامر بنماذج أقل تكلفة قبل استخدام النماذج المتقدمة.\n\n**4.4 حالات استرداد الرصيد**\n• خطأ نظام: إذا فشلت المنصة في تقديم أي مخرجات بسبب خطأ في السيرفر (وليس قيود النموذج).\n• خصم مزدوج: إذا خُصم الرصيد عدة مرات لتوليد واحد بسبب خلل تقني.\n• انقطاع الخدمة: إذا فُقد طلب توليد مدفوع بسبب انقطاع شامل في المنصة.\n\nلطلب الاسترداد: تواصل عبر support@saadstudio.com مع معرّف التوليد والتفاصيل. سنراجع ونرد خلال 7 أيام عمل.\n\n**4.5 الاشتراكات والفوترة**\n• تتجدد الاشتراكات تلقائياً كل شهر. يمكن الإلغاء في أي وقت — يسري في نهاية فترة الفوترة الحالية.\n• رصيد الاشتراك غير المستخدم لا يُنقل للشهر التالي. رصيد الشحن يبقى حتى الاستخدام.\n• قد تتغير الأسعار مع إشعار مسبق بـ 30 يوماً على الأقل. سيُبلغ المشتركون عبر البريد الإلكتروني.'},createdAt:now,updatedAt:now}],createdAt:now,updatedAt:now});changed=true;console.log('  ✅ CMS: تمت إضافة صفحة Legal');}
@@ -5749,6 +6686,221 @@ app.post('/api/admin/cms/sidebar',requireAdmin,async(req,res)=>{try{const b=req.
 app.put('/api/admin/cms/sidebar/:id',requireAdmin,async(req,res)=>{try{const cms=await loadCMS();if(!Array.isArray(cms.sidebar))cms.sidebar=[];const idx=cms.sidebar.findIndex(i=>i.id===req.params.id);if(idx===-1)return res.status(404).json({error:'العنصر غير موجود'});const b=req.body;const prev=cms.sidebar[idx];const upd={...prev};if(b.pageId!==undefined)upd.pageId=sStr(b.pageId,100);if(b.title!==undefined)upd.title=sStr(b.title,200);if(b.group!==undefined)upd.group=sStr(b.group,100);if(b.icon!==undefined)upd.icon=sStr(b.icon,100);if(b.iconType!==undefined)upd.iconType=b.iconType;if(b.iconImg!==undefined)upd.iconImg=sStr(b.iconImg,500);if(b.order!==undefined)upd.order=Number(b.order);if(b.visible!==undefined)upd.visible=Boolean(b.visible);if(b.enabled!==undefined)upd.enabled=Boolean(b.enabled);if(b.badge!==undefined)upd.badge=b.badge&&b.badge.text?{text:sStr(b.badge.text,50),color:sStr(b.badge.color,30)||'#5fe2ff'}:null;if(b.external!==undefined)upd.external=Boolean(b.external);if(b.externalUrl!==undefined)upd.externalUrl=sStr(b.externalUrl,500);if(b.featured!==undefined)upd.featured=Boolean(b.featured);if(b.isNew!==undefined)upd.isNew=Boolean(b.isNew);if(b.isPro!==undefined)upd.isPro=Boolean(b.isPro);upd.updatedAt=new Date().toISOString();cms.sidebar[idx]=upd;cmsLog(cms,'sidebar.update',`تحديث قائمة: "${upd.title}"`);await saveCMS(cms);res.json({ok:true,item:upd});}catch(e){res.status(500).json({error:e.message});}});
 app.delete('/api/admin/cms/sidebar/:id',requireAdmin,async(req,res)=>{try{const cms=await loadCMS();if(!Array.isArray(cms.sidebar))cms.sidebar=[];const idx=cms.sidebar.findIndex(i=>i.id===req.params.id);if(idx===-1)return res.status(404).json({error:'العنصر غير موجود'});const[rem]=cms.sidebar.splice(idx,1);cmsLog(cms,'sidebar.delete',`حذف قائمة: "${rem.title}"`);await saveCMS(cms);res.json({ok:true});}catch(e){res.status(500).json({error:e.message});}});
 app.post('/api/admin/cms/sidebar/reorder',requireAdmin,async(req,res)=>{try{const ids=req.body.ids;if(!Array.isArray(ids))return res.status(400).json({error:'ids[] required'});const cms=await loadCMS();if(!Array.isArray(cms.sidebar))cms.sidebar=[];const map=Object.fromEntries(cms.sidebar.map(i=>[i.id,i]));const reordered=ids.filter(id=>map[id]).map((id,i)=>({...map[id],order:i}));const extras=cms.sidebar.filter(i=>!ids.includes(i.id));cms.sidebar=[...reordered,...extras];cmsLog(cms,'sidebar.reorder','ترتيب القائمة الجانبية');await saveCMS(cms);res.json({ok:true});}catch(e){res.status(500).json({error:e.message});}});
+
+// Page Builder (admin)
+app.get('/api/admin/page-builder/pages', requireAdmin, (req, res) => {
+  try {
+    const state = loadBuilderState();
+    let changed = false;
+    for (const p of BUILDER_PAGES) {
+      const rec = state.pages[p.id] || { ...p, layout: [], importMeta: null, updatedAt: null, publishedAt: null };
+      if (shouldAutoImportLayout(rec)) {
+        const imported = importPageLayoutFromRealPage(p);
+        if (imported.length) {
+          rec.layout = imported;
+          rec.importMeta = { source: 'auto-real', version: BUILDER_IMPORT_VERSION, importedAt: new Date().toISOString() };
+          rec.updatedAt = new Date().toISOString();
+          state.pages[p.id] = rec;
+          changed = true;
+        }
+      }
+    }
+    if (changed) saveBuilderState(state);
+    const pages = BUILDER_PAGES.map(p => {
+      const rec = state.pages[p.id] || {};
+      return {
+        id: p.id,
+        title: p.title,
+        route: p.route,
+        file: p.file,
+        components: Array.isArray(rec.layout) ? rec.layout.length : 0,
+        updatedAt: rec.updatedAt || null,
+        publishedAt: rec.publishedAt || null
+      };
+    });
+    res.json({ pages, updatedAt: state.updatedAt || null });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+app.get('/api/admin/page-builder/layout/:pageId', requireAdmin, (req, res) => {
+  try {
+    const page = getBuilderPage(req.params.pageId);
+    if (!page) return res.status(404).json({ error: 'Unknown page' });
+    const state = loadBuilderState();
+    const rec = state.pages[page.id] || {};
+    let layout = Array.isArray(rec.layout) ? rec.layout : [];
+    let importedFromReal = false;
+    if (shouldAutoImportLayout(rec)) {
+      layout = importPageLayoutFromRealPage(page);
+      if (layout.length) {
+        if (!state.pages[page.id]) state.pages[page.id] = { ...page, layout: [], importMeta: null, updatedAt: null, publishedAt: null };
+        state.pages[page.id].layout = layout;
+        state.pages[page.id].importMeta = { source: 'auto-real', version: BUILDER_IMPORT_VERSION, importedAt: new Date().toISOString() };
+        state.pages[page.id].updatedAt = new Date().toISOString();
+        saveBuilderState(state);
+        const sourceFile = path.join(__dirname, 'SAAD_STUDIO_MultiPage', sStr(page.file || '', 160));
+        importedFromReal = Boolean(page.file) && fs.existsSync(sourceFile);
+      }
+    }
+    const live = state.pages[page.id] || rec || {};
+    res.json({ page, layout, updatedAt: live.updatedAt || null, publishedAt: live.publishedAt || null, importedFromReal });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+app.post('/api/admin/page-builder/layout/:pageId', requireAdmin, cmsWriteLimiter, (req, res) => {
+  try {
+    const page = getBuilderPage(req.params.pageId);
+    if (!page) return res.status(404).json({ error: 'Unknown page' });
+    const state = loadBuilderState();
+    const layout = sanitizeBuilderLayout(req.body?.layout);
+    if (!state.pages[page.id]) state.pages[page.id] = { ...page, layout: [], importMeta: null, updatedAt: null, publishedAt: null };
+    state.pages[page.id].layout = layout;
+    state.pages[page.id].importMeta = { source: 'manual', version: BUILDER_IMPORT_VERSION, importedAt: new Date().toISOString() };
+    state.pages[page.id].updatedAt = new Date().toISOString();
+    saveBuilderState(state);
+    auditLog('admin.page-builder.save', `page="${page.id}" components=${layout.length}`, req);
+    res.json({ ok: true, page, layoutCount: layout.length, updatedAt: state.pages[page.id].updatedAt });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+app.post('/api/admin/page-builder/publish/:pageId', requireAdmin, cmsWriteLimiter, (req, res) => {
+  try {
+    const page = getBuilderPage(req.params.pageId);
+    if (!page) return res.status(404).json({ error: 'Unknown page' });
+    const state = loadBuilderState();
+    const rec = state.pages[page.id] || { ...page, layout: [] };
+    const target = path.join(__dirname, 'SAAD_STUDIO_MultiPage', page.file);
+    const baseDir = path.join(__dirname, 'SAAD_STUDIO_MultiPage') + path.sep;
+    if (!target.startsWith(baseDir)) return res.status(400).json({ error: 'Invalid publish target' });
+    if (!fs.existsSync(target)) return res.status(404).json({ error: 'Page file not found' });
+    const html = fs.readFileSync(target, 'utf8');
+    const block = renderBuilderBlock(page, Array.isArray(rec.layout) ? rec.layout : []);
+    const next = injectBuilderBlock(html, block);
+    fs.writeFileSync(target, next, 'utf8');
+    rec.publishedAt = new Date().toISOString();
+    rec.updatedAt = rec.updatedAt || rec.publishedAt;
+    state.pages[page.id] = rec;
+    saveBuilderState(state);
+    auditLog('admin.page-builder.publish', `page="${page.id}" file="${page.file}"`, req);
+    res.json({ ok: true, page, publishedAt: rec.publishedAt, file: page.file });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+function titleFromBaseName(base) {
+  if (base === 'index') return 'Discover';
+  const withSpaces = String(base).replace(/[-_]+/g, ' ').trim();
+  return withSpaces.replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function buildRealEditorPages() {
+  const root = path.join(__dirname, 'SAAD_STUDIO_MultiPage');
+  const exclude = new Set(['dashboard.html', 'dashboard-dev.html']);
+  const preferredOrder = [
+    'index', 'images', 'videos', 'audio', 'transitions', 'tools', 'cinema',
+    'gallery', 'library', 'prompt', 'image-tools', 'qwen2', 'fluxkontext',
+    'ideogram-reframe', 'suno', 'account', 'legal'
+  ];
+  const preferredRank = new Map(preferredOrder.map((k, i) => [k, i]));
+
+  const files = fs.readdirSync(root)
+    .filter((name) => name.toLowerCase().endsWith('.html'))
+    .filter((name) => !exclude.has(name.toLowerCase()));
+
+  const pages = files.map((file) => {
+    const base = path.basename(file, '.html');
+    const id = base.toLowerCase();
+    const route = id === 'index' ? '/' : `/${id}`;
+    return {
+      id,
+      title: titleFromBaseName(base),
+      route,
+      file
+    };
+  });
+
+  pages.sort((a, b) => {
+    const ra = preferredRank.has(a.id) ? preferredRank.get(a.id) : 10_000;
+    const rb = preferredRank.has(b.id) ? preferredRank.get(b.id) : 10_000;
+    if (ra !== rb) return ra - rb;
+    return a.title.localeCompare(b.title, 'en');
+  });
+
+  if (!pages.some((p) => p.id === 'index')) {
+    pages.unshift({ id: 'discover', title: 'Discover', route: '/', file: 'index.html' });
+  }
+  return pages;
+}
+
+const REAL_EDITOR_PAGE_LIST = buildRealEditorPages();
+const REAL_EDITOR_PAGES = REAL_EDITOR_PAGE_LIST.reduce((acc, p) => {
+  const id = String(p.id || '').toLowerCase();
+  acc[id] = p;
+  if (id === 'index') acc.discover = p;
+  return acc;
+}, {});
+function resolveRealEditorPage(pageId){
+  const raw = String(pageId || '').trim().toLowerCase();
+  if (!raw) return null;
+  const key = raw === 'discover' ? 'index' : raw;
+  if (REAL_EDITOR_PAGES[key]) return REAL_EDITOR_PAGES[key];
+  // also allow matching by route token (/images => images) or file basename (images.html => images)
+  const normalized = key.replace(/^\/+/, '').replace(/\.html$/i, '');
+  return REAL_EDITOR_PAGE_LIST.find((p) => {
+    const id = String(p.id || '').toLowerCase();
+    const routeToken = String(p.route || '').toLowerCase().replace(/^\/+/, '');
+    const fileToken = String(p.file || '').toLowerCase().replace(/\.html$/i, '');
+    return id === normalized || routeToken === normalized || fileToken === normalized;
+  }) || null;
+}
+
+app.get('/api/admin/real-editor/pages', requireAdmin, (req, res) => {
+  try {
+    const pages = REAL_EDITOR_PAGE_LIST.filter((p) => {
+      const target = path.join(__dirname, 'SAAD_STUDIO_MultiPage', p.file);
+      return fs.existsSync(target);
+    });
+    res.json({ ok: true, pages });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/admin/real-editor/page/:pageId', requireAdmin, (req, res) => {
+  try {
+    const page = resolveRealEditorPage(req.params.pageId);
+    if (!page) return res.status(404).json({ error: 'Unsupported page for real editor' });
+    const target = path.join(__dirname, 'SAAD_STUDIO_MultiPage', page.file);
+    if (!fs.existsSync(target)) return res.status(404).json({ error: 'Page file not found' });
+    const html = fs.readFileSync(target, 'utf8');
+    res.json({ ok: true, page, html });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/admin/real-editor/page/:pageId', requireAdmin, cmsWriteLimiter, (req, res) => {
+  try {
+    const page = resolveRealEditorPage(req.params.pageId);
+    if (!page) return res.status(404).json({ error: 'Unsupported page for real editor' });
+    const nextHtml = String(req.body?.html || '');
+    if (!nextHtml || !/<html[\s>]/i.test(nextHtml) || !/<body[\s>]/i.test(nextHtml)) {
+      return res.status(400).json({ error: 'Invalid HTML payload' });
+    }
+    const target = path.join(__dirname, 'SAAD_STUDIO_MultiPage', page.file);
+    const baseDir = path.join(__dirname, 'SAAD_STUDIO_MultiPage') + path.sep;
+    if (!target.startsWith(baseDir)) return res.status(400).json({ error: 'Invalid target path' });
+    fs.writeFileSync(target, nextHtml, 'utf8');
+    auditLog('admin.real-editor.save', `page="${page.id}" file="${page.file}" bytes=${Buffer.byteLength(nextHtml, 'utf8')}`, req);
+    res.json({ ok: true, page, savedAt: new Date().toISOString() });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
 
 // Media (admin)
 app.get('/api/admin/cms/media',requireAdmin,(req,res)=>{try{const uploadDir=path.join(__dirname,'uploads');const files=[];const exts=new Set(['.jpg','.jpeg','.png','.gif','.webp','.svg','.avif']);if(fs.existsSync(uploadDir)){fs.readdirSync(uploadDir,{recursive:true}).forEach(f=>{const full=path.join(uploadDir,f);try{const stat=fs.statSync(full);if(stat.isFile()&&exts.has(path.extname(f).toLowerCase())){files.push({name:path.basename(f),url:'/uploads/'+f.replace(/\\/g,'/'),size:stat.size,createdAt:stat.birthtime||stat.mtime});}}catch{}});}res.json({media:files.sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt)).slice(0,200)});}catch(e){res.status(500).json({error:e.message});}});
@@ -5859,6 +7011,71 @@ app.get('/api/user/orders', requireSignedIn, async (req, res) => {
   } catch(e) { res.status(500).json({ error: 'خطأ داخلي' }); }
 });
 
+// GET /api/user/generations — current user generations only (strict owner filtering)
+app.get('/api/user/generations', requireSignedIn, (req, res) => {
+  try {
+    const me = String(req.currentUser?.id || '');
+    if (!me) return res.status(401).json({ error: 'غير مسجل' });
+
+    const directLog = loadGenerations();
+    let activityLog = [];
+    try { activityLog = JSON.parse(fs.readFileSync(ACTIVITY_FILE, 'utf8')); } catch {}
+    if (!Array.isArray(activityLog)) activityLog = [];
+
+    const fromActivity = activityLog
+      .filter(e => !!e?.imageUrl)
+      .map(e => ({
+        id: `act-${e.id || crypto.randomBytes(4).toString('hex')}`,
+        userId: String(e.userId || ''),
+        email: String(e.email || ''),
+        url: String(e.imageUrl || ''),
+        isVideo: String(e.type || '').toLowerCase() === 'video',
+        type: String(e.type || ''),
+        model: String(e.model || ''),
+        prompt: String(e.prompt || ''),
+        credits: Number(e.credits) || 0,
+        createdAt: e.createdAt || new Date().toISOString()
+      }));
+
+    const seen = new Set();
+    const mine = [...directLog, ...fromActivity]
+      .filter(e => e && e.url)
+      .filter(e => String(e.userId || '') === me)
+      .filter(e => {
+        const key = `${e.userId || ''}|${e.url}|${String(e.createdAt || '').slice(0, 16)}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+      .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+
+    const limit  = Math.min(200, Math.max(1, parseInt(req.query.limit)  || 50));
+    const page   = Math.max(1, parseInt(req.query.page) || 1);
+    const offset = Math.max(0, parseInt(req.query.offset) || ((page - 1) * limit));
+    const type   = req.query.type || '';
+    const search = (req.query.search || '').toLowerCase();
+    let filtered = mine;
+    if (type === 'image') filtered = filtered.filter(e => !e.isVideo);
+    if (type === 'video') filtered = filtered.filter(e => e.isVideo);
+    if (type === 'audio') filtered = filtered.filter(e => e.type === 'audio');
+    if (search) filtered = filtered.filter(e =>
+      (e.model  || '').toLowerCase().includes(search) ||
+      (e.prompt || '').toLowerCase().includes(search)
+    );
+
+    const images = mine.filter(e => !e.isVideo && e.type !== 'audio').length;
+    const videos = mine.filter(e => e.isVideo || e.type === 'video').length;
+    const audio  = mine.filter(e => e.type === 'audio').length;
+    res.json({
+      generations: filtered.slice(offset, offset + limit),
+      total: filtered.length,
+      stats: { total: mine.length, images, videos, audio }
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 const startServer = (port) => {
   const server = app.listen(port, async () => {
     console.log('');
@@ -5902,7 +7119,6 @@ app.use((err, req, res, _next) => {
   console.error('[ERROR]', err.message);
   return res.status(status).json({ error: 'حدث خطأ داخلي' });
 });
-
 
 
 

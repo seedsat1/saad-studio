@@ -3,7 +3,7 @@
    Caches static assets for offline support + fast repeat loads
    ================================================================ */
 
-const CACHE_VERSION = 'saad-studio-v2';
+const CACHE_VERSION = 'saad-studio-v3';
 const STATIC_CACHE  = `${CACHE_VERSION}-static`;
 const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
 
