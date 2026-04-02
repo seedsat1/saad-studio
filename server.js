@@ -175,7 +175,8 @@ async function isMaintenanceModeActive() {
 }
 
 async function getEffectiveUserCredits(rawCredits, planId = '') {
-  if (String(planId || '').toLowerCase() === 'starter') {
+  const isAdmin = arguments.length > 2 ? arguments[2] === true : false;
+  if (!isAdmin) {
     return 0;
   }
   if (await isMaintenanceModeActive()) return 0;
@@ -3742,7 +3743,7 @@ async function attachUser(req, res, next) {
     req.currentUser = {                         // backward-compat shape
       id:                    profile.id,
       email:                 profile.email,
-      credits:               await getEffectiveUserCredits(profile.credits, profile.plan),
+      credits:               await getEffectiveUserCredits(profile.credits, profile.plan, profile.is_admin === true),
       plan:                  profile.plan            || 'starter',
       maxCredits:            profile.max_credits     ?? 0,
       isAdmin:               profile.is_admin        === true,
@@ -3808,7 +3809,7 @@ async function deductCreditsForGeneration(req, res, model, params) {
   }
   // Re-read current credits from Supabase to prevent race conditions
   const freshProfile = await getProfile(req.currentUser.id);
-  const current = freshProfile?.credits ?? 0;
+  const current = await getEffectiveUserCredits(freshProfile?.credits, freshProfile?.plan, freshProfile?.is_admin === true);
   if (current < cost) {
     res.status(402).json({ error: 'رصيد غير كافٍ', credits: current, required: cost });
     return false;
@@ -3816,10 +3817,10 @@ async function deductCreditsForGeneration(req, res, model, params) {
   // Atomic decrement via Supabase RPC or update
   const updated = await updateProfile(req.currentUser.id, { credits: current - cost });
   if (updated) {
-    req.currentUser.credits = updated.credits;
+    req.currentUser.credits = await getEffectiveUserCredits(updated.credits, updated.plan, updated.is_admin === true);
     req.profile = updated;
   }
-  req.creditInfo = { creditsUsed: cost, remainingCredits: updated?.credits ?? (current - cost) };
+  req.creditInfo = { creditsUsed: cost, remainingCredits: req.currentUser.credits ?? 0 };
   // Track usage (still vault-based)
   trackUsage(req.currentUser.id, model, cost);
   // Log individual activity event for admin feed
@@ -4058,7 +4059,7 @@ app.post('/api/auth/register', loginLimiter, async (req, res) => {
     const safeUser = {
       id: authData.user.id,
       email: authData.user.email,
-      credits: await getEffectiveUserCredits(profile?.credits, profile?.plan),
+      credits: await getEffectiveUserCredits(profile?.credits, profile?.plan, profile?.is_admin === true),
       plan: profile?.plan || 'starter',
       maxCredits: profile?.max_credits ?? 0,
       isAdmin: profile?.is_admin === true,
@@ -4130,7 +4131,7 @@ app.post('/api/auth/login', loginLimiter, async (req, res) => {
     const safeUser = {
       id: data.user.id,
       email: data.user.email,
-      credits: await getEffectiveUserCredits(profile?.credits, profile?.plan),
+      credits: await getEffectiveUserCredits(profile?.credits, profile?.plan, isAdmin),
       plan: profile?.plan || 'starter',
       maxCredits: profile?.max_credits ?? 0,
       isAdmin,
@@ -4203,7 +4204,7 @@ app.post('/api/auth/refresh', async (req, res) => {
       user: {
         id: data.user.id,
         email: data.user.email,
-        credits: await getEffectiveUserCredits(profile?.credits, profile?.plan),
+        credits: await getEffectiveUserCredits(profile?.credits, profile?.plan, profile?.is_admin === true),
         plan: profile?.plan || 'starter',
         maxCredits: profile?.max_credits ?? 0,
         isAdmin: profile?.is_admin === true,
@@ -4919,7 +4920,7 @@ app.post('/api/auth/google', loginLimiter, async (req, res) => {
     const safeUser = {
       id: userId,
       email: email,
-      credits: await getEffectiveUserCredits(profile?.credits, profile?.plan),
+      credits: await getEffectiveUserCredits(profile?.credits, profile?.plan, profile?.is_admin === true),
       plan: profile?.plan || 'starter',
       maxCredits: profile?.max_credits ?? 0,
       isAdmin: profile?.is_admin === true,
