@@ -165,6 +165,31 @@ const KIE_TTS_VOICE_MAP = {
 // هامش الربح — افتراضي 40% ، يمكن تغييره عبر .env: PROFIT_MARGIN=0.30
 const PROFIT_MARGIN = Math.max(0, Number(process.env.PROFIT_MARGIN ?? 0.40));
 
+async function isMaintenanceModeActive() {
+  try {
+    const cms = await loadCMS();
+    return Boolean(cms?.settings?.maintenanceMode);
+  } catch {
+    return false;
+  }
+}
+
+async function getEffectiveUserCredits(rawCredits, planId = '') {
+  if (String(planId || '').toLowerCase() === 'starter') {
+    return 0;
+  }
+  if (await isMaintenanceModeActive()) return 0;
+  if (String(planId || '').toLowerCase() === 'starter' && Number(PLANS?.starter?.credits ?? 0) <= 0) {
+    return 0;
+  }
+  const credits = Number(rawCredits);
+  return Number.isFinite(credits) && credits >= 0 ? credits : 0;
+}
+
+async function getInitialFreeTrialCredits() {
+  return 0;
+}
+
 const WORKFLOWS_DIR = path.join(__dirname, 'workflows');
 const UPLOADS_DIR   = path.join(__dirname, 'uploads');
 [WORKFLOWS_DIR, UPLOADS_DIR].forEach(d => !fs.existsSync(d) && fs.mkdirSync(d, {recursive:true}));
@@ -3695,13 +3720,7 @@ async function attachUser(req, res, next) {
 
     // 4. Auto-create profile if missing (edge case: trigger didn't fire)
     if (!profile) {
-      // Read free trial credits from vault settings (set via admin dashboard)
-      let initialCredits = 100;
-      try {
-        const ftPath = path.join(__dirname, 'vault', 'free_trial.json');
-        const ft = JSON.parse(fs.readFileSync(ftPath, 'utf8'));
-        if (typeof ft.freeCredits === 'number' && ft.freeCredits >= 0) initialCredits = ft.freeCredits;
-      } catch {}
+      const initialCredits = await getInitialFreeTrialCredits();
       const { data: newP } = await supabaseAdmin
         .from('profiles')
         .insert({
@@ -3723,7 +3742,7 @@ async function attachUser(req, res, next) {
     req.currentUser = {                         // backward-compat shape
       id:                    profile.id,
       email:                 profile.email,
-      credits:               profile.credits        ?? 0,
+      credits:               await getEffectiveUserCredits(profile.credits, profile.plan),
       plan:                  profile.plan            || 'starter',
       maxCredits:            profile.max_credits     ?? 0,
       isAdmin:               profile.is_admin        === true,
@@ -4030,7 +4049,7 @@ app.post('/api/auth/register', loginLimiter, async (req, res) => {
 
     if (loginErr || !signInData?.session) {
       // User created but auto-login failed — still return success
-      auditLog('user.register', 'email="' + email + '" plan="starter" credits=100 (auto-login failed)', req);
+      auditLog('user.register', 'email="' + email + '" plan="starter" credits=0 (auto-login failed)', req);
       return res.status(201).json({ ok: true, message: 'تم إنشاء الحساب، يرجى تسجيل الدخول' });
     }
 
@@ -4039,7 +4058,7 @@ app.post('/api/auth/register', loginLimiter, async (req, res) => {
     const safeUser = {
       id: authData.user.id,
       email: authData.user.email,
-      credits: profile?.credits ?? 100,
+      credits: await getEffectiveUserCredits(profile?.credits, profile?.plan),
       plan: profile?.plan || 'starter',
       maxCredits: profile?.max_credits ?? 0,
       isAdmin: profile?.is_admin === true,
@@ -4057,7 +4076,7 @@ app.post('/api/auth/register', loginLimiter, async (req, res) => {
       httpOnly: true, secure: IS_PROD, sameSite: 'lax', path: '/', maxAge: 30 * 24 * 60 * 60 * 1000
     });
 
-    auditLog('user.register', 'email="' + safeUser.email + '" plan="starter" credits=100', req);
+    auditLog('user.register', 'email="' + safeUser.email + '" plan="starter" credits=0', req);
 
     // Welcome email
     sendEmail({
@@ -4111,7 +4130,7 @@ app.post('/api/auth/login', loginLimiter, async (req, res) => {
     const safeUser = {
       id: data.user.id,
       email: data.user.email,
-      credits: profile?.credits ?? 0,
+      credits: await getEffectiveUserCredits(profile?.credits, profile?.plan),
       plan: profile?.plan || 'starter',
       maxCredits: profile?.max_credits ?? 0,
       isAdmin,
@@ -4184,7 +4203,7 @@ app.post('/api/auth/refresh', async (req, res) => {
       user: {
         id: data.user.id,
         email: data.user.email,
-        credits: profile?.credits ?? 0,
+        credits: await getEffectiveUserCredits(profile?.credits, profile?.plan),
         plan: profile?.plan || 'starter',
         maxCredits: profile?.max_credits ?? 0,
         isAdmin: profile?.is_admin === true,
@@ -4900,7 +4919,7 @@ app.post('/api/auth/google', loginLimiter, async (req, res) => {
     const safeUser = {
       id: userId,
       email: email,
-      credits: profile?.credits ?? 100,
+      credits: await getEffectiveUserCredits(profile?.credits, profile?.plan),
       plan: profile?.plan || 'starter',
       maxCredits: profile?.max_credits ?? 0,
       isAdmin: profile?.is_admin === true,
@@ -5800,14 +5819,16 @@ app.post('/api/admin/user-credits', requireAdmin, async (req, res) => {
 // ══════════════════════════════════════
 const FREE_TRIAL_FILE = path.join(VAULT_DIR, 'free_trial.json');
 app.get('/api/admin/free-trial-settings', requireAdmin, (req, res) => {
-  const settings = vaultRead(FREE_TRIAL_FILE, { freeCredits: 100, dailyLimit: 50 });
+  const settings = vaultRead(FREE_TRIAL_FILE, { freeCredits: 0, dailyLimit: 50 });
   res.json(settings);
 });
 app.post('/api/admin/free-trial-settings', requireAdmin, (req, res) => {
   const { freeCredits, dailyLimit } = req.body || {};
+  const parsedFreeCredits = Number(freeCredits);
+  const parsedDailyLimit = Number(dailyLimit);
   const settings = {
-    freeCredits: Math.max(0, Number(freeCredits) || 100),
-    dailyLimit: Math.max(0, Number(dailyLimit) || 50),
+    freeCredits: Number.isFinite(parsedFreeCredits) ? Math.max(0, parsedFreeCredits) : 0,
+    dailyLimit: Number.isFinite(parsedDailyLimit) ? Math.max(0, parsedDailyLimit) : 50,
     updatedAt: new Date().toISOString()
   };
   vaultWrite(FREE_TRIAL_FILE, settings);
@@ -5820,7 +5841,7 @@ app.post('/api/admin/free-trial-settings', requireAdmin, (req, res) => {
 // ══════════════════════════════════════
 const DEFAULT_PLANS = {
   plans: [
-    { id: 'starter', name: 'Starter', price: 10, credits: 1000, features: ['1000 كريدت شهرياً', 'كل النماذج', 'دعم عادي'] },
+    { id: 'starter', name: 'Starter', price: 10, credits: 0, features: ['0 كريدت حالياً', 'الموقع تحت الصيانة', 'دعم عادي'] },
     { id: 'pro', name: 'Pro', price: 25, credits: 2800, popular: true, features: ['2800 كريدت شهرياً', 'أولوية عالية', 'دعم سريع'] },
     { id: 'creator', name: 'Creator', price: 50, credits: 6000, features: ['6000 كريدت شهرياً', 'أولوية قصوى', 'دعم VIP', 'API access'] }
   ],
