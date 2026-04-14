@@ -723,7 +723,7 @@ export default function ImageWorkspacePage() {
   const composer = useMemo(() => {
     if (activeTool === "create") {
       const perImage = createNeedsImage ? 3 : 2;
-      return { placeholder: "Describe what you want to generate...", button: `Generate Image ✦ ${perImage * numImages}`, promptEnabled: true };
+      return { placeholder: "Describe what you want to generate...", button: `Generate Image · ${perImage * numImages} cr`, promptEnabled: true };
     }
     if (activeTool === "relight") return { placeholder: "Describe the lighting you want...", button: `Relight Image ✦ ${3 * relightVariations}`, promptEnabled: true };
     if (activeTool === "inpaint") return { placeholder: "Describe what should replace the painted area...", button: `Inpaint ✦ ${3 * inpaintVariations}`, promptEnabled: true };

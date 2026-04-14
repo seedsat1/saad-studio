@@ -57,6 +57,24 @@ const MODELS = [
 type ModelId = typeof MODELS[number]["id"];
 type InputMode = "text" | "image" | "multiview" | "sketch";
 
+const THREE_D_CREDITS: Record<string, number> = {
+  "tripo3d-2.5.image": 10,
+  "tripo3d-2.5.multiview": 14,
+  "hunyuan3d-3.1.text": 3,
+  "hunyuan3d-3.1.image": 4,
+  "hunyuan3d-3.text": 38,
+  "hunyuan3d-3.image": 38,
+  "hunyuan3d-3.sketch": 40,
+  "meshy-6.text": 20,
+  "meshy-6.image": 20,
+  "hyper3d-rodin-2.text": 40,
+  "hyper3d-rodin-2.image": 40,
+};
+
+function calc3DCredits(modelId: string, mode: string): number {
+  return THREE_D_CREDITS[`${modelId}.${mode}`] ?? 10;
+}
+
 // ─── Toolbar buttons ──────────────────────────────────────────────────────────
 const TOOLBAR_ITEMS = [
   { icon: RotateCcw, label: "Rotate",    shortcut: "R" },
@@ -766,7 +784,7 @@ export default function ThreeDStudioPage() {
             ) : (
               <>
                 <Sparkles className="w-4 h-4" />
-                <span>Generate 3D</span>
+                <span>Generate 3D · {calc3DCredits(selectedModel, inputMode)} cr</span>
               </>
             )}
           </motion.button>

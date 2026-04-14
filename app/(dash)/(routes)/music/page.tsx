@@ -20,6 +20,22 @@ import Heading from "@/components/heading";
 import { AssetInspector, type Asset } from "@/components/AssetInspector";
 
 // ─── Music Models ─────────────────────────────────────────────────────────────
+const MUSIC_BASE_CREDITS: Record<string, number> = {
+  "wavespeed-ai/ace-step-1.5": 10,
+  "wavespeed-ai/song-generation": 14,
+  "wavespeed-ai/ace-step": 9,
+  "wavespeed-ai/heartmula-generate-music": 9,
+  "minimax/minimax-music-2.5": 12,
+  "minimax/minimax-music-02": 10,
+  "minimax/minimax-music-v1.5": 8,
+  "elevenlabs/elevenlabs-music": 12,
+};
+
+function calcMusicCredits(modelId: string, duration: number): number {
+  const base = MUSIC_BASE_CREDITS[modelId] ?? 10;
+  return base * Math.max(1, Math.ceil(duration / 30));
+}
+
 const MUSIC_MODELS = [
   {
     id: "wavespeed-ai/ace-step-1.5",
@@ -359,7 +375,7 @@ const MusicPage = () => {
           ) : (
             <>
               <Wand2 className="h-4 w-4" />
-              Generate Music
+              Generate Music · {calcMusicCredits(selectedModel.id, duration)} cr
             </>
           )}
         </button>

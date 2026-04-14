@@ -114,7 +114,7 @@ const ConversationPage = () => {
                         </div>
                         <div className="block w-full col-span-12 lg:col-span-2">
                             <Button className="col-span-12 lg:col-span-2 w-full" type="submit" disabled={isLoading } size="icon">
-                                Generate
+                                Generate · 1 cr
                             </Button>
                         </div>
                     </form>

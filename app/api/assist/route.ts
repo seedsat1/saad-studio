@@ -1,8 +1,8 @@
 ﻿import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
-import { checkApiLimit, incrementApiLimit } from "@/lib/api-limit";
-import { checkSubscription } from "@/lib/subscription";
+import { spendCredits, InsufficientCreditsError } from "@/lib/credit-ledger";
+import { ASSIST_CHAT_CREDITS } from "@/lib/credits-config";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import {
   getClientIp,
@@ -61,25 +61,6 @@ function normalizeMessages(input: unknown): ChatMessage[] {
     .slice(-25);
 }
 
-async function safeCheckUsage(): Promise<boolean> {
-  try {
-    const freeTrial = await checkApiLimit();
-    const isPro = await checkSubscription();
-    return freeTrial || isPro;
-  } catch (e) {
-    console.warn("assist usage checks unavailable, proceeding", e);
-    return true;
-  }
-}
-
-async function safeIncrementUsage() {
-  try {
-    await incrementApiLimit();
-  } catch (e) {
-    console.warn("assist usage increment failed", e);
-  }
-}
-
 async function callKie(messages: ChatMessage[], model: string): Promise<string> {
   const key = process.env.KIE_API_KEY || process.env.KIEAI_API_KEY;
   if (!key) throw new Error("KIE_API_KEY is not configured.");
@@ -121,14 +102,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const usageAllowed = await safeCheckUsage();
-    if (!usageAllowed) {
-      return NextResponse.json(
-        { error: "Free trial has expired. Please upgrade to pro." },
-        { status: 403 },
-      );
-    }
-
     const body = await req.json();
     const modelId = typeof body?.model === "string" ? body.model : "gpt-5.4";
     const personaRaw = typeof body?.persona === "string" ? body.persona : "general";
@@ -142,12 +115,27 @@ export async function POST(req: NextRequest) {
     const systemPrompt = PERSONA_PROMPTS[persona] ?? PERSONA_PROMPTS.general;
     const allMessages: ChatMessage[] = [{ role: "system", content: systemPrompt }, ...messages];
 
+    await spendCredits({
+      userId,
+      credits: ASSIST_CHAT_CREDITS,
+      prompt: typeof messages[messages.length - 1]?.content === "string"
+        ? messages[messages.length - 1].content.slice(0, 500)
+        : "Assist chat",
+      assetType: "TEXT",
+      modelUsed: `assist/${modelId}`,
+    });
+
     const kieModel = getKieModel(modelId);
     const content = await callKie(allMessages, kieModel);
 
-    await safeIncrementUsage();
     return NextResponse.json({ content });
   } catch (error) {
+    if (error instanceof InsufficientCreditsError) {
+      return NextResponse.json(
+        { error: "Insufficient credits. Please top up your balance.", requiredCredits: error.requiredCredits, currentBalance: error.currentBalance },
+        { status: 402 },
+      );
+    }
     console.error("assist API error", error);
     const message = error instanceof Error ? error.message : "Internal error";
     return NextResponse.json({ error: message }, { status: 500 });
