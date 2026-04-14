@@ -38,22 +38,26 @@ async function uploadDataUrlToKie(value: string): Promise<string> {
   const parsed = extractBase64(value);
   if (!parsed) return value;
 
-  const uploadRes = await fetch(`${KIE_BASE}/files/upload/base64`, {
+  const uploadRes = await fetch("https://kieai.redpandaai.co/api/file-base64-upload", {
     method: "POST",
     headers: kieHeaders(),
     body: JSON.stringify({
-      fileData: parsed.fileData,
+      base64Data: parsed.fileData,
+      uploadPath: "video-refs",
       fileName: `upload.${parsed.ext}`,
     }),
   });
 
   const uploadJson = await uploadRes.json().catch(() => null);
   const maybeUrl =
-    uploadJson?.data?.url ||
-    uploadJson?.data?.fileUrl ||
     uploadJson?.data?.downloadUrl ||
-    uploadJson?.url ||
-    uploadJson?.fileUrl;
+    uploadJson?.data?.download_url ||
+    uploadJson?.data?.fileUrl ||
+    uploadJson?.data?.file_url ||
+    uploadJson?.data?.url ||
+    (typeof uploadJson?.data === "string" ? uploadJson.data : undefined) ||
+    uploadJson?.fileUrl ||
+    uploadJson?.url;
 
   if (!uploadRes.ok || !maybeUrl) {
     throw new Error(uploadJson?.msg || "KIE file upload failed");
