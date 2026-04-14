@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { Outfit, Plus_Jakarta_Sans } from "next/font/google";
 import Script from "next/script";
 import {
@@ -10,7 +10,7 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { ModalProvider } from "@/components/modal-provider";
 import { AvatarProvider } from "@/lib/avatar-context";
-import PwaInstallPrompt from "@/components/PwaInstallPrompt";
+
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -122,7 +122,7 @@ export default function RootLayout({
               } catch (_) {}
             `}
           </Script>
-          <PwaInstallPrompt />
+
           <Toaster />
           <ModalProvider />
           <AvatarProvider>{children}</AvatarProvider>
