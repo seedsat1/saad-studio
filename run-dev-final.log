@@ -1,0 +1,56 @@
+
+> aisaas@0.1.0 dev
+> next dev
+
+  ▲ Next.js 14.2.35
+  - Local:        http://localhost:3000
+  - Environments: .env.local, .env
+
+ ✓ Starting...
+ ✓ Ready in 4.3s
+ ○ Compiling /middleware ...
+ ✓ Compiled /middleware in 1680ms (183 modules)
+ ○ Compiling / ...
+Browserslist: caniuse-lite is outdated. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+ ✓ Compiled / in 15.6s (2471 modules)
+ GET / 200 in 868ms
+ ✓ Compiled in 1435ms (1092 modules)
+ GET / 200 in 138ms
+ GET / 200 in 91ms
+ GET / 200 in 104ms
+ GET / 200 in 83ms
+ ○ Compiling /favicon.ico ...
+ ✓ Compiled /favicon.ico in 1023ms (57 modules)
+ GET /favicon.ico 200 in 1134ms
+ ○ Compiling /_not-found ...
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ ✓ Compiled /_not-found in 4.1s (2275 modules)
+ GET /_next/static/chunks/app/layout.js 404 in 4403ms
+ ○ Compiling / ...
+ ✓ Compiled / in 1532ms (1344 modules)
+ GET / 200 in 1938ms
+ GET /_next/static/css/app/layout.css?v=1775685759802 404 in 48ms
+ GET /_next/static/css/app/(landing)/layout.css?v=1775685759802 404 in 48ms
+ GET /_next/static/chunks/main-app.js?v=1775685759802 404 in 49ms
+ GET / 200 in 81ms
+ GET /_next/static/css/app/layout.css?v=1775685768489 404 in 42ms
+ GET /_next/static/css/app/(landing)/layout.css?v=1775685768489 404 in 41ms
+ GET /_next/static/chunks/main-app.js?v=1775685768489 404 in 42ms
+ GET / 200 in 89ms
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, lstat 'D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\.next\server\app\favicon.ico'
+<w> [webpack.cache.PackFileCacheStrategy/webpack.FileSystemInfo] Resolving '../../../../.next/server/app/favicon.ico/route' in D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server for build dependencies doesn't lead to expected result 'D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\.next\server\app\favicon.ico\route.js', but to 'Error: Can't resolve '../../../../.next/server/app/favicon.ico/route' in 'D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server'' instead. Resolving dependencies are ignored for this path.
+<w>  at resolve commonjs file ../../../../.next/server/app/favicon.ico/route (expected D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\.next\server\app\favicon.ico\route.js)
+<w>  at file dependencies D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\require.js
+<w>  at file D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\require.js
+<w>  at file dependencies D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\load-components.js
+<w>  at file D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\load-components.js
+<w>  at file dependencies D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\build\utils.js
+<w>  at file D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\build\utils.js
+<w>  at file dependencies D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\build\handle-externals.js
+<w>  at file D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\build\handle-externals.js
+<w>  at file dependencies D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\build\webpack\loaders\next-swc-loader.js
+<w>  at file D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\build\webpack\loaders\next-swc-loader.js
+<w>  at resolve commonjs D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\build\webpack\loaders\next-swc-loader.js
+[?25h

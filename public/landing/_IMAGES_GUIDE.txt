@@ -1,0 +1,69 @@
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  SAAD STUDIO — Landing Page Images
+  Place your images in this folder: /public/landing/
+  Recommended format: .jpg or .webp (1400×900px or larger, 16:9)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+HERO CAROUSEL (full-width backgrounds, 1920×1080 recommended)
+─────────────────────────────────────────────────────────────────
+hero-1.jpg  →  Cinema Studio 3.0 slide
+              (Cyberpunk futuristic city + camera rig, purple/violet tones)
+
+hero-2.jpg  →  Zephyr Original Series slide
+              (Cyberpunk man in rainy neon city, dark blue/teal tones)
+
+hero-3.jpg  →  Image Studio 4K slide
+              (Circular holographic AI brain room, blue tones)
+
+hero-4.jpg  →  Nano Banana Pro slide
+              (Person with floating AI gears/brains hologram, dark blue)
+
+
+CORE STUDIO TOOLS (card thumbnails, 560×315 recommended, 16:9)
+─────────────────────────────────────────────────────────────────
+tool-create-image.jpg   →  Create Image card
+                           (Blue glowing brain on circuit board)
+
+tool-create-video.jpg   →  Create Video card
+                           (Film crew with overhead camera crane, dark studio)
+
+tool-cinema.jpg         →  Cinema Studio Video card
+                           (Desert motorcycle film shoot at golden hour)
+
+tool-ai-influencer.jpg  →  AI Influencer card
+                           (3D character model sheet with face expressions)
+
+tool-soul-id.jpg        →  Soul ID Character card
+                           (Two people standing at sci-fi holographic screen)
+
+tool-lipsync.jpg        →  Lipsync Studio card
+                           (Woman with AI lipsync hologram glowing on face)
+
+tool-vibe-motion.jpg    →  Vibe Motion card
+                           (Ballet dancer mid-leap on dramatic stage)
+
+tool-draw-video.jpg     →  Draw to Video card
+                           (Cyan-haired woman editing video on wide monitor)
+
+
+TOP CHOICE (card thumbnails, 560×420 recommended, 4:3)
+─────────────────────────────────────────────────────────────────
+tool-relight.jpg        →  Relight card
+                           (Moraine lake at night, purple mountain sky, glowing tent)
+
+tool-face-swap.jpg      →  Face Swap card
+                           (Close-up cinematic portrait of woman)
+
+tool-ugc-factory.jpg    →  UGC Factory card
+                           (AI creative software UI screenshot with fantasy scene)
+
+tool-upscale.jpg        →  Video Upscale card
+                           (Glass orb with blue/purple AI data hologram)
+
+tool-char-swap.jpg      →  Character Swap card
+                           (Professional recording studio with mic and headphones)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  NOTE: If an image file is missing, the card falls back to its
+  gradient color automatically. No broken UI.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

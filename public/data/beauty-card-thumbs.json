@@ -1,0 +1,214 @@
+﻿{
+    "tools":  {
+                  "outfit-change":  {
+                                        "thumb":  "/img/beauty-tools/outfit-change.png",
+                                        "thumbFit":  "cover",
+                                        "thumbPos":  "center center",
+                                        "thumbAspect":  "1/1",
+                                        "fullCard":  true
+                                    },
+                  "evening-dress":  {
+                                        "thumb":  "/img/beauty-tools/evening-dress.png",
+                                        "thumbFit":  "cover",
+                                        "thumbPos":  "center center",
+                                        "thumbAspect":  "1/1",
+                                        "fullCard":  true
+                                    },
+                  "lingerie-styles":  {
+                                          "thumb":  "/img/beauty-tools/lingerie-styles.png",
+                                          "thumbFit":  "cover",
+                                          "thumbPos":  "center center",
+                                          "thumbAspect":  "1/1",
+                                          "fullCard":  true
+                                      },
+                  "wedding-dress":  {
+                                        "thumb":  "/img/beauty-tools/wedding-dress.png",
+                                        "thumbFit":  "cover",
+                                        "thumbPos":  "center center",
+                                        "thumbAspect":  "1/1",
+                                        "fullCard":  true
+                                    },
+                  "swimwear":  {
+                                   "thumb":  "/img/beauty-tools/swimwear.png",
+                                   "thumbFit":  "cover",
+                                   "thumbPos":  "center center",
+                                   "thumbAspect":  "1/1",
+                                   "fullCard":  true
+                               },
+                  "traditional-wear":  {
+                                           "thumb":  "/img/beauty-tools/traditional-wear.png",
+                                           "thumbFit":  "cover",
+                                           "thumbPos":  "center center",
+                                           "thumbAspect":  "1/1",
+                                           "fullCard":  true
+                                       },
+                  "hijab-style":  {
+                                      "thumb":  "/img/beauty-tools/hijab-styling.png",
+                                      "thumbFit":  "cover",
+                                      "thumbPos":  "center center",
+                                      "thumbAspect":  "1/1",
+                                      "fullCard":  true
+                                  },
+                  "cosplay":  {
+                                  "thumb":  "/img/beauty-tools/cosplay.png",
+                                  "thumbFit":  "cover",
+                                  "thumbPos":  "center center",
+                                  "thumbAspect":  "1/1",
+                                  "fullCard":  true
+                              },
+                  "full-glam":  {
+                                    "thumb":  "/img/beauty-tools/full-glam-makeup.png",
+                                    "thumbFit":  "cover",
+                                    "thumbPos":  "center center",
+                                    "thumbAspect":  "1/1",
+                                    "fullCard":  true
+                                },
+                  "korean-beauty":  {
+                                        "thumb":  "/img/beauty-tools/korean-beauty.png",
+                                        "thumbFit":  "cover",
+                                        "thumbPos":  "center center",
+                                        "thumbAspect":  "1/1",
+                                        "fullCard":  true
+                                    },
+                  "arabic-makeup":  {
+                                        "thumb":  "/img/beauty-tools/arabic-makeup.png",
+                                        "thumbFit":  "cover",
+                                        "thumbPos":  "center center",
+                                        "thumbAspect":  "1/1",
+                                        "fullCard":  true
+                                    },
+                  "lip-color":  {
+                                    "thumb":  "/img/beauty-tools/lip-color-tryon.png",
+                                    "thumbFit":  "cover",
+                                    "thumbPos":  "center center",
+                                    "thumbAspect":  "1/1",
+                                    "fullCard":  true
+                                },
+                  "eye-makeup":  {
+                                     "thumb":  "/img/beauty-tools/eye-makeup.png",
+                                     "thumbFit":  "cover",
+                                     "thumbPos":  "center center",
+                                     "thumbAspect":  "1/1",
+                                     "fullCard":  true
+                                 },
+                  "bridal-makeup":  {
+                                        "thumb":  "/img/beauty-tools/bridal-makeup.png",
+                                        "thumbFit":  "cover",
+                                        "thumbPos":  "center center",
+                                        "thumbAspect":  "1/1",
+                                        "fullCard":  true
+                                    },
+                  "skin-retouch":  {
+                                       "thumb":  "/img/beauty-tools/skin-retouch.png",
+                                       "thumbFit":  "cover",
+                                       "thumbPos":  "center center",
+                                       "thumbAspect":  "1/1",
+                                       "fullCard":  true
+                                   },
+                  "breast-enhancement":  {
+                                             "thumb":  "/img/beauty-tools/breast-enhancement.png",
+                                             "thumbFit":  "cover",
+                                             "thumbPos":  "center center",
+                                             "thumbAspect":  "1/1",
+                                             "fullCard":  true
+                                         },
+                  "hairstyle":  {
+                                    "thumb":  "/img/beauty-tools/hairstyle-change.png",
+                                    "thumbFit":  "cover",
+                                    "thumbPos":  "center center",
+                                    "thumbAspect":  "1/1",
+                                    "fullCard":  true
+                                },
+                  "muscle-enhance":  {
+                                         "thumb":  "/img/beauty-tools/muscle-enhance.png",
+                                         "thumbFit":  "cover",
+                                         "thumbPos":  "center center",
+                                         "thumbAspect":  "1/1",
+                                         "fullCard":  true
+                                     },
+                  "bangs":  {
+                                "thumb":  "/img/beauty-tools/bangs-tryon.png",
+                                "thumbFit":  "cover",
+                                "thumbPos":  "center center",
+                                "thumbAspect":  "1/1",
+                                "fullCard":  true
+                            },
+                  "balayage":  {
+                                   "thumb":  "/img/beauty-tools/balayage.png",
+                                   "thumbFit":  "cover",
+                                   "thumbPos":  "center center",
+                                   "thumbAspect":  "1/1",
+                                   "fullCard":  true
+                               },
+                  "intimate-care":  {
+                                        "thumb":  "/img/beauty-tools/intimate-care.png",
+                                        "thumbFit":  "cover",
+                                        "thumbPos":  "center center",
+                                        "thumbAspect":  "1/1",
+                                        "fullCard":  true
+                                    },
+                  "beard-style":  {
+                                      "thumb":  "/img/beauty-tools/beard-style.png",
+                                      "thumbFit":  "cover",
+                                      "thumbPos":  "center center",
+                                      "thumbAspect":  "1/1",
+                                      "fullCard":  true
+                                  },
+                  "nose-reshape":  {
+                                       "thumb":  "/img/beauty-tools/nose-reshape.png",
+                                       "thumbFit":  "cover",
+                                       "thumbPos":  "center center",
+                                       "thumbAspect":  "1/1",
+                                       "fullCard":  true
+                                   },
+                  "slim-body":  {
+                                    "thumb":  "/img/beauty-tools/slim-body.png",
+                                    "thumbFit":  "cover",
+                                    "thumbPos":  "center center",
+                                    "thumbAspect":  "1/1",
+                                    "fullCard":  true
+                                },
+                  "butt-enhancement":  {
+                                           "thumb":  "/img/beauty-tools/butt-enhancement.png",
+                                           "thumbFit":  "cover",
+                                           "thumbPos":  "center center",
+                                           "thumbAspect":  "1/1",
+                                           "fullCard":  true
+                                       },
+                  "hair-color":  {
+                                     "thumb":  "/img/beauty-tools/hair-color.png",
+                                     "thumbFit":  "cover",
+                                     "thumbPos":  "center center",
+                                     "thumbAspect":  "1/1",
+                                     "fullCard":  true
+                                 },
+                  "skin-tan":  {
+                                   "thumb":  "/img/beauty-tools/skin-tan.png",
+                                   "thumbFit":  "cover",
+                                   "thumbPos":  "center center",
+                                   "thumbAspect":  "1/1",
+                                   "fullCard":  true
+                               },
+                  "braids":  {
+                                 "thumb":  "/img/beauty-tools/braids-updos.png",
+                                 "thumbFit":  "cover",
+                                 "thumbPos":  "center center",
+                                 "thumbAspect":  "1/1",
+                                 "fullCard":  true
+                             },
+                  "extensions":  {
+                                     "thumb":  "/img/beauty-tools/hair-extensions.png",
+                                     "thumbFit":  "cover",
+                                     "thumbPos":  "center center",
+                                     "thumbAspect":  "1/1",
+                                     "fullCard":  true
+                                 },
+                  "lip-enhancement":  {
+                                          "thumb":  "/img/beauty-tools/lip-enhancement.png",
+                                          "thumbFit":  "cover",
+                                          "thumbPos":  "center center",
+                                          "thumbAspect":  "1/1",
+                                          "fullCard":  true
+                                      }
+              }
+}

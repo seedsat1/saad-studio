@@ -1,0 +1,23 @@
+﻿import { ReactNode } from "react";
+import TopNavbar from "@/components/TopNavbar";
+import { getApiLimitCount } from "@/lib/api-limit";
+import { checkSubscription } from "@/lib/subscription";
+
+const DashLayout = async ({
+  children,
+}: {
+  children: ReactNode;
+}) => {
+  const apiLimit = await getApiLimitCount();
+  const isPro = await checkSubscription();
+  return (
+    <div className="min-h-screen bg-[#060b18]">
+      <TopNavbar apiLimit={apiLimit} isPro={isPro} />
+      <main className="pt-16 pb-10">
+        {children}
+      </main>
+    </div>
+  );
+};
+
+export default DashLayout;

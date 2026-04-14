@@ -1,0 +1,2151 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cinema Studio — SAAD STUDIO</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #060c18;
+  --card: #0f1a35;
+  --card-hover: #142040;
+  --accent: #06b6d4;
+  --accent-glow: rgba(6, 182, 212, 0.3);
+  --text: #e2e8f0;
+  --text-dim: #94a3b8;
+  --border: rgba(255,255,255,0.08);
+  --green-badge: #4ade80;
+  --pink-hero: rgba(255, 200, 210, 0.85);
+  --yellow-label: #c8e600;
+}
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Outfit', system-ui, sans-serif;
+  overflow: hidden;
+}
+
+/* ===== FILM GRAIN OVERLAY ===== */
+#film-grain {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 200px 200px;
+}
+
+/* ===== TOP NAVBAR ===== */
+#navbar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 52px;
+  background: rgba(6, 12, 24, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+}
+
+.nav-left {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.nav-logo {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #06b6d4, #3b82f6);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 14px; color: #fff;
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+
+.nav-link {
+  padding: 5px 10px;
+  font-size: 14px;
+  color: #94a3b8;
+  text-decoration: none;
+  border-radius: 6px;
+  transition: color 0.2s;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.nav-link:hover { color: #fff; }
+.nav-link.active {
+  color: #fff;
+  font-weight: 600;
+}
+
+.cinema-badge {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(6,182,212,0.15);
+  color: #06b6d4;
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin-left: 4px;
+  font-weight: 600;
+}
+
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.nav-right .nav-link { font-size: 14px; }
+
+.btn-signup {
+  background: #06b6d4;
+  color: #000;
+  padding: 6px 16px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 14px;
+  border: none;
+  cursor: pointer;
+  font-family: 'Outfit', sans-serif;
+  transition: opacity 0.2s;
+}
+.btn-signup:hover { opacity: 0.85; }
+
+/* ===== LEFT SIDEBAR ===== */
+#sidebar {
+  position: fixed;
+  left: 0; top: 52px; bottom: 0;
+  width: 56px;
+  background: transparent;
+  padding-top: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  z-index: 200;
+  border-right: 1px solid rgba(255,255,255,0.04);
+}
+
+.sidebar-icon-btn {
+  width: 36px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+  background: transparent; border: none; cursor: pointer;
+  color: #94a3b8; border-radius: 6px;
+  transition: color 0.2s, background 0.2s;
+  flex-shrink: 0;
+}
+.sidebar-icon-btn:hover { color: #fff; background: rgba(255,255,255,0.05); }
+.sidebar-icon-btn.active { color: #06b6d4; background: rgba(6,182,212,0.08); }
+
+.sidebar-sep {
+  width: 24px; height: 1px;
+  background: rgba(255,255,255,0.06);
+  flex-shrink: 0;
+  margin: 2px 0;
+}
+
+.sidebar-type-pill {
+  background: rgba(255,255,255,0.06);
+  border-radius: 6px;
+  padding: 4px 6px;
+  font-size: 10px;
+  color: #94a3b8;
+  cursor: pointer;
+  border: none;
+  font-family: 'Outfit', sans-serif;
+  transition: background 0.2s;
+  white-space: nowrap;
+  max-width: 48px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  position: relative;
+}
+.sidebar-type-pill:hover { background: rgba(255,255,255,0.1); }
+
+.sidebar-label {
+  font-size: 9px;
+  color: #64748b;
+  text-align: center;
+  margin-top: 1px;
+}
+
+/* ===== MAIN CANVAS ===== */
+#canvas {
+  position: fixed;
+  top: 52px; left: 56px; right: 0;
+  bottom: 0;
+  background: var(--bg);
+  overflow: hidden;
+}
+
+#canvas::before {
+  content: '';
+  position: absolute;
+  top: 40%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 700px; height: 450px;
+  background: radial-gradient(ellipse at center,
+    rgba(180, 60, 100, 0.10) 0%,
+    rgba(120, 40, 140, 0.05) 40%,
+    transparent 70%);
+  filter: blur(80px);
+  animation: pulseGlow 8s ease-in-out infinite;
+  pointer-events: none;
+}
+
+#canvas::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 20%;
+  background: linear-gradient(180deg, rgba(6,182,212,0.03) 0%, transparent 100%);
+  pointer-events: none;
+}
+
+@keyframes pulseGlow {
+  0%, 100% { opacity: 0.5; transform: translate(-50%, -50%) scale(1); }
+  50% { opacity: 0.8; transform: translate(-50%, -50%) scale(1.05); }
+}
+
+/* ===== AUDIO WAVEFORM BG ===== */
+#audio-wave-bg {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 140px;
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  padding: 0 10px;
+  opacity: 0;
+  transition: opacity 0.5s;
+  pointer-events: none;
+}
+#audio-wave-bg.visible { opacity: 0.06; }
+
+.wave-bar {
+  width: 2px;
+  background: rgba(255,255,255,1);
+  border-radius: 1px;
+  animation: waveMove 2s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+@keyframes waveMove {
+  0%, 100% { height: var(--min-h); }
+  50% { height: var(--max-h); }
+}
+
+/* ===== HERO TEXT ===== */
+#hero-center {
+  position: absolute;
+  top: 42%; left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  opacity: 0;
+  animation: heroFadeIn 600ms 100ms ease forwards;
+}
+
+@keyframes heroFadeIn {
+  to { opacity: 1; }
+}
+
+.hero-frame {
+  padding: 28px 36px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.hero-frame::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 18px; height: 18px;
+  border-color: rgba(255,255,255,0.12);
+  border-style: solid;
+  border-width: 1px 0 0 1px;
+}
+.hero-frame::after {
+  content: '';
+  position: absolute;
+  top: 0; right: 0;
+  width: 18px; height: 18px;
+  border-color: rgba(255,255,255,0.12);
+  border-style: solid;
+  border-width: 1px 1px 0 0;
+}
+.hero-frame .corners::before {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0;
+  width: 18px; height: 18px;
+  border-color: rgba(255,255,255,0.12);
+  border-style: solid;
+  border-width: 0 0 1px 1px;
+}
+.hero-frame .corners::after {
+  content: '';
+  position: absolute;
+  bottom: 0; right: 0;
+  width: 18px; height: 18px;
+  border-color: rgba(255,255,255,0.12);
+  border-style: solid;
+  border-width: 0 1px 1px 0;
+}
+
+.hero-label {
+  font-size: 11px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--yellow-label);
+  font-weight: 600;
+  margin-bottom: 16px;
+  display: block;
+}
+
+.hero-title {
+  font-size: clamp(26px, 3.5vw, 44px);
+  font-weight: 300;
+  color: var(--pink-hero);
+  text-align: center;
+  line-height: 1.35;
+  max-width: 480px;
+  animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 200ms both;
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ===== UPGRADE BANNER ===== */
+#upgrade-banner {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 420px;
+  width: calc(100% - 80px);
+  background: var(--card);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 -4px 20px rgba(0,0,0,0.3);
+  z-index: 90;
+  bottom: 0;
+  transition: bottom 0.3s ease, opacity 0.3s ease;
+}
+#upgrade-banner.hidden {
+  bottom: -100px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.banner-text h4 {
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 2px;
+}
+.banner-text p {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.banner-thumbs {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+.banner-thumb {
+  width: 32px; height: 32px;
+  background: #1a2540;
+  border-radius: 4px;
+}
+
+.banner-close {
+  background: transparent;
+  border: none;
+  color: #64748b;
+  font-size: 16px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 2px;
+  margin-left: 4px;
+  flex-shrink: 0;
+  transition: color 0.2s;
+}
+.banner-close:hover { color: #fff; }
+
+/* ===== COMPOSER BAR ===== */
+#composer-wrap {
+  position: fixed;
+  bottom: 0; left: 56px; right: 0;
+  background: #0a0f1e;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  z-index: 100;
+  opacity: 0;
+  transform: translateY(40px);
+  animation: composerSlideUp 500ms 400ms ease forwards;
+}
+
+@keyframes composerSlideUp {
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.composer-wrap-inner {
+  display: flex;
+  align-items: stretch;
+}
+
+/* Mode toggle strip */
+#mode-toggle-strip {
+  width: 48px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  border-right: 1px solid rgba(255,255,255,0.04);
+  padding: 8px 0;
+  flex-shrink: 0;
+}
+#mode-toggle-strip.hidden { display: none; }
+
+.mode-toggle-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 6px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #64748b;
+  border-radius: 6px;
+  transition: color 0.2s, background 0.2s;
+  width: 40px;
+}
+.mode-toggle-btn:hover { color: #94a3b8; background: rgba(255,255,255,0.04); }
+.mode-toggle-btn.active { color: #06b6d4; background: rgba(6,182,212,0.08); }
+.mode-toggle-btn span {
+  font-size: 9px;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Composer content areas */
+#composer-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.composer-section {
+  display: none;
+  padding: 12px 16px;
+  flex-direction: column;
+  gap: 10px;
+}
+.composer-section.active { display: flex; }
+.composer-section.entering {
+  animation: composerFadeIn 300ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.composer-section.exiting {
+  animation: composerFadeOut 200ms ease forwards;
+}
+
+@keyframes composerFadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes composerFadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+/* Director Panel */
+#director-panel {
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-height 400ms ease, opacity 400ms ease;
+  background: rgba(0,0,0,0.25);
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+#director-panel.open {
+  max-height: 80px;
+  opacity: 1;
+}
+.director-panel-inner {
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+}
+
+/* Prompt row */
+.prompt-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.upload-btn {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  border: 1px dashed rgba(255,255,255,0.2);
+  background: transparent;
+  color: #94a3b8;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  transition: border-color 0.2s, color 0.2s;
+}
+.upload-btn:hover { border-color: #06b6d4; color: #06b6d4; }
+
+.prompt-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font-size: 14px;
+  font-family: 'Outfit', sans-serif;
+  resize: none;
+  height: 20px;
+  padding: 0;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.2s;
+}
+.prompt-input:focus { border-bottom-color: rgba(6,182,212,0.3); }
+.prompt-input::placeholder { color: #4a5568; }
+
+/* Controls row */
+.controls-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Generic pill */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 12px;
+  color: var(--text-dim);
+  cursor: pointer;
+  border: none;
+  font-family: 'Outfit', sans-serif;
+  transition: background 0.15s, color 0.15s;
+  position: relative;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.pill:hover { background: rgba(255,255,255,0.1); color: var(--text); }
+.pill svg { flex-shrink: 0; }
+
+/* Dropdown arrow */
+.pill-arrow {
+  margin-left: 2px;
+  opacity: 0.5;
+}
+
+/* Scene counter */
+.scene-counter {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+.scene-counter-btn {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  padding: 0 2px;
+  font-family: 'Outfit', sans-serif;
+  transition: color 0.2s;
+}
+.scene-counter-btn:hover { color: #fff; }
+
+/* Characters/Locations button */
+.char-loc-btn {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  padding: 8px 14px;
+  cursor: pointer;
+  color: #94a3b8;
+  font-family: 'Outfit', sans-serif;
+  font-size: 11px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  transition: border-color 0.2s, color 0.2s;
+  flex-shrink: 0;
+}
+.char-loc-btn:hover { border-color: rgba(6,182,212,0.3); color: var(--text); }
+.char-loc-icons { display: flex; gap: 4px; }
+
+/* Generate button */
+.generate-btn {
+  background: #06b6d4;
+  color: #000;
+  font-weight: 800;
+  font-size: 14px;
+  padding: 12px 22px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  font-family: 'Outfit', sans-serif;
+  letter-spacing: 0.5px;
+  transition: transform 0.15s, box-shadow 0.15s;
+  flex-shrink: 0;
+  white-space: nowrap;
+  margin-left: auto;
+}
+.generate-btn:hover {
+  transform: scale(1.03);
+  box-shadow: 0 0 20px rgba(6,182,212,0.3);
+}
+.generate-btn:active { transform: scale(0.98); }
+.generate-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Model selector */
+.model-selector {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 12px;
+  color: var(--text);
+  cursor: pointer;
+  border: none;
+  font-family: 'Outfit', sans-serif;
+  transition: background 0.15s;
+  position: relative;
+  flex-shrink: 0;
+}
+.model-selector:hover { background: rgba(255,255,255,0.1); }
+.model-name { max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Dropdown container */
+.dropdown-wrap {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.dropdown-menu {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  width: 280px;
+  max-height: 360px;
+  overflow-y: auto;
+  background: #0f1a35;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  box-shadow: 0 -8px 32px rgba(0,0,0,0.5);
+  padding: 8px;
+  z-index: 500;
+  display: none;
+  transform-origin: bottom center;
+  animation: dropdownOpen 200ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+.dropdown-menu.open { display: block; }
+.dropdown-menu.closing {
+  animation: dropdownClose 150ms ease forwards;
+}
+
+/* Scrollbar */
+.dropdown-menu::-webkit-scrollbar { width: 4px; }
+.dropdown-menu::-webkit-scrollbar-track { background: transparent; }
+.dropdown-menu::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+
+@keyframes dropdownOpen {
+  from { opacity: 0; transform: scaleY(0.8); }
+  to { opacity: 1; transform: scaleY(1); }
+}
+@keyframes dropdownClose {
+  from { opacity: 1; transform: scaleY(1); }
+  to { opacity: 0; transform: scaleY(0.8); }
+}
+
+.dropdown-search {
+  width: 100%;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: var(--text);
+  font-family: 'Outfit', sans-serif;
+  outline: none;
+  margin-bottom: 6px;
+}
+.dropdown-search::placeholder { color: #4a5568; }
+.dropdown-search:focus { border-color: rgba(6,182,212,0.3); }
+
+.dropdown-group-header {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: #64748b;
+  padding: 8px 12px 4px;
+  font-weight: 600;
+}
+
+.dropdown-item {
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  font-family: 'Outfit', sans-serif;
+}
+.dropdown-item:hover { background: rgba(6,182,212,0.08); color: #fff; }
+.dropdown-item.selected { color: #06b6d4; background: rgba(6,182,212,0.06); }
+
+/* Small generic dropdown (aspect ratio, quality, etc.) */
+.small-dropdown {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  background: #0f1a35;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 8px;
+  padding: 4px;
+  z-index: 500;
+  display: none;
+  min-width: 110px;
+  box-shadow: 0 -4px 20px rgba(0,0,0,0.4);
+  animation: dropdownOpen 200ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+.small-dropdown.open { display: block; }
+.small-dropdown-item {
+  padding: 7px 12px;
+  border-radius: 5px;
+  font-size: 12px;
+  color: #94a3b8;
+  cursor: pointer;
+  font-family: 'Outfit', sans-serif;
+  transition: background 0.15s, color 0.15s;
+}
+.small-dropdown-item:hover { background: rgba(6,182,212,0.08); color: #fff; }
+.small-dropdown-item.selected { color: #06b6d4; }
+
+/* Director Panel specific */
+.director-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #64748b;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.ref-slot {
+  width: 36px; height: 36px;
+  border-radius: 6px;
+  background: #1a2540;
+  border: 1px dashed rgba(255,255,255,0.12);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  color: #64748b;
+  flex-shrink: 0;
+  transition: border-color 0.2s, color 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+.ref-slot:hover { border-color: rgba(6,182,212,0.4); color: #06b6d4; }
+
+.speed-curve {
+  width: 180px; height: 40px;
+  background: rgba(0,0,0,0.3);
+  border-radius: 6px;
+  border: 1px solid rgba(255,255,255,0.06);
+  flex-shrink: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.dir-control {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.dir-control-label {
+  font-size: 10px;
+  color: #64748b;
+  font-family: 'Outfit', sans-serif;
+}
+.dir-control-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 8px;
+  padding: 5px 10px;
+  font-size: 12px;
+  color: var(--text);
+  cursor: pointer;
+  border: none;
+  font-family: 'Outfit', sans-serif;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+.dir-control-pill:hover { background: rgba(255,255,255,0.1); }
+
+.vsep {
+  width: 1px; height: 30px;
+  background: rgba(255,255,255,0.06);
+  flex-shrink: 0;
+}
+
+/* Frame buttons */
+.frame-btn {
+  width: 56px; height: 50px;
+  border: 1px dashed rgba(255,255,255,0.12);
+  border-radius: 8px;
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  cursor: pointer;
+  color: #64748b;
+  font-family: 'Outfit', sans-serif;
+  transition: border-color 0.2s, color 0.2s;
+  flex-shrink: 0;
+}
+.frame-btn:hover { border-color: #06b6d4; color: #06b6d4; }
+.frame-btn span { font-size: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+/* Genre dot */
+.genre-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+/* Toggle pill */
+.toggle-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 12px;
+  color: #4ade80;
+  cursor: pointer;
+  border: none;
+  font-family: 'Outfit', sans-serif;
+  transition: background 0.15s;
+}
+.toggle-pill:hover { background: rgba(255,255,255,0.1); }
+
+/* Audio mode */
+#audio-composer {
+  display: none;
+  padding: 14px 20px;
+  gap: 16px;
+  align-items: center;
+}
+#audio-composer.active { display: flex; }
+
+.audio-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-shrink: 0;
+}
+
+.speaker-icon {
+  width: 40px; height: 40px;
+  background: rgba(6,182,212,0.08);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.audio-sub-modes {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sub-mode-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  color: #94a3b8;
+  transition: color 0.2s;
+}
+.sub-mode-option.selected { color: #fff; }
+.sub-mode-radio {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  border: 1.5px solid #64748b;
+  display: inline-block;
+  flex-shrink: 0;
+  transition: background 0.2s, border-color 0.2s;
+}
+.sub-mode-option.selected .sub-mode-radio {
+  background: #06b6d4;
+  border-color: #06b6d4;
+}
+
+.audio-center {
+  flex: 1;
+  min-width: 0;
+}
+
+.audio-bottom-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.engine-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 12px;
+  color: #94a3b8;
+  cursor: pointer;
+  border: none;
+  font-family: 'Outfit', sans-serif;
+  position: relative;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+.engine-badge:hover { background: rgba(255,255,255,0.1); }
+
+.engine-tooltip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1a2540;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 11px;
+  color: #e2e8f0;
+  white-space: nowrap;
+  display: none;
+  pointer-events: none;
+}
+.engine-badge:hover .engine-tooltip { display: block; }
+
+.audio-mini-wave {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  width: 120px; height: 16px;
+}
+.audio-mini-bar {
+  width: 1.5px;
+  background: rgba(255,255,255,0.15);
+  border-radius: 1px;
+  flex-shrink: 0;
+}
+
+.audio-right {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.choose-voice-btn {
+  border: 1.5px dashed rgba(6,182,212,0.4);
+  background: transparent;
+  color: #06b6d4;
+  font-weight: 800;
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 1px;
+  padding: 12px 18px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-family: 'Outfit', sans-serif;
+  transition: border-color 0.2s, background 0.2s;
+}
+.choose-voice-btn:hover { border-color: #06b6d4; background: rgba(6,182,212,0.05); }
+
+.generate-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+.coming-soon-label {
+  font-size: 9px;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* ===== BOTTOM LEFT + BUTTON ===== */
+#fab-plus {
+  position: fixed;
+  bottom: 16px; left: 14px;
+  z-index: 101;
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: transparent;
+  color: #64748b;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: border-color 0.2s, color 0.2s;
+}
+#fab-plus:hover { border-color: #06b6d4; color: #06b6d4; }
+
+/* ===== TOP RIGHT VIEW TOGGLES ===== */
+#view-toggles {
+  position: fixed;
+  top: 58px; right: 16px;
+  z-index: 50;
+  display: flex;
+  gap: 6px;
+}
+.view-toggle-btn {
+  width: 24px; height: 24px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #4a5568;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 4px;
+  transition: color 0.2s;
+}
+.view-toggle-btn:hover { color: #94a3b8; }
+.view-toggle-btn.active { color: #94a3b8; }
+
+/* ===== SCROLLBAR GLOBAL ===== */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+
+/* ===== TOOLTIP ===== */
+.tooltip-wrap { position: relative; display: inline-flex; }
+.tooltip-text {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1a2540;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 6px;
+  padding: 5px 8px;
+  font-size: 11px;
+  color: #e2e8f0;
+  white-space: nowrap;
+  pointer-events: none;
+  display: none;
+}
+.tooltip-wrap:hover .tooltip-text { display: block; }
+
+</style>
+</head>
+<body>
+
+<!-- Film Grain -->
+<div id="film-grain"></div>
+
+<!-- NAVBAR -->
+<nav id="navbar">
+  <div class="nav-left">
+    <div class="nav-logo">S</div>
+    <a class="nav-link" href="#">Explore</a>
+    <a class="nav-link" href="#">Image</a>
+    <a class="nav-link" href="#">Video</a>
+    <a class="nav-link" href="#">Audio</a>
+    <a class="nav-link active" href="#">Cinema Studio<span class="cinema-badge">1.0</span></a>
+    <a class="nav-link" href="#">Tools</a>
+    <a class="nav-link" href="#">Gallery</a>
+  </div>
+  <div class="nav-right">
+    <a class="nav-link" href="#">Pricing</a>
+    <a class="nav-link" href="#">Login</a>
+    <button class="btn-signup">Sign up</button>
+  </div>
+</nav>
+
+<!-- LEFT SIDEBAR -->
+<div id="sidebar">
+  <!-- Search -->
+  <button class="sidebar-icon-btn tooltip-wrap" title="">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+    </svg>
+    <span class="tooltip-text">Search</span>
+  </button>
+
+  <!-- Type Pill -->
+  <div class="dropdown-wrap" style="position:relative;">
+    <button class="sidebar-type-pill" id="sidebarTypePill" onclick="toggleSidebarTypeDropdown()">All</button>
+    <div class="small-dropdown" id="sidebarTypeDropdown">
+      <div class="small-dropdown-item selected" onclick="setSidebarType('All')">All</div>
+      <div class="small-dropdown-item" onclick="setSidebarType('Images')">Images</div>
+      <div class="small-dropdown-item" onclick="setSidebarType('Videos')">Videos</div>
+      <div class="small-dropdown-item" onclick="setSidebarType('Audio')">Audio</div>
+    </div>
+  </div>
+
+  <div class="sidebar-sep"></div>
+
+  <!-- All filter -->
+  <button class="sidebar-icon-btn active" id="sidebarAll" onclick="setSidebarFilter('all')" title="All">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+      <rect x="2" y="2" width="9" height="9" rx="1.5"/><rect x="13" y="2" width="9" height="9" rx="1.5"/>
+      <rect x="2" y="13" width="9" height="9" rx="1.5"/><rect x="13" y="13" width="9" height="9" rx="1.5"/>
+    </svg>
+  </button>
+  <span class="sidebar-label">All</span>
+
+  <!-- Liked filter -->
+  <button class="sidebar-icon-btn" id="sidebarLiked" onclick="setSidebarFilter('liked')" title="Liked">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+    </svg>
+  </button>
+  <span class="sidebar-label">Liked</span>
+</div>
+
+<!-- MAIN CANVAS -->
+<div id="canvas">
+  <!-- Audio wave background -->
+  <div id="audio-wave-bg"></div>
+
+  <!-- Hero Center -->
+  <div id="hero-center">
+    <div class="hero-frame">
+      <span class="hero-corners"></span>
+      <span class="hero-label">SAAD STUDIO CINEMA</span>
+      <h1 class="hero-title" id="heroTitle">What would you create with infinite power?</h1>
+      <span class="corners"></span>
+    </div>
+  </div>
+</div>
+
+<!-- VIEW TOGGLES (top right) -->
+<div id="view-toggles">
+  <button class="view-toggle-btn active">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="4"/></svg>
+  </button>
+  <button class="view-toggle-btn">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+      <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
+    </svg>
+  </button>
+  <button class="view-toggle-btn">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+    </svg>
+  </button>
+</div>
+
+<!-- UPGRADE BANNER -->
+<div id="upgrade-banner">
+  <div class="banner-text">
+    <h4>Upgrade to Pro Plan</h4>
+    <p>Unlock all models and unlimited generations</p>
+  </div>
+  <div class="banner-thumbs">
+    <div class="banner-thumb" style="background: linear-gradient(135deg, #1a2f50, #0f1a35);"></div>
+    <div class="banner-thumb" style="background: linear-gradient(135deg, #1e3a5f, #0d2040);"></div>
+    <div class="banner-thumb" style="background: linear-gradient(135deg, #152a48, #091830);"></div>
+  </div>
+  <button class="banner-close" onclick="closeBanner()" aria-label="Dismiss">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+    </svg>
+  </button>
+</div>
+
+<!-- COMPOSER WRAP -->
+<div id="composer-wrap">
+  <div class="composer-wrap-inner">
+
+    <!-- Mode Toggle Strip -->
+    <div id="mode-toggle-strip">
+      <button class="mode-toggle-btn active" id="modeToggleImage" onclick="switchMode('image')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
+          <polyline points="21 15 16 10 5 21"/>
+        </svg>
+        <span>Image</span>
+      </button>
+      <button class="mode-toggle-btn" id="modeToggleVideo" onclick="switchMode('video')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/>
+        </svg>
+        <span>Video</span>
+      </button>
+    </div>
+
+    <!-- Composer Content -->
+    <div id="composer-content">
+
+      <!-- Director Panel (Video only) -->
+      <div id="director-panel">
+        <div class="director-panel-inner">
+          <div class="director-label">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="2" width="20" height="20" rx="2"/><line x1="7" y1="7" x2="7" y2="17"/><line x1="17" y1="7" x2="17" y2="17"/>
+              <line x1="7" y1="7" x2="17" y2="7"/>
+            </svg>
+            Director Panel
+          </div>
+
+          <!-- 3 reference slots -->
+          <div class="ref-slot" onclick="handleRefSlot(this)">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/>
+              <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/>
+            </svg>
+          </div>
+          <div class="ref-slot" onclick="handleRefSlot(this)">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/>
+              <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/>
+            </svg>
+          </div>
+          <div class="ref-slot" onclick="handleRefSlot(this)">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/>
+              <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/>
+            </svg>
+          </div>
+
+          <!-- Video model selector -->
+          <div class="dropdown-wrap" id="videoModelWrap">
+            <button class="model-selector" onclick="toggleDropdown('videoModelDropdown')">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="color:#06b6d4;">
+                <path d="M12 2L9.1 8.5H2l5.5 4.1-2.1 6.6L12 15.1l6.6 4.1-2.1-6.6L22 8.5h-7.1z"/>
+              </svg>
+              <span class="model-name" id="videoModelName">Kling 3.0</span>
+              <svg class="pill-arrow" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="dropdown-menu" id="videoModelDropdown">
+              <input type="text" class="dropdown-search" placeholder="Search models..." oninput="filterModels('video', this.value)">
+              <div id="videoModelList"></div>
+            </div>
+          </div>
+
+          <!-- Movement -->
+          <div class="dropdown-wrap">
+            <div class="dir-control">
+              <span class="dir-control-label">Movement</span>
+              <button class="dir-control-pill" onclick="toggleDropdown('movementDropdown')">
+                <span id="movementValue">Auto</span>
+                <svg class="pill-arrow" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </div>
+            <div class="small-dropdown" id="movementDropdown" style="top:auto;bottom:100%;">
+              <div class="small-dropdown-item selected" onclick="selectOption('movementValue','movementDropdown',this)">Auto</div>
+              <div class="small-dropdown-item" onclick="selectOption('movementValue','movementDropdown',this)">Pan Left</div>
+              <div class="small-dropdown-item" onclick="selectOption('movementValue','movementDropdown',this)">Pan Right</div>
+              <div class="small-dropdown-item" onclick="selectOption('movementValue','movementDropdown',this)">Tilt Up</div>
+              <div class="small-dropdown-item" onclick="selectOption('movementValue','movementDropdown',this)">Tilt Down</div>
+              <div class="small-dropdown-item" onclick="selectOption('movementValue','movementDropdown',this)">Zoom In</div>
+              <div class="small-dropdown-item" onclick="selectOption('movementValue','movementDropdown',this)">Zoom Out</div>
+              <div class="small-dropdown-item" onclick="selectOption('movementValue','movementDropdown',this)">Dolly In</div>
+              <div class="small-dropdown-item" onclick="selectOption('movementValue','movementDropdown',this)">Dolly Out</div>
+              <div class="small-dropdown-item" onclick="selectOption('movementValue','movementDropdown',this)">Track Left</div>
+              <div class="small-dropdown-item" onclick="selectOption('movementValue','movementDropdown',this)">Track Right</div>
+              <div class="small-dropdown-item" onclick="selectOption('movementValue','movementDropdown',this)">Crane Up</div>
+              <div class="small-dropdown-item" onclick="selectOption('movementValue','movementDropdown',this)">Crane Down</div>
+              <div class="small-dropdown-item" onclick="selectOption('movementValue','movementDropdown',this)">Orbit Left</div>
+              <div class="small-dropdown-item" onclick="selectOption('movementValue','movementDropdown',this)">Orbit Right</div>
+            </div>
+          </div>
+
+          <!-- Speed Curve SVG -->
+          <div class="speed-curve">
+            <svg width="180" height="40" viewBox="0 0 180 40" xmlns="http://www.w3.org/2000/svg">
+              <!-- Grid lines -->
+              <line x1="0" y1="10" x2="180" y2="10" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+              <line x1="0" y1="20" x2="180" y2="20" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+              <line x1="0" y1="30" x2="180" y2="30" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+              <line x1="45" y1="0" x2="45" y2="40" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+              <line x1="90" y1="0" x2="90" y2="40" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+              <line x1="135" y1="0" x2="135" y2="40" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+              <!-- Bezier curve -->
+              <path d="M 10 35 C 40 35 50 5 90 20 C 130 35 140 5 170 5" stroke="#06b6d4" stroke-width="2" fill="none"/>
+              <!-- Control points -->
+              <circle cx="10" cy="35" r="3.5" fill="#06b6d4" stroke="#fff" stroke-width="1"/>
+              <circle cx="45" cy="30" r="3.5" fill="#06b6d4" stroke="#fff" stroke-width="1"/>
+              <circle cx="90" cy="20" r="3.5" fill="#06b6d4" stroke="#fff" stroke-width="1"/>
+              <circle cx="135" cy="10" r="3.5" fill="#06b6d4" stroke="#fff" stroke-width="1"/>
+              <circle cx="170" cy="5" r="3.5" fill="#06b6d4" stroke="#fff" stroke-width="1"/>
+            </svg>
+          </div>
+
+          <!-- Speed Ramp -->
+          <div class="dropdown-wrap">
+            <div class="dir-control">
+              <span class="dir-control-label">Speed ramp</span>
+              <button class="dir-control-pill" onclick="toggleDropdown('speedRampDropdown')">
+                <span id="speedRampValue">Auto</span>
+                <svg class="pill-arrow" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </div>
+            <div class="small-dropdown" id="speedRampDropdown" style="top:auto;bottom:100%;">
+              <div class="small-dropdown-item selected" onclick="selectOption('speedRampValue','speedRampDropdown',this)">Auto</div>
+              <div class="small-dropdown-item" onclick="selectOption('speedRampValue','speedRampDropdown',this)">Linear</div>
+              <div class="small-dropdown-item" onclick="selectOption('speedRampValue','speedRampDropdown',this)">Flash In</div>
+              <div class="small-dropdown-item" onclick="selectOption('speedRampValue','speedRampDropdown',this)">Flash Out</div>
+              <div class="small-dropdown-item" onclick="selectOption('speedRampValue','speedRampDropdown',this)">Slow-mo</div>
+              <div class="small-dropdown-item" onclick="selectOption('speedRampValue','speedRampDropdown',this)">Bullet Time</div>
+              <div class="small-dropdown-item" onclick="selectOption('speedRampValue','speedRampDropdown',this)">Impact</div>
+              <div class="small-dropdown-item" onclick="selectOption('speedRampValue','speedRampDropdown',this)">Ramp Up</div>
+            </div>
+          </div>
+
+          <!-- Duration -->
+          <div class="dropdown-wrap">
+            <div class="dir-control">
+              <span class="dir-control-label">Duration</span>
+              <button class="dir-control-pill" onclick="toggleDropdown('durationDropdown')">
+                <span id="durationValue">4s</span>
+                <svg class="pill-arrow" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </div>
+            <div class="small-dropdown" id="durationDropdown" style="top:auto;bottom:100%;">
+              <div class="small-dropdown-item" onclick="selectOption('durationValue','durationDropdown',this)">2s</div>
+              <div class="small-dropdown-item selected" onclick="selectOption('durationValue','durationDropdown',this)">4s</div>
+              <div class="small-dropdown-item" onclick="selectOption('durationValue','durationDropdown',this)">6s</div>
+              <div class="small-dropdown-item" onclick="selectOption('durationValue','durationDropdown',this)">8s</div>
+              <div class="small-dropdown-item" onclick="selectOption('durationValue','durationDropdown',this)">10s</div>
+            </div>
+          </div>
+
+          <div class="vsep"></div>
+        </div>
+      </div>
+
+      <!-- IMAGE COMPOSER -->
+      <div class="composer-section active" id="imageComposer">
+        <div class="prompt-row">
+          <button class="upload-btn" title="Upload reference image">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+          <textarea class="prompt-input" placeholder="Describe your scene - use @ to add characters &amp; locations" rows="1" id="imagePrompt" oninput="autoResize(this)"></textarea>
+        </div>
+        <div class="controls-row">
+          <!-- Model selector -->
+          <div class="dropdown-wrap" id="imageModelWrap">
+            <button class="model-selector" onclick="toggleDropdown('imageModelDropdown')">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="color:#06b6d4;">
+                <path d="M12 2L9.1 8.5H2l5.5 4.1-2.1 6.6L12 15.1l6.6 4.1-2.1-6.6L22 8.5h-7.1z"/>
+              </svg>
+              <span class="model-name" id="imageModelName">Nano Banana Pro</span>
+              <svg class="pill-arrow" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="dropdown-menu" id="imageModelDropdown">
+              <input type="text" class="dropdown-search" placeholder="Search models..." oninput="filterModels('image', this.value)">
+              <div id="imageModelList"></div>
+            </div>
+          </div>
+
+          <!-- Scenes -->
+          <div class="dropdown-wrap">
+            <div class="scene-counter">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="2" width="20" height="20" rx="2"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/></svg>
+              <span style="font-size:11px;color:#94a3b8;">Scenes</span>
+              <button class="scene-counter-btn" onclick="updateSceneCount('image', -1)">-</button>
+              <span id="imageSceneCount" style="font-size:13px;color:#e2e8f0;min-width:24px;text-align:center;">1/4</span>
+              <button class="scene-counter-btn" onclick="updateSceneCount('image', 1)">+</button>
+            </div>
+          </div>
+
+          <!-- Aspect Ratio -->
+          <div class="dropdown-wrap">
+            <button class="pill" onclick="toggleDropdown('imageAspectDropdown')">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="1"/></svg>
+              <span id="imageAspectValue">16:9</span>
+              <svg class="pill-arrow" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="small-dropdown" id="imageAspectDropdown">
+              <div class="small-dropdown-item selected" onclick="selectOption('imageAspectValue','imageAspectDropdown',this)">16:9</div>
+              <div class="small-dropdown-item" onclick="selectOption('imageAspectValue','imageAspectDropdown',this)">21:9</div>
+              <div class="small-dropdown-item" onclick="selectOption('imageAspectValue','imageAspectDropdown',this)">1:1</div>
+              <div class="small-dropdown-item" onclick="selectOption('imageAspectValue','imageAspectDropdown',this)">9:16</div>
+              <div class="small-dropdown-item" onclick="selectOption('imageAspectValue','imageAspectDropdown',this)">4:3</div>
+            </div>
+          </div>
+
+          <!-- Quality -->
+          <div class="dropdown-wrap">
+            <button class="pill" onclick="toggleDropdown('imageQualityDropdown')">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              <span id="imageQualityValue">2K</span>
+              <svg class="pill-arrow" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="small-dropdown" id="imageQualityDropdown">
+              <div class="small-dropdown-item" onclick="selectOption('imageQualityValue','imageQualityDropdown',this)">1K</div>
+              <div class="small-dropdown-item selected" onclick="selectOption('imageQualityValue','imageQualityDropdown',this)">2K</div>
+              <div class="small-dropdown-item" onclick="selectOption('imageQualityValue','imageQualityDropdown',this)">4K</div>
+            </div>
+          </div>
+
+          <!-- Characters & Locations -->
+          <button class="char-loc-btn">
+            <div class="char-loc-icons">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            </div>
+            Characters and Locations
+          </button>
+
+          <button class="generate-btn">GENERATE &#10022; 2</button>
+        </div>
+      </div>
+
+      <!-- VIDEO COMPOSER -->
+      <div class="composer-section" id="videoComposer">
+        <div class="prompt-row">
+          <button class="upload-btn" title="Upload reference">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+          <textarea class="prompt-input" placeholder="Describe your video scene - use @ to add characters &amp; locations" rows="1" id="videoPrompt" oninput="autoResize(this)"></textarea>
+        </div>
+        <div class="controls-row">
+          <!-- Single shot -->
+          <div class="dropdown-wrap">
+            <button class="pill" onclick="toggleDropdown('shotDropdown')">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+              <span id="shotValue">Single shot</span>
+              <svg class="pill-arrow" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="small-dropdown" id="shotDropdown">
+              <div class="small-dropdown-item selected" onclick="selectOption('shotValue','shotDropdown',this)">Single shot</div>
+              <div class="small-dropdown-item" onclick="selectOption('shotValue','shotDropdown',this)">Multi-shot</div>
+            </div>
+          </div>
+
+          <!-- Aspect Ratio -->
+          <div class="dropdown-wrap">
+            <button class="pill" onclick="toggleDropdown('videoAspectDropdown')">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="1"/></svg>
+              <span id="videoAspectValue">16:9</span>
+              <svg class="pill-arrow" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="small-dropdown" id="videoAspectDropdown">
+              <div class="small-dropdown-item selected" onclick="selectOption('videoAspectValue','videoAspectDropdown',this)">16:9</div>
+              <div class="small-dropdown-item" onclick="selectOption('videoAspectValue','videoAspectDropdown',this)">21:9</div>
+              <div class="small-dropdown-item" onclick="selectOption('videoAspectValue','videoAspectDropdown',this)">9:16</div>
+              <div class="small-dropdown-item" onclick="selectOption('videoAspectValue','videoAspectDropdown',this)">1:1</div>
+              <div class="small-dropdown-item" onclick="selectOption('videoAspectValue','videoAspectDropdown',this)">4:3</div>
+            </div>
+          </div>
+
+          <!-- Resolution -->
+          <div class="dropdown-wrap">
+            <button class="pill" onclick="toggleDropdown('videoResDropdown')">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              <span id="videoResValue">1080p</span>
+              <svg class="pill-arrow" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="small-dropdown" id="videoResDropdown">
+              <div class="small-dropdown-item" onclick="selectOption('videoResValue','videoResDropdown',this)">720p</div>
+              <div class="small-dropdown-item selected" onclick="selectOption('videoResValue','videoResDropdown',this)">1080p</div>
+              <div class="small-dropdown-item" onclick="selectOption('videoResValue','videoResDropdown',this)">2K</div>
+              <div class="small-dropdown-item" onclick="selectOption('videoResValue','videoResDropdown',this)">4K</div>
+            </div>
+          </div>
+
+          <!-- Genre -->
+          <div class="dropdown-wrap">
+            <button class="pill" onclick="toggleDropdown('genreDropdown')">
+              <span class="genre-dot" id="genreDot" style="background:#ef4444;"></span>
+              <span id="genreValue">General</span>
+              <svg class="pill-arrow" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="small-dropdown" id="genreDropdown">
+              <div class="small-dropdown-item selected" onclick="selectGenre('General','#ef4444',this)"><span class="genre-dot" style="background:#ef4444;display:inline-block;margin-right:6px;"></span>General</div>
+              <div class="small-dropdown-item" onclick="selectGenre('Action','#f97316',this)"><span class="genre-dot" style="background:#f97316;display:inline-block;margin-right:6px;"></span>Action</div>
+              <div class="small-dropdown-item" onclick="selectGenre('Horror','#a855f7',this)"><span class="genre-dot" style="background:#a855f7;display:inline-block;margin-right:6px;"></span>Horror</div>
+              <div class="small-dropdown-item" onclick="selectGenre('Comedy','#eab308',this)"><span class="genre-dot" style="background:#eab308;display:inline-block;margin-right:6px;"></span>Comedy</div>
+              <div class="small-dropdown-item" onclick="selectGenre('Noir','#e2e8f0',this)"><span class="genre-dot" style="background:#e2e8f0;display:inline-block;margin-right:6px;"></span>Noir</div>
+              <div class="small-dropdown-item" onclick="selectGenre('Drama','#3b82f6',this)"><span class="genre-dot" style="background:#3b82f6;display:inline-block;margin-right:6px;"></span>Drama</div>
+              <div class="small-dropdown-item" onclick="selectGenre('Epic','#ca8a04',this)"><span class="genre-dot" style="background:#ca8a04;display:inline-block;margin-right:6px;"></span>Epic</div>
+              <div class="small-dropdown-item" onclick="selectGenre('Suspense','#22c55e',this)"><span class="genre-dot" style="background:#22c55e;display:inline-block;margin-right:6px;"></span>Suspense</div>
+            </div>
+          </div>
+
+          <!-- Toggle On/Off -->
+          <button class="toggle-pill" id="toggleBtn" onclick="toggleSetting()">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            <span id="toggleValue">On</span>
+          </button>
+
+          <!-- Scene counter -->
+          <div class="scene-counter">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="2" width="20" height="20" rx="2"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/></svg>
+            <button class="scene-counter-btn" onclick="updateSceneCount('video', -1)">-</button>
+            <span id="videoSceneCount" style="font-size:13px;color:#e2e8f0;min-width:24px;text-align:center;">1/4</span>
+            <button class="scene-counter-btn" onclick="updateSceneCount('video', 1)">+</button>
+          </div>
+
+          <!-- Start Frame / End Frame -->
+          <button class="frame-btn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <span>Start Frame</span>
+          </button>
+          <button class="frame-btn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <span>End Frame</span>
+          </button>
+
+          <button class="generate-btn">GENERATE &#10022; 8</button>
+        </div>
+      </div>
+
+      <!-- AUDIO COMPOSER -->
+      <div id="audio-composer">
+        <div class="audio-left">
+          <!-- Animated Speaker -->
+          <div class="speaker-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M11 5L6 9H2v6h4l5 4V5z" fill="#06b6d4" opacity="0.8"/>
+              <path d="M15.54 8.46a5 5 0 0 1 0 7.07" stroke="#06b6d4" stroke-width="1.5" stroke-linecap="round" fill="none">
+                <animate attributeName="opacity" values="0.8;0;0.8" dur="1.5s" repeatCount="indefinite"/>
+              </path>
+              <path d="M19.07 4.93a10 10 0 0 1 0 14.14" stroke="#06b6d4" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0.4">
+                <animate attributeName="opacity" values="0.4;0;0.4" dur="1.5s" begin="0.4s" repeatCount="indefinite"/>
+              </path>
+            </svg>
+          </div>
+
+          <!-- Sub-modes -->
+          <div class="audio-sub-modes">
+            <div class="sub-mode-option selected" onclick="selectSubMode(this)">
+              <span class="sub-mode-radio"></span>
+              Voiceover
+            </div>
+            <div class="sub-mode-option" onclick="selectSubMode(this)">
+              <span class="sub-mode-radio"></span>
+              Change Voice
+            </div>
+            <div class="sub-mode-option" onclick="selectSubMode(this)">
+              <span class="sub-mode-radio"></span>
+              Translate
+            </div>
+          </div>
+        </div>
+
+        <div class="audio-center">
+          <textarea class="prompt-input" placeholder="Describe the sound you imagine..." rows="1" id="audioPrompt" oninput="autoResize(this)" style="width:100%;"></textarea>
+          <div class="audio-bottom-row">
+            <button class="engine-badge">
+              <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              Eleven v3
+              <div class="engine-tooltip">Audio models coming soon</div>
+            </button>
+            <div class="audio-mini-wave" id="audioMiniWave"></div>
+          </div>
+        </div>
+
+        <div class="audio-right">
+          <button class="choose-voice-btn">Choose Voice</button>
+          <div class="generate-wrap">
+            <button class="generate-btn" disabled>GENERATE &#10022;</button>
+            <span class="coming-soon-label">Coming Soon</span>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /composer-content -->
+  </div><!-- /composer-wrap-inner -->
+</div><!-- /composer-wrap -->
+
+<!-- Bottom-left FAB -->
+<button id="fab-plus" title="New project">
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+</button>
+
+<script>
+// ============================================================
+// STATE
+// ============================================================
+let currentMode = 'image';
+let selectedImageModel = 'nano-banana-pro';
+let selectedVideoModel = 'kling-3.0/video';
+let toggleOn = true;
+let textRotationInterval = null;
+let currentPhraseIndex = 0;
+let imageSceneVal = 1;
+let videoSceneVal = 1;
+const maxScenes = 8;
+
+// ============================================================
+// MODEL DATA
+// ============================================================
+const IMAGE_MODELS = [
+  { group: 'NANO BANANA', items: [
+    { id: 'nano-banana-pro', name: 'Nano Banana Pro' },
+    { id: 'nano-banana-2', name: 'Nano Banana 2' },
+    { id: 'google/nano-banana', name: 'Nano Banana (Google)' },
+    { id: 'google/nano-banana-edit', name: 'Nano Banana Edit' },
+  ]},
+  { group: 'GOOGLE IMAGEN', items: [
+    { id: 'google/imagen4-fast', name: 'Imagen 4 Fast' },
+    { id: 'google/imagen4', name: 'Imagen 4' },
+    { id: 'google/imagen4-ultra', name: 'Imagen 4 Ultra' },
+  ]},
+  { group: 'SEEDREAM', items: [
+    { id: 'seedream/4.5-text-to-image', name: 'Seedream 4.5' },
+    { id: 'seedream/4.5-edit', name: 'Seedream 4.5 Edit' },
+    { id: 'seedream/5-lite-text-to-image', name: 'Seedream 5 Lite' },
+    { id: 'seedream/5-lite-image-to-image', name: 'Seedream 5 Lite i2i' },
+  ]},
+  { group: 'FLUX', items: [
+    { id: 'flux-2/pro-text-to-image', name: 'Flux 2 Pro' },
+    { id: 'flux-2/pro-image-to-image', name: 'Flux 2 Pro i2i' },
+    { id: 'flux-2/flex-text-to-image', name: 'Flux 2 Flex' },
+    { id: 'flux-2/flex-image-to-image', name: 'Flux 2 Flex i2i' },
+  ]},
+  { group: 'OTHER', items: [
+    { id: 'z-image', name: 'Z-Image' },
+    { id: 'grok-imagine/text-to-image', name: 'Grok Imagine' },
+    { id: 'gpt-image/1.5-text-to-image', name: 'GPT Image 1.5' },
+    { id: 'gpt-image/1.5-image-to-image', name: 'GPT Image 1.5 i2i' },
+  ]},
+];
+
+const VIDEO_MODELS = [
+  { group: 'KLING', items: [
+    { id: 'kling-3.0/video', name: 'Kling 3.0' },
+    { id: 'kling-3.0/motion-control', name: 'Kling 3.0 Motion' },
+    { id: 'kling-2.6/text-to-video', name: 'Kling 2.6 t2v' },
+    { id: 'kling-2.6/image-to-video', name: 'Kling 2.6 i2v' },
+    { id: 'kling/v2-5-turbo-text-to-video-pro', name: 'Kling 2.5 Turbo t2v' },
+    { id: 'kling/v2-5-turbo-image-to-video-pro', name: 'Kling 2.5 Turbo i2v' },
+  ]},
+  { group: 'HAILUO (MINIMAX)', items: [
+    { id: 'hailuo/2-3-image-to-video-pro', name: 'Hailuo 2.3 Pro i2v' },
+    { id: 'hailuo/2-3-image-to-video-standard', name: 'Hailuo 2.3 Standard' },
+    { id: 'hailuo/02-text-to-video-pro', name: 'Hailuo 02 Pro t2v' },
+    { id: 'hailuo/02-image-to-video-pro', name: 'Hailuo 02 Pro i2v' },
+    { id: 'hailuo/02-text-to-video-standard', name: 'Hailuo 02 Standard' },
+  ]},
+  { group: 'SORA (OPENAI)', items: [
+    { id: 'sora-2-image-to-video', name: 'Sora 2 i2v' },
+    { id: 'sora-2-text-to-video', name: 'Sora 2 t2v' },
+    { id: 'sora-2-pro-image-to-video', name: 'Sora 2 Pro i2v' },
+    { id: 'sora-2-pro-text-to-video', name: 'Sora 2 Pro t2v' },
+  ]},
+  { group: 'GROK', items: [
+    { id: 'grok-imagine/text-to-video', name: 'Grok Video t2v' },
+    { id: 'grok-imagine/image-to-video', name: 'Grok Video i2v' },
+  ]},
+  { group: 'SEEDANCE (BYTEDANCE)', items: [
+    { id: 'seedance-2-preview', name: 'Seedance 2 Preview' },
+    { id: 'seedance-2-fast-preview', name: 'Seedance 2 Fast' },
+    { id: 'bytedance/seedance-1.5-pro', name: 'Seedance 1.5 Pro' },
+    { id: 'bytedance/seedance-2', name: 'Seedance 2' },
+    { id: 'bytedance/seedance-2-fast', name: 'Seedance 2 Fast' },
+    { id: 'bytedance/v1-pro-fast-image-to-video', name: 'V1 Pro Fast i2v' },
+    { id: 'bytedance/v1-pro-image-to-video', name: 'V1 Pro i2v' },
+    { id: 'bytedance/v1-pro-text-to-video', name: 'V1 Pro t2v' },
+    { id: 'bytedance/v1-lite-image-to-video', name: 'V1 Lite i2v' },
+    { id: 'bytedance/v1-lite-text-to-video', name: 'V1 Lite t2v' },
+  ]},
+];
+
+// ============================================================
+// PHRASES
+// ============================================================
+const phrases = {
+  image: [
+    "What would you create with infinite power?",
+    "Direct your imagination.",
+    "Your vision, cinematic precision.",
+    "Turn ideas into cinema.",
+    "Every frame tells a story."
+  ],
+  video: [
+    "What would you create with infinite power?",
+    "Direct your imagination.",
+    "Your vision, cinematic precision.",
+    "Turn ideas into cinema.",
+    "Every frame tells a story."
+  ],
+  audio: [
+    "Ready to give your scene a voice?",
+    "Sound meets cinema.",
+    "Every scene deserves a soundtrack."
+  ]
+};
+
+// ============================================================
+// RENDER MODEL LISTS
+// ============================================================
+function renderModelList(containerId, models, selectedId) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  let html = '';
+  models.forEach(group => {
+    html += `<div class="dropdown-group-header">${group.group}</div>`;
+    group.items.forEach(item => {
+      const sel = item.id === selectedId ? 'selected' : '';
+      html += `<div class="dropdown-item ${sel}" data-id="${item.id}" data-name="${item.name}" onclick="selectModel('${containerId}', '${item.id}', '${item.name.replace(/'/g,"\\'")}', this)">${item.name}</div>`;
+    });
+  });
+  container.innerHTML = html;
+}
+
+// ============================================================
+// SELECT MODEL
+// ============================================================
+function selectModel(containerId, modelId, displayName, el) {
+  if (containerId === 'imageModelList') {
+    selectedImageModel = modelId;
+    document.getElementById('imageModelName').textContent = displayName;
+    closeDropdown('imageModelDropdown');
+  } else {
+    selectedVideoModel = modelId;
+    document.getElementById('videoModelName').textContent = displayName;
+    closeDropdown('videoModelDropdown');
+  }
+  // update selected class
+  const parent = document.getElementById(containerId);
+  parent.querySelectorAll('.dropdown-item').forEach(d => d.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+// ============================================================
+// FILTER MODELS
+// ============================================================
+function filterModels(type, searchText) {
+  const containerId = type === 'image' ? 'imageModelList' : 'videoModelList';
+  const models = type === 'image' ? IMAGE_MODELS : VIDEO_MODELS;
+  const selectedId = type === 'image' ? selectedImageModel : selectedVideoModel;
+  const q = searchText.toLowerCase().trim();
+
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  let html = '';
+  models.forEach(group => {
+    const filtered = group.items.filter(item => !q || item.name.toLowerCase().includes(q) || item.id.toLowerCase().includes(q));
+    if (filtered.length === 0) return;
+    html += `<div class="dropdown-group-header">${group.group}</div>`;
+    filtered.forEach(item => {
+      const sel = item.id === selectedId ? 'selected' : '';
+      html += `<div class="dropdown-item ${sel}" data-id="${item.id}" data-name="${item.name}" onclick="selectModel('${containerId}', '${item.id}', '${item.name.replace(/'/g,"\\'")}', this)">${item.name}</div>`;
+    });
+  });
+  container.innerHTML = html;
+}
+
+// ============================================================
+// DROPDOWN MANAGEMENT
+// ============================================================
+const openDropdowns = new Set();
+
+function toggleDropdown(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (el.classList.contains('open')) {
+    closeDropdown(id);
+  } else {
+    closeAllDropdowns();
+    el.classList.add('open');
+    openDropdowns.add(id);
+    // Reset search
+    const search = el.querySelector('.dropdown-search');
+    if (search) { search.value = ''; }
+    // Re-render
+    if (id === 'imageModelDropdown') filterModels('image', '');
+    if (id === 'videoModelDropdown') filterModels('video', '');
+  }
+}
+
+function closeDropdown(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.remove('open');
+  openDropdowns.delete(id);
+}
+
+function closeAllDropdowns() {
+  document.querySelectorAll('.dropdown-menu.open, .small-dropdown.open').forEach(el => {
+    el.classList.remove('open');
+    openDropdowns.delete(el.id);
+  });
+}
+
+document.addEventListener('click', function(e) {
+  if (openDropdowns.size === 0) return;
+  const isInsideDropdown = e.target.closest('.dropdown-wrap') || e.target.closest('.dropdown-menu') || e.target.closest('.small-dropdown') || e.target.closest('.dir-control');
+  if (!isInsideDropdown) {
+    closeAllDropdowns();
+  }
+});
+
+// ============================================================
+// GENERIC OPTION SELECT (for small dropdowns)
+// ============================================================
+function selectOption(valueId, dropdownId, el) {
+  const valueEl = document.getElementById(valueId);
+  if (valueEl) valueEl.textContent = el.textContent.trim();
+  const dropdown = document.getElementById(dropdownId);
+  if (dropdown) {
+    dropdown.querySelectorAll('.small-dropdown-item').forEach(d => d.classList.remove('selected'));
+    el.classList.add('selected');
+  }
+  closeDropdown(dropdownId);
+}
+
+// ============================================================
+// GENRE SELECT
+// ============================================================
+function selectGenre(name, color, el) {
+  document.getElementById('genreValue').textContent = name;
+  document.getElementById('genreDot').style.background = color;
+  const dropdown = document.getElementById('genreDropdown');
+  if (dropdown) dropdown.querySelectorAll('.small-dropdown-item').forEach(d => d.classList.remove('selected'));
+  el.classList.add('selected');
+  closeDropdown('genreDropdown');
+}
+
+// ============================================================
+// SIDEBAR TYPE DROPDOWN
+// ============================================================
+function toggleSidebarTypeDropdown() {
+  const dd = document.getElementById('sidebarTypeDropdown');
+  if (!dd) return;
+  if (dd.classList.contains('open')) {
+    dd.classList.remove('open');
+  } else {
+    closeAllDropdowns();
+    dd.classList.add('open');
+  }
+}
+
+function setSidebarType(type) {
+  document.getElementById('sidebarTypePill').textContent = type;
+  const dd = document.getElementById('sidebarTypeDropdown');
+  if (dd) {
+    dd.querySelectorAll('.small-dropdown-item').forEach(d => {
+      d.classList.toggle('selected', d.textContent.trim() === type);
+    });
+    dd.classList.remove('open');
+  }
+  // Switch mode based on type
+  if (type === 'Images') switchMode('image');
+  else if (type === 'Videos') switchMode('video');
+  else if (type === 'Audio') switchMode('audio');
+}
+
+// ============================================================
+// SIDEBAR FILTER
+// ============================================================
+function setSidebarFilter(filter) {
+  document.getElementById('sidebarAll').classList.toggle('active', filter === 'all');
+  document.getElementById('sidebarLiked').classList.toggle('active', filter === 'liked');
+}
+
+// ============================================================
+// TOGGLE (ON/OFF)
+// ============================================================
+function toggleSetting() {
+  toggleOn = !toggleOn;
+  const btn = document.getElementById('toggleBtn');
+  const val = document.getElementById('toggleValue');
+  if (btn && val) {
+    val.textContent = toggleOn ? 'On' : 'Off';
+    btn.style.color = toggleOn ? '#4ade80' : '#94a3b8';
+  }
+}
+
+// ============================================================
+// SCENE COUNTER
+// ============================================================
+function updateSceneCount(mode, delta) {
+  if (mode === 'image') {
+    imageSceneVal = Math.max(1, Math.min(maxScenes, imageSceneVal + delta));
+    document.getElementById('imageSceneCount').textContent = imageSceneVal + '/4';
+  } else {
+    videoSceneVal = Math.max(1, Math.min(maxScenes, videoSceneVal + delta));
+    document.getElementById('videoSceneCount').textContent = videoSceneVal + '/4';
+  }
+}
+
+// ============================================================
+// SWITCH MODE
+// ============================================================
+function switchMode(mode) {
+  if (currentMode === mode) return;
+
+  const imageComposer = document.getElementById('imageComposer');
+  const videoComposer = document.getElementById('videoComposer');
+  const audioComposer = document.getElementById('audio-composer');
+  const directorPanel = document.getElementById('director-panel');
+  const modeStrip = document.getElementById('mode-toggle-strip');
+  const audioWaveBg = document.getElementById('audio-wave-bg');
+  const banner = document.getElementById('upgrade-banner');
+
+  // Fade out logic
+  const prev = currentMode;
+  currentMode = mode;
+
+  // Update mode toggle buttons
+  document.getElementById('modeToggleImage').classList.toggle('active', mode === 'image');
+  document.getElementById('modeToggleVideo').classList.toggle('active', mode === 'video');
+
+  // Hide all composers with fade out
+  const composers = [imageComposer, videoComposer];
+  composers.forEach(c => {
+    if (c.classList.contains('active')) {
+      c.classList.remove('active');
+    }
+  });
+  if (audioComposer.classList.contains('active')) {
+    audioComposer.classList.remove('active');
+  }
+
+  setTimeout(() => {
+    if (mode === 'image') {
+      modeStrip.classList.remove('hidden');
+      imageComposer.classList.add('active', 'entering');
+      directorPanel.classList.remove('open');
+      audioWaveBg.classList.remove('visible');
+      setTimeout(() => imageComposer.classList.remove('entering'), 300);
+    } else if (mode === 'video') {
+      modeStrip.classList.remove('hidden');
+      videoComposer.classList.add('active', 'entering');
+      directorPanel.classList.add('open');
+      audioWaveBg.classList.remove('visible');
+      setTimeout(() => videoComposer.classList.remove('entering'), 300);
+    } else if (mode === 'audio') {
+      modeStrip.classList.add('hidden');
+      audioComposer.classList.add('active', 'entering');
+      directorPanel.classList.remove('open');
+      audioWaveBg.classList.add('visible');
+      setTimeout(() => audioComposer.classList.remove('entering'), 300);
+    }
+    // Adjust banner position
+    adjustBannerPosition();
+  }, 200);
+
+  // Reset text rotation
+  currentPhraseIndex = 0;
+  startTextRotation();
+}
+
+// ============================================================
+// BANNER
+// ============================================================
+function closeBanner() {
+  const banner = document.getElementById('upgrade-banner');
+  banner.classList.add('hidden');
+  try { sessionStorage.setItem('bannerDismissed', 'true'); } catch(e) {}
+}
+
+function adjustBannerPosition() {
+  const banner = document.getElementById('upgrade-banner');
+  if (!banner || banner.classList.contains('hidden')) return;
+  const composerWrap = document.getElementById('composer-wrap');
+  const composerHeight = composerWrap ? composerWrap.offsetHeight : 0;
+  banner.style.bottom = (composerHeight + 12) + 'px';
+}
+
+// ============================================================
+// TEXTAREA AUTO RESIZE
+// ============================================================
+function autoResize(el) {
+  el.style.height = '20px';
+  el.style.height = Math.min(el.scrollHeight, 80) + 'px';
+}
+
+// ============================================================
+// HERO TEXT ROTATION
+// ============================================================
+function rotateText() {
+  const el = document.getElementById('heroTitle');
+  if (!el) return;
+  const modeKey = currentMode;
+  const list = phrases[modeKey] || phrases.image;
+  currentPhraseIndex = (currentPhraseIndex + 1) % list.length;
+  // Force reflow to restart animation
+  el.style.animation = 'none';
+  void el.offsetHeight;
+  el.textContent = list[currentPhraseIndex];
+  el.style.animation = 'fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1)';
+}
+
+function startTextRotation() {
+  if (textRotationInterval) clearInterval(textRotationInterval);
+  textRotationInterval = setInterval(rotateText, 6000);
+}
+
+// ============================================================
+// AUDIO WAVEFORM BACKGROUND
+// ============================================================
+function buildAudioWaveBg() {
+  const container = document.getElementById('audio-wave-bg');
+  let html = '';
+  for (let i = 0; i < 80; i++) {
+    const minH = Math.floor(Math.random() * 20) + 10;
+    const maxH = Math.floor(Math.random() * 100) + 20;
+    const delay = (i * 0.05).toFixed(2);
+    html += `<div class="wave-bar" style="--min-h:${minH}px;--max-h:${maxH}px;animation-delay:${delay}s;height:${minH}px;"></div>`;
+  }
+  container.innerHTML = html;
+}
+
+// ============================================================
+// AUDIO MINI WAVE
+// ============================================================
+function buildAudioMiniWave() {
+  const container = document.getElementById('audioMiniWave');
+  if (!container) return;
+  let html = '';
+  for (let i = 0; i < 30; i++) {
+    const h = Math.floor(Math.random() * 12) + 3;
+    html += `<div class="audio-mini-bar" style="height:${h}px;"></div>`;
+  }
+  container.innerHTML = html;
+}
+
+// ============================================================
+// SUB MODE (AUDIO)
+// ============================================================
+function selectSubMode(el) {
+  document.querySelectorAll('.sub-mode-option').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+// ============================================================
+// REF SLOT (VIDEO DIRECTOR PANEL)
+// ============================================================
+function handleRefSlot(el) {
+  // Simulate filling: toggle gradient placeholder
+  if (el.dataset.filled === 'true') {
+    el.dataset.filled = 'false';
+    el.style.background = '';
+    el.style.borderStyle = 'dashed';
+    el.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>`;
+  } else {
+    el.dataset.filled = 'true';
+    const gradients = [
+      'linear-gradient(135deg, #1a3a6e, #0d2040)',
+      'linear-gradient(135deg, #2d1b4e, #1a0d30)',
+      'linear-gradient(135deg, #1e3a2f, #0d2018)',
+    ];
+    el.style.background = gradients[Math.floor(Math.random() * gradients.length)];
+    el.style.borderStyle = 'solid';
+    el.style.borderColor = 'rgba(6,182,212,0.3)';
+    el.innerHTML = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
+  }
+}
+
+// ============================================================
+// VIEW TOGGLES
+// ============================================================
+document.querySelectorAll('.view-toggle-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('.view-toggle-btn').forEach(b => b.classList.remove('active'));
+    this.classList.add('active');
+  });
+});
+
+// ============================================================
+// INIT
+// ============================================================
+function init() {
+  // Check banner dismiss
+  try {
+    if (sessionStorage.getItem('bannerDismissed') === 'true') {
+      document.getElementById('upgrade-banner').classList.add('hidden');
+    }
+  } catch(e) {}
+
+  // Build model lists
+  renderModelList('imageModelList', IMAGE_MODELS, selectedImageModel);
+  renderModelList('videoModelList', VIDEO_MODELS, selectedVideoModel);
+
+  // Build audio wave bg
+  buildAudioWaveBg();
+  buildAudioMiniWave();
+
+  // Start text rotation
+  startTextRotation();
+
+  // Adjust banner position after composer renders
+  setTimeout(adjustBannerPosition, 600);
+
+  // Handle window resize for banner position
+  window.addEventListener('resize', adjustBannerPosition);
+}
+
+// Run on load
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>

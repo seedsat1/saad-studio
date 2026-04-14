@@ -1,0 +1,275 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body,
+:root {
+  height: 100%;
+}
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+ 
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+ 
+    --primary: 248 90% 66%;
+    --primary-foreground: 210 40% 98%;
+ 
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+ 
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+ 
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+ 
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
+ 
+    --radius: 0.5rem;
+  }
+ 
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+ 
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+ 
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+ 
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+ 
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+ 
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+ 
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+ 
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+ 
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+  }
+}
+ 
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* SAAD STUDIO — utility: hide scrollbar while keeping scroll behaviour */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* ── SAAD STUDIO Design System Variables ───────────────────────────────────── */
+:root {
+  --ss-bg:        #060c18;
+  --ss-card:      #0f1a35;
+  --ss-cyan:      #06b6d4;
+  --ss-violet:    #8b5cf6;
+  --ss-pink:      #ec4899;
+  --ss-text:      #e2e8f0;
+  --ss-muted:     #94a3b8;
+}
+
+/* ── Glass utilities ──────────────────────────────────────────────────────── */
+/* ── Explore page background ─────────────────────────────────────────────── */
+.explore-bg {
+  background:
+    radial-gradient(ellipse at 20% 80%, rgba(6, 182, 212, 0.07) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, rgba(139, 92, 246, 0.05) 0%, transparent 50%),
+    #060c18;
+}
+
+.glass {
+  background: rgba(15, 26, 53, 0.7);
+  backdrop-filter: blur(16px) saturate(1.5);
+  -webkit-backdrop-filter: blur(16px) saturate(1.5);
+  border: 1px solid rgba(148, 163, 184, 0.06);
+}
+
+.glass-strong {
+  background: rgba(15, 26, 53, 0.88);
+  backdrop-filter: blur(24px) saturate(1.8);
+  -webkit-backdrop-filter: blur(24px) saturate(1.8);
+  border: 1px solid rgba(148, 163, 184, 0.08);
+}
+
+/* ── Text gradients ───────────────────────────────────────────────────────── */
+.text-gradient-cyan {
+  background: linear-gradient(135deg, #06b6d4, #22d3ee);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-gradient-multi {
+  background: linear-gradient(135deg, #06b6d4, #8b5cf6, #ec4899);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── Custom scrollbar ─────────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.15);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.3);
+}
+
+/* ── Selection color ──────────────────────────────────────────────────────── */
+::selection {
+  background: rgba(6, 182, 212, 0.25);
+  color: #e2e8f0;
+}
+
+/* ── Infinite marquee / auto-scroll ──────────────────────────────────────── */
+@keyframes marquee-scroll {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marquee-scroll 40s linear infinite;
+}
+.marquee-track:hover {
+  animation-play-state: paused;
+}
+
+/* ── Shimmer border animation ─────────────────────────────────────────────── */
+@keyframes shimmer-border {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+.shimmer-border {
+  background: linear-gradient(135deg, #06b6d4, #8b5cf6, #ec4899, #06b6d4);
+  background-size: 300% 300%;
+  animation: shimmer-border 3s linear infinite;
+}
+
+/* ── Noise overlay ────────────────────────────────────────────────────────── */
+.noise-overlay::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+  opacity: 0.025;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+/* ── Snap scroll horizontal ──────────────────────────────────────────────── */
+.snap-x-mandatory {
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+.snap-start { scroll-snap-align: start; }
+
+/* Clerk auth cleanup: hide GitHub provider and footer/development badge in UI */
+.cl-socialButtonsBlockButton[data-social-provider="github"],
+.cl-socialButtonsBlockButton[data-provider="oauth_github"],
+.cl-socialButtonsBlockButton:has([aria-label*="GitHub"]),
+.cl-socialButtonsBlockButton:has([alt*="GitHub"]) {
+  display: none !important;
+}
+
+.cl-footer,
+.cl-footerActions {
+  display: none !important;
+}
+
+/* Light mode overrides used by Settings dark-mode toggle */
+html.saad-light body {
+  background: #f5f7ff !important;
+  color: #0f172a !important;
+}
+
+html.saad-light .bg-slate-950,
+html.saad-light .bg-slate-900,
+html.saad-light .bg-slate-900\/60,
+html.saad-light .bg-slate-900\/70,
+html.saad-light .bg-slate-900\/80,
+html.saad-light .bg-\[\#060c18\] {
+  background-color: #f5f7ff !important;
+}
+
+html.saad-light .bg-slate-800,
+html.saad-light .bg-slate-800\/30,
+html.saad-light .bg-slate-800\/40,
+html.saad-light .bg-slate-800\/60 {
+  background-color: #ffffff !important;
+}
+
+html.saad-light .border-slate-900,
+html.saad-light .border-slate-800,
+html.saad-light .border-slate-700 {
+  border-color: #d7deea !important;
+}
+
+html.saad-light .text-white,
+html.saad-light .text-slate-100,
+html.saad-light .text-slate-200,
+html.saad-light .text-slate-300,
+html.saad-light .text-slate-400,
+html.saad-light .text-slate-500 {
+  color: #0f172a !important;
+}
+
+html.saad-light input,
+html.saad-light textarea,
+html.saad-light select {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+/* Make native dropdown options readable in dark and light themes */
+select option {
+  background-color: #0f172a;
+  color: #e2e8f0;
+}
+
+html.saad-light select option {
+  background-color: #ffffff;
+  color: #0f172a;
+}

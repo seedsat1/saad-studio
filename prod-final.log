@@ -1,0 +1,49 @@
+
+> aisaas@0.1.0 start
+> next start -p 3000
+
+  ▲ Next.js 14.2.35
+  - Local:        http://localhost:3000
+
+ ✓ Starting...
+ ✓ Ready in 459ms
+(node:63984) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+--- assist API error --- ak [Error]: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.
+    at aS.generate (D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\.next\server\chunks\759.js:1:191161)
+    at pe.makeStatusError (D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\.next\server\chunks\759.js:1:202760)
+    at pe.makeRequest (D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\.next\server\chunks\759.js:1:203683)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async x (D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\.next\server\app\api\assist\route.js:1:4342)
+    at async D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:38411
+    at async e_.execute (D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:27880)
+    at async e_.handle (D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:39943)
+    at async doRender (D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\base-server.js:1366:42)
+    at async cacheEntry.responseCache.get.routeKind (D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\base-server.js:1588:28) {
+  status: 429,
+  headers: {
+    'alt-svc': 'h3=":443"; ma=86400',
+    'cf-cache-status': 'DYNAMIC',
+    'cf-ray': '9e952b293d8023a8-IST',
+    connection: 'keep-alive',
+    'content-length': '337',
+    'content-type': 'application/json; charset=utf-8',
+    date: 'Wed, 08 Apr 2026 23:49:27 GMT',
+    server: 'cloudflare',
+    'set-cookie': '__cf_bm=t4w7Uf2VOcOe6YZff6ACEv1ZtFuxYioHKcbsxXPpXwA-1775692166.5958729-1.0.1.1-352iDi1YeG8waNQWmLLahfSK6abyrnCdZ6ondp397MYPjF78BSu_gQzJTHtVDedudkGO9lUtjdEbP_UkKfkAtqh32sUtus3QlJpwDfG.xnsi69lRW8syc14LkNDtxH8t; HttpOnly; Secure; Path=/; Domain=api.openai.com; Expires=Thu, 09 Apr 2026 00:19:27 GMT, _cfuvid=pWY9JRDVLV1A6I2swoyZq3ZNTsLyZdd1oUy6KFP4xOA-1775692166.5958729-1.0.1.1-yrgq1o2EWVgcTonze8_Cv2tLSWuAvZBGrhq_4qLNsJg; HttpOnly; SameSite=None; Secure; Path=/; Domain=api.openai.com',
+    'strict-transport-security': 'max-age=31536000; includeSubDomains; preload',
+    vary: 'Origin',
+    'x-content-type-options': 'nosniff',
+    'x-openai-proxy-wasm': 'v0.1',
+    'x-request-id': 'req_0fdb2a161b114dec82ff1bf058f9c57f'
+  },
+  error: {
+    message: 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.',
+    type: 'insufficient_quota',
+    param: null,
+    code: 'insufficient_quota'
+  },
+  code: 'insufficient_quota',
+  param: null,
+  type: 'insufficient_quota'
+}

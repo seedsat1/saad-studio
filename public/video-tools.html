@@ -1,0 +1,1579 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Video Tools — SAAD STUDIO</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #060c18; --bg-deep: #040a14; --card: #0f1a35; --card-hover: #142040;
+  --accent: #06b6d4; --accent-glow: rgba(6,182,212,0.25); --accent-subtle: rgba(6,182,212,0.08);
+  --text: #e2e8f0; --text-dim: #94a3b8; --text-muted: #64748b; --border: rgba(255,255,255,0.08);
+  --border-light: rgba(255,255,255,0.12); --green: #22c55e; --red: #ef4444; --yellow: #c8e600;
+}
+
+html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'Outfit', system-ui, sans-serif; overflow: hidden; }
+
+/* ===== NAVBAR ===== */
+#navbar {
+  position: fixed; top: 0; left: 0; right: 0; height: 52px;
+  background: rgba(6,12,24,0.9); backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border); z-index: 1000;
+  display: flex; align-items: center; justify-content: space-between; padding: 0 20px;
+}
+.nav-left { display: flex; align-items: center; gap: 4px; }
+.nav-logo {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: linear-gradient(135deg, #06b6d4, #3b82f6);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 13px; color: #fff; margin-right: 8px; flex-shrink: 0;
+}
+.nav-link { padding: 5px 10px; font-size: 14px; color: var(--text-dim); text-decoration: none; border-radius: 6px; transition: color 0.2s; cursor: pointer; white-space: nowrap; }
+.nav-link:hover { color: var(--text); }
+.nav-link.active { color: var(--text); font-weight: 600; }
+.nav-badge { display: inline-flex; align-items: center; background: var(--accent-subtle); color: var(--accent); font-size: 10px; padding: 1px 6px; border-radius: 4px; margin-left: 4px; font-weight: 600; }
+.nav-right { display: flex; align-items: center; gap: 12px; }
+.btn-try { background: var(--accent); color: #000; padding: 6px 16px; border-radius: 8px; font-weight: 700; font-size: 14px; border: none; cursor: pointer; font-family: 'Outfit', sans-serif; transition: opacity 0.2s; }
+.btn-try:hover { opacity: 0.85; }
+.credits-badge { display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-light); padding: 5px 12px; border-radius: 8px; font-size: 13px; color: var(--text-dim); }
+.credits-badge span { color: var(--accent); font-weight: 700; }
+
+/* ===== SIDEBAR ===== */
+#sidebar {
+  position: fixed; left: 0; top: 52px; bottom: 0; width: 220px;
+  background: var(--bg-deep); border-right: 1px solid var(--border);
+  padding: 16px 0; z-index: 200; overflow-y: auto; overflow-x: hidden;
+  display: flex; flex-direction: column;
+  transition: transform 0.3s;
+}
+#sidebar::-webkit-scrollbar { width: 3px; }
+#sidebar::-webkit-scrollbar-track { background: transparent; }
+#sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+.sidebar-header { font-size: 10px; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); padding: 0 16px; margin-bottom: 12px; flex-shrink: 0; }
+.tool-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 16px; cursor: pointer;
+  color: var(--text-dim); font-size: 14px; font-weight: 500;
+  transition: all 0.2s; border-left: 3px solid transparent;
+  white-space: nowrap; flex-shrink: 0;
+}
+.tool-item:hover { background: rgba(255,255,255,0.03); color: var(--text); }
+.tool-item.active { background: var(--accent-subtle); color: var(--accent); border-left-color: var(--accent); font-weight: 600; }
+.tool-icon { width: 18px; height: 18px; opacity: 0.6; flex-shrink: 0; }
+.tool-item.active .tool-icon { opacity: 1; }
+.sidebar-toggle { display: none; position: fixed; left: 0; top: 52px; z-index: 300; background: var(--bg-deep); border: 1px solid var(--border); border-left: none; padding: 8px 4px; border-radius: 0 6px 6px 0; cursor: pointer; }
+
+/* ===== MAIN WORKSPACE ===== */
+#main {
+  position: fixed; top: 52px; left: 220px; right: 0; bottom: 0;
+  overflow-y: auto; overflow-x: hidden; background: var(--bg);
+  transition: left 0.3s;
+}
+#main::-webkit-scrollbar { width: 4px; }
+#main::-webkit-scrollbar-track { background: transparent; }
+#main::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+
+/* ===== WORKSPACE AREA ===== */
+#workspace {
+  min-height: 100%; padding: 32px;
+  animation: wsFadeIn 0.3s ease;
+}
+@keyframes wsFadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.ws-fading { animation: wsFadeOut 0.2s ease forwards; }
+@keyframes wsFadeOut { to { opacity: 0; transform: translateY(-8px); } }
+
+/* ===== TOOL HEADER ===== */
+.tool-header { margin-bottom: 28px; }
+.tool-header h1 { font-size: 24px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+.tool-header p { font-size: 14px; color: var(--text-dim); max-width: 600px; }
+.tool-header .tool-badge { display: inline-flex; align-items: center; gap: 6px; background: var(--accent-subtle); border: 1px solid rgba(6,182,212,0.2); color: var(--accent); font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px; margin-top: 8px; }
+
+/* ===== CARDS & PANELS ===== */
+.panel { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+.panel-title { font-size: 12px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-muted); margin-bottom: 14px; font-weight: 600; }
+
+/* ===== FORM CONTROLS ===== */
+.form-row { display: flex; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+.form-group { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 140px; }
+.form-label { font-size: 12px; color: var(--text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.8px; }
+.form-input, .form-select, .form-textarea {
+  background: rgba(255,255,255,0.04); border: 1px solid var(--border); color: var(--text);
+  border-radius: 8px; padding: 10px 12px; font-size: 14px; font-family: 'Outfit', sans-serif;
+  transition: border-color 0.2s, background 0.2s; outline: none;
+}
+.form-input:focus, .form-select:focus, .form-textarea:focus { border-color: rgba(6,182,212,0.4); background: rgba(6,182,212,0.04); }
+.form-textarea { resize: vertical; min-height: 90px; line-height: 1.5; }
+.form-select { cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 32px; }
+optgroup { background: #0f1a35; color: var(--text-muted); font-size: 12px; }
+option { background: #0f1a35; color: var(--text); }
+
+/* ===== UPLOAD ZONE ===== */
+.upload-zone {
+  border: 2px dashed var(--border-light); border-radius: 10px;
+  padding: 32px 20px; text-align: center; cursor: pointer;
+  transition: all 0.25s; position: relative; overflow: hidden;
+  background: rgba(255,255,255,0.02);
+}
+.upload-zone:hover, .upload-zone.drag-over { border-color: var(--accent); background: var(--accent-subtle); }
+.upload-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+.upload-icon { width: 36px; height: 36px; margin: 0 auto 10px; color: var(--text-muted); }
+.upload-title { font-size: 14px; color: var(--text-dim); font-weight: 500; }
+.upload-sub { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+.upload-preview { display: none; width: 100%; max-height: 200px; border-radius: 8px; object-fit: cover; }
+.upload-zone.has-file .upload-content { display: none; }
+.upload-zone.has-file .upload-preview { display: block; }
+.upload-zone.has-file { padding: 8px; border-style: solid; border-color: rgba(6,182,212,0.3); }
+.upload-remove { position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.7); border: none; color: var(--text); border-radius: 50%; width: 24px; height: 24px; cursor: pointer; display: none; align-items: center; justify-content: center; font-size: 14px; z-index: 10; }
+.upload-zone.has-file .upload-remove { display: flex; }
+
+/* ===== TOGGLE BUTTONS ===== */
+.toggle-group { display: flex; gap: 6px; flex-wrap: wrap; }
+.toggle-btn {
+  padding: 7px 14px; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer;
+  border: 1px solid var(--border); background: rgba(255,255,255,0.03); color: var(--text-dim);
+  transition: all 0.2s; font-family: 'Outfit', sans-serif;
+}
+.toggle-btn:hover { border-color: var(--border-light); color: var(--text); background: rgba(255,255,255,0.05); }
+.toggle-btn.active { background: var(--accent-subtle); border-color: rgba(6,182,212,0.4); color: var(--accent); font-weight: 600; }
+
+/* ===== STYLE GRID ===== */
+.style-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 8px; }
+.style-card {
+  border: 1px solid var(--border); border-radius: 8px; padding: 12px 8px; text-align: center;
+  cursor: pointer; transition: all 0.2s; background: rgba(255,255,255,0.02);
+}
+.style-card:hover { border-color: var(--border-light); background: rgba(255,255,255,0.04); }
+.style-card.active { border-color: var(--accent); background: var(--accent-subtle); color: var(--accent); }
+.style-card-icon { font-size: 22px; margin-bottom: 5px; }
+.style-card-name { font-size: 11px; font-weight: 600; color: inherit; }
+.style-card span.style-card-name { color: var(--text-dim); }
+.style-card.active span.style-card-name { color: var(--accent); }
+
+/* ===== VIBE CARDS ===== */
+.vibe-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
+.vibe-card {
+  border: 1px solid var(--border); border-radius: 10px; padding: 16px 12px; text-align: center;
+  cursor: pointer; transition: all 0.2s; background: rgba(255,255,255,0.02);
+}
+.vibe-card:hover { border-color: var(--border-light); background: rgba(255,255,255,0.04); transform: translateY(-2px); }
+.vibe-card.active { border-color: var(--accent); background: var(--accent-subtle); }
+.vibe-card-icon { font-size: 28px; margin-bottom: 8px; }
+.vibe-card-name { font-size: 12px; font-weight: 600; color: var(--text-dim); }
+.vibe-card.active .vibe-card-name { color: var(--accent); }
+
+/* ===== GENERATE BUTTON ===== */
+.btn-generate {
+  display: inline-flex; align-items: center; gap: 10px;
+  background: var(--accent); color: #000; border: none; border-radius: 10px;
+  padding: 13px 28px; font-size: 15px; font-weight: 700; cursor: pointer;
+  font-family: 'Outfit', sans-serif; transition: all 0.2s; position: relative; overflow: hidden;
+}
+.btn-generate:hover { opacity: 0.9; transform: translateY(-1px); box-shadow: 0 8px 24px rgba(6,182,212,0.3); }
+.btn-generate:active { transform: translateY(0); }
+.btn-generate.loading { pointer-events: none; opacity: 0.7; }
+.btn-generate .cost-badge { background: rgba(0,0,0,0.2); border-radius: 6px; padding: 2px 8px; font-size: 12px; }
+.btn-generate::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.15) 50%, transparent 100%); transform: translateX(-100%); transition: transform 0.5s; }
+.btn-generate:hover::after { transform: translateX(100%); }
+.btn-spin { width: 16px; height: 16px; border: 2px solid rgba(0,0,0,0.3); border-top-color: #000; border-radius: 50%; animation: spin 0.7s linear infinite; display: none; }
+.btn-generate.loading .btn-spin { display: block; }
+.btn-generate.loading .btn-label { display: none; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ===== RESULTS / MEDIA GRID ===== */
+.results-section { margin-top: 32px; }
+.results-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.results-title { font-size: 14px; font-weight: 600; color: var(--text-dim); }
+.media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+.media-item { background: var(--card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; transition: all 0.2s; }
+.media-item:hover { border-color: var(--border-light); transform: translateY(-2px); }
+.media-item video, .media-item img { width: 100%; aspect-ratio: 16/9; object-fit: cover; display: block; }
+.media-item-info { padding: 10px 12px; }
+.media-item-name { font-size: 12px; color: var(--text-dim); truncate: ellipsis; }
+.media-item-meta { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.media-actions { display: flex; gap: 6px; margin-top: 8px; }
+.media-btn { background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--text-dim); border-radius: 6px; padding: 4px 10px; font-size: 11px; cursor: pointer; font-family: 'Outfit', sans-serif; transition: all 0.2s; }
+.media-btn:hover { background: rgba(255,255,255,0.08); color: var(--text); }
+
+/* ===== CANVAS / DRAWING TOOL ===== */
+#draw-canvas { border-radius: 8px; cursor: crosshair; display: block; touch-action: none; }
+.canvas-wrap { border: 1px solid var(--border-light); border-radius: 10px; overflow: hidden; background: #fff; display: inline-block; }
+.canvas-tools { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.canvas-btn {
+  padding: 6px 12px; border-radius: 7px; font-size: 12px; font-weight: 600; cursor: pointer;
+  border: 1px solid var(--border); background: rgba(255,255,255,0.04); color: var(--text-dim);
+  font-family: 'Outfit', sans-serif; transition: all 0.2s;
+}
+.canvas-btn:hover { color: var(--text); border-color: var(--border-light); background: rgba(255,255,255,0.07); }
+.canvas-btn.active { background: var(--accent-subtle); border-color: rgba(6,182,212,0.4); color: var(--accent); }
+.color-dot { width: 22px; height: 22px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: all 0.2s; flex-shrink: 0; }
+.color-dot:hover, .color-dot.active { border-color: var(--text); transform: scale(1.1); }
+input[type=range] { accent-color: var(--accent); height: 4px; cursor: pointer; }
+input[type=color] { width: 28px; height: 28px; border: 1px solid var(--border-light); border-radius: 50%; cursor: pointer; padding: 0; background: none; }
+
+/* ===== UGC AVATARS ===== */
+.avatar-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; }
+.avatar-card {
+  border: 2px solid var(--border); border-radius: 10px; padding: 10px; text-align: center;
+  cursor: pointer; transition: all 0.2s; background: rgba(255,255,255,0.02);
+}
+.avatar-card:hover { border-color: var(--border-light); }
+.avatar-card.active { border-color: var(--accent); background: var(--accent-subtle); }
+.avatar-img { width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, #06b6d4, #3b82f6); margin: 0 auto 6px; display: flex; align-items: center; justify-content: center; font-size: 22px; color: #fff; font-weight: 700; }
+.avatar-name { font-size: 11px; color: var(--text-dim); font-weight: 500; }
+.avatar-card.active .avatar-name { color: var(--accent); }
+
+/* ===== STEPS ===== */
+.step-header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.step-num { width: 24px; height: 24px; border-radius: 50%; background: var(--accent); color: #000; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; }
+.step-title { font-size: 14px; font-weight: 600; color: var(--text); }
+
+/* ===== RECAST MODES ===== */
+.recast-mode-grid { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+.recast-mode-btn {
+  padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;
+  border: 1px solid var(--border); background: rgba(255,255,255,0.03); color: var(--text-dim);
+  font-family: 'Outfit', sans-serif; transition: all 0.2s;
+}
+.recast-mode-btn:hover { border-color: var(--border-light); color: var(--text); }
+.recast-mode-btn.active { background: var(--accent-subtle); border-color: rgba(6,182,212,0.4); color: var(--accent); }
+.recast-sub-panel { display: none; }
+.recast-sub-panel.visible { display: block; }
+
+/* ===== UPSCALE OPTIONS ===== */
+.enhancement-opts { display: flex; gap: 10px; flex-wrap: wrap; }
+.enhancement-check { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.enhancement-check input[type="checkbox"] { accent-color: var(--accent); width: 16px; height: 16px; cursor: pointer; }
+.enhancement-check span { font-size: 13px; color: var(--text-dim); }
+
+/* ===== TREND CARDS ===== */
+.trend-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.trend-card {
+  border: 1px solid var(--border); border-radius: 10px; padding: 16px 12px;
+  cursor: pointer; transition: all 0.2s; background: rgba(255,255,255,0.02); position: relative;
+}
+.trend-card:hover { border-color: var(--border-light); background: rgba(255,255,255,0.04); transform: translateY(-2px); }
+.trend-card.active { border-color: var(--accent); background: var(--accent-subtle); }
+.trend-card-label { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: var(--accent); font-weight: 700; margin-bottom: 6px; }
+.trend-card-name { font-size: 13px; font-weight: 600; color: var(--text); }
+.trend-card.active .trend-card-name { color: var(--accent); }
+.trend-hot { position: absolute; top: 8px; right: 8px; background: rgba(239,68,68,0.15); color: var(--red); font-size: 9px; padding: 2px 6px; border-radius: 4px; font-weight: 700; }
+
+/* ===== MODEL SELECTOR ===== */
+.model-selector-wrap { position: relative; }
+.model-search-input { width: 100%; margin-bottom: 0; border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+.model-dropdown-list {
+  position: absolute; top: 100%; left: 0; right: 0; z-index: 50;
+  background: #0a1628; border: 1px solid var(--border-light); border-top: none;
+  border-radius: 0 0 8px 8px; max-height: 260px; overflow-y: auto; display: none;
+}
+.model-dropdown-list.open { display: block; }
+.model-dropdown-list::-webkit-scrollbar { width: 4px; }
+.model-dropdown-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+.model-group-label { padding: 6px 12px; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); background: rgba(255,255,255,0.02); font-weight: 700; position: sticky; top: 0; }
+.model-opt { padding: 9px 12px; font-size: 13px; color: var(--text-dim); cursor: pointer; transition: all 0.15s; }
+.model-opt:hover { background: rgba(255,255,255,0.05); color: var(--text); }
+.model-opt.selected { color: var(--accent); background: var(--accent-subtle); }
+
+/* ===== LIPSYNC VOICE CARDS ===== */
+.voice-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; }
+.voice-card { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; cursor: pointer; transition: all 0.2s; background: rgba(255,255,255,0.02); }
+.voice-card:hover { border-color: var(--border-light); background: rgba(255,255,255,0.04); }
+.voice-card.active { border-color: var(--accent); background: var(--accent-subtle); }
+.voice-name { font-size: 13px; font-weight: 600; color: var(--text-dim); }
+.voice-desc { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.voice-card.active .voice-name { color: var(--accent); }
+
+/* ===== CHAR COUNT ===== */
+.char-count { text-align: right; font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+  #sidebar { transform: translateX(-220px); }
+  #sidebar.open { transform: translateX(0); box-shadow: 4px 0 20px rgba(0,0,0,0.5); }
+  #main { left: 0; }
+  .sidebar-toggle { display: block; }
+  #workspace { padding: 20px 16px; }
+  .style-grid { grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); }
+}
+</style>
+</head>
+<body>
+
+<!-- FILM GRAIN -->
+<div id="film-grain" style="position:fixed;inset:0;pointer-events:none;z-index:9999;opacity:0.018;background-image:url('data:image/svg+xml,%3Csvg viewBox=%220 0 256 256%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noise%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.9%22 numOctaves=%224%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noise)%22 opacity=%221%22/%3E%3C/svg%3E');background-size:200px 200px;"></div>
+
+<!-- NAVBAR -->
+<nav id="navbar">
+  <div class="nav-left">
+    <div class="nav-logo">S</div>
+    <a href="/" class="nav-link">Home</a>
+    <a href="#" class="nav-link">Images</a>
+    <a href="video-tools.html" class="nav-link active">Video Tools<span class="nav-badge">14</span></a>
+    <a href="#" class="nav-link">Audio</a>
+    <a href="#" class="nav-link">3D</a>
+    <a href="cinema.html" class="nav-link">Cinema</a>
+  </div>
+  <div class="nav-right">
+    <div class="credits-badge">Credits: <span id="creditsDisplay">250</span></div>
+    <button class="btn-try" onclick="alert('Upgrade to Pro')">Pro Plan</button>
+  </div>
+</nav>
+
+<!-- SIDEBAR TOGGLE (mobile) -->
+<button class="sidebar-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')" aria-label="Toggle sidebar">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+</button>
+
+<!-- SIDEBAR -->
+<aside id="sidebar">
+  <div class="sidebar-header">VIDEO TOOLS</div>
+  <!-- Tools populated by JS -->
+</aside>
+
+<!-- MAIN WORKSPACE -->
+<main id="main">
+  <div id="workspace">
+    <!-- Populated by JS -->
+  </div>
+</main>
+
+<script>
+/* ===================================================
+   DATA: ALL VIDEO MODELS
+=================================================== */
+const VIDEO_MODELS = [
+  { group: "KLING", models: [
+    { id: "kling-3.0/video", name: "Kling 3.0" },
+    { id: "kling-3.0/motion-control", name: "Kling 3.0 Motion" },
+    { id: "kling-2.6/text-to-video", name: "Kling 2.6 t2v" },
+    { id: "kling-2.6/image-to-video", name: "Kling 2.6 i2v" },
+    { id: "kling/v2-5-turbo-text-to-video-pro", name: "Kling 2.5 Turbo t2v" },
+    { id: "kling/v2-5-turbo-image-to-video-pro", name: "Kling 2.5 Turbo i2v" }
+  ]},
+  { group: "HAILUO (MINIMAX)", models: [
+    { id: "hailuo/2-3-image-to-video-pro", name: "Hailuo 2.3 Pro i2v" },
+    { id: "hailuo/2-3-image-to-video-standard", name: "Hailuo 2.3 Standard" },
+    { id: "hailuo/02-text-to-video-pro", name: "Hailuo 02 Pro t2v" },
+    { id: "hailuo/02-image-to-video-pro", name: "Hailuo 02 Pro i2v" },
+    { id: "hailuo/02-text-to-video-standard", name: "Hailuo 02 Standard" }
+  ]},
+  { group: "SORA (OPENAI)", models: [
+    { id: "sora-2-image-to-video", name: "Sora 2 i2v" },
+    { id: "sora-2-text-to-video", name: "Sora 2 t2v" },
+    { id: "sora-2-pro-image-to-video", name: "Sora 2 Pro i2v" },
+    { id: "sora-2-pro-text-to-video", name: "Sora 2 Pro t2v" }
+  ]},
+  { group: "GROK", models: [
+    { id: "grok-imagine/text-to-video", name: "Grok Video t2v" },
+    { id: "grok-imagine/image-to-video", name: "Grok Video i2v" }
+  ]},
+  { group: "SEEDANCE (BYTEDANCE)", models: [
+    { id: "seedance-2-preview", name: "Seedance 2 Preview" },
+    { id: "seedance-2-fast-preview", name: "Seedance 2 Fast" },
+    { id: "bytedance/seedance-1.5-pro", name: "Seedance 1.5 Pro" },
+    { id: "bytedance/seedance-2", name: "Seedance 2" },
+    { id: "bytedance/seedance-2-fast", name: "Seedance 2 Fast" },
+    { id: "bytedance/v1-pro-fast-image-to-video", name: "V1 Pro Fast i2v" },
+    { id: "bytedance/v1-pro-image-to-video", name: "V1 Pro i2v" },
+    { id: "bytedance/v1-pro-text-to-video", name: "V1 Pro t2v" },
+    { id: "bytedance/v1-lite-image-to-video", name: "V1 Lite i2v" },
+    { id: "bytedance/v1-lite-text-to-video", name: "V1 Lite t2v" }
+  ]}
+];
+
+const MIXED_MEDIA_STYLES = [
+  { id:"sketch", name:"Sketch", icon:"✏", prompt:"Transform into a detailed pencil sketch style, hand-drawn lines, graphite shading, paper texture" },
+  { id:"canvas", name:"Canvas", icon:"🖼", prompt:"Transform into oil painting on canvas, visible brush strokes, rich oil paint texture, gallery-worthy fine art" },
+  { id:"noir", name:"Noir", icon:"◑", prompt:"Transform into classic film noir style, high contrast black and white, dramatic shadows, 1940s detective film aesthetic" },
+  { id:"paper", name:"Paper", icon:"📄", prompt:"Transform into paper cutout stop-motion style, layered paper textures, craft aesthetic, handmade look" },
+  { id:"flash-comic", name:"Flash Comic", icon:"💥", prompt:"Transform into vibrant comic book panel style, bold outlines, halftone dots, speech bubble aesthetic, pop art colors" },
+  { id:"overexposed", name:"Overexposed", icon:"☀", prompt:"Transform with overexposed film photography style, blown out highlights, lens flare, dreamy washed out look" },
+  { id:"particles", name:"Particles", icon:"✦", prompt:"Transform into particle effect visualization, subject dissolving into glowing particles, digital matter" },
+  { id:"hand-paint", name:"Hand Paint", icon:"🎨", prompt:"Transform into hand-painted watercolor illustration, wet paint bleeding, soft edges, artistic watercolor" },
+  { id:"toxic", name:"Toxic", icon:"☣", prompt:"Transform into toxic neon green and purple aesthetic, radioactive glow, biohazard style, acid colors" },
+  { id:"tracking", name:"Tracking", icon:"⊕", prompt:"Transform with motion tracking lines and data points overlay, AR tracking grid, computer vision aesthetic" },
+  { id:"ultraviolet", name:"Ultraviolet", icon:"◉", prompt:"Transform into ultraviolet blacklight photography, UV reactive colors glowing in darkness, neon fluorescent" },
+  { id:"comic", name:"Comic", icon:"★", prompt:"Transform into Western comic book style, cel-shaded, bold black outlines, flat color fills, superhero comic" },
+  { id:"akrill", name:"Akrill", icon:"〰", prompt:"Transform into acrylic pour painting style, fluid art, swirling colors mixing, abstract liquid paint" },
+  { id:"two-color", name:"Two Color", icon:"◐", prompt:"Transform into duotone two-color print, limited color palette, risograph printing style, high contrast" },
+  { id:"multiverse", name:"Multiverse", icon:"∞", prompt:"Transform with multiverse portal effects, reality fractures, dimensional tears showing alternate versions" },
+  { id:"fragments", name:"Fragments", icon:"◈", prompt:"Transform into shattered glass fragments, broken mirror pieces, fractured reality with reflections" },
+  { id:"origami", name:"Origami", icon:"▲", prompt:"Transform into folded paper origami style, geometric paper folds, Japanese paper art, clean creases" },
+  { id:"vintage", name:"Vintage", icon:"⏃", prompt:"Transform into vintage Super 8 film style, film grain, light leaks, warm faded colors, retro 70s" },
+  { id:"bubbles", name:"Bubbles", icon:"○", prompt:"Transform with soap bubble overlay, iridescent spheres floating, rainbow light refraction on bubbles" },
+  { id:"magazine", name:"Magazine", icon:"▣", prompt:"Transform into high-fashion magazine editorial style, Vogue-like composition, glossy print quality" },
+  { id:"cold-vision", name:"Cold Vision", icon:"❄", prompt:"Transform into thermal infrared camera vision, heat signature colors, blue cold and red warm zones" },
+  { id:"modern", name:"Modern", icon:"▪", prompt:"Transform into sleek modern minimal design aesthetic, clean lines, contemporary architecture feel" },
+  { id:"lsd", name:"LSD", icon:"⊛", prompt:"Transform into psychedelic LSD trip visual, fractal patterns, kaleidoscope colors, trippy warping reality" },
+  { id:"broken-mirror", name:"Broken Mirror", icon:"⧖", prompt:"Transform into broken mirror reflection, cracked glass with multiple distorted reflections, shattered" },
+  { id:"lava", name:"Lava", icon:"▶", prompt:"Transform with molten lava texture overlay, glowing orange cracks, volcanic surface, magma flow" },
+  { id:"marble", name:"Marble", icon:"◎", prompt:"Transform into polished marble texture, veined stone surface, luxury marble with gold veins" },
+  { id:"ocean", name:"Ocean", icon:"〜", prompt:"Transform into underwater ocean scene, deep blue water, caustic light patterns, aquatic atmosphere" },
+  { id:"layer", name:"Layer", icon:"⊞", prompt:"Transform into layered mixed media collage, overlapping textures, torn paper edges, multi-layer composite" },
+  { id:"windows", name:"Windows", icon:"⊟", prompt:"Transform with Windows XP aesthetic, early 2000s computer graphics, retro digital, pixel art elements" },
+  { id:"acid", name:"Acid", icon:"⊠", prompt:"Transform with acid-wash color effect, corroded edges, chemical burn aesthetic, toxic drip overlay" },
+  { id:"palette", name:"Palette", icon:"◆", prompt:"Transform into painter's palette style, color swatches visible, artistic studio aesthetic, paint mixing" }
+];
+
+const VIBES = [
+  { id:"dreamy", name:"Dreamy", icon:"✦", prompt:"Soft dreamy motion with gentle floating feel, ethereal glow, slow motion particles, hazy atmosphere, romantic" },
+  { id:"energetic", name:"Energetic", icon:"⚡", prompt:"Fast dynamic motion, camera shaking with energy, quick zooms, vibrant movement, high-energy pulsing" },
+  { id:"calm", name:"Calm", icon:"〰", prompt:"Gentle slow breathing motion, peaceful subtle movement, serene atmosphere, quiet minimal animation" },
+  { id:"dark", name:"Dark & Moody", icon:"◑", prompt:"Ominous dark atmosphere, shadows shifting, mysterious fog rolling, dramatic noir lighting, tension" },
+  { id:"ethereal", name:"Ethereal", icon:"◎", prompt:"Magical ethereal atmosphere, glowing particles floating, otherworldly luminous fog, fantasy dream-like" },
+  { id:"cinematic", name:"Cinematic", icon:"▶", prompt:"Professional cinematic camera movement, film-like depth of field, dramatic lens flare, movie-quality motion" },
+  { id:"vintage-film", name:"Vintage Film", icon:"⏃", prompt:"Retro vintage 8mm film motion, film grain, light leaks, warm faded colors, nostalgic wobble" },
+  { id:"glitch", name:"Glitch Art", icon:"⧖", prompt:"Digital glitch effects, RGB splitting, scan lines, data corruption aesthetic, cyberpunk distortion" },
+  { id:"underwater", name:"Underwater", icon:"〜", prompt:"Submerged underwater feel, floating slow motion, caustic light patterns, bubbles rising, deep blue atmosphere" },
+  { id:"fire", name:"Fire & Heat", icon:"▲", prompt:"Flames and embers floating, heat distortion shimmer, warm orange glow, fire crackling particles" },
+  { id:"nature", name:"Nature Alive", icon:"◉", prompt:"Nature coming alive, leaves rustling, flowers blooming in timelapse, wind blowing through scene, organic growth" },
+  { id:"cyberpunk", name:"Cyberpunk", icon:"★", prompt:"Neon cyberpunk city atmosphere, holographic flickering, rain in neon lights, futuristic urban motion" }
+];
+
+const TRENDS = [
+  { id:"transformation", name:"Glow Up Transformation", prompt:"Person transforms from casual to glamorous in a dramatic reveal, split-second outfit change, confidence boost moment, trending TikTok transformation" },
+  { id:"day-in-life", name:"Day in My Life", prompt:"Aesthetic day-in-my-life montage, morning routine, coffee, work, sunset, cozy evening, smooth transitions, lifestyle vlog" },
+  { id:"before-after", name:"Before & After", prompt:"Dramatic before and after reveal, split screen or transition wipe, satisfying transformation, viral comparison format" },
+  { id:"pov", name:"POV Moment", prompt:"POV style video, camera as the viewer's eyes, immersive first-person experience, cinematic perspective" },
+  { id:"asmr-visual", name:"Visual ASMR", prompt:"Satisfying visual ASMR, close-up textures, slow motion, calming movements, oddly satisfying content" },
+  { id:"fit-check", name:"Fit Check", prompt:"Fashion fit check, person posing in stylish outfit, full body reveal, confidence walk, street style" },
+  { id:"travel-reel", name:"Travel Reel", prompt:"Cinematic travel montage, beautiful locations, golden hour lighting, wanderlust aesthetic, drone-like sweeping shots" },
+  { id:"food-porn", name:"Food Content", prompt:"Mouth-watering food content, close-up cooking, sizzling sounds, plating perfection, food photography in motion" },
+  { id:"pet-content", name:"Pet Content", prompt:"Adorable pet video, cute animal moments, funny pet reactions, heartwarming animal content" },
+  { id:"motivational", name:"Motivational", prompt:"Motivational cinematic video, powerful imagery, dramatic lighting, inspiring atmosphere, hustle culture aesthetic" }
+];
+
+const MOTION_TYPES = {
+  "auto": "Subtle natural motion, gentle camera movement, cinematic animation of the static scene",
+  "zoom-in": "Slow dramatic zoom into the center of the image, gradually revealing details, cinematic push-in",
+  "zoom-out": "Camera slowly pulls back revealing more of the scene, dramatic zoom-out reveal",
+  "pan-left": "Smooth horizontal camera pan from right to left across the scene, cinematic tracking",
+  "pan-right": "Smooth horizontal camera pan from left to right, cinematic tracking shot",
+  "tilt-up": "Camera slowly tilts upward from bottom to top, revealing the scene vertically",
+  "tilt-down": "Camera slowly tilts downward from top to bottom, descending reveal",
+  "orbit": "Camera orbits around the subject in a circular motion, 3D parallax effect, rotating perspective",
+  "parallax": "Multi-layer parallax depth effect, foreground and background moving at different speeds, 2.5D animation",
+  "ken-burns": "Classic Ken Burns documentary-style slow zoom with gentle pan, nostalgic smooth motion"
+};
+
+const SKETCH_STYLES = {
+  "realistic": "Transform this sketch into a photorealistic video with natural motion, real-world textures, cinematic lighting",
+  "anime": "Transform this sketch into anime-style animation, Japanese anime aesthetic, cel-shaded, vibrant colors, anime motion",
+  "cartoon": "Transform this sketch into cartoon animation, smooth cartoon motion, bright colors, playful animated style",
+  "oil-painting": "Transform this sketch into animated oil painting, visible brush strokes in motion, fine art animation",
+  "watercolor": "Transform this sketch into watercolor animation, soft flowing paint, wet-on-wet blending, artistic motion",
+  "3d-render": "Transform this sketch into 3D rendered animation, CG quality, smooth surfaces, studio lighting, Pixar-like"
+};
+
+const AD_PROMPTS = {
+  "product-demo": "Professional product demonstration video, clean white background, product rotating slowly, studio lighting, commercial quality, highlighting key features",
+  "lifestyle": "Lifestyle advertisement showing the product being used naturally in everyday life, warm authentic feel, natural lighting, relatable setting",
+  "ugc-style": "User-generated content style ad, handheld camera feel, casual authentic presentation, person showing and reviewing the product enthusiastically",
+  "cinematic": "Cinematic luxury commercial, dramatic lighting, slow motion details, premium feel, high-end brand aesthetic, depth of field",
+  "social-short": "Fast-paced social media ad, quick cuts, bold text overlay areas, attention-grabbing opening, vertical format optimized"
+};
+
+/* ===================================================
+   TOOL DEFINITIONS
+=================================================== */
+const TOOLS = [
+  { id:'create-video',   name:'Create Video',       cost:8,  icon:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="5" width="20" height="14" rx="2"/><polygon points="10,9 16,12 10,15"/></svg>` },
+  { id:'cinema-studio',  name:'Cinema Studio',      cost:10, icon:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M15 10l4.553-2.276A1 1 0 0121 8.7V15.3a1 1 0 01-1.447.894L15 14M5 8h10v8H5z" rx="2"/></svg>` },
+  { id:'mixed-media',    name:'Mixed Media',        cost:6,  icon:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="13.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="10.5" r="2.5"/><circle cx="8.5" cy="7.5" r="2.5"/><circle cx="6.5" cy="12.5" r="2.5"/><path d="M12 20h-6a2 2 0 01-2-2V6a2 2 0 012-2h12a2 2 0 012 2v8"/></svg>` },
+  { id:'edit-video',     name:'Edit Video',         cost:10, icon:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>` },
+  { id:'click-to-ad',    name:'Click to Ad',        cost:10, icon:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>` },
+  { id:'sora-trends',    name:'Sora 2 Trends',      cost:8,  icon:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>` },
+  { id:'lipsync',        name:'Lipsync Studio',     cost:10, icon:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8"/></svg>` },
+  { id:'draw-to-video',  name:'Draw to Video',      cost:8,  icon:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>` },
+  { id:'sketch-to-video',name:'Sketch to Video',    cost:8,  icon:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3h3l2 6-2 1s1 4 6 4 6-4 6-4l-2-1 2-6h3"/><line x1="12" y1="14" x2="12" y2="17"/><line x1="8" y1="21" x2="16" y2="21"/></svg>` },
+  { id:'ugc-factory',    name:'UGC Factory',        cost:12, icon:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>` },
+  { id:'video-upscale',  name:'Video Upscale',      cost:5,  icon:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="17 11 12 6 7 11"/><line x1="12" y1="6" x2="12" y2="18"/><rect x="3" y="3" width="7" height="7" rx="1" opacity=".4"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>` },
+  { id:'animate',        name:'Higgsfield Animate', cost:6,  icon:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 3l14 9-14 9V3z"/><path d="M19 3v18" opacity=".4"/></svg>` },
+  { id:'vibe-motion',    name:'Vibe Motion',        cost:6,  icon:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 12h2a2 2 0 002-2V8a2 2 0 014 0v8a2 2 0 004 0V8a2 2 0 014 0v2a2 2 0 002 2h2"/></svg>` },
+  { id:'recast',         name:'Recast Studio',      cost:12, icon:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="1 4 1 10 7 10"/><polyline points="23 20 23 14 17 14"/><path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/></svg>` }
+];
+
+/* ===================================================
+   STATE
+=================================================== */
+let activeTool = 'create-video';
+let selectedModel = 'kling-3.0/video';
+let generatedResults = [];
+
+/* Drawing state */
+let isDrawing = false, drawCtx = null, drawCanvas = null;
+let drawHistory = [], drawColor = '#000000', drawSize = 4, drawTool = 'pen';
+
+/* ===================================================
+   HELPERS
+=================================================== */
+function modelSelectHTML(id = 'modelSelect', defVal = 'kling-3.0/video') {
+  let html = `<select class="form-select" id="${id}" onchange="selectedModel=this.value">`;
+  VIDEO_MODELS.forEach(g => {
+    html += `<optgroup label="${g.group}">`;
+    g.models.forEach(m => {
+      const sel = m.id === defVal ? ' selected' : '';
+      html += `<option value="${m.id}"${sel}>${m.name}</option>`;
+    });
+    html += '</optgroup>';
+  });
+  html += '</select>';
+  return html;
+}
+
+function uploadZoneHTML(id, label = 'Drop file here or click to browse', accepts = 'image/*,video/*', sub = 'Supports JPG, PNG, MP4, MOV') {
+  return `<div class="upload-zone" id="${id}_zone" ondragover="handleDragOver(event,'${id}_zone')" ondragleave="handleDragLeave('${id}_zone')" ondrop="handleDrop(event,'${id}_zone','${id}_input','${id}_preview')">
+    <input type="file" id="${id}_input" accept="${accepts}" onchange="handleFileSelect('${id}_zone','${id}_input','${id}_preview')">
+    <div class="upload-content">
+      <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      <div class="upload-title">${label}</div>
+      <div class="upload-sub">${sub}</div>
+    </div>
+    <img class="upload-preview" id="${id}_preview" src="" alt="preview">
+    <button class="upload-remove" onclick="clearUpload('${id}_zone','${id}_input','${id}_preview')" title="Remove">×</button>
+  </div>`;
+}
+
+function durationToggleHTML(id = 'durationToggle', def = '5s') {
+  return `<div class="toggle-group" id="${id}">
+    ${['5s','10s','15s'].map(d=>`<button class="toggle-btn${d===def?' active':''}" onclick="setToggle('${id}',this,'${d}')">${d}</button>`).join('')}
+  </div>`;
+}
+
+function aspectToggleHTML(id = 'aspectToggle', def = '16:9') {
+  return `<div class="toggle-group" id="${id}">
+    ${['16:9','9:16','1:1','21:9','4:3'].map(a=>`<button class="toggle-btn${a===def?' active':''}" onclick="setToggle('${id}',this,'${a}')">${a}</button>`).join('')}
+  </div>`;
+}
+
+function genBtnHTML(label = 'GENERATE', cost = 8, id = 'genBtn') {
+  return `<button class="btn-generate" id="${id}" onclick="handleGenerate('${id}')">
+    <span class="btn-label">
+      <svg style="width:16px;height:16px;flex-shrink:0" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/></svg>
+      ${label} <span class="cost-badge">✦ ${cost}</span>
+    </span>
+    <div class="btn-spin"></div>
+  </button>`;
+}
+
+function resultsHTML(toolId) {
+  return `<div class="results-section" id="results_${toolId}">
+    <div class="results-header">
+      <span class="results-title">Generated Results</span>
+      <button class="media-btn" onclick="clearResults('${toolId}')">Clear All</button>
+    </div>
+    <div class="media-grid" id="mediaGrid_${toolId}"></div>
+    <div style="text-align:center;padding:40px;color:var(--text-muted);font-size:13px;" id="noResults_${toolId}">
+      No results yet. Configure your settings and generate.
+    </div>
+  </div>`;
+}
+
+function setToggle(groupId, btn, val) {
+  document.querySelectorAll(`#${groupId} .toggle-btn`).forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function handleDragOver(e, zoneId) {
+  e.preventDefault();
+  document.getElementById(zoneId).classList.add('drag-over');
+}
+function handleDragLeave(zoneId) {
+  document.getElementById(zoneId).classList.remove('drag-over');
+}
+function handleDrop(e, zoneId, inputId, previewId) {
+  e.preventDefault();
+  document.getElementById(zoneId).classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (!file) return;
+  previewFile(file, zoneId, previewId);
+}
+function handleFileSelect(zoneId, inputId, previewId) {
+  const file = document.getElementById(inputId).files[0];
+  if (!file) return;
+  previewFile(file, zoneId, previewId);
+}
+function previewFile(file, zoneId, previewId) {
+  const zone = document.getElementById(zoneId);
+  const preview = document.getElementById(previewId);
+  const url = URL.createObjectURL(file);
+  if (file.type.startsWith('video/')) {
+    preview.outerHTML = `<video class="upload-preview" id="${previewId}" src="${url}" autoplay muted loop playsinline></video>`;
+  } else {
+    preview.src = url;
+  }
+  zone.classList.add('has-file');
+}
+function clearUpload(zoneId, inputId, previewId) {
+  document.getElementById(zoneId).classList.remove('has-file');
+  const preview = document.getElementById(previewId);
+  if (preview.tagName === 'VIDEO') {
+    preview.outerHTML = `<img class="upload-preview" id="${previewId}" src="" alt="preview">`;
+  } else {
+    preview.src = '';
+  }
+  document.getElementById(inputId).value = '';
+}
+
+function handleGenerate(btnId) {
+  const btn = document.getElementById(btnId);
+  if (!btn) return;
+  btn.classList.add('loading');
+  const payload = buildPayload();
+  console.log('[SAAD STUDIO] Generate payload:', payload);
+  setTimeout(() => {
+    btn.classList.remove('loading');
+    addMockResult();
+  }, 2500);
+}
+
+function buildPayload() {
+  const toolEl = document.getElementById('workspace');
+  const modelEl = document.querySelector('#workspace select');
+  const promptEl = document.querySelector('#workspace textarea');
+  return {
+    tool: activeTool,
+    model: modelEl ? modelEl.value : selectedModel,
+    prompt: promptEl ? promptEl.value : '',
+    timestamp: new Date().toISOString()
+  };
+}
+
+function addMockResult() {
+  const toolId = activeTool;
+  const grid = document.getElementById(`mediaGrid_${toolId}`);
+  const noRes = document.getElementById(`noResults_${toolId}`);
+  if (!grid) return;
+  if (noRes) noRes.style.display = 'none';
+  const item = document.createElement('div');
+  item.className = 'media-item';
+  item.innerHTML = `
+    <div style="background:var(--card-hover);aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:13px;letter-spacing:1px;text-transform:uppercase;">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity:0.4"><rect x="2" y="5" width="20" height="14" rx="2"/><polygon points="10,9 16,12 10,15"/></svg>
+    </div>
+    <div class="media-item-info">
+      <div class="media-item-name">Generated Video ${Date.now().toString().slice(-5)}</div>
+      <div class="media-item-meta">${activeTool} · ${new Date().toLocaleTimeString()}</div>
+      <div class="media-actions">
+        <button class="media-btn">Download</button>
+        <button class="media-btn">Share</button>
+        <button class="media-btn" onclick="this.closest('.media-item').remove()">Delete</button>
+      </div>
+    </div>
+  `;
+  grid.insertBefore(item, grid.firstChild);
+}
+
+function clearResults(toolId) {
+  const grid = document.getElementById(`mediaGrid_${toolId}`);
+  const noRes = document.getElementById(`noResults_${toolId}`);
+  if (grid) grid.innerHTML = '';
+  if (noRes) noRes.style.display = 'block';
+}
+
+/* ===================================================
+   WORKSPACE RENDERERS
+=================================================== */
+function renderCreateVideo() {
+  return `
+  <div class="tool-header">
+    <h1>Create Video</h1>
+    <p>Transform text or images into stunning videos using the world's best AI video models.</p>
+    <div class="tool-badge"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="12,2 15,9 22,9 16.5,14 18.5,21 12,17 5.5,21 7.5,14 2,9 9,9"/></svg> Core Tool</div>
+  </div>
+  <div class="panel">
+    <div class="panel-title">Model</div>
+    <div class="form-group">${modelSelectHTML('modelSelectCreate','kling-3.0/video')}</div>
+  </div>
+  <div class="panel">
+    <div class="panel-title">Reference Image (optional)</div>
+    ${uploadZoneHTML('createRef','Drop reference image here (optional)','image/*','Supports JPG, PNG, WebP')}
+  </div>
+  <div class="panel">
+    <div class="panel-title">Video Prompt</div>
+    <textarea class="form-textarea" id="createPrompt" placeholder="Describe your video scene in detail... e.g. A cinematic drone shot over a neon-lit city at night, rain reflecting the lights, slow push forward" style="min-height:110px;width:100%;"></textarea>
+  </div>
+  <div class="panel">
+    <div class="panel-title">Frame Control (optional)</div>
+    <div class="form-row">
+      <div class="form-group">
+        <div class="form-label">Start Frame</div>
+        ${uploadZoneHTML('createStart','Upload start frame','image/*','Optional: First frame')}
+      </div>
+      <div class="form-group">
+        <div class="form-label">End Frame</div>
+        ${uploadZoneHTML('createEnd','Upload end frame','image/*','Optional: Last frame')}
+      </div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="panel-title">Settings</div>
+    <div class="form-row">
+      <div class="form-group"><div class="form-label">Duration</div>${durationToggleHTML('createDur','5s')}</div>
+      <div class="form-group"><div class="form-label">Aspect Ratio</div>${aspectToggleHTML('createAsp','16:9')}</div>
+      <div class="form-group">
+        <div class="form-label">Resolution</div>
+        <select class="form-select" id="createRes"><option>720p</option><option selected>1080p</option><option>2K</option><option>4K</option></select>
+      </div>
+    </div>
+  </div>
+  <div style="padding-bottom:8px;">${genBtnHTML('GENERATE','8','genBtnCreate')}</div>
+  ${resultsHTML('create-video')}`;
+}
+
+function renderCinemaStudio() {
+  return `
+  <div class="tool-header">
+    <h1>Cinema Studio Video</h1>
+    <p>Professional cinematic video generation with advanced camera controls, lens selection, and director panels.</p>
+    <div class="tool-badge"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="12,2 15,9 22,9 16.5,14 18.5,21 12,17 5.5,21 7.5,14 2,9 9,9"/></svg> Cinematic Mode</div>
+  </div>
+  <div class="panel">
+    <div class="panel-title">Model</div>
+    ${modelSelectHTML('modelSelectCinema','kling-3.0/motion-control')}
+  </div>
+  <div class="panel">
+    <div class="panel-title">Director Panel</div>
+    <div class="form-row">
+      <div class="form-group">
+        <div class="form-label">Camera Movement</div>
+        <select class="form-select" id="cinemaMovement">
+          <option>Static Shot</option><option>Slow Push In</option><option>Slow Pull Out</option>
+          <option>Pan Left</option><option>Pan Right</option><option>Tilt Up</option><option>Tilt Down</option>
+          <option>Orbit Left</option><option>Orbit Right</option><option>Crane Up</option><option>Crane Down</option>
+          <option>Handheld</option><option>Steadicam Walk</option><option>Drone Descent</option><option>Drone Ascent</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <div class="form-label">Speed Ramp</div>
+        <select class="form-select" id="cinemaSpeed">
+          <option>Constant</option><option>Ease In</option><option>Ease Out</option><option>Ease In-Out</option>
+          <option>Slow Start Fast End</option><option>Fast Start Slow End</option><option>Snap Punch</option><option>Dramatic Hold</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <div class="form-label">Genre</div>
+        <select class="form-select" id="cinemaGenre">
+          <option>Cinematic</option><option>Documentary</option><option>Commercial</option><option>Music Video</option>
+          <option>Horror</option><option>Sci-Fi</option><option>Romance</option><option>Action</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <div class="form-label">Shot Type</div>
+        <div class="toggle-group">
+          <button class="toggle-btn active" onclick="setToggle('cinemaShotType',this,'single')">Single Shot</button>
+          <button class="toggle-btn" onclick="setToggle('cinemaShotType',this,'multi')">Multi Shot</button>
+        </div>
+      </div>
+    </div>
+    <!-- Speed Curve Visualiser -->
+    <div style="margin:12px 0 4px;">
+      <div class="form-label" style="margin-bottom:8px;">Speed Curve</div>
+      <svg id="cinemaCurve" viewBox="0 0 200 60" style="width:100%;max-width:320px;height:60px;background:rgba(255,255,255,0.03);border-radius:8px;border:1px solid var(--border);">
+        <path id="curvePath" d="M10,50 C50,50 80,10 190,10" stroke="#06b6d4" stroke-width="2" fill="none"/>
+        <circle cx="10" cy="50" r="4" fill="#06b6d4" opacity="0.6"/>
+        <circle cx="190" cy="10" r="4" fill="#06b6d4" opacity="0.6"/>
+      </svg>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="panel-title">Frames</div>
+    <div class="form-row">
+      <div class="form-group">
+        <div class="form-label">Start Frame</div>
+        ${uploadZoneHTML('cinemaStart','Upload start frame','image/*','First frame')}
+      </div>
+      <div class="form-group">
+        <div class="form-label">End Frame</div>
+        ${uploadZoneHTML('cinemaEnd','Upload end frame','image/*','Last frame (optional)')}
+      </div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="panel-title">Scene Description</div>
+    <textarea class="form-textarea" id="cinemaPrompt" placeholder="Describe the cinematic scene... lighting, atmosphere, subject, mood" style="width:100%;min-height:100px;"></textarea>
+  </div>
+  <div class="panel">
+    <div class="panel-title">Settings</div>
+    <div class="form-row">
+      <div class="form-group"><div class="form-label">Duration</div>${durationToggleHTML('cinemaDur','5s')}</div>
+      <div class="form-group"><div class="form-label">Aspect Ratio</div>${aspectToggleHTML('cinemaAsp','16:9')}</div>
+    </div>
+  </div>
+  <div style="padding-bottom:8px;">${genBtnHTML('DIRECT','10','genBtnCinema')}</div>
+  ${resultsHTML('cinema-studio')}`;
+}
+
+function renderMixedMedia() {
+  const styleCards = MIXED_MEDIA_STYLES.map(s => `
+    <div class="style-card" id="mmStyle_${s.id}" onclick="selectStyle('mm','${s.id}',this)">
+      <div class="style-card-icon">${s.icon}</div>
+      <span class="style-card-name">${s.name}</span>
+    </div>`).join('');
+  return `
+  <div class="tool-header">
+    <h1>Mixed Media</h1>
+    <p>Apply stunning artistic style presets to your images and videos. 31 unique visual transformations.</p>
+    <div class="tool-badge">31 Style Presets</div>
+  </div>
+  <div class="panel">
+    <div class="panel-title">Upload Media</div>
+    ${uploadZoneHTML('mmFile','Drop image or video here','image/*,video/*','Supports JPG, PNG, MP4, MOV')}
+  </div>
+  <div class="panel">
+    <div class="panel-title">Choose Style</div>
+    <input type="hidden" id="mmSelectedStyle" value="">
+    <div class="style-grid">${styleCards}</div>
+  </div>
+  <div class="panel">
+    <div class="panel-title">Settings</div>
+    <div class="form-row">
+      <div class="form-group"><div class="form-label">Duration</div>${durationToggleHTML('mmDur','5s')}</div>
+      <div class="form-group"><div class="form-label">Aspect Ratio</div>${aspectToggleHTML('mmAsp','16:9')}</div>
+    </div>
+  </div>
+  <div style="padding-bottom:8px;">${genBtnHTML('GENERATE STYLE','6','genBtnMM')}</div>
+  ${resultsHTML('mixed-media')}`;
+}
+
+function renderEditVideo() {
+  return `
+  <div class="tool-header">
+    <h1>Edit Video</h1>
+    <p>Upload any video and describe what you want to change — AI will edit it according to your instructions.</p>
+    <div class="tool-badge">AI-Powered Editing</div>
+  </div>
+  <div class="panel">
+    <div class="panel-title">Upload Video (max 10s)</div>
+    ${uploadZoneHTML('editVideo','Drop your video here','video/*','MP4, MOV — max 10 seconds')}
+  </div>
+  <div class="panel">
+    <div class="panel-title">Model</div>
+    ${modelSelectHTML('modelSelectEdit','kling-3.0/video')}
+  </div>
+  <div class="panel">
+    <div class="panel-title">Edit Instructions</div>
+    <textarea class="form-textarea" id="editPrompt" placeholder="Describe what to change in the video...&#10;e.g. Change the car color to red&#10;Add heavy rain to the scene&#10;Remove the person in the background&#10;Make it nighttime" style="width:100%;min-height:120px;"></textarea>
+    <p style="font-size:11px;color:var(--text-muted);margin-top:6px;">Be specific about what to change, add, or remove. The more detail, the better.</p>
+  </div>
+  <div class="panel">
+    <div class="panel-title">Settings</div>
+    <div class="form-row">
+      <div class="form-group"><div class="form-label">Aspect Ratio</div>${aspectToggleHTML('editAsp','16:9')}</div>
+    </div>
+  </div>
+  <div style="padding-bottom:8px;">${genBtnHTML('EDIT VIDEO','10','genBtnEdit')}</div>
+  ${resultsHTML('edit-video')}`;
+}
+
+function renderClickToAd() {
+  return `
+  <div class="tool-header">
+    <h1>Click to Ad</h1>
+    <p>Turn a product image or URL into a professional video advertisement in seconds.</p>
+    <div class="tool-badge">Ad Generation</div>
+  </div>
+  <div class="panel">
+    <div class="panel-title">Product Input</div>
+    ${uploadZoneHTML('adImage','Upload product image','image/*','JPG, PNG, WebP')}
+    <div style="text-align:center;color:var(--text-muted);font-size:12px;margin:12px 0;font-weight:600;letter-spacing:1px;">OR</div>
+    <div class="form-group">
+      <div class="form-label">Product URL</div>
+      <input type="url" class="form-input" id="adUrl" placeholder="https://yourproduct.com/product-page" style="width:100%;">
+    </div>
+  </div>
+  <div class="panel">
+    <div class="panel-title">Ad Configuration</div>
+    <div class="form-row">
+      <div class="form-group">
+        <div class="form-label">Ad Style</div>
+        <select class="form-select" id="adStyle">
+          <option value="product-demo">Product Demo</option>
+          <option value="lifestyle">Lifestyle</option>
+          <option value="ugc-style">UGC-Style</option>
+          <option value="cinematic">Cinematic Luxury</option>
+          <option value="social-short">Social Short</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <div class="form-label">Platform</div>
+        <select class="form-select" id="adPlatform">
+          <option>TikTok</option><option>Instagram Reels</option><option>YouTube Shorts</option><option>General</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <div class="form-label">Duration</div>
+        ${durationToggleHTML('adDur','5s')}
+      </div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="panel-title">Additional Details (optional)</div>
+    <textarea class="form-textarea" id="adPrompt" placeholder="Extra details about the ad... target audience, key messages, CTA, etc." style="width:100%;min-height:80px;"></textarea>
+  </div>
+  <div style="padding-bottom:8px;">${genBtnHTML('GENERATE AD','10','genBtnAd')}</div>
+  ${resultsHTML('click-to-ad')}`;
+}
+
+function renderSoraTrends() {
+  const trendCards = TRENDS.map((t, i) => `
+    <div class="trend-card${i<4?' active':''}" id="trend_${t.id}" onclick="selectTrend('${t.id}',this)">
+      <div class="trend-card-label">TRENDING</div>
+      ${i<3?'<div class="trend-hot">HOT</div>':''}
+      <div class="trend-card-name">${t.name}</div>
+    </div>`).join('');
+  const firstHotTrend = TRENDS[0].id;
+  return `
+  <div class="tool-header">
+    <h1>Sora 2 Trends</h1>
+    <p>Template-driven viral video generation using Sora 2. Pick a trend, customize, generate.</p>
+    <div class="tool-badge">Powered by Sora 2</div>
+  </div>
+  <input type="hidden" id="selectedTrend" value="${firstHotTrend}">
+  <div class="panel">
+    <div class="panel-title">Choose a Trend Template</div>
+    <div class="trend-grid">${trendCards}</div>
+  </div>
+  <div class="panel">
+    <div class="panel-title">Your Image (optional)</div>
+    ${uploadZoneHTML('soraImage','Upload your image to incorporate','image/*','Adds your content to the trend')}
+  </div>
+  <div class="panel">
+    <div class="panel-title">Customize</div>
+    <textarea class="form-textarea" id="soraPrompt" placeholder="Add your personal twist to the trend template..." style="width:100%;min-height:80px;"></textarea>
+    <div class="form-row" style="margin-top:14px;">
+      <div class="form-group">
+        <div class="form-label">Model</div>
+        <select class="form-select" id="soraModel">
+          <option value="sora-2-text-to-video">Sora 2 t2v</option>
+          <option value="sora-2-pro-text-to-video">Sora 2 Pro t2v</option>
+          <option value="sora-2-image-to-video">Sora 2 i2v</option>
+          <option value="sora-2-pro-image-to-video">Sora 2 Pro i2v</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <div class="form-label">Platform</div>
+        <div class="toggle-group">
+          <button class="toggle-btn active" onclick="setToggle('soraPlatform',this,'TikTok')">TikTok</button>
+          <button class="toggle-btn" onclick="setToggle('soraPlatform',this,'Reels')">Reels</button>
+          <button class="toggle-btn" onclick="setToggle('soraPlatform',this,'Shorts')">Shorts</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div style="padding-bottom:8px;">${genBtnHTML('GENERATE TREND','8','genBtnSora')}</div>
+  ${resultsHTML('sora-trends')}`;
+}
+
+function renderLipsync() {
+  const voiceData = [
+    {id:'alloy', name:'Alloy', desc:'Neutral, versatile'},
+    {id:'echo', name:'Echo', desc:'Smooth, mature'},
+    {id:'fable', name:'Fable', desc:'Warm, British'},
+    {id:'onyx', name:'Onyx', desc:'Deep, authoritative'},
+    {id:'nova', name:'Nova', desc:'Bright, energetic'},
+    {id:'shimmer', name:'Shimmer', desc:'Clear, friendly'},
+    {id:'ash', name:'Ash', desc:'Calm, professional'},
+    {id:'sage', name:'Sage', desc:'Soothing, soft'},
+  ];
+  const voiceCards = voiceData.map((v,i) => `
+    <div class="voice-card${i===0?' active':''}" onclick="selectVoice('${v.id}',this)">
+      <div class="voice-name">${v.name}</div>
+      <div class="voice-desc">${v.desc}</div>
+    </div>`).join('');
+  return `
+  <div class="tool-header">
+    <h1>Lipsync Studio</h1>
+    <p>Upload a face photo or video and make it speak any script with AI-generated lip sync.</p>
+    <div class="tool-badge">AI Lip Sync</div>
+  </div>
+  <div class="panel">
+    <div class="panel-title">Face Input</div>
+    ${uploadZoneHTML('lipFace','Upload photo or video of a face','image/*,video/*','Clear front-facing shot recommended')}
+  </div>
+  <div class="panel">
+    <div class="panel-title">Script</div>
+    <textarea class="form-textarea" id="lipScript" placeholder="Type what the person should say..." style="width:100%;min-height:100px;" oninput="updateCharCount(this,'lipCharCount',500)"></textarea>
+    <div class="char-count" id="lipCharCount">0 / 500</div>
+  </div>
+  <div class="panel">
+    <div class="panel-title">Voice</div>
+    <div class="voice-grid">${voiceCards}</div>
+    <input type="hidden" id="selectedVoice" value="alloy">
+  </div>
+  <div class="panel">
+    <div class="panel-title">Settings</div>
+    <div class="form-row">
+      <div class="form-group">
+        <div class="form-label">Language</div>
+        <select class="form-select" id="lipLanguage">
+          <option>English</option><option>Arabic</option><option>Spanish</option><option>French</option>
+          <option>Chinese</option><option>Japanese</option><option>Korean</option><option>Hindi</option>
+          <option>Portuguese</option><option>Turkish</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <div class="form-label">Emotion</div>
+        <select class="form-select" id="lipEmotion">
+          <option>Neutral</option><option>Happy</option><option>Sad</option><option>Excited</option>
+          <option>Serious</option><option>Angry</option><option>Calm</option>
+        </select>
+      </div>
+    </div>
+  </div>
+  <div style="padding-bottom:8px;">${genBtnHTML('GENERATE LIPSYNC','10','genBtnLip')}</div>
+  ${resultsHTML('lipsync')}`;
+}
+
+function renderDrawToVideo() {
+  return `
+  <div class="tool-header">
+    <h1>Draw to Video</h1>
+    <p>Sketch anything on the canvas and watch AI transform your drawing into a real animated video.</p>
+    <div class="tool-badge">HTML5 Canvas</div>
+  </div>
+  <div class="panel">
+    <div class="panel-title">Drawing Canvas</div>
+    <div style="overflow-x:auto;">
+      <div class="canvas-wrap" id="canvasWrap">
+        <canvas id="draw-canvas" width="640" height="380" style="max-width:100%;background:#fff;"></canvas>
+      </div>
+    </div>
+    <div class="canvas-tools" id="canvasTools">
+      <button class="canvas-btn active" id="penBtn" onclick="setDrawTool('pen',this)">Pen</button>
+      <button class="canvas-btn" id="eraserBtn" onclick="setDrawTool('eraser',this)">Eraser</button>
+      <div style="width:1px;height:24px;background:var(--border);margin:0 4px;flex-shrink:0;"></div>
+      <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+        ${['#000000','#ef4444','#06b6d4','#22c55e','#f59e0b','#8b5cf6','#ffffff','#94a3b8'].map(c=>`<div class="color-dot${c==='#000000'?' active':''}" style="background:${c};${c==='#ffffff'?'border-color:var(--border-light);':''}" onclick="setDrawColor('${c}',this)"></div>`).join('')}
+        <input type="color" id="customColor" title="Custom color" onchange="setDrawColor(this.value,this)" value="#000000">
+      </div>
+      <div style="width:1px;height:24px;background:var(--border);margin:0 4px;flex-shrink:0;"></div>
+      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+        <span style="font-size:11px;color:var(--text-muted);">Size</span>
+        <input type="range" id="brushSize" min="1" max="40" value="4" style="width:80px;" oninput="setDrawSize(this.value)">
+        <span style="font-size:11px;color:var(--text-muted);" id="brushSizeLabel">4px</span>
+      </div>
+      <div style="width:1px;height:24px;background:var(--border);margin:0 4px;flex-shrink:0;"></div>
+      <button class="canvas-btn" onclick="undoDraw()">Undo</button>
+      <button class="canvas-btn" onclick="clearDraw()">Clear</button>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="panel-title">Generation Settings</div>
+    <div class="form-group" style="margin-bottom:14px;">
+      <div class="form-label">Prompt</div>
+      <textarea class="form-textarea" id="drawPrompt" placeholder="Describe what this sketch should become... e.g. A cozy living room with warm firelight, realistic style" style="width:100%;min-height:80px;"></textarea>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><div class="form-label">Model</div>${modelSelectHTML('drawModel','kling-3.0/video')}</div>
+      <div class="form-group"><div class="form-label">Duration</div>${durationToggleHTML('drawDur','5s')}</div>
+    </div>
+  </div>
+  <div style="padding-bottom:8px;">${genBtnHTML('GENERATE FROM SKETCH','8','genBtnDraw')}</div>
+  ${resultsHTML('draw-to-video')}`;
+}
+
+function renderSketchToVideo() {
+  return `
+  <div class="tool-header">
+    <h1>Sketch to Video</h1>
+    <p>Upload a hand-drawn sketch or rough drawing and AI will transform it into a realistic animated video.</p>
+    <div class="tool-badge">Sketch Transform</div>
+  </div>
+  <div class="panel">
+    <div class="panel-title">Upload Sketch</div>
+    ${uploadZoneHTML('sketchFile','Upload your sketch or rough drawing','image/*','JPG, PNG, WebP — any hand-drawn sketch')}
+  </div>
+  <div class="panel">
+    <div class="panel-title">Target Style</div>
+    <div class="toggle-group" id="sketchStyleToggle">
+      ${Object.keys(SKETCH_STYLES).map((s,i) => `<button class="toggle-btn${i===0?' active':''}" onclick="setToggle('sketchStyleToggle',this,'${s}')">${s.replace('-',' ').replace(/\b\w/g,c=>c.toUpperCase())}</button>`).join('')}
+    </div>
+  </div>
+  <div class="panel">
+    <div class="panel-title">Animation Prompt (optional)</div>
+    <textarea class="form-textarea" id="sketchPrompt" placeholder="Describe the animation or motion... (optional — AI infers from style)" style="width:100%;min-height:80px;"></textarea>
+  </div>
+  <div class="panel">
+    <div class="panel-title">Settings</div>
+    <div class="form-row">
+      <div class="form-group"><div class="form-label">Duration</div>${durationToggleHTML('sketchDur','5s')}</div>
+      <div class="form-group"><div class="form-label">Aspect Ratio</div>${aspectToggleHTML('sketchAsp','16:9')}</div>
+    </div>
+  </div>
+  <div style="padding-bottom:8px;">${genBtnHTML('TRANSFORM SKETCH','8','genBtnSketch')}</div>
+  ${resultsHTML('sketch-to-video')}`;
+}
+
+function renderUGCFactory() {
+  const avatars = [
+    {init:'AL', name:'Alex', bg:'#06b6d4,#0284c7'}, {init:'SA', name:'Sarah', bg:'#8b5cf6,#6d28d9'},
+    {init:'MA', name:'Marcus', bg:'#22c55e,#16a34a'}, {init:'EN', name:'Emma', bg:'#f59e0b,#d97706'},
+    {init:'JA', name:'James', bg:'#ef4444,#dc2626'}, {init:'ZO', name:'Zoe', bg:'#06b6d4,#a855f7'},
+    {init:'LI', name:'Liam', bg:'#84cc16,#16a34a'}, {init:'MI', name:'Mia', bg:'#f97316,#ea580c'},
+  ];
+  return `
+  <div class="tool-header">
+    <h1>UGC Factory</h1>
+    <p>Create authentic User-Generated Content style videos with AI avatars delivering your script on any platform.</p>
+    <div class="tool-badge">AI Avatars</div>
+  </div>
+  <div class="panel">
+    <div class="step-header"><div class="step-num">1</div><div class="step-title">Choose Avatar</div></div>
+    <div class="avatar-grid">
+      ${avatars.map((a,i)=>`
+        <div class="avatar-card${i===0?' active':''}" onclick="selectAvatar('${a.init}',this)">
+          <div class="avatar-img" style="background:linear-gradient(135deg,${a.bg})">${a.init}</div>
+          <div class="avatar-name">${a.name}</div>
+        </div>`).join('')}
+      <div class="avatar-card" onclick="document.getElementById('ugcCustomAvatar_input').click()" style="border-style:dashed;">
+        <div class="avatar-img" style="background:rgba(255,255,255,0.05);font-size:26px;">+</div>
+        <div class="avatar-name">Custom</div>
+        <input type="file" id="ugcCustomAvatar_input" accept="image/*" style="display:none;" onchange="handleCustomAvatar(this)">
+      </div>
+    </div>
+    <input type="hidden" id="selectedAvatar" value="AL">
+  </div>
+  <div class="panel">
+    <div class="step-header"><div class="step-num">2</div><div class="step-title">Write Script</div></div>
+    <textarea class="form-textarea" id="ugcScript" placeholder="Type what the avatar should say...&#10;&#10;e.g. Hey guys! I just tried this product and honestly I'm obsessed. The quality is insane, it works exactly as advertised..." style="width:100%;min-height:130px;" oninput="updateCharCount(this,'ugcCharCount',500)"></textarea>
+    <div class="char-count" id="ugcCharCount">0 / 500</div>
+  </div>
+  <div class="panel">
+    <div class="step-header"><div class="step-num">3</div><div class="step-title">Settings</div></div>
+    <div class="form-row">
+      <div class="form-group">
+        <div class="form-label">Voice Style</div>
+        <select class="form-select" id="ugcVoice"><option>Alloy</option><option>Echo</option><option>Nova</option><option>Shimmer</option><option>Onyx</option><option>Fable</option></select>
+      </div>
+      <div class="form-group">
+        <div class="form-label">Accent</div>
+        <select class="form-select" id="ugcAccent"><option>American</option><option>British</option><option>Australian</option><option>Indian</option></select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <div class="form-label">Emotion</div>
+        <select class="form-select" id="ugcEmotion"><option>Friendly</option><option>Professional</option><option>Excited</option><option>Casual</option><option>Serious</option></select>
+      </div>
+      <div class="form-group">
+        <div class="form-label">Background</div>
+        <select class="form-select" id="ugcBackground"><option>Studio White</option><option>Office</option><option>Outdoor</option><option>Coffee Shop</option><option>Living Room</option><option>Custom Upload</option></select>
+      </div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="step-header"><div class="step-num">4</div><div class="step-title">Platform</div></div>
+    <div class="toggle-group" id="ugcPlatform">
+      <button class="toggle-btn active" onclick="setToggle('ugcPlatform',this,'tiktok')">TikTok (9:16)</button>
+      <button class="toggle-btn" onclick="setToggle('ugcPlatform',this,'instagram')">Instagram (9:16)</button>
+      <button class="toggle-btn" onclick="setToggle('ugcPlatform',this,'youtube')">YouTube (16:9)</button>
+      <button class="toggle-btn" onclick="setToggle('ugcPlatform',this,'general')">General (16:9)</button>
+    </div>
+  </div>
+  <div style="padding-bottom:8px;">${genBtnHTML('GENERATE UGC','12','genBtnUGC')}</div>
+  ${resultsHTML('ugc-factory')}`;
+}
+
+function renderVideoUpscale() {
+  return `
+  <div class="tool-header">
+    <h1>Video Upscale</h1>
+    <p>Enhance video resolution, reduce noise, and sharpen detail with AI-powered upscaling.</p>
+    <div class="tool-badge">AI Enhancement</div>
+  </div>
+  <div class="panel">
+    <div class="panel-title">Upload Video</div>
+    ${uploadZoneHTML('upscaleVideo','Drop your video here','video/*','MP4, MOV, WebM — any resolution')}
+  </div>
+  <div class="panel">
+    <div class="panel-title">Target Resolution</div>
+    <div class="form-row">
+      <div class="form-group">
+        <div class="form-label">Scale Factor</div>
+        <div class="toggle-group" id="upscaleScale">
+          <button class="toggle-btn active" onclick="setToggle('upscaleScale',this,'2x')">2x</button>
+          <button class="toggle-btn" onclick="setToggle('upscaleScale',this,'4x')">4x</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <div class="form-label">Target Quality</div>
+        <div class="toggle-group" id="upscaleQuality">
+          <button class="toggle-btn" onclick="setToggle('upscaleQuality',this,'720p→1080p')">720p → 1080p</button>
+          <button class="toggle-btn active" onclick="setToggle('upscaleQuality',this,'1080p→4K')">1080p → 4K</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="panel-title">Enhancement Options</div>
+    <div class="enhancement-opts">
+      <label class="enhancement-check"><input type="checkbox" checked> <span>Denoise</span></label>
+      <label class="enhancement-check"><input type="checkbox" checked> <span>Sharpen</span></label>
+      <label class="enhancement-check"><input type="checkbox"> <span>Frame Interpolation</span></label>
+      <label class="enhancement-check"><input type="checkbox"> <span>Color Correction</span></label>
+      <label class="enhancement-check"><input type="checkbox"> <span>HDR Boost</span></label>
+    </div>
+  </div>
+  <div style="padding-bottom:8px;">${genBtnHTML('UPSCALE VIDEO','5','genBtnUpscale')}</div>
+  ${resultsHTML('video-upscale')}`;
+}
+
+function renderAnimate() {
+  const motionOpts = Object.keys(MOTION_TYPES).map(k => `<option value="${k}">${k.replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}</option>`).join('');
+  return `
+  <div class="tool-header">
+    <h1>Higgsfield Animate</h1>
+    <p>Bring any static image to life with cinematic motion and AI-powered animation.</p>
+    <div class="tool-badge">Image to Motion</div>
+  </div>
+  <div class="panel">
+    <div class="panel-title">Upload Image</div>
+    ${uploadZoneHTML('animateImg','Drop your image here','image/*','JPG, PNG, WebP — any static image')}
+  </div>
+  <div class="panel">
+    <div class="panel-title">Motion Configuration</div>
+    <div class="form-row">
+      <div class="form-group">
+        <div class="form-label">Motion Type</div>
+        <select class="form-select" id="animateMotion">${motionOpts}</select>
+      </div>
+      <div class="form-group"><div class="form-label">Model</div>${modelSelectHTML('animateModel','kling-3.0/video')}</div>
+    </div>
+    <div class="form-group" style="margin-top:12px;">
+      <div class="form-label">Motion Prompt (optional)</div>
+      <textarea class="form-textarea" id="animatePrompt" placeholder="Describe the specific motion you want... (optional)" style="width:100%;min-height:80px;"></textarea>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="panel-title">Settings</div>
+    <div class="form-row">
+      <div class="form-group"><div class="form-label">Duration</div>${durationToggleHTML('animateDur','5s')}</div>
+      <div class="form-group"><div class="form-label">Aspect Ratio</div>${aspectToggleHTML('animateAsp','16:9')}</div>
+    </div>
+  </div>
+  <div style="padding-bottom:8px;">${genBtnHTML('ANIMATE','6','genBtnAnimate')}</div>
+  ${resultsHTML('animate')}`;
+}
+
+function renderVibeMotion() {
+  const vibeCards = VIBES.map((v,i) => `
+    <div class="vibe-card${i===0?' active':''}" id="vibe_${v.id}" onclick="selectVibe('${v.id}',this)">
+      <div class="vibe-card-icon">${v.icon}</div>
+      <div class="vibe-card-name">${v.name}</div>
+    </div>`).join('');
+  return `
+  <div class="tool-header">
+    <h1>Vibe Motion</h1>
+    <p>Apply mood-driven motion presets to your images. 12 signature vibes from dreamy to cyberpunk.</p>
+    <div class="tool-badge">12 Motion Vibes</div>
+  </div>
+  <div class="panel">
+    <div class="panel-title">Upload Image</div>
+    ${uploadZoneHTML('vibeImg','Drop your image here','image/*','JPG, PNG, WebP')}
+  </div>
+  <div class="panel">
+    <div class="panel-title">Choose Vibe</div>
+    <input type="hidden" id="selectedVibe" value="${VIBES[0].id}">
+    <div class="vibe-grid">${vibeCards}</div>
+  </div>
+  <div class="panel">
+    <div class="panel-title">Settings</div>
+    <div class="form-row">
+      <div class="form-group"><div class="form-label">Duration</div>${durationToggleHTML('vibeDur','5s')}</div>
+      <div class="form-group"><div class="form-label">Aspect Ratio</div>${aspectToggleHTML('vibeAsp','16:9')}</div>
+    </div>
+  </div>
+  <div style="padding-bottom:8px;">${genBtnHTML('GENERATE VIBE','6','genBtnVibe')}</div>
+  ${resultsHTML('vibe-motion')}`;
+}
+
+function renderRecast() {
+  return `
+  <div class="tool-header">
+    <h1>Recast Studio</h1>
+    <p>Upload a video and swap faces, outfits, backgrounds, objects, or apply style transfers with AI.</p>
+    <div class="tool-badge">Multi-Mode Editing</div>
+  </div>
+  <div class="panel">
+    <div class="panel-title">Upload Original Video (max 10s)</div>
+    ${uploadZoneHTML('recastVideo','Drop your video here','video/*','MP4, MOV — max 10 seconds')}
+  </div>
+  <div class="panel">
+    <div class="panel-title">What to Change</div>
+    <div class="recast-mode-grid">
+      <button class="recast-mode-btn active" onclick="selectRecastMode('face',this)">Face Swap</button>
+      <button class="recast-mode-btn" onclick="selectRecastMode('outfit',this)">Outfit Change</button>
+      <button class="recast-mode-btn" onclick="selectRecastMode('background',this)">Background Replace</button>
+      <button class="recast-mode-btn" onclick="selectRecastMode('object',this)">Object Swap</button>
+      <button class="recast-mode-btn" onclick="selectRecastMode('style',this)">Style Transfer</button>
+    </div>
+    <!-- Face Swap Panel -->
+    <div class="recast-sub-panel visible" id="recastPanel_face">
+      <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">Upload the new face to replace with:</p>
+      ${uploadZoneHTML('recastFaceImg','Upload new face image','image/*','Clear front-facing photo')}
+    </div>
+    <!-- Outfit Panel -->
+    <div class="recast-sub-panel" id="recastPanel_outfit">
+      <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">Describe the new outfit:</p>
+      <input type="text" class="form-input" id="recastOutfitDesc" placeholder="e.g. Red leather jacket, black jeans, sneakers" style="width:100%;">
+    </div>
+    <!-- Background Panel -->
+    <div class="recast-sub-panel" id="recastPanel_background">
+      <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">New background:</p>
+      ${uploadZoneHTML('recastBgImg','Upload new background','image/*','Or describe below')}
+      <input type="text" class="form-input" id="recastBgDesc" placeholder="e.g. Sunny beach at sunset, tropical palm trees" style="width:100%;margin-top:10px;">
+    </div>
+    <!-- Object Panel -->
+    <div class="recast-sub-panel" id="recastPanel_object">
+      <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">Describe what to change:</p>
+      <input type="text" class="form-input" id="recastObjectDesc" placeholder="e.g. Change the red car to a blue motorcycle" style="width:100%;">
+    </div>
+    <!-- Style Panel -->
+    <div class="recast-sub-panel" id="recastPanel_style">
+      <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">Choose style preset:</p>
+      <select class="form-select" id="recastStylePreset" style="width:100%;">
+        <option>Anime</option><option>Oil Painting</option><option>Sketch</option><option>Noir Film</option>
+        <option>Watercolor</option><option>Cyberpunk</option><option>Vintage Film</option><option>Comic Book</option>
+      </select>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="panel-title">Additional Instructions (optional)</div>
+    <textarea class="form-textarea" id="recastPrompt" placeholder="Any extra instructions for the AI..." style="width:100%;min-height:80px;"></textarea>
+  </div>
+  <div style="padding-bottom:8px;">${genBtnHTML('RECAST','12','genBtnRecast')}</div>
+  ${resultsHTML('recast')}`;
+}
+
+/* ===================================================
+   TOOL-SPECIFIC INTERACTION HANDLERS
+=================================================== */
+function selectStyle(prefix, styleId, el) {
+  document.querySelectorAll(`[id^="${prefix}Style_"]`).forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  const input = document.getElementById(`${prefix}SelectedStyle`);
+  if (input) input.value = styleId;
+}
+
+function selectVibe(vibeId, el) {
+  document.querySelectorAll('[id^="vibe_"]').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('selectedVibe').value = vibeId;
+}
+
+function selectTrend(trendId, el) {
+  document.querySelectorAll('[id^="trend_"]').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('selectedTrend').value = trendId;
+}
+
+function selectVoice(voiceId, el) {
+  el.closest('.voice-grid').querySelectorAll('.voice-card').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('selectedVoice').value = voiceId;
+}
+
+function selectAvatar(avatarId, el) {
+  el.closest('.avatar-grid').querySelectorAll('.avatar-card').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('selectedAvatar').value = avatarId;
+}
+
+function handleCustomAvatar(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const url = URL.createObjectURL(file);
+  const card = input.closest('.avatar-card');
+  card.querySelector('.avatar-img').innerHTML = `<img src="${url}" style="width:60px;height:60px;border-radius:50%;object-fit:cover;">`;
+  selectAvatar('custom', card);
+}
+
+function selectRecastMode(mode, btn) {
+  document.querySelectorAll('.recast-mode-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.recast-sub-panel').forEach(p => p.classList.remove('visible'));
+  const panel = document.getElementById(`recastPanel_${mode}`);
+  if (panel) panel.classList.add('visible');
+}
+
+function updateCharCount(textarea, countId, max) {
+  const el = document.getElementById(countId);
+  if (!el) return;
+  const len = textarea.value.length;
+  el.textContent = `${len} / ${max}`;
+  if (len > max * 0.9) el.style.color = 'var(--yellow)';
+  else el.style.color = 'var(--text-muted)';
+  if (len > max) textarea.value = textarea.value.slice(0, max);
+}
+
+/* ===================================================
+   CANVAS / DRAWING TOOLS
+=================================================== */
+function initDrawCanvas() {
+  drawCanvas = document.getElementById('draw-canvas');
+  if (!drawCanvas) return;
+  drawCtx = drawCanvas.getContext('2d');
+  drawCtx.lineCap = 'round';
+  drawCtx.lineJoin = 'round';
+  drawCtx.strokeStyle = drawColor;
+  drawCtx.lineWidth = drawSize;
+  drawHistory = [];
+  saveDrawState();
+  drawCanvas.addEventListener('mousedown', startDraw);
+  drawCanvas.addEventListener('mousemove', continueDraw);
+  drawCanvas.addEventListener('mouseup', stopDraw);
+  drawCanvas.addEventListener('mouseleave', stopDraw);
+  drawCanvas.addEventListener('touchstart', e => { e.preventDefault(); const t = e.touches[0]; const r = drawCanvas.getBoundingClientRect(); startDraw({offsetX: t.clientX-r.left, offsetY: t.clientY-r.top}); }, {passive:false});
+  drawCanvas.addEventListener('touchmove', e => { e.preventDefault(); const t = e.touches[0]; const r = drawCanvas.getBoundingClientRect(); continueDraw({offsetX: t.clientX-r.left, offsetY: t.clientY-r.top}); }, {passive:false});
+  drawCanvas.addEventListener('touchend', stopDraw, {passive:false});
+}
+
+function startDraw(e) {
+  isDrawing = true;
+  if (!drawCtx) return;
+  drawCtx.beginPath();
+  drawCtx.moveTo(e.offsetX, e.offsetY);
+}
+function continueDraw(e) {
+  if (!isDrawing || !drawCtx) return;
+  if (drawTool === 'eraser') {
+    drawCtx.globalCompositeOperation = 'destination-out';
+    drawCtx.lineWidth = drawSize * 3;
+  } else {
+    drawCtx.globalCompositeOperation = 'source-over';
+    drawCtx.strokeStyle = drawColor;
+    drawCtx.lineWidth = drawSize;
+  }
+  drawCtx.lineTo(e.offsetX, e.offsetY);
+  drawCtx.stroke();
+}
+function stopDraw() {
+  if (!isDrawing) return;
+  isDrawing = false;
+  saveDrawState();
+}
+function saveDrawState() {
+  if (!drawCanvas) return;
+  drawHistory.push(drawCanvas.toDataURL());
+  if (drawHistory.length > 50) drawHistory.shift();
+}
+function undoDraw() {
+  if (!drawCanvas || drawHistory.length < 2) return;
+  drawHistory.pop();
+  const img = new Image();
+  img.src = drawHistory[drawHistory.length-1];
+  img.onload = () => { drawCtx.clearRect(0,0,drawCanvas.width,drawCanvas.height); drawCtx.drawImage(img,0,0); };
+}
+function clearDraw() {
+  if (!drawCtx || !drawCanvas) return;
+  drawCtx.clearRect(0,0,drawCanvas.width,drawCanvas.height);
+  drawCtx.fillStyle = '#ffffff';
+  drawCtx.fillRect(0,0,drawCanvas.width,drawCanvas.height);
+  saveDrawState();
+}
+function setDrawTool(tool, btn) {
+  drawTool = tool;
+  document.querySelectorAll('#canvasTools .canvas-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+}
+function setDrawColor(color, el) {
+  drawColor = color;
+  if (drawCtx) { drawCtx.strokeStyle = color; drawCtx.globalCompositeOperation = 'source-over'; }
+  document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('active'));
+  if (el && el.classList && el.classList.contains('color-dot')) el.classList.add('active');
+  setDrawTool('pen', document.getElementById('penBtn'));
+}
+function setDrawSize(val) {
+  drawSize = parseInt(val);
+  const lbl = document.getElementById('brushSizeLabel');
+  if (lbl) lbl.textContent = val + 'px';
+}
+
+/* ===================================================
+   TOOL SWITCHING
+=================================================== */
+const RENDER_FNS = {
+  'create-video': renderCreateVideo,
+  'cinema-studio': renderCinemaStudio,
+  'mixed-media': renderMixedMedia,
+  'edit-video': renderEditVideo,
+  'click-to-ad': renderClickToAd,
+  'sora-trends': renderSoraTrends,
+  'lipsync': renderLipsync,
+  'draw-to-video': renderDrawToVideo,
+  'sketch-to-video': renderSketchToVideo,
+  'ugc-factory': renderUGCFactory,
+  'video-upscale': renderVideoUpscale,
+  'animate': renderAnimate,
+  'vibe-motion': renderVibeMotion,
+  'recast': renderRecast
+};
+
+function switchTool(toolId) {
+  if (activeTool === toolId) return;
+  const ws = document.getElementById('workspace');
+  ws.classList.add('ws-fading');
+  setTimeout(() => {
+    activeTool = toolId;
+    ws.classList.remove('ws-fading');
+    ws.style.animation = 'none';
+    requestAnimationFrame(() => {
+      ws.style.animation = '';
+      ws.innerHTML = (RENDER_FNS[toolId] || renderCreateVideo)();
+      document.getElementById('main').scrollTop = 0;
+      // post-render init
+      if (toolId === 'draw-to-video') {
+        setTimeout(() => { initDrawCanvas(); clearDraw(); }, 50);
+      }
+    });
+    updateSidebar(toolId);
+  }, 200);
+}
+
+function updateSidebar(toolId) {
+  document.querySelectorAll('.tool-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.id === toolId);
+  });
+}
+
+/* ===================================================
+   SIDEBAR INIT
+=================================================== */
+function buildSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const header = sidebar.querySelector('.sidebar-header');
+  TOOLS.forEach(tool => {
+    const item = document.createElement('div');
+    item.className = `tool-item${tool.id === activeTool ? ' active' : ''}`;
+    item.dataset.id = tool.id;
+    item.innerHTML = `<span class="tool-icon">${tool.icon}</span><span>${tool.name}</span>`;
+    item.addEventListener('click', () => {
+      switchTool(tool.id);
+      // close mobile sidebar
+      document.getElementById('sidebar').classList.remove('open');
+    });
+    sidebar.appendChild(item);
+  });
+}
+
+/* ===================================================
+   INIT
+=================================================== */
+document.addEventListener('DOMContentLoaded', () => {
+  buildSidebar();
+  const ws = document.getElementById('workspace');
+  ws.innerHTML = renderCreateVideo();
+});
+</script>
+</body>
+</html>

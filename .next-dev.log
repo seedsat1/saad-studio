@@ -1,0 +1,26 @@
+
+> aisaas@0.1.0 dev
+> next dev
+
+  ▲ Next.js 14.2.35
+  - Local:        http://localhost:3000
+  - Environments: .env.local, .env
+
+ ✓ Starting...
+ ✓ Ready in 4s
+ ○ Compiling /middleware ...
+ ✓ Compiled /middleware in 1615ms (183 modules)
+ ○ Compiling / ...
+ ✓ Compiled / in 16.3s (2471 modules)
+ GET / 200 in 17147ms
+ ○ Compiling /image ...
+ ✓ Compiled /image in 10.3s (2486 modules)
+ GET /image 200 in 10063ms
+ GET / 200 in 1410ms
+ GET / 200 in 110ms
+ GET / 200 in 110ms
+ GET / 200 in 108ms
+ GET / 200 in 114ms
+ GET / 200 in 105ms
+ GET / 200 in 114ms
+ GET / 200 in 144ms

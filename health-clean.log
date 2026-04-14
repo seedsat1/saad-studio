@@ -1,0 +1,48 @@
+
+> aisaas@0.1.0 dev
+> next dev
+
+  ▲ Next.js 14.2.35
+  - Local:        http://localhost:3000
+  - Environments: .env.local, .env
+
+ ✓ Starting...
+ ✓ Ready in 3.2s
+ ○ Compiling /middleware ...
+ ✓ Compiled /middleware in 992ms (183 modules)
+ ○ Compiling / ...
+Browserslist: caniuse-lite is outdated. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+ ✓ Compiled / in 12.9s (2471 modules)
+ GET / 200 in 13705ms
+ ✓ Compiled in 1322ms (1092 modules)
+ ○ Compiling /video ...
+ ✓ Compiled /video in 6.9s (2468 modules)
+ GET /video 200 in 7306ms
+ ○ Compiling /image ...
+ ✓ Compiled /image in 1660ms (2524 modules)
+ GET /image 200 in 1895ms
+ ○ Compiling /_not-found ...
+ ✓ Compiled /_not-found in 1131ms (2527 modules)
+ GET /audio 404 in 1277ms
+ GET /pricing 404 in 57ms
+ GET /api/generate/video 404 in 20ms
+ GET /api/generate/image 404 in 38ms
+ GET /api/generate/audio 404 in 46ms
+ ○ Compiling /_error ...
+ ✓ Compiled /_error in 5s (2766 modules)
+ GET /audio 404 in 5674ms
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ GET /?_rsc=1ftqb 200 in 2576ms
+ GET /_next/static/webpack/152d0edb5d993755.webpack.hot-update.json 404 in 4172ms
+ GET / 200 in 741ms
+ GET /pricing 404 in 34ms
+ GET /_next/static/css/app/layout.css?v=1775687641814 404 in 34ms
+ GET /_next/static/css/app/(landing)/layout.css?v=1775687641814 404 in 34ms
+ POST /api/generate/video 404 in 64ms
+ GET /_next/static/chunks/main-app.js?v=1775687641814 404 in 99ms
+ GET /_next/static/chunks/app/(dash)/layout.js 404 in 42ms
+ POST /api/generate/image 404 in 17ms
+ POST /api/generate/audio 404 in 61ms
+[?25h

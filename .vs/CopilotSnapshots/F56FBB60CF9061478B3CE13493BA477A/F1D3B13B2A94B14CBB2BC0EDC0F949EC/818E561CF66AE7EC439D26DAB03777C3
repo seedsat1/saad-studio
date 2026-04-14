@@ -1,0 +1,585 @@
+﻿"use client";
+
+import React, { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Sparkles,
+  ChevronDown,
+  Check,
+  ChevronsUpDown,
+  Search,
+  Zap,
+  Crown,
+  Clock,
+  RectangleHorizontal,
+  Square,
+  RectangleVertical,
+  Maximize2,
+  Crop,
+  Download,
+  Trash2,
+  ImageIcon,
+  Wand2,
+  Loader2,
+  X,
+} from "lucide-react";
+
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+
+// ─── Mock AI Models ─────────────────────────────────────────────────────────
+const aiModels = [
+  { id: "flux-pro",       name: "FLUX.1 Pro",        badge: "Pro",  badgeColor: "bg-violet-500/20 text-violet-400",  avatar: "🎨" },
+  { id: "flux-dev",       name: "FLUX.1 Dev",        badge: "Fast", badgeColor: "bg-emerald-500/20 text-emerald-400", avatar: "⚡" },
+  { id: "flux-schnell",   name: "FLUX.1 Schnell",    badge: "Fast", badgeColor: "bg-emerald-500/20 text-emerald-400", avatar: "🚀" },
+  { id: "sdxl-turbo",     name: "SDXL Turbo",        badge: "Fast", badgeColor: "bg-emerald-500/20 text-emerald-400", avatar: "💨" },
+  { id: "sdxl-1.0",       name: "Stable Diffusion XL", badge: "HD", badgeColor: "bg-blue-500/20 text-blue-400",      avatar: "🖼️" },
+  { id: "sd-3.5",         name: "Stable Diffusion 3.5", badge: "New", badgeColor: "bg-amber-500/20 text-amber-400",  avatar: "✨" },
+  { id: "dall-e-3",       name: "DALL·E 3",          badge: "Pro",  badgeColor: "bg-violet-500/20 text-violet-400",  avatar: "🌟" },
+  { id: "midjourney-v6",  name: "Midjourney V6",     badge: "Pro",  badgeColor: "bg-violet-500/20 text-violet-400",  avatar: "🎭" },
+  { id: "playground-v3",  name: "Playground V3",     badge: "Free", badgeColor: "bg-zinc-500/20 text-zinc-400",      avatar: "🎮" },
+  { id: "ideogram-v2",    name: "Ideogram V2",       badge: "Pro",  badgeColor: "bg-violet-500/20 text-violet-400",  avatar: "📝" },
+  { id: "kandinsky-3",    name: "Kandinsky 3.0",     badge: "Free", badgeColor: "bg-zinc-500/20 text-zinc-400",      avatar: "🎪" },
+  { id: "pixart-sigma",   name: "PixArt-Σ",          badge: "HD",   badgeColor: "bg-blue-500/20 text-blue-400",      avatar: "🔮" },
+  { id: "dreamshaper-xl", name: "DreamShaper XL",    badge: "Fast", badgeColor: "bg-emerald-500/20 text-emerald-400", avatar: "💭" },
+  { id: "realvis-xl",     name: "RealVisXL V4",      badge: "HD",   badgeColor: "bg-blue-500/20 text-blue-400",      avatar: "📸" },
+  { id: "juggernaut-xl",  name: "Juggernaut XL",     badge: "Pro",  badgeColor: "bg-violet-500/20 text-violet-400",  avatar: "⚔️" },
+  { id: "animagine-xl",   name: "Animagine XL 3.1",  badge: "New",  badgeColor: "bg-amber-500/20 text-amber-400",    avatar: "🎌" },
+  { id: "ssd-1b",         name: "SSD-1B",            badge: "Fast", badgeColor: "bg-emerald-500/20 text-emerald-400", avatar: "🏎️" },
+  { id: "deepfloyd-if",   name: "DeepFloyd IF",      badge: "HD",   badgeColor: "bg-blue-500/20 text-blue-400",      avatar: "🌊" },
+  { id: "openjourney-v4", name: "OpenJourney V4",    badge: "Free", badgeColor: "bg-zinc-500/20 text-zinc-400",      avatar: "🗺️" },
+];
+
+// ─── Aspect Ratios ──────────────────────────────────────────────────────────
+const aspectRatios = [
+  { id: "1:1",   label: "1:1",   sub: "Square",    icon: Square,               w: 40, h: 40 },
+  { id: "16:9",  label: "16:9",  sub: "Landscape",  icon: RectangleHorizontal,  w: 48, h: 27 },
+  { id: "9:16",  label: "9:16",  sub: "Portrait",   icon: RectangleVertical,    w: 27, h: 48 },
+  { id: "4:3",   label: "4:3",   sub: "Classic",    icon: RectangleHorizontal,  w: 44, h: 33 },
+  { id: "3:4",   label: "3:4",   sub: "Tall",       icon: RectangleVertical,    w: 33, h: 44 },
+  { id: "21:9",  label: "21:9",  sub: "Ultra Wide",icon: RectangleHorizontal,  w: 52, h: 22 },
+];
+
+// ─── Quality Presets ────────────────────────────────────────────────────────
+const qualities = [
+  { id: "draft",    label: "Draft",    description: "Fast preview",       icon: Zap },
+  { id: "standard", label: "Standard", description: "Balanced quality",   icon: ImageIcon },
+  { id: "hd",       label: "HD",       description: "High resolution",    icon: Crown },
+  { id: "ultra",    label: "Ultra",    description: "Maximum quality",    icon: Sparkles },
+];
+
+// ─── Floating Toolbar Actions ───────────────────────────────────────────────
+const toolbarActions = [
+  { id: "upscale",  label: "Upscale",  icon: Wand2,     color: "text-violet-400 hover:text-violet-300" },
+  { id: "expand",   label: "Expand",   icon: Maximize2, color: "text-blue-400 hover:text-blue-300" },
+  { id: "crop",     label: "Crop",     icon: Crop,      color: "text-amber-400 hover:text-amber-300" },
+  { id: "download", label: "Download", icon: Download,  color: "text-emerald-400 hover:text-emerald-300" },
+  { id: "delete",   label: "Delete",   icon: Trash2,    color: "text-red-400 hover:text-red-300" },
+];
+
+// ─── Collapsible Section ────────────────────────────────────────────────────
+const CollapsibleSection = ({
+  title,
+  defaultOpen = true,
+  children,
+}: {
+  title: string;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}) => {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="border-b border-white/[0.06] last:border-0">
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex w-full items-center justify-between py-3 text-sm font-medium text-zinc-300 hover:text-white transition-colors"
+      >
+        {title}
+        <motion.div animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.2 }}>
+          <ChevronDown className="h-4 w-4" />
+        </motion.div>
+      </button>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25, ease: "easeInOut" }}
+            className="overflow-hidden"
+          >
+            <div className="pb-4">{children}</div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ─── Main Page Component ────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+
+const ImageGeneratePage = () => {
+  // State
+  const [prompt, setPrompt] = useState("");
+  const [selectedModel, setSelectedModel] = useState(aiModels[0]);
+  const [modelOpen, setModelOpen] = useState(false);
+  const [selectedRatio, setSelectedRatio] = useState("1:1");
+  const [selectedQuality, setSelectedQuality] = useState("standard");
+  const [numImages, setNumImages] = useState(1);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [isGenerated, setIsGenerated] = useState(false);
+  const [showPromptOverlay, setShowPromptOverlay] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const handleGenerate = () => {
+    if (!prompt.trim()) return;
+    setIsGenerating(true);
+    setIsGenerated(false);
+    setShowPromptOverlay(false);
+    setTimeout(() => {
+      setIsGenerating(false);
+      setIsGenerated(true);
+    }, 2500);
+  };
+
+  if (!mounted) return null;
+
+  return (
+    <TooltipProvider delayDuration={200}>
+      <div className="relative min-h-[calc(100vh-4rem)] overflow-hidden">
+        {/* ── Background gradient orbs ────────────────────────────────── */}
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute -top-40 -left-40 h-80 w-80 rounded-full bg-violet-600/10 blur-[120px]" />
+          <div className="absolute top-1/3 -right-32 h-96 w-96 rounded-full bg-blue-600/8 blur-[140px]" />
+          <div className="absolute -bottom-20 left-1/3 h-72 w-72 rounded-full bg-fuchsia-600/8 blur-[100px]" />
+        </div>
+
+        <div className="relative z-10 flex flex-col lg:flex-row gap-6 p-4 lg:p-6 max-w-[1600px] mx-auto">
+          {/* ════════════════════════════════════════════════════════════ */}
+          {/* ── LEFT: Control Panel (Floating Sidebar) ──────────────── */}
+          {/* ════════════════════════════════════════════════════════════ */}
+          <motion.aside
+            initial={{ opacity: 0, x: -30 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+            className="w-full lg:w-[360px] shrink-0"
+          >
+            <div className="sticky top-20 rounded-2xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-xl overflow-hidden">
+              {/* Panel header */}
+              <div className="border-b border-white/[0.06] px-5 py-4">
+                <h2 className="text-base font-semibold text-white flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-violet-400" />
+                  Image Workspace
+                </h2>
+                <p className="text-xs text-zinc-500 mt-0.5">Configure and generate</p>
+              </div>
+
+              <div className="p-5 space-y-0">
+                {/* ── Model Selector (Searchable Combobox) ─────────── */}
+                <CollapsibleSection title="AI Model">
+                  <Popover open={modelOpen} onOpenChange={setModelOpen}>
+                    <PopoverTrigger asChild>
+                      <motion.button
+                        whileHover={{ scale: 1.01 }}
+                        whileTap={{ scale: 0.99 }}
+                        className="flex w-full items-center justify-between rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 py-3 text-sm text-white hover:border-white/[0.15] hover:bg-white/[0.05] transition-all"
+                      >
+                        <span className="flex items-center gap-3">
+                          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/[0.06] text-base">
+                            {selectedModel.avatar}
+                          </span>
+                          <span className="flex flex-col items-start">
+                            <span className="font-medium">{selectedModel.name}</span>
+                            <span className={cn("text-[10px] px-1.5 py-0.5 rounded-full mt-0.5", selectedModel.badgeColor)}>
+                              {selectedModel.badge}
+                            </span>
+                          </span>
+                        </span>
+                        <ChevronsUpDown className="h-4 w-4 text-zinc-500" />
+                      </motion.button>
+                    </PopoverTrigger>
+                    <PopoverContent
+                      className="w-[320px] p-0 border-white/[0.08] bg-[#0d1321] backdrop-blur-xl"
+                      align="start"
+                    >
+                      <Command className="bg-transparent">
+                        <CommandInput
+                          placeholder="Search models..."
+                          className="text-white placeholder:text-zinc-500 border-white/[0.06]"
+                        />
+                        <CommandList className="max-h-[280px]">
+                          <CommandEmpty className="text-zinc-500">No model found.</CommandEmpty>
+                          <CommandGroup>
+                            {aiModels.map((model) => (
+                              <CommandItem
+                                key={model.id}
+                                value={model.name}
+                                onSelect={() => {
+                                  setSelectedModel(model);
+                                  setModelOpen(false);
+                                }}
+                                className="flex items-center gap-3 px-3 py-2.5 cursor-pointer text-zinc-300 aria-selected:bg-white/[0.06] aria-selected:text-white rounded-lg mx-1"
+                              >
+                                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/[0.06] text-base shrink-0">
+                                  {model.avatar}
+                                </span>
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-sm font-medium truncate">{model.name}</div>
+                                </div>
+                                <span className={cn("text-[10px] px-2 py-0.5 rounded-full shrink-0", model.badgeColor)}>
+                                  {model.badge}
+                                </span>
+                                {selectedModel.id === model.id && (
+                                  <Check className="h-4 w-4 text-violet-400 shrink-0" />
+                                )}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </CollapsibleSection>
+
+                {/* ── Aspect Ratio ─────────────────────────────────── */}
+                <CollapsibleSection title="Aspect Ratio">
+                  <div className="grid grid-cols-3 gap-2">
+                    {aspectRatios.map((ratio) => (
+                      <motion.button
+                        key={ratio.id}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => setSelectedRatio(ratio.id)}
+                        className={cn(
+                          "flex flex-col items-center gap-1.5 rounded-xl border p-3 transition-all",
+                          selectedRatio === ratio.id
+                            ? "border-violet-500/50 bg-violet-500/10 text-white"
+                            : "border-white/[0.06] bg-white/[0.02] text-zinc-500 hover:border-white/[0.12] hover:text-zinc-300"
+                        )}
+                      >
+                        {/* Visual ratio shape */}
+                        <div className="flex items-center justify-center h-10 w-full">
+                          <div
+                            className={cn(
+                              "rounded-sm border-2 transition-colors",
+                              selectedRatio === ratio.id ? "border-violet-400" : "border-zinc-600"
+                            )}
+                            style={{
+                              width: `${ratio.w * 0.5}px`,
+                              height: `${ratio.h * 0.5}px`,
+                            }}
+                          />
+                        </div>
+                        <span className="text-xs font-semibold">{ratio.label}</span>
+                        <span className="text-[10px] text-zinc-500">{ratio.sub}</span>
+                      </motion.button>
+                    ))}
+                  </div>
+                </CollapsibleSection>
+
+                {/* ── Quality ──────────────────────────────────────── */}
+                <CollapsibleSection title="Quality">
+                  <div className="grid grid-cols-2 gap-2">
+                    {qualities.map((q) => (
+                      <motion.button
+                        key={q.id}
+                        whileHover={{ scale: 1.03 }}
+                        whileTap={{ scale: 0.97 }}
+                        onClick={() => setSelectedQuality(q.id)}
+                        className={cn(
+                          "flex items-center gap-2.5 rounded-xl border px-3 py-2.5 transition-all text-left",
+                          selectedQuality === q.id
+                            ? "border-violet-500/50 bg-violet-500/10 text-white"
+                            : "border-white/[0.06] bg-white/[0.02] text-zinc-500 hover:border-white/[0.12] hover:text-zinc-300"
+                        )}
+                      >
+                        <q.icon className={cn("h-4 w-4 shrink-0", selectedQuality === q.id ? "text-violet-400" : "text-zinc-600")} />
+                        <div>
+                          <div className="text-xs font-semibold">{q.label}</div>
+                          <div className="text-[10px] text-zinc-500">{q.description}</div>
+                        </div>
+                      </motion.button>
+                    ))}
+                  </div>
+                </CollapsibleSection>
+
+                {/* ── Number of Images (Segment Control) ───────────── */}
+                <CollapsibleSection title="Number of Images">
+                  <div className="flex rounded-xl border border-white/[0.06] bg-white/[0.02] p-1">
+                    {[1, 2, 3, 4].map((n) => (
+                      <motion.button
+                        key={n}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => setNumImages(n)}
+                        className={cn(
+                          "flex-1 rounded-lg py-2 text-sm font-semibold transition-all",
+                          numImages === n
+                            ? "bg-violet-500/20 text-violet-300 shadow-sm"
+                            : "text-zinc-500 hover:text-zinc-300"
+                        )}
+                      >
+                        {n}
+                      </motion.button>
+                    ))}
+                  </div>
+                </CollapsibleSection>
+              </div>
+
+              {/* ── Prompt + Generate Button ────────────────────────── */}
+              <div className="border-t border-white/[0.06] p-5 space-y-3">
+                <div className="relative">
+                  <textarea
+                    value={prompt}
+                    onChange={(e) => setPrompt(e.target.value)}
+                    placeholder="Describe your image... ✨"
+                    rows={3}
+                    className="w-full resize-none rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 py-3 text-sm text-white placeholder:text-zinc-600 focus:border-violet-500/40 focus:outline-none focus:ring-1 focus:ring-violet-500/20 transition-all"
+                  />
+                </div>
+
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleGenerate}
+                  disabled={isGenerating || !prompt.trim()}
+                  className={cn(
+                    "relative w-full overflow-hidden rounded-xl py-3 text-sm font-semibold text-white transition-all",
+                    "bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600",
+                    "hover:shadow-lg hover:shadow-violet-500/25",
+                    "disabled:opacity-50 disabled:cursor-not-allowed",
+                  )}
+                >
+                  {/* Animated shimmer */}
+                  {!isGenerating && prompt.trim() && (
+                    <motion.div
+                      className="absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent"
+                      animate={{ x: ["-100%", "100%"] }}
+                      transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
+                    />
+                  )}
+                  <span className="relative flex items-center justify-center gap-2">
+                    {isGenerating ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-4 w-4" />
+                        Generate Image
+                      </>
+                    )}
+                  </span>
+                </motion.button>
+              </div>
+            </div>
+          </motion.aside>
+
+          {/* ════════════════════════════════════════════════════════════ */}
+          {/* ── RIGHT: Canvas / Preview Area ─────────────────────────── */}
+          {/* ════════════════════════════════════════════════════════════ */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.15 }}
+            className="flex-1 min-h-[500px] lg:min-h-[calc(100vh-6rem)]"
+          >
+            <div className="relative h-full rounded-2xl border border-white/[0.06] bg-white/[0.01] backdrop-blur-sm overflow-hidden flex items-center justify-center">
+              {/* ── Empty State ───────────────────────────────────── */}
+              <AnimatePresence mode="wait">
+                {!isGenerating && !isGenerated && (
+                  <motion.div
+                    key="empty"
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    className="flex flex-col items-center gap-4 text-center px-6"
+                  >
+                    <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-white/[0.03] border border-white/[0.06]">
+                      <ImageIcon className="h-10 w-10 text-zinc-700" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-zinc-400">Your Canvas Awaits</h3>
+                      <p className="mt-1 text-sm text-zinc-600 max-w-sm">
+                        Select a model, configure your settings, write a prompt, and hit Generate to see the magic.
+                      </p>
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* ── Loading State ─────────────────────────────────── */}
+                {isGenerating && (
+                  <motion.div
+                    key="loading"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="flex flex-col items-center gap-5"
+                  >
+                    {/* Animated rings */}
+                    <div className="relative h-24 w-24">
+                      <motion.div
+                        className="absolute inset-0 rounded-full border-2 border-violet-500/30"
+                        animate={{ scale: [1, 1.5, 1], opacity: [0.5, 0, 0.5] }}
+                        transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+                      />
+                      <motion.div
+                        className="absolute inset-2 rounded-full border-2 border-fuchsia-500/30"
+                        animate={{ scale: [1, 1.4, 1], opacity: [0.5, 0, 0.5] }}
+                        transition={{ repeat: Infinity, duration: 2, delay: 0.3, ease: "easeInOut" }}
+                      />
+                      <motion.div
+                        className="absolute inset-4 rounded-full border-2 border-purple-500/30"
+                        animate={{ scale: [1, 1.3, 1], opacity: [0.5, 0, 0.5] }}
+                        transition={{ repeat: Infinity, duration: 2, delay: 0.6, ease: "easeInOut" }}
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <Sparkles className="h-8 w-8 text-violet-400 animate-pulse" />
+                      </div>
+                    </div>
+                    <div className="text-center">
+                      <h3 className="text-base font-semibold text-white">Creating your masterpiece</h3>
+                      <p className="text-sm text-zinc-500 mt-1">Using {selectedModel.name}...</p>
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* ── Generated Result ─────────────────────────────── */}
+                {isGenerated && !isGenerating && (
+                  <motion.div
+                    key="result"
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    transition={{ type: "spring", stiffness: 200, damping: 20 }}
+                    className="relative w-full h-full flex flex-col items-center justify-center p-6 lg:p-10"
+                  >
+                    {/* Mock generated image */}
+                    <motion.div
+                      className="relative group cursor-pointer w-full max-w-2xl aspect-square rounded-2xl overflow-hidden"
+                      onClick={() => setShowPromptOverlay(!showPromptOverlay)}
+                      whileHover={{ scale: 1.01 }}
+                      transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                    >
+                      {/* Placeholder gradient as mock image */}
+                      <div className="absolute inset-0 bg-gradient-to-br from-violet-900/60 via-purple-800/40 to-fuchsia-900/60" />
+                      <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTTAgNDBMNDAgMCIgc3Ryb2tlPSJyZ2JhKDI1NSwyNTUsMjU1LDAuMDMpIiBzdHJva2Utd2lkdGg9IjEiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IGZpbGw9InVybCgjZykiIHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiLz48L3N2Zz4=')] opacity-50" />
+
+                      {/* Center icon for mock */}
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="text-center">
+                          <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/[0.06] backdrop-blur-sm border border-white/[0.1]">
+                            <ImageIcon className="h-8 w-8 text-white/40" />
+                          </div>
+                          <p className="text-sm text-white/30 font-medium">Generated Image Preview</p>
+                          <p className="text-xs text-white/20 mt-1">Click to reveal prompt</p>
+                        </div>
+                      </div>
+
+                      {/* ── Prompt overlay on click ─────────────────── */}
+                      <AnimatePresence>
+                        {showPromptOverlay && (
+                          <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 20 }}
+                            transition={{ duration: 0.3, ease: "easeOut" }}
+                            className="absolute bottom-0 left-0 right-0 bg-black/60 backdrop-blur-md border-t border-white/[0.08] p-4"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div>
+                                <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-1">Prompt</p>
+                                <p className="text-sm text-white/90 leading-relaxed">{prompt}</p>
+                                <div className="flex items-center gap-2 mt-2">
+                                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-400">{selectedModel.name}</span>
+                                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/[0.06] text-zinc-400">{selectedRatio}</span>
+                                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/[0.06] text-zinc-400">{selectedQuality}</span>
+                                </div>
+                              </div>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setShowPromptOverlay(false); }}
+                                className="shrink-0 rounded-lg p-1 text-zinc-500 hover:text-white hover:bg-white/10 transition-colors"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </motion.div>
+
+                    {/* ── Floating Action Bar (Glassmorphism) ──────── */}
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.3, duration: 0.4 }}
+                      className="mt-6 flex items-center gap-1 rounded-2xl border border-white/[0.08] bg-white/[0.04] backdrop-blur-md px-2 py-2"
+                    >
+                      {toolbarActions.map((action, idx) => (
+                        <React.Fragment key={action.id}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <motion.button
+                                whileHover={{ scale: 1.15, y: -2 }}
+                                whileTap={{ scale: 0.9 }}
+                                className={cn(
+                                  "flex h-10 w-10 items-center justify-center rounded-xl transition-colors hover:bg-white/[0.08]",
+                                  action.color
+                                )}
+                              >
+                                <action.icon className="h-[18px] w-[18px]" />
+                              </motion.button>
+                            </TooltipTrigger>
+                            <TooltipContent
+                              side="bottom"
+                              className="border-white/[0.08] bg-[#111827] text-white text-xs"
+                            >
+                              {action.label}
+                            </TooltipContent>
+                          </Tooltip>
+                          {idx < toolbarActions.length - 1 && idx === 3 && (
+                            <div className="mx-1 h-5 w-px bg-white/[0.08]" />
+                          )}
+                        </React.Fragment>
+                      ))}
+                    </motion.div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </motion.div>
+        </div>
+      </div>
+    </TooltipProvider>
+  );
+};
+
+export default ImageGeneratePage;

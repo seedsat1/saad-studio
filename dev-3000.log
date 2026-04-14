@@ -1,0 +1,114 @@
+   ▲ Next.js 14.1.3
+   - Local:        http://localhost:3000
+   - Environments: .env.local, .env
+
+ ✓ Ready in 3.2s
+ ✓ Compiled /middleware in 474ms (177 modules)
+ ○ Compiling /video ...
+Browserslist: caniuse-lite is outdated. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+ ✓ Compiled /video in 13.2s (2436 modules)
+ ○ Compiling /admin ...
+ ✓ Compiled /admin in 1659ms (2470 modules)
+ ○ Compiling /pricing ...
+ ✓ Compiled /api/admin/settings in 2.4s (2510 modules)
+ ✓ Compiled (2516 modules)
+ ○ Compiling /not-found ...
+ ✓ Compiled /favicon.ico in 2.2s (2520 modules)
+ ✓ Compiled (2547 modules)
+ ✓ Compiled in 1874ms (1139 modules)
+ ✓ Compiled in 2.3s (1139 modules)
+ ✓ Compiled in 4s (2502 modules)
+ ✓ Compiled in 1779ms (2502 modules)
+ ✓ Compiled in 1569ms (2502 modules)
+ ✓ Compiled in 2s (2502 modules)
+ ✓ Compiled in 1544ms (2502 modules)
+ ✓ Compiled in 1577ms (2502 modules)
+ ○ Compiling /api/video ...
+ ✓ Compiled /api/video in 799ms (1386 modules)
+ ✓ Compiled in 1754ms (1143 modules)
+ ✓ Compiled in 3.1s (2502 modules)
+ ✓ Compiled in 2.3s (2502 modules)
+ ✓ Compiled in 1375ms (1143 modules)
+ ✓ Compiled in 1320ms (1143 modules)
+ ✓ Compiled in 883ms (1143 modules)
+ ✓ Compiled in 860ms (1143 modules)
+ ✓ Compiled in 1051ms (1143 modules)
+ ✓ Compiled in 903ms (1143 modules)
+ ○ Compiling /favicon.ico ...
+ ✓ Compiled /favicon.ico in 1670ms (1388 modules)
+ ✓ Compiled in 3.1s (2502 modules)
+ ✓ Compiled in 2.6s (2502 modules)
+ ✓ Compiled in 1055ms (1143 modules)
+ ○ Compiling /favicon.ico ...
+ ✓ Compiled /favicon.ico in 629ms (1388 modules)
+ ✓ Compiled in 3.1s (2502 modules)
+ ✓ Compiled in 1463ms (1143 modules)
+ ✓ Compiled in 1948ms (2502 modules)
+ ○ Compiling /favicon.ico ...
+ ✓ Compiled /favicon.ico in 1118ms (1388 modules)
+ ✓ Compiled in 2.8s (2502 modules)
+ ✓ Compiled in 1559ms (1143 modules)
+ ○ Compiling /favicon.ico ...
+ ✓ Compiled /favicon.ico in 949ms (1388 modules)
+ ✓ Compiled in 1815ms (2531 modules)
+ ✓ Compiled in 1465ms (2531 modules)
+ ✓ Compiled in 2.8s (2531 modules)
+ ✓ Compiled in 2.7s (2502 modules)
+ ✓ Compiled in 2.3s (2502 modules)
+ ✓ Compiled in 2.8s (2502 modules)
+ ✓ Compiled in 2.7s (2502 modules)
+ ○ Compiling /payment ...
+ ✓ Compiled /payment in 4.2s (2504 modules)
+ ⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ ✓ Compiled in 2.8s (2518 modules)
+ ✓ Compiled in 1ms (1368 modules)
+ ✓ Compiled in 1ms (1368 modules)
+ ✓ Compiled in 0ms (1368 modules)
+ ○ Compiling /favicon.ico ...
+ ✓ Compiled /favicon.ico in 840ms (1397 modules)
+ ✓ Compiled in 4.6s (2518 modules)
+ ○ Compiling /favicon.ico ...
+ ✓ Compiled /favicon.ico in 1160ms (1397 modules)
+ ✓ Compiled in 2.2s (2547 modules)
+ ✓ Compiled in 3.3s (2518 modules)
+ ✓ Compiled in 3.2s (2518 modules)
+ ✓ Compiled in 2.8s (2518 modules)
+ ✓ Compiled in 1896ms (2518 modules)
+ ✓ Compiled in 1604ms (2518 modules)
+ ○ Compiling /favicon.ico ...
+ ✓ Compiled /favicon.ico in 1249ms (1397 modules)
+ ✓ Compiled in 2.1s (2518 modules)
+ ✓ Compiled in 1685ms (2518 modules)
+ ○ Compiling /favicon.ico ...
+ ✓ Compiled /favicon.ico in 628ms (1397 modules)
+ ✓ Compiled in 2.8s (2518 modules)
+ ○ Compiling /favicon.ico ...
+ ✓ Compiled /favicon.ico in 1065ms (1397 modules)
+ ✓ Compiled in 1924ms (2518 modules)
+ ○ Compiling /favicon.ico ...
+ ✓ Compiled /favicon.ico in 599ms (1397 modules)
+ ✓ Compiled in 983ms (1150 modules)
+ ✓ Compiled in 1780ms (2518 modules)
+ ✓ Compiled in 1627ms (2518 modules)
+ ○ Compiling /favicon.ico ...
+ ✓ Compiled /favicon.ico in 1243ms (1397 modules)
+ ○ Compiling /profile ...
+ ✓ Compiled /profile in 3.8s (2520 modules)
+ ✓ Compiled in 1449ms (1157 modules)
+ ✓ Compiled in 1109ms (1157 modules)
+ ✓ Compiled in 861ms (1157 modules)
+ ✓ Compiled in 929ms (1157 modules)
+ ✓ Compiled in 6.3s (2512 modules)
+ ⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ ○ Compiling /image ...
+ ✓ Compiled /image in 1603ms (1377 modules)
+ ✓ Compiled in 2.8s (2534 modules)
+ ✓ Compiled in 1ms (1377 modules)
+ ○ Compiling /api/admin/stats ...
+ ✓ Compiled /favicon.ico in 1276ms (1401 modules)
+ ✓ Compiled (1434 modules)
+   Reload env: .env.local
+ ✓ Compiled in 2.1s (2696 modules)
+[?25h

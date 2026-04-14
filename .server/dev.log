@@ -1,0 +1,179 @@
+
+> aisaas@0.1.0 dev
+> next dev
+
+  ▲ Next.js 14.2.35
+  - Local:        http://localhost:3000
+  - Environments: .env.local, .env
+
+ ✓ Starting...
+ ✓ Ready in 31.7s
+ ○ Compiling /middleware ...
+ ✓ Compiled /middleware in 1273ms (183 modules)
+ ○ Compiling / ...
+Browserslist: caniuse-lite is outdated. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+ ✓ Compiled / in 62.9s (2471 modules)
+ ✓ Compiled in 1245ms (1092 modules)
+ GET / 200 in 82ms
+ GET / 200 in 91ms
+ ○ Compiling /video ...
+ ✓ Compiled /video in 2.9s (2468 modules)
+ ✓ Compiled in 3.9s (2482 modules)
+ GET /video?_rsc=1idki 200 in 119ms
+ ✓ Compiled in 2.8s (2482 modules)
+ GET /video?_rsc=1idki 200 in 98ms
+ ✓ Compiled in 2.1s (2482 modules)
+ GET /video?_rsc=1idki 200 in 68ms
+ ✓ Compiled in 2.5s (2482 modules)
+ GET /video?_rsc=1idki 200 in 74ms
+ ✓ Compiled in 2.7s (2482 modules)
+ GET /video?_rsc=1idki 200 in 124ms
+ ✓ Compiled in 1948ms (2482 modules)
+ GET /video?_rsc=1idki 200 in 92ms
+ ✓ Compiled in 2.6s (2482 modules)
+ GET /video?_rsc=1idki 200 in 67ms
+ ✓ Compiled in 1319ms (1114 modules)
+ GET /video?_rsc=1idki 200 in 20ms
+ ✓ Compiled in 1130ms (1114 modules)
+ GET /video?_rsc=1idki 200 in 40ms
+ ✓ Compiled in 1233ms (1114 modules)
+ GET /video?_rsc=1idki 200 in 43ms
+ ⨯ Error: Cannot find module './8948.js'
+Require stack:
+- D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\.next\server\webpack-runtime.js
+- D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\.next\server\app\(dash)\(routes)\video\page.js
+- D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\require.js
+- D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\load-components.js
+- D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\build\utils.js
+- D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\dev\hot-middleware.js
+- D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\dev\hot-reloader-webpack.js
+- D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\lib\router-utils\setup-dev-bundler.js
+- D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\lib\router-server.js
+- D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\lib\start-server.js
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1421:15)
+    at D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\require-hook.js:55:36
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1059:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1064:22)
+    at Module._load (node:internal/modules/cjs/loader:1227:37)
+    at TracingChannel.traceSync (node:diagnostics_channel:328:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:245:24)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1504:12)
+    at mod.require (D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\require-hook.js:65:28)
+    at require (node:internal/modules/helpers:152:16)
+    at __webpack_require__.f.require (D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\.next\server\webpack-runtime.js:208:28)
+    at D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\.next\server\webpack-runtime.js:116:40
+    at Array.reduce (<anonymous>)
+    at __webpack_require__.e (D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\.next\server\webpack-runtime.js:115:67)
+    at Array.map (<anonymous>)
+    at __webpack_require__.X (D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\.next\server\webpack-runtime.js:167:22)
+    at D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\.next\server\app\(landing)\page.js:1:23551
+    at Object.<anonymous> (D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\.next\server\app\(landing)\page.js:1:23634)
+    at Module._compile (node:internal/modules/cjs/loader:1761:14)
+    at Object..js (node:internal/modules/cjs/loader:1893:10)
+    at Module.load (node:internal/modules/cjs/loader:1481:32)
+    at Module._load (node:internal/modules/cjs/loader:1300:12)
+    at TracingChannel.traceSync (node:diagnostics_channel:328:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:245:24)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1504:12)
+    at mod.require (D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\require-hook.js:65:28)
+    at require (node:internal/modules/helpers:152:16)
+    at requirePage (D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\require.js:109:84)
+    at D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\load-components.js:103:84
+    at async loadComponentsImpl (D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\load-components.js:103:26)
+    at async DevServer.findPageComponentsImpl (D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\next-server.js:714:36)
+    at async DevServer.findPageComponents (D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\dev\next-dev-server.js:577:20)
+    at async DevServer.renderPageComponent (D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\base-server.js:1910:24)
+    at async DevServer.renderToResponseImpl (D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\base-server.js:1962:32)
+    at async DevServer.pipeImpl (D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\base-server.js:922:25)
+    at async NextNodeServer.handleCatchallRenderRequest (D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\next-server.js:272:17)
+    at async DevServer.handleRequestImpl (D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\base-server.js:818:17)
+    at async D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\dev\next-dev-server.js:339:20
+    at async Span.traceAsyncFn (D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\trace\trace.js:154:20)
+    at async DevServer.handleRequest (D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\dev\next-dev-server.js:336:24)
+    at async invokeRender (D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\lib\router-server.js:179:21)
+    at async handleRequest (D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\lib\router-server.js:359:24)
+    at async requestHandlerImpl (D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\lib\router-server.js:383:13)
+    at async Server.requestListener (D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\lib\start-server.js:141:13) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    'D:\\موقع ثاني\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\.next\\server\\webpack-runtime.js',
+    'D:\\موقع ثاني\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\.next\\server\\app\\(dash)\\(routes)\\video\\page.js',
+    'D:\\موقع ثاني\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\node_modules\\next\\dist\\server\\require.js',
+    'D:\\موقع ثاني\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\node_modules\\next\\dist\\server\\load-components.js',
+    'D:\\موقع ثاني\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\node_modules\\next\\dist\\build\\utils.js',
+    'D:\\موقع ثاني\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\node_modules\\next\\dist\\server\\dev\\hot-middleware.js',
+    'D:\\موقع ثاني\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\node_modules\\next\\dist\\server\\dev\\hot-reloader-webpack.js',
+    'D:\\موقع ثاني\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\node_modules\\next\\dist\\server\\lib\\router-utils\\setup-dev-bundler.js',
+    'D:\\موقع ثاني\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\node_modules\\next\\dist\\server\\lib\\router-server.js',
+    'D:\\موقع ثاني\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\node_modules\\next\\dist\\server\\lib\\start-server.js'
+  ],
+  page: '/'
+}
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ ○ Compiling /_error ...
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ ✓ Compiled /_error in 8s (2693 modules)
+ GET / 500 in 6269ms
+ ⨯ app\(dash)\(routes)\video\page.tsx (595:70) @ klingElements
+ ⨯ ReferenceError: klingElements is not defined
+    at VideoPageInner (video/page.tsx:655:9)
+digest: "2601054494"
+[0m [90m 593 |[39m     prompt[33m,[39m isGenerating[33m,[39m selectedModel[33m,[39m caps[33m,[39m[0m
+[0m [90m 594 |[39m     startFrame[33m,[39m endFrame[33m,[39m motionVideo[33m,[39m referenceImages[33m,[39m size[33m,[39m aspectRatio[33m,[39m duration[33m,[39m resolution[33m,[39m[0m
+[0m[31m[1m>[22m[39m[90m 595 |[39m     negPrompt[33m,[39m cfgScale[33m,[39m sound[33m,[39m shotType[33m,[39m multiPrompts[33m,[39m elementList[33m,[39m klingElements[33m,[39m[0m
+[0m [90m     |[39m                                                                      [31m[1m^[22m[39m[0m
+[0m [90m 596 |[39m     sceneControl[33m,[39m orientation[33m,[39m[0m
+[0m [90m 597 |[39m   ])[33m;[39m[0m
+[0m [90m 598 |[39m[0m
+ GET /video?_rsc=1idki 200 in 1215ms
+ GET /video 200 in 3770ms
+ ○ Compiling /_not-found ...
+ ✓ Compiled /_not-found in 4.6s (2696 modules)
+ GET /_next/static/css/app/(dash)/layout.css?v=1775729683182 404 in 4919ms
+ GET /_next/static/css/app/layout.css?v=1775729683182 404 in 4924ms
+ GET /_next/static/chunks/main-app.js?v=1775729683182 404 in 4914ms
+ ✓ Compiled in 1853ms (2710 modules)
+ ✓ Compiled in 1663ms (2710 modules)
+ ✓ Compiled in 1750ms (2705 modules)
+ ✓ Compiled in 1580ms (2705 modules)
+ ✓ Compiled in 1785ms (2705 modules)
+ ✓ Compiled in 2.3s (2705 modules)
+ ✓ Compiled in 2.5s (2705 modules)
+ GET /video 200 in 402ms
+ ○ Compiling /_not-found ...
+ ✓ Compiled /_not-found in 1385ms (2694 modules)
+ GET /_next/static/css/app/(dash)/layout.css?v=1775729939182 404 in 1647ms
+ GET /_next/static/css/app/layout.css?v=1775729939182 404 in 1652ms
+ GET /_next/static/chunks/main-app.js?v=1775729939182 404 in 1636ms
+ GET /video 200 in 127ms
+ GET /_next/static/css/app/layout.css?v=1775729944269 404 in 35ms
+ GET /_next/static/css/app/(dash)/layout.css?v=1775729944269 404 in 33ms
+ GET /_next/static/chunks/main-app.js?v=1775729944269 404 in 35ms
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, lstat 'D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\.next\server\vendor-chunks'
+<w> [webpack.cache.PackFileCacheStrategy/webpack.FileSystemInfo] Resolving './vendor-chunks/@floating-ui' in D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\.next\server for build dependencies doesn't lead to expected result 'D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\.next\server\vendor-chunks\@floating-ui.js', but to 'Error: Can't resolve './vendor-chunks/@floating-ui' in 'D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\.next\server'' instead. Resolving dependencies are ignored for this path.
+<w>  at resolve commonjs file ./vendor-chunks/@floating-ui (expected D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\.next\server\vendor-chunks\@floating-ui.js)
+<w>  at file dependencies D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\.next\server\webpack-runtime.js
+<w>  at file D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\.next\server\webpack-runtime.js
+<w>  at file dependencies D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\.next\server\app\_not-found\page.js
+<w>  at file D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\.next\server\app\_not-found\page.js
+<w>  at file dependencies D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\require.js
+<w>  at file D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\require.js
+<w>  at file dependencies D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\load-components.js
+<w>  at file D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\load-components.js
+<w>  at file dependencies D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\build\utils.js
+<w>  at file D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\build\utils.js
+<w>  at file dependencies D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\build\webpack\loaders\next-route-loader\index.js
+<w>  at file D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\build\webpack\loaders\next-route-loader\index.js
+<w>  at resolve commonjs D:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\build\webpack\loaders\next-route-loader\index.js
+ GET /video 200 in 75ms
+ GET /_next/static/css/app/layout.css?v=1775730039216 404 in 72ms
+ GET /_next/static/css/app/(dash)/layout.css?v=1775730039216 404 in 80ms
+ GET /_next/static/chunks/app-pages-internals.js 404 in 107ms
+ GET /_next/static/chunks/main-app.js?v=1775730039216 404 in 109ms
+ GET /_next/static/chunks/webpack.js?v=1775730039216 404 in 111ms
+ GET /_next/static/chunks/app/(dash)/(routes)/video/page.js 404 in 107ms
+ GET /_next/static/chunks/app/(dash)/layout.js 404 in 33ms
+ GET /_next/static/chunks/app/layout.js 404 in 22ms
+[?25h

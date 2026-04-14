@@ -1,0 +1,51 @@
+﻿/* ===== SAAD STUDIO - Global Theme ===== */
+:root {
+  --bg: #0b1120; --bg2: #0f1629; --card: #162040; --card-h: #1c2850;
+  --inp: #131d38; --bdr: #1e2f55; --bdr-h: #2a4070;
+  --white: #fff; --light: #e8ecf5; --soft: #a0b0d0; --dim: #5570a0;
+  --acc: #3b82f6; --acc2: #06b6d4; --accb: #60a5fa;
+  --glow: rgba(59,130,246,.18); --green: #4ade80; --red: #f87171;
+  --font-en: 'Outfit', sans-serif;
+  --font-ar: 'Cairo', sans-serif;
+  --r: 12px; --tr: all .3s cubic-bezier(.4,0,.2,1);
+}
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html { direction: ltr !important; }
+body {
+  background: var(--bg); color: var(--white);
+  font-family: var(--font-en); min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+html[data-lang="ar"] body { font-family: var(--font-ar); }
+html[data-lang="en"] body { font-family: var(--font-en); }
+h1, h2, h3, h4, h5, h6 { font-weight: 800 !important; }
+p, span, small, label, li, a, button, input, textarea, select, div { font-weight: 500; }
+
+/* Force consistent text color (no gradient text) */
+body, body * { color: #ffffff !important; }
+body * { -webkit-text-fill-color: #ffffff !important; }
+[style*="-webkit-text-fill-color: transparent"] { -webkit-text-fill-color: #ffffff !important; }
+[style*="background-clip:text"], [style*="background-clip: text"] { background: none !important; }
+
+a { color: inherit; text-decoration: none; }
+
+/* Toast */
+.toast {
+  position: fixed; bottom: 24px; left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  padding: 12px 24px; border-radius: var(--r);
+  background: var(--card); border: 1px solid var(--bdr);
+  color: var(--white); font-size: 13px; font-weight: 600;
+  z-index: 9999;
+  transition: transform .4s cubic-bezier(.34,1.56,.64,1);
+  box-shadow: 0 8px 32px rgba(0,0,0,.5);
+}
+.toast.visible { transform: translateX(-50%) translateY(0); }
+.toast.error { border-color: var(--red); }
+.toast.success { border-color: var(--green); }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--bdr); border-radius: 10px; }
+

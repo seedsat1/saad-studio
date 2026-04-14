@@ -1,0 +1,902 @@
+﻿<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SAAD STUDIO — Beauty & Model Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0b0a0f;--bg2:#110f17;--bg-card:#15131d;--bg-card-h:#1c1928;
+  --rose:#d4a0b9;--rose-bright:#e8a0bf;--rose-g:rgba(232,160,191,.1);
+  --gold:#c9a96e;--gold-bright:#dbb978;--gold-g:rgba(201,169,110,.1);
+  --plum:#8e6b91;--coral:#c47a6a;--mint:#7ab8a0;
+  --cream:#f0e4d4;--champagne:#e8d5c0;
+  --txt:#ece3ef;--txt2:#978d9f;--txt3:#645b6c;
+  --brd:rgba(255,255,255,.06);--brd-h:rgba(212,160,185,.3);
+  --r:16px;--rs:10px;
+  --far:'Cairo',sans-serif;--fen:'Outfit',sans-serif;--fser:'Cormorant Garamond',serif;
+  --ease:all .35s cubic-bezier(.4,0,.2,1);
+}
+html{scroll-behavior:smooth}
+body{font-family:var(--far);background:var(--bg);color:var(--txt);min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+
+/* AMBIENT */
+.amb{position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:radial-gradient(ellipse 500px 400px at 20% 10%,rgba(212,160,185,.04),transparent),
+  radial-gradient(ellipse 500px 500px at 80% 80%,rgba(201,169,110,.03),transparent)}
+
+/* HERO COVER */
+.hero-cover{position:relative;z-index:2;max-width:1460px;margin:18px auto 0;padding:0 24px}
+.hero-cover-card{position:relative;min-height:56vh;border-radius:22px;overflow:hidden;border:1px solid rgba(255,255,255,.14);background:#0d1221}
+.hero-cover-bg{position:absolute;inset:0;background:url('/img/beauty-hero.png') center/cover no-repeat;filter:saturate(1.05) contrast(1.05);transform:scale(1.02);pointer-events:none;user-select:none}
+.hero-cover-card::before{content:"";position:absolute;inset:0;background:linear-gradient(110deg,rgba(10,13,24,.72) 0%,rgba(10,13,24,.40) 38%,rgba(10,13,24,.20) 64%,rgba(10,13,24,.58) 100%),radial-gradient(ellipse at 18% 28%,rgba(43,178,255,.15),transparent 52%),radial-gradient(ellipse at 78% 72%,rgba(255,84,156,.13),transparent 56%)}
+.hero-cover-inner{display:none}
+.hero-copy{max-width:920px;margin:0 auto;text-align:center}
+.hero-copy .hero-kicker{display:inline-flex;align-items:center;gap:8px;padding:7px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.24);font-family:var(--fen);font-size:.72rem;text-transform:uppercase;letter-spacing:1px;background:rgba(7,12,25,.42)}
+.hero-copy h2{margin-top:14px;font-family:var(--fser);font-size:clamp(2rem,5.8vw,4.25rem);line-height:1.05;font-weight:600;color:#f0e4d4;text-shadow:0 10px 26px rgba(0,0,0,.35)}
+.hero-copy p{margin-top:12px;color:#dfd1dd;font-size:clamp(.95rem,1.8vw,1.3rem);max-width:840px;line-height:1.9}
+
+/* HEADER */
+.hdr{position:relative;z-index:2;padding:48px 40px 12px;text-align:center}
+.hdr .st{font-family:var(--fen);font-size:.75rem;text-transform:uppercase;letter-spacing:5px;color:var(--gold);margin-bottom:14px;font-weight:600}
+.hdr h1{font-family:var(--fser);font-size:clamp(2rem,5vw,3.6rem);font-weight:600;font-style:italic;
+  background:linear-gradient(135deg,var(--rose-bright),var(--cream) 45%,var(--gold-bright));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:10px}
+.hdr p{font-size:.95rem;color:var(--txt2);max-width:520px;margin:0 auto;line-height:1.8}
+
+/* DIVIDER */
+.dv{position:relative;z-index:2;display:flex;align-items:center;justify-content:center;gap:16px;padding:20px 40px}
+.dv::before,.dv::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,transparent,rgba(201,169,110,.2),transparent)}
+.dv span{font-family:var(--fser);font-size:.85rem;color:var(--gold);font-style:italic;white-space:nowrap}
+
+/* CATEGORY TABS */
+.tabs{position:relative;z-index:2;display:flex;align-items:center;justify-content:center;gap:8px;padding:8px 20px 28px;flex-wrap:wrap}
+.tab{font-family:var(--far);padding:10px 26px;border-radius:100px;border:1.5px solid var(--brd);background:transparent;color:var(--txt2);font-size:.88rem;font-weight:700;cursor:pointer;transition:var(--ease);display:flex;align-items:center;gap:8px}
+.tab .cnt{font-family:var(--fen);font-size:.68rem;padding:2px 8px;border-radius:100px;background:rgba(255,255,255,.05);color:var(--txt3);transition:var(--ease)}
+.tab:hover{border-color:var(--rose);color:var(--rose)}
+.tab.on{border-color:var(--rose);color:var(--rose);background:var(--rose-g);box-shadow:0 0 20px rgba(212,160,185,.08)}
+.tab.on .cnt{background:rgba(212,160,185,.2);color:var(--rose)}
+
+/* TOOLS GRID */
+.gw{position:relative;z-index:2;max-width:1440px;margin:0 auto;padding:0 24px 80px}
+.g{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px}
+
+/* BOTTOM COVER */
+.bottom-cover{
+  position:relative;z-index:1;width:100vw;max-width:none;
+  margin:-70px calc(50% - 50vw) 0;padding:0;overflow:hidden;pointer-events:none;
+}
+.bottom-cover-card{position:relative;background:transparent}
+.bottom-cover-bg{
+  position:relative;
+  display:block;
+  width:100%;
+  aspect-ratio:2808/680;
+  background:url('/img/beauty-bottom-transparent.png') center/contain no-repeat;
+  opacity:1;
+  pointer-events:none;
+  user-select:none;
+}
+
+/* TOOL CARD */
+.tc{
+  position:relative;background:var(--bg-card);border:1px solid var(--brd);
+  border-radius:var(--r);overflow:hidden;cursor:pointer;transition:var(--ease);
+  animation:cI .5s ease both;
+}
+@keyframes cI{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.tc:hover{border-color:var(--brd-h);transform:translateY(-5px);box-shadow:0 16px 44px rgba(0,0,0,.45),0 0 24px rgba(212,160,185,.06)}
+
+.tc .thumb{position:relative;width:100%;aspect-ratio:16/9;overflow:hidden;background:var(--bg2);display:flex;align-items:center;justify-content:center}
+.tc .thumb .ph-icon{font-size:2.8rem;opacity:.5}
+.tc .thumb .ph-text{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);font-family:var(--fen);font-size:.6rem;text-transform:uppercase;letter-spacing:1px;color:var(--txt3);background:rgba(0,0,0,.5);padding:3px 10px;border-radius:100px;white-space:nowrap}
+.tc .thumb .ovl{position:absolute;inset:0;background:linear-gradient(0deg,var(--bg-card) 0%,transparent 40%)}
+.tc .thumb img{width:100%;height:100%;object-fit:cover;pointer-events:none}
+
+.tc .bd{position:absolute;top:10px;left:10px;padding:3px 10px;border-radius:100px;font-family:var(--fen);font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;z-index:2}
+.b-h{background:var(--coral);color:#fff}
+.b-n{background:var(--mint);color:var(--bg)}
+.b-p{background:var(--rose);color:var(--bg)}
+
+.tc .opts-count{position:absolute;top:10px;right:10px;padding:3px 10px;border-radius:100px;font-family:var(--fen);font-size:.6rem;font-weight:600;background:rgba(0,0,0,.55);backdrop-filter:blur(6px);color:var(--txt2);z-index:2}
+
+.tc .inf{padding:14px 16px 18px}
+.tc .inf h3{font-family:var(--fser);font-size:1.1rem;font-weight:600;font-style:italic;margin-bottom:4px;color:var(--txt);transition:color .3s}
+.tc:hover .inf h3{color:var(--rose)}
+.tc .inf .ds{font-size:.78rem;color:var(--txt2);line-height:1.65}
+
+/* Full-image card mode (image becomes full card background, text on top) */
+.tc.bg-card-image{min-height:380px}
+.tc.bg-card-image .thumb{aspect-ratio:auto;height:100%}
+.tc.bg-card-image .thumb .ovl{
+  background:linear-gradient(0deg,rgba(12,10,18,.96) 0%,rgba(12,10,18,.35) 42%,transparent 70%);
+}
+.tc.bg-card-image .inf{
+  position:absolute;left:0;right:0;bottom:0;z-index:3;
+  padding:18px 16px 18px;
+  background:transparent;
+}
+.tc.bg-card-image .inf h3,.tc.bg-card-image .inf .ds{text-shadow:0 6px 18px rgba(0,0,0,.5)}
+
+/* ═══════════════════════════════════════════ */
+/* WORKSPACE OVERLAY                          */
+/* ═══════════════════════════════════════════ */
+.wo{position:fixed;inset:0;z-index:1000;background:rgba(7,6,11,.95);backdrop-filter:blur(24px);opacity:0;visibility:hidden;transition:all .4s ease;overflow-y:auto}
+.wo.on{opacity:1;visibility:visible}
+.ws{max-width:860px;margin:0 auto;padding:36px 28px 80px;transform:translateY(30px);transition:transform .4s cubic-bezier(.4,0,.2,1)}
+.wo.on .ws{transform:translateY(0)}
+
+.wb{display:inline-flex;align-items:center;gap:8px;font-family:var(--far);font-size:.88rem;color:var(--txt2);cursor:pointer;background:none;border:none;padding:8px 0;margin-bottom:20px;transition:color .3s}
+.wb:hover{color:var(--rose)}
+.wb svg{width:18px;height:18px;transform:scaleX(-1)}
+
+.wh{text-align:center;margin-bottom:32px}
+.wh h2{font-family:var(--fser);font-size:1.9rem;font-weight:600;font-style:italic;margin-bottom:8px;
+  background:linear-gradient(135deg,var(--rose-bright),var(--cream));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.wh p{color:var(--txt2);font-size:.88rem;line-height:1.7;max-width:500px;margin:0 auto}
+
+/* STEP INDICATOR */
+.steps{display:flex;align-items:center;justify-content:center;gap:32px;margin-bottom:32px}
+.step{display:flex;align-items:center;gap:8px;font-family:var(--fen);font-size:.82rem;color:var(--txt3);font-weight:600}
+.step .sn{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;border:1.5px solid var(--brd);color:var(--txt3);transition:var(--ease)}
+.step.active .sn{border-color:var(--rose);color:var(--bg);background:var(--rose)}
+.step.active{color:var(--rose)}
+.step.done .sn{border-color:var(--mint);color:var(--bg);background:var(--mint)}
+.step.done{color:var(--mint)}
+.steps .line{width:40px;height:1px;background:var(--brd)}
+
+/* SECTION LABEL */
+.sec-label{font-family:var(--fser);font-size:1.1rem;font-weight:600;font-style:italic;color:var(--txt);margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid var(--brd)}
+
+/* UPLOAD ZONE */
+.uz{
+  position:relative;border:2px dashed rgba(212,160,185,.15);border-radius:var(--r);
+  padding:40px 20px;text-align:center;cursor:pointer;transition:var(--ease);
+  background:rgba(212,160,185,.02);min-height:180px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+  margin-bottom:28px;
+}
+.uz:hover{border-color:var(--rose);background:var(--rose-g)}
+.uz.hf{border-color:var(--mint);border-style:solid;background:rgba(122,184,160,.04)}
+.uz svg{width:40px;height:40px;stroke:var(--txt3);fill:none;stroke-width:1.5}
+.uz .ut{font-size:.85rem;color:var(--txt3)}.uz .ut strong{color:var(--rose);font-weight:600}
+.uz .ux{font-size:.7rem;color:var(--txt3)}
+.uz input[type="file"]{position:absolute;inset:0;opacity:0;cursor:pointer}
+.uz .pi{max-width:100%;max-height:200px;border-radius:var(--rs);object-fit:contain;display:none}
+.uz.hf svg,.uz.hf .ut,.uz.hf .ux{display:none}
+.uz.hf .pi{display:block}
+
+/* OPTIONS GRID — radio button image cards */
+.opts-grid{
+  display:flex;gap:12px;margin-bottom:28px;
+  overflow-x:auto;overflow-y:hidden;padding-bottom:6px;
+  scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;
+}
+.opts-grid.cols-3,.opts-grid.cols-4,.opts-grid.cols-5{display:flex}
+
+.opt-card{
+  position:relative;border:2px solid var(--brd);border-radius:var(--rs);
+  overflow:hidden;cursor:pointer;transition:var(--ease);
+  background:var(--bg2);
+  min-width:190px;max-width:190px;flex:0 0 190px;scroll-snap-align:start;
+}
+.opt-card:hover{border-color:rgba(212,160,185,.25)}
+.opt-card.selected{border-color:var(--rose);box-shadow:0 0 20px rgba(212,160,185,.15)}
+
+.opt-card input[type="radio"]{position:absolute;opacity:0;pointer-events:none}
+
+.opt-card .opt-img{
+  width:100%;aspect-ratio:3/4;background:var(--bg2);
+  display:flex;align-items:center;justify-content:center;overflow:hidden;
+}
+.opt-card .opt-img img{width:100%;height:100%;object-fit:cover;pointer-events:none}
+.opt-card .opt-img .opt-ph{
+  font-family:var(--fen);font-size:.6rem;text-transform:uppercase;
+  letter-spacing:1px;color:var(--txt3);text-align:center;padding:8px;
+}
+
+.opt-card .opt-label{
+  padding:8px 10px;text-align:center;
+  border-top:1px solid var(--brd);
+}
+.opt-card .opt-label .opt-name{
+  font-family:var(--fen);font-size:.78rem;font-weight:700;color:var(--txt);
+  margin-bottom:2px;transition:color .3s;
+}
+.opt-card.selected .opt-label .opt-name{color:var(--rose)}
+.opt-card .opt-label .opt-desc{
+  font-size:.65rem;color:var(--txt3);line-height:1.4;
+}
+
+/* SELECTED CHECK */
+.opt-card .check{
+  position:absolute;top:8px;right:8px;width:22px;height:22px;border-radius:50%;
+  background:var(--rose);display:none;align-items:center;justify-content:center;z-index:2;
+}
+.opt-card .check svg{width:12px;height:12px;fill:#fff;stroke:none}
+.opt-card.selected .check{display:flex}
+
+/* GENERATE BTN */
+.gb{
+  width:100%;padding:16px;border:none;border-radius:var(--rs);
+  background:linear-gradient(135deg,var(--rose-bright),#b87a9a);color:var(--bg);
+  font-family:var(--fen);font-size:1.05rem;font-weight:700;cursor:pointer;
+  transition:var(--ease);display:flex;align-items:center;justify-content:center;gap:10px;
+}
+.gb:hover{transform:translateY(-2px);box-shadow:0 12px 36px rgba(212,160,185,.25)}
+.gb:active{transform:translateY(0)}
+.gb:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none}
+.gb svg{width:20px;height:20px}
+
+/* RESULT */
+.ra{margin-top:28px;display:none}.ra.vi{display:block}
+.rl{text-align:center;padding:50px 20px;background:var(--bg-card);border-radius:var(--r);border:1px solid var(--brd)}
+.sp{width:44px;height:44px;border-radius:50%;border:3px solid var(--brd);border-top-color:var(--rose);animation:sn 1s linear infinite;margin:0 auto 14px}
+@keyframes sn{to{transform:rotate(360deg)}}
+.rl p{color:var(--txt2);font-size:.88rem}
+.ro{background:var(--bg-card);border-radius:var(--r);border:1px solid var(--brd);padding:20px;text-align:center}
+.rx{display:flex;gap:10px;justify-content:center;margin-top:14px}
+.rb{padding:10px 24px;border-radius:100px;font-family:var(--far);font-size:.82rem;font-weight:600;cursor:pointer;transition:var(--ease)}
+.rdl{background:var(--rose);color:var(--bg);border:none}.rdl:hover{box-shadow:0 4px 18px rgba(212,160,185,.3)}
+.rrt{background:transparent;color:var(--txt2);border:1.5px solid var(--brd)}.rrt:hover{border-color:var(--rose);color:var(--rose)}
+
+@media(max-width:768px){
+  .hero-cover{padding:0 12px}
+  .hero-cover-card{min-height:48vh}
+  .hero-cover-inner{display:none}
+  .hdr{padding:32px 16px 8px}.hdr h1{font-size:1.7rem}
+  .tabs{padding-left:12px;padding-right:12px}
+  .gw{padding:0 12px 60px}
+  .g{grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+  .tc.bg-card-image{min-height:330px}
+  .bottom-cover{margin:-56px calc(50% - 50vw) 0}
+  .ws{padding:16px 14px 60px}
+  .opt-card{min-width:165px;max-width:165px;flex-basis:165px}
+  .steps{gap:16px}.steps .line{width:20px}
+}
+@media(max-width:480px){
+  .opt-card{min-width:150px;max-width:150px;flex-basis:150px}
+}
+
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(212,160,185,.12);border-radius:3px}
+</style>
+<link rel="stylesheet" href="/css/theme.css">
+<script>(function(){var l=localStorage.getItem("saad_lang")==="ar"?"ar":"en";document.documentElement.lang=l;document.documentElement.dir="ltr";document.documentElement.setAttribute("data-lang",l);document.addEventListener("DOMContentLoaded",function(){if(document.body){document.body.classList.toggle("is-ar",l==="ar");document.body.classList.toggle("lang-ar",l==="ar");document.body.classList.toggle("lang-en",l!=="ar");}});})();</script>
+</head>
+<body>
+<div class="amb"></div>
+
+<section class="hero-cover no-media-actions" data-no-media-actions>
+  <div class="hero-cover-card">
+    <div class="hero-cover-bg" aria-hidden="true"></div>
+    <div class="hero-cover-inner">
+      <div class="hero-copy">
+        <span class="hero-kicker">SAAD STUDIO</span>
+        <h2>Beauty &amp; Model Studio</h2>
+  <p>AI beauty and fashion studio — upload your photo, choose a style, and view the result.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+  <div class="dv"><span>✦ Choose Tool ✦</span></div>
+<div class="tabs" id="tabs"></div>
+<div class="gw" data-no-media-actions><div class="g" id="gd"></div></div>
+<section class="bottom-cover no-media-actions" data-no-media-actions>
+  <div class="bottom-cover-card">
+    <div class="bottom-cover-bg" aria-hidden="true"></div>
+  </div>
+</section>
+
+<div class="wo no-media-actions" id="wO" data-no-media-actions><div class="ws no-media-actions" id="wS" data-no-media-actions></div></div>
+
+<script>
+const LANG=document.documentElement.getAttribute('data-lang')==='ar'?'ar':'en';
+const isAr=LANG==='ar';
+function hasArabic(v){return /[\u0600-\u06FF]/.test(String(v||''));}
+function locText(en,ar){return isAr?(ar||en):(en||ar);}
+function locDesc(d,name){const x=String(d||'').trim();if(isAr)return x;return (x && !hasArabic(x))?x:`Generate ${name||'style'} output`;}
+const TX={
+  back:locText('Back','رجوع'),
+  step1:locText('Upload image','ارفع الصورة'),
+  step2:locText('Choose style','اختر الستايل'),
+  step3:locText('Result','النتيجة'),
+  sec1:locText('Step 1 - Upload your image','الخطوة 1 — ارفع صورتك'),
+  sec2:locText('Step 2 - Choose style','الخطوة 2 — اختر الستايل'),
+  clickUpload:locText('Click to upload your image','اضغط لرفع صورتك'),
+  genBtn:locText('Generate','Generate — إنشاء'),
+  processing:locText('Processing with AI...','جاري المعالجة بالذكاء الاصطناعي...'),
+  options:locText('options','خيارات'),
+  imageSoon:locText('Image coming soon','صورة قريباً'),
+  uploadFail:locText('Image upload failed','فشل رفع الصورة'),
+  verifyFail:locText('Failed to check status','فشل التحقق من الحالة'),
+  genFail:locText('Generation failed','فشل الإنشاء'),
+  timeout:locText('Timed out waiting for result','انتهت مهلة الانتظار'),
+  startFail:locText('Unable to start generation','تعذر بدء التوليد'),
+  invalidResult:locText('No valid output received','لم يتم استلام نتيجة صالحة'),
+  success:locText('Created successfully!','تم الإنشاء بنجاح!'),
+  download:locText('Download','تحميل'),
+  retry:locText('Retry','إعادة'),
+  cannot:locText('Unable to generate image','تعذر إنشاء الصورة'),
+  unexpected:locText('Unexpected error','حدث خطأ غير متوقع'),
+  generating:locText('Generating...','جاري الإنشاء...')
+};
+// ═══════════════════════════════════════════
+// TOOLS DATABASE
+// ═══════════════════════════════════════════
+const TOOLS=[
+// ─── OUTFIT (8) ───
+{id:'outfit-change',name:'Outfit Change',ar:'تبديل الملابس',desc:'ارفع صورتك واختر ستايل الملابس',cat:'outfit',badge:'hot',optsCols:5,thumb:'/img/beauty-tools/outfit-change.png',thumbPos:'center center',thumbFit:'cover',thumbAspect:'1/1',fullCard:true,
+  options:[
+    {id:'casual',name:'Casual',nameAr:'كاجوال',desc:'ملابس يومية مريحة',img:''},
+    {id:'elegant',name:'Elegant',nameAr:'أنيق',desc:'فساتين سهرة وأناقة',img:''},
+    {id:'sport',name:'Sport',nameAr:'رياضي',desc:'ملابس رياضية',img:''},
+    {id:'lingerie',name:'Lingerie',nameAr:'لانجري',desc:'ملابس داخلية أنيقة',img:''},
+    {id:'formal',name:'Formal',nameAr:'رسمي',desc:'بدلة وملابس عمل',img:''},
+    {id:'streetwear',name:'Streetwear',nameAr:'ستريت وير',desc:'ستايل شبابي عصري',img:''},
+    {id:'boho',name:'Boho',nameAr:'بوهو',desc:'لوك بوهيمي ناعم',img:''},
+    {id:'vintage',name:'Vintage',nameAr:'فينتج',desc:'إطلالة كلاسيكية قديمة',img:''},
+  ]},
+{id:'evening-dress',name:'Evening Dress',ar:'فساتين سهرة',desc:'اختاري فستان السهرة المثالي',cat:'outfit',badge:'pop',optsCols:4,thumb:'/img/beauty-tools/evening-dress.png',thumbPos:'center center',thumbFit:'cover',thumbAspect:'1/1',fullCard:true,
+  options:[
+    {id:'long-red',name:'Long Red',nameAr:'طويل أحمر',desc:'فستان أحمر كلاسيكي',img:''},
+    {id:'black-mini',name:'Black Mini',nameAr:'أسود قصير',desc:'فستان أسود صغير',img:''},
+    {id:'gold-sequin',name:'Gold Sequin',nameAr:'ذهبي لامع',desc:'فستان سهرة ذهبي',img:''},
+    {id:'emerald',name:'Emerald',nameAr:'زمردي',desc:'فستان أخضر زمردي',img:''},
+  ]},
+{id:'lingerie-styles',name:'Lingerie Styles',ar:'ستايلات لانجري',desc:'اختاري ستايل اللانجري المفضل',cat:'outfit',badge:'hot',optsCols:4,thumb:'/img/beauty-tools/lingerie-styles.png',thumbPos:'center center',thumbFit:'cover',thumbAspect:'1/1',fullCard:true,
+  options:[
+    {id:'lace-classic',name:'Lace Classic',nameAr:'دانتيل كلاسيكي',desc:'لانجري دانتيل أنيق',img:''},
+    {id:'silk-set',name:'Silk Set',nameAr:'طقم حرير',desc:'طقم حريري ناعم',img:''},
+    {id:'bodysuit',name:'Bodysuit',nameAr:'بودي سوت',desc:'قطعة واحدة أنيقة',img:''},
+    {id:'babydoll',name:'Babydoll',nameAr:'بيبي دول',desc:'بيبي دول شفاف',img:''},
+  ]},
+{id:'wedding-dress',name:'Wedding Dress',ar:'فستان زفاف',desc:'شوفي نفسك بفستان زفاف الأحلام',cat:'outfit',badge:'pop',optsCols:4,thumb:'/img/beauty-tools/wedding-dress.png',thumbPos:'center center',thumbFit:'cover',thumbAspect:'1/1',fullCard:true,
+  options:[
+    {id:'ball-gown',name:'Ball Gown',nameAr:'منفوش كلاسيكي',desc:'فستان أميرات',img:''},
+    {id:'mermaid',name:'Mermaid',nameAr:'ميرميد',desc:'فستان حورية البحر',img:''},
+    {id:'a-line',name:'A-Line',nameAr:'أيه لاين',desc:'قصة كلاسيكية أنيقة',img:''},
+    {id:'minimalist',name:'Minimalist',nameAr:'بسيط',desc:'فستان بسيط عصري',img:''},
+  ]},
+{id:'swimwear',name:'Swimwear',ar:'ملابس سباحة',desc:'اختاري ستايل ملابس السباحة',cat:'outfit',badge:'new',optsCols:4,thumb:'/img/beauty-tools/swimwear.png',thumbPos:'center center',thumbFit:'cover',thumbAspect:'1/1',fullCard:true,
+  options:[
+    {id:'bikini',name:'Bikini',nameAr:'بيكيني',desc:'بيكيني كلاسيكي',img:''},
+    {id:'one-piece',name:'One Piece',nameAr:'قطعة واحدة',desc:'مايوه قطعة واحدة',img:''},
+    {id:'high-waist',name:'High Waist',nameAr:'خصر عالي',desc:'بيكيني خصر عالي',img:''},
+    {id:'cover-up',name:'Cover Up',nameAr:'كفر أب',desc:'مع غطاء شاطئ',img:''},
+  ]},
+{id:'traditional-wear',name:'Traditional Wear',ar:'أزياء تقليدية',desc:'اختر الزي التقليدي المفضل',cat:'outfit',badge:'new',optsCols:4,thumb:'/img/beauty-tools/traditional-wear.png',thumbPos:'center center',thumbFit:'cover',thumbAspect:'1/1',fullCard:true,
+  options:[
+    {id:'abaya',name:'Abaya',nameAr:'عباية',desc:'عباية خليجية فاخرة',img:''},
+    {id:'saree',name:'Saree',nameAr:'ساري هندي',desc:'ساري هندي ملون',img:''},
+    {id:'kimono',name:'Kimono',nameAr:'كيمونو',desc:'كيمونو ياباني',img:''},
+    {id:'hanbok',name:'Hanbok',nameAr:'هانبوك',desc:'هانبوك كوري',img:''},
+  ]},
+{id:'hijab-style',name:'Hijab Styling',ar:'ستايل حجاب',desc:'اختاري طريقة لف الحجاب',cat:'outfit',badge:'new',optsCols:4,thumb:'/img/beauty-tools/hijab-styling.png',thumbPos:'center center',thumbFit:'cover',thumbAspect:'1/1',fullCard:true,
+  options:[
+    {id:'turkish',name:'Turkish',nameAr:'تركي',desc:'لف تركي أنيق',img:''},
+    {id:'khaleeji',name:'Khaleeji',nameAr:'خليجي',desc:'ستايل خليجي فاخر',img:''},
+    {id:'modern',name:'Modern',nameAr:'عصري',desc:'لف عصري بسيط',img:''},
+    {id:'turban',name:'Turban',nameAr:'توربان',desc:'توربان موديل',img:''},
+  ]},
+{id:'cosplay',name:'Cosplay',ar:'كوسبلاي',desc:'تحوّل لشخصيتك المفضلة',cat:'outfit',badge:'hot',optsCols:4,thumb:'/img/beauty-tools/cosplay.png',thumbPos:'center center',thumbFit:'cover',thumbAspect:'1/1',fullCard:true,
+  options:[
+    {id:'superhero',name:'Superhero',nameAr:'بطل خارق',desc:'زي أبطال خارقين',img:''},
+    {id:'anime-char',name:'Anime',nameAr:'شخصية أنمي',desc:'زي شخصية أنمي',img:''},
+    {id:'medieval',name:'Medieval',nameAr:'قروسطي',desc:'زي فارس أو أميرة',img:''},
+    {id:'scifi',name:'Sci-Fi',nameAr:'خيال علمي',desc:'زي مستقبلي',img:''},
+  ]},
+
+// ─── MAKEUP (7) ───
+{id:'full-glam',name:'Full Glam Makeup',ar:'ميكاب فل قلام',desc:'اختاري ستايل الميكاب الكامل',cat:'makeup',badge:'hot',optsCols:4,thumb:'/img/beauty-tools/full-glam-makeup.png',thumbPos:'center center',thumbFit:'cover',thumbAspect:'1/1',fullCard:true,
+  options:[
+    {id:'smokey',name:'Smokey Eye',nameAr:'سموكي آي',desc:'عيون دخانية درامية',img:''},
+    {id:'glitter',name:'Glitter Glam',nameAr:'قليتر',desc:'ميكاب لامع للسهرات',img:''},
+    {id:'classic-red',name:'Classic Red',nameAr:'أحمر كلاسيكي',desc:'روج أحمر كلاسيكي',img:''},
+    {id:'nude-glam',name:'Soft Neutral Glam',nameAr:'سوفت نيوترال',desc:'ميكاب ناعم بألوان محايدة ومحترمة',img:''},
+  ]},
+{id:'korean-beauty',name:'Korean Beauty',ar:'ميكاب كوري',desc:'لوك كوري ناعم — بشرة زجاجية',cat:'makeup',badge:'hot',optsCols:3,thumb:'/img/beauty-tools/korean-beauty.png',thumbPos:'center center',thumbFit:'cover',thumbAspect:'1/1',fullCard:true,
+  options:[
+    {id:'glass-skin',name:'Glass Skin',nameAr:'بشرة زجاجية',desc:'بشرة شفافة ولامعة',img:''},
+    {id:'gradient-lip',name:'Gradient Lip',nameAr:'شفاه متدرجة',desc:'شفاه كورية متدرجة',img:''},
+    {id:'fresh-look',name:'Fresh Look',nameAr:'لوك منعش',desc:'وجه طبيعي ومنعش',img:''},
+  ]},
+{id:'arabic-makeup',name:'Arabic Makeup',ar:'ميكاب عربي',desc:'ميكاب عربي تقليدي درامي',cat:'makeup',badge:'pop',optsCols:3,thumb:'/img/beauty-tools/arabic-makeup.png',thumbPos:'center center',thumbFit:'cover',thumbAspect:'1/1',fullCard:true,
+  options:[
+    {id:'kohl-dramatic',name:'Dramatic Kohl',nameAr:'كحل درامي',desc:'كحل عريض تقليدي',img:''},
+    {id:'gold-arabic',name:'Gold Arabic',nameAr:'ذهبي عربي',desc:'ظلال ذهبية فخمة',img:''},
+    {id:'bridal-arabic',name:'Bridal Arabic',nameAr:'عروسة عربية',desc:'ميكاب عروسة عربية',img:''},
+  ]},
+{id:'lip-color',name:'Lip Color Try-On',ar:'تجربة ألوان الروج',desc:'اختاري لون الروج المفضل',cat:'makeup',badge:'new',optsCols:5,thumb:'/img/beauty-tools/lip-color-tryon.png',thumbPos:'center center',thumbFit:'cover',thumbAspect:'1/1',fullCard:true,
+  options:[
+    {id:'red',name:'Red',nameAr:'أحمر',desc:'أحمر كلاسيكي',img:''},
+    {id:'nude',name:'Nude',nameAr:'نيود',desc:'بيج طبيعي',img:''},
+    {id:'berry',name:'Berry',nameAr:'بيري',desc:'توتي غامق',img:''},
+    {id:'pink',name:'Pink',nameAr:'وردي',desc:'وردي ناعم',img:''},
+    {id:'brown',name:'Brown',nameAr:'بني',desc:'بني دافئ',img:''},
+  ]},
+{id:'eye-makeup',name:'Eye Makeup',ar:'ميكاب عيون',desc:'اختاري ستايل ميكاب العيون',cat:'makeup',badge:'new',optsCols:4,thumb:'/img/beauty-tools/eye-makeup.png',thumbPos:'center center',thumbFit:'cover',thumbAspect:'1/1',fullCard:true,
+  options:[
+    {id:'cat-eye',name:'Cat Eye',nameAr:'كات آي',desc:'آيلاينر مسحوب',img:''},
+    {id:'cut-crease',name:'Cut Crease',nameAr:'كت كريز',desc:'ظلال محددة',img:''},
+    {id:'natural-eye',name:'Natural',nameAr:'طبيعي',desc:'عيون طبيعية ناعمة',img:''},
+    {id:'glitter-eye',name:'Glitter',nameAr:'قليتر',desc:'عيون لامعة',img:''},
+  ]},
+{id:'bridal-makeup',name:'Bridal Makeup',ar:'ميكاب عروس',desc:'اختاري ستايل ميكاب العروسة',cat:'makeup',badge:'pop',optsCols:3,thumb:'/img/beauty-tools/bridal-makeup.png',thumbPos:'center center',thumbFit:'cover',thumbAspect:'1/1',fullCard:true,
+  options:[
+    {id:'soft-bridal',name:'Soft & Romantic',nameAr:'ناعم ورومانسي',desc:'لوك عروسة ناعم',img:''},
+    {id:'dramatic-bridal',name:'Dramatic',nameAr:'درامي',desc:'عروسة بميكاب قوي',img:''},
+    {id:'boho-bridal',name:'Boho',nameAr:'بوهو',desc:'عروسة بوهيمية',img:''},
+  ]},
+{id:'skin-retouch',name:'Skin Retouch',ar:'تنعيم البشرة',desc:'اختاري مستوى التنعيم',cat:'makeup',badge:'new',optsCols:3,
+  options:[
+    {id:'light-retouch',name:'Light',nameAr:'خفيف',desc:'تنعيم بسيط طبيعي',img:''},
+    {id:'medium-retouch',name:'Medium',nameAr:'متوسط',desc:'تنعيم واضح',img:''},
+    {id:'full-retouch',name:'Full',nameAr:'كامل',desc:'تنعيم كامل احترافي',img:''},
+  ]},
+
+// ─── HAIR (7) ───
+{id:'hairstyle',name:'Hairstyle Change',ar:'تغيير قصة الشعر',desc:'اختر القصة الجديدة',cat:'hair',badge:'hot',optsCols:4,
+  options:[
+    {id:'bob',name:'Bob',nameAr:'بوب قصير',desc:'قصة بوب كلاسيكية',img:''},
+    {id:'layers',name:'Layers',nameAr:'طبقات',desc:'طبقات طويلة',img:''},
+    {id:'pixie',name:'Pixie',nameAr:'بيكسي',desc:'قصة بيكسي جريئة',img:''},
+    {id:'curly',name:'Curly',nameAr:'كيرلي',desc:'شعر مجعد',img:''},
+  ]},
+{id:'hair-color',name:'Hair Color',ar:'لون الشعر',desc:'اختر اللون الجديد',cat:'hair',badge:'hot',optsCols:5,
+  options:[
+    {id:'blonde',name:'Blonde',nameAr:'أشقر',desc:'أشقر ذهبي',img:''},
+    {id:'red-hair',name:'Red',nameAr:'أحمر',desc:'أحمر ناري',img:''},
+    {id:'platinum',name:'Platinum',nameAr:'بلاتيني',desc:'بلاتيني فاتح',img:''},
+    {id:'ombre',name:'Ombré',nameAr:'أومبريه',desc:'تدرج لوني',img:''},
+    {id:'chocolate',name:'Chocolate',nameAr:'شوكولا',desc:'بني شوكولا',img:''},
+  ]},
+{id:'beard-style',name:'Beard Styles',ar:'ستايل لحية',desc:'اختر ستايل اللحية',cat:'hair',badge:'new',optsCols:4,
+  options:[
+    {id:'full-beard',name:'Full Beard',nameAr:'لحية كاملة',desc:'لحية كثيفة كاملة',img:''},
+    {id:'goatee',name:'Goatee',nameAr:'ذقن',desc:'ذقن فقط',img:''},
+    {id:'stubble',name:'Stubble',nameAr:'خفيفة',desc:'لحية خفيفة',img:''},
+    {id:'clean-shave',name:'Clean Shave',nameAr:'حليق',desc:'بدون لحية',img:''},
+  ]},
+{id:'bangs',name:'Bangs Try-On',ar:'تجربة غرة',desc:'اختاري نوع الغرة',cat:'hair',badge:'new',optsCols:4,
+  options:[
+    {id:'straight-bangs',name:'Straight',nameAr:'ستريت',desc:'غرة مستقيمة',img:''},
+    {id:'curtain-bangs',name:'Curtain',nameAr:'كيرتن',desc:'غرة جانبية',img:''},
+    {id:'side-bangs',name:'Side Swept',nameAr:'جانبية',desc:'غرة مسحوبة',img:''},
+    {id:'wispy-bangs',name:'Wispy',nameAr:'خفيفة',desc:'غرة خفيفة شفافة',img:''},
+  ]},
+{id:'braids',name:'Braids & Updos',ar:'ضفائر وتسريحات',desc:'اختاري التسريحة',cat:'hair',badge:'new',optsCols:4,
+  options:[
+    {id:'french-braid',name:'French Braid',nameAr:'ضفيرة فرنسية',desc:'ضفيرة كلاسيكية',img:''},
+    {id:'fishtail',name:'Fishtail',nameAr:'ذيل سمكة',desc:'ضفيرة ذيل سمكة',img:''},
+    {id:'chignon',name:'Chignon',nameAr:'شنيون',desc:'كعكة أنيقة',img:''},
+    {id:'messy-bun',name:'Messy Bun',nameAr:'كعكة عشوائية',desc:'كعكة كاجوال',img:''},
+  ]},
+{id:'extensions',name:'Hair Extensions',ar:'إكستنشن',desc:'اختاري الطول والكثافة',cat:'hair',badge:'new',optsCols:3,
+  options:[
+    {id:'medium-ext',name:'Medium',nameAr:'متوسط',desc:'إضافة طول متوسط',img:''},
+    {id:'long-ext',name:'Long',nameAr:'طويل',desc:'شعر طويل جداً',img:''},
+    {id:'volume-ext',name:'Volume',nameAr:'كثافة',desc:'كثافة بدون طول',img:''},
+  ]},
+{id:'balayage',name:'Balayage',ar:'بالاياج وهايلايت',desc:'اختاري نوع التلوين',cat:'hair',badge:'new',optsCols:3,
+  options:[
+    {id:'sun-kissed',name:'Sun-Kissed',nameAr:'لمسة شمس',desc:'بالاياج طبيعي',img:''},
+    {id:'caramel-hl',name:'Caramel',nameAr:'كراميل',desc:'هايلايت كراميلي',img:''},
+    {id:'ash-hl',name:'Ash',nameAr:'رمادي',desc:'هايلايت رمادي',img:''},
+  ]},
+
+// ─── BODY (8) ───
+{id:'lip-enhancement',name:'Lip Enhancement',ar:'تكبير الشفايف',desc:'اختاري حجم الشفايف المطلوب',cat:'body',badge:'hot',optsCols:5,
+  options:[
+    {id:'lip-natural',name:'Natural',nameAr:'طبيعي',desc:'تعريف خفيف ودقيق',img:''},
+    {id:'lip-medium',name:'Medium',nameAr:'متوسط',desc:'امتلاء معتدل',img:''},
+    {id:'lip-full',name:'Full',nameAr:'ممتلئ',desc:'حجم واضح وحدود محددة',img:''},
+    {id:'lip-extra',name:'Extra Full',nameAr:'ممتلئ جداً',desc:'حجم كبير وشكل بارز',img:''},
+    {id:'lip-hollywood',name:'Hollywood',nameAr:'هوليوود',desc:'أقصى حجم وامتلاء',img:''},
+  ]},
+{id:'breast-enhancement',name:'Breast Enhancement',ar:'تكبير الصدر',desc:'اختاري الحجم المطلوب',cat:'body',badge:'hot',optsCols:5,
+  options:[
+    {id:'br-natural',name:'Natural',nameAr:'طبيعي',desc:'175cc - 275cc',img:''},
+    {id:'br-moderate',name:'Moderate',nameAr:'معتدل',desc:'275cc - 375cc',img:''},
+    {id:'br-full',name:'Full',nameAr:'ممتلئ',desc:'375cc - 475cc',img:''},
+    {id:'br-extra',name:'Extra Full',nameAr:'ممتلئ جداً',desc:'475cc - 575cc',img:''},
+    {id:'br-dramatic',name:'Dramatic',nameAr:'درامي',desc:'575cc+',img:''},
+  ]},
+{id:'butt-enhancement',name:'Butt Enhancement',ar:'تكبير الأرداف',desc:'اختاري الشكل والحجم',cat:'body',badge:'hot',optsCols:5,
+  options:[
+    {id:'bt-natural',name:'Natural',nameAr:'طبيعي',desc:'تحسين خفيف طبيعي',img:''},
+    {id:'bt-moderate',name:'Moderate',nameAr:'معتدل',desc:'استدارة ملحوظة',img:''},
+    {id:'bt-full',name:'Full',nameAr:'ممتلئ',desc:'تحديد وبروز واضح',img:''},
+    {id:'bt-extra',name:'Extra Full',nameAr:'ممتلئ جداً',desc:'أقصى حجم وبروز',img:''},
+    {id:'bt-dramatic',name:'Dramatic',nameAr:'درامي',desc:'أقصى حجم وامتلاء',img:''},
+  ]},
+{id:'intimate-care',name:'Intimate Care',ar:'العناية الحميمة',desc:'اختاري مستوى العناية',cat:'body',badge:'pop',optsCols:4,
+  options:[
+    {id:'ic-natural',name:'Natural Care',nameAr:'عناية طبيعية',desc:'ترطيب وتوازن',img:''},
+    {id:'ic-light',name:'Light Enhancement',nameAr:'تحسين خفيف',desc:'لون ومرونة',img:''},
+    {id:'ic-moderate',name:'Moderate',nameAr:'تحسين متوسط',desc:'شد وتحديد',img:''},
+    {id:'ic-advanced',name:'Advanced Care',nameAr:'عناية متقدمة',desc:'تجديد شامل ورفع',img:''},
+  ]},
+{id:'slim-body',name:'Slim Body',ar:'تنحيف الجسم',desc:'اختاري مستوى التنحيف',cat:'body',badge:'pop',optsCols:3,
+  options:[
+    {id:'slim-light',name:'Light',nameAr:'خفيف',desc:'تنحيف بسيط طبيعي',img:''},
+    {id:'slim-moderate',name:'Moderate',nameAr:'متوسط',desc:'خصر أصغر وجسم أنحف',img:''},
+    {id:'slim-dramatic',name:'Dramatic',nameAr:'درامي',desc:'تحول كبير في الشكل',img:''},
+  ]},
+{id:'muscle-enhance',name:'Muscle Enhancement',ar:'إبراز العضلات',desc:'اختر مستوى العضلات',cat:'body',badge:'new',optsCols:3,
+  options:[
+    {id:'mus-toned',name:'Toned',nameAr:'متناسق',desc:'جسم رياضي خفيف',img:''},
+    {id:'mus-athletic',name:'Athletic',nameAr:'رياضي',desc:'عضلات واضحة',img:''},
+    {id:'mus-bodybuilder',name:'Bodybuilder',nameAr:'بودي بلدر',desc:'عضلات ضخمة',img:''},
+  ]},
+{id:'nose-reshape',name:'Nose Reshape',ar:'تعديل الأنف',desc:'اختر الشكل المطلوب',cat:'body',badge:'new',optsCols:4,
+  options:[
+    {id:'nose-refine',name:'Refined',nameAr:'مهذب',desc:'تصغير خفيف وتنعيم',img:''},
+    {id:'nose-slim',name:'Slim',nameAr:'نحيف',desc:'أنف أنحف وأضيق',img:''},
+    {id:'nose-button',name:'Button',nameAr:'صغير',desc:'أنف صغير مرفوع',img:''},
+    {id:'nose-straight',name:'Straight',nameAr:'مستقيم',desc:'أنف مستقيم ومحدد',img:''},
+  ]},
+{id:'skin-tan',name:'Skin Tan',ar:'تسمير البشرة',desc:'اختر درجة اللون',cat:'body',badge:'new',optsCols:4,
+  options:[
+    {id:'fair',name:'Fair',nameAr:'فاتح',desc:'بشرة فاتحة جداً',img:''},
+    {id:'light-tan',name:'Light Tan',nameAr:'تان خفيف',desc:'سمرة خفيفة',img:''},
+    {id:'golden-tan',name:'Golden',nameAr:'ذهبي',desc:'تان ذهبي صيفي',img:''},
+    {id:'deep-tan',name:'Deep',nameAr:'غامق',desc:'سمرة غامقة',img:''},
+  ]},
+];
+
+// Remove NSFW / sexual-sensitive tools and options from Beauty page
+const NSFW_TOOL_IDS = new Set([
+  'lingerie-styles',
+  'swimwear',
+  'breast-enhancement',
+  'butt-enhancement',
+  'intimate-care'
+]);
+const NSFW_OPTION_IDS = new Set([
+  'lingerie',
+  'bikini',
+  'one-piece',
+  'high-waist',
+  'cover-up',
+  'lace-classic',
+  'silk-set',
+  'bodysuit',
+  'babydoll'
+]);
+const NSFW_TEXT_RE = /(lingerie|swimwear|bikini|intimate|breast|butt|sexual|sexy|nsfw|لانجري|سباحة|بيكيني|حميم|صدر|أرداف|ارداف|جنسي)/i;
+const CLEAN_TOOLS = TOOLS
+  .map(t => ({
+    ...t,
+    options: (t.options || []).filter(o => !NSFW_OPTION_IDS.has(o.id) && !NSFW_TEXT_RE.test(`${o.id} ${o.name} ${o.nameAr} ${o.desc}`))
+  }))
+  .filter(t => !NSFW_TOOL_IDS.has(t.id) && !NSFW_TEXT_RE.test(`${t.id} ${t.name} ${t.ar} ${t.desc}`) && (t.options || []).length > 0);
+TOOLS.length = 0;
+TOOLS.push(...CLEAN_TOOLS);
+
+// ═══ STATE ═══
+let activeC='all';
+const cats=[
+  {id:'all',l:locText('All','الكل')},
+  {id:'outfit',l:locText('Outfit Styles','ستايل الملابس')},
+  {id:'makeup',l:locText('Makeup','ميكاب')},
+  {id:'hair',l:locText('Hair & Cuts','شعر وقصات')},
+  {id:'body',l:locText('Body Edit','تعديل الجسم')}
+];
+const cntF=c=>c==='all'?TOOLS.length:TOOLS.filter(t=>t.cat===c).length;
+
+const $t=document.getElementById('tabs'),$g=document.getElementById('gd');
+
+function rTabs(){
+  $t.innerHTML=cats.map(c=>`<button class="tab ${activeC===c.id?'on':''}" data-c="${c.id}">${c.l}<span class="cnt">${cntF(c.id)}</span></button>`).join('');
+  $t.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{activeC=b.dataset.c;rTabs();rGrid()});
+}
+
+function rGrid(){
+  let list=activeC==='all'?TOOLS:TOOLS.filter(t=>t.cat===activeC);
+  $g.innerHTML='';
+  list.forEach((t,i)=>{
+    const e=document.createElement('div');e.className=`tc${t.fullCard?' bg-card-image':''}`;
+    e.setAttribute('data-no-media-actions','');
+    e.style.animationDelay=`${i*.03}s`;e.onclick=()=>openWS(t);
+    const bc=t.badge==='hot'?'b-h':t.badge==='new'?'b-n':'b-p';
+    const bl=t.badge==='hot'?'HOT':t.badge==='new'?'NEW':'POPULAR';
+    // Use first option images or placeholder
+    const toolThumb=t.thumb||'';
+    const hasImg=!!(toolThumb||(t.options[0]&&t.options[0].img));
+    const imgSrc=toolThumb||(t.options[0]&&t.options[0].img)||'';
+    const thumbContent=hasImg
+      ?`<img src="${imgSrc}" alt="" style="object-fit:${t.thumbFit||'cover'};object-position:${t.thumbPos||'center center'}">`
+      :`<div class="ph-icon" style="font-size:1.6rem;opacity:.3;font-family:var(--fen);letter-spacing:2px;text-transform:uppercase;color:var(--txt3)">${isAr?(t.ar||t.name):t.name}</div><div class="ph-text">${TX.imageSoon}</div>`;
+    const thumbOverlay = t.noThumbOverlay ? '' : '<div class="ovl"></div>';
+    const thumbStyle = `style="aspect-ratio:${t.thumbAspect||'16/9'}"`;
+
+    e.innerHTML=`
+      <div class="thumb" ${thumbStyle}>${thumbContent}${thumbOverlay}
+        <span class="bd ${bc}">${bl}</span>
+        <span class="opts-count">${t.options.length} ${TX.options}</span>
+      </div>
+      <div class="inf"><h3>${isAr?(t.ar||t.name):t.name}</h3><p class="ds">${locDesc(t.desc,t.name)}</p></div>`;
+    $g.appendChild(e);
+  });
+}
+async function applyThumbConfig(){
+  try{
+    const res = await fetch('/data/beauty-card-thumbs.json', { cache: 'no-store' });
+    if(!res.ok) return;
+    const cfg = await res.json();
+    const byTool = cfg && typeof cfg === 'object' ? (cfg.tools || {}) : {};
+    TOOLS.forEach(t=>{
+      const item = byTool[t.id];
+      if(!item || typeof item !== 'object') return;
+      if(typeof item.thumb === 'string') t.thumb = item.thumb;
+      if(typeof item.thumbFit === 'string') t.thumbFit = item.thumbFit;
+      if(typeof item.thumbPos === 'string') t.thumbPos = item.thumbPos;
+      if(typeof item.thumbAspect === 'string') t.thumbAspect = item.thumbAspect;
+      if(typeof item.fullCard === 'boolean') t.fullCard = item.fullCard;
+    });
+  }catch(_){}
+}
+
+async function initBeautyCards(){
+  await applyThumbConfig();
+  rTabs();
+  rGrid();
+}
+initBeautyCards();
+
+// ═══ WORKSPACE ═══
+const $o=document.getElementById('wO'),$w=document.getElementById('wS');
+let uploadedFile=null, uploadedRatio='2:3', selectedOpt=null, currentTool=null;
+
+function getOptionImageCandidates(tool,optId){
+  const toolId = tool.id;
+  const base = `/img/beauty-options/${toolId}`;
+  const toolThumb = tool.thumb ? String(tool.thumb) : '';
+  return [
+    `${base}/${optId}.jpg`,
+    `${base}/${optId}.png`,
+    `${base}/${optId}.webp`,
+    toolThumb,
+    `${base}/default.jpg`,
+    `${base}/default.png`,
+    `${base}/default.webp`
+  ].filter(Boolean);
+}
+
+function handleOptImgError(imgEl, arName){
+  try{
+    const list = (imgEl.dataset.fallbacks || '').split('|').filter(Boolean);
+    const idx = Number(imgEl.dataset.idx || '0');
+    const next = idx + 1;
+    if(next < list.length){
+      imgEl.dataset.idx = String(next);
+      imgEl.src = list[next];
+      return;
+    }
+  }catch(_){}
+  const wrap = imgEl.parentElement;
+  if(wrap){
+    wrap.innerHTML = `<div class="opt-ph">${isAr?arName:(arName&& !hasArabic(arName)?arName:'Style')}<br><span style="font-size:.5rem;opacity:.5">${TX.imageSoon}</span></div>`;
+  }
+}
+
+function openWS(tool){
+  uploadedFile=null;selectedOpt=null;currentTool=tool;
+
+  const colsClass=`cols-${tool.optsCols||4}`;
+  const optsHTML=tool.options.map(opt=>{
+    const cands = opt.img ? [opt.img] : getOptionImageCandidates(tool,opt.id);
+    const joined = cands.join('|');
+    const imgContent = `<img src="${cands[0]}" alt="${opt.name}" data-fallbacks="${joined}" data-idx="0" onerror="handleOptImgError(this,'${opt.nameAr}')">`;
+    return`
+    <div class="opt-card no-media-actions" data-no-media-actions data-id="${opt.id}" onclick="selOpt(this,'${opt.id}')">
+      <input type="radio" name="opt" value="${opt.id}">
+      <div class="check"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div>
+      <div class="opt-img">${imgContent}</div>
+      <div class="opt-label">
+      <div class="opt-name">${isAr?(opt.nameAr||opt.name):opt.name}</div>
+      <div class="opt-desc">${locDesc(opt.desc,opt.name)}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  $w.innerHTML=`
+    <button class="wb" onclick="closeWS()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>${TX.back}
+    </button>
+    <div class="wh"><h2>${isAr?(tool.ar||tool.name):tool.name}</h2><p>${locDesc(tool.desc,tool.name)}</p></div>
+    <div class="steps">
+      <div class="step active" id="s1"><span class="sn">1</span>${TX.step1}</div>
+      <div class="line"></div>
+      <div class="step" id="s2"><span class="sn">2</span>${TX.step2}</div>
+      <div class="line"></div>
+      <div class="step" id="s3"><span class="sn">3</span>${TX.step3}</div>
+    </div>
+
+    <div class="sec-label">${TX.sec1}</div>
+    <div class="uz" id="upZ" onclick="this.querySelector('input').click()">
+      <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      <div class="ut"><strong>${TX.clickUpload}</strong></div>
+      <div class="ux">JPG, PNG, WEBP</div>
+      <img class="pi" alt="">
+      <input type="file" accept="image/*" onchange="handleUpload(this)">
+    </div>
+
+    <div class="sec-label">${TX.sec2}</div>
+    <div class="opts-grid ${colsClass}" id="optsG">${optsHTML}</div>
+
+    <button class="gb" id="gBtn" onclick="doGen('${tool.id}')" disabled>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10"/></svg>
+      ${TX.genBtn}
+    </button>
+    <div class="ra" id="rA">
+      <div class="rl" id="rL"><div class="sp"></div><p>${TX.processing}</p></div>
+      <div class="ro" id="rO" style="display:none"></div>
+    </div>`;
+
+  $o.classList.add('on');document.body.style.overflow='hidden';$o.scrollTop=0;
+}
+
+function closeWS(){$o.classList.remove('on');document.body.style.overflow=''}
+$o.addEventListener('click',e=>{if(e.target===$o)closeWS()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeWS()});
+
+function handleUpload(inp){
+  const f=inp.files[0];if(!f)return;
+  uploadedFile=f;
+  const z=document.getElementById('upZ');z.classList.add('hf');
+  const img=z.querySelector('.pi');
+  img.onload=()=>{
+    const w=img.naturalWidth||0,h=img.naturalHeight||0;
+    const srcRatio = h ? (w/h) : (2/3);
+    const maps=[
+      {k:'1:1',v:1},
+      {k:'2:3',v:2/3},
+      {k:'3:2',v:3/2},
+      {k:'9:16',v:9/16},
+      {k:'16:9',v:16/9}
+    ];
+    uploadedRatio = maps.sort((a,b)=>Math.abs(a.v-srcRatio)-Math.abs(b.v-srcRatio))[0].k;
+  };
+  img.src=URL.createObjectURL(f);img.style.display='block';
+  document.getElementById('s1').classList.remove('active');
+  document.getElementById('s1').classList.add('done');
+  document.getElementById('s2').classList.add('active');
+  checkReady();
+}
+
+function selOpt(card,optId){
+  document.querySelectorAll('.opt-card').forEach(c=>c.classList.remove('selected'));
+  card.classList.add('selected');
+  card.querySelector('input').checked=true;
+  selectedOpt=optId;
+  checkReady();
+}
+
+function checkReady(){
+  document.getElementById('gBtn').disabled=!(uploadedFile&&selectedOpt);
+}
+
+function selectedBeautyOption(){
+  if(!currentTool||!selectedOpt) return null;
+  return (currentTool.options||[]).find(o=>o.id===selectedOpt) || null;
+}
+
+
+const BREAST_STYLE_PROMPTS={
+  'br-natural':'upper chest fullness enhancement NATURAL level: subtle and realistic increase above under-bust line only, soft contour, balanced anatomy, fully clothed look',
+  'br-moderate':'upper chest fullness enhancement MODERATE level: noticeable but balanced volume increase above under-bust line only, natural contour, realistic anatomy, fully clothed look',
+  'br-full':'upper chest fullness enhancement FULL level: clear fullness increase in bust region only, defined yet realistic contour, proportionate torso, fully clothed look',
+  'br-extra':'upper chest fullness enhancement EXTRA FULL level: strong bust-region fullness above under-bust line only, rounded contour while preserving body coherence, fully clothed look',
+  'br-dramatic':'upper chest fullness enhancement DRAMATIC level: maximum bust-region fullness above under-bust line only, stylized but coherent anatomy, fully clothed look'
+};
+const LIP_STYLE_PROMPTS={
+  'lip-natural':'lip enhancement NATURAL level: subtle lip fullness, soft contour definition, realistic anatomy, no exaggerated shape',
+  'lip-medium':'lip enhancement MEDIUM level: moderate balanced lip volume, defined cupid bow, realistic contour',
+  'lip-full':'lip enhancement FULL level: clear lip fullness increase, smooth borders, natural symmetry',
+  'lip-extra':'lip enhancement EXTRA FULL level: bold lip volume, rounded contour, stylized but realistic',
+  'lip-hollywood':'lip enhancement HOLLYWOOD level: maximum polished lip fullness, defined shape, premium editorial look while keeping identity'
+};
+const BUTT_STYLE_PROMPTS={
+  'bt-natural':'butt enhancement NATURAL level: subtle glute contour enhancement only, realistic anatomy, soft and balanced shape',
+  'bt-moderate':'butt enhancement MODERATE level: moderate glute volume increase only, smooth contour, natural body proportions',
+  'bt-full':'butt enhancement FULL level: clear glute fullness enhancement only, defined yet realistic silhouette',
+  'bt-extra':'butt enhancement EXTRA FULL level: strong glute volume enhancement only, rounded contour while keeping body coherence',
+  'bt-dramatic':'butt enhancement DRAMATIC level: maximum glute projection enhancement only, stylized but anatomically coherent'
+};
+const GENERIC_STYLE_PROMPTS={
+  'nude-glam':'soft neutral glam makeup, natural skin finish, modest elegant look, fully clothed portrait, clean beauty style',
+  'classic-red':'classic red lipstick makeup, elegant modest portrait, balanced beauty lighting',
+  'glitter':'glitter glam makeup for evening, elegant and modest appearance, clean portrait style',
+  'smokey':'smokey eye makeup, sophisticated cinematic portrait, modest and non-erotic style'
+};
+
+async function fileToDataUrl(file){
+  return await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = () => reject(new Error(TX.uploadFail));
+    reader.readAsDataURL(file);
+  });
+}
+
+function doGen(toolId){
+  if(!uploadedFile||!selectedOpt)return;
+  const b=document.getElementById('gBtn'),ra=document.getElementById('rA'),rl=document.getElementById('rL'),ro=document.getElementById('rO');
+  b.disabled=true;b.innerHTML=`<div class="sp" style="width:20px;height:20px;border-width:2px;margin:0"></div> ${TX.generating}`;
+  ra.classList.add('vi');rl.style.display='block';ro.style.display='none';
+  document.getElementById('s2').classList.remove('active');
+  document.getElementById('s2').classList.add('done');
+  document.getElementById('s3').classList.add('active');
+
+  (async()=>{
+    try{
+      const op = selectedBeautyOption();
+      const imageUrl = await fileToDataUrl(uploadedFile);
+      const stylePrompt = currentTool?.id==='breast-enhancement'
+        ? (BREAST_STYLE_PROMPTS[op?.id] || 'breast enhancement with realistic anatomy and proportionate contour')
+        : (currentTool?.id==='lip-enhancement'
+          ? (LIP_STYLE_PROMPTS[op?.id] || 'lip enhancement with realistic anatomy and balanced contour')
+          : (currentTool?.id==='butt-enhancement'
+            ? (BUTT_STYLE_PROMPTS[op?.id] || 'butt enhancement with realistic anatomy and proportionate contour')
+            : (GENERIC_STYLE_PROMPTS[op?.id] || `Beauty portrait enhancement, style ${op?.name || 'natural'}, ${currentTool?.name || 'beauty tool'}, realistic and elegant`)));
+      const regionGuard = currentTool?.id==='breast-enhancement'
+        ? 'Edit ONLY bust region above the under-bust line. ABSOLUTELY DO NOT change abdomen, waist, stomach, hips, glute area, thighs, legs, hands, face, hair, pose, clothing embroidery, background, camera angle, or body position. Keep lower torso geometry exactly unchanged.'
+        : (currentTool?.id==='lip-enhancement'
+          ? 'Edit ONLY lips area. Do NOT change nose, eyes, jawline, cheeks, face shape, skin tone, hair, body, outfit, hands, pose, or background. Keep same mouth position and same facial identity.'
+          : (currentTool?.id==='butt-enhancement'
+            ? 'Edit ONLY glute area. Do NOT change chest area, waist, abdomen, face, hair, hands, legs, pose, outfit details, or background.'
+            : 'Preserve original body proportions and composition except requested enhancement.'));
+      const prompt = `${stylePrompt}. ${regionGuard} Keep EXACT same person identity and face likeness from the source image (same facial structure, eyes, nose, lips, skin tone, and age). No face swap, no new identity, no added objects, no text, no watermark, no distortion. Strict safety: no nudity, no lingerie, no erotic content, no sexualized anatomy, fully clothed output only.`;
+      const r = await fetch('/api/generate/image', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        credentials:'include',
+        body: JSON.stringify({
+          modelId:'nano-banana-pro',
+          prompt,
+          imageUrl,
+          imageInputField:'image_url',
+          aspectRatio: uploadedRatio || '1:1',
+          numImages: 1
+        })
+      });
+      const d = await r.json();
+      if(!r.ok) throw new Error(d.error || TX.startFail);
+      const url = Array.isArray(d?.imageUrls) ? d.imageUrls[0] : null;
+      if(!url) throw new Error(TX.invalidResult);
+
+      rl.style.display='none';ro.style.display='block';
+      ro.innerHTML=`<div style="padding:20px;text-align:center"><div style="font-family:var(--fser);font-size:1.3rem;font-style:italic;color:var(--rose);margin-bottom:8px">${TX.success}</div><a href="${url}" target="_blank" rel="noopener noreferrer"><img src="${url}" alt="result" style="max-width:100%;border-radius:12px;border:1px solid var(--brd);cursor:zoom-in"></a></div><div class="rx"><a class="rb rdl" href="${url}" download target="_blank" rel="noopener">${TX.download}</a><button class="rb rrt" onclick="doGen('${toolId}')">${TX.retry}</button></div>`;
+    }catch(err){
+      rl.style.display='none';ro.style.display='block';
+      ro.innerHTML=`<div style="padding:32px;text-align:center"><div style="font-family:var(--fser);font-size:1.2rem;color:#ff8c9d;margin-bottom:8px">${TX.cannot}</div><p style="color:var(--txt2);font-size:.85rem">${(err&&err.message)?err.message:TX.unexpected}</p></div><div class="rx"><button class="rb rrt" onclick="doGen('${toolId}')">${TX.retry}</button></div>`;
+    }finally{
+      b.disabled=false;b.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10"/></svg> ${TX.genBtn}`;
+    }
+  })();
+}
+</script>
+<script>
+  // Hard-disable any click/open behavior on hero/bottom covers.
+  document.addEventListener('click', (e) => {
+    const blocked = e.target.closest('.hero-cover,.bottom-cover');
+    if (!blocked) return;
+    if (e.target.closest('.tc,.tab,button,input,select,textarea,label,a')) return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+  }, true);
+</script>
+</body>
+</html>
+
+
+
+
+

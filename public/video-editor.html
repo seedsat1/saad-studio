@@ -1,0 +1,483 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SAAD STUDIO - Video Project Editor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    :root { --bg:#0a0a0a; --bg-deep:#050505; --card:#161616; --card-hover:#1e1e1e; --surface:#111111; --accent:#3b82f6; --accent-hover:#2563eb; --text:#e2e8f0; --text-dim:#94a3b8; --text-muted:#64748b; --border:rgba(255,255,255,0.08); --border-light:rgba(255,255,255,0.12); --green-audio:#22c55e; --purple-text:#8b5cf6; --timeline-bg:#0d0d0d; --track-bg:#1a1a1a; --playhead:#3b82f6; --selected:rgba(59,130,246,0.3); --danger:#ef4444; }
+    *{box-sizing:border-box} body{margin:0;font-family:"Outfit",sans-serif;background:var(--bg-deep);color:var(--text)} button,input,select,textarea{font-family:inherit} .hidden{display:none!important}
+    .app{height:100vh;display:flex;flex-direction:column;background:radial-gradient(circle at 25% 15%, rgba(59,130,246,0.06), transparent 35%), var(--bg)}
+    .dashboard{padding:24px;overflow:auto;height:100%} .dashboard-card{border:1px solid var(--border);background:linear-gradient(135deg,#121212,#0d0d0d);border-radius:16px;padding:20px;margin-bottom:20px}
+    .dashboard-row{display:flex;justify-content:space-between;align-items:center;gap:12px}
+    .btn{border:1px solid var(--border-light);background:#1b1b1b;color:var(--text);border-radius:10px;padding:10px 14px;cursor:pointer;font-weight:600}.btn:hover{background:#242424}
+    .btn-accent{background:linear-gradient(135deg,var(--accent),#1d4ed8);border-color:transparent;color:#fff}.btn-accent:hover{background:linear-gradient(135deg,var(--accent-hover),#1e40af)}
+    .projects-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;margin-top:14px}
+    .project-card{border:1px solid var(--border);background:#111;border-radius:12px;overflow:hidden;cursor:pointer}.project-thumb{height:108px;background:linear-gradient(145deg,#1c1c1c,#111);border-bottom:1px solid var(--border);position:relative}
+    .mini-timeline{position:absolute;left:10px;right:10px;bottom:10px;height:34px;border:1px solid var(--border);border-radius:7px;background:#0d0d0d;overflow:hidden}
+    .mini-clip{position:absolute;top:4px;height:10px;border-radius:4px;background:#2f2f2f}.mini-audio{position:absolute;top:18px;height:10px;border-radius:4px;background:rgba(34,197,94,0.5)}
+    .project-body{padding:10px}.muted{color:var(--text-dim)}.small{font-size:12px}
+    .editor{display:grid;grid-template-rows:56px minmax(0,1fr);height:100%}.topbar{border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 14px;background:#0b0b0b;gap:10px}
+    .crumbs{display:flex;align-items:center;gap:8px;font-size:13px;min-width:0}.project-name{border:1px solid transparent;padding:4px 8px;border-radius:8px;min-width:120px;max-width:320px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:text}.project-name:hover{border-color:var(--border);background:#141414}
+    .cloud-status{color:#86efac;font-size:13px}.topbar-right{display:flex;align-items:center;gap:8px}
+    .workspace{display:grid;grid-template-columns:230px minmax(0,1fr) 280px;min-height:0}.panel{border-right:1px solid var(--border);background:#0f0f0f;min-height:0;display:flex;flex-direction:column}.panel.right{border-right:none;border-left:1px solid var(--border)}
+    .panel-header{border-bottom:1px solid var(--border);padding:10px;font-size:13px;font-weight:700;display:flex;justify-content:space-between;align-items:center}
+    .tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:10px;border-bottom:1px solid var(--border)}.tab{border:1px solid var(--border);background:#131313;color:var(--text-dim);padding:8px;border-radius:8px;text-align:center;cursor:pointer;font-size:12px}.tab.active{background:#1d1d1d;color:var(--text);border-color:var(--border-light)}
+    .search{margin:10px;width:calc(100% - 20px);border:1px solid var(--border);background:#111;color:var(--text);border-radius:8px;padding:8px 10px;font-size:12px}
+    .media-content{overflow:auto;padding:10px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.media-item{border:1px solid var(--border);border-radius:10px;overflow:hidden;background:#141414;cursor:grab}.media-item.selected{border-color:var(--accent);box-shadow:0 0 0 1px rgba(59,130,246,0.5) inset}
+    .media-thumb{height:76px;background:linear-gradient(145deg,#242424,#111);display:flex;align-items:center;justify-content:center;color:#cbd5e1;font-size:11px;position:relative}.duration-badge{position:absolute;right:6px;bottom:6px;background:rgba(0,0,0,0.65);border:1px solid var(--border);border-radius:6px;padding:1px 4px;font-size:10px}.media-name{font-size:11px;padding:6px 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .center{display:grid;grid-template-rows:42px minmax(0,1fr) 230px;min-height:0;background:#0a0a0a}.toolbar{border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;padding:0 10px;background:#0f0f0f}
+    .tool-btn{border:1px solid var(--border);background:#161616;color:var(--text-dim);border-radius:8px;padding:6px 8px;font-size:12px}
+    .preview-wrap{min-height:0;display:grid;grid-template-rows:minmax(0,1fr) 44px;padding:12px;gap:10px;border-bottom:1px solid var(--border)}
+    .preview{border:1px solid var(--border);background:#000;border-radius:12px;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;aspect-ratio:16/9;margin:0 auto;width:min(100%,980px)}
+    .preview video,.preview img{width:100%;height:100%;object-fit:contain}.preview-text{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);color:#fff;text-align:center;pointer-events:none;white-space:pre-wrap;max-width:90%}.preview-empty{color:#64748b;font-size:14px;text-align:center}
+    .playback{border:1px solid var(--border);border-radius:10px;background:#111;display:flex;align-items:center;justify-content:space-between;padding:8px 10px;gap:8px;font-size:12px}.playback-left,.playback-right{display:flex;align-items:center;gap:8px}
+    .timeline{min-height:0;display:grid;grid-template-rows:30px 1fr 32px;background:var(--timeline-bg)} .ruler{border-top:1px solid var(--border);border-bottom:1px solid var(--border);position:relative;overflow-x:auto;overflow-y:hidden;white-space:nowrap;background:#121212}
+    .ruler-content{position:relative;height:100%;min-width:1200px}.ruler-mark{position:absolute;top:0;bottom:0;width:1px;background:rgba(255,255,255,0.08)}.ruler-label{position:absolute;top:6px;left:2px;font-size:10px;color:var(--text-muted)}
+    .tracks-wrap{overflow:auto;position:relative;padding:8px 10px}.track{position:relative;height:58px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;background:var(--track-bg);min-width:1200px}.track-label{position:absolute;left:8px;top:8px;font-size:11px;color:var(--text-muted);z-index:2}
+    .clip{position:absolute;top:22px;height:30px;border-radius:6px;border:2px solid transparent;background:#2a2a2a;overflow:hidden;cursor:grab;user-select:none;display:flex;align-items:center;padding:0 8px;font-size:11px;white-space:nowrap;gap:6px}.clip.video{background:#2b2b2b}.clip.text{background:rgba(139,92,246,0.35);border-left:3px solid var(--purple-text)}.clip.audio{background:rgba(34,197,94,0.22);border-left:3px solid var(--green-audio)}.clip.selected{border-color:var(--accent);box-shadow:0 0 0 1px var(--selected) inset}
+    .trim-handle{position:absolute;top:0;width:6px;bottom:0;background:rgba(255,255,255,0.3);cursor:ew-resize;z-index:2}.trim-handle.left{left:0}.trim-handle.right{right:0}
+    .playhead{position:absolute;top:0;bottom:0;width:2px;background:var(--playhead);z-index:20;pointer-events:none}.playhead::before{content:"";position:absolute;top:-6px;left:-5px;width:12px;height:12px;background:var(--playhead);clip-path:polygon(0 0,100% 0,50% 100%)}
+    .timeline-footer{border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 10px;font-size:12px;color:var(--text-dim)} .zoom-wrap{display:flex;align-items:center;gap:8px}.zoom-input{width:140px;accent-color:var(--accent)} .selection-chip{border:1px solid var(--border);border-radius:999px;padding:4px 10px;background:#131313}
+    .prop-body{overflow:auto;padding:10px;display:flex;flex-direction:column;gap:10px;min-height:0}.prop-section{border:1px solid var(--border);border-radius:10px;background:#131313;padding:10px}.prop-section h4{margin:0 0 8px;font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em}
+    .row{display:grid;grid-template-columns:1fr auto;align-items:center;gap:6px;margin-bottom:6px;font-size:12px}.row input[type="range"]{width:100%;accent-color:var(--accent)}
+    .row input[type="text"],.row input[type="number"],.row select,.row textarea{border:1px solid var(--border);background:#0f0f0f;color:var(--text);border-radius:8px;padding:6px 8px;width:100%;font-size:12px}
+    .chip-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.chip{border:1px solid var(--border);background:#171717;border-radius:8px;padding:6px 8px;text-align:center;cursor:pointer;font-size:11px}.chip.active{border-color:var(--accent);background:rgba(59,130,246,0.14);color:#bfdbfe}
+    .selection-bar{border-top:1px solid var(--border);padding:8px 10px;display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px;background:#101010}
+    .modal{position:fixed;inset:0;background:rgba(0,0,0,0.75);display:flex;align-items:center;justify-content:center;z-index:100;padding:12px}.modal-card{width:min(460px,100%);border:1px solid var(--border-light);background:#111;border-radius:14px;padding:14px}.modal-row{margin-bottom:10px}
+    @media (max-width:1280px){.workspace{grid-template-columns:220px minmax(0,1fr)}.panel.right{display:none}} @media (max-width:980px){.workspace{grid-template-columns:1fr}.panel.left{display:none}.center{grid-template-rows:42px minmax(0,1fr) 270px}}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <section id="dashboardView" class="dashboard"></section>
+    <section id="editorView" class="editor hidden">
+      <header class="topbar">
+        <div class="crumbs">
+          <button id="backBtn" class="btn">← سعد</button>
+          <span class="muted">/ Video Project Editor /</span>
+          <div id="projectName" class="project-name" contenteditable="true">Untitled Project</div>
+          <span id="saveStatusIcon" class="cloud-status">☁</span>
+        </div>
+        <div class="topbar-right">
+          <button id="saveBtn" class="btn">Save</button>
+          <button id="exportBtn" class="btn btn-accent">Export</button>
+        </div>
+      </header>
+      <div class="workspace">
+        <aside class="panel left">
+          <div class="panel-header"><span>Add media</span><button id="uploadBtn" class="btn small">Upload</button></div>
+          <div class="tabs" id="mediaTabs"></div>
+          <input id="mediaSearch" class="search" placeholder="Search media" />
+          <div id="mediaContent" class="media-content"></div>
+          <div class="selection-bar"><span id="mediaSelectedText">0 items selected</span><button id="addToTimelineBtn" class="btn btn-accent">Add to timeline</button></div>
+          <input id="uploadInput" type="file" multiple class="hidden" accept="video/*,image/*,audio/*" />
+        </aside>
+        <main class="center">
+          <div class="toolbar" id="topTools"></div>
+          <div class="preview-wrap">
+            <div class="preview" id="previewCanvas"></div>
+            <div class="playback"><div class="playback-left"><button id="playBtn" class="btn">▶</button><span id="timeCode">00:00:00 / 00:00:00</span><button id="loopBtn" class="btn">Loop: Off</button></div><div class="playback-right"><button id="undoBtn" class="btn">Undo</button><button id="redoBtn" class="btn">Redo</button></div></div>
+          </div>
+          <div class="timeline">
+            <div id="ruler" class="ruler"><div id="rulerContent" class="ruler-content"></div></div>
+            <div id="tracksWrap" class="tracks-wrap">
+              <div class="track" data-track="video"><div class="track-label">🎬 Video</div></div>
+              <div class="track" data-track="text"><div class="track-label">📝 Text</div></div>
+              <div class="track" data-track="audio"><div class="track-label">🔊 Audio</div></div>
+              <div id="playhead" class="playhead"></div>
+            </div>
+            <div class="timeline-footer"><div class="selection-chip" id="selectionText">0 items selected</div><div class="zoom-wrap"><span>🔍</span><input id="zoomInput" class="zoom-input" type="range" min="20" max="160" value="55" /><span id="zoomValue">55 px/s</span></div></div>
+          </div>
+        </main>
+        <aside class="panel right"><div class="panel-header"><span>Properties</span><span id="propType">None</span></div><div id="propBody" class="prop-body"></div></aside>
+      </div>
+    </section>
+  </div>
+  <div id="exportModal" class="modal hidden">
+    <div class="modal-card">
+      <div class="dashboard-row" style="margin-bottom:12px"><h3 style="margin:0">Export Video</h3><button id="closeExportBtn" class="btn">✕</button></div>
+      <div class="modal-row"><label>Format</label><div class="chip-grid" id="exportFormat"></div></div>
+      <div class="modal-row"><label>Resolution</label><div class="chip-grid" id="exportResolution"></div></div>
+      <div class="modal-row"><label>Quality</label><div class="chip-grid" id="exportQuality"></div></div>
+      <div class="modal-row"><label>Frame Rate</label><div class="chip-grid" id="exportFps"></div></div>
+      <p class="small muted" id="exportEstimate">Estimated file size: ~25MB • Estimated time: ~30s</p>
+      <div class="dashboard-row"><button id="cancelExportBtn" class="btn">Cancel</button><button id="doExportBtn" class="btn btn-accent">Export Video</button></div>
+    </div>
+  </div>
+  <script>
+    const STORAGE_KEY = "saad_video_projects_v1";
+    const HISTORY_LIMIT = 80;
+
+    const textTemplates = [
+      { id: "simple-title", name: "Simple Title", content: "Title Text Here", style: { fontSize: 48, fontWeight: 700, color: "#ffffff", textAlign: "center", fontFamily: "Outfit" } },
+      { id: "subtitle-combo", name: "Title + Subtitle", content: "SAMPLE TEXT\nSUB HEADING", style: { fontSize: 34, fontWeight: 700, color: "#ffffff", textAlign: "center", fontFamily: "Outfit" } },
+      { id: "film-title", name: "Film Title", content: "FILM TITLE", style: { fontSize: 56, fontWeight: 900, color: "#ffffff", textAlign: "center", fontFamily: "serif" } },
+      { id: "bold-accent", name: "Bold Accent", content: "TITLE TEXT HERE", style: { fontSize: 42, fontWeight: 800, color: "#ef4444", textAlign: "center", fontFamily: "Outfit" } },
+      { id: "minimal-clean", name: "Minimal Clean", content: "Text Text Here", style: { fontSize: 32, fontWeight: 300, color: "#ffffff", textAlign: "center", fontFamily: "Outfit" } },
+      { id: "showreel", name: "Showreel", content: "TITLE\nSHOWREEL", style: { fontSize: 35, fontWeight: 700, color: "#06b6d4", textAlign: "center", fontFamily: "Outfit" } },
+      { id: "heading-sub", name: "Heading + Sub", content: "SUB HEADING\nSample Text", style: { fontSize: 34, fontWeight: 700, color: "#ec4899", textAlign: "center", fontFamily: "Outfit" } },
+      { id: "name-card", name: "Name Card", content: "YUSSEF\nPALLADINO", style: { fontSize: 36, fontWeight: 600, color: "#ffffff", textAlign: "center", fontFamily: "Outfit" } },
+      { id: "cinematic-intro", name: "Cinematic Intro", content: "THE BEST\nDAY OF YOUR LIFE", style: { fontSize: 26, fontWeight: 500, color: "#ffffff", textAlign: "center", fontFamily: "Outfit" } },
+      { id: "accent-bar", name: "Accent Bar", content: "YOUR TITLE\nHERE", style: { fontSize: 32, fontWeight: 700, color: "#ffffff", textAlign: "center", fontFamily: "Outfit" } },
+      { id: "welcome-banner", name: "Welcome Banner", content: "WELCOME\nTO THE HILLS", style: { fontSize: 30, fontWeight: 700, color: "#ffffff", textAlign: "center", fontFamily: "Outfit" } },
+      { id: "lower-third", name: "Lower Third", content: "Lower Third Title", style: { fontSize: 22, fontWeight: 600, color: "#ffffff", textAlign: "left", fontFamily: "Outfit" } },
+      { id: "lower-third-accent", name: "Lower Third Accent", content: "Lower Third Title", style: { fontSize: 22, fontWeight: 600, color: "#06b6d4", textAlign: "left", fontFamily: "Outfit" } },
+      { id: "caption-box", name: "Caption Box", content: "SAMPLE TEXT\nSUB HEADING", style: { fontSize: 24, fontWeight: 500, color: "#ffffff", textAlign: "center", fontFamily: "Outfit" } },
+      { id: "gradient-title", name: "Gradient Title", content: "SAMPLE\nTEXT", style: { fontSize: 44, fontWeight: 800, color: "#ffffff", textAlign: "center", fontFamily: "Outfit" } },
+    ];
+
+    const defaultMedia = {
+      videos: [
+        { id: "v1", type: "video", name: "City Night Drive.mp4", duration: 3.9, color: "#2a2a2a", src: "" },
+        { id: "v2", type: "video", name: "Portrait Scene.mp4", duration: 5.1, color: "#323232", src: "" },
+        { id: "v3", type: "video", name: "Sky Drone.mp4", duration: 4.4, color: "#252525", src: "" },
+        { id: "v4", type: "video", name: "Street Walk.mp4", duration: 2.8, color: "#292929", src: "" },
+      ],
+      images: [
+        { id: "i1", type: "image", name: "Hero Poster.png", duration: 3.0, color: "#313131", src: "" },
+        { id: "i2", type: "image", name: "Product Shot.jpg", duration: 3.0, color: "#2f2f2f", src: "" },
+        { id: "i3", type: "image", name: "Landscape.jpg", duration: 3.0, color: "#343434", src: "" },
+      ],
+      audio: [
+        { id: "a1", type: "audio", name: "Voiceover Intro.wav", duration: 8.2, src: "" },
+        { id: "a2", type: "audio", name: "Background Loop.mp3", duration: 14.6, src: "" },
+        { id: "a3", type: "audio", name: "SFX Impact.wav", duration: 1.5, src: "" },
+      ],
+      text: textTemplates.map((t) => ({ id: t.id, type: "text", name: t.name, template: t })),
+    };
+
+    let projects = loadProjects();
+    let currentProject = null;
+    let activeMediaTab = "videos";
+    let mediaSearch = "";
+    let selectedMedia = [];
+    let selectedClips = new Set();
+    let zoomLevel = 55;
+    let playheadTime = 0;
+    let isPlaying = false;
+    let isLoop = false;
+    let playbackReq = null;
+    let lastTick = 0;
+    let historyStack = [];
+    let historyIndex = -1;
+    let saveDirty = false;
+    let exportSettings = { format: "MP4", resolution: "1080p", quality: "High", fps: "30fps" };
+
+    const dashboardView = document.getElementById("dashboardView");
+    const editorView = document.getElementById("editorView");
+    const mediaTabs = document.getElementById("mediaTabs");
+    const mediaSearchInput = document.getElementById("mediaSearch");
+    const mediaContent = document.getElementById("mediaContent");
+    const addToTimelineBtn = document.getElementById("addToTimelineBtn");
+    const mediaSelectedText = document.getElementById("mediaSelectedText");
+    const tracksWrap = document.getElementById("tracksWrap");
+    const rulerContent = document.getElementById("rulerContent");
+    const playheadEl = document.getElementById("playhead");
+    const selectionText = document.getElementById("selectionText");
+    const propBody = document.getElementById("propBody");
+    const propType = document.getElementById("propType");
+    const projectNameEl = document.getElementById("projectName");
+    const saveStatusIcon = document.getElementById("saveStatusIcon");
+    const timeCode = document.getElementById("timeCode");
+    const zoomInput = document.getElementById("zoomInput");
+    const zoomValue = document.getElementById("zoomValue");
+    const previewCanvas = document.getElementById("previewCanvas");
+    const topTools = document.getElementById("topTools");
+    const exportModal = document.getElementById("exportModal");
+
+    document.getElementById("backBtn").addEventListener("click", () => { stopPlayback(); editorView.classList.add("hidden"); dashboardView.classList.remove("hidden"); renderDashboard(); });
+    document.getElementById("saveBtn").addEventListener("click", () => saveProject());
+    document.getElementById("exportBtn").addEventListener("click", () => openExportModal());
+    document.getElementById("playBtn").addEventListener("click", () => togglePlayback());
+    document.getElementById("loopBtn").addEventListener("click", () => { isLoop = !isLoop; document.getElementById("loopBtn").textContent = `Loop: ${isLoop ? "On" : "Off"}`; });
+    document.getElementById("undoBtn").addEventListener("click", () => undo());
+    document.getElementById("redoBtn").addEventListener("click", () => redo());
+    document.getElementById("uploadBtn").addEventListener("click", () => document.getElementById("uploadInput").click());
+    document.getElementById("uploadInput").addEventListener("change", handleUploadFiles);
+    mediaSearchInput.addEventListener("input", (e) => { mediaSearch = e.target.value.trim().toLowerCase(); renderMediaPanel(); });
+    addToTimelineBtn.addEventListener("click", () => { selectedMedia.forEach((item) => addMediaItemToTimeline(item, "video", findTimelineEnd("video"))); selectedMedia = []; renderMediaPanel(); renderAll(); });
+    zoomInput.addEventListener("input", (e) => { zoomLevel = Number(e.target.value); zoomValue.textContent = `${zoomLevel} px/s`; renderTimeline(); });
+    projectNameEl.addEventListener("input", () => { if (!currentProject) return; currentProject.name = projectNameEl.textContent.trim() || "Untitled Project"; markDirty(); });
+
+    document.addEventListener("keydown", (e) => {
+      if (dashboardView.classList.contains("hidden")) {
+        if (e.code === "Space") { if (["INPUT", "TEXTAREA"].includes(document.activeElement.tagName)) return; e.preventDefault(); togglePlayback(); }
+        if (e.key === "Delete") removeSelectedClips();
+        if (e.key.toLowerCase() === "s") { if (e.ctrlKey || e.metaKey) { e.preventDefault(); saveProject(); return; } splitSelectedClipAtPlayhead(); }
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") { e.preventDefault(); if (e.shiftKey) redo(); else undo(); }
+      }
+    });
+
+    document.getElementById("closeExportBtn").addEventListener("click", closeExportModal);
+    document.getElementById("cancelExportBtn").addEventListener("click", closeExportModal);
+    document.getElementById("doExportBtn").addEventListener("click", () => { closeExportModal(); alert("Export started. (Simulated)"); });
+
+    function loadProjects() { try { const raw = localStorage.getItem(STORAGE_KEY); if (!raw) return []; return JSON.parse(raw); } catch (err) { return []; } }
+    function persistProjects() { localStorage.setItem(STORAGE_KEY, JSON.stringify(projects)); }
+    function createProject() {
+      const id = `proj_${Date.now()}`;
+      const project = { id, name: "Untitled Project", createdAt: Date.now(), updatedAt: Date.now(), resolution: { width: 1920, height: 1080 }, fps: 30, tracks: { video: [], text: [], audio: [] }, media: JSON.parse(JSON.stringify(defaultMedia)) };
+      projects.unshift(project); persistProjects(); openProject(id);
+    }
+    function openProject(id) {
+      currentProject = projects.find((p) => p.id === id); if (!currentProject) return;
+      selectedMedia = []; selectedClips = new Set(); playheadTime = 0; isLoop = false;
+      document.getElementById("loopBtn").textContent = "Loop: Off"; mediaSearch = ""; mediaSearchInput.value = "";
+      dashboardView.classList.add("hidden"); editorView.classList.remove("hidden"); projectNameEl.textContent = currentProject.name; initHistory(); renderAll(); setSavedIcon();
+    }
+    function saveProject() { if (!currentProject) return; currentProject.updatedAt = Date.now(); const idx = projects.findIndex((p) => p.id === currentProject.id); if (idx !== -1) projects[idx] = currentProject; persistProjects(); saveDirty = false; setSavedIcon(); }
+    function markDirty() { saveDirty = true; saveStatusIcon.textContent = "●"; saveStatusIcon.style.color = "#f59e0b"; }
+    function setSavedIcon() { saveStatusIcon.textContent = "☁"; saveStatusIcon.style.color = "#86efac"; }
+    function initHistory() { historyStack = []; historyIndex = -1; pushHistory(); }
+    function pushHistory() { if (!currentProject) return; const snapshot = JSON.stringify({ tracks: currentProject.tracks, name: currentProject.name }); historyStack = historyStack.slice(0, historyIndex + 1); historyStack.push(snapshot); if (historyStack.length > HISTORY_LIMIT) historyStack.shift(); historyIndex = historyStack.length - 1; }
+    function restoreFromHistory(snapshot) { const parsed = JSON.parse(snapshot); currentProject.tracks = parsed.tracks; currentProject.name = parsed.name; projectNameEl.textContent = currentProject.name; selectedClips.clear(); renderAll(); }
+    function undo() { if (historyIndex <= 0) return; historyIndex -= 1; restoreFromHistory(historyStack[historyIndex]); }
+    function redo() { if (historyIndex >= historyStack.length - 1) return; historyIndex += 1; restoreFromHistory(historyStack[historyIndex]); }
+    function getProjectDuration(project) { const tracks = project.tracks; const all = [...tracks.video, ...tracks.text, ...tracks.audio]; if (!all.length) return 0; return Math.max(...all.map((c) => c.startTime + c.duration)); }
+    function renderDashboard() {
+      dashboardView.innerHTML = `
+        <div class="dashboard-card">
+          <div class="dashboard-row"><div><h2 style="margin:0 0 6px;">Start from scratch</h2><p class="muted" style="margin:0;">Open a blank canvas and bring your ideas to life.</p><button id="newProjectBtn" class="btn btn-accent" style="margin-top:12px">New video project</button></div>
+          <div class="project-thumb" style="width:220px;min-width:220px;"><div class="mini-timeline"><div class="mini-clip" style="left:6px;width:44px;"></div><div class="mini-clip" style="left:54px;width:38px;"></div><div class="mini-clip" style="left:96px;width:62px;"></div><div class="mini-audio" style="left:12px;width:170px;"></div></div></div></div>
+        </div>
+        <div class="dashboard-card"><div class="dashboard-row"><h3 style="margin:0;">My Projects</h3><input id="projectSearch" class="search" style="margin:0;width:220px" placeholder="Search projects" /></div><div id="projectGrid" class="projects-grid"></div></div>
+      `;
+      document.getElementById("newProjectBtn").addEventListener("click", createProject);
+      const searchInput = document.getElementById("projectSearch");
+      const grid = document.getElementById("projectGrid");
+      function drawProjectCards(query = "") {
+        const list = projects.filter((p) => p.name.toLowerCase().includes(query.toLowerCase()));
+        if (!list.length) { grid.innerHTML = `<div style="grid-column:1/-1;border:1px dashed var(--border);border-radius:12px;padding:30px;text-align:center;"><div style="font-size:24px;margin-bottom:6px;">🎬</div><div>No video projects yet</div><div class="small muted">Create your first video project to get started</div></div>`; return; }
+        grid.innerHTML = list.map((p) => { const total = getProjectDuration(p).toFixed(1); return `<div class="project-card" data-open="${p.id}"><div class="project-thumb"><div class="mini-timeline"><div class="mini-clip" style="left:6px;width:40px;"></div><div class="mini-clip" style="left:50px;width:54px;"></div><div class="mini-audio" style="left:10px;width:120px;"></div></div></div><div class="project-body"><div style="font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.name}</div><div class="small muted">${total}s • ${new Date(p.updatedAt).toLocaleDateString()}</div></div></div>`; }).join("");
+        [...grid.querySelectorAll("[data-open]")].forEach((el) => el.addEventListener("click", () => openProject(el.dataset.open)));
+      }
+      drawProjectCards();
+      searchInput.addEventListener("input", (e) => drawProjectCards(e.target.value));
+    }
+
+    function renderMediaTabs() {
+      const defs = [{ id: "videos", icon: "🎬", label: "Clips" }, { id: "images", icon: "🖼", label: "Images" }, { id: "audio", icon: "🔊", label: "Audio" }, { id: "text", icon: "📝", label: "Text" }];
+      mediaTabs.innerHTML = defs.map((t) => `<button class="tab ${activeMediaTab === t.id ? "active" : ""}" data-tab="${t.id}">${t.icon}</button>`).join("");
+      [...mediaTabs.querySelectorAll("[data-tab]")].forEach((btn) => btn.addEventListener("click", () => { activeMediaTab = btn.dataset.tab; selectedMedia = []; renderMediaTabs(); renderMediaPanel(); }));
+    }
+
+    function renderMediaPanel() {
+      const list = (currentProject.media[activeMediaTab] || []).filter((item) => item.name.toLowerCase().includes(mediaSearch));
+      mediaContent.innerHTML = list.map((item) => { const selected = selectedMedia.some((m) => m.id === item.id); const isText = item.type === "text"; return `<div class="media-item ${selected ? "selected" : ""}" draggable="true" data-media="${item.id}"><div class="media-thumb">${isText ? item.template.content.replace(/\n/g, "<br>") : item.name.split(".")[0]}${item.duration ? `<span class="duration-badge">${item.duration.toFixed(1)}s</span>` : ""}</div><div class="media-name">${item.name}</div></div>`; }).join("");
+      [...mediaContent.querySelectorAll(".media-item")].forEach((el) => {
+        const id = el.dataset.media; const item = list.find((x) => x.id === id);
+        el.addEventListener("click", (e) => { if (e.shiftKey) { if (!selectedMedia.some((m) => m.id === item.id)) selectedMedia.push(item); } else selectedMedia = [item]; renderMediaPanel(); });
+        el.addEventListener("dragstart", (e) => e.dataTransfer.setData("application/json", JSON.stringify(item)));
+      });
+      mediaSelectedText.textContent = `${selectedMedia.length} item${selectedMedia.length === 1 ? "" : "s"} selected`;
+    }
+
+    function renderTopTools() { const buttons = ["Color", "FX", "Crop", "Text", "Shape", "Image", "Link"]; topTools.innerHTML = buttons.map((b) => `<button class="tool-btn">${b}</button>`).join(""); }
+    function buildClipFromMedia(item, track, startTime = 0) {
+      if (item.type === "text") return { id: `text_${Date.now()}_${Math.random().toString(16).slice(2, 6)}`, type: "text", name: item.name, content: item.template.content, startTime, duration: 3, style: JSON.parse(JSON.stringify(item.template.style)), position: "center", animation: { entry: "fade-in", exit: "fade-out", duration: 0.5 } };
+      return { id: `clip_${Date.now()}_${Math.random().toString(16).slice(2, 6)}`, type: item.type, src: item.src || "", name: item.name, startTime, duration: item.duration || (item.type === "image" ? 3 : 4), trimStart: 0, trimEnd: 0, speed: 1, volume: 1, opacity: 1, filter: "none", brightness: 0, contrast: 0, saturation: 0, position: { x: 0, y: 0 }, scale: 1, rotation: 0, fadeIn: 0, fadeOut: 0 };
+    }
+    function findTimelineEnd(track) { const arr = currentProject.tracks[track]; if (!arr.length) return 0; return Math.max(...arr.map((c) => c.startTime + c.duration)); }
+    function addMediaItemToTimeline(item, forcedTrack = null, insertTime = null) { const track = forcedTrack || (item.type === "audio" ? "audio" : item.type === "text" ? "text" : "video"); const time = insertTime == null ? findTimelineEnd(track) : insertTime; const clip = buildClipFromMedia(item, track, time); currentProject.tracks[track].push(clip); markDirty(); pushHistory(); }
+
+    function renderTimeline() {
+      const duration = Math.max(18, getProjectDuration(currentProject) + 4);
+      const width = Math.ceil(duration * zoomLevel + 220);
+      rulerContent.style.minWidth = `${width}px`;
+      [...document.querySelectorAll(".track")].forEach((t) => (t.style.minWidth = `${width}px`));
+      rulerContent.innerHTML = "";
+      const marks = Math.ceil(duration / 2);
+      for (let i = 0; i <= marks; i++) {
+        const sec = i * 2; const x = sec * zoomLevel;
+        const mark = document.createElement("div"); mark.className = "ruler-mark"; mark.style.left = `${x}px`;
+        const label = document.createElement("div"); label.className = "ruler-label"; label.style.left = `${x + 2}px`; label.textContent = sec === 0 ? "0:00" : `${sec}s`;
+        mark.appendChild(label); rulerContent.appendChild(mark);
+      }
+      const trackEls = { video: document.querySelector('.track[data-track="video"]'), text: document.querySelector('.track[data-track="text"]'), audio: document.querySelector('.track[data-track="audio"]') };
+      Object.entries(trackEls).forEach(([track, el]) => {
+        [...el.querySelectorAll(".clip")].forEach((c) => c.remove());
+        currentProject.tracks[track].forEach((clip) => {
+          const clipEl = document.createElement("div");
+          clipEl.className = `clip ${track === "video" ? "video" : track === "text" ? "text" : "audio"} ${selectedClips.has(clip.id) ? "selected" : ""}`;
+          clipEl.style.left = `${clip.startTime * zoomLevel}px`; clipEl.style.width = `${Math.max(32, clip.duration * zoomLevel)}px`; clipEl.dataset.clip = clip.id; clipEl.dataset.track = track;
+          clipEl.innerHTML = `<span>${clip.name || clip.content || "Item"}</span><span style="margin-left:auto;font-size:10px;opacity:.8">${clip.duration.toFixed(1)}s</span><div class="trim-handle left"></div><div class="trim-handle right"></div>`;
+          clipEl.addEventListener("click", (e) => { if (!e.shiftKey) selectedClips.clear(); if (selectedClips.has(clip.id)) selectedClips.delete(clip.id); else selectedClips.add(clip.id); updateSelectionInfo(); renderTimeline(); renderProperties(); renderPreview(); });
+          makeClipDragMove(clipEl, clip, track); makeTrim(clipEl, clip, track); el.appendChild(clipEl);
+        });
+      });
+      updatePlayheadUI(); updateSelectionInfo();
+    }
+
+    function makeClipDragMove(clipEl, clip, track) {
+      clipEl.addEventListener("mousedown", (e) => {
+        if (e.target.classList.contains("trim-handle")) return; if (e.button !== 0) return;
+        const startX = e.clientX; const startTime = clip.startTime;
+        function onMove(ev) { const dx = ev.clientX - startX; clip.startTime = Math.max(0, startTime + dx / zoomLevel); clipEl.style.left = `${clip.startTime * zoomLevel}px`; updatePlayheadUI(); }
+        function onUp() { document.removeEventListener("mousemove", onMove); document.removeEventListener("mouseup", onUp); markDirty(); pushHistory(); renderTimeline(); }
+        document.addEventListener("mousemove", onMove); document.addEventListener("mouseup", onUp);
+      });
+    }
+
+    function makeTrim(clipEl, clip, track) {
+      const left = clipEl.querySelector(".trim-handle.left"); const right = clipEl.querySelector(".trim-handle.right");
+      left.addEventListener("mousedown", (e) => {
+        e.stopPropagation(); const sx = e.clientX; const sStart = clip.startTime; const sDur = clip.duration;
+        function onMove(ev) { const delta = (ev.clientX - sx) / zoomLevel; const newStart = Math.max(0, sStart + delta); const diff = newStart - sStart; clip.startTime = newStart; clip.duration = Math.max(0.3, sDur - diff); clipEl.style.left = `${clip.startTime * zoomLevel}px`; clipEl.style.width = `${clip.duration * zoomLevel}px`; }
+        function onUp() { document.removeEventListener("mousemove", onMove); document.removeEventListener("mouseup", onUp); markDirty(); pushHistory(); renderTimeline(); }
+        document.addEventListener("mousemove", onMove); document.addEventListener("mouseup", onUp);
+      });
+      right.addEventListener("mousedown", (e) => {
+        e.stopPropagation(); const sx = e.clientX; const sDur = clip.duration;
+        function onMove(ev) { const delta = (ev.clientX - sx) / zoomLevel; clip.duration = Math.max(0.3, sDur + delta); clipEl.style.width = `${clip.duration * zoomLevel}px`; }
+        function onUp() { document.removeEventListener("mousemove", onMove); document.removeEventListener("mouseup", onUp); markDirty(); pushHistory(); renderTimeline(); }
+        document.addEventListener("mousemove", onMove); document.addEventListener("mouseup", onUp);
+      });
+    }
+    function removeSelectedClips() { if (!selectedClips.size) return; ["video", "text", "audio"].forEach((track) => { currentProject.tracks[track] = currentProject.tracks[track].filter((c) => !selectedClips.has(c.id)); }); selectedClips.clear(); markDirty(); pushHistory(); renderAll(); }
+    function splitSelectedClipAtPlayhead() {
+      if (!selectedClips.size) return; const clipId = [...selectedClips][0];
+      for (const track of ["video", "text", "audio"]) {
+        const idx = currentProject.tracks[track].findIndex((c) => c.id === clipId); if (idx === -1) continue;
+        const clip = currentProject.tracks[track][idx];
+        if (playheadTime <= clip.startTime || playheadTime >= clip.startTime + clip.duration) return;
+        const firstDur = playheadTime - clip.startTime; const secondDur = clip.duration - firstDur;
+        clip.duration = firstDur; const clone = JSON.parse(JSON.stringify(clip)); clone.id = `${clip.id}_split_${Date.now()}`; clone.startTime = playheadTime; clone.duration = secondDur;
+        currentProject.tracks[track].splice(idx + 1, 0, clone); selectedClips = new Set([clone.id]); markDirty(); pushHistory(); renderAll(); return;
+      }
+    }
+    function duplicateSelectedClip() { if (!selectedClips.size) return; const clipId = [...selectedClips][0]; for (const track of ["video", "text", "audio"]) { const clip = currentProject.tracks[track].find((c) => c.id === clipId); if (!clip) continue; const clone = JSON.parse(JSON.stringify(clip)); clone.id = `${clip.id}_dup_${Date.now()}`; clone.startTime += clip.duration + 0.2; currentProject.tracks[track].push(clone); selectedClips = new Set([clone.id]); markDirty(); pushHistory(); renderAll(); return; } }
+    function getClipById(id) { for (const track of ["video", "text", "audio"]) { const clip = currentProject.tracks[track].find((c) => c.id === id); if (clip) return { clip, track }; } return null; }
+    function updateSelectionInfo() { const n = selectedClips.size; selectionText.textContent = `${n} item${n === 1 ? "" : "s"} selected`; }
+    function timeToCode(t) { const total = Math.floor(t); const h = Math.floor(total / 3600); const m = Math.floor((total % 3600) / 60); const s = total % 60; return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`; }
+    function updatePlayheadUI() { const x = playheadTime * zoomLevel + 10; playheadEl.style.left = `${x}px`; const max = getProjectDuration(currentProject); timeCode.textContent = `${timeToCode(playheadTime)} / ${timeToCode(max)}`; }
+    function setPlayheadPosition(sec) { playheadTime = Math.max(0, Math.min(sec, getProjectDuration(currentProject))); updatePlayheadUI(); renderPreview(); }
+    function togglePlayback() { if (isPlaying) stopPlayback(); else startPlayback(); }
+    function startPlayback() { if (isPlaying) return; isPlaying = true; document.getElementById("playBtn").textContent = "⏸"; lastTick = performance.now(); playbackReq = requestAnimationFrame(playLoop); }
+    function stopPlayback() { isPlaying = false; document.getElementById("playBtn").textContent = "▶"; if (playbackReq) cancelAnimationFrame(playbackReq); playbackReq = null; }
+    function playLoop(now) { if (!isPlaying) return; const dt = (now - lastTick) / 1000; lastTick = now; setPlayheadPosition(playheadTime + dt); const max = getProjectDuration(currentProject); if (playheadTime >= max) { if (isLoop) setPlayheadPosition(0); else stopPlayback(); } playbackReq = requestAnimationFrame(playLoop); }
+
+    function renderPreview() {
+      previewCanvas.innerHTML = "";
+      const videoClips = currentProject.tracks.video.filter((c) => playheadTime >= c.startTime && playheadTime <= c.startTime + c.duration);
+      const textClips = currentProject.tracks.text.filter((c) => playheadTime >= c.startTime && playheadTime <= c.startTime + c.duration);
+      if (!videoClips.length && !textClips.length) { previewCanvas.innerHTML = `<div class="preview-empty">Start creating! Add media from your device or use the Media panel</div>`; return; }
+      const base = videoClips[videoClips.length - 1];
+      if (base) {
+        if (base.type === "image" && base.src) { const img = document.createElement("img"); img.src = base.src; img.style.opacity = String(base.opacity ?? 1); previewCanvas.appendChild(img); }
+        else if (base.type === "video" && base.src) { const vid = document.createElement("video"); vid.src = base.src; vid.muted = true; vid.autoplay = false; vid.playsInline = true; vid.currentTime = Math.max(0, playheadTime - base.startTime); vid.style.opacity = String(base.opacity ?? 1); previewCanvas.appendChild(vid); }
+        else { const block = document.createElement("div"); block.className = "preview-empty"; block.textContent = base.name; previewCanvas.appendChild(block); }
+      }
+      textClips.forEach((t) => {
+        const div = document.createElement("div"); div.className = "preview-text"; div.textContent = t.content; div.style.fontSize = `${t.style.fontSize || 42}px`; div.style.fontWeight = String(t.style.fontWeight || 700); div.style.color = t.style.color || "#ffffff"; div.style.fontFamily = t.style.fontFamily || "Outfit"; div.style.textAlign = t.style.textAlign || "center";
+        if (t.position === "bottom-left") { div.style.left = "20px"; div.style.bottom = "20px"; div.style.top = "auto"; div.style.transform = "none"; div.style.textAlign = "left"; }
+        previewCanvas.appendChild(div);
+      });
+    }
+
+    function renderProperties() {
+      if (selectedClips.size !== 1) { propType.textContent = "None"; propBody.innerHTML = `<div class="muted small">Select one clip on timeline to edit properties.</div>`; return; }
+      const id = [...selectedClips][0]; const data = getClipById(id); if (!data) return; const { clip, track } = data; propType.textContent = track.toUpperCase();
+      const filterOptions = ["none", "b&w", "warm", "cool", "vintage", "cinema", "bright", "dark"];
+      if (track === "video") {
+        propBody.innerHTML = `<div class="prop-section"><h4>Clip Info</h4><div class="small">${clip.name}</div><div class="small muted">${clip.duration.toFixed(2)}s</div></div>
+        <div class="prop-section"><h4>Transform</h4><div class="row"><span>Scale</span><span>${Math.round((clip.scale || 1) * 100)}%</span></div><input data-prop="scale" type="range" min="10" max="200" value="${Math.round((clip.scale || 1) * 100)}" /><div class="row"><span>Rotation</span><span>${Math.round(clip.rotation || 0)}°</span></div><input data-prop="rotation" type="range" min="-180" max="180" value="${Math.round(clip.rotation || 0)}" /><div class="row"><span>Opacity</span><span>${Math.round((clip.opacity || 1) * 100)}%</span></div><input data-prop="opacity" type="range" min="0" max="100" value="${Math.round((clip.opacity || 1) * 100)}" /></div>
+        <div class="prop-section"><h4>Speed & Volume</h4><div class="row"><span>Speed</span><span>${(clip.speed || 1).toFixed(2)}x</span></div><input data-prop="speed" type="range" min="25" max="400" value="${Math.round((clip.speed || 1) * 100)}" /><div class="row"><span>Volume</span><span>${Math.round((clip.volume || 1) * 100)}%</span></div><input data-prop="volume" type="range" min="0" max="200" value="${Math.round((clip.volume || 1) * 100)}" /></div>
+        <div class="prop-section"><h4>Filters</h4><div class="chip-grid">${filterOptions.map((f) => `<button class="chip ${clip.filter === f ? "active" : ""}" data-filter="${f}">${f}</button>`).join("")}</div></div>
+        <div class="prop-section"><h4>Color</h4><div class="row"><span>Brightness</span><span>${clip.brightness || 0}</span></div><input data-prop="brightness" type="range" min="-100" max="100" value="${clip.brightness || 0}" /><div class="row"><span>Contrast</span><span>${clip.contrast || 0}</span></div><input data-prop="contrast" type="range" min="-100" max="100" value="${clip.contrast || 0}" /><div class="row"><span>Saturation</span><span>${clip.saturation || 0}</span></div><input data-prop="saturation" type="range" min="-100" max="100" value="${clip.saturation || 0}" /></div>`;
+        wireVideoProps(clip);
+      } else if (track === "text") {
+        propBody.innerHTML = `<div class="prop-section"><h4>Text</h4><textarea id="textContent" rows="3">${clip.content || ""}</textarea></div>
+        <div class="prop-section"><h4>Font</h4><div class="row"><span>Family</span></div><select id="textFont">${["Outfit","Inter","Playfair Display","Montserrat","Roboto Mono","Oswald"].map((f) => `<option ${clip.style.fontFamily === f ? "selected" : ""}>${f}</option>`).join("")}</select><div class="row"><span>Size</span><span>${clip.style.fontSize || 42}px</span></div><input id="textSize" type="range" min="12" max="120" value="${clip.style.fontSize || 42}" /><div class="row"><span>Weight</span></div><select id="textWeight">${[300,400,700,900].map((w) => `<option value="${w}" ${Number(clip.style.fontWeight) === w ? "selected" : ""}>${w}</option>`).join("")}</select><div class="row"><span>Color</span></div><input id="textColor" type="color" value="${clip.style.color || "#ffffff"}" /></div>
+        <div class="prop-section"><h4>Alignment</h4><div class="chip-grid">${["left","center","right"].map((a) => `<button class="chip ${clip.style.textAlign === a ? "active" : ""}" data-align="${a}">${a}</button>`).join("")}</div></div>`;
+        wireTextProps(clip);
+      } else {
+        propBody.innerHTML = `<div class="prop-section"><h4>Audio</h4><div class="row"><span>Volume</span><span>${Math.round((clip.volume || 1) * 100)}%</span></div><input data-prop="volume" type="range" min="0" max="200" value="${Math.round((clip.volume || 1) * 100)}" /><div class="row"><span>Fade In</span><span>${(clip.fadeIn || 0).toFixed(1)}s</span></div><input data-prop="fadeIn" type="range" min="0" max="30" value="${Math.round((clip.fadeIn || 0) * 10)}" /><div class="row"><span>Fade Out</span><span>${(clip.fadeOut || 0).toFixed(1)}s</span></div><input data-prop="fadeOut" type="range" min="0" max="30" value="${Math.round((clip.fadeOut || 0) * 10)}" /></div>`;
+        wireAudioProps(clip);
+      }
+    }
+
+    function wireVideoProps(clip) {
+      [...propBody.querySelectorAll('input[data-prop]')].forEach((input) => input.addEventListener("input", () => {
+        const prop = input.dataset.prop; const v = Number(input.value);
+        if (prop === "scale") clip.scale = v / 100; if (prop === "rotation") clip.rotation = v; if (prop === "opacity") clip.opacity = v / 100; if (prop === "speed") clip.speed = v / 100; if (prop === "volume") clip.volume = v / 100; if (prop === "brightness") clip.brightness = v; if (prop === "contrast") clip.contrast = v; if (prop === "saturation") clip.saturation = v;
+        markDirty(); renderProperties(); renderPreview();
+      }));
+      [...propBody.querySelectorAll("[data-filter]")].forEach((btn) => btn.addEventListener("click", () => { clip.filter = btn.dataset.filter; markDirty(); renderProperties(); renderPreview(); }));
+    }
+    function wireTextProps(clip) {
+      propBody.querySelector("#textContent").addEventListener("input", (e) => { clip.content = e.target.value; markDirty(); renderPreview(); });
+      propBody.querySelector("#textFont").addEventListener("change", (e) => { clip.style.fontFamily = e.target.value; markDirty(); renderPreview(); });
+      propBody.querySelector("#textSize").addEventListener("input", (e) => { clip.style.fontSize = Number(e.target.value); markDirty(); renderProperties(); renderPreview(); });
+      propBody.querySelector("#textWeight").addEventListener("change", (e) => { clip.style.fontWeight = Number(e.target.value); markDirty(); renderPreview(); });
+      propBody.querySelector("#textColor").addEventListener("input", (e) => { clip.style.color = e.target.value; markDirty(); renderPreview(); });
+      [...propBody.querySelectorAll("[data-align]")].forEach((btn) => btn.addEventListener("click", () => { clip.style.textAlign = btn.dataset.align; markDirty(); renderProperties(); renderPreview(); }));
+    }
+    function wireAudioProps(clip) { [...propBody.querySelectorAll('input[data-prop]')].forEach((input) => input.addEventListener("input", () => { const prop = input.dataset.prop; const v = Number(input.value); if (prop === "volume") clip.volume = v / 100; if (prop === "fadeIn") clip.fadeIn = v / 10; if (prop === "fadeOut") clip.fadeOut = v / 10; markDirty(); renderProperties(); })); }
+    function renderAll() { renderTopTools(); renderMediaTabs(); renderMediaPanel(); renderTimeline(); renderProperties(); renderPreview(); updatePlayheadUI(); }
+    function handleUploadFiles(e) {
+      if (!currentProject) return;
+      const files = [...e.target.files];
+      files.forEach((file) => {
+        const url = URL.createObjectURL(file);
+        if (file.type.startsWith("video/")) currentProject.media.videos.push({ id: `v_${Date.now()}_${Math.random()}`, type: "video", name: file.name, duration: 4, src: url });
+        else if (file.type.startsWith("image/")) currentProject.media.images.push({ id: `i_${Date.now()}_${Math.random()}`, type: "image", name: file.name, duration: 3, src: url });
+        else if (file.type.startsWith("audio/")) currentProject.media.audio.push({ id: `a_${Date.now()}_${Math.random()}`, type: "audio", name: file.name, duration: 6, src: url });
+      });
+      markDirty(); renderMediaPanel();
+    }
+
+    function initTimelineInteractions() {
+      tracksWrap.addEventListener("dragover", (e) => e.preventDefault());
+      tracksWrap.addEventListener("drop", (e) => {
+        e.preventDefault();
+        const raw = e.dataTransfer.getData("application/json"); if (!raw) return;
+        const media = JSON.parse(raw); const trackEl = e.target.closest(".track"); if (!trackEl) return;
+        const track = trackEl.dataset.track; const rect = trackEl.getBoundingClientRect(); const x = e.clientX - rect.left; const insertTime = Math.max(0, x / zoomLevel);
+        addMediaItemToTimeline(media, track, insertTime); renderAll();
+      });
+      rulerContent.parentElement.addEventListener("click", (e) => { const rect = rulerContent.getBoundingClientRect(); const x = e.clientX - rect.left; setPlayheadPosition(x / zoomLevel); });
+      tracksWrap.addEventListener("wheel", (e) => { if (!e.ctrlKey) return; e.preventDefault(); zoomLevel = Math.max(20, Math.min(160, zoomLevel + (e.deltaY < 0 ? 4 : -4))); zoomInput.value = String(zoomLevel); zoomValue.textContent = `${zoomLevel} px/s`; renderTimeline(); }, { passive: false });
+      tracksWrap.addEventListener("contextmenu", (e) => {
+        const clipEl = e.target.closest(".clip"); if (!clipEl) return; e.preventDefault();
+        const clipId = clipEl.dataset.clip; selectedClips = new Set([clipId]); renderTimeline(); renderProperties();
+        const choice = prompt("Clip action: type duplicate or delete", "duplicate");
+        if (choice === "duplicate") duplicateSelectedClip();
+        if (choice === "delete") removeSelectedClips();
+      });
+    }
+
+    function openExportModal() { exportModal.classList.remove("hidden"); renderExportChoices(); }
+    function closeExportModal() { exportModal.classList.add("hidden"); }
+    function renderChoiceGroup(containerId, values, key) {
+      const el = document.getElementById(containerId);
+      el.innerHTML = values.map((v) => `<button class="chip ${exportSettings[key] === v ? "active" : ""}" data-k="${key}" data-v="${v}">${v}</button>`).join("");
+      [...el.querySelectorAll("[data-v]")].forEach((btn) => btn.addEventListener("click", () => { exportSettings[key] = btn.dataset.v; renderExportChoices(); }));
+    }
+    function renderExportChoices() {
+      renderChoiceGroup("exportFormat", ["MP4", "WEBM"], "format");
+      renderChoiceGroup("exportResolution", ["720p", "1080p", "2K", "4K"], "resolution");
+      renderChoiceGroup("exportQuality", ["Standard", "High", "Maximum"], "quality");
+      renderChoiceGroup("exportFps", ["24fps", "30fps", "60fps"], "fps");
+      document.getElementById("exportEstimate").textContent = `Estimated file size: ~${estimateExportSize()}MB • Estimated time: ~${estimateExportTime()}s`;
+    }
+    function estimateExportSize() {
+      const dur = getProjectDuration(currentProject);
+      const resMul = { "720p": 1, "1080p": 1.7, "2K": 2.2, "4K": 3.8 }[exportSettings.resolution] || 1;
+      const qualityMul = { Standard: 1, High: 1.3, Maximum: 1.7 }[exportSettings.quality] || 1;
+      return Math.max(8, Math.round(dur * 1.2 * resMul * qualityMul));
+    }
+    function estimateExportTime() {
+      const dur = getProjectDuration(currentProject);
+      const fpsMul = { "24fps": 1, "30fps": 1.1, "60fps": 1.8 }[exportSettings.fps] || 1;
+      return Math.max(8, Math.round(dur * 2.4 * fpsMul));
+    }
+
+    renderDashboard();
+    initTimelineInteractions();
+  </script>
+</body>
+</html>

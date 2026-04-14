@@ -1,0 +1,25 @@
+
+> aisaas@0.1.0 dev
+> next dev --port 3000
+
+  ▲ Next.js 14.2.35
+  - Local:        http://localhost:3000
+  - Environments: .env.local, .env
+
+ ✓ Starting...
+ ✓ Ready in 3.5s
+ ○ Compiling /middleware ...
+ ✓ Compiled /middleware in 1770ms (183 modules)
+ ○ Compiling / ...
+Browserslist: caniuse-lite is outdated. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+ ✓ Compiled / in 16.3s (2471 modules)
+ ✓ Compiled in 1592ms (1092 modules)
+ GET / 200 in 88ms
+ GET / 200 in 119ms
+ ✓ Compiled in 2.7s (2435 modules)
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ GET / 200 in 464ms
+ GET / 200 in 113ms
+ GET / 200 in 150ms

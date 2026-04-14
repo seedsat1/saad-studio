@@ -1,0 +1,16 @@
+   ▲ Next.js 14.1.3
+   - Local:        http://localhost:3002
+   - Environments: .env.local, .env
+
+ ✓ Ready in 3.9s
+ ○ Compiling /favicon.ico ...
+ ✓ Compiled /favicon.ico in 1551ms (223 modules)
+ ○ Compiling /not-found ...
+Browserslist: caniuse-lite is outdated. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+ ✓ Compiled /not-found in 13s (2075 modules)
+ ✓ Compiled in 1229ms (926 modules)
+ ○ Compiling /image ...
+ ✓ Compiled /image in 3.6s (2348 modules)
+[?25h

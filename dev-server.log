@@ -1,0 +1,40 @@
+
+> aisaas@0.1.0 dev
+> next dev
+
+  ▲ Next.js 14.2.35
+  - Local:        http://localhost:3000
+  - Environments: .env.local, .env
+
+ ✓ Starting...
+ ✓ Ready in 10.5s
+ ○ Compiling /middleware ...
+ ✓ Compiled /middleware in 978ms (183 modules)
+ ○ Compiling /video-editor ...
+Browserslist: caniuse-lite is outdated. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+ ✓ Compiled /video-editor in 16s (2427 modules)
+ ✓ Compiled in 1414ms (1075 modules)
+ GET /video-editor 307 in 71ms
+ ○ Compiling /video-project-editor ...
+ ✓ Compiled /video-project-editor in 2.9s (2390 modules)
+ GET /character 307 in 3301ms
+ GET /video-project-editor 307 in 3288ms
+ ○ Compiling /image ...
+ ✓ Compiled /image in 3.5s (2461 modules)
+ GET /image 200 in 3766ms
+ ○ Compiling / ...
+ ✓ Compiled / in 4.5s (2497 modules)
+ GET /image 200 in 100ms
+ ○ Compiling /edit ...
+ ✓ Compiled /edit in 2.9s (2515 modules)
+ GET /edit 200 in 301ms
+ ○ Compiling /video ...
+ ✓ Compiled /video in 1928ms (2517 modules)
+ ✓ Compiled in 3s (2531 modules)
+ GET /video?_rsc=dyezc 200 in 107ms
+ GET /edit?_rsc=7bn5l 200 in 130ms
+ GET /video 200 in 282ms
+ ○ Compiling /video-editor ...
+ ✓ Compiled /video-editor in 546ms (1386 modules)

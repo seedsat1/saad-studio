@@ -1,0 +1,395 @@
+﻿"use client";
+
+import Link from "next/link";
+import Image from "next/image";
+import { usePathname } from "next/navigation";
+import { useState, useEffect } from "react";
+import { Montserrat } from "next/font/google";
+import { UserButton } from "@clerk/nextjs";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Menu,
+  X,
+  Zap,
+  Globe,
+  ImageIcon,
+  VideoIcon,
+  Music,
+  Box,
+  Wrench,
+  Drama,
+  Palette,
+  Clapperboard,
+  Monitor,
+  Puzzle,
+  Bot,
+  GalleryHorizontalEnd,
+  ChevronDown,
+} from "lucide-react";
+
+import { cn } from "@/lib/utils";
+import {
+  NavigationMenu,
+  NavigationMenuContent,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+  NavigationMenuTrigger,
+  navigationMenuTriggerStyle,
+} from "@/components/ui/navigation-menu";
+import { Button } from "@/components/ui/button";
+import { useProModal } from "@/hooks/use-pro-modal";
+
+const montserrat = Montserrat({ weight: "600", subsets: ["latin"] });
+
+// ─── Category Definitions ───────────────────────────────────────────────────
+const navCategories = {
+  create: {
+    label: "Create",
+    items: [
+      { emoji: "🖼️", label: "Image", href: "/image", icon: ImageIcon, color: "text-pink-500", description: "Generate stunning AI images" },
+      { emoji: "🎥", label: "Video", href: "/video", icon: VideoIcon, color: "text-orange-500", description: "Create AI-powered videos" },
+      { emoji: "🎵", label: "Audio", href: "/music", icon: Music, color: "text-emerald-500", description: "Compose music & sound effects" },
+      { emoji: "🧊", label: "3D", href: "/3d", icon: Box, color: "text-cyan-500", description: "Generate 3D models & scenes" },
+    ],
+  },
+  studio: {
+    label: "Studio",
+    items: [
+      { emoji: "🎭", label: "Character", href: "/character", icon: Drama, color: "text-violet-500", description: "Design AI characters & avatars" },
+      { emoji: "🎨", label: "Moodboard", href: "/moodboard", icon: Palette, color: "text-rose-500", description: "Curate visual inspiration boards" },
+      { emoji: "🎬", label: "Cinema Studio", href: "/cinema-studio", icon: Clapperboard, color: "text-amber-500", description: "Professional cinematic production" },
+      { emoji: "📺", label: "Original Series", href: "/original-series", icon: Monitor, color: "text-blue-500", description: "Create episodic AI content" },
+    ],
+  },
+  tools: {
+    label: "Tools",
+    items: [
+      { emoji: "🛠️", label: "Others", href: "/others", icon: Wrench, color: "text-gray-400", description: "Utility tools & converters" },
+      { emoji: "🧩", label: "Apps", href: "/apps", icon: Puzzle, color: "text-indigo-500", description: "Integrated AI applications" },
+      { emoji: "🤖", label: "Assist", href: "/conversation", icon: Bot, color: "text-green-500", description: "AI assistant & chatbot" },
+    ],
+  },
+  directLinks: [
+    { emoji: "🌍", label: "Explore", href: "/dash", icon: Globe, color: "text-sky-500" },
+    { emoji: "🖼️", label: "Gallery", href: "/gallery", icon: GalleryHorizontalEnd, color: "text-fuchsia-500" },
+  ],
+};
+
+// ─── All items flat list (for mobile) ────────────────────────────────────────
+const allMobileItems = [
+  ...navCategories.directLinks,
+  ...navCategories.create.items,
+  ...navCategories.studio.items,
+  ...navCategories.tools.items,
+];
+
+// ─── Sub-link component for dropdown ─────────────────────────────────────────
+const ListItem = ({
+  href,
+  emoji,
+  title,
+  description,
+  icon: Icon,
+  color,
+}: {
+  href: string;
+  emoji: string;
+  title: string;
+  description?: string;
+  icon: React.ElementType;
+  color: string;
+}) => {
+  return (
+    <li>
+      <NavigationMenuLink asChild>
+        <Link
+          href={href}
+          className="block select-none rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-white/10 focus:bg-white/10 group"
+        >
+          <div className="flex items-center gap-3">
+            <div className={cn("flex h-9 w-9 items-center justify-center rounded-lg bg-white/5 group-hover:bg-white/10 transition-colors")}>
+              <Icon className={cn("h-5 w-5", color)} />
+            </div>
+            <div>
+              <div className="text-sm font-medium leading-none text-white">
+                {emoji} {title}
+              </div>
+              {description && (
+                <p className="mt-1 text-xs leading-snug text-zinc-400">
+                  {description}
+                </p>
+              )}
+            </div>
+          </div>
+        </Link>
+      </NavigationMenuLink>
+    </li>
+  );
+};
+
+// ─── Credit Balance Button ───────────────────────────────────────────────────
+const CreditBalanceButton = ({ apiLimit, isPro }: { apiLimit: number; isPro: boolean }) => {
+  const proModal = useProModal();
+
+  return (
+    <motion.button
+      onClick={() => !isPro && proModal.onOpen()}
+      className={cn(
+        "relative flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-all",
+        "bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-lg shadow-violet-500/25",
+        "hover:shadow-xl hover:shadow-violet-500/40",
+        "overflow-hidden"
+      )}
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
+    >
+      {/* Animated shimmer effect */}
+      <motion.div
+        className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+        animate={{ x: ["-100%", "100%"] }}
+        transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
+      />
+      <Zap className="relative h-4 w-4 fill-yellow-300 text-yellow-300" />
+      <span className="relative">
+        {isPro ? "Pro ∞" : `${apiLimit} Credits`}
+      </span>
+    </motion.button>
+  );
+};
+
+// ─── Main TopNavbar Component ────────────────────────────────────────────────
+export interface TopNavbarProps {
+  apiLimit: number;
+  isPro: boolean;
+}
+
+const TopNavbar = ({ apiLimit = 0, isPro = false }: TopNavbarProps) => {
+  const pathname = usePathname();
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [mobileExpanded, setMobileExpanded] = useState<string | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
+
+  if (!mounted) return null;
+
+  return (
+    <>
+      {/* ── Fixed Top Navbar ────────────────────────────────────────────── */}
+      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-[#0a0f1a]/95 backdrop-blur-xl">
+        <div className="mx-auto flex h-16 max-w-[1600px] items-center justify-between px-4 lg:px-6">
+          {/* ── Left: Logo ──────────────────────────────────────────────── */}
+          <Link href="/dash" className="flex items-center gap-3 shrink-0">
+            <div className="relative h-8 w-8">
+              <Image fill alt="Logo" src="/EveLogo.png" className="object-contain" />
+            </div>
+            <h1 className={cn("text-xl font-bold text-white tracking-tight", montserrat.className)}>
+              Eve
+            </h1>
+          </Link>
+
+          {/* ── Center: Desktop Navigation ──────────────────────────────── */}
+          <div className="hidden lg:flex items-center">
+            <NavigationMenu>
+              <NavigationMenuList>
+                {/* Direct link: Explore */}
+                <NavigationMenuItem>
+                  <Link href="/dash" legacyBehavior passHref>
+                    <NavigationMenuLink className={cn(navigationMenuTriggerStyle(), "text-zinc-300 hover:text-white")}>
+                      🌍 Explore
+                    </NavigationMenuLink>
+                  </Link>
+                </NavigationMenuItem>
+
+                {/* Dropdown: Create */}
+                <NavigationMenuItem>
+                  <NavigationMenuTrigger className="text-zinc-300">
+                    🎨 Create
+                  </NavigationMenuTrigger>
+                  <NavigationMenuContent>
+                    <ul className="grid w-[420px] gap-1 p-3 md:grid-cols-2">
+                      {navCategories.create.items.map((item) => (
+                        <ListItem
+                          key={item.href}
+                          href={item.href}
+                          emoji={item.emoji}
+                          title={item.label}
+                          description={item.description}
+                          icon={item.icon}
+                          color={item.color}
+                        />
+                      ))}
+                    </ul>
+                  </NavigationMenuContent>
+                </NavigationMenuItem>
+
+                {/* Dropdown: Studio */}
+                <NavigationMenuItem>
+                  <NavigationMenuTrigger className="text-zinc-300">
+                    🎬 Studio
+                  </NavigationMenuTrigger>
+                  <NavigationMenuContent>
+                    <ul className="grid w-[480px] gap-1 p-3 md:grid-cols-2">
+                      {navCategories.studio.items.map((item) => (
+                        <ListItem
+                          key={item.href}
+                          href={item.href}
+                          emoji={item.emoji}
+                          title={item.label}
+                          description={item.description}
+                          icon={item.icon}
+                          color={item.color}
+                        />
+                      ))}
+                    </ul>
+                  </NavigationMenuContent>
+                </NavigationMenuItem>
+
+                {/* Dropdown: Tools */}
+                <NavigationMenuItem>
+                  <NavigationMenuTrigger className="text-zinc-300">
+                    🛠️ Tools
+                  </NavigationMenuTrigger>
+                  <NavigationMenuContent>
+                    <ul className="grid w-[420px] gap-1 p-3 md:grid-cols-1">
+                      {navCategories.tools.items.map((item) => (
+                        <ListItem
+                          key={item.href}
+                          href={item.href}
+                          emoji={item.emoji}
+                          title={item.label}
+                          description={item.description}
+                          icon={item.icon}
+                          color={item.color}
+                        />
+                      ))}
+                    </ul>
+                  </NavigationMenuContent>
+                </NavigationMenuItem>
+
+                {/* Direct link: Gallery */}
+                <NavigationMenuItem>
+                  <Link href="/gallery" legacyBehavior passHref>
+                    <NavigationMenuLink className={cn(navigationMenuTriggerStyle(), "text-zinc-300 hover:text-white")}>
+                      🖼️ Gallery
+                    </NavigationMenuLink>
+                  </Link>
+                </NavigationMenuItem>
+              </NavigationMenuList>
+            </NavigationMenu>
+          </div>
+
+          {/* ── Right: Credits + Profile + Hamburger ───────────────────── */}
+          <div className="flex items-center gap-3">
+            <CreditBalanceButton apiLimit={apiLimit} isPro={isPro} />
+
+            <div className="hidden lg:block">
+              <UserButton />
+            </div>
+
+            {/* Mobile hamburger */}
+            <button
+              className="lg:hidden flex items-center justify-center h-10 w-10 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors"
+              onClick={() => setMobileOpen(!mobileOpen)}
+              aria-label="Toggle mobile menu"
+            >
+              {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      {/* ── Mobile Menu Overlay ──────────────────────────────────────────── */}
+      <AnimatePresence>
+        {mobileOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-x-0 top-16 bottom-0 z-40 overflow-y-auto bg-[#0a0f1a]/98 backdrop-blur-xl lg:hidden"
+          >
+            <div className="mx-auto max-w-lg space-y-1 p-4">
+              {/* Direct Links */}
+              {navCategories.directLinks.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors",
+                    pathname === item.href ? "bg-white/10 text-white" : "text-zinc-400 hover:bg-white/5 hover:text-white"
+                  )}
+                >
+                  <item.icon className={cn("h-5 w-5", item.color)} />
+                  {item.emoji} {item.label}
+                </Link>
+              ))}
+
+              {/* Collapsible sections */}
+              {(["create", "studio", "tools"] as const).map((key) => {
+                const section = navCategories[key];
+                const isExpanded = mobileExpanded === key;
+                return (
+                  <div key={key}>
+                    <button
+                      className="flex w-full items-center justify-between rounded-lg px-4 py-3 text-sm font-semibold text-zinc-300 hover:bg-white/5 transition-colors"
+                      onClick={() => setMobileExpanded(isExpanded ? null : key)}
+                    >
+                      <span>{section.label}</span>
+                      <ChevronDown className={cn("h-4 w-4 transition-transform", isExpanded && "rotate-180")} />
+                    </button>
+                    <AnimatePresence>
+                      {isExpanded && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: "auto", opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="overflow-hidden"
+                        >
+                          <div className="ml-2 space-y-1 border-l border-white/10 pl-3 pb-2">
+                            {section.items.map((item) => (
+                              <Link
+                                key={item.href}
+                                href={item.href}
+                                className={cn(
+                                  "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
+                                  pathname === item.href ? "bg-white/10 text-white" : "text-zinc-400 hover:bg-white/5 hover:text-white"
+                                )}
+                              >
+                                <item.icon className={cn("h-4 w-4", item.color)} />
+                                {item.emoji} {item.label}
+                              </Link>
+                            ))}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                );
+              })}
+
+              {/* Mobile: Profile section */}
+              <div className="mt-4 border-t border-white/10 pt-4">
+                <div className="flex items-center gap-3 px-4">
+                  <UserButton />
+                  <span className="text-sm text-zinc-400">Your Profile</span>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
+  );
+};
+
+export default TopNavbar;

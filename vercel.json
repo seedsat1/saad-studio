@@ -1,0 +1,28 @@
+{
+  "framework": "nextjs",
+  "buildCommand": "npx prisma generate && next build",
+  "installCommand": "npm ci",
+  "functions": {
+    "app/api/video/route.ts":        { "maxDuration": 60 },
+    "app/api/music/route.ts":        { "maxDuration": 60 },
+    "app/api/generate/route.ts":     { "maxDuration": 60 },
+    "app/api/cinema/**":             { "maxDuration": 60 },
+    "app/api/shots/**":              { "maxDuration": 60 },
+    "app/api/variations/**":         { "maxDuration": 60 },
+    "app/api/runninghub/**":         { "maxDuration": 60 },
+    "app/api/image/**":              { "maxDuration": 60 },
+    "app/api/3d/**":                 { "maxDuration": 60 },
+    "app/api/webhook/**":            { "maxDuration": 30 },
+    "app/api/webhooks/**":           { "maxDuration": 30 }
+  },
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
+      ]
+    }
+  ]
+}

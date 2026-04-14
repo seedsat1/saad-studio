@@ -1,0 +1,416 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── EXISTING MODELS ────────────────────────────────────────────────────────
+
+model UserApiLimit {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  count     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model UserSubscription {
+  id                     String    @id @default(cuid())
+  userId                 String    @unique
+  stripeCustomerId       String?   @unique @map(name: "stripe_customer_id")
+  stripeSubscriptionId   String?   @unique @map(name: "stripe_subscription_id")
+  stripePriceId          String?   @map(name: "stripe_price_id")
+  stripeCurrentPeriodEnd DateTime? @map(name: "stripe_current_period_end")
+}
+
+// ─── ADMIN MODELS ────────────────────────────────────────────────────────────
+
+/// Platform user record synced from Clerk — stores admin-managed data.
+model User {
+  id            String        @id @default(cuid())
+  name          String?
+  email         String        @unique
+  phone         String?
+  creditBalance Int           @default(0)
+  role          String        @default("USER")
+  isBanned      Boolean       @default(false)
+  createdAt     DateTime      @default(now())
+
+  generations   Generation[]
+  transactions  AdminTransaction[]
+}
+
+/// Records every AI generation for security monitoring and cost tracking.
+model Generation {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  prompt     String
+  mediaUrl   String?
+  assetType  String
+  modelUsed  String
+  cost       Float    @default(0)
+  isFlagged  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+/// Financial transactions: subscriptions and credit purchases.
+model AdminTransaction {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan          String
+  amount        Float
+  credits       Int
+  paymentStatus String   @default("PENDING")
+  createdAt     DateTime @default(now())
+
+  @@index([userId])
+  @@index([paymentStatus])
+}
+
+/// Visual CMS settings — single-row config table for site-wide UI content.
+model SiteSetting {
+  id               String  @id @default(cuid())
+  siteName         String  @default("Saad Studio")
+  logoUrl          String?
+  primaryColor     String  @default("#7c3aed")
+  topBannerAdText  String?
+  isBannerActive   Boolean @default(false)
+  adsEnabled       Boolean @default(false)
+  termsOfServiceText String?
+  privacyPolicyText  String?
+}
+
+// ─── VISUAL CMS — DYNAMIC CONTENT MODELS ─────────────────────────────────────
+
+/// Stores editable content blocks keyed by page slug + section name.
+/// Allows the admin to update text and media on any page without code changes.
+model PageContent {
+  id           String   @id @default(cuid())
+  /// e.g. 'home', 'pricing', 'about', 'features'
+  slug         String
+  /// e.g. 'hero', 'features', 'cta', 'testimonials'
+  sectionName  String
+  textContent  String?
+  mediaUrl     String?
+  /// true = mediaUrl points to a video; false = image
+  isVideo      Boolean  @default(false)
+  updatedAt    DateTime @updatedAt
+
+  @@unique([slug, sectionName])
+  @@index([slug])
+}
+
+/// Visual drag-and-drop page builder layout.
+/// Stores the complete ordered block tree as JSON for 'home' and 'discover' pages.
+model PageLayout {
+  id           String   @id @default(cuid())
+  /// Unique page identifier: 'home' | 'discover'
+  pageName     String   @unique
+  /// JSON array of ordered layout blocks with id, type, title, subtitle, mediaUrl, isVideo
+  layoutBlocks Json     @default("[]")
+  updatedAt    DateTime @updatedAt
+}
+
+/// Dynamic ad campaigns rendered site-wide based on type and active status.
+model AdCampaign {
+  id         String    @id @default(cuid())
+  title      String
+  /// 'TOP_BANNER' | 'POPUP' | 'SIDEBAR'
+  type       String
+  mediaUrl   String?
+  targetLink String?
+  isActive   Boolean   @default(true)
+  expiresAt  DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([type])
+  @@index([isActive])
+}
+
+// ——————————————————————————————————————————————————————————
+// CINEMA STUDIO — PRODUCTION MODELS
+// ——————————————————————————————————————————————————————————
+
+model CinemaProject {
+  id                String          @id @default(cuid())
+  userId            String
+  name              String          @default("Untitled Cinema Project")
+  conceptPrompt     String          @default("")
+  negativePrompt    String          @default("")
+  toneGenre         String          @default("cinematic")
+  modelRoute        String          @default("kwaivgi/kling-v3.0-pro/text-to-video")
+  aspectRatio       String          @default("16:9")
+  defaultDuration   Int             @default(5)
+  creditBalanceSnap Int             @default(0)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  shots             CinemaShot[]
+  characters        CinemaCharacter[]
+  locations         CinemaLocation[]
+  assets            CinemaAsset[]
+  jobs              CinemaJob[]
+
+  @@index([userId, updatedAt])
+}
+
+model CinemaShot {
+  id               String        @id @default(cuid())
+  projectId        String
+  orderIndex       Int           @default(0)
+  title            String        @default("New Shot")
+  prompt           String        @default("")
+  negativePrompt   String        @default("")
+  duration         Int           @default(5)
+  ratio            String        @default("16:9")
+  characterIds     String[]      @default([])
+  locationId       String?
+  cameraPreset     String        @default("static")
+  cameraSpeed      Int           @default(50)
+  motionIntensity  Int           @default(50)
+  smoothness       Int           @default(50)
+  lighting         String        @default("neutral")
+  lens             String        @default("35mm")
+  colorGrade       String        @default("cinematic")
+  audioPrompt      String        @default("")
+  seed             Int?
+  consistencyLock  Boolean       @default(true)
+  generationStatus String        @default("idle")
+  outputAssetId    String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  project          CinemaProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, orderIndex])
+}
+
+model CinemaCharacter {
+  id          String        @id @default(cuid())
+  projectId   String
+  name        String
+  description String        @default("")
+  referenceUrl String?
+  attributes  Json          @default("{}")
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  project     CinemaProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, name])
+}
+
+model CinemaLocation {
+  id          String        @id @default(cuid())
+  projectId   String
+  name        String
+  description String        @default("")
+  referenceUrl String?
+  attributes  Json          @default("{}")
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  project     CinemaProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, name])
+}
+
+model CinemaAsset {
+  id          String        @id @default(cuid())
+  projectId   String
+  shotId      String?
+  type        String
+  url         String
+  thumbnailUrl String?
+  metadata    Json          @default("{}")
+  createdAt   DateTime      @default(now())
+
+  project     CinemaProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, createdAt])
+}
+
+model CinemaJob {
+  id          String        @id @default(cuid())
+  projectId   String
+  shotId      String
+  userId      String
+  status      String        @default("queued")
+  taskId      String?
+  modelRoute  String
+  creditsCost Int           @default(0)
+  error       String?
+  resultUrl   String?
+  payload     Json          @default("{}")
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  project     CinemaProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, createdAt])
+  @@index([shotId, createdAt])
+  @@index([userId, createdAt])
+}
+
+// ——————————————————————————————————————————————————————————
+// TRANSITIONS STUDIO — PRODUCTION MODELS
+// ——————————————————————————————————————————————————————————
+
+model TransitionProject {
+  id              String   @id @default(cuid())
+  userId          String
+  title           String   @default("Untitled Transition")
+  inputAUrl       String?
+  inputAType      String   @default("image")
+  inputBUrl       String?
+  inputBType      String   @default("image")
+  presetId        String?
+  aspectRatio     String   @default("16:9")
+  duration        Int      @default(5)
+  intensity       Int      @default(50)
+  smoothness      Int      @default(50)
+  cinematicStr    Int      @default(60)
+  preserveFraming Boolean  @default(true)
+  subjectFocus    Boolean  @default(true)
+  resolution      String   @default("1080p")
+  fps             Int      @default(24)
+  enhance         Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  jobs            TransitionJob[]
+  outputs         TransitionOutput[]
+
+  @@index([userId, updatedAt])
+}
+
+model TransitionJob {
+  id          String   @id @default(cuid())
+  projectId   String
+  userId      String
+  presetId    String
+  status      String   @default("queued")
+  taskId      String?
+  creditsCost Int      @default(0)
+  error       String?
+  resultUrl   String?
+  payload     Json     @default("{}")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  project     TransitionProject  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  output      TransitionOutput?
+
+  @@index([projectId, createdAt])
+  @@index([userId, createdAt])
+}
+
+model TransitionOutput {
+  id           String   @id @default(cuid())
+  projectId    String
+  jobId        String   @unique
+  userId       String
+  url          String
+  thumbnailUrl String?
+  presetId     String
+  presetName   String
+  aspectRatio  String
+  duration     Int
+  inputAUrl    String?
+  inputBUrl    String?
+  reuseAsA     Boolean  @default(false)
+  reuseAsB     Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  project      TransitionProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  job          TransitionJob     @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([projectId, createdAt])
+}
+
+// ——————————————————————————————————————————————————————————
+// VARIATIONS STUDIO — PRODUCTION MODELS
+// ——————————————————————————————————————————————————————————
+
+model VariationProject {
+  id                   String             @id @default(cuid())
+  userId               String
+  title                String             @default("Untitled Variation")
+  referenceAssetUrl    String?
+  referenceAssetId     String?
+  selectedMode         String             @default("storyboard")
+  selectedGenMode      String             @default("standard")
+  outputCount          Int                @default(9)
+  aspectRatio          String             @default("16:9")
+  direction            String             @default("")
+  negativeDirection    String             @default("")
+  consistencyLock      Boolean            @default(true)
+  settingsJson         Json               @default("{}")
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  outputs              VariationOutput[]
+  jobs                 VariationJob[]
+
+  @@index([userId, updatedAt])
+}
+
+model VariationJob {
+  id          String           @id @default(cuid())
+  projectId   String
+  userId      String
+  status      String           @default("queued")
+  error       String?
+  payload     Json             @default("{}")
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  project     VariationProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  outputs     VariationOutput[]
+
+  @@index([projectId, createdAt])
+  @@index([userId, createdAt])
+}
+
+model VariationOutput {
+  id               String           @id @default(cuid())
+  projectId        String
+  jobId            String?
+  userId           String
+  variationMode    String
+  presetId         String
+  presetLabel      String
+  modelUsed        String
+  fallbackUsed     Boolean          @default(false)
+  assetUrl         String?
+  thumbnailUrl     String?
+  generationStatus String           @default("pending")
+  creditCost       Int              @default(0)
+  kieTaskId        String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  project          VariationProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  job              VariationJob?    @relation(fields: [jobId], references: [id])
+
+  @@index([projectId, createdAt])
+  @@index([userId, createdAt])
+  @@index([jobId])
+}
+
