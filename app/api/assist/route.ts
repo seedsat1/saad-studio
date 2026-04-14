@@ -1,9 +1,9 @@
 ﻿import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
-import OpenAI from "openai";
 import { spendCredits, InsufficientCreditsError } from "@/lib/credit-ledger";
 import { ASSIST_CHAT_CREDITS } from "@/lib/credits-config";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
+import { fetchWithTimeout, readErrorBody } from "@/lib/http";
 import {
   getClientIp,
   isAllowedOrigin,
@@ -27,15 +27,14 @@ const PERSONA_PROMPTS: Record<string, string> = {
     "You are a senior full-stack engineer. Provide robust code and short explanations." + PLAIN_TEXT_RULE,
 };
 
-// KIE model IDs for chat
-const KIE_MODEL_MAP: Record<string, string> = {
-  "gpt-5.4":         "gpt-4o",
-  "claude-sonnet-4.6": "claude-sonnet-4-5",
-  "gemini-3-pro":    "gemini-2.0-flash",
+const WAVESPEED_MODEL_MAP: Record<string, string> = {
+  "gpt-5.4":           "openai/gpt-4o",
+  "claude-sonnet-4.6": "anthropic/claude-3.5-sonnet",
+  "gemini-3-pro":      "google/gemini-2.0-flash",
 };
 
-function getKieModel(modelId: string): string {
-  return KIE_MODEL_MAP[modelId] ?? "gpt-4o";
+function getWavespeedModel(modelId: string): string {
+  return WAVESPEED_MODEL_MAP[modelId] ?? "openai/gpt-4o";
 }
 
 function normalizeMessages(input: unknown): ChatMessage[] {
@@ -61,24 +60,51 @@ function normalizeMessages(input: unknown): ChatMessage[] {
     .slice(-25);
 }
 
-async function callKie(messages: ChatMessage[], model: string): Promise<string> {
-  const key = process.env.KIE_API_KEY || process.env.KIEAI_API_KEY;
-  if (!key) throw new Error("KIE_API_KEY is not configured.");
+async function callWaveSpeed(messages: ChatMessage[], model: string): Promise<string> {
+  const key = process.env.WAVESPEED_API_KEY;
+  if (!key) throw new Error("WAVESPEED_API_KEY is not configured.");
 
-  const kie = new OpenAI({
-    apiKey: key,
-    baseURL: "https://api.kie.ai/api/v1",
-  });
+  const systemPrompt = messages.find((m) => m.role === "system")?.content ?? "";
+  const conversationMessages = messages.filter((m) => m.role !== "system");
+  const prompt = conversationMessages
+    .map((m) => `${m.role === "user" ? "User" : "Assistant"}: ${m.content}`)
+    .join("\n");
 
-  const completion = await kie.chat.completions.create({
-    model,
-    messages,
-    temperature: 0.8,
-    max_tokens: 2048,
-  });
+  const response = await fetchWithTimeout(
+    "https://api.wavespeed.ai/api/v3/wavespeed-ai/any-llm",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${key}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model,
+        prompt,
+        system_prompt: systemPrompt,
+        enable_sync_mode: true,
+        max_tokens: 2048,
+        temperature: 0.8,
+      }),
+    },
+    35000,
+  );
 
-  const text = completion.choices?.[0]?.message?.content?.trim() || "";
-  if (!text) throw new Error("KIE returned an empty reply.");
+  if (!response.ok) {
+    const err = await readErrorBody(response);
+    throw new Error(`WaveSpeed error ${response.status}: ${err}`);
+  }
+
+  const data = await response.json();
+  const output =
+    data?.data?.outputs?.[0] ??
+    data?.outputs?.[0] ??
+    data?.data?.output ??
+    data?.output ??
+    "";
+
+  const text = String(output || "").trim();
+  if (!text) throw new Error("WaveSpeed returned an empty reply.");
   return text;
 }
 
@@ -125,8 +151,8 @@ export async function POST(req: NextRequest) {
       modelUsed: `assist/${modelId}`,
     });
 
-    const kieModel = getKieModel(modelId);
-    const content = await callKie(allMessages, kieModel);
+    const wsModel = getWavespeedModel(modelId);
+    const content = await callWaveSpeed(allMessages, wsModel);
 
     return NextResponse.json({ content });
   } catch (error) {
@@ -141,5 +167,3 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
-
-
