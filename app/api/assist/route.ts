@@ -1,4 +1,4 @@
-﻿import { auth } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import { spendCredits, InsufficientCreditsError } from "@/lib/credit-ledger";
 import { ASSIST_CHAT_CREDITS } from "@/lib/credits-config";
@@ -18,23 +18,116 @@ const PLAIN_TEXT_RULE =
 
 const PERSONA_PROMPTS: Record<string, string> = {
   general:
-    "You are a helpful assistant for Saad Studio. Give clear, practical answers." + PLAIN_TEXT_RULE,
+    "You are a helpful assistant for Saad Studio. Give clear, practical answers." +
+    PLAIN_TEXT_RULE,
   prompt:
-    "You are a prompt engineer. Produce clean high-quality prompts for image and video generation." + PLAIN_TEXT_RULE,
+    "You are a prompt engineer. Produce clean high-quality prompts for image and video generation." +
+    PLAIN_TEXT_RULE,
   script:
-    "You are a cinematic scriptwriter. Write concise and production-ready scripts." + PLAIN_TEXT_RULE,
+    "You are a cinematic scriptwriter. Write concise and production-ready scripts." +
+    PLAIN_TEXT_RULE,
   code:
-    "You are a senior full-stack engineer. Provide robust code and short explanations." + PLAIN_TEXT_RULE,
+    "You are a senior full-stack engineer. Provide robust code and short explanations." +
+    PLAIN_TEXT_RULE,
 };
 
-const WAVESPEED_MODEL_MAP: Record<string, string> = {
-  "gpt-5.4":           "openai/gpt-4o",
-  "claude-sonnet-4.6": "anthropic/claude-3.5-sonnet",
-  "gemini-3-pro":      "google/gemini-2.0-flash",
-};
+function getKieKey(): string {
+  const key = process.env.KIE_API_KEY || process.env.KIEAI_API_KEY;
+  if (!key) throw new Error("KIE_API_KEY is not configured.");
+  return key;
+}
 
-function getWavespeedModel(modelId: string): string {
-  return WAVESPEED_MODEL_MAP[modelId] ?? "openai/gpt-4o";
+/** GPT-5.4 — KIE Responses API: POST /codex/v1/responses */
+async function callGpt54(messages: ChatMessage[], key: string): Promise<string> {
+  const systemMsg = messages.find((m) => m.role === "system");
+  const chatMsgs = messages.filter((m) => m.role !== "system");
+
+  const input: unknown[] = [];
+  if (systemMsg) {
+    input.push({ role: "system", content: [{ type: "input_text", text: systemMsg.content }] });
+  }
+  for (const m of chatMsgs) {
+    input.push({ role: m.role, content: [{ type: "input_text", text: m.content }] });
+  }
+
+  const res = await fetchWithTimeout(
+    "https://api.kie.ai/codex/v1/responses",
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ model: "gpt-5-4", stream: false, input }),
+    },
+    40000,
+  );
+  if (!res.ok) throw new Error(`KIE GPT-5.4 ${res.status}: ${await readErrorBody(res)}`);
+  const data = await res.json();
+  type OutputBlock = { type: string; content?: { type: string; text: string }[] };
+  const msgBlock = (data?.output as OutputBlock[] | undefined)?.find((o) => o.type === "message");
+  const text = msgBlock?.content?.find((c) => c.type === "output_text")?.text ?? "";
+  if (!text) throw new Error("KIE GPT-5.4 returned an empty reply.");
+  return text.trim();
+}
+
+/** Claude Sonnet 4.6 — KIE Anthropic format: POST /claude/v1/messages */
+async function callClaude(messages: ChatMessage[], key: string): Promise<string> {
+  const systemMsg = messages.find((m) => m.role === "system");
+  const chatMsgs = messages
+    .filter((m) => m.role !== "system")
+    .map((m) => ({ role: m.role, content: m.content }));
+
+  const body: Record<string, unknown> = {
+    model: "claude-sonnet-4-6",
+    stream: false,
+    max_tokens: 2048,
+    messages: chatMsgs,
+  };
+  if (systemMsg) body.system = systemMsg.content;
+
+  const res = await fetchWithTimeout(
+    "https://api.kie.ai/claude/v1/messages",
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    },
+    40000,
+  );
+  if (!res.ok) throw new Error(`KIE Claude ${res.status}: ${await readErrorBody(res)}`);
+  const data = await res.json();
+  type ContentBlock = { type: string; text?: string };
+  const textBlock = (data?.content as ContentBlock[] | undefined)?.find((c) => c.type === "text");
+  const text = textBlock?.text ?? "";
+  if (!text) throw new Error("KIE Claude returned an empty reply.");
+  return text.trim();
+}
+
+/** Gemini 3 Pro — KIE OpenAI chat completions: POST /gemini-3-pro/v1/chat/completions */
+async function callGemini(messages: ChatMessage[], key: string): Promise<string> {
+  const res = await fetchWithTimeout(
+    "https://api.kie.ai/gemini-3-pro/v1/chat/completions",
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        messages: messages.map((m) => ({ role: m.role, content: m.content })),
+        stream: false,
+        max_tokens: 2048,
+      }),
+    },
+    40000,
+  );
+  if (!res.ok) throw new Error(`KIE Gemini ${res.status}: ${await readErrorBody(res)}`);
+  const data = await res.json();
+  const text = data?.choices?.[0]?.message?.content ?? "";
+  if (!text) throw new Error("KIE Gemini returned an empty reply.");
+  return String(text).trim();
+}
+
+async function callKie(messages: ChatMessage[], modelId: string): Promise<string> {
+  const key = getKieKey();
+  if (modelId === "gpt-5.4") return callGpt54(messages, key);
+  if (modelId === "claude-sonnet-4.6") return callClaude(messages, key);
+  return callGemini(messages, key); // gemini-3-pro + default
 }
 
 function normalizeMessages(input: unknown): ChatMessage[] {
@@ -51,61 +144,10 @@ function normalizeMessages(input: unknown): ChatMessage[] {
       ) {
         return null;
       }
-      return {
-        role,
-        content: sanitizePrompt(content, 6000),
-      } as ChatMessage;
+      return { role, content: sanitizePrompt(content, 6000) } as ChatMessage;
     })
     .filter((m): m is ChatMessage => !!m)
     .slice(-25);
-}
-
-async function callWaveSpeed(messages: ChatMessage[], model: string): Promise<string> {
-  const key = process.env.WAVESPEED_API_KEY;
-  if (!key) throw new Error("WAVESPEED_API_KEY is not configured.");
-
-  const systemPrompt = messages.find((m) => m.role === "system")?.content ?? "";
-  const conversationMessages = messages.filter((m) => m.role !== "system");
-  const prompt = conversationMessages
-    .map((m) => `${m.role === "user" ? "User" : "Assistant"}: ${m.content}`)
-    .join("\n");
-
-  const response = await fetchWithTimeout(
-    "https://api.wavespeed.ai/api/v3/wavespeed-ai/any-llm",
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${key}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model,
-        prompt,
-        system_prompt: systemPrompt,
-        enable_sync_mode: true,
-        max_tokens: 2048,
-        temperature: 0.8,
-      }),
-    },
-    35000,
-  );
-
-  if (!response.ok) {
-    const err = await readErrorBody(response);
-    throw new Error(`WaveSpeed error ${response.status}: ${err}`);
-  }
-
-  const data = await response.json();
-  const output =
-    data?.data?.outputs?.[0] ??
-    data?.outputs?.[0] ??
-    data?.data?.output ??
-    data?.output ??
-    "";
-
-  const text = String(output || "").trim();
-  if (!text) throw new Error("WaveSpeed returned an empty reply.");
-  return text;
 }
 
 export async function POST(req: NextRequest) {
@@ -144,21 +186,24 @@ export async function POST(req: NextRequest) {
     await spendCredits({
       userId,
       credits: ASSIST_CHAT_CREDITS,
-      prompt: typeof messages[messages.length - 1]?.content === "string"
-        ? messages[messages.length - 1].content.slice(0, 500)
-        : "Assist chat",
+      prompt:
+        typeof messages[messages.length - 1]?.content === "string"
+          ? messages[messages.length - 1].content.slice(0, 500)
+          : "Assist chat",
       assetType: "TEXT",
       modelUsed: `assist/${modelId}`,
     });
 
-    const wsModel = getWavespeedModel(modelId);
-    const content = await callWaveSpeed(allMessages, wsModel);
-
+    const content = await callKie(allMessages, modelId);
     return NextResponse.json({ content });
   } catch (error) {
     if (error instanceof InsufficientCreditsError) {
       return NextResponse.json(
-        { error: "Insufficient credits. Please top up your balance.", requiredCredits: error.requiredCredits, currentBalance: error.currentBalance },
+        {
+          error: "Insufficient credits. Please top up your balance.",
+          requiredCredits: error.requiredCredits,
+          currentBalance: error.currentBalance,
+        },
         { status: 402 },
       );
     }
