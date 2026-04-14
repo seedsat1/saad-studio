@@ -227,7 +227,7 @@ function mapToKieInput(model: string, payload: Record<string, unknown>) {
 
 function normalizeTaskState(status: string) {
   const s = (status || "").toLowerCase();
-  if (["success", "completed", "done"].includes(s)) return "completed";
+  if (["success", "succeed", "completed", "done", "finish", "finished"].includes(s)) return "completed";
   if (["fail", "failed", "error", "canceled", "cancelled"].includes(s)) return "failed";
   return "processing";
 }
@@ -245,7 +245,18 @@ function extractOutputs(resultPayload: unknown): string[] {
   }
 
   if (Array.isArray(resultPayload)) {
-    return resultPayload.filter((v): v is string => typeof v === "string" && /^https?:\/\//.test(v));
+    const direct = resultPayload.filter((v): v is string => typeof v === "string" && /^https?:\/\//.test(v));
+    if (direct.length) return direct;
+    // Handle array of objects with url/videoUrl/imageUrl fields
+    const fromObjects: string[] = [];
+    for (const item of resultPayload) {
+      if (item && typeof item === "object") {
+        const obj = item as Record<string, unknown>;
+        const url = obj.url ?? obj.videoUrl ?? obj.imageUrl ?? obj.downloadUrl;
+        if (typeof url === "string" && /^https?:\/\//.test(url)) fromObjects.push(url);
+      }
+    }
+    return fromObjects;
   }
 
   if (typeof resultPayload === "object") {
@@ -497,7 +508,9 @@ export async function GET(req: Request) {
 
     const pollJson = await pollRes.json().catch(() => null);
 
-    if (!pollRes.ok || (pollJson?.code != null && pollJson.code !== 200)) {
+    // KIE uses code: 200 for success, but fallback: if HTTP is OK and data exists, treat as success
+    const kieCodeOk = pollJson?.code == null || pollJson.code === 200 || pollJson.code === 0;
+    if (!pollRes.ok || !kieCodeOk) {
       return NextResponse.json(
         { error: pollJson?.msg || pollJson?.message || "Failed to retrieve task result" },
         { status: pollRes.ok ? 500 : pollRes.status },

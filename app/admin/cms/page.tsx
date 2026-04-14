@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Paintbrush,
@@ -279,7 +279,8 @@ function InputField({
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 
 export default function VisualCMSPage() {
-  const [ads, setAds] = useState<AdCampaign[]>(MOCK_ADS);
+  const [ads, setAds] = useState<AdCampaign[]>([]);
+  const [adsLoading, setAdsLoading] = useState(true);
   const [selectedSection, setSelectedSection] = useState<PageSection>(PAGE_SECTIONS[0]);
   const [contentMap, setContentMap] = useState<Record<string, ContentState>>(CONTENT_SEEDS);
   const [previewMode, setPreviewMode] = useState(false);
@@ -295,6 +296,58 @@ export default function VisualCMSPage() {
     isActive: true,
     expiresAt: "",
   });
+
+  // ── Fetch real data on mount ──────────────────────────────────────────────
+  useEffect(() => {
+    fetch("/api/admin/ads")
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data: AdCampaign[]) => {
+        setAds(
+          data.map((a) => ({
+            ...a,
+            mediaUrl: a.mediaUrl ?? "",
+            targetLink: a.targetLink ?? "",
+            expiresAt: a.expiresAt
+              ? new Date(a.expiresAt).toISOString().split("T")[0]
+              : "",
+            createdAt: new Date(a.createdAt).toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+            }),
+          }))
+        );
+      })
+      .catch(() => setAds([]))
+      .finally(() => setAdsLoading(false));
+
+    fetch("/api/admin/content")
+      .then((r) => (r.ok ? r.json() : []))
+      .then((records: { slug: string; sectionName: string; textContent?: string; mediaUrl?: string; isVideo?: boolean; ctaText?: string; ctaLink?: string }[]) => {
+        if (!Array.isArray(records) || records.length === 0) return;
+        const patch: Record<string, ContentState> = {};
+        records.forEach((rec) => {
+          const key = `${rec.slug}-${rec.sectionName}`;
+          const seed = CONTENT_SEEDS[key] ?? { headline: "", subheadline: "", bodyText: "", mediaUrl: "", isVideo: false, ctaText: "", ctaLink: "" };
+          try {
+            const parsed = rec.textContent ? JSON.parse(rec.textContent) : {};
+            patch[key] = {
+              headline: parsed.headline ?? seed.headline,
+              subheadline: parsed.subheadline ?? seed.subheadline,
+              bodyText: parsed.bodyText ?? seed.bodyText,
+              mediaUrl: rec.mediaUrl ?? seed.mediaUrl,
+              isVideo: rec.isVideo ?? seed.isVideo,
+              ctaText: rec.ctaText ?? seed.ctaText,
+              ctaLink: rec.ctaLink ?? seed.ctaLink,
+            };
+          } catch {
+            patch[key] = seed;
+          }
+        });
+        setContentMap((prev) => ({ ...prev, ...patch }));
+      })
+      .catch(() => {});
+  }, []);
 
   const sectionKey = `${selectedSection.pageSlug}-${selectedSection.sectionKey}`;
   const content: ContentState = contentMap[sectionKey] ?? {
@@ -312,29 +365,61 @@ export default function VisualCMSPage() {
     setPublished(null);
   };
 
-  const handlePublish = () => {
+  const handlePublish = async () => {
+    const c = contentMap[sectionKey] ?? content;
+    await fetch("/api/admin/content", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        slug: selectedSection.pageSlug,
+        sectionName: selectedSection.sectionKey,
+        textContent: JSON.stringify({ headline: c.headline, subheadline: c.subheadline, bodyText: c.bodyText }),
+        mediaUrl: c.mediaUrl,
+        isVideo: c.isVideo,
+        ctaText: c.ctaText,
+        ctaLink: c.ctaLink,
+      }),
+    }).catch(() => {});
     setPublished(sectionKey);
     setTimeout(() => setPublished(null), 3000);
   };
 
-  const handleCreateAd = () => {
+  const handleCreateAd = async () => {
     if (!newAd.title.trim()) return;
-    const ad: AdCampaign = {
-      ...newAd,
-      id: `ad${Date.now()}`,
-      createdAt: "Apr 7, 2026",
-    };
-    setAds((prev) => [ad, ...prev]);
+    const res = await fetch("/api/admin/ads", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newAd),
+    }).catch(() => null);
+    if (res?.ok) {
+      const created = await res.json();
+      const formatted: AdCampaign = {
+        ...created,
+        mediaUrl: created.mediaUrl ?? "",
+        targetLink: created.targetLink ?? "",
+        expiresAt: created.expiresAt ? new Date(created.expiresAt).toISOString().split("T")[0] : "",
+        createdAt: new Date(created.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+      };
+      setAds((prev) => [formatted, ...prev]);
+    }
     setNewAd({ title: "", type: "TOP_BANNER", mediaUrl: "", targetLink: "", isActive: true, expiresAt: "" });
     setShowAdForm(false);
   };
 
-  const toggleAdActive = (id: string) => {
+  const toggleAdActive = async (id: string) => {
+    const ad = ads.find((a) => a.id === id);
+    if (!ad) return;
     setAds((prev) => prev.map((a) => (a.id === id ? { ...a, isActive: !a.isActive } : a)));
+    await fetch(`/api/admin/ads/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ isActive: !ad.isActive }),
+    }).catch(() => {});
   };
 
-  const deleteAd = (id: string) => {
+  const deleteAd = async (id: string) => {
     setAds((prev) => prev.filter((a) => a.id !== id));
+    await fetch(`/api/admin/ads/${id}`, { method: "DELETE" }).catch(() => {});
   };
 
   // Group page sections by page
@@ -481,7 +566,10 @@ export default function VisualCMSPage() {
 
             {/* Active Ads List */}
             <div className="px-4 pb-4 space-y-2 max-h-64 overflow-y-auto">
-              {ads.length === 0 && (
+              {adsLoading && (
+                <p className="text-xs text-slate-500 text-center py-4">Loading campaigns...</p>
+              )}
+              {!adsLoading && ads.length === 0 && (
                 <p className="text-xs text-slate-600 text-center py-4">No campaigns yet.</p>
               )}
               {ads.map((ad) => {

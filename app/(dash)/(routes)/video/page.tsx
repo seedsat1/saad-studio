@@ -409,12 +409,24 @@ function VideoPageInner() {
     const poll = async () => {
       try {
         const res = await fetch(`/api/video?taskId=${generatingTaskId}`);
-        const data = (await res.json().catch(() => null)) as {
+        let data: {
           taskId:  string;
           status:  "created" | "processing" | "completed" | "failed";
           outputs: string[];
           error:   string | null;
-        } | null;
+        } | null = null;
+        try {
+          data = await res.json();
+        } catch {
+          // non-JSON response — keep polling unless status signals definitive failure
+          if (!res.ok) {
+            const text = await res.text().catch(() => "");
+            setGenerationError(text || `Server error (${res.status})`);
+            setIsGenerating(false);
+            setGeneratingTaskId(null);
+          }
+          return;
+        }
 
         if (!res.ok) {
           setGenerationError(data?.error ?? "Generation check failed");
@@ -723,7 +735,15 @@ function VideoPageInner() {
         body: JSON.stringify({ modelRoute: selectedModel.api_route, payload }),
       });
 
-      const data = await res.json() as { taskId?: string; error?: string };
+      let data: { taskId?: string; error?: string } = {};
+      try {
+        data = await res.json();
+      } catch {
+        const text = await res.text().catch(() => "");
+        setGenerationError(text || `Server error (${res.status})`);
+        setIsGenerating(false);
+        return;
+      }
 
       if (!res.ok || !data.taskId) {
         setGenerationError(data.error ?? "Failed to start generation");
@@ -732,8 +752,8 @@ function VideoPageInner() {
       }
 
       setGeneratingTaskId(data.taskId);
-    } catch {
-      setGenerationError("An unexpected error occurred");
+    } catch (err) {
+      setGenerationError(err instanceof Error ? err.message : "An unexpected error occurred");
       setIsGenerating(false);
     }
   }, [

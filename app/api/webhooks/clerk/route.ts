@@ -66,12 +66,12 @@ export async function POST(req: NextRequest) {
           email,
           name,
           phone,
-          creditBalance: 0,
+          creditBalance: 100,
           role: "USER",
           isBanned: false,
         },
       });
-      console.log(`[clerk-webhook] User created: ${email}`);
+      console.log(`[clerk-webhook] User created: ${email} (+100 welcome credits)`);
     }
 
     if (type === "user.updated") {
