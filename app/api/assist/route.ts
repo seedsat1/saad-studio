@@ -1,15 +1,9 @@
 ﻿import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
+import { checkApiLimit, incrementApiLimit } from "@/lib/api-limit";
+import { checkSubscription } from "@/lib/subscription";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
-import { fetchWithTimeout, readErrorBody } from "@/lib/http";
-import {
-  InsufficientCreditsError,
-  rollbackGenerationCharge,
-  setGenerationMediaUrl,
-  spendCredits,
-} from "@/lib/credit-ledger";
-import { ASSIST_CHAT_CREDITS } from "@/lib/credits-config";
 import {
   getClientIp,
   isAllowedOrigin,
@@ -18,30 +12,30 @@ import {
 } from "@/lib/security";
 
 type ChatMessage = { role: "system" | "user" | "assistant"; content: string };
-type Provider = "openai" | "wavespeed";
+
+const PLAIN_TEXT_RULE =
+  " Always respond in plain text only. Do NOT use markdown formatting — no asterisks, no bold, no italics, no headers, no bullet symbols, no backticks, no code blocks. Write naturally as if typing a message.";
 
 const PERSONA_PROMPTS: Record<string, string> = {
   general:
-    "You are a helpful assistant for Saad Studio. Give clear, practical answers.",
+    "You are a helpful assistant for Saad Studio. Give clear, practical answers." + PLAIN_TEXT_RULE,
   prompt:
-    "You are a prompt engineer. Produce clean high-quality prompts for image and video generation.",
+    "You are a prompt engineer. Produce clean high-quality prompts for image and video generation." + PLAIN_TEXT_RULE,
   script:
-    "You are a cinematic scriptwriter. Write concise and production-ready scripts.",
-  code: "You are a senior full-stack engineer. Provide robust code and short explanations.",
+    "You are a cinematic scriptwriter. Write concise and production-ready scripts." + PLAIN_TEXT_RULE,
+  code:
+    "You are a senior full-stack engineer. Provide robust code and short explanations." + PLAIN_TEXT_RULE,
 };
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || "" });
+// KIE model IDs for chat
+const KIE_MODEL_MAP: Record<string, string> = {
+  "gpt-5.4":         "gpt-4o",
+  "claude-sonnet-4.6": "claude-sonnet-4-5",
+  "gemini-3-pro":    "gemini-2.0-flash",
+};
 
-function getModelConfig(modelId: string): { preferredProvider: Provider; model: string } {
-  switch (modelId) {
-    case "gemini-3-pro":
-      return { preferredProvider: "wavespeed", model: "google/gemini-3-flash-preview" };
-    case "claude-sonnet-4.6":
-      return { preferredProvider: "wavespeed", model: "anthropic/claude-3.5-sonnet" };
-    case "gpt-5.4":
-    default:
-      return { preferredProvider: "openai", model: "gpt-4o" };
-  }
+function getKieModel(modelId: string): string {
+  return KIE_MODEL_MAP[modelId] ?? "gpt-4o";
 }
 
 function normalizeMessages(input: unknown): ChatMessage[] {
@@ -67,65 +61,35 @@ function normalizeMessages(input: unknown): ChatMessage[] {
     .slice(-25);
 }
 
-async function callWaveSpeed(messages: ChatMessage[], model: string): Promise<string> {
-  const key = process.env.WAVESPEED_API_KEY;
-  if (!key) {
-    throw new Error("WaveSpeed key is not configured.");
+async function safeCheckUsage(): Promise<boolean> {
+  try {
+    const freeTrial = await checkApiLimit();
+    const isPro = await checkSubscription();
+    return freeTrial || isPro;
+  } catch (e) {
+    console.warn("assist usage checks unavailable, proceeding", e);
+    return true;
   }
-
-  const systemPrompt = messages.find((m) => m.role === "system")?.content ?? "";
-  const prompt = messages
-    .filter((m) => m.role !== "system")
-    .map((m) => `${m.role === "user" ? "User" : "Assistant"}: ${m.content}`)
-    .join("\n");
-
-  const response = await fetchWithTimeout(
-    "https://api.wavespeed.ai/api/v3/wavespeed-ai/any-llm",
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${key}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model,
-        prompt,
-        system_prompt: systemPrompt,
-        enable_sync_mode: true,
-        max_tokens: 2048,
-        temperature: 0.8,
-      }),
-    },
-    35000,
-  );
-
-  if (!response.ok) {
-    const err = await readErrorBody(response);
-    throw new Error(`WaveSpeed request failed: ${response.status} ${err}`);
-  }
-
-  const data = await response.json();
-  const output =
-    data?.data?.outputs?.[0] ??
-    data?.outputs?.[0] ??
-    data?.data?.output ??
-    data?.output ??
-    "";
-
-  const text = String(output || "").trim();
-  if (!text) {
-    throw new Error("WaveSpeed returned an empty reply.");
-  }
-
-  return text;
 }
 
-async function callOpenAI(messages: ChatMessage[], model: string): Promise<string> {
-  if (!process.env.OPENAI_API_KEY) {
-    throw new Error("OPENAI_API_KEY is not configured.");
+async function safeIncrementUsage() {
+  try {
+    await incrementApiLimit();
+  } catch (e) {
+    console.warn("assist usage increment failed", e);
   }
+}
 
-  const completion = await openai.chat.completions.create({
+async function callKie(messages: ChatMessage[], model: string): Promise<string> {
+  const key = process.env.KIE_API_KEY || process.env.KIEAI_API_KEY;
+  if (!key) throw new Error("KIE_API_KEY is not configured.");
+
+  const kie = new OpenAI({
+    apiKey: key,
+    baseURL: "https://api.kie.ai/api/v1",
+  });
+
+  const completion = await kie.chat.completions.create({
     model,
     messages,
     temperature: 0.8,
@@ -133,17 +97,11 @@ async function callOpenAI(messages: ChatMessage[], model: string): Promise<strin
   });
 
   const text = completion.choices?.[0]?.message?.content?.trim() || "";
-  if (!text) {
-    throw new Error("OpenAI returned an empty reply.");
-  }
-
+  if (!text) throw new Error("KIE returned an empty reply.");
   return text;
 }
 
 export async function POST(req: NextRequest) {
-  let charge: { generationId: string; remainingCredits: number } | null = null;
-  let chargeUserId: string | null = null;
-
   try {
     if (!isAllowedOrigin(req.headers.get("origin"))) {
       return NextResponse.json({ error: "Origin not allowed" }, { status: 403 });
@@ -163,6 +121,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const usageAllowed = await safeCheckUsage();
+    if (!usageAllowed) {
+      return NextResponse.json(
+        { error: "Free trial has expired. Please upgrade to pro." },
+        { status: 403 },
+      );
+    }
+
     const body = await req.json();
     const modelId = typeof body?.model === "string" ? body.model : "gpt-5.4";
     const personaRaw = typeof body?.persona === "string" ? body.persona : "general";
@@ -173,71 +139,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Messages are required" }, { status: 400 });
     }
 
-    const latestUserPrompt =
-      [...messages].reverse().find((m) => m.role === "user")?.content ?? "Assist chat request";
-
-    charge = await spendCredits({
-      userId,
-      credits: ASSIST_CHAT_CREDITS,
-      prompt: latestUserPrompt,
-      assetType: "assist_chat",
-      modelUsed: modelId,
-    });
-    chargeUserId = userId;
-
     const systemPrompt = PERSONA_PROMPTS[persona] ?? PERSONA_PROMPTS.general;
     const allMessages: ChatMessage[] = [{ role: "system", content: systemPrompt }, ...messages];
 
-    const { preferredProvider, model } = getModelConfig(modelId);
-    let content = "";
+    const kieModel = getKieModel(modelId);
+    const content = await callKie(allMessages, kieModel);
 
-    if (preferredProvider === "wavespeed") {
-      try {
-        content = await callWaveSpeed(allMessages, model);
-      } catch (wsErr) {
-        console.warn("assist wavespeed failed; trying openai fallback", wsErr);
-        content = await callOpenAI(allMessages, "gpt-4o");
-      }
-    } else {
-      try {
-        content = await callOpenAI(allMessages, model);
-      } catch (openaiErr) {
-        // Keep the chat usable by retrying on WaveSpeed when OpenAI fails (including quota errors).
-        console.warn("assist openai failed; trying wavespeed fallback", openaiErr);
-        try {
-          content = await callWaveSpeed(allMessages, "google/gemini-3-flash-preview");
-        } catch (wsErr) {
-          const openaiMsg =
-            openaiErr instanceof Error ? openaiErr.message : "OpenAI request failed";
-          const waveMsg =
-            wsErr instanceof Error ? wsErr.message : "WaveSpeed fallback failed";
-          throw new Error(`${openaiMsg}. Fallback failed: ${waveMsg}`);
-        }
-      }
-    }
-
-    await setGenerationMediaUrl(charge.generationId, "text:assist");
-    return NextResponse.json({ content, remainingCredits: charge.remainingCredits });
+    await safeIncrementUsage();
+    return NextResponse.json({ content });
   } catch (error) {
-    if (error instanceof InsufficientCreditsError) {
-      return NextResponse.json(
-        {
-          error: "Insufficient credits",
-          currentBalance: error.currentBalance,
-          requiredCredits: error.requiredCredits,
-        },
-        { status: 402 },
-      );
-    }
-
-    if (charge && chargeUserId) {
-      await rollbackGenerationCharge(charge.generationId, chargeUserId, ASSIST_CHAT_CREDITS).catch(
-        () => {},
-      );
-    }
-
     console.error("assist API error", error);
     const message = error instanceof Error ? error.message : "Internal error";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
+
+

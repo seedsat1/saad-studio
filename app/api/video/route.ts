@@ -9,6 +9,7 @@ import { getResolvedKieRoutingMaps } from "@/lib/kie-model-routing";
 import { syncKieModelCatalog } from "@/lib/kie-model-sync";
 
 const KIE_BASE = "https://api.kie.ai/api/v1";
+const { videoRouteToKieModelMap } = getResolvedKieRoutingMaps();
 
 function getKieKey(): string {
   const key = process.env.KIE_API_KEY || process.env.KIEAI_API_KEY;
@@ -481,8 +482,9 @@ export async function POST(req: Request) {
       await rollbackGenerationCharge(generationId, chargedUserId, chargedCredits);
     }
 
+    const msg = err instanceof Error ? err.message : "Internal Error";
     console.error("[api/video POST]", err);
-    return new NextResponse("Internal Error", { status: 500 });
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
 
@@ -552,4 +554,4 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Internal error while checking generation status" }, { status: 500 });
   }
 }
-    const { videoRouteToKieModelMap } = getResolvedKieRoutingMaps();
+

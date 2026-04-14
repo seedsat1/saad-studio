@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Bot,
@@ -15,7 +15,6 @@ import {
   Zap,
   PenLine,
   Code2,
-  Wand2,
 } from "lucide-react";
 
 type Message = {
@@ -61,14 +60,6 @@ const PERSONAS: PersonaItem[] = [
   { id: "code", label: "Code Expert", icon: Code2 },
 ];
 
-const PROMPT_TEMPLATES = [
-  "Write a cinematic scene prompt for a dramatic war sequence at sunrise.",
-  "Break down this idea into 5 short storyboard shots with camera angles.",
-  "Rewrite this Arabic ad script in stronger, clearer copywriting style.",
-  "Generate a production-ready video prompt with negative prompt included.",
-  "Turn this rough concept into a polished brand script with hook + CTA.",
-];
-
 function createWelcomeMessage(): Message {
   return {
     id: `m-${Date.now()}-welcome`,
@@ -89,12 +80,86 @@ function createSession(): Session {
   };
 }
 
+function renderInline(text: string): React.ReactNode[] {
+  // Process inline markdown: **bold**, *italic*, `code`, [link](url)
+  const parts: React.ReactNode[] = [];
+  const regex = /(\*\*(.+?)\*\*)|(\*(.+?)\*)|(`(.+?)`)|(\[(.+?)\]\((.+?)\))/g;
+  let last = 0;
+  let match: RegExpExecArray | null;
+  let idx = 0;
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > last) {
+      parts.push(text.slice(last, match.index));
+    }
+    if (match[1]) {
+      parts.push(<strong key={idx++} className="font-semibold text-white">{match[2]}</strong>);
+    } else if (match[3]) {
+      parts.push(<em key={idx++} className="italic">{match[4]}</em>);
+    } else if (match[5]) {
+      parts.push(<code key={idx++} className="bg-slate-700 rounded px-1 py-0.5 text-xs font-mono text-emerald-300">{match[6]}</code>);
+    } else if (match[7]) {
+      parts.push(<a key={idx++} href={match[9]} target="_blank" rel="noopener noreferrer" className="text-blue-400 underline">{match[8]}</a>);
+    }
+    last = match.index + match[0].length;
+  }
+  if (last < text.length) parts.push(text.slice(last));
+  return parts;
+}
+
 function renderSimpleMarkdown(content: string) {
-  return content.split("\n").map((line, i) => (
-    <p key={`${i}-${line.slice(0, 10)}`} className="leading-relaxed text-sm text-slate-200">
-      {line || "\u00A0"}
-    </p>
-  ));
+  const lines = content.split("\n");
+  const elements: React.ReactNode[] = [];
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    // Fenced code block
+    if (line.startsWith("```")) {
+      const lang = line.slice(3).trim();
+      const codeLines: string[] = [];
+      i++;
+      while (i < lines.length && !lines[i].startsWith("```")) {
+        codeLines.push(lines[i]);
+        i++;
+      }
+      elements.push(
+        <pre key={i} className="bg-slate-800 rounded-lg p-3 my-2 overflow-x-auto text-xs font-mono text-emerald-300 whitespace-pre-wrap">
+          {lang && <span className="text-slate-500 text-xs block mb-1">{lang}</span>}
+          {codeLines.join("\n")}
+        </pre>
+      );
+    } else if (/^### (.+)/.test(line)) {
+      elements.push(<h3 key={i} className="text-base font-semibold text-white mt-3 mb-1">{renderInline(line.slice(4))}</h3>);
+    } else if (/^## (.+)/.test(line)) {
+      elements.push(<h2 key={i} className="text-lg font-bold text-white mt-3 mb-1">{renderInline(line.slice(3))}</h2>);
+    } else if (/^# (.+)/.test(line)) {
+      elements.push(<h1 key={i} className="text-xl font-bold text-white mt-3 mb-1">{renderInline(line.slice(2))}</h1>);
+    } else if (/^[-*] (.+)/.test(line)) {
+      elements.push(
+        <div key={i} className="flex gap-2 leading-relaxed text-sm text-slate-200">
+          <span className="text-slate-400 mt-0.5">•</span>
+          <span>{renderInline(line.slice(2))}</span>
+        </div>
+      );
+    } else if (/^\d+\. (.+)/.test(line)) {
+      const numMatch = line.match(/^(\d+)\. (.+)/);
+      elements.push(
+        <div key={i} className="flex gap-2 leading-relaxed text-sm text-slate-200">
+          <span className="text-slate-400 shrink-0">{numMatch![1]}.</span>
+          <span>{renderInline(numMatch![2])}</span>
+        </div>
+      );
+    } else if (line.trim() === "") {
+      elements.push(<div key={i} className="h-2" />);
+    } else {
+      elements.push(
+        <p key={i} className="leading-relaxed text-sm text-slate-200">
+          {renderInline(line)}
+        </p>
+      );
+    }
+    i++;
+  }
+  return elements;
 }
 
 export default function AssistPage() {
@@ -259,8 +324,8 @@ export default function AssistPage() {
   };
 
   return (
-    <div className="flex h-full min-h-0 w-full overflow-hidden bg-[#030712]">
-      <aside className="w-[260px] h-full border-r border-slate-800/70 bg-slate-950/80 backdrop-blur-xl flex flex-col shrink-0">
+    <div className="flex min-h-0 h-full w-full overflow-hidden bg-[#030712]">
+      <aside className="w-[260px] border-r border-slate-800/70 bg-slate-950/80 backdrop-blur-xl flex flex-col">
         <div className="px-4 pt-4 pb-3 flex items-center gap-2">
           <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-blue-500 to-violet-500 flex items-center justify-center shadow-[0_0_18px_rgba(59,130,246,0.35)]">
             <Cpu className="h-4 w-4 text-white" />
@@ -283,29 +348,6 @@ export default function AssistPage() {
         </div>
 
         <div className="flex-1 overflow-y-auto px-3 space-y-2">
-          <div className="pt-2 pb-1">
-            <p className="text-[10px] uppercase tracking-wide text-slate-500 px-1">Prompt Templates</p>
-          </div>
-          {PROMPT_TEMPLATES.map((tpl, i) => (
-            <button
-              key={`tpl-${i}`}
-              type="button"
-              onClick={() => {
-                setText(tpl);
-                setTimeout(() => inputRef.current?.focus(), 0);
-              }}
-              className="w-full text-left rounded-xl border border-slate-800 bg-slate-900/40 hover:bg-slate-800/70 px-3 py-2 transition"
-            >
-              <div className="flex items-start gap-2">
-                <Wand2 className="h-3.5 w-3.5 mt-0.5 text-violet-300 shrink-0" />
-                <p className="text-[11px] leading-4 text-slate-300 line-clamp-2">{tpl}</p>
-              </div>
-            </button>
-          ))}
-
-          <div className="pt-3 pb-1">
-            <p className="text-[10px] uppercase tracking-wide text-slate-500 px-1">Chats</p>
-          </div>
           {sessions.map((s) => {
             const active = s.id === activeSession?.id;
             return (
@@ -329,8 +371,8 @@ export default function AssistPage() {
         <div className="p-3 border-t border-slate-800/70 text-[10px] text-slate-500">Session data is saved locally in your browser.</div>
       </aside>
 
-      <div className="flex-1 min-w-0 h-full flex flex-col overflow-hidden">
-        <div className="px-5 pt-4 pb-3 shrink-0">
+      <div className="flex-1 min-w-0 flex flex-col">
+        <div className="px-5 pt-4 pb-3">
           <div className="rounded-2xl border border-slate-700/70 bg-slate-900/80 backdrop-blur-xl px-4 py-2.5 flex items-center gap-3 relative z-20">
             <div className="relative" ref={modelRef}>
               <button
@@ -434,7 +476,7 @@ export default function AssistPage() {
           </div>
         </div>
 
-        <div className="flex-1 min-h-0 overflow-y-auto px-5 pb-4 pt-1 space-y-5">
+        <div className="flex-1 min-h-0 overflow-y-auto px-5 pb-4 space-y-5">
           {(activeSession?.messages ?? []).map((m) => {
             const user = m.role === "user";
             return (
@@ -474,7 +516,7 @@ export default function AssistPage() {
           <div ref={endRef} />
         </div>
 
-        <div className="shrink-0 z-20 px-5 pb-4 pt-2 bg-[linear-gradient(to_top,rgba(3,7,18,0.96),rgba(3,7,18,0.72),rgba(3,7,18,0))]">
+        <div className="px-5 pb-5 pt-1">
           <div className="rounded-2xl border border-slate-700/80 bg-slate-900/85 backdrop-blur-xl">
             <div className="px-4 pt-3 pb-2 flex items-end gap-3">
               <button type="button" className="h-8 w-8 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-400 hover:text-cyan-300">
