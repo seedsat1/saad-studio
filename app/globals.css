@@ -90,6 +90,54 @@ body,
   scrollbar-width: none;
 }
 
+/* ── Mobile / Responsive Fixes ───────────────────────────────────────────── */
+
+/* Safe area insets for iPhone notch / Dynamic Island */
+body {
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+/* Prevent horizontal overflow on small screens */
+html, body {
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Prevent text size adjustment on orientation change */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* Better tap targets on mobile */
+button, a, [role="button"] {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Fix input zoom on iOS (font-size must be >= 16px) */
+input, select, textarea {
+  font-size: max(16px, 1em);
+}
+
+/* Prevent iOS from styling inputs */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="search"],
+textarea {
+  -webkit-appearance: none;
+  border-radius: 0;
+}
+
 /* ── SAAD STUDIO Design System Variables ───────────────────────────────────── */
 :root {
   --ss-bg:        #060c18;
