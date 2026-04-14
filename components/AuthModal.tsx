@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X,
@@ -17,7 +17,7 @@ import {
   Image as ImageIcon,
   Mic,
 } from "lucide-react";
-import { useClerk, useSignIn, useSignUp } from "@clerk/nextjs";
+import { useSignIn, useSignUp } from "@clerk/nextjs";
 import { useAuthModal } from "@/hooks/use-auth-modal";
 
 // ─── PROMO SLIDE DATA ────────────────────────────────────────────────────────
@@ -27,7 +27,7 @@ const PROMO_SLIDES = [
     id: 1,
     bg: "https://images.unsplash.com/photo-1686191128892-3b37add4c844?w=900&q=90&auto=format&fit=crop",
     tag: "🎬 AI Video Generation",
-    headline: "Unlock the Power of WaveSpeedAI",
+    headline: "Unlock the Power of Kie AI",
     sub: "Sign up today and get 100 Free Credits to generate cinematic videos, photorealistic images, and immersive audio.",
     cta: "Start Free →",
     accent: "from-violet-600 to-purple-700",
@@ -49,20 +49,6 @@ const STATS = [
   { icon: ImageIcon, label: "50K+ Images" },
   { icon: Mic, label: "5K+ Audios" },
 ];
-
-function getClerkErrorMessage(error: unknown): string {
-  if (
-    typeof error === "object" &&
-    error !== null &&
-    "errors" in error &&
-    Array.isArray((error as { errors?: unknown[] }).errors)
-  ) {
-    const first = (error as { errors: Array<{ longMessage?: string; message?: string }> }).errors[0];
-    return first?.longMessage || first?.message || "Authentication failed. Please try again.";
-  }
-
-  return "Authentication failed. Please try again.";
-}
 
 // ─── INPUT FIELD ─────────────────────────────────────────────────────────────
 function InputField({
@@ -119,11 +105,8 @@ function InputField({
 export default function AuthModal() {
   const { isOpen, view, onClose, setView } = useAuthModal();
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const { setActive } = useClerk();
   const { signIn } = useSignIn();
   const { signUp } = useSignUp();
-  const redirectTarget = searchParams.get("redirect") || "/dash";
 
   // Form state
   const [name, setName] = useState("");
@@ -131,9 +114,6 @@ export default function AuthModal() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<string | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [pendingVerification, setPendingVerification] = useState(false);
-  const [verificationCode, setVerificationCode] = useState("");
 
   const isSignup = view === "signup";
 
@@ -142,96 +122,35 @@ export default function AuthModal() {
 
   const handleOAuth = async (provider: "oauth_google") => {
     try {
-      setErrorMessage(null);
       setOauthLoading(provider);
       if (isSignup && signUp) {
         await signUp.authenticateWithRedirect({
           strategy: provider,
           redirectUrl: "/sso-callback",
-          redirectUrlComplete: redirectTarget,
+          redirectUrlComplete: "/dash",
         });
       } else if (signIn) {
         await signIn.authenticateWithRedirect({
           strategy: provider,
           redirectUrl: "/sso-callback",
-          redirectUrlComplete: redirectTarget,
+          redirectUrlComplete: "/dash",
         });
       }
-    } catch (error) {
-      setErrorMessage(getClerkErrorMessage(error));
+    } catch {
       setOauthLoading(null);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setErrorMessage(null);
     setLoading(true);
-
-    try {
-      if (isSignup) {
-        if (!signUp) throw new Error("Sign up is not ready yet.");
-        if (pendingVerification) {
-          const verifyResult = await signUp.attemptEmailAddressVerification({
-            code: verificationCode.trim(),
-          });
-
-          if (verifyResult.status === "complete" && verifyResult.createdSessionId) {
-            await setActive({ session: verifyResult.createdSessionId });
-            onClose();
-            router.push(redirectTarget);
-            router.refresh();
-            return;
-          }
-
-          setErrorMessage("Verification code is invalid. Please try again.");
-          setLoading(false);
-          return;
-        }
-
-        const [firstName, ...restName] = name.trim().split(/\s+/);
-        const lastName = restName.join(" ").trim();
-
-        const result = await signUp.create({
-          emailAddress: email.trim(),
-          password,
-          firstName: firstName || undefined,
-          lastName: lastName || undefined,
-        });
-
-        if (result.status === "complete" && result.createdSessionId) {
-          await setActive({ session: result.createdSessionId });
-          onClose();
-          router.push(redirectTarget);
-          router.refresh();
-          return;
-        }
-
-        await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
-        setPendingVerification(true);
-        setErrorMessage("Enter the verification code sent to your email.");
-      } else {
-        if (!signIn) throw new Error("Sign in is not ready yet.");
-
-        const result = await signIn.create({
-          identifier: email.trim(),
-          password,
-        });
-
-        if (result.status === "complete" && result.createdSessionId) {
-          await setActive({ session: result.createdSessionId });
-          onClose();
-          router.push(redirectTarget);
-          router.refresh();
-          return;
-        }
-
-        setErrorMessage("Additional verification is required to sign in.");
-      }
-    } catch (error) {
-      setErrorMessage(getClerkErrorMessage(error));
+    // Redirect to Clerk-hosted auth pages
+    if (isSignup) {
+      router.push("/sign-up");
+    } else {
+      router.push("/sign-in");
     }
-
+    onClose();
     setLoading(false);
   };
 
@@ -240,9 +159,6 @@ export default function AuthModal() {
     setName("");
     setEmail("");
     setPassword("");
-    setErrorMessage(null);
-    setPendingVerification(false);
-    setVerificationCode("");
   };
 
   if (!isOpen) return null;
@@ -388,13 +304,11 @@ export default function AuthModal() {
                       <span className="text-sm font-bold text-white">Saad Studio</span>
                     </div>
                     <h1 className="text-2xl font-extrabold text-white leading-tight">
-                      {isSignup ? (pendingVerification ? "Verify your email" : "Create your account") : "Welcome back"}
+                      {isSignup ? "Create your account" : "Welcome back"}
                     </h1>
                     <p className="text-sm text-slate-400 mt-1.5">
                       {isSignup
-                        ? (pendingVerification
-                          ? "Enter the code we sent to your email to finish signup."
-                          : "Start generating with 100 free credits - no card needed.")
+                        ? "Start generating with 100 free credits — no card needed."
                         : "Sign in to continue creating with AI."}
                     </p>
                   </motion.div>
@@ -412,7 +326,7 @@ export default function AuthModal() {
                       className="space-y-3"
                     >
                       {/* Name — signup only */}
-                      {isSignup && !pendingVerification && (
+                      {isSignup && (
                         <InputField
                           id="name"
                           type="text"
@@ -424,51 +338,40 @@ export default function AuthModal() {
                         />
                       )}
 
-                      {isSignup && pendingVerification ? (
-                        <InputField
-                          id="verification_code"
-                          type="text"
-                          placeholder="Verification code"
-                          value={verificationCode}
-                          onChange={setVerificationCode}
-                          icon={Mail}
-                          autoComplete="one-time-code"
-                        />
-                      ) : (
-                        <>
-                          <InputField
-                            id="email"
-                            type="email"
-                            placeholder="Email address"
-                            value={email}
-                            onChange={setEmail}
-                            icon={Mail}
-                            autoComplete="email"
-                          />
+                      <InputField
+                        id="email"
+                        type="email"
+                        placeholder="Email address"
+                        value={email}
+                        onChange={setEmail}
+                        icon={Mail}
+                        autoComplete="email"
+                      />
 
-                          <InputField
-                            id="password"
-                            type="password"
-                            placeholder="Password"
-                            value={password}
-                            onChange={setPassword}
-                            icon={Lock}
-                            autoComplete={isSignup ? "new-password" : "current-password"}
-                          />
-                        </>
-                      )}
+                      <InputField
+                        id="password"
+                        type="password"
+                        placeholder="Password"
+                        value={password}
+                        onChange={setPassword}
+                        icon={Lock}
+                        autoComplete={isSignup ? "new-password" : "current-password"}
+                      />
                     </motion.div>
                   </AnimatePresence>
 
-                  {/* Auth error */}
-                  {errorMessage && (
-                    <div className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">
-                      {errorMessage}
+                  {/* Forgot password — login only */}
+                  {!isSignup && (
+                    <div className="flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => { onClose(); router.push("/sign-in"); }}
+                        className="text-xs text-violet-400 hover:text-violet-300 transition-colors"
+                      >
+                        Forgot password?
+                      </button>
                     </div>
                   )}
-
-                  {/* Required for Clerk bot protection (CAPTCHA) in custom auth flows */}
-                  <div id="clerk-captcha" className="min-h-[1px]" />
 
                   {/* Submit CTA */}
                   <button
@@ -487,7 +390,7 @@ export default function AuthModal() {
                         <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                       ) : (
                         <>
-                          {isSignup ? (pendingVerification ? "Verify Email" : "Create Account") : "Login"}
+                          {isSignup ? "Create Account" : "Login"}
                           <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                         </>
                       )}
