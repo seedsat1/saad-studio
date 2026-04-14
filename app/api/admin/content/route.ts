@@ -37,23 +37,30 @@ export async function PUT(req: NextRequest) {
       return new NextResponse("slug and sectionName are required", { status: 400 });
     }
 
+    // Merge ctaText/ctaLink into textContent JSON since schema doesn't have separate columns
+    let mergedText = textContent ? String(textContent) : null;
+    try {
+      const parsed = mergedText ? JSON.parse(mergedText) : {};
+      if (ctaText !== undefined) parsed.ctaText = ctaText;
+      if (ctaLink !== undefined) parsed.ctaLink = ctaLink;
+      mergedText = JSON.stringify(parsed);
+    } catch {
+      // keep mergedText as-is
+    }
+
     const record = await prismadb.pageContent.upsert({
       where: { slug_sectionName: { slug, sectionName } },
       update: {
-        textContent: textContent ? String(textContent) : null,
+        textContent: mergedText,
         mediaUrl: mediaUrl ? String(mediaUrl) : null,
         isVideo: Boolean(isVideo),
-        ctaText: ctaText ? String(ctaText) : null,
-        ctaLink: ctaLink ? String(ctaLink) : null,
       },
       create: {
         slug: String(slug),
         sectionName: String(sectionName),
-        textContent: textContent ? String(textContent) : null,
+        textContent: mergedText,
         mediaUrl: mediaUrl ? String(mediaUrl) : null,
         isVideo: Boolean(isVideo),
-        ctaText: ctaText ? String(ctaText) : null,
-        ctaLink: ctaLink ? String(ctaLink) : null,
       },
     });
     return NextResponse.json(record);
