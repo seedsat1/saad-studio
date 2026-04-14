@@ -27,7 +27,7 @@ const PROMO_SLIDES = [
     id: 1,
     bg: "https://images.unsplash.com/photo-1686191128892-3b37add4c844?w=900&q=90&auto=format&fit=crop",
     tag: "🎬 AI Video Generation",
-    headline: "Unlock the Power of WaveSpeedAI",
+    headline: "Unlock the Power of AI Generation",
     sub: "Sign up today and get 100 Free Credits to generate cinematic videos, photorealistic images, and immersive audio.",
     cta: "Start Free →",
     accent: "from-violet-600 to-purple-700",
