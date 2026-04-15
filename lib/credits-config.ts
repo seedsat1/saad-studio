@@ -1,6 +1,6 @@
 export const WELCOME_SIGNUP_CREDITS = Math.max(
   0,
-  Number.parseInt(process.env.WELCOME_SIGNUP_CREDITS ?? "0", 10) || 0,
+  Number.parseInt(process.env.WELCOME_SIGNUP_CREDITS ?? "100", 10) || 100,
 );
 
 export const ASSIST_CHAT_CREDITS = Math.max(
