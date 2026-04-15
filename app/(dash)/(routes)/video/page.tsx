@@ -17,7 +17,7 @@ import {
   getModelGroups,
   DEFAULT_MODEL,
 } from "@/lib/video-model-registry";
-import { getVideoCreditsByRoute } from "@/lib/credit-pricing";
+import { getGenerationCostSync } from "@/lib/pricing";
 import { useAssetStore } from "@/hooks/use-asset-store";
 
 // -- Utilities -----------------------------------------------------------------
@@ -854,7 +854,10 @@ function VideoPageInner() {
       estimatePayload.quality = resolution;
     }
     if (caps.has_sound && sound) estimatePayload[caps.sound_param] = true;
-    return getVideoCreditsByRoute(selectedModel.api_route, estimatePayload);
+    return getGenerationCostSync(
+      selectedModel.api_route,
+      typeof estimatePayload.duration === "number" ? estimatePayload.duration : 5,
+    );
   })();
 
   // -- Render -------------------------------------------------------------------
