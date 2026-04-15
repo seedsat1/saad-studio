@@ -6,7 +6,7 @@
 
 import { NextResponse } from "next/server";
 import { isAdmin } from "@/lib/is-admin";
-import { DEFAULT_MODELS, type PricingModel } from "@/app/admin/pricing/page";
+import { DEFAULT_MODELS, type PricingModel } from "@/lib/pricing-models";
 import { invalidatePricingCache } from "@/lib/pricing";
 import prismadb from "@/lib/prismadb";
 

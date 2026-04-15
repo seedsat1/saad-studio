@@ -9,7 +9,7 @@
  * hardcoded functions in credit-pricing.ts.
  */
 
-import { DEFAULT_MODELS, calcUserCredits, type PricingModel } from "@/app/admin/pricing/page";
+import { DEFAULT_MODELS, calcUserCredits, type PricingModel } from "@/lib/pricing-models";
 import prismadb from "@/lib/prismadb";
 
 // ─── In-memory cache ──────────────────────────────────────────────────────────
