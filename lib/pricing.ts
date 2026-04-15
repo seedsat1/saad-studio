@@ -10,6 +10,7 @@
  */
 
 import { DEFAULT_MODELS, calcUserCredits, type PricingModel } from "@/app/admin/pricing/page";
+import prismadb from "@/lib/prismadb";
 
 // ─── In-memory cache ──────────────────────────────────────────────────────────
 
@@ -18,18 +19,23 @@ let _cacheTime = 0;
 const CACHE_TTL_MS = 60_000;
 
 /**
- * Load constitution models.
- * Replace the stub body with a Prisma / Supabase query once the DB table exists:
- *
- *   import prismadb from "@/lib/prismadb";
- *   const rows = await prismadb.pricingConstitution.findMany();
- *   if (rows.length) { _cachedModels = rows as PricingModel[]; ... }
+ * Load constitution models from DB (falls back to DEFAULT_MODELS if DB unavailable).
  */
 async function loadModels(): Promise<PricingModel[]> {
   const now = Date.now();
   if (_cachedModels && now - _cacheTime < CACHE_TTL_MS) return _cachedModels;
 
-  // ── DB stub (replace when ready) ──────────────────────────────────────────
+  try {
+    const rows = await prismadb.pricingConstitution.findMany();
+    if (rows.length > 0) {
+      _cachedModels = rows as unknown as PricingModel[];
+      _cacheTime = now;
+      return _cachedModels;
+    }
+  } catch {
+    // DB unavailable — fall back to defaults
+  }
+
   _cachedModels = DEFAULT_MODELS;
   _cacheTime = now;
   return DEFAULT_MODELS;
