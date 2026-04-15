@@ -68,9 +68,16 @@ export async function GET(_: NextRequest, { params }: { params: { id: string } }
     }
 
     const rawData = pollJson?.data ?? {};
-    const status = normalizeState(String(rawData.taskStatus || rawData.status || ""));
-    const outputs = extractOutputs(rawData.response || rawData.resultJson || rawData.result || rawData.outputs);
-    const errorMessage = typeof rawData.errorMessage === "string" ? rawData.errorMessage : null;
+    const status = normalizeState(String(rawData.taskStatus || rawData.status || rawData.state || ""));
+    const outputs = (() => {
+      for (const field of [rawData.response, rawData.resultJson, rawData.result, rawData.outputs, rawData.output, rawData.works]) {
+        const found = extractOutputs(field);
+        if (found.length) return found;
+      }
+      return [] as string[];
+    })();
+    const errorMessage = typeof rawData.errorMessage === "string" ? rawData.errorMessage
+      : typeof rawData.failMsg === "string" ? rawData.failMsg : null;
 
     let updated = job;
 

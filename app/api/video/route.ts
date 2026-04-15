@@ -554,9 +554,16 @@ export async function GET(req: Request) {
     }
 
     const data = pollJson?.data ?? {};
-    const status = normalizeTaskState(String(data.taskStatus || data.status || ""));
-    const outputs = extractOutputs(data.response || data.resultJson || data.outputs || data.result);
-    const error = typeof data.errorMessage === "string" ? data.errorMessage : null;
+    const status = normalizeTaskState(String(data.taskStatus || data.status || data.state || ""));
+    const outputs = (() => {
+      for (const field of [data.response, data.resultJson, data.outputs, data.result, data.output, data.works]) {
+        const found = extractOutputs(field);
+        if (found.length) return found;
+      }
+      return [] as string[];
+    })();
+    const error = typeof data.errorMessage === "string" ? data.errorMessage
+      : typeof data.failMsg === "string" ? data.failMsg : null;
 
     // DB sync is best-effort; status polling should still work even if DB is temporarily unavailable.
     try {

@@ -49,10 +49,16 @@ export async function POST(req: NextRequest) {
     const taskId = String(data?.taskId ?? data?.task_id ?? "");
     if (!taskId) return new NextResponse("Missing taskId", { status: 400 });
 
-    const statusRaw = String(data?.taskStatus ?? data?.status ?? "");
+    const statusRaw = String(data?.taskStatus ?? data?.status ?? data?.state ?? "");
     const status = normalizeTaskState(statusRaw);
 
-    const outputs = extractOutputs(data?.response ?? data?.resultJson ?? data?.outputs ?? data?.result);
+    const outputs = (() => {
+      for (const field of [data?.response, data?.resultJson, data?.outputs, data?.result, data?.output, data?.works]) {
+        const found = extractOutputs(field);
+        if (found.length) return found;
+      }
+      return [] as string[];
+    })();
     const errorMsg = typeof data?.errorMessage === "string" ? data.errorMessage : null;
 
     // Find the generation row tied to this task
