@@ -105,8 +105,8 @@ function InputField({
 export default function AuthModal() {
   const { isOpen, view, onClose, setView } = useAuthModal();
   const router = useRouter();
-  const { signIn, isLoaded: signInLoaded } = useSignIn();
-  const { signUp } = useSignUp();
+  const { signIn, isLoaded: signInLoaded, setActive: setSignInActive } = useSignIn();
+  const { signUp, isLoaded: signUpLoaded, setActive: setSignUpActive } = useSignUp();
 
   // Form state
   const [name, setName] = useState("");
@@ -125,6 +125,12 @@ export default function AuthModal() {
 
   const isSignup = view === "signup";
   const isForgot = view === "forgot";
+  const isVerify = view === "verify";
+
+  // Verification state (after signup)
+  const [verifyCode, setVerifyCode] = useState("");
+  const [verifyError, setVerifyError] = useState("");
+  const [formError, setFormError] = useState("");
 
   // Active promo slide
   const promo = PROMO_SLIDES[isSignup ? 0 : 1];
@@ -191,15 +197,67 @@ export default function AuthModal() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError("");
     setLoading(true);
-    // Redirect to Clerk-hosted auth pages
-    if (isSignup) {
-      router.push("/sign-up");
-    } else {
-      router.push("/sign-in");
+    try {
+      if (isSignup) {
+        if (!signUpLoaded || !signUp) return;
+        const nameParts = name.trim().split(" ");
+        const firstName = nameParts[0] ?? "";
+        const lastName = nameParts.slice(1).join(" ") || undefined;
+        const result = await signUp.create({
+          emailAddress: email,
+          password,
+          firstName,
+          lastName,
+        });
+        if (result.status === "complete") {
+          await setSignUpActive!({ session: result.createdSessionId });
+          onClose();
+          router.push("/dash");
+        } else {
+          // Email verification required
+          await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
+          setView("verify");
+        }
+      } else {
+        if (!signInLoaded || !signIn) return;
+        const result = await signIn.create({
+          identifier: email,
+          password,
+        });
+        if (result.status === "complete") {
+          await setSignInActive!({ session: result.createdSessionId });
+          onClose();
+          router.push("/dash");
+        }
+      }
+    } catch (err: unknown) {
+      const msg = (err as { errors?: Array<{ message: string }> })?.errors?.[0]?.message ?? "Something went wrong";
+      setFormError(msg);
+    } finally {
+      setLoading(false);
     }
-    onClose();
-    setLoading(false);
+  };
+
+  const handleVerify = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!signUpLoaded || !signUp) return;
+    setVerifyError("");
+    setLoading(true);
+    try {
+      const result = await signUp.attemptEmailAddressVerification({ code: verifyCode });
+      if (result.status === "complete") {
+        await setSignUpActive!({ session: result.createdSessionId });
+        onClose();
+        router.push("/dash");
+      }
+    } catch (err: unknown) {
+      const msg = (err as { errors?: Array<{ message: string }> })?.errors?.[0]?.message ?? "Invalid code";
+      setVerifyError(msg);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const switchView = () => {
@@ -352,12 +410,16 @@ export default function AuthModal() {
                       <span className="text-sm font-bold text-white">Saad Studio</span>
                     </div>
                     <h1 className="text-2xl font-extrabold text-white leading-tight">
-                      {isForgot
+                      {isVerify
+                        ? "Verify your email"
+                        : isForgot
                         ? forgotStep === "email" ? "Reset your password" : "Enter reset code"
                         : isSignup ? "Create your account" : "Welcome back"}
                     </h1>
                     <p className="text-sm text-slate-400 mt-1.5">
-                      {isForgot
+                      {isVerify
+                        ? `We sent a verification code to ${email}`
+                        : isForgot
                         ? forgotStep === "email"
                           ? "We'll send a reset code to your email."
                           : `Code sent to ${forgotEmail}`
@@ -367,6 +429,39 @@ export default function AuthModal() {
                     </p>
                   </motion.div>
                 </AnimatePresence>
+
+                {/* ── VERIFY EMAIL FORM ─────────────────────────────── */}
+                {isVerify && (
+                  <div className="space-y-4">
+                    <form onSubmit={handleVerify} className="space-y-4">
+                      <InputField
+                        id="verify-code"
+                        type="text"
+                        placeholder="Verification code (from email)"
+                        value={verifyCode}
+                        onChange={setVerifyCode}
+                        icon={Mail}
+                        autoComplete="one-time-code"
+                      />
+                      {verifyError && <p className="text-xs text-red-400">{verifyError}</p>}
+                      <button
+                        type="submit"
+                        disabled={loading || !verifyCode}
+                        className="relative w-full py-3.5 rounded-xl font-bold text-sm text-white overflow-hidden group disabled:opacity-60 disabled:cursor-not-allowed"
+                        style={{ background: "linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)", boxShadow: "0 4px 32px rgba(124,58,237,0.5)" }}
+                      >
+                        <span className="relative flex items-center justify-center gap-2">
+                          {loading ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <>Verify Email <ArrowRight className="w-4 h-4" /></>}
+                        </span>
+                      </button>
+                    </form>
+                    <p className="text-center text-sm text-slate-500">
+                      <button type="button" onClick={() => setView("signup")} className="text-violet-400 font-semibold hover:text-violet-300 transition-colors">
+                        ← Back
+                      </button>
+                    </p>
+                  </div>
+                )}
 
                 {/* ── FORGOT PASSWORD FORM ───────────────────────────── */}
                 {isForgot && (
@@ -441,7 +536,7 @@ export default function AuthModal() {
                 )}
 
                 {/* ── LOGIN / SIGNUP FORM ────────────────────────────── */}
-                {!isForgot && (
+                {!isForgot && !isVerify && (
                   <>
                   <form onSubmit={handleSubmit} className="space-y-3.5">
                   <AnimatePresence mode="wait">
@@ -502,6 +597,7 @@ export default function AuthModal() {
                   )}
 
                   {/* Submit CTA */}
+                  {formError && <p className="text-xs text-red-400 mt-1">{formError}</p>}
                   <button
                     type="submit"
                     disabled={loading}
