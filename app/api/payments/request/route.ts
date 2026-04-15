@@ -68,7 +68,7 @@ export async function POST(req: Request) {
       );
     }
 
-    if (!proofUrl.startsWith("/uploads/payment-proofs/")) {
+    if (!proofUrl.startsWith("/uploads/payment-proofs/") && !proofUrl.startsWith("https://")) {
       return NextResponse.json({ error: "Invalid proof URL" }, { status: 400 });
     }
 

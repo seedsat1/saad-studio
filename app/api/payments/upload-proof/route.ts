@@ -1,8 +1,8 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { mkdir, writeFile } from "fs/promises";
 import path from "path";
 import { randomUUID } from "crypto";
+import { uploadBufferToStorage, isStorageConfigured } from "@/lib/supabase-storage";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const ALLOWED_TYPES = new Set(["image/png", "image/jpeg", "application/pdf"]);
@@ -41,18 +41,30 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "File exceeds 10MB limit" }, { status: 400 });
     }
 
+    if (!isStorageConfigured()) {
+      return NextResponse.json({ error: "Storage is not configured" }, { status: 500 });
+    }
+
     const bytes = Buffer.from(await file.arrayBuffer());
     const safeOrderId = orderId.replace(/[^a-zA-Z0-9_-]/g, "");
     const fileExt = getExtension(file.name, file.type);
     const fileName = `${safeOrderId}-${Date.now()}-${randomUUID().slice(0, 8)}${fileExt}`;
 
-    const uploadDir = path.join(process.cwd(), "public", "uploads", "payment-proofs");
-    await mkdir(uploadDir, { recursive: true });
-    await writeFile(path.join(uploadDir, fileName), bytes);
+    const publicUrl = await uploadBufferToStorage({
+      buffer: bytes,
+      contentType: file.type,
+      userId,
+      assetType: "image",
+      generationId: `payment-proof-${fileName}`,
+      fileName,
+    });
 
-    const proofUrl = `/uploads/payment-proofs/${fileName}`;
+    if (!publicUrl) {
+      return NextResponse.json({ error: "Failed to upload proof to storage" }, { status: 500 });
+    }
+
     return NextResponse.json({
-      proofUrl,
+      proofUrl: publicUrl,
       proofFileName: file.name,
       mimeType: file.type,
       size: file.size,
