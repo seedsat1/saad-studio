@@ -414,3 +414,34 @@ model VariationOutput {
   @@index([jobId])
 }
 
+// ——————————————————————————————————————————————————————————
+// PRICING CONSTITUTION — ADMIN PRICING CONTROL
+// ——————————————————————————————————————————————————————————
+
+/// Single source of truth for all AI model credit costs.
+/// Admin edits this via /admin/pricing and changes are live immediately.
+model PricingConstitution {
+  id              String   @id
+  name            String
+  notes           String   @default("")
+  type            String   // "video" | "cinema" | "image" | "audio" | "3d"
+  provider        String   // "kie" | "wavespeed"
+  billing         String   // "per_sec" | "flat"
+  kieCredits      Float    @default(0)
+  waveUsd         Float    @default(0)
+  userCreditsRate Float    @default(0)
+  maxDuration     Int?
+  isActive        Boolean  @default(true)
+  updatedAt       DateTime @updatedAt
+
+  @@index([type])
+  @@index([isActive])
+}
+
+/// Key-value store for platform-wide config (e.g. kie_pkg_index).
+model PlatformConfig {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
