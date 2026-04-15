@@ -377,18 +377,18 @@ export async function POST(req: Request) {
     await syncKieModelCatalog(false).catch(() => null);
 
     if (!isAllowedOrigin(req.headers.get("origin"))) {
-      return new NextResponse("Origin not allowed", { status: 403 });
+      return NextResponse.json({ error: "Origin not allowed" }, { status: 403 });
     }
 
     const { userId } = await auth();
     if (!userId) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const ip = getClientIp(req);
     const rate = checkRateLimit(`video:${userId}:${ip}`, 20, 60_000);
     if (!rate.allowed) {
-      return new NextResponse("Too many requests", { status: 429, headers: rateLimitHeaders(rate) });
+      return NextResponse.json({ error: "Too many requests" }, { status: 429, headers: rateLimitHeaders(rate) });
     }
 
     const body = await req.json();
@@ -398,11 +398,11 @@ export async function POST(req: Request) {
     };
 
     if (!modelRoute || typeof modelRoute !== "string") {
-      return new NextResponse("modelRoute is required", { status: 400 });
+      return NextResponse.json({ error: "modelRoute is required" }, { status: 400 });
     }
 
     if (!payload || typeof payload !== "object") {
-      return new NextResponse("payload is required", { status: 400 });
+      return NextResponse.json({ error: "payload is required" }, { status: 400 });
     }
 
     const kieModel = videoRouteToKieModelMap[modelRoute];
@@ -418,7 +418,7 @@ export async function POST(req: Request) {
       typeof payload.duration === "number" ? payload.duration : 5,
     );
     if (creditsToCharge <= 0) {
-      return new NextResponse("No credit configuration for this model", { status: 400 });
+      return NextResponse.json({ error: "No credit configuration for this model" }, { status: 400 });
     }
 
     const normalizedInput = normalizeInputForKie(payload);
@@ -455,16 +455,31 @@ export async function POST(req: Request) {
       }),
     });
 
-    const createJson = await createRes.json().catch(() => null);
-    const taskId = createJson?.data?.taskId || createJson?.taskId;
-
-    if (!createRes.ok || !taskId) {
+    let createJson: Record<string, unknown> | null = null;
+    try {
+      createJson = await createRes.json();
+    } catch {
+      const text = await createRes.text().catch(() => "");
+      console.error("[api/video POST] KIE non-JSON response", createRes.status, text.slice(0, 300));
       if (chargedCredits > 0 && chargedUserId && generationId) {
         await rollbackGenerationCharge(generationId, chargedUserId, chargedCredits);
       }
       return NextResponse.json(
-        { error: createJson?.msg || createJson?.message || "KIE createTask failed" },
-        { status: createRes.ok ? 500 : createRes.status },
+        { error: `KIE returned non-JSON (${createRes.status}): ${text.slice(0, 200)}` },
+        { status: 502 },
+      );
+    }
+
+    const taskId = createJson?.data?.taskId || createJson?.taskId;
+
+    if (!createRes.ok || !taskId) {
+      console.error("[api/video POST] KIE createTask failed", createRes.status, JSON.stringify(createJson).slice(0, 500));
+      if (chargedCredits > 0 && chargedUserId && generationId) {
+        await rollbackGenerationCharge(generationId, chargedUserId, chargedCredits);
+      }
+      return NextResponse.json(
+        { error: createJson?.msg || createJson?.message || `KIE createTask failed (${createRes.status})` },
+        { status: 502 },
       );
     }
 
@@ -502,14 +517,14 @@ export async function GET(req: Request) {
   try {
     const { userId } = await auth();
     if (!userId) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { searchParams } = new URL(req.url);
     const taskId = searchParams.get("taskId");
 
     if (!taskId || typeof taskId !== "string") {
-      return new NextResponse("taskId is required", { status: 400 });
+      return NextResponse.json({ error: "taskId is required" }, { status: 400 });
     }
 
     const pollRes = await fetch(`${KIE_BASE}/jobs/recordInfo?taskId=${encodeURIComponent(taskId)}`, {
@@ -518,14 +533,23 @@ export async function GET(req: Request) {
       cache: "no-store",
     });
 
-    const pollJson = await pollRes.json().catch(() => null);
+    let pollJson: Record<string, unknown> | null = null;
+    try {
+      pollJson = await pollRes.json();
+    } catch {
+      const text = await pollRes.text().catch(() => "");
+      console.error("[api/video GET] KIE non-JSON poll response", pollRes.status, text.slice(0, 300));
+      return NextResponse.json(
+        { taskId, status: "processing", outputs: [], error: null },
+      );
+    }
 
     // KIE uses code: 200 for success, but fallback: if HTTP is OK and data exists, treat as success
     const kieCodeOk = pollJson?.code == null || pollJson.code === 200 || pollJson.code === 0;
     if (!pollRes.ok || !kieCodeOk) {
       return NextResponse.json(
-        { error: pollJson?.msg || pollJson?.message || "Failed to retrieve task result" },
-        { status: pollRes.ok ? 500 : pollRes.status },
+        { error: pollJson?.msg || pollJson?.message || `KIE poll failed (${pollRes.status})` },
+        { status: 502 },
       );
     }
 

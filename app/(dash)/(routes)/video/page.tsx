@@ -442,12 +442,13 @@ function VideoPageInner() {
           outputs: string[];
           error:   string | null;
         } | null = null;
+        const cloned = res.clone();
         try {
           data = await res.json();
         } catch {
           // non-JSON response — keep polling unless status signals definitive failure
           if (!res.ok) {
-            const text = await res.text().catch(() => "");
+            const text = await cloned.text().catch(() => "");
             setGenerationError(text || `Server error (${res.status})`);
             setIsGenerating(false);
             setGeneratingTaskId(null);
@@ -763,11 +764,14 @@ function VideoPageInner() {
       });
 
       let data: { taskId?: string; error?: string } = {};
+      const clonedRes = res.clone();
       try {
         data = await res.json();
       } catch {
-        const text = await res.text().catch(() => "");
-        setGenerationError(text || `Server error (${res.status})`);
+        const text = await clonedRes.text().catch(() => "");
+        const preview = text.slice(0, 200);
+        console.error("[video POST] non-JSON response", res.status, preview);
+        setGenerationError(preview || `Server error (${res.status})`);
         setIsGenerating(false);
         return;
       }
