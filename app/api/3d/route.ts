@@ -1,6 +1,6 @@
 ﻿import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { get3DCredits } from "@/lib/credit-pricing";
+import { getGenerationCost } from "@/lib/pricing";
 import { InsufficientCreditsError, rollbackGenerationCharge, setGenerationMediaUrl, setGenerationTaskMarker, spendCredits } from "@/lib/credit-ledger";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { getClientIp, isAllowedOrigin, sanitizePrompt } from "@/lib/security";
@@ -133,7 +133,7 @@ export async function POST(req: Request) {
       }
     }
 
-    const creditsToCharge = get3DCredits(modelId, mode);
+    const creditsToCharge = await getGenerationCost(endpointKey);
     if (creditsToCharge <= 0) {
       return new NextResponse(`No credit configuration for ${endpointKey}`, { status: 400 });
     }

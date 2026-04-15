@@ -1,6 +1,6 @@
 ﻿import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { getImageCredits } from "@/lib/credit-pricing";
+import { getGenerationCost } from "@/lib/pricing";
 import { InsufficientCreditsError, refundCredits, spendCredits } from "@/lib/credit-ledger";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { fetchWithTimeout, readErrorBody } from "@/lib/http";
@@ -76,7 +76,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Model is required" }, { status: 400 });
     }
 
-    const creditsToCharge = getImageCredits(model, numImages, { quality, resolution, imageSize });
+    const creditsToCharge = await getGenerationCost(model, 5, numImages);
     if (creditsToCharge <= 0) {
       return NextResponse.json({ error: `No credit configuration for model: ${model}` }, { status: 400 });
     }

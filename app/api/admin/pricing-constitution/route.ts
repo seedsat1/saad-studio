@@ -7,6 +7,7 @@
 import { NextResponse } from "next/server";
 import { isAdmin } from "@/lib/is-admin";
 import { DEFAULT_MODELS } from "@/app/admin/pricing/page";
+import { invalidatePricingCache } from "@/lib/pricing";
 
 // ─── GET — read constitution ──────────────────────────────────────────────────
 export async function GET() {
@@ -74,6 +75,7 @@ export async function POST(req: Request) {
     //   .upsert({ key: "kie_pkg_index", value: String(kiePkgIndex) });
 
     void kiePkgIndex; // used when DB is wired up
+    invalidatePricingCache();
     return NextResponse.json({ success: true, savedAt: new Date().toISOString() });
   } catch (err) {
     console.error("[pricing-constitution] save error:", err);

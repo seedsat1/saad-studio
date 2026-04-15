@@ -1,0 +1,167 @@
+/**
+ * lib/pricing.ts — Server-only pricing bridge
+ *
+ * Single source of truth for all generation credit costs.
+ * Loads PricingModel[] from DEFAULT_MODELS (with 60-second in-memory cache).
+ * Once the DB table is wired, replace the stub in loadModels() below.
+ *
+ * All generation routes call getGenerationCost() instead of the
+ * hardcoded functions in credit-pricing.ts.
+ */
+
+import { DEFAULT_MODELS, calcUserCredits, type PricingModel } from "@/app/admin/pricing/page";
+
+// ─── In-memory cache ──────────────────────────────────────────────────────────
+
+let _cachedModels: PricingModel[] | null = null;
+let _cacheTime = 0;
+const CACHE_TTL_MS = 60_000;
+
+/**
+ * Load constitution models.
+ * Replace the stub body with a Prisma / Supabase query once the DB table exists:
+ *
+ *   import prismadb from "@/lib/prismadb";
+ *   const rows = await prismadb.pricingConstitution.findMany();
+ *   if (rows.length) { _cachedModels = rows as PricingModel[]; ... }
+ */
+async function loadModels(): Promise<PricingModel[]> {
+  const now = Date.now();
+  if (_cachedModels && now - _cacheTime < CACHE_TTL_MS) return _cachedModels;
+
+  // ── DB stub (replace when ready) ──────────────────────────────────────────
+  _cachedModels = DEFAULT_MODELS;
+  _cacheTime = now;
+  return DEFAULT_MODELS;
+}
+
+/** Call after the admin saves the constitution to pick up changes immediately. */
+export function invalidatePricingCache(): void {
+  _cachedModels = null;
+  _cacheTime = 0;
+}
+
+// ─── Model alias map ──────────────────────────────────────────────────────────
+// Maps the model IDs used by generation routes → constitution model IDs.
+// Convention: if a route uses "modelId.mode" (like 3D), use that combined key.
+
+const MODEL_ALIAS_MAP: Record<string, string> = {
+  // ── Video — app/api/generate/video (WaveSpeed route model IDs) ────────────
+  "kling-3.0/video":                              "kling30",
+  "kling-3.0/motion-control":                     "kling30_mc",
+  "kling/v2-5-turbo-text-to-video-pro":           "kling25t",
+  "hailuo/2-3-image-to-video-pro":                "hailuo23",
+  "hailuo/2-3-image-to-video-standard":           "hailuo23f",
+  "bytedance/seedance-2":                         "seedance2",
+  "bytedance/seedance-2-fast":                    "seedance2f",
+  "grok-imagine/text-to-video":                   "grok_vid",
+  "grok-imagine/image-to-video":                  "grok_vid",
+
+  // ── Cinema — app/api/video (KIE model routes) ────────────────────────────
+  "kwaivgi/kling-v3.0-pro/text-to-video":         "kling30",
+  "kwaivgi/kling-video-o3-pro/text-to-video":     "kling30_omni",
+  "kwaivgi/kling-video-o3-pro/video-edit":        "kling30_edit",
+  "kwaivgi/kling-v3.0-pro/motion-control":        "kling30_mc",
+  "minimax/hailuo-2.3/i2v-standard":              "hailuo23f",
+  "minimax/hailuo-2.3/i2v-pro":                   "hailuo23",
+  "openai/sora-2/text-to-video":                  "sora2",
+  "openai/sora-2/image-to-video":                 "sora2_i2v",
+  "openai/sora-2/text-to-video-pro":              "sora2_pro",
+  "openai/sora-2-pro/text-to-video":              "sora2_pro",
+  "openai/sora-2-pro/text-to-video-pro":          "sora2_pro",
+  "google/veo3.1-lite-text-to-video":             "veo31_lite",
+  "google/veo3.1-fast-text-to-video":             "veo31_fast",
+  "google/veo3.1-text-to-video":                  "veo31",
+  "bytedance/seedance-v2/text-to-video-fast":     "seedance2f",
+  "bytedance/seedance-v2/text-to-video":          "seedance2",
+  "bytedance/dreamina-v3.0/text-to-video-720p":   "seedance2",
+  "x-ai/grok-imagine-video/text-to-video":        "grok_vid",
+  "x-ai/grok-imagine-video/edit-video":           "grok_vid",
+
+  // ── 3D — app/api/3d (endpointKey = modelId.mode) ─────────────────────────
+  "tripo3d-2.5.image":        "tripo25",
+  "tripo3d-2.5.multiview":    "tripo25",
+  "hunyuan3d-3.1.text":       "hunya31",
+  "hunyuan3d-3.1.image":      "hunya31",
+  "hunyuan3d-3.text":         "hunya3",
+  "hunyuan3d-3.image":        "hunya3",
+  "hunyuan3d-3.sketch":       "hunya3",
+  "meshy-6.text":             "meshy6",
+  "meshy-6.image":            "meshy6",
+
+  // ── Music — app/api/music ────────────────────────────────────────────────
+  "wavespeed-ai/ace-step-1.5":              "music_gen",
+  "wavespeed-ai/song-generation":           "music_gen",
+  "wavespeed-ai/ace-step":                  "music_gen",
+  "wavespeed-ai/heartmula-generate-music":  "music_gen",
+  "minimax/minimax-music-2.5":              "music_gen",
+  "minimax/minimax-music-02":               "music_gen",
+  "minimax/minimax-music-v1.5":             "music_gen",
+  "elevenlabs/music":                       "music_gen",
+  "elevenlabs/elevenlabs-music":            "music_gen",
+
+  // ── Audio actions — app/api/generate/audio ───────────────────────────────
+  "audio:tts":          "el_v2",
+  "audio:video2audio":  "sfx",
+  "audio:music":        "music_gen",
+
+  // ── Image models — app/api/generate/image (IMAGE_MODELS catalog IDs) ─────
+  "nano-banana-pro":                    "nano_pro",
+  "nano-banana-2":                      "nano2",
+  "google/nano-banana":                 "nano",
+  "google/nano-banana-edit":            "nano_edit",
+  "google/imagen4-fast":                "imagen4f",
+  "google/imagen4":                     "imagen4",
+  "google/imagen4-ultra":               "imagen4",
+  "seedream/4.5-text-to-image":         "seedream45",
+  "seedream/4.5-edit":                  "seedream45e",
+  "seedream/5-lite-text-to-image":      "seedream5l",
+  "seedream/5-lite-image-to-image":     "seedream5i",
+  "z-image":                            "zimage",
+  "grok-imagine":                       "grok_img",
+  "grok-imagine-edit":                  "grok_imge",
+  "gpt-image-1.5":                      "gpt15t",
+  "gpt-image-1.5-edit":                 "gpt15i",
+  "qwen-image":                         "qwen_t",
+  "qwen-image-edit":                    "qwen_i",
+};
+
+// ─── Public API ───────────────────────────────────────────────────────────────
+
+/**
+ * Returns the credits to charge a user for one generation task.
+ *
+ * @param modelRef   Model ID as used by the route (route alias or constitution ID).
+ * @param durationSec  Duration in seconds; ignored for flat-billing models.
+ * @param numUnits   Number of units (e.g. images); multiplies flat-billing cost.
+ * @returns  Credits to charge (0 = model not found or inactive → caller should reject).
+ */
+export async function getGenerationCost(
+  modelRef: string,
+  durationSec = 5,
+  numUnits = 1,
+): Promise<number> {
+  const models = await loadModels();
+  const constitutionId = MODEL_ALIAS_MAP[modelRef] ?? modelRef;
+  const model = models.find((m) => m.id === constitutionId && m.isActive);
+  if (!model) return 0;
+  const perUnit = calcUserCredits(model, durationSec);
+  return parseFloat((perUnit * numUnits).toFixed(2));
+}
+
+/**
+ * Synchronous version using the current cache (or DEFAULT_MODELS).
+ * Safe to call without await; uses whatever is already in memory.
+ */
+export function getGenerationCostSync(
+  modelRef: string,
+  durationSec = 5,
+  numUnits = 1,
+): number {
+  const models = _cachedModels ?? DEFAULT_MODELS;
+  const constitutionId = MODEL_ALIAS_MAP[modelRef] ?? modelRef;
+  const model = models.find((m) => m.id === constitutionId && m.isActive);
+  if (!model) return 0;
+  const perUnit = calcUserCredits(model, durationSec);
+  return parseFloat((perUnit * numUnits).toFixed(2));
+}

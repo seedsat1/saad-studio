@@ -1,6 +1,6 @@
 ﻿import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { getMusicCredits } from "@/lib/credit-pricing";
+import { getGenerationCost } from "@/lib/pricing";
 import { InsufficientCreditsError, refundCredits, spendCredits } from "@/lib/credit-ledger";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { fetchWithTimeout, readErrorBody } from "@/lib/http";
@@ -51,7 +51,7 @@ export async function POST(req: Request) {
       return new NextResponse("Unsupported music model", { status: 400 });
     }
 
-    const creditsToCharge = getMusicCredits(model, duration);
+    const creditsToCharge = await getGenerationCost(model, duration ?? 30);
     if (creditsToCharge <= 0) {
       return new NextResponse("No credit configuration for this music model", { status: 400 });
     }

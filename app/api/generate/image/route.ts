@@ -1,6 +1,6 @@
 ﻿import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { getImageCredits } from "@/lib/credit-pricing";
+import { getGenerationCost } from "@/lib/pricing";
 import { InsufficientCreditsError, refundCredits, spendCredits, setGenerationMediaUrl } from "@/lib/credit-ledger";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { getClientIp, isAllowedOrigin, sanitizePrompt } from "@/lib/security";
@@ -193,11 +193,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const creditsToCharge = getImageCredits(modelId, numImages, {
-      quality,
-      resolution,
-      imageSize,
-    });
+    const creditsToCharge = await getGenerationCost(modelId, 5, numImages);
     if (creditsToCharge <= 0) {
       return NextResponse.json({ error: `No credit configuration for model: ${modelId}` }, { status: 400 });
     }
