@@ -843,6 +843,7 @@ export default function AdminDashboard() {
             Advanced Tools
           </p>
           {[
+            { label: "Pricing Constitution", href: "/admin/pricing", icon: CreditCard },
             { label: "CMS & Ad Manager", href: "/admin/cms", icon: Layers },
             { label: "Page Builder", href: "/admin/page-builder", icon: LayoutTemplate },
           ].map(({ label, href, icon: Icon }) => (
