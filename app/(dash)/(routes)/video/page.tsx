@@ -908,10 +908,37 @@ function VideoPageInner() {
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Results grid */}
         <div className="flex-1 overflow-y-auto px-4">
-          <MediaGrid
-            items={results}
-            onDelete={id => setResults(prev => prev.filter(r => r.id !== id))}
-          />
+          {results.length === 0 && !isGenerating ? (
+            <div className="flex flex-col items-center justify-center h-full gap-4 pb-16">
+              <motion.div
+                animate={{ y: [0, -6, 0] }}
+                transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+                style={{
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  width: 80, height: 80, borderRadius: 20,
+                  background: "rgba(6,182,212,0.06)", border: "1px solid rgba(6,182,212,0.1)",
+                }}
+              >
+                <Film size={40} style={{ color: "rgba(6,182,212,0.4)" }} />
+              </motion.div>
+              <div className="text-center">
+                <p className="text-lg font-medium text-white">Generate your first video</p>
+                <p className="mt-1 text-sm" style={{ color: "#475569" }}>
+                  Write a prompt below and hit Generate
+                </p>
+              </div>
+            </div>
+          ) : (
+            <MediaGrid
+              items={results}
+              skeletonModel={
+                isGenerating
+                  ? { name: selectedModel.name, ratio: aspectRatio ?? (size ? sizeToRatio(size) : "16:9") }
+                  : null
+              }
+              onDelete={id => setResults(prev => prev.filter(r => r.id !== id))}
+            />
+          )}
         </div>
 
         {/* Error banner */}
