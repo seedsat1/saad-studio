@@ -7,6 +7,9 @@ import { getClientIp, isAllowedOrigin, sanitizePrompt } from "@/lib/security";
 import { getResolvedKieRoutingMaps } from "@/lib/kie-model-routing";
 import { syncKieModelCatalog } from "@/lib/kie-model-sync";
 
+export const maxDuration = 60;
+export const dynamic = "force-dynamic";
+
 const KIE_CREATE_TASK_URL = "https://api.kie.ai/api/v1/jobs/createTask";
 const KIE_QUERY_TASK_URL = "https://api.kie.ai/api/v1/jobs/recordInfo";
 
