@@ -11,6 +11,11 @@ const nextConfig = {
   output: process.env.NEXT_OUTPUT_MODE === "standalone" ? "standalone" : undefined,
   poweredByHeader: false,
   compress: true,
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "10mb",
+    },
+  },
   eslint: {
     // ESLint errors will not fail the production build — warnings only
     ignoreDuringBuilds: true,
