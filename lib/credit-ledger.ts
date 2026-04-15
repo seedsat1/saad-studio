@@ -1,5 +1,6 @@
 ﻿import { clerkClient } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
+import { WELCOME_SIGNUP_CREDITS } from "@/lib/credits-config";
 
 export class InsufficientCreditsError extends Error {
   constructor(public readonly currentBalance: number, public readonly requiredCredits: number) {
@@ -22,9 +23,7 @@ export async function ensureUserRow(userId: string) {
       id: userId,
       email,
       name,
-      // Auto-created rows start with zero credits.
-      // Welcome bonus is granted only via Clerk webhook user.created.
-      creditBalance: 0,
+      creditBalance: WELCOME_SIGNUP_CREDITS,
       role: "USER",
       isBanned: false,
     },
@@ -132,5 +131,3 @@ export async function rollbackGenerationCharge(generationId: string, userId: str
     });
   });
 }
-
-

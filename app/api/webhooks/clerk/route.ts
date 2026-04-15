@@ -2,6 +2,7 @@
 import { Webhook } from "svix";
 import { headers } from "next/headers";
 import prismadb from "@/lib/prismadb";
+import { WELCOME_SIGNUP_CREDITS } from "@/lib/credits-config";
 
 // â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 interface ClerkEmailAddress {
@@ -66,12 +67,12 @@ export async function POST(req: NextRequest) {
           email,
           name,
           phone,
-          creditBalance: 100,
+          creditBalance: WELCOME_SIGNUP_CREDITS,
           role: "USER",
           isBanned: false,
         },
       });
-      console.log(`[clerk-webhook] User created: ${email} (+100 welcome credits)`);
+      console.log(`[clerk-webhook] User created: ${email} (+${WELCOME_SIGNUP_CREDITS} welcome credits)`);
     }
 
     if (type === "user.updated") {
@@ -83,7 +84,7 @@ export async function POST(req: NextRequest) {
           email,
           name,
           phone,
-          creditBalance: 0,
+          creditBalance: WELCOME_SIGNUP_CREDITS,
           role: "USER",
           isBanned: false,
         },
