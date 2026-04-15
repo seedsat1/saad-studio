@@ -105,7 +105,7 @@ function InputField({
 export default function AuthModal() {
   const { isOpen, view, onClose, setView } = useAuthModal();
   const router = useRouter();
-  const { signIn } = useSignIn();
+  const { signIn, isLoaded: signInLoaded } = useSignIn();
   const { signUp } = useSignUp();
 
   // Form state
@@ -115,10 +115,58 @@ export default function AuthModal() {
   const [loading, setLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<string | null>(null);
 
+  // Forgot password state
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotCode, setForgotCode] = useState("");
+  const [forgotNewPassword, setForgotNewPassword] = useState("");
+  const [forgotStep, setForgotStep] = useState<"email" | "reset">("email");
+  const [forgotError, setForgotError] = useState("");
+  const [forgotSuccess, setForgotSuccess] = useState(false);
+
   const isSignup = view === "signup";
+  const isForgot = view === "forgot";
 
   // Active promo slide
   const promo = PROMO_SLIDES[isSignup ? 0 : 1];
+
+  const handleForgotSendCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!signInLoaded || !signIn) return;
+    setLoading(true);
+    setForgotError("");
+    try {
+      await signIn.create({ strategy: "reset_password_email_code", identifier: forgotEmail });
+      setForgotStep("reset");
+    } catch (err: unknown) {
+      const msg = (err as { errors?: Array<{ message: string }> })?.errors?.[0]?.message ?? "Something went wrong";
+      setForgotError(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleForgotReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!signInLoaded || !signIn) return;
+    setLoading(true);
+    setForgotError("");
+    try {
+      const result = await signIn.attemptFirstFactor({
+        strategy: "reset_password_email_code",
+        code: forgotCode,
+        password: forgotNewPassword,
+      });
+      if (result.status === "complete") {
+        setForgotSuccess(true);
+        setTimeout(() => { onClose(); router.push("/dash"); }, 1500);
+      }
+    } catch (err: unknown) {
+      const msg = (err as { errors?: Array<{ message: string }> })?.errors?.[0]?.message ?? "Invalid code or password";
+      setForgotError(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleOAuth = async (provider: "oauth_google") => {
     try {
@@ -304,18 +352,98 @@ export default function AuthModal() {
                       <span className="text-sm font-bold text-white">Saad Studio</span>
                     </div>
                     <h1 className="text-2xl font-extrabold text-white leading-tight">
-                      {isSignup ? "Create your account" : "Welcome back"}
+                      {isForgot
+                        ? forgotStep === "email" ? "Reset your password" : "Enter reset code"
+                        : isSignup ? "Create your account" : "Welcome back"}
                     </h1>
                     <p className="text-sm text-slate-400 mt-1.5">
-                      {isSignup
+                      {isForgot
+                        ? forgotStep === "email"
+                          ? "We'll send a reset code to your email."
+                          : `Code sent to ${forgotEmail}`
+                        : isSignup
                         ? "Start generating with 100 free credits — no card needed."
                         : "Sign in to continue creating with AI."}
                     </p>
                   </motion.div>
                 </AnimatePresence>
 
-                {/* Form */}
-                <form onSubmit={handleSubmit} className="space-y-3.5">
+                {/* ── FORGOT PASSWORD FORM ───────────────────────────── */}
+                {isForgot && (
+                  <div className="space-y-4">
+                    {forgotSuccess ? (
+                      <div className="text-center py-8">
+                        <div className="text-4xl mb-3">✅</div>
+                        <p className="text-green-400 font-semibold">Password reset! Redirecting…</p>
+                      </div>
+                    ) : forgotStep === "email" ? (
+                      <form onSubmit={handleForgotSendCode} className="space-y-4">
+                        <InputField
+                          id="forgot-email"
+                          type="email"
+                          placeholder="Your email address"
+                          value={forgotEmail}
+                          onChange={setForgotEmail}
+                          icon={Mail}
+                          autoComplete="email"
+                        />
+                        {forgotError && <p className="text-xs text-red-400">{forgotError}</p>}
+                        <button
+                          type="submit"
+                          disabled={loading || !forgotEmail}
+                          className="relative w-full py-3.5 rounded-xl font-bold text-sm text-white overflow-hidden group disabled:opacity-60 disabled:cursor-not-allowed"
+                          style={{ background: "linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)", boxShadow: "0 4px 32px rgba(124,58,237,0.5)" }}
+                        >
+                          <span className="relative flex items-center justify-center gap-2">
+                            {loading ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <>Send Reset Code <ArrowRight className="w-4 h-4" /></>}
+                          </span>
+                        </button>
+                      </form>
+                    ) : (
+                      <form onSubmit={handleForgotReset} className="space-y-4">
+                        <InputField
+                          id="forgot-code"
+                          type="text"
+                          placeholder="Reset code (from email)"
+                          value={forgotCode}
+                          onChange={setForgotCode}
+                          icon={Mail}
+                          autoComplete="one-time-code"
+                        />
+                        <InputField
+                          id="forgot-new-password"
+                          type="password"
+                          placeholder="New password"
+                          value={forgotNewPassword}
+                          onChange={setForgotNewPassword}
+                          icon={Lock}
+                          autoComplete="new-password"
+                        />
+                        {forgotError && <p className="text-xs text-red-400">{forgotError}</p>}
+                        <button
+                          type="submit"
+                          disabled={loading || !forgotCode || !forgotNewPassword}
+                          className="relative w-full py-3.5 rounded-xl font-bold text-sm text-white overflow-hidden group disabled:opacity-60 disabled:cursor-not-allowed"
+                          style={{ background: "linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)", boxShadow: "0 4px 32px rgba(124,58,237,0.5)" }}
+                        >
+                          <span className="relative flex items-center justify-center gap-2">
+                            {loading ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <>Reset Password <ArrowRight className="w-4 h-4" /></>}
+                          </span>
+                        </button>
+                      </form>
+                    )}
+                    <p className="text-center text-sm text-slate-500">
+                      <button type="button" onClick={() => setView("login")} className="text-violet-400 font-semibold hover:text-violet-300 transition-colors">
+                        ← Back to login
+                      </button>
+                    </p>
+                  </div>
+                )}
+
+                {/* ── LOGIN / SIGNUP FORM ────────────────────────────── */}
+                {!isForgot && (
+                  <>
+                  <form onSubmit={handleSubmit} className="space-y-3.5">
                   <AnimatePresence mode="wait">
                     <motion.div
                       key={view + "-fields"}
@@ -365,7 +493,7 @@ export default function AuthModal() {
                     <div className="flex justify-end">
                       <button
                         type="button"
-                        onClick={() => { onClose(); router.push("/sign-in"); }}
+                        onClick={() => { setForgotEmail(email); setForgotStep("email"); setForgotError(""); setForgotSuccess(false); setView("forgot"); }}
                         className="text-xs text-violet-400 hover:text-violet-300 transition-colors"
                       >
                         Forgot password?
@@ -462,6 +590,8 @@ export default function AuthModal() {
                     Privacy Policy
                   </span>
                 </p>
+                  </> 
+                )} {/* end !isForgot */}
               </div>
             </motion.div>
           </motion.div>

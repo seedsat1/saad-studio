@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-type AuthView = "login" | "signup";
+type AuthView = "login" | "signup" | "forgot";
 
 interface AuthModalStore {
   isOpen: boolean;
