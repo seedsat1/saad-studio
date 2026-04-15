@@ -537,10 +537,21 @@ export async function GET(req: Request) {
     // DB sync is best-effort; status polling should still work even if DB is temporarily unavailable.
     try {
       const linkedGeneration = await prismadb.generation.findFirst({
-        where: { userId, mediaUrl: `task:${taskId}` },
-        select: { id: true, cost: true },
+        where: { userId, mediaUrl: { startsWith: `task:${taskId}` } },
+        select: { id: true, cost: true, mediaUrl: true },
         orderBy: { createdAt: "desc" },
       });
+
+      // Check if callback already resolved this task in DB
+      if (linkedGeneration?.mediaUrl && !linkedGeneration.mediaUrl.startsWith("task:")) {
+        if (linkedGeneration.mediaUrl.startsWith("failed:")) {
+          const parts = linkedGeneration.mediaUrl.split(":");
+          const errMsg = parts.slice(2).join(":") || "Generation failed";
+          return NextResponse.json({ taskId, status: "failed", outputs: [], error: errMsg });
+        }
+        // Already has a real URL from callback
+        return NextResponse.json({ taskId, status: "completed", outputs: [linkedGeneration.mediaUrl], error: null });
+      }
 
       if (status === "completed" && outputs.length > 0 && linkedGeneration) {
         await setGenerationMediaUrl(linkedGeneration.id, outputs[0]);
