@@ -17,11 +17,23 @@ function normalizeTaskState(status: string) {
 }
 
 function extractVideoUrl(data: Record<string, unknown>): string {
-  // KIE wraps results in various fields depending on model
-  const candidates = [data.response, data.resultJson, data.outputs, data.result, data.output, data.works];
+  // KIE wraps results in various fields depending on model.
+  // resultUrls is first — matches the priority used by the video route (kling-3.0/video).
+  const candidates = [
+    data.resultUrls,
+    data.response,
+    data.resultJson,
+    data.outputs,
+    data.result,
+    data.output,
+    data.works,
+  ];
   for (const candidate of candidates) {
     if (!candidate) continue;
+    // Direct URL string
     if (typeof candidate === "string") {
+      if (/^https?:\/\//i.test(candidate)) return candidate;
+      // JSON-encoded string — parse and recurse
       try {
         const parsed = JSON.parse(candidate) as unknown;
         const url = extractVideoUrl(parsed as Record<string, unknown>);
@@ -30,25 +42,33 @@ function extractVideoUrl(data: Record<string, unknown>): string {
     }
     if (Array.isArray(candidate)) {
       for (const item of candidate) {
-        if (typeof item === "string" && /^https?:\/\//.test(item)) return item;
+        if (typeof item === "string" && /^https?:\/\//i.test(item)) return item;
         if (item && typeof item === "object") {
           const obj = item as Record<string, unknown>;
-          for (const key of ["url", "videoUrl", "video_url", "imageUrl", "downloadUrl"]) {
-            if (typeof obj[key] === "string" && /^https?:\/\//.test(obj[key] as string)) return obj[key] as string;
+          for (const key of ["url", "videoUrl", "video_url", "downloadUrl", "imageUrl"]) {
+            if (typeof obj[key] === "string" && /^https?:\/\//i.test(obj[key] as string)) return obj[key] as string;
           }
-          // KIE Kling 3.0 wraps in resource.resource
+          // KIE Kling: works[i].resource.resource
           const resource = obj.resource as Record<string, unknown> | undefined;
-          if (resource && typeof resource.resource === "string" && /^https?:\/\//.test(resource.resource)) {
+          if (resource && typeof resource.resource === "string" && /^https?:\/\//i.test(resource.resource)) {
             return resource.resource;
+          }
+          // KIE alternate: works[i].video.url
+          const video = obj.video as Record<string, unknown> | undefined;
+          if (video && typeof video.url === "string" && /^https?:\/\//i.test(video.url)) {
+            return video.url;
           }
         }
       }
     }
-    if (candidate && typeof candidate === "object") {
+    if (candidate && typeof candidate === "object" && !Array.isArray(candidate)) {
       const obj = candidate as Record<string, unknown>;
-      for (const key of ["url", "videoUrl", "video_url", "imageUrl", "downloadUrl"]) {
-        if (typeof obj[key] === "string" && /^https?:\/\//.test(obj[key] as string)) return obj[key] as string;
+      for (const key of ["url", "videoUrl", "video_url", "downloadUrl", "imageUrl"]) {
+        if (typeof obj[key] === "string" && /^https?:\/\//i.test(obj[key] as string)) return obj[key] as string;
       }
+      // recurse one level into nested objects (e.g. data.result = { url: "..." })
+      const nested = extractVideoUrl(obj);
+      if (nested) return nested;
     }
   }
   return "";
@@ -100,7 +120,6 @@ export async function GET(
 
         if (taskStatus === "completed" && resultUrl) {
           // Get project for output metadata
-          const project = await prismadb.transitionProject.findUnique({
             where: { id: job.projectId },
             select: { inputAUrl: true, inputBUrl: true, aspectRatio: true, duration: true },
           });
@@ -111,7 +130,6 @@ export async function GET(
             prismadb.transitionJob.update({
               where: { id: job.id },
               data: { status: "completed", resultUrl },
-              include: { output: true },
             }),
             prismadb.transitionOutput.upsert({
               where: { jobId: job.id },
@@ -137,6 +155,20 @@ export async function GET(
             data: { mediaUrl: resultUrl },
           }).catch(() => null);
 
+          // Re-fetch with output included (output is created in same transaction, include may miss it)
+          const finalJob = await prismadb.transitionJob.findUnique({
+            where: { id: job.id },
+            include: { output: true },
+          });
+          return NextResponse.json({ job: finalJob ?? updatedJob });
+
+        } else if (taskStatus === "completed" && !resultUrl) {
+          // KIE returned completed but URL extraction failed — fail the job gracefully
+          const updatedJob = await prismadb.transitionJob.update({
+            where: { id: job.id },
+            data: { status: "failed", error: "Generation succeeded on server but video URL could not be extracted." },
+            include: { output: true },
+          });
           return NextResponse.json({ job: updatedJob });
 
         } else if (taskStatus === "failed") {
