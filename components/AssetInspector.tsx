@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -252,15 +252,60 @@ function ImageCanvas({ asset }: { asset: Asset }) {
 
 function VideoCanvas({ asset }: { asset: Asset }) {
   const [playing, setPlaying] = useState(false);
-  const [progress, setProgress] = useState(18);
+  const [progress, setProgress] = useState(0);
+  const [currentTime, setCurrentTime] = useState("0:00");
+  const [totalTime, setTotalTime] = useState(asset.duration ?? "0:00");
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  function formatTime(sec: number) {
+    const m = Math.floor(sec / 60);
+    const s = Math.floor(sec % 60);
+    return `${m}:${s.toString().padStart(2, "0")}`;
+  }
+
+  function togglePlay() {
+    const v = videoRef.current;
+    if (!v) return;
+    if (v.paused) { v.play(); setPlaying(true); }
+    else          { v.pause(); setPlaying(false); }
+  }
+
+  function handleTimeUpdate() {
+    const v = videoRef.current;
+    if (!v || !v.duration) return;
+    setProgress((v.currentTime / v.duration) * 100);
+    setCurrentTime(formatTime(v.currentTime));
+  }
+
+  function handleLoadedMetadata() {
+    const v = videoRef.current;
+    if (!v) return;
+    setTotalTime(formatTime(v.duration));
+  }
+
+  function handleEnded() { setPlaying(false); setProgress(0); }
+
+  function handleSeek(e: React.MouseEvent<HTMLDivElement>) {
+    const v = videoRef.current;
+    if (!v || !v.duration) return;
+    const r = e.currentTarget.getBoundingClientRect();
+    const ratio = (e.clientX - r.left) / r.width;
+    v.currentTime = ratio * v.duration;
+    setProgress(ratio * 100);
+  }
 
   return (
-    <div
-      className="relative h-full w-full bg-black flex items-center justify-center"
-      onMouseEnter={() => {}}
-    >
+    <div className="relative h-full w-full bg-black flex items-center justify-center">
       {asset.url ? (
-        <video src={asset.url} className="h-full w-full object-contain" />
+        <video
+          ref={videoRef}
+          src={asset.url}
+          className="h-full w-full object-contain"
+          onTimeUpdate={handleTimeUpdate}
+          onLoadedMetadata={handleLoadedMetadata}
+          onEnded={handleEnded}
+          onClick={togglePlay}
+        />
       ) : (
         <div className="w-full h-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
           <div className="flex flex-col items-center gap-4">
@@ -278,7 +323,7 @@ function VideoCanvas({ asset }: { asset: Asset }) {
           <motion.button
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.92 }}
-            onClick={() => setPlaying(!playing)}
+            onClick={togglePlay}
             className="pointer-events-auto flex h-16 w-16 items-center justify-center rounded-full bg-white/10 backdrop-blur-md border border-white/20 hover:bg-orange-500/30 transition-colors"
           >
             {playing ? (
@@ -293,10 +338,7 @@ function VideoCanvas({ asset }: { asset: Asset }) {
         <div className="space-y-2">
           <div
             className="h-[3px] w-full bg-white/15 rounded-full cursor-pointer overflow-hidden"
-            onClick={(e) => {
-              const r = e.currentTarget.getBoundingClientRect();
-              setProgress(Math.round(((e.clientX - r.left) / r.width) * 100));
-            }}
+            onClick={handleSeek}
           >
             <motion.div
               className="h-full rounded-full bg-gradient-to-r from-orange-500 to-amber-400"
@@ -307,7 +349,7 @@ function VideoCanvas({ asset }: { asset: Asset }) {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <button
-                onClick={() => setPlaying(!playing)}
+                onClick={togglePlay}
                 className="text-white hover:text-orange-400 transition-colors"
               >
                 {playing ? (
@@ -318,7 +360,7 @@ function VideoCanvas({ asset }: { asset: Asset }) {
               </button>
               <Volume2 className="h-4 w-4 text-white/50" />
               <span className="text-xs text-white/50 font-mono">
-                0:18 / {asset.duration ?? "1:42"}
+                {currentTime} / {totalTime}
               </span>
             </div>
             <ZoomIn className="h-4 w-4 text-white/50 cursor-pointer hover:text-white transition-colors" />
@@ -331,10 +373,59 @@ function VideoCanvas({ asset }: { asset: Asset }) {
 
 function AudioCanvas({ asset }: { asset: Asset }) {
   const [playing, setPlaying] = useState(false);
-  const [progress, setProgress] = useState(32);
+  const [progress, setProgress] = useState(0);
+  const [currentTime, setCurrentTime] = useState("0:00");
+  const [totalTime, setTotalTime] = useState(asset.duration ?? "3:42");
+  const audioRef = useRef<HTMLAudioElement>(null);
+
+  function formatTime(sec: number) {
+    const m = Math.floor(sec / 60);
+    const s = Math.floor(sec % 60);
+    return `${m}:${s.toString().padStart(2, "0")}`;
+  }
+
+  function togglePlay() {
+    const a = audioRef.current;
+    if (!a) return;
+    if (a.paused) { a.play(); setPlaying(true); }
+    else          { a.pause(); setPlaying(false); }
+  }
+
+  function handleTimeUpdate() {
+    const a = audioRef.current;
+    if (!a || !a.duration) return;
+    setProgress((a.currentTime / a.duration) * 100);
+    setCurrentTime(formatTime(a.currentTime));
+  }
+
+  function handleLoadedMetadata() {
+    const a = audioRef.current;
+    if (!a) return;
+    setTotalTime(formatTime(a.duration));
+  }
+
+  function handleEnded() { setPlaying(false); setProgress(0); }
+
+  function handleSeek(e: React.MouseEvent<HTMLDivElement>) {
+    const a = audioRef.current;
+    if (!a || !a.duration) return;
+    const r = e.currentTarget.getBoundingClientRect();
+    const ratio = (e.clientX - r.left) / r.width;
+    a.currentTime = ratio * a.duration;
+    setProgress(ratio * 100);
+  }
 
   return (
     <div className="flex flex-col items-center justify-center h-full w-full px-10 gap-8 bg-gradient-to-b from-slate-950 via-slate-950 to-emerald-950/20">
+      {asset.url && (
+        <audio
+          ref={audioRef}
+          src={asset.url}
+          onTimeUpdate={handleTimeUpdate}
+          onLoadedMetadata={handleLoadedMetadata}
+          onEnded={handleEnded}
+        />
+      )}
       {/* Rotating disc */}
       <motion.div
         animate={{ rotate: playing ? 360 : 0 }}
@@ -349,7 +440,7 @@ function AudioCanvas({ asset }: { asset: Asset }) {
           {asset.title ?? "Untitled Track"}
         </p>
         <p className="text-zinc-500 text-xs">
-          {asset.model ?? "Suno V4.5"} &middot; {asset.duration ?? "3:42"}
+          {asset.model ?? "Suno V4.5"} &middot; {totalTime}
         </p>
       </div>
 
@@ -387,10 +478,7 @@ function AudioCanvas({ asset }: { asset: Asset }) {
         {/* Progress bar */}
         <div
           className="h-[3px] w-full bg-slate-700 rounded-full cursor-pointer overflow-hidden"
-          onClick={(e) => {
-            const r = e.currentTarget.getBoundingClientRect();
-            setProgress(Math.round(((e.clientX - r.left) / r.width) * 100));
-          }}
+          onClick={handleSeek}
         >
           <motion.div
             className="h-full bg-gradient-to-r from-emerald-500 to-cyan-400 rounded-full"
@@ -399,8 +487,8 @@ function AudioCanvas({ asset }: { asset: Asset }) {
           />
         </div>
         <div className="flex justify-between text-[10px] text-zinc-600 font-mono">
-          <span>1:12</span>
-          <span>{asset.duration ?? "3:42"}</span>
+          <span>{currentTime}</span>
+          <span>{totalTime}</span>
         </div>
       </div>
 
@@ -412,7 +500,7 @@ function AudioCanvas({ asset }: { asset: Asset }) {
         <motion.button
           whileHover={{ scale: 1.08 }}
           whileTap={{ scale: 0.92 }}
-          onClick={() => setPlaying(!playing)}
+          onClick={togglePlay}
           className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-cyan-500 shadow-xl shadow-emerald-500/30"
         >
           {playing ? (
@@ -688,15 +776,6 @@ export function AssetInspector({ asset, onClose }: AssetInspectorProps) {
   const [processedUrl, setProcessedUrl] = useState<string | null>(null);
   const [actionStatus, setActionStatus] = useState<{ message: string; ok: boolean } | null>(null);
 
-  const fullPrompt =
-    asset.prompt?.trim() ||
-    "A cinematic ultra-detailed shot, volumetric lighting, photorealistic render, 8K resolution, dramatic shadows.";
-  const promptPreviewLimit = 180;
-  const isPromptLong = fullPrompt.length > promptPreviewLimit;
-  const promptPreview = isPromptLong
-    ? `${fullPrompt.slice(0, promptPreviewLimit).trimEnd()}...`
-    : fullPrompt;
-
   // The effective URL used for operations (may be replaced by processed result)
   const effectiveUrl = processedUrl ?? asset.url;
 
@@ -746,16 +825,9 @@ export function AssetInspector({ asset, onClose }: AssetInspectorProps) {
           const res = await fetch("/api/generate/upscale", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            credentials: "include",
             body: JSON.stringify({ imageUrl: url }),
           });
-          const raw = await res.text();
-          let data: { imageUrl?: string; error?: string } = {};
-          try {
-            data = raw ? JSON.parse(raw) : {};
-          } catch {
-            data = { error: raw || `Request failed (${res.status})` };
-          }
+          const data = await res.json();
           if (data.imageUrl) {
             setProcessedUrl(data.imageUrl);
             setActionStatus({ message: "Image upscaled to 4K!", ok: true });
@@ -775,16 +847,9 @@ export function AssetInspector({ asset, onClose }: AssetInspectorProps) {
           const res = await fetch("/api/generate/remove-bg", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            credentials: "include",
             body: JSON.stringify({ imageUrl: url }),
           });
-          const raw = await res.text();
-          let data: { imageUrl?: string; error?: string } = {};
-          try {
-            data = raw ? JSON.parse(raw) : {};
-          } catch {
-            data = { error: raw || `Request failed (${res.status})` };
-          }
+          const data = await res.json();
           if (data.imageUrl) {
             setProcessedUrl(data.imageUrl);
             setActionStatus({ message: "Background removed!", ok: true });
@@ -958,12 +1023,10 @@ export function AssetInspector({ asset, onClose }: AssetInspectorProps) {
 
             {/* ── Section 1: Prompt Details */}
             <InspectorSection title="Prompt Details" icon={Sparkles}>
-              <p className="text-[12px] leading-relaxed text-zinc-300">
-                {promptPreview}
+              <p className="text-[12px] leading-relaxed text-zinc-300 select-all">
+                {asset.prompt ??
+                  "A cinematic ultra-detailed shot, volumetric lighting, photorealistic render, 8K resolution, dramatic shadows."}
               </p>
-              {isPromptLong && (
-                <p className="mt-1 text-[10px] text-zinc-500">Prompt is truncated here. Use copy for full text.</p>
-              )}
               <button
                 onClick={handleCopyPrompt}
                 className={cn(
