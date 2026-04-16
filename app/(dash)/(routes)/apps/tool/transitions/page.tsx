@@ -660,7 +660,7 @@ function OutputCard({
 
 // ─── Processing Stage ─────────────────────────────────────────────────────────
 
-function ProcessingStage({ status, error }: { status: GenerationStatus; error: string | null }) {
+function ProcessingStage({ status, error, onReset }: { status: GenerationStatus; error: string | null; onReset?: () => void }) {
   return (
     <div className="flex flex-col items-center justify-center gap-4 h-full w-full">
       {(status === "processing" || status === "queued" || status === "validating") && (
@@ -704,6 +704,16 @@ function ProcessingStage({ status, error }: { status: GenerationStatus; error: s
               />
             ))}
           </div>
+          {onReset && (
+            <button
+              onClick={onReset}
+              className="mt-2 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-semibold text-slate-400 hover:text-slate-200 transition-colors"
+              style={{ border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.03)" }}
+            >
+              <RotateCcw className="h-3 w-3" />
+              Cancel / Start Over
+            </button>
+          )}
         </>
       )}
       {status === "failed" && (
@@ -834,8 +844,13 @@ export default function TransitionsStudioPage() {
                 setStageMode("output");
                 setGenStatus("completed");
               } else if (lastJob && (lastJob.status === "processing" || lastJob.status === "queued")) {
-                setCurrentJobId(lastJob.id);
-                setGenStatus("processing");
+                // Only resume polling if job was created within the last 10 minutes
+                const jobAge = Date.now() - new Date(lastJob.createdAt).getTime();
+                if (jobAge < 10 * 60 * 1000) {
+                  setCurrentJobId(lastJob.id);
+                  setGenStatus("processing");
+                }
+                // else: job is stale — leave as idle so user can start fresh
               }
             })
             .catch(() => {});
@@ -927,6 +942,15 @@ export default function TransitionsStudioPage() {
     }
     return () => { if (pollRef.current) clearTimeout(pollRef.current); };
   }, [currentJobId, genStatus, pollJob]);
+
+  // ── Reset (cancel stuck generation) ───────────────────────────────────────
+
+  const handleReset = useCallback(() => {
+    if (pollRef.current) clearTimeout(pollRef.current);
+    setGenStatus("idle");
+    setGenError(null);
+    setCurrentJobId(null);
+  }, []);
 
   // ── Input handlers ─────────────────────────────────────────────────────────
 
@@ -1372,7 +1396,7 @@ export default function TransitionsStudioPage() {
                   className="w-full h-full flex items-center justify-center rounded-2xl"
                   style={{ border: "1px solid rgba(124,58,237,0.12)", background: "rgba(124,58,237,0.03)" }}
                 >
-                  <ProcessingStage status={genStatus} error={genError} />
+                  <ProcessingStage status={genStatus} error={genError} onReset={handleReset} />
                 </motion.div>
               ) : stageMode === "output" && currentOutput ? (
                 <motion.div
