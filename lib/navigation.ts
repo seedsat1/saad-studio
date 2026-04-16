@@ -27,11 +27,11 @@ export const NAV_CATEGORIES: NavCategory[] = [
     href: "/image",
     subItems: [
       { label: "Create Image", href: "/image", description: "Generate stunning AI images", badge: "TOP" },
-      { label: "Soul ID Character", href: "/image/soul-id", description: "Consistent character design" },
+      { label: "Soul ID Character", href: "/image/soul-id-character", description: "Consistent character design" },
       { label: "AI Influencer", href: "/image/ai-influencer", description: "Create virtual influencers", badge: "TOP" },
-      { label: "Photodump", href: "/image/photodump", description: "Bulk AI photo generation" },
-      { label: "Face Swap", href: "/image/face-swap", description: "Swap faces with precision" },
-      { label: "Image Upscale", href: "/image/upscale", description: "4K AI upscaling" },
+      { label: "Photodump", href: "/image", description: "Bulk AI photo generation" },
+      { label: "Face Swap", href: "/image", description: "Swap faces with precision" },
+      { label: "Image Upscale", href: "/image", description: "4K AI upscaling" },
     ],
   },
   {
@@ -41,11 +41,11 @@ export const NAV_CATEGORIES: NavCategory[] = [
     href: "/video",
     subItems: [
       { label: "Create Video", href: "/video", description: "Text-to-video generation" },
-      { label: "Cinema Studio", href: "/video/cinema-studio", description: "Professional cinematic production", badge: "TOP" },
-      { label: "Mixed Media", href: "/video/mixed-media", description: "Combine multiple visual styles" },
-      { label: "Edit Video", href: "/video/edit", description: "Advanced AI timeline editing" },
-      { label: "Lipsync Studio", href: "/video/lipsync", description: "Audio-driven facial animation" },
-      { label: "Video Upscale", href: "/video/upscale", description: "Enhance to 4K/8K" },
+      { label: "Cinema Studio", href: "/cinema-studio", description: "Professional cinematic production", badge: "TOP" },
+      { label: "Mixed Media", href: "/video", description: "Combine multiple visual styles" },
+      { label: "Edit Video", href: "/edit", description: "Advanced AI timeline editing" },
+      { label: "Lipsync Studio", href: "/video", description: "Audio-driven facial animation" },
+      { label: "Video Upscale", href: "/video", description: "Enhance to 4K/8K" },
     ],
   },
   {
@@ -54,10 +54,10 @@ export const NAV_CATEGORIES: NavCategory[] = [
     emoji: "🎵",
     href: "/audio",
     subItems: [
-      { label: "Text to Music", href: "/audio/text-to-music", description: "Generate full tracks from prompts" },
-      { label: "Voice Cloning", href: "/audio/voice-cloning", description: "Clone any voice in seconds" },
-      { label: "Sound Effects", href: "/audio/sound-effects", description: "Create custom SFX" },
-      { label: "Podcast Studio", href: "/audio/podcast", description: "Professional podcast production" },
+      { label: "Text to Music", href: "/audio", description: "Generate full tracks from prompts" },
+      { label: "Voice Cloning", href: "/audio", description: "Clone any voice in seconds" },
+      { label: "Sound Effects", href: "/audio", description: "Create custom SFX" },
+      { label: "Podcast Studio", href: "/audio", description: "Professional podcast production" },
     ],
   },
   {

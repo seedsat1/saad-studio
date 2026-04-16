@@ -36,8 +36,8 @@ export const BASE_VIDEO_ROUTE_TO_KIE_MODEL: Record<string, string> = {
   "google/veo3.1-lite-text-to-video": "veo3.1-lite/text-to-video",
   "google/veo3.1-fast-text-to-video": "veo3.1-fast/text-to-video",
   "google/veo3.1-text-to-video": "veo3.1/text-to-video",
-  "bytedance/seedance-v2/text-to-video-fast": "bytedance/seedance-2.0-fast",
-  "bytedance/seedance-v2/text-to-video": "bytedance/seedance-2.0",
+  "bytedance/seedance-v2/text-to-video-fast": "bytedance/seedance-2-fast",
+  "bytedance/seedance-v2/text-to-video": "bytedance/seedance-2",
   "x-ai/grok-imagine-video/text-to-video": "grok-imagine/text-to-video",
   "x-ai/grok-imagine-video/edit-video": "grok-imagine/image-to-video",
 };
@@ -54,8 +54,8 @@ export const BASE_KIE_VIDEO_MODEL_MAP: Record<string, string> = {
   "google/veo3.1-lite-text-to-video": "veo3.1-lite/text-to-video",
   "google/veo3.1-fast-text-to-video": "veo3.1-fast/text-to-video",
   "google/veo3.1-text-to-video": "veo3.1/text-to-video",
-  "bytedance/seedance-2": "bytedance/seedance-2.0",
-  "bytedance/seedance-2-fast": "bytedance/seedance-2.0-fast",
+  "bytedance/seedance-2": "bytedance/seedance-2",
+  "bytedance/seedance-2-fast": "bytedance/seedance-2-fast",
   "grok-imagine/text-to-video": "grok-imagine/text-to-video",
   "grok-imagine/image-to-video": "grok-imagine/image-to-video",
 };
