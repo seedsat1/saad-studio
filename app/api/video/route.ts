@@ -260,6 +260,24 @@ function mapToKieInput(model: string, payload: Record<string, unknown>) {
     return out;
   }
 
+  // ── Hailuo 2.3 — expects image_url (singular string), NOT image_urls array ──
+  if (model === "hailuo/2-3-image-to-video-standard" || model === "hailuo/2-3-image-to-video-pro") {
+    const out: Record<string, unknown> = { ...input };
+    // Clean all image field aliases
+    delete out.image;
+    delete out.image_urls;
+    delete out.first_frame_url;
+    delete out.last_frame_url;
+    delete out.end_image;
+    delete out.last_image;
+    delete out.reference_image_urls;
+    delete out.video;
+    // Use the single required start image
+    if (startImage) out.image_url = startImage;
+    if (typeof out.duration === "number") out.duration = String(out.duration);
+    return out;
+  }
+
   if (model === "kling-3.0/motion-control") {
     if (startImage) input.input_urls = [startImage];
     if (motionVideo) input.video_urls = [motionVideo];
