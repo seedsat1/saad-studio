@@ -9,7 +9,7 @@ const FAMILY_FILTERS = ["All", "Kling", "Hailuo", "Sora", "Runway", "Grok", "See
 
 interface VideoGalleryProps {
   results: GeneratedVideo[];
-  skeletonModel?: { name: string; aspectRatio?: string } | null;
+  skeletonModels?: Array<{ name: string; aspectRatio?: string }>;
   activeFilter: string;
   setActiveFilter: (v: string) => void;
   sortOrder: string;
@@ -34,7 +34,7 @@ function toMediaItem(r: GeneratedVideo): MediaItem {
 
 export default function VideoGallery({
   results,
-  skeletonModel,
+  skeletonModels,
   activeFilter,
   setActiveFilter,
   sortOrder,
@@ -57,7 +57,7 @@ export default function VideoGallery({
       : a.createdAt.getTime() - b.createdAt.getTime()
   );
 
-  const totalCount = sorted.length + (skeletonModel ? 1 : 0);
+  const totalCount = sorted.length + (skeletonModels?.length ?? 0);
 
   return (
     <div className="pt-2 pb-[180px]">
@@ -114,11 +114,7 @@ export default function VideoGallery({
       ) : (
         <MediaGrid
           items={sorted.map(toMediaItem)}
-          skeletonModel={
-            skeletonModel
-              ? { name: skeletonModel.name, ratio: skeletonModel.aspectRatio }
-              : null
-          }
+          skeletonModels={(skeletonModels ?? []).map(s => ({ name: s.name, ratio: s.aspectRatio }))}
           onDelete={onDelete}
         />
       )}

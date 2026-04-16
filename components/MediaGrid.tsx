@@ -29,7 +29,7 @@ export interface MediaItem {
 
 interface MediaGridProps {
   items: MediaItem[];
-  skeletonModel?: { name: string; ratio?: string } | null;
+  skeletonModels?: Array<{ name: string; ratio?: string }>;
   onDelete?: (id: string) => void;
   onInspect?: (item: MediaItem) => void;
   className?: string;
@@ -331,7 +331,7 @@ function FPill({ label, active, onClick }: { label: string; active: boolean; onC
 
 // ─── Main MediaGrid ───────────────────────────────────────────────────────────
 
-export default function MediaGrid({ items, skeletonModel, onDelete, onInspect, className }: MediaGridProps) {
+export default function MediaGrid({ items, skeletonModels, onDelete, onInspect, className }: MediaGridProps) {
   const [lightboxItem, setLightboxItem] = useState<MediaItem | null>(null);
   const [typeFilter, setTypeFilter] = useState<"all" | "image" | "video">("all");
   const [ratioFilter, setRatioFilter] = useState("all");
@@ -354,7 +354,7 @@ export default function MediaGrid({ items, skeletonModel, onDelete, onInspect, c
         @media (max-width: 480px)  { .mg-masonry { column-count: 1; } }
       `}</style>
       <div className={cn("mg-masonry", className)}>
-        {skeletonModel && <SkeletonCard modelName={skeletonModel.name} ratio={skeletonModel.ratio ?? "16:9"} />}
+        {(skeletonModels ?? []).map((s, i) => <SkeletonCard key={i} modelName={s.name} ratio={s.ratio ?? "16:9"} />)}
         <AnimatePresence>
           {visible.map((item) => (
             <MediaCard key={item.id} item={item} onOpen={() => onInspect ? onInspect(item) : setLightboxItem(item)} onDelete={onDelete} />

@@ -12,7 +12,7 @@ import VideoComposer from "@/components/video/VideoComposer";
 import VideoGallery from "@/components/video/VideoGallery";
 import { GeneratedVideo } from "@/components/video/VideoResultCard";
 
-// â”€â”€ Gradient palette per model family â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Gradient palette per model family ────────────────────────────────────────
 const FAMILY_GRADIENTS: Record<string, string> = {
   Kling:     "from-cyan-900 via-cyan-800 to-slate-900",
   Hailuo:    "from-amber-900 via-amber-800 to-slate-900",
@@ -23,7 +23,7 @@ const FAMILY_GRADIENTS: Record<string, string> = {
   ByteDance: "from-sky-900 via-sky-800 to-slate-900",
 };
 
-// â”€â”€ Inner component (needs useSearchParams wrapped in Suspense) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Inner component (needs useSearchParams wrapped in Suspense) ───────────────
 function CreateVideoInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -74,7 +74,7 @@ function CreateVideoInner() {
             : (selectedModel.aspectRatios as string[])[0]
         );
       }
-      // [] means auto â€” keep current aspect ratio display but dropdown hidden
+      // [] means auto — keep current aspect ratio display but dropdown hidden
     }
     // Duration: reset to first allowed value when model has exact list
     if (selectedModel.durations !== undefined && selectedModel.durations.length > 0) {
@@ -84,13 +84,8 @@ function CreateVideoInner() {
           : (selectedModel.durations as number[])[0]
       );
     } else if (!selectedModel.durations) {
-      // No restriction â€” just clamp to maxDuration
+      // No restriction — just clamp to maxDuration
       setDuration((prev) => Math.min(prev, selectedModel.maxDuration));
-    }
-    // Hard guard for Sora across this page (avoid stale/cached mismatches).
-    if (selectedModel.family === "Sora" || selectedModel.id.includes("sora-2")) {
-      setDuration((prev) => ([4, 8, 12].includes(prev) ? prev : 4));
-      setResolution("");
     }
   }, [selectedModel.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -137,7 +132,7 @@ function CreateVideoInner() {
   return (
     <div className="min-h-screen" style={{ background: "#060c18" }}>
 
-      {/* Top bar â€” sticky below main navbar (64px) */}
+      {/* Top bar — sticky below main navbar (64px) */}
       <div
         className="sticky z-30 flex items-center justify-between px-4 sm:px-6 lg:px-8"
         style={{
@@ -168,7 +163,7 @@ function CreateVideoInner() {
         </div>
       </div>
 
-      {/* Reference Image Banner (from AssetInspector "Animate â†’ Video") */}
+      {/* Reference Image Banner (from AssetInspector "Animate → Video") */}
       <AnimatePresence>
         {refImageUrl && (
           <motion.div
@@ -199,7 +194,7 @@ function CreateVideoInner() {
       {/* Gallery */}
       <VideoGallery
         results={results}
-        skeletonModel={skeletonModel}
+        skeletonModels={skeletonModel ? [skeletonModel] : []}
         activeFilter={activeFilter}
         setActiveFilter={setActiveFilter}
         sortOrder={sortOrder}
@@ -240,7 +235,7 @@ function CreateVideoInner() {
   );
 }
 
-// â”€â”€ Page export wrapped in Suspense (required for useSearchParams) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Page export wrapped in Suspense (required for useSearchParams) ─────────────
 export default function CreateVideoPage() {
   return (
     <Suspense fallback={

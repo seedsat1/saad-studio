@@ -313,15 +313,15 @@ function VideoPageInner() {
   }, [referenceImages]);
 
   // Generation state
-  const [isGenerating,     setIsGenerating]     = useState(false);
-  const [generatingTaskId, setGeneratingTaskId] = useState<string | null>(null);
-  const [generationError,  setGenerationError]  = useState<string | null>(null);
+  type PendingTask = { model: WaveSpeedVideoModel; promptText: string; ratio: string; duration: number | null };
+  const [pendingTasks,    setPendingTasks]    = useState<Map<string, PendingTask>>(new Map());
+  const [isSubmitting,    setIsSubmitting]    = useState(false);
+  const [generationError, setGenerationError] = useState<string | null>(null);
+  const pollRefs = useRef<Map<string, ReturnType<typeof setInterval>>>(new Map());
 
   // Results
   const [results, setResults] = useState<MediaItem[]>([]);
   const [inspectorAsset, setInspectorAsset] = useState<Asset | null>(null);
-
-  const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const allModels = useMemo(() => MODEL_GROUPS.flatMap((group) => group.models), []);
 
   useEffect(() => {
@@ -419,104 +419,10 @@ function VideoPageInner() {
   }, [isSoraModel, duration, resolution]);
 
   // -- Polling -----------------------------------------------------------------
-
+  // Cleanup all active intervals on unmount
   useEffect(() => {
-    if (!generatingTaskId) {
-      if (pollIntervalRef.current) {
-        clearInterval(pollIntervalRef.current);
-        pollIntervalRef.current = null;
-      }
-      return;
-    }
-
-    const capturedModel      = selectedModel;
-    const capturedAspectRatio = aspectRatio;
-    const capturedSize        = size;
-    const capturedDuration    = duration;
-    const capturedPrompt      = prompt;
-
-    const poll = async () => {
-      try {
-        const res = await fetch(`/api/video?taskId=${generatingTaskId}`);
-        let data: {
-          taskId:  string;
-          status:  "created" | "processing" | "completed" | "failed";
-          outputs: string[];
-          error:   string | null;
-        } | null = null;
-        const cloned = res.clone();
-        try {
-          data = await res.json();
-        } catch {
-          // non-JSON response — keep polling unless status signals definitive failure
-          if (!res.ok) {
-            const text = await cloned.text().catch(() => "");
-            setGenerationError(text || `Server error (${res.status})`);
-            setIsGenerating(false);
-            setGeneratingTaskId(null);
-          }
-          return;
-        }
-
-        if (!res.ok) {
-          setGenerationError(data?.error ?? "Generation check failed");
-          setIsGenerating(false);
-          setGeneratingTaskId(null);
-          return;
-        }
-
-        if (!data) {
-          setGenerationError("Generation check failed");
-          setIsGenerating(false);
-          setGeneratingTaskId(null);
-          return;
-        }
-
-        if (data.status === "completed" && data.outputs.length > 0) {
-          const newItem: MediaItem = {
-            id:         "gen-" + Date.now(),
-            type:       "video",
-            src:        data.outputs[0],
-            model:      capturedModel.name,
-            modelColor: capturedModel.family_color,
-            ratio:      capturedAspectRatio ?? (capturedSize ? sizeToRatio(capturedSize) : "16:9"),
-            duration:   capturedDuration != null ? `${capturedDuration}s` : "auto",
-            prompt:     capturedPrompt,
-            gradient:   FAMILY_GRADIENTS[capturedModel.family] ?? "from-slate-900 via-slate-800 to-slate-900",
-            createdAt:  new Date(),
-          };
-          setResults(prev => [newItem, ...prev]);
-          addAsset({
-            type: "video",
-            url: data.outputs[0],
-            prompt: capturedPrompt,
-            model: capturedModel.name,
-            duration: capturedDuration != null ? `${capturedDuration}s` : undefined,
-          });
-          setIsGenerating(false);
-          setGeneratingTaskId(null);
-          setGenerationError(null);
-          setPrompt("");
-        } else if (data.status === "failed") {
-          setGenerationError(data.error ?? "Generation failed");
-          setIsGenerating(false);
-          setGeneratingTaskId(null);
-        }
-        // created / processing ? keep polling
-      } catch {
-        setGenerationError("Failed to check generation status");
-        setIsGenerating(false);
-        setGeneratingTaskId(null);
-      }
-    };
-
-    poll();
-    pollIntervalRef.current = setInterval(poll, 4000);
-    return () => {
-      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [generatingTaskId]);
+    return () => { pollRefs.current.forEach(id => clearInterval(id)); };
+  }, []);
 
   // -- Media picker -----------------------------------------------------------
 
@@ -569,13 +475,55 @@ function VideoPageInner() {
 
   const guard = useAuthGuard();
   const { addAsset } = useAssetStore();
+
+  const startPolling = useCallback((taskId: string, ctx: { model: WaveSpeedVideoModel; promptText: string; ratio: string; duration: number | null }) => {
+    const removePending = () => {
+      setPendingTasks(prev => { const n = new Map(prev); n.delete(taskId); return n; });
+      if (pollRefs.current.has(taskId)) { clearInterval(pollRefs.current.get(taskId)!); pollRefs.current.delete(taskId); }
+    };
+
+    const poll = async () => {
+      try {
+        const res = await fetch(`/api/video?taskId=${taskId}`);
+        let data: { taskId: string; status: "created" | "processing" | "completed" | "failed"; outputs: string[]; error: string | null; } | null = null;
+        const cloned = res.clone();
+        try { data = await res.json(); } catch {
+          if (!res.ok) { const text = await cloned.text().catch(() => ""); setGenerationError(text || `Server error (${res.status})`); removePending(); }
+          return;
+        }
+        if (!res.ok || !data) { setGenerationError(data?.error ?? "Generation check failed"); removePending(); return; }
+        if (data.status === "completed" && data.outputs.length > 0) {
+          const videoUrl = data.outputs[0];
+          const newItem: MediaItem = {
+            id: "gen-" + Date.now(), type: "video", src: videoUrl,
+            model: ctx.model.name, modelColor: ctx.model.family_color,
+            ratio: ctx.ratio, duration: ctx.duration != null ? `${ctx.duration}s` : "auto",
+            prompt: ctx.promptText,
+            gradient: FAMILY_GRADIENTS[ctx.model.family] ?? "from-slate-900 via-slate-800 to-slate-900",
+            createdAt: new Date(),
+          };
+          setResults(prev => [newItem, ...prev]);
+          addAsset({ type: "video", url: videoUrl, prompt: ctx.promptText, model: ctx.model.name, duration: ctx.duration != null ? `${ctx.duration}s` : undefined });
+          removePending();
+          setGenerationError(null);
+        } else if (data.status === "failed") {
+          setGenerationError(data.error ?? "Generation failed"); removePending();
+        }
+      } catch { setGenerationError("Failed to check generation status"); removePending(); }
+    };
+
+    poll();
+    const intervalId = setInterval(poll, 4000);
+    pollRefs.current.set(taskId, intervalId);
+  }, [addAsset]);
+
   const handleGenerate = useCallback(async () => {
     if (!guard()) return;
     const hasMain = prompt.trim().length > 0;
     const hasMulti = multiPrompts.some((s) => s.trim().length > 0);
     const multiOn = caps.has_multi_prompt && (multiPrompts.length > 1 || multiPrompts[0] !== "");
-    if ((!hasMain && !(multiOn && hasMulti)) || isGenerating) return;
-    setIsGenerating(true);
+    if (!hasMain && !(multiOn && hasMulti)) return;
+    setIsSubmitting(true);
     setGenerationError(null);
 
     try {
@@ -655,13 +603,13 @@ function VideoPageInner() {
         if (filled.length > 0 && (multiOn || !caps.has_omni_tabs)) {
           if (duration != null && filled.length > duration) {
             setGenerationError(`For ${duration}s duration, maximum shots is ${duration}.`);
-            setIsGenerating(false);
+            setIsSubmitting(false);
             return;
           }
           const splitDurations = duration != null ? splitShotDurations(duration, filled.length) : [];
           if (duration != null && splitDurations.length !== filled.length) {
             setGenerationError("Invalid multi-shot split. Reduce shot count or increase duration.");
-            setIsGenerating(false);
+            setIsSubmitting(false);
             return;
           }
           payload.multi_prompt = filled.map((item, idx) => ({
@@ -693,17 +641,17 @@ function VideoPageInner() {
 
         if (!multiShotsEnabled && !hasMain) {
           setGenerationError("Kling 3.0 single-shot requires a prompt.");
-          setIsGenerating(false);
+          setIsSubmitting(false);
           return;
         }
         if (duration == null || duration < 3 || duration > 15) {
           setGenerationError("Kling 3.0 duration must be between 3 and 15 seconds.");
-          setIsGenerating(false);
+          setIsSubmitting(false);
           return;
         }
         if (!["std", "pro"].includes(String(modeValue))) {
           setGenerationError("Kling 3.0 mode must be std or pro.");
-          setIsGenerating(false);
+          setIsSubmitting(false);
           return;
         }
 
@@ -761,26 +709,29 @@ function VideoPageInner() {
         const preview = text.slice(0, 200);
         console.error("[video POST] non-JSON response", res.status, preview);
         setGenerationError(preview || `Server error (${res.status})`);
-        setIsGenerating(false);
+        setIsSubmitting(false);
         return;
       }
 
       if (!res.ok || !data.taskId) {
         setGenerationError(data.error ?? "Failed to start generation");
-        setIsGenerating(false);
+        setIsSubmitting(false);
         return;
       }
 
-      setGeneratingTaskId(data.taskId);
+      const _capturedRatio = aspectRatio ?? (size ? sizeToRatio(size) : "16:9");
+      setPendingTasks(prev => new Map(prev).set(data.taskId!, { model: selectedModel, promptText: basePrompt, ratio: _capturedRatio, duration }));
+      setIsSubmitting(false);
+      startPolling(data.taskId, { model: selectedModel, promptText: basePrompt, ratio: _capturedRatio, duration });
     } catch (err) {
       setGenerationError(err instanceof Error ? err.message : "An unexpected error occurred");
-      setIsGenerating(false);
+      setIsSubmitting(false);
     }
   }, [
-    activeTool, prompt, isGenerating, selectedModel, caps,
+    activeTool, prompt, selectedModel, caps,
     startFrame, endFrame, motionVideo, referenceImages, size, aspectRatio, duration, resolution,
     negPrompt, cfgScale, sound, shotType, multiPrompts, elementList,
-    sceneControl, orientation,
+    sceneControl, orientation, startPolling,
   ]);
 
   const bStyle = selectedModel.badge
@@ -893,7 +844,7 @@ function VideoPageInner() {
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Results grid */}
         <div className="flex-1 overflow-y-auto px-4">
-          {results.length === 0 && !isGenerating ? (
+          {results.length === 0 && pendingTasks.size === 0 ? (
             <div className="flex flex-col items-center justify-center h-full gap-4 pb-16">
               <motion.div
                 animate={{ y: [0, -6, 0] }}
@@ -916,11 +867,7 @@ function VideoPageInner() {
           ) : (
             <MediaGrid
               items={results}
-              skeletonModel={
-                isGenerating
-                  ? { name: selectedModel.name, ratio: aspectRatio ?? (size ? sizeToRatio(size) : "16:9") }
-                  : null
-              }
+              skeletonModels={Array.from(pendingTasks.values()).map(t => ({ name: t.model.name, ratio: t.ratio }))}
               onInspect={(item) => setInspectorAsset({ id: item.id, type: item.type, url: item.src, prompt: item.prompt ?? "", model: item.model, date: item.createdAt ? item.createdAt.toISOString() : undefined })}
               onDelete={id => setResults(prev => prev.filter(r => r.id !== id))}
             />
@@ -955,7 +902,7 @@ function VideoPageInner() {
             border: "1px solid rgba(255,255,255,0.07)",
           }}
         >
-          {isGenerating
+          {(isSubmitting || pendingTasks.size > 0)
             ? <Loader2 size={14} className="animate-spin flex-shrink-0" style={{ color: "#06b6d4" }} />
             : <Sparkles size={14} style={{ color: "#06b6d4", flexShrink: 0 }} />
           }
@@ -970,41 +917,43 @@ function VideoPageInner() {
               }
             }}
             placeholder={
-              isGenerating
-                ? "Generating… please wait"
-                : isKling30Video
-                  ? "Describe the video… use @image1 for references"
-                  : "Describe the video you want to create…"
+              isKling30Video
+                ? "Describe the video… use @image1 for references"
+                : "Describe the video you want to create…"
             }
-            disabled={isGenerating}
             className="flex-1 bg-transparent outline-none text-[13px] resize-none py-3 leading-relaxed"
-            style={{ color: isGenerating ? "#475569" : "#e2e8f0" }}
+            style={{ color: "#e2e8f0" }}
           />
-          {prompt && !isGenerating && (
+          {prompt && (
             <button onClick={() => setPrompt("")}>
               <X size={13} style={{ color: "#475569" }} />
             </button>
           )}
           <button
             onClick={handleGenerate}
-            disabled={isGenerating || !canGenerate}
+            disabled={isSubmitting || !canGenerate}
             className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-all"
             style={{
-              background:   isGenerating || !canGenerate ? "rgba(255,255,255,0.05)" : "rgba(6,182,212,0.15)",
-              border:       `1px solid ${isGenerating || !canGenerate ? "rgba(255,255,255,0.06)" : "rgba(6,182,212,0.35)"}`,
-              color:        isGenerating || !canGenerate ? "#475569" : "#06b6d4",
-              cursor:       isGenerating || !canGenerate ? "not-allowed" : "pointer",
+              background:   isSubmitting || !canGenerate ? "rgba(255,255,255,0.05)" : "rgba(6,182,212,0.15)",
+              border:       `1px solid ${isSubmitting || !canGenerate ? "rgba(255,255,255,0.06)" : "rgba(6,182,212,0.35)"}`,
+              color:        isSubmitting || !canGenerate ? "#475569" : "#06b6d4",
+              cursor:       isSubmitting || !canGenerate ? "not-allowed" : "pointer",
             }}
           >
-            {isGenerating ? (
+            {isSubmitting ? (
               <>
                 <Loader2 size={12} className="animate-spin" />
-                <span>Generating…</span>
+                <span>Sending…</span>
               </>
             ) : (
               <>
                 <Film size={12} />
                 <span>Generate</span>
+                {pendingTasks.size > 0 && (
+                  <span style={{ background: "rgba(6,182,212,0.2)", border: "1px solid rgba(6,182,212,0.35)", borderRadius: 10, padding: "0 5px", fontSize: 10, color: "#06b6d4", lineHeight: 1.6 }}>
+                    {pendingTasks.size}
+                  </span>
+                )}
               </>
             )}
           </button>
@@ -2185,21 +2134,21 @@ function VideoPageInner() {
           {/* -- Generate button ---------------------------------------------- */}
           <button
             onClick={handleGenerate}
-            disabled={isGenerating || !canGenerate}
+            disabled={isSubmitting || !canGenerate}
             className="w-full py-3 rounded-xl text-[14px] font-semibold transition-all flex items-center justify-center gap-2"
             style={{
-              background: isGenerating || !canGenerate
+              background: isSubmitting || !canGenerate
                 ? "rgba(255,255,255,0.05)"
                 : `linear-gradient(135deg, ${hexA(selectedModel.family_color, 0.8)}, ${hexA(selectedModel.family_color, 0.5)})`,
-              border:  `1px solid ${isGenerating || !canGenerate ? "rgba(255,255,255,0.06)" : hexA(selectedModel.family_color, 0.4)}`,
-              color:   isGenerating || !canGenerate ? "#475569" : "#fff",
-              cursor:  isGenerating || !canGenerate ? "not-allowed" : "pointer",
+              border:  `1px solid ${isSubmitting || !canGenerate ? "rgba(255,255,255,0.06)" : hexA(selectedModel.family_color, 0.4)}`,
+              color:   isSubmitting || !canGenerate ? "#475569" : "#fff",
+              cursor:  isSubmitting || !canGenerate ? "not-allowed" : "pointer",
             }}
           >
-            {isGenerating ? (
+            {isSubmitting ? (
               <>
                 <Loader2 size={15} className="animate-spin" />
-                <span>Generating…</span>
+                <span>Sending…</span>
               </>
             ) : (
               <>
@@ -2208,13 +2157,18 @@ function VideoPageInner() {
                   Generate Video ·{" "}
                   <span
                     style={{
-                      color: isGenerating || !canGenerate ? "#64748b" : "#fbb11f",
+                      color: isSubmitting || !canGenerate ? "#64748b" : "#fbb11f",
                       fontWeight: 700,
                     }}
                   >
                     {estimatedCredits} cr
                   </span>
                 </span>
+                {pendingTasks.size > 0 && (
+                  <span style={{ background: "rgba(255,255,255,0.15)", borderRadius: 10, padding: "0 6px", fontSize: 11 }}>
+                    {pendingTasks.size} running
+                  </span>
+                )}
               </>
             )}
           </button>
