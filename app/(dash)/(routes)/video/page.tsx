@@ -392,6 +392,8 @@ function VideoPageInner() {
     setModelBanner(m);
     if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current);
     bannerTimerRef.current = setTimeout(() => setModelBanner(null), 5000);
+    // Clear any stale error from a previous model
+    setGenerationError(null);
   }, []);
 
   useEffect(() => {
@@ -611,6 +613,15 @@ function VideoPageInner() {
             setGenerationError("Invalid multi-shot split. Reduce shot count or increase duration.");
             setIsSubmitting(false);
             return;
+          }
+          // Validate each shot prompt length after toolPrefix is applied (API limit: 500 chars)
+          for (const item of filled) {
+            const combined = toolPrefix ? `${toolPrefix} ${item.text}` : item.text;
+            if (combined.length > 500) {
+              setGenerationError(`Shot ${item.index + 1} prompt is too long (${combined.length}/500 chars). Please shorten it.`);
+              setIsSubmitting(false);
+              return;
+            }
           }
           payload.multi_prompt = filled.map((item, idx) => ({
             prompt: toolPrefix ? `${toolPrefix} ${item.text}` : item.text,
