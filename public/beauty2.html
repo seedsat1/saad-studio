@@ -765,33 +765,169 @@ function selectedBeautyOption(){
 }
 
 
-const BREAST_STYLE_PROMPTS={
-  'br-natural':'upper chest fullness enhancement NATURAL level: subtle and realistic increase above under-bust line only, soft contour, balanced anatomy, fully clothed look',
-  'br-moderate':'upper chest fullness enhancement MODERATE level: noticeable but balanced volume increase above under-bust line only, natural contour, realistic anatomy, fully clothed look',
-  'br-full':'upper chest fullness enhancement FULL level: clear fullness increase in bust region only, defined yet realistic contour, proportionate torso, fully clothed look',
-  'br-extra':'upper chest fullness enhancement EXTRA FULL level: strong bust-region fullness above under-bust line only, rounded contour while preserving body coherence, fully clothed look',
-  'br-dramatic':'upper chest fullness enhancement DRAMATIC level: maximum bust-region fullness above under-bust line only, stylized but coherent anatomy, fully clothed look'
+const BEAUTY_EDIT_PROMPTS={
+  // OUTFIT
+  'outfit-change':{
+    'casual':    'Same person as in the reference photo, wearing a casual everyday outfit — comfortable jeans and a relaxed top. Keep the exact same face, skin tone, hair, and pose.',
+    'elegant':   'Same person as in the reference photo, wearing an elegant formal dress — sophisticated and glamorous. Keep the exact same face, skin tone, and hair.',
+    'sport':     'Same person as in the reference photo, wearing athletic sportswear — tracksuit or gym clothes. Keep the exact same face, skin tone, and hair.',
+    'formal':    'Same person as in the reference photo, wearing formal business attire — tailored blazer and professional clothing. Keep the exact same face, skin tone, and hair.',
+    'streetwear':'Same person as in the reference photo, wearing modern streetwear — trendy urban clothing. Keep the exact same face, skin tone, and hair.',
+    'boho':      'Same person as in the reference photo, wearing boho-style clothing — flowing fabrics and earthy tones. Keep the exact same face, skin tone, and hair.',
+    'vintage':   'Same person as in the reference photo, wearing a vintage retro-style outfit. Keep the exact same face, skin tone, and hair.',
+  },
+  'evening-dress':{
+    'long-red':   'Same person as in the reference photo, wearing a long red evening gown — classic and elegant. Keep the exact same face, skin tone, and hair.',
+    'black-mini': 'Same person as in the reference photo, wearing a little black cocktail dress — sleek and chic. Keep the exact same face, skin tone, and hair.',
+    'gold-sequin':'Same person as in the reference photo, wearing a gold sequined evening gown — glamorous and shimmering. Keep the exact same face, skin tone, and hair.',
+    'emerald':    'Same person as in the reference photo, wearing an emerald green evening dress. Keep the exact same face, skin tone, and hair.',
+  },
+  'wedding-dress':{
+    'ball-gown':  'Same person as in the reference photo, wearing a white princess ball gown wedding dress with a full skirt. Keep the exact same face, skin tone, and hair.',
+    'mermaid':    'Same person as in the reference photo, wearing a mermaid-cut wedding dress — fitted with a flare at the bottom. Keep the exact same face, skin tone, and hair.',
+    'a-line':     'Same person as in the reference photo, wearing an A-line wedding dress — classic elegant silhouette. Keep the exact same face, skin tone, and hair.',
+    'minimalist': 'Same person as in the reference photo, wearing a minimalist modern wedding dress — clean lines and simple elegance. Keep the exact same face, skin tone, and hair.',
+  },
+  'traditional-wear':{
+    'abaya':  'Same person as in the reference photo, wearing a luxurious Gulf-style black abaya with elegant embroidery. Keep the exact same face and skin tone.',
+    'saree':  'Same person as in the reference photo, wearing a colorful traditional Indian saree with traditional draping. Keep the exact same face and skin tone.',
+    'kimono': 'Same person as in the reference photo, wearing a traditional Japanese silk kimono with floral patterns. Keep the exact same face and skin tone.',
+    'hanbok': 'Same person as in the reference photo, wearing a Korean hanbok in pastel traditional colors. Keep the exact same face and skin tone.',
+  },
+  'hijab-style':{
+    'turkish': 'Same person as in the reference photo, wearing a Turkish-style elegant hijab wrap with layered fabric. Keep the exact same face and skin tone.',
+    'khaleeji':'Same person as in the reference photo, wearing a luxurious Khaleeji-style hijab — Gulf fashion style. Keep the exact same face and skin tone.',
+    'modern':  'Same person as in the reference photo, wearing a modern minimal hijab — clean simple wrap. Keep the exact same face and skin tone.',
+    'turban':  'Same person as in the reference photo, wearing a fashionable turban on the head. Keep the exact same face and skin tone.',
+  },
+  'cosplay':{
+    'superhero': 'Same person as in the reference photo, wearing a superhero costume — bold colors and heroic design. Keep the exact same face and pose.',
+    'anime-char':'Same person as in the reference photo, wearing a colorful anime character costume. Keep the exact same face and pose.',
+    'medieval':  'Same person as in the reference photo, wearing medieval attire — knight armor or princess gown. Keep the exact same face and pose.',
+    'scifi':     'Same person as in the reference photo, wearing a futuristic sci-fi outfit. Keep the exact same face and pose.',
+  },
+  // MAKEUP
+  'full-glam':{
+    'smokey':     'Same person as in the reference photo, with dramatic smokey eye makeup applied — deep dark eyeshadow blended outward, strong eyeliner. Keep the same hair, outfit, and background.',
+    'glitter':    'Same person as in the reference photo, with glitter glam makeup applied — sparkly eyeshadow and glossy lips. Keep the same hair, outfit, and background.',
+    'classic-red':'Same person as in the reference photo, with classic glamour makeup — bold red lipstick and defined brows. Keep the same hair, outfit, and background.',
+    'nude-glam':  'Same person as in the reference photo, with soft neutral glam makeup applied — natural tones and glowing skin. Keep the same hair, outfit, and background.',
+  },
+  'korean-beauty':{
+    'glass-skin':   'Same person as in the reference photo, with Korean glass skin beauty applied — ultra-dewy glowing skin, light natural makeup. Keep the same hair, outfit, and background.',
+    'gradient-lip': 'Same person as in the reference photo, with Korean gradient lip makeup — soft ombre lips and dewy fresh skin. Keep the same hair, outfit, and background.',
+    'fresh-look':   'Same person as in the reference photo, with a fresh natural Korean makeup look — clean skin and light blush. Keep the same hair, outfit, and background.',
+  },
+  'arabic-makeup':{
+    'kohl-dramatic':'Same person as in the reference photo, with dramatic Arabic kohl eye makeup — thick dark liner around the eyes. Keep the same hair, outfit, and background.',
+    'gold-arabic':  'Same person as in the reference photo, with Arabic gold glam makeup — golden eyeshadow and warm rich tones. Keep the same hair, outfit, and background.',
+    'bridal-arabic':'Same person as in the reference photo, with Arabic bridal makeup — dramatic eyes, rich colors, full bridal glamour. Keep the same hair and background.',
+  },
+  'lip-color':{
+    'red':  'Same person as in the reference photo, with bold classic red lipstick applied. Keep the same face, eyes, skin, hair, outfit, and background — only the lip color changes.',
+    'nude': 'Same person as in the reference photo, with soft nude beige lipstick. Keep the same face, eyes, skin, hair, outfit, and background — only the lip color changes.',
+    'berry':'Same person as in the reference photo, with deep berry-plum lipstick. Keep the same face, eyes, skin, hair, outfit, and background — only the lip color changes.',
+    'pink': 'Same person as in the reference photo, with soft rosy pink lipstick. Keep the same face, eyes, skin, hair, outfit, and background — only the lip color changes.',
+    'brown':'Same person as in the reference photo, with warm brown-mauve lipstick. Keep the same face, eyes, skin, hair, outfit, and background — only the lip color changes.',
+  },
+  'eye-makeup':{
+    'cat-eye':    'Same person as in the reference photo, with cat eye eyeliner applied — sharp flick extending outward. Keep the same skin, hair, outfit, and background.',
+    'cut-crease': 'Same person as in the reference photo, with cut crease eyeshadow — sharply defined bold eye makeup. Keep the same skin, hair, outfit, and background.',
+    'natural-eye':'Same person as in the reference photo, with natural soft eye makeup — light shadow and mascara. Keep the same skin, hair, outfit, and background.',
+    'glitter-eye':'Same person as in the reference photo, with sparkling glitter eyeshadow for a glamorous look. Keep the same skin, hair, outfit, and background.',
+  },
+  'bridal-makeup':{
+    'soft-bridal':    'Same person as in the reference photo, with soft romantic bridal makeup — rose tones and glowing skin. Keep the same hair and outfit.',
+    'dramatic-bridal':'Same person as in the reference photo, with dramatic bridal makeup — strong eyes, bold lips, full glamour. Keep the same hair.',
+    'boho-bridal':    'Same person as in the reference photo, with boho bridal makeup — earthy natural tones. Keep the same hair.',
+  },
+  'skin-retouch':{
+    'light-retouch': 'Same person as in the reference photo, with light skin retouching — minor blemishes gently smoothed. Keep the same face, hair, outfit, and background.',
+    'medium-retouch':'Same person as in the reference photo, with medium skin retouching — even complexion and reduced pores. Keep the same face, hair, and outfit.',
+    'full-retouch':  'Same person as in the reference photo, with professional full skin retouching — flawless smooth complexion. Keep the same face, hair, and outfit.',
+  },
+  // HAIR
+  'hairstyle':{
+    'bob':    'Same person as in the reference photo, with a classic chin-length bob haircut. Keep the same face, makeup, outfit, and background.',
+    'layers': 'Same person as in the reference photo, with long layered hair — flowing layers with movement. Keep the same face, makeup, and outfit.',
+    'pixie':  'Same person as in the reference photo, with a short pixie cut hairstyle. Keep the same face, makeup, and outfit.',
+    'curly':  'Same person as in the reference photo, with curly bouncy hair. Keep the same face, makeup, and outfit.',
+  },
+  'hair-color':{
+    'blonde':    'Same person as in the reference photo, with hair dyed golden blonde. Keep the same hairstyle, face, makeup, outfit, and background.',
+    'red-hair':  'Same person as in the reference photo, with hair dyed vibrant red. Keep the same hairstyle, face, makeup, and outfit.',
+    'platinum':  'Same person as in the reference photo, with platinum silver-white hair. Keep the same hairstyle, face, makeup, and outfit.',
+    'ombre':     'Same person as in the reference photo, with ombre hair coloring — dark roots fading to lighter ends. Keep the same face, makeup, and outfit.',
+    'chocolate': 'Same person as in the reference photo, with warm chocolate brown hair. Keep the same hairstyle, face, makeup, and outfit.',
+  },
+  'beard-style':{
+    'full-beard': 'Same person as in the reference photo, with a full groomed beard added. Keep the same face features, skin tone, and outfit.',
+    'goatee':     'Same person as in the reference photo, with a goatee — beard on chin only, clean-shaved sides. Keep the same face and outfit.',
+    'stubble':    'Same person as in the reference photo, with light stubble — few-days growth. Keep the same face and outfit.',
+    'clean-shave':'Same person as in the reference photo, completely clean-shaven — no beard or stubble. Keep the same face and outfit.',
+  },
+  'bangs':{
+    'straight-bangs':'Same person as in the reference photo, with straight-cut bangs added — full horizontal fringe across the forehead. Keep the same face and outfit.',
+    'curtain-bangs': 'Same person as in the reference photo, with curtain bangs — parted in the center, framing the face. Keep the same face and outfit.',
+    'side-bangs':    'Same person as in the reference photo, with side-swept bangs. Keep the same face and outfit.',
+    'wispy-bangs':   'Same person as in the reference photo, with wispy delicate light bangs. Keep the same face and outfit.',
+  },
+  'braids':{
+    'french-braid':'Same person as in the reference photo, with hair styled in a French braid from crown to nape. Keep the same face, makeup, and outfit.',
+    'fishtail':    'Same person as in the reference photo, with hair styled in a fishtail braid. Keep the same face, makeup, and outfit.',
+    'chignon':     'Same person as in the reference photo, with hair styled in an elegant chignon bun at the nape. Keep the same face, makeup, and outfit.',
+    'messy-bun':   'Same person as in the reference photo, with hair in a casual messy bun. Keep the same face, makeup, and outfit.',
+  },
+  'extensions':{
+    'medium-ext':'Same person as in the reference photo, with hair extensions adding medium length — fuller and longer hair. Keep the same face and outfit.',
+    'long-ext':  'Same person as in the reference photo, with hair extensions for dramatically long and full hair. Keep the same face and outfit.',
+    'volume-ext':'Same person as in the reference photo, with volume hair extensions — same length but much fuller and thicker. Keep the same face and outfit.',
+  },
+  'balayage':{
+    'sun-kissed':'Same person as in the reference photo, with sun-kissed balayage highlights — natural light streaks through the hair. Keep the same face and outfit.',
+    'caramel-hl':'Same person as in the reference photo, with caramel highlights — warm golden-brown tones in the hair. Keep the same face and outfit.',
+    'ash-hl':    'Same person as in the reference photo, with ash grey highlights — cool-toned silver streaks in the hair. Keep the same face and outfit.',
+  },
+  // BODY
+  'lip-enhancement':{
+    'lip-natural':  'Same person as in the reference photo, with very subtle natural lip enhancement — slight fullness added. Keep the same face and identity.',
+    'lip-medium':   'Same person as in the reference photo, with moderately enhanced lips — balanced volume and defined cupid bow. Keep the same face.',
+    'lip-full':     'Same person as in the reference photo, with clearly fuller lips — smooth natural contours. Keep the same face.',
+    'lip-extra':    'Same person as in the reference photo, with extra full bold lips — prominent and polished. Keep the same face.',
+    'lip-hollywood':'Same person as in the reference photo, with Hollywood maximum lip fullness — perfectly shaped, very full. Keep the same face.',
+  },
+  'slim-body':{
+    'slim-light':   'Same person as in the reference photo, with a slightly slimmer body silhouette — subtle waist reduction. Keep the same face and outfit.',
+    'slim-moderate':'Same person as in the reference photo, with a moderately slimmer figure — noticeably narrower waist. Keep the same face and outfit.',
+    'slim-dramatic':'Same person as in the reference photo, with a dramatically slimmer body silhouette. Keep the same face and outfit.',
+  },
+  'muscle-enhance':{
+    'mus-toned':      'Same person as in the reference photo, with a lightly toned fit body — subtle muscle definition. Keep the same face and outfit.',
+    'mus-athletic':   'Same person as in the reference photo, with an athletic physique — visible muscle tone. Keep the same face and outfit.',
+    'mus-bodybuilder':'Same person as in the reference photo, with strong muscular development throughout the body. Keep the same face and outfit.',
+  },
+  'nose-reshape':{
+    'nose-refine': 'Same person as in the reference photo, with a subtly refined nose — slight reduction and smoothing. Keep the same face and all other features identical.',
+    'nose-slim':   'Same person as in the reference photo, with a slimmer nose — narrower bridge and refined tip. Keep the same face.',
+    'nose-button': 'Same person as in the reference photo, with a small button nose — compact upturned tip. Keep the same face.',
+    'nose-straight':'Same person as in the reference photo, with a straight refined nose profile. Keep the same face.',
+  },
+  'skin-tan':{
+    'fair':      'Same person as in the reference photo, with a fair light skin complexion. Keep the exact same face and identity.',
+    'light-tan': 'Same person as in the reference photo, with a light sun tan — slightly bronzed skin. Keep the exact same face and identity.',
+    'golden-tan':'Same person as in the reference photo, with a golden summer tan — warm bronze sun-kissed skin. Keep the exact same face and identity.',
+    'deep-tan':  'Same person as in the reference photo, with a deep dark tan — richer and darker skin tone. Keep the exact same face and identity.',
+  },
 };
-const LIP_STYLE_PROMPTS={
-  'lip-natural':'lip enhancement NATURAL level: subtle lip fullness, soft contour definition, realistic anatomy, no exaggerated shape',
-  'lip-medium':'lip enhancement MEDIUM level: moderate balanced lip volume, defined cupid bow, realistic contour',
-  'lip-full':'lip enhancement FULL level: clear lip fullness increase, smooth borders, natural symmetry',
-  'lip-extra':'lip enhancement EXTRA FULL level: bold lip volume, rounded contour, stylized but realistic',
-  'lip-hollywood':'lip enhancement HOLLYWOOD level: maximum polished lip fullness, defined shape, premium editorial look while keeping identity'
-};
-const BUTT_STYLE_PROMPTS={
-  'bt-natural':'butt enhancement NATURAL level: subtle glute contour enhancement only, realistic anatomy, soft and balanced shape',
-  'bt-moderate':'butt enhancement MODERATE level: moderate glute volume increase only, smooth contour, natural body proportions',
-  'bt-full':'butt enhancement FULL level: clear glute fullness enhancement only, defined yet realistic silhouette',
-  'bt-extra':'butt enhancement EXTRA FULL level: strong glute volume enhancement only, rounded contour while keeping body coherence',
-  'bt-dramatic':'butt enhancement DRAMATIC level: maximum glute projection enhancement only, stylized but anatomically coherent'
-};
-const GENERIC_STYLE_PROMPTS={
-  'nude-glam':'soft neutral glam makeup, natural skin finish, modest elegant look, fully clothed portrait, clean beauty style',
-  'classic-red':'classic red lipstick makeup, elegant modest portrait, balanced beauty lighting',
-  'glitter':'glitter glam makeup for evening, elegant and modest appearance, clean portrait style',
-  'smokey':'smokey eye makeup, sophisticated cinematic portrait, modest and non-erotic style'
-};
+
+function buildEditPrompt(tool,opt){
+  const toolId=tool?.id||'';
+  const optId=opt?.id||'';
+  const toolP=BEAUTY_EDIT_PROMPTS[toolId]||{};
+  const optName=(isAr?(opt?.nameAr||opt?.name):opt?.name)||'default';
+  const base=toolP[optId]||`Same person as in the reference photo, with ${optName} style applied for ${tool?.name||'beauty'} transformation. Keep the exact same face and identity.`;
+  return `${base} Photorealistic, high quality portrait photography.`;
+}
 
 async function fileToDataUrl(file){
   // Compress image to max 1536px and JPEG 0.85 quality to stay under Vercel 4.5MB limit
@@ -832,21 +968,7 @@ function doGen(toolId){
     try{
       const op = selectedBeautyOption();
       const imageUrl = await fileToDataUrl(uploadedFile);
-      const stylePrompt = currentTool?.id==='breast-enhancement'
-        ? (BREAST_STYLE_PROMPTS[op?.id] || 'breast enhancement with realistic anatomy and proportionate contour')
-        : (currentTool?.id==='lip-enhancement'
-          ? (LIP_STYLE_PROMPTS[op?.id] || 'lip enhancement with realistic anatomy and balanced contour')
-          : (currentTool?.id==='butt-enhancement'
-            ? (BUTT_STYLE_PROMPTS[op?.id] || 'butt enhancement with realistic anatomy and proportionate contour')
-            : (GENERIC_STYLE_PROMPTS[op?.id] || `Beauty portrait enhancement, style ${op?.name || 'natural'}, ${currentTool?.name || 'beauty tool'}, realistic and elegant`)));
-      const regionGuard = currentTool?.id==='breast-enhancement'
-        ? 'Edit ONLY bust region above the under-bust line. ABSOLUTELY DO NOT change abdomen, waist, stomach, hips, glute area, thighs, legs, hands, face, hair, pose, clothing embroidery, background, camera angle, or body position. Keep lower torso geometry exactly unchanged.'
-        : (currentTool?.id==='lip-enhancement'
-          ? 'Edit ONLY lips area. Do NOT change nose, eyes, jawline, cheeks, face shape, skin tone, hair, body, outfit, hands, pose, or background. Keep same mouth position and same facial identity.'
-          : (currentTool?.id==='butt-enhancement'
-            ? 'Edit ONLY glute area. Do NOT change chest area, waist, abdomen, face, hair, hands, legs, pose, outfit details, or background.'
-            : 'Preserve original body proportions and composition except requested enhancement.'));
-      const prompt = `${stylePrompt}. ${regionGuard} Keep EXACT same person identity and face likeness from the source image (same facial structure, eyes, nose, lips, skin tone, and age). No face swap, no new identity, no added objects, no text, no watermark, no distortion. Strict safety: no nudity, no lingerie, no erotic content, no sexualized anatomy, fully clothed output only.`;
+      const prompt = buildEditPrompt(currentTool, op);
       const r = await fetch('/api/generate/image', {
         method:'POST',
         headers:{'Content-Type':'application/json'},
