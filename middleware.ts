@@ -1,4 +1,4 @@
-﻿import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
+import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
 import { NextResponse } from "next/server";
 import { getAllowedOrigins } from "@/lib/security";
 
@@ -50,7 +50,7 @@ function applySecurityHeaders(res: NextResponse, req: Request) {
   res.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
   res.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
 
-  // COOP must be relaxed on OAuth paths — same-origin breaks Google redirect popup
+  // COOP must be relaxed on OAuth paths � same-origin breaks Google redirect popup
   const isOAuthPath =
     req.url.includes("/sso-callback") ||
     req.url.includes("/sign-in") ||
@@ -62,7 +62,8 @@ function applySecurityHeaders(res: NextResponse, req: Request) {
     "Content-Security-Policy",
     [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://clerk.saadstudio.app https://*.clerk.accounts.dev https://challenges.cloudflare.com https://accounts.google.com",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://clerk.saadstudio.app https://*.clerk.accounts.dev https://accounts.saadstudio.app https://accounts.google.com https://challenges.cloudflare.com",
+      "worker-src 'self' blob:",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "img-src 'self' data: blob: https:",
       "media-src 'self' data: blob: https:",

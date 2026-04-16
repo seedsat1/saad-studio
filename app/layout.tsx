@@ -1,4 +1,4 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
 import { Outfit, Plus_Jakarta_Sans } from "next/font/google";
 import Script from "next/script";
 import {
@@ -53,7 +53,6 @@ export default function RootLayout({
         <head>
           <meta name="referrer" content="strict-origin-when-cross-origin" />
           <meta httpEquiv="X-Content-Type-Options" content="nosniff" />
-          <meta httpEquiv="X-Frame-Options" content="DENY" />
           <link rel="preconnect" href="https://fonts.googleapis.com" />
           <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
           <link rel="dns-prefetch" href="//fonts.googleapis.com" />
