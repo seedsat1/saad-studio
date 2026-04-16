@@ -234,6 +234,32 @@ function mapToKieInput(model: string, payload: Record<string, unknown>) {
     return out;
   }
 
+  // ── Seedance 2.0 — KIE expects reference_image_urls / first_frame_url / last_frame_url ──
+  if (model === "bytedance/seedance-2" || model === "bytedance/seedance-2-fast") {
+    const out: Record<string, unknown> = { ...input };
+    // Reference images take priority over single start/end frame
+    if (referenceImages.length > 0) {
+      out.reference_image_urls = referenceImages;
+      delete out.first_frame_url;
+      delete out.last_frame_url;
+    } else {
+      delete out.reference_image_urls;
+      if (startImage)  out.first_frame_url = startImage;
+      else             delete out.first_frame_url;
+      if (endImage)    out.last_frame_url = endImage;
+      else             delete out.last_frame_url;
+    }
+    // Clean up generic aliases never used by Seedance
+    delete out.image;
+    delete out.image_url;
+    delete out.end_image;
+    delete out.last_image;
+    delete out.image_urls;
+    delete out.video;
+    if (typeof out.duration === "number") out.duration = String(out.duration);
+    return out;
+  }
+
   if (model === "kling-3.0/motion-control") {
     if (startImage) input.input_urls = [startImage];
     if (motionVideo) input.video_urls = [motionVideo];
