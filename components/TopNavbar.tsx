@@ -742,11 +742,11 @@ const AuthNavButtons = ({ creditBalance }: { creditBalance: number | null }) => 
     <div className="flex items-center gap-2">
       <PricingButton />
       {isSignedIn ? (
-        <div className="hidden xl:block">
+        <div className="hidden 2xl:block">
           <UserProfileDropdown creditBalance={creditBalance} />
         </div>
       ) : (
-        <div className="hidden xl:flex items-center gap-2">
+        <div className="hidden 2xl:flex items-center gap-2">
           <button
             onClick={() => onOpen("login")}
             className="px-3.5 py-1.5 rounded-lg text-xs font-semibold text-zinc-300 hover:text-white border border-white/15 hover:border-white/30 hover:bg-white/10 transition-all"
@@ -840,7 +840,7 @@ const TopNavbar = () => {
 
           <Logo />
 
-          <div className="hidden xl:flex items-center flex-1 justify-center min-w-0">
+          <div className="hidden 2xl:flex items-center flex-1 justify-center min-w-0">
             <div className="flex items-center gap-0">
 
               {/* Explore */}
@@ -1011,7 +1011,7 @@ const TopNavbar = () => {
                       )}
                     >
                       <link.icon className={cn("h-3.5 w-3.5", link.color)} />
-                      <span className="hidden xl:inline">{link.label}</span>
+                      <span className="hidden 2xl:inline">{link.label}</span>
                     </Link>
                   </span>
                 ))}
@@ -1062,7 +1062,7 @@ const TopNavbar = () => {
           <div className="flex items-center gap-2 shrink-0">
             <AuthNavButtons creditBalance={creditBalance} />
             <button
-              className="xl:hidden flex h-9 w-9 items-center justify-center rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors"
+              className="2xl:hidden flex h-9 w-9 items-center justify-center rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors"
               onClick={() => setMobileOpen(!mobileOpen)}
               aria-label="Toggle menu"
             >
@@ -1084,7 +1084,7 @@ const TopNavbar = () => {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: "100%" }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="fixed inset-y-0 right-0 z-40 flex w-[min(320px,100vw)] flex-col bg-slate-950/98 backdrop-blur-2xl border-l border-white/10 xl:hidden"
+            className="fixed inset-y-0 right-0 z-40 flex w-[min(320px,100vw)] flex-col bg-slate-950/98 backdrop-blur-2xl border-l border-white/10 2xl:hidden"
           >
             <div className="flex h-16 items-center justify-between px-5 border-b border-white/10">
               <Logo />
@@ -1389,7 +1389,7 @@ const TopNavbar = () => {
 
       <AnimatePresence>
         {mobileOpen && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setMobileOpen(false)} className="fixed inset-0 z-30 bg-black/50 backdrop-blur-sm xl:hidden" />
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setMobileOpen(false)} className="fixed inset-0 z-30 bg-black/50 backdrop-blur-sm 2xl:hidden" />
         )}
       </AnimatePresence>
     </>
