@@ -470,7 +470,8 @@ export async function POST(req: Request) {
       );
     }
 
-    const taskId = createJson?.data?.taskId || createJson?.taskId;
+    const createData = createJson?.data as Record<string, unknown> | undefined;
+    const taskId = createData?.taskId || createJson?.taskId;
 
     if (!createRes.ok || !taskId) {
       console.error("[api/video POST] KIE createTask failed", createRes.status, JSON.stringify(createJson).slice(0, 500));
@@ -546,6 +547,13 @@ export async function GET(req: Request) {
 
     // KIE uses code: 200 for success, but fallback: if HTTP is OK and data exists, treat as success
     const kieCodeOk = pollJson?.code == null || pollJson.code === 200 || pollJson.code === 0;
+    if (pollRes.status === 404) {
+      // Task not found in KIE — may have been cleaned up; treat as completed if DB has result
+      return NextResponse.json(
+        { taskId, status: "failed", outputs: [], error: "Task not found" },
+        { status: 200 },
+      );
+    }
     if (!pollRes.ok || !kieCodeOk) {
       return NextResponse.json(
         { error: pollJson?.msg || pollJson?.message || `KIE poll failed (${pollRes.status})` },
@@ -553,7 +561,7 @@ export async function GET(req: Request) {
       );
     }
 
-    const data = pollJson?.data ?? {};
+    const data = (pollJson?.data ?? {}) as Record<string, unknown>;
     const status = normalizeTaskState(String(data.taskStatus || data.status || data.state || ""));
     const outputs = (() => {
       for (const field of [data.response, data.resultJson, data.outputs, data.result, data.output, data.works]) {

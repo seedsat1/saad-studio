@@ -4,7 +4,7 @@ import { AuthenticateWithRedirectCallback } from "@clerk/nextjs";
 export default function SSOCallbackPage() {
   return (
     <AuthenticateWithRedirectCallback
-      afterSignInUrl="/dash"
+      signInFallbackRedirectUrl="/dash"
       afterSignUpUrl="/dash"
     />
   );
