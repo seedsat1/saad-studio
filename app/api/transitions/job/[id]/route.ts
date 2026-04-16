@@ -120,6 +120,7 @@ export async function GET(
 
         if (taskStatus === "completed" && resultUrl) {
           // Get project for output metadata
+          const project = await prismadb.transitionProject.findUnique({
             where: { id: job.projectId },
             select: { inputAUrl: true, inputBUrl: true, aspectRatio: true, duration: true },
           });
