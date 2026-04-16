@@ -850,19 +850,11 @@ function VideoPageInner() {
   }, [caps.has_multi_prompt, maxShotsAllowed]);
 
   const estimatedCredits = (() => {
-    const estimatePayload: Record<string, unknown> = {};
-    if (duration != null) estimatePayload.duration = duration;
-    if (resolution) {
-      estimatePayload[caps.quality_param] = resolution;
-      // Keep estimate robust across models that read either key.
-      estimatePayload.mode = resolution;
-      estimatePayload.resolution = resolution;
-      estimatePayload.quality = resolution;
-    }
-    if (caps.has_sound && sound) estimatePayload[caps.sound_param] = true;
     return getGenerationCostSync(
       selectedModel.api_route,
-      typeof estimatePayload.duration === "number" ? estimatePayload.duration : 5,
+      duration ?? 5,
+      1,
+      resolution ?? undefined,
     );
   })();
 

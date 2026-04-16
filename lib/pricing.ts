@@ -151,6 +151,33 @@ const MODEL_ALIAS_MAP: Record<string, string> = {
   "qwen-image-edit":                    "qwen_i",
 };
 
+// ─── Quality multipliers ──────────────────────────────────────────────────────
+// Applied on top of the base per-second or flat rate for models that expose
+// a quality/resolution/mode selector.  Only models using quality_param:"mode"
+// (Kling, Wan, etc.) or explicit resolution tiers are affected.
+// Values are intentionally modest — "pro" is ~50% more than "std".
+
+const QUALITY_MULTIPLIER: Record<string, number> = {
+  // Kling std/pro mode
+  "std":    1.0,
+  "pro":    1.5,
+  // Resolution tiers
+  "480p":   0.8,
+  "720p":   1.0,
+  "768P":   1.0,
+  "1080p":  1.3,
+  "1080P":  1.3,
+};
+
+/**
+ * Returns the quality multiplier for a given resolution/mode value.
+ * Defaults to 1.0 when the quality string is unrecognised.
+ */
+export function qualityMultiplierFor(quality: string | null | undefined): number {
+  if (!quality) return 1.0;
+  return QUALITY_MULTIPLIER[quality] ?? 1.0;
+}
+
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 /**
@@ -159,19 +186,22 @@ const MODEL_ALIAS_MAP: Record<string, string> = {
  * @param modelRef   Model ID as used by the route (route alias or constitution ID).
  * @param durationSec  Duration in seconds; ignored for flat-billing models.
  * @param numUnits   Number of units (e.g. images); multiplies flat-billing cost.
+ * @param quality    Optional resolution/mode string (e.g. "pro", "1080p", "std").
  * @returns  Credits to charge (0 = model not found or inactive → caller should reject).
  */
 export async function getGenerationCost(
   modelRef: string,
   durationSec = 5,
   numUnits = 1,
+  quality?: string | null,
 ): Promise<number> {
   const models = await loadModels();
   const constitutionId = MODEL_ALIAS_MAP[modelRef] ?? modelRef;
   const model = models.find((m) => m.id === constitutionId && m.isActive);
   if (!model) return 0;
   const perUnit = calcUserCredits(model, durationSec);
-  return parseFloat((perUnit * numUnits).toFixed(2));
+  const qMul = qualityMultiplierFor(quality);
+  return parseFloat((perUnit * numUnits * qMul).toFixed(2));
 }
 
 /**
@@ -182,11 +212,13 @@ export function getGenerationCostSync(
   modelRef: string,
   durationSec = 5,
   numUnits = 1,
+  quality?: string | null,
 ): number {
   const models = _cachedModels ?? DEFAULT_MODELS;
   const constitutionId = MODEL_ALIAS_MAP[modelRef] ?? modelRef;
   const model = models.find((m) => m.id === constitutionId && m.isActive);
   if (!model) return 0;
   const perUnit = calcUserCredits(model, durationSec);
-  return parseFloat((perUnit * numUnits).toFixed(2));
+  const qMul = qualityMultiplierFor(quality);
+  return parseFloat((perUnit * numUnits * qMul).toFixed(2));
 }

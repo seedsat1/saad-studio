@@ -446,7 +446,11 @@ export async function POST(req: Request) {
     }
 
     const durationForCost = typeof payload.duration === "number" ? payload.duration : 5;
-    const creditsToCharge = await getGenerationCost(modelRoute, durationForCost);
+    const qualityForCost =
+      (typeof payload.mode === "string" ? payload.mode : null) ||
+      (typeof payload.resolution === "string" ? payload.resolution : null) ||
+      (typeof payload.quality === "string" ? payload.quality : null);
+    const creditsToCharge = await getGenerationCost(modelRoute, durationForCost, 1, qualityForCost);
     if (creditsToCharge <= 0) {
       return NextResponse.json({ error: "No credit configuration for this model" }, { status: 400 });
     }
