@@ -5,7 +5,7 @@ export default function SSOCallbackPage() {
   return (
     <AuthenticateWithRedirectCallback
       signInFallbackRedirectUrl="/dash"
-      afterSignUpUrl="/dash"
+      signUpFallbackRedirectUrl="/dash"
     />
   );
 }

@@ -107,9 +107,10 @@ const MODEL_ALIAS_MAP: Record<string, string> = {
   "elevenlabs/elevenlabs-music":            "music_gen",
 
   // ── Audio actions — app/api/generate/audio ───────────────────────────────
-  "audio:tts":          "el_v2",
-  "audio:video2audio":  "sfx",
-  "audio:music":        "music_gen",
+  "audio:tts":           "el_v2",
+  "audio:video2audio":   "sfx",
+  "audio:music":         "music_gen",
+  "audio:voice-cloning": "voice_clone",
 
   // ── Image models — app/api/generate/image (IMAGE_MODELS catalog IDs) ─────
   "nano-banana-pro":                    "nano_pro",
