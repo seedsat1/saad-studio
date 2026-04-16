@@ -281,6 +281,55 @@ function mapToKieInput(model: string, payload: Record<string, unknown>) {
     return out;
   }
 
+  // ── Sora 2 — KIE uses n_frames ("10s"/"15s") and "Portrait"/"Landscape" aspect_ratio ──
+  if (model === "sora-2-text-to-video" || model === "sora-2-image-to-video" || model === "sora-2-pro-text-to-video") {
+    const out: Record<string, unknown> = {};
+    out.prompt = typeof input.prompt === "string" ? input.prompt : "";
+    // KIE Sora 2 uses "Portrait" / "Landscape" (the registry now sends these directly)
+    const ar = typeof input.aspect_ratio === "string" ? input.aspect_ratio : "Landscape";
+    out.aspect_ratio = ar;
+    // KIE Sora 2 uses n_frames "10s" / "15s" — NOT a numeric duration field
+    const soraDur = typeof input.duration === "number" ? input.duration
+      : typeof input.duration === "string" ? Number(input.duration) : 10;
+    out.n_frames = soraDur >= 15 ? "15s" : "10s";
+    // I2V: first frame only (KIE Sora 2 accepts max 1 image)
+    if (startImage) out.image_urls = [startImage];
+    return out;
+  }
+
+  // ── Grok Imagine — duration must be a number (integer slider), not a string ──
+  if (model === "grok-imagine/text-to-video" || model === "grok-imagine/image-to-video") {
+    const out: Record<string, unknown> = {};
+    out.prompt = typeof input.prompt === "string" ? input.prompt : "";
+    if (typeof input.aspect_ratio === "string") out.aspect_ratio = input.aspect_ratio;
+    if (typeof input.resolution === "string") out.resolution = input.resolution;
+    // Keep duration as number — KIE Grok expects integer (slider value), not string
+    const grokDur = typeof input.duration === "number" ? input.duration
+      : typeof input.duration === "string" ? Number(input.duration) : 6;
+    if (Number.isFinite(grokDur)) out.duration = grokDur;
+    // I2V: image references (up to 7)
+    if (referenceImages.length > 0) out.image_urls = referenceImages.slice(0, 7);
+    else if (startImage) out.image_urls = [startImage];
+    return out;
+  }
+
+  // ── Veo 3.1 — no duration param (model-fixed ~8s), audio always-on (no sound field) ──
+  if (model === "veo3.1-lite/text-to-video" || model === "veo3.1-fast/text-to-video" || model === "veo3.1/text-to-video") {
+    const out: Record<string, unknown> = {};
+    out.prompt = typeof input.prompt === "string" ? input.prompt : "";
+    if (typeof input.aspect_ratio === "string") out.aspect_ratio = input.aspect_ratio;
+    if (typeof input.resolution === "string") out.resolution = input.resolution;
+    // Reference images take priority; otherwise use frame control
+    if (referenceImages.length > 0) {
+      out.image_urls = referenceImages;
+    } else {
+      if (startImage) out.first_frame_url = startImage;
+      if (endImage) out.last_frame_url = endImage;
+    }
+    // No duration (fixed by model), no sound field (always-on in Veo 3.1 per Google)
+    return out;
+  }
+
   if (model === "kling-3.0/motion-control") {
     if (startImage) input.input_urls = [startImage];
     if (motionVideo) input.video_urls = [motionVideo];

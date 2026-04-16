@@ -1,4 +1,4 @@
-﻿/**
+/**
  * WaveSpeed Video Model Registry
  *
  * All API routes map to: POST https://api.wavespeed.ai/api/v3/{api_route}
@@ -12,7 +12,7 @@
  *  - Individual model pages (confirmed via curl examples in API Endpoints section)
  */
 
-// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 export type ModelCategory =
   | "text-to-video"
@@ -26,7 +26,7 @@ export type ModelBadge = "TOP" | "NEW" | "PRO" | "FAST" | null;
  * Only set to true when that param is documented in the model's request schema.
  */
 export interface VideoModelCapabilities {
-  // â”€â”€ Input â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Input ─────────────────────────────────────────────────────────────────
   /** Image input is REQUIRED (I2V models) */
   requires_image: boolean;
   /** Image input is OPTIONAL (some T2V models that accept a reference) */
@@ -36,7 +36,7 @@ export interface VideoModelCapabilities {
   /** End-frame / last_image / end_image parameter exists */
   has_end_frame: boolean;
 
-  // â”€â”€ Output controls â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Output controls ───────────────────────────────────────────────────────
   /**
    * For models using aspect_ratio param (e.g. Kling, Google Veo3).
    * Empty = aspect_ratio not a controllable param.
@@ -56,12 +56,12 @@ export interface VideoModelCapabilities {
   /** Max number of reference images supported by this model (0 = not supported). */
   max_reference_images: number;
 
-  // â”€â”€ Prompt controls â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Prompt controls ───────────────────────────────────────────────────────
   has_negative_prompt: boolean;
   has_seed: boolean;
   has_cfg_scale: boolean;
 
-  // â”€â”€ Advanced controls â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Advanced controls ─────────────────────────────────────────────────────
   /** sound / generate_audio param */
   has_sound: boolean;
   /** Which request key should receive the audio toggle value. */
@@ -74,14 +74,14 @@ export interface VideoModelCapabilities {
   has_element_list: boolean;
   /** scene_control_mode toggle param (Kling motion-control) */
   has_scene_control: boolean;
-  /** orientation param — "video" | "image" (Kling motion-control) */
+  /** orientation param � "video" | "image" (Kling motion-control) */
   has_orientation: boolean;
   /** Show Elements/Frames tab switcher (Kling Omni only) */
   has_omni_tabs: boolean;
 }
 
 export interface WaveSpeedVideoModel {
-  /** Unique UI key â€” used as React key and to identify the model in state */
+  /** Unique UI key — used as React key and to identify the model in state */
   id: string;
   /** Human-readable display name */
   name: string;
@@ -105,7 +105,7 @@ export interface WaveSpeedVideoModel {
   route_confirmed: boolean;
 }
 
-// â”€â”€ Capability helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Capability helpers ────────────────────────────────────────────────────────
 
 function t2vCaps(overrides: Partial<VideoModelCapabilities> = {}): VideoModelCapabilities {
   return {
@@ -138,20 +138,20 @@ function i2vCaps(overrides: Partial<VideoModelCapabilities> = {}): VideoModelCap
   return t2vCaps({ requires_image: true, ...overrides });
 }
 
-// â”€â”€ Model Definitions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Model Definitions ─────────────────────────────────────────────────────────
 
 export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
 
-  // â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-  // â•‘ Kling V3.0 Pro
-  // â•‘ Confirmed: https://wavespeed.ai/docs/docs-api/kwaivgi/kwaivgi-kling-v3.0-pro-text-to-video
-  // â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // ╔══════════════════════════════════════════════════════════════════════════
+  // ║ Kling V3.0 Pro
+  // ║ Confirmed: https://wavespeed.ai/docs/docs-api/kwaivgi/kwaivgi-kling-v3.0-pro-text-to-video
+  // ╚══════════════════════════════════════════════════════════════════════════
   {
     id: "kling-v3.0-pro-t2v",
     name: "Kling 3.0",
     family: "kling", family_label: "Kling", family_color: "#06b6d4",
     badge: "TOP",
-    description: "Kuaishou's top-tier T2V. Cinematic quality, 3â€“15 s, native audio.",
+    description: "Kuaishou's top-tier T2V. Cinematic quality, 3–15 s, native audio.",
     api_route: "kwaivgi/kling-v3.0-pro/text-to-video",
     route_confirmed: true,
     capabilities: t2vCaps({
@@ -171,7 +171,7 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
     name: "Kling 3.0 Omni",
     family: "kling", family_label: "Kling", family_color: "#06b6d4",
     badge: "TOP",
-    description: "Kling O3 Omni Pro â€” multi-shot, sound, element control.",
+    description: "Kling O3 Omni Pro — multi-shot, sound, element control.",
     api_route: "kwaivgi/kling-video-o3-pro/text-to-video",
     route_confirmed: false,
     capabilities: t2vCaps({
@@ -192,7 +192,7 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
     name: "Kling 3.0 Omni Edit",
     family: "kling", family_label: "Kling", family_color: "#06b6d4",
     badge: null,
-    description: "Kling O3 Omni Pro video-edit â€” reference image required.",
+    description: "Kling O3 Omni Pro video-edit — reference image required.",
     api_route: "kwaivgi/kling-video-o3-pro/video-edit",
     route_confirmed: false,
     capabilities: i2vCaps({
@@ -232,15 +232,15 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
     }),
   },
 
-  // â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-  // â•‘ Minimax Hailuo 2.3
-  // â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // ╔══════════════════════════════════════════════════════════════════════════
+  // ║ Minimax Hailuo 2.3
+  // ╚══════════════════════════════════════════════════════════════════════════
   {
     id: "minimax-hailuo-2.3-i2v-fast",
     name: "Minimax Hailuo 2.3 Fast",
     family: "hailuo", family_label: "Minimax Hailuo", family_color: "#f59e0b",
     badge: "FAST",
-    description: "Hailuo 2.3 I2V Standard â€” fast, image required.",
+    description: "Hailuo 2.3 I2V Standard — fast, image required.",
     api_route: "minimax/hailuo-2.3/i2v-standard",
     route_confirmed: false,
     capabilities: i2vCaps({
@@ -254,7 +254,7 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
     name: "Minimax Hailuo 2.3",
     family: "hailuo", family_label: "Minimax Hailuo", family_color: "#f59e0b",
     badge: "PRO",
-    description: "Hailuo 2.3 I2V Pro â€” highest quality, image required.",
+    description: "Hailuo 2.3 I2V Pro — highest quality, image required.",
     api_route: "minimax/hailuo-2.3/i2v-pro",
     route_confirmed: false,
     capabilities: i2vCaps({
@@ -264,21 +264,21 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
     }),
   },
 
-  // â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-  // â•‘ OpenAI Sora 2
-  // â•‘ Confirmed (base): https://wavespeed.ai/docs/docs-api/openai/openai-sora-2-text-to-video
-  // â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // ╔══════════════════════════════════════════════════════════════════════════
+  // ║ OpenAI Sora 2
+  // ║ Confirmed (base): https://wavespeed.ai/docs/docs-api/openai/openai-sora-2-text-to-video
+  // ╚══════════════════════════════════════════════════════════════════════════
   {
     id: "openai-sora-2-t2v",
     name: "Sora 2",
     family: "sora", family_label: "OpenAI Sora 2", family_color: "#8b5cf6",
     badge: null,
-    description: "OpenAI Sora 2 multi-character T2V. 4â€“20 s, portrait or landscape.",
+    description: "OpenAI Sora 2 multi-character T2V. 10 s, portrait or landscape.",
     api_route: "openai/sora-2/text-to-video",
     route_confirmed: true,
     capabilities: t2vCaps({
-      sizes:     ["720*1280", "1280*720"],
-      durations: [4, 8, 12, 16, 20],
+      aspect_ratios: ["Landscape", "Portrait"],
+      durations:     [10],
     }),
   },
   {
@@ -290,8 +290,8 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
     api_route: "openai/sora-2/image-to-video",
     route_confirmed: false,
     capabilities: i2vCaps({
-      sizes:     ["720*1280", "1280*720"],
-      durations: [4, 8, 12, 16, 20],
+      aspect_ratios: ["Landscape", "Portrait"],
+      durations:     [10],
     }),
   },
   {
@@ -299,31 +299,31 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
     name: "Sora 2 Pro",
     family: "sora", family_label: "OpenAI Sora 2", family_color: "#8b5cf6",
     badge: "PRO",
-    description: "Pro-tier Sora 2 â€” higher fidelity output.",
+    description: "Pro-tier Sora 2 — higher fidelity, 10 s or 15 s.",
     api_route: "openai/sora-2/text-to-video-pro",
     route_confirmed: false,
     capabilities: t2vCaps({
-      sizes:     ["720*1280", "1280*720"],
-      durations: [4, 8, 12, 16, 20],
+      aspect_ratios: ["Landscape", "Portrait"],
+      durations:     [10, 15],
     }),
   },
-  // â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-  // â•‘ Google Veo 3.1
-  // â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // ╔══════════════════════════════════════════════════════════════════════════
+  // ║ Google Veo 3.1
+  // ╚══════════════════════════════════════════════════════════════════════════
   {
     id: "google-veo3.1-lite-t2v",
     name: "Google Veo 3.1 Lite",
     family: "veo", family_label: "Google Veo", family_color: "#3b82f6",
     badge: null,
-    description: "Lightweight, affordable Veo 3.1.",
+    description: "Lightweight, affordable Veo 3.1. Native audio always-on.",
     api_route: "google/veo3.1-lite-text-to-video",
     route_confirmed: false,
     capabilities: t2vCaps({
       optional_image: true,
       has_end_frame:  true,
       aspect_ratios: ["16:9", "9:16"],
-      durations:     [4, 8],
-      resolutions:   ["720p"],
+      durations:     [],
+      resolutions:   ["720p", "1080p"],
     }),
   },
   {
@@ -331,16 +331,15 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
     name: "Google Veo 3.1 Fast",
     family: "veo", family_label: "Google Veo", family_color: "#3b82f6",
     badge: "FAST",
-    description: "Fast version of Veo 3.1.",
+    description: "Fast version of Veo 3.1. Native audio always-on.",
     api_route: "google/veo3.1-fast-text-to-video",
     route_confirmed: false,
     capabilities: t2vCaps({
       optional_image: true,
       has_end_frame:  true,
       aspect_ratios: ["16:9", "9:16"],
-      durations:     [4, 6, 8],
-      resolutions:   ["720p"],
-      has_sound:     true,
+      durations:     [],
+      resolutions:   ["720p", "1080p"],
     }),
   },
   {
@@ -348,28 +347,27 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
     name: "Google Veo 3.1",
     family: "veo", family_label: "Google Veo", family_color: "#3b82f6",
     badge: "NEW",
-    description: "Latest Veo 3.1 â€” native audio, up to 1080p, 8 s.",
+    description: "Latest Veo 3.1 — native audio, up to 1080p, 8 s.",
     api_route: "google/veo3.1-text-to-video",
     route_confirmed: false,
     capabilities: t2vCaps({
       optional_image: true,
       has_end_frame:  true,
       aspect_ratios: ["16:9", "9:16"],
-      durations:     [4, 6, 8],
+      durations:     [],
       resolutions:   ["720p", "1080p"],
-      has_sound:     true,
     }),
   },
 
-  // â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-  // â•‘ Bytedance Seedance 2.0
-  // â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // ╔══════════════════════════════════════════════════════════════════════════
+  // ║ Bytedance Seedance 2.0
+  // ╚══════════════════════════════════════════════════════════════════════════
   {
     id: "bytedance-seedance-v2-t2v-fast",
     name: "Seedance 2.0 Fast",
     family: "seedance", family_label: "Seedance", family_color: "#10b981",
     badge: "FAST",
-    description: "Bytedance Seedance 2.0 â€” fast text-to-video.",
+    description: "Bytedance Seedance 2.0 — fast text-to-video.",
     api_route: "bytedance/seedance-v2/text-to-video-fast",
     route_confirmed: false,
     capabilities: t2vCaps({
@@ -388,7 +386,7 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
     name: "Seedance 2.0",
     family: "seedance", family_label: "Seedance", family_color: "#10b981",
     badge: "NEW",
-    description: "Bytedance Seedance 2.0 â€” full quality text-to-video.",
+    description: "Bytedance Seedance 2.0 — full quality text-to-video.",
     api_route: "bytedance/seedance-v2/text-to-video",
     route_confirmed: false,
     capabilities: t2vCaps({
@@ -403,15 +401,15 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
     }),
   },
 
-  // â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-  // â•‘ xAI Grok
-  // â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // ╔══════════════════════════════════════════════════════════════════════════
+  // ║ xAI Grok
+  // ╚══════════════════════════════════════════════════════════════════════════
   {
     id: "xai-grok-imagine-t2v",
     name: "Grok Imagine",
     family: "grok", family_label: "xAI Grok", family_color: "#ef4444",
     badge: "NEW",
-    description: "xAI Grok Imagine â€” text-to-video generation.",
+    description: "xAI Grok Imagine — text-to-video generation.",
     api_route: "x-ai/grok-imagine-video/text-to-video",
     route_confirmed: false,
     capabilities: t2vCaps({
@@ -425,7 +423,7 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
     name: "Grok Imagine Edit",
     family: "grok", family_label: "xAI Grok", family_color: "#ef4444",
     badge: null,
-    description: "xAI Grok Imagine â€” image-to-video / video edit.",
+    description: "xAI Grok Imagine — image-to-video / video edit.",
     api_route: "x-ai/grok-imagine-video/edit-video",
     route_confirmed: false,
     capabilities: i2vCaps({
@@ -437,7 +435,7 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
   },
 ];
 
-// â”€â”€ Derived helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Derived helpers ───────────────────────────────────────────────────────────
 
 /** All models grouped by family for the UI dropdown */
 export interface ModelGroup {
