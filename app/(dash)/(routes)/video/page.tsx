@@ -23,6 +23,22 @@ import { useAssetStore } from "@/hooks/use-asset-store";
 
 // -- Utilities -----------------------------------------------------------------
 
+/** Translate opaque KIE API error messages into user-friendly text. */
+function normalizeGenerationError(raw: string | null | undefined): string {
+  if (!raw) return "Generation failed. Please try again.";
+  const lower = raw.toLowerCase();
+  if (lower.includes("models task execute failed") || lower.includes("task execute failed")) {
+    return "The model failed to execute your request. This is usually temporary — please try again.";
+  }
+  if (lower.includes("content") && (lower.includes("policy") || lower.includes("violation") || lower.includes("sensitive"))) {
+    return "Your prompt may have triggered a content filter. Please revise it and try again.";
+  }
+  if (lower.includes("rate limit") || lower.includes("too many requests")) {
+    return "Too many requests. Please wait a moment and try again.";
+  }
+  return raw;
+}
+
 function hexA(hex: string, a: number): string {
   const r = parseInt(hex.slice(1, 3), 16);
   const g = parseInt(hex.slice(3, 5), 16);
@@ -509,7 +525,7 @@ function VideoPageInner() {
           removePending();
           setGenerationError(null);
         } else if (data.status === "failed") {
-          setGenerationError(data.error ?? "Generation failed"); removePending();
+          setGenerationError(normalizeGenerationError(data.error)); removePending();
         }
       } catch { setGenerationError("Failed to check generation status"); removePending(); }
     };

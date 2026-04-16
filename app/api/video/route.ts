@@ -256,7 +256,10 @@ function mapToKieInput(model: string, payload: Record<string, unknown>) {
     delete out.last_image;
     delete out.image_urls;
     delete out.video;
-    if (typeof out.duration === "number") out.duration = String(out.duration);
+    // KIE Seedance 2.0 expects duration as a number (slider), NOT a string
+    if (typeof out.duration === "string") out.duration = Number(out.duration);
+    // Only send generate_audio when true; omit the field when false/undefined
+    if (!out.generate_audio) delete out.generate_audio;
     return out;
   }
 
