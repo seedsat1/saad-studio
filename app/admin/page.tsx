@@ -846,6 +846,7 @@ export default function AdminDashboard() {
             { label: "Pricing Constitution", href: "/admin/pricing", icon: CreditCard },
             { label: "CMS & Ad Manager", href: "/admin/cms", icon: Layers },
             { label: "Page Builder", href: "/admin/page-builder", icon: LayoutTemplate },
+            { label: "Model Test Lab", href: "/admin/model-test", icon: Zap },
           ].map(({ label, href, icon: Icon }) => (
             <button
               key={href}
