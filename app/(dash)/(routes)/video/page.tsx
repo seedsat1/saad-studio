@@ -614,17 +614,16 @@ function VideoPageInner() {
             setIsSubmitting(false);
             return;
           }
-          // Validate each shot prompt length after toolPrefix is applied (API limit: 500 chars)
+          // Validate each shot prompt length (API limit: 500 chars per shot)
           for (const item of filled) {
-            const combined = toolPrefix ? `${toolPrefix} ${item.text}` : item.text;
-            if (combined.length > 500) {
-              setGenerationError(`Shot ${item.index + 1} prompt is too long (${combined.length}/500 chars). Please shorten it.`);
+            if (item.text.length > 500) {
+              setGenerationError(`Shot ${item.index + 1} prompt is too long (${item.text.length}/500 chars). Please shorten it.`);
               setIsSubmitting(false);
               return;
             }
           }
           payload.multi_prompt = filled.map((item, idx) => ({
-            prompt: toolPrefix ? `${toolPrefix} ${item.text}` : item.text,
+            prompt: item.text,   // shot prompts are pure scene descriptions — no toolPrefix
             ...(duration != null ? { duration: splitDurations[idx] } : {}),
           }));
         }
@@ -1984,6 +1983,21 @@ function VideoPageInner() {
             </div>
           )}
           {caps.has_multi_prompt && !showOmniTabs && (
+            <div className="flex items-center justify-between">
+              <span className="text-[12px]" style={{ color: "#64748b" }}>Multi-shot</span>
+              <button
+                onClick={() => setMultiPrompts(prev => prev.length === 1 && prev[0] === "" ? ["", ""] : [""])}
+                className="relative w-9 h-5 rounded-full transition-all"
+                style={{ background: multiShotEnabled ? hexA(selectedModel.family_color, 0.6) : "rgba(255,255,255,0.08)" }}
+              >
+                <span
+                  className="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all"
+                  style={{ left: multiShotEnabled ? "calc(100% - 18px)" : 2 }}
+                />
+              </button>
+            </div>
+          )}
+          {caps.has_multi_prompt && !showOmniTabs && multiShotEnabled && (
             <div className="flex flex-col gap-2">
               <div className="flex items-center justify-between">
                 <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#475569" }}>
