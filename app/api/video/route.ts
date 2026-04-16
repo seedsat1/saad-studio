@@ -12,7 +12,8 @@ import { getResolvedKieRoutingMaps } from "@/lib/kie-model-routing";
 import { syncKieModelCatalog } from "@/lib/kie-model-sync";
 
 const KIE_BASE = "https://api.kie.ai/api/v1";
-const { videoRouteToKieModelMap } = getResolvedKieRoutingMaps();
+const WAVESPEED_BASE = "https://api.wavespeed.ai/api/v3";
+const { videoRouteToKieModelMap, wavespeedFallbackMap } = getResolvedKieRoutingMaps();
 
 function getKieKey(): string {
   const key = process.env.KIE_API_KEY || process.env.KIEAI_API_KEY;
@@ -25,6 +26,35 @@ function kieHeaders() {
     "Content-Type": "application/json",
     Authorization: `Bearer ${getKieKey()}`,
   };
+}
+
+function getWaveSpeedKey(): string {
+  const key = process.env.WAVESPEED_API_KEY;
+  if (!key) throw new Error("WAVESPEED_API_KEY is not configured");
+  return key;
+}
+
+function wavespeedHeaders() {
+  return {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${getWaveSpeedKey()}`,
+  };
+}
+
+function mapToWavespeedInput(payload: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  if (typeof payload.prompt === "string") out.prompt = payload.prompt;
+  if (typeof payload.duration === "number") out.duration = payload.duration;
+  else if (typeof payload.duration === "string") out.duration = Number.parseInt(payload.duration, 10);
+  if (typeof payload.aspect_ratio === "string") out.aspect_ratio = payload.aspect_ratio;
+  if (typeof payload.resolution === "string") out.resolution = payload.resolution;
+  // Normalise image inputs → image_url for WaveSpeed
+  const imgSrc =
+    (typeof payload.image === "string" ? payload.image : null) ||
+    (typeof payload.first_frame_url === "string" ? payload.first_frame_url : null) ||
+    (typeof payload.image_url === "string" ? payload.image_url : null);
+  if (imgSrc) out.image_url = imgSrc;
+  return out;
 }
 
 function extractBase64(raw: string) {
@@ -406,24 +436,69 @@ export async function POST(req: Request) {
     }
 
     const kieModel = videoRouteToKieModelMap[modelRoute];
-    if (!kieModel) {
+    const wavespeedRoute = wavespeedFallbackMap[modelRoute];
+
+    if (!kieModel && !wavespeedRoute) {
       return NextResponse.json(
-        { error: `No KIE model mapping for route: ${modelRoute}` },
+        { error: `No model mapping for route: ${modelRoute}` },
         { status: 400 },
       );
     }
 
-    const creditsToCharge = await getGenerationCost(
-      modelRoute,
-      typeof payload.duration === "number" ? payload.duration : 5,
-    );
+    const durationForCost = typeof payload.duration === "number" ? payload.duration : 5;
+    const creditsToCharge = await getGenerationCost(modelRoute, durationForCost);
     if (creditsToCharge <= 0) {
       return NextResponse.json({ error: "No credit configuration for this model" }, { status: 400 });
     }
 
+    // ── WaveSpeed path ────────────────────────────────────────────────────────
+    if (wavespeedRoute && !kieModel) {
+      const wsInput = mapToWavespeedInput(payload);
+      if (wsInput.image_url && typeof wsInput.image_url === "string" && wsInput.image_url.startsWith("data:")) {
+        wsInput.image_url = await uploadDataUrlToKie(wsInput.image_url).catch(() => wsInput.image_url as string);
+      }
+
+      const charge = await spendCredits({
+        userId,
+        credits: creditsToCharge,
+        prompt: typeof payload.prompt === "string" ? sanitizePrompt(payload.prompt, 5000) : "Video generation",
+        assetType: "VIDEO",
+        modelUsed: modelRoute,
+      });
+      generationId = charge.generationId;
+      chargedCredits = creditsToCharge;
+      chargedUserId = userId;
+
+      const wsRes = await fetch(`${WAVESPEED_BASE}/${wavespeedRoute}`, {
+        method: "POST",
+        headers: wavespeedHeaders(),
+        body: JSON.stringify(wsInput),
+      });
+
+      let wsJson: Record<string, unknown> | null = null;
+      try { wsJson = await wsRes.json(); } catch { /* non-JSON */ }
+      const wsPredictionId = (wsJson?.data as Record<string, unknown>)?.id ?? wsJson?.id;
+
+      if (!wsRes.ok || !wsPredictionId) {
+        if (chargedCredits > 0 && chargedUserId && generationId) {
+          await rollbackGenerationCharge(generationId, chargedUserId, chargedCredits);
+        }
+        return NextResponse.json(
+          { error: (wsJson as Record<string, unknown>)?.message || `WaveSpeed submit failed (${wsRes.status})` },
+          { status: 502 },
+        );
+      }
+
+      const wsTaskId = `ws:${String(wsPredictionId)}`;
+      if (generationId) await setGenerationTaskMarker(generationId, wsTaskId);
+
+      return NextResponse.json({ taskId: wsTaskId, status: "processing" });
+    }
+
+    // ── KIE path ──────────────────────────────────────────────────────────────
     const normalizedInput = normalizeInputForKie(payload);
     const resolvedInput = await resolveMediaInInput(normalizedInput);
-    const kieInput = mapToKieInput(kieModel, resolvedInput);
+    const kieInput = mapToKieInput(kieModel!, resolvedInput);
 
     if (kieModel === "kling-3.0/video") {
       const klingError = validateKling30Payload(kieInput);
@@ -528,6 +603,51 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "taskId is required" }, { status: 400 });
     }
 
+    // ── WaveSpeed polling ────────────────────────────────────────────────────
+    if (taskId.startsWith("ws:")) {
+      const predictionId = taskId.slice(3);
+      let wsKey: string;
+      try { wsKey = getWaveSpeedKey(); } catch {
+        return NextResponse.json({ error: "WAVESPEED_API_KEY not configured" }, { status: 500 });
+      }
+      const wsRes = await fetch(`${WAVESPEED_BASE}/predictions/${predictionId}/result`, {
+        headers: { Authorization: `Bearer ${wsKey}` },
+        cache: "no-store",
+      });
+      let wsJson: Record<string, unknown> | null = null;
+      try { wsJson = await wsRes.json(); } catch { /* ignore */ }
+      if (!wsRes.ok || !wsJson) {
+        return NextResponse.json({ taskId, status: "processing", outputs: [], error: null });
+      }
+      const wsData = (wsJson.data as Record<string, unknown>) ?? wsJson;
+      const rawStatus = String(wsData.status || "");
+      const wsStatus = normalizeTaskState(rawStatus);
+      const wsOutputs = Array.isArray(wsData.outputs)
+        ? (wsData.outputs as unknown[]).filter((v): v is string => typeof v === "string")
+        : [];
+      const wsError = typeof wsData.error === "string" ? wsData.error : null;
+
+      // DB sync for completion / refund on failure
+      try {
+        const linkedGeneration = await prismadb.generation.findFirst({
+          where: { userId, mediaUrl: { startsWith: `task:${taskId}` } },
+          select: { id: true, cost: true, mediaUrl: true },
+          orderBy: { createdAt: "desc" },
+        });
+        if (linkedGeneration) {
+          if (wsStatus === "completed" && wsOutputs.length > 0 && linkedGeneration.mediaUrl?.startsWith("task:")) {
+            await setGenerationMediaUrl(linkedGeneration.id, wsOutputs[0]);
+          }
+          if (wsStatus === "failed" && linkedGeneration.cost > 0) {
+            await rollbackGenerationCharge(linkedGeneration.id, userId, linkedGeneration.cost);
+          }
+        }
+      } catch { /* best-effort */ }
+
+      return NextResponse.json({ taskId, status: wsStatus, outputs: wsOutputs, error: wsError });
+    }
+
+    // ── KIE polling ──────────────────────────────────────────────────────────
     const pollRes = await fetch(`${KIE_BASE}/jobs/recordInfo?taskId=${encodeURIComponent(taskId)}`, {
       method: "GET",
       headers: kieHeaders(),

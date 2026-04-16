@@ -5,6 +5,7 @@ import {
   VIDEO_MODEL_REGISTRY,
   type WaveSpeedVideoModel,
 } from "@/lib/video-model-registry";
+import { VIDEO_MODELS, type VideoModel } from "@/lib/video-models";
 import {
   Play,
   Loader2,
@@ -23,6 +24,7 @@ import {
   AlertTriangle,
   Filter,
   RotateCcw,
+  Radio,
 } from "lucide-react";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -625,6 +627,74 @@ function ModelTestCard({ model }: { model: WaveSpeedVideoModel }) {
   );
 }
 
+// ─── WaveSpeed-only model adapter ────────────────────────────────────────────
+// These models use the WaveSpeed fallback path in /api/video (ws: prefix taskIds).
+// They are NOT duplicates of VIDEO_MODEL_REGISTRY entries.
+
+const WS_ONLY_IDS = new Set([
+  "kling-2.6/text-to-video",
+  "kling-2.6/image-to-video",
+  "kling/v2-5-turbo-image-to-video-pro",
+  "hailuo/02-text-to-video-pro",
+  "hailuo/02-image-to-video-pro",
+  "hailuo/02-text-to-video-standard",
+  "sora-2-pro-image-to-video",
+  "runwayml/gen4-aleph",
+  "runwayml/gen4-turbo",
+  "bytedance/seedance-1.5-pro",
+  "bytedance/v1-pro-fast-image-to-video",
+  "bytedance/v1-pro-image-to-video",
+  "bytedance/v1-pro-text-to-video",
+  "bytedance/v1-lite-image-to-video",
+  "bytedance/v1-lite-text-to-video",
+]);
+
+function wsModelToRegistryModel(m: VideoModel): WaveSpeedVideoModel {
+  const isI2V = m.inputType === "image-to-video";
+  const isV2V = m.inputType === "video-to-video";
+  const hasRefImages = (m.accepts ?? []).some(a => a === "reference-image" || a === "multi-image");
+  const hasEndFrame  = (m.accepts ?? []).includes("end-frame");
+
+  return {
+    id: m.id,
+    name: m.name,
+    family: m.family.toLowerCase(),
+    family_label: m.family,
+    family_color: m.familyColor,
+    badge: m.badge,
+    description: m.description,
+    api_route: m.id,          // WaveSpeed fallback: model ID IS the route key
+    route_confirmed: false,
+    capabilities: {
+      requires_image:       isI2V,
+      optional_image:       false,
+      requires_video:       isV2V,
+      has_end_frame:        hasEndFrame,
+      aspect_ratios:        m.aspectRatios ?? [],
+      sizes:                [],
+      durations:            m.durations ?? [],
+      resolutions:          m.resolutions ?? [],
+      quality_param:        "resolution",
+      max_reference_images: hasRefImages ? (m.maxImages ?? 1) : 0,
+      has_negative_prompt:  false,
+      has_seed:             false,
+      has_cfg_scale:        false,
+      has_sound:            false,
+      sound_param:          "sound",
+      has_shot_type:        false,
+      has_multi_prompt:     false,
+      has_element_list:     false,
+      has_scene_control:    false,
+      has_orientation:      false,
+      has_omni_tabs:        false,
+    },
+  };
+}
+
+const WS_ONLY_MODELS: WaveSpeedVideoModel[] = VIDEO_MODELS
+  .filter(m => WS_ONLY_IDS.has(m.id))
+  .map(wsModelToRegistryModel);
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 const FAMILIES = Array.from(new Set(VIDEO_MODEL_REGISTRY.map(m => m.family)));
@@ -660,11 +730,11 @@ export default function ModelTestPage() {
                 Model Test Lab
               </h1>
               <p className="text-xs text-white/40 mt-0.5">
-                {VIDEO_MODEL_REGISTRY.length} models · Live generation test for every model
+                {VIDEO_MODEL_REGISTRY.length} KIE models · {WS_ONLY_MODELS.length} WaveSpeed models · Live generation test
               </p>
             </div>
             <div className="text-xs text-white/30">
-              Showing <span className="text-white/70 font-semibold">{filtered.length}</span> / {VIDEO_MODEL_REGISTRY.length}
+              Showing <span className="text-white/70 font-semibold">{filtered.length}</span> / {VIDEO_MODEL_REGISTRY.length} KIE
             </div>
           </div>
 
@@ -712,10 +782,10 @@ export default function ModelTestPage() {
       {/* ── Stats bar ── */}
       <div className="max-w-5xl mx-auto px-6 py-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: "Total Models",    value: VIDEO_MODEL_REGISTRY.length,                                          color: "#06b6d4" },
+          { label: "Total Models",    value: VIDEO_MODEL_REGISTRY.length + WS_ONLY_MODELS.length,                                          color: "#06b6d4" },
           { label: "Text → Video",    value: VIDEO_MODEL_REGISTRY.filter(m => !m.capabilities.requires_image && !m.capabilities.requires_video).length, color: "#8b5cf6" },
           { label: "Image → Video",   value: VIDEO_MODEL_REGISTRY.filter(m => m.capabilities.requires_image).length,  color: "#f59e0b" },
-          { label: "With References", value: VIDEO_MODEL_REGISTRY.filter(m => m.capabilities.max_reference_images > 0).length, color: "#10b981" },
+          { label: "WaveSpeed",       value: WS_ONLY_MODELS.length, color: "#10b981" },
         ].map(s => (
           <div key={s.label} className="bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3">
             <div className="text-2xl font-bold" style={{ color: s.color }}>{s.value}</div>
@@ -724,13 +794,27 @@ export default function ModelTestPage() {
         ))}
       </div>
 
-      {/* ── Model list ── */}
-      <div className="max-w-5xl mx-auto px-6 pb-16 space-y-2">
+      {/* ── KIE Model list ── */}
+      <div className="max-w-5xl mx-auto px-6 space-y-2">
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-xs font-semibold text-cyan-400 uppercase tracking-wider">KIE Models</span>
+          <span className="text-xs text-white/30">({VIDEO_MODEL_REGISTRY.length} models · main /video page)</span>
+        </div>
         {filtered.length === 0 ? (
           <div className="text-center py-16 text-white/30">No models match your filter.</div>
         ) : (
           filtered.map(m => <ModelTestCard key={m.id} model={m} />)
         )}
+      </div>
+
+      {/* ── WaveSpeed-only model list ── */}
+      <div className="max-w-5xl mx-auto px-6 pb-16 space-y-2 mt-8">
+        <div className="flex items-center gap-2 mb-3">
+          <Radio className="w-3.5 h-3.5 text-emerald-400" />
+          <span className="text-xs font-semibold text-emerald-400 uppercase tracking-wider">WaveSpeed Models</span>
+          <span className="text-xs text-white/30">({WS_ONLY_MODELS.length} models · /api/generate/video legacy path)</span>
+        </div>
+        {WS_ONLY_MODELS.map(m => <ModelTestCard key={m.id} model={m} />)}
       </div>
     </div>
   );
