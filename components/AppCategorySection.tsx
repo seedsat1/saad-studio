@@ -43,9 +43,9 @@ export function AppCategorySection({ category, expanded = false, onToggleExpand 
         />
 
         <div className="flex-1 min-w-0">
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2">
             <h2
-              className="text-[20px] font-bold text-white"
+              className="text-[18px] sm:text-[20px] font-bold text-white"
               style={{ fontFamily: "var(--font-display, inherit)" }}
             >
               {category.title}
@@ -65,7 +65,7 @@ export function AppCategorySection({ category, expanded = false, onToggleExpand 
 
             <Link
               href={category.href}
-              className="ml-auto text-sm font-medium transition-colors duration-200"
+              className="sm:ml-auto text-[12px] sm:text-sm font-medium transition-colors duration-200"
               style={{ color: "rgba(6,182,212,0.7)" }}
               onMouseEnter={(e) =>
                 ((e.currentTarget as HTMLAnchorElement).style.color = "#22d3ee")
@@ -85,16 +85,10 @@ export function AppCategorySection({ category, expanded = false, onToggleExpand 
         </div>
       </div>
 
-      <div
-        className="flex sm:hidden overflow-x-auto gap-3 pb-3 snap-x snap-mandatory"
-        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-      >
-        <style>{`.hide-scroll-bar::-webkit-scrollbar { display: none; }`}</style>
+      <div className="grid grid-cols-2 sm:hidden gap-3">
         {visibleTools.map((tool, index) => (
           <motion.div
             key={tool.id}
-            className="flex-shrink-0 snap-start"
-            style={{ width: "200px" }}
             initial={{ opacity: 0, y: 20 }}
             animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
             transition={{ duration: 0.45, delay: index * 0.06, ease: "easeOut" }}
@@ -104,15 +98,9 @@ export function AppCategorySection({ category, expanded = false, onToggleExpand 
         ))}
         {hasMore && (
           <motion.div
-            className="flex-shrink-0 snap-start"
-            style={{ width: "200px" }}
             initial={{ opacity: 0, y: 20 }}
             animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-            transition={{
-              duration: 0.45,
-              delay: visibleTools.length * 0.06,
-              ease: "easeOut",
-            }}
+            transition={{ duration: 0.45, delay: visibleTools.length * 0.06, ease: "easeOut" }}
           >
             <GhostCard
               href={category.href}
