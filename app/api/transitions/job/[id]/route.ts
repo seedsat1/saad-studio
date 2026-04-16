@@ -2,12 +2,56 @@ import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
 import { getPresetById } from "@/lib/transition-presets";
-import { setGenerationMediaUrl } from "@/lib/credit-ledger";
 
 const KIE_BASE = "https://api.kie.ai/api/v1";
 
 function kieHeaders(apiKey: string) {
   return { Authorization: `Bearer ${apiKey}` };
+}
+
+function normalizeTaskState(status: string) {
+  const s = (status || "").toLowerCase();
+  if (["success", "succeed", "completed", "done", "finish", "finished"].includes(s)) return "completed";
+  if (["fail", "failed", "error", "canceled", "cancelled"].includes(s)) return "failed";
+  return "processing";
+}
+
+function extractVideoUrl(data: Record<string, unknown>): string {
+  // KIE wraps results in various fields depending on model
+  const candidates = [data.response, data.resultJson, data.outputs, data.result, data.output, data.works];
+  for (const candidate of candidates) {
+    if (!candidate) continue;
+    if (typeof candidate === "string") {
+      try {
+        const parsed = JSON.parse(candidate) as unknown;
+        const url = extractVideoUrl(parsed as Record<string, unknown>);
+        if (url) return url;
+      } catch { continue; }
+    }
+    if (Array.isArray(candidate)) {
+      for (const item of candidate) {
+        if (typeof item === "string" && /^https?:\/\//.test(item)) return item;
+        if (item && typeof item === "object") {
+          const obj = item as Record<string, unknown>;
+          for (const key of ["url", "videoUrl", "video_url", "imageUrl", "downloadUrl"]) {
+            if (typeof obj[key] === "string" && /^https?:\/\//.test(obj[key] as string)) return obj[key] as string;
+          }
+          // KIE Kling 3.0 wraps in resource.resource
+          const resource = obj.resource as Record<string, unknown> | undefined;
+          if (resource && typeof resource.resource === "string" && /^https?:\/\//.test(resource.resource)) {
+            return resource.resource;
+          }
+        }
+      }
+    }
+    if (candidate && typeof candidate === "object") {
+      const obj = candidate as Record<string, unknown>;
+      for (const key of ["url", "videoUrl", "video_url", "imageUrl", "downloadUrl"]) {
+        if (typeof obj[key] === "string" && /^https?:\/\//.test(obj[key] as string)) return obj[key] as string;
+      }
+    }
+  }
+  return "";
 }
 
 export async function GET(
@@ -38,35 +82,31 @@ export async function GET(
     const apiKey = process.env.KIE_API_KEY ?? process.env.KIEAI_API_KEY;
     if (!apiKey) return NextResponse.json({ job });
 
-    const pollRes = await fetch(`${KIE_BASE}/tasks/${job.taskId}/result`, {
-      headers: kieHeaders(apiKey),
-    }).catch(() => null);
+    const pollRes = await fetch(
+      `${KIE_BASE}/jobs/recordInfo?taskId=${encodeURIComponent(job.taskId)}`,
+      { method: "GET", headers: kieHeaders(apiKey), cache: "no-store" }
+    ).catch(() => null);
 
     if (pollRes?.ok) {
       const pollJson = await pollRes.json().catch(() => null);
-      const taskStatus: string = pollJson?.data?.status ?? pollJson?.status ?? "";
-      const resultUrl: string =
-        pollJson?.data?.output?.video_url ??
-        pollJson?.data?.output?.url ??
-        pollJson?.output?.video_url ??
-        "";
+      const kieCodeOk = pollJson?.code == null || pollJson.code === 200 || pollJson.code === 0;
 
-      if (taskStatus === "succeed" || taskStatus === "completed" || taskStatus === "success") {
-        if (resultUrl) {
+      if (kieCodeOk && pollJson?.data) {
+        const data = pollJson.data as Record<string, unknown>;
+        const taskStatus = normalizeTaskState(
+          String(data.taskStatus || data.status || data.state || "")
+        );
+        const resultUrl = extractVideoUrl(data);
+
+        if (taskStatus === "completed" && resultUrl) {
           // Get project for output metadata
           const project = await prismadb.transitionProject.findUnique({
             where: { id: job.projectId },
-            select: {
-              inputAUrl: true,
-              inputBUrl: true,
-              aspectRatio: true,
-              duration: true,
-            },
+            select: { inputAUrl: true, inputBUrl: true, aspectRatio: true, duration: true },
           });
 
           const preset = getPresetById(job.presetId);
 
-          // Upsert output record
           const [updatedJob] = await prismadb.$transaction([
             prismadb.transitionJob.update({
               where: { id: job.id },
@@ -91,31 +131,32 @@ export async function GET(
             }),
           ]);
 
-          // Save video URL to gallery (update Generation record's mediaUrl)
-          if (job.taskId) {
-            await prismadb.generation.updateMany({
-              where: { mediaUrl: `task:${job.taskId}`, userId },
-              data: { mediaUrl: resultUrl },
-            }).catch(() => null);
-          }
+          // Link video to gallery generation record
+          await prismadb.generation.updateMany({
+            where: { mediaUrl: `task:${job.taskId}`, userId },
+            data: { mediaUrl: resultUrl },
+          }).catch(() => null);
 
           return NextResponse.json({ job: updatedJob });
-        }
-      } else if (taskStatus === "failed" || taskStatus === "error") {
-        const errorMsg: string = pollJson?.data?.error ?? pollJson?.error ?? "Generation failed";
-        const updatedJob = await prismadb.transitionJob.update({
-          where: { id: job.id },
-          data: { status: "failed", error: errorMsg },
-          include: { output: true },
-        });
-        return NextResponse.json({ job: updatedJob });
-      } else if (taskStatus === "processing" || taskStatus === "queued" || taskStatus === "pending") {
-        // Still running — update status in DB if changed
-        if (job.status !== taskStatus) {
-          await prismadb.transitionJob.update({
+
+        } else if (taskStatus === "failed") {
+          const errorMsg =
+            String((data as Record<string, unknown>).errorMessage || (data as Record<string, unknown>).failMsg || "Generation failed");
+          const updatedJob = await prismadb.transitionJob.update({
             where: { id: job.id },
-            data: { status: "processing" },
+            data: { status: "failed", error: errorMsg },
+            include: { output: true },
           });
+          return NextResponse.json({ job: updatedJob });
+
+        } else {
+          // Still processing — update DB status if changed
+          if (job.status !== "processing") {
+            await prismadb.transitionJob.update({
+              where: { id: job.id },
+              data: { status: "processing" },
+            }).catch(() => null);
+          }
         }
       }
     }

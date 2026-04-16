@@ -12,9 +12,9 @@ import {
   rollbackGenerationCharge,
   setGenerationTaskMarker,
 } from "@/lib/credit-ledger";
+import { uploadBufferToStorage } from "@/lib/supabase-storage";
 
 const KIE_BASE = "https://api.kie.ai/api/v1";
-const KIE_UPLOAD = "https://kieai.redpandaai.co/api/file-base64-upload";
 
 function kieHeaders(apiKey: string) {
   return {
@@ -23,21 +23,33 @@ function kieHeaders(apiKey: string) {
   };
 }
 
-/** Upload a base64 data URL to KIE and return a hosted HTTP URL. */
-async function resolveInputUrl(raw: string, apiKey: string): Promise<string> {
+/**
+ * Upload a base64 data URL to Supabase storage and return a hosted HTTP URL.
+ * HTTP(S) URLs are passed through unchanged.
+ */
+async function resolveInputUrl(raw: string, userId: string): Promise<string> {
   if (raw.startsWith("http://") || raw.startsWith("https://")) return raw;
   if (!raw.startsWith("data:")) throw new Error("Invalid input URL — must be http(s) or base64 data URL.");
 
-  const res = await fetch(KIE_UPLOAD, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-    body: JSON.stringify({ base64Data: raw, uploadPath: "transition-inputs" }),
+  // Parse data URL: data:<contentType>;base64,<data>
+  const commaIdx = raw.indexOf(",");
+  if (commaIdx === -1) throw new Error("Malformed data URL.");
+  const header = raw.slice(5, commaIdx); // strip "data:"
+  const [mimeAndEncoding] = header.split(";");
+  const contentType = mimeAndEncoding || "image/jpeg";
+  const base64Data = raw.slice(commaIdx + 1);
+  const buffer = Buffer.from(base64Data, "base64");
+
+  const uploadedUrl = await uploadBufferToStorage({
+    buffer,
+    contentType,
+    userId,
+    assetType: "image",
+    generationId: `transition-input-${crypto.randomUUID()}`,
   });
-  const json = await res.json().catch(() => null);
-  if (!res.ok) throw new Error(`KIE file upload failed (${res.status}): ${json?.msg ?? JSON.stringify(json)}`);
-  const url: string = json?.data?.url ?? json?.url ?? "";
-  if (!url) throw new Error(`KIE file upload returned no URL. Response: ${JSON.stringify(json)}`);
-  return url;
+
+  if (!uploadedUrl) throw new Error("Failed to upload input image to storage.");
+  return uploadedUrl;
 }
 
 export async function POST(req: NextRequest) {
@@ -110,19 +122,20 @@ export async function POST(req: NextRequest) {
 
     // Resolve inputs — upload base64 data URLs to hosted URLs if needed
     const [resolvedInputA, resolvedInputB] = await Promise.all([
-      resolveInputUrl(inputAUrl, apiKey),
-      resolveInputUrl(inputBUrl, apiKey),
+      resolveInputUrl(inputAUrl, userId),
+      resolveInputUrl(inputBUrl, userId),
     ]);
 
-    // Build KIE payload — Kling 2.5 with start+end frame
-    const kiePayload = {
+    // Build KIE payload — Kling 3.0 with start+end frame (image_urls[0]=start, image_urls[1]=end)
+    const kiePayload: Record<string, unknown> = {
       prompt,
-      negative_prompt: negativePrompt,
-      duration,
+      duration: String(duration),
       aspect_ratio: aspectRatio,
       mode: "pro",
-      image_url: resolvedInputA,
-      tail_image_url: resolvedInputB,
+      sound: false,
+      multi_shots: false,
+      multi_prompt: [],
+      image_urls: [resolvedInputA, resolvedInputB],
     };
 
     // Create job record first
@@ -138,12 +151,12 @@ export async function POST(req: NextRequest) {
     });
     jobId = job.id;
 
-    // Submit to KIE AI
+    // Submit to KIE AI — Kling 3.0 supports both start and end frame via image_urls[]
     const createRes = await fetch(`${KIE_BASE}/jobs/createTask`, {
       method: "POST",
       headers: kieHeaders(apiKey),
       body: JSON.stringify({
-        model: "kling-2.5/image-to-video",
+        model: "kling-3.0/video",
         input: kiePayload,
       }),
     });
