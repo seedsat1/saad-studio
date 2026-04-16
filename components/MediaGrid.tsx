@@ -31,6 +31,7 @@ interface MediaGridProps {
   items: MediaItem[];
   skeletonModel?: { name: string; ratio?: string } | null;
   onDelete?: (id: string) => void;
+  onInspect?: (item: MediaItem) => void;
   className?: string;
 }
 
@@ -330,7 +331,7 @@ function FPill({ label, active, onClick }: { label: string; active: boolean; onC
 
 // ─── Main MediaGrid ───────────────────────────────────────────────────────────
 
-export default function MediaGrid({ items, skeletonModel, onDelete, className }: MediaGridProps) {
+export default function MediaGrid({ items, skeletonModel, onDelete, onInspect, className }: MediaGridProps) {
   const [lightboxItem, setLightboxItem] = useState<MediaItem | null>(null);
   const [typeFilter, setTypeFilter] = useState<"all" | "image" | "video">("all");
   const [ratioFilter, setRatioFilter] = useState("all");
@@ -356,7 +357,7 @@ export default function MediaGrid({ items, skeletonModel, onDelete, className }:
         {skeletonModel && <SkeletonCard modelName={skeletonModel.name} ratio={skeletonModel.ratio ?? "16:9"} />}
         <AnimatePresence>
           {visible.map((item) => (
-            <MediaCard key={item.id} item={item} onOpen={() => setLightboxItem(item)} onDelete={onDelete} />
+            <MediaCard key={item.id} item={item} onOpen={() => onInspect ? onInspect(item) : setLightboxItem(item)} onDelete={onDelete} />
           ))}
         </AnimatePresence>
       </div>

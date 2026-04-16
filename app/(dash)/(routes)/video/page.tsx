@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 
 import MediaGrid, { MediaItem } from "@/components/MediaGrid";
+import { AssetInspector, type Asset } from "@/components/AssetInspector";
 import {
   WaveSpeedVideoModel,
   getModelGroups,
@@ -318,6 +319,7 @@ function VideoPageInner() {
 
   // Results
   const [results, setResults] = useState<MediaItem[]>([]);
+  const [inspectorAsset, setInspectorAsset] = useState<Asset | null>(null);
 
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const allModels = useMemo(() => MODEL_GROUPS.flatMap((group) => group.models), []);
@@ -940,6 +942,7 @@ function VideoPageInner() {
                   ? { name: selectedModel.name, ratio: aspectRatio ?? (size ? sizeToRatio(size) : "16:9") }
                   : null
               }
+              onInspect={(item) => setInspectorAsset({ id: item.id, type: item.type, url: item.src, prompt: item.prompt ?? "", model: item.model, date: item.createdAt ? item.createdAt.toISOString() : undefined })}
               onDelete={id => setResults(prev => prev.filter(r => r.id !== id))}
             />
           )}
@@ -2442,6 +2445,29 @@ function VideoPageInner() {
             </motion.div>
           </motion.div>
         )}
+      </AnimatePresence>
+
+      {/* Asset Inspector Modal */}
+      <AnimatePresence>
+        {inspectorAsset ? (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] bg-black/80 p-4"
+            onClick={() => setInspectorAsset(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.96, y: 12 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.96, y: 12 }}
+              className="mx-auto h-[82vh] max-w-5xl overflow-hidden rounded-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <AssetInspector asset={inspectorAsset} onClose={() => setInspectorAsset(null)} />
+            </motion.div>
+          </motion.div>
+        ) : null}
       </AnimatePresence>
     </div>
   );
