@@ -8,7 +8,7 @@ import {
   Film, Sparkles, ChevronDown, ImageIcon,
   Video, Clapperboard, Layers, Pencil, ShoppingBag, TrendingUp,
   Mic2, PenTool, Factory, ArrowUpCircle, Zap, Music2, Users,
-  X, AlertCircle, Loader2, Upload, CheckCircle2,
+  X, AlertCircle, Loader2, Upload, CheckCircle2, Settings,
 } from "lucide-react";
 
 import MediaGrid, { MediaItem } from "@/components/MediaGrid";
@@ -760,6 +760,8 @@ function VideoPageInner() {
     sceneControl, orientation, startPolling,
   ]);
 
+  const [mobileSettingsOpen, setMobileSettingsOpen] = useState(false);
+
   const bStyle = selectedModel.badge
     ? BADGE_STYLE[selectedModel.badge as keyof typeof BADGE_STYLE]
     : null;
@@ -831,7 +833,7 @@ function VideoPageInner() {
     >
       {/* -- Left Sidebar --------------------------------------------------- */}
       <aside
-        className="flex-shrink-0 flex flex-col overflow-y-auto border-r"
+        className="hidden lg:flex flex-shrink-0 flex-col overflow-y-auto border-r"
         style={{ width: 220, borderColor: "rgba(255,255,255,0.05)", background: "#050a14" }}
       >
         <div className="px-3 pt-5 pb-2">
@@ -867,7 +869,7 @@ function VideoPageInner() {
       </aside>
 
       {/* -- Center Panel --------------------------------------------------- */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden pb-[60px] lg:pb-0">
         {/* Results grid */}
         <div className="flex-1 overflow-y-auto px-4">
           {results.length === 0 && pendingTasks.size === 0 ? (
@@ -988,7 +990,7 @@ function VideoPageInner() {
 
       {/* -- Right Sidebar --------------------------------------------------- */}
       <aside
-        className="flex-shrink-0 flex flex-col border-l overflow-y-auto"
+        className="hidden lg:flex flex-shrink-0 flex-col border-l overflow-y-auto"
         style={{ width: 288, borderColor: "rgba(255,255,255,0.05)", background: "#050a14" }}
       >
         <div className="flex flex-col gap-5 p-4 flex-1">
@@ -2415,6 +2417,119 @@ function VideoPageInner() {
                     ))}
                   </div>
                 )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* -- Mobile Bottom Tool Bar (lg:hidden) -------------------------------- */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 flex items-center gap-0 border-t lg:hidden" style={{ background: "#050a14", borderColor: "rgba(255,255,255,0.08)", height: 60 }}>
+        <div className="flex-1 flex items-center gap-0 overflow-x-auto scrollbar-none px-2">
+          {TOOLS.map(t => {
+            const active = activeTool === t.id;
+            return (
+              <button
+                key={t.id}
+                onClick={() => setActiveTool(t.id)}
+                className="flex-shrink-0 flex flex-col items-center justify-center gap-0.5 px-3 py-1.5 rounded-lg transition-all"
+                style={{ minWidth: 52, color: active ? "#06b6d4" : "#475569" }}
+              >
+                <t.icon size={16} />
+                <span className="text-[9px] font-medium leading-tight whitespace-nowrap" style={{ maxWidth: 52, overflow: "hidden", textOverflow: "ellipsis" }}>
+                  {t.label.split(" ")[0]}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+        <button
+          onClick={() => setMobileSettingsOpen(true)}
+          className="flex-shrink-0 flex flex-col items-center justify-center gap-0.5 px-3 h-full border-l"
+          style={{ borderColor: "rgba(255,255,255,0.08)", color: "#94a3b8" }}
+        >
+          <Settings size={18} />
+          <span className="text-[9px] font-medium">Settings</span>
+        </button>
+      </div>
+
+      {/* -- Mobile Settings Overlay (lg:hidden) -------------------------------- */}
+      <AnimatePresence>
+        {mobileSettingsOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 lg:hidden"
+            style={{ background: "rgba(0,0,0,0.7)" }}
+            onClick={() => setMobileSettingsOpen(false)}
+          >
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 30, stiffness: 300 }}
+              className="absolute bottom-0 left-0 right-0 rounded-t-2xl overflow-y-auto"
+              style={{ background: "#050a14", maxHeight: "85vh", borderTop: "1px solid rgba(255,255,255,0.08)" }}
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: "rgba(255,255,255,0.08)" }}>
+                <span className="text-sm font-semibold text-white">Model Settings</span>
+                <button onClick={() => setMobileSettingsOpen(false)} className="p-1 rounded-lg" style={{ color: "#64748b" }}>
+                  <X size={18} />
+                </button>
+              </div>
+              <div className="px-4 py-4">
+                {/* Model selector button */}
+                <div className="mb-4">
+                  <label className="block text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: "#475569" }}>Model</label>
+                  <button
+                    onClick={() => { setModelOpen(true); setMobileSettingsOpen(false); }}
+                    className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl"
+                    style={{ background: hexA(selectedModel.family_color, 0.08), border: `1px solid ${hexA(selectedModel.family_color, 0.3)}`, color: "#e2e8f0" }}
+                  >
+                    <span className="text-sm font-medium">{selectedModel.name}</span>
+                    {bStyle && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: bStyle.bg, color: bStyle.text }}>{selectedModel.badge}</span>
+                    )}
+                  </button>
+                </div>
+
+                {/* Duration */}
+                {durationChoices.length > 0 && (
+                  <div className="mb-4">
+                    <label className="block text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: "#475569" }}>Duration</label>
+                    <div className="flex flex-wrap gap-2">
+                      {durationChoices.map(d => (
+                        <button key={d} onClick={() => setDuration(d)}
+                          className="px-3 py-1.5 rounded-lg text-sm font-medium transition-all"
+                          style={{ background: duration === d ? hexA(selectedModel.family_color, 0.2) : "rgba(255,255,255,0.04)", color: duration === d ? selectedModel.family_color : "#64748b", border: `1px solid ${duration === d ? hexA(selectedModel.family_color, 0.4) : "rgba(255,255,255,0.06)"}` }}
+                        >{d}s</button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Aspect ratio */}
+                {caps.aspect_ratios.length > 0 && (
+                  <div className="mb-4">
+                    <label className="block text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: "#475569" }}>Aspect Ratio</label>
+                    <div className="flex flex-wrap gap-2">
+                      {caps.aspect_ratios.map(r => (
+                        <button key={r} onClick={() => setAspectRatio(r)}
+                          className="px-3 py-1.5 rounded-lg text-sm font-medium transition-all"
+                          style={{ background: aspectRatio === r ? hexA(selectedModel.family_color, 0.2) : "rgba(255,255,255,0.04)", color: aspectRatio === r ? selectedModel.family_color : "#64748b", border: `1px solid ${aspectRatio === r ? hexA(selectedModel.family_color, 0.4) : "rgba(255,255,255,0.06)"}` }}
+                        >{r}</button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Credits estimate */}
+                <div className="mt-4 flex items-center justify-between rounded-xl px-3 py-2.5" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
+                  <span className="text-xs" style={{ color: "#475569" }}>Estimated cost</span>
+                  <span className="text-sm font-semibold" style={{ color: selectedModel.family_color }}>{estimatedCredits} credits</span>
+                </div>
               </div>
             </motion.div>
           </motion.div>

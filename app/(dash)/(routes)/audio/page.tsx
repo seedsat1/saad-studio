@@ -1469,6 +1469,29 @@ export default function AudioPage() {
       </aside>
 
       <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        {/* Mobile tool selector (lg:hidden) */}
+        <div className="flex overflow-x-auto scrollbar-none border-b border-white/10 bg-[#040a14] lg:hidden" style={{ flexShrink: 0 }}>
+          {TOOLS.map((tool) => {
+            const Icon = tool.icon;
+            const active = activeTool === tool.id;
+            return (
+              <button
+                key={tool.id}
+                onClick={() => setActiveTool(tool.id)}
+                className={cn(
+                  "flex-shrink-0 flex flex-col items-center justify-center gap-1 px-3 py-2.5 text-[10px] font-medium border-b-2 transition-all whitespace-nowrap",
+                  active
+                    ? "border-violet-400 text-violet-300 bg-violet-500/10"
+                    : "border-transparent text-zinc-500 hover:text-zinc-300",
+                )}
+                style={{ minWidth: 64 }}
+              >
+                <Icon className="h-4 w-4" />
+                <span>{tool.label.split(" ")[0]}</span>
+              </button>
+            );
+          })}
+        </div>
         <div className="border-b border-white/10 p-4">
           <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
             <p className="text-sm font-semibold text-zinc-200">Audio Studio Workspace</p>

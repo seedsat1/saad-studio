@@ -667,7 +667,7 @@ export default function ThreeDStudioPage() {
 
   // ─────────────────────────────────────────────────────────────────────────
   return (
-    <div className="relative flex h-screen overflow-hidden" style={{ background: "#030712" }}>
+    <div className="relative flex flex-col lg:flex-row h-[calc(100vh-4rem)] lg:h-screen overflow-hidden" style={{ background: "#030712" }}>
       {/* Ambient glows */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 left-1/4 w-[700px] h-[700px] bg-violet-900/20 rounded-full blur-[140px]" />
@@ -676,7 +676,7 @@ export default function ThreeDStudioPage() {
 
       {/* ── Left Panel ─────────────────────────────────────────────────────── */}
       <div
-        className="relative z-10 w-80 shrink-0 flex flex-col border-r border-slate-800/60 overflow-y-auto"
+        className="relative z-10 w-full lg:w-80 shrink-0 flex flex-col border-b lg:border-b-0 border-r-0 lg:border-r border-slate-800/60 overflow-y-auto max-h-[50vh] lg:max-h-none"
         style={{ background: "linear-gradient(160deg, rgba(10,14,28,0.98) 0%, rgba(6,9,20,1) 100%)" }}
       >
         {/* Header */}
@@ -792,7 +792,7 @@ export default function ThreeDStudioPage() {
       </div>
 
       {/* ── Right Panel: 3D Viewport ────────────────────────────────────────── */}
-      <div className="relative z-10 flex-1 flex flex-col m-3 ml-0">
+      <div className="relative z-10 flex-1 flex flex-col m-3 lg:ml-0 min-h-[45vh] lg:min-h-0">
         <div className="flex-1 relative rounded-2xl overflow-hidden border border-slate-800/60" style={{ background: "#040b18" }}>
           <PerspectiveGrid />
 
