@@ -593,18 +593,22 @@ function VideoPageInner() {
         selectedModel.api_route === "kwaivgi/kling-v3.0-pro/text-to-video" ||
         selectedModel.api_route === "kwaivgi/kling-video-o3-pro/text-to-video";
 
-      // Image inputs
-      if (isSeedanceV2 && referenceImages.length > 0) {
+      // Image inputs — reference images take priority for ALL models
+      if (referenceImages.length > 0) {
         payload.reference_image_urls = await Promise.all(
           referenceImages.map((f) => fileToDataURL(f))
         );
+        // For Seedance V2, also allow end frame alongside references
+        if (isSeedanceV2 && caps.has_end_frame && endFrame) {
+          payload.last_frame_url = await fileToDataURL(endFrame);
+        }
       } else if ((caps.requires_image || caps.optional_image) && startFrame) {
         payload[isSeedanceV2 ? "first_frame_url" : "image"] = await fileToDataURL(startFrame);
       }
       if (caps.requires_video && motionVideo) {
         payload.video = await fileToDataURL(motionVideo);
       }
-      if (caps.has_end_frame && endFrame && !(isSeedanceV2 && referenceImages.length > 0)) {
+      if (caps.has_end_frame && endFrame && referenceImages.length === 0) {
         const endKey = isSeedanceV2
           ? "last_frame_url"
           : selectedModel.api_route.startsWith("wavespeed-ai/wan")
@@ -667,20 +671,10 @@ function VideoPageInner() {
         }
       }
       if (caps.has_element_list) {
-        if (isKling30Video) {
-          const refDataUrls = await Promise.all(referenceImages.slice(0, 3).map((f) => fileToDataURL(f)));
-          if (refDataUrls.length > 0) {
-            payload.kling_elements = refDataUrls.map((url, idx) => ({
-              name: `image${idx + 1}`,
-              description: `reference image ${idx + 1}`,
-              element_input_urls: [url, url],
-            }));
-          }
-        } else {
-          const filled = elementList.filter(s => s.trim());
-          if (filled.length > 0) {
-            payload.element_list = filled.map(id => ({ id: id.trim() }));
-          }
+        // Reference images are passed as image_urls — element_list is for text IDs only
+        const filled = elementList.filter(s => s.trim());
+        if (filled.length > 0) {
+          payload.element_list = filled.map(id => ({ id: id.trim() }));
         }
       }
       if (caps.has_scene_control) {
@@ -714,21 +708,30 @@ function VideoPageInner() {
         }
 
         const imageUrls: string[] = [];
-        const firstFrame =
-          typeof payload.image === "string"
-            ? payload.image
-            : typeof payload.first_frame_url === "string"
-              ? payload.first_frame_url
-              : null;
-        const lastFrame =
-          typeof payload.end_image === "string"
-            ? payload.end_image
-            : typeof payload.last_frame_url === "string"
-              ? payload.last_frame_url
-              : null;
-        if (firstFrame) imageUrls.push(firstFrame);
-        if (!multiShotsEnabled && lastFrame) imageUrls.push(lastFrame);
-
+        // Build image_urls: reference images take priority over start/end frame
+        const refUrls = Array.isArray(payload.reference_image_urls)
+          ? (payload.reference_image_urls as string[]).filter((s): s is string => typeof s === "string")
+          : [];
+        if (refUrls.length > 0) {
+          // reference_image_urls is already in payload — backend reads it directly.
+          // Also pre-build image_urls from refs so Kling validation has access.
+          imageUrls.push(...refUrls.slice(0, multiShotsEnabled ? 1 : 2));
+        } else {
+          const firstFrame =
+            typeof payload.image === "string"
+              ? payload.image
+              : typeof payload.first_frame_url === "string"
+                ? payload.first_frame_url
+                : null;
+          const lastFrame =
+            typeof payload.end_image === "string"
+              ? payload.end_image
+              : typeof payload.last_frame_url === "string"
+                ? payload.last_frame_url
+                : null;
+          if (firstFrame) imageUrls.push(firstFrame);
+          if (!multiShotsEnabled && lastFrame) imageUrls.push(lastFrame);
+        }
         payload.image_urls = imageUrls;
         payload.multi_shots = multiShotsEnabled;
         payload.mode = modeValue;
@@ -740,22 +743,6 @@ function VideoPageInner() {
         } else {
           payload.multi_prompt = [];
           payload.prompt = toolPrefix ? `${toolPrefix} ${prompt.trim()}` : prompt.trim();
-        }
-
-        if (Array.isArray(payload.kling_elements)) {
-          const promptSources = [
-            typeof payload.prompt === "string" ? payload.prompt : "",
-            ...((payload.multi_prompt as Array<{ prompt?: string }>) ?? []).map((p) =>
-              typeof p.prompt === "string" ? p.prompt : "",
-            ),
-          ].join(" ");
-          for (const el of payload.kling_elements as Array<{ name: string }>) {
-            if (promptSources.includes(`@${el.name}`) === false) {
-              setGenerationError(`Use @${el.name} in prompt to activate reference.`);
-              setIsGenerating(false);
-              return;
-            }
-          }
         }
       }
 
@@ -821,7 +808,7 @@ function VideoPageInner() {
   const hasMultiPrompt = multiPrompts.some((s) => s.trim().length > 0);
   const isSeedanceV2Model = selectedModel.id.startsWith("bytedance-seedance-v2");
   const hasRequiredImageInput =
-    !caps.requires_image || !!startFrame || (isSeedanceV2Model && referenceImages.length > 0);
+    !caps.requires_image || !!startFrame || referenceImages.length > 0;
   const hasRequiredVideoInput = !caps.requires_video || !!motionVideo;
   const canGenerate =
     (hasMainPrompt || (multiShotEnabled && hasMultiPrompt)) &&

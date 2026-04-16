@@ -118,7 +118,7 @@ function t2vCaps(overrides: Partial<VideoModelCapabilities> = {}): VideoModelCap
     durations:          [],
     resolutions:        [],
     quality_param:      "resolution",
-    max_reference_images: 0,
+    max_reference_images: 3,
     has_negative_prompt: false,
     has_seed:           false,
     has_cfg_scale:      false,
