@@ -788,17 +788,28 @@ function BlockEditor({
     setUploadError(null);
     setUploading(true);
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      const res = await fetch("/api/admin/media/upload", {
+      // Step 1: get presigned upload URL from our API
+      const presignRes = await fetch("/api/admin/media/upload", {
         method: "POST",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fileName: file.name, fileType: file.type }),
       });
-      const data = await res.json().catch(() => null);
-      if (!res.ok || !data?.url) {
-        throw new Error(data?.error || "Failed to upload media");
+      const presignData = await presignRes.json().catch(() => null);
+      if (!presignRes.ok || !presignData?.signedUrl) {
+        throw new Error(presignData?.error || "Failed to get upload URL");
       }
-      setDraft((d) => ({ ...d, mediaUrl: String(data.url), isVideo: Boolean(data.isVideo) }));
+
+      // Step 2: upload file directly to Supabase Storage (bypasses Next.js body limit)
+      const uploadRes = await fetch(presignData.signedUrl, {
+        method: "PUT",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+      if (!uploadRes.ok) {
+        throw new Error("Failed to upload to storage");
+      }
+
+      setDraft((d) => ({ ...d, mediaUrl: String(presignData.publicUrl), isVideo: Boolean(presignData.isVideo) }));
     } catch (error) {
       setUploadError(error instanceof Error ? error.message : "Upload failed");
     } finally {

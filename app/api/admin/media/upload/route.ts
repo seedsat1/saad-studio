@@ -1,67 +1,56 @@
-import { NextResponse } from "next/server";
-import { mkdir, writeFile } from "fs/promises";
-import path from "path";
+/**
+ * /api/admin/media/upload
+ * Returns a Supabase presigned upload URL so the browser can upload
+ * directly to Supabase Storage (no file body passes through Next.js).
+ * Body: { fileName: string; fileType: string }
+ * Response: { signedUrl, publicUrl, isVideo }
+ */
+import { NextRequest, NextResponse } from "next/server";
 import { isAdmin } from "@/lib/is-admin";
+import { createClient } from "@supabase/supabase-js";
 
-const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024; // 50MB
-
-function sanitizeFileName(name: string) {
-  return name.replace(/[^a-zA-Z0-9._-]/g, "_");
+function getServerSupabase() {
+  const url = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) throw new Error("Supabase not configured");
+  return createClient(url, key, { auth: { persistSession: false } });
 }
 
-function extFromMime(mime: string): string {
-  if (mime.includes("png")) return "png";
-  if (mime.includes("jpeg") || mime.includes("jpg")) return "jpg";
-  if (mime.includes("webp")) return "webp";
-  if (mime.includes("gif")) return "gif";
-  if (mime.includes("mp4")) return "mp4";
-  if (mime.includes("webm")) return "webm";
-  if (mime.includes("quicktime")) return "mov";
-  return "bin";
-}
-
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   if (!(await isAdmin())) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   try {
-    const form = await req.formData();
-    const file = form.get("file");
-    if (!(file instanceof File)) {
-      return NextResponse.json({ error: "file is required" }, { status: 400 });
-    }
+    const { fileName, fileType } = await req.json() as { fileName: string; fileType: string };
 
-    if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) {
+    if (!fileType?.startsWith("image/") && !fileType?.startsWith("video/")) {
       return NextResponse.json({ error: "Only image/video files are allowed" }, { status: 400 });
     }
 
-    if (file.size <= 0 || file.size > MAX_FILE_SIZE_BYTES) {
-      return NextResponse.json({ error: "Invalid file size (max 50MB)" }, { status: 400 });
+    const isVideo = fileType.startsWith("video/");
+    const bucket = isVideo ? "videos" : "images";
+    const ext = fileName?.split(".").pop() ?? (isVideo ? "mp4" : "jpg");
+    const storagePath = `admin-cms/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+
+    const supabase = getServerSupabase();
+    const { data, error } = await supabase.storage
+      .from(bucket)
+      .createSignedUploadUrl(storagePath);
+
+    if (error || !data) {
+      return NextResponse.json({ error: error?.message ?? "Failed to create upload URL" }, { status: 500 });
     }
 
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const uploadsDir = path.join(process.cwd(), "public", "uploads", "cms");
-    await mkdir(uploadsDir, { recursive: true });
+    const { data: publicData } = supabase.storage.from(bucket).getPublicUrl(storagePath);
 
-    const ext = extFromMime(file.type);
-    const rawName = file.name ? sanitizeFileName(file.name) : `asset.${ext}`;
-    const base = rawName.includes(".") ? rawName.slice(0, rawName.lastIndexOf(".")) : rawName;
-    const finalName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${base}.${ext}`;
-    const absPath = path.join(uploadsDir, finalName);
-    await writeFile(absPath, buffer);
-
-    const url = `/uploads/cms/${finalName}`;
     return NextResponse.json({
-      ok: true,
-      url,
-      isVideo: file.type.startsWith("video/"),
-      mimeType: file.type,
-      size: file.size,
+      signedUrl: data.signedUrl,
+      publicUrl: publicData.publicUrl,
+      isVideo,
     });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Upload failed";
-    return NextResponse.json({ error: message }, { status: 500 });
+  } catch (err) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : "Upload failed" }, { status: 500 });
   }
 }
 
