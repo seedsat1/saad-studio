@@ -6,6 +6,7 @@ import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { getClientIp, isAllowedOrigin, sanitizePrompt } from "@/lib/security";
 import { getResolvedKieRoutingMaps } from "@/lib/kie-model-routing";
 import { syncKieModelCatalog } from "@/lib/kie-model-sync";
+import { uploadBufferToStorage } from "@/lib/supabase-storage";
 
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
@@ -42,33 +43,27 @@ interface KieApiResponse {
   data?: KieTaskData;
 }
 
-async function uploadBase64ToKie(base64Data: string, apiKey: string): Promise<string> {
-  const res = await fetch("https://kieai.redpandaai.co/api/file-base64-upload", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ base64Data, uploadPath: "image-refs" }),
+async function uploadBase64ToStorage(
+  base64Data: string,
+  userId: string,
+  genId: string,
+  idx: number,
+): Promise<string> {
+  const match = base64Data.match(/^data:([^;]+);base64,(.+)$/s);
+  if (!match) throw new Error("Invalid base64 data URL for reference image");
+  const contentType = match[1];
+  const buffer = Buffer.from(match[2], "base64");
+  const ext = contentType.split("/")[1]?.replace("jpeg", "jpg") ?? "jpg";
+  const url = await uploadBufferToStorage({
+    buffer,
+    contentType,
+    userId,
+    assetType: "image-ref",
+    generationId: `${genId}-r${idx}`,
+    fileName: `ref.${ext}`,
   });
-  const json = await res.json().catch(() => ({}));
-  if (!res.ok || json?.success === false) {
-    throw new Error(`KIE file upload failed (${res.status}): ${json?.msg ?? JSON.stringify(json)}`);
-  }
-  const fileUrl: string | undefined =
-    json?.data?.downloadUrl ??
-    json?.data?.download_url ??
-    json?.data?.fileUrl ??
-    json?.data?.file_url ??
-    json?.data?.url ??
-    json?.data?.file ??
-    (typeof json?.data === "string" ? json.data : undefined) ??
-    json?.fileUrl ??
-    json?.url;
-  if (!fileUrl) {
-    throw new Error(`KIE file upload did not return a URL. Response: ${JSON.stringify(json)}`);
-  }
-  return fileUrl;
+  if (!url) throw new Error("Failed to upload reference image to storage");
+  return url;
 }
 
 async function createKieTask(
@@ -217,16 +212,15 @@ export async function POST(req: NextRequest) {
       throw new Error("KIE_API_KEY is not configured on the server.");
     }
 
-    // Resolve all reference images: upload base64 → hosted URL, pass http URLs as-is.
-    // Do not silently keep data URLs if upload fails; fail fast with clear message.
-    const resolveRef = async (raw: string): Promise<string> => {
+    // Resolve all reference images: upload base64 → Supabase Storage, pass http URLs as-is.
+    const resolveRef = async (raw: string, idx: number): Promise<string> => {
       if (!raw.startsWith("data:")) return raw;
-      return await uploadBase64ToKie(raw, kieApiKey);
+      return await uploadBase64ToStorage(raw, userId, generationId!, idx);
     };
     const refUrls: string[] = [];
     if (imageUrl) refUrls.push(imageUrl);
     if (imageUrlsParam?.length) refUrls.push(...imageUrlsParam);
-    const resolvedRefs = await Promise.all(refUrls.map(resolveRef));
+    const resolvedRefs = await Promise.all(refUrls.map((r, i) => resolveRef(r, i)));
 
     const input: Record<string, unknown> = {
       prompt: sanitizePrompt(prompt, 5000),

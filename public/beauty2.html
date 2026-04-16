@@ -6,7 +6,7 @@
 <title>SAAD STUDIO — Beauty & Model Studio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -18,7 +18,7 @@
   --txt:#ece3ef;--txt2:#978d9f;--txt3:#645b6c;
   --brd:rgba(255,255,255,.06);--brd-h:rgba(212,160,185,.3);
   --r:16px;--rs:10px;
-  --far:'Cairo',sans-serif;--fen:'Outfit',sans-serif;--fser:'Cormorant Garamond',serif;
+  --far:'Cairo',sans-serif;--fen:'Cairo',sans-serif;--fser:Georgia,'Palatino Linotype',serif;
   --ease:all .35s cubic-bezier(.4,0,.2,1);
 }
 html{scroll-behavior:smooth}
@@ -607,12 +607,7 @@ function rGrid(){
     const bc=t.badge==='hot'?'b-h':t.badge==='new'?'b-n':'b-p';
     const bl=t.badge==='hot'?'HOT':t.badge==='new'?'NEW':'POPULAR';
     // Use first option images or placeholder
-    const toolThumb=t.thumb||'';
-    const hasImg=!!(toolThumb||(t.options[0]&&t.options[0].img));
-    const imgSrc=toolThumb||(t.options[0]&&t.options[0].img)||'';
-    const thumbContent=hasImg
-      ?`<img src="${imgSrc}" alt="" style="object-fit:${t.thumbFit||'cover'};object-position:${t.thumbPos||'center center'}">`
-      :`<div class="ph-icon" style="font-size:1.6rem;opacity:.3;font-family:var(--fen);letter-spacing:2px;text-transform:uppercase;color:var(--txt3)">${isAr?(t.ar||t.name):t.name}</div><div class="ph-text">${TX.imageSoon}</div>`;
+    const thumbContent=`<div class="ph-icon" style="font-size:1.6rem;opacity:.3;font-family:var(--fen);letter-spacing:2px;text-transform:uppercase;color:var(--txt3)">${isAr?(t.ar||t.name):t.name}</div><div class="ph-text">${TX.imageSoon}</div>`;
     const thumbOverlay = t.noThumbOverlay ? '' : '<div class="ovl"></div>';
     const thumbStyle = `style="aspect-ratio:${t.thumbAspect||'16/9'}"`;
 
@@ -625,26 +620,7 @@ function rGrid(){
     $g.appendChild(e);
   });
 }
-async function applyThumbConfig(){
-  try{
-    const res = await fetch('/data/beauty-card-thumbs.json', { cache: 'no-store' });
-    if(!res.ok) return;
-    const cfg = await res.json();
-    const byTool = cfg && typeof cfg === 'object' ? (cfg.tools || {}) : {};
-    TOOLS.forEach(t=>{
-      const item = byTool[t.id];
-      if(!item || typeof item !== 'object') return;
-      if(typeof item.thumb === 'string') t.thumb = item.thumb;
-      if(typeof item.thumbFit === 'string') t.thumbFit = item.thumbFit;
-      if(typeof item.thumbPos === 'string') t.thumbPos = item.thumbPos;
-      if(typeof item.thumbAspect === 'string') t.thumbAspect = item.thumbAspect;
-      if(typeof item.fullCard === 'boolean') t.fullCard = item.fullCard;
-    });
-  }catch(_){}
-}
-
-async function initBeautyCards(){
-  await applyThumbConfig();
+function initBeautyCards(){
   rTabs();
   rGrid();
 }
@@ -691,9 +667,9 @@ function openWS(tool){
 
   const colsClass=`cols-${tool.optsCols||4}`;
   const optsHTML=tool.options.map(opt=>{
-    const cands = opt.img ? [opt.img] : getOptionImageCandidates(tool,opt.id);
-    const joined = cands.join('|');
-    const imgContent = `<img src="${cands[0]}" alt="${opt.name}" data-fallbacks="${joined}" data-idx="0" onerror="handleOptImgError(this,'${opt.nameAr}')">`;
+    const imgContent = opt.img
+      ? `<img src="${opt.img}" alt="${opt.name}">`
+      : `<div class="opt-ph">${isAr?(opt.nameAr||opt.name):opt.name}</div>`;
     return`
     <div class="opt-card no-media-actions" data-no-media-actions data-id="${opt.id}" onclick="selOpt(this,'${opt.id}')">
       <input type="radio" name="opt" value="${opt.id}">
@@ -879,7 +855,7 @@ function doGen(toolId){
           modelId:'nano-banana-pro',
           prompt,
           imageUrl,
-          imageInputField:'image_url',
+          imageInputField:'image_input',
           aspectRatio: uploadedRatio || '1:1',
           numImages: 1
         })
