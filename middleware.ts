@@ -50,7 +50,7 @@ function applySecurityHeaders(res: NextResponse, req: Request) {
   res.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
   res.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
 
-  // COOP must be relaxed on OAuth paths — same-origin breaks Google redirect popup
+  // COOP must be relaxed on OAuth paths ï¿½ same-origin breaks Google redirect popup
   const isOAuthPath =
     req.url.includes("/sso-callback") ||
     req.url.includes("/sign-in") ||
