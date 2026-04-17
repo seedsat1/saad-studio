@@ -1,35 +1,23 @@
-﻿"use client";
+"use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ChevronDown,
-  Clapperboard,
-  Clock,
+  ChevronLeft,
   Download,
-  ExternalLink,
   Film,
-  FolderOpen,
-  History,
+  HelpCircle,
   ImageIcon,
-  Layers,
   Loader2,
-  Lock,
-  Unlock,
-  Palette,
   RefreshCw,
   Save,
-  Send,
-  Settings2,
-  Sliders,
   Sparkles,
-  Trash2,
   Upload,
   Video,
   Wand2,
   X,
-  ZapIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -44,7 +32,7 @@ import type {
   AnglesPresetId,
 } from "@/lib/variations-presets";
 
-// â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Types ──────────────────────────────────────────────────────────────────
 
 interface VariationOutput {
   id: string;
@@ -75,66 +63,71 @@ interface VariationProject {
   outputs: VariationOutput[];
 }
 
-interface HistoryProject {
-  id: string;
-  title: string;
-  selectedMode: string;
-  updatedAt: string;
-  outputs: { id: string; assetUrl: string | null; thumbnailUrl: string | null; presetLabel: string }[];
-  jobs: { id: string; status: string; createdAt: string }[];
-}
-
-type LeftTab = "input" | "settings" | "style" | "assets" | "history";
-type StageView = "prepare" | "results";
-
-// â”€â”€â”€ Constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Constants ──────────────────────────────────────────────────────────────
 
 const PROJECT_KEY = "saad_variations_last_project";
 const AUTOSAVE_DELAY = 4000;
 const POLL_INTERVAL = 1000;
 
-const STORYBOARD_COUNTS: number[] = [4, 6, 9];
-const ANGLES_COUNTS: number[] = [4, 6, 8, 12, 16];
+const ASPECT_RATIOS: { value: string; label: string; icon: string }[] = [
+  { value: "1:1", label: "Square", icon: "□" },
+  { value: "21:9", label: "Ultrawide", icon: "▭" },
+  { value: "16:9", label: "Widescreen", icon: "▭" },
+  { value: "9:16", label: "Social story", icon: "▯" },
+  { value: "4:3", label: "Classic", icon: "▭" },
+  { value: "4:5", label: "Social post", icon: "▯" },
+  { value: "5:4", label: "Landscape", icon: "▭" },
+  { value: "3:4", label: "Traditional", icon: "▯" },
+  { value: "3:2", label: "Standard", icon: "▭" },
+  { value: "2:3", label: "Portrait", icon: "▯" },
+];
 
-const ASPECT_RATIOS = ["16:9", "1:1", "9:16", "4:3", "3:4"];
+const GRID_OPTIONS = [
+  { value: "2x2", label: "2x2", cols: 2, rows: 2 },
+  { value: "2x3", label: "2x3", cols: 3, rows: 2 },
+  { value: "3x2", label: "3x2", cols: 2, rows: 3 },
+  { value: "3x3", label: "3x3", cols: 3, rows: 3 },
+];
 
-// â”€â”€â”€ Slider â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-function Slider({
-  label,
-  value,
-  min = 0,
-  max = 100,
-  onChange,
-}: {
-  label: string;
-  value: number;
-  min?: number;
-  max?: number;
-  onChange: (v: number) => void;
-}) {
+
+// ─── Checkbox Icon ──────────────────────────────────────────────────────────
+
+function CheckIcon() {
   return (
-    <div className="space-y-1">
-      <div className="flex justify-between text-xs text-zinc-400">
-        <span>{label}</span>
-        <span className="text-violet-400 font-medium">{value}</span>
-      </div>
-      <input
-        type="range"
-        min={min}
-        max={max}
-        value={value}
-        onChange={(e) => onChange(Number(e.target.value))}
-        className="w-full h-1.5 rounded-full appearance-none cursor-pointer bg-zinc-800"
-        style={{
-          background: `linear-gradient(to right, #7c3aed ${((value - min) / (max - min)) * 100}%, #27272a ${((value - min) / (max - min)) * 100}%)`,
-        }}
-      />
-    </div>
+    <svg viewBox="0 0 10 8" className="h-2.5 w-2.5" fill="none">
+      <path d="M1 4l2.5 2.5L9 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }
 
-// â”€â”€â”€ Output Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Grid Icon ──────────────────────────────────────────────────────────────
+
+function GridIcon({ rows, cols, className }: { rows: number; cols: number; className?: string }) {
+  const size = 14;
+  const gap = 1;
+  const dotW = (size - (cols - 1) * gap) / cols;
+  const dotH = (size - (rows - 1) * gap) / rows;
+  return (
+    <svg width={size} height={size} className={className}>
+      {Array.from({ length: rows }).map((_, r) =>
+        Array.from({ length: cols }).map((_, c) => (
+          <rect
+            key={`${r}-${c}`}
+            x={c * (dotW + gap)}
+            y={r * (dotH + gap)}
+            width={dotW}
+            height={dotH}
+            rx={0.5}
+            fill="currentColor"
+          />
+        ))
+      )}
+    </svg>
+  );
+}
+
+// ─── Output Card ────────────────────────────────────────────────────────────
 
 function OutputCard({
   output,
@@ -157,15 +150,13 @@ function OutputCard({
     <div
       onClick={onSelect}
       className={cn(
-        "relative group rounded-xl overflow-hidden border cursor-pointer transition-all duration-200",
-        "bg-zinc-900",
+        "relative group rounded-xl overflow-hidden border cursor-pointer transition-all duration-200 bg-[#0f1a35]",
         selected
           ? "border-violet-500 ring-1 ring-violet-500/40 shadow-lg shadow-violet-500/10"
-          : "border-zinc-800 hover:border-zinc-700",
+          : "border-white/10 hover:border-white/20",
       )}
     >
-      {/* Image area */}
-      <div className="aspect-video bg-zinc-950 relative flex items-center justify-center">
+      <div className="aspect-[4/5] bg-[#060c18] relative flex items-center justify-center">
         {isDone && output.assetUrl ? (
           <Image
             src={output.assetUrl}
@@ -178,7 +169,7 @@ function OutputCard({
         ) : isProcessing ? (
           <div className="flex flex-col items-center gap-2">
             <Loader2 className="h-6 w-6 text-violet-400 animate-spin" />
-            <span className="text-xs text-zinc-500">Generatingâ€¦</span>
+            <span className="text-xs text-slate-500">Generating&hellip;</span>
           </div>
         ) : isFailed ? (
           <div className="flex flex-col items-center gap-2">
@@ -186,22 +177,21 @@ function OutputCard({
             <span className="text-xs text-red-400">Failed</span>
           </div>
         ) : (
-          <ImageIcon className="h-8 w-8 text-zinc-700" />
+          <ImageIcon className="h-8 w-8 text-slate-700" />
         )}
 
-        {/* Overlay actions */}
         {isDone && (
           <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
             <button
               onClick={(e) => { e.stopPropagation(); onRegenerate(); }}
-              className="p-1.5 rounded-lg bg-zinc-900/90 border border-zinc-700 text-zinc-300 hover:text-violet-400 hover:border-violet-500 transition-colors"
+              className="p-1.5 rounded-lg bg-[#0f1a35]/90 border border-white/10 text-slate-300 hover:text-violet-400 hover:border-violet-500 transition-colors"
               title="Regenerate"
             >
               <RefreshCw className="h-3.5 w-3.5" />
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); onSave(); }}
-              className="p-1.5 rounded-lg bg-zinc-900/90 border border-zinc-700 text-zinc-300 hover:text-emerald-400 hover:border-emerald-500 transition-colors"
+              className="p-1.5 rounded-lg bg-[#0f1a35]/90 border border-white/10 text-slate-300 hover:text-emerald-400 hover:border-emerald-500 transition-colors"
               title="Save"
             >
               <Save className="h-3.5 w-3.5" />
@@ -209,49 +199,36 @@ function OutputCard({
           </div>
         )}
 
-        {/* Selected badge */}
         {selected && (
           <div className="absolute top-1.5 right-1.5 h-4 w-4 rounded-full bg-violet-500 border border-violet-400 flex items-center justify-center">
             <div className="h-1.5 w-1.5 rounded-full bg-white" />
           </div>
         )}
       </div>
-
-      {/* Labels */}
-      <div className="px-2.5 py-2 space-y-0.5">
-        <p className="text-[11px] font-medium text-zinc-200 truncate">{output.presetLabel}</p>
-        <div className="flex items-center gap-1.5">
-          <span className={cn(
-            "text-[10px] px-1.5 py-0.5 rounded-md font-medium",
-            output.variationMode === "storyboard"
-              ? "bg-violet-500/20 text-violet-400"
-              : "bg-sky-500/20 text-sky-400",
-          )}>
-            {output.variationMode === "storyboard" ? "Storyboard" : "Angles"}
-          </span>
-          {output.fallbackUsed && (
-            <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-amber-500/20 text-amber-400 font-medium">
-              Fallback
-            </span>
-          )}
-        </div>
-      </div>
     </div>
   );
 }
 
-// â”€â”€â”€ Main Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Main Page ──────────────────────────────────────────────────────────────
 
 export default function VariationsStudioPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
-  // â”€â”€ Project state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Read URL action param ──────────────────────────────────────────────
+  const actionParam = searchParams.get("action");
+  const initialMode: VariationMode =
+    actionParam === "storyboard" ? "storyboard" : "angles";
+
+  // ── Project state ──────────────────────────────────────────────────────
   const [projectId, setProjectId] = useState<string | null>(null);
   const [title, setTitle] = useState("Untitled Variation");
-  const [mode, setMode] = useState<VariationMode>("storyboard");
+  const [mode, setMode] = useState<VariationMode>(initialMode);
   const [genMode, setGenMode] = useState<VariationGenMode>("standard");
   const [outputCount, setOutputCount] = useState(9);
-  const [aspectRatio, setAspectRatio] = useState("16:9");
+  const [aspectRatio, setAspectRatio] = useState("1:1");
+  const [gridLayout, setGridLayout] = useState("3x3");
+
   const [direction, setDirection] = useState("");
   const [negativeDirection, setNegativeDirection] = useState("");
   const [consistencyLock, setConsistencyLock] = useState(true);
@@ -259,21 +236,19 @@ export default function VariationsStudioPage() {
   const [storyboardAuto, setStoryboardAuto] = useState(false);
   const [storyboardNarrative, setStoryboardNarrative] = useState("");
 
-  // â”€â”€ Mode settings â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  const [storyboardSettings, setStoryboardSettings] = useState({
+  // ── Internal settings (preserved for API) ──────────────────────────────
+  const [storyboardSettings] = useState({
     cinematicCoverage: 70,
     sceneContiuity: 80,
     narrativeIntensity: 60,
   });
-  const [anglesSettings, setAnglesSettings] = useState({
+  const [anglesSettings] = useState({
     reframingIntensity: 65,
     compositionVariation: 70,
     cameraAngleDiversity: 60,
     framingPreservation: 75,
   });
-
-  // â”€â”€ Style settings â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  const [styleSettings, setStyleSettings] = useState({
+  const [styleSettings] = useState({
     realismLevel: 80,
     cinematicStrength: 75,
     environmentPreservation: 85,
@@ -281,7 +256,7 @@ export default function VariationsStudioPage() {
     detailPreservation: 70,
   });
 
-  // â”€â”€ Preset selection (checkboxes) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Preset selection (checkboxes) ──────────────────────────────────────
   const [selectedStoryboardPresets, setSelectedStoryboardPresets] = useState<Set<StoryboardPresetId>>(
     () => new Set(Object.keys(STORYBOARD_PRESETS) as StoryboardPresetId[])
   );
@@ -289,12 +264,10 @@ export default function VariationsStudioPage() {
     () => new Set(Object.keys(ANGLES_PRESETS) as AnglesPresetId[])
   );
 
-  // â”€â”€ UI state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  const [leftTab, setLeftTab] = useState<LeftTab>("input");
-  const [stageView, setStageView] = useState<StageView>("prepare");
+  // ── UI state ───────────────────────────────────────────────────────────
+  const [stageView, setStageView] = useState<"prepare" | "results">("prepare");
   const [selectedOutput, setSelectedOutput] = useState<string | null>(null);
   const [outputs, setOutputs] = useState<VariationOutput[]>([]);
-  const [historyProjects, setHistoryProjects] = useState<HistoryProject[]>([]);
   const [currentJobId, setCurrentJobId] = useState<string | null>(null);
   const [generationStatus, setGenerationStatus] = useState<"idle" | "validating" | "queued" | "processing" | "completed" | "failed">("idle");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -302,24 +275,44 @@ export default function VariationsStudioPage() {
   const [estimatedCost, setEstimatedCost] = useState(0);
   const [autoSaveStatus, setAutoSaveStatus] = useState<"saved" | "saving" | "unsaved">("saved");
   const [isInitialized, setIsInitialized] = useState(false);
-  const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
 
-  // â”€â”€ Refs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Dropdown menus ─────────────────────────────────────────────────────
+  const [showAspectMenu, setShowAspectMenu] = useState(false);
+  const [showGridMenu, setShowGridMenu] = useState(false);
+
+  const [showModeMenu, setShowModeMenu] = useState(false);
+
+  // ── Refs ───────────────────────────────────────────────────────────────
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const titleInputRef = useRef<HTMLInputElement>(null);
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
   const pollTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isPollingRef = useRef(false);
   const dragCounterRef = useRef(0);
 
-  // â”€â”€â”€ Estimate cost â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Sync outputCount from grid ─────────────────────────────────────
+  useEffect(() => {
+    const grid = GRID_OPTIONS.find((g) => g.value === gridLayout);
+    if (grid) {
+      const count = grid.rows * grid.cols;
+      setOutputCount(count);
+      if (mode === "storyboard") {
+        const ids = (Object.keys(STORYBOARD_PRESETS) as StoryboardPresetId[]).slice(0, count);
+        setSelectedStoryboardPresets(new Set(ids));
+      } else {
+        const ids = (Object.keys(ANGLES_PRESETS) as AnglesPresetId[]).slice(0, count);
+        setSelectedAnglesPresets(new Set(ids));
+      }
+    }
+  }, [gridLayout, mode]);
+
+  // ─── Estimate cost ────────────────────────────────────────────────────
   useEffect(() => {
     const est = estimateVariationCost(mode, genMode, outputCount, consistencyLock);
     setEstimatedCost(est.totalCredits);
   }, [mode, genMode, outputCount, consistencyLock]);
 
-  // â”€â”€â”€ Fetch credit balance â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Fetch credit balance ─────────────────────────────────────────────
   const fetchBalance = useCallback(async () => {
     try {
       const res = await fetch("/api/variations/estimate", {
@@ -334,11 +327,9 @@ export default function VariationsStudioPage() {
     } catch {}
   }, [mode, genMode, outputCount, consistencyLock]);
 
-  useEffect(() => {
-    fetchBalance();
-  }, [fetchBalance]);
+  useEffect(() => { fetchBalance(); }, [fetchBalance]);
 
-  // â”€â”€â”€ Restore session on mount â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Restore session on mount ─────────────────────────────────────────
   useEffect(() => {
     const saved = localStorage.getItem(PROJECT_KEY);
     if (saved) {
@@ -359,18 +350,6 @@ export default function VariationsStudioPage() {
                 setNegativeDirection(project.negativeDirection);
                 setConsistencyLock(project.consistencyLock);
                 if (project.referenceAssetUrl) setReferenceUrl(project.referenceAssetUrl);
-                const savedSettings = (project.settingsJson ?? {}) as {
-                  storyboardSettings?: typeof storyboardSettings;
-                  anglesSettings?: typeof anglesSettings;
-                  styleSettings?: typeof styleSettings;
-                  storyboardAuto?: boolean;
-                  storyboardNarrative?: string;
-                };
-                if (savedSettings.storyboardSettings) setStoryboardSettings(savedSettings.storyboardSettings);
-                if (savedSettings.anglesSettings) setAnglesSettings(savedSettings.anglesSettings);
-                if (savedSettings.styleSettings) setStyleSettings(savedSettings.styleSettings);
-                if (typeof savedSettings.storyboardAuto === "boolean") setStoryboardAuto(savedSettings.storyboardAuto);
-                if (typeof savedSettings.storyboardNarrative === "string") setStoryboardNarrative(savedSettings.storyboardNarrative);
                 if (project.outputs?.length) {
                   setOutputs(project.outputs);
                   setStageView("results");
@@ -386,17 +365,7 @@ export default function VariationsStudioPage() {
     setIsInitialized(true);
   }, []);
 
-  // â”€â”€â”€ Load history â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  useEffect(() => {
-    if (leftTab === "history") {
-      fetch("/api/variations/history")
-        .then((r) => r.json())
-        .then((d) => setHistoryProjects(d.projects ?? []))
-        .catch(() => {});
-    }
-  }, [leftTab]);
-
-  // â”€â”€â”€ Auto save â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Auto save ────────────────────────────────────────────────────────
   const saveProject = useCallback(async () => {
     if (!projectId) return;
     setAutoSaveStatus("saving");
@@ -447,7 +416,7 @@ export default function VariationsStudioPage() {
     storyboardAuto, storyboardNarrative, scheduleAutoSave,
   ]);
 
-  // â”€â”€â”€ Ensure project exists â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Ensure project exists ────────────────────────────────────────────
   const ensureProject = useCallback(async () => {
     if (projectId) return projectId;
     const res = await fetch("/api/variations/project", {
@@ -482,33 +451,26 @@ export default function VariationsStudioPage() {
     storyboardSettings, anglesSettings, styleSettings, storyboardAuto, storyboardNarrative,
   ]);
 
-  // â”€â”€â”€ Poll job â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Poll job ─────────────────────────────────────────────────────────
   const pollJob = useCallback(
     async (jobId: string) => {
       if (isPollingRef.current) return;
       isPollingRef.current = true;
       try {
-        const res = await fetch(`/api/variations/job/${jobId}?t=${Date.now()}`, {
-          cache: "no-store",
-        });
+        const res = await fetch(`/api/variations/job/${jobId}?t=${Date.now()}`, { cache: "no-store" });
         if (!res.ok) return;
         const data = await res.json() as {
           outputs: VariationOutput[];
           processingCount: number;
-          jobStatus?: string;
         };
-
         setOutputs(data.outputs ?? []);
-
         if (data.processingCount === 0) {
           setGenerationStatus("completed");
           setCurrentJobId(null);
           fetchBalance();
           if (pollTimerRef.current) clearInterval(pollTimerRef.current);
         }
-      } catch {
-        // ignore transient polling errors and keep next cycle alive
-      } finally {
+      } catch {} finally {
         isPollingRef.current = false;
       }
     },
@@ -518,43 +480,22 @@ export default function VariationsStudioPage() {
   useEffect(() => {
     if (currentJobId) {
       void pollJob(currentJobId);
-      pollTimerRef.current = setInterval(() => {
-        void pollJob(currentJobId);
-      }, POLL_INTERVAL);
+      pollTimerRef.current = setInterval(() => { void pollJob(currentJobId); }, POLL_INTERVAL);
     }
-    return () => {
-      if (pollTimerRef.current) clearInterval(pollTimerRef.current);
-    };
+    return () => { if (pollTimerRef.current) clearInterval(pollTimerRef.current); };
   }, [currentJobId, pollJob]);
 
-  // â”€â”€â”€ Preset checkbox toggles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  const toggleStoryboardPreset = useCallback((id: StoryboardPresetId) => {
-    setSelectedStoryboardPresets((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        if (next.size > 1) next.delete(id);
-      } else {
-        next.add(id);
-      }
-      setOutputCount(next.size);
-      return next;
-    });
-  }, []);
-
+  // ─── Preset checkbox toggles ──────────────────────────────────────────
   const toggleAnglesPreset = useCallback((id: AnglesPresetId) => {
     setSelectedAnglesPresets((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) {
-        if (next.size > 1) next.delete(id);
-      } else {
-        next.add(id);
-      }
-      setOutputCount(next.size);
+      if (next.has(id)) { if (next.size > 1) next.delete(id); }
+      else { next.add(id); }
       return next;
     });
   }, []);
 
-  // â”€â”€â”€ Reference image upload â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Reference image upload ───────────────────────────────────────────
   const loadFileAsDataUrl = useCallback((file: File) => {
     if (!file.type.startsWith("image/")) return;
     const reader = new FileReader();
@@ -572,39 +513,35 @@ export default function VariationsStudioPage() {
     loadFileAsDataUrl(file);
   }, [loadFileAsDataUrl]);
 
-  // â”€â”€â”€ Drag and drop â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Drag and drop ────────────────────────────────────────────────────
   const handleDragEnter = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+    e.preventDefault(); e.stopPropagation();
     dragCounterRef.current += 1;
     if (e.dataTransfer.types.includes("Files")) setIsDragging(true);
   }, []);
 
   const handleDragLeave = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+    e.preventDefault(); e.stopPropagation();
     dragCounterRef.current -= 1;
     if (dragCounterRef.current === 0) setIsDragging(false);
   }, []);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+    e.preventDefault(); e.stopPropagation();
   }, []);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+    e.preventDefault(); e.stopPropagation();
     dragCounterRef.current = 0;
     setIsDragging(false);
     const file = e.dataTransfer.files?.[0];
     if (file) loadFileAsDataUrl(file);
   }, [loadFileAsDataUrl]);
 
-  // â”€â”€â”€ Generate â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Generate ─────────────────────────────────────────────────────────
   const handleGenerate = useCallback(async () => {
     if (!referenceUrl) {
-      setErrorMsg("Please upload or select a reference image first.");
+      setErrorMsg("Please upload a reference image first.");
       return;
     }
     setErrorMsg(null);
@@ -612,7 +549,6 @@ export default function VariationsStudioPage() {
 
     try {
       const pid = await ensureProject();
-
       setGenerationStatus("queued");
       setOutputs([]);
 
@@ -628,20 +564,18 @@ export default function VariationsStudioPage() {
           "Create a cinematic storyboard from this reference image.",
           "Return coherent sequential shots with continuity and clear visual progression.",
           "Use professional camera framing and cinematic composition.",
-          userNarrative
-            ? `Narrative: ${userNarrative}`
-            : "Narrative: infer a strong scene progression from reference.",
+          userNarrative ? `Narrative: ${userNarrative}` : "Narrative: infer a strong scene progression from reference.",
           sceneHint ? `Direction: ${sceneHint}` : "",
           avoidHint ? `Avoid: ${avoidHint}` : "",
-        ]
-          .filter(Boolean)
-          .join(" ");
+        ].filter(Boolean).join(" ");
       };
 
       const effectiveDirection =
         mode === "storyboard" && storyboardAuto
           ? buildStoryboardAutoDirection()
-          : direction;
+          : mode === "storyboard" && storyboardNarrative.trim()
+            ? storyboardNarrative.trim()
+            : direction;
 
       const res = await fetch("/api/variations/generate", {
         method: "POST",
@@ -668,22 +602,13 @@ export default function VariationsStudioPage() {
         required?: number;
         balance?: number;
       };
-      try {
-        data = JSON.parse(raw) as typeof data;
-      } catch {
-        data = {};
-      }
-      const nonJsonMessage = data.error
-        ? null
-        : raw && raw.trim().length > 0
-          ? raw.trim().slice(0, 220)
-          : null;
+      try { data = JSON.parse(raw) as typeof data; } catch { data = {}; }
 
       if (!res.ok) {
         if (res.status === 402) {
           setErrorMsg(`Insufficient credits. Need ${data.required}, have ${data.balance}.`);
         } else {
-          setErrorMsg(data.error ?? nonJsonMessage ?? `Generation failed (HTTP ${res.status}).`);
+          setErrorMsg(data.error ?? `Generation failed (HTTP ${res.status}).`);
         }
         setGenerationStatus("failed");
         return;
@@ -706,7 +631,7 @@ export default function VariationsStudioPage() {
     direction, negativeDirection, consistencyLock, aspectRatio, fetchBalance, pollJob, storyboardAuto, storyboardNarrative,
   ]);
 
-  // â”€â”€â”€ Regenerate single output â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Regenerate single output ─────────────────────────────────────────
   const handleRegenerate = useCallback(async (outputId: string) => {
     try {
       const res = await fetch("/api/variations/regenerate", {
@@ -724,9 +649,7 @@ export default function VariationsStudioPage() {
           ),
         );
         if (data.remainingCredits !== undefined) setCreditBalance(data.remainingCredits);
-        // Re-poll the job
         if (currentJobId) return;
-        // Poll output status
         const poll = async () => {
           const r = await fetch(`/api/variations/job/${projectId ?? "x"}`);
           if (r.ok) {
@@ -743,7 +666,7 @@ export default function VariationsStudioPage() {
     } catch {}
   }, [currentJobId, projectId]);
 
-  // â”€â”€â”€ Save output to library â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Save output ──────────────────────────────────────────────────────
   const handleSaveOutput = useCallback((output: VariationOutput) => {
     if (!output.assetUrl) return;
     const a = document.createElement("a");
@@ -753,7 +676,7 @@ export default function VariationsStudioPage() {
     a.click();
   }, []);
 
-  // â”€â”€â”€ Send to Cinema Studio â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Send to Cinema Studio ────────────────────────────────────────────
   const handleSendToCinema = useCallback(async () => {
     if (!projectId) return;
     const selectedIds = selectedOutput ? [selectedOutput] : undefined;
@@ -766,7 +689,7 @@ export default function VariationsStudioPage() {
     if (data.redirectUrl) router.push(data.redirectUrl);
   }, [projectId, selectedOutput, router]);
 
-  // â”€â”€â”€ Send to Video Editor â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Send to Video Editor ─────────────────────────────────────────────
   const handleSendToEditor = useCallback(async () => {
     if (!projectId) return;
     const res = await fetch("/api/variations/send-to-video-editor", {
@@ -778,7 +701,7 @@ export default function VariationsStudioPage() {
     if (data.redirectUrl) router.push(data.redirectUrl);
   }, [projectId, router]);
 
-  // â”€â”€â”€ Export â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Export ───────────────────────────────────────────────────────────
   const handleExport = useCallback(async () => {
     if (!projectId) return;
     const res = await fetch("/api/variations/export", {
@@ -800,1159 +723,549 @@ export default function VariationsStudioPage() {
     }
   }, [projectId]);
 
-  // â”€â”€â”€ Restore from history â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  const handleRestoreHistory = useCallback((hp: HistoryProject) => {
-    localStorage.setItem(PROJECT_KEY, JSON.stringify(hp.id));
-    window.location.reload();
-  }, []);
-
-  const handleOutputCountChange = useCallback((n: number) => {
-    setOutputCount(n);
-    if (mode === "storyboard") {
-      const ids = (Object.keys(STORYBOARD_PRESETS) as StoryboardPresetId[]).slice(0, n);
-      setSelectedStoryboardPresets(new Set(ids));
-      return;
-    }
-    const ids = (Object.keys(ANGLES_PRESETS) as AnglesPresetId[]).slice(0, n);
-    setSelectedAnglesPresets(new Set(ids));
-  }, [mode]);
-
-  // â”€â”€â”€ Selected output data â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  const selectedOutputData = outputs.find((o) => o.id === selectedOutput) ?? null;
-
-  const isGenerating =
-    generationStatus === "processing" || generationStatus === "queued" || generationStatus === "validating";
-
+  // ─── Computed ─────────────────────────────────────────────────────────
+  const isGenerating = generationStatus === "processing" || generationStatus === "queued" || generationStatus === "validating";
   const completedCount = outputs.filter((o) => o.generationStatus === "completed").length;
   const processingCount = outputs.filter((o) => o.generationStatus === "processing" || o.generationStatus === "pending").length;
 
-  // â”€â”€â”€ Left tab icons â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  const LEFT_TABS: { id: LeftTab; label: string; icon: React.ElementType }[] = [
-    { id: "input", label: "Input", icon: ImageIcon },
-    { id: "history", label: "History", icon: History },
-  ];
+  const currentGrid = GRID_OPTIONS.find((g) => g.value === gridLayout) ?? GRID_OPTIONS[3];
 
-  // â”€â”€â”€ Render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Close menus on outside click ─────────────────────────────────────
+  useEffect(() => {
+    const handler = () => {
+      setShowAspectMenu(false);
+      setShowGridMenu(false);
+      setShowModeMenu(false);
+    };
+    document.addEventListener("click", handler);
+    return () => document.removeEventListener("click", handler);
+  }, []);
+
+  // ─── Render ───────────────────────────────────────────────────────────
   return (
     <div
-      className="flex flex-col h-screen bg-zinc-950 text-white overflow-hidden relative"
+      className="flex h-screen bg-[#060c18] text-[#e2e8f0] overflow-hidden relative"
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
     >
-      {/* â”€â”€ DRAG OVERLAY â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ── DRAG OVERLAY ─────────────────────────────────────────────── */}
       {isDragging && (
-        <div className="absolute inset-0 z-50 pointer-events-none flex items-center justify-center bg-zinc-950/80 backdrop-blur-sm border-2 border-dashed border-violet-500 rounded-none">
+        <div className="absolute inset-0 z-50 pointer-events-none flex items-center justify-center bg-[#060c18]/80 backdrop-blur-sm border-2 border-dashed border-violet-500">
           <div className="flex flex-col items-center gap-3 text-violet-300">
             <Upload className="h-12 w-12 opacity-80" />
             <p className="text-lg font-semibold">Drop image here</p>
-            <p className="text-sm text-zinc-400">Supports JPG, PNG, WEBP</p>
+            <p className="text-sm text-slate-400">Supports JPG, PNG, WEBP</p>
           </div>
         </div>
       )}
-      {/* â”€â”€ TOP BAR â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-      <div className="flex-none h-14 border-b border-zinc-800/60 bg-zinc-950/95 backdrop-blur flex items-center px-4 gap-3 z-30">
-        {/* Title */}
-        <div className="flex items-center gap-2 min-w-0 flex-shrink-0">
-          <Layers className="h-4 w-4 text-violet-400 flex-shrink-0" />
-          {isEditingTitle ? (
-            <input
-              ref={titleInputRef}
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              onBlur={() => setIsEditingTitle(false)}
-              onKeyDown={(e) => e.key === "Enter" && setIsEditingTitle(false)}
-              className="text-sm font-medium bg-transparent border-b border-violet-500 outline-none text-white min-w-0 max-w-[180px]"
-              autoFocus
-            />
-          ) : (
-            <span
-              onClick={() => setIsEditingTitle(true)}
-              className="text-sm font-medium text-zinc-200 hover:text-white cursor-pointer truncate max-w-[160px]"
-              title={title}
-            >
-              {title}
-            </span>
-          )}
-          <span className={cn(
-            "text-[10px] px-1.5 py-0.5 rounded-full border font-medium flex-shrink-0",
-            autoSaveStatus === "saved"
-              ? "border-emerald-700 text-emerald-400 bg-emerald-950/30"
-              : autoSaveStatus === "saving"
-              ? "border-violet-700 text-violet-400 bg-violet-950/30"
-              : "border-amber-700 text-amber-400 bg-amber-950/30",
-          )}>
-            {autoSaveStatus === "saved" ? "Saved" : autoSaveStatus === "saving" ? "Savingâ€¦" : "Unsaved"}
-          </span>
-        </div>
 
-        <div className="h-4 w-px bg-zinc-800 flex-shrink-0" />
-
-        {/* Mode Selector */}
-        <div className="flex items-center bg-zinc-900 border border-zinc-800 rounded-lg p-0.5 flex-shrink-0">
-          {(["storyboard", "angles"] as VariationMode[]).map((m) => (
-            <button
-              key={m}
-              onClick={() => {
-              setMode(m);
-              // Sync output count to currently selected preset count for the new mode
-              if (m === "storyboard") setOutputCount(selectedStoryboardPresets.size);
-              else setOutputCount(selectedAnglesPresets.size);
-            }}
-              className={cn(
-                "px-3 py-1 rounded-md text-xs font-medium transition-all",
-                mode === m
-                  ? "bg-violet-600 text-white shadow-sm shadow-violet-500/20"
-                  : "text-zinc-400 hover:text-zinc-200",
-              )}
-            >
-              {m === "storyboard" ? "Storyboard" : "Angles"}
-            </button>
-          ))}
-        </div>
-
-        {/* Gen Mode Selector */}
-        <div className="flex items-center bg-zinc-900 border border-zinc-800 rounded-lg p-0.5 flex-shrink-0">
-          {(["standard", "budget"] as VariationGenMode[]).map((gm) => (
-            <button
-              key={gm}
-              onClick={() => setGenMode(gm)}
-              className={cn(
-                "px-3 py-1 rounded-md text-xs font-medium transition-all flex items-center gap-1",
-                genMode === gm
-                  ? gm === "standard"
-                    ? "bg-violet-600 text-white shadow-sm shadow-violet-500/20"
-                    : "bg-amber-600 text-white shadow-sm shadow-amber-500/20"
-                  : "text-zinc-400 hover:text-zinc-200",
-              )}
-            >
-              {gm === "standard" ? <Sparkles className="h-3 w-3" /> : <ZapIcon className="h-3 w-3" />}
-              {gm === "standard" ? "Standard" : "Budget"}
-            </button>
-          ))}
-        </div>
-
-        {/* Aspect Ratio */}
-        <div className="relative flex-shrink-0">
-          <select
-            value={aspectRatio}
-            onChange={(e) => setAspectRatio(e.target.value)}
-            className="text-xs bg-zinc-900 border border-zinc-800 rounded-lg px-2.5 py-1.5 text-zinc-300 cursor-pointer outline-none hover:border-zinc-700 appearance-none pr-6"
-          >
-            {ASPECT_RATIOS.map((r) => (
-              <option key={r} value={r}>{r}</option>
-            ))}
-          </select>
-          <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 text-zinc-500 pointer-events-none" />
-        </div>
-
-        {/* Output count */}
-        <div className="relative flex-shrink-0">
-          <select
-            value={outputCount}
-            onChange={(e) => {
-              const n = Number(e.target.value);
-              handleOutputCountChange(n);
-            }}
-            className="text-xs bg-zinc-900 border border-zinc-800 rounded-lg px-2.5 py-1.5 text-zinc-300 cursor-pointer outline-none hover:border-zinc-700 appearance-none pr-6"
-          >
-            {(mode === "storyboard" ? STORYBOARD_COUNTS : ANGLES_COUNTS).map((n) => (
-              <option key={n} value={n}>{n} outputs</option>
-            ))}
-          </select>
-          <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 text-zinc-500 pointer-events-none" />
-        </div>
-
-        {/* Spacer */}
-        <div className="flex-1" />
-
-        {/* Credit balance */}
-        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 flex-shrink-0">
-          <Sparkles className="h-3.5 w-3.5 text-violet-400" />
-          <span className="text-xs font-medium text-zinc-200">{creditBalance.toLocaleString()}</span>
-          <span className="text-[10px] text-zinc-500">credits</span>
-        </div>
-
-        {/* Export button */}
+      {/* ── MAIN CONTENT AREA ────────────────────────────────────────── */}
+      <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
+        {/* Top action bar */}
         {outputs.some((o) => o.generationStatus === "completed") && (
-          <button
-            onClick={handleExport}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-zinc-700 text-zinc-300 hover:border-violet-600 hover:text-white transition-colors flex-shrink-0"
-          >
-            <Download className="h-3.5 w-3.5" />
-            Export
-          </button>
+          <div className="flex-none h-11 border-b border-white/10 bg-[#060c18]/95 backdrop-blur flex items-center px-4 gap-2">
+            <div className="flex items-center gap-1 text-xs text-slate-400">
+              <span className="text-[#e2e8f0] font-medium">Variations</span>
+              <span className="text-slate-600 mx-1">&bull;</span>
+              <span>{mode === "storyboard" ? "Storyboard" : "Reframe"}</span>
+            </div>
+            <div className="flex-1" />
+            <button
+              onClick={handleExport}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border border-white/10 text-slate-300 hover:border-violet-500/60 hover:text-white transition-colors"
+            >
+              <Download className="h-3 w-3" />
+              Export
+            </button>
+            <button
+              onClick={handleSendToCinema}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border border-white/10 text-slate-300 hover:border-violet-500/60 hover:text-white transition-colors"
+            >
+              <Film className="h-3 w-3" />
+              Cinema Studio
+            </button>
+            <button
+              onClick={handleSendToEditor}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border border-white/10 text-slate-300 hover:border-cyan-500/60 hover:text-white transition-colors"
+            >
+              <Video className="h-3 w-3" />
+              Video Editor
+            </button>
+          </div>
         )}
 
-        {/* Send to Cinema */}
-        <button
-          onClick={handleSendToCinema}
-          disabled={!outputs.some((o) => o.generationStatus === "completed")}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-zinc-700 text-zinc-300 hover:border-violet-600 hover:text-white transition-colors disabled:opacity-40 disabled:pointer-events-none flex-shrink-0"
-        >
-          <Film className="h-3.5 w-3.5" />
-          Cinema Studio
-        </button>
+        {/* Error banner */}
+        {errorMsg && (
+          <div className="flex-none mx-4 mt-3 px-4 py-3 rounded-xl bg-red-950/40 border border-red-800/50 text-sm text-red-300 flex items-center justify-between">
+            <span>{errorMsg}</span>
+            <button onClick={() => setErrorMsg(null)}><X className="h-4 w-4" /></button>
+          </div>
+        )}
 
-        {/* Send to Editor */}
-        <button
-          onClick={handleSendToEditor}
-          disabled={!outputs.some((o) => o.generationStatus === "completed")}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-zinc-700 text-zinc-300 hover:border-sky-600 hover:text-white transition-colors disabled:opacity-40 disabled:pointer-events-none flex-shrink-0"
-        >
-          <Video className="h-3.5 w-3.5" />
-          Video Editor
-        </button>
+        {/* Generation progress */}
+        {isGenerating && (
+          <div className="flex-none mx-4 mt-3 px-4 py-3 rounded-xl bg-violet-950/30 border border-violet-800/40">
+            <div className="flex items-center gap-3 mb-2">
+              <Loader2 className="h-4 w-4 text-violet-400 animate-spin flex-shrink-0" />
+              <span className="text-sm text-violet-300 font-medium">
+                {generationStatus === "validating" ? "Validating\u2026"
+                  : generationStatus === "queued" ? "Queuing generation\u2026"
+                  : `Generating ${completedCount}/${outputCount} outputs`}
+              </span>
+            </div>
+            {outputs.length > 0 && (
+              <div className="h-1 bg-white/5 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-violet-600 to-violet-400 transition-all duration-500 rounded-full"
+                  style={{ width: `${(completedCount / outputCount) * 100}%` }}
+                />
+              </div>
+            )}
+          </div>
+        )}
 
-        {/* Generate */}
-        <button
-          onClick={handleGenerate}
-          disabled={isGenerating || !referenceUrl}
-          className={cn(
-            "flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-semibold transition-all flex-shrink-0 shadow-lg",
-            isGenerating
-              ? "bg-zinc-800 text-zinc-400 cursor-not-allowed"
-              : !referenceUrl
-              ? "bg-zinc-800 text-zinc-500 cursor-not-allowed opacity-60"
-              : "bg-violet-600 hover:bg-violet-500 text-white shadow-violet-500/25 hover:shadow-violet-500/40",
-          )}
-        >
-          {isGenerating ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        {/* Content area */}
+        <div className="flex-1 overflow-y-auto p-4">
+          {stageView === "results" && outputs.length > 0 ? (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-[#e2e8f0]">
+                    {mode === "storyboard" ? "Storyboard" : "Reframe"} Outputs
+                  </span>
+                  <span className="text-xs text-slate-500">
+                    {completedCount}/{outputs.length} complete
+                    {processingCount > 0 ? ` \u00b7 ${processingCount} processing` : ""}
+                  </span>
+                </div>
+                <button
+                  onClick={() => setStageView("prepare")}
+                  className="text-xs text-slate-500 hover:text-slate-300 transition-colors flex items-center gap-1"
+                >
+                  <ImageIcon className="h-3.5 w-3.5" />
+                  Back to Reference
+                </button>
+              </div>
+
+              <div
+                className="grid gap-3"
+                style={{
+                  gridTemplateColumns: `repeat(${currentGrid.cols}, minmax(0, 1fr))`,
+                }}
+              >
+                {outputs.map((output) => (
+                  <OutputCard
+                    key={output.id}
+                    output={output}
+                    selected={selectedOutput === output.id}
+                    onSelect={() => setSelectedOutput(selectedOutput === output.id ? null : output.id)}
+                    onRegenerate={() => handleRegenerate(output.id)}
+                    onSave={() => handleSaveOutput(output)}
+                  />
+                ))}
+              </div>
+            </div>
           ) : (
-            <Wand2 className="h-3.5 w-3.5" />
+            /* ── PREPARE VIEW ── */
+            <div className="h-full flex flex-col items-center justify-center gap-6 py-8 max-w-lg mx-auto text-center">
+              {referenceUrl ? (
+                <>
+                  <div className="relative rounded-2xl overflow-hidden border border-white/10 shadow-2xl shadow-black/50 max-w-xs w-full">
+                    <Image
+                      src={referenceUrl}
+                      alt="Reference"
+                      width={400}
+                      height={300}
+                      unoptimized
+                      className="w-full object-contain"
+                    />
+                    <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-[#060c18] to-transparent p-3">
+                      <p className="text-xs text-slate-400">Reference Image</p>
+                    </div>
+                  </div>
+                  <p className="text-slate-400 text-sm">
+                    {mode === "storyboard"
+                      ? `Will generate ${outputCount} storyboard frames from your reference`
+                      : `Will generate ${outputCount} alternate angles of this scene`}
+                  </p>
+                  <button
+                    onClick={handleGenerate}
+                    disabled={isGenerating || creditBalance < estimatedCost}
+                    className="px-8 py-3 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-500 hover:from-violet-500 hover:to-indigo-400 text-white font-semibold text-sm shadow-lg shadow-violet-500/25 transition-all disabled:opacity-50 flex items-center gap-2"
+                  >
+                    <Wand2 className="h-4 w-4" />
+                    Generate {outputCount} Variations · {estimatedCost} credits
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div className={cn(
+                    "w-24 h-24 rounded-2xl border-2 border-dashed flex items-center justify-center transition-colors",
+                    isDragging ? "border-violet-500 bg-violet-950/20" : "bg-white/5 border-white/10",
+                  )}>
+                    <ImageIcon className={cn("h-10 w-10", isDragging ? "text-violet-400" : "text-slate-700")} />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-semibold text-[#e2e8f0] mb-2">Variations Studio</h2>
+                    <p className="text-[#94a3b8] text-sm leading-relaxed">
+                      Upload a reference image to generate {mode === "storyboard" ? "storyboard frames" : "alternate camera angles"}.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex items-center gap-2 px-6 py-2.5 rounded-xl border bg-white/5 border-white/10 hover:border-violet-500/60 text-slate-300 hover:text-violet-400 font-medium text-sm transition-all"
+                  >
+                    <Upload className="h-4 w-4" />
+                    Upload Reference Image
+                  </button>
+                </>
+              )}
+            </div>
           )}
-          {isGenerating ? "Generatingâ€¦" : `Generate â€” ${estimatedCost}cr`}
-        </button>
+        </div>
       </div>
 
-      {/* â”€â”€ MAIN BODY â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-      <div className="flex flex-1 min-h-0 overflow-hidden">
-        {/* â”€â”€ LEFT PANEL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€  */}
-        <div className="w-72 flex-none flex flex-col border-r border-zinc-800/60 bg-zinc-950">
-          {/* Tab row */}
-          <div className="flex border-b border-zinc-800/60 flex-shrink-0">
-            {LEFT_TABS.map((tab) => {
-              const Icon = tab.icon;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setLeftTab(tab.id)}
-                  title={tab.label}
-                  className={cn(
-                    "flex-1 py-2.5 flex flex-col items-center gap-0.5 text-[10px] transition-colors",
-                    leftTab === tab.id
-                      ? "text-violet-400 border-b-2 border-violet-500"
-                      : "text-zinc-500 hover:text-zinc-300",
-                  )}
-                >
-                  <Icon className="h-3.5 w-3.5" />
-                  <span>{tab.label}</span>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Tab content */}
-          <div className="flex-1 overflow-y-auto p-3 space-y-4">
-            {/* â”€â”€ INPUT TAB â”€â”€ */}
-            {leftTab === "input" && (
-              <div className="space-y-4">
-                <div>
-                  <p className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider mb-2">Reference Image</p>
-                  {referenceUrl ? (
-                    <div className="relative rounded-xl overflow-hidden border border-zinc-800 bg-zinc-900">
-                      <Image
-                        src={referenceUrl}
-                        alt="Reference"
-                        width={256}
-                        height={192}
-                        unoptimized
-                        className="w-full object-contain max-h-48"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/80 to-transparent opacity-0 hover:opacity-100 transition-opacity flex items-end justify-between p-2.5">
-                        <button
-                          onClick={() => fileInputRef.current?.click()}
-                          className="text-[10px] px-2 py-1 rounded bg-zinc-800/90 text-zinc-300 hover:text-white border border-zinc-700"
-                        >
-                          Replace
-                        </button>
-                        <button
-                          onClick={() => { setReferenceUrl(null); setOutputs([]); setStageView("prepare"); }}
-                          className="text-[10px] px-2 py-1 rounded bg-zinc-800/90 text-red-400 hover:text-red-300 border border-zinc-700"
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => fileInputRef.current?.click()}
-                      className={cn(
-                        "w-full aspect-video rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-2 transition-colors",
-                        isDragging
-                          ? "border-violet-500 bg-violet-950/20 text-violet-400"
-                          : "border-zinc-800 text-zinc-500 hover:border-violet-700 hover:text-violet-400",
-                      )}
-                    >
-                      <Upload className="h-6 w-6" />
-                      <span className="text-xs">{isDragging ? "Drop to upload" : "Upload or drop image"}</span>
-                    </button>
-                  )}
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleFileChange}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">
-                    Scene Direction
-                  </label>
-                  <textarea
-                    value={direction}
-                    onChange={(e) => setDirection(e.target.value)}
-                    placeholder="Optional: describe what you want to achieve..."
-                    rows={3}
-                    className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-600 outline-none focus:border-violet-700 resize-none transition-colors"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">
-                    Negative Direction
-                  </label>
-                  <textarea
-                    value={negativeDirection}
-                    onChange={(e) => setNegativeDirection(e.target.value)}
-                    placeholder="What to avoid..."
-                    rows={2}
-                    className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-600 outline-none focus:border-violet-700 resize-none transition-colors"
-                  />
-                </div>
-
-                <button
-                  onClick={() => setConsistencyLock(!consistencyLock)}
-                  className={cn(
-                    "w-full flex items-center justify-between px-3 py-2.5 rounded-lg border transition-all",
-                    consistencyLock
-                      ? "border-violet-700 bg-violet-950/40 text-violet-300"
-                      : "border-zinc-800 bg-zinc-900 text-zinc-400 hover:border-zinc-700",
-                  )}
-                >
-                  <div className="flex items-center gap-2">
-                    {consistencyLock ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />}
-                    <span className="text-xs font-medium">Consistency Lock</span>
-                  </div>
-                  <div className={cn(
-                    "h-4 w-7 rounded-full transition-colors relative",
-                    consistencyLock ? "bg-violet-600" : "bg-zinc-700",
-                  )}>
-                    <div className={cn(
-                      "absolute top-0.5 h-3 w-3 rounded-full bg-white transition-transform shadow",
-                      consistencyLock ? "translate-x-3.5" : "translate-x-0.5",
-                    )} />
-                  </div>
-                </button>
-              </div>
-            )}
-
-            {/* â”€â”€ SETTINGS TAB â”€â”€ */}
-            {leftTab === "settings" && (
-              <div className="space-y-4">
-                <p className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">
-                  {mode === "storyboard" ? "Storyboard Settings" : "Angles Settings"}
-                </p>
-                {mode === "storyboard" ? (
-                  <div className="space-y-4">
-                    <Slider
-                      label="Cinematic Coverage"
-                      value={storyboardSettings.cinematicCoverage}
-                      onChange={(v) => setStoryboardSettings((s) => ({ ...s, cinematicCoverage: v }))}
-                    />
-                    <Slider
-                      label="Scene Continuity"
-                      value={storyboardSettings.sceneContiuity}
-                      onChange={(v) => setStoryboardSettings((s) => ({ ...s, sceneContiuity: v }))}
-                    />
-                    <Slider
-                      label="Narrative Intensity"
-                      value={storyboardSettings.narrativeIntensity}
-                      onChange={(v) => setStoryboardSettings((s) => ({ ...s, narrativeIntensity: v }))}
-                    />
-
-                    <div className="pt-2 border-t border-zinc-800/60">
-                      <div className="flex items-center justify-between mb-3">
-                        <p className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">Shot Pack</p>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[11px] text-zinc-500">
-                            {selectedStoryboardPresets.size}/{Object.keys(STORYBOARD_PRESETS).length}
-                          </span>
-                          <button
-                            onClick={() => {
-                              const all = new Set(Object.keys(STORYBOARD_PRESETS) as StoryboardPresetId[]);
-                              setSelectedStoryboardPresets(all);
-                              setOutputCount(all.size);
-                            }}
-                            className="text-[10px] text-zinc-500 hover:text-violet-400 transition-colors"
-                          >
-                            All
-                          </button>
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-1.5">
-                        {(Object.values(STORYBOARD_PRESETS)).map((preset) => {
-                          const checked = selectedStoryboardPresets.has(preset.id);
-                          return (
-                            <button
-                              key={preset.id}
-                              onClick={() => toggleStoryboardPreset(preset.id)}
-                              className={cn(
-                                "flex items-center gap-1.5 px-2 py-2 rounded-lg border text-left transition-all",
-                                checked
-                                  ? "border-violet-600 bg-violet-950/40 text-violet-200"
-                                  : "border-zinc-800 bg-zinc-900/60 text-zinc-500 hover:border-zinc-700 hover:text-zinc-300",
-                              )}
-                            >
-                              <div className={cn(
-                                "h-3.5 w-3.5 rounded border flex-shrink-0 flex items-center justify-center transition-colors",
-                                checked ? "border-violet-500 bg-violet-600" : "border-zinc-600 bg-transparent",
-                              )}>
-                                {checked && (
-                                  <svg viewBox="0 0 10 8" className="h-2 w-2" fill="none">
-                                    <path d="M1 4l2.5 2.5L9 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                                  </svg>
-                                )}
-                              </div>
-                              <span className="text-[11px] leading-tight">{preset.label}</span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <Slider
-                      label="Reframing Intensity"
-                      value={anglesSettings.reframingIntensity}
-                      onChange={(v) => setAnglesSettings((s) => ({ ...s, reframingIntensity: v }))}
-                    />
-                    <Slider
-                      label="Composition Variation"
-                      value={anglesSettings.compositionVariation}
-                      onChange={(v) => setAnglesSettings((s) => ({ ...s, compositionVariation: v }))}
-                    />
-                    <Slider
-                      label="Camera Angle Diversity"
-                      value={anglesSettings.cameraAngleDiversity}
-                      onChange={(v) => setAnglesSettings((s) => ({ ...s, cameraAngleDiversity: v }))}
-                    />
-                    <Slider
-                      label="Framing Preservation"
-                      value={anglesSettings.framingPreservation}
-                      onChange={(v) => setAnglesSettings((s) => ({ ...s, framingPreservation: v }))}
-                    />
-
-                    <div className="pt-2 border-t border-zinc-800/60">
-                      <div className="flex items-center justify-between mb-3">
-                        <p className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">Perspectives</p>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[11px] text-zinc-500">
-                            {selectedAnglesPresets.size}/{Object.keys(ANGLES_PRESETS).length}
-                          </span>
-                          <button
-                            onClick={() => {
-                              const all = new Set(Object.keys(ANGLES_PRESETS) as AnglesPresetId[]);
-                              setSelectedAnglesPresets(all);
-                              setOutputCount(all.size);
-                            }}
-                            className="text-[10px] text-zinc-500 hover:text-sky-400 transition-colors"
-                          >
-                            All
-                          </button>
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-1.5">
-                        {(Object.values(ANGLES_PRESETS)).map((preset) => {
-                          const checked = selectedAnglesPresets.has(preset.id);
-                          return (
-                            <button
-                              key={preset.id}
-                              onClick={() => toggleAnglesPreset(preset.id)}
-                              className={cn(
-                                "flex items-center gap-1.5 px-2 py-2 rounded-lg border text-left transition-all",
-                                checked
-                                  ? "border-sky-600 bg-sky-950/40 text-sky-200"
-                                  : "border-zinc-800 bg-zinc-900/60 text-zinc-500 hover:border-zinc-700 hover:text-zinc-300",
-                              )}
-                            >
-                              <div className={cn(
-                                "h-3.5 w-3.5 rounded border flex-shrink-0 flex items-center justify-center transition-colors",
-                                checked ? "border-sky-500 bg-sky-600" : "border-zinc-600 bg-transparent",
-                              )}>
-                                {checked && (
-                                  <svg viewBox="0 0 10 8" className="h-2 w-2" fill="none">
-                                    <path d="M1 4l2.5 2.5L9 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                                  </svg>
-                                )}
-                              </div>
-                              <span className="text-[11px] leading-tight">{preset.label}</span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* â”€â”€ STYLE TAB â”€â”€ */}
-            {leftTab === "style" && (
-              <div className="space-y-4">
-                <p className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">Visual Style</p>
-                <Slider
-                  label="Realism Level"
-                  value={styleSettings.realismLevel}
-                  onChange={(v) => setStyleSettings((s) => ({ ...s, realismLevel: v }))}
-                />
-                <Slider
-                  label="Cinematic Strength"
-                  value={styleSettings.cinematicStrength}
-                  onChange={(v) => setStyleSettings((s) => ({ ...s, cinematicStrength: v }))}
-                />
-                <Slider
-                  label="Environment Preservation"
-                  value={styleSettings.environmentPreservation}
-                  onChange={(v) => setStyleSettings((s) => ({ ...s, environmentPreservation: v }))}
-                />
-                <Slider
-                  label="Subject Priority"
-                  value={styleSettings.subjectPriority}
-                  onChange={(v) => setStyleSettings((s) => ({ ...s, subjectPriority: v }))}
-                />
-                <Slider
-                  label="Detail Preservation"
-                  value={styleSettings.detailPreservation}
-                  onChange={(v) => setStyleSettings((s) => ({ ...s, detailPreservation: v }))}
-                />
-              </div>
-            )}
-
-            {/* â”€â”€ ASSETS TAB â”€â”€ */}
-            {leftTab === "assets" && (
-              <div className="space-y-3">
-                <p className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">Your Assets</p>
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="w-full flex items-center gap-2 px-3 py-2 rounded-lg border border-zinc-800 bg-zinc-900 text-zinc-400 hover:border-violet-700 hover:text-violet-400 text-xs transition-colors"
-                >
-                  <Upload className="h-4 w-4" />
-                  Upload from Device
-                </button>
-                <p className="text-[11px] text-zinc-600 text-center py-4">
-                  Your saved assets will appear here.
-                </p>
-              </div>
-            )}
-
-            {/* â”€â”€ HISTORY TAB â”€â”€ */}
-            {leftTab === "history" && (
-              <div className="space-y-3">
-                <p className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">Previous Sessions</p>
-                {historyProjects.length === 0 ? (
-                  <p className="text-[11px] text-zinc-600 text-center py-4">No history yet.</p>
-                ) : (
-                  historyProjects.map((hp) => (
-                    <div
-                      key={hp.id}
-                      className="rounded-xl border border-zinc-800 bg-zinc-900/80 overflow-hidden hover:border-zinc-700 transition-colors"
-                    >
-                      {/* Thumbnail row */}
-                      {hp.outputs.length > 0 && (
-                        <div className="flex gap-0.5 h-12 overflow-hidden">
-                          {hp.outputs.slice(0, 4).map((o) =>
-                            o.thumbnailUrl ? (
-                              <div key={o.id} className="flex-1 relative bg-zinc-800">
-                                <Image src={o.thumbnailUrl} alt="" fill unoptimized className="object-cover" sizes="60px" />
-                              </div>
-                            ) : null,
-                          )}
-                        </div>
-                      )}
-                      <div className="px-3 py-2">
-                        <p className="text-xs font-medium text-zinc-200 truncate">{hp.title}</p>
-                        <p className="text-[10px] text-zinc-500 mt-0.5">
-                          {hp.selectedMode} Â· {new Date(hp.updatedAt).toLocaleDateString()}
-                        </p>
-                        <button
-                          onClick={() => handleRestoreHistory(hp)}
-                          className="mt-2 w-full text-[10px] px-2 py-1 rounded bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200 transition-colors"
-                        >
-                          Restore Session
-                        </button>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* â”€â”€ CENTER STAGE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€  */}
-        <div className="flex-1 min-w-0 flex flex-col overflow-hidden bg-zinc-950/60">
-          {/* Error banner */}
-          {errorMsg && (
-            <div className="flex-none mx-4 mt-3 px-4 py-3 rounded-xl bg-red-950/40 border border-red-800/50 text-sm text-red-300 flex items-center justify-between">
-              <span>{errorMsg}</span>
-              <button onClick={() => setErrorMsg(null)}>
-                <X className="h-4 w-4" />
-              </button>
+      {/* ── RIGHT SIDEBAR PANEL ──────────────────────────────────────── */}
+      <div className="w-[300px] flex-none border-l border-white/10 bg-[#050a14] flex flex-col overflow-hidden">
+        {/* Header */}
+        <div className="flex-none px-4 pt-4 pb-3 space-y-3">
+          {/* Back + Title */}
+          <div className="space-y-1">
+            <button
+              onClick={() => router.push("/apps")}
+              className="flex items-center gap-1 text-xs text-slate-400 hover:text-[#e2e8f0] transition-colors"
+            >
+              <ChevronLeft className="h-3.5 w-3.5" />
+              Tools
+            </button>
+            <div className="flex items-center gap-2">
+              <h2 className="text-base font-bold text-white">Variations</h2>
+              <HelpCircle className="h-3.5 w-3.5 text-slate-500 cursor-help" />
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-400 font-semibold">
+                Experimental
+              </span>
             </div>
-          )}
-
-          {/* Generation progress indicator */}
-          {isGenerating && (
-            <div className="flex-none mx-4 mt-3 px-4 py-3 rounded-xl bg-violet-950/30 border border-violet-800/40">
-              <div className="flex items-center gap-3 mb-2">
-                <Loader2 className="h-4 w-4 text-violet-400 animate-spin flex-shrink-0" />
-                <span className="text-sm text-violet-300 font-medium">
-                  {generationStatus === "validating" ? "Validatingâ€¦"
-                    : generationStatus === "queued" ? "Queuing generationâ€¦"
-                    : `Generating ${completedCount}/${outputCount} outputs`}
-                </span>
+            {/* Credit balance */}
+            <div className="flex items-center gap-1.5 text-xs">
+              <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-white/5 border border-white/10">
+                <Sparkles className="h-3 w-3 text-yellow-400" />
+                <span className="text-slate-300 font-medium">{creditBalance.toLocaleString()}</span>
+                <span className="text-slate-500">credits</span>
               </div>
-              {outputs.length > 0 && (
-                <div className="h-1 bg-zinc-800 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-violet-600 to-violet-400 transition-all duration-500 rounded-full"
-                    style={{ width: `${(completedCount / outputCount) * 100}%` }}
-                  />
-                </div>
+              {estimatedCost > 0 && (
+                <span className={cn(
+                  "text-xs",
+                  creditBalance < estimatedCost ? "text-red-400" : "text-slate-500",
+                )}>
+                  Cost: {estimatedCost}
+                </span>
               )}
             </div>
-          )}
+          </div>
 
-          {/* Content area */}
-          <div className="flex-1 overflow-y-auto p-4">
-            {stageView === "prepare" ? (
-              /* â”€â”€ PREPARE VIEW â”€â”€ */
-              <div className="h-full flex flex-col items-center justify-center gap-6 py-8 max-w-lg mx-auto text-center">
-                {referenceUrl ? (
-                  <>
-                    <div className="relative rounded-2xl overflow-hidden border border-zinc-800 shadow-2xl shadow-black/50 max-w-xs w-full">
-                      <Image
-                        src={referenceUrl}
-                        alt="Reference"
-                        width={400}
-                        height={300}
-                        unoptimized
-                        className="w-full object-contain"
-                      />
-                      <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-zinc-950 to-transparent p-3">
-                        <p className="text-xs text-zinc-400">Reference Image</p>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <div className={cn(
-                        "inline-flex items-center gap-2 px-4 py-1.5 rounded-full border text-sm font-medium",
-                        mode === "storyboard"
-                          ? "border-violet-700 bg-violet-950/50 text-violet-300"
-                          : "border-sky-700 bg-sky-950/50 text-sky-300",
-                      )}>
-                        {mode === "storyboard" ? <Clapperboard className="h-4 w-4" /> : <Sliders className="h-4 w-4" />}
-                        {mode === "storyboard" ? "Storyboard Mode" : "Angles Mode"}
-                      </div>
-                      <p className="text-zinc-400 text-sm">
-                        {mode === "storyboard"
-                          ? `Will generate ${outputCount} cinematic shot variations from your reference`
-                          : `Will generate ${outputCount} alternate framings of the same scene`}
-                      </p>
-                      <p className="text-zinc-600 text-xs">
-                        {genMode === "standard" ? "Using Nano Banana Â· Standard quality" : "Using Z-Image Â· Budget mode"}
-                        {consistencyLock ? " Â· Consistency Lock ON" : ""}
-                      </p>
-                    </div>
-
-                    <button
-                      onClick={handleGenerate}
-                      disabled={isGenerating}
-                      className="px-8 py-3 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-semibold text-sm shadow-lg shadow-violet-500/25 transition-all hover:shadow-violet-500/40 disabled:opacity-50 flex items-center gap-2"
-                    >
-                      <Wand2 className="h-4 w-4" />
-                      Generate {outputCount} Variations â€” {estimatedCost} credits
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <div className={cn(
-                      "w-24 h-24 rounded-2xl border-2 border-dashed flex items-center justify-center transition-colors",
-                      isDragging ? "border-violet-500 bg-violet-950/20" : "bg-zinc-900 border-zinc-800",
-                    )}>
-                      <ImageIcon className={cn("h-10 w-10", isDragging ? "text-violet-400" : "text-zinc-700")} />
-                    </div>
-                    <div>
-                      <h2 className="text-xl font-semibold text-zinc-200 mb-2">Variations Studio</h2>
-                      <p className="text-zinc-500 text-sm leading-relaxed">
-                        {isDragging
-                          ? "Drop your image to set as reference"
-                          : <>Upload a reference image to generate{" "}{mode === "storyboard" ? "cinematic shot variations" : "alternate framings and angles"}.</>}
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => fileInputRef.current?.click()}
-                      className={cn(
-                        "flex items-center gap-2 px-6 py-2.5 rounded-xl border font-medium text-sm transition-all",
-                        isDragging
-                          ? "border-violet-500 bg-violet-950/40 text-violet-300"
-                          : "bg-zinc-900 border-zinc-800 hover:border-violet-700 text-zinc-300 hover:text-violet-400",
-                      )}
-                    >
-                      <Upload className="h-4 w-4" />
-                      {isDragging ? "Drop anywhere or click to browse" : "Upload Reference Image"}
-                    </button>
-                  </>
-                )}
+          {/* Image preview */}
+          <div className="rounded-lg overflow-hidden border border-white/10 bg-white/5">
+            {referenceUrl ? (
+              <div className="relative group">
+                <Image
+                  src={referenceUrl}
+                  alt="Reference"
+                  width={280}
+                  height={160}
+                  unoptimized
+                  className="w-full h-36 object-cover"
+                />
+                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="text-[10px] px-2 py-1 rounded bg-[#0f1a35]/90 text-slate-300 hover:text-white border border-white/10"
+                  >
+                    Replace
+                  </button>
+                  <button
+                    onClick={() => { setReferenceUrl(null); setOutputs([]); setStageView("prepare"); }}
+                    className="text-[10px] px-2 py-1 rounded bg-[#0f1a35]/90 text-red-400 hover:text-red-300 border border-white/10"
+                  >
+                    Remove
+                  </button>
+                </div>
               </div>
             ) : (
-              /* â”€â”€ RESULTS VIEW â”€â”€ */
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-zinc-200">
-                      {mode === "storyboard" ? "Storyboard" : "Angles"} Outputs
-                    </span>
-                    <span className="text-xs text-zinc-500">
-                      {completedCount}/{outputs.length} complete
-                      {processingCount > 0 ? ` Â· ${processingCount} processing` : ""}
-                    </span>
-                  </div>
-                  <button
-                    onClick={() => setStageView("prepare")}
-                    className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors flex items-center gap-1"
-                  >
-                    <ImageIcon className="h-3.5 w-3.5" />
-                    Back to Reference
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-3">
-                  {outputs.map((output) => (
-                    <OutputCard
-                      key={output.id}
-                      output={output}
-                      selected={selectedOutput === output.id}
-                      onSelect={() => setSelectedOutput(selectedOutput === output.id ? null : output.id)}
-                      onRegenerate={() => handleRegenerate(output.id)}
-                      onSave={() => handleSaveOutput(output)}
-                    />
-                  ))}
-                </div>
-              </div>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full h-36 flex flex-col items-center justify-center gap-2 text-slate-500 hover:text-violet-400 transition-colors"
+              >
+                <Upload className="h-6 w-6" />
+                <span className="text-xs">Upload image</span>
+              </button>
             )}
           </div>
+          <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
         </div>
 
-        {/* â”€â”€ RIGHT INSPECTOR â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€  */}
-        <div className="w-64 flex-none border-l border-zinc-800/60 bg-zinc-950 overflow-y-auto">
-          {selectedOutputData ? (
-            /* Selected output inspector */
-            <div className="p-3 space-y-4">
-              {/* Preview */}
-              {selectedOutputData.assetUrl && (
-                <div className="rounded-xl overflow-hidden border border-zinc-800">
-                  <Image
-                    src={selectedOutputData.assetUrl}
-                    alt={selectedOutputData.presetLabel}
-                    width={240}
-                    height={180}
-                    unoptimized
-                    className="w-full object-contain"
-                  />
+        {/* Scrollable content */}
+        <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-4">
+          {/* MODE */}
+          <div className="space-y-2">
+            <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Mode</p>
+            <div className="relative" onClick={(e) => e.stopPropagation()}>
+              <button
+                onClick={() => setShowModeMenu(!showModeMenu)}
+                className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg border border-white/10 bg-white/5 text-sm text-white hover:border-white/20 transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  {mode === "angles" ? (
+                    <svg className="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <rect x="3" y="3" width="18" height="18" rx="2" />
+                      <path d="M3 9h18M9 3v18" />
+                    </svg>
+                  ) : (
+                    <svg className="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <rect x="2" y="4" width="20" height="16" rx="2" />
+                      <path d="M2 8h20" />
+                    </svg>
+                  )}
+                  <span>{mode === "angles" ? "Reframe" : "Storyboard"}</span>
                 </div>
-              )}
-
-              {/* Metadata */}
-              <div className="space-y-2">
-                <p className="text-sm font-semibold text-zinc-100">{selectedOutputData.presetLabel}</p>
-                <div className="space-y-1">
-                  {[
-                    ["Mode", selectedOutputData.variationMode],
-                    ["Model", selectedOutputData.modelUsed],
-                    ["Status", selectedOutputData.generationStatus],
-                    ["Cost", `${selectedOutputData.creditCost} credits`],
-                    ...(selectedOutputData.fallbackUsed ? [["Fallback", "Z-Image used"]] : []),
-                  ].map(([k, v]) => (
-                    <div key={k} className="flex justify-between items-center text-xs">
-                      <span className="text-zinc-500">{k}</span>
-                      <span className="text-zinc-300 font-medium">{v}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Actions */}
-              <div className="space-y-2">
-                {selectedOutputData.generationStatus === "completed" && (
-                  <>
-                    <button
-                      onClick={() => handleRegenerate(selectedOutputData.id)}
-                      className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 hover:border-violet-700 hover:text-violet-400 text-xs font-medium transition-colors"
-                    >
-                      <RefreshCw className="h-3.5 w-3.5" />
-                      Regenerate
-                    </button>
-                    <button
-                      onClick={() => handleSaveOutput(selectedOutputData)}
-                      className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 hover:border-emerald-700 hover:text-emerald-400 text-xs font-medium transition-colors"
-                    >
-                      <Download className="h-3.5 w-3.5" />
-                      Save to Library
-                    </button>
-                    <button
-                      onClick={handleSendToCinema}
-                      className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 hover:border-violet-700 hover:text-violet-400 text-xs font-medium transition-colors"
-                    >
-                      <Film className="h-3.5 w-3.5" />
-                      Cinema Studio
-                    </button>
-                    <button
-                      onClick={handleSendToEditor}
-                      className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 hover:border-sky-700 hover:text-sky-400 text-xs font-medium transition-colors"
-                    >
-                      <Video className="h-3.5 w-3.5" />
-                      Video Editor
-                    </button>
-                  </>
-                )}
-              </div>
-
-              {/* Per-output controls */}
-              <div className="pt-2 border-t border-zinc-800/60 space-y-3">
-                <p className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">Output Controls</p>
-                <Slider label="Variation Intensity" value={70} onChange={() => {}} />
-                <Slider label="Cinematic Strength" value={75} onChange={() => {}} />
-                <Slider label="Subject Preservation" value={85} onChange={() => {}} />
-                <Slider label="Environment Preservation" value={80} onChange={() => {}} />
-              </div>
-            </div>
-          ) : (
-            /* Default inspector - simple ordered controls */
-            <div className="p-3 space-y-4">
-              <div className="space-y-2">
-                <p className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">Mode</p>
-                <div className="grid grid-cols-2 gap-2">
+                <ChevronDown className="h-4 w-4 text-slate-500" />
+              </button>
+              {showModeMenu && (
+                <div className="absolute top-full left-0 right-0 mt-1 rounded-lg border border-white/10 bg-slate-900/95 backdrop-blur-xl shadow-xl shadow-black/50 z-20 overflow-hidden">
                   <button
-                    onClick={() => {
-                      setMode("angles");
-                      if (!ANGLES_COUNTS.includes(outputCount)) {
-                        handleOutputCountChange(6);
-                      }
-                    }}
+                    onClick={() => { setMode("angles"); setShowModeMenu(false); }}
                     className={cn(
-                      "px-3 py-2 rounded-lg text-xs font-medium border transition-colors",
-                      mode === "angles"
-                        ? "border-sky-600 bg-sky-950/30 text-sky-300"
-                        : "border-zinc-800 bg-zinc-900 text-zinc-400 hover:border-zinc-700",
+                      "w-full flex items-center gap-2 px-3 py-2.5 text-sm hover:bg-white/10 transition-colors",
+                      mode === "angles" ? "text-violet-400 bg-white/5" : "text-slate-300",
                     )}
                   >
-                    Angles
+                    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <rect x="3" y="3" width="18" height="18" rx="2" />
+                      <path d="M3 9h18M9 3v18" />
+                    </svg>
+                    Reframe
                   </button>
                   <button
-                    onClick={() => {
-                      setMode("storyboard");
-                      if (!STORYBOARD_COUNTS.includes(outputCount)) {
-                        handleOutputCountChange(9);
-                      }
-                    }}
+                    onClick={() => { setMode("storyboard"); setShowModeMenu(false); }}
                     className={cn(
-                      "px-3 py-2 rounded-lg text-xs font-medium border transition-colors",
-                      mode === "storyboard"
-                        ? "border-violet-600 bg-violet-950/30 text-violet-300"
-                        : "border-zinc-800 bg-zinc-900 text-zinc-400 hover:border-zinc-700",
+                      "w-full flex items-center gap-2 px-3 py-2.5 text-sm hover:bg-white/10 transition-colors",
+                      mode === "storyboard" ? "text-violet-400 bg-white/5" : "text-slate-300",
                     )}
                   >
+                    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <rect x="2" y="4" width="20" height="16" rx="2" />
+                      <path d="M2 8h20" />
+                    </svg>
                     Storyboard
                   </button>
                 </div>
-              </div>
-
-              <div className="space-y-2">
-                <p className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">Quality</p>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => setGenMode("standard")}
-                    className={cn(
-                      "px-3 py-2 rounded-lg text-xs font-medium border transition-colors",
-                      genMode === "standard"
-                        ? "border-violet-600 bg-violet-950/30 text-violet-300"
-                        : "border-zinc-800 bg-zinc-900 text-zinc-400 hover:border-zinc-700",
-                    )}
-                  >
-                    Standard
-                  </button>
-                  <button
-                    onClick={() => setGenMode("budget")}
-                    className={cn(
-                      "px-3 py-2 rounded-lg text-xs font-medium border transition-colors",
-                      genMode === "budget"
-                        ? "border-zinc-600 bg-zinc-800 text-zinc-200"
-                        : "border-zinc-800 bg-zinc-900 text-zinc-400 hover:border-zinc-700",
-                    )}
-                  >
-                    Budget
-                  </button>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <p className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">Aspect Ratio</p>
-                <select
-                  value={aspectRatio}
-                  onChange={(e) => setAspectRatio(e.target.value)}
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-200 outline-none focus:border-violet-700"
-                >
-                  {ASPECT_RATIOS.map((ratio) => (
-                    <option key={ratio} value={ratio}>{ratio}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="space-y-2">
-                <p className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">Outputs</p>
-                <select
-                  value={outputCount}
-                  onChange={(e) => handleOutputCountChange(Number(e.target.value))}
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-200 outline-none focus:border-violet-700"
-                >
-                  {(mode === "storyboard" ? STORYBOARD_COUNTS : ANGLES_COUNTS).map((n) => (
-                    <option key={n} value={n}>{n} outputs</option>
-                  ))}
-                </select>
-              </div>
-
-              {mode === "angles" && (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <p className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">Perspectives</p>
-                    <span className="text-[11px] text-zinc-500">({selectedAnglesPresets.size}/{Object.keys(ANGLES_PRESETS).length})</span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-1.5">
-                    {Object.values(ANGLES_PRESETS).map((preset) => {
-                      const checked = selectedAnglesPresets.has(preset.id);
-                      return (
-                        <button
-                          key={preset.id}
-                          onClick={() => toggleAnglesPreset(preset.id)}
-                          className={cn(
-                            "flex items-center gap-1.5 px-2 py-1.5 rounded-lg border text-left transition-all",
-                            checked
-                              ? "border-sky-600 bg-sky-950/30 text-sky-200"
-                              : "border-zinc-800 bg-zinc-900/60 text-zinc-500 hover:border-zinc-700 hover:text-zinc-300",
-                          )}
-                        >
-                          <div className={cn(
-                            "h-3.5 w-3.5 rounded border flex-shrink-0 flex items-center justify-center transition-colors",
-                            checked ? "border-sky-500 bg-sky-600" : "border-zinc-600 bg-transparent",
-                          )}>
-                            {checked && (
-                              <svg viewBox="0 0 10 8" className="h-2 w-2" fill="none">
-                                <path d="M1 4l2.5 2.5L9 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                              </svg>
-                            )}
-                          </div>
-                          <span className="text-[11px] leading-tight">{preset.label}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
               )}
+            </div>
+          </div>
 
-              {mode === "storyboard" && (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <p className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">Shot Pack</p>
-                    <span className="text-[11px] text-zinc-500">({selectedStoryboardPresets.size}/{Object.keys(STORYBOARD_PRESETS).length})</span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-1.5">
-                    {Object.values(STORYBOARD_PRESETS).map((preset) => {
-                      const checked = selectedStoryboardPresets.has(preset.id);
-                      return (
-                        <button
-                          key={preset.id}
-                          onClick={() => toggleStoryboardPreset(preset.id)}
-                          className={cn(
-                            "flex items-center gap-1.5 px-2 py-1.5 rounded-lg border text-left transition-all",
-                            checked
-                              ? "border-violet-600 bg-violet-950/30 text-violet-200"
-                              : "border-zinc-800 bg-zinc-900/60 text-zinc-500 hover:border-zinc-700 hover:text-zinc-300",
-                          )}
-                        >
-                          <div className={cn(
-                            "h-3.5 w-3.5 rounded border flex-shrink-0 flex items-center justify-center transition-colors",
-                            checked ? "border-violet-500 bg-violet-600" : "border-zinc-600 bg-transparent",
-                          )}>
-                            {checked && (
-                              <svg viewBox="0 0 10 8" className="h-2 w-2" fill="none">
-                                <path d="M1 4l2.5 2.5L9 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                              </svg>
-                            )}
-                          </div>
-                          <span className="text-[11px] leading-tight">{preset.label}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {mode === "storyboard" ? (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <p className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">Narrative</p>
+          {/* ── REFRAME MODE CONTENT ── */}
+          {mode === "angles" && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Perspectives</p>
+                <span className="text-[11px] text-slate-500">
+                  ({selectedAnglesPresets.size}/{Object.keys(ANGLES_PRESETS).length})
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-x-3 gap-y-2">
+                {Object.values(ANGLES_PRESETS).map((preset) => {
+                  const checked = selectedAnglesPresets.has(preset.id);
+                  return (
                     <button
-                      onClick={() => setStoryboardAuto((prev) => !prev)}
-                      className="flex items-center gap-2"
-                      type="button"
+                      key={preset.id}
+                      onClick={() => toggleAnglesPreset(preset.id)}
+                      className="flex items-center gap-2 text-left group/check"
                     >
-                      <span className="text-xs text-zinc-300">Auto</span>
-                      <span className={cn(
-                        "relative inline-flex h-5 w-9 items-center rounded-full border transition-colors",
-                        storyboardAuto
-                          ? "bg-violet-600 border-violet-500"
-                          : "bg-zinc-800 border-zinc-700",
+                      <div className={cn(
+                        "h-[18px] w-[18px] rounded-[4px] border flex-shrink-0 flex items-center justify-center transition-all",
+                        checked
+                          ? "border-violet-500 bg-violet-600 shadow-sm shadow-violet-500/30"
+                          : "border-white/15 bg-transparent group-hover/check:border-white/30",
                       )}>
-                        <span className={cn(
-                          "inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform",
-                          storyboardAuto ? "translate-x-4.5" : "translate-x-0.5",
-                        )} />
+                        {checked && <CheckIcon />}
+                      </div>
+                      <span className={cn(
+                        "text-[12px] transition-colors",
+                        checked ? "text-[#e2e8f0]" : "text-slate-500 group-hover/check:text-slate-400",
+                      )}>
+                        {preset.label}
                       </span>
                     </button>
-                  </div>
-                  <textarea
-                    value={storyboardNarrative}
-                    onChange={(e) => setStoryboardNarrative(e.target.value)}
-                    rows={3}
-                    placeholder="Describe the storyboard..."
-                    className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-200 placeholder:text-zinc-600 outline-none focus:border-violet-700 resize-none"
-                  />
-                  {storyboardAuto && (
-                    <p className="text-[11px] text-zinc-500">
-                      Auto is ON: a hidden storyboard prompt will be built from your reference + narrative.
-                    </p>
-                  )}
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <p className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">Scene Direction</p>
-                  <textarea
-                    value={direction}
-                    onChange={(e) => setDirection(e.target.value)}
-                    rows={3}
-                    placeholder="Describe the exact direction..."
-                    className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-200 placeholder:text-zinc-600 outline-none focus:border-violet-700 resize-none"
-                  />
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <p className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">Negative Direction</p>
-                <textarea
-                  value={negativeDirection}
-                  onChange={(e) => setNegativeDirection(e.target.value)}
-                  rows={2}
-                  placeholder="What to avoid..."
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-200 placeholder:text-zinc-600 outline-none focus:border-violet-700 resize-none"
-                />
-              </div>
-
-              <button
-                onClick={() => setConsistencyLock((prev) => !prev)}
-                className={cn(
-                  "w-full flex items-center justify-between px-3 py-2 rounded-lg border text-xs transition-colors",
-                  consistencyLock
-                    ? "border-violet-700 bg-violet-950/40 text-violet-300"
-                    : "border-zinc-800 bg-zinc-900 text-zinc-400 hover:border-zinc-700",
-                )}
-              >
-                <span className="font-medium">Consistency Lock</span>
-                <span className={consistencyLock ? "text-violet-300" : "text-zinc-500"}>
-                  {consistencyLock ? "ON" : "OFF"}
-                </span>
-              </button>
-
-              <div className="grid grid-cols-4 gap-1.5">
-                <div className="rounded-lg border border-zinc-800 bg-zinc-900 py-1.5 text-center text-[11px] text-zinc-300">{aspectRatio}</div>
-                <div className="rounded-lg border border-zinc-800 bg-zinc-900 py-1.5 text-center text-[11px] text-zinc-300">{outputCount}x</div>
-                <div className="rounded-lg border border-zinc-800 bg-zinc-900 py-1.5 text-center text-[11px] text-zinc-300">{genMode === "standard" ? "2K" : "1K"}</div>
-                <div className={cn(
-                  "rounded-lg border py-1.5 text-center text-[11px] font-medium",
-                  consistencyLock ? "border-violet-700 bg-violet-950/40 text-violet-300" : "border-zinc-800 bg-zinc-900 text-zinc-400",
-                )}>
-                  {consistencyLock ? "ON" : "OFF"}
-                </div>
-              </div>
-
-              <div className="rounded-xl border border-zinc-800 bg-zinc-900/70 p-3 space-y-1.5">
-                <div className="flex justify-between text-xs">
-                  <span className="text-zinc-500">Estimated cost</span>
-                  <span className="text-violet-400 font-semibold">{estimatedCost} credits</span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-zinc-500">Balance</span>
-                  <span className={creditBalance >= estimatedCost ? "text-emerald-400" : "text-red-400"}>
-                    {creditBalance.toLocaleString()} credits
-                  </span>
-                </div>
-              </div>
-
-              <button
-                onClick={handleGenerate}
-                disabled={isGenerating || !referenceUrl}
-                className={cn(
-                  "w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-sm font-semibold transition-all",
-                  isGenerating
-                    ? "bg-zinc-800 text-zinc-400 cursor-not-allowed"
-                    : !referenceUrl
-                      ? "bg-zinc-800 text-zinc-500 cursor-not-allowed opacity-60"
-                      : "bg-violet-600 hover:bg-violet-500 text-white",
-                )}
-              >
-                {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
-                {isGenerating ? "Generating..." : `Generate - ${estimatedCost}cr`}
-              </button>
-
-              <div className="pt-2 border-t border-zinc-800/60 space-y-2">
-                <button
-                  onClick={handleSendToCinema}
-                  disabled={!outputs.some((o) => o.generationStatus === "completed")}
-                  className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-400 hover:border-violet-700 hover:text-violet-400 text-xs font-medium transition-colors disabled:opacity-40 disabled:pointer-events-none"
-                >
-                  <Film className="h-3.5 w-3.5" />
-                  Open in Cinema Studio
-                </button>
-                <button
-                  onClick={handleSendToEditor}
-                  disabled={!outputs.some((o) => o.generationStatus === "completed")}
-                  className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-400 hover:border-sky-700 hover:text-sky-400 text-xs font-medium transition-colors disabled:opacity-40 disabled:pointer-events-none"
-                >
-                  <Video className="h-3.5 w-3.5" />
-                  Open in Video Editor
-                </button>
+                  );
+                })}
               </div>
             </div>
           )}
+
+          {/* ── STORYBOARD MODE CONTENT ── */}
+          {mode === "storyboard" && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Narrative</p>
+                <button
+                  onClick={() => setStoryboardAuto((prev) => !prev)}
+                  className="flex items-center gap-2"
+                  type="button"
+                >
+                  <span className="text-xs text-slate-300">Auto</span>
+                  <span className={cn(
+                    "relative inline-flex h-5 w-9 items-center rounded-full border transition-colors",
+                    storyboardAuto
+                      ? "bg-violet-600 border-violet-500"
+                      : "bg-white/10 border-white/15",
+                  )}>
+                    <span className={cn(
+                      "inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform",
+                      storyboardAuto ? "translate-x-4" : "translate-x-0.5",
+                    )} />
+                  </span>
+                </button>
+              </div>
+              {!storyboardAuto && (
+                <div className="relative">
+                  <textarea
+                    value={storyboardNarrative}
+                    onChange={(e) => setStoryboardNarrative(e.target.value)}
+                    rows={4}
+                    placeholder="Describe the storyboard..."
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-[#e2e8f0] placeholder:text-slate-600 outline-none focus:border-violet-500 resize-none transition-colors"
+                  />
+                  <button className="absolute bottom-2.5 right-2.5 p-1 rounded text-slate-500 hover:text-slate-300 transition-colors">
+                    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" />
+                    </svg>
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* ── BOTTOM BAR ─────────────────────────────────────────────── */}
+        <div className="flex-none border-t border-white/10 px-4 py-3 space-y-3 bg-[#050a14]">
+          {/* Control buttons row */}
+          <div className="flex items-center gap-1.5">
+            {/* Aspect Ratio */}
+            <div className="relative" onClick={(e) => e.stopPropagation()}>
+              <button
+                onClick={() => { setShowAspectMenu(!showAspectMenu); setShowGridMenu(false); }}
+                className={cn(
+                  "flex items-center gap-1.5 px-2.5 py-2 rounded-lg border text-xs font-medium transition-colors",
+                  showAspectMenu
+                    ? "border-violet-500 bg-violet-600 text-white"
+                    : "border-white/10 bg-white/5 text-slate-300 hover:border-white/20",
+                )}
+              >
+                <svg className="h-3 w-3" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <rect x="1" y="1" width="12" height="12" rx="1.5" />
+                </svg>
+                {aspectRatio}
+              </button>
+              {showAspectMenu && (
+                <div className="absolute bottom-full left-0 mb-1 rounded-lg border border-white/10 bg-slate-900/95 backdrop-blur-xl shadow-xl shadow-black/50 z-20 overflow-hidden min-w-[160px]">
+                  {ASPECT_RATIOS.map((ar) => (
+                    <button
+                      key={ar.value}
+                      onClick={() => { setAspectRatio(ar.value); setShowAspectMenu(false); }}
+                      className={cn(
+                        "w-full flex items-center gap-3 px-3 py-2 text-xs hover:bg-white/10 transition-colors",
+                        aspectRatio === ar.value ? "text-violet-400 bg-white/5" : "text-slate-300",
+                      )}
+                    >
+                      <span className="text-slate-500 w-5">{ar.icon}</span>
+                      <span className="font-medium w-8">{ar.value}</span>
+                      <span className="text-slate-500">{ar.label}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Grid Layout */}
+            <div className="relative" onClick={(e) => e.stopPropagation()}>
+              <button
+                onClick={() => { setShowGridMenu(!showGridMenu); setShowAspectMenu(false); }}
+                className={cn(
+                  "flex items-center gap-1.5 px-2.5 py-2 rounded-lg border text-xs font-medium transition-colors",
+                  showGridMenu
+                    ? "border-violet-500 bg-violet-600 text-white"
+                    : "border-white/10 bg-white/5 text-slate-300 hover:border-white/20",
+                )}
+              >
+                <GridIcon rows={currentGrid.rows} cols={currentGrid.cols} />
+                {gridLayout}
+              </button>
+              {showGridMenu && (
+                <div className="absolute bottom-full left-0 mb-1 rounded-lg border border-white/10 bg-slate-900/95 backdrop-blur-xl shadow-xl shadow-black/50 z-20 overflow-hidden">
+                  {GRID_OPTIONS.map((g) => (
+                    <button
+                      key={g.value}
+                      onClick={() => { setGridLayout(g.value); setShowGridMenu(false); }}
+                      className={cn(
+                        "w-full flex items-center gap-2.5 px-3 py-2 text-xs hover:bg-white/10 transition-colors",
+                        gridLayout === g.value ? "text-violet-400 bg-white/5" : "text-slate-300",
+                      )}
+                    >
+                      <GridIcon rows={g.rows} cols={g.cols} />
+                      {g.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Consistency Lock */}
+            <button
+              onClick={() => setConsistencyLock(!consistencyLock)}
+              className={cn(
+                "flex items-center gap-1.5 px-2.5 py-2 rounded-lg border text-xs font-medium transition-colors",
+                consistencyLock
+                  ? "border-violet-500 bg-violet-600 text-white"
+                  : "border-white/10 bg-white/5 text-slate-300 hover:border-white/20",
+              )}
+            >
+              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M18.178 8c5.096 0 5.096 8 0 8-5.095 0-7.133-8-12.739-8-4.585 0-4.585 8 0 8 5.606 0 7.644-8 12.74-8z" />
+              </svg>
+              {consistencyLock ? "ON" : "OFF"}
+            </button>
+          </div>
+
+          {/* Credit warning */}
+          {creditBalance > 0 && creditBalance < estimatedCost && !isGenerating && (
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/20">
+              <span className="text-red-400 text-xs">Insufficient credits. Need {estimatedCost}, have {creditBalance}.</span>
+            </div>
+          )}
+
+          {/* Generate button */}
+          <button
+            onClick={handleGenerate}
+            disabled={isGenerating || !referenceUrl || creditBalance < estimatedCost}
+            className={cn(
+              "w-full flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl text-sm font-semibold transition-all",
+              isGenerating
+                ? "bg-white/5 text-slate-400 cursor-not-allowed"
+                : (!referenceUrl || creditBalance < estimatedCost)
+                  ? "bg-white/5 text-slate-500 cursor-not-allowed opacity-60"
+                  : "bg-gradient-to-r from-violet-600 to-indigo-500 hover:from-violet-500 hover:to-indigo-400 text-white shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40",
+            )}
+          >
+            {isGenerating ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Sparkles className="h-4 w-4" />
+            )}
+            {isGenerating ? "Generating\u2026" : `Generate · ${estimatedCost} credits`}
+          </button>
         </div>
       </div>
     </div>
   );
 }
-
