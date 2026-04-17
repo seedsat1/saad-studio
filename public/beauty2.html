@@ -986,11 +986,11 @@ function doGen(toolId){
         headers:{'Content-Type':'application/json'},
         credentials:'include',
         body: JSON.stringify({
-          modelId:'nano-banana-pro',
+          modelId:'wan/2-7-image-pro',
           prompt,
           imageUrl,
-          imageInputField:'image_input',
-          aspectRatio: uploadedRatio || '1:1',
+          imageInputField:'input_urls',
+          quality:'2K',
           numImages: 1
         })
       });
