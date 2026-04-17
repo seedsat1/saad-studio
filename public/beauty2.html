@@ -264,6 +264,30 @@ body{font-family:var(--far);background:var(--bg);color:var(--txt);min-height:100
 
 ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:rgba(212,160,185,.12);border-radius:3px}
+
+/* SKELETON LOADER for images */
+.tc .thumb{position:relative}
+.tc .thumb::before{
+  content:'';position:absolute;inset:0;z-index:0;
+  background:linear-gradient(90deg,var(--bg2) 0%,rgba(255,255,255,.03) 50%,var(--bg2) 100%);
+  background-size:200% 100%;
+  animation:shimmer 1.5s ease infinite;
+}
+.tc .thumb img.tc-thumb-img{position:relative;z-index:1}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+.opt-card .opt-img{position:relative}
+.opt-card .opt-img::before{
+  content:'';position:absolute;inset:0;z-index:0;
+  background:linear-gradient(90deg,var(--bg2) 0%,rgba(255,255,255,.03) 50%,var(--bg2) 100%);
+  background-size:200% 100%;
+  animation:shimmer 1.5s ease infinite;
+}
+.opt-card .opt-img img{position:relative;z-index:1}
+
+/* Hide skeleton once image loads */
+.tc .thumb:has(img[src]:not([style*="display:none"]))::before{display:none}
+.opt-card .opt-img:has(img[src]:not([style*="display:none"]))::before{display:none}
 </style>
 <link rel="stylesheet" href="/css/theme.css">
 <script>(function(){var l=localStorage.getItem("saad_lang")==="ar"?"ar":"en";document.documentElement.lang=l;document.documentElement.dir="ltr";document.documentElement.setAttribute("data-lang",l);document.addEventListener("DOMContentLoaded",function(){if(document.body){document.body.classList.toggle("is-ar",l==="ar");document.body.classList.toggle("lang-ar",l==="ar");document.body.classList.toggle("lang-en",l!=="ar");}});})();</script>
@@ -606,17 +630,20 @@ function rGrid(){
     e.style.animationDelay=`${i*.03}s`;e.onclick=()=>openWS(t);
     const bc=t.badge==='hot'?'b-h':t.badge==='new'?'b-n':'b-p';
     const bl=t.badge==='hot'?'HOT':t.badge==='new'?'NEW':'POPULAR';
-    // Use first option images or placeholder
-    const thumbContent=`<div class="ph-icon" style="font-size:1.6rem;opacity:.3;font-family:var(--fen);letter-spacing:2px;text-transform:uppercase;color:var(--txt3)">${isAr?(t.ar||t.name):t.name}</div><div class="ph-text">${TX.imageSoon}</div>`;
     const thumbOverlay = t.noThumbOverlay ? '' : '<div class="ovl"></div>';
     const thumbStyle = `style="aspect-ratio:${t.thumbAspect||'16/9'}"`;
+    const toolLabel = isAr?(t.ar||t.name):t.name;
+    // Use real thumbnail image if available, fallback to placeholder
+    const thumbContent = t.thumb
+      ? `<img src="${t.thumb}" alt="${toolLabel}" loading="lazy" class="tc-thumb-img" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="ph-icon" style="display:none;font-size:1.6rem;opacity:.3;font-family:var(--fen);letter-spacing:2px;text-transform:uppercase;color:var(--txt3)">${toolLabel}</div>`
+      : `<div class="ph-icon" style="font-size:1.6rem;opacity:.3;font-family:var(--fen);letter-spacing:2px;text-transform:uppercase;color:var(--txt3)">${toolLabel}</div>`;
 
     e.innerHTML=`
       <div class="thumb" ${thumbStyle}>${thumbContent}${thumbOverlay}
         <span class="bd ${bc}">${bl}</span>
         <span class="opts-count">${t.options.length} ${TX.options}</span>
       </div>
-      <div class="inf"><h3>${isAr?(t.ar||t.name):t.name}</h3><p class="ds">${locDesc(t.desc,t.name)}</p></div>`;
+      <div class="inf"><h3>${toolLabel}</h3><p class="ds">${locDesc(t.desc,t.name)}</p></div>`;
     $g.appendChild(e);
   });
 }
@@ -630,46 +657,15 @@ initBeautyCards();
 const $o=document.getElementById('wO'),$w=document.getElementById('wS');
 let uploadedFile=null, uploadedRatio='2:3', selectedOpt=null, currentTool=null;
 
-function getOptionImageCandidates(tool,optId){
-  const toolId = tool.id;
-  const base = `/img/beauty-options/${toolId}`;
-  const toolThumb = tool.thumb ? String(tool.thumb) : '';
-  return [
-    `${base}/${optId}.jpg`,
-    `${base}/${optId}.png`,
-    `${base}/${optId}.webp`,
-    toolThumb,
-    `${base}/default.jpg`,
-    `${base}/default.png`,
-    `${base}/default.webp`
-  ].filter(Boolean);
-}
-
-function handleOptImgError(imgEl, arName){
-  try{
-    const list = (imgEl.dataset.fallbacks || '').split('|').filter(Boolean);
-    const idx = Number(imgEl.dataset.idx || '0');
-    const next = idx + 1;
-    if(next < list.length){
-      imgEl.dataset.idx = String(next);
-      imgEl.src = list[next];
-      return;
-    }
-  }catch(_){}
-  const wrap = imgEl.parentElement;
-  if(wrap){
-    wrap.innerHTML = `<div class="opt-ph">${isAr?arName:(arName&& !hasArabic(arName)?arName:'Style')}<br><span style="font-size:.5rem;opacity:.5">${TX.imageSoon}</span></div>`;
-  }
-}
-
 function openWS(tool){
   uploadedFile=null;selectedOpt=null;currentTool=tool;
 
   const colsClass=`cols-${tool.optsCols||4}`;
   const optsHTML=tool.options.map(opt=>{
-    const imgContent = opt.img
-      ? `<img src="${opt.img}" alt="${opt.name}">`
-      : `<div class="opt-ph">${isAr?(opt.nameAr||opt.name):opt.name}</div>`;
+    // Use option image, fallback to tool default, then placeholder
+    const optLabel = isAr?(opt.nameAr||opt.name):opt.name;
+    const optImgSrc = opt.img || `/img/beauty-options/${tool.id}/default.jpg`;
+    const imgContent = `<img src="${optImgSrc}" alt="${optLabel}" loading="lazy" onerror="this.style.display='none';this.parentElement.insertAdjacentHTML('beforeend','<div class=\\'opt-ph\\'>${optLabel.replace(/'/g,'&#39;')}<br><span style=\\'font-size:.5rem;opacity:.5\\'>${TX.imageSoon}</span></div>')"><div class="opt-ph" style="display:none">${optLabel}</div>`;
     return`
     <div class="opt-card no-media-actions" data-no-media-actions data-id="${opt.id}" onclick="selOpt(this,'${opt.id}')">
       <input type="radio" name="opt" value="${opt.id}">
