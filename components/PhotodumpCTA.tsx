@@ -4,9 +4,11 @@ import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
 import { usePromoMedia, promoUrl } from "@/hooks/use-promo-media";
+import { usePromoContent, promoText } from "@/hooks/use-promo-content";
 
 export default function PhotodumpCTA() {
   const promo = usePromoMedia();
+  const content = usePromoContent();
 
   return (
     <section className="py-16 relative overflow-hidden">
@@ -51,7 +53,7 @@ export default function PhotodumpCTA() {
               viewport={{ once: true }}
               transition={{ delay: 0.1 }}
             >
-              photodump
+              {promoText(content, "explore/photodump-hero", "badge", "photodump")}
             </motion.span>
 
             <motion.h2
@@ -61,8 +63,7 @@ export default function PhotodumpCTA() {
               viewport={{ once: true }}
               transition={{ delay: 0.15 }}
             >
-              Different Scenes{" "}
-              <span className="text-gradient-cyan">Same Star</span>
+              {promoText(content, "explore/photodump-hero", "title", "Different Scenes Same Star")}
             </motion.h2>
 
             <motion.p
@@ -72,7 +73,7 @@ export default function PhotodumpCTA() {
               viewport={{ once: true }}
               transition={{ delay: 0.22 }}
             >
-              Build your character once. Drop them into any scene, outfit, or environment — one click does the rest. Consistent identity across unlimited contexts.
+              {promoText(content, "explore/photodump-hero", "subtitle", "Build your character once. Drop them into any scene, outfit, or environment — one click does the rest. Consistent identity across unlimited contexts.")}
             </motion.p>
 
             <motion.div
@@ -95,7 +96,7 @@ export default function PhotodumpCTA() {
                     <path d="M3 7a2 2 0 012-2h.5l1-2h7l1 2H17a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
                     <circle cx="10" cy="11" r="2.5" stroke="currentColor" strokeWidth="1.5" />
                   </svg>
-                  Try Photodump
+                  {promoText(content, "explore/photodump-hero", "cta", "Try Photodump")}
                   <motion.div
                     className="absolute inset-0 opacity-0"
                     style={{ background: "rgba(255,255,255,0.12)" }}

@@ -1276,7 +1276,7 @@ export default function PageBuilderPage() {
       const res = await fetch("/api/admin/promo/content", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slotId, content }),
+        body: JSON.stringify({ slotId, ...content }),
       });
       if (!res.ok) throw new Error("Failed to save");
       setPromoContent((prev) => ({ ...prev, [slotId]: content }));

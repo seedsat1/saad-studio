@@ -6,6 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { usePromoMedia, promoUrl } from "@/hooks/use-promo-media";
+import { usePromoContent, promoText } from "@/hooks/use-promo-content";
 
 const TABS = [
   {
@@ -52,6 +53,7 @@ const TABS = [
 export default function CommunityGallery() {
   const [activeTab, setActiveTab] = useState("soul-cinema");
   const promo = usePromoMedia();
+  const content = usePromoContent();
 
   const current = TABS.find((t) => t.id === activeTab)!;
 
@@ -153,7 +155,7 @@ export default function CommunityGallery() {
 
                   {/* Label */}
                   <div className="absolute bottom-0 left-0 right-0 z-10 p-3">
-                    <p className="text-[12px] font-semibold text-[#e2e8f0] truncate">{item.name}</p>
+                    <p className="text-[12px] font-semibold text-[#e2e8f0] truncate">{promoText(content, item.slotId, "title", item.name)}</p>
                   </div>
 
                   {/* Hover border */}
