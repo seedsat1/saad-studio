@@ -13,6 +13,7 @@ import {
 import { cn } from "@/lib/utils";
 import { usePageLayout } from "@/lib/use-page-layout";
 import { usePromoMedia, promoUrl } from "@/hooks/use-promo-media";
+import { usePromoContent } from "@/hooks/use-promo-content";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Badge = "NEW" | "PRO" | "TOP" | "HOT" | "";
@@ -802,6 +803,7 @@ const TOP_CHOICE_SLOT_MAP: Record<string, string> = {
 export default function ExplorePage() {
   const { blocks } = usePageLayout("home");
   const promo = usePromoMedia();
+  const promoContent = usePromoContent();
 
   const homeHeroSlides = useMemo<HeroSlide[]>(() => {
     const heroBlocks = blocks.filter((b) => b.type === "HERO");
@@ -823,15 +825,23 @@ export default function ExplorePage() {
         youtubeUrl: b.youtubeUrl || undefined,
       };
     });
-    // Apply promo media overrides
+    // Apply promo media + text overrides
     return base.map((s, i) => {
       const slotId = HERO_SLOT_IDS[i];
       if (!slotId) return s;
+      let updated = { ...s };
       const custom = promo[slotId];
-      if (!custom?.url) return s;
-      return { ...s, bgImage: custom.url };
+      if (custom?.url) updated.bgImage = custom.url;
+      const text = promoContent[slotId];
+      if (text) {
+        if (text.title) updated.title = text.title;
+        if (text.subtitle) updated.subtitle = text.subtitle;
+        if (text.badge) updated.tag = text.badge;
+        if (text.ctaHref) updated.ctaHref = text.ctaHref;
+      }
+      return updated;
     });
-  }, [blocks, promo]);
+  }, [blocks, promo, promoContent]);
 
   const homeCoreCards = useMemo<ToolCard[]>(() => {
     const featureBlocks = blocks.filter((b) => b.type === "FEATURE_CARD");
@@ -848,11 +858,17 @@ export default function ExplorePage() {
     return base.map((c) => {
       const slotId = CORE_TOOL_SLOT_MAP[c.id];
       if (!slotId) return c;
+      let updated = { ...c };
       const custom = promo[slotId];
-      if (!custom?.url) return c;
-      return { ...c, image: custom.url };
+      if (custom?.url) updated.image = custom.url;
+      const text = promoContent[slotId];
+      if (text) {
+        if (text.title) updated.title = text.title;
+        if (text.subtitle) updated.description = text.subtitle;
+      }
+      return updated;
     });
-  }, [blocks, promo]);
+  }, [blocks, promo, promoContent]);
 
   const homeTopCards = useMemo<ToolCard[]>(() => {
     const gridBlocks = blocks.filter((b) => b.type === "DISCOVER_GRID");
@@ -869,11 +885,17 @@ export default function ExplorePage() {
     return base.map((c) => {
       const slotId = TOP_CHOICE_SLOT_MAP[c.id];
       if (!slotId) return c;
+      let updated = { ...c };
       const custom = promo[slotId];
-      if (!custom?.url) return c;
-      return { ...c, image: custom.url };
+      if (custom?.url) updated.image = custom.url;
+      const text = promoContent[slotId];
+      if (text) {
+        if (text.title) updated.title = text.title;
+        if (text.subtitle) updated.description = text.subtitle;
+      }
+      return updated;
     });
-  }, [blocks, promo]);
+  }, [blocks, promo, promoContent]);
 
   return (
     <div className="min-h-screen bg-slate-950 text-white">

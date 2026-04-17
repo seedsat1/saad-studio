@@ -6,6 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { usePromoMedia } from "@/hooks/use-promo-media";
+import { usePromoContent } from "@/hooks/use-promo-content";
 
 const TOOLS = [
   {
@@ -118,14 +119,22 @@ export default function CoreToolsSection() {
   const [tools, setTools] = useState(TOOLS);
   const scrollRef = useRef<HTMLDivElement>(null);
   const promo = usePromoMedia();
+  const promoContent = usePromoContent();
 
-  // Apply promo media overrides
+  // Apply promo media + text overrides
   useEffect(() => {
     setTools((prev) =>
       prev.map((t, i) => {
+        let updated = { ...t };
         const custom = promo[CORE_SLOT_IDS[i]];
-        if (!custom?.url) return t;
-        return { ...t, image: custom.url };
+        if (custom?.url) updated.image = custom.url;
+        const text = promoContent[CORE_SLOT_IDS[i]];
+        if (text) {
+          if (text.title) updated.name = text.title;
+          if (text.subtitle) updated.desc = text.subtitle;
+          if (text.badge) updated.badge = text.badge;
+        }
+        return updated;
       })
     );
   }, [promo]);

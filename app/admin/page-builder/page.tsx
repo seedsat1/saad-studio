@@ -23,6 +23,12 @@ import {
   ChevronRight,
   Grid3X3,
   ArrowLeft,
+  Edit3,
+  Save,
+  Bell,
+  Plus,
+  Type,
+  Link2,
 } from "lucide-react";
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -39,7 +45,7 @@ type PresetMedia = {
   costMultiplier: number;
 };
 
-type AssetSection = "transitions" | "beauty-tools" | "promo";
+type AssetSection = "transitions" | "beauty-tools" | "promo" | "announcement";
 
 type BeautyOption = {
   id: string;
@@ -700,7 +706,7 @@ function BeautyToolRow({
    PROMO SECTIONS — All promotional images organized by page/section
    ═══════════════════════════════════════════════════════════════════════ */
 
-type PromoSlot = { id: string; name: string; fallback: string; aspect?: string };
+type PromoSlot = { id: string; name: string; fallback: string; aspect?: string; editable?: ("title" | "subtitle" | "cta" | "ctaHref" | "badge")[] };
 type PromoGroup = { id: string; name: string; icon: string; slots: PromoSlot[] };
 
 const PROMO_GROUPS: PromoGroup[] = [
@@ -821,15 +827,29 @@ function PromoSlotCard({
   mediaUrl,
   onUpload,
   uploading,
+  content,
+  isEditing,
+  onEditToggle,
+  onContentSave,
+  contentSaving,
 }: {
   slot: PromoSlot;
   mediaUrl: string | null;
   onUpload: (file: File) => void;
   uploading: boolean;
+  content?: { title?: string; subtitle?: string; cta?: string; ctaHref?: string; badge?: string };
+  isEditing: boolean;
+  onEditToggle: () => void;
+  onContentSave: (content: { title?: string; subtitle?: string; cta?: string; ctaHref?: string; badge?: string }) => void;
+  contentSaving: boolean;
 }) {
   const ref = useRef<HTMLInputElement>(null);
   const displayUrl = mediaUrl || slot.fallback;
   const isCustom = !!mediaUrl;
+  const hasContent = content && Object.values(content).some((v) => v);
+  const [draft, setDraft] = useState(content || {});
+
+  useEffect(() => { setDraft(content || {}); }, [content, isEditing]);
 
   return (
     <div className="group relative rounded-xl overflow-hidden border border-slate-700/60 bg-slate-900/40 transition-all hover:border-slate-600">
@@ -840,12 +860,27 @@ function PromoSlotCard({
           className="w-full h-full object-cover"
           onError={(e) => { (e.target as HTMLImageElement).src = slot.fallback; }}
         />
-        {/* Status badge */}
-        <div className={`absolute top-2 left-2 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
-          isCustom ? "bg-emerald-500/90 text-white" : "bg-slate-800/80 text-slate-400 border border-slate-700/50"
-        }`}>
-          {isCustom ? "Custom" : "Default"}
+        {/* Status badges */}
+        <div className="absolute top-2 left-2 flex gap-1">
+          <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
+            isCustom ? "bg-emerald-500/90 text-white" : "bg-slate-800/80 text-slate-400 border border-slate-700/50"
+          }`}>
+            {isCustom ? "Custom" : "Default"}
+          </span>
+          {hasContent && (
+            <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-cyan-500/90 text-white">
+              Text
+            </span>
+          )}
         </div>
+        {/* Edit text button */}
+        <button
+          onClick={onEditToggle}
+          className="absolute top-2 right-2 p-1.5 rounded-lg bg-slate-900/80 border border-slate-600/50 text-slate-400 hover:text-white hover:bg-violet-600/80 transition-all"
+          title="Edit text content"
+        >
+          <Edit3 className="w-3 h-3" />
+        </button>
         {/* Upload overlay */}
         <div
           className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer"
@@ -865,6 +900,48 @@ function PromoSlotCard({
         <p className="text-[11px] text-white font-bold truncate">{slot.name}</p>
         <p className="text-[9px] text-slate-500 truncate">{slot.id}</p>
       </div>
+      {/* Text editing panel */}
+      {isEditing && (
+        <div className="p-3 border-t border-slate-700/50 space-y-2 bg-slate-800/30">
+          <div>
+            <label className="text-[9px] text-slate-500 font-bold uppercase">Title</label>
+            <input value={draft.title || ""} onChange={(e) => setDraft({ ...draft, title: e.target.value })}
+              className="w-full mt-0.5 px-2 py-1.5 rounded-lg bg-slate-900/60 border border-slate-700 text-xs text-white focus:outline-none focus:border-violet-500" placeholder={slot.name} />
+          </div>
+          <div>
+            <label className="text-[9px] text-slate-500 font-bold uppercase">Subtitle</label>
+            <input value={draft.subtitle || ""} onChange={(e) => setDraft({ ...draft, subtitle: e.target.value })}
+              className="w-full mt-0.5 px-2 py-1.5 rounded-lg bg-slate-900/60 border border-slate-700 text-xs text-white focus:outline-none focus:border-violet-500" placeholder="Description..." />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-[9px] text-slate-500 font-bold uppercase">CTA Text</label>
+              <input value={draft.cta || ""} onChange={(e) => setDraft({ ...draft, cta: e.target.value })}
+                className="w-full mt-0.5 px-2 py-1.5 rounded-lg bg-slate-900/60 border border-slate-700 text-xs text-white focus:outline-none focus:border-violet-500" placeholder="Try Now" />
+            </div>
+            <div>
+              <label className="text-[9px] text-slate-500 font-bold uppercase">Badge</label>
+              <input value={draft.badge || ""} onChange={(e) => setDraft({ ...draft, badge: e.target.value })}
+                className="w-full mt-0.5 px-2 py-1.5 rounded-lg bg-slate-900/60 border border-slate-700 text-xs text-white focus:outline-none focus:border-violet-500" placeholder="NEW" />
+            </div>
+          </div>
+          <div>
+            <label className="text-[9px] text-slate-500 font-bold uppercase">CTA Link</label>
+            <input value={draft.ctaHref || ""} onChange={(e) => setDraft({ ...draft, ctaHref: e.target.value })}
+              className="w-full mt-0.5 px-2 py-1.5 rounded-lg bg-slate-900/60 border border-slate-700 text-xs text-white focus:outline-none focus:border-violet-500" placeholder="/apps/tool/..." />
+          </div>
+          <div className="flex gap-2 pt-1">
+            <button onClick={() => onContentSave(draft)} disabled={contentSaving}
+              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-[11px] font-bold transition-colors disabled:opacity-50">
+              {contentSaving ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />} Save
+            </button>
+            <button onClick={onEditToggle}
+              className="px-3 py-1.5 rounded-lg bg-slate-700/60 text-slate-400 text-[11px] font-bold hover:text-white transition-colors">
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
       <input
         ref={ref}
         type="file"
@@ -891,6 +968,11 @@ function PromoGroupRow({
   setOpenGroup,
   onSlotUpload,
   uploadingSlot,
+  promoContent,
+  editingSlot,
+  setEditingSlot,
+  onContentSave,
+  contentSaving,
 }: {
   group: PromoGroup;
   promoMedia: Record<string, { url: string; type: string }>;
@@ -898,6 +980,11 @@ function PromoGroupRow({
   setOpenGroup: (id: string | null) => void;
   onSlotUpload: (slotId: string, file: File) => void;
   uploadingSlot: string | null;
+  promoContent: Record<string, { title?: string; subtitle?: string; cta?: string; ctaHref?: string; badge?: string }>;
+  editingSlot: string | null;
+  setEditingSlot: (id: string | null) => void;
+  onContentSave: (slotId: string, content: { title?: string; subtitle?: string; cta?: string; ctaHref?: string; badge?: string }) => void;
+  contentSaving: boolean;
 }) {
   const isOpen = openGroup === group.id;
   const filledCount = group.slots.filter((s) => promoMedia[s.id]).length;
@@ -937,6 +1024,11 @@ function PromoGroupRow({
                   mediaUrl={promoMedia[slot.id]?.url || null}
                   onUpload={(file) => onSlotUpload(slot.id, file)}
                   uploading={uploadingSlot === slot.id}
+                  content={promoContent[slot.id]}
+                  isEditing={editingSlot === slot.id}
+                  onEditToggle={() => setEditingSlot(editingSlot === slot.id ? null : slot.id)}
+                  onContentSave={(content) => onContentSave(slot.id, content)}
+                  contentSaving={contentSaving}
                 />
               ))}
             </div>
@@ -955,6 +1047,7 @@ const SECTIONS: { id: AssetSection; label: string; icon: React.ElementType }[] =
   { id: "transitions", label: "Transitions", icon: Film },
   { id: "beauty-tools", label: "Beauty Studio", icon: Sparkles },
   { id: "promo", label: "Promo & Ads", icon: Megaphone },
+  { id: "announcement", label: "Announcement", icon: Bell },
 ];
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -1009,6 +1102,17 @@ export default function PageBuilderPage() {
   const [promoMedia, setPromoMedia] = useState<Record<string, { url: string; type: string }>>({});
   const [promoUploading, setPromoUploading] = useState<string | null>(null);
   const [openPromoGroup, setOpenPromoGroup] = useState<string | null>(null);
+
+  // Announcement state
+  const [announcementConfig, setAnnouncementConfig] = useState<{
+    enabled: boolean; text: string; link: string; linkLabel: string; bgColor: string; textColor: string;
+  }>({ enabled: false, text: "", link: "", linkLabel: "", bgColor: "#7c3aed", textColor: "#ffffff" });
+  const [announcementSaving, setAnnouncementSaving] = useState(false);
+
+  // Promo content (text overrides) state
+  const [promoContent, setPromoContent] = useState<Record<string, { title?: string; subtitle?: string; cta?: string; ctaHref?: string; badge?: string }>>({});
+  const [editingSlot, setEditingSlot] = useState<string | null>(null);
+  const [contentSaving, setContentSaving] = useState(false);
 
   // Beauty state
   const [beautyCat, setBeautyCat] = useState("all");
@@ -1130,6 +1234,58 @@ export default function PageBuilderPage() {
       setToast({ msg: err instanceof Error ? err.message : "Upload failed", type: "err" });
     } finally {
       setPromoUploading(null);
+    }
+  };
+
+  // ─── Load announcement config ───
+  useEffect(() => {
+    fetch("/api/admin/announcement")
+      .then((r) => r.json())
+      .then((d) => { if (d.config) setAnnouncementConfig(d.config); })
+      .catch(() => {});
+  }, []);
+
+  const handleAnnouncementSave = async () => {
+    setAnnouncementSaving(true);
+    try {
+      const res = await fetch("/api/admin/announcement", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(announcementConfig),
+      });
+      if (!res.ok) throw new Error("Failed to save");
+      setToast({ msg: "Announcement bar saved!", type: "ok" });
+    } catch {
+      setToast({ msg: "Failed to save announcement", type: "err" });
+    } finally {
+      setAnnouncementSaving(false);
+    }
+  };
+
+  // ─── Load promo content ───
+  useEffect(() => {
+    fetch("/api/admin/promo/content")
+      .then((r) => r.json())
+      .then((d) => { if (d.content) setPromoContent(d.content); })
+      .catch(() => {});
+  }, []);
+
+  const handleContentSave = async (slotId: string, content: { title?: string; subtitle?: string; cta?: string; ctaHref?: string; badge?: string }) => {
+    setContentSaving(true);
+    try {
+      const res = await fetch("/api/admin/promo/content", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slotId, content }),
+      });
+      if (!res.ok) throw new Error("Failed to save");
+      setPromoContent((prev) => ({ ...prev, [slotId]: content }));
+      setEditingSlot(null);
+      setToast({ msg: `Content saved for ${slotId}`, type: "ok" });
+    } catch {
+      setToast({ msg: "Failed to save content", type: "err" });
+    } finally {
+      setContentSaving(false);
     }
   };
 
@@ -1345,8 +1501,122 @@ export default function PageBuilderPage() {
                   setOpenGroup={setOpenPromoGroup}
                   onSlotUpload={handlePromoSlotUpload}
                   uploadingSlot={promoUploading}
+                  promoContent={promoContent}
+                  editingSlot={editingSlot}
+                  setEditingSlot={setEditingSlot}
+                  onContentSave={handleContentSave}
+                  contentSaving={contentSaving}
                 />
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* ═══ ANNOUNCEMENT ═══ */}
+        {section === "announcement" && (
+          <div className="space-y-6 max-w-2xl">
+            <div>
+              <h2 className="text-sm font-bold text-white">Announcement Bar</h2>
+              <p className="text-[11px] text-slate-500 mt-0.5">Configure the top-of-page announcement banner shown to all visitors.</p>
+            </div>
+
+            {/* Preview */}
+            <div className="rounded-xl border border-slate-700/50 overflow-hidden">
+              <p className="text-[9px] text-slate-600 font-bold uppercase tracking-wider px-4 pt-3">Preview</p>
+              <div className="p-4">
+                {announcementConfig.enabled ? (
+                  <div className="rounded-lg px-4 py-2.5 text-center text-sm font-medium flex items-center justify-center gap-2"
+                    style={{ backgroundColor: announcementConfig.bgColor, color: announcementConfig.textColor }}>
+                    <Bell className="w-3.5 h-3.5" />
+                    <span>{announcementConfig.text || "Your announcement text here..."}</span>
+                    {announcementConfig.linkLabel && (
+                      <span className="underline underline-offset-2 font-bold ml-1">{announcementConfig.linkLabel}</span>
+                    )}
+                  </div>
+                ) : (
+                  <div className="rounded-lg px-4 py-2.5 text-center text-sm text-slate-600 border border-dashed border-slate-700">
+                    Announcement bar is disabled
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Form */}
+            <div className="space-y-4 rounded-xl border border-slate-700/50 bg-slate-900/30 p-5">
+              {/* Enabled toggle */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-bold text-white">Enable Announcement</p>
+                  <p className="text-[11px] text-slate-500">Show the bar at the top of every page</p>
+                </div>
+                <button
+                  onClick={() => setAnnouncementConfig((c) => ({ ...c, enabled: !c.enabled }))}
+                  className={`relative w-12 h-6 rounded-full transition-colors ${
+                    announcementConfig.enabled ? "bg-violet-600" : "bg-slate-700"
+                  }`}
+                >
+                  <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${
+                    announcementConfig.enabled ? "translate-x-6" : "translate-x-0.5"
+                  }`} />
+                </button>
+              </div>
+
+              <div>
+                <label className="text-[10px] text-slate-500 font-bold uppercase">Announcement Text</label>
+                <input value={announcementConfig.text}
+                  onChange={(e) => setAnnouncementConfig((c) => ({ ...c, text: e.target.value }))}
+                  className="w-full mt-1 px-3 py-2.5 rounded-xl bg-slate-800/60 border border-slate-700 text-sm text-white focus:outline-none focus:border-violet-500 transition-colors"
+                  placeholder="🎉 Big announcement here..." maxLength={200} />
+                <p className="text-[9px] text-slate-600 mt-1">{announcementConfig.text.length}/200</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[10px] text-slate-500 font-bold uppercase">Link URL</label>
+                  <input value={announcementConfig.link}
+                    onChange={(e) => setAnnouncementConfig((c) => ({ ...c, link: e.target.value }))}
+                    className="w-full mt-1 px-3 py-2.5 rounded-xl bg-slate-800/60 border border-slate-700 text-sm text-white focus:outline-none focus:border-violet-500 transition-colors"
+                    placeholder="/apps/tool/..." />
+                </div>
+                <div>
+                  <label className="text-[10px] text-slate-500 font-bold uppercase">Link Label</label>
+                  <input value={announcementConfig.linkLabel}
+                    onChange={(e) => setAnnouncementConfig((c) => ({ ...c, linkLabel: e.target.value }))}
+                    className="w-full mt-1 px-3 py-2.5 rounded-xl bg-slate-800/60 border border-slate-700 text-sm text-white focus:outline-none focus:border-violet-500 transition-colors"
+                    placeholder="Learn More →" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[10px] text-slate-500 font-bold uppercase">Background Color</label>
+                  <div className="flex items-center gap-2 mt-1">
+                    <input type="color" value={announcementConfig.bgColor}
+                      onChange={(e) => setAnnouncementConfig((c) => ({ ...c, bgColor: e.target.value }))}
+                      className="w-10 h-10 rounded-lg border border-slate-700 cursor-pointer" />
+                    <input value={announcementConfig.bgColor}
+                      onChange={(e) => setAnnouncementConfig((c) => ({ ...c, bgColor: e.target.value }))}
+                      className="flex-1 px-3 py-2.5 rounded-xl bg-slate-800/60 border border-slate-700 text-sm text-white font-mono focus:outline-none focus:border-violet-500" />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-[10px] text-slate-500 font-bold uppercase">Text Color</label>
+                  <div className="flex items-center gap-2 mt-1">
+                    <input type="color" value={announcementConfig.textColor}
+                      onChange={(e) => setAnnouncementConfig((c) => ({ ...c, textColor: e.target.value }))}
+                      className="w-10 h-10 rounded-lg border border-slate-700 cursor-pointer" />
+                    <input value={announcementConfig.textColor}
+                      onChange={(e) => setAnnouncementConfig((c) => ({ ...c, textColor: e.target.value }))}
+                      className="flex-1 px-3 py-2.5 rounded-xl bg-slate-800/60 border border-slate-700 text-sm text-white font-mono focus:outline-none focus:border-violet-500" />
+                  </div>
+                </div>
+              </div>
+
+              <button onClick={handleAnnouncementSave} disabled={announcementSaving}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-bold transition-colors disabled:opacity-50">
+                {announcementSaving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                Save Announcement
+              </button>
             </div>
           </div>
         )}

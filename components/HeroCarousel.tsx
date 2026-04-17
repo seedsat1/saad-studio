@@ -6,6 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { X, Play } from "lucide-react";
 import { usePromoMedia, promoUrl } from "@/hooks/use-promo-media";
+import { usePromoContent } from "@/hooks/use-promo-content";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function getYouTubeId(url: string): string | null {
@@ -144,19 +145,29 @@ export default function HeroCarousel() {
   const [trailerOpen, setTrailerOpen] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);
   const promo = usePromoMedia();
+  const promoContent = usePromoContent();
 
-  // Apply promo media overrides to slides
+  // Apply promo media + text overrides to slides
   useEffect(() => {
     setSlides((prev) =>
       prev.map((s, i) => {
         const slotId = SLIDE_SLOT_IDS[i];
         if (!slotId) return s;
+        let updated = { ...s };
         const custom = promo[slotId];
-        if (!custom?.url) return s;
-        return { ...s, image: custom.url };
+        if (custom?.url) updated.image = custom.url;
+        const text = promoContent[slotId];
+        if (text) {
+          if (text.title) updated.title = text.title;
+          if (text.subtitle) updated.subtitle = text.subtitle;
+          if (text.cta) updated.cta = text.cta;
+          if (text.ctaHref) updated.ctaHref = text.ctaHref;
+          if (text.badge) updated.badge = text.badge;
+        }
+        return updated;
       })
     );
-  }, [promo]);
+  }, [promo, promoContent]);
 
   useEffect(() => {
     let canceled = false;
