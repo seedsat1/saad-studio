@@ -143,12 +143,14 @@ const MODEL_ALIAS_MAP: Record<string, string> = {
   "seedream/5-lite-text-to-image":      "seedream5l",
   "seedream/5-lite-image-to-image":     "seedream5i",
   "z-image":                            "zimage",
-  "grok-imagine":                       "grok_img",
-  "grok-imagine-edit":                  "grok_imge",
-  "gpt-image-1.5":                      "gpt15t",
-  "gpt-image-1.5-edit":                 "gpt15i",
-  "qwen-image":                         "qwen_t",
-  "qwen-image-edit":                    "qwen_i",
+  "grok-imagine/text-to-image":         "grok_img",
+  "grok-imagine/image-to-image":        "grok_imge",
+  "gpt-image/1.5-text-to-image":       "gpt15t",
+  "gpt-image/1.5-image-to-image":      "gpt15i",
+  "qwen2/text-to-image":               "qwen_t",
+  "qwen2/image-edit":                   "qwen_i",
+  "qwen/image-to-image":               "qwen_i",
+  "wan/2-7-image-pro":                  "nano_pro",
 };
 
 // ─── Quality multipliers ──────────────────────────────────────────────────────
