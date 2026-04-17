@@ -8,7 +8,7 @@ import { getResolvedKieRoutingMaps } from "@/lib/kie-model-routing";
 import { syncKieModelCatalog } from "@/lib/kie-model-sync";
 import { uploadBufferToStorage } from "@/lib/supabase-storage";
 
-export const maxDuration = 60;
+export const maxDuration = 180;
 export const dynamic = "force-dynamic";
 
 const KIE_CREATE_TASK_URL = "https://api.kie.ai/api/v1/jobs/createTask";
@@ -97,11 +97,13 @@ async function createKieTask(
 async function pollKieTask(
   apiKey: string,
   taskId: string,
-  maxAttempts = 100,
+  maxAttempts = 50,
   intervalMs = 3000,
 ): Promise<string[]> {
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    await new Promise((r) => setTimeout(r, intervalMs));
+    // First 5 polls: 2s interval (fast models); then 3s (default)
+    const wait = attempt < 5 ? 2000 : intervalMs;
+    await new Promise((r) => setTimeout(r, wait));
 
     const res = await fetch(
       `${KIE_QUERY_TASK_URL}?taskId=${encodeURIComponent(taskId)}`,

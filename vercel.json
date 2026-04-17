@@ -6,6 +6,7 @@
     "app/api/video/route.ts":        { "maxDuration": 60 },
     "app/api/music/route.ts":        { "maxDuration": 60 },
     "app/api/generate/route.ts":     { "maxDuration": 60 },
+    "app/api/generate/image/route.ts": { "maxDuration": 180 },
     "app/api/cinema/**":             { "maxDuration": 60 },
     "app/api/shots/**":              { "maxDuration": 60 },
     "app/api/variations/**":         { "maxDuration": 60 },
