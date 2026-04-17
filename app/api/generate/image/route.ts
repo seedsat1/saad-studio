@@ -224,11 +224,21 @@ export async function POST(req: NextRequest) {
     if (imageUrlsParam?.length) refUrls.push(...imageUrlsParam);
     const resolvedRefs = await Promise.all(refUrls.map((r, i) => resolveRef(r, i)));
 
+    const isWanModel = kieModelId.startsWith("wan/");
+
     const input: Record<string, unknown> = {
       prompt: sanitizePrompt(prompt, 5000),
       aspect_ratio: aspectRatio,
-      num_images: numImages,
     };
+    // Wan uses `n` for image count; other models use `num_images`
+    if (isWanModel) {
+      input.n = numImages;
+      input.nsfw_checker = false;
+      input.watermark = false;
+      input.seed = 0;
+    } else {
+      input.num_images = numImages;
+    }
     if (negativePrompt) input.negative_prompt = negativePrompt;
     // Build reference image fields using the model-specific field name
     if (resolvedRefs.length > 0) {

@@ -937,8 +937,9 @@ function buildEditPrompt(tool,opt){
   const optId=opt?.id||'';
   const toolP=BEAUTY_EDIT_PROMPTS[toolId]||{};
   const optName=(isAr?(opt?.nameAr||opt?.name):opt?.name)||'default';
-  const base=toolP[optId]||`Same person as in the reference photo, with ${optName} style applied for ${tool?.name||'beauty'} transformation. Keep the exact same face and identity.`;
-  return `${base} Photorealistic, high quality portrait photography.`;
+  const base=toolP[optId]||`Edit this photo: apply ${optName} style for ${tool?.name||'beauty'}. Keep the exact same face and identity.`;
+  // Wan 2.7 Image Pro: strong identity preservation prefix
+  return `IMPORTANT: This is an image editing task. Do NOT generate a new person. Keep the EXACT same person, same face, same identity, same body, same pose, same background from the input image. Only modify what is described below.\n\n${base}\n\nDo not change the person's face, eyes, nose, or any facial features. Preserve skin tone, body shape, and camera angle exactly as in the original photo. Photorealistic, high quality.`;
 }
 
 async function fileToDataUrl(file){
