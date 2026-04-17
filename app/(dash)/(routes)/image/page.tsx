@@ -79,7 +79,9 @@ const EDIT_MODELS = IMAGE_MODELS.filter((m) =>
   ["google/nano-banana-edit", "seedream/4.5-edit", "gpt-image/1.5-image-to-image", "flux-2/pro-image-to-image"].includes(m.id),
 );
 
-const ENHANCE_MODELS = IMAGE_MODELS.filter((m) => m.inputType === "image-to-image");
+const ENHANCE_MODELS = IMAGE_MODELS.filter(
+  (m) => (m.inputType === "image-to-image" || m.inputType === "edit") && m.maxRefImages > 0,
+);
 
 const uid = (prefix = "id") => `${prefix}_${Math.random().toString(36).slice(2, 10)}`;
 
@@ -671,7 +673,7 @@ export default function ImageWorkspacePage() {
   const [faceExpression, setFaceExpression] = useState(true);
   const [faceSkin, setFaceSkin] = useState(true);
   const [faceIndex, setFaceIndex] = useState(0);
-  const [enhanceFile, setEnhanceFile] = useState<File | null>(null);
+  const [enhanceFiles, setEnhanceFiles] = useState<File[]>([]);
   const [enhanceModelId, setEnhanceModelId] = useState(
     ENHANCE_MODELS.find((m) => m.id === "gpt-image/1.5-image-to-image")?.id ?? ENHANCE_MODELS[0]?.id ?? "gpt-image/1.5-image-to-image",
   );
@@ -751,9 +753,9 @@ export default function ImageWorkspacePage() {
     if (activeTool === "relight") return Boolean(relightFile && prompt.trim());
     if (activeTool === "inpaint") return Boolean(inpaintFile && prompt.trim());
     if (activeTool === "upscale") return Boolean(upscaleFile);
-    if (activeTool === "enhance") return Boolean(enhanceFile);
+    if (activeTool === "enhance") return enhanceFiles.length > 0;
     return Boolean(faceSource && faceTarget);
-  }, [activeTool, enhanceFile, faceSource, faceTarget, generating, inpaintFile, prompt, relightFile, upscaleFile]);
+  }, [activeTool, enhanceFiles.length, faceSource, faceTarget, generating, inpaintFile, prompt, relightFile, upscaleFile]);
 
   const addResultItems = useCallback((urls: string[], tool: ToolId, model: string, p: string, aspect: string) => {
     const newItems = urls.map((url) => ({ id: uid("img"), url, tool, model, prompt: p, aspect }));
@@ -889,31 +891,38 @@ export default function ImageWorkspacePage() {
   }, [addResultItems, faceBlend, faceExpression, faceIndex, faceSkin, faceSource, faceTarget]);
 
   const generateEnhance = useCallback(async () => {
-    if (!enhanceFile) throw new Error("Upload image first");
-    const imgData = await fileToDataUrl(enhanceFile);
+    if (!enhanceFiles.length) throw new Error("Upload at least one image first");
     const enhanceModel = ENHANCE_MODELS.find((m) => m.id === enhanceModelId) ?? ENHANCE_MODELS[0];
     if (!enhanceModel) throw new Error("No enhancement model available");
+    const maxRef = enhanceModel.maxRefImages;
+    const filesToSend = enhanceFiles.slice(0, maxRef > 0 ? maxRef : 1);
+    const imgDataArray = await Promise.all(filesToSend.map(fileToDataUrl));
     const enhancePrompt =
       prompt.trim() ||
       "Enhance and restore this photo. Preserve the subject's exact identity, face features, skin tone, and appearance. Improve sharpness, detail, and remove noise and blur. Photorealistic, high quality.";
+    const body: Record<string, unknown> = {
+      prompt: enhancePrompt,
+      modelId: enhanceModel.id,
+      numImages: 1,
+      imageInputField: enhanceModel.imageInputField,
+    };
+    if (imgDataArray.length === 1) {
+      body.imageUrl = imgDataArray[0];
+    } else {
+      body.imageUrls = imgDataArray;
+    }
     const res = await fetch("/api/generate/image", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        prompt: enhancePrompt,
-        modelId: enhanceModel.id,
-        numImages: 1,
-        imageUrl: imgData,
-        imageInputField: enhanceModel.imageInputField,
-      }),
+      body: JSON.stringify(body),
     });
     const data = await res.json();
     if (!res.ok || data.error) throw new Error(data.error || "Enhancement failed");
     const urls: string[] = data.imageUrls || [];
-    const before = URL.createObjectURL(enhanceFile);
+    const before = URL.createObjectURL(enhanceFiles[0]);
     if (urls[0]) setCompare({ before, after: urls[0] });
     addResultItems(urls, "enhance", enhanceModel.label, enhancePrompt, "source");
-  }, [addResultItems, enhanceFile, enhanceModelId, prompt]);
+  }, [addResultItems, enhanceFiles, enhanceModelId, prompt]);
 
   const handleGenerate = useCallback(async () => {
     if (!guard()) return;
@@ -1052,23 +1061,73 @@ export default function ImageWorkspacePage() {
     }
 
     if (activeTool === "enhance") {
+      const currentEnhanceModel = ENHANCE_MODELS.find((m) => m.id === enhanceModelId) ?? ENHANCE_MODELS[0];
+      const maxSlots = currentEnhanceModel?.maxRefImages ?? 1;
       return <>
-        <UploadBox label="Upload photo to enhance" file={enhanceFile} onFile={setEnhanceFile} required />
         <section className="space-y-2">
           <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-zinc-500">Enhancement Model</p>
           <select
             value={enhanceModelId}
-            onChange={(e) => setEnhanceModelId(e.target.value)}
+            onChange={(e) => { setEnhanceModelId(e.target.value); setEnhanceFiles([]); }}
             className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-pink-500"
           >
             {ENHANCE_MODELS.map((model) => (
-              <option key={model.id} value={model.id}>{model.label}</option>
+              <option key={model.id} value={model.id}>{model.label} (max {model.maxRefImages} img)</option>
             ))}
           </select>
         </section>
+
+        <section className="space-y-2">
+          <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-zinc-500">
+            Input Images
+            <span className="ml-2 font-normal normal-case text-zinc-600">{enhanceFiles.length}/{maxSlots} added</span>
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            {Array.from({ length: Math.min(maxSlots, 6) }).map((_, i) => {
+              const file = enhanceFiles[i] ?? null;
+              const preview = file ? URL.createObjectURL(file) : null;
+              return (
+                <div key={i} className="relative">
+                  <label className={cn(
+                    "flex h-24 cursor-pointer flex-col items-center justify-center rounded-xl border text-xs transition",
+                    file ? "border-pink-400/50 bg-pink-500/5" : "border-dashed border-white/15 bg-white/3 text-zinc-600 hover:border-white/30",
+                  )}>
+                    {preview ? (
+                      <img src={preview} alt="" className="h-full w-full rounded-xl object-cover" />
+                    ) : (
+                      <><UploadCloud className="mb-1 h-5 w-5" /><span>{i === 0 ? "Required" : "Optional"}</span></>
+                    )}
+                    <input
+                      type="file" accept="image/*" className="hidden"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (!f) return;
+                        setEnhanceFiles((prev) => {
+                          const next = [...prev];
+                          next[i] = f;
+                          return next.filter(Boolean);
+                        });
+                        e.target.value = "";
+                      }}
+                    />
+                  </label>
+                  {file && (
+                    <button
+                      onClick={() => setEnhanceFiles((prev) => prev.filter((_, idx) => idx !== i))}
+                      className="absolute -right-1 -top-1 rounded-full bg-black/70 p-0.5 text-zinc-200"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
         <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-[12px] leading-relaxed text-amber-200">
           <strong className="text-amber-300">✦ True Image-to-Image</strong><br />
-          ENHANCE sends your photo directly as input to the AI — it transforms the image while preserving the subject&apos;s identity, unlike CREATE which only uses it as loose inspiration.
+          ENHANCE sends your photo directly as input to the AI — preserves identity. Unlike CREATE which uses it as loose inspiration.
         </div>
       </>;
     }
