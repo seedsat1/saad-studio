@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
+import { usePromoMedia } from "@/hooks/use-promo-media";
 
 const TOP_TOOLS = [
   {
@@ -101,8 +102,22 @@ type LayoutBlock = {
   isVideo?: boolean;
 };
 
+const TOP_SLOT_IDS = TOP_TOOLS.map((t) => `explore/top-${t.id}`);
+
 export default function TopChoiceGrid() {
   const [topTools, setTopTools] = useState(TOP_TOOLS);
+  const promo = usePromoMedia();
+
+  // Apply promo media overrides
+  useEffect(() => {
+    setTopTools((prev) =>
+      prev.map((t, i) => {
+        const custom = promo[TOP_SLOT_IDS[i]];
+        if (!custom?.url) return t;
+        return { ...t, image: custom.url };
+      })
+    );
+  }, [promo]);
 
   useEffect(() => {
     let canceled = false;

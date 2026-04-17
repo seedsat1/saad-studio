@@ -697,93 +697,252 @@ function BeautyToolRow({
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   PROMO UPLOAD ZONE
+   PROMO SECTIONS — All promotional images organized by page/section
    ═══════════════════════════════════════════════════════════════════════ */
 
-function PromoUploadZone({
-  onUpload,
-  uploads,
-  onRemove,
-}: {
-  onUpload: (files: FileList) => void;
-  uploads: { url: string; type: string; name: string }[];
-  onRemove: (idx: number) => void;
-}) {
-  const fileRef = useRef<HTMLInputElement>(null);
-  const [dragging, setDragging] = useState(false);
+type PromoSlot = { id: string; name: string; fallback: string; aspect?: string };
+type PromoGroup = { id: string; name: string; icon: string; slots: PromoSlot[] };
 
-  const handleDrop = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault();
-      setDragging(false);
-      if (e.dataTransfer.files?.length) onUpload(e.dataTransfer.files);
-    },
-    [onUpload]
-  );
+const PROMO_GROUPS: PromoGroup[] = [
+  {
+    id: "landing-hero", name: "Landing Page — Hero Banners", icon: "🏠",
+    slots: [
+      { id: "landing/hero-1", name: "Cinema Studio 3.0", fallback: "/landing/hero-1.jpg", aspect: "21/9" },
+      { id: "landing/hero-2", name: "Zephyr Original Series", fallback: "/landing/hero-2.jpg", aspect: "21/9" },
+      { id: "landing/hero-3", name: "Image Studio 4K", fallback: "/landing/hero-3.jpg", aspect: "21/9" },
+      { id: "landing/hero-4", name: "Nano Banana Pro", fallback: "/landing/hero-4.jpg", aspect: "21/9" },
+    ],
+  },
+  {
+    id: "landing-tools", name: "Landing Page — Tool Cards", icon: "🛠️",
+    slots: [
+      { id: "landing/tool-create-image", name: "Create Image", fallback: "/landing/tool-create-image.png" },
+      { id: "landing/tool-create-video", name: "Create Video", fallback: "/landing/tool-create-video.png" },
+      { id: "landing/tool-cinema", name: "Cinema Studio", fallback: "/landing/tool-cinema.png" },
+      { id: "landing/tool-ai-influencer", name: "AI Influencer", fallback: "/landing/tool-ai-influencer.png" },
+      { id: "landing/tool-soul-id", name: "Soul ID", fallback: "/landing/tool-soul-id.png" },
+      { id: "landing/tool-lipsync", name: "Lipsync", fallback: "/landing/tool-lipsync.png" },
+      { id: "landing/tool-vibe-motion", name: "Vibe Motion", fallback: "/landing/tool-vibe-motion.png" },
+      { id: "landing/tool-draw-video", name: "Draw to Edit", fallback: "/landing/tool-draw-video.png" },
+      { id: "landing/tool-relight", name: "Relight", fallback: "/landing/tool-relight.png" },
+      { id: "landing/tool-face-swap", name: "Face Swap", fallback: "/landing/tool-face-swap.png" },
+      { id: "landing/tool-ugc-factory", name: "UGC Factory", fallback: "/landing/tool-ugc-factory.png" },
+      { id: "landing/tool-upscale", name: "Upscale", fallback: "/landing/tool-upscale.png" },
+      { id: "landing/tool-char-swap", name: "Character Swap", fallback: "/landing/tool-char-swap.png" },
+      { id: "landing/tool-fashion-factory", name: "Fashion Factory", fallback: "/landing/tool-fashion-factory.png" },
+    ],
+  },
+  {
+    id: "explore-hero", name: "Explore — Hero Carousel", icon: "🎬",
+    slots: [
+      { id: "explore/hero-cinema-studio", name: "Cinema Studio", fallback: "/explore/hero-cinema-studio.jpg", aspect: "21/9" },
+      { id: "explore/hero-nano-banana", name: "Nano Banana Pro", fallback: "/explore/hero-nano-banana.jpg", aspect: "21/9" },
+      { id: "explore/hero-original-series", name: "Original Series", fallback: "/explore/hero-original-series.jpg", aspect: "21/9" },
+      { id: "explore/hero-soul-2", name: "Soul 2.0", fallback: "/explore/hero-soul-2.jpg", aspect: "21/9" },
+    ],
+  },
+  {
+    id: "explore-top", name: "Explore — Top Choices", icon: "⭐",
+    slots: [
+      { id: "explore/top-nano-banana-pro", name: "Nano Banana Pro", fallback: "/explore/top-nano-banana-pro.jpg" },
+      { id: "explore/top-motion-control", name: "Motion Control", fallback: "/explore/top-motion-control.jpg" },
+      { id: "explore/top-skin-enhancer", name: "Skin Enhancer", fallback: "/explore/top-skin-enhancer.jpg" },
+      { id: "explore/top-shots", name: "Shots", fallback: "/explore/top-shots.jpg" },
+      { id: "explore/top-angles-2", name: "Angles 2.0", fallback: "/explore/top-angles-2.jpg" },
+      { id: "explore/top-kling-3", name: "Kling 3.0", fallback: "/explore/top-kling-3.jpg" },
+      { id: "explore/top-seedream-5", name: "Seedream 5.0", fallback: "/explore/top-seedream-5.jpg" },
+      { id: "explore/top-soul-moodboard", name: "Soul Moodboard", fallback: "/explore/top-soul-moodboard.jpg" },
+    ],
+  },
+  {
+    id: "explore-tools", name: "Explore — Core Tools", icon: "🔧",
+    slots: [
+      { id: "explore/tool-create-image", name: "Create Image", fallback: "/explore/tool-create-image.jpg" },
+      { id: "explore/tool-create-video", name: "Create Video", fallback: "/explore/tool-create-video.jpg" },
+      { id: "explore/tool-motion-control", name: "Motion Control", fallback: "/explore/tool-motion-control.jpg" },
+      { id: "explore/tool-soul-2", name: "Soul 2.0", fallback: "/explore/tool-soul-2.jpg" },
+      { id: "explore/tool-soul-id", name: "Soul ID", fallback: "/explore/tool-soul-id.jpg" },
+      { id: "explore/tool-upscale", name: "Upscale", fallback: "/explore/tool-upscale.jpg" },
+      { id: "explore/tool-edit-image", name: "Edit Image", fallback: "/explore/tool-edit-image.jpg" },
+      { id: "explore/tool-edit-video", name: "Edit Video", fallback: "/explore/tool-edit-video.jpg" },
+      { id: "explore/tool-mixed-media", name: "Mixed Media", fallback: "/explore/tool-mixed-media.jpg" },
+      { id: "explore/tool-angles-2", name: "Angles 2.0", fallback: "/explore/tool-angles-2.jpg" },
+    ],
+  },
+  {
+    id: "gallery-soul-cinema", name: "Gallery — Soul Cinema", icon: "🎥",
+    slots: [
+      { id: "explore/gallery-soul-cinema-1", name: "Noir City Nights", fallback: "/explore/gallery-soul-cinema-1.jpg" },
+      { id: "explore/gallery-soul-cinema-2", name: "Ocean Rebellion", fallback: "/explore/gallery-soul-cinema-2.jpg" },
+      { id: "explore/gallery-soul-cinema-3", name: "Desert Storm", fallback: "/explore/gallery-soul-cinema-3.jpg" },
+      { id: "explore/gallery-soul-cinema-4", name: "Cosmic Drift", fallback: "/explore/gallery-soul-cinema-4.jpg" },
+      { id: "explore/gallery-soul-cinema-5", name: "Neo Tokyo", fallback: "/explore/gallery-soul-cinema-5.jpg" },
+      { id: "explore/gallery-soul-cinema-6", name: "Masquerade Ball", fallback: "/explore/gallery-soul-cinema-6.jpg" },
+    ],
+  },
+  {
+    id: "gallery-soul-2", name: "Gallery — Soul 2.0", icon: "✨",
+    slots: [
+      { id: "explore/gallery-soul-2-1", name: "Couture Fantasy", fallback: "/explore/gallery-soul-2-1.jpg" },
+      { id: "explore/gallery-soul-2-2", name: "Street Luxe", fallback: "/explore/gallery-soul-2-2.jpg" },
+      { id: "explore/gallery-soul-2-3", name: "Crystal Gala", fallback: "/explore/gallery-soul-2-3.jpg" },
+      { id: "explore/gallery-soul-2-4", name: "Garden Bloom", fallback: "/explore/gallery-soul-2-4.jpg" },
+      { id: "explore/gallery-soul-2-5", name: "Dark Elegance", fallback: "/explore/gallery-soul-2-5.jpg" },
+      { id: "explore/gallery-soul-2-6", name: "Midnight Luxe", fallback: "/explore/gallery-soul-2-6.jpg" },
+    ],
+  },
+  {
+    id: "gallery-mixed", name: "Gallery — Mixed Media", icon: "🎨",
+    slots: [
+      { id: "explore/gallery-mixed-media-1", name: "Anime Fusion", fallback: "/explore/gallery-mixed-media-1.jpg" },
+      { id: "explore/gallery-mixed-media-2", name: "Oil Masterpiece", fallback: "/explore/gallery-mixed-media-2.jpg" },
+      { id: "explore/gallery-mixed-media-3", name: "Glitch Art", fallback: "/explore/gallery-mixed-media-3.jpg" },
+      { id: "explore/gallery-mixed-media-4", name: "Comic Pulse", fallback: "/explore/gallery-mixed-media-4.jpg" },
+      { id: "explore/gallery-mixed-media-5", name: "Neon Dreams", fallback: "/explore/gallery-mixed-media-5.jpg" },
+      { id: "explore/gallery-mixed-media-6", name: "Mystical Portal", fallback: "/explore/gallery-mixed-media-6.jpg" },
+    ],
+  },
+  {
+    id: "photodump", name: "Photodump CTA", icon: "📸",
+    slots: [
+      { id: "explore/photodump-hero", name: "Photodump Hero", fallback: "/explore/photodump-hero.jpg", aspect: "4/3" },
+    ],
+  },
+];
+
+const TOTAL_PROMO_SLOTS = PROMO_GROUPS.reduce((s, g) => s + g.slots.length, 0);
+
+/* ═══════════════════════════════════════════════════════════════════════
+   PROMO SLOT CARD
+   ═══════════════════════════════════════════════════════════════════════ */
+
+function PromoSlotCard({
+  slot,
+  mediaUrl,
+  onUpload,
+  uploading,
+}: {
+  slot: PromoSlot;
+  mediaUrl: string | null;
+  onUpload: (file: File) => void;
+  uploading: boolean;
+}) {
+  const ref = useRef<HTMLInputElement>(null);
+  const displayUrl = mediaUrl || slot.fallback;
+  const isCustom = !!mediaUrl;
 
   return (
-    <div className="space-y-4">
-      <div
-        onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
-        onDragLeave={() => setDragging(false)}
-        onDrop={handleDrop}
-        onClick={() => fileRef.current?.click()}
-        className={`relative cursor-pointer rounded-2xl border-2 border-dashed p-8 text-center transition-all ${
-          dragging ? "border-violet-500 bg-violet-500/5" : "border-slate-700 bg-slate-900/30 hover:border-slate-600"
-        }`}
-      >
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-violet-600/20 to-purple-700/10 border border-violet-500/20 flex items-center justify-center">
-            <Upload className="w-6 h-6 text-violet-400" />
-          </div>
-          <div>
-            <p className="text-sm font-bold text-slate-200">Drop files here or click to upload</p>
-            <p className="text-xs text-slate-500 mt-1">Videos (MP4, WebM) or Images (PNG, JPG, WebP)</p>
-          </div>
-        </div>
-        <input
-          ref={fileRef}
-          type="file"
-          accept="image/*,video/*"
-          multiple
-          className="hidden"
-          onChange={(e) => {
-            if (e.target.files?.length) onUpload(e.target.files);
-            e.target.value = "";
-          }}
+    <div className="group relative rounded-xl overflow-hidden border border-slate-700/60 bg-slate-900/40 transition-all hover:border-slate-600">
+      <div className="relative" style={{ aspectRatio: slot.aspect || "16/9" }}>
+        <img
+          src={displayUrl}
+          alt={slot.name}
+          className="w-full h-full object-cover"
+          onError={(e) => { (e.target as HTMLImageElement).src = slot.fallback; }}
         />
-      </div>
-
-      {uploads.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-          {uploads.map((u, idx) => (
-            <div key={idx} className="relative group rounded-xl overflow-hidden border border-slate-700/60 bg-slate-900/40">
-              {u.type.startsWith("video") ? (
-                <video src={u.url} className="w-full aspect-video object-cover" muted playsInline preload="metadata" />
-              ) : (
-                <img src={u.url} alt={u.name} className="w-full aspect-video object-cover" />
-              )}
-              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                <a
-                  href={u.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="p-2 rounded-lg bg-slate-800 text-slate-300 hover:text-white transition-colors"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <ExternalLink className="w-4 h-4" />
-                </a>
-                <button onClick={() => onRemove(idx)} className="p-2 rounded-lg bg-red-600/30 text-red-300 hover:bg-red-600/50 transition-colors">
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-              <div className="p-2">
-                <p className="text-[10px] text-slate-400 truncate">{u.name}</p>
-              </div>
-            </div>
-          ))}
+        {/* Status badge */}
+        <div className={`absolute top-2 left-2 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
+          isCustom ? "bg-emerald-500/90 text-white" : "bg-slate-800/80 text-slate-400 border border-slate-700/50"
+        }`}>
+          {isCustom ? "Custom" : "Default"}
         </div>
-      )}
+        {/* Upload overlay */}
+        <div
+          className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer"
+          onClick={() => ref.current?.click()}
+        >
+          {uploading ? (
+            <RefreshCw className="w-5 h-5 text-violet-400 animate-spin" />
+          ) : (
+            <div className="flex flex-col items-center gap-1">
+              <Upload className="w-5 h-5 text-violet-400" />
+              <span className="text-[10px] text-slate-300 font-bold">Replace</span>
+            </div>
+          )}
+        </div>
+      </div>
+      <div className="p-2">
+        <p className="text-[11px] text-white font-bold truncate">{slot.name}</p>
+        <p className="text-[9px] text-slate-500 truncate">{slot.id}</p>
+      </div>
+      <input
+        ref={ref}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) onUpload(f);
+          e.target.value = "";
+        }}
+      />
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   PROMO GROUP ROW (expandable)
+   ═══════════════════════════════════════════════════════════════════════ */
+
+function PromoGroupRow({
+  group,
+  promoMedia,
+  openGroup,
+  setOpenGroup,
+  onSlotUpload,
+  uploadingSlot,
+}: {
+  group: PromoGroup;
+  promoMedia: Record<string, { url: string; type: string }>;
+  openGroup: string | null;
+  setOpenGroup: (id: string | null) => void;
+  onSlotUpload: (slotId: string, file: File) => void;
+  uploadingSlot: string | null;
+}) {
+  const isOpen = openGroup === group.id;
+  const filledCount = group.slots.filter((s) => promoMedia[s.id]).length;
+
+  return (
+    <div className="rounded-xl border border-slate-700/50 bg-slate-900/30 overflow-hidden">
+      <button
+        onClick={() => setOpenGroup(isOpen ? null : group.id)}
+        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-800/30 transition-colors"
+      >
+        <span className="text-lg">{group.icon}</span>
+        <div className="flex-1 text-left">
+          <p className="text-sm font-bold text-white">{group.name}</p>
+          <p className="text-[10px] text-slate-500">{group.slots.length} slots · {filledCount} custom</p>
+        </div>
+        {filledCount > 0 && (
+          <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+            {filledCount}/{group.slots.length}
+          </span>
+        )}
+        {isOpen ? <ChevronDown className="w-4 h-4 text-slate-500" /> : <ChevronRight className="w-4 h-4 text-slate-500" />}
+      </button>
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <div className="p-4 pt-2 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+              {group.slots.map((slot) => (
+                <PromoSlotCard
+                  key={slot.id}
+                  slot={slot}
+                  mediaUrl={promoMedia[slot.id]?.url || null}
+                  onUpload={(file) => onSlotUpload(slot.id, file)}
+                  uploading={uploadingSlot === slot.id}
+                />
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -847,8 +1006,9 @@ export default function PageBuilderPage() {
   const [search, setSearch] = useState("");
   const [catFilter, setCatFilter] = useState<string>("all");
   const [toast, setToast] = useState<{ msg: string; type: "ok" | "err" } | null>(null);
-  const [promoUploads, setPromoUploads] = useState<{ url: string; type: string; name: string }[]>([]);
-  const [promoUploading, setPromoUploading] = useState(false);
+  const [promoMedia, setPromoMedia] = useState<Record<string, { url: string; type: string }>>({});
+  const [promoUploading, setPromoUploading] = useState<string | null>(null);
+  const [openPromoGroup, setOpenPromoGroup] = useState<string | null>(null);
 
   // Beauty state
   const [beautyCat, setBeautyCat] = useState("all");
@@ -947,19 +1107,29 @@ export default function PageBuilderPage() {
     }
   };
 
-  // ─── Promo upload ───
-  const handlePromoUpload = async (files: FileList) => {
-    setPromoUploading(true);
+  // ─── Promo media ───
+  useEffect(() => {
+    fetch("/api/admin/promo/media")
+      .then((r) => r.json())
+      .then((d) => { if (d.media) setPromoMedia(d.media); })
+      .catch(() => {});
+  }, []);
+
+  const handlePromoSlotUpload = async (slotId: string, file: File) => {
+    setPromoUploading(slotId);
     try {
-      for (const file of Array.from(files)) {
-        const { publicUrl } = await uploadToSupabase(file);
-        setPromoUploads((prev) => [...prev, { url: publicUrl, type: file.type, name: file.name }]);
-      }
-      setToast({ msg: `${files.length} promo asset(s) uploaded`, type: "ok" });
+      const { publicUrl } = await uploadToSupabase(file);
+      await fetch("/api/admin/promo/media", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slotId, url: publicUrl, mediaType: file.type.startsWith("video") ? "video" : "image" }),
+      });
+      setPromoMedia((prev) => ({ ...prev, [slotId]: { url: publicUrl, type: file.type.startsWith("video") ? "video" : "image" } }));
+      setToast({ msg: `Updated: ${slotId}`, type: "ok" });
     } catch (err) {
       setToast({ msg: err instanceof Error ? err.message : "Upload failed", type: "err" });
     } finally {
-      setPromoUploading(false);
+      setPromoUploading(null);
     }
   };
 
@@ -1150,15 +1320,34 @@ export default function PageBuilderPage() {
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-sm font-bold text-white">Promotional Media</h2>
-                <p className="text-[11px] text-slate-500 mt-0.5">Upload videos and images for ads, banners, and promo across the site.</p>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  Manage all {TOTAL_PROMO_SLOTS} promotional images across the site. Click a section to expand.
+                </p>
               </div>
-              {promoUploading && (
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-violet-500/10 border border-violet-500/20 text-violet-300 text-[11px] font-bold">
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin" /> Uploading...
-                </div>
-              )}
+              <div className="flex items-center gap-2">
+                {promoUploading && (
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-violet-500/10 border border-violet-500/20 text-violet-300 text-[11px] font-bold">
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" /> Uploading...
+                  </div>
+                )}
+                <span className="px-2 py-1 rounded-lg bg-slate-800/60 border border-slate-700/40 text-[10px] text-slate-400 font-bold">
+                  {Object.keys(promoMedia).length}/{TOTAL_PROMO_SLOTS} custom
+                </span>
+              </div>
             </div>
-            <PromoUploadZone onUpload={handlePromoUpload} uploads={promoUploads} onRemove={(idx) => setPromoUploads((p) => p.filter((_, i) => i !== idx))} />
+            <div className="space-y-2">
+              {PROMO_GROUPS.map((group) => (
+                <PromoGroupRow
+                  key={group.id}
+                  group={group}
+                  promoMedia={promoMedia}
+                  openGroup={openPromoGroup}
+                  setOpenGroup={setOpenPromoGroup}
+                  onSlotUpload={handlePromoSlotUpload}
+                  uploadingSlot={promoUploading}
+                />
+              ))}
+            </div>
           </div>
         )}
       </div>

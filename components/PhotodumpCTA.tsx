@@ -3,8 +3,11 @@
 import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
+import { usePromoMedia, promoUrl } from "@/hooks/use-promo-media";
 
 export default function PhotodumpCTA() {
+  const promo = usePromoMedia();
+
   return (
     <section className="py-16 relative overflow-hidden">
       {/* Mesh gradient background */}
@@ -141,7 +144,7 @@ export default function PhotodumpCTA() {
                 style={{ border: "1px solid rgba(148,163,184,0.10)" }}
               >
                 <Image
-                  src="/explore/photodump-hero.jpg"
+                  src={promoUrl(promo, "explore/photodump-hero", "/explore/photodump-hero.jpg")}
                   alt="Photodump — Different Scenes Same Star"
                   fill
                   className="object-cover object-center"

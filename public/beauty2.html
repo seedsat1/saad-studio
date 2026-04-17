@@ -649,7 +649,7 @@ function rGrid(){
 }
 async function loadBeautyMedia(){
   try{
-    const r=await fetch('/api/admin/beauty/media');
+    const r=await fetch('/api/beauty/media');
     if(!r.ok)return;
     const d=await r.json();
     if(!d.media)return;

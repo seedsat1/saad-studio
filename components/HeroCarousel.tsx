@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
 import { X, Play } from "lucide-react";
+import { usePromoMedia, promoUrl } from "@/hooks/use-promo-media";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function getYouTubeId(url: string): string | null {
@@ -77,6 +78,13 @@ type LayoutBlock = {
 };
 
 // ─── Fallback slides ──────────────────────────────────────────────────────────
+const SLIDE_SLOT_IDS = [
+  "explore/hero-cinema-studio",
+  "explore/hero-nano-banana",
+  "explore/hero-original-series",
+  "explore/hero-soul-2",
+];
+
 const SLIDES: Slide[] = [
   {
     id: 1,
@@ -135,6 +143,20 @@ export default function HeroCarousel() {
   const [visible, setVisible] = useState(true);
   const [trailerOpen, setTrailerOpen] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);
+  const promo = usePromoMedia();
+
+  // Apply promo media overrides to slides
+  useEffect(() => {
+    setSlides((prev) =>
+      prev.map((s, i) => {
+        const slotId = SLIDE_SLOT_IDS[i];
+        if (!slotId) return s;
+        const custom = promo[slotId];
+        if (!custom?.url) return s;
+        return { ...s, image: custom.url };
+      })
+    );
+  }, [promo]);
 
   useEffect(() => {
     let canceled = false;

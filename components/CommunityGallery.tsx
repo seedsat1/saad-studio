@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
+import { usePromoMedia, promoUrl } from "@/hooks/use-promo-media";
 
 const TABS = [
   {
@@ -12,12 +13,12 @@ const TABS = [
     label: "Soul Cinema",
     href: "/video/cinema-studio",
     items: [
-      { id: "sc1", image: "/explore/gallery-soul-cinema-1.jpg", name: "Noir City Nights" },
-      { id: "sc2", image: "/explore/gallery-soul-cinema-2.jpg", name: "Ocean Rebellion" },
-      { id: "sc3", image: "/explore/gallery-soul-cinema-3.jpg", name: "Desert Storm" },
-      { id: "sc4", image: "/explore/gallery-soul-cinema-4.jpg", name: "Cosmic Drift" },
-      { id: "sc5", image: "/explore/gallery-soul-cinema-5.jpg", name: "Neo Tokyo" },
-      { id: "sc6", image: "/explore/gallery-soul-cinema-6.jpg", name: "Masquerade Ball" },
+      { id: "sc1", slotId: "explore/gallery-soul-cinema-1", image: "/explore/gallery-soul-cinema-1.jpg", name: "Noir City Nights" },
+      { id: "sc2", slotId: "explore/gallery-soul-cinema-2", image: "/explore/gallery-soul-cinema-2.jpg", name: "Ocean Rebellion" },
+      { id: "sc3", slotId: "explore/gallery-soul-cinema-3", image: "/explore/gallery-soul-cinema-3.jpg", name: "Desert Storm" },
+      { id: "sc4", slotId: "explore/gallery-soul-cinema-4", image: "/explore/gallery-soul-cinema-4.jpg", name: "Cosmic Drift" },
+      { id: "sc5", slotId: "explore/gallery-soul-cinema-5", image: "/explore/gallery-soul-cinema-5.jpg", name: "Neo Tokyo" },
+      { id: "sc6", slotId: "explore/gallery-soul-cinema-6", image: "/explore/gallery-soul-cinema-6.jpg", name: "Masquerade Ball" },
     ],
   },
   {
@@ -25,12 +26,12 @@ const TABS = [
     label: "Soul 2.0",
     href: "/image/soul-id",
     items: [
-      { id: "s21", image: "/explore/gallery-soul-2-1.jpg", name: "Couture Fantasy" },
-      { id: "s22", image: "/explore/gallery-soul-2-2.jpg", name: "Street Luxe" },
-      { id: "s23", image: "/explore/gallery-soul-2-3.jpg", name: "Crystal Gala" },
-      { id: "s24", image: "/explore/gallery-soul-2-4.jpg", name: "Garden Bloom" },
-      { id: "s25", image: "/explore/gallery-soul-2-5.jpg", name: "Dark Elegance" },
-      { id: "s26", image: "/explore/gallery-soul-2-6.jpg", name: "Midnight Luxe" },
+      { id: "s21", slotId: "explore/gallery-soul-2-1", image: "/explore/gallery-soul-2-1.jpg", name: "Couture Fantasy" },
+      { id: "s22", slotId: "explore/gallery-soul-2-2", image: "/explore/gallery-soul-2-2.jpg", name: "Street Luxe" },
+      { id: "s23", slotId: "explore/gallery-soul-2-3", image: "/explore/gallery-soul-2-3.jpg", name: "Crystal Gala" },
+      { id: "s24", slotId: "explore/gallery-soul-2-4", image: "/explore/gallery-soul-2-4.jpg", name: "Garden Bloom" },
+      { id: "s25", slotId: "explore/gallery-soul-2-5", image: "/explore/gallery-soul-2-5.jpg", name: "Dark Elegance" },
+      { id: "s26", slotId: "explore/gallery-soul-2-6", image: "/explore/gallery-soul-2-6.jpg", name: "Midnight Luxe" },
     ],
   },
   {
@@ -38,18 +39,19 @@ const TABS = [
     label: "Mixed Media",
     href: "/video/mixed-media",
     items: [
-      { id: "mm1", image: "/explore/gallery-mixed-media-1.jpg", name: "Anime Fusion" },
-      { id: "mm2", image: "/explore/gallery-mixed-media-2.jpg", name: "Oil Masterpiece" },
-      { id: "mm3", image: "/explore/gallery-mixed-media-3.jpg", name: "Glitch Art" },
-      { id: "mm4", image: "/explore/gallery-mixed-media-4.jpg", name: "Comic Pulse" },
-      { id: "mm5", image: "/explore/gallery-mixed-media-5.jpg", name: "Neon Dreams" },
-      { id: "mm6", image: "/explore/gallery-mixed-media-6.jpg", name: "Mystical Portal" },
+      { id: "mm1", slotId: "explore/gallery-mixed-media-1", image: "/explore/gallery-mixed-media-1.jpg", name: "Anime Fusion" },
+      { id: "mm2", slotId: "explore/gallery-mixed-media-2", image: "/explore/gallery-mixed-media-2.jpg", name: "Oil Masterpiece" },
+      { id: "mm3", slotId: "explore/gallery-mixed-media-3", image: "/explore/gallery-mixed-media-3.jpg", name: "Glitch Art" },
+      { id: "mm4", slotId: "explore/gallery-mixed-media-4", image: "/explore/gallery-mixed-media-4.jpg", name: "Comic Pulse" },
+      { id: "mm5", slotId: "explore/gallery-mixed-media-5", image: "/explore/gallery-mixed-media-5.jpg", name: "Neon Dreams" },
+      { id: "mm6", slotId: "explore/gallery-mixed-media-6", image: "/explore/gallery-mixed-media-6.jpg", name: "Mystical Portal" },
     ],
   },
 ];
 
 export default function CommunityGallery() {
   const [activeTab, setActiveTab] = useState("soul-cinema");
+  const promo = usePromoMedia();
 
   const current = TABS.find((t) => t.id === activeTab)!;
 
@@ -136,7 +138,7 @@ export default function CommunityGallery() {
                 >
                   {/* Image */}
                   <Image
-                    src={item.image}
+                    src={promoUrl(promo, item.slotId, item.image)}
                     alt={item.name}
                     fill
                     className="object-cover object-center transition-transform duration-500 group-hover:scale-110"

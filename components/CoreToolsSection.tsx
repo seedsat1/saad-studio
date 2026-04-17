@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
+import { usePromoMedia } from "@/hooks/use-promo-media";
 
 const TOOLS = [
   {
@@ -111,9 +112,23 @@ type LayoutBlock = {
   isVideo?: boolean;
 };
 
+const CORE_SLOT_IDS = TOOLS.map((t) => `explore/tool-${t.id}`);
+
 export default function CoreToolsSection() {
   const [tools, setTools] = useState(TOOLS);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const promo = usePromoMedia();
+
+  // Apply promo media overrides
+  useEffect(() => {
+    setTools((prev) =>
+      prev.map((t, i) => {
+        const custom = promo[CORE_SLOT_IDS[i]];
+        if (!custom?.url) return t;
+        return { ...t, image: custom.url };
+      })
+    );
+  }, [promo]);
 
   useEffect(() => {
     let canceled = false;

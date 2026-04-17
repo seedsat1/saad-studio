@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePageLayout } from "@/lib/use-page-layout";
+import { usePromoMedia, promoUrl } from "@/hooks/use-promo-media";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Badge = "NEW" | "PRO" | "TOP" | "HOT" | "";
@@ -776,14 +777,35 @@ function ModelsTrustStrip() {
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
+const HERO_SLOT_IDS = ["landing/hero-1", "landing/hero-2", "landing/hero-3", "landing/hero-4"];
+
+const CORE_TOOL_SLOT_MAP: Record<string, string> = {
+  "create-image": "landing/tool-create-image",
+  "create-video": "landing/tool-create-video",
+  "cinema-studio": "landing/tool-cinema",
+  "ai-influencer": "landing/tool-ai-influencer",
+  "soul-id": "landing/tool-soul-id",
+  "lipsync": "landing/tool-lipsync",
+  "vibe-motion": "landing/tool-vibe-motion",
+  "draw-to-video": "landing/tool-draw-video",
+};
+
+const TOP_CHOICE_SLOT_MAP: Record<string, string> = {
+  "relight": "landing/tool-relight",
+  "face-swap": "landing/tool-face-swap",
+  "ugc-factory": "landing/tool-ugc-factory",
+  "upscale": "landing/tool-upscale",
+  "char-swap": "landing/tool-char-swap",
+  "fashion-factory": "landing/tool-fashion-factory",
+};
+
 export default function ExplorePage() {
   const { blocks } = usePageLayout("home");
+  const promo = usePromoMedia();
 
   const homeHeroSlides = useMemo<HeroSlide[]>(() => {
     const heroBlocks = blocks.filter((b) => b.type === "HERO");
-    if (heroBlocks.length === 0) return HERO_SLIDES;
-
-    return heroBlocks.map((b, idx) => {
+    const base = heroBlocks.length === 0 ? HERO_SLIDES : heroBlocks.map((b, idx) => {
       const fallback = HERO_SLIDES[idx % HERO_SLIDES.length];
       const ytId = b.youtubeUrl ? getYouTubeId(b.youtubeUrl) : null;
       const bgImage = ytId
@@ -801,13 +823,19 @@ export default function ExplorePage() {
         youtubeUrl: b.youtubeUrl || undefined,
       };
     });
-  }, [blocks]);
+    // Apply promo media overrides
+    return base.map((s, i) => {
+      const slotId = HERO_SLOT_IDS[i];
+      if (!slotId) return s;
+      const custom = promo[slotId];
+      if (!custom?.url) return s;
+      return { ...s, bgImage: custom.url };
+    });
+  }, [blocks, promo]);
 
   const homeCoreCards = useMemo<ToolCard[]>(() => {
     const featureBlocks = blocks.filter((b) => b.type === "FEATURE_CARD");
-    if (featureBlocks.length === 0) return CORE_TOOLS;
-
-    return featureBlocks.map((b, idx) => {
+    const base = featureBlocks.length === 0 ? CORE_TOOLS : featureBlocks.map((b, idx) => {
       const fallback = CORE_TOOLS[idx % CORE_TOOLS.length];
       return {
         ...fallback,
@@ -817,13 +845,18 @@ export default function ExplorePage() {
         image: b.mediaUrl || fallback.image,
       };
     });
-  }, [blocks]);
+    return base.map((c) => {
+      const slotId = CORE_TOOL_SLOT_MAP[c.id];
+      if (!slotId) return c;
+      const custom = promo[slotId];
+      if (!custom?.url) return c;
+      return { ...c, image: custom.url };
+    });
+  }, [blocks, promo]);
 
   const homeTopCards = useMemo<ToolCard[]>(() => {
     const gridBlocks = blocks.filter((b) => b.type === "DISCOVER_GRID");
-    if (gridBlocks.length === 0) return TOP_CHOICE;
-
-    return gridBlocks.map((b, idx) => {
+    const base = gridBlocks.length === 0 ? TOP_CHOICE : gridBlocks.map((b, idx) => {
       const fallback = TOP_CHOICE[idx % TOP_CHOICE.length];
       return {
         ...fallback,
@@ -833,7 +866,14 @@ export default function ExplorePage() {
         image: b.mediaUrl || fallback.image,
       };
     });
-  }, [blocks]);
+    return base.map((c) => {
+      const slotId = TOP_CHOICE_SLOT_MAP[c.id];
+      if (!slotId) return c;
+      const custom = promo[slotId];
+      if (!custom?.url) return c;
+      return { ...c, image: custom.url };
+    });
+  }, [blocks, promo]);
 
   return (
     <div className="min-h-screen bg-slate-950 text-white">
