@@ -94,8 +94,8 @@ export const IMAGE_MODELS: ImageModel[] = [
     inputType: "edit",
     aspectRatios: [],
     maxImages: 1,
-    maxRefImages: 1,
-    imageInputField: "image_input",
+    maxRefImages: 10,
+    imageInputField: "image_urls",
     creditCost: 2,
   },
   // ── Google Imagen 4 ───────────────────────────────────────────────────────
