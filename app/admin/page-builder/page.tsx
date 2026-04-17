@@ -788,35 +788,30 @@ function BlockEditor({
     setUploadError(null);
     setUploading(true);
     try {
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-      if (!supabaseUrl || !supabaseAnonKey) throw new Error("Storage not configured");
-
-      const isVideo = file.type.startsWith("video/");
-      const bucket = isVideo ? "videos" : "images";
-      const ext = file.name.split(".").pop() ?? (isVideo ? "mp4" : "jpg");
-      const path = `admin-cms/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-
-      // Upload directly from browser to Supabase Storage using anon key
-      const uploadRes = await fetch(
-        `${supabaseUrl}/storage/v1/object/${bucket}/${path}`,
-        {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${supabaseAnonKey}`,
-            "Content-Type": file.type,
-            "x-upsert": "true",
-          },
-          body: file,
-        }
-      );
-
-      if (!uploadRes.ok) {
-        const err = await uploadRes.json().catch(() => ({}));
-        throw new Error(err?.message ?? "Upload failed");
+      // Step 1: get a presigned upload URL from the server (uses SERVICE_ROLE_KEY → bypasses RLS)
+      const signRes = await fetch("/api/admin/media/upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fileName: file.name, fileType: file.type }),
+      });
+      if (!signRes.ok) {
+        const err = await signRes.json().catch(() => ({}));
+        throw new Error(err?.error ?? "Failed to get upload URL");
       }
+      const { signedUrl, publicUrl, isVideo } = await signRes.json() as {
+        signedUrl: string;
+        publicUrl: string;
+        isVideo: boolean;
+      };
 
-      const publicUrl = `${supabaseUrl}/storage/v1/object/public/${bucket}/${path}`;
+      // Step 2: upload the file directly to Supabase via the presigned URL
+      const uploadRes = await fetch(signedUrl, {
+        method: "PUT",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+      if (!uploadRes.ok) throw new Error("Upload failed");
+
       setDraft((d) => ({ ...d, mediaUrl: publicUrl, isVideo }));
     } catch (error) {
       setUploadError(error instanceof Error ? error.message : "Upload failed");
