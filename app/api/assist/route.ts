@@ -61,11 +61,24 @@ async function callGpt54(messages: ChatMessage[], key: string): Promise<string> 
   );
   if (!res.ok) throw new Error(`KIE GPT-5.4 ${res.status}: ${await readErrorBody(res)}`);
   const data = await res.json();
-  type OutputBlock = { type: string; content?: { type: string; text: string }[] };
+  type OutputBlock = { type: string; text?: string; content?: { type: string; text: string }[] };
+  // Format 1: output[].content[].text  (OpenAI Responses API standard)
   const msgBlock = (data?.output as OutputBlock[] | undefined)?.find((o) => o.type === "message");
-  const text = msgBlock?.content?.find((c) => c.type === "output_text")?.text ?? "";
-  if (!text) throw new Error("KIE GPT-5.4 returned an empty reply.");
-  return text.trim();
+  const text =
+    msgBlock?.content?.find((c) => c.type === "output_text")?.text ??
+    msgBlock?.content?.find((c) => c.type === "text")?.text ??
+    // Format 2: output[].text  (simplified)
+    (data?.output as OutputBlock[] | undefined)?.find((o) => o.type === "message")?.text ??
+    // Format 3: output_text at root
+    data?.output_text ??
+    // Format 4: choices (OpenAI Chat Completions fallback)
+    data?.choices?.[0]?.message?.content ??
+    "";
+  if (!text) {
+    console.error("[GPT-5.4] Unexpected response shape:", JSON.stringify(data).slice(0, 500));
+    throw new Error("KIE GPT-5.4 returned an empty reply.");
+  }
+  return String(text).trim();
 }
 
 /** Claude Sonnet 4.6 — KIE Anthropic format: POST /claude/v1/messages */
