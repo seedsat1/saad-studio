@@ -21,6 +21,7 @@ import {
   UploadCloud,
   Wand2,
   X,
+  Zap,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -30,7 +31,7 @@ import { AssetInspector, type Asset } from "@/components/AssetInspector";
 import { useAssetStore } from "@/hooks/use-asset-store";
 import { useSearchParams } from "next/navigation";
 
-type ToolId = "create" | "relight" | "inpaint" | "upscale" | "face-swap";
+type ToolId = "create" | "relight" | "inpaint" | "upscale" | "face-swap" | "enhance";
 
 type ResultItem = {
   id: string;
@@ -67,6 +68,7 @@ type LightingPresetId = (typeof LIGHTING_PRESETS)[number]["id"];
 
 const TOOLS = [
   { id: "create" as ToolId, label: "CREATE", icon: Wand2 },
+  { id: "enhance" as ToolId, label: "ENHANCE", icon: Zap },
   { id: "relight" as ToolId, label: "RELIGHT", icon: Lightbulb },
   { id: "inpaint" as ToolId, label: "INPAINT", icon: Brush },
   { id: "upscale" as ToolId, label: "UPSCALE", icon: Aperture },
@@ -76,6 +78,8 @@ const TOOLS = [
 const EDIT_MODELS = IMAGE_MODELS.filter((m) =>
   ["google/nano-banana-edit", "seedream/4.5-edit", "gpt-image/1.5-image-to-image", "flux-2/pro-image-to-image"].includes(m.id),
 );
+
+const ENHANCE_MODELS = IMAGE_MODELS.filter((m) => m.inputType === "image-to-image");
 
 const uid = (prefix = "id") => `${prefix}_${Math.random().toString(36).slice(2, 10)}`;
 
@@ -667,6 +671,10 @@ export default function ImageWorkspacePage() {
   const [faceExpression, setFaceExpression] = useState(true);
   const [faceSkin, setFaceSkin] = useState(true);
   const [faceIndex, setFaceIndex] = useState(0);
+  const [enhanceFile, setEnhanceFile] = useState<File | null>(null);
+  const [enhanceModelId, setEnhanceModelId] = useState(
+    ENHANCE_MODELS.find((m) => m.id === "gpt-image/1.5-image-to-image")?.id ?? ENHANCE_MODELS[0]?.id ?? "gpt-image/1.5-image-to-image",
+  );
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [results, setResults] = useState<ResultItem[]>([]);
@@ -725,6 +733,7 @@ export default function ImageWorkspacePage() {
       const perImage = createNeedsImage ? 3 : 2;
       return { placeholder: "Describe what you want to generate...", button: `Generate Image · ${perImage * numImages} cr`, promptEnabled: true };
     }
+    if (activeTool === "enhance") return { placeholder: "Enhancement instructions (optional) — e.g. \"cinematic, 8K, sharp\"...", button: "Enhance Photo · 2 cr", promptEnabled: true };
     if (activeTool === "relight") return { placeholder: "Describe the lighting you want...", button: `Relight Image ✦ ${3 * relightVariations}`, promptEnabled: true };
     if (activeTool === "inpaint") return { placeholder: "Describe what should replace the painted area...", button: `Inpaint ✦ ${3 * inpaintVariations}`, promptEnabled: true };
     if (activeTool === "upscale") return { placeholder: "Upload media to upscale", button: "Upscale Image ✦ 2", promptEnabled: false };
@@ -742,8 +751,9 @@ export default function ImageWorkspacePage() {
     if (activeTool === "relight") return Boolean(relightFile && prompt.trim());
     if (activeTool === "inpaint") return Boolean(inpaintFile && prompt.trim());
     if (activeTool === "upscale") return Boolean(upscaleFile);
+    if (activeTool === "enhance") return Boolean(enhanceFile);
     return Boolean(faceSource && faceTarget);
-  }, [activeTool, faceSource, faceTarget, generating, inpaintFile, prompt, relightFile, upscaleFile]);
+  }, [activeTool, enhanceFile, faceSource, faceTarget, generating, inpaintFile, prompt, relightFile, upscaleFile]);
 
   const addResultItems = useCallback((urls: string[], tool: ToolId, model: string, p: string, aspect: string) => {
     const newItems = urls.map((url) => ({ id: uid("img"), url, tool, model, prompt: p, aspect }));
@@ -878,11 +888,38 @@ export default function ImageWorkspacePage() {
     addResultItems([out], "face-swap", "Image Face Swap Pro", "Face swap result", "source");
   }, [addResultItems, faceBlend, faceExpression, faceIndex, faceSkin, faceSource, faceTarget]);
 
+  const generateEnhance = useCallback(async () => {
+    if (!enhanceFile) throw new Error("Upload image first");
+    const imgData = await fileToDataUrl(enhanceFile);
+    const enhanceModel = ENHANCE_MODELS.find((m) => m.id === enhanceModelId) ?? ENHANCE_MODELS[0];
+    if (!enhanceModel) throw new Error("No enhancement model available");
+    const enhancePrompt =
+      prompt.trim() ||
+      "Enhance and restore this photo. Preserve the subject's exact identity, face features, skin tone, and appearance. Improve sharpness, detail, and remove noise and blur. Photorealistic, high quality.";
+    const res = await fetch("/api/generate/image", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        prompt: enhancePrompt,
+        modelId: enhanceModel.id,
+        numImages: 1,
+        imageUrl: imgData,
+        imageInputField: enhanceModel.imageInputField,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error || "Enhancement failed");
+    const urls: string[] = data.imageUrls || [];
+    const before = URL.createObjectURL(enhanceFile);
+    if (urls[0]) setCompare({ before, after: urls[0] });
+    addResultItems(urls, "enhance", enhanceModel.label, enhancePrompt, "source");
+  }, [addResultItems, enhanceFile, enhanceModelId, prompt]);
+
   const handleGenerate = useCallback(async () => {
     if (!guard()) return;
     if (!canGenerate) return;
     const pendingCount = activeTool === "create" ? numImages : activeTool === "relight" ? relightVariations : activeTool === "inpaint" ? inpaintVariations : 1;
-    const pendingModel = activeTool === "create" ? selectedModel.label : activeTool === "relight" ? "Seedream 4.5 Edit" : activeTool === "inpaint" ? inpaintModelId : activeTool === "upscale" ? "Upscaler" : "Face Swap";
+    const pendingModel = activeTool === "create" ? selectedModel.label : activeTool === "enhance" ? (ENHANCE_MODELS.find((m) => m.id === enhanceModelId)?.label ?? enhanceModelId) : activeTool === "relight" ? "Seedream 4.5 Edit" : activeTool === "inpaint" ? inpaintModelId : activeTool === "upscale" ? "Upscaler" : "Face Swap";
     const pendingAspect = activeTool === "create" ? aspectRatio : "source";
     const pendingPrompt = prompt || "Generating...";
     const placeholders: ResultItem[] = Array.from({ length: pendingCount }, () => ({
@@ -900,6 +937,7 @@ export default function ImageWorkspacePage() {
     setError(null);
     try {
       if (activeTool === "create") await generateCreate();
+      if (activeTool === "enhance") await generateEnhance();
       if (activeTool === "relight") await generateRelight();
       if (activeTool === "inpaint") await generateInpaint();
       if (activeTool === "upscale") await generateUpscale();
@@ -910,12 +948,22 @@ export default function ImageWorkspacePage() {
       setPendingItems((prev) => prev.filter((item) => !placeholders.some((ph) => ph.id === item.id)));
       setGenerating(false);
     }
-  }, [activeTool, aspectRatio, canGenerate, generateCreate, generateFaceSwap, generateInpaint, generateRelight, generateUpscale, guard, inpaintModelId, inpaintVariations, numImages, prompt, relightVariations, selectedModel.label]);
+  }, [activeTool, aspectRatio, canGenerate, enhanceModelId, generateCreate, generateEnhance, generateFaceSwap, generateInpaint, generateRelight, generateUpscale, guard, inpaintModelId, inpaintVariations, numImages, prompt, relightVariations, selectedModel.label]);
 
   const renderWorkspace = () => {
     if (activeTool === "create") return <ResultGrid items={[...pendingItems, ...results]} onInspect={setInspectorAsset} onRemix={(item) => { setActiveTool("create"); setPrompt(`Remix this style: ${item.prompt}`); }} onDelete={(id) => setResults((prev) => prev.filter((i) => i.id !== id))} />;
     if (activeTool === "inpaint") return <InpaintWorkspace source={inpaintFile} setSource={setInpaintFile} brushSize={brushSize} setBrushSize={setBrushSize} maskVersion={maskVersion} setMaskVersion={setMaskVersion} registerMaskExporter={(fn) => { maskExporterRef.current = fn; }} />;
     if (compare) return <CompareSlider before={compare.before} after={compare.after} />;
+    if (activeTool === "enhance") {
+      return <div className="flex h-full flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-amber-500/30 bg-amber-500/5 text-zinc-400">
+        <Zap className="h-10 w-10 text-amber-400/60" />
+        <div className="text-center">
+          <p className="text-sm font-semibold text-amber-300">ENHANCE — Photo Restoration</p>
+          <p className="mt-1 text-xs text-zinc-500">Upload a photo in the settings panel → click Enhance Photo</p>
+          <p className="mt-1 text-xs text-zinc-600">Uses true image-to-image AI to preserve identity while improving quality</p>
+        </div>
+      </div>;
+    }
     return <div className="flex h-full items-center justify-center rounded-2xl border border-dashed border-white/10 text-zinc-500">{activeTool === "relight" ? "Upload image and relight" : activeTool === "upscale" ? "Upload media and upscale" : "Upload source and target images"}</div>;
   };
 
@@ -1000,6 +1048,28 @@ export default function ImageWorkspacePage() {
         <section className="space-y-2"><p className="text-[10px] font-bold uppercase tracking-[0.15em] text-zinc-500">Edit Model</p><select value={inpaintModelId} onChange={(e) => setInpaintModelId(e.target.value)} className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-zinc-100">{EDIT_MODELS.map((model) => <option key={model.id} value={model.id}>{model.label}</option>)}</select></section>
         <CountSelector label="Number of Variations" value={inpaintVariations} onChange={setInpaintVariations} />
         <SliderField label="Brush Size" value={brushSize} onChange={setBrushSize} min={5} max={100} />
+      </>;
+    }
+
+    if (activeTool === "enhance") {
+      return <>
+        <UploadBox label="Upload photo to enhance" file={enhanceFile} onFile={setEnhanceFile} required />
+        <section className="space-y-2">
+          <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-zinc-500">Enhancement Model</p>
+          <select
+            value={enhanceModelId}
+            onChange={(e) => setEnhanceModelId(e.target.value)}
+            className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-pink-500"
+          >
+            {ENHANCE_MODELS.map((model) => (
+              <option key={model.id} value={model.id}>{model.label}</option>
+            ))}
+          </select>
+        </section>
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-[12px] leading-relaxed text-amber-200">
+          <strong className="text-amber-300">✦ True Image-to-Image</strong><br />
+          ENHANCE sends your photo directly as input to the AI — it transforms the image while preserving the subject&apos;s identity, unlike CREATE which only uses it as loose inspiration.
+        </div>
       </>;
     }
 
@@ -1115,7 +1185,7 @@ export default function ImageWorkspacePage() {
         </main>
 
         <aside className="hidden w-[320px] shrink-0 flex-col border-l border-white/10 bg-black/25 lg:flex">
-          <div className="border-b border-white/10 px-4 py-3"><div className="flex items-center gap-2 text-sm font-semibold text-white"><SlidersHorizontal className="h-4 w-4 text-pink-400" /> {activeTool === "create" ? "Image Settings" : activeTool === "relight" ? "Relight Settings" : activeTool === "inpaint" ? "Inpaint Settings" : activeTool === "upscale" ? "Upscale Settings" : "Face Swap Settings"}</div></div>
+          <div className="border-b border-white/10 px-4 py-3"><div className="flex items-center gap-2 text-sm font-semibold text-white"><SlidersHorizontal className="h-4 w-4 text-pink-400" /> {activeTool === "create" ? "Image Settings" : activeTool === "enhance" ? "Enhance Settings" : activeTool === "relight" ? "Relight Settings" : activeTool === "inpaint" ? "Inpaint Settings" : activeTool === "upscale" ? "Upscale Settings" : "Face Swap Settings"}</div></div>
           <div className="flex-1 space-y-4 overflow-y-auto p-4">{renderRightPanel()}</div>
         </aside>
 
