@@ -25,9 +25,9 @@ import {
   ArrowLeft,
 } from "lucide-react";
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ═══════════════════════════════════════════════════════════════════════
    TYPES
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+   ═══════════════════════════════════════════════════════════════════════ */
 
 type PresetMedia = {
   id: string;
@@ -57,239 +57,239 @@ type BeautyToolFull = {
   options: BeautyOption[];
 };
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ═══════════════════════════════════════════════════════════════════════
    BEAUTY TOOLS FULL DATA (mirrors beauty2.html TOOLS array)
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+   ═══════════════════════════════════════════════════════════════════════ */
 
 const BEAUTY_TOOLS_FULL: BeautyToolFull[] = [
-  // â”€â”€â”€ OUTFIT â”€â”€â”€
+  // ─── OUTFIT ───
   {
-    id: "outfit-change", name: "Outfit Change", nameAr: "ØªØ¨Ø¯ÙŠÙ„ Ø§Ù„Ù…Ù„Ø§Ø¨Ø³", cat: "outfit", thumbFile: "outfit-change.png",
+    id: "outfit-change", name: "Outfit Change", nameAr: "تبديل الملابس", cat: "outfit", thumbFile: "outfit-change.png",
     options: [
-      { id: "casual", name: "Casual", nameAr: "ÙƒØ§Ø¬ÙˆØ§Ù„", desc: "Ù…Ù„Ø§Ø¨Ø³ ÙŠÙˆÙ…ÙŠØ© Ù…Ø±ÙŠØ­Ø©" },
-      { id: "elegant", name: "Elegant", nameAr: "Ø£Ù†ÙŠÙ‚", desc: "ÙØ³Ø§ØªÙŠÙ† Ø³Ù‡Ø±Ø© ÙˆØ£Ù†Ø§Ù‚Ø©" },
-      { id: "sport", name: "Sport", nameAr: "Ø±ÙŠØ§Ø¶ÙŠ", desc: "Ù…Ù„Ø§Ø¨Ø³ Ø±ÙŠØ§Ø¶ÙŠØ©" },
-      { id: "formal", name: "Formal", nameAr: "Ø±Ø³Ù…ÙŠ", desc: "Ø¨Ø¯Ù„Ø© ÙˆÙ…Ù„Ø§Ø¨Ø³ Ø¹Ù…Ù„" },
-      { id: "streetwear", name: "Streetwear", nameAr: "Ø³ØªØ±ÙŠØª ÙˆÙŠØ±", desc: "Ø³ØªØ§ÙŠÙ„ Ø´Ø¨Ø§Ø¨ÙŠ Ø¹ØµØ±ÙŠ" },
-      { id: "boho", name: "Boho", nameAr: "Ø¨ÙˆÙ‡Ùˆ", desc: "Ù„ÙˆÙƒ Ø¨ÙˆÙ‡ÙŠÙ…ÙŠ Ù†Ø§Ø¹Ù…" },
-      { id: "vintage", name: "Vintage", nameAr: "ÙÙŠÙ†ØªØ¬", desc: "Ø¥Ø·Ù„Ø§Ù„Ø© ÙƒÙ„Ø§Ø³ÙŠÙƒÙŠØ© Ù‚Ø¯ÙŠÙ…Ø©" },
+      { id: "casual", name: "Casual", nameAr: "كاجوال", desc: "ملابس يومية مريحة" },
+      { id: "elegant", name: "Elegant", nameAr: "أنيق", desc: "فساتين سهرة وأناقة" },
+      { id: "sport", name: "Sport", nameAr: "رياضي", desc: "ملابس رياضية" },
+      { id: "formal", name: "Formal", nameAr: "رسمي", desc: "بدلة وملابس عمل" },
+      { id: "streetwear", name: "Streetwear", nameAr: "ستريت وير", desc: "ستايل شبابي عصري" },
+      { id: "boho", name: "Boho", nameAr: "بوهو", desc: "لوك بوهيمي ناعم" },
+      { id: "vintage", name: "Vintage", nameAr: "فينتج", desc: "إطلالة كلاسيكية قديمة" },
     ],
   },
   {
-    id: "evening-dress", name: "Evening Dress", nameAr: "ÙØ³Ø§ØªÙŠÙ† Ø³Ù‡Ø±Ø©", cat: "outfit", thumbFile: "evening-dress.png",
+    id: "evening-dress", name: "Evening Dress", nameAr: "فساتين سهرة", cat: "outfit", thumbFile: "evening-dress.png",
     options: [
-      { id: "long-red", name: "Long Red", nameAr: "Ø·ÙˆÙŠÙ„ Ø£Ø­Ù…Ø±", desc: "ÙØ³ØªØ§Ù† Ø£Ø­Ù…Ø± ÙƒÙ„Ø§Ø³ÙŠÙƒÙŠ" },
-      { id: "black-mini", name: "Black Mini", nameAr: "Ø£Ø³ÙˆØ¯ Ù‚ØµÙŠØ±", desc: "ÙØ³ØªØ§Ù† Ø£Ø³ÙˆØ¯ ØµØºÙŠØ±" },
-      { id: "gold-sequin", name: "Gold Sequin", nameAr: "Ø°Ù‡Ø¨ÙŠ Ù„Ø§Ù…Ø¹", desc: "ÙØ³ØªØ§Ù† Ø³Ù‡Ø±Ø© Ø°Ù‡Ø¨ÙŠ" },
-      { id: "emerald", name: "Emerald", nameAr: "Ø²Ù…Ø±Ø¯ÙŠ", desc: "ÙØ³ØªØ§Ù† Ø£Ø®Ø¶Ø± Ø²Ù…Ø±Ø¯ÙŠ" },
+      { id: "long-red", name: "Long Red", nameAr: "طويل أحمر", desc: "فستان أحمر كلاسيكي" },
+      { id: "black-mini", name: "Black Mini", nameAr: "أسود قصير", desc: "فستان أسود صغير" },
+      { id: "gold-sequin", name: "Gold Sequin", nameAr: "ذهبي لامع", desc: "فستان سهرة ذهبي" },
+      { id: "emerald", name: "Emerald", nameAr: "زمردي", desc: "فستان أخضر زمردي" },
     ],
   },
   {
-    id: "wedding-dress", name: "Wedding Dress", nameAr: "ÙØ³ØªØ§Ù† Ø²ÙØ§Ù", cat: "outfit", thumbFile: "wedding-dress.png",
+    id: "wedding-dress", name: "Wedding Dress", nameAr: "فستان زفاف", cat: "outfit", thumbFile: "wedding-dress.png",
     options: [
-      { id: "ball-gown", name: "Ball Gown", nameAr: "Ù…Ù†ÙÙˆØ´ ÙƒÙ„Ø§Ø³ÙŠÙƒÙŠ", desc: "ÙØ³ØªØ§Ù† Ø£Ù…ÙŠØ±Ø§Øª" },
-      { id: "mermaid", name: "Mermaid", nameAr: "Ù…ÙŠØ±Ù…ÙŠØ¯", desc: "ÙØ³ØªØ§Ù† Ø­ÙˆØ±ÙŠØ© Ø§Ù„Ø¨Ø­Ø±" },
-      { id: "a-line", name: "A-Line", nameAr: "Ø£ÙŠÙ‡ Ù„Ø§ÙŠÙ†", desc: "Ù‚ØµØ© ÙƒÙ„Ø§Ø³ÙŠÙƒÙŠØ© Ø£Ù†ÙŠÙ‚Ø©" },
-      { id: "minimalist", name: "Minimalist", nameAr: "Ø¨Ø³ÙŠØ·", desc: "ÙØ³ØªØ§Ù† Ø¨Ø³ÙŠØ· Ø¹ØµØ±ÙŠ" },
+      { id: "ball-gown", name: "Ball Gown", nameAr: "منفوش كلاسيكي", desc: "فستان أميرات" },
+      { id: "mermaid", name: "Mermaid", nameAr: "ميرميد", desc: "فستان حورية البحر" },
+      { id: "a-line", name: "A-Line", nameAr: "أيه لاين", desc: "قصة كلاسيكية أنيقة" },
+      { id: "minimalist", name: "Minimalist", nameAr: "بسيط", desc: "فستان بسيط عصري" },
     ],
   },
   {
-    id: "traditional-wear", name: "Traditional Wear", nameAr: "Ø£Ø²ÙŠØ§Ø¡ ØªÙ‚Ù„ÙŠØ¯ÙŠØ©", cat: "outfit", thumbFile: "traditional-wear.png",
+    id: "traditional-wear", name: "Traditional Wear", nameAr: "أزياء تقليدية", cat: "outfit", thumbFile: "traditional-wear.png",
     options: [
-      { id: "abaya", name: "Abaya", nameAr: "Ø¹Ø¨Ø§ÙŠØ©", desc: "Ø¹Ø¨Ø§ÙŠØ© Ø®Ù„ÙŠØ¬ÙŠØ© ÙØ§Ø®Ø±Ø©" },
-      { id: "saree", name: "Saree", nameAr: "Ø³Ø§Ø±ÙŠ Ù‡Ù†Ø¯ÙŠ", desc: "Ø³Ø§Ø±ÙŠ Ù‡Ù†Ø¯ÙŠ Ù…Ù„ÙˆÙ†" },
-      { id: "kimono", name: "Kimono", nameAr: "ÙƒÙŠÙ…ÙˆÙ†Ùˆ", desc: "ÙƒÙŠÙ…ÙˆÙ†Ùˆ ÙŠØ§Ø¨Ø§Ù†ÙŠ" },
-      { id: "hanbok", name: "Hanbok", nameAr: "Ù‡Ø§Ù†Ø¨ÙˆÙƒ", desc: "Ù‡Ø§Ù†Ø¨ÙˆÙƒ ÙƒÙˆØ±ÙŠ" },
+      { id: "abaya", name: "Abaya", nameAr: "عباية", desc: "عباية خليجية فاخرة" },
+      { id: "saree", name: "Saree", nameAr: "ساري هندي", desc: "ساري هندي ملون" },
+      { id: "kimono", name: "Kimono", nameAr: "كيمونو", desc: "كيمونو ياباني" },
+      { id: "hanbok", name: "Hanbok", nameAr: "هانبوك", desc: "هانبوك كوري" },
     ],
   },
   {
-    id: "hijab-style", name: "Hijab Styling", nameAr: "Ø³ØªØ§ÙŠÙ„ Ø­Ø¬Ø§Ø¨", cat: "outfit", thumbFile: "hijab-styling.png",
+    id: "hijab-style", name: "Hijab Styling", nameAr: "ستايل حجاب", cat: "outfit", thumbFile: "hijab-styling.png",
     options: [
-      { id: "turkish", name: "Turkish", nameAr: "ØªØ±ÙƒÙŠ", desc: "Ù„Ù ØªØ±ÙƒÙŠ Ø£Ù†ÙŠÙ‚" },
-      { id: "khaleeji", name: "Khaleeji", nameAr: "Ø®Ù„ÙŠØ¬ÙŠ", desc: "Ø³ØªØ§ÙŠÙ„ Ø®Ù„ÙŠØ¬ÙŠ ÙØ§Ø®Ø±" },
-      { id: "modern", name: "Modern", nameAr: "Ø¹ØµØ±ÙŠ", desc: "Ù„Ù Ø¹ØµØ±ÙŠ Ø¨Ø³ÙŠØ·" },
-      { id: "turban", name: "Turban", nameAr: "ØªÙˆØ±Ø¨Ø§Ù†", desc: "ØªÙˆØ±Ø¨Ø§Ù† Ù…ÙˆØ¯ÙŠÙ„" },
+      { id: "turkish", name: "Turkish", nameAr: "تركي", desc: "لف تركي أنيق" },
+      { id: "khaleeji", name: "Khaleeji", nameAr: "خليجي", desc: "ستايل خليجي فاخر" },
+      { id: "modern", name: "Modern", nameAr: "عصري", desc: "لف عصري بسيط" },
+      { id: "turban", name: "Turban", nameAr: "توربان", desc: "توربان موديل" },
     ],
   },
   {
-    id: "cosplay", name: "Cosplay", nameAr: "ÙƒÙˆØ³Ø¨Ù„Ø§ÙŠ", cat: "outfit", thumbFile: "cosplay.png",
+    id: "cosplay", name: "Cosplay", nameAr: "كوسبلاي", cat: "outfit", thumbFile: "cosplay.png",
     options: [
-      { id: "superhero", name: "Superhero", nameAr: "Ø¨Ø·Ù„ Ø®Ø§Ø±Ù‚", desc: "Ø²ÙŠ Ø£Ø¨Ø·Ø§Ù„ Ø®Ø§Ø±Ù‚ÙŠÙ†" },
-      { id: "anime-char", name: "Anime", nameAr: "Ø´Ø®ØµÙŠØ© Ø£Ù†Ù…ÙŠ", desc: "Ø²ÙŠ Ø´Ø®ØµÙŠØ© Ø£Ù†Ù…ÙŠ" },
-      { id: "medieval", name: "Medieval", nameAr: "Ù‚Ø±ÙˆØ³Ø·ÙŠ", desc: "Ø²ÙŠ ÙØ§Ø±Ø³ Ø£Ùˆ Ø£Ù…ÙŠØ±Ø©" },
-      { id: "scifi", name: "Sci-Fi", nameAr: "Ø®ÙŠØ§Ù„ Ø¹Ù„Ù…ÙŠ", desc: "Ø²ÙŠ Ù…Ø³ØªÙ‚Ø¨Ù„ÙŠ" },
-    ],
-  },
-
-  // â”€â”€â”€ MAKEUP â”€â”€â”€
-  {
-    id: "full-glam", name: "Full Glam Makeup", nameAr: "Ù…ÙŠÙƒØ§Ø¨ ÙÙ„ Ù‚Ù„Ø§Ù…", cat: "makeup", thumbFile: "full-glam-makeup.png",
-    options: [
-      { id: "smokey", name: "Smokey Eye", nameAr: "Ø³Ù…ÙˆÙƒÙŠ Ø¢ÙŠ", desc: "Ø¹ÙŠÙˆÙ† Ø¯Ø®Ø§Ù†ÙŠØ© Ø¯Ø±Ø§Ù…ÙŠØ©" },
-      { id: "glitter", name: "Glitter Glam", nameAr: "Ù‚Ù„ÙŠØªØ±", desc: "Ù…ÙŠÙƒØ§Ø¨ Ù„Ø§Ù…Ø¹ Ù„Ù„Ø³Ù‡Ø±Ø§Øª" },
-      { id: "classic-red", name: "Classic Red", nameAr: "Ø£Ø­Ù…Ø± ÙƒÙ„Ø§Ø³ÙŠÙƒÙŠ", desc: "Ø±ÙˆØ¬ Ø£Ø­Ù…Ø± ÙƒÙ„Ø§Ø³ÙŠÙƒÙŠ" },
-      { id: "nude-glam", name: "Soft Neutral Glam", nameAr: "Ø³ÙˆÙØª Ù†ÙŠÙˆØªØ±Ø§Ù„", desc: "Ù…ÙŠÙƒØ§Ø¨ Ù†Ø§Ø¹Ù… Ø¨Ø£Ù„ÙˆØ§Ù† Ù…Ø­Ø§ÙŠØ¯Ø©" },
-    ],
-  },
-  {
-    id: "korean-beauty", name: "Korean Beauty", nameAr: "Ù…ÙŠÙƒØ§Ø¨ ÙƒÙˆØ±ÙŠ", cat: "makeup", thumbFile: "korean-beauty.png",
-    options: [
-      { id: "glass-skin", name: "Glass Skin", nameAr: "Ø¨Ø´Ø±Ø© Ø²Ø¬Ø§Ø¬ÙŠØ©", desc: "Ø¨Ø´Ø±Ø© Ø´ÙØ§ÙØ© ÙˆÙ„Ø§Ù…Ø¹Ø©" },
-      { id: "gradient-lip", name: "Gradient Lip", nameAr: "Ø´ÙØ§Ù‡ Ù…ØªØ¯Ø±Ø¬Ø©", desc: "Ø´ÙØ§Ù‡ ÙƒÙˆØ±ÙŠØ© Ù…ØªØ¯Ø±Ø¬Ø©" },
-      { id: "fresh-look", name: "Fresh Look", nameAr: "Ù„ÙˆÙƒ Ù…Ù†Ø¹Ø´", desc: "ÙˆØ¬Ù‡ Ø·Ø¨ÙŠØ¹ÙŠ ÙˆÙ…Ù†Ø¹Ø´" },
-    ],
-  },
-  {
-    id: "arabic-makeup", name: "Arabic Makeup", nameAr: "Ù…ÙŠÙƒØ§Ø¨ Ø¹Ø±Ø¨ÙŠ", cat: "makeup", thumbFile: "arabic-makeup.png",
-    options: [
-      { id: "kohl-dramatic", name: "Dramatic Kohl", nameAr: "ÙƒØ­Ù„ Ø¯Ø±Ø§Ù…ÙŠ", desc: "ÙƒØ­Ù„ Ø¹Ø±ÙŠØ¶ ØªÙ‚Ù„ÙŠØ¯ÙŠ" },
-      { id: "gold-arabic", name: "Gold Arabic", nameAr: "Ø°Ù‡Ø¨ÙŠ Ø¹Ø±Ø¨ÙŠ", desc: "Ø¸Ù„Ø§Ù„ Ø°Ù‡Ø¨ÙŠØ© ÙØ®Ù…Ø©" },
-      { id: "bridal-arabic", name: "Bridal Arabic", nameAr: "Ø¹Ø±ÙˆØ³Ø© Ø¹Ø±Ø¨ÙŠØ©", desc: "Ù…ÙŠÙƒØ§Ø¨ Ø¹Ø±ÙˆØ³Ø© Ø¹Ø±Ø¨ÙŠØ©" },
-    ],
-  },
-  {
-    id: "lip-color", name: "Lip Color Try-On", nameAr: "ØªØ¬Ø±Ø¨Ø© Ø£Ù„ÙˆØ§Ù† Ø§Ù„Ø±ÙˆØ¬", cat: "makeup", thumbFile: "lip-color-tryon.png",
-    options: [
-      { id: "red", name: "Red", nameAr: "Ø£Ø­Ù…Ø±", desc: "Ø£Ø­Ù…Ø± ÙƒÙ„Ø§Ø³ÙŠÙƒÙŠ" },
-      { id: "nude", name: "Nude", nameAr: "Ù†ÙŠÙˆØ¯", desc: "Ø¨ÙŠØ¬ Ø·Ø¨ÙŠØ¹ÙŠ" },
-      { id: "berry", name: "Berry", nameAr: "Ø¨ÙŠØ±ÙŠ", desc: "ØªÙˆØªÙŠ ØºØ§Ù…Ù‚" },
-      { id: "pink", name: "Pink", nameAr: "ÙˆØ±Ø¯ÙŠ", desc: "ÙˆØ±Ø¯ÙŠ Ù†Ø§Ø¹Ù…" },
-      { id: "brown", name: "Brown", nameAr: "Ø¨Ù†ÙŠ", desc: "Ø¨Ù†ÙŠ Ø¯Ø§ÙØ¦" },
-    ],
-  },
-  {
-    id: "eye-makeup", name: "Eye Makeup", nameAr: "Ù…ÙŠÙƒØ§Ø¨ Ø¹ÙŠÙˆÙ†", cat: "makeup", thumbFile: "eye-makeup.png",
-    options: [
-      { id: "cat-eye", name: "Cat Eye", nameAr: "ÙƒØ§Øª Ø¢ÙŠ", desc: "Ø¢ÙŠÙ„Ø§ÙŠÙ†Ø± Ù…Ø³Ø­ÙˆØ¨" },
-      { id: "cut-crease", name: "Cut Crease", nameAr: "ÙƒØª ÙƒØ±ÙŠØ²", desc: "Ø¸Ù„Ø§Ù„ Ù…Ø­Ø¯Ø¯Ø©" },
-      { id: "natural-eye", name: "Natural", nameAr: "Ø·Ø¨ÙŠØ¹ÙŠ", desc: "Ø¹ÙŠÙˆÙ† Ø·Ø¨ÙŠØ¹ÙŠØ© Ù†Ø§Ø¹Ù…Ø©" },
-      { id: "glitter-eye", name: "Glitter", nameAr: "Ù‚Ù„ÙŠØªØ±", desc: "Ø¹ÙŠÙˆÙ† Ù„Ø§Ù…Ø¹Ø©" },
-    ],
-  },
-  {
-    id: "bridal-makeup", name: "Bridal Makeup", nameAr: "Ù…ÙŠÙƒØ§Ø¨ Ø¹Ø±ÙˆØ³", cat: "makeup", thumbFile: "bridal-makeup.png",
-    options: [
-      { id: "soft-bridal", name: "Soft & Romantic", nameAr: "Ù†Ø§Ø¹Ù… ÙˆØ±ÙˆÙ…Ø§Ù†Ø³ÙŠ", desc: "Ù„ÙˆÙƒ Ø¹Ø±ÙˆØ³Ø© Ù†Ø§Ø¹Ù…" },
-      { id: "dramatic-bridal", name: "Dramatic", nameAr: "Ø¯Ø±Ø§Ù…ÙŠ", desc: "Ø¹Ø±ÙˆØ³Ø© Ø¨Ù…ÙŠÙƒØ§Ø¨ Ù‚ÙˆÙŠ" },
-      { id: "boho-bridal", name: "Boho", nameAr: "Ø¨ÙˆÙ‡Ùˆ", desc: "Ø¹Ø±ÙˆØ³Ø© Ø¨ÙˆÙ‡ÙŠÙ…ÙŠØ©" },
-    ],
-  },
-  {
-    id: "skin-retouch", name: "Skin Retouch", nameAr: "ØªÙ†Ø¹ÙŠÙ… Ø§Ù„Ø¨Ø´Ø±Ø©", cat: "makeup", thumbFile: "skin-retouch.png",
-    options: [
-      { id: "light-retouch", name: "Light", nameAr: "Ø®ÙÙŠÙ", desc: "ØªÙ†Ø¹ÙŠÙ… Ø¨Ø³ÙŠØ· Ø·Ø¨ÙŠØ¹ÙŠ" },
-      { id: "medium-retouch", name: "Medium", nameAr: "Ù…ØªÙˆØ³Ø·", desc: "ØªÙ†Ø¹ÙŠÙ… ÙˆØ§Ø¶Ø­" },
-      { id: "full-retouch", name: "Full", nameAr: "ÙƒØ§Ù…Ù„", desc: "ØªÙ†Ø¹ÙŠÙ… ÙƒØ§Ù…Ù„ Ø§Ø­ØªØ±Ø§ÙÙŠ" },
+      { id: "superhero", name: "Superhero", nameAr: "بطل خارق", desc: "زي أبطال خارقين" },
+      { id: "anime-char", name: "Anime", nameAr: "شخصية أنمي", desc: "زي شخصية أنمي" },
+      { id: "medieval", name: "Medieval", nameAr: "قروسطي", desc: "زي فارس أو أميرة" },
+      { id: "scifi", name: "Sci-Fi", nameAr: "خيال علمي", desc: "زي مستقبلي" },
     ],
   },
 
-  // â”€â”€â”€ HAIR â”€â”€â”€
+  // ─── MAKEUP ───
   {
-    id: "hairstyle", name: "Hairstyle Change", nameAr: "ØªØºÙŠÙŠØ± Ù‚ØµØ© Ø§Ù„Ø´Ø¹Ø±", cat: "hair", thumbFile: "hairstyle-change.png",
+    id: "full-glam", name: "Full Glam Makeup", nameAr: "ميكاب فل قلام", cat: "makeup", thumbFile: "full-glam-makeup.png",
     options: [
-      { id: "bob", name: "Bob", nameAr: "Ø¨ÙˆØ¨ Ù‚ØµÙŠØ±", desc: "Ù‚ØµØ© Ø¨ÙˆØ¨ ÙƒÙ„Ø§Ø³ÙŠÙƒÙŠØ©" },
-      { id: "layers", name: "Layers", nameAr: "Ø·Ø¨Ù‚Ø§Øª", desc: "Ø·Ø¨Ù‚Ø§Øª Ø·ÙˆÙŠÙ„Ø©" },
-      { id: "pixie", name: "Pixie", nameAr: "Ø¨ÙŠÙƒØ³ÙŠ", desc: "Ù‚ØµØ© Ø¨ÙŠÙƒØ³ÙŠ Ø¬Ø±ÙŠØ¦Ø©" },
-      { id: "curly", name: "Curly", nameAr: "ÙƒÙŠØ±Ù„ÙŠ", desc: "Ø´Ø¹Ø± Ù…Ø¬Ø¹Ø¯" },
+      { id: "smokey", name: "Smokey Eye", nameAr: "سموكي آي", desc: "عيون دخانية درامية" },
+      { id: "glitter", name: "Glitter Glam", nameAr: "قليتر", desc: "ميكاب لامع للسهرات" },
+      { id: "classic-red", name: "Classic Red", nameAr: "أحمر كلاسيكي", desc: "روج أحمر كلاسيكي" },
+      { id: "nude-glam", name: "Soft Neutral Glam", nameAr: "سوفت نيوترال", desc: "ميكاب ناعم بألوان محايدة" },
     ],
   },
   {
-    id: "hair-color", name: "Hair Color", nameAr: "Ù„ÙˆÙ† Ø§Ù„Ø´Ø¹Ø±", cat: "hair", thumbFile: "hair-color.png",
+    id: "korean-beauty", name: "Korean Beauty", nameAr: "ميكاب كوري", cat: "makeup", thumbFile: "korean-beauty.png",
     options: [
-      { id: "blonde", name: "Blonde", nameAr: "Ø£Ø´Ù‚Ø±", desc: "Ø£Ø´Ù‚Ø± Ø°Ù‡Ø¨ÙŠ" },
-      { id: "red-hair", name: "Red", nameAr: "Ø£Ø­Ù…Ø±", desc: "Ø£Ø­Ù…Ø± Ù†Ø§Ø±ÙŠ" },
-      { id: "platinum", name: "Platinum", nameAr: "Ø¨Ù„Ø§ØªÙŠÙ†ÙŠ", desc: "Ø¨Ù„Ø§ØªÙŠÙ†ÙŠ ÙØ§ØªØ­" },
-      { id: "ombre", name: "Ombre", nameAr: "Ø£ÙˆÙ…Ø¨Ø±ÙŠÙ‡", desc: "ØªØ¯Ø±Ø¬ Ù„ÙˆÙ†ÙŠ" },
-      { id: "chocolate", name: "Chocolate", nameAr: "Ø´ÙˆÙƒÙˆÙ„Ø§", desc: "Ø¨Ù†ÙŠ Ø´ÙˆÙƒÙˆÙ„Ø§" },
+      { id: "glass-skin", name: "Glass Skin", nameAr: "بشرة زجاجية", desc: "بشرة شفافة ولامعة" },
+      { id: "gradient-lip", name: "Gradient Lip", nameAr: "شفاه متدرجة", desc: "شفاه كورية متدرجة" },
+      { id: "fresh-look", name: "Fresh Look", nameAr: "لوك منعش", desc: "وجه طبيعي ومنعش" },
     ],
   },
   {
-    id: "beard-style", name: "Beard Styles", nameAr: "Ø³ØªØ§ÙŠÙ„ Ù„Ø­ÙŠØ©", cat: "hair", thumbFile: "beard-style.png",
+    id: "arabic-makeup", name: "Arabic Makeup", nameAr: "ميكاب عربي", cat: "makeup", thumbFile: "arabic-makeup.png",
     options: [
-      { id: "full-beard", name: "Full Beard", nameAr: "Ù„Ø­ÙŠØ© ÙƒØ§Ù…Ù„Ø©", desc: "Ù„Ø­ÙŠØ© ÙƒØ«ÙŠÙØ© ÙƒØ§Ù…Ù„Ø©" },
-      { id: "goatee", name: "Goatee", nameAr: "Ø°Ù‚Ù†", desc: "Ø°Ù‚Ù† ÙÙ‚Ø·" },
-      { id: "stubble", name: "Stubble", nameAr: "Ø®ÙÙŠÙØ©", desc: "Ù„Ø­ÙŠØ© Ø®ÙÙŠÙØ©" },
-      { id: "clean-shave", name: "Clean Shave", nameAr: "Ø­Ù„ÙŠÙ‚", desc: "Ø¨Ø¯ÙˆÙ† Ù„Ø­ÙŠØ©" },
+      { id: "kohl-dramatic", name: "Dramatic Kohl", nameAr: "كحل درامي", desc: "كحل عريض تقليدي" },
+      { id: "gold-arabic", name: "Gold Arabic", nameAr: "ذهبي عربي", desc: "ظلال ذهبية فخمة" },
+      { id: "bridal-arabic", name: "Bridal Arabic", nameAr: "عروسة عربية", desc: "ميكاب عروسة عربية" },
     ],
   },
   {
-    id: "bangs", name: "Bangs Try-On", nameAr: "ØªØ¬Ø±Ø¨Ø© ØºØ±Ø©", cat: "hair", thumbFile: "bangs-tryon.png",
+    id: "lip-color", name: "Lip Color Try-On", nameAr: "تجربة ألوان الروج", cat: "makeup", thumbFile: "lip-color-tryon.png",
     options: [
-      { id: "straight-bangs", name: "Straight", nameAr: "Ø³ØªØ±ÙŠØª", desc: "ØºØ±Ø© Ù…Ø³ØªÙ‚ÙŠÙ…Ø©" },
-      { id: "curtain-bangs", name: "Curtain", nameAr: "ÙƒÙŠØ±ØªÙ†", desc: "ØºØ±Ø© Ø¬Ø§Ù†Ø¨ÙŠØ©" },
-      { id: "side-bangs", name: "Side Swept", nameAr: "Ø¬Ø§Ù†Ø¨ÙŠØ©", desc: "ØºØ±Ø© Ù…Ø³Ø­ÙˆØ¨Ø©" },
-      { id: "wispy-bangs", name: "Wispy", nameAr: "Ø®ÙÙŠÙØ©", desc: "ØºØ±Ø© Ø®ÙÙŠÙØ© Ø´ÙØ§ÙØ©" },
+      { id: "red", name: "Red", nameAr: "أحمر", desc: "أحمر كلاسيكي" },
+      { id: "nude", name: "Nude", nameAr: "نيود", desc: "بيج طبيعي" },
+      { id: "berry", name: "Berry", nameAr: "بيري", desc: "توتي غامق" },
+      { id: "pink", name: "Pink", nameAr: "وردي", desc: "وردي ناعم" },
+      { id: "brown", name: "Brown", nameAr: "بني", desc: "بني دافئ" },
     ],
   },
   {
-    id: "braids", name: "Braids & Updos", nameAr: "Ø¶ÙØ§Ø¦Ø± ÙˆØªØ³Ø±ÙŠØ­Ø§Øª", cat: "hair", thumbFile: "braids-updos.png",
+    id: "eye-makeup", name: "Eye Makeup", nameAr: "ميكاب عيون", cat: "makeup", thumbFile: "eye-makeup.png",
     options: [
-      { id: "french-braid", name: "French Braid", nameAr: "Ø¶ÙÙŠØ±Ø© ÙØ±Ù†Ø³ÙŠØ©", desc: "Ø¶ÙÙŠØ±Ø© ÙƒÙ„Ø§Ø³ÙŠÙƒÙŠØ©" },
-      { id: "fishtail", name: "Fishtail", nameAr: "Ø°ÙŠÙ„ Ø³Ù…ÙƒØ©", desc: "Ø¶ÙÙŠØ±Ø© Ø°ÙŠÙ„ Ø³Ù…ÙƒØ©" },
-      { id: "chignon", name: "Chignon", nameAr: "Ø´Ù†ÙŠÙˆÙ†", desc: "ÙƒØ¹ÙƒØ© Ø£Ù†ÙŠÙ‚Ø©" },
-      { id: "messy-bun", name: "Messy Bun", nameAr: "ÙƒØ¹ÙƒØ© Ø¹Ø´ÙˆØ§Ø¦ÙŠØ©", desc: "ÙƒØ¹ÙƒØ© ÙƒØ§Ø¬ÙˆØ§Ù„" },
+      { id: "cat-eye", name: "Cat Eye", nameAr: "كات آي", desc: "آيلاينر مسحوب" },
+      { id: "cut-crease", name: "Cut Crease", nameAr: "كت كريز", desc: "ظلال محددة" },
+      { id: "natural-eye", name: "Natural", nameAr: "طبيعي", desc: "عيون طبيعية ناعمة" },
+      { id: "glitter-eye", name: "Glitter", nameAr: "قليتر", desc: "عيون لامعة" },
     ],
   },
   {
-    id: "extensions", name: "Hair Extensions", nameAr: "Ø¥ÙƒØ³ØªÙ†Ø´Ù†", cat: "hair", thumbFile: "hair-extensions.png",
+    id: "bridal-makeup", name: "Bridal Makeup", nameAr: "ميكاب عروس", cat: "makeup", thumbFile: "bridal-makeup.png",
     options: [
-      { id: "medium-ext", name: "Medium", nameAr: "Ù…ØªÙˆØ³Ø·", desc: "Ø¥Ø¶Ø§ÙØ© Ø·ÙˆÙ„ Ù…ØªÙˆØ³Ø·" },
-      { id: "long-ext", name: "Long", nameAr: "Ø·ÙˆÙŠÙ„", desc: "Ø´Ø¹Ø± Ø·ÙˆÙŠÙ„ Ø¬Ø¯Ø§Ù‹" },
-      { id: "volume-ext", name: "Volume", nameAr: "ÙƒØ«Ø§ÙØ©", desc: "ÙƒØ«Ø§ÙØ© Ø¨Ø¯ÙˆÙ† Ø·ÙˆÙ„" },
+      { id: "soft-bridal", name: "Soft & Romantic", nameAr: "ناعم ورومانسي", desc: "لوك عروسة ناعم" },
+      { id: "dramatic-bridal", name: "Dramatic", nameAr: "درامي", desc: "عروسة بميكاب قوي" },
+      { id: "boho-bridal", name: "Boho", nameAr: "بوهو", desc: "عروسة بوهيمية" },
     ],
   },
   {
-    id: "balayage", name: "Balayage", nameAr: "Ø¨Ø§Ù„Ø§ÙŠØ§Ø¬ ÙˆÙ‡Ø§ÙŠÙ„Ø§ÙŠØª", cat: "hair", thumbFile: "balayage.png",
+    id: "skin-retouch", name: "Skin Retouch", nameAr: "تنعيم البشرة", cat: "makeup", thumbFile: "skin-retouch.png",
     options: [
-      { id: "sun-kissed", name: "Sun-Kissed", nameAr: "Ù„Ù…Ø³Ø© Ø´Ù…Ø³", desc: "Ø¨Ø§Ù„Ø§ÙŠØ§Ø¬ Ø·Ø¨ÙŠØ¹ÙŠ" },
-      { id: "caramel-hl", name: "Caramel", nameAr: "ÙƒØ±Ø§Ù…ÙŠÙ„", desc: "Ù‡Ø§ÙŠÙ„Ø§ÙŠØª ÙƒØ±Ø§Ù…ÙŠÙ„ÙŠ" },
-      { id: "ash-hl", name: "Ash", nameAr: "Ø±Ù…Ø§Ø¯ÙŠ", desc: "Ù‡Ø§ÙŠÙ„Ø§ÙŠØª Ø±Ù…Ø§Ø¯ÙŠ" },
+      { id: "light-retouch", name: "Light", nameAr: "خفيف", desc: "تنعيم بسيط طبيعي" },
+      { id: "medium-retouch", name: "Medium", nameAr: "متوسط", desc: "تنعيم واضح" },
+      { id: "full-retouch", name: "Full", nameAr: "كامل", desc: "تنعيم كامل احترافي" },
     ],
   },
 
-  // â”€â”€â”€ BODY â”€â”€â”€
+  // ─── HAIR ───
   {
-    id: "lip-enhancement", name: "Lip Enhancement", nameAr: "ØªÙƒØ¨ÙŠØ± Ø§Ù„Ø´ÙØ§ÙŠÙ", cat: "body", thumbFile: "lip-enhancement.png",
+    id: "hairstyle", name: "Hairstyle Change", nameAr: "تغيير قصة الشعر", cat: "hair", thumbFile: "hairstyle-change.png",
     options: [
-      { id: "lip-natural", name: "Natural", nameAr: "Ø·Ø¨ÙŠØ¹ÙŠ", desc: "ØªØ¹Ø±ÙŠÙ Ø®ÙÙŠÙ ÙˆØ¯Ù‚ÙŠÙ‚" },
-      { id: "lip-medium", name: "Medium", nameAr: "Ù…ØªÙˆØ³Ø·", desc: "Ø§Ù…ØªÙ„Ø§Ø¡ Ù…Ø¹ØªØ¯Ù„" },
-      { id: "lip-full", name: "Full", nameAr: "Ù…Ù…ØªÙ„Ø¦", desc: "Ø­Ø¬Ù… ÙˆØ§Ø¶Ø­" },
-      { id: "lip-extra", name: "Extra Full", nameAr: "Ù…Ù…ØªÙ„Ø¦ Ø¬Ø¯Ø§Ù‹", desc: "Ø­Ø¬Ù… ÙƒØ¨ÙŠØ± ÙˆØ´ÙƒÙ„ Ø¨Ø§Ø±Ø²" },
-      { id: "lip-hollywood", name: "Hollywood", nameAr: "Ù‡ÙˆÙ„ÙŠÙˆÙˆØ¯", desc: "Ø£Ù‚ØµÙ‰ Ø­Ø¬Ù… ÙˆØ§Ù…ØªÙ„Ø§Ø¡" },
+      { id: "bob", name: "Bob", nameAr: "بوب قصير", desc: "قصة بوب كلاسيكية" },
+      { id: "layers", name: "Layers", nameAr: "طبقات", desc: "طبقات طويلة" },
+      { id: "pixie", name: "Pixie", nameAr: "بيكسي", desc: "قصة بيكسي جريئة" },
+      { id: "curly", name: "Curly", nameAr: "كيرلي", desc: "شعر مجعد" },
     ],
   },
   {
-    id: "slim-body", name: "Slim Body", nameAr: "ØªÙ†Ø­ÙŠÙ Ø§Ù„Ø¬Ø³Ù…", cat: "body", thumbFile: "slim-body.png",
+    id: "hair-color", name: "Hair Color", nameAr: "لون الشعر", cat: "hair", thumbFile: "hair-color.png",
     options: [
-      { id: "slim-light", name: "Light", nameAr: "Ø®ÙÙŠÙ", desc: "ØªÙ†Ø­ÙŠÙ Ø¨Ø³ÙŠØ· Ø·Ø¨ÙŠØ¹ÙŠ" },
-      { id: "slim-moderate", name: "Moderate", nameAr: "Ù…ØªÙˆØ³Ø·", desc: "Ø®ØµØ± Ø£ØµØºØ± ÙˆØ¬Ø³Ù… Ø£Ù†Ø­Ù" },
-      { id: "slim-dramatic", name: "Dramatic", nameAr: "Ø¯Ø±Ø§Ù…ÙŠ", desc: "ØªØ­ÙˆÙ„ ÙƒØ¨ÙŠØ± ÙÙŠ Ø§Ù„Ø´ÙƒÙ„" },
+      { id: "blonde", name: "Blonde", nameAr: "أشقر", desc: "أشقر ذهبي" },
+      { id: "red-hair", name: "Red", nameAr: "أحمر", desc: "أحمر ناري" },
+      { id: "platinum", name: "Platinum", nameAr: "بلاتيني", desc: "بلاتيني فاتح" },
+      { id: "ombre", name: "Ombre", nameAr: "أومبريه", desc: "تدرج لوني" },
+      { id: "chocolate", name: "Chocolate", nameAr: "شوكولا", desc: "بني شوكولا" },
     ],
   },
   {
-    id: "muscle-enhance", name: "Muscle Enhancement", nameAr: "Ø¥Ø¨Ø±Ø§Ø² Ø§Ù„Ø¹Ø¶Ù„Ø§Øª", cat: "body", thumbFile: "muscle-enhance.png",
+    id: "beard-style", name: "Beard Styles", nameAr: "ستايل لحية", cat: "hair", thumbFile: "beard-style.png",
     options: [
-      { id: "mus-toned", name: "Toned", nameAr: "Ù…ØªÙ†Ø§Ø³Ù‚", desc: "Ø¬Ø³Ù… Ø±ÙŠØ§Ø¶ÙŠ Ø®ÙÙŠÙ" },
-      { id: "mus-athletic", name: "Athletic", nameAr: "Ø±ÙŠØ§Ø¶ÙŠ", desc: "Ø¹Ø¶Ù„Ø§Øª ÙˆØ§Ø¶Ø­Ø©" },
-      { id: "mus-bodybuilder", name: "Bodybuilder", nameAr: "Ø¨ÙˆØ¯ÙŠ Ø¨Ù„Ø¯Ø±", desc: "Ø¹Ø¶Ù„Ø§Øª Ø¶Ø®Ù…Ø©" },
+      { id: "full-beard", name: "Full Beard", nameAr: "لحية كاملة", desc: "لحية كثيفة كاملة" },
+      { id: "goatee", name: "Goatee", nameAr: "ذقن", desc: "ذقن فقط" },
+      { id: "stubble", name: "Stubble", nameAr: "خفيفة", desc: "لحية خفيفة" },
+      { id: "clean-shave", name: "Clean Shave", nameAr: "حليق", desc: "بدون لحية" },
     ],
   },
   {
-    id: "nose-reshape", name: "Nose Reshape", nameAr: "ØªØ¹Ø¯ÙŠÙ„ Ø§Ù„Ø£Ù†Ù", cat: "body", thumbFile: "nose-reshape.png",
+    id: "bangs", name: "Bangs Try-On", nameAr: "تجربة غرة", cat: "hair", thumbFile: "bangs-tryon.png",
     options: [
-      { id: "nose-refine", name: "Refined", nameAr: "Ù…Ù‡Ø°Ø¨", desc: "ØªØµØºÙŠØ± Ø®ÙÙŠÙ ÙˆØªÙ†Ø¹ÙŠÙ…" },
-      { id: "nose-slim", name: "Slim", nameAr: "Ù†Ø­ÙŠÙ", desc: "Ø£Ù†Ù Ø£Ù†Ø­Ù ÙˆØ£Ø¶ÙŠÙ‚" },
-      { id: "nose-button", name: "Button", nameAr: "ØµØºÙŠØ±", desc: "Ø£Ù†Ù ØµØºÙŠØ± Ù…Ø±ÙÙˆØ¹" },
-      { id: "nose-straight", name: "Straight", nameAr: "Ù…Ø³ØªÙ‚ÙŠÙ…", desc: "Ø£Ù†Ù Ù…Ø³ØªÙ‚ÙŠÙ… ÙˆÙ…Ø­Ø¯Ø¯" },
+      { id: "straight-bangs", name: "Straight", nameAr: "ستريت", desc: "غرة مستقيمة" },
+      { id: "curtain-bangs", name: "Curtain", nameAr: "كيرتن", desc: "غرة جانبية" },
+      { id: "side-bangs", name: "Side Swept", nameAr: "جانبية", desc: "غرة مسحوبة" },
+      { id: "wispy-bangs", name: "Wispy", nameAr: "خفيفة", desc: "غرة خفيفة شفافة" },
     ],
   },
   {
-    id: "skin-tan", name: "Skin Tan", nameAr: "ØªØ³Ù…ÙŠØ± Ø§Ù„Ø¨Ø´Ø±Ø©", cat: "body", thumbFile: "skin-tan.png",
+    id: "braids", name: "Braids & Updos", nameAr: "ضفائر وتسريحات", cat: "hair", thumbFile: "braids-updos.png",
     options: [
-      { id: "fair", name: "Fair", nameAr: "ÙØ§ØªØ­", desc: "Ø¨Ø´Ø±Ø© ÙØ§ØªØ­Ø© Ø¬Ø¯Ø§Ù‹" },
-      { id: "light-tan", name: "Light Tan", nameAr: "ØªØ§Ù† Ø®ÙÙŠÙ", desc: "Ø³Ù…Ø±Ø© Ø®ÙÙŠÙØ©" },
-      { id: "golden-tan", name: "Golden", nameAr: "Ø°Ù‡Ø¨ÙŠ", desc: "ØªØ§Ù† Ø°Ù‡Ø¨ÙŠ ØµÙŠÙÙŠ" },
-      { id: "deep-tan", name: "Deep", nameAr: "ØºØ§Ù…Ù‚", desc: "Ø³Ù…Ø±Ø© ØºØ§Ù…Ù‚Ø©" },
+      { id: "french-braid", name: "French Braid", nameAr: "ضفيرة فرنسية", desc: "ضفيرة كلاسيكية" },
+      { id: "fishtail", name: "Fishtail", nameAr: "ذيل سمكة", desc: "ضفيرة ذيل سمكة" },
+      { id: "chignon", name: "Chignon", nameAr: "شنيون", desc: "كعكة أنيقة" },
+      { id: "messy-bun", name: "Messy Bun", nameAr: "كعكة عشوائية", desc: "كعكة كاجوال" },
+    ],
+  },
+  {
+    id: "extensions", name: "Hair Extensions", nameAr: "إكستنشن", cat: "hair", thumbFile: "hair-extensions.png",
+    options: [
+      { id: "medium-ext", name: "Medium", nameAr: "متوسط", desc: "إضافة طول متوسط" },
+      { id: "long-ext", name: "Long", nameAr: "طويل", desc: "شعر طويل جداً" },
+      { id: "volume-ext", name: "Volume", nameAr: "كثافة", desc: "كثافة بدون طول" },
+    ],
+  },
+  {
+    id: "balayage", name: "Balayage", nameAr: "بالاياج وهايلايت", cat: "hair", thumbFile: "balayage.png",
+    options: [
+      { id: "sun-kissed", name: "Sun-Kissed", nameAr: "لمسة شمس", desc: "بالاياج طبيعي" },
+      { id: "caramel-hl", name: "Caramel", nameAr: "كراميل", desc: "هايلايت كراميلي" },
+      { id: "ash-hl", name: "Ash", nameAr: "رمادي", desc: "هايلايت رمادي" },
+    ],
+  },
+
+  // ─── BODY ───
+  {
+    id: "lip-enhancement", name: "Lip Enhancement", nameAr: "تكبير الشفايف", cat: "body", thumbFile: "lip-enhancement.png",
+    options: [
+      { id: "lip-natural", name: "Natural", nameAr: "طبيعي", desc: "تعريف خفيف ودقيق" },
+      { id: "lip-medium", name: "Medium", nameAr: "متوسط", desc: "امتلاء معتدل" },
+      { id: "lip-full", name: "Full", nameAr: "ممتلئ", desc: "حجم واضح" },
+      { id: "lip-extra", name: "Extra Full", nameAr: "ممتلئ جداً", desc: "حجم كبير وشكل بارز" },
+      { id: "lip-hollywood", name: "Hollywood", nameAr: "هوليوود", desc: "أقصى حجم وامتلاء" },
+    ],
+  },
+  {
+    id: "slim-body", name: "Slim Body", nameAr: "تنحيف الجسم", cat: "body", thumbFile: "slim-body.png",
+    options: [
+      { id: "slim-light", name: "Light", nameAr: "خفيف", desc: "تنحيف بسيط طبيعي" },
+      { id: "slim-moderate", name: "Moderate", nameAr: "متوسط", desc: "خصر أصغر وجسم أنحف" },
+      { id: "slim-dramatic", name: "Dramatic", nameAr: "درامي", desc: "تحول كبير في الشكل" },
+    ],
+  },
+  {
+    id: "muscle-enhance", name: "Muscle Enhancement", nameAr: "إبراز العضلات", cat: "body", thumbFile: "muscle-enhance.png",
+    options: [
+      { id: "mus-toned", name: "Toned", nameAr: "متناسق", desc: "جسم رياضي خفيف" },
+      { id: "mus-athletic", name: "Athletic", nameAr: "رياضي", desc: "عضلات واضحة" },
+      { id: "mus-bodybuilder", name: "Bodybuilder", nameAr: "بودي بلدر", desc: "عضلات ضخمة" },
+    ],
+  },
+  {
+    id: "nose-reshape", name: "Nose Reshape", nameAr: "تعديل الأنف", cat: "body", thumbFile: "nose-reshape.png",
+    options: [
+      { id: "nose-refine", name: "Refined", nameAr: "مهذب", desc: "تصغير خفيف وتنعيم" },
+      { id: "nose-slim", name: "Slim", nameAr: "نحيف", desc: "أنف أنحف وأضيق" },
+      { id: "nose-button", name: "Button", nameAr: "صغير", desc: "أنف صغير مرفوع" },
+      { id: "nose-straight", name: "Straight", nameAr: "مستقيم", desc: "أنف مستقيم ومحدد" },
+    ],
+  },
+  {
+    id: "skin-tan", name: "Skin Tan", nameAr: "تسمير البشرة", cat: "body", thumbFile: "skin-tan.png",
+    options: [
+      { id: "fair", name: "Fair", nameAr: "فاتح", desc: "بشرة فاتحة جداً" },
+      { id: "light-tan", name: "Light Tan", nameAr: "تان خفيف", desc: "سمرة خفيفة" },
+      { id: "golden-tan", name: "Golden", nameAr: "ذهبي", desc: "تان ذهبي صيفي" },
+      { id: "deep-tan", name: "Deep", nameAr: "غامق", desc: "سمرة غامقة" },
     ],
   },
 ];
@@ -309,9 +309,9 @@ const CAT_BADGE: Record<string, string> = {
   body: "bg-cyan-500/20 text-cyan-300 border-cyan-500/30",
 };
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ═══════════════════════════════════════════════════════════════════════
    TRANSITION PRESET CATEGORY COLORS
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+   ═══════════════════════════════════════════════════════════════════════ */
 
 const CATEGORY_COLORS: Record<string, string> = {
   transformation: "bg-cyan-500/20 text-cyan-300 border-cyan-500/30",
@@ -321,9 +321,9 @@ const CATEGORY_COLORS: Record<string, string> = {
   stylized_special: "bg-violet-500/20 text-violet-300 border-violet-500/30",
 };
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ═══════════════════════════════════════════════════════════════════════
    UPLOAD HELPER
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+   ═══════════════════════════════════════════════════════════════════════ */
 
 async function uploadToSupabase(
   file: File
@@ -351,9 +351,9 @@ async function uploadToSupabase(
   return { publicUrl, isVideo };
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ═══════════════════════════════════════════════════════════════════════
    TRANSITION CARD
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+   ═══════════════════════════════════════════════════════════════════════ */
 
 function TransitionCard({
   preset,
@@ -457,9 +457,9 @@ function TransitionCard({
   );
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ═══════════════════════════════════════════════════════════════════════
    BEAUTY OPTION CARD (image or video upload for each option)
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+   ═══════════════════════════════════════════════════════════════════════ */
 
 function OptionUploadCard({
   toolId,
@@ -562,9 +562,9 @@ function OptionUploadCard({
   );
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ═══════════════════════════════════════════════════════════════════════
    BEAUTY TOOL ROW (thumbnail + expand to options)
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+   ═══════════════════════════════════════════════════════════════════════ */
 
 function BeautyToolRow({
   tool,
@@ -669,7 +669,7 @@ function BeautyToolRow({
             <div className="px-3 pb-3 pt-1">
               <div className="border-t border-slate-800 pt-3 mb-3">
                 <p className="text-[11px] text-slate-500 mb-3">
-                  Upload image or video for each option â€” these appear when users select this tool
+                  Upload image or video for each option — these appear when users select this tool
                 </p>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
@@ -696,9 +696,9 @@ function BeautyToolRow({
   );
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ═══════════════════════════════════════════════════════════════════════
    PROMO UPLOAD ZONE
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+   ═══════════════════════════════════════════════════════════════════════ */
 
 function PromoUploadZone({
   onUpload,
@@ -788,9 +788,9 @@ function PromoUploadZone({
   );
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ═══════════════════════════════════════════════════════════════════════
    SECTION TABS
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+   ═══════════════════════════════════════════════════════════════════════ */
 
 const SECTIONS: { id: AssetSection; label: string; icon: React.ElementType }[] = [
   { id: "transitions", label: "Transitions", icon: Film },
@@ -798,9 +798,9 @@ const SECTIONS: { id: AssetSection; label: string; icon: React.ElementType }[] =
   { id: "promo", label: "Promo & Ads", icon: Megaphone },
 ];
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ═══════════════════════════════════════════════════════════════════════
    STATS BAR
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+   ═══════════════════════════════════════════════════════════════════════ */
 
 function StatsBar({ presets, optionMedia }: { presets: PresetMedia[]; optionMedia: Record<string, { url: string; type: string }> }) {
   const withVideo = presets.filter((p) => p.previewVideoUrl).length;
@@ -835,9 +835,9 @@ function StatsBar({ presets, optionMedia }: { presets: PresetMedia[]; optionMedi
   );
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ═══════════════════════════════════════════════════════════════════════
    MAIN PAGE
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+   ═══════════════════════════════════════════════════════════════════════ */
 
 export default function PageBuilderPage() {
   const [section, setSection] = useState<AssetSection>("transitions");
@@ -887,7 +887,7 @@ export default function PageBuilderPage() {
     return () => clearTimeout(t);
   }, [toast]);
 
-  // â”€â”€â”€ Transition upload â”€â”€â”€
+  // ─── Transition upload ───
   const handleTransitionUpload = async (presetId: string, file: File) => {
     setUploading(presetId);
     try {
@@ -907,7 +907,7 @@ export default function PageBuilderPage() {
     }
   };
 
-  // â”€â”€â”€ Beauty thumbnail upload â”€â”€â”€
+  // ─── Beauty thumbnail upload ───
   const handleThumbUpload = async (toolId: string, file: File) => {
     setThumbUploading(toolId);
     try {
@@ -926,7 +926,7 @@ export default function PageBuilderPage() {
     }
   };
 
-  // â”€â”€â”€ Beauty option media upload â”€â”€â”€
+  // ─── Beauty option media upload ───
   const handleOptionUpload = async (toolId: string, optionId: string, file: File) => {
     const key = `${toolId}/${optionId}`;
     setOptionUploading(key);
@@ -947,7 +947,7 @@ export default function PageBuilderPage() {
     }
   };
 
-  // â”€â”€â”€ Promo upload â”€â”€â”€
+  // ─── Promo upload ───
   const handlePromoUpload = async (files: FileList) => {
     setPromoUploading(true);
     try {
@@ -963,7 +963,7 @@ export default function PageBuilderPage() {
     }
   };
 
-  // â”€â”€â”€ Filters â”€â”€â”€
+  // ─── Filters ───
   const transitionCategories = ["all", ...Array.from(new Set(presets.map((p) => p.category)))];
   const filteredPresets = presets.filter((p) => {
     if (catFilter !== "all" && p.category !== catFilter) return false;
@@ -979,7 +979,7 @@ export default function PageBuilderPage() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
-      {/* â•â•â• HEADER â•â•â• */}
+      {/* ═══ HEADER ═══ */}
       <header className="sticky top-0 z-30 border-b border-slate-800/80 bg-slate-950/95 backdrop-blur-sm px-6 py-4">
         <div className="max-w-[1440px] mx-auto flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -1005,7 +1005,7 @@ export default function PageBuilderPage() {
         </div>
       </header>
 
-      {/* â•â•â• BODY â•â•â• */}
+      {/* ═══ BODY ═══ */}
       <div className="max-w-[1440px] mx-auto px-6 py-6 space-y-6">
         <StatsBar presets={presets} optionMedia={optionMedia} />
 
@@ -1029,7 +1029,7 @@ export default function PageBuilderPage() {
           })}
         </div>
 
-        {/* â•â•â• TRANSITIONS â•â•â• */}
+        {/* ═══ TRANSITIONS ═══ */}
         {section === "transitions" && (
           <div className="space-y-4">
             <div className="flex flex-wrap items-center gap-3">
@@ -1086,7 +1086,7 @@ export default function PageBuilderPage() {
           </div>
         )}
 
-        {/* â•â•â• BEAUTY STUDIO â•â•â• */}
+        {/* ═══ BEAUTY STUDIO ═══ */}
         {section === "beauty-tools" && (
           <div className="space-y-4">
             {/* Toolbar */}
@@ -1144,7 +1144,7 @@ export default function PageBuilderPage() {
           </div>
         )}
 
-        {/* â•â•â• PROMO â•â•â• */}
+        {/* ═══ PROMO ═══ */}
         {section === "promo" && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -1163,7 +1163,7 @@ export default function PageBuilderPage() {
         )}
       </div>
 
-      {/* â•â•â• TOAST â•â•â• */}
+      {/* ═══ TOAST ═══ */}
       <AnimatePresence>
         {toast && (
           <motion.div
