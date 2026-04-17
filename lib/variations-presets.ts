@@ -53,9 +53,9 @@ export const STORYBOARD_PRESETS: Record<StoryboardPresetId, StoryboardPreset> = 
     cameraLanguage: "ultra-wide, environmental context",
     compositionLogic: "reveal environment and placement of subject",
     hiddenSystemPrompt:
-      "Generate a cinematic establishing shot based on the reference image. Preserve subject identity, environment, and scene logic while widening the framing to reveal more surrounding context and world-building.",
+      "CAMERA: extreme wide angle lens, 14mm focal length. REFRAME this scene as an establishing shot — pull the camera FAR BACK to reveal the entire surrounding environment. The subject should occupy only 15-20% of the frame. Show the full location: sky, ground, horizon, surrounding structures. The viewer should understand WHERE this scene takes place. Wide cinematic composition, deep depth of field.",
     hiddenNegativePrompt:
-      "no random scenery replacement, no identity drift, no duplicated subjects, no broken perspective, no unrelated background",
+      "no close-up, no tight crop, no zoomed in, no portrait framing, no duplicated subjects, no identity drift",
     modelPreference: "nano-banana-pro",
     subjectWeight: 0.6,
     environmentWeight: 0.9,
@@ -68,9 +68,9 @@ export const STORYBOARD_PRESETS: Record<StoryboardPresetId, StoryboardPreset> = 
     cameraLanguage: "wide, full body in environment",
     compositionLogic: "subject fully visible with surrounding world",
     hiddenSystemPrompt:
-      "Generate a cinematic wide shot from the reference image while preserving the subject and environment, expanding the frame in a clean and realistic way.",
+      "CAMERA: wide angle lens, 24mm focal length. REFRAME to show the subject's FULL BODY from head to feet, standing within the environment. Subject takes about 40% of the vertical frame. Include ground beneath feet and sky above head. Balanced composition showing both the person/object and their surroundings equally. Natural wide framing.",
     hiddenNegativePrompt:
-      "no warped anatomy, no duplicated people, no geometry distortion, no environment mismatch",
+      "no cropped body, no tight framing, no close-up, no cut-off limbs, no distorted proportions",
     modelPreference: "nano-banana-pro",
     subjectWeight: 0.7,
     environmentWeight: 0.8,
@@ -83,9 +83,9 @@ export const STORYBOARD_PRESETS: Record<StoryboardPresetId, StoryboardPreset> = 
     cameraLanguage: "medium, waist-to-head framing",
     compositionLogic: "balanced subject-environment relationship",
     hiddenSystemPrompt:
-      "Generate a cinematic medium shot from the reference image with balanced narrative framing, preserving identity, emotion, and environment.",
+      "CAMERA: standard lens, 50mm focal length. REFRAME as a MEDIUM SHOT — crop from the waist UP. The subject fills roughly 60% of the frame. Show shoulders, torso, and head clearly. Background visible but secondary. This is a conversational, narrative distance. Shallow-medium depth of field, subject is the clear focus.",
     hiddenNegativePrompt:
-      "no identity drift, no awkward crop, no extra limbs, no duplicate subject",
+      "no full body, no extreme wide, no extreme close-up, no awkward crop, no duplicate subject",
     modelPreference: "nano-banana-pro",
     subjectWeight: 0.75,
     environmentWeight: 0.7,
@@ -98,9 +98,9 @@ export const STORYBOARD_PRESETS: Record<StoryboardPresetId, StoryboardPreset> = 
     cameraLanguage: "close, head-and-shoulders",
     compositionLogic: "emotional presence, identity lock",
     hiddenSystemPrompt:
-      "Generate a cinematic close-up from the reference image. Preserve facial identity, lighting continuity, and emotional realism.",
+      "CAMERA: portrait lens, 85mm focal length, shallow depth of field f/1.8. REFRAME as a TIGHT CLOSE-UP — show ONLY the head and upper shoulders. The face fills 70-80% of the frame. Background should be heavily blurred (bokeh). Focus on eyes, expression, skin texture, facial details. Intimate, emotional distance. This is NOT a wide shot.",
     hiddenNegativePrompt:
-      "no broken face, no extra features, no asymmetrical eyes, no blurry subject",
+      "no wide shot, no full body, no environment focus, no blurry face, no identity drift, no extra features",
     modelPreference: "nano-banana-pro",
     subjectWeight: 0.95,
     environmentWeight: 0.3,
@@ -113,9 +113,9 @@ export const STORYBOARD_PRESETS: Record<StoryboardPresetId, StoryboardPreset> = 
     cameraLanguage: "OTS, partial profile in foreground",
     compositionLogic: "subject shoulder visible, scene ahead in focus",
     hiddenSystemPrompt:
-      "Generate a cinematic over-the-shoulder shot from the reference image with narrative framing while preserving subject and environment continuity.",
+      "CAMERA: 35mm lens, positioned BEHIND the subject. REFRAME as an OVER-THE-SHOULDER shot — the camera is placed behind one shoulder of the subject, looking outward at the scene ahead. We see the back of the subject's head and shoulder in the left/right foreground (blurred), while the environment stretches out in front of them in focus. This creates narrative depth and POV feeling.",
     hiddenNegativePrompt:
-      "no broken anatomy, no fake extra person, no unusable framing, no face corruption",
+      "no frontal face, no standard angle, no broken anatomy, no fake extra person, no face corruption",
     modelPreference: "nano-banana-pro",
     subjectWeight: 0.85,
     environmentWeight: 0.7,
@@ -128,9 +128,9 @@ export const STORYBOARD_PRESETS: Record<StoryboardPresetId, StoryboardPreset> = 
     cameraLanguage: "low-angle, looking up at subject",
     compositionLogic: "dramatic perspective, power composition",
     hiddenSystemPrompt:
-      "Generate a cinematic low-angle shot from the reference image, preserving identity and environment while increasing dramatic perspective.",
+      "CAMERA: 28mm wide lens, placed at GROUND LEVEL looking UPWARD. REFRAME with a dramatic LOW ANGLE — the camera is on the ground shooting up at the subject. The subject appears tall, powerful, and dominant against the sky. Sky and clouds should be prominently visible above/behind the subject. Converging vertical lines. The viewer feels small looking up. This is a power shot.",
     hiddenNegativePrompt:
-      "no body stretching, no broken perspective, no scene mismatch",
+      "no eye-level shot, no high angle, no looking down, no standard perspective, no body stretching",
     modelPreference: "nano-banana-pro",
     subjectWeight: 0.8,
     environmentWeight: 0.6,
@@ -143,9 +143,9 @@ export const STORYBOARD_PRESETS: Record<StoryboardPresetId, StoryboardPreset> = 
     cameraLanguage: "high-angle, looking down at subject",
     compositionLogic: "elevated perspective, readable scene",
     hiddenSystemPrompt:
-      "Generate a cinematic high-angle shot from the reference image while preserving the scene and subject in a readable, realistic, elevated composition.",
+      "CAMERA: 35mm lens, positioned HIGH ABOVE looking DOWNWARD at 45-60 degrees. REFRAME with a HIGH ANGLE — the camera is elevated above the scene looking down at the subject from above. The ground/floor is prominently visible. The subject appears smaller, more vulnerable. We see the top of the head, shoulders from above. The environment below is clearly visible in a bird's-eye-like perspective.",
     hiddenNegativePrompt:
-      "no floating anatomy, no broken proportions, no environment collapse",
+      "no eye-level, no low angle, no looking up, no standard perspective, no floating anatomy",
     modelPreference: "nano-banana-pro",
     subjectWeight: 0.7,
     environmentWeight: 0.8,
@@ -158,9 +158,9 @@ export const STORYBOARD_PRESETS: Record<StoryboardPresetId, StoryboardPreset> = 
     cameraLanguage: "medium-close, emotional read",
     compositionLogic: "emotional presence, psychological weight",
     hiddenSystemPrompt:
-      "Generate a cinematic reaction shot from the reference image, emphasizing emotional response and psychological presence while preserving identity and atmosphere.",
+      "CAMERA: 85mm portrait lens, f/2.0 shallow depth of field. REFRAME as a REACTION SHOT — focus tightly on the subject's FACE showing an emotional response. Frame from chest up with the face as the absolute center of attention. Capture a moment of intense emotion — surprise, awe, determination, or contemplation. The eyes tell the story. Blurred background, all attention on the facial expression.",
     hiddenNegativePrompt:
-      "no cartoon exaggeration, no facial corruption, no identity drift, no random background replacement",
+      "no wide shot, no environment focus, no neutral expression, no cartoon exaggeration, no identity drift",
     modelPreference: "nano-banana-pro",
     subjectWeight: 0.9,
     environmentWeight: 0.4,
@@ -173,9 +173,9 @@ export const STORYBOARD_PRESETS: Record<StoryboardPresetId, StoryboardPreset> = 
     cameraLanguage: "macro/tight detail, insert frame",
     compositionLogic: "meaningful detail in context",
     hiddenSystemPrompt:
-      "Generate a cinematic detail shot from the reference image focusing on a meaningful visual detail, gesture, texture, or object while preserving the world and tone of the original frame.",
+      "CAMERA: macro lens, 100mm, extremely tight crop, f/2.8. REFRAME as a DETAIL INSERT SHOT — zoom in EXTREMELY CLOSE on one specific meaningful detail from the scene: hands, an object being held, a texture, a tool, a badge, fabric pattern, or a key prop. The detail should fill the ENTIRE frame. No face visible, no full body. This is about texture, material, and storytelling through small details. Extreme shallow depth of field.",
     hiddenNegativePrompt:
-      "no unrelated object, no unusable crop, no blur overload, no texture corruption",
+      "no full body, no face, no wide shot, no standard framing, no unrelated object, no blur overload",
     modelPreference: "nano-banana-pro",
     subjectWeight: 0.5,
     environmentWeight: 0.5,
@@ -252,9 +252,9 @@ export const ANGLES_PRESETS: Record<AnglesPresetId, AnglesPreset> = {
     description: "Extreme wide establishing frame, subject very small in environment",
     reframingLogic: "extreme wide pull showing vast environment",
     hiddenSystemPrompt:
-      "Generate an extreme long shot cinematic reframe of the reference image. The subject should appear very small within a vast, detailed environment. Preserve identity and scene logic while dramatically expanding the frame outward.",
+      "CAMERA ANGLE: extreme wide angle 14mm, subject very tiny in frame. Recreate this exact scene but pull the camera EXTREMELY FAR BACK. The subject should be very small (10-15% of frame), surrounded by vast open environment. Show the full landscape, sky, and ground. This is an environmental establishing shot where the location dominates.",
     hiddenNegativePrompt:
-      "no random scenery, no identity drift, no duplicated subjects, no cropped environment edges",
+      "no close-up, no tight crop, no portrait, no zoomed in, no duplicated subjects",
     modelPreference: "nano-banana-pro",
     framingStrength: 0.9,
     preservationStrength: 0.75,
@@ -265,9 +265,9 @@ export const ANGLES_PRESETS: Record<AnglesPresetId, AnglesPreset> = {
     description: "Full body visible within spacious environment",
     reframingLogic: "wide frame, subject full-body visible in scene",
     hiddenSystemPrompt:
-      "Generate a long shot cinematic reframe from the reference image. Show the full body of the subject clearly while placing them within a spacious, well-defined environment.",
+      "CAMERA ANGLE: wide 24mm lens, full body framing. Show the subject's COMPLETE BODY from head to feet within the full environment. Subject takes 30-40% of vertical frame. Ground visible below feet, sky above. Both subject and environment equally important in composition.",
     hiddenNegativePrompt:
-      "no cut-off limbs, no scene replacement, no environment mismatch, no distorted proportions",
+      "no cut-off limbs, no tight crop, no close-up, no portrait framing, no distorted proportions",
     modelPreference: "nano-banana-pro",
     framingStrength: 0.75,
     preservationStrength: 0.8,
@@ -278,9 +278,9 @@ export const ANGLES_PRESETS: Record<AnglesPresetId, AnglesPreset> = {
     description: "Face and upper chest — emotionally direct framing",
     reframingLogic: "tight face crop, high emotional presence",
     hiddenSystemPrompt:
-      "Generate a cinematic closeup reframe from the reference image. Focus tightly on the subject's face and upper chest. Preserve identity, skin detail, and expression with high fidelity.",
+      "CAMERA ANGLE: 85mm portrait lens, tight face crop, f/1.8 bokeh. ZOOM IN CLOSE — show ONLY the face and upper shoulders. The face fills 70% of the frame. Background completely blurred. Focus on eyes, skin texture, expression. This is an intimate emotional portrait, NOT a wide shot.",
     hiddenNegativePrompt:
-      "no face damage, no identity drift, no background noise, no unnatural cropping artifacts",
+      "no wide shot, no full body, no environment, no blurry face, no identity drift",
     modelPreference: "nano-banana-pro",
     framingStrength: 0.65,
     preservationStrength: 0.95,
@@ -291,9 +291,9 @@ export const ANGLES_PRESETS: Record<AnglesPresetId, AnglesPreset> = {
     description: "Thigh-to-head framing in natural scene context",
     reframingLogic: "subject from thighs up with scene context",
     hiddenSystemPrompt:
-      "Generate a medium long shot reframe from the reference image. Frame the subject from roughly mid-thigh upward, within a clear and natural scene context.",
+      "CAMERA ANGLE: 50mm standard lens, medium-long framing. Frame the subject from MID-THIGH upward. Subject takes about 50-60% of vertical frame. Natural balanced composition between person and environment. Some background context visible but subject is primary focus.",
     hiddenNegativePrompt:
-      "no floating subjects, no scene jump, no crop at knees, no distorted proportions",
+      "no extreme wide, no extreme close-up, no cut at knees, no floating subjects",
     modelPreference: "nano-banana-pro",
     framingStrength: 0.65,
     preservationStrength: 0.85,
@@ -304,9 +304,9 @@ export const ANGLES_PRESETS: Record<AnglesPresetId, AnglesPreset> = {
     description: "Eyes, mouth, or key detail — intense macro framing",
     reframingLogic: "extreme crop on specific facial feature or detail",
     hiddenSystemPrompt:
-      "Generate an extreme closeup reframe from the reference image, intensely cropping on one defining detail — eyes, lips, or a signature object. Preserve texture, identity, and sharpness.",
+      "CAMERA ANGLE: macro 100mm lens, EXTREME CLOSE-UP. Zoom EXTREMELY TIGHT on ONE specific detail — just the eyes, or just the mouth, or just the hands holding something. This detail fills the ENTIRE frame edge to edge. Extreme shallow depth of field. Ultra-detailed texture. No full face, no body, just one intense detail.",
     hiddenNegativePrompt:
-      "no blurry output, no identity distortion, no random crop artifacts, no noise",
+      "no full face, no full body, no wide shot, no standard framing, no blurry output",
     modelPreference: "nano-banana-pro",
     framingStrength: 0.55,
     preservationStrength: 0.98,
@@ -317,9 +317,9 @@ export const ANGLES_PRESETS: Record<AnglesPresetId, AnglesPreset> = {
     description: "Camera below subject looking up — powerful and imposing",
     reframingLogic: "low camera position, upward perspective, dramatic power",
     hiddenSystemPrompt:
-      "Generate a low angle shot reframe from the reference image. The camera should appear positioned below the subject looking upward, conveying power and dominance. Preserve subject identity and scene continuity.",
+      "CAMERA ANGLE: camera placed on the GROUND looking UPWARD at the subject. Low angle 28mm wide lens. The subject towers above the camera, appearing powerful and dominant. SKY prominently visible behind/above the subject. Converging vertical lines create dramatic perspective. The viewer is looking UP from below.",
     hiddenNegativePrompt:
-      "no distorted body proportions, no broken perspective geometry, no floating subject",
+      "no eye-level, no looking down, no high angle, no standard straight-on perspective",
     modelPreference: "nano-banana-pro",
     framingStrength: 0.8,
     preservationStrength: 0.8,
@@ -330,9 +330,9 @@ export const ANGLES_PRESETS: Record<AnglesPresetId, AnglesPreset> = {
     description: "Subject seen from behind, scene fully preserved",
     reframingLogic: "rotate perspective to show subject's back to camera",
     hiddenSystemPrompt:
-      "Generate a back view reframe from the reference image, showing the subject from behind while preserving the same scene, environment, and continuity. Maintain clothing, hair, and posture coherence.",
+      "CAMERA ANGLE: camera positioned BEHIND the subject, 35mm lens. Show the subject FROM THE BACK — we see their back, shoulders, back of head, facing away from camera. The subject is looking outward at the scene in front of them. Same environment but viewed from behind the subject. Maintain clothing, posture, and scene coherence.",
     hiddenNegativePrompt:
-      "no identity collapse, no environment change, no ghost artifacts, no broken posture",
+      "no frontal view, no face visible, no environment change, no identity collapse",
     modelPreference: "nano-banana-pro",
     framingStrength: 0.85,
     preservationStrength: 0.8,
@@ -343,9 +343,9 @@ export const ANGLES_PRESETS: Record<AnglesPresetId, AnglesPreset> = {
     description: "Chest-up framing — standard interview or portrait feel",
     reframingLogic: "frame from chest up, balanced portrait composition",
     hiddenSystemPrompt:
-      "Generate a medium closeup reframe from the reference image. Frame from the chest upward, creating a balanced and natural portrait composition while preserving identity and scene context.",
+      "CAMERA ANGLE: 70mm lens, medium close-up framing. Frame from CHEST UPWARD — head and upper body only. Subject fills 65% of frame. Slightly blurred background. This is a standard interview/portrait distance. Clear face, natural expression, professional composition.",
     hiddenNegativePrompt:
-      "no chin cut-off, no background replacement, no identity drift, no geometric distortion",
+      "no full body, no extreme close, no wide shot, no chin cut-off, no identity drift",
     modelPreference: "nano-banana-pro",
     framingStrength: 0.6,
     preservationStrength: 0.9,
@@ -356,9 +356,9 @@ export const ANGLES_PRESETS: Record<AnglesPresetId, AnglesPreset> = {
     description: "Over-the-shoulder — reveals subject and implied scene partner",
     reframingLogic: "camera behind shoulder looking toward subject or scene",
     hiddenSystemPrompt:
-      "Generate an over-the-shoulder shot from the reference image. Camera should be positioned behind one shoulder looking toward subject or scene, implying an off-screen presence. Preserve scene and identity.",
+      "CAMERA ANGLE: over-the-shoulder shot, 35mm lens. Position camera BEHIND one shoulder of the subject. The foreground shows the BLURRED back of head and shoulder on one side of frame. The background/scene stretches out in front. Creates depth and narrative tension. We see what the subject sees.",
     hiddenNegativePrompt:
-      "no random extra people, no broken scene geometry, no identity corruption",
+      "no standard frontal, no random extra people, no broken geometry, no identity corruption",
     modelPreference: "nano-banana-pro",
     framingStrength: 0.8,
     preservationStrength: 0.8,
@@ -369,9 +369,9 @@ export const ANGLES_PRESETS: Record<AnglesPresetId, AnglesPreset> = {
     description: "Camera above subject looking down — exposing and vulnerable",
     reframingLogic: "elevated camera position, downward perspective",
     hiddenSystemPrompt:
-      "Generate a high angle shot reframe from the reference image. Camera should appear elevated above the subject looking downward, creating a vulnerable or observational perspective. Preserve identity and scene.",
+      "CAMERA ANGLE: camera HIGH ABOVE looking DOWN at 45-60 degrees. The subject is seen from ABOVE — we see the top of head, shoulders from overhead. GROUND/FLOOR prominently visible around the subject. Creates a feeling of vulnerability and smallness. The perspective is clearly elevated, like looking down from a balcony or crane.",
     hiddenNegativePrompt:
-      "no stretched proportions, no floating environment, no broken geometry",
+      "no eye-level, no looking up, no low angle, no standard perspective, no floating subjects",
     modelPreference: "nano-banana-pro",
     framingStrength: 0.8,
     preservationStrength: 0.8,
@@ -382,9 +382,9 @@ export const ANGLES_PRESETS: Record<AnglesPresetId, AnglesPreset> = {
     description: "Wide lens framing — full environment context",
     reframingLogic: "expand frame wide, full environment visible",
     hiddenSystemPrompt:
-      "Generate a wide shot reframe from the reference image with full environment context clearly visible. Preserve subject identity and scene logic while ensuring the wider frame feels natural and cinematic.",
+      "CAMERA ANGLE: wide angle 20mm lens. Pull back to show the FULL ENVIRONMENT with the subject in context. The scene should feel spacious and open. Subject takes about 25-35% of frame. Environment details clearly visible all around — architecture, landscape, atmosphere. Cinematic wide composition.",
     hiddenNegativePrompt:
-      "no warped edges, no environment mismatch, no random objects introduced",
+      "no tight crop, no close-up, no portrait, no warped edges, no environment mismatch",
     modelPreference: "nano-banana-pro",
     framingStrength: 0.7,
     preservationStrength: 0.8,
@@ -395,9 +395,9 @@ export const ANGLES_PRESETS: Record<AnglesPresetId, AnglesPreset> = {
     description: "First-person point of view — immersive perspective",
     reframingLogic: "first-person immersive camera placement",
     hiddenSystemPrompt:
-      "Generate a first-person point-of-view (POV) reframe from the reference image. The scene should appear as if viewed through the subject's own eyes, fully immersive and realistic.",
+      "CAMERA ANGLE: first-person POV through the subject's eyes. Show EXACTLY what the subject would see from their eye position. Hands may be visible at bottom of frame. The subject themselves are NOT visible — only what's in front of them. Immersive first-person perspective like a video game viewpoint.",
     hiddenNegativePrompt:
-      "no floating camera artifacts, no distorted horizon, no broken immersion",
+      "no subject visible, no third-person view, no standard camera angle, no floating artifacts",
     modelPreference: "nano-banana-pro",
     framingStrength: 0.9,
     preservationStrength: 0.7,
@@ -408,9 +408,9 @@ export const ANGLES_PRESETS: Record<AnglesPresetId, AnglesPreset> = {
     description: "Bird's-eye view — overhead drone-style perspective",
     reframingLogic: "top-down aerial overhead camera",
     hiddenSystemPrompt:
-      "Generate an aerial overhead shot from the reference image as if captured from directly above by a drone. Show the scene from a top-down perspective while preserving scene identity and environment.",
+      "CAMERA ANGLE: DIRECTLY OVERHEAD looking straight down, drone/bird's-eye view. The camera is positioned directly ABOVE the scene shooting DOWNWARD at 90 degrees. We see the TOP of everything — top of heads, top of objects, the ground/floor pattern. This is a flat top-down aerial perspective like a drone shot.",
     hiddenNegativePrompt:
-      "no floating subjects, no broken top-down geometry, no unrelated environment",
+      "no side view, no eye-level, no standard angle, no tilted horizon, no floating subjects",
     modelPreference: "nano-banana-pro",
     framingStrength: 0.95,
     preservationStrength: 0.7,
@@ -421,9 +421,9 @@ export const ANGLES_PRESETS: Record<AnglesPresetId, AnglesPreset> = {
     description: "Neutral eye-level camera — natural and grounded",
     reframingLogic: "camera at subject eye height, neutral perspective",
     hiddenSystemPrompt:
-      "Generate an eye-level reframe from the reference image with the camera placed exactly at the subject's eye level for a natural, neutral perspective. Preserve identity, scene, and all visual continuity.",
+      "CAMERA ANGLE: camera at exact EYE LEVEL of the subject, 50mm standard lens. Perfectly neutral, straight-on perspective. No looking up, no looking down. The horizon line is at the subject's eye height. Natural, grounded, realistic framing. Standard cinematic eye-level composition.",
     hiddenNegativePrompt:
-      "no tilted horizon, no unnatural perspective shift, no scene change",
+      "no tilted camera, no low angle, no high angle, no perspective shift, no scene change",
     modelPreference: "nano-banana-pro",
     framingStrength: 0.5,
     preservationStrength: 0.95,
@@ -434,9 +434,9 @@ export const ANGLES_PRESETS: Record<AnglesPresetId, AnglesPreset> = {
     description: "Side view — clean 90-degree lateral framing",
     reframingLogic: "rotate to pure side profile of subject",
     hiddenSystemPrompt:
-      "Generate a profile shot from the reference image, showing the subject from a pure 90-degree side angle. Preserve posture, clothing, and scene continuity while achieving a clean lateral composition.",
+      "CAMERA ANGLE: camera rotated 90 degrees to the SIDE of the subject. Pure SIDE PROFILE view — we see the subject from their left or right side. Nose pointing left or right, not toward camera. Clean lateral silhouette composition. Same scene but viewed from a perpendicular side angle.",
     hiddenNegativePrompt:
-      "no face distortion, no body warp, no background change, no double-exposure artifacts",
+      "no frontal view, no standard angle, no face distortion, no body warp, no background change",
     modelPreference: "nano-banana-pro",
     framingStrength: 0.85,
     preservationStrength: 0.85,
@@ -447,9 +447,9 @@ export const ANGLES_PRESETS: Record<AnglesPresetId, AnglesPreset> = {
     description: "Three-quarter angle — classic cinematic diagonal framing",
     reframingLogic: "45-degree diagonal angle from subject",
     hiddenSystemPrompt:
-      "Generate a three-quarter angle shot from the reference image. The camera should be positioned at approximately 45 degrees to the subject, creating a classic and flattering diagonal cinematic framing.",
+      "CAMERA ANGLE: camera positioned at 45 DEGREES to the subject, three-quarter view. Classic cinematic diagonal framing — the subject is turned slightly, showing about 3/4 of the face. One ear barely visible, both eyes visible. Natural, flattering angle used in portrait photography and film.",
     hiddenNegativePrompt:
-      "no identity collapse, no awkward crop, no geometry distortion, no scene replacement",
+      "no straight frontal, no pure profile, no identity collapse, no awkward crop",
     modelPreference: "nano-banana-pro",
     framingStrength: 0.75,
     preservationStrength: 0.85,
