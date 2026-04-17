@@ -68,7 +68,7 @@ export const IMAGE_MODELS: ImageModel[] = [
     inputType: "text-to-image",
     aspectRatios: ["1:1", "16:9", "9:16", "4:3", "3:4"],
     maxImages: 4,
-    maxRefImages: 8,
+    maxRefImages: 14,
     imageInputField: "image_input",
     creditCost: 2,
   },

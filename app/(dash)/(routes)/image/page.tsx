@@ -79,8 +79,9 @@ const EDIT_MODELS = IMAGE_MODELS.filter((m) =>
   ["google/nano-banana-edit", "seedream/4.5-edit", "gpt-image/1.5-image-to-image", "flux-2/pro-image-to-image"].includes(m.id),
 );
 
+// All models that accept real image inputs (any inputType) — includes Nano Banana (up to 14 imgs), edit, and pure img2img
 const ENHANCE_MODELS = IMAGE_MODELS.filter(
-  (m) => (m.inputType === "image-to-image" || m.inputType === "edit") && m.maxRefImages > 0,
+  (m) => m.imageInputField !== undefined && m.maxRefImages > 0,
 );
 
 const uid = (prefix = "id") => `${prefix}_${Math.random().toString(36).slice(2, 10)}`;
