@@ -156,7 +156,7 @@ export default function HeroCarousel() {
           let image = fallback.image;
           if (ytId) {
             image = `https://img.youtube.com/vi/${ytId}/maxresdefault.jpg`;
-          } else if (b.mediaUrl && !b.isVideo) {
+          } else if (b.mediaUrl) {
             image = b.mediaUrl;
           }
           return {
