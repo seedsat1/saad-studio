@@ -154,20 +154,20 @@ const TOOL_DEFAULT_MODEL_ID: Record<string, string> = {
 };
 
 const TOOL_PROMPT_PREFIX: Record<string, string> = {
-  "create-video": "Create a cinematic video shot:",
-  "cinema-studio": "Cinema-grade direction with rich lighting and camera language:",
-  "mixed-media": "Blend multiple visual styles into one coherent sequence:",
-  "edit-video": "Edit and enhance this source video while preserving core scene continuity:",
-  "click-to-ad": "Generate a short ad-ready commercial clip with product focus and CTA energy:",
-  "sora-trends": "Generate a viral trend-style cinematic sequence:",
-  "lipsync": "Generate lip-sync friendly motion and face performance:",
-  "draw-to-video": "Animate this reference as stylized draw-to-video motion:",
-  "sketch-to-video": "Turn this sketch/concept into a polished video shot:",
-  "ugc-factory": "Produce user-generated-content style social video:",
-  "video-upscale": "Enhance visual quality and details as upscale/edit pass:",
-  "higgsfield-animate": "Animate character/object motion with expressive movement:",
-  "vibe-motion": "Create rhythm-driven motion synced to vibe and pacing:",
-  "recast-studio": "Recast and repurpose source footage into a new cut:",
+  "create-video": "",
+  "cinema-studio": "",
+  "mixed-media": "",
+  "edit-video": "",
+  "click-to-ad": "",
+  "sora-trends": "",
+  "lipsync": "",
+  "draw-to-video": "",
+  "sketch-to-video": "",
+  "ugc-factory": "",
+  "video-upscale": "",
+  "higgsfield-animate": "",
+  "vibe-motion": "",
+  "recast-studio": "",
 };
 
 const FAMILY_GRADIENTS: Record<string, string> = {
