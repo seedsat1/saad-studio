@@ -788,28 +788,36 @@ function BlockEditor({
     setUploadError(null);
     setUploading(true);
     try {
-      // Step 1: get presigned upload URL from our API
-      const presignRes = await fetch("/api/admin/media/upload", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fileName: file.name, fileType: file.type }),
-      });
-      const presignData = await presignRes.json().catch(() => null);
-      if (!presignRes.ok || !presignData?.signedUrl) {
-        throw new Error(presignData?.error || "Failed to get upload URL");
-      }
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+      if (!supabaseUrl || !supabaseAnonKey) throw new Error("Storage not configured");
 
-      // Step 2: upload file directly to Supabase Storage (bypasses Next.js body limit)
-      const uploadRes = await fetch(presignData.signedUrl, {
-        method: "PUT",
-        headers: { "Content-Type": file.type },
-        body: file,
-      });
+      const isVideo = file.type.startsWith("video/");
+      const bucket = isVideo ? "videos" : "images";
+      const ext = file.name.split(".").pop() ?? (isVideo ? "mp4" : "jpg");
+      const path = `admin-cms/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+
+      // Upload directly from browser to Supabase Storage using anon key
+      const uploadRes = await fetch(
+        `${supabaseUrl}/storage/v1/object/${bucket}/${path}`,
+        {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${supabaseAnonKey}`,
+            "Content-Type": file.type,
+            "x-upsert": "true",
+          },
+          body: file,
+        }
+      );
+
       if (!uploadRes.ok) {
-        throw new Error("Failed to upload to storage");
+        const err = await uploadRes.json().catch(() => ({}));
+        throw new Error(err?.message ?? "Upload failed");
       }
 
-      setDraft((d) => ({ ...d, mediaUrl: String(presignData.publicUrl), isVideo: Boolean(presignData.isVideo) }));
+      const publicUrl = `${supabaseUrl}/storage/v1/object/public/${bucket}/${path}`;
+      setDraft((d) => ({ ...d, mediaUrl: publicUrl, isVideo }));
     } catch (error) {
       setUploadError(error instanceof Error ? error.message : "Upload failed");
     } finally {
