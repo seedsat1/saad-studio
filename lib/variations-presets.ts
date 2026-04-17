@@ -13,7 +13,7 @@ export const KIE_VARIATION_MODEL_IDS: Record<VariationModel, string> = {
 } as const;
 
 export const VARIATION_CREDIT_COSTS: Record<VariationModel, number> = {
-  "nano-banana-pro": 3,
+  "nano-banana-pro": 2,
   "z-image": 2,
 } as const;
 
