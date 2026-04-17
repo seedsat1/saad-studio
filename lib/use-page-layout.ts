@@ -12,6 +12,11 @@ export type CmsLayoutBlock = {
   mediaUrl: string;
   isVideo: boolean;
   badge?: string;
+  ctaHref?: string;
+  ctaLabel?: string;
+  trailerUrl?: string;
+  accentColor?: string;
+  youtubeUrl?: string;
 };
 
 export function usePageLayout(pageName: string) {

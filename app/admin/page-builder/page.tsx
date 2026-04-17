@@ -61,6 +61,11 @@ export interface LayoutBlock {
   mediaUrl: string;
   isVideo: boolean;
   badge?: string;
+  ctaHref?: string;
+  ctaLabel?: string;
+  trailerUrl?: string;
+  accentColor?: string;
+  youtubeUrl?: string;
 }
 
 // â”€â”€â”€ BLOCK TEMPLATES (palette) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -86,6 +91,11 @@ const BLOCK_TEMPLATES: {
       mediaUrl: "https://picsum.photos/seed/hero/1280/600",
       isVideo: false,
       badge: "NEW",
+      ctaHref: "/dash",
+      ctaLabel: "Try Now",
+      trailerUrl: "",
+      accentColor: "#8b5cf6",
+      youtubeUrl: "",
     },
   },
   {
@@ -243,6 +253,22 @@ const PAGE_OPTIONS: EditablePageMeta[] = [
 let _counter = 0;
 function uid() {
   return `block-${Date.now()}-${_counter++}`;
+}
+
+function getYouTubeId(url: string): string | null {
+  if (!url) return null;
+  try {
+    const u = new URL(url);
+    if (u.hostname.includes("youtu.be")) return u.pathname.slice(1).split("?")[0] || null;
+    if (u.hostname.includes("youtube.com")) {
+      if (u.pathname.includes("/embed/")) return u.pathname.split("/embed/")[1]?.split("?")[0] || null;
+      return u.searchParams.get("v");
+    }
+    return null;
+  } catch {
+    const m = url.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+    return m ? m[1] : null;
+  }
 }
 
 function defaultBlocksForPage(page: EditablePageMeta): LayoutBlock[] {
@@ -555,15 +581,15 @@ function BlockPreview({ block, compact = false }: { block: LayoutBlock; compact?
   if (block.type === "HERO") {
     return (
       <div className="relative rounded-xl overflow-hidden bg-slate-900 border border-slate-700" style={{ minHeight: compact ? 80 : 160 }}>
-        {block.mediaUrl && (
-          block.isVideo ? (
-            <div className="absolute inset-0 flex items-center justify-center bg-slate-900/80">
-              <Play className="w-8 h-8 text-white/60" />
-            </div>
-          ) : (
-            <img src={block.mediaUrl} alt="" className="absolute inset-0 w-full h-full object-cover opacity-50" />
-          )
-        )}
+        {block.youtubeUrl && getYouTubeId(block.youtubeUrl) ? (
+          <img src={`https://img.youtube.com/vi/${getYouTubeId(block.youtubeUrl)}/hqdefault.jpg`} alt="" className="absolute inset-0 w-full h-full object-cover opacity-50" />
+        ) : block.isVideo ? (
+          <div className="absolute inset-0 flex items-center justify-center bg-slate-900/80">
+            <Play className="w-8 h-8 text-white/60" />
+          </div>
+        ) : block.mediaUrl ? (
+          <img src={block.mediaUrl} alt="" className="absolute inset-0 w-full h-full object-cover opacity-50" />
+        ) : null}
         <div className="relative z-10 p-4 flex flex-col justify-end h-full" style={{ minHeight: compact ? 80 : 160 }}>
           {block.badge && (
             <span className="mb-1 inline-flex w-fit px-2 py-0.5 rounded-full text-[9px] font-bold bg-violet-600 text-white">
@@ -929,6 +955,23 @@ function BlockEditor({
               {uploading ? "Uploading..." : `Upload ${draft.isVideo ? "Video" : "Image"} from Device`}
             </button>
             {uploadError ? <p className="text-[11px] text-red-400">{uploadError}</p> : null}
+
+            {/* YouTube Background URL */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-400 mb-1.5 flex items-center gap-1.5">
+                <Video className="w-3 h-3 text-red-400" />
+                YouTube Background URL (optional)
+              </label>
+              <input
+                value={draft.youtubeUrl ?? ""}
+                onChange={(e) => setDraft((d) => ({ ...d, youtubeUrl: e.target.value }))}
+                placeholder="https://www.youtube.com/watch?v=..."
+                className="w-full px-3 py-2.5 rounded-lg bg-slate-800 border border-slate-700 text-xs text-slate-200 font-mono focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/20 transition-colors placeholder-slate-600"
+              />
+              {draft.youtubeUrl && getYouTubeId(draft.youtubeUrl) && (
+                <p className="text-[10px] text-emerald-400 mt-1">✓ YouTube ID: {getYouTubeId(draft.youtubeUrl)}</p>
+              )}
+            </div>
           </div>
 
           {/* Badge (HERO only) */}
@@ -942,6 +985,69 @@ function BlockEditor({
                 className="w-full px-3 py-2.5 rounded-lg bg-slate-800 border border-slate-700 text-sm text-slate-200 focus:outline-none focus:border-violet-500 transition-colors placeholder-slate-600"
               />
             </div>
+          )}
+
+          {/* HERO-only extra controls */}
+          {draft.type === "HERO" && (
+            <>
+              {/* CTA button */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 mb-1.5">CTA Button Text</label>
+                  <input
+                    value={draft.ctaLabel ?? ""}
+                    onChange={(e) => setDraft((d) => ({ ...d, ctaLabel: e.target.value }))}
+                    placeholder="Try Now"
+                    className="w-full px-3 py-2.5 rounded-lg bg-slate-800 border border-slate-700 text-sm text-slate-200 focus:outline-none focus:border-violet-500 transition-colors placeholder-slate-600"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 mb-1.5">CTA Button Link</label>
+                  <input
+                    value={draft.ctaHref ?? ""}
+                    onChange={(e) => setDraft((d) => ({ ...d, ctaHref: e.target.value }))}
+                    placeholder="/dash"
+                    className="w-full px-3 py-2.5 rounded-lg bg-slate-800 border border-slate-700 text-sm text-slate-200 font-mono focus:outline-none focus:border-violet-500 transition-colors placeholder-slate-600"
+                  />
+                </div>
+              </div>
+
+              {/* Trailer URL */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 mb-1.5 flex items-center gap-1.5">
+                  <Play className="w-3 h-3 text-red-400" />
+                  Watch Trailer URL (YouTube)
+                </label>
+                <input
+                  value={draft.trailerUrl ?? ""}
+                  onChange={(e) => setDraft((d) => ({ ...d, trailerUrl: e.target.value }))}
+                  placeholder="https://www.youtube.com/watch?v=..."
+                  className="w-full px-3 py-2.5 rounded-lg bg-slate-800 border border-slate-700 text-xs text-slate-200 font-mono focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/20 transition-colors placeholder-slate-600"
+                />
+                {draft.trailerUrl && getYouTubeId(draft.trailerUrl) && (
+                  <p className="text-[10px] text-emerald-400 mt-1">✓ Trailer ready — &quot;Watch Trailer&quot; button will appear on site</p>
+                )}
+              </div>
+
+              {/* Accent color */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 mb-1.5">Accent Color</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={draft.accentColor ?? "#8b5cf6"}
+                    onChange={(e) => setDraft((d) => ({ ...d, accentColor: e.target.value }))}
+                    className="h-9 w-14 rounded-lg border border-slate-700 bg-slate-800 cursor-pointer p-0.5"
+                  />
+                  <input
+                    value={draft.accentColor ?? "#8b5cf6"}
+                    onChange={(e) => setDraft((d) => ({ ...d, accentColor: e.target.value }))}
+                    placeholder="#8b5cf6"
+                    className="flex-1 px-3 py-2.5 rounded-lg bg-slate-800 border border-slate-700 text-sm text-slate-200 font-mono focus:outline-none focus:border-violet-500 transition-colors placeholder-slate-600"
+                  />
+                </div>
+              </div>
+            </>
           )}
         </div>
 
@@ -1409,6 +1515,7 @@ export default function PageBuilderPage() {
     </div>
   );
 }
+
 
 
 

@@ -8,7 +8,7 @@ import {
   Play, ChevronRight, ChevronLeft, ImageIcon, VideoIcon, Music,
   Scissors, Wand2, ScanFace, Sparkles, Zap, Star, Layers,
   Clapperboard, Mic2, Bot, TrendingUp, Palette, Film,
-  ArrowRight, Volume2, Aperture, PenTool,
+  ArrowRight, Volume2, Aperture, PenTool, X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePageLayout } from "@/lib/use-page-layout";
@@ -38,6 +38,8 @@ type HeroSlide = {
   accentTo: string;
   ctaHref: string;
   bgImage: string;
+  trailerUrl?: string;
+  youtubeUrl?: string;
 };
 
 // ─── Hero Slides ──────────────────────────────────────────────────────────────
@@ -413,9 +415,26 @@ function FadeIn({ children, delay = 0, className = "" }: { children: React.React
 }
 
 // ─── 1. Cinematic Hero Carousel ───────────────────────────────────────────────
+function getYouTubeId(url: string): string | null {
+  if (!url) return null;
+  try {
+    const u = new URL(url);
+    if (u.hostname.includes("youtu.be")) return u.pathname.slice(1).split("?")[0] || null;
+    if (u.hostname.includes("youtube.com")) {
+      if (u.pathname.includes("/embed/")) return u.pathname.split("/embed/")[1]?.split("?")[0] || null;
+      return u.searchParams.get("v");
+    }
+    return null;
+  } catch {
+    const m = url.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+    return m ? m[1] : null;
+  }
+}
+
 function HeroCarousel({ slides = HERO_SLIDES }: { slides?: HeroSlide[] }) {
   const [active, setActive] = useState(0);
   const [dir, setDir] = useState(1);
+  const [trailerOpen, setTrailerOpen] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const safeSlides = slides.length > 0 ? slides : HERO_SLIDES;
 
@@ -429,11 +448,14 @@ function HeroCarousel({ slides = HERO_SLIDES }: { slides?: HeroSlide[] }) {
   }, [safeSlides.length]);
 
   useEffect(() => {
+    if (trailerOpen) return;
     timerRef.current = setTimeout(() => go(active + 1, 1), 6000);
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
-  }, [active, go]);
+  }, [active, go, trailerOpen]);
 
   const slide = safeSlides[active] ?? safeSlides[0];
+  const bgYtId = slide.youtubeUrl ? getYouTubeId(slide.youtubeUrl) : null;
+  const trailerYtId = slide.trailerUrl ? getYouTubeId(slide.trailerUrl) : null;
 
   const variants = {
     enter: (d: number) => ({ opacity: 0, x: d > 0 ? 60 : -60 }),
@@ -442,130 +464,182 @@ function HeroCarousel({ slides = HERO_SLIDES }: { slides?: HeroSlide[] }) {
   };
 
   return (
-    <section className="relative w-full h-[75vh] min-h-[520px] max-h-[800px] overflow-hidden">
-      {/* BG image + gradient overlay */}
-      <AnimatePresence custom={dir} initial={false}>
-        <motion.div
-          key={slide.id + "-bg"}
-          custom={dir}
-          variants={{ enter: { opacity: 0 }, center: { opacity: 1 }, exit: { opacity: 0 } }}
-          initial="enter" animate="center" exit="exit"
-          transition={{ duration: 1 }}
-          className="absolute inset-0"
-        >
-          <Image
-            src={slide.bgImage}
-            alt={slide.title}
-            fill
-            sizes="100vw"
-            className="object-cover object-center"
-            priority
-          />
-          <div className={cn("absolute inset-0 bg-gradient-to-br opacity-75", slide.gradient)} />
-        </motion.div>
-      </AnimatePresence>
-
-      {/* Dot grid overlay */}
-      <div
-        className="pointer-events-none absolute inset-0 opacity-25"
-        style={{
-          backgroundImage: "radial-gradient(circle,rgba(255,255,255,0.06) 1px,transparent 1px)",
-          backgroundSize: "30px 30px",
-        }}
-      />
-
-      {/* Vignette */}
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-slate-950/30" />
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-slate-950/60 via-transparent to-slate-950/60" />
-
-      {/* Content */}
-      <div className="relative z-10 flex h-full flex-col justify-end pb-16 px-6 sm:px-12 lg:px-20">
-        <AnimatePresence custom={dir} mode="wait">
+    <>
+      <section className="relative w-full h-[75vh] min-h-[520px] max-h-[800px] overflow-hidden">
+        {/* BG image / YouTube / gradient overlay */}
+        <AnimatePresence custom={dir} initial={false}>
           <motion.div
-            key={slide.id}
+            key={slide.id + "-bg"}
             custom={dir}
-            variants={variants}
+            variants={{ enter: { opacity: 0 }, center: { opacity: 1 }, exit: { opacity: 0 } }}
             initial="enter" animate="center" exit="exit"
-            transition={{ duration: 0.55, ease: [0.25, 0.46, 0.45, 0.94] }}
-            className="max-w-2xl"
+            transition={{ duration: 1 }}
+            className="absolute inset-0"
           >
-            {/* Tag */}
-            <div className={cn(
-              "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold uppercase tracking-widest ring-1 mb-4",
-              `bg-gradient-to-r ${slide.accentFrom} ${slide.accentTo} bg-opacity-20 ring-white/20 text-white/90`
-            )}>
-              <Sparkles className="h-3 w-3" />{slide.tag}
-            </div>
-
-            {/* Title */}
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight text-white leading-[1.05] drop-shadow-2xl">
-              {slide.title}
-            </h1>
-
-            {/* Subtitle */}
-            <p className="mt-3 text-base sm:text-lg text-zinc-300 max-w-lg leading-relaxed">
-              {slide.subtitle}
-            </p>
-
-            {/* CTAs */}
-            <div className="mt-7 flex flex-wrap items-center gap-3">
-              <Link href={slide.ctaHref}>
-                <motion.button
-                  whileHover={{ scale: 1.04 }}
-                  whileTap={{ scale: 0.96 }}
-                  className={cn(
-                    "relative overflow-hidden flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-bold text-white shadow-2xl",
-                    `bg-gradient-to-r ${slide.accentFrom} ${slide.accentTo}`
-                  )}
-                >
-                  <Zap className="h-4 w-4" />
-                  Try Now
-                </motion.button>
-              </Link>
-              <motion.button
-                whileHover={{ scale: 1.04 }}
-                whileTap={{ scale: 0.96 }}
-                className="flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-6 py-3 text-sm font-semibold text-white backdrop-blur-sm hover:bg-white/15 transition-colors"
-              >
-                <Play className="h-3.5 w-3.5 fill-white" />
-                Watch Trailer
-              </motion.button>
-            </div>
+            {bgYtId ? (
+              <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                <iframe
+                  src={`https://www.youtube-nocookie.com/embed/${bgYtId}?autoplay=1&mute=1&loop=1&playlist=${bgYtId}&controls=0&showinfo=0&rel=0&playsinline=1&iv_load_policy=3&modestbranding=1`}
+                  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 min-w-full min-h-full w-[177.8vh] h-[56.3vw]"
+                  allow="autoplay; encrypted-media"
+                  title={slide.title}
+                />
+              </div>
+            ) : (
+              <Image
+                src={slide.bgImage}
+                alt={slide.title}
+                fill
+                sizes="100vw"
+                className="object-cover object-center"
+                priority
+              />
+            )}
+            <div className={cn("absolute inset-0 bg-gradient-to-br opacity-75", slide.gradient)} />
           </motion.div>
         </AnimatePresence>
 
-        {/* Pagination dots */}
-        <div className="mt-8 flex items-center gap-2">
-          {safeSlides.map((s, i) => (
-            <button
-              key={s.id}
-              onClick={() => go(i, i > active ? 1 : -1)}
-              className="group relative h-1.5 overflow-hidden rounded-full transition-all duration-300"
-              style={{ width: i === active ? 32 : 12 }}
-            >
-              <span className={cn(
-                "absolute inset-0 rounded-full transition-all duration-300",
-                i === active ? `bg-gradient-to-r ${slide.accentFrom} ${slide.accentTo}` : "bg-white/25 group-hover:bg-white/40"
-              )} />
-            </button>
-          ))}
-        </div>
-      </div>
+        {/* Dot grid overlay */}
+        <div
+          className="pointer-events-none absolute inset-0 opacity-25"
+          style={{
+            backgroundImage: "radial-gradient(circle,rgba(255,255,255,0.06) 1px,transparent 1px)",
+            backgroundSize: "30px 30px",
+          }}
+        />
 
-      {/* Arrow controls */}
-      <button
-        onClick={() => go(active - 1, -1)}
-        className="absolute left-4 top-1/2 -translate-y-1/2 z-20 flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-black/30 text-white/70 backdrop-blur-sm hover:bg-black/50 hover:text-white transition-all"
-      >
-        <ChevronLeft className="h-5 w-5" />
-      </button>
-      <button
-        onClick={() => go(active + 1, 1)}
-        className="absolute right-4 top-1/2 -translate-y-1/2 z-20 flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-black/30 text-white/70 backdrop-blur-sm hover:bg-black/50 hover:text-white transition-all"
-      >
-        <ChevronRight className="h-5 w-5" />
-      </button>
-    </section>
+        {/* Vignette */}
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-slate-950/30" />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-slate-950/60 via-transparent to-slate-950/60" />
+
+        {/* Content */}
+        <div className="relative z-10 flex h-full flex-col justify-end pb-16 px-6 sm:px-12 lg:px-20">
+          <AnimatePresence custom={dir} mode="wait">
+            <motion.div
+              key={slide.id}
+              custom={dir}
+              variants={variants}
+              initial="enter" animate="center" exit="exit"
+              transition={{ duration: 0.55, ease: [0.25, 0.46, 0.45, 0.94] }}
+              className="max-w-2xl"
+            >
+              {/* Tag */}
+              <div className={cn(
+                "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold uppercase tracking-widest ring-1 mb-4",
+                `bg-gradient-to-r ${slide.accentFrom} ${slide.accentTo} bg-opacity-20 ring-white/20 text-white/90`
+              )}>
+                <Sparkles className="h-3 w-3" />{slide.tag}
+              </div>
+
+              {/* Title */}
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight text-white leading-[1.05] drop-shadow-2xl">
+                {slide.title}
+              </h1>
+
+              {/* Subtitle */}
+              <p className="mt-3 text-base sm:text-lg text-zinc-300 max-w-lg leading-relaxed">
+                {slide.subtitle}
+              </p>
+
+              {/* CTAs */}
+              <div className="mt-7 flex flex-wrap items-center gap-3">
+                <Link href={slide.ctaHref}>
+                  <motion.button
+                    whileHover={{ scale: 1.04 }}
+                    whileTap={{ scale: 0.96 }}
+                    className={cn(
+                      "relative overflow-hidden flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-bold text-white shadow-2xl",
+                      `bg-gradient-to-r ${slide.accentFrom} ${slide.accentTo}`
+                    )}
+                  >
+                    <Zap className="h-4 w-4" />
+                    Try Now
+                  </motion.button>
+                </Link>
+                {trailerYtId && (
+                  <motion.button
+                    whileHover={{ scale: 1.04 }}
+                    whileTap={{ scale: 0.96 }}
+                    onClick={() => setTrailerOpen(true)}
+                    className="flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-6 py-3 text-sm font-semibold text-white backdrop-blur-sm hover:bg-white/15 transition-colors"
+                  >
+                    <Play className="h-3.5 w-3.5 fill-white" />
+                    Watch Trailer
+                  </motion.button>
+                )}
+              </div>
+            </motion.div>
+          </AnimatePresence>
+
+          {/* Pagination dots */}
+          <div className="mt-8 flex items-center gap-2">
+            {safeSlides.map((s, i) => (
+              <button
+                key={s.id}
+                onClick={() => go(i, i > active ? 1 : -1)}
+                className="group relative h-1.5 overflow-hidden rounded-full transition-all duration-300"
+                style={{ width: i === active ? 32 : 12 }}
+              >
+                <span className={cn(
+                  "absolute inset-0 rounded-full transition-all duration-300",
+                  i === active ? `bg-gradient-to-r ${slide.accentFrom} ${slide.accentTo}` : "bg-white/25 group-hover:bg-white/40"
+                )} />
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Arrow controls */}
+        <button
+          onClick={() => go(active - 1, -1)}
+          className="absolute left-4 top-1/2 -translate-y-1/2 z-20 flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-black/30 text-white/70 backdrop-blur-sm hover:bg-black/50 hover:text-white transition-all"
+        >
+          <ChevronLeft className="h-5 w-5" />
+        </button>
+        <button
+          onClick={() => go(active + 1, 1)}
+          className="absolute right-4 top-1/2 -translate-y-1/2 z-20 flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-black/30 text-white/70 backdrop-blur-sm hover:bg-black/50 hover:text-white transition-all"
+        >
+          <ChevronRight className="h-5 w-5" />
+        </button>
+      </section>
+
+      {/* YouTube Trailer Modal */}
+      <AnimatePresence>
+        {trailerOpen && trailerYtId && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] flex items-center justify-center bg-black/85 backdrop-blur-sm p-4"
+            onClick={() => setTrailerOpen(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.88, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.88, opacity: 0 }}
+              transition={{ duration: 0.25 }}
+              className="relative w-full max-w-4xl aspect-video rounded-2xl overflow-hidden shadow-2xl shadow-black/60"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <iframe
+                src={`https://www.youtube.com/embed/${trailerYtId}?autoplay=1&rel=0`}
+                className="w-full h-full"
+                allow="autoplay; encrypted-media; fullscreen"
+                allowFullScreen
+                title="Trailer"
+              />
+              <button
+                onClick={() => setTrailerOpen(false)}
+                className="absolute top-3 right-3 z-10 h-8 w-8 flex items-center justify-center rounded-full bg-black/70 text-white hover:bg-black transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
   );
 }
 
@@ -711,13 +785,20 @@ export default function ExplorePage() {
 
     return heroBlocks.map((b, idx) => {
       const fallback = HERO_SLIDES[idx % HERO_SLIDES.length];
+      const ytId = b.youtubeUrl ? getYouTubeId(b.youtubeUrl) : null;
+      const bgImage = ytId
+        ? `https://img.youtube.com/vi/${ytId}/maxresdefault.jpg`
+        : (b.mediaUrl && !b.isVideo ? b.mediaUrl : fallback.bgImage);
       return {
         ...fallback,
         id: idx + 1,
         title: b.title || fallback.title,
         subtitle: b.subtitle || fallback.subtitle,
         tag: b.badge || fallback.tag,
-        bgImage: b.mediaUrl && !b.isVideo ? b.mediaUrl : fallback.bgImage,
+        bgImage,
+        ctaHref: b.ctaHref || fallback.ctaHref,
+        trailerUrl: b.trailerUrl || undefined,
+        youtubeUrl: b.youtubeUrl || undefined,
       };
     });
   }, [blocks]);
