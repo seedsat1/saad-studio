@@ -25,7 +25,7 @@ interface ImageRequestBody {
   imageUrl?: string;
   imageUrls?: string[];
   quality?: string;
-  /** KIE input field for reference images: "image_url" (default) or "image_input" (Gemini models). */
+  /** KIE input field for reference images: "image_url" (default) or "image_input" (Gemini models) or "input_urls" (GPT I2I, Wan, Flux-2 I2I). */
   imageInputField?: string;
 }
 
@@ -231,11 +231,17 @@ export async function POST(req: NextRequest) {
     // Build reference image fields using the model-specific field name
     if (resolvedRefs.length > 0) {
       if (imageInputField === "image_input") {
-        // Gemini-based models: array field image_input
+        // Gemini/Nano Banana: always array
         input.image_input = resolvedRefs;
       } else if (imageInputField === "image_urls") {
-        // Seedream / FLUX.2 / GPT Image: always send as image_urls array
+        // Seedream / Grok I2I: always array
         input.image_urls = resolvedRefs;
+      } else if (imageInputField === "input_urls") {
+        // GPT Image I2I / Wan / Flux-2 I2I: always array
+        input.input_urls = resolvedRefs;
+      } else if (imageInputField === "image_url") {
+        // Qwen models: single string
+        input.image_url = resolvedRefs[0];
       } else {
         // Default: image_url for single, image_urls for multiple
         if (resolvedRefs.length === 1) input.image_url = resolvedRefs[0];

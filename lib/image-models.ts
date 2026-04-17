@@ -23,10 +23,12 @@ export interface ImageModel {
   qualityParam?: string[];
   /** KIE API input field name for reference images:
    * - undefined / "image_url" → single: image_url, multi: image_urls (default)
-   * - "image_input" → always array: image_input (Gemini models)
-   * - "image_urls" → always array: image_urls (Seedream, FLUX.2, GPT Image)
+   * - "image_input" → always array: image_input (Gemini/Nano Banana models)
+   * - "image_urls" → always array: image_urls (Seedream, FLUX.2)
+   * - "image_url" → single string: image_url (Qwen image-edit, qwen/image-to-image)
+   * - "input_urls" → always array: input_urls (GPT Image I2I, Wan, Flux-2 I2I)
    */
-  imageInputField?: "image_url" | "image_input" | "image_urls";
+  imageInputField?: "image_url" | "image_input" | "image_urls" | "input_urls";
   /** Display credit cost (UI only). */
   creditCost: number;
 }
@@ -79,10 +81,9 @@ export const IMAGE_MODELS: ImageModel[] = [
     badge: "",
     group: "Nano Banana",
     inputType: "text-to-image",
-    aspectRatios: ["1:1", "16:9", "9:16"],
+    aspectRatios: ["1:1", "9:16", "16:9", "3:4", "4:3", "3:2", "2:3", "5:4", "4:5", "21:9"],
     maxImages: 4,
-    maxRefImages: 8,
-    imageInputField: "image_input",
+    maxRefImages: 0,
     creditCost: 2,
   },
   {
@@ -106,7 +107,7 @@ export const IMAGE_MODELS: ImageModel[] = [
     badge: "",
     group: "Google Imagen",
     inputType: "text-to-image",
-    aspectRatios: ["1:1", "16:9", "9:16", "4:3", "3:4"],
+    aspectRatios: ["1:1", "16:9", "9:16", "3:4", "4:3"],
     maxImages: 4,
     maxRefImages: 0,
     creditCost: 2,
@@ -118,8 +119,8 @@ export const IMAGE_MODELS: ImageModel[] = [
     badge: "",
     group: "Google Imagen",
     inputType: "text-to-image",
-    aspectRatios: ["1:1", "16:9", "9:16", "4:3", "3:4"],
-    maxImages: 4,
+    aspectRatios: ["1:1", "16:9", "9:16", "3:4", "4:3"],
+    maxImages: 1,
     maxRefImages: 0,
     creditCost: 2,
   },
@@ -130,7 +131,7 @@ export const IMAGE_MODELS: ImageModel[] = [
     badge: "TOP",
     group: "Google Imagen",
     inputType: "text-to-image",
-    aspectRatios: ["1:1", "16:9", "9:16", "4:3", "3:4"],
+    aspectRatios: ["1:1", "16:9", "9:16", "3:4", "4:3"],
     maxImages: 1,
     maxRefImages: 0,
     creditCost: 2,
@@ -155,9 +156,9 @@ export const IMAGE_MODELS: ImageModel[] = [
     badge: "",
     group: "Seedream",
     inputType: "edit",
-    aspectRatios: [],
+    aspectRatios: ["1:1", "4:3", "3:4", "16:9", "9:16", "2:3", "3:2", "21:9"],
     maxImages: 1,
-    maxRefImages: 10,
+    maxRefImages: 14,
     imageInputField: "image_urls",
     creditCost: 2,
   },
@@ -168,7 +169,7 @@ export const IMAGE_MODELS: ImageModel[] = [
     badge: "NEW",
     group: "Seedream",
     inputType: "text-to-image",
-    aspectRatios: ["1:1", "16:9", "9:16", "4:3", "3:4", "21:9", "2:3", "3:2"],
+    aspectRatios: ["1:1", "4:3", "3:4", "16:9", "9:16", "2:3", "3:2", "21:9"],
     maxImages: 4,
     maxRefImages: 0,
     creditCost: 2,
@@ -180,9 +181,9 @@ export const IMAGE_MODELS: ImageModel[] = [
     badge: "NEW",
     group: "Seedream",
     inputType: "image-to-image",
-    aspectRatios: [],
+    aspectRatios: ["1:1", "4:3", "3:4", "16:9", "9:16", "2:3", "3:2", "21:9"],
     maxImages: 4,
-    maxRefImages: 10,
+    maxRefImages: 14,
     imageInputField: "image_urls",
     creditCost: 2,
   },
@@ -194,22 +195,35 @@ export const IMAGE_MODELS: ImageModel[] = [
     badge: "",
     group: "Other",
     inputType: "text-to-image",
-    aspectRatios: ["1:1", "16:9", "9:16", "4:3", "3:4"],
+    aspectRatios: ["1:1", "4:3", "3:4", "16:9", "9:16"],
     maxImages: 4,
     maxRefImages: 0,
     creditCost: 2,
   },
-  // ── Qwen Image (KIE) ─────────────────────────────────────────────────────
+  // ── Qwen ─────────────────────────────────────────────────────────────────
   {
-    id: "qwen/text-to-image",
+    id: "qwen2/text-to-image",
     label: "Qwen Image T2I",
     sublabel: "Text to image",
     badge: "NEW",
     group: "Qwen",
     inputType: "text-to-image",
-    aspectRatios: ["1:1", "16:9", "9:16", "4:3", "3:4"],
+    aspectRatios: ["1:1", "3:4", "4:3", "9:16", "16:9"],
     maxImages: 1,
     maxRefImages: 0,
+    creditCost: 2,
+  },
+  {
+    id: "qwen2/image-edit",
+    label: "Qwen2 Image Edit",
+    sublabel: "Image editing",
+    badge: "NEW",
+    group: "Qwen",
+    inputType: "edit",
+    aspectRatios: ["1:1", "2:3", "3:2", "3:4", "4:3", "9:16", "16:9", "21:9"],
+    maxImages: 1,
+    maxRefImages: 1,
+    imageInputField: "image_url",
     creditCost: 2,
   },
   {
@@ -222,10 +236,10 @@ export const IMAGE_MODELS: ImageModel[] = [
     aspectRatios: [],
     maxImages: 1,
     maxRefImages: 1,
-    imageInputField: "image_urls",
+    imageInputField: "image_url",
     creditCost: 2,
   },
-  // ── Grok Imagine (KIE) ────────────────────────────────────────────────────
+  // ── Grok Imagine ─────────────────────────────────────────────────────────
   {
     id: "grok-imagine/text-to-image",
     label: "Grok Imagine",
@@ -233,22 +247,35 @@ export const IMAGE_MODELS: ImageModel[] = [
     badge: "",
     group: "Other",
     inputType: "text-to-image",
-    aspectRatios: ["1:1", "16:9", "9:16", "3:4", "4:3", "2:3", "3:2"],
+    aspectRatios: ["2:3", "3:2", "1:1", "16:9", "9:16"],
     maxImages: 4,
     maxRefImages: 0,
     grokMode: true,
     creditCost: 2,
   },
-  // ── GPT Image (KIE) ───────────────────────────────────────────────────────
+  {
+    id: "grok-imagine/image-to-image",
+    label: "Grok Imagine I2I",
+    sublabel: "Image to image",
+    badge: "NEW",
+    group: "Other",
+    inputType: "image-to-image",
+    aspectRatios: [],
+    maxImages: 1,
+    maxRefImages: 1,
+    imageInputField: "image_urls",
+    creditCost: 2,
+  },
+  // ── GPT Image ─────────────────────────────────────────────────────────────
   {
     id: "gpt-image/1.5-text-to-image",
     label: "GPT Image 1.5 T2I",
     sublabel: "Precise · Detailed",
     badge: "",
-    group: "Other",
+    group: "GPT Image",
     inputType: "text-to-image",
-    aspectRatios: ["1:1", "16:9", "9:16"],
-    maxImages: 4,
+    aspectRatios: ["1:1", "2:3", "3:2"],
+    maxImages: 1,
     maxRefImages: 0,
     qualityParam: ["medium", "high"],
     creditCost: 2,
@@ -258,13 +285,27 @@ export const IMAGE_MODELS: ImageModel[] = [
     label: "GPT Image 1.5 I2I",
     sublabel: "Image to image",
     badge: "",
-    group: "Other",
+    group: "GPT Image",
     inputType: "image-to-image",
-    aspectRatios: [],
+    aspectRatios: ["1:1", "2:3", "3:2"],
     maxImages: 1,
-    maxRefImages: 4,
-    imageInputField: "image_urls",
+    maxRefImages: 16,
+    imageInputField: "input_urls",
     qualityParam: ["medium", "high"],
+    creditCost: 2,
+  },
+  // ── Wan ───────────────────────────────────────────────────────────────────
+  {
+    id: "wan/2-7-image-pro",
+    label: "Wan 2.7 Image Pro",
+    sublabel: "Generate & Edit",
+    badge: "NEW",
+    group: "Wan",
+    inputType: "text-to-image",
+    aspectRatios: ["1:1", "16:9", "4:3", "21:9", "3:4", "9:16", "8:1", "1:8"],
+    maxImages: 4,
+    maxRefImages: 9,
+    imageInputField: "input_urls",
     creditCost: 2,
   },
 ];
