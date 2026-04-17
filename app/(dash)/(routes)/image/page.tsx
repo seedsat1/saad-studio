@@ -1032,11 +1032,7 @@ export default function ImageWorkspacePage() {
           </SettingsAccordion>
         )}
 
-        {selectedModel.maxRefImages > 0 ? (
-          <SettingsAccordion label="Reference Image" summary={referenceFiles.length ? `${referenceFiles.length} attached` : undefined}>
-            <UploadBox label="" file={referenceFiles[0] || null} onFile={(f) => setReferenceFiles(f ? [f] : [])} />
-          </SettingsAccordion>
-        ) : null}
+
       </>;
     }
 
