@@ -149,13 +149,13 @@ function OutputCard({
     <div
       onClick={onSelect}
       className={cn(
-        "relative group rounded-xl overflow-hidden border cursor-pointer transition-all duration-200 bg-[#0f1a35]",
+        "relative group rounded-xl overflow-hidden border cursor-pointer transition-all duration-200 bg-[#0f1a35] h-full",
         selected
           ? "border-violet-500 ring-1 ring-violet-500/40 shadow-lg shadow-violet-500/10"
           : "border-white/10 hover:border-white/20",
       )}
     >
-      <div className="aspect-[4/5] bg-[#060c18] relative flex items-center justify-center">
+      <div className="absolute inset-0 bg-[#060c18] flex items-center justify-center">
         {isDone && output.assetUrl ? (
           <Image
             src={output.assetUrl}
@@ -743,7 +743,7 @@ export default function VariationsStudioPage() {
   // ─── Render ───────────────────────────────────────────────────────────
   return (
     <div
-      className="flex h-screen bg-[#060c18] text-[#e2e8f0] overflow-hidden relative"
+      className="flex h-[calc(100vh-4rem)] bg-[#060c18] text-[#e2e8f0] overflow-hidden relative"
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
       onDragOver={handleDragOver}
@@ -825,11 +825,11 @@ export default function VariationsStudioPage() {
           </div>
         )}
 
-        {/* Content area */}
+        {/* Content area - only this scrolls */}
         <div className="flex-1 overflow-y-auto p-4">
           {stageView === "results" && outputs.length > 0 ? (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
+            <div className="h-full flex flex-col">
+              <div className="flex-none flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium text-[#e2e8f0]">
                     {mode === "storyboard" ? "Storyboard" : "Reframe"} Outputs
@@ -849,9 +849,10 @@ export default function VariationsStudioPage() {
               </div>
 
               <div
-                className="grid gap-3"
+                className="flex-1 grid gap-2 auto-rows-fr"
                 style={{
                   gridTemplateColumns: `repeat(${currentGrid.cols}, minmax(0, 1fr))`,
+                  gridTemplateRows: `repeat(${currentGrid.rows}, minmax(0, 1fr))`,
                 }}
               >
                 {outputs.map((output) => (
