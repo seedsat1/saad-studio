@@ -647,11 +647,27 @@ function rGrid(){
     $g.appendChild(e);
   });
 }
+async function loadBeautyMedia(){
+  try{
+    const r=await fetch('/api/admin/beauty/media');
+    if(!r.ok)return;
+    const d=await r.json();
+    if(!d.media)return;
+    TOOLS.forEach(t=>{
+      const tk=`${t.id}/thumb`;
+      if(d.media[tk])t.thumb=d.media[tk].url;
+      t.options.forEach(o=>{
+        const ok=`${t.id}/${o.id}`;
+        if(d.media[ok])o.img=d.media[ok].url;
+      });
+    });
+  }catch(e){console.warn('beauty media load:',e)}
+}
 function initBeautyCards(){
   rTabs();
   rGrid();
 }
-initBeautyCards();
+loadBeautyMedia().then(()=>initBeautyCards());
 
 // ═══ WORKSPACE ═══
 const $o=document.getElementById('wO'),$w=document.getElementById('wS');
