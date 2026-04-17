@@ -813,9 +813,17 @@ export default function TransitionsStudioPage() {
         if (pid) {
           setProjectId(pid);
           fetch(`/api/transitions/project/${pid}`)
-            .then((r) => r.json())
+            .then((r) => {
+              if (r.status === 404) {
+                // Stale project — clear localStorage so we start fresh
+                localStorage.removeItem(STORAGE_KEY);
+                setProjectId(null);
+                return null;
+              }
+              return r.json();
+            })
             .then((d) => {
-              if (!d.project) return;
+              if (!d || !d.project) return;
               const p: TransitionProject = d.project;
               setProjectTitle(p.title);
               if (p.inputAUrl && !p.inputAUrl.startsWith("__")) setInputAUrl(p.inputAUrl);
