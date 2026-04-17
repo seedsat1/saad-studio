@@ -89,8 +89,26 @@ const uid = (prefix = "id") => `${prefix}_${Math.random().toString(36).slice(2, 
 function fileToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result || ""));
     reader.onerror = () => reject(new Error("File read failed"));
+    reader.onload = () => {
+      const raw = String(reader.result || "");
+      // Compress to max 1536px & JPEG 85% to stay under Vercel 4.5MB body limit
+      const img = new window.Image();
+      img.onload = () => {
+        const MAX = 1536;
+        let w = img.width, h = img.height;
+        if (w > MAX || h > MAX) {
+          if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+          else       { w = Math.round(w * MAX / h); h = MAX; }
+        }
+        const c = document.createElement("canvas");
+        c.width = w; c.height = h;
+        c.getContext("2d")!.drawImage(img, 0, 0, w, h);
+        resolve(c.toDataURL("image/jpeg", 0.85));
+      };
+      img.onerror = () => resolve(raw);
+      img.src = raw;
+    };
     reader.readAsDataURL(file);
   });
 }
