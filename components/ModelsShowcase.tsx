@@ -2,6 +2,12 @@
 
 import { useRef, useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { useCmsData } from "@/lib/use-cms-data";
+
+interface DiscoverCms {
+  modelsShowcase?: { heading?: string; subtitle?: string; models?: { name: string; emoji: string }[] };
+  [k: string]: unknown;
+}
 
 const MODELS = [
   { name: "Kling 3.0", emoji: "🎬", color: "text-violet-400", glow: "rgba(139,92,246,0.2)" },
@@ -20,6 +26,21 @@ const MODELS = [
 export default function ModelsShowcase() {
   const sectionRef = useRef<HTMLElement>(null);
   const [visible, setVisible] = useState(false);
+  const { data: cms } = useCmsData<DiscoverCms>("discover");
+
+  const heading = cms?.modelsShowcase?.heading || "Powered by the best AI models";
+  const subtitle = cms?.modelsShowcase?.subtitle || "Access every top-tier model from one unified studio";
+  const liveModels = cms?.modelsShowcase?.models?.length
+    ? cms.modelsShowcase.models.map((cm) => {
+        const fallback = MODELS.find((m) => m.name === cm.name);
+        return {
+          name: cm.name,
+          emoji: cm.emoji,
+          color: fallback?.color || "text-violet-400",
+          glow: fallback?.glow || "rgba(139,92,246,0.2)",
+        };
+      })
+    : MODELS;
 
   useEffect(() => {
     const el = sectionRef.current;
@@ -44,16 +65,16 @@ export default function ModelsShowcase() {
           transition={{ duration: 0.5 }}
         >
           <h2 className="font-display text-[clamp(20px,3vw,30px)] font-bold text-[#e2e8f0] mb-2">
-            Powered by the best AI models
+            {heading}
           </h2>
           <p className="text-sm text-[#94a3b8]">
-            Access every top-tier model from one unified studio
+            {subtitle}
           </p>
         </motion.div>
 
         {/* Models row */}
         <div className="flex flex-wrap justify-center gap-3">
-          {MODELS.map((model, i) => (
+          {liveModels.map((model, i) => (
             <motion.div
               key={model.name}
               className="glass rounded-full flex items-center gap-2.5 px-4 py-2.5 cursor-default"

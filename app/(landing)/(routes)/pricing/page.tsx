@@ -7,6 +7,22 @@ import {
   Check, X, Zap, Sparkles, Star, Crown, Rocket,
   Video, ImageIcon, Infinity, ShoppingCart,
 } from "lucide-react";
+import { useCmsData } from "@/lib/use-cms-data";
+
+/* ─── CMS types (must match admin/cms/pricing) ─── */
+interface CmsPlan {
+  _id: string; id: string; badge: string; tagline: string; credits: string;
+  equiv: string; monthlyPrice: number; annualDiscount: number; cta: string;
+  highlight: boolean; features: string[];
+}
+interface CmsTopup { _id: string; credits: string; price: string; pricePerCredit: string; popular: boolean; }
+interface CmsModelCost { _id: string; name: string; cost: string; per: string; type: "video" | "image"; }
+interface CmsHero { badge: string; heading: string; headingHighlight: string; subtitle: string; }
+interface CmsSubHero { heading: string; headingHighlight: string; subtitle: string; }
+interface PricingCmsData {
+  hero: CmsHero; plans: CmsPlan[]; topupHero: CmsSubHero; topups: CmsTopup[];
+  modelCostHero: CmsSubHero; modelCosts: CmsModelCost[];
+}
 
 // â”€â”€â”€ Data â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -175,6 +191,37 @@ const slideUp: Variants = {
 
 export default function PricingPage() {
   const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">("monthly");
+  const { data: cms } = useCmsData<PricingCmsData>("pricing");
+
+  const ICON_MAP: Record<string, typeof Rocket> = { starter: Rocket, plus: Sparkles, pro: Star, max: Crown };
+  const ACCENT_MAP: Record<string, { bg: string; border: string; iconColor: string; ctaStyle: string }> = {
+    starter: { bg: "bg-violet-500/10", border: "border-violet-500/30", iconColor: "text-violet-400", ctaStyle: "bg-violet-600 hover:bg-violet-500 text-white shadow-lg shadow-violet-500/25" },
+    plus:    { bg: "bg-slate-500/10",  border: "border-slate-700",     iconColor: "text-slate-400",  ctaStyle: "border border-slate-700 text-slate-200 hover:bg-slate-800" },
+    pro:     { bg: "bg-blue-500/10",   border: "border-blue-500/40",   iconColor: "text-blue-400",   ctaStyle: "bg-gradient-to-r from-blue-500 to-violet-600 hover:from-blue-400 hover:to-violet-500 text-white shadow-lg shadow-blue-500/30" },
+    max:     { bg: "bg-amber-500/10",  border: "border-amber-500/30",  iconColor: "text-amber-400",  ctaStyle: "bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white shadow-lg shadow-amber-500/30" },
+  };
+
+  // CMS-driven data with fallback to hardcoded
+  const heroData = cms?.hero ?? { badge: "Credits-Based - Cancel Anytime", heading: "Choose Your", headingHighlight: "Creative Plan", subtitle: "One credit balance. All AI models. No hidden fees. Top up anytime - credits never expire." };
+  const topupHeroData = cms?.topupHero ?? { heading: "Need More Power?", headingHighlight: "Buy Extra Credits", subtitle: "Top up your balance anytime. Credits stack with your plan and never expire." };
+  const modelCostHeroData = cms?.modelCostHero ?? { heading: "What Does", headingHighlight: "1 Credit", subtitle: "Approximate credit pricing per generation. No surprises." };
+
+  // Plans from CMS or hardcoded
+  const cmsPlans = cms?.plans;
+  const livePlans = useMemo(() => {
+    if (!cmsPlans?.length) return PLANS.map((p) => ({ ...p, _monthlyPrice: PLAN_MONTHLY_PRICE[p.id] ?? 0, _annualDiscount: PLAN_ANNUAL_DISCOUNT[p.id] ?? 0 }));
+    return cmsPlans.map((cp) => {
+      const accent = ACCENT_MAP[cp.id] ?? ACCENT_MAP.starter;
+      const Icon = ICON_MAP[cp.id] ?? Rocket;
+      return { ...cp, Icon, iconColor: accent.iconColor, accentBg: accent.bg, accentBorder: accent.border, ctaStyle: accent.ctaStyle, price: `$${cp.monthlyPrice}`, period: "per month", _monthlyPrice: cp.monthlyPrice, _annualDiscount: cp.annualDiscount, unlimited: { active: [] as string[], coming: [] as string[], none: [] as string[] } };
+    });
+  }, [cmsPlans]);
+
+  const liveTopups = cms?.topups?.length ? cms.topups : TOPUPS;
+  const liveModelCosts = cms?.modelCosts?.length ? cms.modelCosts : [...MODEL_COSTS.video.map((m) => ({ ...m, type: "video" as const, _id: m.name })), ...MODEL_COSTS.image.map((m) => ({ ...m, type: "image" as const, _id: m.name }))];
+
+  const videoModels = liveModelCosts.filter((m) => m.type === "video");
+  const imageModels = liveModelCosts.filter((m) => m.type === "image");
 
   const formatUsd = (value: number) => {
     if (Number.isInteger(value)) return `$${value}`;
@@ -182,9 +229,9 @@ export default function PricingPage() {
   };
 
   const getPlanPricing = useMemo(() => {
-    return (planId: string) => {
-      const monthly = PLAN_MONTHLY_PRICE[planId] ?? 0;
-      const discount = PLAN_ANNUAL_DISCOUNT[planId] ?? 0;
+    return (plan: typeof livePlans[number]) => {
+      const monthly = plan._monthlyPrice;
+      const discount = plan._annualDiscount;
 
       if (billingCycle === "annual" && discount > 0) {
         const discountedMonthly = monthly * (1 - discount / 100);
@@ -201,7 +248,7 @@ export default function PricingPage() {
         amount: formatUsd(monthly),
         previousAmount: "",
         suffix: "/ mo",
-        period: planId === "starter" && billingCycle === "annual" ? "monthly only" : "billed monthly",
+        period: plan.id === "starter" && billingCycle === "annual" ? "monthly only" : "billed monthly",
         cycle: "monthly" as const,
       };
     };
@@ -227,16 +274,16 @@ export default function PricingPage() {
         >
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-violet-500/10 border border-violet-500/30 text-violet-300 text-sm font-medium mb-2">
             <Zap className="w-3.5 h-3.5 fill-violet-400 text-violet-400" />
-            Credits-Based - Cancel Anytime
+            {heroData.badge}
           </div>
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight">
-            Choose Your{" "}
+            {heroData.heading}{" "}
             <span className="bg-gradient-to-r from-violet-400 via-blue-400 to-cyan-400 bg-clip-text text-transparent">
-              Creative Plan
+              {heroData.headingHighlight}
             </span>
           </h1>
           <p className="text-lg text-slate-400 max-w-xl mx-auto">
-            One credit balance. All AI models. No hidden fees. Top up anytime - credits never expire.
+            {heroData.subtitle}
           </p>
         </motion.div>
 
@@ -276,9 +323,9 @@ export default function PricingPage() {
             whileInView="visible"
             viewport={{ once: true, margin: "-60px" }}
           >
-            {PLANS.map((plan) => (
+            {livePlans.map((plan) => (
               (() => {
-                const pricing = getPlanPricing(plan.id);
+                const pricing = getPlanPricing(plan);
                 return (
               <motion.div
                 key={plan.id}
@@ -404,13 +451,13 @@ export default function PricingPage() {
             transition={{ duration: 0.5 }}
           >
             <h2 className="text-3xl sm:text-4xl font-extrabold text-white mb-3">
-              Need More Power?{" "}
+              {topupHeroData.heading}{" "}
               <span className="bg-gradient-to-r from-amber-400 to-orange-400 bg-clip-text text-transparent">
-                Buy Extra Credits
+                {topupHeroData.headingHighlight}
               </span>
             </h2>
             <p className="text-slate-400 text-base max-w-lg mx-auto">
-              Top up your balance anytime. Credits stack with your plan and <strong className="text-slate-300">never expire</strong>.
+              {topupHeroData.subtitle}
             </p>
           </motion.div>
 
@@ -421,7 +468,7 @@ export default function PricingPage() {
             whileInView="visible"
             viewport={{ once: true }}
           >
-            {TOPUPS.map((t) => (
+            {liveTopups.map((t) => (
               <motion.div
                 key={t.credits}
                 variants={slideUp}
@@ -443,7 +490,7 @@ export default function PricingPage() {
                   <p className="text-base font-extrabold text-white">{t.credits}</p>
                   <p className="text-2xl font-black text-white mt-1">{t.price}</p>
                   <p className="text-xs text-slate-500 mt-0.5">{t.pricePerCredit} / credit</p>
-                  {t.savings && (
+                  {"savings" in t && t.savings && (
                     <span className="mt-1 inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/25 text-emerald-400">
                       {t.savings}
                     </span>
@@ -475,14 +522,14 @@ export default function PricingPage() {
             transition={{ duration: 0.5 }}
           >
             <h2 className="text-3xl sm:text-4xl font-extrabold text-white mb-3">
-              What Does{" "}
+              {modelCostHeroData.heading}{" "}
               <span className="bg-gradient-to-r from-violet-400 to-cyan-400 bg-clip-text text-transparent">
-                1 Credit
+                {modelCostHeroData.headingHighlight}
               </span>{" "}
               Get You?
             </h2>
             <p className="text-slate-400 text-base max-w-lg mx-auto">
-              Approximate credit pricing per generation. No surprises.
+              {modelCostHeroData.subtitle}
             </p>
           </motion.div>
 
@@ -505,17 +552,14 @@ export default function PricingPage() {
                 </div>
               </div>
               <div className="space-y-3">
-                {MODEL_COSTS.video.map((m) => (
-                  <div key={m.name} className={`flex items-center justify-between p-3.5 rounded-2xl border ${m.bg} ${m.border}`}>
+                {videoModels.map((m) => (
+                  <div key={m.name} className="flex items-center justify-between p-3.5 rounded-2xl border bg-blue-500/10 border-blue-500/20">
                     <div className="flex items-center gap-3">
-                      {m.free
-                        ? <Infinity className={`w-4 h-4 ${m.color}`} />
-                        : <Video className={`w-4 h-4 ${m.color}`} />
-                      }
+                      <Video className="w-4 h-4 text-blue-400" />
                       <span className="text-sm font-semibold text-slate-200">{m.name}</span>
                     </div>
                     <div className="text-right">
-                      <p className={`text-sm font-extrabold ${m.color}`}>{m.cost}</p>
+                      <p className="text-sm font-extrabold text-blue-400">{m.cost}</p>
                       <p className="text-[10px] text-slate-500">{m.per}</p>
                     </div>
                   </div>
@@ -535,17 +579,14 @@ export default function PricingPage() {
                 </div>
               </div>
               <div className="space-y-3">
-                {MODEL_COSTS.image.map((m) => (
-                  <div key={m.name} className={`flex items-center justify-between p-3.5 rounded-2xl border ${m.bg} ${m.border}`}>
+                {imageModels.map((m) => (
+                  <div key={m.name} className="flex items-center justify-between p-3.5 rounded-2xl border bg-violet-500/10 border-violet-500/20">
                     <div className="flex items-center gap-3">
-                      {m.free
-                        ? <Infinity className={`w-4 h-4 ${m.color}`} />
-                        : <ImageIcon className={`w-4 h-4 ${m.color}`} />
-                      }
+                      <ImageIcon className="w-4 h-4 text-violet-400" />
                       <span className="text-sm font-semibold text-slate-200">{m.name}</span>
                     </div>
                     <div className="text-right">
-                      <p className={`text-sm font-extrabold ${m.color}`}>{m.cost}</p>
+                      <p className="text-sm font-extrabold text-violet-400">{m.cost}</p>
                       <p className="text-[10px] text-slate-500">{m.per}</p>
                     </div>
                   </div>

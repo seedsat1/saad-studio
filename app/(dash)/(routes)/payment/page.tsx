@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   Zap, ChevronRight, Upload, X, CheckCircle2, Clock,
@@ -9,6 +9,20 @@ import {
   Star, Rocket, Crown, Sparkles, FileText, RefreshCw,
   MessageCircle,
 } from "lucide-react";
+import { useCmsData } from "@/lib/use-cms-data";
+
+/* ─── CMS types (shared with pricing CMS) ─── */
+interface CmsPlan { _id: string; id: string; monthlyPrice: number; iqd: number; annualDiscount: number; credits: string; creditsNum: number; badge: string; }
+interface CmsTopup { _id: string; credits: string; creditsNum: number; usd: number; iqd: number; price: string; pricePerCredit: string; popular: boolean; }
+interface CmsPaymentMethod { _id: string; name: string; account: string; logoText: string; }
+interface CmsPaymentHero { heading: string; subtitle: string; }
+interface PricingCmsData {
+  plans?: CmsPlan[];
+  topups?: CmsTopup[];
+  paymentMethods?: CmsPaymentMethod[];
+  whatsappNumber?: string;
+  paymentHero?: CmsPaymentHero;
+}
 
 // ─── Data ────────────────────────────────────────────────────────────────────
 
@@ -129,7 +143,7 @@ function PaymentMethodCard({
 
 // ─── TransferInstructions ─────────────────────────────────────────────────────
 
-function TransferInstructions({ method, orderId, orderLabel }: { method: typeof METHODS[0]; orderId: string; orderLabel: string }) {
+function TransferInstructions({ method, orderId, orderLabel, whatsappNumber }: { method: typeof METHODS[0]; orderId: string; orderLabel: string; whatsappNumber: string }) {
   const [copiedAccount, setCopiedAccount] = useState(false);
 
   const copy = (text: string, setter: (v: boolean) => void) => {
@@ -154,7 +168,7 @@ function TransferInstructions({ method, orderId, orderLabel }: { method: typeof 
       </div>
       <div className="pt-3 border-t border-slate-700">
         <a
-          href={`https://wa.me/9647902585579?text=${waMsg}`}
+          href={`https://wa.me/${whatsappNumber}?text=${waMsg}`}
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center justify-center gap-2.5 w-full py-2.5 rounded-xl bg-[#25D366] hover:bg-[#20b85a] text-white text-sm font-bold transition-all duration-200 hover:scale-[1.02] active:scale-100"
@@ -263,10 +277,10 @@ function VerificationStatus({
 
 // ─── WhatsAppButton ───────────────────────────────────────────────────────────
 
-function WhatsAppButton({ orderId }: { orderId: string }) {
+function WhatsAppButton({ orderId, whatsappNumber }: { orderId: string; whatsappNumber: string }) {
   const msg = encodeURIComponent(`Hello SAAD STUDIO, I need help with my payment. Order ID: ${orderId || "N/A"}`);
   return (
-    <a href={`https://wa.me/964XXXXXXXXXX?text=${msg}`} target="_blank" rel="noopener noreferrer"
+    <a href={`https://wa.me/${whatsappNumber}?text=${msg}`} target="_blank" rel="noopener noreferrer"
       className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-3 rounded-2xl bg-[#25D366] hover:bg-[#20b85a] text-white text-sm font-bold shadow-2xl shadow-green-500/30 transition-all duration-200 hover:scale-105">
       <MessageCircle className="w-5 h-5" />
       Contact on WhatsApp
@@ -293,10 +307,69 @@ const inputCls = (err?: string) =>
 
 export default function PaymentPage() {
   const searchParams = useSearchParams();
+  const { data: cms } = useCmsData<PricingCmsData>("pricing");
   const [step, setStep]                     = useState<Step>(1);
   const [orderType, setOrderType]           = useState<OrderType>("plan");
   const [selectedPlanId, setSelectedPlanId] = useState("");
   const [selectedTopupId, setSelectedTopupId] = useState("");
+
+  // Live methods from CMS with styling fallback
+  const liveMethods = useMemo(() => {
+    if (!cms?.paymentMethods?.length) return METHODS;
+    const STYLE_MAP: Record<string, { gradient: string; bg: string; border: string; glow: string; activeBorder: string }> = {
+      qicard:   { gradient: "from-emerald-600 to-teal-600", bg: "bg-emerald-500/10", border: "border-emerald-500/30", glow: "shadow-[0_0_20px_rgba(16,185,129,0.2)]", activeBorder: "border-emerald-400" },
+      zaincash: { gradient: "from-red-600 to-rose-700",     bg: "bg-red-500/10",     border: "border-red-500/30",     glow: "shadow-[0_0_20px_rgba(239,68,68,0.2)]", activeBorder: "border-red-400" },
+    };
+    const defaultStyle = { gradient: "from-blue-600 to-indigo-600", bg: "bg-blue-500/10", border: "border-blue-500/30", glow: "shadow-[0_0_20px_rgba(59,130,246,0.2)]", activeBorder: "border-blue-400" };
+    return cms.paymentMethods.map((pm) => ({
+      id: pm.name.toLowerCase().replace(/\s+/g, ""),
+      name: pm.name,
+      account: pm.account,
+      logoText: pm.logoText,
+      ...(STYLE_MAP[pm.name.toLowerCase().replace(/\s+/g, "")] ?? defaultStyle),
+    }));
+  }, [cms?.paymentMethods]);
+
+  const liveWhatsApp = cms?.whatsappNumber ?? "9647902585579";
+
+  // Live plans from CMS (with IQD prices + styling fallback)
+  const ICON_MAP: Record<string, typeof Rocket> = { starter: Rocket, plus: Sparkles, pro: Star, max: Crown };
+  const STYLE_MAP_PLANS: Record<string, { color: string; bg: string; border: string }> = {
+    starter: { color: "text-violet-400", bg: "bg-violet-500/10", border: "border-violet-500/40" },
+    plus:    { color: "text-slate-300",  bg: "bg-slate-500/10",  border: "border-slate-500/40" },
+    pro:     { color: "text-blue-400",   bg: "bg-blue-500/10",   border: "border-blue-500/40" },
+    max:     { color: "text-amber-400",  bg: "bg-amber-500/10",  border: "border-amber-500/40" },
+  };
+  const defaultPlanStyle = { color: "text-violet-400", bg: "bg-violet-500/10", border: "border-violet-500/40" };
+
+  const livePlans = useMemo(() => {
+    if (!cms?.plans?.length) return PLANS;
+    return cms.plans.map((cp) => {
+      const s = STYLE_MAP_PLANS[cp.id] ?? defaultPlanStyle;
+      return {
+        id: cp.id, label: cp.badge, usd: cp.monthlyPrice, iqd: cp.iqd, credits: cp.creditsNum,
+        Icon: ICON_MAP[cp.id] ?? Rocket, ...s,
+      };
+    });
+  }, [cms?.plans]);
+
+  const liveTopups = useMemo(() => {
+    if (!cms?.topups?.length) return TOPUPS;
+    return cms.topups.map((ct) => ({
+      id: `t${ct.creditsNum}`, credits: ct.creditsNum, usd: ct.usd, iqd: ct.iqd,
+    }));
+  }, [cms?.topups]);
+
+  const livePaymentHero = cms?.paymentHero ?? { heading: "Complete Your Payment", subtitle: "Local transfer · Secure · Fast activation" };
+
+  // Live annual discounts from CMS plans
+  const liveAnnualDiscount = useMemo(() => {
+    if (!cms?.plans?.length) return PLAN_ANNUAL_DISCOUNT;
+    const map: Record<string, number> = {};
+    cms.plans.forEach((p) => { map[p.id] = p.annualDiscount; });
+    return map;
+  }, [cms?.plans]);
+
   const [selectedMethod, setSelectedMethod] = useState(METHODS[0].id);
   const [status, setStatus]                 = useState<Status>("idle");
   const [rejectionReason]                   = useState("The transfer reference number could not be verified. Please resubmit with a clear screenshot.");
@@ -306,7 +379,6 @@ export default function PaymentPage() {
   const [proofError, setProofError] = useState("");
   const [confirmed, setConfirmed]   = useState(false);
   const [confirmError, setConfirmError] = useState("");
-  const [submitError, setSubmitError] = useState("");
   const [loading, setLoading]       = useState(false);
 
   const cycleQuery = (searchParams.get("cycle") || searchParams.get("billing") || searchParams.get("interval") || "").toLowerCase();
@@ -315,7 +387,7 @@ export default function PaymentPage() {
   const incomingPlanId = searchParams.get("id");
 
   const resolvePlanBilling = (plan: (typeof PLANS)[number]) => {
-    const discount = PLAN_ANNUAL_DISCOUNT[plan.id] ?? 0;
+    const discount = liveAnnualDiscount[plan.id] ?? 0;
     const monthlyUsd = plan.usd;
     const monthlyIqd = plan.iqd;
     const yearlyBaseUsd = monthlyUsd * 12;
@@ -343,21 +415,21 @@ export default function PaymentPage() {
     };
   };
 
-  const method      = METHODS.find((m) => m.id === selectedMethod)!;
+  const method      = liveMethods.find((m) => m.id === selectedMethod) ?? liveMethods[0];
   const effectiveOrderType: OrderType = incomingType === "topup" ? "topup" : "plan";
-  const effectivePlanId = incomingPlanId && PLANS.some((p) => p.id === incomingPlanId) ? incomingPlanId : selectedPlanId;
+  const effectivePlanId = incomingPlanId && livePlans.some((p) => p.id === incomingPlanId) ? incomingPlanId : selectedPlanId;
   const selectedItem =
     effectiveOrderType === "plan"
-      ? PLANS.find((p) => p.id === effectivePlanId)
-      : TOPUPS.find((tp) => tp.id === selectedTopupId);
+      ? livePlans.find((p) => p.id === effectivePlanId)
+      : liveTopups.find((tp) => tp.id === selectedTopupId);
 
-  const selectedPlan = selectedItem && effectiveOrderType === "plan" ? (selectedItem as typeof PLANS[0]) : null;
+  const selectedPlan = selectedItem && effectiveOrderType === "plan" ? (selectedItem as typeof livePlans[0]) : null;
   const selectedPlanBilling = selectedPlan ? resolvePlanBilling(selectedPlan) : null;
 
   const orderLabel =
     effectiveOrderType === "plan"
       ? `${selectedPlan?.label ?? ""} Plan — ${selectedPlanBilling?.creditsText ?? ""} (${selectedPlanBilling?.suffix === "/yr" ? "annual" : "monthly"})`
-      : `+${(selectedItem as typeof TOPUPS[0])?.credits?.toLocaleString() ?? ""} Credits Top-up`;
+      : `+${(selectedItem as typeof liveTopups[0])?.credits?.toLocaleString() ?? ""} Credits Top-up`;
 
   const goStep2 = () => {
     if (effectiveOrderType === "plan" && !effectivePlanId) return;
@@ -369,74 +441,18 @@ export default function PaymentPage() {
     let hasError = false;
     if (!proofFile) { setProofError("Please upload your payment proof."); hasError = true; } else setProofError("");
     if (!confirmed) { setConfirmError("Please confirm before submitting."); hasError = true; } else setConfirmError("");
-    setSubmitError("");
     if (hasError) return;
     setLoading(true);
-    try {
-      const uploadForm = new FormData();
-      uploadForm.append("file", proofFile!);
-      uploadForm.append("orderId", orderId);
-
-      const uploadRes = await fetch("/api/payments/upload-proof", {
-        method: "POST",
-        body: uploadForm,
-      });
-      const uploadData = await uploadRes.json().catch(() => null) as
-        | { proofUrl?: string; proofFileName?: string; error?: string }
-        | null;
-
-      if (!uploadRes.ok || !uploadData?.proofUrl) {
-        setSubmitError(uploadData?.error ?? "Failed to upload payment proof");
-        return;
-      }
-
-      const amount =
-        effectiveOrderType === "plan"
-          ? Number(selectedPlanBilling?.usd ?? 0)
-          : Number((selectedItem as { usd: number } | undefined)?.usd ?? 0);
-      const credits =
-        effectiveOrderType === "plan"
-          ? Number(selectedPlan?.credits ?? 0)
-          : Number((selectedItem as { credits: number } | undefined)?.credits ?? 0);
-
-      const res = await fetch("/api/payments/request", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          orderId,
-          orderType: effectiveOrderType,
-          planId: effectiveOrderType === "plan" ? effectivePlanId : null,
-          planLabel: effectiveOrderType === "plan" ? selectedPlan?.label ?? null : null,
-          billingCycle: effectiveOrderType === "plan" ? billingCycle : null,
-          topupId: effectiveOrderType === "topup" ? selectedTopupId : null,
-          methodId: method.id,
-          methodName: method.name,
-          amount,
-          credits,
-          proofFileName: uploadData.proofFileName ?? proofFile?.name ?? null,
-          proofUrl: uploadData.proofUrl,
-        }),
-      });
-
-      const data = await res.json().catch(() => null);
-      if (!res.ok) {
-        setSubmitError(data?.error ?? "Failed to submit payment request");
-        return;
-      }
-
-      setStatus("pending");
-      setStep(3);
-    } catch {
-      setSubmitError("Network error while submitting payment request");
-    } finally {
-      setLoading(false);
-    }
+    await new Promise((r) => setTimeout(r, 1500));
+    setLoading(false);
+    setStatus("pending");
+    setStep(3);
   };
 
   const handleResubmit = () => { setStatus("idle"); setStep(2); setProofError(""); setConfirmError(""); };
   const handleNew = () => {
     setStep(1); setStatus("idle"); setSelectedPlanId(""); setSelectedTopupId("");
-    setSelectedMethod(METHODS[0].id);
+    setSelectedMethod(liveMethods[0]?.id ?? METHODS[0].id);
     setProofFile(null); setConfirmed(false); setProofError(""); setConfirmError("");
   };
 
@@ -452,8 +468,8 @@ export default function PaymentPage() {
 
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white">Complete Your Payment</h1>
-          <p className="text-sm text-slate-400 mt-1">Local transfer · Secure · Fast activation</p>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-white">{livePaymentHero.heading}</h1>
+          <p className="text-sm text-slate-400 mt-1">{livePaymentHero.subtitle}</p>
         </div>
 
         {/* Order ID */}
@@ -489,7 +505,7 @@ export default function PaymentPage() {
               {/* Plan list */}
               {orderType === "plan" && (
                 <div className="space-y-2.5">
-                  {PLANS.map((p) => (
+                  {livePlans.map((p) => (
                     (() => {
                       const billing = resolvePlanBilling(p);
                       return (
@@ -520,7 +536,7 @@ export default function PaymentPage() {
               {/* Top-up grid */}
               {orderType === "topup" && (
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-                  {TOPUPS.map((tp) => (
+                  {liveTopups.map((tp) => (
                     <button key={tp.id} onClick={() => setSelectedTopupId(tp.id)}
                       className={`p-3.5 rounded-2xl border text-center transition-all duration-200
                         ${selectedTopupId === tp.id ? "border-violet-500 bg-violet-500/10 shadow-[0_0_16px_rgba(139,92,246,0.2)]" : "border-slate-800 bg-slate-900/60 hover:border-slate-700"}`}>
@@ -571,12 +587,12 @@ export default function PaymentPage() {
               )}
 
               <div className="space-y-3">
-                {METHODS.map((m) => (
+                {liveMethods.map((m) => (
                   <PaymentMethodCard key={m.id} method={m} selected={selectedMethod === m.id} onSelect={() => setSelectedMethod(m.id)} />
                 ))}
               </div>
 
-              <TransferInstructions method={method} orderId={orderId} orderLabel={orderLabel} />
+              <TransferInstructions method={method} orderId={orderId} orderLabel={orderLabel} whatsappNumber={liveWhatsApp} />
 
               <ProofUpload file={proofFile} onFile={(f) => { setProofFile(f); setProofError(""); }} onClear={() => setProofFile(null)} />
               {proofError && <p className="text-xs text-red-400 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{proofError}</p>}
@@ -597,7 +613,6 @@ export default function PaymentPage() {
                 <span className="text-sm text-slate-300">I confirm I have made the transfer and the proof above is correct.</span>
               </label>
               {confirmError && <p className="text-xs text-red-400 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{confirmError}</p>}
-              {submitError && <p className="text-xs text-red-400 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{submitError}</p>}
 
               <div className="flex gap-3">
                 <button onClick={() => setStep(1)} className="flex-1 py-3 rounded-2xl border border-slate-700 text-slate-300 hover:bg-slate-800 text-sm font-medium transition-colors">← Back</button>

@@ -15,10 +15,24 @@ import {
   Mail,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useCmsData } from "@/lib/use-cms-data";
+
+interface CmsFooterLink { label: string; href: string }
+interface CmsFooterSection { title: string; links: CmsFooterLink[] }
+interface CmsSocialLink { platform: string; href: string }
+interface DiscoverCms {
+  footer?: {
+    brandName?: string; tagline?: string; email?: string; logoUrl?: string;
+    sections?: CmsFooterSection[];
+    socialLinks?: CmsSocialLink[];
+    newsletterHeading?: string; newsletterSubtitle?: string;
+  };
+  [k: string]: unknown;
+}
 
 const montserrat = Montserrat({ weight: "600", subsets: ["latin"] });
 
-// â”€â”€â”€ Footer Link Data â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Footer Link Data ─────────────────────────────────────────────────────────
 const FOOTER_LINKS = {
   aiTools: {
     title: "AI Tools",
@@ -68,7 +82,7 @@ const SOCIAL_LINKS = [
   { icon: MessageCircle, href: "#", label: "Discord", color: "hover:text-indigo-400 hover:bg-indigo-400/10" },
 ];
 
-// â”€â”€â”€ Animation Variants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Animation Variants ───────────────────────────────────────────────────────
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
   visible: {
@@ -82,7 +96,7 @@ const itemVariants: Variants = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.45, ease: "easeOut" as const } },
 };
 
-// â”€â”€â”€ Column Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Column Component ─────────────────────────────────────────────────────────
 const FooterColumn = ({
   title,
   links,
@@ -122,9 +136,33 @@ const FooterColumn = ({
   </motion.div>
 );
 
-// â”€â”€â”€ Footer Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Footer Component ─────────────────────────────────────────────────────────
 const Footer = () => {
   const year = new Date().getFullYear();
+  const { data: cms } = useCmsData<DiscoverCms>("discover");
+  const f = cms?.footer;
+
+  const brandName = f?.brandName || "Saad Studio";
+  const tagline = f?.tagline || "The world\u2019s most powerful AI creative studio.";
+  const email = f?.email || "support@saadstudio.app";
+  const logoUrl = f?.logoUrl || "/logo-saad-transparent.png";
+  const newsletterHeading = f?.newsletterHeading || "Stay in the loop \u2728";
+  const newsletterSubtitle = f?.newsletterSubtitle || "New models & drops. No spam.";
+
+  // Build live link sections from CMS or fallback
+  const liveSections = f?.sections?.length
+    ? f.sections.map((sec) => ({ title: sec.title, links: sec.links.map((l) => ({ label: l.label, href: l.href })) }))
+    : [FOOTER_LINKS.aiTools, FOOTER_LINKS.resources, FOOTER_LINKS.company];
+
+  // Build live social links from CMS or fallback
+  const PLATFORM_MAP: Record<string, typeof SOCIAL_LINKS[number]> = {};
+  SOCIAL_LINKS.forEach((sl) => { PLATFORM_MAP[sl.label.toLowerCase()] = sl; });
+  const liveSocials = f?.socialLinks?.length
+    ? f.socialLinks.map((sl) => {
+        const match = PLATFORM_MAP[sl.platform.toLowerCase()] || SOCIAL_LINKS[0];
+        return { ...match, href: sl.href, label: sl.platform };
+      })
+    : SOCIAL_LINKS;
 
   return (
     <footer className="relative mt-auto overflow-hidden border-t border-white/10">
@@ -143,8 +181,8 @@ const Footer = () => {
           whileInView="visible"
           viewport={{ once: true, amount: 0.15 }}
         >
-          {/* â”€â”€ Main Row: Brand | AI Tools | Resources | Company | Security | Newsletter â”€â”€ */}
-          <div className="grid grid-cols-1 gap-6 mb-6 items-start md:grid-cols-2 xl:grid-cols-3">
+          {/* ── Main Row: Brand | AI Tools | Resources | Company | Security | Newsletter ── */}
+          <div className="grid grid-cols-6 gap-6 mb-6 items-start">
 
             {/* 1. Brand */}
             <motion.div variants={itemVariants} className="space-y-3">
@@ -156,37 +194,56 @@ const Footer = () => {
               >
                 <div className="relative flex h-9 w-9 shrink-0 items-center justify-center">
                   <Image
-                    src="/logo-saad-transparent.png"
-                    alt="Saad Studio"
+                    src={logoUrl}
+                    alt={brandName}
                     fill
                     className="object-contain"
                     onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
                   />
                 </div>
                 <span className={cn("text-base font-bold tracking-tight", montserrat.className)}>
-                  <span className="bg-gradient-to-r from-white to-zinc-300 bg-clip-text text-transparent">Saad</span>
-                  <span className="bg-gradient-to-r from-cyan-400 to-sky-400 bg-clip-text text-transparent"> Studio</span>
+                  <span className="bg-gradient-to-r from-white to-zinc-300 bg-clip-text text-transparent">{brandName.split(" ")[0]}</span>
+                  <span className="bg-gradient-to-r from-cyan-400 to-sky-400 bg-clip-text text-transparent"> {brandName.split(" ").slice(1).join(" ")}</span>
                 </span>
               </Link>
               <p className="text-xs leading-relaxed text-zinc-500">
-                The world&apos;s most powerful AI creative studio.
+                {tagline}
               </p>
               <a
-                href="mailto:support@saadstudio.app"
+                href={`mailto:${email}`}
                 className="group inline-flex items-center gap-1.5 text-xs text-zinc-500 hover:text-violet-300 transition-colors"
               >
                 <Mail className="h-3 w-3 shrink-0 text-violet-500" />
-                support@saadstudio.app
+                {email}
               </a>
             </motion.div>
 
-            {/* 2. AI Tools */}
-            <FooterColumn {...FOOTER_LINKS.aiTools} />
+            {/* 2-4. Link sections from CMS */}
+            {liveSections.map((sec) => (
+              <FooterColumn key={sec.title} {...sec} />
+            ))}
 
-            {/* 3. Newsletter */}
+            {/* 5. Security */}
+            <motion.div variants={itemVariants} className="space-y-3">
+              <h3 className="text-sm font-bold uppercase tracking-widest text-zinc-300">Security</h3>
+              <div className="space-y-1.5">
+                {[
+                  { label: "SOC 2 Type II", color: "text-emerald-400 bg-emerald-500/10 ring-emerald-500/20" },
+                  { label: "GDPR Compliant", color: "text-blue-400 bg-blue-500/10 ring-blue-500/20" },
+                  { label: "ISO 27001", color: "text-amber-400 bg-amber-500/10 ring-amber-500/20" },
+                  { label: "256-bit AES", color: "text-violet-400 bg-violet-500/10 ring-violet-500/20" },
+                ].map((badge) => (
+                  <div key={badge.label} className={cn("inline-flex w-full items-center justify-center rounded-lg px-3 py-1.5 text-xs font-semibold ring-1", badge.color)}>
+                    ✓ {badge.label}
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+
+            {/* 6. Newsletter */}
             <motion.div variants={itemVariants} className="space-y-2">
-              <p className="text-sm font-semibold text-zinc-300">Stay in the loop âœ¨</p>
-              <p className="text-xs text-zinc-600">New models & drops. No spam.</p>
+              <p className="text-sm font-semibold text-zinc-300">{newsletterHeading}</p>
+              <p className="text-xs text-zinc-600">{newsletterSubtitle}</p>
               <div className="flex flex-col gap-2">
                 <input
                   type="email"
@@ -204,7 +261,7 @@ const Footer = () => {
           {/* Divider */}
           <div className="mb-5 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
 
-          {/* â”€â”€ Bottom bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+          {/* ── Bottom bar ────────────────────────────────────────────────── */}
           <motion.div
             variants={itemVariants}
             className="flex flex-col items-center gap-5 sm:flex-row sm:justify-between"
@@ -212,7 +269,7 @@ const Footer = () => {
             {/* Copyright */}
             <div className="text-center sm:text-left space-y-1">
               <p className="text-xs text-zinc-500">
-                Â© {year} Saad Studio. All rights reserved.
+                © {year} {brandName}. All rights reserved.
               </p>
               <a
                 href="https://saadstudio.app/"
@@ -246,7 +303,7 @@ const Footer = () => {
 
             {/* Social icons */}
             <div className="flex items-center gap-1.5">
-              {SOCIAL_LINKS.map((s) => (
+              {liveSocials.map((s) => (
                 <Link
                   key={s.label}
                   href={s.href}

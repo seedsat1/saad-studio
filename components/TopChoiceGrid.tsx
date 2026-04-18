@@ -7,6 +7,12 @@ import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { usePromoMedia } from "@/hooks/use-promo-media";
 import { usePromoContent } from "@/hooks/use-promo-content";
+import { useCmsData } from "@/lib/use-cms-data";
+
+interface DiscoverCms {
+  topChoice?: { heading?: string; subtitle?: string; seeAllHref?: string; tools?: { id: string; name: string; desc: string; href: string; badge: string; image: string }[] };
+  [k: string]: unknown;
+}
 
 const TOP_TOOLS = [
   {
@@ -109,6 +115,30 @@ export default function TopChoiceGrid() {
   const [topTools, setTopTools] = useState(TOP_TOOLS);
   const promo = usePromoMedia();
   const promoContent = usePromoContent();
+  const { data: cms } = useCmsData<DiscoverCms>("discover");
+
+  const sectionHeading = cms?.topChoice?.heading || "Top Choice";
+  const sectionSubtitle = cms?.topChoice?.subtitle || "Creator-recommended tools";
+  const seeAllHref = cms?.topChoice?.seeAllHref || "/apps";
+
+  // Apply CMS tool overrides
+  useEffect(() => {
+    if (!cms?.topChoice?.tools?.length) return;
+    setTopTools(cms.topChoice.tools.map((ct) => {
+      const fallback = TOP_TOOLS.find((t) => t.id === ct.id);
+      return {
+        id: ct.id,
+        image: ct.image || fallback?.image || "/explore/top-" + ct.id + ".jpg",
+        name: ct.name,
+        desc: ct.desc,
+        href: ct.href,
+        badge: ct.badge || "",
+        badgeColor: fallback?.badgeColor,
+        accent: fallback?.accent || "from-violet-500 to-indigo-600",
+        glow: fallback?.glow || "rgba(139,92,246,0.3)",
+      };
+    }));
+  }, [cms]);
 
   // Apply promo media + text overrides
   useEffect(() => {
@@ -178,7 +208,7 @@ export default function TopChoiceGrid() {
               viewport={{ once: true }}
               transition={{ duration: 0.5 }}
             >
-              Top Choice
+              {sectionHeading}
             </motion.h2>
             <motion.p
               className="text-sm text-[#94a3b8]"
@@ -187,7 +217,7 @@ export default function TopChoiceGrid() {
               viewport={{ once: true }}
               transition={{ delay: 0.1 }}
             >
-              Creator-recommended tools
+              {sectionSubtitle}
             </motion.p>
           </div>
           <motion.div
@@ -197,7 +227,7 @@ export default function TopChoiceGrid() {
             transition={{ delay: 0.15 }}
           >
             <Link
-              href="/apps"
+              href={seeAllHref}
               className="flex items-center gap-1.5 text-sm text-[#06b6d4] hover:text-[#22d3ee] transition-colors font-medium"
             >
               See all

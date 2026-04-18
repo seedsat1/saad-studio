@@ -5,10 +5,21 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePromoMedia, promoUrl } from "@/hooks/use-promo-media";
 import { usePromoContent, promoText } from "@/hooks/use-promo-content";
+import { useCmsData } from "@/lib/use-cms-data";
+
+interface DiscoverCms {
+  photodump?: { badge?: string; title?: string; subtitle?: string; cta?: string; ctaHref?: string; image?: string; floatingBadges?: string[] };
+  [k: string]: unknown;
+}
 
 export default function PhotodumpCTA() {
   const promo = usePromoMedia();
   const content = usePromoContent();
+  const { data: cms } = useCmsData<DiscoverCms>("discover");
+  const pd = cms?.photodump;
+
+  const ctaHref = pd?.ctaHref || "/image/photodump";
+  const floatingBadges = pd?.floatingBadges?.length ? pd.floatingBadges : ["Beach Scene", "City Night", "Studio Shot"];
 
   return (
     <section className="py-16 relative overflow-hidden">
@@ -82,7 +93,7 @@ export default function PhotodumpCTA() {
               viewport={{ once: true }}
               transition={{ delay: 0.3 }}
             >
-              <Link href="/image/photodump">
+              <Link href={ctaHref}>
                 <motion.button
                   whileHover={{ scale: 1.04 }}
                   whileTap={{ scale: 0.97 }}
@@ -165,21 +176,25 @@ export default function PhotodumpCTA() {
                 />
 
                 {/* Floating badges */}
-                {[
-                  { label: "Beach Scene", top: "10%", right: "5%",  color: "text-cyan-400" },
-                  { label: "City Night",  bottom: "20%", left: "5%", color: "text-violet-400" },
-                  { label: "Studio Shot", bottom: "8%", right: "8%", color: "text-pink-400" },
-                ].map((badge) => (
-                  <motion.div
-                    key={badge.label}
-                    className="absolute glass rounded-full px-3 py-1.5 text-[10px] font-bold whitespace-nowrap z-10"
-                    style={{ top: badge.top, right: badge.right, bottom: badge.bottom, left: badge.left }}
-                    animate={{ y: [0, -5, 0] }}
-                    transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: Math.random() * 2 }}
-                  >
-                    <span className={badge.color}>{badge.label}</span>
-                  </motion.div>
-                ))}
+                {floatingBadges.map((label, idx) => {
+                  const positions: { top?: string; right?: string; bottom?: string; left?: string; color: string }[] = [
+                    { top: "10%", right: "5%", color: "text-cyan-400" },
+                    { bottom: "20%", left: "5%", color: "text-violet-400" },
+                    { bottom: "8%", right: "8%", color: "text-pink-400" },
+                  ];
+                  const pos = positions[idx % positions.length];
+                  return (
+                    <motion.div
+                      key={label}
+                      className="absolute glass rounded-full px-3 py-1.5 text-[10px] font-bold whitespace-nowrap z-10"
+                      style={{ top: pos.top, right: pos.right, bottom: pos.bottom, left: pos.left }}
+                      animate={{ y: [0, -5, 0] }}
+                      transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: Math.random() * 2 }}
+                    >
+                      <span className={pos.color}>{label}</span>
+                    </motion.div>
+                  );
+                })}
               </motion.div>
             </div>
           </motion.div>

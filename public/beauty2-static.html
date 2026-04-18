@@ -643,8 +643,65 @@ async function applyThumbConfig(){
   }catch(_){}
 }
 
+async function applyCmsOverrides(){
+  try{
+    const res=await fetch('/api/layouts?page=cms-beauty2');
+    if(!res.ok) return;
+    const data=await res.json();
+    const b=data&&data.layoutBlocks;
+    if(!b) return;
+
+    // Override categories
+    if(b.categories&&b.categories.length){
+      cats.length=0;
+      b.categories.forEach(function(c){
+        cats.push({id:c.id,l:locText(c.labelEn,c.labelAr)});
+      });
+    }
+
+    // Override tool metadata (names, descriptions, thumbnails, badges, order)
+    if(b.tools&&b.tools.length){
+      const cmsMap={};
+      b.tools.forEach(function(ct){cmsMap[ct.toolId]=ct;});
+      TOOLS.forEach(function(t){
+        var cm=cmsMap[t.id];
+        if(!cm) return;
+        if(cm.nameEn) t.name=cm.nameEn;
+        if(cm.nameAr) t.ar=cm.nameAr;
+        if(cm.descAr) t.desc=cm.descAr;
+        if(cm.category) t.cat=cm.category;
+        if(cm.badge) t.badge=cm.badge;
+        if(cm.thumb) t.thumb=cm.thumb;
+      });
+      // Reorder tools to match CMS order
+      var orderMap={};
+      b.tools.forEach(function(ct,i){orderMap[ct.toolId]=i;});
+      TOOLS.sort(function(a,b2){
+        var ia=orderMap[a.id]!=null?orderMap[a.id]:999;
+        var ib=orderMap[b2.id]!=null?orderMap[b2.id]:999;
+        return ia-ib;
+      });
+    }
+
+    // Override hero text
+    if(b.hero){
+      var hk=document.querySelector('.hero-kicker');
+      var hh=document.querySelector('.hero-copy h2');
+      var hp=document.querySelector('.hero-copy p');
+      if(hk&&b.hero.badge) hk.textContent=b.hero.badge;
+      if(hh&&b.hero.title) hh.textContent=b.hero.title;
+      if(hp&&b.hero.subtitle) hp.textContent=b.hero.subtitle;
+      if(b.hero.mediaUrl){
+        var heroBg=document.querySelector('.hero-cover-bg');
+        if(heroBg) heroBg.style.backgroundImage='url('+b.hero.mediaUrl+')';
+      }
+    }
+  }catch(_){}
+}
+
 async function initBeautyCards(){
   await applyThumbConfig();
+  await applyCmsOverrides();
   rTabs();
   rGrid();
 }

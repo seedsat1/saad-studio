@@ -3,6 +3,12 @@
 import { useRef, useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { useCmsData } from "@/lib/use-cms-data";
+
+interface DiscoverCms {
+  appsCarousel?: { heading?: string; subtitle?: string; apps?: { name: string }[] };
+  [k: string]: unknown;
+}
 
 const TOOLS = [
   "Angles 2.0", "AI Stylist", "Relight", "Shots", "Zooms", "Skin Enhancer",
@@ -68,7 +74,11 @@ const MiniCard = ({ name, index }: MiniCardProps) => {
 };
 
 export default function AppsCarousel() {
-  const doubled = [...TOOLS, ...TOOLS];
+  const { data: cms } = useCmsData<DiscoverCms>("discover");
+  const liveTools = cms?.appsCarousel?.apps?.length ? cms.appsCarousel.apps.map((a) => a.name) : TOOLS;
+  const heading = cms?.appsCarousel?.heading || "All AI Apps";
+  const subtitle = cms?.appsCarousel?.subtitle || "powerful tools in one studio";
+  const doubled = [...liveTools, ...liveTools];
   const sectionRef = useRef<HTMLElement>(null);
   const [visible, setVisible] = useState(false);
 
@@ -94,10 +104,10 @@ export default function AppsCarousel() {
         >
           <div>
             <h2 className="font-display text-[clamp(22px,3vw,32px)] font-bold text-[#e2e8f0] mb-1.5">
-              All AI Apps
+              {heading}
             </h2>
             <p className="text-sm text-[#94a3b8]">
-              {TOOLS.length}+ powerful tools in one studio
+              {liveTools.length}+ {subtitle}
             </p>
           </div>
           <Link
@@ -123,7 +133,7 @@ export default function AppsCarousel() {
         <div className="overflow-hidden">
           <div className="marquee-track gap-3 px-6" style={{ animationPlayState: visible ? "running" : "paused" }}>
             {doubled.map((name, i) => (
-              <MiniCard key={`${name}-${i}`} name={name} index={i % TOOLS.length} />
+              <MiniCard key={`${name}-${i}`} name={name} index={i % liveTools.length} />
             ))}
           </div>
         </div>

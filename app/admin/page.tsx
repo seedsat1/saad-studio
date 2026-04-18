@@ -42,6 +42,8 @@ import {
   Layers,
   ExternalLink,
   LayoutTemplate,
+  ShieldCheck,
+  Compass,
 } from "lucide-react";
 
 // ─── MOCK DATA ──────────────────────────────────────────────────────────────
@@ -845,6 +847,11 @@ export default function AdminDashboard() {
           {[
             { label: "Pricing Constitution", href: "/admin/pricing", icon: CreditCard },
             { label: "CMS & Ad Manager", href: "/admin/cms", icon: Layers },
+            { label: "Pricing & Payment CMS", href: "/admin/cms/pricing", icon: CreditCard },
+            { label: "Beauty Studio CMS", href: "/admin/cms/beauty2", icon: Sparkles },
+            { label: "Apps CMS", href: "/admin/cms/apps", icon: Globe },
+            { label: "Auth Page CMS", href: "/admin/cms/auth", icon: ShieldCheck },
+            { label: "Discover CMS", href: "/admin/cms/discover", icon: Compass },
             { label: "Page Builder", href: "/admin/page-builder", icon: LayoutTemplate },
             { label: "Model Test Lab", href: "/admin/model-test", icon: Zap },
           ].map(({ label, href, icon: Icon }) => (

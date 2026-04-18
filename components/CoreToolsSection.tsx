@@ -7,6 +7,12 @@ import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { usePromoMedia } from "@/hooks/use-promo-media";
 import { usePromoContent } from "@/hooks/use-promo-content";
+import { useCmsData } from "@/lib/use-cms-data";
+
+interface DiscoverCms {
+  coreTools?: { heading?: string; subtitle?: string; tools?: { id: string; name: string; desc: string; href: string; badge: string; image: string }[] };
+  [k: string]: unknown;
+}
 
 const TOOLS = [
   {
@@ -120,6 +126,28 @@ export default function CoreToolsSection() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const promo = usePromoMedia();
   const promoContent = usePromoContent();
+  const { data: cms } = useCmsData<DiscoverCms>("discover");
+
+  const sectionHeading = cms?.coreTools?.heading || "What will you create today?";
+  const sectionSubtitle = cms?.coreTools?.subtitle || "Pick a tool and start generating in seconds";
+
+  // Apply CMS tool overrides (order + add/remove)
+  useEffect(() => {
+    if (!cms?.coreTools?.tools?.length) return;
+    setTools(cms.coreTools.tools.map((ct) => {
+      const fallback = TOOLS.find((t) => t.id === ct.id);
+      return {
+        id: ct.id,
+        image: ct.image || fallback?.image || "/explore/tool-" + ct.id + ".jpg",
+        name: ct.name,
+        desc: ct.desc,
+        href: ct.href,
+        badge: ct.badge || "",
+        badgeColor: fallback?.badgeColor || "",
+        glow: fallback?.glow || "rgba(139,92,246,0.3)",
+      };
+    }));
+  }, [cms]);
 
   // Apply promo media + text overrides
   useEffect(() => {
@@ -193,7 +221,7 @@ export default function CoreToolsSection() {
             viewport={{ once: true }}
             transition={{ duration: 0.5 }}
           >
-            What will you create today?
+            {sectionHeading}
           </motion.h2>
           <motion.p
             className="text-sm text-[#94a3b8]"
@@ -202,7 +230,7 @@ export default function CoreToolsSection() {
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.1 }}
           >
-            Pick a tool and start generating in seconds
+            {sectionSubtitle}
           </motion.p>
         </div>
 

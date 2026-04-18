@@ -19,10 +19,22 @@ import {
 } from "lucide-react";
 import { useSignIn, useSignUp } from "@clerk/nextjs";
 import { useAuthModal } from "@/hooks/use-auth-modal";
+import { useCmsData } from "@/lib/use-cms-data";
 
-// ─── PROMO SLIDE DATA ────────────────────────────────────────────────────────
+// ─── CMS TYPES ───────────────────────────────────────────────────────────────
 
-const PROMO_SLIDES = [
+interface AuthCmsData {
+  promoSlides: { _id?: string; bgUrl: string; tag: string; headline: string; sub: string; cta: string; accent: string }[];
+  stats: { _id?: string; icon: "video" | "image" | "mic"; label: string }[];
+  branding: { badgeName: string; badgeLabel: string; rating: string; brandName: string };
+  signup: { heading: string; subtitle: string; buttonText: string };
+  login: { heading: string; subtitle: string; buttonText: string };
+  footer: { signupToggle: string; loginToggle: string; termsText: string };
+}
+
+// ─── PROMO SLIDE DATA (defaults) ─────────────────────────────────────────────
+
+const DEFAULT_PROMO_SLIDES = [
   {
     id: 1,
     bg: "https://images.unsplash.com/photo-1686191128892-3b37add4c844?w=900&q=90&auto=format&fit=crop",
@@ -43,12 +55,14 @@ const PROMO_SLIDES = [
   },
 ];
 
-// ─── STAT CHIPS ──────────────────────────────────────────────────────────────
-const STATS = [
+// ─── STAT CHIPS (defaults) ───────────────────────────────────────────────────
+const DEFAULT_STATS = [
   { icon: Video, label: "10K+ Videos" },
   { icon: ImageIcon, label: "50K+ Images" },
   { icon: Mic, label: "5K+ Audios" },
 ];
+
+const ICON_MAP: Record<string, React.ElementType> = { video: Video, image: ImageIcon, mic: Mic };
 
 // ─── INPUT FIELD ─────────────────────────────────────────────────────────────
 function InputField({
@@ -107,6 +121,7 @@ export default function AuthModal() {
   const router = useRouter();
   const { signIn, isLoaded: signInLoaded, setActive: setSignInActive } = useSignIn();
   const { signUp, isLoaded: signUpLoaded, setActive: setSignUpActive } = useSignUp();
+  const { data: cms } = useCmsData<AuthCmsData>("auth");
 
   // Form state
   const [name, setName] = useState("");
@@ -132,8 +147,31 @@ export default function AuthModal() {
   const [verifyError, setVerifyError] = useState("");
   const [formError, setFormError] = useState("");
 
+  // CMS-aware data
+  const PROMO_SLIDES = cms?.promoSlides?.length
+    ? cms.promoSlides.map((s, i) => ({ id: i + 1, bg: s.bgUrl, tag: s.tag, headline: s.headline, sub: s.sub, cta: s.cta, accent: s.accent }))
+    : DEFAULT_PROMO_SLIDES;
+
+  const STATS = cms?.stats?.length
+    ? cms.stats.map((s) => ({ icon: ICON_MAP[s.icon] || Video, label: s.label }))
+    : DEFAULT_STATS;
+
+  const brandBadgeName = cms?.branding?.badgeName ?? "Saad Studio AI";
+  const brandBadgeLabel = cms?.branding?.badgeLabel ?? "PRO";
+  const brandRating = cms?.branding?.rating ?? "4.9 / 5";
+  const brandName = cms?.branding?.brandName ?? "Saad Studio";
+  const signupHeading = cms?.signup?.heading ?? "Create your account";
+  const signupSubtitle = cms?.signup?.subtitle ?? "Start generating with 100 free credits — no card needed.";
+  const signupButton = cms?.signup?.buttonText ?? "Create Account";
+  const loginHeading = cms?.login?.heading ?? "Welcome back";
+  const loginSubtitle = cms?.login?.subtitle ?? "Sign in to continue creating with AI.";
+  const loginButton = cms?.login?.buttonText ?? "Login";
+  const footerSignupToggle = cms?.footer?.signupToggle ?? "Already have an account?";
+  const footerLoginToggle = cms?.footer?.loginToggle ?? "Don't have an account?";
+  const footerTerms = cms?.footer?.termsText ?? "By continuing, you agree to our Terms and Privacy Policy";
+
   // Active promo slide
-  const promo = PROMO_SLIDES[isSignup ? 0 : 1];
+  const promo = PROMO_SLIDES[isSignup ? 0 : 1] ?? PROMO_SLIDES[0];
 
   const handleForgotSendCode = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -333,9 +371,9 @@ export default function AuthModal() {
                   className="absolute top-5 left-5 flex items-center gap-2 bg-slate-900/80 border border-slate-700/60 backdrop-blur-sm rounded-full px-3 py-1.5"
                 >
                   <Sparkles className="w-3 h-3 text-violet-400" />
-                  <span className="text-[11px] font-semibold text-slate-200">Saad Studio AI</span>
+                  <span className="text-[11px] font-semibold text-slate-200">{brandBadgeName}</span>
                   <span className="text-[9px] px-1.5 py-0.5 bg-violet-600/30 text-violet-300 rounded-full font-bold border border-violet-500/30">
-                    PRO
+                    {brandBadgeLabel}
                   </span>
                 </motion.div>
 
@@ -349,7 +387,7 @@ export default function AuthModal() {
                   {[...Array(5)].map((_, i) => (
                     <Star key={i} className="w-3 h-3 fill-amber-400 text-amber-400" />
                   ))}
-                  <span className="text-[11px] text-slate-400 ml-1">4.9 / 5</span>
+                  <span className="text-[11px] text-slate-400 ml-1">{brandRating}</span>
                 </motion.div>
 
                 {/* Content overlay */}
@@ -407,14 +445,14 @@ export default function AuthModal() {
                       <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-600 to-purple-700 flex items-center justify-center shadow-lg shadow-violet-900/50">
                         <Sparkles className="w-[18px] h-[18px] text-white" />
                       </div>
-                      <span className="text-sm font-bold text-white">Saad Studio</span>
+                      <span className="text-sm font-bold text-white">{brandName}</span>
                     </div>
                     <h1 className="text-2xl font-extrabold text-white leading-tight">
                       {isVerify
                         ? "Verify your email"
                         : isForgot
                         ? forgotStep === "email" ? "Reset your password" : "Enter reset code"
-                        : isSignup ? "Create your account" : "Welcome back"}
+                        : isSignup ? signupHeading : loginHeading}
                     </h1>
                     <p className="text-sm text-slate-400 mt-1.5">
                       {isVerify
@@ -424,8 +462,8 @@ export default function AuthModal() {
                           ? "We'll send a reset code to your email."
                           : `Code sent to ${forgotEmail}`
                         : isSignup
-                        ? "Start generating with 100 free credits — no card needed."
-                        : "Sign in to continue creating with AI."}
+                        ? signupSubtitle
+                        : loginSubtitle}
                     </p>
                   </motion.div>
                 </AnimatePresence>
@@ -614,7 +652,7 @@ export default function AuthModal() {
                         <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                       ) : (
                         <>
-                          {isSignup ? "Create Account" : "Login"}
+                          {isSignup ? signupButton : loginButton}
                           <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                         </>
                       )}
@@ -665,7 +703,7 @@ export default function AuthModal() {
 
                 {/* Toggle view */}
                 <p className="text-center text-sm text-slate-500 mt-6">
-                  {isSignup ? "Already have an account?" : "Don't have an account?"}{" "}
+                  {isSignup ? footerSignupToggle : footerLoginToggle}{" "}
                   <button
                     type="button"
                     onClick={switchView}
@@ -677,14 +715,7 @@ export default function AuthModal() {
 
                 {/* Trust badges */}
                 <p className="text-center text-[11px] text-slate-600 mt-4">
-                  By continuing, you agree to our{" "}
-                  <span className="text-slate-500 hover:text-slate-400 cursor-pointer transition-colors">
-                    Terms
-                  </span>{" "}
-                  and{" "}
-                  <span className="text-slate-500 hover:text-slate-400 cursor-pointer transition-colors">
-                    Privacy Policy
-                  </span>
+                  {footerTerms}
                 </p>
                   </> 
                 )} {/* end !isForgot */}

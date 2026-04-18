@@ -3,13 +3,14 @@
 import { useState, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Outfit, Plus_Jakarta_Sans } from "next/font/google";
-import { APP_CATEGORIES, TOTAL_TOOLS, type AppTool } from "@/lib/apps-data";
+import { APP_CATEGORIES, TOTAL_TOOLS, type AppTool, type AppCategory } from "@/lib/apps-data";
 import { FloatingParticles } from "@/components/FloatingParticles";
 import { AppsSearchBar } from "@/components/AppsSearchBar";
 import { AppsFilterTabs } from "@/components/AppsFilterTabs";
 import { AppCategorySection } from "@/components/AppCategorySection";
 import { AppToolCard } from "@/components/AppToolCard";
 import { usePageLayout } from "@/lib/use-page-layout";
+import { useCmsData } from "@/lib/use-cms-data";
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -23,8 +24,32 @@ const plusJakarta = Plus_Jakarta_Sans({
   display: "swap",
 });
 
+interface CmsAppsTool {
+  _id?: string;
+  id: string;
+  title: string;
+  description: string;
+  href: string;
+  badge: string;
+  gradient: string;
+}
+
+interface CmsAppsCategory {
+  _id?: string;
+  id: string;
+  title: string;
+  description: string;
+  tools: CmsAppsTool[];
+}
+
+interface AppsCmsData {
+  hero: { badge: string; title: string; subtitle: string; mediaUrl: string; isVideo: boolean };
+  categories: CmsAppsCategory[];
+}
+
 export default function AppsPage() {
   const { hero } = usePageLayout("apps");
+  const { data: cms } = useCmsData<AppsCmsData>("apps");
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("all");
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
@@ -51,11 +76,32 @@ export default function AppsPage() {
     setExpandedCategories((prev) => ({ ...prev, [categoryId]: !prev[categoryId] }));
   }, []);
 
+  // Merge CMS categories with fallback to hardcoded data
+  const liveCategories = useMemo<AppCategory[]>(() => {
+    if (!cms?.categories?.length) return APP_CATEGORIES;
+    return cms.categories.map((c) => ({
+      id: c.id,
+      title: c.title,
+      description: c.description,
+      href: `#${c.id}`,
+      tools: c.tools.map((t) => ({
+        id: t.id,
+        title: t.title,
+        description: t.description,
+        href: t.href,
+        badge: (t.badge || "") as AppTool["badge"],
+        gradient: t.gradient,
+      })),
+    }));
+  }, [cms]);
+
+  const liveTotalTools = useMemo(() => liveCategories.reduce((s, c) => s + c.tools.length, 0), [liveCategories]);
+
   const searchResults = useMemo<AppTool[]>(() => {
     if (!searchQuery) return [];
     const q = searchQuery.toLowerCase();
     const results: AppTool[] = [];
-    for (const cat of APP_CATEGORIES) {
+    for (const cat of liveCategories) {
       for (const tool of cat.tools) {
         if (
           tool.title.toLowerCase().includes(q) ||
@@ -66,7 +112,7 @@ export default function AppsPage() {
       }
     }
     return results;
-  }, [searchQuery]);
+  }, [searchQuery, liveCategories]);
 
   const isSearching = searchQuery.length > 0;
 
@@ -130,7 +176,7 @@ export default function AppsPage() {
 
           {/* Search bar */}
           <div className="mt-8 max-w-xl mx-auto">
-            <AppsSearchBar totalCount={TOTAL_TOOLS} onSearch={handleSearch} />
+            <AppsSearchBar totalCount={liveTotalTools} onSearch={handleSearch} />
           </div>
         </motion.div>
 
@@ -142,10 +188,10 @@ export default function AppsPage() {
           transition={{ duration: 0.5, delay: 0.15, ease: "easeOut" }}
         >
           <AppsFilterTabs
-            categories={APP_CATEGORIES}
+            categories={liveCategories}
             activeTab={activeTab}
             onTabChange={handleTabChange}
-            totalCount={TOTAL_TOOLS}
+            totalCount={liveTotalTools}
           />
         </motion.div>
 
@@ -203,7 +249,7 @@ export default function AppsPage() {
               transition={{ duration: 0.25 }}
               className="space-y-16"
             >
-              {APP_CATEGORIES.map((category) => (
+              {liveCategories.map((category) => (
                 <AppCategorySection
                   key={category.id}
                   category={category}
