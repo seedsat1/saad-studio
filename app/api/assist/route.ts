@@ -55,27 +55,48 @@ async function callGpt54(messages: ChatMessage[], key: string): Promise<string> 
     {
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ model: "gpt-5-4", stream: false, input }),
+      body: JSON.stringify({
+        model: "gpt-5-4",
+        stream: false,
+        input,
+        reasoning: { effort: "low" },
+      }),
     },
     40000,
   );
   if (!res.ok) throw new Error(`KIE GPT-5.4 ${res.status}: ${await readErrorBody(res)}`);
   const data = await res.json();
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  type AnyObj = Record<string, any>;
   type OutputBlock = { type: string; text?: string; content?: { type: string; text: string }[] };
-  // Format 1: output[].content[].text  (OpenAI Responses API standard)
-  const msgBlock = (data?.output as OutputBlock[] | undefined)?.find((o) => o.type === "message");
+
+  // The response may be at root `data.output` or wrapped in `data.response.output`
+  const outputArr: OutputBlock[] | undefined =
+    (data?.output as OutputBlock[] | undefined) ??
+    ((data as AnyObj)?.response?.output as OutputBlock[] | undefined);
+
+  const msgBlock = outputArr?.find((o) => o.type === "message");
+
   const text =
+    // Format 1: output[].content[].text  (Responses API — output_text)
     msgBlock?.content?.find((c) => c.type === "output_text")?.text ??
+    // Format 2: output[].content[].text  (Responses API — text)
     msgBlock?.content?.find((c) => c.type === "text")?.text ??
-    // Format 2: output[].text  (simplified)
-    (data?.output as OutputBlock[] | undefined)?.find((o) => o.type === "message")?.text ??
-    // Format 3: output_text at root
+    // Format 3: output[].text  (simplified flat)
+    msgBlock?.text ??
+    // Format 4: output_text at root or under response
     data?.output_text ??
-    // Format 4: choices (OpenAI Chat Completions fallback)
+    (data as AnyObj)?.response?.output_text ??
+    // Format 5: choices (OpenAI Chat Completions fallback)
     data?.choices?.[0]?.message?.content ??
+    // Format 6: content[].text at root (Anthropic-like)
+    (data?.content as { type: string; text?: string }[] | undefined)?.find((c) => c.type === "text")?.text ??
     "";
+
   if (!text) {
-    console.error("[GPT-5.4] Unexpected response shape:", JSON.stringify(data).slice(0, 500));
+    const shape = JSON.stringify(data).slice(0, 800);
+    console.error("[GPT-5.4] Empty reply. Keys:", Object.keys(data || {}), "Shape:", shape);
     throw new Error("KIE GPT-5.4 returned an empty reply.");
   }
   return String(text).trim();
