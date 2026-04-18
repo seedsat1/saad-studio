@@ -1136,7 +1136,7 @@ export default function TransitionsStudioPage() {
       >
         {/* Back to dashboard */}
         <a
-          href="/dash"
+          href="/explore"
           className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold text-slate-600 hover:text-slate-300 transition-colors shrink-0"
           style={{ border: "1px solid rgba(255,255,255,0.06)" }}
         >

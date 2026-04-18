@@ -202,7 +202,7 @@ export default function AuthModal() {
       });
       if (result.status === "complete") {
         setForgotSuccess(true);
-        setTimeout(() => { onClose(); router.push("/dash"); }, 1500);
+        setTimeout(() => { onClose(); router.push("/explore"); }, 1500);
       }
     } catch (err: unknown) {
       const msg = (err as { errors?: Array<{ message: string }> })?.errors?.[0]?.message ?? "Invalid code or password";
@@ -219,13 +219,13 @@ export default function AuthModal() {
         await signUp.authenticateWithRedirect({
           strategy: provider,
           redirectUrl: "/sso-callback",
-          redirectUrlComplete: "/dash",
+          redirectUrlComplete: "/explore",
         });
       } else if (signIn) {
         await signIn.authenticateWithRedirect({
           strategy: provider,
           redirectUrl: "/sso-callback",
-          redirectUrlComplete: "/dash",
+          redirectUrlComplete: "/explore",
         });
       }
     } catch {
@@ -252,7 +252,7 @@ export default function AuthModal() {
         if (result.status === "complete") {
           await setSignUpActive!({ session: result.createdSessionId });
           onClose();
-          router.push("/dash");
+          router.push("/explore");
         } else {
           // Email verification required
           await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
@@ -267,7 +267,7 @@ export default function AuthModal() {
         if (result.status === "complete") {
           await setSignInActive!({ session: result.createdSessionId });
           onClose();
-          router.push("/dash");
+          router.push("/explore");
         }
       }
     } catch (err: unknown) {
@@ -288,7 +288,7 @@ export default function AuthModal() {
       if (result.status === "complete") {
         await setSignUpActive!({ session: result.createdSessionId });
         onClose();
-        router.push("/dash");
+        router.push("/explore");
       }
     } catch (err: unknown) {
       const msg = (err as { errors?: Array<{ message: string }> })?.errors?.[0]?.message ?? "Invalid code";

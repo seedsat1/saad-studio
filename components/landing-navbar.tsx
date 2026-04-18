@@ -25,15 +25,15 @@ const LandingNavbar = () => {
             </Link>
             <div className="flex items-center gap-x-2">
                 {isSignedIn ?
-                    <Link href="/dash">
-                        <div className="text-slate-500 font-bold mr-2">Dash</div>
+                    <Link href="/explore">
+                        <div className="text-slate-500 font-bold mr-2">Explore</div>
                     </Link>
                     :
                     <Link href="/?auth=login">
                         <div className="text-slate-500 font-bold mr-2">Sign In</div>
                     </Link>
                 }
-                <Link href={isSignedIn ? "/dash" : "/?auth=signup"}>
+                <Link href={isSignedIn ? "/explore" : "/?auth=signup"}>
                     <Button variant="outline" className="rounded-full">
                         Get Started
                     </Button>

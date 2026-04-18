@@ -544,7 +544,7 @@ export default function DiscoverCmsPage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <a href="/dash" target="_blank" className="flex items-center gap-1.5 rounded-lg bg-white/5 px-3 py-2 text-xs font-medium text-zinc-400 hover:bg-white/10 transition-colors"><Eye className="h-3.5 w-3.5" /> Preview</a>
+            <a href="/explore" target="_blank" className="flex items-center gap-1.5 rounded-lg bg-white/5 px-3 py-2 text-xs font-medium text-zinc-400 hover:bg-white/10 transition-colors"><Eye className="h-3.5 w-3.5" /> Preview</a>
             <button onClick={handleSave} disabled={saving}
               className={cn("flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold transition-all duration-300",
                 saved ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30" : "bg-violet-600 hover:bg-violet-500 text-white shadow-lg shadow-violet-500/25")}>

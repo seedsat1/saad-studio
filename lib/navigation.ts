@@ -18,7 +18,7 @@ export const NAV_CATEGORIES: NavCategory[] = [
     id: "explore",
     label: "Explore",
     emoji: "🌍",
-    href: "/dash",
+    href: "/explore",
   },
   {
     id: "image",
