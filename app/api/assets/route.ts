@@ -1,6 +1,7 @@
 ﻿import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
+import { deleteFromStorage } from "@/lib/supabase-storage";
 
 type AssetType = "image" | "video" | "audio" | "3d" | "text";
 
@@ -111,12 +112,22 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: "Asset id is required." }, { status: 400 });
     }
 
+    const record = await prismadb.generation.findFirst({
+      where: { id, userId },
+      select: { id: true, assetType: true },
+    });
+
     await prismadb.generation.deleteMany({
       where: {
         id,
         userId,
       },
     });
+
+    // Best-effort storage cleanup
+    if (record) {
+      deleteFromStorage({ userId, generationId: id, assetType: record.assetType }).catch(() => {});
+    }
 
     return NextResponse.json({ ok: true }, { status: 200 });
   } catch (error) {

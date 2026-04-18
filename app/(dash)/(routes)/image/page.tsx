@@ -922,8 +922,19 @@ export default function ImageWorkspacePage() {
     }
   }, [activeTool, aspectRatio, canGenerate, enhanceModelId, generateCreate, generateEnhance, generateFaceSwap, generateInpaint, generateRelight, generateUpscale, guard, inpaintModelId, inpaintVariations, numImages, prompt, relightVariations, selectedModel.label]);
 
+  const handleDelete = useCallback(async (id: string) => {
+    setResults((prev) => prev.filter((i) => i.id !== id));
+    try {
+      await fetch("/api/assets", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+    } catch {}
+  }, []);
+
   const renderWorkspace = () => {
-    if (activeTool === "create") return <ResultGrid items={[...pendingItems, ...results]} onInspect={setInspectorAsset} onRemix={(item) => { setActiveTool("create"); setPrompt(`Remix this style: ${item.prompt}`); }} onDelete={(id) => setResults((prev) => prev.filter((i) => i.id !== id))} />;
+    if (activeTool === "create") return <ResultGrid items={[...pendingItems, ...results]} onInspect={setInspectorAsset} onRemix={(item) => { setActiveTool("create"); setPrompt(`Remix this style: ${item.prompt}`); }} onDelete={handleDelete} />;
     if (activeTool === "inpaint") return <InpaintWorkspace source={inpaintFile} setSource={setInpaintFile} brushSize={brushSize} setBrushSize={setBrushSize} maskVersion={maskVersion} setMaskVersion={setMaskVersion} registerMaskExporter={(fn) => { maskExporterRef.current = fn; }} />;
     if (compare) return <CompareSlider before={compare.before} after={compare.after} />;
     if (activeTool === "enhance") {
