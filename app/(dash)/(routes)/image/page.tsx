@@ -730,7 +730,7 @@ export default function ImageWorkspacePage() {
     const maxRef = selectedModel.maxRefImages;
     const filesToSend = maxRef > 0 ? referenceFiles.slice(0, maxRef) : [];
     const imageUrls = await Promise.all(filesToSend.map(fileToDataUrl));
-    const body: Record<string, unknown> = { prompt, modelId: selectedModel.id, aspectRatio, numImages, quality: quality || undefined };
+    const body: Record<string, unknown> = { prompt, modelId: selectedModel.id, aspectRatio, numImages, quality: selectedModel.qualityParam?.length ? (quality || selectedModel.qualityParam[0]) : undefined };
     if (imageUrls.length > 0) {
       // Always send imageInputField so the route knows which API field to use
       if (selectedModel.imageInputField) body.imageInputField = selectedModel.imageInputField;
@@ -980,19 +980,7 @@ export default function ImageWorkspacePage() {
               ))}
             </select>
           </SettingsAccordion>
-        ) : (
-          <SettingsAccordion label="Quality" summary={quality || "1K"} defaultOpen>
-            <select
-              value={quality || "1K"}
-              onChange={(e) => setQuality(e.target.value)}
-              className="w-full rounded-xl border border-white/10 bg-[#0e0e1a] px-3 py-2.5 text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-pink-500"
-            >
-              <option value="1K">1K</option>
-              <option value="2K">2K</option>
-              <option value="4K">4K</option>
-            </select>
-          </SettingsAccordion>
-        )}
+        ) : null}
 
 
       </>;

@@ -59,6 +59,7 @@ export const IMAGE_MODELS: ImageModel[] = [
     maxImages: 4,
     maxRefImages: 8,
     imageInputField: "image_input",
+    qualityParam: ["1K", "2K", "4K"],
     creditCost: 2,
   },
   {
@@ -72,6 +73,7 @@ export const IMAGE_MODELS: ImageModel[] = [
     maxImages: 4,
     maxRefImages: 14,
     imageInputField: "image_input",
+    qualityParam: ["1K", "2K", "4K"],
     creditCost: 2,
   },
   {
@@ -147,6 +149,7 @@ export const IMAGE_MODELS: ImageModel[] = [
     aspectRatios: ["1:1", "16:9", "9:16", "4:3", "3:2"],
     maxImages: 4,
     maxRefImages: 0,
+    qualityParam: ["basic", "high"],
     creditCost: 2,
   },
   {
@@ -160,6 +163,7 @@ export const IMAGE_MODELS: ImageModel[] = [
     maxImages: 1,
     maxRefImages: 14,
     imageInputField: "image_urls",
+    qualityParam: ["basic", "high"],
     creditCost: 2,
   },
   {
@@ -172,6 +176,7 @@ export const IMAGE_MODELS: ImageModel[] = [
     aspectRatios: ["1:1", "4:3", "3:4", "16:9", "9:16", "2:3", "3:2", "21:9"],
     maxImages: 4,
     maxRefImages: 0,
+    qualityParam: ["basic", "high"],
     creditCost: 2,
   },
   {
@@ -185,6 +190,7 @@ export const IMAGE_MODELS: ImageModel[] = [
     maxImages: 4,
     maxRefImages: 14,
     imageInputField: "image_urls",
+    qualityParam: ["basic", "high"],
     creditCost: 2,
   },
   // ── Z-Image ───────────────────────────────────────────────────────────────
@@ -306,6 +312,7 @@ export const IMAGE_MODELS: ImageModel[] = [
     maxImages: 4,
     maxRefImages: 9,
     imageInputField: "input_urls",
+    qualityParam: ["1K", "2K", "4K"],
     creditCost: 2,
   },
 ];
