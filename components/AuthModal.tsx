@@ -49,7 +49,7 @@ const DEFAULT_PROMO_SLIDES = [
     bg: "https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?w=900&q=90&auto=format&fit=crop",
     tag: "🖼️ Flux & Seedance Models",
     headline: "Create Stunning Visuals in Seconds",
-    sub: "Access 15+ cutting-edge AI models including Flux Pro 1.1, Kling 3.0, and ElevenLabs v3.",
+    sub: "Access 20+ cutting-edge AI models including GPT Image 1.5, FLUX.2, Imagen 4, Nano Banana Pro.",
     cta: "Explore Models →",
     accent: "from-blue-600 to-cyan-700",
   },
@@ -57,9 +57,9 @@ const DEFAULT_PROMO_SLIDES = [
 
 // ─── STAT CHIPS (defaults) ───────────────────────────────────────────────────
 const DEFAULT_STATS = [
-  { icon: Video, label: "10K+ Videos" },
-  { icon: ImageIcon, label: "50K+ Images" },
-  { icon: Mic, label: "5K+ Audios" },
+  { icon: ImageIcon, label: "20+ AI Models" },
+  { icon: Video, label: "17 Video Engines" },
+  { icon: Mic, label: "85+ Tools" },
 ];
 
 const ICON_MAP: Record<string, React.ElementType> = { video: Video, image: ImageIcon, mic: Mic };
@@ -158,7 +158,7 @@ export default function AuthModal() {
 
   const brandBadgeName = cms?.branding?.badgeName ?? "Saad Studio AI";
   const brandBadgeLabel = cms?.branding?.badgeLabel ?? "PRO";
-  const brandRating = cms?.branding?.rating ?? "4.9 / 5";
+  const brandRating = cms?.branding?.rating ?? "AI Creative Studio";
   const brandName = cms?.branding?.brandName ?? "Saad Studio";
   const signupHeading = cms?.signup?.heading ?? "Create your account";
   const signupSubtitle = cms?.signup?.subtitle ?? "Start generating with 100 free credits — no card needed.";
@@ -384,10 +384,7 @@ export default function AuthModal() {
                   transition={{ delay: 0.4 }}
                   className="absolute top-16 left-5 flex items-center gap-1"
                 >
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-3 h-3 fill-amber-400 text-amber-400" />
-                  ))}
-                  <span className="text-[11px] text-slate-400 ml-1">{brandRating}</span>
+                  <span className="text-[11px] text-slate-400 font-semibold">{brandRating}</span>
                 </motion.div>
 
                 {/* Content overlay */}
