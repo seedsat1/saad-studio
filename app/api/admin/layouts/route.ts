@@ -27,10 +27,15 @@ export async function PUT(req: NextRequest) {
   const body = await req.json();
   const { pageName, layoutBlocks } = body as {
     pageName: string;
-    layoutBlocks: unknown[];
+    layoutBlocks: unknown;
   };
 
-  if (!pageName || !Array.isArray(layoutBlocks)) {
+  if (
+    !pageName ||
+    layoutBlocks === null ||
+    layoutBlocks === undefined ||
+    typeof layoutBlocks !== "object"
+  ) {
     return new NextResponse("Invalid payload", { status: 400 });
   }
 
