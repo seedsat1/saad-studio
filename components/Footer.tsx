@@ -146,7 +146,7 @@ const Footer = () => {
   const tagline = f?.tagline || "The world\u2019s most powerful AI creative studio.";
   const email = f?.email || "support@saadstudio.app";
   const logoUrl = f?.logoUrl || "/logo-saad-transparent.png";
-  const newsletterHeading = f?.newsletterHeading || "Stay in the loop \u2728";
+  const newsletterHeading = f?.newsletterHeading || "Stay in the loop";
   const newsletterSubtitle = f?.newsletterSubtitle || "New models & drops. No spam.";
 
   // Build live link sections from CMS or fallback
