@@ -1,15 +1,16 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 import prismadb from "@/lib/prismadb";
 import { stripe } from "@/lib/stripe";
 import { absoluteUrl } from "@/lib/utils";
+import { SAAD_PLANS } from "@/lib/pricing-models";
 
 export const dynamic = 'force-dynamic';
 
 const settingsUrl = absoluteUrl("/settings");
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     const { userId } = await auth();
     const user = await currentUser();
@@ -17,6 +18,13 @@ export async function GET() {
     if (!userId || !user) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
+
+    const url = new URL(req.url);
+    const planId = url.searchParams.get("planId") ?? "pro";
+    const billingInterval = url.searchParams.get("interval") ?? "monthly";
+    const isAnnual = billingInterval === "annual";
+
+    const plan = SAAD_PLANS.find((p) => p.id === planId) ?? SAAD_PLANS[2]; // default to "pro"
 
     const userSubscription = await prismadb.userSubscription.findUnique({
       where: {
@@ -33,6 +41,11 @@ export async function GET() {
       return new NextResponse(JSON.stringify({ url: stripeSession.url }))
     }
 
+    // Annual = monthly price × 12 (billed once per year)
+    const unitAmount = isAnnual
+      ? Math.round(plan.monthlyUsd * 12 * 100)
+      : Math.round(plan.monthlyUsd * 100);
+
     const stripeSession = await stripe.checkout.sessions.create({
       success_url: settingsUrl,
       cancel_url: settingsUrl,
@@ -45,19 +58,21 @@ export async function GET() {
           price_data: {
             currency: "USD",
             product_data: {
-              name: "Eve Pro",
-              description: "Unlimited AI Generations"
+              name: `Saad Studio ${plan.name}`,
+              description: `${plan.credits} credits/month — ${isAnnual ? "Annual" : "Monthly"} plan`,
             },
-            unit_amount: 2000,
+            unit_amount: unitAmount,
             recurring: {
-              interval: "month"
-            }
+              interval: isAnnual ? "year" : "month",
+            },
           },
           quantity: 1,
         },
       ],
       metadata: {
         userId,
+        planId: plan.id,
+        billingInterval: isAnnual ? "annual" : "monthly",
       },
     })
 

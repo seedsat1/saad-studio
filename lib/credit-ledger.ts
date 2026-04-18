@@ -1,6 +1,9 @@
 ﻿import { clerkClient } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
 import { WELCOME_SIGNUP_CREDITS } from "@/lib/credits-config";
+import { SAAD_PLANS } from "@/lib/pricing-models";
+
+const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 
 export class InsufficientCreditsError extends Error {
   constructor(public readonly currentBalance: number, public readonly requiredCredits: number) {
@@ -30,6 +33,94 @@ export async function ensureUserRow(userId: string) {
   });
 }
 
+// ─── Credit Expiry & Renewal ─────────────────────────────────────────────────
+
+/**
+ * Check if the user's credits have expired. If the user has an active annual
+ * subscription and 30 days have passed, auto-renew their credits.
+ * For monthly subscribers, expired credits are reset to 0.
+ * Called automatically before every spendCredits().
+ */
+async function handleCreditExpiry(userId: string): Promise<void> {
+  const user = await prismadb.user.findUnique({ where: { id: userId } });
+  if (!user?.creditsExpireAt) return; // no expiry set → welcome/admin credits, skip
+
+  const now = new Date();
+  if (user.creditsExpireAt > now) return; // not expired yet
+
+  // Credits have expired — check if user has an active annual subscription
+  const subscription = await prismadb.userSubscription.findUnique({
+    where: { userId },
+    select: {
+      billingInterval: true,
+      planId: true,
+      stripePriceId: true,
+      stripeCurrentPeriodEnd: true,
+    },
+  });
+
+  const isAnnualActive =
+    subscription?.billingInterval === "annual" &&
+    subscription?.stripePriceId &&
+    subscription?.stripeCurrentPeriodEnd &&
+    subscription.stripeCurrentPeriodEnd.getTime() + 86_400_000 > now.getTime();
+
+  if (isAnnualActive && subscription?.planId) {
+    // Annual subscriber — auto-renew monthly credits
+    const plan = SAAD_PLANS.find((p) => p.id === subscription.planId);
+    const monthlyCredits = plan?.credits ?? user.monthlyCredits;
+
+    if (monthlyCredits > 0) {
+      await prismadb.user.update({
+        where: { id: userId },
+        data: {
+          creditBalance: monthlyCredits,
+          monthlyCredits,
+          creditsExpireAt: new Date(now.getTime() + THIRTY_DAYS_MS),
+          lastCreditRenewal: now,
+        },
+      });
+      return;
+    }
+  }
+
+  // Monthly subscriber or no active subscription — expire credits
+  await prismadb.user.update({
+    where: { id: userId },
+    data: {
+      creditBalance: 0,
+      monthlyCredits: 0,
+      creditsExpireAt: null,
+      lastCreditRenewal: null,
+    },
+  });
+}
+
+/**
+ * Allocate subscription credits to a user after payment.
+ * Sets creditBalance = plan credits, creditsExpireAt = now + 30 days.
+ */
+export async function allocateSubscriptionCredits(
+  userId: string,
+  planId: string,
+  billingInterval: "monthly" | "annual",
+): Promise<void> {
+  await ensureUserRow(userId);
+  const plan = SAAD_PLANS.find((p) => p.id === planId);
+  if (!plan) return;
+
+  const now = new Date();
+  await prismadb.user.update({
+    where: { id: userId },
+    data: {
+      creditBalance: plan.credits,
+      monthlyCredits: plan.credits,
+      creditsExpireAt: new Date(now.getTime() + THIRTY_DAYS_MS),
+      lastCreditRenewal: now,
+    },
+  });
+}
+
 type SpendCreditsInput = {
   userId: string;
   credits: number;
@@ -46,6 +137,9 @@ export async function spendCredits(input: SpendCreditsInput) {
   }
 
   await ensureUserRow(input.userId);
+
+  // Handle credit expiry/renewal before checking balance
+  await handleCreditExpiry(input.userId);
 
   return prismadb.$transaction(async (tx) => {
     const user = await tx.user.findUnique({ where: { id: input.userId } });

@@ -31,20 +31,25 @@ model UserSubscription {
   stripeSubscriptionId   String?   @unique @map(name: "stripe_subscription_id")
   stripePriceId          String?   @map(name: "stripe_price_id")
   stripeCurrentPeriodEnd DateTime? @map(name: "stripe_current_period_end")
+  planId                 String?   // "starter" | "plus" | "pro" | "max"
+  billingInterval        String?   @default("monthly") // "monthly" | "annual"
 }
 
 // ─── ADMIN MODELS ────────────────────────────────────────────────────────────
 
 /// Platform user record synced from Clerk — stores admin-managed data.
 model User {
-  id            String        @id @default(cuid())
-  name          String?
-  email         String        @unique
-  phone         String?
-  creditBalance Int           @default(0)
-  role          String        @default("USER")
-  isBanned      Boolean       @default(false)
-  createdAt     DateTime      @default(now())
+  id                 String        @id @default(cuid())
+  name               String?
+  email              String        @unique
+  phone              String?
+  creditBalance      Int           @default(0)
+  monthlyCredits     Int           @default(0)
+  creditsExpireAt    DateTime?
+  lastCreditRenewal  DateTime?
+  role               String        @default("USER")
+  isBanned           Boolean       @default(false)
+  createdAt          DateTime      @default(now())
 
   generations   Generation[]
   transactions  AdminTransaction[]

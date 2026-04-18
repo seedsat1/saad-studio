@@ -114,6 +114,11 @@ export const DEFAULT_MODELS: PricingModel[] = [
   { id:"hunya31",       name:"Hunyuan3D 3.1",           notes:"$0.023/run",   type:"3d",     provider:"wavespeed", billing:"flat",    kieCredits:0,     waveUsd:0.023, userCreditsRate:10,   maxDuration:null, isActive:true  },
   { id:"hunya3",        name:"Hunyuan3D 3",             notes:"$0.375/run",   type:"3d",     provider:"wavespeed", billing:"flat",    kieCredits:0,     waveUsd:0.375, userCreditsRate:60,   maxDuration:null, isActive:false },
   { id:"meshy6",        name:"Meshy 6",                 notes:"$0.20/run",    type:"3d",     provider:"wavespeed", billing:"flat",    kieCredits:0,     waveUsd:0.200, userCreditsRate:35,   maxDuration:null, isActive:true  },
+  // ── TOOLS — flat via WaveSpeed ──────────────────────────────────────────────
+  { id:"tool_upscale",  name:"Video/Image Upscale",     notes:"4K/8K",        type:"image",  provider:"wavespeed", billing:"flat",    kieCredits:0,     waveUsd:0.03,  userCreditsRate:6,    maxDuration:null, isActive:true  },
+  { id:"tool_rmbg",     name:"Remove Background",       notes:"RMBG-2.0",     type:"image",  provider:"wavespeed", billing:"flat",    kieCredits:0,     waveUsd:0.01,  userCreditsRate:4,    maxDuration:null, isActive:true  },
+  { id:"tool_faceswap", name:"Face Swap",               notes:"pro",          type:"image",  provider:"wavespeed", billing:"flat",    kieCredits:0,     waveUsd:0.02,  userCreditsRate:4,    maxDuration:null, isActive:true  },
+  { id:"dalle3",        name:"DALL-E 3",                notes:"legacy",       type:"image",  provider:"kie",       billing:"flat",    kieCredits:5,     waveUsd:0,     userCreditsRate:2,    maxDuration:null, isActive:true  },
 ];
 
 // ─── Shared cost calculation helpers ─────────────────────────────────────────

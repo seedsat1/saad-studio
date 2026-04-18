@@ -151,6 +151,12 @@ const MODEL_ALIAS_MAP: Record<string, string> = {
   "qwen2/image-edit":                   "qwen_i",
   "qwen/image-to-image":               "qwen_i",
   "wan/2-7-image-pro":                  "nano_pro",
+
+  // ── Tools — app/api/generate/* (WaveSpeed tool routes) ───────────────────
+  "tool:upscale":                       "tool_upscale",
+  "tool:remove-bg":                     "tool_rmbg",
+  "tool:face-swap":                     "tool_faceswap",
+  "dall-e-3":                           "dalle3",
 };
 
 // ─── Quality multipliers ──────────────────────────────────────────────────────

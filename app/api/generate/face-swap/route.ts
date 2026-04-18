@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { FIXED_TOOL_CREDITS } from "@/lib/credit-pricing";
+import { getGenerationCost } from "@/lib/pricing";
 import { InsufficientCreditsError, rollbackGenerationCharge, setGenerationMediaUrl, spendCredits } from "@/lib/credit-ledger";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { fetchWithTimeout, readErrorBody } from "@/lib/http";
@@ -149,15 +149,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid source or target image URL." }, { status: 400 });
     }
 
+    const creditsToCharge = await getGenerationCost("tool:face-swap");
     const charge = await spendCredits({
       userId,
-      credits: FIXED_TOOL_CREDITS.faceSwap,
+      credits: creditsToCharge,
       prompt: "Face swap",
       assetType: "IMAGE",
       modelUsed: WAVESPEED_FACE_SWAP_MODEL,
     });
     generationId = charge.generationId;
-    chargedCredits = FIXED_TOOL_CREDITS.faceSwap;
+    chargedCredits = creditsToCharge;
     chargedUserId = userId;
 
     const waveKey = getWaveSpeedKey();

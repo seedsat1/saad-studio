@@ -10,6 +10,7 @@ import {
   setGenerationMediaUrl,
   spendCredits,
 } from "@/lib/credit-ledger";
+import { getGenerationCost } from "@/lib/pricing";
 
 const ALLOWED_RESOLUTIONS = new Set(["256x256", "512x512", "1024x1024", "1024x1792", "1792x1024"]);
 
@@ -51,7 +52,7 @@ export async function POST(req: NextRequest) {
       return new NextResponse("Amount must be between 1 and 4", { status: 400 });
     }
 
-    creditsToCharge = Math.max(1, Math.floor(amount) * 2);
+    creditsToCharge = await getGenerationCost("dall-e-3", 5, Math.floor(amount));
     charge = await spendCredits({
       userId,
       credits: creditsToCharge,

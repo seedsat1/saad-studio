@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { FIXED_TOOL_CREDITS } from "@/lib/credit-pricing";
+import { getGenerationCost } from "@/lib/pricing";
 import { InsufficientCreditsError, rollbackGenerationCharge, setGenerationMediaUrl, spendCredits } from "@/lib/credit-ledger";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { fetchWithTimeout, readErrorBody } from "@/lib/http";
@@ -150,15 +150,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid media URL." }, { status: 400 });
     }
 
+    const creditsToCharge = await getGenerationCost("tool:upscale");
     const charge = await spendCredits({
       userId,
-      credits: FIXED_TOOL_CREDITS.upscale,
+      credits: creditsToCharge,
       prompt: "Upscale video",
       assetType: "VIDEO",
       modelUsed: WAVESPEED_UPSCALE_MODEL,
     });
     generationId = charge.generationId;
-    chargedCredits = FIXED_TOOL_CREDITS.upscale;
+    chargedCredits = creditsToCharge;
     chargedUserId = userId;
 
     const waveSpeedKey = getWaveSpeedKey();
