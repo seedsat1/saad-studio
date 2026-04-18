@@ -652,6 +652,41 @@ function HeroCarousel({ slides = HERO_SLIDES }: { slides?: HeroSlide[] }) {
   );
 }
 
+// ─── Stats Counter Section ────────────────────────────────────────────────────
+const PLATFORM_STATS = [
+  { number: "20+", label: "Image Models", subtitle: "GPT Image, FLUX, Imagen 4 & more" },
+  { number: "17",  label: "Video Engines", subtitle: "Kling, Sora, Veo, Seedance & more" },
+  { number: "85+", label: "AI Tools", subtitle: "Image, Video, Audio, 3D, Edit" },
+  { number: "100", label: "Free Credits", subtitle: "No credit card required" },
+];
+
+function StatsCounter() {
+  return (
+    <FadeIn>
+      <section>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {PLATFORM_STATS.map((stat, i) => (
+            <motion.div
+              key={stat.label}
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.08, duration: 0.4 }}
+              className="flex flex-col items-center justify-center rounded-xl border border-white/[0.05] bg-white/[0.05] backdrop-blur-sm px-4 py-6 text-center"
+            >
+              <span className="text-4xl font-bold text-cyan-400" style={{ fontFamily: "'Outfit', sans-serif" }}>
+                {stat.number}
+              </span>
+              <span className="mt-1 text-lg font-semibold text-white">{stat.label}</span>
+              <span className="mt-0.5 text-sm text-gray-400">{stat.subtitle}</span>
+            </motion.div>
+          ))}
+        </div>
+      </section>
+    </FadeIn>
+  );
+}
+
 // ─── 2. Core Tools Horizontal Scroll ──────────────────────────────────────────
 function CoreToolsRow({ cards = CORE_TOOLS }: { cards?: ToolCard[] }) {
   const rowRef = useRef<HTMLDivElement>(null);
@@ -1089,7 +1124,7 @@ export default function ExplorePage() {
   const homeAdCards = useMemo(() => cms?.adCards ?? [], [cms]);
 
   // ── Section order from CMS (default if none saved) ──────────────────────────
-  const defaultOrder = ["heroSlides", "coreTools", "topChoice", "adCards", "apps", "models"];
+  const defaultOrder = ["heroSlides", "statsCounter", "coreTools", "topChoice", "adCards", "apps", "models"];
   const sectionOrder = useMemo(() => {
     if (cms?.sectionOrder && cms.sectionOrder.length > 0) return cms.sectionOrder;
     return defaultOrder.map((type) => ({ _id: type, type, label: type, visible: true }));
@@ -1097,6 +1132,7 @@ export default function ExplorePage() {
 
   const sectionMap: Record<string, React.ReactNode> = {
     heroSlides: <HeroCarousel key="hero" slides={homeHeroSlides} />,
+    statsCounter: <StatsCounter key="stats" />,
     coreTools: <CoreToolsRow key="core" cards={homeCoreCards} />,
     topChoice: <TopChoiceGrid key="top" cards={homeTopCards} />,
     adCards: <AdCardsRow key="ads" cards={homeAdCards} />,
