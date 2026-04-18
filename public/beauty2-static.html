@@ -721,7 +721,7 @@ function openWS(tool){
     </div>
 
     <div class="sec-label">${TX.sec1}</div>
-    <div class="uz" id="upZ" onclick="this.querySelector('input').click()">
+    <div class="uz" id="upZ" onclick="if(!event.target.closest('input'))this.querySelector('input').click()">
       <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
       <div class="ut"><strong>${TX.clickUpload}</strong></div>
       <div class="ux">JPG, PNG, WEBP</div>
