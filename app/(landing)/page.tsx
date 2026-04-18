@@ -794,6 +794,88 @@ function AppsMarquee({ apps = APPS_MARQUEE }: { apps?: { title: string; icon?: R
 }
 
 // ─── 5. AI Models Trust Strip ─────────────────────────────────────────────────
+
+// ─── Pricing Preview Section ──────────────────────────────────────────────────
+const PRICING_CARDS = [
+  {
+    name: "Free",
+    price: null,
+    line1: "100 credits to start",
+    line2: "No card required",
+    cta: "Sign Up Free",
+    ctaHref: "/?auth=signup",
+    highlighted: false,
+    badge: null,
+  },
+  {
+    name: "Pro",
+    price: "$70/mo",
+    line1: "1,200 credits",
+    line2: "All models + Commercial rights",
+    cta: "Get Pro",
+    ctaHref: "/pricing",
+    highlighted: true,
+    badge: "Most Popular",
+  },
+  {
+    name: "Max",
+    price: "$99/mo",
+    line1: "3,000 credits",
+    line2: "Team features + API access",
+    cta: "Get Max",
+    ctaHref: "/pricing",
+    highlighted: false,
+    badge: null,
+  },
+];
+
+function PricingPreview() {
+  return (
+    <FadeIn>
+      <section className="text-center">
+        <h2 className="text-2xl font-bold text-white tracking-tight">Simple, credit-based pricing</h2>
+        <p className="mt-2 text-sm text-zinc-400">One credit balance. All AI models. No hidden fees.</p>
+        <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-3xl mx-auto">
+          {PRICING_CARDS.map((card) => (
+            <div
+              key={card.name}
+              className={cn(
+                "relative flex flex-col items-center rounded-xl border px-6 py-8",
+                card.highlighted
+                  ? "border-cyan-400 bg-white/[0.06] scale-105"
+                  : "border-white/[0.05] bg-white/[0.03]"
+              )}
+            >
+              {card.badge && (
+                <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-cyan-400 text-black text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full">
+                  {card.badge}
+                </span>
+              )}
+              <h3 className="text-lg font-bold text-white">{card.name}</h3>
+              {card.price && <p className="mt-1 text-2xl font-bold text-cyan-400">{card.price}</p>}
+              <p className="mt-3 text-sm text-zinc-300">{card.line1}</p>
+              <p className="text-sm text-zinc-500">{card.line2}</p>
+              <Link href={card.ctaHref}>
+                <motion.button
+                  whileHover={{ scale: 1.04 }}
+                  whileTap={{ scale: 0.96 }}
+                  className="mt-5 rounded-lg bg-lime-400 px-6 py-2.5 text-sm font-bold text-black hover:bg-lime-300 transition-colors"
+                >
+                  {card.cta}
+                </motion.button>
+              </Link>
+            </div>
+          ))}
+        </div>
+        <Link href="/pricing" className="inline-flex items-center gap-1 mt-6 text-sm text-zinc-400 hover:text-white transition-colors">
+          See all plans <ArrowRight className="h-3.5 w-3.5" />
+        </Link>
+      </section>
+    </FadeIn>
+  );
+}
+
+// ─── 5b. AI Models Trust Strip ────────────────────────────────────────────────
 function ModelsTrustStrip({ models = AI_MODELS }: { models?: { name: string; tag: string; color: string; ring?: string }[] }) {
   return (
     <FadeIn delay={0.05}>
@@ -1124,7 +1206,7 @@ export default function ExplorePage() {
   const homeAdCards = useMemo(() => cms?.adCards ?? [], [cms]);
 
   // ── Section order from CMS (default if none saved) ──────────────────────────
-  const defaultOrder = ["heroSlides", "statsCounter", "coreTools", "topChoice", "adCards", "apps", "models"];
+  const defaultOrder = ["heroSlides", "statsCounter", "coreTools", "topChoice", "adCards", "apps", "pricingPreview", "models"];
   const sectionOrder = useMemo(() => {
     if (cms?.sectionOrder && cms.sectionOrder.length > 0) return cms.sectionOrder;
     return defaultOrder.map((type) => ({ _id: type, type, label: type, visible: true }));
@@ -1137,6 +1219,7 @@ export default function ExplorePage() {
     topChoice: <TopChoiceGrid key="top" cards={homeTopCards} />,
     adCards: <AdCardsRow key="ads" cards={homeAdCards} />,
     apps: <AppsMarquee key="apps" apps={homeApps} />,
+    pricingPreview: <PricingPreview key="pricing" />,
     models: <ModelsTrustStrip key="models" models={homeModels} />,
   };
 
