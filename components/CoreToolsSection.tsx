@@ -268,10 +268,10 @@ export default function CoreToolsSection() {
           {tools.map((tool, i) => (
             <Link key={tool.id} href={tool.href} className="flex-none snap-start focus:outline-none">
               <motion.div
-                className="relative rounded-2xl overflow-hidden cursor-pointer bg-[#0f1a35]"
+                className="relative rounded-2xl overflow-hidden cursor-pointer bg-[#0f1a35] group"
                 style={{
-                  width: "clamp(160px, 18vw, 200px)",
-                  height: "clamp(200px, 22vw, 260px)",
+                  width: "clamp(170px, 20vw, 220px)",
+                  height: "clamp(220px, 26vw, 300px)",
                   border: "1px solid rgba(148,163,184,0.06)",
                 }}
                 initial={{ opacity: 0, y: 20 }}
@@ -280,7 +280,8 @@ export default function CoreToolsSection() {
                 transition={{ duration: 0.4, delay: i * 0.05 }}
                 whileHover={{
                   scale: 1.04,
-                  boxShadow: `0 0 30px 0 ${tool.glow}`,
+                  y: -4,
+                  boxShadow: `0 0 36px 0 ${tool.glow}`,
                 }}
                 whileTap={{ scale: 0.98 }}
               >
@@ -324,6 +325,9 @@ export default function CoreToolsSection() {
                 <div className="absolute bottom-0 left-0 right-0 z-10 p-4">
                   <p className="text-sm font-bold text-[#e2e8f0] leading-tight">{tool.name}</p>
                   <p className="text-[11px] text-[#94a3b8] mt-0.5 leading-tight">{tool.desc}</p>
+                  <p className="mt-2 text-[11px] font-semibold text-[#06b6d4] opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                    Open tool →
+                  </p>
                 </div>
 
                 {/* Hover glow overlay */}

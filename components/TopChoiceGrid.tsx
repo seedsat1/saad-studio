@@ -238,27 +238,33 @@ export default function TopChoiceGrid() {
           </motion.div>
         </div>
 
-        {/* Grid */}
+        {/* Bento Grid — first item featured */}
         <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
-          {topTools.map((tool, i) => (
-            <Link key={tool.id} href={tool.href} className="focus:outline-none">
-              <motion.div
-                className="relative rounded-2xl overflow-hidden cursor-pointer group bg-[#0f1a35]"
-                style={{
-                  minHeight: "clamp(200px, 20vw, 260px)",
-                  border: "1px solid rgba(148,163,184,0.07)",
-                }}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.4, delay: i * 0.08 }}
-                whileHover={{
-                  scale: 1.025,
-                  y: -4,
-                  boxShadow: `0 0 32px 0 ${tool.glow}`,
-                }}
-                whileTap={{ scale: 0.98 }}
+          {topTools.map((tool, i) => {
+            const featured = i === 0;
+            return (
+              <Link
+                key={tool.id}
+                href={tool.href}
+                className={cn("focus:outline-none", featured ? "md:col-span-2 md:row-span-2" : "")}
               >
+                <motion.div
+                  className="relative rounded-2xl overflow-hidden cursor-pointer group bg-[#0f1a35] h-full"
+                  style={{
+                    minHeight: featured ? "clamp(300px, 30vw, 440px)" : "clamp(200px, 20vw, 260px)",
+                    border: "1px solid rgba(148,163,184,0.07)",
+                  }}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.4, delay: i * 0.08 }}
+                  whileHover={{
+                    scale: 1.025,
+                    y: -4,
+                    boxShadow: `0 0 32px 0 ${tool.glow}`,
+                  }}
+                  whileTap={{ scale: 0.98 }}
+                >
                 {/* Background image */}
                 {(tool as any).isVideo ? (
                   <video
@@ -297,10 +303,16 @@ export default function TopChoiceGrid() {
 
                 {/* Text info */}
                 <div className="absolute bottom-0 left-0 right-0 z-10 p-4 pb-5">
-                  <h3 className="font-display text-[15px] font-bold text-[#e2e8f0] mb-1 leading-tight">
+                  <h3 className={cn(
+                    "font-display font-bold text-[#e2e8f0] mb-1 leading-tight",
+                    featured ? "text-[20px]" : "text-[15px]"
+                  )}>
                     {tool.name}
                   </h3>
-                  <p className="text-[12px] text-[#94a3b8] leading-relaxed line-clamp-2">
+                  <p className={cn(
+                    "text-[#94a3b8] leading-relaxed",
+                    featured ? "text-[13px] line-clamp-3" : "text-[12px] line-clamp-2"
+                  )}>
                     {tool.desc}
                   </p>
                   {/* Hover hint */}
@@ -321,7 +333,8 @@ export default function TopChoiceGrid() {
                 />
               </motion.div>
             </Link>
-          ))}
+            );
+          })}
         </div>
       </div>
     </section>

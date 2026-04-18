@@ -120,52 +120,71 @@ export default function CommunityGallery() {
               </Link>
             </div>
 
-            {/* Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
-              {current.items.map((item, i) => (
-                <motion.div
-                  key={item.id}
-                  className="relative rounded-xl overflow-hidden cursor-pointer group bg-[#0f1a35]"
-                  style={{
-                    aspectRatio: "4/3",
-                    border: "1px solid rgba(148,163,184,0.07)",
-                  }}
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: i * 0.06 }}
-                  whileHover={{
-                    scale: 1.03,
-                    boxShadow: "0 0 24px rgba(6,182,212,0.15)",
-                  }}
-                >
-                  {/* Image */}
-                  <Image
-                    src={promoUrl(promo, item.slotId, item.image)}
-                    alt={item.name}
-                    fill
-                    className="object-cover object-center transition-transform duration-500 group-hover:scale-110"
-                    sizes="(max-width:768px) 50vw, (max-width:1024px) 33vw, 25vw"
-                  />
-
-                  {/* Overlay */}
-                  <div
-                    className="absolute inset-0"
-                    style={{ background: "linear-gradient(to top, rgba(6,12,24,0.80) 0%, transparent 60%)" }}
-                  />
-
-                  {/* Label */}
-                  <div className="absolute bottom-0 left-0 right-0 z-10 p-3">
-                    <p className="text-[12px] font-semibold text-[#e2e8f0] truncate">{promoText(content, item.slotId, "title", item.name)}</p>
-                  </div>
-
-                  {/* Hover border */}
+            {/* Bento Grid — first item featured */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {current.items.map((item, i) => {
+                const featured = i === 0;
+                return (
                   <motion.div
-                    className="absolute inset-0 rounded-xl opacity-0 border border-[#06b6d4]/40"
-                    whileHover={{ opacity: 1 }}
-                    transition={{ duration: 0.15 }}
-                  />
-                </motion.div>
-              ))}
+                    key={item.id}
+                    className={cn(
+                      "relative rounded-2xl overflow-hidden cursor-pointer group bg-[#0f1a35]",
+                      featured ? "col-span-2 row-span-2" : ""
+                    )}
+                    style={{
+                      aspectRatio: featured ? "1" : "4/3",
+                      border: "1px solid rgba(148,163,184,0.07)",
+                    }}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: i * 0.06 }}
+                    whileHover={{
+                      scale: 1.025,
+                      boxShadow: "0 0 28px rgba(6,182,212,0.18)",
+                    }}
+                  >
+                    {/* Image */}
+                    <Image
+                      src={promoUrl(promo, item.slotId, item.image)}
+                      alt={item.name}
+                      fill
+                      className="object-cover object-center transition-transform duration-500 group-hover:scale-105"
+                      sizes={featured ? "(max-width:768px) 100vw, 50vw" : "(max-width:768px) 50vw, 25vw"}
+                    />
+
+                    {/* Overlay */}
+                    <div
+                      className="absolute inset-0"
+                      style={{
+                        background: featured
+                          ? "linear-gradient(to top, rgba(6,12,24,0.88) 0%, rgba(6,12,24,0.20) 50%, transparent 100%)"
+                          : "linear-gradient(to top, rgba(6,12,24,0.80) 0%, transparent 60%)",
+                      }}
+                    />
+
+                    {/* Label */}
+                    <div className="absolute bottom-0 left-0 right-0 z-10 p-3">
+                      <p className={cn(
+                        "font-semibold text-[#e2e8f0] truncate",
+                        featured ? "text-[15px] mb-1" : "text-[12px]"
+                      )}>
+                        {promoText(content, item.slotId, "title", item.name)}
+                      </p>
+                      {featured && (
+                        <p className="text-[12px] text-[#94a3b8]">Featured creation</p>
+                      )}
+                    </div>
+
+                    {/* Hover border */}
+                    <motion.div
+                      className="absolute inset-0 rounded-2xl opacity-0 pointer-events-none"
+                      style={{ boxShadow: "inset 0 0 0 1px rgba(6,182,212,0.35)" }}
+                      whileHover={{ opacity: 1 }}
+                      transition={{ duration: 0.15 }}
+                    />
+                  </motion.div>
+                );
+              })}
             </div>
           </motion.div>
         </AnimatePresence>

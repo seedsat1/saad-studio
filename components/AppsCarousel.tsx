@@ -1,9 +1,10 @@
 "use client";
 
 import { useRef, useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { useCmsData } from "@/lib/use-cms-data";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
 interface DiscoverCms {
   appsCarousel?: { heading?: string; subtitle?: string; apps?: { name: string }[] };
@@ -78,26 +79,16 @@ export default function AppsCarousel() {
   const liveTools = cms?.appsCarousel?.apps?.length ? cms.appsCarousel.apps.map((a) => a.name) : TOOLS;
   const heading = cms?.appsCarousel?.heading || "All AI Apps";
   const subtitle = cms?.appsCarousel?.subtitle || "powerful tools in one studio";
-  const doubled = [...liveTools, ...liveTools];
-  const sectionRef = useRef<HTMLElement>(null);
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    const el = sectionRef.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => setVisible(entry.isIntersecting),
-      { threshold: 0.1 }
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
+  const INITIAL_COUNT = 24;
+  const [expanded, setExpanded] = useState(false);
+  const visibleTools = expanded ? liveTools : liveTools.slice(0, INITIAL_COUNT);
 
   return (
-    <section ref={sectionRef} className="py-14 overflow-hidden">
-      <div className="mx-auto max-w-[1600px] px-6 md:px-12 mb-8">
+    <section className="py-14">
+      <div className="mx-auto max-w-[1600px] px-6 md:px-12">
+        {/* Header */}
         <motion.div
-          className="flex items-end justify-between"
+          className="flex items-end justify-between mb-8"
           initial={{ opacity: 0, y: 16 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -120,23 +111,46 @@ export default function AppsCarousel() {
             </svg>
           </Link>
         </motion.div>
-      </div>
 
-      {/* Fade edges */}
-      <div className="relative">
-        <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-20 z-10"
-          style={{ background: "linear-gradient(to right, #060c18, transparent)" }} />
-        <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-20 z-10"
-          style={{ background: "linear-gradient(to left, #060c18, transparent)" }} />
-
-        {/* Marquee strip */}
-        <div className="overflow-hidden">
-          <div className="marquee-track gap-3 px-6" style={{ animationPlayState: visible ? "running" : "paused" }}>
-            {doubled.map((name, i) => (
-              <MiniCard key={`${name}-${i}`} name={name} index={i % liveTools.length} />
+        {/* Grid */}
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
+          <AnimatePresence>
+            {visibleTools.map((name, i) => (
+              <motion.div
+                key={name}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ duration: 0.25, delay: i < INITIAL_COUNT ? i * 0.02 : (i - INITIAL_COUNT) * 0.02 }}
+              >
+                <MiniCard name={name} index={i} />
+              </motion.div>
             ))}
-          </div>
+          </AnimatePresence>
         </div>
+
+        {/* Show more / less toggle */}
+        {liveTools.length > INITIAL_COUNT && (
+          <motion.div
+            className="flex justify-center mt-6"
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+          >
+            <motion.button
+              onClick={() => setExpanded(!expanded)}
+              whileHover={{ scale: 1.04 }}
+              whileTap={{ scale: 0.97 }}
+              className="flex items-center gap-2 glass rounded-full px-6 py-2.5 text-sm font-medium text-[#94a3b8] hover:text-[#e2e8f0] transition-colors"
+            >
+              {expanded ? (
+                <>Show less <ChevronUp className="w-4 h-4" /></>
+              ) : (
+                <>Show all {liveTools.length} apps <ChevronDown className="w-4 h-4" /></>
+              )}
+            </motion.button>
+          </motion.div>
+        )}
       </div>
     </section>
   );

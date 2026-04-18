@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import HeroCarousel from "@/components/HeroCarousel";
+import WelcomeHero from "@/components/WelcomeHero";
 import CoreToolsSection from "@/components/CoreToolsSection";
 import TopChoiceGrid from "@/components/TopChoiceGrid";
 import PhotodumpCTA from "@/components/PhotodumpCTA";
@@ -28,13 +28,13 @@ export default function ExplorePage() {
       />
 
       <div className="relative z-10">
-        {/* Section 1 — Hero Carousel */}
+        {/* Section 1 — Personalized Welcome */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.6 }}
         >
-          <HeroCarousel />
+          <WelcomeHero />
         </motion.div>
 
         {/* Section 2 — Core Tools */}
