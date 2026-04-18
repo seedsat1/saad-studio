@@ -781,6 +781,51 @@ function ModelsTrustStrip({ models = AI_MODELS }: { models?: { name: string; tag
   );
 }
 
+// ─── 6. Ad Cards Row ──────────────────────────────────────────────────────────
+function AdCardsRow({ cards }: { cards: CmsAdCard[] }) {
+  if (!cards || cards.length === 0) return null;
+  return (
+    <FadeIn delay={0.05}>
+      <section>
+        <SectionHeading title="Featured" />
+        <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
+          {cards.map((card, i) => (
+            <Link key={card._id || i} href={card.href || "/"}>
+              <motion.div
+                initial={{ opacity: 0, scale: 0.93 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.07, duration: 0.35 }}
+                whileHover={{ scale: 1.025 }}
+                className="group relative overflow-hidden rounded-2xl border border-white/[0.08] bg-slate-900/60 cursor-pointer aspect-[4/3]"
+              >
+                {card.image ? (
+                  <Image src={card.image} alt={card.title} fill sizes="(max-width: 768px) 50vw, 320px" className="object-cover" />
+                ) : (
+                  <div className={cn("absolute inset-0 bg-gradient-to-br", card.gradient || "from-pink-600/40 via-rose-700/30 to-indigo-900/60")} />
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                <div className="absolute bottom-0 left-0 right-0 p-4">
+                  {card.badge && (
+                    <span className={cn(
+                      "inline-flex h-4 items-center rounded-full px-1.5 text-[9px] font-bold uppercase tracking-wider ring-1 mb-1",
+                      "bg-amber-500/20 text-amber-300 ring-amber-500/30"
+                    )}>
+                      {card.badge}
+                    </span>
+                  )}
+                  <p className="font-semibold text-white text-sm leading-tight">{card.title}</p>
+                  <p className="mt-0.5 text-[11px] text-zinc-400 line-clamp-1">{card.description}</p>
+                </div>
+              </motion.div>
+            </Link>
+          ))}
+        </div>
+      </section>
+    </FadeIn>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 const HERO_SLOT_IDS = ["landing/hero-1", "landing/hero-2", "landing/hero-3", "landing/hero-4"];
 
@@ -806,6 +851,7 @@ const TOP_CHOICE_SLOT_MAP: Record<string, string> = {
 
 // CMS data types for home page
 interface CmsHeroSlide {
+  _id?: string;
   title: string;
   subtitle: string;
   tag: string;
@@ -819,31 +865,56 @@ interface CmsHeroSlide {
 }
 
 interface CmsToolCard {
-  id: string;
+  _id?: string;
+  id?: string;
   title: string;
   description: string;
   image: string;
   href: string;
   badge: string;
+  gradient?: string;
+  accentColor?: string;
 }
 
 interface CmsAppItem {
+  _id?: string;
   title: string;
   color: string;
 }
 
 interface CmsModelItem {
+  _id?: string;
   name: string;
   tag: string;
   color: string;
+  ring?: string;
+}
+
+interface CmsAdCard {
+  _id?: string;
+  title: string;
+  description: string;
+  image: string;
+  href: string;
+  badge: string;
+  gradient?: string;
+}
+
+interface CmsSectionOrder {
+  _id: string;
+  type: string;
+  label: string;
+  visible: boolean;
 }
 
 interface HomeCmsData {
+  sectionOrder?: CmsSectionOrder[];
   heroSlides?: CmsHeroSlide[];
   coreTools?: CmsToolCard[];
   topChoice?: CmsToolCard[];
   apps?: CmsAppItem[];
   models?: CmsModelItem[];
+  adCards?: CmsAdCard[];
 }
 
 export default function ExplorePage() {
@@ -998,7 +1069,7 @@ export default function ExplorePage() {
     });
   }, [blocks, promo, promoContent, cms]);
 
-  // ── Apps & Models: CMS → hardcoded defaults ─────────────────────────────────
+  // ── Apps & Models & Ad Cards: CMS → hardcoded defaults ───────────────────────
   const homeApps = useMemo(() => {
     if (cms?.apps && cms.apps.length > 0) return cms.apps;
     return APPS_MARQUEE;
@@ -1009,18 +1080,37 @@ export default function ExplorePage() {
     return AI_MODELS;
   }, [cms]);
 
+  const homeAdCards = useMemo(() => cms?.adCards ?? [], [cms]);
+
+  // ── Section order from CMS (default if none saved) ──────────────────────────
+  const defaultOrder = ["heroSlides", "coreTools", "topChoice", "adCards", "apps", "models"];
+  const sectionOrder = useMemo(() => {
+    if (cms?.sectionOrder && cms.sectionOrder.length > 0) return cms.sectionOrder;
+    return defaultOrder.map((type) => ({ _id: type, type, label: type, visible: true }));
+  }, [cms]);
+
+  const sectionMap: Record<string, React.ReactNode> = {
+    heroSlides: <HeroCarousel key="hero" slides={homeHeroSlides} />,
+    coreTools: <CoreToolsRow key="core" cards={homeCoreCards} />,
+    topChoice: <TopChoiceGrid key="top" cards={homeTopCards} />,
+    adCards: <AdCardsRow key="ads" cards={homeAdCards} />,
+    apps: <AppsMarquee key="apps" apps={homeApps} />,
+    models: <ModelsTrustStrip key="models" models={homeModels} />,
+  };
+
   return (
     <div className="min-h-screen bg-slate-950 text-white">
-      {/* Hero */}
-      <HeroCarousel slides={homeHeroSlides} />
-
-      {/* Content sections */}
-      <div className="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8 space-y-14 mt-12">
-        <CoreToolsRow cards={homeCoreCards} />
-        <TopChoiceGrid cards={homeTopCards} />
-        <AppsMarquee apps={homeApps} />
-        <ModelsTrustStrip models={homeModels} />
-      </div>
+      {sectionOrder.filter((s) => s.visible !== false).map((sec) => {
+        const node = sectionMap[sec.type];
+        if (!node) return null;
+        // Hero goes full-width, rest inside container
+        if (sec.type === "heroSlides") return node;
+        return (
+          <div key={sec._id} className="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8 mt-14">
+            {node}
+          </div>
+        );
+      })}
     </div>
   );
 }

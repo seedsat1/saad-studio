@@ -1,20 +1,30 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Paintbrush, Plus, Trash2, Save, Pencil,
-  Globe, LayoutTemplate, Zap, ChevronRight, ChevronDown, X, Sparkles,
-  Image as ImageIcon, Video, Upload, GripVertical,
-  CheckCircle2, AlertCircle, Play, Film, Bot, Star, Layers,
-  Settings, Home, DollarSign, Shield, BookOpen, Monitor, Loader2,
+  DndContext, closestCenter, PointerSensor, useSensor, useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext, useSortable, arrayMove,
+  horizontalListSortingStrategy, verticalListSortingStrategy,
+  rectSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import {
+  Save, Plus, Trash2, GripVertical, ChevronRight,
+  Upload, X, Sparkles, Pencil, Eye, Link2, Loader2,
+  ArrowLeft, Monitor, Megaphone, ExternalLink,
 } from "lucide-react";
 
-/* ─────────────────────────────────────────────────────────────────────────────
+/* ═══════════════════════════════════════════════════════════════════════════════
    TYPES
-   ───────────────────────────────────────────────────────────────────────────── */
+   ═══════════════════════════════════════════════════════════════════════════════ */
 
 interface HeroSlide {
+  _id: string;
   title: string;
   subtitle: string;
   tag: string;
@@ -28,236 +38,254 @@ interface HeroSlide {
 }
 
 interface ToolCard {
-  id: string;
+  _id: string;
   title: string;
   description: string;
   image: string;
   href: string;
   badge: string;
+  gradient: string;
+  accentColor: string;
 }
 
 interface AppItem {
+  _id: string;
   title: string;
   color: string;
 }
 
 interface ModelItem {
+  _id: string;
   name: string;
   tag: string;
   color: string;
+  ring: string;
 }
 
-interface TextSection {
-  headline: string;
-  subheadline: string;
-  body: string;
-  mediaUrl: string;
-  isVideo: boolean;
-  ctaText: string;
-  ctaLink: string;
+interface AdCard {
+  _id: string;
+  title: string;
+  description: string;
+  image: string;
+  href: string;
+  badge: string;
+  gradient: string;
 }
 
-type PageId = "home" | "pricing" | "terms" | "privacy";
+type SectionType = "heroSlides" | "coreTools" | "topChoice" | "apps" | "models" | "adCards";
 
-interface SectionDef {
-  key: string;
+interface SectionOrder {
+  _id: string;
+  type: SectionType;
   label: string;
-  type: "hero-slides" | "tool-cards" | "app-list" | "model-list" | "text-section";
-  icon: React.ElementType;
+  visible: boolean;
 }
 
-interface PageDef {
-  id: PageId;
-  label: string;
-  icon: React.ElementType;
-  sections: SectionDef[];
+interface HomeCmsData {
+  sectionOrder: SectionOrder[];
+  heroSlides: HeroSlide[];
+  coreTools: ToolCard[];
+  topChoice: ToolCard[];
+  apps: AppItem[];
+  models: ModelItem[];
+  adCards: AdCard[];
 }
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   PAGE / SECTION DEFINITIONS
-   ───────────────────────────────────────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════════════════
+   DEFAULTS & CONSTANTS
+   ═══════════════════════════════════════════════════════════════════════════════ */
 
-const PAGES: PageDef[] = [
-  {
-    id: "home",
-    label: "Home Page",
-    icon: Home,
-    sections: [
-      { key: "heroSlides", label: "Hero Slides", type: "hero-slides", icon: Film },
-      { key: "coreTools", label: "Core Studio Tools", type: "tool-cards", icon: Layers },
-      { key: "topChoice", label: "Top Choice", type: "tool-cards", icon: Star },
-      { key: "apps", label: "Apps Marquee", type: "app-list", icon: Monitor },
-      { key: "models", label: "AI Models Strip", type: "model-list", icon: Bot },
-    ],
-  },
-  {
-    id: "pricing",
-    label: "Pricing Page",
-    icon: DollarSign,
-    sections: [
-      { key: "hero", label: "Hero Section", type: "text-section", icon: Sparkles },
-    ],
-  },
-  {
-    id: "terms",
-    label: "Terms of Service",
-    icon: Shield,
-    sections: [
-      { key: "content", label: "Page Content", type: "text-section", icon: BookOpen },
-    ],
-  },
-  {
-    id: "privacy",
-    label: "Privacy Policy",
-    icon: BookOpen,
-    sections: [
-      { key: "content", label: "Page Content", type: "text-section", icon: BookOpen },
-    ],
-  },
+const uid = () => Math.random().toString(36).slice(2, 10);
+
+const DEFAULT_SECTIONS: SectionOrder[] = [
+  { _id: uid(), type: "heroSlides", label: "Hero Carousel", visible: true },
+  { _id: uid(), type: "coreTools", label: "Core Studio Tools", visible: true },
+  { _id: uid(), type: "topChoice", label: "Top Choice", visible: true },
+  { _id: uid(), type: "adCards", label: "Ad Cards", visible: true },
+  { _id: uid(), type: "apps", label: "Apps Marquee", visible: true },
+  { _id: uid(), type: "models", label: "AI Models Strip", visible: true },
 ];
 
-const BADGE_OPTIONS = ["", "NEW", "TOP", "HOT", "PRO"];
-
-const DEFAULT_HERO_SLIDE: HeroSlide = {
-  title: "New Slide",
-  subtitle: "Add a description here.",
-  tag: "New",
-  bgImage: "",
-  ctaHref: "/",
-  gradient: "from-slate-950 via-violet-950/60 to-slate-950",
-  accentFrom: "from-violet-500",
-  accentTo: "to-indigo-500",
+const DEFAULT_HERO: HeroSlide = {
+  _id: "", title: "New Slide", subtitle: "Describe the feature here", tag: "New",
+  bgImage: "", ctaHref: "/", gradient: "from-slate-950 via-violet-950/60 to-slate-950",
+  accentFrom: "from-violet-500", accentTo: "to-indigo-500",
 };
 
-const DEFAULT_TOOL_CARD: ToolCard = {
-  id: "",
-  title: "New Tool",
-  description: "Tool description",
-  image: "",
-  href: "/",
-  badge: "",
+const DEFAULT_TOOL: ToolCard = {
+  _id: "", title: "New Tool", description: "Tool description", image: "", href: "/",
+  badge: "NEW", gradient: "from-violet-600/40 via-purple-700/30 to-slate-900/60",
+  accentColor: "text-violet-400",
 };
 
-const EMPTY_TEXT_SECTION: TextSection = {
-  headline: "",
-  subheadline: "",
-  body: "",
-  mediaUrl: "",
-  isVideo: false,
-  ctaText: "",
-  ctaLink: "",
+const DEFAULT_AD: AdCard = {
+  _id: "", title: "Ad Title", description: "Promote your feature here", image: "", href: "/",
+  badge: "NEW", gradient: "from-pink-600/40 via-rose-700/30 to-indigo-900/60",
 };
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   UTILITY COMPONENTS
-   ───────────────────────────────────────────────────────────────────────────── */
+const DEFAULT_APP: AppItem = { _id: "", title: "New App", color: "text-violet-400" };
+const DEFAULT_MODEL: ModelItem = { _id: "", name: "Model", tag: "AI", color: "text-violet-400", ring: "ring-violet-500/30" };
 
-function InputField({
-  label, value, onChange, placeholder, mono, multiline,
-}: {
-  label: string; value: string; onChange: (v: string) => void;
-  placeholder?: string; mono?: boolean; multiline?: boolean;
+const GRADIENTS = [
+  "from-pink-600/40 via-violet-700/30 to-indigo-900/60",
+  "from-orange-600/40 via-rose-700/30 to-violet-900/60",
+  "from-violet-600/40 via-purple-700/30 to-slate-900/60",
+  "from-amber-500/40 via-orange-600/30 to-rose-900/60",
+  "from-cyan-600/40 via-sky-700/30 to-indigo-900/60",
+  "from-rose-600/40 via-pink-700/30 to-purple-900/60",
+  "from-emerald-600/40 via-teal-700/30 to-cyan-900/60",
+  "from-fuchsia-600/40 via-violet-700/30 to-indigo-900/60",
+  "from-yellow-500/40 via-amber-600/30 to-orange-900/60",
+  "from-indigo-500/40 via-blue-600/30 to-sky-900/60",
+];
+
+const COLORS = [
+  "text-violet-400", "text-pink-400", "text-cyan-400", "text-amber-400",
+  "text-rose-400", "text-emerald-400", "text-orange-400", "text-sky-400",
+  "text-fuchsia-400", "text-lime-400", "text-teal-400", "text-indigo-400",
+];
+
+const BADGES = ["", "NEW", "TOP", "HOT", "PRO"];
+
+function cn(...cls: (string | false | undefined | null)[]) {
+  return cls.filter(Boolean).join(" ");
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   FILE UPLOAD HELPER
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+async function uploadFile(file: File): Promise<string> {
+  const res = await fetch("/api/admin/media/upload", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ fileName: file.name, fileType: file.type }),
+  });
+  const { signedUrl, publicUrl, error } = await res.json();
+  if (!signedUrl) throw new Error(error || "Upload failed");
+  await fetch(signedUrl, { method: "PUT", headers: { "Content-Type": file.type }, body: file });
+  return publicUrl;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   SORTABLE ITEM WRAPPER
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+function SortableItem({ id, children, className = "" }: {
+  id: string; children: React.ReactNode; className?: string;
 }) {
-  const cls = `w-full px-3 py-2.5 rounded-lg bg-slate-800/80 border border-slate-700 text-sm text-slate-200 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500/20 transition-colors placeholder-slate-600 ${mono ? "font-mono text-xs" : ""}`;
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+    zIndex: isDragging ? 50 : undefined,
+    position: "relative" as const,
+  };
   return (
-    <div>
-      <label className="block text-[11px] font-semibold text-slate-400 mb-1.5 uppercase tracking-wide">{label}</label>
-      {multiline ? (
-        <textarea value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} rows={4} className={`${cls} resize-none`} />
-      ) : (
-        <input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className={cls} />
-      )}
+    <div ref={setNodeRef} style={style} className={cn("group/sort relative", className)}>
+      <button
+        {...attributes}
+        {...listeners}
+        className="absolute -left-1 top-1/2 -translate-y-1/2 z-20 flex h-8 w-6 items-center justify-center rounded-l-md bg-white/10 text-zinc-500 opacity-0 group-hover/sort:opacity-100 transition-opacity cursor-grab active:cursor-grabbing"
+        title="Drag to reorder"
+      >
+        <GripVertical className="h-4 w-4" />
+      </button>
+      {children}
     </div>
   );
 }
 
-function MediaUploadField({
-  label, value, onChange, isVideo,
-}: {
-  label: string; value: string; onChange: (url: string) => void; isVideo?: boolean;
+/* ═══════════════════════════════════════════════════════════════════════════════
+   IMAGE UPLOAD FIELD
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+function ImageUpload({ value, onChange, label = "Image" }: {
+  value: string; onChange: (url: string) => void; label?: string;
 }) {
-  const inputRef = useRef<HTMLInputElement>(null);
+  const ref = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
 
-  const handleUpload = async (file: File) => {
+  const handleFile = async (file: File) => {
     setUploading(true);
-    try {
-      const res = await fetch("/api/admin/media/upload", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fileName: file.name, fileType: file.type }),
-      });
-      if (!res.ok) throw new Error("Failed to get upload URL");
-      const { signedUrl, publicUrl } = await res.json();
-      await fetch(signedUrl, { method: "PUT", headers: { "Content-Type": file.type }, body: file });
-      onChange(publicUrl);
-    } catch (err) {
-      console.error("Upload failed:", err);
-    } finally {
-      setUploading(false);
-    }
+    try { onChange(await uploadFile(file)); } catch { /* skip */ }
+    setUploading(false);
   };
 
   return (
-    <div>
-      <label className="block text-[11px] font-semibold text-slate-400 mb-1.5 uppercase tracking-wide">{label}</label>
+    <div className="space-y-1">
+      <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">{label}</label>
       <div className="flex gap-2">
         <input
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          placeholder={isVideo ? "Video URL or upload..." : "Image URL or upload..."}
-          className="flex-1 px-3 py-2.5 rounded-lg bg-slate-800/80 border border-slate-700 text-xs text-slate-200 focus:outline-none focus:border-violet-500 transition-colors placeholder-slate-600 font-mono"
+          placeholder="Image URL or upload..."
+          className="flex-1 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:border-violet-500/50 focus:outline-none"
         />
         <button
-          onClick={() => inputRef.current?.click()}
+          onClick={() => ref.current?.click()}
           disabled={uploading}
-          className="flex items-center gap-1.5 px-3 py-2.5 rounded-lg bg-violet-600/20 border border-violet-500/30 text-violet-300 text-xs font-semibold hover:bg-violet-600/30 transition-colors disabled:opacity-50"
+          className="flex items-center gap-1.5 rounded-lg bg-violet-600 px-3 py-2 text-xs font-bold text-white hover:bg-violet-500 disabled:opacity-50 transition-colors"
         >
-          {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
-          {uploading ? "Uploading..." : "Upload"}
+          {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+          {uploading ? "..." : "Upload"}
         </button>
-        <input
-          ref={inputRef}
-          type="file"
-          accept={isVideo ? "video/*" : "image/*"}
-          className="hidden"
-          onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUpload(f); e.target.value = ""; }}
-        />
+        <input ref={ref} type="file" accept="image/*,video/*" className="hidden"
+          onChange={(e) => { if (e.target.files?.[0]) handleFile(e.target.files[0]); }} />
       </div>
-      {value && !isVideo && (
-        <div className="mt-2 relative rounded-lg overflow-hidden border border-slate-700 h-32">
-          <img src={value} alt="Preview" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
-        </div>
-      )}
-      {value && isVideo && (
-        <div className="mt-2 flex items-center gap-2 text-xs text-slate-500">
-          <Play className="w-3 h-3" /> Video: {value.split("/").pop()}
+      {value && (
+        <div className="relative mt-2 h-24 w-40 rounded-lg overflow-hidden border border-white/10">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={value} alt="" className="h-full w-full object-cover" />
+          <button onClick={() => onChange("")}
+            className="absolute top-1 right-1 h-5 w-5 flex items-center justify-center rounded-full bg-black/70 text-white hover:bg-red-600 transition-colors">
+            <X className="h-3 w-3" />
+          </button>
         </div>
       )}
     </div>
   );
 }
 
-function BadgeSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  const colors: Record<string, string> = {
-    "": "bg-slate-700 text-slate-400",
-    NEW: "bg-emerald-500/20 text-emerald-400 ring-emerald-500/30",
-    TOP: "bg-amber-500/20 text-amber-400 ring-amber-500/30",
-    HOT: "bg-rose-500/20 text-rose-400 ring-rose-500/30",
-    PRO: "bg-violet-500/20 text-violet-400 ring-violet-500/30",
-  };
+/* ═══════════════════════════════════════════════════════════════════════════════
+   INLINE TEXT FIELD
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+function InlineField({ label, value, onChange, multiline = false, placeholder = "" }: {
+  label: string; value: string; onChange: (v: string) => void; multiline?: boolean; placeholder?: string;
+}) {
   return (
-    <div>
-      <label className="block text-[11px] font-semibold text-slate-400 mb-1.5 uppercase tracking-wide">Badge</label>
+    <div className="space-y-1">
+      <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">{label}</label>
+      {multiline ? (
+        <textarea value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} rows={2}
+          className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:border-violet-500/50 focus:outline-none resize-none" />
+      ) : (
+        <input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder}
+          className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:border-violet-500/50 focus:outline-none" />
+      )}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   BADGE PICKER
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+function BadgePicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <div className="space-y-1">
+      <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Badge</label>
       <div className="flex gap-1.5 flex-wrap">
-        {BADGE_OPTIONS.map((b) => (
-          <button
-            key={b || "none"}
-            onClick={() => onChange(b)}
-            className={`px-2.5 py-1.5 rounded-md text-[10px] font-bold uppercase ring-1 transition-all ${
-              value === b ? `${colors[b]} ring-current scale-105` : "bg-slate-800 text-slate-600 ring-slate-700 hover:text-slate-400"
-            }`}
-          >
+        {BADGES.map((b) => (
+          <button key={b || "none"} onClick={() => onChange(b)}
+            className={cn(
+              "rounded-full px-2.5 py-1 text-[10px] font-bold uppercase ring-1 transition-all",
+              b === value
+                ? "bg-violet-600 text-white ring-violet-400"
+                : "bg-white/5 text-zinc-400 ring-white/10 hover:ring-white/30"
+            )}>
             {b || "None"}
           </button>
         ))}
@@ -266,198 +294,68 @@ function BadgeSelect({ value, onChange }: { value: string; onChange: (v: string)
   );
 }
 
-function CardShell({
-  children, active, onClick, className,
-}: {
-  children: React.ReactNode; active?: boolean; onClick?: () => void; className?: string;
-}) {
+/* ═══════════════════════════════════════════════════════════════════════════════
+   LINK FIELD
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+function LinkField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   return (
-    <motion.div
-      layout
-      whileHover={{ scale: 1.01 }}
-      onClick={onClick}
-      className={`rounded-xl border p-4 cursor-pointer transition-all ${
-        active ? "border-violet-500/50 bg-violet-950/30 shadow-lg shadow-violet-900/20" : "border-slate-800 bg-slate-900/40 hover:border-slate-700"
-      } ${className ?? ""}`}
-    >
-      {children}
-    </motion.div>
-  );
-}
-
-/* ─────────────────────────────────────────────────────────────────────────────
-   SECTION EDITORS
-   ───────────────────────────────────────────────────────────────────────────── */
-
-function HeroSlidesEditor({
-  slides, onChange,
-}: {
-  slides: HeroSlide[]; onChange: (s: HeroSlide[]) => void;
-}) {
-  const [activeIdx, setActiveIdx] = useState(0);
-  const active = slides[activeIdx];
-
-  const updateSlide = (idx: number, patch: Partial<HeroSlide>) => {
-    onChange(slides.map((s, i) => (i === idx ? { ...s, ...patch } : s)));
-  };
-
-  const addSlide = () => {
-    onChange([...slides, { ...DEFAULT_HERO_SLIDE, title: `Slide ${slides.length + 1}` }]);
-    setActiveIdx(slides.length);
-  };
-
-  const removeSlide = (idx: number) => {
-    if (slides.length <= 1) return;
-    const updated = slides.filter((_, i) => i !== idx);
-    onChange(updated);
-    if (activeIdx >= updated.length) setActiveIdx(updated.length - 1);
-  };
-
-  const moveSlide = (from: number, to: number) => {
-    if (to < 0 || to >= slides.length) return;
-    const updated = [...slides];
-    const [item] = updated.splice(from, 1);
-    updated.splice(to, 0, item);
-    onChange(updated);
-    setActiveIdx(to);
-  };
-
-  return (
-    <div className="space-y-4">
-      {/* Slide selector strip */}
-      <div className="flex gap-2 overflow-x-auto pb-2">
-        {slides.map((s, i) => (
-          <CardShell key={i} active={activeIdx === i} onClick={() => setActiveIdx(i)} className="shrink-0 w-48 !p-3">
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[10px] font-bold text-slate-500 uppercase">Slide {i + 1}</span>
-              <div className="flex items-center gap-1">
-                <button onClick={(e) => { e.stopPropagation(); moveSlide(i, i - 1); }} className="p-0.5 text-slate-600 hover:text-white"><ChevronRight className="w-3 h-3 rotate-180" /></button>
-                <button onClick={(e) => { e.stopPropagation(); moveSlide(i, i + 1); }} className="p-0.5 text-slate-600 hover:text-white"><ChevronRight className="w-3 h-3" /></button>
-                {slides.length > 1 && (
-                  <button onClick={(e) => { e.stopPropagation(); removeSlide(i); }} className="p-0.5 text-slate-700 hover:text-red-400"><X className="w-3 h-3" /></button>
-                )}
-              </div>
-            </div>
-            {s.bgImage && (
-              <div className="rounded-md overflow-hidden h-16 mb-1.5 border border-slate-700">
-                <img src={s.bgImage} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
-              </div>
-            )}
-            <p className="text-xs font-semibold text-white truncate">{s.title || "Untitled"}</p>
-            <p className="text-[10px] text-slate-500 truncate">{s.subtitle || "No description"}</p>
-          </CardShell>
-        ))}
-        <button onClick={addSlide} className="shrink-0 w-48 rounded-xl border-2 border-dashed border-slate-700 flex flex-col items-center justify-center gap-2 text-slate-600 hover:border-violet-500/50 hover:text-violet-400 transition-colors min-h-[120px]">
-          <Plus className="w-5 h-5" />
-          <span className="text-xs font-semibold">Add Slide</span>
-        </button>
-      </div>
-
-      {/* Active slide editor */}
-      {active && (
-        <motion.div key={activeIdx} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="rounded-xl border border-slate-800 bg-slate-900/50 p-5 space-y-4">
-          <div className="flex items-center gap-2 pb-2 border-b border-slate-800/60">
-            <Pencil className="w-4 h-4 text-violet-400" />
-            <h3 className="text-sm font-bold text-white">Editing Slide {activeIdx + 1}</h3>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <InputField label="Title" value={active.title} onChange={(v) => updateSlide(activeIdx, { title: v })} placeholder="Slide title..." />
-            <InputField label="Tag / Badge" value={active.tag} onChange={(v) => updateSlide(activeIdx, { tag: v })} placeholder="e.g. New Release" />
-          </div>
-          <InputField label="Subtitle" value={active.subtitle} onChange={(v) => updateSlide(activeIdx, { subtitle: v })} placeholder="Slide description..." />
-          <MediaUploadField label="Background Image" value={active.bgImage} onChange={(v) => updateSlide(activeIdx, { bgImage: v })} />
-          <div className="grid grid-cols-2 gap-4">
-            <InputField label="CTA Link" value={active.ctaHref} onChange={(v) => updateSlide(activeIdx, { ctaHref: v })} placeholder="/cinema-studio" mono />
-            <InputField label="YouTube URL (optional)" value={active.youtubeUrl || ""} onChange={(v) => updateSlide(activeIdx, { youtubeUrl: v || undefined })} placeholder="https://youtube.com/..." mono />
-          </div>
-          <InputField label="Trailer URL (optional)" value={active.trailerUrl || ""} onChange={(v) => updateSlide(activeIdx, { trailerUrl: v || undefined })} placeholder="https://youtube.com/..." mono />
-        </motion.div>
-      )}
+    <div className="space-y-1">
+      <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 flex items-center gap-1">
+        <Link2 className="h-3 w-3" /> Link To
+      </label>
+      <input value={value} onChange={(e) => onChange(e.target.value)} placeholder="/image, /video, /pricing..."
+        className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:border-violet-500/50 focus:outline-none" />
     </div>
   );
 }
 
-function ToolCardsEditor({
-  cards, onChange,
-}: {
-  cards: ToolCard[]; onChange: (c: ToolCard[]) => void;
+/* ═══════════════════════════════════════════════════════════════════════════════
+   HERO SLIDE CARD (editable)
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+function HeroSlideCard({ slide, onUpdate, onRemove }: {
+  slide: HeroSlide; onUpdate: (s: HeroSlide) => void; onRemove: () => void;
 }) {
-  const [activeIdx, setActiveIdx] = useState<number | null>(null);
-
-  const updateCard = (idx: number, patch: Partial<ToolCard>) => {
-    onChange(cards.map((c, i) => (i === idx ? { ...c, ...patch } : c)));
-  };
-
-  const addCard = () => {
-    onChange([...cards, { ...DEFAULT_TOOL_CARD, id: `tool-${Date.now()}` }]);
-    setActiveIdx(cards.length);
-  };
-
-  const removeCard = (idx: number) => {
-    onChange(cards.filter((_, i) => i !== idx));
-    setActiveIdx(null);
-  };
-
-  const moveCard = (from: number, to: number) => {
-    if (to < 0 || to >= cards.length) return;
-    const updated = [...cards];
-    const [item] = updated.splice(from, 1);
-    updated.splice(to, 0, item);
-    onChange(updated);
-    setActiveIdx(to);
-  };
+  const [open, setOpen] = useState(false);
+  const up = (p: Partial<HeroSlide>) => onUpdate({ ...slide, ...p });
 
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-        {cards.map((card, i) => (
-          <CardShell key={card.id + i} active={activeIdx === i} onClick={() => setActiveIdx(activeIdx === i ? null : i)} className="!p-3">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[9px] font-bold text-slate-600 uppercase">#{i + 1}</span>
-              <div className="flex items-center gap-1">
-                <button onClick={(e) => { e.stopPropagation(); moveCard(i, i - 1); }} className="p-0.5 text-slate-600 hover:text-white"><ChevronRight className="w-3 h-3 rotate-180" /></button>
-                <button onClick={(e) => { e.stopPropagation(); moveCard(i, i + 1); }} className="p-0.5 text-slate-600 hover:text-white"><ChevronRight className="w-3 h-3" /></button>
-                <button onClick={(e) => { e.stopPropagation(); removeCard(i); }} className="p-0.5 text-slate-700 hover:text-red-400"><X className="w-3 h-3" /></button>
-              </div>
-            </div>
-            {card.image && (
-              <div className="rounded-md overflow-hidden h-20 mb-2 border border-slate-700">
-                <img src={card.image} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
-              </div>
-            )}
-            <p className="text-xs font-semibold text-white truncate">{card.title}</p>
-            <p className="text-[10px] text-slate-500 truncate">{card.description}</p>
-            {card.badge && (
-              <span className="inline-block mt-1 px-1.5 py-0.5 rounded text-[8px] font-bold uppercase bg-violet-500/20 text-violet-400 ring-1 ring-violet-500/30">
-                {card.badge}
-              </span>
-            )}
-          </CardShell>
-        ))}
-        <button onClick={addCard} className="rounded-xl border-2 border-dashed border-slate-700 flex flex-col items-center justify-center gap-2 text-slate-600 hover:border-violet-500/50 hover:text-violet-400 transition-colors min-h-[140px]">
-          <Plus className="w-5 h-5" />
-          <span className="text-xs font-semibold">Add Card</span>
+    <div className="rounded-2xl border border-white/10 overflow-hidden bg-slate-900/80">
+      {/* Preview */}
+      <div className="relative h-44 w-full overflow-hidden cursor-pointer" onClick={() => setOpen(!open)}>
+        {slide.bgImage ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={slide.bgImage} alt={slide.title} className="absolute inset-0 h-full w-full object-cover" />
+        ) : (
+          <div className={cn("absolute inset-0 bg-gradient-to-br", slide.gradient)} />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+        <div className="absolute bottom-0 left-0 right-0 p-4">
+          <span className="inline-block rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-bold text-white mb-1">{slide.tag}</span>
+          <h3 className="text-lg font-black text-white leading-tight">{slide.title}</h3>
+          <p className="text-xs text-zinc-300 line-clamp-1 mt-0.5">{slide.subtitle}</p>
+        </div>
+        <button onClick={(e) => { e.stopPropagation(); onRemove(); }}
+          className="absolute top-2 right-2 h-7 w-7 flex items-center justify-center rounded-full bg-black/60 text-red-400 hover:bg-red-600 hover:text-white transition-colors">
+          <Trash2 className="h-3.5 w-3.5" />
         </button>
+        <div className="absolute top-2 left-2 flex items-center gap-1 rounded-full bg-black/50 px-2 py-1 text-[10px] text-zinc-300">
+          <Pencil className="h-3 w-3" /> Click to edit
+        </div>
       </div>
-
+      {/* Edit Panel */}
       <AnimatePresence>
-        {activeIdx !== null && cards[activeIdx] && (
-          <motion.div key={activeIdx} initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
-            <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-5 space-y-4">
-              <div className="flex items-center justify-between pb-2 border-b border-slate-800/60">
-                <div className="flex items-center gap-2">
-                  <Pencil className="w-4 h-4 text-violet-400" />
-                  <h3 className="text-sm font-bold text-white">Editing: {cards[activeIdx].title}</h3>
-                </div>
-                <button onClick={() => setActiveIdx(null)} className="text-slate-500 hover:text-white"><X className="w-4 h-4" /></button>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <InputField label="Title" value={cards[activeIdx].title} onChange={(v) => updateCard(activeIdx, { title: v })} />
-                <InputField label="Link" value={cards[activeIdx].href} onChange={(v) => updateCard(activeIdx, { href: v })} placeholder="/image" mono />
-              </div>
-              <InputField label="Description" value={cards[activeIdx].description} onChange={(v) => updateCard(activeIdx, { description: v })} />
-              <MediaUploadField label="Card Image" value={cards[activeIdx].image} onChange={(v) => updateCard(activeIdx, { image: v })} />
-              <BadgeSelect value={cards[activeIdx].badge} onChange={(v) => updateCard(activeIdx, { badge: v })} />
+        {open && (
+          <motion.div initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }} className="overflow-hidden">
+            <div className="p-4 space-y-3 border-t border-white/10">
+              <InlineField label="Title" value={slide.title} onChange={(v) => up({ title: v })} />
+              <InlineField label="Subtitle" value={slide.subtitle} onChange={(v) => up({ subtitle: v })} multiline />
+              <InlineField label="Tag" value={slide.tag} onChange={(v) => up({ tag: v })} />
+              <ImageUpload value={slide.bgImage} onChange={(v) => up({ bgImage: v })} label="Background Image" />
+              <LinkField value={slide.ctaHref} onChange={(v) => up({ ctaHref: v })} />
+              <InlineField label="YouTube URL (optional)" value={slide.youtubeUrl || ""} onChange={(v) => up({ youtubeUrl: v })} placeholder="https://youtube.com/watch?v=..." />
+              <InlineField label="Trailer URL (optional)" value={slide.trailerUrl || ""} onChange={(v) => up({ trailerUrl: v })} placeholder="https://youtube.com/watch?v=..." />
             </div>
           </motion.div>
         )}
@@ -466,407 +364,428 @@ function ToolCardsEditor({
   );
 }
 
-function AppListEditor({
-  apps, onChange,
-}: {
-  apps: AppItem[]; onChange: (a: AppItem[]) => void;
-}) {
-  const colorOptions = [
-    "text-violet-400", "text-amber-400", "text-pink-400", "text-cyan-400",
-    "text-orange-400", "text-lime-400", "text-rose-400", "text-teal-400",
-    "text-blue-400", "text-fuchsia-400", "text-yellow-400", "text-indigo-400",
-    "text-emerald-400", "text-sky-400", "text-red-400", "text-purple-400", "text-green-400",
-  ];
+/* ═══════════════════════════════════════════════════════════════════════════════
+   TOOL / AD CARD (editable)
+   ═══════════════════════════════════════════════════════════════════════════════ */
 
-  const updateApp = (idx: number, patch: Partial<AppItem>) => {
-    onChange(apps.map((a, i) => (i === idx ? { ...a, ...patch } : a)));
-  };
+function ToolPreviewCard({ card, onUpdate, onRemove, isAd = false }: {
+  card: ToolCard | AdCard; onUpdate: (c: any) => void; onRemove: () => void; isAd?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const up = (p: Partial<ToolCard & AdCard>) => onUpdate({ ...card, ...p });
 
   return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap gap-2">
-        {apps.map((app, i) => (
-          <div key={i} className="group flex items-center gap-2 rounded-lg border border-slate-800 bg-slate-900/50 px-3 py-2 hover:border-slate-700 transition-colors">
-            <input
-              value={app.title}
-              onChange={(e) => updateApp(i, { title: e.target.value })}
-              className="bg-transparent text-xs text-slate-200 w-24 focus:outline-none"
-            />
-            <select
-              value={app.color}
-              onChange={(e) => updateApp(i, { color: e.target.value })}
-              className="bg-slate-800 text-[10px] text-slate-400 rounded px-1 py-0.5 border border-slate-700 focus:outline-none"
-            >
-              {colorOptions.map((c) => (
-                <option key={c} value={c}>{c.replace("text-", "").replace("-400", "")}</option>
-              ))}
-            </select>
-            <button onClick={() => onChange(apps.filter((_, j) => j !== i))} className="opacity-0 group-hover:opacity-100 text-slate-600 hover:text-red-400 transition-all">
-              <X className="w-3 h-3" />
-            </button>
+    <div className="rounded-2xl border border-white/10 overflow-hidden bg-slate-900/80">
+      {/* Preview */}
+      <div className="relative aspect-[4/3] overflow-hidden cursor-pointer" onClick={() => setOpen(!open)}>
+        {card.image ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={card.image} alt={card.title} className="absolute inset-0 h-full w-full object-cover" />
+        ) : (
+          <div className={cn("absolute inset-0 bg-gradient-to-br", card.gradient)} />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+        {isAd && (
+          <div className="absolute top-2 left-2 flex items-center gap-1 rounded-full bg-amber-500/20 px-2 py-0.5 text-[9px] font-bold text-amber-300 ring-1 ring-amber-500/30">
+            <Megaphone className="h-3 w-3" /> AD
           </div>
-        ))}
-        <button
-          onClick={() => onChange([...apps, { title: "New App", color: "text-violet-400" }])}
-          className="flex items-center gap-1.5 rounded-lg border-2 border-dashed border-slate-700 px-3 py-2 text-xs text-slate-600 hover:border-violet-500/50 hover:text-violet-400 transition-colors"
-        >
-          <Plus className="w-3 h-3" /> Add App
+        )}
+        <div className="absolute bottom-0 left-0 right-0 p-3">
+          {card.badge && (
+            <span className="inline-block rounded-full bg-emerald-500/20 text-emerald-300 ring-1 ring-emerald-500/30 px-1.5 py-0.5 text-[9px] font-bold uppercase mb-1">{card.badge}</span>
+          )}
+          <p className="font-semibold text-white text-sm leading-tight">{card.title}</p>
+          <p className="text-[11px] text-zinc-400 line-clamp-1 mt-0.5">{card.description}</p>
+          {card.href && card.href !== "/" && (
+            <div className="flex items-center gap-1 mt-1 text-[10px] text-violet-400">
+              <ExternalLink className="h-3 w-3" /> {card.href}
+            </div>
+          )}
+        </div>
+        <button onClick={(e) => { e.stopPropagation(); onRemove(); }}
+          className="absolute top-2 right-2 h-6 w-6 flex items-center justify-center rounded-full bg-black/60 text-red-400 hover:bg-red-600 hover:text-white transition-colors">
+          <Trash2 className="h-3 w-3" />
         </button>
       </div>
+      {/* Edit Panel */}
+      <AnimatePresence>
+        {open && (
+          <motion.div initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }} className="overflow-hidden">
+            <div className="p-3 space-y-2.5 border-t border-white/10">
+              <InlineField label="Title" value={card.title} onChange={(v) => up({ title: v })} />
+              <InlineField label="Description" value={card.description} onChange={(v) => up({ description: v })} />
+              <BadgePicker value={card.badge} onChange={(v) => up({ badge: v })} />
+              <ImageUpload value={card.image} onChange={(v) => up({ image: v })} />
+              <LinkField value={card.href} onChange={(v) => up({ href: v })} />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
 
-function ModelListEditor({
-  models, onChange,
-}: {
-  models: ModelItem[]; onChange: (m: ModelItem[]) => void;
+/* ═══════════════════════════════════════════════════════════════════════════════
+   APP ITEM MINI CARD
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+function AppItemCard({ item, onUpdate, onRemove }: {
+  item: AppItem; onUpdate: (a: AppItem) => void; onRemove: () => void;
 }) {
-  const tagOptions = ["Video", "Image", "Audio", "3D"];
-
-  const updateModel = (idx: number, patch: Partial<ModelItem>) => {
-    onChange(models.map((m, i) => (i === idx ? { ...m, ...patch } : m)));
-  };
-
   return (
-    <div className="space-y-3">
-      <div className="space-y-2">
-        {models.map((model, i) => (
-          <div key={i} className="group flex items-center gap-3 rounded-lg border border-slate-800 bg-slate-900/50 px-4 py-2.5 hover:border-slate-700 transition-colors">
-            <GripVertical className="w-3.5 h-3.5 text-slate-700" />
-            <input
-              value={model.name}
-              onChange={(e) => updateModel(i, { name: e.target.value })}
-              className="bg-transparent text-sm text-slate-200 flex-1 focus:outline-none"
-              placeholder="Model name..."
-            />
-            <select
-              value={model.tag}
-              onChange={(e) => updateModel(i, { tag: e.target.value })}
-              className="bg-slate-800 text-xs text-slate-400 rounded px-2 py-1 border border-slate-700 focus:outline-none"
-            >
-              {tagOptions.map((t) => (<option key={t} value={t}>{t}</option>))}
-            </select>
-            <button onClick={() => onChange(models.filter((_, j) => j !== i))} className="opacity-0 group-hover:opacity-100 text-slate-600 hover:text-red-400 transition-all">
-              <X className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        ))}
-      </div>
-      <button
-        onClick={() => onChange([...models, { name: "New Model", tag: "Video", color: "text-violet-400" }])}
-        className="flex items-center gap-1.5 rounded-lg border-2 border-dashed border-slate-700 px-4 py-2.5 text-xs text-slate-600 hover:border-violet-500/50 hover:text-violet-400 transition-colors w-full justify-center"
-      >
-        <Plus className="w-3.5 h-3.5" /> Add Model
+    <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 group">
+      <Sparkles className={cn("h-4 w-4 shrink-0", item.color)} />
+      <input value={item.title} onChange={(e) => onUpdate({ ...item, title: e.target.value })}
+        className="bg-transparent text-xs font-semibold text-zinc-300 w-24 focus:outline-none focus:text-white" />
+      <select value={item.color} onChange={(e) => onUpdate({ ...item, color: e.target.value })}
+        className="bg-transparent text-[10px] text-zinc-500 focus:outline-none cursor-pointer">
+        {COLORS.map((c) => <option key={c} value={c}>{c.replace("text-", "").replace("-400", "")}</option>)}
+      </select>
+      <button onClick={onRemove} className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-300 transition-opacity ml-auto">
+        <X className="h-3.5 w-3.5" />
       </button>
     </div>
   );
 }
 
-function TextSectionEditor({
-  content, onChange,
-}: {
-  content: TextSection; onChange: (c: TextSection) => void;
-}) {
-  const update = (patch: Partial<TextSection>) => onChange({ ...content, ...patch });
+/* ═══════════════════════════════════════════════════════════════════════════════
+   MODEL ITEM MINI CARD
+   ═══════════════════════════════════════════════════════════════════════════════ */
 
+function ModelItemCard({ item, onUpdate, onRemove }: {
+  item: ModelItem; onUpdate: (m: ModelItem) => void; onRemove: () => void;
+}) {
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-5 space-y-4">
-      <InputField label="Headline" value={content.headline} onChange={(v) => update({ headline: v })} placeholder="Page headline..." />
-      <InputField label="Subheadline" value={content.subheadline} onChange={(v) => update({ subheadline: v })} placeholder="Tagline or subtitle..." />
-      <InputField label="Body Text" value={content.body} onChange={(v) => update({ body: v })} placeholder="Body content..." multiline />
-      <MediaUploadField label="Media" value={content.mediaUrl} onChange={(v) => update({ mediaUrl: v })} isVideo={content.isVideo} />
-      <div className="flex items-center gap-3">
-        <span className="text-[11px] font-semibold text-slate-400 uppercase">Media Type:</span>
-        <button onClick={() => update({ isVideo: false })} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${!content.isVideo ? "bg-violet-600 text-white" : "text-slate-500 hover:text-slate-300 bg-slate-800"}`}>
-          <ImageIcon className="w-3 h-3" /> Image
-        </button>
-        <button onClick={() => update({ isVideo: true })} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${content.isVideo ? "bg-violet-600 text-white" : "text-slate-500 hover:text-slate-300 bg-slate-800"}`}>
-          <Video className="w-3 h-3" /> Video
-        </button>
-      </div>
-      <div className="grid grid-cols-2 gap-4">
-        <InputField label="CTA Button Text" value={content.ctaText} onChange={(v) => update({ ctaText: v })} placeholder="Get Started" />
-        <InputField label="CTA Link" value={content.ctaLink} onChange={(v) => update({ ctaLink: v })} placeholder="/pricing" mono />
-      </div>
+    <div className={cn("flex items-center gap-2 rounded-full bg-white/[0.04] px-4 py-2 ring-1 group", item.ring)}>
+      <input value={item.name} onChange={(e) => onUpdate({ ...item, name: e.target.value })}
+        className={cn("bg-transparent text-[10px] font-bold uppercase tracking-wider w-24 focus:outline-none", item.color)} />
+      <input value={item.tag} onChange={(e) => onUpdate({ ...item, tag: e.target.value })}
+        className="bg-transparent rounded-full bg-white/10 px-1.5 py-0.5 text-[8px] font-bold text-zinc-500 w-12 focus:outline-none" />
+      <button onClick={onRemove} className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-300 transition-opacity ml-1">
+        <X className="h-3 w-3" />
+      </button>
     </div>
   );
 }
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   MAIN CMS PAGE
-   ───────────────────────────────────────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════════════════
+   SECTION WRAPPER (with header, visibility toggle, add button)
+   ═══════════════════════════════════════════════════════════════════════════════ */
 
-export default function FullCMSPage() {
-  const [activePage, setActivePage] = useState<PageId>("home");
-  const [activeSection, setActiveSection] = useState<string>("heroSlides");
-  const [expandedPages, setExpandedPages] = useState<Record<string, boolean>>({ home: true });
+function SectionBlock({ section, children, onToggle, onAddItem }: {
+  section: SectionOrder; children: React.ReactNode; onToggle: () => void; onAddItem?: () => void;
+}) {
+  const [collapsed, setCollapsed] = useState(false);
+  return (
+    <div className={cn(
+      "rounded-2xl border bg-slate-900/40 overflow-hidden transition-all",
+      section.visible ? "border-white/10" : "border-white/5 opacity-50"
+    )}>
+      <div className="flex items-center gap-3 px-5 py-3 border-b border-white/[0.06] bg-white/[0.02]">
+        <div className="flex-1 flex items-center gap-2">
+          <button onClick={() => setCollapsed(!collapsed)} className="text-zinc-400 hover:text-white transition-colors">
+            <ChevronRight className={cn("h-4 w-4 transition-transform", !collapsed && "rotate-90")} />
+          </button>
+          <h3 className="text-sm font-bold text-white tracking-tight">{section.label}</h3>
+          <span className="text-[10px] text-zinc-600 font-mono">{section.type}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          {onAddItem && (
+            <button onClick={onAddItem}
+              className="flex items-center gap-1 rounded-lg bg-violet-600/80 px-2.5 py-1.5 text-[11px] font-bold text-white hover:bg-violet-500 transition-colors">
+              <Plus className="h-3.5 w-3.5" /> Add
+            </button>
+          )}
+          <button onClick={onToggle}
+            className={cn(
+              "rounded-lg px-2.5 py-1.5 text-[11px] font-bold transition-colors",
+              section.visible
+                ? "bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30"
+                : "bg-zinc-800 text-zinc-500 hover:bg-zinc-700"
+            )}>
+            {section.visible ? "Visible" : "Hidden"}
+          </button>
+        </div>
+      </div>
+      {!collapsed && <div className="p-4">{children}</div>}
+    </div>
+  );
+}
 
-  const [cmsData, setCmsData] = useState<Record<string, Record<string, unknown>>>({});
-  const [loading, setLoading] = useState(true);
+/* ═══════════════════════════════════════════════════════════════════════════════
+   MAIN PAGE
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+export default function VisualCmsPage() {
+  /* ── State ──────────────────────────────────────────────────────────────── */
+  const [sectionOrder, setSectionOrder] = useState<SectionOrder[]>(DEFAULT_SECTIONS);
+  const [heroSlides, setHeroSlides] = useState<HeroSlide[]>([]);
+  const [coreTools, setCoreTools] = useState<ToolCard[]>([]);
+  const [topChoice, setTopChoice] = useState<ToolCard[]>([]);
+  const [adCards, setAdCards] = useState<AdCard[]>([]);
+  const [apps, setApps] = useState<AppItem[]>([]);
+  const [models, setModels] = useState<ModelItem[]>([]);
+
   const [saving, setSaving] = useState(false);
-  const [saveStatus, setSaveStatus] = useState<"idle" | "success" | "error">("idle");
-  const [hasChanges, setHasChanges] = useState<Record<string, boolean>>({});
+  const [saveMsg, setSaveMsg] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  // ── Load all page CMS data ──────────────────────────────────────────────────
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+
+  /* ── Load ───────────────────────────────────────────────────────────────── */
   useEffect(() => {
-    const loadAll = async () => {
-      const results: Record<string, Record<string, unknown>> = {};
-      for (const page of PAGES) {
-        try {
-          const res = await fetch(`/api/admin/layouts?page=cms-${page.id}`);
-          if (res.ok) {
-            const data = await res.json();
-            const blocks = data?.layoutBlocks;
-            if (blocks && typeof blocks === "object" && !Array.isArray(blocks)) {
-              results[page.id] = blocks as Record<string, unknown>;
-            }
-          }
-        } catch { /* ignore */ }
-      }
-      setCmsData(results);
-      setLoading(false);
-    };
-    loadAll();
+    fetch("/api/admin/layouts?page=cms-home")
+      .then((r) => r.json())
+      .then((data) => {
+        const b = data?.layoutBlocks;
+        if (b && typeof b === "object" && !Array.isArray(b)) {
+          if (b.sectionOrder?.length) setSectionOrder(b.sectionOrder);
+          if (b.heroSlides?.length) setHeroSlides(b.heroSlides);
+          if (b.coreTools?.length) setCoreTools(b.coreTools);
+          if (b.topChoice?.length) setTopChoice(b.topChoice);
+          if (b.adCards?.length) setAdCards(b.adCards);
+          if (b.apps?.length) setApps(b.apps);
+          if (b.models?.length) setModels(b.models);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, []);
 
-  // ── Save current page ───────────────────────────────────────────────────────
-  const savePage = useCallback(async (pageId: string) => {
+  /* ── Save ───────────────────────────────────────────────────────────────── */
+  const save = useCallback(async () => {
     setSaving(true);
-    setSaveStatus("idle");
+    setSaveMsg(null);
     try {
+      const payload: HomeCmsData = { sectionOrder, heroSlides, coreTools, topChoice, adCards, apps, models };
       const res = await fetch("/api/admin/layouts", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pageName: `cms-${pageId}`, layoutBlocks: cmsData[pageId] ?? {} }),
+        body: JSON.stringify({ pageName: "cms-home", layoutBlocks: payload }),
       });
       if (!res.ok) throw new Error("Save failed");
-      setSaveStatus("success");
-      setHasChanges((prev) => ({ ...prev, [pageId]: false }));
-      setTimeout(() => setSaveStatus("idle"), 3000);
+      setSaveMsg("Saved!");
+      setTimeout(() => setSaveMsg(null), 3000);
     } catch {
-      setSaveStatus("error");
-      setTimeout(() => setSaveStatus("idle"), 3000);
-    } finally {
-      setSaving(false);
+      setSaveMsg("Error saving");
     }
-  }, [cmsData]);
+    setSaving(false);
+  }, [sectionOrder, heroSlides, coreTools, topChoice, adCards, apps, models]);
 
-  // ── Helpers ─────────────────────────────────────────────────────────────────
-  const updateSection = useCallback((pageId: string, sectionKey: string, value: unknown) => {
-    setCmsData((prev) => ({
-      ...prev,
-      [pageId]: { ...(prev[pageId] ?? {}), [sectionKey]: value },
-    }));
-    setHasChanges((prev) => ({ ...prev, [pageId]: true }));
+  /* ── Section reorder ────────────────────────────────────────────────────── */
+  const handleSectionDragEnd = useCallback((e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    setSectionOrder((prev) => {
+      const oi = prev.findIndex((s) => s._id === active.id);
+      const ni = prev.findIndex((s) => s._id === over.id);
+      return arrayMove(prev, oi, ni);
+    });
   }, []);
 
-  const getSectionData = useCallback(<T,>(pageId: string, sectionKey: string, fallback: T): T => {
-    const section = cmsData[pageId]?.[sectionKey];
-    return section !== undefined && section !== null ? (section as T) : fallback;
-  }, [cmsData]);
+  /* ── Item reorder helper ────────────────────────────────────────────────── */
+  const makeItemDragEnd = useCallback((setter: React.Dispatch<React.SetStateAction<any[]>>) => {
+    return (e: DragEndEvent) => {
+      const { active, over } = e;
+      if (!over || active.id === over.id) return;
+      setter((prev: any[]) => {
+        const oi = prev.findIndex((it: any) => it._id === active.id);
+        const ni = prev.findIndex((it: any) => it._id === over.id);
+        return arrayMove(prev, oi, ni);
+      });
+    };
+  }, []);
 
-  const currentPage = PAGES.find((p) => p.id === activePage)!;
-  const currentSection = currentPage.sections.find((s) => s.key === activeSection);
+  /* ── Add helpers ────────────────────────────────────────────────────────── */
+  const addHero = () => setHeroSlides((p) => [...p, { ...DEFAULT_HERO, _id: uid(), gradient: GRADIENTS[p.length % GRADIENTS.length] }]);
+  const addCoreTool = () => setCoreTools((p) => [...p, { ...DEFAULT_TOOL, _id: uid(), gradient: GRADIENTS[p.length % GRADIENTS.length] }]);
+  const addTopChoice = () => setTopChoice((p) => [...p, { ...DEFAULT_TOOL, _id: uid(), gradient: GRADIENTS[p.length % GRADIENTS.length] }]);
+  const addAdCard = () => setAdCards((p) => [...p, { ...DEFAULT_AD, _id: uid(), gradient: GRADIENTS[p.length % GRADIENTS.length] }]);
+  const addApp = () => setApps((p) => [...p, { ...DEFAULT_APP, _id: uid(), color: COLORS[p.length % COLORS.length] }]);
+  const addModel = () => setModels((p) => [...p, { ...DEFAULT_MODEL, _id: uid() }]);
 
-  const selectSection = (pageId: PageId, sectionKey: string) => {
-    setActivePage(pageId);
-    setActiveSection(sectionKey);
-    setExpandedPages((prev) => ({ ...prev, [pageId]: true }));
+  const toggleSection = (id: string) => {
+    setSectionOrder((prev) => prev.map((s) => s._id === id ? { ...s, visible: !s.visible } : s));
   };
 
-  // ── Render the active section's editor ──────────────────────────────────────
-  const renderEditor = () => {
-    if (!currentSection) return null;
-    const { key, type } = currentSection;
-    const pid = activePage;
-    switch (type) {
-      case "hero-slides":
-        return <HeroSlidesEditor slides={getSectionData<HeroSlide[]>(pid, key, [])} onChange={(v) => updateSection(pid, key, v)} />;
-      case "tool-cards":
-        return <ToolCardsEditor cards={getSectionData<ToolCard[]>(pid, key, [])} onChange={(v) => updateSection(pid, key, v)} />;
-      case "app-list":
-        return <AppListEditor apps={getSectionData<AppItem[]>(pid, key, [])} onChange={(v) => updateSection(pid, key, v)} />;
-      case "model-list":
-        return <ModelListEditor models={getSectionData<ModelItem[]>(pid, key, [])} onChange={(v) => updateSection(pid, key, v)} />;
-      case "text-section":
-        return <TextSectionEditor content={getSectionData<TextSection>(pid, key, { ...EMPTY_TEXT_SECTION })} onChange={(v) => updateSection(pid, key, v)} />;
+  /* ── Section content renderer ───────────────────────────────────────────── */
+  const renderSection = (sec: SectionOrder) => {
+    switch (sec.type) {
+      case "heroSlides":
+        return (
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={makeItemDragEnd(setHeroSlides)}>
+            <SortableContext items={heroSlides.map((s) => s._id)} strategy={horizontalListSortingStrategy}>
+              <div className="flex gap-4 overflow-x-auto pb-2" style={{ scrollbarWidth: "none" }}>
+                {heroSlides.map((slide) => (
+                  <SortableItem key={slide._id} id={slide._id} className="shrink-0 w-[340px]">
+                    <HeroSlideCard slide={slide}
+                      onUpdate={(s) => setHeroSlides((prev) => prev.map((x) => x._id === s._id ? s : x))}
+                      onRemove={() => setHeroSlides((prev) => prev.filter((x) => x._id !== slide._id))} />
+                  </SortableItem>
+                ))}
+                {heroSlides.length === 0 && (
+                  <div className="text-sm text-zinc-600 py-8 text-center w-full">No hero slides. Click <strong>Add</strong> to create one.</div>
+                )}
+              </div>
+            </SortableContext>
+          </DndContext>
+        );
+
+      case "coreTools":
+      case "topChoice":
+        const items = sec.type === "coreTools" ? coreTools : topChoice;
+        const setter = sec.type === "coreTools" ? setCoreTools : setTopChoice;
+        return (
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={makeItemDragEnd(setter)}>
+            <SortableContext items={items.map((c) => c._id)} strategy={rectSortingStrategy}>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                {items.map((card) => (
+                  <SortableItem key={card._id} id={card._id}>
+                    <ToolPreviewCard card={card}
+                      onUpdate={(c: ToolCard) => setter((prev) => prev.map((x) => x._id === c._id ? c : x))}
+                      onRemove={() => setter((prev) => prev.filter((x) => x._id !== card._id))} />
+                  </SortableItem>
+                ))}
+                {items.length === 0 && (
+                  <div className="col-span-full text-sm text-zinc-600 py-8 text-center">No cards. Click <strong>Add</strong>.</div>
+                )}
+              </div>
+            </SortableContext>
+          </DndContext>
+        );
+
+      case "adCards":
+        return (
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={makeItemDragEnd(setAdCards)}>
+            <SortableContext items={adCards.map((c) => c._id)} strategy={rectSortingStrategy}>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                {adCards.length === 0 && (
+                  <div className="col-span-full text-center py-8 text-zinc-600 text-sm">
+                    No ad cards yet. Click <strong>Add</strong> to create one and link it to any page.
+                  </div>
+                )}
+                {adCards.map((card) => (
+                  <SortableItem key={card._id} id={card._id}>
+                    <ToolPreviewCard card={card as any}
+                      onUpdate={(c: AdCard) => setAdCards((prev) => prev.map((x) => x._id === c._id ? c : x))}
+                      onRemove={() => setAdCards((prev) => prev.filter((x) => x._id !== card._id))} isAd />
+                  </SortableItem>
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
+        );
+
+      case "apps":
+        return (
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={makeItemDragEnd(setApps)}>
+            <SortableContext items={apps.map((a) => a._id)} strategy={rectSortingStrategy}>
+              <div className="flex flex-wrap gap-2">
+                {apps.map((item) => (
+                  <SortableItem key={item._id} id={item._id}>
+                    <AppItemCard item={item}
+                      onUpdate={(a) => setApps((prev) => prev.map((x) => x._id === a._id ? a : x))}
+                      onRemove={() => setApps((prev) => prev.filter((x) => x._id !== item._id))} />
+                  </SortableItem>
+                ))}
+                {apps.length === 0 && <div className="text-sm text-zinc-600 py-4">No apps. Click <strong>Add</strong>.</div>}
+              </div>
+            </SortableContext>
+          </DndContext>
+        );
+
+      case "models":
+        return (
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={makeItemDragEnd(setModels)}>
+            <SortableContext items={models.map((m) => m._id)} strategy={rectSortingStrategy}>
+              <div className="flex flex-wrap gap-2">
+                {models.map((item) => (
+                  <SortableItem key={item._id} id={item._id}>
+                    <ModelItemCard item={item}
+                      onUpdate={(m) => setModels((prev) => prev.map((x) => x._id === m._id ? m : x))}
+                      onRemove={() => setModels((prev) => prev.filter((x) => x._id !== item._id))} />
+                  </SortableItem>
+                ))}
+                {models.length === 0 && <div className="text-sm text-zinc-600 py-4">No models. Click <strong>Add</strong>.</div>}
+              </div>
+            </SortableContext>
+          </DndContext>
+        );
+
       default:
         return null;
     }
   };
 
+  const addMap: Record<SectionType, () => void> = {
+    heroSlides: addHero, coreTools: addCoreTool, topChoice: addTopChoice,
+    adCards: addAdCard, apps: addApp, models: addModel,
+  };
+
+  /* ── Render ─────────────────────────────────────────────────────────────── */
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-slate-950">
+        <Loader2 className="h-8 w-8 text-violet-500 animate-spin" />
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
-      {/* ── HEADER ─────────────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-30 border-b border-slate-800/80 bg-slate-950/90 backdrop-blur-sm px-6 py-3.5 flex items-center justify-between gap-4">
+    <div className="min-h-screen bg-slate-950 text-white">
+      {/* Top Bar */}
+      <div className="sticky top-0 z-50 flex items-center justify-between px-6 py-3 border-b border-white/10 bg-slate-950/95 backdrop-blur-md">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-600 to-purple-700 flex items-center justify-center shadow-lg shadow-violet-900/50">
-            <Paintbrush className="w-4 h-4 text-white" />
-          </div>
-          <div>
-            <h1 className="text-sm font-bold text-white leading-none">Content Manager</h1>
-            <p className="text-[10px] text-slate-500 mt-0.5">Edit all pages &amp; sections</p>
+          <a href="/admin" className="flex items-center gap-1.5 text-zinc-400 hover:text-white transition-colors text-sm">
+            <ArrowLeft className="h-4 w-4" /> Admin
+          </a>
+          <span className="text-zinc-700">/</span>
+          <div className="flex items-center gap-2">
+            <Monitor className="h-4 w-4 text-violet-400" />
+            <h1 className="text-sm font-bold">Visual Page Editor</h1>
+            <span className="text-[10px] bg-violet-500/20 text-violet-300 rounded-full px-2 py-0.5 font-bold">Home Page</span>
           </div>
         </div>
-
         <div className="flex items-center gap-3">
-          {hasChanges[activePage] && (
-            <span className="flex items-center gap-1 text-[10px] font-semibold text-amber-400">
-              <AlertCircle className="w-3 h-3" /> Unsaved changes
+          {saveMsg && (
+            <span className={cn("text-xs font-semibold", saveMsg === "Saved!" ? "text-emerald-400" : "text-red-400")}>
+              {saveMsg}
             </span>
           )}
-          <AnimatePresence mode="wait">
-            {saveStatus === "success" && (
-              <motion.span initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1 text-xs font-semibold text-emerald-400">
-                <CheckCircle2 className="w-3.5 h-3.5" /> Saved!
-              </motion.span>
-            )}
-            {saveStatus === "error" && (
-              <motion.span initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1 text-xs font-semibold text-red-400">
-                <AlertCircle className="w-3.5 h-3.5" /> Save failed
-              </motion.span>
-            )}
-          </AnimatePresence>
-
-          <motion.button
-            onClick={() => savePage(activePage)}
-            disabled={saving || !hasChanges[activePage]}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-            style={{
-              background: hasChanges[activePage] ? "linear-gradient(135deg, #7c3aed, #9333ea)" : "rgba(100,116,139,0.3)",
-              boxShadow: hasChanges[activePage] ? "0 0 20px rgba(124,58,237,0.4)" : "none",
-            }}
-          >
-            {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-            {saving ? "Saving..." : "Save Page"}
-          </motion.button>
-
-          <a href="/admin" className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-slate-500 hover:text-slate-300 border border-slate-800 transition-colors bg-slate-900/50">
-            ← Admin
+          <a href="/" target="_blank" className="flex items-center gap-1.5 rounded-lg border border-white/15 px-3 py-2 text-xs font-semibold text-zinc-300 hover:text-white hover:border-white/25 transition-colors">
+            <Eye className="h-3.5 w-3.5" /> Preview
           </a>
+          <button onClick={save} disabled={saving}
+            className="flex items-center gap-1.5 rounded-lg bg-violet-600 px-4 py-2 text-xs font-bold text-white hover:bg-violet-500 disabled:opacity-50 transition-colors">
+            {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+            {saving ? "Saving..." : "Save Page"}
+          </button>
         </div>
-      </header>
+      </div>
 
-      <div className="flex">
-        {/* ── SIDEBAR ─────────────────────────────────────────────────── */}
-        <aside className="w-64 flex-shrink-0 border-r border-slate-800/80 bg-slate-900/30 min-h-[calc(100vh-57px)] overflow-y-auto">
-          <div className="p-4">
-            <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest mb-3">Pages</p>
-            <div className="space-y-1">
-              {PAGES.map((page) => {
-                const Icon = page.icon;
-                const isExpanded = expandedPages[page.id];
-                const isActive = activePage === page.id;
-                const changed = hasChanges[page.id];
-                return (
-                  <div key={page.id}>
-                    <button
-                      onClick={() => setExpandedPages((p) => ({ ...p, [page.id]: !p[page.id] }))}
-                      className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-left transition-all ${isActive ? "bg-slate-800/60 text-white" : "text-slate-400 hover:bg-slate-800/30 hover:text-slate-200"}`}
-                    >
-                      <Icon className={`w-4 h-4 shrink-0 ${isActive ? "text-violet-400" : "text-slate-600"}`} />
-                      <span className="text-xs font-semibold flex-1 truncate">{page.label}</span>
-                      {changed && <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />}
-                      <ChevronDown className={`w-3 h-3 text-slate-600 transition-transform ${isExpanded ? "" : "-rotate-90"}`} />
-                    </button>
-                    <AnimatePresence>
-                      {isExpanded && (
-                        <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }} className="overflow-hidden">
-                          <div className="ml-3 pl-3 border-l border-slate-800/60 py-1 space-y-0.5">
-                            {page.sections.map((section) => {
-                              const SIcon = section.icon;
-                              const isSectionActive = activePage === page.id && activeSection === section.key;
-                              const hasData = !!(cmsData[page.id]?.[section.key]);
-                              return (
-                                <button
-                                  key={section.key}
-                                  onClick={() => selectSection(page.id, section.key)}
-                                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-md text-left transition-all ${isSectionActive ? "bg-violet-600/15 text-violet-200" : "text-slate-500 hover:bg-slate-800/30 hover:text-slate-300"}`}
-                                >
-                                  <SIcon className={`w-3 h-3 shrink-0 ${isSectionActive ? "text-violet-400" : "text-slate-700"}`} />
-                                  <span className="text-[11px] font-medium truncate flex-1">{section.label}</span>
-                                  {hasData && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+      {/* Instructions */}
+      <div className="mx-auto max-w-[1400px] px-6 pt-6 pb-3">
+        <div className="flex flex-wrap items-center gap-4 text-[11px] text-zinc-500">
+          <span className="flex items-center gap-1"><GripVertical className="h-3.5 w-3.5" /> Drag to reorder sections &amp; cards</span>
+          <span className="flex items-center gap-1"><Pencil className="h-3.5 w-3.5" /> Click cards to edit</span>
+          <span className="flex items-center gap-1"><Plus className="h-3.5 w-3.5" /> Add new items per section</span>
+          <span className="flex items-center gap-1"><Megaphone className="h-3.5 w-3.5" /> Ad Cards link to any page</span>
+        </div>
+      </div>
 
-          <div className="border-t border-slate-800/60 p-4 mt-4">
-            <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest mb-3">Quick Links</p>
-            <div className="space-y-1">
-              <a href="/admin/page-builder" className="flex items-center gap-2 px-3 py-2 rounded-md text-[11px] text-slate-500 hover:text-slate-300 hover:bg-slate-800/30 transition-colors">
-                <LayoutTemplate className="w-3 h-3" /> Page Builder
-              </a>
-              <a href="/admin/pricing" className="flex items-center gap-2 px-3 py-2 rounded-md text-[11px] text-slate-500 hover:text-slate-300 hover:bg-slate-800/30 transition-colors">
-                <DollarSign className="w-3 h-3" /> Pricing
-              </a>
-              <a href="/admin" className="flex items-center gap-2 px-3 py-2 rounded-md text-[11px] text-slate-500 hover:text-slate-300 hover:bg-slate-800/30 transition-colors">
-                <Settings className="w-3 h-3" /> Admin Home
-              </a>
-            </div>
-          </div>
-        </aside>
-
-        {/* ── MAIN EDITOR ─────────────────────────────────────────────── */}
-        <main className="flex-1 min-w-0 px-6 py-6 overflow-y-auto">
-          {loading ? (
-            <div className="flex flex-col items-center justify-center h-64 gap-3 text-slate-600">
-              <Loader2 className="w-6 h-6 animate-spin" />
-              <p className="text-xs">Loading CMS data...</p>
-            </div>
-          ) : (
-            <>
-              <div className="mb-6">
-                <div className="flex items-center gap-2 text-slate-500 text-xs mb-1.5">
-                  <Globe className="w-3 h-3" />
-                  <span>{currentPage.label}</span>
-                  {currentSection && (
-                    <>
-                      <ChevronRight className="w-3 h-3" />
-                      <span className="text-violet-400 font-semibold">{currentSection.label}</span>
-                    </>
-                  )}
-                </div>
-                <h2 className="text-xl font-bold text-white">{currentSection?.label ?? currentPage.label}</h2>
-                <p className="text-slate-500 text-xs mt-1">Edit the content below and click &quot;Save Page&quot; to publish changes.</p>
-              </div>
-
-              <AnimatePresence mode="wait">
-                <motion.div key={`${activePage}-${activeSection}`} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}>
-                  {renderEditor()}
-                </motion.div>
-              </AnimatePresence>
-
-              {hasChanges[activePage] && (
-                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="sticky bottom-4 mt-8 flex justify-end">
-                  <motion.button
-                    onClick={() => savePage(activePage)}
-                    disabled={saving}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-bold text-white shadow-2xl disabled:opacity-50"
-                    style={{ background: "linear-gradient(135deg, #7c3aed, #9333ea)", boxShadow: "0 0 30px rgba(124,58,237,0.5), 0 4px 16px rgba(0,0,0,0.3)" }}
-                  >
-                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                    Save {currentPage.label}
-                    <Sparkles className="w-4 h-4 opacity-70" />
-                  </motion.button>
-                </motion.div>
-              )}
-            </>
-          )}
-        </main>
+      {/* Sections */}
+      <div className="mx-auto max-w-[1400px] px-6 pb-20 space-y-4">
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleSectionDragEnd}>
+          <SortableContext items={sectionOrder.map((s) => s._id)} strategy={verticalListSortingStrategy}>
+            {sectionOrder.map((sec) => (
+              <SortableItem key={sec._id} id={sec._id}>
+                <SectionBlock section={sec} onToggle={() => toggleSection(sec._id)} onAddItem={addMap[sec.type]}>
+                  {renderSection(sec)}
+                </SectionBlock>
+              </SortableItem>
+            ))}
+          </SortableContext>
+        </DndContext>
       </div>
     </div>
   );
