@@ -1207,9 +1207,32 @@ export default function ExplorePage() {
 
   // ── Section order from CMS (default if none saved) ──────────────────────────
   const defaultOrder = ["heroSlides", "statsCounter", "coreTools", "topChoice", "adCards", "apps", "pricingPreview", "models"];
+
+  // Hardcoded sections that are always injected (not CMS-managed)
+  const INJECTED_SECTIONS: Record<string, { after: string }> = {
+    statsCounter: { after: "heroSlides" },
+    pricingPreview: { after: "apps" },
+  };
+
   const sectionOrder = useMemo(() => {
-    if (cms?.sectionOrder && cms.sectionOrder.length > 0) return cms.sectionOrder;
-    return defaultOrder.map((type) => ({ _id: type, type, label: type, visible: true }));
+    const base = cms?.sectionOrder && cms.sectionOrder.length > 0
+      ? cms.sectionOrder
+      : defaultOrder.map((type) => ({ _id: type, type, label: type, visible: true }));
+
+    // Inject hardcoded sections if missing from CMS order
+    let result = [...base];
+    for (const [type, { after }] of Object.entries(INJECTED_SECTIONS)) {
+      if (!result.some((s) => s.type === type)) {
+        const afterIdx = result.findIndex((s) => s.type === after);
+        const entry = { _id: type, type, label: type, visible: true };
+        if (afterIdx >= 0) {
+          result.splice(afterIdx + 1, 0, entry);
+        } else {
+          result.push(entry);
+        }
+      }
+    }
+    return result;
   }, [cms]);
 
   const sectionMap: Record<string, React.ReactNode> = {
