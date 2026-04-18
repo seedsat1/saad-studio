@@ -48,7 +48,7 @@ async function handleCreditExpiry(userId: string): Promise<void> {
   const now = new Date();
   if (user.creditsExpireAt > now) return; // not expired yet
 
-  // Credits have expired — check if user has an active annual subscription
+  // Credits have expired — check if user has an active subscription (annual OR monthly)
   const subscription = await prismadb.userSubscription.findUnique({
     where: { userId },
     select: {
@@ -59,14 +59,13 @@ async function handleCreditExpiry(userId: string): Promise<void> {
     },
   });
 
-  const isAnnualActive =
-    subscription?.billingInterval === "annual" &&
+  const isSubscriptionActive =
     subscription?.stripePriceId &&
     subscription?.stripeCurrentPeriodEnd &&
     subscription.stripeCurrentPeriodEnd.getTime() + 86_400_000 > now.getTime();
 
-  if (isAnnualActive && subscription?.planId) {
-    // Annual subscriber — auto-renew monthly credits
+  if (isSubscriptionActive && subscription?.planId) {
+    // Active subscriber (monthly or annual) — auto-renew monthly credits
     const plan = SAAD_PLANS.find((p) => p.id === subscription.planId);
     const monthlyCredits = plan?.credits ?? user.monthlyCredits;
 
@@ -84,7 +83,7 @@ async function handleCreditExpiry(userId: string): Promise<void> {
     }
   }
 
-  // Monthly subscriber or no active subscription — expire credits
+  // No active subscription — expire credits
   await prismadb.user.update({
     where: { id: userId },
     data: {

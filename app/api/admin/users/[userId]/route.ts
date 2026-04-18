@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { clerkClient } from "@clerk/nextjs/server";
 import { isAdmin } from "@/lib/is-admin";
 import prismadb from "@/lib/prismadb";
+import { WELCOME_SIGNUP_CREDITS } from "@/lib/credits-config";
 
 // Helper: ensure user row exists in our DB using Clerk data
 async function ensureUserRow(userId: string) {
@@ -12,7 +13,7 @@ async function ensureUserRow(userId: string) {
   const email = cu?.emailAddresses[0]?.emailAddress ?? `${userId}@unknown`;
   const name = [cu?.firstName, cu?.lastName].filter(Boolean).join(" ") || null;
   return prismadb.user.create({
-    data: { id: userId, email, name, creditBalance: 0, role: "USER", isBanned: false },
+    data: { id: userId, email, name, creditBalance: WELCOME_SIGNUP_CREDITS, role: "USER", isBanned: false },
   });
 }
 
@@ -24,6 +25,7 @@ export async function PATCH(
     return new NextResponse("Unauthorized", { status: 401 });
   }
 
+  try {
   const body = await req.json();
   const { action, isBanned, amount, role } = body as {
     action: "ban" | "credits" | "role";
@@ -65,6 +67,10 @@ export async function PATCH(
   }
 
   return NextResponse.json({ ok: true });
+  } catch (err) {
+    console.error("[admin/users PATCH]", err);
+    return NextResponse.json({ error: "Internal error" }, { status: 500 });
+  }
 }
 
 export async function DELETE(
