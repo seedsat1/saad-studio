@@ -6,9 +6,13 @@ type PromoMediaMap = Record<string, { url: string; type: string }>;
 
 let _cache: PromoMediaMap | null = null;
 let _promise: Promise<PromoMediaMap> | null = null;
+let _fetchedAt = 0;
+const CACHE_TTL = 30_000; // refresh every 30s
 
-function fetchOnce(): Promise<PromoMediaMap> {
-  if (_promise) return _promise;
+function fetchOnce(force = false): Promise<PromoMediaMap> {
+  const now = Date.now();
+  if (_promise && !force && now - _fetchedAt < CACHE_TTL) return _promise;
+  _fetchedAt = now;
   _promise = fetch("/api/promo/media")
     .then((r) => r.json())
     .then((d) => {
@@ -16,7 +20,7 @@ function fetchOnce(): Promise<PromoMediaMap> {
       return _cache!;
     })
     .catch(() => {
-      _cache = {};
+      _cache = _cache || {};
       return _cache;
     });
   return _promise;
@@ -30,10 +34,7 @@ export function usePromoMedia(): PromoMediaMap {
   const [media, setMedia] = useState<PromoMediaMap>(_cache || {});
 
   useEffect(() => {
-    if (_cache) {
-      setMedia(_cache);
-      return;
-    }
+    // Always try to fetch — fetchOnce handles TTL internally
     fetchOnce().then(setMedia);
   }, []);
 
