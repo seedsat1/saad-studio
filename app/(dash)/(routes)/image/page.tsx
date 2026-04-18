@@ -455,12 +455,17 @@ function ResultGrid({ items, onInspect, onRemix, onDelete }: { items: ResultItem
   useEffect(() => {
     const node = containerRef.current;
     if (!node) return;
-    const resize = () => setContainerWidth(node.clientWidth);
-    resize();
-    const observer = new ResizeObserver(resize);
+    const measure = () => {
+      const w = node.clientWidth || node.getBoundingClientRect().width;
+      if (w > 0) setContainerWidth(w);
+    };
+    // Measure after layout settles
+    measure();
+    requestAnimationFrame(measure);
+    const observer = new ResizeObserver(measure);
     observer.observe(node);
     return () => observer.disconnect();
-  }, []);
+  }, [items.length]);
 
   if (!items.length) return <div className="flex h-full items-center justify-center text-sm text-zinc-500">Start generating to see results.</div>;
 
@@ -474,7 +479,7 @@ function ResultGrid({ items, onInspect, onRemix, onDelete }: { items: ResultItem
   const rows = buildJustifiedRows(items, w, 8, targetHeight);
 
   return (
-    <div ref={containerRef} className="space-y-2">
+    <div ref={containerRef} className="w-full space-y-2">
       {rows.map((row, rowIndex) => (
         <div key={`row-${rowIndex}`} className="flex gap-2">
           {row.items.map((item) => (
