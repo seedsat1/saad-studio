@@ -252,7 +252,7 @@ export async function POST(req: NextRequest) {
         // GPT Image I2I / Wan / Flux-2 I2I: always array
         input.input_urls = resolvedRefs;
         // Wan spec: aspect_ratio must not be sent when input_urls is present
-        delete input.aspect_ratio;
+        if (isWanModel) delete input.aspect_ratio;
       } else if (imageInputField === "image_url") {
         // Qwen models: single string
         input.image_url = resolvedRefs[0];

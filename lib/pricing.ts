@@ -28,9 +28,13 @@ async function loadModels(): Promise<PricingModel[]> {
   try {
     const rows = await prismadb.pricingConstitution.findMany();
     if (rows.length > 0) {
-      _cachedModels = rows as unknown as PricingModel[];
+      // Merge: DB rows override defaults, but keep defaults for any missing models
+      const dbModels = rows as unknown as PricingModel[];
+      const dbIds = new Set(dbModels.map((m) => m.id));
+      const merged = [...dbModels, ...DEFAULT_MODELS.filter((d) => !dbIds.has(d.id))];
+      _cachedModels = merged;
       _cacheTime = now;
-      return _cachedModels;
+      return merged;
     }
   } catch {
     // DB unavailable — fall back to defaults

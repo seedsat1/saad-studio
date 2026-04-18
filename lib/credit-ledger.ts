@@ -139,7 +139,7 @@ type SpendCreditsInput = {
 };
 
 export async function spendCredits(input: SpendCreditsInput) {
-  const credits = Math.max(0, Math.floor(input.credits));
+  const credits = Math.max(0, Math.ceil(input.credits));
   if (credits <= 0) {
     throw new Error(`Invalid credit amount: ${input.credits}`);
   }

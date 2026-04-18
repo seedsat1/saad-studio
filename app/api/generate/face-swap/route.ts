@@ -150,6 +150,9 @@ export async function POST(req: NextRequest) {
     }
 
     const creditsToCharge = await getGenerationCost("tool:face-swap");
+    if (creditsToCharge <= 0) {
+      return NextResponse.json({ error: "No credit configuration for face-swap tool." }, { status: 400 });
+    }
     const charge = await spendCredits({
       userId,
       credits: creditsToCharge,

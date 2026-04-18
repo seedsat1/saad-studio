@@ -151,6 +151,9 @@ export async function POST(req: NextRequest) {
     }
 
     const creditsToCharge = await getGenerationCost("tool:upscale");
+    if (creditsToCharge <= 0) {
+      return NextResponse.json({ error: "No credit configuration for upscale tool." }, { status: 400 });
+    }
     const charge = await spendCredits({
       userId,
       credits: creditsToCharge,
