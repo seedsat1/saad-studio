@@ -147,6 +147,68 @@ const COLORS = [
 
 const BADGES = ["", "NEW", "TOP", "HOT", "PRO"];
 
+/* ── Seed data: matches the hardcoded content on the live landing page ──────── */
+const SEED_HERO_SLIDES: HeroSlide[] = [
+  { _id: uid(), title: "Cinema Studio 3.0", subtitle: "Direct cinematic worlds with AI — from concept to final cut in minutes.", tag: "New Release", bgImage: "/landing/hero-1.jpg", ctaHref: "/cinema-studio", gradient: "from-slate-950 via-violet-950/60 to-slate-950", accentFrom: "from-violet-500", accentTo: "to-indigo-500" },
+  { _id: uid(), title: "Zephyr Original Series", subtitle: "AI-generated episodic content with consistent characters & cinematic audio.", tag: "Original", bgImage: "/landing/hero-2.jpg", ctaHref: "/original-series", gradient: "from-slate-950 via-rose-950/50 to-slate-950", accentFrom: "from-rose-500", accentTo: "to-pink-500" },
+  { _id: uid(), title: "Image Studio 4K", subtitle: "19 world-class models. One canvas. Zero limits.", tag: "Top Choice", bgImage: "/landing/hero-3.jpg", ctaHref: "/image", gradient: "from-slate-950 via-cyan-950/50 to-slate-950", accentFrom: "from-cyan-500", accentTo: "to-sky-500" },
+  { _id: uid(), title: "Nano Banana Pro", subtitle: "Our fastest, sharpest proprietary image model. Now in 4K.", tag: "Exclusive", bgImage: "/landing/hero-4.jpg", ctaHref: "/image?model=nano-banana-pro", gradient: "from-slate-950 via-amber-950/50 to-slate-950", accentFrom: "from-amber-400", accentTo: "to-orange-500" },
+];
+
+const SEED_CORE_TOOLS: ToolCard[] = [
+  { _id: uid(), title: "Create Image", description: "Generate stunning visuals with 19 AI models", href: "/image", badge: "TOP", gradient: "from-pink-600/40 via-violet-700/30 to-indigo-900/60", accentColor: "text-pink-400", image: "/landing/tool-create-image.png" },
+  { _id: uid(), title: "Create Video", description: "Text-to-video with 13 production engines", href: "/video", badge: "NEW", gradient: "from-orange-600/40 via-rose-700/30 to-violet-900/60", accentColor: "text-orange-400", image: "/landing/tool-create-video.png" },
+  { _id: uid(), title: "Cinema Studio Video", description: "Professional cinematic AI production", href: "/cinema-studio", badge: "PRO", gradient: "from-violet-600/40 via-purple-700/30 to-slate-900/60", accentColor: "text-violet-400", image: "/landing/tool-cinema.png" },
+  { _id: uid(), title: "AI Influencer", description: "Build virtual influencer identities at scale", href: "/image/ai-influencer", badge: "HOT", gradient: "from-amber-500/40 via-orange-600/30 to-rose-900/60", accentColor: "text-amber-400", image: "/landing/tool-ai-influencer.png" },
+  { _id: uid(), title: "Soul ID Character", description: "Consistent character design across scenes", href: "/image/soul-id-character", badge: "NEW", gradient: "from-cyan-600/40 via-sky-700/30 to-indigo-900/60", accentColor: "text-cyan-400", image: "/landing/tool-soul-id.png" },
+  { _id: uid(), title: "Lipsync Studio", description: "Audio-driven facial animation engine", href: "/video", badge: "", gradient: "from-rose-600/40 via-pink-700/30 to-purple-900/60", accentColor: "text-rose-400", image: "/landing/tool-lipsync.png" },
+  { _id: uid(), title: "Vibe Motion", description: "Music-synced dynamic video edits", href: "/video", badge: "", gradient: "from-emerald-600/40 via-teal-700/30 to-cyan-900/60", accentColor: "text-emerald-400", image: "/landing/tool-vibe-motion.png" },
+  { _id: uid(), title: "Draw to Video", description: "Animate sketched concepts into motion", href: "/video", badge: "", gradient: "from-fuchsia-600/40 via-violet-700/30 to-indigo-900/60", accentColor: "text-fuchsia-400", image: "/landing/tool-draw-video.png" },
+];
+
+const SEED_TOP_CHOICE: ToolCard[] = [
+  { _id: uid(), title: "Relight", description: "Relight any image with AI precision", href: "/image", badge: "NEW", gradient: "from-yellow-500/40 via-amber-600/30 to-orange-900/60", accentColor: "text-yellow-400", image: "/landing/tool-relight.png" },
+  { _id: uid(), title: "Face Swap", description: "Swap faces with pixel-perfect accuracy", href: "/image", badge: "TOP", gradient: "from-rose-500/40 via-pink-600/30 to-fuchsia-900/60", accentColor: "text-rose-400", image: "/landing/tool-face-swap.png" },
+  { _id: uid(), title: "UGC Factory", description: "User-generated content simulator", href: "/video", badge: "HOT", gradient: "from-indigo-500/40 via-blue-600/30 to-sky-900/60", accentColor: "text-indigo-400", image: "/landing/tool-ugc-factory.png" },
+  { _id: uid(), title: "Video Upscale", description: "Enhance resolution to 4K / 8K", href: "/video", badge: "", gradient: "from-teal-500/40 via-emerald-600/30 to-cyan-900/60", accentColor: "text-teal-400", image: "/landing/tool-upscale.png" },
+  { _id: uid(), title: "Character Swap", description: "Transform any character seamlessly", href: "/image", badge: "", gradient: "from-purple-500/40 via-violet-600/30 to-indigo-900/60", accentColor: "text-purple-400", image: "/landing/tool-char-swap.png" },
+  { _id: uid(), title: "Fashion Factory", description: "AI fashion & outfit design studio", href: "/image", badge: "NEW", gradient: "from-pink-500/40 via-rose-600/30 to-red-900/60", accentColor: "text-pink-400", image: "/landing/tool-fashion-factory.png" },
+];
+
+const SEED_APPS: AppItem[] = [
+  { _id: uid(), title: "AI Chat", color: "text-violet-400" },
+  { _id: uid(), title: "Upscaler", color: "text-amber-400" },
+  { _id: uid(), title: "Avatar Gen", color: "text-pink-400" },
+  { _id: uid(), title: "BG Remover", color: "text-cyan-400" },
+  { _id: uid(), title: "Ad Creator", color: "text-orange-400" },
+  { _id: uid(), title: "Logo Maker", color: "text-lime-400" },
+  { _id: uid(), title: "Story AI", color: "text-rose-400" },
+  { _id: uid(), title: "QR Art", color: "text-teal-400" },
+  { _id: uid(), title: "Denoiser", color: "text-blue-400" },
+  { _id: uid(), title: "Meme Studio", color: "text-fuchsia-400" },
+  { _id: uid(), title: "Comic Gen", color: "text-yellow-400" },
+  { _id: uid(), title: "3D Avatar", color: "text-indigo-400" },
+  { _id: uid(), title: "Style Transfer", color: "text-emerald-400" },
+  { _id: uid(), title: "Smart Crop", color: "text-sky-400" },
+  { _id: uid(), title: "Trend AI", color: "text-red-400" },
+  { _id: uid(), title: "Portrait AI", color: "text-purple-400" },
+  { _id: uid(), title: "Sprite Gen", color: "text-green-400" },
+  { _id: uid(), title: "NPC Creator", color: "text-amber-300" },
+];
+
+const SEED_MODELS: ModelItem[] = [
+  { _id: uid(), name: "Kling 3.0", tag: "Video", color: "text-violet-400", ring: "ring-violet-500/30" },
+  { _id: uid(), name: "OpenAI Sora", tag: "Video", color: "text-sky-400", ring: "ring-sky-500/30" },
+  { _id: uid(), name: "Alibaba WAN", tag: "Video", color: "text-orange-400", ring: "ring-orange-500/30" },
+  { _id: uid(), name: "Google Veo 3", tag: "Video", color: "text-blue-400", ring: "ring-blue-500/30" },
+  { _id: uid(), name: "MiniMax", tag: "Video", color: "text-rose-400", ring: "ring-rose-500/30" },
+  { _id: uid(), name: "Seedance 2.0", tag: "Video", color: "text-teal-400", ring: "ring-teal-500/30" },
+  { _id: uid(), name: "FLUX.2", tag: "Image", color: "text-violet-300", ring: "ring-violet-400/30" },
+  { _id: uid(), name: "GPT Image 1.5", tag: "Image", color: "text-emerald-400", ring: "ring-emerald-500/30" },
+  { _id: uid(), name: "Google Imagen 4", tag: "Image", color: "text-cyan-400", ring: "ring-cyan-500/30" },
+  { _id: uid(), name: "Nano Banana Pro", tag: "Image", color: "text-amber-400", ring: "ring-amber-500/30" },
+];
+
 function cn(...cls: (string | false | undefined | null)[]) {
   return cls.filter(Boolean).join(" ");
 }
@@ -519,12 +581,12 @@ function SectionBlock({ section, children, onToggle, onAddItem }: {
 export default function VisualCmsPage() {
   /* ── State ──────────────────────────────────────────────────────────────── */
   const [sectionOrder, setSectionOrder] = useState<SectionOrder[]>(DEFAULT_SECTIONS);
-  const [heroSlides, setHeroSlides] = useState<HeroSlide[]>([]);
-  const [coreTools, setCoreTools] = useState<ToolCard[]>([]);
-  const [topChoice, setTopChoice] = useState<ToolCard[]>([]);
+  const [heroSlides, setHeroSlides] = useState<HeroSlide[]>(SEED_HERO_SLIDES);
+  const [coreTools, setCoreTools] = useState<ToolCard[]>(SEED_CORE_TOOLS);
+  const [topChoice, setTopChoice] = useState<ToolCard[]>(SEED_TOP_CHOICE);
   const [adCards, setAdCards] = useState<AdCard[]>([]);
-  const [apps, setApps] = useState<AppItem[]>([]);
-  const [models, setModels] = useState<ModelItem[]>([]);
+  const [apps, setApps] = useState<AppItem[]>(SEED_APPS);
+  const [models, setModels] = useState<ModelItem[]>(SEED_MODELS);
 
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
