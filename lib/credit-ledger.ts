@@ -21,16 +21,25 @@ export async function ensureUserRow(userId: string) {
   const email = clerkUser?.emailAddresses?.[0]?.emailAddress ?? `${userId}@unknown`;
   const name = [clerkUser?.firstName, clerkUser?.lastName].filter(Boolean).join(" ") || null;
 
-  return prismadb.user.create({
-    data: {
-      id: userId,
-      email,
-      name,
-      creditBalance: WELCOME_SIGNUP_CREDITS,
-      role: "USER",
-      isBanned: false,
-    },
-  });
+  try {
+    return await prismadb.user.create({
+      data: {
+        id: userId,
+        email,
+        name,
+        creditBalance: WELCOME_SIGNUP_CREDITS,
+        role: "USER",
+        isBanned: false,
+      },
+    });
+  } catch {
+    // Unique-constraint race or email already used by another row
+    const retry = await prismadb.user.findUnique({ where: { id: userId } });
+    if (retry) return retry;
+    const byEmail = await prismadb.user.findUnique({ where: { email } });
+    if (byEmail) return byEmail;
+    throw new Error(`Cannot create DB row for user ${userId}`);
+  }
 }
 
 // ─── Credit Expiry & Renewal ─────────────────────────────────────────────────

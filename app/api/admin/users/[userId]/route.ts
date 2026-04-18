@@ -12,9 +12,18 @@ async function ensureUserRow(userId: string) {
   const cu = await clerk.users.getUser(userId).catch(() => null);
   const email = cu?.emailAddresses[0]?.emailAddress ?? `${userId}@unknown`;
   const name = [cu?.firstName, cu?.lastName].filter(Boolean).join(" ") || null;
-  return prismadb.user.create({
-    data: { id: userId, email, name, creditBalance: WELCOME_SIGNUP_CREDITS, role: "USER", isBanned: false },
-  });
+  try {
+    return await prismadb.user.create({
+      data: { id: userId, email, name, creditBalance: WELCOME_SIGNUP_CREDITS, role: "USER", isBanned: false },
+    });
+  } catch {
+    // Unique-constraint race — row may now exist, or email belongs to another id
+    const retry = await prismadb.user.findUnique({ where: { id: userId } });
+    if (retry) return retry;
+    const byEmail = await prismadb.user.findUnique({ where: { email } });
+    if (byEmail) return byEmail;
+    throw new Error(`Cannot create DB row for user ${userId}`);
+  }
 }
 
 export async function PATCH(
