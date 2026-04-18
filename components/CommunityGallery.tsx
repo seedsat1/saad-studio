@@ -24,8 +24,8 @@ const TABS = [
   },
   {
     id: "soul-2",
-    label: "Soul 2.0",
-    href: "/image/soul-id",
+    label: "ماجك",
+    href: "/image/soul-id-character",
     items: [
       { id: "s21", slotId: "explore/gallery-soul-2-1", image: "/explore/gallery-soul-2-1.jpg", name: "Couture Fantasy" },
       { id: "s22", slotId: "explore/gallery-soul-2-2", image: "/explore/gallery-soul-2-2.jpg", name: "Street Luxe" },

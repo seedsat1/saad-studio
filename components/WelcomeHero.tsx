@@ -57,8 +57,8 @@ const QUICK_TOOLS = [
     glow: "rgba(245,158,11,0.25)",
   },
   {
-    label: "Soul 2.0",
-    href: "/image/soul-id",
+    label: "ماجك",
+    href: "/image/soul-id-character",
     icon: Wand2,
     gradient: "from-fuchsia-500 to-pink-600",
     glow: "rgba(217,70,239,0.25)",
