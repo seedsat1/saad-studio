@@ -401,130 +401,69 @@ function ratioToNumber(ratio: string): number {
   return w / h;
 }
 
-type JustifiedRow = {
-  height: number;
-  items: Array<ResultItem & { ratio: number; width: number }>;
-};
-
-function buildJustifiedRows(
-  items: ResultItem[],
-  containerWidth: number,
-  gap: number,
-  targetHeight: number,
-): JustifiedRow[] {
-  if (!containerWidth || !items.length) return [];
-
-  const rows: JustifiedRow[] = [];
-  let current: Array<ResultItem & { ratio: number }> = [];
-  let ratioSum = 0;
-
-  const pushRow = (rowItems: Array<ResultItem & { ratio: number }>, forcedLast = false) => {
-    if (!rowItems.length) return;
-    const rowRatioSum = rowItems.reduce((sum, r) => sum + r.ratio, 0);
-    const rawHeight = (containerWidth - gap * (rowItems.length - 1)) / rowRatioSum;
-    const maxLastRow = Math.max(targetHeight, 220); // last row never shrinks below 220 or targetHeight
-    const boundedHeight = forcedLast
-      ? Math.max(120, Math.min(maxLastRow, rawHeight))
-      : Math.max(100, Math.min(targetHeight * 1.5, rawHeight));
-    rows.push({
-      height: boundedHeight,
-      items: rowItems.map((r) => ({ ...r, width: boundedHeight * r.ratio })),
-    });
-  };
-
-  for (const item of items) {
-    const ratio = ratioToNumber(item.aspect);
-    current.push({ ...item, ratio });
-    ratioSum += ratio;
-    const estimatedWidth = ratioSum * targetHeight + gap * (current.length - 1);
-    if (estimatedWidth >= containerWidth * 0.92) {
-      pushRow(current, false);
-      current = [];
-      ratioSum = 0;
-    }
-  }
-
-  if (current.length) pushRow(current, true);
-  return rows;
+function ratioCss(ratio: string): string {
+  const [w, h] = ratio.split(":").map(Number);
+  if (!w || !h) return "1 / 1";
+  return `${w} / ${h}`;
 }
 
 function ResultGrid({ items, onInspect, onRemix, onDelete }: { items: ResultItem[]; onInspect: (asset: Asset) => void; onRemix: (item: ResultItem) => void; onDelete: (id: string) => void }) {
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const [containerWidth, setContainerWidth] = useState(0);
-
-  useEffect(() => {
-    const node = containerRef.current;
-    if (!node) return;
-    const measure = () => {
-      const w = node.clientWidth || node.getBoundingClientRect().width;
-      if (w > 0) setContainerWidth(w);
-    };
-    // Measure after layout settles
-    measure();
-    requestAnimationFrame(measure);
-    const observer = new ResizeObserver(measure);
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, [items.length]);
-
   if (!items.length) return <div className="flex h-full items-center justify-center text-sm text-zinc-500">Start generating to see results.</div>;
 
-  const w = Math.max(containerWidth, 320);
-  // targetHeight adapts: few images → larger; many images → ~6 per row
-  const targetHeight =
-    items.length <= 2  ? Math.round(w * 0.44) :
-    items.length <= 4  ? Math.round(w * 0.30) :
-    items.length <= 8  ? Math.round(w * 0.22) :
-    Math.max(150, Math.round((w - 5 * 8) / 6));
-  const rows = buildJustifiedRows(items, w, 8, targetHeight);
-
   return (
-    <div ref={containerRef} className="w-full space-y-2">
-      {rows.map((row, rowIndex) => (
-        <div key={`row-${rowIndex}`} className="flex gap-2">
-          {row.items.map((item) => (
+    <>
+      <style>{`
+        .result-masonry { column-count: 4; column-gap: 8px; }
+        @media (max-width: 1280px) { .result-masonry { column-count: 3; } }
+        @media (max-width: 860px)  { .result-masonry { column-count: 2; } }
+        @media (max-width: 480px)  { .result-masonry { column-count: 1; } }
+      `}</style>
+      <div className="result-masonry w-full">
+        <AnimatePresence>
+          {items.map((item) => (
             <motion.div
               key={item.id}
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
               transition={{ duration: 0.2 }}
-              className="group relative flex-shrink-0 cursor-pointer overflow-hidden rounded-2xl ring-1 ring-white/10"
-              style={{ width: item.width, height: row.height }}
+              className="group relative mb-2 cursor-pointer overflow-hidden rounded-2xl ring-1 ring-white/10"
+              style={{ breakInside: "avoid", aspectRatio: ratioCss(item.aspect) }}
               onClick={() => {
                 if (item.isPending) return;
                 onInspect({ type: "image", url: item.url, prompt: item.prompt, model: item.model, title: "Generated image" });
               }}
             >
-          {item.isPending ? (
-            <div className="relative h-full w-full overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-              <motion.div
-                className="absolute inset-0"
-                style={{ background: "linear-gradient(105deg, transparent 20%, rgba(236,72,153,0.16) 50%, transparent 80%)" }}
-                animate={{ x: ["-120%", "120%"] }}
-                transition={{ duration: 1.4, repeat: Infinity, ease: "linear" }}
-              />
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-center">
-                <div className="rounded-full bg-pink-500/20 px-3 py-1 text-[11px] font-semibold text-pink-300 ring-1 ring-pink-400/30">Generating...</div>
-                <div className="text-[11px] text-zinc-400">{item.model}</div>
-              </div>
-            </div>
-          ) : (
-            <img src={item.url} alt={item.prompt} className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.04]" />
-          )}
-          <div className="absolute left-2 top-2 rounded-md bg-black/60 px-2 py-0.5 text-[10px] text-zinc-200">{item.model} • {item.aspect}</div>
-          {!item.isPending ? (
-            <div className="absolute inset-0 flex items-end justify-center gap-2 bg-black/0 pb-3 opacity-0 transition duration-200 group-hover:bg-black/45 group-hover:opacity-100">
-              <button onClick={(e) => { e.stopPropagation(); onInspect({ type: "image", url: item.url, prompt: item.prompt, model: item.model, title: "Generated image" }); }} className="rounded-lg bg-white/15 p-2 text-white ring-1 ring-white/20"><Eye className="h-4 w-4" /></button>
-              <a href={item.url} download onClick={(e) => e.stopPropagation()} className="rounded-lg bg-white/15 p-2 text-white ring-1 ring-white/20"><Download className="h-4 w-4" /></a>
-              <button onClick={(e) => { e.stopPropagation(); onRemix(item); }} className="rounded-lg bg-white/15 px-3 py-2 text-xs font-semibold text-white ring-1 ring-white/20">Remix</button>
-              <button onClick={(e) => { e.stopPropagation(); onDelete(item.id); }} className="rounded-lg bg-white/15 px-3 py-2 text-xs font-semibold text-white ring-1 ring-white/20">Delete</button>
-            </div>
-          ) : null}
-        </motion.div>
+              {item.isPending ? (
+                <div className="relative h-full w-full overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+                  <motion.div
+                    className="absolute inset-0"
+                    style={{ background: "linear-gradient(105deg, transparent 20%, rgba(236,72,153,0.16) 50%, transparent 80%)" }}
+                    animate={{ x: ["-120%", "120%"] }}
+                    transition={{ duration: 1.4, repeat: Infinity, ease: "linear" }}
+                  />
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-center">
+                    <div className="rounded-full bg-pink-500/20 px-3 py-1 text-[11px] font-semibold text-pink-300 ring-1 ring-pink-400/30">Generating...</div>
+                    <div className="text-[11px] text-zinc-400">{item.model}</div>
+                  </div>
+                </div>
+              ) : (
+                <img src={item.url} alt={item.prompt} className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.04]" />
+              )}
+              <div className="absolute left-2 top-2 rounded-md bg-black/60 px-2 py-0.5 text-[10px] text-zinc-200">{item.model} • {item.aspect}</div>
+              {!item.isPending ? (
+                <div className="absolute inset-0 flex items-end justify-center gap-2 bg-black/0 pb-3 opacity-0 transition duration-200 group-hover:bg-black/45 group-hover:opacity-100">
+                  <button onClick={(e) => { e.stopPropagation(); onInspect({ type: "image", url: item.url, prompt: item.prompt, model: item.model, title: "Generated image" }); }} className="rounded-lg bg-white/15 p-2 text-white ring-1 ring-white/20"><Eye className="h-4 w-4" /></button>
+                  <a href={item.url} download onClick={(e) => e.stopPropagation()} className="rounded-lg bg-white/15 p-2 text-white ring-1 ring-white/20"><Download className="h-4 w-4" /></a>
+                  <button onClick={(e) => { e.stopPropagation(); onRemix(item); }} className="rounded-lg bg-white/15 px-3 py-2 text-xs font-semibold text-white ring-1 ring-white/20">Remix</button>
+                  <button onClick={(e) => { e.stopPropagation(); onDelete(item.id); }} className="rounded-lg bg-white/15 px-3 py-2 text-xs font-semibold text-white ring-1 ring-white/20">Delete</button>
+                </div>
+              ) : null}
+            </motion.div>
           ))}
-        </div>
-      ))}
-    </div>
+        </AnimatePresence>
+      </div>
+    </>
   );
 }
 
