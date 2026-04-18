@@ -658,12 +658,13 @@ function getOptionImageCandidates(tool,optId){
   const toolId = tool.id;
   const base = `/img/beauty-options/${toolId}`;
   const toolThumb = tool.thumb ? String(tool.thumb) : '';
+  // Try default/tool-thumb first (they exist), then per-option (usually missing)
   return [
+    `${base}/default.jpg`,
+    toolThumb,
     `${base}/${optId}.jpg`,
     `${base}/${optId}.png`,
     `${base}/${optId}.webp`,
-    toolThumb,
-    `${base}/default.jpg`,
     `${base}/default.png`,
     `${base}/default.webp`
   ].filter(Boolean);
