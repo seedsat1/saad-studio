@@ -488,6 +488,12 @@ function HeroCarousel({ slides = HERO_SLIDES }: { slides?: HeroSlide[] }) {
                   title={slide.title}
                 />
               </div>
+            ) : /\.(mp4|webm|mov|ogg)([?#]|$)/i.test(slide.bgImage) ? (
+              <video
+                src={slide.bgImage}
+                autoPlay muted loop playsInline
+                className="absolute inset-0 h-full w-full object-cover object-center"
+              />
             ) : (
               <Image
                 src={slide.bgImage}

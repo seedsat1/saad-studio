@@ -259,8 +259,11 @@ function SortableItem({ id, children, className = "" }: {
   );
 }
 
+/* ── helper: is the URL a video? ─────────────────────────────────────────────── */
+const isVideoUrl = (url: string) => /\.(mp4|webm|mov|ogg)([?#]|$)/i.test(url);
+
 /* ═══════════════════════════════════════════════════════════════════════════════
-   IMAGE UPLOAD FIELD
+   IMAGE / VIDEO UPLOAD FIELD
    ═══════════════════════════════════════════════════════════════════════════════ */
 
 function ImageUpload({ value, onChange, label = "Image" }: {
@@ -298,8 +301,12 @@ function ImageUpload({ value, onChange, label = "Image" }: {
       </div>
       {value && (
         <div className="relative mt-2 h-24 w-40 rounded-lg overflow-hidden border border-white/10">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={value} alt="" className="h-full w-full object-cover" />
+          {isVideoUrl(value) ? (
+            <video src={value} muted autoPlay loop playsInline className="h-full w-full object-cover" />
+          ) : (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={value} alt="" className="h-full w-full object-cover" />
+          )}
           <button onClick={() => onChange("")}
             className="absolute top-1 right-1 h-5 w-5 flex items-center justify-center rounded-full bg-black/70 text-white hover:bg-red-600 transition-colors">
             <X className="h-3 w-3" />
@@ -386,7 +393,9 @@ function HeroSlideCard({ slide, onUpdate, onRemove }: {
     <div className="rounded-2xl border border-white/10 overflow-hidden bg-slate-900/80">
       {/* Preview */}
       <div className="relative h-44 w-full overflow-hidden cursor-pointer" onClick={() => setOpen(!open)}>
-        {slide.bgImage ? (
+        {slide.bgImage && isVideoUrl(slide.bgImage) ? (
+          <video src={slide.bgImage} muted autoPlay loop playsInline className="absolute inset-0 h-full w-full object-cover" />
+        ) : slide.bgImage ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={slide.bgImage} alt={slide.title} className="absolute inset-0 h-full w-full object-cover" />
         ) : (
