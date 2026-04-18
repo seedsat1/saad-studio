@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { usePageLayout } from "@/lib/use-page-layout";
 import { usePromoMedia, promoUrl } from "@/hooks/use-promo-media";
 import { usePromoContent } from "@/hooks/use-promo-content";
+import { useCmsData } from "@/lib/use-cms-data";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Badge = "NEW" | "PRO" | "TOP" | "HOT" | "";
@@ -715,8 +716,8 @@ function TopChoiceGrid({ cards = TOP_CHOICE }: { cards?: ToolCard[] }) {
 }
 
 // ─── 4. Apps Infinite Marquee ─────────────────────────────────────────────────
-function AppsMarquee() {
-  const doubled = [...APPS_MARQUEE, ...APPS_MARQUEE];
+function AppsMarquee({ apps = APPS_MARQUEE }: { apps?: { title: string; icon?: React.ElementType; color: string }[] }) {
+  const doubled = [...apps, ...apps];
   return (
     <FadeIn delay={0.05}>
       <section>
@@ -730,17 +731,20 @@ function AppsMarquee() {
             animate={{ x: ["0%", "-50%"] }}
             transition={{ duration: 28, repeat: Infinity, ease: "linear" }}
           >
-            {doubled.map((app, i) => (
+            {doubled.map((app, i) => {
+              const IconComp = app.icon ?? Sparkles;
+              return (
               <motion.div
                 key={i}
                 whileHover={{ scale: 1.06, y: -2 }}
                 transition={{ duration: 0.15 }}
                 className="flex shrink-0 items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.04] px-3.5 py-2.5 cursor-pointer hover:bg-white/[0.08] hover:border-white/15 transition-colors"
               >
-                <app.icon className={cn("h-4 w-4 shrink-0", app.color)} />
+                <IconComp className={cn("h-4 w-4 shrink-0", app.color)} />
                 <span className="text-xs font-semibold text-zinc-300 whitespace-nowrap">{app.title}</span>
               </motion.div>
-            ))}
+              );
+            })}
           </motion.div>
         </div>
       </section>
@@ -749,7 +753,7 @@ function AppsMarquee() {
 }
 
 // ─── 5. AI Models Trust Strip ─────────────────────────────────────────────────
-function ModelsTrustStrip() {
+function ModelsTrustStrip({ models = AI_MODELS }: { models?: { name: string; tag: string; color: string; ring?: string }[] }) {
   return (
     <FadeIn delay={0.05}>
       <section className="pb-10">
@@ -757,14 +761,14 @@ function ModelsTrustStrip() {
           Powered by Industry-Leading AI
         </p>
         <div className="flex flex-wrap items-center justify-center gap-2">
-          {AI_MODELS.map((m) => (
+          {models.map((m) => (
             <motion.div
               key={m.name}
               whileHover={{ scale: 1.06, y: -1 }}
               transition={{ duration: 0.15 }}
               className={cn(
                 "flex items-center gap-2 rounded-full bg-white/[0.04] px-4 py-2 ring-1 hover:bg-white/[0.07] transition-colors cursor-default",
-                m.ring
+                m.ring ?? "ring-violet-500/30"
               )}
             >
               <span className={cn("text-[10px] font-bold uppercase tracking-wider", m.color)}>{m.name}</span>
@@ -800,12 +804,77 @@ const TOP_CHOICE_SLOT_MAP: Record<string, string> = {
   "fashion-factory": "landing/tool-fashion-factory",
 };
 
+// CMS data types for home page
+interface CmsHeroSlide {
+  title: string;
+  subtitle: string;
+  tag: string;
+  bgImage: string;
+  ctaHref: string;
+  gradient?: string;
+  accentFrom?: string;
+  accentTo?: string;
+  youtubeUrl?: string;
+  trailerUrl?: string;
+}
+
+interface CmsToolCard {
+  id: string;
+  title: string;
+  description: string;
+  image: string;
+  href: string;
+  badge: string;
+}
+
+interface CmsAppItem {
+  title: string;
+  color: string;
+}
+
+interface CmsModelItem {
+  name: string;
+  tag: string;
+  color: string;
+}
+
+interface HomeCmsData {
+  heroSlides?: CmsHeroSlide[];
+  coreTools?: CmsToolCard[];
+  topChoice?: CmsToolCard[];
+  apps?: CmsAppItem[];
+  models?: CmsModelItem[];
+}
+
 export default function ExplorePage() {
   const { blocks } = usePageLayout("home");
   const promo = usePromoMedia();
   const promoContent = usePromoContent();
+  const { data: cms } = useCmsData<HomeCmsData>("home");
 
+  // ── Hero Slides: CMS → layout blocks → promo → hardcoded defaults ──────────
   const homeHeroSlides = useMemo<HeroSlide[]>(() => {
+    // Priority 1: CMS data from admin/cms
+    if (cms?.heroSlides && cms.heroSlides.length > 0) {
+      return cms.heroSlides.map((s, idx) => {
+        const fallback = HERO_SLIDES[idx % HERO_SLIDES.length];
+        return {
+          id: idx + 1,
+          title: s.title || fallback.title,
+          subtitle: s.subtitle || fallback.subtitle,
+          tag: s.tag || fallback.tag,
+          bgImage: s.bgImage || fallback.bgImage,
+          ctaHref: s.ctaHref || fallback.ctaHref,
+          gradient: s.gradient || fallback.gradient,
+          accentFrom: s.accentFrom || fallback.accentFrom,
+          accentTo: s.accentTo || fallback.accentTo,
+          youtubeUrl: s.youtubeUrl,
+          trailerUrl: s.trailerUrl,
+        };
+      });
+    }
+
+    // Priority 2: Layout blocks (old system)
     const heroBlocks = blocks.filter((b) => b.type === "HERO");
     const base = heroBlocks.length === 0 ? HERO_SLIDES : heroBlocks.map((b, idx) => {
       const fallback = HERO_SLIDES[idx % HERO_SLIDES.length];
@@ -825,7 +894,7 @@ export default function ExplorePage() {
         youtubeUrl: b.youtubeUrl || undefined,
       };
     });
-    // Apply promo media + text overrides
+    // Priority 3: Promo overrides on top of base
     return base.map((s, i) => {
       const slotId = HERO_SLOT_IDS[i];
       if (!slotId) return s;
@@ -841,9 +910,25 @@ export default function ExplorePage() {
       }
       return updated;
     });
-  }, [blocks, promo, promoContent]);
+  }, [blocks, promo, promoContent, cms]);
 
+  // ── Core Tools: CMS → layout blocks → promo → defaults ─────────────────────
   const homeCoreCards = useMemo<ToolCard[]>(() => {
+    if (cms?.coreTools && cms.coreTools.length > 0) {
+      return cms.coreTools.map((c, idx) => {
+        const fallback = CORE_TOOLS[idx % CORE_TOOLS.length];
+        return {
+          ...fallback,
+          id: c.id || fallback.id,
+          title: c.title || fallback.title,
+          description: c.description || fallback.description,
+          image: c.image || fallback.image,
+          href: c.href || fallback.href,
+          badge: (c.badge as Badge) || fallback.badge,
+        };
+      });
+    }
+
     const featureBlocks = blocks.filter((b) => b.type === "FEATURE_CARD");
     const base = featureBlocks.length === 0 ? CORE_TOOLS : featureBlocks.map((b, idx) => {
       const fallback = CORE_TOOLS[idx % CORE_TOOLS.length];
@@ -868,9 +953,25 @@ export default function ExplorePage() {
       }
       return updated;
     });
-  }, [blocks, promo, promoContent]);
+  }, [blocks, promo, promoContent, cms]);
 
+  // ── Top Choice: CMS → layout blocks → promo → defaults ─────────────────────
   const homeTopCards = useMemo<ToolCard[]>(() => {
+    if (cms?.topChoice && cms.topChoice.length > 0) {
+      return cms.topChoice.map((c, idx) => {
+        const fallback = TOP_CHOICE[idx % TOP_CHOICE.length];
+        return {
+          ...fallback,
+          id: c.id || fallback.id,
+          title: c.title || fallback.title,
+          description: c.description || fallback.description,
+          image: c.image || fallback.image,
+          href: c.href || fallback.href,
+          badge: (c.badge as Badge) || fallback.badge,
+        };
+      });
+    }
+
     const gridBlocks = blocks.filter((b) => b.type === "DISCOVER_GRID");
     const base = gridBlocks.length === 0 ? TOP_CHOICE : gridBlocks.map((b, idx) => {
       const fallback = TOP_CHOICE[idx % TOP_CHOICE.length];
@@ -895,7 +996,18 @@ export default function ExplorePage() {
       }
       return updated;
     });
-  }, [blocks, promo, promoContent]);
+  }, [blocks, promo, promoContent, cms]);
+
+  // ── Apps & Models: CMS → hardcoded defaults ─────────────────────────────────
+  const homeApps = useMemo(() => {
+    if (cms?.apps && cms.apps.length > 0) return cms.apps;
+    return APPS_MARQUEE;
+  }, [cms]);
+
+  const homeModels = useMemo(() => {
+    if (cms?.models && cms.models.length > 0) return cms.models;
+    return AI_MODELS;
+  }, [cms]);
 
   return (
     <div className="min-h-screen bg-slate-950 text-white">
@@ -906,8 +1018,8 @@ export default function ExplorePage() {
       <div className="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8 space-y-14 mt-12">
         <CoreToolsRow cards={homeCoreCards} />
         <TopChoiceGrid cards={homeTopCards} />
-        <AppsMarquee />
-        <ModelsTrustStrip />
+        <AppsMarquee apps={homeApps} />
+        <ModelsTrustStrip models={homeModels} />
       </div>
     </div>
   );
