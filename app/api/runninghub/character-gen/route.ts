@@ -75,24 +75,40 @@ export async function POST(req: NextRequest) {
     const rhFileName = await uploadImageToRunningHub(imageDataUrl);
     console.log("[CHARGEN] Upload success, fileName:", rhFileName);
 
-    // Create task — try empty nodeInfoList first (let AI App auto-detect),
-    // if that fails with NODE_INFO_MISMATCH, try common node patterns
+    // Create task — try multiple node patterns to find the right one
     const RH_API_BASE = "https://www.runninghub.ai/openapi/v2";
     const apiKey = getRunningHubApiKey();
 
     const nodePatterns = [
-      // Pattern 1: empty list — AI App auto-detect
-      [],
-      // Pattern 2: node "1" image (common single-input apps)
+      // Pattern 1: channel + image at nodes 1,2 (like makeup)
+      [
+        { nodeId: "1", fieldName: "channel", fieldValue: "Third-party" },
+        { nodeId: "2", fieldName: "image", fieldValue: rhFileName },
+      ],
+      // Pattern 2: just node "1" image
       [{ nodeId: "1", fieldName: "image", fieldValue: rhFileName }],
-      // Pattern 3: node "3" image
+      // Pattern 3: just node "3" image
       [{ nodeId: "3", fieldName: "image", fieldValue: rhFileName }],
-      // Pattern 4: node "1" with input_image fieldName
+      // Pattern 4: node "4" image
+      [{ nodeId: "4", fieldName: "image", fieldValue: rhFileName }],
+      // Pattern 5: channel + image at nodes 1,3
+      [
+        { nodeId: "1", fieldName: "channel", fieldValue: "Third-party" },
+        { nodeId: "3", fieldName: "image", fieldValue: rhFileName },
+      ],
+      // Pattern 6: channel + image at nodes 1,4
+      [
+        { nodeId: "1", fieldName: "channel", fieldValue: "Third-party" },
+        { nodeId: "4", fieldName: "image", fieldValue: rhFileName },
+      ],
+      // Pattern 7: node "1" input_image
       [{ nodeId: "1", fieldName: "input_image", fieldValue: rhFileName }],
+      // Pattern 8: empty (auto-detect)
+      [],
     ];
 
     let taskId = "";
-    let lastError = "";
+    const allErrors: string[] = [];
 
     for (let i = 0; i < nodePatterns.length; i++) {
       const taskBody = {
@@ -101,37 +117,35 @@ export async function POST(req: NextRequest) {
         instanceType: "default",
         usePersonalQueue: "false",
       };
-      console.log(`[CHARGEN] Attempt ${i + 1}:`, JSON.stringify(taskBody));
+      console.log(`[CHARGEN] Attempt ${i + 1}/${nodePatterns.length}:`, JSON.stringify(taskBody.nodeInfoList));
       const taskRes = await fetch(`${RH_API_BASE}${RH_AI_APP_PATH}`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
         body: JSON.stringify(taskBody),
       });
       const taskRaw = await taskRes.text();
-      console.log(`[CHARGEN] Attempt ${i + 1} response:`, taskRes.status, taskRaw.slice(0, 600));
+      console.log(`[CHARGEN] Attempt ${i + 1} response:`, taskRes.status, taskRaw.slice(0, 400));
 
       let taskData: Record<string, unknown>;
-      try { taskData = JSON.parse(taskRaw); } catch { lastError = taskRaw.slice(0, 300); continue; }
+      try { taskData = JSON.parse(taskRaw); } catch { allErrors.push(`#${i + 1}: ${taskRaw.slice(0, 150)}`); continue; }
 
       const id = (taskData.taskId as string)
         ?? ((taskData.data as Record<string, unknown> | undefined)?.taskId as string | undefined);
 
       if (id) {
         taskId = id;
-        console.log(`[CHARGEN] Success on attempt ${i + 1}, taskId:`, taskId);
+        console.log(`[CHARGEN] SUCCESS on attempt ${i + 1}, taskId:`, taskId);
         break;
       }
 
-      lastError = taskRaw.slice(0, 400);
-      // If error is not NODE_INFO_MISMATCH, don't try other patterns
+      const errCode = taskData.errorCode as string ?? "";
       const errMsg = (taskData.errorMessage as string) ?? "";
-      if (!errMsg.includes("NODE_INFO_MISMATCH")) {
-        break;
-      }
+      allErrors.push(`#${i + 1}: [${errCode}] ${errMsg}`);
+      // Always continue to next pattern
     }
 
     if (!taskId) {
-      throw new Error(`RunningHub: all node patterns failed. Last response: ${lastError}`);
+      throw new Error(`RunningHub: all ${nodePatterns.length} patterns failed. Errors: ${allErrors.join(" | ")}`);
     }
     console.log("[CHARGEN] Task created, taskId:", taskId);
 
