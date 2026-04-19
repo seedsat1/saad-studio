@@ -108,8 +108,8 @@ export const NAV_CATEGORIES: NavCategory[] = [
   },
   {
     id: "variations",
-    label: "Variations Studio",
-    emoji: "🎞️",
+    label: "Next Scene Studio",
+    emoji: "🎬",
     href: "/variations",
   },
   {
