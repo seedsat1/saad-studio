@@ -265,17 +265,68 @@ function SceneCard({
 
 /* ───────────────────────── main page ───────────────────────── */
 
+const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const MAX_SIZE = 10 * 1024 * 1024; // 10 MB
+
 export default function NextSceneEnginePage() {
   const [prompt, setPrompt] = useState("");
   const [selectedModel, setSelectedModel] = useState<string>(MODELS[0].value);
   const [activeCategory, setActiveCategory] = useState<string>("All");
+  const [uploadedImage, setUploadedImage] = useState<{ file: File; preview: string } | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
   const promptRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const dragCounter = useRef(0);
 
   const filteredScenes =
     activeCategory === "All"
       ? SCENES
       : SCENES.filter((s) => s.category === activeCategory);
 
+  /* ── image helpers ── */
+  const processFile = useCallback((file: File) => {
+    if (!ACCEPTED_TYPES.includes(file.type)) return;
+    if (file.size > MAX_SIZE) return;
+    if (uploadedImage) URL.revokeObjectURL(uploadedImage.preview);
+    setUploadedImage({ file, preview: URL.createObjectURL(file) });
+  }, [uploadedImage]);
+
+  const removeImage = useCallback(() => {
+    if (uploadedImage) URL.revokeObjectURL(uploadedImage.preview);
+    setUploadedImage(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }, [uploadedImage]);
+
+  const handleDragEnter = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    dragCounter.current++;
+    setIsDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    dragCounter.current--;
+    if (dragCounter.current === 0) setIsDragging(false);
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    dragCounter.current = 0;
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) processFile(file);
+  }, [processFile]);
+
+  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) processFile(file);
+  }, [processFile]);
+
+  /* ── scene selection (keeps uploaded image) ── */
   const handleUseScene = (hiddenPrompt: string) => {
     setPrompt(hiddenPrompt);
     promptRef.current?.focus();
@@ -322,6 +373,70 @@ export default function NextSceneEnginePage() {
               placeholder="Describe your scene — or pick one below…"
               className="w-full resize-none bg-transparent px-5 pt-5 pb-3 text-sm leading-relaxed text-white/90 placeholder-slate-500 outline-none"
             />
+
+            {/* ── image upload zone ── */}
+            <div className="px-5 pb-3">
+              {!uploadedImage ? (
+                <div
+                  onDragEnter={handleDragEnter}
+                  onDragLeave={handleDragLeave}
+                  onDragOver={handleDragOver}
+                  onDrop={handleDrop}
+                  onClick={() => fileInputRef.current?.click()}
+                  className={`group/upload flex cursor-pointer items-center gap-3 rounded-xl border border-dashed p-3 transition-all duration-300 ${
+                    isDragging
+                      ? "border-violet-400/60 bg-violet-500/10 shadow-[0_0_20px_rgba(139,92,246,0.12)]"
+                      : "border-white/[0.08] bg-white/[0.02] hover:border-violet-500/30 hover:bg-violet-500/[0.04] hover:shadow-[0_0_16px_rgba(139,92,246,0.06)]"
+                  }`}
+                >
+                  <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors duration-300 ${
+                    isDragging ? "bg-violet-500/20" : "bg-white/[0.04] group-hover/upload:bg-violet-500/10"
+                  }`}>
+                    <svg className={`h-4.5 w-4.5 transition-colors duration-300 ${isDragging ? "text-violet-300" : "text-slate-500 group-hover/upload:text-violet-400"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.41a2.25 2.25 0 013.182 0l2.068 2.068M12 6.75h.008v.008H12V6.75z" />
+                    </svg>
+                  </div>
+                  <div className="min-w-0">
+                    <p className={`text-xs font-medium transition-colors duration-300 ${isDragging ? "text-violet-300" : "text-slate-400 group-hover/upload:text-slate-300"}`}>
+                      {isDragging ? "Drop image here" : "Upload a reference image"}
+                    </p>
+                    <p className="text-[10px] text-slate-600">JPG, PNG, WebP — max 10 MB</p>
+                  </div>
+                </div>
+              ) : (
+                /* ── uploaded image preview ── */
+                <div className="flex items-center gap-3 rounded-xl border border-white/[0.08] bg-white/[0.02] p-2">
+                  <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={uploadedImage.preview}
+                      alt="Upload preview"
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-xs font-medium text-white/80">{uploadedImage.file.name}</p>
+                    <p className="text-[10px] text-slate-500">{(uploadedImage.file.size / 1024).toFixed(0)} KB</p>
+                  </div>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); removeImage(); }}
+                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-white/[0.06] bg-white/[0.03] text-slate-500 transition-all duration-200 hover:border-red-500/30 hover:bg-red-500/10 hover:text-red-400"
+                    title="Remove image"
+                  >
+                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".jpg,.jpeg,.png,.webp"
+                onChange={handleFileChange}
+                className="hidden"
+              />
+            </div>
 
             {/* bottom bar */}
             <div className="flex flex-wrap items-center gap-3 border-t border-white/[0.04] px-5 py-3">
