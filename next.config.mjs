@@ -79,6 +79,15 @@ const nextConfig = {
       },
     ];
   },
+  async redirects() {
+    return [
+      {
+        source: "/dash",
+        destination: "/explore",
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default nextConfig;
