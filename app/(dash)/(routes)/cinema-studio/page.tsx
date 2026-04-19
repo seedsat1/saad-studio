@@ -530,55 +530,57 @@ export default function NextSceneEnginePage() {
               </div>
 
               {/* duration selector */}
-              <div className="flex items-center gap-1">
-                {availableDurations.map((d) => (
-                  <button
-                    key={d.value}
-                    onClick={() => setDuration(d.value)}
-                    className={`rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-all duration-200 ${
-                      duration === d.value
-                        ? "border-violet-500/40 bg-violet-500/15 text-violet-300"
-                        : "border-white/[0.06] bg-white/[0.02] text-slate-500 hover:border-white/[0.12] hover:text-slate-300"
-                    }`}
-                  >
-                    {d.label}
-                  </button>
-                ))}
+              <div className="relative">
+                <select
+                  value={duration}
+                  onChange={(e) => setDuration(Number(e.target.value))}
+                  className="appearance-none rounded-lg border border-white/[0.08] bg-white/[0.04] py-1.5 pl-3 pr-8 text-xs font-medium text-white/80 outline-none transition hover:border-white/[0.15] focus:border-violet-500/40"
+                >
+                  {availableDurations.map((d) => (
+                    <option key={d.value} value={d.value} className="bg-[#0b1730] text-slate-100">
+                      {d.label}
+                    </option>
+                  ))}
+                </select>
+                <svg className="pointer-events-none absolute right-2.5 top-1/2 h-3 w-3 -translate-y-1/2 text-white/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
               </div>
 
               {/* aspect ratio */}
-              <div className="flex items-center gap-1">
-                {ASPECT_RATIOS.map((ar) => (
-                  <button
-                    key={ar.value}
-                    onClick={() => setAspectRatio(ar.value)}
-                    className={`rounded-lg border px-2 py-1.5 text-xs font-medium transition-all duration-200 ${
-                      aspectRatio === ar.value
-                        ? "border-violet-500/40 bg-violet-500/15 text-violet-300"
-                        : "border-white/[0.06] bg-white/[0.02] text-slate-500 hover:border-white/[0.12] hover:text-slate-300"
-                    }`}
-                    title={ar.label}
-                  >
-                    <span className="mr-1 text-[10px] opacity-70">{ar.icon}</span>{ar.label}
-                  </button>
-                ))}
+              <div className="relative">
+                <select
+                  value={aspectRatio}
+                  onChange={(e) => setAspectRatio(e.target.value)}
+                  className="appearance-none rounded-lg border border-white/[0.08] bg-white/[0.04] py-1.5 pl-3 pr-8 text-xs font-medium text-white/80 outline-none transition hover:border-white/[0.15] focus:border-violet-500/40"
+                >
+                  {ASPECT_RATIOS.map((ar) => (
+                    <option key={ar.value} value={ar.value} className="bg-[#0b1730] text-slate-100">
+                      {ar.icon} {ar.label}
+                    </option>
+                  ))}
+                </select>
+                <svg className="pointer-events-none absolute right-2.5 top-1/2 h-3 w-3 -translate-y-1/2 text-white/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
               </div>
 
               {/* quality */}
-              <div className="flex items-center gap-1">
-                {QUALITY_OPTIONS.map((q) => (
-                  <button
-                    key={q.value}
-                    onClick={() => setQuality(q.value)}
-                    className={`rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-all duration-200 ${
-                      quality === q.value
-                        ? "border-violet-500/40 bg-violet-500/15 text-violet-300"
-                        : "border-white/[0.06] bg-white/[0.02] text-slate-500 hover:border-white/[0.12] hover:text-slate-300"
-                    }`}
-                  >
-                    {q.label}
-                  </button>
-                ))}
+              <div className="relative">
+                <select
+                  value={quality}
+                  onChange={(e) => setQuality(e.target.value)}
+                  className="appearance-none rounded-lg border border-white/[0.08] bg-white/[0.04] py-1.5 pl-3 pr-8 text-xs font-medium text-white/80 outline-none transition hover:border-white/[0.15] focus:border-violet-500/40"
+                >
+                  {QUALITY_OPTIONS.map((q) => (
+                    <option key={q.value} value={q.value} className="bg-[#0b1730] text-slate-100">
+                      {q.label}
+                    </option>
+                  ))}
+                </select>
+                <svg className="pointer-events-none absolute right-2.5 top-1/2 h-3 w-3 -translate-y-1/2 text-white/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
               </div>
 
               {/* spacer */}
