@@ -25,14 +25,58 @@ const WAVESPEED_MODEL = "wavespeed-ai/qwen-image/edit-2509-multiple-angles";
  * vertical_angle:   -30 (low), 0 (eye level), 30 (elevated), 60 (high)
  * distance:         0 (close-up), 1 (medium), 2 (wide)
  */
-const PANEL_ANGLES = [
-  { horizontal_angle: 0,   vertical_angle: 0,   distance: 1, label: "Front – Medium" },
-  { horizontal_angle: 45,  vertical_angle: 0,   distance: 0, label: "Right 45° – Close-up" },
-  { horizontal_angle: -45, vertical_angle: 30,  distance: 1, label: "Left 45° – Elevated" },
-  { horizontal_angle: 90,  vertical_angle: 0,   distance: 1, label: "Right 90° – Medium" },
-  { horizontal_angle: 0,   vertical_angle: 60,  distance: 2, label: "Top-down – Wide" },
-  { horizontal_angle: -90, vertical_angle: -30, distance: 0, label: "Left 90° – Low Close-up" },
-];
+
+type StoryboardType = "production" | "short-drama" | "short-drama-2" | "comic-drama" | "comic-drama-2";
+
+interface AnglePreset {
+  horizontal_angle: number;
+  vertical_angle: number;
+  distance: number;
+  label: string;
+}
+
+const ANGLE_PRESETS: Record<StoryboardType, AnglePreset[]> = {
+  production: [
+    { horizontal_angle: 0,   vertical_angle: 0,   distance: 1, label: "Front – Medium" },
+    { horizontal_angle: 45,  vertical_angle: 0,   distance: 0, label: "Right 45° – Close-up" },
+    { horizontal_angle: -45, vertical_angle: 30,  distance: 1, label: "Left 45° – Elevated" },
+    { horizontal_angle: 90,  vertical_angle: 0,   distance: 1, label: "Right 90° – Medium" },
+    { horizontal_angle: 0,   vertical_angle: 60,  distance: 2, label: "Top-down – Wide" },
+    { horizontal_angle: -90, vertical_angle: -30, distance: 0, label: "Left 90° – Low Close-up" },
+  ],
+  "short-drama": [
+    { horizontal_angle: 0,   vertical_angle: 0,   distance: 0, label: "Front – Close-up" },
+    { horizontal_angle: 45,  vertical_angle: 15,  distance: 1, label: "Over Shoulder Right" },
+    { horizontal_angle: 0,   vertical_angle: -30, distance: 1, label: "Low Angle – Hero" },
+    { horizontal_angle: -90, vertical_angle: 0,   distance: 1, label: "Profile Left" },
+    { horizontal_angle: 60,  vertical_angle: 15,  distance: 0, label: "Dutch Angle Right" },
+    { horizontal_angle: 0,   vertical_angle: 60,  distance: 2, label: "Bird's Eye" },
+  ],
+  "short-drama-2": [
+    { horizontal_angle: 0,   vertical_angle: -15, distance: 0, label: "Dramatic Close-up" },
+    { horizontal_angle: -45, vertical_angle: 0,   distance: 1, label: "Left 3/4 – Medium" },
+    { horizontal_angle: 90,  vertical_angle: -30, distance: 0, label: "Right – Low Close-up" },
+    { horizontal_angle: 0,   vertical_angle: 30,  distance: 2, label: "High Angle – Wide" },
+    { horizontal_angle: 45,  vertical_angle: 0,   distance: 0, label: "Right 45° – Close-up" },
+    { horizontal_angle: -90, vertical_angle: 15,  distance: 1, label: "Left Profile – Elevated" },
+  ],
+  "comic-drama": [
+    { horizontal_angle: 0,   vertical_angle: -15, distance: 0, label: "Dramatic Close-up" },
+    { horizontal_angle: 0,   vertical_angle: 15,  distance: 2, label: "Wide Establishing" },
+    { horizontal_angle: -90, vertical_angle: 0,   distance: 1, label: "Side Profile" },
+    { horizontal_angle: -45, vertical_angle: 0,   distance: 1, label: "Three-Quarter Left" },
+    { horizontal_angle: 0,   vertical_angle: 45,  distance: 2, label: "High Angle" },
+    { horizontal_angle: 90,  vertical_angle: -15, distance: 0, label: "Right – Dramatic" },
+  ],
+  "comic-drama-2": [
+    { horizontal_angle: 0,   vertical_angle: 0,   distance: 0, label: "Extreme Close-up" },
+    { horizontal_angle: 45,  vertical_angle: -30, distance: 1, label: "Low Power Shot" },
+    { horizontal_angle: 0,   vertical_angle: 60,  distance: 2, label: "Over-the-top" },
+    { horizontal_angle: -45, vertical_angle: -15, distance: 0, label: "Left 3/4 – Dramatic" },
+    { horizontal_angle: 90,  vertical_angle: 0,   distance: 2, label: "Right – Wide" },
+    { horizontal_angle: 0,   vertical_angle: 0,   distance: 1, label: "Straight-on – Medium" },
+  ],
+};
 
 function getWavespeedApiKey(): string {
   const key = process.env.WAVESPEED_API_KEY;
@@ -63,7 +107,8 @@ async function uploadRefImage(base64DataUrl: string, userId: string, genId: stri
 async function createWavespeedTask(
   apiKey: string,
   imageUrl: string,
-  angle: (typeof PANEL_ANGLES)[number],
+  angle: AnglePreset,
+  aspectRatio?: string,
   prompt?: string,
 ): Promise<string> {
   const body: Record<string, unknown> = {
@@ -76,6 +121,7 @@ async function createWavespeedTask(
     enable_base64_output: false,
     enable_sync_mode: false,
   };
+  if (aspectRatio && aspectRatio !== "auto") body.aspect_ratio = aspectRatio;
   if (prompt) body.prompt = prompt;
 
   const res = await fetch(`${WAVESPEED_BASE}/${WAVESPEED_MODEL}`, {
@@ -173,11 +219,15 @@ export async function POST(req: NextRequest) {
     const body = (await req.json()) as {
       imageDataUrl?: string;
       numPanels?: number;
+      storyboardType?: string;
+      aspectRatio?: string;
       prompt?: string;
     };
 
-    const { imageDataUrl, prompt } = body;
+    const { imageDataUrl, prompt, aspectRatio } = body;
     const numPanels = Math.max(1, Math.min(MAX_PANELS, body.numPanels ?? 4));
+    const sbType = (ANGLE_PRESETS[body.storyboardType as StoryboardType] ? body.storyboardType : "production") as StoryboardType;
+    const angles = ANGLE_PRESETS[sbType];
 
     if (!imageDataUrl?.startsWith("data:image/")) {
       return NextResponse.json({ error: "A valid reference image is required." }, { status: 400 });
@@ -204,8 +254,8 @@ export async function POST(req: NextRequest) {
     // Launch all panel tasks in parallel
     const predictionIds: string[] = [];
     for (let i = 0; i < numPanels; i++) {
-      const angle = PANEL_ANGLES[i % PANEL_ANGLES.length];
-      const predId = await createWavespeedTask(apiKey, hostedImageUrl, angle, prompt);
+      const angle = angles[i % angles.length];
+      const predId = await createWavespeedTask(apiKey, hostedImageUrl, angle, aspectRatio, prompt);
       predictionIds.push(predId);
     }
 

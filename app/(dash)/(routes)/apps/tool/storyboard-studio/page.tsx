@@ -19,11 +19,22 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCreditModal } from "@/hooks/use-credit-modal";
 import { AssetInspector, type Asset } from "@/components/AssetInspector";
+import { ChevronDown } from "lucide-react";
 
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-display", display: "swap" });
 const plusJakarta = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-body", display: "swap" });
 
 const CREDIT_PER_PANEL = 2;
+
+const STORYBOARD_TYPES = [
+  { id: "production", label: "Storyboard Production" },
+  { id: "short-drama", label: "Short Drama" },
+  { id: "short-drama-2", label: "Short Drama 2" },
+  { id: "comic-drama", label: "Comic Drama" },
+  { id: "comic-drama-2", label: "Comic Drama 2" },
+] as const;
+
+const ASPECT_RATIOS = ["auto", "1:1", "2:3", "3:2", "3:4", "4:3", "4:5"] as const;
 
 type GenerationStatus = "idle" | "generating" | "success" | "failed";
 
@@ -79,6 +90,8 @@ export default function StoryboardProductionPage() {
   const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [numPanels, setNumPanels] = useState(4);
+  const [storyboardType, setStoryboardType] = useState<string>("production");
+  const [aspectRatio, setAspectRatio] = useState<string>("auto");
   const [generationStatus, setGenerationStatus] = useState<GenerationStatus>("idle");
   const [result, setResult] = useState<ResultState | null>(null);
   const [statusMessage, setStatusMessage] = useState("");
@@ -117,7 +130,7 @@ export default function StoryboardProductionPage() {
       const res = await fetch("/api/runninghub/storyboard-production", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageDataUrl: compressedImage, numPanels }),
+        body: JSON.stringify({ imageDataUrl: compressedImage, numPanels, storyboardType, aspectRatio }),
       });
 
       if (res.status === 402) {
@@ -321,6 +334,53 @@ export default function StoryboardProductionPage() {
           </div>
           <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileSelect(f); }} />
 
+          {/* Storyboard Type */}
+          <div className="mt-5">
+            <SectionLabel>Storyboard Type</SectionLabel>
+            <div className="flex flex-col gap-1.5">
+              {STORYBOARD_TYPES.map((t) => (
+                <button
+                  key={t.id}
+                  className="w-full py-2.5 px-3 rounded-lg text-[12px] font-semibold transition-all text-left"
+                  style={{
+                    border: `1px solid ${storyboardType === t.id ? "rgba(139,92,246,0.4)" : "#1e293b"}`,
+                    background: storyboardType === t.id ? "rgba(139,92,246,0.1)" : "#0e1630",
+                    color: storyboardType === t.id ? "#a78bfa" : "#64748b",
+                    fontFamily: "var(--font-display)",
+                  }}
+                  onClick={() => setStoryboardType(t.id)}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Aspect Ratio */}
+          <div className="mt-5">
+            <SectionLabel>Aspect Ratio</SectionLabel>
+            <div className="relative">
+              <select
+                value={aspectRatio}
+                onChange={(e) => setAspectRatio(e.target.value)}
+                className="w-full appearance-none rounded-lg py-2.5 px-3 pr-8 text-[12px] font-bold transition-all cursor-pointer focus:outline-none"
+                style={{
+                  border: "1px solid #1e293b",
+                  background: "#0e1630",
+                  color: "#06b6d4",
+                  fontFamily: "var(--font-display)",
+                }}
+              >
+                {ASPECT_RATIOS.map((r) => (
+                  <option key={r} value={r} style={{ background: "#0e1630", color: "#94a3b8" }}>
+                    {r}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2" style={{ color: "#64748b" }} />
+            </div>
+          </div>
+
           {/* Number of panels */}
           <div className="mt-5">
             <SectionLabel>Number of Panels</SectionLabel>
@@ -375,9 +435,9 @@ export default function StoryboardProductionPage() {
             </div>
             <ol className="text-xs space-y-1.5" style={{ color: "#64748b" }}>
               <li className="flex gap-2"><span style={{ color: "#8b5cf6", fontWeight: 700 }}>1.</span> Upload a reference image</li>
-              <li className="flex gap-2"><span style={{ color: "#8b5cf6", fontWeight: 700 }}>2.</span> Choose the number of panels (1–6)</li>
-              <li className="flex gap-2"><span style={{ color: "#8b5cf6", fontWeight: 700 }}>3.</span> AI generates multiple camera angles automatically</li>
-              <li className="flex gap-2"><span style={{ color: "#8b5cf6", fontWeight: 700 }}>4.</span> Download individual panels or all at once</li>
+              <li className="flex gap-2"><span style={{ color: "#8b5cf6", fontWeight: 700 }}>2.</span> Choose storyboard type & aspect ratio</li>
+              <li className="flex gap-2"><span style={{ color: "#8b5cf6", fontWeight: 700 }}>3.</span> Select number of panels (1–6)</li>
+              <li className="flex gap-2"><span style={{ color: "#8b5cf6", fontWeight: 700 }}>4.</span> AI generates cinematic angles automatically</li>
             </ol>
           </div>
         </div>
