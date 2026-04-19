@@ -16,7 +16,7 @@ const CREDIT_COST = 30;
 const KIE_CREATE_TASK_URL = "https://api.kie.ai/api/v1/jobs/createTask";
 const KIE_QUERY_TASK_URL = "https://api.kie.ai/api/v1/jobs/recordInfo";
 const KIE_FILE_UPLOAD_URL = "https://kieai.redpandaai.co/api/file-base64-upload";
-const KIE_MODEL_ID = "qwen-image-edit-25";
+const KIE_MODEL_ID = "qwen2/image-edit";
 
 function getKieApiKey(): string {
   const key = process.env.KIE_API_KEY ?? process.env.KIEAI_API_KEY;
