@@ -89,7 +89,7 @@ export default function MakeupPage() {
         const data = await res.json().catch(() => null);
         if (!res.ok || !Array.isArray(data?.assets) || cancelled) return;
         const makeupAssets = data.assets.filter((a: { model?: string }) =>
-          a.model?.includes("ai-makeup")
+          a.model?.includes("makeup")
         );
         setHistory(makeupAssets.map((a: { id: string; url: string; prompt?: string; model?: string; date?: string }) => ({
           id: a.id,

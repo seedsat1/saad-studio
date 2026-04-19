@@ -8,22 +8,116 @@ import {
 } from "@/lib/credit-ledger";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { getClientIp, isAllowedOrigin } from "@/lib/security";
-import {
-  uploadImageToRunningHub,
-  createRunningHubTask,
-  queryRunningHubTask,
-  getRunningHubApiKey,
-} from "@/lib/runninghub";
+import { uploadBufferToStorage } from "@/lib/supabase-storage";
 
 export const maxDuration = 300;
 
 const CREDIT_COST = 2;
-const RH_AI_APP_PATH = "/run/ai-app/2013661256040849409";
+const WAVESPEED_BASE = "https://api.wavespeed.ai/api/v3";
+const WAVESPEED_MODEL = "wavespeed-ai/qwen-image/edit";
+
+function getWavespeedApiKey(): string {
+  const key = process.env.WAVESPEED_API_KEY;
+  if (!key) throw new Error("WAVESPEED_API_KEY is not configured");
+  return key;
+}
+
+/** Upload base64 image to Supabase Storage and return a public URL */
+async function uploadRefImage(base64DataUrl: string, userId: string, genId: string): Promise<string> {
+  const match = base64DataUrl.match(/^data:([^;]+);base64,(.+)$/s);
+  if (!match) throw new Error("Invalid base64 data URL for reference image");
+  const contentType = match[1];
+  const buffer = Buffer.from(match[2], "base64");
+  const ext = contentType.split("/")[1]?.replace("jpeg", "jpg") ?? "jpg";
+  const url = await uploadBufferToStorage({
+    buffer,
+    contentType,
+    userId,
+    assetType: "image-ref",
+    generationId: `${genId}-makeup-ref`,
+    fileName: `ref.${ext}`,
+  });
+  if (!url) throw new Error("Failed to upload reference image to storage");
+  return url;
+}
+
+/** Submit a WaveSpeed edit task and return the prediction ID */
+async function createWavespeedTask(
+  apiKey: string,
+  imageUrl: string,
+  prompt: string,
+): Promise<string> {
+  const body: Record<string, unknown> = {
+    images: [imageUrl],
+    prompt,
+    output_format: "jpeg",
+    seed: -1,
+    enable_base64_output: false,
+    enable_sync_mode: false,
+  };
+
+  const res = await fetch(`${WAVESPEED_BASE}/${WAVESPEED_MODEL}`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+
+  const json = await res.json().catch(() => ({}));
+  const predId = json?.data?.id ?? json?.id;
+  if (!res.ok || !predId) {
+    throw new Error(
+      `WaveSpeed submit failed (${res.status}): ${json?.message ?? json?.msg ?? JSON.stringify(json)}`,
+    );
+  }
+  return predId as string;
+}
+
+/** Poll WaveSpeed prediction until completed/failed/timeout */
+async function pollWavespeedTask(
+  apiKey: string,
+  predictionId: string,
+  maxAttempts = 60,
+  intervalMs = 2000,
+): Promise<{ status: "success" | "fail" | "timeout"; urls: string[]; error?: string }> {
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    await new Promise((r) => setTimeout(r, intervalMs));
+
+    const res = await fetch(`${WAVESPEED_BASE}/predictions/${predictionId}/result`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    });
+
+    if (!res.ok) continue;
+
+    const json = await res.json().catch(() => ({}));
+    const data = json?.data ?? json;
+    const status = String(data?.status ?? "").toLowerCase();
+
+    if (status === "completed") {
+      const outputs: string[] = Array.isArray(data?.outputs)
+        ? data.outputs
+        : Array.isArray(data?.output?.images)
+          ? data.output.images
+          : Array.isArray(data?.output)
+            ? data.output
+            : [];
+      return { status: "success", urls: outputs };
+    }
+
+    if (status === "failed") {
+      return { status: "fail", urls: [], error: data?.error ?? "WaveSpeed task failed" };
+    }
+  }
+
+  return { status: "timeout", urls: [] };
+}
 
 /**
  * POST /api/runninghub/makeup
  *
- * Applies AI makeup via RunningHub workflow.
+ * AI Makeup via WaveSpeed (wavespeed-ai/qwen-image/edit).
  * Body: { imageDataUrl }
  */
 export async function POST(req: NextRequest) {
@@ -56,8 +150,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "A valid photo is required." }, { status: 400 });
     }
 
-    // Validate API key early
-    getRunningHubApiKey();
+    const editPrompt = "Apply professional beautiful makeup to this person, enhance with natural glamorous makeup look, perfect skin, subtle contouring, beautiful eye makeup, natural lip color";
+
+    const apiKey = getWavespeedApiKey();
 
     // Charge credits
     const spent = await spendCredits({
@@ -65,62 +160,37 @@ export async function POST(req: NextRequest) {
       credits: CREDIT_COST,
       prompt: "AI Makeup",
       assetType: "MAKEUP",
-      modelUsed: "runninghub/ai-makeup",
+      modelUsed: "wavespeed/qwen-image-edit-makeup",
     });
     generationId = spent.generationId;
     chargedUserId = userId;
 
-    // Upload image to RunningHub
-    const rhFileName = await uploadImageToRunningHub(imageDataUrl);
+    // Upload image to Supabase for a public URL
+    const hostedImageUrl = await uploadRefImage(imageDataUrl, userId, generationId);
 
-    // Create task with the makeup workflow
-    const taskId = await createRunningHubTask(RH_AI_APP_PATH, [
-      {
-        nodeId: "1",
-        fieldName: "channel",
-        fieldValue: "Third-party",
-      },
-      {
-        nodeId: "2",
-        fieldName: "image",
-        fieldValue: rhFileName,
-      },
-    ]);
+    // Submit WaveSpeed task
+    const predId = await createWavespeedTask(apiKey, hostedImageUrl, editPrompt);
 
     // Poll for result
-    const maxAttempts = 90;
-    const intervalMs = 2000;
+    const result = await pollWavespeedTask(apiKey, predId);
 
-    for (let attempt = 0; attempt < maxAttempts; attempt++) {
-      await new Promise((r) => setTimeout(r, intervalMs));
+    if (result.status === "success" && result.urls.length > 0) {
+      const outputUrl = result.urls[0];
+      await setGenerationMediaUrl(generationId, outputUrl).catch(() => null);
 
-      const result = await queryRunningHubTask(taskId);
-      const status = result.status.toUpperCase();
+      return NextResponse.json({
+        output: outputUrl,
+        generationId,
+        remainingCredits: spent.remainingCredits,
+      });
+    }
 
-      if (status === "SUCCESS") {
-        if (result.outputs && result.outputs.length > 0) {
-          const outputUrl = result.outputs[0];
-          await setGenerationMediaUrl(generationId, outputUrl).catch(() => null);
-
-          return NextResponse.json({
-            output: outputUrl,
-            generationId,
-            remainingCredits: spent.remainingCredits,
-          });
-        }
-        // SUCCESS but no outputs
-        break;
-      }
-
-      if (status === "FAILED") {
-        await rollbackGenerationCharge(generationId, userId, CREDIT_COST).catch(() => null);
-        return NextResponse.json(
-          { error: result.errorMessage || "Makeup generation failed." },
-          { status: 502 },
-        );
-      }
-
-      // QUEUED, RUNNING — keep polling
+    if (result.status === "fail") {
+      await rollbackGenerationCharge(generationId, userId, CREDIT_COST).catch(() => null);
+      return NextResponse.json(
+        { error: result.error || "Makeup generation failed." },
+        { status: 502 },
+      );
     }
 
     // Timeout
