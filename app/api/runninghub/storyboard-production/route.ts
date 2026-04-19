@@ -8,6 +8,7 @@ import {
 } from "@/lib/credit-ledger";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { getClientIp, isAllowedOrigin } from "@/lib/security";
+import { uploadBufferToStorage } from "@/lib/supabase-storage";
 
 /** Allow up to 5 minutes */
 export const maxDuration = 300;
@@ -16,7 +17,6 @@ const CREDIT_PER_PANEL = 2;
 const MAX_PANELS = 6;
 const KIE_CREATE_TASK_URL = "https://api.kie.ai/api/v1/jobs/createTask";
 const KIE_QUERY_TASK_URL = "https://api.kie.ai/api/v1/jobs/recordInfo";
-const KIE_FILE_UPLOAD_URL = "https://kieai.redpandaai.co/api/file-base64-upload";
 const KIE_MODEL_ID = "qwen2/image-edit";
 
 const VALID_ASPECT_RATIOS = ["1:1", "2:3", "3:2", "3:4", "4:3", "9:16", "16:9", "21:9"];
@@ -44,36 +44,23 @@ function kieHeaders(apiKey: string) {
   };
 }
 
-/** Upload base64 image to KIE and return a hosted URL */
-async function uploadImageToKie(base64DataUrl: string, apiKey: string): Promise<string> {
-  // Strip the data:image/...;base64, prefix
-  const base64Data = base64DataUrl.replace(/^data:image\/\w+;base64,/, "");
-
-  const res = await fetch(KIE_FILE_UPLOAD_URL, {
-    method: "POST",
-    headers: kieHeaders(apiKey),
-    body: JSON.stringify({ base64Data, uploadPath: "storyboard-refs" }),
+/** Upload base64 image to Supabase Storage and return a public URL */
+async function uploadRefImage(base64DataUrl: string, userId: string, genId: string): Promise<string> {
+  const match = base64DataUrl.match(/^data:([^;]+);base64,(.+)$/s);
+  if (!match) throw new Error("Invalid base64 data URL for reference image");
+  const contentType = match[1];
+  const buffer = Buffer.from(match[2], "base64");
+  const ext = contentType.split("/")[1]?.replace("jpeg", "jpg") ?? "jpg";
+  const url = await uploadBufferToStorage({
+    buffer,
+    contentType,
+    userId,
+    assetType: "image-ref",
+    generationId: `${genId}-storyboard-ref`,
+    fileName: `ref.${ext}`,
   });
-
-  const json = await res.json().catch(() => ({}));
-  if (!res.ok || json?.success === false) {
-    throw new Error(`KIE file upload failed (${res.status}): ${json?.msg ?? JSON.stringify(json)}`);
-  }
-
-  const fileUrl: string | undefined =
-    json?.data?.downloadUrl ??
-    json?.data?.download_url ??
-    json?.data?.fileUrl ??
-    json?.data?.file_url ??
-    json?.data?.url ??
-    (typeof json?.data === "string" ? json.data : undefined) ??
-    json?.fileUrl ??
-    json?.url;
-
-  if (!fileUrl) {
-    throw new Error(`KIE file upload returned no URL. Response: ${JSON.stringify(json)}`);
-  }
-  return fileUrl;
+  if (!url) throw new Error("Failed to upload reference image to storage");
+  return url;
 }
 
 /** Create a KIE task and return taskId */
@@ -214,8 +201,8 @@ export async function POST(req: NextRequest) {
     chargedUserId = userId;
     generationId = spent.generationId;
 
-    // Upload reference image to KIE
-    const hostedImageUrl = await uploadImageToKie(imageDataUrl, apiKey);
+    // Upload reference image to Supabase Storage
+    const hostedImageUrl = await uploadRefImage(imageDataUrl, userId, generationId!);
 
     // Launch all panel tasks in parallel
     const taskIds: string[] = [];
