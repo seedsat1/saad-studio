@@ -36,18 +36,30 @@ const MODEL_DURATIONS: Record<string, { value: number; label: string }[]> = {
 };
 
 const SCENE_MEDIA = [
-  { video: "https://videos.pexels.com/video-files/5519737/5519737-hd_1920_1080_25fps.mp4",  poster: "https://images.pexels.com/videos/5519737/free-video-5519737.jpg?auto=compress&w=640" },
-  { video: "https://videos.pexels.com/video-files/4057411/4057411-hd_1920_1080_25fps.mp4",  poster: "https://images.pexels.com/videos/4057411/free-video-4057411.jpg?auto=compress&w=640" },
-  { video: "https://videos.pexels.com/video-files/3015510/3015510-hd_1920_1080_24fps.mp4",  poster: "https://images.pexels.com/videos/3015510/free-video-3015510.jpg?auto=compress&w=640" },
-  { video: "https://videos.pexels.com/video-files/3571264/3571264-hd_1920_1080_30fps.mp4",  poster: "https://images.pexels.com/videos/3571264/free-video-3571264.jpg?auto=compress&w=640" },
-  { video: "https://videos.pexels.com/video-files/1093662/1093662-hd_1920_1080_30fps.mp4",  poster: "https://images.pexels.com/videos/1093662/free-video-1093662.jpg?auto=compress&w=640" },
-  { video: "https://videos.pexels.com/video-files/856973/856973-hd_1920_1080_30fps.mp4",   poster: "https://images.pexels.com/videos/856973/free-video-856973.jpg?auto=compress&w=640" },
-  { video: "https://videos.pexels.com/video-files/2795173/2795173-hd_1920_1080_25fps.mp4",  poster: "https://images.pexels.com/videos/2795173/free-video-2795173.jpg?auto=compress&w=640" },
-  { video: "https://videos.pexels.com/video-files/1526909/1526909-hd_1920_1080_24fps.mp4",  poster: "https://images.pexels.com/videos/1526909/free-video-1526909.jpg?auto=compress&w=640" },
-  { video: "https://videos.pexels.com/video-files/3214448/3214448-hd_1920_1080_25fps.mp4",  poster: "https://images.pexels.com/videos/3214448/free-video-3214448.jpg?auto=compress&w=640" },
-  { video: "https://videos.pexels.com/video-files/4763824/4763824-hd_1920_1080_24fps.mp4",  poster: "https://images.pexels.com/videos/4763824/free-video-4763824.jpg?auto=compress&w=640" },
-  { video: "https://videos.pexels.com/video-files/857251/857251-hd_1920_1080_25fps.mp4",   poster: "https://images.pexels.com/videos/857251/free-video-857251.jpg?auto=compress&w=640" },
-  { video: "https://videos.pexels.com/video-files/5680034/5680034-hd_1920_1080_24fps.mp4",  poster: "https://images.pexels.com/videos/5680034/free-video-5680034.jpg?auto=compress&w=640" },
+  /* 0  Reaction Shot — close-up emotional reaction */
+  { video: "https://videos.pexels.com/video-files/8626643/8626643-hd_1920_1080_25fps.mp4",   poster: "https://images.pexels.com/videos/8626643/pexels-photo-8626643.jpeg?auto=compress&w=640" },
+  /* 1  Close-up Emotion — extreme close-up face/eyes with feeling */
+  { video: "https://videos.pexels.com/video-files/5944690/5944690-hd_1920_1080_25fps.mp4",   poster: "https://images.pexels.com/videos/5944690/pexels-photo-5944690.jpeg?auto=compress&w=640" },
+  /* 2  Wide Establishing — sweeping aerial / landscape */
+  { video: "https://videos.pexels.com/video-files/4042705/4042705-hd_1920_1080_24fps.mp4",   poster: "https://images.pexels.com/videos/4042705/pexels-photo-4042705.jpeg?auto=compress&w=640" },
+  /* 3  Over-the-Shoulder — two people conversation framing */
+  { video: "https://videos.pexels.com/video-files/4479790/4479790-hd_1920_1080_25fps.mp4",   poster: "https://images.pexels.com/videos/4479790/pexels-photo-4479790.jpeg?auto=compress&w=640" },
+  /* 4  Follow Tracking — camera following a walking subject */
+  { video: "https://videos.pexels.com/video-files/5195355/5195355-hd_1920_1080_30fps.mp4",   poster: "https://images.pexels.com/videos/5195355/pexels-photo-5195355.jpeg?auto=compress&w=640" },
+  /* 5  Push-In Reveal — slow dolly toward subject/reveal */
+  { video: "https://videos.pexels.com/video-files/4066327/4066327-hd_1920_1080_24fps.mp4",   poster: "https://images.pexels.com/videos/4066327/pexels-photo-4066327.jpeg?auto=compress&w=640" },
+  /* 6  Conflict Escalation — tense confrontation */
+  { video: "https://videos.pexels.com/video-files/6963477/6963477-hd_1920_1080_25fps.mp4",   poster: "https://images.pexels.com/videos/6963477/pexels-photo-6963477.jpeg?auto=compress&w=640" },
+  /* 7  Discovery Moment — wonder/surprise */
+  { video: "https://videos.pexels.com/video-files/7476129/7476129-hd_1920_1080_24fps.mp4",   poster: "https://images.pexels.com/videos/7476129/pexels-photo-7476129.jpeg?auto=compress&w=640" },
+  /* 8  Silhouette Framing — person silhouetted against light */
+  { video: "https://videos.pexels.com/video-files/1739010/1739010-hd_1920_1080_30fps.mp4",   poster: "https://images.pexels.com/videos/1739010/free-video-1739010.jpg?auto=compress&w=640" },
+  /* 9  Dolly Zoom Tension — dramatic tension close-up */
+  { video: "https://videos.pexels.com/video-files/6415390/6415390-hd_1920_1080_30fps.mp4",   poster: "https://images.pexels.com/videos/6415390/pexels-photo-6415390.jpeg?auto=compress&w=640" },
+  /* 10 Slow Motion Emphasis — cinematic slow motion */
+  { video: "https://videos.pexels.com/video-files/4942181/4942181-hd_1920_1080_24fps.mp4",   poster: "https://images.pexels.com/videos/4942181/pexels-photo-4942181.jpeg?auto=compress&w=640" },
+  /* 11 Final Beat — cinematic closure, walking away into fog */
+  { video: "https://videos.pexels.com/video-files/8680229/8680229-hd_1920_1080_25fps.mp4",   poster: "https://images.pexels.com/videos/8680229/pexels-photo-8680229.jpeg?auto=compress&w=640" },
 ];
 
 const SCENES: Scene[] = [
