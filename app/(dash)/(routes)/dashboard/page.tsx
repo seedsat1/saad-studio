@@ -110,7 +110,7 @@ const QUICK_START = [
     badge: "PRO",
   },
   {
-    title: "Cinema Studio",
+    title: "Next Scene",
     subtitle: "Runway Gen-3",
     icon: Sparkles,
     href: "/cinema-studio",

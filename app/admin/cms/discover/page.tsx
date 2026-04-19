@@ -182,7 +182,7 @@ const SEED_FOOTER: FooterData = {
         { _id: uid(), label: "Audio & Music", href: "/music" },
         { _id: uid(), label: "AI Editing Suite", href: "/edit" },
         { _id: uid(), label: "Character Studio", href: "/character" },
-        { _id: uid(), label: "Cinema Studio", href: "/cinema-studio" },
+        { _id: uid(), label: "Next Scene", href: "/cinema-studio" },
         { _id: uid(), label: "AI Assist (Chat)", href: "/conversation" },
         { _id: uid(), label: "Apps Gallery", href: "/apps" },
       ],

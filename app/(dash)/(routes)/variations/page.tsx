@@ -783,7 +783,7 @@ export default function VariationsStudioPage() {
               className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border border-white/10 text-slate-300 hover:border-violet-500/60 hover:text-white transition-colors"
             >
               <Film className="h-3 w-3" />
-              Cinema Studio
+              Next Scene
             </button>
             <button
               onClick={handleSendToEditor}

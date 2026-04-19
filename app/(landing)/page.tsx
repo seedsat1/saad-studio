@@ -49,7 +49,7 @@ type HeroSlide = {
 const HERO_SLIDES: HeroSlide[] = [
   {
     id: 1,
-    title: "Cinema Studio 3.0",
+    title: "Next Scene Engine",
     subtitle: "Direct cinematic worlds with AI — from concept to final cut in minutes.",
     tag: "New Release",
     gradient: "from-slate-950 via-violet-950/60 to-slate-950",
@@ -119,7 +119,7 @@ const CORE_TOOLS: ToolCard[] = [
   },
   {
     id: "cinema-studio",
-    title: "Cinema Studio Video",
+    title: "Next Scene Video",
     description: "Professional cinematic AI production",
     href: "/cinema-studio",
     icon: Clapperboard,

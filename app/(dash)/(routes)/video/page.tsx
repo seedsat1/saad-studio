@@ -121,7 +121,7 @@ const BADGE_STYLE = {
 
 const TOOLS = [
   { id: "create-video",       label: "Create Video",         icon: Video },
-  { id: "cinema-studio",      label: "Cinema Studio Video",  icon: Clapperboard },
+  { id: "cinema-studio",      label: "Next Scene Video",    icon: Clapperboard },
   { id: "mixed-media",        label: "Mixed Media",          icon: Layers },
   { id: "edit-video",         label: "Edit Video",           icon: Pencil },
   { id: "click-to-ad",        label: "Click to Ad",          icon: ShoppingBag },
