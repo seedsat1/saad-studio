@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { Outfit, Plus_Jakarta_Sans } from "next/font/google";
 import {
   ArrowLeft,
@@ -96,6 +96,31 @@ export default function StoryboardProductionPage() {
   const [result, setResult] = useState<ResultState | null>(null);
   const [statusMessage, setStatusMessage] = useState("");
   const [inspectorAsset, setInspectorAsset] = useState<Asset | null>(null);
+  const [history, setHistory] = useState<{ id: string; url: string; prompt: string; model: string; date: string }[]>([]);
+
+  // Load saved storyboard panels on mount
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const res = await fetch("/api/assets?type=image", { cache: "no-store" });
+        const data = await res.json().catch(() => null);
+        if (!res.ok || !Array.isArray(data?.assets) || cancelled) return;
+        const storyboardAssets = data.assets.filter((a: { model?: string }) =>
+          a.model?.includes("qwen-image-edit-multiple-angles")
+        );
+        setHistory(storyboardAssets.map((a: { id: string; url: string; prompt?: string; model?: string; date?: string }) => ({
+          id: a.id,
+          url: a.url,
+          prompt: a.prompt || "Storyboard panel",
+          model: a.model || "Qwen Image Edit",
+          date: a.date || "",
+        })));
+      } catch { /* ignore */ }
+    };
+    void load();
+    return () => { cancelled = true; };
+  }, []);
 
   const isGenerating = generationStatus === "generating";
   const totalCost = numPanels * CREDIT_PER_PANEL;
@@ -155,6 +180,16 @@ export default function StoryboardProductionPage() {
       setResult({ outputs, status: "success" });
       setGenerationStatus("success");
       setStatusMessage("");
+
+      // Add new panels to history
+      const newItems = outputs.map((url, i) => ({
+        id: `new-${Date.now()}-${i}`,
+        url,
+        prompt: `${STORYBOARD_TYPES.find(t => t.id === storyboardType)?.label || "Storyboard"} – Panel ${i + 1}`,
+        model: "wavespeed/qwen-image-edit-multiple-angles",
+        date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+      }));
+      setHistory((prev) => [...newItems, ...prev]);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Generation failed.";
       setResult({ outputs: [], status: "failed", error: message });
@@ -271,6 +306,35 @@ export default function StoryboardProductionPage() {
                 </AnimatePresence>
               </div>
             </>
+          )}
+
+          {/* History gallery — persisted panels */}
+          {history.length > 0 && (
+            <div className="mt-6">
+              {generationStatus !== "success" && (
+                <div className="flex items-center gap-2 mb-3">
+                  <Film size={14} style={{ color: "#06b6d4" }} />
+                  <span className="text-sm font-semibold" style={{ color: "#94a3b8", fontFamily: "var(--font-display)" }}>Your Storyboards</span>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: "rgba(6,182,212,0.1)", color: "#06b6d4" }}>{history.length}</span>
+                </div>
+              )}
+              <div className="grid w-full gap-1.5" style={{ gridTemplateColumns: "repeat(6, 1fr)" }}>
+                {history.map((item) => (
+                  <div
+                    key={item.id}
+                    className="group relative cursor-pointer overflow-hidden rounded-lg ring-1 ring-white/10"
+                    style={{ aspectRatio: "1 / 1" }}
+                    onClick={() => setInspectorAsset({ type: "image", url: item.url, title: item.prompt, prompt: item.prompt, model: "Qwen Image Edit" })}
+                  >
+                    <img src={item.url} alt={item.prompt} className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.04]" />
+                    <div className="absolute inset-0 flex items-end justify-center gap-1.5 bg-black/0 pb-2 opacity-0 transition duration-200 group-hover:bg-black/45 group-hover:opacity-100">
+                      <button onClick={(e) => { e.stopPropagation(); setInspectorAsset({ type: "image", url: item.url, title: item.prompt, prompt: item.prompt, model: "Qwen Image Edit" }); }} className="rounded-md bg-white/15 p-1.5 text-white ring-1 ring-white/20"><Eye className="h-3 w-3" /></button>
+                      <a href={item.url} download onClick={(e) => e.stopPropagation()} className="rounded-md bg-white/15 p-1.5 text-white ring-1 ring-white/20"><Download className="h-3 w-3" /></a>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
 
           {/* Info card */}

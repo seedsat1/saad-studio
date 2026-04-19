@@ -196,6 +196,7 @@ export async function POST(req: NextRequest) {
   let chargedCredits = 0;
   let chargedUserId: string | null = null;
   let generationId: string | null = null;
+  const panelGenerationIds: string[] = [];
 
   try {
     if (!isAllowedOrigin(req.headers.get("origin"))) {
@@ -235,21 +236,30 @@ export async function POST(req: NextRequest) {
 
     const apiKey = getWavespeedApiKey();
     const totalCost = numPanels * CREDIT_PER_PANEL;
+    const storyLabel = sbType.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
-    // Deduct credits upfront
-    const spent = await spendCredits({
-      userId,
-      credits: totalCost,
-      prompt: `Storyboard Production – ${numPanels} panels`,
-      assetType: "IMAGE",
-      modelUsed: "wavespeed/qwen-image-edit-multiple-angles",
-    });
+    // Create one Generation row per panel so each image is persisted in assets
+    let firstGenerationId: string | null = null;
+    let remainingCredits = 0;
+
+    for (let i = 0; i < numPanels; i++) {
+      const spent = await spendCredits({
+        userId,
+        credits: CREDIT_PER_PANEL,
+        prompt: `${storyLabel} – Panel ${i + 1}/${numPanels}`,
+        assetType: "STORYBOARD",
+        modelUsed: "wavespeed/qwen-image-edit-multiple-angles",
+      });
+      panelGenerationIds.push(spent.generationId);
+      if (i === 0) firstGenerationId = spent.generationId;
+      remainingCredits = spent.remainingCredits;
+    }
     chargedCredits = totalCost;
     chargedUserId = userId;
-    generationId = spent.generationId;
+    generationId = firstGenerationId;
 
     // Upload reference image to Supabase Storage
-    const hostedImageUrl = await uploadRefImage(imageDataUrl, userId, generationId!);
+    const hostedImageUrl = await uploadRefImage(imageDataUrl, userId, firstGenerationId!);
 
     // Launch all panel tasks in parallel
     const predictionIds: string[] = [];
@@ -267,41 +277,40 @@ export async function POST(req: NextRequest) {
     const outputs: string[] = [];
     const failures: string[] = [];
 
-    for (const r of results) {
+    for (let i = 0; i < results.length; i++) {
+      const r = results[i];
       if (r.status === "success" && r.urls.length > 0) {
         outputs.push(r.urls[0]);
+        // Persist each panel URL to its Generation row
+        await setGenerationMediaUrl(panelGenerationIds[i], r.urls[0]).catch(() => null);
       } else {
         failures.push(r.error ?? "Panel generation failed");
+        // Refund this panel's credits
+        await rollbackGenerationCharge(panelGenerationIds[i], userId, CREDIT_PER_PANEL).catch(() => null);
       }
     }
 
-    // If all failed, refund everything
+    // If all failed, return error
     if (outputs.length === 0) {
-      await rollbackGenerationCharge(generationId, userId, totalCost).catch(() => null);
       return NextResponse.json(
         { error: failures[0] || "All panels failed. Credits refunded." },
         { status: 502 },
       );
     }
 
-    // If some failed, refund partial
-    if (failures.length > 0) {
-      const refund = failures.length * CREDIT_PER_PANEL;
-      await rollbackGenerationCharge(generationId, userId, refund).catch(() => null);
-    }
-
-    await setGenerationMediaUrl(generationId, outputs[0]).catch(() => null);
-
     return NextResponse.json({
       outputs,
-      generationId,
+      generationId: firstGenerationId,
       totalPanels: numPanels,
       successfulPanels: outputs.length,
-      remainingCredits: spent.remainingCredits,
+      remainingCredits,
     });
   } catch (err) {
-    if (generationId && chargedUserId && chargedCredits > 0) {
-      await rollbackGenerationCharge(generationId, chargedUserId, chargedCredits).catch(() => null);
+    // Rollback all panel generation charges on unexpected error
+    if (chargedUserId && chargedCredits > 0 && panelGenerationIds.length > 0) {
+      for (const pgId of panelGenerationIds) {
+        await rollbackGenerationCharge(pgId, chargedUserId, CREDIT_PER_PANEL).catch(() => null);
+      }
     }
 
     if (err instanceof InsufficientCreditsError) {
