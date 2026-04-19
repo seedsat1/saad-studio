@@ -69,16 +69,21 @@ async function createKieTask(
   modelId: string,
   input: Record<string, unknown>,
 ): Promise<string> {
+  const payload = { model: modelId, input };
+  console.log("[STORYBOARD] createKieTask payload:", JSON.stringify(payload, null, 2));
+
   const res = await fetch(KIE_CREATE_TASK_URL, {
     method: "POST",
     headers: kieHeaders(apiKey),
-    body: JSON.stringify({ model: modelId, input }),
+    body: JSON.stringify(payload),
   });
 
   const json = await res.json().catch(() => ({}));
+  console.log("[STORYBOARD] createKieTask response:", JSON.stringify(json));
+
   if (!res.ok || (json.code !== undefined && json.code !== 200 && json.code !== 0)) {
     const msg = json?.msg ?? res.statusText;
-    throw new Error(`KIE createTask failed (HTTP ${res.status}, code ${json.code}): ${msg}`);
+    throw new Error(`KIE createTask failed (HTTP ${res.status}, code ${json.code}): ${msg} | Input: ${JSON.stringify(input)}`);
   }
 
   const taskId = json?.data?.taskId;
@@ -203,6 +208,7 @@ export async function POST(req: NextRequest) {
 
     // Upload reference image to Supabase Storage
     const hostedImageUrl = await uploadRefImage(imageDataUrl, userId, generationId!);
+    console.log("[STORYBOARD] hostedImageUrl:", hostedImageUrl);
 
     // Launch all panel tasks in parallel
     const taskIds: string[] = [];
