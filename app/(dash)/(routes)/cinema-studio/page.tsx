@@ -55,7 +55,7 @@ const SCENES: Scene[] = [
     videoSrc: SCENE_MEDIA[0].video,
     poster: SCENE_MEDIA[0].poster,
     hiddenPrompt:
-      "A cinematic golden hour car chase through narrow European streets, aerial drone shot, warm light flares, 4K filmic grain, 24fps",
+      "Cinematic chase scene through narrow European cobblestone streets during golden hour. Aerial drone tracking shot following a black sports car at high speed. Warm amber light flares streaming between buildings, motion blur on background, dramatic pacing with quick cuts. Handheld camera energy, anamorphic lens distortion, 4K filmic grain, 24fps, color graded with warm orange highlights and deep teal shadows, Deakins-style cinematography.",
   },
   {
     id: "s2",
@@ -64,7 +64,7 @@ const SCENES: Scene[] = [
     videoSrc: SCENE_MEDIA[1].video,
     poster: SCENE_MEDIA[1].poster,
     hiddenPrompt:
-      "A lone figure walking through neon-lit rain-soaked Tokyo streets at midnight, reflections on wet pavement, cyberpunk atmosphere, slow motion",
+      "Night scene set in rain-soaked Tokyo backstreets. A lone figure in a long dark coat walks slowly through neon-lit alleyways. Vivid pink, cyan, and purple neon reflections shimmer on wet asphalt. Slow cinematic walk, moody low-key lighting, cyberpunk atmosphere. Shot on anamorphic lens with shallow depth of field, volumetric rain particles, steam rising from street vents. Film noir meets Blade Runner aesthetic, 4K, 24fps.",
   },
   {
     id: "s3",
@@ -73,7 +73,7 @@ const SCENES: Scene[] = [
     videoSrc: SCENE_MEDIA[2].video,
     poster: SCENE_MEDIA[2].poster,
     hiddenPrompt:
-      "Massive ocean wave crashing in slow motion, underwater perspective transitioning to above surface, crystal clear turquoise water, 8K cinematic",
+      "Massive 60-foot ocean wave building and crashing in ultra slow motion. Camera starts underwater looking up through crystal-clear turquoise water, then breaches the surface as the wave curls overhead. Sunlight refracts through the translucent wave lip creating prismatic light rays. Captured at 240fps, 8K cinematic resolution, IMAX aspect ratio. Sound design: deep rumbling bass with ethereal underwater ambience transitioning to thunderous crash.",
   },
   {
     id: "s4",
@@ -82,7 +82,7 @@ const SCENES: Scene[] = [
     videoSrc: SCENE_MEDIA[3].video,
     poster: SCENE_MEDIA[3].poster,
     hiddenPrompt:
-      "Elegant ballroom gala with crystal chandeliers, slow dolly shot through dancing couples in designer gowns, shallow depth of field, warm amber tones",
+      "Elegant black-tie gala in a grand Venetian ballroom. Slow dolly shot gliding through dancing couples in haute couture gowns and tailored tuxedos. Enormous crystal chandeliers cast warm amber light across marble floors. Shallow depth of field with creamy bokeh, champagne glasses catching light in foreground. Rich warm color palette — deep burgundy, gold, ivory. Shot on 65mm film with subtle grain, Kubrick-inspired symmetrical framing.",
   },
   {
     id: "s5",
@@ -91,7 +91,7 @@ const SCENES: Scene[] = [
     videoSrc: SCENE_MEDIA[4].video,
     poster: SCENE_MEDIA[4].poster,
     hiddenPrompt:
-      "Spaceship drifting past a dying star going supernova, volumetric nebula clouds, lens flare, Interstellar-style visuals, IMAX aspect ratio",
+      "A lone spacecraft drifts silently past a dying star on the edge of supernova collapse. Massive volumetric nebula clouds of crimson and violet swirl around the stellar core. Intense lens flare from the star's surface, god rays piercing through gas clouds. Interior cockpit reflections visible on the ship's hull. Interstellar and 2001: A Space Odyssey visual language, IMAX 1.43:1 aspect ratio, photorealistic VFX, Hans Zimmer-style score implied through visual tension.",
   },
   {
     id: "s6",
@@ -100,7 +100,7 @@ const SCENES: Scene[] = [
     videoSrc: SCENE_MEDIA[5].video,
     poster: SCENE_MEDIA[5].poster,
     hiddenPrompt:
-      "Two silhouettes on a city rooftop at sunset, one walking away, emotional close-up with shallow DOF, warm desaturated color grade, handheld camera",
+      "Two silhouettes standing on a city rooftop at golden hour sunset. One figure slowly turns and walks away while the other remains still. Emotional close-up on trembling hands letting go, then a wide shot showing the vast city skyline. Shallow depth of field, warm desaturated color grade with lifted blacks. Handheld camera with subtle movement, lens breathing effect. Inspired by Wong Kar-wai's visual poetry — melancholic, intimate, deeply human.",
   },
   {
     id: "s7",
@@ -109,7 +109,7 @@ const SCENES: Scene[] = [
     videoSrc: SCENE_MEDIA[6].video,
     poster: SCENE_MEDIA[6].poster,
     hiddenPrompt:
-      "Martial arts fight scene frozen in bullet-time, 360-degree camera rotation around mid-air kick, particles suspended, hyper-detailed 4K",
+      "Martial arts fight scene frozen in bullet-time. 360-degree camera rotation around a warrior executing a mid-air spinning kick. Sweat droplets and shattered glass particles suspended in the air, each catching light individually. Hyper-detailed muscle tension visible, fabric rippling in slow motion. Shot at 1000fps equivalent, 4K resolution, dramatic rim lighting from behind. Matrix-meets-John Wick choreography with precise, brutal elegance.",
   },
   {
     id: "s8",
@@ -118,7 +118,7 @@ const SCENES: Scene[] = [
     videoSrc: SCENE_MEDIA[7].video,
     poster: SCENE_MEDIA[7].poster,
     hiddenPrompt:
-      "Luxury mega-yacht anchored in Mediterranean bay at night, drone circling shot, ambient deck lighting reflecting on calm water, cinematic color grade",
+      "Luxury 200-foot mega-yacht anchored in a secluded Mediterranean bay under a star-filled sky. Smooth drone circling shot starting from water level, rising to reveal the full vessel. Warm amber deck lighting reflects on perfectly calm dark water. Interior glimpses through panoramic windows show a lavish lounge. Moonlight creates a silver path on the sea surface. Cinematic color grade — deep navy blues, warm golds, cool silvers. Shot in 6K with gimbal stabilization.",
   },
   {
     id: "s9",
@@ -127,7 +127,7 @@ const SCENES: Scene[] = [
     videoSrc: SCENE_MEDIA[8].video,
     poster: SCENE_MEDIA[8].poster,
     hiddenPrompt:
-      "Time-lapse of northern lights dancing over a campfire in Norwegian wilderness, wide-angle, vivid green and purple aurora, 8K resolution",
+      "Breathtaking time-lapse of the northern lights dancing across the Arctic sky above a remote wilderness campsite. A warm campfire crackles in the foreground casting orange light on snow-covered pine trees. Vivid green, purple, and pink aurora curtains ripple and fold across the star-filled sky. Ultra-wide 14mm lens perspective, 8K resolution, 6-hour time-lapse compressed to 10 seconds. Foreground perfectly sharp with deep depth of field, Milky Way visible between aurora waves.",
   },
   {
     id: "s10",
@@ -136,7 +136,7 @@ const SCENES: Scene[] = [
     videoSrc: SCENE_MEDIA[9].video,
     poster: SCENE_MEDIA[9].poster,
     hiddenPrompt:
-      "Futuristic cyberpunk alleyway with holographic billboards, steam rising from grates, a hooded figure with glowing cybernetic arm, Blade Runner aesthetic",
+      "Futuristic cyberpunk back-alley in a sprawling megacity, year 2089. Holographic billboards flicker with advertisements in Japanese and Arabic script. Dense steam rises from grated vents, diffusing neon light into volumetric haze. A hooded figure with a glowing cybernetic arm walks through frame, face obscured. Flying drones buzz overhead. Blade Runner 2049 color palette — deep orange, teal, magenta. Anamorphic widescreen, rain-slicked surfaces reflecting every light source, 4K.",
   },
   {
     id: "s11",
@@ -145,7 +145,7 @@ const SCENES: Scene[] = [
     videoSrc: SCENE_MEDIA[10].video,
     poster: SCENE_MEDIA[10].poster,
     hiddenPrompt:
-      "Motorcycle racing through a desert sandstorm, low-angle tracking shot, dust particles catching sunlight, Mad Max style cinematography, 120fps slow-mo",
+      "Lone motorcycle rider racing at full speed through a massive desert sandstorm. Low-angle tracking shot from ground level, sand particles blasting past the camera catching harsh sunlight. Rider in weathered leather gear, goggles reflecting the orange sky. Dramatic dust plume trails behind. Mad Max: Fury Road inspired cinematography — bleach bypass look, crushed blacks, blown-out highlights. Shot at 120fps for dramatic slow-motion moments, intercutting with real-time speed bursts.",
   },
   {
     id: "s12",
@@ -154,7 +154,7 @@ const SCENES: Scene[] = [
     videoSrc: SCENE_MEDIA[11].video,
     poster: SCENE_MEDIA[11].poster,
     hiddenPrompt:
-      "Elderly couple slow dancing alone in an empty vintage ballroom, single spotlight, dust particles floating, deeply emotional, Kodak film look",
+      "An elderly couple slow dancing alone in a vast empty vintage ballroom. A single warm spotlight illuminates them from above while the rest of the grand space fades into soft darkness. Dust particles float through the light beam like tiny stars. Her head rests on his shoulder, his weathered hand gently holds hers. Shot on vintage Kodak 5219 film stock with natural grain. Camera slowly orbits them in a gentle arc. Deeply emotional, timeless, celebrating a lifetime of love in a single unbroken take.",
   },
 ];
 
@@ -274,7 +274,9 @@ export default function NextSceneEnginePage() {
   const [activeCategory, setActiveCategory] = useState<string>("All");
   const [uploadedImage, setUploadedImage] = useState<{ file: File; preview: string } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [promptHighlight, setPromptHighlight] = useState(false);
   const promptRef = useRef<HTMLTextAreaElement>(null);
+  const promptBoxRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dragCounter = useRef(0);
 
@@ -327,11 +329,16 @@ export default function NextSceneEnginePage() {
   }, [processFile]);
 
   /* ── scene selection (keeps uploaded image) ── */
-  const handleUseScene = (hiddenPrompt: string) => {
+  const handleUseScene = useCallback((hiddenPrompt: string) => {
     setPrompt(hiddenPrompt);
-    promptRef.current?.focus();
-    promptRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-  };
+    setPromptHighlight(true);
+    promptBoxRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    setTimeout(() => {
+      promptRef.current?.focus();
+      promptRef.current?.setSelectionRange(hiddenPrompt.length, hiddenPrompt.length);
+    }, 400);
+    setTimeout(() => setPromptHighlight(false), 1500);
+  }, []);
 
   return (
     <div className="relative min-h-screen overflow-hidden">
@@ -363,7 +370,14 @@ export default function NextSceneEnginePage() {
 
         {/* ─── prompt area ─── */}
         <div className="mx-auto mb-12 max-w-3xl">
-          <div className="overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.03] shadow-2xl shadow-black/20 backdrop-blur-xl">
+          <div
+            ref={promptBoxRef}
+            className={`overflow-hidden rounded-2xl border bg-white/[0.03] shadow-2xl backdrop-blur-xl transition-all duration-700 ${
+              promptHighlight
+                ? "border-violet-500/40 shadow-[0_0_32px_rgba(139,92,246,0.2)]"
+                : "border-white/[0.06] shadow-black/20"
+            }`}
+          >
             {/* textarea */}
             <textarea
               ref={promptRef}
