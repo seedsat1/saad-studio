@@ -75,38 +75,63 @@ export async function POST(req: NextRequest) {
     const rhFileName = await uploadImageToRunningHub(imageDataUrl);
     console.log("[CHARGEN] Upload success, fileName:", rhFileName);
 
-    // Create task — direct call for diagnostic visibility
+    // Create task — try empty nodeInfoList first (let AI App auto-detect),
+    // if that fails with NODE_INFO_MISMATCH, try common node patterns
     const RH_API_BASE = "https://www.runninghub.ai/openapi/v2";
     const apiKey = getRunningHubApiKey();
-    const taskBody = {
-      addMetadata: true,
-      nodeInfoList: [
-        { nodeId: "2", fieldName: "image", fieldValue: rhFileName },
-      ],
-      instanceType: "default",
-      usePersonalQueue: "false",
-    };
-    console.log("[CHARGEN] Creating task:", JSON.stringify(taskBody));
-    const taskRes = await fetch(`${RH_API_BASE}${RH_AI_APP_PATH}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-      body: JSON.stringify(taskBody),
-    });
-    const taskRaw = await taskRes.text();
-    console.log("[CHARGEN] RunningHub response:", taskRes.status, taskRaw.slice(0, 800));
 
-    if (!taskRes.ok) {
-      throw new Error(`RunningHub HTTP ${taskRes.status}: ${taskRaw.slice(0, 300)}`);
+    const nodePatterns = [
+      // Pattern 1: empty list — AI App auto-detect
+      [],
+      // Pattern 2: node "1" image (common single-input apps)
+      [{ nodeId: "1", fieldName: "image", fieldValue: rhFileName }],
+      // Pattern 3: node "3" image
+      [{ nodeId: "3", fieldName: "image", fieldValue: rhFileName }],
+      // Pattern 4: node "1" with input_image fieldName
+      [{ nodeId: "1", fieldName: "input_image", fieldValue: rhFileName }],
+    ];
+
+    let taskId = "";
+    let lastError = "";
+
+    for (let i = 0; i < nodePatterns.length; i++) {
+      const taskBody = {
+        addMetadata: true,
+        nodeInfoList: nodePatterns[i],
+        instanceType: "default",
+        usePersonalQueue: "false",
+      };
+      console.log(`[CHARGEN] Attempt ${i + 1}:`, JSON.stringify(taskBody));
+      const taskRes = await fetch(`${RH_API_BASE}${RH_AI_APP_PATH}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+        body: JSON.stringify(taskBody),
+      });
+      const taskRaw = await taskRes.text();
+      console.log(`[CHARGEN] Attempt ${i + 1} response:`, taskRes.status, taskRaw.slice(0, 600));
+
+      let taskData: Record<string, unknown>;
+      try { taskData = JSON.parse(taskRaw); } catch { lastError = taskRaw.slice(0, 300); continue; }
+
+      const id = (taskData.taskId as string)
+        ?? ((taskData.data as Record<string, unknown> | undefined)?.taskId as string | undefined);
+
+      if (id) {
+        taskId = id;
+        console.log(`[CHARGEN] Success on attempt ${i + 1}, taskId:`, taskId);
+        break;
+      }
+
+      lastError = taskRaw.slice(0, 400);
+      // If error is not NODE_INFO_MISMATCH, don't try other patterns
+      const errMsg = (taskData.errorMessage as string) ?? "";
+      if (!errMsg.includes("NODE_INFO_MISMATCH")) {
+        break;
+      }
     }
 
-    let taskData: Record<string, unknown>;
-    try { taskData = JSON.parse(taskRaw); } catch { throw new Error(`RunningHub invalid JSON: ${taskRaw.slice(0, 200)}`); }
-
-    const taskId = (taskData.taskId as string)
-      ?? (taskData.data as Record<string, unknown> | undefined)?.taskId as string | undefined;
-
     if (!taskId) {
-      throw new Error(`RunningHub no taskId. Full response: ${taskRaw.slice(0, 400)}`);
+      throw new Error(`RunningHub: all node patterns failed. Last response: ${lastError}`);
     }
     console.log("[CHARGEN] Task created, taskId:", taskId);
 

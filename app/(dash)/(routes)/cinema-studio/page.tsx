@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
+import SimpleToast from "../../../../components/SimpleToast";
 
 /* ───────────────────────── static scene data ───────────────────────── */
 
@@ -200,9 +201,13 @@ const CAT_COLORS: Record<string, string> = {
 function SceneCard({
   scene,
   onUse,
+  activeId,
+  setActiveId,
 }: {
   scene: Scene;
   onUse: (prompt: string) => void;
+  activeId: string | null;
+  setActiveId: (id: string | null) => void;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [videoFailed, setVideoFailed] = useState(false);
@@ -210,7 +215,7 @@ function SceneCard({
   const handleVideoError = useCallback(() => setVideoFailed(true), []);
 
   return (
-    <div className="group relative flex flex-col overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-xl transition-all duration-500 hover:scale-[1.025] hover:border-violet-500/20 hover:shadow-[0_0_48px_rgba(139,92,246,0.12)]">
+    <div className={`group relative flex flex-col overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-xl transition-all duration-500 hover:scale-[1.025] hover:border-violet-500/20 hover:shadow-[0_0_48px_rgba(139,92,246,0.12)] ${activeId===scene.id ? "ring-2 ring-violet-400/60" : ""}`}>
       {/* video preview */}
       <div className="relative aspect-video w-full overflow-hidden rounded-t-2xl bg-black">
         {!videoFailed ? (
@@ -268,8 +273,12 @@ function SceneCard({
         </p>
 
         <button
-          onClick={() => onUse(scene.hiddenPrompt)}
-          className="mt-auto flex items-center justify-center gap-2 rounded-xl border border-white/[0.08] bg-gradient-to-r from-violet-600/90 to-indigo-600/90 px-4 py-2.5 text-[13px] font-semibold text-white shadow-lg shadow-violet-500/10 transition-all duration-300 hover:from-violet-500 hover:to-indigo-500 hover:shadow-violet-500/30 active:scale-[0.97]"
+          onClick={() => {
+            setActiveId(scene.id);
+            onUse(scene.hiddenPrompt);
+            setTimeout(() => setActiveId(null), 600);
+          }}
+          className={`mt-auto flex items-center justify-center gap-2 rounded-xl border border-white/[0.08] bg-gradient-to-r from-violet-600/90 to-indigo-600/90 px-4 py-2.5 text-[13px] font-semibold text-white shadow-lg shadow-violet-500/10 transition-all duration-300 hover:from-violet-500 hover:to-indigo-500 hover:shadow-violet-500/30 active:scale-[0.97] ${activeId===scene.id ? "scale-95 bg-violet-700/90" : ""}`}
         >
           <svg
             className="h-4 w-4"
@@ -310,6 +319,8 @@ const QUALITY_OPTIONS = [
 ] as const;
 
 export default function NextSceneEnginePage() {
+    const [toast, setToast] = useState("");
+    const [activeSceneId, setActiveSceneId] = useState<string|null>(null);
   const [prompt, setPrompt] = useState("");
   const [selectedModel, setSelectedModel] = useState<string>(MODELS[0].value);
   const [duration, setDuration] = useState<number>(MODEL_DURATIONS[MODELS[0].value][0].value);
@@ -387,12 +398,14 @@ export default function NextSceneEnginePage() {
   const handleUseScene = useCallback((hiddenPrompt: string) => {
     setPrompt(hiddenPrompt);
     setPromptHighlight(true);
+    // Smooth scroll to prompt
     promptBoxRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
     setTimeout(() => {
       promptRef.current?.focus();
       promptRef.current?.setSelectionRange(hiddenPrompt.length, hiddenPrompt.length);
     }, 400);
     setTimeout(() => setPromptHighlight(false), 1500);
+    setToast("Scene applied");
   }, []);
 
   return (
@@ -654,8 +667,9 @@ export default function NextSceneEnginePage() {
         {/* ─── scene grid ─── */}
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filteredScenes.map((scene) => (
-            <SceneCard key={scene.id} scene={scene} onUse={handleUseScene} />
+            <SceneCard key={scene.id} scene={scene} onUse={handleUseScene} activeId={activeSceneId} setActiveId={setActiveSceneId} />
           ))}
+          <SimpleToast message={toast} show={!!toast} onHide={() => setToast("")} />
         </div>
 
         {filteredScenes.length === 0 && (
