@@ -32,6 +32,14 @@ const MODELS = [
   { value: "minimax", label: "MiniMax Video" },
 ] as const;
 
+const MODEL_DURATIONS: Record<string, { value: number; label: string }[]> = {
+  wan:        [{ value: 4, label: "4s" }, { value: 8, label: "8s" }],
+  kling:      [{ value: 5, label: "5s" }, { value: 10, label: "10s" }],
+  higgsfield: [{ value: 4, label: "4s" }],
+  runway:     [{ value: 5, label: "5s" }, { value: 10, label: "10s" }],
+  minimax:    [{ value: 6, label: "6s" }],
+};
+
 const SCENE_MEDIA = [
   { video: "https://videos.pexels.com/video-files/3571264/3571264-hd_1920_1080_30fps.mp4", poster: "https://images.pexels.com/videos/3571264/free-video-3571264.jpg?auto=compress&w=640" },
   { video: "https://videos.pexels.com/video-files/1526909/1526909-hd_1920_1080_24fps.mp4", poster: "https://images.pexels.com/videos/1526909/free-video-1526909.jpg?auto=compress&w=640" },
@@ -271,6 +279,7 @@ const MAX_SIZE = 10 * 1024 * 1024; // 10 MB
 export default function NextSceneEnginePage() {
   const [prompt, setPrompt] = useState("");
   const [selectedModel, setSelectedModel] = useState<string>(MODELS[0].value);
+  const [duration, setDuration] = useState<number>(MODEL_DURATIONS[MODELS[0].value][0].value);
   const [activeCategory, setActiveCategory] = useState<string>("All");
   const [uploadedImage, setUploadedImage] = useState<{ file: File; preview: string } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -279,6 +288,17 @@ export default function NextSceneEnginePage() {
   const promptBoxRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dragCounter = useRef(0);
+
+  const availableDurations = MODEL_DURATIONS[selectedModel] ?? MODEL_DURATIONS.wan;
+
+  const handleModelChange = useCallback((model: string) => {
+    setSelectedModel(model);
+    const durations = MODEL_DURATIONS[model] ?? MODEL_DURATIONS.wan;
+    setDuration((prev) => {
+      if (durations.some((d) => d.value === prev)) return prev;
+      return durations[0].value;
+    });
+  }, []);
 
   const filteredScenes =
     activeCategory === "All"
@@ -458,7 +478,7 @@ export default function NextSceneEnginePage() {
               <div className="relative">
                 <select
                   value={selectedModel}
-                  onChange={(e) => setSelectedModel(e.target.value)}
+                  onChange={(e) => handleModelChange(e.target.value)}
                   className="appearance-none rounded-lg border border-white/[0.08] bg-white/[0.04] py-1.5 pl-3 pr-8 text-xs font-medium text-white/80 outline-none transition hover:border-white/[0.15] focus:border-violet-500/40"
                 >
                   {MODELS.map((m) => (
@@ -484,6 +504,23 @@ export default function NextSceneEnginePage() {
                     d="M19 9l-7 7-7-7"
                   />
                 </svg>
+              </div>
+
+              {/* duration selector */}
+              <div className="flex items-center gap-1">
+                {availableDurations.map((d) => (
+                  <button
+                    key={d.value}
+                    onClick={() => setDuration(d.value)}
+                    className={`rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-all duration-200 ${
+                      duration === d.value
+                        ? "border-violet-500/40 bg-violet-500/15 text-violet-300"
+                        : "border-white/[0.06] bg-white/[0.02] text-slate-500 hover:border-white/[0.12] hover:text-slate-300"
+                    }`}
+                  >
+                    {d.label}
+                  </button>
+                ))}
               </div>
 
               {/* spacer */}
