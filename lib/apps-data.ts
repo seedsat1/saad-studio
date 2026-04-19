@@ -59,7 +59,7 @@ const APP_CATEGORIES_RAW: AppCategory[] = [
     tools: [
       { id: "skin-enhancer", title: "Skin Enhancer", description: "Natural, realistic skin textures", href: "/apps/tool/skin-enhancer", badge: "PRO", gradient: "from-rose-600/30 to-pink-900/30" },
       { id: "beauty2-studio", title: "Beauty2 Studio", description: "Full beauty, makeup, hairstyle, and outfit transformations", href: "/beauty2.html", badge: "NEW", gradient: "from-violet-600/30 to-purple-900/30" },
-      { id: "relight-app", title: "Relight", description: "Adjust lighting position, color & brightness", href: "/apps/tool/relight-app", badge: "PRO", gradient: "from-amber-600/30 to-orange-900/30" },
+      { id: "relight", title: "Relight", description: "AI-powered lighting adjustment for any photo", href: "/apps/tool/relight", badge: "PRO", gradient: "from-amber-600/30 to-orange-900/30" },
       { id: "makeup", title: "AI Makeup", description: "Professional AI-powered makeup in one click", href: "/apps/tool/makeup", badge: "TOP", gradient: "from-pink-600/30 to-rose-900/30" },
       { id: "style-snap", title: "Style Snap", description: "Instant style variations of your look", href: "/apps/tool/style-snap", badge: null, gradient: "from-pink-600/30 to-fuchsia-900/30" },
       { id: "color-grading", title: "Color Grading", description: "Professional color correction", href: "/apps/tool/color-grading", badge: null, gradient: "from-blue-600/30 to-indigo-900/30" },
