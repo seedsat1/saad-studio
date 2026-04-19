@@ -40,6 +40,36 @@ function readFileAsDataUrl(file: File): Promise<string> {
   });
 }
 
+/** Compress image to JPEG ≤ maxBytes using canvas (keeps aspect ratio, max 2048px side) */
+function compressImage(dataUrl: string, maxBytes = 2_500_000): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const MAX_SIDE = 2048;
+      let { width, height } = img;
+      if (width > MAX_SIDE || height > MAX_SIDE) {
+        const scale = MAX_SIDE / Math.max(width, height);
+        width = Math.round(width * scale);
+        height = Math.round(height * scale);
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d")!;
+      ctx.drawImage(img, 0, 0, width, height);
+      let quality = 0.85;
+      let result = canvas.toDataURL("image/jpeg", quality);
+      while (result.length > maxBytes && quality > 0.3) {
+        quality -= 0.1;
+        result = canvas.toDataURL("image/jpeg", quality);
+      }
+      resolve(result);
+    };
+    img.onerror = () => reject(new Error("Failed to load image for compression"));
+    img.src = dataUrl;
+  });
+}
+
 export default function StoryboardProductionPage() {
   const openCreditModal = useCreditModal((s) => s.onOpen);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -77,13 +107,15 @@ export default function StoryboardProductionPage() {
 
     setResult(null);
     setGenerationStatus("generating");
-    setStatusMessage(`Generating ${numPanels} panels… this may take 1–3 minutes.`);
+    setStatusMessage(`Compressing image & generating ${numPanels} panels… this may take 1–3 minutes.`);
 
     try {
+      const compressedImage = await compressImage(imageDataUrl);
+
       const res = await fetch("/api/runninghub/storyboard-production", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageDataUrl, numPanels, aspectRatio }),
+        body: JSON.stringify({ imageDataUrl: compressedImage, numPanels, aspectRatio }),
       });
 
       if (res.status === 402) {
@@ -94,8 +126,14 @@ export default function StoryboardProductionPage() {
       }
 
       if (!res.ok) {
-        const data = (await res.json()) as { error?: string };
-        throw new Error(data.error ?? "Failed to generate");
+        let errorMsg = "Failed to generate";
+        try {
+          const data = await res.json();
+          errorMsg = data.error ?? errorMsg;
+        } catch {
+          errorMsg = `Server error (${res.status})`;
+        }
+        throw new Error(errorMsg);
       }
 
       const { outputs } = (await res.json()) as { outputs: string[]; generationId: string };
