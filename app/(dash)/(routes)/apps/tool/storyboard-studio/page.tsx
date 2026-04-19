@@ -237,7 +237,7 @@ export default function StoryboardProductionPage() {
         </div>
 
         {/* ── RIGHT: Controls ── */}
-        <div className="flex flex-col overflow-y-auto" style={{ width: 420, minWidth: 360, background: "#0a1225", padding: "20px" }}>
+        <div className="flex flex-col overflow-y-auto sticky top-0 self-start" style={{ width: 420, minWidth: 360, height: "100vh", background: "#0a1225", padding: "20px" }}>
           <SectionLabel>Reference Image</SectionLabel>
           <div
             className={`relative rounded-xl transition-all duration-300 cursor-pointer ${isDragging ? "scale-[1.01]" : ""}`}
