@@ -8,25 +8,142 @@ import {
 } from "@/lib/credit-ledger";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { getClientIp, isAllowedOrigin, sanitizePrompt } from "@/lib/security";
-import {
-  getRunningHubApiKey,
-  uploadImageToRunningHub,
-  createRunningHubTask,
-  queryRunningHubTask,
-} from "@/lib/runninghub";
 
-/** Allow up to 5 minutes — RunningHub workflows may take a while */
+/** Allow up to 5 minutes */
 export const maxDuration = 300;
 
 const CREDIT_COST = 30;
-const WORKFLOW_ENDPOINT = "/run/workflow/2026210422021427201";
+const KIE_CREATE_TASK_URL = "https://api.kie.ai/api/v1/jobs/createTask";
+const KIE_QUERY_TASK_URL = "https://api.kie.ai/api/v1/jobs/recordInfo";
+const KIE_FILE_UPLOAD_URL = "https://kieai.redpandaai.co/api/file-base64-upload";
+const KIE_MODEL_ID = "qwen-image-edit-25";
+
+function getKieApiKey(): string {
+  const key = process.env.KIE_API_KEY ?? process.env.KIEAI_API_KEY;
+  if (!key) throw new Error("KIE_API_KEY is not configured");
+  return key;
+}
+
+function kieHeaders(apiKey: string) {
+  return {
+    Authorization: `Bearer ${apiKey}`,
+    "Content-Type": "application/json",
+  };
+}
+
+/** Upload base64 image to KIE and return a hosted URL */
+async function uploadImageToKie(base64DataUrl: string, apiKey: string): Promise<string> {
+  // Strip the data:image/...;base64, prefix
+  const base64Data = base64DataUrl.replace(/^data:image\/\w+;base64,/, "");
+
+  const res = await fetch(KIE_FILE_UPLOAD_URL, {
+    method: "POST",
+    headers: kieHeaders(apiKey),
+    body: JSON.stringify({ base64Data, uploadPath: "storyboard-refs" }),
+  });
+
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || json?.success === false) {
+    throw new Error(`KIE file upload failed (${res.status}): ${json?.msg ?? JSON.stringify(json)}`);
+  }
+
+  const fileUrl: string | undefined =
+    json?.data?.downloadUrl ??
+    json?.data?.download_url ??
+    json?.data?.fileUrl ??
+    json?.data?.file_url ??
+    json?.data?.url ??
+    (typeof json?.data === "string" ? json.data : undefined) ??
+    json?.fileUrl ??
+    json?.url;
+
+  if (!fileUrl) {
+    throw new Error(`KIE file upload returned no URL. Response: ${JSON.stringify(json)}`);
+  }
+  return fileUrl;
+}
+
+/** Create a KIE task and return taskId */
+async function createKieTask(
+  apiKey: string,
+  modelId: string,
+  input: Record<string, unknown>,
+): Promise<string> {
+  const res = await fetch(KIE_CREATE_TASK_URL, {
+    method: "POST",
+    headers: kieHeaders(apiKey),
+    body: JSON.stringify({ model: modelId, input }),
+  });
+
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || (json.code !== undefined && json.code !== 200 && json.code !== 0)) {
+    const msg = json?.msg ?? res.statusText;
+    throw new Error(`KIE createTask failed (HTTP ${res.status}, code ${json.code}): ${msg}`);
+  }
+
+  const taskId = json?.data?.taskId;
+  if (!taskId) {
+    throw new Error(`KIE createTask did not return a taskId. Response: ${JSON.stringify(json)}`);
+  }
+  return taskId;
+}
+
+/** Poll KIE task until success/fail/timeout */
+async function pollKieTask(
+  apiKey: string,
+  taskId: string,
+  maxAttempts = 80,
+  intervalMs = 3000,
+): Promise<{ status: "success" | "fail" | "timeout"; urls: string[]; error?: string }> {
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const wait = attempt < 5 ? 2000 : intervalMs;
+    await new Promise((r) => setTimeout(r, wait));
+
+    const res = await fetch(
+      `${KIE_QUERY_TASK_URL}?taskId=${encodeURIComponent(taskId)}`,
+      { headers: { Authorization: `Bearer ${apiKey}` } },
+    );
+
+    if (!res.ok) continue;
+
+    const json = await res.json().catch(() => ({}));
+    const data = json?.data ?? {};
+    const state = String(data?.state ?? data?.taskStatus ?? data?.status ?? "").toLowerCase();
+
+    // Parse resultJson
+    let parsedUrls: string[] = [];
+    if (data?.resultJson) {
+      try {
+        const rj = typeof data.resultJson === "string" ? JSON.parse(data.resultJson) : data.resultJson;
+        parsedUrls = Array.isArray(rj?.resultUrls) ? rj.resultUrls : [];
+      } catch { /* ignore */ }
+    }
+
+    const urls: string[] =
+      parsedUrls.length > 0
+        ? parsedUrls
+        : (data?.resultUrls ?? data?.outputs ?? []);
+
+    if (["success", "completed", "done"].includes(state)) {
+      return { status: "success", urls: Array.isArray(urls) ? urls : [] };
+    }
+
+    if (["fail", "failed", "error", "cancelled", "canceled"].includes(state)) {
+      const error = data?.failMsg ?? data?.errorMessage ?? data?.failCode ?? "KIE task failed.";
+      return { status: "fail", urls: [], error };
+    }
+    // waiting / queuing / generating — keep polling
+  }
+
+  return { status: "timeout", urls: [] };
+}
 
 /**
  * POST /api/runninghub/storyboard-production
  *
- * Runs the Qwen-Image-Edit-25 storyboard workflow on RunningHub.
+ * Generates storyboard panels via KIE API (Qwen-Image-Edit-25).
  *
- * Body: { imageDataUrl, prompt?, nodeInfoList? }
+ * Body: { imageDataUrl, prompt? }
  */
 export async function POST(req: NextRequest) {
   let chargedCredits = 0;
@@ -55,18 +172,16 @@ export async function POST(req: NextRequest) {
     const body = (await req.json()) as {
       imageDataUrl?: string;
       prompt?: string;
-      nodeInfoList?: { nodeId: string; fieldName: string; fieldValue: string }[];
     };
 
-    const { imageDataUrl, nodeInfoList } = body;
+    const { imageDataUrl } = body;
     const userPrompt = sanitizePrompt(body.prompt ?? "", 2000);
 
     if (!imageDataUrl?.startsWith("data:image/")) {
       return NextResponse.json({ error: "A valid reference image is required." }, { status: 400 });
     }
 
-    // Ensure RunningHub API key is available
-    getRunningHubApiKey();
+    const apiKey = getKieApiKey();
 
     // Deduct credits upfront
     const spent = await spendCredits({
@@ -74,73 +189,54 @@ export async function POST(req: NextRequest) {
       credits: CREDIT_COST,
       prompt: userPrompt || "Storyboard Production – Qwen-Image-Edit-25",
       assetType: "IMAGE",
-      modelUsed: "runninghub/qwen-image-edit-25/storyboard",
+      modelUsed: "kie/qwen-image-edit-25/storyboard",
     });
     chargedCredits = CREDIT_COST;
     chargedUserId = userId;
     generationId = spent.generationId;
 
-    // Upload reference image to RunningHub
-    const hostedImageUrl = await uploadImageToRunningHub(imageDataUrl);
+    // Upload reference image to KIE
+    const hostedImageUrl = await uploadImageToKie(imageDataUrl, apiKey);
 
-    // Build nodeInfoList — use provided overrides or default with uploaded image + prompt
-    const finalNodeInfoList = nodeInfoList && nodeInfoList.length > 0
-      ? nodeInfoList.map((n) => ({
-          nodeId: n.nodeId,
-          fieldName: n.fieldName,
-          // Replace placeholder tokens with actual values
-          fieldValue: n.fieldValue
-            .replace("{{IMAGE_URL}}", hostedImageUrl)
-            .replace("{{PROMPT}}", userPrompt),
-        }))
-      : [
-          // Default: inject image and prompt into the workflow
-          // These nodeIds may need adjustment based on the actual workflow node layout
-          { nodeId: "1", fieldName: "image", fieldValue: hostedImageUrl },
-          ...(userPrompt
-            ? [{ nodeId: "2", fieldName: "text", fieldValue: userPrompt }]
-            : []),
-        ];
+    // Build KIE input
+    const input: Record<string, unknown> = {
+      image_url: hostedImageUrl,
+    };
+    if (userPrompt) {
+      input.prompt = userPrompt;
+    }
 
-    // Submit workflow to RunningHub
-    const taskId = await createRunningHubTask(WORKFLOW_ENDPOINT, finalNodeInfoList);
+    // Create task via KIE
+    const taskId = await createKieTask(apiKey, KIE_MODEL_ID, input);
 
     // Poll for result (max ~4 min)
-    const MAX_POLLS = 80;
-    const POLL_INTERVAL = 3_000;
+    const result = await pollKieTask(apiKey, taskId);
 
-    for (let i = 0; i < MAX_POLLS; i++) {
-      await new Promise((r) => setTimeout(r, POLL_INTERVAL));
-
-      const result = await queryRunningHubTask(taskId);
-
-      if (result.status === "SUCCESS") {
-        const outputs = result.outputs ?? [];
-        if (outputs.length === 0) {
-          await rollbackGenerationCharge(generationId, userId, CREDIT_COST).catch(() => null);
-          return NextResponse.json(
-            { error: "Workflow completed but produced no outputs. Credits refunded." },
-            { status: 502 },
-          );
-        }
-
-        await setGenerationMediaUrl(generationId, outputs[0]).catch(() => null);
-
-        return NextResponse.json({
-          outputs,
-          generationId,
-          remainingCredits: spent.remainingCredits,
-        });
-      }
-
-      if (result.status === "FAILED") {
+    if (result.status === "success") {
+      const outputs = result.urls;
+      if (outputs.length === 0) {
         await rollbackGenerationCharge(generationId, userId, CREDIT_COST).catch(() => null);
         return NextResponse.json(
-          { error: result.errorMessage || "RunningHub workflow failed. Credits refunded." },
+          { error: "Task completed but produced no outputs. Credits refunded." },
           { status: 502 },
         );
       }
-      // QUEUED or RUNNING — keep polling
+
+      await setGenerationMediaUrl(generationId, outputs[0]).catch(() => null);
+
+      return NextResponse.json({
+        outputs,
+        generationId,
+        remainingCredits: spent.remainingCredits,
+      });
+    }
+
+    if (result.status === "fail") {
+      await rollbackGenerationCharge(generationId, userId, CREDIT_COST).catch(() => null);
+      return NextResponse.json(
+        { error: result.error || "KIE task failed. Credits refunded." },
+        { status: 502 },
+      );
     }
 
     // Timed out
