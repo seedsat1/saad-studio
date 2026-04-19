@@ -7,6 +7,7 @@ import { useCallback, useRef, useState } from "react";
 interface Scene {
   id: string;
   title: string;
+  subtitle: string;
   category: string;
   videoSrc: string;
   poster: string;
@@ -15,13 +16,12 @@ interface Scene {
 
 const CATEGORIES = [
   "All",
-  "Cinematic",
-  "Action",
-  "Luxury",
-  "Emotional",
-  "Sci-Fi",
-  "Nature",
-  "Urban",
+  "Entrance",
+  "Emotion",
+  "Movement",
+  "Reveal",
+  "Tension",
+  "Transition",
 ] as const;
 
 const MODELS = [
@@ -37,141 +37,152 @@ const MODEL_DURATIONS: Record<string, { value: number; label: string }[]> = {
 };
 
 const SCENE_MEDIA = [
-  { video: "https://videos.pexels.com/video-files/3571264/3571264-hd_1920_1080_30fps.mp4", poster: "https://images.pexels.com/videos/3571264/free-video-3571264.jpg?auto=compress&w=640" },
-  { video: "https://videos.pexels.com/video-files/1526909/1526909-hd_1920_1080_24fps.mp4", poster: "https://images.pexels.com/videos/1526909/free-video-1526909.jpg?auto=compress&w=640" },
-  { video: "https://videos.pexels.com/video-files/3129671/3129671-hd_1920_1080_30fps.mp4", poster: "https://images.pexels.com/videos/3129671/free-video-3129671.jpg?auto=compress&w=640" },
-  { video: "https://videos.pexels.com/video-files/856973/856973-hd_1920_1080_30fps.mp4",  poster: "https://images.pexels.com/videos/856973/free-video-856973.jpg?auto=compress&w=640" },
-  { video: "https://videos.pexels.com/video-files/2491284/2491284-hd_1920_1080_24fps.mp4", poster: "https://images.pexels.com/videos/2491284/free-video-2491284.jpg?auto=compress&w=640" },
-  { video: "https://videos.pexels.com/video-files/1093662/1093662-hd_1920_1080_30fps.mp4", poster: "https://images.pexels.com/videos/1093662/free-video-1093662.jpg?auto=compress&w=640" },
-  { video: "https://videos.pexels.com/video-files/857251/857251-hd_1920_1080_25fps.mp4",  poster: "https://images.pexels.com/videos/857251/free-video-857251.jpg?auto=compress&w=640" },
-  { video: "https://videos.pexels.com/video-files/3214448/3214448-hd_1920_1080_25fps.mp4", poster: "https://images.pexels.com/videos/3214448/free-video-3214448.jpg?auto=compress&w=640" },
-  { video: "https://videos.pexels.com/video-files/4763824/4763824-hd_1920_1080_24fps.mp4", poster: "https://images.pexels.com/videos/4763824/free-video-4763824.jpg?auto=compress&w=640" },
-  { video: "https://videos.pexels.com/video-files/5680034/5680034-hd_1920_1080_24fps.mp4", poster: "https://images.pexels.com/videos/5680034/free-video-5680034.jpg?auto=compress&w=640" },
-  { video: "https://videos.pexels.com/video-files/3015510/3015510-hd_1920_1080_24fps.mp4", poster: "https://images.pexels.com/videos/3015510/free-video-3015510.jpg?auto=compress&w=640" },
-  { video: "https://videos.pexels.com/video-files/2795173/2795173-hd_1920_1080_25fps.mp4", poster: "https://images.pexels.com/videos/2795173/free-video-2795173.jpg?auto=compress&w=640" },
+  { video: "https://videos.pexels.com/video-files/5519737/5519737-hd_1920_1080_25fps.mp4",  poster: "https://images.pexels.com/videos/5519737/free-video-5519737.jpg?auto=compress&w=640" },
+  { video: "https://videos.pexels.com/video-files/4057411/4057411-hd_1920_1080_25fps.mp4",  poster: "https://images.pexels.com/videos/4057411/free-video-4057411.jpg?auto=compress&w=640" },
+  { video: "https://videos.pexels.com/video-files/3015510/3015510-hd_1920_1080_24fps.mp4",  poster: "https://images.pexels.com/videos/3015510/free-video-3015510.jpg?auto=compress&w=640" },
+  { video: "https://videos.pexels.com/video-files/3571264/3571264-hd_1920_1080_30fps.mp4",  poster: "https://images.pexels.com/videos/3571264/free-video-3571264.jpg?auto=compress&w=640" },
+  { video: "https://videos.pexels.com/video-files/1093662/1093662-hd_1920_1080_30fps.mp4",  poster: "https://images.pexels.com/videos/1093662/free-video-1093662.jpg?auto=compress&w=640" },
+  { video: "https://videos.pexels.com/video-files/856973/856973-hd_1920_1080_30fps.mp4",   poster: "https://images.pexels.com/videos/856973/free-video-856973.jpg?auto=compress&w=640" },
+  { video: "https://videos.pexels.com/video-files/2795173/2795173-hd_1920_1080_25fps.mp4",  poster: "https://images.pexels.com/videos/2795173/free-video-2795173.jpg?auto=compress&w=640" },
+  { video: "https://videos.pexels.com/video-files/1526909/1526909-hd_1920_1080_24fps.mp4",  poster: "https://images.pexels.com/videos/1526909/free-video-1526909.jpg?auto=compress&w=640" },
+  { video: "https://videos.pexels.com/video-files/3214448/3214448-hd_1920_1080_25fps.mp4",  poster: "https://images.pexels.com/videos/3214448/free-video-3214448.jpg?auto=compress&w=640" },
+  { video: "https://videos.pexels.com/video-files/4763824/4763824-hd_1920_1080_24fps.mp4",  poster: "https://images.pexels.com/videos/4763824/free-video-4763824.jpg?auto=compress&w=640" },
+  { video: "https://videos.pexels.com/video-files/857251/857251-hd_1920_1080_25fps.mp4",   poster: "https://images.pexels.com/videos/857251/free-video-857251.jpg?auto=compress&w=640" },
+  { video: "https://videos.pexels.com/video-files/5680034/5680034-hd_1920_1080_24fps.mp4",  poster: "https://images.pexels.com/videos/5680034/free-video-5680034.jpg?auto=compress&w=640" },
 ];
 
 const SCENES: Scene[] = [
   {
     id: "s1",
-    title: "Golden Hour Chase",
-    category: "Cinematic",
+    title: "Character Entrance",
+    subtitle: "Introduce a key character into the scene",
+    category: "Entrance",
     videoSrc: SCENE_MEDIA[0].video,
     poster: SCENE_MEDIA[0].poster,
     hiddenPrompt:
-      "Cinematic chase scene through narrow European cobblestone streets during golden hour. Aerial drone tracking shot following a black sports car at high speed. Warm amber light flares streaming between buildings, motion blur on background, dramatic pacing with quick cuts. Handheld camera energy, anamorphic lens distortion, 4K filmic grain, 24fps, color graded with warm orange highlights and deep teal shadows, Deakins-style cinematography.",
+      "A confident figure steps through a doorway into a dimly lit room, silhouette framed by bright backlight spilling in from behind. Slow dolly-in reveals their face as they pause and survey the space. Dramatic rim lighting outlines their profile, shallow depth of field blurs the background. Low-angle shot emphasizing authority and presence, anamorphic lens flare, 4K cinematic, 24fps, warm-to-cool color transition as they enter.",
   },
   {
     id: "s2",
-    title: "Neon Rain Walk",
-    category: "Urban",
+    title: "Reaction Shot",
+    subtitle: "Capture a character's emotional response",
+    category: "Emotion",
     videoSrc: SCENE_MEDIA[1].video,
     poster: SCENE_MEDIA[1].poster,
     hiddenPrompt:
-      "Night scene set in rain-soaked Tokyo backstreets. A lone figure in a long dark coat walks slowly through neon-lit alleyways. Vivid pink, cyan, and purple neon reflections shimmer on wet asphalt. Slow cinematic walk, moody low-key lighting, cyberpunk atmosphere. Shot on anamorphic lens with shallow depth of field, volumetric rain particles, steam rising from street vents. Film noir meets Blade Runner aesthetic, 4K, 24fps.",
+      "Tight medium close-up of a person's face reacting to unexpected news. Eyes widen subtly, jaw tightens, a micro-expression shifts from composure to shock. Shallow depth of field isolates the face against a soft bokeh background. Natural side lighting from a window casts gentle shadows across features. Handheld camera with minimal breathing movement, Kodak 5219 film stock warmth, intimate and psychologically revealing. 24fps, aspect ratio 2.39:1.",
   },
   {
     id: "s3",
-    title: "Ocean Titan",
-    category: "Nature",
+    title: "Close-up Emotion",
+    subtitle: "An intimate look at raw feeling",
+    category: "Emotion",
     videoSrc: SCENE_MEDIA[2].video,
     poster: SCENE_MEDIA[2].poster,
     hiddenPrompt:
-      "Massive 60-foot ocean wave building and crashing in ultra slow motion. Camera starts underwater looking up through crystal-clear turquoise water, then breaches the surface as the wave curls overhead. Sunlight refracts through the translucent wave lip creating prismatic light rays. Captured at 240fps, 8K cinematic resolution, IMAX aspect ratio. Sound design: deep rumbling bass with ethereal underwater ambience transitioning to thunderous crash.",
+      "Extreme close-up on a person's eyes filling with tears, a single tear rolling down their cheek catching the light. Camera holds completely still on a tripod, the stillness amplifying the vulnerability. Soft diffused golden-hour light from the left, rest of the face slightly in shadow. Macro lens detail — every eyelash visible, skin texture photorealistic. Sound design implies silence broken only by a shaky breath. Deeply emotional, Wong Kar-wai inspired color palette, 4K.",
   },
   {
     id: "s4",
-    title: "Velvet Gala",
-    category: "Luxury",
+    title: "Wide Establishing",
+    subtitle: "Set the world and geography of the scene",
+    category: "Transition",
     videoSrc: SCENE_MEDIA[3].video,
     poster: SCENE_MEDIA[3].poster,
     hiddenPrompt:
-      "Elegant black-tie gala in a grand Venetian ballroom. Slow dolly shot gliding through dancing couples in haute couture gowns and tailored tuxedos. Enormous crystal chandeliers cast warm amber light across marble floors. Shallow depth of field with creamy bokeh, champagne glasses catching light in foreground. Rich warm color palette — deep burgundy, gold, ivory. Shot on 65mm film with subtle grain, Kubrick-inspired symmetrical framing.",
+      "Sweeping aerial establishing shot slowly revealing a vast landscape at dawn. Camera starts tight on mist-covered treetops then pulls back and rises to unveil an entire city or environment below. Volumetric god rays pierce through morning clouds. Ultra-wide 14mm perspective, 8K resolution, perfectly smooth gimbal movement. Color grade shifts from cool pre-dawn blues to warm golden tones as the sun crests the horizon. Sets the stage for everything that follows.",
   },
   {
     id: "s5",
-    title: "Supernova Drift",
-    category: "Sci-Fi",
+    title: "Over-the-Shoulder",
+    subtitle: "Ground the viewer inside a conversation",
+    category: "Tension",
     videoSrc: SCENE_MEDIA[4].video,
     poster: SCENE_MEDIA[4].poster,
     hiddenPrompt:
-      "A lone spacecraft drifts silently past a dying star on the edge of supernova collapse. Massive volumetric nebula clouds of crimson and violet swirl around the stellar core. Intense lens flare from the star's surface, god rays piercing through gas clouds. Interior cockpit reflections visible on the ship's hull. Interstellar and 2001: A Space Odyssey visual language, IMAX 1.43:1 aspect ratio, photorealistic VFX, Hans Zimmer-style score implied through visual tension.",
+      "Over-the-shoulder shot from behind one character looking at another during a tense exchange. The foreground shoulder and head are slightly out of focus, framing the sharp face of the person being addressed. Eye-level camera, 85mm lens compression creating intimacy and claustrophobia. Subtle rack focus between the two characters during pauses. Moody low-key lighting with a single practical source. The power dynamic is implied through framing — who is larger in frame dominates the moment. Cinematic 2.39:1.",
   },
   {
     id: "s6",
-    title: "Rooftop Farewell",
-    category: "Emotional",
+    title: "Follow Tracking",
+    subtitle: "Move with the character through space",
+    category: "Movement",
     videoSrc: SCENE_MEDIA[5].video,
     poster: SCENE_MEDIA[5].poster,
     hiddenPrompt:
-      "Two silhouettes standing on a city rooftop at golden hour sunset. One figure slowly turns and walks away while the other remains still. Emotional close-up on trembling hands letting go, then a wide shot showing the vast city skyline. Shallow depth of field, warm desaturated color grade with lifted blacks. Handheld camera with subtle movement, lens breathing effect. Inspired by Wong Kar-wai's visual poetry — melancholic, intimate, deeply human.",
+      "Steadicam tracking shot following a character from behind as they walk purposefully through a long corridor or street. Camera maintains consistent distance, floating smoothly at shoulder height. The environment tells the story — walls, light, passing figures all add context. Perspective creates leading lines drawing the eye forward. Atmospheric haze or dust particles catch cross-light. Kubrick one-point perspective composition, 35mm focal length, 4K, 24fps, building anticipation with every step.",
   },
   {
     id: "s7",
-    title: "Bullet Time Clash",
-    category: "Action",
+    title: "Push-In Reveal",
+    subtitle: "Slowly uncover something critical",
+    category: "Reveal",
     videoSrc: SCENE_MEDIA[6].video,
     poster: SCENE_MEDIA[6].poster,
     hiddenPrompt:
-      "Martial arts fight scene frozen in bullet-time. 360-degree camera rotation around a warrior executing a mid-air spinning kick. Sweat droplets and shattered glass particles suspended in the air, each catching light individually. Hyper-detailed muscle tension visible, fabric rippling in slow motion. Shot at 1000fps equivalent, 4K resolution, dramatic rim lighting from behind. Matrix-meets-John Wick choreography with precise, brutal elegance.",
+      "Slow deliberate dolly push-in toward an object, document, or screen that holds crucial information. Camera starts from a medium-wide framing the surrounding environment, then creeps forward over 8 seconds until the key detail fills the frame. Rack focus transition from background context to foreground subject. Tension builds through pacing alone — no dialogue needed. Low ambient lighting with a single pool of light on the reveal point. Hitchcock-inspired suspense framing, 4K, 24fps.",
   },
   {
     id: "s8",
-    title: "Midnight Yacht",
-    category: "Luxury",
+    title: "Conflict Escalation",
+    subtitle: "Raise the stakes between two forces",
+    category: "Tension",
     videoSrc: SCENE_MEDIA[7].video,
     poster: SCENE_MEDIA[7].poster,
     hiddenPrompt:
-      "Luxury 200-foot mega-yacht anchored in a secluded Mediterranean bay under a star-filled sky. Smooth drone circling shot starting from water level, rising to reveal the full vessel. Warm amber deck lighting reflects on perfectly calm dark water. Interior glimpses through panoramic windows show a lavish lounge. Moonlight creates a silver path on the sea surface. Cinematic color grade — deep navy blues, warm golds, cool silvers. Shot in 6K with gimbal stabilization.",
+      "Two figures face each other across a table or narrow space, tension escalating. Quick cutting between tight close-ups — clenched fist, narrowing eyes, a hand reaching slowly. Camera angles become increasingly Dutch-tilted as conflict builds. Lighting shifts from balanced to harsh single-source, casting deep shadows. Sound design implies rising tension through low frequency drone. Editing rhythm accelerates from 3-second cuts to 1-second cuts. Inspired by Michael Mann and Denis Villeneuve confrontation scenes. 4K, anamorphic.",
   },
   {
     id: "s9",
-    title: "Aurora Borealis Camp",
-    category: "Nature",
+    title: "Quiet Pause",
+    subtitle: "A breath between story beats",
+    category: "Transition",
     videoSrc: SCENE_MEDIA[8].video,
     poster: SCENE_MEDIA[8].poster,
     hiddenPrompt:
-      "Breathtaking time-lapse of the northern lights dancing across the Arctic sky above a remote wilderness campsite. A warm campfire crackles in the foreground casting orange light on snow-covered pine trees. Vivid green, purple, and pink aurora curtains ripple and fold across the star-filled sky. Ultra-wide 14mm lens perspective, 8K resolution, 6-hour time-lapse compressed to 10 seconds. Foreground perfectly sharp with deep depth of field, Milky Way visible between aurora waves.",
+      "A character stands alone in a still moment — gazing out a rain-streaked window, sitting quietly in an empty room, or pausing on a bridge at dusk. Camera holds in a locked-off wide shot, allowing the environment to breathe around them. Ambient natural sound — rain, distant traffic, wind. Muted desaturated color palette with a single warm accent. This is the pause that gives the audience space to feel. Inspired by Terrence Malick and Sofia Coppola's contemplative moments. 4K, 24fps, long take.",
   },
   {
     id: "s10",
-    title: "Cyberpunk Alley",
-    category: "Sci-Fi",
+    title: "Arrival Shot",
+    subtitle: "A character reaches a destination",
+    category: "Entrance",
     videoSrc: SCENE_MEDIA[9].video,
     poster: SCENE_MEDIA[9].poster,
     hiddenPrompt:
-      "Futuristic cyberpunk back-alley in a sprawling megacity, year 2089. Holographic billboards flicker with advertisements in Japanese and Arabic script. Dense steam rises from grated vents, diffusing neon light into volumetric haze. A hooded figure with a glowing cybernetic arm walks through frame, face obscured. Flying drones buzz overhead. Blade Runner 2049 color palette — deep orange, teal, magenta. Anamorphic widescreen, rain-slicked surfaces reflecting every light source, 4K.",
+      "A vehicle — car, train, or boat — arrives and comes to a stop. Door opens, feet step onto new ground. Camera starts from a wide shot of the location, then cuts to a low-angle as the character emerges. The environment reacts — dust settles, crowd parts, light shifts. This is the threshold moment between journey and story. Slow-motion for the exit beat, then real-time as they take in their surroundings. Cinematic color grade matching the emotional tone of what’s ahead. 4K, 24fps, anamorphic.",
   },
   {
     id: "s11",
-    title: "Desert Storm Rider",
-    category: "Action",
+    title: "Discovery Moment",
+    subtitle: "The character finds something unexpected",
+    category: "Reveal",
     videoSrc: SCENE_MEDIA[10].video,
     poster: SCENE_MEDIA[10].poster,
     hiddenPrompt:
-      "Lone motorcycle rider racing at full speed through a massive desert sandstorm. Low-angle tracking shot from ground level, sand particles blasting past the camera catching harsh sunlight. Rider in weathered leather gear, goggles reflecting the orange sky. Dramatic dust plume trails behind. Mad Max: Fury Road inspired cinematography — bleach bypass look, crushed blacks, blown-out highlights. Shot at 120fps for dramatic slow-motion moments, intercutting with real-time speed bursts.",
+      "A character rounds a corner or opens a door and freezes — their expression shifts as they process what they see. Camera captures their face in a slow push-in, then reverses to reveal what they’re looking at from their POV. The cut between their reaction and the discovery creates dramatic weight. Spielberg-inspired sense of wonder or dread depending on lighting — warm uplighting for awe, cold toplight for horror. Musical score swell implied through visual pacing. 4K, 2.39:1, shallow depth of field.",
   },
   {
     id: "s12",
-    title: "Last Dance",
-    category: "Emotional",
+    title: "Final Beat",
+    subtitle: "The last image that closes the sequence",
+    category: "Transition",
     videoSrc: SCENE_MEDIA[11].video,
     poster: SCENE_MEDIA[11].poster,
     hiddenPrompt:
-      "An elderly couple slow dancing alone in a vast empty vintage ballroom. A single warm spotlight illuminates them from above while the rest of the grand space fades into soft darkness. Dust particles float through the light beam like tiny stars. Her head rests on his shoulder, his weathered hand gently holds hers. Shot on vintage Kodak 5219 film stock with natural grain. Camera slowly orbits them in a gentle arc. Deeply emotional, timeless, celebrating a lifetime of love in a single unbroken take.",
+      "The closing shot of a sequence — camera slowly pulls back from the character as they stand alone in a vast space. Or a slow fade as a door closes, a light goes out, a figure disappears around a corner. The visual rhythm decelerates, cuts become longer, the world expands. Color grade cools or warms to signal emotional resolution. This is the last image the audience holds — make it resonate. Slow crane-up or dolly-back, 4K, 24fps, 2.39:1 widescreen, deeply cinematic closure.",
   },
 ];
 
 /* ───────────────────────── category color map ───────────────────────── */
 
 const CAT_COLORS: Record<string, string> = {
-  Cinematic: "from-amber-500/80 to-orange-600/80",
-  Action: "from-red-500/80 to-rose-600/80",
-  Luxury: "from-yellow-400/80 to-amber-500/80",
-  Emotional: "from-pink-400/80 to-fuchsia-500/80",
-  "Sci-Fi": "from-cyan-400/80 to-blue-500/80",
-  Nature: "from-emerald-400/80 to-green-500/80",
-  Urban: "from-violet-400/80 to-purple-500/80",
+  Entrance:   "from-amber-500/80 to-orange-600/80",
+  Emotion:    "from-pink-400/80 to-rose-500/80",
+  Movement:   "from-cyan-400/80 to-blue-500/80",
+  Reveal:     "from-violet-400/80 to-purple-500/80",
+  Tension:    "from-red-500/80 to-rose-600/80",
+  Transition: "from-emerald-400/80 to-teal-500/80",
 };
 
 /* ───────────────────────── video card component ───────────────────────── */
@@ -238,10 +249,13 @@ function SceneCard({
       </div>
 
       {/* card info */}
-      <div className="flex flex-1 flex-col gap-3 p-4">
+      <div className="flex flex-1 flex-col gap-2 p-4">
         <h3 className="text-[15px] font-bold tracking-tight text-white">
           {scene.title}
         </h3>
+        <p className="text-[12px] leading-relaxed text-slate-400">
+          {scene.subtitle}
+        </p>
 
         <button
           onClick={() => onUse(scene.hiddenPrompt)}
