@@ -20,6 +20,9 @@ import { useCreditModal } from "@/hooks/use-credit-modal";
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-display", display: "swap" });
 const plusJakarta = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-body", display: "swap" });
 
+const ASPECT_RATIOS = ["1:1", "2:3", "3:2", "3:4", "4:3", "9:16", "16:9", "21:9"];
+const CREDIT_PER_PANEL = 2;
+
 type GenerationStatus = "idle" | "generating" | "success" | "failed";
 
 interface ResultState {
@@ -43,12 +46,14 @@ export default function StoryboardProductionPage() {
 
   const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [prompt, setPrompt] = useState("");
+  const [numPanels, setNumPanels] = useState(4);
+  const [aspectRatio, setAspectRatio] = useState("16:9");
   const [generationStatus, setGenerationStatus] = useState<GenerationStatus>("idle");
   const [result, setResult] = useState<ResultState | null>(null);
   const [statusMessage, setStatusMessage] = useState("");
 
   const isGenerating = generationStatus === "generating";
+  const totalCost = numPanels * CREDIT_PER_PANEL;
 
   const handleFileSelect = useCallback(async (file: File) => {
     if (!file.type.startsWith("image/")) return;
@@ -72,13 +77,13 @@ export default function StoryboardProductionPage() {
 
     setResult(null);
     setGenerationStatus("generating");
-    setStatusMessage("Sending to RunningHub… this may take 2–4 minutes.");
+    setStatusMessage(`Generating ${numPanels} panels… this may take 1–3 minutes.`);
 
     try {
       const res = await fetch("/api/runninghub/storyboard-production", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageDataUrl, prompt: prompt.trim() }),
+        body: JSON.stringify({ imageDataUrl, numPanels, aspectRatio }),
       });
 
       if (res.status === 402) {
@@ -216,16 +221,16 @@ export default function StoryboardProductionPage() {
             </p>
             <div className="mt-3 grid grid-cols-3 gap-3 text-center">
               <div className="rounded-lg py-3 px-2" style={{ background: "#060c18" }}>
-                <div className="text-lg font-bold" style={{ color: "#06b6d4", fontFamily: "var(--font-display)" }}>30</div>
-                <div className="text-[10px] mt-0.5" style={{ color: "#64748b" }}>Credits</div>
+                <div className="text-lg font-bold" style={{ color: "#06b6d4", fontFamily: "var(--font-display)" }}>2</div>
+                <div className="text-[10px] mt-0.5" style={{ color: "#64748b" }}>Credits/Panel</div>
               </div>
               <div className="rounded-lg py-3 px-2" style={{ background: "#060c18" }}>
-                <div className="text-lg font-bold" style={{ color: "#8b5cf6", fontFamily: "var(--font-display)" }}>2-4</div>
-                <div className="text-[10px] mt-0.5" style={{ color: "#64748b" }}>Minutes</div>
+                <div className="text-lg font-bold" style={{ color: "#8b5cf6", fontFamily: "var(--font-display)" }}>1-6</div>
+                <div className="text-[10px] mt-0.5" style={{ color: "#64748b" }}>Panels</div>
               </div>
               <div className="rounded-lg py-3 px-2" style={{ background: "#060c18" }}>
-                <div className="text-lg font-bold" style={{ color: "#a3e635", fontFamily: "var(--font-display)" }}>HD</div>
-                <div className="text-[10px] mt-0.5" style={{ color: "#64748b" }}>Quality</div>
+                <div className="text-lg font-bold" style={{ color: "#a3e635", fontFamily: "var(--font-display)" }}>8</div>
+                <div className="text-[10px] mt-0.5" style={{ color: "#64748b" }}>Aspect Ratios</div>
               </div>
             </div>
           </div>
@@ -266,19 +271,51 @@ export default function StoryboardProductionPage() {
           </div>
           <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileSelect(f); }} />
 
-          {/* Prompt */}
+          {/* Aspect Ratio */}
           <div className="mt-5">
-            <SectionLabel>Scene Description <span className="normal-case font-normal text-[#475569]">(optional)</span></SectionLabel>
-            <textarea
-              rows={5}
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              placeholder="Describe the storyboard you want: camera angles, mood, action, lighting…"
-              className="w-full rounded-xl text-sm resize-none outline-none p-3.5 transition-all"
-              style={{ background: "#0e1630", border: "1px solid #1e293b", color: "#e2e8f0", fontFamily: "var(--font-body)" }}
-              maxLength={2000}
-            />
-            <div className="text-right text-[10px] mt-1" style={{ color: "#475569" }}>{prompt.length}/2000</div>
+            <SectionLabel>Aspect Ratio</SectionLabel>
+            <div className="flex flex-wrap gap-1.5">
+              {ASPECT_RATIOS.map((ar) => (
+                <button
+                  key={ar}
+                  className="px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all"
+                  style={{
+                    border: `1px solid ${aspectRatio === ar ? "rgba(139,92,246,0.4)" : "#1e293b"}`,
+                    background: aspectRatio === ar ? "rgba(139,92,246,0.1)" : "#0e1630",
+                    color: aspectRatio === ar ? "#8b5cf6" : "#64748b",
+                    fontFamily: "var(--font-display)",
+                  }}
+                  onClick={() => setAspectRatio(ar)}
+                >
+                  {ar}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Number of panels */}
+          <div className="mt-5">
+            <SectionLabel>Number of Panels</SectionLabel>
+            <div className="flex gap-1.5">
+              {[1, 2, 3, 4, 5, 6].map((n) => (
+                <button
+                  key={n}
+                  className="flex-1 py-2.5 rounded-lg text-[12px] font-bold transition-all"
+                  style={{
+                    border: `1px solid ${numPanels === n ? "rgba(6,182,212,0.4)" : "#1e293b"}`,
+                    background: numPanels === n ? "rgba(6,182,212,0.1)" : "#0e1630",
+                    color: numPanels === n ? "#06b6d4" : "#64748b",
+                    fontFamily: "var(--font-display)",
+                  }}
+                  onClick={() => setNumPanels(n)}
+                >
+                  {n}
+                </button>
+              ))}
+            </div>
+            <div className="text-right text-[10px] mt-1.5" style={{ color: "#475569" }}>
+              {numPanels} panel{numPanels !== 1 ? "s" : ""} × {CREDIT_PER_PANEL} = <span style={{ color: "#8b5cf6", fontWeight: 600 }}>{totalCost} credits</span>
+            </div>
           </div>
 
           {/* Generate button */}
@@ -299,7 +336,7 @@ export default function StoryboardProductionPage() {
             )}
           </button>
           <div className="text-center mt-2 text-[10px]" style={{ color: "#475569" }}>
-            Costs <span style={{ color: "#8b5cf6", fontWeight: 600 }}>30 credits</span> per generation
+            Costs <span style={{ color: "#8b5cf6", fontWeight: 600 }}>{totalCost} credits</span> for {numPanels} panel{numPanels !== 1 ? "s" : ""}
           </div>
 
           {/* How it works */}
@@ -310,8 +347,8 @@ export default function StoryboardProductionPage() {
             </div>
             <ol className="text-xs space-y-1.5" style={{ color: "#64748b" }}>
               <li className="flex gap-2"><span style={{ color: "#8b5cf6", fontWeight: 700 }}>1.</span> Upload a reference image</li>
-              <li className="flex gap-2"><span style={{ color: "#8b5cf6", fontWeight: 700 }}>2.</span> Optionally describe the scene</li>
-              <li className="flex gap-2"><span style={{ color: "#8b5cf6", fontWeight: 700 }}>3.</span> AI generates cinematic storyboard panels</li>
+              <li className="flex gap-2"><span style={{ color: "#8b5cf6", fontWeight: 700 }}>2.</span> Choose aspect ratio and number of panels</li>
+              <li className="flex gap-2"><span style={{ color: "#8b5cf6", fontWeight: 700 }}>3.</span> AI generates cinematic panels with varied angles</li>
               <li className="flex gap-2"><span style={{ color: "#8b5cf6", fontWeight: 700 }}>4.</span> Download individual panels or all at once</li>
             </ol>
           </div>

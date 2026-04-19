@@ -7,16 +7,29 @@ import {
   setGenerationMediaUrl,
 } from "@/lib/credit-ledger";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
-import { getClientIp, isAllowedOrigin, sanitizePrompt } from "@/lib/security";
+import { getClientIp, isAllowedOrigin } from "@/lib/security";
 
 /** Allow up to 5 minutes */
 export const maxDuration = 300;
 
-const CREDIT_COST = 30;
+const CREDIT_PER_PANEL = 2;
+const MAX_PANELS = 6;
 const KIE_CREATE_TASK_URL = "https://api.kie.ai/api/v1/jobs/createTask";
 const KIE_QUERY_TASK_URL = "https://api.kie.ai/api/v1/jobs/recordInfo";
 const KIE_FILE_UPLOAD_URL = "https://kieai.redpandaai.co/api/file-base64-upload";
 const KIE_MODEL_ID = "qwen2/image-edit";
+
+const VALID_ASPECT_RATIOS = ["1:1", "2:3", "3:2", "3:4", "4:3", "9:16", "16:9", "21:9"];
+
+/** Auto-generate cinematic prompts for each panel */
+const PANEL_PROMPTS = [
+  "Wide establishing shot showing the full scene with dramatic lighting and cinematic composition",
+  "Close-up portrait shot focusing on the main subject with shallow depth of field",
+  "Medium shot from a low angle perspective emphasizing power and drama",
+  "Over-the-shoulder view creating depth and narrative tension",
+  "Extreme close-up highlighting key details with dramatic contrast",
+  "Bird's eye aerial view showing the full environment from above",
+];
 
 function getKieApiKey(): string {
   const key = process.env.KIE_API_KEY ?? process.env.KIEAI_API_KEY;
@@ -141,9 +154,10 @@ async function pollKieTask(
 /**
  * POST /api/runninghub/storyboard-production
  *
- * Generates storyboard panels via KIE API (Qwen-Image-Edit-25).
+ * Generates storyboard panels via KIE API (qwen2/image-edit).
+ * Each panel is a separate KIE task with an auto-generated cinematic prompt.
  *
- * Body: { imageDataUrl, prompt? }
+ * Body: { imageDataUrl, numPanels?, aspectRatio? }
  */
 export async function POST(req: NextRequest) {
   let chargedCredits = 0;
@@ -171,78 +185,91 @@ export async function POST(req: NextRequest) {
 
     const body = (await req.json()) as {
       imageDataUrl?: string;
-      prompt?: string;
+      numPanels?: number;
+      aspectRatio?: string;
     };
 
     const { imageDataUrl } = body;
-    const userPrompt = sanitizePrompt(body.prompt ?? "", 2000);
+    const numPanels = Math.max(1, Math.min(MAX_PANELS, body.numPanels ?? 4));
+    const aspectRatio = VALID_ASPECT_RATIOS.includes(body.aspectRatio ?? "")
+      ? body.aspectRatio!
+      : "16:9";
 
     if (!imageDataUrl?.startsWith("data:image/")) {
       return NextResponse.json({ error: "A valid reference image is required." }, { status: 400 });
     }
 
     const apiKey = getKieApiKey();
+    const totalCost = numPanels * CREDIT_PER_PANEL;
 
     // Deduct credits upfront
     const spent = await spendCredits({
       userId,
-      credits: CREDIT_COST,
-      prompt: userPrompt || "Storyboard Production – Qwen-Image-Edit-25",
+      credits: totalCost,
+      prompt: `Storyboard Production – ${numPanels} panels`,
       assetType: "IMAGE",
-      modelUsed: "kie/qwen-image-edit-25/storyboard",
+      modelUsed: "kie/qwen2-image-edit/storyboard",
     });
-    chargedCredits = CREDIT_COST;
+    chargedCredits = totalCost;
     chargedUserId = userId;
     generationId = spent.generationId;
 
     // Upload reference image to KIE
     const hostedImageUrl = await uploadImageToKie(imageDataUrl, apiKey);
 
-    // Build KIE input
-    const input: Record<string, unknown> = {
-      image_url: hostedImageUrl,
-      prompt: userPrompt || "Generate cinematic storyboard panels from this image with varied camera angles and compositions",
-    };
-
-    // Create task via KIE
-    const taskId = await createKieTask(apiKey, KIE_MODEL_ID, input);
-
-    // Poll for result (max ~4 min)
-    const result = await pollKieTask(apiKey, taskId);
-
-    if (result.status === "success") {
-      const outputs = result.urls;
-      if (outputs.length === 0) {
-        await rollbackGenerationCharge(generationId, userId, CREDIT_COST).catch(() => null);
-        return NextResponse.json(
-          { error: "Task completed but produced no outputs. Credits refunded." },
-          { status: 502 },
-        );
-      }
-
-      await setGenerationMediaUrl(generationId, outputs[0]).catch(() => null);
-
-      return NextResponse.json({
-        outputs,
-        generationId,
-        remainingCredits: spent.remainingCredits,
-      });
+    // Launch all panel tasks in parallel
+    const taskIds: string[] = [];
+    for (let i = 0; i < numPanels; i++) {
+      const prompt = PANEL_PROMPTS[i % PANEL_PROMPTS.length];
+      const input: Record<string, unknown> = {
+        image_url: hostedImageUrl,
+        prompt,
+        aspect_ratio: aspectRatio,
+      };
+      const taskId = await createKieTask(apiKey, KIE_MODEL_ID, input);
+      taskIds.push(taskId);
     }
 
-    if (result.status === "fail") {
-      await rollbackGenerationCharge(generationId, userId, CREDIT_COST).catch(() => null);
+    // Poll all tasks (max ~4 min total)
+    const results = await Promise.all(
+      taskIds.map((tid) => pollKieTask(apiKey, tid, 60, 3000)),
+    );
+
+    const outputs: string[] = [];
+    const failures: string[] = [];
+
+    for (const r of results) {
+      if (r.status === "success" && r.urls.length > 0) {
+        outputs.push(r.urls[0]);
+      } else {
+        failures.push(r.error ?? "Panel generation failed");
+      }
+    }
+
+    // If all failed, refund everything
+    if (outputs.length === 0) {
+      await rollbackGenerationCharge(generationId, userId, totalCost).catch(() => null);
       return NextResponse.json(
-        { error: result.error || "KIE task failed. Credits refunded." },
+        { error: failures[0] || "All panels failed. Credits refunded." },
         { status: 502 },
       );
     }
 
-    // Timed out
-    await rollbackGenerationCharge(generationId, userId, CREDIT_COST).catch(() => null);
-    return NextResponse.json(
-      { error: "Generation timed out. Credits refunded." },
-      { status: 504 },
-    );
+    // If some failed, refund partial
+    if (failures.length > 0) {
+      const refund = failures.length * CREDIT_PER_PANEL;
+      await rollbackGenerationCharge(generationId, userId, refund).catch(() => null);
+    }
+
+    await setGenerationMediaUrl(generationId, outputs[0]).catch(() => null);
+
+    return NextResponse.json({
+      outputs,
+      generationId,
+      totalPanels: numPanels,
+      successfulPanels: outputs.length,
+      remainingCredits: spent.remainingCredits,
+    });
   } catch (err) {
     if (generationId && chargedUserId && chargedCredits > 0) {
       await rollbackGenerationCharge(generationId, chargedUserId, chargedCredits).catch(() => null);
