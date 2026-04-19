@@ -19,7 +19,6 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCreditModal } from "@/hooks/use-credit-modal";
 import { AssetInspector, type Asset } from "@/components/AssetInspector";
-import { ChevronDown } from "lucide-react";
 
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-display", display: "swap" });
 const plusJakarta = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-body", display: "swap" });
@@ -34,7 +33,7 @@ const STORYBOARD_TYPES = [
   { id: "comic-drama-2", label: "Comic Drama 2" },
 ] as const;
 
-const ASPECT_RATIOS = ["auto", "1:1", "2:3", "3:2", "3:4", "4:3", "4:5"] as const;
+const ASPECT_RATIOS = ["1:1", "3:4", "4:3", "9:16", "16:9", "2:3", "3:2"] as const;
 
 type GenerationStatus = "idle" | "generating" | "success" | "failed";
 
@@ -91,7 +90,7 @@ export default function StoryboardProductionPage() {
   const [isDragging, setIsDragging] = useState(false);
   const [numPanels, setNumPanels] = useState(4);
   const [storyboardType, setStoryboardType] = useState<string>("production");
-  const [aspectRatio, setAspectRatio] = useState<string>("auto");
+  const [aspectRatio, setAspectRatio] = useState<string>("1:1");
   const [generationStatus, setGenerationStatus] = useState<GenerationStatus>("idle");
   const [result, setResult] = useState<ResultState | null>(null);
   const [statusMessage, setStatusMessage] = useState("");
@@ -423,25 +422,33 @@ export default function StoryboardProductionPage() {
           {/* Aspect Ratio */}
           <div className="mt-5">
             <SectionLabel>Aspect Ratio</SectionLabel>
-            <div className="relative">
-              <select
-                value={aspectRatio}
-                onChange={(e) => setAspectRatio(e.target.value)}
-                className="w-full appearance-none rounded-lg py-2.5 px-3 pr-8 text-[12px] font-bold transition-all cursor-pointer focus:outline-none"
-                style={{
-                  border: "1px solid #1e293b",
-                  background: "#0e1630",
-                  color: "#06b6d4",
-                  fontFamily: "var(--font-display)",
-                }}
-              >
-                {ASPECT_RATIOS.map((r) => (
-                  <option key={r} value={r} style={{ background: "#0e1630", color: "#94a3b8" }}>
-                    {r}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2" style={{ color: "#64748b" }} />
+            <div className="flex flex-col gap-1">
+              {ASPECT_RATIOS.map((r) => (
+                <button
+                  key={r}
+                  className="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg text-[12px] font-bold transition-all text-left"
+                  style={{
+                    border: `1px solid ${aspectRatio === r ? "rgba(6,182,212,0.4)" : "#1e293b"}`,
+                    background: aspectRatio === r ? "rgba(6,182,212,0.08)" : "transparent",
+                    color: aspectRatio === r ? "#06b6d4" : "#64748b",
+                    fontFamily: "var(--font-display)",
+                  }}
+                  onClick={() => setAspectRatio(r)}
+                >
+                  <span
+                    className="flex-shrink-0 w-4 h-4 rounded-[3px] flex items-center justify-center"
+                    style={{
+                      border: `1.5px solid ${aspectRatio === r ? "#06b6d4" : "#334155"}`,
+                      background: aspectRatio === r ? "#06b6d4" : "transparent",
+                    }}
+                  >
+                    {aspectRatio === r && (
+                      <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5.5L4 7.5L8 3" stroke="#060c18" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                    )}
+                  </span>
+                  {r}
+                </button>
+              ))}
             </div>
           </div>
 
