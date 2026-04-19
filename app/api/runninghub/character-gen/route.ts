@@ -18,7 +18,7 @@ import {
 export const maxDuration = 300;
 
 const CREDIT_COST = 3;
-const RH_WORKFLOW_PATH = "/run/workflow/6f855e9b9ded4e2f8a14bc2178068593";
+const RH_AI_APP_PATH = "/run/ai-app/1997520281289834498";
 
 /**
  * POST /api/runninghub/character-gen
@@ -76,8 +76,8 @@ export async function POST(req: NextRequest) {
     console.log("[CHARGEN] Upload success, fileName:", rhFileName);
 
     // Create task with the character generation workflow
-    console.log("[CHARGEN] Creating task with path:", RH_WORKFLOW_PATH);
-    const taskId = await createRunningHubTask(RH_WORKFLOW_PATH, [
+    console.log("[CHARGEN] Creating task with path:", RH_AI_APP_PATH);
+    const taskId = await createRunningHubTask(RH_AI_APP_PATH, [
       {
         nodeId: "2",
         fieldName: "image",
