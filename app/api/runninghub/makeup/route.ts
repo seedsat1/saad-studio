@@ -48,7 +48,7 @@ async function createWavespeedTask(
   prompt: string,
 ): Promise<string> {
   const body: Record<string, unknown> = {
-    images: [imageUrl],
+    image: imageUrl,
     prompt,
     output_format: "jpeg",
     seed: -1,
