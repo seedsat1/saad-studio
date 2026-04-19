@@ -20,7 +20,6 @@ import { useCreditModal } from "@/hooks/use-credit-modal";
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-display", display: "swap" });
 const plusJakarta = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-body", display: "swap" });
 
-const ASPECT_RATIOS = ["1:1", "2:3", "3:2", "3:4", "4:3", "9:16", "16:9", "21:9"];
 const CREDIT_PER_PANEL = 2;
 
 type GenerationStatus = "idle" | "generating" | "success" | "failed";
@@ -77,7 +76,6 @@ export default function StoryboardProductionPage() {
   const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [numPanels, setNumPanels] = useState(4);
-  const [aspectRatio, setAspectRatio] = useState("16:9");
   const [generationStatus, setGenerationStatus] = useState<GenerationStatus>("idle");
   const [result, setResult] = useState<ResultState | null>(null);
   const [statusMessage, setStatusMessage] = useState("");
@@ -115,7 +113,7 @@ export default function StoryboardProductionPage() {
       const res = await fetch("/api/runninghub/storyboard-production", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageDataUrl: compressedImage, numPanels, aspectRatio }),
+        body: JSON.stringify({ imageDataUrl: compressedImage, numPanels }),
       });
 
       if (res.status === 402) {
@@ -267,8 +265,8 @@ export default function StoryboardProductionPage() {
                 <div className="text-[10px] mt-0.5" style={{ color: "#64748b" }}>Panels</div>
               </div>
               <div className="rounded-lg py-3 px-2" style={{ background: "#060c18" }}>
-                <div className="text-lg font-bold" style={{ color: "#a3e635", fontFamily: "var(--font-display)" }}>8</div>
-                <div className="text-[10px] mt-0.5" style={{ color: "#64748b" }}>Aspect Ratios</div>
+                <div className="text-lg font-bold" style={{ color: "#a3e635", fontFamily: "var(--font-display)" }}>6</div>
+                <div className="text-[10px] mt-0.5" style={{ color: "#64748b" }}>Angles</div>
               </div>
             </div>
           </div>
@@ -308,28 +306,6 @@ export default function StoryboardProductionPage() {
             )}
           </div>
           <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileSelect(f); }} />
-
-          {/* Aspect Ratio */}
-          <div className="mt-5">
-            <SectionLabel>Aspect Ratio</SectionLabel>
-            <div className="flex flex-wrap gap-1.5">
-              {ASPECT_RATIOS.map((ar) => (
-                <button
-                  key={ar}
-                  className="px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all"
-                  style={{
-                    border: `1px solid ${aspectRatio === ar ? "rgba(139,92,246,0.4)" : "#1e293b"}`,
-                    background: aspectRatio === ar ? "rgba(139,92,246,0.1)" : "#0e1630",
-                    color: aspectRatio === ar ? "#8b5cf6" : "#64748b",
-                    fontFamily: "var(--font-display)",
-                  }}
-                  onClick={() => setAspectRatio(ar)}
-                >
-                  {ar}
-                </button>
-              ))}
-            </div>
-          </div>
 
           {/* Number of panels */}
           <div className="mt-5">
@@ -385,8 +361,8 @@ export default function StoryboardProductionPage() {
             </div>
             <ol className="text-xs space-y-1.5" style={{ color: "#64748b" }}>
               <li className="flex gap-2"><span style={{ color: "#8b5cf6", fontWeight: 700 }}>1.</span> Upload a reference image</li>
-              <li className="flex gap-2"><span style={{ color: "#8b5cf6", fontWeight: 700 }}>2.</span> Choose aspect ratio and number of panels</li>
-              <li className="flex gap-2"><span style={{ color: "#8b5cf6", fontWeight: 700 }}>3.</span> AI generates cinematic panels with varied angles</li>
+              <li className="flex gap-2"><span style={{ color: "#8b5cf6", fontWeight: 700 }}>2.</span> Choose the number of panels (1–6)</li>
+              <li className="flex gap-2"><span style={{ color: "#8b5cf6", fontWeight: 700 }}>3.</span> AI generates multiple camera angles automatically</li>
               <li className="flex gap-2"><span style={{ color: "#8b5cf6", fontWeight: 700 }}>4.</span> Download individual panels or all at once</li>
             </ol>
           </div>

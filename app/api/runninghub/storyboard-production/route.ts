@@ -15,33 +15,29 @@ export const maxDuration = 300;
 
 const CREDIT_PER_PANEL = 2;
 const MAX_PANELS = 6;
-const KIE_CREATE_TASK_URL = "https://api.kie.ai/api/v1/jobs/createTask";
-const KIE_QUERY_TASK_URL = "https://api.kie.ai/api/v1/jobs/recordInfo";
-const KIE_MODEL_ID = "qwen2/image-edit";
 
-const VALID_ASPECT_RATIOS = ["1:1", "2:3", "3:2", "3:4", "4:3", "9:16", "16:9", "21:9"];
+const WAVESPEED_BASE = "https://api.wavespeed.ai/api/v3";
+const WAVESPEED_MODEL = "wavespeed-ai/qwen-image/edit-2509-multiple-angles";
 
-/** Auto-generate cinematic prompts for each panel */
-const PANEL_PROMPTS = [
-  "Wide establishing shot showing the full scene with dramatic lighting and cinematic composition",
-  "Close-up portrait shot focusing on the main subject with shallow depth of field",
-  "Medium shot from a low angle perspective emphasizing power and drama",
-  "Over-the-shoulder view creating depth and narrative tension",
-  "Extreme close-up highlighting key details with dramatic contrast",
-  "Bird's eye aerial view showing the full environment from above",
+/**
+ * Each panel is a unique camera angle/distance combo.
+ * horizontal_angle: -90 (left), -45, 0 (front), 45, 90 (right)
+ * vertical_angle:   -30 (low), 0 (eye level), 30 (elevated), 60 (high)
+ * distance:         0 (close-up), 1 (medium), 2 (wide)
+ */
+const PANEL_ANGLES = [
+  { horizontal_angle: 0,   vertical_angle: 0,   distance: 1, label: "Front – Medium" },
+  { horizontal_angle: 45,  vertical_angle: 0,   distance: 0, label: "Right 45° – Close-up" },
+  { horizontal_angle: -45, vertical_angle: 30,  distance: 1, label: "Left 45° – Elevated" },
+  { horizontal_angle: 90,  vertical_angle: 0,   distance: 1, label: "Right 90° – Medium" },
+  { horizontal_angle: 0,   vertical_angle: 60,  distance: 2, label: "Top-down – Wide" },
+  { horizontal_angle: -90, vertical_angle: -30, distance: 0, label: "Left 90° – Low Close-up" },
 ];
 
-function getKieApiKey(): string {
-  const key = process.env.KIE_API_KEY ?? process.env.KIEAI_API_KEY;
-  if (!key) throw new Error("KIE_API_KEY is not configured");
+function getWavespeedApiKey(): string {
+  const key = process.env.WAVESPEED_API_KEY;
+  if (!key) throw new Error("WAVESPEED_API_KEY is not configured");
   return key;
-}
-
-function kieHeaders(apiKey: string) {
-  return {
-    Authorization: `Bearer ${apiKey}`,
-    "Content-Type": "application/json",
-  };
 }
 
 /** Upload base64 image to Supabase Storage and return a public URL */
@@ -63,81 +59,94 @@ async function uploadRefImage(base64DataUrl: string, userId: string, genId: stri
   return url;
 }
 
-/** Create a KIE task and return taskId */
-async function createKieTask(
+/** Submit a WaveSpeed task and return the prediction ID */
+async function createWavespeedTask(
   apiKey: string,
-  modelId: string,
-  input: Record<string, unknown>,
+  imageUrl: string,
+  angle: (typeof PANEL_ANGLES)[number],
+  prompt?: string,
 ): Promise<string> {
-  const payload = { model: modelId, input };
-  console.log("[STORYBOARD] createKieTask payload:", JSON.stringify(payload, null, 2));
+  const body: Record<string, unknown> = {
+    images: [imageUrl],
+    horizontal_angle: angle.horizontal_angle,
+    vertical_angle: angle.vertical_angle,
+    distance: angle.distance,
+    output_format: "jpeg",
+    seed: -1,
+    enable_base64_output: false,
+    enable_sync_mode: false,
+  };
+  if (prompt) body.prompt = prompt;
 
-  const res = await fetch(KIE_CREATE_TASK_URL, {
+  const res = await fetch(`${WAVESPEED_BASE}/${WAVESPEED_MODEL}`, {
     method: "POST",
-    headers: kieHeaders(apiKey),
-    body: JSON.stringify(payload),
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
   });
 
   const json = await res.json().catch(() => ({}));
-  console.log("[STORYBOARD] createKieTask response:", JSON.stringify(json));
-
-  if (!res.ok || (json.code !== undefined && json.code !== 200 && json.code !== 0)) {
-    const msg = json?.msg ?? res.statusText;
-    throw new Error(`KIE createTask failed (HTTP ${res.status}, code ${json.code}): ${msg} | Full response: ${JSON.stringify(json)} | Input: ${JSON.stringify(input)}`);
+  if (!res.ok || !json?.id) {
+    throw new Error(
+      `WaveSpeed submit failed (${res.status}): ${json?.message ?? json?.msg ?? JSON.stringify(json)}`,
+    );
   }
-
-  const taskId = json?.data?.taskId;
-  if (!taskId) {
-    throw new Error(`KIE createTask did not return a taskId. Response: ${JSON.stringify(json)}`);
-  }
-  return taskId;
+  return json.id as string;
 }
 
-/** Poll KIE task until success/fail/timeout */
-async function pollKieTask(
+/** Poll WaveSpeed prediction until completed/failed/timeout */
+async function pollWavespeedTask(
   apiKey: string,
-  taskId: string,
-  maxAttempts = 80,
-  intervalMs = 3000,
+  predictionId: string,
+  maxAttempts = 60,
+  intervalMs = 2000,
 ): Promise<{ status: "success" | "fail" | "timeout"; urls: string[]; error?: string }> {
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    const wait = attempt < 5 ? 2000 : intervalMs;
-    await new Promise((r) => setTimeout(r, wait));
+    await new Promise((r) => setTimeout(r, intervalMs));
 
-    const res = await fetch(
-      `${KIE_QUERY_TASK_URL}?taskId=${encodeURIComponent(taskId)}`,
-      { headers: { Authorization: `Bearer ${apiKey}` } },
-    );
+    const res = await fetch(`${WAVESPEED_BASE}/predictions/${predictionId}`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    });
 
     if (!res.ok) continue;
 
     const json = await res.json().catch(() => ({}));
-    const data = json?.data ?? {};
-    const state = String(data?.state ?? data?.taskStatus ?? data?.status ?? "").toLowerCase();
+    const status = String(json?.status ?? "").toLowerCase();
 
-    // Parse resultJson
-    let parsedUrls: string[] = [];
-    if (data?.resultJson) {
-      try {
-        const rj = typeof data.resultJson === "string" ? JSON.parse(data.resultJson) : data.resultJson;
-        parsedUrls = Array.isArray(rj?.resultUrls) ? rj.resultUrls : [];
-      } catch { /* ignore */ }
+    if (status === "completed") {
+      const outputs: string[] = Array.isArray(json?.output?.images)
+        ? json.output.images
+        : Array.isArray(json?.outputs)
+          ? json.outputs
+          : Array.isArray(json?.output)
+            ? json.output
+            : [];
+      if (outputs.length > 0) return { status: "success", urls: outputs };
+
+      // Fallback: fetch the result endpoint
+      const resultRes = await fetch(`${WAVESPEED_BASE}/predictions/${predictionId}/result`, {
+        headers: { Authorization: `Bearer ${apiKey}` },
+      }).catch(() => null);
+      if (resultRes?.ok) {
+        const resultJson = await resultRes.json().catch(() => ({}));
+        const resultUrls: string[] = Array.isArray(resultJson?.output?.images)
+          ? resultJson.output.images
+          : Array.isArray(resultJson?.outputs)
+            ? resultJson.outputs
+            : Array.isArray(resultJson?.output)
+              ? resultJson.output
+              : [];
+        if (resultUrls.length > 0) return { status: "success", urls: resultUrls };
+      }
+      return { status: "success", urls: [] };
     }
 
-    const urls: string[] =
-      parsedUrls.length > 0
-        ? parsedUrls
-        : (data?.resultUrls ?? data?.outputs ?? []);
-
-    if (["success", "completed", "done"].includes(state)) {
-      return { status: "success", urls: Array.isArray(urls) ? urls : [] };
+    if (status === "failed") {
+      return { status: "fail", urls: [], error: json?.error ?? "WaveSpeed task failed" };
     }
-
-    if (["fail", "failed", "error", "cancelled", "canceled"].includes(state)) {
-      const error = data?.failMsg ?? data?.errorMessage ?? data?.failCode ?? "KIE task failed.";
-      return { status: "fail", urls: [], error };
-    }
-    // waiting / queuing / generating — keep polling
+    // pending / processing — keep polling
   }
 
   return { status: "timeout", urls: [] };
@@ -146,10 +155,10 @@ async function pollKieTask(
 /**
  * POST /api/runninghub/storyboard-production
  *
- * Generates storyboard panels via KIE API (qwen2/image-edit).
- * Each panel is a separate KIE task with an auto-generated cinematic prompt.
+ * Generates storyboard panels via WaveSpeed API (qwen-image/edit-2509-multiple-angles).
+ * Each panel uses a different camera angle/distance.
  *
- * Body: { imageDataUrl, numPanels?, aspectRatio? }
+ * Body: { imageDataUrl, numPanels?, prompt? }
  */
 export async function POST(req: NextRequest) {
   let chargedCredits = 0;
@@ -178,20 +187,17 @@ export async function POST(req: NextRequest) {
     const body = (await req.json()) as {
       imageDataUrl?: string;
       numPanels?: number;
-      aspectRatio?: string;
+      prompt?: string;
     };
 
-    const { imageDataUrl } = body;
+    const { imageDataUrl, prompt } = body;
     const numPanels = Math.max(1, Math.min(MAX_PANELS, body.numPanels ?? 4));
-    const aspectRatio = VALID_ASPECT_RATIOS.includes(body.aspectRatio ?? "")
-      ? body.aspectRatio!
-      : "16:9";
 
     if (!imageDataUrl?.startsWith("data:image/")) {
       return NextResponse.json({ error: "A valid reference image is required." }, { status: 400 });
     }
 
-    const apiKey = getKieApiKey();
+    const apiKey = getWavespeedApiKey();
     const totalCost = numPanels * CREDIT_PER_PANEL;
 
     // Deduct credits upfront
@@ -200,7 +206,7 @@ export async function POST(req: NextRequest) {
       credits: totalCost,
       prompt: `Storyboard Production – ${numPanels} panels`,
       assetType: "IMAGE",
-      modelUsed: "kie/qwen2-image-edit/storyboard",
+      modelUsed: "wavespeed/qwen-image-edit-multiple-angles",
     });
     chargedCredits = totalCost;
     chargedUserId = userId;
@@ -208,32 +214,18 @@ export async function POST(req: NextRequest) {
 
     // Upload reference image to Supabase Storage
     const hostedImageUrl = await uploadRefImage(imageDataUrl, userId, generationId!);
-    console.log("[STORYBOARD] hostedImageUrl:", hostedImageUrl);
-
-    // Verify the uploaded image is publicly accessible
-    const headCheck = await fetch(hostedImageUrl, { method: "HEAD" }).catch(() => null);
-    console.log("[STORYBOARD] image HEAD check:", headCheck?.status, headCheck?.headers.get("content-type"));
-    if (!headCheck || !headCheck.ok) {
-      throw new Error(`Uploaded reference image is not accessible (status ${headCheck?.status}). URL: ${hostedImageUrl}`);
-    }
 
     // Launch all panel tasks in parallel
-    const taskIds: string[] = [];
+    const predictionIds: string[] = [];
     for (let i = 0; i < numPanels; i++) {
-      const prompt = PANEL_PROMPTS[i % PANEL_PROMPTS.length];
-      const input: Record<string, unknown> = {
-        image_url: hostedImageUrl,
-        prompt,
-        aspect_ratio: aspectRatio,
-        num_images: 1,
-      };
-      const taskId = await createKieTask(apiKey, KIE_MODEL_ID, input);
-      taskIds.push(taskId);
+      const angle = PANEL_ANGLES[i % PANEL_ANGLES.length];
+      const predId = await createWavespeedTask(apiKey, hostedImageUrl, angle, prompt);
+      predictionIds.push(predId);
     }
 
-    // Poll all tasks (max ~4 min total)
+    // Poll all tasks
     const results = await Promise.all(
-      taskIds.map((tid) => pollKieTask(apiKey, tid, 60, 3000)),
+      predictionIds.map((pid) => pollWavespeedTask(apiKey, pid)),
     );
 
     const outputs: string[] = [];
