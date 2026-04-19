@@ -71,6 +71,7 @@ export default function RelightPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
+  const [prompt, setPrompt] = useState("");
   const [isDragging, setIsDragging] = useState(false);
   const [generationStatus, setGenerationStatus] = useState<GenerationStatus>("idle");
   const [resultUrl, setResultUrl] = useState<string | null>(null);
@@ -141,7 +142,7 @@ export default function RelightPage() {
       const res = await fetch("/api/runninghub/relight", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageDataUrl: compressedImage }),
+        body: JSON.stringify({ imageDataUrl: compressedImage, prompt: prompt.trim() || undefined }),
       });
 
       if (res.status === 402) {
@@ -383,6 +384,18 @@ export default function RelightPage() {
             )}
           </div>
           <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileSelect(f); }} />
+
+          {/* Prompt */}
+          <SectionLabel>Lighting Prompt <span style={{ color: "#475569", fontWeight: 400, textTransform: "none" }}>(optional)</span></SectionLabel>
+          <textarea
+            className="w-full rounded-xl text-sm resize-none outline-none placeholder:text-[#334155] transition-colors"
+            style={{ background: "#060c18", border: "1px solid #1e293b", color: "#e2e8f0", padding: "12px 14px", minHeight: 80 }}
+            placeholder="e.g. Warm golden hour lighting from the left, soft shadows…"
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            maxLength={300}
+          />
+          <div className="text-right text-[10px] mt-1 mb-1" style={{ color: "#334155" }}>{prompt.length}/300</div>
 
           {/* Generate button */}
           <button
