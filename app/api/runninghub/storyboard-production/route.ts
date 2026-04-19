@@ -83,7 +83,7 @@ async function createKieTask(
 
   if (!res.ok || (json.code !== undefined && json.code !== 200 && json.code !== 0)) {
     const msg = json?.msg ?? res.statusText;
-    throw new Error(`KIE createTask failed (HTTP ${res.status}, code ${json.code}): ${msg} | Input: ${JSON.stringify(input)}`);
+    throw new Error(`KIE createTask failed (HTTP ${res.status}, code ${json.code}): ${msg} | Full response: ${JSON.stringify(json)} | Input: ${JSON.stringify(input)}`);
   }
 
   const taskId = json?.data?.taskId;
@@ -209,6 +209,13 @@ export async function POST(req: NextRequest) {
     // Upload reference image to Supabase Storage
     const hostedImageUrl = await uploadRefImage(imageDataUrl, userId, generationId!);
     console.log("[STORYBOARD] hostedImageUrl:", hostedImageUrl);
+
+    // Verify the uploaded image is publicly accessible
+    const headCheck = await fetch(hostedImageUrl, { method: "HEAD" }).catch(() => null);
+    console.log("[STORYBOARD] image HEAD check:", headCheck?.status, headCheck?.headers.get("content-type"));
+    if (!headCheck || !headCheck.ok) {
+      throw new Error(`Uploaded reference image is not accessible (status ${headCheck?.status}). URL: ${hostedImageUrl}`);
+    }
 
     // Launch all panel tasks in parallel
     const taskIds: string[] = [];
