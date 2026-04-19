@@ -25,19 +25,15 @@ const CATEGORIES = [
 ] as const;
 
 const MODELS = [
-  { value: "wan", label: "WAN 2.1" },
-  { value: "kling", label: "Kling 2.0" },
-  { value: "higgsfield", label: "Higgsfield" },
-  { value: "runway", label: "Runway Gen-4" },
-  { value: "minimax", label: "MiniMax Video" },
+  { value: "kling", label: "Kling 3.0" },
+  { value: "seedance", label: "Seedance 2.0" },
+  { value: "minimax", label: "Minimax Hailuo 2.3" },
 ] as const;
 
 const MODEL_DURATIONS: Record<string, { value: number; label: string }[]> = {
-  wan:        [{ value: 4, label: "4s" }, { value: 8, label: "8s" }],
-  kling:      [{ value: 5, label: "5s" }, { value: 10, label: "10s" }],
-  higgsfield: [{ value: 4, label: "4s" }],
-  runway:     [{ value: 5, label: "5s" }, { value: 10, label: "10s" }],
-  minimax:    [{ value: 6, label: "6s" }],
+  kling:    [{ value: 5, label: "5s" }, { value: 10, label: "10s" }],
+  seedance: [{ value: 4, label: "4s" }, { value: 8, label: "8s" }],
+  minimax:  [{ value: 6, label: "6s" }],
 };
 
 const SCENE_MEDIA = [
@@ -289,11 +285,11 @@ export default function NextSceneEnginePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dragCounter = useRef(0);
 
-  const availableDurations = MODEL_DURATIONS[selectedModel] ?? MODEL_DURATIONS.wan;
+  const availableDurations = MODEL_DURATIONS[selectedModel] ?? MODEL_DURATIONS.kling;
 
   const handleModelChange = useCallback((model: string) => {
     setSelectedModel(model);
-    const durations = MODEL_DURATIONS[model] ?? MODEL_DURATIONS.wan;
+    const durations = MODEL_DURATIONS[model] ?? MODEL_DURATIONS.kling;
     setDuration((prev) => {
       if (durations.some((d) => d.value === prev)) return prev;
       return durations[0].value;
