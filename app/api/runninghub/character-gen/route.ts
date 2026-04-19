@@ -79,6 +79,11 @@ export async function POST(req: NextRequest) {
     console.log("[CHARGEN] Creating task with path:", RH_AI_APP_PATH);
     const taskId = await createRunningHubTask(RH_AI_APP_PATH, [
       {
+        nodeId: "1",
+        fieldName: "channel",
+        fieldValue: "Third-party",
+      },
+      {
         nodeId: "2",
         fieldName: "image",
         fieldValue: rhFileName,

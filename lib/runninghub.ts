@@ -88,13 +88,20 @@ export async function createRunningHubTask(
     throw new Error(`RunningHub task creation failed: HTTP ${res.status}`);
   }
 
-  const data = (await res.json()) as { taskId?: string; msg?: string; code?: number };
+  const raw = await res.text();
+  console.log("[RUNNINGHUB_CREATE] Raw response:", raw.slice(0, 500));
 
-  if (!data.taskId) {
-    throw new Error(`RunningHub task creation error: ${data.msg ?? "No taskId returned"}`);
+  let data: Record<string, unknown>;
+  try { data = JSON.parse(raw); } catch { throw new Error(`RunningHub task creation: invalid JSON`); }
+
+  // taskId can be at top level or nested under data
+  const taskId = (data.taskId as string) ?? ((data.data as Record<string, unknown>)?.taskId as string);
+
+  if (!taskId) {
+    throw new Error(`RunningHub task creation error: ${(data.msg as string) ?? "No taskId returned"} (code=${data.code})`);
   }
 
-  return data.taskId;
+  return taskId;
 }
 
 export type RunningHubStatus = "QUEUED" | "RUNNING" | "SUCCESS" | "FAILED" | string;
