@@ -141,7 +141,7 @@ export default function StoryboardProductionPage() {
               </span>
             </h1>
             <p className="text-sm" style={{ color: "#64748b" }}>
-              Powered by <span className="font-semibold text-violet-400">Qwen-Image-Edit-25</span> — Transform a single image into cinematic storyboard panels
+              Transform a single image into cinematic storyboard panels
             </p>
           </div>
 
@@ -212,8 +212,7 @@ export default function StoryboardProductionPage() {
               <span className="text-xs font-semibold" style={{ color: "#94a3b8", fontFamily: "var(--font-display)" }}>About this tool</span>
             </div>
             <p className="text-xs leading-relaxed" style={{ color: "#64748b" }}>
-              <strong className="text-violet-400">Storyboard Production</strong> uses{" "}
-              <strong className="text-cyan-400">Qwen-Image-Edit-25</strong> via RunningHub to transform a single reference image into cinematic storyboard panels. Upload your image, describe the scene, and the AI handles composition, angles, and visual storytelling.
+              <strong className="text-violet-400">Storyboard Production</strong> transforms a single reference image into cinematic storyboard panels. Upload your image, describe the scene, and the AI handles composition, angles, and visual storytelling.
             </p>
             <div className="mt-3 grid grid-cols-3 gap-3 text-center">
               <div className="rounded-lg py-3 px-2" style={{ background: "#060c18" }}>
@@ -300,7 +299,7 @@ export default function StoryboardProductionPage() {
             )}
           </button>
           <div className="text-center mt-2 text-[10px]" style={{ color: "#475569" }}>
-            Costs <span style={{ color: "#8b5cf6", fontWeight: 600 }}>30 credits</span> · Powered by Qwen-Image-Edit-25
+            Costs <span style={{ color: "#8b5cf6", fontWeight: 600 }}>30 credits</span> per generation
           </div>
 
           {/* How it works */}

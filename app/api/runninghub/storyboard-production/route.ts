@@ -201,10 +201,8 @@ export async function POST(req: NextRequest) {
     // Build KIE input
     const input: Record<string, unknown> = {
       image_url: hostedImageUrl,
+      prompt: userPrompt || "Generate cinematic storyboard panels from this image with varied camera angles and compositions",
     };
-    if (userPrompt) {
-      input.prompt = userPrompt;
-    }
 
     // Create task via KIE
     const taskId = await createKieTask(apiKey, KIE_MODEL_ID, input);
