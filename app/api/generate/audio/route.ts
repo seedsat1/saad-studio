@@ -271,6 +271,8 @@ async function runKieVoiceClone(
   if (!referenceAudio) throw new Error("No reference audio provided for voice cloning.");
 
   const seedText = sanitizePrompt(body.text || body.prompt || "Hello from SAAD Studio voice cloning.", 5000);
+  const clonedVoiceName = (body.cloneName || "custom-voice").trim().slice(0, 64);
+  const customVoiceId = sanitizeCustomVoiceId(clonedVoiceName);
 
   const submitRes = await fetch(`${KIE_BASE_URL}/jobs/createTask`, {
     method: "POST",
@@ -284,7 +286,11 @@ async function runKieVoiceClone(
       input: {
         text: seedText,
         audio: referenceAudio,
+        voice_id: customVoiceId,
+        custom_voice_id: customVoiceId,
+        model: "speech-02-hd",
         accuracy: 1,
+        need_noise_reduction: body.remove_background_noise !== false,
       },
     }),
   });
