@@ -164,6 +164,7 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
       has_sound:           true,
       has_multi_prompt:    true,
       has_element_list:    true,
+      max_reference_images: 3,
     }),
   },
   {
@@ -185,6 +186,7 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
       has_sound:        true,
       has_multi_prompt: true,
       has_element_list: true,
+      max_reference_images: 3,
     }),
   },
   {
@@ -324,6 +326,7 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
       aspect_ratios: ["16:9", "9:16"],
       durations:     [],
       resolutions:   ["720p", "1080p"],
+      max_reference_images: 9,
     }),
   },
   {
@@ -340,6 +343,7 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
       aspect_ratios: ["16:9", "9:16"],
       durations:     [],
       resolutions:   ["720p", "1080p"],
+      max_reference_images: 9,
     }),
   },
   {
@@ -356,6 +360,7 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
       aspect_ratios: ["16:9", "9:16"],
       durations:     [],
       resolutions:   ["720p", "1080p"],
+      max_reference_images: 9,
     }),
   },
 

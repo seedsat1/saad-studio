@@ -204,7 +204,14 @@ function VideoPageInner() {
     if (requestedModel) {
       const allModels = MODEL_GROUPS.flatMap((group) => group.models);
       const matched = allModels.find((model) => model.api_route === requestedModel || model.id === requestedModel);
-      if (matched) setSelectedModel(matched);
+      if (matched) {
+        setSelectedModel(matched);
+        const c = matched.capabilities;
+        setDuration(c.durations[0] ?? null);
+        setAspectRatio(c.aspect_ratios[0] ?? null);
+        setSize(c.sizes[0] ?? null);
+        setResolution(c.resolutions[0] ?? null);
+      }
     }
   }, [searchParams]);
 
@@ -681,16 +688,13 @@ function VideoPageInner() {
           return;
         }
 
+        // Build image_urls only from start/end frames (NOT reference images).
+        // Reference images are kept in payload.reference_image_urls and handled
+        // separately by the backend.
         const imageUrls: string[] = [];
-        // Build image_urls: reference images take priority over start/end frame
-        const refUrls = Array.isArray(payload.reference_image_urls)
-          ? (payload.reference_image_urls as string[]).filter((s): s is string => typeof s === "string")
-          : [];
-        if (refUrls.length > 0) {
-          // reference_image_urls is already in payload — backend reads it directly.
-          // Also pre-build image_urls from refs so Kling validation has access.
-          imageUrls.push(...refUrls.slice(0, multiShotsEnabled ? 1 : 2));
-        } else {
+        const hasRefImages = Array.isArray(payload.reference_image_urls) &&
+          (payload.reference_image_urls as string[]).some((s): s is string => typeof s === "string");
+        if (!hasRefImages) {
           const firstFrame =
             typeof payload.image === "string"
               ? payload.image
@@ -780,7 +784,7 @@ function VideoPageInner() {
     if (!caps.has_multi_prompt) return 1;
     const hardMax = 5;
     if (duration == null) return hardMax;
-    return Math.max(1, Math.min(hardMax, duration));
+    return Math.max(1, Math.min(hardMax, Math.floor(duration / 3)));
   })();
   const canAddMoreShots = multiPrompts.length < maxShotsAllowed;
   const hasMainPrompt = prompt.trim().length > 0;
@@ -816,12 +820,14 @@ function VideoPageInner() {
   }, [caps.has_multi_prompt, maxShotsAllowed]);
 
   const estimatedCredits = (() => {
-    return getGenerationCostSync(
+    const base = getGenerationCostSync(
       selectedModel.api_route,
       duration ?? 5,
       1,
       resolution ?? undefined,
     );
+    const soundMultiplier = caps.has_sound && sound ? 1.5 : 1;
+    return parseFloat((base * soundMultiplier).toFixed(2));
   })();
 
   // -- Render -------------------------------------------------------------------
@@ -897,7 +903,16 @@ function VideoPageInner() {
               items={results}
               skeletonModels={Array.from(pendingTasks.values()).map(t => ({ name: t.model.name, ratio: t.ratio }))}
               onInspect={(item) => setInspectorAsset({ id: item.id, type: item.type, url: item.src, prompt: item.prompt ?? "", model: item.model, date: item.createdAt ? item.createdAt.toISOString() : undefined })}
-              onDelete={id => setResults(prev => prev.filter(r => r.id !== id))}
+              onDelete={async (id) => {
+                setResults(prev => prev.filter(r => r.id !== id));
+                try {
+                  await fetch("/api/assets", {
+                    method: "DELETE",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ id }),
+                  });
+                } catch { /* rollback not needed — next refresh will re-fetch */ }
+              }}
             />
           )}
         </div>
@@ -1383,6 +1398,83 @@ function VideoPageInner() {
                 </div>
               )}
             </div>
+          )}
+
+          {/* -- Omni: Reference images (shown alongside Omni tabs) -------- */}
+          {showOmniTabs && (showReferenceImages || showSimpleKlingRefs) && (
+            <button
+              onClick={() => openMediaPicker("referenceImages")}
+              onDragOver={allowDrop}
+              onDragEnter={(event) => markDropZone(event, "referenceImages")}
+              onDragLeave={(event) => clearDropZone(event, "referenceImages")}
+              onDrop={handleDropReferenceImages}
+              className="relative w-full flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed transition-all"
+              style={{
+                height: 100,
+                borderColor: referenceImages.length > 0 ? hexA(selectedModel.family_color, 0.5) : "rgba(255,255,255,0.1)",
+                background:  referenceImages.length > 0 ? hexA(selectedModel.family_color, 0.07) : "rgba(255,255,255,0.02)",
+              }}
+            >
+              <input
+                ref={referenceImagesRef}
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={e => {
+                  const files = Array.from(e.target.files ?? []);
+                  const maxRefs = showSimpleKlingRefs ? 3 : selectedModel.capabilities.max_reference_images;
+                  setReferenceImages(files.slice(0, maxRefs));
+                }}
+              />
+              <span
+                className="absolute top-2 right-2 text-[9px] font-medium px-1.5 py-0.5 rounded"
+                style={{ background: "rgba(255,255,255,0.06)", color: "#475569" }}
+              >
+                {`Max ${showSimpleKlingRefs ? 3 : caps.max_reference_images}`}
+              </span>
+              {referenceImages.length > 0 ? (
+                <>
+                  {referencePreviews.length > 0 && (
+                    <div className="absolute inset-0 grid grid-cols-3 gap-1 p-1">
+                      {referencePreviews.slice(0, 3).map((src, i) => (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          key={i}
+                          src={src}
+                          alt={`Reference preview ${i + 1}`}
+                          className="w-full h-full object-cover rounded-md opacity-75"
+                        />
+                      ))}
+                    </div>
+                  )}
+                  <span className="absolute bottom-2 left-2 right-2 rounded-md bg-black/55 px-1.5 py-0.5 text-[10px] text-cyan-200 text-center leading-tight">
+                    {`${referenceImages.length} reference image(s)`}
+                  </span>
+                  <button
+                    className="absolute top-2 left-2"
+                    onClick={e => { e.stopPropagation(); setReferenceImages([]); }}
+                  >
+                    <X size={11} style={{ color: "#475569" }} />
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div
+                    className="w-9 h-9 rounded-full flex items-center justify-center"
+                    style={{ background: "rgba(255,255,255,0.06)" }}
+                  >
+                    <ImageIcon size={16} style={{ color: "#475569" }} />
+                  </div>
+                  <span className="text-[11px]" style={{ color: "#475569" }}>Reference images</span>
+                </>
+              )}
+              {activeDropZone === "referenceImages" && (
+                <span className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-cyan-500/15 text-[12px] font-semibold text-cyan-300">
+                  Drop images here
+                </span>
+              )}
+            </button>
           )}
 
           {/* -- Image inputs (Start / End frame) -------------------------- */}
@@ -2521,6 +2613,84 @@ function VideoPageInner() {
                           style={{ background: aspectRatio === r ? hexA(selectedModel.family_color, 0.2) : "rgba(255,255,255,0.04)", color: aspectRatio === r ? selectedModel.family_color : "#64748b", border: `1px solid ${aspectRatio === r ? hexA(selectedModel.family_color, 0.4) : "rgba(255,255,255,0.06)"}` }}
                         >{r}</button>
                       ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Reference Images (mobile) */}
+                {(showReferenceImages || showSimpleKlingRefs) && (
+                  <div className="mb-4">
+                    <label className="block text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: "#475569" }}>Reference Images</label>
+                    <button
+                      onClick={() => { setMobileSettingsOpen(false); openMediaPicker("referenceImages"); }}
+                      className="w-full flex items-center justify-center gap-2 px-3 py-3 rounded-xl transition-all"
+                      style={{
+                        background: referenceImages.length > 0 ? hexA(selectedModel.family_color, 0.1) : "rgba(255,255,255,0.04)",
+                        border: `1px solid ${referenceImages.length > 0 ? hexA(selectedModel.family_color, 0.35) : "rgba(255,255,255,0.06)"}`,
+                        color: referenceImages.length > 0 ? selectedModel.family_color : "#64748b",
+                      }}
+                    >
+                      <ImageIcon size={14} />
+                      <span className="text-sm font-medium">
+                        {referenceImages.length > 0
+                          ? `${referenceImages.length} reference image(s)`
+                          : "Add reference images"
+                        }
+                      </span>
+                      {referenceImages.length > 0 && (
+                        <button
+                          onClick={e => { e.stopPropagation(); setReferenceImages([]); }}
+                          className="ml-auto"
+                        >
+                          <X size={13} style={{ color: "#64748b" }} />
+                        </button>
+                      )}
+                    </button>
+                    {showSimpleKlingRefs && (
+                      <p className="text-[10px] mt-1" style={{ color: "#475569" }}>
+                        Use @image1, @image2, @image3 in your prompt
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Start Frame (mobile) */}
+                {(showImageInput || showEndFrame) && !showVideoInput && (
+                  <div className="mb-4">
+                    <label className="block text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: "#475569" }}>Image Input</label>
+                    <div className="flex gap-2">
+                      {showImageInput && (
+                        <button
+                          onClick={() => { setMobileSettingsOpen(false); openMediaPicker("startFrame"); }}
+                          className="flex-1 flex items-center justify-center gap-2 px-3 py-3 rounded-xl transition-all"
+                          style={{
+                            background: startFrame ? hexA(selectedModel.family_color, 0.1) : "rgba(255,255,255,0.04)",
+                            border: `1px solid ${startFrame ? hexA(selectedModel.family_color, 0.35) : "rgba(255,255,255,0.06)"}`,
+                            color: startFrame ? selectedModel.family_color : "#64748b",
+                          }}
+                        >
+                          <ImageIcon size={14} />
+                          <span className="text-[12px] font-medium truncate">
+                            {startFrame ? startFrame.name : "Start frame"}
+                          </span>
+                        </button>
+                      )}
+                      {showEndFrame && (
+                        <button
+                          onClick={() => { setMobileSettingsOpen(false); openMediaPicker("endFrame"); }}
+                          className="flex-1 flex items-center justify-center gap-2 px-3 py-3 rounded-xl transition-all"
+                          style={{
+                            background: endFrame ? hexA(selectedModel.family_color, 0.1) : "rgba(255,255,255,0.04)",
+                            border: `1px solid ${endFrame ? hexA(selectedModel.family_color, 0.35) : "rgba(255,255,255,0.06)"}`,
+                            color: endFrame ? selectedModel.family_color : "#64748b",
+                          }}
+                        >
+                          <ImageIcon size={14} />
+                          <span className="text-[12px] font-medium truncate">
+                            {endFrame ? endFrame.name : "End frame"}
+                          </span>
+                        </button>
+                      )}
                     </div>
                   </div>
                 )}

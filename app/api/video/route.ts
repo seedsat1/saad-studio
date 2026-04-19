@@ -197,23 +197,28 @@ function mapToKieInput(model: string, payload: Record<string, unknown>) {
     if (aspectRatio) out.aspect_ratio = aspectRatio;
     out.multi_shots = multiShots;
 
+    // Reference images → separate field (KIE Kling 3.0 uses reference_image_urls)
+    if (referenceImages.length > 0) {
+      out.reference_image_urls = referenceImages.slice(0, 3);
+    }
+
     if (multiShots) {
       out.multi_prompt = multiPrompt;
-      if (referenceImages.length > 0) {
-        out.image_urls = [referenceImages[0]];
-      } else if (startImage) {
+      // Start frame for multi-shot (only when no reference images)
+      if (referenceImages.length === 0 && startImage) {
         out.image_urls = [startImage];
       }
       if (typeof input.prompt === "string") out.prompt = "";
     } else {
       out.prompt = typeof input.prompt === "string" ? input.prompt.trim() : "";
       out.multi_prompt = [];
-      if (referenceImages.length > 0) {
-        out.image_urls = referenceImages.slice(0, 2);
-      } else if (startImage && endImage) {
-        out.image_urls = [startImage, endImage];
-      } else if (startImage) {
-        out.image_urls = [startImage];
+      // Start/end frame images (only when no reference images)
+      if (referenceImages.length === 0) {
+        if (startImage && endImage) {
+          out.image_urls = [startImage, endImage];
+        } else if (startImage) {
+          out.image_urls = [startImage];
+        }
       }
     }
 
@@ -435,6 +440,11 @@ function validateKling30Payload(payload: Record<string, unknown>): string | null
   const imageUrls = Array.isArray(payload.image_urls)
     ? payload.image_urls.filter((v): v is string => typeof v === "string" && v.trim().length > 0)
     : [];
+  const refImages = Array.isArray(payload.reference_image_urls)
+    ? payload.reference_image_urls.filter((v): v is string => typeof v === "string" && v.trim().length > 0)
+    : [];
+
+  if (refImages.length > 3) return "Kling 3.0 supports at most 3 reference images.";
 
   if (!multiShots) {
     if (!prompt) return "Kling 3.0 single-shot requires prompt.";
@@ -546,7 +556,9 @@ export async function POST(req: Request) {
       (typeof payload.mode === "string" ? payload.mode : null) ||
       (typeof payload.resolution === "string" ? payload.resolution : null) ||
       (typeof payload.quality === "string" ? payload.quality : null);
-    const creditsToCharge = await getGenerationCost(modelRoute, durationForCost, 1, qualityForCost);
+    const soundEnabled = payload.sound === true || payload.generate_audio === true;
+    const baseCost = await getGenerationCost(modelRoute, durationForCost, 1, qualityForCost);
+    const creditsToCharge = soundEnabled ? parseFloat((baseCost * 1.5).toFixed(2)) : baseCost;
     if (creditsToCharge <= 0) {
       return NextResponse.json({ error: "No credit configuration for this model" }, { status: 400 });
     }
