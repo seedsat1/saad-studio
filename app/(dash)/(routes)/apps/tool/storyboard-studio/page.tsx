@@ -234,12 +234,7 @@ export default function StoryboardProductionPage() {
                   <RefreshCw size={11} /> New
                 </button>
               </div>
-              <style>{`
-                .sb-masonry { column-count: 3; column-gap: 8px; }
-                @media (max-width: 1280px) { .sb-masonry { column-count: 2; } }
-                @media (max-width: 480px)  { .sb-masonry { column-count: 1; } }
-              `}</style>
-              <div className="sb-masonry w-full">
+              <div className="grid w-full gap-2.5" style={{ gridTemplateColumns: result.outputs.length === 1 ? "1fr" : "repeat(2, 1fr)" }}>
                 <AnimatePresence>
                   {result.outputs.map((url, i) => (
                     <motion.div
@@ -248,11 +243,11 @@ export default function StoryboardProductionPage() {
                       animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0, scale: 0.95 }}
                       transition={{ duration: 0.2 }}
-                      className="group relative mb-2 cursor-pointer overflow-hidden rounded-2xl ring-1 ring-white/10"
-                      style={{ breakInside: "avoid" }}
+                      className="group relative cursor-pointer overflow-hidden rounded-2xl ring-1 ring-white/10"
+                      style={{ aspectRatio: "1 / 1" }}
                       onClick={() => setInspectorAsset({ type: "image", url, title: `Panel ${i + 1}`, prompt: "Storyboard panel", model: "Qwen Image Edit" })}
                     >
-                      <img src={url} alt={`Panel ${i + 1}`} className="w-full object-cover transition duration-300 group-hover:scale-[1.04]" />
+                      <img src={url} alt={`Panel ${i + 1}`} className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.04]" />
                       <div className="absolute left-2 top-2 rounded-md bg-black/60 px-2 py-0.5 text-[10px] text-zinc-200">Panel {i + 1}</div>
                       <div className="absolute inset-0 flex items-end justify-center gap-2 bg-black/0 pb-3 opacity-0 transition duration-200 group-hover:bg-black/45 group-hover:opacity-100">
                         <button onClick={(e) => { e.stopPropagation(); setInspectorAsset({ type: "image", url, title: `Panel ${i + 1}`, prompt: "Storyboard panel", model: "Qwen Image Edit" }); }} className="rounded-lg bg-white/15 p-2 text-white ring-1 ring-white/20"><Eye className="h-4 w-4" /></button>
