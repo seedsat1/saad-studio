@@ -212,6 +212,7 @@ export async function POST(req: NextRequest) {
         image_url: hostedImageUrl,
         prompt,
         aspect_ratio: aspectRatio,
+        num_images: 1,
       };
       const taskId = await createKieTask(apiKey, KIE_MODEL_ID, input);
       taskIds.push(taskId);
