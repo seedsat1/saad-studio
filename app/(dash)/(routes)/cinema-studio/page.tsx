@@ -16,12 +16,11 @@ interface Scene {
 
 const CATEGORIES = [
   "All",
-  "Entrance",
   "Emotion",
-  "Movement",
-  "Reveal",
   "Tension",
-  "Transition",
+  "Reveal",
+  "Framing",
+  "Narrative",
 ] as const;
 
 const MODELS = [
@@ -54,119 +53,119 @@ const SCENE_MEDIA = [
 const SCENES: Scene[] = [
   {
     id: "s1",
-    title: "Character Entrance",
-    subtitle: "Introduce a key character into the scene",
-    category: "Entrance",
+    title: "Reaction Shot",
+    subtitle: "Capture a character's immediate emotional response",
+    category: "Emotion",
     videoSrc: SCENE_MEDIA[0].video,
     poster: SCENE_MEDIA[0].poster,
-    hiddenPrompt:
-      "A confident figure steps through a doorway into a dimly lit room, silhouette framed by bright backlight spilling in from behind. Slow dolly-in reveals their face as they pause and survey the space. Dramatic rim lighting outlines their profile, shallow depth of field blurs the background. Low-angle shot emphasizing authority and presence, anamorphic lens flare, 4K cinematic, 24fps, warm-to-cool color transition as they enter.",
-  },
-  {
-    id: "s2",
-    title: "Reaction Shot",
-    subtitle: "Capture a character's emotional response",
-    category: "Emotion",
-    videoSrc: SCENE_MEDIA[1].video,
-    poster: SCENE_MEDIA[1].poster,
     hiddenPrompt:
       "Tight medium close-up of a person's face reacting to unexpected news. Eyes widen subtly, jaw tightens, a micro-expression shifts from composure to shock. Shallow depth of field isolates the face against a soft bokeh background. Natural side lighting from a window casts gentle shadows across features. Handheld camera with minimal breathing movement, Kodak 5219 film stock warmth, intimate and psychologically revealing. 24fps, aspect ratio 2.39:1.",
   },
   {
-    id: "s3",
+    id: "s2",
     title: "Close-up Emotion",
-    subtitle: "An intimate look at raw feeling",
+    subtitle: "An extreme intimate look at raw vulnerability",
     category: "Emotion",
-    videoSrc: SCENE_MEDIA[2].video,
-    poster: SCENE_MEDIA[2].poster,
+    videoSrc: SCENE_MEDIA[1].video,
+    poster: SCENE_MEDIA[1].poster,
     hiddenPrompt:
-      "Extreme close-up on a person's eyes filling with tears, a single tear rolling down their cheek catching the light. Camera holds completely still on a tripod, the stillness amplifying the vulnerability. Soft diffused golden-hour light from the left, rest of the face slightly in shadow. Macro lens detail — every eyelash visible, skin texture photorealistic. Sound design implies silence broken only by a shaky breath. Deeply emotional, Wong Kar-wai inspired color palette, 4K.",
+      "Extreme close-up on a person's eyes filling with tears, a single tear rolling down their cheek catching the light. Camera holds completely still on a tripod, the stillness amplifying the vulnerability. Soft diffused golden-hour light from the left, rest of the face slightly in shadow. Macro lens detail \u2014 every eyelash visible, skin texture photorealistic. Sound design implies silence broken only by a shaky breath. Deeply emotional, Wong Kar-wai inspired color palette, 4K.",
   },
   {
-    id: "s4",
+    id: "s3",
     title: "Wide Establishing",
-    subtitle: "Set the world and geography of the scene",
-    category: "Transition",
-    videoSrc: SCENE_MEDIA[3].video,
-    poster: SCENE_MEDIA[3].poster,
+    subtitle: "Set the world, scale, and geography of the scene",
+    category: "Framing",
+    videoSrc: SCENE_MEDIA[2].video,
+    poster: SCENE_MEDIA[2].poster,
     hiddenPrompt:
       "Sweeping aerial establishing shot slowly revealing a vast landscape at dawn. Camera starts tight on mist-covered treetops then pulls back and rises to unveil an entire city or environment below. Volumetric god rays pierce through morning clouds. Ultra-wide 14mm perspective, 8K resolution, perfectly smooth gimbal movement. Color grade shifts from cool pre-dawn blues to warm golden tones as the sun crests the horizon. Sets the stage for everything that follows.",
   },
   {
-    id: "s5",
+    id: "s4",
     title: "Over-the-Shoulder",
-    subtitle: "Ground the viewer inside a conversation",
+    subtitle: "Lock the viewer inside a tense conversation",
     category: "Tension",
-    videoSrc: SCENE_MEDIA[4].video,
-    poster: SCENE_MEDIA[4].poster,
+    videoSrc: SCENE_MEDIA[3].video,
+    poster: SCENE_MEDIA[3].poster,
     hiddenPrompt:
       "Over-the-shoulder shot from behind one character looking at another during a tense exchange. The foreground shoulder and head are slightly out of focus, framing the sharp face of the person being addressed. Eye-level camera, 85mm lens compression creating intimacy and claustrophobia. Subtle rack focus between the two characters during pauses. Moody low-key lighting with a single practical source. The power dynamic is implied through framing — who is larger in frame dominates the moment. Cinematic 2.39:1.",
   },
   {
-    id: "s6",
+    id: "s5",
     title: "Follow Tracking",
-    subtitle: "Move with the character through space",
-    category: "Movement",
-    videoSrc: SCENE_MEDIA[5].video,
-    poster: SCENE_MEDIA[5].poster,
+    subtitle: "Steadicam movement trailing a character through space",
+    category: "Framing",
+    videoSrc: SCENE_MEDIA[4].video,
+    poster: SCENE_MEDIA[4].poster,
     hiddenPrompt:
       "Steadicam tracking shot following a character from behind as they walk purposefully through a long corridor or street. Camera maintains consistent distance, floating smoothly at shoulder height. The environment tells the story — walls, light, passing figures all add context. Perspective creates leading lines drawing the eye forward. Atmospheric haze or dust particles catch cross-light. Kubrick one-point perspective composition, 35mm focal length, 4K, 24fps, building anticipation with every step.",
   },
   {
-    id: "s7",
+    id: "s6",
     title: "Push-In Reveal",
-    subtitle: "Slowly uncover something critical",
+    subtitle: "A slow dolly forward uncovering critical information",
     category: "Reveal",
-    videoSrc: SCENE_MEDIA[6].video,
-    poster: SCENE_MEDIA[6].poster,
+    videoSrc: SCENE_MEDIA[5].video,
+    poster: SCENE_MEDIA[5].poster,
     hiddenPrompt:
       "Slow deliberate dolly push-in toward an object, document, or screen that holds crucial information. Camera starts from a medium-wide framing the surrounding environment, then creeps forward over 8 seconds until the key detail fills the frame. Rack focus transition from background context to foreground subject. Tension builds through pacing alone — no dialogue needed. Low ambient lighting with a single pool of light on the reveal point. Hitchcock-inspired suspense framing, 4K, 24fps.",
   },
   {
-    id: "s8",
+    id: "s7",
     title: "Conflict Escalation",
-    subtitle: "Raise the stakes between two forces",
+    subtitle: "Raise the stakes through rapid cutting and tension",
     category: "Tension",
-    videoSrc: SCENE_MEDIA[7].video,
-    poster: SCENE_MEDIA[7].poster,
+    videoSrc: SCENE_MEDIA[6].video,
+    poster: SCENE_MEDIA[6].poster,
     hiddenPrompt:
       "Two figures face each other across a table or narrow space, tension escalating. Quick cutting between tight close-ups — clenched fist, narrowing eyes, a hand reaching slowly. Camera angles become increasingly Dutch-tilted as conflict builds. Lighting shifts from balanced to harsh single-source, casting deep shadows. Sound design implies rising tension through low frequency drone. Editing rhythm accelerates from 3-second cuts to 1-second cuts. Inspired by Michael Mann and Denis Villeneuve confrontation scenes. 4K, anamorphic.",
   },
   {
+    id: "s8",
+    title: "Discovery Moment",
+    subtitle: "The character encounters something unexpected",
+    category: "Reveal",
+    videoSrc: SCENE_MEDIA[7].video,
+    poster: SCENE_MEDIA[7].poster,
+    hiddenPrompt:
+      "A character rounds a corner or opens a door and freezes — their expression shifts as they process what they see. Camera captures their face in a slow push-in, then reverses to reveal what they're looking at from their POV. The cut between their reaction and the discovery creates dramatic weight. Spielberg-inspired sense of wonder or dread depending on lighting — warm uplighting for awe, cold toplight for horror. Musical score swell implied through visual pacing. 4K, 2.39:1, shallow depth of field.",
+  },
+  {
     id: "s9",
-    title: "Quiet Pause",
-    subtitle: "A breath between story beats",
-    category: "Transition",
+    title: "Silhouette Framing",
+    subtitle: "Define a character through shape and negative space",
+    category: "Framing",
     videoSrc: SCENE_MEDIA[8].video,
     poster: SCENE_MEDIA[8].poster,
     hiddenPrompt:
-      "A character stands alone in a still moment — gazing out a rain-streaked window, sitting quietly in an empty room, or pausing on a bridge at dusk. Camera holds in a locked-off wide shot, allowing the environment to breathe around them. Ambient natural sound — rain, distant traffic, wind. Muted desaturated color palette with a single warm accent. This is the pause that gives the audience space to feel. Inspired by Terrence Malick and Sofia Coppola's contemplative moments. 4K, 24fps, long take.",
+      "A lone figure stands in a doorway or window frame, their body rendered as a dark silhouette against a bright backlit source — sunset, neon, or a stark white room. The composition is perfectly symmetrical, the character defined entirely by posture and outline rather than facial detail. Negative space dominates the frame, conveying isolation or resolve. Strong rim lighting traces the edges of hair and shoulders. Shot on anamorphic lens, 4K, 24fps, deep shadows with no fill, inspired by Roger Deakins' silhouette work.",
   },
   {
     id: "s10",
-    title: "Arrival Shot",
-    subtitle: "A character reaches a destination",
-    category: "Entrance",
+    title: "Dolly Zoom Tension",
+    subtitle: "Vertigo effect — background shifts while subject stays fixed",
+    category: "Tension",
     videoSrc: SCENE_MEDIA[9].video,
     poster: SCENE_MEDIA[9].poster,
     hiddenPrompt:
-      "A vehicle — car, train, or boat — arrives and comes to a stop. Door opens, feet step onto new ground. Camera starts from a wide shot of the location, then cuts to a low-angle as the character emerges. The environment reacts — dust settles, crowd parts, light shifts. This is the threshold moment between journey and story. Slow-motion for the exit beat, then real-time as they take in their surroundings. Cinematic color grade matching the emotional tone of what’s ahead. 4K, 24fps, anamorphic.",
+      "Dolly zoom (Vertigo effect) on a character's face as they experience a sudden realization or dread. Camera dollies backward while zooming in simultaneously, keeping the subject the same size while the background warps and stretches unnervingly. The spatial distortion creates a visceral feeling of psychological unease. Character frozen mid-expression, eyes locked on something off-screen. Hitchcock and Spielberg signature technique, dramatic single-source lighting, 4K, 24fps, 2.39:1 widescreen.",
   },
   {
     id: "s11",
-    title: "Discovery Moment",
-    subtitle: "The character finds something unexpected",
-    category: "Reveal",
+    title: "Slow Motion Emphasis",
+    subtitle: "Stretch a pivotal moment to amplify its weight",
+    category: "Narrative",
     videoSrc: SCENE_MEDIA[10].video,
     poster: SCENE_MEDIA[10].poster,
     hiddenPrompt:
-      "A character rounds a corner or opens a door and freezes — their expression shifts as they process what they see. Camera captures their face in a slow push-in, then reverses to reveal what they’re looking at from their POV. The cut between their reaction and the discovery creates dramatic weight. Spielberg-inspired sense of wonder or dread depending on lighting — warm uplighting for awe, cold toplight for horror. Musical score swell implied through visual pacing. 4K, 2.39:1, shallow depth of field.",
+      "A key story moment captured in dramatic slow motion at 120fps. A hand reaching out, a glass shattering, a figure turning to look back, or feet lifting off the ground. Every micro-detail is amplified — fabric ripples, light particles drift, hair moves in slow waves. The deceleration signals narrative importance, telling the audience this moment matters. Shallow depth of field, warm rim lighting, controlled color grade emphasizing a single dominant hue. Cinematic 4K, 2.39:1 aspect ratio, Zack Snyder and Christopher Nolan-inspired temporal manipulation.",
   },
   {
     id: "s12",
     title: "Final Beat",
-    subtitle: "The last image that closes the sequence",
-    category: "Transition",
+    subtitle: "The last image that lingers after the cut",
+    category: "Narrative",
     videoSrc: SCENE_MEDIA[11].video,
     poster: SCENE_MEDIA[11].poster,
     hiddenPrompt:
@@ -177,12 +176,11 @@ const SCENES: Scene[] = [
 /* ───────────────────────── category color map ───────────────────────── */
 
 const CAT_COLORS: Record<string, string> = {
-  Entrance:   "from-amber-500/80 to-orange-600/80",
-  Emotion:    "from-pink-400/80 to-rose-500/80",
-  Movement:   "from-cyan-400/80 to-blue-500/80",
-  Reveal:     "from-violet-400/80 to-purple-500/80",
-  Tension:    "from-red-500/80 to-rose-600/80",
-  Transition: "from-emerald-400/80 to-teal-500/80",
+  Emotion:   "from-pink-400/80 to-rose-500/80",
+  Tension:   "from-red-500/80 to-rose-600/80",
+  Reveal:    "from-violet-400/80 to-purple-500/80",
+  Framing:   "from-cyan-400/80 to-blue-500/80",
+  Narrative: "from-amber-500/80 to-orange-600/80",
 };
 
 /* ───────────────────────── video card component ───────────────────────── */
