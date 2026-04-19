@@ -13,9 +13,12 @@ import {
   AlertCircle,
   Film,
   Sparkles,
+  Eye,
 } from "lucide-react";
 import Link from "next/link";
+import { motion, AnimatePresence } from "framer-motion";
 import { useCreditModal } from "@/hooks/use-credit-modal";
+import { AssetInspector, type Asset } from "@/components/AssetInspector";
 
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-display", display: "swap" });
 const plusJakarta = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-body", display: "swap" });
@@ -79,6 +82,7 @@ export default function StoryboardProductionPage() {
   const [generationStatus, setGenerationStatus] = useState<GenerationStatus>("idle");
   const [result, setResult] = useState<ResultState | null>(null);
   const [statusMessage, setStatusMessage] = useState("");
+  const [inspectorAsset, setInspectorAsset] = useState<Asset | null>(null);
 
   const isGenerating = generationStatus === "generating";
   const totalCost = numPanels * CREDIT_PER_PANEL;
@@ -219,7 +223,7 @@ export default function StoryboardProductionPage() {
             </div>
           )}
 
-          {/* Success */}
+          {/* Success — masonry gallery like image page */}
           {generationStatus === "success" && result && result.outputs.length > 0 && (
             <>
               <div className="flex items-center justify-between mb-4">
@@ -230,18 +234,33 @@ export default function StoryboardProductionPage() {
                   <RefreshCw size={11} /> New
                 </button>
               </div>
-              <div className="grid gap-3" style={{ gridTemplateColumns: result.outputs.length === 1 ? "1fr" : result.outputs.length === 2 ? "repeat(2, 1fr)" : "repeat(3, 1fr)" }}>
-                {result.outputs.map((url, i) => (
-                  <div key={i} className="relative group rounded-xl overflow-hidden" style={{ border: "1px solid #1e293b" }}>
-                    <img src={url} alt={`Panel ${i + 1}`} className="w-full object-cover" style={{ aspectRatio: "16/9" }} />
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
-                      <a href={url} download={`storyboard-panel-${i + 1}`} target="_blank" rel="noopener noreferrer" className="p-2.5 rounded-full" style={{ background: "rgba(0,0,0,0.7)", border: "1px solid #334155" }} onClick={(e) => e.stopPropagation()}>
-                        <Download size={14} style={{ color: "#fff" }} />
-                      </a>
-                    </div>
-                    <div className="absolute bottom-2 left-2 text-[10px] px-2 py-0.5 rounded-md font-semibold" style={{ background: "rgba(0,0,0,0.7)", color: "#94a3b8" }}>Panel {i + 1}</div>
-                  </div>
-                ))}
+              <style>{`
+                .sb-masonry { column-count: 3; column-gap: 8px; }
+                @media (max-width: 1280px) { .sb-masonry { column-count: 2; } }
+                @media (max-width: 480px)  { .sb-masonry { column-count: 1; } }
+              `}</style>
+              <div className="sb-masonry w-full">
+                <AnimatePresence>
+                  {result.outputs.map((url, i) => (
+                    <motion.div
+                      key={i}
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      transition={{ duration: 0.2 }}
+                      className="group relative mb-2 cursor-pointer overflow-hidden rounded-2xl ring-1 ring-white/10"
+                      style={{ breakInside: "avoid" }}
+                      onClick={() => setInspectorAsset({ type: "image", url, title: `Panel ${i + 1}`, prompt: "Storyboard panel", model: "Qwen Image Edit" })}
+                    >
+                      <img src={url} alt={`Panel ${i + 1}`} className="w-full object-cover transition duration-300 group-hover:scale-[1.04]" />
+                      <div className="absolute left-2 top-2 rounded-md bg-black/60 px-2 py-0.5 text-[10px] text-zinc-200">Panel {i + 1}</div>
+                      <div className="absolute inset-0 flex items-end justify-center gap-2 bg-black/0 pb-3 opacity-0 transition duration-200 group-hover:bg-black/45 group-hover:opacity-100">
+                        <button onClick={(e) => { e.stopPropagation(); setInspectorAsset({ type: "image", url, title: `Panel ${i + 1}`, prompt: "Storyboard panel", model: "Qwen Image Edit" }); }} className="rounded-lg bg-white/15 p-2 text-white ring-1 ring-white/20"><Eye className="h-4 w-4" /></button>
+                        <a href={url} download={`storyboard-panel-${i + 1}`} onClick={(e) => e.stopPropagation()} className="rounded-lg bg-white/15 p-2 text-white ring-1 ring-white/20"><Download className="h-4 w-4" /></a>
+                      </div>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
               </div>
             </>
           )}
@@ -368,6 +387,17 @@ export default function StoryboardProductionPage() {
           </div>
         </div>
       </div>
+
+      {/* ── Asset Inspector Modal ── */}
+      <AnimatePresence>
+        {inspectorAsset ? (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[60] bg-black/80 p-4" onClick={() => setInspectorAsset(null)}>
+            <motion.div initial={{ scale: 0.96, y: 12 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.96, y: 12 }} className="mx-auto h-[82vh] max-w-5xl overflow-hidden rounded-2xl" onClick={(e) => e.stopPropagation()}>
+              <AssetInspector asset={inspectorAsset} onClose={() => setInspectorAsset(null)} />
+            </motion.div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
     </div>
   );
 }
