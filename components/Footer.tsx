@@ -42,7 +42,7 @@ const FOOTER_LINKS = {
       { label: "Audio & Music", href: "/music" },
       { label: "AI Editing Suite", href: "/edit" },
       { label: "Character Studio", href: "/character" },
-      { label: "Cinema Studio", href: "/cinema-studio" },
+      { label: "Next Scene", href: "/cinema-studio" },
       { label: "AI Assist (Chat)", href: "/conversation" },
       { label: "Apps Gallery", href: "/apps" },
     ],

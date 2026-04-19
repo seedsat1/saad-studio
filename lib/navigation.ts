@@ -41,7 +41,7 @@ export const NAV_CATEGORIES: NavCategory[] = [
     href: "/video",
     subItems: [
       { label: "Create Video", href: "/video", description: "Text-to-video generation" },
-      { label: "Cinema Studio", href: "/cinema-studio", description: "Professional cinematic production", badge: "TOP" },
+      { label: "Next Scene", href: "/cinema-studio", description: "Professional cinematic production", badge: "TOP" },
       { label: "Mixed Media", href: "/video", description: "Combine multiple visual styles" },
       { label: "Edit Video", href: "/edit", description: "Advanced AI timeline editing" },
       { label: "Lipsync Studio", href: "/video", description: "Audio-driven facial animation" },
@@ -96,7 +96,7 @@ export const NAV_CATEGORIES: NavCategory[] = [
   },
   {
     id: "cinema-studio",
-    label: "Cinema Studio",
+    label: "Next Scene",
     emoji: "🎬",
     href: "/cinema-studio",
   },
