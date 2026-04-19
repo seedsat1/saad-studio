@@ -272,10 +272,25 @@ function SceneCard({
 const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_SIZE = 10 * 1024 * 1024; // 10 MB
 
+const ASPECT_RATIOS = [
+  { value: "16:9", label: "16:9", icon: "▭" },
+  { value: "9:16", label: "9:16", icon: "▯" },
+  { value: "1:1",  label: "1:1",  icon: "□" },
+  { value: "4:3",  label: "4:3",  icon: "▭" },
+  { value: "21:9", label: "21:9", icon: "━" },
+] as const;
+
+const QUALITY_OPTIONS = [
+  { value: "standard", label: "Standard" },
+  { value: "high",     label: "High" },
+] as const;
+
 export default function NextSceneEnginePage() {
   const [prompt, setPrompt] = useState("");
   const [selectedModel, setSelectedModel] = useState<string>(MODELS[0].value);
   const [duration, setDuration] = useState<number>(MODEL_DURATIONS[MODELS[0].value][0].value);
+  const [aspectRatio, setAspectRatio] = useState<string>("16:9");
+  const [quality, setQuality] = useState<string>("standard");
   const [activeCategory, setActiveCategory] = useState<string>("All");
   const [uploadedImage, setUploadedImage] = useState<{ file: File; preview: string } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -515,6 +530,41 @@ export default function NextSceneEnginePage() {
                     }`}
                   >
                     {d.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* aspect ratio */}
+              <div className="flex items-center gap-1">
+                {ASPECT_RATIOS.map((ar) => (
+                  <button
+                    key={ar.value}
+                    onClick={() => setAspectRatio(ar.value)}
+                    className={`rounded-lg border px-2 py-1.5 text-xs font-medium transition-all duration-200 ${
+                      aspectRatio === ar.value
+                        ? "border-violet-500/40 bg-violet-500/15 text-violet-300"
+                        : "border-white/[0.06] bg-white/[0.02] text-slate-500 hover:border-white/[0.12] hover:text-slate-300"
+                    }`}
+                    title={ar.label}
+                  >
+                    <span className="mr-1 text-[10px] opacity-70">{ar.icon}</span>{ar.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* quality */}
+              <div className="flex items-center gap-1">
+                {QUALITY_OPTIONS.map((q) => (
+                  <button
+                    key={q.value}
+                    onClick={() => setQuality(q.value)}
+                    className={`rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-all duration-200 ${
+                      quality === q.value
+                        ? "border-violet-500/40 bg-violet-500/15 text-violet-300"
+                        : "border-white/[0.06] bg-white/[0.02] text-slate-500 hover:border-white/[0.12] hover:text-slate-300"
+                    }`}
+                  >
+                    {q.label}
                   </button>
                 ))}
               </div>
