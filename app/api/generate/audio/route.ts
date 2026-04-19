@@ -9,6 +9,7 @@ export const runtime = "nodejs";
 
 const WAVESPEED_BASE_URL = "https://api.wavespeed.ai/api/v3";
 const KIE_BASE_URL = "https://api.kie.ai/api/v1";
+const KIE_FILE_UPLOAD_URL = "https://kieai.redpandaai.co/api/file-base64-upload";
 
 const WS_TTS_MODEL = "elevenlabs/multilingual-v2";
 const WS_VIDEO2AUDIO_MODEL = "wavespeed-ai/mmaudio-v2";
@@ -234,6 +235,75 @@ async function runKieAudio(
   if (!audioUrl) {
     throw new Error("KIE returned no audio URL.");
   }
+  return audioUrl;
+}
+
+async function uploadAudioToKie(dataUrl: string): Promise<string> {
+  const parsed = parseBase64DataUrl(dataUrl);
+  if (!parsed) throw new Error("Invalid base64 audio data URL for KIE upload.");
+
+  const res = await fetch(KIE_FILE_UPLOAD_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      base64: `data:${parsed.mime};base64,${parsed.fileData}`,
+      fileName: `voice-sample.${parsed.ext}`,
+    }),
+  });
+
+  const json = await res.json().catch(() => null);
+  const url = json?.url || json?.data?.url;
+  if (!res.ok || !url) {
+    throw new Error(json?.error || json?.message || "KIE file upload failed.");
+  }
+  return String(url);
+}
+
+async function runKieVoiceClone(
+  body: AudioRequestBody,
+  kieApiKey: string,
+): Promise<string> {
+  const samples = body.sampleAudioUrls || [];
+  const uploadedUrls = await Promise.all(
+    samples.map((u) => (u.startsWith("data:") ? uploadAudioToKie(u) : Promise.resolve(u))),
+  );
+  const referenceAudio = uploadedUrls[0];
+  if (!referenceAudio) throw new Error("No reference audio provided for voice cloning.");
+
+  const seedText = sanitizePrompt(body.text || body.prompt || "Hello from SAAD Studio voice cloning.", 5000);
+
+  const submitRes = await fetch(`${KIE_BASE_URL}/jobs/createTask`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${kieApiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "minimax/voice-clone",
+      callBackUrl: "",
+      input: {
+        text: seedText,
+        audio: referenceAudio,
+        accuracy: 1,
+      },
+    }),
+  });
+
+  const submitJson = await submitRes.json().catch(() => null);
+  if (!submitRes.ok) {
+    throw new Error(submitJson?.msg || submitJson?.error || "KIE voice-clone task submit failed.");
+  }
+
+  const taskId = submitJson?.data?.taskId ?? submitJson?.data?.id;
+  if (!taskId) throw new Error("No taskId returned from KIE voice-clone.");
+
+  const result = await pollKieTask(String(taskId), kieApiKey);
+  if (result.status === "failed") {
+    throw new Error(result.error ?? "KIE voice cloning failed.");
+  }
+
+  const audioUrl = result.outputs?.find((url) => typeof url === "string" && /^https?:\/\//.test(url));
+  if (!audioUrl) throw new Error("KIE voice-clone returned no audio URL.");
   return audioUrl;
 }
 
@@ -649,8 +719,33 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ videoUrl, provider: "wavespeed" }, { status: 200 });
     }
     if (actionType === "voice-cloning") {
+      const clonedVoiceName = (body.cloneName || "custom-voice").trim().slice(0, 64);
+      const customVoiceId = sanitizeCustomVoiceId(clonedVoiceName);
+
+      // --- Try KIE first ---
+      if (kieKey) {
+        try {
+          const audioUrl = await runKieVoiceClone(body, kieKey);
+          if (generationId) {
+            await setGenerationMediaUrl(generationId, audioUrl);
+          }
+          return NextResponse.json(
+            {
+              audioUrl,
+              provider: "kie",
+              voiceId: customVoiceId,
+              voiceName: clonedVoiceName || customVoiceId,
+            },
+            { status: 200 },
+          );
+        } catch (kieErr) {
+          console.warn("[voice-cloning] KIE failed, falling back to WaveSpeed:", kieErr instanceof Error ? kieErr.message : kieErr);
+        }
+      }
+
+      // --- WaveSpeed fallback ---
       if (!wavespeedKey) {
-        throw new Error("WaveSpeed API key is required for voice cloning.");
+        throw new Error("Voice cloning failed: no available provider.");
       }
 
       const samples = await Promise.all(
@@ -659,8 +754,6 @@ export async function POST(req: NextRequest) {
         ),
       );
       const referenceAudio = samples[0];
-      const clonedVoiceName = (body.cloneName || "custom-voice").trim().slice(0, 64);
-      const customVoiceId = sanitizeCustomVoiceId(clonedVoiceName);
       const seedText = sanitizePrompt(body.text || body.prompt || "Hello from SAAD Studio voice cloning.", 5000);
 
       const audioUrl = await runWaveSpeed(
