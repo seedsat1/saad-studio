@@ -87,7 +87,7 @@ export default function MakeupPage() {
   const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [generationStatus, setGenerationStatus] = useState<GenerationStatus>("idle");
-  const [resultUrl, setResultUrl] = useState<string | null>(null);
+  const [resultUrls, setResultUrls] = useState<string[]>([]);
   const [errorMessage, setErrorMessage] = useState("");
   const [inspectorAsset, setInspectorAsset] = useState<Asset | null>(null);
   const [history, setHistory] = useState<{ id: string; url: string; prompt: string; model: string; date: string }[]>([]);
@@ -125,7 +125,7 @@ export default function MakeupPage() {
     if (!file.type.startsWith("image/")) return;
     const dataUrl = await readFileAsDataUrl(file);
     setImageDataUrl(dataUrl);
-    setResultUrl(null);
+    setResultUrls([]);
     setGenerationStatus("idle");
   }, []);
 
@@ -141,7 +141,7 @@ export default function MakeupPage() {
 
   async function handleGenerate() {
     if (isGenerating || !imageDataUrl) return;
-    setResultUrl(null);
+    setResultUrls([]);
     setErrorMessage("");
     setGenerationStatus("generating");
     try {
@@ -162,14 +162,18 @@ export default function MakeupPage() {
         try { const data = await res.json(); msg = data.error ?? msg; } catch { msg = `Server error (${res.status})`; }
         throw new Error(msg);
       }
-      const { output } = (await res.json()) as { output: string; generationId: string };
-      setResultUrl(output);
+      const { outputs } = (await res.json()) as { outputs: string[]; generationId: string };
+      setResultUrls(outputs);
       setGenerationStatus("success");
-      setHistory((prev) => [{
-        id: `new-${Date.now()}`, url: output, prompt: "AI Makeup",
-        model: "wavespeed/qwen-image-edit-makeup",
-        date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
-      }, ...prev]);
+      const now = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+      setHistory((prev) => [
+        ...outputs.map((url, i) => ({
+          id: `new-${Date.now()}-${i}`, url, prompt: "AI Makeup",
+          model: "runninghub/ai-makeup",
+          date: now,
+        })),
+        ...prev,
+      ]);
     } catch (err) {
       setErrorMessage(err instanceof Error ? err.message : "Generation failed.");
       setGenerationStatus("failed");
@@ -177,7 +181,7 @@ export default function MakeupPage() {
   }
 
   function reset() {
-    setResultUrl(null);
+    setResultUrls([]);
     setErrorMessage("");
     setGenerationStatus("idle");
   }
@@ -231,7 +235,7 @@ export default function MakeupPage() {
           </motion.div>
 
           {/* Empty state */}
-          {generationStatus === "idle" && !resultUrl && history.length === 0 && (
+          {generationStatus === "idle" && resultUrls.length === 0 && history.length === 0 && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }} className="flex flex-col items-center justify-center py-16">
               <div className="relative mb-6">
                 <div className="w-24 h-24 rounded-3xl flex items-center justify-center" style={{ background: "rgba(15,26,53,0.7)", backdropFilter: "blur(16px) saturate(1.5)", border: "1px solid rgba(148,163,184,0.06)" }}>
@@ -253,12 +257,13 @@ export default function MakeupPage() {
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
               <div className="flex items-center gap-3 mb-2">
                 <div className="w-5 h-5 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: "#1e293b", borderTopColor: "#ec4899" }} />
-                <span className="text-sm font-medium" style={{ color: "#94a3b8" }}>Applying makeup…</span>
-                <span className="text-xs" style={{ color: "#475569" }}>30–90s</span>
+                <span className="text-sm font-medium" style={{ color: "#94a3b8" }}>Generating 6 makeup styles…</span>
+                <span className="text-xs" style={{ color: "#475569" }}>60–120s</span>
               </div>
-              <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(2, 1fr)" }}>
-                <ShimmerBlock />
-                <ShimmerBlock />
+              <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))" }}>
+                {Array.from({ length: 7 }).map((_, i) => (
+                  <ShimmerBlock key={i} />
+                ))}
               </div>
             </motion.div>
           )}
@@ -275,42 +280,45 @@ export default function MakeupPage() {
             </motion.div>
           )}
 
-          {/* Success — before/after */}
-          {generationStatus === "success" && resultUrl && (
+          {/* Success — original + makeup variations grid */}
+          {generationStatus === "success" && resultUrls.length > 0 && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
               <div className="flex items-center justify-between mb-4">
                 <span className="flex items-center gap-2 text-sm font-semibold" style={{ color: "#a3e635" }}>
-                  <CheckCircle size={14} /> Makeup applied
+                  <CheckCircle size={14} /> {resultUrls.length} makeup styles generated
                 </span>
                 <button className="group flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all hover:border-pink-500/30" style={{ border: "1px solid rgba(148,163,184,0.06)", background: "rgba(15,26,53,0.7)", backdropFilter: "blur(16px)", color: "#94a3b8" }} onClick={reset}>
                   <RefreshCw size={11} className="transition-transform group-hover:rotate-45" /> New
                 </button>
               </div>
-              <div className="grid w-full gap-3" style={{ gridTemplateColumns: "repeat(2, 1fr)" }}>
+              <div className="grid w-full gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))" }}>
                 {/* Original */}
                 <div className="relative rounded-2xl overflow-hidden" style={{ border: "1px solid rgba(148,163,184,0.06)" }}>
                   {imageDataUrl && <img src={imageDataUrl} alt="Original" className="w-full object-cover" style={{ aspectRatio: "3/4" }} />}
                   <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse at center, transparent 40%, rgba(6,12,24,0.4) 100%)" }} />
                   <div className="absolute bottom-2.5 left-2.5 text-[10px] px-2.5 py-1 rounded-lg font-semibold" style={{ background: "rgba(15,26,53,0.8)", backdropFilter: "blur(12px)", color: "#94a3b8", border: "1px solid rgba(148,163,184,0.06)" }}>Original</div>
                 </div>
-                {/* Result */}
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.96, y: 8 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
-                  className="group relative cursor-pointer rounded-2xl overflow-hidden"
-                  style={{ border: "1px solid rgba(236,72,153,0.15)" }}
-                  onClick={() => setInspectorAsset({ type: "image", url: resultUrl, title: "AI Makeup", prompt: "AI Makeup", model: "AI Makeup" })}
-                >
-                  <img src={resultUrl} alt="Makeup result" className="w-full object-cover" style={{ aspectRatio: "3/4" }} />
-                  <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse at center, transparent 40%, rgba(6,12,24,0.4) 100%)" }} />
-                  <div className="absolute bottom-2.5 left-2.5 text-[10px] px-2.5 py-1 rounded-lg font-semibold" style={{ background: "rgba(236,72,153,0.15)", backdropFilter: "blur(12px)", color: "#ec4899", border: "1px solid rgba(236,72,153,0.15)" }}>AI Makeup</div>
-                  {/* Hover overlay */}
-                  <div className="absolute inset-0 flex items-center justify-center gap-3 bg-black/0 opacity-0 transition-all duration-300 group-hover:bg-black/50 group-hover:opacity-100">
-                    <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }} onClick={(e) => { e.stopPropagation(); setInspectorAsset({ type: "image", url: resultUrl, title: "AI Makeup", prompt: "AI Makeup", model: "AI Makeup" }); }} className="rounded-xl p-3 text-white" style={{ background: "rgba(15,26,53,0.8)", backdropFilter: "blur(16px)", border: "1px solid rgba(148,163,184,0.1)" }}><Eye className="h-5 w-5" /></motion.button>
-                    <motion.a whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }} href={resultUrl} download="makeup-result" onClick={(e) => e.stopPropagation()} className="rounded-xl p-3 text-white" style={{ background: "rgba(15,26,53,0.8)", backdropFilter: "blur(16px)", border: "1px solid rgba(148,163,184,0.1)" }}><Download className="h-5 w-5" /></motion.a>
-                  </div>
-                </motion.div>
+                {/* Makeup variations */}
+                {resultUrls.map((url, idx) => (
+                  <motion.div
+                    key={idx}
+                    initial={{ opacity: 0, scale: 0.96, y: 8 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    transition={{ duration: 0.4, delay: idx * 0.08, ease: [0.25, 0.46, 0.45, 0.94] }}
+                    className="group relative cursor-pointer rounded-2xl overflow-hidden"
+                    style={{ border: "1px solid rgba(236,72,153,0.15)" }}
+                    onClick={() => setInspectorAsset({ type: "image", url, title: `Makeup Style ${idx + 1}`, prompt: "AI Makeup", model: "AI Makeup" })}
+                  >
+                    <img src={url} alt={`Makeup style ${idx + 1}`} className="w-full object-cover" style={{ aspectRatio: "3/4" }} />
+                    <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse at center, transparent 40%, rgba(6,12,24,0.4) 100%)" }} />
+                    <div className="absolute bottom-2.5 left-2.5 text-[10px] px-2.5 py-1 rounded-lg font-semibold" style={{ background: "rgba(236,72,153,0.15)", backdropFilter: "blur(12px)", color: "#ec4899", border: "1px solid rgba(236,72,153,0.15)" }}>Style {idx + 1}</div>
+                    {/* Hover overlay */}
+                    <div className="absolute inset-0 flex items-center justify-center gap-3 bg-black/0 opacity-0 transition-all duration-300 group-hover:bg-black/50 group-hover:opacity-100">
+                      <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }} onClick={(e) => { e.stopPropagation(); setInspectorAsset({ type: "image", url, title: `Makeup Style ${idx + 1}`, prompt: "AI Makeup", model: "AI Makeup" }); }} className="rounded-xl p-3 text-white" style={{ background: "rgba(15,26,53,0.8)", backdropFilter: "blur(16px)", border: "1px solid rgba(148,163,184,0.1)" }}><Eye className="h-5 w-5" /></motion.button>
+                      <motion.a whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }} href={url} download={`makeup-style-${idx + 1}`} onClick={(e) => e.stopPropagation()} className="rounded-xl p-3 text-white" style={{ background: "rgba(15,26,53,0.8)", backdropFilter: "blur(16px)", border: "1px solid rgba(148,163,184,0.1)" }}><Download className="h-5 w-5" /></motion.a>
+                    </div>
+                  </motion.div>
+                ))}
               </div>
             </motion.div>
           )}
@@ -356,12 +364,12 @@ export default function MakeupPage() {
               <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: "#64748b" }}>About this tool</span>
             </div>
             <p className="text-sm leading-relaxed mb-5" style={{ color: "#94a3b8" }}>
-              <strong style={{ color: "#ec4899" }}>AI Makeup</strong> applies professional-quality makeup to your photos using advanced AI. Upload a clear face photo and let the AI enhance your look with natural, realistic results.
+              <strong style={{ color: "#ec4899" }}>AI Makeup</strong> generates 6 professional makeup style variations from your photo. Upload a clear face photo and get different makeup looks to choose from.
             </p>
             <div className="grid grid-cols-3 gap-3">
               {[
-                { value: "2", label: "Credits", color: "#ec4899" },
-                { value: "~30s", label: "Avg. Time", color: "#8b5cf6" },
+                { value: "6", label: "Styles", color: "#ec4899" },
+                { value: "~60s", label: "Avg. Time", color: "#8b5cf6" },
                 { value: "HD", label: "Quality", color: "#a3e635" },
               ].map((stat) => (
                 <div key={stat.label} className="rounded-xl py-3.5 text-center" style={{ background: "rgba(6,12,24,0.5)", border: "1px solid rgba(148,163,184,0.04)" }}>
@@ -395,7 +403,7 @@ export default function MakeupPage() {
             {imageDataUrl ? (
               <>
                 <img src={imageDataUrl} alt="Your photo" className="w-full rounded-xl object-contain" style={{ maxHeight: 300 }} />
-                <button className="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center transition-all hover:scale-110" style={{ background: "rgba(15,26,53,0.8)", backdropFilter: "blur(12px)", border: "1px solid rgba(148,163,184,0.1)" }} onClick={(e) => { e.stopPropagation(); setImageDataUrl(null); setResultUrl(null); setGenerationStatus("idle"); }}>
+                <button className="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center transition-all hover:scale-110" style={{ background: "rgba(15,26,53,0.8)", backdropFilter: "blur(12px)", border: "1px solid rgba(148,163,184,0.1)" }} onClick={(e) => { e.stopPropagation(); setImageDataUrl(null); setResultUrls([]); setGenerationStatus("idle"); }}>
                   <X size={14} />
                 </button>
               </>
