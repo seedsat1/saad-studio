@@ -75,77 +75,81 @@ export async function POST(req: NextRequest) {
     const rhFileName = await uploadImageToRunningHub(imageDataUrl);
     console.log("[CHARGEN] Upload success, fileName:", rhFileName);
 
-    // Create task — try multiple node patterns to find the right one
+    // Step 1: Try to get workflow node info via API
     const RH_API_BASE = "https://www.runninghub.ai/openapi/v2";
     const apiKey = getRunningHubApiKey();
 
-    const nodePatterns = [
-      // Pattern 1: channel + image at nodes 1,2 (like makeup)
-      [
-        { nodeId: "1", fieldName: "channel", fieldValue: "Third-party" },
-        { nodeId: "2", fieldName: "image", fieldValue: rhFileName },
-      ],
-      // Pattern 2: just node "1" image
-      [{ nodeId: "1", fieldName: "image", fieldValue: rhFileName }],
-      // Pattern 3: just node "3" image
-      [{ nodeId: "3", fieldName: "image", fieldValue: rhFileName }],
-      // Pattern 4: node "4" image
-      [{ nodeId: "4", fieldName: "image", fieldValue: rhFileName }],
-      // Pattern 5: channel + image at nodes 1,3
-      [
-        { nodeId: "1", fieldName: "channel", fieldValue: "Third-party" },
-        { nodeId: "3", fieldName: "image", fieldValue: rhFileName },
-      ],
-      // Pattern 6: channel + image at nodes 1,4
-      [
-        { nodeId: "1", fieldName: "channel", fieldValue: "Third-party" },
-        { nodeId: "4", fieldName: "image", fieldValue: rhFileName },
-      ],
-      // Pattern 7: node "1" input_image
-      [{ nodeId: "1", fieldName: "input_image", fieldValue: rhFileName }],
-      // Pattern 8: empty (auto-detect)
-      [],
+    // Try to discover node info from the AI App
+    let discoveredNodes: string[] = [];
+    const infoEndpoints = [
+      `${RH_API_BASE}/ai-app/info/${RH_AI_APP_PATH.split("/").pop()}`,
+      `${RH_API_BASE}/workflow/output/1997520281289834498`,
     ];
+    for (const url of infoEndpoints) {
+      try {
+        const infoRes = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+          body: JSON.stringify({}),
+        });
+        const infoRaw = await infoRes.text();
+        console.log(`[CHARGEN] Info probe ${url}:`, infoRes.status, infoRaw.slice(0, 500));
+        // Try to extract any nodeId references
+        const nodeMatches = infoRaw.match(/"nodeId"\s*:\s*"?(\d+)"?/g);
+        if (nodeMatches) {
+          discoveredNodes = nodeMatches.map(m => m.replace(/[^0-9]/g, ""));
+          console.log("[CHARGEN] Discovered nodes:", discoveredNodes);
+        }
+      } catch (e) {
+        console.log(`[CHARGEN] Info probe failed:`, e);
+      }
+    }
+
+    // Build node patterns: discovered nodes first, then scan range 5-50
+    const nodeIdsToTry = [...new Set([
+      ...discoveredNodes,
+      ...Array.from({ length: 46 }, (_, i) => String(i + 5)),
+    ])];
 
     let taskId = "";
     const allErrors: string[] = [];
 
-    for (let i = 0; i < nodePatterns.length; i++) {
+    // Try batch: send each nodeId with "image" fieldName
+    for (const nodeId of nodeIdsToTry) {
       const taskBody = {
         addMetadata: true,
-        nodeInfoList: nodePatterns[i],
+        nodeInfoList: [{ nodeId, fieldName: "image", fieldValue: rhFileName }],
         instanceType: "default",
         usePersonalQueue: "false",
       };
-      console.log(`[CHARGEN] Attempt ${i + 1}/${nodePatterns.length}:`, JSON.stringify(taskBody.nodeInfoList));
       const taskRes = await fetch(`${RH_API_BASE}${RH_AI_APP_PATH}`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
         body: JSON.stringify(taskBody),
       });
       const taskRaw = await taskRes.text();
-      console.log(`[CHARGEN] Attempt ${i + 1} response:`, taskRes.status, taskRaw.slice(0, 400));
 
       let taskData: Record<string, unknown>;
-      try { taskData = JSON.parse(taskRaw); } catch { allErrors.push(`#${i + 1}: ${taskRaw.slice(0, 150)}`); continue; }
+      try { taskData = JSON.parse(taskRaw); } catch { continue; }
 
       const id = (taskData.taskId as string)
         ?? ((taskData.data as Record<string, unknown> | undefined)?.taskId as string | undefined);
 
       if (id) {
         taskId = id;
-        console.log(`[CHARGEN] SUCCESS on attempt ${i + 1}, taskId:`, taskId);
+        console.log(`[CHARGEN] SUCCESS with nodeId=${nodeId}, taskId:`, taskId);
         break;
       }
 
-      const errCode = taskData.errorCode as string ?? "";
       const errMsg = (taskData.errorMessage as string) ?? "";
-      allErrors.push(`#${i + 1}: [${errCode}] ${errMsg}`);
-      // Always continue to next pattern
+      // Only log non-MISMATCH errors (reduce noise)
+      if (!errMsg.includes("NODE_INFO_MISMATCH")) {
+        allErrors.push(`nodeId=${nodeId}: ${errMsg}`);
+      }
     }
 
     if (!taskId) {
-      throw new Error(`RunningHub: all ${nodePatterns.length} patterns failed. Errors: ${allErrors.join(" | ")}`);
+      throw new Error(`RunningHub: could not find valid nodeId (tried ${nodeIdsToTry.length} IDs). Non-mismatch errors: ${allErrors.join(" | ") || "none"}`);
     }
     console.log("[CHARGEN] Task created, taskId:", taskId);
 
