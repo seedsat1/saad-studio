@@ -72,9 +72,12 @@ export async function POST(req: NextRequest) {
     chargedUserId = userId;
 
     // Upload image to RunningHub
+    console.log("[MAKEUP] Uploading image to RunningHub...");
     const rhFileName = await uploadImageToRunningHub(imageDataUrl);
+    console.log("[MAKEUP] Upload success, fileName:", rhFileName);
 
     // Create task with the makeup workflow
+    console.log("[MAKEUP] Creating task with path:", RH_AI_APP_PATH);
     const taskId = await createRunningHubTask(RH_AI_APP_PATH, [
       {
         nodeId: "1",
@@ -87,16 +90,23 @@ export async function POST(req: NextRequest) {
         fieldValue: rhFileName,
       },
     ]);
+    console.log("[MAKEUP] Task created, taskId:", taskId);
 
     // Poll for result
     const maxAttempts = 90;
     const intervalMs = 2000;
+    let lastStatus = "";
 
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       await new Promise((r) => setTimeout(r, intervalMs));
 
       const result = await queryRunningHubTask(taskId);
       const status = result.status.toUpperCase();
+
+      if (status !== lastStatus) {
+        console.log(`[MAKEUP] Poll #${attempt}: status=${status}, outputs=${result.outputs?.length ?? 0}, error=${result.errorMessage ?? "none"}`);
+        lastStatus = status;
+      }
 
       if (status === "SUCCESS") {
         if (result.outputs && result.outputs.length > 0) {
@@ -125,9 +135,10 @@ export async function POST(req: NextRequest) {
     }
 
     // Timeout
+    console.log(`[MAKEUP] Timed out after ${maxAttempts} attempts. Last status: ${lastStatus}`);
     await rollbackGenerationCharge(generationId, userId, CREDIT_COST).catch(() => null);
     return NextResponse.json(
-      { error: "Generation timed out. Credits refunded." },
+      { error: `Generation timed out (last status: ${lastStatus}). Credits refunded.` },
       { status: 504 },
     );
   } catch (err) {

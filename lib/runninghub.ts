@@ -123,6 +123,9 @@ export async function queryRunningHubTask(taskId: string): Promise<RunningHubQue
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- needed for dynamic API response
   const data = (await res.json()) as Record<string, any>;
 
+  // Debug: log raw query response (first few calls)
+  console.log("[RUNNINGHUB_QUERY] Raw response:", JSON.stringify(data).slice(0, 500));
+
   // Normalise status across different RunningHub API response shapes
   const status: RunningHubStatus =
     data.status ?? data.taskStatus ?? data.taskStatusMsg ?? "UNKNOWN";
