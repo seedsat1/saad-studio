@@ -75,20 +75,39 @@ export async function POST(req: NextRequest) {
     const rhFileName = await uploadImageToRunningHub(imageDataUrl);
     console.log("[CHARGEN] Upload success, fileName:", rhFileName);
 
-    // Create task with the character generation workflow
-    console.log("[CHARGEN] Creating task with path:", RH_AI_APP_PATH);
-    const taskId = await createRunningHubTask(RH_AI_APP_PATH, [
-      {
-        nodeId: "1",
-        fieldName: "channel",
-        fieldValue: "Third-party",
-      },
-      {
-        nodeId: "2",
-        fieldName: "image",
-        fieldValue: rhFileName,
-      },
-    ]);
+    // Create task — direct call for diagnostic visibility
+    const RH_API_BASE = "https://www.runninghub.ai/openapi/v2";
+    const apiKey = getRunningHubApiKey();
+    const taskBody = {
+      addMetadata: true,
+      nodeInfoList: [
+        { nodeId: "2", fieldName: "image", fieldValue: rhFileName },
+      ],
+      instanceType: "default",
+      usePersonalQueue: "false",
+    };
+    console.log("[CHARGEN] Creating task:", JSON.stringify(taskBody));
+    const taskRes = await fetch(`${RH_API_BASE}${RH_AI_APP_PATH}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify(taskBody),
+    });
+    const taskRaw = await taskRes.text();
+    console.log("[CHARGEN] RunningHub response:", taskRes.status, taskRaw.slice(0, 800));
+
+    if (!taskRes.ok) {
+      throw new Error(`RunningHub HTTP ${taskRes.status}: ${taskRaw.slice(0, 300)}`);
+    }
+
+    let taskData: Record<string, unknown>;
+    try { taskData = JSON.parse(taskRaw); } catch { throw new Error(`RunningHub invalid JSON: ${taskRaw.slice(0, 200)}`); }
+
+    const taskId = (taskData.taskId as string)
+      ?? (taskData.data as Record<string, unknown> | undefined)?.taskId as string | undefined;
+
+    if (!taskId) {
+      throw new Error(`RunningHub no taskId. Full response: ${taskRaw.slice(0, 400)}`);
+    }
     console.log("[CHARGEN] Task created, taskId:", taskId);
 
     // Poll for result
