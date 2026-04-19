@@ -14,6 +14,7 @@ import {
   Film,
   Sparkles,
   Eye,
+  ChevronDown,
 } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -91,6 +92,7 @@ export default function StoryboardProductionPage() {
   const [numPanels, setNumPanels] = useState(4);
   const [storyboardType, setStoryboardType] = useState<string>("production");
   const [aspectRatio, setAspectRatio] = useState<string>("1:1");
+  const [ratioOpen, setRatioOpen] = useState(false);
   const [generationStatus, setGenerationStatus] = useState<GenerationStatus>("idle");
   const [result, setResult] = useState<ResultState | null>(null);
   const [statusMessage, setStatusMessage] = useState("");
@@ -422,33 +424,56 @@ export default function StoryboardProductionPage() {
           {/* Aspect Ratio */}
           <div className="mt-5">
             <SectionLabel>Aspect Ratio</SectionLabel>
-            <div className="flex flex-col gap-1">
-              {ASPECT_RATIOS.map((r) => (
-                <button
-                  key={r}
-                  className="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg text-[12px] font-bold transition-all text-left"
-                  style={{
-                    border: `1px solid ${aspectRatio === r ? "rgba(6,182,212,0.4)" : "#1e293b"}`,
-                    background: aspectRatio === r ? "rgba(6,182,212,0.08)" : "transparent",
-                    color: aspectRatio === r ? "#06b6d4" : "#64748b",
-                    fontFamily: "var(--font-display)",
-                  }}
-                  onClick={() => setAspectRatio(r)}
+            <div className="relative">
+              <button
+                className="flex items-center justify-between w-full px-3 py-2.5 rounded-lg text-[12px] font-bold transition-all"
+                style={{
+                  border: "1px solid #1e293b",
+                  background: "#0e1630",
+                  color: "#06b6d4",
+                  fontFamily: "var(--font-display)",
+                }}
+                onClick={() => setRatioOpen(!ratioOpen)}
+              >
+                <span className="flex items-center gap-2.5">
+                  <RatioIcon ratio={aspectRatio} />
+                  {aspectRatio}
+                </span>
+                <ChevronDown size={14} style={{ color: "#64748b", transform: ratioOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
+              </button>
+              {ratioOpen && (
+                <div
+                  className="absolute left-0 right-0 top-full mt-1 z-20 rounded-lg overflow-hidden"
+                  style={{ background: "#0e1630", border: "1px solid #1e293b" }}
                 >
-                  <span
-                    className="flex-shrink-0 w-4 h-4 rounded-[3px] flex items-center justify-center"
-                    style={{
-                      border: `1.5px solid ${aspectRatio === r ? "#06b6d4" : "#334155"}`,
-                      background: aspectRatio === r ? "#06b6d4" : "transparent",
-                    }}
-                  >
-                    {aspectRatio === r && (
-                      <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5.5L4 7.5L8 3" stroke="#060c18" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                    )}
-                  </span>
-                  {r}
-                </button>
-              ))}
+                  {ASPECT_RATIOS.map((r) => (
+                    <button
+                      key={r}
+                      className="flex items-center gap-2.5 w-full px-3 py-2 text-[12px] font-bold transition-all text-left hover:bg-white/5"
+                      style={{
+                        background: aspectRatio === r ? "rgba(6,182,212,0.1)" : "transparent",
+                        color: aspectRatio === r ? "#06b6d4" : "#94a3b8",
+                        fontFamily: "var(--font-display)",
+                      }}
+                      onClick={() => { setAspectRatio(r); setRatioOpen(false); }}
+                    >
+                      <span
+                        className="flex-shrink-0 w-4 h-4 rounded-[3px] flex items-center justify-center"
+                        style={{
+                          border: `1.5px solid ${aspectRatio === r ? "#06b6d4" : "#334155"}`,
+                          background: aspectRatio === r ? "#06b6d4" : "transparent",
+                        }}
+                      >
+                        {aspectRatio === r && (
+                          <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5.5L4 7.5L8 3" stroke="#060c18" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                        )}
+                      </span>
+                      <RatioIcon ratio={r} />
+                      {r}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
@@ -534,5 +559,26 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
       <span className="w-0.5 h-3 rounded-sm flex-shrink-0" style={{ background: "linear-gradient(135deg, #8b5cf6, #06b6d4)" }} />
       {children}
     </div>
+  );
+}
+
+/** Small visual rectangle showing the aspect ratio shape */
+function RatioIcon({ ratio }: { ratio: string }) {
+  const [w, h] = ratio.split(":").map(Number);
+  if (!w || !h) return null;
+  const maxSide = 14;
+  const scale = maxSide / Math.max(w, h);
+  const rw = Math.round(w * scale);
+  const rh = Math.round(h * scale);
+  return (
+    <span
+      className="flex-shrink-0 rounded-[2px]"
+      style={{
+        width: rw,
+        height: rh,
+        border: "1.5px solid currentColor",
+        opacity: 0.7,
+      }}
+    />
   );
 }
