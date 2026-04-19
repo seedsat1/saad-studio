@@ -88,12 +88,13 @@ async function createWavespeedTask(
   });
 
   const json = await res.json().catch(() => ({}));
-  if (!res.ok || !json?.id) {
+  const predId = json?.data?.id ?? json?.id;
+  if (!res.ok || !predId) {
     throw new Error(
       `WaveSpeed submit failed (${res.status}): ${json?.message ?? json?.msg ?? JSON.stringify(json)}`,
     );
   }
-  return json.id as string;
+  return predId as string;
 }
 
 /** Poll WaveSpeed prediction until completed/failed/timeout */
@@ -106,47 +107,32 @@ async function pollWavespeedTask(
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     await new Promise((r) => setTimeout(r, intervalMs));
 
-    const res = await fetch(`${WAVESPEED_BASE}/predictions/${predictionId}`, {
+    // WaveSpeed uses /result endpoint for polling
+    const res = await fetch(`${WAVESPEED_BASE}/predictions/${predictionId}/result`, {
       headers: { Authorization: `Bearer ${apiKey}` },
     });
 
     if (!res.ok) continue;
 
     const json = await res.json().catch(() => ({}));
-    const status = String(json?.status ?? "").toLowerCase();
+    const data = json?.data ?? json;
+    const status = String(data?.status ?? "").toLowerCase();
 
     if (status === "completed") {
-      const outputs: string[] = Array.isArray(json?.output?.images)
-        ? json.output.images
-        : Array.isArray(json?.outputs)
-          ? json.outputs
-          : Array.isArray(json?.output)
-            ? json.output
+      const outputs: string[] = Array.isArray(data?.outputs)
+        ? data.outputs
+        : Array.isArray(data?.output?.images)
+          ? data.output.images
+          : Array.isArray(data?.output)
+            ? data.output
             : [];
-      if (outputs.length > 0) return { status: "success", urls: outputs };
-
-      // Fallback: fetch the result endpoint
-      const resultRes = await fetch(`${WAVESPEED_BASE}/predictions/${predictionId}/result`, {
-        headers: { Authorization: `Bearer ${apiKey}` },
-      }).catch(() => null);
-      if (resultRes?.ok) {
-        const resultJson = await resultRes.json().catch(() => ({}));
-        const resultUrls: string[] = Array.isArray(resultJson?.output?.images)
-          ? resultJson.output.images
-          : Array.isArray(resultJson?.outputs)
-            ? resultJson.outputs
-            : Array.isArray(resultJson?.output)
-              ? resultJson.output
-              : [];
-        if (resultUrls.length > 0) return { status: "success", urls: resultUrls };
-      }
-      return { status: "success", urls: [] };
+      return { status: "success", urls: outputs };
     }
 
     if (status === "failed") {
-      return { status: "fail", urls: [], error: json?.error ?? "WaveSpeed task failed" };
+      return { status: "fail", urls: [], error: data?.error ?? "WaveSpeed task failed" };
     }
-    // pending / processing — keep polling
+    // created / pending / processing — keep polling
   }
 
   return { status: "timeout", urls: [] };
