@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
     const RH_API_BASE = "https://www.runninghub.ai/openapi/v2";
     const apiKey = getRunningHubApiKey();
 
-    async function tryNode(nodeId: string): Promise<{ nodeId: string; taskId: string | null; err: string }> {
+    const tryNode = async (nodeId: string): Promise<{ nodeId: string; taskId: string | null; err: string }> => {
       try {
         const res = await fetch(`${RH_API_BASE}${RH_AI_APP_PATH}`, {
           method: "POST",
