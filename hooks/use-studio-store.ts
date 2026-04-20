@@ -145,7 +145,7 @@ export const useStudioStore = create<StudioState>((set, get) => ({
   generateScene: async (idx) => {
     const state = get();
     const scene = state.scenes[idx];
-    if (!scene || !scene.image || !state.workflowId) return;
+    if (!scene || !scene.image) return;
 
     const { updateScene, addLog } = get();
 
@@ -195,18 +195,9 @@ export const useStudioStore = create<StudioState>((set, get) => ({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          workflowId: state.workflowId,
           nodeInfoList: [
-            {
-              nodeId: state.imageNodeId,
-              fieldName: "image",
-              fieldValue: fileName,
-            },
-            {
-              nodeId: state.textNodeId,
-              fieldName: "text",
-              fieldValue: fullPrompt,
-            },
+            { fieldName: "image", fieldValue: fileName },
+            { fieldName: "text",  fieldValue: fullPrompt },
           ],
         }),
       });
