@@ -106,10 +106,10 @@ export async function POST(req: NextRequest) {
     }
 
     // Build node patterns: discovered nodes first, then scan range 5-50
-    const nodeIdsToTry = [...new Set([
-      ...discoveredNodes,
-      ...Array.from({ length: 46 }, (_, i) => String(i + 5)),
-    ])];
+    const allIds = discoveredNodes.concat(
+      Array.from({ length: 46 }, (_, i) => String(i + 5)),
+    );
+    const nodeIdsToTry = allIds.filter((v, i, a) => a.indexOf(v) === i);
 
     let taskId = "";
     const allErrors: string[] = [];
