@@ -75,81 +75,62 @@ export async function POST(req: NextRequest) {
     const rhFileName = await uploadImageToRunningHub(imageDataUrl);
     console.log("[CHARGEN] Upload success, fileName:", rhFileName);
 
-    // Step 1: Try to get workflow node info via API
+    // Discover correct nodeId by scanning in parallel batches
     const RH_API_BASE = "https://www.runninghub.ai/openapi/v2";
     const apiKey = getRunningHubApiKey();
 
-    // Try to discover node info from the AI App
-    let discoveredNodes: string[] = [];
-    const infoEndpoints = [
-      `${RH_API_BASE}/ai-app/info/${RH_AI_APP_PATH.split("/").pop()}`,
-      `${RH_API_BASE}/workflow/output/1997520281289834498`,
-    ];
-    for (const url of infoEndpoints) {
+    async function tryNode(nodeId: string): Promise<{ nodeId: string; taskId: string | null; err: string }> {
       try {
-        const infoRes = await fetch(url, {
+        const res = await fetch(`${RH_API_BASE}${RH_AI_APP_PATH}`, {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-          body: JSON.stringify({}),
+          body: JSON.stringify({
+            addMetadata: true,
+            nodeInfoList: [{ nodeId, fieldName: "image", fieldValue: rhFileName }],
+            instanceType: "default",
+            usePersonalQueue: "false",
+          }),
         });
-        const infoRaw = await infoRes.text();
-        console.log(`[CHARGEN] Info probe ${url}:`, infoRes.status, infoRaw.slice(0, 500));
-        // Try to extract any nodeId references
-        const nodeMatches = infoRaw.match(/"nodeId"\s*:\s*"?(\d+)"?/g);
-        if (nodeMatches) {
-          discoveredNodes = nodeMatches.map(m => m.replace(/[^0-9]/g, ""));
-          console.log("[CHARGEN] Discovered nodes:", discoveredNodes);
-        }
+        const raw = await res.text();
+        const data = JSON.parse(raw) as Record<string, unknown>;
+        const id = (data.taskId as string)
+          ?? ((data.data as Record<string, unknown> | undefined)?.taskId as string | undefined);
+        if (id) return { nodeId, taskId: id, err: "" };
+        const msg = (data.errorMessage as string) ?? "";
+        return { nodeId, taskId: null, err: msg };
       } catch (e) {
-        console.log(`[CHARGEN] Info probe failed:`, e);
+        return { nodeId, taskId: null, err: String(e) };
       }
     }
 
-    // Build node patterns: discovered nodes first, then scan range 5-50
-    const allIds = discoveredNodes.concat(
-      Array.from({ length: 46 }, (_, i) => String(i + 5)),
-    );
-    const nodeIdsToTry = allIds.filter((v, i, a) => a.indexOf(v) === i);
-
     let taskId = "";
-    const allErrors: string[] = [];
+    const nonMismatchErrors: string[] = [];
 
-    // Try batch: send each nodeId with "image" fieldName
-    for (const nodeId of nodeIdsToTry) {
-      const taskBody = {
-        addMetadata: true,
-        nodeInfoList: [{ nodeId, fieldName: "image", fieldValue: rhFileName }],
-        instanceType: "default",
-        usePersonalQueue: "false",
-      };
-      const taskRes = await fetch(`${RH_API_BASE}${RH_AI_APP_PATH}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-        body: JSON.stringify(taskBody),
-      });
-      const taskRaw = await taskRes.text();
+    // Scan nodeIds 1-500 in parallel batches of 25
+    const BATCH_SIZE = 25;
+    const MAX_ID = 500;
+    for (let start = 1; start <= MAX_ID && !taskId; start += BATCH_SIZE) {
+      const batch = Array.from(
+        { length: Math.min(BATCH_SIZE, MAX_ID - start + 1) },
+        (_, i) => String(start + i),
+      );
+      console.log(`[CHARGEN] Scanning nodeIds ${batch[0]}-${batch[batch.length - 1]}...`);
+      const results = await Promise.all(batch.map(tryNode));
 
-      let taskData: Record<string, unknown>;
-      try { taskData = JSON.parse(taskRaw); } catch { continue; }
-
-      const id = (taskData.taskId as string)
-        ?? ((taskData.data as Record<string, unknown> | undefined)?.taskId as string | undefined);
-
-      if (id) {
-        taskId = id;
-        console.log(`[CHARGEN] SUCCESS with nodeId=${nodeId}, taskId:`, taskId);
-        break;
-      }
-
-      const errMsg = (taskData.errorMessage as string) ?? "";
-      // Only log non-MISMATCH errors (reduce noise)
-      if (!errMsg.includes("NODE_INFO_MISMATCH")) {
-        allErrors.push(`nodeId=${nodeId}: ${errMsg}`);
+      for (const r of results) {
+        if (r.taskId) {
+          taskId = r.taskId;
+          console.log(`[CHARGEN] FOUND! nodeId=${r.nodeId}, taskId=${taskId}`);
+          break;
+        }
+        if (r.err && !r.err.includes("NODE_INFO_MISMATCH")) {
+          nonMismatchErrors.push(`node${r.nodeId}: ${r.err}`);
+        }
       }
     }
 
     if (!taskId) {
-      throw new Error(`RunningHub: could not find valid nodeId (tried ${nodeIdsToTry.length} IDs). Non-mismatch errors: ${allErrors.join(" | ") || "none"}`);
+      throw new Error(`RunningHub: no valid nodeId found (scanned 1-${MAX_ID}). Other errors: ${nonMismatchErrors.join(" | ") || "all NODE_INFO_MISMATCH"}`);
     }
     console.log("[CHARGEN] Task created, taskId:", taskId);
 
