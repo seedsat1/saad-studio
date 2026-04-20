@@ -27,7 +27,7 @@ export default function SettingsPanel() {
           ▶
         </span>
         API Settings
-        {(!apiKey || !workflowId) && (
+        {!workflowId && (
           <span className="ml-2 rounded bg-amber-900/50 px-1.5 py-0.5 text-xs text-amber-400">
             Required
           </span>
@@ -35,17 +35,7 @@ export default function SettingsPanel() {
       </button>
 
       {open && (
-        <div className="grid gap-3 pb-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div>
-            <label className="mb-1 block text-xs text-gray-500">API Key</label>
-            <input
-              type="password"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              placeholder="Your RunningHub API key"
-              className="w-full rounded-md border border-gray-700 bg-gray-900 px-3 py-2 text-sm text-white placeholder-gray-600 focus:border-blue-500 focus:outline-none"
-            />
-          </div>
+        <div className="grid gap-3 pb-4 sm:grid-cols-2 lg:grid-cols-3">
           <div>
             <label className="mb-1 block text-xs text-gray-500">
               Workflow ID

@@ -145,7 +145,7 @@ export const useStudioStore = create<StudioState>((set, get) => ({
   generateScene: async (idx) => {
     const state = get();
     const scene = state.scenes[idx];
-    if (!scene || !scene.image || !state.apiKey || !state.workflowId) return;
+    if (!scene || !scene.image || !state.workflowId) return;
 
     const { updateScene, addLog } = get();
 
@@ -162,7 +162,6 @@ export const useStudioStore = create<StudioState>((set, get) => ({
         const blob = await resp.blob();
         uploadForm.append("file", blob, "scene.png");
       }
-      uploadForm.append("apiKey", state.apiKey);
       uploadForm.append("fileType", "image");
 
       const uploadRes = await fetch("/api/scene-studio/upload", {
@@ -196,7 +195,6 @@ export const useStudioStore = create<StudioState>((set, get) => ({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          apiKey: state.apiKey,
           workflowId: state.workflowId,
           nodeInfoList: [
             {

@@ -20,13 +20,13 @@ export default function SceneActions() {
     scene.status === "queued" ||
     scene.status === "running";
 
-  const missingApi = !apiKey || !workflowId;
+  const missingApi = !workflowId;
   const missingImage = !scene.image;
   const canGenerate = !isBusy && !generating;
 
   const handleGenerate = () => {
     if (missingApi) {
-      alert("Please fill in API Key and Workflow ID in API Settings first.");
+      alert("Please open API Settings and enter your Workflow ID first.");
       return;
     }
     if (missingImage) {
@@ -39,7 +39,7 @@ export default function SceneActions() {
   return (
     <div className="flex flex-col gap-2">
       {missingApi && (
-        <p className="text-xs text-amber-400">⚠ Open API Settings and enter your API Key + Workflow ID to generate.</p>
+        <p className="text-xs text-amber-400">⚠ Open API Settings and enter your Workflow ID to generate.</p>
       )}
       {!missingApi && missingImage && (
         <p className="text-xs text-amber-400">⚠ Upload an image to this scene to generate.</p>
