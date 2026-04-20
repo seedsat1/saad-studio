@@ -1,7 +1,7 @@
 export async function POST(req: Request) {
   try {
     const serverApiKey = process.env.RUNNINGHUB_API_KEY;
-    if (!serverApiKey) return Response.json({ code: -1, msg: "RUNNINGHUB_API_KEY not configured" }, { status: 500 });
+    if (!serverApiKey) return Response.json({ code: -1, msg: "Service not configured" }, { status: 500 });
 
     const body = await req.json();
     const payload = { ...body, apiKey: serverApiKey };
@@ -15,7 +15,7 @@ export async function POST(req: Request) {
     return Response.json(data);
   } catch (err) {
     return Response.json(
-      { code: -1, msg: err instanceof Error ? err.message : "Task-status proxy error" },
+      { code: -1, msg: err instanceof Error ? "Status check failed. Please try again." : "Status check failed" },
       { status: 500 }
     );
   }

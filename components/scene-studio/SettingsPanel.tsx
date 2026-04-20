@@ -44,7 +44,7 @@ export default function SettingsPanel() {
               type="text"
               value={workflowId}
               onChange={(e) => setWorkflowId(e.target.value)}
-              placeholder="RunningHub workflow ID"
+              placeholder="Workflow ID"
               className="w-full rounded-md border border-gray-700 bg-gray-900 px-3 py-2 text-sm text-white placeholder-gray-600 focus:border-blue-500 focus:outline-none"
             />
           </div>
@@ -72,19 +72,6 @@ export default function SettingsPanel() {
               className="w-full rounded-md border border-gray-700 bg-gray-900 px-3 py-2 text-sm text-white placeholder-gray-600 focus:border-blue-500 focus:outline-none"
             />
           </div>
-          <p className="col-span-full text-xs text-gray-600">
-            Get your API key from{" "}
-            <a
-              href="https://www.runninghub.ai"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-500 hover:underline"
-            >
-              runninghub.ai
-            </a>
-            . Node IDs must match your workflow&apos;s image and text input
-            nodes.
-          </p>
         </div>
       )}
     </div>
