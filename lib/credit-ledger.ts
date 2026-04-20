@@ -28,6 +28,7 @@ export async function ensureUserRow(userId: string) {
         email,
         name,
         creditBalance: WELCOME_SIGNUP_CREDITS,
+        creditsExpireAt: new Date(Date.now() + THIRTY_DAYS_MS),
         role: "USER",
         isBanned: false,
       },
