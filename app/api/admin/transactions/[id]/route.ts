@@ -53,7 +53,7 @@ export async function PATCH(
 
     const tx = await prismadb.adminTransaction.findUnique({
       where: { id },
-      select: { id: true, userId: true, credits: true, paymentStatus: true },
+      select: { id: true, userId: true, credits: true, paymentStatus: true, plan: true },
     });
 
     if (!tx) {
