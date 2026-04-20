@@ -68,7 +68,8 @@ export async function PATCH(
       const { isTopup, planId, billingInterval } = parsePlanString(tx.plan ?? "");
 
       if (isTopup) {
-        // Topup: just add credits, no expiry
+        // Topup: add credits with 30-day expiry
+        const now = new Date();
         await prismadb.$transaction([
           prismadb.adminTransaction.update({
             where: { id },
@@ -76,7 +77,10 @@ export async function PATCH(
           }),
           prismadb.user.update({
             where: { id: tx.userId },
-            data: { creditBalance: { increment: tx.credits } },
+            data: {
+              creditBalance: { increment: tx.credits },
+              creditsExpireAt: new Date(now.getTime() + THIRTY_DAYS_MS),
+            },
           }),
         ]);
       } else {
