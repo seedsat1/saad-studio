@@ -73,8 +73,9 @@ async function handleCreditExpiry(userId: string): Promise<void> {
     subscription?.stripeCurrentPeriodEnd &&
     subscription.stripeCurrentPeriodEnd.getTime() + 86_400_000 > now.getTime();
 
-  if (isSubscriptionActive && subscription?.planId) {
-    // Active subscriber (monthly or annual) — auto-renew credits every 30 days
+  // Only annual subscribers get auto-renewed every 30 days.
+  // Monthly subscribers must pay again — their credits expire and stay at 0.
+  if (isSubscriptionActive && subscription?.billingInterval === "annual" && subscription?.planId) {
     const plan = SAAD_PLANS.find((p) => p.id === subscription.planId);
     const monthlyCredits = plan?.credits ?? user.monthlyCredits;
 
