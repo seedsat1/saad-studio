@@ -1952,97 +1952,78 @@ function VideoPageInner() {
 
               {/* -- Start / End Frame ---------------------------------------- */}
               <div className="flex flex-col gap-2">
-                {/* Header */}
-                <div className="flex items-center justify-between">
-                  <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#475569" }}>Frames</label>
-                  {startFrame && endFrame && (
-                    <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{
-                      background: startFrame.size !== endFrame.size ? "rgba(16,185,129,0.12)" : "rgba(239,68,68,0.12)",
-                      color:      startFrame.size !== endFrame.size ? "#34d399" : "#f87171",
-                      border:     `1px solid ${startFrame.size !== endFrame.size ? "rgba(16,185,129,0.3)" : "rgba(239,68,68,0.3)"}`,
-                    }}>
-                      {startFrame.size !== endFrame.size ? "✓ 2 different images" : "⚠ Same image in both slots!"}
-                    </span>
-                  )}
-                </div>
+                <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#475569" }}>Frames</label>
 
-                {/* Slots stacked vertically (full width each) for proper image display */}
-                <div className="flex flex-col gap-2">
+                {/* Side-by-side cards */}
+                <div className="grid grid-cols-2 gap-3">
 
-                  {/* ── FIRST frame ── */}
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-[9px] font-bold px-2 py-0.5 rounded-full" style={{ background: "rgba(6,182,212,0.15)", color: "#06b6d4", border: "1px solid rgba(6,182,212,0.3)" }}>▶ FIRST</span>
-                      <span className="text-[10px]" style={{ color: "#64748b" }}>Starts here</span>
-                    </div>
+                  {/* ── Start frame ── */}
+                  <button
+                    onClick={() => openMediaPicker("startFrame")}
+                    onDragOver={allowDrop}
+                    onDragEnter={(event) => markDropZone(event, "startFrame")}
+                    onDragLeave={(event) => clearDropZone(event, "startFrame")}
+                    onDrop={(event) => handleDropSingleImage(event, setStartFrame)}
+                    className="relative flex flex-col items-center justify-center gap-2 rounded-2xl transition-all overflow-hidden aspect-square w-full"
+                    style={{
+                      background: "rgba(255,255,255,0.03)",
+                      border: `1px solid ${startFrame ? hexA(selectedModel.family_color, 0.4) : "rgba(255,255,255,0.08)"}`,
+                    }}
+                  >
+                    <input ref={startFrameRef} type="file" accept="image/*" className="hidden" onChange={e => setStartFrame(e.target.files?.[0] ?? null)} />
+                    <span className="absolute top-2 right-2 text-[9px] px-1.5 py-0.5 rounded-md z-10" style={{ background: "rgba(255,255,255,0.06)", color: "#94a3b8", border: "1px solid rgba(255,255,255,0.08)" }}>Optional</span>
+                    {startFrame ? (
+                      <>
+                        {startFramePreview && <img src={startFramePreview} alt="Start" className="absolute inset-0 w-full h-full object-contain" style={{ padding: 8, background: "#000" }} />}
+                        <button className="absolute top-2 left-2 z-10 rounded-full p-1" style={{ background: "rgba(0,0,0,0.75)" }} onClick={e => { e.stopPropagation(); setStartFrame(null); }}><X size={14} style={{ color: "#fff" }} /></button>
+                      </>
+                    ) : (
+                      <>
+                        <div className="rounded-full p-3" style={{ background: "rgba(255,255,255,0.04)" }}>
+                          <ImageIcon size={20} style={{ color: "#64748b" }} />
+                        </div>
+                        <span className="text-[12px] font-medium" style={{ color: "#94a3b8" }}>Start frame</span>
+                      </>
+                    )}
+                    {activeDropZone === "startFrame" && <span className="absolute inset-0 flex items-center justify-center rounded-2xl bg-cyan-500/15 text-[11px] font-semibold text-cyan-300">Drop here</span>}
+                  </button>
+
+                  {/* ── End frame ── */}
+                  {!kling30MultiEnabled ? (
                     <button
-                      onClick={() => openMediaPicker("startFrame")}
+                      onClick={() => openMediaPicker("endFrame")}
                       onDragOver={allowDrop}
-                      onDragEnter={(event) => markDropZone(event, "startFrame")}
-                      onDragLeave={(event) => clearDropZone(event, "startFrame")}
-                      onDrop={(event) => handleDropSingleImage(event, setStartFrame)}
-                      className="relative flex flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed transition-all overflow-hidden w-full"
-                      style={{ height: 220, borderColor: startFrame ? "#06b6d4" : "rgba(6,182,212,0.25)", background: startFrame ? "#000" : "rgba(255,255,255,0.02)" }}
+                      onDragEnter={(event) => markDropZone(event, "endFrame")}
+                      onDragLeave={(event) => clearDropZone(event, "endFrame")}
+                      onDrop={(event) => handleDropSingleImage(event, setEndFrame)}
+                      className="relative flex flex-col items-center justify-center gap-2 rounded-2xl transition-all overflow-hidden aspect-square w-full"
+                      style={{
+                        background: "rgba(255,255,255,0.03)",
+                        border: `1px solid ${endFrame ? hexA(selectedModel.family_color, 0.4) : "rgba(255,255,255,0.08)"}`,
+                      }}
                     >
-                      <input ref={startFrameRef} type="file" accept="image/*" className="hidden" onChange={e => setStartFrame(e.target.files?.[0] ?? null)} />
-                      {startFrame ? (
+                      <input ref={endFrameRef} type="file" accept="image/*" className="hidden" onChange={e => setEndFrame(e.target.files?.[0] ?? null)} />
+                      <span className="absolute top-2 right-2 text-[9px] px-1.5 py-0.5 rounded-md z-10" style={{ background: "rgba(255,255,255,0.06)", color: "#94a3b8", border: "1px solid rgba(255,255,255,0.08)" }}>Optional</span>
+                      {endFrame ? (
                         <>
-                          {startFramePreview && <img src={startFramePreview} alt="Start" className="absolute inset-0 w-full h-full object-contain" style={{ padding: 8 }} />}
-                          <button className="absolute top-2 right-2 z-10 rounded-full p-1" style={{ background: "rgba(0,0,0,0.75)" }} onClick={e => { e.stopPropagation(); setStartFrame(null); }}><X size={14} style={{ color: "#fff" }} /></button>
+                          {endFramePreview && <img src={endFramePreview} alt="End" className="absolute inset-0 w-full h-full object-contain" style={{ padding: 8, background: "#000" }} />}
+                          <button className="absolute top-2 left-2 z-10 rounded-full p-1" style={{ background: "rgba(0,0,0,0.75)" }} onClick={e => { e.stopPropagation(); setEndFrame(null); }}><X size={14} style={{ color: "#fff" }} /></button>
                         </>
                       ) : (
                         <>
-                          <ImageIcon size={22} style={{ color: "rgba(6,182,212,0.45)" }} />
-                          <span className="text-[11px]" style={{ color: "#64748b" }}>Click or drop first frame</span>
-                          <span className="text-[9px]" style={{ color: "#334155" }}>Where video begins</span>
+                          <div className="rounded-full p-3" style={{ background: "rgba(255,255,255,0.04)" }}>
+                            <ImageIcon size={20} style={{ color: "#64748b" }} />
+                          </div>
+                          <span className="text-[12px] font-medium" style={{ color: "#94a3b8" }}>End frame</span>
                         </>
                       )}
-                      {activeDropZone === "startFrame" && <span className="absolute inset-0 flex items-center justify-center rounded-xl bg-cyan-500/15 text-[11px] font-semibold text-cyan-300">Drop here</span>}
+                      {activeDropZone === "endFrame" && <span className="absolute inset-0 flex items-center justify-center rounded-2xl bg-purple-500/15 text-[11px] font-semibold text-purple-300">Drop here</span>}
                     </button>
-                  </div>
-
-                  {/* Arrow divider */}
-                  <div className="flex items-center justify-center">
-                    <span style={{ color: startFrame && endFrame ? "#06b6d4" : "#334155", fontSize: 18 }}>↓</span>
-                  </div>
-
-                  {/* ── LAST frame ── */}
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-[9px] font-bold px-2 py-0.5 rounded-full" style={{ background: kling30MultiEnabled ? "rgba(255,255,255,0.04)" : "rgba(168,85,247,0.15)", color: kling30MultiEnabled ? "#334155" : "#a855f7", border: `1px solid ${kling30MultiEnabled ? "rgba(255,255,255,0.07)" : "rgba(168,85,247,0.3)"}` }}>■ LAST</span>
-                      <span className="text-[10px]" style={{ color: "#64748b" }}>Ends here</span>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center rounded-2xl aspect-square w-full opacity-25" style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)" }}>
+                      <span className="text-[10px] text-center px-2" style={{ color: "#334155" }}>N/A in multi-shot</span>
                     </div>
-                    {!kling30MultiEnabled ? (
-                      <button
-                        onClick={() => openMediaPicker("endFrame")}
-                        onDragOver={allowDrop}
-                        onDragEnter={(event) => markDropZone(event, "endFrame")}
-                        onDragLeave={(event) => clearDropZone(event, "endFrame")}
-                        onDrop={(event) => handleDropSingleImage(event, setEndFrame)}
-                        className="relative flex flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed transition-all overflow-hidden w-full"
-                        style={{ height: 220, borderColor: endFrame ? "#a855f7" : "rgba(168,85,247,0.25)", background: endFrame ? "#000" : "rgba(255,255,255,0.02)" }}
-                      >
-                        <input ref={endFrameRef} type="file" accept="image/*" className="hidden" onChange={e => setEndFrame(e.target.files?.[0] ?? null)} />
-                        {endFrame ? (
-                          <>
-                            {endFramePreview && <img src={endFramePreview} alt="End" className="absolute inset-0 w-full h-full object-contain" style={{ padding: 8 }} />}
-                            <button className="absolute top-2 right-2 z-10 rounded-full p-1" style={{ background: "rgba(0,0,0,0.75)" }} onClick={e => { e.stopPropagation(); setEndFrame(null); }}><X size={14} style={{ color: "#fff" }} /></button>
-                          </>
-                        ) : (
-                          <>
-                            <ImageIcon size={22} style={{ color: "rgba(168,85,247,0.45)" }} />
-                            <span className="text-[11px]" style={{ color: "#64748b" }}>Click or drop last frame</span>
-                            <span className="text-[9px]" style={{ color: "#334155" }}>Where video ends (optional)</span>
-                          </>
-                        )}
-                        {activeDropZone === "endFrame" && <span className="absolute inset-0 flex items-center justify-center rounded-xl bg-purple-500/15 text-[11px] font-semibold text-purple-300">Drop here</span>}
-                      </button>
-                    ) : (
-                      <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed w-full opacity-25" style={{ height: 220, borderColor: "rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.01)" }}>
-                        <span className="text-[10px] text-center px-2" style={{ color: "#334155" }}>N/A in multi-shot mode</span>
-                      </div>
-                    )}
-                  </div>
+                  )}
                 </div>
 
                 {/* Duplicate warning */}
