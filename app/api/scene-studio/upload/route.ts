@@ -5,21 +5,20 @@ export async function POST(req: Request) {
 
     const incomingForm = await req.formData();
     const outForm = new FormData();
-    // copy all fields except apiKey from client
     for (const [key, value] of incomingForm.entries()) {
       if (key !== "apiKey") outForm.append(key, value);
     }
-    outForm.append("apiKey", serverApiKey);
 
-    const res = await fetch("https://www.runninghub.ai/task/openapi/upload", {
+    const res = await fetch("https://www.runninghub.ai/openapi/v2/media/upload/binary", {
       method: "POST",
+      headers: { Authorization: `Bearer ${serverApiKey}` },
       body: outForm,
     });
     const data = await res.json();
     return Response.json(data);
   } catch (err) {
     return Response.json(
-      { code: -1, msg: err instanceof Error ? "Upload failed. Please try again." : "Upload failed" },
+      { code: -1, msg: "Upload failed. Please try again." },
       { status: 500 }
     );
   }

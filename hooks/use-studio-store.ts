@@ -171,7 +171,7 @@ export const useStudioStore = create<StudioState>((set, get) => ({
       const uploadData = await uploadRes.json();
 
       if (uploadData.code !== 0 || !uploadData.data?.fileName) {
-        throw new Error(uploadData.msg ?? "Upload failed");
+        throw new Error(uploadData.msg ?? uploadData.message ?? "Upload failed");
       }
 
       const fileName = uploadData.data.fileName;
@@ -203,11 +203,11 @@ export const useStudioStore = create<StudioState>((set, get) => ({
       });
       const createData = await createRes.json();
 
-      if (createData.code !== 0 || !createData.data?.taskId) {
-        throw new Error(createData.msg ?? "Task creation failed");
+      // v2 API returns taskId at top level
+      if (!createData.taskId) {
+        throw new Error(createData.msg ?? createData.message ?? "Task creation failed");
       }
-
-      const taskId = createData.data.taskId;
+      const taskId = createData.taskId;
       updateScene(idx, { taskId });
       addLog(`Task created: ${taskId}`, "success");
 
@@ -223,12 +223,12 @@ export const useStudioStore = create<StudioState>((set, get) => ({
         const pollRes = await fetch("/api/scene-studio/task-status", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ apiKey: state.apiKey, taskId }),
+          body: JSON.stringify({ taskId }),
         });
         const pollData = await pollRes.json();
 
-        const taskStatus: string =
-          pollData.data?.taskStatus ?? pollData.data?.status ?? "";
+        // v2 API: status at top level
+        const taskStatus: string = pollData.status ?? "";
 
         if (taskStatus === "QUEUED") {
           updateScene(idx, { status: "queued" });
@@ -243,19 +243,14 @@ export const useStudioStore = create<StudioState>((set, get) => ({
           );
         }
 
-        if (
-          taskStatus === "SUCCEED" ||
-          taskStatus === "SUCCEDD" ||
-          taskStatus === "SUCCESS"
-        ) {
-          const fileUrl =
-            pollData.data?.fileUrl ?? pollData.data?.outputUrl ?? null;
-          const fileType =
-            pollData.data?.fileType ?? (fileUrl?.includes(".mp4") ? "video" : "image");
+        if (taskStatus === "SUCCESS") {
+          const result = pollData.results?.[0];
+          const fileUrl = result?.url ?? null;
+          const outputType = result?.outputType === "mp4" ? "video" : "image";
           updateScene(idx, {
             status: "success",
             outputUrl: fileUrl,
-            outputType: fileType === "video" ? "video" : "image",
+            outputType,
           });
           addLog(`Scene ${idx + 1} completed!`, "success");
           return;
@@ -263,7 +258,7 @@ export const useStudioStore = create<StudioState>((set, get) => ({
 
         if (taskStatus === "FAILED") {
           throw new Error(
-            pollData.data?.errorMessage ?? "Task failed on server"
+            pollData.errorMessage ?? "Generation failed"
           );
         }
       }

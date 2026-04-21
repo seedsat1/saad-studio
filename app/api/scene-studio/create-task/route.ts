@@ -7,15 +7,32 @@ export async function POST(req: Request) {
     if (!serverApiKey || !serverWorkflowId) return Response.json({ code: -1, msg: "Service not configured" }, { status: 500 });
 
     const body = await req.json();
-    // use server-side config — ignore any client-supplied ids
     const payload = {
-      apiKey: serverApiKey,
-      workflowId: serverWorkflowId,
-      nodeInfoList: (body.nodeInfoList ?? []).map((n: { nodeId: string; fieldName: string; fieldValue: string }) => ({
-        ...n,
+      instanceType: "default",
+      nodeInfoList: (body.nodeInfoList ?? []).map((n: { fieldName: string; fieldValue: string }) => ({
         nodeId: n.fieldName === "image" ? serverImageNodeId : serverTextNodeId,
+        fieldName: n.fieldName,
+        fieldValue: n.fieldValue,
       })),
     };
+
+    const res = await fetch(`https://www.runninghub.ai/openapi/v2/run/workflow/${serverWorkflowId}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${serverApiKey}`,
+      },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    return Response.json(data);
+  } catch (err) {
+    return Response.json(
+      { code: -1, msg: "Generation failed. Please try again." },
+      { status: 500 }
+    );
+  }
+}
 
     const res = await fetch("https://www.runninghub.ai/task/openapi/create", {
       method: "POST",
