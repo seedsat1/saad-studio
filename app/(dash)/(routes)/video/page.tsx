@@ -1972,8 +1972,8 @@ function VideoPageInner() {
                       <input ref={startFrameRef} type="file" accept="image/*" className="hidden" onChange={e => setStartFrame(e.target.files?.[0] ?? null)} />
                       {startFrame ? (
                         <>
-                          {startFramePreview && <img src={startFramePreview} alt="Start" className="absolute inset-0 w-full h-full object-contain" style={{ padding: 4 }} />}
-                          <span className="absolute top-1 left-1 text-[7px] font-bold px-1 rounded z-10" style={{ background: "rgba(6,182,212,0.9)", color: "#fff" }}>FIRST</span>
+                          {startFramePreview && <img src={startFramePreview} alt="Start" className="absolute inset-0 w-full h-full object-contain" style={{ padding: 4 }} />
+                          }
                           <button className="absolute top-1 right-1 z-10 rounded-full p-0.5" style={{ background: "rgba(0,0,0,0.65)" }} onClick={e => { e.stopPropagation(); setStartFrame(null); }}><X size={8} style={{ color: "#fff" }} /></button>
                         </>
                       ) : (
@@ -2011,8 +2011,8 @@ function VideoPageInner() {
                         <input ref={endFrameRef} type="file" accept="image/*" className="hidden" onChange={e => setEndFrame(e.target.files?.[0] ?? null)} />
                         {endFrame ? (
                           <>
-                            {endFramePreview && <img src={endFramePreview} alt="End" className="absolute inset-0 w-full h-full object-contain" style={{ padding: 4 }} />}
-                            <span className="absolute top-1 left-1 text-[7px] font-bold px-1 rounded z-10" style={{ background: "rgba(168,85,247,0.9)", color: "#fff" }}>LAST</span>
+                            {endFramePreview && <img src={endFramePreview} alt="End" className="absolute inset-0 w-full h-full object-contain" style={{ padding: 4 }} />
+                            }
                             <button className="absolute top-1 right-1 z-10 rounded-full p-0.5" style={{ background: "rgba(0,0,0,0.65)" }} onClick={e => { e.stopPropagation(); setEndFrame(null); }}><X size={8} style={{ color: "#fff" }} /></button>
                           </>
                         ) : (
