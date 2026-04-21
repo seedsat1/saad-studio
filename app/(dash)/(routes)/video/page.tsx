@@ -874,7 +874,6 @@ function VideoPageInner() {
     negPrompt, cfgScale, sound, shotType, multiPrompts, elementList,
     sceneControl, orientation, startPolling,
     klingEls, kling30MultiEnabled, kling30MultiMode, kling30CustomShots,
-    kling30CustomDurationValid, kling30CustomTotalDuration,
   ]);
 
   const [mobileSettingsOpen, setMobileSettingsOpen] = useState(false);
