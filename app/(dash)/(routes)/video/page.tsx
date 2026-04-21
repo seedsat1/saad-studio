@@ -2294,29 +2294,42 @@ function VideoPageInner() {
                     Elements let you reference consistent characters or objects using <span style={{ color: "#64748b" }}>@element_name</span> in your prompt.
                   </p>
                 )}
-                {klingEls.map((el, elIdx) => (
+                {klingEls.map((el, elIdx) => {
+                  const trimmedName = el.name.trim();
+                  const trimmedDesc = el.description.trim();
+                  const validImages = el.files.filter(Boolean).length;
+                  const isInPrompt = trimmedName ? new RegExp(`@${trimmedName}\\b`, "i").test(prompt) : false;
+                  const isComplete = trimmedName && trimmedDesc && validImages >= 2 && isInPrompt;
+                  return (
                   <div
                     key={elIdx}
                     className="flex flex-col gap-2 rounded-xl p-3"
-                    style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${hexA(selectedModel.family_color, 0.2)}` }}
+                    style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${isComplete ? "rgba(16,185,129,0.4)" : hexA(selectedModel.family_color, 0.2)}` }}
                   >
                     <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-medium" style={{ color: selectedModel.family_color }}>Element {elIdx + 1}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] font-medium" style={{ color: selectedModel.family_color }}>Element {elIdx + 1}</span>
+                        {isComplete ? (
+                          <span className="text-[8px] px-1.5 py-0.5 rounded-full" style={{ background: "rgba(16,185,129,0.15)", color: "#34d399", border: "1px solid rgba(16,185,129,0.3)" }}>✓ Ready</span>
+                        ) : (
+                          <span className="text-[8px] px-1.5 py-0.5 rounded-full" style={{ background: "rgba(239,68,68,0.12)", color: "#f87171", border: "1px solid rgba(239,68,68,0.3)" }}>⚠ Incomplete</span>
+                        )}
+                      </div>
                       <button onClick={() => setKlingEls(prev => prev.filter((_, i) => i !== elIdx))}><X size={11} style={{ color: "#475569" }} /></button>
                     </div>
                     <input
                       value={el.name}
-                      onChange={e => setKlingEls(prev => prev.map((v, i) => i === elIdx ? { ...v, name: e.target.value } : v))}
-                      placeholder="Name (used as @name in prompt)"
+                      onChange={e => setKlingEls(prev => prev.map((v, i) => i === elIdx ? { ...v, name: e.target.value.replace(/[^a-zA-Z0-9_]/g, "") } : v))}
+                      placeholder="Name (letters/digits only — used as @name)"
                       className="w-full bg-transparent rounded-lg px-3 py-2 text-[12px] outline-none"
-                      style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", color: "#94a3b8" }}
+                      style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${trimmedName ? "rgba(16,185,129,0.3)" : "rgba(239,68,68,0.25)"}`, color: "#94a3b8" }}
                     />
                     <input
                       value={el.description}
                       onChange={e => setKlingEls(prev => prev.map((v, i) => i === elIdx ? { ...v, description: e.target.value } : v))}
                       placeholder="Brief description of this element"
                       className="w-full bg-transparent rounded-lg px-3 py-2 text-[12px] outline-none"
-                      style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", color: "#94a3b8" }}
+                      style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${trimmedDesc ? "rgba(16,185,129,0.3)" : "rgba(239,68,68,0.25)"}`, color: "#94a3b8" }}
                     />
                     {/* Image slots (2 required + 2 optional) */}
                     <div className="grid grid-cols-4 gap-1">
@@ -2377,20 +2390,30 @@ function VideoPageInner() {
                     {el.files.filter(Boolean).length < 2 && (
                       <span className="text-[10px]" style={{ color: "#ef4444" }}>⚠ Upload at least 2 images for this element.</span>
                     )}
-                    {el.name.trim() && (
-                      <div className="flex items-center gap-1 flex-wrap">
-                        <span className="text-[9px]" style={{ color: "#475569" }}>Use in prompt:</span>
-                        <button
-                          onClick={() => setPrompt(prev => prev.trimEnd() + (prev ? " " : "") + `@${el.name.trim()}`)}
-                          className="text-[10px] px-1.5 py-0.5 rounded"
-                          style={{ background: hexA(selectedModel.family_color, 0.12), color: selectedModel.family_color, border: `1px solid ${hexA(selectedModel.family_color, 0.25)}` }}
-                        >
-                          @{el.name.trim()}
-                        </button>
+                    {trimmedName && (
+                      <div className="flex items-center gap-1.5 flex-wrap rounded-lg px-2 py-1.5" style={{
+                        background: isInPrompt ? "rgba(16,185,129,0.06)" : "rgba(239,68,68,0.06)",
+                        border: `1px solid ${isInPrompt ? "rgba(16,185,129,0.2)" : "rgba(239,68,68,0.2)"}`,
+                      }}>
+                        {isInPrompt ? (
+                          <span className="text-[9px] font-semibold" style={{ color: "#34d399" }}>✓ @{trimmedName} is in prompt</span>
+                        ) : (
+                          <>
+                            <span className="text-[9px]" style={{ color: "#f87171" }}>⚠ Add to prompt:</span>
+                            <button
+                              onClick={() => setPrompt(prev => prev.trimEnd() + (prev ? " " : "") + `@${trimmedName}`)}
+                              className="text-[10px] px-1.5 py-0.5 rounded font-bold"
+                              style={{ background: hexA(selectedModel.family_color, 0.18), color: selectedModel.family_color, border: `1px solid ${hexA(selectedModel.family_color, 0.4)}` }}
+                            >
+                              + Insert @{trimmedName}
+                            </button>
+                          </>
+                        )}
                       </div>
                     )}
                   </div>
-                ))}
+                  );
+                })}
               </div>
 
               {/* -- Sound ---------------------------------------------------- */}
