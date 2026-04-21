@@ -46,27 +46,49 @@ export async function POST(req: NextRequest) {
     if (!body) return new NextResponse("Invalid JSON", { status: 400 });
 
     const data = (body?.data ?? body) as Record<string, unknown>;
-    const taskId = String(data?.taskId ?? data?.task_id ?? "");
-    if (!taskId) return new NextResponse("Missing taskId", { status: 400 });
+    const rawTaskId = String(data?.taskId ?? data?.task_id ?? "");
+    if (!rawTaskId) return new NextResponse("Missing taskId", { status: 400 });
 
-    const statusRaw = String(data?.taskStatus ?? data?.status ?? data?.state ?? "");
-    const status = normalizeTaskState(statusRaw);
+    // Veo 3.1 callback uses `code` (200=success, 501=failed) instead of textual status,
+    // and ships URLs under `data.info.resultUrls` (string-encoded array). The shared logic
+    // below also handles `data.response.resultUrls` for the regular createTask flow.
+    const callbackCode = typeof body?.code === "number" ? body.code
+      : typeof data?.code === "number" ? data.code : null;
+    const isVeoCallback = !!data?.info && callbackCode != null;
+
+    let status: "processing" | "completed" | "failed";
+    if (isVeoCallback) {
+      status = callbackCode === 200 ? "completed" : "failed";
+    } else {
+      const statusRaw = String(data?.taskStatus ?? data?.status ?? data?.state ?? "");
+      status = normalizeTaskState(statusRaw);
+    }
 
     const outputs = (() => {
-      for (const field of [data?.response, data?.resultJson, data?.outputs, data?.result, data?.output, data?.works]) {
+      const candidates: unknown[] = [data?.response, data?.info, data?.resultJson, data?.outputs, data?.result, data?.output, data?.works];
+      for (const field of candidates) {
         const found = extractOutputs(field);
         if (found.length) return found;
       }
       return [] as string[];
     })();
-    const errorMsg = typeof data?.errorMessage === "string" ? data.errorMessage : null;
+    const errorMsg = typeof data?.errorMessage === "string" ? data.errorMessage
+      : typeof body?.msg === "string" && status === "failed" ? body.msg : null;
 
-    // Find the generation row tied to this task
+    // Find the generation row tied to this task — try both raw and veo-prefixed forms,
+    // since Veo POST stores `task:veo:<id>` but the callback ships only the raw id.
     const generation = await prismadb.generation.findFirst({
-      where: { mediaUrl: `task:${taskId}` },
-      select: { id: true, userId: true, cost: true },
+      where: {
+        OR: [
+          { mediaUrl: `task:${rawTaskId}` },
+          { mediaUrl: `task:veo:${rawTaskId}` },
+        ],
+      },
+      select: { id: true, userId: true, cost: true, mediaUrl: true },
       orderBy: { createdAt: "desc" },
     });
+
+    const taskId = rawTaskId;
 
     if (!generation) {
       // Unknown task — still return 200 so KIE doesn't keep retrying

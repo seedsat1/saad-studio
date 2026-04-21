@@ -903,7 +903,9 @@ export async function POST(req: Request) {
     }
 
     const createData = createJson?.data as Record<string, unknown> | undefined;
-    const taskId = createData?.taskId || createJson?.taskId;
+    const rawTaskId = createData?.taskId || createJson?.taskId;
+    // Prefix Veo tasks so the GET poller routes to /veo/record-info instead of /jobs/recordInfo
+    const taskId = rawTaskId && isVeoModel ? `veo:${String(rawTaskId)}` : rawTaskId;
 
     if (!createRes.ok || !taskId) {
       console.error("[api/video POST] KIE createTask failed", createRes.status, JSON.stringify(createJson).slice(0, 500));
@@ -1002,6 +1004,63 @@ export async function GET(req: Request) {
       } catch { /* best-effort */ }
 
       return NextResponse.json({ taskId, status: wsStatus, outputs: wsOutputs, error: wsError });
+    }
+
+    // ── Veo 3.1 polling (dedicated endpoint /api/v1/veo/record-info) ─────────
+    // Confirmed: https://docs.kie.ai/veo3-api/get-veo-3-video-details
+    // successFlag: 0=generating, 1=success, 2=failed, 3=generation_failed
+    if (taskId.startsWith("veo:")) {
+      const veoTaskId = taskId.slice(4);
+      const veoRes = await fetch(`${KIE_BASE}/veo/record-info?taskId=${encodeURIComponent(veoTaskId)}`, {
+        method: "GET",
+        headers: kieHeaders(),
+        cache: "no-store",
+      });
+      let veoJson: Record<string, unknown> | null = null;
+      try { veoJson = await veoRes.json(); } catch { /* ignore */ }
+      if (veoRes.status === 404) {
+        return NextResponse.json({ taskId, status: "failed", outputs: [], error: "Task not found" });
+      }
+      const veoCodeOk = veoJson?.code == null || veoJson.code === 200 || veoJson.code === 0;
+      if (!veoRes.ok || !veoCodeOk) {
+        return NextResponse.json({ taskId, status: "processing", outputs: [], error: null });
+      }
+      const veoData = (veoJson?.data ?? {}) as Record<string, unknown>;
+      const successFlag = veoData.successFlag;
+      let veoStatus: "processing" | "completed" | "failed" = "processing";
+      if (successFlag === 1) veoStatus = "completed";
+      else if (successFlag === 2 || successFlag === 3) veoStatus = "failed";
+      const veoResponse = (veoData.response ?? {}) as Record<string, unknown>;
+      const fullUrls = Array.isArray(veoResponse.fullResultUrls)
+        ? (veoResponse.fullResultUrls as unknown[]).filter((v): v is string => typeof v === "string")
+        : [];
+      const resultUrls = Array.isArray(veoResponse.resultUrls)
+        ? (veoResponse.resultUrls as unknown[]).filter((v): v is string => typeof v === "string")
+        : [];
+      // Prefer fullResultUrls when present (post-extension), fall back to resultUrls
+      const veoOutputs = fullUrls.length > 0 ? fullUrls : resultUrls;
+      const veoError = typeof veoData.errorMessage === "string" && veoData.errorMessage
+        ? veoData.errorMessage
+        : null;
+
+      // DB sync (best-effort) — note generation row stores prefixed taskId via setGenerationTaskMarker
+      try {
+        const linkedGeneration = await prismadb.generation.findFirst({
+          where: { userId, mediaUrl: { startsWith: `task:${taskId}` } },
+          select: { id: true, cost: true, mediaUrl: true },
+          orderBy: { createdAt: "desc" },
+        });
+        if (linkedGeneration) {
+          if (veoStatus === "completed" && veoOutputs.length > 0 && linkedGeneration.mediaUrl?.startsWith("task:")) {
+            await setGenerationMediaUrl(linkedGeneration.id, veoOutputs[0]);
+          }
+          if (veoStatus === "failed" && linkedGeneration.cost > 0) {
+            await rollbackGenerationCharge(linkedGeneration.id, userId, linkedGeneration.cost);
+          }
+        }
+      } catch { /* best-effort */ }
+
+      return NextResponse.json({ taskId, status: veoStatus, outputs: veoOutputs, error: veoError });
     }
 
     // ── KIE polling ──────────────────────────────────────────────────────────
