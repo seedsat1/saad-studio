@@ -112,6 +112,55 @@ export interface RunningHubQueryResult {
   errorMessage?: string;
 }
 
+export interface WorkflowNodeInfo {
+  nodeId: string;
+  /** inputs accepted by this node: fieldName → fieldType */
+  inputs: Record<string, string>;
+}
+
+/**
+ * Fetch the node list for a RunningHub AI-App workflow.
+ * Returns an empty array when the endpoint is unavailable.
+ */
+export async function discoverWorkflowNodes(appId: string): Promise<WorkflowNodeInfo[]> {
+  const apiKey = getRunningHubApiKey();
+  // RunningHub exposes workflow info via /openapi/v2/workflow/nodeInfo
+  // (confirmed reachable — returns TOKEN_INVALID without auth)
+  const candidates = [
+    { method: "POST", url: `${RUNNINGHUB_API_BASE}/workflow/nodeInfo`, body: JSON.stringify({ appId }) },
+    { method: "GET",  url: `${RUNNINGHUB_API_BASE}/workflow/info?appId=${appId}`, body: undefined },
+    { method: "POST", url: `${RUNNINGHUB_API_BASE}/workflow/info`, body: JSON.stringify({ appId }) },
+  ];
+
+  for (const { method, url, body } of candidates) {
+    try {
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+        body,
+      });
+      if (!res.ok) continue;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data = (await res.json()) as Record<string, any>;
+      if (data.code !== 0) continue;
+
+      // Possible shapes: data.data.nodes | data.data.nodeList | data.nodes
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const nodes: any[] = data.data?.nodes ?? data.data?.nodeList ?? data.nodes ?? [];
+      if (!Array.isArray(nodes) || nodes.length === 0) continue;
+
+      console.log(`[RUNNINGHUB_DISCOVER] Found ${nodes.length} nodes via ${url}`);
+      return nodes.map((n: Record<string, unknown>) => ({
+        nodeId: String(n.nodeId ?? n.id ?? ""),
+        inputs: (n.inputs as Record<string, string>) ?? {},
+      })).filter((n) => n.nodeId);
+    } catch {
+      // try next candidate
+    }
+  }
+  return [];
+}
+
 /** Query the status of a RunningHub task. */
 export async function queryRunningHubTask(taskId: string): Promise<RunningHubQueryResult> {
   const res = await fetch(`${RUNNINGHUB_API_BASE}/query`, {

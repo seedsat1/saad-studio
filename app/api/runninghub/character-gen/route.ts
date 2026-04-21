@@ -12,6 +12,7 @@ import {
   uploadImageToRunningHub,
   createRunningHubTask,
   queryRunningHubTask,
+  discoverWorkflowNodes,
   getRunningHubApiKey,
 } from "@/lib/runninghub";
 
@@ -75,63 +76,92 @@ export async function POST(req: NextRequest) {
     const rhFileName = await uploadImageToRunningHub(imageDataUrl);
     console.log("[CHARGEN] Upload success, fileName:", rhFileName);
 
-    // Discover correct nodeId by scanning in parallel batches
-    const RH_API_BASE = "https://www.runninghub.ai/openapi/v2";
-    const apiKey = getRunningHubApiKey();
+    // Common fieldNames used by ComfyUI Load-Image nodes in RunningHub
+    const CANDIDATE_FIELD_NAMES = ["image", "upload_image", "input_image", "images", "img", "file", "input"];
 
-    const tryNode = async (nodeId: string): Promise<{ nodeId: string; taskId: string | null; err: string }> => {
-      try {
-        const res = await fetch(`${RH_API_BASE}${RH_AI_APP_PATH}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-          body: JSON.stringify({
-            addMetadata: true,
-            nodeInfoList: [{ nodeId, fieldName: "image", fieldValue: rhFileName }],
-            instanceType: "default",
-            usePersonalQueue: "false",
-          }),
-        });
-        const raw = await res.text();
-        const data = JSON.parse(raw) as Record<string, unknown>;
-        const id = (data.taskId as string)
-          ?? ((data.data as Record<string, unknown> | undefined)?.taskId as string | undefined);
-        if (id) return { nodeId, taskId: id, err: "" };
-        const msg = (data.errorMessage as string) ?? "";
-        return { nodeId, taskId: null, err: msg };
-      } catch (e) {
-        return { nodeId, taskId: null, err: String(e) };
-      }
-    }
-
+    // ── Step 1: Try the workflow-info API to discover nodes ──────────────────
+    const APP_ID = "1997520281289834498";
     let taskId = "";
-    const nonMismatchErrors: string[] = [];
 
-    // Scan nodeIds 1-500 in parallel batches of 25
-    const BATCH_SIZE = 25;
-    const MAX_ID = 500;
-    for (let start = 1; start <= MAX_ID && !taskId; start += BATCH_SIZE) {
-      const batch = Array.from(
-        { length: Math.min(BATCH_SIZE, MAX_ID - start + 1) },
-        (_, i) => String(start + i),
-      );
-      console.log(`[CHARGEN] Scanning nodeIds ${batch[0]}-${batch[batch.length - 1]}...`);
-      const results = await Promise.all(batch.map(tryNode));
-
-      for (const r of results) {
-        if (r.taskId) {
-          taskId = r.taskId;
-          console.log(`[CHARGEN] FOUND! nodeId=${r.nodeId}, taskId=${taskId}`);
-          break;
-        }
-        if (r.err && !r.err.includes("NODE_INFO_MISMATCH")) {
-          nonMismatchErrors.push(`node${r.nodeId}: ${r.err}`);
-        }
+    const knownNodes = await discoverWorkflowNodes(APP_ID);
+    if (knownNodes.length > 0) {
+      console.log(`[CHARGEN] Discovered ${knownNodes.length} nodes from workflow info API`);
+      for (const node of knownNodes) {
+        if (taskId) break;
+        // find a fieldName this node accepts that matches our candidate list
+        const fieldName = CANDIDATE_FIELD_NAMES.find(
+          (f) => f in node.inputs || Object.keys(node.inputs).length === 0,
+        ) ?? CANDIDATE_FIELD_NAMES[0];
+        try {
+          taskId = await createRunningHubTask(RH_AI_APP_PATH, [{ nodeId: node.nodeId, fieldName, fieldValue: rhFileName }]);
+          console.log(`[CHARGEN] FOUND via node-info! nodeId=${node.nodeId}, fieldName=${fieldName}, taskId=${taskId}`);
+        } catch { /* try next */ }
       }
     }
 
+    // ── Step 2: Brute-force scan with all candidate fieldNames ───────────────
     if (!taskId) {
-      throw new Error(`RunningHub: no valid nodeId found (scanned 1-${MAX_ID}). Other errors: ${nonMismatchErrors.join(" | ") || "all NODE_INFO_MISMATCH"}`);
+      console.log("[CHARGEN] Node-info discovery failed or returned no results — starting scan...");
+      const RH_API_BASE = "https://www.runninghub.ai/openapi/v2";
+      const apiKey = getRunningHubApiKey();
+
+      const tryNodeAndField = async (nodeId: string, fieldName: string): Promise<{ nodeId: string; fieldName: string; taskId: string | null; err: string }> => {
+        try {
+          const res = await fetch(`${RH_API_BASE}${RH_AI_APP_PATH}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+            body: JSON.stringify({
+              addMetadata: true,
+              nodeInfoList: [{ nodeId, fieldName, fieldValue: rhFileName }],
+              instanceType: "default",
+              usePersonalQueue: "false",
+            }),
+          });
+          const raw = await res.text();
+          const data = JSON.parse(raw) as Record<string, unknown>;
+          const id = (data.taskId as string)
+            ?? ((data.data as Record<string, unknown> | undefined)?.taskId as string | undefined);
+          if (id) return { nodeId, fieldName, taskId: id, err: "" };
+          const msg = (data.errorMessage as string) ?? (data.msg as string) ?? "";
+          return { nodeId, fieldName, taskId: null, err: msg };
+        } catch (e) {
+          return { nodeId, fieldName, taskId: null, err: String(e) };
+        }
+      };
+
+      const nonMismatchErrors: string[] = [];
+      const BATCH_SIZE = 20;
+      const MAX_ID = 2000;   // expanded from 500 — ComfyUI node IDs can be arbitrary
+
+      outerLoop:
+      for (let start = 1; start <= MAX_ID && !taskId; start += BATCH_SIZE) {
+        const nodeIds = Array.from(
+          { length: Math.min(BATCH_SIZE, MAX_ID - start + 1) },
+          (_, i) => String(start + i),
+        );
+        console.log(`[CHARGEN] Scanning nodeIds ${nodeIds[0]}-${nodeIds[nodeIds.length - 1]} × ${CANDIDATE_FIELD_NAMES.length} fields...`);
+
+        // Try all fieldNames for this batch in parallel
+        const probes = nodeIds.flatMap((nid) => CANDIDATE_FIELD_NAMES.map((fn) => tryNodeAndField(nid, fn)));
+        const results = await Promise.all(probes);
+
+        for (const r of results) {
+          if (r.taskId) {
+            taskId = r.taskId;
+            console.log(`[CHARGEN] FOUND! nodeId=${r.nodeId}, fieldName=${r.fieldName}, taskId=${taskId}`);
+            break outerLoop;
+          }
+          if (r.err && !r.err.includes("NODE_INFO_MISMATCH") && !r.err.includes("PARAM_ERROR")) {
+            nonMismatchErrors.push(`node${r.nodeId}/${r.fieldName}: ${r.err}`);
+          }
+        }
+      }
+
+      if (!taskId) {
+        throw new Error(`RunningHub: no valid nodeId found (scanned 1-${MAX_ID}). Other errors: ${nonMismatchErrors.join(" | ") || "all NODE_INFO_MISMATCH"}`);
+      }
     }
+
     console.log("[CHARGEN] Task created, taskId:", taskId);
 
     // Poll for result
