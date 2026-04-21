@@ -1974,7 +1974,6 @@ function VideoPageInner() {
                         <>
                           {startFramePreview && <img src={startFramePreview} alt="Start" className="absolute inset-0 w-full h-full object-cover" />}
                           <span className="absolute top-1 left-1 text-[7px] font-bold px-1 rounded z-10" style={{ background: "rgba(6,182,212,0.9)", color: "#fff" }}>FIRST</span>
-                          <span className="absolute bottom-1 left-1 right-1 truncate rounded bg-black/70 px-1 py-0.5 text-[8px] text-cyan-200 z-10">{startFrame.name.slice(0,20)}</span>
                           <button className="absolute top-1 right-1 z-10 rounded-full p-0.5" style={{ background: "rgba(0,0,0,0.65)" }} onClick={e => { e.stopPropagation(); setStartFrame(null); }}><X size={8} style={{ color: "#fff" }} /></button>
                         </>
                       ) : (
@@ -2014,7 +2013,6 @@ function VideoPageInner() {
                           <>
                             {endFramePreview && <img src={endFramePreview} alt="End" className="absolute inset-0 w-full h-full object-cover" />}
                             <span className="absolute top-1 left-1 text-[7px] font-bold px-1 rounded z-10" style={{ background: "rgba(168,85,247,0.9)", color: "#fff" }}>LAST</span>
-                            <span className="absolute bottom-1 left-1 right-1 truncate rounded bg-black/70 px-1 py-0.5 text-[8px] text-purple-200 z-10">{endFrame.name.slice(0,20)}</span>
                             <button className="absolute top-1 right-1 z-10 rounded-full p-0.5" style={{ background: "rgba(0,0,0,0.65)" }} onClick={e => { e.stopPropagation(); setEndFrame(null); }}><X size={8} style={{ color: "#fff" }} /></button>
                           </>
                         ) : (
@@ -2034,17 +2032,10 @@ function VideoPageInner() {
                   </div>
                 </div>
 
-                {/* Flow summary bar */}
-                {(startFrame || endFrame) && (
-                  <div className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 flex-wrap" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.05)" }}>
-                    <span className="text-[9px] font-semibold" style={{ color: "#06b6d4" }}>▶ {startFrame ? startFrame.name.slice(0,22) : "none"}</span>
-                    <span className="text-[9px]" style={{ color: "#334155" }}>→</span>
-                    <span className="text-[9px] font-semibold" style={{ color: "#a855f7" }}>
-                      {kling30MultiEnabled ? `${kling30ShotCount} shots` : endFrame ? endFrame.name.slice(0,22) : "■ none"}
-                    </span>
-                    {startFrame && endFrame && !kling30MultiEnabled && startFrame.size === endFrame.size && (
-                      <span className="text-[9px]" style={{ color: "#ef4444" }}>⚠ Both slots have the same file!</span>
-                    )}
+                {/* Duplicate warning */}
+                {startFrame && endFrame && !kling30MultiEnabled && startFrame.size === endFrame.size && (
+                  <div className="flex items-center gap-1.5 rounded-lg px-2 py-1.5" style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)" }}>
+                    <span className="text-[9px] font-semibold" style={{ color: "#f87171" }}>⚠ Both slots have the same image!</span>
                   </div>
                 )}
               </div>
