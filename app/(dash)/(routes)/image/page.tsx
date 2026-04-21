@@ -10,6 +10,8 @@ import {
   ChevronDown,
   Download,
   Eye,
+  Folder,
+  FolderPlus,
   ImageIcon,
   Lightbulb,
   Paperclip,
@@ -32,6 +34,23 @@ import { useAssetStore } from "@/hooks/use-asset-store";
 import { useSearchParams } from "next/navigation";
 
 type ToolId = "create" | "relight" | "inpaint" | "upscale" | "face-swap" | "enhance";
+
+// Shared with /gallery so albums sync across pages
+const ALBUMS_STORAGE_KEY = "saad_studio_gallery_albums_v1";
+interface Album { id: string; name: string; assetIds: string[] }
+function loadAlbums(): Album[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(ALBUMS_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((a: any) => a && a.id && a.name) : [];
+  } catch { return []; }
+}
+function saveAlbums(albums: Album[]) {
+  if (typeof window === "undefined") return;
+  try { window.localStorage.setItem(ALBUMS_STORAGE_KEY, JSON.stringify(albums)); } catch { /* quota */ }
+}
 
 type ResultItem = {
   id: string;
@@ -410,6 +429,31 @@ function ratioCss(ratio: string): string {
 function ResultGrid({ items, onInspect, onRemix, onUse, onDelete, onBulkDelete }: { items: ResultItem[]; onInspect: (asset: Asset) => void; onRemix: (item: ResultItem) => void; onUse: (item: ResultItem) => void; onDelete: (id: string) => void; onBulkDelete: (ids: string[]) => void }) {
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [albums, setAlbums] = useState<Album[]>([]);
+  const [showAlbumPicker, setShowAlbumPicker] = useState(false);
+
+  useEffect(() => { setAlbums(loadAlbums()); }, []);
+  useEffect(() => { saveAlbums(albums); }, [albums]);
+
+  const addSelectionToAlbum = useCallback((albumId: string) => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    setAlbums((prev) => prev.map((a) => a.id === albumId ? { ...a, assetIds: Array.from(new Set([...a.assetIds, ...ids])) } : a));
+    setShowAlbumPicker(false);
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+  }, [selectedIds]);
+
+  const createAlbumWithSelection = useCallback((name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    const ids = Array.from(selectedIds);
+    const newAlbum: Album = { id: `album_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`, name: trimmed, assetIds: ids };
+    setAlbums((prev) => [...prev, newAlbum]);
+    setShowAlbumPicker(false);
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+  }, [selectedIds]);
 
   const toggleSelected = useCallback((id: string) => {
     setSelectedIds((prev) => {
@@ -488,6 +532,9 @@ function ResultGrid({ items, onInspect, onRemix, onUse, onDelete, onBulkDelete }
               <>
                 <button onClick={() => void handleBulkDownload()} className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-white/5 px-2.5 py-1 text-[11px] text-zinc-200 hover:bg-white/10">
                   <Download className="h-3 w-3" /> Download
+                </button>
+                <button onClick={() => setShowAlbumPicker(true)} className="inline-flex items-center gap-1.5 rounded-lg border border-amber-400/40 bg-amber-500/10 px-2.5 py-1 text-[11px] text-amber-100 hover:bg-amber-500/20">
+                  <FolderPlus className="h-3 w-3" /> Add to album
                 </button>
                 <button onClick={handleBulkDelete} className="inline-flex items-center gap-1.5 rounded-lg border border-red-500/40 bg-red-500/10 px-2.5 py-1 text-[11px] text-red-200 hover:bg-red-500/20">
                   <X className="h-3 w-3" /> Delete selected
@@ -569,7 +616,61 @@ function ResultGrid({ items, onInspect, onRemix, onUse, onDelete, onBulkDelete }
           })}
         </AnimatePresence>
       </div>
+
+      {showAlbumPicker && (
+        <AlbumPicker
+          albums={albums}
+          count={selectedIds.size}
+          onPick={addSelectionToAlbum}
+          onCreate={createAlbumWithSelection}
+          onClose={() => setShowAlbumPicker(false)}
+        />
+      )}
     </>
+  );
+}
+
+// Album Picker modal — shared visual with /gallery
+function AlbumPicker({ albums, count, onPick, onCreate, onClose }: { albums: Album[]; count: number; onPick: (id: string) => void; onCreate: (name: string) => void; onClose: () => void }) {
+  const [newName, setNewName] = useState("");
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={onClose}>
+      <div className="w-full max-w-md rounded-2xl border border-white/10 bg-[#0b1222] p-5 space-y-4" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold">Add {count} item(s) to album</h3>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/10"><X className="h-4 w-4" /></button>
+        </div>
+
+        {albums.length > 0 && (
+          <div className="space-y-1.5 max-h-56 overflow-y-auto">
+            {albums.map((album) => (
+              <button key={album.id} onClick={() => onPick(album.id)} className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-sm">
+                <span className="inline-flex items-center gap-2"><Folder className="h-4 w-4 text-amber-300" />{album.name}</span>
+                <span className="text-xs text-slate-400">{album.assetIds.length}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        <div className="space-y-2 pt-2 border-t border-white/10">
+          <label className="text-xs text-slate-400">Create new album</label>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") onCreate(newName); }}
+              placeholder="Album name"
+              className="flex-1 rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-sm placeholder-slate-500 focus:outline-none focus:border-amber-400/50"
+            />
+            <button onClick={() => onCreate(newName)} disabled={!newName.trim()} className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-amber-400/40 bg-amber-500/20 text-sm text-amber-100 hover:bg-amber-500/30 disabled:opacity-40 disabled:cursor-not-allowed">
+              <FolderPlus className="h-3.5 w-3.5" />
+              Create
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
