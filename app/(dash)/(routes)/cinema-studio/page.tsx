@@ -306,49 +306,34 @@ const QUALITY_OPTIONS = [
   { value: "high",     label: "High" },
 ] as const;
 
-const MAX_GENERATION_IMAGE_BYTES = 2_600_000;
+async function uploadImageToStorage(file: File): Promise<string> {
+  const signRes = await fetch("/api/media/upload", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ fileName: file.name, fileType: file.type }),
+  });
 
-function estimateDataUrlSizeBytes(dataUrl: string) {
-  const base64 = dataUrl.split(",")[1] ?? "";
-  return Math.ceil((base64.length * 3) / 4);
-}
+  const signJson = await signRes.json().catch(() => ({})) as {
+    signedUrl?: string;
+    publicUrl?: string;
+    error?: string;
+  };
 
-async function fileToOptimizedDataUrl(file: File): Promise<string> {
-  const objectUrl = URL.createObjectURL(file);
-
-  try {
-    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
-      const el = new Image();
-      el.onload = () => resolve(el);
-      el.onerror = () => reject(new Error("Failed to decode image"));
-      el.src = objectUrl;
-    });
-
-    const maxDim = 1280;
-    const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
-    const width = Math.max(1, Math.round(img.width * scale));
-    const height = Math.max(1, Math.round(img.height * scale));
-
-    const canvas = document.createElement("canvas");
-    canvas.width = width;
-    canvas.height = height;
-
-    const ctx = canvas.getContext("2d");
-    if (!ctx) throw new Error("Canvas is unavailable");
-    ctx.drawImage(img, 0, 0, width, height);
-
-    const candidates = [0.86, 0.78, 0.7, 0.62];
-    for (const quality of candidates) {
-      const dataUrl = canvas.toDataURL("image/jpeg", quality);
-      if (estimateDataUrlSizeBytes(dataUrl) <= MAX_GENERATION_IMAGE_BYTES) {
-        return dataUrl;
-      }
-    }
-
-    throw new Error("Reference image is too large. Please use a smaller image.");
-  } finally {
-    URL.revokeObjectURL(objectUrl);
+  if (!signRes.ok || !signJson.signedUrl || !signJson.publicUrl) {
+    throw new Error(signJson.error || "Failed to prepare image upload");
   }
+
+  const uploadRes = await fetch(signJson.signedUrl, {
+    method: "PUT",
+    headers: { "Content-Type": file.type || "application/octet-stream" },
+    body: file,
+  });
+
+  if (!uploadRes.ok) {
+    throw new Error("Failed to upload image");
+  }
+
+  return signJson.publicUrl;
 }
 
 export default function NextSceneEnginePage() {
@@ -458,13 +443,13 @@ export default function NextSceneEnginePage() {
     setToast("");
 
     try {
-      let imageDataUrl: string | undefined;
+      let imageUrl: string | undefined;
       if (uploadedImage) {
-        imageDataUrl = await fileToOptimizedDataUrl(uploadedImage.file);
+        imageUrl = await uploadImageToStorage(uploadedImage.file);
       }
 
       const routes = MODEL_ROUTE_MAP[selectedModel] ?? MODEL_ROUTE_MAP.kling;
-      const modelRoute = imageDataUrl ? routes.i2v : routes.t2v;
+      const modelRoute = imageUrl ? routes.i2v : routes.t2v;
 
       const body: Record<string, unknown> = {
         modelRoute,
@@ -473,7 +458,7 @@ export default function NextSceneEnginePage() {
           duration,
           aspect_ratio: aspectRatio,
           resolution: quality === "high" ? "1080p" : "720p",
-          ...(imageDataUrl ? { image_url: imageDataUrl } : {}),
+          ...(imageUrl ? { image_url: imageUrl } : {}),
         },
       };
 
