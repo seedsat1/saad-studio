@@ -455,20 +455,58 @@ function mapToKieInput(model: string, payload: Record<string, unknown>) {
     return out;
   }
 
-  // ── Veo 3.1 — no duration param (model-fixed ~8s), audio always-on (no sound field) ──
-  if (model === "veo3.1-lite/text-to-video" || model === "veo3.1-fast/text-to-video" || model === "veo3.1/text-to-video") {
+  // ── Veo 3.1 — dedicated /api/v1/veo/generate endpoint with camelCase fields ──
+  // Confirmed: https://docs.kie.ai/veo3-api/generate-veo-3-video
+  // - model enum: veo3 | veo3_fast | veo3_lite (passed as `model` field, NOT in URL)
+  // - imageUrls: camelCase array (1 image = animate-around / 2 images = first+last frame
+  //   transition / 1-3 images = REFERENCE_2_VIDEO mode, fast model only)
+  // - aspect_ratio: "16:9" | "9:16" | "Auto"
+  // - resolution: "720p" | "1080p" | "4k" (4k requires extra credits via separate endpoint)
+  // - generationType: TEXT_2_VIDEO | FIRST_AND_LAST_FRAMES_2_VIDEO | REFERENCE_2_VIDEO
+  // - enableTranslation (default true), watermark (optional), seeds (optional)
+  // - NO duration field (fixed ~8s by model), NO sound field (audio always-on)
+  if (model === "veo3" || model === "veo3_fast" || model === "veo3_lite") {
     const out: Record<string, unknown> = {};
+    out.model = model;
     out.prompt = typeof input.prompt === "string" ? input.prompt : "";
-    if (typeof input.aspect_ratio === "string") out.aspect_ratio = input.aspect_ratio;
-    if (typeof input.resolution === "string") out.resolution = input.resolution;
-    // Reference images take priority; otherwise use frame control
-    if (referenceImages.length > 0) {
-      out.image_urls = referenceImages;
+    // aspect_ratio: normalise to Veo's accepted set
+    const arRaw = typeof input.aspect_ratio === "string" ? input.aspect_ratio : "16:9";
+    if (arRaw === "9:16" || arRaw === "Auto" || arRaw === "auto") {
+      out.aspect_ratio = arRaw === "auto" ? "Auto" : arRaw;
     } else {
-      if (startImage) out.first_frame_url = startImage;
-      if (endImage) out.last_frame_url = endImage;
+      out.aspect_ratio = "16:9";
     }
-    // No duration (fixed by model), no sound field (always-on in Veo 3.1 per Google)
+    // resolution: only 720p / 1080p / 4k allowed
+    const resRaw = typeof input.resolution === "string" ? input.resolution.toLowerCase() : "";
+    if (resRaw === "1080p" || resRaw === "4k" || resRaw === "720p") {
+      out.resolution = resRaw;
+    }
+    // imageUrls: collect from various sources (max 3 for REFERENCE, 2 for first+last, 1 for animate)
+    const collected: string[] = [];
+    if (referenceImages.length > 0) {
+      collected.push(...referenceImages.slice(0, 3));
+    } else {
+      if (startImage) collected.push(startImage);
+      if (endImage && endImage !== startImage) collected.push(endImage);
+    }
+    if (collected.length > 0) out.imageUrls = collected;
+    // generationType: explicit when reference mode is requested by frontend
+    if (typeof input.generation_type === "string") {
+      const gt = input.generation_type;
+      if (gt === "TEXT_2_VIDEO" || gt === "FIRST_AND_LAST_FRAMES_2_VIDEO" || gt === "REFERENCE_2_VIDEO") {
+        out.generationType = gt;
+      }
+    }
+    // Optional pass-throughs
+    if (typeof input.watermark === "string" && input.watermark.trim()) {
+      out.watermark = input.watermark.trim();
+    }
+    if (typeof input.enable_translation === "boolean") {
+      out.enableTranslation = input.enable_translation;
+    }
+    if (typeof input.seeds === "number" && Number.isFinite(input.seeds)) {
+      out.seeds = input.seeds;
+    }
     return out;
   }
 
@@ -835,14 +873,18 @@ export async function POST(req: Request) {
 
     const callbackUrl = `${process.env.NEXT_PUBLIC_APP_URL || "https://example.com"}/api/callback`;
 
-    const createRes = await fetch(`${KIE_BASE}/jobs/createTask`, {
+    // ── Veo 3.1 uses a dedicated endpoint with a flat top-level body ──────
+    // (see https://docs.kie.ai/veo3-api/generate-veo-3-video). NOT /jobs/createTask.
+    const isVeoModel = kieModel === "veo3" || kieModel === "veo3_fast" || kieModel === "veo3_lite";
+    const createEndpoint = isVeoModel ? `${KIE_BASE}/veo/generate` : `${KIE_BASE}/jobs/createTask`;
+    const createBody = isVeoModel
+      ? { ...(kieInput as Record<string, unknown>), callBackUrl: callbackUrl }
+      : { model: kieModel, callBackUrl: callbackUrl, input: kieInput };
+
+    const createRes = await fetch(createEndpoint, {
       method: "POST",
       headers: kieHeaders(),
-      body: JSON.stringify({
-        model: kieModel,
-        callBackUrl: callbackUrl,
-        input: kieInput,
-      }),
+      body: JSON.stringify(createBody),
     });
 
     let createJson: Record<string, unknown> | null = null;
