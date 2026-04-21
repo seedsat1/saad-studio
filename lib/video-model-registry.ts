@@ -267,19 +267,23 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
 
   // ╔══════════════════════════════════════════════════════════════════════════
   // ║ OpenAI Sora 2
-  // ║ Confirmed (base): https://wavespeed.ai/docs/docs-api/openai/openai-sora-2-text-to-video
+  // ║ Confirmed: https://docs.kie.ai/market/sora2/sora-2-text-to-video
+  // ║ Params: prompt, aspect_ratio ("portrait"|"landscape"), n_frames ("10"|"15"),
+  // ║         remove_watermark, character_id_list, upload_method ("s3"|"oss" REQUIRED)
+  // ║ I2V adds image_urls (array, max 1 image, REQUIRED)
+  // ║ Pro adds size ("standard"|"high")
   // ╚══════════════════════════════════════════════════════════════════════════
   {
     id: "openai-sora-2-t2v",
     name: "Sora 2",
     family: "sora", family_label: "OpenAI Sora 2", family_color: "#8b5cf6",
     badge: null,
-    description: "OpenAI Sora 2 multi-character T2V. 10 s, portrait or landscape.",
+    description: "OpenAI Sora 2 multi-character T2V. 10s or 15s, portrait or landscape.",
     api_route: "openai/sora-2/text-to-video",
     route_confirmed: true,
     capabilities: t2vCaps({
-      aspect_ratios: ["Landscape", "Portrait"],
-      durations:     [10],
+      aspect_ratios: ["landscape", "portrait"],
+      durations:     [10, 15],
     }),
   },
   {
@@ -287,12 +291,12 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
     name: "Sora 2 I2V",
     family: "sora", family_label: "OpenAI Sora 2", family_color: "#8b5cf6",
     badge: null,
-    description: "OpenAI Sora 2 image-to-video.",
+    description: "OpenAI Sora 2 image-to-video. Single first-frame image.",
     api_route: "openai/sora-2/image-to-video",
-    route_confirmed: false,
+    route_confirmed: true,
     capabilities: i2vCaps({
-      aspect_ratios: ["Landscape", "Portrait"],
-      durations:     [10],
+      aspect_ratios: ["landscape", "portrait"],
+      durations:     [10, 15],
     }),
   },
   {
@@ -300,11 +304,11 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
     name: "Sora 2 Pro",
     family: "sora", family_label: "OpenAI Sora 2", family_color: "#8b5cf6",
     badge: "PRO",
-    description: "Pro-tier Sora 2 — higher fidelity, 10 s or 15 s.",
+    description: "Pro-tier Sora 2 — higher fidelity, 10s or 15s.",
     api_route: "openai/sora-2/text-to-video-pro",
-    route_confirmed: false,
+    route_confirmed: true,
     capabilities: t2vCaps({
-      aspect_ratios: ["Landscape", "Portrait"],
+      aspect_ratios: ["landscape", "portrait"],
       durations:     [10, 15],
     }),
   },

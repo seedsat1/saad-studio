@@ -404,19 +404,38 @@ function mapToKieInput(model: string, payload: Record<string, unknown>) {
     return out;
   }
 
-  // ── Sora 2 — KIE uses n_frames ("10s"/"15s") and "Portrait"/"Landscape" aspect_ratio ──
+  // ── Sora 2 — confirmed against KIE OpenAPI spec ──
+  // T2V:     prompt (req), aspect_ratio ("portrait"|"landscape"), n_frames ("10"|"15"),
+  //          remove_watermark, character_id_list, upload_method ("s3"|"oss", REQUIRED, default s3)
+  // I2V:     adds image_urls (array, maxItems 1, REQUIRED)
+  // Pro T2V: adds size ("standard"|"high", default high)
   if (model === "sora-2-text-to-video" || model === "sora-2-image-to-video" || model === "sora-2-pro-text-to-video") {
     const out: Record<string, unknown> = {};
     out.prompt = typeof input.prompt === "string" ? input.prompt : "";
-    // KIE Sora 2 uses "Portrait" / "Landscape" (the registry now sends these directly)
-    const ar = typeof input.aspect_ratio === "string" ? input.aspect_ratio : "Landscape";
-    out.aspect_ratio = ar;
-    // KIE Sora 2 uses n_frames "10s" / "15s" — NOT a numeric duration field
+    // aspect_ratio: KIE requires LOWERCASE "portrait" or "landscape"
+    const arRaw = typeof input.aspect_ratio === "string" ? input.aspect_ratio.toLowerCase() : "landscape";
+    out.aspect_ratio = arRaw === "portrait" ? "portrait" : "landscape";
+    // n_frames: KIE requires string "10" or "15" (NO 's' suffix)
     const soraDur = typeof input.duration === "number" ? input.duration
-      : typeof input.duration === "string" ? Number(input.duration) : 10;
-    out.n_frames = soraDur >= 15 ? "15s" : "10s";
-    // I2V: first frame only (KIE Sora 2 accepts max 1 image)
-    if (startImage) out.image_urls = [startImage];
+                  : typeof input.duration === "string" ? Number(input.duration) : 10;
+    out.n_frames = soraDur >= 15 ? "15" : "10";
+    // remove_watermark: pass through if explicitly set
+    if (typeof input.remove_watermark === "boolean") out.remove_watermark = input.remove_watermark;
+    // character_id_list: optional, max 5
+    if (Array.isArray(input.character_id_list) && input.character_id_list.length > 0) {
+      out.character_id_list = input.character_id_list.slice(0, 5);
+    }
+    // upload_method: REQUIRED — default to s3
+    out.upload_method = (input.upload_method === "oss") ? "oss" : "s3";
+    // I2V: image_urls (array of 1, REQUIRED)
+    if (model === "sora-2-image-to-video") {
+      if (startImage) out.image_urls = [startImage];
+      else if (Array.isArray(input.image_urls)) out.image_urls = input.image_urls.slice(0, 1);
+    }
+    // Pro: size ("standard" | "high", default high)
+    if (model === "sora-2-pro-text-to-video") {
+      out.size = input.size === "standard" ? "standard" : "high";
+    }
     return out;
   }
 
