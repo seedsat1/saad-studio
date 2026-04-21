@@ -225,54 +225,126 @@ export async function POST(req: NextRequest) {
     const resolvedRefs = await Promise.all(refUrls.map((r, i) => resolveRef(r, i)));
 
     const isWanModel = kieModelId.startsWith("wan/");
+    const isImagen4Fast = kieModelId === "google/imagen4-fast";
+    // Models whose KIE spec uses `image_size` instead of `aspect_ratio`.
+    // - Nano Banana family (google/nano-banana, google/nano-banana-edit) accepts the
+    //   ratio strings as-is (1:1, 9:16, 16:9, ...).
+    // - Qwen2 Image Edit accepts the ratio strings as-is.
+    // - Qwen Text-to-Image uses a named enum (square_hd / portrait_4_3 / ...).
+    const NANO_BANANA_IMAGE_SIZE = new Set(["google/nano-banana", "nano-banana/image-to-image"]);
+    const QWEN_EDIT_IMAGE_SIZE = new Set(["qwen2/image-edit"]);
+    const QWEN_T2I_IMAGE_SIZE_ENUM = new Set(["qwen/text-to-image", "qwen2/text-to-image"]);
+    // qwen/image-to-image spec has no aspect/image_size field at all.
+    const NO_ASPECT_FIELD = new Set(["qwen/image-to-image"]);
+    // KIE models that natively accept a batch parameter (num_images / n).
+    // For everything else we fan out N parallel createTasks below.
+    const NATIVE_BATCH_MODELS = new Set(["google/imagen4-fast", "wan/2-7-image-pro"]);
 
-    const input: Record<string, unknown> = {
-      prompt: sanitizePrompt(prompt, 5000),
-      aspect_ratio: aspectRatio,
-    };
-    // Wan uses `n` for image count; other models use `num_images`
-    if (isWanModel) {
-      input.n = numImages;
-      input.nsfw_checker = false;
-      input.watermark = false;
-      input.seed = 0;
-    } else {
-      input.num_images = numImages;
-    }
-    if (negativePrompt) input.negative_prompt = negativePrompt;
-    // Build reference image fields using the model-specific field name
-    if (resolvedRefs.length > 0) {
-      if (imageInputField === "image_input") {
-        // Gemini/Nano Banana: always array
-        input.image_input = resolvedRefs;
-      } else if (imageInputField === "image_urls") {
-        // Seedream / Grok I2I: always array
-        input.image_urls = resolvedRefs;
-      } else if (imageInputField === "input_urls") {
-        // GPT Image I2I / Wan / Flux-2 I2I: always array
-        input.input_urls = resolvedRefs;
-        // Wan spec: aspect_ratio must not be sent when input_urls is present
-        if (isWanModel) delete input.aspect_ratio;
-      } else if (imageInputField === "image_url") {
-        // Qwen models: single string
-        input.image_url = resolvedRefs[0];
-      } else {
-        // Default: image_url for single, image_urls for multiple
-        if (resolvedRefs.length === 1) input.image_url = resolvedRefs[0];
-        else input.image_urls = resolvedRefs;
+    const ratioToQwenImageSize = (ratio: string): string => {
+      switch (ratio) {
+        case "1:1":  return "square_hd";
+        case "3:4":  return "portrait_4_3";
+        case "4:3":  return "landscape_4_3";
+        case "9:16": return "portrait_16_9";
+        case "16:9": return "landscape_16_9";
+        default:     return "square_hd";
       }
-    }
-    // "1K"/"2K"/"4K" → resolution param; "standard"/"hd" → quality param (GPT Image only)
-    const RESOLUTION_VALUES = ["1K", "2K", "4K"];
-    if (quality && RESOLUTION_VALUES.includes(quality)) {
-      input.resolution = quality;
-    } else if (quality) {
-      input.quality = quality;
-    }
-    if (resolution) input.resolution = resolution;
+    };
 
-    const taskId = await createKieTask(kieApiKey, kieModelId, input);
-    const imageUrls = await pollKieTask(kieApiKey, taskId);
+    const buildAspectField = (target: Record<string, unknown>) => {
+      if (NO_ASPECT_FIELD.has(kieModelId)) return; // spec has no such field
+      if (NANO_BANANA_IMAGE_SIZE.has(kieModelId) || QWEN_EDIT_IMAGE_SIZE.has(kieModelId)) {
+        target.image_size = aspectRatio;
+        return;
+      }
+      if (QWEN_T2I_IMAGE_SIZE_ENUM.has(kieModelId)) {
+        target.image_size = ratioToQwenImageSize(aspectRatio);
+        return;
+      }
+      target.aspect_ratio = aspectRatio;
+    };
+
+    /** Build the `input` body for a single createTask call.
+     * `requestedCount` is what we pass to the model when it supports a batch field. */
+    const buildInput = (requestedCount: number): Record<string, unknown> => {
+      const input: Record<string, unknown> = {
+        prompt: sanitizePrompt(prompt, 5000),
+      };
+      buildAspectField(input);
+
+      if (isWanModel) {
+        // n=1-4 default; 1-12 with enable_sequential.
+        input.n = Math.max(1, Math.min(12, requestedCount));
+        if (requestedCount > 4) input.enable_sequential = true;
+        input.nsfw_checker = false;
+        input.watermark = false;
+        input.seed = 0;
+      } else if (isImagen4Fast) {
+        // Spec requires string enum "1" | "2" | "3" | "4"
+        input.num_images = String(Math.max(1, Math.min(4, requestedCount)));
+      } else if (NATIVE_BATCH_MODELS.has(kieModelId)) {
+        input.num_images = requestedCount;
+      }
+      // Models without native batch: do NOT send num_images / n; outer loop fans out.
+
+      if (negativePrompt) input.negative_prompt = negativePrompt;
+
+      if (resolvedRefs.length > 0) {
+        if (imageInputField === "image_input") {
+          input.image_input = resolvedRefs;
+        } else if (imageInputField === "image_urls") {
+          input.image_urls = resolvedRefs;
+        } else if (imageInputField === "input_urls") {
+          input.input_urls = resolvedRefs;
+          // Wan spec: aspect_ratio must not be sent when input_urls is present
+          if (isWanModel) {
+            delete input.aspect_ratio;
+            delete input.image_size;
+          }
+        } else if (imageInputField === "image_url") {
+          input.image_url = resolvedRefs[0];
+        } else {
+          if (resolvedRefs.length === 1) input.image_url = resolvedRefs[0];
+          else input.image_urls = resolvedRefs;
+        }
+      }
+
+      // Quality field handling
+      // - "1K"/"2K"/"4K"           → resolution param (Wan, Nano Banana Pro/2)
+      // - "speed"/"quality"        → enable_pro boolean (Grok Imagine T2I)
+      // - "basic"/"high"           → quality param (Seedream)
+      // - other ("medium"/"high")  → quality param (GPT Image)
+      const RESOLUTION_VALUES = ["1K", "2K", "4K"];
+      if (quality && RESOLUTION_VALUES.includes(quality)) {
+        input.resolution = quality;
+      } else if (quality === "speed" || quality === "quality") {
+        // Grok Imagine T2I speed-vs-quality toggle
+        input.enable_pro = quality === "quality";
+      } else if (quality) {
+        input.quality = quality;
+      }
+      if (resolution) input.resolution = resolution;
+
+      return input;
+    };
+
+    // Determine batch strategy:
+    // - native batch models    → 1 call, model returns all images
+    // - non-native + N>1       → fan out N parallel createTasks
+    const useNativeBatch = NATIVE_BATCH_MODELS.has(kieModelId);
+    const fanout = useNativeBatch ? 1 : Math.max(1, Math.min(12, numImages));
+    const requestedPerCall = useNativeBatch ? numImages : 1;
+
+    const taskIds: string[] = await Promise.all(
+      Array.from({ length: fanout }, () =>
+        createKieTask(kieApiKey, kieModelId, buildInput(requestedPerCall)),
+      ),
+    );
+    const pollResults = await Promise.all(
+      taskIds.map((tid) => pollKieTask(kieApiKey, tid)),
+    );
+    const imageUrls = pollResults.flat();
+    const taskId = taskIds[0];
 
     // Save the first result URL to the main generation record (Gallery + Image history)
     if (generationId && imageUrls[0]) {

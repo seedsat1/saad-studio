@@ -24,11 +24,21 @@ export interface ImageModel {
   /** KIE API input field name for reference images:
    * - undefined / "image_url" → single: image_url, multi: image_urls (default)
    * - "image_input" → always array: image_input (Gemini/Nano Banana models)
-   * - "image_urls" → always array: image_urls (Seedream, FLUX.2)
+   * - "image_urls" → always array: image_urls (Seedream, FLUX.2, Grok I2I, Nano Banana Edit)
    * - "image_url" → single string: image_url (Qwen image-edit, qwen/image-to-image)
    * - "input_urls" → always array: input_urls (GPT Image I2I, Wan, Flux-2 I2I)
    */
   imageInputField?: "image_url" | "image_input" | "image_urls" | "input_urls";
+  /** When true, the route runs N parallel createTasks for models that don't
+   * accept num_images / n natively (so the user actually receives N images).
+   * When false, model is sent num_images / n (or n via sequential mode for Wan).
+   * Auto-derived per model in the route. UI does not set this. */
+  /** Grok Imagine T2I exposes a speed-vs-quality boolean (`enable_pro`).
+   * When true, `quality === "quality"` triggers enable_pro: true. */
+  grokProToggle?: boolean;
+  /** Wan 2.7 Image Pro can output up to 12 images via `enable_sequential: true`.
+   * When true, the UI shows a sequential-mode toggle. */
+  wanSequentialMode?: boolean;
   /** Display credit cost (UI only). */
   creditCost: number;
 }
@@ -83,7 +93,9 @@ export const IMAGE_MODELS: ImageModel[] = [
     badge: "",
     group: "Nano Banana",
     inputType: "text-to-image",
+    // KIE spec: image_size enum (sent as `image_size` not `aspect_ratio`).
     aspectRatios: ["1:1", "9:16", "16:9", "3:4", "4:3", "3:2", "2:3", "5:4", "4:5", "21:9"],
+    // Spec has no num_images field → batched via parallel createTasks in the route.
     maxImages: 4,
     maxRefImages: 0,
     creditCost: 2,
@@ -146,7 +158,9 @@ export const IMAGE_MODELS: ImageModel[] = [
     badge: "",
     group: "Seedream",
     inputType: "text-to-image",
-    aspectRatios: ["1:1", "16:9", "9:16", "4:3", "3:2"],
+    // KIE spec aspect_ratio enum: 1:1 / 4:3 / 3:4 / 16:9 / 9:16 / 2:3 / 3:2 / 21:9
+    aspectRatios: ["1:1", "4:3", "3:4", "16:9", "9:16", "2:3", "3:2", "21:9"],
+    // No num_images in spec → parallel batching in the route.
     maxImages: 4,
     maxRefImages: 0,
     qualityParam: ["basic", "high"],
@@ -214,8 +228,10 @@ export const IMAGE_MODELS: ImageModel[] = [
     badge: "NEW",
     group: "Qwen",
     inputType: "text-to-image",
+    // KIE spec uses `image_size` enum (square_hd / portrait_4_3 / landscape_4_3 / portrait_16_9 / landscape_16_9).
     aspectRatios: ["1:1", "3:4", "4:3", "9:16", "16:9"],
-    maxImages: 1,
+    // No num_images → parallel batching.
+    maxImages: 4,
     maxRefImages: 0,
     creditCost: 2,
   },
@@ -253,10 +269,14 @@ export const IMAGE_MODELS: ImageModel[] = [
     badge: "",
     group: "Other",
     inputType: "text-to-image",
+    // KIE spec aspect_ratio enum: 2:3 / 3:2 / 1:1 / 16:9 / 9:16
     aspectRatios: ["2:3", "3:2", "1:1", "16:9", "9:16"],
+    // No num_images in spec → parallel batching.
     maxImages: 4,
     maxRefImages: 0,
-    grokMode: true,
+    // Speed (false) vs Quality (true) maps to enable_pro.
+    qualityParam: ["speed", "quality"],
+    grokProToggle: true,
     creditCost: 2,
   },
   {
@@ -268,7 +288,8 @@ export const IMAGE_MODELS: ImageModel[] = [
     inputType: "image-to-image",
     aspectRatios: [],
     maxImages: 1,
-    maxRefImages: 1,
+    // KIE spec image_urls maxItems: 5
+    maxRefImages: 5,
     imageInputField: "image_urls",
     creditCost: 2,
   },
@@ -309,10 +330,12 @@ export const IMAGE_MODELS: ImageModel[] = [
     group: "Wan",
     inputType: "text-to-image",
     aspectRatios: ["1:1", "16:9", "4:3", "21:9", "3:4", "9:16", "8:1", "1:8"],
-    maxImages: 4,
+    // n: 1-4 default; 1-12 when enable_sequential. UI bumps to 12 when sequential mode is on.
+    maxImages: 12,
     maxRefImages: 9,
     imageInputField: "input_urls",
     qualityParam: ["1K", "2K", "4K"],
+    wanSequentialMode: true,
     creditCost: 2,
   },
 ];

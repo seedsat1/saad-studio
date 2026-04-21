@@ -13,7 +13,9 @@ export const BASE_KIE_IMAGE_MODEL_MAP: Record<string, string> = {
   "seedream/5-lite-text-to-image": "seedream/5-lite-text-to-image",
   "seedream/5-lite-image-to-image": "seedream/5-lite-image-to-image",
   "z-image": "z-image",
-  "qwen2/text-to-image": "qwen2/text-to-image",
+  // KIE catalog only exposes `qwen/text-to-image` (qwen2/text-to-image does NOT exist).
+  // Keep our internal UI ID `qwen2/text-to-image` but route it to the real KIE model.
+  "qwen2/text-to-image": "qwen/text-to-image",
   "qwen2/image-edit": "qwen2/image-edit",
   "qwen/image-to-image": "qwen/image-to-image",
   "flux-2/pro-text-to-image": "flux-2/pro-text-to-image",
