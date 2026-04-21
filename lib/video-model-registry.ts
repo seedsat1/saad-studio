@@ -55,6 +55,14 @@ export interface VideoModelCapabilities {
   quality_param: "resolution" | "mode";
   /** Max number of reference images supported by this model (0 = not supported). */
   max_reference_images: number;
+  /** Max number of reference videos (Seedance 2). 0 = not supported. */
+  max_reference_videos: number;
+  /** Max combined duration (seconds) for all reference videos. 0 = no limit. */
+  max_reference_video_total_seconds: number;
+  /** Max number of reference audios (Seedance 2). 0 = not supported. */
+  max_reference_audios: number;
+  /** Max combined duration (seconds) for all reference audios. 0 = no limit. */
+  max_reference_audio_total_seconds: number;
 
   // ── Prompt controls ───────────────────────────────────────────────────────
   has_negative_prompt: boolean;
@@ -119,6 +127,10 @@ function t2vCaps(overrides: Partial<VideoModelCapabilities> = {}): VideoModelCap
     resolutions:        [],
     quality_param:      "resolution",
     max_reference_images: 0,
+    max_reference_videos: 0,
+    max_reference_video_total_seconds: 0,
+    max_reference_audios: 0,
+    max_reference_audio_total_seconds: 0,
     has_negative_prompt: false,
     has_seed:           false,
     has_cfg_scale:      false,
@@ -365,6 +377,10 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
       durations:     [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
       resolutions:   ["480p", "720p"], // KIE Fast variant: 1080p NOT supported
       max_reference_images: 9,
+      max_reference_videos: 3,
+      max_reference_video_total_seconds: 15,
+      max_reference_audios: 3,
+      max_reference_audio_total_seconds: 15,
       has_sound: true,
       sound_param: "generate_audio",
     }),
@@ -384,6 +400,10 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
       durations:      [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
       resolutions:    ["480p", "720p", "1080p"], // KIE HQ variant supports 1080p
       max_reference_images: 9,
+      max_reference_videos: 3,
+      max_reference_video_total_seconds: 15,
+      max_reference_audios: 3,
+      max_reference_audio_total_seconds: 15,
       has_sound: true,
       sound_param: "generate_audio",
     }),

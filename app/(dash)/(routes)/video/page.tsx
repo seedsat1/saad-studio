@@ -253,6 +253,8 @@ function VideoPageInner() {
   const [endFrame,     setEndFrame]     = useState<File | null>(null);
   const [motionVideo,  setMotionVideo]  = useState<File | null>(null);
   const [referenceImages, setReferenceImages] = useState<File[]>([]);
+  const [referenceVideos, setReferenceVideos] = useState<File[]>([]);
+  const [referenceAudios, setReferenceAudios] = useState<File[]>([]);
   const [startFramePreview, setStartFramePreview] = useState<string | null>(null);
   const [endFramePreview, setEndFramePreview] = useState<string | null>(null);
   // Detected aspect ratio of the uploaded start frame (Kling 3.0 i2v auto-adapts to this)
@@ -426,6 +428,8 @@ function VideoPageInner() {
     setEndFrame(null);
     setMotionVideo(null);
     setReferenceImages([]);
+    setReferenceVideos([]);
+    setReferenceAudios([]);
     setShotType("intelligent");
     setMultiPrompts([""]);
     setElementList([""]);
@@ -624,6 +628,18 @@ function VideoPageInner() {
             ? "last_image"
             : "end_image";
         payload[endKey] = await fileToDataURL(endFrame);
+      }
+
+      // Reference videos / audios (Seedance 2 only). Server enforces max 3 each.
+      if (caps.max_reference_videos > 0 && referenceVideos.length > 0) {
+        payload.reference_video_urls = await Promise.all(
+          referenceVideos.slice(0, caps.max_reference_videos).map((f) => fileToDataURL(f))
+        );
+      }
+      if (caps.max_reference_audios > 0 && referenceAudios.length > 0) {
+        payload.reference_audio_urls = await Promise.all(
+          referenceAudios.slice(0, caps.max_reference_audios).map((f) => fileToDataURL(f))
+        );
       }
 
       // Size / Aspect ratio
@@ -1846,6 +1862,94 @@ function VideoPageInner() {
                     ? "Use @image1, @image2, @image3 inside prompt/shot prompts to activate references."
                     : "Reference images mode is active; first/last frame inputs will be ignored for this generation."}
                 </p>
+              )}
+
+              {/* Reference Videos / Audios — Seedance 2 only ----------------- */}
+              {(caps.max_reference_videos > 0 || caps.max_reference_audios > 0) && (
+                <div className="flex flex-col gap-2 -mt-2">
+                  <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#475569" }}>
+                    Reference Media (optional)
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {caps.max_reference_videos > 0 && (
+                      <label
+                        className="flex flex-col items-center justify-center gap-1 rounded-xl px-2 py-3 cursor-pointer transition-all"
+                        style={{
+                          background: referenceVideos.length > 0 ? hexA(selectedModel.family_color, 0.10) : "rgba(255,255,255,0.04)",
+                          border: `1px dashed ${referenceVideos.length > 0 ? hexA(selectedModel.family_color, 0.4) : "rgba(255,255,255,0.08)"}`,
+                          color: referenceVideos.length > 0 ? selectedModel.family_color : "#64748b",
+                        }}
+                      >
+                        <input
+                          type="file"
+                          accept="video/*"
+                          multiple
+                          className="hidden"
+                          onChange={(e) => {
+                            const files = Array.from(e.target.files ?? []).filter(f => f.type.startsWith("video/"));
+                            if (!files.length) return;
+                            setReferenceVideos(files.slice(0, caps.max_reference_videos));
+                            e.target.value = "";
+                          }}
+                        />
+                        <Film size={16} />
+                        <span className="text-[11px] font-medium">
+                          {referenceVideos.length > 0
+                            ? `${referenceVideos.length}/${caps.max_reference_videos} video(s)`
+                            : `+ Videos (max ${caps.max_reference_videos})`}
+                        </span>
+                        {referenceVideos.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setReferenceVideos([]); }}
+                            className="text-[9px] underline"
+                            style={{ color: "#64748b" }}
+                          >Clear</button>
+                        )}
+                      </label>
+                    )}
+                    {caps.max_reference_audios > 0 && (
+                      <label
+                        className="flex flex-col items-center justify-center gap-1 rounded-xl px-2 py-3 cursor-pointer transition-all"
+                        style={{
+                          background: referenceAudios.length > 0 ? hexA(selectedModel.family_color, 0.10) : "rgba(255,255,255,0.04)",
+                          border: `1px dashed ${referenceAudios.length > 0 ? hexA(selectedModel.family_color, 0.4) : "rgba(255,255,255,0.08)"}`,
+                          color: referenceAudios.length > 0 ? selectedModel.family_color : "#64748b",
+                        }}
+                      >
+                        <input
+                          type="file"
+                          accept="audio/*"
+                          multiple
+                          className="hidden"
+                          onChange={(e) => {
+                            const files = Array.from(e.target.files ?? []).filter(f => f.type.startsWith("audio/"));
+                            if (!files.length) return;
+                            setReferenceAudios(files.slice(0, caps.max_reference_audios));
+                            e.target.value = "";
+                          }}
+                        />
+                        <Music2 size={16} />
+                        <span className="text-[11px] font-medium">
+                          {referenceAudios.length > 0
+                            ? `${referenceAudios.length}/${caps.max_reference_audios} audio(s)`
+                            : `+ Audios (max ${caps.max_reference_audios})`}
+                        </span>
+                        {referenceAudios.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setReferenceAudios([]); }}
+                            className="text-[9px] underline"
+                            style={{ color: "#64748b" }}
+                          >Clear</button>
+                        )}
+                      </label>
+                    )}
+                  </div>
+                  <p className="text-[10px]" style={{ color: "#475569" }}>
+                    Total length per type ≤ {caps.max_reference_video_total_seconds || 15}s. Larger files will be rejected by the model.
+                  </p>
+                </div>
               )}
 
           {/* -- AI Model dropdown ------------------------------------------- */}

@@ -114,7 +114,7 @@ async function resolveMediaInInput(input: Record<string, unknown>) {
       continue;
     }
 
-    if (Array.isArray(value) && ["reference_image_urls", "image_urls"].includes(key)) {
+    if (Array.isArray(value) && ["reference_image_urls", "image_urls", "reference_video_urls", "reference_audio_urls"].includes(key)) {
       const uploaded = await Promise.all(
         value.map(async (item) => (typeof item === "string" ? await uploadDataUrlToKie(item) : item)),
       );
@@ -175,6 +175,12 @@ function mapToKieInput(model: string, payload: Record<string, unknown>) {
     (typeof input.last_image === "string" ? input.last_image : null);
   const referenceImages = Array.isArray(input.reference_image_urls)
     ? input.reference_image_urls.filter((v): v is string => typeof v === "string")
+    : [];
+  const referenceVideos = Array.isArray(input.reference_video_urls)
+    ? input.reference_video_urls.filter((v): v is string => typeof v === "string")
+    : [];
+  const referenceAudios = Array.isArray(input.reference_audio_urls)
+    ? input.reference_audio_urls.filter((v): v is string => typeof v === "string")
     : [];
   const motionVideo = typeof input.video === "string" ? input.video : null;
 
@@ -285,6 +291,22 @@ function mapToKieInput(model: string, payload: Record<string, unknown>) {
       else             delete out.first_frame_url;
       if (endImage)    out.last_frame_url = endImage;
       else             delete out.last_frame_url;
+    }
+
+    // Reference videos: max 3, total duration ≤15s (validated client-side)
+    // KIE field name in spec has a trailing space: 'reference_video_urls ' — using
+    // the trimmed name; if KIE rejects, switch to the spec literal.
+    if (referenceVideos.length > 0) {
+      out.reference_video_urls = referenceVideos.slice(0, 3);
+    } else {
+      delete out.reference_video_urls;
+    }
+
+    // Reference audios: max 3, total duration ≤15s
+    if (referenceAudios.length > 0) {
+      out.reference_audio_urls = referenceAudios.slice(0, 3);
+    } else {
+      delete out.reference_audio_urls;
     }
 
     // Clean generic aliases never used by Seedance
