@@ -431,7 +431,7 @@ export default function NextSceneEnginePage() {
   /* ── model route map ── */
   const MODEL_ROUTE_MAP: Record<string, { t2v: string; i2v: string }> = {
     // Use route keys recognized by /api/video (KIE-first, stable mappings)
-    kling:    { t2v: "kwaivgi/kling-v3.0-pro/text-to-video", i2v: "kling/v2-5-turbo-image-to-video-pro" },
+    kling:    { t2v: "kwaivgi/kling-v3.0-pro/text-to-video", i2v: "kwaivgi/kling-v3.0-pro/text-to-video" },
     seedance: { t2v: "bytedance/seedance-v2/text-to-video",  i2v: "bytedance/seedance-v2/text-to-video" },
     minimax:  { t2v: "kling/v2-5-turbo-text-to-video-pro",   i2v: "minimax/hailuo-2.3/i2v-pro" },
   };
