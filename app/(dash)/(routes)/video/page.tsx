@@ -1654,58 +1654,54 @@ function VideoPageInner() {
                 </span>
               )}
             </button>
-            {/* Reference Video + Audio tiles for Seedance 2 */}
-            {(caps.max_reference_videos > 0 || caps.max_reference_audios > 0) && (
-              <div className="flex gap-2 w-full">
-                {caps.max_reference_videos > 0 && (
-                  <button
-                    onClick={() => openMediaPicker("referenceVideos")}
-                    className="relative flex-1 flex flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed transition-all"
-                    style={{
-                      height: 72,
-                      borderColor: referenceVideos.length > 0 ? hexA(selectedModel.family_color, 0.5) : "rgba(255,255,255,0.1)",
-                      background:  referenceVideos.length > 0 ? hexA(selectedModel.family_color, 0.07) : "rgba(255,255,255,0.02)",
-                    }}
-                  >
-                    <Film size={15} style={{ color: referenceVideos.length > 0 ? selectedModel.family_color : "#475569" }} />
-                    <span className="text-[10px]" style={{ color: referenceVideos.length > 0 ? selectedModel.family_color : "#475569" }}>
-                      {referenceVideos.length > 0 ? `${referenceVideos.length}/${caps.max_reference_videos} video(s)` : "Ref Videos"}
-                    </span>
-                    <span className="absolute top-1.5 right-1.5 text-[8px] px-1 py-0.5 rounded" style={{ background: "rgba(255,255,255,0.06)", color: "#475569" }}>
-                      Max {caps.max_reference_videos}
-                    </span>
-                    {referenceVideos.length > 0 && (
-                      <button className="absolute top-1.5 left-1.5" onClick={e => { e.stopPropagation(); setReferenceVideos([]); }}>
-                        <X size={10} style={{ color: "#475569" }} />
-                      </button>
-                    )}
+            {/* Reference Video + Audio tiles for Seedance 2 — same visual block */}
+            {caps.max_reference_videos > 0 && (
+              <button
+                onClick={() => openMediaPicker("referenceVideos")}
+                className="relative w-full flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed transition-all"
+                style={{
+                  height: 100,
+                  borderColor: referenceVideos.length > 0 ? hexA(selectedModel.family_color, 0.5) : "rgba(255,255,255,0.1)",
+                  background:  referenceVideos.length > 0 ? hexA(selectedModel.family_color, 0.07) : "rgba(255,255,255,0.02)",
+                }}
+              >
+                <span className="absolute top-2 right-2 text-[9px] font-medium px-1.5 py-0.5 rounded" style={{ background: "rgba(255,255,255,0.06)", color: "#475569" }}>
+                  Max {caps.max_reference_videos}
+                </span>
+                <Film size={16} style={{ color: referenceVideos.length > 0 ? selectedModel.family_color : "#475569" }} />
+                <span className="text-[11px]" style={{ color: referenceVideos.length > 0 ? selectedModel.family_color : "#475569" }}>
+                  {referenceVideos.length > 0 ? `${referenceVideos.length}/${caps.max_reference_videos} video(s)` : "Ref Videos"}
+                </span>
+                {referenceVideos.length > 0 && (
+                  <button className="absolute top-2 left-2" onClick={e => { e.stopPropagation(); setReferenceVideos([]); }}>
+                    <X size={11} style={{ color: "#475569" }} />
                   </button>
                 )}
-                {caps.max_reference_audios > 0 && (
-                  <button
-                    onClick={() => openMediaPicker("referenceAudios")}
-                    className="relative flex-1 flex flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed transition-all"
-                    style={{
-                      height: 72,
-                      borderColor: referenceAudios.length > 0 ? hexA(selectedModel.family_color, 0.5) : "rgba(255,255,255,0.1)",
-                      background:  referenceAudios.length > 0 ? hexA(selectedModel.family_color, 0.07) : "rgba(255,255,255,0.02)",
-                    }}
-                  >
-                    <Music2 size={15} style={{ color: referenceAudios.length > 0 ? selectedModel.family_color : "#475569" }} />
-                    <span className="text-[10px]" style={{ color: referenceAudios.length > 0 ? selectedModel.family_color : "#475569" }}>
-                      {referenceAudios.length > 0 ? `${referenceAudios.length}/${caps.max_reference_audios} audio(s)` : "Ref Audios"}
-                    </span>
-                    <span className="absolute top-1.5 right-1.5 text-[8px] px-1 py-0.5 rounded" style={{ background: "rgba(255,255,255,0.06)", color: "#475569" }}>
-                      Max {caps.max_reference_audios}
-                    </span>
-                    {referenceAudios.length > 0 && (
-                      <button className="absolute top-1.5 left-1.5" onClick={e => { e.stopPropagation(); setReferenceAudios([]); }}>
-                        <X size={10} style={{ color: "#475569" }} />
-                      </button>
-                    )}
+              </button>
+            )}
+            {caps.max_reference_audios > 0 && (
+              <button
+                onClick={() => openMediaPicker("referenceAudios")}
+                className="relative w-full flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed transition-all"
+                style={{
+                  height: 100,
+                  borderColor: referenceAudios.length > 0 ? hexA(selectedModel.family_color, 0.5) : "rgba(255,255,255,0.1)",
+                  background:  referenceAudios.length > 0 ? hexA(selectedModel.family_color, 0.07) : "rgba(255,255,255,0.02)",
+                }}
+              >
+                <span className="absolute top-2 right-2 text-[9px] font-medium px-1.5 py-0.5 rounded" style={{ background: "rgba(255,255,255,0.06)", color: "#475569" }}>
+                  Max {caps.max_reference_audios}
+                </span>
+                <Music2 size={16} style={{ color: referenceAudios.length > 0 ? selectedModel.family_color : "#475569" }} />
+                <span className="text-[11px]" style={{ color: referenceAudios.length > 0 ? selectedModel.family_color : "#475569" }}>
+                  {referenceAudios.length > 0 ? `${referenceAudios.length}/${caps.max_reference_audios} audio(s)` : "Ref Audios"}
+                </span>
+                {referenceAudios.length > 0 && (
+                  <button className="absolute top-2 left-2" onClick={e => { e.stopPropagation(); setReferenceAudios([]); }}>
+                    <X size={11} style={{ color: "#475569" }} />
                   </button>
                 )}
-              </div>
+              </button>
             )}
             </>
           )}
@@ -1930,56 +1926,54 @@ function VideoPageInner() {
                   )}
                 </button>
               )}
-            </div>
-          )}
 
-          {/* Reference Video + Audio tiles for Seedance 2 (non-Omni layout) */}
-          {!showOmniTabs && (caps.max_reference_videos > 0 || caps.max_reference_audios > 0) && (
-            <div className="flex gap-2">
-              {caps.max_reference_videos > 0 && (
+              {/* Ref Videos tile — same row, Seedance 2 only */}
+              {!showOmniTabs && caps.max_reference_videos > 0 && (
                 <button
                   onClick={() => openMediaPicker("referenceVideos")}
-                  className="relative flex-1 flex flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed transition-all"
+                  className="relative flex-1 flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed transition-all"
                   style={{
-                    height: 72,
+                    height: 100,
                     borderColor: referenceVideos.length > 0 ? hexA(selectedModel.family_color, 0.5) : "rgba(255,255,255,0.1)",
                     background:  referenceVideos.length > 0 ? hexA(selectedModel.family_color, 0.07) : "rgba(255,255,255,0.02)",
                   }}
                 >
-                  <Film size={15} style={{ color: referenceVideos.length > 0 ? selectedModel.family_color : "#475569" }} />
-                  <span className="text-[10px]" style={{ color: referenceVideos.length > 0 ? selectedModel.family_color : "#475569" }}>
-                    {referenceVideos.length > 0 ? `${referenceVideos.length}/${caps.max_reference_videos} video(s)` : "Ref Videos"}
-                  </span>
-                  <span className="absolute top-1.5 right-1.5 text-[8px] px-1 py-0.5 rounded" style={{ background: "rgba(255,255,255,0.06)", color: "#475569" }}>
+                  <span className="absolute top-2 right-2 text-[9px] font-medium px-1.5 py-0.5 rounded" style={{ background: "rgba(255,255,255,0.06)", color: "#475569" }}>
                     Max {caps.max_reference_videos}
                   </span>
+                  <Film size={16} style={{ color: referenceVideos.length > 0 ? selectedModel.family_color : "#475569" }} />
+                  <span className="text-[11px]" style={{ color: referenceVideos.length > 0 ? selectedModel.family_color : "#475569" }}>
+                    {referenceVideos.length > 0 ? `${referenceVideos.length}/${caps.max_reference_videos} video(s)` : "Ref Videos"}
+                  </span>
                   {referenceVideos.length > 0 && (
-                    <button className="absolute top-1.5 left-1.5" onClick={e => { e.stopPropagation(); setReferenceVideos([]); }}>
-                      <X size={10} style={{ color: "#475569" }} />
+                    <button className="absolute top-2 left-2" onClick={e => { e.stopPropagation(); setReferenceVideos([]); }}>
+                      <X size={11} style={{ color: "#475569" }} />
                     </button>
                   )}
                 </button>
               )}
-              {caps.max_reference_audios > 0 && (
+
+              {/* Ref Audios tile — same row, Seedance 2 only */}
+              {!showOmniTabs && caps.max_reference_audios > 0 && (
                 <button
                   onClick={() => openMediaPicker("referenceAudios")}
-                  className="relative flex-1 flex flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed transition-all"
+                  className="relative flex-1 flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed transition-all"
                   style={{
-                    height: 72,
+                    height: 100,
                     borderColor: referenceAudios.length > 0 ? hexA(selectedModel.family_color, 0.5) : "rgba(255,255,255,0.1)",
                     background:  referenceAudios.length > 0 ? hexA(selectedModel.family_color, 0.07) : "rgba(255,255,255,0.02)",
                   }}
                 >
-                  <Music2 size={15} style={{ color: referenceAudios.length > 0 ? selectedModel.family_color : "#475569" }} />
-                  <span className="text-[10px]" style={{ color: referenceAudios.length > 0 ? selectedModel.family_color : "#475569" }}>
-                    {referenceAudios.length > 0 ? `${referenceAudios.length}/${caps.max_reference_audios} audio(s)` : "Ref Audios"}
-                  </span>
-                  <span className="absolute top-1.5 right-1.5 text-[8px] px-1 py-0.5 rounded" style={{ background: "rgba(255,255,255,0.06)", color: "#475569" }}>
+                  <span className="absolute top-2 right-2 text-[9px] font-medium px-1.5 py-0.5 rounded" style={{ background: "rgba(255,255,255,0.06)", color: "#475569" }}>
                     Max {caps.max_reference_audios}
                   </span>
+                  <Music2 size={16} style={{ color: referenceAudios.length > 0 ? selectedModel.family_color : "#475569" }} />
+                  <span className="text-[11px]" style={{ color: referenceAudios.length > 0 ? selectedModel.family_color : "#475569" }}>
+                    {referenceAudios.length > 0 ? `${referenceAudios.length}/${caps.max_reference_audios} audio(s)` : "Ref Audios"}
+                  </span>
                   {referenceAudios.length > 0 && (
-                    <button className="absolute top-1.5 left-1.5" onClick={e => { e.stopPropagation(); setReferenceAudios([]); }}>
-                      <X size={10} style={{ color: "#475569" }} />
+                    <button className="absolute top-2 left-2" onClick={e => { e.stopPropagation(); setReferenceAudios([]); }}>
+                      <X size={11} style={{ color: "#475569" }} />
                     </button>
                   )}
                 </button>
