@@ -205,7 +205,7 @@ export const useStudioStore = create<StudioState>((set, get) => ({
 
       // v2 API returns taskId at top level
       if (!createData.taskId) {
-        throw new Error(createData.msg ?? createData.message ?? "Task creation failed");
+        throw new Error(createData.msg ?? createData.message ?? createData.errorMessage ?? JSON.stringify(createData).slice(0, 120));
       }
       const taskId = createData.taskId;
       updateScene(idx, { taskId });
