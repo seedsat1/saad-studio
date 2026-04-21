@@ -167,41 +167,9 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
       max_reference_images: 3,
     }),
   },
-  {
-    id: "kling-v3.0-omni-t2v",
-    name: "Kling 3.0 Omni",
-    family: "kling", family_label: "Kling", family_color: "#06b6d4",
-    badge: "TOP",
-    description: "Kling O3 Omni Pro — multi-shot, sound, element control.",
-    api_route: "kwaivgi/kling-video-o3-pro/text-to-video",
-    route_confirmed: false,
-    capabilities: t2vCaps({
-      optional_image:   true,
-      has_end_frame:    true,
-      has_omni_tabs:    true,
-      aspect_ratios:    ["16:9", "9:16", "1:1"],
-      durations:        [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
-      resolutions:      ["std", "pro"],
-      quality_param:    "mode",
-      has_sound:        true,
-      has_multi_prompt: true,
-      has_element_list: true,
-      max_reference_images: 3,
-    }),
-  },
-  {
-    id: "kling-v3.0-omni-edit",
-    name: "Kling 3.0 Omni Edit",
-    family: "kling", family_label: "Kling", family_color: "#06b6d4",
-    badge: null,
-    description: "Kling O3 Omni Pro video-edit — reference image required.",
-    api_route: "kwaivgi/kling-video-o3-pro/video-edit",
-    route_confirmed: false,
-    capabilities: i2vCaps({
-      aspect_ratios: ["16:9", "9:16", "1:1"],
-      durations:     [5, 10],
-    }),
-  },
+  // NOTE: Kling 3.0 Omni / Omni Edit removed — KIE does not provide these endpoints.
+  // The kwaivgi/kling-video-o3-pro/* routes were aliased to kling-3.0/video (duplicate of standard).
+  // Re-add when KIE officially launches Omni 3 (O3) — see https://kie.ai/kling-3-0 FAQ.
   {
     id: "kling-v3.0-pro-motion",
     name: "Kling 3.0 Motion Control",

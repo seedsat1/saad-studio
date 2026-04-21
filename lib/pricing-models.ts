@@ -65,8 +65,7 @@ export const SAAD_PLANS: SaadPlan[] = [
 export const DEFAULT_MODELS: PricingModel[] = [
   // ── VIDEO — per second via KIE ──────────────────────────────────────────────
   { id:"kling30",       name:"Kling 3.0",               notes:"std",          type:"video",  provider:"kie",       billing:"per_sec", kieCredits:11.6,  waveUsd:0,     userCreditsRate:2.0,  maxDuration:15,   isActive:true  },
-  { id:"kling30_omni",  name:"Kling 3.0 Omni",          notes:"multimodal",   type:"video",  provider:"kie",       billing:"per_sec", kieCredits:14.0,  waveUsd:0,     userCreditsRate:2.5,  maxDuration:15,   isActive:true  },
-  { id:"kling30_edit",  name:"Kling 3.0 Omni Edit",     notes:"edit",         type:"video",  provider:"kie",       billing:"per_sec", kieCredits:15.0,  waveUsd:0,     userCreditsRate:2.5,  maxDuration:15,   isActive:true  },
+  // Kling 3.0 Omni / Omni Edit removed — not provided by KIE (see kie-model-routing.ts).
   { id:"kling30_mc",    name:"Kling 3.0 Motion Control", notes:"motion",      type:"video",  provider:"kie",       billing:"per_sec", kieCredits:16.4,  waveUsd:0,     userCreditsRate:3.0,  maxDuration:15,   isActive:true  },
   { id:"kling25t",      name:"Kling 2.5 Turbo",         notes:"fast",         type:"video",  provider:"kie",       billing:"per_sec", kieCredits:8.0,   waveUsd:0,     userCreditsRate:1.5,  maxDuration:10,   isActive:true  },
   { id:"hailuo23f",     name:"Hailuo 2.3 Fast",         notes:"fast",         type:"video",  provider:"kie",       billing:"per_sec", kieCredits:6.0,   waveUsd:0,     userCreditsRate:1.5,  maxDuration:10,   isActive:true  },

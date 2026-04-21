@@ -87,8 +87,7 @@ const MODEL_ALIAS_MAP: Record<string, string> = {
 
   // ── Cinema — app/api/video (KIE model routes) ────────────────────────────
   "kwaivgi/kling-v3.0-pro/text-to-video":         "kling30",
-  "kwaivgi/kling-video-o3-pro/text-to-video":     "kling30_omni",
-  "kwaivgi/kling-video-o3-pro/video-edit":        "kling30_edit",
+  // Kling 3.0 Omni / Omni Edit routes removed — KIE has no Omni endpoint.
   "kwaivgi/kling-v3.0-pro/motion-control":        "kling30_mc",
   "minimax/hailuo-2.3/i2v-standard":              "hailuo23f",
   "minimax/hailuo-2.3/i2v-pro":                   "hailuo23",

@@ -16,8 +16,7 @@ const VIDEO_ROUTE_REGISTRY_MAP = new Map(VIDEO_MODEL_REGISTRY.map((m) => [m.api_
 
 const VIDEO_ROUTE_COST_MAP = new Map<string, number>([
   ["kwaivgi/kling-v3.0-pro/text-to-video", 20],
-  ["kwaivgi/kling-video-o3-pro/text-to-video", 24],
-  ["kwaivgi/kling-video-o3-pro/video-edit", 20],
+  // Kling 3.0 Omni / Omni Edit removed — KIE has no Omni endpoint.
   ["kwaivgi/kling-v3.0-pro/motion-control", 22],
   ["kling/v2-5-turbo-text-to-video-pro", 10],
   ["minimax/hailuo-2.3/i2v-standard", 12],
@@ -115,11 +114,7 @@ function getKlingMotionCredits(payload?: VideoPayload): number {
   return is1080 ? 33 : 22;
 }
 
-function getKlingOmniEditCredits(payload?: VideoPayload): number {
-  const duration = readDuration(payload, 5);
-  const baseAt5s = 20;
-  return Math.max(1, Math.ceil((baseAt5s * duration) / 5));
-}
+// Kling Omni Edit credit helper removed — endpoint not provided by KIE.
 
 function getSeedance2Credits(payload?: VideoPayload): number {
   const duration = readDuration(payload, 4);
@@ -225,14 +220,9 @@ export function getVideoCreditsByRoute(modelRoute: string, payload?: VideoPayloa
   if (modelRoute === "kwaivgi/kling-v3.0-pro/text-to-video") {
     return applySoundMultiplier(getKling3Credits(payload), payload);
   }
-  if (modelRoute === "kwaivgi/kling-video-o3-pro/text-to-video") {
-    return applySoundMultiplier(getKling3Credits(payload), payload);
-  }
+  // kwaivgi/kling-video-o3-pro/* routes removed — KIE has no Omni endpoint.
   if (modelRoute === "kwaivgi/kling-v3.0-pro/motion-control") {
     return applySoundMultiplier(getKlingMotionCredits(payload), payload);
-  }
-  if (modelRoute === "kwaivgi/kling-video-o3-pro/video-edit") {
-    return applySoundMultiplier(getKlingOmniEditCredits(payload), payload);
   }
   if (
     modelRoute === "bytedance/dreamina-v3.0/text-to-video-720p" ||

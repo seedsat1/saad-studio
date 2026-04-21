@@ -29,8 +29,7 @@ export const BASE_KIE_IMAGE_MODEL_MAP: Record<string, string> = {
 
 export const BASE_VIDEO_ROUTE_TO_KIE_MODEL: Record<string, string> = {
   "kwaivgi/kling-v3.0-pro/text-to-video": "kling-3.0/video",
-  "kwaivgi/kling-video-o3-pro/text-to-video": "kling-3.0/video",
-  "kwaivgi/kling-video-o3-pro/video-edit": "kling-3.0/video",
+  // NOTE: kwaivgi/kling-video-o3-pro/* routes removed — KIE has no Omni endpoint yet.
   "kwaivgi/kling-v3.0-pro/motion-control": "kling-3.0/motion-control",
   "kling/v2-5-turbo-text-to-video-pro": "kling/v2-5-turbo-text-to-video-pro",
   "minimax/hailuo-2.3/i2v-standard": "hailuo/2-3-image-to-video-standard",

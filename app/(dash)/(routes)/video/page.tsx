@@ -139,8 +139,9 @@ const TOOLS = [
 const TOOL_DEFAULT_MODEL_ID: Record<string, string> = {
   "create-video": "kling-v3.0-pro-t2v",
   "cinema-studio": "bytedance-seedance-v2-t2v",
-  "mixed-media": "kling-v3.0-omni-t2v",
-  "edit-video": "kling-v3.0-omni-edit",
+  // mixed-media / edit-video previously defaulted to Kling 3.0 Omni (removed — KIE has no Omni endpoint).
+  "mixed-media": "kling-v3.0-pro-t2v",
+  "edit-video": "kling-v3.0-pro-t2v",
   "click-to-ad": "google-veo3.1-fast-t2v",
   "sora-trends": "openai-sora-2-pro-t2v",
   "lipsync": "kling-v3.0-pro-motion",
@@ -312,8 +313,7 @@ function VideoPageInner() {
     const dropped = Array.from(event.dataTransfer.files ?? []).filter((file) => file.type.startsWith("image/"));
     if (!dropped.length) return;
     const isKling30 =
-      selectedModel.api_route === "kwaivgi/kling-v3.0-pro/text-to-video" ||
-      selectedModel.api_route === "kwaivgi/kling-video-o3-pro/text-to-video";
+      selectedModel.api_route === "kwaivgi/kling-v3.0-pro/text-to-video";
     const maxRefs = isKling30 ? 3 : selectedModel.capabilities.max_reference_images;
     if (maxRefs <= 0) return;
     setReferenceImages(dropped.slice(0, maxRefs));
@@ -582,8 +582,7 @@ function VideoPageInner() {
 
     // Kling 3.0 detected early — its own validation runs inside the block below
     const isKling30VideoEarly =
-      selectedModel.api_route === "kwaivgi/kling-v3.0-pro/text-to-video" ||
-      selectedModel.api_route === "kwaivgi/kling-video-o3-pro/text-to-video";
+      selectedModel.api_route === "kwaivgi/kling-v3.0-pro/text-to-video";
     // Skip the generic prompt guard for Kling 3.0 (multi-shot can have no main prompt)
     if (!isKling30VideoEarly && !hasMain && !(multiOn && hasMulti)) return;
     setIsSubmitting(true);
@@ -601,8 +600,7 @@ function VideoPageInner() {
 
       const isSeedanceV2 = selectedModel.id.startsWith("bytedance-seedance-v2");
       const isKling30Video =
-        selectedModel.api_route === "kwaivgi/kling-v3.0-pro/text-to-video" ||
-        selectedModel.api_route === "kwaivgi/kling-video-o3-pro/text-to-video";
+        selectedModel.api_route === "kwaivgi/kling-v3.0-pro/text-to-video";
 
       // Image inputs — reference images take priority for ALL models
       if (referenceImages.length > 0) {
@@ -898,8 +896,7 @@ function VideoPageInner() {
     : null;
 
   const isKling30Video =
-    selectedModel.api_route === "kwaivgi/kling-v3.0-pro/text-to-video" ||
-    selectedModel.api_route === "kwaivgi/kling-video-o3-pro/text-to-video";
+    selectedModel.api_route === "kwaivgi/kling-v3.0-pro/text-to-video";
   const multiShotEnabled = caps.has_multi_prompt && (multiPrompts.length > 1 || multiPrompts[0] !== "");
   const showImageInput = caps.requires_image || caps.optional_image;
   // Kling 3.0 spec: end frame is NOT supported in multi-shot mode — uses kling30MultiEnabled (not generic)
