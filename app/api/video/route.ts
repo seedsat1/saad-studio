@@ -71,13 +71,19 @@ async function uploadDataUrlToKie(value: string): Promise<string> {
   const parsed = extractBase64(value);
   if (!parsed) return value;
 
+  // CRITICAL: Use a unique filename per upload. If two uploads share the same
+  // filename, KIE may dedupe and return the same URL for both — which silently
+  // collapses image_urls=[first,last] to image_urls=[same,same] and breaks
+  // first/last-frame video generation.
+  const uniqueId = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+
   const uploadRes = await fetch("https://kieai.redpandaai.co/api/file-base64-upload", {
     method: "POST",
     headers: kieHeaders(),
     body: JSON.stringify({
       base64Data: parsed.fileData,
       uploadPath: "video-refs",
-      fileName: `upload.${parsed.ext}`,
+      fileName: `upload-${uniqueId}.${parsed.ext}`,
     }),
   });
 
@@ -109,9 +115,24 @@ async function resolveMediaInInput(input: Record<string, unknown>) {
     }
 
     if (Array.isArray(value) && ["reference_image_urls", "image_urls"].includes(key)) {
-      resolved[key] = await Promise.all(
+      const uploaded = await Promise.all(
         value.map(async (item) => (typeof item === "string" ? await uploadDataUrlToKie(item) : item)),
       );
+      // Verify uploads produced distinct URLs (critical for first/last frame pairs)
+      if (key === "image_urls" && uploaded.length >= 2) {
+        const urlsOnly = uploaded.filter((u): u is string => typeof u === "string");
+        const uniqueUrls = new Set(urlsOnly);
+        console.log(
+          `[API/video] image_urls uploaded → ${urlsOnly.length} items, ${uniqueUrls.size} unique URLs`,
+          urlsOnly.map((u, i) => `[${i}] ${u.slice(0, 80)}`),
+        );
+        if (uniqueUrls.size < urlsOnly.length) {
+          console.warn(
+            "[API/video] ⚠ KIE returned duplicate URLs for distinct frames — first/last frame transition will not work!",
+          );
+        }
+      }
+      resolved[key] = uploaded;
       continue;
     }
 
