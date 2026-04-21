@@ -177,7 +177,7 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
     badge: "PRO",
     description: "Camera / motion control with a reference image.",
     api_route: "kwaivgi/kling-v3.0-pro/motion-control",
-    route_confirmed: false,
+    route_confirmed: true,
     capabilities: t2vCaps({
       requires_image:    true,
       requires_video:    true,

@@ -387,17 +387,52 @@ function mapToKieInput(model: string, payload: Record<string, unknown>) {
     return out;
   }
 
+  // ── Kling 3.0 Motion Control — KIE flat input shape ──────────────────────
+  // Required: input_urls (1 image), video_urls (1 video). Optional: prompt,
+  // mode ("std"|"pro"), character_orientation ("video"|"image"),
+  // background_source ("input_video"|"input_image"). NO duration/aspect_ratio.
   if (model === "kling-3.0/motion-control") {
-    if (startImage) input.input_urls = [startImage];
-    if (motionVideo) input.video_urls = [motionVideo];
-  } else {
-    if (referenceImages.length) {
-      input.image_urls = referenceImages;
-    } else if (startImage && endImage) {
-      input.image_urls = [startImage, endImage];
-    } else if (startImage) {
-      input.image_urls = [startImage];
+    const out: Record<string, unknown> = {};
+    if (typeof input.prompt === "string" && input.prompt.trim()) {
+      out.prompt = input.prompt.trim().slice(0, 2500);
     }
+    if (startImage) out.input_urls = [startImage];
+    if (motionVideo) out.video_urls = [motionVideo];
+
+    // resolution ("720p"|"1080p") → mode ("std"|"pro")
+    const res = typeof input.resolution === "string" ? input.resolution.toLowerCase() : "";
+    const modeFromInput = typeof input.mode === "string" ? input.mode.toLowerCase() : "";
+    if (modeFromInput === "std" || modeFromInput === "pro") {
+      out.mode = modeFromInput;
+    } else if (res.includes("1080")) {
+      out.mode = "pro";
+    } else if (res.includes("720")) {
+      out.mode = "std";
+    }
+
+    // orientation ("video"|"image") → character_orientation
+    if (input.orientation === "video" || input.orientation === "image") {
+      out.character_orientation = input.orientation;
+    }
+
+    // scene_control_mode toggle → background_source
+    // toggle ON → use image background; OFF (default) → use video background
+    if (input.scene_control_mode === true) {
+      out.background_source = "input_image";
+    } else if (input.scene_control_mode === false) {
+      out.background_source = "input_video";
+    }
+
+    return out;
+  }
+
+  // Generic fallback path (any model not handled above)
+  if (referenceImages.length) {
+    input.image_urls = referenceImages;
+  } else if (startImage && endImage) {
+    input.image_urls = [startImage, endImage];
+  } else if (startImage) {
+    input.image_urls = [startImage];
   }
 
   delete input.image;
