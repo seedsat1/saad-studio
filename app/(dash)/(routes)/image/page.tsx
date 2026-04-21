@@ -407,7 +407,54 @@ function ratioCss(ratio: string): string {
   return `${w} / ${h}`;
 }
 
-function ResultGrid({ items, onInspect, onRemix, onUse, onDelete }: { items: ResultItem[]; onInspect: (asset: Asset) => void; onRemix: (item: ResultItem) => void; onUse: (item: ResultItem) => void; onDelete: (id: string) => void }) {
+function ResultGrid({ items, onInspect, onRemix, onUse, onDelete, onBulkDelete }: { items: ResultItem[]; onInspect: (asset: Asset) => void; onRemix: (item: ResultItem) => void; onUse: (item: ResultItem) => void; onDelete: (id: string) => void; onBulkDelete: (ids: string[]) => void }) {
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  const toggleSelected = useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const selectableItems = items.filter((i) => !i.isPending);
+  const allSelected = selectableItems.length > 0 && selectableItems.every((i) => selectedIds.has(i.id));
+  const toggleSelectAll = useCallback(() => {
+    setSelectedIds((prev) => {
+      const all = selectableItems.every((i) => prev.has(i.id));
+      const next = new Set(prev);
+      if (all) for (const i of selectableItems) next.delete(i.id);
+      else for (const i of selectableItems) next.add(i.id);
+      return next;
+    });
+  }, [selectableItems]);
+
+  const handleBulkDelete = useCallback(() => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    if (typeof window !== "undefined" && !window.confirm(`Delete ${ids.length} item(s)?`)) return;
+    onBulkDelete(ids);
+    setSelectedIds(new Set());
+    setSelectionMode(false);
+  }, [selectedIds, onBulkDelete]);
+
+  const handleBulkDownload = useCallback(async () => {
+    const urls = items.filter((i) => selectedIds.has(i.id) && i.url).map((i) => i.url);
+    for (const url of urls) {
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "";
+      a.target = "_blank";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      // small delay so the browser handles each download
+      await new Promise((r) => setTimeout(r, 200));
+    }
+  }, [items, selectedIds]);
+
   if (!items.length) return <div className="flex h-full items-center justify-center text-sm text-zinc-500">Start generating to see results.</div>;
 
   return (
@@ -418,19 +465,58 @@ function ResultGrid({ items, onInspect, onRemix, onUse, onDelete }: { items: Res
         @media (max-width: 860px)  { .result-masonry { column-count: 2; } }
         @media (max-width: 480px)  { .result-masonry { column-count: 1; } }
       `}</style>
+
+      {/* Selection toolbar */}
+      <div className="mb-2 flex flex-wrap items-center gap-2">
+        <button
+          onClick={() => { setSelectionMode((s) => !s); setSelectedIds(new Set()); }}
+          className={cn(
+            "inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-semibold",
+            selectionMode ? "border-pink-400/40 bg-pink-500/20 text-pink-100" : "border-white/10 bg-white/5 text-zinc-300 hover:bg-white/10",
+          )}
+        >
+          <Check className="h-3 w-3" />
+          {selectionMode ? "Exit selection" : "Select"}
+        </button>
+        {selectionMode && (
+          <>
+            <button onClick={toggleSelectAll} className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-zinc-200 hover:bg-white/10">
+              {allSelected ? "Unselect all" : "Select all"}
+            </button>
+            <span className="text-[11px] text-zinc-400">{selectedIds.size} selected</span>
+            {selectedIds.size > 0 && (
+              <>
+                <button onClick={() => void handleBulkDownload()} className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-white/5 px-2.5 py-1 text-[11px] text-zinc-200 hover:bg-white/10">
+                  <Download className="h-3 w-3" /> Download
+                </button>
+                <button onClick={handleBulkDelete} className="inline-flex items-center gap-1.5 rounded-lg border border-red-500/40 bg-red-500/10 px-2.5 py-1 text-[11px] text-red-200 hover:bg-red-500/20">
+                  <X className="h-3 w-3" /> Delete selected
+                </button>
+              </>
+            )}
+          </>
+        )}
+      </div>
+
       <div className="result-masonry w-full">
         <AnimatePresence>
-          {items.map((item) => (
+          {items.map((item) => {
+            const isSelected = selectedIds.has(item.id);
+            return (
             <motion.div
               key={item.id}
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ duration: 0.2 }}
-              className="group relative mb-2 cursor-pointer overflow-hidden rounded-2xl ring-1 ring-white/10"
+              className={cn(
+                "group relative mb-2 cursor-pointer overflow-hidden rounded-2xl ring-1 transition",
+                isSelected ? "ring-2 ring-pink-400/70" : "ring-white/10",
+              )}
               style={{ breakInside: "avoid", aspectRatio: ratioCss(item.aspect) }}
               onClick={() => {
                 if (item.isPending) return;
+                if (selectionMode) { toggleSelected(item.id); return; }
                 onInspect({ type: "image", url: item.url, prompt: item.prompt, model: item.model, title: "Generated image" });
               }}
             >
@@ -450,8 +536,26 @@ function ResultGrid({ items, onInspect, onRemix, onUse, onDelete }: { items: Res
               ) : (
                 <img src={item.url} alt={item.prompt} className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.04]" />
               )}
+
+              {/* Selection checkbox */}
+              {!item.isPending && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); toggleSelected(item.id); if (!selectionMode) setSelectionMode(true); }}
+                  className={cn(
+                    "absolute right-2 top-2 z-20 inline-flex h-6 w-6 items-center justify-center rounded-md border backdrop-blur transition",
+                    isSelected
+                      ? "border-pink-400 bg-pink-500 text-white opacity-100"
+                      : "border-white/30 bg-black/60 text-white/80 opacity-0 group-hover:opacity-100",
+                    selectionMode && "opacity-100",
+                  )}
+                  title={isSelected ? "Unselect" : "Select"}
+                >
+                  <Check className="h-3.5 w-3.5" />
+                </button>
+              )}
+
               <div className="absolute left-2 top-2 rounded-md bg-black/60 px-2 py-0.5 text-[10px] text-zinc-200">{item.model} • {item.aspect}</div>
-              {!item.isPending ? (
+              {!item.isPending && !selectionMode ? (
                 <div className="absolute inset-0 flex items-end justify-center gap-2 bg-black/0 pb-3 opacity-0 transition duration-200 group-hover:bg-black/45 group-hover:opacity-100">
                   <button onClick={(e) => { e.stopPropagation(); onInspect({ type: "image", url: item.url, prompt: item.prompt, model: item.model, title: "Generated image" }); }} className="rounded-lg bg-white/15 p-2 text-white ring-1 ring-white/20" title="Preview"><Eye className="h-4 w-4" /></button>
                   <a href={item.url} download onClick={(e) => e.stopPropagation()} className="rounded-lg bg-white/15 p-2 text-white ring-1 ring-white/20" title="Download"><Download className="h-4 w-4" /></a>
@@ -461,7 +565,8 @@ function ResultGrid({ items, onInspect, onRemix, onUse, onDelete }: { items: Res
                 </div>
               ) : null}
             </motion.div>
-          ))}
+            );
+          })}
         </AnimatePresence>
       </div>
     </>
@@ -934,6 +1039,20 @@ export default function ImageWorkspacePage() {
     } catch {}
   }, []);
 
+  // Bulk delete from local results + server in one call
+  const handleBulkDelete = useCallback(async (ids: string[]) => {
+    if (ids.length === 0) return;
+    const idSet = new Set(ids);
+    setResults((prev) => prev.filter((i) => !idSet.has(i.id)));
+    try {
+      await fetch("/api/assets", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids }),
+      });
+    } catch {}
+  }, []);
+
   // Use a generated image as a reference for the next generation. If the active
   // model doesn't accept references, switch to a sensible image-to-image default.
   const handleUseAsReference = useCallback(async (item: ResultItem) => {
@@ -963,7 +1082,7 @@ export default function ImageWorkspacePage() {
   }, [selectedModel]);
 
   const renderWorkspace = () => {
-    if (activeTool === "create") return <ResultGrid items={[...pendingItems, ...results]} onInspect={setInspectorAsset} onRemix={(item) => { setActiveTool("create"); setPrompt(`Remix this style: ${item.prompt}`); }} onUse={handleUseAsReference} onDelete={handleDelete} />;
+    if (activeTool === "create") return <ResultGrid items={[...pendingItems, ...results]} onInspect={setInspectorAsset} onRemix={(item) => { setActiveTool("create"); setPrompt(`Remix this style: ${item.prompt}`); }} onUse={handleUseAsReference} onDelete={handleDelete} onBulkDelete={handleBulkDelete} />;
     if (activeTool === "inpaint") return <InpaintWorkspace source={inpaintFile} setSource={setInpaintFile} brushSize={brushSize} setBrushSize={setBrushSize} maskVersion={maskVersion} setMaskVersion={setMaskVersion} registerMaskExporter={(fn) => { maskExporterRef.current = fn; }} />;
     if (compare) return <CompareSlider before={compare.before} after={compare.after} />;
     if (activeTool === "enhance") {
