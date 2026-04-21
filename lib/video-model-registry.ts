@@ -426,18 +426,27 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
   },
 
   // ╔══════════════════════════════════════════════════════════════════════════
-  // ║ xAI Grok
+  // ║ xAI Grok Imagine (video)
+  // ║ Confirmed: https://docs.kie.ai/market/grok-imagine/text-to-video
+  // ║            https://docs.kie.ai/market/grok-imagine/image-to-video
+  // ║ T2V input: prompt (req), aspect_ratio (2:3|3:2|1:1|16:9|9:16, default 2:3),
+  // ║            mode (fun|normal|spicy), duration NUMBER 6-30, resolution (480p|720p),
+  // ║            nsfw_checker bool
+  // ║ I2V input: image_urls (max 7) OR task_id+index, prompt (optional!),
+  // ║            mode (spicy NOT allowed for external images), duration STRING 6-30,
+  // ║            resolution, aspect_ratio (multi-image only — single image inherits),
+  // ║            nsfw_checker
   // ╚══════════════════════════════════════════════════════════════════════════
   {
     id: "xai-grok-imagine-t2v",
     name: "Grok Imagine",
     family: "grok", family_label: "xAI Grok", family_color: "#ef4444",
     badge: "NEW",
-    description: "xAI Grok Imagine — text-to-video generation.",
+    description: "xAI Grok Imagine — text-to-video. Modes: fun / normal / spicy.",
     api_route: "x-ai/grok-imagine-video/text-to-video",
-    route_confirmed: false,
+    route_confirmed: true,
     capabilities: t2vCaps({
-      aspect_ratios: ["16:9", "9:16", "1:1", "2:3", "3:2"],
+      aspect_ratios: ["2:3", "3:2", "1:1", "16:9", "9:16"],
       durations:     [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30],
       resolutions:   ["480p", "720p"],
     }),
@@ -447,11 +456,11 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
     name: "Grok Imagine Edit",
     family: "grok", family_label: "xAI Grok", family_color: "#ef4444",
     badge: null,
-    description: "xAI Grok Imagine — image-to-video / video edit.",
+    description: "xAI Grok Imagine — image-to-video. Up to 7 reference images.",
     api_route: "x-ai/grok-imagine-video/edit-video",
-    route_confirmed: false,
+    route_confirmed: true,
     capabilities: i2vCaps({
-      aspect_ratios:        ["16:9", "9:16", "1:1", "2:3", "3:2"],
+      aspect_ratios:        ["2:3", "3:2", "1:1", "16:9", "9:16"],
       durations:            [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30],
       resolutions:          ["480p", "720p"],
       max_reference_images: 7,

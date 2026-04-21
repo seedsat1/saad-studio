@@ -439,19 +439,62 @@ function mapToKieInput(model: string, payload: Record<string, unknown>) {
     return out;
   }
 
-  // ── Grok Imagine — duration must be a number (integer slider), not a string ──
+  // ── Grok Imagine T2V/I2V ──
+  // Confirmed: https://docs.kie.ai/market/grok-imagine/text-to-video
+  //            https://docs.kie.ai/market/grok-imagine/image-to-video
+  // T2V duration is NUMBER 6-30; I2V duration is STRING (per OpenAPI).
+  // I2V: image_urls (max 7) OR task_id+index (mutually exclusive). prompt optional.
+  // mode: fun|normal|spicy (spicy NOT allowed for I2V with external images).
+  // aspect_ratio default 2:3 (T2V) / inherited from image (I2V single).
   if (model === "grok-imagine/text-to-video" || model === "grok-imagine/image-to-video") {
+    const isI2V = model === "grok-imagine/image-to-video";
     const out: Record<string, unknown> = {};
-    out.prompt = typeof input.prompt === "string" ? input.prompt : "";
-    if (typeof input.aspect_ratio === "string") out.aspect_ratio = input.aspect_ratio;
-    if (typeof input.resolution === "string") out.resolution = input.resolution;
-    // Keep duration as number — KIE Grok expects integer (slider value), not string
-    const grokDur = typeof input.duration === "number" ? input.duration
+    if (typeof input.prompt === "string" && input.prompt.trim()) {
+      out.prompt = input.prompt.slice(0, 5000);
+    } else if (!isI2V) {
+      out.prompt = ""; // T2V requires prompt
+    }
+    // aspect_ratio: validate against allowed enum
+    const arRaw = typeof input.aspect_ratio === "string" ? input.aspect_ratio : "";
+    if (["2:3", "3:2", "1:1", "16:9", "9:16"].includes(arRaw)) {
+      out.aspect_ratio = arRaw;
+    }
+    // resolution: only 480p / 720p
+    const resRaw = typeof input.resolution === "string" ? input.resolution.toLowerCase() : "";
+    if (resRaw === "480p" || resRaw === "720p") out.resolution = resRaw;
+    // duration: 6-30. T2V wants number, I2V wants string per spec.
+    const grokDurNum = typeof input.duration === "number" ? input.duration
       : typeof input.duration === "string" ? Number(input.duration) : 6;
-    if (Number.isFinite(grokDur)) out.duration = grokDur;
-    // I2V: image references (up to 7)
-    if (referenceImages.length > 0) out.image_urls = referenceImages.slice(0, 7);
-    else if (startImage) out.image_urls = [startImage];
+    if (Number.isFinite(grokDurNum)) {
+      const clamped = Math.max(6, Math.min(30, Math.round(grokDurNum)));
+      out.duration = isI2V ? String(clamped) : clamped;
+    }
+    // mode: fun | normal | spicy
+    const modeRaw = typeof input.mode === "string" ? input.mode.toLowerCase() : "";
+    if (modeRaw === "fun" || modeRaw === "normal" || modeRaw === "spicy") {
+      out.mode = modeRaw;
+    }
+    // nsfw_checker pass-through
+    if (typeof input.nsfw_checker === "boolean") out.nsfw_checker = input.nsfw_checker;
+    if (isI2V) {
+      // task_id + index path (mutually exclusive with image_urls)
+      const taskIdRaw = typeof input.task_id === "string" ? input.task_id.trim() : "";
+      if (taskIdRaw && referenceImages.length === 0 && !startImage) {
+        out.task_id = taskIdRaw.slice(0, 100);
+        const idx = typeof input.index === "number" ? input.index : 0;
+        if (Number.isFinite(idx)) out.index = Math.max(0, Math.min(5, Math.round(idx)));
+      } else {
+        // image_urls: prefer references, fall back to startImage. Cap at 7.
+        if (referenceImages.length > 0) out.image_urls = referenceImages.slice(0, 7);
+        else if (startImage) out.image_urls = [startImage];
+        // Spicy mode is NOT available with external images — downgrade to normal
+        if (out.mode === "spicy" && Array.isArray(out.image_urls) && out.image_urls.length > 0) {
+          console.warn("[grok-imagine] Spicy mode unavailable with external images, downgrading to normal");
+          out.mode = "normal";
+        }
+      }
+    }
+    // T2V: ignore any image inputs — endpoint does not accept them
     return out;
   }
 
