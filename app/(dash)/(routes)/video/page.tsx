@@ -254,6 +254,8 @@ function VideoPageInner() {
   const [referenceImages, setReferenceImages] = useState<File[]>([]);
   const [startFramePreview, setStartFramePreview] = useState<string | null>(null);
   const [endFramePreview, setEndFramePreview] = useState<string | null>(null);
+  // Detected aspect ratio of the uploaded start frame (Kling 3.0 i2v auto-adapts to this)
+  const [startFrameRatio, setStartFrameRatio] = useState<string | null>(null);
   const [referencePreviews, setReferencePreviews] = useState<string[]>([]);
   const startFrameRef  = useRef<HTMLInputElement>(null);
   const endFrameRef    = useRef<HTMLInputElement>(null);
@@ -320,10 +322,19 @@ function VideoPageInner() {
   useEffect(() => {
     if (!startFrame) {
       setStartFramePreview(null);
+      setStartFrameRatio(null);
       return;
     }
     const url = URL.createObjectURL(startFrame);
     setStartFramePreview(url);
+    // Detect actual aspect ratio of the image so we can mirror Kling 3.0's auto-adapt behavior
+    const img = new window.Image();
+    img.onload = () => {
+      const r = img.naturalWidth / img.naturalHeight;
+      const snapped = Math.abs(r - 1) < 0.15 ? "1:1" : (r > 1 ? "16:9" : "9:16");
+      setStartFrameRatio(snapped);
+    };
+    img.src = url;
     return () => URL.revokeObjectURL(url);
   }, [startFrame]);
 
@@ -860,7 +871,11 @@ function VideoPageInner() {
         return;
       }
 
-      const _capturedRatio = aspectRatio ?? (size ? sizeToRatio(size) : "16:9");
+      // Kling 3.0 i2v auto-adapts to the start frame's aspect — prefer detected ratio when available
+      const isKling30 = selectedModel.api_route === "kwaivgi/kling-v3.0-pro/text-to-video";
+      const _capturedRatio = (isKling30 && startFrame && startFrameRatio)
+        ? startFrameRatio
+        : (aspectRatio ?? (size ? sizeToRatio(size) : "16:9"));
       setPendingTasks(prev => new Map(prev).set(data.taskId!, { model: selectedModel, promptText: basePrompt, ratio: _capturedRatio, duration }));
       setIsSubmitting(false);
       startPolling(data.taskId, { model: selectedModel, promptText: basePrompt, ratio: _capturedRatio, duration });
@@ -870,7 +885,7 @@ function VideoPageInner() {
     }
   }, [
     activeTool, prompt, selectedModel, caps,
-    startFrame, endFrame, motionVideo, referenceImages, size, aspectRatio, duration, resolution,
+    startFrame, endFrame, motionVideo, referenceImages, size, aspectRatio, startFrameRatio, duration, resolution,
     negPrompt, cfgScale, sound, shotType, multiPrompts, elementList,
     sceneControl, orientation, startPolling,
     klingEls, kling30MultiEnabled, kling30MultiMode, kling30CustomShots,
@@ -2075,26 +2090,43 @@ function VideoPageInner() {
 
               {/* -- Aspect Ratio --------------------------------------------- */}
               <div className="flex flex-col gap-2">
-                <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#475569" }}>Aspect Ratio</label>
+                <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#475569" }}>
+                  Aspect Ratio
+                  {startFrame && <span className="ml-1.5 normal-case tracking-normal" style={{ color: "#f59e0b", fontSize: 9 }}>(locked by start frame)</span>}
+                </label>
                 <div className="flex gap-1">
-                  {(["16:9", "9:16", "1:1"] as const).map(r => (
-                    <button
-                      key={r}
-                      onClick={() => setAspectRatio(r)}
-                      className="flex-1 py-2 rounded-lg text-[12px] font-semibold transition-all"
-                      style={{
-                        background: aspectRatio === r ? hexA(selectedModel.family_color, 0.15) : "rgba(255,255,255,0.04)",
-                        border:     aspectRatio === r ? `1px solid ${hexA(selectedModel.family_color, 0.5)}` : "1px solid rgba(255,255,255,0.06)",
-                        color:      aspectRatio === r ? selectedModel.family_color : "#64748b",
-                      }}
-                    >
-                      {r}
-                    </button>
-                  ))}
+                  {(["16:9", "9:16", "1:1"] as const).map(r => {
+                    const effectiveRatio = startFrame ? (startFrameRatio ?? aspectRatio) : aspectRatio;
+                    const isActive = effectiveRatio === r;
+                    const isDisabled = !!startFrame;
+                    return (
+                      <button
+                        key={r}
+                        onClick={() => !isDisabled && setAspectRatio(r)}
+                        disabled={isDisabled}
+                        className="flex-1 py-2 rounded-lg text-[12px] font-semibold transition-all"
+                        style={{
+                          background: isActive ? hexA(selectedModel.family_color, 0.15) : "rgba(255,255,255,0.04)",
+                          border:     isActive ? `1px solid ${hexA(selectedModel.family_color, 0.5)}` : "1px solid rgba(255,255,255,0.06)",
+                          color:      isActive ? selectedModel.family_color : "#64748b",
+                          opacity:    isDisabled && !isActive ? 0.4 : 1,
+                          cursor:     isDisabled ? "not-allowed" : "pointer",
+                        }}
+                      >
+                        {r}
+                      </button>
+                    );
+                  })}
                 </div>
-                {startFrame && (
+                {startFrame ? (
+                  <div className="rounded-lg px-2 py-1.5" style={{ background: "rgba(245,158,11,0.06)", border: "1px solid rgba(245,158,11,0.2)" }}>
+                    <p className="text-[10px] leading-snug" style={{ color: "#fbbf24" }}>
+                      ⓘ Kling 3.0 ignores the aspect ratio when an image is provided. Output will match your start frame{startFrameRatio ? ` (${startFrameRatio})` : ""}.
+                    </p>
+                  </div>
+                ) : (
                   <p className="text-[10px]" style={{ color: "#64748b" }}>
-                    Aspect ratio may be auto-adapted from your start frame.
+                    Used only for text-to-video. Upload a start frame to auto-match its ratio.
                   </p>
                 )}
               </div>
