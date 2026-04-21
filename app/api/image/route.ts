@@ -8,6 +8,7 @@ import {
   InsufficientCreditsError,
   rollbackGenerationCharge,
   setGenerationMediaUrl,
+  saveAdditionalGenerationUrls,
   spendCredits,
 } from "@/lib/credit-ledger";
 import { getGenerationCost } from "@/lib/pricing";
@@ -72,6 +73,21 @@ export async function POST(req: NextRequest) {
     const firstUrl = response.data?.[0]?.url ?? null;
     if (firstUrl && charge) {
       await setGenerationMediaUrl(charge.generationId, firstUrl);
+    }
+
+    // Save each additional image URL as a separate zero-cost record
+    const additionalUrls = response.data
+      .slice(1)
+      .map((item) => item.url)
+      .filter((url): url is string => typeof url === "string");
+    if (additionalUrls.length > 0 && chargeUserId) {
+      await saveAdditionalGenerationUrls(
+        chargeUserId,
+        prompt,
+        "dall-e-3",
+        "image_legacy",
+        additionalUrls,
+      ).catch(() => {});
     }
 
     return NextResponse.json(response.data);

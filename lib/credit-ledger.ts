@@ -199,6 +199,32 @@ export async function setGenerationMediaUrl(generationId: string, mediaUrl: stri
   });
 }
 
+/**
+ * When a single generation produces multiple images (e.g. numImages=4),
+ * the main generation record already holds the first URL.
+ * Call this to persist each additional URL as a separate zero-cost record
+ * so all images appear in the user's gallery after page refresh.
+ */
+export async function saveAdditionalGenerationUrls(
+  userId: string,
+  prompt: string,
+  modelUsed: string,
+  assetType: string,
+  additionalUrls: string[],
+): Promise<void> {
+  if (!additionalUrls.length || !userId) return;
+  await prismadb.generation.createMany({
+    data: additionalUrls.map((mediaUrl) => ({
+      userId,
+      prompt,
+      mediaUrl,
+      assetType,
+      modelUsed,
+      cost: 0, // credits were already charged in the parent generation record
+    })),
+  });
+}
+
 export async function setGenerationTaskMarker(generationId: string, taskId: string) {
   if (!generationId || !taskId) return;
   await prismadb.generation.update({

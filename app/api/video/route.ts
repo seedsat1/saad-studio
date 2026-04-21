@@ -197,28 +197,30 @@ function mapToKieInput(model: string, payload: Record<string, unknown>) {
     if (aspectRatio) out.aspect_ratio = aspectRatio;
     out.multi_shots = multiShots;
 
-    // Reference images → separate field (KIE Kling 3.0 uses reference_image_urls)
-    if (referenceImages.length > 0) {
-      out.reference_image_urls = referenceImages.slice(0, 3);
-    }
-
+    // image_urls: already correctly built by the frontend (start frame + optional end frame).
+    // Accept them directly from the payload rather than recomputing.
+    const frontendImageUrls = Array.isArray(input.image_urls)
+      ? (input.image_urls as unknown[]).filter((v): v is string => typeof v === "string" && v.trim().length > 0)
+      : [];
     if (multiShots) {
       out.multi_prompt = multiPrompt;
-      // Start frame for multi-shot (only when no reference images)
-      if (referenceImages.length === 0 && startImage) {
+      // Only the first frame is supported in multi-shot
+      if (frontendImageUrls.length > 0) {
+        out.image_urls = [frontendImageUrls[0]];
+      } else if (startImage) {
         out.image_urls = [startImage];
       }
       if (typeof input.prompt === "string") out.prompt = "";
     } else {
       out.prompt = typeof input.prompt === "string" ? input.prompt.trim() : "";
       out.multi_prompt = [];
-      // Start/end frame images (only when no reference images)
-      if (referenceImages.length === 0) {
-        if (startImage && endImage) {
-          out.image_urls = [startImage, endImage];
-        } else if (startImage) {
-          out.image_urls = [startImage];
-        }
+      // Use frontend-built image_urls directly (preserves start+end frame pair)
+      if (frontendImageUrls.length > 0) {
+        out.image_urls = frontendImageUrls.slice(0, 2);
+      } else if (startImage && endImage) {
+        out.image_urls = [startImage, endImage];
+      } else if (startImage) {
+        out.image_urls = [startImage];
       }
     }
 

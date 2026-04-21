@@ -1,7 +1,7 @@
 ﻿import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { getGenerationCost } from "@/lib/pricing";
-import { InsufficientCreditsError, refundCredits, spendCredits, setGenerationMediaUrl } from "@/lib/credit-ledger";
+import { InsufficientCreditsError, refundCredits, spendCredits, setGenerationMediaUrl, saveAdditionalGenerationUrls } from "@/lib/credit-ledger";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { getClientIp, isAllowedOrigin, sanitizePrompt } from "@/lib/security";
 import { getResolvedKieRoutingMaps } from "@/lib/kie-model-routing";
@@ -274,9 +274,21 @@ export async function POST(req: NextRequest) {
     const taskId = await createKieTask(kieApiKey, kieModelId, input);
     const imageUrls = await pollKieTask(kieApiKey, taskId);
 
-    // Save the first result URL so it appears in the Gallery and Image history
+    // Save the first result URL to the main generation record (Gallery + Image history)
     if (generationId && imageUrls[0]) {
       await setGenerationMediaUrl(generationId, imageUrls[0]).catch(() => {});
+    }
+
+    // Save each additional image as a separate zero-cost record so all images
+    // appear correctly in the gallery after page refresh (fixes multi-image loss bug)
+    if (imageUrls.length > 1 && chargedUserId) {
+      await saveAdditionalGenerationUrls(
+        chargedUserId,
+        sanitizePrompt(prompt, 5000),
+        modelId,
+        "IMAGE",
+        imageUrls.slice(1),
+      ).catch(() => {});
     }
 
     return NextResponse.json({ imageUrls, taskId }, { status: 200 });

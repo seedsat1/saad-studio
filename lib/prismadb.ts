@@ -4,17 +4,11 @@ declare global {
   var prisma: PrismaClient | undefined
 }
 
+// Neon PostgreSQL — pooled connection via DATABASE_URL (serverless-safe)
+// DIRECT_URL is used only by `prisma migrate` and `prisma db push`
 const prismadb =
   globalThis.prisma ||
-  new PrismaClient({
-    datasources: {
-      db: {
-        // Append pgbouncer=true&connection_limit=1 to DATABASE_URL in Vercel
-        // for Supabase Transaction pooler (port 6543)
-        url: process.env.DATABASE_URL,
-      },
-    },
-  })
+  new PrismaClient()
 
 if (process.env.NODE_ENV !== "production") globalThis.prisma = prismadb
 

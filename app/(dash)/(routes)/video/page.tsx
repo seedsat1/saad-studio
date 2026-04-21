@@ -235,6 +235,18 @@ function VideoPageInner() {
   const [orientation,   setOrientation]   = useState<"video" | "image">("video");
   const [omniTab,       setOmniTab]       = useState<"elements" | "frames">("elements");
 
+  // Kling 3.0 structured elements (name + description + 2-4 images each, max 3 elements)
+  type KlingEl = { name: string; description: string; files: File[]; previews: string[]; };
+  const [klingEls, setKlingEls] = useState<KlingEl[]>([]);
+
+  // Kling 3.0 multi-shot state (separate from generic multiPrompts — avoids cross-model pollution)
+  const [kling30MultiEnabled, setKling30MultiEnabled] = useState(false);
+  const [kling30MultiMode, setKling30MultiMode] = useState<"auto" | "custom">("auto");
+  // custom shots: each has prompt + individual duration
+  const [kling30CustomShots, setKling30CustomShots] = useState<Array<{ prompt: string; duration: number }>>([
+    { prompt: "", duration: 5 },
+  ]);
+
   // Image inputs
   const [startFrame,   setStartFrame]   = useState<File | null>(null);
   const [endFrame,     setEndFrame]     = useState<File | null>(null);
@@ -406,6 +418,10 @@ function VideoPageInner() {
     setShotType("intelligent");
     setMultiPrompts([""]);
     setElementList([""]);
+    setKlingEls([]);
+    setKling30MultiEnabled(false);
+    setKling30MultiMode("auto");
+    setKling30CustomShots([{ prompt: "", duration: 5 }]);
     setCfgScale(0.5);
     setSound(false);
     setSceneControl(false);
@@ -479,7 +495,11 @@ function VideoPageInner() {
   const pickGalleryAsset = useCallback(async (url: string, target: PickerTarget) => {
     setMediaPicker(null);
     try {
-      const res  = await fetch(url);
+      // Route the fetch through the server-side proxy to avoid CORS issues with
+      // external CDN URLs (KIE, WaveSpeed, etc.) that don't send CORS headers.
+      const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(url)}`;
+      const res  = await fetch(proxyUrl);
+      if (!res.ok) throw new Error(`Proxy returned ${res.status}`);
       const blob = await res.blob();
       const ext  = (url.split(".").pop()?.split("?")[0] ?? "jpg").toLowerCase();
       const mime = blob.type || (ext === "mp4" ? "video/mp4" : "image/jpeg");
@@ -491,8 +511,9 @@ function VideoPageInner() {
         const maxR = caps.max_reference_images || 9;
         setReferenceImages(prev => [...prev, file].slice(0, maxR));
       }
-    } catch {
-      /* silent — user can retry */
+    } catch (err) {
+      console.error("[pickGalleryAsset] Failed to load gallery asset:", err);
+      // Fallback: show a user-visible toast or error here if needed
     }
   }, [caps.max_reference_images]);
 
@@ -547,7 +568,13 @@ function VideoPageInner() {
     const hasMain = prompt.trim().length > 0;
     const hasMulti = multiPrompts.some((s) => s.trim().length > 0);
     const multiOn = caps.has_multi_prompt && (multiPrompts.length > 1 || multiPrompts[0] !== "");
-    if (!hasMain && !(multiOn && hasMulti)) return;
+
+    // Kling 3.0 detected early — its own validation runs inside the block below
+    const isKling30VideoEarly =
+      selectedModel.api_route === "kwaivgi/kling-v3.0-pro/text-to-video" ||
+      selectedModel.api_route === "kwaivgi/kling-video-o3-pro/text-to-video";
+    // Skip the generic prompt guard for Kling 3.0 (multi-shot can have no main prompt)
+    if (!isKling30VideoEarly && !hasMain && !(multiOn && hasMulti)) return;
     setIsSubmitting(true);
     setGenerationError(null);
 
@@ -666,62 +693,146 @@ function VideoPageInner() {
       }
 
       if (isKling30Video) {
-        const modeValue = typeof payload.mode === "string" ? payload.mode : "std";
-        const multiPromptPayload = Array.isArray(payload.multi_prompt)
-          ? (payload.multi_prompt as Array<{ prompt?: string; duration?: number }>)
-          : [];
-        const multiShotsEnabled = multiPromptPayload.length > 0 && multiOn;
+        // ── Kling 3.0 — fully spec-compliant payload builder ─────────────────
+        const resolvedDuration = duration ?? 9;
 
-        if (!multiShotsEnabled && !hasMain) {
-          setGenerationError("Kling 3.0 single-shot requires a prompt.");
-          setIsSubmitting(false);
-          return;
-        }
-        if (duration == null || duration < 3 || duration > 15) {
+        // Validate duration
+        if (resolvedDuration < 3 || resolvedDuration > 15) {
           setGenerationError("Kling 3.0 duration must be between 3 and 15 seconds.");
           setIsSubmitting(false);
           return;
         }
-        if (!["std", "pro"].includes(String(modeValue))) {
-          setGenerationError("Kling 3.0 mode must be std or pro.");
+
+        // Validate elements: each element needs 2+ images
+        const invalidEl = klingEls.find(el => el.name.trim() && el.files.length < 2);
+        if (invalidEl) {
+          setGenerationError(`Element "${invalidEl.name}" needs at least 2 images.`);
           setIsSubmitting(false);
           return;
         }
 
-        // Build image_urls only from start/end frames (NOT reference images).
-        // Reference images are kept in payload.reference_image_urls and handled
-        // separately by the backend.
-        const imageUrls: string[] = [];
-        const hasRefImages = Array.isArray(payload.reference_image_urls) &&
-          (payload.reference_image_urls as string[]).some((s): s is string => typeof s === "string");
-        if (!hasRefImages) {
-          const firstFrame =
-            typeof payload.image === "string"
-              ? payload.image
-              : typeof payload.first_frame_url === "string"
-                ? payload.first_frame_url
-                : null;
-          const lastFrame =
-            typeof payload.end_image === "string"
-              ? payload.end_image
-              : typeof payload.last_frame_url === "string"
-                ? payload.last_frame_url
-                : null;
-          if (firstFrame) imageUrls.push(firstFrame);
-          if (!multiShotsEnabled && lastFrame) imageUrls.push(lastFrame);
+        // Validate custom shots total duration
+        if (kling30MultiEnabled && kling30MultiMode === "custom") {
+          const activeCustom = kling30CustomShots.filter(s => s.prompt.trim());
+          if (!activeCustom.length) {
+            setGenerationError("Add at least one shot prompt in custom mode.");
+            setIsSubmitting(false);
+            return;
+          }
+          if (!kling30CustomDurationValid) {
+            setGenerationError(
+              `Shot durations must total exactly ${resolvedDuration}s (currently ${kling30CustomTotalDuration}s).`
+            );
+            setIsSubmitting(false);
+            return;
+          }
+          if (activeCustom.length > 5) {
+            setGenerationError("Maximum 5 shots allowed.");
+            setIsSubmitting(false);
+            return;
+          }
         }
+
+        // Validate single-shot prompt
+        if (!kling30MultiEnabled && !hasMain) {
+          setGenerationError("Kling 3.0 single-shot requires a prompt.");
+          setIsSubmitting(false);
+          return;
+        }
+
+        // Resolution → mode: "std" | "pro"
+        const modeValue = resolution === "pro" ? "pro" : "std";
+
+        // ── image_urls: read DIRECTLY from React state (authoritative source) ──
+        // payload.image / payload.end_image are set by the generic block above,
+        // but we re-read from state to guarantee no silent data loss.
+        const imageUrls: string[] = [];
+        const firstFrameDataUrl = startFrame ? await fileToDataURL(startFrame) : null;
+        const lastFrameDataUrl =
+          !kling30MultiEnabled && endFrame ? await fileToDataURL(endFrame) : null;
+        if (firstFrameDataUrl) imageUrls.push(firstFrameDataUrl);
+        if (lastFrameDataUrl) imageUrls.push(lastFrameDataUrl);
+        // Log so we can verify images are included
+        console.log(
+          `[Kling 3.0] image_urls built: start=${firstFrameDataUrl ? "✓ (" + firstFrameDataUrl.slice(0, 40) + "…)" : "✗ none"}, end=${lastFrameDataUrl ? "✓" : kling30MultiEnabled ? "skipped (multi-shot)" : "✗ none"}`
+        );
+
+        // ── kling_elements ───────────────────────────────────────────────────
+        delete payload.element_list;
+        delete payload.reference_image_urls;
+        const validKlingEls = klingEls
+          .slice(0, 3)
+          .filter((el) => el.name.trim() && el.description.trim() && el.files.length >= 2);
+
+        // ── multi_prompt: build from auto or custom mode ─────────────────────
+        let multiPromptList: Array<{ prompt: string; duration: number }> = [];
+        if (kling30MultiEnabled) {
+          if (kling30MultiMode === "auto") {
+            const shotCount = Math.min(5, Math.max(1, Math.floor(resolvedDuration / 3)));
+            const splitD = splitShotDurations(resolvedDuration, shotCount);
+            const baseP = prompt.trim() || "Continue the scene";
+            multiPromptList = Array.from({ length: shotCount }, (_, i) => ({
+              prompt: baseP,
+              duration: splitD[i] ?? 3,
+            }));
+          } else {
+            multiPromptList = kling30CustomShots
+              .filter(s => s.prompt.trim())
+              .slice(0, 5)
+              .map(s => ({ prompt: s.prompt.trim(), duration: s.duration }));
+          }
+        }
+
+        // ── Build final payload ──────────────────────────────────────────────
+        // Remove all generic keys — Kling 3.0 uses its own field names
+        delete payload.image; delete payload.first_frame_url;
+        delete payload.end_image; delete payload.last_frame_url;
+        delete payload.multi_prompt; delete payload.element_list;
+
         payload.image_urls = imageUrls;
-        payload.multi_shots = multiShotsEnabled;
+        payload.multi_shots = kling30MultiEnabled;
+        payload.multi_prompt = multiPromptList;
         payload.mode = modeValue;
         payload.sound = !!sound;
-        payload.duration = duration;
+        payload.duration = resolvedDuration;
+        payload.aspect_ratio = aspectRatio ?? "16:9";
+        payload.prompt = kling30MultiEnabled ? "" : (toolPrefix ? `${toolPrefix} ${prompt.trim()}` : prompt.trim());
 
-        if (multiShotsEnabled) {
-          payload.prompt = "";
+        if (validKlingEls.length > 0) {
+          payload.kling_elements = await Promise.all(
+            validKlingEls.map(async (el) => ({
+              name: el.name.trim(),
+              description: el.description.trim(),
+              element_input_urls: await Promise.all(el.files.slice(0, 4).map((f) => fileToDataURL(f))),
+            }))
+          );
         } else {
-          payload.multi_prompt = [];
-          payload.prompt = toolPrefix ? `${toolPrefix} ${prompt.trim()}` : prompt.trim();
+          delete payload.kling_elements;
         }
+
+        // ── PAYLOAD VERIFICATION LOG ─────────────────────────────────────────
+        // Logs a compact diagnostic payload (data URLs truncated to 60 chars)
+        const debugPayload = {
+          model: "kling-3.0/video",
+          prompt: payload.prompt,
+          mode: payload.mode,
+          duration: payload.duration,
+          aspect_ratio: payload.aspect_ratio,
+          multi_shots: payload.multi_shots,
+          sound: payload.sound,
+          image_urls: (payload.image_urls as string[]).map(
+            (u, i) => `[frame_${i}] ${u.slice(0, 60)}…`
+          ),
+          multi_prompt: payload.multi_prompt,
+          kling_elements: Array.isArray(payload.kling_elements)
+            ? (payload.kling_elements as Array<{name:string;description:string;element_input_urls:string[]}>).map(el => ({
+                name: el.name,
+                description: el.description,
+                images: el.element_input_urls.map((u,i)=>`[el_img_${i}] ${u.slice(0,60)}…`),
+              }))
+            : [],
+        };
+        console.log("[Kling 3.0] ✅ Final payload (before send):", JSON.stringify(debugPayload, null, 2));
       }
 
       const res = await fetch("/api/video", {
@@ -762,6 +873,8 @@ function VideoPageInner() {
     startFrame, endFrame, motionVideo, referenceImages, size, aspectRatio, duration, resolution,
     negPrompt, cfgScale, sound, shotType, multiPrompts, elementList,
     sceneControl, orientation, startPolling,
+    klingEls, kling30MultiEnabled, kling30MultiMode, kling30CustomShots,
+    kling30CustomDurationValid, kling30CustomTotalDuration,
   ]);
 
   const [mobileSettingsOpen, setMobileSettingsOpen] = useState(false);
@@ -770,16 +883,26 @@ function VideoPageInner() {
     ? BADGE_STYLE[selectedModel.badge as keyof typeof BADGE_STYLE]
     : null;
 
-  const showImageInput = caps.requires_image || caps.optional_image;
-  const showEndFrame   = caps.has_end_frame;
-  const showVideoInput = caps.requires_video;
-  const showOmniTabs   = caps.has_omni_tabs;
-  const showReferenceImages = caps.max_reference_images > 0;
   const isKling30Video =
     selectedModel.api_route === "kwaivgi/kling-v3.0-pro/text-to-video" ||
     selectedModel.api_route === "kwaivgi/kling-video-o3-pro/text-to-video";
-  const showSimpleKlingRefs = isKling30Video;
   const multiShotEnabled = caps.has_multi_prompt && (multiPrompts.length > 1 || multiPrompts[0] !== "");
+  const showImageInput = caps.requires_image || caps.optional_image;
+  // Kling 3.0 spec: end frame is NOT supported in multi-shot mode — uses kling30MultiEnabled (not generic)
+  const showEndFrame   = caps.has_end_frame && !(isKling30Video && kling30MultiEnabled);
+  const showVideoInput = caps.requires_video;
+  const showOmniTabs   = caps.has_omni_tabs;
+  // Kling 3.0 uses image_urls for start/end frames — no separate reference images section
+  const showReferenceImages = caps.max_reference_images > 0 && !isKling30Video;
+  const showSimpleKlingRefs = false; // Kling 3.0 now uses start/end frame inputs directly
+  const showKling30Elements = isKling30Video && caps.has_element_list;
+
+  // Kling 3.0 computed values
+  const kling30ShotCount = Math.min(5, Math.max(1, Math.floor((duration ?? 9) / 3)));
+  const kling30CustomTotalDuration = kling30CustomShots.reduce((sum, s) => sum + s.duration, 0);
+  const kling30DurationTarget = duration ?? 9;
+  const kling30CustomDurationValid = kling30CustomTotalDuration === kling30DurationTarget;
+  const kling30CustomDurationRemaining = kling30DurationTarget - kling30CustomTotalDuration;
   const maxShotsAllowed = (() => {
     if (!caps.has_multi_prompt) return 1;
     const hardMax = 5;
@@ -793,10 +916,21 @@ function VideoPageInner() {
   const hasRequiredImageInput =
     !caps.requires_image || !!startFrame || referenceImages.length > 0;
   const hasRequiredVideoInput = !caps.requires_video || !!motionVideo;
-  const canGenerate =
-    (hasMainPrompt || (multiShotEnabled && hasMultiPrompt)) &&
-    hasRequiredImageInput &&
-    hasRequiredVideoInput;
+  const canGenerate = isKling30Video
+    ? (
+        (kling30MultiEnabled
+          ? (kling30MultiMode === "auto"
+              ? true // auto builds prompts automatically
+              : kling30CustomShots.some(s => s.prompt.trim()) && kling30CustomDurationValid)
+          : hasMainPrompt) &&
+        hasRequiredImageInput &&
+        hasRequiredVideoInput
+      )
+    : (
+        (hasMainPrompt || (multiShotEnabled && hasMultiPrompt)) &&
+        hasRequiredImageInput &&
+        hasRequiredVideoInput
+      );
   const activeMultiPromptIndexes = multiPrompts
     .map((value, index) => ({ value: value.trim(), index }))
     .filter((item) => item.value.length > 0);
@@ -1795,6 +1929,461 @@ function VideoPageInner() {
             </div>
           </div>
 
+          {/* ════════════════════════════════════════════════════════════
+              KLING 3.0 — Dedicated full-spec panel
+              ════════════════════════════════════════════════════════════ */}
+          {isKling30Video && (
+            <div className="flex flex-col gap-4">
+
+              {/* -- Start / End Frame ---------------------------------------- */}
+              <div className="flex flex-col gap-2">
+                <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#475569" }}>
+                  Frames
+                </label>
+                <div className="flex gap-2">
+                  {/* Start frame — always shown */}
+                  <button
+                    onClick={() => openMediaPicker("startFrame")}
+                    onDragOver={allowDrop}
+                    onDragEnter={(event) => markDropZone(event, "startFrame")}
+                    onDragLeave={(event) => clearDropZone(event, "startFrame")}
+                    onDrop={(event) => handleDropSingleImage(event, setStartFrame)}
+                    className="relative flex-1 flex flex-col items-center justify-center gap-1 rounded-xl border border-dashed transition-all"
+                    style={{ height: 88, borderColor: startFrame ? hexA(selectedModel.family_color, 0.6) : "rgba(255,255,255,0.1)", background: startFrame ? hexA(selectedModel.family_color, 0.07) : "rgba(255,255,255,0.02)" }}
+                  >
+                    <input ref={startFrameRef} type="file" accept="image/*" className="hidden" onChange={e => setStartFrame(e.target.files?.[0] ?? null)} />
+                    {startFrame ? (
+                      <>
+                        {startFramePreview && <img src={startFramePreview} alt="Start" className="absolute inset-0 w-full h-full object-cover rounded-xl" />}
+                        <span className="absolute bottom-1.5 left-1.5 right-1.5 truncate rounded bg-black/60 px-1 py-0.5 text-[9px] text-cyan-200">{startFrame.name}</span>
+                        <button className="absolute top-1.5 left-1.5 z-10" onClick={e => { e.stopPropagation(); setStartFrame(null); }}><X size={10} style={{ color: "#fff" }} /></button>
+                      </>
+                    ) : (
+                      <>
+                        <ImageIcon size={16} style={{ color: "#475569" }} />
+                        <span className="text-[10px]" style={{ color: "#475569" }}>Start frame</span>
+                        <span className="text-[9px]" style={{ color: "#334155" }}>Optional</span>
+                      </>
+                    )}
+                    {activeDropZone === "startFrame" && <span className="absolute inset-0 flex items-center justify-center rounded-xl bg-cyan-500/15 text-[11px] font-semibold text-cyan-300">Drop here</span>}
+                  </button>
+
+                  {/* End frame — HIDDEN in multi-shot mode */}
+                  {!kling30MultiEnabled && (
+                    <button
+                      onClick={() => openMediaPicker("endFrame")}
+                      onDragOver={allowDrop}
+                      onDragEnter={(event) => markDropZone(event, "endFrame")}
+                      onDragLeave={(event) => clearDropZone(event, "endFrame")}
+                      onDrop={(event) => handleDropSingleImage(event, setEndFrame)}
+                      className="relative flex-1 flex flex-col items-center justify-center gap-1 rounded-xl border border-dashed transition-all"
+                      style={{ height: 88, borderColor: endFrame ? hexA(selectedModel.family_color, 0.6) : "rgba(255,255,255,0.1)", background: endFrame ? hexA(selectedModel.family_color, 0.07) : "rgba(255,255,255,0.02)" }}
+                    >
+                      <input ref={endFrameRef} type="file" accept="image/*" className="hidden" onChange={e => setEndFrame(e.target.files?.[0] ?? null)} />
+                      {endFrame ? (
+                        <>
+                          {endFramePreview && <img src={endFramePreview} alt="End" className="absolute inset-0 w-full h-full object-cover rounded-xl" />}
+                          <span className="absolute bottom-1.5 left-1.5 right-1.5 truncate rounded bg-black/60 px-1 py-0.5 text-[9px] text-cyan-200">{endFrame.name}</span>
+                          <button className="absolute top-1.5 left-1.5 z-10" onClick={e => { e.stopPropagation(); setEndFrame(null); }}><X size={10} style={{ color: "#fff" }} /></button>
+                        </>
+                      ) : (
+                        <>
+                          <ImageIcon size={16} style={{ color: "#475569" }} />
+                          <span className="text-[10px]" style={{ color: "#475569" }}>End frame</span>
+                          <span className="text-[9px]" style={{ color: "#334155" }}>Optional</span>
+                        </>
+                      )}
+                      {activeDropZone === "endFrame" && <span className="absolute inset-0 flex items-center justify-center rounded-xl bg-cyan-500/15 text-[11px] font-semibold text-cyan-300">Drop here</span>}
+                    </button>
+                  )}
+                </div>
+                {kling30MultiEnabled && (
+                  <p className="text-[10px]" style={{ color: "#64748b" }}>
+                    End frame is not available in multi-shot mode.
+                  </p>
+                )}
+              </div>
+
+              {/* -- Duration slider ------------------------------------------ */}
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#475569" }}>Duration</label>
+                  <span className="text-[13px] font-bold" style={{ color: selectedModel.family_color }}>{duration ?? 9}s</span>
+                </div>
+                <input
+                  type="range"
+                  min={3}
+                  max={15}
+                  step={1}
+                  value={duration ?? 9}
+                  onChange={e => {
+                    const v = Number(e.target.value);
+                    setDuration(v);
+                    // Auto mode: clamp custom shots if over new max
+                    if (kling30MultiMode === "custom") {
+                      const maxShots = Math.min(5, Math.floor(v / 3));
+                      setKling30CustomShots(prev => prev.slice(0, Math.max(1, maxShots)));
+                    }
+                  }}
+                  className="w-full h-1.5 rounded outline-none cursor-pointer"
+                  style={{ accentColor: selectedModel.family_color }}
+                />
+                <div className="flex justify-between text-[10px]" style={{ color: "#334155" }}>
+                  <span>3s</span>
+                  {kling30MultiEnabled && kling30MultiMode === "auto" && (
+                    <span style={{ color: "#64748b" }}>→ {kling30ShotCount} shot{kling30ShotCount > 1 ? "s" : ""}</span>
+                  )}
+                  <span>15s</span>
+                </div>
+              </div>
+
+              {/* -- Aspect Ratio --------------------------------------------- */}
+              <div className="flex flex-col gap-2">
+                <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#475569" }}>Aspect Ratio</label>
+                <div className="flex gap-1">
+                  {(["16:9", "9:16", "1:1"] as const).map(r => (
+                    <button
+                      key={r}
+                      onClick={() => setAspectRatio(r)}
+                      className="flex-1 py-2 rounded-lg text-[12px] font-semibold transition-all"
+                      style={{
+                        background: aspectRatio === r ? hexA(selectedModel.family_color, 0.15) : "rgba(255,255,255,0.04)",
+                        border:     aspectRatio === r ? `1px solid ${hexA(selectedModel.family_color, 0.5)}` : "1px solid rgba(255,255,255,0.06)",
+                        color:      aspectRatio === r ? selectedModel.family_color : "#64748b",
+                      }}
+                    >
+                      {r}
+                    </button>
+                  ))}
+                </div>
+                {startFrame && (
+                  <p className="text-[10px]" style={{ color: "#64748b" }}>
+                    Aspect ratio may be auto-adapted from your start frame.
+                  </p>
+                )}
+              </div>
+
+              {/* -- Resolution (720p std / 1080p pro) ------------------------ */}
+              <div className="flex flex-col gap-2">
+                <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#475569" }}>Resolution</label>
+                <div className="flex gap-1">
+                  {([["std", "720p"], ["pro", "1080p"]] as const).map(([val, label]) => (
+                    <button
+                      key={val}
+                      onClick={() => setResolution(val)}
+                      className="flex-1 py-2 rounded-lg text-[12px] font-semibold transition-all"
+                      style={{
+                        background: resolution === val ? hexA(selectedModel.family_color, 0.15) : "rgba(255,255,255,0.04)",
+                        border:     resolution === val ? `1px solid ${hexA(selectedModel.family_color, 0.5)}` : "1px solid rgba(255,255,255,0.06)",
+                        color:      resolution === val ? selectedModel.family_color : "#64748b",
+                      }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-[10px]" style={{ color: "#334155" }}>
+                  {resolution === "pro"
+                    ? (aspectRatio === "16:9" ? "1920×1080" : aspectRatio === "9:16" ? "1080×1920" : "1080×1080")
+                    : (aspectRatio === "16:9" ? "1280×720" : aspectRatio === "9:16" ? "720×1280" : "720×720")}
+                </p>
+              </div>
+
+              {/* -- Multi-shot toggle ---------------------------------------- */}
+              <div className="flex items-center justify-between">
+                <div className="flex flex-col">
+                  <span className="text-[12px] font-medium" style={{ color: "#94a3b8" }}>Multi-shot</span>
+                  <span className="text-[10px]" style={{ color: "#475569" }}>Multiple scenes in one video</span>
+                </div>
+                <button
+                  onClick={() => {
+                    const next = !kling30MultiEnabled;
+                    setKling30MultiEnabled(next);
+                    if (next && endFrame) setEndFrame(null); // clear end frame when enabling multi-shot
+                  }}
+                  className="relative w-10 h-5 rounded-full transition-all flex-shrink-0"
+                  style={{ background: kling30MultiEnabled ? hexA(selectedModel.family_color, 0.7) : "rgba(255,255,255,0.08)" }}
+                >
+                  <span
+                    className="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all"
+                    style={{ left: kling30MultiEnabled ? "calc(100% - 18px)" : 2 }}
+                  />
+                </button>
+              </div>
+
+              {/* -- Multi-shot Builder --------------------------------------- */}
+              {kling30MultiEnabled && (
+                <div className="flex flex-col gap-3">
+                  {/* Auto / Custom tabs */}
+                  <div
+                    className="flex rounded-lg overflow-hidden"
+                    style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
+                  >
+                    {(["auto", "custom"] as const).map(mode => (
+                      <button
+                        key={mode}
+                        onClick={() => setKling30MultiMode(mode)}
+                        className="flex-1 py-2 text-[12px] font-semibold capitalize transition-all"
+                        style={{
+                          background: kling30MultiMode === mode ? hexA(selectedModel.family_color, 0.15) : "transparent",
+                          color:      kling30MultiMode === mode ? selectedModel.family_color : "#64748b",
+                          borderBottom: kling30MultiMode === mode ? `2px solid ${selectedModel.family_color}` : "2px solid transparent",
+                        }}
+                      >
+                        {mode.charAt(0).toUpperCase() + mode.slice(1)}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* AUTO MODE */}
+                  {kling30MultiMode === "auto" && (
+                    <div
+                      className="rounded-xl p-3 flex flex-col gap-1"
+                      style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${hexA(selectedModel.family_color, 0.15)}` }}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-[12px]" style={{ color: "#94a3b8" }}>Shots</span>
+                        <span className="text-[14px] font-bold" style={{ color: selectedModel.family_color }}>{kling30ShotCount}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-[12px]" style={{ color: "#94a3b8" }}>Duration per shot</span>
+                        <span className="text-[12px]" style={{ color: "#64748b" }}>≈ {Math.floor((duration ?? 9) / kling30ShotCount)}s each</span>
+                      </div>
+                      <p className="text-[10px] mt-1" style={{ color: "#475569" }}>
+                        Auto divides {duration ?? 9}s into {kling30ShotCount} scene{kling30ShotCount > 1 ? "s" : ""} using your prompt.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* CUSTOM MODE */}
+                  {kling30MultiMode === "custom" && (
+                    <div className="flex flex-col gap-2">
+                      {/* Duration status bar */}
+                      <div
+                        className="flex items-center justify-between rounded-lg px-3 py-2"
+                        style={{
+                          background: kling30CustomDurationValid ? "rgba(16,185,129,0.08)" : kling30CustomDurationRemaining < 0 ? "rgba(239,68,68,0.08)" : "rgba(245,158,11,0.08)",
+                          border: `1px solid ${kling30CustomDurationValid ? "rgba(16,185,129,0.3)" : kling30CustomDurationRemaining < 0 ? "rgba(239,68,68,0.3)" : "rgba(245,158,11,0.3)"}`,
+                        }}
+                      >
+                        <span className="text-[11px]" style={{ color: kling30CustomDurationValid ? "#34d399" : kling30CustomDurationRemaining < 0 ? "#f87171" : "#fbbf24" }}>
+                          {kling30CustomDurationValid
+                            ? `✓ ${kling30CustomTotalDuration}s — matches target`
+                            : kling30CustomDurationRemaining > 0
+                              ? `${kling30CustomTotalDuration}s / ${kling30DurationTarget}s — ${kling30CustomDurationRemaining}s remaining`
+                              : `${kling30CustomTotalDuration}s / ${kling30DurationTarget}s — ${Math.abs(kling30CustomDurationRemaining)}s over`}
+                        </span>
+                      </div>
+
+                      {/* Shot list */}
+                      <div className="flex flex-col gap-1.5">
+                        {kling30CustomShots.map((shot, i) => (
+                          <div
+                            key={i}
+                            className="flex flex-col gap-1 rounded-xl p-2"
+                            style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${hexA(selectedModel.family_color, 0.15)}` }}
+                          >
+                            <div className="flex items-center gap-1.5">
+                              <span
+                                className="text-[9px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0"
+                                style={{ background: hexA(selectedModel.family_color, 0.15), color: selectedModel.family_color }}
+                              >
+                                Shot {i + 1}
+                              </span>
+                              {/* Duration input */}
+                              <div className="flex items-center gap-1 ml-auto flex-shrink-0">
+                                <button
+                                  onClick={() => setKling30CustomShots(prev => prev.map((s, idx) => idx === i ? { ...s, duration: Math.max(1, s.duration - 1) } : s))}
+                                  className="w-5 h-5 rounded flex items-center justify-center text-[12px] font-bold"
+                                  style={{ background: "rgba(255,255,255,0.06)", color: "#94a3b8" }}
+                                >−</button>
+                                <span className="text-[11px] w-6 text-center" style={{ color: selectedModel.family_color }}>{shot.duration}s</span>
+                                <button
+                                  onClick={() => setKling30CustomShots(prev => prev.map((s, idx) => idx === i ? { ...s, duration: Math.min(12, s.duration + 1) } : s))}
+                                  className="w-5 h-5 rounded flex items-center justify-center text-[12px] font-bold"
+                                  style={{ background: "rgba(255,255,255,0.06)", color: "#94a3b8" }}
+                                >+</button>
+                              </div>
+                              {kling30CustomShots.length > 1 && (
+                                <button onClick={() => setKling30CustomShots(prev => prev.filter((_, idx) => idx !== i))}>
+                                  <X size={10} style={{ color: "#475569" }} />
+                                </button>
+                              )}
+                            </div>
+                            <textarea
+                              value={shot.prompt}
+                              onChange={e => setKling30CustomShots(prev => prev.map((s, idx) => idx === i ? { ...s, prompt: e.target.value } : s))}
+                              placeholder={`Scene ${i + 1} description…`}
+                              rows={2}
+                              className="w-full bg-transparent rounded-lg px-2 py-1.5 text-[11px] outline-none resize-none"
+                              style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${hexA(selectedModel.family_color, 0.15)}`, color: "#94a3b8" }}
+                            />
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Add shot button */}
+                      {kling30CustomShots.length < Math.min(5, Math.floor((duration ?? 9) / 1)) && (
+                        <button
+                          onClick={() => setKling30CustomShots(prev => [...prev, { prompt: "", duration: 3 }])}
+                          className="text-[11px] py-2 rounded-lg transition-all"
+                          style={{ background: hexA(selectedModel.family_color, 0.08), color: selectedModel.family_color, border: `1px dashed ${hexA(selectedModel.family_color, 0.3)}` }}
+                        >
+                          + Add Shot ({kling30CustomShots.length}/5 max)
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* -- Elements system ------------------------------------------ */}
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#475569" }}>
+                    Elements
+                  </label>
+                  {klingEls.length < 3 && (
+                    <button
+                      onClick={() => setKlingEls(prev => [...prev, { name: "", description: "", files: [], previews: [] }])}
+                      className="text-[10px] px-2 py-0.5 rounded-md transition-all"
+                      style={{ background: hexA(selectedModel.family_color, 0.12), color: selectedModel.family_color, border: `1px solid ${hexA(selectedModel.family_color, 0.3)}` }}
+                    >
+                      + Add Element
+                    </button>
+                  )}
+                </div>
+                {klingEls.length === 0 && (
+                  <p className="text-[10px]" style={{ color: "#334155" }}>
+                    Elements let you reference consistent characters or objects using <span style={{ color: "#64748b" }}>@element_name</span> in your prompt.
+                  </p>
+                )}
+                {klingEls.map((el, elIdx) => (
+                  <div
+                    key={elIdx}
+                    className="flex flex-col gap-2 rounded-xl p-3"
+                    style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${hexA(selectedModel.family_color, 0.2)}` }}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-medium" style={{ color: selectedModel.family_color }}>Element {elIdx + 1}</span>
+                      <button onClick={() => setKlingEls(prev => prev.filter((_, i) => i !== elIdx))}><X size={11} style={{ color: "#475569" }} /></button>
+                    </div>
+                    <input
+                      value={el.name}
+                      onChange={e => setKlingEls(prev => prev.map((v, i) => i === elIdx ? { ...v, name: e.target.value } : v))}
+                      placeholder="Name (used as @name in prompt)"
+                      className="w-full bg-transparent rounded-lg px-3 py-2 text-[12px] outline-none"
+                      style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", color: "#94a3b8" }}
+                    />
+                    <input
+                      value={el.description}
+                      onChange={e => setKlingEls(prev => prev.map((v, i) => i === elIdx ? { ...v, description: e.target.value } : v))}
+                      placeholder="Brief description of this element"
+                      className="w-full bg-transparent rounded-lg px-3 py-2 text-[12px] outline-none"
+                      style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", color: "#94a3b8" }}
+                    />
+                    {/* Image slots (2 required + 2 optional) */}
+                    <div className="grid grid-cols-4 gap-1">
+                      {Array.from({ length: 4 }).map((_, imgIdx) => {
+                        const preview = el.previews[imgIdx];
+                        const hasFile = !!el.files[imgIdx];
+                        const isRequired = imgIdx < 2;
+                        return (
+                          <label
+                            key={imgIdx}
+                            className="relative flex flex-col items-center justify-center rounded-lg border border-dashed cursor-pointer overflow-hidden"
+                            style={{ height: 52, borderColor: hasFile ? hexA(selectedModel.family_color, 0.5) : isRequired ? "rgba(100,116,139,0.4)" : "rgba(255,255,255,0.06)", background: hasFile ? hexA(selectedModel.family_color, 0.07) : "rgba(255,255,255,0.02)" }}
+                          >
+                            <input
+                              type="file" accept="image/*" className="hidden"
+                              onChange={e => {
+                                const file = e.target.files?.[0];
+                                if (!file) return;
+                                const url = URL.createObjectURL(file);
+                                setKlingEls(prev => prev.map((v, i) => {
+                                  if (i !== elIdx) return v;
+                                  const newFiles = [...v.files];
+                                  const newPreviews = [...v.previews];
+                                  if (newPreviews[imgIdx]) URL.revokeObjectURL(newPreviews[imgIdx]);
+                                  newFiles[imgIdx] = file;
+                                  newPreviews[imgIdx] = url;
+                                  return { ...v, files: newFiles, previews: newPreviews };
+                                }));
+                              }}
+                            />
+                            {preview ? (
+                              <>
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={preview} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                                <button
+                                  type="button" className="absolute top-0.5 right-0.5 z-10"
+                                  onClick={e => {
+                                    e.preventDefault();
+                                    setKlingEls(prev => prev.map((v, i) => {
+                                      if (i !== elIdx) return v;
+                                      const nf = [...v.files]; const np = [...v.previews];
+                                      if (np[imgIdx]) URL.revokeObjectURL(np[imgIdx]);
+                                      nf.splice(imgIdx, 1); np.splice(imgIdx, 1);
+                                      return { ...v, files: nf, previews: np };
+                                    }));
+                                  }}
+                                ><X size={9} style={{ color: "#fff" }} /></button>
+                              </>
+                            ) : (
+                              <span className="text-[8px] text-center px-1" style={{ color: isRequired ? "#64748b" : "#334155" }}>
+                                {isRequired ? "Req." : "Opt."}
+                              </span>
+                            )}
+                          </label>
+                        );
+                      })}
+                    </div>
+                    {el.files.filter(Boolean).length < 2 && (
+                      <span className="text-[10px]" style={{ color: "#ef4444" }}>⚠ Upload at least 2 images for this element.</span>
+                    )}
+                    {el.name.trim() && (
+                      <div className="flex items-center gap-1 flex-wrap">
+                        <span className="text-[9px]" style={{ color: "#475569" }}>Use in prompt:</span>
+                        <button
+                          onClick={() => setPrompt(prev => prev.trimEnd() + (prev ? " " : "") + `@${el.name.trim()}`)}
+                          className="text-[10px] px-1.5 py-0.5 rounded"
+                          style={{ background: hexA(selectedModel.family_color, 0.12), color: selectedModel.family_color, border: `1px solid ${hexA(selectedModel.family_color, 0.25)}` }}
+                        >
+                          @{el.name.trim()}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* -- Sound ---------------------------------------------------- */}
+              {caps.has_sound && (
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Music2 size={13} style={{ color: "#475569" }} />
+                    <div className="flex flex-col">
+                      <span className="text-[12px]" style={{ color: "#64748b" }}>Generate Sound</span>
+                      <span className="text-[10px]" style={{ color: "#475569" }}>AI-generated audio track · ×1.5 cost</span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setSound(v => !v)}
+                    className="relative w-10 h-5 rounded-full transition-all flex-shrink-0"
+                    style={{ background: sound ? hexA(selectedModel.family_color, 0.7) : "rgba(255,255,255,0.08)" }}
+                  >
+                    <span className="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all" style={{ left: sound ? "calc(100% - 18px)" : 2 }} />
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ════════════════════════════════════════════════════════════
+              GENERIC controls — shown for all models EXCEPT Kling 3.0
+              ════════════════════════════════════════════════════════════ */}
+          {!isKling30Video && (<>
+
           {/* -- Duration ---------------------------------------------------- */}
           {durationChoices.length > 0 && duration != null && (
             <div className="flex flex-col gap-2">
@@ -2219,6 +2808,127 @@ function VideoPageInner() {
             </div>
           )}
 
+          {/* -- Kling 3.0 Elements (name + description + 2-4 images, max 3) -- */}
+          {showKling30Elements && !showOmniTabs && (
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#475569" }}>
+                  Elements
+                </label>
+                {klingEls.length < 3 && (
+                  <button
+                    onClick={() => setKlingEls(prev => [...prev, { name: "", description: "", files: [], previews: [] }])}
+                    className="text-[10px] px-2 py-0.5 rounded-md transition-all"
+                    style={{ background: hexA(selectedModel.family_color, 0.12), color: selectedModel.family_color, border: `1px solid ${hexA(selectedModel.family_color, 0.3)}` }}
+                  >
+                    + Add Element
+                  </button>
+                )}
+              </div>
+              <p className="text-[10px] -mt-2" style={{ color: "#64748b" }}>
+                Each element needs 2–4 images. Reference it in your prompt as <span style={{ color: "#94a3b8" }}>@element_name</span>.
+              </p>
+              {klingEls.map((el, elIdx) => (
+                <div
+                  key={elIdx}
+                  className="flex flex-col gap-2 rounded-xl p-3"
+                  style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${hexA(selectedModel.family_color, 0.2)}` }}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-medium" style={{ color: selectedModel.family_color }}>Element {elIdx + 1}</span>
+                    <button onClick={() => setKlingEls(prev => prev.filter((_, i) => i !== elIdx))}>
+                      <X size={11} style={{ color: "#475569" }} />
+                    </button>
+                  </div>
+                  <input
+                    value={el.name}
+                    onChange={e => setKlingEls(prev => prev.map((v, i) => i === elIdx ? { ...v, name: e.target.value } : v))}
+                    placeholder="Name (e.g. hero, car, logo)"
+                    className="w-full bg-transparent rounded-lg px-3 py-2 text-[12px] outline-none"
+                    style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", color: "#94a3b8" }}
+                  />
+                  <input
+                    value={el.description}
+                    onChange={e => setKlingEls(prev => prev.map((v, i) => i === elIdx ? { ...v, description: e.target.value } : v))}
+                    placeholder="Brief description of this element"
+                    className="w-full bg-transparent rounded-lg px-3 py-2 text-[12px] outline-none"
+                    style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", color: "#94a3b8" }}
+                  />
+                  {/* Image slots (2-4) */}
+                  <div className="grid grid-cols-4 gap-1">
+                    {Array.from({ length: 4 }).map((_, imgIdx) => {
+                      const preview = el.previews[imgIdx];
+                      const hasFile = !!el.files[imgIdx];
+                      return (
+                        <label
+                          key={imgIdx}
+                          className="relative flex flex-col items-center justify-center rounded-lg border border-dashed cursor-pointer overflow-hidden"
+                          style={{
+                            height: 56,
+                            borderColor: hasFile ? hexA(selectedModel.family_color, 0.5) : "rgba(255,255,255,0.1)",
+                            background:  hasFile ? hexA(selectedModel.family_color, 0.07) : "rgba(255,255,255,0.02)",
+                          }}
+                        >
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={e => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              const url = URL.createObjectURL(file);
+                              setKlingEls(prev => prev.map((v, i) => {
+                                if (i !== elIdx) return v;
+                                const newFiles = [...v.files];
+                                const newPreviews = [...v.previews];
+                                // Revoke old preview if present
+                                if (newPreviews[imgIdx]) URL.revokeObjectURL(newPreviews[imgIdx]);
+                                newFiles[imgIdx] = file;
+                                newPreviews[imgIdx] = url;
+                                return { ...v, files: newFiles, previews: newPreviews };
+                              }));
+                            }}
+                          />
+                          {preview ? (
+                            <>
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={preview} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                              <button
+                                type="button"
+                                className="absolute top-0.5 right-0.5 z-10"
+                                onClick={e => {
+                                  e.preventDefault();
+                                  setKlingEls(prev => prev.map((v, i) => {
+                                    if (i !== elIdx) return v;
+                                    const newFiles = [...v.files];
+                                    const newPreviews = [...v.previews];
+                                    if (newPreviews[imgIdx]) URL.revokeObjectURL(newPreviews[imgIdx]);
+                                    newFiles.splice(imgIdx, 1);
+                                    newPreviews.splice(imgIdx, 1);
+                                    return { ...v, files: newFiles, previews: newPreviews };
+                                  }));
+                                }}
+                              >
+                                <X size={9} style={{ color: "#fff" }} />
+                              </button>
+                            </>
+                          ) : (
+                            <span className="text-[9px]" style={{ color: imgIdx < 2 ? "#64748b" : "#334155" }}>
+                              {imgIdx < 2 ? "Required" : "Optional"}
+                            </span>
+                          )}
+                        </label>
+                      );
+                    })}
+                  </div>
+                  {el.files.length < 2 && (
+                    <span className="text-[10px]" style={{ color: "#ef4444" }}>Upload at least 2 images for this element.</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* -- Sound toggle ------------------------------------------------ */}
           {caps.has_sound && (
             <div className="flex items-center justify-between">
@@ -2266,7 +2976,9 @@ function VideoPageInner() {
             </div>
           )}
 
-          {/* -- Generate button ---------------------------------------------- */}
+          </>)} {/* end !isKling30Video generic controls */}
+
+          {/* -- Generate button (always visible) ----------------------------- */}
           <button
             onClick={handleGenerate}
             disabled={isSubmitting || !canGenerate}
