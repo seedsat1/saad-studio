@@ -231,6 +231,10 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
 
   // ╔══════════════════════════════════════════════════════════════════════════
   // ║ Minimax Hailuo 2.3
+  // ║ Confirmed: https://docs.kie.ai/market/hailuo/2-3-image-to-video-pro
+  // ║ Params: prompt (req), image_url (req, single string), duration ("6"|"10"),
+  // ║         resolution ("768P"|"1080P"), nsfw_checker (bool, default false)
+  // ║ NOTE: 10s NOT supported with 1080P — server enforces 768P fallback.
   // ╚══════════════════════════════════════════════════════════════════════════
   {
     id: "minimax-hailuo-2.3-i2v-fast",
@@ -238,8 +242,8 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
     family: "hailuo", family_label: "Minimax Hailuo", family_color: "#f59e0b",
     badge: "FAST",
     description: "Hailuo 2.3 I2V Standard — fast, image required.",
-    api_route: "minimax/hailuo-2.3/i2v-standard",
-    route_confirmed: false,
+    api_route: "hailuo/2-3-image-to-video-standard",
+    route_confirmed: true,
     capabilities: i2vCaps({
       aspect_ratios: [],
       durations:     [6, 10],
@@ -252,8 +256,8 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
     family: "hailuo", family_label: "Minimax Hailuo", family_color: "#f59e0b",
     badge: "PRO",
     description: "Hailuo 2.3 I2V Pro — highest quality, image required.",
-    api_route: "minimax/hailuo-2.3/i2v-pro",
-    route_confirmed: false,
+    api_route: "hailuo/2-3-image-to-video-pro",
+    route_confirmed: true,
     capabilities: i2vCaps({
       aspect_ratios: [],
       durations:     [6, 10],

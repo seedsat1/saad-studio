@@ -351,21 +351,27 @@ function mapToKieInput(model: string, payload: Record<string, unknown>) {
     return out;
   }
 
-  // ── Hailuo 2.3 — expects image_url (singular string), NOT image_urls array ──
+  // ── Hailuo 2.3 — strict whitelist; image_url (singular string), 10s+1080P unsupported ──
+  // KIE accepts ONLY: prompt, image_url, duration ("6"|"10"), resolution ("768P"|"1080P"), nsfw_checker
   if (model === "hailuo/2-3-image-to-video-standard" || model === "hailuo/2-3-image-to-video-pro") {
-    const out: Record<string, unknown> = { ...input };
-    // Clean all image field aliases
-    delete out.image;
-    delete out.image_urls;
-    delete out.first_frame_url;
-    delete out.last_frame_url;
-    delete out.end_image;
-    delete out.last_image;
-    delete out.reference_image_urls;
-    delete out.video;
-    // Use the single required start image
+    const out: Record<string, unknown> = {};
+    if (typeof input.prompt === "string") out.prompt = input.prompt;
     if (startImage) out.image_url = startImage;
-    if (typeof out.duration === "number") out.duration = String(out.duration);
+    // Duration: must be string "6" or "10"
+    const durRaw = typeof input.duration === "number" ? input.duration
+                 : typeof input.duration === "string" ? Number(input.duration) : 6;
+    let durStr: "6" | "10" = durRaw >= 10 ? "10" : "6";
+    // Resolution: must be "768P" or "1080P"
+    const resRaw = typeof input.resolution === "string" ? input.resolution.toUpperCase() : "768P";
+    let resStr: "768P" | "1080P" = resRaw === "1080P" ? "1080P" : "768P";
+    // ENFORCE: 10s NOT supported with 1080P → downgrade resolution to 768P
+    if (durStr === "10" && resStr === "1080P") {
+      console.warn("[hailuo-2.3] 10s + 1080P not supported by KIE — downgrading resolution to 768P");
+      resStr = "768P";
+    }
+    out.duration = durStr;
+    out.resolution = resStr;
+    if (typeof input.nsfw_checker === "boolean") out.nsfw_checker = input.nsfw_checker;
     return out;
   }
 
