@@ -252,9 +252,7 @@ function VideoPageInner() {
   const [startFrame,   setStartFrame]   = useState<File | null>(null);
   const [endFrame,     setEndFrame]     = useState<File | null>(null);
   const [motionVideo,  setMotionVideo]  = useState<File | null>(null);
-  const [referenceImages, setReferenceImages] = useState<File[]>([]);
-  const [referenceVideos, setReferenceVideos] = useState<File[]>([]);
-  const [referenceAudios, setReferenceAudios] = useState<File[]>([]);
+  const [referenceImages, setReferenceImages] = useState<File[]>([]); // unified: image + video + audio for Seedance 2
   const [startFramePreview, setStartFramePreview] = useState<string | null>(null);
   const [endFramePreview, setEndFramePreview] = useState<string | null>(null);
   // Detected aspect ratio of the uploaded start frame (Kling 3.0 i2v auto-adapts to this)
@@ -264,8 +262,6 @@ function VideoPageInner() {
   const endFrameRef    = useRef<HTMLInputElement>(null);
   const motionVideoRef = useRef<HTMLInputElement>(null);
   const referenceImagesRef = useRef<HTMLInputElement>(null);
-  const referenceVideosRef = useRef<HTMLInputElement>(null);
-  const referenceAudiosRef = useRef<HTMLInputElement>(null);
   const [activeDropZone, setActiveDropZone] = useState<string | null>(null);
 
   // Model info banner (shown briefly after model switch)
@@ -273,7 +269,7 @@ function VideoPageInner() {
   const bannerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Media gallery picker
-  type PickerTarget = "startFrame" | "endFrame" | "motionVideo" | "referenceImages" | "referenceVideos" | "referenceAudios";
+  type PickerTarget = "startFrame" | "endFrame" | "motionVideo" | "referenceImages";
   const [mediaPicker, setMediaPicker]     = useState<PickerTarget | null>(null);
   const [pickerGallery, setPickerGallery] = useState<Array<{ id: string; url: string; type: string }>>([]);
   const [pickerTab, setPickerTab]         = useState<"upload" | "images" | "videos">("images");
@@ -314,13 +310,17 @@ function VideoPageInner() {
   const handleDropReferenceImages = useCallback((event: DragEvent<HTMLElement>) => {
     event.preventDefault();
     setActiveDropZone(null);
-    const dropped = Array.from(event.dataTransfer.files ?? []).filter((file) => file.type.startsWith("image/"));
+    const isSeedance2 = selectedModel.id.startsWith("bytedance-seedance-v2");
+    const dropped = Array.from(event.dataTransfer.files ?? []).filter((file) =>
+      isSeedance2
+        ? file.type.startsWith("image/") || file.type.startsWith("video/") || file.type.startsWith("audio/")
+        : file.type.startsWith("image/")
+    );
     if (!dropped.length) return;
-    const isKling30 =
-      selectedModel.api_route === "kwaivgi/kling-v3.0-pro/text-to-video";
+    const isKling30 = selectedModel.api_route === "kwaivgi/kling-v3.0-pro/text-to-video";
     const maxRefs = isKling30 ? 3 : selectedModel.capabilities.max_reference_images;
     if (maxRefs <= 0) return;
-    setReferenceImages(dropped.slice(0, maxRefs));
+    setReferenceImages(prev => [...prev, ...dropped].slice(0, maxRefs));
   }, [selectedModel]);
 
   useEffect(() => {
@@ -430,8 +430,6 @@ function VideoPageInner() {
     setEndFrame(null);
     setMotionVideo(null);
     setReferenceImages([]);
-    setReferenceVideos([]);
-    setReferenceAudios([]);
     setShotType("intelligent");
     setMultiPrompts([""]);
     setElementList([""]);
@@ -504,12 +502,13 @@ function VideoPageInner() {
   const openMediaPicker = useCallback(async (target: PickerTarget) => {
     setMediaPicker(target);
     setPickerGallery([]);
-    if (target === "motionVideo" || target === "referenceVideos") {
+    if (target === "motionVideo") {
       setPickerTab("videos");
       await loadPickerAssets("video");
-    } else if (target === "referenceAudios") {
-      // No gallery for audio — go straight to device upload
-      setPickerTab("upload");
+    } else if (target === "referenceImages") {
+      // For Seedance 2: default to images gallery; user can switch to videos
+      setPickerTab("images");
+      await loadPickerAssets("image");
     } else {
       setPickerTab("images");
       await loadPickerAssets("image");
@@ -534,9 +533,6 @@ function VideoPageInner() {
       else if (target === "referenceImages") {
         const maxR = caps.max_reference_images || 9;
         setReferenceImages(prev => [...prev, file].slice(0, maxR));
-      } else if (target === "referenceVideos") {
-        const maxV = caps.max_reference_videos || 3;
-        setReferenceVideos(prev => [...prev, file].slice(0, maxV));
       }
     } catch (err) {
       console.error("[pickGalleryAsset] Failed to load gallery asset:", err);
@@ -618,14 +614,26 @@ function VideoPageInner() {
       const isKling30Video =
         selectedModel.api_route === "kwaivgi/kling-v3.0-pro/text-to-video";
 
-      // Image inputs — reference images take priority for ALL models
+      // Image inputs — reference media (images/videos/audios) take priority
       if (referenceImages.length > 0) {
-        payload.reference_image_urls = await Promise.all(
-          referenceImages.map((f) => fileToDataURL(f))
-        );
-        // For Seedance V2, also allow end frame alongside references
-        if (isSeedanceV2 && caps.has_end_frame && endFrame) {
-          payload.last_frame_url = await fileToDataURL(endFrame);
+        if (isSeedanceV2) {
+          // Split unified referenceImages by type → 3 separate KIE fields
+          const refImgs  = referenceImages.filter(f => f.type.startsWith("image/"));
+          const refVids  = referenceImages.filter(f => f.type.startsWith("video/"));
+          const refAuds  = referenceImages.filter(f => f.type.startsWith("audio/"));
+          if (refImgs.length > 0)
+            payload.reference_image_urls = await Promise.all(refImgs.slice(0, 9).map(f => fileToDataURL(f)));
+          if (refVids.length > 0)
+            payload.reference_video_urls = await Promise.all(refVids.slice(0, 3).map(f => fileToDataURL(f)));
+          if (refAuds.length > 0)
+            payload.reference_audio_urls = await Promise.all(refAuds.slice(0, 3).map(f => fileToDataURL(f)));
+          // Also allow end frame alongside Seedance references
+          if (caps.has_end_frame && endFrame)
+            payload.last_frame_url = await fileToDataURL(endFrame);
+        } else {
+          payload.reference_image_urls = await Promise.all(
+            referenceImages.map((f) => fileToDataURL(f))
+          );
         }
       } else if ((caps.requires_image || caps.optional_image) && startFrame) {
         payload[isSeedanceV2 ? "first_frame_url" : "image"] = await fileToDataURL(startFrame);
@@ -640,18 +648,6 @@ function VideoPageInner() {
             ? "last_image"
             : "end_image";
         payload[endKey] = await fileToDataURL(endFrame);
-      }
-
-      // Reference videos / audios (Seedance 2 only). Server enforces max 3 each.
-      if (caps.max_reference_videos > 0 && referenceVideos.length > 0) {
-        payload.reference_video_urls = await Promise.all(
-          referenceVideos.slice(0, caps.max_reference_videos).map((f) => fileToDataURL(f))
-        );
-      }
-      if (caps.max_reference_audios > 0 && referenceAudios.length > 0) {
-        payload.reference_audio_urls = await Promise.all(
-          referenceAudios.slice(0, caps.max_reference_audios).map((f) => fileToDataURL(f))
-        );
       }
 
       // Size / Aspect ratio
@@ -1592,20 +1588,16 @@ function VideoPageInner() {
               <input
                 ref={referenceImagesRef}
                 type="file"
-                accept="image/*"
+                accept={isSeedanceV2Model ? "image/*,video/*,audio/*" : "image/*"}
                 multiple
                 className="hidden"
                 onChange={e => {
                   const files = Array.from(e.target.files ?? []);
                   const maxRefs = showSimpleKlingRefs ? 3 : selectedModel.capabilities.max_reference_images;
-                  setReferenceImages(files.slice(0, maxRefs));
+                  setReferenceImages(prev => [...prev, ...files].slice(0, maxRefs));
+                  e.target.value = "";
                 }}
               />
-              {/* Hidden inputs for video/audio references — triggered by picker modal */}
-              <input ref={referenceVideosRef} type="file" accept="video/*" multiple className="hidden"
-                onChange={e => { const f = Array.from(e.target.files ?? []).filter(x => x.type.startsWith("video/")); setReferenceVideos(f.slice(0, caps.max_reference_videos)); e.target.value = ""; }} />
-              <input ref={referenceAudiosRef} type="file" accept="audio/*" multiple className="hidden"
-                onChange={e => { const f = Array.from(e.target.files ?? []).filter(x => x.type.startsWith("audio/")); setReferenceAudios(f.slice(0, caps.max_reference_audios)); e.target.value = ""; }} />
               <span
                 className="absolute top-2 right-2 text-[9px] font-medium px-1.5 py-0.5 rounded"
                 style={{ background: "rgba(255,255,255,0.06)", color: "#475569" }}
@@ -1616,19 +1608,27 @@ function VideoPageInner() {
                 <>
                   {referencePreviews.length > 0 && (
                     <div className="absolute inset-0 grid grid-cols-3 gap-1 p-1">
-                      {referencePreviews.slice(0, 3).map((src, i) => (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          key={i}
-                          src={src}
-                          alt={`Reference preview ${i + 1}`}
-                          className="w-full h-full object-cover rounded-md opacity-75"
-                        />
-                      ))}
+                      {referencePreviews.slice(0, 3).map((src, i) => {
+                        const fileType = referenceImages[i]?.type ?? "";
+                        if (fileType.startsWith("video/")) return (
+                          <div key={i} className="w-full h-full rounded-md opacity-75 flex items-center justify-center" style={{ background: "rgba(6,182,212,0.15)" }}>
+                            <Film size={14} style={{ color: "#06b6d4" }} />
+                          </div>
+                        );
+                        if (fileType.startsWith("audio/")) return (
+                          <div key={i} className="w-full h-full rounded-md opacity-75 flex items-center justify-center" style={{ background: "rgba(168,85,247,0.15)" }}>
+                            <Music2 size={14} style={{ color: "#a855f7" }} />
+                          </div>
+                        );
+                        return (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img key={i} src={src} alt={`Reference preview ${i + 1}`} className="w-full h-full object-cover rounded-md opacity-75" />
+                        );
+                      })}
                     </div>
                   )}
                   <span className="absolute bottom-2 left-2 right-2 rounded-md bg-black/55 px-1.5 py-0.5 text-[10px] text-cyan-200 text-center leading-tight">
-                    {`${referenceImages.length} reference image(s)`}
+                    {`${referenceImages.length} media file(s)`}
                   </span>
                   <button
                     className="absolute top-2 left-2"
@@ -1654,55 +1654,6 @@ function VideoPageInner() {
                 </span>
               )}
             </button>
-            {/* Reference Video + Audio tiles for Seedance 2 — same visual block */}
-            {caps.max_reference_videos > 0 && (
-              <button
-                onClick={() => openMediaPicker("referenceVideos")}
-                className="relative w-full flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed transition-all"
-                style={{
-                  height: 100,
-                  borderColor: referenceVideos.length > 0 ? hexA(selectedModel.family_color, 0.5) : "rgba(255,255,255,0.1)",
-                  background:  referenceVideos.length > 0 ? hexA(selectedModel.family_color, 0.07) : "rgba(255,255,255,0.02)",
-                }}
-              >
-                <span className="absolute top-2 right-2 text-[9px] font-medium px-1.5 py-0.5 rounded" style={{ background: "rgba(255,255,255,0.06)", color: "#475569" }}>
-                  Max {caps.max_reference_videos}
-                </span>
-                <Film size={16} style={{ color: referenceVideos.length > 0 ? selectedModel.family_color : "#475569" }} />
-                <span className="text-[11px]" style={{ color: referenceVideos.length > 0 ? selectedModel.family_color : "#475569" }}>
-                  {referenceVideos.length > 0 ? `${referenceVideos.length}/${caps.max_reference_videos} video(s)` : "Ref Videos"}
-                </span>
-                {referenceVideos.length > 0 && (
-                  <button className="absolute top-2 left-2" onClick={e => { e.stopPropagation(); setReferenceVideos([]); }}>
-                    <X size={11} style={{ color: "#475569" }} />
-                  </button>
-                )}
-              </button>
-            )}
-            {caps.max_reference_audios > 0 && (
-              <button
-                onClick={() => openMediaPicker("referenceAudios")}
-                className="relative w-full flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed transition-all"
-                style={{
-                  height: 100,
-                  borderColor: referenceAudios.length > 0 ? hexA(selectedModel.family_color, 0.5) : "rgba(255,255,255,0.1)",
-                  background:  referenceAudios.length > 0 ? hexA(selectedModel.family_color, 0.07) : "rgba(255,255,255,0.02)",
-                }}
-              >
-                <span className="absolute top-2 right-2 text-[9px] font-medium px-1.5 py-0.5 rounded" style={{ background: "rgba(255,255,255,0.06)", color: "#475569" }}>
-                  Max {caps.max_reference_audios}
-                </span>
-                <Music2 size={16} style={{ color: referenceAudios.length > 0 ? selectedModel.family_color : "#475569" }} />
-                <span className="text-[11px]" style={{ color: referenceAudios.length > 0 ? selectedModel.family_color : "#475569" }}>
-                  {referenceAudios.length > 0 ? `${referenceAudios.length}/${caps.max_reference_audios} audio(s)` : "Ref Audios"}
-                </span>
-                {referenceAudios.length > 0 && (
-                  <button className="absolute top-2 left-2" onClick={e => { e.stopPropagation(); setReferenceAudios([]); }}>
-                    <X size={11} style={{ color: "#475569" }} />
-                  </button>
-                )}
-              </button>
-            )}
             </>
           )}
 
@@ -1863,20 +1814,16 @@ function VideoPageInner() {
                   <input
                     ref={referenceImagesRef}
                     type="file"
-                    accept="image/*"
+                    accept={isSeedanceV2Model ? "image/*,video/*,audio/*" : "image/*"}
                     multiple
                     className="hidden"
                     onChange={e => {
                       const files = Array.from(e.target.files ?? []);
                       const maxRefs = showSimpleKlingRefs ? 3 : selectedModel.capabilities.max_reference_images;
-                      setReferenceImages(files.slice(0, maxRefs));
+                      setReferenceImages(prev => [...prev, ...files].slice(0, maxRefs));
+                      e.target.value = "";
                     }}
                   />
-                  {/* Hidden inputs for video/audio references — triggered by picker modal */}
-                  <input ref={referenceVideosRef} type="file" accept="video/*" multiple className="hidden"
-                    onChange={e => { const f = Array.from(e.target.files ?? []).filter(x => x.type.startsWith("video/")); setReferenceVideos(f.slice(0, caps.max_reference_videos)); e.target.value = ""; }} />
-                  <input ref={referenceAudiosRef} type="file" accept="audio/*" multiple className="hidden"
-                    onChange={e => { const f = Array.from(e.target.files ?? []).filter(x => x.type.startsWith("audio/")); setReferenceAudios(f.slice(0, caps.max_reference_audios)); e.target.value = ""; }} />
                   <span
                     className="absolute top-2 right-2 text-[9px] font-medium px-1.5 py-0.5 rounded"
                     style={{ background: "rgba(255,255,255,0.06)", color: "#475569" }}
@@ -1887,19 +1834,27 @@ function VideoPageInner() {
                     <>
                       {referencePreviews.length > 0 && (
                         <div className="absolute inset-0 grid grid-cols-2 gap-1 p-1">
-                          {referencePreviews.slice(0, 4).map((src, i) => (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              key={i}
-                              src={src}
-                              alt={`Reference preview ${i + 1}`}
-                              className="w-full h-full object-cover rounded-md opacity-75"
-                            />
-                          ))}
+                          {referencePreviews.slice(0, 4).map((src, i) => {
+                            const fileType = referenceImages[i]?.type ?? "";
+                            if (fileType.startsWith("video/")) return (
+                              <div key={i} className="w-full h-full rounded-md opacity-75 flex items-center justify-center" style={{ background: "rgba(6,182,212,0.15)" }}>
+                                <Film size={14} style={{ color: "#06b6d4" }} />
+                              </div>
+                            );
+                            if (fileType.startsWith("audio/")) return (
+                              <div key={i} className="w-full h-full rounded-md opacity-75 flex items-center justify-center" style={{ background: "rgba(168,85,247,0.15)" }}>
+                                <Music2 size={14} style={{ color: "#a855f7" }} />
+                              </div>
+                            );
+                            return (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img key={i} src={src} alt={`Reference preview ${i + 1}`} className="w-full h-full object-cover rounded-md opacity-75" />
+                            );
+                          })}
                         </div>
                       )}
                       <span className="absolute bottom-2 left-2 right-2 rounded-md bg-black/55 px-1.5 py-0.5 text-[10px] text-cyan-200 text-center leading-tight">
-                        {`${referenceImages.length} reference image(s)`}
+                        {`${referenceImages.length} media file(s)`}
                       </span>
                       <button
                         className="absolute top-2 left-2"
@@ -1923,58 +1878,6 @@ function VideoPageInner() {
                     <span className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-cyan-500/15 text-[12px] font-semibold text-cyan-300">
                       Drop images here
                     </span>
-                  )}
-                </button>
-              )}
-
-              {/* Ref Videos tile — same row, Seedance 2 only */}
-              {!showOmniTabs && caps.max_reference_videos > 0 && (
-                <button
-                  onClick={() => openMediaPicker("referenceVideos")}
-                  className="relative flex-1 flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed transition-all"
-                  style={{
-                    height: 100,
-                    borderColor: referenceVideos.length > 0 ? hexA(selectedModel.family_color, 0.5) : "rgba(255,255,255,0.1)",
-                    background:  referenceVideos.length > 0 ? hexA(selectedModel.family_color, 0.07) : "rgba(255,255,255,0.02)",
-                  }}
-                >
-                  <span className="absolute top-2 right-2 text-[9px] font-medium px-1.5 py-0.5 rounded" style={{ background: "rgba(255,255,255,0.06)", color: "#475569" }}>
-                    Max {caps.max_reference_videos}
-                  </span>
-                  <Film size={16} style={{ color: referenceVideos.length > 0 ? selectedModel.family_color : "#475569" }} />
-                  <span className="text-[11px]" style={{ color: referenceVideos.length > 0 ? selectedModel.family_color : "#475569" }}>
-                    {referenceVideos.length > 0 ? `${referenceVideos.length}/${caps.max_reference_videos} video(s)` : "Ref Videos"}
-                  </span>
-                  {referenceVideos.length > 0 && (
-                    <button className="absolute top-2 left-2" onClick={e => { e.stopPropagation(); setReferenceVideos([]); }}>
-                      <X size={11} style={{ color: "#475569" }} />
-                    </button>
-                  )}
-                </button>
-              )}
-
-              {/* Ref Audios tile — same row, Seedance 2 only */}
-              {!showOmniTabs && caps.max_reference_audios > 0 && (
-                <button
-                  onClick={() => openMediaPicker("referenceAudios")}
-                  className="relative flex-1 flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed transition-all"
-                  style={{
-                    height: 100,
-                    borderColor: referenceAudios.length > 0 ? hexA(selectedModel.family_color, 0.5) : "rgba(255,255,255,0.1)",
-                    background:  referenceAudios.length > 0 ? hexA(selectedModel.family_color, 0.07) : "rgba(255,255,255,0.02)",
-                  }}
-                >
-                  <span className="absolute top-2 right-2 text-[9px] font-medium px-1.5 py-0.5 rounded" style={{ background: "rgba(255,255,255,0.06)", color: "#475569" }}>
-                    Max {caps.max_reference_audios}
-                  </span>
-                  <Music2 size={16} style={{ color: referenceAudios.length > 0 ? selectedModel.family_color : "#475569" }} />
-                  <span className="text-[11px]" style={{ color: referenceAudios.length > 0 ? selectedModel.family_color : "#475569" }}>
-                    {referenceAudios.length > 0 ? `${referenceAudios.length}/${caps.max_reference_audios} audio(s)` : "Ref Audios"}
-                  </span>
-                  {referenceAudios.length > 0 && (
-                    <button className="absolute top-2 left-2" onClick={e => { e.stopPropagation(); setReferenceAudios([]); }}>
-                      <X size={11} style={{ color: "#475569" }} />
-                    </button>
                   )}
                 </button>
               )}
@@ -3250,22 +3153,18 @@ function VideoPageInner() {
                 style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
               >
                 <div className="flex items-center gap-2">
-                  {mediaPicker === "motionVideo" || mediaPicker === "referenceVideos"
+                  {mediaPicker === "motionVideo"
                     ? <Film size={15} style={{ color: selectedModel.family_color }} />
-                    : mediaPicker === "referenceAudios"
-                      ? <Music2 size={15} style={{ color: selectedModel.family_color }} />
-                      : <ImageIcon size={15} style={{ color: selectedModel.family_color }} />
+                    : <ImageIcon size={15} style={{ color: selectedModel.family_color }} />
                   }
                   <span className="text-[14px] font-semibold" style={{ color: "#e2e8f0" }}>
                     {mediaPicker === "motionVideo"
                       ? "Select Video"
-                      : mediaPicker === "referenceImages"
-                        ? `Select Reference Image (${referenceImages.length}/${isSeedanceV2Model ? 9 : caps.max_reference_images})`
-                        : mediaPicker === "referenceVideos"
-                          ? `Select Reference Video (${referenceVideos.length}/${caps.max_reference_videos})`
-                          : mediaPicker === "referenceAudios"
-                            ? `Select Reference Audio (${referenceAudios.length}/${caps.max_reference_audios})`
-                            : mediaPicker === "endFrame" ? "Select End Frame" : "Select Start Frame"}
+                      : mediaPicker === "referenceImages" && isSeedanceV2Model
+                        ? `Upload media — Image, Video or Audio (${referenceImages.length}/${caps.max_reference_images})`
+                        : mediaPicker === "referenceImages"
+                          ? `Select Reference Image (${referenceImages.length}/${caps.max_reference_images})`
+                          : mediaPicker === "endFrame" ? "Select End Frame" : "Select Start Frame"}
                   </span>
                 </div>
                 <button
@@ -3337,8 +3236,6 @@ function VideoPageInner() {
                       else if (mediaPicker === "endFrame")     endFrameRef.current?.click();
                       else if (mediaPicker === "motionVideo")  motionVideoRef.current?.click();
                       else if (mediaPicker === "referenceImages") referenceImagesRef.current?.click();
-                      else if (mediaPicker === "referenceVideos") referenceVideosRef.current?.click();
-                      else if (mediaPicker === "referenceAudios") referenceAudiosRef.current?.click();
                       setMediaPicker(null);
                     }}
                   >
@@ -3353,10 +3250,10 @@ function VideoPageInner() {
                         Upload from device
                       </p>
                       <p className="text-[12px] mt-1" style={{ color: "#475569" }}>
-                        {mediaPicker === "motionVideo" || mediaPicker === "referenceVideos"
+                        {mediaPicker === "motionVideo"
                           ? "MP4, MOV, WebM"
-                          : mediaPicker === "referenceAudios"
-                            ? "MP3, WAV, AAC, M4A"
+                          : mediaPicker === "referenceImages" && isSeedanceV2Model
+                            ? "Image, Video or Audio"
                             : "PNG, JPG, WebP"}
                       </p>
                     </div>
