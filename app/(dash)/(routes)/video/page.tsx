@@ -1966,15 +1966,15 @@ function VideoPageInner() {
                       onDragEnter={(event) => markDropZone(event, "startFrame")}
                       onDragLeave={(event) => clearDropZone(event, "startFrame")}
                       onDrop={(event) => handleDropSingleImage(event, setStartFrame)}
-                      className="relative flex flex-col items-center justify-center gap-1 rounded-xl border border-dashed transition-all overflow-hidden flex-1"
-                      style={{ height: 130, borderColor: startFrame ? "#06b6d4" : "rgba(6,182,212,0.25)", background: startFrame ? "rgba(6,182,212,0.05)" : "rgba(255,255,255,0.02)" }}
+                      className="relative flex flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed transition-all overflow-hidden flex-1"
+                      style={{ height: 180, borderColor: startFrame ? "#06b6d4" : "rgba(6,182,212,0.25)", background: startFrame ? "#000" : "rgba(255,255,255,0.02)" }}
                     >
                       <input ref={startFrameRef} type="file" accept="image/*" className="hidden" onChange={e => setStartFrame(e.target.files?.[0] ?? null)} />
                       {startFrame ? (
                         <>
-                          {startFramePreview && <img src={startFramePreview} alt="Start" className="absolute inset-0 w-full h-full object-contain" style={{ padding: 4 }} />
+                          {startFramePreview && <img src={startFramePreview} alt="Start" className="absolute inset-0 w-full h-full object-cover" />
                           }
-                          <button className="absolute top-1 right-1 z-10 rounded-full p-0.5" style={{ background: "rgba(0,0,0,0.65)" }} onClick={e => { e.stopPropagation(); setStartFrame(null); }}><X size={8} style={{ color: "#fff" }} /></button>
+                          <button className="absolute top-1.5 right-1.5 z-10 rounded-full p-1" style={{ background: "rgba(0,0,0,0.75)" }} onClick={e => { e.stopPropagation(); setStartFrame(null); }}><X size={12} style={{ color: "#fff" }} /></button>
                         </>
                       ) : (
                         <>
@@ -2005,15 +2005,15 @@ function VideoPageInner() {
                         onDragEnter={(event) => markDropZone(event, "endFrame")}
                         onDragLeave={(event) => clearDropZone(event, "endFrame")}
                         onDrop={(event) => handleDropSingleImage(event, setEndFrame)}
-                        className="relative flex flex-col items-center justify-center gap-1 rounded-xl border border-dashed transition-all overflow-hidden flex-1"
-                        style={{ height: 130, borderColor: endFrame ? "#a855f7" : "rgba(168,85,247,0.25)", background: endFrame ? "rgba(168,85,247,0.05)" : "rgba(255,255,255,0.02)" }}
+                        className="relative flex flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed transition-all overflow-hidden flex-1"
+                        style={{ height: 180, borderColor: endFrame ? "#a855f7" : "rgba(168,85,247,0.25)", background: endFrame ? "#000" : "rgba(255,255,255,0.02)" }}
                       >
                         <input ref={endFrameRef} type="file" accept="image/*" className="hidden" onChange={e => setEndFrame(e.target.files?.[0] ?? null)} />
                         {endFrame ? (
                           <>
-                            {endFramePreview && <img src={endFramePreview} alt="End" className="absolute inset-0 w-full h-full object-contain" style={{ padding: 4 }} />
+                            {endFramePreview && <img src={endFramePreview} alt="End" className="absolute inset-0 w-full h-full object-cover" />
                             }
-                            <button className="absolute top-1 right-1 z-10 rounded-full p-0.5" style={{ background: "rgba(0,0,0,0.65)" }} onClick={e => { e.stopPropagation(); setEndFrame(null); }}><X size={8} style={{ color: "#fff" }} /></button>
+                            <button className="absolute top-1.5 right-1.5 z-10 rounded-full p-1" style={{ background: "rgba(0,0,0,0.75)" }} onClick={e => { e.stopPropagation(); setEndFrame(null); }}><X size={12} style={{ color: "#fff" }} /></button>
                           </>
                         ) : (
                           <>
@@ -2025,7 +2025,7 @@ function VideoPageInner() {
                         {activeDropZone === "endFrame" && <span className="absolute inset-0 flex items-center justify-center rounded-xl bg-purple-500/15 text-[10px] font-semibold text-purple-300">Drop here</span>}
                       </button>
                     ) : (
-                      <div className="flex flex-col items-center justify-center rounded-xl border border-dashed flex-1 opacity-25" style={{ height: 130, borderColor: "rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.01)" }}>
+                      <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed flex-1 opacity-25" style={{ height: 180, borderColor: "rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.01)" }}>
                         <span className="text-[9px] text-center px-2" style={{ color: "#334155" }}>N/A in multi-shot</span>
                       </div>
                     )}
