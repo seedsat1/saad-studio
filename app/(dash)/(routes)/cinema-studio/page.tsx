@@ -37,30 +37,18 @@ const MODEL_DURATIONS: Record<string, { value: number; label: string }[]> = {
 };
 
 const SCENE_MEDIA = [
-  /* 0  Reaction Shot — close-up emotional reaction */
-  { video: "https://videos.pexels.com/video-files/8626643/8626643-hd_1920_1080_25fps.mp4",   poster: "https://images.pexels.com/videos/8626643/pexels-photo-8626643.jpeg?auto=compress&w=640" },
-  /* 1  Close-up Emotion — extreme close-up face/eyes with feeling */
-  { video: "https://videos.pexels.com/video-files/5944690/5944690-hd_1920_1080_25fps.mp4",   poster: "https://images.pexels.com/videos/5944690/pexels-photo-5944690.jpeg?auto=compress&w=640" },
-  /* 2  Wide Establishing — sweeping aerial / landscape */
-  { video: "https://videos.pexels.com/video-files/4042705/4042705-hd_1920_1080_24fps.mp4",   poster: "https://images.pexels.com/videos/4042705/pexels-photo-4042705.jpeg?auto=compress&w=640" },
-  /* 3  Over-the-Shoulder — two people conversation framing */
-  { video: "https://videos.pexels.com/video-files/4479790/4479790-hd_1920_1080_25fps.mp4",   poster: "https://images.pexels.com/videos/4479790/pexels-photo-4479790.jpeg?auto=compress&w=640" },
-  /* 4  Follow Tracking — camera following a walking subject */
-  { video: "https://videos.pexels.com/video-files/5195355/5195355-hd_1920_1080_30fps.mp4",   poster: "https://images.pexels.com/videos/5195355/pexels-photo-5195355.jpeg?auto=compress&w=640" },
-  /* 5  Push-In Reveal — slow dolly toward subject/reveal */
-  { video: "https://videos.pexels.com/video-files/4066327/4066327-hd_1920_1080_24fps.mp4",   poster: "https://images.pexels.com/videos/4066327/pexels-photo-4066327.jpeg?auto=compress&w=640" },
-  /* 6  Conflict Escalation — tense confrontation */
-  { video: "https://videos.pexels.com/video-files/6963477/6963477-hd_1920_1080_25fps.mp4",   poster: "https://images.pexels.com/videos/6963477/pexels-photo-6963477.jpeg?auto=compress&w=640" },
-  /* 7  Discovery Moment — wonder/surprise */
-  { video: "https://videos.pexels.com/video-files/7476129/7476129-hd_1920_1080_24fps.mp4",   poster: "https://images.pexels.com/videos/7476129/pexels-photo-7476129.jpeg?auto=compress&w=640" },
-  /* 8  Silhouette Framing — person silhouetted against light */
-  { video: "https://videos.pexels.com/video-files/1739010/1739010-hd_1920_1080_30fps.mp4",   poster: "https://images.pexels.com/videos/1739010/free-video-1739010.jpg?auto=compress&w=640" },
-  /* 9  Dolly Zoom Tension — dramatic tension close-up */
-  { video: "https://videos.pexels.com/video-files/6415390/6415390-hd_1920_1080_30fps.mp4",   poster: "https://images.pexels.com/videos/6415390/pexels-photo-6415390.jpeg?auto=compress&w=640" },
-  /* 10 Slow Motion Emphasis — cinematic slow motion */
-  { video: "https://videos.pexels.com/video-files/4942181/4942181-hd_1920_1080_24fps.mp4",   poster: "https://images.pexels.com/videos/4942181/pexels-photo-4942181.jpeg?auto=compress&w=640" },
-  /* 11 Final Beat — cinematic closure, walking away into fog */
-  { video: "https://videos.pexels.com/video-files/8680229/8680229-hd_1920_1080_25fps.mp4",   poster: "https://images.pexels.com/videos/8680229/pexels-photo-8680229.jpeg?auto=compress&w=640" },
+  { video: "", poster: "" },
+  { video: "", poster: "" },
+  { video: "", poster: "" },
+  { video: "", poster: "" },
+  { video: "", poster: "" },
+  { video: "", poster: "" },
+  { video: "", poster: "" },
+  { video: "", poster: "" },
+  { video: "", poster: "" },
+  { video: "", poster: "" },
+  { video: "", poster: "" },
+  { video: "", poster: "" },
 ];
 
 const SCENES: Scene[] = [
@@ -218,7 +206,7 @@ function SceneCard({
     <div className={`group relative flex flex-col overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-xl transition-all duration-500 hover:scale-[1.025] hover:border-violet-500/20 hover:shadow-[0_0_48px_rgba(139,92,246,0.12)] ${activeId===scene.id ? "ring-2 ring-violet-400/60" : ""}`}>
       {/* video preview */}
       <div className="relative aspect-video w-full overflow-hidden rounded-t-2xl bg-black">
-        {!videoFailed ? (
+        {!videoFailed && scene.videoSrc ? (
           <video
             ref={videoRef}
             src={scene.videoSrc}
@@ -317,6 +305,51 @@ const QUALITY_OPTIONS = [
   { value: "standard", label: "Standard" },
   { value: "high",     label: "High" },
 ] as const;
+
+const MAX_GENERATION_IMAGE_BYTES = 2_600_000;
+
+function estimateDataUrlSizeBytes(dataUrl: string) {
+  const base64 = dataUrl.split(",")[1] ?? "";
+  return Math.ceil((base64.length * 3) / 4);
+}
+
+async function fileToOptimizedDataUrl(file: File): Promise<string> {
+  const objectUrl = URL.createObjectURL(file);
+
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const el = new Image();
+      el.onload = () => resolve(el);
+      el.onerror = () => reject(new Error("Failed to decode image"));
+      el.src = objectUrl;
+    });
+
+    const maxDim = 1280;
+    const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+    const width = Math.max(1, Math.round(img.width * scale));
+    const height = Math.max(1, Math.round(img.height * scale));
+
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Canvas is unavailable");
+    ctx.drawImage(img, 0, 0, width, height);
+
+    const candidates = [0.86, 0.78, 0.7, 0.62];
+    for (const quality of candidates) {
+      const dataUrl = canvas.toDataURL("image/jpeg", quality);
+      if (estimateDataUrlSizeBytes(dataUrl) <= MAX_GENERATION_IMAGE_BYTES) {
+        return dataUrl;
+      }
+    }
+
+    throw new Error("Reference image is too large. Please use a smaller image.");
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
+}
 
 export default function NextSceneEnginePage() {
     const [toast, setToast] = useState("");
@@ -427,12 +460,7 @@ export default function NextSceneEnginePage() {
     try {
       let imageDataUrl: string | undefined;
       if (uploadedImage) {
-        const reader = new FileReader();
-        imageDataUrl = await new Promise<string>((resolve, reject) => {
-          reader.onload = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(uploadedImage.file);
-        });
+        imageDataUrl = await fileToOptimizedDataUrl(uploadedImage.file);
       }
 
       const routes = MODEL_ROUTE_MAP[selectedModel] ?? MODEL_ROUTE_MAP.kling;
@@ -444,6 +472,7 @@ export default function NextSceneEnginePage() {
           prompt: prompt.trim(),
           duration,
           aspect_ratio: aspectRatio,
+          resolution: quality === "high" ? "1080p" : "720p",
           ...(imageDataUrl ? { image_url: imageDataUrl } : {}),
         },
       };
@@ -486,7 +515,7 @@ export default function NextSceneEnginePage() {
     } finally {
       setGenerating(false);
     }
-  }, [prompt, generating, uploadedImage, selectedModel, duration, aspectRatio]);
+  }, [prompt, generating, uploadedImage, selectedModel, duration, aspectRatio, quality]);
 
   return (
     <div className="relative min-h-screen overflow-hidden">
@@ -750,7 +779,7 @@ export default function NextSceneEnginePage() {
           </div>
         )}
 
-        {/* ─── category filter ─── */}}
+        {/* ─── category filter ─── */}
         <div className="mb-8 flex flex-wrap items-center justify-center gap-2">
           {CATEGORIES.map((cat) => (
             <button
