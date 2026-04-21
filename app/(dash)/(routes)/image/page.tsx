@@ -407,7 +407,7 @@ function ratioCss(ratio: string): string {
   return `${w} / ${h}`;
 }
 
-function ResultGrid({ items, onInspect, onRemix, onDelete }: { items: ResultItem[]; onInspect: (asset: Asset) => void; onRemix: (item: ResultItem) => void; onDelete: (id: string) => void }) {
+function ResultGrid({ items, onInspect, onRemix, onUse, onDelete }: { items: ResultItem[]; onInspect: (asset: Asset) => void; onRemix: (item: ResultItem) => void; onUse: (item: ResultItem) => void; onDelete: (id: string) => void }) {
   if (!items.length) return <div className="flex h-full items-center justify-center text-sm text-zinc-500">Start generating to see results.</div>;
 
   return (
@@ -453,8 +453,9 @@ function ResultGrid({ items, onInspect, onRemix, onDelete }: { items: ResultItem
               <div className="absolute left-2 top-2 rounded-md bg-black/60 px-2 py-0.5 text-[10px] text-zinc-200">{item.model} • {item.aspect}</div>
               {!item.isPending ? (
                 <div className="absolute inset-0 flex items-end justify-center gap-2 bg-black/0 pb-3 opacity-0 transition duration-200 group-hover:bg-black/45 group-hover:opacity-100">
-                  <button onClick={(e) => { e.stopPropagation(); onInspect({ type: "image", url: item.url, prompt: item.prompt, model: item.model, title: "Generated image" }); }} className="rounded-lg bg-white/15 p-2 text-white ring-1 ring-white/20"><Eye className="h-4 w-4" /></button>
-                  <a href={item.url} download onClick={(e) => e.stopPropagation()} className="rounded-lg bg-white/15 p-2 text-white ring-1 ring-white/20"><Download className="h-4 w-4" /></a>
+                  <button onClick={(e) => { e.stopPropagation(); onInspect({ type: "image", url: item.url, prompt: item.prompt, model: item.model, title: "Generated image" }); }} className="rounded-lg bg-white/15 p-2 text-white ring-1 ring-white/20" title="Preview"><Eye className="h-4 w-4" /></button>
+                  <a href={item.url} download onClick={(e) => e.stopPropagation()} className="rounded-lg bg-white/15 p-2 text-white ring-1 ring-white/20" title="Download"><Download className="h-4 w-4" /></a>
+                  <button onClick={(e) => { e.stopPropagation(); onUse(item); }} className="flex items-center gap-1 rounded-lg bg-pink-500/80 px-3 py-2 text-xs font-semibold text-white ring-1 ring-pink-300/40 hover:bg-pink-500" title="Use as reference image"><Wand2 className="h-3.5 w-3.5" /> Use</button>
                   <button onClick={(e) => { e.stopPropagation(); onRemix(item); }} className="rounded-lg bg-white/15 px-3 py-2 text-xs font-semibold text-white ring-1 ring-white/20">Remix</button>
                   <button onClick={(e) => { e.stopPropagation(); onDelete(item.id); }} className="rounded-lg bg-white/15 px-3 py-2 text-xs font-semibold text-white ring-1 ring-white/20">Delete</button>
                 </div>
@@ -933,8 +934,36 @@ export default function ImageWorkspacePage() {
     } catch {}
   }, []);
 
+  // Use a generated image as a reference for the next generation. If the active
+  // model doesn't accept references, switch to a sensible image-to-image default.
+  const handleUseAsReference = useCallback(async (item: ResultItem) => {
+    try {
+      const res = await fetch(item.url);
+      const blob = await res.blob();
+      const ext = (blob.type.split("/")[1] || "png").split("+")[0];
+      const file = new File([blob], `result_${item.id}.${ext}`, { type: blob.type || "image/png" });
+
+      // Pick a target model that accepts image references.
+      const acceptsRefs = selectedModel.imageInputField !== undefined && selectedModel.maxRefImages > 0;
+      const targetModel = acceptsRefs
+        ? selectedModel
+        : (IMAGE_MODELS.find((m) => m.id === "google/nano-banana-edit")
+            ?? IMAGE_MODELS.find((m) => m.imageInputField !== undefined && m.maxRefImages > 0)
+            ?? selectedModel);
+
+      if (targetModel.id !== selectedModel.id) setSelectedModel(targetModel);
+      setActiveTool("create");
+      setReferenceFiles((prev) => {
+        const cap = Math.max(1, targetModel.maxRefImages || 1);
+        return [...prev, file].slice(-cap);
+      });
+    } catch (err) {
+      console.error("Failed to use image as reference", err);
+    }
+  }, [selectedModel]);
+
   const renderWorkspace = () => {
-    if (activeTool === "create") return <ResultGrid items={[...pendingItems, ...results]} onInspect={setInspectorAsset} onRemix={(item) => { setActiveTool("create"); setPrompt(`Remix this style: ${item.prompt}`); }} onDelete={handleDelete} />;
+    if (activeTool === "create") return <ResultGrid items={[...pendingItems, ...results]} onInspect={setInspectorAsset} onRemix={(item) => { setActiveTool("create"); setPrompt(`Remix this style: ${item.prompt}`); }} onUse={handleUseAsReference} onDelete={handleDelete} />;
     if (activeTool === "inpaint") return <InpaintWorkspace source={inpaintFile} setSource={setInpaintFile} brushSize={brushSize} setBrushSize={setBrushSize} maskVersion={maskVersion} setMaskVersion={setMaskVersion} registerMaskExporter={(fn) => { maskExporterRef.current = fn; }} />;
     if (compare) return <CompareSlider before={compare.before} after={compare.after} />;
     if (activeTool === "enhance") {
