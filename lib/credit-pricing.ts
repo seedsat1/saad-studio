@@ -117,12 +117,29 @@ function getKlingMotionCredits(payload?: VideoPayload): number {
 
 // Kling Omni Edit credit helper removed — endpoint not provided by KIE.
 
-function getSeedance2Credits(payload?: VideoPayload): number {
+function getSeedance2Credits(payload?: VideoPayload, variant: "hq" | "fast" = "hq"): number {
   const duration = readDuration(payload, 4);
-  if (duration === 4) return 24;
-  if (duration === 15) return 85;
-  if (duration < 4) return Math.max(1, Math.ceil(duration * 6));
-  return Math.ceil((duration * 85) / 15);
+  const quality = readQuality(payload);
+
+  // HQ baseline: 24 cr @4s → 85 cr @15s. Linear by second between, capped at endpoints.
+  let cost: number;
+  if (duration === 4) cost = 24;
+  else if (duration === 15) cost = 85;
+  else if (duration < 4) cost = Math.max(1, Math.ceil(duration * 6));
+  else cost = Math.ceil((duration * 85) / 15);
+
+  // Fast variant is roughly half the price per KIE pricing
+  if (variant === "fast") cost = Math.max(1, Math.ceil(cost * 0.5));
+
+  // 1080p (HQ only) costs ~50% more than 720p per KIE
+  if (variant === "hq" && quality.includes("1080")) {
+    cost = Math.max(1, Math.ceil(cost * 1.5));
+  } else if (quality.includes("480")) {
+    // 480p discount ~25%
+    cost = Math.max(1, Math.ceil(cost * 0.75));
+  }
+
+  return cost;
 }
 
 function getSora2Credits(modelRoute: string, payload?: VideoPayload): number {
@@ -192,7 +209,8 @@ function applyGenericRouteDynamics(modelRoute: string, baseCost: number, payload
 export function getVideoCreditsByModelId(modelId: string, payload?: VideoPayload): number {
   if (modelId === "kling-3.0/video") return applySoundMultiplier(getKling3Credits(payload), payload);
   if (modelId === "kling-3.0/motion-control") return applySoundMultiplier(getKlingMotionCredits(payload), payload);
-  if (modelId === "bytedance/seedance-2") return applySoundMultiplier(getSeedance2Credits(payload), payload);
+  if (modelId === "bytedance/seedance-2") return applySoundMultiplier(getSeedance2Credits(payload, "hq"), payload);
+  if (modelId === "bytedance/seedance-2-fast") return applySoundMultiplier(getSeedance2Credits(payload, "fast"), payload);
 
   const base = VIDEO_MODEL_ID_COST_MAP.get(modelId) ?? 0;
   if (!base) return 0;
@@ -227,10 +245,12 @@ export function getVideoCreditsByRoute(modelRoute: string, payload?: VideoPayloa
   }
   if (
     modelRoute === "bytedance/dreamina-v3.0/text-to-video-720p" ||
-    modelRoute === "bytedance/seedance-v2/text-to-video" ||
-    modelRoute === "bytedance/seedance-v2/text-to-video-fast"
+    modelRoute === "bytedance/seedance-v2/text-to-video"
   ) {
-    return applySoundMultiplier(getSeedance2Credits(payload), payload);
+    return applySoundMultiplier(getSeedance2Credits(payload, "hq"), payload);
+  }
+  if (modelRoute === "bytedance/seedance-v2/text-to-video-fast") {
+    return applySoundMultiplier(getSeedance2Credits(payload, "fast"), payload);
   }
   if (
     modelRoute === "google/veo3.1-lite-text-to-video" ||

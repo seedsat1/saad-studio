@@ -357,13 +357,13 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
     badge: "FAST",
     description: "Bytedance Seedance 2.0 — fast text-to-video.",
     api_route: "bytedance/seedance-v2/text-to-video-fast",
-    route_confirmed: false,
+    route_confirmed: true,
     capabilities: t2vCaps({
       optional_image: true,
       has_end_frame:  true,
       aspect_ratios: ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9", "adaptive"],
       durations:     [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
-      resolutions:   ["480p", "720p"],
+      resolutions:   ["480p", "720p"], // KIE Fast variant: 1080p NOT supported
       max_reference_images: 9,
       has_sound: true,
       sound_param: "generate_audio",
@@ -376,13 +376,13 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
     badge: "NEW",
     description: "Bytedance Seedance 2.0 — full quality text-to-video.",
     api_route: "bytedance/seedance-v2/text-to-video",
-    route_confirmed: false,
+    route_confirmed: true,
     capabilities: t2vCaps({
       optional_image: true,
       has_end_frame:  true,
       aspect_ratios:  ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9", "adaptive"],
       durations:      [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
-      resolutions:    ["480p", "720p"],
+      resolutions:    ["480p", "720p", "1080p"], // KIE HQ variant supports 1080p
       max_reference_images: 9,
       has_sound: true,
       sound_param: "generate_audio",

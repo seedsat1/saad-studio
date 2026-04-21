@@ -262,12 +262,21 @@ function mapToKieInput(model: string, payload: Record<string, unknown>) {
     return out;
   }
 
-  // ── Seedance 2.0 — KIE expects reference_image_urls / first_frame_url / last_frame_url ──
+  // ── Seedance 2.0 / 2.0 Fast — KIE flat input shape ───────────────────────
+  // Spec (docs.kie.ai/market/bytedance/seedance-2 + seedance-2-fast):
+  //   prompt (REQUIRED, 3-20000)
+  //   first_frame_url, last_frame_url, reference_image_urls (max 9)
+  //   generate_audio (default TRUE → must be sent explicitly to avoid charge)
+  //   resolution: HQ allows 480p/720p/1080p; Fast allows 480p/720p only
+  //   aspect_ratio: 1:1 / 4:3 / 3:4 / 16:9 / 9:16 / 21:9 / adaptive (default 16:9)
+  //   duration: 4-15 (integer)
   if (model === "bytedance/seedance-2" || model === "bytedance/seedance-2-fast") {
+    const isFast = model === "bytedance/seedance-2-fast";
     const out: Record<string, unknown> = { ...input };
+
     // Reference images take priority over single start/end frame
     if (referenceImages.length > 0) {
-      out.reference_image_urls = referenceImages;
+      out.reference_image_urls = referenceImages.slice(0, 9); // KIE max 9
       delete out.first_frame_url;
       delete out.last_frame_url;
     } else {
@@ -277,17 +286,46 @@ function mapToKieInput(model: string, payload: Record<string, unknown>) {
       if (endImage)    out.last_frame_url = endImage;
       else             delete out.last_frame_url;
     }
-    // Clean up generic aliases never used by Seedance
+
+    // Clean generic aliases never used by Seedance
     delete out.image;
     delete out.image_url;
     delete out.end_image;
     delete out.last_image;
     delete out.image_urls;
     delete out.video;
-    // KIE Seedance 2.0 expects duration as a number (slider), NOT a string
-    if (typeof out.duration === "string") out.duration = Number(out.duration);
-    // Only send generate_audio when true; omit the field when false/undefined
-    if (!out.generate_audio) delete out.generate_audio;
+    delete out.size;
+    delete out.mode;
+    delete out.quality;
+
+    // duration must be integer in [4, 15]
+    const rawDur = typeof out.duration === "string" ? Number.parseInt(out.duration, 10)
+                 : typeof out.duration === "number" ? Math.floor(out.duration)
+                 : 5;
+    out.duration = Math.max(4, Math.min(15, Number.isFinite(rawDur) ? rawDur : 5));
+
+    // resolution: clamp Fast variant to 720p max (KIE rejects 1080p there)
+    const rawRes = typeof out.resolution === "string" ? out.resolution.toLowerCase() : "";
+    const validRes = isFast
+      ? (rawRes === "480p" ? "480p" : "720p")
+      : (rawRes === "480p" ? "480p" : rawRes === "1080p" ? "1080p" : "720p");
+    out.resolution = validRes;
+
+    // aspect_ratio is REQUIRED per spec — default to 16:9 if missing
+    const allowedAR = new Set(["1:1", "4:3", "3:4", "16:9", "9:16", "21:9", "adaptive"]);
+    if (typeof out.aspect_ratio !== "string" || !allowedAR.has(out.aspect_ratio)) {
+      out.aspect_ratio = "16:9";
+    }
+
+    // generate_audio: KIE defaults to TRUE (audio = extra cost). Always send
+    // explicit boolean so the user's "off" choice isn't silently overridden.
+    out.generate_audio = out.generate_audio === true;
+
+    // prompt length: hard cap at 20000 chars (KIE limit)
+    if (typeof out.prompt === "string" && out.prompt.length > 20000) {
+      out.prompt = out.prompt.slice(0, 20000);
+    }
+
     return out;
   }
 
