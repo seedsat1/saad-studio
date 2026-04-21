@@ -330,6 +330,8 @@ export default function NextSceneEnginePage() {
   const [uploadedImage, setUploadedImage] = useState<{ file: File; preview: string } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [promptHighlight, setPromptHighlight] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [resultUrl, setResultUrl] = useState<string | null>(null);
   const promptRef = useRef<HTMLTextAreaElement>(null);
   const promptBoxRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -407,6 +409,84 @@ export default function NextSceneEnginePage() {
     setTimeout(() => setPromptHighlight(false), 1500);
     setToast("Scene applied");
   }, []);
+
+  /* ── model route map ── */
+  const MODEL_ROUTE_MAP: Record<string, { t2v: string; i2v: string }> = {
+    kling:    { t2v: "kling-3.0/video",                    i2v: "kling-2.6/image-to-video" },
+    seedance: { t2v: "bytedance/seedance-2",               i2v: "bytedance/v1-pro-image-to-video" },
+    minimax:  { t2v: "hailuo/02-text-to-video-pro",        i2v: "hailuo/2-3-image-to-video-pro" },
+  };
+
+  /* ── generate ── */
+  const handleGenerate = useCallback(async () => {
+    if (!prompt.trim() || generating) return;
+    setGenerating(true);
+    setResultUrl(null);
+    setToast("");
+
+    try {
+      let imageDataUrl: string | undefined;
+      if (uploadedImage) {
+        const reader = new FileReader();
+        imageDataUrl = await new Promise<string>((resolve, reject) => {
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(uploadedImage.file);
+        });
+      }
+
+      const routes = MODEL_ROUTE_MAP[selectedModel] ?? MODEL_ROUTE_MAP.kling;
+      const modelRoute = imageDataUrl ? routes.i2v : routes.t2v;
+
+      const body: Record<string, unknown> = {
+        modelRoute,
+        payload: {
+          prompt: prompt.trim(),
+          duration,
+          aspect_ratio: aspectRatio,
+          ...(imageDataUrl ? { image_url: imageDataUrl } : {}),
+        },
+      };
+
+      const res = await fetch("/api/video", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({})) as { error?: string };
+        throw new Error(err.error || `Request failed (${res.status})`);
+      }
+
+      const json = await res.json() as { taskId?: string; outputs?: string[]; videoUrl?: string };
+
+      if (json.videoUrl) {
+        setResultUrl(json.videoUrl);
+        setToast("Video ready!");
+        return;
+      }
+
+      if (json.taskId) {
+        // poll
+        for (let i = 0; i < 90; i++) {
+          await new Promise((r) => setTimeout(r, 3000));
+          const poll = await fetch(`/api/video?taskId=${encodeURIComponent(json.taskId)}`, { cache: "no-store" });
+          const p = await poll.json() as { status?: string; outputs?: string[]; videoUrl?: string };
+          if (p.status === "completed" || p.videoUrl) {
+            const url = p.videoUrl || p.outputs?.[0];
+            if (url) { setResultUrl(url); setToast("Video ready!"); return; }
+          }
+          if (p.status === "failed") throw new Error("Generation failed.");
+        }
+        throw new Error("Timed out.");
+      }
+    } catch (err) {
+      setToast(err instanceof Error ? err.message : "Generation failed.");
+    } finally {
+      setGenerating(false);
+    }
+  }, [prompt, generating, uploadedImage, selectedModel, duration, aspectRatio]);
 
   return (
     <div className="relative min-h-screen overflow-hidden">
@@ -611,43 +691,66 @@ export default function NextSceneEnginePage() {
               {/* spacer */}
               <div className="flex-1" />
 
-              {/* generate button — disabled until API connected */}
-              <div className="group/gen relative">
-                <button
-                  className="flex cursor-not-allowed items-center gap-2 rounded-xl bg-gradient-to-r from-violet-600/50 to-indigo-600/50 px-5 py-2 text-sm font-semibold text-white/50 shadow-lg shadow-violet-500/10"
-                  disabled
-                >
-                  <svg
-                    className="h-4 w-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
-                    />
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                  Generate
-                </button>
-                {/* coming soon tooltip */}
-                <div className="pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-lg border border-white/10 bg-black/80 px-3 py-1 text-[11px] font-medium text-violet-300 opacity-0 shadow-xl backdrop-blur-md transition-opacity duration-200 group-hover/gen:opacity-100">
-                  Coming soon
-                  <div className="absolute -bottom-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 border-b border-r border-white/10 bg-black/80" />
-                </div>
-              </div>
+              {/* generate button */}
+              <button
+                onClick={handleGenerate}
+                disabled={!prompt.trim() || generating}
+                className={`flex items-center gap-2 rounded-xl px-5 py-2 text-sm font-semibold text-white shadow-lg transition-all duration-200 ${
+                  !prompt.trim() || generating
+                    ? "cursor-not-allowed bg-gradient-to-r from-violet-600/40 to-indigo-600/40 text-white/40"
+                    : "bg-gradient-to-r from-violet-600 to-indigo-600 shadow-violet-500/25 hover:from-violet-500 hover:to-indigo-500 active:scale-95"
+                }`}
+              >
+                {generating ? (
+                  <>
+                    <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                    </svg>
+                    Generating…
+                  </>
+                ) : (
+                  <>
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Generate
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>
 
-        {/* ─── category filter ─── */}
+        {/* ─── result ─── */}
+        {resultUrl && (
+          <div className="mx-auto mb-12 max-w-3xl overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.03] shadow-2xl">
+            <video
+              src={resultUrl}
+              controls
+              autoPlay
+              loop
+              className="w-full"
+              playsInline
+            />
+            <div className="flex items-center justify-between px-4 py-3">
+              <span className="text-xs text-slate-400">Generated video</span>
+              <a
+                href={resultUrl}
+                download
+                className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-slate-300 hover:bg-white/10"
+              >
+                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                Download
+              </a>
+            </div>
+          </div>
+        )}
+
+        {/* ─── category filter ─── */}}
         <div className="mb-8 flex flex-wrap items-center justify-center gap-2">
           {CATEGORIES.map((cat) => (
             <button
@@ -680,8 +783,7 @@ export default function NextSceneEnginePage() {
 
         {/* ─── footer note ─── */}
         <p className="mt-16 text-center text-xs text-slate-600">
-          Scene previews are placeholders. Generation will be connected in a
-          future update.
+          Pick a scene below to pre-fill the prompt, then press Generate.
         </p>
       </div>
     </div>
