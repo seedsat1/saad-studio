@@ -1057,8 +1057,18 @@ export default function ImageWorkspacePage() {
   // model doesn't accept references, switch to a sensible image-to-image default.
   const handleUseAsReference = useCallback(async (item: ResultItem) => {
     try {
-      const res = await fetch(item.url);
-      const blob = await res.blob();
+      // Try direct fetch first; many CDNs (KIE temp domain) block CORS, so
+      // fall back to our authenticated server-side proxy when that happens.
+      let blob: Blob | null = null;
+      try {
+        const direct = await fetch(item.url, { mode: "cors" });
+        if (direct.ok) blob = await direct.blob();
+      } catch { /* CORS or network — fall through to proxy */ }
+      if (!blob) {
+        const proxied = await fetch(`/api/proxy-image?url=${encodeURIComponent(item.url)}`);
+        if (!proxied.ok) throw new Error(`Proxy returned ${proxied.status}`);
+        blob = await proxied.blob();
+      }
       const ext = (blob.type.split("/")[1] || "png").split("+")[0];
       const file = new File([blob], `result_${item.id}.${ext}`, { type: blob.type || "image/png" });
 
