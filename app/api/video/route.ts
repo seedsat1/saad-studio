@@ -612,7 +612,38 @@ export async function POST(req: Request) {
     // ── KIE path ──────────────────────────────────────────────────────────────
     const normalizedInput = normalizeInputForKie(payload);
     const resolvedInput = await resolveMediaInInput(normalizedInput);
+
+    // ── KIE 3.0 payload diagnostic log ───────────────────────────────────
+    if (kieModel === "kling-3.0/video") {
+      const rawImageUrls = Array.isArray(normalizedInput.image_urls)
+        ? (normalizedInput.image_urls as unknown[]).map((u, i) =>
+            typeof u === "string" ? `[${i}] ${u.slice(0, 60)}\u2026 (len=${u.length})` : `[${i}] non-string`
+          )
+        : "not an array";
+      console.log(
+        `[API/video] Kling 3.0 received image_urls (${Array.isArray(normalizedInput.image_urls) ? (normalizedInput.image_urls as unknown[]).length : 0} items):`,
+        JSON.stringify(rawImageUrls, null, 2)
+      );
+    }
+
     const kieInput = mapToKieInput(kieModel!, resolvedInput);
+
+    // ── Post-map log ─────────────────────────────────────────────────────
+    if (kieModel === "kling-3.0/video") {
+      const mapped = kieInput as Record<string, unknown>;
+      console.log("[API/video] Kling 3.0 kieInput snapshot:", JSON.stringify({
+        prompt: mapped.prompt,
+        mode: mapped.mode,
+        duration: mapped.duration,
+        aspect_ratio: mapped.aspect_ratio,
+        multi_shots: mapped.multi_shots,
+        image_urls: Array.isArray(mapped.image_urls)
+          ? (mapped.image_urls as string[]).map((u, i) => `[${i}] ${u.slice(0, 80)}\u2026`)
+          : mapped.image_urls,
+        has_kling_elements: Array.isArray(mapped.kling_elements) && (mapped.kling_elements as unknown[]).length > 0,
+        kling_elements_count: Array.isArray(mapped.kling_elements) ? (mapped.kling_elements as unknown[]).length : 0,
+      }, null, 2));
+    }
 
     if (kieModel === "kling-3.0/video") {
       const klingError = validateKling30Payload(kieInput);

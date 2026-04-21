@@ -1611,7 +1611,8 @@ function VideoPageInner() {
           )}
 
           {/* -- Image inputs (Start / End frame) -------------------------- */}
-          {!showVideoInput && !showOmniTabs && (showImageInput || showEndFrame) && (
+          {/* NOTE: Kling 3.0 has its own dedicated FRAMES section below — hide generic here */}
+          {!showVideoInput && !showOmniTabs && !isKling30Video && (showImageInput || showEndFrame) && (
             <div className="flex gap-2">
               {showImageInput && (
                 <button
