@@ -47,6 +47,15 @@ function AppToolCardInner({ tool }: AppToolCardProps) {
             animate={{ filter: isHovered ? "brightness(1.15)" : "brightness(1)" }}
             transition={{ duration: 0.3 }}
           />
+          {tool.previewImage && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={tool.previewImage}
+              alt={tool.title}
+              className="absolute inset-0 w-full h-full object-cover"
+              loading="lazy"
+            />
+          )}
           {/* Subtle inner vignette */}
           <div
             className="absolute inset-0"
