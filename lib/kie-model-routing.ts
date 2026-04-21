@@ -32,6 +32,7 @@ export const BASE_VIDEO_ROUTE_TO_KIE_MODEL: Record<string, string> = {
   // NOTE: kwaivgi/kling-video-o3-pro/* routes removed — KIE has no Omni endpoint yet.
   "kwaivgi/kling-v3.0-pro/motion-control": "kling-3.0/motion-control",
   "kling/v2-5-turbo-text-to-video-pro": "kling/v2-5-turbo-text-to-video-pro",
+  "kling/v2-5-turbo-image-to-video-pro": "kling/v2-5-turbo-image-to-video-pro",
   "minimax/hailuo-2.3/i2v-standard": "hailuo/2-3-image-to-video-standard",
   "minimax/hailuo-2.3/i2v-pro": "hailuo/2-3-image-to-video-pro",
   "openai/sora-2/text-to-video": "sora-2-text-to-video",
@@ -50,6 +51,7 @@ export const BASE_KIE_VIDEO_MODEL_MAP: Record<string, string> = {
   "kling-3.0/video": "kling-3.0/video",
   "kling-3.0/motion-control": "kling-3.0/motion-control",
   "kling/v2-5-turbo-text-to-video-pro": "kling/v2-5-turbo-text-to-video-pro",
+  "kling/v2-5-turbo-image-to-video-pro": "kling/v2-5-turbo-image-to-video-pro",
   "hailuo/2-3-image-to-video-standard": "hailuo/2-3-image-to-video-standard",
   "hailuo/2-3-image-to-video-pro": "hailuo/2-3-image-to-video-pro",
   "sora-2-text-to-video": "sora-2-text-to-video",
@@ -67,7 +69,8 @@ export const BASE_KIE_VIDEO_MODEL_MAP: Record<string, string> = {
 export const WAVESPEED_VIDEO_FALLBACK_MAP: Record<string, string> = {
   "kling-2.6/text-to-video": "kwaivgi/kling-v2.6-pro/text-to-video",
   "kling-2.6/image-to-video": "kwaivgi/kling-v2.6-pro/image-to-video",
-  "kling/v2-5-turbo-image-to-video-pro": "kwaivgi/kling-v2.5-turbo-std/image-to-video",
+  // Kling 2.5 Turbo I2V Pro removed — now routed to KIE "kling/v2-5-turbo-image-to-video-pro"
+  // (was incorrectly aliased to WaveSpeed std endpoint).
   "hailuo/02-text-to-video-pro": "minimax/hailuo-02/t2v-pro",
   "hailuo/02-image-to-video-pro": "minimax/hailuo-02/i2v-pro",
   "hailuo/02-text-to-video-standard": "minimax/hailuo-02/t2v-standard",

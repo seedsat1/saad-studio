@@ -19,6 +19,7 @@ const VIDEO_ROUTE_COST_MAP = new Map<string, number>([
   // Kling 3.0 Omni / Omni Edit removed — KIE has no Omni endpoint.
   ["kwaivgi/kling-v3.0-pro/motion-control", 22],
   ["kling/v2-5-turbo-text-to-video-pro", 10],
+  ["kling/v2-5-turbo-image-to-video-pro", 10],
   ["minimax/hailuo-2.3/i2v-standard", 12],
   ["minimax/hailuo-2.3/i2v-pro", 18],
   ["openai/sora-2/text-to-video", 25],

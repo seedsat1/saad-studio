@@ -309,6 +309,35 @@ function mapToKieInput(model: string, payload: Record<string, unknown>) {
     return out;
   }
 
+  // ── Kling 2.5 Turbo Pro (T2V + I2V) — KIE flat input shape ────────────────
+  // T2V: { prompt, duration ('5'|'10'), aspect_ratio, negative_prompt?, cfg_scale? }
+  // I2V: { prompt, image_url, duration ('5'|'10'), negative_prompt?, cfg_scale? }
+  if (
+    model === "kling/v2-5-turbo-text-to-video-pro" ||
+    model === "kling/v2-5-turbo-image-to-video-pro"
+  ) {
+    const isI2V = model === "kling/v2-5-turbo-image-to-video-pro";
+    const out: Record<string, unknown> = {};
+    out.prompt = typeof input.prompt === "string" ? input.prompt : "";
+    const dur = typeof input.duration === "number"
+      ? input.duration
+      : typeof input.duration === "string" ? Number(input.duration) : 5;
+    out.duration = dur >= 10 ? "10" : "5";
+    if (!isI2V && typeof input.aspect_ratio === "string") {
+      out.aspect_ratio = input.aspect_ratio;
+    }
+    if (typeof input.negative_prompt === "string" && input.negative_prompt.trim()) {
+      out.negative_prompt = input.negative_prompt;
+    }
+    if (typeof input.cfg_scale === "number") {
+      out.cfg_scale = input.cfg_scale;
+    }
+    if (isI2V && startImage) {
+      out.image_url = startImage;
+    }
+    return out;
+  }
+
   // ── Sora 2 — KIE uses n_frames ("10s"/"15s") and "Portrait"/"Landscape" aspect_ratio ──
   if (model === "sora-2-text-to-video" || model === "sora-2-image-to-video" || model === "sora-2-pro-text-to-video") {
     const out: Record<string, unknown> = {};

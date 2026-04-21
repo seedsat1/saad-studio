@@ -634,7 +634,7 @@ function ModelTestCard({ model }: { model: WaveSpeedVideoModel }) {
 const WS_ONLY_IDS = new Set([
   "kling-2.6/text-to-video",
   "kling-2.6/image-to-video",
-  "kling/v2-5-turbo-image-to-video-pro",
+  // Kling 2.5 Turbo I2V Pro moved to KIE path.
   "hailuo/02-text-to-video-pro",
   "hailuo/02-image-to-video-pro",
   "hailuo/02-text-to-video-standard",
