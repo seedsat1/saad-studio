@@ -107,29 +107,33 @@ export async function DELETE(req: NextRequest) {
     }
 
     const body = await req.json().catch(() => ({}));
-    const id = typeof body?.id === "string" ? body.id : "";
-    if (!id) {
-      return NextResponse.json({ error: "Asset id is required." }, { status: 400 });
+    // Accept either { id: "..." } or { ids: ["...", "..."] } for bulk delete.
+    const singleId = typeof body?.id === "string" ? body.id : "";
+    const bulkIds = Array.isArray(body?.ids)
+      ? (body.ids as unknown[]).filter((v): v is string => typeof v === "string" && v.length > 0)
+      : [];
+    const ids = bulkIds.length > 0 ? bulkIds : (singleId ? [singleId] : []);
+    if (ids.length === 0) {
+      return NextResponse.json({ error: "Asset id(s) required." }, { status: 400 });
     }
+    // Hard cap to avoid abuse.
+    const safeIds = ids.slice(0, 200);
 
-    const record = await prismadb.generation.findFirst({
-      where: { id, userId },
+    const records = await prismadb.generation.findMany({
+      where: { id: { in: safeIds }, userId },
       select: { id: true, assetType: true },
     });
 
     await prismadb.generation.deleteMany({
-      where: {
-        id,
-        userId,
-      },
+      where: { id: { in: safeIds }, userId },
     });
 
-    // Best-effort storage cleanup
-    if (record) {
-      deleteFromStorage({ userId, generationId: id, assetType: record.assetType }).catch(() => {});
+    // Best-effort storage cleanup, fire-and-forget per record.
+    for (const record of records) {
+      deleteFromStorage({ userId, generationId: record.id, assetType: record.assetType }).catch(() => {});
     }
 
-    return NextResponse.json({ ok: true }, { status: 200 });
+    return NextResponse.json({ ok: true, deleted: records.length }, { status: 200 });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to delete asset.";
     return NextResponse.json({ error: message }, { status: 500 });
