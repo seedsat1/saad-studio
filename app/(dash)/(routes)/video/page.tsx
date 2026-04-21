@@ -1972,7 +1972,7 @@ function VideoPageInner() {
                       <input ref={startFrameRef} type="file" accept="image/*" className="hidden" onChange={e => setStartFrame(e.target.files?.[0] ?? null)} />
                       {startFrame ? (
                         <>
-                          {startFramePreview && <img src={startFramePreview} alt="Start" className="absolute inset-0 w-full h-full object-cover" />
+                          {startFramePreview && <img src={startFramePreview} alt="Start" className="absolute inset-0 w-full h-full object-contain" style={{ padding: 6 }} />
                           }
                           <button className="absolute top-1.5 right-1.5 z-10 rounded-full p-1" style={{ background: "rgba(0,0,0,0.75)" }} onClick={e => { e.stopPropagation(); setStartFrame(null); }}><X size={12} style={{ color: "#fff" }} /></button>
                         </>
@@ -2011,7 +2011,7 @@ function VideoPageInner() {
                         <input ref={endFrameRef} type="file" accept="image/*" className="hidden" onChange={e => setEndFrame(e.target.files?.[0] ?? null)} />
                         {endFrame ? (
                           <>
-                            {endFramePreview && <img src={endFramePreview} alt="End" className="absolute inset-0 w-full h-full object-cover" />
+                            {endFramePreview && <img src={endFramePreview} alt="End" className="absolute inset-0 w-full h-full object-contain" style={{ padding: 6 }} />
                             }
                             <button className="absolute top-1.5 right-1.5 z-10 rounded-full p-1" style={{ background: "rgba(0,0,0,0.75)" }} onClick={e => { e.stopPropagation(); setEndFrame(null); }}><X size={12} style={{ color: "#fff" }} /></button>
                           </>
