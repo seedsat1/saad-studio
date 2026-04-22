@@ -3,10 +3,38 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { usePromoMedia, promoUrl } from "@/hooks/use-promo-media";
 import { usePromoContent, promoText } from "@/hooks/use-promo-content";
+
+const isVideoUrl = (url?: string) => Boolean(url && /\.mp4(\?|$)/i.test(url));
+
+const CINEMA_VIDEOS = [
+  "https://storage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4",
+  "https://storage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
+  "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
+  "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4",
+  "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4",
+  "https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+];
+
+const STYLE_VIDEOS = [
+  "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+  "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerScopes.mp4",
+  "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4",
+  "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4",
+  "https://storage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
+  "https://storage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
+];
+
+const MIXED_VIDEOS = [
+  "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4",
+  "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+  "https://storage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4",
+  "https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+  "https://storage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
+  "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
+];
 
 const TABS = [
   {
@@ -49,6 +77,27 @@ const TABS = [
     ],
   },
 ];
+
+const VIDEO_BY_SLOT: Record<string, string> = {
+  "explore/gallery-soul-cinema-1": CINEMA_VIDEOS[0],
+  "explore/gallery-soul-cinema-2": CINEMA_VIDEOS[1],
+  "explore/gallery-soul-cinema-3": CINEMA_VIDEOS[2],
+  "explore/gallery-soul-cinema-4": CINEMA_VIDEOS[3],
+  "explore/gallery-soul-cinema-5": CINEMA_VIDEOS[4],
+  "explore/gallery-soul-cinema-6": CINEMA_VIDEOS[5],
+  "explore/gallery-soul-2-1": STYLE_VIDEOS[0],
+  "explore/gallery-soul-2-2": STYLE_VIDEOS[1],
+  "explore/gallery-soul-2-3": STYLE_VIDEOS[2],
+  "explore/gallery-soul-2-4": STYLE_VIDEOS[3],
+  "explore/gallery-soul-2-5": STYLE_VIDEOS[4],
+  "explore/gallery-soul-2-6": STYLE_VIDEOS[5],
+  "explore/gallery-mixed-media-1": MIXED_VIDEOS[0],
+  "explore/gallery-mixed-media-2": MIXED_VIDEOS[1],
+  "explore/gallery-mixed-media-3": MIXED_VIDEOS[2],
+  "explore/gallery-mixed-media-4": MIXED_VIDEOS[3],
+  "explore/gallery-mixed-media-5": MIXED_VIDEOS[4],
+  "explore/gallery-mixed-media-6": MIXED_VIDEOS[5],
+};
 
 export default function CommunityGallery() {
   const [activeTab, setActiveTab] = useState("soul-cinema");
@@ -143,13 +192,18 @@ export default function CommunityGallery() {
                       boxShadow: "0 0 28px rgba(6,182,212,0.18)",
                     }}
                   >
-                    {/* Image */}
-                    <Image
-                      src={promoUrl(promo, item.slotId, item.image)}
-                      alt={item.name}
-                      fill
-                      className="object-cover object-center transition-transform duration-500 group-hover:scale-105"
-                      sizes={featured ? "(max-width:768px) 100vw, 50vw" : "(max-width:768px) 50vw, 25vw"}
+                    {/* Video */}
+                    <video
+                      src={(() => {
+                        const custom = promoUrl(promo, item.slotId, item.image);
+                        return isVideoUrl(custom) ? custom : VIDEO_BY_SLOT[item.slotId];
+                      })()}
+                      autoPlay
+                      muted
+                      loop
+                      playsInline
+                      preload="metadata"
+                      className="absolute inset-0 h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
                     />
 
                     {/* Overlay */}

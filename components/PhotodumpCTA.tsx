@@ -1,11 +1,13 @@
 "use client";
 
 import { motion } from "framer-motion";
-import Image from "next/image";
 import Link from "next/link";
 import { usePromoMedia, promoUrl } from "@/hooks/use-promo-media";
 import { usePromoContent, promoText } from "@/hooks/use-promo-content";
 import { useCmsData } from "@/lib/use-cms-data";
+
+const DEFAULT_PHOTODUMP_VIDEO = "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4";
+const isVideoUrl = (url?: string) => Boolean(url && /\.mp4(\?|$)/i.test(url));
 
 interface DiscoverCms {
   photodump?: { badge?: string; title?: string; subtitle?: string; cta?: string; ctaHref?: string; image?: string; floatingBadges?: string[] };
@@ -17,6 +19,8 @@ export default function PhotodumpCTA() {
   const content = usePromoContent();
   const { data: cms } = useCmsData<DiscoverCms>("discover");
   const pd = cms?.photodump;
+  const promoMedia = promoUrl(promo, "explore/photodump-hero", "/explore/photodump-hero.jpg");
+  const heroVideo = isVideoUrl(promoMedia) ? promoMedia : DEFAULT_PHOTODUMP_VIDEO;
 
   const ctaHref = pd?.ctaHref || "/image/photodump";
   const floatingBadges = pd?.floatingBadges?.length ? pd.floatingBadges : ["Beach Scene", "City Night", "Studio Shot"];
@@ -155,12 +159,14 @@ export default function PhotodumpCTA() {
                 transition={{ delay: 0.3, duration: 0.5 }}
                 style={{ border: "1px solid rgba(148,163,184,0.10)" }}
               >
-                <Image
-                  src={promoUrl(promo, "explore/photodump-hero", "/explore/photodump-hero.jpg")}
-                  alt="Photodump — Different Scenes Same Star"
-                  fill
-                  className="object-cover object-center"
-                  sizes="420px"
+                <video
+                  src={heroVideo}
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  preload="metadata"
+                  className="absolute inset-0 h-full w-full object-cover object-center"
                 />
                 {/* Overlay */}
                 <div

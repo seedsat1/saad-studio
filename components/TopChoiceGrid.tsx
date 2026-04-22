@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { usePromoMedia } from "@/hooks/use-promo-media";
 import { usePromoContent } from "@/hooks/use-promo-content";
@@ -160,7 +159,7 @@ export default function TopChoiceGrid() {
         id: ct.id,
         image: isVideoUrl(ct.image)
           ? ct.image
-          : DEFAULT_TOP_VIDEO_BY_ID[ct.id] || fallback?.image || "/explore/top-" + ct.id + ".jpg",
+          : DEFAULT_TOP_VIDEO_BY_ID[ct.id] || fallback?.image || TOP_VIDEOS.kling,
         name: ct.name,
         desc: ct.desc,
         href: ct.href,
@@ -302,24 +301,15 @@ export default function TopChoiceGrid() {
                   whileTap={{ scale: 0.98 }}
                 >
                 {/* Background image */}
-                {(tool as any).isVideo || isVideoUrl(tool.image) ? (
-                  <video
-                    src={tool.image}
-                    autoPlay
-                    muted
-                    loop
-                    playsInline
-                    className="absolute inset-0 h-full w-full object-cover object-center"
-                  />
-                ) : (
-                  <Image
-                    src={tool.image}
-                    alt={tool.name}
-                    fill
-                    className="object-cover object-center"
-                    sizes="(max-width:768px) 50vw, (max-width:1024px) 33vw, 25vw"
-                  />
-                )}
+                <video
+                  src={isVideoUrl(tool.image) ? tool.image : DEFAULT_TOP_VIDEO_BY_ID[tool.id] || TOP_VIDEOS.kling}
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  preload="metadata"
+                  className="absolute inset-0 h-full w-full object-cover object-center"
+                />
 
                 {/* Overlay */}
                 <div

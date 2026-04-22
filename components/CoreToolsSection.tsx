@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { usePromoMedia } from "@/hooks/use-promo-media";
 import { usePromoContent } from "@/hooks/use-promo-content";
@@ -174,7 +173,7 @@ export default function CoreToolsSection() {
         id: ct.id,
         image: isVideoUrl(ct.image)
           ? ct.image
-          : DEFAULT_CORE_VIDEO_BY_ID[ct.id] || fallback?.image || "/explore/tool-" + ct.id + ".jpg",
+          : DEFAULT_CORE_VIDEO_BY_ID[ct.id] || fallback?.image || CORE_VIDEOS.createVideo,
         name: ct.name,
         desc: ct.desc,
         href: ct.href,
@@ -326,24 +325,15 @@ export default function CoreToolsSection() {
                 whileTap={{ scale: 0.98 }}
               >
                 {/* Background image */}
-                {(tool as any).isVideo || isVideoUrl(tool.image) ? (
-                  <video
-                    src={tool.image}
-                    autoPlay
-                    muted
-                    loop
-                    playsInline
-                    className="absolute inset-0 h-full w-full object-cover object-center"
-                  />
-                ) : (
-                  <Image
-                    src={tool.image}
-                    alt={tool.name}
-                    fill
-                    className="object-cover object-center"
-                    sizes="200px"
-                  />
-                )}
+                <video
+                  src={isVideoUrl(tool.image) ? tool.image : DEFAULT_CORE_VIDEO_BY_ID[tool.id] || CORE_VIDEOS.createVideo}
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  preload="metadata"
+                  className="absolute inset-0 h-full w-full object-cover object-center"
+                />
 
                 {/* Overlay */}
                 <div

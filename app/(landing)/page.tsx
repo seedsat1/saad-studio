@@ -45,6 +45,38 @@ type HeroSlide = {
   youtubeUrl?: string;
 };
 
+const isVideoUrl = (url?: string) => Boolean(url && /\.(mp4|webm|mov|ogg)([?#]|$)/i.test(url));
+
+const TOOL_CARD_VIDEOS: Record<string, string> = {
+  "create-image": "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+  "create-video": "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
+  "cinema-studio": "https://storage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4",
+  "ai-influencer": "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4",
+  "soul-id": "https://storage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
+  "lipsync": "https://storage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
+  "vibe-motion": "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4",
+  "draw-to-video": "https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+  relight: "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerScopes.mp4",
+  "face-swap": "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4",
+  "ugc-factory": "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
+  upscale: "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+  "char-swap": "https://storage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
+  "fashion-factory": "https://storage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4",
+  default: "https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+};
+
+const AD_CARD_VIDEOS = [
+  "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4",
+  "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
+  "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+  "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4",
+];
+
+const getToolCardVideo = (card: ToolCard) => {
+  if (isVideoUrl(card.image)) return card.image as string;
+  return TOOL_CARD_VIDEOS[card.id] || TOOL_CARD_VIDEOS.default;
+};
+
 // ─── Hero Slides ──────────────────────────────────────────────────────────────
 const HERO_SLIDES: HeroSlide[] = [
   {
@@ -314,6 +346,7 @@ function BadgeChip({ badge }: { badge: Badge }) {
 function ToolCardItem({ card, wide = false }: { card: ToolCard; wide?: boolean }) {
   const [hovered, setHovered] = useState(false);
   const Icon = card.icon;
+  const mediaSrc = getToolCardVideo(card);
   return (
     <Link href={card.href}>
       <motion.div
@@ -326,24 +359,20 @@ function ToolCardItem({ card, wide = false }: { card: ToolCard; wide?: boolean }
           wide ? "w-[280px] aspect-[16/9]" : "aspect-[4/3]"
         )}
       >
-        {/* BG image + gradient overlay */}
-        {card.image && (
-          <Image
-            src={card.image}
-            alt={card.title}
-            fill
-            sizes="(max-width: 768px) 50vw, 320px"
-            quality={55}
-            loading="lazy"
-            className="object-cover object-center"
-          />
-        )}
+        {/* BG video + gradient overlay */}
+        <video
+          src={mediaSrc}
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="metadata"
+          className="absolute inset-0 h-full w-full object-cover object-center"
+        />
         <div className={cn(
           "absolute inset-0 bg-gradient-to-br transition-opacity duration-300",
           card.gradient,
-          card.image
-            ? (hovered ? "opacity-60" : "opacity-75")
-            : (hovered ? "opacity-100" : "opacity-70")
+          hovered ? "opacity-60" : "opacity-75"
         )} />
 
         {/* Top-right play icon on hover */}
@@ -488,7 +517,7 @@ function HeroCarousel({ slides = HERO_SLIDES }: { slides?: HeroSlide[] }) {
                   title={slide.title}
                 />
               </div>
-            ) : /\.(mp4|webm|mov|ogg)([?#]|$)/i.test(slide.bgImage) ? (
+            ) : isVideoUrl(slide.bgImage) ? (
               <video
                 src={slide.bgImage}
                 autoPlay muted loop playsInline
@@ -922,11 +951,15 @@ function AdCardsRow({ cards }: { cards: CmsAdCard[] }) {
                 whileHover={{ scale: 1.025 }}
                 className="group relative overflow-hidden rounded-2xl border border-white/[0.08] bg-slate-900/60 cursor-pointer aspect-[4/3]"
               >
-                {card.image ? (
-                  <Image src={card.image} alt={card.title} fill sizes="(max-width: 768px) 50vw, 320px" className="object-cover" />
-                ) : (
-                  <div className={cn("absolute inset-0 bg-gradient-to-br", card.gradient || "from-pink-600/40 via-rose-700/30 to-indigo-900/60")} />
-                )}
+                <video
+                  src={isVideoUrl(card.image) ? card.image : AD_CARD_VIDEOS[i % AD_CARD_VIDEOS.length]}
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  preload="metadata"
+                  className="absolute inset-0 h-full w-full object-cover"
+                />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
                 <div className="absolute bottom-0 left-0 right-0 p-4">
                   {card.badge && (
@@ -1116,7 +1149,7 @@ export default function ExplorePage() {
           id: c.id || fallback.id,
           title: c.title || fallback.title,
           description: c.description || fallback.description,
-          image: c.image || fallback.image,
+          image: isVideoUrl(c.image) ? c.image : fallback.image,
           href: c.href || fallback.href,
           badge: (c.badge as Badge) || fallback.badge,
         };
@@ -1131,7 +1164,7 @@ export default function ExplorePage() {
         id: b.id || `feature-${idx}`,
         title: b.title || fallback.title,
         description: b.subtitle || fallback.description,
-        image: b.mediaUrl || fallback.image,
+        image: isVideoUrl(b.mediaUrl) ? (b.mediaUrl as string) : fallback.image,
       };
     });
     return base.map((c) => {
@@ -1139,7 +1172,7 @@ export default function ExplorePage() {
       if (!slotId) return c;
       let updated = { ...c };
       const custom = promo[slotId];
-      if (custom?.url) updated.image = custom.url;
+      if (isVideoUrl(custom?.url)) updated.image = custom.url;
       const text = promoContent[slotId];
       if (text) {
         if (text.title) updated.title = text.title;
@@ -1159,7 +1192,7 @@ export default function ExplorePage() {
           id: c.id || fallback.id,
           title: c.title || fallback.title,
           description: c.description || fallback.description,
-          image: c.image || fallback.image,
+          image: isVideoUrl(c.image) ? c.image : fallback.image,
           href: c.href || fallback.href,
           badge: (c.badge as Badge) || fallback.badge,
         };
@@ -1174,7 +1207,7 @@ export default function ExplorePage() {
         id: b.id || `discover-${idx}`,
         title: b.title || fallback.title,
         description: b.subtitle || fallback.description,
-        image: b.mediaUrl || fallback.image,
+        image: isVideoUrl(b.mediaUrl) ? (b.mediaUrl as string) : fallback.image,
       };
     });
     return base.map((c) => {
@@ -1182,7 +1215,7 @@ export default function ExplorePage() {
       if (!slotId) return c;
       let updated = { ...c };
       const custom = promo[slotId];
-      if (custom?.url) updated.image = custom.url;
+      if (isVideoUrl(custom?.url)) updated.image = custom.url;
       const text = promoContent[slotId];
       if (text) {
         if (text.title) updated.title = text.title;
