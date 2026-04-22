@@ -657,7 +657,7 @@ const PLATFORM_STATS = [
   { number: "20+", label: "Image Models", subtitle: "GPT Image, FLUX, Imagen 4 & more" },
   { number: "17",  label: "Video Engines", subtitle: "Kling, Sora, Veo, Seedance & more" },
   { number: "85+", label: "AI Tools", subtitle: "Image, Video, Audio, 3D, Edit" },
-  { number: "100", label: "Free Credits", subtitle: "No credit card required" },
+  { number: "25", label: "Free Credits", subtitle: "No credit card required" },
 ];
 
 function StatsCounter() {
@@ -800,7 +800,7 @@ const PRICING_CARDS = [
   {
     name: "Free",
     price: null,
-    line1: "100 credits to start",
+    line1: "25 credits to start",
     line2: "No card required",
     cta: "Sign Up Free",
     ctaHref: "/?auth=signup",
