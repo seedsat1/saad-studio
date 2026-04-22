@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type DragEvent } from "react";
 import {
   Camera,
   Clapperboard,
@@ -37,6 +37,18 @@ interface Scene {
   status: "Draft" | "Queued" | "Ready";
   camera: string;
   transition: string;
+}
+
+type TimelineTrack = "V1" | "A1" | "A2" | "SFX" | "TXT";
+
+interface TimelineClip {
+  id: string;
+  track: TimelineTrack;
+  title: string;
+  startSec: number;
+  durationSec: number;
+  colorClass: string;
+  sourceUrl?: string;
 }
 
 interface StudioState {
@@ -113,7 +125,7 @@ const INSPECTOR_TABS: { id: InspectorTab; label: string }[] = [
   { id: "render", label: "Render" },
 ];
 
-const SCENES: Scene[] = [
+const INITIAL_SCENES: Scene[] = [
   { id: "SC-01", title: "City Introduction", duration: "08s", status: "Ready", camera: "Alexa LF", transition: "Match Cut" },
   { id: "SC-02", title: "Character Arrival", duration: "06s", status: "Queued", camera: "Sony Venice", transition: "Whip Pan" },
   { id: "SC-03", title: "Breaking News Desk", duration: "05s", status: "Draft", camera: "Broadcast ENG", transition: "Clean Cut" },
@@ -130,6 +142,33 @@ const PRESETS = [
   "Anime Stylized",
   "Trailer Mode",
 ];
+
+const WRITING_PRESETS = [
+  {
+    id: "cinema",
+    label: "Cinematic Narrative",
+    template:
+      "Write a cinematic scene with strong emotional arc. Include location, character goal, conflict, and visual mood. End with a transition cue.",
+  },
+  {
+    id: "news",
+    label: "News Report",
+    template:
+      "Write a newsroom script: headline, key facts, on-location quote, and anchor outro. Tone: professional and urgent.",
+  },
+  {
+    id: "drama",
+    label: "Emotional Drama",
+    template:
+      "Write a dramatic dialogue scene between two characters with hidden tension, one reveal, and a cliffhanger ending.",
+  },
+  {
+    id: "trailer",
+    label: "Trailer Voiceover",
+    template:
+      "Write a trailer voiceover in 6 short beats with escalating stakes and one memorable closing line.",
+  },
+] as const;
 
 const VIDEO_ROUTES = [
   { value: "kwaivgi/kling-v3.0-pro/text-to-video", label: "Kling 3 Pro" },
@@ -193,9 +232,13 @@ async function parseError(res: Response): Promise<string> {
 
 export default function BulletTimeStudioPage() {
   const [themeKey, setThemeKey] = useState<StudioThemeKey>("darkSteel");
-  const [selectedSceneId, setSelectedSceneId] = useState<string>(SCENES[0].id);
+  const [scenes, setScenes] = useState<Scene[]>(INITIAL_SCENES);
+  const [selectedSceneId, setSelectedSceneId] = useState<string>(INITIAL_SCENES[0].id);
   const [activeTab, setActiveTab] = useState<InspectorTab>("presets");
   const [selectedPreset, setSelectedPreset] = useState<string>(PRESETS[0]);
+  const [selectedWritingPreset, setSelectedWritingPreset] = useState<(typeof WRITING_PRESETS)[number]["id"]>(WRITING_PRESETS[0].id);
+  const [scriptText, setScriptText] = useState<string>(WRITING_PRESETS[0].template);
+  const [newSceneTitle, setNewSceneTitle] = useState<string>("");
 
   const [state, setState] = useState<StudioState>(FALLBACK_STATE);
   const [prompt, setPrompt] = useState("A dramatic cinematic shot of a reporter walking through a rainy neon street at night.");
@@ -231,6 +274,10 @@ export default function BulletTimeStudioPage() {
   const [cloneSampleDataUrl, setCloneSampleDataUrl] = useState<string>("");
   const [cloneSampleName, setCloneSampleName] = useState<string>("");
   const [mixPlaying, setMixPlaying] = useState(false);
+  const [timelineClips, setTimelineClips] = useState<TimelineClip[]>([]);
+  const [selectedClipId, setSelectedClipId] = useState<string | null>(null);
+  const [playheadSec, setPlayheadSec] = useState(0);
+  const [draggingClipId, setDraggingClipId] = useState<string | null>(null);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const voiceRef = useRef<HTMLAudioElement | null>(null);
@@ -238,11 +285,22 @@ export default function BulletTimeStudioPage() {
   const musicRef = useRef<HTMLAudioElement | null>(null);
   const sfxRef = useRef<HTMLAudioElement | null>(null);
   const imageRefInput = useRef<HTMLInputElement | null>(null);
+  const timelineCanvasRef = useRef<HTMLDivElement | null>(null);
 
   const theme = STUDIO_THEMES[themeKey];
   const selectedScene = useMemo(
-    () => SCENES.find((scene) => scene.id === selectedSceneId) ?? SCENES[0],
-    [selectedSceneId]
+    () => scenes.find((scene) => scene.id === selectedSceneId) ?? scenes[0],
+    [selectedSceneId, scenes]
+  );
+  const timelineTracks = useMemo<TimelineTrack[]>(() => ["V1", "A1", "A2", "SFX", "TXT"], []);
+  const pxPerSec = 26;
+  const timelineTotalSec = useMemo(
+    () => Math.max(60, Math.ceil(Math.max(...timelineClips.map((c) => c.startSec + c.durationSec), 0) + 10)),
+    [timelineClips]
+  );
+  const selectedClip = useMemo(
+    () => timelineClips.find((clip) => clip.id === selectedClipId) ?? null,
+    [timelineClips, selectedClipId]
   );
   const isKlingRoute = useMemo(
     () => videoRoute === "kwaivgi/kling-v3.0-pro/text-to-video",
@@ -325,6 +383,116 @@ export default function BulletTimeStudioPage() {
   const removeReferenceImage = useCallback((idx: number) => {
     setReferenceImages((prev) => prev.filter((_, i) => i !== idx));
   }, []);
+
+  const createClip = useCallback(
+    (track: TimelineTrack, title: string, durationSec: number, sourceUrl?: string) => {
+      const id = `clip-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const currentMaxEnd = timelineClips.reduce((max, c) => Math.max(max, c.startSec + c.durationSec), 0);
+      const colorClass =
+        track === "V1"
+          ? "bg-cyan-500/25 border-cyan-300/40"
+          : track === "A1"
+            ? "bg-fuchsia-500/20 border-fuchsia-300/35"
+            : track === "A2"
+              ? "bg-emerald-500/20 border-emerald-300/35"
+              : track === "SFX"
+                ? "bg-amber-500/20 border-amber-300/35"
+                : "bg-sky-500/20 border-sky-300/35";
+      const clip: TimelineClip = {
+        id,
+        track,
+        title,
+        startSec: Math.max(0, Math.floor(currentMaxEnd)),
+        durationSec: Math.max(1, durationSec),
+        colorClass,
+        sourceUrl,
+      };
+      setTimelineClips((prev) => [...prev, clip]);
+      setSelectedClipId(id);
+      return clip;
+    },
+    [timelineClips]
+  );
+
+  const addNewScene = useCallback(() => {
+    const trimmed = newSceneTitle.trim();
+    if (!trimmed) return;
+    const idNum = scenes.length + 1;
+    const nextId = `SC-${String(idNum).padStart(2, "0")}`;
+    const scene: Scene = {
+      id: nextId,
+      title: trimmed,
+      duration: `${duration}s`,
+      status: "Draft",
+      camera: "Director Cam",
+      transition: "Cut",
+    };
+    setScenes((prev) => [...prev, scene]);
+    setSelectedSceneId(nextId);
+    createClip("V1", `${nextId} ${trimmed}`, duration);
+    setNewSceneTitle("");
+    pushLog(`Scene added: ${nextId}`);
+  }, [createClip, duration, newSceneTitle, pushLog, scenes.length]);
+
+  const splitSelectedClip = useCallback(() => {
+    if (!selectedClip) return;
+    const local = playheadSec - selectedClip.startSec;
+    if (local <= 0 || local >= selectedClip.durationSec) return;
+    const firstDur = Math.max(1, Math.floor(local));
+    const secondDur = Math.max(1, selectedClip.durationSec - firstDur);
+    const secondId = `clip-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    setTimelineClips((prev) =>
+      prev.flatMap((clip) => {
+        if (clip.id !== selectedClip.id) return [clip];
+        return [
+          { ...clip, durationSec: firstDur, title: `${clip.title} A` },
+          {
+            ...clip,
+            id: secondId,
+            title: `${clip.title} B`,
+            startSec: clip.startSec + firstDur,
+            durationSec: secondDur,
+          },
+        ];
+      })
+    );
+    setSelectedClipId(secondId);
+    pushLog(`Clip split at ${playheadSec.toFixed(1)}s`);
+  }, [playheadSec, pushLog, selectedClip]);
+
+  const deleteSelectedClip = useCallback(() => {
+    if (!selectedClipId) return;
+    setTimelineClips((prev) => prev.filter((clip) => clip.id !== selectedClipId));
+    setSelectedClipId(null);
+  }, [selectedClipId]);
+
+  const setSelectedClipTrim = useCallback((nextStart: number, nextDuration: number) => {
+    if (!selectedClip) return;
+    setTimelineClips((prev) =>
+      prev.map((clip) =>
+        clip.id === selectedClip.id
+          ? { ...clip, startSec: Math.max(0, nextStart), durationSec: Math.max(1, nextDuration) }
+          : clip
+      )
+    );
+  }, [selectedClip]);
+
+  const dropClipOnTrack = useCallback(
+    (track: TimelineTrack, e: DragEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      if (!draggingClipId) return;
+      const canvas = timelineCanvasRef.current;
+      if (!canvas) return;
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left + canvas.scrollLeft;
+      const nextStart = Math.max(0, Math.floor(x / pxPerSec));
+      setTimelineClips((prev) =>
+        prev.map((clip) => (clip.id === draggingClipId ? { ...clip, track, startSec: nextStart } : clip))
+      );
+      setDraggingClipId(null);
+    },
+    [draggingClipId]
+  );
 
   const refreshState = useCallback(async () => {
     try {
@@ -427,6 +595,7 @@ export default function BulletTimeStudioPage() {
       const json = (await res.json()) as { taskId?: string; videoUrl?: string; outputs?: string[] };
       if (json.videoUrl) {
         setVideoUrl(json.videoUrl);
+        createClip("V1", `${selectedScene.id} ${selectedScene.title}`, duration, json.videoUrl);
         pushLog("Video completed instantly.");
         await refreshState();
         return;
@@ -447,6 +616,7 @@ export default function BulletTimeStudioPage() {
           const url = poll.outputs?.[0];
           if (!url) throw new Error("Video completed without URL.");
           setVideoUrl(url);
+          createClip("V1", `${selectedScene.id} ${selectedScene.title}`, duration, url);
           pushLog("Video generated successfully.");
           await refreshState();
           return;
@@ -525,6 +695,7 @@ export default function BulletTimeStudioPage() {
       const json = (await res.json()) as { audioUrl?: string };
       if (!json.audioUrl) throw new Error("Audio URL missing.");
       setAudioUrl(json.audioUrl);
+      createClip("A1", "Narration Voice", Math.max(3, duration), json.audioUrl);
       pushLog("TTS generated successfully.");
       await refreshState();
     } catch (err) {
@@ -560,6 +731,7 @@ export default function BulletTimeStudioPage() {
       const json = (await res.json()) as { audioUrl?: string };
       if (!json.audioUrl) throw new Error("Music URL missing.");
       setMusicUrl(json.audioUrl);
+      createClip("A2", "Background Music", Math.max(5, duration), json.audioUrl);
       pushLog("Music generated successfully.");
       await refreshState();
     } catch (err) {
@@ -595,6 +767,7 @@ export default function BulletTimeStudioPage() {
       const json = (await res.json()) as { audioUrl?: string };
       if (!json.audioUrl) throw new Error("SFX URL missing.");
       setSfxUrl(json.audioUrl);
+      createClip("SFX", "Sound Effects", 5, json.audioUrl);
       pushLog("SFX generated successfully.");
       await refreshState();
     } catch (err) {
@@ -636,6 +809,7 @@ export default function BulletTimeStudioPage() {
       const json = (await res.json()) as { audioUrl?: string };
       if (!json.audioUrl) throw new Error("Cloned voice URL missing.");
       setClonedVoiceUrl(json.audioUrl);
+      createClip("A1", "Cloned Voice", Math.max(3, duration), json.audioUrl);
       pushLog("Voice cloning generated successfully.");
       await refreshState();
     } catch (err) {
@@ -714,10 +888,21 @@ export default function BulletTimeStudioPage() {
           <aside className={`rounded-2xl border p-3 backdrop-blur xl:min-h-0 xl:overflow-y-auto ${theme.panel}`}>
             <div className="mb-3 flex items-center justify-between">
               <h2 className="text-sm font-semibold text-white">Scene Timeline</h2>
-              <span className={`rounded-full border px-2 py-1 text-[10px] ${theme.badge}`}>{SCENES.length} scenes</span>
+              <span className={`rounded-full border px-2 py-1 text-[10px] ${theme.badge}`}>{scenes.length} scenes</span>
+            </div>
+            <div className="mb-3 flex gap-2">
+              <input
+                value={newSceneTitle}
+                onChange={(e) => setNewSceneTitle(e.target.value)}
+                className="flex-1 rounded-lg border border-white/15 bg-black/35 px-2 py-1.5 text-xs text-white"
+                placeholder="Add new scene title..."
+              />
+              <button onClick={addNewScene} className="rounded-lg border border-white/20 bg-white/10 px-2 py-1.5 text-xs text-white">
+                Add
+              </button>
             </div>
             <div className="space-y-2">
-              {SCENES.map((scene) => (
+              {scenes.map((scene) => (
                 <button
                   key={scene.id}
                   onClick={() => setSelectedSceneId(scene.id)}
@@ -959,6 +1144,133 @@ export default function BulletTimeStudioPage() {
               )}
             </section>
 
+            <section className={`rounded-2xl border p-3 backdrop-blur ${theme.panel}`}>
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <h2 className="text-sm font-semibold text-white">Real Timeline Editor</h2>
+                <div className="flex flex-wrap items-center gap-2">
+                  <label className="text-xs text-slate-300">Playhead</label>
+                  <input
+                    type="range"
+                    min={0}
+                    max={timelineTotalSec}
+                    value={playheadSec}
+                    onChange={(e) => setPlayheadSec(Number(e.target.value))}
+                    className="w-40"
+                  />
+                  <span className="rounded border border-white/15 bg-black/25 px-2 py-1 text-xs text-white">
+                    {playheadSec.toFixed(1)}s
+                  </span>
+                  <button
+                    onClick={splitSelectedClip}
+                    disabled={!selectedClip}
+                    className="rounded-lg border border-white/20 bg-white/10 px-2 py-1.5 text-xs text-white disabled:opacity-50"
+                  >
+                    Cut At Playhead
+                  </button>
+                  <button
+                    onClick={deleteSelectedClip}
+                    disabled={!selectedClip}
+                    className="rounded-lg border border-rose-300/35 bg-rose-500/15 px-2 py-1.5 text-xs text-rose-100 disabled:opacity-50"
+                  >
+                    Delete Clip
+                  </button>
+                </div>
+              </div>
+
+              {selectedClip && (
+                <div className="mb-3 grid gap-2 rounded-lg border border-white/10 bg-black/25 p-2 md:grid-cols-4">
+                  <div>
+                    <p className="text-[11px] text-slate-300">Selected</p>
+                    <p className="truncate text-xs text-white">{selectedClip.title}</p>
+                  </div>
+                  <label className="space-y-1">
+                    <p className="text-[11px] text-slate-300">Start (sec)</p>
+                    <input
+                      type="number"
+                      min={0}
+                      value={selectedClip.startSec}
+                      onChange={(e) => setSelectedClipTrim(Number(e.target.value), selectedClip.durationSec)}
+                      className="w-full rounded border border-white/15 bg-black/35 px-2 py-1 text-xs text-white"
+                    />
+                  </label>
+                  <label className="space-y-1">
+                    <p className="text-[11px] text-slate-300">Duration (sec)</p>
+                    <input
+                      type="number"
+                      min={1}
+                      value={selectedClip.durationSec}
+                      onChange={(e) => setSelectedClipTrim(selectedClip.startSec, Number(e.target.value))}
+                      className="w-full rounded border border-white/15 bg-black/35 px-2 py-1 text-xs text-white"
+                    />
+                  </label>
+                  <div className="flex items-end">
+                    <button
+                      onClick={() => setPlayheadSec(selectedClip.startSec)}
+                      className="w-full rounded-lg border border-white/20 bg-white/10 px-2 py-1.5 text-xs text-white"
+                    >
+                      Jump To Clip
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <div className="overflow-x-auto rounded-xl border border-white/10 bg-black/35 p-2">
+                <div ref={timelineCanvasRef} style={{ width: `${timelineTotalSec * pxPerSec}px` }} className="relative space-y-2">
+                  <div className="mb-1 grid grid-cols-[72px_minmax(0,1fr)] items-center gap-2">
+                    <div />
+                    <div className="relative h-5 border-b border-white/10">
+                      {Array.from({ length: Math.floor(timelineTotalSec / 5) + 1 }).map((_, i) => (
+                        <span key={i} className="absolute -top-0.5 text-[10px] text-slate-400" style={{ left: `${i * 5 * pxPerSec}px` }}>
+                          {i * 5}s
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  {timelineTracks.map((track) => (
+                    <div key={track} className="grid grid-cols-[72px_minmax(0,1fr)] items-center gap-2">
+                      <div className="rounded border border-white/15 bg-white/5 px-2 py-1 text-center text-[11px] font-semibold text-white">
+                        {track}
+                      </div>
+                      <div
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={(e) => dropClipOnTrack(track, e)}
+                        className="relative h-12 rounded border border-white/10 bg-black/40"
+                      >
+                        {timelineClips
+                          .filter((clip) => clip.track === track)
+                          .map((clip) => (
+                            <button
+                              key={clip.id}
+                              draggable
+                              onDragStart={() => setDraggingClipId(clip.id)}
+                              onDragEnd={() => setDraggingClipId(null)}
+                              onClick={() => setSelectedClipId(clip.id)}
+                              className={`absolute top-1 h-10 rounded border px-2 text-left text-[11px] text-white ${clip.colorClass} ${
+                                selectedClipId === clip.id ? "ring-2 ring-cyan-300/70" : ""
+                              }`}
+                              style={{
+                                left: `${clip.startSec * pxPerSec}px`,
+                                width: `${Math.max(44, clip.durationSec * pxPerSec)}px`,
+                              }}
+                            >
+                              <p className="truncate font-medium">{clip.title}</p>
+                              <p className="truncate text-[10px] text-white/70">{clip.durationSec}s</p>
+                            </button>
+                          ))}
+                      </div>
+                    </div>
+                  ))}
+                  <div
+                    className="pointer-events-none absolute top-0 h-full w-[2px] bg-cyan-300/90"
+                    style={{ left: `${playheadSec * pxPerSec + 80}px` }}
+                  />
+                </div>
+              </div>
+              <p className="mt-2 text-[11px] text-slate-300">
+                Drag clips between tracks or across time. Video on V1, narration on A1, music on A2, SFX on SFX, and text overlays on TXT.
+              </p>
+            </section>
+
             <section className={`grid gap-3 rounded-2xl border p-3 md:grid-cols-4 ${theme.panel}`}>
               {[
                 [Camera, "Camera Lab", "ARRI / RED / Venice / ENG"],
@@ -1112,6 +1424,60 @@ export default function BulletTimeStudioPage() {
             </div>
 
             <div className="mt-3 rounded-xl border border-white/10 bg-black/25 p-3">
+              {activeTab === "script" && (
+                <div className="space-y-3 text-xs text-slate-100">
+                  <p className={theme.textMute}>Writing Presets</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {WRITING_PRESETS.map((preset) => (
+                      <button
+                        key={preset.id}
+                        onClick={() => {
+                          setSelectedWritingPreset(preset.id);
+                          setScriptText(preset.template);
+                        }}
+                        className={`rounded-lg border px-2 py-1.5 text-left text-[11px] ${
+                          selectedWritingPreset === preset.id ? `${theme.soft} text-white` : "border-white/10 bg-white/5 text-slate-200"
+                        }`}
+                      >
+                        {preset.label}
+                      </button>
+                    ))}
+                  </div>
+                  <textarea
+                    value={scriptText}
+                    onChange={(e) => setScriptText(e.target.value)}
+                    rows={7}
+                    className="w-full rounded-lg border border-white/15 bg-black/35 px-2 py-2 text-xs text-white outline-none"
+                    placeholder="Write scene script..."
+                  />
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => setPrompt(scriptText)}
+                      className="rounded-lg border border-white/15 bg-white/10 px-2 py-2 text-xs text-white"
+                    >
+                      Use As Scene Prompt
+                    </button>
+                    <button
+                      onClick={() =>
+                        createClip(
+                          "TXT",
+                          `Text Preset: ${
+                            WRITING_PRESETS.find((item) => item.id === selectedWritingPreset)?.label ?? "Custom"
+                          }`,
+                          Math.max(3, duration)
+                        )
+                      }
+                      className="rounded-lg border border-white/15 bg-white/10 px-2 py-2 text-xs text-white"
+                    >
+                      Add Text Clip
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-slate-300">
+                    Presets are editable. Apply to prompt, then generate video/audio directly from the same workspace.
+                  </p>
+                </div>
+              )}
+
               {activeTab === "presets" && (
                 <div className="space-y-2">
                   <p className={`text-xs ${theme.textMute}`}>Preset Stack</p>
@@ -1166,7 +1532,7 @@ export default function BulletTimeStudioPage() {
                 </div>
               )}
 
-              {activeTab !== "presets" && activeTab !== "storyboard" && activeTab !== "voice" && (
+              {activeTab !== "script" && activeTab !== "presets" && activeTab !== "storyboard" && activeTab !== "voice" && (
                 <div className="space-y-2 text-xs text-slate-100">
                   <p className={theme.textMute}>Active Module: {activeTab}</p>
                   <Field label="Primary Model" value="Kling 3" />
