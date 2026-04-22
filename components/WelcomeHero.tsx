@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
+import Image from "next/image";
 import { useUser } from "@clerk/nextjs";
 
 function getGreeting(): string {
@@ -16,37 +17,37 @@ const QUICK_TOOLS = [
   {
     label: "Create Image",
     href: "/image",
-    media: "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
+    image: "/explore/tool-create-image.jpg",
     glow: "rgba(6,182,212,0.25)",
   },
   {
     label: "Create Video",
     href: "/video",
-    media: "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
+    image: "/explore/tool-create-video.jpg",
     glow: "rgba(139,92,246,0.25)",
   },
   {
     label: "Next Scene",
     href: "/cinema-studio",
-    media: "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
+    image: "/explore/tool-motion-control.jpg",
     glow: "rgba(236,72,153,0.25)",
   },
   {
     label: "Edit Image",
     href: "/edit",
-    media: "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
+    image: "/explore/tool-edit-image.jpg",
     glow: "rgba(16,185,129,0.25)",
   },
   {
     label: "AI Apps",
     href: "/apps",
-    media: "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
+    image: "/explore/tool-mixed-media.jpg",
     glow: "rgba(245,158,11,0.25)",
   },
   {
     label: "ماجك",
     href: "/image/soul-id-character",
-    media: "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
+    image: "/explore/tool-soul-2.jpg",
     glow: "rgba(217,70,239,0.25)",
   },
 ];
@@ -102,15 +103,13 @@ export default function WelcomeHero() {
                 }}
                 whileTap={{ scale: 0.97 }}
               >
-                {/* Video thumbnail */}
-                <video
-                  src={tool.media}
-                  autoPlay
-                  muted
-                  loop
-                  playsInline
-                  preload="metadata"
-                  className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                {/* Thumbnail */}
+                <Image
+                  src={tool.image}
+                  alt={tool.label}
+                  fill
+                  className="object-cover transition-transform duration-500 group-hover:scale-110"
+                  sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 16vw"
                 />
 
                 {/* Overlay gradient */}

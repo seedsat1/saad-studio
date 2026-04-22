@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { usePromoMedia } from "@/hooks/use-promo-media";
 import { usePromoContent } from "@/hooks/use-promo-content";
@@ -110,34 +111,6 @@ const TOOLS = [
   },
 ];
 
-const CORE_VIDEOS = {
-  createImage: "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
-  createVideo: "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
-  motionControl: "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
-  magic: "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
-  soulId: "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
-  upscale: "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
-  editImage: "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
-  editVideo: "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
-  mixedMedia: "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
-  angles: "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
-};
-
-const DEFAULT_CORE_VIDEO_BY_ID: Record<string, string> = {
-  "create-image": CORE_VIDEOS.createImage,
-  "create-video": CORE_VIDEOS.createVideo,
-  "motion-control": CORE_VIDEOS.motionControl,
-  "soul-2": CORE_VIDEOS.magic,
-  "soul-id": CORE_VIDEOS.soulId,
-  upscale: CORE_VIDEOS.upscale,
-  "edit-image": CORE_VIDEOS.editImage,
-  "edit-video": CORE_VIDEOS.editVideo,
-  "mixed-media": CORE_VIDEOS.mixedMedia,
-  angles: CORE_VIDEOS.angles,
-};
-
-const isVideoUrl = (url?: string) => Boolean(url && /\.mp4(\?|$)/i.test(url));
-
 type LayoutBlock = {
   type?: string;
   title?: string;
@@ -149,13 +122,7 @@ type LayoutBlock = {
 const CORE_SLOT_IDS = TOOLS.map((t) => `explore/tool-${t.id}`);
 
 export default function CoreToolsSection() {
-  const [tools, setTools] = useState(
-    TOOLS.map((tool) => ({
-      ...tool,
-      image: DEFAULT_CORE_VIDEO_BY_ID[tool.id] || tool.image,
-      isVideo: true,
-    })),
-  );
+  const [tools, setTools] = useState(TOOLS);
   const scrollRef = useRef<HTMLDivElement>(null);
   const promo = usePromoMedia();
   const promoContent = usePromoContent();
@@ -171,16 +138,13 @@ export default function CoreToolsSection() {
       const fallback = TOOLS.find((t) => t.id === ct.id);
       return {
         id: ct.id,
-        image: isVideoUrl(ct.image)
-          ? ct.image
-          : DEFAULT_CORE_VIDEO_BY_ID[ct.id] || fallback?.image || CORE_VIDEOS.createVideo,
+        image: ct.image || fallback?.image || "/explore/tool-" + ct.id + ".jpg",
         name: ct.name,
         desc: ct.desc,
         href: ct.href,
         badge: ct.badge || "",
         badgeColor: fallback?.badgeColor || "",
         glow: fallback?.glow || "rgba(139,92,246,0.3)",
-        isVideo: true,
       };
     }));
   }, [cms]);
@@ -191,10 +155,7 @@ export default function CoreToolsSection() {
       prev.map((t, i) => {
         let updated = { ...t };
         const custom = promo[CORE_SLOT_IDS[i]];
-        if (isVideoUrl(custom?.url)) {
-          updated.image = custom!.url;
-          (updated as { isVideo?: boolean }).isVideo = true;
-        }
+        if (custom?.url) updated.image = custom.url;
         const text = promoContent[CORE_SLOT_IDS[i]];
         if (text) {
           if (text.title) updated.name = text.title;
@@ -225,10 +186,10 @@ export default function CoreToolsSection() {
             if (!block) return item;
             return {
               ...item,
-              image: isVideoUrl(block.mediaUrl) ? (block.mediaUrl as string) : item.image,
+              image: block.mediaUrl || item.image,
               name: block.title || item.name,
               desc: block.subtitle || item.desc,
-              isVideo: isVideoUrl(block.mediaUrl) || Boolean(block.isVideo) || true,
+              isVideo: Boolean(block.isVideo),
             };
           }),
         );
@@ -325,15 +286,24 @@ export default function CoreToolsSection() {
                 whileTap={{ scale: 0.98 }}
               >
                 {/* Background image */}
-                <video
-                  src={isVideoUrl(tool.image) ? tool.image : DEFAULT_CORE_VIDEO_BY_ID[tool.id] || CORE_VIDEOS.createVideo}
-                  autoPlay
-                  muted
-                  loop
-                  playsInline
-                  preload="metadata"
-                  className="absolute inset-0 h-full w-full object-cover object-center"
-                />
+                {(tool as any).isVideo ? (
+                  <video
+                    src={tool.image}
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    className="absolute inset-0 h-full w-full object-cover object-center"
+                  />
+                ) : (
+                  <Image
+                    src={tool.image}
+                    alt={tool.name}
+                    fill
+                    className="object-cover object-center"
+                    sizes="200px"
+                  />
+                )}
 
                 {/* Overlay */}
                 <div
