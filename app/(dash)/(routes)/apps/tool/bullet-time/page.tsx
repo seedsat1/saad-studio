@@ -149,7 +149,7 @@ const GENERATION_MODES = [
 ] as const;
 
 const DURATION_OPTIONS = [5, 8, 10, 15] as const;
-const ASPECT_RATIO_OPTIONS = ["16:9", "9:16", "1:1", "4:3", "21:9"] as const;
+const ASPECT_RATIO_OPTIONS = ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9", "adaptive"] as const;
 const QUALITY_OPTIONS = [
   { value: "std", label: "Standard" },
   { value: "pro", label: "Pro" },
@@ -207,6 +207,8 @@ export default function BulletTimeStudioPage() {
   const [duration, setDuration] = useState<(typeof DURATION_OPTIONS)[number]>(5);
   const [aspectRatio, setAspectRatio] = useState<(typeof ASPECT_RATIO_OPTIONS)[number]>("16:9");
   const [quality, setQuality] = useState<(typeof QUALITY_OPTIONS)[number]["value"]>("pro");
+  const [referenceImages, setReferenceImages] = useState<Array<{ name: string; dataUrl: string }>>([]);
+  const [referenceVideoUrlsText, setReferenceVideoUrlsText] = useState("");
 
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -235,6 +237,7 @@ export default function BulletTimeStudioPage() {
   const clonedVoiceRef = useRef<HTMLAudioElement | null>(null);
   const musicRef = useRef<HTMLAudioElement | null>(null);
   const sfxRef = useRef<HTMLAudioElement | null>(null);
+  const imageRefInput = useRef<HTMLInputElement | null>(null);
 
   const theme = STUDIO_THEMES[themeKey];
   const selectedScene = useMemo(
@@ -245,9 +248,82 @@ export default function BulletTimeStudioPage() {
     () => videoRoute === "kwaivgi/kling-v3.0-pro/text-to-video",
     [videoRoute]
   );
+  const isSeedanceRoute = useMemo(
+    () =>
+      videoRoute === "bytedance/seedance-v2/text-to-video" ||
+      videoRoute === "bytedance/seedance-v2/text-to-video-fast",
+    [videoRoute]
+  );
+  const isSeedanceFastRoute = useMemo(
+    () => videoRoute === "bytedance/seedance-v2/text-to-video-fast",
+    [videoRoute]
+  );
+  const supportedAspectRatios = useMemo<(typeof ASPECT_RATIO_OPTIONS)[number][]>(() => {
+    if (isKlingRoute) return ["16:9", "9:16", "1:1"];
+    if (isSeedanceRoute) return ["1:1", "4:3", "3:4", "16:9", "9:16", "21:9", "adaptive"];
+    return [...ASPECT_RATIO_OPTIONS];
+  }, [isKlingRoute, isSeedanceRoute]);
+  const refLimits = useMemo(() => {
+    if (isKlingRoute) {
+      return {
+        maxImageRefs: generationMode === "multi" ? 1 : 2,
+        maxVideoRefs: 0,
+        label: generationMode === "multi" ? "Kling 3 Multi-shot: 1 image reference max." : "Kling 3 Single: up to 2 image references.",
+      };
+    }
+    if (isSeedanceRoute) {
+      return {
+        maxImageRefs: 9,
+        maxVideoRefs: 3,
+        label: "Seedance 2: up to 9 image refs and 3 video refs.",
+      };
+    }
+    return {
+      maxImageRefs: 1,
+      maxVideoRefs: 0,
+      label: "This model accepts limited references.",
+    };
+  }, [generationMode, isKlingRoute, isSeedanceRoute]);
 
   const pushLog = useCallback((line: string) => {
     setLogs((prev) => [`${new Date().toLocaleTimeString()} - ${line}`, ...prev].slice(0, 8));
+  }, []);
+
+  useEffect(() => {
+    setReferenceImages((prev) => prev.slice(0, refLimits.maxImageRefs));
+  }, [refLimits.maxImageRefs]);
+  useEffect(() => {
+    if (!supportedAspectRatios.includes(aspectRatio)) {
+      setAspectRatio(supportedAspectRatios[0]);
+    }
+  }, [aspectRatio, supportedAspectRatios]);
+  useEffect(() => {
+    if (isSeedanceFastRoute && quality === "pro") {
+      setQuality("std");
+    }
+  }, [isSeedanceFastRoute, quality]);
+
+  const onReferenceImagesChange = useCallback(async (e: ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    if (!files.length) return;
+    const slotsLeft = Math.max(0, refLimits.maxImageRefs - referenceImages.length);
+    if (slotsLeft <= 0) {
+      setError(`This model allows only ${refLimits.maxImageRefs} image reference(s).`);
+      return;
+    }
+    const accepted = files.slice(0, slotsLeft);
+    const encoded = await Promise.all(
+      accepted.map(async (file) => ({
+        name: file.name,
+        dataUrl: await readFileAsDataUrl(file),
+      }))
+    );
+    setReferenceImages((prev) => [...prev, ...encoded].slice(0, refLimits.maxImageRefs));
+    e.target.value = "";
+  }, [refLimits.maxImageRefs, referenceImages.length]);
+
+  const removeReferenceImage = useCallback((idx: number) => {
+    setReferenceImages((prev) => prev.filter((_, i) => i !== idx));
   }, []);
 
   const refreshState = useCallback(async () => {
@@ -278,6 +354,17 @@ export default function BulletTimeStudioPage() {
       if (generationMode === "multi" && !isKlingRoute) {
         throw new Error("Multi-shot is available with Kling 3 Pro only. Switch the video model to Kling.");
       }
+      const referenceVideoUrls = referenceVideoUrlsText
+        .split("\n")
+        .map((line) => line.trim())
+        .filter((line) => /^https?:\/\//i.test(line))
+        .slice(0, refLimits.maxVideoRefs);
+      if (!isSeedanceRoute && referenceVideoUrls.length > 0) {
+        throw new Error("Video references are supported with Seedance models only.");
+      }
+      if (referenceImages.length > refLimits.maxImageRefs) {
+        throw new Error(`Too many image references for selected model. Max is ${refLimits.maxImageRefs}.`);
+      }
       const multiPrompt =
         generationMode === "multi"
           ? multiShotText
@@ -287,20 +374,49 @@ export default function BulletTimeStudioPage() {
               .map((line) => ({ prompt: line, duration: Math.max(1, Math.min(12, Math.floor(duration / 2) || 4)) }))
               .slice(0, 8)
           : [];
+      const effectiveQuality = isSeedanceFastRoute && quality === "pro" ? "std" : quality;
+      const payload: Record<string, unknown> = {
+        prompt: prompt.trim(),
+        duration,
+        aspect_ratio: aspectRatio,
+        mode: effectiveQuality,
+        resolution: isSeedanceFastRoute ? "720p" : (effectiveQuality === "pro" ? "1080p" : "720p"),
+        multi_shots: generationMode === "multi",
+        multi_prompt: multiPrompt,
+      };
+
+      if (isKlingRoute) {
+        if (generationMode === "multi") {
+          if (referenceImages[0]?.dataUrl) {
+            payload.image_urls = [referenceImages[0].dataUrl];
+          }
+        } else if (referenceImages.length === 1) {
+          payload.image_url = referenceImages[0].dataUrl;
+        } else if (referenceImages.length >= 2) {
+          payload.image_urls = [referenceImages[0].dataUrl, referenceImages[1].dataUrl];
+        }
+      } else if (isSeedanceRoute) {
+        if (referenceImages.length === 1) {
+          payload.first_frame_url = referenceImages[0].dataUrl;
+        } else if (referenceImages.length === 2) {
+          payload.first_frame_url = referenceImages[0].dataUrl;
+          payload.last_frame_url = referenceImages[1].dataUrl;
+        } else if (referenceImages.length > 2) {
+          payload.reference_image_urls = referenceImages.map((img) => img.dataUrl).slice(0, refLimits.maxImageRefs);
+        }
+        if (referenceVideoUrls.length > 0) {
+          payload.reference_video_urls = referenceVideoUrls;
+        }
+      } else if (referenceImages.length > 0) {
+        payload.image_url = referenceImages[0].dataUrl;
+      }
+
       const res = await fetch("/api/video", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           modelRoute: videoRoute,
-          payload: {
-            prompt: prompt.trim(),
-            duration,
-            aspect_ratio: aspectRatio,
-            mode: quality,
-            resolution: quality === "pro" ? "1080p" : "720p",
-            multi_shots: generationMode === "multi",
-            multi_prompt: multiPrompt,
-          },
+          payload,
         }),
       });
 
@@ -690,7 +806,7 @@ export default function BulletTimeStudioPage() {
                       onChange={(e) => setAspectRatio(e.target.value as (typeof ASPECT_RATIO_OPTIONS)[number])}
                       className="w-full rounded-lg border border-white/15 bg-black/35 px-2 py-2 text-xs text-white"
                     >
-                      {ASPECT_RATIO_OPTIONS.map((ratio) => (
+                      {supportedAspectRatios.map((ratio) => (
                         <option key={ratio} value={ratio} className="bg-slate-900">
                           {ratio}
                         </option>
@@ -704,7 +820,12 @@ export default function BulletTimeStudioPage() {
                       className="w-full rounded-lg border border-white/15 bg-black/35 px-2 py-2 text-xs text-white"
                     >
                       {QUALITY_OPTIONS.map((q) => (
-                        <option key={q.value} value={q.value} className="bg-slate-900">
+                        <option
+                          key={q.value}
+                          value={q.value}
+                          disabled={isSeedanceFastRoute && q.value === "pro"}
+                          className="bg-slate-900"
+                        >
                           {q.label}
                         </option>
                       ))}
@@ -716,6 +837,58 @@ export default function BulletTimeStudioPage() {
                     >
                       {imageLoading ? "Generating..." : "Image"}
                     </button>
+                  </div>
+                </div>
+              </div>
+              <div className="mb-3 rounded-xl border border-white/10 bg-black/20 p-2">
+                <div className="mb-2 flex items-center justify-between">
+                  <p className="text-[11px] text-slate-300">Reference Inputs</p>
+                  <p className="text-[11px] text-cyan-200">{refLimits.label}</p>
+                </div>
+                <div className="grid gap-2 md:grid-cols-2">
+                  <div className="rounded-lg border border-white/10 bg-black/30 p-2">
+                    <div className="mb-2 flex items-center justify-between">
+                      <p className="text-xs text-slate-300">Image refs ({referenceImages.length}/{refLimits.maxImageRefs})</p>
+                      <button
+                        onClick={() => imageRefInput.current?.click()}
+                        className="rounded-md border border-white/20 bg-white/10 px-2 py-1 text-[11px] text-white"
+                      >
+                        Add Image
+                      </button>
+                      <input
+                        ref={imageRefInput}
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        className="hidden"
+                        onChange={onReferenceImagesChange}
+                      />
+                    </div>
+                    {referenceImages.length === 0 ? (
+                      <p className="text-[11px] text-slate-400">No image references selected.</p>
+                    ) : (
+                      <div className="space-y-1">
+                        {referenceImages.map((img, idx) => (
+                          <div key={`${img.name}-${idx}`} className="flex items-center justify-between rounded border border-white/10 px-2 py-1">
+                            <p className="truncate text-[11px] text-slate-200">{img.name}</p>
+                            <button onClick={() => removeReferenceImage(idx)} className="text-[11px] text-rose-300">
+                              Remove
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div className="rounded-lg border border-white/10 bg-black/30 p-2">
+                    <p className="mb-2 text-xs text-slate-300">Video ref URLs ({refLimits.maxVideoRefs} max)</p>
+                    <textarea
+                      value={referenceVideoUrlsText}
+                      onChange={(e) => setReferenceVideoUrlsText(e.target.value)}
+                      rows={3}
+                      disabled={refLimits.maxVideoRefs === 0}
+                      className="w-full rounded-md border border-white/15 bg-black/35 px-2 py-2 text-xs text-white disabled:opacity-50"
+                      placeholder={refLimits.maxVideoRefs > 0 ? "https://...\nhttps://..." : "Not supported for selected model"}
+                    />
                   </div>
                 </div>
               </div>
