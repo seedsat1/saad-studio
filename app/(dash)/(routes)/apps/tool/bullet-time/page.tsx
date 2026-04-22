@@ -846,6 +846,9 @@ export default function BulletTimeStudioPage() {
 
   return (
     <section className="min-h-[calc(100vh-64px)] bg-[#e8ecf3] p-3 text-slate-100">
+      <div className="mb-2 rounded-lg border-2 border-rose-500 bg-rose-100 px-3 py-2 text-center text-sm font-bold text-rose-900">
+        BULLET-TIME BUILD: BT-PRO-2026-04-22-01
+      </div>
       <div className="mb-2 flex items-center gap-3 rounded-xl bg-[#11131b] px-4 py-2 text-xs">
         <button className="rounded bg-white/10 px-2 py-1">Import</button>
         <button className="rounded bg-white/10 px-2 py-1">Edit</button>
