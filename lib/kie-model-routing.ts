@@ -4,7 +4,8 @@ export const BASE_KIE_IMAGE_MODEL_MAP: Record<string, string> = {
   "nano-banana-pro": "nano-banana-pro",
   "nano-banana-2": "nano-banana-2",
   "google/nano-banana": "google/nano-banana",
-  "google/nano-banana-edit": "nano-banana/image-to-image",
+  // KIE expects this exact model id for Nano Banana edit/inpaint.
+  "google/nano-banana-edit": "google/nano-banana-edit",
   "google/imagen4-fast": "google/imagen4-fast",
   "google/imagen4": "google/imagen4",
   "google/imagen4-ultra": "google/imagen4-ultra",
