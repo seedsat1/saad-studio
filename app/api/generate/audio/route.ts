@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { getAudioActionCredits } from "@/lib/credit-pricing";
+import { getGenerationCost, getGenerationCostQuote } from "@/lib/pricing";
 import { InsufficientCreditsError, rollbackGenerationCharge, setGenerationMediaUrl, spendCredits } from "@/lib/credit-ledger";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { getClientIp, isAllowedOrigin, isSafePublicHttpUrl, sanitizePrompt } from "@/lib/security";
@@ -20,9 +20,18 @@ const WS_VOICE_CHANGER_MODEL = "elevenlabs/voice-changer";
 const WS_DUBBING_MODEL = "elevenlabs/dubbing";
 const WS_LIPSYNC_MODEL = "sync/lipsync-3";
 const WS_VOICE_CLONING_MODEL = "minimax/voice-clone";
+const KIE_TTS_MULTILINGUAL_V2_MODEL = "elevenlabs/text-to-speech-multilingual-v2";
+const KIE_TEXT_TO_DIALOGUE_V3_MODEL = "elevenlabs/text-to-dialogue-v3";
+const KIE_SOUND_EFFECT_V2_MODEL = "elevenlabs/sound-effect-v2";
+const KIE_SPEECH_TO_TEXT_MODEL = "elevenlabs/speech-to-text";
+const KIE_AUDIO_ISOLATION_MODEL = "elevenlabs/audio-isolation";
+const KIE_FROM_AUDIO_MODEL = "infinitalk/from-audio";
+const KIE_AI_AVATAR_PRO_MODEL = "kling/ai-avatar-pro";
+const KIE_SEEDANCE_2_MODEL = "bytedance/seedance-2";
+const KIE_SEEDANCE_2_FAST_MODEL = "bytedance/seedance-2-fast";
 
 interface AudioRequestBody {
-  actionType: "tts" | "video2audio" | "music" | "voice-changer" | "dubbing" | "lip-sync" | "voice-cloning";
+  actionType: "tts" | "video2audio" | "music" | "speech-to-text" | "audio-isolation" | "voice-changer" | "dubbing" | "lip-sync" | "voice-cloning";
   text?: string;
   voice?: string;
   speed?: number;
@@ -50,7 +59,19 @@ interface AudioRequestBody {
   description?: string;
   labels?: string;
   model?: string;
+  imageUrl?: string;
+  resolution?: "480p" | "720p" | "1080p";
+  seed?: number;
+  aspect_ratio?: "16:9" | "4:3" | "1:1" | "3:4" | "9:16" | "21:9";
+  duration?: number;
+  web_search?: boolean;
 }
+
+type KieRecordResult = {
+  status: "completed" | "failed";
+  resultJson?: unknown;
+  error?: string;
+};
 
 interface WaveSpeedApiResponse {
   code: number;
@@ -117,14 +138,85 @@ function resolveWaveSpeedTtsModel(model?: string): string {
 function resolveWaveSpeedMusicModel(model?: string): string {
   if (!model) return WS_MUSIC_MODEL;
   const normalized = model.trim().toLowerCase();
+  if (normalized === KIE_SOUND_EFFECT_V2_MODEL) return KIE_SOUND_EFFECT_V2_MODEL;
   if (normalized === WS_GOOGLE_LYRIA_CLIP_MODEL) return WS_GOOGLE_LYRIA_CLIP_MODEL;
   if (normalized === WS_GOOGLE_LYRIA_PRO_MODEL) return WS_GOOGLE_LYRIA_PRO_MODEL;
   if (normalized === WS_MUSIC_MODEL) return WS_MUSIC_MODEL;
   return WS_MUSIC_MODEL;
 }
 
+function resolveKieTtsModel(model?: string): string {
+  const normalized = String(model || "").trim().toLowerCase();
+  if (normalized === KIE_TEXT_TO_DIALOGUE_V3_MODEL) return KIE_TEXT_TO_DIALOGUE_V3_MODEL;
+  if (normalized === KIE_TTS_MULTILINGUAL_V2_MODEL) return KIE_TTS_MULTILINGUAL_V2_MODEL;
+  return KIE_TTS_MULTILINGUAL_V2_MODEL;
+}
+
+function resolveLipSyncModel(model?: string): string {
+  const normalized = String(model || "").trim().toLowerCase();
+  if (normalized === KIE_FROM_AUDIO_MODEL) return KIE_FROM_AUDIO_MODEL;
+  if (normalized === KIE_AI_AVATAR_PRO_MODEL) return KIE_AI_AVATAR_PRO_MODEL;
+  if (normalized === KIE_SEEDANCE_2_MODEL) return KIE_SEEDANCE_2_MODEL;
+  if (normalized === KIE_SEEDANCE_2_FAST_MODEL) return KIE_SEEDANCE_2_FAST_MODEL;
+  if (normalized === WS_LIPSYNC_MODEL) return WS_LIPSYNC_MODEL;
+  return WS_LIPSYNC_MODEL;
+}
+
 function isGoogleLyriaModel(model: string): boolean {
   return model === WS_GOOGLE_LYRIA_CLIP_MODEL || model === WS_GOOGLE_LYRIA_PRO_MODEL;
+}
+
+function resolveChargeModelRef(actionType: AudioRequestBody["actionType"], body: AudioRequestBody): string {
+  if (actionType === "tts") {
+    if (looksLikeKieModel(body.model)) return resolveKieTtsModel(body.model);
+    return resolveWaveSpeedTtsModel(body.model);
+  }
+  if (actionType === "video2audio") return WS_VIDEO2AUDIO_MODEL;
+  if (actionType === "music") return resolveWaveSpeedMusicModel(body.model);
+  if (actionType === "speech-to-text") return KIE_SPEECH_TO_TEXT_MODEL;
+  if (actionType === "audio-isolation") return KIE_AUDIO_ISOLATION_MODEL;
+  if (actionType === "voice-changer") return WS_VOICE_CHANGER_MODEL;
+  if (actionType === "dubbing") return WS_DUBBING_MODEL;
+  if (actionType === "lip-sync") return resolveLipSyncModel(body.model);
+  return WS_VOICE_CLONING_MODEL;
+}
+
+function resolveQuoteDurationSec(actionType: AudioRequestBody["actionType"], body: AudioRequestBody): number {
+  if (actionType === "music") {
+    const defaultDuration = resolveWaveSpeedMusicModel(body.model) === WS_GOOGLE_LYRIA_PRO_MODEL ? 180 : 30;
+    const raw = Number(body.musicDuration ?? defaultDuration);
+    if (!Number.isFinite(raw)) return 30;
+    return Math.max(5, Math.min(180, raw));
+  }
+  return 30;
+}
+
+async function buildAudioChargeQuote(actionType: AudioRequestBody["actionType"], body: AudioRequestBody) {
+  const chargeModelRef = resolveChargeModelRef(actionType, body);
+  const durationSec = resolveQuoteDurationSec(actionType, body);
+  const dynamicQuote = await getGenerationCostQuote(chargeModelRef, durationSec);
+
+  if (dynamicQuote && Number.isFinite(dynamicQuote.finalCredits) && dynamicQuote.finalCredits > 0) {
+    return { chargeModelRef, durationSec, quote: dynamicQuote };
+  }
+
+  // Safety net: keep generation working even when source quote data is incomplete.
+  const legacy = await getGenerationCost(chargeModelRef, durationSec);
+  if (Number.isFinite(legacy) && legacy > 0) {
+    return {
+      chargeModelRef,
+      durationSec,
+      quote: {
+        actionType,
+        modelRef: chargeModelRef,
+        sourceCredits: legacy,
+        marginPercent: 0,
+        finalCredits: Math.ceil(legacy),
+      },
+    };
+  }
+
+  return { chargeModelRef, durationSec, quote: null };
 }
 
 function sanitizeCustomVoiceId(raw?: string): string {
@@ -198,7 +290,7 @@ async function runKieAudio(
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: body.model,
+      model: resolveKieTtsModel(body.model),
       callBackUrl: "",
       input: {
         text: body.text,
@@ -238,16 +330,173 @@ async function runKieAudio(
   return audioUrl;
 }
 
-async function uploadAudioToKie(dataUrl: string): Promise<string> {
+function parseKieResultPayload(resultJson: unknown): unknown {
+  if (typeof resultJson === "string") {
+    try {
+      return JSON.parse(resultJson);
+    } catch {
+      return null;
+    }
+  }
+  return resultJson;
+}
+
+function pickFirstMediaUrl(resultPayload: unknown): string | null {
+  const candidate = resultPayload as Record<string, unknown> | null;
+  if (!candidate || typeof candidate !== "object") return null;
+
+  const direct = candidate.resultUrls;
+  if (Array.isArray(direct)) {
+    const first = direct.find((v) => typeof v === "string" && /^https?:\/\//.test(v));
+    if (typeof first === "string") return first;
+  }
+
+  const nested = candidate.resultObject as Record<string, unknown> | undefined;
+  const nestedUrls = nested?.resultUrls;
+  if (Array.isArray(nestedUrls)) {
+    const first = nestedUrls.find((v) => typeof v === "string" && /^https?:\/\//.test(v));
+    if (typeof first === "string") return first;
+  }
+
+  return null;
+}
+
+function pickTranscriptText(resultPayload: unknown): string | null {
+  const candidate = resultPayload as Record<string, unknown> | null;
+  if (!candidate || typeof candidate !== "object") return null;
+  const resultObject = candidate.resultObject as Record<string, unknown> | undefined;
+  const text = resultObject?.text;
+  return typeof text === "string" && text.trim() ? text : null;
+}
+
+async function pollKieRecordInfo(
+  taskId: string,
+  apiKey: string,
+  maxAttempts = 80,
+  intervalMs = 3000,
+): Promise<KieRecordResult> {
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    await new Promise((r) => setTimeout(r, intervalMs));
+    const res = await fetch(`${KIE_BASE_URL}/jobs/recordInfo?taskId=${taskId}`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    });
+    if (!res.ok) continue;
+
+    const json = await res.json().catch(() => null);
+    const data = json?.data ?? null;
+    const state = String(data?.state ?? data?.taskStatus ?? "").toLowerCase();
+    const resultJson = parseKieResultPayload(data?.resultJson);
+
+    if (state === "success") {
+      return { status: "completed", resultJson };
+    }
+    if (state === "fail" || state === "failed") {
+      return { status: "failed", error: data?.failMsg || data?.error || "KIE task failed." };
+    }
+  }
+
+  throw new Error("KIE task timed out.");
+}
+
+async function submitKieTask(model: string, input: Record<string, unknown>, apiKey: string): Promise<string> {
+  const submitRes = await fetch(`${KIE_BASE_URL}/jobs/createTask`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ model, callBackUrl: "", input }),
+  });
+
+  const submitJson = await submitRes.json().catch(() => null);
+  if (!submitRes.ok) {
+    throw new Error(submitJson?.msg || submitJson?.error || "KIE task submit failed.");
+  }
+
+  const taskId = submitJson?.data?.taskId ?? submitJson?.data?.id;
+  if (!taskId) throw new Error("No taskId returned from KIE.");
+  return String(taskId);
+}
+
+async function runKieSoundEffect(body: AudioRequestBody, apiKey: string): Promise<string> {
+  const prompt = sanitizePrompt(body.prompt || body.text || "", 450);
+  if (!prompt) throw new Error("Sound effect prompt is required.");
+
+  const durationRaw = Number(body.musicDuration ?? 10);
+  const durationSeconds = Number.isFinite(durationRaw) ? Math.max(0.5, Math.min(22, durationRaw)) : 10;
+
+  const taskId = await submitKieTask(
+    KIE_SOUND_EFFECT_V2_MODEL,
+    {
+      text: prompt,
+      loop: Boolean((body as unknown as Record<string, unknown>).loop),
+      duration_seconds: durationSeconds,
+      prompt_influence: 0.3,
+      output_format: body.outputFormat || body.output_format || "mp3_44100_128",
+    },
+    apiKey,
+  );
+
+  const result = await pollKieRecordInfo(taskId, apiKey);
+  if (result.status === "failed") throw new Error(result.error || "Sound effect generation failed.");
+  const audioUrl = pickFirstMediaUrl(result.resultJson);
+  if (!audioUrl) throw new Error("KIE sound-effect returned no audio URL.");
+  return audioUrl;
+}
+
+async function runKieSpeechToText(body: AudioRequestBody, apiKey: string): Promise<string> {
+  if (!body.audioUrl?.trim()) throw new Error("Field 'audioUrl' is required for speech-to-text.");
+  const normalizedAudioUrl = body.audioUrl.startsWith("data:") ? await uploadAudioToKie(body.audioUrl) : body.audioUrl;
+
+  const taskId = await submitKieTask(
+    KIE_SPEECH_TO_TEXT_MODEL,
+    {
+      audio_url: normalizedAudioUrl,
+      language_code: "",
+      tag_audio_events: true,
+      diarize: true,
+      nsfw_checker: true,
+    },
+    apiKey,
+  );
+
+  const result = await pollKieRecordInfo(taskId, apiKey);
+  if (result.status === "failed") throw new Error(result.error || "Speech-to-text failed.");
+  const transcript = pickTranscriptText(result.resultJson);
+  if (!transcript) throw new Error("KIE speech-to-text returned no transcript.");
+  return transcript;
+}
+
+async function runKieAudioIsolation(body: AudioRequestBody, apiKey: string): Promise<string> {
+  if (!body.audioUrl?.trim()) throw new Error("Field 'audioUrl' is required for audio-isolation.");
+  const normalizedAudioUrl = body.audioUrl.startsWith("data:") ? await uploadAudioToKie(body.audioUrl) : body.audioUrl;
+
+  const taskId = await submitKieTask(
+    KIE_AUDIO_ISOLATION_MODEL,
+    {
+      audio_url: normalizedAudioUrl,
+      nsfw_checker: true,
+    },
+    apiKey,
+  );
+
+  const result = await pollKieRecordInfo(taskId, apiKey);
+  if (result.status === "failed") throw new Error(result.error || "Audio isolation failed.");
+  const audioUrl = pickFirstMediaUrl(result.resultJson);
+  if (!audioUrl) throw new Error("KIE audio-isolation returned no audio URL.");
+  return audioUrl;
+}
+
+async function uploadDataUrlToKie(dataUrl: string, fileNamePrefix = "upload"): Promise<string> {
   const parsed = parseBase64DataUrl(dataUrl);
-  if (!parsed) throw new Error("Invalid base64 audio data URL for KIE upload.");
+  if (!parsed) throw new Error("Invalid base64 data URL for KIE upload.");
 
   const res = await fetch(KIE_FILE_UPLOAD_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       base64: `data:${parsed.mime};base64,${parsed.fileData}`,
-      fileName: `voice-sample.${parsed.ext}`,
+      fileName: `${fileNamePrefix}.${parsed.ext}`,
     }),
   });
 
@@ -257,6 +506,10 @@ async function uploadAudioToKie(dataUrl: string): Promise<string> {
     throw new Error(json?.error || json?.message || "KIE file upload failed.");
   }
   return String(url);
+}
+
+async function uploadAudioToKie(dataUrl: string): Promise<string> {
+  return uploadDataUrlToKie(dataUrl, "voice-sample");
 }
 
 async function runKieVoiceClone(
@@ -369,6 +622,50 @@ async function runWaveSpeed(
   return audioUrl;
 }
 
+export async function GET(req: NextRequest) {
+  try {
+    if (!isAllowedOrigin(req.headers.get("origin"))) {
+      return NextResponse.json({ error: "Origin not allowed" }, { status: 403 });
+    }
+
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const actionType = req.nextUrl.searchParams.get("actionType") as AudioRequestBody["actionType"] | null;
+    if (!actionType || !["tts", "video2audio", "music", "speech-to-text", "audio-isolation", "voice-changer", "dubbing", "lip-sync", "voice-cloning"].includes(actionType)) {
+      return NextResponse.json({ error: "Invalid actionType" }, { status: 400 });
+    }
+
+    const model = req.nextUrl.searchParams.get("model") || undefined;
+    const musicDurationRaw = req.nextUrl.searchParams.get("musicDuration");
+    const musicDuration = musicDurationRaw ? Number(musicDurationRaw) : undefined;
+
+    const { chargeModelRef, quote } = await buildAudioChargeQuote(actionType, { actionType, model, musicDuration });
+    if (!quote) {
+      return NextResponse.json(
+        { error: `No credit configuration for actionType='${actionType}' and model='${chargeModelRef}'.` },
+        { status: 400 },
+      );
+    }
+
+    return NextResponse.json(
+      {
+        actionType,
+        modelRef: chargeModelRef,
+        sourceCredits: quote.sourceCredits,
+        marginPercent: quote.marginPercent,
+        finalCredits: quote.finalCredits,
+      },
+      { status: 200 },
+    );
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to build quote.";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
+
 export async function POST(req: NextRequest) {
   let chargedCredits = 0;
   let chargedUserId: string | null = null;
@@ -404,15 +701,31 @@ export async function POST(req: NextRequest) {
 
     if (!actionType) {
       return NextResponse.json(
-        { error: "Missing required field: actionType (tts | video2audio | music | voice-changer | dubbing | lip-sync | voice-cloning)." },
+        { error: "Missing required field: actionType (tts | video2audio | music | speech-to-text | audio-isolation | voice-changer | dubbing | lip-sync | voice-cloning)." },
         { status: 400 },
       );
     }
-    if (!["tts", "video2audio", "music", "voice-changer", "dubbing", "lip-sync", "voice-cloning"].includes(actionType)) {
+    if (!["tts", "video2audio", "music", "speech-to-text", "audio-isolation", "voice-changer", "dubbing", "lip-sync", "voice-cloning"].includes(actionType)) {
       return NextResponse.json(
-        { error: `Unknown actionType: ${actionType}. Supported: tts | video2audio | music | voice-changer | dubbing | lip-sync | voice-cloning.` },
+        { error: `Unknown actionType: ${actionType}. Supported: tts | video2audio | music | speech-to-text | audio-isolation | voice-changer | dubbing | lip-sync | voice-cloning.` },
         { status: 400 },
       );
+    }
+    if (actionType === "speech-to-text") {
+      if (!body.audioUrl?.trim()) {
+        return NextResponse.json({ error: "Field 'audioUrl' is required for actionType='speech-to-text'." }, { status: 400 });
+      }
+      if (!(body.audioUrl.startsWith("data:") || isSafePublicHttpUrl(body.audioUrl))) {
+        return NextResponse.json({ error: "Invalid audioUrl for speech-to-text." }, { status: 400 });
+      }
+    }
+    if (actionType === "audio-isolation") {
+      if (!body.audioUrl?.trim()) {
+        return NextResponse.json({ error: "Field 'audioUrl' is required for actionType='audio-isolation'." }, { status: 400 });
+      }
+      if (!(body.audioUrl.startsWith("data:") || isSafePublicHttpUrl(body.audioUrl))) {
+        return NextResponse.json({ error: "Invalid audioUrl for audio-isolation." }, { status: 400 });
+      }
     }
 
     if (actionType === "tts" && !body.text?.trim()) {
@@ -462,16 +775,48 @@ export async function POST(req: NextRequest) {
       }
     }
     if (actionType === "lip-sync") {
-      if (!body.videoUrl?.trim() || !body.audioUrl?.trim()) {
-        return NextResponse.json(
-          { error: "Fields 'videoUrl' and 'audioUrl' are required for actionType='lip-sync'." },
-          { status: 400 },
-        );
-      }
-      const validVideo = body.videoUrl.startsWith("data:") || isSafePublicHttpUrl(body.videoUrl);
-      const validAudio = body.audioUrl.startsWith("data:") || isSafePublicHttpUrl(body.audioUrl);
-      if (!validVideo || !validAudio) {
-        return NextResponse.json({ error: "Invalid videoUrl or audioUrl." }, { status: 400 });
+      const lipSyncModel = resolveLipSyncModel(body.model);
+      if (lipSyncModel === WS_LIPSYNC_MODEL) {
+        if (!body.videoUrl?.trim() || !body.audioUrl?.trim()) {
+          return NextResponse.json(
+            { error: "Fields 'videoUrl' and 'audioUrl' are required for model='sync/lipsync-3'." },
+            { status: 400 },
+          );
+        }
+        const validVideo = body.videoUrl.startsWith("data:") || isSafePublicHttpUrl(body.videoUrl);
+        const validAudio = body.audioUrl.startsWith("data:") || isSafePublicHttpUrl(body.audioUrl);
+        if (!validVideo || !validAudio) {
+          return NextResponse.json({ error: "Invalid videoUrl or audioUrl." }, { status: 400 });
+        }
+      } else if (lipSyncModel === KIE_FROM_AUDIO_MODEL || lipSyncModel === KIE_AI_AVATAR_PRO_MODEL) {
+        if (!body.imageUrl?.trim() || !body.audioUrl?.trim()) {
+          return NextResponse.json(
+            { error: "Fields 'imageUrl' and 'audioUrl' are required for selected lip-sync model." },
+            { status: 400 },
+          );
+        }
+        if (!body.prompt?.trim()) {
+          return NextResponse.json({ error: "Field 'prompt' is required for selected lip-sync model." }, { status: 400 });
+        }
+        const validImage = body.imageUrl.startsWith("data:") || isSafePublicHttpUrl(body.imageUrl);
+        const validAudio = body.audioUrl.startsWith("data:") || isSafePublicHttpUrl(body.audioUrl);
+        if (!validImage || !validAudio) {
+          return NextResponse.json({ error: "Invalid imageUrl or audioUrl." }, { status: 400 });
+        }
+      } else {
+        if (body.videoUrl && !(body.videoUrl.startsWith("data:") || isSafePublicHttpUrl(body.videoUrl))) {
+          return NextResponse.json({ error: "Invalid videoUrl for seedance model." }, { status: 400 });
+        }
+        if (body.imageUrl && !(body.imageUrl.startsWith("data:") || isSafePublicHttpUrl(body.imageUrl))) {
+          return NextResponse.json({ error: "Invalid imageUrl for seedance model." }, { status: 400 });
+        }
+        if (body.audioUrl && !(body.audioUrl.startsWith("data:") || isSafePublicHttpUrl(body.audioUrl))) {
+          return NextResponse.json({ error: "Invalid audioUrl for seedance model." }, { status: 400 });
+        }
+        const hasRef = Boolean(body.prompt?.trim() || body.videoUrl?.trim() || body.audioUrl?.trim() || body.imageUrl?.trim());
+        if (!hasRef) {
+          return NextResponse.json({ error: "Provide prompt or media references for seedance lip-sync model." }, { status: 400 });
+        }
       }
     }
     if (actionType === "voice-cloning") {
@@ -493,20 +838,31 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const creditsToCharge = getAudioActionCredits(actionType);
+    const { chargeModelRef, quote } = await buildAudioChargeQuote(actionType, body);
+    if (!quote || quote.finalCredits <= 0) {
+      return NextResponse.json(
+        { error: `No credit configuration for actionType='${actionType}' and model='${chargeModelRef}'.` },
+        { status: 400 },
+      );
+    }
+    const creditsToCharge = quote.finalCredits;
     const modelUsedForLedger =
       actionType === "voice-cloning"
         ? WS_VOICE_CLONING_MODEL
         : actionType === "lip-sync"
-        ? WS_LIPSYNC_MODEL
+        ? resolveLipSyncModel(body.model)
         : actionType === "dubbing"
         ? WS_DUBBING_MODEL
         : actionType === "voice-changer"
         ? WS_VOICE_CHANGER_MODEL
         : actionType === "tts"
-          ? (looksLikeKieModel(body.model) ? (body.model ?? WS_TTS_MODEL) : resolveWaveSpeedTtsModel(body.model))
+          ? (looksLikeKieModel(body.model) ? resolveKieTtsModel(body.model) : resolveWaveSpeedTtsModel(body.model))
           : actionType === "video2audio"
             ? WS_VIDEO2AUDIO_MODEL
+            : actionType === "speech-to-text"
+              ? KIE_SPEECH_TO_TEXT_MODEL
+              : actionType === "audio-isolation"
+                ? KIE_AUDIO_ISOLATION_MODEL
             : resolveWaveSpeedMusicModel(body.model);
     const charge = await spendCredits({
       userId,
@@ -550,7 +906,7 @@ export async function POST(req: NextRequest) {
           if (generationId) {
             await setGenerationMediaUrl(generationId, audioUrl);
           }
-          return NextResponse.json({ audioUrl, provider }, { status: 200 });
+          return NextResponse.json({ audioUrl, provider, chargedCredits: creditsToCharge }, { status: 200 });
         } catch (error) {
           lastError = error instanceof Error ? error.message : "Unknown provider error.";
         }
@@ -572,7 +928,7 @@ export async function POST(req: NextRequest) {
       if (generationId) {
         await setGenerationMediaUrl(generationId, audioUrl);
       }
-      return NextResponse.json({ audioUrl, provider: "wavespeed" }, { status: 200 });
+      return NextResponse.json({ audioUrl, provider: "wavespeed", chargedCredits: creditsToCharge }, { status: 200 });
     }
 
     if (actionType === "music") {
@@ -587,10 +943,19 @@ export async function POST(req: NextRequest) {
         image,
       } = body;
 
+      const wsMusicModel = resolveWaveSpeedMusicModel(body.model);
+      if (wsMusicModel === KIE_SOUND_EFFECT_V2_MODEL) {
+        if (!kieKey) throw new Error("KIE API key is required for sound-effect-v2.");
+        const audioUrl = await runKieSoundEffect(body, kieKey);
+        if (generationId) {
+          await setGenerationMediaUrl(generationId, audioUrl);
+        }
+        return NextResponse.json({ audioUrl, provider: "kie", chargedCredits: creditsToCharge }, { status: 200 });
+      }
+
       if (!wavespeedKey) {
         throw new Error("WaveSpeed API key is required for music generation.");
       }
-      const wsMusicModel = resolveWaveSpeedMusicModel(body.model);
       const fullPrompt = sanitizePrompt(
         [prompt.trim(), stylePrompt.trim(), lyrics.trim()].filter(Boolean).join(" ").trim(),
         5000,
@@ -633,7 +998,20 @@ export async function POST(req: NextRequest) {
       if (generationId) {
         await setGenerationMediaUrl(generationId, audioUrl);
       }
-      return NextResponse.json({ audioUrl, provider: "wavespeed" }, { status: 200 });
+      return NextResponse.json({ audioUrl, provider: "wavespeed", chargedCredits: creditsToCharge }, { status: 200 });
+    }
+    if (actionType === "speech-to-text") {
+      if (!kieKey) throw new Error("KIE API key is required for speech-to-text.");
+      const transcript = await runKieSpeechToText(body, kieKey);
+      return NextResponse.json({ transcript, provider: "kie", chargedCredits: creditsToCharge }, { status: 200 });
+    }
+    if (actionType === "audio-isolation") {
+      if (!kieKey) throw new Error("KIE API key is required for audio-isolation.");
+      const audioUrl = await runKieAudioIsolation(body, kieKey);
+      if (generationId) {
+        await setGenerationMediaUrl(generationId, audioUrl);
+      }
+      return NextResponse.json({ audioUrl, provider: "kie", chargedCredits: creditsToCharge }, { status: 200 });
     }
     if (actionType === "voice-changer") {
       if (!wavespeedKey) {
@@ -658,7 +1036,7 @@ export async function POST(req: NextRequest) {
       if (generationId) {
         await setGenerationMediaUrl(generationId, audioUrl);
       }
-      return NextResponse.json({ audioUrl, provider: "wavespeed" }, { status: 200 });
+      return NextResponse.json({ audioUrl, provider: "wavespeed", chargedCredits: creditsToCharge }, { status: 200 });
     }
     if (actionType === "dubbing") {
       if (!wavespeedKey) {
@@ -692,37 +1070,120 @@ export async function POST(req: NextRequest) {
 
       const isVideo = /\.(mp4|mov|webm)(\?|$)/i.test(outputUrl);
       return NextResponse.json(
-        isVideo ? { videoUrl: outputUrl, provider: "wavespeed" } : { audioUrl: outputUrl, provider: "wavespeed" },
+        isVideo
+          ? { videoUrl: outputUrl, provider: "wavespeed", chargedCredits: creditsToCharge }
+          : { audioUrl: outputUrl, provider: "wavespeed", chargedCredits: creditsToCharge },
         { status: 200 },
       );
     }
     if (actionType === "lip-sync") {
-      if (!wavespeedKey) {
-        throw new Error("WaveSpeed API key is required for lip-sync.");
+      const lipSyncModel = resolveLipSyncModel(body.model);
+
+      if (lipSyncModel === WS_LIPSYNC_MODEL) {
+        if (!wavespeedKey) {
+          throw new Error("WaveSpeed API key is required for lip-sync.");
+        }
+
+        const normalizedVideoUrl = body.videoUrl!.startsWith("data:")
+          ? await uploadDataUrlToWaveSpeed(body.videoUrl!, wavespeedKey)
+          : body.videoUrl!;
+        const normalizedAudioUrl = body.audioUrl!.startsWith("data:")
+          ? await uploadDataUrlToWaveSpeed(body.audioUrl!, wavespeedKey)
+          : body.audioUrl!;
+
+        const syncMode = body.sync_mode || "cut_off";
+        const videoUrl = await runWaveSpeed(
+          WS_LIPSYNC_MODEL,
+          {
+            video: normalizedVideoUrl,
+            audio: normalizedAudioUrl,
+            sync_mode: syncMode,
+          },
+          wavespeedKey,
+        );
+
+        if (generationId) {
+          await setGenerationMediaUrl(generationId, videoUrl);
+        }
+        return NextResponse.json({ videoUrl, provider: "wavespeed", chargedCredits: creditsToCharge }, { status: 200 });
       }
 
-      const normalizedVideoUrl = body.videoUrl!.startsWith("data:")
-        ? await uploadDataUrlToWaveSpeed(body.videoUrl!, wavespeedKey)
-        : body.videoUrl!;
-      const normalizedAudioUrl = body.audioUrl!.startsWith("data:")
-        ? await uploadDataUrlToWaveSpeed(body.audioUrl!, wavespeedKey)
-        : body.audioUrl!;
+      if (!kieKey) {
+        throw new Error("KIE API key is required for selected lip-sync model.");
+      }
 
-      const syncMode = body.sync_mode || "cut_off";
-      const videoUrl = await runWaveSpeed(
-        WS_LIPSYNC_MODEL,
+      if (lipSyncModel === KIE_FROM_AUDIO_MODEL || lipSyncModel === KIE_AI_AVATAR_PRO_MODEL) {
+        const normalizedImageUrl = body.imageUrl!.startsWith("data:")
+          ? await uploadDataUrlToKie(body.imageUrl!, "avatar-image")
+          : body.imageUrl!;
+        const normalizedAudioUrl = body.audioUrl!.startsWith("data:")
+          ? await uploadDataUrlToKie(body.audioUrl!, "avatar-audio")
+          : body.audioUrl!;
+
+        const taskId = await submitKieTask(
+          lipSyncModel,
+          {
+            image_url: normalizedImageUrl,
+            audio_url: normalizedAudioUrl,
+            prompt: sanitizePrompt(body.prompt || "", 5000),
+            ...(lipSyncModel === KIE_FROM_AUDIO_MODEL ? { resolution: body.resolution || "480p" } : {}),
+            ...(Number.isFinite(Number(body.seed)) ? { seed: Number(body.seed) } : {}),
+            nsfw_checker: true,
+          },
+          kieKey,
+        );
+
+        const result = await pollKieRecordInfo(taskId, kieKey);
+        if (result.status === "failed") {
+          throw new Error(result.error || "KIE lip-sync model failed.");
+        }
+        const videoUrl = pickFirstMediaUrl(result.resultJson);
+        if (!videoUrl) throw new Error("KIE lip-sync returned no video URL.");
+        if (generationId) {
+          await setGenerationMediaUrl(generationId, videoUrl);
+        }
+        return NextResponse.json({ videoUrl, provider: "kie", chargedCredits: creditsToCharge }, { status: 200 });
+      }
+
+      // Seedance 2: optional references + prompt in one video-generation call.
+      const seedancePrompt = sanitizePrompt(body.prompt || "Audio-driven scene", 5000);
+      const referenceVideo = body.videoUrl
+        ? (body.videoUrl.startsWith("data:") ? await uploadDataUrlToKie(body.videoUrl, "seedance-video") : body.videoUrl)
+        : null;
+      const referenceAudio = body.audioUrl
+        ? (body.audioUrl.startsWith("data:") ? await uploadDataUrlToKie(body.audioUrl, "seedance-audio") : body.audioUrl)
+        : null;
+      const referenceImage = body.imageUrl
+        ? (body.imageUrl.startsWith("data:") ? await uploadDataUrlToKie(body.imageUrl, "seedance-image") : body.imageUrl)
+        : null;
+
+      const taskId = await submitKieTask(
+        lipSyncModel === KIE_SEEDANCE_2_FAST_MODEL ? KIE_SEEDANCE_2_FAST_MODEL : KIE_SEEDANCE_2_MODEL,
         {
-          video: normalizedVideoUrl,
-          audio: normalizedAudioUrl,
-          sync_mode: syncMode,
+          prompt: seedancePrompt,
+          ...(referenceImage ? { reference_image_urls: [referenceImage] } : {}),
+          ...(referenceVideo ? { reference_video_urls: [referenceVideo] } : {}),
+          ...(referenceAudio ? { reference_audio_urls: [referenceAudio] } : {}),
+          generate_audio: true,
+          resolution: body.resolution || "720p",
+          aspect_ratio: body.aspect_ratio || "16:9",
+          duration: Number.isFinite(Number(body.duration)) ? Math.max(4, Math.min(15, Number(body.duration))) : 8,
+          web_search: Boolean(body.web_search),
+          nsfw_checker: true,
         },
-        wavespeedKey,
+        kieKey,
       );
 
+      const result = await pollKieRecordInfo(taskId, kieKey);
+      if (result.status === "failed") {
+        throw new Error(result.error || "Seedance lip-sync model failed.");
+      }
+      const videoUrl = pickFirstMediaUrl(result.resultJson);
+      if (!videoUrl) throw new Error("Seedance returned no video URL.");
       if (generationId) {
         await setGenerationMediaUrl(generationId, videoUrl);
       }
-      return NextResponse.json({ videoUrl, provider: "wavespeed" }, { status: 200 });
+      return NextResponse.json({ videoUrl, provider: "kie", chargedCredits: creditsToCharge }, { status: 200 });
     }
     if (actionType === "voice-cloning") {
       const clonedVoiceName = (body.cloneName || "custom-voice").trim().slice(0, 64);
@@ -741,6 +1202,7 @@ export async function POST(req: NextRequest) {
               provider: "kie",
               voiceId: customVoiceId,
               voiceName: clonedVoiceName || customVoiceId,
+              chargedCredits: creditsToCharge,
             },
             { status: 200 },
           );
@@ -784,11 +1246,12 @@ export async function POST(req: NextRequest) {
           provider: "wavespeed",
           voiceId: customVoiceId,
           voiceName: clonedVoiceName || customVoiceId,
+          chargedCredits: creditsToCharge,
         },
         { status: 200 },
       );
     }
-    throw new Error(`Unknown actionType: ${actionType}. Supported: tts | video2audio | music | voice-changer | dubbing | lip-sync | voice-cloning.`);
+    throw new Error(`Unknown actionType: ${actionType}. Supported: tts | video2audio | music | speech-to-text | audio-isolation | voice-changer | dubbing | lip-sync | voice-cloning.`);
   } catch (error: unknown) {
     if (error instanceof InsufficientCreditsError) {
       return NextResponse.json(

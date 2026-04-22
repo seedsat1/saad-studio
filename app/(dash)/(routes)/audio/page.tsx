@@ -43,6 +43,7 @@ type AudioToolId =
 
 type AudioFormat = "MP3" | "WAV" | "OGG";
 type LipSyncMode = "loop" | "bounce" | "cut_off" | "silence" | "remap";
+type LipSyncModelId = "sync/lipsync-3" | "infinitalk/from-audio" | "kling/ai-avatar-pro" | "bytedance/seedance-2" | "bytedance/seedance-2-fast";
 
 type VoiceItem = {
   id: string;
@@ -70,6 +71,14 @@ type GeneratedAudio = {
   size: string;
 };
 
+type DynamicQuote = {
+  actionType: string;
+  modelRef: string;
+  sourceCredits: number;
+  marginPercent: number;
+  finalCredits: number;
+};
+
 type MusicGenre = {
   id: string;
   label: string;
@@ -79,6 +88,7 @@ type MusicGenre = {
 type MusicOutputFormat = "mp3_standard" | "mp3_high_quality" | "wav";
 type MusicModelId = "elevenlabs/music" | "google/lyria-3";
 type LyriaDurationMode = "short" | "long";
+type AddAudioMode = "speech-to-text" | "audio-isolation";
 
 type AudioLayer = {
   id: string;
@@ -120,17 +130,27 @@ const VOICE_LIBRARY: VoiceItem[] = [
 const VOICE_MODELS: VoiceModel[] = [
   { id: "elevenlabs/multilingual-v2", name: "Eleven Multilingual V2", description: "Best for Arabic + multilingual", languages: "29 languages" },
   { id: "elevenlabs/eleven-v3", name: "Eleven V3", description: "Newest expressive model", languages: "70+ languages" },
+  { id: "elevenlabs/text-to-speech-multilingual-v2", name: "KIE TTS Multilingual V2", description: "KIE async TTS model", languages: "Multilingual" },
+  { id: "elevenlabs/text-to-dialogue-v3", name: "KIE Text To Dialogue V3", description: "Dialogue-style speech generation", languages: "Auto language" },
+];
+
+const SFX_MODELS: Array<{ id: "elevenlabs/sound-effect-v2"; label: string; hint: string }> = [
+  {
+    id: "elevenlabs/sound-effect-v2",
+    label: "ElevenLabs Sound Effect V2",
+    hint: "Prompt-based SFX with loop and duration controls",
+  },
 ];
 
 const TOOLS = [
-  { id: "voice-generator" as AudioToolId, label: "Voice Generator", icon: Mic, credits: 1 },
-  { id: "voice-cloning" as AudioToolId, label: "Voice Cloning", icon: Dna, credits: 5 },
-  { id: "voice-changer" as AudioToolId, label: "Voice Changer", icon: RefreshCcw, credits: 3 },
-  { id: "dubbing" as AudioToolId, label: "Dubbing", icon: Languages, credits: 8 },
-  { id: "sfx-generator" as AudioToolId, label: "Sound Effect Generator", icon: Sparkles, credits: 2 },
-  { id: "music-generator" as AudioToolId, label: "Music Generator", icon: Music, credits: 5 },
-  { id: "lip-sync" as AudioToolId, label: "Lip Sync", icon: Clapperboard, credits: 6 },
-  { id: "add-audio" as AudioToolId, label: "Add Audio", icon: Plus, credits: 4 },
+  { id: "voice-generator" as AudioToolId, label: "Voice Generator", icon: Mic },
+  { id: "voice-cloning" as AudioToolId, label: "Voice Cloning", icon: Dna },
+  { id: "voice-changer" as AudioToolId, label: "Voice Changer", icon: RefreshCcw },
+  { id: "dubbing" as AudioToolId, label: "Dubbing", icon: Languages },
+  { id: "sfx-generator" as AudioToolId, label: "Sound Effect Generator", icon: Sparkles },
+  { id: "music-generator" as AudioToolId, label: "Music Generator", icon: Music },
+  { id: "lip-sync" as AudioToolId, label: "Lip Sync", icon: Clapperboard },
+  { id: "add-audio" as AudioToolId, label: "Add Audio", icon: Plus },
 ];
 
 const LANGUAGES = [
@@ -169,6 +189,14 @@ const MUSIC_MODELS: Array<{ id: MusicModelId; label: string; hint: string; badge
   },
 ];
 
+const LIP_SYNC_MODELS: Array<{ id: LipSyncModelId; label: string; hint: string }> = [
+  { id: "sync/lipsync-3", label: "LipSync 3", hint: "Video + audio direct lipsync" },
+  { id: "infinitalk/from-audio", label: "From Audio", hint: "Image + audio + prompt -> talking video" },
+  { id: "kling/ai-avatar-pro", label: "AI Avatar Pro", hint: "Avatar image + audio + prompt" },
+  { id: "bytedance/seedance-2", label: "Seedance 2", hint: "Audio-driven reference video generation" },
+  { id: "bytedance/seedance-2-fast", label: "Seedance 2 Fast", hint: "Faster audio-driven reference video generation" },
+];
+
 const SFX_PRESETS = [
   { id: "nature", label: "Nature", sample: "Birds chirping in a forest with gentle wind" },
   { id: "urban", label: "Urban", sample: "Busy city street traffic with distant sirens" },
@@ -188,7 +216,7 @@ const TOOL_COPY: Record<AudioToolId, { placeholder: string; button: string; prom
   "sfx-generator": { placeholder: "Describe the sound effect you want...", button: "Generate Sound", promptEnabled: true },
   "music-generator": { placeholder: "Describe the music you want...", button: "Generate Music", promptEnabled: true },
   "lip-sync": { placeholder: "Upload face video and audio above", button: "Sync Lips", promptEnabled: false },
-  "add-audio": { placeholder: "Add audio layers to your uploaded media", button: "Merge & Export", promptEnabled: false },
+  "add-audio": { placeholder: "Run speech-to-text or audio-isolation on uploaded audio", button: "Run Audio Tool", promptEnabled: false },
 };
 
 const DECOR_WAVE = Array.from({ length: 46 }, (_, i) => Math.max(12, Math.round((Math.sin(i * 0.65) * 0.5 + 0.5) * 56)));
@@ -598,6 +626,7 @@ export default function AudioPage() {
 
   const [sfxDuration, setSfxDuration] = useState<number | null>(null);
   const [sfxLoop, setSfxLoop] = useState(false);
+  const [sfxModel] = useState<"elevenlabs/sound-effect-v2">("elevenlabs/sound-effect-v2");
 
   const [musicModel, setMusicModel] = useState<MusicModelId>("elevenlabs/music");
   const [musicModelOpen, setMusicModelOpen] = useState(false);
@@ -638,14 +667,21 @@ export default function AudioPage() {
   }, [clonedVoices]);
 
   const [lipVideo, setLipVideo] = useState<UploadedAsset | null>(null);
+  const [lipImage, setLipImage] = useState<UploadedAsset | null>(null);
   const [lipAudioTab] = useState<"upload">("upload");
   const [lipAudioFile, setLipAudioFile] = useState<UploadedAsset | null>(null);
+  const [lipSyncModel, setLipSyncModel] = useState<LipSyncModelId>("sync/lipsync-3");
+  const [lipPrompt, setLipPrompt] = useState("A presenter speaking naturally to camera.");
+  const [lipResolution, setLipResolution] = useState<"480p" | "720p" | "1080p">("720p");
   const [lipSyncMode, setLipSyncMode] = useState<LipSyncMode>("cut_off");
   const [lipSyncResultUrl, setLipSyncResultUrl] = useState<string | null>(null);
   const [lipVideoPreviewUrl, setLipVideoPreviewUrl] = useState<string | null>(null);
+  const [dynamicQuote, setDynamicQuote] = useState<DynamicQuote | null>(null);
 
+  const [addAudioMode, setAddAudioMode] = useState<AddAudioMode>("speech-to-text");
   const [addMedia, setAddMedia] = useState<UploadedAsset | null>(null);
-  const [layers, setLayers] = useState<AudioLayer[]>([]);
+  const [addAudioTranscript, setAddAudioTranscript] = useState<string | null>(null);
+  const [addAudioOutputUrl, setAddAudioOutputUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (!lipVideo?.file) {
@@ -699,6 +735,7 @@ export default function AudioPage() {
 
   const canGenerate = useMemo(() => {
     const lipVideoTooLarge = Boolean(lipVideo?.file && lipVideo.file.size > MAX_LIPSYNC_VIDEO_BYTES);
+    const lipImageTooLarge = Boolean(lipImage?.file && lipImage.file.size > 10 * 1024 * 1024);
     const lipAudioTooLarge = Boolean(lipAudioFile?.file && lipAudioFile.file.size > MAX_LIPSYNC_AUDIO_BYTES);
     if (isBusy) return false;
     if (activeTool === "voice-generator") return textInput.trim().length > 0;
@@ -707,9 +744,15 @@ export default function AudioPage() {
     if (activeTool === "dubbing") return Boolean(dubFile || dubUrl.trim());
     if (activeTool === "sfx-generator") return textInput.trim().length > 0;
     if (activeTool === "music-generator") return textInput.trim().length > 0;
-    if (activeTool === "lip-sync") return Boolean(lipVideo && lipAudioFile && !lipVideoTooLarge && !lipAudioTooLarge);
-    return Boolean(addMedia && layers.length);
-  }, [activeTool, addMedia, changerFile, cloneFiles.length, cloneName, dubFile, dubUrl, isBusy, layers.length, lipAudioFile, lipAudioTab, lipVideo, textInput]);
+    if (activeTool === "lip-sync") {
+      if (lipSyncModel === "sync/lipsync-3") return Boolean(lipVideo && lipAudioFile && !lipVideoTooLarge && !lipAudioTooLarge);
+      if (lipSyncModel === "infinitalk/from-audio" || lipSyncModel === "kling/ai-avatar-pro") {
+        return Boolean(lipImage && lipAudioFile && lipPrompt.trim() && !lipImageTooLarge && !lipAudioTooLarge);
+      }
+      return Boolean((lipPrompt.trim() || lipVideo || lipImage || lipAudioFile) && !lipVideoTooLarge && !lipImageTooLarge && !lipAudioTooLarge);
+    }
+    return Boolean(addMedia);
+  }, [activeTool, addMedia, changerFile, cloneFiles.length, cloneName, dubFile, dubUrl, isBusy, lipAudioFile, lipAudioTab, lipImage, lipPrompt, lipSyncModel, lipVideo, textInput]);
 
   const buildGeneratedAudio = useCallback((title: string, audioUrl: string, modelLabel?: string): GeneratedAudio => ({
     id: crypto.randomUUID(),
@@ -734,13 +777,89 @@ export default function AudioPage() {
     return data;
   }, []);
 
+  const fetchDynamicQuote = useCallback(async (): Promise<DynamicQuote | null> => {
+    let actionType: string | null = null;
+    const params = new URLSearchParams();
+
+    if (activeTool === "voice-generator") {
+      actionType = "tts";
+      const effectiveTtsModel = ttsLanguage === "Arabic" && !voiceModel.startsWith("elevenlabs/text-to-") ? "elevenlabs/multilingual-v2" : voiceModel;
+      params.set("model", effectiveTtsModel);
+    } else if (activeTool === "voice-cloning") {
+      actionType = "voice-cloning";
+    } else if (activeTool === "voice-changer") {
+      actionType = "voice-changer";
+    } else if (activeTool === "dubbing") {
+      actionType = "dubbing";
+    } else if (activeTool === "sfx-generator") {
+      actionType = "music";
+      params.set("model", sfxModel);
+      params.set("musicDuration", String(sfxDuration ?? 10));
+    } else if (activeTool === "music-generator") {
+      actionType = "music";
+      params.set("model", effectiveMusicModelId);
+      if (musicModel !== "google/lyria-3") {
+        params.set("musicDuration", String(musicDuration));
+      } else {
+        params.set("musicDuration", lyriaDurationMode === "long" ? "180" : "30");
+      }
+    } else if (activeTool === "lip-sync") {
+      actionType = "lip-sync";
+      params.set("model", lipSyncModel);
+    } else if (activeTool === "add-audio") {
+      actionType = addAudioMode;
+      params.set("model", addAudioMode === "speech-to-text" ? "elevenlabs/speech-to-text" : "elevenlabs/audio-isolation");
+    }
+
+    if (!actionType) return null;
+
+    params.set("actionType", actionType);
+    const res = await fetch(`/api/generate/audio?${params.toString()}`, { method: "GET" });
+    const data = await res.json().catch(() => null);
+    if (!res.ok || !data) return null;
+    return data as DynamicQuote;
+  }, [
+    activeTool,
+    effectiveMusicModelId,
+    lyriaDurationMode,
+    musicDuration,
+    musicModel,
+    addAudioMode,
+    lipSyncModel,
+    sfxDuration,
+    sfxModel,
+    ttsLanguage,
+    voiceModel,
+  ]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadQuote = async () => {
+      try {
+        const quote = await fetchDynamicQuote();
+        if (!cancelled) setDynamicQuote(quote);
+      } catch {
+        if (!cancelled) setDynamicQuote(null);
+      }
+    };
+
+    loadQuote();
+    return () => {
+      cancelled = true;
+    };
+  }, [fetchDynamicQuote]);
+
   const runGenerate = useCallback(async () => {
     if (!canGenerate) return;
     setIsBusy(true);
     setErrorMessage(null);
     try {
+      const quote = await fetchDynamicQuote();
+      setDynamicQuote(quote);
+
       if (activeTool === "voice-generator") {
-        const effectiveTtsModel = ttsLanguage === "Arabic" ? "elevenlabs/multilingual-v2" : voiceModel;
+        const effectiveTtsModel = ttsLanguage === "Arabic" && !voiceModel.startsWith("elevenlabs/text-to-") ? "elevenlabs/multilingual-v2" : voiceModel;
         const payload = {
           endpoint: `/v1/text-to-speech/${voiceId}`,
           method: "POST",
@@ -895,6 +1014,7 @@ export default function AudioPage() {
           actionType: "music",
           prompt: textInput,
           stylePrompt: textInput,
+          model: sfxModel,
           musicDuration: sfxDuration ?? 10,
           loop: sfxLoop,
         });
@@ -926,6 +1046,7 @@ export default function AudioPage() {
           prompt: textInput,
           stylePrompt: "",
           model: effectiveMusicModelId,
+          musicDuration: musicModel === "google/lyria-3" ? (lyriaDurationMode === "long" ? 180 : 30) : musicDuration,
           ...(musicModel === "google/lyria-3"
             ? {
                 image: musicImageDataUrl || undefined,
@@ -944,33 +1065,42 @@ export default function AudioPage() {
 
       if (activeTool === "lip-sync") {
         setLipSyncResultUrl(null);
+        const selectedLipSyncModel = lipSyncModel;
         if (lipVideo?.file && lipVideo.file.size > MAX_LIPSYNC_VIDEO_BYTES) {
           throw new Error("Face video is too large. Maximum allowed size is 50MB.");
         }
         if (lipAudioFile?.file && lipAudioFile.file.size > MAX_LIPSYNC_AUDIO_BYTES) {
           throw new Error("Audio file is too large. Maximum allowed size is 50MB.");
         }
-        const payload = {
-          endpoint: "sync/lipsync-3",
-          method: "POST",
-          body: {
-            video: lipVideo?.name,
-            audio_source: "upload",
-            upload_audio: lipAudioFile?.name,
-            sync_mode: lipSyncMode,
-          },
-        };
-        console.log("LIP_SYNC_PAYLOAD", payload);
-        const videoDataUrl = lipVideo?.file ? await fileToDataUrl(lipVideo.file) : "";
-        if (!videoDataUrl) throw new Error("Upload video first.");
+
         const audioInputUrl = lipAudioFile?.file ? await fileToDataUrl(lipAudioFile.file) : "";
-        if (!audioInputUrl) throw new Error("Upload audio first.");
+        const videoDataUrl = lipVideo?.file ? await fileToDataUrl(lipVideo.file) : "";
+        const imageDataUrl = lipImage?.file ? await fileToDataUrl(lipImage.file) : "";
 
         const data = await callAudioApi({
           actionType: "lip-sync",
-          videoUrl: videoDataUrl,
-          audioUrl: audioInputUrl,
-          sync_mode: lipSyncMode,
+          model: selectedLipSyncModel,
+          ...(selectedLipSyncModel === "sync/lipsync-3"
+            ? {
+                videoUrl: videoDataUrl,
+                audioUrl: audioInputUrl,
+                sync_mode: lipSyncMode,
+              }
+            : selectedLipSyncModel === "bytedance/seedance-2" || selectedLipSyncModel === "bytedance/seedance-2-fast"
+              ? {
+                  prompt: lipPrompt,
+                  videoUrl: videoDataUrl || undefined,
+                  imageUrl: imageDataUrl || undefined,
+                  audioUrl: audioInputUrl || undefined,
+                  resolution: lipResolution,
+                  duration: 8,
+                }
+              : {
+                  prompt: lipPrompt,
+                  imageUrl: imageDataUrl,
+                  audioUrl: audioInputUrl,
+                  resolution: lipResolution,
+                }),
         });
         if (data?.videoUrl) {
           setLipSyncResultUrl(data.videoUrl);
@@ -978,16 +1108,24 @@ export default function AudioPage() {
       }
 
       if (activeTool === "add-audio") {
-        const payload = {
-          endpoint: "/api/add-audio",
-          method: "POST",
-          body: {
-            media: addMedia?.name,
-            layers,
-          },
-        };
-        console.log("ADD_AUDIO_PAYLOAD", payload);
-        setErrorMessage("Add-audio merge endpoint is not configured yet.");
+        setAddAudioTranscript(null);
+        setAddAudioOutputUrl(null);
+        const dataUrl = addMedia?.file ? await fileToDataUrl(addMedia.file) : "";
+        if (!dataUrl) throw new Error("Upload audio first.");
+
+        const data = await callAudioApi({
+          actionType: addAudioMode,
+          model: addAudioMode === "speech-to-text" ? "elevenlabs/speech-to-text" : "elevenlabs/audio-isolation",
+          audioUrl: dataUrl,
+        });
+
+        if (typeof data?.transcript === "string" && data.transcript.trim()) {
+          setAddAudioTranscript(data.transcript);
+        }
+        if (data?.audioUrl) {
+          setAddAudioOutputUrl(data.audioUrl);
+          setGenerated(buildGeneratedAudio("Audio Isolation Result", data.audioUrl, "ElevenLabs Audio Isolation"));
+        }
       }
 
       setPlaying(false);
@@ -1010,11 +1148,16 @@ export default function AudioPage() {
     cloneLabels,
     cloneName,
     cloneNoise,
+    fetchDynamicQuote,
     dubFile,
     dubUrl,
-    layers,
+    addAudioMode,
     lipAudioFile,
     lipAudioTab,
+    lipImage,
+    lipPrompt,
+    lipResolution,
+    lipSyncModel,
     lipSyncMode,
     lipSyncResultUrl,
     lipVideo,
@@ -1028,6 +1171,7 @@ export default function AudioPage() {
     musicOutputFormat,
     outputFormatApi,
     sfxDuration,
+    sfxModel,
     sfxLoop,
     sourceLang,
     stability,
@@ -1130,6 +1274,11 @@ export default function AudioPage() {
           <div className="grid grid-cols-2 gap-2 md:grid-cols-4">{SFX_PRESETS.map((p) => <button key={p.id} onClick={() => setTextInput(p.sample)} className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-zinc-300 hover:border-cyan-400/40">{p.label}</button>)}</div>
           <div className="rounded-xl border border-white/10 bg-white/5 p-3"><div className="mb-2 flex items-center justify-between text-xs text-zinc-400"><span>Duration</span><span>{sfxDuration ? `${sfxDuration}s` : "Auto"}</span></div><input type="range" min={1} max={22} value={sfxDuration || 11} onChange={(e) => setSfxDuration(Number(e.target.value))} className="w-full accent-cyan-500" /></div>
           <ToggleField label="Seamless loop" checked={sfxLoop} onChange={setSfxLoop} />
+          <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+            <p className="text-xs font-semibold text-zinc-200">Model</p>
+            <p className="mt-1 text-xs text-zinc-400">{SFX_MODELS[0].label}</p>
+            <p className="text-[11px] text-zinc-500">{SFX_MODELS[0].hint}</p>
+          </div>
           {generated ? <PlayerBlock item={generated} playing={playing} setPlaying={setPlaying} progress={progress} setProgress={setProgress} /> : null}
         </div>
       );
@@ -1275,7 +1424,19 @@ export default function AudioPage() {
             </div>
 
             <div className="space-y-4 rounded-2xl border border-white/10 bg-black/25 p-4">
-              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-500">Options</p>
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-500">Pricing</p>
+              <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-center text-xs text-zinc-400">
+                {dynamicQuote ? (
+                  <>
+                    Source {dynamicQuote.sourceCredits.toFixed(2)} + margin {dynamicQuote.marginPercent}% ={" "}
+                    <span className="font-bold text-pink-300">{dynamicQuote.finalCredits} credits</span>
+                  </>
+                ) : (
+                  <>
+                    Cost: <span className="font-bold text-pink-300">calculating dynamically...</span>
+                  </>
+                )}
+              </div>
               {musicModel === "google/lyria-3" ? (
                 <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-zinc-400">
                   Lyria 3 uses prompt (+ optional image). Short = clip model, Long = pro model.
@@ -1301,9 +1462,6 @@ export default function AudioPage() {
                   </div>
                 </>
               )}
-              <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-center text-xs text-zinc-400">
-                Cost: <span className="font-bold text-pink-300">5 credits</span>
-              </div>
               <button
                 onClick={runGenerate}
                 disabled={!canGenerate}
@@ -1312,7 +1470,7 @@ export default function AudioPage() {
                   !canGenerate && "opacity-40 hover:scale-100",
                 )}
               >
-                {isBusy ? "Processing..." : "Generate"}
+                {isBusy ? "Processing..." : `Generate ✦ ${dynamicQuote ? dynamicQuote.finalCredits : "..."}`}
               </button>
             </div>
           </div>
@@ -1326,16 +1484,31 @@ export default function AudioPage() {
     if (activeTool === "lip-sync") {
       const previewVideoUrl = lipSyncResultUrl || lipVideoPreviewUrl;
       const lipVideoTooLarge = Boolean(lipVideo?.file && lipVideo.file.size > MAX_LIPSYNC_VIDEO_BYTES);
+      const lipImageTooLarge = Boolean(lipImage?.file && lipImage.file.size > 10 * 1024 * 1024);
       const lipAudioTooLarge = Boolean(lipAudioFile?.file && lipAudioFile.file.size > MAX_LIPSYNC_AUDIO_BYTES);
       const hasResult = Boolean(lipSyncResultUrl);
+      const selectedLipSyncModel = LIP_SYNC_MODELS.find((m) => m.id === lipSyncModel) || LIP_SYNC_MODELS[0];
       return (
         <div className="space-y-4">
           <div className="rounded-2xl border border-cyan-400/20 bg-cyan-500/[0.06] p-3">
             <div className="flex flex-wrap items-center gap-2">
               <span className="rounded-full border border-cyan-300/30 bg-cyan-400/10 px-2 py-0.5 text-[11px] font-semibold text-cyan-200">Lip Sync (Real Workflow)</span>
-              <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] text-zinc-300">1) Upload face video</span>
-              <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] text-zinc-300">2) Upload audio</span>
+              <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] text-zinc-300">Model: {selectedLipSyncModel.label}</span>
+              <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] text-zinc-300">1) Upload required media</span>
+              <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] text-zinc-300">2) Add prompt if needed</span>
               <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] text-zinc-300">3) Sync Lips</span>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
+            <p className="mb-2 text-xs font-semibold text-zinc-200">LipSync Model</p>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {LIP_SYNC_MODELS.map((m) => (
+                <button key={m.id} onClick={() => setLipSyncModel(m.id)} className={cn("rounded-xl border px-3 py-2 text-left", lipSyncModel === m.id ? "border-cyan-400 bg-cyan-500/10" : "border-white/10 bg-white/5") }>
+                  <p className="text-xs font-semibold text-zinc-100">{m.label}</p>
+                  <p className="text-[10px] text-zinc-500">{m.hint}</p>
+                </button>
+              ))}
             </div>
           </div>
 
@@ -1366,29 +1539,53 @@ export default function AudioPage() {
           </div>
 
           <div className="grid gap-4 lg:grid-cols-2">
-            <div className="space-y-2 rounded-2xl border border-white/10 bg-white/[0.03] p-3">
-              <p className="text-xs font-semibold text-zinc-200">1) Face Video (Required)</p>
-              <AudioUploadBox title="Upload face video" hint="MP4, MOV, WebM (max 50MB, max 30s)" accept="video/*" onPick={onPickSingleFile(setLipVideo)} />
-              {lipVideo ? <div className="rounded-lg border border-emerald-400/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-300">{lipVideo.name} • {lipVideo.sizeMB}</div> : <p className="text-xs text-rose-400">No video selected yet.</p>}
-              {lipVideoTooLarge ? <p className="text-xs text-rose-400">Video exceeds 50MB limit. Please upload a smaller file.</p> : null}
-            </div>
+            {lipSyncModel === "sync/lipsync-3" || lipSyncModel === "bytedance/seedance-2" || lipSyncModel === "bytedance/seedance-2-fast" ? (
+              <div className="space-y-2 rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+                <p className="text-xs font-semibold text-zinc-200">Face Video {lipSyncModel === "sync/lipsync-3" ? "(Required)" : "(Optional)"}</p>
+                <AudioUploadBox title="Upload face/reference video" hint="MP4, MOV, WebM" accept="video/*" onPick={onPickSingleFile(setLipVideo)} />
+                {lipVideo ? <div className="rounded-lg border border-emerald-400/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-300">{lipVideo.name} • {lipVideo.sizeMB}</div> : <p className="text-xs text-zinc-500">No video selected.</p>}
+                {lipVideoTooLarge ? <p className="text-xs text-rose-400">Video exceeds 50MB limit.</p> : null}
+              </div>
+            ) : (
+              <div className="space-y-2 rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+                <p className="text-xs font-semibold text-zinc-200">Avatar Image (Required)</p>
+                <AudioUploadBox title="Upload avatar image" hint="JPG, PNG, WEBP (max 10MB)" accept="image/*" onPick={onPickSingleFile(setLipImage)} />
+                {lipImage ? <div className="rounded-lg border border-emerald-400/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-300">{lipImage.name} • {lipImage.sizeMB}</div> : <p className="text-xs text-rose-400">No image selected yet.</p>}
+                {lipImageTooLarge ? <p className="text-xs text-rose-400">Image exceeds 10MB limit.</p> : null}
+              </div>
+            )}
 
             <div className="space-y-2 rounded-2xl border border-white/10 bg-white/[0.03] p-3">
-              <p className="text-xs font-semibold text-zinc-200">2) Audio Source (Required)</p>
+              <p className="text-xs font-semibold text-zinc-200">Audio Source {lipSyncModel === "bytedance/seedance-2" || lipSyncModel === "bytedance/seedance-2-fast" ? "(Optional)" : "(Required)"}</p>
               <AudioUploadBox title="Upload sync audio" hint="MP3, WAV" accept="audio/*" onPick={onPickSingleFile(setLipAudioFile)} />
-              {lipAudioFile ? <div className="rounded-lg border border-emerald-400/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-300">{lipAudioFile.name} • {lipAudioFile.sizeMB}</div> : <p className="text-xs text-rose-400">No audio selected yet.</p>}
-              {lipAudioTooLarge ? <p className="text-xs text-rose-400">Audio exceeds 50MB limit. Please upload a smaller file.</p> : null}
+              {lipAudioFile ? <div className="rounded-lg border border-emerald-400/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-300">{lipAudioFile.name} • {lipAudioFile.sizeMB}</div> : <p className="text-xs text-zinc-500">No audio selected.</p>}
+              {lipAudioTooLarge ? <p className="text-xs text-rose-400">Audio exceeds 50MB limit.</p> : null}
             </div>
           </div>
 
+          {lipSyncModel !== "sync/lipsync-3" ? (
+            <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+              <p className="mb-2 text-xs font-semibold text-zinc-200">Prompt</p>
+              <textarea value={lipPrompt} onChange={(e) => setLipPrompt(e.target.value)} rows={3} className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-zinc-100" placeholder="Describe the avatar scene..." />
+              <div className="mt-3 grid grid-cols-3 gap-2">
+                {(["480p", "720p", "1080p"] as const).map((r) => (
+                  <button key={r} onClick={() => setLipResolution(r)} className={cn("rounded-lg border py-2 text-xs", lipResolution === r ? "border-cyan-400 bg-cyan-500/10 text-cyan-300" : "border-white/10 bg-white/5 text-zinc-400")}>
+                    {r}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
           <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <p className="text-xs text-zinc-400">Current mode: <span className="font-semibold text-cyan-300">Uploaded audio</span> • Sync mode: <span className="font-semibold text-cyan-300">{lipSyncMode}</span></p>
+              <p className="text-xs text-zinc-400">Current model: <span className="font-semibold text-cyan-300">{selectedLipSyncModel.label}</span> • Sync mode: <span className="font-semibold text-cyan-300">{lipSyncMode}</span></p>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => {
                     setLipSyncResultUrl(null);
                     setLipVideo(null);
+                    setLipImage(null);
                     setLipAudioFile(null);
                   }}
                   className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-zinc-300 hover:bg-white/10"
@@ -1396,7 +1593,7 @@ export default function AudioPage() {
                   Clear
                 </button>
                 <button onClick={runGenerate} disabled={!canGenerate} className={cn("rounded-xl bg-gradient-to-r from-[#8b5cf6] to-[#ec4899] px-4 py-2 text-sm font-bold text-white", !canGenerate && "opacity-40")}>
-                  {isBusy ? "Processing..." : "Sync Lips"}
+                  {isBusy ? "Processing..." : `Sync Lips ✦ ${dynamicQuote ? dynamicQuote.finalCredits : "..."}`}
                 </button>
               </div>
             </div>
@@ -1407,13 +1604,20 @@ export default function AudioPage() {
     }
     return (
       <div className="space-y-4">
-        <AudioUploadBox title="Upload video or image" hint="MP4, MOV, JPG, PNG, WebP" accept="video/*,image/*" onPick={onPickSingleFile(setAddMedia)} />
-        <div className="flex flex-wrap gap-2">
-          <button onClick={() => setLayers((p) => [...p, { id: crypto.randomUUID(), type: "voiceover", text: "Voiceover layer", volume: 100, start: 0 }])} className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-zinc-300">+ Add Voiceover</button>
-          <button onClick={() => setLayers((p) => [...p, { id: crypto.randomUUID(), type: "music", text: "Background music", volume: 30, start: 0 }])} className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-zinc-300">+ Add Music</button>
-          <button onClick={() => setLayers((p) => [...p, { id: crypto.randomUUID(), type: "sfx", text: "Sound effect", volume: 50, start: 0 }])} className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-zinc-300">+ Add Sound Effect</button>
-        </div>
-        <div className="space-y-2">{layers.map((l) => <div key={l.id} className="rounded-xl border border-white/10 bg-white/5 p-3"><div className="mb-2 flex items-center justify-between text-xs"><span className="text-zinc-300">{l.type.toUpperCase()} • {l.text}</span><button onClick={() => setLayers((p) => p.filter((x) => x.id !== l.id))} className="text-zinc-500"><X className="h-3.5 w-3.5" /></button></div><input type="range" min={0} max={100} value={l.volume} onChange={(e) => setLayers((p) => p.map((x) => x.id === l.id ? { ...x, volume: Number(e.target.value) } : x))} className="w-full accent-cyan-500" /></div>)}</div>
+        <AudioUploadBox title="Upload source audio" hint="MP3, WAV, M4A, OGG" accept="audio/*" onPick={onPickSingleFile(setAddMedia)} />
+        {addMedia ? <div className="rounded-lg border border-emerald-400/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-300">{addMedia.name} • {addMedia.sizeMB}</div> : null}
+        {addAudioMode === "speech-to-text" && addAudioTranscript ? (
+          <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+            <p className="mb-2 text-xs font-semibold text-zinc-200">Transcription</p>
+            <p className="whitespace-pre-wrap text-sm text-zinc-300">{addAudioTranscript}</p>
+          </div>
+        ) : null}
+        {addAudioMode === "audio-isolation" && addAudioOutputUrl ? (
+          <div className="rounded-xl border border-cyan-400/20 bg-cyan-500/[0.06] p-3">
+            <p className="mb-2 text-xs font-semibold text-cyan-200">Isolated Audio Result</p>
+            <audio src={addAudioOutputUrl} controls className="w-full" />
+          </div>
+        ) : null}
       </div>
     );
   };
@@ -1457,8 +1661,38 @@ export default function AudioPage() {
         </Section>
       ) : null}
     </>;
-    if (activeTool === "lip-sync") return <><Section title="Sync Mode"><div className="grid grid-cols-2 gap-2">{(["cut_off","loop","bounce","silence","remap"] as LipSyncMode[]).map((m)=><button key={m} onClick={()=>setLipSyncMode(m)} className={cn("rounded-lg border py-2 text-xs", lipSyncMode===m?"border-cyan-400 bg-cyan-500/10 text-cyan-300":"border-white/10 bg-white/5 text-zinc-400")}>{m}</button>)}</div></Section></>;
-    return <><Section title="Layer Mixer"><p className="text-xs text-zinc-500">Adjust volume and timing for each audio layer in workspace.</p></Section><Section title="Timeline"><p className="text-xs text-zinc-500">Drag start time per layer (visual simplified).</p></Section></>;
+    if (activeTool === "lip-sync") return <>
+      <Section title="Model">
+        <div className="space-y-2">
+          {LIP_SYNC_MODELS.map((m) => (
+            <button key={m.id} onClick={() => setLipSyncModel(m.id)} className={cn("w-full rounded-lg border px-2 py-2 text-left text-xs", lipSyncModel === m.id ? "border-cyan-400 bg-cyan-500/10 text-cyan-300" : "border-white/10 bg-white/5 text-zinc-400")}>
+              <p className="font-semibold">{m.label}</p>
+              <p className="text-[10px] text-zinc-500">{m.id}</p>
+            </button>
+          ))}
+        </div>
+      </Section>
+      <Section title="Sync Mode">
+        <div className="grid grid-cols-2 gap-2">{(["cut_off","loop","bounce","silence","remap"] as LipSyncMode[]).map((m)=><button key={m} onClick={()=>setLipSyncMode(m)} className={cn("rounded-lg border py-2 text-xs", lipSyncMode===m?"border-cyan-400 bg-cyan-500/10 text-cyan-300":"border-white/10 bg-white/5 text-zinc-400")}>{m}</button>)}</div>
+      </Section>
+    </>;
+    return <>
+      <Section title="Mode">
+        <div className="grid grid-cols-1 gap-2">
+          <button onClick={() => setAddAudioMode("speech-to-text")} className={cn("rounded-lg border px-2 py-2 text-left text-xs", addAudioMode === "speech-to-text" ? "border-cyan-400 bg-cyan-500/10 text-cyan-300" : "border-white/10 bg-white/5 text-zinc-400")}>
+            Speech To Text
+            <p className="mt-1 text-[10px] text-zinc-500">Model: elevenlabs/speech-to-text</p>
+          </button>
+          <button onClick={() => setAddAudioMode("audio-isolation")} className={cn("rounded-lg border px-2 py-2 text-left text-xs", addAudioMode === "audio-isolation" ? "border-cyan-400 bg-cyan-500/10 text-cyan-300" : "border-white/10 bg-white/5 text-zinc-400")}>
+            Audio Isolation
+            <p className="mt-1 text-[10px] text-zinc-500">Model: elevenlabs/audio-isolation</p>
+          </button>
+        </div>
+      </Section>
+      <Section title="Tool Notes">
+        <p className="text-xs text-zinc-500">This tool runs KIE async audio utilities on uploaded audio.</p>
+      </Section>
+    </>;
   };
 
   return (
@@ -1504,8 +1738,9 @@ export default function AudioPage() {
             <textarea value={textInput} onChange={(e)=>setTextInput(e.target.value)} placeholder={copy.placeholder} disabled={!copy.promptEnabled} maxLength={5000} rows={3} className="w-full resize-none bg-transparent px-2 py-2 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none disabled:opacity-50" />
             <div className="mt-2 flex items-center justify-between border-t border-white/10 px-2 pt-2">
               <div className="flex items-center gap-3 text-[11px] text-zinc-500"><span>{textInput.length}/5000</span><span className="rounded-full bg-white/5 px-2 py-0.5 text-zinc-400">{toolMeta.label}</span></div>
-              <button onClick={runGenerate} disabled={!canGenerate} className={cn("rounded-xl bg-gradient-to-r from-[#8b5cf6] to-[#ec4899] px-5 py-2.5 text-sm font-extrabold text-white", !canGenerate && "opacity-40")}>{isBusy ? "Processing..." : `${copy.button} ✦ ${toolMeta.credits}`}</button>
+              <button onClick={runGenerate} disabled={!canGenerate} className={cn("rounded-xl bg-gradient-to-r from-[#8b5cf6] to-[#ec4899] px-5 py-2.5 text-sm font-extrabold text-white", !canGenerate && "opacity-40")}>{isBusy ? "Processing..." : `${copy.button} ✦ ${dynamicQuote ? dynamicQuote.finalCredits : "..."}`}</button>
             </div>
+            {dynamicQuote ? <p className="px-2 pt-1 text-left text-[11px] text-zinc-500">Source {dynamicQuote.sourceCredits.toFixed(2)} + margin {dynamicQuote.marginPercent}% = {dynamicQuote.finalCredits} credits</p> : <p className="px-2 pt-1 text-left text-[11px] text-zinc-600">Cost is calculated dynamically from source pricing + margin.</p>}
             {errorMessage ? <p className="pt-1 text-left text-[11px] text-rose-400">{errorMessage}</p> : null}
           </div>
         </div> : null}

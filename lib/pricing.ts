@@ -9,7 +9,7 @@
  * hardcoded functions in credit-pricing.ts.
  */
 
-import { DEFAULT_MODELS, calcUserCredits, type PricingModel } from "@/lib/pricing-models";
+import { DEFAULT_MODELS, KIE_PACKAGES, calcUserCredits, type PricingModel } from "@/lib/pricing-models";
 import prismadb from "@/lib/prismadb";
 
 // ─── In-memory cache ──────────────────────────────────────────────────────────
@@ -17,6 +17,65 @@ import prismadb from "@/lib/prismadb";
 let _cachedModels: PricingModel[] | null = null;
 let _cacheTime = 0;
 const CACHE_TTL_MS = 60_000;
+
+const normalizeKey = (value: string): string =>
+  value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "")
+    .trim();
+
+function sanitizePricingModel(input: Partial<PricingModel>): PricingModel {
+  const safeId = String(input.id ?? "").trim();
+  const safeName = String(input.name ?? safeId || "unknown-model").trim();
+  const provider = input.provider === "wavespeed" ? "wavespeed" : "kie";
+  const billing = input.billing === "per_sec" ? "per_sec" : "flat";
+  const maxDurationRaw = Number(input.maxDuration);
+  const maxDuration = Number.isFinite(maxDurationRaw) && maxDurationRaw > 0 ? maxDurationRaw : null;
+
+  return {
+    id: safeId,
+    name: safeName,
+    notes: String(input.notes ?? ""),
+    type: (input.type as PricingModel["type"]) || "image",
+    provider,
+    billing,
+    kieCredits: Number.isFinite(Number(input.kieCredits)) ? Number(input.kieCredits) : 0,
+    waveUsd: Number.isFinite(Number(input.waveUsd)) ? Number(input.waveUsd) : 0,
+    userCreditsRate: Number.isFinite(Number(input.userCreditsRate)) ? Number(input.userCreditsRate) : 0,
+    maxDuration,
+    isActive: input.isActive !== false,
+  };
+}
+
+function resolveConstitutionId(modelRef: string, models: PricingModel[]): string {
+  const direct = MODEL_ALIAS_MAP[modelRef];
+  if (direct) return direct;
+
+  const exact = models.find((m) => m.id === modelRef);
+  if (exact) return exact.id;
+
+  const normalizedRef = normalizeKey(modelRef);
+  if (!normalizedRef) return modelRef;
+
+  const normalizedExact = models.find((m) => normalizeKey(m.id) === normalizedRef);
+  if (normalizedExact) return normalizedExact.id;
+
+  // Heuristic fallback for small naming variations in provider/model routes.
+  const candidates = models
+    .map((m) => {
+      const nk = normalizeKey(m.id);
+      const score =
+        nk && (normalizedRef.includes(nk) || nk.includes(normalizedRef))
+          ? Math.min(nk.length, normalizedRef.length)
+          : 0;
+      return { id: m.id, score };
+    })
+    .filter((c) => c.score > 0)
+    .sort((a, b) => b.score - a.score);
+
+  if (candidates.length) return candidates[0].id;
+  return modelRef;
+}
 
 /**
  * Load constitution models from DB (falls back to DEFAULT_MODELS if DB unavailable).
@@ -29,7 +88,9 @@ async function loadModels(): Promise<PricingModel[]> {
     const rows = await prismadb.pricingConstitution.findMany();
     if (rows.length > 0) {
       // Merge: DB rows override defaults, but keep defaults for any missing models
-      const dbModels = rows as unknown as PricingModel[];
+      const dbModels = (rows as unknown as Array<Partial<PricingModel>>)
+        .map((row) => sanitizePricingModel(row))
+        .filter((row) => Boolean(row.id));
       const dbIds = new Set(dbModels.map((m) => m.id));
       const merged = [...dbModels, ...DEFAULT_MODELS.filter((d) => !dbIds.has(d.id))];
       _cachedModels = merged;
@@ -124,13 +185,39 @@ const MODEL_ALIAS_MAP: Record<string, string> = {
   "minimax/minimax-music-2.5":              "music_gen",
   "minimax/minimax-music-02":               "music_gen",
   "minimax/minimax-music-v1.5":             "music_gen",
+  "google/lyria-3":                          "music_gen",
+  "google/lyria-3-clip/music":               "music_gen",
+  "google/lyria-3-pro/music":                "music_gen",
   "elevenlabs/music":                       "music_gen",
   "elevenlabs/elevenlabs-music":            "music_gen",
+
+  // ── Direct audio model routes — app/api/generate/audio ──────────────────
+  "elevenlabs/multilingual-v2":              "el_v2",
+  "elevenlabs/text-to-speech-multilingual-v2":"el_v2",
+  "elevenlabs/text-to-dialogue-v3":          "voice_gen",
+  "elevenlabs/sound-effect-v2":              "sfx",
+  "elevenlabs/speech-to-text":               "voice_gen",
+  "elevenlabs/audio-isolation":              "voice_chg",
+  "elevenlabs/eleven-v3":                    "el_v3",
+  "wavespeed-ai/mmaudio-v2":                 "sfx",
+  "elevenlabs/voice-changer":                "voice_chg",
+  "elevenlabs/dubbing":                      "dubbing",
+  "sync/lipsync-3":                          "lipsync",
+  "infinitalk/from-audio":                   "lipsync",
+  "kling/ai-avatar-pro":                     "lipsync",
+  "bytedance/seedance-2":                    "lipsync",
+  "bytedance/seedance-2-fast":               "lipsync",
+  "minimax/voice-clone":                     "voice_clone",
 
   // ── Audio actions — app/api/generate/audio ───────────────────────────────
   "audio:tts":           "el_v2",
   "audio:video2audio":   "sfx",
   "audio:music":         "music_gen",
+  "audio:speech-to-text": "voice_gen",
+  "audio:audio-isolation":"voice_chg",
+  "audio:voice-changer": "voice_chg",
+  "audio:dubbing":       "dubbing",
+  "audio:lip-sync":      "lipsync",
   "audio:voice-cloning": "voice_clone",
 
   // ── Image models — app/api/generate/image (IMAGE_MODELS catalog IDs) ─────
@@ -180,6 +267,54 @@ const QUALITY_MULTIPLIER: Record<string, number> = {
   "1080P":  1.3,
 };
 
+export interface GenerationCostQuote {
+  modelRef: string;
+  constitutionId: string;
+  provider: PricingModel["provider"];
+  sourceCredits: number;
+  marginPercent: number;
+  finalCredits: number;
+  qualityMultiplier: number;
+}
+
+function resolveAudioMarginPercent(): number {
+  const raw = process.env.AUDIO_CREDIT_MARGIN_PERCENT;
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed)) return 25;
+  return Math.max(0, Math.min(500, parsed));
+}
+
+function asFiniteNumber(value: unknown, fallback = 0): number {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function resolveSourceUsdPerCredit(): number {
+  const envRaw = process.env.SOURCE_CREDIT_USD;
+  const envVal = Number(envRaw);
+  if (Number.isFinite(envVal) && envVal > 0) return envVal;
+  // Use the best available provider-pack rate as a sane default source value.
+  return KIE_PACKAGES.reduce((min, pkg) => Math.min(min, pkg.costPerCredit), Number.POSITIVE_INFINITY);
+}
+
+function calcSourceCredits(model: PricingModel, durationSec: number): number {
+  const maxDuration = asFiniteNumber(model.maxDuration, 0);
+  const effectiveDur = maxDuration > 0 ? Math.min(durationSec, maxDuration) : durationSec;
+
+  if (model.provider === "kie") {
+    const kieCredits = asFiniteNumber(model.kieCredits, 0);
+    return model.billing === "per_sec"
+      ? kieCredits * effectiveDur
+      : kieCredits;
+  }
+
+  // WaveSpeed is billed in USD; convert to source-credit-equivalent for unified margining.
+  const usdPerCredit = resolveSourceUsdPerCredit();
+  const waveUsd = asFiniteNumber(model.waveUsd, 0);
+  const runUsd = model.billing === "per_sec" ? waveUsd * effectiveDur : waveUsd;
+  return runUsd / usdPerCredit;
+}
+
 /**
  * Returns the quality multiplier for a given resolution/mode value.
  * Defaults to 1.0 when the quality string is unrecognised.
@@ -207,12 +342,51 @@ export async function getGenerationCost(
   quality?: string | null,
 ): Promise<number> {
   const models = await loadModels();
-  const constitutionId = MODEL_ALIAS_MAP[modelRef] ?? modelRef;
+  const constitutionId = resolveConstitutionId(modelRef, models);
   const model = models.find((m) => m.id === constitutionId && m.isActive);
   if (!model) return 0;
   const perUnit = calcUserCredits(model, durationSec);
   const qMul = qualityMultiplierFor(quality);
   return parseFloat((perUnit * numUnits * qMul).toFixed(2));
+}
+
+/**
+ * Dynamic quote from source cost + margin.
+ * Used when you want transparent "source + margin = charged" pricing.
+ */
+export async function getGenerationCostQuote(
+  modelRef: string,
+  durationSec = 5,
+  numUnits = 1,
+  quality?: string | null,
+): Promise<GenerationCostQuote | null> {
+  const models = await loadModels();
+  const constitutionId = resolveConstitutionId(modelRef, models);
+  const model = models.find((m) => m.id === constitutionId && m.isActive);
+  if (!model) return null;
+
+  const qMul = qualityMultiplierFor(quality);
+  const sourcePerUnit = calcSourceCredits(model, durationSec);
+  let sourceCredits = parseFloat((sourcePerUnit * numUnits * qMul).toFixed(2));
+  if (!Number.isFinite(sourceCredits) || sourceCredits <= 0) {
+    // Fallback to legacy user-credit computation if source-side values are incomplete.
+    const legacyPerUnit = calcUserCredits(model, durationSec);
+    sourceCredits = parseFloat((legacyPerUnit * numUnits * qMul).toFixed(2));
+  }
+
+  const marginPercent = resolveAudioMarginPercent();
+  const finalCreditsRaw = Math.ceil(sourceCredits * (1 + marginPercent / 100));
+  const finalCredits = Number.isFinite(finalCreditsRaw) ? Math.max(1, finalCreditsRaw) : 0;
+
+  return {
+    modelRef,
+    constitutionId,
+    provider: model.provider,
+    sourceCredits,
+    marginPercent,
+    finalCredits,
+    qualityMultiplier: qMul,
+  };
 }
 
 /**
@@ -226,7 +400,7 @@ export function getGenerationCostSync(
   quality?: string | null,
 ): number {
   const models = _cachedModels ?? DEFAULT_MODELS;
-  const constitutionId = MODEL_ALIAS_MAP[modelRef] ?? modelRef;
+  const constitutionId = resolveConstitutionId(modelRef, models);
   const model = models.find((m) => m.id === constitutionId && m.isActive);
   if (!model) return 0;
   const perUnit = calcUserCredits(model, durationSec);
