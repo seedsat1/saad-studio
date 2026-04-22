@@ -845,231 +845,134 @@ export default function BulletTimeStudioPage() {
   }
 
   return (
-    <section className={`min-h-[calc(100vh-64px)] w-full ${theme.page} px-1 py-1 md:px-1.5`}>
-      <div className="flex w-full flex-col gap-2">
-        <header className={`rounded-xl border p-3 backdrop-blur ${theme.panel}`}>
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className={`text-[10px] uppercase tracking-[0.24em] ${theme.textMute}`}>Hollywood AI Studio</p>
-              <h1 className="text-2xl font-semibold text-white">Bullet Time - Production Control Room</h1>
+    <section className="min-h-[calc(100vh-64px)] bg-[#e8ecf3] p-3 text-slate-100">
+      <div className="mb-2 flex items-center gap-3 rounded-xl bg-[#11131b] px-4 py-2 text-xs">
+        <button className="rounded bg-white/10 px-2 py-1">Import</button>
+        <button className="rounded bg-white/10 px-2 py-1">Edit</button>
+        <button className="rounded bg-white/10 px-2 py-1">Export</button>
+      </div>
+
+      <div className="grid gap-3 xl:grid-cols-[1.45fr_1fr]">
+        <div className="relative rounded-2xl bg-gradient-to-br from-[#c9f0d2] via-[#d9e7ff] to-[#c4ece9] p-4">
+          <div className="rounded-2xl bg-[#0f1118] p-3 shadow-2xl">
+            {videoUrl ? (
+              <video ref={videoRef} src={videoUrl} controls className="aspect-video w-full rounded-xl object-cover" />
+            ) : (
+              <div className="flex aspect-video items-center justify-center rounded-xl border border-dashed border-white/25 text-sm text-slate-300">
+                Preview Canvas
+              </div>
+            )}
+          </div>
+
+          <div className="absolute left-6 top-8 w-44 rounded-xl border border-[#9ef48f] bg-[#1b1d24] p-2 shadow-xl">
+            <p className="mb-2 text-xs font-semibold">Effects</p>
+            <div className="grid grid-cols-2 gap-1 text-[10px]">
+              <button className="rounded bg-white/10 px-1 py-1">Ripple</button>
+              <button className="rounded bg-white/10 px-1 py-1">Pulse</button>
+              <button className="rounded bg-white/10 px-1 py-1">Glow</button>
+              <button className="rounded bg-white/10 px-1 py-1">Film</button>
             </div>
-            <div className="flex gap-2">
-              {(Object.keys(STUDIO_THEMES) as StudioThemeKey[]).map((key) => (
-                <button
-                  key={key}
-                  onClick={() => setThemeKey(key)}
-                  className={`rounded-lg border px-3 py-1.5 text-xs ${
-                    themeKey === key ? `${STUDIO_THEMES[key].soft} text-white` : "border-white/15 bg-white/5 text-slate-200"
-                  }`}
-                >
-                  {STUDIO_THEMES[key].label}
-                </button>
+          </div>
+
+          <div className="absolute right-6 top-8 w-52 rounded-xl border border-[#9ef48f] bg-[#1b1d24] p-2 shadow-xl">
+            <p className="mb-2 text-xs font-semibold">Filter Library</p>
+            <div className="grid grid-cols-3 gap-1">
+              {[1, 2, 3, 4, 5, 6].map((n) => (
+                <div key={n} className="h-12 rounded bg-white/10" />
               ))}
             </div>
           </div>
-        </header>
 
-        <section className={`rounded-xl border p-2 ${theme.panel}`}>
-          <div className="grid gap-2 md:grid-cols-3 xl:grid-cols-6">
-            <div className="rounded-lg border border-white/10 bg-black/30 p-2">
-              <p className="mb-2 text-xs font-semibold text-white">برومبت / Scenes</p>
-              <textarea
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                rows={4}
-                className="w-full rounded-md border border-white/15 bg-black/35 px-2 py-1.5 text-xs text-white"
-              />
-              <div className="mt-2 flex gap-2">
-                <input
-                  value={newSceneTitle}
-                  onChange={(e) => setNewSceneTitle(e.target.value)}
-                  className="w-full rounded-md border border-white/15 bg-black/35 px-2 py-1 text-xs text-white"
-                  placeholder="New scene title"
-                />
-                <button onClick={addNewScene} className="rounded-md border border-white/20 px-2 text-xs text-white">Add</button>
-              </div>
-              <div className="mt-2 max-h-28 space-y-1 overflow-y-auto">
-                {scenes.map((scene) => (
-                  <button key={scene.id} onClick={() => setSelectedSceneId(scene.id)} className={`w-full rounded border px-2 py-1 text-left text-[11px] ${scene.id === selectedSceneId ? `${theme.soft}` : "border-white/10 bg-white/5"}`}>
-                    {scene.id} - {scene.title}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="rounded-lg border border-white/10 bg-black/30 p-2">
-              <p className="mb-2 text-xs font-semibold text-white">الإضاءة</p>
-              <div className="space-y-2 text-xs">
-                <Field label="Mode" value="High-Key / Low-Key / Rim" />
-                <Field label="Current" value="Low Key / Rim" />
-                <Field label="Camera" value={selectedScene.camera} />
-              </div>
-            </div>
-
-            <div className="rounded-lg border border-white/10 bg-black/30 p-2">
-              <p className="mb-2 text-xs font-semibold text-white">الانتقالات / الحركة</p>
-              <div className="space-y-2 text-xs">
-                <Field label="Transition" value={selectedScene.transition} />
-                <Field label="Motion" value="Dolly In / Orbit / Crane" />
-                <Field label="Shot Mode" value={generationMode === "multi" ? "Multi-shot" : "Single Shot"} />
-              </div>
-              <textarea
-                value={multiShotText}
-                onChange={(e) => setMultiShotText(e.target.value)}
-                rows={3}
-                className="mt-2 w-full rounded-md border border-white/15 bg-black/35 px-2 py-1.5 text-xs text-white"
-                placeholder="Multi-shot lines..."
-              />
-            </div>
-
-            <div className="rounded-lg border border-white/10 bg-black/30 p-2">
-              <p className="mb-2 text-xs font-semibold text-white">بريستات + كتابة</p>
-              <div className="grid grid-cols-1 gap-1">
-                {PRESETS.slice(0, 4).map((preset) => (
-                  <button key={preset} onClick={() => setSelectedPreset(preset)} className={`rounded border px-2 py-1 text-left text-[11px] ${selectedPreset === preset ? `${theme.soft}` : "border-white/10 bg-white/5 text-slate-200"}`}>{preset}</button>
-                ))}
-              </div>
-              <div className="mt-2 grid grid-cols-2 gap-1">
-                {WRITING_PRESETS.map((preset) => (
-                  <button key={preset.id} onClick={() => { setSelectedWritingPreset(preset.id); setScriptText(preset.template); }} className={`rounded border px-1.5 py-1 text-[10px] ${selectedWritingPreset === preset.id ? `${theme.soft}` : "border-white/10 bg-white/5 text-slate-200"}`}>{preset.label}</button>
-                ))}
-              </div>
-              <textarea
-                value={scriptText}
-                onChange={(e) => setScriptText(e.target.value)}
-                rows={3}
-                className="mt-2 w-full rounded-md border border-white/15 bg-black/35 px-2 py-1.5 text-xs text-white"
-              />
-              <div className="mt-1 grid grid-cols-2 gap-1">
-                <button onClick={() => setPrompt(scriptText)} className="rounded border border-white/20 bg-white/10 px-2 py-1 text-[11px] text-white">Use Prompt</button>
-                <button onClick={() => createClip("TXT", "Text Layer", Math.max(3, duration))} className="rounded border border-white/20 bg-white/10 px-2 py-1 text-[11px] text-white">Add TXT</button>
-              </div>
-            </div>
-
-            <div className="rounded-lg border border-white/10 bg-black/30 p-2">
-              <p className="mb-2 text-xs font-semibold text-white">توليد الفيديو</p>
-              <div className="grid grid-cols-2 gap-1">
-                <select value={videoRoute} onChange={(e) => setVideoRoute(e.target.value)} className="rounded border border-white/15 bg-black/35 px-2 py-1 text-xs text-white">
-                  {VIDEO_ROUTES.map((route) => <option key={route.value} value={route.value} className="bg-slate-900">{route.label}</option>)}
-                </select>
-                <select value={duration} onChange={(e) => setDuration(Number(e.target.value) as (typeof DURATION_OPTIONS)[number])} className="rounded border border-white/15 bg-black/35 px-2 py-1 text-xs text-white">
-                  {DURATION_OPTIONS.map((d) => <option key={d} value={d} className="bg-slate-900">{d}s</option>)}
-                </select>
-                <select value={aspectRatio} onChange={(e) => setAspectRatio(e.target.value as (typeof ASPECT_RATIO_OPTIONS)[number])} className="rounded border border-white/15 bg-black/35 px-2 py-1 text-xs text-white">
-                  {supportedAspectRatios.map((ratio) => <option key={ratio} value={ratio} className="bg-slate-900">{ratio}</option>)}
-                </select>
-                <select value={quality} onChange={(e) => setQuality(e.target.value as (typeof QUALITY_OPTIONS)[number]["value"])} className="rounded border border-white/15 bg-black/35 px-2 py-1 text-xs text-white">
-                  {QUALITY_OPTIONS.map((q) => <option key={q.value} value={q.value} className="bg-slate-900">{q.label}</option>)}
-                </select>
-              </div>
-              <button onClick={generateVideo} disabled={videoLoading || !prompt.trim()} className={`mt-2 w-full rounded-md bg-gradient-to-r py-1.5 text-xs font-semibold text-white ${theme.button} disabled:opacity-50`}>
-                {videoLoading ? "Generating..." : "Generate Scene Video"}
-              </button>
-              <button onClick={generateImage} disabled={imageLoading || !prompt.trim()} className="mt-1 w-full rounded-md border border-white/20 bg-white/10 py-1.5 text-xs text-white disabled:opacity-50">
-                {imageLoading ? "Generating Image..." : "Generate Image"}
-              </button>
-              <div className="mt-2 rounded-md border border-white/10 p-1">
-                {videoUrl ? <video ref={videoRef} src={videoUrl} controls className="aspect-video w-full rounded object-cover" /> : <p className="p-2 text-[11px] text-slate-400">Live Preview Canvas</p>}
-              </div>
-            </div>
-
-            <div className="rounded-lg border border-white/10 bg-black/30 p-2">
-              <p className="mb-2 text-xs font-semibold text-white">الصوت / النسخ / الموسيقى / المؤثرات</p>
-              <textarea value={voiceText} onChange={(e) => setVoiceText(e.target.value)} rows={2} className="w-full rounded border border-white/15 bg-black/35 px-2 py-1 text-xs text-white" />
-              <div className="mt-1 grid grid-cols-2 gap-1">
-                <button onClick={generateVoice} className="rounded border border-white/20 bg-white/10 py-1 text-[11px] text-white">Voice</button>
-                <button onClick={generateMusic} className="rounded border border-white/20 bg-white/10 py-1 text-[11px] text-white">Music</button>
-                <button onClick={generateSfx} className="rounded border border-white/20 bg-white/10 py-1 text-[11px] text-white">SFX</button>
-                <button onClick={generateVoiceClone} disabled={!cloneSampleDataUrl} className="rounded border border-white/20 bg-white/10 py-1 text-[11px] text-white disabled:opacity-40">Clone</button>
-              </div>
-              <label className="mt-1 block rounded border border-dashed border-white/15 px-2 py-1 text-[11px] text-slate-300">
-                {cloneSampleName || "Upload clone sample"}
-                <input type="file" accept="audio/*" className="mt-1 w-full text-[10px]" onChange={onCloneSampleChange} />
-              </label>
-              <div className="mt-2 space-y-1">
-                {audioUrl && <audio ref={voiceRef} src={audioUrl} controls className="w-full" />}
-                {clonedVoiceUrl && <audio ref={clonedVoiceRef} src={clonedVoiceUrl} controls className="w-full" />}
-                {musicUrl && <audio ref={musicRef} src={musicUrl} controls className="w-full" />}
-                {sfxUrl && <audio ref={sfxRef} src={sfxUrl} controls className="w-full" />}
-              </div>
-              <div className="mt-2 grid grid-cols-2 gap-1">
-                <button onClick={playMix} className="rounded border border-white/20 bg-white/10 py-1 text-xs text-white"><Play className="mr-1 inline h-3 w-3" />Play Mix</button>
-                <button onClick={pauseMix} className="rounded border border-white/20 bg-white/10 py-1 text-xs text-white"><Pause className="mr-1 inline h-3 w-3" />Pause</button>
-              </div>
-            </div>
+          <div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-4">
+            <button className="rounded-lg bg-[#9ee28f] px-3 py-2 text-sm font-semibold text-[#152013]">Effects</button>
+            <button className="rounded-lg bg-[#b2a6ff] px-3 py-2 text-sm font-semibold text-white">Filters</button>
+            <button className="rounded-lg bg-[#0f1118] px-3 py-2 text-sm">Transitions</button>
+            <button className="rounded-lg bg-[#0f1118] px-3 py-2 text-sm">Stickers</button>
           </div>
-        </section>
+        </div>
 
-        <section className={`rounded-xl border p-3 ${theme.panel}`}>
-          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-sm font-semibold text-white">Real Timeline Editor</h2>
-            <div className="flex items-center gap-2">
-              <input type="range" min={0} max={timelineTotalSec} value={playheadSec} onChange={(e) => setPlayheadSec(Number(e.target.value))} className="w-48" />
-              <span className="rounded border border-white/20 px-2 py-1 text-xs text-white">{playheadSec.toFixed(1)}s</span>
-              <button onClick={splitSelectedClip} disabled={!selectedClip} className="rounded border border-white/20 bg-white/10 px-2 py-1 text-xs text-white disabled:opacity-50">Cut</button>
-              <button onClick={deleteSelectedClip} disabled={!selectedClip} className="rounded border border-rose-400/35 bg-rose-500/15 px-2 py-1 text-xs text-rose-100 disabled:opacity-50">Delete</button>
-            </div>
+        <div className="space-y-3 rounded-2xl bg-[#11131b] p-3">
+          <p className="text-xs uppercase tracking-widest text-slate-400">Studio Controls</p>
+          <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={4} className="w-full rounded-lg border border-white/15 bg-black/30 px-2 py-2 text-xs text-white" />
+          <div className="grid grid-cols-2 gap-2">
+            <select value={videoRoute} onChange={(e) => setVideoRoute(e.target.value)} className="rounded border border-white/15 bg-black/30 px-2 py-2 text-xs text-white">{VIDEO_ROUTES.map((route) => <option key={route.value} value={route.value} className="bg-slate-900">{route.label}</option>)}</select>
+            <select value={generationMode} onChange={(e) => setGenerationMode(e.target.value as (typeof GENERATION_MODES)[number]["value"])} className="rounded border border-white/15 bg-black/30 px-2 py-2 text-xs text-white">{GENERATION_MODES.map((mode) => <option key={mode.value} value={mode.value} className="bg-slate-900">{mode.label}</option>)}</select>
+            <select value={duration} onChange={(e) => setDuration(Number(e.target.value) as (typeof DURATION_OPTIONS)[number])} className="rounded border border-white/15 bg-black/30 px-2 py-2 text-xs text-white">{DURATION_OPTIONS.map((d) => <option key={d} value={d} className="bg-slate-900">{d}s</option>)}</select>
+            <select value={aspectRatio} onChange={(e) => setAspectRatio(e.target.value as (typeof ASPECT_RATIO_OPTIONS)[number])} className="rounded border border-white/15 bg-black/30 px-2 py-2 text-xs text-white">{supportedAspectRatios.map((ratio) => <option key={ratio} value={ratio} className="bg-slate-900">{ratio}</option>)}</select>
           </div>
+          <div className="grid grid-cols-2 gap-2">
+            <button onClick={generateVideo} disabled={videoLoading || !prompt.trim()} className="rounded-lg bg-[#7ef0ff] px-3 py-2 text-xs font-semibold text-[#05242d] disabled:opacity-60">{videoLoading ? "Generating..." : "Generate Video"}</button>
+            <button onClick={generateImage} disabled={imageLoading || !prompt.trim()} className="rounded-lg bg-[#9ee28f] px-3 py-2 text-xs font-semibold text-[#0f2a16] disabled:opacity-60">{imageLoading ? "Generating..." : "Generate Image"}</button>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <button onClick={generateVoice} className="rounded bg-white/10 px-2 py-1.5 text-xs">Voice</button>
+            <button onClick={generateMusic} className="rounded bg-white/10 px-2 py-1.5 text-xs">Music</button>
+            <button onClick={generateSfx} className="rounded bg-white/10 px-2 py-1.5 text-xs">SFX</button>
+            <button onClick={playMix} className="rounded bg-white/10 px-2 py-1.5 text-xs">Play Mix</button>
+          </div>
+          <input value={newSceneTitle} onChange={(e) => setNewSceneTitle(e.target.value)} placeholder="New scene..." className="w-full rounded border border-white/15 bg-black/30 px-2 py-1.5 text-xs text-white" />
+          <button onClick={addNewScene} className="w-full rounded bg-white/10 px-2 py-1.5 text-xs">Add Scene</button>
+        </div>
+      </div>
 
-          {selectedClip && (
-            <div className="mb-2 grid gap-2 rounded-lg border border-white/10 bg-black/25 p-2 md:grid-cols-4">
-              <p className="truncate text-xs text-white">{selectedClip.title}</p>
-              <input type="number" min={0} value={selectedClip.startSec} onChange={(e) => setSelectedClipTrim(Number(e.target.value), selectedClip.durationSec)} className="rounded border border-white/15 bg-black/35 px-2 py-1 text-xs text-white" />
-              <input type="number" min={1} value={selectedClip.durationSec} onChange={(e) => setSelectedClipTrim(selectedClip.startSec, Number(e.target.value))} className="rounded border border-white/15 bg-black/35 px-2 py-1 text-xs text-white" />
-              <button onClick={() => setPlayheadSec(selectedClip.startSec)} className="rounded border border-white/20 bg-white/10 px-2 py-1 text-xs text-white">Jump</button>
+      <div className="mt-3 grid gap-3 xl:grid-cols-2">
+        <div className="rounded-2xl bg-[#11131b] p-3">
+          <p className="mb-2 text-xs uppercase tracking-widest text-slate-400">Writing Presets</p>
+          <div className="grid grid-cols-2 gap-1">
+            {WRITING_PRESETS.map((preset) => (
+              <button key={preset.id} onClick={() => { setSelectedWritingPreset(preset.id); setScriptText(preset.template); }} className={`rounded border px-2 py-1 text-[11px] ${selectedWritingPreset === preset.id ? "border-[#9ee28f] bg-[#9ee28f]/20" : "border-white/10 bg-white/5"}`}>{preset.label}</button>
+            ))}
+          </div>
+          <textarea value={scriptText} onChange={(e) => setScriptText(e.target.value)} rows={4} className="mt-2 w-full rounded border border-white/15 bg-black/30 px-2 py-2 text-xs text-white" />
+          <div className="mt-2 grid grid-cols-2 gap-2">
+            <button onClick={() => setPrompt(scriptText)} className="rounded bg-white/10 px-2 py-1.5 text-xs">Use As Prompt</button>
+            <button onClick={() => createClip("TXT", "Text Layer", Math.max(3, duration))} className="rounded bg-white/10 px-2 py-1.5 text-xs">Add TXT Clip</button>
+          </div>
+        </div>
+        <div className="rounded-2xl bg-[#11131b] p-3">
+          <p className="mb-2 text-xs uppercase tracking-widest text-slate-400">Audio Bank</p>
+          <textarea value={voiceText} onChange={(e) => setVoiceText(e.target.value)} rows={3} className="w-full rounded border border-white/15 bg-black/30 px-2 py-2 text-xs text-white" />
+          <label className="mt-2 block rounded border border-dashed border-white/20 px-2 py-1 text-[11px] text-slate-300">{cloneSampleName || "Upload clone sample"}<input type="file" accept="audio/*" className="mt-1 w-full text-[10px]" onChange={onCloneSampleChange} /></label>
+          <div className="mt-2 grid grid-cols-2 gap-2">
+            <button onClick={generateVoiceClone} disabled={!cloneSampleDataUrl} className="rounded bg-white/10 px-2 py-1.5 text-xs disabled:opacity-50">Clone Voice</button>
+            <button onClick={pauseMix} className="rounded bg-white/10 px-2 py-1.5 text-xs">Pause Mix</button>
+          </div>
+        </div>
+      </div>
+
+      <section className="mt-3 rounded-2xl bg-[#11131b] p-3">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-sm font-semibold text-white">Real Timeline Editor</h2>
+          <div className="flex items-center gap-2">
+            <input type="range" min={0} max={timelineTotalSec} value={playheadSec} onChange={(e) => setPlayheadSec(Number(e.target.value))} className="w-48" />
+            <span className="rounded bg-white/10 px-2 py-1 text-xs">{playheadSec.toFixed(1)}s</span>
+            <button onClick={splitSelectedClip} disabled={!selectedClip} className="rounded bg-white/10 px-2 py-1 text-xs disabled:opacity-50">Cut</button>
+            <button onClick={deleteSelectedClip} disabled={!selectedClip} className="rounded bg-rose-500/20 px-2 py-1 text-xs text-rose-100 disabled:opacity-50">Delete</button>
+          </div>
+        </div>
+        <div className="overflow-x-auto rounded-lg border border-white/10 bg-black/35 p-2">
+          <div ref={timelineCanvasRef} style={{ width: `${timelineTotalSec * pxPerSec}px` }} className="relative space-y-2">
+            <div className="grid grid-cols-[72px_minmax(0,1fr)] items-center gap-2">
+              <div />
+              <div className="relative h-5 border-b border-white/10">{Array.from({ length: Math.floor(timelineTotalSec / 5) + 1 }).map((_, i) => <span key={i} className="absolute -top-0.5 text-[10px] text-slate-400" style={{ left: `${i * 5 * pxPerSec}px` }}>{i * 5}s</span>)}</div>
             </div>
-          )}
-
-          <div className="overflow-x-auto rounded-lg border border-white/10 bg-black/35 p-2">
-            <div ref={timelineCanvasRef} style={{ width: `${timelineTotalSec * pxPerSec}px` }} className="relative space-y-2">
-              <div className="grid grid-cols-[72px_minmax(0,1fr)] items-center gap-2">
-                <div />
-                <div className="relative h-5 border-b border-white/10">
-                  {Array.from({ length: Math.floor(timelineTotalSec / 5) + 1 }).map((_, i) => (
-                    <span key={i} className="absolute -top-0.5 text-[10px] text-slate-400" style={{ left: `${i * 5 * pxPerSec}px` }}>{i * 5}s</span>
+            {timelineTracks.map((track) => (
+              <div key={track} className="grid grid-cols-[72px_minmax(0,1fr)] items-center gap-2">
+                <div className="rounded border border-white/15 bg-white/5 px-2 py-1 text-center text-[11px] font-semibold text-white">{track}</div>
+                <div onDragOver={(e) => e.preventDefault()} onDrop={(e) => dropClipOnTrack(track, e)} className="relative h-12 rounded border border-white/10 bg-black/45">
+                  {timelineClips.filter((clip) => clip.track === track).map((clip) => (
+                    <button key={clip.id} draggable onDragStart={() => setDraggingClipId(clip.id)} onDragEnd={() => setDraggingClipId(null)} onClick={() => setSelectedClipId(clip.id)} className={`absolute top-1 h-10 rounded border px-2 text-left text-[11px] text-white ${clip.colorClass} ${selectedClipId === clip.id ? "ring-2 ring-cyan-300/70" : ""}`} style={{ left: `${clip.startSec * pxPerSec}px`, width: `${Math.max(44, clip.durationSec * pxPerSec)}px` }}><p className="truncate font-medium">{clip.title}</p><p className="text-[10px] text-white/70">{clip.durationSec}s</p></button>
                   ))}
                 </div>
               </div>
-              {timelineTracks.map((track) => (
-                <div key={track} className="grid grid-cols-[72px_minmax(0,1fr)] items-center gap-2">
-                  <div className="rounded border border-white/15 bg-white/5 px-2 py-1 text-center text-[11px] font-semibold text-white">{track}</div>
-                  <div onDragOver={(e) => e.preventDefault()} onDrop={(e) => dropClipOnTrack(track, e)} className="relative h-12 rounded border border-white/10 bg-black/45">
-                    {timelineClips.filter((clip) => clip.track === track).map((clip) => (
-                      <button
-                        key={clip.id}
-                        draggable
-                        onDragStart={() => setDraggingClipId(clip.id)}
-                        onDragEnd={() => setDraggingClipId(null)}
-                        onClick={() => setSelectedClipId(clip.id)}
-                        className={`absolute top-1 h-10 rounded border px-2 text-left text-[11px] text-white ${clip.colorClass} ${selectedClipId === clip.id ? "ring-2 ring-cyan-300/70" : ""}`}
-                        style={{ left: `${clip.startSec * pxPerSec}px`, width: `${Math.max(44, clip.durationSec * pxPerSec)}px` }}
-                      >
-                        <p className="truncate font-medium">{clip.title}</p>
-                        <p className="text-[10px] text-white/70">{clip.durationSec}s</p>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ))}
-              <div className="pointer-events-none absolute top-0 h-full w-[2px] bg-cyan-300/90" style={{ left: `${playheadSec * pxPerSec + 80}px` }} />
-            </div>
-          </div>
-        </section>
-
-        <section className={`rounded-xl border p-2 ${theme.panel}`}>
-          <div className="grid gap-2 md:grid-cols-4">
-            {[["Project", state.projectName], ["Credits", `${state.credits.toLocaleString()} remaining`], ["Queue", `${state.renderQueue} jobs`], ["Plan", state.plan]].map(([label, value]) => (
-              <div key={label} className="rounded-lg border border-white/10 bg-black/20 px-2 py-1.5">
-                <p className="text-[10px] uppercase text-slate-400">{label}</p>
-                <p className="text-xs text-white">{value}</p>
-              </div>
             ))}
+            <div className="pointer-events-none absolute top-0 h-full w-[2px] bg-cyan-300/90" style={{ left: `${playheadSec * pxPerSec + 80}px` }} />
           </div>
-          {error && <div className="mt-2 rounded border border-red-400/30 bg-red-900/20 px-2 py-1 text-xs text-red-200">{error}</div>}
-          <div className="mt-2 max-h-24 space-y-1 overflow-y-auto rounded border border-white/10 bg-black/25 p-2">
-            {logs.map((log) => <p key={log} className="text-[11px] text-slate-300"><Timer className="mr-1 inline h-3 w-3" />{log}</p>)}
-          </div>
-        </section>
+        </div>
+      </section>
+      {error ? <div className="mt-2 rounded border border-red-400/30 bg-red-900/20 px-2 py-1 text-xs text-red-200">{error}</div> : null}
+      <div className="mt-2 max-h-24 overflow-y-auto rounded-xl bg-[#11131b] p-2 text-xs">
+        {logs.map((log) => <p key={log} className="text-slate-300"><Timer className="mr-1 inline h-3 w-3" />{log}</p>)}
       </div>
     </section>
   );
