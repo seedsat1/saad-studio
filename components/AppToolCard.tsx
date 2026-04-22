@@ -10,24 +10,106 @@ interface AppToolCardProps {
   tool: AppTool;
 }
 
-const FALLBACK_TOOL_VIDEOS = [
-  "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
-  "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
-  "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4",
-  "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4",
-  "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerScopes.mp4",
-  "https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
-  "https://storage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
-  "https://storage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4",
-];
+const VIDEO_LIBRARY = {
+  action: "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+  travel: "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
+  lifestyle: "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4",
+  commercial: "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4",
+  cinematic: "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerScopes.mp4",
+  animation: "https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+  fantasy: "https://storage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
+  studio: "https://storage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4",
+  default: "https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+} as const;
+
+const TOOL_VIDEO_BY_ID: Record<string, string> = {
+  "variations-studio": VIDEO_LIBRARY.studio,
+  "storyboard-studio": VIDEO_LIBRARY.cinematic,
+  "multi-angle-studio": VIDEO_LIBRARY.studio,
+  "expand-image": VIDEO_LIBRARY.cinematic,
+  angles: VIDEO_LIBRARY.action,
+  shots: VIDEO_LIBRARY.studio,
+  transitions: VIDEO_LIBRARY.travel,
+  zooms: VIDEO_LIBRARY.action,
+  "behind-scenes": VIDEO_LIBRARY.studio,
+  "3d-rotation": VIDEO_LIBRARY.action,
+  "bullet-time": VIDEO_LIBRARY.studio,
+  packshot: VIDEO_LIBRARY.commercial,
+  "macro-scene": VIDEO_LIBRARY.cinematic,
+  "what-next": VIDEO_LIBRARY.fantasy,
+  "skin-enhancer": VIDEO_LIBRARY.lifestyle,
+  "beauty2-studio": VIDEO_LIBRARY.lifestyle,
+  relight: VIDEO_LIBRARY.cinematic,
+  makeup: VIDEO_LIBRARY.lifestyle,
+  "style-snap": VIDEO_LIBRARY.lifestyle,
+  "color-grading": VIDEO_LIBRARY.studio,
+  "bg-remover": VIDEO_LIBRARY.studio,
+  "image-upscale": VIDEO_LIBRARY.studio,
+  "sketch-to-real": VIDEO_LIBRARY.animation,
+  "fashion-factory": VIDEO_LIBRARY.lifestyle,
+  "face-swap": VIDEO_LIBRARY.lifestyle,
+  "headshot-gen": VIDEO_LIBRARY.lifestyle,
+  "character-swap": VIDEO_LIBRARY.fantasy,
+  recast: VIDEO_LIBRARY.studio,
+  "video-face-swap": VIDEO_LIBRARY.studio,
+  "commercial-faces": VIDEO_LIBRARY.commercial,
+  "ai-influencer": VIDEO_LIBRARY.lifestyle,
+  "age-transform": VIDEO_LIBRARY.lifestyle,
+  "expression-edit": VIDEO_LIBRARY.lifestyle,
+  cosplay: VIDEO_LIBRARY.fantasy,
+  clipcut: VIDEO_LIBRARY.commercial,
+  "urban-cuts": VIDEO_LIBRARY.action,
+  "video-bg-remover": VIDEO_LIBRARY.studio,
+  breakdown: VIDEO_LIBRARY.cinematic,
+  lipsync: VIDEO_LIBRARY.studio,
+  "video-upscale": VIDEO_LIBRARY.studio,
+  "draw-to-video": VIDEO_LIBRARY.animation,
+  "mixed-media": VIDEO_LIBRARY.fantasy,
+  "click-to-ad": VIDEO_LIBRARY.commercial,
+  "billboard-ad": VIDEO_LIBRARY.commercial,
+  "bullet-time-white": VIDEO_LIBRARY.commercial,
+  "truck-ad": VIDEO_LIBRARY.commercial,
+  "giant-product": VIDEO_LIBRARY.commercial,
+  "fridge-ad": VIDEO_LIBRARY.commercial,
+  "volcano-ad": VIDEO_LIBRARY.action,
+  "graffiti-ad": VIDEO_LIBRARY.action,
+  "kick-ad": VIDEO_LIBRARY.action,
+  "macroshot-product": VIDEO_LIBRARY.commercial,
+  "game-dump": VIDEO_LIBRARY.animation,
+  "nano-strike": VIDEO_LIBRARY.action,
+  "nano-theft": VIDEO_LIBRARY.action,
+  simlife: VIDEO_LIBRARY.animation,
+  plushies: VIDEO_LIBRARY.animation,
+  "pixel-game": VIDEO_LIBRARY.animation,
+  "roller-coaster": VIDEO_LIBRARY.travel,
+  "brick-cube": VIDEO_LIBRARY.animation,
+  "victory-card": VIDEO_LIBRARY.animation,
+  "3d-figure": VIDEO_LIBRARY.animation,
+  "comic-book": VIDEO_LIBRARY.animation,
+  renaissance: VIDEO_LIBRARY.fantasy,
+  latex: VIDEO_LIBRARY.studio,
+  "on-fire": VIDEO_LIBRARY.action,
+  "melting-doodle": VIDEO_LIBRARY.fantasy,
+  "giallo-horror": VIDEO_LIBRARY.studio,
+  "burning-sunset": VIDEO_LIBRARY.travel,
+  "cloud-surf": VIDEO_LIBRARY.travel,
+  "sand-worm": VIDEO_LIBRARY.fantasy,
+  "storm-creature": VIDEO_LIBRARY.fantasy,
+  "magic-button": VIDEO_LIBRARY.fantasy,
+  chameleon: VIDEO_LIBRARY.fantasy,
+  "meme-gen": VIDEO_LIBRARY.animation,
+  mukbang: VIDEO_LIBRARY.lifestyle,
+  skibidi: VIDEO_LIBRARY.animation,
+  idol: VIDEO_LIBRARY.lifestyle,
+  "rap-god": VIDEO_LIBRARY.action,
+  mugshot: VIDEO_LIBRARY.studio,
+  signboard: VIDEO_LIBRARY.commercial,
+  "paint-app": VIDEO_LIBRARY.animation,
+  poster: VIDEO_LIBRARY.commercial,
+  sticker: VIDEO_LIBRARY.animation,
+};
 
 const isVideoUrl = (url?: string) => Boolean(url && /\.(mp4|webm|mov|ogg)([?#]|$)/i.test(url));
-
-function fallbackVideoByToolId(toolId: string): string {
-  let hash = 0;
-  for (let i = 0; i < toolId.length; i += 1) hash = (hash * 31 + toolId.charCodeAt(i)) >>> 0;
-  return FALLBACK_TOOL_VIDEOS[hash % FALLBACK_TOOL_VIDEOS.length];
-}
 
 function AppToolCardInner({ tool }: AppToolCardProps) {
   const [isHovered, setIsHovered] = useState(false);
@@ -35,7 +117,7 @@ function AppToolCardInner({ tool }: AppToolCardProps) {
     ? tool.previewVideo
     : isVideoUrl(tool.previewImage)
       ? tool.previewImage
-      : fallbackVideoByToolId(tool.id);
+      : TOOL_VIDEO_BY_ID[tool.id] || VIDEO_LIBRARY.default;
 
   return (
     <Link href={tool.href} className="block group">
