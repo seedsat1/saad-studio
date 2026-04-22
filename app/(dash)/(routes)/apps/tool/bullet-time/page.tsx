@@ -845,8 +845,8 @@ export default function BulletTimeStudioPage() {
   }
 
   return (
-    <section className={`min-h-[calc(100vh-64px)] w-full ${theme.page} px-2 py-2 md:px-3`}>
-      <div className="mx-auto flex max-w-[1920px] flex-col gap-3">
+    <section className={`min-h-[calc(100vh-64px)] w-full ${theme.page} px-1 py-1 md:px-1.5`}>
+      <div className="flex w-full flex-col gap-2">
         <header className={`rounded-xl border p-3 backdrop-blur ${theme.panel}`}>
           <div className="flex items-center justify-between gap-3">
             <div>
