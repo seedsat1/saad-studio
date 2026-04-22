@@ -1,20 +1,19 @@
 ﻿"use client";
 
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import {
   Camera,
   Clapperboard,
   Film,
   Gauge,
-  Layers,
   Lightbulb,
   Loader2,
   Mic2,
   MonitorPlay,
-  SlidersHorizontal,
+  Pause,
+  Play,
   Sparkles,
   Timer,
-  Wand2,
   Waves,
 } from "lucide-react";
 
@@ -49,12 +48,6 @@ interface StudioState {
     scene: { running: number; completedToday: number };
     audio: { running: number; completedToday: number };
     image: { running: number; completedToday: number };
-  };
-  modelRouting: {
-    script: string;
-    images: string;
-    video: string;
-    voice: string;
   };
 }
 
@@ -150,6 +143,18 @@ const IMAGE_MODELS = [
   { value: "nano-banana-2", label: "Nano Banana 2" },
 ];
 
+const GENERATION_MODES = [
+  { value: "single", label: "Single Shot" },
+  { value: "multi", label: "Multi-shot" },
+] as const;
+
+const DURATION_OPTIONS = [5, 8, 10, 15] as const;
+const ASPECT_RATIO_OPTIONS = ["16:9", "9:16", "1:1", "4:3", "21:9"] as const;
+const QUALITY_OPTIONS = [
+  { value: "std", label: "Standard" },
+  { value: "pro", label: "Pro" },
+] as const;
+
 const FALLBACK_STATE: StudioState = {
   projectName: "Bullet Time Studio",
   credits: 0,
@@ -160,16 +165,19 @@ const FALLBACK_STATE: StudioState = {
     audio: { running: 0, completedToday: 0 },
     image: { running: 0, completedToday: 0 },
   },
-  modelRouting: {
-    script: "GPT-5.4 / GPT-5.4-mini",
-    images: "Nano Banana + Nano Banana Edit",
-    video: "Kling 3 + Seedance 2",
-    voice: "eleven_v3 + PVC",
-  },
 };
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 }
 
 async function parseError(res: Response): Promise<string> {
@@ -191,24 +199,51 @@ export default function BulletTimeStudioPage() {
 
   const [state, setState] = useState<StudioState>(FALLBACK_STATE);
   const [prompt, setPrompt] = useState("A dramatic cinematic shot of a reporter walking through a rainy neon street at night.");
+  const [multiShotText, setMultiShotText] = useState("Wide establishing shot - 4\nMedium tracking shot with character movement - 4");
   const [voiceText, setVoiceText] = useState("Breaking news update from Saad Studio. Live broadcast begins now.");
   const [videoRoute, setVideoRoute] = useState(VIDEO_ROUTES[0].value);
   const [imageModel, setImageModel] = useState(IMAGE_MODELS[0].value);
+  const [generationMode, setGenerationMode] = useState<(typeof GENERATION_MODES)[number]["value"]>("single");
+  const [duration, setDuration] = useState<(typeof DURATION_OPTIONS)[number]>(5);
+  const [aspectRatio, setAspectRatio] = useState<(typeof ASPECT_RATIO_OPTIONS)[number]>("16:9");
+  const [quality, setQuality] = useState<(typeof QUALITY_OPTIONS)[number]["value"]>("pro");
 
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [musicUrl, setMusicUrl] = useState<string | null>(null);
+  const [sfxUrl, setSfxUrl] = useState<string | null>(null);
+  const [clonedVoiceUrl, setClonedVoiceUrl] = useState<string | null>(null);
 
   const [videoLoading, setVideoLoading] = useState(false);
   const [imageLoading, setImageLoading] = useState(false);
   const [audioLoading, setAudioLoading] = useState(false);
+  const [musicLoading, setMusicLoading] = useState(false);
+  const [sfxLoading, setSfxLoading] = useState(false);
+  const [cloneLoading, setCloneLoading] = useState(false);
   const [error, setError] = useState<string>("");
   const [logs, setLogs] = useState<string[]>([]);
+  const [musicPrompt, setMusicPrompt] = useState("cinematic orchestral soundtrack, emotional, modern trailer");
+  const [sfxPrompt, setSfxPrompt] = useState("heavy whoosh transition and cinematic impact hit");
+  const [cloneName, setCloneName] = useState("Studio Voice Clone");
+  const [cloneSampleDataUrl, setCloneSampleDataUrl] = useState<string>("");
+  const [cloneSampleName, setCloneSampleName] = useState<string>("");
+  const [mixPlaying, setMixPlaying] = useState(false);
+
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const voiceRef = useRef<HTMLAudioElement | null>(null);
+  const clonedVoiceRef = useRef<HTMLAudioElement | null>(null);
+  const musicRef = useRef<HTMLAudioElement | null>(null);
+  const sfxRef = useRef<HTMLAudioElement | null>(null);
 
   const theme = STUDIO_THEMES[themeKey];
   const selectedScene = useMemo(
     () => SCENES.find((scene) => scene.id === selectedSceneId) ?? SCENES[0],
     [selectedSceneId]
+  );
+  const isKlingRoute = useMemo(
+    () => videoRoute === "kwaivgi/kling-v3.0-pro/text-to-video",
+    [videoRoute]
   );
 
   const pushLog = useCallback((line: string) => {
@@ -240,6 +275,18 @@ export default function BulletTimeStudioPage() {
     setError("");
     try {
       pushLog(`Submitting video generation with ${videoRoute}`);
+      if (generationMode === "multi" && !isKlingRoute) {
+        throw new Error("Multi-shot is available with Kling 3 Pro only. Switch the video model to Kling.");
+      }
+      const multiPrompt =
+        generationMode === "multi"
+          ? multiShotText
+              .split("\n")
+              .map((line) => line.trim())
+              .filter(Boolean)
+              .map((line) => ({ prompt: line, duration: Math.max(1, Math.min(12, Math.floor(duration / 2) || 4)) }))
+              .slice(0, 8)
+          : [];
       const res = await fetch("/api/video", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -247,8 +294,12 @@ export default function BulletTimeStudioPage() {
           modelRoute: videoRoute,
           payload: {
             prompt: prompt.trim(),
-            duration: 5,
-            aspect_ratio: "16:9",
+            duration,
+            aspect_ratio: aspectRatio,
+            mode: quality,
+            resolution: quality === "pro" ? "1080p" : "720p",
+            multi_shots: generationMode === "multi",
+            multi_prompt: multiPrompt,
           },
         }),
       });
@@ -311,8 +362,9 @@ export default function BulletTimeStudioPage() {
         body: JSON.stringify({
           prompt: prompt.trim(),
           modelId: imageModel,
-          aspectRatio: "16:9",
+          aspectRatio: aspectRatio,
           numImages: 1,
+          quality,
         }),
       });
       if (!res.ok) {
@@ -368,9 +420,143 @@ export default function BulletTimeStudioPage() {
     }
   }
 
+  async function generateMusic() {
+    if (!musicPrompt.trim() || musicLoading) return;
+    setMusicLoading(true);
+    setError("");
+    try {
+      pushLog("Submitting background music generation");
+      const res = await fetch("/api/generate/audio", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          actionType: "music",
+          prompt: musicPrompt.trim(),
+          model: "elevenlabs/music",
+          musicDuration: Math.max(5, duration),
+          force_instrumental: true,
+          output_format: "mp3_standard",
+        }),
+      });
+      if (!res.ok) {
+        throw new Error(await parseError(res));
+      }
+      const json = (await res.json()) as { audioUrl?: string };
+      if (!json.audioUrl) throw new Error("Music URL missing.");
+      setMusicUrl(json.audioUrl);
+      pushLog("Music generated successfully.");
+      await refreshState();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Music generation failed.";
+      setError(msg);
+      pushLog(`Music error: ${msg}`);
+    } finally {
+      setMusicLoading(false);
+    }
+  }
+
+  async function generateSfx() {
+    if (!sfxPrompt.trim() || sfxLoading) return;
+    setSfxLoading(true);
+    setError("");
+    try {
+      pushLog("Submitting SFX generation");
+      const res = await fetch("/api/generate/audio", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          actionType: "music",
+          prompt: `sound effect only: ${sfxPrompt.trim()}`,
+          model: "elevenlabs/music",
+          musicDuration: 5,
+          force_instrumental: true,
+          output_format: "mp3_standard",
+        }),
+      });
+      if (!res.ok) {
+        throw new Error(await parseError(res));
+      }
+      const json = (await res.json()) as { audioUrl?: string };
+      if (!json.audioUrl) throw new Error("SFX URL missing.");
+      setSfxUrl(json.audioUrl);
+      pushLog("SFX generated successfully.");
+      await refreshState();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "SFX generation failed.";
+      setError(msg);
+      pushLog(`SFX error: ${msg}`);
+    } finally {
+      setSfxLoading(false);
+    }
+  }
+
+  async function onCloneSampleChange(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const dataUrl = await readFileAsDataUrl(file);
+    setCloneSampleDataUrl(dataUrl);
+    setCloneSampleName(file.name);
+  }
+
+  async function generateVoiceClone() {
+    if (!cloneSampleDataUrl || !voiceText.trim() || cloneLoading) return;
+    setCloneLoading(true);
+    setError("");
+    try {
+      pushLog("Submitting voice cloning task");
+      const res = await fetch("/api/generate/audio", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          actionType: "voice-cloning",
+          cloneName: cloneName.trim() || "Studio Voice Clone",
+          sampleAudioUrls: [cloneSampleDataUrl],
+          text: voiceText.trim(),
+        }),
+      });
+      if (!res.ok) {
+        throw new Error(await parseError(res));
+      }
+      const json = (await res.json()) as { audioUrl?: string };
+      if (!json.audioUrl) throw new Error("Cloned voice URL missing.");
+      setClonedVoiceUrl(json.audioUrl);
+      pushLog("Voice cloning generated successfully.");
+      await refreshState();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Voice cloning failed.";
+      setError(msg);
+      pushLog(`Voice cloning error: ${msg}`);
+    } finally {
+      setCloneLoading(false);
+    }
+  }
+
+  function playMix() {
+    const media = [videoRef.current, voiceRef.current, clonedVoiceRef.current, musicRef.current, sfxRef.current].filter(
+      (item): item is HTMLMediaElement => Boolean(item)
+    );
+    if (media.length === 0) return;
+    media.forEach((m) => {
+      m.currentTime = 0;
+      void m.play().catch(() => null);
+    });
+    setMixPlaying(true);
+    pushLog("Preview mix playback started.");
+  }
+
+  function pauseMix() {
+    const media = [videoRef.current, voiceRef.current, clonedVoiceRef.current, musicRef.current, sfxRef.current].filter(
+      (item): item is HTMLMediaElement => Boolean(item)
+    );
+    if (media.length === 0) return;
+    media.forEach((m) => m.pause());
+    setMixPlaying(false);
+    pushLog("Preview mix playback paused.");
+  }
+
   return (
-    <section className={`min-h-[calc(100vh-64px)] w-full ${theme.page} px-2 py-3 md:px-4 md:py-4`}>
-      <div className="flex w-full min-w-0 flex-col gap-4">
+    <section className={`min-h-[calc(100vh-64px)] w-full ${theme.page} px-2 py-3 md:px-4 md:py-4 xl:h-[calc(100vh-64px)] xl:overflow-hidden`}>
+      <div className="flex w-full min-w-0 flex-col gap-4 xl:h-full xl:overflow-hidden">
         <header className={`rounded-2xl border p-4 backdrop-blur ${theme.panel}`}>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
@@ -408,8 +594,8 @@ export default function BulletTimeStudioPage() {
           </div>
         </header>
 
-        <div className="grid gap-4 xl:grid-cols-[300px_minmax(0,1fr)_360px]">
-          <aside className={`rounded-2xl border p-3 backdrop-blur ${theme.panel}`}>
+        <div className="grid gap-4 xl:min-h-0 xl:flex-1 xl:grid-cols-[300px_minmax(0,1fr)_360px]">
+          <aside className={`rounded-2xl border p-3 backdrop-blur xl:min-h-0 xl:overflow-y-auto ${theme.panel}`}>
             <div className="mb-3 flex items-center justify-between">
               <h2 className="text-sm font-semibold text-white">Scene Timeline</h2>
               <span className={`rounded-full border px-2 py-1 text-[10px] ${theme.badge}`}>{SCENES.length} scenes</span>
@@ -436,7 +622,7 @@ export default function BulletTimeStudioPage() {
             </div>
           </aside>
 
-          <main className="space-y-4">
+          <main className="space-y-4 xl:min-h-0 xl:overflow-y-auto xl:pr-1">
             <section className={`rounded-2xl border p-3 backdrop-blur ${theme.panel}`}>
               <div className="mb-3 flex items-center justify-between">
                 <div>
@@ -452,8 +638,8 @@ export default function BulletTimeStudioPage() {
                 </button>
               </div>
 
-              <div className="mb-3 grid gap-2 md:grid-cols-4">
-                <div className="md:col-span-3">
+              <div className="mb-3 grid gap-2 md:grid-cols-8">
+                <div className="md:col-span-4">
                   <textarea
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
@@ -462,7 +648,7 @@ export default function BulletTimeStudioPage() {
                     placeholder="Describe your cinematic scene..."
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-2 md:col-span-2">
                   <select
                     value={videoRoute}
                     onChange={(e) => setVideoRoute(e.target.value)}
@@ -474,19 +660,84 @@ export default function BulletTimeStudioPage() {
                       </option>
                     ))}
                   </select>
-                  <button
-                    onClick={generateImage}
-                    disabled={imageLoading || !prompt.trim()}
-                    className="w-full rounded-lg border border-white/15 bg-white/10 px-2 py-2 text-xs text-white disabled:opacity-50"
+                  <select
+                    value={generationMode}
+                    onChange={(e) => setGenerationMode(e.target.value as (typeof GENERATION_MODES)[number]["value"])}
+                    className="w-full rounded-lg border border-white/15 bg-black/35 px-2 py-2 text-xs text-white"
                   >
-                    {imageLoading ? "Generating Image..." : "Generate Storyboard Image"}
-                  </button>
+                    {GENERATION_MODES.map((mode) => (
+                      <option key={mode.value} value={mode.value} className="bg-slate-900">
+                        {mode.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-2 md:col-span-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <select
+                      value={duration}
+                      onChange={(e) => setDuration(Number(e.target.value) as (typeof DURATION_OPTIONS)[number])}
+                      className="w-full rounded-lg border border-white/15 bg-black/35 px-2 py-2 text-xs text-white"
+                    >
+                      {DURATION_OPTIONS.map((d) => (
+                        <option key={d} value={d} className="bg-slate-900">
+                          {d}s
+                        </option>
+                      ))}
+                    </select>
+                    <select
+                      value={aspectRatio}
+                      onChange={(e) => setAspectRatio(e.target.value as (typeof ASPECT_RATIO_OPTIONS)[number])}
+                      className="w-full rounded-lg border border-white/15 bg-black/35 px-2 py-2 text-xs text-white"
+                    >
+                      {ASPECT_RATIO_OPTIONS.map((ratio) => (
+                        <option key={ratio} value={ratio} className="bg-slate-900">
+                          {ratio}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <select
+                      value={quality}
+                      onChange={(e) => setQuality(e.target.value as (typeof QUALITY_OPTIONS)[number]["value"])}
+                      className="w-full rounded-lg border border-white/15 bg-black/35 px-2 py-2 text-xs text-white"
+                    >
+                      {QUALITY_OPTIONS.map((q) => (
+                        <option key={q.value} value={q.value} className="bg-slate-900">
+                          {q.label}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      onClick={generateImage}
+                      disabled={imageLoading || !prompt.trim()}
+                      className="w-full rounded-lg border border-white/15 bg-white/10 px-2 py-2 text-xs text-white disabled:opacity-50"
+                    >
+                      {imageLoading ? "Generating..." : "Image"}
+                    </button>
+                  </div>
                 </div>
               </div>
+              {generationMode === "multi" && (
+                <div className="mb-3 rounded-xl border border-white/10 bg-black/20 p-2">
+                  <p className="mb-1 text-[11px] text-slate-300">Multi-shot prompts (one shot per line)</p>
+                  <textarea
+                    value={multiShotText}
+                    onChange={(e) => setMultiShotText(e.target.value)}
+                    rows={3}
+                    className="w-full rounded-lg border border-white/15 bg-black/35 px-3 py-2 text-xs text-white outline-none focus:border-cyan-300/45"
+                    placeholder={"Wide establishing shot - 4\nTracking shot through corridor - 4"}
+                  />
+                  {!isKlingRoute && (
+                    <p className="mt-1 text-[11px] text-amber-300">Multi-shot works with Kling 3 Pro only.</p>
+                  )}
+                </div>
+              )}
 
               <div className="aspect-video rounded-xl border border-white/15 bg-gradient-to-br from-white/5 via-black/30 to-black/70 p-3">
                 {videoUrl ? (
-                  <video src={videoUrl} controls className="h-full w-full rounded-lg object-cover" />
+                  <video ref={videoRef} src={videoUrl} controls className="h-full w-full rounded-lg object-cover" />
                 ) : (
                   <div className="flex h-full flex-col justify-between rounded-lg border border-dashed border-white/20 p-3">
                     <div className="flex items-center gap-2 text-xs text-slate-200">
@@ -549,9 +800,129 @@ export default function BulletTimeStudioPage() {
                 </button>
               ))}
             </section>
+
+            <section className={`rounded-2xl border p-3 backdrop-blur ${theme.panel}`}>
+              <div className="mb-3 flex items-center justify-between">
+                <h2 className="text-sm font-semibold text-white">Audio Workbench</h2>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={playMix}
+                    className="inline-flex items-center gap-1 rounded-lg border border-white/20 bg-white/10 px-3 py-1.5 text-xs text-white"
+                  >
+                    <Play className="h-3.5 w-3.5" />
+                    Play Mix
+                  </button>
+                  <button
+                    onClick={pauseMix}
+                    className="inline-flex items-center gap-1 rounded-lg border border-white/20 bg-white/10 px-3 py-1.5 text-xs text-white"
+                  >
+                    <Pause className="h-3.5 w-3.5" />
+                    Pause
+                  </button>
+                </div>
+              </div>
+              <div className="grid gap-3 md:grid-cols-3">
+                <div className="rounded-lg border border-white/10 bg-black/25 p-2">
+                  <p className="mb-2 text-xs text-slate-300">Voice / Narration</p>
+                  <textarea
+                    value={voiceText}
+                    onChange={(e) => setVoiceText(e.target.value)}
+                    rows={3}
+                    className="w-full rounded-md border border-white/15 bg-black/35 px-2 py-2 text-xs text-white"
+                  />
+                  <button onClick={generateVoice} disabled={audioLoading || !voiceText.trim()} className="mt-2 w-full rounded-md border border-white/15 bg-white/10 px-2 py-2 text-xs text-white disabled:opacity-50">
+                    {audioLoading ? "Generating..." : "Generate Voice"}
+                  </button>
+                  {audioUrl && <audio ref={voiceRef} src={audioUrl} controls className="mt-2 w-full" />}
+                </div>
+
+                <div className="rounded-lg border border-white/10 bg-black/25 p-2">
+                  <p className="mb-2 text-xs text-slate-300">Voice Cloning</p>
+                  <input
+                    value={cloneName}
+                    onChange={(e) => setCloneName(e.target.value)}
+                    className="mb-2 w-full rounded-md border border-white/15 bg-black/35 px-2 py-2 text-xs text-white"
+                    placeholder="Clone name"
+                  />
+                  <label className="mb-2 block rounded-md border border-dashed border-white/20 bg-black/35 px-2 py-2 text-xs text-slate-200">
+                    <span className="block">{cloneSampleName || "Upload sample voice (mp3/wav/m4a)"}</span>
+                    <input type="file" accept="audio/*" className="mt-1 w-full text-xs" onChange={onCloneSampleChange} />
+                  </label>
+                  <button onClick={generateVoiceClone} disabled={cloneLoading || !cloneSampleDataUrl || !voiceText.trim()} className="w-full rounded-md border border-white/15 bg-white/10 px-2 py-2 text-xs text-white disabled:opacity-50">
+                    {cloneLoading ? "Cloning..." : "Clone + Generate"}
+                  </button>
+                  {clonedVoiceUrl && <audio ref={clonedVoiceRef} src={clonedVoiceUrl} controls className="mt-2 w-full" />}
+                </div>
+
+                <div className="rounded-lg border border-white/10 bg-black/25 p-2">
+                  <p className="mb-2 text-xs text-slate-300">Music + SFX</p>
+                  <textarea
+                    value={musicPrompt}
+                    onChange={(e) => setMusicPrompt(e.target.value)}
+                    rows={2}
+                    className="mb-2 w-full rounded-md border border-white/15 bg-black/35 px-2 py-2 text-xs text-white"
+                    placeholder="Background music prompt"
+                  />
+                  <button onClick={generateMusic} disabled={musicLoading || !musicPrompt.trim()} className="mb-2 w-full rounded-md border border-white/15 bg-white/10 px-2 py-2 text-xs text-white disabled:opacity-50">
+                    {musicLoading ? "Generating Music..." : "Generate Music"}
+                  </button>
+                  <textarea
+                    value={sfxPrompt}
+                    onChange={(e) => setSfxPrompt(e.target.value)}
+                    rows={2}
+                    className="mb-2 w-full rounded-md border border-white/15 bg-black/35 px-2 py-2 text-xs text-white"
+                    placeholder="SFX prompt"
+                  />
+                  <button onClick={generateSfx} disabled={sfxLoading || !sfxPrompt.trim()} className="w-full rounded-md border border-white/15 bg-white/10 px-2 py-2 text-xs text-white disabled:opacity-50">
+                    {sfxLoading ? "Generating SFX..." : "Generate SFX"}
+                  </button>
+                  {musicUrl && <audio ref={musicRef} src={musicUrl} controls className="mt-2 w-full" />}
+                  {sfxUrl && <audio ref={sfxRef} src={sfxUrl} controls className="mt-2 w-full" />}
+                </div>
+              </div>
+              <p className="mt-2 text-[11px] text-slate-300">
+                Mix Preview runs video + selected voice + music + sfx together inside this workspace.
+                {mixPlaying ? " (Playing now)" : ""}
+              </p>
+            </section>
+
+            <section className={`rounded-2xl border p-3 backdrop-blur ${theme.panel}`}>
+              <div className="mb-2 flex items-center justify-between">
+                <h2 className="text-sm font-semibold text-white">Job Console</h2>
+                <span className={`rounded-md border px-2 py-1 text-[10px] ${theme.badge}`}>Live Mode</span>
+              </div>
+              <div className="grid gap-3 md:grid-cols-4">
+                {[
+                  [Clapperboard, "Scene Jobs", `${state.jobs.scene.running} running • ${state.jobs.scene.completedToday} done today`],
+                  [Mic2, "Audio Jobs", `${state.jobs.audio.running} running • ${state.jobs.audio.completedToday} done today`],
+                  [Sparkles, "Image Jobs", `${state.jobs.image.running} running • ${state.jobs.image.completedToday} done today`],
+                  [Gauge, "Render", state.renderQueue > 0 ? `${state.renderQueue} jobs in queue` : "idle"],
+                ].map(([Icon, label, stat]) => (
+                  <div key={label as string} className="rounded-lg border border-white/10 bg-white/5 p-2">
+                    <div className="flex items-center gap-2 text-white">
+                      <Icon className={`h-4 w-4 ${theme.accent}`} />
+                      <span className="text-xs font-medium">{label as string}</span>
+                    </div>
+                    <p className={`mt-1 text-xs ${theme.textMute}`}>{stat as string}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-3 space-y-1 rounded-xl border border-white/10 bg-black/30 p-2">
+                {logs.length === 0 ? (
+                  <p className={`text-xs ${theme.textMute}`}>No runtime logs yet. Start by generating video, image, or voice.</p>
+                ) : (
+                  logs.map((log) => (
+                    <p key={log} className={`text-xs ${theme.textMute}`}>
+                      <Timer className="mr-1 inline h-3 w-3" />
+                      {log}
+                    </p>
+                  ))
+                )}
+              </div>
+            </section>
           </main>
 
-          <aside className={`rounded-2xl border p-3 backdrop-blur ${theme.panel}`}>
+          <aside className={`rounded-2xl border p-3 backdrop-blur xl:min-h-0 xl:overflow-y-auto ${theme.panel}`}>
             <h2 className="text-sm font-semibold text-white">Inspector Mega Tabs</h2>
             <div className="mt-3 grid grid-cols-2 gap-2">
               {INSPECTOR_TABS.map((tab) => (
@@ -634,51 +1005,6 @@ export default function BulletTimeStudioPage() {
             </div>
           </aside>
         </div>
-
-        <section className={`rounded-2xl border p-3 backdrop-blur ${theme.panel}`}>
-          <div className="mb-2 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-white">Job Console</h2>
-            <span className={`rounded-md border px-2 py-1 text-[10px] ${theme.badge}`}>Live Mode</span>
-          </div>
-          <div className="grid gap-3 md:grid-cols-4">
-            {[
-              [Clapperboard, "Scene Jobs", `${state.jobs.scene.running} running • ${state.jobs.scene.completedToday} done today`],
-              [Mic2, "Audio Jobs", `${state.jobs.audio.running} running • ${state.jobs.audio.completedToday} done today`],
-              [Sparkles, "Image Jobs", `${state.jobs.image.running} running • ${state.jobs.image.completedToday} done today`],
-              [Gauge, "Render", state.renderQueue > 0 ? `${state.renderQueue} jobs in queue` : "idle"],
-            ].map(([Icon, label, stat]) => (
-              <div key={label as string} className="rounded-lg border border-white/10 bg-white/5 p-2">
-                <div className="flex items-center gap-2 text-white">
-                  <Icon className={`h-4 w-4 ${theme.accent}`} />
-                  <span className="text-xs font-medium">{label as string}</span>
-                </div>
-                <p className={`mt-1 text-xs ${theme.textMute}`}>{stat as string}</p>
-              </div>
-            ))}
-          </div>
-          <div className="mt-3 space-y-1 rounded-xl border border-white/10 bg-black/30 p-2">
-            {logs.length === 0 ? (
-              <p className={`text-xs ${theme.textMute}`}>No runtime logs yet. Start by generating video, image, or voice.</p>
-            ) : (
-              logs.map((log) => (
-                <p key={log} className={`text-xs ${theme.textMute}`}>
-                  <Timer className="mr-1 inline h-3 w-3" />
-                  {log}
-                </p>
-              ))
-            )}
-          </div>
-        </section>
-
-        <section className={`rounded-2xl border p-3 ${theme.panel}`}>
-          <h2 className="text-sm font-semibold text-white">Model Routing Used In This Page</h2>
-          <div className="mt-3 grid gap-2 text-xs md:grid-cols-2 xl:grid-cols-4">
-            <RoutePill icon={<Wand2 className="h-3.5 w-3.5" />} label="Script + QA" value={state.modelRouting.script} />
-            <RoutePill icon={<Layers className="h-3.5 w-3.5" />} label="Images" value={state.modelRouting.images} />
-            <RoutePill icon={<Film className="h-3.5 w-3.5" />} label="Video" value={state.modelRouting.video} />
-            <RoutePill icon={<SlidersHorizontal className="h-3.5 w-3.5" />} label="Voice" value={state.modelRouting.voice} />
-          </div>
-        </section>
       </div>
     </section>
   );
@@ -689,18 +1015,6 @@ function Field({ label, value }: { label: string; value: string }) {
     <div className="rounded-md border border-white/10 bg-white/5 px-2 py-1.5">
       <p className="text-[10px] uppercase tracking-wider text-white/60">{label}</p>
       <p className="text-xs text-white">{value}</p>
-    </div>
-  );
-}
-
-function RoutePill({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
-  return (
-    <div className="rounded-lg border border-white/10 bg-white/5 px-2 py-2 text-slate-100">
-      <p className="flex items-center gap-1 text-[11px] uppercase tracking-wider text-white/70">
-        {icon}
-        {label}
-      </p>
-      <p className="mt-1 text-xs">{value}</p>
     </div>
   );
 }
