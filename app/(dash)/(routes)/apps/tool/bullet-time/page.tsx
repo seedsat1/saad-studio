@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   Camera,
   Clapperboard,
@@ -8,6 +8,7 @@ import {
   Gauge,
   Layers,
   Lightbulb,
+  Loader2,
   Mic2,
   MonitorPlay,
   SlidersHorizontal,
@@ -37,6 +38,24 @@ interface Scene {
   status: "Draft" | "Queued" | "Ready";
   camera: string;
   transition: string;
+}
+
+interface StudioState {
+  projectName: string;
+  credits: number;
+  plan: string;
+  renderQueue: number;
+  jobs: {
+    scene: { running: number; completedToday: number };
+    audio: { running: number; completedToday: number };
+    image: { running: number; completedToday: number };
+  };
+  modelRouting: {
+    script: string;
+    images: string;
+    video: string;
+    voice: string;
+  };
 }
 
 const STUDIO_THEMES: Record<
@@ -119,12 +138,50 @@ const PRESETS = [
   "Trailer Mode",
 ];
 
-const JOB_LOGS = [
-  "Storyboard image: Imagen 4 Ultra -> success (2.8s)",
-  "Scene video: Kling 3 -> queued",
-  "Voice preview: eleven_v3 -> success (1.2s)",
-  "Transition pass: Match Cut optimizer -> ready",
+const VIDEO_ROUTES = [
+  { value: "kwaivgi/kling-v3.0-pro/text-to-video", label: "Kling 3 Pro" },
+  { value: "bytedance/seedance-v2/text-to-video", label: "Seedance 2" },
+  { value: "bytedance/seedance-v2/text-to-video-fast", label: "Seedance 2 Fast" },
 ];
+
+const IMAGE_MODELS = [
+  { value: "google/nano-banana", label: "Nano Banana" },
+  { value: "nano-banana-pro", label: "Nano Banana Pro" },
+  { value: "nano-banana-2", label: "Nano Banana 2" },
+];
+
+const FALLBACK_STATE: StudioState = {
+  projectName: "Bullet Time Studio",
+  credits: 0,
+  plan: "Free",
+  renderQueue: 0,
+  jobs: {
+    scene: { running: 0, completedToday: 0 },
+    audio: { running: 0, completedToday: 0 },
+    image: { running: 0, completedToday: 0 },
+  },
+  modelRouting: {
+    script: "GPT-5.4 / GPT-5.4-mini",
+    images: "Nano Banana + Nano Banana Edit",
+    video: "Kling 3 + Seedance 2",
+    voice: "eleven_v3 + PVC",
+  },
+};
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function parseError(res: Response): Promise<string> {
+  const raw = await res.text();
+  if (!raw) return `Request failed (${res.status})`;
+  try {
+    const json = JSON.parse(raw) as { error?: string; message?: string };
+    return json.error || json.message || raw;
+  } catch {
+    return raw;
+  }
+}
 
 export default function BulletTimeStudioPage() {
   const [themeKey, setThemeKey] = useState<StudioThemeKey>("darkSteel");
@@ -132,11 +189,184 @@ export default function BulletTimeStudioPage() {
   const [activeTab, setActiveTab] = useState<InspectorTab>("presets");
   const [selectedPreset, setSelectedPreset] = useState<string>(PRESETS[0]);
 
+  const [state, setState] = useState<StudioState>(FALLBACK_STATE);
+  const [prompt, setPrompt] = useState("A dramatic cinematic shot of a reporter walking through a rainy neon street at night.");
+  const [voiceText, setVoiceText] = useState("Breaking news update from Saad Studio. Live broadcast begins now.");
+  const [videoRoute, setVideoRoute] = useState(VIDEO_ROUTES[0].value);
+  const [imageModel, setImageModel] = useState(IMAGE_MODELS[0].value);
+
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+
+  const [videoLoading, setVideoLoading] = useState(false);
+  const [imageLoading, setImageLoading] = useState(false);
+  const [audioLoading, setAudioLoading] = useState(false);
+  const [error, setError] = useState<string>("");
+  const [logs, setLogs] = useState<string[]>([]);
+
   const theme = STUDIO_THEMES[themeKey];
   const selectedScene = useMemo(
     () => SCENES.find((scene) => scene.id === selectedSceneId) ?? SCENES[0],
     [selectedSceneId]
   );
+
+  const pushLog = useCallback((line: string) => {
+    setLogs((prev) => [`${new Date().toLocaleTimeString()} - ${line}`, ...prev].slice(0, 8));
+  }, []);
+
+  const refreshState = useCallback(async () => {
+    try {
+      const res = await fetch("/api/apps/tool/bullet-time/state", { cache: "no-store" });
+      if (!res.ok) return;
+      const json = (await res.json()) as StudioState;
+      setState(json);
+    } catch {
+      // keep fallback state
+    }
+  }, []);
+
+  useEffect(() => {
+    void refreshState();
+    const interval = setInterval(() => {
+      void refreshState();
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [refreshState]);
+
+  async function generateVideo() {
+    if (!prompt.trim() || videoLoading) return;
+    setVideoLoading(true);
+    setError("");
+    try {
+      pushLog(`Submitting video generation with ${videoRoute}`);
+      const res = await fetch("/api/video", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          modelRoute: videoRoute,
+          payload: {
+            prompt: prompt.trim(),
+            duration: 5,
+            aspect_ratio: "16:9",
+          },
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error(await parseError(res));
+      }
+
+      const json = (await res.json()) as { taskId?: string; videoUrl?: string; outputs?: string[] };
+      if (json.videoUrl) {
+        setVideoUrl(json.videoUrl);
+        pushLog("Video completed instantly.");
+        await refreshState();
+        return;
+      }
+
+      if (!json.taskId) {
+        throw new Error("Video taskId missing.");
+      }
+
+      for (let attempt = 0; attempt < 100; attempt++) {
+        await sleep(3000);
+        const pollRes = await fetch(`/api/video?taskId=${encodeURIComponent(json.taskId)}`, { cache: "no-store" });
+        if (!pollRes.ok) {
+          throw new Error(await parseError(pollRes));
+        }
+        const poll = (await pollRes.json()) as { status?: string; outputs?: string[]; error?: string };
+        if (poll.status === "completed") {
+          const url = poll.outputs?.[0];
+          if (!url) throw new Error("Video completed without URL.");
+          setVideoUrl(url);
+          pushLog("Video generated successfully.");
+          await refreshState();
+          return;
+        }
+        if (poll.status === "failed") {
+          throw new Error(poll.error || "Video generation failed.");
+        }
+      }
+
+      throw new Error("Video generation timed out.");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Video generation failed.";
+      setError(msg);
+      pushLog(`Video error: ${msg}`);
+    } finally {
+      setVideoLoading(false);
+    }
+  }
+
+  async function generateImage() {
+    if (!prompt.trim() || imageLoading) return;
+    setImageLoading(true);
+    setError("");
+    try {
+      pushLog(`Submitting image generation with ${imageModel}`);
+      const res = await fetch("/api/generate/image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: prompt.trim(),
+          modelId: imageModel,
+          aspectRatio: "16:9",
+          numImages: 1,
+        }),
+      });
+      if (!res.ok) {
+        throw new Error(await parseError(res));
+      }
+      const json = (await res.json()) as { imageUrls?: string[] };
+      const url = json.imageUrls?.[0];
+      if (!url) throw new Error("Image URL missing.");
+      setImageUrl(url);
+      pushLog("Image generated successfully.");
+      await refreshState();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Image generation failed.";
+      setError(msg);
+      pushLog(`Image error: ${msg}`);
+    } finally {
+      setImageLoading(false);
+    }
+  }
+
+  async function generateVoice() {
+    if (!voiceText.trim() || audioLoading) return;
+    setAudioLoading(true);
+    setError("");
+    try {
+      pushLog("Submitting TTS generation with eleven_v3");
+      const res = await fetch("/api/generate/audio", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          actionType: "tts",
+          text: voiceText.trim(),
+          voice: "Aria",
+          model: "elevenlabs/eleven-v3",
+          output_format: "mp3_44100_128",
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error(await parseError(res));
+      }
+      const json = (await res.json()) as { audioUrl?: string };
+      if (!json.audioUrl) throw new Error("Audio URL missing.");
+      setAudioUrl(json.audioUrl);
+      pushLog("TTS generated successfully.");
+      await refreshState();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Audio generation failed.";
+      setError(msg);
+      pushLog(`Audio error: ${msg}`);
+    } finally {
+      setAudioLoading(false);
+    }
+  }
 
   return (
     <section className={`min-h-[calc(100vh-64px)] ${theme.page} p-4 md:p-6`}>
@@ -165,10 +395,10 @@ export default function BulletTimeStudioPage() {
           </div>
           <div className="mt-4 grid gap-3 md:grid-cols-4">
             {[
-              ["Project", "Project Hydra"],
-              ["Credits", "1,870 remaining"],
-              ["Render Queue", "2 active jobs"],
-              ["Plan", "Director Pro"],
+              ["Project", state.projectName],
+              ["Credits", `${state.credits.toLocaleString()} remaining`],
+              ["Render Queue", `${state.renderQueue} active jobs`],
+              ["Plan", state.plan],
             ].map(([label, value]) => (
               <div key={label} className={`rounded-xl border px-3 py-2 ${theme.soft}`}>
                 <p className={`text-[11px] uppercase tracking-widest ${theme.textMute}`}>{label}</p>
@@ -213,31 +443,96 @@ export default function BulletTimeStudioPage() {
                   <p className={`text-[11px] uppercase tracking-[0.2em] ${theme.textMute}`}>Preview Stage</p>
                   <h3 className="text-lg font-semibold text-white">{selectedScene.title}</h3>
                 </div>
-                <button className={`rounded-lg bg-gradient-to-r px-4 py-2 text-sm font-medium text-white ${theme.button}`}>
-                  Generate Scene Video
+                <button
+                  onClick={generateVideo}
+                  disabled={videoLoading || !prompt.trim()}
+                  className={`rounded-lg bg-gradient-to-r px-4 py-2 text-sm font-medium text-white disabled:opacity-50 ${theme.button}`}
+                >
+                  {videoLoading ? <span className="inline-flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Generating...</span> : "Generate Scene Video"}
                 </button>
               </div>
-              <div className="aspect-video rounded-xl border border-white/15 bg-gradient-to-br from-white/5 via-black/30 to-black/70 p-3">
-                <div className="flex h-full flex-col justify-between rounded-lg border border-dashed border-white/20 p-3">
-                  <div className="flex items-center gap-2 text-xs text-slate-200">
-                    <MonitorPlay className="h-4 w-4" />
-                    Live Preview Canvas
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 text-xs md:grid-cols-4">
-                    {[
-                      ["Camera", selectedScene.camera],
-                      ["Lighting", "Low Key / Rim"],
-                      ["Motion", "Dolly In"],
-                      ["Transition", selectedScene.transition],
-                    ].map(([label, value]) => (
-                      <div key={label} className="rounded-md border border-white/10 bg-black/35 px-2 py-1 text-white/90">
-                        <p className="text-[10px] uppercase tracking-wider text-white/60">{label}</p>
-                        <p className="truncate">{value}</p>
-                      </div>
+
+              <div className="mb-3 grid gap-2 md:grid-cols-4">
+                <div className="md:col-span-3">
+                  <textarea
+                    value={prompt}
+                    onChange={(e) => setPrompt(e.target.value)}
+                    rows={3}
+                    className="w-full rounded-lg border border-white/15 bg-black/35 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300/45"
+                    placeholder="Describe your cinematic scene..."
+                  />
+                </div>
+                <div className="space-y-2">
+                  <select
+                    value={videoRoute}
+                    onChange={(e) => setVideoRoute(e.target.value)}
+                    className="w-full rounded-lg border border-white/15 bg-black/35 px-2 py-2 text-xs text-white"
+                  >
+                    {VIDEO_ROUTES.map((route) => (
+                      <option key={route.value} value={route.value} className="bg-slate-900">
+                        {route.label}
+                      </option>
                     ))}
-                  </div>
+                  </select>
+                  <button
+                    onClick={generateImage}
+                    disabled={imageLoading || !prompt.trim()}
+                    className="w-full rounded-lg border border-white/15 bg-white/10 px-2 py-2 text-xs text-white disabled:opacity-50"
+                  >
+                    {imageLoading ? "Generating Image..." : "Generate Storyboard Image"}
+                  </button>
                 </div>
               </div>
+
+              <div className="aspect-video rounded-xl border border-white/15 bg-gradient-to-br from-white/5 via-black/30 to-black/70 p-3">
+                {videoUrl ? (
+                  <video src={videoUrl} controls className="h-full w-full rounded-lg object-cover" />
+                ) : (
+                  <div className="flex h-full flex-col justify-between rounded-lg border border-dashed border-white/20 p-3">
+                    <div className="flex items-center gap-2 text-xs text-slate-200">
+                      <MonitorPlay className="h-4 w-4" />
+                      Live Preview Canvas
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-xs md:grid-cols-4">
+                      {[
+                        ["Camera", selectedScene.camera],
+                        ["Lighting", "Low Key / Rim"],
+                        ["Motion", "Dolly In"],
+                        ["Transition", selectedScene.transition],
+                      ].map(([label, value]) => (
+                        <div key={label} className="rounded-md border border-white/10 bg-black/35 px-2 py-1 text-white/90">
+                          <p className="text-[10px] uppercase tracking-wider text-white/60">{label}</p>
+                          <p className="truncate">{value}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {(imageUrl || audioUrl) && (
+                <div className="mt-3 grid gap-3 md:grid-cols-2">
+                  <div className="rounded-xl border border-white/10 bg-black/30 p-2">
+                    <p className="mb-2 text-xs text-slate-300">Latest Storyboard Image</p>
+                    {imageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={imageUrl} alt="Generated storyboard" className="w-full rounded-lg border border-white/10" />
+                    ) : (
+                      <p className="text-xs text-slate-400">No generated image yet.</p>
+                    )}
+                  </div>
+                  <div className="rounded-xl border border-white/10 bg-black/30 p-2">
+                    <p className="mb-2 text-xs text-slate-300">Latest Voice Preview</p>
+                    {audioUrl ? <audio src={audioUrl} controls className="w-full" /> : <p className="text-xs text-slate-400">No generated audio yet.</p>}
+                  </div>
+                </div>
+              )}
+
+              {error && (
+                <div className="mt-3 rounded-lg border border-red-400/30 bg-red-900/20 px-3 py-2 text-xs text-red-200">
+                  {error}
+                </div>
+              )}
             </section>
 
             <section className={`grid gap-3 rounded-2xl border p-3 md:grid-cols-4 ${theme.panel}`}>
@@ -247,11 +542,11 @@ export default function BulletTimeStudioPage() {
                 [Waves, "Motion Engine", "Dolly, Crane, Orbit, Handheld"],
                 [Film, "Transition Lab", "J/L Cut, Match Cut, Whip, Dissolve"],
               ].map(([Icon, title, desc]) => (
-                <article key={title as string} className="rounded-xl border border-white/10 bg-white/5 p-3">
+                <button key={title as string} onClick={() => setActiveTab(title === "Camera Lab" ? "camera" : title === "Lighting Matrix" ? "lighting" : title === "Motion Engine" ? "motion" : "transitions")} className="rounded-xl border border-white/10 bg-white/5 p-3 text-left">
                   <Icon className={`h-5 w-5 ${theme.accent}`} />
                   <h4 className="mt-2 text-sm font-semibold text-white">{title as string}</h4>
                   <p className={`mt-1 text-xs ${theme.textMute}`}>{desc as string}</p>
-                </article>
+                </button>
               ))}
             </section>
           </main>
@@ -290,35 +585,49 @@ export default function BulletTimeStudioPage() {
                 </div>
               )}
 
-              {activeTab === "camera" && (
+              {activeTab === "storyboard" && (
                 <div className="space-y-3 text-xs text-slate-100">
-                  <p className={theme.textMute}>Camera + Shot Controls</p>
-                  <Field label="Camera Body" value="ARRI Alexa LF" />
-                  <Field label="Lens" value="Anamorphic 50mm" />
-                  <Field label="Shot Type" value="Medium Close-Up" />
-                  <Field label="Frame Rate" value="24 fps" />
+                  <p className={theme.textMute}>Storyboard Generator (Live)</p>
+                  <select
+                    value={imageModel}
+                    onChange={(e) => setImageModel(e.target.value)}
+                    className="w-full rounded-lg border border-white/15 bg-black/35 px-2 py-2 text-xs text-white"
+                  >
+                    {IMAGE_MODELS.map((model) => (
+                      <option key={model.value} value={model.value} className="bg-slate-900">
+                        {model.label}
+                      </option>
+                    ))}
+                  </select>
+                  <button onClick={generateImage} disabled={imageLoading || !prompt.trim()} className="w-full rounded-lg border border-white/15 bg-white/10 px-2 py-2 text-xs text-white disabled:opacity-50">
+                    {imageLoading ? "Generating..." : "Generate Image Now"}
+                  </button>
                 </div>
               )}
 
               {activeTab === "voice" && (
                 <div className="space-y-3 text-xs text-slate-100">
-                  <p className={theme.textMute}>Voice + Clone Routing</p>
+                  <p className={theme.textMute}>Voice + Clone Routing (Live TTS)</p>
                   <Field label="TTS Model" value="eleven_v3" />
                   <Field label="Clone Model" value="ElevenLabs PVC" />
-                  <Field label="Narration Style" value="Cinematic Serious" />
-                  <label className="flex items-center gap-2 text-[11px] text-slate-200">
-                    <input type="checkbox" className="h-4 w-4" defaultChecked />
-                    Consent checkbox wired in UI
-                  </label>
+                  <textarea
+                    value={voiceText}
+                    onChange={(e) => setVoiceText(e.target.value)}
+                    rows={3}
+                    className="w-full rounded-lg border border-white/15 bg-black/35 px-2 py-2 text-xs text-white outline-none"
+                  />
+                  <button onClick={generateVoice} disabled={audioLoading || !voiceText.trim()} className="w-full rounded-lg border border-white/15 bg-white/10 px-2 py-2 text-xs text-white disabled:opacity-50">
+                    {audioLoading ? "Generating Voice..." : "Generate Voice Preview"}
+                  </button>
                 </div>
               )}
 
-              {activeTab !== "presets" && activeTab !== "camera" && activeTab !== "voice" && (
+              {activeTab !== "presets" && activeTab !== "storyboard" && activeTab !== "voice" && (
                 <div className="space-y-2 text-xs text-slate-100">
                   <p className={theme.textMute}>Active Module: {activeTab}</p>
                   <Field label="Primary Model" value="Kling 3" />
                   <Field label="Secondary Model" value="Seedance 2" />
-                  <Field label="Image Model" value="Imagen 4 Ultra / FLUX" />
+                  <Field label="Image Model" value="Nano Banana" />
                   <Field label="Script Model" value="GPT-5.4" />
                 </div>
               )}
@@ -329,14 +638,14 @@ export default function BulletTimeStudioPage() {
         <section className={`rounded-2xl border p-3 backdrop-blur ${theme.panel}`}>
           <div className="mb-2 flex items-center justify-between">
             <h2 className="text-sm font-semibold text-white">Job Console</h2>
-            <span className={`rounded-md border px-2 py-1 text-[10px] ${theme.badge}`}>Mock Mode Active</span>
+            <span className={`rounded-md border px-2 py-1 text-[10px] ${theme.badge}`}>Live Mode</span>
           </div>
           <div className="grid gap-3 md:grid-cols-4">
             {[
-              [Clapperboard, "Scene Jobs", "4 running"],
-              [Mic2, "Audio Jobs", "1 running"],
-              [Sparkles, "Image Jobs", "2 completed"],
-              [Gauge, "Render", "63% encoding"],
+              [Clapperboard, "Scene Jobs", `${state.jobs.scene.running} running • ${state.jobs.scene.completedToday} done today`],
+              [Mic2, "Audio Jobs", `${state.jobs.audio.running} running • ${state.jobs.audio.completedToday} done today`],
+              [Sparkles, "Image Jobs", `${state.jobs.image.running} running • ${state.jobs.image.completedToday} done today`],
+              [Gauge, "Render", state.renderQueue > 0 ? `${state.renderQueue} jobs in queue` : "idle"],
             ].map(([Icon, label, stat]) => (
               <div key={label as string} className="rounded-lg border border-white/10 bg-white/5 p-2">
                 <div className="flex items-center gap-2 text-white">
@@ -348,22 +657,26 @@ export default function BulletTimeStudioPage() {
             ))}
           </div>
           <div className="mt-3 space-y-1 rounded-xl border border-white/10 bg-black/30 p-2">
-            {JOB_LOGS.map((log) => (
-              <p key={log} className={`text-xs ${theme.textMute}`}>
-                <Timer className="mr-1 inline h-3 w-3" />
-                {log}
-              </p>
-            ))}
+            {logs.length === 0 ? (
+              <p className={`text-xs ${theme.textMute}`}>No runtime logs yet. Start by generating video, image, or voice.</p>
+            ) : (
+              logs.map((log) => (
+                <p key={log} className={`text-xs ${theme.textMute}`}>
+                  <Timer className="mr-1 inline h-3 w-3" />
+                  {log}
+                </p>
+              ))
+            )}
           </div>
         </section>
 
         <section className={`rounded-2xl border p-3 ${theme.panel}`}>
           <h2 className="text-sm font-semibold text-white">Model Routing Used In This Page</h2>
           <div className="mt-3 grid gap-2 text-xs md:grid-cols-2 xl:grid-cols-4">
-            <RoutePill icon={<Wand2 className="h-3.5 w-3.5" />} label="Script + QA" value="GPT-5.4 / GPT-5.4-mini" />
-            <RoutePill icon={<Layers className="h-3.5 w-3.5" />} label="Images" value="Imagen 4 Ultra + FLUX" />
-            <RoutePill icon={<Film className="h-3.5 w-3.5" />} label="Video" value="Kling 3 + Seedance 2" />
-            <RoutePill icon={<SlidersHorizontal className="h-3.5 w-3.5" />} label="Voice" value="eleven_v3 + PVC" />
+            <RoutePill icon={<Wand2 className="h-3.5 w-3.5" />} label="Script + QA" value={state.modelRouting.script} />
+            <RoutePill icon={<Layers className="h-3.5 w-3.5" />} label="Images" value={state.modelRouting.images} />
+            <RoutePill icon={<Film className="h-3.5 w-3.5" />} label="Video" value={state.modelRouting.video} />
+            <RoutePill icon={<SlidersHorizontal className="h-3.5 w-3.5" />} label="Voice" value={state.modelRouting.voice} />
           </div>
         </section>
       </div>
