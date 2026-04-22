@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { usePromoMedia } from "@/hooks/use-promo-media";
 import { usePromoContent } from "@/hooks/use-promo-content";
@@ -111,20 +110,33 @@ const TOOLS = [
   },
 ];
 
-const DEFAULT_CORE_IMAGE_BY_ID: Record<string, string> = {
-  "create-image": "/explore/tool-create-image.jpg",
-  "create-video": "/explore/tool-create-video.jpg",
-  "motion-control": "/explore/tool-motion-control.jpg",
-  "soul-2": "/explore/tool-soul-2.jpg",
-  "soul-id": "/explore/tool-soul-id.jpg",
-  upscale: "/explore/tool-upscale.jpg",
-  "edit-image": "/explore/tool-edit-image.jpg",
-  "edit-video": "/explore/tool-edit-video.jpg",
-  "mixed-media": "/explore/tool-mixed-media.jpg",
-  angles: "/explore/tool-angles-2.jpg",
+const CORE_VIDEOS = {
+  createImage: "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
+  createVideo: "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
+  motionControl: "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
+  magic: "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
+  soulId: "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
+  upscale: "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
+  editImage: "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
+  editVideo: "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
+  mixedMedia: "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
+  angles: "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
 };
 
-const isImageUrl = (url?: string) => Boolean(url && /\.(png|jpe?g|webp|avif|gif)(\?|$)/i.test(url));
+const DEFAULT_CORE_VIDEO_BY_ID: Record<string, string> = {
+  "create-image": CORE_VIDEOS.createImage,
+  "create-video": CORE_VIDEOS.createVideo,
+  "motion-control": CORE_VIDEOS.motionControl,
+  "soul-2": CORE_VIDEOS.magic,
+  "soul-id": CORE_VIDEOS.soulId,
+  upscale: CORE_VIDEOS.upscale,
+  "edit-image": CORE_VIDEOS.editImage,
+  "edit-video": CORE_VIDEOS.editVideo,
+  "mixed-media": CORE_VIDEOS.mixedMedia,
+  angles: CORE_VIDEOS.angles,
+};
+
+const isVideoUrl = (url?: string) => Boolean(url && /\.mp4(\?|$)/i.test(url));
 
 type LayoutBlock = {
   type?: string;
@@ -137,7 +149,13 @@ type LayoutBlock = {
 const CORE_SLOT_IDS = TOOLS.map((t) => `explore/tool-${t.id}`);
 
 export default function CoreToolsSection() {
-  const [tools, setTools] = useState(TOOLS);
+  const [tools, setTools] = useState(
+    TOOLS.map((tool) => ({
+      ...tool,
+      image: DEFAULT_CORE_VIDEO_BY_ID[tool.id] || tool.image,
+      isVideo: true,
+    })),
+  );
   const scrollRef = useRef<HTMLDivElement>(null);
   const promo = usePromoMedia();
   const promoContent = usePromoContent();
@@ -153,15 +171,16 @@ export default function CoreToolsSection() {
       const fallback = TOOLS.find((t) => t.id === ct.id);
       return {
         id: ct.id,
-        image: isImageUrl(ct.image)
+        image: isVideoUrl(ct.image)
           ? ct.image
-          : DEFAULT_CORE_IMAGE_BY_ID[ct.id] || fallback?.image || "/explore/tool-create-image.jpg",
+          : DEFAULT_CORE_VIDEO_BY_ID[ct.id] || fallback?.image || CORE_VIDEOS.createVideo,
         name: ct.name,
         desc: ct.desc,
         href: ct.href,
         badge: ct.badge || "",
         badgeColor: fallback?.badgeColor || "",
         glow: fallback?.glow || "rgba(139,92,246,0.3)",
+        isVideo: true,
       };
     }));
   }, [cms]);
@@ -172,8 +191,9 @@ export default function CoreToolsSection() {
       prev.map((t, i) => {
         let updated = { ...t };
         const custom = promo[CORE_SLOT_IDS[i]];
-        if (isImageUrl(custom?.url)) {
+        if (isVideoUrl(custom?.url)) {
           updated.image = custom!.url;
+          (updated as { isVideo?: boolean }).isVideo = true;
         }
         const text = promoContent[CORE_SLOT_IDS[i]];
         if (text) {
@@ -205,9 +225,10 @@ export default function CoreToolsSection() {
             if (!block) return item;
             return {
               ...item,
-              image: isImageUrl(block.mediaUrl) ? (block.mediaUrl as string) : item.image,
+              image: isVideoUrl(block.mediaUrl) ? (block.mediaUrl as string) : item.image,
               name: block.title || item.name,
               desc: block.subtitle || item.desc,
+              isVideo: isVideoUrl(block.mediaUrl) || Boolean(block.isVideo) || true,
             };
           }),
         );
@@ -304,11 +325,13 @@ export default function CoreToolsSection() {
                 whileTap={{ scale: 0.98 }}
               >
                 {/* Background image */}
-                <Image
-                  src={tool.image || DEFAULT_CORE_IMAGE_BY_ID[tool.id] || "/explore/tool-create-image.jpg"}
-                  alt={tool.name}
-                  fill
-                  sizes="(max-width: 768px) 50vw, 220px"
+                <video
+                  src={isVideoUrl(tool.image) ? tool.image : DEFAULT_CORE_VIDEO_BY_ID[tool.id] || CORE_VIDEOS.createVideo}
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  preload="metadata"
                   className="absolute inset-0 h-full w-full object-cover object-center"
                 />
 
