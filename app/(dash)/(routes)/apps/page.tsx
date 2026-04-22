@@ -47,6 +47,8 @@ interface AppsCmsData {
   categories: CmsAppsCategory[];
 }
 
+const isVideoUrl = (url?: string) => Boolean(url && /\.(mp4|webm|mov|ogg)([?#]|$)/i.test(url));
+
 export default function AppsPage() {
   const { hero } = usePageLayout("apps");
   const { data: cms } = useCmsData<AppsCmsData>("apps");
@@ -96,6 +98,8 @@ export default function AppsPage() {
   }, [cms]);
 
   const liveTotalTools = useMemo(() => liveCategories.reduce((s, c) => s + c.tools.length, 0), [liveCategories]);
+  const heroMediaUrl = hero?.mediaUrl;
+  const heroHasVideo = isVideoUrl(heroMediaUrl);
 
   const searchResults = useMemo<AppTool[]>(() => {
     if (!searchQuery) return [];
@@ -131,11 +135,11 @@ export default function AppsPage() {
 
         {/* ── PAGE HEADER ── */}
         <motion.div
-          className="text-center mb-10"
+          className="text-center mb-10 relative overflow-hidden"
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-          style={hero?.mediaUrl ? {
+          style={heroMediaUrl ? {
             backgroundImage: `linear-gradient(135deg, rgba(6,12,24,0.82), rgba(6,12,24,0.82)), url(${hero.mediaUrl})`,
             backgroundSize: "cover",
             backgroundPosition: "center",
@@ -144,6 +148,24 @@ export default function AppsPage() {
             padding: "28px 18px",
           } : undefined}
         >
+          {heroHasVideo && (
+            <video
+              src={heroMediaUrl}
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="metadata"
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+          )}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background: "linear-gradient(135deg, rgba(6,12,24,0.82), rgba(6,12,24,0.82))",
+            }}
+          />
+          <div className="relative z-10">
           <p
             className="text-[13px] font-medium uppercase tracking-[0.2em] mb-3"
             style={{ color: "#06b6d4" }}
@@ -177,6 +199,7 @@ export default function AppsPage() {
           {/* Search bar */}
           <div className="mt-8 max-w-xl mx-auto">
             <AppsSearchBar totalCount={liveTotalTools} onSearch={handleSearch} />
+          </div>
           </div>
         </motion.div>
 

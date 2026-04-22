@@ -10,8 +10,32 @@ interface AppToolCardProps {
   tool: AppTool;
 }
 
+const FALLBACK_TOOL_VIDEOS = [
+  "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+  "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
+  "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4",
+  "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4",
+  "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerScopes.mp4",
+  "https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+  "https://storage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
+  "https://storage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4",
+];
+
+const isVideoUrl = (url?: string) => Boolean(url && /\.(mp4|webm|mov|ogg)([?#]|$)/i.test(url));
+
+function fallbackVideoByToolId(toolId: string): string {
+  let hash = 0;
+  for (let i = 0; i < toolId.length; i += 1) hash = (hash * 31 + toolId.charCodeAt(i)) >>> 0;
+  return FALLBACK_TOOL_VIDEOS[hash % FALLBACK_TOOL_VIDEOS.length];
+}
+
 function AppToolCardInner({ tool }: AppToolCardProps) {
   const [isHovered, setIsHovered] = useState(false);
+  const mediaSrc = isVideoUrl(tool.previewVideo)
+    ? tool.previewVideo
+    : isVideoUrl(tool.previewImage)
+      ? tool.previewImage
+      : fallbackVideoByToolId(tool.id);
 
   return (
     <Link href={tool.href} className="block group">
@@ -47,15 +71,15 @@ function AppToolCardInner({ tool }: AppToolCardProps) {
             animate={{ filter: isHovered ? "brightness(1.15)" : "brightness(1)" }}
             transition={{ duration: 0.3 }}
           />
-          {tool.previewImage && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={tool.previewImage}
-              alt={tool.title}
-              className="absolute inset-0 w-full h-full object-cover"
-              loading="lazy"
-            />
-          )}
+          <video
+            src={mediaSrc}
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="metadata"
+            className="absolute inset-0 w-full h-full object-cover"
+          />
           {/* Subtle inner vignette */}
           <div
             className="absolute inset-0"
