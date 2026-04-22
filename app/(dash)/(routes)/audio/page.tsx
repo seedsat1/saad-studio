@@ -1189,6 +1189,20 @@ export default function AudioPage() {
     setter(file ? { file, name: file.name, sizeMB: formatBytes(file.size) } : null);
   };
 
+  useEffect(() => {
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+
+    // Keep Audio Studio fixed to viewport; only internal panes should scroll.
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousHtmlOverflow;
+    };
+  }, []);
+
   const renderWorkspace = () => {
     if (activeTool === "voice-generator") {
       return <PlayerBlock item={generated} playing={playing} setPlaying={setPlaying} progress={progress} setProgress={setProgress} />;
@@ -1696,7 +1710,7 @@ export default function AudioPage() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] overflow-hidden bg-[#060c18] text-[#e2e8f0]">
+    <div className="flex h-[calc(100vh-4rem)] overflow-hidden overscroll-none bg-[#060c18] text-[#e2e8f0]">
       <aside className="hidden w-[250px] shrink-0 flex-col border-r border-white/10 bg-[#040a14] lg:flex">
         <div className="border-b border-white/10 p-4"><div className="flex items-center gap-2"><div className="rounded-lg bg-violet-500/20 p-2"><Headphones className="h-4 w-4 text-violet-300" /></div><div><p className="text-sm font-bold">Audio Studio</p><p className="text-[11px] text-[#94a3b8]">8 tools available</p></div></div></div>
         <div className="flex-1 space-y-1 overflow-y-auto p-3">{TOOLS.map((tool)=>{const Icon=tool.icon;const active=activeTool===tool.id;return <button key={tool.id} onClick={()=>setActiveTool(tool.id)} className={cn("flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition", active?"border-violet-400/40 bg-violet-500/10 text-white shadow-[0_0_22px_rgba(139,92,246,.2)]":"border-transparent text-[#94a3b8] hover:bg-white/5")}><div className="rounded-lg bg-white/5 p-1.5"><Icon className="h-4 w-4" /></div><span className="text-sm">{tool.label}</span>{active?<span className="ml-auto h-2 w-2 rounded-full bg-violet-400"/>:null}</button>;})}</div>
