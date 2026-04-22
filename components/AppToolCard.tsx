@@ -2,122 +2,56 @@
 
 import { memo, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
-import type { AppTool } from "@/lib/apps-data";
+import { getAppToolAction, type AppTool } from "@/lib/apps-data";
 import { AppBadge } from "@/components/ui/AppBadge";
 
 interface AppToolCardProps {
   tool: AppTool;
 }
 
-const VIDEO_LIBRARY = {
-  action: "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
-  travel: "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
-  lifestyle: "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
-  commercial: "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
-  cinematic: "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
-  animation: "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
-  fantasy: "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
-  studio: "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
-  default: "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
-} as const;
+const TOPICAL_IMAGE_BY_ID: Record<string, string> = {
+  angles: "/explore/top-angles-2.jpg",
+  shots: "/explore/top-shots.jpg",
+  "motion-control": "/explore/top-motion-control.jpg",
+  "skin-enhancer": "/explore/top-skin-enhancer.jpg",
+  "nano-banana-pro": "/explore/top-nano-banana-pro.jpg",
+  "kling-3": "/explore/top-kling-3.jpg",
+  "seedream-5": "/explore/top-seedream-5.jpg",
+  "soul-moodboard": "/explore/top-soul-moodboard.jpg",
+  "create-image": "/explore/tool-create-image.jpg",
+  "create-video": "/explore/tool-create-video.jpg",
+  "edit-image": "/explore/tool-edit-image.jpg",
+  "edit-video": "/explore/tool-edit-video.jpg",
+  "mixed-media": "/explore/tool-mixed-media.jpg",
+  "soul-id": "/explore/tool-soul-id.jpg",
+  "soul-2": "/explore/tool-soul-2.jpg",
+  upscale: "/explore/tool-upscale.jpg",
+};
 
-const TOOL_VIDEO_BY_ID: Record<string, string> = {
-  "variations-studio": VIDEO_LIBRARY.studio,
-  "storyboard-studio": VIDEO_LIBRARY.cinematic,
-  "multi-angle-studio": VIDEO_LIBRARY.studio,
-  "expand-image": VIDEO_LIBRARY.cinematic,
-  angles: VIDEO_LIBRARY.action,
-  shots: VIDEO_LIBRARY.studio,
-  transitions: VIDEO_LIBRARY.travel,
-  zooms: VIDEO_LIBRARY.action,
-  "behind-scenes": VIDEO_LIBRARY.studio,
-  "3d-rotation": VIDEO_LIBRARY.action,
-  "bullet-time": VIDEO_LIBRARY.studio,
-  packshot: VIDEO_LIBRARY.commercial,
-  "macro-scene": VIDEO_LIBRARY.cinematic,
-  "what-next": VIDEO_LIBRARY.fantasy,
-  "skin-enhancer": VIDEO_LIBRARY.lifestyle,
-  "beauty2-studio": VIDEO_LIBRARY.lifestyle,
-  relight: VIDEO_LIBRARY.cinematic,
-  makeup: VIDEO_LIBRARY.lifestyle,
-  "style-snap": VIDEO_LIBRARY.lifestyle,
-  "color-grading": VIDEO_LIBRARY.studio,
-  "bg-remover": VIDEO_LIBRARY.studio,
-  "image-upscale": VIDEO_LIBRARY.studio,
-  "sketch-to-real": VIDEO_LIBRARY.animation,
-  "fashion-factory": VIDEO_LIBRARY.lifestyle,
-  "face-swap": VIDEO_LIBRARY.lifestyle,
-  "headshot-gen": VIDEO_LIBRARY.lifestyle,
-  "character-swap": VIDEO_LIBRARY.fantasy,
-  recast: VIDEO_LIBRARY.studio,
-  "video-face-swap": VIDEO_LIBRARY.studio,
-  "commercial-faces": VIDEO_LIBRARY.commercial,
-  "ai-influencer": VIDEO_LIBRARY.lifestyle,
-  "age-transform": VIDEO_LIBRARY.lifestyle,
-  "expression-edit": VIDEO_LIBRARY.lifestyle,
-  cosplay: VIDEO_LIBRARY.fantasy,
-  clipcut: VIDEO_LIBRARY.commercial,
-  "urban-cuts": VIDEO_LIBRARY.action,
-  "video-bg-remover": VIDEO_LIBRARY.studio,
-  breakdown: VIDEO_LIBRARY.cinematic,
-  lipsync: VIDEO_LIBRARY.studio,
-  "video-upscale": VIDEO_LIBRARY.studio,
-  "draw-to-video": VIDEO_LIBRARY.animation,
-  "mixed-media": VIDEO_LIBRARY.fantasy,
-  "click-to-ad": VIDEO_LIBRARY.commercial,
-  "billboard-ad": VIDEO_LIBRARY.commercial,
-  "bullet-time-white": VIDEO_LIBRARY.commercial,
-  "truck-ad": VIDEO_LIBRARY.commercial,
-  "giant-product": VIDEO_LIBRARY.commercial,
-  "fridge-ad": VIDEO_LIBRARY.commercial,
-  "volcano-ad": VIDEO_LIBRARY.action,
-  "graffiti-ad": VIDEO_LIBRARY.action,
-  "kick-ad": VIDEO_LIBRARY.action,
-  "macroshot-product": VIDEO_LIBRARY.commercial,
-  "game-dump": VIDEO_LIBRARY.animation,
-  "nano-strike": VIDEO_LIBRARY.action,
-  "nano-theft": VIDEO_LIBRARY.action,
-  simlife: VIDEO_LIBRARY.animation,
-  plushies: VIDEO_LIBRARY.animation,
-  "pixel-game": VIDEO_LIBRARY.animation,
-  "roller-coaster": VIDEO_LIBRARY.travel,
-  "brick-cube": VIDEO_LIBRARY.animation,
-  "victory-card": VIDEO_LIBRARY.animation,
-  "3d-figure": VIDEO_LIBRARY.animation,
-  "comic-book": VIDEO_LIBRARY.animation,
-  renaissance: VIDEO_LIBRARY.fantasy,
-  latex: VIDEO_LIBRARY.studio,
-  "on-fire": VIDEO_LIBRARY.action,
-  "melting-doodle": VIDEO_LIBRARY.fantasy,
-  "giallo-horror": VIDEO_LIBRARY.studio,
-  "burning-sunset": VIDEO_LIBRARY.travel,
-  "cloud-surf": VIDEO_LIBRARY.travel,
-  "sand-worm": VIDEO_LIBRARY.fantasy,
-  "storm-creature": VIDEO_LIBRARY.fantasy,
-  "magic-button": VIDEO_LIBRARY.fantasy,
-  chameleon: VIDEO_LIBRARY.fantasy,
-  "meme-gen": VIDEO_LIBRARY.animation,
-  mukbang: VIDEO_LIBRARY.lifestyle,
-  skibidi: VIDEO_LIBRARY.animation,
-  idol: VIDEO_LIBRARY.lifestyle,
-  "rap-god": VIDEO_LIBRARY.action,
-  mugshot: VIDEO_LIBRARY.studio,
-  signboard: VIDEO_LIBRARY.commercial,
-  "paint-app": VIDEO_LIBRARY.animation,
-  poster: VIDEO_LIBRARY.commercial,
-  sticker: VIDEO_LIBRARY.animation,
+const ACTION_IMAGE_BY_TYPE: Record<string, string> = {
+  image: "/explore/tool-create-image.jpg",
+  video: "/explore/tool-create-video.jpg",
+  "face-swap": "/landing/tool-face-swap.png",
+  upscale: "/explore/tool-upscale.jpg",
+  "remove-bg": "/explore/tool-edit-image.jpg",
+  audio: "/explore/tool-edit-video.jpg",
 };
 
 const isVideoUrl = (url?: string) => Boolean(url && /\.(mp4|webm|mov|ogg)([?#]|$)/i.test(url));
 
+function resolveToolImage(tool: AppTool): string {
+  if (tool.previewImage && !isVideoUrl(tool.previewImage)) return tool.previewImage;
+  const topical = TOPICAL_IMAGE_BY_ID[tool.id];
+  if (topical) return topical;
+  const action = getAppToolAction(tool.id);
+  return ACTION_IMAGE_BY_TYPE[action] || "/explore/tool-create-image.jpg";
+}
+
 function AppToolCardInner({ tool }: AppToolCardProps) {
   const [isHovered, setIsHovered] = useState(false);
-  const mediaSrc = isVideoUrl(tool.previewVideo)
-    ? tool.previewVideo
-    : isVideoUrl(tool.previewImage)
-      ? tool.previewImage
-      : TOOL_VIDEO_BY_ID[tool.id] || VIDEO_LIBRARY.default;
+  const mediaSrc = resolveToolImage(tool);
 
   return (
     <Link href={tool.href} className="block group">
@@ -153,13 +87,12 @@ function AppToolCardInner({ tool }: AppToolCardProps) {
             animate={{ filter: isHovered ? "brightness(1.15)" : "brightness(1)" }}
             transition={{ duration: 0.3 }}
           />
-          <video
+          <Image
             src={mediaSrc}
-            autoPlay
-            muted
-            loop
-            playsInline
-            preload="metadata"
+            alt={tool.title}
+            fill
+            sizes="(max-width: 768px) 50vw, 320px"
+            loading="lazy"
             className="absolute inset-0 w-full h-full object-cover"
           />
           {/* Subtle inner vignette */}
