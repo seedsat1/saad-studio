@@ -101,6 +101,30 @@ const TOP_TOOLS = [
   },
 ];
 
+const TOP_VIDEOS = {
+  nanoBanana: "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerScopes.mp4",
+  motionControl: "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4",
+  skinEnhancer: "https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+  shots: "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
+  angles: "https://storage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
+  kling: "https://storage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4",
+  seedream: "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+  moodboard: "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4",
+};
+
+const DEFAULT_TOP_VIDEO_BY_ID: Record<string, string> = {
+  "nano-banana-pro": TOP_VIDEOS.nanoBanana,
+  "motion-control": TOP_VIDEOS.motionControl,
+  "skin-enhancer": TOP_VIDEOS.skinEnhancer,
+  shots: TOP_VIDEOS.shots,
+  "angles-2": TOP_VIDEOS.angles,
+  "kling-3": TOP_VIDEOS.kling,
+  "seedream-5": TOP_VIDEOS.seedream,
+  "soul-moodboard": TOP_VIDEOS.moodboard,
+};
+
+const isVideoUrl = (url?: string) => Boolean(url && /\.mp4(\?|$)/i.test(url));
+
 type LayoutBlock = {
   type?: string;
   title?: string;
@@ -112,7 +136,13 @@ type LayoutBlock = {
 const TOP_SLOT_IDS = TOP_TOOLS.map((t) => `explore/top-${t.id}`);
 
 export default function TopChoiceGrid() {
-  const [topTools, setTopTools] = useState(TOP_TOOLS);
+  const [topTools, setTopTools] = useState(
+    TOP_TOOLS.map((tool) => ({
+      ...tool,
+      image: DEFAULT_TOP_VIDEO_BY_ID[tool.id] || tool.image,
+      isVideo: true,
+    })),
+  );
   const promo = usePromoMedia();
   const promoContent = usePromoContent();
   const { data: cms } = useCmsData<DiscoverCms>("discover");
@@ -128,7 +158,9 @@ export default function TopChoiceGrid() {
       const fallback = TOP_TOOLS.find((t) => t.id === ct.id);
       return {
         id: ct.id,
-        image: ct.image || fallback?.image || "/explore/top-" + ct.id + ".jpg",
+        image: isVideoUrl(ct.image)
+          ? ct.image
+          : DEFAULT_TOP_VIDEO_BY_ID[ct.id] || fallback?.image || "/explore/top-" + ct.id + ".jpg",
         name: ct.name,
         desc: ct.desc,
         href: ct.href,
@@ -136,6 +168,7 @@ export default function TopChoiceGrid() {
         badgeColor: fallback?.badgeColor,
         accent: fallback?.accent || "from-violet-500 to-indigo-600",
         glow: fallback?.glow || "rgba(139,92,246,0.3)",
+        isVideo: true,
       };
     }));
   }, [cms]);
@@ -146,7 +179,10 @@ export default function TopChoiceGrid() {
       prev.map((t, i) => {
         let updated = { ...t };
         const custom = promo[TOP_SLOT_IDS[i]];
-        if (custom?.url) updated.image = custom.url;
+        if (isVideoUrl(custom?.url)) {
+          updated.image = custom!.url;
+          (updated as { isVideo?: boolean }).isVideo = true;
+        }
         const text = promoContent[TOP_SLOT_IDS[i]];
         if (text) {
           if (text.title) updated.name = text.title;
@@ -177,10 +213,10 @@ export default function TopChoiceGrid() {
             if (!block) return item;
             return {
               ...item,
-              image: block.mediaUrl || item.image,
+              image: isVideoUrl(block.mediaUrl) ? (block.mediaUrl as string) : item.image,
               name: block.title || item.name,
               desc: block.subtitle || item.desc,
-              isVideo: Boolean(block.isVideo),
+              isVideo: isVideoUrl(block.mediaUrl) || Boolean(block.isVideo) || true,
             };
           }),
         );
@@ -266,7 +302,7 @@ export default function TopChoiceGrid() {
                   whileTap={{ scale: 0.98 }}
                 >
                 {/* Background image */}
-                {(tool as any).isVideo ? (
+                {(tool as any).isVideo || isVideoUrl(tool.image) ? (
                   <video
                     src={tool.image}
                     autoPlay
