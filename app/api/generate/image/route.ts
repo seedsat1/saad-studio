@@ -43,6 +43,35 @@ interface KieApiResponse {
   data?: KieTaskData;
 }
 
+function inferImageInputField(kieModelId: string): "image_url" | "image_input" | "image_urls" | "input_urls" | undefined {
+  if ([
+    "google/nano-banana-edit",
+    "seedream/4.5-edit",
+    "seedream/5-lite-image-to-image",
+    "grok-imagine/image-to-image",
+    "flux-2/pro-image-to-image",
+    "flux-2/flex-image-to-image",
+  ].includes(kieModelId)) return "image_urls";
+
+  if ([
+    "nano-banana-pro",
+    "nano-banana-2",
+    "google/nano-banana",
+  ].includes(kieModelId)) return "image_input";
+
+  if ([
+    "gpt-image/1.5-image-to-image",
+    "wan/2-7-image-pro",
+  ].includes(kieModelId)) return "input_urls";
+
+  if ([
+    "qwen2/image-edit",
+    "qwen/image-to-image",
+  ].includes(kieModelId)) return "image_url";
+
+  return undefined;
+}
+
 async function uploadBase64ToStorage(
   base64Data: string,
   userId: string,
@@ -193,6 +222,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const effectiveImageInputField = imageInputField ?? inferImageInputField(kieModelId);
+
     const creditsToCharge = await getGenerationCost(modelId, 5, numImages);
     if (creditsToCharge <= 0) {
       return NextResponse.json({ error: `No credit configuration for model: ${modelId}` }, { status: 400 });
@@ -290,18 +321,18 @@ export async function POST(req: NextRequest) {
       if (negativePrompt) input.negative_prompt = negativePrompt;
 
       if (resolvedRefs.length > 0) {
-        if (imageInputField === "image_input") {
+        if (effectiveImageInputField === "image_input") {
           input.image_input = resolvedRefs;
-        } else if (imageInputField === "image_urls") {
+        } else if (effectiveImageInputField === "image_urls") {
           input.image_urls = resolvedRefs;
-        } else if (imageInputField === "input_urls") {
+        } else if (effectiveImageInputField === "input_urls") {
           input.input_urls = resolvedRefs;
           // Wan spec: aspect_ratio must not be sent when input_urls is present
           if (isWanModel) {
             delete input.aspect_ratio;
             delete input.image_size;
           }
-        } else if (imageInputField === "image_url") {
+        } else if (effectiveImageInputField === "image_url") {
           input.image_url = resolvedRefs[0];
         } else {
           if (resolvedRefs.length === 1) input.image_url = resolvedRefs[0];

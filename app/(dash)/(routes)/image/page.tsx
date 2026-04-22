@@ -964,6 +964,7 @@ export default function ImageWorkspacePage() {
         prompt: payload.prompt,
         modelId: "seedream/4.5-edit",
         numImages: relightVariations,
+        imageInputField: "image_urls",
         imageUrl: imgData,
       }),
     });
@@ -990,6 +991,7 @@ export default function ImageWorkspacePage() {
         prompt: `${prompt}. Apply edits only where the mask/painted area is indicated.`,
         modelId: inpaintModelId,
         numImages: inpaintVariations,
+        imageInputField: "image_urls",
         imageUrl: guideImage,
       }),
     });
