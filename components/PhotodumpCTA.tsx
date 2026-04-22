@@ -6,7 +6,7 @@ import { usePromoMedia, promoUrl } from "@/hooks/use-promo-media";
 import { usePromoContent, promoText } from "@/hooks/use-promo-content";
 import { useCmsData } from "@/lib/use-cms-data";
 
-const DEFAULT_PHOTODUMP_VIDEO = "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4";
+const DEFAULT_PHOTODUMP_VIDEO = "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4";
 const isVideoUrl = (url?: string) => Boolean(url && /\.mp4(\?|$)/i.test(url));
 
 interface DiscoverCms {

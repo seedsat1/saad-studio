@@ -11,15 +11,15 @@ interface AppToolCardProps {
 }
 
 const VIDEO_LIBRARY = {
-  action: "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
-  travel: "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
-  lifestyle: "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4",
-  commercial: "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4",
-  cinematic: "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerScopes.mp4",
-  animation: "https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
-  fantasy: "https://storage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
-  studio: "https://storage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4",
-  default: "https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+  action: "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
+  travel: "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
+  lifestyle: "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
+  commercial: "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
+  cinematic: "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
+  animation: "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
+  fantasy: "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
+  studio: "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
+  default: "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
 } as const;
 
 const TOOL_VIDEO_BY_ID: Record<string, string> = {

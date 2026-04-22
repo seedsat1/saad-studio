@@ -111,16 +111,16 @@ const TOOLS = [
 ];
 
 const CORE_VIDEOS = {
-  createImage: "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
-  createVideo: "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
-  motionControl: "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4",
-  magic: "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4",
-  soulId: "https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
-  upscale: "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerScopes.mp4",
-  editImage: "https://storage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
-  editVideo: "https://storage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4",
-  mixedMedia: "https://storage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
-  angles: "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMobster.mp4",
+  createImage: "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
+  createVideo: "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
+  motionControl: "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
+  magic: "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
+  soulId: "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
+  upscale: "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
+  editImage: "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
+  editVideo: "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
+  mixedMedia: "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
+  angles: "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
 };
 
 const DEFAULT_CORE_VIDEO_BY_ID: Record<string, string> = {

@@ -48,28 +48,28 @@ type HeroSlide = {
 const isVideoUrl = (url?: string) => Boolean(url && /\.(mp4|webm|mov|ogg)([?#]|$)/i.test(url));
 
 const TOOL_CARD_VIDEOS: Record<string, string> = {
-  "create-image": "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
-  "create-video": "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
-  "cinema-studio": "https://storage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4",
-  "ai-influencer": "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4",
-  "soul-id": "https://storage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
-  "lipsync": "https://storage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
-  "vibe-motion": "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4",
-  "draw-to-video": "https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
-  relight: "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerScopes.mp4",
-  "face-swap": "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4",
-  "ugc-factory": "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
-  upscale: "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
-  "char-swap": "https://storage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
-  "fashion-factory": "https://storage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4",
-  default: "https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+  "create-image": "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
+  "create-video": "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
+  "cinema-studio": "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
+  "ai-influencer": "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
+  "soul-id": "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
+  "lipsync": "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
+  "vibe-motion": "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
+  "draw-to-video": "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
+  relight: "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
+  "face-swap": "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
+  "ugc-factory": "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
+  upscale: "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
+  "char-swap": "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
+  "fashion-factory": "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
+  default: "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
 };
 
 const AD_CARD_VIDEOS = [
-  "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4",
-  "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
-  "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
-  "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4",
+  "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
+  "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
+  "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
+  "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
 ];
 
 const getToolCardVideo = (card: ToolCard) => {

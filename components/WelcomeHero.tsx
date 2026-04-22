@@ -16,37 +16,37 @@ const QUICK_TOOLS = [
   {
     label: "Create Image",
     href: "/image",
-    media: "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+    media: "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
     glow: "rgba(6,182,212,0.25)",
   },
   {
     label: "Create Video",
     href: "/video",
-    media: "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
+    media: "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
     glow: "rgba(139,92,246,0.25)",
   },
   {
     label: "Next Scene",
     href: "/cinema-studio",
-    media: "https://storage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4",
+    media: "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
     glow: "rgba(236,72,153,0.25)",
   },
   {
     label: "Edit Image",
     href: "/edit",
-    media: "https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+    media: "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
     glow: "rgba(16,185,129,0.25)",
   },
   {
     label: "AI Apps",
     href: "/apps",
-    media: "https://storage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
+    media: "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
     glow: "rgba(245,158,11,0.25)",
   },
   {
     label: "ماجك",
     href: "/image/soul-id-character",
-    media: "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4",
+    media: "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
     glow: "rgba(217,70,239,0.25)",
   },
 ];
