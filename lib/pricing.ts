@@ -26,7 +26,7 @@ const normalizeKey = (value: string): string =>
 
 function sanitizePricingModel(input: Partial<PricingModel>): PricingModel {
   const safeId = String(input.id ?? "").trim();
-  const safeName = String(input.name ?? safeId || "unknown-model").trim();
+  const safeName = String((input.name ?? safeId) || "unknown-model").trim();
   const provider = input.provider === "wavespeed" ? "wavespeed" : "kie";
   const billing = input.billing === "per_sec" ? "per_sec" : "flat";
   const maxDurationRaw = Number(input.maxDuration);
