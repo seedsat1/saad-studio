@@ -89,11 +89,12 @@ export default function VideoEditorPage() {
       <div className="h-[calc(100vh-64px)] overflow-auto bg-slate-950 text-slate-100">
         <div className="w-full px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
           <div className="rounded-3xl border border-slate-800/90 bg-[radial-gradient(circle_at_25%_45%,rgba(56,189,248,0.24),transparent_38%),radial-gradient(circle_at_45%_55%,rgba(16,185,129,0.2),transparent_40%),radial-gradient(circle_at_63%_58%,rgba(99,102,241,0.2),transparent_34%),#10141c] p-6 sm:p-8">
-            <h1 className="text-3xl font-extrabold tracking-tight text-white sm:text-5xl">
-              Turn your ideas into cinematic videos with smart tools and a fast workflow
+            <h1 className="max-w-6xl text-3xl font-extrabold leading-[1.08] tracking-[-0.02em] text-white sm:text-4xl lg:text-5xl">
+              Turn your ideas into cinematic videos
+              <span className="block text-slate-100">with smart tools and a fast workflow</span>
             </h1>
-            <p className="mt-3 text-sm text-slate-300">Start from scratch</p>
-            <p className="text-xs text-slate-400">Create a new space and start collaborating</p>
+            <p className="mt-4 text-sm font-medium text-slate-200 sm:text-base">Start from scratch</p>
+            <p className="mt-1 text-xs text-slate-400 sm:text-sm">Create a new space and start collaborating</p>
 
             <div className="mt-6 flex flex-col gap-3 sm:max-w-xl sm:flex-row">
               <input
