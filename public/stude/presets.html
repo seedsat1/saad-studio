@@ -1,0 +1,620 @@
+﻿<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Generate Image</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#181818;--panel:#1e1e1e;--panel2:#232323;--border:#2d2d2d;--border2:#3a3a3a;--text:#d4d4d4;--dim:#777;--dim2:#555;--accent:#4a9eff;--accent2:#5cb8ff;--green:#4caf50;--orange:#ff9800;--red:#f44336;--purple:#b388ff;--cyan:#26c6da;--yellow:#ffd54f}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'Tajawal',sans-serif;height:100vh;overflow:hidden;display:flex;flex-direction:column}
+.menubar{height:24px;background:#111;display:flex;align-items:center;padding:0 8px;gap:2px;border-bottom:1px solid #222;font-size:11px}
+.menubar span{padding:2px 8px;color:var(--dim);cursor:pointer;border-radius:2px}.menubar span:hover{color:var(--text);background:#333}
+.menubar .spacer{flex:1}.menubar .title{color:var(--accent);font-weight:700;letter-spacing:1px}
+.page-tabs{height:30px;background:#1a1a1a;display:flex;align-items:center;border-bottom:1px solid var(--border);padding:0 8px}
+.page-tab{padding:5px 14px;font-size:10px;color:var(--dim);cursor:pointer;border-bottom:2px solid transparent;transition:.15s;text-decoration:none;font-family:'Tajawal'}
+.page-tab:hover{color:var(--text)}.page-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.workspace{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.top-row{flex:1;display:flex;min-height:0}
+.bottom-row{height:200px;border-top:2px solid var(--border);display:flex;flex-direction:column}
+.panel{background:var(--panel);display:flex;flex-direction:column;overflow:hidden}
+.ph{height:26px;background:#252525;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 10px;gap:8px;flex-shrink:0}
+.ph .l{font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.45px;font-weight:700;cursor:pointer}.ph .l.a{color:var(--accent)}
+.pb{flex:1;overflow-y:auto;padding:10px;font-size:12px}
+.vr{width:2px;background:var(--border);cursor:col-resize;flex-shrink:0}.vr:hover{background:var(--accent)}
+.ist{font-size:11px;color:#9aa7bb;text-transform:uppercase;letter-spacing:.45px;font-weight:700;padding:7px 0 6px;border-bottom:1px solid var(--border);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.ist .d{width:5px;height:5px;border-radius:50%}
+.cr{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px}
+.ch{padding:4px 10px;border-radius:4px;font-size:11px;cursor:pointer;border:1px solid var(--border);background:#1a1a1a;color:#9da9bc;font-family:'Tajawal';transition:.12s}
+.ch:hover{border-color:var(--border2);color:var(--text)}.ch.a{border-color:var(--accent);color:var(--accent);background:rgba(74,158,255,.08)}
+.in{width:100%;background:#1a1a1a;border:1px solid var(--border);border-radius:4px;padding:8px 9px;color:var(--text);font-family:'Tajawal';font-size:12px;outline:none;margin-bottom:8px;line-height:1.45}
+.in:focus{border-color:var(--accent)}
+.sbox{width:100%;height:32px;background:#1a1a1a;border:1px solid var(--border);border-radius:4px;padding:0 8px;color:var(--text);font-family:'Tajawal';font-size:12px;outline:none;margin-bottom:8px}
+.model-dd{position:relative;margin-bottom:8px}
+.model-dd-btn{width:100%;height:34px;background:#1a1a1a;border:1px solid var(--border);border-radius:6px;padding:0 10px;color:var(--text);font-family:'Tajawal';font-size:12px;display:flex;align-items:center;justify-content:space-between;cursor:pointer}
+.model-dd-btn:hover{border-color:var(--border2)}
+.model-dd-menu{position:absolute;left:0;right:0;top:38px;background:#171b24;border:1px solid #2f3a4f;border-radius:8px;max-height:260px;overflow:auto;z-index:40;display:none;padding:6px}
+.model-dd.open .model-dd-menu{display:block}
+.model-family{font-size:10px;color:#8ea3c7;letter-spacing:.4px;text-transform:uppercase;padding:6px 8px 4px}
+.model-item{width:100%;text-align:left;background:#121722;border:1px solid #29354a;color:#d4e1ff;border-radius:6px;padding:7px 9px;font-size:12px;cursor:pointer;margin-bottom:5px;font-family:'Tajawal'}
+.model-item:hover{filter:brightness(1.08)}
+.model-item.active{outline:1px solid #6da6ff}
+.mf-google{background:linear-gradient(90deg,rgba(74,158,255,.20),rgba(74,158,255,.04));border-color:#365a8a}
+.mf-grok{background:linear-gradient(90deg,rgba(255,174,102,.20),rgba(255,174,102,.05));border-color:#7a5a34}
+.mf-qwen{background:linear-gradient(90deg,rgba(180,136,255,.20),rgba(180,136,255,.05));border-color:#5e4c82}
+.mf-wan{background:linear-gradient(90deg,rgba(93,211,155,.20),rgba(93,211,155,.05));border-color:#3d6f5b}
+.mf-recraft{background:linear-gradient(90deg,rgba(76,201,240,.20),rgba(76,201,240,.05));border-color:#3f6c79}
+.mf-seedream{background:linear-gradient(90deg,rgba(255,213,79,.20),rgba(255,213,79,.05));border-color:#756033}
+.mf-topaz{background:linear-gradient(90deg,rgba(255,127,127,.20),rgba(255,127,127,.05));border-color:#7b4a4a}
+.prompt-composer{border:none;border-radius:0;background:transparent;padding:0;margin-bottom:10px;position:relative;overflow:visible}
+.prompt-composer.drag .prompt-toolbar{box-shadow:0 0 0 1px rgba(94,169,255,.35) inset,0 0 14px rgba(74,158,255,.15)}
+.prompt-toolbar{display:flex;align-items:center;gap:10px;padding:8px 0 10px;background:transparent}
+.plus-btn{width:28px;height:28px;border-radius:9px;border:1px solid #2a3342;background:#151a21;color:#e2ebff;font-size:18px;line-height:1;cursor:pointer;flex-shrink:0}
+.plus-btn:hover{border-color:#5b84bf;color:#fff;background:#1a2638}
+.prompt-drop-hint{font-size:13px;color:#8a96ab;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;line-height:1.2}
+.prompt-ref-meta{font-size:11px;color:#60739a;padding:4px 0 6px}
+.prompt-input{width:100%;margin:0;background:#11161d;border:1px solid #263246;border-radius:10px;padding:13px;color:#d9e4fb;font-family:'Tajawal';font-size:14px;resize:vertical;outline:none;line-height:1.55;min-height:122px}
+.prompt-input:focus{border-color:#4f8fe6;box-shadow:0 0 0 1px rgba(79,143,230,.22)}
+.bs{padding:6px 12px;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;border:none;font-family:'Tajawal';transition:.12s}
+.bb{background:var(--accent);color:#fff}.bb:hover{background:var(--accent2)}
+.bg{background:none;color:var(--dim);border:1px solid var(--border)}.bg:hover{color:var(--text);border-color:var(--border2)}
+.stt{font-size:11px;line-height:1.5;color:#95a5bd;margin-top:4px}
+.ref-list{display:flex;flex-wrap:wrap;gap:6px;max-height:120px;overflow:auto;margin:8px 0 6px}
+.ref-item{display:flex;align-items:center;gap:6px;border:1px solid #314362;border-radius:9px;padding:4px 6px;background:#141d2b;max-width:100%}
+.ref-item img{width:24px;height:24px;border-radius:5px;object-fit:cover;border:1px solid #3d567f;flex-shrink:0}
+.ref-item span{max-width:140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:10px;color:#c1d5fb}
+.ref-item .rm{padding:2px 7px;font-size:10px;border-radius:6px;border:1px solid #385075;background:#17253a;color:#b7cef5;cursor:pointer}
+.ref-item .rm:hover{border-color:#5c84c3;color:#e5efff}
+.prompt-count{font-size:11px;color:#8ea4cd;margin:2px 2px 8px;text-align:right}
+/* timeline */
+.th{height:26px;background:#252525;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 10px;gap:10px;flex-shrink:0}
+.th span{font-size:9px;color:var(--dim);cursor:pointer}.th span.a{color:var(--accent)}
+.tb{flex:1;display:flex;overflow:hidden}
+.ts{width:100px;background:#1c1c1c;border-left:1px solid var(--border);flex-shrink:0}
+.tl{height:32px;display:flex;align-items:center;padding:0 6px;gap:3px;border-bottom:1px solid #252525;font-size:9px;color:var(--dim)}
+.tl .dd{width:5px;height:5px;border-radius:50%}.tl .n{flex:1}.tl .x{display:flex;gap:1px;font-size:8px;opacity:.4}
+.ta{flex:1;position:relative;overflow:auto}
+.tr{height:18px;background:#1c1c1c;border-bottom:1px solid var(--border);display:flex;align-items:flex-end;padding:0 8px;gap:55px;position:sticky;top:0;z-index:2}
+.tr span{font-size:7px;color:var(--dim2);font-family:'JetBrains Mono'}
+.tt{position:relative}
+.tk{height:32px;border-bottom:1px solid #252525;position:relative}
+.tc2{position:absolute;top:2px;height:28px;border-radius:3px;display:flex;align-items:center;padding:0 5px;font-size:8px;color:#fff;overflow:hidden;cursor:pointer}
+.tc2:hover{filter:brightness(1.2)}.tc2 .cn{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tp2{position:absolute;top:0;bottom:0;width:2px;background:var(--red);z-index:10;pointer-events:none}
+.tp2::before{content:'';position:absolute;top:-1px;right:-3px;width:8px;height:8px;background:var(--red);clip-path:polygon(50% 100%,0 0,100% 0)}
+</style>
+</head>
+<body>
+<script>
+(function(){
+  var params=new URLSearchParams(location.search);
+  var isEmbed=params.get('embed')==='1';
+  var pageName='presets';
+  if(!isEmbed){
+    location.replace('studio-shell.html?page='+encodeURIComponent(pageName));
+    return;
+  }
+  window.__FF_EMBED_TOP=true;
+  document.documentElement.lang='en';
+  document.documentElement.dir='ltr';
+  document.addEventListener('DOMContentLoaded',function(){
+    var mb=document.querySelector('.menubar'); if(mb) mb.style.display='none';
+    var tabs=document.querySelector('.page-tabs'); if(tabs) tabs.style.display='none';
+    var br=document.querySelector('.bottom-row'); if(br) br.style.display='none';
+    var ws=document.querySelector('.workspace'); if(ws){ ws.style.height='100vh'; ws.style.display='flex'; ws.style.flexDirection='column'; }
+    var tr=document.querySelector('.top-row'); if(tr){ tr.style.flex='1 1 auto'; tr.style.minHeight='0'; }
+  });
+})();
+</script>
+<!-- FF_SHELL_BRIDGE -->
+<div class="menubar"><span class="title">FRAMEFORGE</span><span>File</span><span>Edit</span><span>View</span><div class="spacer"></div><span style="color:var(--dim2);font-family:'JetBrains Mono';font-size:9px">Untitled Project</span></div>
+<div class="page-tabs"><a class="page-tab" href="sound.html">Audio & Music</a>
+<a class="page-tab" href="video.html">Video Generation</a>
+<a class="page-tab active" href="presets.html">Generate Image</a>
+<a class="page-tab" href="transitions.html">Transitions</a>
+<a class="page-tab" href="lighting.html">Lighting</a>
+<a class="page-tab" href="prompt.html">Prompt</a>
+</div>
+
+<div class="workspace">
+  <div class="top-row">
+    <div class="panel" style="width:380px">
+      <div class="ph"><span class="l a">Generate Image Panel</span></div>
+      <div class="pb">
+        <div id="promptComposer" class="prompt-composer">
+          <div class="prompt-toolbar">
+            <button type="button" class="plus-btn" onclick="pickImageRefs()">+</button>
+            <div class="prompt-drop-hint">Upload image as a prompt or Describe the scene you imagine...</div>
+          </div>
+          <div id="promptRefsMeta" class="prompt-ref-meta">References limit for selected model: 6</div>
+          <textarea id="iprompt" class="prompt-input" rows="5" placeholder="Describe the image in detail..."></textarea>
+          <div class="ref-list" id="refList"></div>
+          <div class="prompt-count"><span id="ipromptCount">0</span> characters</div>
+        </div>
+        <input id="imageRefsFile" type="file" accept="image/*" multiple style="display:none" onchange="handleImageRefFiles(this)">
+
+        <div class="ist" style="margin-top:10px"><span class="d" style="background:var(--green)"></span>Image Model</div>
+        <div id="modelDropdown" class="model-dd">
+          <button type="button" class="model-dd-btn" onclick="toggleModelDropdown(event)">
+            <span id="modelDdLabel">Google - Nano Banana 2</span>
+            <span>▾</span>
+          </button>
+          <div id="modelDdMenu" class="model-dd-menu">
+            <div class="model-family">Google</div>
+            <button type="button" class="model-item mf-google active" data-model="google/nano-banana-2" data-label="Google - Nano Banana 2" onclick="selectModelOption(this)">Google - Nano Banana 2</button>
+            <button type="button" class="model-item mf-google" data-model="google/nano-banana-pro" data-label="Google - Nano Banana Pro" onclick="selectModelOption(this)">Google - Nano Banana Pro</button>
+
+            <div class="model-family">Grok</div>
+            <button type="button" class="model-item mf-grok" data-model="grok-imagine/text-to-image" data-label="Grok Imagine - Text to Image" onclick="selectModelOption(this)">Grok Imagine - Text to Image</button>
+            <button type="button" class="model-item mf-grok" data-model="grok-imagine/image-to-image" data-label="Grok Imagine - Image to Image" onclick="selectModelOption(this)">Grok Imagine - Image to Image</button>
+
+            <div class="model-family">Qwen</div>
+            <button type="button" class="model-item mf-qwen" data-model="qwen/text-to-image" data-label="Qwen - Text to Image" onclick="selectModelOption(this)">Qwen - Text to Image</button>
+            <button type="button" class="model-item mf-qwen" data-model="qwen/image-to-image" data-label="Qwen - Image to Image" onclick="selectModelOption(this)">Qwen - Image to Image</button>
+            <button type="button" class="model-item mf-qwen" data-model="qwen/image-edit" data-label="Qwen - Image Edit" onclick="selectModelOption(this)">Qwen - Image Edit</button>
+            <button type="button" class="model-item mf-qwen" data-model="qwen2/image-edit" data-label="Qwen2 - Image Edit" onclick="selectModelOption(this)">Qwen2 - Image Edit</button>
+            <button type="button" class="model-item mf-qwen" data-model="qwen2/text-to-image" data-label="Qwen2 - Text To Image" onclick="selectModelOption(this)">Qwen2 - Text To Image</button>
+
+            <div class="model-family">Wan</div>
+            <button type="button" class="model-item mf-wan" data-model="wan-2.7/image" data-label="Wan 2.7 Image" onclick="selectModelOption(this)">Wan 2.7 Image</button>
+            <button type="button" class="model-item mf-wan" data-model="wan-2.7/image-pro" data-label="Wan 2.7 Image Pro" onclick="selectModelOption(this)">Wan 2.7 Image Pro</button>
+
+            <div class="model-family">Recraft</div>
+            <button type="button" class="model-item mf-recraft" data-model="recraft/remove-background" data-label="Recraft - Remove Background" onclick="selectModelOption(this)">Recraft - Remove Background</button>
+
+            <div class="model-family">Seedream</div>
+            <button type="button" class="model-item mf-seedream" data-model="seedream-5.0-lite/text-to-image" data-label="Seedream5.0 Lite - Text to Image" onclick="selectModelOption(this)">Seedream5.0 Lite - Text to Image</button>
+            <button type="button" class="model-item mf-seedream" data-model="seedream-5.0-lite/image-to-image" data-label="Seedream5.0 Lite - Image to Image" onclick="selectModelOption(this)">Seedream5.0 Lite - Image to Image</button>
+
+            <div class="model-family">Topaz</div>
+            <button type="button" class="model-item mf-topaz" data-model="topaz/image-upscale" data-label="Topaz - Image Upscale" onclick="selectModelOption(this)">Topaz - Image Upscale</button>
+          </div>
+        </div>
+        <input id="imageModel" type="hidden" value="google/nano-banana-2">
+        <div class="stt" id="modelModeHint">Mode: Text to Image</div>
+
+        <div class="ist"><span class="d" style="background:var(--orange)"></span>Image Settings</div>
+        <div class="cr" id="ratioChips"><span class="ch a">1:1</span><span class="ch">16:9</span><span class="ch">9:16</span><span class="ch">4:3</span><span class="ch">3:4</span></div>
+        <select id="imageQuality" class="sbox"><option>STD</option><option selected>PRO</option><option>HIGH</option></select>
+        <input id="seedInput" class="in" placeholder="Seed (optional integer)">
+
+        <div class="ist"><span class="d" style="background:var(--yellow)"></span>Status</div>
+        <div class="stt" id="imageStatus">Ready.</div>
+      </div>
+    </div>
+
+    <div class="vr"></div>
+
+    <div class="panel" style="flex:1">
+      <div class="ph"><span class="l a">Image Preview</span></div>
+      <div style="flex:1;background:#111;border:1px solid var(--border);margin:6px;border-radius:4px;position:relative;display:flex;align-items:center;justify-content:center">
+        <div id="imgPlaceholder" style="opacity:.35;text-align:center"><div style="font-size:42px">🖼️</div><div style="font-size:11px">Generated image will appear here</div></div>
+        <img id="imagePreview" alt="Generated image" style="display:none;max-width:100%;max-height:100%;object-fit:contain;border-radius:3px">
+      </div>
+      <div style="padding:6px;background:#1c1c1c;border-top:1px solid var(--border);display:flex;gap:6px">
+        <button id="genImageBtn" class="bs bb" style="flex:1" onclick="generateImage()">Generate Image</button>
+        <button id="addImageBtn" class="bs bg" onclick="addImageToTimeline()" disabled>Add to Timeline</button>
+        <button id="downloadImageBtn" class="bs bg" onclick="downloadImage()" disabled>Download</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TIMELINE -->
+  <div class="bottom-row">
+    <div class="th"><span class="a">Timeline</span><span>Image Tracks</span><span style="flex:1"></span><span style="font-family:'JetBrains Mono';font-size:8px;color:var(--dim2)">Sequence 01</span></div>
+    <div class="tb">
+      <div class="ts">
+        <div class="tl"><span class="dd" style="background:var(--green)"></span><span class="n">V1</span><span class="x"></span></div>
+        <div class="tl"><span class="dd" style="background:var(--accent)"></span><span class="n">A1</span><span class="x">M S</span></div>
+      </div>
+      <div class="ta">
+        <div class="tr"><span>00:00</span><span>00:30</span><span>01:00</span><span>01:30</span><span>02:00</span></div>
+        <div class="tt">
+          <div class="tk"><div class="tc2" style="right:90px;width:240px;background:#355070"><span class="cn">generated_image.png</span></div></div>
+          <div class="tp2" style="right:150px"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const imageState = {
+  latestUrl: '',
+  latestName: '',
+  refs: []
+};
+
+document.getElementById('iprompt').addEventListener('input', function(){
+  document.getElementById('ipromptCount').textContent = this.value.length;
+});
+
+document.querySelectorAll('.cr').forEach((group)=>{
+  group.querySelectorAll('.ch').forEach((chip)=>{
+    chip.addEventListener('click', function(){
+      group.querySelectorAll('.ch').forEach((x)=>x.classList.remove('a'));
+      this.classList.add('a');
+    });
+  });
+});
+
+function setImageStatus(text, tone){
+  const el = document.getElementById('imageStatus');
+  const colors = { info:'#9cb0cf', ok:'#6cd98d', warn:'#ffcc7a', err:'#ff7b7b' };
+  el.textContent = text;
+  el.style.color = colors[tone || 'info'] || colors.info;
+}
+
+function setImageButtons(enabled){
+  ['addImageBtn','downloadImageBtn'].forEach((id)=>{
+    const b = document.getElementById(id);
+    b.disabled = !enabled;
+    b.style.opacity = enabled ? '1' : '.45';
+    b.style.cursor = enabled ? 'pointer' : 'not-allowed';
+  });
+}
+
+function setGenerateBusy(busy){
+  const b = document.getElementById('genImageBtn');
+  b.disabled = !!busy;
+  b.style.opacity = busy ? '.65' : '1';
+  b.style.cursor = busy ? 'not-allowed' : 'pointer';
+  b.textContent = busy ? 'Generating...' : 'Generate Image';
+}
+
+const IMAGE_MODEL_CONFIG = {
+  'google/nano-banana-2': { mode: 'text_to_image', refsRequired: false, maxRefs: 6, ratios: ['1:1','16:9','9:16','4:3','3:4'], quality: ['STD','PRO','HIGH'], note: 'Balanced quality/speed for everyday generation.' },
+  'google/nano-banana-pro': { mode: 'text_to_image', refsRequired: false, maxRefs: 8, ratios: ['1:1','16:9','9:16','4:3','3:4'], quality: ['PRO','HIGH'], note: 'Higher fidelity than Nano Banana 2.' },
+  'grok-imagine/text-to-image': { mode: 'text_to_image', refsRequired: false, maxRefs: 0, ratios: ['1:1','16:9','9:16','4:3','3:4'], quality: ['STD','PRO','HIGH'], note: 'Prompt-first image synthesis.' },
+  'grok-imagine/image-to-image': { mode: 'image_to_image', refsRequired: true, maxRefs: 1, ratios: ['1:1','16:9','9:16','4:3','3:4'], quality: ['STD','PRO','HIGH'], note: 'Uses base image + prompt guidance.' },
+  'qwen/text-to-image': { mode: 'text_to_image', refsRequired: false, maxRefs: 0, ratios: ['1:1','16:9','9:16','4:3','3:4'], quality: ['STD','PRO','HIGH'], note: 'Text-only creative generation.' },
+  'qwen/image-to-image': { mode: 'image_to_image', refsRequired: true, maxRefs: 1, ratios: ['1:1','16:9','9:16','4:3','3:4'], quality: ['STD','PRO','HIGH'], note: 'Transforms one reference image.' },
+  'qwen/image-edit': { mode: 'image_edit', refsRequired: true, maxRefs: 1, ratios: ['adaptive'], quality: ['PRO','HIGH'], note: 'Edit-focused workflow on source image.' },
+  'qwen2/image-edit': { mode: 'image_edit', refsRequired: true, maxRefs: 1, ratios: ['adaptive'], quality: ['PRO','HIGH'], note: 'Second-gen edit model for precise changes.' },
+  'qwen2/text-to-image': { mode: 'text_to_image', refsRequired: false, maxRefs: 0, ratios: ['1:1','16:9','9:16','4:3','3:4'], quality: ['STD','PRO','HIGH'], note: 'Second-gen text image model.' },
+  'wan-2.7/image': { mode: 'text_to_image', refsRequired: false, maxRefs: 4, ratios: ['1:1','16:9','9:16','4:3','3:4'], quality: ['STD','PRO','HIGH'], note: 'Fast generation with optional controls.' },
+  'wan-2.7/image-pro': { mode: 'text_to_image', refsRequired: false, maxRefs: 4, ratios: ['1:1','16:9','9:16','4:3','3:4'], quality: ['PRO','HIGH'], note: 'Quality-first Wan profile.' },
+  'recraft/remove-background': { mode: 'remove_background', refsRequired: true, maxRefs: 1, ratios: ['source'], quality: ['SOURCE'], note: 'Removes background from source image.' },
+  'seedream-5.0-lite/text-to-image': { mode: 'text_to_image', refsRequired: false, maxRefs: 0, ratios: ['1:1','16:9','9:16','4:3','3:4'], quality: ['STD','PRO'], note: 'Lightweight text generation profile.' },
+  'seedream-5.0-lite/image-to-image': { mode: 'image_to_image', refsRequired: true, maxRefs: 1, ratios: ['1:1','16:9','9:16','4:3','3:4'], quality: ['STD','PRO'], note: 'Lightweight image transform profile.' },
+  'topaz/image-upscale': { mode: 'upscale', refsRequired: true, maxRefs: 1, ratios: ['source'], quality: ['2X','4X'], note: 'Upscale/enhance existing image.' },
+};
+
+function getSelectedModelConfig(){
+  const id = document.getElementById('imageModel').value;
+  const cfg = IMAGE_MODEL_CONFIG[id] || { mode: 'text_to_image', refsRequired: false, maxRefs: 9, ratios: ['1:1','16:9','9:16','4:3','3:4'], quality: ['STD','PRO','HIGH'], note: '' };
+  return { id, ...cfg };
+}
+
+function toggleModelDropdown(event){
+  if(event) event.stopPropagation();
+  const dd = document.getElementById('modelDropdown');
+  if(!dd) return;
+  dd.classList.toggle('open');
+}
+
+function closeModelDropdown(){
+  const dd = document.getElementById('modelDropdown');
+  if(!dd) return;
+  dd.classList.remove('open');
+}
+
+function selectModelOption(btn){
+  if(!btn) return;
+  const id = btn.getAttribute('data-model') || '';
+  const label = btn.getAttribute('data-label') || id;
+  document.getElementById('imageModel').value = id;
+  document.getElementById('modelDdLabel').textContent = label;
+  document.querySelectorAll('#modelDdMenu .model-item').forEach((x)=>x.classList.remove('active'));
+  btn.classList.add('active');
+  syncImageModelUi();
+  closeModelDropdown();
+}
+
+function syncImageModelUi(){
+  const cfg = getSelectedModelConfig();
+  const hint = document.getElementById('modelModeHint');
+  const refsMeta = document.getElementById('promptRefsMeta');
+  const modeLabels = {
+    text_to_image: 'Text to Image',
+    image_to_image: 'Image to Image',
+    image_edit: 'Image Edit',
+    remove_background: 'Remove Background',
+    upscale: 'Image Upscale'
+  };
+  const modeLabel = modeLabels[cfg.mode] || cfg.mode;
+  if(hint) hint.textContent = 'Mode: ' + modeLabel;
+  if(refsMeta){
+    const mx = Number.isFinite(Number(cfg.maxRefs)) ? Number(cfg.maxRefs) : 0;
+    const needed = cfg.refsRequired ? 'Required' : 'Optional';
+    refsMeta.textContent = 'References: ' + needed + (mx>0 ? ' (max '+mx+')' : '');
+  }
+  const qSel = document.getElementById('imageQuality');
+  if(qSel && Array.isArray(cfg.quality) && cfg.quality.length){
+    const current = String(qSel.value || '').toUpperCase();
+    qSel.innerHTML = cfg.quality.map((q)=>'<option>'+q+'</option>').join('');
+    const normalized = cfg.quality.map((q)=>String(q).toUpperCase());
+    qSel.value = normalized.includes(current) ? current : String(cfg.quality[0]).toUpperCase();
+  }
+}
+
+function pickImageRefs(){
+  document.getElementById('imageRefsFile').click();
+}
+
+async function addReferenceFiles(files){
+  if(!files || !files.length) return;
+  const cfg = getSelectedModelConfig();
+  const maxRefs = Number.isFinite(Number(cfg.maxRefs)) && Number(cfg.maxRefs) > 0 ? Number(cfg.maxRefs) : 9;
+  let added = 0;
+  try{
+    for(const file of Array.from(files)){
+      if(!String(file.type || '').startsWith('image/')) continue;
+      if(imageState.refs.length >= maxRefs){
+        setImageStatus('Max '+maxRefs+' reference images reached for current model.', 'warn');
+        break;
+      }
+      const url = await uploadFile(file, 30);
+      imageState.refs.push({ url, name: file.name });
+      added++;
+    }
+    renderRefs();
+    if(added > 0) setImageStatus('Reference images uploaded.', 'ok');
+  }catch(err){
+    setImageStatus('Upload failed: '+(err && err.message ? err.message : String(err)), 'err');
+  }
+}
+
+function renderRefs(){
+  const host = document.getElementById('refList');
+  host.innerHTML = '';
+  imageState.refs.forEach((r,idx)=>{
+    const row = document.createElement('div');
+    row.className = 'ref-item';
+    const safeName = (r.name||('ref_'+(idx+1))).replace(/"/g,'&quot;');
+    row.innerHTML = '<img src="'+String(r.url||'')+'" alt="'+safeName+'"><span title="'+safeName+'">'+(r.name||('ref_'+(idx+1)))+'</span><button class="rm" data-i="'+idx+'">Remove</button>';
+    host.appendChild(row);
+  });
+  host.querySelectorAll('button.rm[data-i]').forEach((b)=>{
+    b.onclick = function(){
+      const i = Number(this.getAttribute('data-i'));
+      if(Number.isFinite(i)) imageState.refs.splice(i,1);
+      renderRefs();
+    }
+  });
+}
+
+function clearImageRefs(){
+  imageState.refs = [];
+  renderRefs();
+}
+
+async function uploadFile(file, maxMb){
+  if(file.size > maxMb * 1024 * 1024) throw new Error('Max '+maxMb+'MB per file');
+  const base64 = await new Promise((resolve,reject)=>{
+    const reader = new FileReader();
+    reader.onload = ()=>{
+      const out = String(reader.result||'');
+      const idx = out.indexOf(',');
+      if(idx < 0) return reject(new Error('Failed to read file'));
+      resolve(out.slice(idx+1));
+    };
+    reader.onerror = ()=>reject(new Error('Failed to read file'));
+    reader.readAsDataURL(file);
+  });
+  const res = await fetch('/api/upload/frame', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ filename:file.name, mimeType:file.type || 'application/octet-stream', base64 })
+  });
+  const json = await res.json();
+  if(!res.ok || !json || !json.url) throw new Error((json && json.msg) || 'Upload failed');
+  return json.url;
+}
+
+async function handleImageRefFiles(input){
+  const files = Array.from(input.files || []);
+  if(files.length) await addReferenceFiles(files);
+  input.value = '';
+}
+
+function getActiveText(id, fallback){
+  const host = document.getElementById(id);
+  const a = host ? host.querySelector('.ch.a') : null;
+  return a ? a.textContent.trim() : fallback;
+}
+
+async function createTask(model, input){
+  const res = await fetch('/api/kie/createTask', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ model, input })
+  });
+  const json = await res.json();
+  if(!res.ok || json.code !== 200 || !json.data || !json.data.taskId){
+    throw new Error(json.msg || ('Create task failed ('+res.status+')'));
+  }
+  return json.data.taskId;
+}
+
+async function waitTask(taskId, timeoutMs){
+  const start = Date.now();
+  while(Date.now() - start < timeoutMs){
+    const res = await fetch('/api/kie/recordInfo?taskId='+encodeURIComponent(taskId));
+    const json = await res.json();
+    if(!res.ok || json.code !== 200 || !json.data){
+      throw new Error(json.msg || ('Polling failed ('+res.status+')'));
+    }
+    const st = String(json.data.state || '').toLowerCase();
+    if(st === 'success') return json.data;
+    if(st === 'fail') throw new Error(json.data.failMsg || json.data.failCode || 'Task failed');
+    await new Promise((r)=>setTimeout(r,1800));
+  }
+  throw new Error('Timeout waiting for image result');
+}
+
+function parseResultUrls(record){
+  const raw = record && record.resultJson;
+  if(!raw) return [];
+  let parsed = null;
+  if(typeof raw === 'object') parsed = raw;
+  else { try{ parsed = JSON.parse(raw); }catch{} }
+  if(!parsed) return [];
+  if(Array.isArray(parsed.resultUrls)) return parsed.resultUrls.filter(Boolean);
+  if(parsed.resultObject && Array.isArray(parsed.resultObject.resultUrls)) return parsed.resultObject.resultUrls.filter(Boolean);
+  if(parsed.resultObject && parsed.resultObject.url) return [parsed.resultObject.url];
+  if(parsed.resultObject && parsed.resultObject.image_url) return [parsed.resultObject.image_url];
+  return [];
+}
+
+async function generateImage(){
+  const prompt = (document.getElementById('iprompt').value || '').trim();
+  const selectedCfg = getSelectedModelConfig();
+  const model = selectedCfg.id;
+  if(!model){
+    setImageStatus('Model id is required.', 'warn');
+    return;
+  }
+  const isTextMode = selectedCfg.mode === 'text_to_image';
+  const requiresRef = selectedCfg.mode === 'image_to_image' || selectedCfg.mode === 'image_edit' || selectedCfg.mode === 'remove_background' || selectedCfg.mode === 'upscale';
+  if(isTextMode && !prompt){
+    setImageStatus('Prompt is required for this model.', 'warn');
+    return;
+  }
+  if(requiresRef && !imageState.refs.length){
+    setImageStatus('This model requires at least 1 reference image.', 'warn');
+    return;
+  }
+
+  const ratio = getActiveText('ratioChips', '1:1');
+  const quality = (document.getElementById('imageQuality').value || 'PRO').toLowerCase();
+  const seedRaw = (document.getElementById('seedInput').value || '').trim();
+
+  const input = {};
+  if(prompt) input.prompt = prompt;
+  input.aspect_ratio = ratio;
+  input.mode = quality;
+  const maxRefs = Number.isFinite(Number(selectedCfg.maxRefs)) && Number(selectedCfg.maxRefs) > 0 ? Number(selectedCfg.maxRefs) : 9;
+  const refs = imageState.refs.slice(0, maxRefs);
+  if(imageState.refs.length > maxRefs){
+    setImageStatus('Using first '+maxRefs+' references (model limit).', 'warn');
+  }
+  if(refs.length){
+    input.image_urls = refs.map((x)=>x.url);
+    input.image_url = refs[0].url;
+  }
+  if(seedRaw){
+    const s = Number(seedRaw);
+    if(!Number.isInteger(s)){
+      setImageStatus('Seed must be an integer.', 'warn');
+      return;
+    }
+    input.seed = s;
+  }
+
+  setGenerateBusy(true);
+  setImageButtons(false);
+  setImageStatus('Submitting image task...', 'info');
+
+  try{
+    const taskId = await createTask(model, input);
+    setImageStatus('Task queued: '+taskId.slice(0,16)+'...', 'info');
+    const record = await waitTask(taskId, 240000);
+    const urls = parseResultUrls(record);
+    if(!urls.length) throw new Error('No output image URL returned');
+
+    imageState.latestUrl = urls[0];
+    imageState.latestName = 'generated_image_'+Date.now()+'.png';
+
+    const img = document.getElementById('imagePreview');
+    img.src = imageState.latestUrl;
+    img.style.display = 'block';
+    document.getElementById('imgPlaceholder').style.display = 'none';
+
+    setImageButtons(true);
+    setImageStatus('Image generated successfully.', 'ok');
+  }catch(err){
+    setImageStatus('Generation failed: '+(err && err.message ? err.message : String(err)), 'err');
+  }finally{
+    setGenerateBusy(false);
+  }
+}
+
+function addImageToTimeline(){
+  if(!imageState.latestUrl){
+    setImageStatus('No image to add.', 'warn');
+    return;
+  }
+  const payload = {
+    type:'ff:addClip',
+    clip:{
+      label: imageState.latestName || ('image_'+Date.now()+'.png'),
+      url: imageState.latestUrl,
+      trackType:'image',
+      durationSec:5
+    }
+  };
+  try{
+    if(window.parent && window.parent !== window){
+      const tf = window.parent.document.getElementById('timelineFrame');
+      if(tf && tf.contentWindow) tf.contentWindow.postMessage(payload,'*');
+    }
+  }catch{}
+  try{
+    const external = document.querySelector('#external-timeline-host iframe');
+    if(external && external.contentWindow) external.contentWindow.postMessage(payload,'*');
+  }catch{}
+  setImageStatus('Image added to timeline.', 'ok');
+}
+
+function downloadImage(){
+  if(!imageState.latestUrl){
+    setImageStatus('No image to download.', 'warn');
+    return;
+  }
+  const a = document.createElement('a');
+  a.href = imageState.latestUrl;
+  a.target = '_blank';
+  a.rel = 'noopener';
+  a.download = imageState.latestName || 'generated_image.png';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setImageStatus('Download started.', 'ok');
+}
+
+setImageButtons(false);
+syncImageModelUi();
+const promptComposer = document.getElementById('promptComposer');
+if(promptComposer){
+  ['dragenter','dragover'].forEach((evt)=>{
+    promptComposer.addEventListener(evt, function(e){
+      e.preventDefault();
+      e.stopPropagation();
+      promptComposer.classList.add('drag');
+    });
+  });
+  ['dragleave','drop'].forEach((evt)=>{
+    promptComposer.addEventListener(evt, function(e){
+      e.preventDefault();
+      e.stopPropagation();
+      promptComposer.classList.remove('drag');
+    });
+  });
+  promptComposer.addEventListener('drop', function(e){
+    const files = Array.from((e.dataTransfer && e.dataTransfer.files) || []);
+    if(files.length) addReferenceFiles(files);
+  });
+}
+document.addEventListener('click', function(ev){
+  const dd = document.getElementById('modelDropdown');
+  if(!dd) return;
+  if(!dd.contains(ev.target)) closeModelDropdown();
+});
+</script>
+<script src="shared/timeline-bridge.js"></script>
+<script src="shared/english-only.js"></script>
+<script src="shared/resizable-panels.js"></script>
+</body>
+</html>

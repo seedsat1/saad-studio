@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Studio Shell</title>
+<style>
+:root{--bg:#181818;--panel:#1e1e1e;--border:#2d2d2d;--text:#d4d4d4;--dim:#7f8b9e;--accent:#4a9eff;color-scheme:dark}
+*{box-sizing:border-box;margin:0;padding:0}
+*{scrollbar-width:thin;scrollbar-color:#3d4a62 #171b22}
+*::-webkit-scrollbar{width:10px;height:10px}
+*::-webkit-scrollbar-track{background:#171b22;border-left:1px solid #252d3a}
+*::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#42526d,#344157);border:2px solid #171b22;border-radius:999px}
+*::-webkit-scrollbar-thumb:hover{background:linear-gradient(180deg,#4e6283,#3d4f69)}
+*::-webkit-scrollbar-corner{background:#171b22}
+body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe UI,sans-serif;overflow:hidden;display:flex;flex-direction:column}
+.menubar{height:38px;background:linear-gradient(180deg,#111723,#0d121a);border-bottom:1px solid #243046;display:flex;align-items:center;padding:0 12px;gap:10px;font-size:11px}
+.brand-wrap{display:flex;align-items:center;gap:10px;min-width:0}
+.brand-mark{width:18px;height:18px;border-radius:5px;background:linear-gradient(135deg,#5bb2ff,#2f6cff);box-shadow:0 0 0 1px rgba(121,178,255,.35) inset,0 0 14px rgba(63,123,255,.25);position:relative;flex-shrink:0}
+.brand-mark::after{content:'';position:absolute;inset:4px;border-radius:3px;border:1px solid rgba(225,240,255,.55)}
+.brand-stack{display:flex;flex-direction:column;line-height:1}
+.brand{color:#58acff;font-weight:800;letter-spacing:.9px;font-size:12px}
+.brand-sub{color:#8ea2bf;font-size:10px;letter-spacing:.35px}
+.sp{flex:1}
+.tabs{height:34px;background:#1a1a1a;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 8px;gap:2px}
+.tab{padding:7px 12px;border-bottom:2px solid transparent;color:var(--dim);text-decoration:none;font-size:11px;cursor:pointer}
+.tab:hover{color:#dbe7ff}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.workspace{flex:1;display:flex;flex-direction:column;overflow:hidden}
+#topHost{flex:1 1 auto;min-height:240px;overflow:hidden;display:flex;min-width:0}
+#toolHost{flex:1 1 auto;min-width:280px;overflow:hidden}
+#topFrame{width:100%;height:100%;border:0;background:#1b1b1b;display:block}
+#previewSplit{width:8px;cursor:col-resize;flex-shrink:0;background:#191c22;border-left:1px solid #2a2f38;border-right:1px solid #2a2f38;position:relative}
+#previewSplit:hover,#previewSplit.dragging{background:#1f2530}
+#previewSplit::before{content:'';position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:2px;height:28px;background:#7e8da6;box-shadow:-4px 0 0 #7e8da6,4px 0 0 #7e8da6;border-radius:2px}
+#previewPanel{width:420px;min-width:280px;max-width:55vw;background:#13161d;border-left:1px solid #2b313d;display:flex;flex-direction:column;overflow:hidden}
+.pHead{height:34px;display:flex;align-items:center;justify-content:space-between;padding:0 10px;border-bottom:1px solid #2a2f38;background:#141923;font-size:11px;gap:8px}
+.pTitle{color:#b7d8ff;font-weight:700;letter-spacing:.6px}
+.pActions{display:flex;align-items:center;gap:6px}
+.pBody{flex:1;display:flex;flex-direction:column;padding:10px;gap:8px;overflow:hidden}
+#previewStage{flex:1;min-height:0;position:relative;border:1px solid #2b3342;border-radius:8px;background:#0d121b;overflow:hidden}
+#previewCanvas{background:linear-gradient(160deg,#0a0f18,#111d30 45%,#0c1220);border:1px solid #2b3342;border-radius:8px;display:flex;align-items:center;justify-content:center;position:absolute;overflow:hidden;cursor:zoom-in;left:50%;top:50%;transform:translate(-50%,-50%)}
+#previewCanvas::after{content:'';position:absolute;inset:0;background:radial-gradient(circle at 35% 30%,rgba(74,158,255,.18),transparent 42%),radial-gradient(circle at 70% 65%,rgba(61,125,218,.14),transparent 38%)}
+#previewLayers{position:absolute;inset:0;z-index:1;pointer-events:none}
+.previewLayer{position:absolute;inset:0;pointer-events:none}
+.previewLayerMedia{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:transparent}
+#previewAudio{position:absolute;left:10px;right:10px;bottom:10px;z-index:3;display:none}
+#previewLabel{position:relative;z-index:2;font-size:13px;color:#cde2ff;background:rgba(8,12,18,.72);border:1px solid #2a3242;border-radius:6px;padding:6px 10px;max-width:90%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#previewProgress{height:6px;background:#212839;border-radius:999px;overflow:hidden;border:1px solid #2b3342;flex-shrink:0}
+#previewProgress > div{height:100%;width:0;background:linear-gradient(90deg,#4a9eff,#72c3ff)}
+#previewMeta{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px;color:#96a9c3;flex-shrink:0}
+#pTC{font-family:JetBrains Mono,Consolas,monospace;color:#d9ecff}
+#previewExpand{border:1px solid #35435a;background:#1a2332;color:#b9d9ff;border-radius:5px;font-size:10px;padding:4px 8px;cursor:pointer}
+#previewExpand:hover{border-color:#5ea9ff;color:#dff0ff}
+#previewExport{border:1px solid #35435a;background:#121a27;color:#a9c9f2;border-radius:5px;font-size:10px;padding:4px 8px;cursor:pointer}
+#previewExport:hover{border-color:#5ea9ff;color:#dff0ff}
+#splitter{height:8px;cursor:row-resize;flex-shrink:0;background:#191c22;border-top:1px solid #2a2f38;border-bottom:1px solid #2a2f38;position:relative}
+#splitter:hover,#splitter.dragging{background:#1f2530}
+#splitter::before{content:'';position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:30px;height:2px;background:#7e8da6;box-shadow:0 -4px 0 #7e8da6,0 4px 0 #7e8da6;border-radius:2px}
+#timelineHost{height:260px;min-height:180px;flex:0 0 auto;border-top:1px solid var(--border);background:#151515}
+#timelineFrame{width:100%;height:100%;border:0;display:block}
+</style>
+</head>
+<body>
+  <div class="menubar">
+    <div class="brand-wrap">
+      <span class="brand-mark"></span>
+      <span class="brand-stack">
+        <span class="brand">SAAD STUDIO</span>
+        <span class="brand-sub">Cinema Workspace</span>
+      </span>
+    </div>
+    <span class="sp"></span>
+    <span style="color:#7c8eab;font-size:10px">Persistent Timeline + Right Preview</span>
+  </div>
+
+  <div class="tabs" id="tabs">
+    <a class="tab" data-page="sound" href="#sound">Audio & Music</a>
+    <a class="tab" data-page="video" href="#video">Video Generation</a>
+    <a class="tab" data-page="presets" href="#presets">Generate Image</a>
+    <a class="tab" data-page="transitions" href="#transitions">Transitions</a>
+    <a class="tab" data-page="lighting" href="#lighting">Lighting</a>
+    <a class="tab" data-page="prompt" href="#prompt">Prompt</a>
+  </div>
+
+  <div class="workspace" id="workspace">
+    <div id="topHost">
+      <div id="toolHost"><iframe id="topFrame" title="Top Workspace"></iframe></div>
+      <div id="previewSplit" title="Resize preview panel"></div>
+      <aside id="previewPanel">
+        <div class="pHead">
+          <span class="pTitle">Program Preview</span>
+          <span id="pPage" style="color:#8ea3bf;flex:1;text-align:right">Prompt</span>
+          <div class="pActions">
+            <button id="previewExport" title="Export active media">Export</button>
+            <button id="previewExpand" title="Expand preview">Expand</button>
+          </div>
+        </div>
+        <div class="pBody">
+          <div id="previewStage">
+            <div id="previewCanvas">
+              <div id="previewLayers"></div>
+              <audio id="previewAudio" controls></audio>
+              <span id="previewLabel">No clip selected</span>
+            </div>
+          </div>
+          <div id="previewProgress"><div id="previewProgressFill"></div></div>
+          <div id="previewMeta">
+            <span id="pTC">00:00:00:00</span>
+            <span id="pPlay">Paused</span>
+            <span id="pClip">No clip</span>
+          </div>
+        </div>
+      </aside>
+    </div>
+    <div id="splitter"></div>
+    <div id="timelineHost"><iframe id="timelineFrame" title="Timeline" src="timeline/index.html?v=jsx-10-shell"></iframe></div>
+  </div>
+
+<script>
+(function(){
+  var PAGE_KEY='ff_shell_page';
+  var H_KEY='ff_timeline_height';
+  var PREVIEW_W_KEY='ff_preview_width';
+  var MIN_TL=180;
+  var MIN_TOP=240;
+  var SPL=8;
+
+  var tabs=[].slice.call(document.querySelectorAll('.tab'));
+  var topFrame=document.getElementById('topFrame');
+  var timelineHost=document.getElementById('timelineHost');
+  var splitter=document.getElementById('splitter');
+  var workspace=document.getElementById('workspace');
+  var previewPanel=document.getElementById('previewPanel');
+  var previewSplit=document.getElementById('previewSplit');
+  var previewStage=document.getElementById('previewStage');
+  var previewCanvas=document.getElementById('previewCanvas');
+  var previewLayers=document.getElementById('previewLayers');
+  var previewAudio=document.getElementById('previewAudio');
+  var visualLayerMap={};
+  var lastAudioKey='';
+
+  var pPage=document.getElementById('pPage');
+  var pTC=document.getElementById('pTC');
+  var pPlay=document.getElementById('pPlay');
+  var pClip=document.getElementById('pClip');
+  var pLabel=document.getElementById('previewLabel');
+  var pFill=document.getElementById('previewProgressFill');
+  var previewExpand=document.getElementById('previewExpand');
+  var previewExport=document.getElementById('previewExport');
+  var currentRatio='16:9';
+  var lastTimelineState=null;
+  var topFrameKeyHandlerBound=false;
+  var liveLightingProfile=null;
+  var liveLightingTargetId='';
+
+  function pageLabel(page){
+    var map={sound:'Audio & Music',video:'Video Generation',presets:'Generate Image',transitions:'Transitions',lighting:'Lighting',prompt:'Prompt'};
+    return map[page] || 'Prompt';
+  }
+
+  function getPageFromLocation(){
+    var q=new URLSearchParams(location.search).get('page');
+    if(q) return q;
+    var h=(location.hash||'').replace('#','').trim();
+    if(h) return h;
+    return localStorage.getItem(PAGE_KEY)||'prompt';
+  }
+
+  function setActive(page){
+    tabs.forEach(function(t){ t.classList.toggle('active', t.dataset.page===page); });
+    pPage.textContent=pageLabel(page);
+  }
+
+  function loadPage(page,push){
+    var allowed=['sound','video','presets','transitions','lighting','prompt'];
+    if(allowed.indexOf(page)===-1) page='prompt';
+    setActive(page);
+    localStorage.setItem(PAGE_KEY,page);
+    var bust = Date.now();
+    topFrame.src=page+'.html?embed=1&v='+bust;
+    var url='studio-shell.html?page='+encodeURIComponent(page)+'#'+encodeURIComponent(page);
+    if(push) history.pushState({page:page},'',url); else history.replaceState({page:page},'',url);
+  }
+
+  function postTimelineMessage(payload){
+    try{
+      var tf=document.getElementById('timelineFrame');
+      if(tf && tf.contentWindow){
+        tf.contentWindow.postMessage(payload, '*');
+      }
+    }catch(_e){}
+  }
+
+  function postTransportToggle(){
+    postTimelineMessage({ type:'ff:transport-toggle' });
+  }
+
+  function isTimelineShortcutEvent(e){
+    var code=String(e.code||'');
+    var key=String(e.key||'');
+    if(code==='Space' || key===' ' || key==='Spacebar' || e.keyCode===32 || e.which===32) return true;
+    if(code==='Delete' || code==='Backspace') return true;
+    if(code==='ArrowLeft' || code==='ArrowRight' || code==='Home' || code==='End') return true;
+    var mod = !!(e.ctrlKey || e.metaKey);
+    if(mod && !e.altKey && (code==='KeyZ' || code==='KeyY' || code==='KeyU')) return true;
+    if(code==='KeyV' || code==='KeyT' || code==='KeyB' || code==='KeyS' || code==='KeyH' || code==='KeyA' || code==='KeyP' || code==='KeyN' || code==='KeyL' || code==='KeyU') return true;
+    return false;
+  }
+
+  function forwardTimelineHotkey(e){
+    if(!isTimelineShortcutEvent(e)) return false;
+    postTimelineMessage({
+      type:'ff:timeline-hotkey',
+      event:{
+        key:e.key,
+        code:e.code,
+        keyCode:e.keyCode||e.which||0,
+        which:e.which||e.keyCode||0,
+        ctrlKey:!!e.ctrlKey,
+        metaKey:!!e.metaKey,
+        altKey:!!e.altKey,
+        shiftKey:!!e.shiftKey
+      }
+    });
+    return true;
+  }
+
+  function bindTopFrameHotkeys(){
+    if(!topFrame || !topFrame.contentWindow) return;
+    var w=topFrame.contentWindow;
+    if(w.__ffTimelineHotkeysBound) return;
+    var onKey=function(e){
+      if(isTypingTarget(e.target)) return;
+      if(forwardTimelineHotkey(e)){
+        e.preventDefault();
+      }
+    };
+    try{
+      w.addEventListener('keydown', onKey, true);
+      if(w.document) w.document.addEventListener('keydown', onKey, true);
+      w.__ffTimelineHotkeysBound=true;
+    }catch(_e){}
+  }
+
+  function maxTimeline(){
+    return Math.max(MIN_TL,(workspace.clientHeight||window.innerHeight)-MIN_TOP-SPL);
+  }
+
+  function applyHeight(raw,persist){
+    var h=Math.max(MIN_TL,Math.min(maxTimeline(),raw));
+    timelineHost.style.height=h+'px';
+    if(persist) localStorage.setItem(H_KEY,String(Math.round(h)));
+  }
+
+  function applyPreviewWidth(raw,persist){
+    var maxW=Math.max(280, Math.floor(window.innerWidth*0.55));
+    var minW=280;
+    var w=Math.max(minW,Math.min(maxW,raw));
+    previewPanel.style.width=w+'px';
+    if(persist) localStorage.setItem(PREVIEW_W_KEY,String(Math.round(w)));
+    fitPreview();
+  }
+
+  function ratioToWH(r){
+    if(r==='9:16') return {w:9,h:16};
+    if(r==='1:1') return {w:1,h:1};
+    if(r==='4:3') return {w:4,h:3};
+    if(r==='3:4') return {w:3,h:4};
+    return {w:16,h:9};
+  }
+
+  function buildLightingFilter(profile){
+    if(!profile || typeof profile!=='object') return '';
+    var br = Number(profile.br); if(!Number.isFinite(br)) br = 50;
+    var co = Number(profile.co); if(!Number.isFinite(co)) co = 50;
+    var te = Number(profile.te); if(!Number.isFinite(te)) te = 50;
+    var ex = Number(profile.ex); if(!Number.isFinite(ex)) ex = 50;
+    var sa = Number(profile.sa); if(!Number.isFinite(sa)) sa = 50;
+    var sp = Number(profile.sp); if(!Number.isFinite(sp)) sp = 50;
+    var brightness = 1 + ((br - 50) / 100) * 0.7 + ((ex - 50) / 100) * 0.4;
+    var contrast = 1 + ((co - 50) / 100) * 0.9 + ((sp - 50) / 100) * 0.25;
+    var saturation = 1 + ((sa - 50) / 100) * 1.2;
+    var hueRotate = Math.round((50 - te) * 0.8);
+    var sepia = Math.max(0, (te - 50) / 180);
+    brightness = Math.max(0.25, Math.min(2.2, brightness));
+    contrast = Math.max(0.25, Math.min(2.2, contrast));
+    saturation = Math.max(0.0, Math.min(2.5, saturation));
+
+    return 'brightness(' + brightness.toFixed(3) + ') ' +
+      'contrast(' + contrast.toFixed(3) + ') ' +
+      'saturate(' + saturation.toFixed(3) + ') ' +
+      'hue-rotate(' + hueRotate + 'deg) ' +
+      'sepia(' + sepia.toFixed(3) + ')';
+  }
+
+  function fitPreview(){
+    if(!previewStage || !previewCanvas) return;
+    var rect=previewStage.getBoundingClientRect();
+    var rw=ratioToWH(currentRatio).w;
+    var rh=ratioToWH(currentRatio).h;
+    var maxW=Math.max(0, rect.width-18);
+    var maxH=Math.max(0, rect.height-18);
+    if(maxW<=0 || maxH<=0) return;
+    var width=maxW;
+    var height=(width*rh)/rw;
+    if(height>maxH){
+      height=maxH;
+      width=(height*rw)/rh;
+    }
+    previewCanvas.style.width=Math.floor(width)+'px';
+    previewCanvas.style.height=Math.floor(height)+'px';
+  }
+
+  function disposeVisualLayer(entry){
+    if(!entry) return;
+    try{
+      if(entry.media && entry.media.tagName==='VIDEO'){
+        entry.media.pause();
+        entry.media.removeAttribute('src');
+      } else if(entry.media){
+        entry.media.removeAttribute('src');
+      }
+    }catch(_e){}
+    if(entry.node && entry.node.parentNode){
+      entry.node.parentNode.removeChild(entry.node);
+    }
+  }
+
+  function clearVisualLayers(){
+    Object.keys(visualLayerMap).forEach(function(id){
+      disposeVisualLayer(visualLayerMap[id]);
+      delete visualLayerMap[id];
+    });
+  }
+
+  function ensureVisualLayer(clip){
+    var id=String(clip.id||'');
+    var kind=String(clip.kind||'video').toLowerCase();
+    var visualKind=(kind==='image' || kind==='psd') ? 'image' : 'video';
+    var existing=visualLayerMap[id];
+    if(existing && existing.visualKind!==visualKind){
+      disposeVisualLayer(existing);
+      delete visualLayerMap[id];
+      existing=null;
+    }
+    if(!existing){
+      var node=document.createElement('div');
+      node.className='previewLayer';
+      var media;
+      if(visualKind==='image'){
+        media=document.createElement('img');
+        media.alt='Preview layer';
+      } else {
+        media=document.createElement('video');
+        media.setAttribute('playsinline','');
+        media.muted=true;
+        media.volume=0;
+      }
+      media.className='previewLayerMedia';
+      node.appendChild(media);
+      previewLayers.appendChild(node);
+      existing={ id:id, kind:kind, visualKind:visualKind, node:node, media:media, lastSrc:'' };
+      visualLayerMap[id]=existing;
+    }
+    return existing;
+  }
+
+  function clearPreviewMedia(){
+    clearVisualLayers();
+    previewAudio.style.display='none';
+    previewAudio.pause();
+    previewAudio.removeAttribute('src');
+    lastAudioKey='';
+  }
+
+  function syncAudioClip(clip, playing, frame){
+    if(!clip || !clip.url){
+      previewAudio.style.display='none';
+      previewAudio.pause();
+      previewAudio.removeAttribute('src');
+      lastAudioKey='';
+      return;
+    }
+    var key=[clip.id||'', clip.url||'', clip.kind||'audio'].join('|');
+    var changed=lastAudioKey!==key;
+    lastAudioKey=key;
+    if(changed) previewAudio.src=String(clip.url||'');
+    previewAudio.style.display='none';
+    var audioTime = 0;
+    if(typeof frame==='number' && typeof clip.start==='number'){
+      audioTime = Math.max(0, (frame - clip.start) / 30);
+    }
+    if(Number.isFinite(audioTime) && (changed || Math.abs((previewAudio.currentTime||0)-audioTime)>0.12)){
+      try{ previewAudio.currentTime = audioTime; }catch(_e){}
+    }
+    if(playing){
+      previewAudio.play().catch(function(){});
+    } else {
+      previewAudio.pause();
+    }
+  }
+
+  function renderPreviewMedia(state, playing, frame){
+    var visuals=(state && Array.isArray(state.activeVisualClips)) ? state.activeVisualClips.filter(function(c){ return !!(c && c.url); }) : [];
+    var audioClip=(state && state.activeAudioClip && state.activeAudioClip.url) ? state.activeAudioClip : null;
+    var selectedClip=state && state.selectedClip ? state.selectedClip : null;
+
+    if(!visuals.length){
+      clearVisualLayers();
+      syncAudioClip(audioClip, playing, frame);
+      if(audioClip){
+        pLabel.style.display='inline-block';
+        pLabel.textContent=audioClip.label || 'Audio Clip';
+      } else {
+        pLabel.style.display='inline-block';
+        pLabel.textContent='No clip selected';
+      }
+      return;
+    }
+
+    var desiredIds={};
+    visuals.forEach(function(clip, idx){
+      var id=String(clip.id||'');
+      if(!id) return;
+      desiredIds[id]=true;
+      var layer=ensureVisualLayer(clip);
+      if(!layer) return;
+      layer.node.style.zIndex=String(1+idx);
+      layer.node.style.display='block';
+      var src=String(clip.url||'');
+      var kind=String(clip.kind||'video').toLowerCase();
+      var effectiveLighting = clip.lighting;
+      if(liveLightingProfile){
+        var liveTargetId = liveLightingTargetId ||
+          (state && state.selectedClip && state.selectedClip.id) ||
+          (state && state.activeVisualClip && state.activeVisualClip.id) || '';
+        if(!liveTargetId || String(clip.id||'')===String(liveTargetId)){
+          effectiveLighting = liveLightingProfile;
+        }
+      }
+      if(kind==='image' || kind==='psd'){
+        if(layer.lastSrc!==src){
+          layer.media.src=src;
+          layer.lastSrc=src;
+        }
+        layer.media.style.filter = buildLightingFilter(effectiveLighting);
+      } else {
+        if(layer.lastSrc!==src){
+          layer.media.src=src;
+          layer.lastSrc=src;
+        }
+        var videoTime=0;
+        if(typeof frame==='number' && typeof clip.start==='number'){
+          videoTime=Math.max(0,(frame-clip.start)/30);
+        }
+        if(Number.isFinite(videoTime) && Math.abs((layer.media.currentTime||0)-videoTime)>0.18){
+          try{ layer.media.currentTime=videoTime; }catch(_e){}
+        }
+        if(playing){
+          layer.media.play().catch(function(){});
+        } else {
+          layer.media.pause();
+        }
+        layer.media.style.filter = buildLightingFilter(effectiveLighting);
+      }
+    });
+
+    Object.keys(visualLayerMap).forEach(function(id){
+      if(desiredIds[id]) return;
+      disposeVisualLayer(visualLayerMap[id]);
+      delete visualLayerMap[id];
+    });
+
+    syncAudioClip(audioClip, playing, frame);
+
+    pLabel.style.display='none';
+    if(selectedClip && selectedClip.kind==='audio'){
+      pLabel.style.display='inline-block';
+      pLabel.textContent=selectedClip.label || 'Audio Clip';
+    }
+  }
+
+  tabs.forEach(function(tab){
+    tab.addEventListener('click',function(e){
+      e.preventDefault();
+      loadPage(tab.dataset.page,true);
+    });
+  });
+
+  window.addEventListener('popstate',function(){ loadPage(getPageFromLocation(),false); });
+
+  var savedH=Number(localStorage.getItem(H_KEY)||260);
+  if(!Number.isFinite(savedH)||savedH<=0) savedH=260;
+  applyHeight(savedH,false);
+
+  var savedW=Number(localStorage.getItem(PREVIEW_W_KEY)||420);
+  if(!Number.isFinite(savedW)||savedW<=0) savedW=420;
+  applyPreviewWidth(savedW,false);
+
+  splitter.addEventListener('mousedown',function(e){
+    e.preventDefault(); splitter.classList.add('dragging');
+    var startY=e.clientY; var startH=timelineHost.getBoundingClientRect().height;
+    var shield=document.createElement('div');
+    shield.style.position='fixed'; shield.style.inset='0'; shield.style.zIndex='999999'; shield.style.cursor='row-resize'; shield.style.background='transparent';
+    document.body.appendChild(shield);
+
+    function onMove(ev){ applyHeight(startH + (startY-ev.clientY), false); }
+    function onUp(){ splitter.classList.remove('dragging'); applyHeight(timelineHost.getBoundingClientRect().height,true); if(shield.parentNode) shield.parentNode.removeChild(shield); window.removeEventListener('mousemove',onMove); window.removeEventListener('mouseup',onUp); }
+    shield.addEventListener('mousemove',onMove); shield.addEventListener('mouseup',onUp);
+    window.addEventListener('mousemove',onMove); window.addEventListener('mouseup',onUp);
+  });
+
+  previewSplit.addEventListener('mousedown',function(e){
+    e.preventDefault(); previewSplit.classList.add('dragging');
+    var startX=e.clientX; var startW=previewPanel.getBoundingClientRect().width;
+    var shield=document.createElement('div');
+    shield.style.position='fixed'; shield.style.inset='0'; shield.style.zIndex='999999'; shield.style.cursor='col-resize'; shield.style.background='transparent';
+    document.body.appendChild(shield);
+
+    function onMove(ev){ applyPreviewWidth(startW - (ev.clientX-startX), false); }
+    function onUp(){ previewSplit.classList.remove('dragging'); applyPreviewWidth(previewPanel.getBoundingClientRect().width,true); if(shield.parentNode) shield.parentNode.removeChild(shield); window.removeEventListener('mousemove',onMove); window.removeEventListener('mouseup',onUp); }
+    shield.addEventListener('mousemove',onMove); shield.addEventListener('mouseup',onUp);
+    window.addEventListener('mousemove',onMove); window.addEventListener('mouseup',onUp);
+  });
+
+  window.addEventListener('resize',function(){
+    applyHeight(timelineHost.getBoundingClientRect().height,false);
+    applyPreviewWidth(previewPanel.getBoundingClientRect().width,false);
+    fitPreview();
+  });
+
+  window.addEventListener('message', function(event){
+    var d=event && event.data;
+    if(d && d.type==='ff:timeline-hotkey' && d.event){
+      postTimelineMessage({ type:'ff:timeline-hotkey', event:d.event });
+      return;
+    }
+    if(d && d.type==='ff:transport-toggle'){
+      postTransportToggle();
+      return;
+    }
+    if(d && d.type==='ff:transport-play'){
+      try{
+        var tf=document.getElementById('timelineFrame');
+        if(tf && tf.contentWindow){
+          tf.contentWindow.postMessage({ type:'ff:transport-play' }, '*');
+        }
+      }catch(_e){}
+      return;
+    }
+    if(d && d.type==='ff:transport-pause'){
+      try{
+        var tf2=document.getElementById('timelineFrame');
+        if(tf2 && tf2.contentWindow){
+          tf2.contentWindow.postMessage({ type:'ff:transport-pause' }, '*');
+        }
+      }catch(_e){}
+      return;
+    }
+    if(d && d.type==='ff:lightingLivePreview' && d.profile){
+      liveLightingProfile = d.profile;
+      liveLightingTargetId = String(d.targetClipId || '');
+      if(lastTimelineState){
+        renderPreviewMedia(lastTimelineState, !!lastTimelineState.playing, Number(lastTimelineState.frame || 0));
+      }
+      return;
+    }
+    if(d && d.type==='ff:applyLightingGrade'){
+      if(d.profile){
+        liveLightingProfile = d.profile;
+        liveLightingTargetId = String(d.targetClipId || '');
+      }
+      postTimelineMessage(d);
+      return;
+    }
+    if(!d || d.type!=='ff:timeline-state') return;
+    lastTimelineState=d;
+    if(d.ratio) currentRatio=String(d.ratio);
+    pTC.textContent=d.timecode || '00:00:00:00';
+    pPlay.textContent=d.playing ? 'Playing' : 'Paused';
+    pClip.textContent=(d.activeClip && d.activeClip.label) ? d.activeClip.label : 'No clip';
+    pLabel.textContent=(d.activeClip && d.activeClip.label) ? d.activeClip.label : 'No clip selected';
+    if(d.activeClip && d.activeClip.ratio) currentRatio=String(d.activeClip.ratio);
+    var tf=Number(d.totalFrames || 0);
+    var fr=Number(d.frame || 0);
+    var pct=tf>0 ? Math.max(0,Math.min(100,(fr/tf)*100)) : 0;
+    pFill.style.width=pct.toFixed(2)+'%';
+    renderPreviewMedia(d, !!d.playing, Number(d.frame || 0));
+    fitPreview();
+  });
+
+  function downloadFile(url, fallbackName){
+    if(!url) return;
+    var a=document.createElement('a');
+    a.href=url;
+    a.download=fallbackName || 'export_media';
+    a.target='_blank';
+    a.rel='noopener';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+
+  function exportActiveMedia(){
+    var d=lastTimelineState || {};
+    var clip=d.selectedClip || d.activeVisualClip || d.activeClip || null;
+    if(!clip || !clip.url){
+      pLabel.style.display='inline-block';
+      pLabel.textContent='No active media to export';
+      return;
+    }
+    var name=(clip.label||'export_media').replace(/[\\/:*?\"<>|]/g,'_');
+    downloadFile(clip.url, name);
+  }
+
+  function togglePreviewFullscreen(){
+    if(document.fullscreenElement===previewPanel){
+      document.exitFullscreen && document.exitFullscreen();
+      return;
+    }
+    if(previewPanel.requestFullscreen){
+      previewPanel.requestFullscreen();
+    }
+  }
+  previewCanvas.addEventListener('click', togglePreviewFullscreen);
+  previewExpand.addEventListener('click', togglePreviewFullscreen);
+  previewExport.addEventListener('click', exportActiveMedia);
+
+  function isTypingTarget(el){
+    if(!el) return false;
+    var tag=String(el.tagName||'').toUpperCase();
+    if(tag==='INPUT' || tag==='TEXTAREA' || tag==='SELECT') return true;
+    if(el.isContentEditable) return true;
+    return false;
+  }
+
+  window.addEventListener('keydown', function(e){
+    if(isTypingTarget(e.target)) return;
+    if(forwardTimelineHotkey(e)){
+      e.preventDefault();
+    }
+  }, true);
+
+  topFrame.addEventListener('load', function(){
+    bindTopFrameHotkeys();
+  });
+
+  loadPage(getPageFromLocation(),false);
+  bindTopFrameHotkeys();
+  fitPreview();
+})();
+</script>
+</body>
+</html>

@@ -135,7 +135,7 @@ const IMAGE_MODEL_GROUPS = [
 
 const VIDEO_FEATURES = [
   { label: "Create Video",        href: "/video",           icon: VideoIcon,    color: "text-orange-400",  description: "Text-to-video generation",             badge: "" },
-  { label: "Video Project Editor",href: "/video-editor",    icon: Scissors,     color: "text-cyan-300",    description: "Timeline editing workspace",            badge: "NEW" },
+  { label: "Cinema Workspace",   href: "/video-editor",    icon: Scissors,     color: "text-cyan-300",    description: "Unified studio shell workspace",      badge: "NEW" },
   { label: "Cinema Studio",       href: "/cinema-studio",   icon: Clapperboard, color: "text-violet-400",  description: "Professional cinematic production",      badge: "TOP" },
   { label: "Mixed Media",         href: "/video?tool=mixed-media",      icon: Blend,        color: "text-pink-400",    description: "Combine multiple visual styles",         badge: "" },
   { label: "Edit Video",          href: "/edit",            icon: Scissors,     color: "text-cyan-400",    description: "Advanced AI timeline editing",           badge: "" },
@@ -413,7 +413,7 @@ function appHref(app: string): string {
 
 const STUDIO_LINKS = [
   { label: "Character", href: "/character", icon: Drama, color: "text-violet-400" },
-  { label: "Video Editor", href: "/video-editor", icon: Scissors, color: "text-cyan-300" },
+  { label: "Cinema Workspace", href: "/video-editor", icon: Scissors, color: "text-cyan-300" },
   { label: "Moodboard", href: "/moodboard", icon: Palette, color: "text-rose-400" },
   { label: "Cinema Studio", href: "/cinema-studio", icon: Clapperboard, color: "text-amber-400" },
   { label: "Original Series", href: "/original-series", icon: Monitor, color: "text-blue-400" },

@@ -1,0 +1,27 @@
+﻿<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>External Timeline</title>
+  <style>
+    html, body, #app { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #141414; zoom: 1; color-scheme: dark; }
+    * { scrollbar-width: thin; scrollbar-color: #3d4a62 #171b22; }
+    *::-webkit-scrollbar { width: 10px; height: 10px; }
+    *::-webkit-scrollbar-track { background: #171b22; border-left: 1px solid #252d3a; }
+    *::-webkit-scrollbar-thumb { background: linear-gradient(180deg,#42526d,#344157); border: 2px solid #171b22; border-radius: 999px; }
+    *::-webkit-scrollbar-thumb:hover { background: linear-gradient(180deg,#4e6283,#3d4f69); }
+    *::-webkit-scrollbar-corner { background: #171b22; }
+  </style>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+  <div id="app"></div>
+  <script type="text/babel" data-presets="react" src="timeline-runtime.jsx"></script>
+</body>
+</html>
+
+
+

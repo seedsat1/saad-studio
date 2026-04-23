@@ -1,0 +1,893 @@
+﻿<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title> </title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#181818;--panel:#1e1e1e;--panel2:#232323;--border:#2d2d2d;--border2:#3a3a3a;--text:#d4d4d4;--dim:#777;--dim2:#555;--accent:#4a9eff;--accent2:#5cb8ff;--green:#4caf50;--orange:#ff9800;--red:#f44336;--purple:#b388ff;--cyan:#26c6da;--yellow:#ffd54f}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'Tajawal',sans-serif;height:100vh;overflow:hidden;display:flex;flex-direction:column}
+.menubar{height:24px;background:#111;display:flex;align-items:center;padding:0 8px;gap:2px;border-bottom:1px solid #222;font-size:11px}
+.menubar span{padding:2px 8px;color:var(--dim);cursor:pointer;border-radius:2px}.menubar span:hover{color:var(--text);background:#333}
+.menubar .spacer{flex:1}.menubar .title{color:var(--accent);font-weight:700;letter-spacing:1px}
+.page-tabs{height:30px;background:#1a1a1a;display:flex;align-items:center;border-bottom:1px solid var(--border);padding:0 8px}
+.page-tab{padding:5px 14px;font-size:10px;color:var(--dim);cursor:pointer;border-bottom:2px solid transparent;transition:.15s;text-decoration:none;font-family:'Tajawal'}
+.page-tab:hover{color:var(--text)}.page-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.workspace{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.top-row{flex:1;display:flex;min-height:0}
+.bottom-row{height:200px;border-top:2px solid var(--border);display:flex;flex-direction:column}
+.panel{background:var(--panel);display:flex;flex-direction:column;overflow:hidden}
+.ph{height:26px;background:#252525;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 10px;gap:8px;flex-shrink:0}
+.ph .l{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;font-weight:700;cursor:pointer}.ph .l.a{color:var(--accent)}
+.pb{flex:1;overflow-y:auto;padding:8px;font-size:11px}
+.vr{width:2px;background:var(--border);cursor:col-resize;flex-shrink:0}.vr:hover{background:var(--accent)}
+.left-panel{width:240px}.right-panel{width:320px}.center-panel{flex:1;display:flex;flex-direction:column}
+/* search */
+.sb{display:flex;align-items:center;background:#1a1a1a;border:1px solid var(--border);border-radius:3px;padding:0 6px;margin-bottom:6px}
+.sb input{flex:1;background:none;border:none;color:var(--text);font-size:12px;padding:6px 4px;outline:none;font-family:'Tajawal';line-height:1.35}
+/* lib items */
+.lt{font-size:10px;color:#9aa4b2;text-transform:uppercase;letter-spacing:.55px;padding:7px 0 5px;font-weight:700;cursor:pointer}
+.li{display:flex;align-items:center;gap:7px;padding:6px 8px;border-radius:4px;cursor:pointer;font-size:13px;color:#c8d0dc;transition:.12s;line-height:1.35}
+.li:hover{background:var(--panel2);color:var(--text)}.li.a{background:rgba(74,158,255,.12);color:var(--accent)}
+.li .ic{font-size:15px;width:20px;text-align:center;opacity:.95}
+.li .dr{margin-right:auto;font-size:11px;color:#8e9ab0;font-family:'JetBrains Mono';letter-spacing:.2px}
+/* preview */
+.prev{flex:1;background:#111;border:1px solid var(--border);margin:6px;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
+.wd{width:90%;height:55%;display:flex;align-items:center;gap:2px;justify-content:center}
+.wb{width:3px;border-radius:2px;background:var(--accent);opacity:.5;animation:wa 1.8s ease-in-out infinite;animation-play-state:paused}
+@keyframes wa{0%,100%{height:6px}50%{height:100%}}
+.tp{height:34px;background:#1a1a1a;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:center;gap:3px;flex-shrink:0}
+.tp button{width:26px;height:26px;border:none;background:none;color:var(--dim);cursor:pointer;border-radius:3px;font-size:12px;display:flex;align-items:center;justify-content:center}
+.tp button:hover{background:var(--panel2);color:var(--text)}
+.tp .pb2{background:var(--accent);color:#fff;border-radius:50%;width:28px;height:28px}.tp .pb2:hover{background:var(--accent2)}
+.tc{font-size:18px;font-family:'JetBrains Mono';color:var(--text);padding:2px 10px;background:#111;border:1px solid var(--border);border-radius:3px;letter-spacing:1px;margin:0 6px}
+.tc .f{color:var(--accent)}
+/* inspector */
+.ist{font-size:11px;color:#98a5b9;text-transform:uppercase;letter-spacing:.45px;font-weight:700;padding:7px 0 6px;border-bottom:1px solid var(--border);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.ist .d{width:5px;height:5px;border-radius:50%}
+.sr{display:flex;align-items:center;gap:8px;margin-bottom:9px}
+.sr .sl{font-size:11px;color:#a9b3c1;width:74px;flex-shrink:0}
+.sr .st{flex:1;height:5px;background:#2a2a2a;border-radius:3px;position:relative}
+.sr .sf{position:absolute;right:0;top:0;height:100%;border-radius:2px}
+.sr .st input{position:absolute;inset:0;width:100%;opacity:0;cursor:pointer;margin:0}
+.sr .sv{font-size:12px;font-family:'JetBrains Mono';width:48px;text-align:left;flex-shrink:0}
+.cr{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:6px}
+.ch{padding:4px 10px;border-radius:4px;font-size:11px;cursor:pointer;border:1px solid var(--border);background:#1a1a1a;color:#9ba8bb;font-family:'Tajawal';transition:.12s}
+.ch:hover{border-color:var(--border2);color:var(--text)}.ch.a{border-color:var(--accent);color:var(--accent);background:rgba(74,158,255,.08)}
+.vi{display:flex;align-items:center;gap:8px;padding:7px 7px;border-radius:4px;cursor:pointer;transition:.12s;margin-bottom:4px}
+.vi:hover{background:var(--panel2)}.vi.a{background:rgba(74,158,255,.1)}
+.vi .vd{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.vi .vn{font-size:12px;flex:1;color:#c9d3e2}
+.vi .vt{font-size:9px;color:#8f9db3;background:#1a1a1a;padding:2px 5px;border-radius:3px}
+textarea{width:100%;background:#1a1a1a;border:1px solid var(--border);border-radius:3px;padding:6px;color:var(--text);font-family:'Tajawal';font-size:11px;resize:vertical;outline:none;line-height:1.5}
+textarea:focus{border-color:var(--accent)}
+.bs{padding:5px 12px;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;border:none;font-family:'Tajawal';transition:.12s}
+.bb{background:var(--accent);color:#fff}.bb:hover{background:var(--accent2)}
+.bg{background:none;color:var(--dim);border:1px solid var(--border)}.bg:hover{color:var(--text);border-color:var(--border2)}
+/* timeline */
+.th{height:26px;background:#252525;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 10px;gap:10px;flex-shrink:0}
+.th span{font-size:9px;color:var(--dim);cursor:pointer}.th span.a{color:var(--accent)}
+.tb{flex:1;display:flex;overflow:hidden}
+.ts{width:100px;background:#1c1c1c;border-left:1px solid var(--border);flex-shrink:0}
+.tl{height:32px;display:flex;align-items:center;padding:0 6px;gap:3px;border-bottom:1px solid #252525;font-size:9px;color:var(--dim)}
+.tl .d{width:5px;height:5px;border-radius:50%}.tl .n{flex:1}.tl .x{display:flex;gap:1px;font-size:8px;opacity:.4}
+.ta{flex:1;position:relative;overflow:auto}
+.tr{height:18px;background:#1c1c1c;border-bottom:1px solid var(--border);display:flex;align-items:flex-end;padding:0 8px;gap:55px;position:sticky;top:0;z-index:2}
+.tr span{font-size:7px;color:var(--dim2);font-family:'JetBrains Mono'}
+.tt{position:relative}
+.tk{height:32px;border-bottom:1px solid #252525;position:relative}
+.tc2{position:absolute;top:2px;height:28px;border-radius:3px;display:flex;align-items:center;padding:0 5px;font-size:8px;color:#fff;overflow:hidden;cursor:pointer;transition:.12s}
+.tc2:hover{filter:brightness(1.2)}.tc2 .cn{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tp2{position:absolute;top:0;bottom:0;width:2px;background:var(--red);z-index:10;pointer-events:none}
+.tp2::before{content:'';position:absolute;top:-1px;right:-3px;width:8px;height:8px;background:var(--red);clip-path:polygon(50% 100%,0 0,100% 0)}
+</style>
+</head>
+<body>
+<script>
+(function(){
+  var params=new URLSearchParams(location.search);
+  var isEmbed=params.get('embed')==='1';
+  var pageName='sound';
+  if(!isEmbed){
+    location.replace('studio-shell.html?page='+encodeURIComponent(pageName));
+    return;
+  }
+  window.__FF_EMBED_TOP=true;
+  document.documentElement.lang='en';
+  document.documentElement.dir='ltr';
+  document.addEventListener('DOMContentLoaded',function(){
+    var mb=document.querySelector('.menubar'); if(mb) mb.style.display='none';
+    var tabs=document.querySelector('.page-tabs'); if(tabs) tabs.style.display='none';
+    var br=document.querySelector('.bottom-row'); if(br) br.style.display='none';
+    var ws=document.querySelector('.workspace'); if(ws){ ws.style.height='100vh'; ws.style.display='flex'; ws.style.flexDirection='column'; }
+    var tr=document.querySelector('.top-row'); if(tr){ tr.style.flex='1 1 auto'; tr.style.minHeight='0'; }
+  });
+})();
+</script>
+<!-- FF_SHELL_BRIDGE -->
+<div class="menubar"><span class="title">FRAMEFORGE</span><span> </span><span> </span><span> </span><div class="spacer"></div><span style="color:var(--dim2);font-family:'JetBrains Mono';font-size:9px">Untitled Project</span></div>
+<div class="page-tabs">
+ <a class="page-tab active" href="sound.html"> </a>
+ <a class="page-tab" href="video.html"> </a>
+ <a class="page-tab" href="presets.html"> </a>
+ <a class="page-tab" href="transitions.html"> </a>
+ <a class="page-tab" href="lighting.html"> </a>
+ <a class="page-tab" href="prompt.html"> </a>
+</div>
+<div class="workspace">
+<div class="top-row">
+<!-- LEFT -->
+<div class="panel left-panel">
+<div class="ph"><span class="l a">Audio Library</span><span class="l">Saved Bank</span></div>
+<div class="pb">
+<div class="sb"><span style="font-size:12px;color:#8fa0b8">🔎</span><input placeholder="Search voices, music, or SFX..." oninput="filterLib(this.value)"></div>
+<div class="lt">Voice Samples</div>
+<div id="realVoiceList"></div>
+<div class="lt">Music Styles</div>
+<div id="realMusicList"></div>
+<div class="lt">SFX Library</div>
+<div id="realSfxList"></div>
+</div></div>
+<div class="vr"></div>
+<!-- CENTER -->
+<div class="panel center-panel">
+<div class="ph"><span class="l a">Audio Preview</span></div>
+<div class="prev" id="prevArea"><div class="wd" id="waveD"></div></div>
+<div class="tp">
+<button>⏮</button><button>⏪</button>
+<button class="pb2" onclick="tgPlay(this)" id="playB">▶</button>
+<button>⏩</button><button>⏭</button>
+<div class="tc">01:00:<span class="f">28</span>.15</div>
+<button>🔊</button>
+</div>
+<div style="padding:6px;background:#1c1c1c;border-top:1px solid var(--border)">
+<textarea id="vText" rows="2" placeholder="Write text to generate voiceover..."></textarea>
+<input id="customVoiceId" type="text" placeholder="Custom Voice ID (for cloned/custom voice)" style="width:100%;margin-top:4px;background:#1a1a1a;border:1px solid var(--border);border-radius:3px;padding:6px;color:var(--text);font-family:'Tajawal';font-size:11px;outline:none;line-height:1.4">
+<select id="voiceSelect" style="width:100%;margin-top:4px;height:30px;background:#1a1a1a;border:1px solid var(--border);border-radius:3px;padding:0 8px;color:var(--text);font-family:'Tajawal';font-size:11px;outline:none;line-height:1.4"></select>
+<div style="display:flex;gap:4px;margin-top:4px">
+<button class="bs bb" id="btnGenerateVoice" onclick="generateVoice()">Generate Voice</button>
+<button class="bs bg" id="btnCloneVoice" onclick="cloneVoice()">Clone Voice</button>
+<span style="flex:1"></span>
+<span style="font-size:11px;color:#95a2b8;align-self:center" id="cCt">0 chars</span>
+</div>
+<div id="jobStatus" style="margin-top:5px;font-size:11px;color:#99a7bf;line-height:1.4">Ready. Generate Voice, Music, or SFX to push clips into timeline tracks.</div>
+<div style="display:flex;gap:4px;margin-top:6px">
+  <button class="bs bb" style="flex:1" onclick="addLatestToTimeline()">Add To Timeline</button>
+  <button class="bs bg" style="flex:1" onclick="downloadLatest()">Download</button>
+</div>
+</div>
+</div>
+<div class="vr"></div>
+<!-- RIGHT -->
+<div class="panel right-panel">
+<div class="ph"><span class="l a">Inspector</span><span class="l">Mixer</span></div>
+<div class="pb">
+<div class="ist"><span class="d" style="background:var(--accent)"></span>Voice Personas</div>
+<div class="vi a" onclick="pv(this)"><div class="vd" style="background:var(--purple)"></div><span class="vn">Deep Male Narrator</span><span class="vt">EN</span></div>
+<div class="vi" onclick="pv(this)"><div class="vd" style="background:var(--cyan)"></div><span class="vn">Soft Female Voice</span><span class="vt">EN</span></div>
+<div class="vi" onclick="pv(this)"><div class="vd" style="background:#a78bfa"></div><span class="vn">Arabic Narrator</span><span class="vt">AR</span></div>
+<div class="vi" onclick="pv(this)"><div class="vd" style="background:var(--orange)"></div><span class="vn">News Broadcaster</span><span class="vt">EN</span></div>
+<div class="vi" onclick="pv(this)"><div class="vd" style="background:var(--green)"></div><span class="vn">Trailer Narrator</span><span class="vt">EN</span></div>
+<div class="vi" onclick="pv(this)"><div class="vd" style="background:var(--yellow)"></div><span class="vn">Robot Voice</span><span class="vt">EN</span></div>
+
+<div class="ist" style="margin-top:10px"><span class="d" style="background:var(--green)"></span>Audio Controls</div>
+<div class="sr"><span class="sl">Language</span><div style="flex:1"><select id="voiceLanguage" style="width:100%;height:28px;background:#1a1a1a;color:#d4d4d4;border:1px solid var(--border);border-radius:4px;padding:0 8px;font-size:12px"><option value="auto">Auto</option><option value="ar">Arabic</option><option value="en">English</option></select></div><span class="sv" id="langV" style="color:var(--accent)">Auto</span></div>
+<div class="sr"><span class="sl">Speed</span><div class="st"><div class="sf" style="width:50%;background:var(--accent)"></div><input type="range" min="50" max="150" value="100" oninput="us(this,'sp')"></div><span class="sv" id="spV" style="color:var(--accent)">100%</span></div>
+<div class="sr"><span class="sl">Pitch</span><div class="st"><div class="sf" style="width:50%;background:var(--orange)"></div><input type="range" min="-12" max="12" value="0" oninput="us(this,'pi')"></div><span class="sv" id="piV" style="color:var(--orange)">0</span></div>
+<div class="sr"><span class="sl">Volume</span><div class="st"><div class="sf" style="width:80%;background:var(--green)"></div><input type="range" min="0" max="100" value="80" oninput="us(this,'vo')"></div><span class="sv" id="voV" style="color:var(--green)">80%</span></div>
+<div class="sr"><span class="sl">Fade In</span><div class="st"><div class="sf" style="width:0%;background:var(--cyan)"></div><input type="range" min="0" max="2000" value="0" oninput="us(this,'fi')"></div><span class="sv" id="fiV" style="color:var(--cyan)">0ms</span></div>
+<div class="sr"><span class="sl">Fade Out</span><div class="st"><div class="sf" style="width:0%;background:var(--cyan)"></div><input type="range" min="0" max="2000" value="0" oninput="us(this,'fo')"></div><span class="sv" id="foV" style="color:var(--cyan)">0ms</span></div>
+
+<div class="ist" style="margin-top:10px"><span class="d" style="background:var(--orange)"></span>Music Generator</div>
+<span style="font-size:10px;color:#94a0b4;display:block;margin-bottom:3px">Genre</span>
+<div class="cr"><span class="ch a">Ambient</span><span class="ch">Electronic</span><span class="ch">Orchestral</span><span class="ch">Lo-Fi</span><span class="ch">Rock</span><span class="ch">Jazz</span></div>
+<span style="font-size:10px;color:#94a0b4;display:block;margin-bottom:3px">Mood</span>
+<div class="cr"><span class="ch a">Calm</span><span class="ch">Epic</span><span class="ch">Dark</span><span class="ch">Hopeful</span><span class="ch">Tense</span></div>
+<div class="sr"><span class="sl">BPM</span><div class="st"><div class="sf" style="width:43%;background:var(--orange)"></div><input type="range" min="60" max="200" value="120" oninput="us(this,'bm')"></div><span class="sv" id="bmV" style="color:var(--orange)">120</span></div>
+<input id="musicPrompt" type="text" placeholder="Music prompt (ex: cinematic suspense with deep strings)" style="width:100%;margin-top:4px;background:#1a1a1a;border:1px solid var(--border);border-radius:3px;padding:6px;color:var(--text);font-family:'Tajawal';font-size:11px;outline:none;line-height:1.4">
+<button class="bs bb" style="width:100%;margin-top:4px" id="btnGenerateMusic" onclick="generateMusic()">Generate Music</button>
+
+<div class="ist" style="margin-top:10px"><span class="d" style="background:var(--cyan)"></span>SFX Generator</div>
+<input id="sfxPrompt" type="text" placeholder="SFX prompt (ex: metal door slam with echo)" style="width:100%;margin-top:4px;background:#1a1a1a;border:1px solid var(--border);border-radius:3px;padding:6px;color:var(--text);font-family:'Tajawal';font-size:11px;outline:none;line-height:1.4">
+<button class="bs bb" style="width:100%;margin-top:4px" id="btnGenerateSfx" onclick="generateSfx()">Generate SFX</button>
+
+<div class="ist" style="margin-top:10px"><span class="d" style="background:var(--purple)"></span>Speech Tools</div>
+<input id="audioUrlInput" type="text" placeholder="Audio URL for STT / Isolation" style="width:100%;margin-top:4px;background:#1a1a1a;border:1px solid var(--border);border-radius:3px;padding:6px;color:var(--text);font-family:'Tajawal';font-size:11px;outline:none;line-height:1.4">
+<div style="display:flex;gap:4px;margin-top:4px">
+  <button class="bs bg" style="flex:1" id="btnStt" onclick="transcribeAudio()">Transcribe</button>
+  <button class="bs bg" style="flex:1" id="btnIsolate" onclick="isolateAudio()">Isolate Voice</button>
+</div>
+
+<div class="ist" style="margin-top:10px"><span class="d" style="background:var(--cyan)"></span>Export</div>
+<div class="cr"><span class="ch a">MP3</span><span class="ch">WAV</span><span class="ch">OGG</span><span class="ch">FLAC</span></div>
+<div style="display:flex;gap:4px">
+  <button class="bs bg" style="flex:1" id="btnAddLatestTimeline" onclick="addLatestToTimeline()">Add To Timeline</button>
+  <button class="bs bb" style="flex:1" id="btnDownloadLatest" onclick="downloadLatest()">Download</button>
+</div>
+<div style="display:flex;gap:4px;margin-top:4px">
+  <button class="bs bg" style="flex:1" onclick="pauseMix()">Pause Mix</button>
+</div>
+</div></div>
+</div>
+<!-- TIMELINE -->
+<div class="bottom-row">
+<div class="th"><span class="a"> </span><span> </span><span style="flex:1"></span><span style="font-family:'JetBrains Mono';font-size:8px;color:var(--dim2)">Sequence 01</span></div>
+<div class="tb">
+<div class="ts">
+<div class="tl"><span class="d" style="background:var(--green)"></span><span class="n">V1</span><span class="x"> </span></div>
+<div class="tl"><span class="d" style="background:var(--accent)"></span><span class="n">A1 Voice</span><span class="x">M S</span></div>
+<div class="tl"><span class="d" style="background:var(--orange)"></span><span class="n">A2 Music</span><span class="x">M S</span></div>
+<div class="tl"><span class="d" style="background:var(--cyan)"></span><span class="n">A3 SFX</span><span class="x">M S</span></div>
+<div class="tl"><span class="d" style="background:var(--purple)"></span><span class="n">A4</span><span class="x">M S</span></div>
+</div>
+<div class="ta">
+<div class="tr"><span>00:00</span><span>00:30</span><span>01:00</span><span>01:30</span><span>02:00</span><span>02:30</span><span>03:00</span><span>03:30</span><span>04:00</span><span>04:30</span><span>05:00</span></div>
+<div class="tt">
+<div class="tk"><div class="tc2" style="right:30px;width:150px;background:#2d5a27"><span class="cn">scene_01.mp4</span></div><div class="tc2" style="right:190px;width:220px;background:#2d5a27"><span class="cn">aerial_shot.mp4</span></div></div>
+<div class="tk"><div class="tc2" style="right:50px;width:280px;background:#1a4a7a"><span class="cn">Voice Over</span></div></div>
+<div class="tk"><div class="tc2" style="right:15px;width:450px;background:#7a4a1a"><span class="cn">Music Score for Trailer.wav</span></div></div>
+<div class="tk"><div class="tc2" style="right:80px;width:35px;background:#1a6a6a"><span class="cn"> </span></div><div class="tc2" style="right:250px;width:70px;background:#1a6a6a"><span class="cn"> </span></div></div>
+<div class="tk"></div>
+<div class="tp2" style="right:130px"></div>
+</div></div></div></div>
+</div>
+<script>
+const wd = document.getElementById('waveD');
+for (let i = 0; i < 55; i++) {
+  const b = document.createElement('div');
+  b.className = 'wb';
+  b.style.animationDelay = (Math.random() * 1.5).toFixed(2) + 's';
+  b.style.height = (Math.random() * 40 + 6) + 'px';
+  wd.appendChild(b);
+}
+
+const audioState = {
+  latestUrl: '',
+  latestName: '',
+  latestType: '',
+  latestDurationSec: 0,
+  jobs: []
+};
+
+const VOICE_PRESET_MAP = {
+  'Deep Male Narrator': 'nPczCjzI2devNBz1zQrb',
+  'Soft Female Voice': 'BZgkqPqms7Kj9ulSkVzn',
+  'Arabic Narrator': 'Z3R5wn05IrDiVCyEkUrK',
+  'News Broadcaster': 'x70vRnQBMBu4FAYhjJbO',
+  'Trailer Narrator': 'LG95yZDEHg6fCZdQjLqj',
+  'Robot Voice': 'YOq2y2Up4RgXP2HyXjE5'
+};
+
+const MODEL_VOICES = [
+  { id: 'Rachel', label: 'Rachel' },
+  { id: 'Aria', label: 'Aria' },
+  { id: 'Roger', label: 'Roger' },
+  { id: 'Sarah', label: 'Sarah' },
+  { id: 'Laura', label: 'Laura' },
+  { id: 'Charlie', label: 'Charlie' },
+  { id: 'George', label: 'George' },
+  { id: 'Callum', label: 'Callum' },
+  { id: 'River', label: 'River' },
+  { id: 'Liam', label: 'Liam' },
+  { id: 'Charlotte', label: 'Charlotte' },
+  { id: 'Alice', label: 'Alice' },
+  { id: 'Matilda', label: 'Matilda' },
+  { id: 'Will', label: 'Will' },
+  { id: 'Jessica', label: 'Jessica' },
+  { id: 'Eric', label: 'Eric' },
+  { id: 'Chris', label: 'Chris' },
+  { id: 'Brian', label: 'Brian' },
+  { id: 'Daniel', label: 'Daniel' },
+  { id: 'Lily', label: 'Lily' },
+  { id: 'Bill', label: 'Bill' },
+  { id: 'Z3R5wn05IrDiVCyEkUrK', label: 'Arabella (Mysterious)' },
+  { id: 'x70vRnQBMBu4FAYhjJbO', label: 'Nathan (Radio Host)' },
+  { id: 'YOq2y2Up4RgXP2HyXjE5', label: 'Xavier (Metal Announcer)' },
+  { id: 'LG95yZDEHg6fCZdQjLqj', label: 'Phil (Announcer)' },
+  { id: 'nPczCjzI2devNBz1zQrb', label: 'Brian (Deep Resonant)' },
+  { id: 'BZgkqPqms7Kj9ulSkVzn', label: 'Eve (Energetic)' },
+  { id: 'DTKMou8ccj1ZaWGBiotd', label: 'Jamahal (Vibrant)' },
+  { id: 'vBKc2FfBKJfcZNyEt1n6', label: 'Finn (Youthful)' },
+  { id: 'Sq93GQT4X1lKDXsQcixO', label: 'Felix (Warm RP)' },
+  { id: '6aDn1KB0hjpdcocrUkmq', label: 'Tiffany (Welcoming)' },
+  { id: 'wJqPPQ618aTW29mptyoc', label: 'Ana Rita (Bright)' },
+  { id: 'LruHrtVF6PSyGItzMNHS', label: 'Benjamin (Calm)' },
+  { id: 'AeRdCCKzvd23BpJoofzx', label: 'Nathaniel (British Calm)' },
+  { id: 'Sm1seazb4gs7RSlUVw7c', label: 'Anika (Friendly)' },
+  { id: 'scOwDtmlUjD3prqpp97I', label: 'Sam (Support Agent)' },
+];
+
+function setStatus(text, tone) {
+  const el = document.getElementById('jobStatus');
+  if (!el) return;
+  const colors = {
+    info: '#9cb0cf',
+    ok: '#6cd98d',
+    warn: '#ffcc7a',
+    err: '#ff7b7b'
+  };
+  el.textContent = text;
+  el.style.color = colors[tone || 'info'] || colors.info;
+}
+
+function setBusy(buttonId, busy, busyLabel, idleLabel) {
+  const btn = document.getElementById(buttonId);
+  if (!btn) return;
+  btn.disabled = !!busy;
+  btn.style.opacity = busy ? '0.65' : '1';
+  btn.style.cursor = busy ? 'not-allowed' : 'pointer';
+  btn.textContent = busy ? busyLabel : idleLabel;
+}
+
+function setLatestActionsState(enabled) {
+  ['btnAddLatestTimeline', 'btnDownloadLatest'].forEach((id) => {
+    const btn = document.getElementById(id);
+    if (!btn) return;
+    btn.disabled = !enabled;
+    btn.style.opacity = enabled ? '1' : '0.45';
+    btn.style.cursor = enabled ? 'pointer' : 'not-allowed';
+  });
+}
+
+function tgPlay(b) {
+  const playing = b.textContent === '⏸';
+  b.textContent = playing ? '▶' : '⏸';
+  document.querySelectorAll('.wb').forEach((w) => {
+    w.style.animationPlayState = playing ? 'paused' : 'running';
+  });
+}
+
+function startWave() {
+  const b = document.getElementById('playB');
+  if (b) b.textContent = '⏸';
+  document.querySelectorAll('.wb').forEach((w) => { w.style.animationPlayState = 'running'; });
+}
+
+function stopWave() {
+  const b = document.getElementById('playB');
+  if (b) b.textContent = '▶';
+  document.querySelectorAll('.wb').forEach((w) => { w.style.animationPlayState = 'paused'; });
+}
+
+function parseResultJson(resultJson) {
+  if (!resultJson) return null;
+  if (typeof resultJson === 'object') return resultJson;
+  try {
+    return JSON.parse(resultJson);
+  } catch {
+    return null;
+  }
+}
+
+function extractResultUrls(recordData) {
+  const parsed = parseResultJson(recordData?.resultJson);
+  if (!parsed) return [];
+  if (Array.isArray(parsed.resultUrls)) return parsed.resultUrls.filter(Boolean);
+  if (parsed.resultObject?.resultUrls && Array.isArray(parsed.resultObject.resultUrls)) return parsed.resultObject.resultUrls.filter(Boolean);
+  if (parsed.resultObject?.audio_url) return [parsed.resultObject.audio_url];
+  if (parsed.resultObject?.url) return [parsed.resultObject.url];
+  return [];
+}
+
+async function getAudioDuration(url) {
+  return new Promise((resolve) => {
+    const a = new Audio();
+    const done = (v) => {
+      a.removeAttribute('src');
+      resolve(Number.isFinite(v) ? v : null);
+    };
+    a.addEventListener('loadedmetadata', () => done(a.duration), { once: true });
+    a.addEventListener('error', () => done(null), { once: true });
+    a.preload = 'metadata';
+    a.src = url;
+  });
+}
+
+async function createKieTask(model, input) {
+  const res = await fetch('/api/kie/createTask', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model, input })
+  });
+  const json = await res.json();
+  if (!res.ok || json?.code !== 200 || !json?.data?.taskId) {
+    throw new Error(json?.msg || `Create task failed (${res.status})`);
+  }
+  return json.data.taskId;
+}
+
+async function createKieTaskWithLanguageFallback(model, input) {
+  try {
+    return await createKieTask(model, input);
+  } catch (error) {
+    const msg = String(error?.message || '').toLowerCase();
+    const hasLang = Object.prototype.hasOwnProperty.call(input || {}, 'language_code');
+    if (hasLang && (msg.includes('language') || msg.includes('422') || msg.includes('validation'))) {
+      const retryInput = { ...input };
+      delete retryInput.language_code;
+      return await createKieTask(model, retryInput);
+    }
+    throw error;
+  }
+}
+
+async function waitKieTask(taskId, maxMs) {
+  const started = Date.now();
+  while (Date.now() - started < maxMs) {
+    const res = await fetch('/api/kie/recordInfo?taskId=' + encodeURIComponent(taskId));
+    const json = await res.json();
+    if (!res.ok || json?.code !== 200 || !json?.data) {
+      throw new Error(json?.msg || `Polling failed (${res.status})`);
+    }
+    const state = String(json.data.state || '').toLowerCase();
+    if (state === 'success') return json.data;
+    if (state === 'fail') {
+      throw new Error(json.data.failMsg || json.data.failCode || 'Task failed');
+    }
+    await new Promise((r) => setTimeout(r, 1800));
+  }
+  throw new Error('Timeout waiting for Kie result');
+}
+
+function getSelectedVoiceId() {
+  const custom = (document.getElementById('customVoiceId')?.value || '').trim();
+  if (custom) return custom;
+  const selectedModelVoice = (document.getElementById('voiceSelect')?.value || '').trim();
+  if (selectedModelVoice) return selectedModelVoice;
+  const active = document.querySelector('.vi.a .vn');
+  const name = (active?.textContent || '').trim();
+  return VOICE_PRESET_MAP[name] || 'Rachel';
+}
+
+function getSelectedLanguageCode() {
+  const v = (document.getElementById('voiceLanguage')?.value || 'auto').trim().toLowerCase();
+  if (v === 'ar') return 'ar';
+  if (v === 'en') return 'en';
+  return '';
+}
+
+function getActiveChipText(chipGroupIndex) {
+  const groups = document.querySelectorAll('.cr');
+  const group = groups[chipGroupIndex];
+  const selected = group?.querySelector('.ch.a');
+  return (selected?.textContent || '').trim();
+}
+
+function appendLibraryItem(type, label, durationSec, emoji, url) {
+  const hostId = type === 'voice' ? 'realVoiceList' : type === 'music' ? 'realMusicList' : 'realSfxList';
+  const host = document.getElementById(hostId);
+  if (!host) return;
+  const item = document.createElement('div');
+  item.className = 'li';
+  item.innerHTML = `<span class="ic">${emoji}</span>${label}<span class="dr">${formatSec(durationSec)}</span>`;
+  item.dataset.audioUrl = url || '';
+  item.dataset.assetType = type;
+  item.onclick = function () {
+    pl(item);
+    previewAudio(item.dataset.audioUrl, label);
+  };
+  host.appendChild(item);
+}
+
+function formatSec(sec) {
+  if (!sec || !Number.isFinite(sec)) return '0:00';
+  const total = Math.max(0, Math.round(sec));
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
+function postClipToTimeline(asset) {
+  const payload = {
+    type: 'ff:addClip',
+    clip: {
+      label: asset.name,
+      url: asset.url,
+      trackType: asset.type,
+      durationSec: asset.durationSec || 6
+    }
+  };
+
+  try {
+    if (window.parent && window.parent !== window) {
+      const tf = window.parent.document.getElementById('timelineFrame');
+      if (tf && tf.contentWindow) tf.contentWindow.postMessage(payload, '*');
+    }
+  } catch {}
+
+  try {
+    const external = document.querySelector('#external-timeline-host iframe');
+    if (external && external.contentWindow) external.contentWindow.postMessage(payload, '*');
+  } catch {}
+}
+
+function rememberLatest(asset) {
+  audioState.latestUrl = asset.url || '';
+  audioState.latestName = asset.name || '';
+  audioState.latestType = asset.type || '';
+  audioState.latestDurationSec = Number(asset.durationSec) || 0;
+  setLatestActionsState(!!audioState.latestUrl);
+}
+
+async function runAudioJob(config) {
+  startWave();
+  setStatus(`Submitting ${config.label} task...`, 'info');
+  setBusy(config.buttonId, true, 'Working...', config.idleLabel);
+  try {
+    const taskId = config.useLanguageFallback
+      ? await createKieTaskWithLanguageFallback(config.model, config.input)
+      : await createKieTask(config.model, config.input);
+    setStatus(`${config.label} queued: ${taskId.slice(0, 12)}...`, 'info');
+    const record = await waitKieTask(taskId, config.timeoutMs || 180000);
+    const urls = extractResultUrls(record);
+    if (!urls.length) throw new Error('No media URL returned');
+    const mainUrl = urls[0];
+    const durationSec = await getAudioDuration(mainUrl) || config.fallbackDuration || 6;
+
+    const asset = {
+      type: config.assetType,
+      name: config.assetName,
+      url: mainUrl,
+      durationSec
+    };
+    rememberLatest(asset);
+    appendLibraryItem(asset.type, asset.name, durationSec, config.emoji || '🎵', mainUrl);
+    previewAudio(mainUrl, asset.name);
+    setStatus(`${config.label} complete (${formatSec(durationSec)}). Use Add To Timeline or Download.`, 'ok');
+    return { record, asset };
+  } catch (error) {
+    setStatus(`${config.label} failed: ${error.message}`, 'err');
+    throw error;
+  } finally {
+    setBusy(config.buttonId, false, 'Working...', config.idleLabel);
+    stopWave();
+  }
+}
+
+function previewAudio(url, title) {
+  if (!url) return;
+  const area = document.getElementById('prevArea');
+  if (!area) return;
+  let player = document.getElementById('audioPreviewPlayer');
+  if (!player) {
+    player = document.createElement('audio');
+    player.id = 'audioPreviewPlayer';
+    player.controls = true;
+    player.style.position = 'absolute';
+    player.style.left = '50%';
+    player.style.bottom = '16px';
+    player.style.transform = 'translateX(-50%)';
+    player.style.width = '76%';
+    area.appendChild(player);
+  }
+  player.src = url;
+  player.title = title || 'Audio Preview';
+}
+
+async function generateVoice() {
+  const text = (document.getElementById('vText')?.value || '').trim();
+  if (!text) {
+    setStatus('Voice text is required.', 'warn');
+    return;
+  }
+  const speedPercent = Number((document.getElementById('spV')?.textContent || '100').replace('%', '')) || 100;
+  const similarity = 0.75;
+  const stability = 0.5;
+  const style = 0;
+  const speed = Math.max(0.7, Math.min(1.2, speedPercent / 100));
+  const language_code = getSelectedLanguageCode();
+  const ttsInput = {
+    text,
+    voice: getSelectedVoiceId(),
+    stability,
+    similarity_boost: similarity,
+    style,
+    speed,
+    timestamps: false,
+    nsfw_checker: true
+  };
+  if (language_code) ttsInput.language_code = language_code;
+
+  await runAudioJob({
+    label: 'Voice generation',
+    buttonId: 'btnGenerateVoice',
+    idleLabel: 'Generate Voice',
+    model: 'elevenlabs/text-to-speech-multilingual-v2',
+    input: ttsInput,
+    useLanguageFallback: true,
+    assetType: 'voice',
+    assetName: `voice_${Date.now()}.mp3`,
+    emoji: '🎙️',
+    fallbackDuration: Math.max(3, Math.min(30, Math.round(text.length / 14)))
+  });
+}
+
+async function cloneVoice() {
+  const customVoiceId = (document.getElementById('customVoiceId')?.value || '').trim();
+  const text = (document.getElementById('vText')?.value || '').trim();
+  if (!customVoiceId) {
+    setStatus('Set Custom Voice ID first for clone/custom voice render.', 'warn');
+    return;
+  }
+  if (!text) {
+    setStatus('Voice text is required.', 'warn');
+    return;
+  }
+  const language_code = getSelectedLanguageCode();
+  const cloneInput = {
+    text,
+    voice: customVoiceId,
+    stability: 0.5,
+    similarity_boost: 0.9,
+    style: 0,
+    speed: 1,
+    timestamps: false,
+    nsfw_checker: true
+  };
+  if (language_code) cloneInput.language_code = language_code;
+
+  await runAudioJob({
+    label: 'Clone voice render',
+    buttonId: 'btnCloneVoice',
+    idleLabel: 'Clone Voice',
+    model: 'elevenlabs/text-to-speech-multilingual-v2',
+    input: cloneInput,
+    useLanguageFallback: true,
+    assetType: 'voice',
+    assetName: `clone_voice_${Date.now()}.mp3`,
+    emoji: '🧬',
+    fallbackDuration: Math.max(3, Math.min(30, Math.round(text.length / 14)))
+  });
+}
+
+async function generateMusic() {
+  const genre = getActiveChipText(0) || 'Ambient';
+  const mood = getActiveChipText(1) || 'Calm';
+  const bpm = Number(document.getElementById('bmV')?.textContent || 120) || 120;
+  const customPrompt = (document.getElementById('musicPrompt')?.value || '').trim();
+  const text = customPrompt || `Cinematic ${genre} background music, ${mood} mood, around ${bpm} BPM, no vocals.`;
+
+  await runAudioJob({
+    label: 'Music generation',
+    buttonId: 'btnGenerateMusic',
+    idleLabel: 'Generate Music',
+    model: 'elevenlabs/sound-effect-v2',
+    input: {
+      text,
+      loop: true,
+      duration_seconds: 20,
+      prompt_influence: 0.45,
+      output_format: 'mp3_44100_128'
+    },
+    assetType: 'music',
+    assetName: `music_${Date.now()}.mp3`,
+    emoji: '🎼',
+    fallbackDuration: 20
+  });
+}
+
+async function generateSfx() {
+  const prompt = (document.getElementById('sfxPrompt')?.value || '').trim();
+  if (!prompt) {
+    setStatus('SFX prompt is required.', 'warn');
+    return;
+  }
+  await runAudioJob({
+    label: 'SFX generation',
+    buttonId: 'btnGenerateSfx',
+    idleLabel: 'Generate SFX',
+    model: 'elevenlabs/sound-effect-v2',
+    input: {
+      text: prompt,
+      loop: false,
+      duration_seconds: 4,
+      prompt_influence: 0.4,
+      output_format: 'mp3_44100_128'
+    },
+    assetType: 'sfx',
+    assetName: `sfx_${Date.now()}.mp3`,
+    emoji: '💥',
+    fallbackDuration: 4
+  });
+}
+
+async function transcribeAudio() {
+  const audioUrl = (document.getElementById('audioUrlInput')?.value || '').trim();
+  if (!audioUrl) {
+    setStatus('Audio URL is required for transcription.', 'warn');
+    return;
+  }
+  const selectedLang = getSelectedLanguageCode();
+  setBusy('btnStt', true, 'Working...', 'Transcribe');
+  setStatus('Submitting speech-to-text...', 'info');
+  try {
+    const sttInput = {
+      audio_url: audioUrl,
+      tag_audio_events: true,
+      diarize: true,
+      nsfw_checker: true
+    };
+    if (selectedLang) sttInput.language_code = selectedLang;
+    const taskId = await createKieTask('elevenlabs/speech-to-text', sttInput);
+    const record = await waitKieTask(taskId, 180000);
+    const parsed = parseResultJson(record?.resultJson);
+    const text = parsed?.resultObject?.text || 'No text returned';
+    document.getElementById('vText').value = text;
+    document.getElementById('cCt').textContent = text.length + ' chars';
+    setStatus('Transcription complete. Text inserted into Voice box.', 'ok');
+  } catch (error) {
+    setStatus('Transcription failed: ' + error.message, 'err');
+  } finally {
+    setBusy('btnStt', false, 'Working...', 'Transcribe');
+  }
+}
+
+async function isolateAudio() {
+  const audioUrl = (document.getElementById('audioUrlInput')?.value || '').trim();
+  if (!audioUrl) {
+    setStatus('Audio URL is required for isolation.', 'warn');
+    return;
+  }
+  await runAudioJob({
+    label: 'Audio isolation',
+    buttonId: 'btnIsolate',
+    idleLabel: 'Isolate Voice',
+    model: 'elevenlabs/audio-isolation',
+    input: {
+      audio_url: audioUrl,
+      nsfw_checker: true
+    },
+    assetType: 'voice',
+    assetName: `isolated_voice_${Date.now()}.mp3`,
+    emoji: '🧪',
+    fallbackDuration: 8
+  });
+}
+
+function addLatestToTimeline() {
+  if (!audioState.latestUrl) {
+    setStatus('No generated asset yet. Generate first.', 'warn');
+    return;
+  }
+  postClipToTimeline({
+    type: audioState.latestType || 'voice',
+    name: audioState.latestName || `audio_${Date.now()}.mp3`,
+    url: audioState.latestUrl,
+    durationSec: audioState.latestDurationSec || 6
+  });
+  setStatus('Latest generated asset added to timeline.', 'ok');
+}
+
+function downloadLatest() {
+  if (!audioState.latestUrl) {
+    setStatus('No generated asset to download yet.', 'warn');
+    return;
+  }
+  const a = document.createElement('a');
+  a.href = audioState.latestUrl;
+  a.target = '_blank';
+  a.rel = 'noopener';
+  a.download = audioState.latestName || 'audio_asset.mp3';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setStatus('Download started for latest generated asset.', 'ok');
+}
+
+function pauseMix() {
+  const player = document.getElementById('audioPreviewPlayer');
+  if (player) player.pause();
+  stopWave();
+  setStatus('Preview paused.', 'info');
+}
+
+document.getElementById('vText').addEventListener('input', function () {
+  document.getElementById('cCt').textContent = this.value.length + ' chars';
+});
+
+function us(inp, id) {
+  const v = inp.value;
+  const fill = inp.previousElementSibling;
+  const min = +inp.min;
+  const max = +inp.max;
+  fill.style.width = ((v - min) / (max - min) * 100) + '%';
+  const map = { sp: v + '%', pi: v, vo: v + '%', fi: v + 'ms', fo: v + 'ms', bm: v };
+  const el = document.getElementById(id + 'V');
+  if (el) el.textContent = map[id] || v;
+}
+
+function pv(el) {
+  document.querySelectorAll('.vi').forEach((v) => v.classList.remove('a'));
+  el.classList.add('a');
+}
+
+function pl(el) {
+  document.querySelectorAll('.li').forEach((i) => i.classList.remove('a'));
+  el.classList.add('a');
+  if (el.dataset?.audioUrl) {
+    const name = (el.textContent || '').trim().replace(/\s+\d+:\d+$/, '');
+    previewAudio(el.dataset.audioUrl, name);
+  }
+}
+
+document.querySelectorAll('.cr').forEach((g) => {
+  g.querySelectorAll('.ch').forEach((c) => {
+    c.addEventListener('click', function () {
+      g.querySelectorAll('.ch').forEach((x) => x.classList.remove('a'));
+      this.classList.add('a');
+    });
+  });
+});
+
+document.getElementById('voiceLanguage')?.addEventListener('change', function () {
+  const map = { auto: 'Auto', ar: 'Arabic', en: 'English' };
+  const label = map[this.value] || 'Auto';
+  const out = document.getElementById('langV');
+  if (out) out.textContent = label;
+});
+
+function initVoiceSelect() {
+  const sel = document.getElementById('voiceSelect');
+  if (!sel) return;
+  sel.innerHTML = '';
+  const first = document.createElement('option');
+  first.value = '';
+  first.textContent = 'Select model voice (optional)';
+  sel.appendChild(first);
+  MODEL_VOICES.forEach((v) => {
+    const op = document.createElement('option');
+    op.value = v.id;
+    op.textContent = `${v.label} - ${v.id}`;
+    sel.appendChild(op);
+  });
+}
+
+function initRealVoiceList() {
+  const host = document.getElementById('realVoiceList');
+  if (!host) return;
+  host.innerHTML = '';
+
+  MODEL_VOICES.forEach((v, idx) => {
+    const item = document.createElement('div');
+    item.className = 'li';
+    item.dataset.voiceId = v.id;
+    item.innerHTML = `<span class="ic">🎙️</span>${v.label}<span class="dr">${v.id}</span>`;
+    item.onclick = function () {
+      document.querySelectorAll('#realVoiceList .li').forEach((x) => x.classList.remove('a'));
+      item.classList.add('a');
+      const sel = document.getElementById('voiceSelect');
+      if (sel) sel.value = v.id;
+      setStatus(`Selected real voice: ${v.label}`, 'info');
+    };
+    if (idx === 0) item.classList.add('a');
+    host.appendChild(item);
+  });
+
+  const sel = document.getElementById('voiceSelect');
+  if (sel && MODEL_VOICES[0]) sel.value = MODEL_VOICES[0].id;
+}
+
+initVoiceSelect();
+initRealVoiceList();
+setLatestActionsState(false);
+
+function filterLib(q) {
+  q = q.toLowerCase();
+  document.querySelectorAll('.li').forEach((i) => {
+    i.style.display = i.textContent.toLowerCase().includes(q) ? 'flex' : 'none';
+  });
+}
+</script>
+<script src="shared/timeline-bridge.js"></script>
+<script src="shared/english-only.js"></script>
+<script src="shared/resizable-panels.js"></script></body>
+</html>
+
+
+
+
+
+
+
