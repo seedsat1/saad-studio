@@ -144,31 +144,24 @@ body{background:var(--bg);color:var(--text);font-family:'Tajawal',sans-serif;hei
             <div class="model-family">Google</div>
             <button type="button" class="model-item mf-google active" data-model="nano-banana-2" data-label="Google - Nano Banana 2" onclick="selectModelOption(this)">Google - Nano Banana 2</button>
             <button type="button" class="model-item mf-google" data-model="nano-banana-pro" data-label="Google - Nano Banana Pro" onclick="selectModelOption(this)">Google - Nano Banana Pro</button>
+            <button type="button" class="model-item mf-google" data-model="google/nano-banana" data-label="Google - Nano Banana" onclick="selectModelOption(this)">Google - Nano Banana</button>
+            <button type="button" class="model-item mf-google" data-model="google/nano-banana-edit" data-label="Google - Nano Banana Edit" onclick="selectModelOption(this)">Google - Nano Banana Edit</button>
 
             <div class="model-family">Grok</div>
             <button type="button" class="model-item mf-grok" data-model="grok-imagine/text-to-image" data-label="Grok Imagine - Text to Image" onclick="selectModelOption(this)">Grok Imagine - Text to Image</button>
             <button type="button" class="model-item mf-grok" data-model="grok-imagine/image-to-image" data-label="Grok Imagine - Image to Image" onclick="selectModelOption(this)">Grok Imagine - Image to Image</button>
 
             <div class="model-family">Qwen</div>
-            <button type="button" class="model-item mf-qwen" data-model="qwen/text-to-image" data-label="Qwen - Text to Image" onclick="selectModelOption(this)">Qwen - Text to Image</button>
-            <button type="button" class="model-item mf-qwen" data-model="qwen/image-to-image" data-label="Qwen - Image to Image" onclick="selectModelOption(this)">Qwen - Image to Image</button>
-            <button type="button" class="model-item mf-qwen" data-model="qwen/image-edit" data-label="Qwen - Image Edit" onclick="selectModelOption(this)">Qwen - Image Edit</button>
-            <button type="button" class="model-item mf-qwen" data-model="qwen2/image-edit" data-label="Qwen2 - Image Edit" onclick="selectModelOption(this)">Qwen2 - Image Edit</button>
             <button type="button" class="model-item mf-qwen" data-model="qwen2/text-to-image" data-label="Qwen2 - Text To Image" onclick="selectModelOption(this)">Qwen2 - Text To Image</button>
+            <button type="button" class="model-item mf-qwen" data-model="qwen2/image-edit" data-label="Qwen2 - Image Edit" onclick="selectModelOption(this)">Qwen2 - Image Edit</button>
+            <button type="button" class="model-item mf-qwen" data-model="qwen/image-to-image" data-label="Qwen - Image to Image" onclick="selectModelOption(this)">Qwen - Image to Image</button>
 
             <div class="model-family">Wan</div>
-            <button type="button" class="model-item mf-wan" data-model="wan-2.7/image" data-label="Wan 2.7 Image" onclick="selectModelOption(this)">Wan 2.7 Image</button>
-            <button type="button" class="model-item mf-wan" data-model="wan-2.7/image-pro" data-label="Wan 2.7 Image Pro" onclick="selectModelOption(this)">Wan 2.7 Image Pro</button>
-
-            <div class="model-family">Recraft</div>
-            <button type="button" class="model-item mf-recraft" data-model="recraft/remove-background" data-label="Recraft - Remove Background" onclick="selectModelOption(this)">Recraft - Remove Background</button>
+            <button type="button" class="model-item mf-wan" data-model="wan/2-7-image-pro" data-label="Wan 2.7 Image Pro" onclick="selectModelOption(this)">Wan 2.7 Image Pro</button>
 
             <div class="model-family">Seedream</div>
-            <button type="button" class="model-item mf-seedream" data-model="seedream-5.0-lite/text-to-image" data-label="Seedream5.0 Lite - Text to Image" onclick="selectModelOption(this)">Seedream5.0 Lite - Text to Image</button>
-            <button type="button" class="model-item mf-seedream" data-model="seedream-5.0-lite/image-to-image" data-label="Seedream5.0 Lite - Image to Image" onclick="selectModelOption(this)">Seedream5.0 Lite - Image to Image</button>
-
-            <div class="model-family">Topaz</div>
-            <button type="button" class="model-item mf-topaz" data-model="topaz/image-upscale" data-label="Topaz - Image Upscale" onclick="selectModelOption(this)">Topaz - Image Upscale</button>
+            <button type="button" class="model-item mf-seedream" data-model="seedream/5-lite-text-to-image" data-label="Seedream 5 Lite - Text to Image" onclick="selectModelOption(this)">Seedream 5 Lite - Text to Image</button>
+            <button type="button" class="model-item mf-seedream" data-model="seedream/5-lite-image-to-image" data-label="Seedream 5 Lite - Image to Image" onclick="selectModelOption(this)">Seedream 5 Lite - Image to Image</button>
           </div>
         </div>
         <input id="imageModel" type="hidden" value="nano-banana-2">
@@ -230,15 +223,6 @@ document.getElementById('iprompt').addEventListener('input', function(){
   document.getElementById('ipromptCount').textContent = this.value.length;
 });
 
-document.querySelectorAll('.cr').forEach((group)=>{
-  group.querySelectorAll('.ch').forEach((chip)=>{
-    chip.addEventListener('click', function(){
-      group.querySelectorAll('.ch').forEach((x)=>x.classList.remove('a'));
-      this.classList.add('a');
-    });
-  });
-});
-
 function setImageStatus(text, tone){
   const el = document.getElementById('imageStatus');
   const colors = { info:'#9cb0cf', ok:'#6cd98d', warn:'#ffcc7a', err:'#ff7b7b' };
@@ -264,22 +248,55 @@ function setGenerateBusy(busy){
 }
 
 const IMAGE_MODEL_CONFIG = {
-  'nano-banana-2': { mode: 'text_to_image', refsRequired: false, maxRefs: 6, ratios: ['1:1','16:9','9:16','4:3','3:4'], quality: ['STD','PRO','HIGH'], note: 'Balanced quality/speed for everyday generation.' },
-  'nano-banana-pro': { mode: 'text_to_image', refsRequired: false, maxRefs: 8, ratios: ['1:1','16:9','9:16','4:3','3:4'], quality: ['PRO','HIGH'], note: 'Higher fidelity than Nano Banana 2.' },
-  'grok-imagine/text-to-image': { mode: 'text_to_image', refsRequired: false, maxRefs: 0, ratios: ['1:1','16:9','9:16','4:3','3:4'], quality: ['STD','PRO','HIGH'], note: 'Prompt-first image synthesis.' },
-  'grok-imagine/image-to-image': { mode: 'image_to_image', refsRequired: true, maxRefs: 1, ratios: ['1:1','16:9','9:16','4:3','3:4'], quality: ['STD','PRO','HIGH'], note: 'Uses base image + prompt guidance.' },
-  'qwen/text-to-image': { mode: 'text_to_image', refsRequired: false, maxRefs: 0, ratios: ['1:1','16:9','9:16','4:3','3:4'], quality: ['STD','PRO','HIGH'], note: 'Text-only creative generation.' },
-  'qwen/image-to-image': { mode: 'image_to_image', refsRequired: true, maxRefs: 1, ratios: ['1:1','16:9','9:16','4:3','3:4'], quality: ['STD','PRO','HIGH'], note: 'Transforms one reference image.' },
-  'qwen/image-edit': { mode: 'image_edit', refsRequired: true, maxRefs: 1, ratios: ['adaptive'], quality: ['PRO','HIGH'], note: 'Edit-focused workflow on source image.' },
-  'qwen2/image-edit': { mode: 'image_edit', refsRequired: true, maxRefs: 1, ratios: ['adaptive'], quality: ['PRO','HIGH'], note: 'Second-gen edit model for precise changes.' },
-  'qwen2/text-to-image': { mode: 'text_to_image', refsRequired: false, maxRefs: 0, ratios: ['1:1','16:9','9:16','4:3','3:4'], quality: ['STD','PRO','HIGH'], note: 'Second-gen text image model.' },
-  'wan-2.7/image': { mode: 'text_to_image', refsRequired: false, maxRefs: 4, ratios: ['1:1','16:9','9:16','4:3','3:4'], quality: ['STD','PRO','HIGH'], note: 'Fast generation with optional controls.' },
-  'wan-2.7/image-pro': { mode: 'text_to_image', refsRequired: false, maxRefs: 4, ratios: ['1:1','16:9','9:16','4:3','3:4'], quality: ['PRO','HIGH'], note: 'Quality-first Wan profile.' },
-  'recraft/remove-background': { mode: 'remove_background', refsRequired: true, maxRefs: 1, ratios: ['source'], quality: ['SOURCE'], note: 'Removes background from source image.' },
-  'seedream-5.0-lite/text-to-image': { mode: 'text_to_image', refsRequired: false, maxRefs: 0, ratios: ['1:1','16:9','9:16','4:3','3:4'], quality: ['STD','PRO'], note: 'Lightweight text generation profile.' },
-  'seedream-5.0-lite/image-to-image': { mode: 'image_to_image', refsRequired: true, maxRefs: 1, ratios: ['1:1','16:9','9:16','4:3','3:4'], quality: ['STD','PRO'], note: 'Lightweight image transform profile.' },
-  'topaz/image-upscale': { mode: 'upscale', refsRequired: true, maxRefs: 1, ratios: ['source'], quality: ['2X','4X'], note: 'Upscale/enhance existing image.' },
+  'nano-banana-2': { mode: 'text_to_image', refsRequired: false, maxRefs: 14, ratios: ['1:1','16:9','9:16','4:3','3:4'], quality: ['1K','2K','4K'], inputField: 'image_input', aspectField: 'aspect_ratio', qualityField: 'resolution', note: 'Balanced quality/speed for everyday generation.' },
+  'nano-banana-pro': { mode: 'text_to_image', refsRequired: false, maxRefs: 8, ratios: ['1:1','16:9','9:16','4:3','3:4','21:9'], quality: ['1K','2K','4K'], inputField: 'image_input', aspectField: 'aspect_ratio', qualityField: 'resolution', note: 'Higher fidelity than Nano Banana 2.' },
+  'google/nano-banana': { mode: 'text_to_image', refsRequired: false, maxRefs: 0, ratios: ['1:1','9:16','16:9','3:4','4:3','3:2','2:3','21:9'], quality: [], aspectField: 'image_size_raw', note: 'Google Nano Banana profile.' },
+  'google/nano-banana-edit': { mode: 'image_edit', refsRequired: true, maxRefs: 10, ratios: ['1:1','9:16','16:9','3:4','4:3','3:2','2:3','21:9'], quality: [], inputField: 'image_urls', aspectField: 'image_size_raw', note: 'Google Nano Banana edit/inpaint profile.' },
+  'grok-imagine/text-to-image': { mode: 'text_to_image', refsRequired: false, maxRefs: 0, ratios: ['2:3','3:2','1:1','16:9','9:16'], quality: ['speed','quality'], aspectField: 'aspect_ratio', qualityField: 'enable_pro', note: 'Prompt-first image synthesis.' },
+  'grok-imagine/image-to-image': { mode: 'image_to_image', refsRequired: true, maxRefs: 5, ratios: ['source'], quality: [], inputField: 'image_urls', aspectField: 'none', note: 'Uses reference image + prompt guidance.' },
+  'qwen2/text-to-image': { mode: 'text_to_image', refsRequired: false, maxRefs: 0, ratios: ['1:1','3:4','4:3','9:16','16:9'], quality: [], aspectField: 'image_size_qwen', note: 'Second-gen text image model.' },
+  'qwen2/image-edit': { mode: 'image_edit', refsRequired: true, maxRefs: 1, ratios: ['1:1','2:3','3:2','3:4','4:3','9:16','16:9','21:9'], quality: [], inputField: 'image_url', aspectField: 'image_size_raw', note: 'Second-gen edit model for precise changes.' },
+  'qwen/image-to-image': { mode: 'image_to_image', refsRequired: true, maxRefs: 1, ratios: ['source'], quality: [], inputField: 'image_url', aspectField: 'none', note: 'Transforms one reference image.' },
+  'seedream/5-lite-text-to-image': { mode: 'text_to_image', refsRequired: false, maxRefs: 0, ratios: ['1:1','4:3','3:4','16:9','9:16','2:3','3:2','21:9'], quality: ['basic','high'], aspectField: 'aspect_ratio', qualityField: 'quality', note: 'Lightweight text generation profile.' },
+  'seedream/5-lite-image-to-image': { mode: 'image_to_image', refsRequired: true, maxRefs: 14, ratios: ['1:1','4:3','3:4','16:9','9:16','2:3','3:2','21:9'], quality: ['basic','high'], inputField: 'image_urls', aspectField: 'aspect_ratio', qualityField: 'quality', note: 'Lightweight image transform profile.' },
+  'wan/2-7-image-pro': { mode: 'text_to_image', refsRequired: false, maxRefs: 9, ratios: ['1:1','16:9','4:3','21:9','3:4','9:16','8:1','1:8'], quality: ['1K','2K','4K'], inputField: 'input_urls', aspectField: 'aspect_ratio', qualityField: 'resolution', note: 'Wan pro profile for generate/edit flows.' },
 };
+
+const DEFAULT_RATIO_OPTIONS = ['1:1','16:9','9:16','4:3','3:4'];
+
+function ratioToQwenImageSize(ratio){
+  const map = {
+    '1:1':'square_hd',
+    '3:4':'portrait_4_3',
+    '4:3':'landscape_4_3',
+    '9:16':'portrait_16_9',
+    '16:9':'landscape_16_9'
+  };
+  return map[ratio] || 'square_hd';
+}
+
+function renderRatioChips(ratios){
+  const host = document.getElementById('ratioChips');
+  if(!host) return;
+  const items = Array.isArray(ratios) && ratios.length ? ratios : DEFAULT_RATIO_OPTIONS;
+  const hasSelectable = items.some((x)=>x !== 'source' && x !== 'adaptive');
+  host.innerHTML = items.map((r,idx)=>{
+    const isSpecial = r === 'source' || r === 'adaptive';
+    const active = idx === 0 ? ' a' : '';
+    const text = r === 'source' ? 'SOURCE' : (r === 'adaptive' ? 'ADAPTIVE' : r);
+    return '<span class="ch'+active+(isSpecial ? ' disabled' : '')+'" data-ratio="'+r+'">'+text+'</span>';
+  }).join('');
+  if(hasSelectable){
+    host.querySelectorAll('.ch').forEach((chip)=>{
+      chip.addEventListener('click', function(){
+        const ratio = this.getAttribute('data-ratio') || '';
+        if(ratio === 'source' || ratio === 'adaptive') return;
+        host.querySelectorAll('.ch').forEach((x)=>x.classList.remove('a'));
+        this.classList.add('a');
+      });
+    });
+  }
+}
 
 function getSelectedModelConfig(){
   const id = document.getElementById('imageModel').value;
@@ -330,12 +347,21 @@ function syncImageModelUi(){
     const needed = cfg.refsRequired ? 'Required' : 'Optional';
     refsMeta.textContent = 'References: ' + needed + (mx>0 ? ' (max '+mx+')' : '');
   }
+  renderRatioChips(cfg.ratios);
   const qSel = document.getElementById('imageQuality');
-  if(qSel && Array.isArray(cfg.quality) && cfg.quality.length){
-    const current = String(qSel.value || '').toUpperCase();
-    qSel.innerHTML = cfg.quality.map((q)=>'<option>'+q+'</option>').join('');
-    const normalized = cfg.quality.map((q)=>String(q).toUpperCase());
-    qSel.value = normalized.includes(current) ? current : String(cfg.quality[0]).toUpperCase();
+  if(qSel){
+    if(Array.isArray(cfg.quality) && cfg.quality.length){
+      const current = String(qSel.value || '');
+      qSel.innerHTML = cfg.quality.map((q)=>'<option>'+q+'</option>').join('');
+      qSel.value = cfg.quality.includes(current) ? current : String(cfg.quality[0]);
+      qSel.disabled = false;
+      qSel.style.opacity = '1';
+    } else {
+      qSel.innerHTML = '<option>Auto</option>';
+      qSel.value = 'Auto';
+      qSel.disabled = true;
+      qSel.style.opacity = '.6';
+    }
   }
 }
 
@@ -488,21 +514,48 @@ async function generateImage(){
   }
 
   const ratio = getActiveText('ratioChips', '1:1');
-  const quality = (document.getElementById('imageQuality').value || 'PRO').toLowerCase();
+  const quality = (document.getElementById('imageQuality').value || '').trim();
   const seedRaw = (document.getElementById('seedInput').value || '').trim();
 
   const input = {};
   if(prompt) input.prompt = prompt;
-  input.aspect_ratio = ratio;
-  input.mode = quality;
+
+  if(selectedCfg.aspectField === 'aspect_ratio'){
+    if(ratio && ratio !== 'source' && ratio !== 'adaptive') input.aspect_ratio = ratio;
+  } else if(selectedCfg.aspectField === 'image_size_raw'){
+    if(ratio && ratio !== 'source' && ratio !== 'adaptive') input.image_size = ratio;
+  } else if(selectedCfg.aspectField === 'image_size_qwen'){
+    if(ratio && ratio !== 'source' && ratio !== 'adaptive') input.image_size = ratioToQwenImageSize(ratio);
+  }
+
+  if(quality && quality !== 'Auto'){
+    if(selectedCfg.qualityField === 'resolution'){
+      input.resolution = quality;
+    } else if(selectedCfg.qualityField === 'quality'){
+      input.quality = quality;
+    } else if(selectedCfg.qualityField === 'enable_pro'){
+      input.enable_pro = quality === 'quality';
+    }
+  }
+
   const maxRefs = Number.isFinite(Number(selectedCfg.maxRefs)) && Number(selectedCfg.maxRefs) > 0 ? Number(selectedCfg.maxRefs) : 9;
   const refs = imageState.refs.slice(0, maxRefs);
   if(imageState.refs.length > maxRefs){
     setImageStatus('Using first '+maxRefs+' references (model limit).', 'warn');
   }
   if(refs.length){
-    input.image_urls = refs.map((x)=>x.url);
-    input.image_url = refs[0].url;
+    const refUrls = refs.map((x)=>x.url);
+    if(selectedCfg.inputField === 'image_input'){
+      input.image_input = refUrls;
+    } else if(selectedCfg.inputField === 'image_urls'){
+      input.image_urls = refUrls;
+    } else if(selectedCfg.inputField === 'input_urls'){
+      input.input_urls = refUrls;
+      delete input.aspect_ratio;
+      delete input.image_size;
+    } else {
+      input.image_url = refUrls[0];
+    }
   }
   if(seedRaw){
     const s = Number(seedRaw);
