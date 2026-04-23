@@ -90,8 +90,8 @@ export default function VideoEditorPage() {
         <div className="w-full px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
           <div className="rounded-3xl border border-slate-800/90 bg-[radial-gradient(circle_at_25%_45%,rgba(56,189,248,0.24),transparent_38%),radial-gradient(circle_at_45%_55%,rgba(16,185,129,0.2),transparent_40%),radial-gradient(circle_at_63%_58%,rgba(99,102,241,0.2),transparent_34%),#10141c] p-6 sm:p-8">
             <h1 className="max-w-6xl text-3xl font-extrabold leading-[1.08] tracking-[-0.02em] text-white sm:text-4xl lg:text-5xl">
-              Turn your ideas into cinematic videos
-              <span className="block text-slate-100">with smart tools and a fast workflow</span>
+              <span className="block">Turn your ideas into cinematic videos</span>
+              <span className="mt-1 block font-normal text-slate-200">with smart tools and a fast workflow</span>
             </h1>
             <p className="mt-4 text-sm font-medium text-slate-200 sm:text-base">Start from scratch</p>
             <p className="mt-1 text-xs text-slate-400 sm:text-sm">Create a new space and start collaborating</p>
@@ -155,15 +155,15 @@ export default function VideoEditorPage() {
             ) : null}
 
             {!loading && filteredProjects.length > 0 ? (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(260px,320px))] gap-4">
                 {filteredProjects.map((project) => (
                   <button
                     key={project.id}
                     type="button"
                     onClick={() => openProject(project)}
-                    className="group text-left"
+                    className="group max-w-[320px] text-left"
                   >
-                    <div className="h-44 rounded-lg border border-slate-800 bg-[radial-gradient(circle_at_30%_45%,rgba(56,189,248,0.24),transparent_36%),radial-gradient(circle_at_65%_58%,rgba(99,102,241,0.22),transparent_32%),#070b11] p-3 transition hover:border-sky-600">
+                    <div className="aspect-[4/3] rounded-lg border border-slate-800 bg-[radial-gradient(circle_at_30%_45%,rgba(56,189,248,0.24),transparent_36%),radial-gradient(circle_at_65%_58%,rgba(99,102,241,0.22),transparent_32%),#070b11] p-3 transition hover:border-sky-600">
                       <div className="flex h-full items-end justify-between">
                         <span className="rounded-md border border-slate-600 bg-black/30 px-2 py-1 text-[10px] text-slate-300">Space</span>
                         <span className="text-xs text-slate-400 opacity-0 transition group-hover:opacity-100">Open</span>
