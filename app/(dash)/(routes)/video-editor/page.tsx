@@ -17,10 +17,16 @@ export default function VideoEditorPage() {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState("");
+  const [query, setQuery] = useState("");
   const [activeProject, setActiveProject] = useState<EditorProject | null>(null);
   const [error, setError] = useState("");
 
   const title = useMemo(() => activeProject?.name || "Cinema Workspace", [activeProject]);
+  const filteredProjects = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return projects;
+    return projects.filter((p) => (p.name || "untitled").toLowerCase().includes(q));
+  }, [projects, query]);
 
   async function loadProjects() {
     setLoading(true);
@@ -81,70 +87,87 @@ export default function VideoEditorPage() {
   if (!activeProject) {
     return (
       <div className="h-[calc(100vh-64px)] overflow-auto bg-slate-950 text-slate-100">
-        <div className="mx-auto max-w-5xl px-6 py-10">
-          <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6">
-            <h1 className="text-4xl font-extrabold leading-tight tracking-tight text-white sm:text-5xl">
-              حول أفكارك إلى فيديوهات سينمائية بأدوات ذكية وسير عمل سريع
-            </h1>
-            <p className="mt-3 text-sm text-slate-300 sm:text-base">
-              ابدأ بإنشاء مشروع جديد أو افتح أحد مشاريعك المحفوظة للمتابعة مباشرة.
-            </p>
+        <div className="mx-auto max-w-7xl px-5 py-5 sm:px-6 sm:py-6">
+          <div className="rounded-3xl border border-slate-800/90 bg-[radial-gradient(circle_at_25%_45%,rgba(56,189,248,0.24),transparent_38%),radial-gradient(circle_at_45%_55%,rgba(16,185,129,0.2),transparent_40%),radial-gradient(circle_at_63%_58%,rgba(99,102,241,0.2),transparent_34%),#10141c] p-6 sm:p-8">
+            <h1 className="text-4xl font-semibold tracking-tight text-white sm:text-5xl">Spaces</h1>
+            <p className="mt-3 text-sm text-slate-300">Start from scratch</p>
+            <p className="text-xs text-slate-400">Create a new space and start collaborating</p>
 
-            <div className="mt-6 rounded-xl border border-slate-800 bg-slate-900/70 p-4">
-              <label className="mb-2 block text-sm font-medium text-slate-200">Project name</label>
-              <div className="flex flex-col gap-3 sm:flex-row">
-                <input
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !creating) void createProject();
-                  }}
-                  placeholder="Example: Ramadan Campaign"
-                  className="h-11 flex-1 rounded-lg border border-slate-700 bg-slate-950 px-3 text-sm outline-none ring-0 placeholder:text-slate-500 focus:border-sky-500"
-                />
-                <button
-                  type="button"
-                  onClick={() => void createProject()}
-                  disabled={creating}
-                  className="h-11 rounded-lg bg-sky-600 px-5 text-sm font-semibold text-white hover:bg-sky-500 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {creating ? "Creating..." : "Create Project"}
-                </button>
-              </div>
-              {error ? <p className="mt-2 text-xs text-rose-400">{error}</p> : null}
+            <div className="mt-6 flex flex-col gap-3 sm:max-w-xl sm:flex-row">
+              <input
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !creating) void createProject();
+                }}
+                placeholder="Space name"
+                className="h-10 flex-1 rounded-full border border-slate-700 bg-black/40 px-4 text-sm text-slate-100 outline-none placeholder:text-slate-400 focus:border-sky-500"
+              />
+              <button
+                type="button"
+                onClick={() => void createProject()}
+                disabled={creating}
+                className="h-10 rounded-full border border-slate-200/20 bg-white px-5 text-sm font-medium text-slate-900 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {creating ? "Creating..." : "New space"}
+              </button>
             </div>
+            {error ? <p className="mt-3 text-xs text-rose-400">{error}</p> : null}
           </div>
 
-          <div className="mt-6 rounded-2xl border border-slate-800 bg-slate-900/60 p-6">
-            <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Saved Projects</h2>
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2 text-xs">
+              <span className="rounded-md border border-slate-700 bg-slate-800 px-3 py-1.5 text-white">My spaces</span>
+              <span className="rounded-md border border-slate-800 px-3 py-1.5 text-slate-400">Shared</span>
+              <span className="rounded-md border border-slate-800 px-3 py-1.5 text-slate-400">Templates</span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search spaces..."
+                className="h-9 w-full rounded-full border border-slate-800 bg-transparent px-4 text-xs text-slate-100 outline-none placeholder:text-slate-500 sm:w-64"
+              />
               <button
                 type="button"
                 onClick={() => void loadProjects()}
                 disabled={loading}
-                className="text-xs text-slate-300 underline underline-offset-4 hover:text-white disabled:opacity-60"
+                className="h-9 rounded-full border border-slate-700 px-4 text-xs text-slate-200 hover:border-sky-500 disabled:opacity-60"
               >
                 Refresh
               </button>
             </div>
+          </div>
 
-            {loading ? <p className="text-sm text-slate-400">Loading projects...</p> : null}
+          <div className="mt-4">
+            {loading ? <p className="text-sm text-slate-400">Loading spaces...</p> : null}
 
             {!loading && projects.length === 0 ? (
-              <p className="text-sm text-slate-400">No projects yet. Create your first project above.</p>
+              <p className="text-sm text-slate-400">No spaces yet. Create your first space above.</p>
             ) : null}
 
-            {!loading && projects.length > 0 ? (
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                {projects.map((project) => (
+            {!loading && projects.length > 0 && filteredProjects.length === 0 ? (
+              <p className="text-sm text-slate-400">No results found for your search.</p>
+            ) : null}
+
+            {!loading && filteredProjects.length > 0 ? (
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                {filteredProjects.map((project) => (
                   <button
                     key={project.id}
                     type="button"
                     onClick={() => openProject(project)}
-                    className="rounded-xl border border-slate-800 bg-slate-950/70 p-4 text-left hover:border-sky-600"
+                    className="group text-left"
                   >
-                    <p className="truncate text-sm font-semibold text-slate-100">{project.name || "Untitled Project"}</p>
-                    <p className="mt-1 text-xs text-slate-400">ID: {project.id.slice(0, 10)}...</p>
+                    <div className="h-44 rounded-lg border border-slate-800 bg-[radial-gradient(circle_at_30%_45%,rgba(56,189,248,0.24),transparent_36%),radial-gradient(circle_at_65%_58%,rgba(99,102,241,0.22),transparent_32%),#070b11] p-3 transition hover:border-sky-600">
+                      <div className="flex h-full items-end justify-between">
+                        <span className="rounded-md border border-slate-600 bg-black/30 px-2 py-1 text-[10px] text-slate-300">Space</span>
+                        <span className="text-xs text-slate-400 opacity-0 transition group-hover:opacity-100">Open</span>
+                      </div>
+                    </div>
+                    <p className="mt-2 truncate text-sm font-medium text-slate-100">{project.name || "Untitled Space"}</p>
+                    <p className="text-[11px] text-slate-500">{project.id.slice(0, 12)}...</p>
                   </button>
                 ))}
               </div>
