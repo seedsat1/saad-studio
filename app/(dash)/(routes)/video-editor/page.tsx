@@ -3,10 +3,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
+const LAST_OPENED_PROJECT_KEY = "videoEditor.lastOpenedProjectId";
+
 type EditorProject = {
   id: string;
   name?: string;
   createdAt?: string;
+  tracks?: Record<string, unknown[]>;
 };
 
 export default function VideoEditorPage() {
@@ -18,6 +21,7 @@ export default function VideoEditorPage() {
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState("");
   const [query, setQuery] = useState("");
+  const [lastOpenedProjectId, setLastOpenedProjectId] = useState("");
   const [activeProject, setActiveProject] = useState<EditorProject | null>(null);
   const [error, setError] = useState("");
 
@@ -51,6 +55,13 @@ export default function VideoEditorPage() {
   }
 
   useEffect(() => {
+    try {
+      const saved = localStorage.getItem(LAST_OPENED_PROJECT_KEY) || "";
+      setLastOpenedProjectId(saved);
+    } catch {
+      setLastOpenedProjectId("");
+    }
+
     loadProjects();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -71,6 +82,10 @@ export default function VideoEditorPage() {
       }
       const created: EditorProject = { id: data.id, name: data.name || name };
       setProjects((prev) => [created, ...prev]);
+      setLastOpenedProjectId(created.id);
+      try {
+        localStorage.setItem(LAST_OPENED_PROJECT_KEY, created.id);
+      } catch {}
       setActiveProject(created);
       setNewName("");
     } catch (e) {
@@ -81,7 +96,27 @@ export default function VideoEditorPage() {
   }
 
   function openProject(project: EditorProject) {
+    setLastOpenedProjectId(project.id);
+    try {
+      localStorage.setItem(LAST_OPENED_PROJECT_KEY, project.id);
+    } catch {}
     setActiveProject(project);
+  }
+
+  function extractProjectPreview(project: EditorProject) {
+    const buckets = Object.values(project.tracks || {});
+    for (const bucket of buckets) {
+      if (!Array.isArray(bucket)) continue;
+      for (const item of bucket) {
+        if (!item || typeof item !== "object") continue;
+        const clip = item as Record<string, unknown>;
+        const candidates = [clip.thumbnail, clip.poster, clip.preview, clip.image, clip.url, clip.src];
+        for (const c of candidates) {
+          if (typeof c === "string" && c.trim().length > 0) return c;
+        }
+      }
+    }
+    return "";
   }
 
   if (!activeProject) {
@@ -177,12 +212,27 @@ export default function VideoEditorPage() {
                     onClick={() => openProject(project)}
                     className="group max-w-[320px] text-left"
                   >
-                    <div className="aspect-[4/3] rounded-lg border border-slate-800 bg-[radial-gradient(circle_at_30%_45%,rgba(56,189,248,0.24),transparent_36%),radial-gradient(circle_at_65%_58%,rgba(99,102,241,0.22),transparent_32%),#070b11] p-3 transition hover:border-sky-600">
+                    <div
+                      className="aspect-[4/3] rounded-lg border border-slate-800 p-3 transition hover:border-sky-600"
+                      style={{
+                        backgroundImage: extractProjectPreview(project)
+                          ? `linear-gradient(180deg, rgba(2,6,23,0.16) 0%, rgba(2,6,23,0.58) 100%), url('${extractProjectPreview(project)}')`
+                          : "radial-gradient(circle_at_30%_45%,rgba(56,189,248,0.24),transparent_36%),radial-gradient(circle_at_65%_58%,rgba(99,102,241,0.22),transparent_32%),#070b11",
+                        backgroundSize: "cover",
+                        backgroundPosition: "center",
+                      }}
+                    >
                       <div className="flex h-full items-end justify-between">
                         <span className="max-w-[80%] truncate rounded-md border border-slate-600 bg-black/30 px-2 py-1 text-[10px] text-slate-300">
                           Project: {project.name || "Untitled Project"}
                         </span>
-                        <span className="text-xs text-slate-400 opacity-0 transition group-hover:opacity-100">Open</span>
+                        {lastOpenedProjectId === project.id ? (
+                          <span className="rounded-md border border-emerald-500/40 bg-emerald-900/30 px-2 py-1 text-[10px] text-emerald-300">
+                            Last Opened
+                          </span>
+                        ) : (
+                          <span className="text-xs text-slate-300 opacity-0 transition group-hover:opacity-100">Open</span>
+                        )}
                       </div>
                     </div>
                   </button>
