@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 const LAST_OPENED_PROJECT_KEY = "videoEditor.lastOpenedProjectId";
 
@@ -13,6 +13,7 @@ type EditorProject = {
 };
 
 export default function VideoEditorPage() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const forcedProjectId = (searchParams.get("projectId") || "").trim();
 
@@ -43,8 +44,11 @@ export default function VideoEditorPage() {
       }
       const list = Array.isArray(data?.projects) ? (data.projects as EditorProject[]) : [];
       setProjects(list);
-      if (forcedProjectId) {
-        const hit = list.find((p) => p.id === forcedProjectId);
+      const savedProjectId =
+        typeof window !== "undefined" ? localStorage.getItem(LAST_OPENED_PROJECT_KEY) || "" : "";
+      const targetProjectId = forcedProjectId || savedProjectId;
+      if (targetProjectId) {
+        const hit = list.find((p) => p.id === targetProjectId);
         if (hit) setActiveProject(hit);
       }
     } catch (e) {
@@ -64,7 +68,7 @@ export default function VideoEditorPage() {
 
     loadProjects();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [forcedProjectId]);
 
   async function createProject() {
     const name = newName.trim() || "Untitled Project";
@@ -87,6 +91,7 @@ export default function VideoEditorPage() {
         localStorage.setItem(LAST_OPENED_PROJECT_KEY, created.id);
       } catch {}
       setActiveProject(created);
+      router.replace(`/video-editor?projectId=${encodeURIComponent(created.id)}`);
       setNewName("");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to create project.");
@@ -101,6 +106,7 @@ export default function VideoEditorPage() {
       localStorage.setItem(LAST_OPENED_PROJECT_KEY, project.id);
     } catch {}
     setActiveProject(project);
+    router.replace(`/video-editor?projectId=${encodeURIComponent(project.id)}`);
   }
 
   function extractProjectPreview(project: EditorProject) {
@@ -254,7 +260,10 @@ export default function VideoEditorPage() {
         </div>
         <button
           type="button"
-          onClick={() => setActiveProject(null)}
+          onClick={() => {
+            setActiveProject(null);
+            router.replace("/video-editor");
+          }}
           className="rounded-md border border-slate-700 px-3 py-1.5 text-xs hover:border-sky-500"
         >
           All Projects
