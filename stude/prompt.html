@@ -1,0 +1,304 @@
+﻿<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title> </title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#181818;--panel:#1e1e1e;--panel2:#232323;--border:#2d2d2d;--border2:#3a3a3a;--text:#d4d4d4;--dim:#777;--dim2:#555;--accent:#4a9eff;--accent2:#5cb8ff;--green:#4caf50;--orange:#ff9800;--red:#f44336;--purple:#b388ff;--cyan:#26c6da;--yellow:#ffd54f}
+*{margin:0;padding:0;box-sizing:border-box}
+*{scrollbar-width:thin;scrollbar-color:#3d4a62 #171b22}
+*::-webkit-scrollbar{width:10px;height:10px}
+*::-webkit-scrollbar-track{background:#171b22;border-left:1px solid #252d3a}
+*::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#42526d,#344157);border:2px solid #171b22;border-radius:999px}
+*::-webkit-scrollbar-thumb:hover{background:linear-gradient(180deg,#4e6283,#3d4f69)}
+*::-webkit-scrollbar-corner{background:#171b22}
+body{background:var(--bg);color:var(--text);font-family:'Tajawal',sans-serif;height:100vh;overflow:hidden;display:flex;flex-direction:column}
+.menubar{height:24px;background:#111;display:flex;align-items:center;padding:0 8px;gap:2px;border-bottom:1px solid #222;font-size:11px}
+.menubar span{padding:2px 8px;color:var(--dim);cursor:pointer;border-radius:2px}.menubar span:hover{color:var(--text);background:#333}
+.menubar .spacer{flex:1}.menubar .title{color:var(--accent);font-weight:700;letter-spacing:1px}
+.page-tabs{height:30px;background:#1a1a1a;display:flex;align-items:center;border-bottom:1px solid var(--border);padding:0 8px}
+.page-tab{padding:5px 14px;font-size:10px;color:var(--dim);cursor:pointer;border-bottom:2px solid transparent;transition:.15s;text-decoration:none;font-family:'Tajawal'}
+.page-tab:hover{color:var(--text)}.page-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.workspace{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.top-row{flex:1;display:flex;min-height:0}
+.bottom-row{height:200px;border-top:2px solid var(--border);display:flex;flex-direction:column}
+.panel{background:var(--panel);display:flex;flex-direction:column;overflow:hidden}
+.ph{height:26px;background:#252525;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 10px;gap:8px;flex-shrink:0}
+.ph .l{font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.55px;font-weight:700;cursor:pointer}.ph .l.a{color:var(--accent)}
+.pb{flex:1;overflow-y:auto;padding:10px;font-size:12px}
+.vr{width:2px;background:var(--border);cursor:col-resize;flex-shrink:0}.vr:hover{background:var(--accent)}
+.ist{font-size:11px;color:#9aa7bb;text-transform:uppercase;letter-spacing:.45px;font-weight:700;padding:7px 0 6px;border-bottom:1px solid var(--border);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.ist .d{width:5px;height:5px;border-radius:50%}
+.sr{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.sr .sl{font-size:12px;color:#aab5c5;width:110px;flex-shrink:0}
+.sr .st{flex:1;height:5px;background:#2a2a2a;border-radius:3px;position:relative}
+.sr .sf{position:absolute;right:0;top:0;height:100%;border-radius:2px}
+.sr .st input{position:absolute;inset:0;width:100%;opacity:0;cursor:pointer;margin:0}
+.sr .sv{font-size:13px;font-family:'JetBrains Mono';width:56px;text-align:left;flex-shrink:0}
+.cr{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:6px}
+.ch{padding:4px 10px;border-radius:4px;font-size:11px;cursor:pointer;border:1px solid var(--border);background:#1a1a1a;color:#9da9bc;font-family:'Tajawal';transition:.12s}
+.ch:hover{border-color:var(--border2);color:var(--text)}.ch.a{border-color:var(--accent);color:var(--accent);background:rgba(74,158,255,.08)}
+textarea{width:100%;background:#1a1a1a;border:1px solid var(--border);border-radius:4px;padding:10px;color:var(--text);font-family:'Tajawal';font-size:13px;resize:vertical;outline:none;line-height:1.6}
+textarea:focus{border-color:var(--accent)}
+.bs{padding:5px 12px;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;border:none;font-family:'Tajawal';transition:.12s}
+.bb{background:var(--accent);color:#fff}.bb:hover{background:var(--accent2)}
+.bg{background:none;color:var(--dim);border:1px solid var(--border)}.bg:hover{color:var(--text);border-color:var(--border2)}
+.sb{display:flex;align-items:center;background:#1a1a1a;border:1px solid var(--border);border-radius:3px;padding:0 6px;margin-bottom:6px}
+.sb input{flex:1;background:none;border:none;color:var(--text);font-size:10px;padding:4px;outline:none;font-family:'Tajawal'}
+/* timeline */
+.th{height:26px;background:#252525;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 10px;gap:10px;flex-shrink:0}
+.th span{font-size:9px;color:var(--dim);cursor:pointer}.th span.a{color:var(--accent)}
+.tb{flex:1;display:flex;overflow:hidden}
+.ts{width:100px;background:#1c1c1c;border-left:1px solid var(--border);flex-shrink:0}
+.tl{height:32px;display:flex;align-items:center;padding:0 6px;gap:3px;border-bottom:1px solid #252525;font-size:9px;color:var(--dim)}
+.tl .dd{width:5px;height:5px;border-radius:50%}.tl .n{flex:1}.tl .x{display:flex;gap:1px;font-size:8px;opacity:.4}
+.ta{flex:1;position:relative;overflow:auto}
+.tr{height:18px;background:#1c1c1c;border-bottom:1px solid var(--border);display:flex;align-items:flex-end;padding:0 8px;gap:55px;position:sticky;top:0;z-index:2}
+.tr span{font-size:7px;color:var(--dim2);font-family:'JetBrains Mono'}
+.tt{position:relative}
+.tk{height:32px;border-bottom:1px solid #252525;position:relative}
+.tc2{position:absolute;top:2px;height:28px;border-radius:3px;display:flex;align-items:center;padding:0 5px;font-size:8px;color:#fff;overflow:hidden;cursor:pointer}
+.tc2:hover{filter:brightness(1.2)}.tc2 .cn{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tp2{position:absolute;top:0;bottom:0;width:2px;background:var(--red);z-index:10;pointer-events:none}
+.tp2::before{content:'';position:absolute;top:-1px;right:-3px;width:8px;height:8px;background:var(--red);clip-path:polygon(50% 100%,0 0,100% 0)}
+
+.kw{padding:4px 8px;background:#1e1e1e;border:1px solid var(--border);border-radius:4px;font-size:11px;color:#9da9bc;cursor:pointer;transition:.12s;font-family:'Tajawal'}
+.kw:hover{border-color:var(--accent);color:var(--accent)}
+.sp2{padding:8px;background:#1a1a1a;border:1px solid var(--border);border-radius:4px;cursor:pointer;transition:.15s;margin-bottom:6px}
+.sp2:hover{border-color:var(--accent)}
+.sp2t{font-size:11px;color:#95a1b5;margin-top:3px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.gpt-box{border-top:1px solid var(--border);padding-top:8px;display:flex;flex-direction:column;gap:6px}
+.gpt-row{display:flex;gap:6px;align-items:center}
+.gpt-row label{font-size:11px;color:#9fb0c8;white-space:nowrap}
+.gpt-row select,.gpt-row input[type="text"]{flex:1;background:#1a1a1a;border:1px solid var(--border);border-radius:4px;color:var(--text);padding:6px 8px;font-size:11px;font-family:'Tajawal';outline:none}
+.gpt-row select:focus,.gpt-row input[type="text"]:focus{border-color:var(--accent)}
+.gpt-status{font-size:11px;color:#93a6c3;min-height:14px}
+</style>
+</head>
+<body>
+<script>
+(function(){
+  var params=new URLSearchParams(location.search);
+  var isEmbed=params.get('embed')==='1';
+  var pageName='prompt';
+  if(!isEmbed){
+    location.replace('studio-shell.html?page='+encodeURIComponent(pageName));
+    return;
+  }
+  window.__FF_EMBED_TOP=true;
+  document.documentElement.lang='en';
+  document.documentElement.dir='ltr';
+  document.addEventListener('DOMContentLoaded',function(){
+    var mb=document.querySelector('.menubar'); if(mb) mb.style.display='none';
+    var tabs=document.querySelector('.page-tabs'); if(tabs) tabs.style.display='none';
+    var br=document.querySelector('.bottom-row'); if(br) br.style.display='none';
+    var ws=document.querySelector('.workspace'); if(ws){ ws.style.height='100vh'; ws.style.display='flex'; ws.style.flexDirection='column'; }
+    var tr=document.querySelector('.top-row'); if(tr){ tr.style.flex='1 1 auto'; tr.style.minHeight='0'; }
+  });
+})();
+</script>
+<!-- FF_SHELL_BRIDGE -->
+<div class="menubar"><span class="title">FRAMEFORGE</span><span> </span><span> </span><span> </span><div class="spacer"></div><span style="color:var(--dim2);font-family:'JetBrains Mono';font-size:9px">Untitled Project</span></div>
+<div class="page-tabs"><a class="page-tab" href="sound.html"> </a>
+<a class="page-tab" href="video.html"> </a>
+<a class="page-tab" href="presets.html"> </a>
+<a class="page-tab" href="transitions.html"> </a>
+<a class="page-tab" href="lighting.html"> </a>
+<a class="page-tab active" href="prompt.html"> </a>
+</div>
+<div class="workspace">
+<div class="top-row">
+<div class="panel" style="flex:1;display:flex;flex-direction:column">
+<div class="ph"><span class="l a">Script Prompt Builder</span></div>
+<div class="pb" style="display:flex;flex-direction:column;gap:8px">
+<textarea id="mp" rows="8" placeholder="Describe your scene, subject, camera angle, mood, and visual style..."></textarea>
+<div style="display:flex;justify-content:space-between"><span style="font-size:11px;color:#97a3b8" id="mc">0 characters</span><button class="bs bg" style="padding:4px 8px;font-size:11px" onclick="document.getElementById('mp').value='';umc()">Clear</button></div>
+<div style="background:#1a1a1a;border:1px solid var(--border);border-radius:3px;padding:6px">
+<div style="font-size:12px;font-weight:600;margin-bottom:6px">Quick Keywords</div>
+<div style="display:flex;flex-wrap:wrap;gap:3px">
+<span class="kw" onclick="ak('cinematic')">cinematic</span><span class="kw" onclick="ak('4K')">4K</span><span class="kw" onclick="ak('rainy night')">rainy night</span><span class="kw" onclick="ak('anamorphic')">anamorphic</span><span class="kw" onclick="ak('dolly in')">dolly in</span><span class="kw" onclick="ak('close-up')">close-up</span><span class="kw" onclick="ak('neon lights')">neon lights</span><span class="kw" onclick="ak('dramatic mood')">dramatic mood</span><span class="kw" onclick="ak('news studio')">news studio</span>
+</div></div>
+<div style="border-top:1px solid var(--border);padding-top:8px">
+<div style="font-size:12px;font-weight:600;margin-bottom:6px;color:var(--red)">Negative Prompt</div>
+<textarea id="np" rows="2" placeholder="What to avoid (e.g. blurry, low quality, watermark)..." style="color:rgba(244,67,54,.75)"></textarea>
+<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:4px">
+<span class="kw" onclick="ank('blurry')">blurry</span><span class="kw" onclick="ank('low quality')">low quality</span><span class="kw" onclick="ank('artifacts')">artifacts</span><span class="kw" onclick="ank('overexposed')">overexposed</span><span class="kw" onclick="ank('watermark')">watermark</span>
+</div></div>
+<div style="border-top:1px solid var(--border);padding-top:8px">
+<div class="sr"><span class="sl">Prompt Strength</span><div class="st"><div class="sf" style="width:75%;background:var(--accent)"></div><input type="range" min="0" max="100" value="75"></div><span class="sv" style="color:var(--accent)">75%</span></div>
+<div class="sr"><span class="sl">CFG Scale</span><div class="st"><div class="sf" style="width:37%;background:var(--orange)"></div><input type="range" min="1" max="20" value="7.5" step="0.5"></div><span class="sv" style="color:var(--orange)">7.5</span></div>
+</div>
+<div class="gpt-box">
+<div class="ist" style="margin-bottom:0"><span class="d" style="background:var(--cyan)"></span>GPT 5.2 Assist</div>
+<div class="gpt-row">
+<label for="gptReasoning">Reasoning</label>
+<select id="gptReasoning"><option value="high" selected>high</option><option value="low">low</option></select>
+<label style="display:flex;align-items:center;gap:5px"><input id="gptWebSearch" type="checkbox"> Web Search</label>
+</div>
+<div class="gpt-row">
+<label for="gptImageUrl">Image URL</label>
+<input id="gptImageUrl" type="text" placeholder="Optional reference image URL">
+</div>
+<div style="display:flex;gap:4px">
+  <button id="gptAssistBtn" class="bs bb" style="flex:1;padding:8px" onclick="gptAssist()">Generate with GPT 5.2</button>
+  <button class="bs bg" style="padding:8px 10px" onclick="useAssistantAsPreset()">Add GPT Result</button>
+</div>
+<div id="gptStatus" class="gpt-status">Ready.</div>
+</div>
+<div style="display:flex;gap:4px;margin-top:6px"><button class="bs bb" style="flex:1;padding:8px">Save Prompt</button><button class="bs bg" onclick="svp()">Add To Presets</button></div>
+</div></div>
+<div class="vr"></div>
+<div class="panel" style="width:360px">
+<div class="ph"><span class="l a">Prompt Presets</span></div>
+<div class="pb">
+<div class="ist"><span class="d" style="background:var(--accent)"></span>Saved Prompts</div>
+<div id="sl">
+<div class="sp2" onclick="lp('A cinematic rooftop chase at night, 4K, anamorphic lens, dramatic rain, city neon reflections')"><div style="font-size:12px;font-weight:700">Cinematic Rooftop Chase</div><div class="sp2t">4K action scene with neon atmosphere and strong motion.</div></div>
+<div class="sp2" onclick="lp('Professional product showcase on clean studio background, soft key light, shallow depth of field, smooth camera move')"><div style="font-size:12px;font-weight:700">Product Studio Ad</div><div class="sp2t">Commercial style for product presentations and promos.</div></div>
+<div class="sp2" onclick="lp('Nature documentary shot in golden hour, ultra-detailed foliage, wide cinematic frame, soft wind movement')"><div style="font-size:12px;font-weight:700">Nature Documentary</div><div class="sp2t">Clean, realistic visuals with organic movement and light.</div></div>
+</div>
+<div class="ist" style="margin-top:10px"><span class="d" style="background:var(--orange)"></span>Style Templates</div>
+<div class="cr"><span class="ch" onclick="lt('cinematic')">Cinematic</span><span class="ch" onclick="lt('product')">Product</span><span class="ch" onclick="lt('nature')">Nature</span><span class="ch" onclick="lt('action')">Action</span></div>
+</div></div>
+</div>
+<!-- TIMELINE -->
+<div class="bottom-row">
+<div class="th"><span class="a"> </span><span> </span><span style="flex:1"></span><span style="font-family:'JetBrains Mono';font-size:8px;color:var(--dim2)">Sequence 01</span></div>
+<div class="tb">
+<div class="ts">
+<div class="tl"><span class="dd" style="background:var(--green)"></span><span class="n">V1</span><span class="x"> </span></div>
+<div class="tl"><span class="dd" style="background:var(--accent)"></span><span class="n">A1</span><span class="x">M S</span></div>
+<div class="tl"><span class="dd" style="background:var(--orange)"></span><span class="n">A2</span><span class="x">M S</span></div>
+<div class="tl"><span class="dd" style="background:var(--cyan)"></span><span class="n">A3</span><span class="x">M S</span></div>
+</div>
+<div class="ta">
+<div class="tr"><span>00:00</span><span>00:30</span><span>01:00</span><span>01:30</span><span>02:00</span><span>02:30</span><span>03:00</span><span>03:30</span><span>04:00</span></div>
+<div class="tt">
+<div class="tk"><div class="tc2" style="right:30px;width:150px;background:#2d5a27"><span class="cn">scene_01.mp4</span></div><div class="tc2" style="right:190px;width:220px;background:#2d5a27"><span class="cn">aerial_shot.mp4</span></div></div>
+<div class="tk"><div class="tc2" style="right:50px;width:280px;background:#1a4a7a"><span class="cn">Voice Over</span></div></div>
+<div class="tk"><div class="tc2" style="right:15px;width:450px;background:#7a4a1a"><span class="cn">Music Score.wav</span></div></div>
+<div class="tk"><div class="tc2" style="right:80px;width:35px;background:#1a6a6a"><span class="cn"> </span></div></div>
+<div class="tp2" style="right:130px"></div>
+</div></div></div></div>
+</div>
+<script>
+const mp=document.getElementById('mp'),np2=document.getElementById('np');
+mp.addEventListener('input',umc);function umc(){document.getElementById('mc').textContent=mp.value.length+' characters'}
+function ak(k){mp.value+=(mp.value?' ':'')+k;umc()}
+function ank(k){np2.value+=(np2.value?' ':'')+k}
+function lp(t){mp.value=t;umc();mp.focus()}
+function svp(){if(!mp.value)return;const l=document.getElementById('sl'),d=document.createElement('div');d.className='sp2';d.onclick=function(){lp(mp.value)};d.innerHTML='<div style="font-size:12px;font-weight:700">Custom Prompt</div><div class="sp2t">'+mp.value+'</div>';l.appendChild(d)}
+const tpl={
+  cinematic:'A cinematic city scene at night, 4K, anamorphic lens, dramatic contrast, volumetric lighting',
+  product:'A premium product commercial in a minimal studio, soft key light, crisp reflections, smooth camera move',
+  nature:'A nature documentary frame at golden hour, wide landscape, realistic details, soft atmospheric depth',
+  action:'Fast-paced action sequence, handheld energy, dynamic camera movement, high detail and motion blur'
+};
+function lt(t){mp.value=tpl[t];umc()}
+
+function setGptStatus(msg,tone){
+  const el=document.getElementById('gptStatus');
+  const c={info:'#93a6c3',ok:'#6cd98d',warn:'#ffcc7a',err:'#ff7b7b'};
+  el.textContent=msg;
+  el.style.color=c[tone||'info']||c.info;
+}
+function setGptBusy(b){
+  const btn=document.getElementById('gptAssistBtn');
+  btn.disabled=!!b;
+  btn.style.opacity=b?'.65':'1';
+  btn.style.cursor=b?'not-allowed':'pointer';
+}
+function extractAssistantText(resp){
+  if(!resp||!Array.isArray(resp.choices)||!resp.choices.length) return '';
+  const msg=resp.choices[0]&&resp.choices[0].message;
+  if(!msg) return '';
+  if(typeof msg.content==='string') return msg.content.trim();
+  if(Array.isArray(msg.content)){
+    return msg.content.map((p)=>typeof p==='string'?p:(p&&typeof p.text==='string'?p.text:'')).join('\n').trim();
+  }
+  return '';
+}
+async function gptAssist(){
+  const base=(mp.value||'').trim();
+  const neg=(np2.value||'').trim();
+  if(!base){
+    setGptStatus('Write prompt text first.','warn');
+    return;
+  }
+  const reasoning=(document.getElementById('gptReasoning').value||'high')==='low'?'low':'high';
+  const withSearch=!!document.getElementById('gptWebSearch').checked;
+  const imageUrl=(document.getElementById('gptImageUrl').value||'').trim();
+  const userContent=[{
+    type:'text',
+    text:[
+      'Refine the following visual generation prompt for cinematic quality.',
+      'Return only the final improved prompt text in English.',
+      'Keep intent, improve structure, camera language, lighting, composition, and clarity.',
+      '',
+      'BASE PROMPT:',
+      base,
+      '',
+      'NEGATIVE PROMPT:',
+      neg||'(none)'
+    ].join('\n')
+  }];
+  if(imageUrl){
+    userContent.push({ type:'image_url', image_url:{ url:imageUrl }});
+  }
+  const payload={
+    reasoning_effort:reasoning,
+    messages:[
+      { role:'system', content:[{type:'text',text:'You are a senior prompt engineer for video and image generation.'}]},
+      { role:'user', content:userContent }
+    ]
+  };
+  if(withSearch){
+    payload.tools=[{ type:'function', function:{ name:'web_search' }}];
+  }
+  setGptBusy(true);
+  setGptStatus('Sending request to GPT 5.2...','info');
+  try{
+    const res=await fetch('/api/kie/gpt-5-2/chat',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(payload)
+    });
+    const json=await res.json();
+    if(!res.ok||!json){
+      throw new Error((json&&json.msg)||('Request failed ('+res.status+')'));
+    }
+    if(json.error&&json.error.message){
+      throw new Error(json.error.message);
+    }
+    const out=extractAssistantText(json);
+    if(!out) throw new Error('No prompt text returned from GPT 5.2');
+    mp.value=out;
+    umc();
+    setGptStatus('Prompt updated by GPT 5.2.','ok');
+  }catch(e){
+    setGptStatus('GPT failed: '+(e&&e.message?e.message:String(e)),'err');
+  }finally{
+    setGptBusy(false);
+  }
+}
+function useAssistantAsPreset(){
+  if(!(mp.value||'').trim()){
+    setGptStatus('No prompt text to save.','warn');
+    return;
+  }
+  svp();
+  setGptStatus('GPT result added to presets.','ok');
+}
+</script>
+<script src="shared/timeline-bridge.js"></script>
+<script src="shared/english-only.js"></script>
+<script src="shared/resizable-panels.js"></script></body>
+</html>
+
+
+
+
+
+

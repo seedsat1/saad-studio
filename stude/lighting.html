@@ -1,0 +1,314 @@
+﻿<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lighting Studio</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#181818;--panel:#1e1e1e;--panel2:#232323;--border:#2d2d2d;--border2:#3a3a3a;--text:#d4d4d4;--dim:#777;--dim2:#555;--accent:#4a9eff;--accent2:#5cb8ff;--green:#4caf50;--orange:#ff9800;--red:#f44336;--purple:#b388ff;--cyan:#26c6da;--yellow:#ffd54f}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'Tajawal',sans-serif;height:100vh;overflow:hidden;display:flex;flex-direction:column}
+.menubar{height:24px;background:#111;display:flex;align-items:center;padding:0 8px;gap:2px;border-bottom:1px solid #222;font-size:11px}
+.menubar span{padding:2px 8px;color:var(--dim);cursor:pointer;border-radius:2px}.menubar span:hover{color:var(--text);background:#333}
+.menubar .spacer{flex:1}.menubar .title{color:var(--accent);font-weight:700;letter-spacing:1px}
+.page-tabs{height:30px;background:#1a1a1a;display:flex;align-items:center;border-bottom:1px solid var(--border);padding:0 8px}
+.page-tab{padding:5px 14px;font-size:10px;color:var(--dim);cursor:pointer;border-bottom:2px solid transparent;transition:.15s;text-decoration:none;font-family:'Tajawal'}
+.page-tab:hover{color:var(--text)}.page-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.workspace{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.top-row{flex:1;display:flex;min-height:0}
+.bottom-row{height:200px;border-top:2px solid var(--border);display:flex;flex-direction:column}
+.panel{background:var(--panel);display:flex;flex-direction:column;overflow:hidden}
+.ph{height:26px;background:#252525;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 10px;gap:8px;flex-shrink:0}
+.ph .l{font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.55px;font-weight:700;cursor:pointer}.ph .l.a{color:var(--accent)}
+.pb{flex:1;overflow-y:auto;padding:10px;font-size:12px}
+.vr{width:2px;background:var(--border);cursor:col-resize;flex-shrink:0}.vr:hover{background:var(--accent)}
+.ist{font-size:11px;color:#9aa7bb;text-transform:uppercase;letter-spacing:.45px;font-weight:700;padding:7px 0 6px;border-bottom:1px solid var(--border);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.ist .d{width:5px;height:5px;border-radius:50%}
+.sr{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.sr .sl{font-size:12px;color:#aab5c5;width:90px;flex-shrink:0}
+.sr .st{flex:1;height:5px;background:#2a2a2a;border-radius:3px;position:relative}
+.sr .sf{position:absolute;right:0;top:0;height:100%;border-radius:2px}
+.sr .st input{position:absolute;inset:0;width:100%;opacity:0;cursor:pointer;margin:0}
+.sr .sv{font-size:13px;font-family:'JetBrains Mono';width:56px;text-align:left;flex-shrink:0}
+.cr{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:6px}
+.preset-select{width:100%;background:#1a1a1a;border:1px solid var(--border);border-radius:4px;padding:7px 8px;color:var(--text);font-family:'Tajawal';font-size:12px;outline:none}
+.preset-select:focus{border-color:var(--accent)}
+textarea{width:100%;background:#1a1a1a;border:1px solid var(--border);border-radius:3px;padding:6px;color:var(--text);font-family:'Tajawal';font-size:11px;resize:vertical;outline:none;line-height:1.5}
+textarea:focus{border-color:var(--accent)}
+.bs{padding:5px 12px;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;border:none;font-family:'Tajawal';transition:.12s}
+.bb{background:var(--accent);color:#fff}.bb:hover{background:var(--accent2)}
+.bs.s{background:#2a3550;color:#d5e6ff;border:1px solid #3c4e72}.bs.s:hover{background:#33476a}
+.bg{background:none;color:var(--dim);border:1px solid var(--border)}.bg:hover{color:var(--text);border-color:var(--border2)}
+.sb{display:flex;align-items:center;background:#1a1a1a;border:1px solid var(--border);border-radius:3px;padding:0 6px;margin-bottom:6px}
+.sb input{flex:1;background:none;border:none;color:var(--text);font-size:10px;padding:4px;outline:none;font-family:'Tajawal'}
+/* timeline */
+.th{height:26px;background:#252525;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 10px;gap:10px;flex-shrink:0}
+.th span{font-size:9px;color:var(--dim);cursor:pointer}.th span.a{color:var(--accent)}
+.tb{flex:1;display:flex;overflow:hidden}
+.ts{width:100px;background:#1c1c1c;border-left:1px solid var(--border);flex-shrink:0}
+.tl{height:32px;display:flex;align-items:center;padding:0 6px;gap:3px;border-bottom:1px solid #252525;font-size:9px;color:var(--dim)}
+.tl .dd{width:5px;height:5px;border-radius:50%}.tl .n{flex:1}.tl .x{display:flex;gap:1px;font-size:8px;opacity:.4}
+.ta{flex:1;position:relative;overflow:auto}
+.tr{height:18px;background:#1c1c1c;border-bottom:1px solid var(--border);display:flex;align-items:flex-end;padding:0 8px;gap:55px;position:sticky;top:0;z-index:2}
+.tr span{font-size:7px;color:var(--dim2);font-family:'JetBrains Mono'}
+.tt{position:relative}
+.tk{height:32px;border-bottom:1px solid #252525;position:relative}
+.tc2{position:absolute;top:2px;height:28px;border-radius:3px;display:flex;align-items:center;padding:0 5px;font-size:8px;color:#fff;overflow:hidden;cursor:pointer}
+.tc2:hover{filter:brightness(1.2)}.tc2 .cn{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tp2{position:absolute;top:0;bottom:0;width:2px;background:var(--red);z-index:10;pointer-events:none}
+.tp2::before{content:'';position:absolute;top:-1px;right:-3px;width:8px;height:8px;background:var(--red);clip-path:polygon(50% 100%,0 0,100% 0)}
+
+</style>
+</head>
+<body>
+<script>
+(function(){
+  var params=new URLSearchParams(location.search);
+  var isEmbed=params.get('embed')==='1';
+  var pageName='lighting';
+  if(!isEmbed){
+    location.replace('studio-shell.html?page='+encodeURIComponent(pageName));
+    return;
+  }
+  window.__FF_EMBED_TOP=true;
+  document.documentElement.lang='en';
+  document.documentElement.dir='ltr';
+  document.addEventListener('DOMContentLoaded',function(){
+    var mb=document.querySelector('.menubar'); if(mb) mb.style.display='none';
+    var tabs=document.querySelector('.page-tabs'); if(tabs) tabs.style.display='none';
+    var br=document.querySelector('.bottom-row'); if(br) br.style.display='none';
+    var ws=document.querySelector('.workspace'); if(ws){ ws.style.height='100vh'; ws.style.display='flex'; ws.style.flexDirection='column'; }
+    var tr=document.querySelector('.top-row'); if(tr){ tr.style.flex='1 1 auto'; tr.style.minHeight='0'; }
+  });
+})();
+</script>
+<!-- FF_SHELL_BRIDGE -->
+<div class="menubar"><span class="title">FRAMEFORGE</span><span>File</span><span>Edit</span><span>View</span><div class="spacer"></div><span style="color:var(--dim2);font-family:'JetBrains Mono';font-size:9px">Lighting Studio</span></div>
+<div class="page-tabs"><a class="page-tab" href="sound.html"> </a>
+<a class="page-tab" href="video.html"> </a>
+<a class="page-tab" href="presets.html"> </a>
+<a class="page-tab" href="transitions.html"> </a>
+<a class="page-tab active" href="lighting.html"> </a>
+<a class="page-tab" href="prompt.html"> </a>
+</div>
+<div class="workspace">
+<div class="top-row">
+<div class="panel" style="width:360px">
+<div class="ph"><span class="l a">Lighting Panel</span></div>
+<div class="pb">
+<div class="ist"><span class="d" style="background:var(--orange)"></span>Lighting Presets</div>
+<select id="presetSelect" class="preset-select" onchange="onPresetDropdownChange()">
+  <option value="default">Default (Original)</option>
+  <option value="cinematic">Cinematic</option>
+  <option value="cinematic_pro">Cinematic Pro</option>
+  <option value="cinematic_blockbuster">Cinematic Blockbuster</option>
+  <option value="drama">Drama</option>
+  <option value="horror">Horror</option>
+  <option value="news">News</option>
+  <option value="romantic">Romantic</option>
+  <option value="bleak">Bleak</option>
+  <option value="vintage">Vintage</option>
+  <option value="classic">Classic</option>
+  <option value="natural">Natural</option>
+</select>
+<div class="sr"><span class="sl">Brightness</span><div class="st"><div class="sf" id="brF" style="width:50%;background:var(--orange)"></div><input type="range" min="0" max="100" value="50" oninput="up('br',this.value)"></div><span class="sv" id="brV" style="color:var(--orange)">50</span></div>
+<div class="sr"><span class="sl">Contrast</span><div class="st"><div class="sf" id="coF" style="width:50%;background:var(--cyan)"></div><input type="range" min="0" max="100" value="50" oninput="up('co',this.value)"></div><span class="sv" id="coV" style="color:var(--cyan)">50</span></div>
+<div class="sr"><span class="sl">Temperature</span><div class="st"><div class="sf" id="teF" style="width:50%;background:var(--red)"></div><input type="range" min="0" max="100" value="50" oninput="up('te',this.value)"></div><span class="sv" id="teV" style="color:var(--red)">50</span></div>
+<div class="sr"><span class="sl">Exposure</span><div class="st"><div class="sf" id="exF" style="width:50%;background:var(--accent)"></div><input type="range" min="0" max="100" value="50" oninput="up('ex',this.value)"></div><span class="sv" id="exV" style="color:var(--accent)">50</span></div>
+<div class="sr"><span class="sl">Shadows</span><div class="st"><div class="sf" id="shF" style="width:30%;background:var(--purple)"></div><input type="range" min="0" max="100" value="30" oninput="up('sh',this.value)"></div><span class="sv" id="shV" style="color:var(--purple)">30</span></div>
+<div class="sr"><span class="sl">Highlights</span><div class="st"><div class="sf" id="hiF" style="width:70%;background:var(--green)"></div><input type="range" min="0" max="100" value="70" oninput="up('hi',this.value)"></div><span class="sv" id="hiV" style="color:var(--green)">70</span></div>
+<div class="sr"><span class="sl">Saturation</span><div class="st"><div class="sf" id="saF" style="width:50%;background:var(--orange)"></div><input type="range" min="0" max="100" value="50" oninput="up('sa',this.value)"></div><span class="sv" id="saV" style="color:var(--orange)">50</span></div>
+<div class="sr"><span class="sl">Sharpness</span><div class="st"><div class="sf" id="spF" style="width:50%;background:var(--cyan)"></div><input type="range" min="0" max="100" value="50" oninput="up('sp',this.value)"></div><span class="sv" id="spV" style="color:var(--cyan)">50</span></div>
+<div style="display:flex;gap:4px;margin-top:8px"><button class="bs bb" onclick="applyLightingGrade()">Apply Grade</button><button class="bs bg" onclick="ra()">Reset</button></div>
+<div class="ist" style="margin-top:10px"><span class="d" style="background:var(--accent)"></span>Saved Presets</div>
+<div style="display:flex;gap:6px;margin-bottom:6px">
+  <input id="savePresetName" type="text" placeholder="Preset name" style="flex:1;background:#1a1a1a;border:1px solid var(--border);border-radius:3px;padding:6px;color:var(--text);font-family:'Tajawal';font-size:11px;outline:none">
+  <button class="bs s" onclick="saveUserPreset()">Save</button>
+</div>
+<div style="display:flex;gap:6px">
+  <select id="userPresetList" style="flex:1;background:#1a1a1a;border:1px solid var(--border);border-radius:3px;padding:6px;color:var(--text);font-family:'Tajawal';font-size:11px;outline:none"></select>
+  <button class="bs s" onclick="loadUserPreset()">Load</button>
+  <button class="bs bg" onclick="deleteUserPreset()">Delete</button>
+</div>
+<div id="lightingStatus" style="margin-top:7px;font-size:11px;color:#8fa2c4">Ready. Select a visual clip in timeline, then click Apply Grade.</div>
+</div></div>
+<div class="vr"></div>
+<div class="panel" style="flex:1;padding:0;position:relative">
+<div class="ph"><span class="l a">Lighting Preview</span></div>
+<div id="lsc" style="position:absolute;top:26px;left:0;right:0;bottom:0;background:radial-gradient(circle at 30% 20%,#1c2738 0,#131a25 38%,#0f151f 100%);transition:filter .1s">
+<div id="lov" style="position:absolute;inset:0;transition:background .1s"></div>
+<div style="position:absolute;inset:28px;border:1px solid #2f3a4d;border-radius:10px;background:linear-gradient(180deg,rgba(18,26,38,.7),rgba(10,15,24,.92));display:flex;align-items:center;justify-content:center;text-align:center;padding:24px;color:#8ea3c6;font-size:13px;line-height:1.6">
+  Preview Canvas<br>
+  Lighting controls are active.<br>
+  Select a clip on timeline to evaluate final look.
+</div>
+<div style="position:absolute;bottom:12px;right:12px;left:12px;background:rgba(0,0,0,.65);border-radius:4px;padding:8px;display:flex;gap:12px;justify-content:center">
+<div style="text-align:center"><div style="font-size:7px;color:var(--dim)">BR</div><div style="font-size:10px;font-family:'JetBrains Mono'" id="ib">50</div></div>
+<div style="text-align:center"><div style="font-size:7px;color:var(--dim)">CO</div><div style="font-size:10px;font-family:'JetBrains Mono'" id="ic">50</div></div>
+<div style="text-align:center"><div style="font-size:7px;color:var(--dim)">TE</div><div style="font-size:10px;font-family:'JetBrains Mono'" id="it">50</div></div>
+<div style="text-align:center"><div style="font-size:7px;color:var(--dim)">SA</div><div style="font-size:10px;font-family:'JetBrains Mono'" id="is">50</div></div>
+</div></div>
+</div>
+</div>
+<!-- TIMELINE -->
+<div class="bottom-row">
+<div class="th"><span class="a"> </span><span> </span><span style="flex:1"></span><span style="font-family:'JetBrains Mono';font-size:8px;color:var(--dim2)">Sequence 01</span></div>
+<div class="tb">
+<div class="ts">
+<div class="tl"><span class="dd" style="background:var(--green)"></span><span class="n">V1</span><span class="x"> </span></div>
+<div class="tl"><span class="dd" style="background:var(--accent)"></span><span class="n">A1</span><span class="x">M S</span></div>
+<div class="tl"><span class="dd" style="background:var(--orange)"></span><span class="n">A2</span><span class="x">M S</span></div>
+<div class="tl"><span class="dd" style="background:var(--cyan)"></span><span class="n">A3</span><span class="x">M S</span></div>
+</div>
+<div class="ta">
+<div class="tr"><span>00:00</span><span>00:30</span><span>01:00</span><span>01:30</span><span>02:00</span><span>02:30</span><span>03:00</span><span>03:30</span><span>04:00</span></div>
+<div class="tt">
+<div class="tk"><div class="tc2" style="right:30px;width:150px;background:#2d5a27"><span class="cn">scene_01.mp4</span></div><div class="tc2" style="right:190px;width:220px;background:#2d5a27"><span class="cn">aerial_shot.mp4</span></div></div>
+<div class="tk"><div class="tc2" style="right:50px;width:280px;background:#1a4a7a"><span class="cn">Voice Over</span></div></div>
+<div class="tk"><div class="tc2" style="right:15px;width:450px;background:#7a4a1a"><span class="cn">Music Score.wav</span></div></div>
+<div class="tk"><div class="tc2" style="right:80px;width:35px;background:#1a6a6a"><span class="cn"> </span></div></div>
+<div class="tp2" style="right:130px"></div>
+</div></div></div></div>
+</div>
+<script>
+const USER_PRESETS_KEY='ff_lighting_user_presets_v1';
+const p={br:50,co:50,te:50,ex:50,sh:30,hi:70,sa:50,sp:50};
+let activePreset='default';
+let userPresets={};
+function setLightingStatus(msg,color){const el=document.getElementById('lightingStatus');if(!el)return;el.textContent=msg;el.style.color=color||'#8fa2c4';}
+function postToTimeline(payload){
+  try{
+    if(window.parent && window.parent!==window){
+      window.parent.postMessage(payload,'*');
+      return true;
+    }
+  }catch(_e){}
+  return false;
+}
+function postLivePreview(){
+  postToTimeline({
+    type:'ff:lightingLivePreview',
+    profile:{...p,preset:activePreset,updatedAt:Date.now()}
+  });
+}
+function cloneCurrentProfile(){return {br:p.br,co:p.co,te:p.te,ex:p.ex,sh:p.sh,hi:p.hi,sa:p.sa,sp:p.sp};}
+function loadUserPresetsFromStorage(){
+  try{
+    const raw=localStorage.getItem(USER_PRESETS_KEY);
+    if(!raw) return {};
+    const parsed=JSON.parse(raw);
+    if(!parsed || typeof parsed!=='object') return {};
+    return parsed;
+  }catch(_e){ return {}; }
+}
+function saveUserPresetsToStorage(){
+  try{ localStorage.setItem(USER_PRESETS_KEY, JSON.stringify(userPresets)); }catch(_e){}
+}
+function renderUserPresetList(){
+  const sel=document.getElementById('userPresetList');
+  if(!sel) return;
+  const names=Object.keys(userPresets).sort((a,b)=>a.localeCompare(b));
+  if(!names.length){
+    sel.innerHTML='<option value="">No saved presets</option>';
+    return;
+  }
+  sel.innerHTML=names.map((n)=>'<option value="'+n.replace(/"/g,'&quot;')+'">'+n+'</option>').join('');
+}
+function saveUserPreset(){
+  const input=document.getElementById('savePresetName');
+  const name=String((input && input.value) || '').trim();
+  if(!name){ setLightingStatus('Enter preset name first.','#ffc36b'); return; }
+  userPresets[name]=cloneCurrentProfile();
+  saveUserPresetsToStorage();
+  renderUserPresetList();
+  if(input) input.value='';
+  setLightingStatus('Preset saved: '+name,'#63d2a6');
+}
+function loadUserPreset(){
+  const sel=document.getElementById('userPresetList');
+  const name=String((sel && sel.value) || '').trim();
+  if(!name || !userPresets[name]){ setLightingStatus('Select a saved preset first.','#ffc36b'); return; }
+  activePreset='saved:'+name;
+  const presetSelect=document.getElementById('presetSelect');
+  if(presetSelect) presetSelect.value='default';
+  Object.entries(userPresets[name]).forEach(([k,val])=>{
+    if(p[k]===undefined) return;
+    p[k]=Number(val)||0;
+    document.getElementById(k+'V').textContent=p[k];
+    document.getElementById(k+'F').style.width=p[k]+'%';
+    const inp=document.getElementById(k+'F').parentElement.querySelector('input');
+    if(inp) inp.value=p[k];
+  });
+  af();
+  postLivePreview();
+  setLightingStatus('Preset loaded: '+name+'. Live preview active.','#8fa2c4');
+}
+function deleteUserPreset(){
+  const sel=document.getElementById('userPresetList');
+  const name=String((sel && sel.value) || '').trim();
+  if(!name || !userPresets[name]){ setLightingStatus('Select preset to delete.','#ffc36b'); return; }
+  delete userPresets[name];
+  saveUserPresetsToStorage();
+  renderUserPresetList();
+  setLightingStatus('Preset deleted: '+name,'#ffb4b4');
+}
+function applyLightingGrade(){
+  const ok=postToTimeline({
+    type:'ff:applyLightingGrade',
+    profile:{...p,preset:activePreset,updatedAt:Date.now()}
+  });
+  if(!ok){ setLightingStatus('Failed: timeline bridge unavailable.','#ff8f8f'); return; }
+  setLightingStatus('Lighting grade sent to selected clip.','#63d2a6');
+}
+function up(k,v){p[k]=+v;document.getElementById(k+'V').textContent=v;document.getElementById(k+'F').style.width=v+'%';af();postLivePreview()}
+function af(){const s=document.getElementById('lsc'),o=document.getElementById('lov');s.style.filter='brightness('+(p.br/50)+') contrast('+(p.co/50+.5)+') saturate('+(p.sa/50)+')';const t=p.te;o.style.background=t>50?'rgba(255,'+(200-(t-50)*2)+','+(100-t)+','+(t-50)/200+')':'rgba('+(100+t)+','+(150+t)+',255,'+(50-t)/200+')';document.getElementById('ib').textContent=p.br;document.getElementById('ic').textContent=p.co;document.getElementById('it').textContent=p.te;document.getElementById('is').textContent=p.sa}
+function ra(){const d={br:50,co:50,te:50,ex:50,sh:30,hi:70,sa:50,sp:50};activePreset='default';const presetSelect=document.getElementById('presetSelect');if(presetSelect) presetSelect.value='default';Object.entries(d).forEach(([k,v])=>{p[k]=v;document.getElementById(k+'V').textContent=v;document.getElementById(k+'F').style.width=v+'%';const inp=document.getElementById(k+'F').parentElement.querySelector('input');if(inp)inp.value=v});af();postLivePreview();setLightingStatus('Default (Original) active. No color shift.','#8fa2c4')}
+const PRESET_LIBRARY={
+  default:{br:50,co:50,te:50,ex:50,sh:30,hi:70,sa:50,sp:50},
+  cinematic:{br:48,co:62,te:44,ex:46,sh:36,hi:64,sa:42,sp:58},
+  cinematic_pro:{br:45,co:68,te:40,ex:44,sh:42,hi:66,sa:38,sp:64},
+  cinematic_blockbuster:{br:42,co:74,te:38,ex:43,sh:48,hi:68,sa:34,sp:70},
+  drama:{br:40,co:70,te:42,ex:42,sh:52,hi:48,sa:38,sp:60},
+  horror:{br:28,co:78,te:34,ex:32,sh:66,hi:34,sa:28,sp:64},
+  news:{br:62,co:52,te:52,ex:60,sh:26,hi:78,sa:50,sp:54},
+  romantic:{br:58,co:44,te:68,ex:56,sh:24,hi:78,sa:64,sp:42},
+  bleak:{br:34,co:60,te:38,ex:36,sh:62,hi:32,sa:20,sp:52},
+  vintage:{br:52,co:46,te:66,ex:50,sh:34,hi:62,sa:36,sp:40},
+  classic:{br:50,co:58,te:50,ex:48,sh:38,hi:58,sa:44,sp:55},
+  natural:{br:50,co:50,te:50,ex:50,sh:30,hi:70,sa:50,sp:50}
+};
+function applyPresetByName(name){
+  activePreset=name;
+  const values=PRESET_LIBRARY[name] || PRESET_LIBRARY.default;
+  Object.entries(values).forEach(([k,val])=>{
+    p[k]=val;
+    document.getElementById(k+'V').textContent=val;
+    document.getElementById(k+'F').style.width=val+'%';
+    const inp=document.getElementById(k+'F').parentElement.querySelector('input');
+    if(inp) inp.value=val;
+  });
+  af();
+  postLivePreview();
+  setLightingStatus('Preset loaded: '+name+'. Live preview active.','#8fa2c4');
+}
+function onPresetDropdownChange(){
+  const presetSelect=document.getElementById('presetSelect');
+  const selected=String((presetSelect && presetSelect.value) || 'default');
+  applyPresetByName(selected);
+}
+userPresets=loadUserPresetsFromStorage();
+renderUserPresetList();
+af();
+setLightingStatus('Default (Original) active. No color shift until you change controls.','#8fa2c4');
+</script>
+<script src="shared/timeline-bridge.js"></script>
+<script src="shared/english-only.js"></script>
+<script src="shared/resizable-panels.js"></script></body>
+</html>
+
+
+
+
+
+
