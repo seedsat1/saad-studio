@@ -87,9 +87,11 @@ export default function VideoEditorPage() {
   if (!activeProject) {
     return (
       <div className="h-[calc(100vh-64px)] overflow-auto bg-slate-950 text-slate-100">
-        <div className="mx-auto max-w-7xl px-5 py-5 sm:px-6 sm:py-6">
+        <div className="w-full px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
           <div className="rounded-3xl border border-slate-800/90 bg-[radial-gradient(circle_at_25%_45%,rgba(56,189,248,0.24),transparent_38%),radial-gradient(circle_at_45%_55%,rgba(16,185,129,0.2),transparent_40%),radial-gradient(circle_at_63%_58%,rgba(99,102,241,0.2),transparent_34%),#10141c] p-6 sm:p-8">
-            <h1 className="text-4xl font-semibold tracking-tight text-white sm:text-5xl">Spaces</h1>
+            <h1 className="text-3xl font-extrabold tracking-tight text-white sm:text-5xl">
+              Turn your ideas into cinematic videos with smart tools and a fast workflow
+            </h1>
             <p className="mt-3 text-sm text-slate-300">Start from scratch</p>
             <p className="text-xs text-slate-400">Create a new space and start collaborating</p>
 
@@ -152,7 +154,7 @@ export default function VideoEditorPage() {
             ) : null}
 
             {!loading && filteredProjects.length > 0 ? (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
                 {filteredProjects.map((project) => (
                   <button
                     key={project.id}
