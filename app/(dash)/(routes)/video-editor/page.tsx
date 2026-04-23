@@ -44,11 +44,8 @@ export default function VideoEditorPage() {
       }
       const list = Array.isArray(data?.projects) ? (data.projects as EditorProject[]) : [];
       setProjects(list);
-      const savedProjectId =
-        typeof window !== "undefined" ? localStorage.getItem(LAST_OPENED_PROJECT_KEY) || "" : "";
-      const targetProjectId = forcedProjectId || savedProjectId;
-      if (targetProjectId) {
-        const hit = list.find((p) => p.id === targetProjectId);
+      if (forcedProjectId) {
+        const hit = list.find((p) => p.id === forcedProjectId);
         if (hit) setActiveProject(hit);
       }
     } catch (e) {
