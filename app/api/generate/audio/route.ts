@@ -182,6 +182,21 @@ function resolveChargeModelRef(actionType: AudioRequestBody["actionType"], body:
 }
 
 function resolveQuoteDurationSec(actionType: AudioRequestBody["actionType"], body: AudioRequestBody): number {
+  if (actionType === "tts") {
+    const text = String(body.text || "").trim();
+    if (!text) return 30;
+    const words = text.split(/\s+/).filter(Boolean).length;
+    // Rough TTS pacing: ~2.6 words/sec, clamped to a safe quote range.
+    const estimated = Math.ceil(words / 2.6);
+    return Math.max(3, Math.min(180, estimated));
+  }
+
+  if (actionType === "lip-sync") {
+    const raw = Number(body.duration ?? 8);
+    if (!Number.isFinite(raw)) return 8;
+    return Math.max(4, Math.min(15, raw));
+  }
+
   if (actionType === "music") {
     const defaultDuration = resolveWaveSpeedMusicModel(body.model) === WS_GOOGLE_LYRIA_PRO_MODEL ? 180 : 30;
     const raw = Number(body.musicDuration ?? defaultDuration);
@@ -191,17 +206,32 @@ function resolveQuoteDurationSec(actionType: AudioRequestBody["actionType"], bod
   return 30;
 }
 
+function resolveQuoteQuality(actionType: AudioRequestBody["actionType"], body: AudioRequestBody): string | null {
+  if (actionType === "lip-sync") return body.resolution ?? "720p";
+  return null;
+}
+
+function resolveQuoteUnits(actionType: AudioRequestBody["actionType"], durationSec: number): number {
+  if (actionType === "lip-sync") {
+    // LipSync base unit is an 8-second generation block.
+    return Math.max(1, Math.ceil(durationSec / 8));
+  }
+  return 1;
+}
+
 async function buildAudioChargeQuote(actionType: AudioRequestBody["actionType"], body: AudioRequestBody) {
   const chargeModelRef = resolveChargeModelRef(actionType, body);
   const durationSec = resolveQuoteDurationSec(actionType, body);
-  const dynamicQuote = await getGenerationCostQuote(chargeModelRef, durationSec);
+  const quality = resolveQuoteQuality(actionType, body);
+  const units = resolveQuoteUnits(actionType, durationSec);
+  const dynamicQuote = await getGenerationCostQuote(chargeModelRef, durationSec, units, quality);
 
   if (dynamicQuote && Number.isFinite(dynamicQuote.finalCredits) && dynamicQuote.finalCredits > 0) {
     return { chargeModelRef, durationSec, quote: dynamicQuote };
   }
 
   // Safety net: keep generation working even when source quote data is incomplete.
-  const legacy = await getGenerationCost(chargeModelRef, durationSec);
+  const legacy = await getGenerationCost(chargeModelRef, durationSec, units, quality);
   if (Number.isFinite(legacy) && legacy > 0) {
     return {
       chargeModelRef,
@@ -639,10 +669,21 @@ export async function GET(req: NextRequest) {
     }
 
     const model = req.nextUrl.searchParams.get("model") || undefined;
+    const text = req.nextUrl.searchParams.get("text") || undefined;
+    const resolution = req.nextUrl.searchParams.get("resolution") as AudioRequestBody["resolution"] | null;
+    const durationRaw = req.nextUrl.searchParams.get("duration");
+    const duration = durationRaw ? Number(durationRaw) : undefined;
     const musicDurationRaw = req.nextUrl.searchParams.get("musicDuration");
     const musicDuration = musicDurationRaw ? Number(musicDurationRaw) : undefined;
 
-    const { chargeModelRef, quote } = await buildAudioChargeQuote(actionType, { actionType, model, musicDuration });
+    const { chargeModelRef, quote } = await buildAudioChargeQuote(actionType, {
+      actionType,
+      model,
+      text,
+      resolution: resolution ?? undefined,
+      duration,
+      musicDuration,
+    });
     if (!quote) {
       return NextResponse.json(
         { error: `No credit configuration for actionType='${actionType}' and model='${chargeModelRef}'.` },

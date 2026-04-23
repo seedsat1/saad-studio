@@ -785,6 +785,7 @@ export default function AudioPage() {
       actionType = "tts";
       const effectiveTtsModel = ttsLanguage === "Arabic" && !voiceModel.startsWith("elevenlabs/text-to-") ? "elevenlabs/multilingual-v2" : voiceModel;
       params.set("model", effectiveTtsModel);
+      if (textInput.trim()) params.set("text", textInput);
     } else if (activeTool === "voice-cloning") {
       actionType = "voice-cloning";
     } else if (activeTool === "voice-changer") {
@@ -806,6 +807,8 @@ export default function AudioPage() {
     } else if (activeTool === "lip-sync") {
       actionType = "lip-sync";
       params.set("model", lipSyncModel);
+      params.set("resolution", lipResolution);
+      params.set("duration", "8");
     } else if (activeTool === "add-audio") {
       actionType = addAudioMode;
       params.set("model", addAudioMode === "speech-to-text" ? "elevenlabs/speech-to-text" : "elevenlabs/audio-isolation");
@@ -828,8 +831,10 @@ export default function AudioPage() {
     lipSyncModel,
     sfxDuration,
     sfxModel,
+    textInput,
     ttsLanguage,
     voiceModel,
+    lipResolution,
   ]);
 
   useEffect(() => {
