@@ -156,6 +156,10 @@ body{background:var(--bg);color:var(--text);font-family:'Tajawal',sans-serif;hei
             <button type="button" class="model-item mf-qwen" data-model="qwen2/image-edit" data-label="Qwen2 - Image Edit" onclick="selectModelOption(this)">Qwen2 - Image Edit</button>
             <button type="button" class="model-item mf-qwen" data-model="qwen/image-to-image" data-label="Qwen - Image to Image" onclick="selectModelOption(this)">Qwen - Image to Image</button>
 
+            <div class="model-family">GPT Image</div>
+            <button type="button" class="model-item mf-gpt" data-model="gpt-image/1.5-text-to-image" data-label="GPT Image 1.5 - Text to Image" onclick="selectModelOption(this)">GPT Image 1.5 - Text to Image</button>
+            <button type="button" class="model-item mf-gpt" data-model="gpt-image/1.5-image-to-image" data-label="GPT Image 1.5 - Image to Image" onclick="selectModelOption(this)">GPT Image 1.5 - Image to Image</button>
+
             <div class="model-family">Wan</div>
             <button type="button" class="model-item mf-wan" data-model="wan/2-7-image-pro" data-label="Wan 2.7 Image Pro" onclick="selectModelOption(this)">Wan 2.7 Image Pro</button>
 
@@ -257,6 +261,8 @@ const IMAGE_MODEL_CONFIG = {
   'qwen2/text-to-image': { mode: 'text_to_image', refsRequired: false, maxRefs: 0, ratios: ['1:1','3:4','4:3','9:16','16:9'], quality: [], aspectField: 'image_size_qwen', note: 'Second-gen text image model.' },
   'qwen2/image-edit': { mode: 'image_edit', refsRequired: true, maxRefs: 1, ratios: ['1:1','2:3','3:2','3:4','4:3','9:16','16:9','21:9'], quality: [], inputField: 'image_url', aspectField: 'image_size_raw', note: 'Second-gen edit model for precise changes.' },
   'qwen/image-to-image': { mode: 'image_to_image', refsRequired: true, maxRefs: 1, ratios: ['source'], quality: [], inputField: 'image_url', aspectField: 'none', note: 'Transforms one reference image.' },
+  'gpt-image/1.5-text-to-image': { mode: 'text_to_image', refsRequired: false, maxRefs: 0, ratios: ['1:1','2:3','3:2'], quality: ['medium','high'], aspectField: 'aspect_ratio', qualityField: 'quality', note: 'GPT Image 1.5 text generation profile.' },
+  'gpt-image/1.5-image-to-image': { mode: 'image_to_image', refsRequired: true, maxRefs: 16, ratios: ['1:1','2:3','3:2'], quality: ['medium','high'], inputField: 'input_urls', aspectField: 'aspect_ratio', qualityField: 'quality', note: 'GPT Image 1.5 image transform profile.' },
   'seedream/5-lite-text-to-image': { mode: 'text_to_image', refsRequired: false, maxRefs: 0, ratios: ['1:1','4:3','3:4','16:9','9:16','2:3','3:2','21:9'], quality: ['basic','high'], aspectField: 'aspect_ratio', qualityField: 'quality', note: 'Lightweight text generation profile.' },
   'seedream/5-lite-image-to-image': { mode: 'image_to_image', refsRequired: true, maxRefs: 14, ratios: ['1:1','4:3','3:4','16:9','9:16','2:3','3:2','21:9'], quality: ['basic','high'], inputField: 'image_urls', aspectField: 'aspect_ratio', qualityField: 'quality', note: 'Lightweight image transform profile.' },
   'wan/2-7-image-pro': { mode: 'text_to_image', refsRequired: false, maxRefs: 9, ratios: ['1:1','16:9','4:3','21:9','3:4','9:16','8:1','1:8'], quality: ['1K','2K','4K'], inputField: 'input_urls', aspectField: 'aspect_ratio', qualityField: 'resolution', note: 'Wan pro profile for generate/edit flows.' },
