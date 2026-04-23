@@ -220,12 +220,12 @@ export default function OutOfCreditsModal() {
                           tier.popular ? "text-amber-300" : "text-slate-300"
                         }`}
                       />
-                      <span className="text-white font-semibold text-sm">Topup</span>
+                      <span className="text-white font-semibold text-sm">Extra Credits</span>
                     </div>
 
                     {/* Credits */}
                     <p className="text-3xl font-bold text-white">
-                      {tier.credits.replace(/^\+/, "")}
+                      {tier.credits}
                     </p>
 
                     {/* Price + per-credit */}
