@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   Zap, ChevronRight, Upload, X, CheckCircle2, Clock,
@@ -385,6 +385,24 @@ export default function PaymentPage() {
   const billingCycle: BillingCycle = ["annual", "yearly", "year"].includes(cycleQuery) ? "annual" : "monthly";
   const incomingType = searchParams.get("type");
   const incomingPlanId = searchParams.get("id");
+  const incomingTopupCredits = Number((searchParams.get("credits") || "").replace(/\D/g, "")) || 0;
+  const incomingTopupId = incomingTopupCredits
+    ? (liveTopups.find((tp) => tp.credits === incomingTopupCredits)?.id ?? "")
+    : "";
+
+  useEffect(() => {
+    if (incomingType === "topup") {
+      setOrderType("topup");
+      if (incomingTopupId) setSelectedTopupId(incomingTopupId);
+      return;
+    }
+    if (incomingType === "plan") {
+      setOrderType("plan");
+      if (incomingPlanId && livePlans.some((p) => p.id === incomingPlanId)) {
+        setSelectedPlanId(incomingPlanId);
+      }
+    }
+  }, [incomingType, incomingTopupId, incomingPlanId, livePlans]);
 
   const resolvePlanBilling = (plan: (typeof PLANS)[number]) => {
     const discount = liveAnnualDiscount[plan.id] ?? 0;
@@ -418,10 +436,11 @@ export default function PaymentPage() {
   const method      = liveMethods.find((m) => m.id === selectedMethod) ?? liveMethods[0];
   const effectiveOrderType: OrderType = incomingType === "topup" ? "topup" : "plan";
   const effectivePlanId = incomingPlanId && livePlans.some((p) => p.id === incomingPlanId) ? incomingPlanId : selectedPlanId;
+  const effectiveTopupId = incomingType === "topup" ? (incomingTopupId || selectedTopupId) : selectedTopupId;
   const selectedItem =
     effectiveOrderType === "plan"
       ? livePlans.find((p) => p.id === effectivePlanId)
-      : liveTopups.find((tp) => tp.id === selectedTopupId);
+      : liveTopups.find((tp) => tp.id === effectiveTopupId);
 
   const selectedPlan = selectedItem && effectiveOrderType === "plan" ? (selectedItem as typeof livePlans[0]) : null;
   const selectedPlanBilling = selectedPlan ? resolvePlanBilling(selectedPlan) : null;
@@ -433,7 +452,7 @@ export default function PaymentPage() {
 
   const goStep2 = () => {
     if (effectiveOrderType === "plan" && !effectivePlanId) return;
-    if (effectiveOrderType === "topup" && !selectedTopupId) return;
+    if (effectiveOrderType === "topup" && !effectiveTopupId) return;
     setStep(2);
   };
 
