@@ -142,8 +142,8 @@ body{background:var(--bg);color:var(--text);font-family:'Tajawal',sans-serif;hei
           </button>
           <div id="modelDdMenu" class="model-dd-menu">
             <div class="model-family">Google</div>
-            <button type="button" class="model-item mf-google active" data-model="google/nano-banana-2" data-label="Google - Nano Banana 2" onclick="selectModelOption(this)">Google - Nano Banana 2</button>
-            <button type="button" class="model-item mf-google" data-model="google/nano-banana-pro" data-label="Google - Nano Banana Pro" onclick="selectModelOption(this)">Google - Nano Banana Pro</button>
+            <button type="button" class="model-item mf-google active" data-model="nano-banana-2" data-label="Google - Nano Banana 2" onclick="selectModelOption(this)">Google - Nano Banana 2</button>
+            <button type="button" class="model-item mf-google" data-model="nano-banana-pro" data-label="Google - Nano Banana Pro" onclick="selectModelOption(this)">Google - Nano Banana Pro</button>
 
             <div class="model-family">Grok</div>
             <button type="button" class="model-item mf-grok" data-model="grok-imagine/text-to-image" data-label="Grok Imagine - Text to Image" onclick="selectModelOption(this)">Grok Imagine - Text to Image</button>
@@ -171,7 +171,7 @@ body{background:var(--bg);color:var(--text);font-family:'Tajawal',sans-serif;hei
             <button type="button" class="model-item mf-topaz" data-model="topaz/image-upscale" data-label="Topaz - Image Upscale" onclick="selectModelOption(this)">Topaz - Image Upscale</button>
           </div>
         </div>
-        <input id="imageModel" type="hidden" value="google/nano-banana-2">
+        <input id="imageModel" type="hidden" value="nano-banana-2">
         <div class="stt" id="modelModeHint">Mode: Text to Image</div>
 
         <div class="ist"><span class="d" style="background:var(--orange)"></span>Image Settings</div>
@@ -264,8 +264,8 @@ function setGenerateBusy(busy){
 }
 
 const IMAGE_MODEL_CONFIG = {
-  'google/nano-banana-2': { mode: 'text_to_image', refsRequired: false, maxRefs: 6, ratios: ['1:1','16:9','9:16','4:3','3:4'], quality: ['STD','PRO','HIGH'], note: 'Balanced quality/speed for everyday generation.' },
-  'google/nano-banana-pro': { mode: 'text_to_image', refsRequired: false, maxRefs: 8, ratios: ['1:1','16:9','9:16','4:3','3:4'], quality: ['PRO','HIGH'], note: 'Higher fidelity than Nano Banana 2.' },
+  'nano-banana-2': { mode: 'text_to_image', refsRequired: false, maxRefs: 6, ratios: ['1:1','16:9','9:16','4:3','3:4'], quality: ['STD','PRO','HIGH'], note: 'Balanced quality/speed for everyday generation.' },
+  'nano-banana-pro': { mode: 'text_to_image', refsRequired: false, maxRefs: 8, ratios: ['1:1','16:9','9:16','4:3','3:4'], quality: ['PRO','HIGH'], note: 'Higher fidelity than Nano Banana 2.' },
   'grok-imagine/text-to-image': { mode: 'text_to_image', refsRequired: false, maxRefs: 0, ratios: ['1:1','16:9','9:16','4:3','3:4'], quality: ['STD','PRO','HIGH'], note: 'Prompt-first image synthesis.' },
   'grok-imagine/image-to-image': { mode: 'image_to_image', refsRequired: true, maxRefs: 1, ratios: ['1:1','16:9','9:16','4:3','3:4'], quality: ['STD','PRO','HIGH'], note: 'Uses base image + prompt guidance.' },
   'qwen/text-to-image': { mode: 'text_to_image', refsRequired: false, maxRefs: 0, ratios: ['1:1','16:9','9:16','4:3','3:4'], quality: ['STD','PRO','HIGH'], note: 'Text-only creative generation.' },
