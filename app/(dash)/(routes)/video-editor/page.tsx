@@ -127,8 +127,34 @@ export default function VideoEditorPage() {
 
   if (!activeProject) {
     return (
-      <div className="h-[calc(100vh-64px)] overflow-auto bg-slate-950 text-slate-100">
-        <div className="w-full px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
+      <div className="relative h-[calc(100vh-64px)] overflow-auto bg-slate-950 text-slate-100">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(1200px 520px at 18% 22%, rgba(56,189,248,0.08), transparent 58%), radial-gradient(900px 460px at 42% 78%, rgba(59,130,246,0.06), transparent 62%), linear-gradient(180deg, rgba(2,6,23,0.14) 0%, rgba(2,6,23,0.42) 60%, rgba(2,6,23,0.58) 100%)",
+          }}
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute bottom-0 right-0 top-0 w-[58vw] min-w-[540px] max-w-[980px]"
+          style={{
+            backgroundImage: "url('/art.png')",
+            backgroundRepeat: "no-repeat",
+            backgroundPosition: "right center",
+            backgroundSize: "cover",
+            opacity: 0.22,
+            filter: "saturate(0.86) brightness(0.9)",
+            WebkitMaskImage:
+              "linear-gradient(to left, rgba(0,0,0,1) 42%, rgba(0,0,0,0) 95%), linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 14%, rgba(0,0,0,1) 84%, rgba(0,0,0,0) 100%)",
+            maskImage:
+              "linear-gradient(to left, rgba(0,0,0,1) 42%, rgba(0,0,0,0) 95%), linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 14%, rgba(0,0,0,1) 84%, rgba(0,0,0,0) 100%)",
+            WebkitMaskComposite: "source-in",
+            maskComposite: "intersect",
+          }}
+        />
+        <div className="relative z-10 w-full px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
           <div className="rounded-3xl border border-slate-800/90 bg-slate-950/70 p-4 sm:p-6">
             <div className="grid grid-cols-1 gap-5 lg:grid-cols-12 lg:items-stretch">
               <div className="lg:col-span-6">
