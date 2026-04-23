@@ -22,18 +22,18 @@ import { AssetInspector, type Asset } from "@/components/AssetInspector";
 // ─── Music Models ─────────────────────────────────────────────────────────────
 const MUSIC_BASE_CREDITS: Record<string, number> = {
   "wavespeed-ai/ace-step-1.5": 10,
-  "wavespeed-ai/song-generation": 14,
-  "wavespeed-ai/ace-step": 9,
-  "wavespeed-ai/heartmula-generate-music": 9,
-  "minimax/minimax-music-2.5": 12,
+  "wavespeed-ai/song-generation": 10,
+  "wavespeed-ai/ace-step": 10,
+  "wavespeed-ai/heartmula-generate-music": 10,
+  "minimax/minimax-music-2.5": 10,
   "minimax/minimax-music-02": 10,
-  "minimax/minimax-music-v1.5": 8,
-  "elevenlabs/elevenlabs-music": 12,
+  "minimax/minimax-music-v1.5": 10,
+  "elevenlabs/elevenlabs-music": 10,
 };
 
 function calcMusicCredits(modelId: string, duration: number): number {
   const base = MUSIC_BASE_CREDITS[modelId] ?? 10;
-  return base * Math.max(1, Math.ceil(duration / 30));
+  return base;
 }
 
 const MUSIC_MODELS = [

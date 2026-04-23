@@ -1,0 +1,197 @@
+
+> aisaas@0.1.0 dev
+> next dev
+
+  ▲ Next.js 14.2.35
+  - Local:        http://localhost:3000
+  - Environments: .env.local, .env
+
+ ✓ Starting...
+ ✓ Ready in 18s
+ ✓ Compiled /middleware in 1772ms
+ ✓ Compiled (183 modules)
+ ○ Compiling /_not-found ...
+ ✓ Compiled /_not-found in 57.4s (2148 modules)
+ HEAD /hollywood-studio 404 in 58022ms
+ ✓ Compiled in 1351ms (951 modules)
+ ○ Compiling /sign-in/[[...sign-in]] ...
+ ✓ Compiled /sign-in/[[...sign-in]] in 2.6s (2159 modules)
+ GET /sign-in?redirect_url=http%3A%2F%2Flocalhost%3A3000%2Fhollywood-studio 307 in 3556ms
+ ○ Compiling / ...
+ ✓ Compiled / in 4.4s (2455 modules)
+ GET /?auth=login 200 in 4784ms
+ GET /api/layouts?page=home 404 in 108ms
+ GET /api/promo/content 404 in 109ms
+ GET /api/promo/media 404 in 109ms
+ GET /api/layouts?page=cms-home 404 in 112ms
+ GET /api/layouts?page=cms-discover 404 in 113ms
+ GET /api/layouts?page=home 404 in 78ms
+ GET /api/layouts?page=cms-home 404 in 79ms
+ GET /api/layouts?page=cms-auth 404 in 81ms
+ GET /api/layouts?page=cms-discover 404 in 80ms
+ GET /api/layouts?page=cms-auth 404 in 40ms
+ GET /?_rsc=1ftqb 200 in 892ms
+ ✓ Compiled in 5s (2626 modules)
+ GET /?_rsc=1ftqb 200 in 126ms
+ GET /?_rsc=1ftqb 200 in 1113ms
+ ✓ Compiled in 4.8s (2626 modules)
+ GET /?_rsc=1ftqb 200 in 127ms
+ ✓ Compiled in 1652ms (1097 modules)
+ GET /?_rsc=1ftqb 200 in 39ms
+ ✓ Compiled in 1327ms (1097 modules)
+ GET /?_rsc=1ftqb 200 in 28ms
+ ✓ Compiled in 1640ms (1097 modules)
+ GET /?_rsc=1ftqb 200 in 356ms
+ ✓ Compiled in 1575ms (1097 modules)
+ GET /?_rsc=1ftqb 200 in 37ms
+ ✓ Compiled in 1589ms (1097 modules)
+ GET /?_rsc=1ftqb 200 in 28ms
+ ✓ Compiled in 5.7s (2626 modules)
+ GET /?_rsc=1ftqb 200 in 4105ms
+ GET /?_rsc=1ftqb 200 in 33ms
+ ✓ Compiled in 1489ms (1097 modules)
+ GET /?_rsc=1ftqb 200 in 31ms
+ ✓ Compiled in 1377ms (1097 modules)
+ GET /?_rsc=1ftqb 200 in 29ms
+ ✓ Compiled in 1360ms (1097 modules)
+ GET /?_rsc=1ftqb 200 in 34ms
+ ✓ Compiled in 1712ms (1097 modules)
+ GET /?_rsc=1ftqb 200 in 35ms
+ ✓ Compiled in 3.3s (2443 modules)
+ GET /?_rsc=1ftqb 200 in 145ms
+ ✓ Compiled in 2.2s (1097 modules)
+ GET /?_rsc=1ftqb 200 in 54ms
+ ✓ Compiled in 2.6s (2443 modules)
+ GET /?_rsc=1ftqb 200 in 129ms
+ ✓ Compiled in 1433ms (1097 modules)
+ GET /?_rsc=1ftqb 200 in 34ms
+ ✓ Compiled in 1417ms (1097 modules)
+ GET /?_rsc=1ftqb 200 in 29ms
+ ✓ Compiled in 1615ms (1097 modules)
+ GET /?_rsc=1ftqb 200 in 77ms
+ ✓ Compiled in 1526ms (1097 modules)
+ GET /?_rsc=1ftqb 200 in 43ms
+ ✓ Compiled in 1367ms (1097 modules)
+ GET /?_rsc=1ftqb 200 in 41ms
+ ✓ Compiled in 1083ms (1097 modules)
+ GET /?_rsc=1ftqb 200 in 33ms
+ ✓ Compiled in 914ms (1097 modules)
+ GET /?_rsc=1ftqb 200 in 48ms
+ ✓ Compiled in 950ms (1097 modules)
+ GET /?_rsc=1ftqb 200 in 57ms
+ ✓ Compiled in 1116ms (1097 modules)
+ GET /?_rsc=1ftqb 200 in 37ms
+ ✓ Compiled in 1043ms (1097 modules)
+ GET /?_rsc=1ftqb 200 in 343ms
+ ✓ Compiled in 986ms (1097 modules)
+ GET /?_rsc=1ftqb 200 in 36ms
+ ✓ Compiled in 957ms (1097 modules)
+ GET /?_rsc=1ftqb 200 in 38ms
+ ✓ Compiled in 1127ms (1097 modules)
+ GET /?_rsc=1ftqb 200 in 34ms
+ ✓ Compiled in 3.4s (2443 modules)
+ GET /?_rsc=1ftqb 200 in 151ms
+ ✓ Compiled in 1626ms (2443 modules)
+ GET /?_rsc=1ftqb 200 in 109ms
+ ✓ Compiled in 1638ms (2443 modules)
+ GET /?_rsc=1ftqb 200 in 80ms
+ ✓ Compiled in 1594ms (2443 modules)
+ GET /?_rsc=1ftqb 200 in 72ms
+ ✓ Compiled in 2.6s (2443 modules)
+ GET /?_rsc=1ftqb 200 in 68ms
+ ✓ Compiled in 1631ms (2443 modules)
+ GET /?_rsc=1ftqb 200 in 66ms
+ ✓ Compiled in 814ms (1097 modules)
+ GET /?_rsc=1ftqb 200 in 39ms
+ ✓ Compiled in 1112ms (1097 modules)
+ GET /?_rsc=1ftqb 200 in 32ms
+ ✓ Compiled in 1040ms (1097 modules)
+ GET /?_rsc=1ftqb 200 in 36ms
+ ✓ Compiled in 900ms (1097 modules)
+ GET /?_rsc=1ftqb 200 in 39ms
+ ✓ Compiled in 904ms (1097 modules)
+ GET /?_rsc=1ftqb 200 in 44ms
+ ✓ Compiled in 715ms (1097 modules)
+ GET /?_rsc=1ftqb 200 in 32ms
+ ✓ Compiled in 1024ms (1097 modules)
+ GET /?_rsc=1ftqb 200 in 35ms
+ ✓ Compiled in 811ms (1097 modules)
+ GET /?_rsc=1ftqb 200 in 28ms
+ ✓ Compiled in 838ms (1097 modules)
+ GET /?_rsc=1ftqb 200 in 36ms
+ ○ Compiling /apps/tool/bullet-time ...
+ ✓ Compiled /apps/tool/bullet-time in 2.7s (2471 modules)
+ GET /apps/tool/bullet-time 307 in 3116ms
+ GET /?auth=login&redirect=/dash 200 in 188ms
+ ✓ Compiled in 5.1s (2454 modules)
+ GET /?_rsc=1ftqb 200 in 191ms
+ ○ Compiling /_not-found ...
+ ✓ Compiled /_not-found in 5.4s (2443 modules)
+ GET /uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4 404 in 3431ms
+ GET /uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4 404 in 29ms
+ GET /?_rsc=1ftqb 200 in 110ms
+ GET /uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4 404 in 24ms
+ GET /uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4 404 in 60ms
+ GET /uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4 404 in 48ms
+ GET /uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4 404 in 34ms
+ GET /uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4 404 in 34ms
+ GET /uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4 404 in 48ms
+ GET /uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4 404 in 79ms
+ GET /uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4 404 in 25ms
+ GET /uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4 404 in 40ms
+ GET /uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4 404 in 49ms
+ GET /uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4 404 in 56ms
+ GET /uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4 404 in 34ms
+ ✓ Compiled in 1501ms (1108 modules)
+ GET /?_rsc=1ftqb 200 in 52ms
+ ✓ Compiled in 1711ms (1108 modules)
+ GET /?_rsc=1ftqb 200 in 36ms
+ ✓ Compiled in 1261ms (1108 modules)
+ GET /?_rsc=1ftqb 200 in 45ms
+ ✓ Compiled in 1325ms (1108 modules)
+ GET /?_rsc=1ftqb 200 in 29ms
+ ✓ Compiled in 1558ms (1108 modules)
+ GET /?_rsc=1ftqb 200 in 30ms
+ ✓ Compiled in 2.2s (2454 modules)
+ GET /?_rsc=1ftqb 200 in 183ms
+ ✓ Compiled in 1006ms (1108 modules)
+ GET /?_rsc=1ftqb 200 in 35ms
+ ✓ Compiled in 791ms (1108 modules)
+ GET /?_rsc=1ftqb 200 in 30ms
+ ✓ Compiled in 1425ms (2454 modules)
+ GET /?_rsc=1ftqb 200 in 97ms
+ ✓ Compiled in 1654ms (2454 modules)
+ GET /?_rsc=1ftqb 200 in 89ms
+ ○ Compiling /_not-found ...
+ ✓ Compiled /_not-found in 985ms (2443 modules)
+ GET /uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4 404 in 1252ms
+ GET /uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4 404 in 69ms
+ GET /uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4 404 in 66ms
+ GET /uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4 404 in 47ms
+ GET /uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4 404 in 64ms
+ GET /uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4 404 in 78ms
+ GET /uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4 404 in 46ms
+ ✓ Compiled in 976ms (1108 modules)
+ GET /?_rsc=1ftqb 200 in 335ms
+ ✓ Compiled in 898ms (1108 modules)
+ GET /?_rsc=1ftqb 200 in 34ms
+ ✓ Compiled in 691ms (1108 modules)
+ GET /?_rsc=1ftqb 200 in 25ms
+ ✓ Compiled in 1029ms (1108 modules)
+ GET /?_rsc=1ftqb 200 in 46ms
+ ✓ Compiled in 2.1s (1108 modules)
+ GET /?_rsc=1ftqb 200 in 310ms
+ ✓ Compiled in 3.2s (1108 modules)
+ GET /?_rsc=1ftqb 200 in 38ms
+ ✓ Compiled in 1608ms (1108 modules)
+ GET /?_rsc=1ftqb 200 in 31ms
+ ✓ Compiled in 1353ms (1108 modules)
+ GET /?_rsc=1ftqb 200 in 31ms
+ ✓ Compiled in 1684ms (1108 modules)
+ GET /?_rsc=1ftqb 200 in 314ms
+ ✓ Compiled in 2.5s (1108 modules)
+ GET /?_rsc=1ftqb 200 in 41ms
+ ✓ Compiled in 2.6s (1108 modules)
+ GET /?_rsc=1ftqb 200 in 71ms
+ ✓ Compiled in 1269ms (1108 modules)
+ GET /?_rsc=1ftqb 200 in 30ms
