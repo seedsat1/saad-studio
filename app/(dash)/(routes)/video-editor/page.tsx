@@ -4,6 +4,14 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 const LAST_OPENED_PROJECT_KEY = "videoEditor.lastOpenedProjectId";
+const RELOAD_RESUME_PROJECT_KEY = "videoEditor.reloadResumeProjectId";
+
+function getNavigationType(): string {
+  if (typeof window === "undefined") return "";
+  const nav = performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined;
+  if (nav?.type) return nav.type;
+  return "";
+}
 
 type EditorProject = {
   id: string;
@@ -44,9 +52,22 @@ export default function VideoEditorPage() {
       }
       const list = Array.isArray(data?.projects) ? (data.projects as EditorProject[]) : [];
       setProjects(list);
-      if (forcedProjectId) {
-        const hit = list.find((p) => p.id === forcedProjectId);
+      let fallbackReloadProjectId = "";
+      try {
+        if (!forcedProjectId && getNavigationType() === "reload") {
+          fallbackReloadProjectId = sessionStorage.getItem(RELOAD_RESUME_PROJECT_KEY) || "";
+        }
+      } catch {
+        fallbackReloadProjectId = "";
+      }
+
+      const targetProjectId = forcedProjectId || fallbackReloadProjectId;
+      if (targetProjectId) {
+        const hit = list.find((p) => p.id === targetProjectId);
         if (hit) setActiveProject(hit);
+        if (hit && !forcedProjectId) {
+          router.replace(`/video-editor?projectId=${encodeURIComponent(hit.id)}`);
+        }
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load projects.");
@@ -86,6 +107,7 @@ export default function VideoEditorPage() {
       setLastOpenedProjectId(created.id);
       try {
         localStorage.setItem(LAST_OPENED_PROJECT_KEY, created.id);
+        sessionStorage.setItem(RELOAD_RESUME_PROJECT_KEY, created.id);
       } catch {}
       setActiveProject(created);
       router.replace(`/video-editor?projectId=${encodeURIComponent(created.id)}`);
@@ -101,6 +123,7 @@ export default function VideoEditorPage() {
     setLastOpenedProjectId(project.id);
     try {
       localStorage.setItem(LAST_OPENED_PROJECT_KEY, project.id);
+      sessionStorage.setItem(RELOAD_RESUME_PROJECT_KEY, project.id);
     } catch {}
     setActiveProject(project);
     router.replace(`/video-editor?projectId=${encodeURIComponent(project.id)}`);
@@ -285,6 +308,9 @@ export default function VideoEditorPage() {
           type="button"
           onClick={() => {
             setActiveProject(null);
+            try {
+              sessionStorage.removeItem(RELOAD_RESUME_PROJECT_KEY);
+            } catch {}
             router.replace("/video-editor");
           }}
           className="rounded-md border border-slate-700 px-3 py-1.5 text-xs hover:border-sky-500"
