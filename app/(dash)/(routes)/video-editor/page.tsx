@@ -90,13 +90,13 @@ export default function VideoEditorPage() {
         <div className="w-full px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
           <div className="rounded-3xl border border-slate-800/90 bg-slate-950/70 p-4 sm:p-6">
             <div className="grid grid-cols-1 gap-5 lg:grid-cols-12 lg:items-stretch">
-              <div className="lg:col-span-5">
-                <h1 className="max-w-3xl text-3xl font-extrabold leading-[1.08] tracking-[-0.02em] text-white sm:text-4xl lg:text-5xl">
+              <div className="lg:col-span-6">
+                <h1 className="text-3xl font-extrabold leading-[1.1] tracking-[-0.02em] text-white sm:text-4xl lg:text-4xl">
                   <span className="block">Turn your ideas into cinematic videos</span>
                   <span className="mt-1 block font-normal text-slate-200">with smart tools and a fast workflow</span>
                 </h1>
-                <p className="mt-4 text-sm font-medium text-slate-200 sm:text-base">Start from scratch</p>
-                <p className="mt-1 text-xs text-slate-400 sm:text-sm">Create a new space and start collaborating</p>
+                <p className="mt-4 text-sm font-medium text-slate-200 sm:text-base">Start a new project</p>
+                <p className="mt-1 text-xs text-slate-400 sm:text-sm">Create a new project and continue editing instantly</p>
 
                 <div className="mt-6 flex flex-col gap-3 sm:flex-row">
                   <input
@@ -105,7 +105,7 @@ export default function VideoEditorPage() {
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && !creating) void createProject();
                     }}
-                    placeholder="Space name"
+                    placeholder="Project name"
                     className="h-10 flex-1 rounded-full border border-slate-700 bg-black/40 px-4 text-sm text-slate-100 outline-none placeholder:text-slate-400 focus:border-sky-500"
                   />
                   <button
@@ -114,13 +114,13 @@ export default function VideoEditorPage() {
                     disabled={creating}
                     className="h-10 rounded-full border border-slate-200/20 bg-white px-5 text-sm font-medium text-slate-900 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    {creating ? "Creating..." : "New space"}
+                    {creating ? "Creating..." : "New project"}
                   </button>
                 </div>
                 {error ? <p className="mt-3 text-xs text-rose-400">{error}</p> : null}
               </div>
 
-              <div className="lg:col-span-7">
+              <div className="lg:col-span-6">
                 <div
                   className="h-full min-h-[180px] rounded-2xl border border-slate-800 bg-slate-900"
                   style={{
@@ -136,16 +136,14 @@ export default function VideoEditorPage() {
 
           <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-2 text-xs">
-              <span className="rounded-md border border-slate-700 bg-slate-800 px-3 py-1.5 text-white">My spaces</span>
-              <span className="rounded-md border border-slate-800 px-3 py-1.5 text-slate-400">Shared</span>
-              <span className="rounded-md border border-slate-800 px-3 py-1.5 text-slate-400">Templates</span>
+              <span className="rounded-md border border-slate-700 bg-slate-800 px-3 py-1.5 text-white">My Project</span>
             </div>
 
             <div className="flex items-center gap-2">
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search spaces..."
+                placeholder="Search projects..."
                 className="h-9 w-full rounded-full border border-slate-800 bg-transparent px-4 text-xs text-slate-100 outline-none placeholder:text-slate-500 sm:w-64"
               />
               <button
@@ -160,10 +158,10 @@ export default function VideoEditorPage() {
           </div>
 
           <div className="mt-4">
-            {loading ? <p className="text-sm text-slate-400">Loading spaces...</p> : null}
+            {loading ? <p className="text-sm text-slate-400">Loading projects...</p> : null}
 
             {!loading && projects.length === 0 ? (
-              <p className="text-sm text-slate-400">No spaces yet. Create your first space above.</p>
+              <p className="text-sm text-slate-400">No projects yet. Create your first project above.</p>
             ) : null}
 
             {!loading && projects.length > 0 && filteredProjects.length === 0 ? (
@@ -181,12 +179,12 @@ export default function VideoEditorPage() {
                   >
                     <div className="aspect-[4/3] rounded-lg border border-slate-800 bg-[radial-gradient(circle_at_30%_45%,rgba(56,189,248,0.24),transparent_36%),radial-gradient(circle_at_65%_58%,rgba(99,102,241,0.22),transparent_32%),#070b11] p-3 transition hover:border-sky-600">
                       <div className="flex h-full items-end justify-between">
-                        <span className="rounded-md border border-slate-600 bg-black/30 px-2 py-1 text-[10px] text-slate-300">Space</span>
+                        <span className="max-w-[80%] truncate rounded-md border border-slate-600 bg-black/30 px-2 py-1 text-[10px] text-slate-300">
+                          Project: {project.name || "Untitled Project"}
+                        </span>
                         <span className="text-xs text-slate-400 opacity-0 transition group-hover:opacity-100">Open</span>
                       </div>
                     </div>
-                    <p className="mt-2 truncate text-sm font-medium text-slate-100">{project.name || "Untitled Space"}</p>
-                    <p className="text-[11px] text-slate-500">{project.id.slice(0, 12)}...</p>
                   </button>
                 ))}
               </div>
