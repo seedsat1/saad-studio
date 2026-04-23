@@ -179,8 +179,8 @@ export default function PricingConstitutionPage() {
       {/* ── Provider balances ── */}
       <div style={S.balanceRow}>
         {[
-          { label: "KIE.ai Balance",     val: providerBalances.kie,       color: "#0891b2", url: "https://kie.ai/pricing"         },
-          { label: "WaveSpeed Balance",  val: providerBalances.wavespeed, color: "#7c3aed", url: "https://wavespeed.ai/pricing"  },
+          { label: "Provider A Balance", val: providerBalances.kie,       color: "#0891b2", url: "/admin/pricing" },
+          { label: "Provider B Balance", val: providerBalances.wavespeed, color: "#7c3aed", url: "/admin/pricing" },
         ].map(b => {
           const isCrit = b.val !== null && b.val < 5;
           const isLow  = b.val !== null && b.val < 20;
@@ -203,9 +203,9 @@ export default function PricingConstitutionPage() {
 
         <div style={S.balanceDivider} />
 
-        {/* KIE package selector */}
+        {/* Package selector */}
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" as const }}>
-          <span style={S.smallLabel}>KIE package:</span>
+          <span style={S.smallLabel}>Package tier:</span>
           {KIE_PACKAGES.map((p, i) => (
             <button key={p.label} onClick={() => setSelPkg(i)} style={{ ...S.chip, ...(i === selPkg ? S.chipActive : {}) }}>
               {p.label}{" "}
@@ -289,7 +289,7 @@ export default function PricingConstitutionPage() {
         <table style={S.table}>
           <thead>
             <tr style={S.thead}>
-              {["Model","Type","Provider","Billing","KIE cr/s or USD","Rate (user)","Credits charged","Your cost","Revenue","Margin","Max s","Status",""].map(h => (
+              {["Model","Type","Provider","Billing","Source units or USD","Rate (user)","Credits charged","Your cost","Revenue","Margin","Max s","Status",""] .map(h => (
                 <th key={h} style={{ ...S.th, textAlign: h === "Model" ? "left" : "center" }}>{h}</th>
               ))}
             </tr>
@@ -338,7 +338,7 @@ export default function PricingConstitutionPage() {
 
                   {/* Provider */}
                   <td style={{ ...S.td, fontSize: 11, color: em.provider === "kie" ? "#0891b2" : "#7c3aed" }}>
-                    {em.provider === "kie" ? "KIE.ai" : "WaveSpeed"}
+                    {em.provider === "kie" ? "Provider A" : "Provider B"}
                   </td>
 
                   {/* Billing */}
@@ -346,7 +346,7 @@ export default function PricingConstitutionPage() {
                     {em.billing === "per_sec" ? "per sec" : "flat"}
                   </td>
 
-                  {/* KIE credits or WaveSpeed USD — editable */}
+                  {/* Source credits or USD — editable */}
                   <td style={S.td}>
                     {em.provider === "wavespeed"
                       ? <span style={{ fontFamily: "monospace", fontSize: 11, color: "#d97706" }}>${em.waveUsd.toFixed(3)}</span>

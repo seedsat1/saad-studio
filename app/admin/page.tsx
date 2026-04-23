@@ -248,7 +248,7 @@ const MOCK_API_KEYS = [
   },
   {
     id: "k2",
-    name: "WaveSpeedAI (Flux)",
+    name: "Image Provider Key",
     key: "ws-4bKzRt...NgW2xC",
     status: "ACTIVE",
     lastUsed: "Apr 7, 2026 14:30",
@@ -264,7 +264,7 @@ const MOCK_API_KEYS = [
   },
   {
     id: "k4",
-    name: "Kling AI (Video)",
+    name: "Video Provider Key",
     key: "kl-9eRsUv...FgH3wD",
     status: "ACTIVE",
     lastUsed: "Apr 7, 2026 12:10",
@@ -901,7 +901,7 @@ export default function AdminDashboard() {
           <div className="flex items-center gap-5 flex-shrink-0">
             <div className="flex items-center gap-2">
               <span className={`w-2 h-2 rounded-full animate-pulse ${balanceIndicator.dotClass}`} />
-              <span className="text-xs text-slate-400">KIE.ai Billing Balance:</span>
+              <span className="text-xs text-slate-400">Provider Billing Balance:</span>
               <span className={`text-sm font-bold ${balanceIndicator.valueClass}`}>{formattedKieAmount}</span>
               <span
                 className={`text-[10px] px-1.5 py-0.5 rounded border font-semibold ${balanceIndicator.badgeClass}`}

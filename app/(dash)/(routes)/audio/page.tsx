@@ -128,16 +128,16 @@ const VOICE_LIBRARY: VoiceItem[] = [
 ];
 
 const VOICE_MODELS: VoiceModel[] = [
-  { id: "elevenlabs/multilingual-v2", name: "Eleven Multilingual V2", description: "Best for Arabic + multilingual", languages: "29 languages" },
-  { id: "elevenlabs/eleven-v3", name: "Eleven V3", description: "Newest expressive model", languages: "70+ languages" },
-  { id: "elevenlabs/text-to-speech-multilingual-v2", name: "KIE TTS Multilingual V2", description: "KIE async TTS model", languages: "Multilingual" },
-  { id: "elevenlabs/text-to-dialogue-v3", name: "KIE Text To Dialogue V3", description: "Dialogue-style speech generation", languages: "Auto language" },
+  { id: "elevenlabs/multilingual-v2", name: "Multilingual V2", description: "Best for Arabic + multilingual", languages: "29 languages" },
+  { id: "elevenlabs/eleven-v3", name: "Expressive V3", description: "Expressive speech model", languages: "70+ languages" },
+  { id: "elevenlabs/text-to-speech-multilingual-v2", name: "Speech Multilingual V2", description: "Async multilingual speech model", languages: "Multilingual" },
+  { id: "elevenlabs/text-to-dialogue-v3", name: "Dialogue V3", description: "Dialogue-style speech generation", languages: "Auto language" },
 ];
 
 const SFX_MODELS: Array<{ id: "elevenlabs/sound-effect-v2"; label: string; hint: string }> = [
   {
     id: "elevenlabs/sound-effect-v2",
-    label: "ElevenLabs Sound Effect V2",
+    label: "Sound Effect V2",
     hint: "Prompt-based SFX with loop and duration controls",
   },
 ];
@@ -178,12 +178,12 @@ const MUSIC_OUTPUT_FORMATS: Array<{ id: MusicOutputFormat; label: string }> = [
 const MUSIC_MODELS: Array<{ id: MusicModelId; label: string; hint: string; badge?: string }> = [
   {
     id: "elevenlabs/music",
-    label: "ElevenLabs Music",
+    label: "Music Studio",
     hint: "High-quality instrumental music with commercial licensing",
   },
   {
     id: "google/lyria-3",
-    label: "Google Lyria 3",
+    label: "Lyria 3",
     hint: "Next-generation AI music with enhanced quality",
     badge: "Beta",
   },
@@ -192,9 +192,9 @@ const MUSIC_MODELS: Array<{ id: MusicModelId; label: string; hint: string; badge
 const LIP_SYNC_MODELS: Array<{ id: LipSyncModelId; label: string; hint: string }> = [
   { id: "sync/lipsync-3", label: "LipSync 3", hint: "Video + audio direct lipsync" },
   { id: "infinitalk/from-audio", label: "From Audio", hint: "Image + audio + prompt -> talking video" },
-  { id: "kling/ai-avatar-pro", label: "AI Avatar Pro", hint: "Avatar image + audio + prompt" },
-  { id: "bytedance/seedance-2", label: "Seedance 2", hint: "Audio-driven reference video generation" },
-  { id: "bytedance/seedance-2-fast", label: "Seedance 2 Fast", hint: "Faster audio-driven reference video generation" },
+  { id: "kling/ai-avatar-pro", label: "Avatar Pro", hint: "Avatar image + audio + prompt" },
+  { id: "bytedance/seedance-2", label: "Reference Sync 2", hint: "Audio-driven reference video generation" },
+  { id: "bytedance/seedance-2-fast", label: "Reference Sync 2 Fast", hint: "Faster audio-driven reference video generation" },
 ];
 
 const SFX_PRESETS = [
@@ -226,6 +226,14 @@ const CLONED_VOICES_KEY = "saad_cloned_voices_v1";
 
 const formatBytes = (bytes: number) => `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
 const formatSeconds = (seconds: number) => `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, "0")}`;
+const sanitizePublicText = (text: string): string => {
+  const cleaned = text
+    .replace(/https?:\/\/[^\s)\]}"']+/gi, "external service")
+    .replace(/\b(kie(\.ai)?|wavespeed(\.ai)?|runninghub(\.ai)?|elevenlabs|kling|bytedance|google)\b/gi, "service")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+  return cleaned || "Operation failed. Please try again.";
+};
 const inferMediaKindFromName = (name: string): "video" | "audio" => {
   const normalized = name.toLowerCase();
   if (/\.(mp4|mov|webm|mkv|avi)(\?|$)/.test(normalized)) return "video";
@@ -591,7 +599,7 @@ function SidePlayerCard({ item, playing, setPlaying, progress, setProgress }: { 
 export default function AudioPage() {
   const searchParams = useSearchParams();
   const [activeTool, setActiveTool] = useState<AudioToolId>("voice-generator");
-  const [voiceModel, setVoiceModel] = useState(VOICE_MODELS[0].id);
+  const [voiceModel, setVoiceModel] = useState("elevenlabs/text-to-speech-multilingual-v2");
   const [voiceId, setVoiceId] = useState(VOICE_LIBRARY[0].id);
   const [ttsLanguage, setTtsLanguage] = useState<"Arabic" | "English">("Arabic");
   const [stability, setStability] = useState(50);
@@ -772,7 +780,7 @@ export default function AudioPage() {
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) {
-      throw new Error(data?.error || "Audio generation failed.");
+      throw new Error(sanitizePublicText(data?.error || "Audio generation failed."));
     }
     return data;
   }, []);
@@ -783,7 +791,7 @@ export default function AudioPage() {
 
     if (activeTool === "voice-generator") {
       actionType = "tts";
-      const effectiveTtsModel = ttsLanguage === "Arabic" && !voiceModel.startsWith("elevenlabs/text-to-") ? "elevenlabs/multilingual-v2" : voiceModel;
+      const effectiveTtsModel = ttsLanguage === "Arabic" && !voiceModel.startsWith("elevenlabs/text-to-") ? "elevenlabs/text-to-speech-multilingual-v2" : voiceModel;
       params.set("model", effectiveTtsModel);
       if (textInput.trim()) params.set("text", textInput);
     } else if (activeTool === "voice-cloning") {
@@ -864,7 +872,7 @@ export default function AudioPage() {
       setDynamicQuote(quote);
 
       if (activeTool === "voice-generator") {
-        const effectiveTtsModel = ttsLanguage === "Arabic" && !voiceModel.startsWith("elevenlabs/text-to-") ? "elevenlabs/multilingual-v2" : voiceModel;
+        const effectiveTtsModel = ttsLanguage === "Arabic" && !voiceModel.startsWith("elevenlabs/text-to-") ? "elevenlabs/text-to-speech-multilingual-v2" : voiceModel;
         const payload = {
           endpoint: `/v1/text-to-speech/${voiceId}`,
           method: "POST",
@@ -1129,14 +1137,14 @@ export default function AudioPage() {
         }
         if (data?.audioUrl) {
           setAddAudioOutputUrl(data.audioUrl);
-          setGenerated(buildGeneratedAudio("Audio Isolation Result", data.audioUrl, "ElevenLabs Audio Isolation"));
+          setGenerated(buildGeneratedAudio("Audio Isolation Result", data.audioUrl, "Audio Isolation"));
         }
       }
 
       setPlaying(false);
       setProgress(0);
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Audio request failed.");
+      setErrorMessage(sanitizePublicText(error instanceof Error ? error.message : "Audio request failed."));
     } finally {
       setTimeout(() => setIsBusy(false), 450);
     }
@@ -1653,7 +1661,7 @@ export default function AudioPage() {
     }
     if (activeTool === "voice-cloning") return <><Section title="Cloning Tips"><ul className="list-disc space-y-1 pl-4 text-xs text-zinc-400"><li>Use clean recordings, low noise</li><li>1 minute minimum, 3+ minutes better</li><li>Use one speaker per sample</li></ul></Section><Section title="Cloned Voices">{clonedVoices.length ? <div className="space-y-2">{clonedVoices.map((voice)=><button key={voice.id} onClick={()=>setVoiceId(voice.id)} className={cn("w-full rounded-lg border px-2 py-2 text-left text-xs", voiceId===voice.id?"border-cyan-400 bg-cyan-500/10 text-cyan-300":"border-white/10 bg-white/5 text-zinc-300")}><p className="font-semibold">{voice.name}</p><p className="text-[10px] text-zinc-500">{voice.id}</p></button>)}</div> : <p className="text-xs text-zinc-500">No cloned voices yet.</p>}</Section></>;
     if (activeTool === "voice-changer") return <><Section title="Target Voice"><VoicePicker value={voiceId} onChange={setVoiceId} voices={allVoices} /></Section><Section title="Voice Settings"><SliderRow label="Stability" value={changerStability} setValue={setChangerStability} /><SliderRow label="Similarity" value={changerSimilarity} setValue={setChangerSimilarity} /></Section><Section title="Output Format"><FormatToggle value={outputFormat} onChange={setOutputFormat} /></Section></>;
-    if (activeTool === "dubbing") return <><Section title="Language"><LanguageSelect label="Source Language" value={sourceLang} onChange={setSourceLang} allowAuto /><LanguageSelect label="Target Language" value={targetLang} onChange={setTargetLang} /></Section><Section title="Quick Targets"><div className="flex flex-wrap gap-2">{["Arabic", "Spanish", "French", "German", "Japanese", "Korean"].map((l) => <button key={l} onClick={() => setTargetLang(l)} className={cn("rounded-full border px-2 py-1 text-[11px]", targetLang === l ? "border-cyan-400 bg-cyan-500/10 text-cyan-300" : "border-white/10 bg-white/5 text-zinc-400")}>{l}</button>)}</div></Section><Section title="Provider"><p className="text-xs text-zinc-500">Dubbing is executed via `elevenlabs/dubbing` model on WaveSpeed.</p></Section></>;
+    if (activeTool === "dubbing") return <><Section title="Language"><LanguageSelect label="Source Language" value={sourceLang} onChange={setSourceLang} allowAuto /><LanguageSelect label="Target Language" value={targetLang} onChange={setTargetLang} /></Section><Section title="Quick Targets"><div className="flex flex-wrap gap-2">{["Arabic", "Spanish", "French", "German", "Japanese", "Korean"].map((l) => <button key={l} onClick={() => setTargetLang(l)} className={cn("rounded-full border px-2 py-1 text-[11px]", targetLang === l ? "border-cyan-400 bg-cyan-500/10 text-cyan-300" : "border-white/10 bg-white/5 text-zinc-400")}>{l}</button>)}</div></Section><Section title="Provider"><p className="text-xs text-zinc-500">Dubbing is executed via the selected dubbing model.</p></Section></>;
     if (activeTool === "sfx-generator") return <><Section title="Duration"><div className="mb-2 flex items-center justify-between text-xs text-zinc-400"><span>Auto or manual</span><span>{sfxDuration ? `${sfxDuration}s` : "Auto"}</span></div><input type="range" min={1} max={22} value={sfxDuration || 11} onChange={(e)=>setSfxDuration(Number(e.target.value))} className="w-full accent-cyan-500" /><button onClick={()=>setSfxDuration(null)} className="mt-2 text-xs text-cyan-300">Reset to Auto</button></Section><Section title="Loop"><ToggleField label="Seamless loop" checked={sfxLoop} onChange={setSfxLoop} /></Section></>;
     if (activeTool === "music-generator") return <>
       <Section title="Model">
