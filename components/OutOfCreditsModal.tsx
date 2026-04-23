@@ -31,52 +31,27 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 import { BatteryLow, Sparkles, Zap, Crown } from "lucide-react";
 import { useCreditModal } from "@/hooks/use-credit-modal";
+import { useCmsData } from "@/lib/use-cms-data";
 
-// ─── Pricing tiers shown inside the modal ────────────────────────────────────
-const TIERS = [
-  {
-    id: "starter",
-    label: "Starter Pack",
-    credits: 100,
-    price: 9,
-    perCredit: "9¢",
-    icon: Zap,
-    highlight: false,
-    badge: null,
-    gradient: "from-slate-700 to-slate-800",
-    borderClass: "border-slate-700",
-    btnClass:
-      "bg-slate-700 hover:bg-slate-600 text-white",
-  },
-  {
-    id: "popular",
-    label: "Creator Pack",
-    credits: 500,
-    price: 39,
-    perCredit: "7.8¢",
-    icon: Sparkles,
-    highlight: true,
-    badge: "Most Popular",
-    gradient: "from-blue-600/20 to-indigo-700/20",
-    borderClass: "border-blue-500",
-    btnClass:
-      "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white",
-  },
-  {
-    id: "pro",
-    label: "Pro Pack",
-    credits: 1000,
-    price: 75,
-    perCredit: "7.5¢",
-    icon: Crown,
-    highlight: false,
-    badge: "Best Value",
-    gradient: "from-violet-700/20 to-purple-800/20",
-    borderClass: "border-violet-600",
-    btnClass:
-      "bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 text-white",
-  },
-] as const;
+interface CmsTopup {
+  _id?: string;
+  credits: string;
+  price: string;
+  pricePerCredit: string;
+  popular: boolean;
+}
+
+interface PricingCmsData {
+  topups?: CmsTopup[];
+}
+
+const DEFAULT_TOPUPS: CmsTopup[] = [
+  { credits: "+75 Credits", price: "$5", pricePerCredit: "$0.067", popular: false },
+  { credits: "+160 Credits", price: "$10", pricePerCredit: "$0.063", popular: false },
+  { credits: "+250 Credits", price: "$15", pricePerCredit: "$0.060", popular: true },
+  { credits: "+330 Credits", price: "$20", pricePerCredit: "$0.061", popular: false },
+  { credits: "+500 Credits", price: "$30", pricePerCredit: "$0.060", popular: false },
+];
 
 // ─── Animation variants ───────────────────────────────────────────────────────
 const backdropVariants: Variants = {
@@ -114,12 +89,14 @@ const tierVariants: Variants = {
 export default function OutOfCreditsModal() {
   const { isOpen, onClose, requiredCredits, currentBalance } = useCreditModal();
   const router = useRouter();
+  const { data: cms } = useCmsData<PricingCmsData>("pricing");
+  const liveTopups = cms?.topups?.length ? cms.topups : DEFAULT_TOPUPS;
+  const iconSet = [Zap, Sparkles, Crown];
 
-  const handleBuyNow = (tierId: string) => {
+  const handleBuyNow = (creditsLabel: string) => {
     onClose();
-    // Navigate to the pricing page; pass the selected tier as a query param
-    // so the pricing page can pre-highlight it if desired.
-    router.push(`/pricing?tier=${tierId}`);
+    const credits = creditsLabel.replace(/\D/g, "");
+    router.push(`/payment?type=topup&credits=${encodeURIComponent(credits)}`);
   };
 
   return (
@@ -140,7 +117,7 @@ export default function OutOfCreditsModal() {
           <motion.div
             key="ooc-card"
             className="
-              max-w-3xl w-full bg-slate-900
+              max-w-5xl w-full bg-slate-900
               overflow-hidden
               shadow-[0_0_50px_rgba(59,130,246,0.15)]
               border border-slate-800
@@ -203,12 +180,12 @@ export default function OutOfCreditsModal() {
             </div>
 
             {/* ── Pricing Grid ─────────────────────────────────────────── */}
-            <div className="grid md:grid-cols-3 gap-4 mt-8">
-              {TIERS.map((tier, i) => {
-                const Icon = tier.icon;
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mt-8">
+              {liveTopups.map((tier, i) => {
+                const Icon = iconSet[i % iconSet.length];
                 return (
                   <motion.div
-                    key={tier.id}
+                    key={tier._id ?? `${tier.credits}-${tier.price}`}
                     custom={i}
                     variants={tierVariants}
                     initial="hidden"
@@ -217,26 +194,22 @@ export default function OutOfCreditsModal() {
                     transition={{ type: "spring" as const, stiffness: 350, damping: 20 }}
                     className={`
                       relative flex flex-col gap-y-3 p-5 rounded-2xl
-                      bg-gradient-to-br ${tier.gradient}
-                      border ${tier.borderClass}
-                      ${tier.highlight ? "shadow-[0_0_24px_rgba(99,102,241,0.25)]" : ""}
+                      bg-gradient-to-br ${tier.popular ? "from-amber-600/20 to-orange-700/20" : "from-slate-700 to-slate-800"}
+                      border ${tier.popular ? "border-amber-500" : "border-slate-700"}
+                      ${tier.popular ? "shadow-[0_0_24px_rgba(245,158,11,0.25)]" : ""}
                     `}
                   >
                     {/* Badge */}
-                    {tier.badge && (
+                    {tier.popular && (
                       <span
                         className={`
                           absolute -top-3 left-1/2 -translate-x-1/2
                           px-3 py-0.5 rounded-full text-[11px] font-semibold
                           whitespace-nowrap
-                          ${
-                            tier.highlight
-                              ? "bg-blue-600 text-white"
-                              : "bg-violet-700 text-white"
-                          }
+                          bg-amber-500 text-white
                         `}
                       >
-                        {tier.badge}
+                        Best Value
                       </span>
                     )}
 
@@ -244,43 +217,38 @@ export default function OutOfCreditsModal() {
                     <div className="flex items-center gap-2 mt-1">
                       <Icon
                         className={`w-5 h-5 ${
-                          tier.highlight ? "text-blue-400" : "text-slate-300"
+                          tier.popular ? "text-amber-300" : "text-slate-300"
                         }`}
                       />
-                      <span className="text-white font-semibold text-sm">
-                        {tier.label}
-                      </span>
+                      <span className="text-white font-semibold text-sm">Topup</span>
                     </div>
 
                     {/* Credits */}
                     <p className="text-3xl font-bold text-white">
-                      {tier.credits.toLocaleString()}
-                      <span className="text-sm font-normal text-slate-400 ml-1">
-                        credits
-                      </span>
+                      {tier.credits.replace(/^\+/, "")}
                     </p>
 
                     {/* Price + per-credit */}
                     <div className="flex items-end gap-1">
                       <span className="text-2xl font-bold text-white">
-                        ${tier.price}
+                        {tier.price}
                       </span>
                       <span className="text-xs text-slate-400 mb-0.5">
-                        / {tier.perCredit} per credit
+                        / {tier.pricePerCredit} per credit
                       </span>
                     </div>
 
                     {/* CTA button */}
                     <motion.button
                       whileTap={{ scale: 0.96 }}
-                      onClick={() => handleBuyNow(tier.id)}
+                      onClick={() => handleBuyNow(tier.credits)}
                       className={`
                         mt-auto w-full py-2 rounded-xl text-sm font-semibold
                         transition-colors duration-150
-                        ${tier.btnClass}
+                        ${tier.popular ? "bg-amber-500 hover:bg-amber-400 text-white" : "bg-slate-700 hover:bg-slate-600 text-white"}
                       `}
                     >
-                      Buy Now
+                      Buy Credits
                     </motion.button>
                   </motion.div>
                 );
