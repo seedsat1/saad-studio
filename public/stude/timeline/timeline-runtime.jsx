@@ -5,7 +5,15 @@ const TRACK_HEIGHT = 34;
 const RULER_HEIGHT = 22;
 const PX_PER_FRAME = 1.1;
 const TOTAL_FRAMES = 900;
-const TIMELINE_STORAGE_KEY = 'ff_timeline_state_v1';
+const PROJECT_ID = (() => {
+  try {
+    const id = new URLSearchParams(window.location.search).get('projectId');
+    return (id || 'default').trim() || 'default';
+  } catch {
+    return 'default';
+  }
+})();
+const TIMELINE_STORAGE_KEY = `ff_timeline_state_v1:${PROJECT_ID}`;
 const MIN_CLIP_FRAMES = 8;
 const SNAP_THRESHOLD_FRAMES = 6;
 const IMPORT_ACCEPT = '.mp4,.mov,.mkv,.avi,.webm,.m4v,.mp3,.wav,.aac,.m4a,.ogg,.flac,.opus,.jpg,.jpeg,.png,.webp,.gif,.bmp,.tiff,.svg,.psd';
@@ -153,21 +161,7 @@ const TRACKS = [
   { id: 'A4', type: 'audio', color: '#b18b74', muted: false, solo: false, locked: false, visible: true },
 ];
 
-const INITIAL_CLIPS = [
-  { id: 'v1a', track: 0, start: 0, dur: 180, label: 'scene_01.mp4', color: '#2d6a4f' },
-  { id: 'v1b', track: 0, start: 200, dur: 250, label: 'aerial_drone.mp4', color: '#1b4332' },
-  { id: 'v1c', track: 0, start: 470, dur: 150, label: 'interview_closeup.mp4', color: '#40916c' },
-  { id: 'v2a', track: 1, start: 50, dur: 120, label: 'b-roll_city.mp4', color: '#264653' },
-  { id: 'v2b', track: 1, start: 350, dur: 200, label: 'timelapse.mp4', color: '#2a9d8f' },
-  { id: 'v3a', track: 2, start: 100, dur: 100, label: 'title_card.mp4', color: '#6a4c93' },
-  { id: 'a1a', track: 3, start: 10, dur: 400, label: 'Voice Over Take 3.wav', color: '#1d3557' },
-  { id: 'a1b', track: 3, start: 430, dur: 200, label: 'Narration Final.wav', color: '#457b9d' },
-  { id: 'a2a', track: 4, start: 0, dur: 620, label: 'Music_Cinematic_Score.wav', color: '#6d4c41' },
-  { id: 'a3a', track: 5, start: 180, dur: 30, label: 'SFX_Whoosh.wav', color: '#00838f' },
-  { id: 'a3b', track: 5, start: 350, dur: 50, label: 'SFX_Thunder.wav', color: '#006064' },
-  { id: 'a3c', track: 5, start: 460, dur: 25, label: 'SFX_Impact.wav', color: '#00695c' },
-  { id: 'a4a', track: 6, start: 50, dur: 100, label: 'Ambient_Rain.wav', color: '#4e342e' },
-];
+const INITIAL_CLIPS = [];
 
 function formatTC(frame) {
   const totalSec = Math.floor(frame / FPS);
