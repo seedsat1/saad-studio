@@ -163,8 +163,9 @@ function resolveLipSyncModel(model?: string): string {
   if (normalized === KIE_AI_AVATAR_PRO_MODEL) return KIE_AI_AVATAR_PRO_MODEL;
   if (normalized === KIE_SEEDANCE_2_MODEL) return KIE_SEEDANCE_2_MODEL;
   if (normalized === KIE_SEEDANCE_2_FAST_MODEL) return KIE_SEEDANCE_2_FAST_MODEL;
-  if (normalized === WS_LIPSYNC_MODEL) return WS_LIPSYNC_MODEL;
-  return WS_LIPSYNC_MODEL;
+  // Route WaveSpeed-only lip-sync selection to a KIE equivalent.
+  if (normalized === WS_LIPSYNC_MODEL) return KIE_SEEDANCE_2_FAST_MODEL;
+  return KIE_SEEDANCE_2_FAST_MODEL;
 }
 
 function isGoogleLyriaModel(model: string): boolean {
@@ -822,19 +823,7 @@ export async function POST(req: NextRequest) {
     }
     if (actionType === "lip-sync") {
       const lipSyncModel = resolveLipSyncModel(body.model);
-      if (lipSyncModel === WS_LIPSYNC_MODEL) {
-        if (!body.videoUrl?.trim() || !body.audioUrl?.trim()) {
-          return NextResponse.json(
-            { error: "Fields 'videoUrl' and 'audioUrl' are required for model='sync/lipsync-3'." },
-            { status: 400 },
-          );
-        }
-        const validVideo = body.videoUrl.startsWith("data:") || isSafePublicHttpUrl(body.videoUrl);
-        const validAudio = body.audioUrl.startsWith("data:") || isSafePublicHttpUrl(body.audioUrl);
-        if (!validVideo || !validAudio) {
-          return NextResponse.json({ error: "Invalid videoUrl or audioUrl." }, { status: 400 });
-        }
-      } else if (lipSyncModel === KIE_FROM_AUDIO_MODEL || lipSyncModel === KIE_AI_AVATAR_PRO_MODEL) {
+      if (lipSyncModel === KIE_FROM_AUDIO_MODEL || lipSyncModel === KIE_AI_AVATAR_PRO_MODEL) {
         if (!body.imageUrl?.trim() || !body.audioUrl?.trim()) {
           return NextResponse.json(
             { error: "Fields 'imageUrl' and 'audioUrl' are required for selected lip-sync model." },
@@ -1155,103 +1144,26 @@ export async function POST(req: NextRequest) {
     if (actionType === "lip-sync") {
       const lipSyncModel = resolveLipSyncModel(body.model);
 
-      const runWaveSpeedLipSync = async (): Promise<string> => {
-        if (!wavespeedKey) {
-          throw new Error("WaveSpeed API key is required for lip-sync fallback.");
-        }
-        if (!body.videoUrl?.trim() || !body.audioUrl?.trim()) {
-          throw new Error("WaveSpeed lip-sync fallback requires both videoUrl and audioUrl.");
-        }
-
-        const normalizedVideoUrl = body.videoUrl.startsWith("data:")
-          ? await uploadDataUrlToWaveSpeed(body.videoUrl, wavespeedKey)
-          : body.videoUrl;
-        const normalizedAudioUrl = body.audioUrl.startsWith("data:")
-          ? await uploadDataUrlToWaveSpeed(body.audioUrl, wavespeedKey)
-          : body.audioUrl;
-
-        return runWaveSpeed(
-          WS_LIPSYNC_MODEL,
-          {
-            video: normalizedVideoUrl,
-            audio: normalizedAudioUrl,
-            sync_mode: body.sync_mode || "cut_off",
-          },
-          wavespeedKey,
-        );
-      };
-
-      if (lipSyncModel === WS_LIPSYNC_MODEL) {
-        const videoUrl = await runWaveSpeedLipSync();
-        if (generationId) {
-          await setGenerationMediaUrl(generationId, videoUrl);
-        }
-        return NextResponse.json({ videoUrl, provider: "wavespeed", chargedCredits: creditsToCharge }, { status: 200 });
+      if (!kieKey) {
+        throw new Error("KIE API key is required for selected lip-sync model.");
       }
 
-      let kieError: string | null = null;
-      try {
-        if (!kieKey) {
-          throw new Error("KIE API key is required for selected lip-sync model.");
-        }
-
-        if (lipSyncModel === KIE_FROM_AUDIO_MODEL || lipSyncModel === KIE_AI_AVATAR_PRO_MODEL) {
-          const normalizedImageUrl = body.imageUrl!.startsWith("data:")
-            ? await uploadDataUrlToKie(body.imageUrl!, "avatar-image")
-            : body.imageUrl!;
-          const normalizedAudioUrl = body.audioUrl!.startsWith("data:")
-            ? await uploadDataUrlToKie(body.audioUrl!, "avatar-audio")
-            : body.audioUrl!;
-
-          const taskId = await submitKieTask(
-            lipSyncModel,
-            {
-              image_url: normalizedImageUrl,
-              audio_url: normalizedAudioUrl,
-              prompt: sanitizePrompt(body.prompt || "", 5000),
-              ...(lipSyncModel === KIE_FROM_AUDIO_MODEL ? { resolution: body.resolution || "480p" } : {}),
-              ...(Number.isFinite(Number(body.seed)) ? { seed: Number(body.seed) } : {}),
-              nsfw_checker: true,
-            },
-            kieKey,
-          );
-
-          const result = await pollKieRecordInfo(taskId, kieKey);
-          if (result.status === "failed") {
-            throw new Error(result.error || "KIE lip-sync model failed.");
-          }
-          const videoUrl = pickFirstMediaUrl(result.resultJson);
-          if (!videoUrl) throw new Error("KIE lip-sync returned no video URL.");
-          if (generationId) {
-            await setGenerationMediaUrl(generationId, videoUrl);
-          }
-          return NextResponse.json({ videoUrl, provider: "kie", chargedCredits: creditsToCharge }, { status: 200 });
-        }
-
-        // Seedance 2: optional references + prompt in one video-generation call.
-        const seedancePrompt = sanitizePrompt(body.prompt || "Audio-driven scene", 5000);
-        const referenceVideo = body.videoUrl
-          ? (body.videoUrl.startsWith("data:") ? await uploadDataUrlToKie(body.videoUrl, "seedance-video") : body.videoUrl)
-          : null;
-        const referenceAudio = body.audioUrl
-          ? (body.audioUrl.startsWith("data:") ? await uploadDataUrlToKie(body.audioUrl, "seedance-audio") : body.audioUrl)
-          : null;
-        const referenceImage = body.imageUrl
-          ? (body.imageUrl.startsWith("data:") ? await uploadDataUrlToKie(body.imageUrl, "seedance-image") : body.imageUrl)
-          : null;
+      if (lipSyncModel === KIE_FROM_AUDIO_MODEL || lipSyncModel === KIE_AI_AVATAR_PRO_MODEL) {
+        const normalizedImageUrl = body.imageUrl!.startsWith("data:")
+          ? await uploadDataUrlToKie(body.imageUrl!, "avatar-image")
+          : body.imageUrl!;
+        const normalizedAudioUrl = body.audioUrl!.startsWith("data:")
+          ? await uploadDataUrlToKie(body.audioUrl!, "avatar-audio")
+          : body.audioUrl!;
 
         const taskId = await submitKieTask(
-          lipSyncModel === KIE_SEEDANCE_2_FAST_MODEL ? KIE_SEEDANCE_2_FAST_MODEL : KIE_SEEDANCE_2_MODEL,
+          lipSyncModel,
           {
-            prompt: seedancePrompt,
-            ...(referenceImage ? { reference_image_urls: [referenceImage] } : {}),
-            ...(referenceVideo ? { reference_video_urls: [referenceVideo] } : {}),
-            ...(referenceAudio ? { reference_audio_urls: [referenceAudio] } : {}),
-            generate_audio: true,
-            resolution: body.resolution || "720p",
-            aspect_ratio: body.aspect_ratio || "16:9",
-            duration: Number.isFinite(Number(body.duration)) ? Math.max(4, Math.min(15, Number(body.duration))) : 8,
-            web_search: Boolean(body.web_search),
+            image_url: normalizedImageUrl,
+            audio_url: normalizedAudioUrl,
+            prompt: sanitizePrompt(body.prompt || "", 5000),
+            ...(lipSyncModel === KIE_FROM_AUDIO_MODEL ? { resolution: body.resolution || "480p" } : {}),
+            ...(Number.isFinite(Number(body.seed)) ? { seed: Number(body.seed) } : {}),
             nsfw_checker: true,
           },
           kieKey,
@@ -1259,26 +1171,55 @@ export async function POST(req: NextRequest) {
 
         const result = await pollKieRecordInfo(taskId, kieKey);
         if (result.status === "failed") {
-          throw new Error(result.error || "Seedance lip-sync model failed.");
+          throw new Error(result.error || "KIE lip-sync model failed.");
         }
         const videoUrl = pickFirstMediaUrl(result.resultJson);
-        if (!videoUrl) throw new Error("Seedance returned no video URL.");
+        if (!videoUrl) throw new Error("KIE lip-sync returned no video URL.");
         if (generationId) {
           await setGenerationMediaUrl(generationId, videoUrl);
         }
         return NextResponse.json({ videoUrl, provider: "kie", chargedCredits: creditsToCharge }, { status: 200 });
-      } catch (error) {
-        kieError = error instanceof Error ? error.message : "KIE lip-sync failed.";
       }
 
-      const fallbackVideoUrl = await runWaveSpeedLipSync();
-      if (generationId) {
-        await setGenerationMediaUrl(generationId, fallbackVideoUrl);
-      }
-      return NextResponse.json(
-        { videoUrl: fallbackVideoUrl, provider: "wavespeed", chargedCredits: creditsToCharge, fallbackFrom: kieError || "kie" },
-        { status: 200 },
+      // Seedance 2: optional references + prompt in one video-generation call.
+      const seedancePrompt = sanitizePrompt(body.prompt || "Audio-driven scene", 5000);
+      const referenceVideo = body.videoUrl
+        ? (body.videoUrl.startsWith("data:") ? await uploadDataUrlToKie(body.videoUrl, "seedance-video") : body.videoUrl)
+        : null;
+      const referenceAudio = body.audioUrl
+        ? (body.audioUrl.startsWith("data:") ? await uploadDataUrlToKie(body.audioUrl, "seedance-audio") : body.audioUrl)
+        : null;
+      const referenceImage = body.imageUrl
+        ? (body.imageUrl.startsWith("data:") ? await uploadDataUrlToKie(body.imageUrl, "seedance-image") : body.imageUrl)
+        : null;
+
+      const taskId = await submitKieTask(
+        lipSyncModel === KIE_SEEDANCE_2_FAST_MODEL ? KIE_SEEDANCE_2_FAST_MODEL : KIE_SEEDANCE_2_MODEL,
+        {
+          prompt: seedancePrompt,
+          ...(referenceImage ? { reference_image_urls: [referenceImage] } : {}),
+          ...(referenceVideo ? { reference_video_urls: [referenceVideo] } : {}),
+          ...(referenceAudio ? { reference_audio_urls: [referenceAudio] } : {}),
+          generate_audio: true,
+          resolution: body.resolution || "720p",
+          aspect_ratio: body.aspect_ratio || "16:9",
+          duration: Number.isFinite(Number(body.duration)) ? Math.max(4, Math.min(15, Number(body.duration))) : 8,
+          web_search: Boolean(body.web_search),
+          nsfw_checker: true,
+        },
+        kieKey,
       );
+
+      const result = await pollKieRecordInfo(taskId, kieKey);
+      if (result.status === "failed") {
+        throw new Error(result.error || "Seedance lip-sync model failed.");
+      }
+      const videoUrl = pickFirstMediaUrl(result.resultJson);
+      if (!videoUrl) throw new Error("Seedance returned no video URL.");
+      if (generationId) {
+        await setGenerationMediaUrl(generationId, videoUrl);
+      }
+      return NextResponse.json({ videoUrl, provider: "kie", chargedCredits: creditsToCharge }, { status: 200 });
     }
     if (actionType === "voice-cloning") {
       const clonedVoiceName = (body.cloneName || "custom-voice").trim().slice(0, 64);
