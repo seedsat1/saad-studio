@@ -157,6 +157,23 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
   var liveLightingProfile=null;
   var liveLightingTargetId='';
 
+  // ── Auto-save: relay debounced timeline state to parent page ──────────────
+  var _autoSaveTimer=null;
+  var _lastSentStateHash='';
+  function relayStateToParent(state){
+    if(!state || !window.parent || window.parent===window) return;
+    // Only send if clips/tracks actually changed (cheap hash)
+    var hash=JSON.stringify({clips:(state.clips||[]).length,tracks:(state.tracks||[]).length,ts:Math.floor(Date.now()/30000)});
+    if(hash===_lastSentStateHash) return;
+    _lastSentStateHash=hash;
+    clearTimeout(_autoSaveTimer);
+    _autoSaveTimer=setTimeout(function(){
+      try{
+        window.parent.postMessage({type:'ff:autosave-state', timelineState: state}, '*');
+      }catch(_e){}
+    }, 30000); // debounce 30 s — only send after 30s of no new changes
+  }
+
   function pageLabel(page){
     var map={sound:'Audio & Music',captions:'Captions',video:'Video Generation',presets:'Generate Image',transitions:'Transitions',lighting:'Lighting',prompt:'Prompt'};
     return map[page] || 'Prompt';
@@ -653,6 +670,7 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
     }
     if(!d || d.type!=='ff:timeline-state') return;
     lastTimelineState=d;
+    relayStateToParent(d); // ← auto-save relay
     if(d.projectRatio) currentRatio=String(d.projectRatio);
     else if(d.ratio) currentRatio=String(d.ratio);
     pTC.textContent=d.timecode || '00:00:00:00';

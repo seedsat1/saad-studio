@@ -86,6 +86,8 @@ export default function VideoEditorPage() {
   const [lastOpenedProjectId, setLastOpenedProjectId] = useState("");
   const [activeProject, setActiveProject] = useState<EditorProject | null>(null);
   const [error, setError] = useState("");
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
 
   const title = useMemo(() => activeProject?.name || "Cinema Workspace", [activeProject]);
   const filteredProjects = useMemo(() => {
@@ -149,6 +151,56 @@ export default function VideoEditorPage() {
     loadProjects();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [forcedProjectId]);
+
+  // ── Auto-save: listen for timeline state relayed from studio-shell iframe ──
+  useEffect(() => {
+    if (!activeProject) return;
+    const projectId = activeProject.id;
+
+    const handler = async (event: MessageEvent) => {
+      const d = event.data;
+      if (!d || d.type !== "ff:autosave-state" || !d.timelineState) return;
+
+      setSaveStatus("saving");
+      try {
+        const state = d.timelineState as {
+          clips?: unknown[];
+          tracks?: unknown[];
+          projectRatio?: string;
+        };
+        const body = {
+          id: projectId,
+          name: activeProject.name || "Untitled Project",
+          tracks: {
+            clips: state.clips ?? [],
+            trackList: state.tracks ?? [],
+            projectRatio: state.projectRatio ?? "16:9",
+          },
+          updatedAt: new Date().toISOString(),
+        };
+        const res = await fetch("/api/editor/projects", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        if (res.ok) {
+          setSaveStatus("saved");
+          setLastSavedAt(new Date());
+          // Reset to idle after 3 s
+          setTimeout(() => setSaveStatus("idle"), 3000);
+        } else {
+          setSaveStatus("error");
+          setTimeout(() => setSaveStatus("idle"), 4000);
+        }
+      } catch {
+        setSaveStatus("error");
+        setTimeout(() => setSaveStatus("idle"), 4000);
+      }
+    };
+
+    window.addEventListener("message", handler);
+    return () => window.removeEventListener("message", handler);
+  }, [activeProject]);
 
   async function createProject() {
     const name = newName.trim() || "Untitled Project";
@@ -415,6 +467,25 @@ export default function VideoEditorPage() {
         <div>
           <p className="text-sm font-semibold truncate max-w-[60vw]">{title}</p>
           <p className="text-[11px] text-slate-400">Project ID: {activeProject.id}</p>
+        </div>
+        {/* Auto-save indicator */}
+        <div className="flex items-center gap-2">
+          {saveStatus === "saving" && (
+            <span className="text-[11px] text-sky-400 animate-pulse">⏳ Saving…</span>
+          )}
+          {saveStatus === "saved" && (
+            <span className="text-[11px] text-emerald-400">✓ Saved</span>
+          )}
+          {saveStatus === "error" && (
+            <span className="text-[11px] text-rose-400">⚠ Save failed</span>
+          )}
+          {saveStatus === "idle" && lastSavedAt && (
+            <span className="text-[11px] text-slate-500">
+              Saved {Math.round((Date.now() - lastSavedAt.getTime()) / 60000) < 1
+                ? "just now"
+                : `${Math.round((Date.now() - lastSavedAt.getTime()) / 60000)}m ago`}
+            </span>
+          )}
         </div>
         <button
           type="button"
