@@ -145,8 +145,18 @@ textarea.ff:focus{border-color:var(--accent)}
 
     <!-- Voice selector -->
     <div class="sec"><span class="dot" style="background:var(--accent)"></span>Voice</div>
-    <label class="lbl">Select Voice</label>
-    <select id="voiceSelect" class="ff"></select>
+
+    <!-- Voice picker card -->
+    <div class="vp-card" onclick="openVoicePicker()" id="voicePickerCard">
+      <div class="vp-avatar" id="vpAvatar" style="background:#2a3050">🎙</div>
+      <div class="vp-info">
+        <div class="vp-name" id="vpName">Rachel</div>
+        <div class="vp-meta" id="vpMeta">Standard · EN</div>
+      </div>
+      <span class="vp-arrow">▾ Change</span>
+    </div>
+    <!-- Hidden select for compatibility with getSelectedVoiceId() -->
+    <select id="voiceSelect" style="display:none"></select>
 
     <div class="row2 mt6">
       <div>
@@ -438,6 +448,32 @@ textarea.ff:focus{border-color:var(--accent)}
 
 </div><!-- /workspace -->
 
+<!-- ═══════════════════════════════════════════════════════ VOICE PICKER MODAL -->
+<div class="vpm-overlay" id="voicePickerModal" style="display:none" onclick="if(event.target===this)closeVoicePicker()">
+  <div class="vpm">
+    <div class="vpm-head">
+      <h3>🎙 Choose a Voice</h3>
+      <button class="vpm-close" onclick="closeVoicePicker()">✕</button>
+    </div>
+    <div class="vpm-toolbar">
+      <input class="vpm-search" id="vpmSearch" placeholder="Search voices..." oninput="renderVpmGrid()">
+      <select class="vpm-filter" id="vpmGender" onchange="renderVpmGrid()">
+        <option value="">All genders</option>
+        <option value="male">Male</option>
+        <option value="female">Female</option>
+      </select>
+      <select class="vpm-filter" id="vpmLang" onchange="renderVpmGrid()">
+        <option value="">All languages</option>
+        <option value="EN">English</option>
+        <option value="AR">Arabic</option>
+        <option value="MULTI">Multilingual</option>
+      </select>
+    </div>
+    <div class="vpm-cats" id="vpmCats"></div>
+    <div class="vpm-grid" id="vpmGrid"></div>
+  </div>
+</div>
+
 <script>
 /* ── Right panel tab switching ────────────────────────────────────── */
 function switchRightTab(tab) {
@@ -684,6 +720,129 @@ const MODEL_VOICES = [
   { id: 'scOwDtmlUjD3prqpp97I', label: 'Sam (Support Agent)' },
 ];
 
+/* ── Rich voice data for picker ────────────────────────────────────── */
+const VOICE_CATALOG = [
+  // category, id, name, gender, lang, accent, emoji, color
+  { cat:'Narration', id:'Rachel',                   name:'Rachel',             gender:'female', lang:'EN',    accent:'American',   emoji:'👩',  color:'#3a4a8a' },
+  { cat:'Narration', id:'nPczCjzI2devNBz1zQrb',    name:'Brian',              gender:'male',   lang:'EN',    accent:'Deep',       emoji:'🧔',  color:'#2a3a5a' },
+  { cat:'Narration', id:'LruHrtVF6PSyGItzMNHS',    name:'Benjamin',           gender:'male',   lang:'EN',    accent:'Calm',       emoji:'👨',  color:'#2a4a3a' },
+  { cat:'Narration', id:'AeRdCCKzvd23BpJoofzx',    name:'Nathaniel',          gender:'male',   lang:'EN',    accent:'British',    emoji:'🎩',  color:'#3a2a5a' },
+  { cat:'Characters', id:'Roger',                   name:'Roger',              gender:'male',   lang:'EN',    accent:'American',   emoji:'🦸',  color:'#4a2a2a' },
+  { cat:'Characters', id:'YOq2y2Up4RgXP2HyXjE5',   name:'Xavier',             gender:'male',   lang:'EN',    accent:'Metal',      emoji:'🤘',  color:'#3a1a1a' },
+  { cat:'Characters', id:'DTKMou8ccj1ZaWGBiotd',   name:'Jamahal',            gender:'male',   lang:'EN',    accent:'Vibrant',    emoji:'🎭',  color:'#4a3a1a' },
+  { cat:'Characters', id:'vBKc2FfBKJfcZNyEt1n6',   name:'Finn',               gender:'male',   lang:'EN',    accent:'Youthful',   emoji:'🧒',  color:'#1a3a4a' },
+  { cat:'Conversational', id:'Aria',               name:'Aria',               gender:'female', lang:'EN',    accent:'American',   emoji:'💁‍♀️', color:'#3a2a5a' },
+  { cat:'Conversational', id:'Sarah',              name:'Sarah',              gender:'female', lang:'EN',    accent:'American',   emoji:'👩‍💼', color:'#2a3a5a' },
+  { cat:'Conversational', id:'Laura',              name:'Laura',              gender:'female', lang:'EN',    accent:'American',   emoji:'🙋‍♀️', color:'#3a2a4a' },
+  { cat:'Conversational', id:'Charlotte',          name:'Charlotte',          gender:'female', lang:'EN',    accent:'British',    emoji:'👩‍🎓', color:'#2a4a3a' },
+  { cat:'Conversational', id:'Alice',              name:'Alice',              gender:'female', lang:'EN',    accent:'British',    emoji:'🧑‍💻', color:'#3a3a2a' },
+  { cat:'Conversational', id:'Sm1seazb4gs7RSlUVw7c',name:'Anika',            gender:'female', lang:'EN',    accent:'Friendly',   emoji:'😊',  color:'#2a4a4a' },
+  { cat:'Conversational', id:'6aDn1KB0hjpdcocrUkmq',name:'Tiffany',          gender:'female', lang:'EN',    accent:'Welcoming',  emoji:'🌸',  color:'#4a2a3a' },
+  { cat:'Conversational', id:'scOwDtmlUjD3prqpp97I',name:'Sam',              gender:'male',   lang:'EN',    accent:'Support',    emoji:'🎧',  color:'#2a3a4a' },
+  { cat:'News & Broadcast', id:'x70vRnQBMBu4FAYhjJbO',name:'Nathan',         gender:'male',   lang:'EN',    accent:'Radio',      emoji:'📻',  color:'#3a3a1a' },
+  { cat:'News & Broadcast', id:'Eric',             name:'Eric',               gender:'male',   lang:'EN',    accent:'American',   emoji:'📰',  color:'#2a2a3a' },
+  { cat:'News & Broadcast', id:'Brian',            name:'Brian',              gender:'male',   lang:'EN',    accent:'American',   emoji:'📡',  color:'#1a3a3a' },
+  { cat:'News & Broadcast', id:'Daniel',           name:'Daniel',             gender:'male',   lang:'EN',    accent:'British',    emoji:'🎙️', color:'#3a2a2a' },
+  { cat:'Trailer & Epic', id:'LG95yZDEHg6fCZdQjLqj',name:'Phil',            gender:'male',   lang:'EN',    accent:'Announcer',  emoji:'🎬',  color:'#4a2a1a' },
+  { cat:'Trailer & Epic', id:'George',             name:'George',             gender:'male',   lang:'EN',    accent:'British',    emoji:'🦅',  color:'#2a3a2a' },
+  { cat:'Trailer & Epic', id:'Charlie',            name:'Charlie',            gender:'male',   lang:'EN',    accent:'Australian', emoji:'⚡',  color:'#1a2a4a' },
+  { cat:'Trailer & Epic', id:'Callum',             name:'Callum',             gender:'male',   lang:'EN',    accent:'Transatlantic',emoji:'🔥',color:'#3a1a2a' },
+  { cat:'Unique & Special', id:'River',            name:'River',              gender:'male',   lang:'EN',    accent:'American',   emoji:'🌊',  color:'#1a3a4a' },
+  { cat:'Unique & Special', id:'Liam',             name:'Liam',               gender:'male',   lang:'EN',    accent:'American',   emoji:'🎵',  color:'#2a2a4a' },
+  { cat:'Unique & Special', id:'Matilda',          name:'Matilda',            gender:'female', lang:'EN',    accent:'American',   emoji:'🌺',  color:'#4a2a4a' },
+  { cat:'Unique & Special', id:'Will',             name:'Will',               gender:'male',   lang:'EN',    accent:'American',   emoji:'🎭',  color:'#2a4a2a' },
+  { cat:'Unique & Special', id:'Jessica',          name:'Jessica',            gender:'female', lang:'EN',    accent:'American',   emoji:'💎',  color:'#3a2a4a' },
+  { cat:'Unique & Special', id:'Bill',             name:'Bill',               gender:'male',   lang:'EN',    accent:'American',   emoji:'🎩',  color:'#4a3a2a' },
+  { cat:'Unique & Special', id:'Sq93GQT4X1lKDXsQcixO',name:'Felix',          gender:'male',   lang:'EN',    accent:'Warm RP',    emoji:'🎻',  color:'#3a4a2a' },
+  { cat:'Unique & Special', id:'wJqPPQ618aTW29mptyoc',name:'Ana Rita',        gender:'female', lang:'MULTI', accent:'Bright',     emoji:'💃',  color:'#4a2a3a' },
+  { cat:'Female Voices', id:'BZgkqPqms7Kj9ulSkVzn',name:'Eve',               gender:'female', lang:'EN',    accent:'Energetic',  emoji:'⚡',  color:'#4a1a3a' },
+  { cat:'Female Voices', id:'Chris',               name:'Chris',              gender:'female', lang:'EN',    accent:'American',   emoji:'👩‍🎤', color:'#3a2a3a' },
+  { cat:'Female Voices', id:'Lily',                name:'Lily',               gender:'female', lang:'EN',    accent:'British',    emoji:'🌷',  color:'#4a2a2a' },
+  { cat:'Arabic', id:'Z3R5wn05IrDiVCyEkUrK',      name:'Arabella',           gender:'female', lang:'AR',    accent:'Mysterious', emoji:'🌙',  color:'#2a1a4a' },
+];
+
+let _vpmSelectedId = 'Rachel';
+const VPM_ALL_CATS = ['All', ...new Set(VOICE_CATALOG.map(v => v.cat))];
+let _vpmActiveCat = 'All';
+
+function openVoicePicker() {
+  document.getElementById('voicePickerModal').style.display = 'flex';
+  renderVpmCats();
+  renderVpmGrid();
+}
+
+function closeVoicePicker() {
+  document.getElementById('voicePickerModal').style.display = 'none';
+}
+
+function renderVpmCats() {
+  const host = document.getElementById('vpmCats');
+  if (!host) return;
+  host.innerHTML = VPM_ALL_CATS.map(c =>
+    `<span class="vpm-cat${c===_vpmActiveCat?' a':''}" onclick="setVpmCat('${c}')">${c}</span>`
+  ).join('');
+}
+
+function setVpmCat(cat) {
+  _vpmActiveCat = cat;
+  renderVpmCats();
+  renderVpmGrid();
+}
+
+function renderVpmGrid() {
+  const query = (document.getElementById('vpmSearch')?.value || '').toLowerCase();
+  const gender = document.getElementById('vpmGender')?.value || '';
+  const lang = document.getElementById('vpmLang')?.value || '';
+
+  // Include My Voices from library
+  const myVoices = loadMyVoices().map(v => ({
+    cat: 'My Voices', id: v.id, name: v.name,
+    gender: 'custom', lang: 'MULTI', accent: 'Custom', emoji: '🎤', color: '#2a1a4a',
+    isCustom: true
+  }));
+  const allVoices = [...myVoices, ...VOICE_CATALOG];
+
+  const filtered = allVoices.filter(v => {
+    if (_vpmActiveCat !== 'All' && v.cat !== _vpmActiveCat) return false;
+    if (query && !v.name.toLowerCase().includes(query) && !v.accent.toLowerCase().includes(query)) return false;
+    if (gender && v.gender !== gender && v.gender !== 'custom') return false;
+    if (lang && v.lang !== lang && v.lang !== 'MULTI') return false;
+    return true;
+  });
+
+  const grid = document.getElementById('vpmGrid');
+  if (!grid) return;
+  if (!filtered.length) { grid.innerHTML = '<div style="grid-column:span 2;text-align:center;color:#5a6a7e;padding:30px;font-size:12px">No voices match your filters.</div>'; return; }
+
+  grid.innerHTML = filtered.map(v => {
+    const sel = v.id === _vpmSelectedId;
+    return `<div class="vpm-item${sel?' sel':''}" onclick="selectVpmVoice('${v.id}','${v.name.replace(/'/g,"\\'")}','${v.lang}','${v.accent}','${v.emoji}','${v.color}')">
+      <div class="vpm-avatar" style="background:${v.color}">${v.emoji}</div>
+      <div style="flex:1;min-width:0">
+        <div class="vpm-iname">${v.name}</div>
+        <div class="vpm-imeta">${v.accent} · ${v.lang}${v.isCustom ? ' · <span style="color:var(--purple)">My Voice</span>' : ''}</div>
+      </div>
+      ${sel ? '<div class="vpm-check">✓</div>' : ''}
+    </div>`;
+  }).join('');
+}
+
+function selectVpmVoice(id, name, lang, accent, emoji, color) {
+  _vpmSelectedId = id;
+  // Update hidden select
+  const sel = document.getElementById('voiceSelect');
+  if (sel) sel.value = id;
+  // Update card display
+  document.getElementById('vpName').textContent = name;
+  document.getElementById('vpMeta').textContent = accent + ' · ' + lang;
+  document.getElementById('vpAvatar').textContent = emoji;
+  document.getElementById('vpAvatar').style.background = color;
+  // Refresh checkmarks
+  renderVpmGrid();
+  // Close after short delay
+  setTimeout(closeVoicePicker, 250);
+}
+
 /* Populate voice dropdown */
 (function buildVoiceSelect() {
   const sel = document.getElementById('voiceSelect');
@@ -848,7 +1007,7 @@ async function waitKieTask(taskId, maxMs) {
 function getSelectedVoiceId() {
   const custom = (document.getElementById('customVoiceId')?.value || '').trim();
   if (custom) return custom;
-  return (document.getElementById('voiceSelect')?.value || 'Rachel').trim() || 'Rachel';
+  return _vpmSelectedId || 'Rachel';
 }
 
 function getSelectedLanguageCode() {
@@ -1216,6 +1375,11 @@ document.getElementById('voiceLanguage')?.addEventListener('change', function ()
 
 /* ── Init library on load ──────────────────────────────────────────── */
 renderMyVoicesList();
+// Also refresh VPM cats to include My Voices
+const _origVPM_ALL_CATS_len = VPM_ALL_CATS.length;
+if (loadMyVoices().length && !VPM_ALL_CATS.includes('My Voices')) {
+  VPM_ALL_CATS.splice(1, 0, 'My Voices');
+}
 document.getElementById('cloneUploadZone')?.addEventListener('mouseenter', function(){
   this.style.borderColor = 'var(--accent)';
 });
