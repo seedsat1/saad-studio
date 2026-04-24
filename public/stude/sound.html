@@ -760,18 +760,45 @@ function getSelectedLangCode(){const v=VOICE_CATALOG.find(x=>x.id===_vmSelectedI
 async function handleGenerate(){const text=(document.getElementById('promptInput')?.value||'').trim();if(!text){setStatus('Please enter a description or text.','warn');return;}if(currentMode==='voice')await generateVoice(text);else if(currentMode==='music')await generateMusic(text);else await generateSfx(text);}
 async function generateVoice(text){
   const speedBtn=document.getElementById('optSpeed');const speedTxt=speedBtn?.childNodes[1]?.textContent?.trim()||'1.0x';const speed=parseFloat(speedTxt)||1.0;
-  const lc=getSelectedLangCode();
-  const voiceId=getSelectedVoiceId();
   const assetName=`voice_${Date.now()}.mp3`;
+  const customId=(document.getElementById('customVoiceId')?.value||'').trim();
   const btn=document.getElementById('sendBtn');if(btn){btn.disabled=true;btn.style.opacity='0.5';}
   setStatus('Submitting Voice generation...','info');
   try{
-    const body={actionType:'tts',text,voice:voiceId,speed:Math.max(0.7,Math.min(1.5,speed)),stability:0.5,clarity:75,use_speaker_boost:true};
-    if(lc)body.language_code=lc;
-    const res=await fetch('/api/generate/audio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-    const json=await res.json();
-    if(!res.ok)throw new Error(json?.error||json?.message||`Voice API error (${res.status})`);
-    const url=json?.audioUrl||json?.url||'';
+    let url='';
+    if(customId.startsWith('custom_')&&window._cloneFileForJob){
+      /* --- Use Once: upload file then voice-clone --- */
+      setStatus('Uploading voice sample...','info');
+      const ur=await fetch('/api/studio/upload-url',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fileName:window._cloneFileForJob.name,contentType:window._cloneFileForJob.type||'audio/mpeg',assetType:'audio'})});
+      if(!ur.ok)throw new Error('Failed to get upload URL');
+      const{signedUrl,publicUrl}=await ur.json();
+      await new Promise((res,rej)=>{const xhr=new XMLHttpRequest();xhr.addEventListener('load',()=>xhr.status<300?res():rej(new Error('Upload failed')));xhr.addEventListener('error',()=>rej(new Error('Network error')));xhr.open('PUT',signedUrl);xhr.setRequestHeader('Content-Type',window._cloneFileForJob.type||'audio/mpeg');xhr.send(window._cloneFileForJob);});
+      setStatus('Cloning voice...','info');
+      const res=await fetch('/api/generate/audio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({actionType:'voice-cloning',text,sampleAudioUrls:[publicUrl],cloneName:'Custom Clone'})});
+      const json=await res.json();
+      if(!res.ok)throw new Error(json?.error||json?.message||`Clone error (${res.status})`);
+      url=json?.audioUrl||json?.url||'';
+    } else if(customId.startsWith('sample_')){
+      /* --- Saved clone voice: use stored sampleUrl --- */
+      const myV=loadMyVoices();const entry=myV.find(v=>v.id===customId);
+      const sampleUrl=entry?.sampleUrl||'';
+      if(!sampleUrl)throw new Error('Voice sample not found. Please re-clone.');
+      setStatus('Cloning voice...','info');
+      const res=await fetch('/api/generate/audio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({actionType:'voice-cloning',text,sampleAudioUrls:[sampleUrl],cloneName:entry?.name||'Custom Voice'})});
+      const json=await res.json();
+      if(!res.ok)throw new Error(json?.error||json?.message||`Clone error (${res.status})`);
+      url=json?.audioUrl||json?.url||'';
+    } else {
+      /* --- Catalog voice: KIE TTS with real ElevenLabs ID --- */
+      const voiceId=_vmSelectedId||'21m00Tcm4TlvDq8ikWAM';
+      const lc=getSelectedLangCode();
+      const body={actionType:'tts',model:'elevenlabs/text-to-speech-multilingual-v2',text,voice:voiceId,speed:Math.max(0.7,Math.min(1.5,speed)),stability:0.5,clarity:75,use_speaker_boost:true};
+      if(lc)body.language_code=lc;
+      const res=await fetch('/api/generate/audio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+      const json=await res.json();
+      if(!res.ok)throw new Error(json?.error||json?.message||`Voice API error (${res.status})`);
+      url=json?.audioUrl||json?.url||'';
+    }
     if(!url)throw new Error('No audio URL returned');
     const dur=await getAudioDuration(url)||Math.max(3,Math.round(text.length/14));
     const asset={type:'voice',name:assetName,url,durationSec:dur};
