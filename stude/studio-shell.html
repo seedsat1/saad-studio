@@ -122,6 +122,13 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
 
 <script>
 (function(){
+  // ── Forward projectId from shell URL to timeline iframe ──────────────────
+  var _shellProjectId = new URLSearchParams(window.location.search).get('projectId') || '';
+  if(_shellProjectId){
+    var _tf = document.getElementById('timelineFrame');
+    var _base = 'timeline/index.html?v=jsx-10-shell';
+    _tf.src = _base + '&projectId=' + encodeURIComponent(_shellProjectId);
+  }
   var PAGE_KEY='ff_shell_page';
   var H_KEY='ff_timeline_height';
   var PREVIEW_W_KEY='ff_preview_width';
