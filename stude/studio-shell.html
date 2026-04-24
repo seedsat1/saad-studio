@@ -705,6 +705,8 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
   previewExport.addEventListener('click', exportActiveMedia);
 
   var renderBtn=document.getElementById('renderBtn');
+
+  // Client-side FFmpeg WASM render (avoids Vercel binary size limits)
   async function renderFullVideo(){
     if(!lastTimelineState || !lastTimelineState.allClips || !lastTimelineState.allClips.length){
       pLabel.style.display='inline-block';
@@ -714,33 +716,158 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
     renderBtn.disabled=true;
     renderBtn.textContent='⏳ Rendering...';
     pLabel.style.display='inline-block';
-    pLabel.textContent='Rendering — please wait...';
+    pLabel.textContent='Loading FFmpeg WASM…';
+
     try{
-      var body={
-        clips: lastTimelineState.allClips.map(function(c){ return { id:c.id, track:c.track, start:c.start, dur:c.dur, label:c.label, src:c.url, kind:c.kind, fitMode:c.fitMode||'fit' }; }),
-        tracks: (lastTimelineState.tracks || []).map(function(t){ return { id:t.id, type:t.type, muted:!!t.muted, volume:t.volume||1 }; }),
-        projectRatio: currentRatio
-      };
-      var res=await fetch('/api/studio/export',{ method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
-      if(!res.ok){
-        var errData=await res.json().catch(function(){ return {}; });
-        var msg='Render failed ('+res.status+'): '+(errData.error||'Unknown error');
-        pLabel.textContent=msg;
-        console.error('[Render]', msg, errData.detail||'');
+      // Load @ffmpeg/ffmpeg v0.11 single-threaded (no SharedArrayBuffer needed)
+      if(!window._FFmpegLib){
+        await new Promise(function(resolve, reject){
+          var s=document.createElement('script');
+          s.src='https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js';
+          s.onload=resolve;
+          s.onerror=function(){ reject(new Error('Failed to load FFmpeg WASM library')); };
+          document.head.appendChild(s);
+        });
+        window._FFmpegLib=window.FFmpeg;
+      }
+      var createFFmpeg=window._FFmpegLib.createFFmpeg;
+      var fetchFile=window._FFmpegLib.fetchFile;
+
+      var ffmpeg=createFFmpeg({
+        log:false,
+        corePath:'https://unpkg.com/@ffmpeg/core-st@0.11.1/dist/ffmpeg-core.js',
+        progress:function(p){ pLabel.textContent='Encoding: '+Math.round((p.ratio||0)*100)+'%'; }
+      });
+
+      pLabel.textContent='Loading FFmpeg core…';
+      await ffmpeg.load();
+
+      var RATIO_MAP={'16:9':[1920,1080],'9:16':[1080,1920],'1:1':[1080,1080],'4:3':[1440,1080]};
+      var dims=RATIO_MAP[currentRatio]||[1920,1080];
+      var W=dims[0], H=dims[1];
+      var FPS=30;
+
+      var allClips=lastTimelineState.allClips||[];
+      var tracks=lastTimelineState.tracks||[];
+
+      var videoClips=allClips.filter(function(c){
+        var tr=tracks[c.track];
+        return tr&&tr.type==='video'&&!tr.muted&&c.url&&!c.url.startsWith('blob:');
+      }).sort(function(a,b){return a.start-b.start;});
+
+      var audioClips=allClips.filter(function(c){
+        var tr=tracks[c.track];
+        return tr&&tr.type==='audio'&&!tr.muted&&c.url&&!c.url.startsWith('blob:');
+      }).sort(function(a,b){return a.start-b.start;});
+
+      if(!videoClips.length&&!audioClips.length){
+        pLabel.textContent='No downloadable clips (blob: URLs not supported for render).';
+        renderBtn.disabled=false; renderBtn.textContent='► Render';
         return;
       }
-      var blob=await res.blob();
-      var url=URL.createObjectURL(blob);
+
+      // Download all media into WASM virtual FS
+      var uniqueUrls=[...new Set([...videoClips,...audioClips].map(function(c){return c.url;}))];
+      var urlToFile={};
+      for(var i=0;i<uniqueUrls.length;i++){
+        var url=uniqueUrls[i];
+        pLabel.textContent='Downloading media '+(i+1)+'/'+uniqueUrls.length+'…';
+        try{
+          var ext=(url.split('?')[0].split('.').pop()||'mp4').toLowerCase().slice(0,4);
+          var fname='inp'+i+'.'+ext;
+          ffmpeg.FS('writeFile', fname, await fetchFile(url));
+          urlToFile[url]=fname;
+        }catch(fetchErr){
+          console.warn('[WASM] fetch failed:',url,fetchErr);
+        }
+      }
+
+      var localFiles=[...new Set(Object.values(urlToFile))];
+      var urlToIdx={};
+      Object.keys(urlToFile).forEach(function(u){ urlToIdx[u]=localFiles.indexOf(urlToFile[u]); });
+
+      var maxEnd=allClips.reduce(function(a,c){return Math.max(a,c.start+c.dur);},0);
+      var totalSec=Math.max(3,(maxEnd/FPS)).toFixed(3);
+
+      // Build filter_complex
+      var fp=[];
+      fp.push('nullsrc=s='+W+'x'+H+':d='+totalSec+':r='+FPS+',format=yuv420p[base]');
+      var curV='base', vi=0;
+
+      for(var ci=0;ci<videoClips.length;ci++){
+        var clip=videoClips[ci];
+        var idx=urlToIdx[clip.url];
+        if(idx===undefined) continue;
+        var cs=(clip.start/FPS).toFixed(3);
+        var cd=(clip.dur/FPS).toFixed(3);
+        var ce=((clip.start+clip.dur)/FPS).toFixed(3);
+        var vTag='vcl'+vi;
+        var fit=clip.fitMode||'fit';
+
+        if(fit==='expand'){
+          var bgT=vTag+'_bg', fgT=vTag+'_fg', exT=vTag+'_exp';
+          fp.push('['+idx+':v]trim=duration='+cd+',setpts=PTS-STARTPTS+'+cs+'/TB,split['+bgT+'raw]['+fgT+'raw]');
+          fp.push('['+bgT+'raw]scale='+W+':'+H+':force_original_aspect_ratio=increase,crop='+W+':'+H+',boxblur=20:20,setpts=PTS['+bgT+']');
+          fp.push('['+fgT+'raw]scale='+W+':'+H+':force_original_aspect_ratio=decrease,pad='+W+':'+H+':-1:-1,format=yuv420p,setpts=PTS['+fgT+']');
+          fp.push('['+bgT+']['+fgT+']overlay=(W-w)/2:(H-h)/2,format=yuv420p['+exT+']');
+          var cT='comp'+vi;
+          fp.push('['+curV+']['+exT+']overlay=enable=\'between(t,'+cs+','+ce+')\':shortest=0['+cT+']');
+          curV=cT;
+        } else {
+          var sf=(fit==='fill'||fit==='crop')
+            ?'scale='+W+':'+H+':force_original_aspect_ratio=increase,crop='+W+':'+H+',format=yuv420p'
+            :'scale='+W+':'+H+':force_original_aspect_ratio=decrease,pad='+W+':'+H+':-1:-1,format=yuv420p';
+          fp.push('['+idx+':v]trim=duration='+cd+',setpts=PTS-STARTPTS+'+cs+'/TB,'+sf+'['+vTag+']');
+          var cT2='comp'+vi;
+          fp.push('['+curV+']['+vTag+']overlay=enable=\'between(t,'+cs+','+ce+')\':shortest=0['+cT2+']');
+          curV=cT2;
+        }
+        vi++;
+      }
+
+      var aTags=[], ai=0;
+      for(var ai2=0;ai2<audioClips.length;ai2++){
+        var ac=audioClips[ai2];
+        var aidx=urlToIdx[ac.url];
+        if(aidx===undefined) continue;
+        var atr=tracks[ac.track];
+        var vol=(atr&&atr.volume!=null)?atr.volume:1;
+        var acd=(ac.dur/FPS).toFixed(3);
+        var delay=Math.round(ac.start/FPS*1000);
+        var aTag='acl'+ai;
+        fp.push('['+aidx+':a]atrim=duration='+acd+',asetpts=PTS-STARTPTS,adelay='+delay+'|'+delay+',volume='+vol.toFixed(3)+'['+aTag+']');
+        aTags.push('['+aTag+']');
+        ai++;
+      }
+      var audioOut='';
+      if(aTags.length>1){ audioOut='aout'; fp.push(aTags.join('')+'amix=inputs='+aTags.length+':duration=longest:dropout_transition=0['+audioOut+']'); }
+      else if(aTags.length===1){ audioOut=aTags[0].slice(1,-1); }
+
+      var filterComplex=fp.join('; ');
+
+      pLabel.textContent='Encoding video (this may take a while)…';
+
+      // Build args array
+      var args=[];
+      localFiles.forEach(function(f){ args.push('-i',f); });
+      args.push('-filter_complex',filterComplex,'-map','['+curV+']');
+      if(audioOut) args.push('-map','['+audioOut+']');
+      args.push('-c:v','libx264','-preset','ultrafast','-crf','23','-c:a','aac','-b:a','192k','-movflags','+faststart','-y','output.mp4');
+
+      await ffmpeg.run.apply(ffmpeg, args);
+
+      var data=ffmpeg.FS('readFile','output.mp4');
+      var outBlob=new Blob([data.buffer],{type:'video/mp4'});
+      var outUrl=URL.createObjectURL(outBlob);
       var a=document.createElement('a');
-      a.href=url;
-      a.download='render_'+Date.now()+'.mp4';
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(function(){ URL.revokeObjectURL(url); }, 3000);
-      pLabel.textContent='Render complete — download started!';
+      a.href=outUrl; a.download='render_'+Date.now()+'.mp4';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function(){ URL.revokeObjectURL(outUrl); },5000);
+      pLabel.textContent='✓ Render complete — download started!';
+
     }catch(e){
-      pLabel.textContent='Render error: '+(e&&e.message ? e.message : String(e));
+      pLabel.textContent='Render error: '+(e&&e.message?e.message:String(e));
+      console.error('[WASM render]',e);
     }finally{
       renderBtn.disabled=false;
       renderBtn.textContent='► Render';
