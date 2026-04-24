@@ -110,49 +110,38 @@ textarea{resize:vertical;line-height:1.55}
 
 <div class="workspace">
   <div class="top-row">
-    <div class="panel" style="width:390px">
-      <div class="ph"><span class="l a">Auto Captions Panel</span></div>
-      <div class="pb">
-        <div class="ist"><span class="d" style="background:var(--green)"></span>Source Media</div>
-        <div class="upload-box" id="dropBox">
-          <div style="margin-bottom:8px">Drop audio/video file here</div>
-          <button class="btn" onclick="pickMedia()">Choose File</button>
+    <div class="panel" style="width:340px">
+      <div class="ph"><span class="l a">Auto Captions</span></div>
+      <div class="pb" style="display:flex;flex-direction:column;gap:12px">
+
+        <!-- Upload area -->
+        <div class="upload-box" id="dropBox" style="padding:18px 12px;cursor:pointer" onclick="pickMedia()">
+          <div style="font-size:22px;margin-bottom:6px">🎙️</div>
+          <div style="font-size:12px;font-weight:600;color:#b8d4f7">Drop or click to upload</div>
+          <div style="font-size:10px;color:#6a7e98;margin-top:3px">Audio or video file</div>
           <input id="mediaFile" type="file" accept="audio/*,video/*" style="display:none" onchange="onMediaFile(this.files)">
         </div>
-        <div id="mediaMeta" style="margin-top:8px;font-size:11px;color:#91a8cb">No file selected.</div>
+        <div id="mediaMeta" style="font-size:11px;color:#91a8cb;min-height:14px">No file selected.</div>
 
-        <div class="ist" style="margin-top:10px"><span class="d" style="background:var(--accent)"></span>Recognition Settings</div>
-        <select id="spokenLang" class="sbx">
-          <option value="ar" selected>Arabic</option>
-          <option value="en">English</option>
-          <option value="auto">Auto</option>
-        </select>
-        <select id="bilingualLang" class="sbx" style="margin-top:8px">
-          <option value="">Bilingual captions: None</option>
-          <option value="en">Arabic + English</option>
-          <option value="ar">English + Arabic</option>
-        </select>
-        <select id="model" class="sbx" style="margin-top:8px">
-          <option value="wavespeed-ai/openai-whisper-turbo" selected>Whisper Turbo</option>
-          <option value="wavespeed-ai/openai-whisper">Whisper</option>
-          <option value="wavespeed-ai/openai-whisper-with-video">Whisper With Video</option>
-        </select>
-
-        <div class="ist" style="margin-top:10px"><span class="d" style="background:var(--orange)"></span>Caption Style</div>
-        <div class="chips" id="styleChips">
-          <button class="chip active" data-style="clean">Clean</button>
-          <button class="chip" data-style="cinema">Cinema</button>
-          <button class="chip" data-style="social">Social</button>
-          <button class="chip" data-style="minimal">Minimal</button>
+        <!-- Language -->
+        <div>
+          <div style="font-size:10px;color:#7a8ea8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px">Language</div>
+          <select id="spokenLang" class="sbx">
+            <option value="ar" selected>Arabic</option>
+            <option value="en">English</option>
+            <option value="fr">French</option>
+            <option value="es">Spanish</option>
+            <option value="de">German</option>
+            <option value="zh">Chinese</option>
+            <option value="ja">Japanese</option>
+            <option value="auto">Auto Detect</option>
+          </select>
         </div>
 
-        <div class="ist" style="margin-top:10px"><span class="d" style="background:var(--cyan)"></span>Seed Transcript (optional)</div>
-        <textarea id="seedText" rows="5" placeholder="Paste transcript here or leave empty for demo lines..."></textarea>
+        <!-- Generate button -->
+        <button id="genBtn" class="btn primary" style="width:100%;padding:10px;font-size:13px;font-weight:700;letter-spacing:.3px" onclick="generateCaptions()">Generate Captions</button>
+        <button class="btn ghost" style="width:100%;font-size:11px" onclick="clearCues()">Clear</button>
 
-        <div style="display:flex;gap:6px;margin-top:10px">
-          <button id="genBtn" class="btn primary" style="flex:1" onclick="generateCaptions()">Generate Captions</button>
-          <button class="btn ghost" onclick="clearCues()">Clear</button>
-        </div>
         <div class="status" id="status">Ready.</div>
       </div>
     </div>
@@ -337,66 +326,60 @@ async function tryReadCaptionFile(url){
   }
 }
 
+function autoSelectModel(file){
+  if(!file) return 'wavespeed-ai/openai-whisper-turbo';
+  var t = String(file.type || '').toLowerCase();
+  if(t.indexOf('video/') === 0) return 'wavespeed-ai/openai-whisper-with-video';
+  return 'wavespeed-ai/openai-whisper-turbo';
+}
+
 async function generateCaptions(){
-  var seed = (document.getElementById('seedText').value || '').trim();
-  var bilingual = document.getElementById('bilingualLang').value || '';
-  var model = document.getElementById('model').value || 'wavespeed-ai/openai-whisper-turbo';
   var spokenLang = document.getElementById('spokenLang').value || 'auto';
 
-  if(!state.mediaFile && !seed){
-    setStatus('Upload media first or provide seed transcript text.', 'warn');
+  if(!state.mediaFile){
+    setStatus('Upload an audio or video file first.', 'warn');
     return;
   }
 
-  if(state.mediaFile){
-    try{
-      setStatus('Generating captions with WaveSpeed...', 'info');
-      var fd = new FormData();
-      fd.append('model', model);
-      fd.append('language', spokenLang);
-      fd.append('outputFormat', 'srt');
-      fd.append('file', state.mediaFile, state.mediaFile.name || 'media-input');
+  var model = autoSelectModel(state.mediaFile);
+  var btn = document.getElementById('genBtn');
+  if(btn){ btn.disabled = true; btn.textContent = 'Generating...'; }
 
-      var res = await fetch('/api/generate/captions', {
-        method: 'POST',
-        body: fd,
-      });
+  try{
+    setStatus('Generating captions...', 'info');
+    var fd = new FormData();
+    fd.append('model', model);
+    fd.append('language', spokenLang);
+    fd.append('outputFormat', 'srt');
+    fd.append('file', state.mediaFile, state.mediaFile.name || 'media-input');
 
-      var data = await res.json().catch(function(){ return {}; });
-      if(!res.ok){
-        throw new Error((data && data.error) ? String(data.error) : 'Caption generation failed.');
-      }
+    var res = await fetch('/api/generate/captions', { method: 'POST', body: fd });
 
-      var outputText = '';
-      if(typeof data.captionUrl === 'string' && data.captionUrl){
-        outputText = await tryReadCaptionFile(data.captionUrl);
-      }
-      if(!outputText && typeof data.text === 'string'){
-        outputText = data.text;
-      }
-
-      var parsed = parseSrtToCues(outputText);
-      if(parsed.length){
-        state.cues = parsed;
-      } else {
-        state.cues = generateFromText(outputText || seed, bilingual);
-      }
-
-      buildCueRows();
-      state.currentIndex = state.cues.length ? 0 : -1;
-      refreshLiveCaption();
-      setStatus('Captions generated successfully.', 'ok');
-      return;
-    } catch(err){
-      setStatus(err && err.message ? err.message : 'Caption generation failed.', 'err');
-      return;
+    var data = await res.json().catch(function(){ return {}; });
+    if(!res.ok){
+      throw new Error((data && data.error) ? String(data.error) : 'Caption generation failed.');
     }
-  }
 
-  state.cues = generateFromText(seed, bilingual);
-  buildCueRows();
-  setStatus('Captions generated from seed text.', 'ok');
-  refreshLiveCaption();
+    var outputText = '';
+    if(typeof data.captionUrl === 'string' && data.captionUrl){
+      outputText = await tryReadCaptionFile(data.captionUrl);
+    }
+    if(!outputText && typeof data.text === 'string'){
+      outputText = data.text;
+    }
+
+    var parsed = parseSrtToCues(outputText);
+    state.cues = parsed.length ? parsed : generateFromText(outputText || '', '');
+
+    buildCueRows();
+    state.currentIndex = state.cues.length ? 0 : -1;
+    refreshLiveCaption();
+    setStatus('Done — ' + state.cues.length + ' caption cues generated.', 'ok');
+  } catch(err){
+    setStatus(err && err.message ? err.message : 'Caption generation failed.', 'err');
+  } finally {
+    if(btn){ btn.disabled = false; btn.textContent = 'Generate Captions'; }
+  }
 }
 
 function clearCues(){
@@ -460,13 +443,6 @@ function downloadTXT(){
   setTimeout(function(){ URL.revokeObjectURL(url); }, 1200);
   setStatus('TXT exported.', 'ok');
 }
-
-document.querySelectorAll('#styleChips .chip').forEach(function(chip){
-  chip.addEventListener('click', function(){
-    document.querySelectorAll('#styleChips .chip').forEach(function(x){ x.classList.remove('active'); });
-    this.classList.add('active');
-  });
-});
 
 var dropBox = document.getElementById('dropBox');
 ['dragenter','dragover'].forEach(function(evt){
