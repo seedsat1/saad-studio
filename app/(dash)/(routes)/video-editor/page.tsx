@@ -316,50 +316,44 @@ export default function VideoEditorPage() {
                   Build faster with smart tools, clean timelines, and a production-ready workflow.
                 </p>
 
-                {/* ── How Render Works ── */}
-                <div className="mt-6 rounded-2xl border border-slate-800/80 bg-slate-900/60 p-4">
-                  <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.18em] text-sky-400/80">How Rendering Works</p>
-                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                    {[
-                      { icon: "🖥️", title: "Runs on Your Device", desc: "Your GPU & CPU do all the work — no server needed. The faster your machine, the faster the render." },
-                      { icon: "⚡", title: "Hardware Accelerated", desc: "Uses WebCodecs API with H.264 hardware encoding (same tech as DaVinci Resolve & Premiere)." },
-                      { icon: "📦", title: "Exports MP4", desc: "Applies all your edits — position, scale, crop, opacity, blend mode — and downloads an MP4 file." },
-                    ].map((item) => (
-                      <div key={item.title} className="rounded-xl border border-slate-700/60 bg-slate-800/50 p-3">
-                        <div className="mb-1 text-xl">{item.icon}</div>
-                        <p className="text-[12px] font-semibold text-slate-100">{item.title}</p>
-                        <p className="mt-1 text-[11px] leading-[1.6] text-slate-400">{item.desc}</p>
+                {/* ── How Render Works — collapsed by default, triangle to expand ── */}
+                <div className="relative mt-6">
+                  <button
+                    type="button"
+                    onClick={() => setWarnOpen((v) => !v)}
+                    title="How rendering works"
+                    className="flex items-center gap-1.5 text-amber-400/60 transition hover:text-amber-300"
+                  >
+                    <svg viewBox="0 0 16 16" fill="currentColor" className="h-4 w-4">
+                      <path d="M8 1.5L1 14.5h14L8 1.5zm0 2.1 5.6 9.9H2.4L8 3.6zM7.25 7v3.5h1.5V7h-1.5zm0 4.5v1.5h1.5v-1.5h-1.5z"/>
+                    </svg>
+                    <span className="text-[11px] text-slate-500">How rendering works</span>
+                  </button>
+
+                  {warnOpen && (
+                    <div className="absolute left-0 top-8 z-20 w-[min(560px,90vw)] rounded-2xl border border-slate-700/80 bg-slate-900 p-4 shadow-2xl">
+                      <div className="mb-3 flex items-center justify-between">
+                        <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-sky-400/80">How Rendering Works</p>
+                        <button type="button" onClick={() => setWarnOpen(false)} className="text-slate-500 hover:text-slate-300 text-xs">✕</button>
                       </div>
-                    ))}
-                  </div>
-                  <div className="relative mt-3 flex justify-end">
-                    <button
-                      type="button"
-                      onClick={() => setWarnOpen((v) => !v)}
-                      title="Rendering tips"
-                      className="flex h-6 w-6 items-center justify-center rounded-md text-amber-400/70 transition hover:text-amber-300"
-                    >
-                      <svg viewBox="0 0 16 16" fill="currentColor" className="h-4 w-4">
-                        <path d="M8 1.5L1 14.5h14L8 1.5zm0 2.1 5.6 9.9H2.4L8 3.6zM7.25 7v3.5h1.5V7h-1.5zm0 4.5v1.5h1.5v-1.5h-1.5z"/>
-                      </svg>
-                    </button>
-                    {warnOpen && (
-                      <div className="absolute bottom-8 right-0 z-20 w-72 rounded-xl border border-amber-500/25 bg-slate-900 p-3 shadow-xl">
-                        <p className="text-[11px] leading-[1.7] text-amber-300/80">
-                          <strong className="text-amber-300">Important:</strong> Rendering runs in your browser tab — keep it open during export.
-                          Longer timelines and high-res footage use more RAM.
-                          Only clips with public URLs are included; locally-uploaded files (blob:) are skipped.
-                        </p>
-                        <button
-                          type="button"
-                          onClick={() => setWarnOpen(false)}
-                          className="mt-2 text-[10px] text-slate-500 hover:text-slate-300"
-                        >
-                          Close
-                        </button>
+                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                        {[
+                          { icon: "🖥️", title: "Runs on Your Device", desc: "Your GPU & CPU do all the work — no server needed. The faster your machine, the faster the render." },
+                          { icon: "⚡", title: "Hardware Accelerated", desc: "Uses WebCodecs API with H.264 hardware encoding (same tech as DaVinci Resolve & Premiere)." },
+                          { icon: "📦", title: "Exports MP4", desc: "Applies all your edits — position, scale, crop, opacity, blend mode — and downloads an MP4 file." },
+                        ].map((item) => (
+                          <div key={item.title} className="rounded-xl border border-slate-700/60 bg-slate-800/50 p-3">
+                            <div className="mb-1 text-xl">{item.icon}</div>
+                            <p className="text-[12px] font-semibold text-slate-100">{item.title}</p>
+                            <p className="mt-1 text-[11px] leading-[1.6] text-slate-400">{item.desc}</p>
+                          </div>
+                        ))}
                       </div>
-                    )}
-                  </div>
+                      <p className="mt-3 text-[11px] leading-[1.7] text-amber-300/70">
+                        <strong className="text-amber-300">Note:</strong> Keep the browser tab open during export. Only clips with public URLs are included; locally-uploaded files (blob:) are skipped.
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 <p className="mt-6 text-sm font-semibold text-slate-100 sm:text-base">Start a new project</p>
