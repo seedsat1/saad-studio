@@ -88,6 +88,7 @@ export default function VideoEditorPage() {
   const [error, setError] = useState("");
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+  const [warnOpen, setWarnOpen] = useState(false);
 
   const title = useMemo(() => activeProject?.name || "Cinema Workspace", [activeProject]);
   const filteredProjects = useMemo(() => {
@@ -331,13 +332,33 @@ export default function VideoEditorPage() {
                       </div>
                     ))}
                   </div>
-                  <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-500/20 bg-amber-950/30 p-2.5">
-                    <span className="mt-0.5 text-sm">⚠️</span>
-                    <p className="text-[11px] leading-[1.6] text-amber-300/80">
-                      <strong>Important:</strong> Rendering happens in your browser tab — keep it open and active during export.
-                      Longer timelines and high-res footage will take more time and RAM.
-                      Only clips with public URLs are included; locally-uploaded files (blob:) are skipped.
-                    </p>
+                  <div className="relative mt-3 flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => setWarnOpen((v) => !v)}
+                      title="Rendering tips"
+                      className="flex h-6 w-6 items-center justify-center rounded-md text-amber-400/70 transition hover:text-amber-300"
+                    >
+                      <svg viewBox="0 0 16 16" fill="currentColor" className="h-4 w-4">
+                        <path d="M8 1.5L1 14.5h14L8 1.5zm0 2.1 5.6 9.9H2.4L8 3.6zM7.25 7v3.5h1.5V7h-1.5zm0 4.5v1.5h1.5v-1.5h-1.5z"/>
+                      </svg>
+                    </button>
+                    {warnOpen && (
+                      <div className="absolute bottom-8 right-0 z-20 w-72 rounded-xl border border-amber-500/25 bg-slate-900 p-3 shadow-xl">
+                        <p className="text-[11px] leading-[1.7] text-amber-300/80">
+                          <strong className="text-amber-300">Important:</strong> Rendering runs in your browser tab — keep it open during export.
+                          Longer timelines and high-res footage use more RAM.
+                          Only clips with public URLs are included; locally-uploaded files (blob:) are skipped.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => setWarnOpen(false)}
+                          className="mt-2 text-[10px] text-slate-500 hover:text-slate-300"
+                        >
+                          Close
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
 
