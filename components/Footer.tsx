@@ -16,6 +16,8 @@ const STUDIO_LINKS = [
   { label: "Our Work", href: "/apps" },
   { label: "Services", href: "/pricing" },
   { label: "Contact Us", href: "/contact" },
+  { label: "Privacy Policy", href: "/privacy" },
+  { label: "Site Policy", href: "/terms" },
 ];
 
 const Footer = () => {
