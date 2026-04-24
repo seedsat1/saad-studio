@@ -89,6 +89,7 @@ export default function VideoEditorPage() {
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const [warnOpen, setWarnOpen] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const title = useMemo(() => activeProject?.name || "Cinema Workspace", [activeProject]);
   const filteredProjects = useMemo(() => {
@@ -242,6 +243,23 @@ export default function VideoEditorPage() {
     } catch {}
     setActiveProject(project);
     router.replace(`/video-editor?projectId=${encodeURIComponent(project.id)}`);
+  }
+
+  async function deleteProject(id: string, e: React.MouseEvent) {
+    e.stopPropagation();
+    if (!confirm("Delete this project? This cannot be undone.")) return;
+    setDeletingId(id);
+    try {
+      await fetch("/api/editor/projects", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      setProjects((prev) => prev.filter((p) => p.id !== id));
+      try { localStorage.removeItem(`ff_timeline_state_v1:${id}`); } catch {}
+    } finally {
+      setDeletingId(null);
+    }
   }
 
   function extractProjectPreview(project: EditorProject) {
@@ -430,44 +448,82 @@ export default function VideoEditorPage() {
             ) : null}
 
             {!loading && filteredProjects.length > 0 ? (
-              <div className="grid grid-cols-[repeat(auto-fill,minmax(260px,320px))] gap-4">
-                {filteredProjects.map((project) => (
-                  (() => {
-                    const previewUrl = projectPreviewById[project.id] || "";
-                    return (
-                  <button
-                    key={project.id}
-                    type="button"
-                    onClick={() => openProject(project)}
-                    className="group max-w-[320px] text-left"
-                  >
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-4 max-w-5xl">
+                {filteredProjects.map((project) => {
+                  const previewUrl = projectPreviewById[project.id] || "";
+                  const isLast = lastOpenedProjectId === project.id;
+                  const isDeleting = deletingId === project.id;
+                  return (
                     <div
-                      className="aspect-[4/3] rounded-lg border border-slate-800 p-3 transition hover:border-sky-600"
-                      style={{
-                        backgroundImage: previewUrl
-                          ? `linear-gradient(180deg, rgba(2,6,23,0.16) 0%, rgba(2,6,23,0.58) 100%), url('${previewUrl}')`
-                          : "radial-gradient(circle_at_30%_45%,rgba(56,189,248,0.24),transparent_36%),radial-gradient(circle_at_65%_58%,rgba(99,102,241,0.22),transparent_32%),#070b11",
-                        backgroundSize: "cover",
-                        backgroundPosition: "center",
-                      }}
+                      key={project.id}
+                      className="group relative flex flex-col overflow-hidden rounded-2xl border border-slate-800/80 bg-slate-900/60 transition-all duration-200 hover:border-sky-600/60 hover:shadow-[0_0_24px_rgba(56,189,248,0.08)]"
                     >
-                      <div className="flex h-full items-end justify-between">
-                        <span className="max-w-[80%] truncate rounded-md border border-slate-600 bg-black/30 px-2 py-1 text-[10px] text-slate-300">
-                          Project: {project.name || "Untitled Project"}
-                        </span>
-                        {lastOpenedProjectId === project.id ? (
-                          <span className="rounded-md border border-emerald-500/40 bg-emerald-900/30 px-2 py-1 text-[10px] text-emerald-300">
-                            Last Opened
-                          </span>
+                      {/* Thumbnail */}
+                      <button
+                        type="button"
+                        onClick={() => openProject(project)}
+                        className="relative block aspect-video w-full overflow-hidden"
+                      >
+                        {previewUrl ? (
+                          <img
+                            src={previewUrl}
+                            alt={project.name || "Project"}
+                            className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                          />
                         ) : (
-                          <span className="text-xs text-slate-300 opacity-0 transition group-hover:opacity-100">Open</span>
+                          <div
+                            className="h-full w-full"
+                            style={{
+                              background:
+                                "radial-gradient(circle at 30% 50%, rgba(56,189,248,0.18) 0%, transparent 55%), radial-gradient(circle at 72% 60%, rgba(99,102,241,0.16) 0%, transparent 45%), #080d18",
+                            }}
+                          >
+                            <div className="flex h-full items-center justify-center opacity-20">
+                              <svg viewBox="0 0 48 48" className="h-10 w-10 fill-sky-300"><path d="M8 8h32v32H8z" opacity=".2"/><path d="M6 6v36h36V6H6zm32 32H10V10h28v28z"/><path d="M20 16l12 8-12 8V16z"/></svg>
+                            </div>
+                          </div>
                         )}
+                        {/* Hover play overlay */}
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition group-hover:opacity-100">
+                          <span className="rounded-full border border-white/20 bg-black/50 px-3 py-1 text-[11px] font-medium text-white backdrop-blur-sm">Open →</span>
+                        </div>
+                      </button>
+
+                      {/* Footer */}
+                      <div className="flex items-center justify-between gap-2 px-3 py-2.5">
+                        <div className="min-w-0">
+                          <p className="truncate text-[13px] font-semibold text-slate-100">{project.name || "Untitled Project"}</p>
+                          {project.createdAt ? (
+                            <p className="mt-0.5 text-[10px] text-slate-500">
+                              {new Date(project.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                            </p>
+                          ) : null}
+                        </div>
+                        <div className="flex shrink-0 items-center gap-1.5">
+                          {isLast && (
+                            <span className="rounded-md border border-emerald-500/30 bg-emerald-900/20 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-emerald-400">
+                              Recent
+                            </span>
+                          )}
+                          {/* Delete button */}
+                          <button
+                            type="button"
+                            disabled={isDeleting}
+                            onClick={(e) => void deleteProject(project.id, e)}
+                            title="Delete project"
+                            className="flex h-6 w-6 items-center justify-center rounded-lg border border-slate-700/60 text-slate-600 transition hover:border-rose-500/50 hover:bg-rose-950/40 hover:text-rose-400 disabled:opacity-40"
+                          >
+                            {isDeleting ? (
+                              <svg className="h-3 w-3 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" strokeOpacity=".25"/><path d="M12 2a10 10 0 0 1 10 10" /></svg>
+                            ) : (
+                              <svg viewBox="0 0 16 16" fill="currentColor" className="h-3 w-3"><path d="M6.5 1h3a.5.5 0 0 1 .5.5v1H6v-1a.5.5 0 0 1 .5-.5zM11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3A1.5 1.5 0 0 0 5 1.5v1H2.5a.5.5 0 0 0 0 1H3v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-9h.5a.5.5 0 0 0 0-1H11zm-7.5 1h9v9a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-9z"/></svg>
+                            )}
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </button>
-                    );
-                  })()
-                ))}
+                  );
+                })}
               </div>
             ) : null}
           </div>
