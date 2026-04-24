@@ -267,7 +267,7 @@ textarea.ff:focus{border-color:var(--accent)}
     </div>
 
     <!-- Voice Cloning -->
-    <div class="mt8" style="border-top:1px solid var(--border);padding-top:8px">
+    <div id="cloneSection" class="mt8" style="border-top:1px solid var(--border);padding-top:8px;transition:box-shadow .3s,border-color .3s;border-radius:6px">
       <div class="sec" style="margin-bottom:8px"><span class="dot" style="background:var(--purple)"></span>Voice Cloning</div>
 
       <!-- Active clone indicator -->
@@ -542,7 +542,7 @@ textarea.ff:focus{border-color:var(--accent)}
         <button class="vpm-icobtn" id="vpmFavToggle" title="Favorites" onclick="setVpmTab(_vpmActiveTab==='fav'?'all':'fav');this.classList.toggle('a',_vpmActiveTab==='fav')">
           <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
         </button>
-        <button class="vpm-newbtn" onclick="switchRightTab('library');closeVoicePicker()">
+        <button class="vpm-newbtn" onclick="openCloneSection()">
           <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
           Clone voice
         </button>
@@ -630,6 +630,22 @@ textarea.ff:focus{border-color:var(--accent)}
 
 <script>
 /* ── Right panel tab switching ────────────────────────────────────── */
+function openCloneSection() {
+  closeVoicePicker();
+  const sec = document.getElementById('cloneSection');
+  if (!sec) return;
+  sec.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  // flash highlight
+  sec.style.boxShadow = '0 0 0 2px var(--purple)';
+  sec.style.borderColor = 'var(--purple)';
+  setTimeout(() => { sec.style.boxShadow = ''; sec.style.borderColor = ''; }, 1800);
+  // auto-click file input
+  setTimeout(() => {
+    const inp = document.getElementById('cloneSampleInput');
+    if (inp) inp.click();
+  }, 400);
+}
+
 function switchRightTab(tab) {
   document.getElementById('rightTools').style.display = tab === 'tools' ? '' : 'none';
   document.getElementById('rightLibrary').style.display = tab === 'library' ? '' : 'none';
