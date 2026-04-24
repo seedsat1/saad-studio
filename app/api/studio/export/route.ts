@@ -7,18 +7,22 @@ let ffmpegPath: string;
 async function ensureFfmpeg() {
   if (!Ffmpeg) {
     try {
-      const [ffmpegMod, installerMod] = await Promise.all([
-        import('fluent-ffmpeg'),
-        import('@ffmpeg-installer/ffmpeg'),
-      ]);
+      const ffmpegMod = await import('fluent-ffmpeg');
       Ffmpeg = ffmpegMod.default as typeof import('fluent-ffmpeg');
-      ffmpegPath = (installerMod.default as any).path;
-      console.log('[export] ffmpeg path:', ffmpegPath);
-      // Ensure executable on Linux
+
+      // Try ffmpeg-static first (more reliable on Vercel), fallback to @ffmpeg-installer
       try {
-        const { chmodSync } = await import('fs');
-        chmodSync(ffmpegPath, 0o755);
-      } catch {}
+        const staticMod = await import('ffmpeg-static');
+        ffmpegPath = (staticMod.default || staticMod) as unknown as string;
+        console.log('[export] using ffmpeg-static:', ffmpegPath);
+      } catch {
+        const installerMod = await import('@ffmpeg-installer/ffmpeg');
+        ffmpegPath = (installerMod.default as any).path;
+        console.log('[export] using @ffmpeg-installer:', ffmpegPath);
+      }
+
+      // Ensure executable on Linux
+      try { (await import('fs')).chmodSync(ffmpegPath, 0o755); } catch {}
       Ffmpeg.setFfmpegPath(ffmpegPath);
     } catch (err) {
       console.error('[export] ensureFfmpeg error:', err);
