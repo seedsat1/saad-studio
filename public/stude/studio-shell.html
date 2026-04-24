@@ -706,173 +706,365 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
 
   var renderBtn=document.getElementById('renderBtn');
 
-  // Client-side FFmpeg WASM render (avoids Vercel binary size limits)
+  // ── Render helpers ─────────────────────────────────────────────
+  function loadRenderScript(src){
+    return new Promise(function(resolve,reject){
+      if(document.querySelector('script[src="'+src+'"]')){resolve();return;}
+      var s=document.createElement('script');
+      s.src=src; s.onload=resolve;
+      s.onerror=function(){reject(new Error('Script load failed: '+src));};
+      document.head.appendChild(s);
+    });
+  }
+
+  function blendToComposite(bm){
+    return {'Multiply':'multiply','Screen':'screen','Overlay':'overlay','Darken':'darken',
+      'Lighten':'lighten','Color Dodge':'color-dodge','Color Burn':'color-burn',
+      'Hard Light':'hard-light','Soft Light':'soft-light','Difference':'difference',
+      'Exclusion':'exclusion','Hue':'hue','Saturation':'saturation',
+      'Color':'color','Luminosity':'luminosity'}[bm]||'source-over';
+  }
+
+  function drawClipFrame(ctx, media, clip, W, H){
+    var mo=clip.motion||{};
+    var px=mo.px||0, py=mo.py||0;
+    var sx=(mo.sx!=null?mo.sx:100)/100;
+    var sy=(mo.sy!=null?mo.sy:100)/100;
+    var rot=((mo.rot||0)*Math.PI)/180;
+    var ax=(mo.ax!=null?mo.ax:50)/100;
+    var ay=(mo.ay!=null?mo.ay:50)/100;
+    var opacity=(clip.opacity!=null?clip.opacity:100)/100;
+    var fit=clip.fitMode||'fit';
+    var mW=media.videoWidth||media.naturalWidth||W;
+    var mH=media.videoHeight||media.naturalHeight||H;
+    if(!mW||!mH) return;
+    ctx.save();
+    ctx.globalAlpha=Math.max(0,Math.min(1,opacity));
+    ctx.globalCompositeOperation=blendToComposite(clip.blendMode);
+    // Crop
+    var cr=clip.cropRect||{};
+    var cL=(cr.l||0)/100,cT=(cr.t||0)/100,cR=(cr.r||0)/100,cB=(cr.b||0)/100;
+    if(cL+cR+cT+cB>0){
+      ctx.beginPath();
+      ctx.rect(W*cL,H*cT,W*(1-cL-cR),H*(1-cT-cB));
+      ctx.clip();
+    }
+    ctx.translate(W*ax+px, H*ay+py);
+    ctx.rotate(rot);
+    ctx.scale(sx,sy);
+    var ox=-W*ax, oy=-H*ay;
+    if(fit==='expand'){
+      var bgS=Math.max(W/mW,H/mH)*1.08;
+      ctx.save(); ctx.filter='blur(18px) brightness(0.7)';
+      ctx.drawImage(media,ox+(W-mW*bgS)/2,oy+(H-mH*bgS)/2,mW*bgS,mH*bgS);
+      ctx.restore();
+      var fgS=Math.min(W/mW,H/mH);
+      ctx.drawImage(media,ox+(W-mW*fgS)/2,oy+(H-mH*fgS)/2,mW*fgS,mH*fgS);
+    } else if(fit==='fill'||fit==='crop'){
+      var s=Math.max(W/mW,H/mH);
+      ctx.drawImage(media,ox+(W-mW*s)/2,oy+(H-mH*s)/2,mW*s,mH*s);
+    } else {
+      var s2=Math.min(W/mW,H/mH);
+      ctx.drawImage(media,ox+(W-mW*s2)/2,oy+(H-mH*s2)/2,mW*s2,mH*s2);
+    }
+    ctx.restore();
+  }
+
+  // ── PRIMARY: GPU-accelerated WebCodecs render ───────────────────
+  // Uses: VideoEncoder (H.264 hardware), OfflineAudioContext, mp4-muxer
+  // Same pipeline as DaVinci/Premiere: GPU encodes each frame from Canvas
   async function renderFullVideo(){
-    if(!lastTimelineState || !lastTimelineState.allClips || !lastTimelineState.allClips.length){
+    if(!lastTimelineState||!lastTimelineState.allClips||!lastTimelineState.allClips.length){
       pLabel.style.display='inline-block';
       pLabel.textContent='No clips in timeline to render.';
       return;
     }
+    // Fallback to WASM if WebCodecs not supported
+    if(typeof VideoEncoder==='undefined'||typeof AudioEncoder==='undefined'){
+      return renderFullVideoWASM();
+    }
     renderBtn.disabled=true;
     renderBtn.textContent='⏳ Rendering...';
     pLabel.style.display='inline-block';
-    pLabel.textContent='Loading FFmpeg WASM…';
-
     try{
-      // Load @ffmpeg/ffmpeg v0.11 single-threaded (no SharedArrayBuffer needed)
-      if(!window._FFmpegLib){
-        await new Promise(function(resolve, reject){
-          var s=document.createElement('script');
-          s.src='https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js';
-          s.onload=resolve;
-          s.onerror=function(){ reject(new Error('Failed to load FFmpeg WASM library')); };
-          document.head.appendChild(s);
-        });
-        window._FFmpegLib=window.FFmpeg;
-      }
-      var createFFmpeg=window._FFmpegLib.createFFmpeg;
-      var fetchFile=window._FFmpegLib.fetchFile;
-
-      var ffmpeg=createFFmpeg({
-        log:false,
-        corePath:'https://unpkg.com/@ffmpeg/core-st@0.11.1/dist/ffmpeg-core.js',
-        progress:function(p){ pLabel.textContent='Encoding: '+Math.round((p.ratio||0)*100)+'%'; }
-      });
-
-      pLabel.textContent='Loading FFmpeg core…';
-      await ffmpeg.load();
-
+      var FPS=30;
       var RATIO_MAP={'16:9':[1920,1080],'9:16':[1080,1920],'1:1':[1080,1080],'4:3':[1440,1080]};
       var dims=RATIO_MAP[currentRatio]||[1920,1080];
       var W=dims[0], H=dims[1];
-      var FPS=30;
-
       var allClips=lastTimelineState.allClips||[];
       var tracks=lastTimelineState.tracks||[];
 
       var videoClips=allClips.filter(function(c){
         var tr=tracks[c.track];
         return tr&&tr.type==='video'&&!tr.muted&&c.url&&!c.url.startsWith('blob:');
-      }).sort(function(a,b){return a.start-b.start;});
+      }).sort(function(a,b){return a.track-b.track||a.start-b.start;});
 
       var audioClips=allClips.filter(function(c){
         var tr=tracks[c.track];
         return tr&&tr.type==='audio'&&!tr.muted&&c.url&&!c.url.startsWith('blob:');
-      }).sort(function(a,b){return a.start-b.start;});
-
-      if(!videoClips.length&&!audioClips.length){
-        pLabel.textContent='No downloadable clips (blob: URLs not supported for render).';
-        renderBtn.disabled=false; renderBtn.textContent='► Render';
-        return;
-      }
-
-      // Download all media into WASM virtual FS
-      var uniqueUrls=[...new Set([...videoClips,...audioClips].map(function(c){return c.url;}))];
-      var urlToFile={};
-      for(var i=0;i<uniqueUrls.length;i++){
-        var url=uniqueUrls[i];
-        pLabel.textContent='Downloading media '+(i+1)+'/'+uniqueUrls.length+'…';
-        try{
-          var ext=(url.split('?')[0].split('.').pop()||'mp4').toLowerCase().slice(0,4);
-          var fname='inp'+i+'.'+ext;
-          ffmpeg.FS('writeFile', fname, await fetchFile(url));
-          urlToFile[url]=fname;
-        }catch(fetchErr){
-          console.warn('[WASM] fetch failed:',url,fetchErr);
-        }
-      }
-
-      var localFiles=[...new Set(Object.values(urlToFile))];
-      var urlToIdx={};
-      Object.keys(urlToFile).forEach(function(u){ urlToIdx[u]=localFiles.indexOf(urlToFile[u]); });
+      });
 
       var maxEnd=allClips.reduce(function(a,c){return Math.max(a,c.start+c.dur);},0);
-      var totalSec=Math.max(3,(maxEnd/FPS)).toFixed(3);
+      var totalSec=Math.max(2,maxEnd/FPS);
+      var totalFrames=Math.ceil(totalSec*FPS);
 
-      // Build filter_complex
-      var fp=[];
-      fp.push('nullsrc=s='+W+'x'+H+':d='+totalSec+':r='+FPS+',format=yuv420p[base]');
-      var curV='base', vi=0;
+      // Load mp4-muxer (lightweight container writer)
+      pLabel.textContent='Initialising encoder…';
+      await loadRenderScript('https://cdn.jsdelivr.net/npm/mp4-muxer@5/build/mp4-muxer.min.js');
+      var Muxer=window.Mp4Muxer.Muxer;
+      var ABT=window.Mp4Muxer.ArrayBufferTarget;
+      var hasAudio=audioClips.length>0;
 
-      for(var ci=0;ci<videoClips.length;ci++){
-        var clip=videoClips[ci];
-        var idx=urlToIdx[clip.url];
-        if(idx===undefined) continue;
-        var cs=(clip.start/FPS).toFixed(3);
-        var cd=(clip.dur/FPS).toFixed(3);
-        var ce=((clip.start+clip.dur)/FPS).toFixed(3);
-        var vTag='vcl'+vi;
-        var fit=clip.fitMode||'fit';
+      var muxer=new Muxer({
+        target:new ABT(),
+        video:{codec:'avc',width:W,height:H},
+        audio:hasAudio?{codec:'aac',sampleRate:44100,numberOfChannels:2}:undefined,
+        fastStart:'in-memory'
+      });
 
-        if(fit==='expand'){
-          var bgT=vTag+'_bg', fgT=vTag+'_fg', exT=vTag+'_exp';
-          fp.push('['+idx+':v]trim=duration='+cd+',setpts=PTS-STARTPTS+'+cs+'/TB,split['+bgT+'raw]['+fgT+'raw]');
-          fp.push('['+bgT+'raw]scale='+W+':'+H+':force_original_aspect_ratio=increase,crop='+W+':'+H+',boxblur=20:20,setpts=PTS['+bgT+']');
-          fp.push('['+fgT+'raw]scale='+W+':'+H+':force_original_aspect_ratio=decrease,pad='+W+':'+H+':-1:-1,format=yuv420p,setpts=PTS['+fgT+']');
-          fp.push('['+bgT+']['+fgT+']overlay=(W-w)/2:(H-h)/2,format=yuv420p['+exT+']');
-          var cT='comp'+vi;
-          fp.push('['+curV+']['+exT+']overlay=enable=\'between(t,'+cs+','+ce+')\':shortest=0['+cT+']');
-          curV=cT;
-        } else {
-          var sf=(fit==='fill'||fit==='crop')
-            ?'scale='+W+':'+H+':force_original_aspect_ratio=increase,crop='+W+':'+H+',format=yuv420p'
-            :'scale='+W+':'+H+':force_original_aspect_ratio=decrease,pad='+W+':'+H+':-1:-1,format=yuv420p';
-          fp.push('['+idx+':v]trim=duration='+cd+',setpts=PTS-STARTPTS+'+cs+'/TB,'+sf+'['+vTag+']');
-          var cT2='comp'+vi;
-          fp.push('['+curV+']['+vTag+']overlay=enable=\'between(t,'+cs+','+ce+')\':shortest=0['+cT2+']');
-          curV=cT2;
+      // VideoEncoder — tries GPU (NVIDIA/AMD/Intel QuickSync) first
+      var videoEncoder=new VideoEncoder({
+        output:function(chunk,meta){muxer.addVideoChunk(chunk,meta);},
+        error:function(e){throw e;}
+      });
+      var vcfg={codec:'avc1.640028',width:W,height:H,framerate:FPS,
+        hardwareAcceleration:'prefer-hardware',bitrate:10000000};
+      try{
+        var chk=await VideoEncoder.isConfigSupported(vcfg);
+        if(!chk.supported){
+          vcfg.codec='avc1.42001f';
+          vcfg.hardwareAcceleration='prefer-software';
         }
-        vi++;
+      }catch(e){ vcfg.codec='avc1.42001f'; }
+      videoEncoder.configure(vcfg);
+
+      // Load all visual media into HTMLVideoElement / HTMLImageElement
+      pLabel.textContent='Loading media…';
+      var mediaCache={};
+      var uniqueUrls=[...new Set(videoClips.map(function(c){return c.url;}))];
+      for(var ui=0;ui<uniqueUrls.length;ui++){
+        var url=uniqueUrls[ui];
+        pLabel.textContent='Loading '+(ui+1)+'/'+uniqueUrls.length+'…';
+        try{
+          var ext=url.split('?')[0].split('.').pop().toLowerCase();
+          var isImg=['jpg','jpeg','png','webp','gif','bmp','svg','avif'].includes(ext);
+          if(isImg){
+            var img=new Image();
+            img.crossOrigin='anonymous';
+            await new Promise(function(res,rej){img.onload=res;img.onerror=rej;img.src=url;});
+            mediaCache[url]=img;
+          } else {
+            var vid=document.createElement('video');
+            vid.crossOrigin='anonymous'; vid.preload='auto'; vid.muted=true;
+            await new Promise(function(res,rej){vid.onloadedmetadata=res;vid.onerror=rej;vid.src=url;});
+            mediaCache[url]=vid;
+          }
+        }catch(le){console.warn('[render] load fail:',url,le);}
       }
 
-      var aTags=[], ai=0;
-      for(var ai2=0;ai2<audioClips.length;ai2++){
-        var ac=audioClips[ai2];
-        var aidx=urlToIdx[ac.url];
-        if(aidx===undefined) continue;
-        var atr=tracks[ac.track];
-        var vol=(atr&&atr.volume!=null)?atr.volume:1;
-        var acd=(ac.dur/FPS).toFixed(3);
-        var delay=Math.round(ac.start/FPS*1000);
-        var aTag='acl'+ai;
-        fp.push('['+aidx+':a]atrim=duration='+acd+',asetpts=PTS-STARTPTS,adelay='+delay+'|'+delay+',volume='+vol.toFixed(3)+'['+aTag+']');
-        aTags.push('['+aTag+']');
-        ai++;
+      // Frame-by-frame render onto OffscreenCanvas (GPU composited by browser)
+      var offscreen=new OffscreenCanvas(W,H);
+      var ctx=offscreen.getContext('2d');
+
+      for(var f=0;f<totalFrames;f++){
+        var t=f/FPS;
+        ctx.fillStyle='#000'; ctx.fillRect(0,0,W,H);
+
+        var visible=videoClips.filter(function(c){
+          return t>=c.start/FPS && t<(c.start+c.dur)/FPS;
+        });
+
+        for(var ci=0;ci<visible.length;ci++){
+          var clip=visible[ci];
+          var media=mediaCache[clip.url];
+          if(!media) continue;
+          if(media.tagName==='VIDEO'){
+            var seekT=t-clip.start/FPS;
+            if(Math.abs(media.currentTime-seekT)>1.5/FPS){
+              media.currentTime=seekT;
+              await new Promise(function(res){
+                media.onseeked=res; setTimeout(res,600);
+              });
+            }
+          }
+          try{drawClipFrame(ctx,media,clip,W,H);}catch(de){console.warn(de);}
+        }
+
+        // VideoFrame → hardware encoder
+        var bitmap=await createImageBitmap(offscreen);
+        var vf=new VideoFrame(bitmap,{
+          timestamp:Math.floor(f*1000000/FPS),
+          duration:Math.floor(1000000/FPS)
+        });
+        videoEncoder.encode(vf,{keyFrame:f%(FPS*2)===0});
+        vf.close(); bitmap.close();
+
+        if(f%5===0){
+          pLabel.textContent='🎬 GPU Rendering '+Math.round(f/totalFrames*100)+'%  ('+f+'/'+totalFrames+' frames)';
+          await new Promise(function(r){setTimeout(r,0);}); // yield UI
+        }
       }
-      var audioOut='';
-      if(aTags.length>1){ audioOut='aout'; fp.push(aTags.join('')+'amix=inputs='+aTags.length+':duration=longest:dropout_transition=0['+audioOut+']'); }
-      else if(aTags.length===1){ audioOut=aTags[0].slice(1,-1); }
 
-      var filterComplex=fp.join('; ');
+      pLabel.textContent='Flushing video encoder…';
+      await videoEncoder.flush();
 
-      pLabel.textContent='Encoding video (this may take a while)…';
+      // Audio: OfflineAudioContext mixes all tracks, AudioEncoder encodes to AAC
+      if(hasAudio){
+        pLabel.textContent='Mixing audio…';
+        var SR=44100;
+        var offAudio=new OfflineAudioContext(2,Math.ceil(totalSec*SR),SR);
+        for(var ai=0;ai<audioClips.length;ai++){
+          var ac=audioClips[ai];
+          if(!ac.url||ac.url.startsWith('blob:')) continue;
+          try{
+            var resp=await fetch(ac.url);
+            var ab2=await resp.arrayBuffer();
+            var abuf=await offAudio.decodeAudioData(ab2);
+            var atr=(tracks[ac.track]||{});
+            var gn=offAudio.createGain();
+            gn.gain.value=(atr.volume!=null)?atr.volume:1;
+            var asrc=offAudio.createBufferSource();
+            asrc.buffer=abuf;
+            asrc.connect(gn); gn.connect(offAudio.destination);
+            asrc.start(ac.start/FPS, 0, ac.dur/FPS);
+          }catch(aerr){console.warn('[render] audio err:',aerr);}
+        }
+        var rendered=await offAudio.startRendering();
 
-      // Build args array
-      var args=[];
-      localFiles.forEach(function(f){ args.push('-i',f); });
-      args.push('-filter_complex',filterComplex,'-map','['+curV+']');
-      if(audioOut) args.push('-map','['+audioOut+']');
-      args.push('-c:v','libx264','-preset','ultrafast','-crf','23','-c:a','aac','-b:a','192k','-movflags','+faststart','-y','output.mp4');
+        var audioEnc=new AudioEncoder({
+          output:function(chunk,meta){muxer.addAudioChunk(chunk,meta);},
+          error:function(e){console.warn('[render] audio encode:',e);}
+        });
+        audioEnc.configure({codec:'mp4a.40.2',sampleRate:SR,numberOfChannels:2,bitrate:192000});
 
-      await ffmpeg.run.apply(ffmpeg, args);
+        var L=rendered.getChannelData(0);
+        var R=rendered.numberOfChannels>1?rendered.getChannelData(1):L;
+        var ACHUNK=SR; // 1 second chunks
+        for(var i=0;i<rendered.length;i+=ACHUNK){
+          var len=Math.min(ACHUNK,rendered.length-i);
+          var buf=new Float32Array(len*2);
+          for(var j=0;j<len;j++){buf[j]=L[i+j]; buf[len+j]=R[i+j];}
+          var ad=new AudioData({
+            format:'f32-planar',sampleRate:SR,numberOfFrames:len,
+            numberOfChannels:2,timestamp:Math.floor(i*1000000/SR),data:buf
+          });
+          audioEnc.encode(ad); ad.close();
+        }
+        await audioEnc.flush();
+      }
 
-      var data=ffmpeg.FS('readFile','output.mp4');
-      var outBlob=new Blob([data.buffer],{type:'video/mp4'});
+      muxer.finalize();
+      var buffer=muxer.target.buffer;
+      var outBlob=new Blob([buffer],{type:'video/mp4'});
       var outUrl=URL.createObjectURL(outBlob);
       var a=document.createElement('a');
       a.href=outUrl; a.download='render_'+Date.now()+'.mp4';
       document.body.appendChild(a); a.click(); a.remove();
-      setTimeout(function(){ URL.revokeObjectURL(outUrl); },5000);
-      pLabel.textContent='✓ Render complete — download started!';
+      setTimeout(function(){URL.revokeObjectURL(outUrl);},5000);
+      pLabel.textContent='✓ Export complete! (GPU-accelerated H.264)';
 
     }catch(e){
       pLabel.textContent='Render error: '+(e&&e.message?e.message:String(e));
+      console.error('[render WebCodecs]',e);
+    }finally{
+      renderBtn.disabled=false;
+      renderBtn.textContent='► Render';
+    }
+  }
+
+  // ── FALLBACK: FFmpeg WASM (browsers without WebCodecs) ──────────
+  async function renderFullVideoWASM(){
+    renderBtn.disabled=true;
+    renderBtn.textContent='⏳ Rendering (WASM)...';
+    pLabel.style.display='inline-block';
+    pLabel.textContent='Loading FFmpeg WASM…';
+    try{
+      if(!window._FFmpegLib){
+        await loadRenderScript('https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js');
+        window._FFmpegLib=window.FFmpeg;
+      }
+      var createFFmpeg=window._FFmpegLib.createFFmpeg;
+      var fetchFile=window._FFmpegLib.fetchFile;
+      var ffmpeg=createFFmpeg({log:false,
+        corePath:'https://unpkg.com/@ffmpeg/core-st@0.11.1/dist/ffmpeg-core.js',
+        progress:function(p){pLabel.textContent='WASM Encoding: '+Math.round((p.ratio||0)*100)+'%';}
+      });
+      pLabel.textContent='Loading WASM core…';
+      await ffmpeg.load();
+      var RATIO_MAP={'16:9':[1920,1080],'9:16':[1080,1920],'1:1':[1080,1080],'4:3':[1440,1080]};
+      var dims=RATIO_MAP[currentRatio]||[1920,1080];
+      var W=dims[0],H=dims[1],FPS=30;
+      var allClips=lastTimelineState.allClips||[];
+      var tracks=lastTimelineState.tracks||[];
+      var videoClips=allClips.filter(function(c){var tr=tracks[c.track];return tr&&tr.type==='video'&&!tr.muted&&c.url&&!c.url.startsWith('blob:');}).sort(function(a,b){return a.start-b.start;});
+      var audioClips=allClips.filter(function(c){var tr=tracks[c.track];return tr&&tr.type==='audio'&&!tr.muted&&c.url&&!c.url.startsWith('blob:');}).sort(function(a,b){return a.start-b.start;});
+      var uniqueUrls=[...new Set([...videoClips,...audioClips].map(function(c){return c.url;}))];
+      var urlToFile={};
+      for(var i=0;i<uniqueUrls.length;i++){
+        pLabel.textContent='Downloading '+(i+1)+'/'+uniqueUrls.length+'…';
+        try{
+          var url=uniqueUrls[i];
+          var ext=(url.split('?')[0].split('.').pop()||'mp4').toLowerCase().slice(0,4);
+          var fname='inp'+i+'.'+ext;
+          ffmpeg.FS('writeFile',fname,await fetchFile(url));
+          urlToFile[url]=fname;
+        }catch(fe){console.warn('[WASM] fetch fail:',fe);}
+      }
+      var localFiles=[...new Set(Object.values(urlToFile))];
+      var urlToIdx={};
+      Object.keys(urlToFile).forEach(function(u){urlToIdx[u]=localFiles.indexOf(urlToFile[u]);});
+      var maxEnd=allClips.reduce(function(a,c){return Math.max(a,c.start+c.dur);},0);
+      var totalSec=Math.max(3,(maxEnd/FPS)).toFixed(3);
+      var fp=[];
+      fp.push('nullsrc=s='+W+'x'+H+':d='+totalSec+':r='+FPS+',format=yuv420p[base]');
+      var curV='base',vi=0;
+      for(var ci=0;ci<videoClips.length;ci++){
+        var clip=videoClips[ci];
+        var idx=urlToIdx[clip.url];
+        if(idx===undefined)continue;
+        var cs=(clip.start/FPS).toFixed(3),cd=(clip.dur/FPS).toFixed(3),ce=((clip.start+clip.dur)/FPS).toFixed(3);
+        var vTag='vcl'+vi,fit=clip.fitMode||'fit';
+        var sf=fit==='fill'||fit==='crop'?'scale='+W+':'+H+':force_original_aspect_ratio=increase,crop='+W+':'+H+',format=yuv420p':'scale='+W+':'+H+':force_original_aspect_ratio=decrease,pad='+W+':'+H+':-1:-1,format=yuv420p';
+        fp.push('['+idx+':v]trim=duration='+cd+',setpts=PTS-STARTPTS+'+cs+'/TB,'+sf+'['+vTag+']');
+        var cT='comp'+vi;
+        fp.push('['+curV+']['+vTag+']overlay=enable=\'between(t,'+cs+','+ce+')\':shortest=0['+cT+']');
+        curV=cT; vi++;
+      }
+      var aTags=[],ai=0;
+      for(var ai2=0;ai2<audioClips.length;ai2++){
+        var ac=audioClips[ai2],aidx=urlToIdx[ac.url];
+        if(aidx===undefined)continue;
+        var atr=tracks[ac.track],vol=(atr&&atr.volume!=null)?atr.volume:1;
+        var aTag='acl'+ai;
+        fp.push('['+aidx+':a]atrim=duration='+(ac.dur/FPS).toFixed(3)+',asetpts=PTS-STARTPTS,adelay='+Math.round(ac.start/FPS*1000)+'|'+Math.round(ac.start/FPS*1000)+',volume='+vol.toFixed(3)+'['+aTag+']');
+        aTags.push('['+aTag+']'); ai++;
+      }
+      var audioOut='';
+      if(aTags.length>1){audioOut='aout';fp.push(aTags.join('')+'amix=inputs='+aTags.length+':duration=longest['+audioOut+']');}
+      else if(aTags.length===1){audioOut=aTags[0].slice(1,-1);}
+      pLabel.textContent='WASM Encoding…';
+      var args=[];
+      localFiles.forEach(function(f){args.push('-i',f);});
+      args.push('-filter_complex',fp.join('; '),'-map','['+curV+']');
+      if(audioOut)args.push('-map','['+audioOut+']');
+      args.push('-c:v','libx264','-preset','ultrafast','-crf','23','-c:a','aac','-b:a','192k','-movflags','+faststart','-y','output.mp4');
+      await ffmpeg.run.apply(ffmpeg,args);
+      var data=ffmpeg.FS('readFile','output.mp4');
+      var outBlob=new Blob([data.buffer],{type:'video/mp4'});
+      var outUrl=URL.createObjectURL(outBlob);
+      var a=document.createElement('a');a.href=outUrl;a.download='render_'+Date.now()+'.mp4';
+      document.body.appendChild(a);a.click();a.remove();
+      setTimeout(function(){URL.revokeObjectURL(outUrl);},5000);
+      pLabel.textContent='✓ WASM render complete!';
+    }catch(e){
+      pLabel.textContent='WASM Render error: '+(e&&e.message?e.message:String(e));
       console.error('[WASM render]',e);
     }finally{
       renderBtn.disabled=false;
       renderBtn.textContent='► Render';
     }
   }
+
   renderBtn.addEventListener('click', renderFullVideo);
 
   function isTypingTarget(el){
@@ -882,6 +1074,7 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
     if(el.isContentEditable) return true;
     return false;
   }
+
 
   window.addEventListener('keydown', function(e){
     if(isTypingTarget(e.target)) return;
