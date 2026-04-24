@@ -263,6 +263,32 @@ export default function VideoEditorPage() {
                   Build faster with smart tools, clean timelines, and a production-ready workflow.
                 </p>
 
+                {/* ── How Render Works ── */}
+                <div className="mt-6 rounded-2xl border border-slate-800/80 bg-slate-900/60 p-4">
+                  <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.18em] text-sky-400/80">How Rendering Works</p>
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                    {[
+                      { icon: "🖥️", title: "Runs on Your Device", desc: "Your GPU & CPU do all the work — no server needed. The faster your machine, the faster the render." },
+                      { icon: "⚡", title: "Hardware Accelerated", desc: "Uses WebCodecs API with H.264 hardware encoding (same tech as DaVinci Resolve & Premiere)." },
+                      { icon: "📦", title: "Exports MP4", desc: "Applies all your edits — position, scale, crop, opacity, blend mode — and downloads an MP4 file." },
+                    ].map((item) => (
+                      <div key={item.title} className="rounded-xl border border-slate-700/60 bg-slate-800/50 p-3">
+                        <div className="mb-1 text-xl">{item.icon}</div>
+                        <p className="text-[12px] font-semibold text-slate-100">{item.title}</p>
+                        <p className="mt-1 text-[11px] leading-[1.6] text-slate-400">{item.desc}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-500/20 bg-amber-950/30 p-2.5">
+                    <span className="mt-0.5 text-sm">⚠️</span>
+                    <p className="text-[11px] leading-[1.6] text-amber-300/80">
+                      <strong>Important:</strong> Rendering happens in your browser tab — keep it open and active during export.
+                      Longer timelines and high-res footage will take more time and RAM.
+                      Only clips with public URLs are included; locally-uploaded files (blob:) are skipped.
+                    </p>
+                  </div>
+                </div>
+
                 <p className="mt-6 text-sm font-semibold text-slate-100 sm:text-base">Start a new project</p>
                 <p className="mt-2 text-sm text-slate-400">Name your project and jump right into editing.</p>
 
