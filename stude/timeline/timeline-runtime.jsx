@@ -1235,6 +1235,61 @@ function TimelineEditor() {
     return '#4a5568';
   };
 
+  // ── Upload a single file to Supabase Storage, return permanent public URL.
+  // Falls back to a local blob: URL if the upload fails.
+  const uploadFileToStorage = (file, kind) => {
+    return new Promise((resolve) => {
+      const blobUrl = URL.createObjectURL(file);
+      const fallback = () => resolve(blobUrl);
+
+      // Determine MIME type
+      const contentType = file.type || 'application/octet-stream';
+      const assetType   = kind === 'video' ? 'video' : kind === 'audio' ? 'audio' : 'image';
+
+      // Ask our API for a presigned upload URL
+      fetch('/api/studio/upload-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fileName: file.name, contentType, assetType }),
+      })
+        .then((r) => (r.ok ? r.json() : Promise.reject(new Error('upload-url ' + r.status))))
+        .then(({ signedUrl, publicUrl }) => {
+          if (!signedUrl) return fallback();
+
+          // Upload directly from browser → Supabase (no Vercel in the middle)
+          const xhr = new XMLHttpRequest();
+          xhr.open('PUT', signedUrl);
+          xhr.setRequestHeader('Content-Type', contentType);
+          // Track progress for status messages
+          xhr.upload.onprogress = (e) => {
+            if (e.lengthComputable) {
+              const pct = Math.round((e.loaded / e.total) * 100);
+              setImportInfo(`Uploading ${file.name}: ${pct}%`);
+            }
+          };
+          xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              // Revoke local blob URL — no longer needed
+              URL.revokeObjectURL(blobUrl);
+              resolve(publicUrl);
+            } else {
+              console.warn('[studio-upload] PUT failed', xhr.status, '— using blob fallback');
+              resolve(blobUrl);
+            }
+          };
+          xhr.onerror = () => {
+            console.warn('[studio-upload] XHR error — using blob fallback');
+            resolve(blobUrl);
+          };
+          xhr.send(file);
+        })
+        .catch((err) => {
+          console.warn('[studio-upload] upload-url fetch failed:', err, '— using blob fallback');
+          fallback();
+        });
+    });
+  };
+
   const importFiles = async (fileList) => {
     const files = Array.from(fileList || []);
     if (!files.length) return;
@@ -1244,8 +1299,11 @@ function TimelineEditor() {
     const metas = [];
     for (const file of files) {
       const kind = detectAssetType(file);
-      const src = URL.createObjectURL(file);
+      // Read metadata locally (duration, dimensions) BEFORE uploading
       const meta = await readMediaMeta(file, kind);
+      // Then upload to Supabase (shows progress in status bar)
+      setImportInfo(`Uploading ${file.name}…`);
+      const src = await uploadFileToStorage(file, kind);
       metas.push({
         name: file.name || `asset_${Date.now()}`,
         kind,
@@ -1295,7 +1353,10 @@ function TimelineEditor() {
       return next;
     });
 
-    setImportInfo(`Imported ${metas.length} file(s): ${metas.map((m) => m.name).join(', ')}`);
+    setImportInfo(`Imported ${metas.length} file(s): ${metas.map((m) => {
+      const stored = !m.src.startsWith('blob:');
+      return m.name + (stored ? ' ✓' : ' (local)');
+    }).join(', ')}`);
   };
 
   const getTrackIndexFromClientY = (clientY) => {
