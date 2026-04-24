@@ -251,6 +251,178 @@ function MiniBtn({ active, onClick, children, danger }) {
   );
 }
 
+/* ──────────── Effect Controls / Clip Inspector ──────────── */
+const BLEND_MODES = ['Normal','Multiply','Screen','Overlay','Darken','Lighten','Color Dodge','Color Burn','Hard Light','Soft Light','Difference','Exclusion','Hue','Saturation','Color','Luminosity'];
+
+function PropRow({ label, children }) {
+  return (
+    <div style={{ display:'flex', alignItems:'center', minHeight:22, borderBottom:'1px solid #1e2128', padding:'1px 0' }}>
+      <span style={{ width:86, flexShrink:0, fontSize:10, color:'#7c8694', paddingLeft:8, userSelect:'none' }}>{label}</span>
+      <div style={{ flex:1, display:'flex', alignItems:'center', gap:3, paddingRight:6 }}>{children}</div>
+    </div>
+  );
+}
+
+function NumInput({ value, onChange, onCommit, min, max, step=0.1, style:extraStyle }) {
+  const [local, setLocal] = React.useState(String(Number(value).toFixed(step < 1 ? 1 : 0)));
+  React.useEffect(() => { setLocal(String(Number(value).toFixed(step < 1 ? 1 : 0))); }, [value]);
+  return (
+    <input
+      type="number"
+      value={local}
+      min={min} max={max} step={step}
+      onChange={(e) => { setLocal(e.target.value); const v=Number(e.target.value); if(Number.isFinite(v)) onChange(v); }}
+      onBlur={(e) => { const v=Number(e.target.value); if(Number.isFinite(v)) onCommit(v); }}
+      onKeyDown={(e) => { if(e.key==='Enter'){ const v=Number(e.target.value); if(Number.isFinite(v)) onCommit(v); e.target.blur(); } e.stopPropagation(); }}
+      onMouseDown={(e) => e.stopPropagation()}
+      style={{ width:54, height:18, background:'#0f1114', border:'1px solid #2a3040', borderRadius:3, color:'#d8e3f2', fontSize:10, textAlign:'right', padding:'0 3px', outline:'none', MozAppearance:'textfield', ...extraStyle }}
+    />
+  );
+}
+
+function SectionHeader({ label, open, onToggle, color='#4a9eff' }) {
+  return (
+    <div onClick={onToggle} style={{ display:'flex', alignItems:'center', height:22, background:'#151720', borderBottom:'1px solid #1e2128', cursor:'pointer', userSelect:'none', padding:'0 6px', gap:5 }}>
+      <span style={{ fontSize:9, color, transform:open?'rotate(90deg)':'rotate(0deg)', display:'inline-block', transition:'transform 0.15s' }}>▶</span>
+      <span style={{ fontSize:10, fontWeight:700, color:'#b8c6d8', letterSpacing:'0.4px' }}>{label}</span>
+    </div>
+  );
+}
+
+function EffectControls({ clip, onProp, onCommit, onFitMode }) {
+  const [openMotion, setOpenMotion] = React.useState(true);
+  const [openOpacity, setOpenOpacity] = React.useState(true);
+  const [openCrop, setOpenCrop] = React.useState(false);
+
+  if (!clip) {
+    return (
+      <div style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:16 }}>
+        <span style={{ fontSize:22, marginBottom:8 }}>✦</span>
+        <span style={{ color:'#4a5060', fontSize:10, textAlign:'center', lineHeight:1.6 }}>Select a clip<br/>to see properties</span>
+      </div>
+    );
+  }
+
+  const mo = clip.motion || {};
+  const px = Number.isFinite(mo.px) ? mo.px : 0;
+  const py = Number.isFinite(mo.py) ? mo.py : 0;
+  const sx = Number.isFinite(mo.sx) ? mo.sx : 100;
+  const sy = Number.isFinite(mo.sy) ? mo.sy : 100;
+  const uniformScale = mo.uniform !== false;
+  const rot = Number.isFinite(mo.rot) ? mo.rot : 0;
+  const ax = Number.isFinite(mo.ax) ? mo.ax : 50;
+  const ay = Number.isFinite(mo.ay) ? mo.ay : 50;
+  const opacity = Number.isFinite(clip.opacity) ? clip.opacity : 100;
+  const blendMode = clip.blendMode || 'Normal';
+  const cr = clip.cropRect || {};
+  const cropL = Number.isFinite(cr.l) ? cr.l : 0;
+  const cropT = Number.isFinite(cr.t) ? cr.t : 0;
+  const cropR = Number.isFinite(cr.r) ? cr.r : 0;
+  const cropB = Number.isFinite(cr.b) ? cr.b : 0;
+  const isVisual = ['video','image','psd','gif'].includes(String(clip.kind || ''));
+
+  return (
+    <div style={{ display:'flex', flexDirection:'column', height:'100%', overflow:'hidden' }}>
+      {/* Clip name header */}
+      <div style={{ padding:'5px 8px 4px', background:'#13151c', borderBottom:'1px solid #252a35', flexShrink:0 }}>
+        <div style={{ fontSize:10, color:'#85b9ff', fontWeight:700, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{clip.label || 'Clip'}</div>
+        <div style={{ fontSize:9, color:'#4a5575', marginTop:1 }}>Track {clip.track !== undefined ? clip.track : '—'} · {clip.kind || 'clip'} · {clip.dur != null ? (clip.dur/30).toFixed(2)+'s' : '—'}</div>
+      </div>
+
+      <div style={{ flex:1, overflowY:'auto', overflowX:'hidden' }}>
+        {/* FitMode quick row */}
+        {isVisual && (
+          <div style={{ display:'flex', alignItems:'center', padding:'3px 6px', gap:3, borderBottom:'1px solid #1e2128', background:'#0f1217' }}>
+            <span style={{ fontSize:9, color:'#6c7694', width:50, flexShrink:0 }}>Fill Mode</span>
+            {['fit','fill','crop','expand'].map((m2) => (
+              <button key={m2} onClick={() => onFitMode(m2)} style={{
+                flex:1, height:16, borderRadius:3, fontSize:8, fontWeight:700, cursor:'pointer',
+                border: (clip.fitMode||'fit')===m2 ? '1px solid #4a9eff':'1px solid #23293a',
+                background: (clip.fitMode||'fit')===m2 ? 'rgba(74,158,255,0.2)':'#141820',
+                color: (clip.fitMode||'fit')===m2 ? '#9dcfff':'#4a5575',
+              }}>{m2==='expand'?'⊞ xpnd':m2}</button>
+            ))}
+          </div>
+        )}
+
+        {/* Motion */}
+        {isVisual && (
+          <>
+            <SectionHeader label="fx  Motion" open={openMotion} onToggle={() => setOpenMotion(v => !v)} />
+            {openMotion && (
+              <>
+                <PropRow label="Position">
+                  <NumInput value={px} step={1} onChange={(v) => onProp('motion.px', v)} onCommit={(v) => onCommit('motion.px', v)} />
+                  <NumInput value={py} step={1} onChange={(v) => onProp('motion.py', v)} onCommit={(v) => onCommit('motion.py', v)} />
+                </PropRow>
+                <PropRow label="Scale">
+                  <NumInput value={sx} min={0} max={400} step={1} onChange={(v) => { onProp('motion.sx', v); if(uniformScale) onProp('motion.sy', v); }} onCommit={(v) => { onCommit('motion.sx', v); if(uniformScale) onCommit('motion.sy', v); }} />
+                  {!uniformScale && <NumInput value={sy} min={0} max={400} step={1} onChange={(v) => onProp('motion.sy', v)} onCommit={(v) => onCommit('motion.sy', v)} />}
+                  <label style={{ display:'flex', alignItems:'center', gap:3, fontSize:9, color:'#6c7694', marginLeft:2, cursor:'pointer', userSelect:'none' }} onMouseDown={(e) => e.stopPropagation()}>
+                    <input type="checkbox" checked={uniformScale} onChange={(e) => onCommit('motion.uniform', e.target.checked)} style={{ width:10, height:10, accentColor:'#4a9eff', cursor:'pointer' }} />
+                    Uniform
+                  </label>
+                </PropRow>
+                <PropRow label="Rotation">
+                  <NumInput value={rot} min={-360} max={360} step={0.5} onChange={(v) => onProp('motion.rot', v)} onCommit={(v) => onCommit('motion.rot', v)} />
+                  <span style={{ fontSize:9, color:'#4a5575' }}>°</span>
+                </PropRow>
+                <PropRow label="Anchor Point">
+                  <NumInput value={ax} step={0.5} onChange={(v) => onProp('motion.ax', v)} onCommit={(v) => onCommit('motion.ax', v)} />
+                  <NumInput value={ay} step={0.5} onChange={(v) => onProp('motion.ay', v)} onCommit={(v) => onCommit('motion.ay', v)} />
+                </PropRow>
+              </>
+            )}
+          </>
+        )}
+
+        {/* Opacity */}
+        <SectionHeader label="fx  Opacity" open={openOpacity} onToggle={() => setOpenOpacity(v => !v)} color='#c3a2ff' />
+        {openOpacity && (
+          <>
+            <PropRow label="Opacity">
+              <input type="range" min={0} max={100} step={1} value={opacity}
+                onChange={(e) => onProp('opacity', Number(e.target.value))}
+                onMouseUp={(e) => onCommit('opacity', Number(e.target.value))}
+                style={{ flex:1, height:3, accentColor:'#c3a2ff', cursor:'pointer' }} />
+              <NumInput value={opacity} min={0} max={100} step={1} onChange={(v) => onProp('opacity', v)} onCommit={(v) => onCommit('opacity', v)} style={{ width:36 }} />
+              <span style={{ fontSize:9, color:'#4a5575' }}>%</span>
+            </PropRow>
+            {isVisual && (
+              <PropRow label="Blend Mode">
+                <select value={blendMode} onChange={(e) => onCommit('blendMode', e.target.value)} onMouseDown={(e) => e.stopPropagation()} style={{ flex:1, height:18, background:'#0f1114', border:'1px solid #2a3040', borderRadius:3, color:'#d8e3f2', fontSize:10, padding:'0 2px', cursor:'pointer', outline:'none' }}>
+                  {BLEND_MODES.map((bm) => <option key={bm} value={bm}>{bm}</option>)}
+                </select>
+              </PropRow>
+            )}
+          </>
+        )}
+
+        {/* Crop */}
+        {isVisual && (
+          <>
+            <SectionHeader label="fx  Crop" open={openCrop} onToggle={() => setOpenCrop(v => !v)} color='#5dd6a0' />
+            {openCrop && ['Left','Top','Right','Bottom'].map((side) => {
+              const key = `cropRect.${side[0].toLowerCase()}`;
+              const val = { Left:cropL, Top:cropT, Right:cropR, Bottom:cropB }[side];
+              return (
+                <PropRow key={side} label={`Crop ${side}`}>
+                  <input type="range" min={0} max={50} step={0.5} value={val}
+                    onChange={(e) => onProp(key, Number(e.target.value))}
+                    onMouseUp={(e) => onCommit(key, Number(e.target.value))}
+                    style={{ flex:1, height:3, accentColor:'#5dd6a0', cursor:'pointer' }} />
+                  <NumInput value={val} min={0} max={50} step={0.5} onChange={(v) => onProp(key, v)} onCommit={(v) => onCommit(key, v)} style={{ width:36 }} />
+                  <span style={{ fontSize:9, color:'#4a5575' }}>%</span>
+                </PropRow>
+              );
+            })}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function TimelineEditor() {
   const persisted = useMemo(() => loadTimelineState(), []);
   const [clips, setClips] = useState(() => persisted?.clips || INITIAL_CLIPS);
@@ -262,6 +434,7 @@ function TimelineEditor() {
   const [zoom, setZoom] = useState(() => Number.isFinite(persisted?.zoom) ? persisted.zoom : 1);
   const [selected, setSelected] = useState(() => persisted?.selected || null);
   const [leftPaneW, setLeftPaneW] = useState(() => Number.isFinite(persisted?.leftPaneW) ? persisted.leftPaneW : 118);
+  const [inspectorW, setInspectorW] = useState(200);
   const [dragOver, setDragOver] = useState(false);
   const [importInfo, setImportInfo] = useState('Import media by button or drag files onto timeline.');
   const [trackMenuOpen, setTrackMenuOpen] = useState(false);
@@ -555,6 +728,10 @@ function TimelineEditor() {
         dur: c.dur,
         lighting: normalizeLightingProfile(c.lighting),
         fitMode: c.fitMode || 'fit',
+        motion: c.motion || null,
+        opacity: Number.isFinite(c.opacity) ? c.opacity : 100,
+        blendMode: c.blendMode || 'Normal',
+        cropRect: c.cropRect || null,
       };
     };
 
@@ -791,6 +968,22 @@ function TimelineEditor() {
   const setClipFitMode = (clipId, mode) => {
     pushUndoSnapshot();
     setClips((prev) => prev.map((c) => c.id === clipId ? { ...c, fitMode: mode } : c));
+  };
+
+  const setClipProp = (clipId, key, value) => {
+    setClips((prev) => prev.map((c) => {
+      if (c.id !== clipId) return c;
+      if (key.includes('.')) {
+        const [group, field] = key.split('.');
+        return { ...c, [group]: { ...(c[group] || {}), [field]: value } };
+      }
+      return { ...c, [key]: value };
+    }));
+  };
+
+  const commitClipProp = (clipId, key, value) => {
+    pushUndoSnapshot();
+    setClipProp(clipId, key, value);
   };
 
   const saveProject = () => {
@@ -1316,6 +1509,18 @@ function TimelineEditor() {
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
   };
+
+  const startResizeInspector = (e) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startW = inspectorW;
+    const minW = 160;
+    const maxW = 340;
+    const onMove = (ev) => { setInspectorW(Math.max(minW, Math.min(maxW, startW - (ev.clientX - startX)))); };
+    const onUp = () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  };
   const rulerMarks = [];
   for (let f = 0; f <= timelineFrames; f += FPS) {
     rulerMarks.push({ frame: f, x: f * scale, label: formatTC(f).slice(3, 8) });
@@ -1745,6 +1950,28 @@ function TimelineEditor() {
               </div>
             )}
           </div>
+        </div>
+
+        {/* ─── Inspector resize handle ─── */}
+        <div
+          onMouseDown={startResizeInspector}
+          style={{ width:6, cursor:'col-resize', background:'#181c23', borderLeft:'1px solid #2a2f39', borderRight:'1px solid #2a2f39', flexShrink:0, position:'relative' }}
+          title="Drag to resize inspector"
+        >
+          <div style={{ position:'absolute', left:'50%', top:'50%', transform:'translate(-50%,-50%)', width:2, height:30, background:'#6b7690', boxShadow:'0 -6px 0 #6b7690,0 6px 0 #6b7690' }} />
+        </div>
+
+        {/* ─── Effect Controls Inspector ─── */}
+        <div style={{ width:inspectorW, flexShrink:0, background:'#0e1016', borderLeft:'1px solid #1e2430', display:'flex', flexDirection:'column', overflow:'hidden' }}>
+          <div style={{ height:22, background:'#13151c', borderBottom:'1px solid #1e2430', display:'flex', alignItems:'center', padding:'0 8px', flexShrink:0 }}>
+            <span style={{ fontSize:10, fontWeight:700, color:'#6a7490', letterSpacing:'0.6px', textTransform:'uppercase' }}>Effect Controls</span>
+          </div>
+          <EffectControls
+            clip={selected ? clips.find((c) => c.id === selected) || null : null}
+            onProp={(key, val) => setClipProp(selected, key, val)}
+            onCommit={(key, val) => commitClipProp(selected, key, val)}
+            onFitMode={(mode) => setClipFitMode(selected, mode)}
+          />
         </div>
       </div>
 

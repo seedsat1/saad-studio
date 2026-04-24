@@ -469,6 +469,42 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
         layer.blurEl.style.display=showBlur ? 'block' : 'none';
         if(showBlur && layer.blurEl.src!==src) layer.blurEl.src=src;
       }
+
+      // apply motion / opacity / blendMode / crop on the node
+      var mo=clip.motion||{};
+      var opacityVal=Number.isFinite(clip.opacity)?clip.opacity:100;
+      var blendMode=String(clip.blendMode||'Normal');
+      var cr=clip.cropRect||{};
+      var px=Number.isFinite(mo.px)?mo.px:0;
+      var py=Number.isFinite(mo.py)?mo.py:0;
+      var sx=Number.isFinite(mo.sx)?mo.sx:100;
+      var sy=Number.isFinite(mo.sy)?mo.sy:sx;
+      var rot=Number.isFinite(mo.rot)?mo.rot:0;
+      var ax=Number.isFinite(mo.ax)?mo.ax:50;
+      var ay=Number.isFinite(mo.ay)?mo.ay:50;
+      var hasMotion=(px!==0||py!==0||sx!==100||sy!==100||rot!==0||ax!==50||ay!==50);
+      if(hasMotion){
+        layer.node.style.transform='translate('+px+'px,'+py+'px)';
+        layer.media.style.transformOrigin=ax+'% '+ay+'%';
+        layer.media.style.transform='scale('+sx/100+','+sy/100+') rotate('+rot+'deg)';
+      } else {
+        layer.node.style.transform='';
+        layer.media.style.transformOrigin='';
+        layer.media.style.transform='';
+      }
+      layer.node.style.opacity=String(opacityVal/100);
+      layer.node.style.mixBlendMode=blendMode==='Normal'?'':blendMode.toLowerCase().replace(' ','-');
+      // crop via clip-path
+      var cl=Number.isFinite(cr.l)?cr.l:0;
+      var ct=Number.isFinite(cr.t)?cr.t:0;
+      var cright=Number.isFinite(cr.r)?cr.r:0;
+      var cb=Number.isFinite(cr.b)?cr.b:0;
+      if(cl>0||ct>0||cright>0||cb>0){
+        layer.node.style.clipPath='inset('+ct+'% '+(cright)+'% '+cb+'% '+cl+'%)';
+      } else {
+        layer.node.style.clipPath='';
+      }
+
       if(kind==='image' || kind==='psd'){
         if(layer.lastSrc!==src){
           layer.media.src=src;
