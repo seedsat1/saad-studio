@@ -281,7 +281,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
       </div>
       <div class="prompt-options">
         <button class="opt-voice-chip" id="voiceChipBtn" onclick="openVoiceModal()">
-          <span class="opt-voice-avatar"><img id="vpAvatarImg" src="https://i.pravatar.cc/80?u=21m00Tcm4TlvDq8ikWAM" alt="" loading="lazy" style="width:100%;height:100%;object-fit:cover;border-radius:50%"></span>
+          <span class="opt-voice-avatar"><img id="vpAvatarImg" src="https://randomuser.me/api/portraits/women/31.jpg" alt="" loading="lazy" style="width:100%;height:100%;object-fit:cover;border-radius:50%"></span>
           <span id="vpName">Rachel</span>
           <svg style="width:10px;height:10px;color:var(--text-dim)" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5l3 3 3-3"/></svg>
         </button>
@@ -614,10 +614,10 @@ function renderVmGrid(){
   grid.innerHTML=uniq.map(v=>{
     const sel=v.id===_vmSelectedId;
     const sn=v.name.replace(/'/g,"\\'");
-    const av=v.isCustom?`<div class="vm-vemoji" style="background:${v.color}">${v.emoji}</div>`:`<div class="vm-vavatar"><img src="https://i.pravatar.cc/80?u=${encodeURIComponent(v.id)}" alt="${v.name}" loading="lazy"></div>`;
+    const av=v.isCustom?`<div class="vm-vemoji" style="background:${v.color}">${v.emoji}</div>`:`<div class="vm-vavatar"><img src="${getVoiceAvatar(v.id,v.gender)}" alt="${v.name}" loading="lazy"></div>`;
     const ll=v.lang==='MULTI'?'Multilingual':v.lang==='EN'?'English':v.lang==='AR'?'Arabic':v.lang;
     const fav=_vmFavs.has(v.id);const pl=_vmPlayingId===v.id;
-    return `<div class="vm-vcard${sel?' sel':''}" onclick="selectVmVoice('${v.id}','${sn}','${v.lang}','${v.accent}','${v.emoji}','${v.color}')">
+    return `<div class="vm-vcard${sel?' sel':''}" onclick="selectVmVoice('${v.id}','${sn}','${v.lang}','${v.accent}','${v.emoji}','${v.color}','${v.gender}')">`
       ${av}<div class="vm-vinfo"><div class="vm-vname">${hl(v.name,q)}</div><div class="vm-vmeta">${ll} &middot; ${v.isCustom?'Custom':v.accent}</div></div>
       <div class="vm-vactions">
         <button class="vm-play-btn${pl?' playing':''}" onclick="previewVmVoice('${v.id}','${sn}',event)">${pl?'&#9632;':'&#9654;'}</button>
@@ -627,10 +627,17 @@ function renderVmGrid(){
   }).join('');
 }
 
-function selectVmVoice(id,name,lang,accent,emoji,color){
-  _vmSelectedId=id;
+function getVoiceAvatar(id,gender){
+  let h=0;const s=String(id);
+  for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))>>>0;
+  const n=(h%70)+1;
+  return `https://randomuser.me/api/portraits/${gender==='male'?'men':'women'}/${n}.jpg`;
+}
+let _vmSelectedGender='female';
+function selectVmVoice(id,name,lang,accent,emoji,color,gender){
+  _vmSelectedId=id;_vmSelectedGender=gender||'female';
   document.getElementById('vpName').textContent=name;
-  const img=document.getElementById('vpAvatarImg');img.src=`https://i.pravatar.cc/80?u=${encodeURIComponent(id)}`;img.style.display='';
+  const img=document.getElementById('vpAvatarImg');img.src=getVoiceAvatar(id,gender||'female');img.style.display='';
   renderVmGrid();setTimeout(closeVoiceModal,200);
 }
 
