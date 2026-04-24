@@ -178,12 +178,19 @@ export default function VideoEditorPage() {
           <div className="rounded-3xl border border-slate-800/90 bg-slate-950/70 p-4 sm:p-6">
             <div className="grid grid-cols-1 gap-5 lg:grid-cols-12 lg:items-stretch">
               <div className="lg:col-span-6">
-                <h1 className="text-3xl font-extrabold leading-[1.1] tracking-[-0.02em] text-white sm:text-4xl lg:text-4xl">
-                  <span className="block">Turn your ideas into cinematic videos</span>
-                  <span className="mt-1 block font-normal text-slate-200">with smart tools and a fast workflow</span>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-300/85">Cinema Workspace</p>
+                <h1 className="mt-2 max-w-[18ch] text-3xl font-extrabold leading-[1.06] tracking-[-0.02em] text-white sm:text-4xl lg:text-[3rem]">
+                  <span className="block">Turn Ideas Into</span>
+                  <span className="mt-1 block bg-gradient-to-r from-white via-cyan-100 to-sky-300 bg-clip-text text-transparent">
+                    Cinematic Stories
+                  </span>
                 </h1>
-                <p className="mt-4 text-sm font-medium text-slate-200 sm:text-base">Start a new project</p>
-                <p className="mt-1 text-xs text-slate-400 sm:text-sm">Create a new project and continue editing instantly</p>
+                <p className="mt-3 max-w-[56ch] text-sm leading-relaxed text-slate-300 sm:text-base">
+                  Build faster with smart tools, clean timelines, and a production-ready workflow.
+                </p>
+
+                <p className="mt-5 text-sm font-semibold text-slate-100 sm:text-base">Start a new project</p>
+                <p className="mt-1 text-xs text-slate-400 sm:text-sm">Name your project and jump right into editing.</p>
 
                 <div className="mt-6 flex flex-col gap-3 sm:flex-row">
                   <input
