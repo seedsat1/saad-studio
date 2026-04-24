@@ -42,9 +42,9 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
 #previewCanvas{background:linear-gradient(160deg,#0a0f18,#111d30 45%,#0c1220);border:1px solid #2b3342;border-radius:8px;display:flex;align-items:center;justify-content:center;position:absolute;overflow:hidden;cursor:zoom-in;left:50%;top:50%;transform:translate(-50%,-50%)}
 #previewCanvas::after{content:'';position:absolute;inset:0;background:radial-gradient(circle at 35% 30%,rgba(74,158,255,.18),transparent 42%),radial-gradient(circle at 70% 65%,rgba(61,125,218,.14),transparent 38%)}
 #previewLayers{position:absolute;inset:0;z-index:1;pointer-events:none}
-.previewLayer{position:absolute;inset:0;pointer-events:none}
+.previewLayer{position:absolute;inset:0;pointer-events:none;overflow:hidden}
 .previewLayerMedia{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:transparent}
-.previewLayerBlur{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:blur(22px) brightness(0.7);transform:scale(1.05);z-index:-1;pointer-events:none;background:transparent}
+.previewLayerBlur{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:blur(22px) brightness(0.7);transform:scale(1.08);pointer-events:none;background:transparent;display:none}
 #previewAudio{position:absolute;left:10px;right:10px;bottom:10px;z-index:3;display:none}
 #previewLabel{position:relative;z-index:2;font-size:13px;color:#cde2ff;background:rgba(8,12,18,.72);border:1px solid #2a3242;border-radius:6px;padding:6px 10px;max-width:90%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #previewProgress{height:6px;background:#212839;border-radius:999px;overflow:hidden;border:1px solid #2b3342;flex-shrink:0}
@@ -362,6 +362,7 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
         blurEl.volume=0;
       }
       blurEl.className='previewLayerBlur';
+      blurEl.style.display='none';
       node.appendChild(blurEl);
       var media;
       if(visualKind==='image'){

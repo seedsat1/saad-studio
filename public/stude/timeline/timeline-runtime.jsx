@@ -1682,7 +1682,26 @@ function TimelineEditor() {
                         ))}
                       </div>
                     )}
-                    <span style={{ position: 'relative', zIndex: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{clip.label}</span>
+                    <span style={{ position: 'relative', zIndex: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: clip.id === selected ? 'calc(100% - 90px)' : '100%' }}>{clip.label}</span>
+                    {/* fitMode badge + quick picker on selected visual clips */}
+                    {clip.id === selected && (tr.type === 'video' || tr.type === 'image') && (
+                      <div style={{ position: 'absolute', right: 4, top: '50%', transform: 'translateY(-50%)', display: 'flex', gap: 2, zIndex: 10 }} onMouseDown={(e) => e.stopPropagation()}>
+                        {['fit','fill','crop','expand'].map((m) => (
+                          <button key={m} onClick={(e) => { e.stopPropagation(); setClipFitMode(clip.id, m); }} style={{
+                            height: 13, padding: '0 4px', borderRadius: 2, fontSize: 8, fontWeight: 700, cursor: 'pointer',
+                            border: (clip.fitMode||'fit') === m ? '1px solid #4a9eff' : '1px solid rgba(255,255,255,0.15)',
+                            background: (clip.fitMode||'fit') === m ? 'rgba(74,158,255,0.35)' : 'rgba(0,0,0,0.45)',
+                            color: (clip.fitMode||'fit') === m ? '#c5e4ff' : 'rgba(255,255,255,0.6)',
+                          }}>{m === 'expand' ? '⊞' : m[0].toUpperCase()}</button>
+                        ))}
+                      </div>
+                    )}
+                    {/* fitMode badge when not selected */}
+                    {clip.id !== selected && (tr.type === 'video' || tr.type === 'image') && clip.fitMode && clip.fitMode !== 'fit' && (
+                      <span style={{ position: 'absolute', right: 4, top: '50%', transform: 'translateY(-50%)', fontSize: 7, padding: '1px 3px', borderRadius: 2, background: 'rgba(74,158,255,0.25)', color: '#9dcfff', border: '1px solid rgba(74,158,255,0.3)', zIndex: 5, pointerEvents: 'none' }}>
+                        {clip.fitMode === 'expand' ? '⊞' : clip.fitMode}
+                      </span>
+                    )}
                   </div>
                 ))}
               </div>
