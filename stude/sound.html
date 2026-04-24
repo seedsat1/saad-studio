@@ -758,7 +758,28 @@ async function runAudioJob(config){const btn=document.getElementById('sendBtn');
 function getSelectedVoiceId(){const c=(document.getElementById('customVoiceId')?.value||'').trim();if(c&&!c.startsWith('sample_')&&!c.startsWith('custom_'))return c;return _vmSelectedId||'21m00Tcm4TlvDq8ikWAM';}
 function getSelectedLangCode(){const v=VOICE_CATALOG.find(x=>x.id===_vmSelectedId);if(v&&v.lang==='AR')return'ar';const btn=document.getElementById('optLang');const t=btn?.childNodes[1]?.textContent?.trim()||'Auto';if(t==='Arabic')return'ar';if(t==='English')return'en';return'';}
 async function handleGenerate(){const text=(document.getElementById('promptInput')?.value||'').trim();if(!text){setStatus('Please enter a description or text.','warn');return;}if(currentMode==='voice')await generateVoice(text);else if(currentMode==='music')await generateMusic(text);else await generateSfx(text);}
-async function generateVoice(text){const speedBtn=document.getElementById('optSpeed');const speedTxt=speedBtn?.childNodes[1]?.textContent?.trim()||'1.0x';const speed=parseFloat(speedTxt)||1.0;const lc=getSelectedLangCode();const input={text,voice:getSelectedVoiceId(),stability:0.5,similarity_boost:0.75,style:0,speed:Math.max(0.7,Math.min(1.5,speed)),timestamps:false,nsfw_checker:true};if(lc)input.language_code=lc;await runAudioJob({label:'Voice generation',model:'elevenlabs/text-to-speech-multilingual-v2',input,useLanguageFallback:true,assetType:'voice',assetName:`voice_${Date.now()}.mp3`,fallbackDuration:Math.max(3,Math.min(30,Math.round(text.length/14)))});}
+async function generateVoice(text){
+  const speedBtn=document.getElementById('optSpeed');const speedTxt=speedBtn?.childNodes[1]?.textContent?.trim()||'1.0x';const speed=parseFloat(speedTxt)||1.0;
+  const lc=getSelectedLangCode();
+  const voiceId=getSelectedVoiceId();
+  const assetName=`voice_${Date.now()}.mp3`;
+  const btn=document.getElementById('sendBtn');if(btn){btn.disabled=true;btn.style.opacity='0.5';}
+  setStatus('Submitting Voice generation...','info');
+  try{
+    const body={actionType:'tts',text,voice:voiceId,speed:Math.max(0.7,Math.min(1.5,speed)),stability:0.5,clarity:75,use_speaker_boost:true};
+    if(lc)body.language_code=lc;
+    const res=await fetch('/api/generate/audio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const json=await res.json();
+    if(!res.ok)throw new Error(json?.error||json?.message||`Voice API error (${res.status})`);
+    const url=json?.audioUrl||json?.url||'';
+    if(!url)throw new Error('No audio URL returned');
+    const dur=await getAudioDuration(url)||Math.max(3,Math.round(text.length/14));
+    const asset={type:'voice',name:assetName,url,durationSec:dur};
+    rememberLatest(asset);showOutput('voice',assetName,url);
+    setStatus(`Voice generation complete (${formatSec(dur)}).`,'ok');
+  }catch(error){setStatus(`Voice generation failed: ${error.message}`,'err');}
+  finally{if(btn){btn.disabled=false;btn.style.opacity='1';}}
+}
 async function generateMusic(text){
   const genre=document.getElementById('genreChips')?.querySelector('.chip.a')?.textContent?.trim()||'Ambient';
   const mood=document.getElementById('moodChips')?.querySelector('.chip.a')?.textContent?.trim()||'Calm';
@@ -780,12 +801,55 @@ async function generateMusic(text){
   }catch(error){setStatus(`Music generation failed: ${error.message}`,'err');}
   finally{if(btn){btn.disabled=false;btn.style.opacity='1';}}
 }
-async function generateSfx(text){await runAudioJob({label:'SFX generation',model:'elevenlabs/sound-effect-v2',input:{text,duration_seconds:5,prompt_influence:0.4},assetType:'sfx',assetName:`sfx_${Date.now()}.mp3`,fallbackDuration:5});}
+async function generateSfx(text){
+  const assetName=`sfx_${Date.now()}.mp3`;
+  const btn=document.getElementById('sendBtn');if(btn){btn.disabled=true;btn.style.opacity='0.5';}
+  setStatus('Submitting SFX generation...','info');
+  try{
+    const res=await fetch('/api/generate/audio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({actionType:'music',prompt:text,model:'elevenlabs/sound-effect-v2',musicDuration:5,force_instrumental:false})});
+    const json=await res.json();
+    if(!res.ok)throw new Error(json?.error||json?.message||`SFX API error (${res.status})`);
+    const url=json?.audioUrl||json?.url||'';
+    if(!url)throw new Error('No audio URL returned');
+    const dur=await getAudioDuration(url)||5;
+    const asset={type:'sfx',name:assetName,url,durationSec:dur};
+    rememberLatest(asset);showOutput('sfx',assetName,url);
+    setStatus(`SFX generation complete (${formatSec(dur)}).`,'ok');
+  }catch(error){setStatus(`SFX generation failed: ${error.message}`,'err');}
+  finally{if(btn){btn.disabled=false;btn.style.opacity='1';}}
+}
 
 /* AUDIO TOOLS */
 async function handleAudioFileSelect(input){const file=input.files&&input.files[0];if(!file)return;setStatus('Uploading audio file...','info');try{const ur=await fetch('/api/studio/upload-url',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fileName:file.name,contentType:file.type||'audio/mpeg',assetType:'audio'})});if(!ur.ok)throw new Error('Failed to get upload URL');const{signedUrl,publicUrl}=await ur.json();await new Promise((res,rej)=>{const xhr=new XMLHttpRequest();xhr.addEventListener('load',()=>xhr.status<300?res():rej(new Error('Upload failed')));xhr.addEventListener('error',()=>rej(new Error('Network error')));xhr.open('PUT',signedUrl);xhr.setRequestHeader('Content-Type',file.type||'audio/mpeg');xhr.send(file);});document.getElementById('audioUrlInput').value=publicUrl;setStatus('File uploaded. Ready to transcribe or isolate.','ok');}catch(err){setStatus('Upload failed: '+err.message,'err');}input.value='';}
-async function transcribeAudio(){const url=(document.getElementById('audioUrlInput')?.value||'').trim();if(!url){setStatus('Please upload an audio file first.','warn');return;}setStatus('Transcribing...','info');try{const tid=await createKieTask('elevenlabs/speech-to-text',{audio_url:url,tag_audio_events:true,diarize:true,nsfw_checker:true});const rec=await waitKieTask(tid,180000);const p=parseResultJson(rec?.resultJson);const text=p?.resultObject?.text||'No text returned';const inp=document.getElementById('promptInput');inp.value=text;autoGrow(inp);setStatus('Transcription complete. Text inserted into prompt box.','ok');}catch(err){setStatus('Transcription failed: '+err.message,'err');}}
-async function isolateAudio(){const url=(document.getElementById('audioUrlInput')?.value||'').trim();if(!url){setStatus('Please upload an audio file first.','warn');return;}await runAudioJob({label:'Audio isolation',model:'elevenlabs/audio-isolation',input:{audio_url:url,nsfw_checker:true},assetType:'voice',assetName:`isolated_${Date.now()}.mp3`,fallbackDuration:8});}
+async function transcribeAudio(){
+  const url=(document.getElementById('audioUrlInput')?.value||'').trim();
+  if(!url){setStatus('Please upload an audio file first.','warn');return;}
+  setStatus('Transcribing...','info');
+  try{
+    const res=await fetch('/api/generate/audio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({actionType:'speech-to-text',audioUrl:url})});
+    const json=await res.json();
+    if(!res.ok)throw new Error(json?.error||json?.message||`Transcription error (${res.status})`);
+    const text=json?.transcript||json?.text||'No text returned';
+    const inp=document.getElementById('promptInput');inp.value=text;autoGrow(inp);
+    setStatus('Transcription complete. Text inserted into prompt box.','ok');
+  }catch(err){setStatus('Transcription failed: '+err.message,'err');}
+}
+async function isolateAudio(){
+  const url=(document.getElementById('audioUrlInput')?.value||'').trim();
+  if(!url){setStatus('Please upload an audio file first.','warn');return;}
+  setStatus('Isolating audio...','info');
+  try{
+    const res=await fetch('/api/generate/audio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({actionType:'audio-isolation',audioUrl:url})});
+    const json=await res.json();
+    if(!res.ok)throw new Error(json?.error||json?.message||`Isolation error (${res.status})`);
+    const outUrl=json?.audioUrl||json?.url||'';
+    if(!outUrl)throw new Error('No audio URL returned');
+    const dur=await getAudioDuration(outUrl)||8;
+    const asset={type:'voice',name:`isolated_${Date.now()}.mp3`,url:outUrl,durationSec:dur};
+    rememberLatest(asset);showOutput('voice','Isolated Audio',outUrl);
+    setStatus('Audio isolation complete.','ok');
+  }catch(err){setStatus('Isolation failed: '+err.message,'err');}
+}
 
 updateVmFavCount();
 </script>
