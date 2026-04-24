@@ -590,6 +590,16 @@ textarea.ff:focus{border-color:var(--accent)}
             <div class="vpm-uc-overlay"></div>
             <div class="vpm-uc-cnt"><div class="vpm-uc-name">Trailer &amp; Epic</div><div class="vpm-uc-arrow">→</div></div>
           </div>
+          <div class="vpm-uc-card" onclick="setVpmCatAndTab('Social Media')">
+            <img src="https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=300&h=200&fit=crop" alt="">
+            <div class="vpm-uc-overlay"></div>
+            <div class="vpm-uc-cnt"><div class="vpm-uc-name">Social Media</div><div class="vpm-uc-arrow">→</div></div>
+          </div>
+          <div class="vpm-uc-card" onclick="setVpmCatAndTab('Meditation & Calm')">
+            <img src="https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=300&h=200&fit=crop" alt="">
+            <div class="vpm-uc-overlay"></div>
+            <div class="vpm-uc-cnt"><div class="vpm-uc-name">Meditation &amp; Calm</div><div class="vpm-uc-arrow">→</div></div>
+          </div>
           <div class="vpm-uc-card" onclick="setVpmCatAndTab('Arabic')">
             <img src="https://images.unsplash.com/photo-1580418827493-f2b22c0a76cb?w=300&h=200&fit=crop" alt="">
             <div class="vpm-uc-overlay"></div>
@@ -824,7 +834,7 @@ const VOICE_PRESET_MAP = {
 };
 
 const MODEL_VOICES = [
-  { group: '── Standard Voices ──', disabled: true },
+  { group: '── Standard ──', disabled: true },
   { id: 'Rachel', label: 'Rachel' },
   { id: 'Aria', label: 'Aria' },
   { id: 'Roger', label: 'Roger' },
@@ -846,79 +856,216 @@ const MODEL_VOICES = [
   { id: 'Daniel', label: 'Daniel' },
   { id: 'Lily', label: 'Lily' },
   { id: 'Bill', label: 'Bill' },
-  { group: '── Specialty Voices ──', disabled: true },
-  { id: 'Z3R5wn05IrDiVCyEkUrK', label: 'Arabella (Mysterious)' },
-  { id: 'x70vRnQBMBu4FAYhjJbO', label: 'Nathan (Radio Host)' },
-  { id: 'YOq2y2Up4RgXP2HyXjE5', label: 'Xavier (Metal Announcer)' },
-  { id: 'LG95yZDEHg6fCZdQjLqj', label: 'Phil (Announcer)' },
-  { id: 'nPczCjzI2devNBz1zQrb', label: 'Brian (Deep Resonant)' },
-  { id: 'BZgkqPqms7Kj9ulSkVzn', label: 'Eve (Energetic)' },
-  { id: 'DTKMou8ccj1ZaWGBiotd', label: 'Jamahal (Vibrant)' },
-  { id: 'vBKc2FfBKJfcZNyEt1n6', label: 'Finn (Youthful)' },
-  { id: 'Sq93GQT4X1lKDXsQcixO', label: 'Felix (Warm RP)' },
-  { id: '6aDn1KB0hjpdcocrUkmq', label: 'Tiffany (Welcoming)' },
-  { id: 'wJqPPQ618aTW29mptyoc', label: 'Ana Rita (Bright)' },
-  { id: 'LruHrtVF6PSyGItzMNHS', label: 'Benjamin (Calm)' },
-  { id: 'AeRdCCKzvd23BpJoofzx', label: 'Nathaniel (British Calm)' },
-  { id: 'Sm1seazb4gs7RSlUVw7c', label: 'Anika (Friendly)' },
-  { id: 'scOwDtmlUjD3prqpp97I', label: 'Sam (Support Agent)' },
+  { group: '── Narration ──', disabled: true },
+  { id: 'nPczCjzI2devNBz1zQrb', label: 'Brian — Deep Resonant' },
+  { id: 'LruHrtVF6PSyGItzMNHS', label: 'Benjamin — Warm Calming' },
+  { id: 'AeRdCCKzvd23BpJoofzx', label: 'Nathaniel — British Calm' },
+  { id: 'DYkrAHD8iwork3YSUBbs', label: 'Tom — Conversations & Books' },
+  { id: 'RILOU7YmBhvwJGDGjNmP', label: 'Jane — Audiobook Reader' },
+  { id: '8JVbfL6oEdmuxKn5DK2C', label: 'Johnny Kid — Calm Narrator' },
+  { id: 'eR40ATw9ArzDf9h3v7t7', label: 'Addison 2.0 — Australian' },
+  { id: 'BIvP0GN1cAtSRTxNHnWS', label: 'Ellen — Serious Direct' },
+  { id: 'aMSt68OGf4xUZAnLpTU8', label: 'Juniper — Grounded Pro' },
+  { group: '── Conversational ──', disabled: true },
+  { id: 'Sm1seazb4gs7RSlUVw7c', label: 'Anika — Friendly' },
+  { id: '6aDn1KB0hjpdcocrUkmq', label: 'Tiffany — Welcoming' },
+  { id: 'scOwDtmlUjD3prqpp97I', label: 'Sam — Support Agent' },
+  { id: '1SM7GgM6IMuvQlz2BwM3', label: 'Mark — Casual Relaxed' },
+  { id: 'UgBBYS2sOqTuMpoF3BR0', label: 'Mark — Natural' },
+  { id: 'exsUS4vynmxd379XN4yO', label: 'Blondie — Conversational' },
+  { id: 'lcMyyd2HUfFzxdCaC4Ta', label: 'Lucy — Fresh Casual' },
+  { id: 'g6xIsTj2HwM6VR4iXFCw', label: 'Jessica A.B. — Chatty' },
+  { id: 'BpjGufoPiobT79j2vtj4', label: 'Priyanka — Calm Neutral' },
+  { id: 'cgSgspJ2msm6clMCkdW9', label: 'Jessica — Playful Warm' },
+  { id: '5l5f8iK3YPeGga21rQIX', label: 'Adeline — Feminine' },
+  { id: 'iP95p4xoKVk53GoZ742B', label: 'Chris — Charming' },
+  { group: '── Characters ──', disabled: true },
+  { id: 'YOq2y2Up4RgXP2HyXjE5', label: 'Xavier — Metal Announcer' },
+  { id: 'DTKMou8ccj1ZaWGBiotd', label: 'Jamahal — Vibrant' },
+  { id: 'vBKc2FfBKJfcZNyEt1n6', label: 'Finn — Youthful' },
+  { id: 'EkK5I93UQWFDigLMpZcX', label: 'James — Husky Bold' },
+  { id: 'NNl6r8mD7vthiJatiJt1', label: 'Bradford — Expressive' },
+  { id: 'qXpMhyvQqiRxWQs4qSSB', label: 'Horatius — Energetic' },
+  { id: 'TC0Zp7WVFzhA8zpTlRqV', label: 'Aria — Sultry Villain' },
+  { id: 'flHkNRp1BlvT73UL6gyz', label: 'Jessica A.B. — Villain' },
+  { id: 'esy0r39YPLQjOczyOib8', label: 'Britney — Villain' },
+  { id: 'zYcjlYFOd3taleS0gkk3', label: 'Edward — Cocky' },
+  { id: 'ljo9gAlSqKOvF6D8sOsX', label: 'Viking Bjorn — Epic' },
+  { id: 'PPzYpIqttlTYA83688JI', label: 'Pirate Marshal' },
+  { id: '9yzdeviXkFddZ4Oz8Mok', label: 'Lutz — Giggly' },
+  { id: 'B8gJV1IhpuegLxdpXFOE', label: 'Kuon — Cheerful' },
+  { id: 'nzeAacJi50IvxcyDnMXa', label: 'Marshal — Funny Prof' },
+  { id: 'ruirxsoakN0GWmGNIo04', label: 'John Morgan — Cowboy' },
+  { id: 'pNInz6obpgDQGcFmaJgB', label: 'Adam — Dominant' },
+  { id: 'SOYHLrjzK2X1ezoPC6cr', label: 'Harry — Fierce Warrior' },
+  { id: 'eVItLK1UvXctxuaRV2Oq', label: 'Jean — Alluring Femme' },
+  { group: '── News & Broadcast ──', disabled: true },
+  { id: 'x70vRnQBMBu4FAYhjJbO', label: 'Nathan — Radio Host' },
+  { id: 'aD6riP1btT197c6dACmy', label: 'Rachel M — British Radio' },
+  { id: 'gU0LNdkMOQCOrPrwtbee', label: 'British Football Announcer' },
+  { id: 'wo6udizrrtpIxWGp2qJk', label: 'Northern Terry' },
+  { id: 'DGzg6RaUqxGRTHSBjfgF', label: 'Brock — Sergeant' },
+  { id: 'CeNX9CMwmxDxUF5Q2Inm', label: 'Johnny Dynamite — Radio DJ' },
+  { id: 'dHd5gvgSOzSfduK4CvEg', label: 'Ed — Late Night' },
+  { id: 'mtrellq69YZsNwzUSyXh', label: 'Rex Thunder — Deep Tough' },
+  { id: 'st7NwhTPEzqo2riw7qWC', label: 'Blondie — Radio Host' },
+  { id: 'DGTOOUoGpoP6UZ9uSWfA', label: 'Célian — Documentary' },
+  { group: '── Trailer & Epic ──', disabled: true },
+  { id: 'LG95yZDEHg6fCZdQjLqj', label: 'Phil — Passionate Announcer' },
+  { id: 'EiNlNiXeDU1pqqOPrYMO', label: 'John Doe — Deep' },
+  { id: '6F5Zhi321D3Oq7v1oNT4', label: 'Hank — Epic Narrator' },
+  { id: 'YXpFCvM1S3JbWEJhoskW', label: 'Wyatt — Rustic Cowboy' },
+  { id: '4YYIPFl9wE5c4L2eu2Gb', label: "Burt Reynolds™ — Deep" },
+  { id: 'Bj9UqZbhQsanLzgalpEG', label: 'Austin — Deep Raspy' },
+  { id: 'c6SfcYrb2t09NHXiT80T', label: 'Jarnathan — Versatile' },
+  { group: '── Social Media ──', disabled: true },
+  { id: 'kPzsL2i3teMYv0FxEYQ6', label: 'Brittney — Fun Youthful' },
+  { id: 'TX3LPaxmHKxFdv7VOQHJ', label: 'Liam — Social Creator' },
+  { id: 'FGY2WhTYpPnrIDTdsKH5', label: 'Laura — Quirky' },
+  { id: 'uYXf8XasLslADfZ2MB4u', label: 'Hope — Bubbly Gossipy' },
+  { id: 'pPdl9cQBQq4p6mRkZy2Z', label: 'Emma — Adorable Upbeat' },
+  { id: 'N2lVS1w4EtoT3dr4eOWO', label: 'Callum — Husky Trickster' },
+  { id: 'gs0tAILXbY5DNrJrsM6F', label: 'Jeff — Classy Strong' },
+  { id: 'BZgkqPqms7Kj9ulSkVzn', label: 'Eve — Energetic Happy' },
+  { id: 'hpp4J3VqNfWAUOO0d1Us', label: 'Bella — Warm Professional' },
+  { id: 'ZF6FPAbjXT4488VcRRnw', label: 'Amelia — Expressive' },
+  { id: '1hlpeD1ydbI2ow0Tt3EW', label: 'Olivia — Warm Engaging' },
+  { group: '── Meditation & Calm ──', disabled: true },
+  { id: 'MJ0RnG71ty4LH3dvNfSd', label: 'Leon — Soothing Grounded' },
+  { id: 'hqfrgApggtO1785R4Fsn', label: 'Theodore HQ — Serene' },
+  { id: '1wGbFxmAM3Fgw63G1zZJ', label: 'Allison — Meditative' },
+  { id: 'Qggl4b0xRMiqOwhPtVWT', label: 'Clara — Calm Soothing' },
+  { id: 'zA6D7RyKdc2EClouEMkP', label: 'AImee — ASMR Meditation' },
+  { id: 'tnSpp4vdxKPjI9w0GnoV', label: 'Hope — Upbeat Clear' },
+  { id: 'iCrDUkL56s3C8sCRl7wb', label: 'Hope — Poetic Romantic' },
+  { id: 'NOpBlnGInO9m6vDvFkFC', label: 'Spuds Oxley — Approachable' },
+  { id: 'P1bg08DkjqiVEzOn76yG', label: 'Viraj — Rich Soft' },
+  { id: '1U02n4nD6AdIZ9CjF053', label: 'Viraj — Smooth Gentle' },
+  { id: 'qDuRKMlYmrm8trt5QyBn', label: 'Taksh — Calm Serious' },
+  { id: 'Tsns2HvNFKfGiNjllgqo', label: 'Sven — Emotional Nice' },
+  { id: 'Sq93GQT4X1lKDXsQcixO', label: 'Felix — Warm RP' },
+  { id: 'wJqPPQ618aTW29mptyoc', label: 'Ana Rita — Multilingual' },
+  { id: '2zRM7PkgwBPiau2jvVXc', label: 'Monika Sogam — Natural' },
+  { group: '── Arabic ──', disabled: true },
+  { id: 'Z3R5wn05IrDiVCyEkUrK', label: 'Arabella — Mysterious' },
 ];
 
 /* ── Rich voice data for picker ────────────────────────────────────── */
+// Preview URL: https://static.aiquickdraw.com/elevenlabs/voice/<id>.mp3
 const VOICE_CATALOG = [
-  // category, id, name, gender, lang, accent, emoji, color
-  { cat:'Narration', id:'Rachel',                   name:'Rachel',             gender:'female', lang:'EN',    accent:'American',   emoji:'👩',  color:'#3a4a8a' },
-  { cat:'Narration', id:'nPczCjzI2devNBz1zQrb',    name:'Brian',              gender:'male',   lang:'EN',    accent:'Deep',       emoji:'🧔',  color:'#2a3a5a' },
-  { cat:'Narration', id:'LruHrtVF6PSyGItzMNHS',    name:'Benjamin',           gender:'male',   lang:'EN',    accent:'Calm',       emoji:'👨',  color:'#2a4a3a' },
-  { cat:'Narration', id:'AeRdCCKzvd23BpJoofzx',    name:'Nathaniel',          gender:'male',   lang:'EN',    accent:'British',    emoji:'🎩',  color:'#3a2a5a' },
-  { cat:'Characters', id:'Roger',                   name:'Roger',              gender:'male',   lang:'EN',    accent:'American',   emoji:'🦸',  color:'#4a2a2a' },
-  { cat:'Characters', id:'YOq2y2Up4RgXP2HyXjE5',   name:'Xavier',             gender:'male',   lang:'EN',    accent:'Metal',      emoji:'🤘',  color:'#3a1a1a' },
-  { cat:'Characters', id:'DTKMou8ccj1ZaWGBiotd',   name:'Jamahal',            gender:'male',   lang:'EN',    accent:'Vibrant',    emoji:'🎭',  color:'#4a3a1a' },
-  { cat:'Characters', id:'vBKc2FfBKJfcZNyEt1n6',   name:'Finn',               gender:'male',   lang:'EN',    accent:'Youthful',   emoji:'🧒',  color:'#1a3a4a' },
-  { cat:'Conversational', id:'Aria',               name:'Aria',               gender:'female', lang:'EN',    accent:'American',   emoji:'💁‍♀️', color:'#3a2a5a' },
-  { cat:'Conversational', id:'Sarah',              name:'Sarah',              gender:'female', lang:'EN',    accent:'American',   emoji:'👩‍💼', color:'#2a3a5a' },
-  { cat:'Conversational', id:'Laura',              name:'Laura',              gender:'female', lang:'EN',    accent:'American',   emoji:'🙋‍♀️', color:'#3a2a4a' },
-  { cat:'Conversational', id:'Charlotte',          name:'Charlotte',          gender:'female', lang:'EN',    accent:'British',    emoji:'👩‍🎓', color:'#2a4a3a' },
-  { cat:'Conversational', id:'Alice',              name:'Alice',              gender:'female', lang:'EN',    accent:'British',    emoji:'🧑‍💻', color:'#3a3a2a' },
-  { cat:'Conversational', id:'Sm1seazb4gs7RSlUVw7c',name:'Anika',            gender:'female', lang:'EN',    accent:'Friendly',   emoji:'😊',  color:'#2a4a4a' },
-  { cat:'Conversational', id:'6aDn1KB0hjpdcocrUkmq',name:'Tiffany',          gender:'female', lang:'EN',    accent:'Welcoming',  emoji:'🌸',  color:'#4a2a3a' },
-  { cat:'Conversational', id:'scOwDtmlUjD3prqpp97I',name:'Sam',              gender:'male',   lang:'EN',    accent:'Support',    emoji:'🎧',  color:'#2a3a4a' },
-  { cat:'News & Broadcast', id:'x70vRnQBMBu4FAYhjJbO',name:'Nathan',         gender:'male',   lang:'EN',    accent:'Radio',      emoji:'📻',  color:'#3a3a1a' },
-  { cat:'News & Broadcast', id:'Eric',             name:'Eric',               gender:'male',   lang:'EN',    accent:'American',   emoji:'📰',  color:'#2a2a3a' },
-  { cat:'News & Broadcast', id:'Brian',            name:'Brian',              gender:'male',   lang:'EN',    accent:'American',   emoji:'📡',  color:'#1a3a3a' },
-  { cat:'News & Broadcast', id:'Daniel',           name:'Daniel',             gender:'male',   lang:'EN',    accent:'British',    emoji:'🎙️', color:'#3a2a2a' },
-  { cat:'Trailer & Epic', id:'LG95yZDEHg6fCZdQjLqj',name:'Phil',            gender:'male',   lang:'EN',    accent:'Announcer',  emoji:'🎬',  color:'#4a2a1a' },
-  { cat:'Trailer & Epic', id:'George',             name:'George',             gender:'male',   lang:'EN',    accent:'British',    emoji:'🦅',  color:'#2a3a2a' },
-  { cat:'Trailer & Epic', id:'Charlie',            name:'Charlie',            gender:'male',   lang:'EN',    accent:'Australian', emoji:'⚡',  color:'#1a2a4a' },
-  { cat:'Trailer & Epic', id:'Callum',             name:'Callum',             gender:'male',   lang:'EN',    accent:'Transatlantic',emoji:'🔥',color:'#3a1a2a' },
-  { cat:'Unique & Special', id:'River',            name:'River',              gender:'male',   lang:'EN',    accent:'American',   emoji:'🌊',  color:'#1a3a4a' },
-  { cat:'Unique & Special', id:'Liam',             name:'Liam',               gender:'male',   lang:'EN',    accent:'American',   emoji:'🎵',  color:'#2a2a4a' },
-  { cat:'Unique & Special', id:'Matilda',          name:'Matilda',            gender:'female', lang:'EN',    accent:'American',   emoji:'🌺',  color:'#4a2a4a' },
-  { cat:'Unique & Special', id:'Will',             name:'Will',               gender:'male',   lang:'EN',    accent:'American',   emoji:'🎭',  color:'#2a4a2a' },
-  { cat:'Unique & Special', id:'Jessica',          name:'Jessica',            gender:'female', lang:'EN',    accent:'American',   emoji:'💎',  color:'#3a2a4a' },
-  { cat:'Unique & Special', id:'Bill',             name:'Bill',               gender:'male',   lang:'EN',    accent:'American',   emoji:'🎩',  color:'#4a3a2a' },
-  { cat:'Unique & Special', id:'Sq93GQT4X1lKDXsQcixO',name:'Felix',          gender:'male',   lang:'EN',    accent:'Warm RP',    emoji:'🎻',  color:'#3a4a2a' },
-  { cat:'Unique & Special', id:'wJqPPQ618aTW29mptyoc',name:'Ana Rita',        gender:'female', lang:'MULTI', accent:'Bright',     emoji:'💃',  color:'#4a2a3a' },
-  { cat:'Female Voices', id:'BZgkqPqms7Kj9ulSkVzn',name:'Eve',               gender:'female', lang:'EN',    accent:'Energetic',  emoji:'⚡',  color:'#4a1a3a' },
-  { cat:'Female Voices', id:'Chris',               name:'Chris',              gender:'female', lang:'EN',    accent:'American',   emoji:'👩‍🎤', color:'#3a2a3a' },
-  { cat:'Female Voices', id:'Lily',                name:'Lily',               gender:'female', lang:'EN',    accent:'British',    emoji:'🌷',  color:'#4a2a2a' },
-  { cat:'Female Voices', id:'Sarah',               name:'Sarah',              gender:'female', lang:'EN',    accent:'American',   emoji:'👩‍💼', color:'#2a3a5a' },
-  { cat:'Female Voices', id:'Laura',               name:'Laura',              gender:'female', lang:'EN',    accent:'American',   emoji:'🙋‍♀️', color:'#3a2a4a' },
-  { cat:'Female Voices', id:'Charlotte',           name:'Charlotte',          gender:'female', lang:'EN',    accent:'British',    emoji:'👩‍🎓', color:'#2a4a3a' },
-  { cat:'Female Voices', id:'Alice',               name:'Alice',              gender:'female', lang:'EN',    accent:'British',    emoji:'🧑‍💻', color:'#3a3a2a' },
-  { cat:'Female Voices', id:'Matilda',             name:'Matilda',            gender:'female', lang:'EN',    accent:'American',   emoji:'🌺',  color:'#4a2a4a' },
-  { cat:'Female Voices', id:'Jessica',             name:'Jessica',            gender:'female', lang:'EN',    accent:'American',   emoji:'💎',  color:'#3a2a4a' },
-  { cat:'Male Voices',   id:'George',              name:'George',             gender:'male',   lang:'EN',    accent:'British',    emoji:'🦅',  color:'#2a3a2a' },
-  { cat:'Male Voices',   id:'Charlie',             name:'Charlie',            gender:'male',   lang:'EN',    accent:'Australian', emoji:'⚡',  color:'#1a2a4a' },
-  { cat:'Male Voices',   id:'Callum',              name:'Callum',             gender:'male',   lang:'EN',    accent:'Transatlantic',emoji:'🔥',color:'#3a1a2a' },
-  { cat:'Male Voices',   id:'River',               name:'River',              gender:'male',   lang:'EN',    accent:'American',   emoji:'🌊',  color:'#1a3a4a' },
-  { cat:'Male Voices',   id:'Liam',                name:'Liam',               gender:'male',   lang:'EN',    accent:'American',   emoji:'🎵',  color:'#2a2a4a' },
-  { cat:'Male Voices',   id:'Will',                name:'Will',               gender:'male',   lang:'EN',    accent:'American',   emoji:'🎭',  color:'#2a4a2a' },
-  { cat:'Male Voices',   id:'Bill',                name:'Bill',               gender:'male',   lang:'EN',    accent:'American',   emoji:'🎩',  color:'#4a3a2a' },
-  { cat:'Male Voices',   id:'Eric',                name:'Eric',               gender:'male',   lang:'EN',    accent:'American',   emoji:'📰',  color:'#2a2a3a' },
-  { cat:'Male Voices',   id:'Brian',               name:'Brian',              gender:'male',   lang:'EN',    accent:'American',   emoji:'📡',  color:'#1a3a3a' },
-  { cat:'Male Voices',   id:'Daniel',              name:'Daniel',             gender:'male',   lang:'EN',    accent:'British',    emoji:'🎙️', color:'#3a2a2a' },
-  { cat:'Arabic', id:'Z3R5wn05IrDiVCyEkUrK',      name:'Arabella',           gender:'female', lang:'AR',    accent:'Mysterious', emoji:'🌙',  color:'#2a1a4a' },
+  // NARRATION
+  { cat:'Narration', id:'Rachel',                   name:'Rachel',             gender:'female', lang:'EN',  accent:'American',      emoji:'👩',  color:'#3a4a8a' },
+  { cat:'Narration', id:'Matilda',                  name:'Matilda',            gender:'female', lang:'EN',  accent:'Australian',    emoji:'🌺',  color:'#4a2a4a' },
+  { cat:'Narration', id:'nPczCjzI2devNBz1zQrb',    name:'Brian',              gender:'male',   lang:'EN',  accent:'Deep Resonant',  emoji:'🧔',  color:'#2a3a5a' },
+  { cat:'Narration', id:'LruHrtVF6PSyGItzMNHS',    name:'Benjamin',           gender:'male',   lang:'EN',  accent:'Warm Calming',   emoji:'👨',  color:'#2a4a3a' },
+  { cat:'Narration', id:'AeRdCCKzvd23BpJoofzx',    name:'Nathaniel',          gender:'male',   lang:'EN',  accent:'British Calm',   emoji:'🎩',  color:'#3a2a5a' },
+  { cat:'Narration', id:'DYkrAHD8iwork3YSUBbs',    name:'Tom',                gender:'male',   lang:'EN',  accent:'Conversational', emoji:'📖',  color:'#2a3a4a' },
+  { cat:'Narration', id:'RILOU7YmBhvwJGDGjNmP',    name:'Jane',               gender:'female', lang:'EN',  accent:'Professional',   emoji:'📚',  color:'#3a3a5a' },
+  { cat:'Narration', id:'8JVbfL6oEdmuxKn5DK2C',    name:'Johnny Kid',         gender:'male',   lang:'EN',  accent:'Calm Narrator',  emoji:'🎙️', color:'#2a2a4a' },
+  { cat:'Narration', id:'eR40ATw9ArzDf9h3v7t7',    name:'Addison 2.0',        gender:'female', lang:'EN',  accent:'Australian',     emoji:'🦘',  color:'#3a4a2a' },
+  { cat:'Narration', id:'BIvP0GN1cAtSRTxNHnWS',    name:'Ellen',              gender:'female', lang:'EN',  accent:'Direct Serious', emoji:'💼',  color:'#3a2a5a' },
+  { cat:'Narration', id:'aMSt68OGf4xUZAnLpTU8',    name:'Juniper',            gender:'female', lang:'EN',  accent:'Grounded Pro',   emoji:'🌿',  color:'#2a4a3a' },
+  { cat:'Narration', id:'hqfrgApggtO1785R4Fsn',    name:'Theodore HQ',        gender:'male',   lang:'EN',  accent:'Serene',         emoji:'🏔️', color:'#2a3a3a' },
+  // CONVERSATIONAL
+  { cat:'Conversational', id:'Aria',               name:'Aria',               gender:'female', lang:'EN',  accent:'American',       emoji:'💁‍♀️', color:'#3a2a5a' },
+  { cat:'Conversational', id:'Sarah',              name:'Sarah',              gender:'female', lang:'EN',  accent:'American',       emoji:'👩‍💼', color:'#2a3a5a' },
+  { cat:'Conversational', id:'Laura',              name:'Laura',              gender:'female', lang:'EN',  accent:'American',       emoji:'🙋‍♀️', color:'#3a2a4a' },
+  { cat:'Conversational', id:'Charlotte',          name:'Charlotte',          gender:'female', lang:'EN',  accent:'British',        emoji:'👩‍🎓', color:'#2a4a3a' },
+  { cat:'Conversational', id:'Alice',              name:'Alice',              gender:'female', lang:'EN',  accent:'British',        emoji:'🧑‍💻', color:'#3a3a2a' },
+  { cat:'Conversational', id:'Jessica',            name:'Jessica',            gender:'female', lang:'EN',  accent:'American',       emoji:'💎',  color:'#3a2a4a' },
+  { cat:'Conversational', id:'Chris',              name:'Chris',              gender:'female', lang:'EN',  accent:'American',       emoji:'👩‍🎤', color:'#3a2a3a' },
+  { cat:'Conversational', id:'Sm1seazb4gs7RSlUVw7c',name:'Anika',            gender:'female', lang:'EN',  accent:'Friendly',       emoji:'😊',  color:'#2a4a4a' },
+  { cat:'Conversational', id:'6aDn1KB0hjpdcocrUkmq',name:'Tiffany',          gender:'female', lang:'EN',  accent:'Welcoming',      emoji:'🌸',  color:'#4a2a3a' },
+  { cat:'Conversational', id:'scOwDtmlUjD3prqpp97I',name:'Sam',              gender:'male',   lang:'EN',  accent:'Support',        emoji:'🎧',  color:'#2a3a4a' },
+  { cat:'Conversational', id:'1SM7GgM6IMuvQlz2BwM3',name:'Mark',             gender:'male',   lang:'EN',  accent:'Casual Relaxed', emoji:'☕',  color:'#3a3a2a' },
+  { cat:'Conversational', id:'UgBBYS2sOqTuMpoF3BR0',name:'Mark',             gender:'male',   lang:'EN',  accent:'Natural',        emoji:'🤝',  color:'#2a3a3a' },
+  { cat:'Conversational', id:'exsUS4vynmxd379XN4yO',name:'Blondie',          gender:'female', lang:'EN',  accent:'Conversational', emoji:'👱‍♀️', color:'#4a3a2a' },
+  { cat:'Conversational', id:'lcMyyd2HUfFzxdCaC4Ta',name:'Lucy',             gender:'female', lang:'EN',  accent:'Fresh Casual',   emoji:'🌼',  color:'#3a4a2a' },
+  { cat:'Conversational', id:'g6xIsTj2HwM6VR4iXFCw',name:'Jessica A.B.',    gender:'female', lang:'EN',  accent:'Chatty',         emoji:'💬',  color:'#3a2a4a' },
+  { cat:'Conversational', id:'BpjGufoPiobT79j2vtj4',name:'Priyanka',         gender:'female', lang:'MULTI',accent:'Calm Neutral',  emoji:'🧘‍♀️', color:'#4a2a4a' },
+  { cat:'Conversational', id:'cgSgspJ2msm6clMCkdW9',name:'Jessica',          gender:'female', lang:'EN',  accent:'Playful Warm',   emoji:'✨',  color:'#3a3a4a' },
+  { cat:'Conversational', id:'5l5f8iK3YPeGga21rQIX',name:'Adeline',          gender:'female', lang:'EN',  accent:'Feminine',       emoji:'🌷',  color:'#4a2a3a' },
+  { cat:'Conversational', id:'iP95p4xoKVk53GoZ742B',name:'Chris',            gender:'male',   lang:'EN',  accent:'Charming',       emoji:'😎',  color:'#2a3a4a' },
+  { cat:'Conversational', id:'Lily',               name:'Lily',               gender:'female', lang:'EN',  accent:'British',        emoji:'🌷',  color:'#4a2a2a' },
+  // CHARACTERS
+  { cat:'Characters', id:'Roger',                  name:'Roger',              gender:'male',   lang:'EN',  accent:'American',       emoji:'🦸',  color:'#4a2a2a' },
+  { cat:'Characters', id:'Will',                   name:'Will',               gender:'male',   lang:'EN',  accent:'American',       emoji:'🎭',  color:'#2a4a2a' },
+  { cat:'Characters', id:'YOq2y2Up4RgXP2HyXjE5',  name:'Xavier',             gender:'male',   lang:'EN',  accent:'Metal',          emoji:'🤘',  color:'#3a1a1a' },
+  { cat:'Characters', id:'DTKMou8ccj1ZaWGBiotd',  name:'Jamahal',            gender:'male',   lang:'EN',  accent:'Vibrant',        emoji:'🎭',  color:'#4a3a1a' },
+  { cat:'Characters', id:'vBKc2FfBKJfcZNyEt1n6',  name:'Finn',               gender:'male',   lang:'EN',  accent:'Youthful',       emoji:'🧒',  color:'#1a3a4a' },
+  { cat:'Characters', id:'EkK5I93UQWFDigLMpZcX',  name:'James',              gender:'male',   lang:'EN',  accent:'Husky Bold',     emoji:'🕵️', color:'#2a2a3a' },
+  { cat:'Characters', id:'NNl6r8mD7vthiJatiJt1',  name:'Bradford',           gender:'male',   lang:'EN',  accent:'Expressive',     emoji:'🧠',  color:'#3a2a4a' },
+  { cat:'Characters', id:'qXpMhyvQqiRxWQs4qSSB',  name:'Horatius',           gender:'male',   lang:'EN',  accent:'Energetic',      emoji:'⚔️', color:'#4a2a3a' },
+  { cat:'Characters', id:'B8gJV1IhpuegLxdpXFOE',  name:'Kuon',               gender:'male',   lang:'EN',  accent:'Cheerful',       emoji:'🌟',  color:'#3a3a1a' },
+  { cat:'Characters', id:'zYcjlYFOd3taleS0gkk3',  name:'Edward',             gender:'male',   lang:'EN',  accent:'Cocky',          emoji:'😤',  color:'#4a2a2a' },
+  { cat:'Characters', id:'ljo9gAlSqKOvF6D8sOsX',  name:'Viking Bjorn',       gender:'male',   lang:'EN',  accent:'Epic Medieval',  emoji:'⚔️', color:'#3a1a2a' },
+  { cat:'Characters', id:'PPzYpIqttlTYA83688JI',  name:'Pirate Marshal',     gender:'male',   lang:'EN',  accent:'Pirate',         emoji:'🏴‍☠️',color:'#2a2a2a' },
+  { cat:'Characters', id:'9yzdeviXkFddZ4Oz8Mok',  name:'Lutz',               gender:'male',   lang:'EN',  accent:'Giggly',         emoji:'😄',  color:'#3a4a1a' },
+  { cat:'Characters', id:'nzeAacJi50IvxcyDnMXa',  name:'Marshal',            gender:'male',   lang:'EN',  accent:'Funny Prof',     emoji:'🎓',  color:'#2a3a2a' },
+  { cat:'Characters', id:'ruirxsoakN0GWmGNIo04',  name:'John Morgan',        gender:'male',   lang:'EN',  accent:'Gritty Cowboy',  emoji:'🤠',  color:'#4a3a2a' },
+  { cat:'Characters', id:'pNInz6obpgDQGcFmaJgB',  name:'Adam',               gender:'male',   lang:'EN',  accent:'Dominant',       emoji:'💪',  color:'#3a2a2a' },
+  { cat:'Characters', id:'SOYHLrjzK2X1ezoPC6cr',  name:'Harry',              gender:'male',   lang:'EN',  accent:'Fierce Warrior', emoji:'🗡️', color:'#3a1a1a' },
+  { cat:'Characters', id:'TC0Zp7WVFzhA8zpTlRqV',  name:'Aria',               gender:'female', lang:'EN',  accent:'Sultry Villain', emoji:'🦹‍♀️',color:'#4a1a3a' },
+  { cat:'Characters', id:'flHkNRp1BlvT73UL6gyz',  name:'Jessica A.B.',       gender:'female', lang:'EN',  accent:'Eloquent Villain',emoji:'🎭', color:'#3a1a3a' },
+  { cat:'Characters', id:'esy0r39YPLQjOczyOib8',  name:'Britney',            gender:'female', lang:'EN',  accent:'Villain',        emoji:'🖤',  color:'#2a1a3a' },
+  { cat:'Characters', id:'eVItLK1UvXctxuaRV2Oq',  name:'Jean',               gender:'female', lang:'EN',  accent:'Alluring',       emoji:'💋',  color:'#4a1a2a' },
+  // NEWS & BROADCAST
+  { cat:'News & Broadcast', id:'Brian',            name:'Brian',              gender:'male',   lang:'EN',  accent:'American',       emoji:'📡',  color:'#1a3a3a' },
+  { cat:'News & Broadcast', id:'Daniel',           name:'Daniel',             gender:'male',   lang:'EN',  accent:'British',        emoji:'🎙️', color:'#3a2a2a' },
+  { cat:'News & Broadcast', id:'Eric',             name:'Eric',               gender:'male',   lang:'EN',  accent:'American',       emoji:'📰',  color:'#2a2a3a' },
+  { cat:'News & Broadcast', id:'x70vRnQBMBu4FAYhjJbO',name:'Nathan',         gender:'male',   lang:'EN',  accent:'Radio Host',     emoji:'📻',  color:'#3a3a1a' },
+  { cat:'News & Broadcast', id:'aD6riP1btT197c6dACmy',name:'Rachel M',       gender:'female', lang:'EN',  accent:'British Radio',  emoji:'📺',  color:'#2a3a5a' },
+  { cat:'News & Broadcast', id:'gU0LNdkMOQCOrPrwtbee',name:'Football Ann.',  gender:'male',   lang:'EN',  accent:'British',        emoji:'⚽',  color:'#2a4a2a' },
+  { cat:'News & Broadcast', id:'wo6udizrrtpIxWGp2qJk',name:'Northern Terry', gender:'male',   lang:'EN',  accent:'Northern',       emoji:'🎤',  color:'#3a3a2a' },
+  { cat:'News & Broadcast', id:'DGzg6RaUqxGRTHSBjfgF',name:'Brock',         gender:'male',   lang:'EN',  accent:'Sergeant',       emoji:'🎖️', color:'#3a2a1a' },
+  { cat:'News & Broadcast', id:'CeNX9CMwmxDxUF5Q2Inm',name:'Johnny Dynamite',gender:'male',  lang:'EN',  accent:'Vintage Radio',  emoji:'📯',  color:'#4a3a1a' },
+  { cat:'News & Broadcast', id:'dHd5gvgSOzSfduK4CvEg',name:'Ed',             gender:'male',   lang:'EN',  accent:'Late Night',     emoji:'🌙',  color:'#1a2a3a' },
+  { cat:'News & Broadcast', id:'mtrellq69YZsNwzUSyXh',name:'Rex Thunder',    gender:'male',   lang:'EN',  accent:'Deep Tough',     emoji:'⚡',  color:'#3a2a1a' },
+  { cat:'News & Broadcast', id:'st7NwhTPEzqo2riw7qWC',name:'Blondie',        gender:'female', lang:'EN',  accent:'Radio Host',     emoji:'📻',  color:'#4a3a2a' },
+  { cat:'News & Broadcast', id:'DGTOOUoGpoP6UZ9uSWfA',name:'Célian',         gender:'male',   lang:'EN',  accent:'Documentary',    emoji:'🎬',  color:'#2a3a3a' },
+  { cat:'News & Broadcast', id:'George',           name:'George',             gender:'male',   lang:'EN',  accent:'British',        emoji:'🦅',  color:'#2a3a2a' },
+  // TRAILER & EPIC
+  { cat:'Trailer & Epic', id:'Charlie',            name:'Charlie',            gender:'male',   lang:'EN',  accent:'Australian',     emoji:'⚡',  color:'#1a2a4a' },
+  { cat:'Trailer & Epic', id:'Callum',             name:'Callum',             gender:'male',   lang:'EN',  accent:'Transatlantic',  emoji:'🔥',  color:'#3a1a2a' },
+  { cat:'Trailer & Epic', id:'River',              name:'River',              gender:'male',   lang:'EN',  accent:'American',       emoji:'🌊',  color:'#1a3a4a' },
+  { cat:'Trailer & Epic', id:'LG95yZDEHg6fCZdQjLqj',name:'Phil',            gender:'male',   lang:'EN',  accent:'Passionate Ann.',emoji:'🎬',  color:'#4a2a1a' },
+  { cat:'Trailer & Epic', id:'EiNlNiXeDU1pqqOPrYMO',name:'John Doe',        gender:'male',   lang:'EN',  accent:'Deep',           emoji:'🗿',  color:'#2a2a2a' },
+  { cat:'Trailer & Epic', id:'6F5Zhi321D3Oq7v1oNT4',name:'Hank',            gender:'male',   lang:'EN',  accent:'Epic Narrator',  emoji:'🏔️', color:'#3a2a1a' },
+  { cat:'Trailer & Epic', id:'YXpFCvM1S3JbWEJhoskW',name:'Wyatt',           gender:'male',   lang:'EN',  accent:'Rustic Cowboy',  emoji:'🤠',  color:'#4a3a1a' },
+  { cat:'Trailer & Epic', id:'4YYIPFl9wE5c4L2eu2Gb',name:'Burt Reynolds™', gender:'male',   lang:'EN',  accent:'Deep Smooth',    emoji:'🎥',  color:'#3a2a2a' },
+  { cat:'Trailer & Epic', id:'Bj9UqZbhQsanLzgalpEG',name:'Austin',          gender:'male',   lang:'EN',  accent:'Deep Raspy',     emoji:'🗺️', color:'#2a3a2a' },
+  { cat:'Trailer & Epic', id:'c6SfcYrb2t09NHXiT80T',name:'Jarnathan',       gender:'male',   lang:'EN',  accent:'Versatile',      emoji:'🎯',  color:'#3a3a2a' },
+  // SOCIAL MEDIA
+  { cat:'Social Media', id:'Liam',                 name:'Liam',               gender:'male',   lang:'EN',  accent:'American',       emoji:'🎵',  color:'#2a2a4a' },
+  { cat:'Social Media', id:'Bill',                 name:'Bill',               gender:'male',   lang:'EN',  accent:'American',       emoji:'🎩',  color:'#4a3a2a' },
+  { cat:'Social Media', id:'kPzsL2i3teMYv0FxEYQ6',name:'Brittney',          gender:'female', lang:'EN',  accent:'Fun Youthful',   emoji:'🎉',  color:'#4a2a4a' },
+  { cat:'Social Media', id:'TX3LPaxmHKxFdv7VOQHJ',name:'Liam',              gender:'male',   lang:'EN',  accent:'Social Creator', emoji:'📱',  color:'#1a3a4a' },
+  { cat:'Social Media', id:'FGY2WhTYpPnrIDTdsKH5',name:'Laura',             gender:'female', lang:'EN',  accent:'Quirky',         emoji:'🎨',  color:'#3a1a4a' },
+  { cat:'Social Media', id:'uYXf8XasLslADfZ2MB4u',name:'Hope',              gender:'female', lang:'EN',  accent:'Bubbly Gossipy', emoji:'💅',  color:'#4a2a3a' },
+  { cat:'Social Media', id:'pPdl9cQBQq4p6mRkZy2Z',name:'Emma',              gender:'female', lang:'EN',  accent:'Adorable Upbeat',emoji:'🌈',  color:'#3a2a4a' },
+  { cat:'Social Media', id:'N2lVS1w4EtoT3dr4eOWO',name:'Callum',            gender:'male',   lang:'EN',  accent:'Husky Trickster',emoji:'😏',  color:'#2a2a3a' },
+  { cat:'Social Media', id:'gs0tAILXbY5DNrJrsM6F',name:'Jeff',              gender:'male',   lang:'EN',  accent:'Classy Strong',  emoji:'🍸',  color:'#3a3a2a' },
+  { cat:'Social Media', id:'BZgkqPqms7Kj9ulSkVzn',name:'Eve',               gender:'female', lang:'EN',  accent:'Energetic Happy',emoji:'⚡',  color:'#4a1a3a' },
+  { cat:'Social Media', id:'hpp4J3VqNfWAUOO0d1Us',name:'Bella',             gender:'female', lang:'EN',  accent:'Professional',   emoji:'💄',  color:'#4a2a2a' },
+  { cat:'Social Media', id:'ZF6FPAbjXT4488VcRRnw',name:'Amelia',            gender:'female', lang:'EN',  accent:'Expressive',     emoji:'🎊',  color:'#3a2a5a' },
+  { cat:'Social Media', id:'1hlpeD1ydbI2ow0Tt3EW',name:'Olivia',            gender:'female', lang:'EN',  accent:'Warm Engaging',  emoji:'🌺',  color:'#4a3a2a' },
+  // MEDITATION & CALM
+  { cat:'Meditation & Calm', id:'MJ0RnG71ty4LH3dvNfSd',name:'Leon',         gender:'male',   lang:'EN',  accent:'Soothing',       emoji:'🏔️', color:'#1a3a4a' },
+  { cat:'Meditation & Calm', id:'1wGbFxmAM3Fgw63G1zZJ',name:'Allison',      gender:'female', lang:'EN',  accent:'Meditative',     emoji:'🧘‍♀️', color:'#3a2a5a' },
+  { cat:'Meditation & Calm', id:'Qggl4b0xRMiqOwhPtVWT',name:'Clara',        gender:'female', lang:'EN',  accent:'Calm Soothing',  emoji:'🌙',  color:'#2a3a5a' },
+  { cat:'Meditation & Calm', id:'zA6D7RyKdc2EClouEMkP',name:'AImee',        gender:'female', lang:'EN',  accent:'ASMR Meditation',emoji:'🌿',  color:'#2a4a3a' },
+  { cat:'Meditation & Calm', id:'tnSpp4vdxKPjI9w0GnoV',name:'Hope',         gender:'female', lang:'EN',  accent:'Upbeat Clear',   emoji:'☀️', color:'#4a3a1a' },
+  { cat:'Meditation & Calm', id:'iCrDUkL56s3C8sCRl7wb',name:'Hope',         gender:'female', lang:'EN',  accent:'Poetic Romantic',emoji:'🌸',  color:'#4a2a3a' },
+  { cat:'Meditation & Calm', id:'NOpBlnGInO9m6vDvFkFC',name:'Spuds Oxley',  gender:'male',   lang:'EN',  accent:'Approachable',   emoji:'🏡',  color:'#3a3a2a' },
+  { cat:'Meditation & Calm', id:'P1bg08DkjqiVEzOn76yG',name:'Viraj',        gender:'male',   lang:'EN',  accent:'Rich Soft',      emoji:'🎶',  color:'#2a3a4a' },
+  { cat:'Meditation & Calm', id:'1U02n4nD6AdIZ9CjF053',name:'Viraj',        gender:'male',   lang:'EN',  accent:'Smooth Gentle',  emoji:'💫',  color:'#2a2a4a' },
+  { cat:'Meditation & Calm', id:'qDuRKMlYmrm8trt5QyBn',name:'Taksh',        gender:'male',   lang:'EN',  accent:'Calm Serious',   emoji:'🧘',  color:'#3a2a3a' },
+  { cat:'Meditation & Calm', id:'Tsns2HvNFKfGiNjllgqo',name:'Sven',         gender:'male',   lang:'EN',  accent:'Emotional',      emoji:'🌊',  color:'#2a3a4a' },
+  { cat:'Meditation & Calm', id:'Sq93GQT4X1lKDXsQcixO',name:'Felix',        gender:'male',   lang:'EN',  accent:'Warm RP',        emoji:'🎻',  color:'#3a4a2a' },
+  { cat:'Meditation & Calm', id:'wJqPPQ618aTW29mptyoc',name:'Ana Rita',     gender:'female', lang:'MULTI',accent:'Bright',        emoji:'💃',  color:'#4a2a3a' },
+  { cat:'Meditation & Calm', id:'2zRM7PkgwBPiau2jvVXc',name:'Monika Sogam', gender:'female', lang:'EN',  accent:'Deep Natural',   emoji:'🌺',  color:'#3a2a4a' },
+  // ARABIC
+  { cat:'Arabic', id:'Z3R5wn05IrDiVCyEkUrK',       name:'Arabella',           gender:'female', lang:'AR',  accent:'Mysterious',     emoji:'🌙',  color:'#2a1a4a' },
 ];
 
 let _vpmSelectedId = 'Rachel';
@@ -967,24 +1114,14 @@ async function previewVpmVoice(id, name, event) {
     _vpmPreviewAudio.onerror = () => { _vpmPlayingId = null; renderVpmGrid(); };
     _vpmPreviewAudio.play(); return;
   }
-  _vpmLoadingId = id; renderVpmGrid();
-  try {
-    const taskId = await createKieTask('elevenlabs/text-to-speech-multilingual-v2', {
-      text: `Hi there! I'm ${name}. This is a short preview of how I sound. I hope you enjoy my voice!`,
-      voice: id, stability: 0.5, similarity_boost: 0.75, style: 0, speed: 1, timestamps: false
-    });
-    const record = await waitKieTask(taskId, 90000);
-    const urls = extractResultUrls(record);
-    if (!urls.length) throw new Error('no url');
-    _vpmPreviewCache[id] = urls[0];
-    _vpmLoadingId = null; _vpmPlayingId = id; renderVpmGrid();
-    _vpmPreviewAudio = new Audio(urls[0]);
-    _vpmPreviewAudio.onended = () => { _vpmPlayingId = null; renderVpmGrid(); };
-    _vpmPreviewAudio.onerror = () => { _vpmPlayingId = null; renderVpmGrid(); };
-    _vpmPreviewAudio.play();
-  } catch(e) {
-    _vpmLoadingId = null; renderVpmGrid();
-  }
+  // Use free static preview URL — instant, no API credits consumed
+  const url = `https://static.aiquickdraw.com/elevenlabs/voice/${encodeURIComponent(id)}.mp3`;
+  _vpmPreviewCache[id] = url;
+  _vpmLoadingId = null; _vpmPlayingId = id; renderVpmGrid();
+  _vpmPreviewAudio = new Audio(url);
+  _vpmPreviewAudio.onended = () => { _vpmPlayingId = null; renderVpmGrid(); };
+  _vpmPreviewAudio.onerror = () => { _vpmPlayingId = null; renderVpmGrid(); };
+  _vpmPreviewAudio.play().catch(() => { _vpmPlayingId = null; renderVpmGrid(); });
 }
 
 function openVoicePicker() {
