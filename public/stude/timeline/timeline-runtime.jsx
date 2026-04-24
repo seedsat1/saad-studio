@@ -265,6 +265,7 @@ function TimelineEditor() {
   const [dragOver, setDragOver] = useState(false);
   const [importInfo, setImportInfo] = useState('Import media by button or drag files onto timeline.');
   const [trackMenuOpen, setTrackMenuOpen] = useState(false);
+  const [projectRatio, setProjectRatio] = useState(() => persisted?.projectRatio || '16:9');
 
   const tlRef = useRef(null);
   const rafRef = useRef(null);
@@ -311,6 +312,7 @@ function TimelineEditor() {
     zoom,
     selected,
     leftPaneW,
+    projectRatio,
   });
 
   const applySnapshot = (snap) => {
@@ -324,6 +326,7 @@ function TimelineEditor() {
     setZoom(Number.isFinite(snap.zoom) ? snap.zoom : 1);
     setSelected(snap.selected || null);
     setLeftPaneW(Number.isFinite(snap.leftPaneW) ? snap.leftPaneW : 118);
+    if (snap.projectRatio) setProjectRatio(snap.projectRatio);
     requestAnimationFrame(() => {
       isApplyingHistoryRef.current = false;
     });
@@ -357,7 +360,7 @@ function TimelineEditor() {
 
   useEffect(() => {
     latestStateRef.current = captureState();
-  }, [clips, tracks, tool, toggles, playhead, zoom, selected, leftPaneW]);
+  }, [clips, tracks, tool, toggles, playhead, zoom, selected, leftPaneW, projectRatio]);
 
   const handleTimelineHotkey = useCallback((eLike, fromBridge = false) => {
     const target = eLike?.target;
@@ -510,6 +513,7 @@ function TimelineEditor() {
             zoom,
             selected,
             leftPaneW,
+            projectRatio,
             scrollLeft: tlRef.current?.scrollLeft || 0,
           }),
         );
@@ -550,6 +554,7 @@ function TimelineEditor() {
         start: c.start,
         dur: c.dur,
         lighting: normalizeLightingProfile(c.lighting),
+        fitMode: c.fitMode || 'fit',
       };
     };
 
@@ -577,6 +582,7 @@ function TimelineEditor() {
       allClips: clips.map((c) => mapClip(c)),
       clipsCount: clips.length,
       tracks: tracks.map((t) => ({ id: t.id, type: t.type, muted: t.muted, solo: t.solo, volume: t.volume ?? 1 })),
+      projectRatio,
     };
     try {
       if (window.parent) window.parent.postMessage(payload, '*');
@@ -718,7 +724,7 @@ function TimelineEditor() {
         const id = `ext_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
         return [
           ...prev,
-          { id, track: trackIndex, start, dur, label, color, src: clip.url || '', kind, ratio: '' },
+          { id, track: trackIndex, start, dur, label, color, src: clip.url || '', kind, ratio: '', fitMode: 'fit' },
         ];
       });
     };
@@ -780,6 +786,11 @@ function TimelineEditor() {
 
   const setTrackVolume = (trackIndex, vol) => {
     setTracks((prev) => prev.map((t, i) => (i === trackIndex ? { ...t, volume: Math.max(0, Math.min(1, Number(vol))) } : t)));
+  };
+
+  const setClipFitMode = (clipId, mode) => {
+    pushUndoSnapshot();
+    setClips((prev) => prev.map((c) => c.id === clipId ? { ...c, fitMode: mode } : c));
   };
 
   const saveProject = () => {
@@ -996,6 +1007,7 @@ function TimelineEditor() {
           src: m.src || '',
           kind: m.kind,
           ratio: m.ratio || '',
+          fitMode: 'fit',
         });
 
         if (m.kind === 'video' && m.hasAudio && audioTrackIndexes.length) {
@@ -1318,7 +1330,23 @@ function TimelineEditor() {
         <span style={{ color: '#777f8b', marginLeft: 10 }}>Edit</span>
         <span style={{ color: '#777f8b', marginLeft: 10 }}>View</span>
         <div style={{ flex: 1 }} />
-        <span style={{ color: '#6c7380', fontSize: 10 }}>Untitled Project · 1920x1080 · 30fps</span>
+        <span style={{ color: '#6c7380', fontSize: 10 }}>Untitled Project · 30fps</span>
+        <span style={{ margin: '0 6px', color: '#3b3f46' }}>|</span>
+        <span style={{ fontSize: 10, color: '#758094', marginRight: 4 }}>Ratio:</span>
+        {['16:9','9:16','1:1','4:3'].map((r) => (
+          <button
+            key={r}
+            onClick={() => setProjectRatio(r)}
+            style={{
+              height: 16, padding: '0 6px', borderRadius: 3, fontSize: 9, fontWeight: 700, cursor: 'pointer',
+              border: projectRatio === r ? '1px solid #4a9eff' : '1px solid #2e3340',
+              background: projectRatio === r ? 'rgba(74,158,255,0.18)' : '#1a1c22',
+              color: projectRatio === r ? '#85b9ff' : '#6c7380',
+              marginRight: 2,
+            }}
+            title={`Set project ratio to ${r}`}
+          >{r}</button>
+        ))}
       </div>
 
       <div style={{ height: 44, borderBottom: '1px solid #2a2d32', background: '#181a1f', display: 'flex', alignItems: 'center', gap: 4, padding: '0 8px' }}>
@@ -1708,6 +1736,27 @@ function TimelineEditor() {
         <span>Clips: {clips.length}</span>
         <span style={{ color: toggles.magnet ? '#6dd687' : '#6a7280' }}>Snap {toggles.magnet ? 'ON' : 'OFF'}</span>
         <span style={{ color: toggles.link ? '#f8c36f' : '#6a7280' }}>Link {toggles.link ? 'ON' : 'OFF'}</span>
+        {(() => {
+          const selClip = selected ? clips.find((c) => c.id === selected) : null;
+          const isVisual = selClip && ['video','image','psd','gif'].includes(String(selClip.kind||selClip.src?.match(/\.(mp4|webm|mov|gif)$/i)?'video':'image'));
+          if (!selClip || !isVisual) return null;
+          return (
+            <>
+              <span style={{ color: '#3b3f46' }}>|</span>
+              <span style={{ color: '#758094' }}>Fit:</span>
+              {['fit','fill','crop','expand'].map((m) => (
+                <button key={m} onClick={() => setClipFitMode(selClip.id, m)} style={{
+                  height: 14, padding: '0 5px', borderRadius: 3, fontSize: 9, fontWeight: 700, cursor: 'pointer',
+                  border: (selClip.fitMode||'fit') === m ? '1px solid #4a9eff' : '1px solid #2e3340',
+                  background: (selClip.fitMode||'fit') === m ? 'rgba(74,158,255,0.18)' : 'transparent',
+                  color: (selClip.fitMode||'fit') === m ? '#85b9ff' : '#6c7380',
+                }}>
+                  {m === 'expand' ? '⊞ expand' : m}
+                </button>
+              ))}
+            </>
+          );
+        })()}
         <div style={{ flex: 1 }} />
         <span>{formatTC(timelineFrames)}</span>
       </div>

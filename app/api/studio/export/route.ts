@@ -17,6 +17,7 @@ interface Clip {
   label: string;
   src: string;
   kind: string;
+  fitMode?: string;
 }
 
 interface TrackInfo {
@@ -47,14 +48,25 @@ async function downloadToTemp(url: string, tmpDir: string, idx: number): Promise
 }
 
 export async function POST(req: NextRequest) {
-  let body: { clips?: Clip[]; tracks?: TrackInfo[]; width?: number; height?: number } = {};
+  let body: { clips?: Clip[]; tracks?: TrackInfo[]; width?: number; height?: number; projectRatio?: string } = {};
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
 
-  const { clips = [], tracks = [], width = 1920, height = 1080 } = body;
+  const RATIO_MAP: Record<string, [number, number]> = {
+    '16:9': [1920, 1080],
+    '9:16': [1080, 1920],
+    '1:1':  [1080, 1080],
+    '4:3':  [1440, 1080],
+    '3:4':  [1080, 1440],
+  };
+  const ratioDims = RATIO_MAP[body.projectRatio || ''] || null;
+  const width  = ratioDims ? ratioDims[0] : (body.width  ?? 1920);
+  const height = ratioDims ? ratioDims[1] : (body.height ?? 1080);
+
+  const { clips = [], tracks = [] } = body;
   if (!clips.length) {
     return NextResponse.json({ error: 'No clips provided' }, { status: 400 });
   }
@@ -121,9 +133,42 @@ export async function POST(req: NextRequest) {
       const clipDurSec = sec(clip.dur).toFixed(3);
       const clipEndSec = sec(clip.start + clip.dur).toFixed(3);
       const vTag = `vcl${videoIdx}`;
+      const fitMode = clip.fitMode || 'fit';
+
+      let scaleFilter: string;
+      if (fitMode === 'expand') {
+        // expand: blurred background + sharp foreground
+        const bgTag  = `${vTag}_bg`;
+        const fgTag  = `${vTag}_fg`;
+        const expTag = `${vTag}_exp`;
+        filterParts.push(
+          `[${inputIdx}:v]trim=duration=${clipDurSec},setpts=PTS-STARTPTS+${clipStartSec}/TB,split[${bgTag}raw][${fgTag}raw]`
+        );
+        filterParts.push(
+          `[${bgTag}raw]scale=${width}:${height}:force_original_aspect_ratio=increase,crop=${width}:${height},boxblur=20:20,setpts=PTS[${bgTag}]`
+        );
+        filterParts.push(
+          `[${fgTag}raw]scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:-1:-1,format=yuv420p,setpts=PTS[${fgTag}]`
+        );
+        filterParts.push(
+          `[${bgTag}][${fgTag}]overlay=(W-w)/2:(H-h)/2,format=yuv420p[${expTag}]`
+        );
+        const compTag = `comp${videoIdx}`;
+        filterParts.push(
+          `[${currentVideo}][${expTag}]overlay=enable='between(t,${clipStartSec},${clipEndSec})':shortest=0[${compTag}]`
+        );
+        currentVideo = compTag;
+        videoIdx++;
+        continue;
+      } else if (fitMode === 'fill' || fitMode === 'crop') {
+        scaleFilter = `scale=${width}:${height}:force_original_aspect_ratio=increase,crop=${width}:${height},format=yuv420p`;
+      } else {
+        // fit (letterbox/pillarbox with black bars)
+        scaleFilter = `scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:-1:-1,format=yuv420p`;
+      }
 
       filterParts.push(
-        `[${inputIdx}:v]trim=duration=${clipDurSec},setpts=PTS-STARTPTS+${clipStartSec}/TB,scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:-1:-1,format=yuv420p[${vTag}]`
+        `[${inputIdx}:v]trim=duration=${clipDurSec},setpts=PTS-STARTPTS+${clipStartSec}/TB,${scaleFilter}[${vTag}]`
       );
       const compTag = `comp${videoIdx}`;
       filterParts.push(
