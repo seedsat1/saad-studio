@@ -152,13 +152,13 @@ function TransportButton({ children, isPlay, playing, onClick, title }) {
 }
 
 const TRACKS = [
-  { id: 'V1', type: 'video', color: '#47d16c', muted: false, solo: false, locked: false, visible: true },
-  { id: 'V2', type: 'video', color: '#31b7aa', muted: false, solo: false, locked: false, visible: true },
-  { id: 'V3', type: 'video', color: '#9b73ff', muted: false, solo: false, locked: false, visible: true },
-  { id: 'A1', type: 'audio', color: '#4aa5ff', muted: false, solo: false, locked: false, visible: true },
-  { id: 'A2', type: 'audio', color: '#ffb347', muted: false, solo: false, locked: false, visible: true },
-  { id: 'A3', type: 'audio', color: '#2fd1e8', muted: false, solo: false, locked: false, visible: true },
-  { id: 'A4', type: 'audio', color: '#b18b74', muted: false, solo: false, locked: false, visible: true },
+  { id: 'V1', type: 'video', color: '#47d16c', muted: false, solo: false, locked: false, visible: true, volume: 1 },
+  { id: 'V2', type: 'video', color: '#31b7aa', muted: false, solo: false, locked: false, visible: true, volume: 1 },
+  { id: 'V3', type: 'video', color: '#9b73ff', muted: false, solo: false, locked: false, visible: true, volume: 1 },
+  { id: 'A1', type: 'audio', color: '#4aa5ff', muted: false, solo: false, locked: false, visible: true, volume: 1 },
+  { id: 'A2', type: 'audio', color: '#ffb347', muted: false, solo: false, locked: false, visible: true, volume: 1 },
+  { id: 'A3', type: 'audio', color: '#2fd1e8', muted: false, solo: false, locked: false, visible: true, volume: 1 },
+  { id: 'A4', type: 'audio', color: '#b18b74', muted: false, solo: false, locked: false, visible: true, volume: 1 },
 ];
 
 const INITIAL_CLIPS = [];
@@ -576,6 +576,7 @@ function TimelineEditor() {
       activeAudioClip: audioMapped,
       allClips: clips.map((c) => mapClip(c)),
       clipsCount: clips.length,
+      tracks: tracks.map((t) => ({ id: t.id, type: t.type, muted: t.muted, solo: t.solo, volume: t.volume ?? 1 })),
     };
     try {
       if (window.parent) window.parent.postMessage(payload, '*');
@@ -775,6 +776,49 @@ function TimelineEditor() {
   const toggleTrack = (trackIndex, key) => {
     pushUndoSnapshot();
     setTracks((prev) => prev.map((t, i) => (i === trackIndex ? { ...t, [key]: !t[key] } : t)));
+  };
+
+  const setTrackVolume = (trackIndex, vol) => {
+    setTracks((prev) => prev.map((t, i) => (i === trackIndex ? { ...t, volume: Math.max(0, Math.min(1, Number(vol))) } : t)));
+  };
+
+  const saveProject = () => {
+    const state = latestStateRef.current || captureState();
+    const json = JSON.stringify({ version: 1, ...state }, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `project_${new Date().toISOString().slice(0,10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
+    setImportInfo('Project saved as JSON file.');
+  };
+
+  const loadProjectInput = React.useRef(null);
+
+  const loadProject = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const parsed = JSON.parse(ev.target.result);
+        if (parsed && Array.isArray(parsed.clips) && Array.isArray(parsed.tracks)) {
+          pushUndoSnapshot();
+          applySnapshot(parsed);
+          setImportInfo(`Project loaded: ${file.name}`);
+        } else {
+          setImportInfo('Invalid project file.');
+        }
+      } catch {
+        setImportInfo('Failed to parse project file.');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
   };
 
   const addTrack = (type) => {
@@ -1318,6 +1362,23 @@ function TimelineEditor() {
           Detach
         </button>
 
+        <div style={{ width: 1, height: 26, background: '#323744', margin: '0 4px' }} />
+        <button
+          onClick={saveProject}
+          style={{ ...iconBtn, width: 54, color: '#a8d8a8' }}
+          title="Save project as JSON"
+        >
+          Save
+        </button>
+        <button
+          onClick={() => loadProjectInput.current?.click()}
+          style={{ ...iconBtn, width: 54, color: '#a8d8a8' }}
+          title="Load project from JSON"
+        >
+          Load
+        </button>
+        <input ref={loadProjectInput} type="file" accept=".json" style={{ display: 'none' }} onChange={loadProject} />
+
         {TOOLS.map((t) => {
           const active = t.toggle ? toggles[t.id] : tool === t.id;
           return (
@@ -1455,6 +1516,13 @@ function TimelineEditor() {
                 <>
                   <MiniBtn active={!tr.muted} onClick={() => toggleTrack(trackIndex, 'muted')} danger={tr.muted}>M</MiniBtn>
                   <MiniBtn active={tr.solo} onClick={() => toggleTrack(trackIndex, 'solo')}>S</MiniBtn>
+                  <input
+                    type="range" min="0" max="1" step="0.05"
+                    value={tr.volume ?? 1}
+                    onChange={(e) => setTrackVolume(trackIndex, e.target.value)}
+                    title={`Volume: ${Math.round((tr.volume ?? 1) * 100)}%`}
+                    style={{ width: 38, height: 3, accentColor: tr.color, cursor: 'pointer', flexShrink: 0 }}
+                  />
                 </>
               )}
             </div>

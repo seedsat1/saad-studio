@@ -592,7 +592,8 @@ async function generateImage(){
     document.getElementById('imgPlaceholder').style.display = 'none';
 
     setImageButtons(true);
-    setImageStatus('Image generated successfully.', 'ok');
+    setImageStatus('Image generated — adding to timeline...', 'ok');
+    addImageToTimeline();
   }catch(err){
     setImageStatus('Generation failed: '+(err && err.message ? err.message : String(err)), 'err');
   }finally{

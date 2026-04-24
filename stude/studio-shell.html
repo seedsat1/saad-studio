@@ -94,6 +94,7 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
           <span id="pPage" style="color:#8ea3bf;flex:1;text-align:right">Prompt</span>
           <div class="pActions">
             <button id="previewExport" title="Export active media">Export</button>
+            <button id="renderBtn" title="Render full timeline to MP4" style="border:1px solid #3b5e35;background:#162412;color:#7ddc7d;border-radius:5px;font-size:10px;padding:4px 8px;cursor:pointer">&#9654; Render</button>
             <button id="previewExpand" title="Expand preview">Expand</button>
           </div>
         </div>
@@ -631,6 +632,48 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
   previewCanvas.addEventListener('click', togglePreviewFullscreen);
   previewExpand.addEventListener('click', togglePreviewFullscreen);
   previewExport.addEventListener('click', exportActiveMedia);
+
+  var renderBtn=document.getElementById('renderBtn');
+  async function renderFullVideo(){
+    if(!lastTimelineState || !lastTimelineState.allClips || !lastTimelineState.allClips.length){
+      pLabel.style.display='inline-block';
+      pLabel.textContent='No clips in timeline to render.';
+      return;
+    }
+    renderBtn.disabled=true;
+    renderBtn.textContent='⏳ Rendering...';
+    pLabel.style.display='inline-block';
+    pLabel.textContent='Rendering — please wait...';
+    try{
+      var body={
+        clips: lastTimelineState.allClips.map(function(c){ return { id:c.id, track:c.track, start:c.start, dur:c.dur, label:c.label, src:c.url, kind:c.kind }; }),
+        tracks: (lastTimelineState.tracks || []).map(function(t){ return { id:t.id, type:t.type, muted:!!t.muted, volume:t.volume||1 }; }),
+        width:1920, height:1080
+      };
+      var res=await fetch('/api/studio/export',{ method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
+      if(!res.ok){
+        var err=await res.json().catch(function(){ return {}; });
+        pLabel.textContent='Render failed: '+(err.error||res.status);
+        return;
+      }
+      var blob=await res.blob();
+      var url=URL.createObjectURL(blob);
+      var a=document.createElement('a');
+      a.href=url;
+      a.download='render_'+Date.now()+'.mp4';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 3000);
+      pLabel.textContent='Render complete — download started!';
+    }catch(e){
+      pLabel.textContent='Render error: '+(e&&e.message ? e.message : String(e));
+    }finally{
+      renderBtn.disabled=false;
+      renderBtn.textContent='► Render';
+    }
+  }
+  renderBtn.addEventListener('click', renderFullVideo);
 
   function isTypingTarget(el){
     if(!el) return false;
