@@ -393,7 +393,10 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
       <div class="vm-grid" id="vmGrid"></div>
     </div>
     <div class="vm-clone-section" id="vmCloneSection">
-      <div style="font-size:14px;font-weight:700;margin-bottom:14px;color:var(--text)">🎤 Clone Your Voice</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <span style="font-size:14px;font-weight:700;color:var(--text)">🎤 Clone Your Voice</span>
+        <button onclick="closeCloneSection()" style="background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:18px;line-height:1;padding:2px 6px;border-radius:6px" title="Close">&times;</button>
+      </div>
       <div class="clone-grid">
         <div>
           <div id="cloneUploadZone" class="clone-upload-zone" onclick="document.getElementById('cloneSampleInput').click()">
@@ -617,17 +620,43 @@ function renderVmGrid(){
     const av=v.isCustom?`<div class="vm-vemoji" style="background:${v.color}">${v.emoji}</div>`:`<div class="vm-vavatar"><img src="${getVoiceAvatar(v.id,v.gender)}" alt="${v.name}" loading="lazy"></div>`;
     const ll=v.lang==='MULTI'?'Multilingual':v.lang==='EN'?'English':v.lang==='AR'?'Arabic':v.lang;
     const fav=_vmFavs.has(v.id);const pl=_vmPlayingId===v.id;
+    const customActions=v.isCustom?`<button class="vm-play-btn" onclick="previewCustomVoice('${v.id}',event)" title="Preview sample">${pl?'&#9632;':'&#9654;'}</button><button onclick="deleteMyVoice('${v.id}',event)" style="width:27px;height:27px;border-radius:50%;border:none;background:rgba(251,113,133,.1);color:var(--rose);cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center" title="Delete">&#128465;</button>`:'';
+    const catalogActions=!v.isCustom?`<button class="vm-play-btn${pl?' playing':''}" onclick="previewVmVoice('${v.id}','${sn}',event)">${pl?'&#9632;':'&#9654;'}</button><button class="vm-heart-btn${fav?' fav':''}" onclick="toggleVmFav('${v.id}',event)">${fav?'&#9829;':'&#9825;'}</button>`:'';
     return `<div class="vm-vcard${sel?' sel':''}" onclick="selectVmVoice('${v.id}','${sn}','${v.lang}','${v.accent}','${v.emoji}','${v.color}','${v.gender}')">`
       ${av}<div class="vm-vinfo"><div class="vm-vname">${hl(v.name,q)}</div><div class="vm-vmeta">${ll} &middot; ${v.isCustom?'Custom':v.accent}</div></div>
       <div class="vm-vactions">
-        <button class="vm-play-btn${pl?' playing':''}" onclick="previewVmVoice('${v.id}','${sn}',event)">${pl?'&#9632;':'&#9654;'}</button>
-        <button class="vm-heart-btn${fav?' fav':''}" onclick="toggleVmFav('${v.id}',event)">${fav?'&#9829;':'&#9825;'}</button>
+        ${v.isCustom?customActions:catalogActions}
       </div>
     </div>`;
   }).join('');
 }
 
-function getVoiceAvatar(id,gender){
+function closeCloneSection(){const sec=document.getElementById('vmCloneSection');if(sec)sec.classList.remove('open');}
+function deleteMyVoice(id,ev){
+  ev.stopPropagation();
+  if(!confirm('Delete this voice?'))return;
+  const list=loadMyVoices().filter(v=>v.id!==id);
+  saveMyVoices(list);
+  if(_vmSelectedId===id||document.getElementById('customVoiceId')?.value===id){
+    _vmSelectedId='21m00Tcm4TlvDq8ikWAM';
+    document.getElementById('customVoiceId').value='';
+    document.getElementById('vpName').textContent='Rachel';
+    document.getElementById('vpAvatarImg').src='https://randomuser.me/api/portraits/women/31.jpg';
+    document.getElementById('activeCloneBar').style.display='none';
+  }
+  renderVmGrid();
+}
+function previewCustomVoice(id,ev){
+  ev.stopPropagation();
+  const myV=loadMyVoices();const entry=myV.find(v=>v.id===id);
+  if(!entry?.sampleUrl){setStatus('No sample audio stored for this voice.','warn');return;}
+  if(_vmPlayingId===id){_vmPreviewAudio?.pause();_vmPlayingId=null;renderVmGrid();return;}
+  _vmPreviewAudio?.pause();_vmPlayingId=id;renderVmGrid();
+  _vmPreviewAudio=new Audio(entry.sampleUrl);
+  _vmPreviewAudio.onended=()=>{_vmPlayingId=null;renderVmGrid();};
+  _vmPreviewAudio.onerror=()=>{_vmPlayingId=null;renderVmGrid();setStatus('Cannot preview sample.','warn');};
+  _vmPreviewAudio.play().catch(()=>{_vmPlayingId=null;renderVmGrid();});
+}
   let h=0;const s=String(id);
   for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))>>>0;
   const n=(h%70)+1;
