@@ -20,6 +20,59 @@ type EditorProject = {
   tracks?: Record<string, unknown[]>;
 };
 
+function pickFirstPreviewUrl(candidates: unknown[]): string {
+  for (const c of candidates) {
+    if (typeof c !== "string") continue;
+    const value = c.trim();
+    if (!value) continue;
+    return value;
+  }
+  return "";
+}
+
+function extractFromClipArray(clips: unknown[]): string {
+  for (const item of clips) {
+    if (!item || typeof item !== "object") continue;
+    const clip = item as Record<string, unknown>;
+    const direct = pickFirstPreviewUrl([
+      clip.thumbnail,
+      clip.poster,
+      clip.preview,
+      clip.image,
+      clip.url,
+      clip.src,
+      clip.cover,
+    ]);
+    if (direct) return direct;
+  }
+  return "";
+}
+
+function extractFromTimelineStorage(projectId: string): string {
+  if (typeof window === "undefined") return "";
+  try {
+    const raw = localStorage.getItem(`ff_timeline_state_v1:${projectId}`);
+    if (!raw) return "";
+    const parsed = JSON.parse(raw) as { clips?: unknown[] } | null;
+    const clips = Array.isArray(parsed?.clips) ? parsed!.clips! : [];
+    if (!clips.length) return "";
+
+    // Prefer persistent URLs first; keep blob as last-resort fallback.
+    const persistent = extractFromClipArray(
+      clips.filter((c) => {
+        if (!c || typeof c !== "object") return false;
+        const src = (c as Record<string, unknown>).src;
+        return typeof src === "string" && src.trim() && !src.startsWith("blob:");
+      }),
+    );
+    if (persistent) return persistent;
+
+    return extractFromClipArray(clips);
+  } catch {
+    return "";
+  }
+}
+
 export default function VideoEditorPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -40,6 +93,15 @@ export default function VideoEditorPage() {
     if (!q) return projects;
     return projects.filter((p) => (p.name || "untitled").toLowerCase().includes(q));
   }, [projects, query]);
+
+  const projectPreviewById = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const project of projects) {
+      const fromProject = extractProjectPreview(project);
+      map[project.id] = fromProject || extractFromTimelineStorage(project.id);
+    }
+    return map;
+  }, [projects]);
 
   async function loadProjects() {
     setLoading(true);
@@ -130,17 +192,29 @@ export default function VideoEditorPage() {
   }
 
   function extractProjectPreview(project: EditorProject) {
+    const root = project as Record<string, unknown>;
+    const topLevel = pickFirstPreviewUrl([
+      root.thumbnail,
+      root.poster,
+      root.preview,
+      root.image,
+      root.url,
+      root.src,
+      root.cover,
+    ]);
+    if (topLevel) return topLevel;
+
+    const rootClips = Array.isArray(root.clips) ? (root.clips as unknown[]) : [];
+    if (rootClips.length) {
+      const fromClips = extractFromClipArray(rootClips);
+      if (fromClips) return fromClips;
+    }
+
     const buckets = Object.values(project.tracks || {});
     for (const bucket of buckets) {
       if (!Array.isArray(bucket)) continue;
-      for (const item of bucket) {
-        if (!item || typeof item !== "object") continue;
-        const clip = item as Record<string, unknown>;
-        const candidates = [clip.thumbnail, clip.poster, clip.preview, clip.image, clip.url, clip.src];
-        for (const c of candidates) {
-          if (typeof c === "string" && c.trim().length > 0) return c;
-        }
-      }
+      const fromBucket = extractFromClipArray(bucket);
+      if (fromBucket) return fromBucket;
     }
     return "";
   }
@@ -265,6 +339,9 @@ export default function VideoEditorPage() {
             {!loading && filteredProjects.length > 0 ? (
               <div className="grid grid-cols-[repeat(auto-fill,minmax(260px,320px))] gap-4">
                 {filteredProjects.map((project) => (
+                  (() => {
+                    const previewUrl = projectPreviewById[project.id] || "";
+                    return (
                   <button
                     key={project.id}
                     type="button"
@@ -274,8 +351,8 @@ export default function VideoEditorPage() {
                     <div
                       className="aspect-[4/3] rounded-lg border border-slate-800 p-3 transition hover:border-sky-600"
                       style={{
-                        backgroundImage: extractProjectPreview(project)
-                          ? `linear-gradient(180deg, rgba(2,6,23,0.16) 0%, rgba(2,6,23,0.58) 100%), url('${extractProjectPreview(project)}')`
+                        backgroundImage: previewUrl
+                          ? `linear-gradient(180deg, rgba(2,6,23,0.16) 0%, rgba(2,6,23,0.58) 100%), url('${previewUrl}')`
                           : "radial-gradient(circle_at_30%_45%,rgba(56,189,248,0.24),transparent_36%),radial-gradient(circle_at_65%_58%,rgba(99,102,241,0.22),transparent_32%),#070b11",
                         backgroundSize: "cover",
                         backgroundPosition: "center",
@@ -295,6 +372,8 @@ export default function VideoEditorPage() {
                       </div>
                     </div>
                   </button>
+                    );
+                  })()
                 ))}
               </div>
             ) : null}
