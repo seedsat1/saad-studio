@@ -6,13 +6,24 @@ let ffmpegPath: string;
 
 async function ensureFfmpeg() {
   if (!Ffmpeg) {
-    const [ffmpegMod, installerMod] = await Promise.all([
-      import('fluent-ffmpeg'),
-      import('@ffmpeg-installer/ffmpeg'),
-    ]);
-    Ffmpeg = ffmpegMod.default as typeof import('fluent-ffmpeg');
-    ffmpegPath = (installerMod.default as any).path;
-    Ffmpeg.setFfmpegPath(ffmpegPath);
+    try {
+      const [ffmpegMod, installerMod] = await Promise.all([
+        import('fluent-ffmpeg'),
+        import('@ffmpeg-installer/ffmpeg'),
+      ]);
+      Ffmpeg = ffmpegMod.default as typeof import('fluent-ffmpeg');
+      ffmpegPath = (installerMod.default as any).path;
+      console.log('[export] ffmpeg path:', ffmpegPath);
+      // Ensure executable on Linux
+      try {
+        const { chmodSync } = await import('fs');
+        chmodSync(ffmpegPath, 0o755);
+      } catch {}
+      Ffmpeg.setFfmpegPath(ffmpegPath);
+    } catch (err) {
+      console.error('[export] ensureFfmpeg error:', err);
+      throw new Error(`FFmpeg init failed: ${err instanceof Error ? err.message : String(err)}`);
+    }
   }
   return Ffmpeg;
 }

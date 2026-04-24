@@ -3,6 +3,7 @@
   "buildCommand": "npx prisma generate && next build",
   "installCommand": "npm install --legacy-peer-deps",
   "functions": {
+    "app/api/studio/export/route.ts": { "maxDuration": 300 },
     "app/api/video/route.ts":        { "maxDuration": 60 },
     "app/api/music/route.ts":        { "maxDuration": 60 },
     "app/api/generate/route.ts":     { "maxDuration": 60 },
