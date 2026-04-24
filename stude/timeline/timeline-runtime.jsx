@@ -264,19 +264,73 @@ function PropRow({ label, children }) {
 }
 
 function NumInput({ value, onChange, onCommit, min, max, step=0.1, style:extraStyle }) {
-  const [local, setLocal] = React.useState(String(Number(value).toFixed(step < 1 ? 1 : 0)));
-  React.useEffect(() => { setLocal(String(Number(value).toFixed(step < 1 ? 1 : 0))); }, [value]);
+  const [editing, setEditing] = React.useState(false);
+  const [local, setLocal] = React.useState('');
+  const inputRef = React.useRef(null);
+  const decimals = step < 1 ? 1 : 0;
+  const display = Number.isFinite(Number(value)) ? Number(value).toFixed(decimals) : '0';
+  const clamp = (v) => {
+    let r = v;
+    if (min !== undefined && r < min) r = min;
+    if (max !== undefined && r > max) r = max;
+    return r;
+  };
+  const baseStyle = { width:54, height:18, background:'#0f1114', borderRadius:3, color:'#d8e3f2', fontSize:10, padding:'0 3px', boxSizing:'border-box', ...extraStyle };
+
+  const startScrub = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const startX = e.clientX;
+    const startVal = Number(value) || 0;
+    let moved = false;
+    const onMove = (me) => {
+      const dx = me.clientX - startX;
+      if (Math.abs(dx) > 2) moved = true;
+      if (!moved) return;
+      onChange(clamp(startVal + dx * step));
+    };
+    const onUp = (me) => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      if (moved) {
+        onCommit(clamp(startVal + (me.clientX - startX) * step));
+      } else {
+        // plain click → switch to type mode
+        setLocal(display);
+        setEditing(true);
+      }
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  };
+
+  React.useEffect(() => {
+    if (editing && inputRef.current) { inputRef.current.focus(); inputRef.current.select(); }
+  }, [editing]);
+
+  if (editing) {
+    return (
+      <input
+        ref={inputRef}
+        type="number"
+        defaultValue={local}
+        min={min} max={max} step={step}
+        onBlur={(e) => { const v=clamp(Number(e.target.value)); if(Number.isFinite(v)) onCommit(v); setEditing(false); }}
+        onKeyDown={(e) => { if(e.key==='Enter'){ const v=clamp(Number(e.target.value)); if(Number.isFinite(v)) onCommit(v); setEditing(false); } if(e.key==='Escape') setEditing(false); e.stopPropagation(); }}
+        onMouseDown={(e) => e.stopPropagation()}
+        style={{ ...baseStyle, border:'1px solid #4a9eff', outline:'none', textAlign:'right', MozAppearance:'textfield' }}
+      />
+    );
+  }
+
   return (
-    <input
-      type="number"
-      value={local}
-      min={min} max={max} step={step}
-      onChange={(e) => { setLocal(e.target.value); const v=Number(e.target.value); if(Number.isFinite(v)) onChange(v); }}
-      onBlur={(e) => { const v=Number(e.target.value); if(Number.isFinite(v)) onCommit(v); }}
-      onKeyDown={(e) => { if(e.key==='Enter'){ const v=Number(e.target.value); if(Number.isFinite(v)) onCommit(v); e.target.blur(); } e.stopPropagation(); }}
-      onMouseDown={(e) => e.stopPropagation()}
-      style={{ width:54, height:18, background:'#0f1114', border:'1px solid #2a3040', borderRadius:3, color:'#d8e3f2', fontSize:10, textAlign:'right', padding:'0 3px', outline:'none', MozAppearance:'textfield', ...extraStyle }}
-    />
+    <div
+      onMouseDown={startScrub}
+      title="Drag ← → to scrub · Click to type"
+      style={{ ...baseStyle, border:'1px solid #2a3040', cursor:'ew-resize', display:'flex', alignItems:'center', justifyContent:'flex-end', userSelect:'none' }}
+    >
+      {display}
+    </div>
   );
 }
 
