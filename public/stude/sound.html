@@ -63,6 +63,44 @@ textarea.ff:focus{border-color:var(--accent)}
 .chip{padding:4px 10px;border-radius:4px;font-size:11px;cursor:pointer;border:1px solid var(--border);background:#1a1a2a;color:#9ba8bb;font-family:'Tajawal';transition:.12s;user-select:none}
 .chip:hover{border-color:var(--border2);color:var(--text)}.chip.a{border-color:var(--accent);color:var(--accent);background:rgba(74,158,255,.08)}
 
+/* ── voice picker card ───────────────────── */
+.vp-card{display:flex;align-items:center;gap:10px;background:#1c1c1c;border:1px solid var(--border);border-radius:8px;padding:10px;cursor:pointer;transition:.15s;width:100%}
+.vp-card:hover{border-color:var(--accent);background:#212121}
+.vp-avatar{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.vp-info{flex:1;min-width:0}
+.vp-name{font-size:13px;font-weight:600;color:#d4d4d4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vp-meta{font-size:10px;color:#6a7a8e;margin-top:2px}
+.vp-arrow{color:#5a6a7e;font-size:11px;flex-shrink:0;white-space:nowrap}
+
+/* ── voice picker modal ──────────────────── */
+.vpm-overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:9999;display:flex;align-items:center;justify-content:center}
+.vpm{width:680px;max-width:94vw;height:80vh;background:#1a1a1a;border:1px solid #3a3a3a;border-radius:12px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.8)}
+.vpm-head{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-shrink:0;background:#202020}
+.vpm-head h3{font-size:15px;font-weight:700;color:#e0e8f4;flex:1;margin:0}
+.vpm-close{width:28px;height:28px;border:none;background:none;color:#888;cursor:pointer;font-size:16px;border-radius:4px;line-height:1}
+.vpm-close:hover{background:#333;color:#fff}
+.vpm-toolbar{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap;flex-shrink:0;background:#1c1c1c}
+.vpm-search{flex:1;min-width:140px;background:#141414;border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:#d4d4d4;font-family:'Tajawal';font-size:12px;outline:none}
+.vpm-search:focus{border-color:var(--accent)}
+.vpm-search::placeholder{color:#555}
+.vpm-filter{background:#141414;border:1px solid var(--border);border-radius:6px;padding:6px 8px;color:#9ba7be;font-family:'Tajawal';font-size:11px;cursor:pointer;outline:none}
+.vpm-cats{padding:8px 14px;border-bottom:1px solid var(--border);display:flex;gap:6px;overflow-x:auto;flex-shrink:0;background:#1c1c1c;scrollbar-width:none}
+.vpm-cats::-webkit-scrollbar{display:none}
+.vpm-cat{padding:5px 14px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:transparent;color:#8a9ab8;white-space:nowrap;transition:.12s;font-family:'Tajawal'}
+.vpm-cat:hover{border-color:#555;color:#d4d4d4}
+.vpm-cat.a{border-color:var(--accent);color:var(--accent);background:rgba(74,158,255,.1)}
+.vpm-grid{flex:1;overflow-y:auto;padding:12px 14px;display:grid;grid-template-columns:repeat(2,1fr);gap:8px;align-content:start}
+.vpm-grid::-webkit-scrollbar{width:6px}
+.vpm-grid::-webkit-scrollbar-track{background:#111}
+.vpm-grid::-webkit-scrollbar-thumb{background:#333;border-radius:3px}
+.vpm-item{display:flex;align-items:center;gap:10px;background:#242424;border:1.5px solid #2d2d2d;border-radius:8px;padding:10px 12px;cursor:pointer;transition:.12s}
+.vpm-item:hover{background:#2c2c2c;border-color:#404040}
+.vpm-item.sel{border-color:var(--accent);background:rgba(74,158,255,.08)}
+.vpm-av{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.vpm-iname{font-size:12px;font-weight:600;color:#d0dae8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vpm-imeta{font-size:10px;color:#5a6a7e;margin-top:2px}
+.vpm-chk{width:20px;height:20px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;flex-shrink:0}
+
 /* ── tabs (Music / SFX) ──────────────────── */
 .gen-tabs{height:34px;display:flex;align-items:flex-end;padding:0 10px;gap:2px;background:#232323;border-bottom:1px solid var(--border);flex-shrink:0}
 .gen-tab{padding:6px 14px;font-size:11px;font-weight:600;color:var(--dim);cursor:pointer;border-bottom:2px solid transparent;transition:.12s;border-radius:3px 3px 0 0;font-family:'Tajawal'}
@@ -758,6 +796,22 @@ const VOICE_CATALOG = [
   { cat:'Female Voices', id:'BZgkqPqms7Kj9ulSkVzn',name:'Eve',               gender:'female', lang:'EN',    accent:'Energetic',  emoji:'⚡',  color:'#4a1a3a' },
   { cat:'Female Voices', id:'Chris',               name:'Chris',              gender:'female', lang:'EN',    accent:'American',   emoji:'👩‍🎤', color:'#3a2a3a' },
   { cat:'Female Voices', id:'Lily',                name:'Lily',               gender:'female', lang:'EN',    accent:'British',    emoji:'🌷',  color:'#4a2a2a' },
+  { cat:'Female Voices', id:'Sarah',               name:'Sarah',              gender:'female', lang:'EN',    accent:'American',   emoji:'👩‍💼', color:'#2a3a5a' },
+  { cat:'Female Voices', id:'Laura',               name:'Laura',              gender:'female', lang:'EN',    accent:'American',   emoji:'🙋‍♀️', color:'#3a2a4a' },
+  { cat:'Female Voices', id:'Charlotte',           name:'Charlotte',          gender:'female', lang:'EN',    accent:'British',    emoji:'👩‍🎓', color:'#2a4a3a' },
+  { cat:'Female Voices', id:'Alice',               name:'Alice',              gender:'female', lang:'EN',    accent:'British',    emoji:'🧑‍💻', color:'#3a3a2a' },
+  { cat:'Female Voices', id:'Matilda',             name:'Matilda',            gender:'female', lang:'EN',    accent:'American',   emoji:'🌺',  color:'#4a2a4a' },
+  { cat:'Female Voices', id:'Jessica',             name:'Jessica',            gender:'female', lang:'EN',    accent:'American',   emoji:'💎',  color:'#3a2a4a' },
+  { cat:'Male Voices',   id:'George',              name:'George',             gender:'male',   lang:'EN',    accent:'British',    emoji:'🦅',  color:'#2a3a2a' },
+  { cat:'Male Voices',   id:'Charlie',             name:'Charlie',            gender:'male',   lang:'EN',    accent:'Australian', emoji:'⚡',  color:'#1a2a4a' },
+  { cat:'Male Voices',   id:'Callum',              name:'Callum',             gender:'male',   lang:'EN',    accent:'Transatlantic',emoji:'🔥',color:'#3a1a2a' },
+  { cat:'Male Voices',   id:'River',               name:'River',              gender:'male',   lang:'EN',    accent:'American',   emoji:'🌊',  color:'#1a3a4a' },
+  { cat:'Male Voices',   id:'Liam',                name:'Liam',               gender:'male',   lang:'EN',    accent:'American',   emoji:'🎵',  color:'#2a2a4a' },
+  { cat:'Male Voices',   id:'Will',                name:'Will',               gender:'male',   lang:'EN',    accent:'American',   emoji:'🎭',  color:'#2a4a2a' },
+  { cat:'Male Voices',   id:'Bill',                name:'Bill',               gender:'male',   lang:'EN',    accent:'American',   emoji:'🎩',  color:'#4a3a2a' },
+  { cat:'Male Voices',   id:'Eric',                name:'Eric',               gender:'male',   lang:'EN',    accent:'American',   emoji:'📰',  color:'#2a2a3a' },
+  { cat:'Male Voices',   id:'Brian',               name:'Brian',              gender:'male',   lang:'EN',    accent:'American',   emoji:'📡',  color:'#1a3a3a' },
+  { cat:'Male Voices',   id:'Daniel',              name:'Daniel',             gender:'male',   lang:'EN',    accent:'British',    emoji:'🎙️', color:'#3a2a2a' },
   { cat:'Arabic', id:'Z3R5wn05IrDiVCyEkUrK',      name:'Arabella',           gender:'female', lang:'AR',    accent:'Mysterious', emoji:'🌙',  color:'#2a1a4a' },
 ];
 
@@ -810,19 +864,25 @@ function renderVpmGrid() {
     return true;
   });
 
+  // Deduplicate by ID (voices may appear in multiple categories)
+  const seen = new Set();
+  const unique = filtered.filter(v => { if (seen.has(v.id)) return false; seen.add(v.id); return true; });
+
   const grid = document.getElementById('vpmGrid');
   if (!grid) return;
-  if (!filtered.length) { grid.innerHTML = '<div style="grid-column:span 2;text-align:center;color:#5a6a7e;padding:30px;font-size:12px">No voices match your filters.</div>'; return; }
+  if (!unique.length) { grid.innerHTML = '<div style="grid-column:span 2;text-align:center;color:#5a6a7e;padding:30px;font-size:12px">No voices match your filters.</div>'; return; }
 
-  grid.innerHTML = filtered.map(v => {
+  grid.innerHTML = unique.map(v => {
     const sel = v.id === _vpmSelectedId;
-    return `<div class="vpm-item${sel?' sel':''}" onclick="selectVpmVoice('${v.id}','${v.name.replace(/'/g,"\\'")}','${v.lang}','${v.accent}','${v.emoji}','${v.color}')">
-      <div class="vpm-avatar" style="background:${v.color}">${v.emoji}</div>
-      <div style="flex:1;min-width:0">
+    const safeName = v.name.replace(/'/g,"\\'").replace(/"/g,'&quot;');
+    const safeColor = v.color.replace(/'/g,"\\'");
+    return `<div class="vpm-item${sel?' sel':''}" onclick="selectVpmVoice('${v.id}','${safeName}','${v.lang}','${v.accent}','${v.emoji}','${safeColor}')">
+      <div class="vpm-av" style="background:${v.color}">${v.emoji}</div>
+      <div style="flex:1;min-width:0;overflow:hidden">
         <div class="vpm-iname">${v.name}</div>
-        <div class="vpm-imeta">${v.accent} · ${v.lang}${v.isCustom ? ' · <span style="color:var(--purple)">My Voice</span>' : ''}</div>
+        <div class="vpm-imeta">${v.accent} · ${v.lang}${v.isCustom?' · <b style="color:var(--purple)">Custom</b>':''}</div>
       </div>
-      ${sel ? '<div class="vpm-check">✓</div>' : ''}
+      ${sel?'<div class="vpm-chk">✓</div>':''}
     </div>`;
   }).join('');
 }
