@@ -175,10 +175,43 @@ textarea.ff:focus{border-color:var(--accent)}
       <span style="font-size:11px;color:#8a97b2;font-family:'JetBrains Mono'" id="cCt">0 ch</span>
     </div>
 
-    <!-- Custom voice ID -->
+    <!-- Voice Cloning -->
     <div class="mt8" style="border-top:1px solid var(--border);padding-top:8px">
-      <label class="lbl" style="color:#6a7a8e">Custom Voice ID <span style="font-size:9px">(cloning)</span></label>
-      <input id="customVoiceId" class="ff mt4" type="text" placeholder="Paste ElevenLabs voice ID...">
+      <div class="sec" style="margin-bottom:8px"><span class="dot" style="background:var(--purple)"></span>Voice Cloning</div>
+
+      <!-- Active clone indicator -->
+      <div id="activeCloneBar" style="display:none;background:rgba(179,136,255,.1);border:1px solid rgba(179,136,255,.3);border-radius:4px;padding:6px 8px;margin-bottom:8px;font-size:11px;color:var(--purple);display:flex;align-items:center;gap:6px">
+        <span>🎤</span><span id="activeCloneName" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+        <span onclick="clearActiveClone()" style="cursor:pointer;color:#6a7a8e;font-size:13px;line-height:1">✕</span>
+      </div>
+
+      <label class="lbl">Upload voice sample <span style="color:#5a6a7e;font-size:9px">(10–60s clear speech)</span></label>
+      <div id="cloneUploadZone" onclick="document.getElementById('cloneSampleInput').click()" style="border:2px dashed var(--border2);border-radius:5px;padding:10px 8px;text-align:center;cursor:pointer;transition:.15s;margin-top:4px">
+        <div style="font-size:20px;margin-bottom:3px">🎤</div>
+        <div id="cloneSampleName" style="font-size:11px;color:#8a9ab8;line-height:1.4">Click to choose audio file</div>
+      </div>
+      <input id="cloneSampleInput" type="file" accept="audio/*" style="display:none" onchange="onCloneSampleSelect(this)">
+
+      <label class="lbl mt6">Voice name</label>
+      <input id="cloneVoiceName" class="ff mt4" type="text" placeholder="e.g. My Voice, Client Voice...">
+
+      <!-- Hidden for compatibility -->
+      <input id="customVoiceId" type="hidden" value="">
+
+      <!-- Clone progress -->
+      <div id="cloneProgress" style="display:none;margin-top:6px">
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:#8a9ab8;margin-bottom:3px">
+          <span id="cloneProgressLabel">Uploading sample...</span><span id="clonePct">0%</span>
+        </div>
+        <div style="height:4px;background:#2a2a2a;border-radius:2px;overflow:hidden">
+          <div id="cloneBar" style="height:100%;width:0%;background:var(--purple);border-radius:2px;transition:width .2s"></div>
+        </div>
+      </div>
+
+      <div class="row2 mt6">
+        <button class="btn btn-ghost btn-sm" id="btnSaveVoice" onclick="cloneAndSaveVoice()" disabled style="flex:2;border-color:rgba(179,136,255,.3);color:var(--purple)">💾 Save to My Voices</button>
+        <button class="btn btn-ghost btn-sm" id="btnCloneVoice" onclick="cloneVoice()" style="flex:1">▶ Use Once</button>
+      </div>
     </div>
 
     <!-- Pitch / Volume sliders -->
@@ -309,8 +342,13 @@ textarea.ff:focus{border-color:var(--accent)}
 
 <!-- ═══════════════════════════════════════════════════════ RIGHT: SPEECH TOOLS + LIBRARY -->
 <div class="panel right-panel">
-  <div class="ph"><span class="l a">Tools</span><span class="l">Library</span></div>
-  <div class="pb">
+  <div class="ph">
+    <span class="l a" id="tabTools" onclick="switchRightTab('tools')">Tools</span>
+    <span class="l" id="tabLibrary" onclick="switchRightTab('library')">My Voices</span>
+  </div>
+
+  <!-- TOOLS BODY -->
+  <div id="rightTools" class="pb">
 
     <!-- Speech Tools -->
     <div class="sec"><span class="dot" style="background:var(--purple)"></span>Speech Tools</div>
@@ -361,6 +399,14 @@ textarea.ff:focus{border-color:var(--accent)}
     <div id="sessionHistory" style="font-size:11px;color:#6a7a8e;line-height:1.6">No generated assets yet.</div>
 
   </div>
+
+  <!-- MY VOICES LIBRARY BODY -->
+  <div id="rightLibrary" class="pb" style="display:none">
+    <div class="sec"><span class="dot" style="background:var(--purple)"></span>My Saved Voices</div>
+    <p style="font-size:10px;color:#5a6a7e;margin-bottom:10px;line-height:1.5">Click any voice to use it for cloning. Voices are saved in this browser.</p>
+    <div id="myVoicesList"><div style="font-size:11px;color:#5a6a7e;padding:10px 0">No saved voices yet.<br>Upload a voice sample in the Voiceover tab to get started.</div></div>
+  </div>
+
 </div>
 
 </div><!-- /top-row -->
@@ -393,6 +439,190 @@ textarea.ff:focus{border-color:var(--accent)}
 </div><!-- /workspace -->
 
 <script>
+/* ── Right panel tab switching ────────────────────────────────────── */
+function switchRightTab(tab) {
+  document.getElementById('rightTools').style.display = tab === 'tools' ? '' : 'none';
+  document.getElementById('rightLibrary').style.display = tab === 'library' ? '' : 'none';
+  document.getElementById('tabTools').classList.toggle('a', tab === 'tools');
+  document.getElementById('tabLibrary').classList.toggle('a', tab === 'library');
+}
+
+/* ── My Voices Library (localStorage) ─────────────────────────────── */
+const MY_VOICES_KEY = 'ff_my_voices_v1';
+
+function loadMyVoices() {
+  try { return JSON.parse(localStorage.getItem(MY_VOICES_KEY) || '[]'); } catch { return []; }
+}
+
+function saveMyVoices(list) {
+  localStorage.setItem(MY_VOICES_KEY, JSON.stringify(list));
+}
+
+function renderMyVoicesList() {
+  const list = loadMyVoices();
+  const el = document.getElementById('myVoicesList');
+  if (!el) return;
+  if (!list.length) {
+    el.innerHTML = '<div style="font-size:11px;color:#5a6a7e;padding:10px 0">No saved voices yet.<br>Upload a voice sample to get started.</div>';
+    return;
+  }
+  el.innerHTML = '';
+  list.forEach(v => {
+    const item = document.createElement('div');
+    item.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px;border-radius:5px;border:1px solid var(--border);margin-bottom:6px;background:#1c1c1c;cursor:pointer;transition:.12s';
+    item.onmouseenter = () => item.style.borderColor = 'rgba(179,136,255,.4)';
+    item.onmouseleave = () => item.style.borderColor = 'var(--border)';
+    item.innerHTML = `
+      <div style="width:32px;height:32px;border-radius:50%;background:rgba(179,136,255,.15);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">🎤</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12px;color:#c8d4e8;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${v.name}</div>
+        <div style="font-size:10px;color:#5a6a7e;margin-top:1px">${new Date(v.addedAt).toLocaleDateString()}</div>
+      </div>
+      <div style="display:flex;gap:4px;flex-shrink:0">
+        <button onclick="useLibraryVoice('${v.id}','${v.name.replace(/'/g,"\\'")}'" style="padding:4px 8px;border-radius:3px;border:1px solid rgba(179,136,255,.4);background:rgba(179,136,255,.1);color:var(--purple);font-size:10px;cursor:pointer;font-family:'Tajawal'">Use</button>
+        <button onclick="deleteLibraryVoice('${v.id}')" style="padding:4px 6px;border-radius:3px;border:1px solid var(--border);background:none;color:#6a7a8e;font-size:11px;cursor:pointer" title="Delete">🗑</button>
+      </div>`;
+    el.appendChild(item);
+  });
+}
+
+function useLibraryVoice(id, name) {
+  document.getElementById('customVoiceId').value = id;
+  const bar = document.getElementById('activeCloneBar');
+  const nameEl = document.getElementById('activeCloneName');
+  if (bar) bar.style.display = 'flex';
+  if (nameEl) nameEl.textContent = name;
+  switchRightTab('tools');
+  setStatus(`Active clone voice: ${name}. Write text and click "Use Once" or "Generate Voice".`, 'ok');
+}
+
+function deleteLibraryVoice(id) {
+  const list = loadMyVoices().filter(v => v.id !== id);
+  saveMyVoices(list);
+  renderMyVoicesList();
+  // clear active if deleted
+  if (document.getElementById('customVoiceId')?.value === id) clearActiveClone();
+}
+
+function clearActiveClone() {
+  document.getElementById('customVoiceId').value = '';
+  const bar = document.getElementById('activeCloneBar');
+  if (bar) bar.style.display = 'none';
+}
+
+let _cloneSamplePublicUrl = '';
+
+function onCloneSampleSelect(input) {
+  const file = input.files && input.files[0];
+  if (!file) return;
+  const nameEl = document.getElementById('cloneSampleName');
+  const zone = document.getElementById('cloneUploadZone');
+  if (nameEl) nameEl.textContent = file.name;
+  if (zone) zone.style.borderColor = 'var(--accent)';
+  _cloneSamplePublicUrl = '';
+  const saveBtn = document.getElementById('btnSaveVoice');
+  if (saveBtn) { saveBtn.disabled = false; saveBtn.style.opacity = '1'; saveBtn.style.cursor = 'pointer'; }
+  input.value = '';
+  // store the file reference for upload on save
+  window._cloneSampleFile = file;
+}
+
+async function cloneAndSaveVoice() {
+  const file = window._cloneSampleFile;
+  const voiceName = (document.getElementById('cloneVoiceName')?.value || '').trim();
+  if (!file) { setStatus('Please choose a voice sample file first.', 'warn'); return; }
+  if (!voiceName) { setStatus('Please enter a name for this voice.', 'warn'); return; }
+
+  const prog = document.getElementById('cloneProgress');
+  const bar = document.getElementById('cloneBar');
+  const pct = document.getElementById('clonePct');
+  const label = document.getElementById('cloneProgressLabel');
+  const saveBtn = document.getElementById('btnSaveVoice');
+  if (prog) prog.style.display = 'block';
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.style.opacity = '0.6'; }
+  setStatus('Uploading voice sample...', 'info');
+
+  try {
+    // Step 1: upload sample to Supabase
+    if (label) label.textContent = 'Uploading sample...';
+    const urlRes = await fetch('/api/studio/upload-url', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fileName: file.name, contentType: file.type || 'audio/mpeg', assetType: 'audio' })
+    });
+    if (!urlRes.ok) throw new Error('Failed to get upload URL');
+    const { signedUrl, publicUrl } = await urlRes.json();
+
+    await new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.upload.addEventListener('progress', e => {
+        if (!e.lengthComputable) return;
+        const p = Math.round(e.loaded / e.total * 100);
+        if (bar) bar.style.width = p + '%';
+        if (pct) pct.textContent = p + '%';
+      });
+      xhr.addEventListener('load', () => xhr.status < 300 ? resolve() : reject(new Error('Upload failed: ' + xhr.status)));
+      xhr.addEventListener('error', () => reject(new Error('Network error')));
+      xhr.open('PUT', signedUrl);
+      xhr.setRequestHeader('Content-Type', file.type || 'audio/mpeg');
+      xhr.send(file);
+    });
+
+    if (bar) bar.style.width = '100%';
+    if (pct) pct.textContent = '100%';
+    if (label) label.textContent = 'Creating clone voice...';
+    setStatus('Sending to voice cloning API...', 'info');
+
+    // Step 2: try instant voice clone via KIE
+    let finalVoiceId = '';
+    try {
+      const taskId = await createKieTask('elevenlabs/instant-voice-clone', {
+        name: voiceName,
+        audio_url: publicUrl,
+        nsfw_checker: true
+      });
+      const record = await waitKieTask(taskId, 120000);
+      const parsed = parseResultJson(record?.resultJson);
+      finalVoiceId = parsed?.resultObject?.voice_id || parsed?.voice_id || '';
+    } catch (cloneErr) {
+      // API might not support instant clone — store the URL as the ID fallback
+      console.warn('Voice clone API unavailable, storing sample URL:', cloneErr.message);
+    }
+
+    // Step 3: save to library (use voice_id if got one, else publicUrl as reference)
+    const voiceEntry = {
+      id: finalVoiceId || ('sample_' + Date.now()),
+      name: voiceName,
+      sampleUrl: publicUrl,
+      hasCloneId: !!finalVoiceId,
+      addedAt: Date.now()
+    };
+    const list = loadMyVoices();
+    list.unshift(voiceEntry);
+    saveMyVoices(list);
+    renderMyVoicesList();
+
+    // Activate it
+    document.getElementById('customVoiceId').value = voiceEntry.id;
+    const activeBar = document.getElementById('activeCloneBar');
+    const activeNameEl = document.getElementById('activeCloneName');
+    if (activeBar) activeBar.style.display = 'flex';
+    if (activeNameEl) activeNameEl.textContent = voiceName;
+
+    document.getElementById('cloneUploadZone').style.borderColor = 'var(--green)';
+    const msg = finalVoiceId ? `Voice "${voiceName}" cloned and saved to library!` : `Voice "${voiceName}" saved to library (sample stored).`;
+    setStatus(msg, 'ok');
+    window._cloneSampleFile = null;
+    document.getElementById('cloneVoiceName').value = '';
+    document.getElementById('cloneSampleName').textContent = 'Click to choose audio file';
+  } catch (err) {
+    setStatus('Failed: ' + err.message, 'err');
+  } finally {
+    if (prog) setTimeout(() => { prog.style.display = 'none'; }, 2000);
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.style.opacity = '1'; saveBtn.style.cursor = 'pointer'; }
+  }
+}
+
 /* ── Waveform bars ─────────────────────────────────────────────────── */
 const wd = document.getElementById('waveD');
 for (let i = 0; i < 60; i++) {
@@ -983,6 +1213,15 @@ document.getElementById('vText').addEventListener('input', function () {
 
 /* ── Language label ────────────────────────────────────────────────── */
 document.getElementById('voiceLanguage')?.addEventListener('change', function () {});
+
+/* ── Init library on load ──────────────────────────────────────────── */
+renderMyVoicesList();
+document.getElementById('cloneUploadZone')?.addEventListener('mouseenter', function(){
+  this.style.borderColor = 'var(--accent)';
+});
+document.getElementById('cloneUploadZone')?.addEventListener('mouseleave', function(){
+  this.style.borderColor = (window._cloneSampleFile || this.style.borderColor === 'var(--green)') ? this.style.borderColor : 'var(--border2)';
+});
 </script>
 </body>
 </html>
