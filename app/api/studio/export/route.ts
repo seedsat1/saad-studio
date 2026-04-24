@@ -1,11 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
-import ffmpegInstaller from '@ffmpeg-installer/ffmpeg';
-import Ffmpeg from 'fluent-ffmpeg';
+
+// Dynamic imports to prevent webpack from bundling native binaries at build time
+let Ffmpeg: typeof import('fluent-ffmpeg');
+let ffmpegPath: string;
+
+async function ensureFfmpeg() {
+  if (!Ffmpeg) {
+    const [ffmpegMod, installerMod] = await Promise.all([
+      import('fluent-ffmpeg'),
+      import('@ffmpeg-installer/ffmpeg'),
+    ]);
+    Ffmpeg = ffmpegMod.default as typeof import('fluent-ffmpeg');
+    ffmpegPath = (installerMod.default as any).path;
+    Ffmpeg.setFfmpegPath(ffmpegPath);
+  }
+  return Ffmpeg;
+}
+
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-
-Ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 
 const FPS = 30;
 
@@ -47,7 +61,11 @@ async function downloadToTemp(url: string, tmpDir: string, idx: number): Promise
   }
 }
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: NextRequest) {
+  const FfmpegCmd = await ensureFfmpeg();
+
   let body: { clips?: Clip[]; tracks?: TrackInfo[]; width?: number; height?: number; projectRatio?: string } = {};
   try {
     body = await req.json();
@@ -208,7 +226,7 @@ export async function POST(req: NextRequest) {
 
     // Build and run FFmpeg command
     await new Promise<void>((resolve, reject) => {
-      let cmd = Ffmpeg();
+      let cmd = FfmpegCmd();
       localFiles.forEach((f) => cmd.input(f));
 
       cmd
