@@ -319,7 +319,19 @@ function EffectControls({ clip, onProp, onCommit, onFitMode }) {
   const cropT = Number.isFinite(cr.t) ? cr.t : 0;
   const cropR = Number.isFinite(cr.r) ? cr.r : 0;
   const cropB = Number.isFinite(cr.b) ? cr.b : 0;
-  const isVisual = ['video','image','psd','gif'].includes(String(clip.kind || ''));
+  const isVisual = (() => {
+    const k = String(clip.kind || '');
+    if (['video','image','psd','gif'].includes(k)) return true;
+    // fallback: check src extension
+    const ext = String(clip.src || '').split('?')[0].split('.').pop().toLowerCase();
+    const audioExts = new Set(['mp3','wav','aac','m4a','ogg','flac','opus']);
+    if (audioExts.has(ext)) return false;
+    if (['mp4','mov','mkv','avi','webm','m4v'].includes(ext)) return true;
+    if (['jpg','jpeg','png','webp','gif','bmp','svg','psd','tiff'].includes(ext)) return true;
+    // fallback: check track type stored in clip
+    const tt = String(clip.trackType || clip.type || '');
+    return tt === 'video' || tt === 'image';
+  })();
 
   return (
     <div style={{ display:'flex', flexDirection:'column', height:'100%', overflow:'hidden' }}>
@@ -434,7 +446,8 @@ function TimelineEditor() {
   const [zoom, setZoom] = useState(() => Number.isFinite(persisted?.zoom) ? persisted.zoom : 1);
   const [selected, setSelected] = useState(() => persisted?.selected || null);
   const [leftPaneW, setLeftPaneW] = useState(() => Number.isFinite(persisted?.leftPaneW) ? persisted.leftPaneW : 118);
-  const [inspectorW, setInspectorW] = useState(200);
+  const [inspectorW, setInspectorW] = useState(220);
+  const [inspectorOpen, setInspectorOpen] = useState(true);
   const [dragOver, setDragOver] = useState(false);
   const [importInfo, setImportInfo] = useState('Import media by button or drag files onto timeline.');
   const [trackMenuOpen, setTrackMenuOpen] = useState(false);
@@ -671,6 +684,11 @@ function TimelineEditor() {
       tlRef.current.scrollLeft = savedScroll;
     }
   }, [persisted]);
+
+  // Auto-open inspector when a clip is selected
+  useEffect(() => {
+    if (selected) setInspectorOpen(true);
+  }, [selected]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -1953,25 +1971,37 @@ function TimelineEditor() {
         </div>
 
         {/* ─── Inspector resize handle ─── */}
-        <div
-          onMouseDown={startResizeInspector}
-          style={{ width:6, cursor:'col-resize', background:'#181c23', borderLeft:'1px solid #2a2f39', borderRight:'1px solid #2a2f39', flexShrink:0, position:'relative' }}
-          title="Drag to resize inspector"
-        >
-          <div style={{ position:'absolute', left:'50%', top:'50%', transform:'translate(-50%,-50%)', width:2, height:30, background:'#6b7690', boxShadow:'0 -6px 0 #6b7690,0 6px 0 #6b7690' }} />
-        </div>
+        {inspectorOpen && (
+          <div
+            onMouseDown={startResizeInspector}
+            style={{ width:6, cursor:'col-resize', background:'#181c23', borderLeft:'1px solid #2a2f39', borderRight:'1px solid #2a2f39', flexShrink:0, position:'relative' }}
+            title="Drag to resize inspector"
+          >
+            <div style={{ position:'absolute', left:'50%', top:'50%', transform:'translate(-50%,-50%)', width:2, height:30, background:'#6b7690', boxShadow:'0 -6px 0 #6b7690,0 6px 0 #6b7690' }} />
+          </div>
+        )}
 
         {/* ─── Effect Controls Inspector ─── */}
-        <div style={{ width:inspectorW, flexShrink:0, background:'#0e1016', borderLeft:'1px solid #1e2430', display:'flex', flexDirection:'column', overflow:'hidden' }}>
-          <div style={{ height:22, background:'#13151c', borderBottom:'1px solid #1e2430', display:'flex', alignItems:'center', padding:'0 8px', flexShrink:0 }}>
-            <span style={{ fontSize:10, fontWeight:700, color:'#6a7490', letterSpacing:'0.6px', textTransform:'uppercase' }}>Effect Controls</span>
+        <div style={{ width: inspectorOpen ? inspectorW : 28, flexShrink:0, background:'#0e1016', borderLeft:'1px solid #1e2430', display:'flex', flexDirection:'column', overflow:'hidden', transition:'width 0.15s' }}>
+          <div style={{ height:22, background:'#13151c', borderBottom:'1px solid #1e2430', display:'flex', alignItems:'center', padding:'0 6px', flexShrink:0, gap:6 }}>
+            <button onClick={() => setInspectorOpen(v => !v)} style={{ width:16, height:16, borderRadius:3, border:'1px solid #2a3040', background:'transparent', color:'#5a6580', fontSize:10, cursor:'pointer', padding:0, lineHeight:1, flexShrink:0 }} title={inspectorOpen ? 'Hide inspector' : 'Show inspector'}>{inspectorOpen ? '▶' : '◀'}</button>
+            {inspectorOpen && <span style={{ fontSize:10, fontWeight:700, color:'#6a7490', letterSpacing:'0.6px', textTransform:'uppercase', whiteSpace:'nowrap', overflow:'hidden' }}>Effect Controls</span>}
+            {inspectorOpen && selected && <span style={{ marginLeft:'auto', fontSize:9, color:'#3a7fff', background:'rgba(58,127,255,0.12)', border:'1px solid rgba(58,127,255,0.25)', borderRadius:3, padding:'0 4px', height:14, lineHeight:'14px', flexShrink:0 }}>●</span>}
           </div>
-          <EffectControls
-            clip={selected ? clips.find((c) => c.id === selected) || null : null}
-            onProp={(key, val) => setClipProp(selected, key, val)}
-            onCommit={(key, val) => commitClipProp(selected, key, val)}
-            onFitMode={(mode) => setClipFitMode(selected, mode)}
-          />
+          {inspectorOpen && (
+            <EffectControls
+              clip={(() => {
+                if (!selected) return null;
+                const c = clips.find((cl) => cl.id === selected);
+                if (!c) return null;
+                const tr = tracks[c.track];
+                return { ...c, trackType: tr?.type || '', kind: c.kind || (tr?.type === 'audio' ? 'audio' : '') };
+              })()}
+              onProp={(key, val) => setClipProp(selected, key, val)}
+              onCommit={(key, val) => commitClipProp(selected, key, val)}
+              onFitMode={(mode) => setClipFitMode(selected, mode)}
+            />
+          )}
         </div>
       </div>
 
