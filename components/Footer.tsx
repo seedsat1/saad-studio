@@ -89,13 +89,8 @@ const Footer = () => {
 
         <div className="mt-8 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
 
-        <div className="mt-5 flex flex-col gap-3 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-5 text-sm text-slate-500">
           <p>© {year} Saad Studio. All rights reserved.</p>
-          <div className="flex items-center gap-4">
-            <span>✓ SOC2</span>
-            <span>✓ GDPR</span>
-            <span>✓ ISO</span>
-          </div>
         </div>
       </div>
     </footer>
