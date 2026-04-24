@@ -3,6 +3,7 @@
 import { useRef, useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import Script from "next/script";
 import { motion, AnimatePresence, useAnimation, useInView } from "framer-motion";
 import {
   Play, ChevronRight, ChevronLeft, ImageIcon, VideoIcon, Music,
@@ -861,69 +862,57 @@ const PRICING_CARDS = [
 function TiltPricingCard({
   children,
   className,
-  baseScale = 1,
 }: {
   children: React.ReactNode;
   className?: string;
-  baseScale?: number;
 }) {
-  const [enabled, setEnabled] = useState(false);
-  const [tiltX, setTiltX] = useState(0);
-  const [tiltY, setTiltY] = useState(0);
-  const [hovered, setHovered] = useState(false);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const canHover = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
-    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    setEnabled(canHover && !reducedMotion);
-  }, []);
-
   return (
-    <div className="[perspective:1200px]">
-      <motion.div
-        onMouseMove={(event) => {
-          if (!enabled) return;
-          const rect = event.currentTarget.getBoundingClientRect();
-          const px = (event.clientX - rect.left) / rect.width;
-          const py = (event.clientY - rect.top) / rect.height;
-          const maxTilt = 5;
-          setTiltY((px - 0.5) * maxTilt * 2);
-          setTiltX((0.5 - py) * maxTilt * 2);
-        }}
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => {
-          setHovered(false);
-          setTiltX(0);
-          setTiltY(0);
-        }}
-        animate={{
-          rotateX: enabled ? tiltX : 0,
-          rotateY: enabled ? tiltY : 0,
-          scale: baseScale + (enabled && hovered ? 0.015 : 0),
-          y: enabled && hovered ? -3 : 0,
-        }}
-        transition={{ type: "spring", stiffness: 260, damping: 20, mass: 0.5 }}
+    <div className="[perspective:1000px]">
+      <div
+        data-tilt
+        data-tilt-max="15"
+        data-tilt-speed="400"
+        data-tilt-perspective="1000"
+        data-tilt-scale="1.02"
+        data-tilt-glare="true"
+        data-tilt-max-glare="0.12"
         className={className}
-        style={{ transformStyle: "preserve-3d", willChange: "transform" }}
+        style={{ transformStyle: "preserve-3d", transform: "perspective(1000px)" }}
       >
         {children}
-      </motion.div>
+      </div>
     </div>
   );
 }
 
 function PricingPreview() {
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const canHover = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (!canHover || reducedMotion) return;
+
+    const runInit = () => {
+      const vt = (window as unknown as { VanillaTilt?: { init: (nodes: Element[] | NodeListOf<Element>) => void } }).VanillaTilt;
+      if (!vt?.init) return;
+      vt.init(document.querySelectorAll("[data-tilt]"));
+    };
+
+    runInit();
+    const t = window.setTimeout(runInit, 60);
+    return () => window.clearTimeout(t);
+  }, []);
+
   return (
     <FadeIn>
       <section className="text-center">
+        <Script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.8.0/vanilla-tilt.min.js" strategy="afterInteractive" />
         <h2 className="text-2xl font-bold text-white tracking-tight">Simple, credit-based pricing</h2>
         <p className="mt-2 text-sm text-zinc-400">One credit balance. All AI models. No hidden fees.</p>
         <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-3xl mx-auto">
           {PRICING_CARDS.map((card) => (
             <TiltPricingCard
               key={card.name}
-              baseScale={card.highlighted ? 1.04 : 1}
               className={cn(
                 "relative flex flex-col items-center rounded-xl border px-6 py-8",
                 card.highlighted
@@ -932,19 +921,27 @@ function PricingPreview() {
               )}
             >
               {card.badge && (
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-cyan-400 text-black text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full">
+                <span
+                  className="absolute -top-3 left-1/2 -translate-x-1/2 bg-cyan-400 text-black text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full"
+                  style={{ transform: "translate3d(-50%, 0, 44px)" }}
+                >
                   {card.badge}
                 </span>
               )}
-              <h3 className="text-lg font-bold text-white">{card.name}</h3>
-              {card.price && <p className="mt-1 text-2xl font-bold text-cyan-400">{card.price}</p>}
-              <p className="mt-3 text-sm text-zinc-300">{card.line1}</p>
-              <p className="text-sm text-zinc-500">{card.line2}</p>
+              <h3 className="text-lg font-bold text-white" style={{ transform: "translateZ(46px)" }}>{card.name}</h3>
+              {card.price && (
+                <p className="mt-1 text-2xl font-bold text-cyan-400" style={{ transform: "translateZ(52px)" }}>
+                  {card.price}
+                </p>
+              )}
+              <p className="mt-3 text-sm text-zinc-300" style={{ transform: "translateZ(34px)" }}>{card.line1}</p>
+              <p className="text-sm text-zinc-500" style={{ transform: "translateZ(28px)" }}>{card.line2}</p>
               <Link href={card.ctaHref}>
                 <motion.button
                   whileHover={{ scale: 1.04 }}
                   whileTap={{ scale: 0.96 }}
                   className="mt-5 rounded-lg bg-lime-400 px-6 py-2.5 text-sm font-bold text-black hover:bg-lime-300 transition-colors"
+                  style={{ transform: "translateZ(58px)" }}
                 >
                   {card.cta}
                 </motion.button>
