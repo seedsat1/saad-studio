@@ -622,12 +622,10 @@ function renderVmGrid(){
     const fav=_vmFavs.has(v.id);const pl=_vmPlayingId===v.id;
     const customActions=v.isCustom?`<button class="vm-play-btn" onclick="previewCustomVoice('${v.id}',event)" title="Preview sample">${pl?'&#9632;':'&#9654;'}</button><button onclick="deleteMyVoice('${v.id}',event)" style="width:27px;height:27px;border-radius:50%;border:none;background:rgba(251,113,133,.1);color:var(--rose);cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center" title="Delete">&#128465;</button>`:'';
     const catalogActions=!v.isCustom?`<button class="vm-play-btn${pl?' playing':''}" onclick="previewVmVoice('${v.id}','${sn}',event)">${pl?'&#9632;':'&#9654;'}</button><button class="vm-heart-btn${fav?' fav':''}" onclick="toggleVmFav('${v.id}',event)">${fav?'&#9829;':'&#9825;'}</button>`:'';
-    return `<div class="vm-vcard${sel?' sel':''}" onclick="selectVmVoice('${v.id}','${sn}','${v.lang}','${v.accent}','${v.emoji}','${v.color}','${v.gender}')">
-      ${av}<div class="vm-vinfo"><div class="vm-vname">${hl(v.name,q)}</div><div class="vm-vmeta">${ll} &middot; ${v.isCustom?'Custom':v.accent}</div></div>
-      <div class="vm-vactions">
-        ${v.isCustom?customActions:catalogActions}
-      </div>
-    </div>`;
+    return '<div class="vm-vcard'+(sel?' sel':'')+'" onclick="selectVmVoice(\''+v.id+'\',\''+sn+'\',\''+v.lang+'\',\''+v.accent+'\',\''+v.emoji+'\',\''+v.color+'\',\''+v.gender+'\')">'
+      +av+'<div class="vm-vinfo"><div class="vm-vname">'+hl(v.name,q)+'</div><div class="vm-vmeta">'+ll+' &middot; '+(v.isCustom?'Custom':v.accent)+'</div></div>'
+      +'<div class="vm-vactions">'+(v.isCustom?customActions:catalogActions)+'</div>'
+      +'</div>';
   }).join('');
 }
 
