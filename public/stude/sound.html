@@ -1,1829 +1,773 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en" dir="ltr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title> </title>
-<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<title>Audio Studio</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#181818;--panel:#1e1e1e;--panel2:#232323;--border:#2d2d2d;--border2:#3a3a3a;--text:#d4d4d4;--dim:#777;--dim2:#555;--accent:#4a9eff;--accent2:#5cb8ff;--green:#4caf50;--orange:#ff9800;--red:#f44336;--purple:#b388ff;--cyan:#26c6da;--yellow:#ffd54f}
+:root{
+  --bg:#0a0d19;--bg-panel:#0f1225;--bg-card:#151937;--bg-input:#1a1e40;--bg-hover:#1e2348;
+  --accent:#4b7fff;--accent-soft:rgba(75,127,255,.1);--accent-glow:rgba(75,127,255,.35);
+  --green:#22c55e;--green-soft:rgba(34,197,94,.1);
+  --purple:#a78bfa;--purple-soft:rgba(167,139,250,.1);
+  --orange:#fb923c;--orange-soft:rgba(251,146,60,.1);
+  --rose:#fb7185;--cyan:#26c6da;
+  --text:#e6e9f4;--text-sec:#838baa;--text-dim:#454d70;
+  --border:rgba(255,255,255,.06);--border-light:rgba(255,255,255,.1);
+}
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:var(--bg);color:var(--text);font-family:'Tajawal',sans-serif;height:100vh;overflow:hidden;display:flex;flex-direction:column}
-.menubar{height:24px;background:#111;display:flex;align-items:center;padding:0 8px;gap:2px;border-bottom:1px solid #222;font-size:11px}
-.menubar span{padding:2px 8px;color:var(--dim);cursor:pointer;border-radius:2px}.menubar span:hover{color:var(--text);background:#333}
-.menubar .spacer{flex:1}.menubar .title{color:var(--accent);font-weight:700;letter-spacing:1px}
-.page-tabs{height:30px;background:#1a1a1a;display:flex;align-items:center;border-bottom:1px solid var(--border);padding:0 8px}
-.page-tab{padding:5px 14px;font-size:10px;color:var(--dim);cursor:pointer;border-bottom:2px solid transparent;transition:.15s;text-decoration:none;font-family:'Tajawal'}
-.page-tab:hover{color:var(--text)}.page-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
-.workspace{flex:1;display:flex;flex-direction:column;overflow:hidden}
-.top-row{flex:1;display:flex;min-height:0}
-.bottom-row{height:200px;border-top:2px solid var(--border);display:flex;flex-direction:column}
-.panel{background:var(--panel);display:flex;flex-direction:column;overflow:hidden}
-.ph{height:30px;background:#252525;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 10px;gap:2px;flex-shrink:0}
-.ph .l{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;font-weight:700;cursor:pointer;padding:3px 8px;border-radius:3px;white-space:nowrap}
-.ph .l.a{color:var(--accent);background:rgba(74,158,255,.08)}
-.pb{flex:1;overflow-y:auto;padding:10px}
-.vr{width:2px;background:var(--border);cursor:col-resize;flex-shrink:0}.vr:hover{background:var(--accent)}
-.left-panel{width:260px}.right-panel{width:290px}.center-panel{flex:1;display:flex;flex-direction:column}
-
-/* ── section headers ─────────────────────── */
-.sec{font-size:10px;color:#98a5b9;text-transform:uppercase;letter-spacing:.5px;font-weight:700;padding:8px 0 5px;border-bottom:1px solid var(--border);margin-bottom:8px;display:flex;align-items:center;gap:5px}
-.sec .dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
-
-/* ── form controls ───────────────────────── */
-.lbl{font-size:10px;color:#9ba7be;margin-bottom:3px;display:block}
-select.ff,input.ff{width:100%;background:#1a1a1a;border:1px solid var(--border);border-radius:4px;padding:6px 8px;color:var(--text);font-family:'Tajawal';font-size:12px;outline:none;line-height:1.4;cursor:pointer}
-select.ff:focus,input.ff:focus{border-color:var(--accent)}
-select.ff option{background:#1a1a1a}
-textarea.ff{width:100%;background:#1a1a1a;border:1px solid var(--border);border-radius:4px;padding:7px 9px;color:var(--text);font-family:'Tajawal';font-size:12px;resize:vertical;outline:none;line-height:1.6;min-height:80px}
-textarea.ff:focus{border-color:var(--accent)}
-.row2{display:flex;gap:6px}
-.row2>*{flex:1}
-.mt4{margin-top:4px}.mt6{margin-top:6px}.mt8{margin-top:8px}.mt10{margin-top:10px}
-
-/* ── buttons ─────────────────────────────── */
-.btn{padding:6px 12px;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;border:none;font-family:'Tajawal';transition:.12s;white-space:nowrap}
-.btn-primary{background:var(--accent);color:#fff}.btn-primary:hover{background:var(--accent2)}
-.btn-ghost{background:none;color:var(--dim);border:1px solid var(--border)}.btn-ghost:hover{color:var(--text);border-color:var(--border2)}
-.btn-sm{padding:5px 10px;font-size:11px}
-.btn:disabled{opacity:.5;cursor:not-allowed}
-.btn-row{display:flex;gap:5px;align-items:center}
-
-/* ── sliders ─────────────────────────────── */
-.sl-row{display:flex;align-items:center;gap:8px;margin-bottom:7px}
-.sl-row .sl-lbl{font-size:11px;color:#a9b3c1;width:64px;flex-shrink:0}
-.sl-row .sl-track{flex:1;height:5px;background:#2a2a2a;border-radius:3px;position:relative}
-.sl-row .sl-fill{position:absolute;right:0;top:0;height:100%;border-radius:2px}
-.sl-row .sl-track input[type=range]{position:absolute;inset:0;width:100%;opacity:0;cursor:pointer;margin:0}
-.sl-row .sl-val{font-size:11px;font-family:'JetBrains Mono';width:46px;text-align:left;flex-shrink:0;color:var(--accent)}
-
-/* ── chips ───────────────────────────────── */
-.chips{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:6px}
-#uploadZone:hover{border-color:var(--accent);background:rgba(74,158,255,.04)}
-.chip{padding:4px 10px;border-radius:4px;font-size:11px;cursor:pointer;border:1px solid var(--border);background:#1a1a2a;color:#9ba8bb;font-family:'Tajawal';transition:.12s;user-select:none}
-.chip:hover{border-color:var(--border2);color:var(--text)}.chip.a{border-color:var(--accent);color:var(--accent);background:rgba(74,158,255,.08)}
-
-/* ── voice picker card (left panel trigger) ─ */
-.vp-card{display:flex;align-items:center;gap:10px;background:#1c1c1c;border:1px solid var(--border);border-radius:8px;padding:10px;cursor:pointer;transition:.15s;width:100%}
-.vp-card:hover{border-color:var(--accent);background:#212121}
-.vp-avatar{width:40px;height:40px;border-radius:50%;overflow:hidden;flex-shrink:0;background:#1e2035;display:flex;align-items:center;justify-content:center;font-size:18px}
-.vp-avatar img{width:100%;height:100%;object-fit:cover}
-.vp-info{flex:1;min-width:0}
-.vp-name{font-size:13px;font-weight:600;color:#d4d4d4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.vp-meta{font-size:10px;color:#6a7a8e;margin-top:2px}
-.vp-arrow{color:#5a6a7e;font-size:11px;flex-shrink:0}
-
-/* ── voice picker modal (full-screen sheet) ─ */
-#voicePickerModal{position:fixed;inset:0;background:rgba(6,8,18,.9);z-index:9999;display:flex;align-items:flex-end;justify-content:center;backdrop-filter:blur(5px)}
-.vpm-sheet{width:100%;height:94vh;background:#12152a;border-radius:20px 20px 0 0;display:flex;flex-direction:column;overflow:hidden;animation:vpmUp .3s cubic-bezier(.16,1,.3,1)}
-@keyframes vpmUp{from{transform:translateY(50px);opacity:0}to{transform:translateY(0);opacity:1}}
-.vpm-topbar{padding:20px 30px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;flex-wrap:wrap;gap:10px}
-.vpm-title{font-size:22px;font-weight:800;color:#e8eaef;letter-spacing:-.4px}
-.vpm-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.vpm-pill{padding:7px 15px;border-radius:20px;border:1px solid rgba(255,255,255,.12);background:transparent;color:#7a8aaa;font-size:12px;font-weight:500;font-family:'Tajawal';cursor:pointer;display:flex;align-items:center;gap:5px;transition:.15s;white-space:nowrap}
-.vpm-pill:hover{border-color:rgba(255,255,255,.25);color:#d4d4d4}
-.vpm-pill.a{border-color:var(--accent);color:var(--accent);background:rgba(74,158,255,.1)}
-.vpm-pill svg{width:10px;height:10px;opacity:.6}
-.vpm-icobtn{width:36px;height:36px;border-radius:50%;border:none;background:transparent;color:#7a8aaa;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s;flex-shrink:0}
-.vpm-icobtn:hover{background:#1a1e35;color:#d4d4d4}
-.vpm-newbtn{padding:8px 16px;border-radius:20px;border:none;background:var(--accent);color:#fff;font-size:12px;font-weight:600;font-family:'Tajawal';cursor:pointer;display:flex;align-items:center;gap:6px;transition:.15s;flex-shrink:0}
-.vpm-newbtn:hover{background:var(--accent2)}
-.vpm-closebtn{width:36px;height:36px;border-radius:50%;border:none;background:transparent;color:#7a8aaa;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;transition:.15s;flex-shrink:0}
-.vpm-closebtn:hover{background:#1a1e35;color:#e8eaef}
-.vpm-searchbar{padding:0 30px 12px;flex-shrink:0}
-.vpm-search-input{width:100%;background:#0e1120;border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:9px 14px;color:#d4d4d4;font-family:'Tajawal';font-size:13px;outline:none;transition:.15s}
-.vpm-search-input:focus{border-color:rgba(74,158,255,.5)}
-.vpm-search-input::placeholder{color:#3a4460}
-.vpm-usecases{padding:0 30px 14px;flex-shrink:0}
-.vpm-uc-lbl{font-size:11px;color:#3a4460;font-weight:600;margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px}
-.vpm-uc-row{display:flex;gap:10px;align-items:center}
-.vpm-uc-scroll{display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;flex:1}
-.vpm-uc-scroll::-webkit-scrollbar{display:none}
-.vpm-uc-card{min-width:155px;height:106px;border-radius:10px;position:relative;overflow:hidden;cursor:pointer;flex-shrink:0;border:1px solid rgba(255,255,255,.07);transition:all .2s}
-.vpm-uc-card:hover{border-color:rgba(255,255,255,.18);transform:translateY(-2px);box-shadow:0 8px 20px rgba(0,0,0,.45)}
-.vpm-uc-card img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.5}
-.vpm-uc-overlay{position:absolute;inset:0;background:linear-gradient(180deg,transparent 25%,rgba(0,0,0,.8) 100%)}
-.vpm-uc-cnt{position:relative;z-index:2;padding:10px;height:100%;display:flex;flex-direction:column;justify-content:space-between}
-.vpm-uc-name{font-size:13px;font-weight:700;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.5)}
-.vpm-uc-arrow{width:24px;height:24px;border-radius:50%;border:1.5px solid rgba(255,255,255,.3);background:rgba(255,255,255,.05);display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;transition:.2s}
-.vpm-uc-card:hover .vpm-uc-arrow{background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.5)}
-.vpm-navarrow{width:30px;height:30px;border-radius:50%;border:1px solid rgba(255,255,255,.12);background:#181b30;color:#7a8aaa;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;transition:.15s}
-.vpm-navarrow:hover{background:#1e2240;color:#d4d4d4}
-.vpm-tabs-row{padding:0 30px;display:flex;border-bottom:1px solid rgba(255,255,255,.07);flex-shrink:0}
-.vpm-tab{padding:11px 18px;font-size:13px;font-weight:600;color:#3a4460;cursor:pointer;border-bottom:2px solid transparent;transition:.2s;font-family:'Tajawal';white-space:nowrap}
-.vpm-tab:hover{color:#7a8aaa}
-.vpm-tab.a{color:#e8eaef;border-bottom-color:#e8eaef}
-.vpm-vsscroll{flex:1;overflow-y:auto;padding:14px 30px 30px;scrollbar-width:thin;scrollbar-color:#1a1e35 transparent}
-.vpm-vsscroll::-webkit-scrollbar{width:6px}
-.vpm-vsscroll::-webkit-scrollbar-track{background:transparent}
-.vpm-vsscroll::-webkit-scrollbar-thumb{background:#1e2240;border-radius:3px}
-.vpm-vsgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:3px}
-.vpm-vcard{display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:8px;cursor:pointer;transition:.15s;position:relative}
-.vpm-vcard:hover{background:#181b30}
-.vpm-vcard:hover .vpm-vactions{opacity:1}
-.vpm-vcard.sel{background:rgba(74,158,255,.1);outline:1px solid rgba(74,158,255,.28)}
-.vpm-vcard.sel .vpm-vactions{opacity:1}
-.vpm-vavatar{width:42px;height:42px;border-radius:50%;overflow:hidden;flex-shrink:0;background:#1a1d30}
-.vpm-vavatar img{width:100%;height:100%;object-fit:cover}
-.vpm-vemoji{width:42px;height:42px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:18px}
-.vpm-vinfo{flex:1;min-width:0;overflow:hidden}
-.vpm-vname{font-size:12px;font-weight:600;color:#e8eaef;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.vpm-vmeta{font-size:11px;color:#3a4a6a;margin-top:1px}
-.vpm-match{color:var(--accent);font-weight:700}
-.vpm-vactions{display:flex;gap:3px;opacity:0;transition:.12s;flex-shrink:0;align-items:center}
-.vpm-play-btn{width:28px;height:28px;border-radius:50%;border:none;background:rgba(74,158,255,.15);color:var(--accent);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;transition:.15s;line-height:1;flex-shrink:0}
-.vpm-play-btn:hover{background:var(--accent);color:#fff}
-.vpm-play-btn.playing{background:var(--accent);color:#fff;animation:vpmpulse 1.4s infinite}
-.vpm-play-btn.loading{background:rgba(255,213,79,.12);color:#ffd54f;animation:vpmSpin .7s linear infinite}
-@keyframes vpmpulse{0%,100%{box-shadow:0 0 0 0 rgba(74,158,255,.5)}70%{box-shadow:0 0 0 6px transparent}}
-@keyframes vpmSpin{to{transform:rotate(360deg)}}
-.vpm-fav-btn{width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,.05);color:#4a5a7e;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:.15s;line-height:1;flex-shrink:0}
-.vpm-fav-btn:hover{background:rgba(255,80,80,.15);color:#ff6b6b}
-.vpm-fav-btn.fav{color:#ff6b6b;background:rgba(255,80,80,.1)}
-.vpm-tab-badge{display:inline-flex;align-items:center;justify-content:center;background:rgba(74,158,255,.2);color:var(--accent);border-radius:10px;font-size:10px;font-weight:700;padding:1px 6px;margin-left:4px;min-width:16px;vertical-align:middle;line-height:1.4}
-@media(max-width:1100px){.vpm-vsgrid{grid-template-columns:repeat(3,1fr)}}
-@media(max-width:700px){.vpm-vsgrid{grid-template-columns:repeat(2,1fr)}.vpm-topbar{padding:14px 16px}.vpm-usecases{padding:0 16px 10px}.vpm-vsscroll{padding:10px 16px}.vpm-tabs-row{padding:0 16px}.vpm-pill{display:none}}
-
-/* ── tabs (Music / SFX) ──────────────────── */
-.gen-tabs{height:34px;display:flex;align-items:flex-end;padding:0 10px;gap:2px;background:#232323;border-bottom:1px solid var(--border);flex-shrink:0}
-.gen-tab{padding:6px 14px;font-size:11px;font-weight:600;color:var(--dim);cursor:pointer;border-bottom:2px solid transparent;transition:.12s;border-radius:3px 3px 0 0;font-family:'Tajawal'}
-.gen-tab:hover{color:var(--text)}.gen-tab.a{color:var(--accent);border-bottom-color:var(--accent);background:rgba(74,158,255,.05)}
-.gen-body{flex:1;overflow-y:auto;padding:10px;min-height:0}
-.tab-pane{display:none}.tab-pane.a{display:block}
-
-/* ── preview section ─────────────────────── */
-.preview-wrap{flex-shrink:0;border-top:1px solid var(--border);background:#161616;padding:0}
-.prev{height:72px;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;background:#111;padding:0 12px}
-.wd{width:100%;height:100%;display:flex;align-items:center;gap:2px;justify-content:center}
-.wb{width:3px;border-radius:2px;background:var(--accent);opacity:.4;animation:wa 1.8s ease-in-out infinite;animation-play-state:paused}
-@keyframes wa{0%,100%{height:5px}50%{height:100%}}
-.tp{height:32px;background:#1a1a1a;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:center;gap:4px;flex-shrink:0}
-.tp button{width:24px;height:24px;border:none;background:none;color:var(--dim);cursor:pointer;border-radius:3px;font-size:11px;display:flex;align-items:center;justify-content:center}
-.tp button:hover{background:var(--panel2);color:var(--text)}
-.tp .pb2{background:var(--accent);color:#fff;border-radius:50%;width:26px;height:26px}.tp .pb2:hover{background:var(--accent2)}
-.tc{font-size:11px;font-family:'JetBrains Mono';color:#888;padding:2px 8px;background:#111;border-radius:3px;margin:0 4px}
-.status-bar{padding:6px 10px;font-size:11px;color:#99a7bf;background:#191919;border-top:1px solid var(--border);line-height:1.4;min-height:28px}
-.action-bar{padding:6px 8px;background:#1c1c1c;border-top:1px solid var(--border);display:flex;gap:5px}
-
-/* ── timeline (bottom) ───────────────────── */
-.th{height:26px;background:#252525;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 10px;gap:10px;flex-shrink:0}
-.th span{font-size:9px;color:var(--dim);cursor:pointer}.th span.a{color:var(--accent)}
-.tb{flex:1;display:flex;overflow:hidden}
-.ts{width:100px;background:#1c1c1c;border-left:1px solid var(--border);flex-shrink:0}
-.tl{height:32px;display:flex;align-items:center;padding:0 6px;gap:3px;border-bottom:1px solid #252525;font-size:9px;color:var(--dim)}
-.tl .d{width:5px;height:5px;border-radius:50%}.tl .n{flex:1}.tl .x{display:flex;gap:1px;font-size:8px;opacity:.4}
-.ta{flex:1;position:relative;overflow:auto}
-.tr{height:18px;background:#1c1c1c;border-bottom:1px solid var(--border);display:flex;align-items:flex-end;padding:0 8px;gap:55px;position:sticky;top:0;z-index:2}
-.tr span{font-size:7px;color:var(--dim2);font-family:'JetBrains Mono'}
-.tt{position:relative}
-.tk{height:32px;border-bottom:1px solid #252525;position:relative}
-.tc2{position:absolute;top:2px;height:28px;border-radius:3px;display:flex;align-items:center;padding:0 5px;font-size:8px;color:#fff;overflow:hidden;cursor:pointer;transition:.12s}
-.tc2:hover{filter:brightness(1.2)}.tc2 .cn{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tp2{position:absolute;top:0;bottom:0;width:2px;background:var(--red);z-index:10;pointer-events:none}
-.tp2::before{content:'';position:absolute;top:-1px;right:-3px;width:8px;height:8px;background:var(--red);clip-path:polygon(50% 100%,0 0,100% 0)}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;display:flex;flex-direction:column;overflow:hidden}
+.topbar{height:44px;background:var(--bg-panel);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:16px;flex-shrink:0}
+.brand{font-size:13px;font-weight:800;color:var(--accent);letter-spacing:-.5px;white-space:nowrap}
+.nav-tabs{display:flex;gap:0;margin:0 auto}
+.nav-tab{padding:0 14px;height:44px;display:flex;align-items:center;font-size:11px;font-weight:600;color:var(--text-dim);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap}
+.nav-tab:hover{color:var(--text-sec)}
+.nav-tab.active{color:var(--text);border-bottom-color:var(--accent)}
+.main{flex:1;display:flex;flex-direction:column;align-items:center;padding:32px 24px 20px;gap:22px;overflow-y:auto;position:relative}
+.main::before{content:'';position:absolute;width:600px;height:400px;background:radial-gradient(circle,rgba(75,127,255,.05) 0%,transparent 70%);top:-60px;left:50%;transform:translateX(-50%);pointer-events:none}
+.mode-switcher{display:flex;background:var(--bg-card);border:1px solid var(--border);border-radius:28px;padding:4px;gap:3px;position:relative;z-index:2;flex-shrink:0}
+.mode-btn{padding:7px 20px;border-radius:24px;border:none;background:transparent;color:var(--text-sec);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:7px;transition:all .2s}
+.mode-btn:hover{color:var(--text)}
+.mode-btn.active{background:var(--accent);color:#fff;box-shadow:0 2px 12px var(--accent-glow)}
+.mode-btn svg{width:15px;height:15px;flex-shrink:0}
+.prompt-container{width:100%;max-width:740px;position:relative;z-index:2;flex-shrink:0}
+.prompt-box{background:var(--bg-card);border:1px solid var(--border-light);border-radius:16px;overflow:hidden;transition:border-color .2s,box-shadow .2s}
+.prompt-box:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft),0 8px 32px rgba(0,0,0,.3)}
+.prompt-main{display:flex;align-items:flex-end;padding:14px 16px;gap:10px}
+.prompt-textarea{flex:1;background:none;border:none;color:var(--text);font-family:inherit;font-size:14px;line-height:1.6;resize:none;outline:none;min-height:24px;max-height:120px}
+.prompt-textarea::placeholder{color:var(--text-dim)}
+.prompt-send{width:40px;height:40px;border-radius:12px;border:none;background:var(--accent);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s}
+.prompt-send:hover{background:#5a8fff;box-shadow:0 2px 12px var(--accent-glow);transform:scale(1.04)}
+.prompt-send:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.prompt-options{display:flex;align-items:center;padding:8px 16px;gap:7px;border-top:1px solid var(--border);flex-wrap:wrap}
+.opt-pill{padding:5px 11px;border-radius:16px;border:1px solid var(--border);background:transparent;color:var(--text-sec);font-family:inherit;font-size:11px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:5px;transition:all .15s;white-space:nowrap}
+.opt-pill:hover{background:var(--bg-hover);color:var(--text);border-color:var(--border-light)}
+.opt-pill.active{background:var(--accent-soft);color:var(--accent);border-color:rgba(75,127,255,.3)}
+.opt-divider{width:1px;height:16px;background:var(--border);margin:0 1px;flex-shrink:0}
+.opt-voice-chip{padding:4px 10px 4px 4px;border-radius:16px;border:1px solid var(--border);background:var(--bg-input);color:var(--text);font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .15s;flex-shrink:0}
+.opt-voice-chip:hover{border-color:var(--accent)}
+.opt-voice-avatar{width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--purple));display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:#fff;flex-shrink:0;overflow:hidden}
+.opt-voice-avatar img{width:100%;height:100%;object-fit:cover}
+.status-strip{width:100%;max-width:740px;font-size:11px;color:var(--text-dim);font-family:'JetBrains Mono',monospace;text-align:center;min-height:16px;position:relative;z-index:2;flex-shrink:0}
+.output-area{width:100%;max-width:740px;position:relative;z-index:2;flex-shrink:0;display:none}
+.output-area.visible{display:block}
+.output-card{background:var(--bg-card);border:1px solid var(--border);border-radius:14px;overflow:hidden;animation:fadeUp .35s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.output-header{padding:11px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border)}
+.output-badge{padding:3px 9px;border-radius:8px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.6px}
+.badge-voice{background:var(--green-soft);color:var(--green)}
+.badge-music{background:var(--accent-soft);color:var(--accent)}
+.badge-sfx{background:var(--orange-soft);color:var(--orange)}
+.output-title{font-size:12px;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.output-waveform{height:60px;padding:0 16px;display:flex;align-items:center;gap:1.5px;overflow:hidden}
+.wb{width:3px;border-radius:1.5px;flex-shrink:0;animation:wavePulse 1.4s ease-in-out infinite;animation-play-state:paused}
+@keyframes wavePulse{0%,100%{transform:scaleY(.3)}50%{transform:scaleY(1)}}
+.output-controls{padding:10px 16px;display:flex;align-items:center;gap:7px}
+.oc-btn{width:32px;height:32px;border-radius:50%;border:none;background:transparent;color:var(--text-sec);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.oc-btn:hover{background:var(--bg-hover);color:var(--text)}
+.oc-btn.play{width:36px;height:36px;background:var(--accent);color:#fff;box-shadow:0 2px 10px var(--accent-glow)}
+.oc-btn.play:hover{transform:scale(1.06)}
+.oc-time{font-size:10px;color:var(--text-dim);font-family:'JetBrains Mono',monospace;margin:0 3px}
+.oc-spacer{flex:1}
+.oc-action{padding:6px 13px;border-radius:8px;border:none;font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px;transition:all .15s}
+.oc-action.primary{background:var(--green);color:#fff}
+.oc-action.primary:hover{filter:brightness(1.1)}
+.oc-action.ghost{background:transparent;color:var(--text-sec);border:1px solid var(--border)}
+.oc-action.ghost:hover{background:var(--bg-hover);color:var(--text)}
+.quick-actions{display:flex;gap:7px;flex-wrap:wrap;justify-content:center;max-width:740px;width:100%;position:relative;z-index:2;flex-shrink:0}
+.quick-btn{padding:7px 14px;border-radius:10px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-sec);font-family:inherit;font-size:11px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .15s}
+.quick-btn:hover{background:var(--bg-hover);color:var(--text);border-color:var(--border-light);transform:translateY(-1px)}
+.mode-options{width:100%;max-width:740px;position:relative;z-index:2;display:none;flex-shrink:0}
+.mode-options.visible{display:block}
+.chips-row{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px}
+.chip{padding:4px 11px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-sec);font-family:inherit;font-size:11px;cursor:pointer;transition:.12s;user-select:none}
+.chip:hover{border-color:var(--border-light);color:var(--text)}
+.chip.a{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.chips-label{font-size:10px;color:var(--text-dim);font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px}
+.sl-row{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.sl-lbl{font-size:11px;color:var(--text-sec);width:50px;flex-shrink:0}
+.sl-track{flex:1;height:4px;background:rgba(255,255,255,.08);border-radius:2px;position:relative}
+.sl-track input[type=range]{position:absolute;inset:0;width:100%;opacity:0;cursor:pointer;margin:0}
+.sl-fill{position:absolute;left:0;top:0;height:100%;border-radius:2px;background:var(--orange)}
+.sl-val{font-size:11px;font-family:'JetBrains Mono';color:var(--orange);width:40px;flex-shrink:0}
+/* VOICE MODAL */
+.voice-overlay{position:fixed;inset:0;background:rgba(6,8,22,.9);z-index:9999;display:none;align-items:flex-end;justify-content:center;backdrop-filter:blur(8px)}
+.voice-overlay.open{display:flex}
+.voice-modal{width:100%;max-width:1100px;height:88vh;background:var(--bg-panel);border:1px solid var(--border-light);border-radius:20px 20px 0 0;display:flex;flex-direction:column;overflow:hidden;animation:vmUp .3s cubic-bezier(.16,1,.3,1)}
+@keyframes vmUp{from{transform:translateY(40px);opacity:0}to{transform:translateY(0);opacity:1}}
+.vm-topbar{padding:18px 28px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;flex-wrap:wrap;gap:10px}
+.vm-title{font-size:22px;font-weight:800;color:var(--text)}
+.vm-topbar-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.vm-pill{padding:7px 14px;border-radius:20px;border:1px solid var(--border-light);background:transparent;color:var(--text-sec);font-family:inherit;font-size:12px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:5px;transition:.15s;white-space:nowrap}
+.vm-pill:hover{border-color:var(--border-light);color:var(--text)}
+.vm-pill.active{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.vm-fav-btn{width:36px;height:36px;border-radius:50%;border:none;background:transparent;color:var(--text-sec);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s;font-size:16px}
+.vm-fav-btn:hover{background:var(--bg-hover);color:var(--rose)}
+.vm-fav-btn.active{color:var(--rose)}
+.vm-clone-btn{padding:8px 18px;border-radius:20px;border:none;background:var(--accent);color:#fff;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;transition:.15s;flex-shrink:0}
+.vm-clone-btn:hover{background:#5a8fff;box-shadow:0 2px 12px var(--accent-glow)}
+.vm-close{width:34px;height:34px;border-radius:50%;border:none;background:transparent;color:var(--text-sec);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:.15s}
+.vm-close:hover{background:var(--bg-hover);color:var(--text)}
+.vm-searchbar{padding:0 28px 12px;flex-shrink:0}
+.vm-search-input{width:100%;background:var(--bg-input);border:1px solid var(--border-light);border-radius:10px;padding:10px 16px;color:var(--text);font-family:inherit;font-size:13px;outline:none;transition:.15s}
+.vm-search-input:focus{border-color:var(--accent)}
+.vm-search-input::placeholder{color:var(--text-dim)}
+.vm-usecases{padding:0 28px 14px;flex-shrink:0}
+.vm-uc-lbl{font-size:10px;color:var(--text-dim);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
+.vm-uc-row{display:flex;gap:0;align-items:center}
+.vm-uc-scroll{display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;flex:1}
+.vm-uc-scroll::-webkit-scrollbar{display:none}
+.vm-uc-card{min-width:148px;height:100px;border-radius:12px;position:relative;overflow:hidden;cursor:pointer;flex-shrink:0;border:1px solid rgba(255,255,255,.07);transition:all .2s}
+.vm-uc-card:hover{border-color:rgba(255,255,255,.2);transform:translateY(-2px);box-shadow:0 8px 20px rgba(0,0,0,.5)}
+.vm-uc-card.sel{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+.vm-uc-card img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.45}
+.vm-uc-overlay{position:absolute;inset:0;background:linear-gradient(180deg,transparent 20%,rgba(0,0,0,.85) 100%)}
+.vm-uc-cnt{position:relative;z-index:2;padding:10px;height:100%;display:flex;flex-direction:column;justify-content:space-between}
+.vm-uc-name{font-size:12px;font-weight:700;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.6)}
+.vm-uc-arrow{width:22px;height:22px;border-radius:50%;border:1.5px solid rgba(255,255,255,.35);background:rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;transition:.2s}
+.vm-uc-card:hover .vm-uc-arrow{background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.6)}
+.vm-nav-arrow{width:28px;height:28px;border-radius:50%;border:1px solid var(--border-light);background:var(--bg-card);color:var(--text-sec);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;transition:.15s;margin-left:8px}
+.vm-nav-arrow:hover{background:var(--bg-hover);color:var(--text)}
+.vm-tabs{padding:0 28px;display:flex;border-bottom:1px solid var(--border);flex-shrink:0}
+.vm-tab{padding:10px 16px;font-size:13px;font-weight:600;color:var(--text-dim);cursor:pointer;border-bottom:2px solid transparent;transition:.2s;white-space:nowrap;font-family:inherit}
+.vm-tab:hover{color:var(--text-sec)}
+.vm-tab.active{color:var(--text);border-bottom-color:var(--text)}
+.vm-tab-badge{display:inline-flex;align-items:center;justify-content:center;background:var(--accent-soft);color:var(--accent);border-radius:10px;font-size:10px;font-weight:700;padding:1px 6px;margin-left:4px;min-width:16px;line-height:1.4}
+.vm-grid-scroll{flex:1;overflow-y:auto;padding:14px 28px 28px;scrollbar-width:thin;scrollbar-color:var(--bg-hover) transparent}
+.vm-grid-scroll::-webkit-scrollbar{width:5px}
+.vm-grid-scroll::-webkit-scrollbar-track{background:transparent}
+.vm-grid-scroll::-webkit-scrollbar-thumb{background:var(--bg-hover);border-radius:3px}
+.vm-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+.vm-vcard{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;cursor:pointer;transition:.15s;position:relative;border:1px solid transparent}
+.vm-vcard:hover{background:var(--bg-hover);border-color:var(--border)}
+.vm-vcard:hover .vm-vactions{opacity:1}
+.vm-vcard.sel{background:var(--accent-soft);border-color:rgba(75,127,255,.3)}
+.vm-vcard.sel .vm-vactions{opacity:1}
+.vm-vavatar{width:40px;height:40px;border-radius:50%;overflow:hidden;flex-shrink:0;background:var(--bg-input)}
+.vm-vavatar img{width:100%;height:100%;object-fit:cover}
+.vm-vemoji{width:40px;height:40px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:17px}
+.vm-vinfo{flex:1;min-width:0;overflow:hidden}
+.vm-vname{font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vm-vmeta{font-size:10px;color:var(--text-sec);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vm-match{color:var(--accent);font-weight:700}
+.vm-vactions{display:flex;gap:3px;opacity:0;transition:.12s;flex-shrink:0;align-items:center}
+.vm-play-btn{width:27px;height:27px;border-radius:50%;border:none;background:var(--accent-soft);color:var(--accent);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:10px;transition:.15s;line-height:1}
+.vm-play-btn:hover{background:var(--accent);color:#fff}
+.vm-play-btn.playing{background:var(--accent);color:#fff;animation:playPulse 1.4s infinite}
+@keyframes playPulse{0%,100%{box-shadow:0 0 0 0 rgba(75,127,255,.5)}70%{box-shadow:0 0 0 6px transparent}}
+.vm-heart-btn{width:27px;height:27px;border-radius:50%;border:none;background:rgba(255,255,255,.04);color:var(--text-dim);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;transition:.15s;line-height:1}
+.vm-heart-btn:hover{background:rgba(251,113,133,.15);color:var(--rose)}
+.vm-heart-btn.fav{color:var(--rose);background:rgba(251,113,133,.1)}
+.vm-clone-section{padding:16px 28px 24px;flex-shrink:0;display:none;border-top:1px solid var(--border)}
+.vm-clone-section.open{display:block}
+.clone-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.clone-upload-zone{border:2px dashed var(--border-light);border-radius:10px;padding:18px;text-align:center;cursor:pointer;transition:.15s}
+.clone-upload-zone:hover{border-color:var(--accent);background:var(--accent-soft)}
+.clone-upload-zone.has-file{border-color:var(--green);background:var(--green-soft)}
+.clone-input{width:100%;background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:inherit;font-size:12px;outline:none;margin-top:8px}
+.clone-input:focus{border-color:var(--accent)}
+.clone-progress-wrap{display:none;margin-top:10px}
+.clone-progress-bar-bg{height:4px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden;margin-top:4px}
+.clone-progress-bar{height:100%;width:0%;background:var(--purple);border-radius:2px;transition:width .2s}
+.clone-btn-row{display:flex;gap:8px;margin-top:12px}
+.clone-btn{padding:8px 16px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text-sec);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;transition:.15s}
+.clone-btn:hover{background:var(--bg-hover);color:var(--text)}
+.clone-btn.save{border-color:rgba(167,139,250,.4);color:var(--purple);background:var(--purple-soft)}
+.clone-btn.save:hover{background:rgba(167,139,250,.2)}
+.clone-btn:disabled{opacity:.5;cursor:not-allowed}
+#activeCloneBar{display:none;background:rgba(167,139,250,.08);border:1px solid rgba(167,139,250,.25);border-radius:8px;padding:7px 12px;font-size:11px;color:var(--purple);align-items:center;gap:8px;width:100%;max-width:740px;flex-shrink:0}
+@media(max-width:1100px){.vm-grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:700px){.vm-grid{grid-template-columns:repeat(2,1fr)}.vm-topbar{padding:14px 16px}.mode-btn{padding:6px 13px;font-size:12px}}
 </style>
 </head>
 <body>
 <script>
 (function(){
-  var params=new URLSearchParams(location.search);
-  var isEmbed=params.get('embed')==='1';
-  var pageName='sound';
-  if(!isEmbed){
-    location.replace('studio-shell.html?page='+encodeURIComponent(pageName));
-    return;
-  }
+  var p=new URLSearchParams(location.search);
+  if(p.get('embed')!=='1'){location.replace('studio-shell.html?page=sound');return;}
   window.__FF_EMBED_TOP=true;
-  document.documentElement.lang='en';
-  document.documentElement.dir='ltr';
   document.addEventListener('DOMContentLoaded',function(){
-    var mb=document.querySelector('.menubar'); if(mb) mb.style.display='none';
-    var tabs=document.querySelector('.page-tabs'); if(tabs) tabs.style.display='none';
-    var br=document.querySelector('.bottom-row'); if(br) br.style.display='none';
-    var ws=document.querySelector('.workspace'); if(ws){ ws.style.height='100vh'; ws.style.display='flex'; ws.style.flexDirection='column'; }
-    var tr=document.querySelector('.top-row'); if(tr){ tr.style.flex='1 1 auto'; tr.style.minHeight='0'; }
+    var tb=document.querySelector('.topbar');if(tb)tb.style.display='none';
   });
 })();
 </script>
-<!-- FF_SHELL_BRIDGE -->
-<div class="menubar"><span class="title">FRAMEFORGE</span><span> </span><span> </span><div class="spacer"></div><span style="color:var(--dim2);font-family:'JetBrains Mono';font-size:9px">Audio Studio</span></div>
-<div class="page-tabs">
- <a class="page-tab active" href="sound.html"> </a>
- <a class="page-tab" href="video.html"> </a>
- <a class="page-tab" href="presets.html"> </a>
- <a class="page-tab" href="transitions.html"> </a>
- <a class="page-tab" href="lighting.html"> </a>
- <a class="page-tab" href="prompt.html"> </a>
-</div>
 
-<div class="workspace">
-<div class="top-row">
-
-<!-- ═══════════════════════════════════════════════════════ LEFT: VOICEOVER -->
-<div class="panel left-panel">
-  <div class="ph"><span class="l a">Voiceover</span></div>
-  <div class="pb">
-
-    <!-- Voice selector -->
-    <div class="sec"><span class="dot" style="background:var(--accent)"></span>Voice</div>
-
-    <!-- Voice picker card -->
-    <div class="vp-card" onclick="openVoicePicker()" id="voicePickerCard">
-      <div class="vp-avatar" id="vpAvatar" style="background:#2a3050">🎙</div>
-      <div class="vp-info">
-        <div class="vp-name" id="vpName">Rachel</div>
-        <div class="vp-meta" id="vpMeta">Standard · EN</div>
-      </div>
-      <span class="vp-arrow">▾ Change</span>
-    </div>
-    <!-- Hidden select for compatibility with getSelectedVoiceId() -->
-    <select id="voiceSelect" style="display:none"></select>
-
-    <div class="row2 mt6">
-      <div>
-        <label class="lbl">Language</label>
-        <select id="voiceLanguage" class="ff">
-          <option value="auto">Auto</option>
-          <option value="ar">Arabic</option>
-          <option value="en">English</option>
-        </select>
-      </div>
-      <div>
-        <label class="lbl">Speed &nbsp;<span id="spV" style="color:var(--accent);font-family:'JetBrains Mono'">100%</span></label>
-        <div class="sl-track mt4" style="height:5px;margin-top:8px">
-          <div class="sl-fill" id="spFill" style="width:50%;background:var(--accent)"></div>
-          <input type="range" min="50" max="150" value="100" oninput="us(this,'sp')">
-        </div>
-      </div>
-    </div>
-
-    <!-- Voiceover text -->
-    <label class="lbl mt8">Voiceover Text</label>
-    <textarea id="vText" class="ff mt4" rows="5" placeholder="Write the text to convert to speech..."></textarea>
-    <div class="btn-row mt6">
-      <button class="btn btn-primary btn-sm" id="btnGenerateVoice" onclick="generateVoice()" style="flex:1">🎙 Generate Voice</button>
-      <button class="btn btn-ghost btn-sm" id="btnCloneVoice" onclick="cloneVoice()">Clone</button>
-      <span style="font-size:11px;color:#8a97b2;font-family:'JetBrains Mono'" id="cCt">0 ch</span>
-    </div>
-
-    <!-- Voice Cloning -->
-    <div id="cloneSection" class="mt8" style="border-top:1px solid var(--border);padding-top:8px;transition:box-shadow .3s,border-color .3s;border-radius:6px">
-      <div class="sec" style="margin-bottom:8px"><span class="dot" style="background:var(--purple)"></span>Voice Cloning</div>
-
-      <!-- Active clone indicator -->
-      <div id="activeCloneBar" style="display:none;background:rgba(179,136,255,.1);border:1px solid rgba(179,136,255,.3);border-radius:4px;padding:6px 8px;margin-bottom:8px;font-size:11px;color:var(--purple);display:flex;align-items:center;gap:6px">
-        <span>🎤</span><span id="activeCloneName" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
-        <span onclick="clearActiveClone()" style="cursor:pointer;color:#6a7a8e;font-size:13px;line-height:1">✕</span>
-      </div>
-
-      <label class="lbl">Upload voice sample <span style="color:#5a6a7e;font-size:9px">(10–60s clear speech)</span></label>
-      <div id="cloneUploadZone" onclick="document.getElementById('cloneSampleInput').click()" style="border:2px dashed var(--border2);border-radius:5px;padding:10px 8px;text-align:center;cursor:pointer;transition:.15s;margin-top:4px">
-        <div style="font-size:20px;margin-bottom:3px">🎤</div>
-        <div id="cloneSampleName" style="font-size:11px;color:#8a9ab8;line-height:1.4">Click to choose audio file</div>
-      </div>
-      <input id="cloneSampleInput" type="file" accept="audio/*" style="display:none" onchange="onCloneSampleSelect(this)">
-
-      <label class="lbl mt6">Voice name</label>
-      <input id="cloneVoiceName" class="ff mt4" type="text" placeholder="e.g. My Voice, Client Voice...">
-
-      <!-- Hidden for compatibility -->
-      <input id="customVoiceId" type="hidden" value="">
-
-      <!-- Clone progress -->
-      <div id="cloneProgress" style="display:none;margin-top:6px">
-        <div style="display:flex;justify-content:space-between;font-size:10px;color:#8a9ab8;margin-bottom:3px">
-          <span id="cloneProgressLabel">Uploading sample...</span><span id="clonePct">0%</span>
-        </div>
-        <div style="height:4px;background:#2a2a2a;border-radius:2px;overflow:hidden">
-          <div id="cloneBar" style="height:100%;width:0%;background:var(--purple);border-radius:2px;transition:width .2s"></div>
-        </div>
-      </div>
-
-      <div class="row2 mt6">
-        <button class="btn btn-ghost btn-sm" id="btnSaveVoice" onclick="cloneAndSaveVoice()" disabled style="flex:2;border-color:rgba(179,136,255,.3);color:var(--purple)">💾 Save to My Voices</button>
-        <button class="btn btn-ghost btn-sm" id="btnCloneVoice" onclick="cloneVoice()" style="flex:1">▶ Use Once</button>
-      </div>
-    </div>
-
-    <!-- Pitch / Volume sliders -->
-    <div class="mt10">
-      <div class="sec"><span class="dot" style="background:var(--orange)"></span>Mix</div>
-      <div class="sl-row">
-        <span class="sl-lbl">Pitch</span>
-        <div class="sl-track"><div class="sl-fill" style="width:50%;background:var(--orange)"></div><input type="range" min="-12" max="12" value="0" oninput="us(this,'pi')"></div>
-        <span class="sl-val" id="piV" style="color:var(--orange)">0</span>
-      </div>
-      <div class="sl-row">
-        <span class="sl-lbl">Volume</span>
-        <div class="sl-track"><div class="sl-fill" style="width:80%;background:var(--green)"></div><input type="range" min="0" max="100" value="80" oninput="us(this,'vo')"></div>
-        <span class="sl-val" id="voV" style="color:var(--green)">80%</span>
-      </div>
-      <div class="sl-row">
-        <span class="sl-lbl">Fade In</span>
-        <div class="sl-track"><div class="sl-fill" style="width:0%;background:var(--cyan)"></div><input type="range" min="0" max="2000" value="0" oninput="us(this,'fi')"></div>
-        <span class="sl-val" id="fiV" style="color:var(--cyan)">0ms</span>
-      </div>
-      <div class="sl-row">
-        <span class="sl-lbl">Fade Out</span>
-        <div class="sl-track"><div class="sl-fill" style="width:0%;background:var(--cyan)"></div><input type="range" min="0" max="2000" value="0" oninput="us(this,'fo')"></div>
-        <span class="sl-val" id="foV" style="color:var(--cyan)">0ms</span>
-      </div>
-    </div>
-
-  </div>
-</div>
-<div class="vr"></div>
-
-<!-- ═══════════════════════════════════════════════════════ CENTER: GENERATOR + PREVIEW -->
-<div class="panel center-panel">
-
-  <!-- Tab switcher -->
-  <div class="gen-tabs">
-    <span class="gen-tab a" data-tab="music" onclick="switchGenTab('music')">🎵 Music</span>
-    <span class="gen-tab" data-tab="sfx" onclick="switchGenTab('sfx')">💥 Sound Effects</span>
-  </div>
-
-  <!-- Generator body -->
-  <div class="gen-body">
-
-    <!-- ── Music pane ── -->
-    <div id="tab-music" class="tab-pane a">
-      <div class="sec"><span class="dot" style="background:var(--orange)"></span>Music Generator</div>
-
-      <label class="lbl">Genre</label>
-      <div class="chips cr" id="genreChips">
-        <span class="chip ch a">Ambient</span>
-        <span class="chip ch">Electronic</span>
-        <span class="chip ch">Orchestral</span>
-        <span class="chip ch">Lo-Fi</span>
-        <span class="chip ch">Rock</span>
-        <span class="chip ch">Jazz</span>
-        <span class="chip ch">Cinematic</span>
-        <span class="chip ch">Classical</span>
-      </div>
-
-      <label class="lbl mt6">Mood</label>
-      <div class="chips cr" id="moodChips">
-        <span class="chip ch a">Calm</span>
-        <span class="chip ch">Epic</span>
-        <span class="chip ch">Dark</span>
-        <span class="chip ch">Hopeful</span>
-        <span class="chip ch">Tense</span>
-        <span class="chip ch">Romantic</span>
-        <span class="chip ch">Dramatic</span>
-      </div>
-
-      <div class="sl-row mt6">
-        <span class="sl-lbl">BPM</span>
-        <div class="sl-track"><div class="sl-fill" style="width:43%;background:var(--orange)"></div><input type="range" min="60" max="200" value="120" oninput="us(this,'bm')"></div>
-        <span class="sl-val" id="bmV" style="color:var(--orange)">120</span>
-      </div>
-
-      <label class="lbl mt8">Describe the music <span style="color:#5a6a80">(optional — overrides genre/mood)</span></label>
-      <input id="musicPrompt" class="ff mt4" type="text" placeholder="e.g. cinematic suspense with deep strings and brass hits">
-      <button class="btn btn-primary mt8" id="btnGenerateMusic" onclick="generateMusic()" style="width:100%">🎼 Generate Music</button>
-    </div>
-
-    <!-- ── SFX pane ── -->
-    <div id="tab-sfx" class="tab-pane">
-      <div class="sec"><span class="dot" style="background:var(--cyan)"></span>Sound Effects Generator</div>
-
-      <label class="lbl">Quick presets</label>
-      <div class="chips mt4" id="sfxPresets">
-        <span class="chip" onclick="setSfxPreset('Metal door slam with reverb')">🚪 Door Slam</span>
-        <span class="chip" onclick="setSfxPreset('Thunder crack with rolling rumble')">⚡ Thunder</span>
-        <span class="chip" onclick="setSfxPreset('Crowd cheering in a stadium')">👥 Crowd</span>
-        <span class="chip" onclick="setSfxPreset('Gunshot with echo in empty hall')">🔫 Gunshot</span>
-        <span class="chip" onclick="setSfxPreset('Rain on window glass at night')">🌧 Rain</span>
-        <span class="chip" onclick="setSfxPreset('Explosion with debris falling')">💥 Explosion</span>
-        <span class="chip" onclick="setSfxPreset('Footsteps on wooden floor')">👣 Footsteps</span>
-        <span class="chip" onclick="setSfxPreset('Sword clash with metal ring')">⚔️ Sword</span>
-      </div>
-
-      <label class="lbl mt10">Describe the sound effect</label>
-      <textarea id="sfxPrompt" class="ff mt4" rows="4" placeholder="e.g. metal door slam with deep echo in a cave, followed by silence..."></textarea>
-      <button class="btn btn-primary mt8" id="btnGenerateSfx" onclick="generateSfx()" style="width:100%">💥 Generate SFX</button>
-    </div>
-
-  </div><!-- /gen-body -->
-
-  <!-- ── Preview (always visible at bottom) ── -->
-  <div class="preview-wrap">
-    <div class="prev" id="prevArea">
-      <div class="wd" id="waveD"></div>
-    </div>
-    <div class="tp">
-      <button>⏮</button>
-      <button>⏪</button>
-      <button class="pb2" onclick="tgPlay(this)" id="playB">▶</button>
-      <button>⏩</button>
-      <button>⏭</button>
-      <span class="tc">00:<span class="f">00</span></span>
-      <button onclick="pauseMix()" title="Stop">⏹</button>
-    </div>
-    <div class="action-bar">
-      <button class="btn btn-primary btn-sm" id="btnAddLatestTimeline" onclick="addLatestToTimeline()" style="flex:1" disabled>+ Add to Timeline</button>
-      <button class="btn btn-ghost btn-sm" id="btnDownloadLatest" onclick="downloadLatest()" style="flex:1" disabled>⬇ Download</button>
-    </div>
-    <div class="status-bar" id="jobStatus">Ready. Generate Voice, Music, or SFX to push clips into timeline.</div>
-  </div>
-
-</div><!-- /center-panel -->
-<div class="vr"></div>
-
-<!-- ═══════════════════════════════════════════════════════ RIGHT: SPEECH TOOLS + LIBRARY -->
-<div class="panel right-panel">
-  <div class="ph">
-    <span class="l a" id="tabTools" onclick="switchRightTab('tools')">Tools</span>
-    <span class="l" id="tabLibrary" onclick="switchRightTab('library')">My Voices</span>
-  </div>
-
-  <!-- TOOLS BODY -->
-  <div id="rightTools" class="pb">
-
-    <!-- Speech Tools -->
-    <div class="sec"><span class="dot" style="background:var(--purple)"></span>Speech Tools</div>
-
-    <!-- File upload zone -->
-    <div id="uploadZone" onclick="document.getElementById('audioFileInput').click()" style="border:2px dashed var(--border2);border-radius:6px;padding:14px 10px;text-align:center;cursor:pointer;transition:.15s;margin-bottom:8px">
-      <div style="font-size:22px;margin-bottom:4px">🎧</div>
-      <div style="font-size:11px;color:#8a9ab8;line-height:1.5">Click to choose audio file<br><span style="font-size:10px;color:#5a6a7e">MP3 · WAV · OGG · FLAC · M4A</span></div>
-      <div id="uploadFileName" style="font-size:11px;color:var(--accent);margin-top:5px;display:none"></div>
-    </div>
-    <input id="audioFileInput" type="file" accept="audio/*" style="display:none" onchange="handleAudioFileSelect(this)">
-
-    <!-- Upload progress -->
-    <div id="uploadProgress" style="display:none;margin-bottom:8px">
-      <div style="display:flex;justify-content:space-between;font-size:10px;color:#8a9ab8;margin-bottom:3px">
-        <span>Uploading...</span><span id="uploadPct">0%</span>
-      </div>
-      <div style="height:4px;background:#2a2a2a;border-radius:2px;overflow:hidden">
-        <div id="uploadBar" style="height:100%;width:0%;background:var(--accent);border-radius:2px;transition:width .2s"></div>
-      </div>
-    </div>
-
-    <input id="audioUrlInput" type="hidden" value="">
-
-    <div class="row2">
-      <button class="btn btn-ghost btn-sm" id="btnStt" onclick="transcribeAudio()" disabled>📝 Transcribe</button>
-      <button class="btn btn-ghost btn-sm" id="btnIsolate" onclick="isolateAudio()" disabled>🧪 Isolate Voice</button>
-    </div>
-    <p style="font-size:10px;color:#5a6a7e;margin-top:5px;line-height:1.5">Transcribe → text into Voiceover box. Isolate → removes background music/noise.</p>
-
-    <!-- Export format -->
-    <div class="sec mt10"><span class="dot" style="background:var(--green)"></span>Export Format</div>
-    <div class="chips cr">
-      <span class="chip ch a">MP3</span>
-      <span class="chip ch">WAV</span>
-      <span class="chip ch">OGG</span>
-      <span class="chip ch">FLAC</span>
-    </div>
-
-    <!-- Generated library (hidden divs for JS compatibility) -->
-    <div class="sec mt10" id="libSection" style="display:none"><span class="dot" style="background:var(--dim)"></span>Generated This Session</div>
-    <div id="realVoiceList" style="display:none"></div>
-    <div id="realMusicList" style="display:none"></div>
-    <div id="realSfxList" style="display:none"></div>
-
-    <!-- Session history (visible items added dynamically) -->
-    <div class="sec mt10"><span class="dot" style="background:var(--accent)"></span>Session History</div>
-    <div id="sessionHistory" style="font-size:11px;color:#6a7a8e;line-height:1.6">No generated assets yet.</div>
-
-  </div>
-
-  <!-- MY VOICES LIBRARY BODY -->
-  <div id="rightLibrary" class="pb" style="display:none">
-    <div class="sec"><span class="dot" style="background:var(--purple)"></span>My Saved Voices</div>
-    <p style="font-size:10px;color:#5a6a7e;margin-bottom:10px;line-height:1.5">Click any voice to use it for cloning. Voices are saved in this browser.</p>
-    <div id="myVoicesList"><div style="font-size:11px;color:#5a6a7e;padding:10px 0">No saved voices yet.<br>Upload a voice sample in the Voiceover tab to get started.</div></div>
-  </div>
-
-</div>
-
-</div><!-- /top-row -->
-
-<!-- ═══════════════════════════════════════════════════════ BOTTOM: TIMELINE STRIP -->
-<div class="bottom-row">
-  <div class="th"><span class="a"> </span><span> </span><span style="flex:1"></span><span style="font-family:'JetBrains Mono';font-size:8px;color:var(--dim2)">Sequence 01</span></div>
-  <div class="tb">
-    <div class="ts">
-      <div class="tl"><span class="d" style="background:var(--green)"></span><span class="n">V1</span><span class="x"> </span></div>
-      <div class="tl"><span class="d" style="background:var(--accent)"></span><span class="n">A1 Voice</span><span class="x">M S</span></div>
-      <div class="tl"><span class="d" style="background:var(--orange)"></span><span class="n">A2 Music</span><span class="x">M S</span></div>
-      <div class="tl"><span class="d" style="background:var(--cyan)"></span><span class="n">A3 SFX</span><span class="x">M S</span></div>
-      <div class="tl"><span class="d" style="background:var(--purple)"></span><span class="n">A4</span><span class="x">M S</span></div>
-    </div>
-    <div class="ta">
-      <div class="tr"><span>00:00</span><span>00:30</span><span>01:00</span><span>01:30</span><span>02:00</span><span>02:30</span><span>03:00</span><span>03:30</span><span>04:00</span><span>04:30</span><span>05:00</span></div>
-      <div class="tt">
-        <div class="tk"><div class="tc2" style="right:30px;width:150px;background:#2d5a27"><span class="cn">scene_01.mp4</span></div><div class="tc2" style="right:190px;width:220px;background:#2d5a27"><span class="cn">aerial_shot.mp4</span></div></div>
-        <div class="tk"><div class="tc2" style="right:50px;width:280px;background:#1a4a7a"><span class="cn">Voice Over</span></div></div>
-        <div class="tk"><div class="tc2" style="right:15px;width:450px;background:#7a4a1a"><span class="cn">Music Score for Trailer.wav</span></div></div>
-        <div class="tk"><div class="tc2" style="right:80px;width:35px;background:#1a6a6a"><span class="cn"> </span></div><div class="tc2" style="right:250px;width:70px;background:#1a6a6a"><span class="cn"> </span></div></div>
-        <div class="tk"></div>
-        <div class="tp2" style="right:130px"></div>
-      </div>
-    </div>
+<div class="topbar">
+  <div class="brand">SAAD STUDIO</div>
+  <div class="nav-tabs">
+    <div class="nav-tab active">Audio &amp; Music</div>
+    <div class="nav-tab">Captions</div>
+    <div class="nav-tab">Video Generation</div>
+    <div class="nav-tab">Generate Image</div>
+    <div class="nav-tab">Transitions</div>
+    <div class="nav-tab">Lighting</div>
+    <div class="nav-tab">Prompt</div>
   </div>
 </div>
 
-</div><!-- /workspace -->
+<div class="main" id="mainScroll">
+  <div class="mode-switcher">
+    <button class="mode-btn active" data-mode="voice" onclick="setMode(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
+      Voice
+    </button>
+    <button class="mode-btn" data-mode="music" onclick="setMode(this)">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+      Music
+    </button>
+    <button class="mode-btn" data-mode="sfx" onclick="setMode(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+      Sound Effects
+    </button>
+  </div>
 
-<!-- ═══════════════════════════════════════════════════════ VOICE PICKER MODAL -->
-<div id="voicePickerModal" style="display:none" onclick="if(event.target===this)closeVoicePicker()">
-  <div class="vpm-sheet">
+  <div id="activeCloneBar">
+    <span>🎤</span>
+    <span id="activeCloneName" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+    <span onclick="clearActiveClone()" style="cursor:pointer;color:var(--text-dim);font-size:14px">✕</span>
+  </div>
 
-    <!-- Top Bar -->
-    <div class="vpm-topbar">
-      <div class="vpm-title">Voices</div>
-      <div class="vpm-actions">
-        <button class="vpm-pill" id="vpmPillLang" onclick="cycleVpmLang(this)">All languages <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5l3 3 3-3"/></svg></button>
-        <button class="vpm-pill" id="vpmPillGender" onclick="cycleVpmGender(this)">All genders <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5l3 3 3-3"/></svg></button>
-        <button class="vpm-icobtn" id="vpmFavToggle" title="Favorites" onclick="setVpmTab(_vpmActiveTab==='fav'?'all':'fav');this.classList.toggle('a',_vpmActiveTab==='fav')">
-          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+  <div class="mode-options" id="musicOptions">
+    <div class="chips-label">Genre</div>
+    <div class="chips-row" id="genreChips">
+      <span class="chip a" onclick="chipSel(this,this.closest('.chips-row'))">Ambient</span>
+      <span class="chip" onclick="chipSel(this,this.closest('.chips-row'))">Electronic</span>
+      <span class="chip" onclick="chipSel(this,this.closest('.chips-row'))">Orchestral</span>
+      <span class="chip" onclick="chipSel(this,this.closest('.chips-row'))">Lo-Fi</span>
+      <span class="chip" onclick="chipSel(this,this.closest('.chips-row'))">Rock</span>
+      <span class="chip" onclick="chipSel(this,this.closest('.chips-row'))">Jazz</span>
+      <span class="chip" onclick="chipSel(this,this.closest('.chips-row'))">Cinematic</span>
+      <span class="chip" onclick="chipSel(this,this.closest('.chips-row'))">Classical</span>
+    </div>
+    <div class="chips-label">Mood</div>
+    <div class="chips-row" id="moodChips">
+      <span class="chip a" onclick="chipSel(this,this.closest('.chips-row'))">Calm</span>
+      <span class="chip" onclick="chipSel(this,this.closest('.chips-row'))">Epic</span>
+      <span class="chip" onclick="chipSel(this,this.closest('.chips-row'))">Dark</span>
+      <span class="chip" onclick="chipSel(this,this.closest('.chips-row'))">Hopeful</span>
+      <span class="chip" onclick="chipSel(this,this.closest('.chips-row'))">Tense</span>
+      <span class="chip" onclick="chipSel(this,this.closest('.chips-row'))">Romantic</span>
+      <span class="chip" onclick="chipSel(this,this.closest('.chips-row'))">Dramatic</span>
+    </div>
+    <div class="sl-row">
+      <span class="sl-lbl">BPM</span>
+      <div class="sl-track"><div class="sl-fill" id="bmFill" style="width:43%"></div><input type="range" min="60" max="200" value="120" oninput="slUpdate(this,'bmV','bmFill')"></div>
+      <span class="sl-val" id="bmV">120</span>
+    </div>
+  </div>
+
+  <div class="mode-options" id="sfxOptions">
+    <div class="chips-label">Quick Presets</div>
+    <div class="chips-row">
+      <span class="chip" onclick="setPrompt('Metal door slam with deep reverb')">🚪 Door Slam</span>
+      <span class="chip" onclick="setPrompt('Thunder crack with rolling rumble')">⚡ Thunder</span>
+      <span class="chip" onclick="setPrompt('Crowd cheering in a stadium')">👥 Crowd</span>
+      <span class="chip" onclick="setPrompt('Gunshot with echo in empty hall')">🔫 Gunshot</span>
+      <span class="chip" onclick="setPrompt('Rain on window glass at night')">🌧 Rain</span>
+      <span class="chip" onclick="setPrompt('Explosion with debris falling')">💥 Explosion</span>
+      <span class="chip" onclick="setPrompt('Footsteps on wooden floor')">👣 Footsteps</span>
+      <span class="chip" onclick="setPrompt('Sword clash with metal ring')">⚔ Sword</span>
+    </div>
+  </div>
+
+  <div class="prompt-container">
+    <div class="prompt-box">
+      <div class="prompt-main">
+        <textarea class="prompt-textarea" id="promptInput" rows="1" placeholder="Write the text to convert to speech..." oninput="autoGrow(this)"></textarea>
+        <button class="prompt-send" id="sendBtn" onclick="handleGenerate()">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
         </button>
-        <button class="vpm-newbtn" onclick="openCloneSection()">
-          <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+      </div>
+      <div class="prompt-options">
+        <button class="opt-voice-chip" id="voiceChipBtn" onclick="openVoiceModal()">
+          <span class="opt-voice-avatar"><img id="vpAvatarImg" src="https://i.pravatar.cc/80?u=Rachel" alt="" loading="lazy" style="width:100%;height:100%;object-fit:cover;border-radius:50%"></span>
+          <span id="vpName">Rachel</span>
+          <svg style="width:10px;height:10px;color:var(--text-dim)" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5l3 3 3-3"/></svg>
+        </button>
+        <span class="opt-divider" id="divVoice"></span>
+        <button class="opt-pill" id="optLang" onclick="cycleLang(this)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          Auto
+        </button>
+        <button class="opt-pill" id="optSpeed" onclick="cycleSpeed(this)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          1.0x
+        </button>
+        <span class="opt-divider"></span>
+        <button class="opt-pill active" id="optFormat" onclick="cycleFormat(this)">MP3</button>
+        <span style="flex:1"></span>
+        <span style="font-size:10px;color:var(--text-dim);font-family:'JetBrains Mono'" id="charCount">0</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="status-strip" id="statusStrip">Ready — choose a mode and describe what you want</div>
+
+  <div class="output-area" id="outputArea">
+    <div class="output-card">
+      <div class="output-header">
+        <span class="output-badge badge-voice" id="outputBadge">VOICE</span>
+        <span class="output-title" id="outputTitle">Generated audio</span>
+        <span style="font-size:10px;color:var(--text-dim);font-family:'JetBrains Mono'" id="outputTime">Just now</span>
+      </div>
+      <div class="output-waveform" id="outputWaveform"></div>
+      <div id="audioPlayerWrap" style="padding:0 16px 4px;display:none">
+        <audio id="audioPreviewPlayer" controls style="width:100%;height:34px"></audio>
+      </div>
+      <div class="output-controls">
+        <button class="oc-btn play" id="outPlayBtn" onclick="toggleOutPlay()">
+          <svg id="outPlayIcon" width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        </button>
+        <span class="oc-time" id="outTime">00:00</span>
+        <span class="oc-spacer"></span>
+        <button class="oc-action primary" id="btnAddTimeline" onclick="addLatestToTimeline()">
+          <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Add to Timeline
+        </button>
+        <button class="oc-action ghost" id="btnDl" onclick="downloadLatest()">
+          <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Download
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="quick-actions" id="quickActions">
+    <button class="quick-btn" onclick="setPrompt('Generate a calm narration for a documentary intro','voice')">🎙 Documentary narration</button>
+    <button class="quick-btn" onclick="setPrompt('Cinematic suspense music with deep strings and brass hits','music')">🎼 Cinematic score</button>
+    <button class="quick-btn" onclick="setPrompt('Explosion sound effect for action scene','sfx')">💥 Action SFX</button>
+    <button class="quick-btn" onclick="setPrompt('Upbeat Lo-Fi background music relaxed and warm','music')">🎵 Lo-Fi beat</button>
+    <button class="quick-btn" onclick="setPrompt('Arabic female voice reading a news bulletin','voice')">🌙 Arabic news voice</button>
+  </div>
+</div>
+
+<select id="voiceSelect" style="display:none"></select>
+<input id="customVoiceId" type="hidden" value="">
+<input id="audioUrlInput" type="hidden" value="">
+<input id="cloneSampleInput" type="file" accept="audio/*" style="display:none" onchange="onCloneSampleSelect(this)">
+
+<!-- VOICE MODAL -->
+<div class="voice-overlay" id="voiceOverlay" onclick="if(event.target===this)closeVoiceModal()">
+  <div class="voice-modal">
+    <div class="vm-topbar">
+      <span class="vm-title">Voices</span>
+      <div class="vm-topbar-right">
+        <button class="vm-pill" id="vmPillLang" onclick="cycleVmLang(this)">All languages <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5l3 3 3-3"/></svg></button>
+        <button class="vm-pill" id="vmPillGender" onclick="cycleVmGender(this)">All genders <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5l3 3 3-3"/></svg></button>
+        <button class="vm-fav-btn" id="vmFavToggle" onclick="toggleFavFilter()" title="Favorites">&#9825;</button>
+        <button class="vm-clone-btn" onclick="openCloneSection()">
+          <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Clone voice
         </button>
-        <button class="vpm-closebtn" onclick="closeVoicePicker()">✕</button>
+        <button class="vm-close" onclick="closeVoiceModal()">&#10005;</button>
       </div>
     </div>
-
-    <!-- Search bar (always visible) -->
-    <div class="vpm-searchbar" id="vpmSearchBar">
-      <input id="vpmSearch" class="vpm-search-input" placeholder="🔍  Search by name, accent..." oninput="renderVpmGrid()">
+    <div class="vm-searchbar">
+      <input id="vmSearch" class="vm-search-input" placeholder="Search by name, accent..." oninput="renderVmGrid()">
     </div>
-
-    <!-- Use Cases -->
-    <div class="vpm-usecases">
-      <div class="vpm-uc-lbl">Use cases</div>
-      <div class="vpm-uc-row">
-        <div class="vpm-uc-scroll" id="vpmUcScroll">
-          <div class="vpm-uc-card" onclick="setVpmCatAndTab('My Voices')">
-            <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&h=200&fit=crop" alt="">
-            <div class="vpm-uc-overlay"></div>
-            <div class="vpm-uc-cnt"><div class="vpm-uc-name">My voices</div><div class="vpm-uc-arrow">→</div></div>
+    <div class="vm-usecases">
+      <div class="vm-uc-lbl">Use cases</div>
+      <div class="vm-uc-row">
+        <div class="vm-uc-scroll" id="vmUcScroll">
+          <div class="vm-uc-card" onclick="setVmCat('My Voices',this)"><img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&h=200&fit=crop" alt=""><div class="vm-uc-overlay"></div><div class="vm-uc-cnt"><div class="vm-uc-name">My voices</div><div class="vm-uc-arrow">&#8594;</div></div></div>
+          <div class="vm-uc-card" onclick="setVmCat('Narration',this)"><img src="https://images.unsplash.com/photo-1478737270239-2f02b77fc618?w=300&h=200&fit=crop" alt=""><div class="vm-uc-overlay"></div><div class="vm-uc-cnt"><div class="vm-uc-name">Narration</div><div class="vm-uc-arrow">&#8594;</div></div></div>
+          <div class="vm-uc-card" onclick="setVmCat('Characters',this)"><img src="https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=300&h=200&fit=crop" alt=""><div class="vm-uc-overlay"></div><div class="vm-uc-cnt"><div class="vm-uc-name">Characters</div><div class="vm-uc-arrow">&#8594;</div></div></div>
+          <div class="vm-uc-card" onclick="setVmCat('Conversational',this)"><img src="https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=300&h=200&fit=crop" alt=""><div class="vm-uc-overlay"></div><div class="vm-uc-cnt"><div class="vm-uc-name">Conversational</div><div class="vm-uc-arrow">&#8594;</div></div></div>
+          <div class="vm-uc-card" onclick="setVmCat('News &amp; Broadcast',this)"><img src="https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=300&h=200&fit=crop" alt=""><div class="vm-uc-overlay"></div><div class="vm-uc-cnt"><div class="vm-uc-name">News &amp; Broadcast</div><div class="vm-uc-arrow">&#8594;</div></div></div>
+          <div class="vm-uc-card" onclick="setVmCat('Trailer &amp; Epic',this)"><img src="https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=300&h=200&fit=crop" alt=""><div class="vm-uc-overlay"></div><div class="vm-uc-cnt"><div class="vm-uc-name">Trailer &amp; Epic</div><div class="vm-uc-arrow">&#8594;</div></div></div>
+          <div class="vm-uc-card" onclick="setVmCat('Social Media',this)"><img src="https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=300&h=200&fit=crop" alt=""><div class="vm-uc-overlay"></div><div class="vm-uc-cnt"><div class="vm-uc-name">Social Media</div><div class="vm-uc-arrow">&#8594;</div></div></div>
+          <div class="vm-uc-card" onclick="setVmCat('Meditation &amp; Calm',this)"><img src="https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=300&h=200&fit=crop" alt=""><div class="vm-uc-overlay"></div><div class="vm-uc-cnt"><div class="vm-uc-name">Meditation &amp; Calm</div><div class="vm-uc-arrow">&#8594;</div></div></div>
+          <div class="vm-uc-card" onclick="setVmCat('Arabic',this)"><img src="https://images.unsplash.com/photo-1580418827493-f2b22c0a76cb?w=300&h=200&fit=crop" alt=""><div class="vm-uc-overlay"></div><div class="vm-uc-cnt"><div class="vm-uc-name">Arabic</div><div class="vm-uc-arrow">&#8594;</div></div></div>
+        </div>
+        <button class="vm-nav-arrow" onclick="document.getElementById('vmUcScroll').scrollBy({left:-180,behavior:'smooth'})">&#8249;</button>
+        <button class="vm-nav-arrow" onclick="document.getElementById('vmUcScroll').scrollBy({left:180,behavior:'smooth'})">&#8250;</button>
+      </div>
+    </div>
+    <div class="vm-tabs">
+      <div class="vm-tab active" id="vmTabAll" onclick="setVmTab('all')">All voices</div>
+      <div class="vm-tab" id="vmTabMy" onclick="setVmTab('my')">My voices</div>
+      <div class="vm-tab" id="vmTabFav" onclick="setVmTab('fav')">Favorites <span class="vm-tab-badge" id="vmFavCount"></span></div>
+    </div>
+    <div class="vm-grid-scroll">
+      <div class="vm-grid" id="vmGrid"></div>
+    </div>
+    <div class="vm-clone-section" id="vmCloneSection">
+      <div style="font-size:14px;font-weight:700;margin-bottom:14px;color:var(--text)">🎤 Clone Your Voice</div>
+      <div class="clone-grid">
+        <div>
+          <div id="cloneUploadZone" class="clone-upload-zone" onclick="document.getElementById('cloneSampleInput').click()">
+            <div style="font-size:24px;margin-bottom:6px">🎤</div>
+            <div id="cloneSampleName" style="font-size:11px;color:var(--text-sec)">Click to choose audio file<br><span style="color:var(--text-dim);font-size:10px">10-60s clear speech</span></div>
           </div>
-          <div class="vpm-uc-card" onclick="setVpmCatAndTab('Narration')">
-            <img src="https://images.unsplash.com/photo-1478737270239-2f02b77fc618?w=300&h=200&fit=crop" alt="">
-            <div class="vpm-uc-overlay"></div>
-            <div class="vpm-uc-cnt"><div class="vpm-uc-name">Narration</div><div class="vpm-uc-arrow">→</div></div>
-          </div>
-          <div class="vpm-uc-card" onclick="setVpmCatAndTab('Characters')">
-            <img src="https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=300&h=200&fit=crop" alt="">
-            <div class="vpm-uc-overlay"></div>
-            <div class="vpm-uc-cnt"><div class="vpm-uc-name">Characters</div><div class="vpm-uc-arrow">→</div></div>
-          </div>
-          <div class="vpm-uc-card" onclick="setVpmCatAndTab('Conversational')">
-            <img src="https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=300&h=200&fit=crop" alt="">
-            <div class="vpm-uc-overlay"></div>
-            <div class="vpm-uc-cnt"><div class="vpm-uc-name">Conversational</div><div class="vpm-uc-arrow">→</div></div>
-          </div>
-          <div class="vpm-uc-card" onclick="setVpmCatAndTab('News & Broadcast')">
-            <img src="https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=300&h=200&fit=crop" alt="">
-            <div class="vpm-uc-overlay"></div>
-            <div class="vpm-uc-cnt"><div class="vpm-uc-name">News &amp; Broadcast</div><div class="vpm-uc-arrow">→</div></div>
-          </div>
-          <div class="vpm-uc-card" onclick="setVpmCatAndTab('Trailer & Epic')">
-            <img src="https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=300&h=200&fit=crop" alt="">
-            <div class="vpm-uc-overlay"></div>
-            <div class="vpm-uc-cnt"><div class="vpm-uc-name">Trailer &amp; Epic</div><div class="vpm-uc-arrow">→</div></div>
-          </div>
-          <div class="vpm-uc-card" onclick="setVpmCatAndTab('Social Media')">
-            <img src="https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=300&h=200&fit=crop" alt="">
-            <div class="vpm-uc-overlay"></div>
-            <div class="vpm-uc-cnt"><div class="vpm-uc-name">Social Media</div><div class="vpm-uc-arrow">→</div></div>
-          </div>
-          <div class="vpm-uc-card" onclick="setVpmCatAndTab('Meditation & Calm')">
-            <img src="https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=300&h=200&fit=crop" alt="">
-            <div class="vpm-uc-overlay"></div>
-            <div class="vpm-uc-cnt"><div class="vpm-uc-name">Meditation &amp; Calm</div><div class="vpm-uc-arrow">→</div></div>
-          </div>
-          <div class="vpm-uc-card" onclick="setVpmCatAndTab('Arabic')">
-            <img src="https://images.unsplash.com/photo-1580418827493-f2b22c0a76cb?w=300&h=200&fit=crop" alt="">
-            <div class="vpm-uc-overlay"></div>
-            <div class="vpm-uc-cnt"><div class="vpm-uc-name">Arabic</div><div class="vpm-uc-arrow">→</div></div>
+          <div class="clone-progress-wrap" id="cloneProgress">
+            <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-sec);margin-bottom:3px"><span id="cloneProgressLabel">Uploading...</span><span id="clonePct">0%</span></div>
+            <div class="clone-progress-bar-bg"><div class="clone-progress-bar" id="cloneBar"></div></div>
           </div>
         </div>
-        <div style="display:flex;gap:5px;flex-shrink:0">
-          <button class="vpm-navarrow" onclick="document.getElementById('vpmUcScroll').scrollBy({left:-200,behavior:'smooth'})">‹</button>
-          <button class="vpm-navarrow" onclick="document.getElementById('vpmUcScroll').scrollBy({left:200,behavior:'smooth'})">›</button>
+        <div>
+          <div style="font-size:11px;color:var(--text-sec);margin-bottom:6px;font-weight:600">Voice name</div>
+          <input id="cloneVoiceName" class="clone-input" type="text" placeholder="e.g. My Voice, Client Voice...">
+          <div class="clone-btn-row">
+            <button class="clone-btn save" id="btnSaveVoice" onclick="cloneAndSaveVoice()" disabled>💾 Save to My Voices</button>
+            <button class="clone-btn" id="btnUseOnce" onclick="useOnce()" disabled>▶ Use Once</button>
+          </div>
         </div>
       </div>
     </div>
-
-    <!-- Tabs -->
-    <div class="vpm-tabs-row">
-      <div class="vpm-tab a" id="vpmTabAll" onclick="setVpmTab('all')">All voices</div>
-      <div class="vpm-tab" id="vpmTabMy" onclick="setVpmTab('my')">My voices</div>
-      <div class="vpm-tab" id="vpmTabFav" onclick="setVpmTab('fav')">Favorites <span class="vpm-tab-badge" id="vpmFavCount"></span></div>
-    </div>
-
-    <!-- Voice Grid -->
-    <div class="vpm-vsscroll">
-      <div class="vpm-vsgrid" id="vpmGrid"></div>
-    </div>
-
   </div>
 </div>
 
 <script>
-/* ── Right panel tab switching ────────────────────────────────────── */
-function openCloneSection() {
-  closeVoicePicker();
-  const sec = document.getElementById('cloneSection');
-  if (!sec) return;
-  sec.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  // flash highlight
-  sec.style.boxShadow = '0 0 0 2px var(--purple)';
-  sec.style.borderColor = 'var(--purple)';
-  setTimeout(() => { sec.style.boxShadow = ''; sec.style.borderColor = ''; }, 1800);
-  // auto-click file input
-  setTimeout(() => {
-    const inp = document.getElementById('cloneSampleInput');
-    if (inp) inp.click();
-  }, 400);
-}
-
-function switchRightTab(tab) {
-  document.getElementById('rightTools').style.display = tab === 'tools' ? '' : 'none';
-  document.getElementById('rightLibrary').style.display = tab === 'library' ? '' : 'none';
-  document.getElementById('tabTools').classList.toggle('a', tab === 'tools');
-  document.getElementById('tabLibrary').classList.toggle('a', tab === 'library');
-}
-
-/* ── My Voices Library (localStorage) ─────────────────────────────── */
-const MY_VOICES_KEY = 'ff_my_voices_v1';
-
-function loadMyVoices() {
-  try { return JSON.parse(localStorage.getItem(MY_VOICES_KEY) || '[]'); } catch { return []; }
-}
-
-function saveMyVoices(list) {
-  localStorage.setItem(MY_VOICES_KEY, JSON.stringify(list));
-}
-
-function renderMyVoicesList() {
-  const list = loadMyVoices();
-  const el = document.getElementById('myVoicesList');
-  if (!el) return;
-  if (!list.length) {
-    el.innerHTML = '<div style="font-size:11px;color:#5a6a7e;padding:10px 0">No saved voices yet.<br>Upload a voice sample to get started.</div>';
-    return;
-  }
-  el.innerHTML = '';
-  list.forEach(v => {
-    const item = document.createElement('div');
-    item.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px;border-radius:5px;border:1px solid var(--border);margin-bottom:6px;background:#1c1c1c;cursor:pointer;transition:.12s';
-    item.onmouseenter = () => item.style.borderColor = 'rgba(179,136,255,.4)';
-    item.onmouseleave = () => item.style.borderColor = 'var(--border)';
-    item.innerHTML = `
-      <div style="width:32px;height:32px;border-radius:50%;background:rgba(179,136,255,.15);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">🎤</div>
-      <div style="flex:1;min-width:0">
-        <div style="font-size:12px;color:#c8d4e8;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${v.name}</div>
-        <div style="font-size:10px;color:#5a6a7e;margin-top:1px">${new Date(v.addedAt).toLocaleDateString()}</div>
-      </div>
-      <div style="display:flex;gap:4px;flex-shrink:0">
-        <button onclick="useLibraryVoice('${v.id}','${v.name.replace(/'/g,"\\'")}'" style="padding:4px 8px;border-radius:3px;border:1px solid rgba(179,136,255,.4);background:rgba(179,136,255,.1);color:var(--purple);font-size:10px;cursor:pointer;font-family:'Tajawal'">Use</button>
-        <button onclick="deleteLibraryVoice('${v.id}')" style="padding:4px 6px;border-radius:3px;border:1px solid var(--border);background:none;color:#6a7a8e;font-size:11px;cursor:pointer" title="Delete">🗑</button>
-      </div>`;
-    el.appendChild(item);
-  });
-}
-
-function useLibraryVoice(id, name) {
-  document.getElementById('customVoiceId').value = id;
-  const bar = document.getElementById('activeCloneBar');
-  const nameEl = document.getElementById('activeCloneName');
-  if (bar) bar.style.display = 'flex';
-  if (nameEl) nameEl.textContent = name;
-  switchRightTab('tools');
-  setStatus(`Active clone voice: ${name}. Write text and click "Use Once" or "Generate Voice".`, 'ok');
-}
-
-function deleteLibraryVoice(id) {
-  const list = loadMyVoices().filter(v => v.id !== id);
-  saveMyVoices(list);
-  renderMyVoicesList();
-  // clear active if deleted
-  if (document.getElementById('customVoiceId')?.value === id) clearActiveClone();
-}
-
-function clearActiveClone() {
-  document.getElementById('customVoiceId').value = '';
-  const bar = document.getElementById('activeCloneBar');
-  if (bar) bar.style.display = 'none';
-}
-
-let _cloneSamplePublicUrl = '';
-
-function onCloneSampleSelect(input) {
-  const file = input.files && input.files[0];
-  if (!file) return;
-  const nameEl = document.getElementById('cloneSampleName');
-  const zone = document.getElementById('cloneUploadZone');
-  if (nameEl) nameEl.textContent = file.name;
-  if (zone) zone.style.borderColor = 'var(--accent)';
-  _cloneSamplePublicUrl = '';
-  const saveBtn = document.getElementById('btnSaveVoice');
-  if (saveBtn) { saveBtn.disabled = false; saveBtn.style.opacity = '1'; saveBtn.style.cursor = 'pointer'; }
-  input.value = '';
-  // store the file reference for upload on save
-  window._cloneSampleFile = file;
-}
-
-async function cloneAndSaveVoice() {
-  const file = window._cloneSampleFile;
-  const voiceName = (document.getElementById('cloneVoiceName')?.value || '').trim();
-  if (!file) { setStatus('Please choose a voice sample file first.', 'warn'); return; }
-  if (!voiceName) { setStatus('Please enter a name for this voice.', 'warn'); return; }
-
-  const prog = document.getElementById('cloneProgress');
-  const bar = document.getElementById('cloneBar');
-  const pct = document.getElementById('clonePct');
-  const label = document.getElementById('cloneProgressLabel');
-  const saveBtn = document.getElementById('btnSaveVoice');
-  if (prog) prog.style.display = 'block';
-  if (saveBtn) { saveBtn.disabled = true; saveBtn.style.opacity = '0.6'; }
-  setStatus('Uploading voice sample...', 'info');
-
-  try {
-    // Step 1: upload sample to Supabase
-    if (label) label.textContent = 'Uploading sample...';
-    const urlRes = await fetch('/api/studio/upload-url', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fileName: file.name, contentType: file.type || 'audio/mpeg', assetType: 'audio' })
-    });
-    if (!urlRes.ok) throw new Error('Failed to get upload URL');
-    const { signedUrl, publicUrl } = await urlRes.json();
-
-    await new Promise((resolve, reject) => {
-      const xhr = new XMLHttpRequest();
-      xhr.upload.addEventListener('progress', e => {
-        if (!e.lengthComputable) return;
-        const p = Math.round(e.loaded / e.total * 100);
-        if (bar) bar.style.width = p + '%';
-        if (pct) pct.textContent = p + '%';
-      });
-      xhr.addEventListener('load', () => xhr.status < 300 ? resolve() : reject(new Error('Upload failed: ' + xhr.status)));
-      xhr.addEventListener('error', () => reject(new Error('Network error')));
-      xhr.open('PUT', signedUrl);
-      xhr.setRequestHeader('Content-Type', file.type || 'audio/mpeg');
-      xhr.send(file);
-    });
-
-    if (bar) bar.style.width = '100%';
-    if (pct) pct.textContent = '100%';
-    if (label) label.textContent = 'Creating clone voice...';
-    setStatus('Sending to voice cloning API...', 'info');
-
-    // Step 2: try instant voice clone via KIE
-    let finalVoiceId = '';
-    try {
-      const taskId = await createKieTask('elevenlabs/instant-voice-clone', {
-        name: voiceName,
-        audio_url: publicUrl,
-        nsfw_checker: true
-      });
-      const record = await waitKieTask(taskId, 120000);
-      const parsed = parseResultJson(record?.resultJson);
-      finalVoiceId = parsed?.resultObject?.voice_id || parsed?.voice_id || '';
-    } catch (cloneErr) {
-      // API might not support instant clone — store the URL as the ID fallback
-      console.warn('Voice clone API unavailable, storing sample URL:', cloneErr.message);
-    }
-
-    // Step 3: save to library (use voice_id if got one, else publicUrl as reference)
-    const voiceEntry = {
-      id: finalVoiceId || ('sample_' + Date.now()),
-      name: voiceName,
-      sampleUrl: publicUrl,
-      hasCloneId: !!finalVoiceId,
-      addedAt: Date.now()
-    };
-    const list = loadMyVoices();
-    list.unshift(voiceEntry);
-    saveMyVoices(list);
-    renderMyVoicesList();
-
-    // Activate it
-    document.getElementById('customVoiceId').value = voiceEntry.id;
-    const activeBar = document.getElementById('activeCloneBar');
-    const activeNameEl = document.getElementById('activeCloneName');
-    if (activeBar) activeBar.style.display = 'flex';
-    if (activeNameEl) activeNameEl.textContent = voiceName;
-
-    document.getElementById('cloneUploadZone').style.borderColor = 'var(--green)';
-    const msg = finalVoiceId ? `Voice "${voiceName}" cloned and saved to library!` : `Voice "${voiceName}" saved to library (sample stored).`;
-    setStatus(msg, 'ok');
-    window._cloneSampleFile = null;
-    document.getElementById('cloneVoiceName').value = '';
-    document.getElementById('cloneSampleName').textContent = 'Click to choose audio file';
-  } catch (err) {
-    setStatus('Failed: ' + err.message, 'err');
-  } finally {
-    if (prog) setTimeout(() => { prog.style.display = 'none'; }, 2000);
-    if (saveBtn) { saveBtn.disabled = false; saveBtn.style.opacity = '1'; saveBtn.style.cursor = 'pointer'; }
-  }
-}
-
-/* ── Waveform bars ─────────────────────────────────────────────────── */
-const wd = document.getElementById('waveD');
-for (let i = 0; i < 60; i++) {
-  const b = document.createElement('div');
-  b.className = 'wb';
-  b.style.animationDelay = (Math.random() * 1.5).toFixed(2) + 's';
-  b.style.height = (Math.random() * 40 + 5) + 'px';
-  wd.appendChild(b);
-}
-
-/* ── Voice data ────────────────────────────────────────────────────── */
-const VOICE_PRESET_MAP = {
-  'Deep Male Narrator': 'nPczCjzI2devNBz1zQrb',
-  'Soft Female Voice': 'BZgkqPqms7Kj9ulSkVzn',
-  'Arabic Narrator': 'Z3R5wn05IrDiVCyEkUrK',
-  'News Broadcaster': 'x70vRnQBMBu4FAYhjJbO',
-  'Trailer Narrator': 'LG95yZDEHg6fCZdQjLqj',
-  'Robot Voice': 'YOq2y2Up4RgXP2HyXjE5'
-};
-
-const MODEL_VOICES = [
-  { group: '── Standard ──', disabled: true },
-  { id: 'Rachel', label: 'Rachel' },
-  { id: 'Aria', label: 'Aria' },
-  { id: 'Roger', label: 'Roger' },
-  { id: 'Sarah', label: 'Sarah' },
-  { id: 'Laura', label: 'Laura' },
-  { id: 'Charlie', label: 'Charlie' },
-  { id: 'George', label: 'George' },
-  { id: 'Callum', label: 'Callum' },
-  { id: 'River', label: 'River' },
-  { id: 'Liam', label: 'Liam' },
-  { id: 'Charlotte', label: 'Charlotte' },
-  { id: 'Alice', label: 'Alice' },
-  { id: 'Matilda', label: 'Matilda' },
-  { id: 'Will', label: 'Will' },
-  { id: 'Jessica', label: 'Jessica' },
-  { id: 'Eric', label: 'Eric' },
-  { id: 'Chris', label: 'Chris' },
-  { id: 'Brian', label: 'Brian' },
-  { id: 'Daniel', label: 'Daniel' },
-  { id: 'Lily', label: 'Lily' },
-  { id: 'Bill', label: 'Bill' },
-  { group: '── Narration ──', disabled: true },
-  { id: 'nPczCjzI2devNBz1zQrb', label: 'Brian — Deep Resonant' },
-  { id: 'LruHrtVF6PSyGItzMNHS', label: 'Benjamin — Warm Calming' },
-  { id: 'AeRdCCKzvd23BpJoofzx', label: 'Nathaniel — British Calm' },
-  { id: 'DYkrAHD8iwork3YSUBbs', label: 'Tom — Conversations & Books' },
-  { id: 'RILOU7YmBhvwJGDGjNmP', label: 'Jane — Audiobook Reader' },
-  { id: '8JVbfL6oEdmuxKn5DK2C', label: 'Johnny Kid — Calm Narrator' },
-  { id: 'eR40ATw9ArzDf9h3v7t7', label: 'Addison 2.0 — Australian' },
-  { id: 'BIvP0GN1cAtSRTxNHnWS', label: 'Ellen — Serious Direct' },
-  { id: 'aMSt68OGf4xUZAnLpTU8', label: 'Juniper — Grounded Pro' },
-  { group: '── Conversational ──', disabled: true },
-  { id: 'Sm1seazb4gs7RSlUVw7c', label: 'Anika — Friendly' },
-  { id: '6aDn1KB0hjpdcocrUkmq', label: 'Tiffany — Welcoming' },
-  { id: 'scOwDtmlUjD3prqpp97I', label: 'Sam — Support Agent' },
-  { id: '1SM7GgM6IMuvQlz2BwM3', label: 'Mark — Casual Relaxed' },
-  { id: 'UgBBYS2sOqTuMpoF3BR0', label: 'Mark — Natural' },
-  { id: 'exsUS4vynmxd379XN4yO', label: 'Blondie — Conversational' },
-  { id: 'lcMyyd2HUfFzxdCaC4Ta', label: 'Lucy — Fresh Casual' },
-  { id: 'g6xIsTj2HwM6VR4iXFCw', label: 'Jessica A.B. — Chatty' },
-  { id: 'BpjGufoPiobT79j2vtj4', label: 'Priyanka — Calm Neutral' },
-  { id: 'cgSgspJ2msm6clMCkdW9', label: 'Jessica — Playful Warm' },
-  { id: '5l5f8iK3YPeGga21rQIX', label: 'Adeline — Feminine' },
-  { id: 'iP95p4xoKVk53GoZ742B', label: 'Chris — Charming' },
-  { group: '── Characters ──', disabled: true },
-  { id: 'YOq2y2Up4RgXP2HyXjE5', label: 'Xavier — Metal Announcer' },
-  { id: 'DTKMou8ccj1ZaWGBiotd', label: 'Jamahal — Vibrant' },
-  { id: 'vBKc2FfBKJfcZNyEt1n6', label: 'Finn — Youthful' },
-  { id: 'EkK5I93UQWFDigLMpZcX', label: 'James — Husky Bold' },
-  { id: 'NNl6r8mD7vthiJatiJt1', label: 'Bradford — Expressive' },
-  { id: 'qXpMhyvQqiRxWQs4qSSB', label: 'Horatius — Energetic' },
-  { id: 'TC0Zp7WVFzhA8zpTlRqV', label: 'Aria — Sultry Villain' },
-  { id: 'flHkNRp1BlvT73UL6gyz', label: 'Jessica A.B. — Villain' },
-  { id: 'esy0r39YPLQjOczyOib8', label: 'Britney — Villain' },
-  { id: 'zYcjlYFOd3taleS0gkk3', label: 'Edward — Cocky' },
-  { id: 'ljo9gAlSqKOvF6D8sOsX', label: 'Viking Bjorn — Epic' },
-  { id: 'PPzYpIqttlTYA83688JI', label: 'Pirate Marshal' },
-  { id: '9yzdeviXkFddZ4Oz8Mok', label: 'Lutz — Giggly' },
-  { id: 'B8gJV1IhpuegLxdpXFOE', label: 'Kuon — Cheerful' },
-  { id: 'nzeAacJi50IvxcyDnMXa', label: 'Marshal — Funny Prof' },
-  { id: 'ruirxsoakN0GWmGNIo04', label: 'John Morgan — Cowboy' },
-  { id: 'pNInz6obpgDQGcFmaJgB', label: 'Adam — Dominant' },
-  { id: 'SOYHLrjzK2X1ezoPC6cr', label: 'Harry — Fierce Warrior' },
-  { id: 'eVItLK1UvXctxuaRV2Oq', label: 'Jean — Alluring Femme' },
-  { group: '── News & Broadcast ──', disabled: true },
-  { id: 'x70vRnQBMBu4FAYhjJbO', label: 'Nathan — Radio Host' },
-  { id: 'aD6riP1btT197c6dACmy', label: 'Rachel M — British Radio' },
-  { id: 'gU0LNdkMOQCOrPrwtbee', label: 'British Football Announcer' },
-  { id: 'wo6udizrrtpIxWGp2qJk', label: 'Northern Terry' },
-  { id: 'DGzg6RaUqxGRTHSBjfgF', label: 'Brock — Sergeant' },
-  { id: 'CeNX9CMwmxDxUF5Q2Inm', label: 'Johnny Dynamite — Radio DJ' },
-  { id: 'dHd5gvgSOzSfduK4CvEg', label: 'Ed — Late Night' },
-  { id: 'mtrellq69YZsNwzUSyXh', label: 'Rex Thunder — Deep Tough' },
-  { id: 'st7NwhTPEzqo2riw7qWC', label: 'Blondie — Radio Host' },
-  { id: 'DGTOOUoGpoP6UZ9uSWfA', label: 'Célian — Documentary' },
-  { group: '── Trailer & Epic ──', disabled: true },
-  { id: 'LG95yZDEHg6fCZdQjLqj', label: 'Phil — Passionate Announcer' },
-  { id: 'EiNlNiXeDU1pqqOPrYMO', label: 'John Doe — Deep' },
-  { id: '6F5Zhi321D3Oq7v1oNT4', label: 'Hank — Epic Narrator' },
-  { id: 'YXpFCvM1S3JbWEJhoskW', label: 'Wyatt — Rustic Cowboy' },
-  { id: '4YYIPFl9wE5c4L2eu2Gb', label: "Burt Reynolds™ — Deep" },
-  { id: 'Bj9UqZbhQsanLzgalpEG', label: 'Austin — Deep Raspy' },
-  { id: 'c6SfcYrb2t09NHXiT80T', label: 'Jarnathan — Versatile' },
-  { group: '── Social Media ──', disabled: true },
-  { id: 'kPzsL2i3teMYv0FxEYQ6', label: 'Brittney — Fun Youthful' },
-  { id: 'TX3LPaxmHKxFdv7VOQHJ', label: 'Liam — Social Creator' },
-  { id: 'FGY2WhTYpPnrIDTdsKH5', label: 'Laura — Quirky' },
-  { id: 'uYXf8XasLslADfZ2MB4u', label: 'Hope — Bubbly Gossipy' },
-  { id: 'pPdl9cQBQq4p6mRkZy2Z', label: 'Emma — Adorable Upbeat' },
-  { id: 'N2lVS1w4EtoT3dr4eOWO', label: 'Callum — Husky Trickster' },
-  { id: 'gs0tAILXbY5DNrJrsM6F', label: 'Jeff — Classy Strong' },
-  { id: 'BZgkqPqms7Kj9ulSkVzn', label: 'Eve — Energetic Happy' },
-  { id: 'hpp4J3VqNfWAUOO0d1Us', label: 'Bella — Warm Professional' },
-  { id: 'ZF6FPAbjXT4488VcRRnw', label: 'Amelia — Expressive' },
-  { id: '1hlpeD1ydbI2ow0Tt3EW', label: 'Olivia — Warm Engaging' },
-  { group: '── Meditation & Calm ──', disabled: true },
-  { id: 'MJ0RnG71ty4LH3dvNfSd', label: 'Leon — Soothing Grounded' },
-  { id: 'hqfrgApggtO1785R4Fsn', label: 'Theodore HQ — Serene' },
-  { id: '1wGbFxmAM3Fgw63G1zZJ', label: 'Allison — Meditative' },
-  { id: 'Qggl4b0xRMiqOwhPtVWT', label: 'Clara — Calm Soothing' },
-  { id: 'zA6D7RyKdc2EClouEMkP', label: 'AImee — ASMR Meditation' },
-  { id: 'tnSpp4vdxKPjI9w0GnoV', label: 'Hope — Upbeat Clear' },
-  { id: 'iCrDUkL56s3C8sCRl7wb', label: 'Hope — Poetic Romantic' },
-  { id: 'NOpBlnGInO9m6vDvFkFC', label: 'Spuds Oxley — Approachable' },
-  { id: 'P1bg08DkjqiVEzOn76yG', label: 'Viraj — Rich Soft' },
-  { id: '1U02n4nD6AdIZ9CjF053', label: 'Viraj — Smooth Gentle' },
-  { id: 'qDuRKMlYmrm8trt5QyBn', label: 'Taksh — Calm Serious' },
-  { id: 'Tsns2HvNFKfGiNjllgqo', label: 'Sven — Emotional Nice' },
-  { id: 'Sq93GQT4X1lKDXsQcixO', label: 'Felix — Warm RP' },
-  { id: 'wJqPPQ618aTW29mptyoc', label: 'Ana Rita — Multilingual' },
-  { id: '2zRM7PkgwBPiau2jvVXc', label: 'Monika Sogam — Natural' },
-  { group: '── Arabic ──', disabled: true },
-  { id: 'Z3R5wn05IrDiVCyEkUrK', label: 'Arabella — Mysterious' },
+const VOICE_CATALOG=[
+  {cat:'Narration',id:'Rachel',name:'Rachel',gender:'female',lang:'EN',accent:'American',emoji:'👩',color:'#1a2a5a'},
+  {cat:'Narration',id:'Matilda',name:'Matilda',gender:'female',lang:'EN',accent:'Australian',emoji:'🌺',color:'#2a1a4a'},
+  {cat:'Narration',id:'nPczCjzI2devNBz1zQrb',name:'Brian (Narr.)',gender:'male',lang:'EN',accent:'Deep Resonant',emoji:'🧔',color:'#1a2a4a'},
+  {cat:'Narration',id:'LruHrtVF6PSyGItzMNHS',name:'Benjamin',gender:'male',lang:'EN',accent:'Warm Calming',emoji:'👨',color:'#1a3a2a'},
+  {cat:'Narration',id:'AeRdCCKzvd23BpJoofzx',name:'Nathaniel',gender:'male',lang:'EN',accent:'British Calm',emoji:'🎩',color:'#2a1a4a'},
+  {cat:'Narration',id:'DYkrAHD8iwork3YSUBbs',name:'Tom',gender:'male',lang:'EN',accent:'Conversational',emoji:'📖',color:'#1a2a3a'},
+  {cat:'Narration',id:'RILOU7YmBhvwJGDGjNmP',name:'Jane',gender:'female',lang:'EN',accent:'Professional',emoji:'📚',color:'#2a2a4a'},
+  {cat:'Narration',id:'8JVbfL6oEdmuxKn5DK2C',name:'Johnny Kid',gender:'male',lang:'EN',accent:'Calm Narrator',emoji:'🎙',color:'#1a1a3a'},
+  {cat:'Narration',id:'eR40ATw9ArzDf9h3v7t7',name:'Addison 2.0',gender:'female',lang:'EN',accent:'Australian',emoji:'🦘',color:'#1a3a1a'},
+  {cat:'Narration',id:'BIvP0GN1cAtSRTxNHnWS',name:'Ellen',gender:'female',lang:'EN',accent:'Direct Serious',emoji:'💼',color:'#2a1a4a'},
+  {cat:'Narration',id:'aMSt68OGf4xUZAnLpTU8',name:'Juniper',gender:'female',lang:'EN',accent:'Grounded Pro',emoji:'🌿',color:'#1a3a2a'},
+  {cat:'Narration',id:'hqfrgApggtO1785R4Fsn',name:'Theodore HQ',gender:'male',lang:'EN',accent:'Serene',emoji:'🏔',color:'#1a2a2a'},
+  {cat:'Conversational',id:'Aria',name:'Aria',gender:'female',lang:'EN',accent:'American',emoji:'💁',color:'#2a1a4a'},
+  {cat:'Conversational',id:'Sarah',name:'Sarah',gender:'female',lang:'EN',accent:'American',emoji:'👩',color:'#1a2a4a'},
+  {cat:'Conversational',id:'Laura',name:'Laura',gender:'female',lang:'EN',accent:'American',emoji:'🙋',color:'#2a1a3a'},
+  {cat:'Conversational',id:'Charlotte',name:'Charlotte',gender:'female',lang:'EN',accent:'British',emoji:'👩',color:'#1a3a2a'},
+  {cat:'Conversational',id:'Alice',name:'Alice',gender:'female',lang:'EN',accent:'British',emoji:'🧑',color:'#2a2a1a'},
+  {cat:'Conversational',id:'Jessica',name:'Jessica',gender:'female',lang:'EN',accent:'American',emoji:'💎',color:'#2a1a3a'},
+  {cat:'Conversational',id:'Chris',name:'Chris',gender:'female',lang:'EN',accent:'American',emoji:'👩',color:'#2a1a2a'},
+  {cat:'Conversational',id:'Sm1seazb4gs7RSlUVw7c',name:'Anika',gender:'female',lang:'EN',accent:'Friendly',emoji:'😊',color:'#1a3a3a'},
+  {cat:'Conversational',id:'6aDn1KB0hjpdcocrUkmq',name:'Tiffany',gender:'female',lang:'EN',accent:'Welcoming',emoji:'🌸',color:'#3a1a2a'},
+  {cat:'Conversational',id:'scOwDtmlUjD3prqpp97I',name:'Sam',gender:'male',lang:'EN',accent:'Support',emoji:'🎧',color:'#1a2a3a'},
+  {cat:'Conversational',id:'1SM7GgM6IMuvQlz2BwM3',name:'Mark',gender:'male',lang:'EN',accent:'Casual Relaxed',emoji:'☕',color:'#2a2a1a'},
+  {cat:'Conversational',id:'UgBBYS2sOqTuMpoF3BR0',name:'Mark (Nat.)',gender:'male',lang:'EN',accent:'Natural',emoji:'🤝',color:'#1a2a2a'},
+  {cat:'Conversational',id:'exsUS4vynmxd379XN4yO',name:'Blondie',gender:'female',lang:'EN',accent:'Conversational',emoji:'👱',color:'#3a2a1a'},
+  {cat:'Conversational',id:'lcMyyd2HUfFzxdCaC4Ta',name:'Lucy',gender:'female',lang:'EN',accent:'Fresh Casual',emoji:'🌼',color:'#2a3a1a'},
+  {cat:'Conversational',id:'g6xIsTj2HwM6VR4iXFCw',name:'Jessica A.B.',gender:'female',lang:'EN',accent:'Chatty',emoji:'💬',color:'#2a1a3a'},
+  {cat:'Conversational',id:'BpjGufoPiobT79j2vtj4',name:'Priyanka',gender:'female',lang:'MULTI',accent:'Calm Neutral',emoji:'🧘',color:'#3a1a3a'},
+  {cat:'Conversational',id:'cgSgspJ2msm6clMCkdW9',name:'Jessica (P.W.)',gender:'female',lang:'EN',accent:'Playful Warm',emoji:'✨',color:'#2a2a3a'},
+  {cat:'Conversational',id:'5l5f8iK3YPeGga21rQIX',name:'Adeline',gender:'female',lang:'EN',accent:'Feminine',emoji:'🌷',color:'#3a1a2a'},
+  {cat:'Conversational',id:'iP95p4xoKVk53GoZ742B',name:'Chris (M)',gender:'male',lang:'EN',accent:'Charming',emoji:'😎',color:'#1a2a3a'},
+  {cat:'Conversational',id:'Lily',name:'Lily',gender:'female',lang:'EN',accent:'British',emoji:'🌷',color:'#3a1a1a'},
+  {cat:'Characters',id:'Roger',name:'Roger',gender:'male',lang:'EN',accent:'American',emoji:'🦸',color:'#3a1a1a'},
+  {cat:'Characters',id:'Will',name:'Will',gender:'male',lang:'EN',accent:'American',emoji:'🎭',color:'#1a3a1a'},
+  {cat:'Characters',id:'YOq2y2Up4RgXP2HyXjE5',name:'Xavier',gender:'male',lang:'EN',accent:'Metal',emoji:'🤘',color:'#2a0a0a'},
+  {cat:'Characters',id:'DTKMou8ccj1ZaWGBiotd',name:'Jamahal',gender:'male',lang:'EN',accent:'Vibrant',emoji:'🎭',color:'#3a2a0a'},
+  {cat:'Characters',id:'vBKc2FfBKJfcZNyEt1n6',name:'Finn',gender:'male',lang:'EN',accent:'Youthful',emoji:'🧒',color:'#0a2a3a'},
+  {cat:'Characters',id:'EkK5I93UQWFDigLMpZcX',name:'James',gender:'male',lang:'EN',accent:'Husky Bold',emoji:'🕵',color:'#1a1a2a'},
+  {cat:'Characters',id:'NNl6r8mD7vthiJatiJt1',name:'Bradford',gender:'male',lang:'EN',accent:'Expressive',emoji:'🧠',color:'#2a1a3a'},
+  {cat:'Characters',id:'qXpMhyvQqiRxWQs4qSSB',name:'Horatius',gender:'male',lang:'EN',accent:'Energetic',emoji:'⚔',color:'#3a1a2a'},
+  {cat:'Characters',id:'B8gJV1IhpuegLxdpXFOE',name:'Kuon',gender:'male',lang:'EN',accent:'Cheerful',emoji:'🌟',color:'#2a2a0a'},
+  {cat:'Characters',id:'zYcjlYFOd3taleS0gkk3',name:'Edward',gender:'male',lang:'EN',accent:'Cocky',emoji:'😤',color:'#3a1a1a'},
+  {cat:'Characters',id:'ljo9gAlSqKOvF6D8sOsX',name:'Viking Bjorn',gender:'male',lang:'EN',accent:'Epic Medieval',emoji:'⚔',color:'#2a0a1a'},
+  {cat:'Characters',id:'PPzYpIqttlTYA83688JI',name:'Pirate Marshal',gender:'male',lang:'EN',accent:'Pirate',emoji:'🏴',color:'#1a1a1a'},
+  {cat:'Characters',id:'9yzdeviXkFddZ4Oz8Mok',name:'Lutz',gender:'male',lang:'EN',accent:'Giggly',emoji:'😄',color:'#2a3a0a'},
+  {cat:'Characters',id:'nzeAacJi50IvxcyDnMXa',name:'Marshal',gender:'male',lang:'EN',accent:'Funny Prof',emoji:'🎓',color:'#1a2a1a'},
+  {cat:'Characters',id:'ruirxsoakN0GWmGNIo04',name:'John Morgan',gender:'male',lang:'EN',accent:'Gritty Cowboy',emoji:'🤠',color:'#3a2a1a'},
+  {cat:'Characters',id:'pNInz6obpgDQGcFmaJgB',name:'Adam',gender:'male',lang:'EN',accent:'Dominant',emoji:'💪',color:'#2a1a1a'},
+  {cat:'Characters',id:'SOYHLrjzK2X1ezoPC6cr',name:'Harry',gender:'male',lang:'EN',accent:'Fierce Warrior',emoji:'🗡',color:'#2a0a0a'},
+  {cat:'Characters',id:'TC0Zp7WVFzhA8zpTlRqV',name:'Aria Villain',gender:'female',lang:'EN',accent:'Sultry Villain',emoji:'🦹',color:'#3a0a2a'},
+  {cat:'Characters',id:'flHkNRp1BlvT73UL6gyz',name:'Jessica Villain',gender:'female',lang:'EN',accent:'Eloquent Villain',emoji:'🎭',color:'#2a0a2a'},
+  {cat:'Characters',id:'esy0r39YPLQjOczyOib8',name:'Britney Villain',gender:'female',lang:'EN',accent:'Villain',emoji:'🖤',color:'#1a0a2a'},
+  {cat:'Characters',id:'eVItLK1UvXctxuaRV2Oq',name:'Jean',gender:'female',lang:'EN',accent:'Alluring',emoji:'💋',color:'#3a0a1a'},
+  {cat:'News & Broadcast',id:'Brian',name:'Brian',gender:'male',lang:'EN',accent:'American',emoji:'📡',color:'#0a2a2a'},
+  {cat:'News & Broadcast',id:'Daniel',name:'Daniel',gender:'male',lang:'EN',accent:'British',emoji:'🎙',color:'#2a1a1a'},
+  {cat:'News & Broadcast',id:'Eric',name:'Eric',gender:'male',lang:'EN',accent:'American',emoji:'📰',color:'#1a1a2a'},
+  {cat:'News & Broadcast',id:'x70vRnQBMBu4FAYhjJbO',name:'Nathan',gender:'male',lang:'EN',accent:'Radio Host',emoji:'📻',color:'#2a2a0a'},
+  {cat:'News & Broadcast',id:'aD6riP1btT197c6dACmy',name:'Rachel M',gender:'female',lang:'EN',accent:'British Radio',emoji:'📺',color:'#1a2a4a'},
+  {cat:'News & Broadcast',id:'gU0LNdkMOQCOrPrwtbee',name:'Football Ann.',gender:'male',lang:'EN',accent:'British',emoji:'⚽',color:'#1a3a1a'},
+  {cat:'News & Broadcast',id:'wo6udizrrtpIxWGp2qJk',name:'Northern Terry',gender:'male',lang:'EN',accent:'Northern',emoji:'🎤',color:'#2a2a1a'},
+  {cat:'News & Broadcast',id:'DGzg6RaUqxGRTHSBjfgF',name:'Brock',gender:'male',lang:'EN',accent:'Sergeant',emoji:'🎖',color:'#2a1a0a'},
+  {cat:'News & Broadcast',id:'CeNX9CMwmxDxUF5Q2Inm',name:'Johnny Dynamite',gender:'male',lang:'EN',accent:'Vintage Radio',emoji:'📯',color:'#3a2a0a'},
+  {cat:'News & Broadcast',id:'dHd5gvgSOzSfduK4CvEg',name:'Ed',gender:'male',lang:'EN',accent:'Late Night',emoji:'🌙',color:'#0a1a2a'},
+  {cat:'News & Broadcast',id:'mtrellq69YZsNwzUSyXh',name:'Rex Thunder',gender:'male',lang:'EN',accent:'Deep Tough',emoji:'⚡',color:'#2a1a0a'},
+  {cat:'News & Broadcast',id:'st7NwhTPEzqo2riw7qWC',name:'Blondie Radio',gender:'female',lang:'EN',accent:'Radio Host',emoji:'📻',color:'#3a2a1a'},
+  {cat:'News & Broadcast',id:'DGTOOUoGpoP6UZ9uSWfA',name:'Celian',gender:'male',lang:'EN',accent:'Documentary',emoji:'🎬',color:'#1a2a2a'},
+  {cat:'News & Broadcast',id:'George',name:'George',gender:'male',lang:'EN',accent:'British',emoji:'🦅',color:'#1a2a1a'},
+  {cat:'Trailer & Epic',id:'Charlie',name:'Charlie',gender:'male',lang:'EN',accent:'Australian',emoji:'⚡',color:'#0a1a3a'},
+  {cat:'Trailer & Epic',id:'Callum',name:'Callum',gender:'male',lang:'EN',accent:'Transatlantic',emoji:'🔥',color:'#2a0a1a'},
+  {cat:'Trailer & Epic',id:'River',name:'River',gender:'male',lang:'EN',accent:'American',emoji:'🌊',color:'#0a2a3a'},
+  {cat:'Trailer & Epic',id:'LG95yZDEHg6fCZdQjLqj',name:'Phil',gender:'male',lang:'EN',accent:'Passionate Ann.',emoji:'🎬',color:'#3a1a0a'},
+  {cat:'Trailer & Epic',id:'EiNlNiXeDU1pqqOPrYMO',name:'John Doe',gender:'male',lang:'EN',accent:'Deep',emoji:'🗿',color:'#1a1a1a'},
+  {cat:'Trailer & Epic',id:'6F5Zhi321D3Oq7v1oNT4',name:'Hank',gender:'male',lang:'EN',accent:'Epic Narrator',emoji:'🏔',color:'#2a1a0a'},
+  {cat:'Trailer & Epic',id:'YXpFCvM1S3JbWEJhoskW',name:'Wyatt',gender:'male',lang:'EN',accent:'Rustic Cowboy',emoji:'🤠',color:'#3a2a0a'},
+  {cat:'Trailer & Epic',id:'4YYIPFl9wE5c4L2eu2Gb',name:'Burt Reynolds',gender:'male',lang:'EN',accent:'Deep Smooth',emoji:'🎥',color:'#2a1a1a'},
+  {cat:'Trailer & Epic',id:'Bj9UqZbhQsanLzgalpEG',name:'Austin',gender:'male',lang:'EN',accent:'Deep Raspy',emoji:'🗺',color:'#1a2a1a'},
+  {cat:'Trailer & Epic',id:'c6SfcYrb2t09NHXiT80T',name:'Jarnathan',gender:'male',lang:'EN',accent:'Versatile',emoji:'🎯',color:'#2a2a1a'},
+  {cat:'Social Media',id:'Liam',name:'Liam',gender:'male',lang:'EN',accent:'American',emoji:'🎵',color:'#1a1a3a'},
+  {cat:'Social Media',id:'Bill',name:'Bill',gender:'male',lang:'EN',accent:'American',emoji:'🎩',color:'#3a2a1a'},
+  {cat:'Social Media',id:'kPzsL2i3teMYv0FxEYQ6',name:'Brittney',gender:'female',lang:'EN',accent:'Fun Youthful',emoji:'🎉',color:'#3a1a3a'},
+  {cat:'Social Media',id:'TX3LPaxmHKxFdv7VOQHJ',name:'Liam (Creator)',gender:'male',lang:'EN',accent:'Social Creator',emoji:'📱',color:'#0a2a3a'},
+  {cat:'Social Media',id:'FGY2WhTYpPnrIDTdsKH5',name:'Laura (Quirky)',gender:'female',lang:'EN',accent:'Quirky',emoji:'🎨',color:'#2a0a3a'},
+  {cat:'Social Media',id:'uYXf8XasLslADfZ2MB4u',name:'Hope (Social)',gender:'female',lang:'EN',accent:'Bubbly',emoji:'💅',color:'#3a1a2a'},
+  {cat:'Social Media',id:'pPdl9cQBQq4p6mRkZy2Z',name:'Emma',gender:'female',lang:'EN',accent:'Adorable Upbeat',emoji:'🌈',color:'#2a1a3a'},
+  {cat:'Social Media',id:'N2lVS1w4EtoT3dr4eOWO',name:'Callum (SM)',gender:'male',lang:'EN',accent:'Husky Trickster',emoji:'😏',color:'#1a1a2a'},
+  {cat:'Social Media',id:'gs0tAILXbY5DNrJrsM6F',name:'Jeff',gender:'male',lang:'EN',accent:'Classy Strong',emoji:'🍸',color:'#2a2a1a'},
+  {cat:'Social Media',id:'BZgkqPqms7Kj9ulSkVzn',name:'Eve',gender:'female',lang:'EN',accent:'Energetic Happy',emoji:'⚡',color:'#3a0a2a'},
+  {cat:'Social Media',id:'hpp4J3VqNfWAUOO0d1Us',name:'Bella',gender:'female',lang:'EN',accent:'Professional',emoji:'💄',color:'#3a1a1a'},
+  {cat:'Social Media',id:'ZF6FPAbjXT4488VcRRnw',name:'Amelia',gender:'female',lang:'EN',accent:'Expressive',emoji:'🎊',color:'#2a1a4a'},
+  {cat:'Social Media',id:'1hlpeD1ydbI2ow0Tt3EW',name:'Olivia',gender:'female',lang:'EN',accent:'Warm Engaging',emoji:'🌺',color:'#3a2a1a'},
+  {cat:'Meditation & Calm',id:'MJ0RnG71ty4LH3dvNfSd',name:'Leon',gender:'male',lang:'EN',accent:'Soothing',emoji:'🏔',color:'#0a2a3a'},
+  {cat:'Meditation & Calm',id:'1wGbFxmAM3Fgw63G1zZJ',name:'Allison',gender:'female',lang:'EN',accent:'Meditative',emoji:'🧘',color:'#2a1a4a'},
+  {cat:'Meditation & Calm',id:'Qggl4b0xRMiqOwhPtVWT',name:'Clara',gender:'female',lang:'EN',accent:'Calm Soothing',emoji:'🌙',color:'#1a2a4a'},
+  {cat:'Meditation & Calm',id:'zA6D7RyKdc2EClouEMkP',name:'AImee',gender:'female',lang:'EN',accent:'ASMR Meditation',emoji:'🌿',color:'#1a3a2a'},
+  {cat:'Meditation & Calm',id:'tnSpp4vdxKPjI9w0GnoV',name:'Hope (Upbeat)',gender:'female',lang:'EN',accent:'Upbeat Clear',emoji:'☀',color:'#3a2a0a'},
+  {cat:'Meditation & Calm',id:'iCrDUkL56s3C8sCRl7wb',name:'Hope (Poetic)',gender:'female',lang:'EN',accent:'Poetic Romantic',emoji:'🌸',color:'#3a1a2a'},
+  {cat:'Meditation & Calm',id:'NOpBlnGInO9m6vDvFkFC',name:'Spuds Oxley',gender:'male',lang:'EN',accent:'Approachable',emoji:'🏡',color:'#2a2a1a'},
+  {cat:'Meditation & Calm',id:'P1bg08DkjqiVEzOn76yG',name:'Viraj',gender:'male',lang:'EN',accent:'Rich Soft',emoji:'🎶',color:'#1a2a3a'},
+  {cat:'Meditation & Calm',id:'1U02n4nD6AdIZ9CjF053',name:'Viraj (Gentle)',gender:'male',lang:'EN',accent:'Smooth Gentle',emoji:'💫',color:'#1a1a3a'},
+  {cat:'Meditation & Calm',id:'qDuRKMlYmrm8trt5QyBn',name:'Taksh',gender:'male',lang:'EN',accent:'Calm Serious',emoji:'🧘',color:'#2a1a2a'},
+  {cat:'Meditation & Calm',id:'Tsns2HvNFKfGiNjllgqo',name:'Sven',gender:'male',lang:'EN',accent:'Emotional',emoji:'🌊',color:'#1a2a3a'},
+  {cat:'Meditation & Calm',id:'Sq93GQT4X1lKDXsQcixO',name:'Felix',gender:'male',lang:'EN',accent:'Warm RP',emoji:'🎻',color:'#2a3a1a'},
+  {cat:'Meditation & Calm',id:'wJqPPQ618aTW29mptyoc',name:'Ana Rita',gender:'female',lang:'MULTI',accent:'Bright',emoji:'💃',color:'#3a1a2a'},
+  {cat:'Meditation & Calm',id:'2zRM7PkgwBPiau2jvVXc',name:'Monika Sogam',gender:'female',lang:'EN',accent:'Deep Natural',emoji:'🌺',color:'#2a1a3a'},
+  {cat:'Arabic',id:'Z3R5wn05IrDiVCyEkUrK',name:'Arabella',gender:'female',lang:'AR',accent:'Mysterious',emoji:'🌙',color:'#1a0a3a'}
 ];
 
-/* ── Rich voice data for picker ────────────────────────────────────── */
-// Preview URL: https://static.aiquickdraw.com/elevenlabs/voice/<id>.mp3
-const VOICE_CATALOG = [
-  // NARRATION
-  { cat:'Narration', id:'Rachel',                   name:'Rachel',             gender:'female', lang:'EN',  accent:'American',      emoji:'👩',  color:'#3a4a8a' },
-  { cat:'Narration', id:'Matilda',                  name:'Matilda',            gender:'female', lang:'EN',  accent:'Australian',    emoji:'🌺',  color:'#4a2a4a' },
-  { cat:'Narration', id:'nPczCjzI2devNBz1zQrb',    name:'Brian',              gender:'male',   lang:'EN',  accent:'Deep Resonant',  emoji:'🧔',  color:'#2a3a5a' },
-  { cat:'Narration', id:'LruHrtVF6PSyGItzMNHS',    name:'Benjamin',           gender:'male',   lang:'EN',  accent:'Warm Calming',   emoji:'👨',  color:'#2a4a3a' },
-  { cat:'Narration', id:'AeRdCCKzvd23BpJoofzx',    name:'Nathaniel',          gender:'male',   lang:'EN',  accent:'British Calm',   emoji:'🎩',  color:'#3a2a5a' },
-  { cat:'Narration', id:'DYkrAHD8iwork3YSUBbs',    name:'Tom',                gender:'male',   lang:'EN',  accent:'Conversational', emoji:'📖',  color:'#2a3a4a' },
-  { cat:'Narration', id:'RILOU7YmBhvwJGDGjNmP',    name:'Jane',               gender:'female', lang:'EN',  accent:'Professional',   emoji:'📚',  color:'#3a3a5a' },
-  { cat:'Narration', id:'8JVbfL6oEdmuxKn5DK2C',    name:'Johnny Kid',         gender:'male',   lang:'EN',  accent:'Calm Narrator',  emoji:'🎙️', color:'#2a2a4a' },
-  { cat:'Narration', id:'eR40ATw9ArzDf9h3v7t7',    name:'Addison 2.0',        gender:'female', lang:'EN',  accent:'Australian',     emoji:'🦘',  color:'#3a4a2a' },
-  { cat:'Narration', id:'BIvP0GN1cAtSRTxNHnWS',    name:'Ellen',              gender:'female', lang:'EN',  accent:'Direct Serious', emoji:'💼',  color:'#3a2a5a' },
-  { cat:'Narration', id:'aMSt68OGf4xUZAnLpTU8',    name:'Juniper',            gender:'female', lang:'EN',  accent:'Grounded Pro',   emoji:'🌿',  color:'#2a4a3a' },
-  { cat:'Narration', id:'hqfrgApggtO1785R4Fsn',    name:'Theodore HQ',        gender:'male',   lang:'EN',  accent:'Serene',         emoji:'🏔️', color:'#2a3a3a' },
-  // CONVERSATIONAL
-  { cat:'Conversational', id:'Aria',               name:'Aria',               gender:'female', lang:'EN',  accent:'American',       emoji:'💁‍♀️', color:'#3a2a5a' },
-  { cat:'Conversational', id:'Sarah',              name:'Sarah',              gender:'female', lang:'EN',  accent:'American',       emoji:'👩‍💼', color:'#2a3a5a' },
-  { cat:'Conversational', id:'Laura',              name:'Laura',              gender:'female', lang:'EN',  accent:'American',       emoji:'🙋‍♀️', color:'#3a2a4a' },
-  { cat:'Conversational', id:'Charlotte',          name:'Charlotte',          gender:'female', lang:'EN',  accent:'British',        emoji:'👩‍🎓', color:'#2a4a3a' },
-  { cat:'Conversational', id:'Alice',              name:'Alice',              gender:'female', lang:'EN',  accent:'British',        emoji:'🧑‍💻', color:'#3a3a2a' },
-  { cat:'Conversational', id:'Jessica',            name:'Jessica',            gender:'female', lang:'EN',  accent:'American',       emoji:'💎',  color:'#3a2a4a' },
-  { cat:'Conversational', id:'Chris',              name:'Chris',              gender:'female', lang:'EN',  accent:'American',       emoji:'👩‍🎤', color:'#3a2a3a' },
-  { cat:'Conversational', id:'Sm1seazb4gs7RSlUVw7c',name:'Anika',            gender:'female', lang:'EN',  accent:'Friendly',       emoji:'😊',  color:'#2a4a4a' },
-  { cat:'Conversational', id:'6aDn1KB0hjpdcocrUkmq',name:'Tiffany',          gender:'female', lang:'EN',  accent:'Welcoming',      emoji:'🌸',  color:'#4a2a3a' },
-  { cat:'Conversational', id:'scOwDtmlUjD3prqpp97I',name:'Sam',              gender:'male',   lang:'EN',  accent:'Support',        emoji:'🎧',  color:'#2a3a4a' },
-  { cat:'Conversational', id:'1SM7GgM6IMuvQlz2BwM3',name:'Mark',             gender:'male',   lang:'EN',  accent:'Casual Relaxed', emoji:'☕',  color:'#3a3a2a' },
-  { cat:'Conversational', id:'UgBBYS2sOqTuMpoF3BR0',name:'Mark',             gender:'male',   lang:'EN',  accent:'Natural',        emoji:'🤝',  color:'#2a3a3a' },
-  { cat:'Conversational', id:'exsUS4vynmxd379XN4yO',name:'Blondie',          gender:'female', lang:'EN',  accent:'Conversational', emoji:'👱‍♀️', color:'#4a3a2a' },
-  { cat:'Conversational', id:'lcMyyd2HUfFzxdCaC4Ta',name:'Lucy',             gender:'female', lang:'EN',  accent:'Fresh Casual',   emoji:'🌼',  color:'#3a4a2a' },
-  { cat:'Conversational', id:'g6xIsTj2HwM6VR4iXFCw',name:'Jessica A.B.',    gender:'female', lang:'EN',  accent:'Chatty',         emoji:'💬',  color:'#3a2a4a' },
-  { cat:'Conversational', id:'BpjGufoPiobT79j2vtj4',name:'Priyanka',         gender:'female', lang:'MULTI',accent:'Calm Neutral',  emoji:'🧘‍♀️', color:'#4a2a4a' },
-  { cat:'Conversational', id:'cgSgspJ2msm6clMCkdW9',name:'Jessica',          gender:'female', lang:'EN',  accent:'Playful Warm',   emoji:'✨',  color:'#3a3a4a' },
-  { cat:'Conversational', id:'5l5f8iK3YPeGga21rQIX',name:'Adeline',          gender:'female', lang:'EN',  accent:'Feminine',       emoji:'🌷',  color:'#4a2a3a' },
-  { cat:'Conversational', id:'iP95p4xoKVk53GoZ742B',name:'Chris',            gender:'male',   lang:'EN',  accent:'Charming',       emoji:'😎',  color:'#2a3a4a' },
-  { cat:'Conversational', id:'Lily',               name:'Lily',               gender:'female', lang:'EN',  accent:'British',        emoji:'🌷',  color:'#4a2a2a' },
-  // CHARACTERS
-  { cat:'Characters', id:'Roger',                  name:'Roger',              gender:'male',   lang:'EN',  accent:'American',       emoji:'🦸',  color:'#4a2a2a' },
-  { cat:'Characters', id:'Will',                   name:'Will',               gender:'male',   lang:'EN',  accent:'American',       emoji:'🎭',  color:'#2a4a2a' },
-  { cat:'Characters', id:'YOq2y2Up4RgXP2HyXjE5',  name:'Xavier',             gender:'male',   lang:'EN',  accent:'Metal',          emoji:'🤘',  color:'#3a1a1a' },
-  { cat:'Characters', id:'DTKMou8ccj1ZaWGBiotd',  name:'Jamahal',            gender:'male',   lang:'EN',  accent:'Vibrant',        emoji:'🎭',  color:'#4a3a1a' },
-  { cat:'Characters', id:'vBKc2FfBKJfcZNyEt1n6',  name:'Finn',               gender:'male',   lang:'EN',  accent:'Youthful',       emoji:'🧒',  color:'#1a3a4a' },
-  { cat:'Characters', id:'EkK5I93UQWFDigLMpZcX',  name:'James',              gender:'male',   lang:'EN',  accent:'Husky Bold',     emoji:'🕵️', color:'#2a2a3a' },
-  { cat:'Characters', id:'NNl6r8mD7vthiJatiJt1',  name:'Bradford',           gender:'male',   lang:'EN',  accent:'Expressive',     emoji:'🧠',  color:'#3a2a4a' },
-  { cat:'Characters', id:'qXpMhyvQqiRxWQs4qSSB',  name:'Horatius',           gender:'male',   lang:'EN',  accent:'Energetic',      emoji:'⚔️', color:'#4a2a3a' },
-  { cat:'Characters', id:'B8gJV1IhpuegLxdpXFOE',  name:'Kuon',               gender:'male',   lang:'EN',  accent:'Cheerful',       emoji:'🌟',  color:'#3a3a1a' },
-  { cat:'Characters', id:'zYcjlYFOd3taleS0gkk3',  name:'Edward',             gender:'male',   lang:'EN',  accent:'Cocky',          emoji:'😤',  color:'#4a2a2a' },
-  { cat:'Characters', id:'ljo9gAlSqKOvF6D8sOsX',  name:'Viking Bjorn',       gender:'male',   lang:'EN',  accent:'Epic Medieval',  emoji:'⚔️', color:'#3a1a2a' },
-  { cat:'Characters', id:'PPzYpIqttlTYA83688JI',  name:'Pirate Marshal',     gender:'male',   lang:'EN',  accent:'Pirate',         emoji:'🏴‍☠️',color:'#2a2a2a' },
-  { cat:'Characters', id:'9yzdeviXkFddZ4Oz8Mok',  name:'Lutz',               gender:'male',   lang:'EN',  accent:'Giggly',         emoji:'😄',  color:'#3a4a1a' },
-  { cat:'Characters', id:'nzeAacJi50IvxcyDnMXa',  name:'Marshal',            gender:'male',   lang:'EN',  accent:'Funny Prof',     emoji:'🎓',  color:'#2a3a2a' },
-  { cat:'Characters', id:'ruirxsoakN0GWmGNIo04',  name:'John Morgan',        gender:'male',   lang:'EN',  accent:'Gritty Cowboy',  emoji:'🤠',  color:'#4a3a2a' },
-  { cat:'Characters', id:'pNInz6obpgDQGcFmaJgB',  name:'Adam',               gender:'male',   lang:'EN',  accent:'Dominant',       emoji:'💪',  color:'#3a2a2a' },
-  { cat:'Characters', id:'SOYHLrjzK2X1ezoPC6cr',  name:'Harry',              gender:'male',   lang:'EN',  accent:'Fierce Warrior', emoji:'🗡️', color:'#3a1a1a' },
-  { cat:'Characters', id:'TC0Zp7WVFzhA8zpTlRqV',  name:'Aria',               gender:'female', lang:'EN',  accent:'Sultry Villain', emoji:'🦹‍♀️',color:'#4a1a3a' },
-  { cat:'Characters', id:'flHkNRp1BlvT73UL6gyz',  name:'Jessica A.B.',       gender:'female', lang:'EN',  accent:'Eloquent Villain',emoji:'🎭', color:'#3a1a3a' },
-  { cat:'Characters', id:'esy0r39YPLQjOczyOib8',  name:'Britney',            gender:'female', lang:'EN',  accent:'Villain',        emoji:'🖤',  color:'#2a1a3a' },
-  { cat:'Characters', id:'eVItLK1UvXctxuaRV2Oq',  name:'Jean',               gender:'female', lang:'EN',  accent:'Alluring',       emoji:'💋',  color:'#4a1a2a' },
-  // NEWS & BROADCAST
-  { cat:'News & Broadcast', id:'Brian',            name:'Brian',              gender:'male',   lang:'EN',  accent:'American',       emoji:'📡',  color:'#1a3a3a' },
-  { cat:'News & Broadcast', id:'Daniel',           name:'Daniel',             gender:'male',   lang:'EN',  accent:'British',        emoji:'🎙️', color:'#3a2a2a' },
-  { cat:'News & Broadcast', id:'Eric',             name:'Eric',               gender:'male',   lang:'EN',  accent:'American',       emoji:'📰',  color:'#2a2a3a' },
-  { cat:'News & Broadcast', id:'x70vRnQBMBu4FAYhjJbO',name:'Nathan',         gender:'male',   lang:'EN',  accent:'Radio Host',     emoji:'📻',  color:'#3a3a1a' },
-  { cat:'News & Broadcast', id:'aD6riP1btT197c6dACmy',name:'Rachel M',       gender:'female', lang:'EN',  accent:'British Radio',  emoji:'📺',  color:'#2a3a5a' },
-  { cat:'News & Broadcast', id:'gU0LNdkMOQCOrPrwtbee',name:'Football Ann.',  gender:'male',   lang:'EN',  accent:'British',        emoji:'⚽',  color:'#2a4a2a' },
-  { cat:'News & Broadcast', id:'wo6udizrrtpIxWGp2qJk',name:'Northern Terry', gender:'male',   lang:'EN',  accent:'Northern',       emoji:'🎤',  color:'#3a3a2a' },
-  { cat:'News & Broadcast', id:'DGzg6RaUqxGRTHSBjfgF',name:'Brock',         gender:'male',   lang:'EN',  accent:'Sergeant',       emoji:'🎖️', color:'#3a2a1a' },
-  { cat:'News & Broadcast', id:'CeNX9CMwmxDxUF5Q2Inm',name:'Johnny Dynamite',gender:'male',  lang:'EN',  accent:'Vintage Radio',  emoji:'📯',  color:'#4a3a1a' },
-  { cat:'News & Broadcast', id:'dHd5gvgSOzSfduK4CvEg',name:'Ed',             gender:'male',   lang:'EN',  accent:'Late Night',     emoji:'🌙',  color:'#1a2a3a' },
-  { cat:'News & Broadcast', id:'mtrellq69YZsNwzUSyXh',name:'Rex Thunder',    gender:'male',   lang:'EN',  accent:'Deep Tough',     emoji:'⚡',  color:'#3a2a1a' },
-  { cat:'News & Broadcast', id:'st7NwhTPEzqo2riw7qWC',name:'Blondie',        gender:'female', lang:'EN',  accent:'Radio Host',     emoji:'📻',  color:'#4a3a2a' },
-  { cat:'News & Broadcast', id:'DGTOOUoGpoP6UZ9uSWfA',name:'Célian',         gender:'male',   lang:'EN',  accent:'Documentary',    emoji:'🎬',  color:'#2a3a3a' },
-  { cat:'News & Broadcast', id:'George',           name:'George',             gender:'male',   lang:'EN',  accent:'British',        emoji:'🦅',  color:'#2a3a2a' },
-  // TRAILER & EPIC
-  { cat:'Trailer & Epic', id:'Charlie',            name:'Charlie',            gender:'male',   lang:'EN',  accent:'Australian',     emoji:'⚡',  color:'#1a2a4a' },
-  { cat:'Trailer & Epic', id:'Callum',             name:'Callum',             gender:'male',   lang:'EN',  accent:'Transatlantic',  emoji:'🔥',  color:'#3a1a2a' },
-  { cat:'Trailer & Epic', id:'River',              name:'River',              gender:'male',   lang:'EN',  accent:'American',       emoji:'🌊',  color:'#1a3a4a' },
-  { cat:'Trailer & Epic', id:'LG95yZDEHg6fCZdQjLqj',name:'Phil',            gender:'male',   lang:'EN',  accent:'Passionate Ann.',emoji:'🎬',  color:'#4a2a1a' },
-  { cat:'Trailer & Epic', id:'EiNlNiXeDU1pqqOPrYMO',name:'John Doe',        gender:'male',   lang:'EN',  accent:'Deep',           emoji:'🗿',  color:'#2a2a2a' },
-  { cat:'Trailer & Epic', id:'6F5Zhi321D3Oq7v1oNT4',name:'Hank',            gender:'male',   lang:'EN',  accent:'Epic Narrator',  emoji:'🏔️', color:'#3a2a1a' },
-  { cat:'Trailer & Epic', id:'YXpFCvM1S3JbWEJhoskW',name:'Wyatt',           gender:'male',   lang:'EN',  accent:'Rustic Cowboy',  emoji:'🤠',  color:'#4a3a1a' },
-  { cat:'Trailer & Epic', id:'4YYIPFl9wE5c4L2eu2Gb',name:'Burt Reynolds™', gender:'male',   lang:'EN',  accent:'Deep Smooth',    emoji:'🎥',  color:'#3a2a2a' },
-  { cat:'Trailer & Epic', id:'Bj9UqZbhQsanLzgalpEG',name:'Austin',          gender:'male',   lang:'EN',  accent:'Deep Raspy',     emoji:'🗺️', color:'#2a3a2a' },
-  { cat:'Trailer & Epic', id:'c6SfcYrb2t09NHXiT80T',name:'Jarnathan',       gender:'male',   lang:'EN',  accent:'Versatile',      emoji:'🎯',  color:'#3a3a2a' },
-  // SOCIAL MEDIA
-  { cat:'Social Media', id:'Liam',                 name:'Liam',               gender:'male',   lang:'EN',  accent:'American',       emoji:'🎵',  color:'#2a2a4a' },
-  { cat:'Social Media', id:'Bill',                 name:'Bill',               gender:'male',   lang:'EN',  accent:'American',       emoji:'🎩',  color:'#4a3a2a' },
-  { cat:'Social Media', id:'kPzsL2i3teMYv0FxEYQ6',name:'Brittney',          gender:'female', lang:'EN',  accent:'Fun Youthful',   emoji:'🎉',  color:'#4a2a4a' },
-  { cat:'Social Media', id:'TX3LPaxmHKxFdv7VOQHJ',name:'Liam',              gender:'male',   lang:'EN',  accent:'Social Creator', emoji:'📱',  color:'#1a3a4a' },
-  { cat:'Social Media', id:'FGY2WhTYpPnrIDTdsKH5',name:'Laura',             gender:'female', lang:'EN',  accent:'Quirky',         emoji:'🎨',  color:'#3a1a4a' },
-  { cat:'Social Media', id:'uYXf8XasLslADfZ2MB4u',name:'Hope',              gender:'female', lang:'EN',  accent:'Bubbly Gossipy', emoji:'💅',  color:'#4a2a3a' },
-  { cat:'Social Media', id:'pPdl9cQBQq4p6mRkZy2Z',name:'Emma',              gender:'female', lang:'EN',  accent:'Adorable Upbeat',emoji:'🌈',  color:'#3a2a4a' },
-  { cat:'Social Media', id:'N2lVS1w4EtoT3dr4eOWO',name:'Callum',            gender:'male',   lang:'EN',  accent:'Husky Trickster',emoji:'😏',  color:'#2a2a3a' },
-  { cat:'Social Media', id:'gs0tAILXbY5DNrJrsM6F',name:'Jeff',              gender:'male',   lang:'EN',  accent:'Classy Strong',  emoji:'🍸',  color:'#3a3a2a' },
-  { cat:'Social Media', id:'BZgkqPqms7Kj9ulSkVzn',name:'Eve',               gender:'female', lang:'EN',  accent:'Energetic Happy',emoji:'⚡',  color:'#4a1a3a' },
-  { cat:'Social Media', id:'hpp4J3VqNfWAUOO0d1Us',name:'Bella',             gender:'female', lang:'EN',  accent:'Professional',   emoji:'💄',  color:'#4a2a2a' },
-  { cat:'Social Media', id:'ZF6FPAbjXT4488VcRRnw',name:'Amelia',            gender:'female', lang:'EN',  accent:'Expressive',     emoji:'🎊',  color:'#3a2a5a' },
-  { cat:'Social Media', id:'1hlpeD1ydbI2ow0Tt3EW',name:'Olivia',            gender:'female', lang:'EN',  accent:'Warm Engaging',  emoji:'🌺',  color:'#4a3a2a' },
-  // MEDITATION & CALM
-  { cat:'Meditation & Calm', id:'MJ0RnG71ty4LH3dvNfSd',name:'Leon',         gender:'male',   lang:'EN',  accent:'Soothing',       emoji:'🏔️', color:'#1a3a4a' },
-  { cat:'Meditation & Calm', id:'1wGbFxmAM3Fgw63G1zZJ',name:'Allison',      gender:'female', lang:'EN',  accent:'Meditative',     emoji:'🧘‍♀️', color:'#3a2a5a' },
-  { cat:'Meditation & Calm', id:'Qggl4b0xRMiqOwhPtVWT',name:'Clara',        gender:'female', lang:'EN',  accent:'Calm Soothing',  emoji:'🌙',  color:'#2a3a5a' },
-  { cat:'Meditation & Calm', id:'zA6D7RyKdc2EClouEMkP',name:'AImee',        gender:'female', lang:'EN',  accent:'ASMR Meditation',emoji:'🌿',  color:'#2a4a3a' },
-  { cat:'Meditation & Calm', id:'tnSpp4vdxKPjI9w0GnoV',name:'Hope',         gender:'female', lang:'EN',  accent:'Upbeat Clear',   emoji:'☀️', color:'#4a3a1a' },
-  { cat:'Meditation & Calm', id:'iCrDUkL56s3C8sCRl7wb',name:'Hope',         gender:'female', lang:'EN',  accent:'Poetic Romantic',emoji:'🌸',  color:'#4a2a3a' },
-  { cat:'Meditation & Calm', id:'NOpBlnGInO9m6vDvFkFC',name:'Spuds Oxley',  gender:'male',   lang:'EN',  accent:'Approachable',   emoji:'🏡',  color:'#3a3a2a' },
-  { cat:'Meditation & Calm', id:'P1bg08DkjqiVEzOn76yG',name:'Viraj',        gender:'male',   lang:'EN',  accent:'Rich Soft',      emoji:'🎶',  color:'#2a3a4a' },
-  { cat:'Meditation & Calm', id:'1U02n4nD6AdIZ9CjF053',name:'Viraj',        gender:'male',   lang:'EN',  accent:'Smooth Gentle',  emoji:'💫',  color:'#2a2a4a' },
-  { cat:'Meditation & Calm', id:'qDuRKMlYmrm8trt5QyBn',name:'Taksh',        gender:'male',   lang:'EN',  accent:'Calm Serious',   emoji:'🧘',  color:'#3a2a3a' },
-  { cat:'Meditation & Calm', id:'Tsns2HvNFKfGiNjllgqo',name:'Sven',         gender:'male',   lang:'EN',  accent:'Emotional',      emoji:'🌊',  color:'#2a3a4a' },
-  { cat:'Meditation & Calm', id:'Sq93GQT4X1lKDXsQcixO',name:'Felix',        gender:'male',   lang:'EN',  accent:'Warm RP',        emoji:'🎻',  color:'#3a4a2a' },
-  { cat:'Meditation & Calm', id:'wJqPPQ618aTW29mptyoc',name:'Ana Rita',     gender:'female', lang:'MULTI',accent:'Bright',        emoji:'💃',  color:'#4a2a3a' },
-  { cat:'Meditation & Calm', id:'2zRM7PkgwBPiau2jvVXc',name:'Monika Sogam', gender:'female', lang:'EN',  accent:'Deep Natural',   emoji:'🌺',  color:'#3a2a4a' },
-  // ARABIC
-  { cat:'Arabic', id:'Z3R5wn05IrDiVCyEkUrK',       name:'Arabella',           gender:'female', lang:'AR',  accent:'Mysterious',     emoji:'🌙',  color:'#2a1a4a' },
-];
+const MY_VOICES_KEY='ff_my_voices_v1';
+const VPM_FAV_KEY='ff_vpm_favs_v1';
+let _vmFavs=new Set(JSON.parse(localStorage.getItem(VPM_FAV_KEY)||'[]'));
+let _vmSelectedId='Rachel';
+let _vmActiveCat='All';
+let _vmActiveTab='all';
+let _vmGenderFilter='';
+let _vmLangFilter='';
+const _vmPreviewCache={};
+let _vmPlayingId=null;
+let _vmPreviewAudio=null;
 
-let _vpmSelectedId = 'Rachel';
-let _vpmActiveCat = 'All';
-let _vpmActiveTab = 'all'; // 'all' | 'my' | 'fav'
-let _vpmGenderFilter = '';  // '' | 'male' | 'female'
-let _vpmLangFilter = '';    // '' | 'EN' | 'AR' | 'MULTI'
+function loadMyVoices(){try{return JSON.parse(localStorage.getItem(MY_VOICES_KEY)||'[]');}catch{return[];}}
+function saveMyVoices(l){localStorage.setItem(MY_VOICES_KEY,JSON.stringify(l));}
+function saveVmFavs(){localStorage.setItem(VPM_FAV_KEY,JSON.stringify([..._vmFavs]));}
 
-/* ── Favorites ─────────────────────────────── */
-const VPM_FAV_KEY = 'ff_vpm_favs_v1';
-let _vpmFavs = new Set(JSON.parse(localStorage.getItem(VPM_FAV_KEY) || '[]'));
-function saveVpmFavs() { localStorage.setItem(VPM_FAV_KEY, JSON.stringify([..._vpmFavs])); }
-function toggleVpmFav(id, event) {
-  event.stopPropagation();
-  if (_vpmFavs.has(id)) _vpmFavs.delete(id); else _vpmFavs.add(id);
-  saveVpmFavs();
-  updateVpmFavCount();
-  renderVpmGrid();
+function openVoiceModal(){document.getElementById('voiceOverlay').classList.add('open');renderVmGrid();updateVmFavCount();setTimeout(()=>document.getElementById('vmSearch')?.focus(),100);}
+function closeVoiceModal(){document.getElementById('voiceOverlay').classList.remove('open');_vmPreviewAudio?.pause();_vmPlayingId=null;}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeVoiceModal();});
+
+function setVmTab(tab){
+  _vmActiveTab=tab;_vmActiveCat=tab==='my'?'My Voices':'All';
+  document.getElementById('vmTabAll').classList.toggle('active',tab==='all');
+  document.getElementById('vmTabMy').classList.toggle('active',tab==='my');
+  document.getElementById('vmTabFav').classList.toggle('active',tab==='fav');
+  renderVmGrid();
 }
-function updateVpmFavCount() {
-  const el = document.getElementById('vpmFavCount');
-  if (el) el.textContent = _vpmFavs.size > 0 ? _vpmFavs.size : '';
-  const hbtn = document.getElementById('vpmFavToggle');
-  if (hbtn) hbtn.classList.toggle('a', _vpmActiveTab === 'fav');
+function setVmCat(cat,cardEl){
+  _vmActiveCat=cat;_vmActiveTab=cat==='My Voices'?'my':'all';
+  document.querySelectorAll('.vm-uc-card').forEach(c=>c.classList.remove('sel'));
+  if(cardEl)cardEl.classList.add('sel');
+  document.getElementById('vmTabAll').classList.toggle('active',_vmActiveTab==='all');
+  document.getElementById('vmTabMy').classList.toggle('active',_vmActiveTab==='my');
+  document.getElementById('vmTabFav').classList.toggle('active',false);
+  renderVmGrid();
+}
+function cycleVmLang(btn){
+  const s=[{val:'',label:'All languages'},{val:'EN',label:'English'},{val:'AR',label:'Arabic'},{val:'MULTI',label:'Multilingual'}];
+  const i=s.findIndex(x=>x.val===_vmLangFilter);const n=s[(i+1)%s.length];
+  _vmLangFilter=n.val;btn.firstChild.textContent=n.label+' ';btn.classList.toggle('active',!!n.val);renderVmGrid();
+}
+function cycleVmGender(btn){
+  const s=[{val:'',label:'All genders'},{val:'male',label:'Male'},{val:'female',label:'Female'}];
+  const i=s.findIndex(x=>x.val===_vmGenderFilter);const n=s[(i+1)%s.length];
+  _vmGenderFilter=n.val;btn.firstChild.textContent=n.label+' ';btn.classList.toggle('active',!!n.val);renderVmGrid();
+}
+function toggleFavFilter(){
+  const fav=!document.getElementById('vmTabFav').classList.contains('active');
+  if(fav)setVmTab('fav');else setVmTab('all');
+  document.getElementById('vmFavToggle').classList.toggle('active',fav);
+  document.getElementById('vmFavToggle').innerHTML=fav?'&#9829;':'&#9825;';
+}
+function toggleVmFav(id,ev){ev.stopPropagation();if(_vmFavs.has(id))_vmFavs.delete(id);else _vmFavs.add(id);saveVmFavs();updateVmFavCount();renderVmGrid();}
+function updateVmFavCount(){const el=document.getElementById('vmFavCount');if(el)el.textContent=_vmFavs.size>0?_vmFavs.size:'';}
+
+function previewVmVoice(id,name,ev){
+  ev.stopPropagation();
+  if(_vmPlayingId===id){_vmPreviewAudio?.pause();_vmPlayingId=null;renderVmGrid();return;}
+  _vmPreviewAudio?.pause();_vmPlayingId=null;
+  const url=_vmPreviewCache[id]||`https://static.aiquickdraw.com/elevenlabs/voice/${encodeURIComponent(id)}.mp3`;
+  _vmPreviewCache[id]=url;_vmPlayingId=id;renderVmGrid();
+  _vmPreviewAudio=new Audio(url);
+  _vmPreviewAudio.onended=()=>{_vmPlayingId=null;renderVmGrid();};
+  _vmPreviewAudio.onerror=()=>{_vmPlayingId=null;renderVmGrid();};
+  _vmPreviewAudio.play().catch(()=>{_vmPlayingId=null;renderVmGrid();});
 }
 
-/* ── Voice Preview ──────────────────────────── */
-const _vpmPreviewCache = {};
-let _vpmPlayingId = null;
-let _vpmLoadingId = null;
-let _vpmPreviewAudio = null;
-
-async function previewVpmVoice(id, name, event) {
-  event.stopPropagation();
-  if (_vpmPlayingId === id) {
-    _vpmPreviewAudio?.pause();
-    _vpmPlayingId = null; renderVpmGrid(); return;
-  }
-  _vpmPreviewAudio?.pause();
-  _vpmPlayingId = null;
-  if (_vpmLoadingId === id) return;
-  if (_vpmPreviewCache[id]) {
-    _vpmPlayingId = id; renderVpmGrid();
-    _vpmPreviewAudio = new Audio(_vpmPreviewCache[id]);
-    _vpmPreviewAudio.onended = () => { _vpmPlayingId = null; renderVpmGrid(); };
-    _vpmPreviewAudio.onerror = () => { _vpmPlayingId = null; renderVpmGrid(); };
-    _vpmPreviewAudio.play(); return;
-  }
-  // Use free static preview URL — instant, no API credits consumed
-  const url = `https://static.aiquickdraw.com/elevenlabs/voice/${encodeURIComponent(id)}.mp3`;
-  _vpmPreviewCache[id] = url;
-  _vpmLoadingId = null; _vpmPlayingId = id; renderVpmGrid();
-  _vpmPreviewAudio = new Audio(url);
-  _vpmPreviewAudio.onended = () => { _vpmPlayingId = null; renderVpmGrid(); };
-  _vpmPreviewAudio.onerror = () => { _vpmPlayingId = null; renderVpmGrid(); };
-  _vpmPreviewAudio.play().catch(() => { _vpmPlayingId = null; renderVpmGrid(); });
-}
-
-function openVoicePicker() {
-  document.getElementById('voicePickerModal').style.display = 'flex';
-  updateVpmFavCount();
-  setVpmTab(_vpmActiveTab);
-  renderVpmGrid();
-  setTimeout(() => document.getElementById('vpmSearch')?.focus(), 100);
-}
-
-function closeVoicePicker() {
-  document.getElementById('voicePickerModal').style.display = 'none';
-  _vpmPreviewAudio?.pause();
-  _vpmPlayingId = null; _vpmLoadingId = null;
-}
-
-function cycleVpmLang(btn) {
-  const states = [
-    { val: '',      label: 'All languages' },
-    { val: 'EN',    label: '🇺🇸 English' },
-    { val: 'AR',    label: '🌙 Arabic' },
-    { val: 'MULTI', label: '🌍 Multilingual' },
-  ];
-  const idx = states.findIndex(s => s.val === _vpmLangFilter);
-  const next = states[(idx + 1) % states.length];
-  _vpmLangFilter = next.val;
-  const inner = btn.innerHTML.replace(/^[^<]*/, next.label + ' ');
-  btn.innerHTML = inner;
-  btn.classList.toggle('a', !!next.val);
-  renderVpmGrid();
-}
-
-function cycleVpmGender(btn) {
-  const states = [
-    { val: '',       label: 'All genders' },
-    { val: 'male',   label: '♂ Male' },
-    { val: 'female', label: '♀ Female' },
-  ];
-  const idx = states.findIndex(s => s.val === _vpmGenderFilter);
-  const next = states[(idx + 1) % states.length];
-  _vpmGenderFilter = next.val;
-  const inner = btn.innerHTML.replace(/^[^<]*/, next.label + ' ');
-  btn.innerHTML = inner;
-  btn.classList.toggle('a', !!next.val);
-  renderVpmGrid();
-}
-
-function setVpmTab(tab) {
-  _vpmActiveTab = tab;
-  _vpmActiveCat = tab === 'my' ? 'My Voices' : 'All';
-  document.getElementById('vpmTabAll').classList.toggle('a', tab === 'all');
-  document.getElementById('vpmTabMy').classList.toggle('a', tab === 'my');
-  document.getElementById('vpmTabFav')?.classList.toggle('a', tab === 'fav');
-  document.getElementById('vpmFavToggle')?.classList.toggle('a', tab === 'fav');
-  renderVpmGrid();
-}
-
-function setVpmCatAndTab(cat) {
-  _vpmActiveCat = cat;
-  _vpmActiveTab = cat === 'My Voices' ? 'my' : 'all';
-  document.getElementById('vpmTabAll').classList.toggle('a', _vpmActiveTab === 'all');
-  document.getElementById('vpmTabMy').classList.toggle('a', _vpmActiveTab === 'my');
-  renderVpmGrid();
-}
-
-function setVpmCat(cat) { setVpmCatAndTab(cat); }
-
-function renderVpmGrid() {
-  const query = (document.getElementById('vpmSearch')?.value || '').toLowerCase();
-
-  const myVoices = loadMyVoices().map(v => ({
-    cat: 'My Voices', id: v.id, name: v.name,
-    gender: 'custom', lang: 'MULTI', accent: 'Custom', emoji: '🎤', color: '#2a1a4a',
-    isCustom: true
-  }));
-
-  const pool = _vpmActiveTab === 'my' ? myVoices : [...myVoices, ...VOICE_CATALOG];
-
-  const filtered = pool.filter(v => {
-    if (_vpmActiveTab === 'fav' && !_vpmFavs.has(v.id)) return false;
-    if (_vpmActiveTab !== 'fav' && _vpmActiveCat !== 'All' && v.cat !== _vpmActiveCat) return false;
-    if (query && !v.name.toLowerCase().includes(query) && !v.accent.toLowerCase().includes(query)) return false;
-    if (_vpmGenderFilter && v.gender !== _vpmGenderFilter && v.gender !== 'custom') return false;
-    if (_vpmLangFilter && v.lang !== _vpmLangFilter && v.lang !== 'MULTI') return false;
+function renderVmGrid(){
+  const q=(document.getElementById('vmSearch')?.value||'').toLowerCase();
+  const myV=loadMyVoices().map(v=>({cat:'My Voices',id:v.id,name:v.name,gender:'custom',lang:'MULTI',accent:'Custom',emoji:'🎤',color:'#1a1a3a',isCustom:true}));
+  const pool=_vmActiveTab==='my'?myV:[...myV,...VOICE_CATALOG];
+  const filtered=pool.filter(v=>{
+    if(_vmActiveTab==='fav'&&!_vmFavs.has(v.id))return false;
+    if(_vmActiveTab!=='fav'&&_vmActiveCat!=='All'&&v.cat!==_vmActiveCat)return false;
+    if(q&&!v.name.toLowerCase().includes(q)&&!v.accent.toLowerCase().includes(q))return false;
+    if(_vmGenderFilter&&v.gender!==_vmGenderFilter&&v.gender!=='custom')return false;
+    if(_vmLangFilter&&v.lang!==_vmLangFilter&&v.lang!=='MULTI')return false;
     return true;
   });
-
-  const seen = new Set();
-  const unique = filtered.filter(v => { if (seen.has(v.id)) return false; seen.add(v.id); return true; });
-
-  const grid = document.getElementById('vpmGrid');
-  if (!grid) return;
-  if (!unique.length) {
-    const msg = _vpmActiveTab === 'fav' ? 'No favorites yet — click ♡ on any voice to save it.' : 'No voices match your filters.';
-    grid.innerHTML = `<div style="grid-column:span 4;text-align:center;color:#3a4460;padding:40px;font-size:13px">${msg}</div>`;
-    return;
-  }
-
-  function hlMatch(text, q) {
-    if (!q) return text;
-    const i = text.toLowerCase().indexOf(q);
-    if (i < 0) return text;
-    return text.slice(0,i) + `<span class="vpm-match">${text.slice(i,i+q.length)}</span>` + text.slice(i+q.length);
-  }
-
-  grid.innerHTML = unique.map(v => {
-    const sel = v.id === _vpmSelectedId;
-    const safeName = v.name.replace(/'/g,"\\'").replace(/"/g,'&quot;');
-    const safeColor = v.color.replace(/'/g,"\\'");
-    const avatarHtml = v.isCustom
-      ? `<div class="vpm-vemoji" style="background:${v.color}">${v.emoji}</div>`
-      : `<div class="vpm-vavatar"><img src="https://i.pravatar.cc/80?u=${encodeURIComponent(v.id)}" alt="${v.name}" loading="lazy"></div>`;
-    const langLabel = v.lang === 'MULTI' ? 'Multilingual' : v.lang === 'EN' ? 'English' : v.lang === 'AR' ? 'Arabic' : v.lang;
-    const isFav = _vpmFavs.has(v.id);
-    const isPlaying = _vpmPlayingId === v.id;
-    const isLoading = _vpmLoadingId === v.id;
-    return `<div class="vpm-vcard${sel?' sel':''}" onclick="selectVpmVoice('${v.id}','${safeName}','${v.lang}','${v.accent}','${v.emoji}','${safeColor}')">
-      ${avatarHtml}
-      <div class="vpm-vinfo">
-        <div class="vpm-vname">${hlMatch(v.name, query)}</div>
-        <div class="vpm-vmeta">${langLabel}${v.isCustom ? ' · Custom' : ' · ' + v.accent}</div>
-      </div>
-      <div class="vpm-vactions">
-        <button class="vpm-play-btn${isLoading?' loading':isPlaying?' playing':''}" onclick="previewVpmVoice('${v.id}','${safeName}',event)" title="Preview">${isLoading?'⟳':isPlaying?'■':'▶'}</button>
-        <button class="vpm-fav-btn${isFav?' fav':''}" onclick="toggleVpmFav('${v.id}',event)" title="${isFav?'Remove from favorites':'Add to favorites'}">${isFav?'♥':'♡'}</button>
+  const seen=new Set();
+  const uniq=filtered.filter(v=>{if(seen.has(v.id))return false;seen.add(v.id);return true;});
+  const grid=document.getElementById('vmGrid');if(!grid)return;
+  if(!uniq.length){grid.innerHTML=`<div style="grid-column:span 4;text-align:center;color:var(--text-dim);padding:40px;font-size:13px">${_vmActiveTab==='fav'?'No favorites yet.':'No voices match your filters.'}</div>`;return;}
+  function hl(t,q){if(!q)return t;const i=t.toLowerCase().indexOf(q);if(i<0)return t;return t.slice(0,i)+'<span class="vm-match">'+t.slice(i,i+q.length)+'</span>'+t.slice(i+q.length);}
+  grid.innerHTML=uniq.map(v=>{
+    const sel=v.id===_vmSelectedId;
+    const sn=v.name.replace(/'/g,"\\'");
+    const av=v.isCustom?`<div class="vm-vemoji" style="background:${v.color}">${v.emoji}</div>`:`<div class="vm-vavatar"><img src="https://i.pravatar.cc/80?u=${encodeURIComponent(v.id)}" alt="${v.name}" loading="lazy"></div>`;
+    const ll=v.lang==='MULTI'?'Multilingual':v.lang==='EN'?'English':v.lang==='AR'?'Arabic':v.lang;
+    const fav=_vmFavs.has(v.id);const pl=_vmPlayingId===v.id;
+    return `<div class="vm-vcard${sel?' sel':''}" onclick="selectVmVoice('${v.id}','${sn}','${v.lang}','${v.accent}','${v.emoji}','${v.color}')">
+      ${av}<div class="vm-vinfo"><div class="vm-vname">${hl(v.name,q)}</div><div class="vm-vmeta">${ll} &middot; ${v.isCustom?'Custom':v.accent}</div></div>
+      <div class="vm-vactions">
+        <button class="vm-play-btn${pl?' playing':''}" onclick="previewVmVoice('${v.id}','${sn}',event)">${pl?'&#9632;':'&#9654;'}</button>
+        <button class="vm-heart-btn${fav?' fav':''}" onclick="toggleVmFav('${v.id}',event)">${fav?'&#9829;':'&#9825;'}</button>
       </div>
     </div>`;
   }).join('');
 }
 
-function selectVpmVoice(id, name, lang, accent, emoji, color) {
-  _vpmSelectedId = id;
-  const sel = document.getElementById('voiceSelect');
-  if (sel) sel.value = id;
-  document.getElementById('vpName').textContent = name;
-  document.getElementById('vpMeta').textContent = accent + ' · ' + lang;
-  const av = document.getElementById('vpAvatar');
-  av.textContent = emoji;
-  av.style.background = color;
-  renderVpmGrid();
-  setTimeout(closeVoicePicker, 220);
+function selectVmVoice(id,name,lang,accent,emoji,color){
+  _vmSelectedId=id;
+  document.getElementById('vpName').textContent=name;
+  const img=document.getElementById('vpAvatarImg');img.src=`https://i.pravatar.cc/80?u=${encodeURIComponent(id)}`;img.style.display='';
+  renderVmGrid();setTimeout(closeVoiceModal,200);
 }
 
-/* Populate voice dropdown */
-(function buildVoiceSelect() {
-  const sel = document.getElementById('voiceSelect');
-  MODEL_VOICES.forEach(v => {
-    if (v.group) {
-      const og = document.createElement('optgroup');
-      og.label = v.group;
-      sel.appendChild(og);
-    } else {
-      const o = document.createElement('option');
-      o.value = v.id;
-      o.textContent = v.label;
-      sel.appendChild(o);
-    }
-  });
-})();
-
-/* ── Audio state ───────────────────────────────────────────────────── */
-const audioState = {
-  latestUrl: '',
-  latestName: '',
-  latestType: '',
-  latestDurationSec: 0,
-  jobs: []
-};
-
-/* ── Tab switching ─────────────────────────────────────────────────── */
-function switchGenTab(name) {
-  document.querySelectorAll('.gen-tab').forEach(t => {
-    t.classList.toggle('a', t.dataset.tab === name);
-  });
-  document.querySelectorAll('.tab-pane').forEach(p => {
-    p.classList.toggle('a', p.id === 'tab-' + name);
-  });
+function openCloneSection(){
+  const sec=document.getElementById('vmCloneSection');if(!sec)return;
+  sec.classList.add('open');sec.scrollIntoView({behavior:'smooth',block:'nearest'});
+  setTimeout(()=>document.getElementById('cloneSampleInput')?.click(),300);
 }
 
-/* ── SFX presets ───────────────────────────────────────────────────── */
-function setSfxPreset(text) {
-  const el = document.getElementById('sfxPrompt');
-  if (el) el.value = text;
+let _cloneSampleFile=null;
+function onCloneSampleSelect(input){
+  const file=input.files&&input.files[0];if(!file)return;
+  _cloneSampleFile=file;
+  document.getElementById('cloneUploadZone').classList.add('has-file');
+  document.getElementById('cloneSampleName').textContent=file.name;
+  document.getElementById('btnSaveVoice').disabled=false;
+  document.getElementById('btnUseOnce').disabled=false;
+  input.value='';
 }
-
-/* ── Helpers ───────────────────────────────────────────────────────── */
-function setStatus(text, tone) {
-  const el = document.getElementById('jobStatus');
-  if (!el) return;
-  const colors = { info: '#9cb0cf', ok: '#6cd98d', warn: '#ffcc7a', err: '#ff7b7b' };
-  el.textContent = text;
-  el.style.color = colors[tone || 'info'] || colors.info;
+function useOnce(){
+  if(!_cloneSampleFile){setStatus('Choose a voice sample first.','warn');return;}
+  const name=document.getElementById('cloneVoiceName')?.value.trim()||'Custom Voice';
+  document.getElementById('customVoiceId').value='custom_'+Date.now();
+  window._cloneFileForJob=_cloneSampleFile;
+  document.getElementById('activeCloneBar').style.display='flex';
+  document.getElementById('activeCloneName').textContent=name+' (Use Once)';
+  closeVoiceModal();setStatus(`Clone voice "${name}" ready.`,'ok');
 }
-
-function setBusy(buttonId, busy, busyLabel, idleLabel) {
-  const btn = document.getElementById(buttonId);
-  if (!btn) return;
-  btn.disabled = !!busy;
-  btn.style.opacity = busy ? '0.65' : '1';
-  btn.style.cursor = busy ? 'not-allowed' : 'pointer';
-  btn.textContent = busy ? busyLabel : idleLabel;
+async function cloneAndSaveVoice(){
+  const file=_cloneSampleFile;
+  const voiceName=(document.getElementById('cloneVoiceName')?.value||'').trim();
+  if(!file){setStatus('Please choose a voice sample file first.','warn');return;}
+  if(!voiceName){setStatus('Please enter a name for this voice.','warn');return;}
+  const prog=document.getElementById('cloneProgress');const bar=document.getElementById('cloneBar');const pct=document.getElementById('clonePct');const lbl=document.getElementById('cloneProgressLabel');const btn=document.getElementById('btnSaveVoice');
+  if(prog)prog.style.display='block';if(btn){btn.disabled=true;btn.style.opacity='0.6';}
+  setStatus('Uploading voice sample...','info');
+  try{
+    const ur=await fetch('/api/studio/upload-url',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fileName:file.name,contentType:file.type||'audio/mpeg',assetType:'audio'})});
+    if(!ur.ok)throw new Error('Failed to get upload URL');
+    const{signedUrl,publicUrl}=await ur.json();
+    await new Promise((res,rej)=>{const xhr=new XMLHttpRequest();xhr.upload.addEventListener('progress',e=>{if(!e.lengthComputable)return;const p=Math.round(e.loaded/e.total*100);if(bar)bar.style.width=p+'%';if(pct)pct.textContent=p+'%';});xhr.addEventListener('load',()=>xhr.status<300?res():rej(new Error('Upload failed')));xhr.addEventListener('error',()=>rej(new Error('Network error')));xhr.open('PUT',signedUrl);xhr.setRequestHeader('Content-Type',file.type||'audio/mpeg');xhr.send(file);});
+    if(bar)bar.style.width='100%';if(pct)pct.textContent='100%';if(lbl)lbl.textContent='Creating clone...';
+    let finalId='';
+    try{const tid=await createKieTask('elevenlabs/instant-voice-clone',{name:voiceName,audio_url:publicUrl,nsfw_checker:true});const rec=await waitKieTask(tid,120000);const p=parseResultJson(rec?.resultJson);finalId=p?.resultObject?.voice_id||p?.voice_id||'';}catch(e){console.warn('Clone API:',e.message);}
+    const entry={id:finalId||('sample_'+Date.now()),name:voiceName,sampleUrl:publicUrl,hasCloneId:!!finalId,addedAt:Date.now()};
+    const list=loadMyVoices();list.unshift(entry);saveMyVoices(list);
+    document.getElementById('customVoiceId').value=entry.id;
+    document.getElementById('activeCloneBar').style.display='flex';
+    document.getElementById('activeCloneName').textContent=voiceName;
+    setStatus(finalId?`Voice "${voiceName}" cloned and saved!`:`Voice "${voiceName}" saved (sample stored).`,'ok');
+    _cloneSampleFile=null;document.getElementById('cloneVoiceName').value='';document.getElementById('cloneSampleName').textContent='Click to choose audio file';document.getElementById('cloneUploadZone').classList.remove('has-file');
+  }catch(err){setStatus('Failed: '+err.message,'err');}
+  finally{if(prog)setTimeout(()=>{prog.style.display='none';},2000);if(btn){btn.disabled=false;btn.style.opacity='1';}}
 }
+function clearActiveClone(){document.getElementById('customVoiceId').value='';document.getElementById('activeCloneBar').style.display='none';}
 
-function setLatestActionsState(enabled) {
-  ['btnAddLatestTimeline', 'btnDownloadLatest'].forEach(id => {
-    const btn = document.getElementById(id);
-    if (!btn) return;
-    btn.disabled = !enabled;
-    btn.style.opacity = enabled ? '1' : '0.45';
-    btn.style.cursor = enabled ? 'pointer' : 'not-allowed';
-  });
+/* MODE + PROMPT */
+let currentMode='voice';
+const placeholders={voice:'Write the text to convert to speech...',music:'Describe the music you want to generate...',sfx:'Describe the sound effect...'};
+function setMode(btn,skipClear){
+  document.querySelectorAll('.mode-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');currentMode=btn.dataset.mode;
+  document.getElementById('promptInput').placeholder=placeholders[currentMode];
+  const showVoice=currentMode==='voice';
+  document.getElementById('voiceChipBtn').style.display=showVoice?'':'none';
+  document.getElementById('divVoice').style.display=showVoice?'':'none';
+  document.getElementById('optLang').style.display=showVoice?'':'none';
+  document.getElementById('optSpeed').style.display=showVoice?'':'none';
+  document.getElementById('musicOptions').classList.toggle('visible',currentMode==='music');
+  document.getElementById('sfxOptions').classList.toggle('visible',currentMode==='sfx');
 }
-
-function tgPlay(b) {
-  const playing = b.textContent === '⏸';
-  b.textContent = playing ? '▶' : '⏸';
-  document.querySelectorAll('.wb').forEach(w => {
-    w.style.animationPlayState = playing ? 'paused' : 'running';
-  });
+function setPrompt(text,mode){
+  const inp=document.getElementById('promptInput');inp.value=text;autoGrow(inp);inp.focus();
+  if(mode){const btn=document.querySelector(`[data-mode="${mode}"]`);if(btn)setMode(btn,true);}
 }
-
-function startWave() {
-  const b = document.getElementById('playB');
-  if (b) b.textContent = '⏸';
-  document.querySelectorAll('.wb').forEach(w => { w.style.animationPlayState = 'running'; });
+function autoGrow(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,120)+'px';}
+document.getElementById('promptInput').addEventListener('input',function(){document.getElementById('charCount').textContent=this.value.length+' ch';});
+function cycleLang(btn){
+  const s=[{val:'',label:'Auto'},{val:'ar',label:'Arabic'},{val:'en',label:'English'}];
+  const cur=btn.childNodes[1]?.textContent?.trim()||'Auto';
+  const i=s.findIndex(x=>x.label===cur);const n=s[(i+1)%s.length];
+  btn.childNodes[1].textContent=n.label;btn.classList.toggle('active',!!n.val);
 }
-
-function stopWave() {
-  const b = document.getElementById('playB');
-  if (b) b.textContent = '▶';
-  document.querySelectorAll('.wb').forEach(w => { w.style.animationPlayState = 'paused'; });
+function cycleSpeed(btn){
+  const speeds=['0.7x','0.8x','0.9x','1.0x','1.1x','1.2x','1.5x'];
+  const cur=btn.childNodes[1]?.textContent?.trim()||'1.0x';
+  const i=speeds.indexOf(cur);btn.childNodes[1].textContent=speeds[(i+1)%speeds.length];
 }
+function cycleFormat(btn){const f=['MP3','WAV','OGG'];const i=f.indexOf(btn.textContent.trim());btn.textContent=f[(i+1)%f.length];}
+function chipSel(el,g){g.querySelectorAll('.chip').forEach(c=>c.classList.remove('a'));el.classList.add('a');}
+function slUpdate(inp,valId,fillId){const v=+inp.value,mn=+inp.min,mx=+inp.max;const el=document.getElementById(valId);if(el)el.textContent=v;const f=document.getElementById(fillId);if(f)f.style.width=((v-mn)/(mx-mn)*100)+'%';}
 
-function parseResultJson(resultJson) {
-  if (!resultJson) return null;
-  if (typeof resultJson === 'object') return resultJson;
-  try { return JSON.parse(resultJson); } catch { return null; }
+/* STATUS + AUDIO */
+const audioState={latestUrl:'',latestName:'',latestType:'',latestDurationSec:0};
+function setStatus(text,tone){const el=document.getElementById('statusStrip');if(!el)return;const c={info:'var(--text-sec)',ok:'var(--green)',warn:'var(--orange)',err:'var(--rose)'};el.textContent=text;el.style.color=c[tone||'info']||c.info;}
+function buildOutputWaveform(type){const wf=document.getElementById('outputWaveform');wf.innerHTML='';const col={voice:'#22c55e',music:'#4b7fff',sfx:'#fb923c'}[type]||'#4b7fff';for(let i=0;i<90;i++){const b=document.createElement('div');b.className='wb';b.style.height=(6+Math.random()*44)+'px';b.style.background=col;b.style.opacity=(0.3+Math.random()*0.55).toFixed(2);b.style.animationDelay=(Math.random()*1.4).toFixed(2)+'s';wf.appendChild(b);}}
+function showOutput(type,title,url){
+  const area=document.getElementById('outputArea');area.classList.add('visible');
+  document.getElementById('quickActions').style.display='none';
+  const badge=document.getElementById('outputBadge');badge.textContent=type.toUpperCase();badge.className='output-badge badge-'+type;
+  document.getElementById('outputTitle').textContent=(title||'Generated audio').substring(0,70);
+  buildOutputWaveform(type);
+  document.querySelectorAll('.wb').forEach(w=>w.style.animationPlayState='running');
+  if(url){const player=document.getElementById('audioPreviewPlayer');document.getElementById('audioPlayerWrap').style.display='block';player.src=url;player.play().catch(()=>{});player.ontimeupdate=()=>{const t=Math.round(player.currentTime);document.getElementById('outTime').textContent=`${String(Math.floor(t/60)).padStart(2,'0')}:${String(t%60).padStart(2,'0')}`;};player.onended=()=>document.querySelectorAll('.wb').forEach(w=>w.style.animationPlayState='paused');}
+  area.scrollIntoView({behavior:'smooth',block:'center'});
 }
+let _outPlaying=false;
+function toggleOutPlay(){const p=document.getElementById('audioPreviewPlayer');if(!p.src)return;_outPlaying=!_outPlaying;const icon=document.getElementById('outPlayIcon');if(_outPlaying){p.play();document.querySelectorAll('.wb').forEach(w=>w.style.animationPlayState='running');icon.innerHTML='<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>';}else{p.pause();document.querySelectorAll('.wb').forEach(w=>w.style.animationPlayState='paused');icon.innerHTML='<path d="M8 5v14l11-7z"/>';}}
+function rememberLatest(a){audioState.latestUrl=a.url||'';audioState.latestName=a.name||'';audioState.latestType=a.type||'';audioState.latestDurationSec=Number(a.durationSec)||0;}
+function postClipToTimeline(a){const p={type:'ff:addClip',clip:{label:a.name,url:a.url,trackType:a.type,durationSec:a.durationSec||6}};try{if(window.parent&&window.parent!==window){const tf=window.parent.document.getElementById('timelineFrame');if(tf&&tf.contentWindow)tf.contentWindow.postMessage(p,'*');}}catch{}}
+function addLatestToTimeline(){if(!audioState.latestUrl){setStatus('No generated asset yet.','warn');return;}postClipToTimeline({type:audioState.latestType||'voice',name:audioState.latestName||`audio_${Date.now()}.mp3`,url:audioState.latestUrl,durationSec:audioState.latestDurationSec||6});setStatus('Added to timeline.','ok');}
+function downloadLatest(){if(!audioState.latestUrl){setStatus('No generated asset to download.','warn');return;}const a=document.createElement('a');a.href=audioState.latestUrl;a.target='_blank';a.rel='noopener';a.download=audioState.latestName||'audio_asset.mp3';document.body.appendChild(a);a.click();a.remove();setStatus('Download started.','ok');}
+function formatSec(s){if(!s||!Number.isFinite(s))return'0:00';const t=Math.max(0,Math.round(s));return`${Math.floor(t/60)}:${String(t%60).padStart(2,'0')}`;}
 
-function extractResultUrls(recordData) {
-  const parsed = parseResultJson(recordData?.resultJson);
-  if (!parsed) return [];
-  if (Array.isArray(parsed.resultUrls)) return parsed.resultUrls.filter(Boolean);
-  if (parsed.resultObject?.resultUrls && Array.isArray(parsed.resultObject.resultUrls)) return parsed.resultObject.resultUrls.filter(Boolean);
-  if (parsed.resultObject?.audio_url) return [parsed.resultObject.audio_url];
-  if (parsed.resultObject?.url) return [parsed.resultObject.url];
-  return [];
-}
+/* API */
+function parseResultJson(r){if(!r)return null;if(typeof r==='object')return r;try{return JSON.parse(r);}catch{return null;}}
+function extractResultUrls(d){const p=parseResultJson(d?.resultJson);if(!p)return[];if(Array.isArray(p.resultUrls))return p.resultUrls.filter(Boolean);if(p.resultObject?.resultUrls&&Array.isArray(p.resultObject.resultUrls))return p.resultObject.resultUrls.filter(Boolean);if(p.resultObject?.audio_url)return[p.resultObject.audio_url];if(p.resultObject?.url)return[p.resultObject.url];return[];}
+async function getAudioDuration(url){return new Promise(resolve=>{const a=new Audio();const done=v=>{a.removeAttribute('src');resolve(Number.isFinite(v)?v:null);};a.addEventListener('loadedmetadata',()=>done(a.duration),{once:true});a.addEventListener('error',()=>done(null),{once:true});a.preload='metadata';a.src=url;});}
+async function createKieTask(model,input){const res=await fetch('/api/kie/createTask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model,input})});const json=await res.json();if(!res.ok||json?.code!==200||!json?.data?.taskId)throw new Error(json?.msg||`Create task failed (${res.status})`);return json.data.taskId;}
+async function createKieTaskWithFallback(model,input){try{return await createKieTask(model,input);}catch(error){const msg=String(error?.message||'').toLowerCase();if(Object.prototype.hasOwnProperty.call(input||{},'language_code')&&(msg.includes('language')||msg.includes('422'))){const ri={...input};delete ri.language_code;return await createKieTask(model,ri);}throw error;}}
+async function waitKieTask(taskId,maxMs){const started=Date.now();while(Date.now()-started<maxMs){const res=await fetch('/api/kie/recordInfo?taskId='+encodeURIComponent(taskId));const json=await res.json();if(!res.ok||json?.code!==200||!json?.data)throw new Error(json?.msg||`Polling failed (${res.status})`);const state=String(json.data.state||'').toLowerCase();if(state==='success')return json.data;if(state==='fail')throw new Error(json.data.failMsg||json.data.failCode||'Task failed');await new Promise(r=>setTimeout(r,1800));}throw new Error('Timeout waiting for Kie result');}
+async function runAudioJob(config){const btn=document.getElementById('sendBtn');if(btn){btn.disabled=true;btn.style.opacity='0.5';}setStatus(`Submitting ${config.label}...`,'info');try{const taskId=config.useLanguageFallback?await createKieTaskWithFallback(config.model,config.input):await createKieTask(config.model,config.input);setStatus(`${config.label} queued...`,'info');const record=await waitKieTask(taskId,config.timeoutMs||180000);const urls=extractResultUrls(record);if(!urls.length)throw new Error('No media URL returned');const url=urls[0];const dur=await getAudioDuration(url)||config.fallbackDuration||6;const asset={type:config.assetType,name:config.assetName,url,durationSec:dur};rememberLatest(asset);showOutput(config.assetType,config.assetName,url);setStatus(`${config.label} complete (${formatSec(dur)}).`,'ok');return{record,asset};}catch(error){setStatus(`${config.label} failed: ${error.message}`,'err');throw error;}finally{if(btn){btn.disabled=false;btn.style.opacity='1';}}}
 
-async function getAudioDuration(url) {
-  return new Promise(resolve => {
-    const a = new Audio();
-    const done = v => { a.removeAttribute('src'); resolve(Number.isFinite(v) ? v : null); };
-    a.addEventListener('loadedmetadata', () => done(a.duration), { once: true });
-    a.addEventListener('error', () => done(null), { once: true });
-    a.preload = 'metadata';
-    a.src = url;
-  });
-}
+/* GENERATE */
+function getSelectedVoiceId(){const c=(document.getElementById('customVoiceId')?.value||'').trim();return c||_vmSelectedId||'Rachel';}
+function getSelectedLangCode(){const v=VOICE_CATALOG.find(x=>x.id===_vmSelectedId);if(v&&v.lang==='AR')return'ar';const btn=document.getElementById('optLang');const t=btn?.childNodes[1]?.textContent?.trim()||'Auto';if(t==='Arabic')return'ar';if(t==='English')return'en';return'';}
+async function handleGenerate(){const text=(document.getElementById('promptInput')?.value||'').trim();if(!text){setStatus('Please enter a description or text.','warn');return;}if(currentMode==='voice')await generateVoice(text);else if(currentMode==='music')await generateMusic(text);else await generateSfx(text);}
+async function generateVoice(text){const speedBtn=document.getElementById('optSpeed');const speedTxt=speedBtn?.childNodes[1]?.textContent?.trim()||'1.0x';const speed=parseFloat(speedTxt)||1.0;const lc=getSelectedLangCode();const input={text,voice:getSelectedVoiceId(),stability:0.5,similarity_boost:0.75,style:0,speed:Math.max(0.7,Math.min(1.5,speed)),timestamps:false,nsfw_checker:true};if(lc)input.language_code=lc;await runAudioJob({label:'Voice generation',model:'elevenlabs/text-to-speech-multilingual-v2',input,useLanguageFallback:true,assetType:'voice',assetName:`voice_${Date.now()}.mp3`,fallbackDuration:Math.max(3,Math.min(30,Math.round(text.length/14)))});}
+async function generateMusic(text){const genre=document.getElementById('genreChips')?.querySelector('.chip.a')?.textContent?.trim()||'Ambient';const mood=document.getElementById('moodChips')?.querySelector('.chip.a')?.textContent?.trim()||'Calm';const bpm=document.getElementById('bmV')?.textContent||'120';const prompt=text||`Cinematic ${genre} background music, ${mood} mood, around ${bpm} BPM, no vocals.`;await runAudioJob({label:'Music generation',model:'elevenlabs/sound-effect-v2',input:{text:prompt,loop:true,duration_seconds:20,prompt_influence:0.45,output_format:'mp3_44100_128'},assetType:'music',assetName:`music_${Date.now()}.mp3`,fallbackDuration:20});}
+async function generateSfx(text){await runAudioJob({label:'SFX generation',model:'elevenlabs/sound-effect-v2',input:{text,loop:false,duration_seconds:4,prompt_influence:0.4,output_format:'mp3_44100_128'},assetType:'sfx',assetName:`sfx_${Date.now()}.mp3`,fallbackDuration:4});}
 
-async function createKieTask(model, input) {
-  const res = await fetch('/api/kie/createTask', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model, input })
-  });
-  const json = await res.json();
-  if (!res.ok || json?.code !== 200 || !json?.data?.taskId) {
-    throw new Error(json?.msg || `Create task failed (${res.status})`);
-  }
-  return json.data.taskId;
-}
+/* AUDIO TOOLS */
+async function handleAudioFileSelect(input){const file=input.files&&input.files[0];if(!file)return;setStatus('Uploading audio file...','info');try{const ur=await fetch('/api/studio/upload-url',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fileName:file.name,contentType:file.type||'audio/mpeg',assetType:'audio'})});if(!ur.ok)throw new Error('Failed to get upload URL');const{signedUrl,publicUrl}=await ur.json();await new Promise((res,rej)=>{const xhr=new XMLHttpRequest();xhr.addEventListener('load',()=>xhr.status<300?res():rej(new Error('Upload failed')));xhr.addEventListener('error',()=>rej(new Error('Network error')));xhr.open('PUT',signedUrl);xhr.setRequestHeader('Content-Type',file.type||'audio/mpeg');xhr.send(file);});document.getElementById('audioUrlInput').value=publicUrl;setStatus('File uploaded. Ready to transcribe or isolate.','ok');}catch(err){setStatus('Upload failed: '+err.message,'err');}input.value='';}
+async function transcribeAudio(){const url=(document.getElementById('audioUrlInput')?.value||'').trim();if(!url){setStatus('Please upload an audio file first.','warn');return;}setStatus('Transcribing...','info');try{const tid=await createKieTask('elevenlabs/speech-to-text',{audio_url:url,tag_audio_events:true,diarize:true,nsfw_checker:true});const rec=await waitKieTask(tid,180000);const p=parseResultJson(rec?.resultJson);const text=p?.resultObject?.text||'No text returned';const inp=document.getElementById('promptInput');inp.value=text;autoGrow(inp);setStatus('Transcription complete. Text inserted into prompt box.','ok');}catch(err){setStatus('Transcription failed: '+err.message,'err');}}
+async function isolateAudio(){const url=(document.getElementById('audioUrlInput')?.value||'').trim();if(!url){setStatus('Please upload an audio file first.','warn');return;}await runAudioJob({label:'Audio isolation',model:'elevenlabs/audio-isolation',input:{audio_url:url,nsfw_checker:true},assetType:'voice',assetName:`isolated_${Date.now()}.mp3`,fallbackDuration:8});}
 
-async function createKieTaskWithLanguageFallback(model, input) {
-  try {
-    return await createKieTask(model, input);
-  } catch (error) {
-    const msg = String(error?.message || '').toLowerCase();
-    const hasLang = Object.prototype.hasOwnProperty.call(input || {}, 'language_code');
-    if (hasLang && (msg.includes('language') || msg.includes('422') || msg.includes('validation'))) {
-      const retryInput = { ...input };
-      delete retryInput.language_code;
-      return await createKieTask(model, retryInput);
-    }
-    throw error;
-  }
-}
-
-async function waitKieTask(taskId, maxMs) {
-  const started = Date.now();
-  while (Date.now() - started < maxMs) {
-    const res = await fetch('/api/kie/recordInfo?taskId=' + encodeURIComponent(taskId));
-    const json = await res.json();
-    if (!res.ok || json?.code !== 200 || !json?.data) {
-      throw new Error(json?.msg || `Polling failed (${res.status})`);
-    }
-    const state = String(json.data.state || '').toLowerCase();
-    if (state === 'success') return json.data;
-    if (state === 'fail') throw new Error(json.data.failMsg || json.data.failCode || 'Task failed');
-    await new Promise(r => setTimeout(r, 1800));
-  }
-  throw new Error('Timeout waiting for Kie result');
-}
-
-function getSelectedVoiceId() {
-  const custom = (document.getElementById('customVoiceId')?.value || '').trim();
-  if (custom) return custom;
-  return _vpmSelectedId || 'Rachel';
-}
-
-function getSelectedLanguageCode() {
-  const v = (document.getElementById('voiceLanguage')?.value || 'auto').trim().toLowerCase();
-  if (v === 'ar') return 'ar';
-  if (v === 'en') return 'en';
-  return '';
-}
-
-function getActiveChipText(chipGroupEl) {
-  return (chipGroupEl?.querySelector('.ch.a')?.textContent || '').trim();
-}
-
-function formatSec(sec) {
-  if (!sec || !Number.isFinite(sec)) return '0:00';
-  const total = Math.max(0, Math.round(sec));
-  const m = Math.floor(total / 60);
-  const s = total % 60;
-  return `${m}:${String(s).padStart(2, '0')}`;
-}
-
-function appendLibraryItem(type, label, durationSec, emoji, url) {
-  // Also add to visible session history
-  const hist = document.getElementById('sessionHistory');
-  if (hist) {
-    if (hist.textContent === 'No generated assets yet.') hist.textContent = '';
-    const item = document.createElement('div');
-    item.style.cssText = 'display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid var(--border);cursor:pointer';
-    item.innerHTML = `<span style="font-size:14px">${emoji}</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;color:#c0ccdc">${label}</span><span style="font-size:10px;font-family:\'JetBrains Mono\';color:#6a7a8e">${formatSec(durationSec)}</span>`;
-    item.onclick = () => previewAudio(url, label);
-    hist.prepend(item);
-  }
-}
-
-function postClipToTimeline(asset) {
-  const payload = {
-    type: 'ff:addClip',
-    clip: {
-      label: asset.name,
-      url: asset.url,
-      trackType: asset.type,
-      durationSec: asset.durationSec || 6
-    }
-  };
-  try {
-    if (window.parent && window.parent !== window) {
-      const tf = window.parent.document.getElementById('timelineFrame');
-      if (tf && tf.contentWindow) tf.contentWindow.postMessage(payload, '*');
-    }
-  } catch {}
-  try {
-    const external = document.querySelector('#external-timeline-host iframe');
-    if (external && external.contentWindow) external.contentWindow.postMessage(payload, '*');
-  } catch {}
-}
-
-function rememberLatest(asset) {
-  audioState.latestUrl = asset.url || '';
-  audioState.latestName = asset.name || '';
-  audioState.latestType = asset.type || '';
-  audioState.latestDurationSec = Number(asset.durationSec) || 0;
-  setLatestActionsState(!!audioState.latestUrl);
-}
-
-async function runAudioJob(config) {
-  startWave();
-  setStatus(`Submitting ${config.label} task...`, 'info');
-  setBusy(config.buttonId, true, 'Working...', config.idleLabel);
-  try {
-    const taskId = config.useLanguageFallback
-      ? await createKieTaskWithLanguageFallback(config.model, config.input)
-      : await createKieTask(config.model, config.input);
-    setStatus(`${config.label} queued: ${taskId.slice(0, 12)}...`, 'info');
-    const record = await waitKieTask(taskId, config.timeoutMs || 180000);
-    const urls = extractResultUrls(record);
-    if (!urls.length) throw new Error('No media URL returned');
-    const mainUrl = urls[0];
-    const durationSec = await getAudioDuration(mainUrl) || config.fallbackDuration || 6;
-    const asset = { type: config.assetType, name: config.assetName, url: mainUrl, durationSec };
-    rememberLatest(asset);
-    appendLibraryItem(asset.type, asset.name, durationSec, config.emoji || '🎵', mainUrl);
-    previewAudio(mainUrl, asset.name);
-    setStatus(`${config.label} complete (${formatSec(durationSec)}). Use Add To Timeline or Download.`, 'ok');
-    return { record, asset };
-  } catch (error) {
-    setStatus(`${config.label} failed: ${error.message}`, 'err');
-    throw error;
-  } finally {
-    setBusy(config.buttonId, false, 'Working...', config.idleLabel);
-    stopWave();
-  }
-}
-
-function previewAudio(url, title) {
-  if (!url) return;
-  const area = document.getElementById('prevArea');
-  if (!area) return;
-  let player = document.getElementById('audioPreviewPlayer');
-  if (!player) {
-    player = document.createElement('audio');
-    player.id = 'audioPreviewPlayer';
-    player.controls = true;
-    player.style.cssText = 'position:absolute;left:50%;bottom:10px;transform:translateX(-50%);width:80%;z-index:5';
-    area.appendChild(player);
-  }
-  player.src = url;
-  player.title = title || 'Audio Preview';
-  player.play().catch(() => {});
-}
-
-/* ── Generate functions ────────────────────────────────────────────── */
-async function generateVoice() {
-  const text = (document.getElementById('vText')?.value || '').trim();
-  if (!text) { setStatus('Voice text is required.', 'warn'); return; }
-  const speedPercent = Number((document.getElementById('spV')?.textContent || '100').replace('%', '')) || 100;
-  const speed = Math.max(0.7, Math.min(1.2, speedPercent / 100));
-  const language_code = getSelectedLanguageCode();
-  const ttsInput = {
-    text,
-    voice: getSelectedVoiceId(),
-    stability: 0.5,
-    similarity_boost: 0.75,
-    style: 0,
-    speed,
-    timestamps: false,
-    nsfw_checker: true
-  };
-  if (language_code) ttsInput.language_code = language_code;
-  await runAudioJob({
-    label: 'Voice generation',
-    buttonId: 'btnGenerateVoice',
-    idleLabel: '🎙 Generate Voice',
-    model: 'elevenlabs/text-to-speech-multilingual-v2',
-    input: ttsInput,
-    useLanguageFallback: true,
-    assetType: 'voice',
-    assetName: `voice_${Date.now()}.mp3`,
-    emoji: '🎙️',
-    fallbackDuration: Math.max(3, Math.min(30, Math.round(text.length / 14)))
-  });
-}
-
-async function cloneVoice() {
-  const customVoiceId = (document.getElementById('customVoiceId')?.value || '').trim();
-  const text = (document.getElementById('vText')?.value || '').trim();
-  if (!customVoiceId) { setStatus('Set Custom Voice ID first for clone/custom voice render.', 'warn'); return; }
-  if (!text) { setStatus('Voice text is required.', 'warn'); return; }
-  const language_code = getSelectedLanguageCode();
-  const cloneInput = {
-    text, voice: customVoiceId, stability: 0.5, similarity_boost: 0.9,
-    style: 0, speed: 1, timestamps: false, nsfw_checker: true
-  };
-  if (language_code) cloneInput.language_code = language_code;
-  await runAudioJob({
-    label: 'Clone voice render',
-    buttonId: 'btnCloneVoice',
-    idleLabel: 'Clone',
-    model: 'elevenlabs/text-to-speech-multilingual-v2',
-    input: cloneInput,
-    useLanguageFallback: true,
-    assetType: 'voice',
-    assetName: `clone_voice_${Date.now()}.mp3`,
-    emoji: '🧬',
-    fallbackDuration: Math.max(3, Math.min(30, Math.round(text.length / 14)))
-  });
-}
-
-async function generateMusic() {
-  const genre = getActiveChipText(document.getElementById('genreChips')) || 'Ambient';
-  const mood = getActiveChipText(document.getElementById('moodChips')) || 'Calm';
-  const bpm = Number(document.getElementById('bmV')?.textContent || 120) || 120;
-  const customPrompt = (document.getElementById('musicPrompt')?.value || '').trim();
-  const text = customPrompt || `Cinematic ${genre} background music, ${mood} mood, around ${bpm} BPM, no vocals.`;
-  await runAudioJob({
-    label: 'Music generation',
-    buttonId: 'btnGenerateMusic',
-    idleLabel: '🎼 Generate Music',
-    model: 'elevenlabs/sound-effect-v2',
-    input: { text, loop: true, duration_seconds: 20, prompt_influence: 0.45, output_format: 'mp3_44100_128' },
-    assetType: 'music',
-    assetName: `music_${Date.now()}.mp3`,
-    emoji: '🎼',
-    fallbackDuration: 20
-  });
-}
-
-async function generateSfx() {
-  const prompt = (document.getElementById('sfxPrompt')?.value || '').trim();
-  if (!prompt) { setStatus('SFX prompt is required.', 'warn'); return; }
-  await runAudioJob({
-    label: 'SFX generation',
-    buttonId: 'btnGenerateSfx',
-    idleLabel: '💥 Generate SFX',
-    model: 'elevenlabs/sound-effect-v2',
-    input: { text: prompt, loop: false, duration_seconds: 4, prompt_influence: 0.4, output_format: 'mp3_44100_128' },
-    assetType: 'sfx',
-    assetName: `sfx_${Date.now()}.mp3`,
-    emoji: '💥',
-    fallbackDuration: 4
-  });
-}
-
-async function handleAudioFileSelect(input) {
-  const file = input.files && input.files[0];
-  if (!file) return;
-  const nameEl = document.getElementById('uploadFileName');
-  const zone = document.getElementById('uploadZone');
-  const progWrap = document.getElementById('uploadProgress');
-  const bar = document.getElementById('uploadBar');
-  const pct = document.getElementById('uploadPct');
-  if (nameEl) { nameEl.textContent = file.name; nameEl.style.display = 'block'; }
-  if (zone) zone.style.borderColor = 'var(--accent)';
-  // disable buttons during upload
-  ['btnStt','btnIsolate'].forEach(id => { const b=document.getElementById(id); if(b){b.disabled=true;b.style.opacity='0.5';} });
-  if (progWrap) progWrap.style.display = 'block';
-  setStatus('Uploading audio file...', 'info');
-  try {
-    // Get signed upload URL from server
-    const ext = file.name.split('.').pop() || 'mp3';
-    const urlRes = await fetch('/api/studio/upload-url', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fileName: file.name, contentType: file.type || 'audio/mpeg', assetType: 'audio' })
-    });
-    if (!urlRes.ok) throw new Error('Failed to get upload URL');
-    const { signedUrl, publicUrl } = await urlRes.json();
-    // XHR upload with progress
-    await new Promise((resolve, reject) => {
-      const xhr = new XMLHttpRequest();
-      xhr.upload.addEventListener('progress', e => {
-        if (!e.lengthComputable) return;
-        const p = Math.round(e.loaded / e.total * 100);
-        if (bar) bar.style.width = p + '%';
-        if (pct) pct.textContent = p + '%';
-      });
-      xhr.addEventListener('load', () => xhr.status < 300 ? resolve() : reject(new Error('Upload failed: ' + xhr.status)));
-      xhr.addEventListener('error', () => reject(new Error('Network error during upload')));
-      xhr.open('PUT', signedUrl);
-      xhr.setRequestHeader('Content-Type', file.type || 'audio/mpeg');
-      xhr.send(file);
-    });
-    // Store the public URL
-    const hiddenInput = document.getElementById('audioUrlInput');
-    if (hiddenInput) hiddenInput.value = publicUrl;
-    if (bar) bar.style.width = '100%';
-    if (pct) pct.textContent = '100%';
-    if (zone) zone.style.borderColor = 'var(--green)';
-    setStatus('File uploaded. Ready to Transcribe or Isolate.', 'ok');
-    // Enable buttons
-    ['btnStt','btnIsolate'].forEach(id => { const b=document.getElementById(id); if(b){b.disabled=false;b.style.opacity='1';} });
-    setTimeout(() => { if (progWrap) progWrap.style.display = 'none'; }, 1500);
-  } catch(err) {
-    setStatus('Upload failed: ' + err.message, 'err');
-    if (zone) zone.style.borderColor = 'var(--red)';
-    if (progWrap) progWrap.style.display = 'none';
-  }
-  // reset file input so same file can be reselected
-  input.value = '';
-}
-
-async function transcribeAudio() {
-  const audioUrl = (document.getElementById('audioUrlInput')?.value || '').trim();
-  if (!audioUrl) { setStatus('Please upload an audio file first.', 'warn'); return; }
-  const selectedLang = getSelectedLanguageCode();
-  setBusy('btnStt', true, 'Working...', '📝 Transcribe');
-  setStatus('Submitting speech-to-text...', 'info');
-  try {
-    const sttInput = { audio_url: audioUrl, tag_audio_events: true, diarize: true, nsfw_checker: true };
-    if (selectedLang) sttInput.language_code = selectedLang;
-    const taskId = await createKieTask('elevenlabs/speech-to-text', sttInput);
-    const record = await waitKieTask(taskId, 180000);
-    const parsed = parseResultJson(record?.resultJson);
-    const text = parsed?.resultObject?.text || 'No text returned';
-    document.getElementById('vText').value = text;
-    document.getElementById('cCt').textContent = text.length + ' ch';
-    setStatus('Transcription complete. Text inserted into Voiceover box.', 'ok');
-  } catch (error) {
-    setStatus('Transcription failed: ' + error.message, 'err');
-  } finally {
-    setBusy('btnStt', false, 'Working...', '📝 Transcribe');
-  }
-}
-
-async function isolateAudio() {
-  const audioUrl = (document.getElementById('audioUrlInput')?.value || '').trim();
-  if (!audioUrl) { setStatus('Please upload an audio file first.', 'warn'); return; }
-  await runAudioJob({
-    label: 'Audio isolation',
-    buttonId: 'btnIsolate',
-    idleLabel: '🧪 Isolate Voice',
-    model: 'elevenlabs/audio-isolation',
-    input: { audio_url: audioUrl, nsfw_checker: true },
-    assetType: 'voice',
-    assetName: `isolated_voice_${Date.now()}.mp3`,
-    emoji: '🧪',
-    fallbackDuration: 8
-  });
-}
-
-function addLatestToTimeline() {
-  if (!audioState.latestUrl) { setStatus('No generated asset yet. Generate first.', 'warn'); return; }
-  postClipToTimeline({
-    type: audioState.latestType || 'voice',
-    name: audioState.latestName || `audio_${Date.now()}.mp3`,
-    url: audioState.latestUrl,
-    durationSec: audioState.latestDurationSec || 6
-  });
-  setStatus('Latest generated asset added to timeline.', 'ok');
-}
-
-function downloadLatest() {
-  if (!audioState.latestUrl) { setStatus('No generated asset to download yet.', 'warn'); return; }
-  const a = document.createElement('a');
-  a.href = audioState.latestUrl;
-  a.target = '_blank';
-  a.rel = 'noopener';
-  a.download = audioState.latestName || 'audio_asset.mp3';
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setStatus('Download started for latest generated asset.', 'ok');
-}
-
-function pauseMix() {
-  const player = document.getElementById('audioPreviewPlayer');
-  if (player) player.pause();
-  stopWave();
-  setStatus('Preview stopped.', 'info');
-}
-
-/* ── Slider handler ────────────────────────────────────────────────── */
-function us(inp, id) {
-  const v = inp.value;
-  const fill = inp.previousElementSibling;
-  const min = +inp.min;
-  const max = +inp.max;
-  if (fill) fill.style.width = ((v - min) / (max - min) * 100) + '%';
-  const map = { sp: v + '%', pi: v, vo: v + '%', fi: v + 'ms', fo: v + 'ms', bm: v };
-  const el = document.getElementById(id + 'V');
-  if (el) el.textContent = map[id] || v;
-  // speed special case — also update spFill
-  if (id === 'sp') {
-    const spf = document.getElementById('spFill');
-    if (spf) spf.style.width = ((v - 50) / 100 * 100) + '%';
-  }
-}
-
-/* ── Chip click handlers ───────────────────────────────────────────── */
-document.querySelectorAll('.chips').forEach(g => {
-  g.querySelectorAll('.chip, .ch').forEach(c => {
-    c.addEventListener('click', function () {
-      g.querySelectorAll('.chip, .ch').forEach(x => x.classList.remove('a'));
-      this.classList.add('a');
-    });
-  });
-});
-
-/* ── Char counter ──────────────────────────────────────────────────── */
-document.getElementById('vText').addEventListener('input', function () {
-  document.getElementById('cCt').textContent = this.value.length + ' ch';
-});
-
-/* ── Language label ────────────────────────────────────────────────── */
-document.getElementById('voiceLanguage')?.addEventListener('change', function () {});
-
-/* ── Init library on load ──────────────────────────────────────────── */
-renderMyVoicesList();
-// Also refresh VPM cats to include My Voices
-const _origVPM_ALL_CATS_len = VPM_ALL_CATS.length;
-if (loadMyVoices().length && !VPM_ALL_CATS.includes('My Voices')) {
-  VPM_ALL_CATS.splice(1, 0, 'My Voices');
-}
-document.getElementById('cloneUploadZone')?.addEventListener('mouseenter', function(){
-  this.style.borderColor = 'var(--accent)';
-});
-document.getElementById('cloneUploadZone')?.addEventListener('mouseleave', function(){
-  this.style.borderColor = (window._cloneSampleFile || this.style.borderColor === 'var(--green)') ? this.style.borderColor : 'var(--border2)';
-});
+updateVmFavCount();
 </script>
 </body>
 </html>
