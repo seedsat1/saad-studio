@@ -59,6 +59,7 @@ textarea.ff:focus{border-color:var(--accent)}
 
 /* ── chips ───────────────────────────────── */
 .chips{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:6px}
+#uploadZone:hover{border-color:var(--accent);background:rgba(74,158,255,.04)}
 .chip{padding:4px 10px;border-radius:4px;font-size:11px;cursor:pointer;border:1px solid var(--border);background:#1a1a2a;color:#9ba8bb;font-family:'Tajawal';transition:.12s;user-select:none}
 .chip:hover{border-color:var(--border2);color:var(--text)}.chip.a{border-color:var(--accent);color:var(--accent);background:rgba(74,158,255,.08)}
 
@@ -313,13 +314,32 @@ textarea.ff:focus{border-color:var(--accent)}
 
     <!-- Speech Tools -->
     <div class="sec"><span class="dot" style="background:var(--purple)"></span>Speech Tools</div>
-    <label class="lbl">Audio URL (for transcription / voice isolation)</label>
-    <input id="audioUrlInput" class="ff mt4" type="text" placeholder="https://... or blob:...">
-    <div class="row2 mt6">
-      <button class="btn btn-ghost btn-sm" id="btnStt" onclick="transcribeAudio()">📝 Transcribe</button>
-      <button class="btn btn-ghost btn-sm" id="btnIsolate" onclick="isolateAudio()">🧪 Isolate Voice</button>
+
+    <!-- File upload zone -->
+    <div id="uploadZone" onclick="document.getElementById('audioFileInput').click()" style="border:2px dashed var(--border2);border-radius:6px;padding:14px 10px;text-align:center;cursor:pointer;transition:.15s;margin-bottom:8px">
+      <div style="font-size:22px;margin-bottom:4px">🎧</div>
+      <div style="font-size:11px;color:#8a9ab8;line-height:1.5">Click to choose audio file<br><span style="font-size:10px;color:#5a6a7e">MP3 · WAV · OGG · FLAC · M4A</span></div>
+      <div id="uploadFileName" style="font-size:11px;color:var(--accent);margin-top:5px;display:none"></div>
     </div>
-    <p style="font-size:10px;color:#5a6a7e;margin-top:5px;line-height:1.5">Transcribe converts audio to text (inserted into voiceover box). Isolate removes background music/noise.</p>
+    <input id="audioFileInput" type="file" accept="audio/*" style="display:none" onchange="handleAudioFileSelect(this)">
+
+    <!-- Upload progress -->
+    <div id="uploadProgress" style="display:none;margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:#8a9ab8;margin-bottom:3px">
+        <span>Uploading...</span><span id="uploadPct">0%</span>
+      </div>
+      <div style="height:4px;background:#2a2a2a;border-radius:2px;overflow:hidden">
+        <div id="uploadBar" style="height:100%;width:0%;background:var(--accent);border-radius:2px;transition:width .2s"></div>
+      </div>
+    </div>
+
+    <input id="audioUrlInput" type="hidden" value="">
+
+    <div class="row2">
+      <button class="btn btn-ghost btn-sm" id="btnStt" onclick="transcribeAudio()" disabled>📝 Transcribe</button>
+      <button class="btn btn-ghost btn-sm" id="btnIsolate" onclick="isolateAudio()" disabled>🧪 Isolate Voice</button>
+    </div>
+    <p style="font-size:10px;color:#5a6a7e;margin-top:5px;line-height:1.5">Transcribe → text into Voiceover box. Isolate → removes background music/noise.</p>
 
     <!-- Export format -->
     <div class="sec mt10"><span class="dot" style="background:var(--green)"></span>Export Format</div>
@@ -801,9 +821,67 @@ async function generateSfx() {
   });
 }
 
+async function handleAudioFileSelect(input) {
+  const file = input.files && input.files[0];
+  if (!file) return;
+  const nameEl = document.getElementById('uploadFileName');
+  const zone = document.getElementById('uploadZone');
+  const progWrap = document.getElementById('uploadProgress');
+  const bar = document.getElementById('uploadBar');
+  const pct = document.getElementById('uploadPct');
+  if (nameEl) { nameEl.textContent = file.name; nameEl.style.display = 'block'; }
+  if (zone) zone.style.borderColor = 'var(--accent)';
+  // disable buttons during upload
+  ['btnStt','btnIsolate'].forEach(id => { const b=document.getElementById(id); if(b){b.disabled=true;b.style.opacity='0.5';} });
+  if (progWrap) progWrap.style.display = 'block';
+  setStatus('Uploading audio file...', 'info');
+  try {
+    // Get signed upload URL from server
+    const ext = file.name.split('.').pop() || 'mp3';
+    const urlRes = await fetch('/api/studio/upload-url', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fileName: file.name, contentType: file.type || 'audio/mpeg', assetType: 'audio' })
+    });
+    if (!urlRes.ok) throw new Error('Failed to get upload URL');
+    const { signedUrl, publicUrl } = await urlRes.json();
+    // XHR upload with progress
+    await new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.upload.addEventListener('progress', e => {
+        if (!e.lengthComputable) return;
+        const p = Math.round(e.loaded / e.total * 100);
+        if (bar) bar.style.width = p + '%';
+        if (pct) pct.textContent = p + '%';
+      });
+      xhr.addEventListener('load', () => xhr.status < 300 ? resolve() : reject(new Error('Upload failed: ' + xhr.status)));
+      xhr.addEventListener('error', () => reject(new Error('Network error during upload')));
+      xhr.open('PUT', signedUrl);
+      xhr.setRequestHeader('Content-Type', file.type || 'audio/mpeg');
+      xhr.send(file);
+    });
+    // Store the public URL
+    const hiddenInput = document.getElementById('audioUrlInput');
+    if (hiddenInput) hiddenInput.value = publicUrl;
+    if (bar) bar.style.width = '100%';
+    if (pct) pct.textContent = '100%';
+    if (zone) zone.style.borderColor = 'var(--green)';
+    setStatus('File uploaded. Ready to Transcribe or Isolate.', 'ok');
+    // Enable buttons
+    ['btnStt','btnIsolate'].forEach(id => { const b=document.getElementById(id); if(b){b.disabled=false;b.style.opacity='1';} });
+    setTimeout(() => { if (progWrap) progWrap.style.display = 'none'; }, 1500);
+  } catch(err) {
+    setStatus('Upload failed: ' + err.message, 'err');
+    if (zone) zone.style.borderColor = 'var(--red)';
+    if (progWrap) progWrap.style.display = 'none';
+  }
+  // reset file input so same file can be reselected
+  input.value = '';
+}
+
 async function transcribeAudio() {
   const audioUrl = (document.getElementById('audioUrlInput')?.value || '').trim();
-  if (!audioUrl) { setStatus('Audio URL is required for transcription.', 'warn'); return; }
+  if (!audioUrl) { setStatus('Please upload an audio file first.', 'warn'); return; }
   const selectedLang = getSelectedLanguageCode();
   setBusy('btnStt', true, 'Working...', '📝 Transcribe');
   setStatus('Submitting speech-to-text...', 'info');
@@ -826,7 +904,7 @@ async function transcribeAudio() {
 
 async function isolateAudio() {
   const audioUrl = (document.getElementById('audioUrlInput')?.value || '').trim();
-  if (!audioUrl) { setStatus('Audio URL is required for isolation.', 'warn'); return; }
+  if (!audioUrl) { setStatus('Please upload an audio file first.', 'warn'); return; }
   await runAudioJob({
     label: 'Audio isolation',
     buttonId: 'btnIsolate',
