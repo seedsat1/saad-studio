@@ -858,6 +858,61 @@ const PRICING_CARDS = [
   },
 ];
 
+function TiltPricingCard({
+  children,
+  className,
+  baseScale = 1,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  baseScale?: number;
+}) {
+  const [enabled, setEnabled] = useState(false);
+  const [tiltX, setTiltX] = useState(0);
+  const [tiltY, setTiltY] = useState(0);
+  const [hovered, setHovered] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const canHover = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    setEnabled(canHover && !reducedMotion);
+  }, []);
+
+  return (
+    <div className="[perspective:1200px]">
+      <motion.div
+        onMouseMove={(event) => {
+          if (!enabled) return;
+          const rect = event.currentTarget.getBoundingClientRect();
+          const px = (event.clientX - rect.left) / rect.width;
+          const py = (event.clientY - rect.top) / rect.height;
+          const maxTilt = 5;
+          setTiltY((px - 0.5) * maxTilt * 2);
+          setTiltX((0.5 - py) * maxTilt * 2);
+        }}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => {
+          setHovered(false);
+          setTiltX(0);
+          setTiltY(0);
+        }}
+        animate={{
+          rotateX: enabled ? tiltX : 0,
+          rotateY: enabled ? tiltY : 0,
+          scale: baseScale + (enabled && hovered ? 0.015 : 0),
+          y: enabled && hovered ? -3 : 0,
+        }}
+        transition={{ type: "spring", stiffness: 260, damping: 20, mass: 0.5 }}
+        className={className}
+        style={{ transformStyle: "preserve-3d", willChange: "transform" }}
+      >
+        {children}
+      </motion.div>
+    </div>
+  );
+}
+
 function PricingPreview() {
   return (
     <FadeIn>
@@ -866,12 +921,13 @@ function PricingPreview() {
         <p className="mt-2 text-sm text-zinc-400">One credit balance. All AI models. No hidden fees.</p>
         <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-3xl mx-auto">
           {PRICING_CARDS.map((card) => (
-            <div
+            <TiltPricingCard
               key={card.name}
+              baseScale={card.highlighted ? 1.04 : 1}
               className={cn(
                 "relative flex flex-col items-center rounded-xl border px-6 py-8",
                 card.highlighted
-                  ? "border-cyan-400 bg-white/[0.06] scale-105"
+                  ? "border-cyan-400 bg-white/[0.06]"
                   : "border-white/[0.05] bg-white/[0.03]"
               )}
             >
@@ -893,7 +949,7 @@ function PricingPreview() {
                   {card.cta}
                 </motion.button>
               </Link>
-            </div>
+            </TiltPricingCard>
           ))}
         </div>
         <Link href="/pricing" className="inline-flex items-center gap-1 mt-6 text-sm text-zinc-400 hover:text-white transition-colors">
