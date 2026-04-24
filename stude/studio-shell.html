@@ -812,14 +812,15 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
       var allClips=lastTimelineState.allClips||[];
       var tracks=lastTimelineState.tracks||[];
 
+      // Client-side render: blob: URLs work fine in the browser
       var videoClips=allClips.filter(function(c){
         var tr=tracks[c.track];
-        return tr&&tr.type==='video'&&!tr.muted&&c.url&&!c.url.startsWith('blob:');
+        return tr&&tr.type==='video'&&!tr.muted&&c.url;
       }).sort(function(a,b){return a.track-b.track||a.start-b.start;});
 
       var audioClips=allClips.filter(function(c){
         var tr=tracks[c.track];
-        return tr&&tr.type==='audio'&&!tr.muted&&c.url&&!c.url.startsWith('blob:');
+        return tr&&tr.type==='audio'&&!tr.muted&&c.url;
       });
 
       var maxEnd=allClips.reduce(function(a,c){return Math.max(a,c.start+c.dur);},0);
@@ -933,7 +934,7 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
         var offAudio=new OfflineAudioContext(2,Math.ceil(totalSec*SR),SR);
         for(var ai=0;ai<audioClips.length;ai++){
           var ac=audioClips[ai];
-          if(!ac.url||ac.url.startsWith('blob:')) continue;
+          if(!ac.url) continue;
           try{
             var resp=await fetch(ac.url);
             var ab2=await resp.arrayBuffer();
@@ -1014,8 +1015,8 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
       var W=dims[0],H=dims[1],FPS=30;
       var allClips=lastTimelineState.allClips||[];
       var tracks=lastTimelineState.tracks||[];
-      var videoClips=allClips.filter(function(c){var tr=tracks[c.track];return tr&&tr.type==='video'&&!tr.muted&&c.url&&!c.url.startsWith('blob:');}).sort(function(a,b){return a.start-b.start;});
-      var audioClips=allClips.filter(function(c){var tr=tracks[c.track];return tr&&tr.type==='audio'&&!tr.muted&&c.url&&!c.url.startsWith('blob:');}).sort(function(a,b){return a.start-b.start;});
+      var videoClips=allClips.filter(function(c){var tr=tracks[c.track];return tr&&tr.type==='video'&&!tr.muted&&c.url;}).sort(function(a,b){return a.start-b.start;});
+      var audioClips=allClips.filter(function(c){var tr=tracks[c.track];return tr&&tr.type==='audio'&&!tr.muted&&c.url;}).sort(function(a,b){return a.start-b.start;});
       var uniqueUrls=[...new Set([...videoClips,...audioClips].map(function(c){return c.url;}))];
       var urlToFile={};
       for(var i=0;i<uniqueUrls.length;i++){
