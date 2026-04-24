@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Captions</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#181818;--panel:#1e1e1e;--panel2:#232323;--border:#2d2d2d;--border2:#3a3a3a;--text:#d4d4d4;--dim:#777;--dim2:#555;--accent:#4a9eff;--accent2:#5cb8ff;--green:#4caf50;--orange:#ff9800;--red:#f44336;--purple:#b388ff;--cyan:#26c6da;--yellow:#ffd54f}
+*{margin:0;padding:0;box-sizing:border-box}
+*{scrollbar-width:thin;scrollbar-color:#3d4a62 #171b22}
+*::-webkit-scrollbar{width:10px;height:10px}
+*::-webkit-scrollbar-track{background:#171b22;border-left:1px solid #252d3a}
+*::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#42526d,#344157);border:2px solid #171b22;border-radius:999px}
+*::-webkit-scrollbar-thumb:hover{background:linear-gradient(180deg,#4e6283,#3d4f69)}
+*::-webkit-scrollbar-corner{background:#171b22}
+body{background:var(--bg);color:var(--text);font-family:'Tajawal',sans-serif;height:100vh;overflow:hidden;display:flex;flex-direction:column}
+.menubar{height:24px;background:#111;display:flex;align-items:center;padding:0 8px;gap:2px;border-bottom:1px solid #222;font-size:11px}
+.menubar span{padding:2px 8px;color:var(--dim);cursor:pointer;border-radius:2px}
+.menubar .spacer{flex:1}.menubar .title{color:var(--accent);font-weight:700;letter-spacing:1px}
+.page-tabs{height:30px;background:#1a1a1a;display:flex;align-items:center;border-bottom:1px solid var(--border);padding:0 8px}
+.page-tab{padding:5px 14px;font-size:10px;color:var(--dim);cursor:pointer;border-bottom:2px solid transparent;transition:.15s;text-decoration:none;font-family:'Tajawal'}
+.page-tab:hover{color:var(--text)}.page-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.workspace{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.top-row{flex:1;display:flex;min-height:0}
+.bottom-row{height:200px;border-top:2px solid var(--border);display:flex;flex-direction:column}
+.panel{background:var(--panel);display:flex;flex-direction:column;overflow:hidden}
+.ph{height:26px;background:#252525;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 10px;gap:8px;flex-shrink:0}
+.ph .l{font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.45px;font-weight:700;cursor:pointer}.ph .l.a{color:var(--accent)}
+.pb{flex:1;overflow-y:auto;padding:10px;font-size:12px}
+.vr{width:2px;background:var(--border);cursor:col-resize;flex-shrink:0}.vr:hover{background:var(--accent)}
+.ist{font-size:11px;color:#9aa7bb;text-transform:uppercase;letter-spacing:.45px;font-weight:700;padding:7px 0 6px;border-bottom:1px solid var(--border);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.ist .d{width:5px;height:5px;border-radius:50%}
+.in,.sbx,textarea{width:100%;background:#1a1a1a;border:1px solid var(--border);border-radius:6px;padding:8px 9px;color:var(--text);font-family:'Tajawal';font-size:12px;outline:none}
+textarea{resize:vertical;line-height:1.55}
+.in:focus,.sbx:focus,textarea:focus{border-color:var(--accent)}
+.btn{padding:7px 10px;border-radius:6px;border:1px solid var(--border2);cursor:pointer;font-size:12px;font-family:'Tajawal';background:#182130;color:#cae2ff;transition:.15s}
+.btn:hover{border-color:#5ea9ff;color:#e7f2ff}
+.btn.primary{background:linear-gradient(90deg,#4a9eff,#6bb6ff);color:#fff;border:none}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.ghost{background:none;color:#9bb2d3}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{padding:4px 9px;border-radius:999px;border:1px solid #2e3f58;background:#161f2e;color:#a7c1e6;font-size:11px;cursor:pointer}
+.chip.active{border-color:#5ea9ff;color:#e8f2ff;background:#1d2f49}
+.upload-box{border:1px dashed #3a4b65;border-radius:10px;padding:12px;text-align:center;background:#141c28;color:#91a8cb}
+.preview-wrap{height:220px;border:1px solid #2b3342;border-radius:8px;background:#0e131d;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.preview-media{width:100%;height:100%;object-fit:contain;background:#000}
+.caption-overlay{position:absolute;left:14px;right:14px;bottom:14px;display:flex;justify-content:center;pointer-events:none}
+.caption-pill{background:rgba(0,0,0,.58);border:1px solid rgba(180,208,255,.26);padding:8px 12px;border-radius:8px;color:#f2f7ff;font-size:13px;text-align:center;line-height:1.45;max-width:100%}
+.caption-pill .sub{display:block;color:#8fc3ff;font-size:12px;margin-top:2px}
+.list{border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.list-head{display:grid;grid-template-columns:90px 90px 1fr;background:#171d27;color:#92a8cb;font-size:11px;padding:7px 8px;border-bottom:1px solid var(--border)}
+.row{display:grid;grid-template-columns:90px 90px 1fr;gap:6px;align-items:center;padding:8px;border-bottom:1px solid #262626}
+.row:last-child{border-bottom:none}
+.tc{font-family:'JetBrains Mono';font-size:11px;color:#9eb2d2}
+.cue-edit{display:flex;flex-direction:column;gap:4px}
+.cue-edit input{width:100%;background:#141b25;border:1px solid #2b3a52;border-radius:5px;padding:6px 8px;color:#dce9ff;font-size:12px;outline:none}
+.cue-edit input:focus{border-color:#5ea9ff}
+.status{font-size:11px;color:#90a7c9;min-height:14px}
+/* timeline */
+.th{height:26px;background:#252525;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 10px;gap:10px;flex-shrink:0}
+.th span{font-size:9px;color:var(--dim);cursor:pointer}.th span.a{color:var(--accent)}
+.tb{flex:1;display:flex;overflow:hidden}
+.ts{width:100px;background:#1c1c1c;border-left:1px solid var(--border);flex-shrink:0}
+.tl{height:32px;display:flex;align-items:center;padding:0 6px;gap:3px;border-bottom:1px solid #252525;font-size:9px;color:var(--dim)}
+.tl .dd{width:5px;height:5px;border-radius:50%}.tl .n{flex:1}.tl .x{display:flex;gap:1px;font-size:8px;opacity:.4}
+.ta{flex:1;position:relative;overflow:auto}
+.tr{height:18px;background:#1c1c1c;border-bottom:1px solid var(--border);display:flex;align-items:flex-end;padding:0 8px;gap:55px;position:sticky;top:0;z-index:2}
+.tr span{font-size:7px;color:var(--dim2);font-family:'JetBrains Mono'}
+.tt{position:relative}
+.tk{height:32px;border-bottom:1px solid #252525;position:relative}
+.tc2{position:absolute;top:2px;height:28px;border-radius:3px;display:flex;align-items:center;padding:0 5px;font-size:8px;color:#fff;overflow:hidden;cursor:pointer}
+.tc2:hover{filter:brightness(1.2)}.tc2 .cn{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tp2{position:absolute;top:0;bottom:0;width:2px;background:var(--red);z-index:10;pointer-events:none}
+.tp2::before{content:'';position:absolute;top:-1px;right:-3px;width:8px;height:8px;background:var(--red);clip-path:polygon(50% 100%,0 0,100% 0)}
+</style>
+</head>
+<body>
+<script>
+(function(){
+  var params=new URLSearchParams(location.search);
+  var isEmbed=params.get('embed')==='1';
+  var pageName='captions';
+  if(!isEmbed){
+    location.replace('studio-shell.html?page='+encodeURIComponent(pageName));
+    return;
+  }
+  window.__FF_EMBED_TOP=true;
+  document.documentElement.lang='en';
+  document.documentElement.dir='ltr';
+  document.addEventListener('DOMContentLoaded',function(){
+    var mb=document.querySelector('.menubar'); if(mb) mb.style.display='none';
+    var tabs=document.querySelector('.page-tabs'); if(tabs) tabs.style.display='none';
+    var br=document.querySelector('.bottom-row'); if(br) br.style.display='none';
+    var ws=document.querySelector('.workspace'); if(ws){ ws.style.height='100vh'; ws.style.display='flex'; ws.style.flexDirection='column'; }
+    var tr=document.querySelector('.top-row'); if(tr){ tr.style.flex='1 1 auto'; tr.style.minHeight='0'; }
+  });
+})();
+</script>
+<!-- FF_SHELL_BRIDGE -->
+<div class="menubar"><span class="title">FRAMEFORGE</span><span>File</span><span>Edit</span><span>View</span><div class="spacer"></div><span style="color:var(--dim2);font-family:'JetBrains Mono';font-size:9px">Untitled Project</span></div>
+<div class="page-tabs"><a class="page-tab" href="sound.html">Audio & Music</a>
+<a class="page-tab active" href="captions.html">Captions</a>
+<a class="page-tab" href="video.html">Video Generation</a>
+<a class="page-tab" href="presets.html">Generate Image</a>
+<a class="page-tab" href="transitions.html">Transitions</a>
+<a class="page-tab" href="lighting.html">Lighting</a>
+<a class="page-tab" href="prompt.html">Prompt</a>
+</div>
+
+<div class="workspace">
+  <div class="top-row">
+    <div class="panel" style="width:390px">
+      <div class="ph"><span class="l a">Auto Captions Panel</span></div>
+      <div class="pb">
+        <div class="ist"><span class="d" style="background:var(--green)"></span>Source Media</div>
+        <div class="upload-box" id="dropBox">
+          <div style="margin-bottom:8px">Drop audio/video file here</div>
+          <button class="btn" onclick="pickMedia()">Choose File</button>
+          <input id="mediaFile" type="file" accept="audio/*,video/*" style="display:none" onchange="onMediaFile(this.files)">
+        </div>
+        <div id="mediaMeta" style="margin-top:8px;font-size:11px;color:#91a8cb">No file selected.</div>
+
+        <div class="ist" style="margin-top:10px"><span class="d" style="background:var(--accent)"></span>Recognition Settings</div>
+        <select id="spokenLang" class="sbx">
+          <option value="ar" selected>Arabic</option>
+          <option value="en">English</option>
+          <option value="auto">Auto</option>
+        </select>
+        <select id="bilingualLang" class="sbx" style="margin-top:8px">
+          <option value="">Bilingual captions: None</option>
+          <option value="en">Arabic + English</option>
+          <option value="ar">English + Arabic</option>
+        </select>
+        <select id="model" class="sbx" style="margin-top:8px">
+          <option value="wavespeed-ai/openai-whisper-turbo" selected>Whisper Turbo</option>
+          <option value="wavespeed-ai/openai-whisper">Whisper</option>
+          <option value="wavespeed-ai/openai-whisper-with-video">Whisper With Video</option>
+        </select>
+
+        <div class="ist" style="margin-top:10px"><span class="d" style="background:var(--orange)"></span>Caption Style</div>
+        <div class="chips" id="styleChips">
+          <button class="chip active" data-style="clean">Clean</button>
+          <button class="chip" data-style="cinema">Cinema</button>
+          <button class="chip" data-style="social">Social</button>
+          <button class="chip" data-style="minimal">Minimal</button>
+        </div>
+
+        <div class="ist" style="margin-top:10px"><span class="d" style="background:var(--cyan)"></span>Seed Transcript (optional)</div>
+        <textarea id="seedText" rows="5" placeholder="Paste transcript here or leave empty for demo lines..."></textarea>
+
+        <div style="display:flex;gap:6px;margin-top:10px">
+          <button id="genBtn" class="btn primary" style="flex:1" onclick="generateCaptions()">Generate Captions</button>
+          <button class="btn ghost" onclick="clearCues()">Clear</button>
+        </div>
+        <div class="status" id="status">Ready.</div>
+      </div>
+    </div>
+
+    <div class="vr"></div>
+
+    <div class="panel" style="flex:1">
+      <div class="ph"><span class="l a">Caption Editor & Preview</span></div>
+      <div class="pb" style="display:flex;flex-direction:column;gap:10px">
+        <div class="preview-wrap">
+          <video id="previewVideo" class="preview-media" controls style="display:none"></video>
+          <audio id="previewAudio" class="preview-media" controls style="display:none;background:#111"></audio>
+          <div id="previewEmpty" style="color:#91a8cb;font-size:12px">Load media and generate captions to preview.</div>
+          <div class="caption-overlay"><div class="caption-pill" id="liveCaption">No captions yet.</div></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+          <div style="font-size:11px;color:#9eb2d2"><span id="cueCount">0</span> cues</div>
+          <div style="display:flex;gap:6px">
+            <button class="btn" onclick="exportSRT()">Export SRT</button>
+            <button class="btn" onclick="downloadTXT()">Export TXT</button>
+          </div>
+        </div>
+        <div class="list">
+          <div class="list-head"><div>Start</div><div>End</div><div>Caption Text</div></div>
+          <div id="cueRows"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-row">
+    <div class="th"><span class="a">Timeline</span><span>Caption Track</span><span style="flex:1"></span><span style="font-family:'JetBrains Mono';font-size:8px;color:var(--dim2)">Sequence 01</span></div>
+    <div class="tb">
+      <div class="ts">
+        <div class="tl"><span class="dd" style="background:var(--green)"></span><span class="n">V1</span><span class="x"></span></div>
+        <div class="tl"><span class="dd" style="background:var(--accent)"></span><span class="n">A1</span><span class="x">M S</span></div>
+        <div class="tl"><span class="dd" style="background:var(--yellow)"></span><span class="n">C1</span><span class="x">CC</span></div>
+      </div>
+      <div class="ta">
+        <div class="tr"><span>00:00</span><span>00:30</span><span>01:00</span><span>01:30</span><span>02:00</span></div>
+        <div class="tt">
+          <div class="tk"><div class="tc2" style="right:70px;width:300px;background:#295035"><span class="cn">main_video.mp4</span></div></div>
+          <div class="tk"><div class="tc2" style="right:70px;width:300px;background:#1f4b75"><span class="cn">main_audio.wav</span></div></div>
+          <div class="tk"><div class="tc2" style="right:70px;width:300px;background:#775c1f"><span class="cn">captions.srt</span></div></div>
+          <div class="tp2" style="right:130px"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+var state = {
+  cues: [],
+  mediaUrl: '',
+  mediaFile: null,
+  mediaType: '',
+  currentIndex: -1
+};
+
+function setStatus(msg, tone){
+  var el = document.getElementById('status');
+  var c = { info:'#91a8cb', ok:'#6cd98d', warn:'#ffcc7a', err:'#ff7b7b' };
+  el.textContent = msg;
+  el.style.color = c[tone || 'info'] || c.info;
+}
+
+function pickMedia(){ document.getElementById('mediaFile').click(); }
+
+function onMediaFile(files){
+  var file = files && files[0];
+  if(!file) return;
+  state.mediaFile = file;
+  if(state.mediaUrl) URL.revokeObjectURL(state.mediaUrl);
+  state.mediaUrl = URL.createObjectURL(file);
+  state.mediaType = String(file.type || '');
+  document.getElementById('mediaMeta').textContent = file.name + ' (' + Math.round(file.size/1024) + ' KB)';
+
+  var v = document.getElementById('previewVideo');
+  var a = document.getElementById('previewAudio');
+  var empty = document.getElementById('previewEmpty');
+  v.style.display = 'none'; a.style.display = 'none';
+  v.pause(); a.pause();
+  if(state.mediaType.indexOf('video/')===0){
+    v.src = state.mediaUrl;
+    v.style.display = 'block';
+    empty.style.display = 'none';
+  } else if(state.mediaType.indexOf('audio/')===0){
+    a.src = state.mediaUrl;
+    a.style.display = 'block';
+    empty.style.display = 'none';
+  } else {
+    empty.style.display = 'block';
+  }
+  setStatus('Media loaded.', 'ok');
+}
+
+function toSeconds(tc){
+  var m = tc.match(/^(\d{2}):(\d{2}):(\d{2}),(\d{3})$/);
+  if(!m) return 0;
+  return Number(m[1])*3600 + Number(m[2])*60 + Number(m[3]) + Number(m[4])/1000;
+}
+function fmtTc(sec){
+  sec = Math.max(0, Number(sec) || 0);
+  var h = Math.floor(sec/3600);
+  var m = Math.floor((sec%3600)/60);
+  var s = Math.floor(sec%60);
+  var ms = Math.floor((sec - Math.floor(sec))*1000);
+  function p(n,w){ return String(n).padStart(w,'0'); }
+  return p(h,2)+':'+p(m,2)+':'+p(s,2)+','+p(ms,3);
+}
+
+function buildCueRows(){
+  var host = document.getElementById('cueRows');
+  host.innerHTML = '';
+  state.cues.forEach(function(cue, i){
+    var row = document.createElement('div');
+    row.className = 'row';
+    row.innerHTML = '<div class="tc">'+cue.start+'</div><div class="tc">'+cue.end+'</div><div class="cue-edit"><input data-i="'+i+'" data-k="text" value="'+(cue.text||'').replace(/"/g,'&quot;')+'">'+(cue.sub?'<input data-i="'+i+'" data-k="sub" value="'+String(cue.sub).replace(/"/g,'&quot;')+'">':'')+'</div>';
+    host.appendChild(row);
+  });
+  host.querySelectorAll('input[data-i]').forEach(function(inp){
+    inp.addEventListener('input', function(){
+      var i = Number(this.getAttribute('data-i'));
+      var k = this.getAttribute('data-k');
+      if(!state.cues[i]) return;
+      state.cues[i][k] = this.value;
+      refreshLiveCaption();
+    });
+  });
+  document.getElementById('cueCount').textContent = String(state.cues.length);
+}
+
+function generateFromText(text, bilingual){
+  var lines = text
+    .split(/[\n\.!\?]+/)
+    .map(function(x){ return x.trim(); })
+    .filter(Boolean);
+  if(!lines.length){
+    lines = [
+      'Welcome to your caption workspace.',
+      'This panel generates clean subtitle cues quickly.',
+      'You can edit lines and export as SRT.'
+    ];
+  }
+  var t = 0;
+  return lines.slice(0,18).map(function(line){
+    var dur = Math.max(1.6, Math.min(4.4, line.length * 0.07));
+    var cue = { start: fmtTc(t), end: fmtTc(t + dur), text: line };
+    if(bilingual) cue.sub = bilingual==='en' ? 'EN: ' + line : 'AR: ' + line;
+    t += dur + 0.22;
+    return cue;
+  });
+}
+
+function parseSrtToCues(srtText){
+  var blocks = String(srtText || '').replace(/\r/g, '').split(/\n\n+/).map(function(x){ return x.trim(); }).filter(Boolean);
+  var cues = [];
+  blocks.forEach(function(block){
+    var lines = block.split('\n').map(function(x){ return x.trim(); }).filter(Boolean);
+    if(lines.length < 2) return;
+    var timeLineIndex = /-->/.test(lines[0]) ? 0 : 1;
+    if(!/-->/.test(lines[timeLineIndex] || '')) return;
+    var timeParts = lines[timeLineIndex].split('-->');
+    var start = (timeParts[0] || '').trim();
+    var end = (timeParts[1] || '').trim();
+    var body = lines.slice(timeLineIndex + 1).join(' ').trim();
+    if(!start || !end || !body) return;
+    cues.push({ start: start, end: end, text: body });
+  });
+  return cues;
+}
+
+async function tryReadCaptionFile(url){
+  if(!url) return '';
+  try{
+    var res = await fetch(url, { cache:'no-store' });
+    if(!res.ok) return '';
+    return await res.text();
+  }catch(_e){
+    return '';
+  }
+}
+
+async function generateCaptions(){
+  var seed = (document.getElementById('seedText').value || '').trim();
+  var bilingual = document.getElementById('bilingualLang').value || '';
+  var model = document.getElementById('model').value || 'wavespeed-ai/openai-whisper-turbo';
+  var spokenLang = document.getElementById('spokenLang').value || 'auto';
+
+  if(!state.mediaFile && !seed){
+    setStatus('Upload media first or provide seed transcript text.', 'warn');
+    return;
+  }
+
+  if(state.mediaFile){
+    try{
+      setStatus('Generating captions with WaveSpeed...', 'info');
+      var fd = new FormData();
+      fd.append('model', model);
+      fd.append('language', spokenLang);
+      fd.append('outputFormat', 'srt');
+      fd.append('file', state.mediaFile, state.mediaFile.name || 'media-input');
+
+      var res = await fetch('/api/generate/captions', {
+        method: 'POST',
+        body: fd,
+      });
+
+      var data = await res.json().catch(function(){ return {}; });
+      if(!res.ok){
+        throw new Error((data && data.error) ? String(data.error) : 'Caption generation failed.');
+      }
+
+      var outputText = '';
+      if(typeof data.captionUrl === 'string' && data.captionUrl){
+        outputText = await tryReadCaptionFile(data.captionUrl);
+      }
+      if(!outputText && typeof data.text === 'string'){
+        outputText = data.text;
+      }
+
+      var parsed = parseSrtToCues(outputText);
+      if(parsed.length){
+        state.cues = parsed;
+      } else {
+        state.cues = generateFromText(outputText || seed, bilingual);
+      }
+
+      buildCueRows();
+      state.currentIndex = state.cues.length ? 0 : -1;
+      refreshLiveCaption();
+      setStatus('Captions generated successfully.', 'ok');
+      return;
+    } catch(err){
+      setStatus(err && err.message ? err.message : 'Caption generation failed.', 'err');
+      return;
+    }
+  }
+
+  state.cues = generateFromText(seed, bilingual);
+  buildCueRows();
+  setStatus('Captions generated from seed text.', 'ok');
+  refreshLiveCaption();
+}
+
+function clearCues(){
+  state.cues = [];
+  buildCueRows();
+  document.getElementById('liveCaption').textContent = 'No captions yet.';
+  setStatus('Caption list cleared.', 'info');
+}
+
+function cueText(cue){
+  if(!cue) return 'No captions yet.';
+  var main = cue.text || '';
+  var sub = cue.sub ? '<span class="sub">'+cue.sub.replace(/</g,'&lt;')+'</span>' : '';
+  return main.replace(/</g,'&lt;') + sub;
+}
+function refreshLiveCaption(){
+  var box = document.getElementById('liveCaption');
+  if(state.currentIndex < 0 || !state.cues[state.currentIndex]){
+    box.textContent = 'No captions yet.';
+    return;
+  }
+  box.innerHTML = cueText(state.cues[state.currentIndex]);
+}
+
+function syncCaptionFromTime(t){
+  var idx = -1;
+  for(var i=0;i<state.cues.length;i++){
+    var s = toSeconds(state.cues[i].start);
+    var e = toSeconds(state.cues[i].end);
+    if(t >= s && t <= e){ idx = i; break; }
+  }
+  if(idx !== state.currentIndex){
+    state.currentIndex = idx;
+    refreshLiveCaption();
+  }
+}
+
+function exportSRT(){
+  if(!state.cues.length){ setStatus('No cues to export.', 'warn'); return; }
+  var out = state.cues.map(function(c, i){
+    var body = c.text + (c.sub ? '\n' + c.sub : '');
+    return String(i+1) + '\n' + c.start + ' --> ' + c.end + '\n' + body + '\n';
+  }).join('\n');
+  var blob = new Blob([out], { type:'application/x-subrip' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url; a.download = 'captions.srt';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 1200);
+  setStatus('SRT exported.', 'ok');
+}
+
+function downloadTXT(){
+  if(!state.cues.length){ setStatus('No cues to export.', 'warn'); return; }
+  var out = state.cues.map(function(c){ return c.text + (c.sub ? ' | ' + c.sub : ''); }).join('\n');
+  var blob = new Blob([out], { type:'text/plain' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url; a.download = 'captions.txt';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 1200);
+  setStatus('TXT exported.', 'ok');
+}
+
+document.querySelectorAll('#styleChips .chip').forEach(function(chip){
+  chip.addEventListener('click', function(){
+    document.querySelectorAll('#styleChips .chip').forEach(function(x){ x.classList.remove('active'); });
+    this.classList.add('active');
+  });
+});
+
+var dropBox = document.getElementById('dropBox');
+['dragenter','dragover'].forEach(function(evt){
+  dropBox.addEventListener(evt, function(e){
+    e.preventDefault(); e.stopPropagation();
+    dropBox.style.borderColor = '#5ea9ff';
+  });
+});
+['dragleave','drop'].forEach(function(evt){
+  dropBox.addEventListener(evt, function(e){
+    e.preventDefault(); e.stopPropagation();
+    dropBox.style.borderColor = '#3a4b65';
+  });
+});
+dropBox.addEventListener('drop', function(e){
+  var files = (e.dataTransfer && e.dataTransfer.files) || [];
+  if(files.length) onMediaFile(files);
+});
+
+var pv = document.getElementById('previewVideo');
+var pa = document.getElementById('previewAudio');
+pv.addEventListener('timeupdate', function(){ syncCaptionFromTime(pv.currentTime || 0); });
+pa.addEventListener('timeupdate', function(){ syncCaptionFromTime(pa.currentTime || 0); });
+</script>
+<script src="shared/timeline-bridge.js"></script>
+<script src="shared/english-only.js"></script>
+<script src="shared/resizable-panels.js"></script>
+</body>
+</html>
