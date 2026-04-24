@@ -16,6 +16,7 @@ const nextConfig = {
     // Tests still run via vitest — this only skips Next.js type-check pass
     ignoreBuildErrors: true,
   },
+  serverExternalPackages: ["fluent-ffmpeg", "@ffmpeg-installer/ffmpeg", "sharp"],
   experimental: {
     serverActions: {
       bodySizeLimit: "10mb",
