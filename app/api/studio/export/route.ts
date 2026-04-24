@@ -271,7 +271,9 @@ export async function POST(req: NextRequest) {
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    return NextResponse.json({ error: `Export failed: ${msg}` }, { status: 500 });
+    const stack = err instanceof Error ? err.stack : '';
+    console.error('[export] POST error:', msg, stack);
+    return NextResponse.json({ error: `Export failed: ${msg}`, detail: stack }, { status: 500 });
   } finally {
     // Cleanup temp files
     try {

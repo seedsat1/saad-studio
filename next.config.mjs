@@ -18,6 +18,7 @@ const nextConfig = {
   },
   serverExternalPackages: ["fluent-ffmpeg", "@ffmpeg-installer/ffmpeg", "sharp"],
   experimental: {
+    serverComponentsExternalPackages: ["fluent-ffmpeg", "@ffmpeg-installer/ffmpeg", "@ffmpeg-installer/linux-x64"],
     serverActions: {
       bodySizeLimit: "10mb",
     },

@@ -723,8 +723,10 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
       };
       var res=await fetch('/api/studio/export',{ method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
       if(!res.ok){
-        var err=await res.json().catch(function(){ return {}; });
-        pLabel.textContent='Render failed: '+(err.error||res.status);
+        var errData=await res.json().catch(function(){ return {}; });
+        var msg='Render failed ('+res.status+'): '+(errData.error||'Unknown error');
+        pLabel.textContent=msg;
+        console.error('[Render]', msg, errData.detail||'');
         return;
       }
       var blob=await res.blob();
