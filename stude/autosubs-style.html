@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AutoSubs Style - Standalone</title>
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#0a0b0e;
+      --panel:#12141a;
+      --panel-2:#171b23;
+      --line:#252a34;
+      --line-soft:#1f2430;
+      --txt:#e6ebf6;
+      --dim:#93a2bb;
+      --dim-2:#73839b;
+      --pri:#4a9eff;
+      --pri-2:#67b2ff;
+      --ok:#49cf8b;
+      --warn:#ffc56d;
+      --danger:#ff6f7b;
+      --radius:12px;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%}
+    body{
+      font-family:'Figtree',sans-serif;
+      color:var(--txt);
+      background:
+        radial-gradient(900px 500px at 12% -10%, rgba(74,158,255,.15), transparent 55%),
+        radial-gradient(900px 500px at 108% 0%, rgba(53,103,255,.12), transparent 56%),
+        var(--bg);
+      overflow:hidden;
+    }
+    .app{display:flex;flex-direction:column;height:100%}
+
+    .titlebar{
+      height:42px;flex-shrink:0;
+      display:flex;align-items:center;gap:10px;
+      padding:0 12px;
+      background:linear-gradient(180deg,#11151e,#0d1118);
+      border-bottom:1px solid var(--line);
+    }
+    .mark{
+      width:18px;height:18px;border-radius:5px;
+      background:linear-gradient(135deg,var(--pri),#2f71ff);
+      box-shadow:0 0 0 1px rgba(130,183,255,.35) inset,0 0 16px rgba(58,126,255,.3);
+      position:relative;flex-shrink:0;
+    }
+    .mark::after{content:'';position:absolute;inset:4px;border:1px solid rgba(236,244,255,.55);border-radius:3px}
+    .brand{font-size:12px;font-weight:700;letter-spacing:.45px;color:#8fc3ff}
+    .title{font-size:11px;color:#aebdd2}
+    .sp{flex:1}
+    .pill{
+      border:1px solid #2f3d52;background:#172133;color:#a9c6ef;
+      border-radius:999px;padding:4px 10px;font-size:10px;font-weight:600;
+    }
+
+    .main{
+      flex:1;min-height:0;
+      display:grid;
+      grid-template-columns:360px 1fr;
+      gap:10px;
+      padding:10px;
+    }
+    .panel{
+      border:1px solid var(--line);
+      background:linear-gradient(180deg,var(--panel),#0f131a);
+      border-radius:var(--radius);
+      min-height:0;
+      display:flex;flex-direction:column;
+      overflow:hidden;
+    }
+    .panel-head{
+      height:36px;flex-shrink:0;
+      display:flex;align-items:center;justify-content:space-between;
+      padding:0 12px;
+      border-bottom:1px solid var(--line-soft);
+      background:linear-gradient(180deg,#151b25,#121822);
+    }
+    .panel-head h3{font-size:11px;text-transform:uppercase;letter-spacing:.7px;color:#8ec2ff}
+    .panel-body{padding:12px;overflow:auto}
+    .sec{margin-bottom:12px}
+    .sec:last-child{margin-bottom:0}
+    .sec h4{
+      font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:var(--dim);margin-bottom:8px;
+      display:flex;align-items:center;gap:6px
+    }
+    .dot{width:6px;height:6px;border-radius:50%;background:var(--pri)}
+    .dot.ok{background:var(--ok)} .dot.warn{background:var(--warn)}
+
+    .drop{
+      border:1px dashed #3a4b66;border-radius:10px;background:#121926;
+      padding:14px;text-align:center;color:#95acd0;font-size:12px;
+      transition:.15s;
+    }
+    .drop.drag{border-color:var(--pri);background:#172235}
+    .btn{
+      border:1px solid #35445d;background:#172133;color:#bcd6f9;
+      border-radius:8px;padding:8px 10px;font-size:12px;font-weight:600;
+      cursor:pointer;transition:.15s;font-family:'Figtree',sans-serif;
+    }
+    .btn:hover{border-color:#5ea9ff;color:#fff}
+    .btn.primary{background:linear-gradient(90deg,var(--pri),var(--pri-2));border:none;color:#fff}
+    .btn.primary:hover{filter:brightness(1.07)}
+    .row{display:flex;gap:8px}
+    .row .btn{flex:1}
+
+    .in,.sel,textarea{
+      width:100%;background:#101722;border:1px solid #2d3a4f;border-radius:8px;
+      color:var(--txt);padding:8px 10px;font-size:12px;outline:none;font-family:'Figtree',sans-serif;
+    }
+    textarea{resize:vertical;line-height:1.5}
+    .in:focus,.sel:focus,textarea:focus{border-color:#62acff}
+
+    .chips{display:flex;gap:6px;flex-wrap:wrap}
+    .chip{
+      border:1px solid #324661;background:#142034;color:#a9c3e8;
+      border-radius:999px;padding:4px 9px;font-size:11px;cursor:pointer;
+    }
+    .chip.active{border-color:var(--pri);color:#eaf3ff;background:#1d304b}
+    .status{font-size:11px;color:#91a7cc;min-height:14px;margin-top:6px}
+
+    .viewer{
+      display:grid;grid-template-rows:270px 1fr;gap:10px;padding:10px;min-height:0;
+    }
+    .preview{
+      border:1px solid #2b3342;border-radius:12px;background:#0d121b;position:relative;overflow:hidden;
+      display:flex;align-items:center;justify-content:center;
+    }
+    .preview video,.preview audio{width:100%;height:100%;object-fit:contain;background:#000}
+    .overlay{
+      position:absolute;left:12px;right:12px;bottom:12px;display:flex;justify-content:center;pointer-events:none;
+    }
+    .cap{
+      max-width:100%;
+      border:1px solid rgba(178,209,255,.25);
+      background:rgba(0,0,0,.58);
+      color:#f4f8ff;
+      border-radius:8px;
+      padding:8px 12px;
+      text-align:center;
+      font-size:13px;
+      line-height:1.45;
+      backdrop-filter: blur(2px);
+    }
+    .cap .sub{display:block;color:#9bc8ff;margin-top:2px;font-size:12px}
+
+    .table-wrap{
+      border:1px solid var(--line);
+      border-radius:12px;
+      overflow:hidden;
+      display:flex;flex-direction:column;
+      min-height:0;
+    }
+    .thead,.trow{
+      display:grid;grid-template-columns:95px 95px 1fr;
+      gap:8px;align-items:center;
+      padding:8px 10px;
+    }
+    .thead{background:#151c28;color:#8fa8cc;font-size:11px;border-bottom:1px solid var(--line)}
+    .tbody{overflow:auto;min-height:0}
+    .trow{border-bottom:1px solid #222a36}
+    .trow:last-child{border-bottom:none}
+    .tc{font-family:'JetBrains Mono',monospace;font-size:11px;color:#9fb4d7}
+    .trow input{
+      width:100%;background:#111a27;border:1px solid #2e3d56;border-radius:7px;
+      color:#dce8fb;padding:7px 8px;font-size:12px;outline:none;
+    }
+    .trow input:focus{border-color:#62acff}
+
+    .footer{
+      height:44px;flex-shrink:0;
+      border-top:1px solid var(--line);
+      background:linear-gradient(180deg,#0e131b,#0c1017);
+      display:flex;align-items:center;gap:8px;padding:0 10px;
+    }
+    .mono{font-family:'JetBrains Mono',monospace}
+    .finfo{font-size:11px;color:#92a7c8}
+    .finfo b{color:#dcedff}
+    @media (max-width: 1080px){
+      .main{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="titlebar">
+      <span class="mark"></span>
+      <span class="brand">SAAD STUDIO</span>
+      <span class="title">Auto Captions Workspace</span>
+      <span class="sp"></span>
+      <span class="pill">Standalone</span>
+    </div>
+
+    <div class="main">
+      <aside class="panel">
+        <div class="panel-head"><h3>Transcription Settings</h3><span class="pill">Whisper</span></div>
+        <div class="panel-body">
+          <div class="sec">
+            <h4><span class="dot ok"></span>Source Media</h4>
+            <div class="drop" id="drop">
+              <div style="margin-bottom:8px">Drop audio/video file here</div>
+              <button class="btn" onclick="pick()">Choose File</button>
+              <input id="f" type="file" accept="audio/*,video/*" style="display:none" onchange="onFile(this.files)">
+            </div>
+            <div id="meta" style="margin-top:8px;font-size:11px;color:#9ab1d5">No file selected.</div>
+          </div>
+
+          <div class="sec">
+            <h4><span class="dot"></span>Language & Captions</h4>
+            <select id="spoken" class="sel">
+              <option value="ar" selected>Spoken language: Arabic</option>
+              <option value="en">Spoken language: English</option>
+              <option value="auto">Spoken language: Auto</option>
+            </select>
+            <select id="bilingual" class="sel" style="margin-top:8px">
+              <option value="">Bilingual captions: None</option>
+              <option value="en">Bilingual captions: Arabic + English</option>
+              <option value="ar">Bilingual captions: English + Arabic</option>
+            </select>
+            <select id="model" class="sel" style="margin-top:8px">
+              <option value="wavespeed-ai/openai-whisper-turbo" selected>Model: Whisper Turbo</option>
+              <option value="wavespeed-ai/openai-whisper">Model: Whisper</option>
+              <option value="wavespeed-ai/openai-whisper-with-video">Model: Whisper with Video</option>
+            </select>
+          </div>
+
+          <div class="sec">
+            <h4><span class="dot warn"></span>Caption Style</h4>
+            <div class="chips" id="chips">
+              <button class="chip active">Clean</button>
+              <button class="chip">Cinema</button>
+              <button class="chip">Social</button>
+              <button class="chip">Minimal</button>
+            </div>
+          </div>
+
+          <div class="sec">
+            <h4><span class="dot"></span>Seed Transcript</h4>
+            <textarea id="seed" rows="6" placeholder="Paste transcript or leave empty for demo lines..."></textarea>
+          </div>
+
+          <div class="row">
+            <button class="btn primary" onclick="gen()">Generate Captions</button>
+            <button class="btn" onclick="clr()">Clear</button>
+          </div>
+          <div class="status" id="st">Ready.</div>
+        </div>
+      </aside>
+
+      <section class="panel">
+        <div class="panel-head"><h3>Subtitle Editor</h3><span class="pill" id="ccount">0 cues</span></div>
+        <div class="viewer">
+          <div class="preview">
+            <video id="v" controls style="display:none"></video>
+            <audio id="a" controls style="display:none"></audio>
+            <div id="empty" style="color:#98abc8;font-size:12px">Preview appears here after loading media.</div>
+            <div class="overlay"><div class="cap" id="cap">No captions yet.</div></div>
+          </div>
+          <div class="table-wrap">
+            <div class="thead"><div>Start</div><div>End</div><div>Text</div></div>
+            <div class="tbody" id="rows"></div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div class="footer">
+      <span class="finfo">Status: <b id="fstatus">Ready</b></span>
+      <span class="sp"></span>
+      <button class="btn" onclick="srt()">Export SRT</button>
+      <button class="btn" onclick="txt()">Export TXT</button>
+      <span class="finfo mono" id="tc">00:00:00:00</span>
+    </div>
+  </div>
+
+  <script>
+    var s={ cues:[], url:'', type:'', idx:-1 };
+    function p(n,w){ return String(n).padStart(w,'0'); }
+    function fmt(sec){
+      sec=Math.max(0,Number(sec)||0);
+      var h=Math.floor(sec/3600), m=Math.floor((sec%3600)/60), ss=Math.floor(sec%60), ms=Math.floor((sec-Math.floor(sec))*1000);
+      return p(h,2)+':'+p(m,2)+':'+p(ss,2)+','+p(ms,3);
+    }
+    function toSec(tc){ var m=tc.match(/^(\d{2}):(\d{2}):(\d{2}),(\d{3})$/); if(!m) return 0; return +m[1]*3600 + +m[2]*60 + +m[3] + (+m[4]/1000); }
+    function setStatus(t,c){
+      var col={info:'#93a6c3',ok:'#49cf8b',warn:'#ffc56d',err:'#ff6f7b'};
+      document.getElementById('st').textContent=t; document.getElementById('st').style.color=col[c||'info']||col.info;
+      document.getElementById('fstatus').textContent=t;
+    }
+    function pick(){ document.getElementById('f').click(); }
+    function onFile(files){
+      var f=files&&files[0]; if(!f) return;
+      if(s.url) URL.revokeObjectURL(s.url);
+      s.url=URL.createObjectURL(f); s.type=String(f.type||'');
+      document.getElementById('meta').textContent=f.name+' ('+Math.round(f.size/1024)+' KB)';
+      var v=document.getElementById('v'), a=document.getElementById('a'), e=document.getElementById('empty');
+      v.style.display='none'; a.style.display='none'; v.pause(); a.pause();
+      if(s.type.indexOf('video/')===0){ v.src=s.url; v.style.display='block'; e.style.display='none'; }
+      else if(s.type.indexOf('audio/')===0){ a.src=s.url; a.style.display='block'; e.style.display='none'; }
+      else { e.style.display='block'; }
+      setStatus('Media loaded.','ok');
+    }
+    function mock(seed,b){
+      var lines=seed.split(/[\n\.!\?]+/).map(function(x){return x.trim()}).filter(Boolean);
+      if(!lines.length){ lines=['Welcome to Auto Captions.','This layout follows AutoSubs style.','Edit lines then export SRT.']; }
+      var t=0; return lines.slice(0,20).map(function(l){
+        var d=Math.max(1.4,Math.min(4.2,l.length*0.07)); var o={start:fmt(t),end:fmt(t+d),text:l};
+        if(b) o.sub=(b==='en'?'EN: ':'AR: ')+l; t+=d+0.2; return o;
+      });
+    }
+    function rows(){
+      var host=document.getElementById('rows'); host.innerHTML='';
+      s.cues.forEach(function(c,i){
+        var r=document.createElement('div'); r.className='trow';
+        r.innerHTML='<div class="tc">'+c.start+'</div><div class="tc">'+c.end+'</div><div><input data-i="'+i+'" value="'+(c.text||'').replace(/"/g,'&quot;')+'">'+(c.sub?'<input data-i="'+i+'" data-sub="1" style="margin-top:5px" value="'+String(c.sub).replace(/"/g,'&quot;')+'">':'')+'</div>';
+        host.appendChild(r);
+      });
+      host.querySelectorAll('input[data-i]').forEach(function(inp){
+        inp.oninput=function(){ var i=+this.getAttribute('data-i'); if(!s.cues[i]) return; if(this.getAttribute('data-sub')) s.cues[i].sub=this.value; else s.cues[i].text=this.value; live(); };
+      });
+      document.getElementById('ccount').textContent=s.cues.length+' cues';
+    }
+    function live(){
+      var c=document.getElementById('cap');
+      if(s.idx<0||!s.cues[s.idx]){ c.textContent='No captions yet.'; return; }
+      var x=s.cues[s.idx]; c.innerHTML=(x.text||'').replace(/</g,'&lt;') + (x.sub?'<span class="sub">'+String(x.sub).replace(/</g,'&lt;')+'</span>':'');
+    }
+    function sync(t){
+      var id=-1; for(var i=0;i<s.cues.length;i++){ var st=toSec(s.cues[i].start), en=toSec(s.cues[i].end); if(t>=st&&t<=en){ id=i; break; } }
+      if(id!==s.idx){ s.idx=id; live(); }
+      var ms=Math.floor((t%1)*100); var sec=Math.floor(t%60), min=Math.floor((t/60)%60), hr=Math.floor(t/3600);
+      document.getElementById('tc').textContent=p(hr,2)+':'+p(min,2)+':'+p(sec,2)+':'+p(ms,2);
+    }
+    function gen(){
+      var b=document.getElementById('bilingual').value||'';
+      s.cues=mock((document.getElementById('seed').value||'').trim(),b); rows(); setStatus('Captions generated.','ok'); live();
+    }
+    function clr(){ s.cues=[]; s.idx=-1; rows(); live(); setStatus('Cleared.','info'); }
+    function srt(){
+      if(!s.cues.length){ setStatus('No cues to export.','warn'); return; }
+      var out=s.cues.map(function(c,i){ return (i+1)+'\n'+c.start+' --> '+c.end+'\n'+(c.text||'')+(c.sub?'\n'+c.sub:'')+'\n'; }).join('\n');
+      dl(out,'captions.srt','application/x-subrip'); setStatus('SRT exported.','ok');
+    }
+    function txt(){
+      if(!s.cues.length){ setStatus('No cues to export.','warn'); return; }
+      var out=s.cues.map(function(c){ return c.text+(c.sub?' | '+c.sub:''); }).join('\n');
+      dl(out,'captions.txt','text/plain'); setStatus('TXT exported.','ok');
+    }
+    function dl(content,name,type){
+      var b=new Blob([content],{type:type}), u=URL.createObjectURL(b), a=document.createElement('a');
+      a.href=u; a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){URL.revokeObjectURL(u)},1000);
+    }
+    document.querySelectorAll('#chips .chip').forEach(function(c){ c.onclick=function(){ document.querySelectorAll('#chips .chip').forEach(function(x){x.classList.remove('active')}); this.classList.add('active'); }; });
+    var drop=document.getElementById('drop');
+    ['dragenter','dragover'].forEach(function(e){ drop.addEventListener(e,function(ev){ev.preventDefault();drop.classList.add('drag');});});
+    ['dragleave','drop'].forEach(function(e){ drop.addEventListener(e,function(ev){ev.preventDefault();drop.classList.remove('drag');});});
+    drop.addEventListener('drop',function(e){ var fs=e.dataTransfer&&e.dataTransfer.files; if(fs&&fs.length) onFile(fs); });
+    document.getElementById('v').addEventListener('timeupdate',function(){ sync(this.currentTime||0); });
+    document.getElementById('a').addEventListener('timeupdate',function(){ sync(this.currentTime||0); });
+  </script>
+</body>
+</html>
