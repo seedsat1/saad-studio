@@ -563,41 +563,27 @@ async function runKieVoiceClone(
   const clonedVoiceName = (body.cloneName || "custom-voice").trim().slice(0, 64);
   const customVoiceId = sanitizeCustomVoiceId(clonedVoiceName);
 
-  const submitRes = await fetch(`${KIE_BASE_URL}/jobs/createTask`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${kieApiKey}`,
-      "Content-Type": "application/json",
+  // Use submitKieTask + pollKieRecordInfo (same pattern as all other KIE models)
+  const taskId = await submitKieTask(
+    "minimax/voice-clone",
+    {
+      text: seedText,
+      audio: referenceAudio,
+      voice_id: customVoiceId,
+      custom_voice_id: customVoiceId,
+      model: "speech-02-hd",
+      accuracy: 1,
+      need_noise_reduction: body.remove_background_noise !== false,
     },
-    body: JSON.stringify({
-      model: "minimax/voice-clone",
-      callBackUrl: "",
-      input: {
-        text: seedText,
-        audio: referenceAudio,
-        voice_id: customVoiceId,
-        custom_voice_id: customVoiceId,
-        model: "speech-02-hd",
-        accuracy: 1,
-        need_noise_reduction: body.remove_background_noise !== false,
-      },
-    }),
-  });
+    kieApiKey,
+  );
 
-  const submitJson = await submitRes.json().catch(() => null);
-  if (!submitRes.ok) {
-    throw new Error(submitJson?.msg || submitJson?.error || "KIE voice-clone task submit failed.");
-  }
-
-  const taskId = submitJson?.data?.taskId ?? submitJson?.data?.id;
-  if (!taskId) throw new Error("No taskId returned from KIE voice-clone.");
-
-  const result = await pollKieTask(String(taskId), kieApiKey);
+  const result = await pollKieRecordInfo(taskId, kieApiKey);
   if (result.status === "failed") {
     throw new Error(result.error ?? "KIE voice cloning failed.");
   }
 
-  const audioUrl = result.outputs?.find((url) => typeof url === "string" && /^https?:\/\//.test(url));
+  const audioUrl = pickFirstMediaUrl(result.resultJson);
   if (!audioUrl) throw new Error("KIE voice-clone returned no audio URL.");
   return audioUrl;
 }
