@@ -118,15 +118,29 @@ textarea.ff:focus{border-color:var(--accent)}
 .vpm-vsscroll::-webkit-scrollbar-track{background:transparent}
 .vpm-vsscroll::-webkit-scrollbar-thumb{background:#1e2240;border-radius:3px}
 .vpm-vsgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:3px}
-.vpm-vcard{display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:8px;cursor:pointer;transition:.15s}
+.vpm-vcard{display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:8px;cursor:pointer;transition:.15s;position:relative}
 .vpm-vcard:hover{background:#181b30}
+.vpm-vcard:hover .vpm-vactions{opacity:1}
 .vpm-vcard.sel{background:rgba(74,158,255,.1);outline:1px solid rgba(74,158,255,.28)}
+.vpm-vcard.sel .vpm-vactions{opacity:1}
 .vpm-vavatar{width:42px;height:42px;border-radius:50%;overflow:hidden;flex-shrink:0;background:#1a1d30}
 .vpm-vavatar img{width:100%;height:100%;object-fit:cover}
 .vpm-vemoji{width:42px;height:42px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:18px}
-.vpm-vinfo{flex:1;min-width:0}
+.vpm-vinfo{flex:1;min-width:0;overflow:hidden}
 .vpm-vname{font-size:12px;font-weight:600;color:#e8eaef;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .vpm-vmeta{font-size:11px;color:#3a4a6a;margin-top:1px}
+.vpm-match{color:var(--accent);font-weight:700}
+.vpm-vactions{display:flex;gap:3px;opacity:0;transition:.12s;flex-shrink:0;align-items:center}
+.vpm-play-btn{width:28px;height:28px;border-radius:50%;border:none;background:rgba(74,158,255,.15);color:var(--accent);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;transition:.15s;line-height:1;flex-shrink:0}
+.vpm-play-btn:hover{background:var(--accent);color:#fff}
+.vpm-play-btn.playing{background:var(--accent);color:#fff;animation:vpmpulse 1.4s infinite}
+.vpm-play-btn.loading{background:rgba(255,213,79,.12);color:#ffd54f;animation:vpmSpin .7s linear infinite}
+@keyframes vpmpulse{0%,100%{box-shadow:0 0 0 0 rgba(74,158,255,.5)}70%{box-shadow:0 0 0 6px transparent}}
+@keyframes vpmSpin{to{transform:rotate(360deg)}}
+.vpm-fav-btn{width:28px;height:28px;border-radius:50%;border:none;background:rgba(255,255,255,.05);color:#4a5a7e;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:.15s;line-height:1;flex-shrink:0}
+.vpm-fav-btn:hover{background:rgba(255,80,80,.15);color:#ff6b6b}
+.vpm-fav-btn.fav{color:#ff6b6b;background:rgba(255,80,80,.1)}
+.vpm-tab-badge{display:inline-flex;align-items:center;justify-content:center;background:rgba(74,158,255,.2);color:var(--accent);border-radius:10px;font-size:10px;font-weight:700;padding:1px 6px;margin-left:4px;min-width:16px;vertical-align:middle;line-height:1.4}
 @media(max-width:1100px){.vpm-vsgrid{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:700px){.vpm-vsgrid{grid-template-columns:repeat(2,1fr)}.vpm-topbar{padding:14px 16px}.vpm-usecases{padding:0 16px 10px}.vpm-vsscroll{padding:10px 16px}.vpm-tabs-row{padding:0 16px}.vpm-pill{display:none}}
 
@@ -525,8 +539,8 @@ textarea.ff:focus{border-color:var(--accent)}
       <div class="vpm-actions">
         <button class="vpm-pill" id="vpmPillLang" onclick="cycleVpmLang(this)">All languages <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5l3 3 3-3"/></svg></button>
         <button class="vpm-pill" id="vpmPillGender" onclick="cycleVpmGender(this)">All genders <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5l3 3 3-3"/></svg></button>
-        <button class="vpm-icobtn" title="Search" onclick="toggleVpmSearch()">
-          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+        <button class="vpm-icobtn" id="vpmFavToggle" title="Favorites" onclick="setVpmTab(_vpmActiveTab==='fav'?'all':'fav');this.classList.toggle('a',_vpmActiveTab==='fav')">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
         </button>
         <button class="vpm-newbtn" onclick="switchRightTab('library');closeVoicePicker()">
           <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
@@ -536,9 +550,9 @@ textarea.ff:focus{border-color:var(--accent)}
       </div>
     </div>
 
-    <!-- Search bar -->
-    <div class="vpm-searchbar" id="vpmSearchBar" style="display:none">
-      <input id="vpmSearch" class="vpm-search-input" placeholder="Search voices..." oninput="renderVpmGrid()">
+    <!-- Search bar (always visible) -->
+    <div class="vpm-searchbar" id="vpmSearchBar">
+      <input id="vpmSearch" class="vpm-search-input" placeholder="🔍  Search by name, accent..." oninput="renderVpmGrid()">
     </div>
 
     <!-- Use Cases -->
@@ -593,6 +607,7 @@ textarea.ff:focus{border-color:var(--accent)}
     <div class="vpm-tabs-row">
       <div class="vpm-tab a" id="vpmTabAll" onclick="setVpmTab('all')">All voices</div>
       <div class="vpm-tab" id="vpmTabMy" onclick="setVpmTab('my')">My voices</div>
+      <div class="vpm-tab" id="vpmTabFav" onclick="setVpmTab('fav')">Favorites <span class="vpm-tab-badge" id="vpmFavCount"></span></div>
     </div>
 
     <!-- Voice Grid -->
@@ -908,25 +923,82 @@ const VOICE_CATALOG = [
 
 let _vpmSelectedId = 'Rachel';
 let _vpmActiveCat = 'All';
-let _vpmActiveTab = 'all'; // 'all' | 'my'
+let _vpmActiveTab = 'all'; // 'all' | 'my' | 'fav'
 let _vpmGenderFilter = '';  // '' | 'male' | 'female'
 let _vpmLangFilter = '';    // '' | 'EN' | 'AR' | 'MULTI'
 
+/* ── Favorites ─────────────────────────────── */
+const VPM_FAV_KEY = 'ff_vpm_favs_v1';
+let _vpmFavs = new Set(JSON.parse(localStorage.getItem(VPM_FAV_KEY) || '[]'));
+function saveVpmFavs() { localStorage.setItem(VPM_FAV_KEY, JSON.stringify([..._vpmFavs])); }
+function toggleVpmFav(id, event) {
+  event.stopPropagation();
+  if (_vpmFavs.has(id)) _vpmFavs.delete(id); else _vpmFavs.add(id);
+  saveVpmFavs();
+  updateVpmFavCount();
+  renderVpmGrid();
+}
+function updateVpmFavCount() {
+  const el = document.getElementById('vpmFavCount');
+  if (el) el.textContent = _vpmFavs.size > 0 ? _vpmFavs.size : '';
+  const hbtn = document.getElementById('vpmFavToggle');
+  if (hbtn) hbtn.classList.toggle('a', _vpmActiveTab === 'fav');
+}
+
+/* ── Voice Preview ──────────────────────────── */
+const _vpmPreviewCache = {};
+let _vpmPlayingId = null;
+let _vpmLoadingId = null;
+let _vpmPreviewAudio = null;
+
+async function previewVpmVoice(id, name, event) {
+  event.stopPropagation();
+  if (_vpmPlayingId === id) {
+    _vpmPreviewAudio?.pause();
+    _vpmPlayingId = null; renderVpmGrid(); return;
+  }
+  _vpmPreviewAudio?.pause();
+  _vpmPlayingId = null;
+  if (_vpmLoadingId === id) return;
+  if (_vpmPreviewCache[id]) {
+    _vpmPlayingId = id; renderVpmGrid();
+    _vpmPreviewAudio = new Audio(_vpmPreviewCache[id]);
+    _vpmPreviewAudio.onended = () => { _vpmPlayingId = null; renderVpmGrid(); };
+    _vpmPreviewAudio.onerror = () => { _vpmPlayingId = null; renderVpmGrid(); };
+    _vpmPreviewAudio.play(); return;
+  }
+  _vpmLoadingId = id; renderVpmGrid();
+  try {
+    const taskId = await createKieTask('elevenlabs/text-to-speech-multilingual-v2', {
+      text: `Hi there! I'm ${name}. This is a short preview of how I sound. I hope you enjoy my voice!`,
+      voice: id, stability: 0.5, similarity_boost: 0.75, style: 0, speed: 1, timestamps: false
+    });
+    const record = await waitKieTask(taskId, 90000);
+    const urls = extractResultUrls(record);
+    if (!urls.length) throw new Error('no url');
+    _vpmPreviewCache[id] = urls[0];
+    _vpmLoadingId = null; _vpmPlayingId = id; renderVpmGrid();
+    _vpmPreviewAudio = new Audio(urls[0]);
+    _vpmPreviewAudio.onended = () => { _vpmPlayingId = null; renderVpmGrid(); };
+    _vpmPreviewAudio.onerror = () => { _vpmPlayingId = null; renderVpmGrid(); };
+    _vpmPreviewAudio.play();
+  } catch(e) {
+    _vpmLoadingId = null; renderVpmGrid();
+  }
+}
+
 function openVoicePicker() {
   document.getElementById('voicePickerModal').style.display = 'flex';
+  updateVpmFavCount();
   setVpmTab(_vpmActiveTab);
   renderVpmGrid();
+  setTimeout(() => document.getElementById('vpmSearch')?.focus(), 100);
 }
 
 function closeVoicePicker() {
   document.getElementById('voicePickerModal').style.display = 'none';
-}
-
-function toggleVpmSearch() {
-  const bar = document.getElementById('vpmSearchBar');
-  const visible = bar.style.display !== 'none';
-  bar.style.display = visible ? 'none' : 'block';
-  if (!visible) document.getElementById('vpmSearch').focus();
+  _vpmPreviewAudio?.pause();
+  _vpmPlayingId = null; _vpmLoadingId = null;
 }
 
 function cycleVpmLang(btn) {
@@ -965,6 +1037,8 @@ function setVpmTab(tab) {
   _vpmActiveCat = tab === 'my' ? 'My Voices' : 'All';
   document.getElementById('vpmTabAll').classList.toggle('a', tab === 'all');
   document.getElementById('vpmTabMy').classList.toggle('a', tab === 'my');
+  document.getElementById('vpmTabFav')?.classList.toggle('a', tab === 'fav');
+  document.getElementById('vpmFavToggle')?.classList.toggle('a', tab === 'fav');
   renderVpmGrid();
 }
 
@@ -990,7 +1064,8 @@ function renderVpmGrid() {
   const pool = _vpmActiveTab === 'my' ? myVoices : [...myVoices, ...VOICE_CATALOG];
 
   const filtered = pool.filter(v => {
-    if (_vpmActiveCat !== 'All' && v.cat !== _vpmActiveCat) return false;
+    if (_vpmActiveTab === 'fav' && !_vpmFavs.has(v.id)) return false;
+    if (_vpmActiveTab !== 'fav' && _vpmActiveCat !== 'All' && v.cat !== _vpmActiveCat) return false;
     if (query && !v.name.toLowerCase().includes(query) && !v.accent.toLowerCase().includes(query)) return false;
     if (_vpmGenderFilter && v.gender !== _vpmGenderFilter && v.gender !== 'custom') return false;
     if (_vpmLangFilter && v.lang !== _vpmLangFilter && v.lang !== 'MULTI') return false;
@@ -1003,8 +1078,16 @@ function renderVpmGrid() {
   const grid = document.getElementById('vpmGrid');
   if (!grid) return;
   if (!unique.length) {
-    grid.innerHTML = '<div style="grid-column:span 4;text-align:center;color:#3a4460;padding:40px;font-size:13px">No voices match your filters.</div>';
+    const msg = _vpmActiveTab === 'fav' ? 'No favorites yet — click ♡ on any voice to save it.' : 'No voices match your filters.';
+    grid.innerHTML = `<div style="grid-column:span 4;text-align:center;color:#3a4460;padding:40px;font-size:13px">${msg}</div>`;
     return;
+  }
+
+  function hlMatch(text, q) {
+    if (!q) return text;
+    const i = text.toLowerCase().indexOf(q);
+    if (i < 0) return text;
+    return text.slice(0,i) + `<span class="vpm-match">${text.slice(i,i+q.length)}</span>` + text.slice(i+q.length);
   }
 
   grid.innerHTML = unique.map(v => {
@@ -1015,11 +1098,18 @@ function renderVpmGrid() {
       ? `<div class="vpm-vemoji" style="background:${v.color}">${v.emoji}</div>`
       : `<div class="vpm-vavatar"><img src="https://i.pravatar.cc/80?u=${encodeURIComponent(v.id)}" alt="${v.name}" loading="lazy"></div>`;
     const langLabel = v.lang === 'MULTI' ? 'Multilingual' : v.lang === 'EN' ? 'English' : v.lang === 'AR' ? 'Arabic' : v.lang;
+    const isFav = _vpmFavs.has(v.id);
+    const isPlaying = _vpmPlayingId === v.id;
+    const isLoading = _vpmLoadingId === v.id;
     return `<div class="vpm-vcard${sel?' sel':''}" onclick="selectVpmVoice('${v.id}','${safeName}','${v.lang}','${v.accent}','${v.emoji}','${safeColor}')">
       ${avatarHtml}
       <div class="vpm-vinfo">
-        <div class="vpm-vname">${v.name}</div>
+        <div class="vpm-vname">${hlMatch(v.name, query)}</div>
         <div class="vpm-vmeta">${langLabel}${v.isCustom ? ' · Custom' : ' · ' + v.accent}</div>
+      </div>
+      <div class="vpm-vactions">
+        <button class="vpm-play-btn${isLoading?' loading':isPlaying?' playing':''}" onclick="previewVpmVoice('${v.id}','${safeName}',event)" title="Preview">${isLoading?'⟳':isPlaying?'■':'▶'}</button>
+        <button class="vpm-fav-btn${isFav?' fav':''}" onclick="toggleVpmFav('${v.id}',event)" title="${isFav?'Remove from favorites':'Add to favorites'}">${isFav?'♥':'♡'}</button>
       </div>
     </div>`;
   }).join('');
