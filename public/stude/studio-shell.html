@@ -575,6 +575,10 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
       postTimelineMessage(d);
       return;
     }
+    if(d && d.type==='ff:setCaptions'){
+      postTimelineMessage(d);
+      return;
+    }
     if(!d || d.type!=='ff:timeline-state') return;
     lastTimelineState=d;
     if(d.ratio) currentRatio=String(d.ratio);

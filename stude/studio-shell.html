@@ -76,6 +76,7 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
 
   <div class="tabs" id="tabs">
     <a class="tab" data-page="sound" href="#sound">Audio & Music</a>
+    <a class="tab" data-page="captions" href="#captions">Captions</a>
     <a class="tab" data-page="video" href="#video">Video Generation</a>
     <a class="tab" data-page="presets" href="#presets">Generate Image</a>
     <a class="tab" data-page="transitions" href="#transitions">Transitions</a>
@@ -155,7 +156,7 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
   var liveLightingTargetId='';
 
   function pageLabel(page){
-    var map={sound:'Audio & Music',video:'Video Generation',presets:'Generate Image',transitions:'Transitions',lighting:'Lighting',prompt:'Prompt'};
+    var map={sound:'Audio & Music',captions:'Captions',video:'Video Generation',presets:'Generate Image',transitions:'Transitions',lighting:'Lighting',prompt:'Prompt'};
     return map[page] || 'Prompt';
   }
 
@@ -173,7 +174,7 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
   }
 
   function loadPage(page,push){
-    var allowed=['sound','video','presets','transitions','lighting','prompt'];
+    var allowed=['sound','captions','video','presets','transitions','lighting','prompt'];
     if(allowed.indexOf(page)===-1) page='prompt';
     setActive(page);
     localStorage.setItem(PAGE_KEY,page);
@@ -571,6 +572,10 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
         liveLightingProfile = d.profile;
         liveLightingTargetId = String(d.targetClipId || '');
       }
+      postTimelineMessage(d);
+      return;
+    }
+    if(d && d.type==='ff:setCaptions'){
       postTimelineMessage(d);
       return;
     }

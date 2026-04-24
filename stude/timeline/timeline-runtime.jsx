@@ -722,8 +722,54 @@ function TimelineEditor() {
       });
     };
 
+    const onSetCaptions = (event) => {
+      const d = event && event.data;
+      if (!d || d.type !== 'ff:setCaptions' || !Array.isArray(d.cues) || !d.cues.length) return;
+      pushUndoSnapshot();
+
+      // Find or create the CAP (captions) track
+      const capTrackIdx = tracks.findIndex((t) => t.id === 'CAP');
+      const finalIdx = capTrackIdx >= 0 ? capTrackIdx : tracks.length;
+
+      if (capTrackIdx < 0) {
+        setTracks((prev) => {
+          if (prev.find((t) => t.id === 'CAP')) return prev;
+          return [...prev, { id: 'CAP', type: 'audio', color: '#f59e0b', muted: false, solo: false, locked: false, visible: true }];
+        });
+      }
+
+      const newClips = d.cues.map((cue, i) => {
+        const startSec = Number(cue.startSec) || 0;
+        const endSec = Number(cue.endSec) || 0;
+        const startFrame = Math.max(0, Math.round(startSec * FPS));
+        const durFrame = Math.max(MIN_CLIP_FRAMES, Math.round((endSec - startSec) * FPS));
+        return {
+          id: `cap_${Date.now()}_${i}`,
+          track: finalIdx,
+          start: startFrame,
+          dur: durFrame,
+          label: String(cue.text || '').slice(0, 80),
+          color: '#f59e0b',
+          src: '',
+          kind: 'audio',
+          ratio: '',
+        };
+      });
+
+      setClips((prev) => {
+        const without = prev.filter((c) => c.track !== finalIdx);
+        return [...without, ...newClips];
+      });
+
+      setImportInfo(`Captions track updated — ${d.cues.length} cues loaded.`);
+    };
+
     window.addEventListener('message', onMessage);
-    return () => window.removeEventListener('message', onMessage);
+    window.addEventListener('message', onSetCaptions);
+    return () => {
+      window.removeEventListener('message', onMessage);
+      window.removeEventListener('message', onSetCaptions);
+    };
   }, [handleTimelineHotkey, tracks]);
 
   const toggleTrack = (trackIndex, key) => {
