@@ -689,7 +689,12 @@ async function generateCaptions(){
     setStep(3,'Transcribing audio...');
     setStatus('Transcribing — this can take 30–120 seconds…','info');
     var data=await res.json().catch(function(){return{};});
-    if(!res.ok)throw new Error((data&&data.error)?String(data.error):'Caption generation failed.');
+    if(!res.ok){
+      console.error('[captions] API error:',res.status,data);
+      var errMsg=(data&&data.error)?String(data.error):'Caption generation failed (HTTP '+res.status+').';
+      if(data&&data.detail) errMsg+=' — '+String(data.detail).slice(0,200);
+      throw new Error(errMsg);
+    }
     var outputText='';
     if(typeof data.captionUrl==='string'&&data.captionUrl)outputText=await tryReadCaptionFile(data.captionUrl);
     if(!outputText&&typeof data.text==='string')outputText=data.text;

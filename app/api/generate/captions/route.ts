@@ -288,6 +288,8 @@ export async function POST(req: NextRequest) {
     );
   } catch (error) {
     const message = error instanceof Error ? error.message : "An unexpected error occurred.";
-    return NextResponse.json({ error: message }, { status: 500 });
+    const stack = error instanceof Error ? error.stack : undefined;
+    console.error("[captions API] 500:", message, stack);
+    return NextResponse.json({ error: message, detail: stack?.split("\n").slice(0, 3).join(" | ") }, { status: 500 });
   }
 }
