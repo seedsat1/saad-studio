@@ -305,6 +305,92 @@ function PropRow({ label, children }) {
   );
 }
 
+/* Adobe-style row: stopwatch | label | values | reset */
+function AdobeRow({ label, children, isDefault, onReset, indent=14, dim=false }) {
+  return (
+    <div style={{ display:'flex', alignItems:'center', minHeight:22, borderBottom:'1px solid #15171d', padding:'1px 0', background: dim ? '#0c0e13' : 'transparent' }}>
+      <span title="Toggle animation (coming soon)" style={{ width:14, flexShrink:0, display:'flex', justifyContent:'center', cursor:'not-allowed', opacity:0.35, fontSize:10 }}>⏱</span>
+      <span style={{ flexShrink:0, width:1, height:14, background:'#23293a', marginRight:4 }} />
+      <span style={{ width:90, flexShrink:0, fontSize:10, color: dim ? '#3d4456' : '#9aa6b8', paddingLeft:indent-14, userSelect:'none', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{label}</span>
+      <div style={{ flex:1, display:'flex', alignItems:'center', gap:4, paddingRight:4, opacity: dim ? 0.5 : 1 }}>{children}</div>
+      <button
+        onClick={onReset}
+        onMouseDown={(e) => e.stopPropagation()}
+        title="Reset"
+        disabled={isDefault}
+        style={{
+          width:18, height:18, flexShrink:0, marginRight:4,
+          background:'transparent', border:'none', cursor: isDefault?'default':'pointer',
+          color: isDefault?'#2a3040':'#6c7694', fontSize:11, padding:0,
+        }}
+      >↺</button>
+    </div>
+  );
+}
+
+/* Adobe-style numeric value (blue, click-to-type, drag-to-scrub) */
+function AdobeNum({ value, onChange, onCommit, min, max, step=0.1, suffix='' }) {
+  const [editing, setEditing] = React.useState(false);
+  const inputRef = React.useRef(null);
+  const decimals = step < 1 ? 1 : 0;
+  const display = Number.isFinite(Number(value)) ? Number(value).toFixed(decimals) : '0';
+  const clamp = (v) => {
+    let r = v;
+    if (min !== undefined && r < min) r = min;
+    if (max !== undefined && r > max) r = max;
+    return r;
+  };
+  const startScrub = (e) => {
+    e.preventDefault(); e.stopPropagation();
+    const startX = e.clientX;
+    const startVal = Number(value) || 0;
+    let moved = false;
+    const onMove = (me) => {
+      const dx = me.clientX - startX;
+      if (Math.abs(dx) > 2) moved = true;
+      if (!moved) return;
+      onChange(clamp(startVal + dx * step));
+    };
+    const onUp = (me) => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      if (moved) onCommit(clamp(startVal + (me.clientX - startX) * step));
+      else { setEditing(true); }
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  };
+  React.useEffect(() => { if (editing && inputRef.current) { inputRef.current.focus(); inputRef.current.select(); } }, [editing]);
+
+  if (editing) {
+    return (
+      <input
+        ref={inputRef}
+        type="number"
+        defaultValue={display}
+        min={min} max={max} step={step}
+        onBlur={(e) => { const v=clamp(Number(e.target.value)); if(Number.isFinite(v)) onCommit(v); setEditing(false); }}
+        onKeyDown={(e) => { if(e.key==='Enter'){ const v=clamp(Number(e.target.value)); if(Number.isFinite(v)) onCommit(v); setEditing(false); } if(e.key==='Escape') setEditing(false); e.stopPropagation(); }}
+        onMouseDown={(e) => e.stopPropagation()}
+        style={{ width:60, height:16, background:'#0a0c10', border:'1px solid #3a82d8', outline:'none', color:'#5dabf2', fontSize:11, fontWeight:600, padding:'0 3px', textAlign:'center', boxSizing:'border-box', MozAppearance:'textfield' }}
+      />
+    );
+  }
+  return (
+    <span
+      onMouseDown={startScrub}
+      title="Drag ← → to scrub · Click to type"
+      style={{
+        color:'#5dabf2', fontSize:11, fontWeight:600, cursor:'ew-resize',
+        userSelect:'none', padding:'0 4px', borderBottom:'1px dotted transparent',
+        minWidth:36, textAlign:'center', display:'inline-block',
+      }}
+      onMouseEnter={(e) => e.currentTarget.style.borderBottomColor='#3a82d8'}
+      onMouseLeave={(e) => e.currentTarget.style.borderBottomColor='transparent'}
+    >{display}{suffix}</span>
+  );
+}
+
 function NumInput({ value, onChange, onCommit, min, max, step=0.1, style:extraStyle }) {
   const [editing, setEditing] = React.useState(false);
   const [local, setLocal] = React.useState('');
@@ -713,75 +799,70 @@ function EffectControls({ clip, onProp, onCommit, onFitMode, onExpand }) {
           </div>
         )}
 
-        {/* Motion */}
+        {/* Motion (Adobe-style) */}
         {isVisual && (
           <>
             <SectionHeader label="fx  Motion" open={openMotion} onToggle={() => setOpenMotion(v => !v)} />
             {openMotion && (
               <>
-                <PropRow label="Position">
-                  <NumInput value={px} step={1} onChange={(v) => onProp('motion.px', v)} onCommit={(v) => onCommit('motion.px', v)} />
-                  <NumInput value={py} step={1} onChange={(v) => onProp('motion.py', v)} onCommit={(v) => onCommit('motion.py', v)} />
-                </PropRow>
-                <PropRow label="Scale">
-                  <NumInput value={sx} min={0} max={400} step={1} onChange={(v) => { onProp('motion.sx', v); if(uniformScale) onProp('motion.sy', v); }} onCommit={(v) => { onCommit('motion.sx', v); if(uniformScale) onCommit('motion.sy', v); }} />
-                  {!uniformScale && <NumInput value={sy} min={0} max={400} step={1} onChange={(v) => onProp('motion.sy', v)} onCommit={(v) => onCommit('motion.sy', v)} />}
-                  <label style={{ display:'flex', alignItems:'center', gap:3, fontSize:9, color:'#6c7694', marginLeft:2, cursor:'pointer', userSelect:'none' }} onMouseDown={(e) => e.stopPropagation()}>
-                    <input type="checkbox" checked={uniformScale} onChange={(e) => onCommit('motion.uniform', e.target.checked)} style={{ width:10, height:10, accentColor:'#4a9eff', cursor:'pointer' }} />
-                    Uniform
+                <AdobeRow label="Position" isDefault={px===0 && py===0} onReset={() => { onCommit('motion.px', 0); onCommit('motion.py', 0); }}>
+                  <AdobeNum value={px} step={1} onChange={(v) => onProp('motion.px', v)} onCommit={(v) => onCommit('motion.px', v)} />
+                  <AdobeNum value={py} step={1} onChange={(v) => onProp('motion.py', v)} onCommit={(v) => onCommit('motion.py', v)} />
+                </AdobeRow>
+                <AdobeRow label="Scale" isDefault={sx===100 && sy===100} onReset={() => { onCommit('motion.sx', 100); onCommit('motion.sy', 100); }}>
+                  <AdobeNum value={sx} min={0} max={400} step={1} onChange={(v) => { onProp('motion.sx', v); if(uniformScale) onProp('motion.sy', v); }} onCommit={(v) => { onCommit('motion.sx', v); if(uniformScale) onCommit('motion.sy', v); }} />
+                </AdobeRow>
+                <AdobeRow label="Scale Width" dim={uniformScale} isDefault={sy===100} onReset={() => onCommit('motion.sy', 100)}>
+                  <AdobeNum value={sy} min={0} max={400} step={1} onChange={(v) => { if(!uniformScale) onProp('motion.sy', v); }} onCommit={(v) => { if(!uniformScale) onCommit('motion.sy', v); }} />
+                </AdobeRow>
+                <div style={{ display:'flex', alignItems:'center', minHeight:22, borderBottom:'1px solid #15171d', paddingLeft:34 }}>
+                  <label style={{ display:'flex', alignItems:'center', gap:5, fontSize:10, color:'#9aa6b8', cursor:'pointer', userSelect:'none' }} onMouseDown={(e) => e.stopPropagation()}>
+                    <input type="checkbox" checked={uniformScale} onChange={(e) => onCommit('motion.uniform', e.target.checked)} style={{ width:11, height:11, accentColor:'#5dd6a0', cursor:'pointer' }} />
+                    Uniform Scale
                   </label>
-                </PropRow>
-                <PropRow label="Rotation">
-                  <NumInput value={rot} min={-360} max={360} step={0.5} onChange={(v) => onProp('motion.rot', v)} onCommit={(v) => onCommit('motion.rot', v)} />
-                  <span style={{ fontSize:9, color:'#4a5575' }}>°</span>
-                </PropRow>
-                <PropRow label="Anchor Point">
-                  <NumInput value={ax} step={0.5} onChange={(v) => onProp('motion.ax', v)} onCommit={(v) => onCommit('motion.ax', v)} />
-                  <NumInput value={ay} step={0.5} onChange={(v) => onProp('motion.ay', v)} onCommit={(v) => onCommit('motion.ay', v)} />
-                </PropRow>
+                </div>
+                <AdobeRow label="Rotation" isDefault={rot===0} onReset={() => onCommit('motion.rot', 0)}>
+                  <AdobeNum value={rot} min={-3600} max={3600} step={0.5} onChange={(v) => onProp('motion.rot', v)} onCommit={(v) => onCommit('motion.rot', v)} suffix="°" />
+                </AdobeRow>
+                <AdobeRow label="Anchor Point" isDefault={ax===50 && ay===50} onReset={() => { onCommit('motion.ax', 50); onCommit('motion.ay', 50); }}>
+                  <AdobeNum value={ax} min={0} max={100} step={0.5} onChange={(v) => onProp('motion.ax', v)} onCommit={(v) => onCommit('motion.ax', v)} />
+                  <AdobeNum value={ay} min={0} max={100} step={0.5} onChange={(v) => onProp('motion.ay', v)} onCommit={(v) => onCommit('motion.ay', v)} />
+                </AdobeRow>
               </>
             )}
           </>
         )}
 
-        {/* Opacity */}
+        {/* Opacity (Adobe-style) */}
         <SectionHeader label="fx  Opacity" open={openOpacity} onToggle={() => setOpenOpacity(v => !v)} color='#c3a2ff' />
         {openOpacity && (
           <>
-            <PropRow label="Opacity">
-              <input type="range" min={0} max={100} step={1} value={opacity}
-                onChange={(e) => onProp('opacity', Number(e.target.value))}
-                onMouseUp={(e) => onCommit('opacity', Number(e.target.value))}
-                style={{ flex:1, height:3, accentColor:'#c3a2ff', cursor:'pointer' }} />
-              <NumInput value={opacity} min={0} max={100} step={1} onChange={(v) => onProp('opacity', v)} onCommit={(v) => onCommit('opacity', v)} style={{ width:36 }} />
-              <span style={{ fontSize:9, color:'#4a5575' }}>%</span>
-            </PropRow>
+            <AdobeRow label="Opacity" isDefault={opacity===100} onReset={() => onCommit('opacity', 100)}>
+              <AdobeNum value={opacity} min={0} max={100} step={1} onChange={(v) => onProp('opacity', v)} onCommit={(v) => onCommit('opacity', v)} suffix=" %" />
+            </AdobeRow>
             {isVisual && (
-              <PropRow label="Blend Mode">
-                <select value={blendMode} onChange={(e) => onCommit('blendMode', e.target.value)} onMouseDown={(e) => e.stopPropagation()} style={{ flex:1, height:18, background:'#0f1114', border:'1px solid #2a3040', borderRadius:3, color:'#d8e3f2', fontSize:10, padding:'0 2px', cursor:'pointer', outline:'none' }}>
+              <div style={{ display:'flex', alignItems:'center', minHeight:22, borderBottom:'1px solid #15171d', paddingLeft:34 }}>
+                <span style={{ width:90, flexShrink:0, fontSize:10, color:'#9aa6b8', userSelect:'none' }}>Blend Mode</span>
+                <select value={blendMode} onChange={(e) => onCommit('blendMode', e.target.value)} onMouseDown={(e) => e.stopPropagation()} style={{ flex:1, height:18, marginRight:26, background:'#0f1114', border:'1px solid #2a3040', borderRadius:3, color:'#d8e3f2', fontSize:10, padding:'0 4px', cursor:'pointer', outline:'none' }}>
                   {BLEND_MODES.map((bm) => <option key={bm} value={bm}>{bm}</option>)}
                 </select>
-              </PropRow>
+              </div>
             )}
           </>
         )}
 
-        {/* Crop */}
+        {/* Crop (Adobe-style) */}
         {isVisual && (
           <>
             <SectionHeader label="fx  Crop" open={openCrop} onToggle={() => setOpenCrop(v => !v)} color='#5dd6a0' />
             {openCrop && ['Left','Top','Right','Bottom'].map((side) => {
-              const key = `cropRect.${side[0].toLowerCase()}`;
+              const k = side[0].toLowerCase();
+              const key = `cropRect.${k}`;
               const val = { Left:cropL, Top:cropT, Right:cropR, Bottom:cropB }[side];
               return (
-                <PropRow key={side} label={`Crop ${side}`}>
-                  <input type="range" min={0} max={50} step={0.5} value={val}
-                    onChange={(e) => onProp(key, Number(e.target.value))}
-                    onMouseUp={(e) => onCommit(key, Number(e.target.value))}
-                    style={{ flex:1, height:3, accentColor:'#5dd6a0', cursor:'pointer' }} />
-                  <NumInput value={val} min={0} max={50} step={0.5} onChange={(v) => onProp(key, v)} onCommit={(v) => onCommit(key, v)} style={{ width:36 }} />
-                  <span style={{ fontSize:9, color:'#4a5575' }}>%</span>
-                </PropRow>
+                <AdobeRow key={side} label={`Crop ${side}`} isDefault={val===0} onReset={() => onCommit(key, 0)}>
+                  <AdobeNum value={val} min={0} max={100} step={0.5} onChange={(v) => onProp(key, v)} onCommit={(v) => onCommit(key, v)} suffix=" %" />
+                </AdobeRow>
               );
             })}
           </>
