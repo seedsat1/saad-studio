@@ -545,12 +545,16 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
     if(!cues||!cues.length){ el.style.display='none'; el.innerHTML=''; return; }
     ensureSubtitleAnimStyle();
 
-    // Use first cue for container-level positioning (bottom %)
+    // Use first cue for container-level positioning (bottom % + left/right shift)
     var first=cues[0]||{};
     var posY=Number(first.posY); if(!isFinite(posY)) posY=6;
+    var posX=Number(first.posX); if(!isFinite(posX)) posX=0;
     var alignSelf=first.align||'center';
     el.style.bottom=posY+'%';
+    el.style.left='4%';
+    el.style.right='4%';
     el.style.textAlign=alignSelf;
+    el.style.transform='translateX('+posX+'%)';
     // Reset container background so each cue carries its own
     el.style.background='transparent';
     el.style.padding='0';

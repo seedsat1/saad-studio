@@ -429,6 +429,7 @@ function EffectControls({ clip, onProp, onCommit, onFitMode, onExpand }) {
     const strokeWidth = Number.isFinite(clip.strokeWidth) ? clip.strokeWidth : 0;
     const shadow = clip.shadow !== false;
     const effect = clip.effect || 'none';
+    const posX = Number.isFinite(clip.posX) ? clip.posX : 0;
     const posY = Number.isFinite(clip.posY) ? clip.posY : 6;
     const subOpacity = Number.isFinite(clip.opacity) ? clip.opacity : 100;
 
@@ -552,13 +553,30 @@ function EffectControls({ clip, onProp, onCommit, onFitMode, onExpand }) {
             {['left','center','right'].map((a) => tglBtn(align === a, a === 'left' ? '⇤' : a === 'right' ? '⇥' : '⇔', () => onCommit('align', a)))}
           </PropRow>
 
+          <PropRow label="Position X">
+            <input type="range" min={-50} max={50} step={1} value={posX}
+              onChange={(e) => onProp('posX', Number(e.target.value))}
+              onMouseUp={(e) => onCommit('posX', Number(e.target.value))}
+              style={{ flex:1, height:3, accentColor:'#fbbf24', cursor:'pointer' }} />
+            <NumInput value={posX} min={-50} max={50} step={1} onChange={(v) => onProp('posX', v)} onCommit={(v) => onCommit('posX', v)} style={{ width:36 }} />
+            <span style={{ fontSize:9, color:'#4a5575' }}>%</span>
+          </PropRow>
+
           <PropRow label="Position Y">
-            <input type="range" min={0} max={90} step={1} value={posY}
+            <input type="range" min={0} max={95} step={1} value={posY}
               onChange={(e) => onProp('posY', Number(e.target.value))}
               onMouseUp={(e) => onCommit('posY', Number(e.target.value))}
               style={{ flex:1, height:3, accentColor:'#fbbf24', cursor:'pointer' }} />
-            <NumInput value={posY} min={0} max={90} step={1} onChange={(v) => onProp('posY', v)} onCommit={(v) => onCommit('posY', v)} style={{ width:36 }} />
+            <NumInput value={posY} min={0} max={95} step={1} onChange={(v) => onProp('posY', v)} onCommit={(v) => onCommit('posY', v)} style={{ width:36 }} />
             <span style={{ fontSize:9, color:'#4a5575' }}>%</span>
+          </PropRow>
+
+          <PropRow label="Nudge">
+            <button onClick={() => onCommit('posX', Math.max(-50, posX - 1))} onMouseDown={(e) => e.stopPropagation()} style={{ flex:1, height:18, borderRadius:3, fontSize:11, cursor:'pointer', border:'1px solid #23293a', background:'#141820', color:'#9aa6b8' }} title="Move left">←</button>
+            <button onClick={() => onCommit('posY', Math.min(95, posY + 1))} onMouseDown={(e) => e.stopPropagation()} style={{ flex:1, height:18, borderRadius:3, fontSize:11, cursor:'pointer', border:'1px solid #23293a', background:'#141820', color:'#9aa6b8' }} title="Move down">↓</button>
+            <button onClick={() => onCommit('posY', Math.max(0, posY - 1))} onMouseDown={(e) => e.stopPropagation()} style={{ flex:1, height:18, borderRadius:3, fontSize:11, cursor:'pointer', border:'1px solid #23293a', background:'#141820', color:'#9aa6b8' }} title="Move up">↑</button>
+            <button onClick={() => onCommit('posX', Math.min(50, posX + 1))} onMouseDown={(e) => e.stopPropagation()} style={{ flex:1, height:18, borderRadius:3, fontSize:11, cursor:'pointer', border:'1px solid #23293a', background:'#141820', color:'#9aa6b8' }} title="Move right">→</button>
+            <button onClick={() => { onCommit('posX', 0); onCommit('posY', 6); }} onMouseDown={(e) => e.stopPropagation()} style={{ flex:1, height:18, borderRadius:3, fontSize:9, cursor:'pointer', border:'1px solid #23293a', background:'#141820', color:'#6c7694' }} title="Reset position">↺</button>
           </PropRow>
 
           {/* ─── Background ─── */}
@@ -1162,6 +1180,7 @@ function TimelineEditor() {
         strokeWidth: Number.isFinite(c.strokeWidth) ? c.strokeWidth : 0,
         shadow: c.shadow !== false,
         effect: c.effect || 'none',
+        posX: Number.isFinite(c.posX) ? c.posX : 0,
         posY: Number.isFinite(c.posY) ? c.posY : 6,
       })),
       allClips: clips.map((c) => mapClip(c)),
