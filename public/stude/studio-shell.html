@@ -55,7 +55,29 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
 #previewExpand:hover{border-color:#5ea9ff;color:#dff0ff}
 #previewExport{border:1px solid #35435a;background:#121a27;color:#a9c9f2;border-radius:5px;font-size:10px;padding:4px 8px;cursor:pointer}
 #previewExport:hover{border-color:#5ea9ff;color:#dff0ff}
-#subtitleOverlay{display:none;position:absolute;bottom:9%;left:5%;right:5%;text-align:center;z-index:5;pointer-events:none;font-size:clamp(11px,1.8vw,17px);line-height:1.5;text-shadow:0 1px 3px #000,0 0 8px #000;color:#fff;font-weight:600;font-family:Inter,Segoe UI,sans-serif;white-space:pre-line;background:rgba(0,0,0,0.45);border-radius:4px;padding:3px 10px;}
+#subtitleOverlay{
+  display:none;
+  position:absolute;
+  bottom:6%;
+  left:4%;
+  right:4%;
+  text-align:center;
+  z-index:10;
+  pointer-events:none;
+  font-size:clamp(12px,2vw,20px);
+  line-height:1.55;
+  color:#fff;
+  font-weight:700;
+  font-family:Inter,Segoe UI,sans-serif;
+  white-space:pre-line;
+  text-shadow:0 1px 6px #000,0 0 16px rgba(0,0,0,0.9),1px 1px 0 #000,-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000;
+  background:rgba(0,0,0,0.55);
+  border-radius:6px;
+  padding:5px 14px 6px;
+  max-width:92%;
+  margin:0 auto;
+  letter-spacing:0.2px;
+}
 #splitter{height:8px;cursor:row-resize;flex-shrink:0;background:#191c22;border-top:1px solid #2a2f38;border-bottom:1px solid #2a2f38;position:relative}
 #splitter:hover,#splitter.dragging{background:#1f2530}
 #splitter::before{content:'';position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:30px;height:2px;background:#7e8da6;box-shadow:0 -4px 0 #7e8da6,0 4px 0 #7e8da6;border-radius:2px}
