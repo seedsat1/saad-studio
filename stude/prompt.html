@@ -305,32 +305,10 @@ function addAiMsg(rawText){
   const chat=document.getElementById('chat');
   const msg=document.createElement('div');
   msg.className='msg ai';
-
-  // Split into intro + main prompt block + negative line
-  const negMatch = rawText.match(/\n\s*Negative\s*:\s*([\s\S]*)$/i);
-  let mainText = rawText;
-  let negText = '';
-  if(negMatch){
-    negText = negMatch[1].trim();
-    mainText = rawText.slice(0, negMatch.index).trim();
-  }
-
-  // If the main text is short (intro + prompt), keep as-is. Otherwise wrap entire thing as a prompt block.
-  const promptBody = mainText;
-
   msg.innerHTML = `
     <div class="msg-avatar">AI</div>
     <div class="msg-body">
-      <div class="msg-bubble">
-        <div style="margin-bottom:6px;color:#a0a8c8;font-size:11px">Generated prompt:</div>
-        <div class="prompt-block">${escHtml(promptBody)}</div>
-        ${negText ? `<div style="margin-top:6px;font-size:10px;color:#fb7185"><strong>Negative:</strong> ${escHtml(negText)}</div>` : ''}
-        <div class="prompt-actions">
-          <button class="pa-btn use" onclick="usePrompt(this)">⚡ Use as Prompt</button>
-          <button class="pa-btn copy" onclick="copyPrompt(this)">📋 Copy</button>
-          <button class="pa-btn regen" onclick="regenLast()">🔄 Regenerate</button>
-        </div>
-      </div>
+      <div class="msg-bubble">${escHtml(rawText)}</div>
     </div>`;
   chat.appendChild(msg);
   chat.scrollTop=chat.scrollHeight;
