@@ -2119,9 +2119,9 @@ function TimelineEditor() {
         const ratio = kind === 'video' ? `${w}:${h}` : '';
         finish(node.duration, ratio);
       };
-      node.onerror = () => finish(5, kind === 'video' ? '16:9' : '');
+      node.onerror = () => finish(0, kind === 'video' ? '16:9' : '');
       node.src = url;
-      setTimeout(() => finish(5, kind === 'video' ? '16:9' : ''), 5000);
+      setTimeout(() => finish(0, kind === 'video' ? '16:9' : ''), 15000);
     });
   };
 
@@ -2257,13 +2257,27 @@ function TimelineEditor() {
       // Then upload to Supabase (shows progress in status bar)
       setImportInfo(`Uploading ${file.name}…`);
       const src = await uploadFileToStorage(file, kind);
+      // If local meta read failed/timed-out (sec=0), try reading from remote URL
+      let finalSec = meta.sec;
+      if (finalSec < 1 && (kind === 'video' || kind === 'audio')) {
+        try {
+          finalSec = await new Promise((res) => {
+            const v = document.createElement(kind === 'audio' ? 'audio' : 'video');
+            v.preload = 'metadata';
+            v.onloadedmetadata = () => res(Number.isFinite(v.duration) && v.duration > 0 ? v.duration : 0);
+            v.onerror = () => res(0);
+            v.src = src;
+            setTimeout(() => res(0), 15000);
+          });
+        } catch (_e) { finalSec = 0; }
+      }
       metas.push({
         name: file.name || `asset_${Date.now()}`,
         kind,
         src,
         ratio: meta.ratio || '',
         hasAudio: !!meta.hasAudio,
-        durFrames: Math.max(MIN_CLIP_FRAMES, Math.round(meta.sec * FPS)),
+        durFrames: finalSec > 0 ? Math.max(MIN_CLIP_FRAMES, Math.round(finalSec * FPS)) : 0,
       });
     }
 
@@ -2274,12 +2288,13 @@ function TimelineEditor() {
         const start = getTrackEnd(next, track);
         const mainId = `imp_${Date.now()}_${Math.floor(Math.random() * 100000)}`;
         const isTimedMedia = m.kind === 'video' || m.kind === 'audio';
+        const hasDur = m.durFrames > 0;
         next.push({
           id: mainId,
           track,
           start: Math.max(0, start),
-          dur: m.durFrames,
-          sourceDur: isTimedMedia ? m.durFrames : null,
+          dur: hasDur ? m.durFrames : MIN_CLIP_FRAMES,
+          sourceDur: (isTimedMedia && hasDur) ? m.durFrames : null,
           label: m.name,
           color: colorByKind(m.kind),
           src: m.src || '',
