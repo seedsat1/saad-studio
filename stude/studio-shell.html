@@ -81,9 +81,10 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
 .subCue{position:relative}
 .subCue.editing{outline:2px dashed #4a9eff;outline-offset:2px}
 .subCue[contenteditable="true"]{cursor:text;user-select:text}
-.clipDragHandle{position:absolute;border:2px dashed rgba(74,158,255,0.9);background:rgba(74,158,255,0.05);cursor:move;pointer-events:auto;z-index:9;box-sizing:border-box}
-.clipDragHandle:hover{background:rgba(74,158,255,0.12)}
-.clipDragHandle .dh-label{position:absolute;top:-18px;left:0;background:#4a9eff;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:3px;white-space:nowrap;font-family:Inter,sans-serif}
+.clipDragHandle{position:absolute;background:transparent;cursor:move;pointer-events:auto;z-index:9;box-sizing:border-box}
+.clipDragHandle .dh-bounds{position:absolute;border:2px dashed rgba(74,158,255,0.9);background:rgba(74,158,255,0.05);box-sizing:border-box;pointer-events:none}
+.clipDragHandle:hover .dh-bounds{background:rgba(74,158,255,0.12)}
+.clipDragHandle .dh-label{position:absolute;background:#4a9eff;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:3px;white-space:nowrap;font-family:Inter,sans-serif;pointer-events:none}
 #splitter{height:8px;cursor:row-resize;flex-shrink:0;background:#191c22;border-top:1px solid #2a2f38;border-bottom:1px solid #2a2f38;position:relative}
 #splitter:hover,#splitter.dragging{background:#1f2530}
 #splitter::before{content:'';position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:30px;height:2px;background:#7e8da6;box-shadow:0 -4px 0 #7e8da6,0 4px 0 #7e8da6;border-radius:2px}
@@ -750,6 +751,8 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
     var selectedId=state && state.selectedClip ? String(state.selectedClip.id||'') : '';
     var visuals=(state && Array.isArray(state.activeVisualClips)) ? state.activeVisualClips : [];
     var keep={};
+    var sr=stage.getBoundingClientRect();
+    var cr=canvas.getBoundingClientRect();
     visuals.forEach(function(clip){
       var id=String(clip.id||'');
       if(!id) return;
@@ -758,12 +761,15 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
       var layer=visualLayerMap[id];
       if(!layer || !layer.node) return;
       var lr=layer.node.getBoundingClientRect();
-      var sr=stage.getBoundingClientRect();
       var h=clipHandlesMap[id];
+      var bounds, lab;
       if(!h){
         h=document.createElement('div');
         h.className='clipDragHandle';
-        var lab=document.createElement('div');
+        bounds=document.createElement('div');
+        bounds.className='dh-bounds';
+        h.appendChild(bounds);
+        lab=document.createElement('div');
         lab.className='dh-label';
         lab.textContent='⤢ '+(clip.label||'Clip');
         h.appendChild(lab);
@@ -771,13 +777,29 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
         clipHandlesMap[id]=h;
         bindClipHandleDrag(h, id);
       } else {
-        var lab2=h.querySelector('.dh-label');
-        if(lab2) lab2.textContent='⤢ '+(clip.label||'Clip');
+        bounds=h.querySelector('.dh-bounds');
+        lab=h.querySelector('.dh-label');
+        if(lab) lab.textContent='⤢ '+(clip.label||'Clip');
       }
-      h.style.left=(lr.left-sr.left)+'px';
-      h.style.top=(lr.top-sr.top)+'px';
-      h.style.width=lr.width+'px';
-      h.style.height=lr.height+'px';
+      // Drag area = entire preview canvas (free movement, no clipping)
+      h.style.left=(cr.left-sr.left)+'px';
+      h.style.top=(cr.top-sr.top)+'px';
+      h.style.width=cr.width+'px';
+      h.style.height=cr.height+'px';
+      // Inner dashed box = actual image bounds (visual indicator only)
+      if(bounds){
+        bounds.style.left=(lr.left-cr.left)+'px';
+        bounds.style.top=(lr.top-cr.top)+'px';
+        bounds.style.width=lr.width+'px';
+        bounds.style.height=lr.height+'px';
+      }
+      // Label hugs the image's top-left, clamped inside the handle
+      if(lab){
+        var labLeft=Math.max(0,Math.min(cr.width-60,(lr.left-cr.left)));
+        var labTop=Math.max(0,(lr.top-cr.top)-18);
+        lab.style.left=labLeft+'px';
+        lab.style.top=labTop+'px';
+      }
       h.dataset.startPx=String(Number((clip.motion&&clip.motion.px)||0));
       h.dataset.startPy=String(Number((clip.motion&&clip.motion.py)||0));
     });
@@ -808,10 +830,24 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
         // Live visual: also nudge the layer transform for instant feedback
         var layer=visualLayerMap[clipId];
         if(layer && layer.node) layer.node.style.transform='translate('+lastPx+'px,'+lastPy+'px)';
+        // Move the dashed indicator with the image (delta from start)
+        var bounds=handle.querySelector('.dh-bounds');
+        if(bounds){
+          var bx=parseFloat(bounds.dataset.baseLeft||bounds.style.left)||0;
+          var by=parseFloat(bounds.dataset.baseTop||bounds.style.top)||0;
+          if(!bounds.dataset.baseLeft){
+            bounds.dataset.baseLeft=String(bx);
+            bounds.dataset.baseTop=String(by);
+          }
+          bounds.style.left=(parseFloat(bounds.dataset.baseLeft)+(lastPx-startPx))+'px';
+          bounds.style.top=(parseFloat(bounds.dataset.baseTop)+(lastPy-startPy))+'px';
+        }
       }
       function onUp(){
         document.removeEventListener('mousemove', onMove);
         document.removeEventListener('mouseup', onUp);
+        var bounds=handle.querySelector('.dh-bounds');
+        if(bounds){ delete bounds.dataset.baseLeft; delete bounds.dataset.baseTop; }
         if(moved){
           postToTimeline({ type:'ff:setClipProp', clipId:clipId, key:'motion.px', value:lastPx, commit:true });
           postToTimeline({ type:'ff:setClipProp', clipId:clipId, key:'motion.py', value:lastPy, commit:true });
