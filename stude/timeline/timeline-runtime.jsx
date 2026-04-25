@@ -1246,7 +1246,8 @@ function TimelineEditor() {
     const mapClip = (c) => {
       if (!c) return null;
       const tr = tracks[c.track];
-      return {
+      const isSub = c.kind === 'subtitle' || tr?.type === 'subtitle';
+      const base = {
         id: c.id,
         label: c.label,
         track: c.track,
@@ -1263,6 +1264,25 @@ function TimelineEditor() {
         cropRect: c.cropRect || null,
         trackVolume: Number.isFinite(tr?.volume) ? tr.volume : 1,
       };
+      if (isSub) {
+        base.textColor = c.textColor || '#ffffff';
+        base.fontFamily = c.fontFamily || 'Inter';
+        base.fontSize = Number.isFinite(c.fontSize) ? c.fontSize : 22;
+        base.bold = c.bold !== false;
+        base.italic = !!c.italic;
+        base.underline = !!c.underline;
+        base.align = c.align || 'center';
+        base.bgEnabled = c.bgEnabled !== false;
+        base.bgColor = c.bgColor || '#000000';
+        base.bgOpacity = Number.isFinite(c.bgOpacity) ? c.bgOpacity : 55;
+        base.strokeColor = c.strokeColor || '#000000';
+        base.strokeWidth = Number.isFinite(c.strokeWidth) ? c.strokeWidth : 0;
+        base.shadow = c.shadow !== false;
+        base.effect = c.effect || 'none';
+        base.posX = Number.isFinite(c.posX) ? c.posX : 0;
+        base.posY = Number.isFinite(c.posY) ? c.posY : 6;
+      }
+      return base;
     };
 
     const selectedMapped = mapClip(selectedClip);
@@ -1309,7 +1329,7 @@ function TimelineEditor() {
       })),
       allClips: clips.map((c) => mapClip(c)),
       clipsCount: clips.length,
-      tracks: tracks.map((t) => ({ id: t.id, type: t.type, muted: t.muted, solo: t.solo, volume: t.volume ?? 1 })),
+      tracks: tracks.map((t) => ({ id: t.id, type: t.type, muted: t.muted, solo: t.solo, volume: t.volume ?? 1, visible: t.visible !== false, locked: !!t.locked })),
       projectRatio,
     };
     try {

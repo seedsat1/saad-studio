@@ -1187,6 +1187,108 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
     ctx.restore();
   }
 
+  // ── Draw a single subtitle cue onto the render canvas ──────────
+  function drawSubtitleFrame(ctx, cue, W, H){
+    var text=String(cue.label||cue.text||''); if(!text) return;
+    var fontFamily=cue.fontFamily||'Inter';
+    try{ ensureFontLoaded(fontFamily); }catch(_e){}
+    // Scale font: preview uses px on a smaller stage; multiply by H/720 so 1080p looks right
+    var baseFs=isFinite(Number(cue.fontSize))?Number(cue.fontSize):22;
+    var fs=Math.round(baseFs*(H/720));
+    var bold=cue.bold!==false, italic=!!cue.italic;
+    var color=cue.textColor||'#ffffff';
+    var bgEnabled=cue.bgEnabled!==false;
+    var bgColor=cue.bgColor||'#000000';
+    var bgOp=isFinite(Number(cue.bgOpacity))?Number(cue.bgOpacity)/100:0.55;
+    var stroke=Number(cue.strokeWidth)||0;
+    var strokeColor=cue.strokeColor||'#000000';
+    var shadow=cue.shadow!==false;
+    var op=isFinite(Number(cue.opacity))?Number(cue.opacity)/100:1;
+    var align=cue.align||'center';
+    var posX=Number(cue.posX)||0;
+    var posY=isFinite(Number(cue.posY))?Number(cue.posY):6;
+    var underline=!!cue.underline;
+
+    ctx.save();
+    ctx.globalAlpha=Math.max(0,Math.min(1,op));
+    var weight=bold?'700':'400';
+    var style=italic?'italic ':'';
+    ctx.font=style+weight+' '+fs+'px "'+fontFamily.replace(/"/g,'')+'", Inter, "Segoe UI", sans-serif';
+    ctx.textBaseline='alphabetic';
+
+    // Layout: container = 92% width, centered, bottom anchored at posY% of H
+    var marginX=W*0.04;
+    var contW=W-marginX*2;
+    // Wrap by spaces to fit 92% width
+    var words=text.split(/\s+/);
+    var lines=[]; var cur='';
+    for(var wi=0;wi<words.length;wi++){
+      var trial=cur?cur+' '+words[wi]:words[wi];
+      if(ctx.measureText(trial).width>contW && cur){ lines.push(cur); cur=words[wi]; }
+      else cur=trial;
+    }
+    if(cur) lines.push(cur);
+    if(!lines.length) lines=[text];
+
+    var lineH=Math.round(fs*1.45);
+    var padX=bgEnabled?Math.round(fs*0.55):0;
+    var padY=bgEnabled?Math.round(fs*0.25):0;
+    var totalH=lines.length*lineH;
+    // Bottom edge of last line
+    var bottomY=H-(posY/100)*H;
+    var firstBaseline=bottomY-totalH+Math.round(fs*0.95);
+    var shiftX=(posX/100)*contW;
+
+    for(var li=0;li<lines.length;li++){
+      var line=lines[li];
+      var tw=ctx.measureText(line).width;
+      var x;
+      if(align==='left') x=marginX+shiftX;
+      else if(align==='right') x=W-marginX-tw+shiftX;
+      else x=(W-tw)/2+shiftX;
+      var baseY=firstBaseline+li*lineH;
+      // Background box
+      if(bgEnabled){
+        var rgba=hex2rgba(bgColor,bgOp);
+        ctx.fillStyle=rgba;
+        var bgX=x-padX, bgY=baseY-Math.round(fs*0.95)-padY;
+        var bgW=tw+padX*2, bgH=Math.round(fs*1.2)+padY*2;
+        var r=Math.min(8,bgH/4);
+        if(ctx.roundRect){ ctx.beginPath(); ctx.roundRect(bgX,bgY,bgW,bgH,r); ctx.fill(); }
+        else { ctx.fillRect(bgX,bgY,bgW,bgH); }
+      }
+      // Shadow
+      if(shadow){
+        ctx.save();
+        ctx.shadowColor='rgba(0,0,0,0.85)';
+        ctx.shadowBlur=Math.round(fs*0.35);
+        ctx.shadowOffsetY=Math.round(fs*0.1);
+      }
+      // Stroke (outline)
+      if(stroke>0){
+        ctx.strokeStyle=strokeColor;
+        ctx.lineWidth=Math.max(1,Math.round(stroke*(H/720)*1.5));
+        ctx.lineJoin='round';
+        ctx.miterLimit=2;
+        ctx.strokeText(line,x,baseY);
+      }
+      ctx.fillStyle=color;
+      ctx.fillText(line,x,baseY);
+      if(shadow) ctx.restore();
+      if(underline){
+        ctx.save();
+        ctx.strokeStyle=color;
+        ctx.lineWidth=Math.max(1,Math.round(fs*0.06));
+        ctx.beginPath();
+        ctx.moveTo(x,baseY+Math.round(fs*0.18));
+        ctx.lineTo(x+tw,baseY+Math.round(fs*0.18));
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+    ctx.restore();
+  }
+
   // ── PRIMARY: GPU-accelerated WebCodecs render ───────────────────
   // Uses: VideoEncoder (H.264 hardware), OfflineAudioContext, mp4-muxer
   // Same pipeline as DaVinci/Premiere: GPU encodes each frame from Canvas
@@ -1220,6 +1322,12 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
       var audioClips=allClips.filter(function(c){
         var tr=tracks[c.track];
         return tr&&tr.type==='audio'&&!tr.muted&&c.url;
+      });
+
+      // Subtitle cues (drawn on top of video each frame)
+      var subtitleCues=allClips.filter(function(c){
+        var tr=tracks[c.track];
+        return tr&&tr.type==='subtitle'&&tr.visible!==false&&!tr.muted;
       });
 
       var maxEnd=allClips.reduce(function(a,c){return Math.max(a,c.start+c.dur);},0);
@@ -1265,7 +1373,13 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
         pLabel.textContent='Loading '+(ui+1)+'/'+uniqueUrls.length+'…';
         try{
           var ext=url.split('?')[0].split('.').pop().toLowerCase();
-          var isImg=['jpg','jpeg','png','webp','gif','bmp','svg','avif'].includes(ext);
+          var imgExts=['jpg','jpeg','png','webp','gif','bmp','svg','avif'];
+          // Detect kind from clip data when extension is missing (blob: URLs)
+          var clipForUrl=videoClips.find(function(c){return c.url===url;});
+          var clipKind=String((clipForUrl&&clipForUrl.kind)||'').toLowerCase();
+          var isImg=imgExts.includes(ext)
+            || clipKind==='image'||clipKind==='psd'||clipKind==='logo'
+            || (clipForUrl && clipForUrl.url && /^data:image\//i.test(clipForUrl.url));
           if(isImg){
             var img=new Image();
             img.crossOrigin='anonymous';
@@ -1306,6 +1420,16 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
             }
           }
           try{drawClipFrame(ctx,media,clip,W,H);}catch(de){console.warn(de);}
+        }
+
+        // Draw active subtitles on top
+        if(subtitleCues.length){
+          var activeSubs=subtitleCues.filter(function(c){
+            return t>=c.start/FPS && t<(c.start+c.dur)/FPS;
+          });
+          for(var si=0;si<activeSubs.length;si++){
+            try{drawSubtitleFrame(ctx,activeSubs[si],W,H);}catch(se){console.warn('[render sub]',se);}
+          }
         }
 
         // VideoFrame → hardware encoder
