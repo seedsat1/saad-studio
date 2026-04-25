@@ -191,6 +191,54 @@ function formatTC(frame) {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}:${String(f).padStart(2, '0')}`;
 }
 
+/* ═══════════════ Keyframe System (Adobe-style) ═══════════════ */
+// clip.kfs = { 'motion.px': [{f: localFrame, v: value}, ...], ... }
+// Frames are LOCAL to the clip (relative to clip.start) so animation moves with clip.
+
+const KF_KEYS = ['motion.px','motion.py','motion.sx','motion.sy','motion.rot','motion.ax','motion.ay','opacity','cropRect.l','cropRect.t','cropRect.r','cropRect.b'];
+
+function getKfArray(clip, key) {
+  const arr = clip && clip.kfs && clip.kfs[key];
+  return Array.isArray(arr) && arr.length ? arr : null;
+}
+
+function evalKfArray(arr, localFrame) {
+  if (!arr || !arr.length) return undefined;
+  if (arr.length === 1) return arr[0].v;
+  // arr is kept sorted by .f on insert
+  if (localFrame <= arr[0].f) return arr[0].v;
+  const last = arr[arr.length - 1];
+  if (localFrame >= last.f) return last.v;
+  for (let i = 0; i < arr.length - 1; i++) {
+    const a = arr[i], b = arr[i + 1];
+    if (localFrame >= a.f && localFrame <= b.f) {
+      if (b.f === a.f) return b.v;
+      const t = (localFrame - a.f) / (b.f - a.f);
+      return a.v + (b.v - a.v) * t; // linear interpolation
+    }
+  }
+  return last.v;
+}
+
+function evalKfClip(clip, key, currentFrame, fallback) {
+  const arr = getKfArray(clip, key);
+  if (!arr) return fallback;
+  const localF = (Number(currentFrame) || 0) - (Number(clip.start) || 0);
+  const v = evalKfArray(arr, localF);
+  return v === undefined ? fallback : v;
+}
+
+// Read current static value from clip for a dotted key (e.g. 'motion.px')
+function readClipKey(clip, key) {
+  if (!clip) return undefined;
+  if (key.includes('.')) {
+    const [g, f] = key.split('.');
+    return clip[g] ? clip[g][f] : undefined;
+  }
+  return clip[key];
+}
+
+
 function parseSRT(text) {
   const toSec = (ts) => {
     const m = ts.replace(',', '.').match(/(\d+):(\d+):(\d+)[.,](\d+)/);
@@ -305,23 +353,53 @@ function PropRow({ label, children }) {
   );
 }
 
-/* Adobe-style row: stopwatch | label | values | reset */
-function AdobeRow({ label, children, isDefault, onReset, indent=14, dim=false }) {
+/* Adobe-style row: stopwatch | label | values | reset
+   When kfKey + handlers passed, becomes keyframe-aware */
+function AdobeRow({ label, children, isDefault, onReset, indent=14, dim=false,
+                    kfKey, clip, currentFrame, onToggleStopwatch, onRemoveKeyframe, onGotoKeyframe }) {
+  const arr = clip && kfKey ? getKfArray(clip, kfKey) : null;
+  const animated = !!arr;
+  const localF = clip ? Math.round((Number(currentFrame) || 0) - (Number(clip.start) || 0)) : 0;
+  const onKf = animated && arr.some((k) => k.f === localF);
+  const hasPrev = animated && arr.some((k) => k.f < localF);
+  const hasNext = animated && arr.some((k) => k.f > localF);
   return (
-    <div style={{ display:'flex', alignItems:'center', minHeight:22, borderBottom:'1px solid #15171d', padding:'1px 0', background: dim ? '#0c0e13' : 'transparent' }}>
-      <span title="Toggle animation (coming soon)" style={{ width:14, flexShrink:0, display:'flex', justifyContent:'center', cursor:'not-allowed', opacity:0.35, fontSize:10 }}>⏱</span>
+    <div style={{ display:'flex', alignItems:'center', minHeight:22, borderBottom:'1px solid #15171d', padding:'1px 0', background: dim ? '#0c0e13' : (animated ? '#0c1a26' : 'transparent') }}>
+      <button
+        onClick={(e) => { e.stopPropagation(); if (kfKey && onToggleStopwatch) onToggleStopwatch(kfKey); }}
+        onMouseDown={(e) => e.stopPropagation()}
+        title={animated ? 'Animation ON — click to remove all keyframes' : 'Toggle animation'}
+        disabled={!kfKey}
+        style={{
+          width:14, flexShrink:0, display:'flex', justifyContent:'center', alignItems:'center',
+          cursor: kfKey ? 'pointer' : 'not-allowed',
+          opacity: kfKey ? 1 : 0.35,
+          color: animated ? '#5dabf2' : '#6c7694',
+          background:'transparent', border:'none', fontSize:11, padding:0, height:18,
+        }}
+      >{animated ? '◉' : '⏱'}</button>
       <span style={{ flexShrink:0, width:1, height:14, background:'#23293a', marginRight:4 }} />
-      <span style={{ width:90, flexShrink:0, fontSize:10, color: dim ? '#3d4456' : '#9aa6b8', paddingLeft:indent-14, userSelect:'none', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{label}</span>
+      <span style={{ width:80, flexShrink:0, fontSize:10, color: dim ? '#3d4456' : (animated ? '#9dcfff' : '#9aa6b8'), paddingLeft:indent-14, userSelect:'none', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{label}</span>
       <div style={{ flex:1, display:'flex', alignItems:'center', gap:4, paddingRight:4, opacity: dim ? 0.5 : 1 }}>{children}</div>
+      {animated && (
+        <div style={{ display:'flex', alignItems:'center', gap:1, marginRight:2 }}>
+          <button onClick={(e) => { e.stopPropagation(); onGotoKeyframe && onGotoKeyframe(kfKey, 'prev'); }} onMouseDown={(e) => e.stopPropagation()} disabled={!hasPrev} title="Previous keyframe"
+            style={{ width:14, height:16, padding:0, background:'transparent', border:'none', color: hasPrev ? '#9dcfff' : '#2a3040', cursor: hasPrev ? 'pointer' : 'default', fontSize:10 }}>◀</button>
+          <button onClick={(e) => { e.stopPropagation(); if (onKf) onRemoveKeyframe && onRemoveKeyframe(kfKey); }} onMouseDown={(e) => e.stopPropagation()} title={onKf ? 'Remove keyframe at playhead' : 'Add keyframe at playhead'}
+            style={{ width:14, height:16, padding:0, background:'transparent', border:'none', color: onKf ? '#ffb84a' : '#9dcfff', cursor:'pointer', fontSize:11 }}>{onKf ? '◆' : '◇'}</button>
+          <button onClick={(e) => { e.stopPropagation(); onGotoKeyframe && onGotoKeyframe(kfKey, 'next'); }} onMouseDown={(e) => e.stopPropagation()} disabled={!hasNext} title="Next keyframe"
+            style={{ width:14, height:16, padding:0, background:'transparent', border:'none', color: hasNext ? '#9dcfff' : '#2a3040', cursor: hasNext ? 'pointer' : 'default', fontSize:10 }}>▶</button>
+        </div>
+      )}
       <button
         onClick={onReset}
         onMouseDown={(e) => e.stopPropagation()}
         title="Reset"
-        disabled={isDefault}
+        disabled={isDefault && !animated}
         style={{
           width:18, height:18, flexShrink:0, marginRight:4,
-          background:'transparent', border:'none', cursor: isDefault?'default':'pointer',
-          color: isDefault?'#2a3040':'#6c7694', fontSize:11, padding:0,
+          background:'transparent', border:'none', cursor: (isDefault && !animated) ? 'default' : 'pointer',
+          color: (isDefault && !animated) ? '#2a3040' : '#6c7694', fontSize:11, padding:0,
         }}
       >↺</button>
     </div>
@@ -471,10 +549,20 @@ function SectionHeader({ label, open, onToggle, color='#4a9eff' }) {
   );
 }
 
-function EffectControls({ clip, onProp, onCommit, onFitMode, onExpand }) {
+function EffectControls({ clip, onProp, onCommit, onFitMode, onExpand,
+                          currentFrame, onToggleStopwatch, onSetKeyframe, onRemoveKeyframe, onGotoKeyframe }) {
   const [openMotion, setOpenMotion] = React.useState(true);
   const [openOpacity, setOpenOpacity] = React.useState(true);
   const [openCrop, setOpenCrop] = React.useState(false);
+
+  // Smart commit: if property is animated, write keyframe at playhead instead of static value
+  const smartCommit = React.useCallback((key, val) => {
+    if (clip && clip.kfs && clip.kfs[key] && onSetKeyframe) {
+      onSetKeyframe(key, val);
+    } else {
+      onCommit(key, val);
+    }
+  }, [clip, onSetKeyframe, onCommit]);
 
   if (!clip) {
     return (
@@ -501,6 +589,20 @@ function EffectControls({ clip, onProp, onCommit, onFitMode, onExpand }) {
   const cropT = Number.isFinite(cr.t) ? cr.t : 0;
   const cropR = Number.isFinite(cr.r) ? cr.r : 0;
   const cropB = Number.isFinite(cr.b) ? cr.b : 0;
+
+  // Effective values at current playhead (interpolated from keyframes if any)
+  const ePx = evalKfClip(clip, 'motion.px', currentFrame, px);
+  const ePy = evalKfClip(clip, 'motion.py', currentFrame, py);
+  const eSx = evalKfClip(clip, 'motion.sx', currentFrame, sx);
+  const eSy = evalKfClip(clip, 'motion.sy', currentFrame, sy);
+  const eRot = evalKfClip(clip, 'motion.rot', currentFrame, rot);
+  const eAx = evalKfClip(clip, 'motion.ax', currentFrame, ax);
+  const eAy = evalKfClip(clip, 'motion.ay', currentFrame, ay);
+  const eOpacity = evalKfClip(clip, 'opacity', currentFrame, opacity);
+  const eCropL = evalKfClip(clip, 'cropRect.l', currentFrame, cropL);
+  const eCropT = evalKfClip(clip, 'cropRect.t', currentFrame, cropT);
+  const eCropR = evalKfClip(clip, 'cropRect.r', currentFrame, cropR);
+  const eCropB = evalKfClip(clip, 'cropRect.b', currentFrame, cropB);
   const isVisual = (() => {
     const k = String(clip.kind || '');
     if (['video','image','psd','gif'].includes(k)) return true;
@@ -805,15 +907,25 @@ function EffectControls({ clip, onProp, onCommit, onFitMode, onExpand }) {
             <SectionHeader label="fx  Motion" open={openMotion} onToggle={() => setOpenMotion(v => !v)} />
             {openMotion && (
               <>
-                <AdobeRow label="Position" isDefault={px===0 && py===0} onReset={() => { onCommit('motion.px', 0); onCommit('motion.py', 0); }}>
-                  <AdobeNum value={px} step={1} onChange={(v) => onProp('motion.px', v)} onCommit={(v) => onCommit('motion.px', v)} />
-                  <AdobeNum value={py} step={1} onChange={(v) => onProp('motion.py', v)} onCommit={(v) => onCommit('motion.py', v)} />
+                <AdobeRow label="Position" isDefault={ePx===0 && ePy===0} onReset={() => { onCommit('motion.px', 0); onCommit('motion.py', 0); }}
+                  kfKey="motion.px" clip={clip} currentFrame={currentFrame}
+                  onToggleStopwatch={(k) => { onToggleStopwatch && onToggleStopwatch('motion.px'); onToggleStopwatch && onToggleStopwatch('motion.py'); }}
+                  onRemoveKeyframe={(k) => { onRemoveKeyframe && onRemoveKeyframe('motion.px'); onRemoveKeyframe && onRemoveKeyframe('motion.py'); }}
+                  onGotoKeyframe={onGotoKeyframe}>
+                  <AdobeNum value={ePx} step={1} onChange={(v) => onProp('motion.px', v)} onCommit={(v) => smartCommit('motion.px', v)} />
+                  <AdobeNum value={ePy} step={1} onChange={(v) => onProp('motion.py', v)} onCommit={(v) => smartCommit('motion.py', v)} />
                 </AdobeRow>
-                <AdobeRow label="Scale" isDefault={sx===100 && sy===100} onReset={() => { onCommit('motion.sx', 100); onCommit('motion.sy', 100); }}>
-                  <AdobeNum value={sx} min={0} max={400} step={1} onChange={(v) => { onProp('motion.sx', v); if(uniformScale) onProp('motion.sy', v); }} onCommit={(v) => { onCommit('motion.sx', v); if(uniformScale) onCommit('motion.sy', v); }} />
+                <AdobeRow label="Scale" isDefault={eSx===100 && eSy===100} onReset={() => { onCommit('motion.sx', 100); onCommit('motion.sy', 100); }}
+                  kfKey="motion.sx" clip={clip} currentFrame={currentFrame}
+                  onToggleStopwatch={(k) => { onToggleStopwatch && onToggleStopwatch('motion.sx'); if(uniformScale) onToggleStopwatch && onToggleStopwatch('motion.sy'); }}
+                  onRemoveKeyframe={(k) => { onRemoveKeyframe && onRemoveKeyframe('motion.sx'); if(uniformScale) onRemoveKeyframe && onRemoveKeyframe('motion.sy'); }}
+                  onGotoKeyframe={onGotoKeyframe}>
+                  <AdobeNum value={eSx} min={0} max={400} step={1} onChange={(v) => { onProp('motion.sx', v); if(uniformScale) onProp('motion.sy', v); }} onCommit={(v) => { smartCommit('motion.sx', v); if(uniformScale) smartCommit('motion.sy', v); }} />
                 </AdobeRow>
-                <AdobeRow label="Scale Width" dim={uniformScale} isDefault={sy===100} onReset={() => onCommit('motion.sy', 100)}>
-                  <AdobeNum value={sy} min={0} max={400} step={1} onChange={(v) => { if(!uniformScale) onProp('motion.sy', v); }} onCommit={(v) => { if(!uniformScale) onCommit('motion.sy', v); }} />
+                <AdobeRow label="Scale Width" dim={uniformScale} isDefault={eSy===100} onReset={() => onCommit('motion.sy', 100)}
+                  kfKey="motion.sy" clip={clip} currentFrame={currentFrame}
+                  onToggleStopwatch={onToggleStopwatch} onRemoveKeyframe={onRemoveKeyframe} onGotoKeyframe={onGotoKeyframe}>
+                  <AdobeNum value={eSy} min={0} max={400} step={1} onChange={(v) => { if(!uniformScale) onProp('motion.sy', v); }} onCommit={(v) => { if(!uniformScale) smartCommit('motion.sy', v); }} />
                 </AdobeRow>
                 <div style={{ display:'flex', alignItems:'center', minHeight:22, borderBottom:'1px solid #15171d', paddingLeft:34 }}>
                   <label style={{ display:'flex', alignItems:'center', gap:5, fontSize:10, color:'#9aa6b8', cursor:'pointer', userSelect:'none' }} onMouseDown={(e) => e.stopPropagation()}>
@@ -821,12 +933,18 @@ function EffectControls({ clip, onProp, onCommit, onFitMode, onExpand }) {
                     Uniform Scale
                   </label>
                 </div>
-                <AdobeRow label="Rotation" isDefault={rot===0} onReset={() => onCommit('motion.rot', 0)}>
-                  <AdobeNum value={rot} min={-3600} max={3600} step={0.5} onChange={(v) => onProp('motion.rot', v)} onCommit={(v) => onCommit('motion.rot', v)} suffix="°" />
+                <AdobeRow label="Rotation" isDefault={eRot===0} onReset={() => onCommit('motion.rot', 0)}
+                  kfKey="motion.rot" clip={clip} currentFrame={currentFrame}
+                  onToggleStopwatch={onToggleStopwatch} onRemoveKeyframe={onRemoveKeyframe} onGotoKeyframe={onGotoKeyframe}>
+                  <AdobeNum value={eRot} min={-3600} max={3600} step={0.5} onChange={(v) => onProp('motion.rot', v)} onCommit={(v) => smartCommit('motion.rot', v)} suffix="°" />
                 </AdobeRow>
-                <AdobeRow label="Anchor Point" isDefault={ax===50 && ay===50} onReset={() => { onCommit('motion.ax', 50); onCommit('motion.ay', 50); }}>
-                  <AdobeNum value={ax} min={0} max={100} step={0.5} onChange={(v) => onProp('motion.ax', v)} onCommit={(v) => onCommit('motion.ax', v)} />
-                  <AdobeNum value={ay} min={0} max={100} step={0.5} onChange={(v) => onProp('motion.ay', v)} onCommit={(v) => onCommit('motion.ay', v)} />
+                <AdobeRow label="Anchor Point" isDefault={eAx===50 && eAy===50} onReset={() => { onCommit('motion.ax', 50); onCommit('motion.ay', 50); }}
+                  kfKey="motion.ax" clip={clip} currentFrame={currentFrame}
+                  onToggleStopwatch={(k) => { onToggleStopwatch && onToggleStopwatch('motion.ax'); onToggleStopwatch && onToggleStopwatch('motion.ay'); }}
+                  onRemoveKeyframe={(k) => { onRemoveKeyframe && onRemoveKeyframe('motion.ax'); onRemoveKeyframe && onRemoveKeyframe('motion.ay'); }}
+                  onGotoKeyframe={onGotoKeyframe}>
+                  <AdobeNum value={eAx} min={0} max={100} step={0.5} onChange={(v) => onProp('motion.ax', v)} onCommit={(v) => smartCommit('motion.ax', v)} />
+                  <AdobeNum value={eAy} min={0} max={100} step={0.5} onChange={(v) => onProp('motion.ay', v)} onCommit={(v) => smartCommit('motion.ay', v)} />
                 </AdobeRow>
               </>
             )}
@@ -837,8 +955,10 @@ function EffectControls({ clip, onProp, onCommit, onFitMode, onExpand }) {
         <SectionHeader label="fx  Opacity" open={openOpacity} onToggle={() => setOpenOpacity(v => !v)} color='#c3a2ff' />
         {openOpacity && (
           <>
-            <AdobeRow label="Opacity" isDefault={opacity===100} onReset={() => onCommit('opacity', 100)}>
-              <AdobeNum value={opacity} min={0} max={100} step={1} onChange={(v) => onProp('opacity', v)} onCommit={(v) => onCommit('opacity', v)} suffix=" %" />
+            <AdobeRow label="Opacity" isDefault={eOpacity===100} onReset={() => onCommit('opacity', 100)}
+              kfKey="opacity" clip={clip} currentFrame={currentFrame}
+              onToggleStopwatch={onToggleStopwatch} onRemoveKeyframe={onRemoveKeyframe} onGotoKeyframe={onGotoKeyframe}>
+              <AdobeNum value={eOpacity} min={0} max={100} step={1} onChange={(v) => onProp('opacity', v)} onCommit={(v) => smartCommit('opacity', v)} suffix=" %" />
             </AdobeRow>
             {isVisual && (
               <div style={{ display:'flex', alignItems:'center', minHeight:22, borderBottom:'1px solid #15171d', paddingLeft:34 }}>
@@ -858,10 +978,12 @@ function EffectControls({ clip, onProp, onCommit, onFitMode, onExpand }) {
             {openCrop && ['Left','Top','Right','Bottom'].map((side) => {
               const k = side[0].toLowerCase();
               const key = `cropRect.${k}`;
-              const val = { Left:cropL, Top:cropT, Right:cropR, Bottom:cropB }[side];
+              const val = { Left:eCropL, Top:eCropT, Right:eCropR, Bottom:eCropB }[side];
               return (
-                <AdobeRow key={side} label={`Crop ${side}`} isDefault={val===0} onReset={() => onCommit(key, 0)}>
-                  <AdobeNum value={val} min={0} max={100} step={0.5} onChange={(v) => onProp(key, v)} onCommit={(v) => onCommit(key, v)} suffix=" %" />
+                <AdobeRow key={side} label={`Crop ${side}`} isDefault={val===0} onReset={() => onCommit(key, 0)}
+                  kfKey={key} clip={clip} currentFrame={currentFrame}
+                  onToggleStopwatch={onToggleStopwatch} onRemoveKeyframe={onRemoveKeyframe} onGotoKeyframe={onGotoKeyframe}>
+                  <AdobeNum value={val} min={0} max={100} step={0.5} onChange={(v) => onProp(key, v)} onCommit={(v) => smartCommit(key, v)} suffix=" %" />
                 </AdobeRow>
               );
             })}
@@ -1328,6 +1450,28 @@ function TimelineEditor() {
       if (!c) return null;
       const tr = tracks[c.track];
       const isSub = c.kind === 'subtitle' || tr?.type === 'subtitle';
+      // Evaluate keyframed motion/opacity/crop at current playhead frame
+      const baseMotion = c.motion || {};
+      let motion = baseMotion;
+      let opacity = Number.isFinite(c.opacity) ? c.opacity : 100;
+      let cropRect = c.cropRect || null;
+      if (c.kfs) {
+        motion = { ...baseMotion };
+        ['px','py','sx','sy','rot','ax','ay'].forEach((k) => {
+          const v = evalKfClip(c, 'motion.' + k, frame, undefined);
+          if (v !== undefined) motion[k] = v;
+        });
+        const op = evalKfClip(c, 'opacity', frame, undefined);
+        if (op !== undefined) opacity = op;
+        const baseCrop = c.cropRect || {};
+        const newCrop = { ...baseCrop };
+        let cropChanged = false;
+        ['l','t','r','b'].forEach((k) => {
+          const v = evalKfClip(c, 'cropRect.' + k, frame, undefined);
+          if (v !== undefined) { newCrop[k] = v; cropChanged = true; }
+        });
+        if (cropChanged) cropRect = newCrop;
+      }
       const base = {
         id: c.id,
         label: c.label,
@@ -1339,11 +1483,12 @@ function TimelineEditor() {
         dur: c.dur,
         lighting: normalizeLightingProfile(c.lighting),
         fitMode: c.fitMode || 'fit',
-        motion: c.motion || null,
-        opacity: Number.isFinite(c.opacity) ? c.opacity : 100,
+        motion,
+        opacity,
         blendMode: c.blendMode || 'Normal',
-        cropRect: c.cropRect || null,
+        cropRect,
         trackVolume: Number.isFinite(tr?.volume) ? tr.volume : 1,
+        kfs: c.kfs || null,
       };
       if (isSub) {
         base.textColor = c.textColor || '#ffffff';
@@ -1717,6 +1862,75 @@ function TimelineEditor() {
   const commitClipProp = (clipId, key, value) => {
     pushUndoSnapshot();
     setClipProp(clipId, key, value);
+  };
+
+  /* ─── Keyframe ops (Adobe-style) ─── */
+  const toggleStopwatch = (clipId, key) => {
+    pushUndoSnapshot();
+    setClips((prev) => prev.map((c) => {
+      if (c.id !== clipId) return c;
+      const kfs = { ...(c.kfs || {}) };
+      if (kfs[key]) {
+        delete kfs[key];
+        // Optional: bake last evaluated value back into static prop here
+        const newKfs = Object.keys(kfs).length ? kfs : undefined;
+        const next = { ...c };
+        if (newKfs) next.kfs = newKfs; else delete next.kfs;
+        return next;
+      }
+      // Initialise with current static value at current playhead (local frame)
+      const localF = Math.max(0, Math.round(playhead - (c.start || 0)));
+      const currVal = readClipKey(c, key);
+      kfs[key] = [{ f: localF, v: Number.isFinite(currVal) ? currVal : 0 }];
+      return { ...c, kfs };
+    }));
+  };
+
+  const upsertKeyframe = (clipId, key, value) => {
+    pushUndoSnapshot();
+    setClips((prev) => prev.map((c) => {
+      if (c.id !== clipId) return c;
+      const kfs = { ...(c.kfs || {}) };
+      const arr = [...(kfs[key] || [])];
+      const localF = Math.max(0, Math.round(playhead - (c.start || 0)));
+      const idx = arr.findIndex((k) => k.f === localF);
+      if (idx >= 0) arr[idx] = { f: localF, v: value };
+      else arr.push({ f: localF, v: value });
+      arr.sort((a, b) => a.f - b.f);
+      kfs[key] = arr;
+      return { ...c, kfs };
+    }));
+  };
+
+  const removeKeyframeAtPlayhead = (clipId, key) => {
+    pushUndoSnapshot();
+    setClips((prev) => prev.map((c) => {
+      if (c.id !== clipId) return c;
+      const kfs = { ...(c.kfs || {}) };
+      const arr = (kfs[key] || []).slice();
+      const localF = Math.max(0, Math.round(playhead - (c.start || 0)));
+      const idx = arr.findIndex((k) => k.f === localF);
+      if (idx < 0) return c;
+      arr.splice(idx, 1);
+      if (arr.length) kfs[key] = arr; else delete kfs[key];
+      const next = { ...c };
+      if (Object.keys(kfs).length) next.kfs = kfs; else delete next.kfs;
+      return next;
+    }));
+  };
+
+  const goToAdjacentKeyframe = (clipId, key, direction) => {
+    const c = clips.find((cl) => cl.id === clipId);
+    if (!c || !c.kfs || !c.kfs[key]) return;
+    const arr = c.kfs[key];
+    const localF = playhead - (c.start || 0);
+    let target = null;
+    if (direction === 'prev') {
+      for (let i = arr.length - 1; i >= 0; i--) if (arr[i].f < localF - 0.001) { target = arr[i].f; break; }
+    } else {
+      for (let i = 0; i < arr.length; i++) if (arr[i].f > localF + 0.001) { target = arr[i].f; break; }
+    }
+    if (target !== null) setPlayhead(Math.max(0, Math.round(target + (c.start || 0))));
   };
 
   // ─── Server-side Save: POST state to /api/timeline/projects
@@ -2791,6 +3005,30 @@ function TimelineEditor() {
                            boxShadow: clip.id === selected ? '0 0 0 1px #f59e0b55, 0 0 8px #f59e0b33' : 'none',
                          } : {}),
                        }}>
+                    {/* Keyframe diamonds (Adobe-style markers) */}
+                    {clip.kfs && (() => {
+                      const allFrames = new Set();
+                      Object.values(clip.kfs).forEach((arr) => {
+                        if (Array.isArray(arr)) arr.forEach((k) => allFrames.add(Math.round(k.f)));
+                      });
+                      const frames = Array.from(allFrames).sort((a, b) => a - b);
+                      if (!frames.length) return null;
+                      return (
+                        <div style={{ position: 'absolute', left: 0, right: 0, bottom: 1, height: 6, pointerEvents: 'none', zIndex: 3 }}>
+                          {frames.map((f) => {
+                            const xPct = clip.dur > 0 ? (f / clip.dur) * 100 : 0;
+                            return (
+                              <div key={f} style={{
+                                position: 'absolute', left: `${Math.max(0, Math.min(100, xPct))}%`,
+                                bottom: 0, transform: 'translateX(-50%) rotate(45deg)',
+                                width: 6, height: 6, background: '#ffb84a',
+                                boxShadow: '0 0 0 0.5px rgba(0,0,0,0.5)',
+                              }} />
+                            );
+                          })}
+                        </div>
+                      );
+                    })()}
                     {tr.type === 'subtitle' && (
                       <>
                         <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, background: '#f59e0b', borderRadius: '3px 0 0 3px' }} />
@@ -2896,10 +3134,15 @@ function TimelineEditor() {
                 const tr = tracks[c.track];
                 return { ...c, trackType: tr?.type || '', kind: c.kind || (tr?.type === 'audio' ? 'audio' : tr?.type === 'subtitle' ? 'subtitle' : '') };
               })()}
+              currentFrame={playhead}
               onProp={(key, val) => setClipProp(selected, key, val)}
               onCommit={(key, val) => commitClipProp(selected, key, val)}
               onFitMode={(mode) => setClipFitMode(selected, mode)}
               onExpand={(clip) => openExpand(clip)}
+              onToggleStopwatch={(key) => toggleStopwatch(selected, key)}
+              onSetKeyframe={(key, val) => upsertKeyframe(selected, key, val)}
+              onRemoveKeyframe={(key) => removeKeyframeAtPlayhead(selected, key)}
+              onGotoKeyframe={(key, dir) => goToAdjacentKeyframe(selected, key, dir)}
             />
           )}
         </div>

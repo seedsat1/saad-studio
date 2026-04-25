@@ -1219,15 +1219,33 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
       'Color':'color','Luminosity':'luminosity'}[bm]||'source-over';
   }
 
-  function drawClipFrame(ctx, media, clip, W, H){
+  function drawClipFrame(ctx, media, clip, W, H, frameAbs){
+    // Evaluate keyframes (linear interp) for animated properties
+    function evalKf(key, fallback){
+      var arr=clip.kfs && clip.kfs[key];
+      if(!arr || !arr.length) return fallback;
+      var localF=(frameAbs!=null?frameAbs:0)-(clip.start||0);
+      if(localF<=arr[0].f) return arr[0].v;
+      var last=arr[arr.length-1];
+      if(localF>=last.f) return last.v;
+      for(var i=0;i<arr.length-1;i++){
+        var a=arr[i], b=arr[i+1];
+        if(localF>=a.f && localF<=b.f){
+          if(b.f===a.f) return b.v;
+          return a.v+(b.v-a.v)*((localF-a.f)/(b.f-a.f));
+        }
+      }
+      return last.v;
+    }
     var mo=clip.motion||{};
-    var px=mo.px||0, py=mo.py||0;
-    var sx=(mo.sx!=null?mo.sx:100)/100;
-    var sy=(mo.sy!=null?mo.sy:100)/100;
-    var rot=((mo.rot||0)*Math.PI)/180;
-    var ax=(mo.ax!=null?mo.ax:50)/100;
-    var ay=(mo.ay!=null?mo.ay:50)/100;
-    var opacity=(clip.opacity!=null?clip.opacity:100)/100;
+    var px=evalKf('motion.px', mo.px||0);
+    var py=evalKf('motion.py', mo.py||0);
+    var sx=evalKf('motion.sx', mo.sx!=null?mo.sx:100)/100;
+    var sy=evalKf('motion.sy', mo.sy!=null?mo.sy:100)/100;
+    var rot=(evalKf('motion.rot', mo.rot||0)*Math.PI)/180;
+    var ax=evalKf('motion.ax', mo.ax!=null?mo.ax:50)/100;
+    var ay=evalKf('motion.ay', mo.ay!=null?mo.ay:50)/100;
+    var opacity=evalKf('opacity', clip.opacity!=null?clip.opacity:100)/100;
     var fit=clip.fitMode||'fit';
     var mW=media.videoWidth||media.naturalWidth||W;
     var mH=media.videoHeight||media.naturalHeight||H;
@@ -1235,9 +1253,12 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
     ctx.save();
     ctx.globalAlpha=Math.max(0,Math.min(1,opacity));
     ctx.globalCompositeOperation=blendToComposite(clip.blendMode);
-    // Crop
+    // Crop (with kf eval)
     var cr=clip.cropRect||{};
-    var cL=(cr.l||0)/100,cT=(cr.t||0)/100,cR=(cr.r||0)/100,cB=(cr.b||0)/100;
+    var cL=evalKf('cropRect.l', cr.l||0)/100;
+    var cT=evalKf('cropRect.t', cr.t||0)/100;
+    var cR=evalKf('cropRect.r', cr.r||0)/100;
+    var cB=evalKf('cropRect.b', cr.b||0)/100;
     if(cL+cR+cT+cB>0){
       ctx.beginPath();
       ctx.rect(W*cL,H*cT,W*(1-cL-cR),H*(1-cT-cB));
@@ -1496,7 +1517,7 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
               });
             }
           }
-          try{drawClipFrame(ctx,media,clip,W,H);}catch(de){console.warn(de);}
+          try{drawClipFrame(ctx,media,clip,W,H,f);}catch(de){console.warn(de);}
         }
 
         // Draw active subtitles on top
