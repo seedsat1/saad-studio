@@ -185,6 +185,17 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
   var previewExpand=document.getElementById('previewExpand');
   var previewExport=document.getElementById('previewExport');
   var currentRatio='16:9';
+  // Normalised render-space dimensions per ratio. px/py are stored in this space
+  // so the same value yields the same visual position in preview AND in the
+  // exported MP4 (preview just scales by previewScale()).
+  var RENDER_DIMS_MAP={'16:9':[1920,1080],'9:16':[1080,1920],'1:1':[1080,1080],'4:3':[1440,1080]};
+  function getRenderDims(){ return RENDER_DIMS_MAP[currentRatio]||[1920,1080]; }
+  function previewScale(){
+    var c=document.getElementById('previewCanvas');
+    var d=getRenderDims();
+    if(!c || !d[0]) return 1;
+    return c.clientWidth/d[0];
+  }
   var lastTimelineState=null;
   var topFrameKeyHandlerBound=false;
   var liveLightingProfile=null;
@@ -869,13 +880,15 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
         var dx=me.clientX-startX, dy=me.clientY-startY;
         if(!moved && Math.hypot(dx,dy)<2) return;
         moved=true;
-        lastPx=Math.round(startPx+dx);
-        lastPy=Math.round(startPy+dy);
-        // Live visual: also nudge the layer transform for instant feedback
+        // Convert preview-pixel delta -> render-space (so saved px/py match render)
+        var pScale=previewScale()||1;
+        lastPx=Math.round(startPx+dx/pScale);
+        lastPy=Math.round(startPy+dy/pScale);
+        // Live visual: also nudge the layer transform for instant feedback (in preview pixels)
         var layer=visualLayerMap[clipId];
-        if(layer && layer.node) layer.node.style.transform='translate('+lastPx+'px,'+lastPy+'px)';
-        // Move the dashed indicator + anchors with the image (delta from start)
-        var deltaX=lastPx-startPx, deltaY=lastPy-startPy;
+        if(layer && layer.node) layer.node.style.transform='translate('+(lastPx*pScale)+'px,'+(lastPy*pScale)+'px)';
+        // Move the dashed indicator + anchors with the image (delta from start, in preview px)
+        var deltaX=(lastPx-startPx)*pScale, deltaY=(lastPy-startPy)*pScale;
         var movables=handle.querySelectorAll('.dh-bounds,.dh-anchor,.dh-center,.dh-label');
         movables.forEach(function(node){
           if(!node.dataset.baseLeft){
@@ -971,11 +984,13 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
       var hasMotion=(px!==0||py!==0||sx!==100||sy!==100||rot!==0||ax!==50||ay!==50);
       if(hasMotion){
         // Adobe-style: anchor (ax,ay) is the pivot AND positioning reference.
-        // Compute painted image rect inside the canvas-sized container based on fit-mode,
-        // then shift the layer so the anchor pixel sits where (px,py) places it.
+        // px/py are stored in RENDER space — convert to preview pixels via scale.
         var canvasEl=document.getElementById('previewCanvas');
         var contW=canvasEl ? canvasEl.clientWidth : 0;
         var contH=canvasEl ? canvasEl.clientHeight : 0;
+        var pScale=previewScale();
+        var pxPreview=px*pScale;
+        var pyPreview=py*pScale;
         var nW=(layer.media && (layer.media.naturalWidth || layer.media.videoWidth)) || 0;
         var nH=(layer.media && (layer.media.naturalHeight || layer.media.videoHeight)) || 0;
         var paintedW=contW, paintedH=contH;
@@ -987,7 +1002,7 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
         }
         var anchorOffX=((ax-50)/100)*paintedW*(sx/100);
         var anchorOffY=((ay-50)/100)*paintedH*(sy/100);
-        layer.node.style.transform='translate('+(px-anchorOffX)+'px,'+(py-anchorOffY)+'px)';
+        layer.node.style.transform='translate('+(pxPreview-anchorOffX)+'px,'+(pyPreview-anchorOffY)+'px)';
         // Origin must point at the anchor pixel of the painted image
         // (which is centered inside the canvas-sized media element).
         var originPxX=(contW-paintedW)/2 + (ax/100)*paintedW;
@@ -1433,8 +1448,7 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
     pLabel.style.display='inline-block';
     try{
       var FPS=30;
-      var RATIO_MAP={'16:9':[1920,1080],'9:16':[1080,1920],'1:1':[1080,1080],'4:3':[1440,1080]};
-      var dims=RATIO_MAP[currentRatio]||[1920,1080];
+      var dims=getRenderDims();
       var W=dims[0], H=dims[1];
       var allClips=lastTimelineState.allClips||[];
       var tracks=lastTimelineState.tracks||[];
@@ -1538,10 +1552,27 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
           if(!media) continue;
           if(media.tagName==='VIDEO'){
             var seekT=t-clip.start/FPS;
-            if(Math.abs(media.currentTime-seekT)>1.5/FPS){
-              media.currentTime=seekT;
+            // Always seek every frame: paused <video> won't advance otherwise,
+            // and the previous "skip if close" optimisation made the encoder
+            // re-encode the same source frame for several output frames (stutter).
+            var diff=Math.abs(media.currentTime-seekT);
+            if(diff > 0.5/FPS || f===0){
               await new Promise(function(res){
-                media.onseeked=res; setTimeout(res,600);
+                var done=false;
+                function finish(){ if(done) return; done=true; res(); }
+                // requestVideoFrameCallback fires AFTER the new frame is actually painted
+                if(typeof media.requestVideoFrameCallback==='function'){
+                  try{ media.requestVideoFrameCallback(function(){ finish(); }); }catch(_e){}
+                }
+                media.onseeked=function(){
+                  // Give the decoder one more tick to paint, in case rVFC isn't supported
+                  if(typeof media.requestVideoFrameCallback!=='function'){
+                    setTimeout(finish, 8);
+                  }
+                };
+                // Hard timeout safety net (raised from 600ms to 2.5s for slow seeks)
+                setTimeout(finish, 2500);
+                try{ media.currentTime=seekT; }catch(_se){ finish(); }
               });
             }
           }
