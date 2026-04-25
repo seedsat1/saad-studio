@@ -1702,7 +1702,7 @@ function TimelineEditor() {
         const trackIndex = findTrackIndex(kind, prev);
         const onTrack = prev.filter((c) => c.track === trackIndex);
         const maxEnd = onTrack.reduce((acc, c) => Math.max(acc, c.start + c.dur), 0);
-        const start = Math.max(0, maxEnd + 8);
+        const start = Math.max(0, maxEnd);
         const id = `ext_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
         return [
           ...prev,
@@ -1843,7 +1843,7 @@ function TimelineEditor() {
       const maxEnd = onTrack.reduce((a, c) => Math.max(a, c.start + c.dur), 0);
       const dur = isVid ? (Number(expandParams.extendSecs) * FPS) : (5 * FPS);
       const newId = `exp_${Date.now()}_${Math.floor(Math.random() * 9999)}`;
-      return [...prev, { id: newId, track: trackIdx, start: maxEnd + 4, dur, label: `${expandModal.label}_exp`, color: '#2a4e8a', src: resultSrc, kind: newKind, fitMode: 'fit', ratio: '', kieTaskId: '' }];
+      return [...prev, { id: newId, track: trackIdx, start: maxEnd, dur, label: `${expandModal.label}_exp`, color: '#2a4e8a', src: resultSrc, kind: newKind, fitMode: 'fit', ratio: '', kieTaskId: '' }];
     });
     setExpandModal(null);
   };
@@ -2271,7 +2271,7 @@ function TimelineEditor() {
       const next = [...prev];
       metas.forEach((m) => {
         const track = chooseTrackForFile(m, next);
-        const start = getTrackEnd(next, track) + 8;
+        const start = getTrackEnd(next, track);
         const mainId = `imp_${Date.now()}_${Math.floor(Math.random() * 100000)}`;
         next.push({
           id: mainId,
