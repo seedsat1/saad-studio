@@ -2273,11 +2273,13 @@ function TimelineEditor() {
         const track = chooseTrackForFile(m, next);
         const start = getTrackEnd(next, track);
         const mainId = `imp_${Date.now()}_${Math.floor(Math.random() * 100000)}`;
+        const isTimedMedia = m.kind === 'video' || m.kind === 'audio';
         next.push({
           id: mainId,
           track,
           start: Math.max(0, start),
           dur: m.durFrames,
+          sourceDur: isTimedMedia ? m.durFrames : null,
           label: m.name,
           color: colorByKind(m.kind),
           src: m.src || '',
@@ -2294,6 +2296,7 @@ function TimelineEditor() {
             track: audioTrack,
             start: Math.max(0, start),
             dur: m.durFrames,
+            sourceDur: m.durFrames,
             label: `${baseName}.audio`,
             color: '#1d3557',
             src: m.src || '',
@@ -2504,7 +2507,8 @@ function TimelineEditor() {
           setClips((prev) => {
             const current = prev.find((c) => c.id === clipId);
             if (!current) return prev;
-            let nextDur = Math.max(MIN_CLIP_FRAMES, baseDur + fd);
+            const srcLimit = current.sourceDur ? current.sourceDur : Infinity;
+            let nextDur = Math.min(Math.max(MIN_CLIP_FRAMES, baseDur + fd), srcLimit);
             if (toggles.magnet) {
               const targetEnd = baseStart + nextDur;
               const anchors = [Math.round(playhead)];
@@ -3005,6 +3009,30 @@ function TimelineEditor() {
                            boxShadow: clip.id === selected ? '0 0 0 1px #f59e0b55, 0 0 8px #f59e0b33' : 'none',
                          } : {}),
                        }}>
+                    {/* End-of-media indicators (like Premiere triangles) */}
+                    {(clip.kind === 'video' || clip.kind === 'audio') && clip.sourceDur && (() => {
+                      const atStart = clip.start === 0 || !clip.trimOffset;
+                      const atEnd = clip.dur >= clip.sourceDur;
+                      if (!atStart && !atEnd) return null;
+                      return (
+                        <>
+                          {atStart && (
+                            <div title="Start of media" style={{
+                              position: 'absolute', left: 0, top: 0, bottom: 0, width: 4,
+                              background: 'linear-gradient(to right, #ff4e4e99, transparent)',
+                              borderRadius: '3px 0 0 3px', pointerEvents: 'none', zIndex: 4,
+                            }} />
+                          )}
+                          {atEnd && (
+                            <div title="End of media" style={{
+                              position: 'absolute', right: 0, top: 0, bottom: 0, width: 4,
+                              background: 'linear-gradient(to left, #ff4e4e99, transparent)',
+                              borderRadius: '0 3px 3px 0', pointerEvents: 'none', zIndex: 4,
+                            }} />
+                          )}
+                        </>
+                      );
+                    })()}
                     {/* Keyframe diamonds (Adobe-style markers) */}
                     {clip.kfs && (() => {
                       const allFrames = new Set();
