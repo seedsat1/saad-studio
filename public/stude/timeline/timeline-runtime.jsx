@@ -802,6 +802,29 @@ function TimelineEditor() {
     }
   }, [persisted]);
 
+  // Native non-passive wheel listener for zoom (React's onWheel is passive — preventDefault would warn)
+  useEffect(() => {
+    const scroller = tlRef.current;
+    if (!scroller) return;
+    const onWheel = (e) => {
+      const rect = scroller.getBoundingClientRect();
+      const offsetX = e.clientX - rect.left;
+      const frameAtCursor = (scroller.scrollLeft + offsetX) / scale;
+      const direction = e.deltaY > 0 ? -1 : 1;
+      const step = 0.08;
+      const nextZoom = Math.max(0.5, Math.min(4, zoom + direction * step));
+      if (nextZoom === zoom) return;
+      e.preventDefault();
+      const nextScale = PX_PER_FRAME * nextZoom;
+      setZoom(nextZoom);
+      requestAnimationFrame(() => {
+        scroller.scrollLeft = Math.max(0, frameAtCursor * nextScale - offsetX);
+      });
+    };
+    scroller.addEventListener('wheel', onWheel, { passive: false });
+    return () => scroller.removeEventListener('wheel', onWheel);
+  }, [zoom, scale]);
+
   // Auto-open inspector when a clip is selected
   useEffect(() => {
     if (selected) setInspectorOpen(true);
@@ -2157,23 +2180,6 @@ function TimelineEditor() {
         <div
           ref={tlRef}
           style={{ flex: 1, overflow: 'auto', position: 'relative', cursor: activeTool?.cursor || 'default' }}
-          onWheel={(e) => {
-            const scroller = tlRef.current;
-            if (!scroller) return;
-            const rect = scroller.getBoundingClientRect();
-            const offsetX = e.clientX - rect.left;
-            const frameAtCursor = (scroller.scrollLeft + offsetX) / scale;
-            const direction = e.deltaY > 0 ? -1 : 1;
-            const step = 0.08;
-            const nextZoom = Math.max(0.5, Math.min(4, zoom + direction * step));
-            if (nextZoom === zoom) return;
-            e.preventDefault();
-            const nextScale = PX_PER_FRAME * nextZoom;
-            setZoom(nextZoom);
-            requestAnimationFrame(() => {
-              scroller.scrollLeft = Math.max(0, frameAtCursor * nextScale - offsetX);
-            });
-          }}
           onDragEnter={(e) => {
             e.preventDefault();
             setDragOver(true);
