@@ -533,7 +533,16 @@ function EffectControls({ clip, onProp, onCommit, onFitMode, onExpand }) {
 function TimelineEditor() {
   const persisted = useMemo(() => loadTimelineState(), []);
   const [clips, setClips] = useState(() => persisted?.clips || INITIAL_CLIPS);
-  const [tracks, setTracks] = useState(() => persisted?.tracks || TRACKS);
+  const [tracks, setTracks] = useState(() => {
+    const saved = persisted?.tracks;
+    if (!saved) return TRACKS;
+    // Ensure every default track is present (e.g. SUB added after initial save)
+    const merged = [...saved];
+    for (const def of TRACKS) {
+      if (!merged.find((t) => t.id === def.id)) merged.push(def);
+    }
+    return merged;
+  });
   const [tool, setTool] = useState(() => persisted?.tool || 'select');
   const [toggles, setToggles] = useState(() => persisted?.toggles || { magnet: true, link: true });
   const [playhead, setPlayhead] = useState(() => Number.isFinite(persisted?.playhead) ? persisted.playhead : 0);
