@@ -1,83 +1,139 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en" dir="ltr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title> </title>
-<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<title>Prompt Studio</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#181818;--panel:#1e1e1e;--panel2:#232323;--border:#2d2d2d;--border2:#3a3a3a;--text:#d4d4d4;--dim:#777;--dim2:#555;--accent:#4a9eff;--accent2:#5cb8ff;--green:#4caf50;--orange:#ff9800;--red:#f44336;--purple:#b388ff;--cyan:#26c6da;--yellow:#ffd54f}
 *{margin:0;padding:0;box-sizing:border-box}
-*{scrollbar-width:thin;scrollbar-color:#3d4a62 #171b22}
-*::-webkit-scrollbar{width:10px;height:10px}
-*::-webkit-scrollbar-track{background:#171b22;border-left:1px solid #252d3a}
-*::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#42526d,#344157);border:2px solid #171b22;border-radius:999px}
-*::-webkit-scrollbar-thumb:hover{background:linear-gradient(180deg,#4e6283,#3d4f69)}
-*::-webkit-scrollbar-corner{background:#171b22}
-body{background:var(--bg);color:var(--text);font-family:'Tajawal',sans-serif;height:100vh;overflow:hidden;display:flex;flex-direction:column}
-.menubar{height:24px;background:#111;display:flex;align-items:center;padding:0 8px;gap:2px;border-bottom:1px solid #222;font-size:11px}
-.menubar span{padding:2px 8px;color:var(--dim);cursor:pointer;border-radius:2px}.menubar span:hover{color:var(--text);background:#333}
-.menubar .spacer{flex:1}.menubar .title{color:var(--accent);font-weight:700;letter-spacing:1px}
-.page-tabs{height:30px;background:#1a1a1a;display:flex;align-items:center;border-bottom:1px solid var(--border);padding:0 8px}
-.page-tab{padding:5px 14px;font-size:10px;color:var(--dim);cursor:pointer;border-bottom:2px solid transparent;transition:.15s;text-decoration:none;font-family:'Tajawal'}
-.page-tab:hover{color:var(--text)}.page-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
-.workspace{flex:1;display:flex;flex-direction:column;overflow:hidden}
-.top-row{flex:1;display:flex;min-height:0}
-.bottom-row{height:200px;border-top:2px solid var(--border);display:flex;flex-direction:column}
-.panel{background:var(--panel);display:flex;flex-direction:column;overflow:hidden}
-.ph{height:26px;background:#252525;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 10px;gap:8px;flex-shrink:0}
-.ph .l{font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.55px;font-weight:700;cursor:pointer}.ph .l.a{color:var(--accent)}
-.pb{flex:1;overflow-y:auto;padding:10px;font-size:12px}
-.vr{width:2px;background:var(--border);cursor:col-resize;flex-shrink:0}.vr:hover{background:var(--accent)}
-.ist{font-size:11px;color:#9aa7bb;text-transform:uppercase;letter-spacing:.45px;font-weight:700;padding:7px 0 6px;border-bottom:1px solid var(--border);margin-bottom:8px;display:flex;align-items:center;gap:6px}
-.ist .d{width:5px;height:5px;border-radius:50%}
-.sr{display:flex;align-items:center;gap:10px;margin-bottom:10px}
-.sr .sl{font-size:12px;color:#aab5c5;width:110px;flex-shrink:0}
-.sr .st{flex:1;height:5px;background:#2a2a2a;border-radius:3px;position:relative}
-.sr .sf{position:absolute;right:0;top:0;height:100%;border-radius:2px}
-.sr .st input{position:absolute;inset:0;width:100%;opacity:0;cursor:pointer;margin:0}
-.sr .sv{font-size:13px;font-family:'JetBrains Mono';width:56px;text-align:left;flex-shrink:0}
-.cr{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:6px}
-.ch{padding:4px 10px;border-radius:4px;font-size:11px;cursor:pointer;border:1px solid var(--border);background:#1a1a1a;color:#9da9bc;font-family:'Tajawal';transition:.12s}
-.ch:hover{border-color:var(--border2);color:var(--text)}.ch.a{border-color:var(--accent);color:var(--accent);background:rgba(74,158,255,.08)}
-textarea{width:100%;background:#1a1a1a;border:1px solid var(--border);border-radius:4px;padding:10px;color:var(--text);font-family:'Tajawal';font-size:13px;resize:vertical;outline:none;line-height:1.6}
-textarea:focus{border-color:var(--accent)}
-.bs{padding:5px 12px;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;border:none;font-family:'Tajawal';transition:.12s}
-.bb{background:var(--accent);color:#fff}.bb:hover{background:var(--accent2)}
-.bg{background:none;color:var(--dim);border:1px solid var(--border)}.bg:hover{color:var(--text);border-color:var(--border2)}
-.sb{display:flex;align-items:center;background:#1a1a1a;border:1px solid var(--border);border-radius:3px;padding:0 6px;margin-bottom:6px}
-.sb input{flex:1;background:none;border:none;color:var(--text);font-size:10px;padding:4px;outline:none;font-family:'Tajawal'}
-/* timeline */
-.th{height:26px;background:#252525;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 10px;gap:10px;flex-shrink:0}
-.th span{font-size:9px;color:var(--dim);cursor:pointer}.th span.a{color:var(--accent)}
-.tb{flex:1;display:flex;overflow:hidden}
-.ts{width:100px;background:#1c1c1c;border-left:1px solid var(--border);flex-shrink:0}
-.tl{height:32px;display:flex;align-items:center;padding:0 6px;gap:3px;border-bottom:1px solid #252525;font-size:9px;color:var(--dim)}
-.tl .dd{width:5px;height:5px;border-radius:50%}.tl .n{flex:1}.tl .x{display:flex;gap:1px;font-size:8px;opacity:.4}
-.ta{flex:1;position:relative;overflow:auto}
-.tr{height:18px;background:#1c1c1c;border-bottom:1px solid var(--border);display:flex;align-items:flex-end;padding:0 8px;gap:55px;position:sticky;top:0;z-index:2}
-.tr span{font-size:7px;color:var(--dim2);font-family:'JetBrains Mono'}
-.tt{position:relative}
-.tk{height:32px;border-bottom:1px solid #252525;position:relative}
-.tc2{position:absolute;top:2px;height:28px;border-radius:3px;display:flex;align-items:center;padding:0 5px;font-size:8px;color:#fff;overflow:hidden;cursor:pointer}
-.tc2:hover{filter:brightness(1.2)}.tc2 .cn{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tp2{position:absolute;top:0;bottom:0;width:2px;background:var(--red);z-index:10;pointer-events:none}
-.tp2::before{content:'';position:absolute;top:-1px;right:-3px;width:8px;height:8px;background:var(--red);clip-path:polygon(50% 100%,0 0,100% 0)}
+body{background:#080c1a;color:#e8ecf8;font-family:'Sora',sans-serif;height:100vh;overflow:hidden;display:flex;flex-direction:column}
 
-.kw{padding:4px 8px;background:#1e1e1e;border:1px solid var(--border);border-radius:4px;font-size:11px;color:#9da9bc;cursor:pointer;transition:.12s;font-family:'Tajawal'}
-.kw:hover{border-color:var(--accent);color:var(--accent)}
-.sp2{padding:8px;background:#1a1a1a;border:1px solid var(--border);border-radius:4px;cursor:pointer;transition:.15s;margin-bottom:6px}
-.sp2:hover{border-color:var(--accent)}
-.sp2t{font-size:11px;color:#95a1b5;margin-top:3px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
-.gpt-box{border-top:1px solid var(--border);padding-top:8px;display:flex;flex-direction:column;gap:6px}
-.gpt-row{display:flex;gap:6px;align-items:center}
-.gpt-row label{font-size:11px;color:#9fb0c8;white-space:nowrap}
-.gpt-row select,.gpt-row input[type="text"]{flex:1;background:#1a1a1a;border:1px solid var(--border);border-radius:4px;color:var(--text);padding:6px 8px;font-size:11px;font-family:'Tajawal';outline:none}
-.gpt-row select:focus,.gpt-row input[type="text"]:focus{border-color:var(--accent)}
-.gpt-status{font-size:11px;color:#93a6c3;min-height:14px}
+/* Header */
+.header{padding:12px 24px;border-bottom:1px solid rgba(255,255,255,.04);display:flex;align-items:center;gap:10px;flex-shrink:0}
+.badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:14px;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.12);font-size:8px;font-weight:700;color:#818cf8;letter-spacing:.8px;text-transform:uppercase}
+.badge .dot{width:4px;height:4px;border-radius:50%;background:#818cf8;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.h-title{font-size:15px;font-weight:800;letter-spacing:-.3px;flex:1}
+.h-model{padding:4px 10px;border-radius:8px;background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.1);font-size:9px;font-weight:700;color:#818cf8;display:flex;align-items:center;gap:4px;cursor:pointer}
+.h-btn{padding:5px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.06);background:none;color:#6b7394;font-family:inherit;font-size:10px;font-weight:600;cursor:pointer;transition:.15s}
+.h-btn:hover{background:rgba(255,255,255,.04);color:#a0a8c8}
+
+/* Chat */
+.chat{flex:1;overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;gap:16px;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.06) transparent}
+.chat::-webkit-scrollbar{width:4px}
+.chat::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:2px}
+
+.welcome{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center;padding:40px}
+.welcome.hidden{display:none}
+.w-icon{width:56px;height:56px;border-radius:18px;background:rgba(99,102,241,.08);display:flex;align-items:center;justify-content:center}
+.w-icon svg{width:28px;height:28px;color:#818cf8}
+.w-title{font-size:20px;font-weight:800;letter-spacing:-.5px;background:linear-gradient(135deg,#e8ecf8,#818cf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.w-sub{font-size:12px;color:#6b7394;max-width:400px;line-height:1.7}
+
+.suggestions{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:8px}
+.sug{padding:8px 16px;border-radius:12px;border:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.02);color:#6b7394;font-family:inherit;font-size:11px;font-weight:500;cursor:pointer;transition:.15s}
+.sug:hover{background:rgba(255,255,255,.05);color:#a0a8c8;transform:translateY(-1px)}
+
+.msg{display:flex;gap:12px;max-width:90%;animation:fadeIn .3s both}
+.msg.user{align-self:flex-end;flex-direction:row-reverse}
+.msg.ai{align-self:flex-start}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+.msg-avatar{width:30px;height:30px;border-radius:9px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800}
+.msg.user .msg-avatar{background:rgba(34,211,153,.12);color:#34d399}
+.msg.ai .msg-avatar{background:rgba(99,102,241,.12);color:#818cf8}
+
+.msg-body{flex:1;min-width:0}
+.msg-bubble{padding:12px 16px;border-radius:14px;font-size:13px;line-height:1.7;font-weight:500;word-wrap:break-word;white-space:pre-wrap}
+.msg.user .msg-bubble{background:rgba(34,211,153,.06);border:1px solid rgba(34,211,153,.1);border-top-right-radius:4px}
+.msg.ai .msg-bubble{background:rgba(99,102,241,.06);border:1px solid rgba(99,102,241,.1);border-top-left-radius:4px}
+
+.prompt-block{margin-top:10px;padding:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:10px;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.6;color:#a0a8c8;position:relative;max-height:220px;overflow-y:auto;white-space:pre-wrap}
+
+.prompt-actions{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.pa-btn{padding:6px 14px;border-radius:8px;font-family:inherit;font-size:10px;font-weight:700;cursor:pointer;transition:.15s;display:flex;align-items:center;gap:4px;border:none}
+.pa-btn.use{background:linear-gradient(135deg,#6366f1,#818cf8);color:#fff}
+.pa-btn.use:hover{box-shadow:0 4px 16px rgba(99,102,241,.3)}
+.pa-btn.copy{background:rgba(255,255,255,.04);color:#6b7394;border:1px solid rgba(255,255,255,.06)}
+.pa-btn.copy:hover{background:rgba(255,255,255,.06);color:#a0a8c8}
+.pa-btn.regen{background:rgba(251,146,60,.08);color:#fb923c;border:1px solid rgba(251,146,60,.1)}
+.pa-btn.regen:hover{background:rgba(251,146,60,.12)}
+
+.typing{display:flex;gap:4px;padding:8px 0}
+.typing span{width:6px;height:6px;border-radius:50%;background:#818cf8;animation:bounce .6s infinite alternate}
+.typing span:nth-child(2){animation-delay:.15s}
+.typing span:nth-child(3){animation-delay:.3s}
+@keyframes bounce{from{transform:translateY(0);opacity:.4}to{transform:translateY(-6px);opacity:1}}
+
+.err{color:#fb7185;font-size:11px;margin-top:6px}
+
+/* Preset strip */
+.preset-strip{padding:0 24px 8px;flex-shrink:0;display:flex;flex-direction:column;gap:6px}
+.ps-tabs{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none}
+.ps-tabs::-webkit-scrollbar{display:none}
+.ps-tab{padding:4px 10px;border-radius:10px;border:1px solid rgba(255,255,255,.05);background:rgba(255,255,255,.02);color:#4e5678;font-family:inherit;font-size:8px;font-weight:700;cursor:pointer;transition:.12s;white-space:nowrap}
+.ps-tab:hover{color:#6b7394;background:rgba(255,255,255,.04)}
+.ps-tab.on{background:rgba(99,102,241,.1);color:#818cf8;border-color:rgba(99,102,241,.15)}
+.ps-scroll{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.ps-scroll::-webkit-scrollbar{display:none}
+.ps-card{min-width:140px;padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.05);background:rgba(255,255,255,.02);cursor:pointer;transition:.15s;flex-shrink:0}
+.ps-card:hover{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.1);transform:translateY(-1px)}
+.ps-cat{font-size:7px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin-bottom:2px}
+.ps-name{font-size:10px;font-weight:700}
+.ps-desc{font-size:8px;color:#4e5678;margin-top:1px}
+
+/* Input */
+.input-area{padding:12px 24px 16px;border-top:1px solid rgba(255,255,255,.04);flex-shrink:0;background:linear-gradient(180deg,rgba(12,16,36,.95),rgba(10,14,28,.98))}
+.input-card{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:16px;overflow:hidden;transition:.2s;max-width:800px;margin:0 auto}
+.input-card:focus-within{border-color:rgba(99,102,241,.25);box-shadow:0 0 0 3px rgba(99,102,241,.06)}
+.input-main{display:flex;align-items:flex-end;padding:10px 14px;gap:8px}
+.input-ta{flex:1;background:none;border:none;color:#e8ecf8;font-family:inherit;font-size:13px;line-height:1.6;resize:none;outline:none;min-height:22px;max-height:120px}
+.input-ta::placeholder{color:#3d4568}
+.send-btn{width:38px;height:38px;border-radius:11px;border:none;background:linear-gradient(135deg,#6366f1,#818cf8);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:.2s}
+.send-btn:hover{transform:scale(1.05);box-shadow:0 4px 16px rgba(99,102,241,.4)}
+.send-btn:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none}
+
+.input-opts{padding:6px 12px;border-top:1px solid rgba(255,255,255,.04);display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.io{padding:4px 10px;border-radius:10px;border:1px solid rgba(255,255,255,.05);background:none;color:#4e5678;font-family:inherit;font-size:9px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px;transition:.12s}
+.io:hover{background:rgba(255,255,255,.03);color:#6b7394}
+.io.on{background:rgba(99,102,241,.08);color:#818cf8;border-color:rgba(99,102,241,.15)}
+.io svg{width:10px;height:10px}
+.io-sep{width:1px;height:14px;background:rgba(255,255,255,.05)}
+.io-right{margin-left:auto;display:flex;gap:4px;align-items:center}
+
+/* Drawer */
+.drawer-overlay{position:fixed;inset:0;background:rgba(4,6,15,.7);z-index:100;display:none;backdrop-filter:blur(4px)}
+.drawer-overlay.on{display:block;animation:fadeIn .2s}
+.drawer{position:fixed;top:0;right:-480px;width:460px;height:100vh;background:linear-gradient(180deg,#0d1128,#0a0e1c);border-left:1px solid rgba(255,255,255,.06);z-index:101;transition:right .35s cubic-bezier(.16,1,.3,1);display:flex;flex-direction:column;box-shadow:-8px 0 40px rgba(0,0,0,.5)}
+.drawer.on{right:0}
+.drawer-head{padding:16px 18px;border-bottom:1px solid rgba(255,255,255,.04);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.drawer-title{font-size:14px;font-weight:800}
+.drawer-close{width:28px;height:28px;border-radius:7px;border:none;background:rgba(255,255,255,.04);color:#6b7394;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;transition:.15s}
+.drawer-close:hover{background:rgba(255,255,255,.08);color:#e8ecf8}
+.drawer-tabs{padding:8px 18px;display:flex;gap:4px;flex-shrink:0;border-bottom:1px solid rgba(255,255,255,.04);overflow-x:auto;scrollbar-width:none}
+.drawer-tabs::-webkit-scrollbar{display:none}
+.dt{padding:5px 10px;border-radius:12px;border:1px solid rgba(255,255,255,.05);background:rgba(255,255,255,.02);color:#6b7394;font-family:inherit;font-size:9px;font-weight:600;cursor:pointer;transition:.12s;white-space:nowrap}
+.dt:hover{background:rgba(255,255,255,.04);color:#a0a8c8}
+.dt.on{background:rgba(99,102,241,.1);color:#818cf8;border-color:rgba(99,102,241,.2)}
+.drawer-scroll{flex:1;overflow-y:auto;padding:12px 18px;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.06) transparent}
+.drawer-scroll::-webkit-scrollbar{width:4px}
+.drawer-scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:2px}
+.drawer-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.d-card{padding:10px;border-radius:9px;border:1px solid rgba(255,255,255,.05);background:rgba(255,255,255,.02);cursor:pointer;transition:.15s}
+.d-card:hover{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.1)}
+.dc-cat{font-size:7px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;margin-bottom:3px}
+.dc-name{font-size:10px;font-weight:700;margin-bottom:2px}
+.dc-desc{font-size:8px;color:#6b7394;line-height:1.4}
+
+@media(max-width:600px){.drawer{width:100%;right:-100%}}
+
+/* Hidden shell scaffolding (kept for studio-shell embed bridge) */
+.menubar,.page-tabs,.workspace,.bottom-row,.top-row,.panel,.ph,.pb,.vr,.tb,.ts,.ta,.tr,.tk,.tc2,.tp2,.th{display:none!important}
 </style>
 </head>
 <body>
+
 <script>
 (function(){
   var params=new URLSearchParams(location.search);
@@ -90,215 +146,445 @@ textarea:focus{border-color:var(--accent)}
   window.__FF_EMBED_TOP=true;
   document.documentElement.lang='en';
   document.documentElement.dir='ltr';
-  document.addEventListener('DOMContentLoaded',function(){
-    var mb=document.querySelector('.menubar'); if(mb) mb.style.display='none';
-    var tabs=document.querySelector('.page-tabs'); if(tabs) tabs.style.display='none';
-    var br=document.querySelector('.bottom-row'); if(br) br.style.display='none';
-    var ws=document.querySelector('.workspace'); if(ws){ ws.style.height='100vh'; ws.style.display='flex'; ws.style.flexDirection='column'; }
-    var tr=document.querySelector('.top-row'); if(tr){ tr.style.flex='1 1 auto'; tr.style.minHeight='0'; }
-  });
 })();
 </script>
-<!-- FF_SHELL_BRIDGE -->
-<div class="menubar"><span class="title">FRAMEFORGE</span><span> </span><span> </span><span> </span><div class="spacer"></div><span style="color:var(--dim2);font-family:'JetBrains Mono';font-size:9px">Untitled Project</span></div>
-<div class="page-tabs"><a class="page-tab" href="sound.html"> </a>
-<a class="page-tab" href="video.html"> </a>
-<a class="page-tab" href="presets.html"> </a>
-<a class="page-tab" href="transitions.html"> </a>
-<a class="page-tab" href="lighting.html"> </a>
-<a class="page-tab active" href="prompt.html"> </a>
-</div>
-<div class="workspace">
-<div class="top-row">
-<div class="panel" style="flex:1;display:flex;flex-direction:column">
-<div class="ph"><span class="l a">Script Prompt Builder</span></div>
-<div class="pb" style="display:flex;flex-direction:column;gap:8px">
-<textarea id="mp" rows="8" placeholder="Describe your scene, subject, camera angle, mood, and visual style..."></textarea>
-<div style="display:flex;justify-content:space-between"><span style="font-size:11px;color:#97a3b8" id="mc">0 characters</span><button class="bs bg" style="padding:4px 8px;font-size:11px" onclick="document.getElementById('mp').value='';umc()">Clear</button></div>
-<div style="background:#1a1a1a;border:1px solid var(--border);border-radius:3px;padding:6px">
-<div style="font-size:12px;font-weight:600;margin-bottom:6px">Quick Keywords</div>
-<div style="display:flex;flex-wrap:wrap;gap:3px">
-<span class="kw" onclick="ak('cinematic')">cinematic</span><span class="kw" onclick="ak('4K')">4K</span><span class="kw" onclick="ak('rainy night')">rainy night</span><span class="kw" onclick="ak('anamorphic')">anamorphic</span><span class="kw" onclick="ak('dolly in')">dolly in</span><span class="kw" onclick="ak('close-up')">close-up</span><span class="kw" onclick="ak('neon lights')">neon lights</span><span class="kw" onclick="ak('dramatic mood')">dramatic mood</span><span class="kw" onclick="ak('news studio')">news studio</span>
-</div></div>
-<div style="border-top:1px solid var(--border);padding-top:8px">
-<div style="font-size:12px;font-weight:600;margin-bottom:6px;color:var(--red)">Negative Prompt</div>
-<textarea id="np" rows="2" placeholder="What to avoid (e.g. blurry, low quality, watermark)..." style="color:rgba(244,67,54,.75)"></textarea>
-<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:4px">
-<span class="kw" onclick="ank('blurry')">blurry</span><span class="kw" onclick="ank('low quality')">low quality</span><span class="kw" onclick="ank('artifacts')">artifacts</span><span class="kw" onclick="ank('overexposed')">overexposed</span><span class="kw" onclick="ank('watermark')">watermark</span>
-</div></div>
-<div style="border-top:1px solid var(--border);padding-top:8px">
-<div class="sr"><span class="sl">Prompt Strength</span><div class="st"><div class="sf" style="width:75%;background:var(--accent)"></div><input type="range" min="0" max="100" value="75"></div><span class="sv" style="color:var(--accent)">75%</span></div>
-<div class="sr"><span class="sl">CFG Scale</span><div class="st"><div class="sf" style="width:37%;background:var(--orange)"></div><input type="range" min="1" max="20" value="7.5" step="0.5"></div><span class="sv" style="color:var(--orange)">7.5</span></div>
-</div>
-<div class="gpt-box">
-<div class="ist" style="margin-bottom:0"><span class="d" style="background:var(--cyan)"></span>GPT 5.2 Assist</div>
-<div class="gpt-row">
-<label for="gptReasoning">Reasoning</label>
-<select id="gptReasoning"><option value="high" selected>high</option><option value="low">low</option></select>
-<label style="display:flex;align-items:center;gap:5px"><input id="gptWebSearch" type="checkbox"> Web Search</label>
-</div>
-<div class="gpt-row">
-<label for="gptImageUrl">Image URL</label>
-<input id="gptImageUrl" type="text" placeholder="Optional reference image URL">
-</div>
-<div style="display:flex;gap:4px">
-  <button id="gptAssistBtn" class="bs bb" style="flex:1;padding:8px" onclick="gptAssist()">Generate with GPT 5.2</button>
-  <button class="bs bg" style="padding:8px 10px" onclick="useAssistantAsPreset()">Add GPT Result</button>
-</div>
-<div id="gptStatus" class="gpt-status">Ready.</div>
-</div>
-<div style="display:flex;gap:4px;margin-top:6px"><button class="bs bb" style="flex:1;padding:8px">Save Prompt</button><button class="bs bg" onclick="svp()">Add To Presets</button></div>
-</div></div>
-<div class="vr"></div>
-<div class="panel" style="width:360px">
-<div class="ph"><span class="l a">Prompt Presets</span></div>
-<div class="pb">
-<div class="ist"><span class="d" style="background:var(--accent)"></span>Saved Prompts</div>
-<div id="sl">
-<div class="sp2" onclick="lp('A cinematic rooftop chase at night, 4K, anamorphic lens, dramatic rain, city neon reflections')"><div style="font-size:12px;font-weight:700">Cinematic Rooftop Chase</div><div class="sp2t">4K action scene with neon atmosphere and strong motion.</div></div>
-<div class="sp2" onclick="lp('Professional product showcase on clean studio background, soft key light, shallow depth of field, smooth camera move')"><div style="font-size:12px;font-weight:700">Product Studio Ad</div><div class="sp2t">Commercial style for product presentations and promos.</div></div>
-<div class="sp2" onclick="lp('Nature documentary shot in golden hour, ultra-detailed foliage, wide cinematic frame, soft wind movement')"><div style="font-size:12px;font-weight:700">Nature Documentary</div><div class="sp2t">Clean, realistic visuals with organic movement and light.</div></div>
-</div>
-<div class="ist" style="margin-top:10px"><span class="d" style="background:var(--orange)"></span>Style Templates</div>
-<div class="cr"><span class="ch" onclick="lt('cinematic')">Cinematic</span><span class="ch" onclick="lt('product')">Product</span><span class="ch" onclick="lt('nature')">Nature</span><span class="ch" onclick="lt('action')">Action</span></div>
-</div></div>
-</div>
-<!-- TIMELINE -->
-<div class="bottom-row">
-<div class="th"><span class="a"> </span><span> </span><span style="flex:1"></span><span style="font-family:'JetBrains Mono';font-size:8px;color:var(--dim2)">Sequence 01</span></div>
-<div class="tb">
-<div class="ts">
-<div class="tl"><span class="dd" style="background:var(--green)"></span><span class="n">V1</span><span class="x"> </span></div>
-<div class="tl"><span class="dd" style="background:var(--accent)"></span><span class="n">A1</span><span class="x">M S</span></div>
-<div class="tl"><span class="dd" style="background:var(--orange)"></span><span class="n">A2</span><span class="x">M S</span></div>
-<div class="tl"><span class="dd" style="background:var(--cyan)"></span><span class="n">A3</span><span class="x">M S</span></div>
-</div>
-<div class="ta">
-<div class="tr"><span>00:00</span><span>00:30</span><span>01:00</span><span>01:30</span><span>02:00</span><span>02:30</span><span>03:00</span><span>03:30</span><span>04:00</span></div>
-<div class="tt">
-<div class="tk"><div class="tc2" style="right:30px;width:150px;background:#2d5a27"><span class="cn">scene_01.mp4</span></div><div class="tc2" style="right:190px;width:220px;background:#2d5a27"><span class="cn">aerial_shot.mp4</span></div></div>
-<div class="tk"><div class="tc2" style="right:50px;width:280px;background:#1a4a7a"><span class="cn">Voice Over</span></div></div>
-<div class="tk"><div class="tc2" style="right:15px;width:450px;background:#7a4a1a"><span class="cn">Music Score.wav</span></div></div>
-<div class="tk"><div class="tc2" style="right:80px;width:35px;background:#1a6a6a"><span class="cn"> </span></div></div>
-<div class="tp2" style="right:130px"></div>
-</div></div></div></div>
-</div>
-<script>
-const mp=document.getElementById('mp'),np2=document.getElementById('np');
-mp.addEventListener('input',umc);function umc(){document.getElementById('mc').textContent=mp.value.length+' characters'}
-function ak(k){mp.value+=(mp.value?' ':'')+k;umc()}
-function ank(k){np2.value+=(np2.value?' ':'')+k}
-function lp(t){mp.value=t;umc();mp.focus()}
-function svp(){if(!mp.value)return;const l=document.getElementById('sl'),d=document.createElement('div');d.className='sp2';d.onclick=function(){lp(mp.value)};d.innerHTML='<div style="font-size:12px;font-weight:700">Custom Prompt</div><div class="sp2t">'+mp.value+'</div>';l.appendChild(d)}
-const tpl={
-  cinematic:'A cinematic city scene at night, 4K, anamorphic lens, dramatic contrast, volumetric lighting',
-  product:'A premium product commercial in a minimal studio, soft key light, crisp reflections, smooth camera move',
-  nature:'A nature documentary frame at golden hour, wide landscape, realistic details, soft atmospheric depth',
-  action:'Fast-paced action sequence, handheld energy, dynamic camera movement, high detail and motion blur'
-};
-function lt(t){mp.value=tpl[t];umc()}
 
-function setGptStatus(msg,tone){
-  const el=document.getElementById('gptStatus');
-  const c={info:'#93a6c3',ok:'#6cd98d',warn:'#ffcc7a',err:'#ff7b7b'};
-  el.textContent=msg;
-  el.style.color=c[tone||'info']||c.info;
+<!-- Hidden scaffolding so studio-shell page-bridge can find these markers -->
+<div class="menubar"><span class="title">FRAMEFORGE</span><div class="spacer"></div></div>
+<div class="page-tabs">
+  <a class="page-tab" href="sound.html"></a>
+  <a class="page-tab" href="video.html"></a>
+  <a class="page-tab" href="presets.html"></a>
+  <a class="page-tab" href="transitions.html"></a>
+  <a class="page-tab" href="lighting.html"></a>
+  <a class="page-tab active" href="prompt.html"></a>
+</div>
+<div class="workspace"><div class="top-row"></div><div class="bottom-row"></div></div>
+
+<!-- Header -->
+<div class="header">
+  <div class="badge"><span class="dot"></span>PROMPT</div>
+  <div class="h-title">Prompt Studio</div>
+  <div class="h-model" id="modelToggle" title="Click to switch model">⚡ <span id="modelLabel">GPT 5.2</span></div>
+  <button class="h-btn" onclick="clearChat()">New Chat</button>
+</div>
+
+<!-- Chat -->
+<div class="chat" id="chat">
+  <div class="welcome" id="welcome">
+    <div class="w-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></div>
+    <div class="w-title">Prompt Studio</div>
+    <div class="w-sub">Describe what you want to create. GPT 5.2 will craft a professional cinematic prompt for video, image, or scene generation.</div>
+    <div class="suggestions">
+      <button class="sug" onclick="quickSend('Create a cinematic 8K action scene on a rainy rooftop at night')">🎬 Cinematic action scene</button>
+      <button class="sug" onclick="quickSend('Enhance this image to ultra sharp 8K with ARRI camera look')">✨ Image enhancement</button>
+      <button class="sug" onclick="quickSend('Generate a horror scene prompt with dramatic lighting')">👻 Horror scene</button>
+      <button class="sug" onclick="quickSend('Face swap prompt for male subject, preserve lighting')">🔄 Face swap prompt</button>
+      <button class="sug" onclick="quickSend('Multi-shot action sequence, 4 angles')">🎞 Multi-shot sequence</button>
+      <button class="sug" onclick="quickSend('Continue this scene with a reaction shot')">⏭ Next scene</button>
+    </div>
+  </div>
+</div>
+
+<!-- Preset strip -->
+<div class="preset-strip">
+  <div class="ps-tabs" id="psTabs"></div>
+  <div class="ps-scroll" id="psScroll"></div>
+</div>
+
+<!-- Input -->
+<div class="input-area">
+  <div class="input-card">
+    <div class="input-main">
+      <textarea class="input-ta" id="inputTA" rows="1" placeholder="Describe what you want to create..." oninput="autoGrow(this)" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg()}"></textarea>
+      <button class="send-btn" id="sendBtn" onclick="sendMsg()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      </button>
+    </div>
+    <div class="input-opts">
+      <button class="io" onclick="openDrawer()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg> Presets</button>
+      <button class="io" id="webSearchBtn" onclick="this.classList.toggle('on')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg> Web Search</button>
+      <span class="io-sep"></span>
+      <button class="io" id="reasoningBtn" onclick="toggleReasoning(this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.5.4.8 1 .8 1.6V18h6.4v-1.7c0-.6.3-1.2.8-1.6A7 7 0 0 0 12 2Z"/></svg> Reasoning: <span id="reasoningLabel">High</span></button>
+      <div class="io-right">
+        <span style="font-size:9px;color:#3d4568;font-family:'JetBrains Mono'" id="creditInfo"></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Drawer -->
+<div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-head"><span class="drawer-title">Prompt Presets</span><button class="drawer-close" onclick="closeDrawer()">✕</button></div>
+  <div class="drawer-tabs">
+    <button class="dt on" data-cat="all" onclick="filterCat(this)">All</button>
+    <button class="dt" data-cat="cinematic" onclick="filterCat(this)">🎬 Cinematic</button>
+    <button class="dt" data-cat="enhance" onclick="filterCat(this)">✨ Enhance</button>
+    <button class="dt" data-cat="faceswap" onclick="filterCat(this)">🔄 Face/Body</button>
+    <button class="dt" data-cat="scene" onclick="filterCat(this)">🎭 Scenes</button>
+    <button class="dt" data-cat="multishot" onclick="filterCat(this)">🎞 Multi-Shot</button>
+    <button class="dt" data-cat="nextscene" onclick="filterCat(this)">⏭ Next Scene</button>
+  </div>
+  <div class="drawer-scroll"><div class="drawer-grid" id="drawerGrid"></div></div>
+</div>
+
+<script>
+// ── Presets ─────────────────────────────────────────────────────
+const presets=[
+{cat:'cinematic',name:'Cinematic Master 8K',desc:'ARRI Alexa 65, 85mm, Kodak grain.',color:'#818cf8',prompt:'Ultra-high-resolution cinematic reconstruction, hyper-detailed 8K photorealism. ARRI Alexa 65 camera, 85mm lens, f/2.8. Professional color science, HDR precision, subtle 35mm Kodak grain. 7680x4320.',neg:'blurry, low quality, watermark, CGI, illustration, anime, plastic texture, AI artifacts'},
+{cat:'cinematic',name:'Dramatic Closeup',desc:'Chiaroscuro, f/1.4, 135mm.',color:'#fb923c',prompt:'Extreme close-up cinematic portrait, dramatic chiaroscuro lighting, f/1.4, 135mm telephoto, intense emotion, film noir side-lighting, 8K.',neg:'flat lighting, wide angle, blurry, cartoon'},
+{cat:'cinematic',name:'Epic Wide Shot',desc:'IMAX landscape, golden hour.',color:'#22c55e',prompt:'Ultra-wide establishing shot, sweeping landscape, golden hour, IMAX 65mm anamorphic, epic scale, volumetric god rays, teal and orange, 8K.',neg:'close-up, indoor, flat'},
+{cat:'enhance',name:'Ultra Clarity 8K',desc:'Full blur-to-sharp restoration.',color:'#22d3ee',prompt:'Ultra-high-resolution cinematic reconstruction of the original uploaded image, restored from blur into sharp, hyper-detailed 8K photorealism. Preserve 100% of the original subject identity, pose, framing. ARRI Alexa 65, 85mm, f/2.8. Professional color science, HDR, 35mm Kodak grain. 7680x4320.',neg:'Do not change pose, expression, angle, composition, clothing, identity. No stylization, CGI, anime, sharpening halos, oversmoothing, plastic texture, beauty filter, AI artifacts'},
+{cat:'enhance',name:'Detail Sharpen',desc:'Micro-detail enhancement.',color:'#a78bfa',prompt:'Enhance image detail maintaining authenticity. Sharpen skin pores, fabric texture, hair strands. Remove artifacts, noise, chromatic aberration.',neg:'over-sharpening, halos, artificial look'},
+{cat:'enhance',name:'Low Light Restore',desc:'Denoise, recover shadows.',color:'#fbbf24',prompt:'Professional low-light restoration. Remove noise preserving detail. Recover shadows with clean gradation. Maintain color temperature.',neg:'overexposed, washed out, artificial brightness'},
+{cat:'faceswap',name:'Face Swap — Male',desc:'Seamless male face replacement.',color:'#3b82f6',prompt:'Seamlessly replace male face with reference. Match skin tone, lighting, shadow, color temperature. Preserve proportions, blend naturally.',neg:'visible seam, mismatched skin, wrong lighting, plastic, uncanny valley'},
+{cat:'faceswap',name:'Face Swap — Female',desc:'Female face with makeup match.',color:'#ec4899',prompt:'Seamlessly replace female face with reference. Match skin, lighting, shadow, makeup. Blend hairline and jaw naturally.',neg:'visible seam, wrong makeup, plastic, blurry blend'},
+{cat:'faceswap',name:'Full Body — Male',desc:'Complete male character swap.',color:'#06b6d4',prompt:'Replace full body of male character. Match proportions, pose, clothing, lighting, shadows, perspective. Seamless integration.',neg:'floating body, wrong perspective, visible boundary'},
+{cat:'faceswap',name:'Full Body — Female',desc:'Complete female character swap.',color:'#f472b6',prompt:'Replace full body of female character. Match proportions, clothing drape, hair physics, lighting. Seamless integration.',neg:'floating body, unnatural pose, inconsistent hair'},
+{cat:'faceswap',name:'Character Transform',desc:'Transform into any character.',color:'#8b5cf6',prompt:'Transform subject into specified character. Apply costume, hair, makeup. Maintain facial structure. Photorealistic quality.',neg:'cartoon, bad costume, uncanny valley'},
+{cat:'scene',name:'Action',desc:'High-energy dynamic.',color:'#ef4444',prompt:'High-energy cinematic action, dynamic camera, controlled motion blur, sharp hero focus, dramatic backlight, 8K.',neg:'static, boring, flat lighting'},
+{cat:'scene',name:'Drama',desc:'Emotional tension.',color:'#f59e0b',prompt:'Emotional dramatic scene, intimate framing, expressive lighting, deep shadows, warm highlights, subtle grain.',neg:'comedy, bright, over-saturated'},
+{cat:'scene',name:'Horror',desc:'Dark atmospheric.',color:'#991b1b',prompt:'Dark atmospheric horror, unsettling angle, deep shadows, minimal light, cold desaturated, subtle fog, 35mm aesthetic.',neg:'bright, cheerful, comedy'},
+{cat:'scene',name:'Romance',desc:'Warm intimate.',color:'#e11d48',prompt:'Warm romantic scene, golden hour, shallow DOF, warm temperature, dreamy bokeh, emotional connection.',neg:'cold, harsh, horror'},
+{cat:'scene',name:'Sci-Fi',desc:'Futuristic.',color:'#06b6d4',prompt:'Futuristic sci-fi, volumetric neon, holographic elements, reflective surfaces, anamorphic flares, 8K.',neg:'medieval, rustic, cartoon'},
+{cat:'scene',name:'B&W Classic',desc:'Black and white.',color:'#6b7280',prompt:'Classic B&W, high contrast monochrome, dramatic shadows, film noir lighting, 35mm grain.',neg:'color, saturated, digital look'},
+{cat:'multishot',name:'Shot / Reverse Shot',desc:'Dialogue angles.',color:'#8b5cf6',prompt:'Shot 1: OTS MCU Character A, shallow DOF, warm key. Shot 2: Matching reverse Character B, same lighting, consistent grade.',neg:'mismatched angles, inconsistent lighting'},
+{cat:'multishot',name:'Action Sequence',desc:'Multi-angle action.',color:'#ef4444',prompt:'Shot 1: Wide establishing. Shot 2: Medium tracking. Shot 3: Close-up reaction. Shot 4: Wide aftermath. Consistent grade.',neg:'inconsistent style, static angles'},
+{cat:'multishot',name:'Montage',desc:'Time-passing.',color:'#f59e0b',prompt:'Montage: varied compositions, time passage. Mix wide/medium/close. Consistent palette, varied lighting.',neg:'repetitive angles, random shots'},
+{cat:'nextscene',name:'Continue Scene',desc:'Next frame.',color:'#22c55e',prompt:'Generate next logical frame. Maintain exact style, grading, lighting, camera, film stock. Advance action naturally.',neg:'style change, different grading, wrong continuity'},
+{cat:'nextscene',name:'Reaction Shot',desc:'Character reaction.',color:'#818cf8',prompt:'Generate reaction shot. Match grading, lighting, film stock. Natural emotional reaction. Appropriate focal length.',neg:'wrong mood, mismatched grading'},
+{cat:'nextscene',name:'Cutaway Insert',desc:'Detail shot.',color:'#fb923c',prompt:'Generate cutaway insert. Close-up on relevant detail. Match exact grading, lighting, film characteristics.',neg:'wrong context, unrelated detail'},
+];
+
+// ── State ───────────────────────────────────────────────────────
+const SYSTEM_PROMPT = [
+  'You are a senior cinematic prompt engineer for state-of-the-art video and image generation models',
+  '(Veo 3, Runway Gen-4, Kling 2.5, Sora, Midjourney, Flux).',
+  'Your job: turn the user request into ONE professional, production-ready prompt.',
+  '',
+  'STYLE GUIDELINES:',
+  '- Always answer in English regardless of input language.',
+  '- Be visual and concrete: subject, action, framing, lens, lighting, color, mood, era, film stock.',
+  '- Prefer cinematography vocabulary: lens (mm, aperture), camera move, focal length, color grade.',
+  '- Keep prompt 60–180 words. No bullet lists. No markdown headers.',
+  '- After the main prompt, add a single line starting with "Negative: " listing what to avoid.',
+  '- If user asks for multi-shot, label "Shot 1:", "Shot 2:" inline within the prompt block.',
+  '- Never refuse benign creative requests. Never add safety preambles.',
+].join('\n');
+
+const conversation = [];   // {role, content}
+let reasoningEffort = 'high';
+let isStreaming = false;
+
+// ── UI helpers ──────────────────────────────────────────────────
+function autoGrow(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,120)+'px'}
+function escHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+
+function quickSend(text){
+  document.getElementById('inputTA').value=text;
+  sendMsg();
 }
-function setGptBusy(b){
-  const btn=document.getElementById('gptAssistBtn');
-  btn.disabled=!!b;
-  btn.style.opacity=b?'.65':'1';
-  btn.style.cursor=b?'not-allowed':'pointer';
+
+function toggleReasoning(btn){
+  reasoningEffort = reasoningEffort==='high' ? 'low' : 'high';
+  document.getElementById('reasoningLabel').textContent = reasoningEffort==='high' ? 'High' : 'Low';
+  btn.classList.toggle('on', reasoningEffort==='high');
 }
-function extractAssistantText(resp){
-  if(!resp||!Array.isArray(resp.choices)||!resp.choices.length) return '';
-  const msg=resp.choices[0]&&resp.choices[0].message;
-  if(!msg) return '';
-  if(typeof msg.content==='string') return msg.content.trim();
-  if(Array.isArray(msg.content)){
-    return msg.content.map((p)=>typeof p==='string'?p:(p&&typeof p.text==='string'?p.text:'')).join('\n').trim();
+
+function addUserMsg(text){
+  const chat=document.getElementById('chat');
+  const msg=document.createElement('div');
+  msg.className='msg user';
+  msg.innerHTML=`<div class="msg-avatar">Y</div><div class="msg-body"><div class="msg-bubble">${escHtml(text)}</div></div>`;
+  chat.appendChild(msg);
+  chat.scrollTop=chat.scrollHeight;
+}
+
+function addAiMsg(rawText){
+  const chat=document.getElementById('chat');
+  const msg=document.createElement('div');
+  msg.className='msg ai';
+
+  // Split into intro + main prompt block + negative line
+  const negMatch = rawText.match(/\n\s*Negative\s*:\s*([\s\S]*)$/i);
+  let mainText = rawText;
+  let negText = '';
+  if(negMatch){
+    negText = negMatch[1].trim();
+    mainText = rawText.slice(0, negMatch.index).trim();
+  }
+
+  // If the main text is short (intro + prompt), keep as-is. Otherwise wrap entire thing as a prompt block.
+  const promptBody = mainText;
+
+  msg.innerHTML = `
+    <div class="msg-avatar">AI</div>
+    <div class="msg-body">
+      <div class="msg-bubble">
+        <div style="margin-bottom:6px;color:#a0a8c8;font-size:11px">Generated prompt:</div>
+        <div class="prompt-block">${escHtml(promptBody)}</div>
+        ${negText ? `<div style="margin-top:6px;font-size:10px;color:#fb7185"><strong>Negative:</strong> ${escHtml(negText)}</div>` : ''}
+        <div class="prompt-actions">
+          <button class="pa-btn use" onclick="usePrompt(this)">⚡ Use as Prompt</button>
+          <button class="pa-btn copy" onclick="copyPrompt(this)">📋 Copy</button>
+          <button class="pa-btn regen" onclick="regenLast()">🔄 Regenerate</button>
+        </div>
+      </div>
+    </div>`;
+  chat.appendChild(msg);
+  chat.scrollTop=chat.scrollHeight;
+}
+
+function addErrorMsg(text){
+  const chat=document.getElementById('chat');
+  const msg=document.createElement('div');
+  msg.className='msg ai';
+  msg.innerHTML=`<div class="msg-avatar">AI</div><div class="msg-body"><div class="msg-bubble"><div class="err">⚠ ${escHtml(text)}</div></div></div>`;
+  chat.appendChild(msg);
+  chat.scrollTop=chat.scrollHeight;
+}
+
+function showTyping(){
+  const chat=document.getElementById('chat');
+  const t=document.createElement('div');
+  t.className='msg ai';t.id='typing';
+  t.innerHTML=`<div class="msg-avatar">AI</div><div class="msg-body"><div class="msg-bubble"><div class="typing"><span></span><span></span><span></span></div></div></div>`;
+  chat.appendChild(t);
+  chat.scrollTop=chat.scrollHeight;
+}
+function removeTyping(){document.getElementById('typing')?.remove()}
+
+function setSending(v){
+  isStreaming=v;
+  const btn=document.getElementById('sendBtn');
+  btn.disabled=v;
+}
+
+// ── GPT call ────────────────────────────────────────────────────
+async function callGpt(){
+  // Build payload for /api/kie/gpt-5-2/chat (Responses API style)
+  const messages = [
+    { role:'system', content:[{type:'text', text:SYSTEM_PROMPT}] },
+    ...conversation.map(m => ({
+      role: m.role,
+      content: [{ type:'text', text: m.content }]
+    }))
+  ];
+  const payload = {
+    reasoning_effort: reasoningEffort,
+    messages,
+  };
+  const webSearch = document.getElementById('webSearchBtn').classList.contains('on');
+  if(webSearch){
+    payload.tools = [{ type:'function', function:{ name:'web_search' } }];
+  }
+  const res = await fetch('/api/kie/gpt-5-2/chat', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify(payload),
+  });
+  let json=null;
+  try{ json = await res.json(); }catch(_e){}
+  if(!res.ok){
+    const errMsg = (json && (json.error || json.msg)) || `Request failed (${res.status})`;
+    throw new Error(typeof errMsg==='string' ? errMsg : (errMsg.message || 'Request failed'));
+  }
+  if(json && json.error){
+    throw new Error(typeof json.error==='string' ? json.error : (json.error.message || 'GPT error'));
+  }
+  // Extract text from various possible shapes
+  const text = extractText(json);
+  if(!text) throw new Error('Empty response from GPT 5.2');
+  return text;
+}
+
+function extractText(data){
+  if(!data) return '';
+  if(typeof data === 'string') return data;
+  if(typeof data.content === 'string') return data.content;
+  if(typeof data.output_text === 'string') return data.output_text;
+  if(typeof data.text === 'string') return data.text;
+  // Responses API output array
+  if(Array.isArray(data.output)){
+    for(const block of data.output){
+      const c = block && block.content;
+      if(Array.isArray(c)){
+        for(const part of c){
+          if(part && (part.type==='output_text' || part.type==='text') && typeof part.text==='string'){
+            return part.text;
+          }
+        }
+      }
+    }
+  }
+  // Chat completions fallback
+  if(Array.isArray(data.choices)){
+    const m = data.choices[0]?.message;
+    if(typeof m?.content === 'string') return m.content;
   }
   return '';
 }
-async function gptAssist(){
-  const base=(mp.value||'').trim();
-  const neg=(np2.value||'').trim();
-  if(!base){
-    setGptStatus('Write prompt text first.','warn');
-    return;
-  }
-  const reasoning=(document.getElementById('gptReasoning').value||'high')==='low'?'low':'high';
-  const withSearch=!!document.getElementById('gptWebSearch').checked;
-  const imageUrl=(document.getElementById('gptImageUrl').value||'').trim();
-  const userContent=[{
-    type:'text',
-    text:[
-      'Refine the following visual generation prompt for cinematic quality.',
-      'Return only the final improved prompt text in English.',
-      'Keep intent, improve structure, camera language, lighting, composition, and clarity.',
-      '',
-      'BASE PROMPT:',
-      base,
-      '',
-      'NEGATIVE PROMPT:',
-      neg||'(none)'
-    ].join('\n')
-  }];
-  if(imageUrl){
-    userContent.push({ type:'image_url', image_url:{ url:imageUrl }});
-  }
-  const payload={
-    reasoning_effort:reasoning,
-    messages:[
-      { role:'system', content:[{type:'text',text:'You are a senior prompt engineer for video and image generation.'}]},
-      { role:'user', content:userContent }
-    ]
-  };
-  if(withSearch){
-    payload.tools=[{ type:'function', function:{ name:'web_search' }}];
-  }
-  setGptBusy(true);
-  setGptStatus('Sending request to GPT 5.2...','info');
+
+async function sendMsg(){
+  if(isStreaming) return;
+  const ta=document.getElementById('inputTA');
+  const text=ta.value.trim();
+  if(!text) return;
+
+  document.getElementById('welcome')?.classList.add('hidden');
+  conversation.push({ role:'user', content:text });
+  addUserMsg(text);
+  ta.value=''; ta.style.height='auto';
+
+  setSending(true);
+  showTyping();
   try{
-    const res=await fetch('/api/kie/gpt-5-2/chat',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify(payload)
-    });
-    const json=await res.json();
-    if(!res.ok||!json){
-      throw new Error((json&&json.msg)||('Request failed ('+res.status+')'));
-    }
-    if(json.error&&json.error.message){
-      throw new Error(json.error.message);
-    }
-    const out=extractAssistantText(json);
-    if(!out) throw new Error('No prompt text returned from GPT 5.2');
-    mp.value=out;
-    umc();
-    setGptStatus('Prompt updated by GPT 5.2.','ok');
+    const reply = await callGpt();
+    removeTyping();
+    conversation.push({ role:'assistant', content:reply });
+    addAiMsg(reply);
   }catch(e){
-    setGptStatus('GPT failed: '+(e&&e.message?e.message:String(e)),'err');
+    removeTyping();
+    addErrorMsg(e && e.message ? e.message : String(e));
   }finally{
-    setGptBusy(false);
+    setSending(false);
   }
 }
-function useAssistantAsPreset(){
-  if(!(mp.value||'').trim()){
-    setGptStatus('No prompt text to save.','warn');
-    return;
+
+async function regenLast(){
+  if(isStreaming) return;
+  // Drop last assistant message and re-ask
+  if(conversation.length && conversation[conversation.length-1].role==='assistant'){
+    conversation.pop();
   }
-  svp();
-  setGptStatus('GPT result added to presets.','ok');
+  // Remove last AI bubble from DOM
+  const bubbles = document.querySelectorAll('.msg.ai');
+  if(bubbles.length){ bubbles[bubbles.length-1].remove(); }
+  setSending(true);
+  showTyping();
+  try{
+    const reply = await callGpt();
+    removeTyping();
+    conversation.push({ role:'assistant', content:reply });
+    addAiMsg(reply);
+  }catch(e){
+    removeTyping();
+    addErrorMsg(e && e.message ? e.message : String(e));
+  }finally{
+    setSending(false);
+  }
 }
+
+function usePrompt(btn){
+  const block = btn.closest('.msg-bubble').querySelector('.prompt-block');
+  const negEl = btn.closest('.msg-bubble').querySelector('div[style*="fb7185"]');
+  const promptText = block ? block.textContent : '';
+  const negText = negEl ? negEl.textContent.replace(/^\s*Negative:\s*/i,'').trim() : '';
+  // Send to studio shell so other tabs (Video Generation / Image / Captions) can pick it up
+  try{
+    window.parent && window.parent.postMessage({
+      type:'ff:usePrompt',
+      prompt: promptText,
+      negative: negText,
+    }, '*');
+  }catch(_e){}
+  btn.textContent='✓ Sent to Pipeline';
+  btn.style.background='#22c55e';
+  setTimeout(()=>{ btn.textContent='⚡ Use as Prompt'; btn.style.background=''; }, 2000);
+}
+
+function copyPrompt(btn){
+  const block = btn.closest('.msg-bubble').querySelector('.prompt-block');
+  const txt = block ? block.textContent : '';
+  if(navigator.clipboard) navigator.clipboard.writeText(txt);
+  btn.textContent='✓ Copied';
+  setTimeout(()=>{ btn.textContent='📋 Copy'; }, 1500);
+}
+
+function clearChat(){
+  conversation.length = 0;
+  const chat = document.getElementById('chat');
+  chat.innerHTML='';
+  const w=document.createElement('div');
+  w.className='welcome'; w.id='welcome';
+  w.innerHTML=`<div class="w-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></div><div class="w-title">Prompt Studio</div><div class="w-sub">Describe what you want — GPT 5.2 will craft a professional cinematic prompt.</div><div class="suggestions"><button class="sug" onclick="quickSend('Cinematic 8K action scene, rainy rooftop')">🎬 Action</button><button class="sug" onclick="quickSend('Enhance image to ultra sharp 8K')">✨ Enhance</button><button class="sug" onclick="quickSend('Horror scene, dramatic lighting')">👻 Horror</button><button class="sug" onclick="quickSend('Face swap male subject')">🔄 Face swap</button></div>`;
+  chat.appendChild(w);
+}
+
+// ── Drawer ──────────────────────────────────────────────────────
+function openDrawer(){document.getElementById('drawer').classList.add('on');document.getElementById('drawerOverlay').classList.add('on')}
+function closeDrawer(){document.getElementById('drawer').classList.remove('on');document.getElementById('drawerOverlay').classList.remove('on')}
+function filterCat(el){document.querySelectorAll('.dt').forEach(t=>t.classList.remove('on'));el.classList.add('on');renderPresets(el.dataset.cat)}
+
+function renderPresets(cat='all'){
+  const g=document.getElementById('drawerGrid');g.innerHTML='';
+  presets.filter(p=>cat==='all'||p.cat===cat).forEach(p=>{
+    const c=document.createElement('div');c.className='d-card';
+    c.innerHTML=`<div class="dc-cat" style="color:${p.color}">${escHtml(p.cat.toUpperCase())}</div><div class="dc-name">${escHtml(p.name)}</div><div class="dc-desc">${escHtml(p.desc)}</div>`;
+    c.addEventListener('click',()=>{ closeDrawer(); usePresetAsBase(p); });
+    g.appendChild(c);
+  });
+}
+
+function usePresetAsBase(p){
+  // Inject preset directly as if AI had returned it
+  document.getElementById('welcome')?.classList.add('hidden');
+  const userText = `Use preset: ${p.name}`;
+  conversation.push({ role:'user', content:userText });
+  addUserMsg(userText);
+  const aiReply = `${p.prompt}\nNegative: ${p.neg}`;
+  conversation.push({ role:'assistant', content:aiReply });
+  addAiMsg(aiReply);
+}
+
+// ── Preset strip ────────────────────────────────────────────────
+const cats=[
+  {id:'all',label:'All'},
+  {id:'cinematic',label:'🎬 Cinematic'},
+  {id:'enhance',label:'✨ Enhance'},
+  {id:'faceswap',label:'🔄 Face/Body'},
+  {id:'scene',label:'🎭 Scenes'},
+  {id:'multishot',label:'🎞 Multi-Shot'},
+  {id:'nextscene',label:'⏭ Next Scene'},
+];
+
+function renderPresetStrip(cat){
+  const tabs=document.getElementById('psTabs');
+  tabs.innerHTML='';
+  cats.forEach(c=>{
+    const t=document.createElement('button');
+    t.className='ps-tab'+(c.id===cat?' on':'');
+    t.textContent=c.label;
+    t.addEventListener('click',()=>{
+      document.querySelectorAll('.ps-tab').forEach(x=>x.classList.remove('on'));
+      t.classList.add('on');
+      renderPresetCards(c.id);
+    });
+    tabs.appendChild(t);
+  });
+  renderPresetCards(cat);
+}
+
+function renderPresetCards(cat){
+  const scroll=document.getElementById('psScroll');
+  scroll.innerHTML='';
+  presets.filter(p=>cat==='all'||p.cat===cat).forEach(p=>{
+    const card=document.createElement('div');
+    card.className='ps-card';
+    card.innerHTML=`<div class="ps-cat" style="color:${p.color}">${escHtml(p.cat)}</div><div class="ps-name">${escHtml(p.name)}</div><div class="ps-desc">${escHtml(p.desc)}</div>`;
+    card.addEventListener('click',()=>usePresetAsBase(p));
+    scroll.appendChild(card);
+  });
+}
+
+// Init
+document.getElementById('reasoningBtn').classList.add('on');
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeDrawer()});
+renderPresets();
+renderPresetStrip('all');
 </script>
 <script src="shared/timeline-bridge.js"></script>
 <script src="shared/english-only.js"></script>
-<script src="shared/resizable-panels.js"></script></body>
+</body>
 </html>
-
-
-
-
-
-

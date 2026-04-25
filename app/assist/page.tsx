@@ -1,25 +1,31 @@
 ﻿"use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
 import {
   Bot,
   ChevronDown,
-  Clock,
+  Code2,
+  Copy,
   Cpu,
-  Paperclip,
+  MessageSquarePlus,
+  PenLine,
   Plus,
+  RefreshCcw,
   Send,
   Sparkles,
+  Trash2,
   User,
   Zap,
-  PenLine,
-  Code2,
 } from "lucide-react";
+
+// ─────────────────────────────────────────────────────────────────
+// Types
+// ─────────────────────────────────────────────────────────────────
+type Role = "user" | "assistant";
 
 type Message = {
   id: string;
-  role: "user" | "assistant";
+  role: Role;
   content: string;
   createdAt: number;
 };
@@ -35,84 +41,89 @@ type ModelItem = {
   id: string;
   label: string;
   badge: string;
-  textColor: string;
-  dotColor: string;
+  accent: string;
 };
 
 type PersonaItem = {
   id: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
+  hint: string;
 };
 
-const STORAGE_KEY = "saad_assist_sessions_v2";
+// ─────────────────────────────────────────────────────────────────
+// Config
+// ─────────────────────────────────────────────────────────────────
+const STORAGE_KEY = "saad_assist_sessions_v3";
 
 const MODELS: ModelItem[] = [
-  { id: "gpt-5.4", label: "GPT-5.4", badge: "Default", textColor: "text-emerald-300", dotColor: "bg-emerald-400" },
-  { id: "claude-sonnet-4.6", label: "Claude Sonnet 4.6", badge: "Anthropic", textColor: "text-violet-300", dotColor: "bg-violet-400" },
-  { id: "gemini-3-pro", label: "Gemini 3 Pro", badge: "Google", textColor: "text-cyan-300", dotColor: "bg-cyan-400" },
+  { id: "gpt-5.4", label: "GPT-5.4", badge: "Default", accent: "#818cf8" },
+  { id: "claude-sonnet-4.6", label: "Claude Sonnet 4.6", badge: "Anthropic", accent: "#a78bfa" },
+  { id: "gemini-3-pro", label: "Gemini 3 Pro", badge: "Google", accent: "#22d3ee" },
 ];
 
 const PERSONAS: PersonaItem[] = [
-  { id: "general", label: "General Assistant", icon: Sparkles },
-  { id: "prompt", label: "Prompt Engineer", icon: Zap },
-  { id: "script", label: "Scriptwriter", icon: PenLine },
-  { id: "code", label: "Code Expert", icon: Code2 },
+  { id: "general", label: "General Assistant", icon: Sparkles, hint: "Balanced helpful answers" },
+  { id: "prompt", label: "Prompt Engineer", icon: Zap, hint: "Cinematic prompts for video/image" },
+  { id: "script", label: "Scriptwriter", icon: PenLine, hint: "Scenes, dialogue, structure" },
+  { id: "code", label: "Code Expert", icon: Code2, hint: "Code, debugging, architecture" },
 ];
 
-function createWelcomeMessage(): Message {
-  return {
-    id: `m-${Date.now()}-welcome`,
-    role: "assistant",
-    createdAt: Date.now(),
-    content:
-      "Hello Saad. I am ready to help with prompts, scripts, and technical tasks. Send your first message to start a real conversation.",
-  };
+const SUGGESTIONS = [
+  "Write a cinematic prompt for a rainy rooftop chase",
+  "Refactor this React component to use hooks",
+  "Outline a 60-second product launch script",
+  "Explain how WebCodecs encoding works",
+];
+
+// ─────────────────────────────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────────────────────────────
+function newId(prefix: string) {
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 }
 
 function createSession(): Session {
   const now = Date.now();
   return {
-    id: `s-${now}`,
+    id: newId("s"),
     title: "New Chat",
     updatedAt: now,
-    messages: [createWelcomeMessage()],
+    messages: [],
   };
 }
 
+function formatTime(ts: number) {
+  return new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Markdown rendering (light)
+// ─────────────────────────────────────────────────────────────────
 function renderInline(text: string): React.ReactNode[] {
-  // Process inline markdown: **bold**, *italic*, `code`, [link](url)
   const parts: React.ReactNode[] = [];
   const regex = /(\*\*(.+?)\*\*)|(\*(.+?)\*)|(`(.+?)`)|(\[(.+?)\]\((.+?)\))/g;
   let last = 0;
-  let match: RegExpExecArray | null;
-  let idx = 0;
-  while ((match = regex.exec(text)) !== null) {
-    if (match.index > last) {
-      parts.push(text.slice(last, match.index));
-    }
-    if (match[1]) {
-      parts.push(<strong key={idx++} className="font-semibold text-white">{match[2]}</strong>);
-    } else if (match[3]) {
-      parts.push(<em key={idx++} className="italic">{match[4]}</em>);
-    } else if (match[5]) {
-      parts.push(<code key={idx++} className="bg-slate-700 rounded px-1 py-0.5 text-xs font-mono text-emerald-300">{match[6]}</code>);
-    } else if (match[7]) {
-      parts.push(<a key={idx++} href={match[9]} target="_blank" rel="noopener noreferrer" className="text-blue-400 underline">{match[8]}</a>);
-    }
-    last = match.index + match[0].length;
+  let m: RegExpExecArray | null;
+  let i = 0;
+  while ((m = regex.exec(text)) !== null) {
+    if (m.index > last) parts.push(text.slice(last, m.index));
+    if (m[1]) parts.push(<strong key={i++} className="font-semibold text-white">{m[2]}</strong>);
+    else if (m[3]) parts.push(<em key={i++} className="italic">{m[4]}</em>);
+    else if (m[5]) parts.push(<code key={i++} className="bg-white/10 rounded px-1.5 py-0.5 text-[11px] font-mono text-emerald-300">{m[6]}</code>);
+    else if (m[7]) parts.push(<a key={i++} href={m[9]} target="_blank" rel="noopener noreferrer" className="text-indigo-400 underline">{m[8]}</a>);
+    last = m.index + m[0].length;
   }
   if (last < text.length) parts.push(text.slice(last));
   return parts;
 }
 
-function renderSimpleMarkdown(content: string) {
+function renderMarkdown(content: string): React.ReactNode {
   const lines = content.split("\n");
-  const elements: React.ReactNode[] = [];
+  const out: React.ReactNode[] = [];
   let i = 0;
   while (i < lines.length) {
     const line = lines[i];
-    // Fenced code block
     if (line.startsWith("```")) {
       const lang = line.slice(3).trim();
       const codeLines: string[] = [];
@@ -121,62 +132,76 @@ function renderSimpleMarkdown(content: string) {
         codeLines.push(lines[i]);
         i++;
       }
-      elements.push(
-        <pre key={i} className="bg-slate-800 rounded-lg p-3 my-2 overflow-x-auto text-xs font-mono text-emerald-300 whitespace-pre-wrap">
-          {lang && <span className="text-slate-500 text-xs block mb-1">{lang}</span>}
-          {codeLines.join("\n")}
-        </pre>
+      const code = codeLines.join("\n");
+      out.push(
+        <div key={`code-${i}`} className="my-2 rounded-lg border border-white/10 bg-black/40 overflow-hidden">
+          <div className="flex items-center justify-between px-3 py-1.5 border-b border-white/5 text-[10px] uppercase tracking-wide text-slate-500 font-mono">
+            <span>{lang || "code"}</span>
+            <button
+              type="button"
+              onClick={() => navigator.clipboard?.writeText(code)}
+              className="text-slate-400 hover:text-white"
+              title="Copy"
+            >
+              <Copy className="h-3 w-3" />
+            </button>
+          </div>
+          <pre className="p-3 overflow-x-auto text-[12px] font-mono text-emerald-300 whitespace-pre">{code}</pre>
+        </div>,
       );
     } else if (/^### (.+)/.test(line)) {
-      elements.push(<h3 key={i} className="text-base font-semibold text-white mt-3 mb-1">{renderInline(line.slice(4))}</h3>);
+      out.push(<h3 key={i} className="text-sm font-bold text-white mt-3 mb-1">{renderInline(line.slice(4))}</h3>);
     } else if (/^## (.+)/.test(line)) {
-      elements.push(<h2 key={i} className="text-lg font-bold text-white mt-3 mb-1">{renderInline(line.slice(3))}</h2>);
+      out.push(<h2 key={i} className="text-base font-bold text-white mt-3 mb-1">{renderInline(line.slice(3))}</h2>);
     } else if (/^# (.+)/.test(line)) {
-      elements.push(<h1 key={i} className="text-xl font-bold text-white mt-3 mb-1">{renderInline(line.slice(2))}</h1>);
+      out.push(<h1 key={i} className="text-lg font-extrabold text-white mt-3 mb-1">{renderInline(line.slice(2))}</h1>);
     } else if (/^[-*] (.+)/.test(line)) {
-      elements.push(
-        <div key={i} className="flex gap-2 leading-relaxed text-sm text-slate-200">
-          <span className="text-slate-400 mt-0.5">•</span>
+      out.push(
+        <div key={i} className="flex gap-2 leading-relaxed text-[13px] text-slate-200">
+          <span className="text-indigo-400 mt-1">•</span>
           <span>{renderInline(line.slice(2))}</span>
-        </div>
+        </div>,
       );
-    } else if (/^\d+\. (.+)/.test(line)) {
-      const numMatch = line.match(/^(\d+)\. (.+)/);
-      elements.push(
-        <div key={i} className="flex gap-2 leading-relaxed text-sm text-slate-200">
-          <span className="text-slate-400 shrink-0">{numMatch![1]}.</span>
-          <span>{renderInline(numMatch![2])}</span>
-        </div>
+    } else if (/^\d+\.\s+(.+)/.test(line)) {
+      const m = line.match(/^(\d+)\.\s+(.+)/)!;
+      out.push(
+        <div key={i} className="flex gap-2 leading-relaxed text-[13px] text-slate-200">
+          <span className="text-indigo-400 shrink-0 font-mono">{m[1]}.</span>
+          <span>{renderInline(m[2])}</span>
+        </div>,
       );
     } else if (line.trim() === "") {
-      elements.push(<div key={i} className="h-2" />);
+      out.push(<div key={i} className="h-2" />);
     } else {
-      elements.push(
-        <p key={i} className="leading-relaxed text-sm text-slate-200">
-          {renderInline(line)}
-        </p>
+      out.push(
+        <p key={i} className="leading-relaxed text-[13px] text-slate-200">{renderInline(line)}</p>,
       );
     }
     i++;
   }
-  return elements;
+  return out;
 }
 
+// ─────────────────────────────────────────────────────────────────
+// Page
+// ─────────────────────────────────────────────────────────────────
 export default function AssistPage() {
   const [sessions, setSessions] = useState<Session[]>([]);
-  const [activeSessionId, setActiveSessionId] = useState<string>("");
+  const [activeId, setActiveId] = useState("");
   const [text, setText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [model, setModel] = useState("gpt-5.4");
   const [persona, setPersona] = useState("general");
-  const [showModelDropdown, setShowModelDropdown] = useState(false);
-  const [showPersonaDropdown, setShowPersonaDropdown] = useState(false);
+  const [showModel, setShowModel] = useState(false);
+  const [showPersona, setShowPersona] = useState(false);
+  const [showSidebar, setShowSidebar] = useState(true);
 
   const modelRef = useRef<HTMLDivElement>(null);
   const personaRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
+  // Load sessions
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -184,86 +209,102 @@ export default function AssistPage() {
         const parsed = JSON.parse(raw) as Session[];
         if (Array.isArray(parsed) && parsed.length) {
           setSessions(parsed);
-          setActiveSessionId(parsed[0].id);
+          setActiveId(parsed[0].id);
           return;
         }
       }
-    } catch {
-      // ignore corrupted local cache
-    }
-
-    const first = createSession();
-    setSessions([first]);
-    setActiveSessionId(first.id);
+    } catch {}
+    const s = createSession();
+    setSessions([s]);
+    setActiveId(s.id);
   }, []);
 
+  // Persist
   useEffect(() => {
     if (!sessions.length) return;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
+    } catch {}
   }, [sessions]);
 
+  // Outside click for dropdowns
   useEffect(() => {
-    const onClick = (e: MouseEvent) => {
-      if (modelRef.current && !modelRef.current.contains(e.target as Node)) setShowModelDropdown(false);
-      if (personaRef.current && !personaRef.current.contains(e.target as Node)) setShowPersonaDropdown(false);
+    const handler = (e: MouseEvent) => {
+      if (modelRef.current && !modelRef.current.contains(e.target as Node)) setShowModel(false);
+      if (personaRef.current && !personaRef.current.contains(e.target as Node)) setShowPersona(false);
     };
-    document.addEventListener("mousedown", onClick);
-    return () => document.removeEventListener("mousedown", onClick);
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
   }, []);
 
+  // Auto-grow input
   useEffect(() => {
     if (!inputRef.current) return;
     inputRef.current.style.height = "auto";
     inputRef.current.style.height = `${Math.min(160, inputRef.current.scrollHeight)}px`;
   }, [text]);
 
+  // Auto-scroll on new messages / loading
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [sessions, activeSessionId, isLoading]);
+  }, [sessions, activeId, isLoading]);
 
   const activeSession = useMemo(
-    () => sessions.find((s) => s.id === activeSessionId) ?? sessions[0],
-    [sessions, activeSessionId],
+    () => sessions.find((s) => s.id === activeId) ?? sessions[0],
+    [sessions, activeId],
   );
 
   const currentModel = MODELS.find((m) => m.id === model) ?? MODELS[0];
   const currentPersona = PERSONAS.find((p) => p.id === persona) ?? PERSONAS[0];
   const PersonaIcon = currentPersona.icon;
 
-  const updateActiveSession = (updater: (session: Session) => Session) => {
-    setSessions((prev) => prev.map((s) => (s.id === activeSession?.id ? updater(s) : s)).sort((a, b) => b.updatedAt - a.updatedAt));
+  const updateActive = (updater: (s: Session) => Session) => {
+    setSessions((prev) =>
+      prev
+        .map((s) => (s.id === activeSession?.id ? updater(s) : s))
+        .sort((a, b) => b.updatedAt - a.updatedAt),
+    );
   };
 
-  const handleNewChat = () => {
+  const handleNew = () => {
     const s = createSession();
     setSessions((prev) => [s, ...prev]);
-    setActiveSessionId(s.id);
+    setActiveId(s.id);
     setText("");
   };
 
-  const handleSend = async () => {
-    if (!activeSession || !text.trim() || isLoading) return;
+  const handleDelete = (id: string) => {
+    setSessions((prev) => {
+      const next = prev.filter((s) => s.id !== id);
+      if (next.length === 0) {
+        const s = createSession();
+        setActiveId(s.id);
+        return [s];
+      }
+      if (id === activeId) setActiveId(next[0].id);
+      return next;
+    });
+  };
 
-    const userText = text.trim();
-    setText("");
-    setIsLoading(true);
+  const sendMessageWith = async (rawText: string) => {
+    if (!activeSession || !rawText.trim() || isLoading) return;
 
-    const userMessage: Message = {
-      id: `m-${Date.now()}-u`,
+    const userMsg: Message = {
+      id: newId("m"),
       role: "user",
-      content: userText,
+      content: rawText.trim(),
       createdAt: Date.now(),
     };
+    const next = [...activeSession.messages, userMsg];
 
-    const nextMessages = [...activeSession.messages, userMessage];
-
-    updateActiveSession((session) => ({
-      ...session,
-      messages: nextMessages,
-      title: session.title === "New Chat" ? userText.slice(0, 48) : session.title,
+    updateActive((s) => ({
+      ...s,
+      messages: next,
+      title: s.title === "New Chat" ? rawText.trim().slice(0, 48) : s.title,
       updatedAt: Date.now(),
     }));
 
+    setIsLoading(true);
     try {
       const res = await fetch("/api/assist", {
         method: "POST",
@@ -271,285 +312,443 @@ export default function AssistPage() {
         body: JSON.stringify({
           model,
           persona,
-          messages: nextMessages.map((m) => ({ role: m.role, content: m.content })),
+          messages: next.map((m) => ({ role: m.role, content: m.content })),
         }),
       });
-
       const payload = await res.json().catch(() => ({}));
-
       if (!res.ok) {
-        throw new Error(payload?.error || payload?.message || "Request failed");
+        throw new Error(payload?.error || payload?.message || `Request failed (${res.status})`);
       }
-
-      const aiMessage: Message = {
-        id: `m-${Date.now()}-a`,
+      const aiMsg: Message = {
+        id: newId("m"),
         role: "assistant",
-        content: String(payload?.content || "No response received."),
+        content: String(payload?.content || "(empty response)"),
         createdAt: Date.now(),
       };
-
-      updateActiveSession((session) => ({
-        ...session,
-        messages: [...session.messages, aiMessage],
-        updatedAt: Date.now(),
-      }));
-    } catch (error) {
-      const errorMessage: Message = {
-        id: `m-${Date.now()}-e`,
+      updateActive((s) => ({ ...s, messages: [...s.messages, aiMsg], updatedAt: Date.now() }));
+    } catch (err) {
+      const errMsg: Message = {
+        id: newId("m"),
         role: "assistant",
-        content: `Error: ${error instanceof Error ? error.message : "Unexpected error"}`,
+        content: `⚠ ${err instanceof Error ? err.message : "Unexpected error"}`,
         createdAt: Date.now(),
       };
-
-      updateActiveSession((session) => ({
-        ...session,
-        messages: [...session.messages, errorMessage],
-        updatedAt: Date.now(),
-      }));
+      updateActive((s) => ({ ...s, messages: [...s.messages, errMsg], updatedAt: Date.now() }));
     } finally {
       setIsLoading(false);
     }
   };
 
-  const onInputKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+  const handleSend = () => {
+    const t = text.trim();
+    if (!t) return;
+    setText("");
+    sendMessageWith(t);
+  };
+
+  const handleRegenerate = async () => {
+    if (!activeSession || isLoading) return;
+    // Find last user message; remove any assistant after it; resend.
+    const msgs = [...activeSession.messages];
+    let lastUserIdx = -1;
+    for (let i = msgs.length - 1; i >= 0; i--) {
+      if (msgs[i].role === "user") {
+        lastUserIdx = i;
+        break;
+      }
+    }
+    if (lastUserIdx < 0) return;
+    const trimmed = msgs.slice(0, lastUserIdx + 1);
+    updateActive((s) => ({ ...s, messages: trimmed, updatedAt: Date.now() }));
+
+    setIsLoading(true);
+    try {
+      const res = await fetch("/api/assist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model,
+          persona,
+          messages: trimmed.map((m) => ({ role: m.role, content: m.content })),
+        }),
+      });
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(payload?.error || `Request failed (${res.status})`);
+      const aiMsg: Message = {
+        id: newId("m"),
+        role: "assistant",
+        content: String(payload?.content || "(empty response)"),
+        createdAt: Date.now(),
+      };
+      updateActive((s) => ({ ...s, messages: [...s.messages, aiMsg], updatedAt: Date.now() }));
+    } catch (err) {
+      const errMsg: Message = {
+        id: newId("m"),
+        role: "assistant",
+        content: `⚠ ${err instanceof Error ? err.message : "Unexpected error"}`,
+        createdAt: Date.now(),
+      };
+      updateActive((s) => ({ ...s, messages: [...s.messages, errMsg], updatedAt: Date.now() }));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
   };
 
-  const formatTime = (ts: number) => {
-    const d = new Date(ts);
-    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  };
+  const messages = activeSession?.messages ?? [];
+  const isEmpty = messages.length === 0;
 
   return (
-    <div className="flex min-h-0 h-full w-full overflow-hidden bg-[#030712]">
-      <aside className="w-[260px] border-r border-slate-800/70 bg-slate-950/80 backdrop-blur-xl flex flex-col">
-        <div className="px-4 pt-4 pb-3 flex items-center gap-2">
-          <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-blue-500 to-violet-500 flex items-center justify-center shadow-[0_0_18px_rgba(59,130,246,0.35)]">
-            <Cpu className="h-4 w-4 text-white" />
+    <div className="flex min-h-0 h-full w-full overflow-hidden" style={{ background: "linear-gradient(180deg,#080c1a,#05070f)" }}>
+      {/* Sidebar */}
+      {showSidebar && (
+        <aside className="w-[260px] border-r border-white/5 bg-black/30 backdrop-blur-xl flex flex-col flex-shrink-0">
+          <div className="px-4 pt-4 pb-3 flex items-center gap-2">
+            <div
+              className="h-9 w-9 rounded-xl flex items-center justify-center"
+              style={{ background: "linear-gradient(135deg,#6366f1,#818cf8)", boxShadow: "0 6px 20px rgba(99,102,241,.35)" }}
+            >
+              <Cpu className="h-4 w-4 text-white" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-bold text-white">Saad Copilot</p>
+              <p className="text-[10px] text-slate-500">AI Creative Workspace</p>
+            </div>
           </div>
-          <div>
-            <p className="text-xs font-bold text-white">Saad Copilot</p>
-            <p className="text-[10px] text-slate-500">AI Creative Workspace</p>
-          </div>
-        </div>
 
-        <div className="px-3 pb-3">
+          <div className="px-3 pb-3">
+            <button
+              type="button"
+              onClick={handleNew}
+              className="w-full rounded-xl px-3 py-2.5 text-sm font-semibold flex items-center justify-center gap-2 text-white transition hover:opacity-90"
+              style={{ background: "linear-gradient(135deg,#6366f1,#818cf8)", boxShadow: "0 4px 16px rgba(99,102,241,.25)" }}
+            >
+              <Plus className="h-4 w-4" />
+              New Chat
+            </button>
+          </div>
+
+          <div className="px-3 pb-2 text-[9px] font-bold text-slate-500 uppercase tracking-wider">Recent</div>
+          <div className="flex-1 overflow-y-auto px-2 space-y-1">
+            {sessions.map((s) => {
+              const active = s.id === activeSession?.id;
+              return (
+                <div
+                  key={s.id}
+                  className={`group rounded-lg border px-3 py-2 transition cursor-pointer flex items-start gap-2 ${
+                    active
+                      ? "border-indigo-500/30 bg-indigo-500/10 text-white"
+                      : "border-transparent bg-transparent text-slate-400 hover:bg-white/5"
+                  }`}
+                  onClick={() => setActiveId(s.id)}
+                >
+                  <MessageSquarePlus className={`h-3.5 w-3.5 mt-0.5 shrink-0 ${active ? "text-indigo-300" : "text-slate-500"}`} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[12px] font-semibold truncate">{s.title || "New Chat"}</p>
+                    <p className="text-[10px] text-slate-500 mt-0.5">{new Date(s.updatedAt).toLocaleDateString()}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(s.id);
+                    }}
+                    className="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-rose-400 transition"
+                    title="Delete chat"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="p-3 border-t border-white/5 text-[10px] text-slate-500">
+            Sessions are stored locally in your browser.
+          </div>
+        </aside>
+      )}
+
+      {/* Main */}
+      <div className="flex-1 min-w-0 flex flex-col">
+        {/* Header */}
+        <div className="px-5 pt-4 pb-3 flex items-center gap-3">
           <button
             type="button"
-            onClick={handleNewChat}
-            className="w-full rounded-xl border border-blue-500/30 bg-blue-500/10 text-blue-300 px-3 py-2 text-sm font-semibold flex items-center gap-2 hover:bg-blue-500/20"
+            onClick={() => setShowSidebar((v) => !v)}
+            className="h-9 w-9 rounded-lg border border-white/5 bg-white/[0.03] text-slate-400 hover:text-white hover:bg-white/[0.06] transition flex items-center justify-center"
+            title="Toggle sidebar"
           >
-            <Plus className="h-4 w-4" />
-            New Chat
+            <span className="text-base leading-none">{showSidebar ? "←" : "→"}</span>
           </button>
-        </div>
 
-        <div className="flex-1 overflow-y-auto px-3 space-y-2">
-          {sessions.map((s) => {
-            const active = s.id === activeSession?.id;
-            return (
-              <button
-                key={s.id}
-                type="button"
-                onClick={() => setActiveSessionId(s.id)}
-                className={`w-full text-left rounded-xl border px-3 py-2 transition ${
-                  active
-                    ? "border-blue-500/40 bg-slate-800/70 text-white"
-                    : "border-transparent bg-transparent text-slate-400 hover:bg-slate-800/50"
-                }`}
-              >
-                <p className="text-xs font-semibold truncate">{s.title || "New Chat"}</p>
-                <p className="text-[10px] text-slate-500 mt-0.5">{new Date(s.updatedAt).toLocaleDateString()}</p>
-              </button>
-            );
-          })}
-        </div>
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-bold tracking-wider uppercase"
+            style={{ background: "rgba(99,102,241,.1)", border: "1px solid rgba(99,102,241,.15)", color: "#818cf8" }}
+          >
+            <span className="h-1.5 w-1.5 rounded-full" style={{ background: "#818cf8", boxShadow: "0 0 6px #818cf8" }} />
+            ASSIST
+          </div>
 
-        <div className="p-3 border-t border-slate-800/70 text-[10px] text-slate-500">Session data is saved locally in your browser.</div>
-      </aside>
+          <h1 className="text-sm font-bold text-white truncate flex-1">
+            {activeSession?.title || "New Chat"}
+          </h1>
 
-      <div className="flex-1 min-w-0 flex flex-col">
-        <div className="px-5 pt-4 pb-3">
-          <div className="rounded-2xl border border-slate-700/70 bg-slate-900/80 backdrop-blur-xl px-4 py-2.5 flex items-center gap-3 relative z-20">
-            <div className="relative" ref={modelRef}>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowModelDropdown((v) => !v);
-                  setShowPersonaDropdown(false);
-                }}
-                className="h-9 px-3 rounded-xl border border-slate-700 bg-slate-900 text-sm flex items-center gap-2"
-              >
-                <span className={`h-2 w-2 rounded-full ${currentModel.dotColor}`} />
-                <span className={currentModel.textColor}>{currentModel.label}</span>
-                <ChevronDown className={`h-3.5 w-3.5 text-slate-400 transition ${showModelDropdown ? "rotate-180" : ""}`} />
-              </button>
-
-              <AnimatePresence>
-                {showModelDropdown && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 6 }}
-                    className="absolute left-0 top-[calc(100%+8px)] w-64 rounded-xl border border-slate-600 bg-slate-900 shadow-[0_20px_40px_rgba(0,0,0,0.55)] z-[100] overflow-hidden"
+          {/* Model picker */}
+          <div className="relative" ref={modelRef}>
+            <button
+              type="button"
+              onClick={() => {
+                setShowModel((v) => !v);
+                setShowPersona(false);
+              }}
+              className="h-9 px-3 rounded-lg border border-white/10 bg-white/[0.04] hover:bg-white/[0.07] text-[11px] font-semibold flex items-center gap-2 transition"
+              style={{ color: currentModel.accent }}
+            >
+              <span className="h-1.5 w-1.5 rounded-full" style={{ background: currentModel.accent }} />
+              {currentModel.label}
+              <ChevronDown className={`h-3 w-3 transition ${showModel ? "rotate-180" : ""}`} />
+            </button>
+            {showModel && (
+              <div className="absolute right-0 top-[calc(100%+6px)] w-56 rounded-xl border border-white/10 bg-[#0d1128] shadow-2xl z-50 overflow-hidden">
+                {MODELS.map((m) => (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => {
+                      setModel(m.id);
+                      setShowModel(false);
+                    }}
+                    className={`w-full px-3 py-2.5 text-left text-[12px] flex items-center justify-between transition ${
+                      model === m.id ? "bg-white/5" : "hover:bg-white/5"
+                    }`}
                   >
-                    {MODELS.map((m) => (
-                      <button
-                        key={m.id}
-                        type="button"
-                        onClick={() => {
-                          setModel(m.id);
-                          setShowModelDropdown(false);
-                        }}
-                        className={`w-full px-3 py-2.5 text-left text-sm flex items-center justify-between hover:bg-slate-800/80 ${
-                          model === m.id ? "bg-slate-800/80" : ""
-                        }`}
-                      >
-                        <span className={`flex items-center gap-2 ${m.textColor}`}>
-                          <span className={`h-1.5 w-1.5 rounded-full ${m.dotColor}`} />
-                          <span className="truncate">{m.label}</span>
-                        </span>
-                        <span className="text-[10px] text-slate-400">{m.badge}</span>
-                      </button>
-                    ))}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
+                    <span className="flex items-center gap-2 font-semibold" style={{ color: m.accent }}>
+                      <span className="h-1.5 w-1.5 rounded-full" style={{ background: m.accent }} />
+                      {m.label}
+                    </span>
+                    <span className="text-[10px] text-slate-500">{m.badge}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
 
-            <div className="h-5 w-px bg-slate-700" />
-
-            <div className="relative" ref={personaRef}>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowPersonaDropdown((v) => !v);
-                  setShowModelDropdown(false);
-                }}
-                className="h-9 px-3 rounded-xl border border-slate-700 bg-slate-900 text-sm flex items-center gap-2"
-              >
-                <PersonaIcon className="h-3.5 w-3.5 text-violet-300" />
-                <span className="text-slate-200">{currentPersona.label}</span>
-                <ChevronDown className={`h-3.5 w-3.5 text-slate-400 transition ${showPersonaDropdown ? "rotate-180" : ""}`} />
-              </button>
-
-              <AnimatePresence>
-                {showPersonaDropdown && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 6 }}
-                    className="absolute left-0 top-[calc(100%+8px)] w-56 rounded-xl border border-slate-600 bg-slate-900 shadow-[0_20px_40px_rgba(0,0,0,0.55)] z-[100] overflow-hidden"
-                  >
-                    {PERSONAS.map((p) => {
-                      const Icon = p.icon;
-                      const active = persona === p.id;
-                      return (
-                        <button
-                          key={p.id}
-                          type="button"
-                          onClick={() => {
-                            setPersona(p.id);
-                            setShowPersonaDropdown(false);
-                          }}
-                          className={`w-full px-3 py-2.5 text-left text-sm flex items-center gap-2 hover:bg-slate-800/80 ${
-                            active ? "bg-slate-800/80 text-white" : "text-slate-300"
-                          }`}
-                        >
-                          <Icon className={`h-3.5 w-3.5 ${active ? "text-violet-300" : "text-slate-500"}`} />
-                          <span>{p.label}</span>
-                        </button>
-                      );
-                    })}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-
-            <div className="ml-auto text-xs text-slate-400 flex items-center gap-2">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.55)]" />
-              Live
-            </div>
+          {/* Persona picker */}
+          <div className="relative" ref={personaRef}>
+            <button
+              type="button"
+              onClick={() => {
+                setShowPersona((v) => !v);
+                setShowModel(false);
+              }}
+              className="h-9 px-3 rounded-lg border border-white/10 bg-white/[0.04] hover:bg-white/[0.07] text-[11px] font-semibold flex items-center gap-2 text-slate-200 transition"
+            >
+              <PersonaIcon className="h-3.5 w-3.5 text-violet-300" />
+              {currentPersona.label}
+              <ChevronDown className={`h-3 w-3 text-slate-400 transition ${showPersona ? "rotate-180" : ""}`} />
+            </button>
+            {showPersona && (
+              <div className="absolute right-0 top-[calc(100%+6px)] w-64 rounded-xl border border-white/10 bg-[#0d1128] shadow-2xl z-50 overflow-hidden">
+                {PERSONAS.map((p) => {
+                  const Icon = p.icon;
+                  const active = persona === p.id;
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => {
+                        setPersona(p.id);
+                        setShowPersona(false);
+                      }}
+                      className={`w-full px-3 py-2.5 text-left text-[12px] flex items-start gap-2 transition ${
+                        active ? "bg-white/5 text-white" : "text-slate-300 hover:bg-white/5"
+                      }`}
+                    >
+                      <Icon className={`h-3.5 w-3.5 mt-0.5 ${active ? "text-violet-300" : "text-slate-500"}`} />
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold">{p.label}</div>
+                        <div className="text-[10px] text-slate-500 mt-0.5">{p.hint}</div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
 
-        <div className="flex-1 min-h-0 overflow-y-auto px-5 pb-4 space-y-5">
-          {(activeSession?.messages ?? []).map((m) => {
-            const user = m.role === "user";
-            return (
-              <div key={m.id} className={`flex gap-3 ${user ? "flex-row-reverse" : ""}`}>
-                <div className="h-8 w-8 rounded-xl flex items-center justify-center shrink-0 mt-1 bg-slate-800 border border-slate-700">
-                  {user ? <User className="h-4 w-4 text-slate-300" /> : <Bot className="h-4 w-4 text-cyan-300" />}
-                </div>
-                <div className={`max-w-[75%] ${user ? "items-end" : "items-start"} flex flex-col`}>
-                  <div
-                    className={`rounded-2xl px-4 py-3 border ${
-                      user
-                        ? "bg-blue-600/90 border-blue-500/70 text-white rounded-tr-sm"
-                        : "bg-slate-800/70 border-slate-700/80 text-slate-200 rounded-tl-sm"
-                    }`}
+        {/* Chat */}
+        <div className="flex-1 min-h-0 overflow-y-auto px-5 pb-4">
+          {isEmpty && !isLoading && (
+            <div className="h-full flex flex-col items-center justify-center text-center gap-4 px-6">
+              <div
+                className="h-14 w-14 rounded-2xl flex items-center justify-center"
+                style={{ background: "rgba(99,102,241,.08)" }}
+              >
+                <Sparkles className="h-7 w-7 text-indigo-300" />
+              </div>
+              <div>
+                <h2
+                  className="text-2xl font-extrabold tracking-tight"
+                  style={{
+                    background: "linear-gradient(135deg,#e8ecf8,#818cf8)",
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                  }}
+                >
+                  How can I help today?
+                </h2>
+                <p className="text-[12px] text-slate-500 mt-2 max-w-md">
+                  Chat with {currentModel.label} as a {currentPersona.label.toLowerCase()}. Send a message to begin.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2 justify-center max-w-2xl mt-2">
+                {SUGGESTIONS.map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => sendMessageWith(s)}
+                    className="px-3.5 py-2 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.07] hover:border-white/20 text-[12px] text-slate-300 hover:text-white transition"
                   >
-                    {renderSimpleMarkdown(m.content)}
-                  </div>
-                  <span className="text-[10px] text-slate-500 mt-1 px-1">{formatTime(m.createdAt)}</span>
-                </div>
-              </div>
-            );
-          })}
-
-          {isLoading && (
-            <div className="flex gap-3">
-              <div className="h-8 w-8 rounded-xl flex items-center justify-center shrink-0 mt-1 bg-slate-800 border border-slate-700">
-                <Bot className="h-4 w-4 text-cyan-300" />
-              </div>
-              <div className="rounded-2xl rounded-tl-sm px-4 py-3 border border-slate-700/80 bg-slate-800/70 text-slate-300 text-sm flex items-center gap-1.5">
-                <span>Thinking</span>
-                <span className="h-1.5 w-1.5 rounded-full bg-cyan-300 animate-pulse" />
-                <span className="h-1.5 w-1.5 rounded-full bg-cyan-300 animate-pulse [animation-delay:120ms]" />
-                <span className="h-1.5 w-1.5 rounded-full bg-cyan-300 animate-pulse [animation-delay:240ms]" />
+                    {s}
+                  </button>
+                ))}
               </div>
             </div>
           )}
-          <div ref={endRef} />
+
+          <div className="max-w-3xl mx-auto space-y-5">
+            {messages.map((m, idx) => {
+              const isUser = m.role === "user";
+              const isLastAssistant = !isUser && idx === messages.length - 1;
+              return (
+                <div key={m.id} className={`flex gap-3 ${isUser ? "flex-row-reverse" : ""}`}>
+                  <div
+                    className="h-8 w-8 rounded-xl flex items-center justify-center shrink-0 mt-1"
+                    style={{
+                      background: isUser ? "rgba(34,211,153,.12)" : "rgba(99,102,241,.12)",
+                      color: isUser ? "#34d399" : "#818cf8",
+                    }}
+                  >
+                    {isUser ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
+                  </div>
+                  <div className={`max-w-[80%] flex flex-col ${isUser ? "items-end" : "items-start"}`}>
+                    <div
+                      className={`rounded-2xl px-4 py-3 border ${
+                        isUser
+                          ? "rounded-tr-sm"
+                          : "rounded-tl-sm"
+                      }`}
+                      style={{
+                        background: isUser ? "rgba(34,211,153,.06)" : "rgba(99,102,241,.06)",
+                        borderColor: isUser ? "rgba(34,211,153,.15)" : "rgba(99,102,241,.15)",
+                      }}
+                    >
+                      {isUser ? (
+                        <p className="leading-relaxed text-[13px] text-slate-100 whitespace-pre-wrap">{m.content}</p>
+                      ) : (
+                        <div>{renderMarkdown(m.content)}</div>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 mt-1 px-1 text-[10px] text-slate-500">
+                      <span>{formatTime(m.createdAt)}</span>
+                      {!isUser && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => navigator.clipboard?.writeText(m.content)}
+                            className="hover:text-white transition flex items-center gap-1"
+                            title="Copy"
+                          >
+                            <Copy className="h-3 w-3" />
+                            Copy
+                          </button>
+                          {isLastAssistant && !isLoading && (
+                            <button
+                              type="button"
+                              onClick={handleRegenerate}
+                              className="hover:text-white transition flex items-center gap-1"
+                              title="Regenerate"
+                            >
+                              <RefreshCcw className="h-3 w-3" />
+                              Regenerate
+                            </button>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+
+            {isLoading && (
+              <div className="flex gap-3">
+                <div className="h-8 w-8 rounded-xl flex items-center justify-center shrink-0 mt-1" style={{ background: "rgba(99,102,241,.12)", color: "#818cf8" }}>
+                  <Bot className="h-4 w-4" />
+                </div>
+                <div className="rounded-2xl px-4 py-3 border rounded-tl-sm" style={{ background: "rgba(99,102,241,.06)", borderColor: "rgba(99,102,241,.15)" }}>
+                  <div className="flex gap-1.5 py-1">
+                    <span className="h-1.5 w-1.5 rounded-full bg-indigo-400 animate-bounce" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-indigo-400 animate-bounce" style={{ animationDelay: "0.15s" }} />
+                    <span className="h-1.5 w-1.5 rounded-full bg-indigo-400 animate-bounce" style={{ animationDelay: "0.3s" }} />
+                  </div>
+                </div>
+              </div>
+            )}
+            <div ref={endRef} />
+          </div>
         </div>
 
-        <div className="px-5 pb-5 pt-1">
-          <div className="rounded-2xl border border-slate-700/80 bg-slate-900/85 backdrop-blur-xl">
-            <div className="px-4 pt-3 pb-2 flex items-end gap-3">
-              <button type="button" className="h-8 w-8 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-400 hover:text-cyan-300">
-                <Paperclip className="h-4 w-4" />
-              </button>
-
-              <textarea
-                ref={inputRef}
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                onKeyDown={onInputKeyDown}
-                placeholder={`Ask ${currentModel.label} anything...`}
-                className="flex-1 resize-none bg-transparent text-slate-100 placeholder:text-slate-500 text-sm outline-none py-1"
-                rows={1}
-                style={{ minHeight: 34, maxHeight: 160 }}
-              />
-
-              <button
-                type="button"
-                onClick={handleSend}
-                disabled={!text.trim() || isLoading || !activeSession}
-                className={`h-9 w-9 rounded-xl flex items-center justify-center transition ${
-                  !text.trim() || isLoading || !activeSession
-                    ? "bg-slate-800 text-slate-500 cursor-not-allowed"
-                    : "bg-gradient-to-br from-blue-500 to-violet-500 text-white shadow-[0_0_18px_rgba(59,130,246,0.45)]"
-                }`}
-              >
-                <Send className="h-4 w-4" />
-              </button>
-            </div>
-            <div className="px-4 pb-2.5 pt-1 border-t border-slate-800 text-[10px] text-slate-500 flex items-center justify-between">
-              <span>Enter to send · Shift+Enter new line</span>
-              <span>{currentPersona.label}</span>
+        {/* Input */}
+        <div className="px-5 pb-5 pt-2">
+          <div className="max-w-3xl mx-auto">
+            <div
+              className="rounded-2xl border bg-white/[0.03] transition focus-within:border-indigo-500/30 focus-within:shadow-[0_0_0_3px_rgba(99,102,241,.08)]"
+              style={{ borderColor: "rgba(255,255,255,.08)" }}
+            >
+              <div className="flex items-end gap-2 px-4 py-3">
+                <textarea
+                  ref={inputRef}
+                  value={text}
+                  onChange={(e) => setText(e.target.value)}
+                  onKeyDown={onKeyDown}
+                  rows={1}
+                  placeholder={`Message ${currentModel.label}…`}
+                  className="flex-1 bg-transparent border-0 outline-none resize-none text-[14px] leading-relaxed text-white placeholder-slate-500 max-h-[160px]"
+                  style={{ minHeight: 24 }}
+                />
+                <button
+                  type="button"
+                  onClick={handleSend}
+                  disabled={!text.trim() || isLoading}
+                  className="h-10 w-10 rounded-xl flex items-center justify-center text-white transition disabled:opacity-40 disabled:cursor-not-allowed"
+                  style={{
+                    background: "linear-gradient(135deg,#6366f1,#818cf8)",
+                    boxShadow: text.trim() && !isLoading ? "0 4px 16px rgba(99,102,241,.4)" : "none",
+                  }}
+                  title="Send (Enter)"
+                >
+                  <Send className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="flex items-center gap-2 px-3 py-2 border-t border-white/5 text-[10px] text-slate-500">
+                <kbd className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 font-mono text-[9px]">Enter</kbd>
+                <span>send</span>
+                <span className="text-slate-700">·</span>
+                <kbd className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 font-mono text-[9px]">Shift+Enter</kbd>
+                <span>new line</span>
+                <span className="ml-auto flex items-center gap-1.5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" style={{ boxShadow: "0 0 6px #34d399" }} />
+                  Live · {currentModel.label}
+                </span>
+              </div>
             </div>
           </div>
         </div>
