@@ -273,6 +273,20 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
     if(w.__ffTimelineHotkeysBound) return;
     var onKey=function(e){
       if(isTypingTarget(e.target)) return;
+      var isSpace=(e.code==='Space'||e.key===' '||e.key==='Spacebar'||e.keyCode===32||e.which===32);
+      if(isSpace){
+        e.preventDefault();
+        e.stopPropagation();
+        try{
+          var ae=w.document.activeElement;
+          if(ae && ae!==w.document.body && typeof ae.blur==='function'){
+            var t=String(ae.tagName||'').toUpperCase();
+            if(t==='BUTTON' || t==='A' || ae.getAttribute('role')==='button') ae.blur();
+          }
+        }catch(_e){}
+        postTransportToggle();
+        return;
+      }
       if(forwardTimelineHotkey(e)){
         e.preventDefault();
       }
@@ -1162,7 +1176,21 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
     if(isTypingTarget(e.target)) return;
     // Space = play/pause (most important shortcut)
     var isSpace=(e.code==='Space'||e.key===' '||e.key==='Spacebar'||e.keyCode===32||e.which===32);
-    if(isSpace){ e.preventDefault(); }
+    if(isSpace){
+      e.preventDefault();
+      e.stopPropagation();
+      // Blur any focused button so Space doesn't ALSO trigger its click → double-toggle
+      try{
+        var ae=document.activeElement;
+        if(ae && ae!==document.body && typeof ae.blur==='function'){
+          var t=String(ae.tagName||'').toUpperCase();
+          if(t==='BUTTON' || t==='A' || ae.getAttribute('role')==='button') ae.blur();
+        }
+      }catch(_e){}
+      // Send transport-toggle directly (most reliable path)
+      postTransportToggle();
+      return;
+    }
     if(forwardTimelineHotkey(e)){
       e.preventDefault();
     }
