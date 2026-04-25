@@ -1,4 +1,7 @@
-<!DOCTYPE html>
+import os
+os.chdir(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+HTML = r"""<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -467,4 +470,9 @@ updateHistogram();
 <script src="shared/english-only.js"></script>
 <script src="shared/resizable-panels.js"></script>
 </body>
-</html>
+</html>"""
+
+with open('public/stude/lighting.html', 'w', encoding='utf-8', newline='\n') as f:
+    f.write(HTML)
+
+print('Written', len(HTML), 'chars')

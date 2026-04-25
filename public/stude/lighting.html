@@ -1,64 +1,119 @@
-﻿<!DOCTYPE html>
-<html lang="en" dir="ltr">
+<!DOCTYPE html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Lighting Studio</title>
-<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<title>Lighting &amp; Color Grading</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#181818;--panel:#1e1e1e;--panel2:#232323;--border:#2d2d2d;--border2:#3a3a3a;--text:#d4d4d4;--dim:#777;--dim2:#555;--accent:#4a9eff;--accent2:#5cb8ff;--green:#4caf50;--orange:#ff9800;--red:#f44336;--purple:#b388ff;--cyan:#26c6da;--yellow:#ffd54f}
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:var(--bg);color:var(--text);font-family:'Tajawal',sans-serif;height:100vh;overflow:hidden;display:flex;flex-direction:column}
-.menubar{height:24px;background:#111;display:flex;align-items:center;padding:0 8px;gap:2px;border-bottom:1px solid #222;font-size:11px}
-.menubar span{padding:2px 8px;color:var(--dim);cursor:pointer;border-radius:2px}.menubar span:hover{color:var(--text);background:#333}
-.menubar .spacer{flex:1}.menubar .title{color:var(--accent);font-weight:700;letter-spacing:1px}
-.page-tabs{height:30px;background:#1a1a1a;display:flex;align-items:center;border-bottom:1px solid var(--border);padding:0 8px}
-.page-tab{padding:5px 14px;font-size:10px;color:var(--dim);cursor:pointer;border-bottom:2px solid transparent;transition:.15s;text-decoration:none;font-family:'Tajawal'}
-.page-tab:hover{color:var(--text)}.page-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
-.workspace{flex:1;display:flex;flex-direction:column;overflow:hidden}
-.top-row{flex:1;display:flex;min-height:0}
-.bottom-row{height:200px;border-top:2px solid var(--border);display:flex;flex-direction:column}
-.panel{background:var(--panel);display:flex;flex-direction:column;overflow:hidden}
-.ph{height:26px;background:#252525;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 10px;gap:8px;flex-shrink:0}
-.ph .l{font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.55px;font-weight:700;cursor:pointer}.ph .l.a{color:var(--accent)}
-.pb{flex:1;overflow-y:auto;padding:10px;font-size:12px}
-.vr{width:2px;background:var(--border);cursor:col-resize;flex-shrink:0}.vr:hover{background:var(--accent)}
-.ist{font-size:11px;color:#9aa7bb;text-transform:uppercase;letter-spacing:.45px;font-weight:700;padding:7px 0 6px;border-bottom:1px solid var(--border);margin-bottom:8px;display:flex;align-items:center;gap:6px}
-.ist .d{width:5px;height:5px;border-radius:50%}
-.sr{display:flex;align-items:center;gap:10px;margin-bottom:10px}
-.sr .sl{font-size:12px;color:#aab5c5;width:90px;flex-shrink:0}
-.sr .st{flex:1;height:5px;background:#2a2a2a;border-radius:3px;position:relative}
-.sr .sf{position:absolute;right:0;top:0;height:100%;border-radius:2px}
-.sr .st input{position:absolute;inset:0;width:100%;opacity:0;cursor:pointer;margin:0}
-.sr .sv{font-size:13px;font-family:'JetBrains Mono';width:56px;text-align:left;flex-shrink:0}
-.cr{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:6px}
-.preset-select{width:100%;background:#1a1a1a;border:1px solid var(--border);border-radius:4px;padding:7px 8px;color:var(--text);font-family:'Tajawal';font-size:12px;outline:none}
-.preset-select:focus{border-color:var(--accent)}
-textarea{width:100%;background:#1a1a1a;border:1px solid var(--border);border-radius:3px;padding:6px;color:var(--text);font-family:'Tajawal';font-size:11px;resize:vertical;outline:none;line-height:1.5}
-textarea:focus{border-color:var(--accent)}
-.bs{padding:5px 12px;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;border:none;font-family:'Tajawal';transition:.12s}
-.bb{background:var(--accent);color:#fff}.bb:hover{background:var(--accent2)}
-.bs.s{background:#2a3550;color:#d5e6ff;border:1px solid #3c4e72}.bs.s:hover{background:#33476a}
-.bg{background:none;color:var(--dim);border:1px solid var(--border)}.bg:hover{color:var(--text);border-color:var(--border2)}
-.sb{display:flex;align-items:center;background:#1a1a1a;border:1px solid var(--border);border-radius:3px;padding:0 6px;margin-bottom:6px}
-.sb input{flex:1;background:none;border:none;color:var(--text);font-size:10px;padding:4px;outline:none;font-family:'Tajawal'}
-/* timeline */
-.th{height:26px;background:#252525;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 10px;gap:10px;flex-shrink:0}
-.th span{font-size:9px;color:var(--dim);cursor:pointer}.th span.a{color:var(--accent)}
-.tb{flex:1;display:flex;overflow:hidden}
-.ts{width:100px;background:#1c1c1c;border-left:1px solid var(--border);flex-shrink:0}
-.tl{height:32px;display:flex;align-items:center;padding:0 6px;gap:3px;border-bottom:1px solid #252525;font-size:9px;color:var(--dim)}
-.tl .dd{width:5px;height:5px;border-radius:50%}.tl .n{flex:1}.tl .x{display:flex;gap:1px;font-size:8px;opacity:.4}
-.ta{flex:1;position:relative;overflow:auto}
-.tr{height:18px;background:#1c1c1c;border-bottom:1px solid var(--border);display:flex;align-items:flex-end;padding:0 8px;gap:55px;position:sticky;top:0;z-index:2}
-.tr span{font-size:7px;color:var(--dim2);font-family:'JetBrains Mono'}
-.tt{position:relative}
-.tk{height:32px;border-bottom:1px solid #252525;position:relative}
-.tc2{position:absolute;top:2px;height:28px;border-radius:3px;display:flex;align-items:center;padding:0 5px;font-size:8px;color:#fff;overflow:hidden;cursor:pointer}
-.tc2:hover{filter:brightness(1.2)}.tc2 .cn{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tp2{position:absolute;top:0;bottom:0;width:2px;background:var(--red);z-index:10;pointer-events:none}
-.tp2::before{content:'';position:absolute;top:-1px;right:-3px;width:8px;height:8px;background:var(--red);clip-path:polygon(50% 100%,0 0,100% 0)}
+body{background:#080c1a;color:#e8ecf8;font-family:'Sora',sans-serif;height:100vh;overflow:hidden}
+.layout{display:grid;grid-template-columns:380px 1fr;height:100vh}
 
+/* ===== LEFT ===== */
+.tools{background:linear-gradient(180deg,#0c1024,#0a0e1c);border-right:1px solid rgba(255,255,255,.05);display:flex;flex-direction:column;overflow:hidden}
+.tools-header{padding:20px 20px 14px;border-bottom:1px solid rgba(255,255,255,.04);flex-shrink:0}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:16px;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.12);font-size:9px;font-weight:700;color:#fbbf24;letter-spacing:.8px;text-transform:uppercase;margin-bottom:10px}
+.badge .dot{width:5px;height:5px;border-radius:50%;background:#fbbf24;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.t-title{font-size:18px;font-weight:800;letter-spacing:-.5px}
+
+.tools-scroll{flex:1;overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.06) transparent;min-height:0}
+.tools-scroll::-webkit-scrollbar{width:4px}
+.tools-scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:2px}
+
+.sec{padding:14px 20px;border-bottom:1px solid rgba(255,255,255,.04)}
+.sec:last-child{border-bottom:none}
+.sec-label{font-size:9px;font-weight:700;color:#4e5678;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.sec-label .d{width:5px;height:5px;border-radius:50%}
+
+/* ===== PRESETS GRID ===== */
+.presets-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px}
+.preset{border-radius:8px;border:1px solid rgba(255,255,255,.05);background:rgba(255,255,255,.02);padding:8px 4px;display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;transition:.2s;text-align:center}
+.preset:hover{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.1)}
+.preset.on{background:rgba(251,191,36,.08);border-color:rgba(251,191,36,.25);box-shadow:0 0 0 1px rgba(251,191,36,.1)}
+.preset-swatch{width:36px;height:24px;border-radius:5px;position:relative;overflow:hidden}
+.preset-name{font-size:8px;font-weight:700;color:#6b7394;line-height:1.2}
+.preset.on .preset-name{color:#fbbf24}
+
+/* ===== LUT UPLOAD ===== */
+.lut-upload{border-radius:10px;border:1.5px dashed rgba(251,191,36,.2);background:rgba(251,191,36,.02);padding:10px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;transition:.2s}
+.lut-upload:hover{border-color:rgba(251,191,36,.4);background:rgba(251,191,36,.04)}
+.lut-upload.has-file{border-style:solid;border-color:rgba(34,211,153,.2);background:rgba(34,211,153,.03)}
+.lut-icon{width:30px;height:30px;border-radius:7px;background:rgba(251,191,36,.08);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.lut-icon svg{width:14px;height:14px;color:#fbbf24}
+.lut-text{flex:1}
+.lut-title{font-size:10px;font-weight:600}
+.lut-sub{font-size:8px;color:#4e5678}
+
+/* ===== SLIDERS ===== */
+.slider-row{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.slider-row:last-child{margin-bottom:0}
+.sl-name{font-size:10px;font-weight:600;color:#6b7394;min-width:72px;flex-shrink:0}
+.sl-track{flex:1;position:relative;height:20px;display:flex;align-items:center}
+.sl-input{width:100%;height:4px;-webkit-appearance:none;appearance:none;border-radius:2px;outline:none;cursor:pointer}
+.sl-input::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:#fff;cursor:pointer;box-shadow:0 0 6px rgba(0,0,0,.4),0 0 0 2px rgba(255,255,255,.1)}
+.sl-val{font-size:11px;font-weight:800;min-width:28px;text-align:right;font-family:'JetBrains Mono',monospace}
+
+/* ===== ACTION BUTTONS ===== */
+.action-row{display:flex;gap:6px;margin-top:10px}
+.btn-action{padding:8px 16px;border-radius:8px;border:none;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;transition:.2s;display:flex;align-items:center;gap:5px}
+.btn-apply{background:linear-gradient(135deg,#d97706,#fbbf24);color:#000}
+.btn-apply:hover{box-shadow:0 4px 16px rgba(251,191,36,.3);transform:translateY(-1px)}
+.btn-reset{background:rgba(255,255,255,.04);color:#6b7394;border:1px solid rgba(255,255,255,.06)}
+.btn-reset:hover{background:rgba(255,255,255,.06);color:#a0a8c8}
+
+/* ===== SAVED PRESETS ===== */
+.save-row{display:flex;gap:6px;margin-bottom:8px}
+.save-input{flex:1;padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.03);color:#e8ecf8;font-family:inherit;font-size:11px;outline:none;transition:.15s}
+.save-input::placeholder{color:#3d4568}
+.save-input:focus{border-color:rgba(251,191,36,.3)}
+.btn-save{padding:7px 14px;border-radius:8px;border:none;background:rgba(251,191,36,.15);color:#fbbf24;font-family:inherit;font-size:10px;font-weight:700;cursor:pointer;transition:.15s}
+.btn-save:hover{background:rgba(251,191,36,.25)}
+
+.saved-list{display:flex;flex-direction:column;gap:4px}
+.saved-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.04);cursor:pointer;transition:.15s}
+.saved-item:hover{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.08)}
+.si-color{width:18px;height:12px;border-radius:3px;flex-shrink:0}
+.si-name{font-size:10px;font-weight:600;flex:1}
+.si-btns{display:flex;gap:4px;opacity:0;transition:.15s}
+.saved-item:hover .si-btns{opacity:1}
+.si-btn{width:20px;height:20px;border-radius:5px;border:none;background:none;color:#4e5678;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:9px;transition:.1s}
+.si-btn:hover{background:rgba(255,255,255,.06);color:#a0a8c8}
+.si-btn.del:hover{background:rgba(251,113,133,.1);color:#fb7185}
+.note{font-size:9px;color:#3d4568;line-height:1.5;margin-top:6px}
+
+/* ===== RIGHT (Preview) ===== */
+.preview{background:#060914;display:flex;flex-direction:column;position:relative}
+.preview::before{content:'';position:absolute;width:400px;height:400px;background:radial-gradient(circle,rgba(251,191,36,.03),transparent 70%);top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none}
+.prev-header{padding:12px 20px;border-bottom:1px solid rgba(255,255,255,.04);font-size:9px;font-weight:700;color:#3d4568;letter-spacing:1px;text-transform:uppercase;flex-shrink:0;display:flex;align-items:center;justify-content:space-between}
+.prev-tabs{display:flex;gap:0}
+.prev-tab{padding:4px 12px;font-size:9px;font-weight:600;color:#3d4568;cursor:pointer;border-bottom:1px solid transparent;transition:.15s}
+.prev-tab:hover{color:#6b7394}
+.prev-tab.on{color:#fbbf24;border-bottom-color:#fbbf24}
+
+.prev-area{flex:1;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+
+.canvas-wrap{width:80%;max-width:600px;aspect-ratio:16/9;border-radius:12px;overflow:hidden;position:relative;border:1px solid rgba(255,255,255,.06);box-shadow:0 8px 40px rgba(0,0,0,.4)}
+.canvas-img{width:100%;height:100%;background:linear-gradient(135deg,#1a1040,#0e2040,#102030);position:relative;transition:filter .3s}
+.canvas-img::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 30% 35%,rgba(251,191,36,.08),transparent 50%),radial-gradient(ellipse at 70% 65%,rgba(99,102,241,.06),transparent 50%),radial-gradient(ellipse at 50% 50%,rgba(255,255,255,.03),transparent 60%)}
+.canvas-label{position:absolute;top:10px;left:12px;padding:3px 10px;border-radius:6px;background:rgba(0,0,0,.5);backdrop-filter:blur(4px);font-size:8px;font-weight:700;color:#fbbf24;letter-spacing:.5px;text-transform:uppercase;border:1px solid rgba(251,191,36,.15)}
+.canvas-info{position:absolute;bottom:0;left:0;right:0;padding:10px 14px;background:linear-gradient(transparent,rgba(0,0,0,.6));display:flex;align-items:flex-end;justify-content:space-between}
+.ci-text{font-size:10px;color:rgba(255,255,255,.5)}
+.ci-vals{display:flex;gap:12px}
+.ci-v{text-align:center}
+.ci-v-num{font-size:12px;font-weight:800;font-family:'JetBrains Mono',monospace;color:rgba(255,255,255,.6)}
+.ci-v-label{font-size:7px;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.5px}
+
+/* Histogram */
+.histogram{margin:0 20px 20px;padding:12px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.04);border-radius:10px;flex-shrink:0;display:none}
+.histogram.on{display:block}
+.hist-title{font-size:8px;font-weight:700;color:#3d4568;letter-spacing:.8px;text-transform:uppercase;margin-bottom:8px}
+.hist-bars{display:flex;align-items:flex-end;gap:1px;height:40px}
+.hist-bar{flex:1;border-radius:1px 1px 0 0;min-width:2px;transition:height .3s}
+
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:768px){.layout{grid-template-columns:1fr;grid-template-rows:auto 1fr}}
 </style>
 </head>
 <body>
@@ -66,249 +121,350 @@ textarea:focus{border-color:var(--accent)}
 (function(){
   var params=new URLSearchParams(location.search);
   var isEmbed=params.get('embed')==='1';
-  var pageName='lighting';
-  if(!isEmbed){
-    location.replace('studio-shell.html?page='+encodeURIComponent(pageName));
-    return;
-  }
+  if(!isEmbed){ location.replace('studio-shell.html?page=lighting'); return; }
   window.__FF_EMBED_TOP=true;
   document.documentElement.lang='en';
   document.documentElement.dir='ltr';
-  document.addEventListener('DOMContentLoaded',function(){
-    var mb=document.querySelector('.menubar'); if(mb) mb.style.display='none';
-    var tabs=document.querySelector('.page-tabs'); if(tabs) tabs.style.display='none';
-    var br=document.querySelector('.bottom-row'); if(br) br.style.display='none';
-    var ws=document.querySelector('.workspace'); if(ws){ ws.style.height='100vh'; ws.style.display='flex'; ws.style.flexDirection='column'; }
-    var tr=document.querySelector('.top-row'); if(tr){ tr.style.flex='1 1 auto'; tr.style.minHeight='0'; }
-  });
 })();
 </script>
-<!-- FF_SHELL_BRIDGE -->
-<div class="menubar"><span class="title">FRAMEFORGE</span><span>File</span><span>Edit</span><span>View</span><div class="spacer"></div><span style="color:var(--dim2);font-family:'JetBrains Mono';font-size:9px">Lighting Studio</span></div>
-<div class="page-tabs"><a class="page-tab" href="sound.html"> </a>
-<a class="page-tab" href="video.html"> </a>
-<a class="page-tab" href="presets.html"> </a>
-<a class="page-tab" href="transitions.html"> </a>
-<a class="page-tab active" href="lighting.html"> </a>
-<a class="page-tab" href="prompt.html"> </a>
+
+<div class="layout">
+
+  <!-- LEFT -->
+  <div class="tools">
+    <div class="tools-header">
+      <div class="badge"><span class="dot"></span>Lighting &amp; Color</div>
+      <div class="t-title">Color Grading</div>
+    </div>
+
+    <div class="tools-scroll">
+
+      <!-- Presets -->
+      <div class="sec">
+        <div class="sec-label"><span class="d" style="background:#fbbf24"></span>CINEMATIC PRESETS</div>
+        <div class="presets-grid" id="presetsGrid"></div>
+      </div>
+
+      <!-- LUT Upload -->
+      <div class="sec">
+        <div class="sec-label"><span class="d" style="background:#a78bfa"></span>IMPORT LUT</div>
+        <div class="lut-upload" id="lutUpload" onclick="loadLut()">
+          <div class="lut-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          </div>
+          <div class="lut-text">
+            <div class="lut-title" id="lutTitle">Upload .cube / .3dl LUT file</div>
+            <div class="lut-sub">.CUBE &middot; .3DL &middot; .CSP</div>
+          </div>
+        </div>
+        <input type="file" id="lutFile" accept=".cube,.3dl,.csp" style="display:none" onchange="handleLutFile(this)">
+      </div>
+
+      <!-- Color Grading Sliders -->
+      <div class="sec">
+        <div class="sec-label"><span class="d" style="background:#22c55e"></span>COLOR GRADING</div>
+        <div id="slidersContainer"></div>
+        <div class="action-row">
+          <button class="btn-action btn-apply" onclick="applyGrade()">
+            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+            Apply Grade
+          </button>
+          <button class="btn-action btn-reset" onclick="resetSliders()">Reset</button>
+        </div>
+      </div>
+
+      <!-- Saved Presets -->
+      <div class="sec">
+        <div class="sec-label"><span class="d" style="background:#818cf8"></span>SAVED PRESETS</div>
+        <div class="save-row">
+          <input class="save-input" placeholder="Preset name" id="presetNameInput">
+          <button class="btn-save" onclick="savePreset()">Save</button>
+        </div>
+        <div class="saved-list" id="savedList"></div>
+        <div class="note" id="noteText">Default (Original) active. No color shift until you change controls.</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="preview">
+    <div class="prev-header">
+      <span>LIGHTING PREVIEW</span>
+      <div class="prev-tabs">
+        <div class="prev-tab on" onclick="togHist(false,this)">Preview</div>
+        <div class="prev-tab" onclick="togHist(true,this)">Histogram</div>
+      </div>
+    </div>
+    <div class="prev-area">
+      <div class="canvas-wrap">
+        <div class="canvas-img" id="canvasImg">
+          <span class="canvas-label" id="canvasLabel">Default (Original)</span>
+          <div class="canvas-info">
+            <span class="ci-text">Select a clip on timeline to evaluate final look.</span>
+            <div class="ci-vals">
+              <div class="ci-v"><div class="ci-v-num" id="cvBr">50</div><div class="ci-v-label">Br</div></div>
+              <div class="ci-v"><div class="ci-v-num" id="cvCo">50</div><div class="ci-v-label">Co</div></div>
+              <div class="ci-v"><div class="ci-v-num" id="cvSa">50</div><div class="ci-v-label">Sa</div></div>
+              <div class="ci-v"><div class="ci-v-num" id="cvSh">50</div><div class="ci-v-label">Sh</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="histogram" id="histogram">
+      <div class="hist-title">Histogram</div>
+      <div class="hist-bars" id="histBars"></div>
+    </div>
+  </div>
+
 </div>
-<div class="workspace">
-<div class="top-row">
-<div class="panel" style="width:360px">
-<div class="ph"><span class="l a">Lighting Panel</span></div>
-<div class="pb">
-<div class="ist"><span class="d" style="background:var(--orange)"></span>Lighting Presets</div>
-<select id="presetSelect" class="preset-select" onchange="onPresetDropdownChange()">
-  <option value="default">Default (Original)</option>
-  <option value="cinematic">Cinematic</option>
-  <option value="cinematic_pro">Cinematic Pro</option>
-  <option value="cinematic_blockbuster">Cinematic Blockbuster</option>
-  <option value="drama">Drama</option>
-  <option value="horror">Horror</option>
-  <option value="news">News</option>
-  <option value="romantic">Romantic</option>
-  <option value="bleak">Bleak</option>
-  <option value="vintage">Vintage</option>
-  <option value="classic">Classic</option>
-  <option value="natural">Natural</option>
-</select>
-<div class="sr"><span class="sl">Brightness</span><div class="st"><div class="sf" id="brF" style="width:50%;background:var(--orange)"></div><input type="range" min="0" max="100" value="50" oninput="up('br',this.value)"></div><span class="sv" id="brV" style="color:var(--orange)">50</span></div>
-<div class="sr"><span class="sl">Contrast</span><div class="st"><div class="sf" id="coF" style="width:50%;background:var(--cyan)"></div><input type="range" min="0" max="100" value="50" oninput="up('co',this.value)"></div><span class="sv" id="coV" style="color:var(--cyan)">50</span></div>
-<div class="sr"><span class="sl">Temperature</span><div class="st"><div class="sf" id="teF" style="width:50%;background:var(--red)"></div><input type="range" min="0" max="100" value="50" oninput="up('te',this.value)"></div><span class="sv" id="teV" style="color:var(--red)">50</span></div>
-<div class="sr"><span class="sl">Exposure</span><div class="st"><div class="sf" id="exF" style="width:50%;background:var(--accent)"></div><input type="range" min="0" max="100" value="50" oninput="up('ex',this.value)"></div><span class="sv" id="exV" style="color:var(--accent)">50</span></div>
-<div class="sr"><span class="sl">Shadows</span><div class="st"><div class="sf" id="shF" style="width:30%;background:var(--purple)"></div><input type="range" min="0" max="100" value="30" oninput="up('sh',this.value)"></div><span class="sv" id="shV" style="color:var(--purple)">30</span></div>
-<div class="sr"><span class="sl">Highlights</span><div class="st"><div class="sf" id="hiF" style="width:70%;background:var(--green)"></div><input type="range" min="0" max="100" value="70" oninput="up('hi',this.value)"></div><span class="sv" id="hiV" style="color:var(--green)">70</span></div>
-<div class="sr"><span class="sl">Saturation</span><div class="st"><div class="sf" id="saF" style="width:50%;background:var(--orange)"></div><input type="range" min="0" max="100" value="50" oninput="up('sa',this.value)"></div><span class="sv" id="saV" style="color:var(--orange)">50</span></div>
-<div class="sr"><span class="sl">Sharpness</span><div class="st"><div class="sf" id="spF" style="width:50%;background:var(--cyan)"></div><input type="range" min="0" max="100" value="50" oninput="up('sp',this.value)"></div><span class="sv" id="spV" style="color:var(--cyan)">50</span></div>
-<div style="display:flex;gap:4px;margin-top:8px"><button class="bs bb" onclick="applyLightingGrade()">Apply Grade</button><button class="bs bg" onclick="ra()">Reset</button></div>
-<div class="ist" style="margin-top:10px"><span class="d" style="background:var(--accent)"></span>Saved Presets</div>
-<div style="display:flex;gap:6px;margin-bottom:6px">
-  <input id="savePresetName" type="text" placeholder="Preset name" style="flex:1;background:#1a1a1a;border:1px solid var(--border);border-radius:3px;padding:6px;color:var(--text);font-family:'Tajawal';font-size:11px;outline:none">
-  <button class="bs s" onclick="saveUserPreset()">Save</button>
-</div>
-<div style="display:flex;gap:6px">
-  <select id="userPresetList" style="flex:1;background:#1a1a1a;border:1px solid var(--border);border-radius:3px;padding:6px;color:var(--text);font-family:'Tajawal';font-size:11px;outline:none"></select>
-  <button class="bs s" onclick="loadUserPreset()">Load</button>
-  <button class="bs bg" onclick="deleteUserPreset()">Delete</button>
-</div>
-<div id="lightingStatus" style="margin-top:7px;font-size:11px;color:#8fa2c4">Ready. Select a visual clip in timeline, then click Apply Grade.</div>
-</div></div>
-<div class="vr"></div>
-<div class="panel" style="flex:1;padding:0;position:relative">
-<div class="ph"><span class="l a">Lighting Preview</span></div>
-<div id="lsc" style="position:absolute;top:26px;left:0;right:0;bottom:0;background:radial-gradient(circle at 30% 20%,#1c2738 0,#131a25 38%,#0f151f 100%);transition:filter .1s">
-<div id="lov" style="position:absolute;inset:0;transition:background .1s"></div>
-<div style="position:absolute;inset:28px;border:1px solid #2f3a4d;border-radius:10px;background:linear-gradient(180deg,rgba(18,26,38,.7),rgba(10,15,24,.92));display:flex;align-items:center;justify-content:center;text-align:center;padding:24px;color:#8ea3c6;font-size:13px;line-height:1.6">
-  Preview Canvas<br>
-  Lighting controls are active.<br>
-  Select a clip on timeline to evaluate final look.
-</div>
-<div style="position:absolute;bottom:12px;right:12px;left:12px;background:rgba(0,0,0,.65);border-radius:4px;padding:8px;display:flex;gap:12px;justify-content:center">
-<div style="text-align:center"><div style="font-size:7px;color:var(--dim)">BR</div><div style="font-size:10px;font-family:'JetBrains Mono'" id="ib">50</div></div>
-<div style="text-align:center"><div style="font-size:7px;color:var(--dim)">CO</div><div style="font-size:10px;font-family:'JetBrains Mono'" id="ic">50</div></div>
-<div style="text-align:center"><div style="font-size:7px;color:var(--dim)">TE</div><div style="font-size:10px;font-family:'JetBrains Mono'" id="it">50</div></div>
-<div style="text-align:center"><div style="font-size:7px;color:var(--dim)">SA</div><div style="font-size:10px;font-family:'JetBrains Mono'" id="is">50</div></div>
-</div></div>
-</div>
-</div>
-<!-- TIMELINE -->
-<div class="bottom-row">
-<div class="th"><span class="a"> </span><span> </span><span style="flex:1"></span><span style="font-family:'JetBrains Mono';font-size:8px;color:var(--dim2)">Sequence 01</span></div>
-<div class="tb">
-<div class="ts">
-<div class="tl"><span class="dd" style="background:var(--green)"></span><span class="n">V1</span><span class="x"> </span></div>
-<div class="tl"><span class="dd" style="background:var(--accent)"></span><span class="n">A1</span><span class="x">M S</span></div>
-<div class="tl"><span class="dd" style="background:var(--orange)"></span><span class="n">A2</span><span class="x">M S</span></div>
-<div class="tl"><span class="dd" style="background:var(--cyan)"></span><span class="n">A3</span><span class="x">M S</span></div>
-</div>
-<div class="ta">
-<div class="tr"><span>00:00</span><span>00:30</span><span>01:00</span><span>01:30</span><span>02:00</span><span>02:30</span><span>03:00</span><span>03:30</span><span>04:00</span></div>
-<div class="tt">
-<div class="tk"><div class="tc2" style="right:30px;width:150px;background:#2d5a27"><span class="cn">scene_01.mp4</span></div><div class="tc2" style="right:190px;width:220px;background:#2d5a27"><span class="cn">aerial_shot.mp4</span></div></div>
-<div class="tk"><div class="tc2" style="right:50px;width:280px;background:#1a4a7a"><span class="cn">Voice Over</span></div></div>
-<div class="tk"><div class="tc2" style="right:15px;width:450px;background:#7a4a1a"><span class="cn">Music Score.wav</span></div></div>
-<div class="tk"><div class="tc2" style="right:80px;width:35px;background:#1a6a6a"><span class="cn"> </span></div></div>
-<div class="tp2" style="right:130px"></div>
-</div></div></div></div>
-</div>
+
 <script>
-const USER_PRESETS_KEY='ff_lighting_user_presets_v1';
-const p={br:50,co:50,te:50,ex:50,sh:30,hi:70,sa:50,sp:50};
-let activePreset='default';
-let userPresets={};
-function setLightingStatus(msg,color){const el=document.getElementById('lightingStatus');if(!el)return;el.textContent=msg;el.style.color=color||'#8fa2c4';}
-function postToTimeline(payload){
-  try{
-    if(window.parent && window.parent!==window){
-      window.parent.postMessage(payload,'*');
-      return true;
+/* ================================================================
+   DATA
+================================================================ */
+var PRESETS = [
+  {name:'Default',     colors:['#1a1a2e','#2a2a4e'],vals:{brightness:50,contrast:50,temperature:50,exposure:50,shadows:30,highlights:70,saturation:50,sharpness:50}},
+  {name:'Cinematic',   colors:['#0d1b2a','#1b3a4b'],vals:{brightness:45,contrast:60,temperature:42,exposure:48,shadows:25,highlights:65,saturation:40,sharpness:55}},
+  {name:'Drama',       colors:['#1a0a0a','#3a1a1a'],vals:{brightness:40,contrast:70,temperature:45,exposure:45,shadows:20,highlights:75,saturation:55,sharpness:60}},
+  {name:'Horror',      colors:['#0a0a0a','#1a1a2a'],vals:{brightness:30,contrast:75,temperature:38,exposure:35,shadows:15,highlights:60,saturation:25,sharpness:70}},
+  {name:'B&W',         colors:['#1a1a1a','#3a3a3a'],vals:{brightness:50,contrast:65,temperature:50,exposure:50,shadows:25,highlights:80,saturation:0, sharpness:55}},
+  {name:'Vintage',     colors:['#2a1a0a','#4a3a1a'],vals:{brightness:55,contrast:45,temperature:60,exposure:52,shadows:35,highlights:60,saturation:35,sharpness:40}},
+  {name:'Noir',        colors:['#0a0a0a','#1a1a1a'],vals:{brightness:35,contrast:80,temperature:45,exposure:40,shadows:10,highlights:90,saturation:5, sharpness:65}},
+  {name:'Teal+Orange', colors:['#0a2a2a','#2a1a0a'],vals:{brightness:48,contrast:55,temperature:35,exposure:50,shadows:30,highlights:70,saturation:65,sharpness:50}},
+  {name:'Bleach',      colors:['#1a1a1a','#2a2a2a'],vals:{brightness:52,contrast:72,temperature:48,exposure:48,shadows:22,highlights:78,saturation:20,sharpness:58}},
+  {name:'Golden Hr',   colors:['#2a1a00','#4a3000'],vals:{brightness:55,contrast:48,temperature:70,exposure:55,shadows:35,highlights:65,saturation:60,sharpness:45}},
+  {name:'Moonlight',   colors:['#0a0a2a','#1a1a4a'],vals:{brightness:38,contrast:50,temperature:35,exposure:42,shadows:28,highlights:55,saturation:30,sharpness:50}},
+  {name:'Neon Night',  colors:['#0a001a','#1a0a3a'],vals:{brightness:42,contrast:65,temperature:40,exposure:45,shadows:20,highlights:70,saturation:75,sharpness:55}},
+];
+
+var SLIDERS = [
+  {id:'brightness', name:'Brightness', color:'linear-gradient(90deg,#333,#fb923c,#fff)', valColor:'#fb923c', def:50},
+  {id:'contrast',   name:'Contrast',   color:'linear-gradient(90deg,#333,#3b82f6,#fff)', valColor:'#3b82f6', def:50},
+  {id:'temperature',name:'Temperature',color:'linear-gradient(90deg,#3b82f6,#fb923c)',   valColor:'#ef4444', def:50},
+  {id:'exposure',   name:'Exposure',   color:'linear-gradient(90deg,#000,#fbbf24,#fff)', valColor:'#fbbf24', def:50},
+  {id:'shadows',    name:'Shadows',    color:'linear-gradient(90deg,#000,#a78bfa,#888)', valColor:'#a78bfa', def:30},
+  {id:'highlights', name:'Highlights', color:'linear-gradient(90deg,#888,#22c55e,#fff)', valColor:'#22c55e', def:70},
+  {id:'saturation', name:'Saturation', color:'linear-gradient(90deg,#888,#fb923c,#ff0)', valColor:'#fb923c', def:50},
+  {id:'sharpness',  name:'Sharpness',  color:'linear-gradient(90deg,#333,#22d3ee,#fff)', valColor:'#22d3ee', def:50},
+];
+
+var savedPresets = [];
+
+/* ================================================================
+   RENDER PRESETS GRID
+================================================================ */
+function renderPresets() {
+  var grid = document.getElementById('presetsGrid');
+  grid.innerHTML = '';
+  PRESETS.forEach(function(p, i) {
+    var el = document.createElement('div');
+    el.className = 'preset' + (i === 0 ? ' on' : '');
+    el.innerHTML =
+      '<div class="preset-swatch" style="background:linear-gradient(135deg,'+p.colors[0]+','+p.colors[1]+')"></div>'+
+      '<div class="preset-name">'+p.name+'</div>';
+    el.addEventListener('click', function() {
+      document.querySelectorAll('.preset').forEach(function(x){ x.classList.remove('on'); });
+      el.classList.add('on');
+      applyPreset(p);
+    });
+    grid.appendChild(el);
+  });
+}
+
+/* ================================================================
+   RENDER SLIDERS
+================================================================ */
+function renderSliders() {
+  var container = document.getElementById('slidersContainer');
+  container.innerHTML = '';
+  SLIDERS.forEach(function(s) {
+    var row = document.createElement('div');
+    row.className = 'slider-row';
+    row.innerHTML =
+      '<span class="sl-name">'+s.name+'</span>'+
+      '<div class="sl-track">'+
+        '<input type="range" class="sl-input" id="sl-'+s.id+'" min="0" max="100" value="'+s.def+'" '+
+          'style="background:'+s.color+'" oninput="updateSlider(\''+s.id+'\',this.value)">'+
+      '</div>'+
+      '<span class="sl-val" id="val-'+s.id+'" style="color:'+s.valColor+'">'+s.def+'</span>';
+    container.appendChild(row);
+  });
+}
+
+/* ================================================================
+   SLIDER LOGIC
+================================================================ */
+function updateSlider(id, val) {
+  document.getElementById('val-'+id).textContent = val;
+  updatePreview();
+}
+
+function applyPreset(p) {
+  Object.keys(p.vals).forEach(function(k) {
+    var sl = document.getElementById('sl-'+k);
+    if (sl) {
+      sl.value = p.vals[k];
+      document.getElementById('val-'+k).textContent = p.vals[k];
     }
-  }catch(_e){}
-  return false;
+  });
+  document.getElementById('canvasLabel').textContent = p.name;
+  document.getElementById('noteText').textContent = p.name + ' preset applied.';
+  updatePreview();
 }
-function postLivePreview(){
-  postToTimeline({
-    type:'ff:lightingLivePreview',
-    profile:{...p,preset:activePreset,updatedAt:Date.now()}
+
+function updatePreview() {
+  var br = Number(document.getElementById('sl-brightness').value);
+  var co = Number(document.getElementById('sl-contrast').value);
+  var sa = Number(document.getElementById('sl-saturation').value);
+  var te = Number(document.getElementById('sl-temperature').value);
+  var sh = Number(document.getElementById('sl-sharpness').value);
+
+  var brightness = 0.6 + (br / 100) * 0.8;
+  var contrast   = 0.5 + (co / 100) * 1.0;
+  var saturate   = sa / 50;
+  var hue        = (te - 50) * 1.2;
+
+  document.getElementById('canvasImg').style.filter =
+    'brightness('+brightness+') contrast('+contrast+') saturate('+saturate+') hue-rotate('+hue+'deg)';
+
+  document.getElementById('cvBr').textContent = br;
+  document.getElementById('cvCo').textContent = co;
+  document.getElementById('cvSa').textContent = sa;
+  document.getElementById('cvSh').textContent = sh;
+
+  updateHistogram();
+}
+
+function resetSliders() {
+  SLIDERS.forEach(function(s) {
+    document.getElementById('sl-'+s.id).value = s.def;
+    document.getElementById('val-'+s.id).textContent = s.def;
+  });
+  document.getElementById('canvasLabel').textContent = 'Default (Original)';
+  document.getElementById('noteText').textContent = 'Default (Original) active. No color shift.';
+  document.querySelectorAll('.preset').forEach(function(p, i){ p.classList.toggle('on', i === 0); });
+  updatePreview();
+}
+
+function applyGrade() {
+  var vals = {};
+  SLIDERS.forEach(function(s){ vals[s.id] = Number(document.getElementById('sl-'+s.id).value); });
+  try {
+    if (window.parent && window.parent !== window) {
+      var tf = window.parent.document.getElementById('timelineFrame');
+      if (tf && tf.contentWindow) {
+        tf.contentWindow.postMessage({ type:'ff:applyGrade', grade: vals }, '*');
+      }
+    }
+  } catch(e){}
+  document.getElementById('noteText').textContent = 'Grade applied to timeline clip.';
+}
+
+/* ================================================================
+   LUT
+================================================================ */
+function loadLut() {
+  document.getElementById('lutFile').click();
+}
+
+function handleLutFile(input) {
+  var file = input.files && input.files[0];
+  if (!file) return;
+  var el = document.getElementById('lutUpload');
+  el.classList.add('has-file');
+  document.getElementById('lutTitle').textContent = file.name;
+  el.querySelector('.lut-icon svg').innerHTML = '<polyline points="20 6 9 17 4 12"/>';
+  el.querySelector('.lut-icon svg').setAttribute('stroke', '#34d399');
+  el.querySelector('.lut-icon').style.background = 'rgba(34,211,153,.08)';
+  document.getElementById('noteText').textContent = 'LUT loaded: ' + file.name;
+  input.value = '';
+}
+
+/* ================================================================
+   SAVED PRESETS
+================================================================ */
+function savePreset() {
+  var name = document.getElementById('presetNameInput').value.trim();
+  if (!name) return;
+  var vals = {};
+  SLIDERS.forEach(function(s){ vals[s.id] = parseInt(document.getElementById('sl-'+s.id).value); });
+  savedPresets.push({ name: name, vals: vals });
+  document.getElementById('presetNameInput').value = '';
+  renderSaved();
+}
+
+function renderSaved() {
+  var list = document.getElementById('savedList');
+  list.innerHTML = '';
+  savedPresets.forEach(function(p, i) {
+    var el = document.createElement('div');
+    el.className = 'saved-item';
+    el.innerHTML =
+      '<div class="si-color" style="background:linear-gradient(135deg,#1a2a4a,#2a1a3a)"></div>'+
+      '<span class="si-name">'+p.name+'</span>'+
+      '<div class="si-btns">'+
+        '<button class="si-btn" title="Load" onclick="event.stopPropagation();loadSaved('+i+')">\u2197</button>'+
+        '<button class="si-btn del" title="Delete" onclick="event.stopPropagation();deleteSaved('+i+'">\u2715</button>'+
+      '</div>';
+    el.addEventListener('click', function(){ loadSaved(i); });
+    list.appendChild(el);
   });
 }
-function cloneCurrentProfile(){return {br:p.br,co:p.co,te:p.te,ex:p.ex,sh:p.sh,hi:p.hi,sa:p.sa,sp:p.sp};}
-function loadUserPresetsFromStorage(){
-  try{
-    const raw=localStorage.getItem(USER_PRESETS_KEY);
-    if(!raw) return {};
-    const parsed=JSON.parse(raw);
-    if(!parsed || typeof parsed!=='object') return {};
-    return parsed;
-  }catch(_e){ return {}; }
+
+function loadSaved(i) {
+  var p = savedPresets[i];
+  Object.keys(p.vals).forEach(function(k) {
+    var sl = document.getElementById('sl-'+k);
+    if (sl) {
+      sl.value = p.vals[k];
+      document.getElementById('val-'+k).textContent = p.vals[k];
+    }
+  });
+  document.getElementById('canvasLabel').textContent = p.name;
+  document.getElementById('noteText').textContent = 'Loaded: ' + p.name;
+  updatePreview();
 }
-function saveUserPresetsToStorage(){
-  try{ localStorage.setItem(USER_PRESETS_KEY, JSON.stringify(userPresets)); }catch(_e){}
+
+function deleteSaved(i) {
+  savedPresets.splice(i, 1);
+  renderSaved();
 }
-function renderUserPresetList(){
-  const sel=document.getElementById('userPresetList');
-  if(!sel) return;
-  const names=Object.keys(userPresets).sort((a,b)=>a.localeCompare(b));
-  if(!names.length){
-    sel.innerHTML='<option value="">No saved presets</option>';
-    return;
+
+/* ================================================================
+   HISTOGRAM
+================================================================ */
+function togHist(show, el) {
+  document.querySelectorAll('.prev-tab').forEach(function(t){ t.classList.remove('on'); });
+  el.classList.add('on');
+  document.getElementById('histogram').classList.toggle('on', show);
+}
+
+function updateHistogram() {
+  var bars = document.getElementById('histBars');
+  bars.innerHTML = '';
+  var colors = ['#ef4444','#22c55e','#3b82f6'];
+  for (var i = 0; i < 64; i++) {
+    var h = 5 + Math.random() * 30;
+    var bar = document.createElement('div');
+    bar.className = 'hist-bar';
+    bar.style.height = h + 'px';
+    bar.style.background = colors[i % 3];
+    bar.style.opacity = '0.4';
+    bars.appendChild(bar);
   }
-  sel.innerHTML=names.map((n)=>'<option value="'+n.replace(/"/g,'&quot;')+'">'+n+'</option>').join('');
 }
-function saveUserPreset(){
-  const input=document.getElementById('savePresetName');
-  const name=String((input && input.value) || '').trim();
-  if(!name){ setLightingStatus('Enter preset name first.','#ffc36b'); return; }
-  userPresets[name]=cloneCurrentProfile();
-  saveUserPresetsToStorage();
-  renderUserPresetList();
-  if(input) input.value='';
-  setLightingStatus('Preset saved: '+name,'#63d2a6');
-}
-function loadUserPreset(){
-  const sel=document.getElementById('userPresetList');
-  const name=String((sel && sel.value) || '').trim();
-  if(!name || !userPresets[name]){ setLightingStatus('Select a saved preset first.','#ffc36b'); return; }
-  activePreset='saved:'+name;
-  const presetSelect=document.getElementById('presetSelect');
-  if(presetSelect) presetSelect.value='default';
-  Object.entries(userPresets[name]).forEach(([k,val])=>{
-    if(p[k]===undefined) return;
-    p[k]=Number(val)||0;
-    document.getElementById(k+'V').textContent=p[k];
-    document.getElementById(k+'F').style.width=p[k]+'%';
-    const inp=document.getElementById(k+'F').parentElement.querySelector('input');
-    if(inp) inp.value=p[k];
-  });
-  af();
-  postLivePreview();
-  setLightingStatus('Preset loaded: '+name+'. Live preview active.','#8fa2c4');
-}
-function deleteUserPreset(){
-  const sel=document.getElementById('userPresetList');
-  const name=String((sel && sel.value) || '').trim();
-  if(!name || !userPresets[name]){ setLightingStatus('Select preset to delete.','#ffc36b'); return; }
-  delete userPresets[name];
-  saveUserPresetsToStorage();
-  renderUserPresetList();
-  setLightingStatus('Preset deleted: '+name,'#ffb4b4');
-}
-function applyLightingGrade(){
-  const ok=postToTimeline({
-    type:'ff:applyLightingGrade',
-    profile:{...p,preset:activePreset,updatedAt:Date.now()}
-  });
-  if(!ok){ setLightingStatus('Failed: timeline bridge unavailable.','#ff8f8f'); return; }
-  setLightingStatus('Lighting grade sent to selected clip.','#63d2a6');
-}
-function up(k,v){p[k]=+v;document.getElementById(k+'V').textContent=v;document.getElementById(k+'F').style.width=v+'%';af();postLivePreview()}
-function af(){const s=document.getElementById('lsc'),o=document.getElementById('lov');s.style.filter='brightness('+(p.br/50)+') contrast('+(p.co/50+.5)+') saturate('+(p.sa/50)+')';const t=p.te;o.style.background=t>50?'rgba(255,'+(200-(t-50)*2)+','+(100-t)+','+(t-50)/200+')':'rgba('+(100+t)+','+(150+t)+',255,'+(50-t)/200+')';document.getElementById('ib').textContent=p.br;document.getElementById('ic').textContent=p.co;document.getElementById('it').textContent=p.te;document.getElementById('is').textContent=p.sa}
-function ra(){const d={br:50,co:50,te:50,ex:50,sh:30,hi:70,sa:50,sp:50};activePreset='default';const presetSelect=document.getElementById('presetSelect');if(presetSelect) presetSelect.value='default';Object.entries(d).forEach(([k,v])=>{p[k]=v;document.getElementById(k+'V').textContent=v;document.getElementById(k+'F').style.width=v+'%';const inp=document.getElementById(k+'F').parentElement.querySelector('input');if(inp)inp.value=v});af();postLivePreview();setLightingStatus('Default (Original) active. No color shift.','#8fa2c4')}
-const PRESET_LIBRARY={
-  default:{br:50,co:50,te:50,ex:50,sh:30,hi:70,sa:50,sp:50},
-  cinematic:{br:48,co:62,te:44,ex:46,sh:36,hi:64,sa:42,sp:58},
-  cinematic_pro:{br:45,co:68,te:40,ex:44,sh:42,hi:66,sa:38,sp:64},
-  cinematic_blockbuster:{br:42,co:74,te:38,ex:43,sh:48,hi:68,sa:34,sp:70},
-  drama:{br:40,co:70,te:42,ex:42,sh:52,hi:48,sa:38,sp:60},
-  horror:{br:28,co:78,te:34,ex:32,sh:66,hi:34,sa:28,sp:64},
-  news:{br:62,co:52,te:52,ex:60,sh:26,hi:78,sa:50,sp:54},
-  romantic:{br:58,co:44,te:68,ex:56,sh:24,hi:78,sa:64,sp:42},
-  bleak:{br:34,co:60,te:38,ex:36,sh:62,hi:32,sa:20,sp:52},
-  vintage:{br:52,co:46,te:66,ex:50,sh:34,hi:62,sa:36,sp:40},
-  classic:{br:50,co:58,te:50,ex:48,sh:38,hi:58,sa:44,sp:55},
-  natural:{br:50,co:50,te:50,ex:50,sh:30,hi:70,sa:50,sp:50}
-};
-function applyPresetByName(name){
-  activePreset=name;
-  const values=PRESET_LIBRARY[name] || PRESET_LIBRARY.default;
-  Object.entries(values).forEach(([k,val])=>{
-    p[k]=val;
-    document.getElementById(k+'V').textContent=val;
-    document.getElementById(k+'F').style.width=val+'%';
-    const inp=document.getElementById(k+'F').parentElement.querySelector('input');
-    if(inp) inp.value=val;
-  });
-  af();
-  postLivePreview();
-  setLightingStatus('Preset loaded: '+name+'. Live preview active.','#8fa2c4');
-}
-function onPresetDropdownChange(){
-  const presetSelect=document.getElementById('presetSelect');
-  const selected=String((presetSelect && presetSelect.value) || 'default');
-  applyPresetByName(selected);
-}
-userPresets=loadUserPresetsFromStorage();
-renderUserPresetList();
-af();
-setLightingStatus('Default (Original) active. No color shift until you change controls.','#8fa2c4');
+
+/* ================================================================
+   INIT
+================================================================ */
+renderPresets();
+renderSliders();
+updateHistogram();
 </script>
 <script src="shared/timeline-bridge.js"></script>
 <script src="shared/english-only.js"></script>
-<script src="shared/resizable-panels.js"></script></body>
+<script src="shared/resizable-panels.js"></script>
+</body>
 </html>
-
-
-
-
-
-
