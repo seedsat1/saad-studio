@@ -8,7 +8,7 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:#080c1a;color:#e8ecf8;font-family:'Sora',sans-serif;height:100vh;overflow:hidden}
-.layout{display:grid;grid-template-columns:380px 1fr;height:100vh}
+.layout{display:grid;grid-template-columns:1fr;height:100vh}
 
 /* ===== LEFT ===== */
 .tools{background:linear-gradient(180deg,#0c1024,#0a0e1c);border-right:1px solid rgba(255,255,255,.05);display:flex;flex-direction:column;overflow:hidden}
@@ -187,37 +187,6 @@ body{background:#080c1a;color:#e8ecf8;font-family:'Sora',sans-serif;height:100vh
     </div>
   </div>
 
-  <!-- RIGHT -->
-  <div class="preview">
-    <div class="prev-header">
-      <span>LIGHTING PREVIEW</span>
-      <div class="prev-tabs">
-        <div class="prev-tab on" onclick="togHist(false,this)">Preview</div>
-        <div class="prev-tab" onclick="togHist(true,this)">Histogram</div>
-      </div>
-    </div>
-    <div class="prev-area">
-      <div class="canvas-wrap">
-        <div class="canvas-img" id="canvasImg">
-          <span class="canvas-label" id="canvasLabel">Default (Original)</span>
-          <div class="canvas-info">
-            <span class="ci-text">Select a clip on timeline to evaluate final look.</span>
-            <div class="ci-vals">
-              <div class="ci-v"><div class="ci-v-num" id="cvBr">50</div><div class="ci-v-label">Br</div></div>
-              <div class="ci-v"><div class="ci-v-num" id="cvCo">50</div><div class="ci-v-label">Co</div></div>
-              <div class="ci-v"><div class="ci-v-num" id="cvSa">50</div><div class="ci-v-label">Sa</div></div>
-              <div class="ci-v"><div class="ci-v-num" id="cvSh">50</div><div class="ci-v-label">Sh</div></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="histogram" id="histogram">
-      <div class="hist-title">Histogram</div>
-      <div class="hist-bars" id="histBars"></div>
-    </div>
-  </div>
-
 </div>
 
 <script>
@@ -298,7 +267,6 @@ function renderSliders() {
 ================================================================ */
 function updateSlider(id, val) {
   document.getElementById('val-'+id).textContent = val;
-  updatePreview();
 }
 
 function applyPreset(p) {
@@ -309,32 +277,7 @@ function applyPreset(p) {
       document.getElementById('val-'+k).textContent = p.vals[k];
     }
   });
-  document.getElementById('canvasLabel').textContent = p.name;
-  document.getElementById('noteText').textContent = p.name + ' preset applied.';
-  updatePreview();
-}
-
-function updatePreview() {
-  var br = Number(document.getElementById('sl-brightness').value);
-  var co = Number(document.getElementById('sl-contrast').value);
-  var sa = Number(document.getElementById('sl-saturation').value);
-  var te = Number(document.getElementById('sl-temperature').value);
-  var sh = Number(document.getElementById('sl-sharpness').value);
-
-  var brightness = 0.6 + (br / 100) * 0.8;
-  var contrast   = 0.5 + (co / 100) * 1.0;
-  var saturate   = sa / 50;
-  var hue        = (te - 50) * 1.2;
-
-  document.getElementById('canvasImg').style.filter =
-    'brightness('+brightness+') contrast('+contrast+') saturate('+saturate+') hue-rotate('+hue+'deg)';
-
-  document.getElementById('cvBr').textContent = br;
-  document.getElementById('cvCo').textContent = co;
-  document.getElementById('cvSa').textContent = sa;
-  document.getElementById('cvSh').textContent = sh;
-
-  updateHistogram();
+  document.getElementById('noteText').textContent = p.name + ' preset loaded — click Apply Grade to apply.';
 }
 
 function resetSliders() {
@@ -342,24 +285,32 @@ function resetSliders() {
     document.getElementById('sl-'+s.id).value = s.def;
     document.getElementById('val-'+s.id).textContent = s.def;
   });
-  document.getElementById('canvasLabel').textContent = 'Default (Original)';
-  document.getElementById('noteText').textContent = 'Default (Original) active. No color shift.';
+  document.getElementById('noteText').textContent = 'Reset to defaults.';
   document.querySelectorAll('.preset').forEach(function(p, i){ p.classList.toggle('on', i === 0); });
-  updatePreview();
 }
 
 function applyGrade() {
-  var vals = {};
-  SLIDERS.forEach(function(s){ vals[s.id] = Number(document.getElementById('sl-'+s.id).value); });
+  // Get the active preset name
+  var presetName = 'custom';
+  document.querySelectorAll('.preset.on').forEach(function(el){
+    presetName = el.querySelector('.preset-name').textContent.trim().toLowerCase().replace(/\s+/g,'-');
+  });
+  var profile = {
+    preset: presetName,
+    br: Number(document.getElementById('sl-brightness').value),
+    co: Number(document.getElementById('sl-contrast').value),
+    te: Number(document.getElementById('sl-temperature').value),
+    ex: Number(document.getElementById('sl-exposure').value),
+    sh: Number(document.getElementById('sl-shadows').value),
+    hi: Number(document.getElementById('sl-highlights').value),
+    sa: Number(document.getElementById('sl-saturation').value),
+    sp: Number(document.getElementById('sl-sharpness').value),
+    updatedAt: Date.now(),
+  };
   try {
-    if (window.parent && window.parent !== window) {
-      var tf = window.parent.document.getElementById('timelineFrame');
-      if (tf && tf.contentWindow) {
-        tf.contentWindow.postMessage({ type:'ff:applyGrade', grade: vals }, '*');
-      }
-    }
+    window.parent.postMessage({ type:'ff:applyLightingGrade', profile: profile }, '*');
   } catch(e){}
-  document.getElementById('noteText').textContent = 'Grade applied to timeline clip.';
+  document.getElementById('noteText').textContent = 'Grade sent to selected timeline clip.';
 }
 
 /* ================================================================
@@ -422,9 +373,7 @@ function loadSaved(i) {
       document.getElementById('val-'+k).textContent = p.vals[k];
     }
   });
-  document.getElementById('canvasLabel').textContent = p.name;
-  document.getElementById('noteText').textContent = 'Loaded: ' + p.name;
-  updatePreview();
+  document.getElementById('noteText').textContent = 'Loaded: ' + p.name + ' — click Apply Grade to apply';
 }
 
 function deleteSaved(i) {
@@ -433,14 +382,8 @@ function deleteSaved(i) {
 }
 
 /* ================================================================
-   HISTOGRAM
+   HISTOGRAM (kept for future use, not rendered)
 ================================================================ */
-function togHist(show, el) {
-  document.querySelectorAll('.prev-tab').forEach(function(t){ t.classList.remove('on'); });
-  el.classList.add('on');
-  document.getElementById('histogram').classList.toggle('on', show);
-}
-
 function updateHistogram() {
   var bars = document.getElementById('histBars');
   bars.innerHTML = '';
