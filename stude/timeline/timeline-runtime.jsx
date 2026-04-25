@@ -3034,7 +3034,13 @@ function TimelineEditor() {
                            boxShadow: clip.id === selected ? '0 0 0 1px #f59e0b55, 0 0 8px #f59e0b33' : 'none',
                          } : {}),
                        }}>
-                    {/* End-of-media indicator — right edge only (like Premiere) */}\n                    {(clip.kind === 'video' || clip.kind === 'audio') && clip.sourceDur && clip.dur >= clip.sourceDur && (\n                      <div title=\"End of media — cannot extend further\" style={{\n                        position: 'absolute', right: 0, top: 0, bottom: 0, width: 4,\n                        background: 'linear-gradient(to left, #ff4e4ecc, transparent)',\n                        borderRadius: '0 3px 3px 0', pointerEvents: 'none', zIndex: 4,\n                      }} />\n                    )}
+                    {(clip.kind === 'video' || clip.kind === 'audio') && clip.sourceDur && clip.dur >= clip.sourceDur && (
+                      <div title="End of media" style={{
+                        position: 'absolute', right: 0, top: 0, bottom: 0, width: 4,
+                        background: 'linear-gradient(to left, #ff4e4ecc, transparent)',
+                        borderRadius: '0 3px 3px 0', pointerEvents: 'none', zIndex: 4,
+                      }} />
+                    )}
                     {/* Keyframe diamonds (Adobe-style markers) */}
                     {clip.kfs && (() => {
                       const allFrames = new Set();
