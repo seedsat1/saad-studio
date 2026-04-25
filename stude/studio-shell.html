@@ -492,12 +492,121 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
     if(!desired.length){ previewAudio.pause(); previewAudio.removeAttribute('src'); lastAudioKey=''; }
   }
 
+  function hex2rgba(hex, a){
+    var h=String(hex||'#000000').replace('#','');
+    if(h.length===3) h=h.split('').map(function(c){return c+c;}).join('');
+    var n=parseInt(h,16);
+    var r=(n>>16)&255, g=(n>>8)&255, b=n&255;
+    var al=Math.max(0,Math.min(1, a==null?1:a));
+    return 'rgba('+r+','+g+','+b+','+al+')';
+  }
+
+  function ensureSubtitleAnimStyle(){
+    if(document.getElementById('subAnimStyle')) return;
+    var s=document.createElement('style');
+    s.id='subAnimStyle';
+    s.textContent=''+
+      '@keyframes subFadeIn{from{opacity:0}to{opacity:1}}'+
+      '@keyframes subSlideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}'+
+      '@keyframes subSlideDown{from{transform:translateY(-20px);opacity:0}to{transform:translateY(0);opacity:1}}'+
+      '@keyframes subZoom{from{transform:scale(0.6);opacity:0}to{transform:scale(1);opacity:1}}'+
+      '@keyframes subGlow{0%,100%{text-shadow:0 0 8px currentColor}50%{text-shadow:0 0 22px currentColor,0 0 36px currentColor}}'+
+      '@keyframes subBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}'+
+      '@keyframes subShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}'+
+      '@keyframes subTypewriter{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}'+
+      '.subCue{display:inline-block;animation-fill-mode:both;animation-duration:0.45s}'+
+      '.subCue.eff-fade{animation-name:subFadeIn}'+
+      '.subCue.eff-slideUp{animation-name:subSlideUp}'+
+      '.subCue.eff-slideDown{animation-name:subSlideDown}'+
+      '.subCue.eff-zoom{animation-name:subZoom}'+
+      '.subCue.eff-glow{animation:subGlow 1.6s ease-in-out infinite}'+
+      '.subCue.eff-bounce{animation:subBounce 1s ease-in-out infinite}'+
+      '.subCue.eff-shake{animation:subShake 0.4s ease-in-out infinite}'+
+      '';
+    document.head.appendChild(s);
+  }
+
   function renderSubtitles(cues){
     var el=document.getElementById('subtitleOverlay');
     if(!el) return;
-    if(!cues||!cues.length){ el.style.display='none'; el.textContent=''; return; }
-    var text=cues.map(function(c){ return String(c.text||''); }).join('\n');
-    el.textContent=text;
+    if(!cues||!cues.length){ el.style.display='none'; el.innerHTML=''; return; }
+    ensureSubtitleAnimStyle();
+
+    // Use first cue for container-level positioning (bottom %)
+    var first=cues[0]||{};
+    var posY=Number(first.posY); if(!isFinite(posY)) posY=6;
+    var alignSelf=first.align||'center';
+    el.style.bottom=posY+'%';
+    el.style.textAlign=alignSelf;
+    // Reset container background so each cue carries its own
+    el.style.background='transparent';
+    el.style.padding='0';
+    el.style.boxShadow='none';
+    el.style.textShadow='none';
+
+    var html=cues.map(function(c){
+      var t=String(c.text||''); if(!t) return '';
+      var color=c.textColor||'#ffffff';
+      var fs=isFinite(Number(c.fontSize))?Number(c.fontSize):22;
+      var bold=c.bold!==false;
+      var italic=!!c.italic;
+      var ul=!!c.underline;
+      var bgEnabled=c.bgEnabled!==false;
+      var bgColor=c.bgColor||'#000000';
+      var bgOp=isFinite(Number(c.bgOpacity))?Number(c.bgOpacity)/100:0.55;
+      var stroke=Number(c.strokeWidth)||0;
+      var strokeColor=c.strokeColor||'#000000';
+      var shadow=c.shadow!==false;
+      var op=isFinite(Number(c.opacity))?Number(c.opacity)/100:1;
+      var effect=c.effect||'none';
+
+      var styles=[];
+      styles.push('color:'+color);
+      styles.push('font-size:'+fs+'px');
+      styles.push('font-weight:'+(bold?'700':'400'));
+      if(italic) styles.push('font-style:italic');
+      if(ul) styles.push('text-decoration:underline');
+      styles.push('opacity:'+op);
+      if(bgEnabled){
+        styles.push('background:'+hex2rgba(bgColor, bgOp));
+        styles.push('padding:4px 12px');
+        styles.push('border-radius:6px');
+      } else {
+        styles.push('background:transparent');
+        styles.push('padding:0 4px');
+      }
+      var shadows=[];
+      if(shadow) shadows.push('0 2px 8px rgba(0,0,0,0.85)');
+      if(stroke>0){
+        // Build text-stroke via multi-shadow trick
+        var n=Math.max(1,Math.round(stroke));
+        for(var dx=-n; dx<=n; dx++){
+          for(var dy=-n; dy<=n; dy++){
+            if(dx===0&&dy===0) continue;
+            shadows.push(dx+'px '+dy+'px 0 '+strokeColor);
+          }
+        }
+      }
+      if(shadows.length) styles.push('text-shadow:'+shadows.join(','));
+      styles.push('margin:2px 0');
+      styles.push('display:inline-block');
+      styles.push('max-width:96%');
+      styles.push('line-height:1.45');
+      styles.push('white-space:pre-line');
+
+      var cls='subCue';
+      if(effect && effect!=='none') cls+=' eff-'+effect;
+      var safe=t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      // Typewriter effect: reveal characters via animation
+      if(effect==='typewriter'){
+        // Use clip-path animation with steps based on length
+        styles.push('overflow:hidden');
+        styles.push('animation: subTypewriter '+(0.05*safe.length).toFixed(2)+'s steps('+safe.length+') 1 both');
+      }
+      return '<div class="'+cls+'" style="'+styles.join(';')+'">'+safe+'</div>';
+    }).filter(Boolean).join('');
+
+    el.innerHTML=html;
     el.style.display='block';
   }
 

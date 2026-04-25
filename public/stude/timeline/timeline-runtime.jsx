@@ -411,6 +411,174 @@ function EffectControls({ clip, onProp, onCommit, onFitMode, onExpand }) {
     return tt === 'video' || tt === 'image';
   })();
 
+  const isSubtitle = String(clip.kind || '') === 'subtitle' || String(clip.trackType || '') === 'subtitle';
+
+  if (isSubtitle) {
+    const text = String(clip.label || '');
+    const textColor = clip.textColor || '#ffffff';
+    const fontSize = Number.isFinite(clip.fontSize) ? clip.fontSize : 22;
+    const bold = clip.bold !== false;
+    const italic = !!clip.italic;
+    const underline = !!clip.underline;
+    const align = clip.align || 'center';
+    const bgEnabled = clip.bgEnabled !== false;
+    const bgColor = clip.bgColor || '#000000';
+    const bgOpacity = Number.isFinite(clip.bgOpacity) ? clip.bgOpacity : 55;
+    const strokeColor = clip.strokeColor || '#000000';
+    const strokeWidth = Number.isFinite(clip.strokeWidth) ? clip.strokeWidth : 0;
+    const shadow = clip.shadow !== false;
+    const effect = clip.effect || 'none';
+    const posY = Number.isFinite(clip.posY) ? clip.posY : 6;
+    const subOpacity = Number.isFinite(clip.opacity) ? clip.opacity : 100;
+
+    const tglBtn = (active, label, on) => (
+      <button onClick={on} onMouseDown={(e) => e.stopPropagation()} style={{
+        flex:1, height:18, borderRadius:3, fontSize:10, fontWeight:700, cursor:'pointer',
+        border: active ? '1px solid #4a9eff' : '1px solid #23293a',
+        background: active ? 'rgba(74,158,255,0.2)' : '#141820',
+        color: active ? '#9dcfff' : '#6c7694',
+      }}>{label}</button>
+    );
+
+    return (
+      <div style={{ display:'flex', flexDirection:'column', height:'100%', overflow:'hidden' }}>
+        <div style={{ padding:'5px 8px 4px', background:'#13151c', borderBottom:'1px solid #252a35', flexShrink:0 }}>
+          <div style={{ fontSize:10, color:'#fbbf24', fontWeight:700, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>✎ {text || 'Subtitle'}</div>
+          <div style={{ fontSize:9, color:'#4a5575', marginTop:1 }}>Track {clip.track !== undefined ? clip.track : '—'} · subtitle · {clip.dur != null ? (clip.dur/30).toFixed(2)+'s' : '—'}</div>
+        </div>
+
+        <div style={{ flex:1, overflowY:'auto', overflowX:'hidden' }}>
+          {/* ─── Text Content ─── */}
+          <SectionHeader label="Aa  Text" open={true} onToggle={() => {}} color='#fbbf24' />
+          <div style={{ padding:'4px 6px', borderBottom:'1px solid #1e2128' }}>
+            <textarea
+              value={text}
+              onChange={(e) => onProp('label', e.target.value)}
+              onBlur={(e) => onCommit('label', e.target.value)}
+              onMouseDown={(e) => e.stopPropagation()}
+              onKeyDown={(e) => e.stopPropagation()}
+              dir="auto"
+              placeholder="Subtitle text…"
+              style={{
+                width:'100%', minHeight:48, maxHeight:120, resize:'vertical',
+                background:'#0f1114', border:'1px solid #2a3040', borderRadius:3,
+                color:'#e5edf7', fontSize:11, padding:'4px 6px', outline:'none',
+                fontFamily:'inherit', lineHeight:1.4, boxSizing:'border-box',
+              }}
+            />
+          </div>
+
+          <PropRow label="Color">
+            <input type="color" value={textColor}
+              onChange={(e) => onProp('textColor', e.target.value)}
+              onBlur={(e) => onCommit('textColor', e.target.value)}
+              onMouseDown={(e) => e.stopPropagation()}
+              style={{ width:28, height:18, padding:0, border:'1px solid #2a3040', borderRadius:3, background:'transparent', cursor:'pointer' }} />
+            <span style={{ fontSize:9, color:'#6c7694', marginLeft:4, fontFamily:'monospace' }}>{textColor}</span>
+          </PropRow>
+
+          <PropRow label="Font Size">
+            <input type="range" min={10} max={80} step={1} value={fontSize}
+              onChange={(e) => onProp('fontSize', Number(e.target.value))}
+              onMouseUp={(e) => onCommit('fontSize', Number(e.target.value))}
+              style={{ flex:1, height:3, accentColor:'#fbbf24', cursor:'pointer' }} />
+            <NumInput value={fontSize} min={10} max={80} step={1} onChange={(v) => onProp('fontSize', v)} onCommit={(v) => onCommit('fontSize', v)} style={{ width:36 }} />
+          </PropRow>
+
+          <PropRow label="Style">
+            {tglBtn(bold, <b>B</b>, () => onCommit('bold', !bold))}
+            {tglBtn(italic, <i>I</i>, () => onCommit('italic', !italic))}
+            {tglBtn(underline, <u>U</u>, () => onCommit('underline', !underline))}
+          </PropRow>
+
+          <PropRow label="Align">
+            {['left','center','right'].map((a) => tglBtn(align === a, a === 'left' ? '⇤' : a === 'right' ? '⇥' : '⇔', () => onCommit('align', a)))}
+          </PropRow>
+
+          <PropRow label="Position Y">
+            <input type="range" min={0} max={90} step={1} value={posY}
+              onChange={(e) => onProp('posY', Number(e.target.value))}
+              onMouseUp={(e) => onCommit('posY', Number(e.target.value))}
+              style={{ flex:1, height:3, accentColor:'#fbbf24', cursor:'pointer' }} />
+            <NumInput value={posY} min={0} max={90} step={1} onChange={(v) => onProp('posY', v)} onCommit={(v) => onCommit('posY', v)} style={{ width:36 }} />
+            <span style={{ fontSize:9, color:'#4a5575' }}>%</span>
+          </PropRow>
+
+          {/* ─── Background ─── */}
+          <SectionHeader label="◧  Background" open={true} onToggle={() => {}} color='#5dd6a0' />
+          <PropRow label="Show BG">
+            <label style={{ display:'flex', alignItems:'center', gap:5, fontSize:10, color:'#9aa6b8', cursor:'pointer', userSelect:'none' }} onMouseDown={(e) => e.stopPropagation()}>
+              <input type="checkbox" checked={bgEnabled} onChange={(e) => onCommit('bgEnabled', e.target.checked)} style={{ width:12, height:12, accentColor:'#5dd6a0', cursor:'pointer' }} />
+              {bgEnabled ? 'On' : 'Off'}
+            </label>
+          </PropRow>
+          {bgEnabled && (
+            <>
+              <PropRow label="BG Color">
+                <input type="color" value={bgColor}
+                  onChange={(e) => onProp('bgColor', e.target.value)}
+                  onBlur={(e) => onCommit('bgColor', e.target.value)}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  style={{ width:28, height:18, padding:0, border:'1px solid #2a3040', borderRadius:3, background:'transparent', cursor:'pointer' }} />
+                <span style={{ fontSize:9, color:'#6c7694', marginLeft:4, fontFamily:'monospace' }}>{bgColor}</span>
+              </PropRow>
+              <PropRow label="BG Opacity">
+                <input type="range" min={0} max={100} step={1} value={bgOpacity}
+                  onChange={(e) => onProp('bgOpacity', Number(e.target.value))}
+                  onMouseUp={(e) => onCommit('bgOpacity', Number(e.target.value))}
+                  style={{ flex:1, height:3, accentColor:'#5dd6a0', cursor:'pointer' }} />
+                <NumInput value={bgOpacity} min={0} max={100} step={1} onChange={(v) => onProp('bgOpacity', v)} onCommit={(v) => onCommit('bgOpacity', v)} style={{ width:36 }} />
+                <span style={{ fontSize:9, color:'#4a5575' }}>%</span>
+              </PropRow>
+            </>
+          )}
+
+          {/* ─── Effects ─── */}
+          <SectionHeader label="✦  Effects" open={true} onToggle={() => {}} color='#c3a2ff' />
+          <PropRow label="Shadow">
+            <label style={{ display:'flex', alignItems:'center', gap:5, fontSize:10, color:'#9aa6b8', cursor:'pointer', userSelect:'none' }} onMouseDown={(e) => e.stopPropagation()}>
+              <input type="checkbox" checked={shadow} onChange={(e) => onCommit('shadow', e.target.checked)} style={{ width:12, height:12, accentColor:'#c3a2ff', cursor:'pointer' }} />
+              {shadow ? 'On' : 'Off'}
+            </label>
+          </PropRow>
+          <PropRow label="Stroke">
+            <input type="color" value={strokeColor}
+              onChange={(e) => onProp('strokeColor', e.target.value)}
+              onBlur={(e) => onCommit('strokeColor', e.target.value)}
+              onMouseDown={(e) => e.stopPropagation()}
+              style={{ width:24, height:18, padding:0, border:'1px solid #2a3040', borderRadius:3, background:'transparent', cursor:'pointer' }} />
+            <input type="range" min={0} max={8} step={0.5} value={strokeWidth}
+              onChange={(e) => onProp('strokeWidth', Number(e.target.value))}
+              onMouseUp={(e) => onCommit('strokeWidth', Number(e.target.value))}
+              style={{ flex:1, height:3, accentColor:'#c3a2ff', cursor:'pointer' }} />
+            <NumInput value={strokeWidth} min={0} max={8} step={0.5} onChange={(v) => onProp('strokeWidth', v)} onCommit={(v) => onCommit('strokeWidth', v)} style={{ width:30 }} />
+          </PropRow>
+          <PropRow label="Animation">
+            <select value={effect} onChange={(e) => onCommit('effect', e.target.value)} onMouseDown={(e) => e.stopPropagation()} style={{ flex:1, height:18, background:'#0f1114', border:'1px solid #2a3040', borderRadius:3, color:'#d8e3f2', fontSize:10, padding:'0 2px', cursor:'pointer', outline:'none' }}>
+              <option value="none">None</option>
+              <option value="fade">Fade In</option>
+              <option value="slideUp">Slide Up</option>
+              <option value="slideDown">Slide Down</option>
+              <option value="zoom">Zoom In</option>
+              <option value="glow">Glow Pulse</option>
+              <option value="bounce">Bounce</option>
+              <option value="typewriter">Typewriter</option>
+              <option value="shake">Shake</option>
+            </select>
+          </PropRow>
+          <PropRow label="Opacity">
+            <input type="range" min={0} max={100} step={1} value={subOpacity}
+              onChange={(e) => onProp('opacity', Number(e.target.value))}
+              onMouseUp={(e) => onCommit('opacity', Number(e.target.value))}
+              style={{ flex:1, height:3, accentColor:'#c3a2ff', cursor:'pointer' }} />
+            <NumInput value={subOpacity} min={0} max={100} step={1} onChange={(v) => onProp('opacity', v)} onCommit={(v) => onCommit('opacity', v)} style={{ width:36 }} />
+            <span style={{ fontSize:9, color:'#4a5575' }}>%</span>
+          </PropRow>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ display:'flex', flexDirection:'column', height:'100%', overflow:'hidden' }}>
       {/* Clip name header */}
@@ -920,7 +1088,24 @@ function TimelineEditor() {
       activeVisualClips: visualStackMapped,
       activeAudioClip: audioMapped,
       activeAudioClips: audios.map((c) => mapClip(c)).filter(Boolean),
-      activeSubtitleCues: subtitles.map((c) => ({ id: c.id, text: c.label || '', start: c.start, dur: c.dur })),
+      activeSubtitleCues: subtitles.map((c) => ({
+        id: c.id, text: c.label || '', start: c.start, dur: c.dur,
+        opacity: Number.isFinite(c.opacity) ? c.opacity : 100,
+        textColor: c.textColor || '#ffffff',
+        fontSize: Number.isFinite(c.fontSize) ? c.fontSize : 22,
+        bold: c.bold !== false,
+        italic: !!c.italic,
+        underline: !!c.underline,
+        align: c.align || 'center',
+        bgEnabled: c.bgEnabled !== false,
+        bgColor: c.bgColor || '#000000',
+        bgOpacity: Number.isFinite(c.bgOpacity) ? c.bgOpacity : 55,
+        strokeColor: c.strokeColor || '#000000',
+        strokeWidth: Number.isFinite(c.strokeWidth) ? c.strokeWidth : 0,
+        shadow: c.shadow !== false,
+        effect: c.effect || 'none',
+        posY: Number.isFinite(c.posY) ? c.posY : 6,
+      })),
       allClips: clips.map((c) => mapClip(c)),
       clipsCount: clips.length,
       tracks: tracks.map((t) => ({ id: t.id, type: t.type, muted: t.muted, solo: t.solo, volume: t.volume ?? 1 })),
@@ -2371,7 +2556,7 @@ function TimelineEditor() {
                 const c = clips.find((cl) => cl.id === selected);
                 if (!c) return null;
                 const tr = tracks[c.track];
-                return { ...c, trackType: tr?.type || '', kind: c.kind || (tr?.type === 'audio' ? 'audio' : '') };
+                return { ...c, trackType: tr?.type || '', kind: c.kind || (tr?.type === 'audio' ? 'audio' : tr?.type === 'subtitle' ? 'subtitle' : '') };
               })()}
               onProp={(key, val) => setClipProp(selected, key, val)}
               onCommit={(key, val) => commitClipProp(selected, key, val)}
