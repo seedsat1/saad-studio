@@ -369,7 +369,7 @@ async function callGpt(){
   const messages = conversation.map(m => ({ role: m.role, content: m.content }));
   const payload = {
     model: 'gpt-5.4',
-    persona: 'prompt',
+    persona: 'general',
     messages,
   };
   const res = await fetch('/api/assist', {
