@@ -135,8 +135,9 @@ function firstText(input: unknown): string {
 }
 
 async function pollWaveSpeedTask(taskId: string, apiKey: string): Promise<{ text: string; captionUrl: string; raw: unknown }> {
-  const maxAttempts = 90;
-  const intervalMs = 2_500;
+  // Total budget ~ 4.8 min — must stay under Vercel maxDuration (5 min)
+  const maxAttempts = 144;
+  const intervalMs = 2_000;
 
   for (let i = 0; i < maxAttempts; i++) {
     await new Promise((r) => setTimeout(r, intervalMs));
