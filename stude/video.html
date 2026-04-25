@@ -4,1338 +4,898 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Video Generation</title>
-<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#181818;--panel:#1e1e1e;--panel2:#232323;--border:#2d2d2d;--border2:#3a3a3a;--text:#d4d4d4;--dim:#777;--dim2:#555;--accent:#4a9eff;--accent2:#5cb8ff;--green:#4caf50;--orange:#ff9800;--red:#f44336;--purple:#b388ff;--cyan:#26c6da;--yellow:#ffd54f}
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:var(--bg);color:var(--text);font-family:'Tajawal',sans-serif;height:100vh;overflow:hidden;display:flex;flex-direction:column}
-.menubar{height:24px;background:#111;display:flex;align-items:center;padding:0 8px;gap:2px;border-bottom:1px solid #222;font-size:11px}
-.menubar span{padding:2px 8px;color:var(--dim);cursor:pointer;border-radius:2px}.menubar span:hover{color:var(--text);background:#333}
-.menubar .spacer{flex:1}.menubar .title{color:var(--accent);font-weight:700;letter-spacing:1px}
-.page-tabs{height:30px;background:#1a1a1a;display:flex;align-items:center;border-bottom:1px solid var(--border);padding:0 8px}
-.page-tab{padding:5px 14px;font-size:10px;color:var(--dim);cursor:pointer;border-bottom:2px solid transparent;transition:.15s;text-decoration:none;font-family:'Tajawal'}
-.page-tab:hover{color:var(--text)}.page-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
-.workspace{flex:1;display:flex;flex-direction:column;overflow:hidden}
-.top-row{flex:1;display:flex;min-height:0}
-.bottom-row{height:200px;border-top:2px solid var(--border);display:flex;flex-direction:column}
-.panel{background:var(--panel);display:flex;flex-direction:column;overflow:hidden}
-.ph{height:26px;background:#252525;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 10px;gap:8px;flex-shrink:0}
-.ph .l{font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.55px;font-weight:700;cursor:pointer}.ph .l.a{color:var(--accent)}
-.pb{flex:1;overflow-y:auto;padding:10px;font-size:12px}
-.vr{width:2px;background:var(--border);cursor:col-resize;flex-shrink:0}.vr:hover{background:var(--accent)}
-.ist{font-size:11px;color:#9aa7bb;text-transform:uppercase;letter-spacing:.45px;font-weight:700;padding:7px 0 6px;border-bottom:1px solid var(--border);margin-bottom:8px;display:flex;align-items:center;gap:6px}
-.ist .d{width:5px;height:5px;border-radius:50%}
-.sr{display:flex;align-items:center;gap:10px;margin-bottom:10px}
-.sr .sl{font-size:12px;color:#aab5c5;width:88px;flex-shrink:0}
-.sr .st{flex:1;height:5px;background:#2a2a2a;border-radius:3px;position:relative}
-.sr .sf{position:absolute;right:0;top:0;height:100%;border-radius:2px}
-.sr .st input{position:absolute;inset:0;width:100%;opacity:0;cursor:pointer;margin:0}
-.sr .sv{font-size:13px;font-family:'JetBrains Mono';width:52px;text-align:left;flex-shrink:0}
-.cr{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:6px}
-.ch{padding:4px 10px;border-radius:4px;font-size:11px;cursor:pointer;border:1px solid var(--border);background:#1a1a1a;color:#9da9bc;font-family:'Tajawal';transition:.12s}
-.ch:hover{border-color:var(--border2);color:var(--text)}.ch.a{border-color:var(--accent);color:var(--accent);background:rgba(74,158,255,.08)}
-textarea{width:100%;background:#1a1a1a;border:1px solid var(--border);border-radius:4px;padding:10px;color:var(--text);font-family:'Tajawal';font-size:13px;resize:vertical;outline:none;line-height:1.6}
-textarea:focus{border-color:var(--accent)}
-.bs{padding:5px 12px;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;border:none;font-family:'Tajawal';transition:.12s}
-.bb{background:var(--accent);color:#fff}.bb:hover{background:var(--accent2)}
-.bg{background:none;color:var(--dim);border:1px solid var(--border)}.bg:hover{color:var(--text);border-color:var(--border2)}
-.in{width:100%;background:#1a1a1a;border:1px solid var(--border);border-radius:4px;padding:8px 9px;color:var(--text);font-family:'Tajawal';font-size:12px;outline:none;margin-bottom:6px;line-height:1.45}
-.in:focus{border-color:var(--accent)}
-.sbox{width:100%;height:32px;background:#1a1a1a;border:1px solid var(--border);border-radius:4px;padding:0 8px;color:var(--text);font-family:'Tajawal';font-size:12px;outline:none;margin-bottom:8px}
-.stt{font-size:11px;line-height:1.5;color:#95a5bd;margin-top:4px}
-.frames-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px}
-.frame-card{border:1px solid #2a3951;border-radius:14px;padding:10px;background:linear-gradient(180deg,#101829,#0f1522)}
-.frame-card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
-.frame-card-title{font-size:12px;font-weight:700;color:#d9e7ff}
-.frame-pill{font-size:10px;color:#8fa6c9;border:1px solid #2a3951;border-radius:999px;padding:1px 8px}
-.frame-drop{height:120px;border:1px dashed #2f466a;border-radius:12px;background:radial-gradient(circle at 50% 35%,rgba(74,158,255,.14),rgba(74,158,255,.02));display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;cursor:pointer;transition:.16s}
-.frame-drop:hover{border-color:#4a9eff;background:radial-gradient(circle at 50% 35%,rgba(74,158,255,.24),rgba(74,158,255,.03))}
-.frame-drop.has-image{background-size:cover;background-position:center;border-style:solid;border-color:#4a9eff}
-.frame-drop-icon{width:46px;height:46px;border-radius:50%;background:rgba(17,25,42,.85);display:flex;align-items:center;justify-content:center;border:1px solid #2f466a}
-.frame-drop-text{font-size:11px;color:#a8bad9}
-.frame-drop-note{font-size:10px;color:#7f93b4}
-.frame-actions{display:flex;gap:6px;margin-top:8px}
-.frame-meta{font-size:10px;color:#9db0cf;margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.seed-ref-group{margin-top:8px}
-.seed-ref-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
-.seed-ref-title{font-size:11px;color:#b8c8e0;font-weight:700}
-.seed-ref-count{font-size:10px;color:#86a0c7}
-.seed-ref-add{display:flex;gap:6px}
-.seed-ref-list{display:flex;flex-direction:column;gap:5px;margin-top:6px;max-height:100px;overflow:auto}
-.seed-ref-item{display:flex;align-items:center;gap:6px;border:1px solid var(--border);border-radius:5px;background:#131313;padding:5px 6px}
-.seed-ref-item span{flex:1;font-size:10px;color:#9cb2d2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-/* timeline */
-.th{height:26px;background:#252525;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 10px;gap:10px;flex-shrink:0}
-.th span{font-size:9px;color:var(--dim);cursor:pointer}.th span.a{color:var(--accent)}
-.tb{flex:1;display:flex;overflow:hidden}
-.ts{width:100px;background:#1c1c1c;border-left:1px solid var(--border);flex-shrink:0}
-.tl{height:32px;display:flex;align-items:center;padding:0 6px;gap:3px;border-bottom:1px solid #252525;font-size:9px;color:var(--dim)}
-.tl .dd{width:5px;height:5px;border-radius:50%}.tl .n{flex:1}.tl .x{display:flex;gap:1px;font-size:8px;opacity:.4}
-.ta{flex:1;position:relative;overflow:auto}
-.tr{height:18px;background:#1c1c1c;border-bottom:1px solid var(--border);display:flex;align-items:flex-end;padding:0 8px;gap:55px;position:sticky;top:0;z-index:2}
-.tr span{font-size:7px;color:var(--dim2);font-family:'JetBrains Mono'}
-.tt{position:relative}
-.tk{height:32px;border-bottom:1px solid #252525;position:relative}
-.tc2{position:absolute;top:2px;height:28px;border-radius:3px;display:flex;align-items:center;padding:0 5px;font-size:8px;color:#fff;overflow:hidden;cursor:pointer}
-.tc2:hover{filter:brightness(1.2)}.tc2 .cn{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tp2{position:absolute;top:0;bottom:0;width:2px;background:var(--red);z-index:10;pointer-events:none}
-.tp2::before{content:'';position:absolute;top:-1px;right:-3px;width:8px;height:8px;background:var(--red);clip-path:polygon(50% 100%,0 0,100% 0)}
+body{background:#080c1a;color:#e8ecf8;font-family:'Sora',sans-serif;height:100vh;overflow:hidden}
+.layout{display:grid;grid-template-columns:380px 1fr;height:100vh}
+
+/* === LEFT PANEL === */
+.tools{background:linear-gradient(180deg,#0c1024,#0a0e1c);border-right:1px solid rgba(255,255,255,.05);display:flex;flex-direction:column;overflow:hidden}
+.tools-header{padding:20px 20px 14px;border-bottom:1px solid rgba(255,255,255,.04);flex-shrink:0}
+.tools-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:16px;background:rgba(251,146,60,.1);border:1px solid rgba(251,146,60,.12);font-size:9px;font-weight:700;color:#fb923c;letter-spacing:.8px;text-transform:uppercase;margin-bottom:10px}
+.tools-badge .dot{width:5px;height:5px;border-radius:50%;background:#fb923c;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.tools-title{font-size:18px;font-weight:800;letter-spacing:-.5px}
+.tools-scroll{flex:1;overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.06) transparent}
+.tools-scroll::-webkit-scrollbar{width:4px}
+.tools-scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:2px}
+
+.sec{padding:16px 20px;border-bottom:1px solid rgba(255,255,255,.04)}
+.sec:last-child{border-bottom:none}
+.sec-label{font-size:9px;font-weight:700;color:#4e5678;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.sec-label .d{width:5px;height:5px;border-radius:50%}
+
+.prompt-box{width:100%;min-height:80px;max-height:140px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 12px;color:#e8ecf8;font-family:inherit;font-size:12px;line-height:1.6;font-weight:500;resize:vertical;outline:none;transition:.2s;display:block}
+.prompt-box::placeholder{color:#3d4568}
+.prompt-box:focus{border-color:rgba(251,146,60,.3);box-shadow:0 0 0 2px rgba(251,146,60,.06)}
+.char-ct{font-size:9px;color:#3d4568;text-align:right;margin-top:3px;font-family:'JetBrains Mono',monospace}
+
+/* Multi-shot */
+.multi-area{display:none}
+.multi-area.on{display:block}
+.shot{background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:10px;margin-bottom:8px;animation:fadeIn .25s both}
+.shot-top{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.shot-n{width:20px;height:20px;border-radius:5px;background:rgba(251,146,60,.12);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:#fb923c;font-family:'JetBrains Mono',monospace}
+.shot-l{font-size:10px;font-weight:700;color:#6b7394;flex:1}
+.shot-x{width:18px;height:18px;border-radius:5px;border:none;background:none;color:#3d4568;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:10px;transition:.15s}
+.shot-x:hover{background:rgba(251,113,133,.12);color:#fb7185}
+.shot-ta{width:100%;height:50px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.05);border-radius:6px;padding:6px 8px;color:#e8ecf8;font-family:inherit;font-size:11px;resize:none;outline:none;transition:.15s}
+.shot-ta::placeholder{color:#3d4568}
+.shot-ta:focus{border-color:rgba(251,146,60,.25)}
+.shot-dur{width:60px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:5px;padding:4px 7px;color:#e8ecf8;font-family:'JetBrains Mono',monospace;font-size:11px;outline:none;margin-top:4px}
+.add-shot{padding:8px;border-radius:8px;border:1px dashed rgba(251,146,60,.2);background:rgba(251,146,60,.02);color:#fb923c;font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;text-align:center;transition:.15s}
+.add-shot:hover{border-color:rgba(251,146,60,.4);background:rgba(251,146,60,.05)}
+
+/* Frame cards */
+.frames-row{display:flex;gap:8px}
+.frame-card{flex:1;border-radius:10px;border:1.5px dashed rgba(99,102,241,.2);background:rgba(99,102,241,.02);padding:14px 10px;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;transition:.2s;position:relative;overflow:hidden}
+.frame-card:hover{border-color:rgba(99,102,241,.4);background:rgba(99,102,241,.04)}
+.frame-card.has-image{border-style:solid;border-color:rgba(99,102,241,.5);background-size:cover;background-position:center}
+.frame-card.has-image::before{content:'';position:absolute;inset:0;background:rgba(8,12,26,.55)}
+.frame-card.has-image>*{position:relative;z-index:2}
+.fc-head{display:flex;align-items:center;gap:5px;width:100%}
+.fc-t{font-size:10px;font-weight:700;flex:1}
+.fc-tag{padding:2px 6px;border-radius:6px;background:rgba(255,255,255,.04);font-size:8px;color:#4e5678;font-weight:600}
+.fc-icon{width:32px;height:32px;border-radius:8px;background:rgba(99,102,241,.08);display:flex;align-items:center;justify-content:center}
+.fc-icon svg{width:16px;height:16px;color:#818cf8}
+.fc-fmt{font-size:8px;color:#4e5678;font-family:'JetBrains Mono',monospace}
+.fc-btns{display:flex;gap:4px;width:100%;margin-top:2px}
+.fc-btn{flex:1;padding:4px 0;border-radius:6px;border:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.02);color:#6b7394;font-family:inherit;font-size:9px;font-weight:600;cursor:pointer;transition:.15s}
+.fc-btn:hover{background:rgba(255,255,255,.05);color:#a0a8c8}
+.fc-meta{font-size:8px;color:#4e5678;font-family:'JetBrains Mono',monospace;text-align:center;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* Settings */
+.s-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.s-row:last-child{margin-bottom:0}
+.s-name{font-size:10px;font-weight:600;color:#6b7394;min-width:72px;flex-shrink:0}
+
+/* Dropdown */
+.dd{position:relative;flex:1}
+.dd-btn{width:100%;padding:7px 11px;border-radius:8px;border:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.03);color:#e8ecf8;font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:space-between;transition:.15s;user-select:none}
+.dd-btn:hover{border-color:rgba(255,255,255,.1)}
+.dd-btn.open{border-color:rgba(251,146,60,.3)}
+.dd-btn svg{width:9px;height:9px;color:#4e5678;transition:.2s}
+.dd-btn.open svg{transform:rotate(180deg);color:#fb923c}
+.dd-list{position:absolute;top:calc(100% + 4px);left:0;right:0;background:#13183a;border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:4px;z-index:100;opacity:0;visibility:hidden;transform:translateY(-4px);transition:.2s cubic-bezier(.16,1,.3,1);box-shadow:0 8px 30px rgba(0,0,0,.5)}
+.dd-list.open{opacity:1;visibility:visible;transform:translateY(0)}
+.dd-list .dhead{padding:5px 10px 3px;font-size:8px;font-weight:700;color:#4e5678;letter-spacing:.8px;text-transform:uppercase}
+.dd-opt{padding:7px 10px;border-radius:7px;font-size:11px;font-weight:500;color:#8890b0;cursor:pointer;transition:.1s}
+.dd-opt:hover{background:rgba(255,255,255,.04);color:#e8ecf8}
+.dd-opt.sel{background:rgba(251,146,60,.1);color:#fb923c}
+
+/* Chips */
+.chips{display:flex;gap:4px;flex:1;flex-wrap:wrap}
+.chip{padding:6px 11px;border-radius:7px;border:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.02);color:#6b7394;font-family:inherit;font-size:10px;font-weight:600;cursor:pointer;transition:.15s}
+.chip:hover{background:rgba(255,255,255,.04);color:#a0a8c8}
+.chip.on{background:rgba(99,102,241,.12);color:#818cf8;border-color:rgba(99,102,241,.2)}
+.chip.on-o{background:rgba(251,146,60,.12);color:#fb923c;border-color:rgba(251,146,60,.2)}
+.chip.on-g{background:rgba(34,197,94,.12);color:#34d399;border-color:rgba(34,197,94,.2)}
+.chip:disabled,.chip[disabled]{opacity:.35;pointer-events:none}
+
+/* Slider */
+.dur-wrap{flex:1;display:flex;align-items:center;gap:8px}
+.dur-s{flex:1;height:3px;-webkit-appearance:none;appearance:none;background:linear-gradient(90deg,rgba(99,102,241,.3),rgba(251,146,60,.3));border-radius:2px;outline:none}
+.dur-s::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:#fff;cursor:pointer;box-shadow:0 0 6px rgba(0,0,0,.4)}
+.dur-v{font-size:12px;font-weight:800;color:#fb923c;font-family:'JetBrains Mono',monospace;min-width:28px;text-align:right}
+
+/* Checkbox */
+.chk-wrap{display:flex;align-items:center;gap:7px;cursor:pointer;user-select:none}
+.chk-box{width:18px;height:18px;border-radius:5px;border:1.5px solid rgba(255,255,255,.1);background:rgba(255,255,255,.03);display:flex;align-items:center;justify-content:center;transition:.2s;flex-shrink:0}
+.chk-box.on{background:rgba(99,102,241,.2);border-color:rgba(99,102,241,.4)}
+.chk-box svg{width:10px;height:10px;color:#818cf8;opacity:0;transition:.15s}
+.chk-box.on svg{opacity:1}
+.chk-l{font-size:11px;font-weight:600;color:#8890b0}
+
+/* Model-specific sub-panels */
+.sub-panel{display:none;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.05);border-radius:10px;padding:10px;margin-top:2px}
+.sub-panel.on{display:block}
+.sp-label{font-size:9px;font-weight:700;color:#4e5678;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px}
+.sp-inp{width:100%;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:6px;padding:7px 9px;color:#e8ecf8;font-family:inherit;font-size:11px;outline:none;transition:.15s;margin-bottom:6px}
+.sp-inp:focus{border-color:rgba(251,146,60,.3)}
+.sp-inp::placeholder{color:#3d4568}
+.sp-sel{width:100%;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:6px;padding:7px 9px;color:#e8ecf8;font-family:inherit;font-size:11px;outline:none;transition:.15s;margin-bottom:6px}
+.sp-ta{width:100%;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:6px;padding:7px 9px;color:#e8ecf8;font-family:inherit;font-size:11px;line-height:1.5;resize:none;outline:none;transition:.15s;margin-bottom:6px}
+.sp-ta::placeholder{color:#3d4568}
+.sp-ta:focus,.sp-sel:focus{border-color:rgba(251,146,60,.3)}
+.sp-note{font-size:9px;color:#4e5678;line-height:1.6;margin-bottom:6px}
+.sp-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:4px}
+
+/* Seed refs */
+.ref-group{margin-bottom:10px}
+.ref-group:last-child{margin-bottom:0}
+.ref-head{display:flex;align-items:center;gap:6px;margin-bottom:5px}
+.ref-head-t{font-size:10px;font-weight:700;color:#8890b0;flex:1}
+.ref-head-c{font-size:9px;color:#4e5678;font-family:'JetBrains Mono',monospace}
+.ref-btns{display:flex;gap:5px;margin-bottom:4px}
+.ref-btn{flex:1;padding:5px 0;border-radius:6px;border:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.02);color:#6b7394;font-family:inherit;font-size:9px;font-weight:600;cursor:pointer;transition:.15s;text-align:center}
+.ref-btn:hover{background:rgba(255,255,255,.05);color:#a0a8c8}
+.ref-list{display:flex;flex-direction:column;gap:3px;max-height:80px;overflow-y:auto}
+.ref-item{display:flex;align-items:center;gap:6px;padding:4px 7px;border-radius:5px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.04)}
+.ref-item span{flex:1;font-size:9px;color:#6b7394;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ref-item-del{width:16px;height:16px;border-radius:4px;border:none;background:none;color:#3d4568;cursor:pointer;font-size:10px;display:flex;align-items:center;justify-content:center;transition:.15s;flex-shrink:0}
+.ref-item-del:hover{background:rgba(251,113,133,.12);color:#fb7185}
+
+/* Generate bar */
+.gen-bar{padding:12px 20px;border-top:1px solid rgba(255,255,255,.04);display:flex;gap:8px;align-items:center;flex-shrink:0;background:linear-gradient(180deg,rgba(12,16,36,.95),rgba(10,14,28,.98))}
+.btn-gen{flex:1;padding:12px;border-radius:12px;border:none;position:relative;overflow:hidden;font-family:inherit;font-size:13px;font-weight:700;color:#fff;cursor:pointer;transition:.2s;display:flex;align-items:center;justify-content:center;gap:7px}
+.btn-gen::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,#7c3aed,#6366f1,#818cf8);background-size:200% 200%;animation:gs 4s ease infinite}
+.btn-gen::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.1),transparent)}
+.btn-gen span,.btn-gen svg{position:relative;z-index:2}
+@keyframes gs{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+.btn-gen:hover{transform:translateY(-1px);box-shadow:0 6px 24px rgba(99,102,241,.3)}
+.btn-gen:disabled{opacity:.6;cursor:not-allowed;transform:none}
+.btn-sec{padding:10px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.02);color:#6b7394;font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;transition:.15s;white-space:nowrap}
+.btn-sec:hover{background:rgba(255,255,255,.05);color:#a0a8c8}
+.btn-sec:disabled{opacity:.4;cursor:not-allowed}
+
+.progress{height:2px;overflow:hidden;flex-shrink:0}
+.progress.on{background:rgba(255,255,255,.03)}
+.progress-fill{height:100%;width:0%;background:linear-gradient(90deg,#818cf8,#fb923c);transition:width 2s cubic-bezier(.16,1,.3,1)}
+
+/* === RIGHT PANEL === */
+.preview{background:#060914;display:flex;flex-direction:column;position:relative}
+.preview::before{content:'';position:absolute;width:400px;height:400px;background:radial-gradient(circle,rgba(99,102,241,.04),transparent 70%);top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none}
+.preview-top{padding:12px 20px;border-bottom:1px solid rgba(255,255,255,.04);font-size:9px;font-weight:700;color:#3d4568;letter-spacing:1px;text-transform:uppercase;flex-shrink:0}
+.preview-area{flex:1;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.preview-empty{text-align:center;color:#2d3460;display:flex;flex-direction:column;align-items:center;gap:12px}
+.preview-empty svg{width:48px;height:48px}
+.preview-empty span{font-size:12px;font-weight:500}
+.preview-status{font-size:10px;font-family:'JetBrains Mono',monospace;color:#4e5678;position:absolute;bottom:60px;left:50%;transform:translateX(-50%);white-space:nowrap;max-width:90%;overflow:hidden;text-overflow:ellipsis}
+
+.prw-box{display:none;width:60%;text-align:center;position:relative;z-index:2}
+.prw-box.on{display:block}
+.prw-txt{font-size:11px;color:#6b7394;margin-bottom:8px}
+.prw-bar{height:4px;background:#1a1e3a;border-radius:3px;overflow:hidden}
+.prw-fill{height:100%;width:0%;background:linear-gradient(90deg,#818cf8,#fb923c);transition:width .1s;border-radius:3px}
+.prw-pct{font-size:9px;color:#818cf8;margin-top:4px;font-family:'JetBrains Mono',monospace}
+video{display:none;width:100%;height:100%;object-fit:contain;background:#000;position:absolute;inset:0}
+
+.preview-bar{padding:10px 20px;border-top:1px solid rgba(255,255,255,.04);display:flex;gap:8px;align-items:center;flex-shrink:0;background:rgba(6,9,20,.95)}
+.pb-btn{padding:7px 14px;border-radius:8px;border:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.02);color:#6b7394;font-family:inherit;font-size:10px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px;transition:.15s}
+.pb-btn:hover{background:rgba(255,255,255,.05);color:#a0a8c8}
+.pb-btn:disabled{opacity:.4;cursor:not-allowed}
+.pb-btn.pr{background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;border:none;flex:1;justify-content:center}
+.pb-btn.pr:hover{filter:brightness(1.1)}
+
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:768px){.layout{grid-template-columns:1fr;grid-template-rows:1fr 300px}}
 </style>
 </head>
 <body>
 <script>
 (function(){
-  var params=new URLSearchParams(location.search);
-  var isEmbed=params.get('embed')==='1';
-  var pageName='video';
-  if(!isEmbed){
-    location.replace('studio-shell.html?page='+encodeURIComponent(pageName));
-    return;
-  }
+  var p=new URLSearchParams(location.search);
+  if(p.get('embed')!=='1'){location.replace('studio-shell.html?page=video');return;}
   window.__FF_EMBED_TOP=true;
-  document.documentElement.lang='en';
-  document.documentElement.dir='ltr';
-  document.addEventListener('DOMContentLoaded',function(){
-    var mb=document.querySelector('.menubar'); if(mb) mb.style.display='none';
-    var tabs=document.querySelector('.page-tabs'); if(tabs) tabs.style.display='none';
-    var br=document.querySelector('.bottom-row'); if(br) br.style.display='none';
-    var ws=document.querySelector('.workspace'); if(ws){ ws.style.height='100vh'; ws.style.display='flex'; ws.style.flexDirection='column'; }
-    var tr=document.querySelector('.top-row'); if(tr){ tr.style.flex='1 1 auto'; tr.style.minHeight='0'; }
-  });
 })();
 </script>
-<!-- FF_SHELL_BRIDGE -->
-<div class="menubar"><span class="title">FRAMEFORGE</span><span>File</span><span>Edit</span><span>View</span><div class="spacer"></div><span style="color:var(--dim2);font-family:'JetBrains Mono';font-size:9px">Untitled Project</span></div>
-<div class="page-tabs"><a class="page-tab" href="sound.html">Audio & Music</a>
-<a class="page-tab active" href="video.html">Video Generation</a>
-<a class="page-tab" href="presets.html">Presets</a>
-<a class="page-tab" href="transitions.html">Transitions</a>
-<a class="page-tab" href="lighting.html">Lighting</a>
-<a class="page-tab" href="prompt.html">Prompt</a>
-</div>
-<div class="workspace">
-<div class="top-row">
-<div class="panel" style="width:360px">
-<div class="ph"><span class="l a">Video Generation Panel</span></div>
-<div class="pb">
-<textarea id="vp" rows="4" placeholder="Describe your scene, cinematic style, and motion..."></textarea>
-<div style="font-size:11px;color:#97a3b8;margin-top:6px"><span id="vpc">0</span> characters</div>
-<div class="ist" style="margin-top:10px"><span class="d" style="background:var(--cyan)"></span>Frames</div>
-<div id="framesGrid" class="frames-grid">
-  <div class="frame-card">
-    <div class="frame-card-head">
-      <span class="frame-card-title">Start frame</span>
-      <span class="frame-pill">Optional</span>
+
+<!-- hidden file inputs -->
+<input id="startFrameFile" type="file" accept="image/*" style="display:none" onchange="handleFrameFile(this,'firstFrameUrl','start')">
+<input id="endFrameFile"   type="file" accept="image/*" style="display:none" onchange="handleFrameFile(this,'lastFrameUrl','end')">
+<input id="firstFrameUrl" type="hidden">
+<input id="lastFrameUrl"  type="hidden">
+<input id="seedImgFile" type="file" accept="image/*" multiple style="display:none" onchange="handleSeedRefFiles(this,'image')">
+<input id="seedVidFile" type="file" accept="video/mp4,video/quicktime,.mp4,.mov" multiple style="display:none" onchange="handleSeedRefFiles(this,'video')">
+<input id="seedAudFile" type="file" accept="audio/mpeg,audio/wav,audio/mp3,.mp3,.wav" multiple style="display:none" onchange="handleSeedRefFiles(this,'audio')">
+<input id="multiPromptJson" type="hidden">
+
+<div class="layout">
+  <!-- ===== LEFT ===== -->
+  <div class="tools">
+    <div class="tools-header">
+      <div class="tools-badge"><span class="dot"></span>Video Generation</div>
+      <div class="tools-title">Generate Video</div>
     </div>
-    <div id="startFrameDrop" class="frame-drop" onclick="pickFrameFile('start')" role="button" aria-label="Upload start frame">
-      <span class="frame-drop-icon">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9bb2d6" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="3" y="4" width="18" height="14" rx="2"></rect>
-          <circle cx="8.5" cy="9" r="1.4"></circle>
-          <path d="M21 14l-5-4-6 6-3-2-4 4"></path>
-        </svg>
-      </span>
-      <span class="frame-drop-text">Click to upload</span>
-      <span class="frame-drop-note">PNG / JPG / WEBP</span>
-    </div>
-    <div class="frame-actions">
-      <button type="button" class="bs bg" style="flex:1" onclick="pickFrameFile('start')">Upload</button>
-      <button type="button" class="bs bg" onclick="clearFrame('start')">Clear</button>
-    </div>
-    <div id="startFrameMeta" class="frame-meta">No file selected.</div>
-    <input id="firstFrameUrl" type="hidden">
-    <input id="startFrameFile" type="file" accept="image/*" style="display:none" onchange="handleFrameFile(this,'firstFrameUrl','start')">
-  </div>
-  <div class="frame-card">
-    <div class="frame-card-head">
-      <span class="frame-card-title">End frame</span>
-      <span class="frame-pill">Optional</span>
-    </div>
-    <div id="endFrameDrop" class="frame-drop" onclick="pickFrameFile('end')" role="button" aria-label="Upload end frame">
-      <span class="frame-drop-icon">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9bb2d6" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="3" y="4" width="18" height="14" rx="2"></rect>
-          <circle cx="8.5" cy="9" r="1.4"></circle>
-          <path d="M21 14l-5-4-6 6-3-2-4 4"></path>
-        </svg>
-      </span>
-      <span class="frame-drop-text">Click to upload</span>
-      <span class="frame-drop-note">PNG / JPG / WEBP</span>
-    </div>
-    <div class="frame-actions">
-      <button type="button" class="bs bg" style="flex:1" onclick="pickFrameFile('end')">Upload</button>
-      <button type="button" class="bs bg" onclick="clearFrame('end')">Clear</button>
-    </div>
-    <div id="endFrameMeta" class="frame-meta">No file selected.</div>
-    <input id="lastFrameUrl" type="hidden">
-    <input id="endFrameFile" type="file" accept="image/*" style="display:none" onchange="handleFrameFile(this,'lastFrameUrl','end')">
-  </div>
-</div>
-<div id="multiShotBuilder" style="display:none;border:1px solid var(--border);border-radius:6px;padding:8px;margin-top:6px;background:#171717">
-  <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
-    <div style="font-size:11px;color:#9fb0c8;font-weight:700;letter-spacing:.3px">Multi Shot Builder</div>
-    <span style="flex:1"></span>
-    <button type="button" class="bs bg" style="padding:3px 8px;font-size:11px" onclick="addMultiShotRow()">+ Add Shot</button>
-  </div>
-  <div id="multiShotRows" style="display:flex;flex-direction:column;gap:6px"></div>
-  <div class="stt" style="margin-top:6px">Each shot needs prompt + duration (1 to 12 seconds), max 5 shots.</div>
-</div>
-<textarea id="multiPromptJson" style="display:none"></textarea>
-<div id="seedanceAdvanced" style="display:none;margin-top:8px;border:1px solid var(--border);border-radius:8px;padding:8px;background:#171717">
-  <div class="ist" style="margin-top:0"><span class="d" style="background:var(--yellow)"></span>Seedance Reference Mode</div>
-  <div class="stt" style="margin-top:0">Choose one mode only: Text-only, Frames, or Multimodal references.</div>
-  <div class="cr" id="seedModeChips" style="margin-top:6px"><span class="ch a" data-seed-mode="text">Text Only</span><span class="ch" data-seed-mode="frames">Frames</span><span class="ch" data-seed-mode="refs">Multimodal Refs</span></div>
-  <div id="seedRefsPanel" style="display:none">
-    <div class="seed-ref-group">
-      <div class="seed-ref-head"><span class="seed-ref-title">Image References</span><span id="seedImgCount" class="seed-ref-count">0/9</span></div>
-      <div class="seed-ref-add">
-        <button type="button" class="bs bg" style="flex:1" onclick="pickSeedRefFiles('image')">Upload Images</button>
-        <button type="button" class="bs bg" onclick="clearSeedRefs('image')">Clear</button>
+
+    <div class="tools-scroll">
+      <!-- Prompt (single) -->
+      <div class="sec" id="singlePrompt">
+        <div class="sec-label"><span class="d" style="background:#fb923c"></span>PROMPT</div>
+        <textarea id="vp" class="prompt-box" placeholder="Describe your scene, cinematic style, and motion..." oninput="document.getElementById('vpc').textContent=this.value.length"></textarea>
+        <div class="char-ct"><span id="vpc">0</span> characters</div>
       </div>
-      <input id="seedImgFile" type="file" accept="image/*" multiple style="display:none" onchange="handleSeedRefFiles(this,'image')">
-      <div id="seedImgList" class="seed-ref-list"></div>
-    </div>
-    <div class="seed-ref-group">
-      <div class="seed-ref-head"><span class="seed-ref-title">Video References</span><span id="seedVidCount" class="seed-ref-count">0/3</span></div>
-      <div class="seed-ref-add">
-        <button type="button" class="bs bg" style="flex:1" onclick="pickSeedRefFiles('video')">Upload Videos</button>
-        <button type="button" class="bs bg" onclick="clearSeedRefs('video')">Clear</button>
+
+      <!-- Multi-shot -->
+      <div class="sec multi-area" id="multiArea">
+        <div class="sec-label"><span class="d" style="background:#fb923c"></span>MULTI-SHOT PROMPTS</div>
+        <div id="multiShotRows"></div>
+        <div class="add-shot" onclick="addMultiShotRow()">+ Add Shot</div>
       </div>
-      <input id="seedVidFile" type="file" accept="video/mp4,video/quicktime,.mp4,.mov" multiple style="display:none" onchange="handleSeedRefFiles(this,'video')">
-      <div id="seedVidList" class="seed-ref-list"></div>
-    </div>
-    <div class="seed-ref-group">
-      <div class="seed-ref-head"><span class="seed-ref-title">Audio References</span><span id="seedAudCount" class="seed-ref-count">0/3</span></div>
-      <div class="seed-ref-add">
-        <button type="button" class="bs bg" style="flex:1" onclick="pickSeedRefFiles('audio')">Upload Audios</button>
-        <button type="button" class="bs bg" onclick="clearSeedRefs('audio')">Clear</button>
+
+      <!-- Frames -->
+      <div class="sec" id="framesGrid">
+        <div class="sec-label"><span class="d" style="background:#818cf8"></span>FRAMES</div>
+        <div class="frames-row">
+          <div class="frame-card" id="startFrameDrop" onclick="pickFrameFile('start')">
+            <div class="fc-head"><span class="fc-t">Start frame</span><span class="fc-tag">Optional</span></div>
+            <div class="fc-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg></div>
+            <span class="fc-fmt" id="startFrameMeta">PNG / JPG / WEBP</span>
+            <div class="fc-btns">
+              <button class="fc-btn" onclick="event.stopPropagation();pickFrameFile('start')">Upload</button>
+              <button class="fc-btn" onclick="event.stopPropagation();clearFrame('start')">Clear</button>
+            </div>
+          </div>
+          <div class="frame-card" id="endFrameDrop" onclick="pickFrameFile('end')">
+            <div class="fc-head"><span class="fc-t">End frame</span><span class="fc-tag">Optional</span></div>
+            <div class="fc-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg></div>
+            <span class="fc-fmt" id="endFrameMeta">PNG / JPG / WEBP</span>
+            <div class="fc-btns">
+              <button class="fc-btn" onclick="event.stopPropagation();pickFrameFile('end')">Upload</button>
+              <button class="fc-btn" onclick="event.stopPropagation();clearFrame('end')">Clear</button>
+            </div>
+          </div>
+        </div>
       </div>
-      <input id="seedAudFile" type="file" accept="audio/mpeg,audio/wav,audio/mp3,.mp3,.wav" multiple style="display:none" onchange="handleSeedRefFiles(this,'audio')">
-      <div id="seedAudList" class="seed-ref-list"></div>
+
+      <!-- Render Settings -->
+      <div class="sec">
+        <div class="sec-label"><span class="d" style="background:#34d399"></span>RENDER SETTINGS</div>
+
+        <!-- Model -->
+        <div class="s-row">
+          <span class="s-name">Model</span>
+          <div class="dd" id="mDD">
+            <div class="dd-btn" id="mDDBtn" onclick="togDD('mDD')">
+              <span id="mLbl">Kling 3.0</span>
+              <svg viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M1 1L5 5L9 1"/></svg>
+            </div>
+            <div class="dd-list" id="mDD-list">
+              <div class="dhead">Primary Video Models</div>
+              <div class="dd-opt sel" data-v="kling-3.0" onclick="pickM(this,'Kling 3.0','kling-3.0')">Kling 3.0</div>
+              <div class="dd-opt" data-v="hailuo/2-3-image-to-video-pro" onclick="pickM(this,'Minimax Hailuo 2.3','hailuo/2-3-image-to-video-pro')">Minimax Hailuo 2.3</div>
+              <div class="dd-opt" data-v="sora-2-pro-text-to-video" onclick="pickM(this,'Sora 2 Pro','sora-2-pro-text-to-video')">Sora 2 Pro</div>
+              <div class="dd-opt" data-v="veo3" onclick="pickM(this,'Google Veo 3.1','veo3')">Google Veo 3.1</div>
+              <div class="dd-opt" data-v="bytedance/seedance-2" onclick="pickM(this,'Seedance 2.0','bytedance/seedance-2')">Seedance 2.0</div>
+            </div>
+          </div>
+        </div>
+        <input id="generationModel" type="hidden" value="kling-3.0">
+
+        <!-- Shot mode -->
+        <div class="s-row" id="shotModeRow">
+          <span class="s-name">Shot Mode</span>
+          <div class="chips" id="shotModeChips">
+            <button class="chip on-o" data-shot-mode="single" onclick="setChipGroup(this);toggleMultiShotBuilder()">Single Shot</button>
+            <button class="chip" data-shot-mode="multi" onclick="setChipGroup(this);toggleMultiShotBuilder()">Multi Shot</button>
+          </div>
+        </div>
+
+        <!-- Frame format -->
+        <div class="s-row" id="frameFormatRow">
+          <span class="s-name">Format</span>
+          <div class="chips" id="frameFormatChips">
+            <button class="chip on" onclick="setChipGroup(this)">16:9</button>
+            <button class="chip" onclick="setChipGroup(this)">9:16</button>
+            <button class="chip" onclick="setChipGroup(this)">1:1</button>
+            <button class="chip" onclick="setChipGroup(this)">4:3</button>
+            <button class="chip" onclick="setChipGroup(this)">3:4</button>
+            <button class="chip" onclick="setChipGroup(this)">21:9</button>
+            <button class="chip" onclick="setChipGroup(this)">adaptive</button>
+          </div>
+        </div>
+
+        <!-- Duration -->
+        <div class="s-row" id="durationRow">
+          <span class="s-name">Duration</span>
+          <div class="dur-wrap">
+            <input id="durSlider" type="range" class="dur-s" min="2" max="16" value="5" oninput="document.getElementById('dv').textContent=this.value+'s'">
+            <span class="dur-v" id="dv">5s</span>
+          </div>
+        </div>
+
+        <!-- Quality -->
+        <div class="s-row" id="qualityRow">
+          <span class="s-name">Quality</span>
+          <div class="chips" id="qualityChips">
+            <button class="chip on-g" onclick="setChipGroup(this)">STD</button>
+            <button class="chip" onclick="setChipGroup(this)">PRO</button>
+          </div>
+        </div>
+
+        <!-- Kling options -->
+        <div class="sub-panel" id="klingAdvanced">
+          <div class="sp-label">Kling 3.0 Options</div>
+          <div class="chk-wrap" onclick="togChk(this)">
+            <div class="chk-box on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <span class="chk-l" id="klingSound" data-checked="1">Generate with sound</span>
+          </div>
+        </div>
+
+        <!-- Hailuo options -->
+        <div class="sub-panel" id="hailuoAdvanced">
+          <div class="sp-label">Hailuo 2.3 Options</div>
+          <div class="sp-note">Image-to-video: uses Start frame as image_url.</div>
+          <div class="chips" id="hailuoResolutionChips">
+            <button class="chip on" onclick="setChipGroup(this)">768P</button>
+            <button class="chip" onclick="setChipGroup(this)">1080P</button>
+          </div>
+        </div>
+
+        <!-- Sora options -->
+        <div class="sub-panel" id="soraAdvanced">
+          <div class="sp-label">Sora 2 Pro Options</div>
+          <div class="sp-note">Text-to-video only. No frame/reference URLs.</div>
+          <div class="chk-wrap" onclick="togChk(this)" style="margin-bottom:8px">
+            <div class="chk-box on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <span class="chk-l" id="soraRemoveWatermark" data-checked="1">remove_watermark</span>
+          </div>
+          <input id="soraUploadMethodInp" class="sp-inp" placeholder="upload_method (optional, e.g. s3)">
+          <textarea id="soraCharacterIdsInp" class="sp-ta" rows="2" placeholder="character_id_list (max 5, one per line)"></textarea>
+        </div>
+
+        <!-- Veo options -->
+        <div class="sub-panel" id="veoAdvanced">
+          <div class="sp-label">Veo 3.1 Options</div>
+          <select id="veoModelSel" class="sp-sel">
+            <option value="veo3">veo3 (quality)</option>
+            <option value="veo3_fast">veo3_fast</option>
+            <option value="veo3_lite">veo3_lite</option>
+          </select>
+          <select id="veoGenerationTypeSel" class="sp-sel">
+            <option value="AUTO">AUTO</option>
+            <option value="TEXT_2_VIDEO">TEXT_2_VIDEO</option>
+            <option value="FIRST_AND_LAST_FRAMES_2_VIDEO">FIRST_AND_LAST_FRAMES_2_VIDEO</option>
+            <option value="REFERENCE_2_VIDEO">REFERENCE_2_VIDEO</option>
+          </select>
+          <input id="veoWatermarkInp" class="sp-inp" placeholder="watermark (optional)">
+          <input id="veoSeedsInp" class="sp-inp" placeholder="seeds (optional integer)">
+          <div class="sp-grid">
+            <div class="chk-wrap" onclick="togChk(this)"><div class="chk-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div><span class="chk-l" id="veoEnableFallback" data-checked="0">enableFallback</span></div>
+            <div class="chk-wrap" onclick="togChk(this)"><div class="chk-box on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div><span class="chk-l" id="veoEnableTranslation" data-checked="1">enableTranslation</span></div>
+          </div>
+        </div>
+
+        <!-- Seedance advanced -->
+        <div class="sub-panel" id="seedanceAdvanced">
+          <div class="sp-label">Seedance Reference Mode</div>
+          <div class="sp-note">Choose one mode only: Text-only, Frames, or Multimodal references.</div>
+          <div class="chips" id="seedModeChips" style="margin-bottom:8px">
+            <button class="chip on" onclick="setChipGroup(this);syncSeedanceModeUi()">Text Only</button>
+            <button class="chip" onclick="setChipGroup(this);syncSeedanceModeUi()">Frames</button>
+            <button class="chip" onclick="setChipGroup(this);syncSeedanceModeUi()">Multimodal Refs</button>
+          </div>
+          <div id="seedRefsPanel" style="display:none">
+            <div class="ref-group">
+              <div class="ref-head"><span class="ref-head-t">Image References</span><span id="seedImgCount" class="ref-head-c">0/9</span></div>
+              <div class="ref-btns"><button class="ref-btn" onclick="document.getElementById('seedImgFile').click()">Upload Images</button><button class="ref-btn" onclick="clearSeedRefs('image')">Clear</button></div>
+              <div id="seedImgList" class="ref-list"></div>
+            </div>
+            <div class="ref-group">
+              <div class="ref-head"><span class="ref-head-t">Video References</span><span id="seedVidCount" class="ref-head-c">0/3</span></div>
+              <div class="ref-btns"><button class="ref-btn" onclick="document.getElementById('seedVidFile').click()">Upload Videos</button><button class="ref-btn" onclick="clearSeedRefs('video')">Clear</button></div>
+              <div id="seedVidList" class="ref-list"></div>
+            </div>
+            <div class="ref-group">
+              <div class="ref-head"><span class="ref-head-t">Audio References</span><span id="seedAudCount" class="ref-head-c">0/3</span></div>
+              <div class="ref-btns"><button class="ref-btn" onclick="document.getElementById('seedAudFile').click()">Upload Audios</button><button class="ref-btn" onclick="clearSeedRefs('audio')">Clear</button></div>
+              <div id="seedAudList" class="ref-list"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Seedance flags -->
+        <div class="sub-panel" id="seedanceFlags">
+          <div class="sp-label">Seedance Task Options</div>
+          <div class="sp-grid">
+            <div class="chk-wrap" onclick="togChk(this)"><div class="chk-box on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div><span class="chk-l" id="seedGenerateAudio" data-checked="1">Generate Audio</span></div>
+            <div class="chk-wrap" onclick="togChk(this)"><div class="chk-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div><span class="chk-l" id="seedWebSearch" data-checked="0">Web Search</span></div>
+            <div class="chk-wrap" onclick="togChk(this)"><div class="chk-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div><span class="chk-l" id="seedNsfwChecker" data-checked="0">NSFW Checker</span></div>
+          </div>
+        </div>
+
+      </div><!-- /render sec -->
+    </div><!-- /tools-scroll -->
+
+    <div class="progress" id="prog"><div class="progress-fill" id="progFill"></div></div>
+    <div class="gen-bar">
+      <button class="btn-gen" id="gb" onclick="genVid()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polygon points="5 3 19 12 5 21 5 3" fill="currentColor"/></svg>
+        <span id="gbLbl">Generate Video</span>
+      </button>
+      <button class="btn-sec" id="addBtn" onclick="addToTimeline()" disabled>Add to Timeline</button>
+      <button class="btn-sec" id="dlBtn" onclick="downloadLatest()" disabled>Download</button>
+    </div>
+  </div><!-- /tools -->
+
+  <!-- ===== RIGHT ===== -->
+  <div class="preview">
+    <div class="preview-top">VIDEO PREVIEW</div>
+    <div class="preview-area">
+      <div class="preview-empty" id="ph2">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/></svg>
+        <span>Preview will appear here</span>
+      </div>
+      <div class="prw-box" id="prw">
+        <div class="prw-txt">Generating video…</div>
+        <div class="prw-bar"><div class="prw-fill" id="prf"></div></div>
+        <div class="prw-pct" id="prp">0%</div>
+      </div>
+      <video id="vPreview" controls playsinline></video>
+      <div class="preview-status" id="jobStatus"></div>
+    </div>
+    <div class="preview-bar">
+      <button class="pb-btn pr" id="addBtn2" onclick="addToTimeline()" disabled>+ Add to Timeline</button>
+      <button class="pb-btn" id="dlBtn2" onclick="downloadLatest()" disabled>⬇ Download</button>
     </div>
   </div>
 </div>
-<div id="seedanceFlags" style="display:none;margin-top:8px;border:1px solid var(--border);border-radius:8px;padding:8px;background:#161616">
-  <div class="ist" style="margin-top:0"><span class="d" style="background:var(--yellow)"></span>Seedance Task Options</div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:2px">
-    <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#a9b8cf"><input id="seedGenerateAudio" type="checkbox" checked>Generate Audio</label>
-    <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#a9b8cf"><input id="seedWebSearch" type="checkbox">Web Search</label>
-    <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#a9b8cf"><input id="seedNsfwChecker" type="checkbox">NSFW Checker</label>
-  </div>
-</div>
-</div></div>
-<div class="vr"></div>
-<div class="panel" style="flex:1;display:flex;flex-direction:column">
-<div class="ph"><span class="l a">Video Preview</span></div>
-<div style="flex:1;background:#111;border:1px solid var(--border);margin:6px;display:flex;align-items:center;justify-content:center;position:relative;border-radius:2px" id="pvb">
-<div id="ph2" style="text-align:center;opacity:.3"><div style="font-size:42px">🎬</div><div style="font-size:10px;margin-top:4px">Preview will appear here</div></div>
-<div id="prw" style="display:none;text-align:center;width:70%"><div style="font-size:11px;color:var(--dim);margin-bottom:8px">Generating video...</div><div style="height:4px;background:#2a2a2a;border-radius:3px;overflow:hidden"><div id="prf" style="height:100%;background:linear-gradient(90deg,var(--accent),var(--purple));width:0%;transition:width .1s;border-radius:3px"></div></div><div id="prp" style="font-size:9px;color:var(--accent);margin-top:4px;font-family:'JetBrains Mono'">0%</div></div>
-<div id="dnb" style="display:none;text-align:center"><div style="font-size:36px">✅</div><div style="font-size:12px;color:var(--green);font-weight:600;margin-top:4px">Video render completed</div><button class="bs bg" style="margin-top:8px" onclick="rst()">Reset Preview</button></div>
-<video id="vPreview" controls playsinline style="display:none;width:100%;height:100%;object-fit:contain;background:#000"></video>
-</div>
-<div style="padding:6px;background:#1c1c1c;border-top:1px solid var(--border);display:flex;gap:4px">
-<button class="bs bb" style="flex:1;padding:6px" id="gb" onclick="genVid()">Generate Video</button>
-<button class="bs bg" id="addBtn" onclick="addToTimeline()" disabled>Add to Timeline</button>
-<button class="bs bg" id="dlBtn" onclick="downloadLatest()" disabled>Download</button>
-</div></div>
-<div class="vr"></div>
-<div class="panel" style="width:320px">
-<div class="ph"><span class="l a">Render Settings</span></div>
-<div class="pb">
-<div class="ist"><span class="d" style="background:var(--green)"></span>Generation Model</div>
-<select id="generationModel" class="sbox" onchange="syncModelUi()">
-<optgroup label="Primary Video Models">
-<option value="kling-3.0">Kling 3.0</option>
-<option value="hailuo/2-3-image-to-video-pro">Minimax Hailuo 2.3</option>
-<option value="sora-2-pro-text-to-video">Sora 2 Pro</option>
-<option value="veo3">Google Veo 3.1</option>
-<option value="bytedance/seedance-2">Seedance 2.0</option>
-</optgroup>
-</select>
-<div class="ist" id="shotModeHeader"><span class="d" style="background:var(--green)"></span>Shot Mode</div>
-<div class="cr" id="shotModeChips"><span class="ch a" data-shot-mode="single">Single Shot</span><span class="ch" data-shot-mode="multi">Multi Shot</span></div>
-<div class="ist" id="frameFormatHeader"><span class="d" style="background:var(--accent)"></span>Frame Format</div>
-<div class="cr" id="frameFormatChips"><span class="ch a">16:9</span><span class="ch">9:16</span><span class="ch">1:1</span><span class="ch">4:3</span><span class="ch">3:4</span><span class="ch">21:9</span><span class="ch">adaptive</span></div>
-<div class="sr" id="durationRow"><span class="sl">Duration</span><div class="st"><div class="sf" style="width:16%;background:var(--accent)"></div><input type="range" min="1" max="30" value="5" oninput="us2(this,'dur',this.value+'s')"></div><span class="sv" id="durV" style="color:var(--accent)">5s</span></div>
-<div class="ist" id="qualityHeader" style="margin-top:6px"><span class="d" style="background:var(--cyan)"></span>Output Quality</div>
-<div class="cr" id="qualityChips"><span class="ch">STD</span><span class="ch a">PRO</span><span class="ch">HIGH</span></div>
-<div id="klingAdvanced" style="display:none;margin-top:8px;border:1px solid var(--border);border-radius:8px;padding:8px;background:#171717">
-  <div class="ist" style="margin-top:0"><span class="d" style="background:var(--green)"></span>Kling 3.0 Options</div>
-  <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#a9b8cf"><input id="klingSound" type="checkbox" checked>sound</label>
-</div>
-<div id="hailuoAdvanced" style="display:none;margin-top:8px;border:1px solid var(--border);border-radius:8px;padding:8px;background:#171717">
-  <div class="ist" style="margin-top:0"><span class="d" style="background:var(--orange)"></span>Hailuo 2.3 Options</div>
-  <div class="stt" style="margin-top:0">Image-to-video uses Start frame as <code>image_url</code>.</div>
-  <div class="cr" id="hailuoResolutionChips"><span class="ch a">768P</span><span class="ch">1080P</span></div>
-</div>
-<div id="soraAdvanced" style="display:none;margin-top:8px;border:1px solid var(--border);border-radius:8px;padding:8px;background:#171717">
-  <div class="ist" style="margin-top:0"><span class="d" style="background:var(--purple)"></span>Sora 2 Pro Options</div>
-  <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#a9b8cf"><input id="soraRemoveWatermark" type="checkbox" checked>remove_watermark</label>
-  <input id="soraUploadMethod" class="in" placeholder="upload_method (optional, e.g. s3)" style="margin-top:6px">
-  <textarea id="soraCharacterIds" rows="2" style="margin-top:6px" placeholder="character_id_list (max 5), one id per line"></textarea>
-</div>
-<div id="veoAdvanced" style="display:none;margin-top:8px;border:1px solid var(--border);border-radius:8px;padding:8px;background:#171717">
-  <div class="ist" style="margin-top:0"><span class="d" style="background:var(--cyan)"></span>Veo 3.1 Options</div>
-  <select id="veoModel" class="sbox" style="margin-bottom:6px">
-    <option value="veo3">veo3 (quality)</option>
-    <option value="veo3_fast">veo3_fast</option>
-    <option value="veo3_lite">veo3_lite</option>
-  </select>
-  <select id="veoGenerationType" class="sbox" style="margin-bottom:6px">
-    <option value="AUTO">AUTO</option>
-    <option value="TEXT_2_VIDEO">TEXT_2_VIDEO</option>
-    <option value="FIRST_AND_LAST_FRAMES_2_VIDEO">FIRST_AND_LAST_FRAMES_2_VIDEO</option>
-    <option value="REFERENCE_2_VIDEO">REFERENCE_2_VIDEO</option>
-  </select>
-  <input id="veoWatermark" class="in" placeholder="watermark (optional)">
-  <input id="veoSeeds" class="in" placeholder="seeds (optional integer)">
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:4px">
-    <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#a9b8cf"><input id="veoEnableFallback" type="checkbox">enableFallback</label>
-    <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#a9b8cf"><input id="veoEnableTranslation" type="checkbox" checked>enableTranslation</label>
-  </div>
-</div>
-<div id="jobStatus" class="stt" style="display:none">Ready.</div>
-<div id="payloadHint" class="stt" style="display:none"></div>
-</div></div>
-</div>
-<!-- TIMELINE -->
-<div class="bottom-row">
-<div class="th"><span class="a">Timeline</span><span>Video Tracks</span><span style="flex:1"></span><span style="font-family:'JetBrains Mono';font-size:8px;color:var(--dim2)">Sequence 01</span></div>
-<div class="tb">
-<div class="ts">
-<div class="tl"><span class="dd" style="background:var(--green)"></span><span class="n">V1</span><span class="x"> </span></div>
-<div class="tl"><span class="dd" style="background:var(--accent)"></span><span class="n">A1</span><span class="x">M S</span></div>
-<div class="tl"><span class="dd" style="background:var(--orange)"></span><span class="n">A2</span><span class="x">M S</span></div>
-<div class="tl"><span class="dd" style="background:var(--cyan)"></span><span class="n">A3</span><span class="x">M S</span></div>
-</div>
-<div class="ta">
-<div class="tr"><span>00:00</span><span>00:30</span><span>01:00</span><span>01:30</span><span>02:00</span><span>02:30</span><span>03:00</span><span>03:30</span><span>04:00</span></div>
-<div class="tt">
-<div class="tk"><div class="tc2" style="right:30px;width:150px;background:#2d5a27"><span class="cn">scene_01.mp4</span></div><div class="tc2" style="right:190px;width:220px;background:#2d5a27"><span class="cn">aerial_shot.mp4</span></div></div>
-<div class="tk"><div class="tc2" style="right:50px;width:280px;background:#1a4a7a"><span class="cn">Voice Over</span></div></div>
-<div class="tk"><div class="tc2" style="right:15px;width:450px;background:#7a4a1a"><span class="cn">Music Score.wav</span></div></div>
-<div class="tk"><div class="tc2" style="right:80px;width:35px;background:#1a6a6a"><span class="cn">SFX</span></div></div>
-<div class="tp2" style="right:130px"></div>
-</div></div></div></div>
-</div>
+
 <script>
-const videoState = {
-  latestUrl: '',
-  latestName: '',
-  latestDurationSec: 0,
-  progressTimer: null
+/* ===== STATE ===== */
+const videoState={latestUrl:'',latestName:'',latestDurationSec:0,progressTimer:null};
+
+const MODEL_SPECS={
+  'kling-3.0':{label:'Kling 3.0',taskModels:['kling-3.0','kling-3.0/video'],type:'kling3',ratios:['16:9','9:16','1:1'],duration:{min:3,max:15,default:5},supportsMultiShot:true,qualityModes:['STD','PRO']},
+  'hailuo/2-3-image-to-video-pro':{label:'Minimax Hailuo 2.3',taskModels:['hailuo/2-3-image-to-video-pro'],type:'hailuo23',ratios:['16:9','9:16','1:1'],duration:{min:3,max:10,default:5},supportsMultiShot:false,qualityModes:['PRO']},
+  'sora-2-pro-text-to-video':{label:'Sora 2 Pro',taskModels:['sora-2-pro-text-to-video'],type:'sora2pro',ratios:['16:9','9:16','1:1'],duration:{min:3,max:12,default:5},supportsMultiShot:false,qualityModes:['HIGH']},
+  'veo3':{label:'Google Veo 3.1',taskModels:['veo3'],type:'veo31',ratios:['16:9','9:16'],duration:{min:5,max:8,default:5},supportsMultiShot:false,qualityModes:['QUALITY','FAST']},
+  'bytedance/seedance-2':{label:'Seedance 2.0',taskModels:['bytedance/seedance-2'],type:'seedance',ratios:['1:1','4:3','3:4','16:9','9:16','21:9','adaptive'],duration:{min:4,max:15,default:5},supportsMultiShot:false,qualityModes:['480P','720P','1080P']}
 };
 
-const MODEL_SPECS = {
-  'kling-3.0': {
-    label: 'Kling 3.0',
-    taskModels: ['kling-3.0', 'kling-3.0/video'],
-    type: 'kling3',
-    ratios: ['16:9', '9:16', '1:1'],
-    duration: { min: 3, max: 15, default: 5 },
-    supportsMultiShot: true,
-    qualityModes: ['STD', 'PRO'],
-    payloadHint: 'Kling 3.0: single or multi-shot, optional first/last frame (single), sound, multi_prompt (1-5 shots).'
-  },
-  'hailuo/2-3-image-to-video-pro': {
-    label: 'Minimax Hailuo 2.3',
-    taskModels: ['hailuo/2-3-image-to-video-pro'],
-    type: 'hailuo23',
-    ratios: ['16:9', '9:16', '1:1'],
-    duration: { min: 3, max: 10, default: 5 },
-    supportsMultiShot: false,
-    qualityModes: ['PRO'],
-    payloadHint: 'Hailuo 2.3: prompt + image_url + duration + resolution (768P/1080P).'
-  },
-  'sora-2-pro-text-to-video': {
-    label: 'Sora 2 Pro',
-    taskModels: ['sora-2-pro-text-to-video'],
-    type: 'sora2pro',
-    ratios: ['16:9', '9:16', '1:1'],
-    duration: { min: 3, max: 12, default: 5 },
-    supportsMultiShot: false,
-    qualityModes: ['HIGH'],
-    payloadHint: 'Sora 2 Pro (text route): prompt + aspect_ratio + n_frames + size + optional character_id_list.'
-  },
-  'veo3': {
-    label: 'Google Veo 3.1',
-    taskModels: ['veo3'],
-    type: 'veo31',
-    ratios: ['16:9', '9:16'],
-    duration: { min: 5, max: 8, default: 5 },
-    supportsMultiShot: false,
-    qualityModes: ['QUALITY', 'FAST'],
-    payloadHint: 'Veo 3.1: model (quality/fast/lite) + generationType + prompt + optional imageUrls + seeds/watermark.'
-  },
-  'bytedance/seedance-2': {
-    label: 'Seedance 2.0',
-    taskModels: ['bytedance/seedance-2'],
-    type: 'seedance',
-    ratios: ['1:1', '4:3', '3:4', '16:9', '9:16', '21:9', 'adaptive'],
-    duration: { min: 4, max: 15, default: 5 },
-    supportsMultiShot: false,
-    qualityModes: ['480P', '720P', '1080P'],
-    payloadHint: 'Seedance 2.0: text-only OR first/last frame OR multimodal refs (image/video/audio). Do not mix modes.'
-  }
-};
+/* ===== HELPERS ===== */
+function getCurrentModelSpec(){return MODEL_SPECS[document.getElementById('generationModel').value]||MODEL_SPECS['kling-3.0'];}
+function getChecked(id){const el=document.getElementById(id);return el?el.getAttribute('data-checked')==='1':false;}
+function getActiveChip(containerId,fallback){const h=document.getElementById(containerId);if(!h)return fallback;const a=h.querySelector('.chip.on,.chip.on-o,.chip.on-g');return a?a.textContent.trim():fallback;}
+function isHttpUrl(u){return /^https?:\/\//i.test(String(u||'').trim());}
+function isAssetUrl(u){return /^asset:\/\/[A-Za-z0-9._\-:/]+$/i.test(String(u||'').trim());}
+function isAllowedRef(u){return isHttpUrl(u)||isAssetUrl(u);}
+function parseUrlList(raw){return String(raw||'').split(/[\n,]+/).map(x=>x.trim()).filter(Boolean);}
 
-document.getElementById('vp').addEventListener('input', function () {
-  document.getElementById('vpc').textContent = this.value.length;
-});
-
-function setStatus(text, tone) {
-  const el = document.getElementById('jobStatus');
-  if (!el) return;
-  const colors = { info: '#9cb0cf', ok: '#6cd98d', warn: '#ffcc7a', err: '#ff7b7b' };
-  el.textContent = text;
-  el.style.color = colors[tone || 'info'] || colors.info;
+function setStatus(text,tone){
+  const el=document.getElementById('jobStatus');if(!el)return;
+  const c={info:'#6b7394',ok:'#34d399',warn:'#fbbf24',err:'#fb7185'};
+  el.textContent=text||'';el.style.color=c[tone||'info']||c.info;
 }
-
-function setLatestState(enabled) {
-  ['addBtn', 'dlBtn'].forEach((id) => {
-    const btn = document.getElementById(id);
-    if (!btn) return;
-    btn.disabled = !enabled;
-    btn.style.opacity = enabled ? '1' : '0.45';
-    btn.style.cursor = enabled ? 'pointer' : 'not-allowed';
+function setLatestState(enabled){
+  ['addBtn','dlBtn','addBtn2','dlBtn2'].forEach(id=>{
+    const btn=document.getElementById(id);if(!btn)return;
+    btn.disabled=!enabled;btn.style.opacity=enabled?'1':'0.4';
   });
 }
-
-function setBusy(busy) {
-  const btn = document.getElementById('gb');
-  if (!btn) return;
-  btn.disabled = !!busy;
-  btn.style.opacity = busy ? '0.65' : '1';
-  btn.style.cursor = busy ? 'not-allowed' : 'pointer';
-  btn.textContent = busy ? 'Generating...' : 'Generate Video';
+function setBusy(busy){
+  const btn=document.getElementById('gb');if(!btn)return;
+  btn.disabled=!!busy;btn.style.opacity=busy?'0.65':'1';
+  document.getElementById('gbLbl').textContent=busy?'Generating...':'Generate Video';
 }
 
-function us2(inp, id, txt) {
-  const fill = inp.previousElementSibling;
-  const min = +inp.min;
-  const max = +inp.max;
-  fill.style.width = ((inp.value - min) / (max - min) * 100) + '%';
-  document.getElementById(id + 'V').textContent = txt;
+/* ===== CHIP HELPERS ===== */
+function setChipGroup(el){
+  const g=el.parentElement;
+  const classes=['on','on-o','on-g'];
+  const prev=g.querySelector('.chip.on,.chip.on-o,.chip.on-g');
+  const cls=prev?([...prev.classList].find(c=>classes.includes(c))||'on'):'on';
+  g.querySelectorAll('.chip').forEach(c=>c.classList.remove('on','on-o','on-g'));
+  el.classList.add(cls);
+}
+function setActiveChipByText(containerId,value){
+  const h=document.getElementById(containerId);if(!h)return;
+  const chips=[...h.querySelectorAll('.chip')];
+  const classes=['on','on-o','on-g'];
+  const defCls=classes.find(c=>chips[0]&&chips[0].classList.contains(c))||'on';
+  chips.forEach(c=>c.classList.remove(...classes));
+  const t=chips.find(c=>c.textContent.trim()===value);
+  (t||chips[0])?.classList.add(defCls);
 }
 
-document.querySelectorAll('.cr').forEach((g) => {
-  g.querySelectorAll('.ch').forEach((c) => {
-    c.addEventListener('click', function () {
-      g.querySelectorAll('.ch').forEach((x) => x.classList.remove('a'));
-      this.classList.add('a');
-      if (g.id === 'shotModeChips') toggleMultiShotBuilder();
-      if (g.id === 'seedModeChips') syncSeedanceModeUi();
-    });
+/* ===== DROPDOWN ===== */
+function togDD(id){
+  const btn=document.getElementById(id+'Btn')||document.querySelector('#'+id+' .dd-btn');
+  const list=document.getElementById(id+'-list');
+  const open=list.classList.contains('open');
+  document.querySelectorAll('.dd-list').forEach(l=>l.classList.remove('open'));
+  document.querySelectorAll('.dd-btn').forEach(b=>b.classList.remove('open'));
+  if(!open){list.classList.add('open');btn.classList.add('open');}
+}
+function pickM(el,label,val){
+  document.querySelectorAll('#mDD-list .dd-opt').forEach(o=>o.classList.remove('sel'));
+  el.classList.add('sel');
+  document.getElementById('mLbl').textContent=label;
+  document.getElementById('generationModel').value=val;
+  document.getElementById('mDD-list').classList.remove('open');
+  document.getElementById('mDDBtn').classList.remove('open');
+  syncModelUi();
+}
+document.addEventListener('click',e=>{
+  document.querySelectorAll('.dd').forEach(d=>{
+    if(!d.contains(e.target)){d.querySelector('.dd-list')?.classList.remove('open');d.querySelector('.dd-btn')?.classList.remove('open');}
   });
 });
 
-function getCurrentModelSpec() {
-  const model = (document.getElementById('generationModel').value || '').trim();
-  return MODEL_SPECS[model] || MODEL_SPECS['kling-3.0'];
+/* ===== CHECKBOX ===== */
+function togChk(wrap){
+  const box=wrap.querySelector('.chk-box');
+  const label=wrap.querySelector('[data-checked]');
+  box.classList.toggle('on');
+  if(label)label.setAttribute('data-checked',box.classList.contains('on')?'1':'0');
 }
 
-function parseUrlList(raw) {
-  return String(raw || '')
-    .split(/[\n,]+/)
-    .map((x) => x.trim())
-    .filter(Boolean);
+/* ===== FRAMES ===== */
+function pickFrameFile(kind){document.getElementById(kind==='start'?'startFrameFile':'endFrameFile').click();}
+function clearFrame(kind){
+  document.getElementById(kind==='start'?'firstFrameUrl':'lastFrameUrl').value='';
+  const card=document.getElementById(kind==='start'?'startFrameDrop':'endFrameDrop');
+  card.classList.remove('has-image');card.style.backgroundImage='';
+  document.getElementById(kind==='start'?'startFrameMeta':'endFrameMeta').textContent='PNG / JPG / WEBP';
+  card.querySelector('.fc-icon').style.display='';
+}
+async function handleFrameFile(fileInput,targetId,kind){
+  const file=fileInput&&fileInput.files&&fileInput.files[0];if(!file)return;
+  const card=document.getElementById(kind==='start'?'startFrameDrop':'endFrameDrop');
+  const meta=document.getElementById(kind==='start'?'startFrameMeta':'endFrameMeta');
+  const localUrl=URL.createObjectURL(file);
+  card.style.backgroundImage='url("'+localUrl+'")';card.classList.add('has-image');
+  card.querySelector('.fc-icon').style.display='none';
+  meta.textContent=file.name;
+  try{
+    if(file.size>15*1024*1024)throw new Error('Max 15MB');
+    const b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>{const s=String(r.result||'');const i=s.indexOf(',');if(i<0)return rej(new Error('Read failed'));res(s.slice(i+1));};r.onerror=()=>rej(new Error('Read failed'));r.readAsDataURL(file);});
+    const resp=await fetch('/api/upload/frame',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({filename:file.name,mimeType:file.type||'application/octet-stream',base64:b64})});
+    const json=await resp.json();
+    if(!resp.ok||!json||!json.url)throw new Error((json&&json.msg)||'Upload failed');
+    document.getElementById(targetId).value=json.url;
+    setStatus('Frame uploaded.','ok');
+  }catch(err){setStatus('Frame upload failed: '+(err&&err.message?err.message:String(err)),'err');clearFrame(kind);}
+  finally{if(fileInput)fileInput.value='';}
 }
 
-const seedanceRefs = { image: [], video: [], audio: [] };
-
-function getSeedMode() {
-  const mode = getActiveChipByContainerId('seedModeChips', 'Text Only').toLowerCase();
-  if (mode.includes('frame')) return 'frames';
-  if (mode.includes('ref')) return 'refs';
-  return 'text';
-}
-
-function renderSeedanceRefs() {
-  const map = [
-    { k: 'image', id: 'seedImgList', c: 'seedImgCount', max: 9 },
-    { k: 'video', id: 'seedVidList', c: 'seedVidCount', max: 3 },
-    { k: 'audio', id: 'seedAudList', c: 'seedAudCount', max: 3 }
-  ];
-  map.forEach(({ k, id, c, max }) => {
-    const host = document.getElementById(id);
-    const counter = document.getElementById(c);
-    if (counter) counter.textContent = seedanceRefs[k].length + '/' + max;
-    if (!host) return;
-    host.innerHTML = '';
-    seedanceRefs[k].forEach((v, idx) => {
-      const row = document.createElement('div');
-      row.className = 'seed-ref-item';
-      const label = (v && v.name) ? v.name : ('Ref ' + (idx + 1));
-      row.innerHTML = '<span title="' + label.replace(/"/g, '&quot;') + '">' + label + '</span><button type="button" class="bs bg" style="padding:2px 8px" data-k="' + k + '" data-i="' + idx + '">Remove</button>';
+/* ===== SEEDANCE REFS ===== */
+const seedanceRefs={image:[],video:[],audio:[]};
+function renderSeedanceRefs(){
+  [{k:'image',id:'seedImgList',c:'seedImgCount',max:9},{k:'video',id:'seedVidList',c:'seedVidCount',max:3},{k:'audio',id:'seedAudList',c:'seedAudCount',max:3}].forEach(({k,id,c,max})=>{
+    const host=document.getElementById(id);const counter=document.getElementById(c);
+    if(counter)counter.textContent=seedanceRefs[k].length+'/'+max;
+    if(!host)return;host.innerHTML='';
+    seedanceRefs[k].forEach((v,i)=>{
+      const row=document.createElement('div');row.className='ref-item';
+      row.innerHTML='<span title="'+(v.name||'').replace(/"/g,'&quot;')+'">'+(v.name||'Ref '+(i+1))+'</span><button class="ref-item-del" data-k="'+k+'" data-i="'+i+'">✕</button>';
       host.appendChild(row);
     });
   });
-  document.querySelectorAll('.seed-ref-item button[data-k]').forEach((btn) => {
-    btn.onclick = function () {
-      const k = this.getAttribute('data-k');
-      const i = Number(this.getAttribute('data-i'));
-      if (!seedanceRefs[k] || !Number.isFinite(i)) return;
-      seedanceRefs[k].splice(i, 1);
-      renderSeedanceRefs();
-    };
+  document.querySelectorAll('.ref-item-del').forEach(btn=>{
+    btn.onclick=function(){const k=this.getAttribute('data-k');const i=Number(this.getAttribute('data-i'));seedanceRefs[k].splice(i,1);renderSeedanceRefs();};
   });
 }
-
-function clearSeedRefs(kind) {
-  if (!seedanceRefs[kind]) return;
-  seedanceRefs[kind] = [];
-  renderSeedanceRefs();
-}
-
-function pickSeedRefFiles(kind) {
-  const inputMap = { image: 'seedImgFile', video: 'seedVidFile', audio: 'seedAudFile' };
-  const input = document.getElementById(inputMap[kind]);
-  if (input) input.click();
-}
-
-async function uploadFileAsPublicUrl(file, maxMb) {
-  if (file.size > maxMb * 1024 * 1024) throw new Error('Max ' + maxMb + 'MB per file');
-  const base64 = await new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const out = String(reader.result || '');
-      const idx = out.indexOf(',');
-      if (idx < 0) return reject(new Error('Failed to read file.'));
-      resolve(out.slice(idx + 1));
-    };
-    reader.onerror = () => reject(new Error('Failed to read file.'));
-    reader.readAsDataURL(file);
-  });
-  const res = await fetch('/api/upload/frame', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      filename: file.name,
-      mimeType: file.type || 'application/octet-stream',
-      base64
-    })
-  });
-  const json = await res.json();
-  if (!res.ok || !json || !json.url) throw new Error((json && json.msg) || 'Upload failed');
+function clearSeedRefs(kind){seedanceRefs[kind]=[];renderSeedanceRefs();}
+async function uploadFileAsPublicUrl(file,maxMb){
+  if(file.size>maxMb*1024*1024)throw new Error('Max '+maxMb+'MB per file');
+  const b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>{const s=String(r.result||'');const i=s.indexOf(',');if(i<0)return rej(new Error('Read failed'));res(s.slice(i+1));};r.onerror=()=>rej(new Error('Read failed'));r.readAsDataURL(file);});
+  const resp=await fetch('/api/upload/frame',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({filename:file.name,mimeType:file.type||'application/octet-stream',base64:b64})});
+  const json=await resp.json();
+  if(!resp.ok||!json||!json.url)throw new Error((json&&json.msg)||'Upload failed');
   return json.url;
 }
-
-async function handleSeedRefFiles(fileInput, kind) {
-  const maxMap = { image: 9, video: 3, audio: 3 };
-  const sizeMap = { image: 30, video: 50, audio: 15 };
-  const files = Array.from(fileInput?.files || []);
-  if (!files.length) return;
-  try {
-    for (const file of files) {
-      if (seedanceRefs[kind].length >= maxMap[kind]) {
-        setStatus('Reached max ' + maxMap[kind] + ' ' + kind + ' references.', 'warn');
-        break;
-      }
-      const url = await uploadFileAsPublicUrl(file, sizeMap[kind]);
-      seedanceRefs[kind].push({ url, name: file.name });
+async function handleSeedRefFiles(fileInput,kind){
+  const maxMap={image:9,video:3,audio:3};const sizeMap={image:30,video:50,audio:15};
+  const files=Array.from(fileInput?.files||[]);if(!files.length)return;
+  try{
+    for(const file of files){
+      if(seedanceRefs[kind].length>=maxMap[kind]){setStatus('Max '+maxMap[kind]+' '+kind+' refs.','warn');break;}
+      const url=await uploadFileAsPublicUrl(file,sizeMap[kind]);
+      seedanceRefs[kind].push({url,name:file.name});
     }
-    renderSeedanceRefs();
-    setStatus('Reference files uploaded.', 'ok');
-  } catch (err) {
-    setStatus('Reference upload failed: ' + (err && err.message ? err.message : String(err)), 'err');
-  }
-  if (fileInput) fileInput.value = '';
+    renderSeedanceRefs();setStatus('Reference files uploaded.','ok');
+  }catch(err){setStatus('Ref upload failed: '+(err&&err.message?err.message:String(err)),'err');}
+  if(fileInput)fileInput.value='';
+}
+function getSeedMode(){
+  const v=getActiveChip('seedModeChips','Text Only').toLowerCase();
+  if(v.includes('frame'))return 'frames';if(v.includes('ref'))return 'refs';return 'text';
+}
+function syncSeedanceModeUi(){
+  const mode=getSeedMode();
+  document.getElementById('seedRefsPanel').style.display=mode==='refs'?'block':'none';
+  const spec=getCurrentModelSpec();
+  const fg=document.getElementById('framesGrid');
+  if(fg)fg.style.display=(spec.type==='seedance'&&mode==='frames')?'block':'none';
 }
 
-function syncSeedanceModeUi() {
-  const mode = getSeedMode();
-  const refsPanel = document.getElementById('seedRefsPanel');
-  const framesGrid = document.getElementById('framesGrid');
-  if (refsPanel) refsPanel.style.display = mode === 'refs' ? 'block' : 'none';
-  if (framesGrid) {
-    if (getCurrentModelSpec().type === 'seedance') {
-      framesGrid.style.display = mode === 'frames' ? 'grid' : 'none';
-    } else {
-      framesGrid.style.display = 'grid';
-    }
-  }
+/* ===== MULTI-SHOT BUILDER ===== */
+let _shotCount=0;
+function addMultiShotRow(initPrompt,initDur){
+  const host=document.getElementById('multiShotRows');if(!host)return;
+  const count=host.querySelectorAll('.shot').length;
+  if(count>=5){setStatus('Max 5 shots.','warn');return;}
+  _shotCount++;
+  const id=_shotCount;
+  const div=document.createElement('div');div.className='shot';div.id='shot-'+id;
+  div.innerHTML='<div class="shot-top"><span class="shot-n">'+count+1+'</span><span class="shot-l">Shot '+(count+1)+'</span><button class="shot-x" onclick="delShot(\'shot-'+id+'\')">✕</button></div><textarea class="shot-ta" placeholder="Describe this shot..."></textarea><div style="display:flex;align-items:center;gap:6px;margin-top:4px"><span style="font-size:10px;color:#6b7394">Duration</span><input class="shot-dur" type="number" min="1" max="12" step="1" value="3"><span style="font-size:10px;color:#6b7394">sec</span></div>';
+  host.appendChild(div);
+  if(initPrompt)div.querySelector('.shot-ta').value=initPrompt;
+  if(Number.isFinite(initDur))div.querySelector('.shot-dur').value=String(initDur);
+  div.querySelectorAll('textarea,input').forEach(el=>el.addEventListener('input',syncMultiPromptJson));
+  reindexShots();syncMultiPromptJson();
+  div.querySelector('textarea').focus();
 }
-
-function isAssetUrl(v) {
-  return /^asset:\/\/[A-Za-z0-9._\-:/]+$/i.test(String(v || '').trim());
+function delShot(id){
+  document.getElementById(id)?.remove();
+  const host=document.getElementById('multiShotRows');
+  if(host&&!host.querySelector('.shot'))addMultiShotRow('',3);
+  reindexShots();syncMultiPromptJson();
 }
-
-function isAllowedRefValue(v) {
-  return isHttpUrl(v) || isAssetUrl(v);
-}
-
-function pickFrameFile(kind) {
-  const id = kind === 'start' ? 'startFrameFile' : 'endFrameFile';
-  const input = document.getElementById(id);
-  if (input) input.click();
-}
-
-function getFrameUi(kind) {
-  const isStart = kind === 'start';
-  return {
-    drop: document.getElementById(isStart ? 'startFrameDrop' : 'endFrameDrop'),
-    meta: document.getElementById(isStart ? 'startFrameMeta' : 'endFrameMeta'),
-    urlInput: document.getElementById(isStart ? 'firstFrameUrl' : 'lastFrameUrl')
-  };
-}
-
-function setFrameVisual(kind, opts) {
-  const ui = getFrameUi(kind);
-  if (!ui.drop || !ui.meta) return;
-  const name = (opts && opts.name) ? String(opts.name) : 'No file selected.';
-  const previewUrl = opts && opts.previewUrl ? String(opts.previewUrl) : '';
-  const hasImage = !!previewUrl;
-
-  ui.drop.classList.toggle('has-image', hasImage);
-  if (hasImage) {
-    ui.drop.style.backgroundImage = 'linear-gradient(180deg,rgba(9,16,30,.45),rgba(9,16,30,.18)),url("' + previewUrl.replace(/"/g, '\\"') + '")';
-    ui.drop.querySelector('.frame-drop-text').textContent = 'Uploaded';
-    ui.drop.querySelector('.frame-drop-note').textContent = 'Click Upload to replace';
-  } else {
-    ui.drop.style.backgroundImage = '';
-    ui.drop.querySelector('.frame-drop-text').textContent = 'Click to upload';
-    ui.drop.querySelector('.frame-drop-note').textContent = 'PNG / JPG / WEBP';
-  }
-  ui.meta.textContent = name;
-}
-
-function clearFrame(kind) {
-  const ui = getFrameUi(kind);
-  if (ui.urlInput) ui.urlInput.value = '';
-  setFrameVisual(kind, { name: 'No file selected.', previewUrl: '' });
-}
-
-async function handleFrameFile(fileInput, targetInputId, kind) {
-  const file = fileInput && fileInput.files && fileInput.files[0];
-  if (!file) return;
-  const localPreview = URL.createObjectURL(file);
-  setFrameVisual(kind, { name: file.name, previewUrl: localPreview });
-  try {
-    const maxMb = 15;
-    if (file.size > maxMb * 1024 * 1024) throw new Error('Image is too large. Max 15MB.');
-    const base64 = await new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const out = String(reader.result || '');
-        const idx = out.indexOf(',');
-        if (idx < 0) return reject(new Error('Failed to read image.'));
-        resolve(out.slice(idx + 1));
-      };
-      reader.onerror = () => reject(new Error('Failed to read image.'));
-      reader.readAsDataURL(file);
-    });
-
-    const res = await fetch('/api/upload/frame', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        filename: file.name,
-        mimeType: file.type || 'application/octet-stream',
-        base64
-      })
-    });
-    const json = await res.json();
-    if (!res.ok || !json || !json.url) {
-      throw new Error((json && json.msg) || 'Upload failed');
-    }
-    const target = document.getElementById(targetInputId);
-    if (target) target.value = json.url;
-    setStatus('Frame uploaded successfully.', 'ok');
-    setFrameVisual(kind, { name: file.name, previewUrl: localPreview });
-  } catch (err) {
-    setStatus('Frame upload failed: ' + (err && err.message ? err.message : String(err)), 'err');
-    alert('Upload failed: ' + (err && err.message ? err.message : String(err)));
-    clearFrame(kind);
-  } finally {
-    if (fileInput) fileInput.value = '';
-  }
-}
-
-function isMultiShotSelected() {
-  const selected = getActiveChipByContainerId('shotModeChips', 'Single Shot');
-  return selected.toLowerCase().includes('multi');
-}
-
-function reindexMultiShotRows() {
-  const rows = Array.from(document.querySelectorAll('#multiShotRows .ms-row'));
-  rows.forEach((row, idx) => {
-    const title = row.querySelector('.ms-title');
-    if (title) title.textContent = 'Shot ' + (idx + 1);
+function reindexShots(){
+  document.querySelectorAll('#multiShotRows .shot').forEach((s,i)=>{
+    s.querySelector('.shot-n').textContent=i+1;
+    s.querySelector('.shot-l').textContent='Shot '+(i+1);
   });
 }
-
-function syncMultiPromptJsonFromBuilder() {
-  const out = document.getElementById('multiPromptJson');
-  if (!out) return;
-  out.value = JSON.stringify(getMultiShotFromBuilder());
+function getMultiShotData(){
+  return Array.from(document.querySelectorAll('#multiShotRows .shot')).map(s=>{
+    const prompt=(s.querySelector('.shot-ta').value||'').trim();
+    const duration=Number(s.querySelector('.shot-dur').value||0);
+    return{prompt,duration};
+  }).filter(x=>x.prompt&&Number.isFinite(x.duration));
+}
+function syncMultiPromptJson(){document.getElementById('multiPromptJson').value=JSON.stringify(getMultiShotData());}
+function isMultiShotOn(){return getActiveChip('shotModeChips','Single Shot').toLowerCase().includes('multi');}
+function toggleMultiShotBuilder(){
+  const spec=getCurrentModelSpec();
+  const ma=document.getElementById('multiArea');
+  const on=spec.type==='kling3'&&spec.supportsMultiShot&&isMultiShotOn();
+  ma.classList.toggle('on',on);
+  if(on&&!document.getElementById('multiShotRows').querySelector('.shot')){addMultiShotRow('',3);addMultiShotRow('',3);}
 }
 
-function addMultiShotRow(initialPrompt, initialDuration) {
-  const host = document.getElementById('multiShotRows');
-  if (!host) return;
-  const count = host.querySelectorAll('.ms-row').length;
-  if (count >= 5) {
-    setStatus('Maximum 5 shots allowed for Kling 3 multi-shot.', 'warn');
-    return;
+/* ===== SYNC MODEL UI ===== */
+function syncModelUi(){
+  const spec=getCurrentModelSpec();
+  const sl=document.getElementById('durSlider');
+  if(sl){
+    sl.min=String(spec.duration.min);sl.max=String(spec.duration.max);
+    const nv=Math.max(spec.duration.min,Math.min(spec.duration.max,Number(sl.value)||spec.duration.default));
+    sl.value=String(nv);document.getElementById('dv').textContent=nv+'s';
   }
-  const row = document.createElement('div');
-  row.className = 'ms-row';
-  row.style.cssText = 'border:1px solid var(--border);border-radius:5px;padding:6px;background:#1b1b1b';
-  row.innerHTML = '' +
-    '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">' +
-      '<div class="ms-title" style="font-size:11px;color:#9fb0c8;font-weight:700">Shot</div>' +
-      '<span style="flex:1"></span>' +
-      '<button type="button" class="bs bg ms-remove" style="padding:2px 7px;font-size:10px">Remove</button>' +
-    '</div>' +
-    '<textarea class="ms-prompt" rows="2" placeholder="Describe this shot..."></textarea>' +
-    '<div style="display:flex;align-items:center;gap:8px;margin-top:6px">' +
-      '<span style="font-size:11px;color:#9fb0c8">Duration</span>' +
-      '<input class="ms-duration" type="number" min="1" max="12" step="1" value="3" style="width:72px;background:#1a1a1a;border:1px solid var(--border);border-radius:4px;padding:5px;color:var(--text);font-family:JetBrains Mono,monospace;font-size:12px">' +
-      '<span style="font-size:11px;color:#9fb0c8">sec</span>' +
-    '</div>';
-  host.appendChild(row);
-  const p = row.querySelector('.ms-prompt');
-  const d = row.querySelector('.ms-duration');
-  if (p && initialPrompt) p.value = initialPrompt;
-  if (d && Number.isFinite(initialDuration)) d.value = String(initialDuration);
-  row.querySelector('.ms-remove').addEventListener('click', function () {
-    row.remove();
-    if (!host.querySelector('.ms-row')) addMultiShotRow('', 3);
-    reindexMultiShotRows();
-    syncMultiPromptJsonFromBuilder();
+  const ratioChips=[...document.querySelectorAll('#frameFormatChips .chip')];
+  ratioChips.forEach(c=>{
+    const allowed=spec.ratios.includes(c.textContent.trim());
+    c.disabled=!allowed;c.style.opacity=allowed?'1':'0.3';c.style.pointerEvents=allowed?'auto':'none';
   });
-  row.querySelectorAll('textarea,input').forEach((el) => {
-    el.addEventListener('input', syncMultiPromptJsonFromBuilder);
+  if(!spec.ratios.includes(getActiveChip('frameFormatChips','16:9'))){
+    setActiveChipByText('frameFormatChips',spec.ratios[0]);
+  }
+  const shotChips=[...document.querySelectorAll('#shotModeChips .chip')];
+  shotChips.forEach(c=>{
+    const multi=c.getAttribute('data-shot-mode')==='multi';
+    const allowed=multi?!!spec.supportsMultiShot:true;
+    c.disabled=!allowed;c.style.opacity=allowed?'1':'0.3';c.style.pointerEvents=allowed?'auto':'none';
+    if(!allowed)c.classList.remove('on','on-o','on-g');
   });
-  reindexMultiShotRows();
-  syncMultiPromptJsonFromBuilder();
-}
-
-function getMultiShotFromBuilder() {
-  const rows = Array.from(document.querySelectorAll('#multiShotRows .ms-row'));
-  return rows
-    .map((row) => {
-      const prompt = (row.querySelector('.ms-prompt')?.value || '').trim();
-      const duration = Number(row.querySelector('.ms-duration')?.value || 0);
-      return { prompt, duration };
-    })
-    .filter((x) => x.prompt && Number.isFinite(x.duration));
-}
-
-function isHttpUrl(url) {
-  return /^https?:\/\//i.test(String(url || '').trim());
-}
-
-function getActiveChipByContainerId(id, fallbackValue) {
-  const host = document.getElementById(id);
-  if (!host) return fallbackValue;
-  const active = host.querySelector('.ch.a');
-  return active ? active.textContent.trim() : fallbackValue;
-}
-
-function setActiveChipByTextInContainer(containerId, value) {
-  const host = document.getElementById(containerId);
-  if (!host) return;
-  const chips = Array.from(host.querySelectorAll('.ch'));
-  let hit = false;
-  chips.forEach((chip) => {
-    if (chip.textContent.trim() === value) {
-      chips.forEach((x) => x.classList.remove('a'));
-      chip.classList.add('a');
-      hit = true;
-    }
+  if(!spec.supportsMultiShot)setActiveChipByText('shotModeChips','Single Shot');
+  const qChips=[...document.querySelectorAll('#qualityChips .chip')];
+  qChips.forEach((c,i)=>{
+    const mode=spec.qualityModes[i];
+    c.style.display=mode?'':'none';if(mode)c.textContent=mode;
   });
-  if (!hit && chips[0]) {
-    chips.forEach((x) => x.classList.remove('a'));
-    chips[0].classList.add('a');
-  }
+  setActiveChipByText('qualityChips',spec.qualityModes[0]);
+  ['klingAdvanced','hailuoAdvanced','soraAdvanced','veoAdvanced','seedanceAdvanced','seedanceFlags'].forEach(id=>document.getElementById(id).classList.remove('on'));
+  const panelMap={kling3:'klingAdvanced',hailuo23:'hailuoAdvanced',sora2pro:'soraAdvanced',veo31:'veoAdvanced',seedance:'seedanceAdvanced'};
+  if(panelMap[spec.type])document.getElementById(panelMap[spec.type]).classList.add('on');
+  if(spec.type==='seedance')document.getElementById('seedanceFlags').classList.add('on');
+  const fg=document.getElementById('framesGrid');
+  if(fg)fg.style.display=(spec.type==='seedance')?'none':'block';
+  syncSeedanceModeUi();toggleMultiShotBuilder();setBusy(false);
 }
 
-function syncModelUi() {
-  const spec = getCurrentModelSpec();
-  const payloadHint = document.getElementById('payloadHint');
-  if (payloadHint) payloadHint.textContent = spec.payloadHint;
-
-  const durationSlider = document.querySelector('input[type="range"][oninput*="dur"]');
-  if (durationSlider) {
-    durationSlider.min = String(spec.duration.min);
-    durationSlider.max = String(spec.duration.max);
-    const nextValue = Math.max(spec.duration.min, Math.min(spec.duration.max, Number(durationSlider.value) || spec.duration.default));
-    durationSlider.value = String(nextValue);
-    us2(durationSlider, 'dur', nextValue + 's');
-  }
-
-  const ratioGroup = document.getElementById('frameFormatChips');
-  if (ratioGroup) {
-    const chips = Array.from(ratioGroup.querySelectorAll('.ch'));
-    chips.forEach((chip) => {
-      const ratio = chip.textContent.trim();
-      const allowed = spec.ratios.includes('Auto') || spec.ratios.includes(ratio);
-      chip.style.opacity = allowed ? '1' : '0.35';
-      chip.style.pointerEvents = allowed ? 'auto' : 'none';
-    });
-    if (!spec.ratios.includes('Auto')) {
-      const chip = chips.find((c) => c.textContent.trim() === spec.ratios[0]);
-      if (chip) {
-        chips.forEach((x) => x.classList.remove('a'));
-        chip.classList.add('a');
-      }
-    }
-  }
-
-  const shotGroup = document.getElementById('shotModeChips');
-  if (shotGroup) {
-    const chips = Array.from(shotGroup.querySelectorAll('.ch'));
-    chips.forEach((chip) => {
-      const isMulti = chip.getAttribute('data-shot-mode') === 'multi';
-      const allowed = isMulti ? !!spec.supportsMultiShot : true;
-      chip.style.opacity = allowed ? '1' : '0.35';
-      chip.style.pointerEvents = allowed ? 'auto' : 'none';
-      if (!allowed) chip.classList.remove('a');
-    });
-    if (!spec.supportsMultiShot) setActiveChipByTextInContainer('shotModeChips', 'Single Shot');
-  }
-
-  const qualityGroup = document.getElementById('qualityChips');
-  if (qualityGroup) {
-    const chips = Array.from(qualityGroup.querySelectorAll('.ch'));
-    chips.forEach((chip, idx) => {
-      const mode = spec.qualityModes[idx];
-      if (!mode) {
-        chip.style.display = 'none';
-        chip.classList.remove('a');
-        return;
-      }
-      chip.style.display = '';
-      chip.textContent = mode;
-      chip.style.opacity = '1';
-      chip.style.pointerEvents = 'auto';
-    });
-    if (spec.qualityModes.length > 0) {
-      setActiveChipByTextInContainer('qualityChips', spec.qualityModes[0]);
-    }
-  }
-
-  const avatarOnly = false;
-  const frameHeader = document.getElementById('frameFormatHeader');
-  const frameRow = document.getElementById('frameFormatChips');
-  const shotHeader = document.getElementById('shotModeHeader');
-  const shotRow = document.getElementById('shotModeChips');
-  const qualityHeader = document.getElementById('qualityHeader');
-  const qualityRow = document.getElementById('qualityChips');
-  const durRow = document.getElementById('durationRow');
-  const seedBox = document.getElementById('seedanceAdvanced');
-  const seedFlags = document.getElementById('seedanceFlags');
-  const klingBox = document.getElementById('klingAdvanced');
-  const hailuoBox = document.getElementById('hailuoAdvanced');
-  const soraBox = document.getElementById('soraAdvanced');
-  const veoBox = document.getElementById('veoAdvanced');
-  if (frameHeader) frameHeader.style.display = avatarOnly ? 'none' : '';
-  if (frameRow) frameRow.style.display = avatarOnly ? 'none' : 'flex';
-  if (shotHeader) shotHeader.style.display = avatarOnly ? 'none' : '';
-  if (shotRow) shotRow.style.display = avatarOnly ? 'none' : 'flex';
-  if (qualityHeader) qualityHeader.style.display = avatarOnly ? 'none' : '';
-  if (qualityRow) qualityRow.style.display = avatarOnly ? 'none' : 'flex';
-  if (durRow) durRow.style.display = avatarOnly ? 'none' : 'flex';
-  if (seedBox) seedBox.style.display = spec.type === 'seedance' ? 'block' : 'none';
-  if (seedFlags) seedFlags.style.display = spec.type === 'seedance' ? 'block' : 'none';
-  if (klingBox) klingBox.style.display = spec.type === 'kling3' ? 'block' : 'none';
-  if (hailuoBox) hailuoBox.style.display = spec.type === 'hailuo23' ? 'block' : 'none';
-  if (soraBox) soraBox.style.display = spec.type === 'sora2pro' ? 'block' : 'none';
-  if (veoBox) veoBox.style.display = spec.type === 'veo31' ? 'block' : 'none';
-
-  if (spec.type !== 'seedance') {
-    setActiveChipByTextInContainer('seedModeChips', 'Text Only');
-  }
-  syncSeedanceModeUi();
-
-  toggleMultiShotBuilder();
-
-  setBusy(false);
+/* ===== PROGRESS ===== */
+function showProgressStart(){
+  document.getElementById('ph2').style.display='none';
+  document.getElementById('vPreview').style.display='none';
+  document.getElementById('prw').classList.add('on');
+  document.getElementById('prf').style.width='4%';document.getElementById('prp').textContent='4%';
+  if(videoState.progressTimer)clearInterval(videoState.progressTimer);
+  let p=4;
+  videoState.progressTimer=setInterval(()=>{
+    p=Math.min(90,p+Math.random()*2.4);
+    document.getElementById('prf').style.width=Math.floor(p)+'%';
+    document.getElementById('prp').textContent=Math.floor(p)+'%';
+  },320);
+}
+function showProgressDone(){
+  if(videoState.progressTimer){clearInterval(videoState.progressTimer);videoState.progressTimer=null;}
+  document.getElementById('prf').style.width='100%';document.getElementById('prp').textContent='100%';
+  setTimeout(()=>document.getElementById('prw').classList.remove('on'),300);
 }
 
-function toggleMultiShotBuilder() {
-  const spec = getCurrentModelSpec();
-  const box = document.getElementById('multiShotBuilder');
-  if (!box) return;
-  const on = spec.type === 'kling3' && spec.supportsMultiShot && isMultiShotSelected();
-  box.style.display = on ? 'block' : 'none';
-  if (on) {
-    const host = document.getElementById('multiShotRows');
-    if (host && !host.querySelector('.ms-row')) {
-      addMultiShotRow('', 3);
-      addMultiShotRow('', 3);
-    }
-  }
-}
-
-function parseResultJson(resultJson) {
-  if (!resultJson) return null;
-  if (typeof resultJson === 'object') return resultJson;
-  try { return JSON.parse(resultJson); } catch { return null; }
-}
-
-function extractResultUrls(recordData) {
-  const parsed = parseResultJson(recordData && recordData.resultJson);
-  if (!parsed) return [];
-  if (Array.isArray(parsed.resultUrls)) return parsed.resultUrls.filter(Boolean);
-  if (parsed.resultObject && Array.isArray(parsed.resultObject.resultUrls)) return parsed.resultObject.resultUrls.filter(Boolean);
-  if (parsed.resultObject && parsed.resultObject.video_url) return [parsed.resultObject.video_url];
-  if (parsed.resultObject && parsed.resultObject.url) return [parsed.resultObject.url];
-  return [];
-}
-
-async function createKieTask(model, input) {
-  const res = await fetch('/api/kie/createTask', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model, input })
-  });
-  const json = await res.json();
-  if (!res.ok || json.code !== 200 || !json.data || !json.data.taskId) {
-    throw new Error(json.msg || ('Create task failed (' + res.status + ')'));
-  }
+/* ===== API CALLS ===== */
+async function createKieTask(model,input){
+  const res=await fetch('/api/kie/createTask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model,input})});
+  const json=await res.json();
+  if(!res.ok||json.code!==200||!json.data||!json.data.taskId)throw new Error(json.msg||('Create task failed ('+res.status+')'));
   return json.data.taskId;
 }
-
-async function createVeoTask(input) {
-  const res = await fetch('/api/kie/veo/generate', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(input)
-  });
-  const json = await res.json();
-  if (!res.ok || json.code !== 200 || !json.data || !json.data.taskId) {
-    throw new Error(json.msg || ('Create Veo task failed (' + res.status + ')'));
+async function createVeoTask(input){
+  const res=await fetch('/api/kie/veo/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(input)});
+  const json=await res.json();
+  if(!res.ok||json.code!==200||!json.data||!json.data.taskId)throw new Error(json.msg||('Create Veo task failed ('+res.status+')'));
+  return{taskId:json.data.taskId,modelUsed:input.model||'veo3'};
+}
+async function createTaskWithModelFallback(models,input){
+  let lastErr=null;
+  for(const m of models){try{const taskId=await createKieTask(m,input);return{taskId,modelUsed:m};}catch(e){lastErr=e;}}
+  throw lastErr||new Error('Unable to create task');
+}
+async function waitKieTask(taskId,onProgress,maxMs){
+  const t0=Date.now();
+  while(Date.now()-t0<maxMs){
+    const res=await fetch('/api/kie/recordInfo?taskId='+encodeURIComponent(taskId));
+    const json=await res.json();
+    if(!res.ok||json.code!==200||!json.data)throw new Error(json.msg||'Polling failed');
+    const st=String(json.data.state||'').toLowerCase();
+    if(typeof onProgress==='function')onProgress(st,json.data);
+    if(st==='success')return json.data;
+    if(st==='fail')throw new Error(json.data.failMsg||json.data.failCode||'Task failed');
+    await new Promise(r=>setTimeout(r,1800));
   }
-  return { taskId: json.data.taskId, modelUsed: input.model || 'veo3' };
+  throw new Error('Timeout');
 }
-
-async function createTaskWithModelFallback(modelsToTry, input) {
-  let lastErr = null;
-  for (let i = 0; i < modelsToTry.length; i += 1) {
-    try {
-      const taskId = await createKieTask(modelsToTry[i], input);
-      return { taskId, modelUsed: modelsToTry[i] };
-    } catch (err) {
-      lastErr = err;
+async function waitVeoTask(taskId,onProgress,maxMs){
+  const t0=Date.now();
+  while(Date.now()-t0<maxMs){
+    const res=await fetch('/api/kie/veo/record-info?taskId='+encodeURIComponent(taskId));
+    const json=await res.json();
+    if(!res.ok||json.code!==200||!json.data)throw new Error(json.msg||'Veo polling failed');
+    const flag=Number(json.data.successFlag);
+    const state=flag===1?'success':flag===0?'waiting':'fail';
+    if(typeof onProgress==='function')onProgress(state,json.data);
+    if(state==='success'){
+      const r=json.data.response||{};
+      return{resultJson:JSON.stringify({resultUrls:r.resultUrls||r.fullResultUrls||r.originUrls||[]})};
     }
+    if(state==='fail')throw new Error(json.data.errorMessage||'Veo task failed');
+    await new Promise(r=>setTimeout(r,2200));
   }
-  throw lastErr || new Error('Unable to create task with configured model ids.');
+  throw new Error('Timeout');
+}
+function extractResultUrls(record){
+  if(!record)return[];
+  let p=null;
+  try{p=record.resultJson?JSON.parse(record.resultJson):null;}catch{}
+  if(!p)return[];
+  if(Array.isArray(p.resultUrls))return p.resultUrls.filter(Boolean);
+  if(p.resultObject){if(Array.isArray(p.resultObject.resultUrls))return p.resultObject.resultUrls.filter(Boolean);if(p.resultObject.video_url)return[p.resultObject.video_url];if(p.resultObject.url)return[p.resultObject.url];}
+  return[];
+}
+async function getVideoDuration(url){
+  return new Promise(res=>{const v=document.createElement('video');const done=d=>res(Number.isFinite(d)?d:null);v.addEventListener('loadedmetadata',()=>done(v.duration),{once:true});v.addEventListener('error',()=>done(null),{once:true});v.preload='metadata';v.src=url;});
 }
 
-async function waitKieTask(taskId, onProgress, maxMs) {
-  const started = Date.now();
-  while (Date.now() - started < maxMs) {
-    const res = await fetch('/api/kie/recordInfo?taskId=' + encodeURIComponent(taskId));
-    const json = await res.json();
-    if (!res.ok || json.code !== 200 || !json.data) {
-      throw new Error(json.msg || ('Polling failed (' + res.status + ')'));
-    }
-    const st = String(json.data.state || '').toLowerCase();
-    if (typeof onProgress === 'function') onProgress(st, json.data);
-    if (st === 'success') return json.data;
-    if (st === 'fail') throw new Error(json.data.failMsg || json.data.failCode || 'Task failed');
-    await new Promise((r) => setTimeout(r, 1800));
-  }
-  throw new Error('Timeout waiting for video result');
+/* ===== TIMELINE ===== */
+function postClipToTimeline(asset){
+  const payload={type:'ff:addClip',clip:{label:asset.name,url:asset.url,trackType:'video',durationSec:asset.durationSec||6}};
+  try{if(window.parent&&window.parent!==window){const tf=window.parent.document.getElementById('timelineFrame');if(tf&&tf.contentWindow)tf.contentWindow.postMessage(payload,'*');}}catch{}
+  try{const ext=document.querySelector('#external-timeline-host iframe');if(ext&&ext.contentWindow)ext.contentWindow.postMessage(payload,'*');}catch{}
+}
+function addToTimeline(){
+  if(!videoState.latestUrl){setStatus('No generated video to add.','warn');return;}
+  postClipToTimeline({name:videoState.latestName||('video_'+Date.now()+'.mp4'),url:videoState.latestUrl,durationSec:videoState.latestDurationSec||6});
+  setStatus('Clip added to timeline.','ok');
+}
+function downloadLatest(){
+  if(!videoState.latestUrl){setStatus('No generated video to download.','warn');return;}
+  const a=document.createElement('a');a.href=videoState.latestUrl;a.target='_blank';a.rel='noopener';a.download=videoState.latestName||'video_asset.mp4';document.body.appendChild(a);a.click();a.remove();
+  setStatus('Download started.','ok');
 }
 
-async function waitVeoTask(taskId, onProgress, maxMs) {
-  const started = Date.now();
-  while (Date.now() - started < maxMs) {
-    const res = await fetch('/api/kie/veo/record-info?taskId=' + encodeURIComponent(taskId));
-    const json = await res.json();
-    if (!res.ok || json.code !== 200 || !json.data) {
-      throw new Error(json.msg || ('Veo polling failed (' + res.status + ')'));
-    }
-    const flag = Number(json.data.successFlag);
-    const state = flag === 1 ? 'success' : flag === 0 ? 'waiting' : 'fail';
-    if (typeof onProgress === 'function') onProgress(state, json.data);
-    if (state === 'success') {
-      const response = json.data.response || {};
-      const normalized = {
-        resultJson: JSON.stringify({
-          resultUrls: response.resultUrls || response.fullResultUrls || response.originUrls || []
-        })
-      };
-      return normalized;
-    }
-    if (state === 'fail') throw new Error(json.data.errorMessage || json.data.errorCode || 'Veo task failed');
-    await new Promise((r) => setTimeout(r, 2200));
-  }
-  throw new Error('Timeout waiting for Veo result');
-}
+/* ===== GENERATE ===== */
+async function genVid(){
+  const spec=getCurrentModelSpec();
+  const firstFrameUrl=(document.getElementById('firstFrameUrl').value||'').trim();
+  const lastFrameUrl=(document.getElementById('lastFrameUrl').value||'').trim();
+  const refImageUrls=seedanceRefs.image.map(x=>x.url);
+  const refVideoUrls=seedanceRefs.video.map(x=>x.url);
+  const refAudioUrls=seedanceRefs.audio.map(x=>x.url);
+  const prompt=(document.getElementById('vp').value||'').trim()||'Cinematic scene';
+  const duration=Number((document.getElementById('dv').textContent||'5').replace('s',''))||5;
+  const ratio=getActiveChip('frameFormatChips','16:9');
+  const quality=getActiveChip('qualityChips','PRO').toUpperCase();
+  const isMulti=isMultiShotOn();
+  const seedMode=getSeedMode();
 
-async function getVideoDuration(url) {
-  return new Promise((resolve) => {
-    const v = document.createElement('video');
-    const done = (d) => resolve(Number.isFinite(d) ? d : null);
-    v.addEventListener('loadedmetadata', () => done(v.duration), { once: true });
-    v.addEventListener('error', () => done(null), { once: true });
-    v.preload = 'metadata';
-    v.src = url;
-  });
-}
+  const allUrls=[firstFrameUrl,lastFrameUrl,...refImageUrls,...refVideoUrls,...refAudioUrls].filter(Boolean);
+  if(allUrls.some(u=>!isAllowedRef(u))){setStatus('References must be HTTP/HTTPS or asset:// URL','warn');return;}
 
-function showProgressStart() {
-  document.getElementById('ph2').style.display = 'none';
-  document.getElementById('dnb').style.display = 'none';
-  document.getElementById('vPreview').style.display = 'none';
-  document.getElementById('prw').style.display = 'block';
-  document.getElementById('prf').style.width = '4%';
-  document.getElementById('prp').textContent = '4%';
-  if (videoState.progressTimer) clearInterval(videoState.progressTimer);
-  let p = 4;
-  videoState.progressTimer = setInterval(() => {
-    p = Math.min(90, p + Math.random() * 2.4);
-    document.getElementById('prf').style.width = Math.floor(p) + '%';
-    document.getElementById('prp').textContent = Math.floor(p) + '%';
-  }, 320);
-}
+  let taskInput=null;let modelIds=spec.taskModels.slice();let clipPrefix='video';
 
-function showProgressDone() {
-  if (videoState.progressTimer) {
-    clearInterval(videoState.progressTimer);
-    videoState.progressTimer = null;
-  }
-  document.getElementById('prf').style.width = '100%';
-  document.getElementById('prp').textContent = '100%';
-  setTimeout(() => {
-    document.getElementById('prw').style.display = 'none';
-    document.getElementById('dnb').style.display = 'block';
-  }, 180);
-}
-
-function postClipToTimeline(asset) {
-  const payload = {
-    type: 'ff:addClip',
-    clip: {
-      label: asset.name,
-      url: asset.url,
-      trackType: 'video',
-      durationSec: asset.durationSec || 6
+  if(spec.type==='kling3'){
+    const mode=quality==='STD'?'std':'pro';
+    const imageUrls=[];
+    if(firstFrameUrl)imageUrls.push(firstFrameUrl);
+    if(!isMulti&&lastFrameUrl)imageUrls.push(lastFrameUrl);
+    if(isMulti&&lastFrameUrl){setStatus('Kling multi-shot: remove End frame.','warn');return;}
+    taskInput={prompt,aspect_ratio:ratio,duration:Math.max(spec.duration.min,Math.min(spec.duration.max,duration)),mode,sound:getChecked('klingSound'),multi_shots:isMulti};
+    if(imageUrls.length)taskInput.image_urls=imageUrls;
+    if(isMulti){
+      const mp=getMultiShotData();
+      if(!mp.length){setStatus('Add at least one shot in Multi Shot Builder.','warn');return;}
+      if(mp.length>5){setStatus('Max 5 shots.','warn');return;}
+      if(mp.some(s=>!s.prompt||!Number.isFinite(s.duration)||s.duration<1||s.duration>12)){setStatus('Each shot needs prompt + duration 1-12s.','warn');return;}
+      taskInput.multi_prompt=mp;
     }
-  };
-  try {
-    if (window.parent && window.parent !== window) {
-      const tf = window.parent.document.getElementById('timelineFrame');
-      if (tf && tf.contentWindow) tf.contentWindow.postMessage(payload, '*');
-    }
-  } catch {}
-  try {
-    const external = document.querySelector('#external-timeline-host iframe');
-    if (external && external.contentWindow) external.contentWindow.postMessage(payload, '*');
-  } catch {}
-}
-
-async function genVid() {
-  const spec = getCurrentModelSpec();
-  const firstFrameUrl = (document.getElementById('firstFrameUrl').value || '').trim();
-  const lastFrameUrl = (document.getElementById('lastFrameUrl').value || '').trim();
-  const refImageUrls = seedanceRefs.image.map((x) => x.url);
-  const refVideoUrls = seedanceRefs.video.map((x) => x.url);
-  const refAudioUrls = seedanceRefs.audio.map((x) => x.url);
-  const seedMode = getSeedMode();
-  const seedGenerateAudio = !!document.getElementById('seedGenerateAudio')?.checked;
-  const seedWebSearch = !!document.getElementById('seedWebSearch')?.checked;
-  const seedNsfwChecker = !!document.getElementById('seedNsfwChecker')?.checked;
-  const klingSound = !!document.getElementById('klingSound')?.checked;
-  const hailuoResolution = getActiveChipByContainerId('hailuoResolutionChips', '768P');
-  const soraRemoveWatermark = !!document.getElementById('soraRemoveWatermark')?.checked;
-  const soraUploadMethod = (document.getElementById('soraUploadMethod')?.value || '').trim();
-  const soraCharacterIds = parseUrlList(document.getElementById('soraCharacterIds')?.value || '');
-  const veoModel = (document.getElementById('veoModel')?.value || 'veo3').trim();
-  const veoGenerationType = (document.getElementById('veoGenerationType')?.value || 'AUTO').trim();
-  const veoWatermark = (document.getElementById('veoWatermark')?.value || '').trim();
-  const veoSeedsRaw = (document.getElementById('veoSeeds')?.value || '').trim();
-  const multiPromptRaw = (document.getElementById('multiPromptJson').value || '').trim();
-  const multiPromptFromBuilder = getMultiShotFromBuilder();
-  const prompt = (document.getElementById('vp').value || '').trim();
-  const duration = Number((document.getElementById('durV').textContent || '5').replace('s', '')) || 5;
-  const ratio = getActiveChipByContainerId('frameFormatChips', '16:9');
-  const quality = getActiveChipByContainerId('qualityChips', 'PRO').toUpperCase();
-  const shotMode = getActiveChipByContainerId('shotModeChips', 'Single Shot').toLowerCase().includes('multi') ? 'multi' : 'single';
-  const finalPrompt = (prompt || 'Cinematic scene').trim();
-
-  const allUrls = [firstFrameUrl, lastFrameUrl].concat(refImageUrls, refVideoUrls, refAudioUrls).filter(Boolean);
-  if (allUrls.some((u) => !isAllowedRefValue(u))) {
-    setStatus('References must be HTTP/HTTPS URL or asset://assetId', 'warn');
-    return;
-  }
-
-  let taskInput = null;
-  let modelIds = spec.taskModels.slice();
-  let clipPrefix = 'video';
-
-  if (spec.type === 'kling3') {
-    const mode = quality === 'STD' ? 'std' : 'pro';
-    const imageUrls = [];
-    if (firstFrameUrl) imageUrls.push(firstFrameUrl);
-    if (shotMode === 'single' && lastFrameUrl) imageUrls.push(lastFrameUrl);
-    if (shotMode === 'multi' && lastFrameUrl) {
-      setStatus('Kling multi-shot accepts only first frame image_urls[0]. Remove End frame.', 'warn');
-      return;
-    }
-
-    if (imageUrls.length > 2) {
-      setStatus('Kling 3.0 supports max 2 image_urls (single-shot first+last).', 'warn');
-      return;
-    }
-
-    taskInput = {
-      prompt: finalPrompt,
-      aspect_ratio: ratio,
-      duration: Math.max(spec.duration.min, Math.min(spec.duration.max, duration)),
-      mode: mode,
-      sound: klingSound,
-      multi_shots: shotMode === 'multi'
-    };
-    if (imageUrls.length) taskInput.image_urls = imageUrls;
-    if (taskInput.multi_shots) {
-      let multiPrompt;
-      if (multiPromptFromBuilder.length) {
-        multiPrompt = multiPromptFromBuilder;
-      } else {
-        if (!multiPromptRaw) {
-          setStatus('Add at least one shot in Multi Shot Builder.', 'warn');
-          return;
-        }
-        try {
-          multiPrompt = JSON.parse(multiPromptRaw);
-        } catch {
-          setStatus('Invalid multi-shot data. Use shot builder rows.', 'warn');
-          return;
-        }
-      }
-      if (!Array.isArray(multiPrompt) || !multiPrompt.length || multiPrompt.length > 5) {
-        setStatus('Kling 3.0 multi-shot supports 1 to 5 shots.', 'warn');
-        return;
-      }
-      const invalidShot = multiPrompt.some((shot) => {
-        const d = Number(shot && shot.duration);
-        return !shot || typeof shot.prompt !== 'string' || !shot.prompt.trim() || !Number.isFinite(d) || d < 1 || d > 12;
-      });
-      if (invalidShot) {
-        setStatus('Each shot must include prompt + duration between 1s and 12s.', 'warn');
-        return;
-      }
-      taskInput.multi_prompt = multiPrompt;
-    }
-    clipPrefix = 'kling3';
-  } else if (spec.type === 'hailuo23') {
-    if (!firstFrameUrl) {
-      setStatus('Hailuo 2.3 requires Start frame image URL.', 'warn');
-      return;
-    }
-    if (lastFrameUrl || refImageUrls.length || refVideoUrls.length || refAudioUrls.length) {
-      setStatus('Hailuo 2.3 uses only one image_url. Remove End frame and all reference arrays.', 'warn');
-      return;
-    }
-    taskInput = {
-      prompt: finalPrompt,
-      image_url: firstFrameUrl,
-      duration: Math.max(spec.duration.min, Math.min(spec.duration.max, duration)),
-      resolution: hailuoResolution === '1080P' ? '1080P' : '768P'
-    };
-    clipPrefix = 'hailuo23';
-  } else if (spec.type === 'sora2pro') {
-    if (firstFrameUrl || lastFrameUrl || refImageUrls.length || refVideoUrls.length || refAudioUrls.length) {
-      setStatus('Sora 2 Pro (text-to-video) does not take frame/reference URLs in this route.', 'warn');
-      return;
-    }
-    if (soraCharacterIds.length > 5) {
-      setStatus('Sora character_id_list supports up to 5 ids.', 'warn');
-      return;
-    }
-    const nFrames = Math.max(8, Math.min(24, Math.round(duration * 2)));
-    taskInput = {
-      prompt: finalPrompt,
-      aspect_ratio: ratio === '16:9' ? 'landscape' : ratio === '9:16' ? 'portrait' : 'square',
-      n_frames: String(nFrames),
-      size: 'high',
-      remove_watermark: soraRemoveWatermark
-    };
-    if (soraUploadMethod) taskInput.upload_method = soraUploadMethod;
-    if (soraCharacterIds.length) taskInput.character_id_list = soraCharacterIds;
-    clipPrefix = 'sora2pro';
-  } else if (spec.type === 'veo31') {
-    const imageUrls = [];
-    if (firstFrameUrl) imageUrls.push(firstFrameUrl);
-    if (lastFrameUrl) imageUrls.push(lastFrameUrl);
-    if (imageUrls.length > 2) {
-      setStatus('Veo 3.1 supports up to 2 frame images.', 'warn');
-      return;
-    }
-    const requestedType = veoGenerationType === 'AUTO'
-      ? (imageUrls.length ? 'FIRST_AND_LAST_FRAMES_2_VIDEO' : 'TEXT_2_VIDEO')
-      : veoGenerationType;
-    if (requestedType === 'TEXT_2_VIDEO' && imageUrls.length) {
-      setStatus('Veo TEXT_2_VIDEO cannot include imageUrls.', 'warn');
-      return;
-    }
-    if ((requestedType === 'FIRST_AND_LAST_FRAMES_2_VIDEO' || requestedType === 'REFERENCE_2_VIDEO') && !imageUrls.length) {
-      setStatus('Veo selected generationType requires at least one image URL.', 'warn');
-      return;
-    }
-    const veoSeeds = veoSeedsRaw ? Number(veoSeedsRaw) : null;
-    if (veoSeedsRaw && !Number.isInteger(veoSeeds)) {
-      setStatus('Veo seeds must be an integer.', 'warn');
-      return;
-    }
-    taskInput = {
-      prompt: finalPrompt,
-      model: veoModel,
-      aspect_ratio: ratio,
-      generationType: requestedType,
-      imageUrls,
-      enableFallback: !!document.getElementById('veoEnableFallback')?.checked,
-      enableTranslation: !!document.getElementById('veoEnableTranslation')?.checked
-    };
-    if (veoWatermark) taskInput.watermark = veoWatermark;
-    if (Number.isInteger(veoSeeds)) taskInput.seeds = veoSeeds;
-    clipPrefix = 'veo31';
+    clipPrefix='kling3';
+  } else if(spec.type==='hailuo23'){
+    if(!firstFrameUrl){setStatus('Hailuo 2.3 requires a Start frame URL.','warn');return;}
+    taskInput={prompt,image_url:firstFrameUrl,duration:Math.max(spec.duration.min,Math.min(spec.duration.max,duration)),resolution:getActiveChip('hailuoResolutionChips','768P')==='1080P'?'1080P':'768P'};
+    clipPrefix='hailuo23';
+  } else if(spec.type==='sora2pro'){
+    const charIds=parseUrlList(document.getElementById('soraCharacterIdsInp').value||'');
+    if(charIds.length>5){setStatus('Max 5 character IDs.','warn');return;}
+    const nFrames=Math.max(8,Math.min(24,Math.round(duration*2)));
+    taskInput={prompt,aspect_ratio:ratio==='16:9'?'landscape':ratio==='9:16'?'portrait':'square',n_frames:String(nFrames),size:'high',remove_watermark:getChecked('soraRemoveWatermark')};
+    const um=(document.getElementById('soraUploadMethodInp').value||'').trim();if(um)taskInput.upload_method=um;
+    if(charIds.length)taskInput.character_id_list=charIds;
+    clipPrefix='sora2pro';
+  } else if(spec.type==='veo31'){
+    const imageUrls=[];if(firstFrameUrl)imageUrls.push(firstFrameUrl);if(lastFrameUrl)imageUrls.push(lastFrameUrl);
+    const gt=document.getElementById('veoGenerationTypeSel').value||'AUTO';
+    const requestedType=gt==='AUTO'?(imageUrls.length?'FIRST_AND_LAST_FRAMES_2_VIDEO':'TEXT_2_VIDEO'):gt;
+    if(requestedType==='TEXT_2_VIDEO'&&imageUrls.length){setStatus('Veo TEXT_2_VIDEO cannot include imageUrls.','warn');return;}
+    if((requestedType==='FIRST_AND_LAST_FRAMES_2_VIDEO'||requestedType==='REFERENCE_2_VIDEO')&&!imageUrls.length){setStatus('Veo type requires at least one image URL.','warn');return;}
+    const veoSeedsRaw=(document.getElementById('veoSeedsInp').value||'').trim();
+    const veoSeeds=veoSeedsRaw?Number(veoSeedsRaw):null;
+    if(veoSeedsRaw&&!Number.isInteger(veoSeeds)){setStatus('Veo seeds must be integer.','warn');return;}
+    taskInput={prompt,model:document.getElementById('veoModelSel').value||'veo3',aspect_ratio:ratio,generationType:requestedType,imageUrls,enableFallback:getChecked('veoEnableFallback'),enableTranslation:getChecked('veoEnableTranslation')};
+    const wm=(document.getElementById('veoWatermarkInp').value||'').trim();if(wm)taskInput.watermark=wm;
+    if(Number.isInteger(veoSeeds))taskInput.seeds=veoSeeds;
+    clipPrefix='veo31';
   } else {
-    const hasFrameScenario = seedMode === 'frames';
-    const hasRefScenario = seedMode === 'refs';
-    if (hasFrameScenario && hasRefScenario) {
-      setStatus('Seedance expects either frame mode or reference arrays mode, not both together.', 'warn');
-      return;
-    }
-    if (seedMode === 'frames' && !firstFrameUrl && !lastFrameUrl) {
-      setStatus('Seedance Frames mode needs at least Start or End frame.', 'warn');
-      return;
-    }
-    if (seedMode === 'refs' && !refImageUrls.length && !refVideoUrls.length && !refAudioUrls.length) {
-      setStatus('Seedance Refs mode needs at least one reference input.', 'warn');
-      return;
-    }
-    if (seedMode !== 'frames' && (firstFrameUrl || lastFrameUrl)) {
-      setStatus('Switch to Frames mode to use Start/End frame.', 'warn');
-      return;
-    }
-    if (seedMode !== 'refs' && (refImageUrls.length || refVideoUrls.length || refAudioUrls.length)) {
-      setStatus('Switch to Multimodal Refs mode to use reference arrays.', 'warn');
-      return;
-    }
-    if (refImageUrls.length > 9) {
-      setStatus('Seedance reference_image_urls limit is 9.', 'warn');
-      return;
-    }
-    if (refVideoUrls.length > 3) {
-      setStatus('Seedance reference_video_urls limit is 3.', 'warn');
-      return;
-    }
-    if (refAudioUrls.length > 3) {
-      setStatus('Seedance reference_audio_urls limit is 3.', 'warn');
-      return;
-    }
-
-    taskInput = {
-      prompt: finalPrompt,
-      duration: Math.max(spec.duration.min, Math.min(spec.duration.max, duration)),
-      aspect_ratio: ratio,
-      resolution: quality === '480P' ? '480p' : quality === '720P' ? '720p' : '1080p',
-      generate_audio: seedGenerateAudio,
-      web_search: seedWebSearch,
-      nsfw_checker: seedNsfwChecker
-    };
-    if (firstFrameUrl) taskInput.first_frame_url = firstFrameUrl;
-    if (lastFrameUrl) taskInput.last_frame_url = lastFrameUrl;
-    if (refImageUrls.length) taskInput.reference_image_urls = refImageUrls;
-    if (refVideoUrls.length) taskInput.reference_video_urls = refVideoUrls;
-    if (refAudioUrls.length) taskInput.reference_audio_urls = refAudioUrls;
-    clipPrefix = spec.taskModels[0].includes('fast') ? 'seedance_fast' : 'seedance2';
+    // seedance
+    if(seedMode==='frames'&&!firstFrameUrl&&!lastFrameUrl){setStatus('Seedance Frames mode needs Start or End frame.','warn');return;}
+    if(seedMode==='refs'&&!refImageUrls.length&&!refVideoUrls.length&&!refAudioUrls.length){setStatus('Seedance Refs mode needs at least one ref.','warn');return;}
+    if(seedMode!=='frames'&&(firstFrameUrl||lastFrameUrl)){setStatus('Switch to Frames mode to use Start/End frame.','warn');return;}
+    if(seedMode!=='refs'&&(refImageUrls.length||refVideoUrls.length||refAudioUrls.length)){setStatus('Switch to Multimodal Refs mode to use references.','warn');return;}
+    if(refImageUrls.length>9||refVideoUrls.length>3||refAudioUrls.length>3){setStatus('Exceeded Seedance reference limits.','warn');return;}
+    taskInput={prompt,duration:Math.max(spec.duration.min,Math.min(spec.duration.max,duration)),aspect_ratio:ratio,resolution:quality==='480P'?'480p':quality==='720P'?'720p':'1080p',generate_audio:getChecked('seedGenerateAudio'),web_search:getChecked('seedWebSearch'),nsfw_checker:getChecked('seedNsfwChecker')};
+    if(firstFrameUrl)taskInput.first_frame_url=firstFrameUrl;
+    if(lastFrameUrl)taskInput.last_frame_url=lastFrameUrl;
+    if(refImageUrls.length)taskInput.reference_image_urls=refImageUrls;
+    if(refVideoUrls.length)taskInput.reference_video_urls=refVideoUrls;
+    if(refAudioUrls.length)taskInput.reference_audio_urls=refAudioUrls;
+    clipPrefix='seedance2';
   }
 
-  setBusy(true);
-  setLatestState(false);
-  showProgressStart();
-  setStatus('Submitting ' + spec.label + ' task to Kie...', 'info');
-
-  try {
-    const created = spec.type === 'veo31'
-      ? await createVeoTask(taskInput)
-      : await createTaskWithModelFallback(modelIds, taskInput);
-    const taskId = created.taskId;
-    setStatus('Task queued (' + created.modelUsed + '): ' + taskId.slice(0, 16) + '...', 'info');
-
-    const record = spec.type === 'veo31'
-      ? await waitVeoTask(taskId, function (state) { setStatus(spec.label + ' status: ' + state + '...', 'info'); }, 300000)
-      : await waitKieTask(taskId, function (state) {
-      setStatus(spec.label + ' status: ' + state + '...', 'info');
-    }, 240000);
-
-    const urls = extractResultUrls(record);
-    if (!urls.length) throw new Error('No output video URL returned by Kie.');
-    const outUrl = urls[0];
-
-    const durationSec = await getVideoDuration(outUrl) || 6;
-    videoState.latestUrl = outUrl;
-    videoState.latestName = clipPrefix + '_' + Date.now() + '.mp4';
-    videoState.latestDurationSec = durationSec;
-
-    const vp = document.getElementById('vPreview');
-    vp.src = outUrl;
-    vp.style.display = 'block';
-    vp.load();
-
-    showProgressDone();
-    setLatestState(true);
-    setStatus(spec.label + ' complete — adding to timeline...', 'ok');
+  setBusy(true);setLatestState(false);showProgressStart();setStatus('Submitting '+spec.label+' task…','info');
+  try{
+    const created=spec.type==='veo31'?await createVeoTask(taskInput):await createTaskWithModelFallback(modelIds,taskInput);
+    setStatus('Queued ('+created.modelUsed+'): '+created.taskId.slice(0,16)+'…','info');
+    const record=spec.type==='veo31'?await waitVeoTask(created.taskId,st=>setStatus(spec.label+' status: '+st+'…','info'),300000):await waitKieTask(created.taskId,st=>setStatus(spec.label+' status: '+st+'…','info'),240000);
+    const urls=extractResultUrls(record);
+    if(!urls.length)throw new Error('No output URL returned.');
+    const outUrl=urls[0];
+    const durationSec=await getVideoDuration(outUrl)||6;
+    videoState.latestUrl=outUrl;videoState.latestName=clipPrefix+'_'+Date.now()+'.mp4';videoState.latestDurationSec=durationSec;
+    const vp=document.getElementById('vPreview');vp.src=outUrl;vp.style.display='block';vp.load();
+    showProgressDone();setLatestState(true);setStatus(spec.label+' complete — adding to timeline…','ok');
     addToTimeline();
-  } catch (err) {
-    if (videoState.progressTimer) {
-      clearInterval(videoState.progressTimer);
-      videoState.progressTimer = null;
-    }
-    document.getElementById('prw').style.display = 'none';
-    document.getElementById('ph2').style.display = 'block';
-    setStatus(spec.label + ' failed: ' + (err && err.message ? err.message : String(err)), 'err');
-  } finally {
-    setBusy(false);
-  }
+  }catch(err){
+    if(videoState.progressTimer){clearInterval(videoState.progressTimer);videoState.progressTimer=null;}
+    document.getElementById('prw').classList.remove('on');
+    document.getElementById('ph2').style.display='flex';
+    setStatus(spec.label+' failed: '+(err&&err.message?err.message:String(err)),'err');
+  }finally{setBusy(false);}
 }
 
-function addToTimeline() {
-  if (!videoState.latestUrl) {
-    setStatus('No generated video to add.', 'warn');
-    return;
-  }
-  postClipToTimeline({
-    name: videoState.latestName || ('video_' + Date.now() + '.mp4'),
-    url: videoState.latestUrl,
-    durationSec: videoState.latestDurationSec || 6
-  });
-  setStatus('Generated clip added to timeline.', 'ok');
-}
-
-function downloadLatest() {
-  if (!videoState.latestUrl) {
-    setStatus('No generated video to download.', 'warn');
-    return;
-  }
-  const a = document.createElement('a');
-  a.href = videoState.latestUrl;
-  a.target = '_blank';
-  a.rel = 'noopener';
-  a.download = videoState.latestName || 'video_asset.mp4';
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setStatus('Download started for latest generated video.', 'ok');
-}
-
-function rst() {
-  document.getElementById('dnb').style.display = 'none';
-  document.getElementById('prw').style.display = 'none';
-  const vp = document.getElementById('vPreview');
-  vp.pause();
-  vp.removeAttribute('src');
-  vp.style.display = 'none';
-  document.getElementById('ph2').style.display = 'block';
-}
-
+/* ===== INIT ===== */
 setLatestState(false);
 syncModelUi();
 renderSeedanceRefs();
@@ -1344,6 +904,5 @@ clearFrame('end');
 </script>
 <script src="shared/timeline-bridge.js"></script>
 <script src="shared/english-only.js"></script>
-<script src="shared/resizable-panels.js"></script>
 </body>
 </html>
