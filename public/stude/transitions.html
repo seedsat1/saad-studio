@@ -1,73 +1,136 @@
-﻿<!DOCTYPE html>
-<html lang="en" dir="ltr">
+<!DOCTYPE html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Transitions Studio</title>
-<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<title>Transitions</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#171b22;--panel:#151a23;--panel2:#1a202b;--border:#2a3240;--text:#d7e4ff;--dim:#7f91b6;--accent:#4a9eff;--accent2:#72b1ff;--ok:#5dd59b;--warn:#ffc36b;--err:#ff7f7f;--vio:#7f5cff}
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:var(--bg);color:var(--text);font-family:'Tajawal',sans-serif;height:100vh;overflow:hidden;display:flex;flex-direction:column}
-.menubar{height:24px;background:#090d18;display:flex;align-items:center;padding:0 8px;gap:2px;border-bottom:1px solid #1a2340;font-size:11px}
-.menubar span{padding:2px 8px;color:var(--dim);cursor:pointer;border-radius:2px}.menubar span:hover{color:var(--text);background:#202b49}
-.menubar .spacer{flex:1}.menubar .title{color:var(--accent);font-weight:700;letter-spacing:1px}
-.page-tabs{height:30px;background:#171b22;display:flex;align-items:center;border-bottom:1px solid var(--border);padding:0 8px}
-.page-tab{padding:5px 14px;font-size:10px;color:var(--dim);cursor:pointer;border-bottom:2px solid transparent;transition:.15s;text-decoration:none;font-family:'Tajawal'}
-.page-tab:hover{color:var(--text)}.page-tab.active{color:var(--accent2);border-bottom-color:var(--accent2)}
-.workspace{flex:1;display:flex;flex-direction:column;overflow:hidden}
-.top-row{flex:1;display:flex;min-height:0}
-.panel{background:var(--panel);display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--border)}
-.ph{height:30px;background:var(--panel2);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 10px;gap:8px;flex-shrink:0}
-.ph .l{font-size:11px;color:#9cb1d9;text-transform:uppercase;letter-spacing:.6px;font-weight:700}.ph .l.a{color:#78aaff}
-.pb{flex:1;overflow-y:auto;padding:10px;font-size:12px}
-.vr{width:2px;background:#24345a;cursor:col-resize;flex-shrink:0}.vr:hover{background:#3f65b1}
-.tag{font-size:10px;border:1px solid #3a4a66;background:#1b2331;color:#9ab6e4;padding:2px 8px;border-radius:999px}
-.btn{padding:7px 12px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;border:1px solid transparent;transition:.12s;font-family:'Tajawal'}
-.btn.p{background:linear-gradient(180deg,#5c8fde,#4a7ccc);color:#fff}.btn.p:hover{filter:brightness(1.05)}
-.btn.s{background:#151c28;color:#b6c6e8;border-color:#334157}.btn.s:hover{background:#1c2533;color:#e5edff}
-.notice{font-size:11px;line-height:1.55;color:#98aad0}
-.kv{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.k{background:#141b28;border:1px solid #33445f;border-radius:8px;padding:8px}
-.k .l{font-size:10px;color:#87a1d2;margin-bottom:3px}.k .v{font-size:12px;color:#dbe7ff;font-family:'JetBrains Mono'}
-
-.ab-wrap{display:grid;grid-template-columns:1fr 120px 1fr;gap:12px;align-items:center;margin-bottom:12px}
-.ab-box{height:170px;border:1px solid #33445f;border-radius:14px;background:linear-gradient(180deg,#171f2d,#121a27);position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center}
-.ab-label{position:absolute;top:8px;left:8px;background:#5a39d6;color:#fff;font-size:11px;padding:2px 8px;border-radius:6px;font-weight:700}
-.ab-img{max-width:100%;max-height:100%;object-fit:contain;display:none}
-.ab-empty{font-size:12px;color:#8aa0ca;text-align:center}
-.ab-mid{display:flex;flex-direction:column;align-items:center;gap:8px}
-.ab-mid .chip{border:1px solid #40557a;background:#1f2737;color:#a9c0e6;padding:5px 12px;border-radius:999px;font-size:11px;font-weight:700}
-.ab-mid .dot{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#202a3b;border:1px solid #40557a;color:#b9cbea;font-weight:700}
-
-.catalog{display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) !important;gap:10px;margin-top:10px}
-.card{border:1px solid #334157;background:#151d2a;border-radius:12px;overflow:hidden;cursor:pointer;transition:.14s}
-.card:hover{border-color:#3f65b1;transform:translateY(-1px)}
-.card.a{border-color:#5b8fde;box-shadow:0 0 0 1px rgba(91,143,222,.35) inset}
-.card-top{height:74px;position:relative}
-.card-credit{position:absolute;right:8px;top:8px;background:#141d2c;border:1px solid #3b4c66;color:#9db5e6;font-size:10px;padding:1px 6px;border-radius:7px}
-.card-icon{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:20px;height:20px;border:1px solid rgba(205,222,255,.25);border-radius:4px;display:flex;align-items:center;justify-content:center;color:#c6d6f8;opacity:.7;font-size:12px}
-.card-body{padding:8px}
-.card-name{font-size:13px;font-weight:700;color:#edf3ff}
-.card-desc{font-size:11px;color:#90a3cb;line-height:1.45;margin-top:2px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-
-.ctl{display:flex;align-items:center;gap:10px;margin-top:8px}
-.range{flex:1;height:5px;background:#233355;border-radius:4px;position:relative}
-.range-fill{position:absolute;left:0;top:0;height:100%;background:#63a1ff;border-radius:4px;width:22%}
-.range input{position:absolute;inset:0;width:100%;opacity:0}
-
-.eases{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
-.ease{padding:5px 10px;border:1px solid #304670;background:#111a32;color:#9db1da;border-radius:6px;font-size:11px;cursor:pointer}
-.ease.a{border-color:#6f9bff;color:#cfe0ff;background:#1c2c54}
-.inspector-inline{margin-top:10px;border:1px solid #334157;background:#141b28;border-radius:10px;padding:10px}
-.inline-grid{display:grid;grid-template-columns:1.1fr .9fr .9fr;gap:10px;align-items:end}
-@media (max-width:1400px){
-  .inline-grid{grid-template-columns:1fr}
-}
-@media (max-width:640px){
-  .catalog{grid-template-columns:1fr !important}
-}
-
+body{background:#080c1a;color:#e8ecf8;font-family:'Sora',sans-serif;height:100vh;overflow:hidden}
+.layout{display:grid;grid-template-columns:360px 1fr;height:100vh}
+/* ===== LEFT PANEL ===== */
+.tools{background:linear-gradient(180deg,#0c1024,#0a0e1c);border-right:1px solid rgba(255,255,255,.05);display:flex;flex-direction:column;overflow:hidden}
+.tools-header{padding:20px 20px 14px;border-bottom:1px solid rgba(255,255,255,.04);flex-shrink:0}
+.t-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:16px;background:rgba(139,92,246,.1);border:1px solid rgba(139,92,246,.12);font-size:9px;font-weight:700;color:#a78bfa;letter-spacing:.8px;text-transform:uppercase;margin-bottom:10px}
+.t-badge .dot{width:5px;height:5px;border-radius:50%;background:#a78bfa;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.t-title{font-size:18px;font-weight:800;letter-spacing:-.5px}
+.tools-scroll{flex:1;overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.06) transparent;min-height:0}
+.tools-scroll::-webkit-scrollbar{width:4px}
+.tools-scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:2px}
+.sec{padding:16px 20px;border-bottom:1px solid rgba(255,255,255,.04)}
+.sec:last-child{border-bottom:none}
+.sec-label{font-size:9px;font-weight:700;color:#4e5678;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.sec-label .d{width:5px;height:5px;border-radius:50%}
+/* Input A/B */
+.inputs-row{display:flex;gap:10px;margin-bottom:12px}
+.input-card{flex:1;border-radius:12px;border:1.5px dashed rgba(139,92,246,.2);background:rgba(139,92,246,.02);padding:20px 10px;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;transition:.2s;position:relative;overflow:hidden;min-height:100px}
+.input-card:hover{border-color:rgba(139,92,246,.4);background:rgba(139,92,246,.04)}
+.input-card.has-file{border-style:solid;border-color:rgba(34,211,153,.2);background:rgba(34,211,153,.03)}
+.ic-badge{position:absolute;top:8px;left:8px;width:22px;height:22px;border-radius:6px;background:rgba(139,92,246,.15);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:#a78bfa;z-index:2}
+.ic-label{font-size:10px;font-weight:700;color:#8890b0;position:relative;z-index:2;text-align:center;word-break:break-all}
+.ic-sub{font-size:9px;color:#4e5678;position:relative;z-index:2}
+.ic-thumb{position:absolute;inset:0;background-size:cover;background-position:center;border-radius:10px;opacity:.5}
+.ic-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:10px;opacity:.5}
+/* Arrow */
+.inputs-arrow{display:flex;align-items:center;justify-content:center;position:relative;margin:-6px 0 6px}
+.arrow-line{width:100%;height:1px;background:rgba(139,92,246,.15);position:absolute}
+.arrow-circle{width:32px;height:32px;border-radius:50%;background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.2);display:flex;align-items:center;justify-content:center;position:relative;z-index:2;font-size:8px;color:#a78bfa;text-align:center;padding:2px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+/* Clip info */
+.clips-row{display:flex;gap:8px;margin-bottom:10px}
+.clip-box{flex:1;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.05)}
+.clip-label{font-size:8px;color:#4e5678;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.clip-val{font-size:11px;font-weight:600;color:#6b7394;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.clip-note{font-size:9px;color:#3d4568;margin-bottom:10px;line-height:1.5}
+/* Duration */
+.s-row{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.s-row:last-child{margin-bottom:0}
+.s-name{font-size:10px;font-weight:600;color:#6b7394;min-width:65px;flex-shrink:0}
+.dur-wrap{flex:1;display:flex;align-items:center;gap:8px}
+.dur-s{flex:1;height:3px;-webkit-appearance:none;appearance:none;background:linear-gradient(90deg,rgba(139,92,246,.3),rgba(251,146,60,.3));border-radius:2px;outline:none;cursor:pointer}
+.dur-s::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:#fff;cursor:pointer;box-shadow:0 0 6px rgba(0,0,0,.4)}
+.dur-v{font-size:12px;font-weight:800;color:#fb923c;font-family:'JetBrains Mono',monospace;min-width:32px;text-align:right}
+.asp-select{flex:1;padding:6px 8px;border-radius:8px;border:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.03);color:#e8ecf8;font-family:inherit;font-size:10px;font-weight:600;outline:none;cursor:pointer}
+.asp-select option{background:#0c1024}
+.chips{display:flex;gap:4px;flex:1;flex-wrap:wrap}
+.chip{padding:6px 12px;border-radius:7px;border:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.02);color:#6b7394;font-family:inherit;font-size:10px;font-weight:600;cursor:pointer;transition:.15s}
+.chip:hover{background:rgba(255,255,255,.04);color:#a0a8c8}
+.chip.on{background:rgba(139,92,246,.12);color:#a78bfa;border-color:rgba(139,92,246,.2)}
+/* Result */
+.result-sec{padding:14px 20px;border-bottom:1px solid rgba(255,255,255,.04);display:none}
+.result-sec.visible{display:block}
+.result-box{width:100%;border-radius:12px;overflow:hidden;background:#060914;border:1px solid rgba(34,211,153,.15);position:relative}
+.result-video{width:100%;display:block;max-height:160px;object-fit:contain}
+.result-actions{display:flex;gap:6px;margin-top:8px}
+.result-btn{flex:1;padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.02);color:#a0a8c8;font-family:inherit;font-size:10px;font-weight:600;cursor:pointer;transition:.15s;text-align:center}
+.result-btn:hover{background:rgba(255,255,255,.05);color:#e8ecf8}
+.result-btn.green{border-color:rgba(34,211,153,.2);color:#34d399}
+.result-btn.green:hover{background:rgba(34,211,153,.06)}
+/* Status */
+.status-row{padding:8px 20px 4px;flex-shrink:0;font-size:10px;font-weight:600;min-height:22px;transition:.2s}
+/* Generate bar */
+.gen-bar{padding:12px 20px;border-top:1px solid rgba(255,255,255,.04);display:flex;gap:8px;flex-shrink:0;background:linear-gradient(180deg,rgba(12,16,36,.95),rgba(10,14,28,.98))}
+.btn-gen{flex:1;padding:12px;border-radius:12px;border:none;position:relative;overflow:hidden;font-family:inherit;font-size:13px;font-weight:700;color:#fff;cursor:pointer;transition:.2s;display:flex;align-items:center;justify-content:center;gap:7px}
+.btn-gen::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,#7c3aed,#6366f1,#a78bfa);background-size:200% 200%;animation:gs 4s ease infinite}
+.btn-gen::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.1),transparent)}
+.btn-gen span,.btn-gen svg{position:relative;z-index:2}
+@keyframes gs{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+.btn-gen:hover{transform:translateY(-1px);box-shadow:0 6px 24px rgba(139,92,246,.3)}
+.btn-gen:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.btn-sec{padding:12px 16px;border-radius:12px;border:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.02);color:#6b7394;font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;transition:.15s;white-space:nowrap}
+.btn-sec:hover{background:rgba(255,255,255,.05);color:#a0a8c8}
+.btn-sec:disabled{opacity:.4;cursor:not-allowed}
+.progress{height:2px;overflow:hidden;flex-shrink:0}
+.progress.on{background:rgba(255,255,255,.03)}
+.progress-fill{height:100%;width:0%;background:linear-gradient(90deg,#a78bfa,#fb923c);transition:width 1.5s cubic-bezier(.16,1,.3,1)}
+/* ===== RIGHT PANEL ===== */
+.library{background:#060914;display:flex;flex-direction:column;overflow:hidden}
+.lib-header{padding:14px 20px;border-bottom:1px solid rgba(255,255,255,.04);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.lib-title{font-size:9px;font-weight:700;color:#4e5678;letter-spacing:1px;text-transform:uppercase}
+.lib-count{font-size:10px;color:#3d4568;font-family:'JetBrains Mono',monospace}
+.lib-search{padding:12px 20px;flex-shrink:0}
+.lib-search input{width:100%;padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.03);color:#e8ecf8;font-family:inherit;font-size:11px;outline:none;transition:.15s}
+.lib-search input::placeholder{color:#3d4568}
+.lib-search input:focus{border-color:rgba(139,92,246,.3)}
+.lib-grid-wrap{flex:1;overflow-y:auto;padding:0 20px 20px;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.06) transparent}
+.lib-grid-wrap::-webkit-scrollbar{width:4px}
+.lib-grid-wrap::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:2px}
+.lib-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+/* Transition Card */
+.tr-card{border-radius:12px;border:1px solid rgba(255,255,255,.05);background:linear-gradient(165deg,rgba(15,19,42,.8),rgba(12,16,36,.9));overflow:hidden;cursor:pointer;transition:.2s;position:relative}
+.tr-card:hover{border-color:rgba(139,92,246,.25);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.3)}
+.tr-card.selected{border-color:rgba(139,92,246,.5);box-shadow:0 0 0 2px rgba(139,92,246,.15),0 8px 24px rgba(0,0,0,.3)}
+.tr-preview{height:90px;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.tr-preview::before{content:'';position:absolute;inset:0;background:linear-gradient(180deg,transparent 40%,rgba(8,12,26,.7));z-index:1}
+.tr-shimmer{width:60%;height:2px;border-radius:1px;position:relative;z-index:2}
+.tr-credits{position:absolute;top:8px;right:8px;padding:3px 8px;border-radius:10px;background:rgba(251,146,60,.15);font-size:9px;font-weight:700;color:#fb923c;font-family:'JetBrains Mono',monospace;display:flex;align-items:center;gap:3px;z-index:2}
+.tr-credits svg{width:10px;height:10px}
+.tr-info{padding:10px 12px}
+.tr-name{font-size:12px;font-weight:700;margin-bottom:2px}
+.tr-desc{font-size:10px;color:#6b7394;line-height:1.4}
+.tr-cat{position:absolute;top:8px;left:10px;padding:3px 8px;border-radius:8px;font-size:8px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;border:1px solid;z-index:2}
+/* Category chips */
+.cat-chips{display:flex;gap:5px;padding:0 20px 12px;flex-shrink:0;flex-wrap:wrap}
+.cat-chip{padding:5px 12px;border-radius:14px;border:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.02);color:#6b7394;font-family:inherit;font-size:10px;font-weight:600;cursor:pointer;transition:.15s}
+.cat-chip:hover{background:rgba(255,255,255,.04);color:#a0a8c8}
+.cat-chip.on{background:rgba(139,92,246,.12);color:#a78bfa;border-color:rgba(139,92,246,.2)}
+/* Detail panel */
+.detail-panel{max-height:0;overflow:hidden;transition:max-height .35s cubic-bezier(.16,1,.3,1),padding .35s;padding:0 20px;border-bottom:1px solid transparent;flex-shrink:0}
+.detail-panel.on{max-height:160px;padding:12px 20px;border-bottom-color:rgba(255,255,255,.04)}
+.dp-header{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.dp-dot{width:6px;height:6px;border-radius:50%;background:#a78bfa;animation:pulse 2s infinite}
+.dp-label{font-size:9px;font-weight:700;color:#4e5678;text-transform:uppercase;letter-spacing:.8px;flex:1}
+.dp-name{font-size:10px;font-weight:700;color:#a78bfa}
+.dp-close{width:18px;height:18px;border-radius:5px;border:none;background:none;color:#4e5678;cursor:pointer;font-size:10px;transition:.15s;display:flex;align-items:center;justify-content:center}
+.dp-close:hover{color:#fb7185;background:rgba(251,113,133,.1)}
+.dp-desc{font-size:11px;color:#6b7394;line-height:1.5}
+.dp-meta{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.dp-tag{padding:3px 8px;border-radius:6px;font-size:9px;font-weight:600;background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.12);color:#a78bfa}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner{width:14px;height:14px;border:2px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:inline-block}
+@media(max-width:768px){.layout{grid-template-columns:1fr;grid-template-rows:auto 1fr}.tools{max-height:50vh}}
 </style>
 </head>
 <body>
@@ -75,189 +138,597 @@ body{background:var(--bg);color:var(--text);font-family:'Tajawal',sans-serif;hei
 (function(){
   var params=new URLSearchParams(location.search);
   var isEmbed=params.get('embed')==='1';
-  var pageName='transitions';
-  if(!isEmbed){ location.replace('studio-shell.html?page='+encodeURIComponent(pageName)); return; }
+  if(!isEmbed){ location.replace('studio-shell.html?page=transitions'); return; }
   window.__FF_EMBED_TOP=true;
   document.documentElement.lang='en';
   document.documentElement.dir='ltr';
-  document.addEventListener('DOMContentLoaded',function(){
-    var mb=document.querySelector('.menubar'); if(mb) mb.style.display='none';
-    var tabs=document.querySelector('.page-tabs'); if(tabs) tabs.style.display='none';
-    var ws=document.querySelector('.workspace'); if(ws){ ws.style.height='100vh'; ws.style.display='flex'; ws.style.flexDirection='column'; }
-    var tr=document.querySelector('.top-row'); if(tr){ tr.style.flex='1 1 auto'; tr.style.minHeight='0'; }
-  });
 })();
 </script>
 
-<div class="menubar"><span class="title">FRAMEFORGE</span><span>File</span><span>Edit</span><span>View</span><div class="spacer"></div><span style="color:#5f739f;font-family:'JetBrains Mono';font-size:9px">Transitions Studio</span></div>
-<div class="page-tabs"><a class="page-tab" href="sound.html">Audio & Music</a><a class="page-tab" href="video.html">Video Generation</a><a class="page-tab" href="presets.html">Image Generation</a><a class="page-tab active" href="transitions.html">Transitions</a><a class="page-tab" href="lighting.html">Lighting</a><a class="page-tab" href="prompt.html">Prompt</a></div>
+<div class="layout">
 
-<div class="workspace">
-  <div class="top-row">
-    <div class="panel" style="flex:1">
-      <div class="ph"><span class="l a">Transition Composer</span><span class="tag" id="activeNameTag">Raven Transition</span></div>
-      <div class="pb">
-        <div class="ab-wrap">
-          <div>
-            <div class="ab-box" id="abox" onclick="pickAB('a')">
-              <span class="ab-label">A</span>
-              <img id="aImg" class="ab-img" alt="A input">
-              <div class="ab-empty" id="aEmpty">Add Input A<br>Click to upload</div>
-            </div>
-            <div style="display:flex;gap:6px;margin-top:6px"><button class="btn s" style="flex:1" onclick="pickAB('a')">Upload A</button><button class="btn s" onclick="clearAB('a')">Clear</button></div>
-            <input id="aFile" type="file" accept="image/*,video/*" style="display:none" onchange="handleABFile(this,'a')">
+  <!-- LEFT: Controls -->
+  <div class="tools">
+    <div class="tools-header">
+      <div class="t-badge"><span class="dot"></span>Transitions</div>
+      <div class="t-title">Transition Editor</div>
+    </div>
+
+    <div class="tools-scroll">
+
+      <!-- Inputs A & B -->
+      <div class="sec">
+        <div class="sec-label"><span class="d" style="background:#a78bfa"></span>INPUTS</div>
+        <div class="inputs-row">
+          <div class="input-card" id="inputA" onclick="triggerUpload('A')">
+            <span class="ic-badge">A</span>
+            <div class="ic-thumb" id="thumbA"></div>
+            <video class="ic-video" id="vidA" muted loop playsinline style="display:none"></video>
+            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" style="color:#a78bfa;position:relative;z-index:2" id="iconA"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+            <span class="ic-label" id="labelA">Add Input A</span>
+            <span class="ic-sub" id="subA">Click to upload</span>
           </div>
-          <div class="ab-mid">
-            <div class="chip" id="midName">Raven Transition</div>
-            <div class="dot">→</div>
-          </div>
-          <div>
-            <div class="ab-box" id="bbox" onclick="pickAB('b')">
-              <span class="ab-label" style="left:auto;right:8px">B</span>
-              <img id="bImg" class="ab-img" alt="B input">
-              <div class="ab-empty" id="bEmpty">Add Input B<br>Click to upload</div>
-            </div>
-            <div style="display:flex;gap:6px;margin-top:6px"><button class="btn s" style="flex:1" onclick="pickAB('b')">Upload B</button><button class="btn s" onclick="clearAB('b')">Clear</button></div>
-            <input id="bFile" type="file" accept="image/*,video/*" style="display:none" onchange="handleABFile(this,'b')">
+          <div class="input-card" id="inputB" onclick="triggerUpload('B')">
+            <span class="ic-badge" style="background:rgba(251,146,60,.15);color:#fb923c">B</span>
+            <div class="ic-thumb" id="thumbB"></div>
+            <video class="ic-video" id="vidB" muted loop playsinline style="display:none"></video>
+            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" style="color:#fb923c;position:relative;z-index:2" id="iconB"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+            <span class="ic-label" id="labelB">Add Input B</span>
+            <span class="ic-sub" id="subB">Click to upload</span>
           </div>
         </div>
+        <input type="file" id="fileA" accept="image/*,video/*" style="display:none" onchange="handleFile(this,'A')">
+        <input type="file" id="fileB" accept="image/*,video/*" style="display:none" onchange="handleFile(this,'B')">
 
-        <div class="inspector-inline">
-          <div class="inline-grid">
-            <div>
-              <div class="kv">
-                <div class="k"><div class="l">From Clip</div><div class="v" id="fromClip">-</div></div>
-                <div class="k"><div class="l">To Clip</div><div class="v" id="toClip">-</div></div>
-              </div>
-              <div class="notice" id="pairHint" style="margin-top:8px">Select a visual clip in timeline. Next clip on same track will be detected.</div>
-            </div>
-            <div>
-              <div style="font-size:12px;color:#a8bae0;margin-bottom:6px">Duration</div>
-              <div class="ctl"><div class="range"><div class="range-fill" id="dFill"></div><input id="dur" type="range" min="100" max="2000" value="500" oninput="syncDur()"></div><div id="dVal" style="width:64px;font-family:'JetBrains Mono';font-size:12px;color:#74a8ff">500ms</div></div>
-            </div>
-            <div>
-              <div style="font-size:12px;color:#a8bae0;margin-bottom:6px">Easing</div>
-              <div class="eases" id="easeList">
-                <button class="ease a" data-e="ease-in-out" onclick="pickEase(this)">ease-in-out</button>
-                <button class="ease" data-e="ease-in" onclick="pickEase(this)">ease-in</button>
-                <button class="ease" data-e="ease-out" onclick="pickEase(this)">ease-out</button>
-                <button class="ease" data-e="linear" onclick="pickEase(this)">linear</button>
-              </div>
-              <div style="display:flex;gap:6px;margin-top:10px">
-                <button class="btn p" style="flex:1" onclick="generateTransition()">Generate Transition</button>
-                <button class="btn s" style="flex:1" onclick="applyTransition()">Apply To Timeline</button>
-              </div>
-            </div>
-          </div>
-          <div class="notice" id="status" style="margin-top:10px">Ready.</div>
+        <div class="inputs-arrow">
+          <div class="arrow-line"></div>
+          <div class="arrow-circle" id="arrowName">&#x2192;</div>
         </div>
 
-        <div class="catalog" id="catalog"></div>
+        <div class="clips-row">
+          <div class="clip-box"><div class="clip-label">From Clip</div><div class="clip-val" id="fromClip">&#x2014;</div></div>
+          <div class="clip-box"><div class="clip-label">To Clip</div><div class="clip-val" id="toClip">&#x2014;</div></div>
+        </div>
+        <div class="clip-note" id="pairNote">Select a clip in timeline that has a next clip on same track.</div>
       </div>
+
+      <!-- Settings -->
+      <div class="sec">
+        <div class="sec-label"><span class="d" style="background:#22c55e"></span>SETTINGS</div>
+        <div class="s-row">
+          <span class="s-name">Duration</span>
+          <div class="dur-wrap">
+            <input type="range" class="dur-s" id="durSlider" min="3" max="10" value="5" step="1" oninput="onDurInput(this.value)">
+            <span class="dur-v" id="durV">5s</span>
+          </div>
+        </div>
+        <div class="s-row">
+          <span class="s-name">Aspect</span>
+          <select class="asp-select" id="aspectSel">
+            <option value="16:9">16:9 Landscape</option>
+            <option value="9:16">9:16 Portrait</option>
+            <option value="1:1">1:1 Square</option>
+            <option value="4:3">4:3 Standard</option>
+            <option value="21:9">21:9 Cinematic</option>
+          </select>
+        </div>
+        <div class="s-row">
+          <span class="s-name">Easing</span>
+          <div class="chips">
+            <button class="chip on" onclick="pickEase(this)">ease-in-out</button>
+            <button class="chip" onclick="pickEase(this)">ease-in</button>
+            <button class="chip" onclick="pickEase(this)">ease-out</button>
+            <button class="chip" onclick="pickEase(this)">linear</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Result (hidden until generated) -->
+      <div class="result-sec" id="resultSec">
+        <div class="sec-label"><span class="d" style="background:#34d399"></span>OUTPUT</div>
+        <div class="result-box">
+          <video class="result-video" id="resultVideo" controls playsinline></video>
+        </div>
+        <div class="result-actions">
+          <button class="result-btn green" onclick="downloadResult()">Download</button>
+          <button class="result-btn" onclick="applyToTimeline()">Apply to Timeline</button>
+        </div>
+      </div>
+
+    </div><!-- /tools-scroll -->
+
+    <div class="status-row" id="statusRow" style="color:#4e5678">Ready &#x2014; select a transition and upload inputs.</div>
+    <div class="progress" id="prog"><div class="progress-fill" id="progFill"></div></div>
+    <div class="gen-bar">
+      <button class="btn-gen" id="btnGen" onclick="generate()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+        <span id="btnGenText">Generate Transition</span>
+      </button>
+      <button class="btn-sec" id="btnApply" onclick="applyToTimeline()">Apply To Timeline</button>
+    </div>
+  </div><!-- /tools -->
+
+  <!-- RIGHT: Library -->
+  <div class="library">
+    <div class="lib-header">
+      <span class="lib-title">Transition Library</span>
+      <span class="lib-count" id="libCount">22 transitions</span>
+    </div>
+    <div class="lib-search">
+      <input type="text" placeholder="Search transitions..." oninput="filterTrans(this.value)">
+    </div>
+    <div class="cat-chips">
+      <button class="cat-chip on" data-cat="all" onclick="pickCat(this)">All</button>
+      <button class="cat-chip" data-cat="cinematic" onclick="pickCat(this)">Cinematic</button>
+      <button class="cat-chip" data-cat="dramatic" onclick="pickCat(this)">Dramatic</button>
+      <button class="cat-chip" data-cat="modern" onclick="pickCat(this)">Modern</button>
+    </div>
+    <div class="detail-panel" id="detailPanel">
+      <div class="dp-header">
+        <span class="dp-dot"></span>
+        <span class="dp-label">Selected Transition</span>
+        <span class="dp-name" id="dpName"></span>
+        <button class="dp-close" onclick="document.getElementById('detailPanel').classList.remove('on')">&#x2715;</button>
+      </div>
+      <div class="dp-desc" id="dpDesc"></div>
+      <div class="dp-meta" id="dpMeta"></div>
+    </div>
+    <div class="lib-grid-wrap">
+      <div class="lib-grid" id="libGrid"></div>
     </div>
   </div>
-</div>
+
+</div><!-- /layout -->
 
 <script>
-const transitionSwatches=[
-  'linear-gradient(135deg,#1a2542,#22355f)',
-  'linear-gradient(135deg,#1b2a45,#274b6e)',
-  'linear-gradient(135deg,#18253d,#2f3f63)',
-  'linear-gradient(135deg,#1a2b3f,#1f4e66)',
-  'linear-gradient(135deg,#1c2844,#3a3f6d)',
-  'linear-gradient(135deg,#1a2d48,#2b5f7d)'
+/* ================================================================
+   PRESETS — IDs match lib/transition-presets.ts exactly (server)
+================================================================ */
+var PRESETS = [
+  // Cinematic
+  {id:'raven_transition',    name:'Raven Transition',   cat:'cinematic', cm:1.4, dr:[4,8],  desc:'Dark raven swarm dramatically sweeps across the frame, revealing the next scene.'},
+  {id:'morph',               name:'Morph',              cat:'cinematic', cm:1.2, dr:[3,8],  desc:'Fluid identity-preserving morph that smoothly transforms frame A into frame B.'},
+  {id:'flying_cam_transition',name:'Flying Cam',        cat:'cinematic', cm:1.1, dr:[3,6],  desc:'Dynamic virtual camera flies through scene A and lands naturally into scene B.'},
+  {id:'seamless_transition', name:'Seamless',           cat:'cinematic', cm:1.2, dr:[4,8],  desc:'Scene A flows invisibly into scene B as one continuous shot.'},
+  {id:'stranger_transition', name:'Stranger',           cat:'cinematic', cm:1.5, dr:[4,8],  desc:'A mysterious dimensional shift carries scene A through an otherworldly veil into B.'},
+  {id:'intermission',        name:'Intermission',       cat:'cinematic', cm:1.2, dr:[4,10], desc:'An editorial chapter-break style pause elegantly bridges scene A and scene B.'},
+  // Dramatic
+  {id:'firelava',            name:'Firelava',           cat:'dramatic',  cm:1.4, dr:[4,8],  desc:'Molten lava and fire energy burn through the first frame to expose the second.'},
+  {id:'air_bending',         name:'Air Bending',        cat:'dramatic',  cm:1.2, dr:[3,7],  desc:'Graceful air currents and wind arcs sweep the frame from scene A into scene B.'},
+  {id:'water_bending',       name:'Water Bending',      cat:'dramatic',  cm:1.2, dr:[3,7],  desc:'Elegant fluid arcs and rippling water flow wash scene A into scene B.'},
+  {id:'flame_transition',    name:'Flame Transition',   cat:'dramatic',  cm:1.3, dr:[3,7],  desc:'Controlled flame tongues lick across the frame, burning away scene A to reveal B.'},
+  {id:'splash_transition',   name:'Splash',             cat:'dramatic',  cm:1.2, dr:[3,6],  desc:'A sharp burst of liquid splashes across the frame, revealing scene B.'},
+  {id:'shadow_smoke',        name:'Shadow Smoke',       cat:'dramatic',  cm:1.3, dr:[4,8],  desc:'Dark volumetric smoke engulfs the first scene and dissolves to reveal the second.'},
+  {id:'gorilla_transfer',    name:'Gorilla Transfer',   cat:'dramatic',  cm:1.4, dr:[4,8],  desc:'A primal, powerful transformation energy morphs scene A dominantly into scene B.'},
+  // Modern
+  {id:'melt_transition',     name:'Melt Transition',    cat:'modern',    cm:1.3, dr:[4,9],  desc:'Scene A elegantly liquifies and melts into the structure of scene B.'},
+  {id:'logo_transform',      name:'Logo Transform',     cat:'modern',    cm:1.3, dr:[3,7],  desc:'Graphic shapes and logo-like geometry from A elegantly reshape to form scene B.'},
+  {id:'display_transition',  name:'Display',            cat:'modern',    cm:1.1, dr:[3,7],  desc:'A digital display surface bridges the transition between scene A and scene B.'},
+  {id:'smoke_transition',    name:'Smoke',              cat:'modern',    cm:1.2, dr:[4,8],  desc:'Soft volumetric smoke drifts across the frame, covering A and dissolving to reveal B.'},
+  {id:'hand_transition',     name:'Hand Transition',    cat:'modern',    cm:1.1, dr:[3,6],  desc:'A natural hand motion enters the frame, occludes scene A, and reveals scene B.'},
+  {id:'column_wipe',         name:'Column Wipe',        cat:'modern',    cm:1.0, dr:[3,6],  desc:'An architectural column sweeps across the frame, wiping from scene A to scene B.'},
+  {id:'hole_transition',     name:'Hole / Portal',      cat:'modern',    cm:1.2, dr:[3,7],  desc:'A portal-like opening expands within scene A, revealing scene B inside.'},
+  {id:'jump_transition',     name:'Jump Cut',           cat:'modern',    cm:1.0, dr:[2,5],  desc:'Energy and momentum snap from scene A into scene B while feeling deliberate.'},
+  {id:'trucksition',         name:'Trucksition',        cat:'modern',    cm:1.1, dr:[3,6],  desc:'A large vehicle foreground passes like a wipe blade from scene A to scene B.'},
 ];
 
-const transitions=[
-  {name:'Raven Transition',credits:17,desc:'Dark raven swarm dramatically sweeps across the frame.'},
-  {name:'Morph',credits:15,desc:'Fluid identity-preserving morph between scene A and B.'},
-  {name:'Air Bending',credits:15,desc:'Graceful air currents and wind arcs bridge the cut.'},
-  {name:'Shadow Smoke',credits:16,desc:'Dark volumetric smoke envelops first scene and clears.'},
-  {name:'Water Bending',credits:15,desc:'Elegant fluid arcs and rippling waterflow wash-through.'},
-  {name:'Firelava',credits:17,desc:'Molten lava and fire energy burn through the cut.'},
-  {name:'Flying Cam Transition',credits:14,desc:'Virtual camera flies through scene A and lands in B.'},
-  {name:'Melt Transition',credits:16,desc:'Scene A liquifies and melts into the structure of B.'},
-  {name:'Splash Transition',credits:15,desc:'Sharp burst of liquid splashes across the frame edge.'},
-  {name:'Flame Transition',credits:16,desc:'Controlled flame tongues lick across transition line.'},
-  {name:'Smoke Transition',credits:15,desc:'Soft volumetric smoke drifts scene A into scene B.'},
-  {name:'Logo Transform',credits:16,desc:'Graphic shape and logo-like geometry bridge both shots.'},
-  {name:'Hand Transition',credits:14,desc:'Natural hand motion enters frame and drives the reveal.'},
-  {name:'Column Wipe',credits:12,desc:'Architectural column sweep wipes frame A into B.'},
-  {name:'Hole Transition',credits:15,desc:'Portal-like opening expands from center to reveal B.'},
-  {name:'Display Transition',credits:14,desc:'Digital display surface bridges one scene to another.'},
-  {name:'Jump Transition',credits:12,desc:'Momentum snap jump cut with directional energy.'},
-  {name:'Seamless Transition',credits:15,desc:'Continuous motion blend designed for hidden cuts.'},
-  {name:'Trucksition',credits:14,desc:'Large vehicle foreground passes like a wipe blade.'},
-  {name:'Gorilla Transfer',credits:17,desc:'Primal energetic shape morph transition.'},
-  {name:'Intermission',credits:15,desc:'Editorial chapter-break style bridge between moments.'},
-  {name:'Stranger Transition',credits:18,desc:'Mysterious dimensional shift carries A toward B.'}
-].map((item,idx)=>({ ...item, bg: transitionSwatches[idx % transitionSwatches.length] }));
+var CAT_COLORS = {cinematic:'#818cf8', dramatic:'#fb923c', modern:'#22d3ee'};
+var CAT_LABELS = {cinematic:'Cinematic', dramatic:'Dramatic', modern:'Modern'};
 
-let selected=transitions[0];
-let ease='ease-in-out';
-let pair=null;
-const ab={a:null,b:null};
+function calcCredits(p, dur) { return Math.ceil(4 * dur * p.cm); }
 
-function setStatus(t,k){const m={info:'#98aad0',ok:'#5dd59b',warn:'#ffc36b',err:'#ff7f7f'};const el=document.getElementById('status');el.textContent=t;el.style.color=m[k||'info']||m.info;}
-function syncDur(){const v=Number(document.getElementById('dur').value||500);document.getElementById('dVal').textContent=v+'ms';document.getElementById('dFill').style.width=((v-100)/1900*100)+'%';}
-function pickEase(btn){document.querySelectorAll('#easeList .ease').forEach(x=>x.classList.remove('a'));btn.classList.add('a');ease=btn.getAttribute('data-e')||'ease-in-out';}
+/* ================================================================
+   STATE
+================================================================ */
+var _selected = PRESETS[0];
+var _ease = 'ease-in-out';
+var _duration = 5;
+var _aspectRatio = '16:9';
+var _fileA = null, _fileB = null;
+var _urlA = null, _urlB = null;
+var _objA = null, _objB = null;
+var _pollTimer = null;
+var _resultVideoUrl = null;
+var _lastJobId = null;
+var _pair = null;
 
-function renderCatalog(){
-  const host=document.getElementById('catalog'); host.innerHTML='';
-  transitions.forEach((t)=>{
-    const el=document.createElement('div'); el.className='card'+(t.name===selected.name?' a':'');
-    el.innerHTML='<div class="card-top" style="background:'+t.bg+'"><span class="card-credit">⚡ '+t.credits+'</span><span class="card-icon">🎞</span></div><div class="card-body"><div class="card-name">'+t.name+'</div><div class="card-desc">'+t.desc+'</div></div>';
-    el.onclick=()=>{selected=t;document.getElementById('activeNameTag').textContent=t.name;document.getElementById('midName').textContent=t.name;renderCatalog();};
-    host.appendChild(el);
+/* ================================================================
+   UI
+================================================================ */
+function setStatus(msg, kind) {
+  var colors = {info:'#a78bfa', ok:'#34d399', warn:'#fb923c', err:'#fb7185'};
+  var row = document.getElementById('statusRow');
+  row.textContent = msg;
+  row.style.color = colors[kind||'info'] || colors.info;
+}
+
+function setGenerating(on) {
+  var btn = document.getElementById('btnGen');
+  var txt = document.getElementById('btnGenText');
+  var prog = document.getElementById('prog');
+  var fill = document.getElementById('progFill');
+  btn.disabled = on;
+  document.getElementById('btnApply').disabled = on;
+  if (on) {
+    txt.innerHTML = '<span class="spinner"></span> Generating...';
+    prog.classList.add('on');
+    fill.style.width = '0%';
+    requestAnimationFrame(function(){ fill.style.width = '85%'; });
+  } else {
+    txt.textContent = 'Generate Transition';
+    prog.classList.remove('on');
+    fill.style.width = '0%';
+  }
+}
+
+/* ================================================================
+   INPUTS
+================================================================ */
+function triggerUpload(which) { document.getElementById('file'+which).click(); }
+
+function handleFile(input, which) {
+  var file = input.files && input.files[0];
+  if (!file) return;
+  input.value = '';
+  if (which === 'A') { _fileA = file; _urlA = null; if(_objA){URL.revokeObjectURL(_objA);_objA=null;} }
+  else { _fileB = file; _urlB = null; if(_objB){URL.revokeObjectURL(_objB);_objB=null;} }
+
+  var objUrl = URL.createObjectURL(file);
+  if (which === 'A') _objA = objUrl; else _objB = objUrl;
+
+  var isVideo = file.type.startsWith('video/');
+  var card = document.getElementById('input'+which);
+  card.classList.add('has-file');
+  var thumb = document.getElementById('thumb'+which);
+  var vid = document.getElementById('vid'+which);
+  var icon = document.getElementById('icon'+which);
+  var lbl = document.getElementById('label'+which);
+  var sub = document.getElementById('sub'+which);
+
+  if (isVideo) {
+    thumb.style.backgroundImage = '';
+    vid.src = objUrl;
+    vid.style.display = 'block';
+    vid.play().catch(function(){});
+  } else {
+    vid.style.display = 'none';
+    vid.src = '';
+    thumb.style.backgroundImage = 'url('+objUrl+')';
+  }
+  icon.style.display = 'none';
+  lbl.textContent = file.name.length > 18 ? file.name.slice(0,15)+'...' : file.name;
+  sub.textContent = isVideo ? 'video' : 'image';
+}
+
+/* ================================================================
+   SETTINGS
+================================================================ */
+function onDurInput(v) {
+  _duration = Number(v);
+  document.getElementById('durV').textContent = v+'s';
+  updateArrow();
+}
+
+function updateArrow() {
+  var n = _selected.name;
+  document.getElementById('arrowName').textContent = n.length > 10 ? n.slice(0,8)+'\u2026' : n;
+}
+
+function pickEase(el) {
+  document.querySelectorAll('.chips .chip').forEach(function(c){ c.classList.remove('on'); });
+  el.classList.add('on');
+  _ease = el.textContent;
+}
+
+document.getElementById('aspectSel').addEventListener('change', function() { _aspectRatio = this.value; });
+
+/* ================================================================
+   UPLOAD TO STORAGE
+================================================================ */
+async function uploadFile(file, which) {
+  setStatus('Uploading input '+which+'...', 'info');
+  var assetType = file.type.startsWith('video/') ? 'video' : 'image';
+  var ur = await fetch('/api/studio/upload-url', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({fileName: file.name, contentType: file.type, assetType: assetType})
   });
+  if (!ur.ok) throw new Error('Failed to get upload URL for input '+which);
+  var uploadData = await ur.json();
+  var signedUrl = uploadData.signedUrl;
+  var publicUrl = uploadData.publicUrl;
+
+  await new Promise(function(res, rej) {
+    var xhr = new XMLHttpRequest();
+    xhr.upload.addEventListener('progress', function(e) {
+      if (e.lengthComputable) setStatus('Uploading '+which+'... '+Math.round(e.loaded/e.total*100)+'%', 'info');
+    });
+    xhr.addEventListener('load', function(){ xhr.status < 300 ? res() : rej(new Error('Upload '+which+' failed: '+xhr.status)); });
+    xhr.addEventListener('error', function(){ rej(new Error('Network error during upload '+which)); });
+    xhr.open('PUT', signedUrl);
+    xhr.setRequestHeader('Content-Type', file.type);
+    xhr.send(file);
+  });
+  return publicUrl;
 }
 
-function pickAB(which){document.getElementById(which==='a'?'aFile':'bFile').click();}
-function clearAB(which){ab[which]=null;const img=document.getElementById(which+'Img');const emp=document.getElementById(which+'Empty');img.removeAttribute('src');img.style.display='none';emp.style.display='block';}
-async function handleABFile(input,which){const f=input.files&&input.files[0];if(!f)return;ab[which]=f;const u=URL.createObjectURL(f);const img=document.getElementById(which+'Img');const emp=document.getElementById(which+'Empty');img.src=u;img.style.display='block';emp.style.display='none';input.value='';}
+/* ================================================================
+   GENERATE (full API flow)
+================================================================ */
+async function generate() {
+  var hasA = _fileA || _urlA;
+  var hasB = _fileB || _urlB;
+  if (!hasA) { setStatus('Upload Input A first.', 'warn'); return; }
+  if (!hasB) { setStatus('Upload Input B first.', 'warn'); return; }
 
-function getTimelineState(){try{if(window.parent&&window.parent.lastTimelineState)return window.parent.lastTimelineState;}catch{}return null;}
-function isVisual(c){const k=String(c&&c.kind||'').toLowerCase();return k==='video'||k==='image'||k==='psd';}
-function findPair(state){
-  if(!state||!Array.isArray(state.allClips)) return null;
-  const clips=state.allClips.filter(c=>isVisual(c)&&String(c.kind||'')!=='transition');
-  if(!clips.length) return null;
-  const selectedClip=state.selectedClip&&clips.find(c=>c.id===state.selectedClip.id);
-  const base=selectedClip || (state.activeVisualClip&&clips.find(c=>c.id===state.activeVisualClip.id)) || null;
-  if(!base) return null;
-  const same=clips.filter(c=>c.track===base.track&&c.id!==base.id).sort((a,b)=>a.start-b.start);
-  const next=same.find(c=>Number(c.start)>=Number(base.start)+Number(base.dur));
-  return next?{from:base,to:next}:null;
-}
-function refreshPair(){
-  pair=findPair(getTimelineState());
-  document.getElementById('fromClip').textContent=pair?(pair.from.label||pair.from.id):'-';
-  document.getElementById('toClip').textContent=pair?(pair.to.label||pair.to.id):'-';
-  document.getElementById('pairHint').textContent=pair?'Detected pair on same track. Ready to apply transition.':'No valid pair found. Select a clip in timeline that has a next clip on same track.';
+  stopPoll();
+  _resultVideoUrl = null;
+  document.getElementById('resultSec').classList.remove('visible');
+  setGenerating(true);
+
+  try {
+    var inputAUrl = _urlA || await uploadFile(_fileA, 'A');
+    _urlA = inputAUrl;
+    var inputBUrl = _urlB || await uploadFile(_fileB, 'B');
+    _urlB = inputBUrl;
+
+    setStatus('Creating project...', 'info');
+    var inputAType = (_fileA && _fileA.type.startsWith('video/')) ? 'video' : 'image';
+    var inputBType = (_fileB && _fileB.type.startsWith('video/')) ? 'video' : 'image';
+
+    var projRes = await fetch('/api/transitions/project', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        title: _selected.name + ' \u2014 ' + new Date().toLocaleDateString(),
+        inputAUrl: inputAUrl, inputAType: inputAType,
+        inputBUrl: inputBUrl, inputBType: inputBType,
+        presetId: _selected.id,
+        aspectRatio: _aspectRatio, duration: _duration,
+        intensity: 50, smoothness: 50, cinematicStr: 60,
+        preserveFraming: true, subjectFocus: true,
+        resolution: '1080p', fps: 24, enhance: true,
+      })
+    });
+    if (!projRes.ok) {
+      var pe = await projRes.json().catch(function(){return {};});
+      throw new Error(pe.error || 'Failed to create project');
+    }
+    var projData = await projRes.json();
+    var projectId = projData.project.id;
+
+    setStatus('Submitting generation job...', 'info');
+    var genRes = await fetch('/api/transitions/generate', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        projectId: projectId,
+        presetId: _selected.id,
+        inputAUrl: inputAUrl,
+        inputBUrl: inputBUrl,
+        duration: _duration,
+        aspectRatio: _aspectRatio,
+        intensity: 50, smoothness: 50, cinematicStr: 60,
+        preserveFraming: true, subjectFocus: true,
+        resolution: '1080p', fps: 24, enhance: true,
+      })
+    });
+    var genJson = await genRes.json();
+    if (!genRes.ok) throw new Error(genJson.error || 'Generation failed ('+genRes.status+')');
+
+    _lastJobId = genJson.jobId;
+    var credits = genJson.creditsCharged || calcCredits(_selected, _duration);
+    setStatus('Processing\u2026 (~' + (_duration * 10) + 's). ' + credits + ' credits charged.', 'info');
+    startPoll(_lastJobId);
+
+  } catch(err) {
+    setStatus('Error: ' + err.message, 'err');
+    setGenerating(false);
+  }
 }
 
-function postToTimeline(payload){
-  try{if(window.parent&&window.parent.document){const tf=window.parent.document.getElementById('timelineFrame');if(tf&&tf.contentWindow){tf.contentWindow.postMessage(payload,'*');return true;}}}catch{}
+/* ================================================================
+   POLLING
+================================================================ */
+function startPoll(jobId) {
+  stopPoll();
+  _pollTimer = setInterval(function(){ pollJob(jobId); }, 4000);
+}
+
+function stopPoll() {
+  if (_pollTimer) { clearInterval(_pollTimer); _pollTimer = null; }
+}
+
+async function pollJob(jobId) {
+  try {
+    var res = await fetch('/api/transitions/job/'+jobId);
+    if (!res.ok) return;
+    var data = await res.json();
+    var job = data.job;
+    if (!job) return;
+    if (job.status === 'completed') {
+      stopPoll();
+      var videoUrl = job.resultUrl || (job.output && (job.output.url || job.output.videoUrl)) || '';
+      if (videoUrl) {
+        _resultVideoUrl = videoUrl;
+        showResult(videoUrl);
+        setStatus('\u2713 Transition generated! ' + _selected.name, 'ok');
+      } else {
+        setStatus('Completed but no video URL returned.', 'warn');
+      }
+      setGenerating(false);
+    } else if (job.status === 'failed') {
+      stopPoll();
+      setStatus('Generation failed: ' + (job.error || 'Unknown error'), 'err');
+      setGenerating(false);
+    } else {
+      setStatus('Processing\u2026 (' + (job.status||'processing') + ')', 'info');
+    }
+  } catch(e) { /* ignore poll errors */ }
+}
+
+/* ================================================================
+   RESULT
+================================================================ */
+function showResult(url) {
+  var sec = document.getElementById('resultSec');
+  var vid = document.getElementById('resultVideo');
+  vid.src = url;
+  sec.classList.add('visible');
+  sec.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+function downloadResult() {
+  if (!_resultVideoUrl) return;
+  var a = document.createElement('a');
+  a.href = _resultVideoUrl;
+  a.download = _selected.id + '_transition.mp4';
+  a.target = '_blank';
+  a.rel = 'noopener noreferrer';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+/* ================================================================
+   TIMELINE INTEGRATION
+================================================================ */
+function getTimelineState() {
+  try { if (window.parent && window.parent.lastTimelineState) return window.parent.lastTimelineState; } catch(e){}
+  return null;
+}
+
+function isVisual(c) {
+  var k = String(c && c.kind || '').toLowerCase();
+  return k === 'video' || k === 'image' || k === 'psd';
+}
+
+function findPair(state) {
+  if (!state || !Array.isArray(state.allClips)) return null;
+  var clips = state.allClips.filter(function(c){ return isVisual(c) && String(c.kind||'') !== 'transition'; });
+  if (!clips.length) return null;
+  var sel = state.selectedClip && clips.find(function(c){ return c.id === state.selectedClip.id; });
+  var base = sel || (state.activeVisualClip && clips.find(function(c){ return c.id === state.activeVisualClip.id; })) || null;
+  if (!base) return null;
+  var same = clips.filter(function(c){ return c.track === base.track && c.id !== base.id; }).sort(function(a,b){ return a.start-b.start; });
+  var next = same.find(function(c){ return Number(c.start) >= Number(base.start)+Number(base.dur); });
+  return next ? {from:base, to:next} : null;
+}
+
+function refreshPair() {
+  _pair = findPair(getTimelineState());
+  document.getElementById('fromClip').textContent = _pair ? (_pair.from.label||_pair.from.id) : '\u2014';
+  document.getElementById('toClip').textContent   = _pair ? (_pair.to.label  ||_pair.to.id  ) : '\u2014';
+  document.getElementById('pairNote').textContent = _pair
+    ? 'Detected pair on same track. Ready to apply transition.'
+    : 'Select a clip in timeline that has a next clip on same track.';
+}
+
+function postToTimeline(payload) {
+  try {
+    if (window.parent && window.parent.document) {
+      var tf = window.parent.document.getElementById('timelineFrame');
+      if (tf && tf.contentWindow) { tf.contentWindow.postMessage(payload,'*'); return true; }
+    }
+  } catch(e){}
   return false;
 }
 
-function generateTransition(){
-  if(!ab.a||!ab.b){setStatus('Upload A and B inputs first.', 'warn');return;}
-  setStatus('Transition generation queued (UI flow ready).', 'ok');
-}
-
-function applyTransition(){
+function applyToTimeline() {
   refreshPair();
-  if(!pair){setStatus('Cannot apply: no valid timeline pair.', 'warn');return;}
-  const ms=Number(document.getElementById('dur').value||500);
-  const ok=postToTimeline({type:'ff:addTransition',transition:{fromId:pair.from.id,toId:pair.to.id,name:selected.name,style:selected.name.toLowerCase().replace(/\s+/g,'_'),easing:ease,durationSec:Math.max(0.1,ms/1000)}});
-  if(!ok){setStatus('Timeline frame is not reachable.', 'err');return;}
-  setStatus('Applied '+selected.name+' to timeline.', 'ok');
+  if (!_pair) { setStatus('No valid timeline pair found. Select a clip with a next clip on the same track.', 'warn'); return; }
+  var ok = postToTimeline({
+    type: 'ff:addTransition',
+    transition: {
+      fromId: _pair.from.id,
+      toId: _pair.to.id,
+      name: _selected.name,
+      style: _selected.id,
+      easing: _ease,
+      durationSec: _duration,
+      videoUrl: _resultVideoUrl || null,
+    }
+  });
+  if (!ok) { setStatus('Timeline not reachable.', 'err'); return; }
+  setStatus('Applied ' + _selected.name + ' to timeline.', 'ok');
 }
 
-window.addEventListener('message',function(ev){ if(ev&&ev.data&&ev.data.type==='ff:timeline-state') refreshPair(); });
-setInterval(refreshPair,1000);
-renderCatalog();syncDur();refreshPair();
+window.addEventListener('message', function(ev) {
+  if (ev && ev.data && ev.data.type === 'ff:timeline-state') refreshPair();
+});
+setInterval(refreshPair, 1500);
+
+/* ================================================================
+   LIBRARY RENDER
+================================================================ */
+function renderGrid(filter, cat) {
+  var grid = document.getElementById('libGrid');
+  grid.innerHTML = '';
+  var q = (filter||'').toLowerCase();
+  var filtered = PRESETS.filter(function(p) {
+    var mQ = !q || p.name.toLowerCase().includes(q) || p.desc.toLowerCase().includes(q);
+    var mC = !cat || cat === 'all' || p.cat === cat;
+    return mQ && mC;
+  });
+  document.getElementById('libCount').textContent = filtered.length + ' transitions';
+
+  filtered.forEach(function(p, i) {
+    var card = document.createElement('div');
+    card.className = 'tr-card' + (p.id === _selected.id ? ' selected' : '');
+    card.style.animation = 'fadeIn .35s cubic-bezier(.16,1,.3,1) ' + (i*.025) + 's both';
+    var col = CAT_COLORS[p.cat] || '#a78bfa';
+    var credits = calcCredits(p, _duration);
+    card.innerHTML =
+      '<div class="tr-preview" style="background:linear-gradient(135deg,#0e1230,'+col+'18 50%,#1a2050 100%)">'+
+        '<div class="tr-shimmer" style="background:linear-gradient(90deg,transparent,'+col+'50,transparent)"></div>'+
+        '<div class="tr-credits"><svg viewBox="0 0 24 24" fill="currentColor" width="10" height="10"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>'+credits+'</div>'+
+        '<span class="tr-cat" style="background:'+col+'18;color:'+col+';border-color:'+col+'25">'+CAT_LABELS[p.cat]+'</span>'+
+      '</div>'+
+      '<div class="tr-info">'+
+        '<div class="tr-name">'+p.name+'</div>'+
+        '<div class="tr-desc">'+p.desc+'</div>'+
+      '</div>';
+
+    card.addEventListener('click', function() {
+      _selected = p;
+      var slider = document.getElementById('durSlider');
+      slider.min = p.dr[0]; slider.max = p.dr[1];
+      if (_duration < p.dr[0]) { _duration = p.dr[0]; slider.value = p.dr[0]; document.getElementById('durV').textContent = p.dr[0]+'s'; }
+      else if (_duration > p.dr[1]) { _duration = p.dr[1]; slider.value = p.dr[1]; document.getElementById('durV').textContent = p.dr[1]+'s'; }
+      updateArrow();
+      document.getElementById('dpName').textContent = p.name;
+      document.getElementById('dpDesc').textContent = p.desc;
+      document.getElementById('dpMeta').innerHTML =
+        '<span class="dp-tag">'+CAT_LABELS[p.cat]+'</span>'+
+        '<span class="dp-tag">'+p.dr[0]+'\u2013'+p.dr[1]+'s</span>'+
+        '<span class="dp-tag">'+calcCredits(p,_duration)+' credits</span>';
+      document.getElementById('detailPanel').classList.add('on');
+      var q2 = document.querySelector('.lib-search input').value;
+      var cat2 = (document.querySelector('.cat-chip.on')||{dataset:{}}).dataset.cat || 'all';
+      renderGrid(q2, cat2);
+    });
+    grid.appendChild(card);
+  });
+}
+
+function filterTrans(q) {
+  var cat = (document.querySelector('.cat-chip.on')||{dataset:{}}).dataset.cat || 'all';
+  renderGrid(q, cat);
+}
+
+function pickCat(el) {
+  document.querySelectorAll('.cat-chip').forEach(function(c){ c.classList.remove('on'); });
+  el.classList.add('on');
+  var q = document.querySelector('.lib-search input').value;
+  renderGrid(q, el.dataset.cat);
+}
+
+/* ================================================================
+   INIT
+================================================================ */
+renderGrid('', 'all');
+updateArrow();
+refreshPair();
 </script>
 <script src="shared/timeline-bridge.js"></script>
 <script src="shared/english-only.js"></script>
