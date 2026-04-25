@@ -2357,6 +2357,29 @@ function TimelineEditor() {
     return clampStartByDur(next, dur);
   };
 
+  // Prevent the moving clip from overlapping other clips on the same track.
+  // Pushes it to the nearest non-overlapping position (before or after the obstacle).
+  const resolveCollision = (candidateStart, dur, trackIndex, movingIds, allClips) => {
+    const others = allClips.filter((c) => !movingIds.has(c.id) && c.track === trackIndex);
+    if (!others.length) return Math.max(0, candidateStart);
+
+    let start = Math.max(0, candidateStart);
+    const end = start + dur;
+
+    for (const o of others) {
+      // Check overlap: [start, end) vs [o.start, o.start+o.dur)
+      if (start < o.start + o.dur && end > o.start) {
+        // Decide: push left (before obstacle) or right (after obstacle)?
+        const pushLeft  = o.start - dur;          // end of moved clip touches o.start
+        const pushRight = o.start + o.dur;        // start of moved clip touches o.end
+        const dLeft  = Math.abs(candidateStart - pushLeft);
+        const dRight = Math.abs(candidateStart - pushRight);
+        start = dLeft <= dRight ? Math.max(0, pushLeft) : pushRight;
+      }
+    }
+    return start;
+  };
+
   const trackIndexesByType = (type) =>
     tracks
       .map((t, i) => ({ t, i }))
@@ -2447,7 +2470,9 @@ function TimelineEditor() {
           if (tracks[targetTrack]?.locked) targetTrack = startTrack;
           const candidateStart = startFrame + fd;
           const snapped = snapClipStart(candidateStart, current.dur, targetTrack, clipId, prev);
-          const deltaStart = snapped - startFrame;
+          // Prevent overlap with other clips on same track
+          const safeStart = resolveCollision(snapped, current.dur, targetTrack, groupIds, prev);
+          const deltaStart = safeStart - startFrame;
           let trackDeltaByType = 0;
           if (linkedMode) {
             const sourceType = tracks[startTrack]?.type;
