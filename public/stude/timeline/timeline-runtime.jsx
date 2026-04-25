@@ -152,13 +152,14 @@ function TransportButton({ children, isPlay, playing, onClick, title }) {
 }
 
 const TRACKS = [
-  { id: 'V1', type: 'video', color: '#47d16c', muted: false, solo: false, locked: false, visible: true, volume: 1 },
-  { id: 'V2', type: 'video', color: '#31b7aa', muted: false, solo: false, locked: false, visible: true, volume: 1 },
-  { id: 'V3', type: 'video', color: '#9b73ff', muted: false, solo: false, locked: false, visible: true, volume: 1 },
-  { id: 'A1', type: 'audio', color: '#4aa5ff', muted: false, solo: false, locked: false, visible: true, volume: 1 },
-  { id: 'A2', type: 'audio', color: '#ffb347', muted: false, solo: false, locked: false, visible: true, volume: 1 },
-  { id: 'A3', type: 'audio', color: '#2fd1e8', muted: false, solo: false, locked: false, visible: true, volume: 1 },
-  { id: 'A4', type: 'audio', color: '#b18b74', muted: false, solo: false, locked: false, visible: true, volume: 1 },
+  { id: 'V1', type: 'video',    color: '#47d16c', muted: false, solo: false, locked: false, visible: true, volume: 1 },
+  { id: 'V2', type: 'video',    color: '#31b7aa', muted: false, solo: false, locked: false, visible: true, volume: 1 },
+  { id: 'V3', type: 'video',    color: '#9b73ff', muted: false, solo: false, locked: false, visible: true, volume: 1 },
+  { id: 'A1', type: 'audio',    color: '#4aa5ff', muted: false, solo: false, locked: false, visible: true, volume: 1 },
+  { id: 'A2', type: 'audio',    color: '#ffb347', muted: false, solo: false, locked: false, visible: true, volume: 1 },
+  { id: 'A3', type: 'audio',    color: '#2fd1e8', muted: false, solo: false, locked: false, visible: true, volume: 1 },
+  { id: 'A4', type: 'audio',    color: '#b18b74', muted: false, solo: false, locked: false, visible: true, volume: 1 },
+  { id: 'SUB', type: 'subtitle', color: '#f59e0b', muted: false, solo: false, locked: false, visible: true, volume: 1 },
 ];
 
 const INITIAL_CLIPS = [];
@@ -1050,7 +1051,7 @@ function TimelineEditor() {
       if (capTrackIdx < 0) {
         setTracks((prev) => {
           if (prev.find((t) => t.id === 'CAP')) return prev;
-          return [...prev, { id: 'CAP', type: 'audio', color: '#f59e0b', muted: false, solo: false, locked: false, visible: true }];
+          return [...prev, { id: 'CAP', type: 'subtitle', color: '#f59e0b', muted: false, solo: false, locked: false, visible: true }];
         });
       }
 
