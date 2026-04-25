@@ -606,7 +606,7 @@ async function generateCaptions(){
       var isVid=/\.(mp4|mov|webm|m4v|mkv|avi)(\?|$)/i.test(clipUrl)||(state.mediaType&&state.mediaType.indexOf('video/')===0);
       var clipBlob=null;
       try{
-        var fetchResp=await fetch(clipUrl,{credentials:'include'});
+        var fetchResp=await fetch(clipUrl);
         if(fetchResp.ok) clipBlob=await fetchResp.blob();
       }catch(_fe){}
       var fd2=new FormData();
