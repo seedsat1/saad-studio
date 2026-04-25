@@ -19,6 +19,24 @@ const SNAP_THRESHOLD_FRAMES = 6;
 const IMPORT_ACCEPT = '.mp4,.mov,.mkv,.avi,.webm,.m4v,.mp3,.wav,.aac,.m4a,.ogg,.flac,.opus,.jpg,.jpeg,.png,.webp,.gif,.bmp,.tiff,.svg,.psd,.srt';
 const HISTORY_LIMIT = 120;
 
+// rAF-throttle: coalesce multiple calls within a frame into one.
+// Forwards the LATEST args to the underlying fn on the next animation frame.
+function rafThrottle(fn) {
+  let pending = false;
+  let lastArgs = null;
+  return function throttled(...args) {
+    lastArgs = args;
+    if (pending) return;
+    pending = true;
+    requestAnimationFrame(() => {
+      pending = false;
+      const a = lastArgs;
+      lastArgs = null;
+      try { fn.apply(null, a); } catch (_e) {}
+    });
+  };
+}
+
 const TOOLS = [
   { id: 'select', label: 'Select', key: 'V', cursor: 'default', toggle: false },
   { id: 'trim', label: 'Trim', key: 'T', cursor: 'col-resize', toggle: false },
@@ -817,6 +835,8 @@ function TimelineEditor() {
   const redoStackRef = useRef([]);
   const isApplyingHistoryRef = useRef(false);
   const latestStateRef = useRef(null);
+  const postStateRafRef = useRef(0);
+  const pendingPayloadRef = useRef(null);
 
   const scale = PX_PER_FRAME * zoom;
   const activeTool = useMemo(() => TOOLS.find((t) => t.id === tool), [tool]);
@@ -930,6 +950,110 @@ function TimelineEditor() {
       return true;
     }
 
+    // J / K / L — industry-standard transport (rewind / pause / play forward)
+    if (!mod && !alt && (key === 'k' || code === 'keyk' || keyCode === 75)) {
+      setPlaying(false);
+      return true;
+    }
+    if (!mod && !alt && (key === 'l' || code === 'keyl' || keyCode === 76)) {
+      setPlaying(true);
+      return true;
+    }
+    if (!mod && !alt && (key === 'j' || code === 'keyj' || keyCode === 74)) {
+      // Step backward 10 frames; if shift held jump 1 second
+      const step = shift ? FPS : 10;
+      setPlayhead((p) => Math.max(0, p - step));
+      setPlaying(false);
+      return true;
+    }
+
+    // S — split selected clip at playhead (CapCut/Premiere standard)
+    if (!mod && !alt && (key === 's' || code === 'keys' || keyCode === 83)) {
+      if (selected) {
+        pushUndoSnapshot();
+        const ph = Math.round(playhead);
+        setClips((prev) => {
+          const cur = prev.find((c) => c.id === selected);
+          if (!cur) return prev;
+          const localFrame = ph - cur.start;
+          if (localFrame <= MIN_CLIP_FRAMES || localFrame >= cur.dur - MIN_CLIP_FRAMES) return prev;
+          const nextId = `${cur.id}_${Date.now()}`;
+          return [
+            ...prev.filter((c) => c.id !== cur.id),
+            { ...cur, dur: localFrame },
+            { ...cur, id: nextId, start: cur.start + localFrame, dur: cur.dur - localFrame },
+          ];
+        });
+      }
+      return true;
+    }
+
+    // + / = and - for zoom
+    if (!mod && (keyRaw === '+' || keyRaw === '=' || codeRaw === 'Equal' || codeRaw === 'NumpadAdd')) {
+      setZoom((z) => Math.min(8, z * 1.2));
+      return true;
+    }
+    if (!mod && (keyRaw === '-' || keyRaw === '_' || codeRaw === 'Minus' || codeRaw === 'NumpadSubtract')) {
+      setZoom((z) => Math.max(0.2, z / 1.2));
+      return true;
+    }
+    if (!mod && (keyRaw === '0' || codeRaw === 'Digit0' || codeRaw === 'Numpad0')) {
+      setZoom(1);
+      return true;
+    }
+
+    // M — toggle mute on selected clip's track
+    if (!mod && !alt && (key === 'm' || code === 'keym' || keyCode === 77)) {
+      if (selected) {
+        const cur = clips.find((c) => c.id === selected);
+        if (cur && cur.track !== undefined) {
+          setTracks((prev) => prev.map((t, i) => (i === cur.track ? { ...t, muted: !t.muted } : t)));
+        }
+      }
+      return true;
+    }
+
+    // D — duplicate selected clip
+    if (mod && !alt && !shift && (key === 'd' || code === 'keyd' || keyCode === 68)) {
+      if (selected) {
+        pushUndoSnapshot();
+        setClips((prev) => {
+          const cur = prev.find((c) => c.id === selected);
+          if (!cur) return prev;
+          return [...prev, { ...cur, id: `${cur.id}_dup_${Date.now()}`, start: cur.start + cur.dur }];
+        });
+      }
+      return true;
+    }
+
+    // [ — set in (trim left to playhead) ; ] — set out (trim right to playhead)
+    if (!mod && !alt && (keyRaw === '[' || codeRaw === 'BracketLeft')) {
+      if (selected) {
+        pushUndoSnapshot();
+        const ph = Math.round(playhead);
+        setClips((prev) => prev.map((c) => {
+          if (c.id !== selected) return c;
+          const newStart = Math.max(0, ph);
+          const end = c.start + c.dur;
+          if (newStart >= end - MIN_CLIP_FRAMES) return c;
+          return { ...c, start: newStart, dur: end - newStart };
+        }));
+      }
+      return true;
+    }
+    if (!mod && !alt && (keyRaw === ']' || codeRaw === 'BracketRight')) {
+      if (selected) {
+        pushUndoSnapshot();
+        const ph = Math.round(playhead);
+        setClips((prev) => prev.map((c) => {
+          if (c.id !== selected) return c;
+          const newDur = Math.max(MIN_CLIP_FRAMES, ph - c.start);
+          return { ...c, dur: newDur };
+        }));
+      }
+      return true;
+    }
+
     const isUndo = key === 'z' || code === 'keyz' || keyCode === 90;
     const isRedo = key === 'y' || code === 'keyy' || keyCode === 89;
     if (mod && !alt && isUndo) {
@@ -1000,7 +1124,7 @@ function TimelineEditor() {
       return true;
     }
     return false;
-  }, [redo, selected, timelineFrames, toggles.link, undo]);
+  }, [redo, selected, timelineFrames, toggles.link, undo, playhead, clips]);
 
   useEffect(() => {
     const onKey = (e) => {
@@ -1189,7 +1313,15 @@ function TimelineEditor() {
       projectRatio,
     };
     try {
-      if (window.parent) window.parent.postMessage(payload, '*');
+      if (window.parent) {
+        if (!postStateRafRef.current) {
+          postStateRafRef.current = requestAnimationFrame(() => {
+            postStateRafRef.current = 0;
+            try { if (window.parent) window.parent.postMessage(pendingPayloadRef.current, '*'); } catch (_e) {}
+          });
+        }
+        pendingPayloadRef.current = payload;
+      }
     } catch {}
   }, [playhead, playing, clips, tracks, selected, timelineFrames, projectRatio]);
 
@@ -1937,12 +2069,13 @@ function TimelineEditor() {
 
     updateFromClientX(e.clientX);
 
-    const onMove = (me) => updateFromClientX(me.clientX);
+    const onMove = rafThrottle((clientX) => updateFromClientX(clientX));
+    const onMoveEvt = (me) => onMove(me.clientX);
     const onUp = () => {
-      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mousemove', onMoveEvt);
       window.removeEventListener('mouseup', onUp);
     };
-    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mousemove', onMoveEvt);
     window.addEventListener('mouseup', onUp);
   };
 
@@ -1980,19 +2113,19 @@ function TimelineEditor() {
         : [clip];
       const groupIds = new Set(initialGroup.map((c) => c.id));
       const groupBase = new Map(initialGroup.map((c) => [c.id, { start: c.start, track: c.track }]));
-      const onMove = (me) => {
-        const fd = Math.round((me.clientX - startX) / scale);
+      const onMove = rafThrottle((clientX, clientY) => {
+        const fd = Math.round((clientX - startX) / scale);
         const scroller = tlRef.current;
         if (scroller) {
           const rect = scroller.getBoundingClientRect();
           const edge = 28;
-          if (me.clientY < rect.top + edge) scroller.scrollTop = Math.max(0, scroller.scrollTop - 18);
-          if (me.clientY > rect.bottom - edge) scroller.scrollTop = scroller.scrollTop + 18;
+          if (clientY < rect.top + edge) scroller.scrollTop = Math.max(0, scroller.scrollTop - 18);
+          if (clientY > rect.bottom - edge) scroller.scrollTop = scroller.scrollTop + 18;
         }
         setClips((prev) => {
           const current = prev.find((c) => c.id === clipId);
           if (!current) return prev;
-          let targetTrack = getTrackIndexFromClientY(me.clientY);
+          let targetTrack = getTrackIndexFromClientY(clientY);
           if (tracks[targetTrack]?.locked) targetTrack = startTrack;
           const candidateStart = startFrame + fd;
           const snapped = snapClipStart(candidateStart, current.dur, targetTrack, clipId, prev);
@@ -2021,12 +2154,13 @@ function TimelineEditor() {
             return { ...c, start: nextStart, track: nextTrack };
           });
         });
-      };
+      });
+      const onMoveEvt = (me) => onMove(me.clientX, me.clientY);
       const onUp = () => {
-        window.removeEventListener('mousemove', onMove);
+        window.removeEventListener('mousemove', onMoveEvt);
         window.removeEventListener('mouseup', onUp);
       };
-      window.addEventListener('mousemove', onMove);
+      window.addEventListener('mousemove', onMoveEvt);
       window.addEventListener('mouseup', onUp);
     }
 
@@ -2049,8 +2183,8 @@ function TimelineEditor() {
       const minDeltaStart = initialGroup.reduce((acc, c) => Math.max(acc, -c.start), -Number.MAX_SAFE_INTEGER);
       const maxDeltaStart = initialGroup.reduce((acc, c) => Math.min(acc, c.dur - MIN_CLIP_FRAMES), Number.MAX_SAFE_INTEGER);
 
-      const onMove = (me) => {
-        const fd = Math.round((me.clientX - startX) / scale);
+      const onMove = rafThrottle((clientX) => {
+        const fd = Math.round((clientX - startX) / scale);
         if (trimRight) {
           setClips((prev) => {
             const current = prev.find((c) => c.id === clipId);
@@ -2117,12 +2251,13 @@ function TimelineEditor() {
             });
           });
         }
-      };
+      });
+      const onMoveEvt = (me) => onMove(me.clientX);
       const onUp = () => {
-        window.removeEventListener('mousemove', onMove);
+        window.removeEventListener('mousemove', onMoveEvt);
         window.removeEventListener('mouseup', onUp);
       };
-      window.addEventListener('mousemove', onMove);
+      window.addEventListener('mousemove', onMoveEvt);
       window.addEventListener('mouseup', onUp);
     }
   };
