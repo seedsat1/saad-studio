@@ -666,6 +666,19 @@ function selectVmVoice(id,name,lang,accent,emoji,color,gender){
   _vmSelectedId=id;_vmSelectedGender=gender||'female';
   document.getElementById('vpName').textContent=name;
   const img=document.getElementById('vpAvatarImg');img.src=getVoiceAvatar(id,gender||'female');img.style.display='';
+  // Sync customVoiceId so generateVoice correctly routes custom vs catalog voices
+  const customIdInput=document.getElementById('customVoiceId');
+  const cloneBar=document.getElementById('activeCloneBar');
+  const cloneBarName=document.getElementById('activeCloneName');
+  if(id.startsWith('sample_')){
+    if(customIdInput)customIdInput.value=id;
+    if(cloneBar)cloneBar.style.display='flex';
+    if(cloneBarName)cloneBarName.textContent=name;
+  } else {
+    // Catalog voice: only clear if no "use once" clone is pending
+    if(customIdInput&&!customIdInput.value.startsWith('custom_'))customIdInput.value='';
+    if(cloneBar&&!customIdInput?.value.startsWith('custom_'))cloneBar.style.display='none';
+  }
   renderVmGrid();setTimeout(closeVoiceModal,200);
 }
 
