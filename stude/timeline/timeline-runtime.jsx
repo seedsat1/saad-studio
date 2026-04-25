@@ -3034,30 +3034,7 @@ function TimelineEditor() {
                            boxShadow: clip.id === selected ? '0 0 0 1px #f59e0b55, 0 0 8px #f59e0b33' : 'none',
                          } : {}),
                        }}>
-                    {/* End-of-media indicators (like Premiere triangles) */}
-                    {(clip.kind === 'video' || clip.kind === 'audio') && clip.sourceDur && (() => {
-                      const atStart = clip.start === 0 || !clip.trimOffset;
-                      const atEnd = clip.dur >= clip.sourceDur;
-                      if (!atStart && !atEnd) return null;
-                      return (
-                        <>
-                          {atStart && (
-                            <div title="Start of media" style={{
-                              position: 'absolute', left: 0, top: 0, bottom: 0, width: 4,
-                              background: 'linear-gradient(to right, #ff4e4e99, transparent)',
-                              borderRadius: '3px 0 0 3px', pointerEvents: 'none', zIndex: 4,
-                            }} />
-                          )}
-                          {atEnd && (
-                            <div title="End of media" style={{
-                              position: 'absolute', right: 0, top: 0, bottom: 0, width: 4,
-                              background: 'linear-gradient(to left, #ff4e4e99, transparent)',
-                              borderRadius: '0 3px 3px 0', pointerEvents: 'none', zIndex: 4,
-                            }} />
-                          )}
-                        </>
-                      );
-                    })()}
+                    {/* End-of-media indicator — right edge only (like Premiere) */}\n                    {(clip.kind === 'video' || clip.kind === 'audio') && clip.sourceDur && clip.dur >= clip.sourceDur && (\n                      <div title=\"End of media — cannot extend further\" style={{\n                        position: 'absolute', right: 0, top: 0, bottom: 0, width: 4,\n                        background: 'linear-gradient(to left, #ff4e4ecc, transparent)',\n                        borderRadius: '0 3px 3px 0', pointerEvents: 'none', zIndex: 4,\n                      }} />\n                    )}
                     {/* Keyframe diamonds (Adobe-style markers) */}
                     {clip.kfs && (() => {
                       const allFrames = new Set();
