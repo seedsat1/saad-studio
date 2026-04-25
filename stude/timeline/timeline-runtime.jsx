@@ -451,8 +451,8 @@ function EffectControls({ clip, onProp, onCommit, onFitMode, onExpand }) {
     const posY = Number.isFinite(clip.posY) ? clip.posY : 6;
     const subOpacity = Number.isFinite(clip.opacity) ? clip.opacity : 100;
 
-    const tglBtn = (active, label, on) => (
-      <button onClick={on} onMouseDown={(e) => e.stopPropagation()} style={{
+    const tglBtn = (key, active, label, on) => (
+      <button key={key} onClick={on} onMouseDown={(e) => e.stopPropagation()} style={{
         flex:1, height:18, borderRadius:3, fontSize:10, fontWeight:700, cursor:'pointer',
         border: active ? '1px solid #4a9eff' : '1px solid #23293a',
         background: active ? 'rgba(74,158,255,0.2)' : '#141820',
@@ -562,13 +562,13 @@ function EffectControls({ clip, onProp, onCommit, onFitMode, onExpand }) {
           </PropRow>
 
           <PropRow label="Style">
-            {tglBtn(bold, <b>B</b>, () => onCommit('bold', !bold))}
-            {tglBtn(italic, <i>I</i>, () => onCommit('italic', !italic))}
-            {tglBtn(underline, <u>U</u>, () => onCommit('underline', !underline))}
+            {tglBtn('b', bold, <b>B</b>, () => onCommit('bold', !bold))}
+            {tglBtn('i', italic, <i>I</i>, () => onCommit('italic', !italic))}
+            {tglBtn('u', underline, <u>U</u>, () => onCommit('underline', !underline))}
           </PropRow>
 
           <PropRow label="Align">
-            {['left','center','right'].map((a) => tglBtn(align === a, a === 'left' ? '⇤' : a === 'right' ? '⇥' : '⇔', () => onCommit('align', a)))}
+            {['left','center','right'].map((a) => tglBtn(a, align === a, a === 'left' ? '⇤' : a === 'right' ? '⇥' : '⇔', () => onCommit('align', a)))}
           </PropRow>
 
           <PropRow label="Position X">
