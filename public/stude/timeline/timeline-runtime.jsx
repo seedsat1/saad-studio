@@ -416,6 +416,7 @@ function EffectControls({ clip, onProp, onCommit, onFitMode, onExpand }) {
   if (isSubtitle) {
     const text = String(clip.label || '');
     const textColor = clip.textColor || '#ffffff';
+    const fontFamily = clip.fontFamily || 'Inter';
     const fontSize = Number.isFinite(clip.fontSize) ? clip.fontSize : 22;
     const bold = clip.bold !== false;
     const italic = !!clip.italic;
@@ -477,6 +478,62 @@ function EffectControls({ clip, onProp, onCommit, onFitMode, onExpand }) {
             <span style={{ fontSize:9, color:'#6c7694', marginLeft:4, fontFamily:'monospace' }}>{textColor}</span>
           </PropRow>
 
+          <PropRow label="Font">
+            <select value={fontFamily} onChange={(e) => onCommit('fontFamily', e.target.value)} onMouseDown={(e) => e.stopPropagation()} style={{ flex:1, height:18, background:'#0f1114', border:'1px solid #2a3040', borderRadius:3, color:'#d8e3f2', fontSize:10, padding:'0 2px', cursor:'pointer', outline:'none', fontFamily }}>
+              <optgroup label="Sans-serif">
+                <option value="Inter">Inter</option>
+                <option value="Segoe UI">Segoe UI</option>
+                <option value="Roboto">Roboto</option>
+                <option value="Open Sans">Open Sans</option>
+                <option value="Montserrat">Montserrat</option>
+                <option value="Poppins">Poppins</option>
+                <option value="Oswald">Oswald</option>
+                <option value="Bebas Neue">Bebas Neue</option>
+                <option value="Anton">Anton</option>
+                <option value="Impact">Impact</option>
+                <option value="Arial">Arial</option>
+                <option value="Tahoma">Tahoma</option>
+                <option value="Verdana">Verdana</option>
+                <option value="Helvetica">Helvetica</option>
+              </optgroup>
+              <optgroup label="Serif">
+                <option value="Georgia">Georgia</option>
+                <option value="Playfair Display">Playfair Display</option>
+                <option value="Merriweather">Merriweather</option>
+                <option value="Times New Roman">Times New Roman</option>
+              </optgroup>
+              <optgroup label="Display / Handwriting">
+                <option value="Pacifico">Pacifico</option>
+                <option value="Lobster">Lobster</option>
+                <option value="Caveat">Caveat</option>
+                <option value="Dancing Script">Dancing Script</option>
+                <option value="Permanent Marker">Permanent Marker</option>
+              </optgroup>
+              <optgroup label="Monospace">
+                <option value="JetBrains Mono">JetBrains Mono</option>
+                <option value="Fira Code">Fira Code</option>
+                <option value="Consolas">Consolas</option>
+                <option value="Courier New">Courier New</option>
+              </optgroup>
+              <optgroup label="Arabic">
+                <option value="Cairo">Cairo</option>
+                <option value="Tajawal">Tajawal</option>
+                <option value="Almarai">Almarai</option>
+                <option value="Amiri">Amiri</option>
+                <option value="Reem Kufi">Reem Kufi</option>
+                <option value="Noto Naskh Arabic">Noto Naskh Arabic</option>
+                <option value="Noto Kufi Arabic">Noto Kufi Arabic</option>
+                <option value="Aref Ruqaa">Aref Ruqaa</option>
+                <option value="Lateef">Lateef</option>
+                <option value="Scheherazade New">Scheherazade New</option>
+                <option value="Markazi Text">Markazi Text</option>
+                <option value="El Messiri">El Messiri</option>
+                <option value="Changa">Changa</option>
+                <option value="Mada">Mada</option>
+                <option value="Rakkas">Rakkas</option>
+              </optgroup>
+            </select>
+          </PropRow>
           <PropRow label="Font Size">
             <input type="range" min={10} max={80} step={1} value={fontSize}
               onChange={(e) => onProp('fontSize', Number(e.target.value))}
@@ -1092,6 +1149,7 @@ function TimelineEditor() {
         id: c.id, text: c.label || '', start: c.start, dur: c.dur,
         opacity: Number.isFinite(c.opacity) ? c.opacity : 100,
         textColor: c.textColor || '#ffffff',
+        fontFamily: c.fontFamily || 'Inter',
         fontSize: Number.isFinite(c.fontSize) ? c.fontSize : 22,
         bold: c.bold !== false,
         italic: !!c.italic,

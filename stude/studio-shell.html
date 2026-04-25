@@ -492,6 +492,19 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
     if(!desired.length){ previewAudio.pause(); previewAudio.removeAttribute('src'); lastAudioKey=''; }
   }
 
+  var SYSTEM_FONTS=new Set(['Inter','Segoe UI','Arial','Tahoma','Verdana','Helvetica','Times New Roman','Georgia','Courier New','Consolas','Impact']);
+  var loadedFonts={};
+  function ensureFontLoaded(family){
+    if(!family) return;
+    if(SYSTEM_FONTS.has(family)) return;
+    if(loadedFonts[family]) return;
+    loadedFonts[family]=true;
+    var link=document.createElement('link');
+    link.rel='stylesheet';
+    link.href='https://fonts.googleapis.com/css2?family='+encodeURIComponent(family).replace(/%20/g,'+')+':wght@400;700&display=swap';
+    document.head.appendChild(link);
+  }
+
   function hex2rgba(hex, a){
     var h=String(hex||'#000000').replace('#','');
     if(h.length===3) h=h.split('').map(function(c){return c+c;}).join('');
@@ -547,6 +560,8 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
     var html=cues.map(function(c){
       var t=String(c.text||''); if(!t) return '';
       var color=c.textColor||'#ffffff';
+      var fontFamily=c.fontFamily||'Inter';
+      ensureFontLoaded(fontFamily);
       var fs=isFinite(Number(c.fontSize))?Number(c.fontSize):22;
       var bold=c.bold!==false;
       var italic=!!c.italic;
@@ -562,6 +577,7 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
 
       var styles=[];
       styles.push('color:'+color);
+      styles.push('font-family:"'+fontFamily.replace(/"/g,'')+'",Inter,Segoe UI,sans-serif');
       styles.push('font-size:'+fs+'px');
       styles.push('font-weight:'+(bold?'700':'400'));
       if(italic) styles.push('font-style:italic');
