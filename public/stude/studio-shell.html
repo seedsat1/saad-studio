@@ -55,6 +55,7 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
 #previewExpand:hover{border-color:#5ea9ff;color:#dff0ff}
 #previewExport{border:1px solid #35435a;background:#121a27;color:#a9c9f2;border-radius:5px;font-size:10px;padding:4px 8px;cursor:pointer}
 #previewExport:hover{border-color:#5ea9ff;color:#dff0ff}
+#subtitleOverlay{display:none;position:absolute;bottom:9%;left:5%;right:5%;text-align:center;z-index:5;pointer-events:none;font-size:clamp(11px,1.8vw,17px);line-height:1.5;text-shadow:0 1px 3px #000,0 0 8px #000;color:#fff;font-weight:600;font-family:Inter,Segoe UI,sans-serif;white-space:pre-line;background:rgba(0,0,0,0.45);border-radius:4px;padding:3px 10px;}
 #splitter{height:8px;cursor:row-resize;flex-shrink:0;background:#191c22;border-top:1px solid #2a2f38;border-bottom:1px solid #2a2f38;position:relative}
 #splitter:hover,#splitter.dragging{background:#1f2530}
 #splitter::before{content:'';position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:30px;height:2px;background:#7e8da6;box-shadow:0 -4px 0 #7e8da6,0 4px 0 #7e8da6;border-radius:2px}
@@ -105,6 +106,7 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
               <div id="previewLayers"></div>
               <audio id="previewAudio" controls></audio>
               <span id="previewLabel">No clip selected</span>
+              <div id="subtitleOverlay"></div>
             </div>
           </div>
           <div id="previewProgress"><div id="previewProgressFill"></div></div>
@@ -149,6 +151,7 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
   var previewAudio=document.getElementById('previewAudio');
   var visualLayerMap={};
   var lastAudioKey='';
+  var audioElMap={}; // multi-audio: clipId → { el: HTMLAudioElement, key: string }
 
   var pPage=document.getElementById('pPage');
   var pTC=document.getElementById('pTC');
@@ -409,47 +412,79 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
 
   function clearPreviewMedia(){
     clearVisualLayers();
+    // clear multi-audio
+    Object.keys(audioElMap).forEach(function(id){
+      var entry=audioElMap[id];
+      if(entry&&entry.el){ try{ entry.el.pause(); entry.el.removeAttribute('src'); if(entry.el.parentNode) entry.el.parentNode.removeChild(entry.el); }catch(_e){} }
+      delete audioElMap[id];
+    });
     previewAudio.style.display='none';
     previewAudio.pause();
     previewAudio.removeAttribute('src');
     lastAudioKey='';
   }
 
-  function syncAudioClip(clip, playing, frame){
-    if(!clip || !clip.url){
-      previewAudio.style.display='none';
-      previewAudio.pause();
-      previewAudio.removeAttribute('src');
-      lastAudioKey='';
-      return;
-    }
-    var key=[clip.id||'', clip.url||'', clip.kind||'audio'].join('|');
-    var changed=lastAudioKey!==key;
-    lastAudioKey=key;
-    if(changed) previewAudio.src=String(clip.url||'');
+  function syncAudioClips(clips, playing, frame){
+    var desired=Array.isArray(clips)?clips.filter(function(c){return c&&c.url;}):
+      (clips&&clips.url ? [clips] : []);
+    var desiredIds={};
+    desired.forEach(function(c){ desiredIds[String(c.id||'')]=true; });
+    // Remove stale
+    Object.keys(audioElMap).forEach(function(id){
+      if(!desiredIds[id]){
+        var e=audioElMap[id];
+        if(e&&e.el){ try{ e.el.pause(); e.el.removeAttribute('src'); if(e.el.parentNode) e.el.parentNode.removeChild(e.el); }catch(_e){} }
+        delete audioElMap[id];
+      }
+    });
+    // Sync each
+    desired.forEach(function(clip){
+      var id=String(clip.id||'');
+      var url=String(clip.url||'');
+      var key=id+'|'+url;
+      var entry=audioElMap[id];
+      if(!entry){
+        var el=document.createElement('audio');
+        el.style.display='none'; el.preload='auto';
+        document.body.appendChild(el);
+        entry={el:el,key:''};
+        audioElMap[id]=entry;
+      }
+      if(entry.key!==key){ entry.el.src=url; entry.key=key; }
+      var vol=Number.isFinite(clip.trackVolume)?clip.trackVolume:1;
+      entry.el.volume=Math.max(0,Math.min(1,vol));
+      var audioTime=0;
+      if(typeof frame==='number'&&typeof clip.start==='number'){
+        audioTime=Math.max(0,(frame-clip.start)/30);
+      }
+      if(Number.isFinite(audioTime)&&Math.abs((entry.el.currentTime||0)-audioTime)>0.15){
+        try{ entry.el.currentTime=audioTime; }catch(_e){}
+      }
+      if(playing){ entry.el.play().catch(function(){}); } else { entry.el.pause(); }
+    });
+    // Legacy single previewAudio fallback (keep hidden)
     previewAudio.style.display='none';
-    var audioTime = 0;
-    if(typeof frame==='number' && typeof clip.start==='number'){
-      audioTime = Math.max(0, (frame - clip.start) / 30);
-    }
-    if(Number.isFinite(audioTime) && (changed || Math.abs((previewAudio.currentTime||0)-audioTime)>0.12)){
-      try{ previewAudio.currentTime = audioTime; }catch(_e){}
-    }
-    if(playing){
-      previewAudio.play().catch(function(){});
-    } else {
-      previewAudio.pause();
-    }
+    if(!desired.length){ previewAudio.pause(); previewAudio.removeAttribute('src'); lastAudioKey=''; }
+  }
+
+  function renderSubtitles(cues){
+    var el=document.getElementById('subtitleOverlay');
+    if(!el) return;
+    if(!cues||!cues.length){ el.style.display='none'; el.textContent=''; return; }
+    var text=cues.map(function(c){ return String(c.text||''); }).join('\n');
+    el.textContent=text;
+    el.style.display='block';
   }
 
   function renderPreviewMedia(state, playing, frame){
     var visuals=(state && Array.isArray(state.activeVisualClips)) ? state.activeVisualClips.filter(function(c){ return !!(c && c.url); }) : [];
     var audioClip=(state && state.activeAudioClip && state.activeAudioClip.url) ? state.activeAudioClip : null;
+    var audioClips=(state && Array.isArray(state.activeAudioClips)) ? state.activeAudioClips : (audioClip ? [audioClip] : []);
     var selectedClip=state && state.selectedClip ? state.selectedClip : null;
 
     if(!visuals.length){
       clearVisualLayers();
-      syncAudioClip(audioClip, playing, frame);
+      syncAudioClips(audioClips, playing, frame);
       if(audioClip){
         pLabel.style.display='inline-block';
         pLabel.textContent=audioClip.label || 'Audio Clip';
@@ -569,7 +604,7 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
       delete visualLayerMap[id];
     });
 
-    syncAudioClip(audioClip, playing, frame);
+    syncAudioClips(audioClips, playing, frame);
 
     pLabel.style.display='none';
     if(selectedClip && selectedClip.kind==='audio'){
@@ -689,6 +724,7 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
     var pct=tf>0 ? Math.max(0,Math.min(100,(fr/tf)*100)) : 0;
     pFill.style.width=pct.toFixed(2)+'%';
     renderPreviewMedia(d, !!d.playing, Number(d.frame || 0));
+    renderSubtitles(d.activeSubtitleCues || []);
     fitPreview();
   });
 
@@ -1104,6 +1140,9 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
 
   window.addEventListener('keydown', function(e){
     if(isTypingTarget(e.target)) return;
+    // Space = play/pause (most important shortcut)
+    var isSpace=(e.code==='Space'||e.key===' '||e.key==='Spacebar'||e.keyCode===32||e.which===32);
+    if(isSpace){ e.preventDefault(); }
     if(forwardTimelineHotkey(e)){
       e.preventDefault();
     }

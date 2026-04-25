@@ -16,7 +16,7 @@ const PROJECT_ID = (() => {
 const TIMELINE_STORAGE_KEY = `ff_timeline_state_v1:${PROJECT_ID}`;
 const MIN_CLIP_FRAMES = 8;
 const SNAP_THRESHOLD_FRAMES = 6;
-const IMPORT_ACCEPT = '.mp4,.mov,.mkv,.avi,.webm,.m4v,.mp3,.wav,.aac,.m4a,.ogg,.flac,.opus,.jpg,.jpeg,.png,.webp,.gif,.bmp,.tiff,.svg,.psd';
+const IMPORT_ACCEPT = '.mp4,.mov,.mkv,.avi,.webm,.m4v,.mp3,.wav,.aac,.m4a,.ogg,.flac,.opus,.jpg,.jpeg,.png,.webp,.gif,.bmp,.tiff,.svg,.psd,.srt';
 const HISTORY_LIMIT = 120;
 
 const TOOLS = [
@@ -170,6 +170,29 @@ function formatTC(frame) {
   const m = Math.floor((totalSec % 3600) / 60);
   const s = totalSec % 60;
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}:${String(f).padStart(2, '0')}`;
+}
+
+function parseSRT(text) {
+  const toSec = (ts) => {
+    const m = ts.replace(',', '.').match(/(\d+):(\d+):(\d+)[.,](\d+)/);
+    if (!m) return 0;
+    return parseInt(m[1]) * 3600 + parseInt(m[2]) * 60 + parseInt(m[3]) + parseInt(m[4].padEnd(3,'0').slice(0,3)) / 1000;
+  };
+  const blocks = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim().split(/\n\s*\n/);
+  const cues = [];
+  for (const block of blocks) {
+    const lines = block.trim().split('\n');
+    const timeLine = lines.find((l) => l.includes('-->'));
+    if (!timeLine) continue;
+    const parts = timeLine.split('-->');
+    if (parts.length < 2) continue;
+    const startSec = toSec(parts[0].trim());
+    const endSec = toSec(parts[1].trim().split(' ')[0]);
+    const textLines = lines.filter((l) => !l.match(/^\d+$/) && !l.includes('-->')).join(' ').replace(/<[^>]+>/g, '').trim();
+    if (!textLines || endSec <= startSec) continue;
+    cues.push({ startSec, endSec, text: textLines });
+  }
+  return cues;
 }
 
 function extOfName(name) {
@@ -532,7 +555,11 @@ function TimelineEditor() {
       .map((t, i) => ({ t, i }))
       .filter((x) => x.t.type === 'audio')
       .map((x) => x.i); // Audio lanes shown A1..An
-    return [...videos, ...audios];
+    const subs = tracks
+      .map((t, i) => ({ t, i }))
+      .filter((x) => x.t.type === 'subtitle')
+      .map((x) => x.i); // Subtitle lanes shown last
+    return [...videos, ...audios, ...subs];
   }, [tracks]);
 
   const cloneValue = (v) => {
@@ -786,6 +813,10 @@ function TimelineEditor() {
       .filter((c) => tracks[c.track]?.type === 'audio' && !tracks[c.track]?.muted)
       .sort((a, b) => a.track - b.track);
 
+    const subtitles = activeAtFrame
+      .filter((c) => (c.kind === 'subtitle' || tracks[c.track]?.type === 'subtitle') && tracks[c.track]?.visible !== false)
+      .sort((a, b) => a.start - b.start);
+
     const mapClip = (c) => {
       if (!c) return null;
       const tr = tracks[c.track];
@@ -804,6 +835,7 @@ function TimelineEditor() {
         opacity: Number.isFinite(c.opacity) ? c.opacity : 100,
         blendMode: c.blendMode || 'Normal',
         cropRect: c.cropRect || null,
+        trackVolume: Number.isFinite(tr?.volume) ? tr.volume : 1,
       };
     };
 
@@ -828,6 +860,8 @@ function TimelineEditor() {
       activeVisualClip: visualMapped,
       activeVisualClips: visualStackMapped,
       activeAudioClip: audioMapped,
+      activeAudioClips: audios.map((c) => mapClip(c)).filter(Boolean),
+      activeSubtitleCues: subtitles.map((c) => ({ id: c.id, text: c.label || '', start: c.start, dur: c.dur })),
       allClips: clips.map((c) => mapClip(c)),
       clipsCount: clips.length,
       tracks: tracks.map((t) => ({ id: t.id, type: t.type, muted: t.muted, solo: t.solo, volume: t.volume ?? 1 })),
@@ -1101,6 +1135,7 @@ function TimelineEditor() {
     pushUndoSnapshot();
     const videoColors = ['#47d16c', '#31b7aa', '#9b73ff', '#65d48b', '#62a0ea', '#7c8cff'];
     const audioColors = ['#4aa5ff', '#ffb347', '#2fd1e8', '#b18b74', '#7fd1ff', '#ffc977'];
+    const subtitleColors = ['#f59e0b', '#fcd34d', '#b45309'];
     setTracks((prev) => {
       const list = prev.filter((t) => t.type === type);
       const maxNum = list.reduce((acc, t) => {
@@ -1108,15 +1143,16 @@ function TimelineEditor() {
         return Math.max(acc, m ? Number(m[0]) : 0);
       }, 0);
       const nextNum = maxNum + 1;
-      const id = `${type === 'video' ? 'V' : 'A'}${nextNum}`;
-      const palette = type === 'video' ? videoColors : audioColors;
+      const prefix = type === 'video' ? 'V' : type === 'subtitle' ? 'SUB' : 'A';
+      const id = (type === 'subtitle' && nextNum === 1) ? 'SUB' : `${prefix}${nextNum}`;
+      const palette = type === 'video' ? videoColors : type === 'subtitle' ? subtitleColors : audioColors;
       const color = palette[(nextNum - 1) % palette.length];
       return [
         ...prev,
-        { id, type, color, muted: false, solo: false, locked: false, visible: true },
+        { id, type, color, muted: false, solo: false, locked: false, visible: true, volume: 1 },
       ];
     });
-    setImportInfo(`Added ${type === 'video' ? 'video' : 'audio'} track.`);
+    setImportInfo(`Added ${type === 'video' ? 'video' : type === 'subtitle' ? 'subtitle' : 'audio'} track.`);
   };
 
   const linkedGroupIdsForClip = (list, clip) => {
@@ -1151,6 +1187,7 @@ function TimelineEditor() {
     const videoExt = new Set(['mp4', 'mov', 'mkv', 'avi', 'webm', 'm4v']);
     const audioExt = new Set(['mp3', 'wav', 'aac', 'm4a', 'ogg', 'flac', 'opus']);
     const imageExt = new Set(['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp', 'tiff', 'svg']);
+    if (ext === 'srt') return 'subtitle';
     if (ext === 'psd') return 'psd';
     if (videoExt.has(ext) || mime.startsWith('video/')) return 'video';
     if (audioExt.has(ext) || mime.startsWith('audio/')) return 'audio';
@@ -1299,6 +1336,43 @@ function TimelineEditor() {
     const metas = [];
     for (const file of files) {
       const kind = detectAssetType(file);
+
+      // ── SRT subtitle files ──────────────────────────────────────────────
+      if (kind === 'subtitle') {
+        try {
+          const srtText = await file.text();
+          const cues = parseSRT(srtText);
+          if (!cues.length) { setImportInfo(`No cues found in ${file.name}`); continue; }
+          const subTrackIdx = tracks.findIndex((t) => t.id === 'SUB');
+          const subFinalIdx = subTrackIdx >= 0 ? subTrackIdx : tracks.length;
+          if (subTrackIdx < 0) {
+            setTracks((prev) => {
+              if (prev.find((t) => t.id === 'SUB')) return prev;
+              return [...prev, { id: 'SUB', type: 'subtitle', color: '#f59e0b', muted: false, solo: false, locked: false, visible: true, volume: 1 }];
+            });
+          }
+          setClips((prev) => {
+            const without = prev.filter((c) => c.track !== subFinalIdx);
+            const newClips = cues.map((cue, ci) => ({
+              id: `srt_${Date.now()}_${ci}`,
+              track: subFinalIdx,
+              start: Math.max(0, Math.round(cue.startSec * FPS)),
+              dur: Math.max(MIN_CLIP_FRAMES, Math.round((cue.endSec - cue.startSec) * FPS)),
+              label: cue.text,
+              color: '#92400e',
+              src: '',
+              kind: 'subtitle',
+              ratio: '',
+            }));
+            return [...without, ...newClips];
+          });
+          setImportInfo(`SRT imported: "${file.name}" — ${cues.length} subtitle cues`);
+        } catch (_e) {
+          setImportInfo(`SRT parse error: ${file.name}`);
+        }
+        continue;
+      }
+
       // Read metadata locally (duration, dimensions) BEFORE uploading
       const meta = await readMediaMeta(file, kind);
       // Then upload to Supabase (shows progress in status bar)
@@ -1863,6 +1937,16 @@ function TimelineEditor() {
                 >
                   + Audio
                 </button>
+                <button
+                  onClick={() => {
+                    addTrack('subtitle');
+                    setTrackMenuOpen(false);
+                  }}
+                  style={{ ...iconBtn, width: '100%', height: 24, color: '#fde68a' }}
+                  title="Add subtitle / SRT track"
+                >
+                  + Sub
+                </button>
               </div>
             )}
           </div>
@@ -1878,6 +1962,8 @@ function TimelineEditor() {
                   <MiniBtn active={!tr.locked} onClick={() => toggleTrack(trackIndex, 'locked')}>L</MiniBtn>
                   <MiniBtn active={tr.visible} onClick={() => toggleTrack(trackIndex, 'visible')}>V</MiniBtn>
                 </>
+              ) : tr.type === 'subtitle' ? (
+                <MiniBtn active={tr.visible !== false} onClick={() => toggleTrack(trackIndex, 'visible')}>V</MiniBtn>
               ) : (
                 <>
                   <MiniBtn active={!tr.muted} onClick={() => toggleTrack(trackIndex, 'muted')} danger={tr.muted}>M</MiniBtn>
@@ -2013,6 +2099,9 @@ function TimelineEditor() {
                          textShadow: '0 1px 1px #000',
                          cursor: tool === 'trim' ? 'ew-resize' : tool === 'razor' ? 'crosshair' : 'pointer',
                        }}>
+                    {tr.type === 'subtitle' && (
+                      <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, background: '#f59e0b', borderRadius: '3px 0 0 3px' }} />
+                    )}
                     {tr.type === 'audio' && (
                       <div style={{ position: 'absolute', inset: 0, opacity: 0.25, display: 'flex', alignItems: 'center', gap: 1, padding: '0 3px' }}>
                         {Array.from({ length: Math.max(6, Math.floor((clip.dur * scale) / 5)) }).map((_, idx) => (
