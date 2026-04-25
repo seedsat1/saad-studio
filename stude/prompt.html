@@ -363,15 +363,10 @@ function setSending(v){
 
 // ── GPT call ────────────────────────────────────────────────────
 async function callGpt(){
-  // Use the unified /api/assist endpoint (Clerk auth + credits + reliable retries)
-  // Persona "prompt" maps to a prompt-engineer system on the server.
-  // We still prepend our own SYSTEM_PROMPT as the first user-style instruction
-  // so the cinematic style is enforced.
-  const messages = [
-    { role: 'user', content: 'SYSTEM INSTRUCTIONS (must follow strictly):\n' + SYSTEM_PROMPT },
-    { role: 'assistant', content: 'Understood. I will follow these cinematic prompt-engineering rules.' },
-    ...conversation.map(m => ({ role: m.role, content: m.content })),
-  ];
+  // Use the unified /api/assist endpoint (Clerk auth + credits + reliable retries).
+  // Persona "prompt" already maps to a prompt-engineer system on the server,
+  // so we just send plain user/assistant turns. No fake system injection.
+  const messages = conversation.map(m => ({ role: m.role, content: m.content }));
   const payload = {
     model: 'gpt-5.4',
     persona: 'prompt',
