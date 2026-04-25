@@ -440,7 +440,7 @@ function EffectControls({ clip, onProp, onCommit, onFitMode, onExpand }) {
     const italic = !!clip.italic;
     const underline = !!clip.underline;
     const align = clip.align || 'center';
-    const bgEnabled = clip.bgEnabled !== false;
+    const bgEnabled = clip.bgEnabled === true;
     const bgColor = clip.bgColor || '#000000';
     const bgOpacity = Number.isFinite(clip.bgOpacity) ? clip.bgOpacity : 55;
     const strokeColor = clip.strokeColor || '#000000';
@@ -1272,7 +1272,7 @@ function TimelineEditor() {
         base.italic = !!c.italic;
         base.underline = !!c.underline;
         base.align = c.align || 'center';
-        base.bgEnabled = c.bgEnabled !== false;
+        base.bgEnabled = c.bgEnabled === true;
         base.bgColor = c.bgColor || '#000000';
         base.bgOpacity = Number.isFinite(c.bgOpacity) ? c.bgOpacity : 55;
         base.strokeColor = c.strokeColor || '#000000';
@@ -1317,7 +1317,7 @@ function TimelineEditor() {
         italic: !!c.italic,
         underline: !!c.underline,
         align: c.align || 'center',
-        bgEnabled: c.bgEnabled !== false,
+        bgEnabled: c.bgEnabled === true,
         bgColor: c.bgColor || '#000000',
         bgOpacity: Number.isFinite(c.bgOpacity) ? c.bgOpacity : 55,
         strokeColor: c.strokeColor || '#000000',

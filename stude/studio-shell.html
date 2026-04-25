@@ -578,7 +578,7 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
       var bold=c.bold!==false;
       var italic=!!c.italic;
       var ul=!!c.underline;
-      var bgEnabled=c.bgEnabled!==false;
+      var bgEnabled=c.bgEnabled===true;
       var bgColor=c.bgColor||'#000000';
       var bgOp=isFinite(Number(c.bgOpacity))?Number(c.bgOpacity)/100:0.55;
       var stroke=Number(c.strokeWidth)||0;
@@ -1233,7 +1233,7 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
     var fs=Math.round(baseFs*(H/720));
     var bold=cue.bold!==false, italic=!!cue.italic;
     var color=cue.textColor||'#ffffff';
-    var bgEnabled=cue.bgEnabled!==false;
+    var bgEnabled=cue.bgEnabled===true;
     var bgColor=cue.bgColor||'#000000';
     var bgOp=isFinite(Number(cue.bgOpacity))?Number(cue.bgOpacity)/100:0.55;
     var stroke=Number(cue.strokeWidth)||0;
