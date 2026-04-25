@@ -431,7 +431,12 @@ window.addEventListener('message',function(evt){
   var kind=String(clip.kind||'').toLowerCase();
   // Only update if different clip
   if(state.timelineClip&&state.timelineClip.url===url)return;
-  state.timelineClip={url:url,label:clip.label||'Timeline clip',kind:kind,isBlob:/^blob:/i.test(url)};
+  // Compute duration from clip (frames @ 30fps default)
+  var fps=Number(clip.fps)||30;
+  var durFrames=Number(clip.durationFrames||clip.frames||clip.lengthFrames||0);
+  var durSec=Number(clip.durationSec||clip.duration||0);
+  if(!durSec&&durFrames>0)durSec=durFrames/fps;
+  state.timelineClip={url:url,label:clip.label||'Timeline clip',kind:kind,isBlob:/^blob:/i.test(url),durationSec:durSec||0};
   showTimelineBanner(state.timelineClip);
 });
 
@@ -775,10 +780,65 @@ async function generateCaptions(){
     console.log('[captions] outputText length:',(outputText||'').length);
     var parsed=parseSrtToCues(outputText);
     console.log('[captions] parsed cues:',parsed.length);
-    if(!parsed.length&&outputText){
-      // Maybe plain text — wrap as single cue
-      console.warn('[captions] No SRT format detected, wrapping as single cue');
-      parsed=[{start:'00:00:00,000',end:'00:00:10,000',text:outputText.trim().slice(0,500)}];
+    if(parsed.length<=1&&outputText&&outputText.trim()){
+      // Plain text or single block — split into multiple cues by sentences/punctuation
+      console.warn('[captions] No proper SRT timing — splitting plain text into timed cues');
+      // Probe duration: use timelineClip's duration, else probe via audio element
+      var totalSec=Number(state.timelineClip&&state.timelineClip.durationSec)||0;
+      if(!totalSec||totalSec<1){
+        try{
+          totalSec=await new Promise(function(resolve){
+            var mediaSrc=state.mediaUrl||(state.mediaFile?URL.createObjectURL(state.mediaFile):'');
+            if(!mediaSrc){resolve(0);return;}
+            var probe=document.createElement(/video/i.test(state.mediaType||'')?'video':'audio');
+            probe.preload='metadata';
+            probe.muted=true;
+            probe.crossOrigin='anonymous';
+            var done=false;
+            var finish=function(v){if(done)return;done=true;resolve(Number(v)||0);};
+            probe.onloadedmetadata=function(){finish(probe.duration);};
+            probe.onerror=function(){finish(0);};
+            probe.src=mediaSrc;
+            setTimeout(function(){finish(0);},8000);
+          });
+        }catch(_e){totalSec=0;}
+      }
+      if(!totalSec||totalSec<1)totalSec=Math.max(10,Math.ceil(outputText.length/15)); // ~15 chars/sec
+      console.log('[captions] Total duration for split:',totalSec,'sec');
+
+      // Split by sentence punctuation (Arabic + Latin)
+      var raw=outputText.replace(/\s+/g,' ').trim();
+      var pieces=raw.split(/(?<=[.!؟?،,])\s+|(?<=\u060C|\u061F|\u06D4)\s+/).filter(function(s){return s.trim().length>0;});
+      // If still 1 piece (no punctuation), chunk by ~6-8 words
+      if(pieces.length<=1){
+        var words=raw.split(/\s+/);
+        pieces=[];
+        var chunkSize=Math.max(5,Math.min(9,Math.ceil(words.length/Math.max(4,Math.round(totalSec/3)))));
+        for(var wi=0;wi<words.length;wi+=chunkSize){
+          pieces.push(words.slice(wi,wi+chunkSize).join(' '));
+        }
+      }
+      console.log('[captions] Split into',pieces.length,'pieces');
+
+      // Distribute time proportionally to char length
+      var totalChars=pieces.reduce(function(a,p){return a+p.length;},0)||1;
+      var cursor=0;
+      function fmtTime(sec){
+        var h=Math.floor(sec/3600);
+        var m=Math.floor((sec%3600)/60);
+        var s=Math.floor(sec%60);
+        var ms=Math.round((sec-Math.floor(sec))*1000);
+        var pad=function(n,w){var x=String(n);while(x.length<w)x='0'+x;return x;};
+        return pad(h,2)+':'+pad(m,2)+':'+pad(s,2)+','+pad(ms,3);
+      }
+      parsed=pieces.map(function(p){
+        var share=(p.length/totalChars)*totalSec;
+        var start=cursor;
+        var end=Math.min(totalSec,cursor+Math.max(0.8,share));
+        cursor=end;
+        return {start:fmtTime(start),end:fmtTime(end),text:p.trim()};
+      });
+      console.log('[captions] Generated',parsed.length,'timed cues from plain text');
     }
     state.cues=parsed.length?parsed:[];
     buildCueRows();
