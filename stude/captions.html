@@ -747,9 +747,76 @@ async function generateCaptions(){
       console.log('[captions] Caption file content (first 500):',(outputText||'').slice(0,500));
     }
     if(!outputText&&typeof data.text==='string')outputText=data.text;
-    if(!outputText&&data.raw){
+
+    // ─── PRIORITY: extract real timestamps from raw (segments/words) ─────────
+    var preCues=[];
+    if(data.raw){
       console.log('[captions] FULL RAW:',JSON.stringify(data.raw).slice(0,2000));
-      // Deep walk: find any string URL ending in .srt/.vtt/.txt OR any non-trivial text
+      function fmtT(sec){
+        sec=Math.max(0,Number(sec)||0);
+        var h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60),s=Math.floor(sec%60),ms=Math.round((sec-Math.floor(sec))*1000);
+        var pad=function(n,w){var x=String(n);while(x.length<w)x='0'+x;return x;};
+        return pad(h,2)+':'+pad(m,2)+':'+pad(s,2)+','+pad(ms,3);
+      }
+      // Find segments/words array deep in raw
+      var segArr=null,wordArr=null;
+      function findArrays(v){
+        if(!v||typeof v!=='object')return;
+        if(Array.isArray(v)){v.forEach(findArrays);return;}
+        Object.keys(v).forEach(function(k){
+          var lk=k.toLowerCase();
+          if(!segArr&&(lk==='segments'||lk==='chunks')&&Array.isArray(v[k])&&v[k].length){
+            // Validate items have timing
+            var first=v[k][0];
+            if(first&&(typeof first.start==='number'||typeof first.start_time==='number'||Array.isArray(first.timestamp))){
+              segArr=v[k];
+            }
+          }
+          if(!wordArr&&(lk==='words'||lk==='word_timestamps')&&Array.isArray(v[k])&&v[k].length){
+            var fw=v[k][0];
+            if(fw&&(typeof fw.start==='number'||typeof fw.start_time==='number'||Array.isArray(fw.timestamp))){
+              wordArr=v[k];
+            }
+          }
+          findArrays(v[k]);
+        });
+      }
+      findArrays(data.raw);
+      console.log('[captions] segments:',segArr?segArr.length:0,'words:',wordArr?wordArr.length:0);
+
+      var getStart=function(o){return Number(o.start!=null?o.start:(o.start_time!=null?o.start_time:(Array.isArray(o.timestamp)?o.timestamp[0]:0)))||0;};
+      var getEnd=function(o){return Number(o.end!=null?o.end:(o.end_time!=null?o.end_time:(Array.isArray(o.timestamp)?o.timestamp[1]:0)))||0;};
+      var getText=function(o){return String(o.text||o.word||o.content||'').trim();};
+
+      if(segArr&&segArr.length){
+        preCues=segArr.map(function(s){
+          return {start:fmtT(getStart(s)),end:fmtT(getEnd(s)),text:getText(s)};
+        }).filter(function(c){return c.text;});
+        console.log('[captions] Built',preCues.length,'cues from segments');
+      } else if(wordArr&&wordArr.length){
+        // Group words into ~5-7 word chunks (CapCut style)
+        var maxWords=6,maxGap=0.6;
+        var cur={start:0,end:0,words:[]};
+        wordArr.forEach(function(w,idx){
+          var wt=getText(w),ws=getStart(w),we=getEnd(w);
+          if(!wt)return;
+          if(cur.words.length===0){cur.start=ws;cur.end=we;cur.words.push(wt);return;}
+          var gap=ws-cur.end;
+          if(cur.words.length>=maxWords||gap>maxGap||/[.!?؟،]$/.test(cur.words[cur.words.length-1])){
+            preCues.push({start:fmtT(cur.start),end:fmtT(cur.end),text:cur.words.join(' ')});
+            cur={start:ws,end:we,words:[wt]};
+          } else {
+            cur.end=we;cur.words.push(wt);
+          }
+        });
+        if(cur.words.length)preCues.push({start:fmtT(cur.start),end:fmtT(cur.end),text:cur.words.join(' ')});
+        console.log('[captions] Built',preCues.length,'cues from words (CapCut grouping)');
+      }
+    }
+    // ────────────────────────────────────────────────────────────────────────
+
+    if(!outputText&&data.raw&&!preCues.length){
+      // Deep walk for caption file URL or SRT-looking text
       var foundUrl='',foundText='';
       var visited=new WeakSet();
       function walk(v){
@@ -758,9 +825,7 @@ async function generateCaptions(){
           var s=v.trim();
           if(/^https?:\/\/.+\.(srt|vtt|txt|json)(\?|$)/i.test(s)){foundUrl=s;return;}
           if(/^https?:\/\//i.test(s)){if(!foundUrl)foundUrl=s;return;}
-          // SRT-looking text (has --> arrows)
           if(/-->/.test(s)&&s.length>30){foundText=s;return;}
-          // long plain text
           if(s.length>50&&!foundText)foundText=s;
           return;
         }
@@ -771,15 +836,15 @@ async function generateCaptions(){
       }
       walk(data.raw);
       console.log('[captions] Deep-walk found URL:',foundUrl,'text len:',foundText.length);
-      if(foundUrl&&!outputText){
+      if(foundUrl){
         outputText=await tryReadCaptionFile(foundUrl);
         console.log('[captions] Fetched fallback URL content (first 500):',(outputText||'').slice(0,500));
       }
       if(!outputText&&foundText)outputText=foundText;
     }
     console.log('[captions] outputText length:',(outputText||'').length);
-    var parsed=parseSrtToCues(outputText);
-    console.log('[captions] parsed cues:',parsed.length);
+    var parsed=preCues.length?preCues:parseSrtToCues(outputText);
+    console.log('[captions] parsed cues:',parsed.length,preCues.length?'(from word/segment timestamps)':'(from SRT parse)');
     if(parsed.length<=1&&outputText&&outputText.trim()){
       // Plain text or single block — split into multiple cues by sentences/punctuation
       console.warn('[captions] No proper SRT timing — splitting plain text into timed cues');

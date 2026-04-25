@@ -237,7 +237,12 @@ export async function POST(req: NextRequest) {
     const payload: Record<string, unknown> = {
       language,
       output_format: outputFormat,
-      response_format: outputFormat,
+      response_format: outputFormat === "srt" ? "verbose_json" : outputFormat,
+      // Request word + segment level timestamps (CapCut-style precision)
+      timestamp_granularities: ["segment", "word"],
+      enable_timestamps: true,
+      word_timestamps: true,
+      return_timestamps: "word",
     };
 
     if (model === "wavespeed-ai/openai-whisper-with-video") {
