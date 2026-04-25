@@ -605,38 +605,114 @@ function isVisual(c) {
 
 function findPair(state) {
   if (!state || !Array.isArray(state.allClips)) return null;
-  var clips = state.allClips.filter(function(c){ return isVisual(c) && String(c.kind||'') !== 'transition'; });
-  if (!clips.length) return null;
-  var sel = state.selectedClip && clips.find(function(c){ return c.id === state.selectedClip.id; });
-  var base = sel || (state.activeVisualClip && clips.find(function(c){ return c.id === state.activeVisualClip.id; })) || null;
-  if (!base) return null;
-  var same = clips.filter(function(c){ return c.track === base.track && c.id !== base.id; }).sort(function(a,b){ return a.start-b.start; });
-  var next = same.find(function(c){ return Number(c.start) >= Number(base.start)+Number(base.dur); });
-  return next ? {from:base, to:next} : null;
+  var clips = state.allClips.filter(function(c){
+    var k = String(c.kind||'').toLowerCase();
+    return isVisual(c) && k !== 'transition';
+  });
+  if (clips.length < 2) return null;
+
+  // Group by track (sorted by start)
+  var byTrack = {};
+  clips.forEach(function(c){
+    var key = String(c.track);
+    if (!byTrack[key]) byTrack[key] = [];
+    byTrack[key].push(c);
+  });
+  Object.keys(byTrack).forEach(function(t){
+    byTrack[t].sort(function(a,b){ return Number(a.start)-Number(b.start); });
+  });
+
+  // Find which track/pair index involves the selected or active clip
+  var selId = state.selectedClip && state.selectedClip.id;
+  var avId  = state.activeVisualClip && state.activeVisualClip.id;
+  var preferTrack = null, preferIdx = -1;
+
+  function tryId(id) {
+    if (!id || preferTrack !== null) return;
+    Object.keys(byTrack).forEach(function(t){
+      if (preferTrack !== null) return;
+      var tc = byTrack[t];
+      for (var i = 0; i < tc.length - 1; i++) {
+        if (tc[i].id === id || tc[i+1].id === id) { preferTrack = t; preferIdx = i; return; }
+      }
+    });
+  }
+  tryId(selId);
+  tryId(avId);
+
+  if (preferTrack !== null && preferIdx >= 0) {
+    var tc = byTrack[preferTrack];
+    return { from: tc[preferIdx], to: tc[preferIdx + 1] };
+  }
+
+  // Fallback: first track with 2+ clips
+  var keys = Object.keys(byTrack);
+  for (var i = 0; i < keys.length; i++) {
+    var tc = byTrack[keys[i]];
+    if (tc.length >= 2) return { from: tc[0], to: tc[1] };
+  }
+  return null;
 }
 
 function refreshPair() {
-  _pair = findPair(getTimelineState());
+  var state = getTimelineState();
+  _pair = findPair(state);
   document.getElementById('fromClip').textContent = _pair ? (_pair.from.label||_pair.from.id) : '\u2014';
   document.getElementById('toClip').textContent   = _pair ? (_pair.to.label  ||_pair.to.id  ) : '\u2014';
-  document.getElementById('pairNote').textContent = _pair
-    ? 'Detected pair on same track. Ready to apply transition.'
-    : 'Select a clip in timeline that has a next clip on same track.';
+
+  if (_pair) {
+    document.getElementById('pairNote').textContent = 'Pair detected \u2014 ready to apply.';
+    // Auto-populate input cards from pair URLs if not already loaded
+    if (!_urlA && !_fileA && _pair.from.url) { _urlA = _pair.from.url; setCardFromUrl('A', _pair.from.url, _pair.from.label||'Clip A'); }
+    if (!_urlB && !_fileB && _pair.to.url)   { _urlB = _pair.to.url;   setCardFromUrl('B', _pair.to.url,   _pair.to.label  ||'Clip B'); }
+  } else if (!state) {
+    document.getElementById('pairNote').textContent = 'Waiting for timeline\u2026';
+  } else if (!state.allClips || state.allClips.length < 2) {
+    document.getElementById('pairNote').textContent = 'Add at least 2 clips to the timeline.';
+  } else {
+    document.getElementById('pairNote').textContent = 'Select a clip with a next clip on the same track.';
+  }
+}
+
+function setCardFromUrl(which, url, name) {
+  var card  = document.getElementById('input'+which);
+  var thumb = document.getElementById('thumb'+which);
+  var vid   = document.getElementById('vid'+which);
+  var icon  = document.getElementById('icon'+which);
+  var lbl   = document.getElementById('label'+which);
+  var sub   = document.getElementById('sub'+which);
+  card.classList.add('has-file');
+  var isVid = /\.(mp4|mov|webm|mkv)(\?|$)/i.test(url);
+  if (isVid) {
+    thumb.style.backgroundImage = '';
+    vid.src = url; vid.style.display = 'block';
+    vid.play().catch(function(){});
+    sub.textContent = 'video';
+  } else {
+    vid.style.display = 'none'; vid.src = '';
+    thumb.style.backgroundImage = 'url('+url+')';
+    sub.textContent = 'image';
+  }
+  icon.style.display = 'none';
+  lbl.textContent = name.length > 18 ? name.slice(0,15)+'...' : name;
 }
 
 function postToTimeline(payload) {
+  // Try direct access to timeline sibling iframe
   try {
     if (window.parent && window.parent.document) {
       var tf = window.parent.document.getElementById('timelineFrame');
       if (tf && tf.contentWindow) { tf.contentWindow.postMessage(payload,'*'); return true; }
     }
   } catch(e){}
+  // Fallback: relay through shell (add relay in shell handles ff:addTransition)
+  try { if (window.parent) { window.parent.postMessage(payload,'*'); return true; } } catch(e){}
   return false;
 }
 
 function applyToTimeline() {
   refreshPair();
-  if (!_pair) { setStatus('No valid timeline pair found. Select a clip with a next clip on the same track.', 'warn'); return; }
+  if (!_pair) { setStatus('No valid timeline pair found. Add 2+ clips to the timeline on the same track.', 'warn'); return; }
   var ok = postToTimeline({
     type: 'ff:addTransition',
     transition: {
@@ -650,7 +726,7 @@ function applyToTimeline() {
     }
   });
   if (!ok) { setStatus('Timeline not reachable.', 'err'); return; }
-  setStatus('Applied ' + _selected.name + ' to timeline.', 'ok');
+  setStatus('\u2713 Applied \u201c' + _selected.name + '\u201d between ' + (_pair.from.label||'Clip A') + ' \u2192 ' + (_pair.to.label||'Clip B'), 'ok');
 }
 
 window.addEventListener('message', function(ev) {
