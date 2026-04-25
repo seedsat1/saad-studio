@@ -655,6 +655,7 @@ function previewCustomVoice(id,ev){
   _vmPreviewAudio.onerror=()=>{_vmPlayingId=null;renderVmGrid();setStatus('Cannot preview sample.','warn');};
   _vmPreviewAudio.play().catch(()=>{_vmPlayingId=null;renderVmGrid();});
 }
+function getVoiceAvatar(id,gender){
   let h=0;const s=String(id);
   for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))>>>0;
   const n=(h%70)+1;
