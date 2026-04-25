@@ -764,7 +764,11 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
       keep[id]=true;
       var layer=visualLayerMap[id];
       if(!layer || !layer.node) return;
-      var lr=layer.node.getBoundingClientRect();
+      // IMPORTANT: scale/rotate are applied to layer.media, so use media's
+      // post-transform rect for the bounding box (not layer.node which stays canvas-sized)
+      var lr=(layer.media && layer.media.getBoundingClientRect)
+        ? layer.media.getBoundingClientRect()
+        : layer.node.getBoundingClientRect();
       var h=clipHandlesMap[id];
       var bounds, lab, anchors=[], center;
       if(!h){
@@ -966,8 +970,31 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
       var ay=Number.isFinite(mo.ay)?mo.ay:50;
       var hasMotion=(px!==0||py!==0||sx!==100||sy!==100||rot!==0||ax!==50||ay!==50);
       if(hasMotion){
-        layer.node.style.transform='translate('+px+'px,'+py+'px)';
-        layer.media.style.transformOrigin=ax+'% '+ay+'%';
+        // Adobe-style: anchor (ax,ay) is the pivot AND positioning reference.
+        // Compute painted image rect inside the canvas-sized container based on fit-mode,
+        // then shift the layer so the anchor pixel sits where (px,py) places it.
+        var canvasEl=document.getElementById('previewCanvas');
+        var contW=canvasEl ? canvasEl.clientWidth : 0;
+        var contH=canvasEl ? canvasEl.clientHeight : 0;
+        var nW=(layer.media && (layer.media.naturalWidth || layer.media.videoWidth)) || 0;
+        var nH=(layer.media && (layer.media.naturalHeight || layer.media.videoHeight)) || 0;
+        var paintedW=contW, paintedH=contH;
+        if(nW>0 && nH>0 && contW>0 && contH>0){
+          var fitS;
+          if(fitMode==='fill' || fitMode==='crop') fitS=Math.max(contW/nW, contH/nH);
+          else fitS=Math.min(contW/nW, contH/nH);
+          paintedW=nW*fitS; paintedH=nH*fitS;
+        }
+        var anchorOffX=((ax-50)/100)*paintedW*(sx/100);
+        var anchorOffY=((ay-50)/100)*paintedH*(sy/100);
+        layer.node.style.transform='translate('+(px-anchorOffX)+'px,'+(py-anchorOffY)+'px)';
+        // Origin must point at the anchor pixel of the painted image
+        // (which is centered inside the canvas-sized media element).
+        var originPxX=(contW-paintedW)/2 + (ax/100)*paintedW;
+        var originPxY=(contH-paintedH)/2 + (ay/100)*paintedH;
+        var originPctX=contW>0?(originPxX/contW)*100:50;
+        var originPctY=contH>0?(originPxY/contH)*100:50;
+        layer.media.style.transformOrigin=originPctX+'% '+originPctY+'%';
         layer.media.style.transform='scale('+sx/100+','+sy/100+') rotate('+rot+'deg)';
       } else {
         layer.node.style.transform='';
@@ -1264,23 +1291,24 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
       ctx.rect(W*cL,H*cT,W*(1-cL-cR),H*(1-cT-cB));
       ctx.clip();
     }
-    ctx.translate(W*ax+px, H*ay+py);
+    ctx.translate(W*0.5+px, H*0.5+py);  // anchor pixel position in canvas
     ctx.rotate(rot);
     ctx.scale(sx,sy);
-    var ox=-W*ax, oy=-H*ay;
+    // After rotate/scale, draw image such that its anchor pixel sits at (0,0).
+    // Painted image size depends on fit-mode; anchor pixel = (ax*paintedW, ay*paintedH) inside painted area.
     if(fit==='expand'){
       var bgS=Math.max(W/mW,H/mH)*1.08;
       ctx.save(); ctx.filter='blur(18px) brightness(0.7)';
-      ctx.drawImage(media,ox+(W-mW*bgS)/2,oy+(H-mH*bgS)/2,mW*bgS,mH*bgS);
+      ctx.drawImage(media,-mW*bgS*ax,-mH*bgS*ay,mW*bgS,mH*bgS);
       ctx.restore();
       var fgS=Math.min(W/mW,H/mH);
-      ctx.drawImage(media,ox+(W-mW*fgS)/2,oy+(H-mH*fgS)/2,mW*fgS,mH*fgS);
+      ctx.drawImage(media,-mW*fgS*ax,-mH*fgS*ay,mW*fgS,mH*fgS);
     } else if(fit==='fill'||fit==='crop'){
       var s=Math.max(W/mW,H/mH);
-      ctx.drawImage(media,ox+(W-mW*s)/2,oy+(H-mH*s)/2,mW*s,mH*s);
+      ctx.drawImage(media,-mW*s*ax,-mH*s*ay,mW*s,mH*s);
     } else {
       var s2=Math.min(W/mW,H/mH);
-      ctx.drawImage(media,ox+(W-mW*s2)/2,oy+(H-mH*s2)/2,mW*s2,mH*s2);
+      ctx.drawImage(media,-mW*s2*ax,-mH*s2*ay,mW*s2,mH*s2);
     }
     ctx.restore();
   }
