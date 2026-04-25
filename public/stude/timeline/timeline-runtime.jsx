@@ -1375,11 +1375,36 @@ function TimelineEditor() {
       setImportInfo(`Captions track updated — ${d.cues.length} cues loaded.`);
     };
 
+    const onPreviewEdit = (event) => {
+      const d = event && event.data;
+      if (!d) return;
+      if (d.type === 'ff:selectClip' && d.clipId) {
+        setSelected(String(d.clipId));
+        return;
+      }
+      if (d.type === 'ff:setClipProp' && d.clipId && d.key !== undefined) {
+        const clipId = String(d.clipId);
+        const key = String(d.key);
+        const value = d.value;
+        if (d.commit) pushUndoSnapshot();
+        setClips((prev) => prev.map((c) => {
+          if (c.id !== clipId) return c;
+          if (key.includes('.')) {
+            const [group, field] = key.split('.');
+            return { ...c, [group]: { ...(c[group] || {}), [field]: value } };
+          }
+          return { ...c, [key]: value };
+        }));
+      }
+    };
+
     window.addEventListener('message', onMessage);
     window.addEventListener('message', onSetCaptions);
+    window.addEventListener('message', onPreviewEdit);
     return () => {
       window.removeEventListener('message', onMessage);
       window.removeEventListener('message', onSetCaptions);
+      window.removeEventListener('message', onPreviewEdit);
     };
   }, [handleTimelineHotkey, tracks]);
 

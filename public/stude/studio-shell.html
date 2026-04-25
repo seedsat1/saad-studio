@@ -62,7 +62,7 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
   right:4%;
   text-align:center;
   z-index:10;
-  pointer-events:none;
+  pointer-events:auto;
   font-size:clamp(12px,2vw,20px);
   line-height:1.55;
   color:#fff;
@@ -76,7 +76,14 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
   max-width:92%;
   margin:0 auto;
   letter-spacing:0.2px;
+  cursor:move;
 }
+.subCue{position:relative}
+.subCue.editing{outline:2px dashed #4a9eff;outline-offset:2px}
+.subCue[contenteditable="true"]{cursor:text;user-select:text}
+.clipDragHandle{position:absolute;border:2px dashed rgba(74,158,255,0.9);background:rgba(74,158,255,0.05);cursor:move;pointer-events:auto;z-index:9;box-sizing:border-box}
+.clipDragHandle:hover{background:rgba(74,158,255,0.12)}
+.clipDragHandle .dh-label{position:absolute;top:-18px;left:0;background:#4a9eff;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:3px;white-space:nowrap;font-family:Inter,sans-serif}
 #splitter{height:8px;cursor:row-resize;flex-shrink:0;background:#191c22;border-top:1px solid #2a2f38;border-bottom:1px solid #2a2f38;position:relative}
 #splitter:hover,#splitter.dragging{background:#1f2530}
 #splitter::before{content:'';position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:30px;height:2px;background:#7e8da6;box-shadow:0 -4px 0 #7e8da6,0 4px 0 #7e8da6;border-radius:2px}
@@ -623,11 +630,196 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
         styles.push('overflow:hidden');
         styles.push('animation: subTypewriter '+(0.05*safe.length).toFixed(2)+'s steps('+safe.length+') 1 both');
       }
-      return '<div class="'+cls+'" style="'+styles.join(';')+'">'+safe+'</div>';
+      var cueId=String(c.id||'');
+      return '<div class="'+cls+'" data-cue-id="'+cueId+'" data-pos-x="'+(Number(c.posX)||0)+'" data-pos-y="'+(Number(c.posY)||6)+'" title="Drag to move · Double-click to edit" style="'+styles.join(';')+'">'+safe+'</div>';
     }).filter(Boolean).join('');
 
     el.innerHTML=html;
     el.style.display='block';
+    bindSubtitleInteractions();
+  }
+
+  // ─── Subtitle drag-to-move + double-click-to-edit ───
+  function postToTimeline(msg){
+    try{
+      var tf=document.getElementById('timelineFrame');
+      if(tf && tf.contentWindow) tf.contentWindow.postMessage(msg, '*');
+    }catch(_e){}
+  }
+
+  function bindSubtitleInteractions(){
+    var overlay=document.getElementById('subtitleOverlay');
+    if(!overlay) return;
+    var cues=overlay.querySelectorAll('.subCue');
+    cues.forEach(function(node){
+      if(node.__bound) return;
+      node.__bound=true;
+      var cueId=node.getAttribute('data-cue-id');
+
+      // Single click → select in timeline
+      node.addEventListener('mousedown', function(e){
+        if(node.isContentEditable) return; // don't drag while editing
+        if(e.button!==0) return;
+        e.preventDefault();
+        e.stopPropagation();
+        if(cueId) postToTimeline({ type:'ff:selectClip', clipId:cueId });
+
+        var stage=document.getElementById('previewStage');
+        if(!stage) return;
+        var rect=stage.getBoundingClientRect();
+        var startX=e.clientX, startY=e.clientY;
+        var startPosX=Number(node.getAttribute('data-pos-x'))||0;
+        var startPosY=Number(node.getAttribute('data-pos-y'))||6;
+        var moved=false;
+        var lastPx=startPosX, lastPy=startPosY;
+
+        function onMove(me){
+          var dx=me.clientX-startX, dy=me.clientY-startY;
+          if(!moved && Math.hypot(dx,dy)<3) return;
+          moved=true;
+          var pctX=startPosX + (dx/rect.width)*100;
+          // posY is bottom% so dragging down DECREASES it
+          var pctY=startPosY - (dy/rect.height)*100;
+          pctX=Math.max(-50, Math.min(50, Math.round(pctX)));
+          pctY=Math.max(0, Math.min(95, Math.round(pctY)));
+          lastPx=pctX; lastPy=pctY;
+          // Live visual feedback
+          overlay.style.bottom=pctY+'%';
+          overlay.style.transform='translateX('+pctX+'%)';
+        }
+        function onUp(){
+          document.removeEventListener('mousemove', onMove);
+          document.removeEventListener('mouseup', onUp);
+          if(moved && cueId){
+            postToTimeline({ type:'ff:setClipProp', clipId:cueId, key:'posX', value:lastPx, commit:true });
+            postToTimeline({ type:'ff:setClipProp', clipId:cueId, key:'posY', value:lastPy, commit:true });
+          }
+        }
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup', onUp);
+      });
+
+      // Double click → inline edit
+      node.addEventListener('dblclick', function(e){
+        e.preventDefault();
+        e.stopPropagation();
+        node.classList.add('editing');
+        node.setAttribute('contenteditable','true');
+        node.focus();
+        // Select all
+        try{
+          var range=document.createRange();
+          range.selectNodeContents(node);
+          var sel=window.getSelection();
+          sel.removeAllRanges();
+          sel.addRange(range);
+        }catch(_e){}
+
+        function finish(commit){
+          var newText=node.textContent||'';
+          node.removeAttribute('contenteditable');
+          node.classList.remove('editing');
+          node.removeEventListener('blur', onBlur);
+          node.removeEventListener('keydown', onKey);
+          if(commit && cueId) postToTimeline({ type:'ff:setClipProp', clipId:cueId, key:'label', value:newText, commit:true });
+        }
+        function onBlur(){ finish(true); }
+        function onKey(ev){
+          if(ev.key==='Enter' && !ev.shiftKey){ ev.preventDefault(); node.blur(); }
+          else if(ev.key==='Escape'){ ev.preventDefault(); finish(false); node.blur(); }
+        }
+        node.addEventListener('blur', onBlur);
+        node.addEventListener('keydown', onKey);
+      });
+    });
+  }
+
+  // ─── Visual clip drag handles (logos, images, videos) ───
+  var clipHandlesMap={};
+  function clearClipHandles(){
+    Object.keys(clipHandlesMap).forEach(function(id){
+      var h=clipHandlesMap[id];
+      if(h && h.parentNode) h.parentNode.removeChild(h);
+      delete clipHandlesMap[id];
+    });
+  }
+  function renderClipHandles(state){
+    var stage=document.getElementById('previewStage');
+    var canvas=document.getElementById('previewCanvas');
+    if(!stage || !canvas){ clearClipHandles(); return; }
+    var selectedId=state && state.selectedClip ? String(state.selectedClip.id||'') : '';
+    var visuals=(state && Array.isArray(state.activeVisualClips)) ? state.activeVisualClips : [];
+    var keep={};
+    visuals.forEach(function(clip){
+      var id=String(clip.id||'');
+      if(!id) return;
+      if(id!==selectedId) return; // only show handle for selected clip
+      keep[id]=true;
+      var layer=visualLayerMap[id];
+      if(!layer || !layer.node) return;
+      var lr=layer.node.getBoundingClientRect();
+      var sr=stage.getBoundingClientRect();
+      var h=clipHandlesMap[id];
+      if(!h){
+        h=document.createElement('div');
+        h.className='clipDragHandle';
+        var lab=document.createElement('div');
+        lab.className='dh-label';
+        lab.textContent='⤢ '+(clip.label||'Clip');
+        h.appendChild(lab);
+        stage.appendChild(h);
+        clipHandlesMap[id]=h;
+        bindClipHandleDrag(h, id);
+      } else {
+        var lab2=h.querySelector('.dh-label');
+        if(lab2) lab2.textContent='⤢ '+(clip.label||'Clip');
+      }
+      h.style.left=(lr.left-sr.left)+'px';
+      h.style.top=(lr.top-sr.top)+'px';
+      h.style.width=lr.width+'px';
+      h.style.height=lr.height+'px';
+      h.dataset.startPx=String(Number((clip.motion&&clip.motion.px)||0));
+      h.dataset.startPy=String(Number((clip.motion&&clip.motion.py)||0));
+    });
+    Object.keys(clipHandlesMap).forEach(function(id){
+      if(keep[id]) return;
+      var n=clipHandlesMap[id];
+      if(n && n.parentNode) n.parentNode.removeChild(n);
+      delete clipHandlesMap[id];
+    });
+  }
+  function bindClipHandleDrag(handle, clipId){
+    handle.addEventListener('mousedown', function(e){
+      if(e.button!==0) return;
+      e.preventDefault();
+      e.stopPropagation();
+      postToTimeline({ type:'ff:selectClip', clipId:clipId });
+      var startX=e.clientX, startY=e.clientY;
+      var startPx=Number(handle.dataset.startPx)||0;
+      var startPy=Number(handle.dataset.startPy)||0;
+      var lastPx=startPx, lastPy=startPy;
+      var moved=false;
+      function onMove(me){
+        var dx=me.clientX-startX, dy=me.clientY-startY;
+        if(!moved && Math.hypot(dx,dy)<2) return;
+        moved=true;
+        lastPx=Math.round(startPx+dx);
+        lastPy=Math.round(startPy+dy);
+        // Live visual: also nudge the layer transform for instant feedback
+        var layer=visualLayerMap[clipId];
+        if(layer && layer.node) layer.node.style.transform='translate('+lastPx+'px,'+lastPy+'px)';
+      }
+      function onUp(){
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+        if(moved){
+          postToTimeline({ type:'ff:setClipProp', clipId:clipId, key:'motion.px', value:lastPx, commit:true });
+          postToTimeline({ type:'ff:setClipProp', clipId:clipId, key:'motion.py', value:lastPy, commit:true });
+        }
+      }
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    });
   }
 
   function renderPreviewMedia(state, playing, frame){
@@ -882,6 +1074,7 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
     pFill.style.width=pct.toFixed(2)+'%';
     renderPreviewMedia(d, !!d.playing, Number(d.frame || 0));
     renderSubtitles(d.activeSubtitleCues || []);
+    renderClipHandles(d);
     fitPreview();
     // ── Relay timeline-state to active tool iframe (e.g. captions, audio-music) ──
     try{
