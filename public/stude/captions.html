@@ -599,15 +599,35 @@ async function generateCaptions(){
       setStep(2,'Submitting to AI...');
       res=await fetch('/api/generate/captions',{method:'POST',body:fd});
     } else {
+      // Timeline URL path — fetch blob in browser first (handles auth/signed URLs)
+      setStep(1,'Downloading clip...');
+      setStatus('Downloading clip from timeline…','info');
+      var clipUrl=state.mediaUrl;
+      var isVid=/\.(mp4|mov|webm|m4v|mkv|avi)(\?|$)/i.test(clipUrl)||(state.mediaType&&state.mediaType.indexOf('video/')===0);
+      var clipBlob=null;
+      try{
+        var fetchResp=await fetch(clipUrl,{credentials:'include'});
+        if(fetchResp.ok) clipBlob=await fetchResp.blob();
+      }catch(_fe){}
+      var fd2=new FormData();
+      if(clipBlob&&clipBlob.size>0){
+        var ext=clipUrl.split('?')[0].split('.').pop().toLowerCase()||'mp4';
+        var mime=clipBlob.type||(isVid?'video/mp4':'audio/mpeg');
+        var clipFile=new File([clipBlob],'timeline-clip.'+ext,{type:mime});
+        var blobModel=mime.indexOf('video/')===0?'wavespeed-ai/openai-whisper-with-video':'wavespeed-ai/openai-whisper-turbo';
+        fd2.append('model',blobModel);
+        fd2.append('file',clipFile,clipFile.name);
+      } else {
+        // Fallback: send URL directly
+        var urlModel=isVid?'wavespeed-ai/openai-whisper-with-video':'wavespeed-ai/openai-whisper-turbo';
+        fd2.append('model',urlModel);
+        fd2.append('mediaUrl',clipUrl);
+      }
+      fd2.append('language',state.spokenLang);
+      fd2.append('outputFormat','srt');
       setStep(2,'Submitting to AI...');
       setStatus('Submitting to AI…','info');
-      var isVid=/\.(mp4|mov|webm|m4v|mkv|avi)(\?|$)/i.test(state.mediaUrl)||(state.mediaType&&state.mediaType.indexOf('video/')===0);
-      var urlModel=isVid?'wavespeed-ai/openai-whisper-with-video':'wavespeed-ai/openai-whisper-turbo';
-      res=await fetch('/api/generate/captions',{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({model:urlModel,language:state.spokenLang,outputFormat:'srt',mediaUrl:state.mediaUrl}),
-      });
+      res=await fetch('/api/generate/captions',{method:'POST',body:fd2});
     }
     setStep(3,'Transcribing audio...');
     setStatus('Transcribing — this can take 30–120 seconds…','info');
