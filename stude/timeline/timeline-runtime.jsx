@@ -1077,7 +1077,7 @@ function TimelineEditor() {
           label: String(cue.text || '').slice(0, 80),
           color: '#f59e0b',
           src: '',
-          kind: 'audio',
+          kind: 'subtitle',
           ratio: '',
         };
       });
@@ -2255,9 +2255,18 @@ function TimelineEditor() {
                          color: '#f2f6ff',
                          textShadow: '0 1px 1px #000',
                          cursor: tool === 'trim' ? 'ew-resize' : tool === 'razor' ? 'crosshair' : 'pointer',
+                         ...(tr.type === 'subtitle' ? {
+                           background: clip.id === selected ? 'rgba(245,158,11,0.32)' : 'rgba(245,158,11,0.18)',
+                           border: clip.id === selected ? '1.5px solid #f59e0b' : '1px solid rgba(245,158,11,0.55)',
+                           borderRadius: 5,
+                           boxShadow: clip.id === selected ? '0 0 0 1px #f59e0b55, 0 0 8px #f59e0b33' : 'none',
+                         } : {}),
                        }}>
                     {tr.type === 'subtitle' && (
-                      <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, background: '#f59e0b', borderRadius: '3px 0 0 3px' }} />
+                      <>
+                        <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, background: '#f59e0b', borderRadius: '3px 0 0 3px' }} />
+                        <span style={{ position: 'relative', zIndex: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%', fontSize: 9, fontWeight: 700, color: '#fde68a', letterSpacing: '0.1px', paddingLeft: 4 }}>{clip.label}</span>
+                      </>
                     )}
                     {tr.type === 'audio' && (
                       <div style={{ position: 'absolute', inset: 0, opacity: 0.25, display: 'flex', alignItems: 'center', gap: 1, padding: '0 3px' }}>
@@ -2266,7 +2275,7 @@ function TimelineEditor() {
                         ))}
                       </div>
                     )}
-                    <span style={{ position: 'relative', zIndex: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: clip.id === selected ? 'calc(100% - 90px)' : '100%' }}>{clip.label}</span>
+                    <span style={{ position: 'relative', zIndex: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: clip.id === selected ? 'calc(100% - 90px)' : '100%', display: tr.type === 'subtitle' ? 'none' : undefined }}>{clip.label}</span>
                     {/* fitMode badge + quick picker on selected visual clips */}
                     {clip.id === selected && (tr.type === 'video' || tr.type === 'image') && (
                       <div style={{ position: 'absolute', right: 4, top: '50%', transform: 'translateY(-50%)', display: 'flex', gap: 2, zIndex: 10 }} onMouseDown={(e) => e.stopPropagation()}>
