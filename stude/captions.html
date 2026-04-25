@@ -743,12 +743,34 @@ async function generateCaptions(){
     }
     if(!outputText&&typeof data.text==='string')outputText=data.text;
     if(!outputText&&data.raw){
-      // Last-resort: extract from raw response
-      try{
-        var raw=data.raw;
-        outputText=raw.text||raw.transcript||raw.transcription||raw.subtitle||raw.subtitles||'';
-        if(typeof outputText!=='string')outputText='';
-      }catch(_e){}
+      console.log('[captions] FULL RAW:',JSON.stringify(data.raw).slice(0,2000));
+      // Deep walk: find any string URL ending in .srt/.vtt/.txt OR any non-trivial text
+      var foundUrl='',foundText='';
+      var visited=new WeakSet();
+      function walk(v){
+        if(foundUrl||foundText)return;
+        if(typeof v==='string'){
+          var s=v.trim();
+          if(/^https?:\/\/.+\.(srt|vtt|txt|json)(\?|$)/i.test(s)){foundUrl=s;return;}
+          if(/^https?:\/\//i.test(s)){if(!foundUrl)foundUrl=s;return;}
+          // SRT-looking text (has --> arrows)
+          if(/-->/.test(s)&&s.length>30){foundText=s;return;}
+          // long plain text
+          if(s.length>50&&!foundText)foundText=s;
+          return;
+        }
+        if(!v||typeof v!=='object'||visited.has(v))return;
+        visited.add(v);
+        if(Array.isArray(v)){v.forEach(walk);return;}
+        Object.keys(v).forEach(function(k){walk(v[k]);});
+      }
+      walk(data.raw);
+      console.log('[captions] Deep-walk found URL:',foundUrl,'text len:',foundText.length);
+      if(foundUrl&&!outputText){
+        outputText=await tryReadCaptionFile(foundUrl);
+        console.log('[captions] Fetched fallback URL content (first 500):',(outputText||'').slice(0,500));
+      }
+      if(!outputText&&foundText)outputText=foundText;
     }
     console.log('[captions] outputText length:',(outputText||'').length);
     var parsed=parseSrtToCues(outputText);

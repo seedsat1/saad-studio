@@ -108,10 +108,17 @@ export async function GET(req: NextRequest) {
     const status = String(data.status || data.taskStatus || data.state || "pending").toLowerCase();
 
     if (["success", "completed", "done"].includes(status)) {
+      const text = firstText(data);
+      const captionUrl = firstUrl(data);
+      // Log structure when both extractors fail to help diagnose new response shapes
+      if (!text && !captionUrl) {
+        console.warn("[captions/status] WaveSpeed done but no text/url found. Raw keys:",
+          Object.keys(data), "Sample:", JSON.stringify(data).slice(0, 800));
+      }
       return NextResponse.json({
         status: "done",
-        text: firstText(data),
-        captionUrl: firstUrl(data),
+        text,
+        captionUrl,
         raw: data,
       });
     }
