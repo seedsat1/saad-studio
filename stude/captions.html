@@ -610,7 +610,7 @@ async function generateCaptions(){
       fd.append('model',model);fd.append('language',state.spokenLang);
       fd.append('outputFormat','srt');fd.append('file',state.mediaFile,state.mediaFile.name||'media-input');
       setStep(2,'Submitting to AI...');
-      res=await fetch('/api/generate/captions',{method:'POST',body:fd});
+      res=await fetch('/api/generate/captions?async=1',{method:'POST',body:fd});
     } else {
       var clipUrl=state.mediaUrl;
       var isVid=/\.(mp4|mov|webm|m4v|mkv|avi)(\?|$)/i.test(clipUrl)||(state.mediaType&&state.mediaType.indexOf('video/')===0)||/video/i.test(state.mediaType||'');
@@ -669,7 +669,7 @@ async function generateCaptions(){
         var blobModel=blobMime.indexOf('video/')===0?'wavespeed-ai/openai-whisper-with-video':'wavespeed-ai/openai-whisper-turbo';
         setStep(3,'Transcribing audio...');
         setStatus('Clip uploaded — transcribing…','info');
-        res=await fetch('/api/generate/captions',{
+        res=await fetch('/api/generate/captions?async=1',{
           method:'POST',
           headers:{'Content-Type':'application/json'},
           body:JSON.stringify({model:blobModel,language:state.spokenLang,outputFormat:'srt',mediaUrl:uploadPublicUrl}),
@@ -679,7 +679,7 @@ async function generateCaptions(){
         var urlModel=isVid?'wavespeed-ai/openai-whisper-with-video':'wavespeed-ai/openai-whisper-turbo';
         setStep(2,'Submitting to AI...');
         setStatus('Submitting URL to AI…','info');
-        res=await fetch('/api/generate/captions',{
+        res=await fetch('/api/generate/captions?async=1',{
           method:'POST',
           headers:{'Content-Type':'application/json'},
           body:JSON.stringify({model:urlModel,language:state.spokenLang,outputFormat:'srt',mediaUrl:clipUrl}),
@@ -687,7 +687,7 @@ async function generateCaptions(){
       }
     }
     setStep(3,'Transcribing audio...');
-    setStatus('Transcribing — this can take 30–120 seconds…','info');
+    setStatus('Transcribing — this may take several minutes for long videos…','info');
     var data=await res.json().catch(function(){return{};});
     if(!res.ok){
       console.error('[captions] API error:',res.status,data);
@@ -695,7 +695,46 @@ async function generateCaptions(){
       if(data&&data.detail) errMsg+=' — '+String(data.detail).slice(0,200);
       throw new Error(errMsg);
     }
-    console.log('[captions] API response:',data);
+    console.log('[captions] Submit response:',data);
+
+    // ─── Async polling — no time limit, like CapCut ──────────────────────────
+    if(data&&data.taskId&&data.status==='pending'){
+      var pollStart=Date.now();
+      var pollAttempt=0;
+      while(true){
+        pollAttempt++;
+        // Poll interval: 2s for first 30s, then 4s
+        var waitMs=pollAttempt<15?2000:4000;
+        await new Promise(function(r){setTimeout(r,waitMs);});
+        var elapsedSec=Math.round((Date.now()-pollStart)/1000);
+        var mm=Math.floor(elapsedSec/60),ss=elapsedSec%60;
+        setStatus('Transcribing… '+mm+'m '+(ss<10?'0':'')+ss+'s elapsed','info');
+
+        var statusRes;
+        try{
+          statusRes=await fetch('/api/generate/captions/status?taskId='+encodeURIComponent(data.taskId),{cache:'no-store'});
+        }catch(netErr){
+          console.warn('[captions] Status network error, retrying:',netErr.message);
+          continue; // transient — keep trying
+        }
+        var statusData=await statusRes.json().catch(function(){return{};});
+        console.log('[captions] Poll #'+pollAttempt+':',statusData);
+
+        if(statusData.status==='done'){
+          data=statusData;
+          break;
+        }
+        if(statusData.status==='failed'){
+          throw new Error(statusData.error||'Transcription failed.');
+        }
+        // status === 'pending' → keep polling (no upper bound)
+        if(statusData.progress!=null){
+          setStatus('Transcribing… '+statusData.progress+'% — '+mm+'m '+ss+'s','info');
+        }
+      }
+    }
+    // ────────────────────────────────────────────────────────────────────────
+
     var outputText='';
     if(typeof data.captionUrl==='string'&&data.captionUrl){
       console.log('[captions] Fetching caption file:',data.captionUrl);

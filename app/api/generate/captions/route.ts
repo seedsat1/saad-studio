@@ -277,6 +277,15 @@ export async function POST(req: NextRequest) {
       throw new Error("No prediction id returned from WaveSpeed.");
     }
 
+    // Async mode: return taskId immediately, client polls /status endpoint.
+    // This bypasses Vercel's serverless time limit entirely.
+    const isAsync =
+      req.nextUrl.searchParams.get("async") === "1" ||
+      req.headers.get("x-async") === "1";
+    if (isAsync) {
+      return NextResponse.json({ taskId, status: "pending" }, { status: 202 });
+    }
+
     const result = await pollWaveSpeedTask(taskId, apiKey);
 
     return NextResponse.json(
