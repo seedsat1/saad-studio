@@ -14,7 +14,6 @@
 *::-webkit-scrollbar-thumb:hover{background:linear-gradient(180deg,#4e6283,#3d4f69)}
 *::-webkit-scrollbar-corner{background:#171b22}
 body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe UI,sans-serif;overflow:hidden;display:flex;flex-direction:column}
-.menubar{height:38px;background:linear-gradient(180deg,#111723,#0d121a);border-bottom:1px solid #243046;display:flex;align-items:center;padding:0 12px;gap:10px;font-size:11px}
 .brand-wrap{display:flex;align-items:center;gap:10px;min-width:0}
 .brand-mark{width:18px;height:18px;border-radius:5px;background:linear-gradient(135deg,#5bb2ff,#2f6cff);box-shadow:0 0 0 1px rgba(121,178,255,.35) inset,0 0 14px rgba(63,123,255,.25);position:relative;flex-shrink:0}
 .brand-mark::after{content:'';position:absolute;inset:4px;border-radius:3px;border:1px solid rgba(225,240,255,.55)}
@@ -86,17 +85,6 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
 </style>
 </head>
 <body>
-  <div class="menubar">
-    <div class="brand-wrap">
-      <span class="brand-mark"></span>
-      <span class="brand-stack">
-        <span class="brand">SAAD STUDIO</span>
-        <span class="brand-sub">Cinema Workspace</span>
-      </span>
-    </div>
-    <span class="sp"></span>
-    <span style="color:#7c8eab;font-size:10px">Persistent Timeline + Right Preview</span>
-  </div>
 
   <div class="tabs" id="tabs">
     <a class="tab" data-page="sound" href="#sound">Audio & Music</a>
