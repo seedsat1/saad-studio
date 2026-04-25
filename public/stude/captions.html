@@ -409,21 +409,29 @@ var state={cues:[],mediaUrl:'',mediaFile:null,mediaType:'',currentIndex:-1,spoke
 window.addEventListener('message',function(evt){
   var d=evt&&evt.data;
   if(!d||d.type!=='ff:timeline-state')return;
-  // Find best clip with a URL — prefer selected, then visual, then audio
+  // Accept https: (Supabase) AND blob: (local import) URLs
+  // Priority: selectedClip → activeVisualClip → activeAudioClip → activeClip
   var candidates=[d.selectedClip,d.activeVisualClip,d.activeAudioClip,d.activeClip];
   var clip=null;
   for(var i=0;i<candidates.length;i++){
     var c=candidates[i];
-    if(c&&c.url&&/^https?:\/\//i.test(c.url)){clip=c;break;}
+    if(!c||!c.url)continue;
+    var u=String(c.url);
+    // Accept https/http (Supabase stored) or blob: (local import)
+    if(!/^(https?:|blob:)/i.test(u))continue;
+    // Skip subtitle/transition/image clips (no audio content)
+    var k=String(c.kind||'').toLowerCase();
+    if(k==='subtitle'||k==='transition'||k==='text')continue;
+    if(k==='image'||k==='psd')continue;
+    clip=c;
+    break;
   }
   if(!clip)return;
   var url=String(clip.url);
   var kind=String(clip.kind||'').toLowerCase();
-  var isMedia=/\.(mp4|mov|webm|m4v|mkv|avi|mp3|wav|aac|m4a|ogg|flac|opus)(\?|$)/i.test(url)||(kind==='video'||kind==='audio'||kind==='image'===false);
-  if(!isMedia)return;
   // Only update if different clip
   if(state.timelineClip&&state.timelineClip.url===url)return;
-  state.timelineClip={url:url,label:clip.label||'Timeline clip',kind:kind};
+  state.timelineClip={url:url,label:clip.label||'Timeline clip',kind:kind,isBlob:/^blob:/i.test(url)};
   showTimelineBanner(state.timelineClip);
 });
 
@@ -432,20 +440,16 @@ function showTimelineBanner(clip){
   if(!banner)return;
   var isVid=/\.(mp4|mov|webm|m4v|mkv|avi)(\?|$)/i.test(clip.url)||(clip.kind==='video')||(/video/i.test(clip.kind));
   document.getElementById('tbLabel').textContent=clip.label||'Timeline clip';
-  document.getElementById('tbKind').textContent=isVid?'Video':'Audio';
-  document.getElementById('tbKind').style.color=isVid?'#7cc8ff':'#6dd6a0';
+  document.getElementById('tbKind').textContent=(isVid?'Video':'Audio')+(clip.isBlob?' · Local':'');
+  document.getElementById('tbKind').style.color=clip.isBlob?'#fbbf24':(isVid?'#7cc8ff':'#6dd6a0');
   banner.style.display='flex';
-  // Auto-select this clip (clear manual upload)
   state.mediaFile=null;
   state.mediaUrl=clip.url;
   state.mediaType=isVid?'video/mp4':'audio/mpeg';
-  // Scroll banner into view
-  banner.scrollIntoView({behavior:'smooth',block:'nearest'});
-  // Hide upload zone file info
   document.getElementById('uploadZone').classList.remove('has-file');
   document.getElementById('emptyUI').style.display='';
   document.getElementById('fileRow').classList.remove('on');
-  setStatus('✓ Timeline clip ready — click Generate Captions.','ok');
+  setStatus('✓ Timeline clip detected — click Generate Captions.','ok');
 }
 
 function dismissTimelineBanner(){
@@ -607,17 +611,39 @@ async function generateCaptions(){
       setStep(2,'Submitting to AI...');
       res=await fetch('/api/generate/captions',{method:'POST',body:fd});
     } else {
-      // Timeline URL path — send URL directly to API (WaveSpeed fetches it server-side)
       var clipUrl=state.mediaUrl;
-      var isVid=/\.(mp4|mov|webm|m4v|mkv|avi)(\?|$)/i.test(clipUrl)||(state.mediaType&&state.mediaType.indexOf('video/')===0);
-      var urlModel=isVid?'wavespeed-ai/openai-whisper-with-video':'wavespeed-ai/openai-whisper-turbo';
-      setStep(2,'Submitting to AI...');
-      setStatus('Submitting to AI…','info');
-      res=await fetch('/api/generate/captions',{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({model:urlModel,language:state.spokenLang,outputFormat:'srt',mediaUrl:clipUrl}),
-      });
+      var isVid=/\.(mp4|mov|webm|m4v|mkv|avi)(\?|$)/i.test(clipUrl)||(state.mediaType&&state.mediaType.indexOf('video/')===0)||/video/i.test(state.mediaType||'');
+      var isBlobUrl=/^blob:/i.test(clipUrl);
+      if(isBlobUrl){
+        // blob: URL = local file not yet on Supabase — fetch then upload as File
+        setStep(1,'Reading local clip...');
+        setStatus('Reading clip from local storage…','info');
+        var blobResp=await fetch(clipUrl);
+        if(!blobResp.ok) throw new Error('Could not read local clip. Please re-import the file.');
+        var clipBlob=await blobResp.blob();
+        var blobMime=clipBlob.type||(isVid?'video/mp4':'audio/mpeg');
+        var blobExt=isVid?'mp4':'mp3';
+        var clipFile=new File([clipBlob],'timeline-clip.'+blobExt,{type:blobMime});
+        var blobModel=blobMime.indexOf('video/')===0?'wavespeed-ai/openai-whisper-with-video':'wavespeed-ai/openai-whisper-turbo';
+        setStep(2,'Uploading clip...');
+        setStatus('Uploading clip…','info');
+        var fd3=new FormData();
+        fd3.append('model',blobModel);
+        fd3.append('file',clipFile,clipFile.name);
+        fd3.append('language',state.spokenLang);
+        fd3.append('outputFormat','srt');
+        res=await fetch('/api/generate/captions',{method:'POST',body:fd3});
+      } else {
+        // https: URL (Supabase) — send URL directly, WaveSpeed fetches server-side
+        var urlModel=isVid?'wavespeed-ai/openai-whisper-with-video':'wavespeed-ai/openai-whisper-turbo';
+        setStep(2,'Submitting to AI...');
+        setStatus('Submitting URL to AI…','info');
+        res=await fetch('/api/generate/captions',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({model:urlModel,language:state.spokenLang,outputFormat:'srt',mediaUrl:clipUrl}),
+        });
+      }
     }
     setStep(3,'Transcribing audio...');
     setStatus('Transcribing — this can take 30–120 seconds…','info');

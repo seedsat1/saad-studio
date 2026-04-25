@@ -5,6 +5,7 @@ import { fetchWithTimeout, readErrorBody } from "@/lib/http";
 import { getClientIp, isAllowedOrigin, isSafePublicHttpUrl, sanitizePlainText } from "@/lib/security";
 
 export const runtime = "nodejs";
+export const maxDuration = 300; // 5 min — long enough for large video transcription
 
 const WAVESPEED_BASE_URL = "https://api.wavespeed.ai/api/v3";
 const WHISPER_MODELS = new Set([
