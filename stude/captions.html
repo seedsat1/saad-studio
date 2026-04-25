@@ -563,7 +563,7 @@ async function tryReadCaptionFile(url){
 }
 async function generateCaptions(){
   var hasFile=!!(state.mediaFile&&state.mediaFile.size>0);
-  var hasUrl=!!(state.mediaUrl&&/^https?:\/\//i.test(state.mediaUrl));
+  var hasUrl=!!(state.mediaUrl&&/^(https?:|blob:)/i.test(state.mediaUrl));
   if(!hasFile&&!hasUrl){setStatus('Upload a file or select a clip in the timeline first.','warn');return;}
   var btn=document.getElementById('genBtn');
   var label=document.getElementById('genBtnLabel');
@@ -695,10 +695,30 @@ async function generateCaptions(){
       if(data&&data.detail) errMsg+=' — '+String(data.detail).slice(0,200);
       throw new Error(errMsg);
     }
+    console.log('[captions] API response:',data);
     var outputText='';
-    if(typeof data.captionUrl==='string'&&data.captionUrl)outputText=await tryReadCaptionFile(data.captionUrl);
+    if(typeof data.captionUrl==='string'&&data.captionUrl){
+      console.log('[captions] Fetching caption file:',data.captionUrl);
+      outputText=await tryReadCaptionFile(data.captionUrl);
+      console.log('[captions] Caption file content (first 500):',(outputText||'').slice(0,500));
+    }
     if(!outputText&&typeof data.text==='string')outputText=data.text;
+    if(!outputText&&data.raw){
+      // Last-resort: extract from raw response
+      try{
+        var raw=data.raw;
+        outputText=raw.text||raw.transcript||raw.transcription||raw.subtitle||raw.subtitles||'';
+        if(typeof outputText!=='string')outputText='';
+      }catch(_e){}
+    }
+    console.log('[captions] outputText length:',(outputText||'').length);
     var parsed=parseSrtToCues(outputText);
+    console.log('[captions] parsed cues:',parsed.length);
+    if(!parsed.length&&outputText){
+      // Maybe plain text — wrap as single cue
+      console.warn('[captions] No SRT format detected, wrapping as single cue');
+      parsed=[{start:'00:00:00,000',end:'00:00:10,000',text:outputText.trim().slice(0,500)}];
+    }
     state.cues=parsed.length?parsed:[];
     buildCueRows();
     state.currentIndex=state.cues.length?0:-1;
