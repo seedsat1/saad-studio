@@ -740,6 +740,12 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
     renderPreviewMedia(d, !!d.playing, Number(d.frame || 0));
     renderSubtitles(d.activeSubtitleCues || []);
     fitPreview();
+    // ── Relay timeline-state to active tool iframe (e.g. captions, audio-music) ──
+    try{
+      if(topFrame && topFrame.contentWindow){
+        topFrame.contentWindow.postMessage(d, '*');
+      }
+    }catch(_e){}
   });
 
   function downloadFile(url, fallbackName){
@@ -1164,6 +1170,10 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
 
   topFrame.addEventListener('load', function(){
     bindTopFrameHotkeys();
+    // Send current timeline state to the newly loaded tool page
+    if(lastTimelineState && topFrame.contentWindow){
+      try{ topFrame.contentWindow.postMessage(lastTimelineState,'*'); }catch(_e){}
+    }
   });
 
   loadPage(getPageFromLocation(),false);
