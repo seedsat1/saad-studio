@@ -82,8 +82,12 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
 .subCue.editing{outline:2px dashed #4a9eff;outline-offset:2px}
 .subCue[contenteditable="true"]{cursor:text;user-select:text}
 .clipDragHandle{position:absolute;background:transparent;cursor:move;pointer-events:auto;z-index:9;box-sizing:border-box}
-.clipDragHandle .dh-bounds{position:absolute;border:2px dashed rgba(74,158,255,0.9);background:rgba(74,158,255,0.05);box-sizing:border-box;pointer-events:none}
-.clipDragHandle:hover .dh-bounds{background:rgba(74,158,255,0.12)}
+.clipDragHandle .dh-bounds{position:absolute;border:1px solid rgba(74,158,255,0.55);box-sizing:border-box;pointer-events:none}
+.clipDragHandle .dh-anchor{position:absolute;width:9px;height:9px;background:#fff;border:1.5px solid #4a9eff;border-radius:50%;box-shadow:0 0 0 1px rgba(0,0,0,0.4);box-sizing:border-box;pointer-events:none;transform:translate(-50%,-50%)}
+.clipDragHandle .dh-center{position:absolute;width:14px;height:14px;border:1.5px solid #ffb84a;border-radius:50%;box-sizing:border-box;pointer-events:none;transform:translate(-50%,-50%);background:rgba(255,184,74,0.15)}
+.clipDragHandle .dh-center::before,.clipDragHandle .dh-center::after{content:'';position:absolute;background:#ffb84a}
+.clipDragHandle .dh-center::before{left:50%;top:-4px;bottom:-4px;width:1px;transform:translateX(-50%)}
+.clipDragHandle .dh-center::after{top:50%;left:-4px;right:-4px;height:1px;transform:translateY(-50%)}
 .clipDragHandle .dh-label{position:absolute;background:#4a9eff;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:3px;white-space:nowrap;font-family:Inter,sans-serif;pointer-events:none}
 #splitter{height:8px;cursor:row-resize;flex-shrink:0;background:#191c22;border-top:1px solid #2a2f38;border-bottom:1px solid #2a2f38;position:relative}
 #splitter:hover,#splitter.dragging{background:#1f2530}
@@ -762,13 +766,24 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
       if(!layer || !layer.node) return;
       var lr=layer.node.getBoundingClientRect();
       var h=clipHandlesMap[id];
-      var bounds, lab;
+      var bounds, lab, anchors=[], center;
       if(!h){
         h=document.createElement('div');
         h.className='clipDragHandle';
         bounds=document.createElement('div');
         bounds.className='dh-bounds';
         h.appendChild(bounds);
+        // 8 anchor points: 4 corners + 4 edge midpoints
+        for(var ai=0;ai<8;ai++){
+          var dot=document.createElement('div');
+          dot.className='dh-anchor';
+          dot.dataset.idx=String(ai);
+          h.appendChild(dot);
+          anchors.push(dot);
+        }
+        center=document.createElement('div');
+        center.className='dh-center';
+        h.appendChild(center);
         lab=document.createElement('div');
         lab.className='dh-label';
         lab.textContent='⤢ '+(clip.label||'Clip');
@@ -779,6 +794,8 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
       } else {
         bounds=h.querySelector('.dh-bounds');
         lab=h.querySelector('.dh-label');
+        center=h.querySelector('.dh-center');
+        anchors=Array.prototype.slice.call(h.querySelectorAll('.dh-anchor'));
         if(lab) lab.textContent='⤢ '+(clip.label||'Clip');
       }
       // Drag area = entire preview canvas (free movement, no clipping)
@@ -786,17 +803,40 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
       h.style.top=(cr.top-sr.top)+'px';
       h.style.width=cr.width+'px';
       h.style.height=cr.height+'px';
-      // Inner dashed box = actual image bounds (visual indicator only)
+      // Hide everything if image has zero rendered size (avoids stale dashed box)
+      var hasSize=(lr.width>2 && lr.height>2);
+      h.style.display=hasSize?'block':'none';
+      // Inner thin border = actual image bounds (visual indicator only)
+      var bx=lr.left-cr.left, by=lr.top-cr.top, bw=lr.width, bh=lr.height;
       if(bounds){
-        bounds.style.left=(lr.left-cr.left)+'px';
-        bounds.style.top=(lr.top-cr.top)+'px';
-        bounds.style.width=lr.width+'px';
-        bounds.style.height=lr.height+'px';
+        bounds.style.left=bx+'px';
+        bounds.style.top=by+'px';
+        bounds.style.width=bw+'px';
+        bounds.style.height=bh+'px';
+      }
+      // 8 anchor dots: 4 corners + 4 edge midpoints
+      var pts=[
+        [bx,by],[bx+bw/2,by],[bx+bw,by],
+        [bx+bw,by+bh/2],
+        [bx+bw,by+bh],[bx+bw/2,by+bh],[bx,by+bh],
+        [bx,by+bh/2]
+      ];
+      for(var pi=0;pi<anchors.length && pi<pts.length;pi++){
+        anchors[pi].style.left=pts[pi][0]+'px';
+        anchors[pi].style.top=pts[pi][1]+'px';
+      }
+      // Center anchor (rotation/scale pivot)
+      var mo=clip.motion||{};
+      var axPct=(mo.ax!=null?mo.ax:50)/100;
+      var ayPct=(mo.ay!=null?mo.ay:50)/100;
+      if(center){
+        center.style.left=(bx+bw*axPct)+'px';
+        center.style.top=(by+bh*ayPct)+'px';
       }
       // Label hugs the image's top-left, clamped inside the handle
       if(lab){
-        var labLeft=Math.max(0,Math.min(cr.width-60,(lr.left-cr.left)));
-        var labTop=Math.max(0,(lr.top-cr.top)-18);
+        var labLeft=Math.max(0,Math.min(cr.width-60,bx));
+        var labTop=Math.max(0,by-18);
         lab.style.left=labLeft+'px';
         lab.style.top=labTop+'px';
       }
@@ -830,24 +870,25 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
         // Live visual: also nudge the layer transform for instant feedback
         var layer=visualLayerMap[clipId];
         if(layer && layer.node) layer.node.style.transform='translate('+lastPx+'px,'+lastPy+'px)';
-        // Move the dashed indicator with the image (delta from start)
-        var bounds=handle.querySelector('.dh-bounds');
-        if(bounds){
-          var bx=parseFloat(bounds.dataset.baseLeft||bounds.style.left)||0;
-          var by=parseFloat(bounds.dataset.baseTop||bounds.style.top)||0;
-          if(!bounds.dataset.baseLeft){
-            bounds.dataset.baseLeft=String(bx);
-            bounds.dataset.baseTop=String(by);
+        // Move the dashed indicator + anchors with the image (delta from start)
+        var deltaX=lastPx-startPx, deltaY=lastPy-startPy;
+        var movables=handle.querySelectorAll('.dh-bounds,.dh-anchor,.dh-center,.dh-label');
+        movables.forEach(function(node){
+          if(!node.dataset.baseLeft){
+            node.dataset.baseLeft=String(parseFloat(node.style.left)||0);
+            node.dataset.baseTop=String(parseFloat(node.style.top)||0);
           }
-          bounds.style.left=(parseFloat(bounds.dataset.baseLeft)+(lastPx-startPx))+'px';
-          bounds.style.top=(parseFloat(bounds.dataset.baseTop)+(lastPy-startPy))+'px';
-        }
+          node.style.left=(parseFloat(node.dataset.baseLeft)+deltaX)+'px';
+          node.style.top=(parseFloat(node.dataset.baseTop)+deltaY)+'px';
+        });
       }
       function onUp(){
         document.removeEventListener('mousemove', onMove);
         document.removeEventListener('mouseup', onUp);
-        var bounds=handle.querySelector('.dh-bounds');
-        if(bounds){ delete bounds.dataset.baseLeft; delete bounds.dataset.baseTop; }
+        var movables=handle.querySelectorAll('.dh-bounds,.dh-anchor,.dh-center,.dh-label');
+        movables.forEach(function(node){
+          delete node.dataset.baseLeft; delete node.dataset.baseTop;
+        });
         if(moved){
           postToTimeline({ type:'ff:setClipProp', clipId:clipId, key:'motion.px', value:lastPx, commit:true });
           postToTimeline({ type:'ff:setClipProp', clipId:clipId, key:'motion.py', value:lastPy, commit:true });
