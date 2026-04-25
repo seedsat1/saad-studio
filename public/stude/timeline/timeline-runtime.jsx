@@ -548,6 +548,13 @@ function TimelineEditor() {
   const [projectRatio, setProjectRatio] = useState(() => persisted?.projectRatio || '16:9');
   const [expandModal, setExpandModal] = useState(null); // null | {clipId,src,kind,kieTaskId,label,loading,result,error}
   const [expandParams, setExpandParams] = useState({ imageSize: 'landscape_16_9', extendSecs: '6', prompt: '' });
+  // ─── Server-side project save/load
+  const [projectId, setProjectId] = useState(null);   // current project ID on server
+  const [projectName, setProjectName] = useState('Untitled Project');
+  const [projectModal, setProjectModal] = useState(null); // null | 'save' | 'load'
+  const [projectList, setProjectList] = useState([]);  // [{id,name,updatedAt}]
+  const [projectSaving, setProjectSaving] = useState(false);
+  const [projectLoading, setProjectLoading] = useState(false);
 
   const tlRef = useRef(null);
   const rafRef = useRef(null);
@@ -1159,43 +1166,81 @@ function TimelineEditor() {
     setClipProp(clipId, key, value);
   };
 
-  const saveProject = () => {
-    const state = latestStateRef.current || captureState();
-    const json = JSON.stringify({ version: 1, ...state }, null, 2);
-    const blob = new Blob([json], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `project_${new Date().toISOString().slice(0,10)}.json`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1500);
-    setImportInfo('Project saved as JSON file.');
+  // ─── Server-side Save: POST state to /api/timeline/projects
+  const saveProject = async () => {
+    if (projectSaving) return;
+    setProjectModal('save');
   };
 
-  const loadProjectInput = React.useRef(null);
+  const doSaveProject = async (name) => {
+    if (projectSaving) return;
+    setProjectSaving(true);
+    try {
+      const state = latestStateRef.current || captureState();
+      const body = { state, name: name || projectName };
+      if (projectId) body.id = projectId;
+      const res = await fetch('/api/timeline/projects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Save failed');
+      setProjectId(data.project.id);
+      setProjectName(data.project.name);
+      setImportInfo(`Project saved: “${data.project.name}” ✔`);
+      setProjectModal(null);
+    } catch (err) {
+      setImportInfo('Save failed: ' + err.message);
+    } finally {
+      setProjectSaving(false);
+    }
+  };
 
-  const loadProject = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      try {
-        const parsed = JSON.parse(ev.target.result);
-        if (parsed && Array.isArray(parsed.clips) && Array.isArray(parsed.tracks)) {
-          pushUndoSnapshot();
-          applySnapshot(parsed);
-          setImportInfo(`Project loaded: ${file.name}`);
-        } else {
-          setImportInfo('Invalid project file.');
-        }
-      } catch {
-        setImportInfo('Failed to parse project file.');
+  // ─── Server-side Load: GET list then fetch state by ID
+  const openLoadModal = async () => {
+    setProjectModal('load');
+    setProjectLoading(true);
+    try {
+      const res = await fetch('/api/timeline/projects');
+      const data = await res.json();
+      setProjectList(Array.isArray(data.projects) ? data.projects : []);
+    } catch {
+      setProjectList([]);
+    } finally {
+      setProjectLoading(false);
+    }
+  };
+
+  const loadProjectById = async (id) => {
+    setProjectLoading(true);
+    try {
+      const res = await fetch(`/api/timeline/projects/${id}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Load failed');
+      const s = data.state;
+      if (s && Array.isArray(s.clips) && Array.isArray(s.tracks)) {
+        pushUndoSnapshot();
+        applySnapshot(s);
+        setProjectId(data.id);
+        setProjectName(data.name);
+        setImportInfo(`Project loaded: “${data.name}” ✔`);
+        setProjectModal(null);
+      } else {
+        setImportInfo('Project data is invalid.');
       }
-    };
-    reader.readAsText(file);
-    e.target.value = '';
+    } catch (err) {
+      setImportInfo('Load failed: ' + err.message);
+    } finally {
+      setProjectLoading(false);
+    }
+  };
+
+  const deleteProjectById = async (id) => {
+    try {
+      await fetch(`/api/timeline/projects/${id}`, { method: 'DELETE' });
+      setProjectList((prev) => prev.filter((p) => p.id !== id));
+    } catch { /* ignore */ }
   };
 
   const addTrack = (type) => {
@@ -1873,18 +1918,17 @@ function TimelineEditor() {
         <button
           onClick={saveProject}
           style={{ ...iconBtn, width: 54, color: '#a8d8a8' }}
-          title="Save project as JSON"
+          title="Save project to your account"
         >
           Save
         </button>
         <button
-          onClick={() => loadProjectInput.current?.click()}
+          onClick={openLoadModal}
           style={{ ...iconBtn, width: 54, color: '#a8d8a8' }}
-          title="Load project from JSON"
+          title="Load a saved project"
         >
           Load
         </button>
-        <input ref={loadProjectInput} type="file" accept=".json" style={{ display: 'none' }} onChange={loadProject} />
 
         {TOOLS.map((t) => {
           const active = t.toggle ? toggles[t.id] : tool === t.id;
@@ -2308,6 +2352,70 @@ function TimelineEditor() {
         <div style={{ flex: 1 }} />
         <span>{formatTC(timelineFrames)}</span>
       </div>
+
+      {/* ─────────────────── Save Modal ─────────────────── */}
+      {projectModal === 'save' && (() => {
+        const [inputName, setInputName] = React.useState(projectName);
+        return (
+          <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.75)', zIndex:9999, display:'flex', alignItems:'center', justifyContent:'center' }}
+            onMouseDown={(e) => { if (e.target === e.currentTarget && !projectSaving) setProjectModal(null); }}>
+            <div style={{ background:'#0f1318', border:'1px solid #2a3040', borderRadius:10, width:300, padding:20, display:'flex', flexDirection:'column', gap:12, boxShadow:'0 8px 40px rgba(0,0,0,0.65)' }}>
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                <span style={{ fontSize:12, fontWeight:700, color:'#c0d8ff' }}>💾 Save Project</span>
+                {!projectSaving && <button onClick={() => setProjectModal(null)} style={{ background:'none', border:'none', color:'#5a6580', fontSize:14, cursor:'pointer', padding:0 }}>✕</button>}
+              </div>
+              <div>
+                <div style={{ fontSize:10, color:'#7a9fc0', marginBottom:5 }}>Project Name</div>
+                <input
+                  value={inputName}
+                  onChange={(e) => setInputName(e.target.value)}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  maxLength={120}
+                  style={{ width:'100%', boxSizing:'border-box', background:'#0a0d12', border:'1px solid #2a3040', borderRadius:5, color:'#c0d8ff', fontSize:11, padding:'6px 10px', outline:'none' }}
+                />
+              </div>
+              {projectId && <div style={{ fontSize:9, color:'#3a5060', background:'rgba(74,158,255,0.04)', border:'1px solid #1a2535', borderRadius:4, padding:'5px 8px' }}>Will overwrite existing save · ID: {projectId.slice(0,8)}…</div>}
+              <div style={{ display:'flex', gap:8 }}>
+                <button onClick={() => !projectSaving && setProjectModal(null)} style={{ flex:1, height:30, borderRadius:5, border:'1px solid #2a3040', background:'transparent', color:'#5a6580', fontSize:10, cursor:'pointer' }}>Cancel</button>
+                <button onClick={() => doSaveProject(inputName)} disabled={projectSaving} style={{ flex:2, height:30, borderRadius:5, border:'none', background:'linear-gradient(135deg,#1a5c28,#2a9a50)', color:'#fff', fontSize:11, fontWeight:700, cursor: projectSaving ? 'wait':'pointer' }}>
+                  {projectSaving ? '⏳ Saving…' : '💾 Save'}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ─────────────────── Load Modal ─────────────────── */}
+      {projectModal === 'load' && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.75)', zIndex:9999, display:'flex', alignItems:'center', justifyContent:'center' }}
+          onMouseDown={(e) => { if (e.target === e.currentTarget && !projectLoading) setProjectModal(null); }}>
+          <div style={{ background:'#0f1318', border:'1px solid #2a3040', borderRadius:10, width:340, padding:20, display:'flex', flexDirection:'column', gap:12, boxShadow:'0 8px 40px rgba(0,0,0,0.65)', maxHeight:'80vh' }}>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+              <span style={{ fontSize:12, fontWeight:700, color:'#c0d8ff' }}>📂 Load Project</span>
+              <button onClick={() => setProjectModal(null)} style={{ background:'none', border:'none', color:'#5a6580', fontSize:14, cursor:'pointer', padding:0 }}>✕</button>
+            </div>
+            {projectLoading && <div style={{ textAlign:'center', color:'#5a7090', fontSize:11 }}>⏳ Loading…</div>}
+            {!projectLoading && projectList.length === 0 && (
+              <div style={{ textAlign:'center', color:'#3a5060', fontSize:11, padding:'20px 0' }}>No saved projects yet.</div>
+            )}
+            {!projectLoading && projectList.length > 0 && (
+              <div style={{ overflowY:'auto', display:'flex', flexDirection:'column', gap:6 }}>
+                {projectList.map((p) => (
+                  <div key={p.id} style={{ display:'flex', alignItems:'center', gap:8, background:'#13171f', border:'1px solid #1e2840', borderRadius:6, padding:'8px 10px' }}>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ fontSize:11, color:'#b0d0f0', fontWeight:600, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{p.name}</div>
+                      <div style={{ fontSize:9, color:'#2e4560', marginTop:2 }}>{new Date(p.updatedAt).toLocaleDateString()}</div>
+                    </div>
+                    <button onClick={() => loadProjectById(p.id)} disabled={projectLoading} style={{ height:24, padding:'0 10px', borderRadius:4, border:'1px solid rgba(74,158,255,0.3)', background:'rgba(74,158,255,0.12)', color:'#7cc8ff', fontSize:9, fontWeight:700, cursor:'pointer' }}>Load</button>
+                    <button onClick={() => { if (window.confirm('Delete "'+p.name+'"?')) deleteProjectById(p.id); }} style={{ height:24, width:24, borderRadius:4, border:'1px solid rgba(255,80,80,0.2)', background:'rgba(255,60,60,0.06)', color:'#a05050', fontSize:11, cursor:'pointer' }}>✕</button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ─────────────────── Expand Modal ─────────────────── */}
       {expandModal && (

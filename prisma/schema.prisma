@@ -453,3 +453,21 @@ model PlatformConfig {
   updatedAt DateTime @updatedAt
 }
 
+// ——————————————————————————————————————————————————————————
+// TIMELINE STUDIO — PROJECT SAVE/LOAD
+// ——————————————————————————————————————————————————————————
+
+/// Stores a timeline project state server-side so the JSON is never
+/// exposed to the client as a downloadable file.
+model TimelineProject {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String   @default("Untitled Project")
+  /// Full timeline state JSON stored securely on server — never sent as a file download.
+  stateJson Json     @default("{}")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, updatedAt])
+}
+
