@@ -366,7 +366,7 @@ function SectionHeader({ label, open, onToggle, color='#4a9eff' }) {
   );
 }
 
-function EffectControls({ clip, onProp, onCommit, onFitMode }) {
+function EffectControls({ clip, onProp, onCommit, onFitMode, onExpand }) {
   const [openMotion, setOpenMotion] = React.useState(true);
   const [openOpacity, setOpenOpacity] = React.useState(true);
   const [openCrop, setOpenCrop] = React.useState(false);
@@ -418,6 +418,23 @@ function EffectControls({ clip, onProp, onCommit, onFitMode }) {
         <div style={{ fontSize:9, color:'#4a5575', marginTop:1 }}>Track {clip.track !== undefined ? clip.track : '—'} · {clip.kind || 'clip'} · {clip.dur != null ? (clip.dur/30).toFixed(2)+'s' : '—'}</div>
       </div>
 
+      {/* ─── AI Expand action button ─── */}
+      {isVisual && onExpand && (
+        <div style={{ padding:'4px 6px', background:'#0a0c12', borderBottom:'1px solid #171d27', flexShrink:0 }}>
+          <button
+            onClick={() => onExpand(clip)}
+            title="Expand / Outpaint this clip using AI"
+            style={{
+              width:'100%', height:20, borderRadius:3,
+              border:'1px solid rgba(74,158,255,0.30)',
+              background:'rgba(74,158,255,0.08)',
+              color:'#5cb4ff', fontSize:9, fontWeight:700, cursor:'pointer',
+              letterSpacing:'0.6px', display:'flex', alignItems:'center',
+              justifyContent:'center', gap:4,
+            }}
+          >⊞ EXPAND ↗</button>
+        </div>
+      )}
       <div style={{ flex:1, overflowY:'auto', overflowX:'hidden' }}>
         {/* FitMode quick row */}
         {isVisual && (
@@ -529,6 +546,8 @@ function TimelineEditor() {
   const [importInfo, setImportInfo] = useState('Import media by button or drag files onto timeline.');
   const [trackMenuOpen, setTrackMenuOpen] = useState(false);
   const [projectRatio, setProjectRatio] = useState(() => persisted?.projectRatio || '16:9');
+  const [expandModal, setExpandModal] = useState(null); // null | {clipId,src,kind,kieTaskId,label,loading,result,error}
+  const [expandParams, setExpandParams] = useState({ imageSize: 'landscape_16_9', extendSecs: '6', prompt: '' });
 
   const tlRef = useRef(null);
   const rafRef = useRef(null);
@@ -1007,7 +1026,7 @@ function TimelineEditor() {
         const id = `ext_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
         return [
           ...prev,
-          { id, track: trackIndex, start, dur, label, color, src: clip.url || '', kind, ratio: '', fitMode: 'fit' },
+          { id, track: trackIndex, start, dur, label, color, src: clip.url || '', kind, ratio: '', fitMode: 'fit', kieTaskId: clip.taskId || '' },
         ];
       });
     };
@@ -1074,6 +1093,54 @@ function TimelineEditor() {
   const setClipFitMode = (clipId, mode) => {
     pushUndoSnapshot();
     setClips((prev) => prev.map((c) => c.id === clipId ? { ...c, fitMode: mode } : c));
+  };
+
+  // ─── Expand / Outpaint ───
+  const openExpand = (clip) => {
+    if (!clip) return;
+    setExpandModal({ clipId: clip.id, src: clip.src || '', kind: clip.kind || 'image', kieTaskId: clip.kieTaskId || '', label: clip.label || 'clip', loading: false, result: null, error: null });
+  };
+
+  const doExpand = async () => {
+    if (!expandModal) return;
+    setExpandModal((prev) => ({ ...prev, loading: true, error: null, result: null }));
+    try {
+      const res = await fetch('/api/timeline/expand', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          kind: expandModal.kind,
+          src: expandModal.src,
+          kieTaskId: expandModal.kieTaskId,
+          imageSize: expandParams.imageSize,
+          extendSecs: expandParams.extendSecs,
+          prompt: expandParams.prompt,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || 'Expand failed');
+      setExpandModal((prev) => ({ ...prev, loading: false, result: data.url }));
+    } catch (err) {
+      setExpandModal((prev) => ({ ...prev, loading: false, error: err.message || String(err) }));
+    }
+  };
+
+  const addExpandedClip = () => {
+    if (!expandModal?.result) return;
+    const resultSrc = expandModal.result;
+    const isVid = expandModal.kind === 'video' || /\.(mp4|webm|mov)(\?|$)/i.test(resultSrc);
+    const newKind = isVid ? 'video' : 'image';
+    pushUndoSnapshot();
+    setClips((prev) => {
+      const orig = prev.find((c) => c.id === expandModal.clipId);
+      const trackIdx = orig ? orig.track : 0;
+      const onTrack = prev.filter((c) => c.track === trackIdx);
+      const maxEnd = onTrack.reduce((a, c) => Math.max(a, c.start + c.dur), 0);
+      const dur = isVid ? (Number(expandParams.extendSecs) * FPS) : (5 * FPS);
+      const newId = `exp_${Date.now()}_${Math.floor(Math.random() * 9999)}`;
+      return [...prev, { id: newId, track: trackIdx, start: maxEnd + 4, dur, label: `${expandModal.label}_exp`, color: '#2a4e8a', src: resultSrc, kind: newKind, fitMode: 'fit', ratio: '', kieTaskId: '' }];
+    });
+    setExpandModal(null);
   };
 
   const setClipProp = (clipId, key, value) => {
@@ -2204,6 +2271,7 @@ function TimelineEditor() {
               onProp={(key, val) => setClipProp(selected, key, val)}
               onCommit={(key, val) => commitClipProp(selected, key, val)}
               onFitMode={(mode) => setClipFitMode(selected, mode)}
+              onExpand={(clip) => openExpand(clip)}
             />
           )}
         </div>
@@ -2240,6 +2308,150 @@ function TimelineEditor() {
         <div style={{ flex: 1 }} />
         <span>{formatTC(timelineFrames)}</span>
       </div>
+
+      {/* ─────────────────── Expand Modal ─────────────────── */}
+      {expandModal && (
+        <div
+          style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.75)', zIndex:9999, display:'flex', alignItems:'center', justifyContent:'center' }}
+          onMouseDown={(e) => { if (e.target === e.currentTarget) setExpandModal(null); }}
+        >
+          <div style={{ background:'#0f1318', border:'1px solid #2a3040', borderRadius:10, width:320, padding:18, display:'flex', flexDirection:'column', gap:11, boxShadow:'0 8px 40px rgba(0,0,0,0.65)' }}>
+            {/* Header */}
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+              <span style={{ fontSize:12, fontWeight:700, color:'#c0d8ff', letterSpacing:'0.5px' }}>⊞ EXPAND CLIP</span>
+              <button onClick={() => setExpandModal(null)} style={{ background:'none', border:'none', color:'#5a6580', fontSize:14, cursor:'pointer', padding:0 }}>✕</button>
+            </div>
+
+            {/* Clip info */}
+            <div style={{ background:'#13171f', borderRadius:6, padding:'6px 10px' }}>
+              <div style={{ fontSize:9, color:'#7a9fc0', marginBottom:2 }}>Clip</div>
+              <div style={{ fontSize:11, color:'#d0e8ff', fontWeight:600, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{expandModal.label}</div>
+              <div style={{ fontSize:9, color:'#3a5070', marginTop:1 }}>{expandModal.kind} · {expandModal.src ? '✓ has src' : '✗ no src'}</div>
+            </div>
+
+            {/* Image expand options */}
+            {(expandModal.kind === 'image' || expandModal.kind === 'psd' || expandModal.kind === 'gif') && (
+              <>
+                <div>
+                  <div style={{ fontSize:10, color:'#7a9fc0', marginBottom:5 }}>Output Aspect Ratio</div>
+                  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:4 }}>
+                    {[
+                      { v:'landscape_16_9', label:'16:9',  hint:'Wide' },
+                      { v:'portrait_9_16',  label:'9:16',  hint:'Vertical' },
+                      { v:'square_hd',      label:'1:1',   hint:'Square HD' },
+                      { v:'landscape_4_3',  label:'4:3',   hint:'Classic' },
+                      { v:'portrait_4_3',   label:'3:4',   hint:'Portrait' },
+                      { v:'square',         label:'Sq SD', hint:'Square' },
+                    ].map((opt) => (
+                      <button key={opt.v}
+                        onClick={() => setExpandParams((p) => ({ ...p, imageSize: opt.v }))}
+                        style={{
+                          padding:'5px 4px', borderRadius:5, fontSize:9, fontWeight:700, cursor:'pointer',
+                          border: expandParams.imageSize === opt.v ? '1px solid #4a9eff':'1px solid #1e2840',
+                          background: expandParams.imageSize === opt.v ? 'rgba(74,158,255,0.18)':'#0d1018',
+                          color: expandParams.imageSize === opt.v ? '#7cc8ff':'#5a6580',
+                          display:'flex', flexDirection:'column', alignItems:'center', gap:1,
+                        }}
+                      >
+                        <span>{opt.label}</span>
+                        <span style={{ fontSize:8, opacity:0.65 }}>{opt.hint}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div style={{ fontSize:9, color:'#304050', background:'rgba(74,158,255,0.04)', border:'1px solid #1a2535', borderRadius:5, padding:'5px 8px', lineHeight:1.5 }}>
+                  Model: <span style={{ color:'#4a7fff' }}>ideogram/v3-reframe</span> · Expands the image beyond its original frame using AI
+                </div>
+              </>
+            )}
+
+            {/* Video extend options */}
+            {expandModal.kind === 'video' && (
+              <>
+                {!expandModal.kieTaskId && (
+                  <div style={{ background:'rgba(255,160,50,0.08)', border:'1px solid rgba(255,160,50,0.22)', borderRadius:6, padding:'7px 10px', fontSize:9, color:'#f59e0b', lineHeight:1.6 }}>
+                    ⚠ Video Extend requires a KIE task ID.<br/>
+                    <span style={{ color:'#7a6a3a' }}>Only AI-generated videos from this platform are supported. Uploaded/external videos cannot be extended.</span>
+                  </div>
+                )}
+                <div>
+                  <div style={{ fontSize:10, color:'#7a9fc0', marginBottom:5 }}>Extend Duration</div>
+                  <div style={{ display:'flex', gap:6 }}>
+                    {['6','10'].map((s) => (
+                      <button key={s}
+                        onClick={() => setExpandParams((p) => ({ ...p, extendSecs: s }))}
+                        style={{
+                          flex:1, height:28, borderRadius:5, fontSize:11, fontWeight:700, cursor:'pointer',
+                          border: expandParams.extendSecs === s ? '1px solid #4a9eff':'1px solid #1e2840',
+                          background: expandParams.extendSecs === s ? 'rgba(74,158,255,0.18)':'#0d1018',
+                          color: expandParams.extendSecs === s ? '#7cc8ff':'#5a6580',
+                        }}
+                      >+{s}s</button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize:10, color:'#7a9fc0', marginBottom:4 }}>Continuation Prompt</div>
+                  <textarea
+                    value={expandParams.prompt}
+                    onChange={(e) => setExpandParams((p) => ({ ...p, prompt: e.target.value }))}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    placeholder="Describe what happens next in the video..."
+                    rows={2}
+                    style={{ width:'100%', boxSizing:'border-box', background:'#0a0d12', border:'1px solid #1e2840', borderRadius:5, color:'#c0d8ff', fontSize:10, padding:'6px 8px', resize:'vertical', outline:'none', fontFamily:'inherit' }}
+                  />
+                </div>
+                <div style={{ fontSize:9, color:'#304050', background:'rgba(74,158,255,0.04)', border:'1px solid #1a2535', borderRadius:5, padding:'5px 8px', lineHeight:1.5 }}>
+                  Model: <span style={{ color:'#4a7fff' }}>grok-imagine/extend</span> · Extends video by <b style={{color:'#7cc8ff'}}>6</b> or <b style={{color:'#7cc8ff'}}>10</b> seconds · Requires KIE task ID
+                </div>
+              </>
+            )}
+
+            {/* Error */}
+            {expandModal.error && (
+              <div style={{ background:'rgba(255,60,60,0.08)', border:'1px solid rgba(255,60,60,0.22)', borderRadius:5, padding:'6px 10px', fontSize:9, color:'#ff7878', lineHeight:1.5 }}>
+                ✗ {expandModal.error}
+              </div>
+            )}
+
+            {/* Result */}
+            {expandModal.result && (
+              <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                <div style={{ fontSize:10, color:'#5dba7a', fontWeight:700 }}>✓ Expand complete!</div>
+                {(expandModal.kind === 'image' || expandModal.kind === 'psd' || expandModal.kind === 'gif') && (
+                  <img src={expandModal.result} alt="expanded" style={{ width:'100%', borderRadius:5, maxHeight:130, objectFit:'contain', background:'#060a0e' }} />
+                )}
+                <div style={{ fontSize:9, color:'#2f5070', wordBreak:'break-all', background:'#060a0e', padding:'4px 7px', borderRadius:4 }}>{expandModal.result}</div>
+                <button
+                  onClick={addExpandedClip}
+                  style={{ height:28, borderRadius:5, border:'1px solid rgba(93,214,100,0.35)', background:'rgba(46,106,34,0.2)', color:'#6dce58', fontSize:10, fontWeight:700, cursor:'pointer' }}
+                >+ Add to Timeline</button>
+              </div>
+            )}
+
+            {/* Action buttons */}
+            {!expandModal.result && (
+              <div style={{ display:'flex', gap:8, marginTop:2 }}>
+                <button
+                  onClick={() => setExpandModal(null)}
+                  style={{ flex:1, height:28, borderRadius:5, border:'1px solid #2a3040', background:'transparent', color:'#5a6580', fontSize:10, cursor:'pointer' }}
+                >Cancel</button>
+                <button
+                  onClick={doExpand}
+                  disabled={expandModal.loading || !expandModal.src || (expandModal.kind === 'video' && !expandModal.kieTaskId)}
+                  style={{
+                    flex:2, height:28, borderRadius:5, border:'none', fontWeight:700, fontSize:10,
+                    cursor: expandModal.loading ? 'wait' : 'pointer',
+                    background: expandModal.loading ? '#1a2535' : 'linear-gradient(135deg,#2255cc,#4a9eff)',
+                    color:'#fff',
+                    opacity: (expandModal.kind === 'video' && !expandModal.kieTaskId) ? 0.35 : 1,
+                  }}
+                >{expandModal.loading ? '⏳ Processing...' : '⊞ Expand Now'}</button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
