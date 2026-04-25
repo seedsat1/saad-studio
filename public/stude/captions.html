@@ -9,7 +9,7 @@
 *{margin:0;padding:0;box-sizing:border-box}
 body{
   background:#080c1a;color:#e8ecf8;font-family:'Sora',sans-serif;
-  min-height:100vh;display:flex;align-items:flex-start;justify-content:center;
+  min-height:100vh;display:flex;align-items:center;justify-content:center;
   padding:32px 20px 40px;position:relative;overflow-x:hidden;overflow-y:auto;
 }
 body::before{
@@ -331,7 +331,7 @@ body::after{
       </button>
     </div>
 
-    <div class="status-bar" id="status">Ready.</div>
+    <div class="status-bar" id="status" style="min-height:14px"></div>
   </div>
 
   <div class="results" id="results">
@@ -426,7 +426,7 @@ function resetUpload(){
 function setStatus(msg,tone){
   var el=document.getElementById('status');
   var c={info:'#4e5678',ok:'#34d399',warn:'#fbbf24',err:'#fb7185'};
-  el.textContent=msg;el.style.color=c[tone||'info']||c.info;
+  el.textContent=msg||'';el.style.color=c[tone||'info']||c.info;
 }
 function toSeconds(tc){
   var m=tc.match(/^(\d{2}):(\d{2}):(\d{2})[,.](\d{3})$/);
