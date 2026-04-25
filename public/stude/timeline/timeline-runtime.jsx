@@ -1930,6 +1930,42 @@ function TimelineEditor() {
           Load
         </button>
 
+        <div style={{ width: 1, height: 26, background: '#323744', margin: '0 4px' }} />
+
+        {/* SRT import button */}
+        {(() => {
+          const srtRef = React.useRef(null);
+          return (
+            <>
+              <input ref={srtRef} type="file" accept=".srt" style={{ display:'none' }} onChange={(e) => { importFiles(e.target.files); e.target.value=''; }} />
+              <button
+                onClick={() => srtRef.current?.click()}
+                style={{ ...iconBtn, width: 46, color: '#f59e0b', border:'1px solid rgba(245,158,11,0.35)', background:'rgba(245,158,11,0.07)' }}
+                title="Import SRT subtitle file"
+              >SRT</button>
+            </>
+          );
+        })()}
+
+        {/* Expand AI button — active when visual clip is selected */}
+        {(() => {
+          const selClip = selected ? clips.find((c) => c.id === selected) : null;
+          const isVisual = selClip && ['video','image','psd','gif'].includes(String(selClip.kind||''));
+          return (
+            <button
+              onClick={() => isVisual && openExpand(selClip)}
+              style={{
+                ...iconBtn, width: 72, fontWeight:700, letterSpacing:'0.3px',
+                border: isVisual ? '1px solid rgba(74,158,255,0.5)' : '1px solid #2a2f3a',
+                background: isVisual ? 'rgba(74,158,255,0.15)' : 'rgba(255,255,255,0.02)',
+                color: isVisual ? '#7ec8ff' : '#3a4050',
+                cursor: isVisual ? 'pointer' : 'default',
+              }}
+              title={isVisual ? 'AI Expand / Outpaint selected clip' : 'Select a video or image clip first'}
+            >⊞ Expand</button>
+          );
+        })()}
+
         {TOOLS.map((t) => {
           const active = t.toggle ? toggles[t.id] : tool === t.id;
           return (
