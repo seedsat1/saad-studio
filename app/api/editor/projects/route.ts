@@ -72,7 +72,8 @@ export async function PUT(req: NextRequest) {
 
   // Merge with existing, strip large data-URLs before DB save to keep rows small
   const name = String(body?.name ?? "Untitled Project").slice(0, 200);
-  const tracks = sanitizeTracks(body?.tracks ?? { video: [], text: [], audio: [] });
+  const rawTracks = body?.tracks && typeof body.tracks === "object" ? body.tracks : { video: [], text: [], audio: [] };
+  const tracks = sanitizeTracks(rawTracks as Record<string, unknown>);
 
   await prismadb.generation.update({
     where: { id },
@@ -100,10 +101,15 @@ export async function DELETE(req: NextRequest) {
 }
 
 /** Strip large data-URL blobs from clip src before saving to DB. We keep only the URL references. */
-function sanitizeTracks(tracks: Record<string, unknown[]>) {
-  const clean: Record<string, unknown[]> = {};
-  for (const [k, arr] of Object.entries(tracks)) {
-    clean[k] = arr.map((clip: unknown) => {
+function sanitizeTracks(tracks: Record<string, unknown>) {
+  const clean: Record<string, unknown> = {};
+  for (const [k, val] of Object.entries(tracks)) {
+    if (!Array.isArray(val)) {
+      // Non-array values (e.g. projectRatio string) — keep as-is
+      clean[k] = val;
+      continue;
+    }
+    clean[k] = val.map((clip: unknown) => {
       if (clip && typeof clip === "object") {
         const c = { ...(clip as Record<string, unknown>) };
         // Remove data-URL blobs — large base64 stays in IndexedDB only
