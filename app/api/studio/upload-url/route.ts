@@ -111,3 +111,48 @@ export async function POST(req: NextRequest) {
     publicUrl,
   });
 }
+
+/**
+ * DELETE /api/studio/upload-url
+ * Deletes a temporary file from Supabase storage after use.
+ * Body: { path: string, bucket: string }
+ */
+export async function DELETE(req: NextRequest) {
+  const { userId } = await auth();
+  if (!userId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  let body: { path?: string; bucket?: string };
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+
+  const { path: filePath, bucket } = body;
+  if (!filePath || !bucket) {
+    return NextResponse.json({ error: "path and bucket are required" }, { status: 400 });
+  }
+
+  // Security: ensure the path belongs to this user
+  if (!filePath.startsWith(`${userId}/`)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) {
+    return NextResponse.json({ error: "Storage not configured" }, { status: 503 });
+  }
+
+  const supabase = createClient(url, key, { auth: { persistSession: false } });
+  const { error } = await supabase.storage.from(bucket).remove([filePath]);
+
+  if (error) {
+    console.error("[upload-url DELETE] remove error:", error.message);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ deleted: true });
+}

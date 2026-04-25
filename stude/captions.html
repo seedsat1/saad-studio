@@ -599,6 +599,7 @@ async function generateCaptions(){
   document.getElementById('progressFill').style.width='0%';
   requestAnimationFrame(function(){document.getElementById('progressFill').style.width='100%';});
 
+  var tempUpload=null; // { path, bucket } — temp Supabase file, deleted after transcription
   try{
     var model=autoSelectModel(state.mediaFile);
     var res;
@@ -615,24 +616,64 @@ async function generateCaptions(){
       var isVid=/\.(mp4|mov|webm|m4v|mkv|avi)(\?|$)/i.test(clipUrl)||(state.mediaType&&state.mediaType.indexOf('video/')===0)||/video/i.test(state.mediaType||'');
       var isBlobUrl=/^blob:/i.test(clipUrl);
       if(isBlobUrl){
-        // blob: URL = local file not yet on Supabase — fetch then upload as File
+        // blob: URL = local file — upload to Supabase temporarily, delete after transcription
         setStep(1,'Reading local clip...');
         setStatus('Reading clip from local storage…','info');
         var blobResp=await fetch(clipUrl);
         if(!blobResp.ok) throw new Error('Could not read local clip. Please re-import the file.');
         var clipBlob=await blobResp.blob();
         var blobMime=clipBlob.type||(isVid?'video/mp4':'audio/mpeg');
-        var blobExt=isVid?'mp4':'mp3';
-        var clipFile=new File([clipBlob],'timeline-clip.'+blobExt,{type:blobMime});
+        var blobExt=blobMime==='video/mp4'?'mp4':blobMime==='video/webm'?'webm':blobMime==='video/quicktime'?'mov':isVid?'mp4':'mp3';
+        var clipFileName='caption-clip-'+Date.now()+'.'+blobExt;
+        var clipFile=new File([clipBlob],clipFileName,{type:blobMime});
+
+        setStep(2,'Uploading to cloud storage...');
+        setStatus('Uploading to Supabase…','info');
+
+        // 1) Get presigned upload URL
+        var urlResp=await fetch('/api/studio/upload-url',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({fileName:clipFileName,contentType:blobMime,assetType:isVid?'video':'audio'}),
+        });
+        if(!urlResp.ok){
+          var urlErr=await urlResp.json().catch(function(){return{};});
+          throw new Error((urlErr&&urlErr.error)||'Failed to get upload URL. Check login session.');
+        }
+        var urlData=await urlResp.json();
+        if(!urlData.signedUrl||!urlData.publicUrl) throw new Error('Invalid upload URL response.');
+
+        // 2) Upload directly from browser → Supabase (no Vercel size limit)
+        var uploadPublicUrl=await new Promise(function(resolve,reject){
+          var xhr=new XMLHttpRequest();
+          xhr.open('PUT',urlData.signedUrl);
+          xhr.setRequestHeader('Content-Type',blobMime);
+          xhr.upload.onprogress=function(e){
+            if(e.lengthComputable){
+              var pct=Math.round((e.loaded/e.total)*100);
+              setStatus('Uploading to Supabase… '+pct+'%','info');
+            }
+          };
+          xhr.onload=function(){
+            if(xhr.status>=200&&xhr.status<300) resolve(urlData.publicUrl);
+            else reject(new Error('Supabase upload failed ('+xhr.status+').'));
+          };
+          xhr.onerror=function(){reject(new Error('Network error during upload.'));};
+          xhr.send(clipFile);
+        });
+
+        // Remember for cleanup after transcription
+        tempUpload={path:urlData.path,bucket:urlData.bucket};
+
+        // 3) Send public https: URL to WaveSpeed
         var blobModel=blobMime.indexOf('video/')===0?'wavespeed-ai/openai-whisper-with-video':'wavespeed-ai/openai-whisper-turbo';
-        setStep(2,'Uploading clip...');
-        setStatus('Uploading clip…','info');
-        var fd3=new FormData();
-        fd3.append('model',blobModel);
-        fd3.append('file',clipFile,clipFile.name);
-        fd3.append('language',state.spokenLang);
-        fd3.append('outputFormat','srt');
-        res=await fetch('/api/generate/captions',{method:'POST',body:fd3});
+        setStep(3,'Transcribing audio...');
+        setStatus('Clip uploaded — transcribing…','info');
+        res=await fetch('/api/generate/captions',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({model:blobModel,language:state.spokenLang,outputFormat:'srt',mediaUrl:uploadPublicUrl}),
+        });
       } else {
         // https: URL (Supabase) — send URL directly, WaveSpeed fetches server-side
         var urlModel=isVid?'wavespeed-ai/openai-whisper-with-video':'wavespeed-ai/openai-whisper-turbo';
@@ -677,6 +718,15 @@ async function generateCaptions(){
     label.textContent='Generate Captions';
     genIcon.style.display='';
     genSpinner.style.display='none';
+    // Delete temporary Supabase file (uploaded from blob: URL) — fire-and-forget
+    if(tempUpload&&tempUpload.path&&tempUpload.bucket){
+      fetch('/api/studio/upload-url',{
+        method:'DELETE',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({path:tempUpload.path,bucket:tempUpload.bucket}),
+      }).catch(function(){/* best-effort cleanup */});
+      tempUpload=null;
+    }
   }
 }
 function buildCueRows(){
