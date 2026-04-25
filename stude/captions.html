@@ -254,6 +254,20 @@ body::after{
   </div>
 
   <div class="main-card">
+
+    <!-- Timeline clip auto-detect banner -->
+    <div id="timelineBanner" style="display:none;align-items:center;gap:12px;margin:14px 16px 0;padding:11px 14px;border-radius:12px;background:rgba(34,211,153,.07);border:1px solid rgba(34,211,153,.18);">
+      <div style="width:34px;height:34px;border-radius:10px;background:rgba(34,211,153,.12);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2.2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+      </div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:10px;color:#34d399;font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin-bottom:2px">⚡ From Timeline</div>
+        <div style="font-size:12px;color:#c8f0e4;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" id="tbLabel">Clip</div>
+        <div style="font-size:10px;font-weight:600;margin-top:1px" id="tbKind">Video</div>
+      </div>
+      <button onclick="dismissTimelineBanner()" style="flex-shrink:0;background:none;border:1px solid rgba(34,211,153,.2);border-radius:7px;color:#34d399;font-size:10px;font-weight:600;padding:4px 10px;cursor:pointer;font-family:inherit">Clear</button>
+    </div>
+
     <div class="upload-zone" id="uploadZone"
       onclick="handleUpload()"
       ondragover="event.preventDefault();this.classList.add('dragover')"
@@ -361,7 +375,49 @@ body::after{
 </div>
 
 <script>
-var state={cues:[],mediaUrl:'',mediaFile:null,mediaType:'',currentIndex:-1,spokenLang:'ar'};
+var state={cues:[],mediaUrl:'',mediaFile:null,mediaType:'',currentIndex:-1,spokenLang:'ar',timelineClip:null};
+
+/* ── Listen for selected clip from the timeline ── */
+window.addEventListener('message',function(evt){
+  var d=evt&&evt.data;
+  if(!d||d.type!=='ff:timeline-state')return;
+  var clip=d.selectedClip||d.activeClip||null;
+  if(!clip||!clip.url)return;
+  var url=String(clip.url||'');
+  var kind=String(clip.kind||clip.label||'').toLowerCase();
+  var isMedia=/\.(mp4|mov|webm|m4v|mkv|avi|mp3|wav|aac|m4a|ogg|flac|opus)(\?|$)/i.test(url)||(kind==='video'||kind==='audio');
+  if(!isMedia)return;
+  // Only update if different clip
+  if(state.timelineClip&&state.timelineClip.url===url)return;
+  state.timelineClip={url:url,label:clip.label||'Timeline clip',kind:kind};
+  showTimelineBanner(state.timelineClip);
+});
+
+function showTimelineBanner(clip){
+  var banner=document.getElementById('timelineBanner');
+  if(!banner)return;
+  var isVid=/\.(mp4|mov|webm|m4v|mkv|avi)(\?|$)/i.test(clip.url)||(clip.kind==='video');
+  document.getElementById('tbLabel').textContent=clip.label||'Timeline clip';
+  document.getElementById('tbKind').textContent=isVid?'Video':'Audio';
+  document.getElementById('tbKind').style.color=isVid?'#7cc8ff':'#6dd6a0';
+  banner.style.display='flex';
+  // Auto-select this clip (clear manual upload)
+  state.mediaFile=null;
+  state.mediaUrl=clip.url;
+  state.mediaType=isVid?'video/mp4':'audio/mpeg';
+  // Hide upload zone file info, show banner is enough
+  document.getElementById('uploadZone').classList.remove('has-file');
+  document.getElementById('emptyUI').style.display='';
+  document.getElementById('fileRow').classList.remove('on');
+  setStatus('Timeline clip ready — click Generate Captions.','ok');
+}
+
+function dismissTimelineBanner(){
+  document.getElementById('timelineBanner').style.display='none';
+  state.timelineClip=null;
+  state.mediaUrl='';state.mediaFile=null;state.mediaType='';
+  setStatus('Ready.','info');
+}
 
 function toggleDropdown(){
   var menu=document.getElementById('langMenu');
@@ -466,7 +522,9 @@ async function tryReadCaptionFile(url){
   try{var res=await fetch(url,{cache:'no-store'});if(!res.ok)return '';return await res.text();}catch(_e){return '';}
 }
 async function generateCaptions(){
-  if(!state.mediaFile){setStatus('Upload an audio or video file first.','warn');return;}
+  var hasFile=!!(state.mediaFile&&state.mediaFile.size>0);
+  var hasUrl=!!(state.mediaUrl&&/^https?:\/\//i.test(state.mediaUrl));
+  if(!hasFile&&!hasUrl){setStatus('Upload a file or select a clip in the timeline first.','warn');return;}
   var btn=document.getElementById('genBtn');
   var label=document.getElementById('genBtnLabel');
   btn.disabled=true;label.textContent='Generating...';
@@ -477,10 +535,23 @@ async function generateCaptions(){
   try{
     setStatus('Generating captions…','info');
     var model=autoSelectModel(state.mediaFile);
-    var fd=new FormData();
-    fd.append('model',model);fd.append('language',state.spokenLang);
-    fd.append('outputFormat','srt');fd.append('file',state.mediaFile,state.mediaFile.name||'media-input');
-    var res=await fetch('/api/generate/captions',{method:'POST',body:fd});
+    var res;
+    if(hasFile){
+      // File upload path
+      var fd=new FormData();
+      fd.append('model',model);fd.append('language',state.spokenLang);
+      fd.append('outputFormat','srt');fd.append('file',state.mediaFile,state.mediaFile.name||'media-input');
+      res=await fetch('/api/generate/captions',{method:'POST',body:fd});
+    } else {
+      // URL path (from timeline)
+      var isVid=/\.(mp4|mov|webm|m4v|mkv|avi)(\?|$)/i.test(state.mediaUrl)||(state.mediaType&&state.mediaType.indexOf('video/')===0);
+      var urlModel=isVid?'wavespeed-ai/openai-whisper-with-video':'wavespeed-ai/openai-whisper-turbo';
+      res=await fetch('/api/generate/captions',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({model:urlModel,language:state.spokenLang,outputFormat:'srt',mediaUrl:state.mediaUrl}),
+      });
+    }
     var data=await res.json().catch(function(){return{};});
     if(!res.ok)throw new Error((data&&data.error)?String(data.error):'Caption generation failed.');
     var outputText='';
