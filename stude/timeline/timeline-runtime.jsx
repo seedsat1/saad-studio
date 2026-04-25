@@ -870,7 +870,7 @@ function TimelineEditor() {
     try {
       if (window.parent) window.parent.postMessage(payload, '*');
     } catch {}
-  }, [playhead, playing, clips, tracks, selected, timelineFrames]);
+  }, [playhead, playing, clips, tracks, selected, timelineFrames, projectRatio]);
 
   useEffect(() => {
     const toFrames = (seconds) => Math.max(15, Math.round((Number(seconds) || 0) * FPS));

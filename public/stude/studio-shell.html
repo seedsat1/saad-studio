@@ -93,6 +93,7 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
       <aside id="previewPanel">
         <div class="pHead">
           <span class="pTitle">Program Preview</span>
+          <span id="pRatioLabel" style="color:#4a9eff;font-size:10px;font-weight:700;background:rgba(74,158,255,0.1);border:1px solid rgba(74,158,255,0.2);border-radius:4px;padding:1px 7px;margin-left:6px;font-family:JetBrains Mono,monospace;flex-shrink:0">16:9</span>
           <span id="pPage" style="color:#8ea3bf;flex:1;text-align:right">Prompt</span>
           <div class="pActions">
             <button id="previewExport" title="Export active media">Export</button>
@@ -715,6 +716,9 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
     relayStateToParent(d); // ← auto-save relay
     if(d.projectRatio) currentRatio=String(d.projectRatio);
     else if(d.ratio) currentRatio=String(d.ratio);
+    // Update ratio label in preview header
+    var ratioEl=document.getElementById('pRatioLabel');
+    if(ratioEl) ratioEl.textContent=currentRatio;
     pTC.textContent=d.timecode || '00:00:00:00';
     pPlay.textContent=d.playing ? 'Playing' : 'Paused';
     pClip.textContent=(d.activeClip && d.activeClip.label) ? d.activeClip.label : 'No clip';
