@@ -331,6 +331,7 @@ var _pollTimer = null;
 var _resultVideoUrl = null;
 var _lastJobId = null;
 var _pair = null;
+var _timelineState = null; // populated from ff:timeline-state postMessage
 
 /* ================================================================
    UI
@@ -594,6 +595,7 @@ function downloadResult() {
    TIMELINE INTEGRATION
 ================================================================ */
 function getTimelineState() {
+  if (_timelineState) return _timelineState;
   try { if (window.parent && window.parent.lastTimelineState) return window.parent.lastTimelineState; } catch(e){}
   return null;
 }
@@ -730,8 +732,13 @@ function applyToTimeline() {
 }
 
 window.addEventListener('message', function(ev) {
-  if (ev && ev.data && ev.data.type === 'ff:timeline-state') refreshPair();
+  if (ev && ev.data && ev.data.type === 'ff:timeline-state') {
+    _timelineState = ev.data;
+    refreshPair();
+  }
 });
+// Ask shell to push current state immediately on load
+try { if (window.parent) window.parent.postMessage({ type: 'ff:request-timeline-state' }, '*'); } catch(e){}
 setInterval(refreshPair, 1500);
 
 /* ================================================================

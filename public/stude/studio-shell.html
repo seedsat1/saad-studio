@@ -1179,8 +1179,18 @@ body{height:100vh;background:var(--bg);color:var(--text);font-family:Inter,Segoe
       postTimelineMessage(d);
       return;
     }
+    if(d && d.type==='ff:request-timeline-state'){
+      // A tool iframe asked for the latest state — push it to all tool iframes
+      try{
+        if(lastTimelineState && topFrame && topFrame.contentWindow){
+          topFrame.contentWindow.postMessage(lastTimelineState, '*');
+        }
+      }catch(_e){}
+      return;
+    }
     if(!d || d.type!=='ff:timeline-state') return;
     lastTimelineState=d;
+    try { window.lastTimelineState = d; } catch(_e){}
     relayStateToParent(d); // ← auto-save relay
     if(d.projectRatio) currentRatio=String(d.projectRatio);
     else if(d.ratio) currentRatio=String(d.ratio);
