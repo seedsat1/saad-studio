@@ -13,6 +13,13 @@ const KIE_FILE_UPLOAD_URL = "https://kieai.redpandaai.co/api/file-base64-upload"
 
 const WS_TTS_MODEL = "elevenlabs/multilingual-v2";
 const WS_VIDEO2AUDIO_MODEL = "wavespeed-ai/mmaudio-v2";
+const VALID_ELEVENLABS_MUSIC_FORMATS = new Set(['mp3_standard','mp3_high_quality','wav_16khz','wav_22khz','wav_24khz','wav_cd_quality']);
+
+function sanitizeMusicFormat(fmt: string | undefined): string {
+  if (fmt && VALID_ELEVENLABS_MUSIC_FORMATS.has(fmt)) return fmt;
+  return 'mp3_high_quality';
+}
+
 const WS_MUSIC_MODEL = "elevenlabs/music";
 const WS_GOOGLE_LYRIA_CLIP_MODEL = "google/lyria-3-clip/music";
 const WS_GOOGLE_LYRIA_PRO_MODEL = "google/lyria-3-pro/music";
@@ -960,7 +967,7 @@ export async function POST(req: NextRequest) {
         musicDuration = 60,
         music_length_ms,
         force_instrumental = false,
-        output_format = "mp3_standard",
+        output_format = sanitizeMusicFormat("mp3_high_quality"),
         image,
       } = body;
 
@@ -1001,7 +1008,7 @@ export async function POST(req: NextRequest) {
             prompt: fullPrompt,
             music_length_ms: Math.max(5000, Math.min(300000, Math.round(Number(musicDuration || 60) * 1000))),
             force_instrumental: Boolean(force_instrumental),
-            output_format,
+            output_format: sanitizeMusicFormat(output_format),
           },
           wavespeedKey,
         );

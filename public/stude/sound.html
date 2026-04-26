@@ -864,7 +864,7 @@ async function generateMusic(text){
   const btn=document.getElementById('sendBtn');if(btn){btn.disabled=true;btn.style.opacity='0.5';}
   setStatus('Submitting Music generation...','info');
   try{
-    const res=await fetch('/api/generate/audio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({actionType:'music',prompt,model:'elevenlabs/music',musicDuration:30,force_instrumental:true,output_format:'mp3_44100_128'})});
+    const res=await fetch('/api/generate/audio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({actionType:'music',prompt,model:'elevenlabs/music',musicDuration:30,force_instrumental:true,output_format:'mp3_high_quality'})});
     const json=await res.json();
     if(!res.ok)throw new Error(json?.error||json?.message||`Music API error (${res.status})`);
     const url=json?.url||json?.data?.url||json?.audioUrl||'';
