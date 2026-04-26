@@ -332,6 +332,8 @@ var _resultVideoUrl = null;
 var _lastJobId = null;
 var _pair = null;
 var _timelineState = null; // populated from ff:timeline-state postMessage
+var _lastPairKeyA = '';    // tracks last applied timeline pair "A" so we refresh when timeline changes
+var _lastPairKeyB = '';
 
 /* ================================================================
    UI
@@ -399,6 +401,8 @@ function handleFile(input, which) {
   icon.style.display = 'none';
   lbl.textContent = file.name.length > 18 ? file.name.slice(0,15)+'...' : file.name;
   sub.textContent = isVideo ? 'video' : 'image';
+  // Mark this slot as user-overridden so timeline auto-sync won't replace it
+  if (which === 'A') _lastPairKeyA = '__manual__'; else _lastPairKeyB = '__manual__';
 }
 
 /* ================================================================
@@ -739,9 +743,20 @@ function refreshPair() {
 
   if (_pair) {
     document.getElementById('pairNote').textContent = 'Pair detected \u2014 ready to apply.';
-    // Auto-populate input cards from pair URLs if not already loaded
-    if (!_urlA && !_fileA && _pair.from.url) { _urlA = _pair.from.url; setCardFromUrl('A', _pair.from.url, _pair.from.label||'Clip A'); }
-    if (!_urlB && !_fileB && _pair.to.url)   { _urlB = _pair.to.url;   setCardFromUrl('B', _pair.to.url,   _pair.to.label  ||'Clip B'); }
+    // Auto-sync A/B with timeline pair (skip if user uploaded a manual file).
+    // Replace whenever the timeline pair changes (different clip id or different url).
+    var fromUrl = _pair.from.url || '';
+    var toUrl   = _pair.to.url   || '';
+    var fromKey = (_pair.from.id||'') + '|' + fromUrl;
+    var toKey   = (_pair.to.id  ||'') + '|' + toUrl;
+    if (!_fileA && fromUrl && fromKey !== _lastPairKeyA) {
+      _urlA = fromUrl; _lastPairKeyA = fromKey;
+      setCardFromUrl('A', fromUrl, _pair.from.label||'Clip A');
+    }
+    if (!_fileB && toUrl && toKey !== _lastPairKeyB) {
+      _urlB = toUrl; _lastPairKeyB = toKey;
+      setCardFromUrl('B', toUrl, _pair.to.label||'Clip B');
+    }
   } else if (!state) {
     document.getElementById('pairNote').textContent = 'Waiting for timeline\u2026';
   } else if (!state.allClips || state.allClips.length < 2) {
