@@ -454,6 +454,68 @@ async function uploadFile(file, which) {
 }
 
 /* ================================================================
+   VIDEO FRAME EXTRACTION (Kling 3.0 needs images as start/end)
+================================================================ */
+function isVideoUrl(url) { return /\.(mp4|mov|webm|mkv|m4v)(\?|$)/i.test(url || ''); }
+
+function extractFrameFromVideo(url, when /* 'start' | 'end' */) {
+  return new Promise(function(resolve, reject) {
+    var video = document.createElement('video');
+    video.crossOrigin = 'anonymous';
+    video.muted = true;
+    video.playsInline = true;
+    video.preload = 'auto';
+    var settled = false;
+    var done = function(err, blob) { if (settled) return; settled = true; try{ video.src=''; }catch(_){} err ? reject(err) : resolve(blob); };
+    video.onerror = function(){ done(new Error('Failed to load video for frame extraction')); };
+    video.onloadedmetadata = function() {
+      var dur = isFinite(video.duration) && video.duration > 0 ? video.duration : 0;
+      // Pick a safe time: 0.05s for start, dur-0.1s for end
+      var t = when === 'end' ? Math.max(0, dur - 0.1) : Math.min(dur, 0.05);
+      var seeked = false;
+      video.onseeked = function() {
+        if (seeked) return; seeked = true;
+        try {
+          var w = video.videoWidth || 1280;
+          var h = video.videoHeight || 720;
+          var canvas = document.createElement('canvas');
+          canvas.width = w; canvas.height = h;
+          var ctx = canvas.getContext('2d');
+          ctx.drawImage(video, 0, 0, w, h);
+          canvas.toBlob(function(blob){
+            if (!blob) return done(new Error('Canvas toBlob returned null (possible CORS taint)'));
+            done(null, blob);
+          }, 'image/jpeg', 0.92);
+        } catch(e) { done(e); }
+      };
+      try { video.currentTime = t; } catch(e) { done(e); }
+    };
+    video.src = url;
+  });
+}
+
+async function extractFrameAndUpload(videoUrl, when, label) {
+  var blob;
+  try {
+    blob = await extractFrameFromVideo(videoUrl, when);
+  } catch(e) {
+    throw new Error('Could not extract '+when+' frame from clip '+label+': '+e.message);
+  }
+  // Upload as image to storage
+  var fileName = 'transition_'+label+'_'+when+'_'+Date.now()+'.jpg';
+  var ur = await fetch('/api/studio/upload-url', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ fileName: fileName, contentType: 'image/jpeg', assetType: 'image' })
+  });
+  if (!ur.ok) throw new Error('Failed to get upload URL for extracted frame '+label);
+  var ud = await ur.json();
+  var put = await fetch(ud.signedUrl, { method: 'PUT', headers: {'Content-Type':'image/jpeg'}, body: blob });
+  if (!put.ok) throw new Error('Failed to upload extracted frame '+label+': '+put.status);
+  return ud.publicUrl;
+}
+
+/* ================================================================
    GENERATE (full API flow)
 ================================================================ */
 async function generate() {
@@ -473,9 +535,22 @@ async function generate() {
     var inputBUrl = _urlB || await uploadFile(_fileB, 'B');
     _urlB = inputBUrl;
 
+    var inputAType = (_fileA && _fileA.type.startsWith('video/')) || isVideoUrl(inputAUrl) ? 'video' : 'image';
+    var inputBType = (_fileB && _fileB.type.startsWith('video/')) || isVideoUrl(inputBUrl) ? 'video' : 'image';
+
+    // Kling 3.0 needs IMAGES as start/end frames. Extract frames from videos.
+    var frameAUrl = inputAUrl;
+    var frameBUrl = inputBUrl;
+    if (inputAType === 'video') {
+      setStatus('Extracting end frame from clip A...', 'info');
+      frameAUrl = await extractFrameAndUpload(inputAUrl, 'end', 'A');
+    }
+    if (inputBType === 'video') {
+      setStatus('Extracting start frame from clip B...', 'info');
+      frameBUrl = await extractFrameAndUpload(inputBUrl, 'start', 'B');
+    }
+
     setStatus('Creating project...', 'info');
-    var inputAType = (_fileA && _fileA.type.startsWith('video/')) ? 'video' : 'image';
-    var inputBType = (_fileB && _fileB.type.startsWith('video/')) ? 'video' : 'image';
 
     var projRes = await fetch('/api/transitions/project', {
       method: 'POST',
@@ -505,8 +580,8 @@ async function generate() {
       body: JSON.stringify({
         projectId: projectId,
         presetId: _selected.id,
-        inputAUrl: inputAUrl,
-        inputBUrl: inputBUrl,
+        inputAUrl: frameAUrl,
+        inputBUrl: frameBUrl,
         duration: _duration,
         aspectRatio: _aspectRatio,
         intensity: 50, smoothness: 50, cinematicStr: 60,
