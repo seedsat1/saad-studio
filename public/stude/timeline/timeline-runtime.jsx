@@ -2382,24 +2382,31 @@ function TimelineEditor() {
   };
 
   // Prevent the moving clip from overlapping other clips on the same track.
-  // Pushes it to the nearest non-overlapping position (before or after the obstacle).
+  // Multi-pass push until stable (handles chain of clips).
   const resolveCollision = (candidateStart, dur, trackIndex, movingIds, allClips) => {
-    const others = allClips.filter((c) => !movingIds.has(c.id) && c.track === trackIndex);
+    const others = allClips
+      .filter((c) => !movingIds.has(c.id) && c.track === trackIndex)
+      .sort((a, b) => a.start - b.start);
     if (!others.length) return Math.max(0, candidateStart);
 
     let start = Math.max(0, candidateStart);
-    const end = start + dur;
 
-    for (const o of others) {
-      // Check overlap: [start, end) vs [o.start, o.start+o.dur)
-      if (start < o.start + o.dur && end > o.start) {
-        // Decide: push left (before obstacle) or right (after obstacle)?
-        const pushLeft  = o.start - dur;          // end of moved clip touches o.start
-        const pushRight = o.start + o.dur;        // start of moved clip touches o.end
-        const dLeft  = Math.abs(candidateStart - pushLeft);
-        const dRight = Math.abs(candidateStart - pushRight);
-        start = dLeft <= dRight ? Math.max(0, pushLeft) : pushRight;
+    // Up to 3 passes — handles cascading collisions (clip A→B→C)
+    for (let pass = 0; pass < 3; pass++) {
+      let moved = false;
+      for (const o of others) {
+        const end = start + dur;
+        if (start < o.start + o.dur && end > o.start) {
+          // Decide: push before or after the obstacle based on original drag direction
+          const pushBefore = o.start - dur;     // clip end touches obstacle start
+          const pushAfter  = o.start + o.dur;   // clip start touches obstacle end
+          const dBefore = Math.abs(candidateStart - pushBefore);
+          const dAfter  = Math.abs(candidateStart - pushAfter);
+          start = dBefore <= dAfter ? Math.max(0, pushBefore) : pushAfter;
+          moved = true;
+        }
       }
+      if (!moved) break;
     }
     return start;
   };
@@ -2494,7 +2501,7 @@ function TimelineEditor() {
           if (tracks[targetTrack]?.locked) targetTrack = startTrack;
           const candidateStart = startFrame + fd;
           const snapped = snapClipStart(candidateStart, current.dur, targetTrack, clipId, prev);
-          // Prevent overlap with other clips on same track
+          // Prevent overlap — primary clip first
           const safeStart = resolveCollision(snapped, current.dur, targetTrack, groupIds, prev);
           const deltaStart = safeStart - startFrame;
           let trackDeltaByType = 0;
@@ -2510,7 +2517,7 @@ function TimelineEditor() {
             if (!groupIds.has(c.id)) return c;
             const base = groupBase.get(c.id);
             if (!base) return c;
-            const nextStart = Math.max(0, base.start + deltaStart);
+            let nextStart = Math.max(0, base.start + deltaStart);
             let nextTrack = base.track;
             if (linkedMode) {
               const baseType = tracks[base.track]?.type;
@@ -2518,6 +2525,8 @@ function TimelineEditor() {
             } else {
               nextTrack = clampTrackIndex(base.track + trackDeltaRaw);
             }
+            // Resolve collision for each clip in the group individually on its own track
+            nextStart = resolveCollision(nextStart, c.dur, nextTrack, groupIds, prev);
             return { ...c, start: nextStart, track: nextTrack };
           });
         });

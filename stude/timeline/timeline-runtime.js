@@ -2246,18 +2246,23 @@ function TimelineEditor() {
     return clampStartByDur(next, dur);
   };
   const resolveCollision = (candidateStart, dur, trackIndex, movingIds, allClips) => {
-    const others = allClips.filter((c) => !movingIds.has(c.id) && c.track === trackIndex);
+    const others = allClips.filter((c) => !movingIds.has(c.id) && c.track === trackIndex).sort((a, b) => a.start - b.start);
     if (!others.length) return Math.max(0, candidateStart);
     let start = Math.max(0, candidateStart);
-    const end = start + dur;
-    for (const o of others) {
-      if (start < o.start + o.dur && end > o.start) {
-        const pushLeft = o.start - dur;
-        const pushRight = o.start + o.dur;
-        const dLeft = Math.abs(candidateStart - pushLeft);
-        const dRight = Math.abs(candidateStart - pushRight);
-        start = dLeft <= dRight ? Math.max(0, pushLeft) : pushRight;
+    for (let pass = 0; pass < 3; pass++) {
+      let moved = false;
+      for (const o of others) {
+        const end = start + dur;
+        if (start < o.start + o.dur && end > o.start) {
+          const pushBefore = o.start - dur;
+          const pushAfter = o.start + o.dur;
+          const dBefore = Math.abs(candidateStart - pushBefore);
+          const dAfter = Math.abs(candidateStart - pushAfter);
+          start = dBefore <= dAfter ? Math.max(0, pushBefore) : pushAfter;
+          moved = true;
+        }
       }
+      if (!moved) break;
     }
     return start;
   };
@@ -2355,7 +2360,7 @@ function TimelineEditor() {
             if (!groupIds.has(c.id)) return c;
             const base = groupBase.get(c.id);
             if (!base) return c;
-            const nextStart = Math.max(0, base.start + deltaStart);
+            let nextStart = Math.max(0, base.start + deltaStart);
             let nextTrack = base.track;
             if (linkedMode) {
               const baseType = (_a3 = tracks[base.track]) == null ? void 0 : _a3.type;
@@ -2363,6 +2368,7 @@ function TimelineEditor() {
             } else {
               nextTrack = clampTrackIndex(base.track + trackDeltaRaw);
             }
+            nextStart = resolveCollision(nextStart, c.dur, nextTrack, groupIds, prev);
             return { ...c, start: nextStart, track: nextTrack };
           });
         });
