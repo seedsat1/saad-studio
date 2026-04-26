@@ -1622,7 +1622,9 @@ function TimelineEditor() {
       pushUndoSnapshot();
       const clip = data.clip;
       const kind = trackTypeToKind(clip.trackType);
-      const dur = toFrames(clip.durationSec);
+      const rawDurSec = Number(clip.durationSec) || 0;
+      const dur = toFrames(rawDurSec);
+      const sourceDur = (kind === "audio" || kind === "video") && rawDurSec > 0 ? dur : null;
       const label = normalizeLabel(clip.label, kind);
       const color = colorByKind2(kind);
       setClips((prev) => {
@@ -1633,7 +1635,7 @@ function TimelineEditor() {
         const id = `ext_${Date.now()}_${Math.floor(Math.random() * 1e4)}`;
         return [
           ...prev,
-          { id, track: trackIndex, start, dur, label, color, src: clip.url || "", kind, ratio: "", fitMode: "fit", kieTaskId: clip.taskId || "" }
+          { id, track: trackIndex, start, dur, sourceDur, label, color, src: clip.url || "", kind, ratio: "", fitMode: "fit", kieTaskId: clip.taskId || "" }
         ];
       });
     };
@@ -2217,10 +2219,10 @@ function TimelineEditor() {
   const snapClipStart = (candidateStart, dur, trackIndex, movingClipId, allClips) => {
     let next = clampStartByDur(candidateStart, dur);
     if (!toggles.magnet) return next;
+    const snapThreshold = Math.ceil(10 / scale);
     const anchors = [0, Math.round(playhead)];
     allClips.forEach((c) => {
       if (c.id === movingClipId) return;
-      if (c.track !== trackIndex) return;
       anchors.push(c.start, c.start + c.dur);
     });
     let best = next;
@@ -2238,7 +2240,7 @@ function TimelineEditor() {
         best = byEnd;
       }
     });
-    if (bestDelta <= SNAP_THRESHOLD_FRAMES) {
+    if (bestDelta <= snapThreshold) {
       next = best;
     }
     return clampStartByDur(next, dur);
@@ -2398,10 +2400,11 @@ function TimelineEditor() {
             const srcLimit = current.sourceDur ? current.sourceDur : Infinity;
             let nextDur = Math.min(Math.max(MIN_CLIP_FRAMES, baseDur + fd), srcLimit);
             if (toggles.magnet) {
+              const snapThreshold = Math.ceil(10 / scale);
               const targetEnd = baseStart + nextDur;
               const anchors = [Math.round(playhead)];
               prev.forEach((x) => {
-                if (x.id === clipId || x.track !== current.track) return;
+                if (x.id === clipId) return;
                 anchors.push(x.start, x.start + x.dur);
               });
               let bestEnd = targetEnd;
@@ -2413,7 +2416,7 @@ function TimelineEditor() {
                   bestEnd = a;
                 }
               });
-              if (bestDelta <= SNAP_THRESHOLD_FRAMES) nextDur = Math.max(MIN_CLIP_FRAMES, bestEnd - baseStart);
+              if (bestDelta <= snapThreshold) nextDur = Math.max(MIN_CLIP_FRAMES, bestEnd - baseStart);
             }
             const deltaDur = nextDur - baseDur;
             return prev.map((c) => {
@@ -2430,9 +2433,10 @@ function TimelineEditor() {
             let nextStart = Math.max(0, baseStart + fd);
             const fixedEnd = baseStart + baseDur;
             if (toggles.magnet) {
+              const snapThreshold = Math.ceil(10 / scale);
               const anchors = [0, Math.round(playhead)];
               prev.forEach((x) => {
-                if (x.id === clipId || x.track !== current.track) return;
+                if (x.id === clipId) return;
                 anchors.push(x.start, x.start + x.dur);
               });
               let best = nextStart;
@@ -2444,7 +2448,7 @@ function TimelineEditor() {
                   best = a;
                 }
               });
-              if (bestDelta <= SNAP_THRESHOLD_FRAMES) nextStart = Math.max(0, best);
+              if (bestDelta <= snapThreshold) nextStart = Math.max(0, best);
             }
             let deltaStart = nextStart - baseStart;
             deltaStart = Math.max(minDeltaStart, Math.min(maxDeltaStart, deltaStart));
