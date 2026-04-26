@@ -2342,78 +2342,58 @@ function TimelineEditor() {
     return displayTrackIndexes[row] ?? displayTrackIndexes[displayTrackIndexes.length - 1] ?? 0;
   };
 
+  // Magnetic snap with strong priority on adjacent clip edges
+  // Snaps clip START or END to: clip edges (highest priority), playhead, 0
   const snapClipStart = (candidateStart, dur, trackIndex, movingClipId, allClips) => {
     let next = clampStartByDur(candidateStart, dur);
     if (!toggles.magnet) return next;
 
-    // Pixel-based threshold: ~10px on screen regardless of zoom level
-    // This matches Premiere Pro / DaVinci Resolve snap behavior
-    const snapThreshold = Math.ceil(10 / scale);
+    // Pixel-based threshold (~14px on screen) — strong magnetic feel
+    const snapThreshold = Math.ceil(14 / scale);
 
-    const anchors = [0, Math.round(playhead)];
-    // Collect edges from ALL tracks (cross-track snap — industry standard)
+    // Edge anchors from clips (cross-track) — HIGH priority
+    const clipAnchors = [];
     allClips.forEach((c) => {
       if (c.id === movingClipId) return;
-      anchors.push(c.start, c.start + c.dur);
+      clipAnchors.push(c.start);
+      clipAnchors.push(c.start + c.dur);
     });
+    // Other anchors — lower priority
+    const otherAnchors = [0, Math.round(playhead)];
 
-    let best = next;
+    const candidateEnd = next + dur;
+    let bestStart = next;
     let bestDelta = Number.POSITIVE_INFINITY;
-    anchors.forEach((a) => {
+    let bestPriority = 99; // 0 = clip edges, 1 = others
+
+    const tryAnchor = (a, priority) => {
       // snap clip START to anchor
       const ds = Math.abs(next - a);
-      if (ds < bestDelta) {
+      if (ds <= snapThreshold && (priority < bestPriority || (priority === bestPriority && ds < bestDelta))) {
         bestDelta = ds;
-        best = a;
+        bestStart = a;
+        bestPriority = priority;
       }
       // snap clip END to anchor
-      const byEnd = a - dur;
-      const de = Math.abs(next - byEnd);
-      if (de < bestDelta) {
+      const de = Math.abs(candidateEnd - a);
+      if (de <= snapThreshold && (priority < bestPriority || (priority === bestPriority && de < bestDelta))) {
         bestDelta = de;
-        best = byEnd;
+        bestStart = a - dur;
+        bestPriority = priority;
       }
-    });
+    };
 
-    if (bestDelta <= snapThreshold) {
-      next = best;
-    }
+    clipAnchors.forEach((a) => tryAnchor(a, 0));
+    otherAnchors.forEach((a) => tryAnchor(a, 1));
+
+    if (bestPriority < 99) next = bestStart;
     return clampStartByDur(next, dur);
   };
 
-  // Prevent the moving clip from overlapping other clips on the same track.
-  // Guarantees no overlap in the final result.
-  const resolveCollision = (candidateStart, dur, trackIndex, movingIds, allClips) => {
-    const others = allClips
-      .filter((c) => !movingIds.has(c.id) && c.track === trackIndex)
-      .sort((a, b) => a.start - b.start);
-    if (!others.length) return Math.max(0, candidateStart);
-
-    let start = Math.max(0, candidateStart);
-
-    // Enough passes to handle a full chain of clips
-    for (let pass = 0; pass < others.length + 1; pass++) {
-      let moved = false;
-      for (const o of others) {
-        const end = start + dur;
-        if (start < o.start + o.dur && end > o.start) {
-          const pushBefore = o.start - dur;   // clip end touches obstacle start
-          const pushAfter  = o.start + o.dur; // clip start touches obstacle end
-          // Only push BEFORE if there is enough room (non-negative start)
-          if (pushBefore >= 0) {
-            const dBefore = Math.abs(candidateStart - pushBefore);
-            const dAfter  = Math.abs(candidateStart - pushAfter);
-            start = dBefore <= dAfter ? pushBefore : pushAfter;
-          } else {
-            // No room before — must go after the obstacle
-            start = pushAfter;
-          }
-          moved = true;
-        }
-      }
-      if (!moved) break;
-    }
-    return start;
+  // Allow free placement: clips can overlap on the same track (used for transitions / L-cuts).
+  // Just clamp to non-negative start. Magnetic snap handles edge-to-edge alignment.
+  const resolveCollision = (candidateStart /* dur, trackIndex, movingIds, allClips */) => {
+    return Math.max(0, candidateStart);
   };
 
   const trackIndexesByType = (type) =>
