@@ -1029,6 +1029,8 @@ function TimelineEditor() {
   const [projectList, setProjectList] = useState([]);  // [{id,name,updatedAt}]
   const [projectSaving, setProjectSaving] = useState(false);
   const [projectLoading, setProjectLoading] = useState(false);
+  // Vertical snap indicator (frame number while dragging) — visualizes the snap point like Premiere/CapCut
+  const [snapIndicator, setSnapIndicator] = useState(null); // null | frame number
 
   const tlRef = useRef(null);
   const rafRef = useRef(null);
@@ -2346,10 +2348,10 @@ function TimelineEditor() {
   // Snaps clip START or END to: clip edges (highest priority), playhead, 0
   const snapClipStart = (candidateStart, dur, trackIndex, movingClipId, allClips) => {
     let next = clampStartByDur(candidateStart, dur);
-    if (!toggles.magnet) return next;
+    if (!toggles.magnet) { setSnapIndicator(null); return next; }
 
-    // Pixel-based threshold (~14px on screen) — strong magnetic feel
-    const snapThreshold = Math.ceil(14 / scale);
+    // Strong magnetic threshold ~22px on screen — matches Premiere/CapCut feel
+    const snapThreshold = Math.ceil(22 / scale);
 
     // Edge anchors from clips (cross-track) — HIGH priority
     const clipAnchors = [];
@@ -2363,6 +2365,7 @@ function TimelineEditor() {
 
     const candidateEnd = next + dur;
     let bestStart = next;
+    let bestSnapPoint = null; // exact frame where the snap line should appear
     let bestDelta = Number.POSITIVE_INFINITY;
     let bestPriority = 99; // 0 = clip edges, 1 = others
 
@@ -2372,6 +2375,7 @@ function TimelineEditor() {
       if (ds <= snapThreshold && (priority < bestPriority || (priority === bestPriority && ds < bestDelta))) {
         bestDelta = ds;
         bestStart = a;
+        bestSnapPoint = a;
         bestPriority = priority;
       }
       // snap clip END to anchor
@@ -2379,6 +2383,7 @@ function TimelineEditor() {
       if (de <= snapThreshold && (priority < bestPriority || (priority === bestPriority && de < bestDelta))) {
         bestDelta = de;
         bestStart = a - dur;
+        bestSnapPoint = a;
         bestPriority = priority;
       }
     };
@@ -2386,7 +2391,12 @@ function TimelineEditor() {
     clipAnchors.forEach((a) => tryAnchor(a, 0));
     otherAnchors.forEach((a) => tryAnchor(a, 1));
 
-    if (bestPriority < 99) next = bestStart;
+    if (bestPriority < 99) {
+      next = bestStart;
+      setSnapIndicator(bestSnapPoint);
+    } else {
+      setSnapIndicator(null);
+    }
     return clampStartByDur(next, dur);
   };
 
@@ -2518,6 +2528,7 @@ function TimelineEditor() {
       });
       const onMoveEvt = (me) => onMove(me.clientX, me.clientY);
       const onUp = () => {
+        setSnapIndicator(null);
         window.removeEventListener('mousemove', onMoveEvt);
         window.removeEventListener('mouseup', onUp);
       };
@@ -2553,7 +2564,7 @@ function TimelineEditor() {
             const srcLimit = current.sourceDur ? current.sourceDur : Infinity;
             let nextDur = Math.min(Math.max(MIN_CLIP_FRAMES, baseDur + fd), srcLimit);
             if (toggles.magnet) {
-              const snapThreshold = Math.ceil(10 / scale);
+              const snapThreshold = Math.ceil(22 / scale);
               const targetEnd = baseStart + nextDur;
               const anchors = [Math.round(playhead)];
               prev.forEach((x) => {
@@ -2569,8 +2580,13 @@ function TimelineEditor() {
                   bestEnd = a;
                 }
               });
-              if (bestDelta <= snapThreshold) nextDur = Math.max(MIN_CLIP_FRAMES, bestEnd - baseStart);
-            }
+              if (bestDelta <= snapThreshold) {
+                nextDur = Math.max(MIN_CLIP_FRAMES, bestEnd - baseStart);
+                setSnapIndicator(bestEnd);
+              } else {
+                setSnapIndicator(null);
+              }
+            } else { setSnapIndicator(null); }
             const deltaDur = nextDur - baseDur;
             return prev.map((c) => {
               if (!groupIds.has(c.id)) return c;
@@ -2586,7 +2602,7 @@ function TimelineEditor() {
             let nextStart = Math.max(0, baseStart + fd);
             const fixedEnd = baseStart + baseDur;
             if (toggles.magnet) {
-              const snapThreshold = Math.ceil(10 / scale);
+              const snapThreshold = Math.ceil(22 / scale);
               const anchors = [0, Math.round(playhead)];
               prev.forEach((x) => {
                 if (x.id === clipId) return;
@@ -2601,8 +2617,13 @@ function TimelineEditor() {
                   best = a;
                 }
               });
-              if (bestDelta <= snapThreshold) nextStart = Math.max(0, best);
-            }
+              if (bestDelta <= snapThreshold) {
+                nextStart = Math.max(0, best);
+                setSnapIndicator(best);
+              } else {
+                setSnapIndicator(null);
+              }
+            } else { setSnapIndicator(null); }
             let deltaStart = nextStart - baseStart;
             deltaStart = Math.max(minDeltaStart, Math.min(maxDeltaStart, deltaStart));
             return prev.map((c) => {
@@ -2618,6 +2639,7 @@ function TimelineEditor() {
       });
       const onMoveEvt = (me) => onMove(me.clientX);
       const onUp = () => {
+        setSnapIndicator(null);
         window.removeEventListener('mousemove', onMoveEvt);
         window.removeEventListener('mouseup', onUp);
       };
@@ -3139,6 +3161,23 @@ function TimelineEditor() {
             >
               <div style={{ position: 'absolute', top: -7, left: -5, width: 12, height: 12, background: '#ff4b4b', clipPath: 'polygon(50% 100%, 0 0, 100% 0)', cursor: 'ew-resize' }} />
             </div>
+
+            {/* Magnetic snap indicator (bright vertical line — Premiere/CapCut style) */}
+            {snapIndicator !== null && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  bottom: 0,
+                  left: snapIndicator * scale,
+                  width: 2,
+                  background: '#22ff88',
+                  boxShadow: '0 0 8px #22ff88, 0 0 16px rgba(34,255,136,0.5)',
+                  zIndex: 35,
+                  pointerEvents: 'none',
+                }}
+              />
+            )}
 
             {dragOver && (
               <div
