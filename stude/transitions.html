@@ -189,7 +189,7 @@ body{background:#080c1a;color:#e8ecf8;font-family:'Sora',sans-serif;height:100vh
           <div class="clip-box"><div class="clip-label">From Clip</div><div class="clip-val" id="fromClip">&#x2014;</div></div>
           <div class="clip-box"><div class="clip-label">To Clip</div><div class="clip-val" id="toClip">&#x2014;</div></div>
         </div>
-        <div class="clip-note" id="pairNote">Select a clip in timeline that has a next clip on same track.</div>
+        <div class="clip-note" id="pairNote">Click a clip in the timeline &#x2014; it becomes A, the next clip on the same track becomes B.</div>
       </div>
 
       <!-- Settings -->
@@ -703,36 +703,28 @@ function findPair(state) {
     byTrack[t].sort(function(a,b){ return Number(a.start)-Number(b.start); });
   });
 
-  // Find which track/pair index involves the selected or active clip
+  // ONLY use the user's explicitly selected clip. The selected clip = A,
+  // the next clip on the same track = B. No automatic fallback.
   var selId = state.selectedClip && state.selectedClip.id;
-  var avId  = state.activeVisualClip && state.activeVisualClip.id;
-  var preferTrack = null, preferIdx = -1;
+  if (!selId) return null;
 
-  function tryId(id) {
-    if (!id || preferTrack !== null) return;
-    Object.keys(byTrack).forEach(function(t){
-      if (preferTrack !== null) return;
-      var tc = byTrack[t];
-      for (var i = 0; i < tc.length - 1; i++) {
-        if (tc[i].id === id || tc[i+1].id === id) { preferTrack = t; preferIdx = i; return; }
+  var foundTrack = null, foundIdx = -1;
+  Object.keys(byTrack).forEach(function(t){
+    if (foundTrack !== null) return;
+    var tc = byTrack[t];
+    for (var i = 0; i < tc.length; i++) {
+      if (tc[i].id === selId) {
+        // Selected becomes A; need a next clip on same track for B
+        if (i < tc.length - 1) { foundTrack = t; foundIdx = i; }
+        else if (i > 0)        { foundTrack = t; foundIdx = i - 1; } // selected is last → use prev as A
+        return;
       }
-    });
-  }
-  tryId(selId);
-  tryId(avId);
+    }
+  });
 
-  if (preferTrack !== null && preferIdx >= 0) {
-    var tc = byTrack[preferTrack];
-    return { from: tc[preferIdx], to: tc[preferIdx + 1] };
-  }
-
-  // Fallback: first track with 2+ clips
-  var keys = Object.keys(byTrack);
-  for (var i = 0; i < keys.length; i++) {
-    var tc = byTrack[keys[i]];
-    if (tc.length >= 2) return { from: tc[0], to: tc[1] };
-  }
-  return null;
+  if (foundTrack === null) return null;
+  var ftc = byTrack[foundTrack];
+  return { from: ftc[foundIdx], to: ftc[foundIdx + 1] };
 }
 
 function refreshPair() {
@@ -762,7 +754,7 @@ function refreshPair() {
   } else if (!state.allClips || state.allClips.length < 2) {
     document.getElementById('pairNote').textContent = 'Add at least 2 clips to the timeline.';
   } else {
-    document.getElementById('pairNote').textContent = 'Select a clip with a next clip on the same track.';
+    document.getElementById('pairNote').textContent = 'Click a clip in the timeline \u2014 it becomes A, the next clip on the same track becomes B.';
   }
 }
 
