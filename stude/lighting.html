@@ -386,6 +386,7 @@ function deleteSaved(i) {
 ================================================================ */
 function updateHistogram() {
   var bars = document.getElementById('histBars');
+  if (!bars) return;
   bars.innerHTML = '';
   var colors = ['#ef4444','#22c55e','#3b82f6'];
   for (var i = 0; i < 64; i++) {
