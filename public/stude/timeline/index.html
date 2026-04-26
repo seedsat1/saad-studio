@@ -18,7 +18,14 @@
 </head>
 <body>
   <div id="app"></div>
-  <script src="timeline-runtime.js"></script>
+  <script>
+    // Cache-bust the runtime so users always get the latest build after deploy
+    (function () {
+      var s = document.createElement('script');
+      s.src = 'timeline-runtime.js?v=' + Date.now();
+      document.body.appendChild(s);
+    })();
+  </script>
 </body>
 </html>
 
