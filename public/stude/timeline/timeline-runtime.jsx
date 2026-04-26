@@ -2382,7 +2382,7 @@ function TimelineEditor() {
   };
 
   // Prevent the moving clip from overlapping other clips on the same track.
-  // Multi-pass push until stable (handles chain of clips).
+  // Guarantees no overlap in the final result.
   const resolveCollision = (candidateStart, dur, trackIndex, movingIds, allClips) => {
     const others = allClips
       .filter((c) => !movingIds.has(c.id) && c.track === trackIndex)
@@ -2391,18 +2391,23 @@ function TimelineEditor() {
 
     let start = Math.max(0, candidateStart);
 
-    // Up to 3 passes — handles cascading collisions (clip A→B→C)
-    for (let pass = 0; pass < 3; pass++) {
+    // Enough passes to handle a full chain of clips
+    for (let pass = 0; pass < others.length + 1; pass++) {
       let moved = false;
       for (const o of others) {
         const end = start + dur;
         if (start < o.start + o.dur && end > o.start) {
-          // Decide: push before or after the obstacle based on original drag direction
-          const pushBefore = o.start - dur;     // clip end touches obstacle start
-          const pushAfter  = o.start + o.dur;   // clip start touches obstacle end
-          const dBefore = Math.abs(candidateStart - pushBefore);
-          const dAfter  = Math.abs(candidateStart - pushAfter);
-          start = dBefore <= dAfter ? Math.max(0, pushBefore) : pushAfter;
+          const pushBefore = o.start - dur;   // clip end touches obstacle start
+          const pushAfter  = o.start + o.dur; // clip start touches obstacle end
+          // Only push BEFORE if there is enough room (non-negative start)
+          if (pushBefore >= 0) {
+            const dBefore = Math.abs(candidateStart - pushBefore);
+            const dAfter  = Math.abs(candidateStart - pushAfter);
+            start = dBefore <= dAfter ? pushBefore : pushAfter;
+          } else {
+            // No room before — must go after the obstacle
+            start = pushAfter;
+          }
           moved = true;
         }
       }

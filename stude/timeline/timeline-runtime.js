@@ -2249,16 +2249,20 @@ function TimelineEditor() {
     const others = allClips.filter((c) => !movingIds.has(c.id) && c.track === trackIndex).sort((a, b) => a.start - b.start);
     if (!others.length) return Math.max(0, candidateStart);
     let start = Math.max(0, candidateStart);
-    for (let pass = 0; pass < 3; pass++) {
+    for (let pass = 0; pass < others.length + 1; pass++) {
       let moved = false;
       for (const o of others) {
         const end = start + dur;
         if (start < o.start + o.dur && end > o.start) {
           const pushBefore = o.start - dur;
           const pushAfter = o.start + o.dur;
-          const dBefore = Math.abs(candidateStart - pushBefore);
-          const dAfter = Math.abs(candidateStart - pushAfter);
-          start = dBefore <= dAfter ? Math.max(0, pushBefore) : pushAfter;
+          if (pushBefore >= 0) {
+            const dBefore = Math.abs(candidateStart - pushBefore);
+            const dAfter = Math.abs(candidateStart - pushAfter);
+            start = dBefore <= dAfter ? pushBefore : pushAfter;
+          } else {
+            start = pushAfter;
+          }
           moved = true;
         }
       }
