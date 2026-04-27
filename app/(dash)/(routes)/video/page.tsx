@@ -821,7 +821,8 @@ function VideoPageInner() {
         }
 
         // Resolution → mode: "std" | "pro" | "4K"
-        const modeValue = resolution === "4K" ? "4K" : resolution === "pro" ? "pro" : "std";
+        const normalizedResolution = resolution?.trim().toLowerCase();
+        const modeValue = normalizedResolution === "4k" ? "4K" : normalizedResolution === "pro" ? "pro" : "std";
 
         // ── image_urls: read DIRECTLY from React state (authoritative source) ──
         // payload.image / payload.end_image are set by the generic block above,

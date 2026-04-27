@@ -259,12 +259,12 @@ const QUALITY_MULTIPLIER: Record<string, number> = {
   // Kling std/pro mode
   "std":    1.0,
   "pro":    1.5,
+  "4k":     3.0,
   // Resolution tiers
   "480p":   0.8,
   "720p":   1.0,
-  "768P":   1.0,
+  "768p":   1.0,
   "1080p":  1.3,
-  "1080P":  1.3,
 };
 
 export interface GenerationCostQuote {
@@ -321,7 +321,7 @@ function calcSourceCredits(model: PricingModel, durationSec: number): number {
  */
 export function qualityMultiplierFor(quality: string | null | undefined): number {
   if (!quality) return 1.0;
-  return QUALITY_MULTIPLIER[quality] ?? 1.0;
+  return QUALITY_MULTIPLIER[quality.trim().toLowerCase()] ?? 1.0;
 }
 
 // ─── Public API ───────────────────────────────────────────────────────────────
