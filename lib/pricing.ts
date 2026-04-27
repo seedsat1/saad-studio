@@ -259,7 +259,7 @@ const QUALITY_MULTIPLIER: Record<string, number> = {
   // Kling std/pro mode
   "std":    1.0,
   "pro":    1.5,
-  "4k":     33.5,
+  "4k":     43.55,
   // Resolution tiers
   "480p":   0.8,
   "720p":   1.0,
