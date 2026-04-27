@@ -96,7 +96,7 @@ const TOOLS = [
 ];
 
 const EDIT_MODELS = IMAGE_MODELS.filter((m) =>
-  ["google/nano-banana-edit", "seedream/4.5-edit", "gpt-image/1.5-image-to-image", "flux-2/pro-image-to-image"].includes(m.id),
+  ["google/nano-banana-edit", "seedream/4.5-edit", "gpt-image-2-image-to-image", "gpt-image/1.5-image-to-image", "flux-2/pro-image-to-image"].includes(m.id),
 );
 
 // All models that accept real image inputs (any inputType) — includes Nano Banana (up to 14 imgs), edit, and pure img2img
@@ -868,7 +868,7 @@ export default function ImageWorkspacePage() {
   const [faceIndex, setFaceIndex] = useState(0);
   const [enhanceFiles, setEnhanceFiles] = useState<File[]>([]);
   const [enhanceModelId, setEnhanceModelId] = useState(
-    ENHANCE_MODELS.find((m) => m.id === "gpt-image/1.5-image-to-image")?.id ?? ENHANCE_MODELS[0]?.id ?? "gpt-image/1.5-image-to-image",
+    ENHANCE_MODELS.find((m) => m.id === "gpt-image-2-image-to-image")?.id ?? ENHANCE_MODELS[0]?.id ?? "gpt-image-2-image-to-image",
   );
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -1003,6 +1003,13 @@ export default function ImageWorkspacePage() {
 
   const selectedRatio = useMemo(() => RATIO_OPTIONS.find((r) => r.value === aspectRatio) || RATIO_OPTIONS[0], [aspectRatio]);
   const createNeedsImage = selectedModel.inputType !== "text-to-image";
+  const qualityOptions = useMemo(() => {
+    const options = selectedModel.qualityParam ?? [];
+    if (!selectedModel.id.startsWith("gpt-image-2-")) return options;
+    if (aspectRatio === "auto") return options.filter((q) => q === "1K");
+    if (aspectRatio === "1:1") return options.filter((q) => q !== "4K");
+    return options;
+  }, [aspectRatio, selectedModel]);
 
   const composer = useMemo(() => {
     if (activeTool === "create") {
@@ -1019,17 +1026,18 @@ export default function ImageWorkspacePage() {
   useEffect(() => {
     setNumImages(Math.min(Math.max(1, numImages), selectedModel.maxImages));
     if (selectedModel.aspectRatios.length && !selectedModel.aspectRatios.includes(aspectRatio)) setAspectRatio(selectedModel.aspectRatios[0]);
-  }, [selectedModel, numImages, aspectRatio]);
+    if (qualityOptions.length && !qualityOptions.includes(quality)) setQuality(qualityOptions[0]);
+  }, [selectedModel, numImages, aspectRatio, quality, qualityOptions]);
 
   const canGenerate = useMemo(() => {
     if (generating) return false;
-    if (activeTool === "create") return Boolean(prompt.trim());
+    if (activeTool === "create") return Boolean(prompt.trim()) && (!createNeedsImage || referenceFiles.length > 0);
     if (activeTool === "relight") return Boolean(relightFile && prompt.trim());
     if (activeTool === "inpaint") return Boolean(inpaintFile && prompt.trim());
     if (activeTool === "upscale") return Boolean(upscaleFile);
     if (activeTool === "enhance") return enhanceFiles.length > 0;
     return Boolean(faceSource && faceTarget);
-  }, [activeTool, enhanceFiles.length, faceSource, faceTarget, generating, inpaintFile, prompt, relightFile, upscaleFile]);
+  }, [activeTool, createNeedsImage, enhanceFiles.length, faceSource, faceTarget, generating, inpaintFile, prompt, referenceFiles.length, relightFile, upscaleFile]);
 
   const addResultItems = useCallback((urls: string[], tool: ToolId, model: string, p: string, aspect: string) => {
     const newItems = urls.map((url) => ({ id: uid("img"), url, tool, model, prompt: p, aspect }));
@@ -1041,7 +1049,7 @@ export default function ImageWorkspacePage() {
     const maxRef = selectedModel.maxRefImages;
     const filesToSend = maxRef > 0 ? referenceFiles.slice(0, maxRef) : [];
     const imageUrls = await Promise.all(filesToSend.map(fileToDataUrl));
-    const body: Record<string, unknown> = { prompt, modelId: selectedModel.id, aspectRatio, numImages, quality: selectedModel.qualityParam?.length ? (quality || selectedModel.qualityParam[0]) : undefined };
+    const body: Record<string, unknown> = { prompt, modelId: selectedModel.id, aspectRatio, numImages, quality: qualityOptions.length ? (quality || qualityOptions[0]) : undefined };
     if (imageUrls.length > 0) {
       // Always send imageInputField so the route knows which API field to use
       if (selectedModel.imageInputField) body.imageInputField = selectedModel.imageInputField;
@@ -1053,7 +1061,7 @@ export default function ImageWorkspacePage() {
     if (!res.ok || data.error) throw new Error(data.error || "Generation failed");
     const urls: string[] = data.imageUrls || [];
     addResultItems(urls, "create", selectedModel.label, prompt, aspectRatio);
-  }, [addResultItems, aspectRatio, numImages, prompt, quality, referenceFiles, selectedModel]);
+  }, [addResultItems, aspectRatio, numImages, prompt, quality, qualityOptions, referenceFiles, selectedModel]);
 
   const generateRelight = useCallback(async () => {
     if (!relightFile) throw new Error("Upload image first");
@@ -1331,6 +1339,24 @@ export default function ImageWorkspacePage() {
     if (activeTool === "create") {
       return <>
         <SettingsAccordion label="Model" summary={selectedModel.label} defaultOpen>
+          <div className="mb-2 rounded-2xl border border-white/10 bg-gradient-to-r from-emerald-500/[0.10] via-pink-500/[0.08] to-sky-500/[0.10] px-3 py-2.5">
+            <div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-pink-200/90">
+              <Sparkles className="h-3.5 w-3.5" />
+              New from Saad Studio
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {IMAGE_MODELS.filter((m) => m.id === "gpt-image-2-text-to-image" || m.id === "gpt-image-2-image-to-image").map((m) => (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => setSelectedModel(m)}
+                  className="inline-flex items-center rounded-full border border-emerald-400/30 bg-emerald-500/15 px-2.5 py-1 text-[11px] font-semibold text-emerald-200 transition hover:bg-emerald-500/25"
+                >
+                  {m.label}
+                </button>
+              ))}
+            </div>
+          </div>
           <ModelDropdown selected={selectedModel} onSelect={setSelectedModel} />
         </SettingsAccordion>
 
@@ -1356,14 +1382,14 @@ export default function ImageWorkspacePage() {
           </SettingsAccordion>
         ) : null}
 
-        {selectedModel.qualityParam?.length ? (
-          <SettingsAccordion label="Quality" summary={quality || selectedModel.qualityParam[0]} defaultOpen>
+        {qualityOptions.length ? (
+          <SettingsAccordion label={qualityOptions.some((q) => /k$/i.test(q)) ? "Resolution" : "Quality"} summary={quality || qualityOptions[0]} defaultOpen>
             <select
-              value={quality || selectedModel.qualityParam[0]}
+              value={quality || qualityOptions[0]}
               onChange={(e) => setQuality(e.target.value)}
               className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-pink-500"
             >
-              {selectedModel.qualityParam.map((q) => (
+              {qualityOptions.map((q) => (
                 <option key={q} value={q}>{q}</option>
               ))}
             </select>
@@ -1523,6 +1549,7 @@ export default function ImageWorkspacePage() {
         .ratio-card { width: 64px; height: 64px; border: 2px solid rgba(255,255,255,0.12); border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all .2s; background: transparent; color: #7f8aa3; }
         .ratio-card.active { border-color: #ec4899; background: rgba(236,72,153,0.08); color: #ec4899; }
         .ratio-card .ratio-shape { border: 1.5px solid currentColor; border-radius: 2px; }
+        .ratio-auto .ratio-shape { width: 28px; height: 28px; border-style: dashed; }
         .ratio-1-1 .ratio-shape { width: 28px; height: 28px; }
         .ratio-16-9 .ratio-shape { width: 36px; height: 20px; }
         .ratio-9-16 .ratio-shape { width: 20px; height: 36px; }

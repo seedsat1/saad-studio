@@ -237,6 +237,8 @@ const MODEL_ALIAS_MAP: Record<string, string> = {
   "grok-imagine/image-to-image":        "grok_imge",
   "gpt-image/1.5-text-to-image":       "gpt15t",
   "gpt-image/1.5-image-to-image":      "gpt15i",
+  "gpt-image-2-text-to-image":         "gpt2t",
+  "gpt-image-2-image-to-image":        "gpt2i",
   "qwen2/text-to-image":               "qwen_t",
   "qwen2/image-edit":                   "qwen_i",
   "qwen/image-to-image":               "qwen_i",

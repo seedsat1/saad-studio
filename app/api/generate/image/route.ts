@@ -61,6 +61,7 @@ function inferImageInputField(kieModelId: string): "image_url" | "image_input" |
 
   if ([
     "gpt-image/1.5-image-to-image",
+    "gpt-image-2-image-to-image",
     "wan/2-7-image-pro",
   ].includes(kieModelId)) return "input_urls";
 
@@ -295,6 +296,17 @@ export async function POST(req: NextRequest) {
       target.aspect_ratio = aspectRatio;
     };
 
+    const normalizeGptImage2Resolution = (): string | null => {
+      if (!kieModelId.startsWith("gpt-image-2-")) return null;
+      const requested = typeof resolution === "string" && resolution ? resolution : quality;
+      const normalized = ["1K", "2K", "4K"].includes(requested ?? "") ? requested! : "1K";
+      if (aspectRatio === "auto") return "1K";
+      if (aspectRatio === "1:1" && normalized === "4K") {
+        throw new Error("GPT Image 2 does not support 4K with 1:1 aspect ratio.");
+      }
+      return normalized;
+    };
+
     /** Build the `input` body for a single createTask call.
      * `requestedCount` is what we pass to the model when it supports a batch field. */
     const buildInput = (requestedCount: number): Record<string, unknown> => {
@@ -345,8 +357,11 @@ export async function POST(req: NextRequest) {
       // - "speed"/"quality"        → enable_pro boolean (Grok Imagine T2I)
       // - "basic"/"high"           → quality param (Seedream)
       // - other ("medium"/"high")  → quality param (GPT Image)
+      const gptImage2Resolution = normalizeGptImage2Resolution();
       const RESOLUTION_VALUES = ["1K", "2K", "4K"];
-      if (quality && RESOLUTION_VALUES.includes(quality)) {
+      if (gptImage2Resolution) {
+        input.resolution = gptImage2Resolution;
+      } else if (quality && RESOLUTION_VALUES.includes(quality)) {
         input.resolution = quality;
       } else if (quality === "speed" || quality === "quality") {
         // Grok Imagine T2I speed-vs-quality toggle
@@ -354,7 +369,7 @@ export async function POST(req: NextRequest) {
       } else if (quality) {
         input.quality = quality;
       }
-      if (resolution) input.resolution = resolution;
+      if (resolution && !gptImage2Resolution) input.resolution = resolution;
 
       return input;
     };

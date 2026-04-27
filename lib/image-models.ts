@@ -45,6 +45,7 @@ export interface ImageModel {
 
 // ─── All Aspect Options lookup (for the UI toggle buttons) ────────────────────
 export const ALL_ASPECT_OPTIONS = [
+  { value: "auto",  label: "Auto",  cls: "w-7 h-7"        },
   { value: "1:1",   label: "1:1",   cls: "w-6 h-6"        },
   { value: "16:9",  label: "16:9",  cls: "w-8 h-[18px]"   },
   { value: "9:16",  label: "9:16",  cls: "w-[18px] h-8"   },
@@ -295,30 +296,30 @@ export const IMAGE_MODELS: ImageModel[] = [
   },
   // ── GPT Image ─────────────────────────────────────────────────────────────
   {
-    id: "gpt-image/2-text-to-image",
-    label: "GPT Image 2 T2I",
-    sublabel: "OpenAI · Sharper text & visuals",
+    id: "gpt-image-2-text-to-image",
+    label: "GPT Image 2",
+    sublabel: "Text to image - 1K/2K/4K",
     badge: "NEW",
     group: "GPT Image",
     inputType: "text-to-image",
-    aspectRatios: ["1:1", "2:3", "3:2"],
+    aspectRatios: ["auto", "1:1", "9:16", "16:9", "4:3", "3:4"],
     maxImages: 1,
     maxRefImages: 0,
-    qualityParam: ["medium", "high"],
+    qualityParam: ["1K", "2K", "4K"],
     creditCost: 3,
   },
   {
-    id: "gpt-image/2-image-to-image",
-    label: "GPT Image 2 I2I",
-    sublabel: "Cleaner edits · Refined output",
+    id: "gpt-image-2-image-to-image",
+    label: "GPT Image 2 Edit",
+    sublabel: "Image to image - up to 16 refs",
     badge: "NEW",
     group: "GPT Image",
     inputType: "image-to-image",
-    aspectRatios: ["1:1", "2:3", "3:2"],
+    aspectRatios: ["auto", "1:1", "9:16", "16:9", "4:3", "3:4"],
     maxImages: 1,
     maxRefImages: 16,
     imageInputField: "input_urls",
-    qualityParam: ["medium", "high"],
+    qualityParam: ["1K", "2K", "4K"],
     creditCost: 3,
   },
   {

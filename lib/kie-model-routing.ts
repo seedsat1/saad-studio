@@ -27,8 +27,8 @@ export const BASE_KIE_IMAGE_MODEL_MAP: Record<string, string> = {
   "grok-imagine/image-to-image": "grok-imagine/image-to-image",
   "gpt-image/1.5-text-to-image": "gpt-image/1.5-text-to-image",
   "gpt-image/1.5-image-to-image": "gpt-image/1.5-image-to-image",
-  "gpt-image/2-text-to-image": "gpt-image/2-text-to-image",
-  "gpt-image/2-image-to-image": "gpt-image/2-image-to-image",
+  "gpt-image-2-text-to-image": "gpt-image-2-text-to-image",
+  "gpt-image-2-image-to-image": "gpt-image-2-image-to-image",
   "wan/2-7-image-pro": "wan/2-7-image-pro",
 };
 
@@ -132,4 +132,3 @@ export function getResolvedKieRoutingMaps() {
     wavespeedFallbackMap: WAVESPEED_VIDEO_FALLBACK_MAP,
   };
 }
-
