@@ -606,25 +606,6 @@ function ResultGrid({ items, onInspect, onRemix, onUse, onDelete, onBulkDelete }
           }
         }
       `}</style>
-        
-        @media (max-width: 480px) {
-          .result-masonry {
-            grid-template-columns: repeat(2, 1fr);
-            grid-auto-rows: 120px;
-          }
-          
-          .result-masonry > div[data-ratio="16:9"],
-          .result-masonry > div[data-ratio="21:9"],
-          .result-masonry > div[data-ratio="3:2"] {
-            grid-column: span 1;
-          }
-          
-          .result-masonry > div[data-ratio="9:16"],
-          .result-masonry > div[data-ratio="3:4"] {
-            grid-row: span 1;
-          }
-        }
-      `}</style>
 
       {/* Selection toolbar */}
       <div className="mb-2 flex flex-wrap items-center gap-2">
