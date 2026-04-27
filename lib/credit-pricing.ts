@@ -99,7 +99,13 @@ function applySoundMultiplier(baseCost: number, payload?: VideoPayload): number 
 function getKling3Credits(payload?: VideoPayload): number {
   const duration = readDuration(payload, 5);
   const quality = readQuality(payload);
+  const is4k = quality === "4k";
   const isPro = quality === "pro" || quality.includes("1080");
+
+  if (is4k) {
+    if (duration <= 3) return 18;
+    return Math.max(18, Math.ceil((duration * 82) / 15));
+  }
 
   if (isPro) {
     if (duration <= 3) return 9;

@@ -19,7 +19,7 @@ export type ModelCategory =
   | "image-to-video"
   | "motion-control";
 
-export type ModelBadge = "TOP" | "NEW" | "PRO" | "FAST" | null;
+export type ModelBadge = "TOP" | "NEW" | "PRO" | "FAST" | "4K" | null;
 
 /**
  * Capability flags derived exclusively from official docs parameter tables.
@@ -170,7 +170,7 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
       optional_image:      true,
       has_end_frame:       true,
       aspect_ratios:       ["16:9", "9:16", "1:1"],
-      resolutions:         ["std", "pro"],
+      resolutions:         ["std", "pro", "4K"],
       quality_param:       "mode",
       durations:           [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
       has_sound:           true,

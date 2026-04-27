@@ -675,7 +675,7 @@ function extractOutputs(resultPayload: unknown): string[] {
 
 function validateKling30Payload(payload: Record<string, unknown>): string | null {
   const mode = typeof payload.mode === "string" ? payload.mode : "std";
-  if (!["std", "pro"].includes(mode)) return "Kling 3.0 mode must be std or pro.";
+  if (!["std", "pro", "4K"].includes(mode)) return "Kling 3.0 mode must be std, pro, or 4K.";
 
   const durationRaw = payload.duration;
   const duration =

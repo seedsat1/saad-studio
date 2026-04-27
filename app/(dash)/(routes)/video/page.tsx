@@ -120,6 +120,7 @@ const BADGE_STYLE = {
   NEW:  { bg: "rgba(16,185,129,0.15)",  text: "#34d399" },
   PRO:  { bg: "rgba(139,92,246,0.15)",  text: "#a78bfa" },
   FAST: { bg: "rgba(14,165,233,0.15)",  text: "#38bdf8" },
+  "4K": { bg: "rgba(236,72,153,0.16)",  text: "#f472b6" },
 };
 
 const TOOLS = [
@@ -819,8 +820,8 @@ function VideoPageInner() {
           return;
         }
 
-        // Resolution → mode: "std" | "pro"
-        const modeValue = resolution === "pro" ? "pro" : "std";
+        // Resolution → mode: "std" | "pro" | "4K"
+        const modeValue = resolution === "4K" ? "4K" : resolution === "pro" ? "pro" : "std";
 
         // ── image_urls: read DIRECTLY from React state (authoritative source) ──
         // payload.image / payload.end_image are set by the generic block above,
@@ -2192,11 +2193,11 @@ function VideoPageInner() {
                 </div>
               </div>
 
-              {/* -- Resolution (720p std / 1080p pro) ------------------------ */}
+              {/* -- Resolution (720p std / 1080p pro / 4K) ------------------- */}
               <div className="flex flex-col gap-2">
                 <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#475569" }}>Resolution</label>
                 <div className="flex gap-1">
-                  {([["std", "720p"], ["pro", "1080p"]] as const).map(([val, label]) => (
+                  {([["std", "720p"], ["pro", "1080p"], ["4K", "4K"]] as const).map(([val, label]) => (
                     <button
                       key={val}
                       onClick={() => setResolution(val)}
@@ -2212,7 +2213,9 @@ function VideoPageInner() {
                   ))}
                 </div>
                 <p className="text-[10px]" style={{ color: "#334155" }}>
-                  {resolution === "pro"
+                  {resolution === "4K"
+                    ? (aspectRatio === "16:9" ? "3840×2160" : aspectRatio === "9:16" ? "2160×3840" : "2160×2160")
+                    : resolution === "pro"
                     ? (aspectRatio === "16:9" ? "1920×1080" : aspectRatio === "9:16" ? "1080×1920" : "1080×1080")
                     : (aspectRatio === "16:9" ? "1280×720" : aspectRatio === "9:16" ? "720×1280" : "720×720")}
                 </p>
