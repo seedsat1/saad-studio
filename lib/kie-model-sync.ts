@@ -4,12 +4,23 @@ type KieOverrideMap = {
   videoModelMap: Record<string, string>;
 };
 
+export type KieModelKind = "image" | "video" | "audio" | "3d" | "unknown";
+
+export type DetectedModelMeta = {
+  id: string;
+  label: string;
+  family: string;
+  kind: KieModelKind;
+  isNew: boolean;
+};
+
 type KieModelSyncSnapshot = {
   sourceUrl: string;
   lastCheckAt: number;
   lastSuccessAt: number | null;
   expiresAt: number;
   detectedModelIds: string[];
+  detectedModels: DetectedModelMeta[];
   overrides: KieOverrideMap;
   error: string | null;
 };
@@ -40,6 +51,7 @@ function initialSnapshot(): KieModelSyncSnapshot {
     lastSuccessAt: null,
     expiresAt: 0,
     detectedModelIds: [],
+    detectedModels: [],
     overrides: emptyOverrides(),
     error: null,
   };
@@ -95,6 +107,56 @@ function mapDetectedModels(modelIds: string[]): KieOverrideMap {
   return overrides;
 }
 
+function classifyModel(id: string): KieModelKind {
+  const s = id.toLowerCase();
+  if (/(text-to-video|image-to-video|t2v|i2v|\/video|kling|hailuo|sora|veo|seedance|grok-imagine-video)/.test(s)) return "video";
+  if (/(text-to-image|image-to-image|image-edit|t2i|i2i|imagen|nano-banana|seedream|flux|gpt-image|qwen.*image|grok-imagine\b|grok-imagine\/text-to-image|grok-imagine\/image-to-image|z-image|wan.*image)/.test(s)) return "image";
+  if (/(audio|speech|music|tts|elevenlabs|lyria|suno|voice|sfx|sound)/.test(s)) return "audio";
+  if (/(3d|tripo|hunyuan3d|hyper3d|meshy)/.test(s)) return "3d";
+  return "unknown";
+}
+
+function detectFamily(id: string): string {
+  const s = id.toLowerCase();
+  if (s.includes("kling")) return "Kling";
+  if (s.includes("hailuo") || s.includes("minimax")) return "MiniMax";
+  if (s.includes("sora") || s.includes("openai")) return "OpenAI";
+  if (s.includes("veo") || s.includes("imagen") || s.includes("nano-banana") || s.includes("lyria") || s.includes("google")) return "Google";
+  if (s.includes("seedream") || s.includes("seedance") || s.includes("bytedance")) return "ByteDance";
+  if (s.includes("grok") || s.includes("x-ai")) return "xAI";
+  if (s.includes("flux")) return "FLUX";
+  if (s.includes("gpt-image")) return "OpenAI";
+  if (s.includes("qwen")) return "Qwen";
+  if (s.includes("z-image")) return "Z.AI";
+  if (s.includes("wan")) return "Wan";
+  if (s.includes("runway")) return "Runway";
+  if (s.includes("elevenlabs")) return "ElevenLabs";
+  if (s.includes("suno")) return "Suno";
+  if (s.includes("tripo")) return "Tripo";
+  if (s.includes("hunyuan3d") || s.includes("hyper3d") || s.includes("meshy")) return "3D Studio";
+  return "Other";
+}
+
+function humanizeId(id: string): string {
+  const last = id.split("/").pop() || id;
+  return last
+    .replace(/[-_]+/g, " ")
+    .replace(/\b\w/g, (m) => m.toUpperCase());
+}
+
+function buildDetectedMeta(modelIds: string[], previousIds: string[]): DetectedModelMeta[] {
+  const prevSet = new Set(previousIds);
+  return modelIds
+    .filter((id) => id.includes("/"))
+    .map((id) => ({
+      id,
+      label: humanizeId(id),
+      family: detectFamily(id),
+      kind: classifyModel(id),
+      isNew: !prevSet.has(id),
+    }));
+}
+
 async function fetchUpdatesPage(): Promise<string> {
   const res = await withTimeout(
     fetch(SYNC_URL, {
@@ -127,6 +189,7 @@ async function runSync(force = false): Promise<KieModelSyncSnapshot> {
     const page = await fetchUpdatesPage();
     const detectedModelIds = extractModelCandidates(page);
     const overrides = mapDetectedModels(detectedModelIds);
+    const detectedModels = buildDetectedMeta(detectedModelIds, prev.detectedModelIds);
 
     const next: KieModelSyncSnapshot = {
       sourceUrl: SYNC_URL,
@@ -134,6 +197,7 @@ async function runSync(force = false): Promise<KieModelSyncSnapshot> {
       lastSuccessAt: currentTs,
       expiresAt: currentTs + SYNC_TTL_MS,
       detectedModelIds,
+      detectedModels,
       overrides,
       error: null,
     };

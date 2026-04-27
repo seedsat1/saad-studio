@@ -20,6 +20,7 @@ import {
 } from "@/lib/video-model-registry";
 import { getGenerationCostSync } from "@/lib/pricing";
 import { useAssetStore } from "@/hooks/use-asset-store";
+import { NewModelsBanner } from "@/components/NewModelsBanner";
 
 // -- Utilities -----------------------------------------------------------------
 
@@ -1948,6 +1949,7 @@ function VideoPageInner() {
             <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#475569" }}>
               AI Model
             </label>
+            <NewModelsBanner kind="video" knownIds={allModels.map((m) => m.api_route)} className="mb-1" />
             <div className="relative">
               <button
                 onClick={() => setModelOpen(v => !v)}

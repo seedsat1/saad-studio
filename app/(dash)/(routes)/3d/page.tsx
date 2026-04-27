@@ -9,6 +9,7 @@ import {
 import { useAuthGuard } from "@/hooks/use-auth-guard";
 import { AssetInspector, type Asset } from "@/components/AssetInspector";
 import { useAssetStore } from "@/hooks/use-asset-store";
+import { NewModelsBanner } from "@/components/NewModelsBanner";
 
 // ─── Model definitions ────────────────────────────────────────────────────────
 const MODELS = [
@@ -773,6 +774,7 @@ export default function ThreeDStudioPage() {
             <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest mb-2 block">
               Model
             </label>
+            <NewModelsBanner kind="3d" knownIds={MODELS.map((m) => m.id)} className="mb-2" />
             <div className="space-y-1">
               {MODELS.map((model) => (
                 <button

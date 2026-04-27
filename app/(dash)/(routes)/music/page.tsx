@@ -18,6 +18,7 @@ import { useProModal } from "@/hooks/use-pro-modal";
 import { useToast } from "@/components/ui/use-toast";
 import Heading from "@/components/heading";
 import { AssetInspector, type Asset } from "@/components/AssetInspector";
+import { NewModelsBanner } from "@/components/NewModelsBanner";
 
 // ─── Music Models ─────────────────────────────────────────────────────────────
 const MUSIC_BASE_CREDITS: Record<string, number> = {
@@ -318,6 +319,9 @@ const MusicPage = () => {
 
           {showModelList && (
             <div className="border-t border-white/[0.06] divide-y divide-white/[0.04]">
+              <div className="p-2">
+                <NewModelsBanner kind="audio" knownIds={MUSIC_MODELS.map((m) => m.id)} />
+              </div>
               {MUSIC_MODELS.map((model) => (
                 <button
                   key={model.id}

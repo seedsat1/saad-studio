@@ -32,6 +32,7 @@ import { useAuthGuard } from "@/hooks/use-auth-guard";
 import { AssetInspector, type Asset } from "@/components/AssetInspector";
 import { useAssetStore } from "@/hooks/use-asset-store";
 import { useSearchParams } from "next/navigation";
+import { useDynamicKieModels } from "@/hooks/use-dynamic-models";
 
 type ToolId = "create" | "relight" | "inpaint" | "upscale" | "face-swap" | "enhance";
 
@@ -212,19 +213,41 @@ function ModelDropdown({ selected, onSelect }: { selected: ImageModel; onSelect:
   const [query, setQuery] = useState("");
   const buttonRef = useRef<HTMLButtonElement>(null);
   const [dropPos, setDropPos] = useState<{ top: number; left: number; width: number }>({ top: 0, left: 0, width: 0 });
+  const { models: dynamicModels } = useDynamicKieModels("image");
 
   const grouped = useMemo(() => {
+    const knownIds = new Set(IMAGE_MODELS.map((m) => m.id.toLowerCase()));
+    // Convert detected KIE models into ImageModel stubs so the dropdown can render them.
+    const dynamicAsImage: ImageModel[] = dynamicModels
+      .filter((dm) => !knownIds.has(dm.id.toLowerCase()))
+      .map((dm) => {
+        const isEdit = /(edit|image-to-image|i2i|inpaint)/i.test(dm.id);
+        return {
+          id: dm.id,
+          label: dm.label,
+          sublabel: dm.family,
+          badge: dm.isNew ? "NEW" : "AUTO",
+          group: "🆕 New from KIE",
+          inputType: isEdit ? "image-to-image" : "text-to-image",
+          aspectRatios: ["1:1", "16:9", "9:16", "3:4", "4:3"],
+          maxImages: 1,
+          maxRefImages: isEdit ? 1 : 0,
+          creditCost: 5,
+        } as ImageModel;
+      });
+
+    const all = [...dynamicAsImage, ...IMAGE_MODELS];
     const q = query.trim().toLowerCase();
     const list = q
-      ? IMAGE_MODELS.filter((m) => m.label.toLowerCase().includes(q) || m.id.toLowerCase().includes(q) || m.group.toLowerCase().includes(q))
-      : IMAGE_MODELS;
+      ? all.filter((m) => m.label.toLowerCase().includes(q) || m.id.toLowerCase().includes(q) || m.group.toLowerCase().includes(q))
+      : all;
     const map = new Map<string, ImageModel[]>();
     for (const model of list) {
       if (!map.has(model.group)) map.set(model.group, []);
       map.get(model.group)?.push(model);
     }
     return Array.from(map.entries());
-  }, [query]);
+  }, [query, dynamicModels]);
 
   const handleToggle = () => {
     if (!open && buttonRef.current) {
