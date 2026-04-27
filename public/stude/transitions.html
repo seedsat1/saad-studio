@@ -597,6 +597,7 @@ async function generate() {
     if (!genRes.ok) throw new Error(genJson.error || 'Generation failed ('+genRes.status+')');
 
     _lastJobId = genJson.jobId;
+    try { localStorage.setItem('ff_transition_active_job', JSON.stringify({ jobId: _lastJobId, presetId: _selected.id, presetName: _selected.name, duration: _duration, ts: Date.now() })); } catch(_){}
     var credits = genJson.creditsCharged || calcCredits(_selected, _duration);
     setStatus('Processing\u2026 (~' + (_duration * 10) + 's). ' + credits + ' credits charged.', 'info');
     startPoll(_lastJobId);
@@ -628,6 +629,7 @@ async function pollJob(jobId) {
     if (!job) return;
     if (job.status === 'completed') {
       stopPoll();
+      try { localStorage.removeItem('ff_transition_active_job'); } catch(_){}
       var videoUrl = job.resultUrl || (job.output && (job.output.url || job.output.videoUrl)) || '';
       if (videoUrl) {
         _resultVideoUrl = videoUrl;
@@ -639,12 +641,33 @@ async function pollJob(jobId) {
       setGenerating(false);
     } else if (job.status === 'failed') {
       stopPoll();
+      try { localStorage.removeItem('ff_transition_active_job'); } catch(_){}
       setStatus('Generation failed: ' + (job.error || 'Unknown error'), 'err');
       setGenerating(false);
     } else {
       setStatus('Processing\u2026 (' + (job.status||'processing') + ')', 'info');
     }
   } catch(e) { /* ignore poll errors */ }
+}
+
+// Resume an active generation across page refreshes
+function resumeActiveJob() {
+  try {
+    var raw = localStorage.getItem('ff_transition_active_job');
+    if (!raw) return;
+    var saved = JSON.parse(raw);
+    if (!saved || !saved.jobId) return;
+    // Drop stale entries older than 30 minutes
+    if (saved.ts && (Date.now() - saved.ts) > 30*60*1000) {
+      localStorage.removeItem('ff_transition_active_job');
+      return;
+    }
+    _lastJobId = saved.jobId;
+    setStatus('Resuming generation\u2026 (' + (saved.presetName||'transition') + ')', 'info');
+    setGenerating(true);
+    pollJob(_lastJobId); // fire once immediately
+    startPoll(_lastJobId);
+  } catch(_){}
 }
 
 /* ================================================================
@@ -894,6 +917,7 @@ function pickCat(el) {
 renderGrid('', 'all');
 updateArrow();
 refreshPair();
+resumeActiveJob();
 </script>
 <script src="shared/timeline-bridge.js"></script>
 <script src="shared/english-only.js"></script>
