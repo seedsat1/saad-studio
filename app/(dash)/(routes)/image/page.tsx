@@ -897,6 +897,87 @@ export default function ImageWorkspacePage() {
     };
   }, []);
 
+  // Recover an in-flight generation that was interrupted by a page refresh.
+  // Strategy: if a pending marker exists in localStorage, show placeholders + poll
+  // /api/assets every 3s until a new image (createdAt > startedAt) appears, OR until
+  // 5 minutes pass (then auto-clear).
+  useEffect(() => {
+    let cancelled = false;
+    let pollTimer: ReturnType<typeof setInterval> | null = null;
+
+    try {
+      const raw = localStorage.getItem("ff_image_pending_job");
+      if (!raw) return;
+      const saved = JSON.parse(raw) as {
+        startedAt: number; tool: ToolId; model: string; prompt: string; aspect: string; expectedCount: number;
+      };
+      if (!saved || !saved.startedAt) { localStorage.removeItem("ff_image_pending_job"); return; }
+      // Auto-discard markers older than 5 min
+      if (Date.now() - saved.startedAt > 5 * 60 * 1000) { localStorage.removeItem("ff_image_pending_job"); return; }
+
+      // Re-show placeholders so the user knows generation is still being recovered
+      const placeholders: ResultItem[] = Array.from({ length: Math.max(1, saved.expectedCount || 1) }, () => ({
+        id: uid("recover"),
+        url: "",
+        tool: saved.tool,
+        model: saved.model,
+        prompt: saved.prompt,
+        aspect: saved.aspect,
+        isPending: true,
+      }));
+      setPendingItems((prev) => [...placeholders, ...prev]);
+      setGenerating(true);
+
+      const finish = (matched: ResultItem[] | null) => {
+        if (cancelled) return;
+        if (matched && matched.length) {
+          setResults((prev) => {
+            const known = new Set(prev.map((r) => r.id));
+            const fresh = matched.filter((m) => !known.has(m.id));
+            return [...fresh, ...prev];
+          });
+        }
+        setPendingItems((prev) => prev.filter((p) => !placeholders.some((ph) => ph.id === p.id)));
+        setGenerating(false);
+        try { localStorage.removeItem("ff_image_pending_job"); } catch {}
+        if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+      };
+
+      const tryRecover = async () => {
+        try {
+          const res = await fetch("/api/assets?type=image", { cache: "no-store" });
+          const data = await res.json().catch(() => null);
+          if (!res.ok || !Array.isArray(data?.assets)) return;
+          const fresh = data.assets.filter((a: any) => {
+            const t = new Date(a.createdAt || 0).getTime();
+            return t >= saved.startedAt - 2000; // small clock-skew tolerance
+          });
+          if (fresh.length > 0) {
+            const matched: ResultItem[] = fresh.map((a: any) => ({
+              id: a.id,
+              url: a.url,
+              tool: saved.tool,
+              model: a.model || saved.model,
+              prompt: a.prompt || saved.prompt,
+              aspect: a.resolution || saved.aspect,
+            }));
+            finish(matched);
+          } else if (Date.now() - saved.startedAt > 5 * 60 * 1000) {
+            finish(null);
+          }
+        } catch {/* keep polling */}
+      };
+
+      void tryRecover();
+      pollTimer = setInterval(tryRecover, 3000);
+    } catch {/* ignore */}
+
+    return () => {
+      cancelled = true;
+      if (pollTimer) clearInterval(pollTimer);
+    };
+  }, []);
+
   const selectedRatio = useMemo(() => RATIO_OPTIONS.find((r) => r.value === aspectRatio) || RATIO_OPTIONS[0], [aspectRatio]);
   const createNeedsImage = selectedModel.inputType !== "text-to-image";
 
@@ -1116,6 +1197,17 @@ export default function ImageWorkspacePage() {
     setPendingItems((prev) => [...placeholders, ...prev]);
     setGenerating(true);
     setError(null);
+    // Persist generation marker so we can recover after a page refresh
+    try {
+      localStorage.setItem("ff_image_pending_job", JSON.stringify({
+        startedAt: Date.now(),
+        tool: activeTool,
+        model: pendingModel,
+        prompt: pendingPrompt,
+        aspect: pendingAspect,
+        expectedCount: pendingCount,
+      }));
+    } catch {}
     try {
       if (activeTool === "create") await generateCreate();
       if (activeTool === "enhance") await generateEnhance();
@@ -1128,6 +1220,7 @@ export default function ImageWorkspacePage() {
     } finally {
       setPendingItems((prev) => prev.filter((item) => !placeholders.some((ph) => ph.id === item.id)));
       setGenerating(false);
+      try { localStorage.removeItem("ff_image_pending_job"); } catch {}
     }
   }, [activeTool, aspectRatio, canGenerate, enhanceModelId, generateCreate, generateEnhance, generateFaceSwap, generateInpaint, generateRelight, generateUpscale, guard, inpaintModelId, inpaintVariations, numImages, prompt, relightVariations, selectedModel.label]);
 
