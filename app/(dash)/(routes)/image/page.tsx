@@ -689,7 +689,6 @@ function ResultGrid({ items, onInspect, onRemix, onUse, onDelete, onBulkDelete }
                 </button>
               )}
 
-              <div className="absolute left-2 top-2 rounded-md bg-black/60 px-2 py-0.5 text-[10px] text-zinc-200">{item.model} • {item.aspect}</div>
               {!item.isPending && !selectionMode ? (
                 <div className="absolute inset-0 flex items-end justify-center gap-2 bg-black/0 pb-3 opacity-0 transition duration-200 group-hover:bg-black/45 group-hover:opacity-100">
                   <button onClick={(e) => { e.stopPropagation(); onInspect({ type: "image", url: item.url, prompt: item.prompt, model: item.model, title: "Generated image" }); }} className="rounded-lg bg-white/15 p-2 text-white ring-1 ring-white/20" title="Preview"><Eye className="h-4 w-4" /></button>
