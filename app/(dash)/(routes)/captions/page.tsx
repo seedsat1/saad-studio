@@ -8,9 +8,9 @@ type WhisperModel =
   | "wavespeed-ai/openai-whisper-with-video";
 
 const MODEL_OPTIONS: Array<{ value: WhisperModel; label: string }> = [
-  { value: "wavespeed-ai/openai-whisper", label: "Studio Captions" },
-  { value: "wavespeed-ai/openai-whisper-turbo", label: "Studio Captions Turbo" },
-  { value: "wavespeed-ai/openai-whisper-with-video", label: "Studio Captions With Video" },
+  { value: "wavespeed-ai/openai-whisper", label: "OpenAI Whisper" },
+  { value: "wavespeed-ai/openai-whisper-turbo", label: "OpenAI Whisper Turbo" },
+  { value: "wavespeed-ai/openai-whisper-with-video", label: "OpenAI Whisper With Video" },
 ];
 
 export default function CaptionsPage() {

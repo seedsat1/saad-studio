@@ -38,7 +38,7 @@ function normalizeGenerationError(raw: string | null | undefined): string {
     return "Too many requests. Please wait a moment and try again.";
   }
   return raw
-    .replace(/\b(kie(\.ai)?|wavespeed(\.ai)?|kling|google|veo|minimax|hailuo|bytedance|openai|xai|grok|qwen|flux)\b/gi, "Saad Studio")
+    .replace(/\b(kie(\.ai)?|wavespeed(\.ai)?)\b/gi, "Saad Studio")
     .replace(/https?:\/\/\S+/gi, "Saad Studio service");
 }
 
@@ -777,7 +777,7 @@ function VideoPageInner() {
 
         // Validate duration
         if (resolvedDuration < 3 || resolvedDuration > 15) {
-          setGenerationError("This model duration must be between 3 and 15 seconds.");
+          setGenerationError("Kling 3.0 duration must be between 3 and 15 seconds.");
           setIsSubmitting(false);
           return;
         }
@@ -814,7 +814,7 @@ function VideoPageInner() {
 
         // Validate single-shot prompt
         if (!kling30MultiEnabled && !hasMain) {
-          setGenerationError("Single-shot generation requires a prompt.");
+          setGenerationError("Kling 3.0 single-shot requires a prompt.");
           setIsSubmitting(false);
           return;
         }

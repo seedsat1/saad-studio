@@ -25,16 +25,6 @@ const FAMILY_COLORS: Record<string, string> = {
   Other: "from-slate-500/20 to-slate-700/20 border-slate-400/30 text-slate-200",
 };
 
-function publicModelLabel(label: string) {
-  return label
-    .replace(/\bgoogle\s+veo\b/gi, "Studio Vision")
-    .replace(/\bminimax\s+hailuo\b/gi, "Studio Fast")
-    .replace(/\b(kie|kling|google|veo|minimax|hailuo|wavespeed|bytedance|openai|xai|grok|qwen|flux|elevenlabs|suno)\b/gi, "Studio")
-    .replace(/\bStudio\s+Studio\b/gi, "Studio")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
 /**
  * Renders a small pill row of newly detected models. Hidden when nothing new.
  */
@@ -64,10 +54,11 @@ export function NewModelsBanner({ kind, knownIds, onPick, className = "" }: Prop
               key={m.id}
               type="button"
               onClick={() => onPick?.(m)}
-              title="Saad Studio model"
+              title={m.label}
               className={`inline-flex items-center gap-1 rounded-full border bg-gradient-to-r ${colors} px-2.5 py-1 text-[11px] font-medium transition hover:scale-[1.03]`}
             >
-              <span className="font-semibold">{publicModelLabel(m.label)}</span>
+              <span className="opacity-70">{m.family}</span>
+              <span className="font-semibold">{m.label}</span>
             </button>
           );
         })}

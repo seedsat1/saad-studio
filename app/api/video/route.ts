@@ -675,7 +675,7 @@ function extractOutputs(resultPayload: unknown): string[] {
 
 function validateKling30Payload(payload: Record<string, unknown>): string | null {
   const mode = typeof payload.mode === "string" ? payload.mode : "std";
-  if (!["std", "pro"].includes(mode)) return "Model mode must be std or pro.";
+  if (!["std", "pro"].includes(mode)) return "Kling 3.0 mode must be std or pro.";
 
   const durationRaw = payload.duration;
   const duration =
@@ -685,7 +685,7 @@ function validateKling30Payload(payload: Record<string, unknown>): string | null
         ? Number.parseInt(durationRaw, 10)
         : NaN;
   if (!Number.isFinite(duration) || duration < 3 || duration > 15) {
-    return "This model duration must be between 3 and 15 seconds.";
+    return "Kling 3.0 duration must be between 3 and 15 seconds.";
   }
 
   const multiShots = payload.multi_shots === true;
@@ -697,17 +697,17 @@ function validateKling30Payload(payload: Record<string, unknown>): string | null
     ? payload.reference_image_urls.filter((v): v is string => typeof v === "string" && v.trim().length > 0)
     : [];
 
-  if (refImages.length > 3) return "This model supports at most 3 reference images.";
+  if (refImages.length > 3) return "Kling 3.0 supports at most 3 reference images.";
 
   if (!multiShots) {
-    if (!prompt) return "Single-shot generation requires prompt.";
-    if (imageUrls.length > 2) return "Single-shot generation supports at most 2 image inputs.";
+    if (!prompt) return "Kling 3.0 single-shot requires prompt.";
+    if (imageUrls.length > 2) return "Kling 3.0 supports at most 2 image_urls in single-shot.";
   }
 
   const shots = Array.isArray(payload.multi_prompt) ? payload.multi_prompt : [];
   if (multiShots) {
-    if (shots.length < 1 || shots.length > 5) return "Multi-shot generation supports 1 to 5 shots.";
-    if (imageUrls.length > 1) return "Multi-shot generation supports only first frame image.";
+    if (shots.length < 1 || shots.length > 5) return "Kling 3.0 multi-shot supports 1 to 5 shots.";
+    if (imageUrls.length > 1) return "Kling 3.0 multi-shot supports only first frame image.";
     let sum = 0;
     for (const item of shots) {
       if (!item || typeof item !== "object") return "Invalid multi_prompt entry.";
@@ -729,7 +729,7 @@ function validateKling30Payload(payload: Record<string, unknown>): string | null
   }
 
   const klingElements = Array.isArray(payload.kling_elements) ? payload.kling_elements : [];
-  if (klingElements.length > 3) return "This model supports maximum 3 elements.";
+  if (klingElements.length > 3) return "Kling 3.0 supports maximum 3 elements.";
   if (klingElements.length > 0) {
     const allPrompts = [
       prompt,
@@ -741,7 +741,7 @@ function validateKling30Payload(payload: Record<string, unknown>): string | null
     ].join(" ");
 
     for (const el of klingElements) {
-      if (!el || typeof el !== "object") return "Invalid element entry.";
+      if (!el || typeof el !== "object") return "Invalid kling_elements entry.";
       const record = el as Record<string, unknown>;
       const name = typeof record.name === "string" ? record.name.trim() : "";
       const desc = typeof record.description === "string" ? record.description.trim() : "";

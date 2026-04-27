@@ -32,7 +32,7 @@ const PLANS = [
     badge: "Starter",
     tagline: "For first-time AI content creators",
     credits: "250 credits / mo",
-    equiv: "= 125 Studio Pro images - ~41 Studio Motion videos",
+    equiv: "= 125 Nano Banana Pro images - ~41 Kling 3.0 videos",
     price: "$15",
     period: "per month, billed annually",
     cta: "Get Starter",
@@ -59,7 +59,7 @@ const PLANS = [
     badge: "Plus",
     tagline: "For consistent AI creation",
     credits: "600 credits / mo",
-    equiv: "= 300 Studio Pro images - ~100 Studio Motion videos",
+    equiv: "= 300 Nano Banana Pro images - ~100 Kling 3.0 videos",
     price: "$35",
     period: "per month, billed annually",
     cta: "Get Plus",
@@ -86,7 +86,7 @@ const PLANS = [
     badge: "Pro",
     tagline: "For serious AI content studios",
     credits: "1,200 credits / mo",
-    equiv: "= 600 Studio Pro images - ~200 Studio Motion videos",
+    equiv: "= 600 Nano Banana Pro images - ~200 Kling 3.0 videos",
     price: "$70",
     period: "per month, billed annually",
     cta: "Get Pro - Most Popular",
@@ -114,7 +114,7 @@ const PLANS = [
     badge: "Max",
     tagline: "For high-volume studios & agencies",
     credits: "3,000 credits / mo",
-    equiv: "= 1,500 Studio Pro images - ~500 Studio Motion videos",
+    equiv: "= 1,500 Nano Banana Pro images - ~500 Kling 3.0 videos",
     price: "$99",
     period: "per month, billed annually",
     cta: "Get Max",
@@ -164,13 +164,13 @@ const PLAN_ANNUAL_DISCOUNT: Record<string, number> = {
 
 const MODEL_COSTS = {
   video: [
-    { name: "Studio Motion 3",  cost: "6+ Credits", per: "std/pro, duration based", free: false, color: "text-blue-400",    bg: "bg-blue-500/10",    border: "border-blue-500/20" },
+    { name: "Kling 3.0",        cost: "6+ Credits", per: "std/pro, duration based", free: false, color: "text-blue-400",    bg: "bg-blue-500/10",    border: "border-blue-500/20" },
     { name: "Wan 2.6",          cost: "8 Credits",  per: "per video",              free: false, color: "text-purple-400",  bg: "bg-purple-500/10",  border: "border-purple-500/20" },
-    { name: "Studio Scene 2",   cost: "24 / 85 Credits", per: "4s / 15s",          free: false, color: "text-cyan-400",    bg: "bg-cyan-500/10",    border: "border-cyan-500/20" },
+    { name: "Seedance 2.0",     cost: "24 / 85 Credits", per: "4s / 15s",          free: false, color: "text-cyan-400",    bg: "bg-cyan-500/10",    border: "border-cyan-500/20" },
   ],
   image: [
     { name: "Nano Banana Pro",  cost: "2 Credits",  per: "per image",              free: false, color: "text-yellow-400",  bg: "bg-yellow-500/10",  border: "border-yellow-500/20" },
-    { name: "Studio Image Pro 1K", cost: "2 Credits", per: "per image",            free: false, color: "text-violet-400",  bg: "bg-violet-500/10",  border: "border-violet-500/20" },
+    { name: "Flux.2 Pro 1K",    cost: "2 Credits",  per: "per image",              free: false, color: "text-violet-400",  bg: "bg-violet-500/10",  border: "border-violet-500/20" },
     { name: "GPT Image",        cost: "2 Credits",  per: "per image",              free: false, color: "text-rose-400",    bg: "bg-rose-500/10",    border: "border-rose-500/20" },
   ],
 };

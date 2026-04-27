@@ -171,13 +171,13 @@ const WRITING_PRESETS = [
 ] as const;
 
 const VIDEO_ROUTES = [
-  { value: "kwaivgi/kling-v3.0-pro/text-to-video", label: "Studio Motion Pro" },
-  { value: "bytedance/seedance-v2/text-to-video", label: "Studio Scene 2" },
-  { value: "bytedance/seedance-v2/text-to-video-fast", label: "Studio Scene 2 Fast" },
+  { value: "kwaivgi/kling-v3.0-pro/text-to-video", label: "Kling 3 Pro" },
+  { value: "bytedance/seedance-v2/text-to-video", label: "Seedance 2" },
+  { value: "bytedance/seedance-v2/text-to-video-fast", label: "Seedance 2 Fast" },
 ];
 
 const IMAGE_MODELS = [
-  { value: "google/nano-banana", label: "Studio Image" },
+  { value: "google/nano-banana", label: "Nano Banana" },
   { value: "nano-banana-pro", label: "Nano Banana Pro" },
   { value: "nano-banana-2", label: "Nano Banana 2" },
 ];
@@ -326,14 +326,14 @@ export default function BulletTimeStudioPage() {
       return {
         maxImageRefs: generationMode === "multi" ? 1 : 2,
         maxVideoRefs: 0,
-        label: generationMode === "multi" ? "Studio Motion Multi-shot: 1 image reference max." : "Studio Motion Single: up to 2 image references.",
+        label: generationMode === "multi" ? "Kling 3 Multi-shot: 1 image reference max." : "Kling 3 Single: up to 2 image references.",
       };
     }
     if (isSeedanceRoute) {
       return {
         maxImageRefs: 9,
         maxVideoRefs: 3,
-        label: "Studio Scene: up to 9 image refs and 3 video refs.",
+        label: "Seedance 2: up to 9 image refs and 3 video refs.",
       };
     }
     return {
@@ -520,7 +520,7 @@ export default function BulletTimeStudioPage() {
     try {
       pushLog(`Submitting video generation with ${videoRoute}`);
       if (generationMode === "multi" && !isKlingRoute) {
-        throw new Error("Multi-shot is available with Studio Motion Pro only. Switch the video model to Studio Motion.");
+        throw new Error("Multi-shot is available with Kling 3 Pro only. Switch the video model to Kling.");
       }
       const referenceVideoUrls = referenceVideoUrlsText
         .split("\n")
@@ -528,7 +528,7 @@ export default function BulletTimeStudioPage() {
         .filter((line) => /^https?:\/\//i.test(line))
         .slice(0, refLimits.maxVideoRefs);
       if (!isSeedanceRoute && referenceVideoUrls.length > 0) {
-        throw new Error("Video references are supported with Studio Scene models only.");
+        throw new Error("Video references are supported with Seedance models only.");
       }
       if (referenceImages.length > refLimits.maxImageRefs) {
         throw new Error(`Too many image references for selected model. Max is ${refLimits.maxImageRefs}.`);
