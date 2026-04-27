@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import axios from "axios";
 import { AnimatePresence } from "framer-motion";
 import {
@@ -155,6 +155,52 @@ const MusicPage = () => {
   const [showModelList, setShowModelList] = useState(false);
   const [inspectedAsset, setInspectedAsset] = useState<Asset | null>(null);
 
+  // Recover an in-flight music generation interrupted by a page refresh.
+  // Polls /api/assets?type=audio for a freshly created asset newer than the marker timestamp.
+  useEffect(() => {
+    let cancelled = false;
+    let intervalId: ReturnType<typeof setInterval> | null = null;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    try {
+      const raw = localStorage.getItem("ff_music_pending_job");
+      if (!raw) return;
+      const saved = JSON.parse(raw) as { startedAt: number; prompt: string; model: string; duration: number };
+      if (!saved || !saved.startedAt) { localStorage.removeItem("ff_music_pending_job"); return; }
+      if (Date.now() - saved.startedAt > 10 * 60 * 1000) { localStorage.removeItem("ff_music_pending_job"); return; }
+
+      setIsGenerating(true);
+
+      const tryRecover = async () => {
+        if (cancelled) return;
+        try {
+          const res = await fetch("/api/assets?type=audio", { cache: "no-store" });
+          const data = await res.json().catch(() => null);
+          if (!res.ok || !Array.isArray(data?.assets)) return;
+          const match = data.assets.find((a: any) => a && a.url && a.createdAt && new Date(a.createdAt).getTime() >= saved.startedAt - 2000);
+          if (match) {
+            if (cancelled) return;
+            setAudioUrl(match.url);
+            try { localStorage.removeItem("ff_music_pending_job"); } catch {}
+            setIsGenerating(false);
+            if (intervalId) clearInterval(intervalId);
+            if (timeoutId) clearTimeout(timeoutId);
+          }
+        } catch { /* keep polling */ }
+      };
+      void tryRecover();
+      intervalId = setInterval(tryRecover, 3000);
+      // Auto-clear after 10 minutes
+      timeoutId = setTimeout(() => {
+        if (cancelled) return;
+        try { localStorage.removeItem("ff_music_pending_job"); } catch {}
+        setIsGenerating(false);
+        if (intervalId) clearInterval(intervalId);
+      }, 10 * 60 * 1000);
+    } catch { /* ignore */ }
+    return () => { cancelled = true; if (intervalId) clearInterval(intervalId); if (timeoutId) clearTimeout(timeoutId); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const handleModelSelect = (model: MusicModel) => {
@@ -192,6 +238,16 @@ const MusicPage = () => {
       setAudioUrl(null);
       setIsPlaying(false);
 
+      // Persist a marker so a page refresh can recover the in-flight generation
+      try {
+        localStorage.setItem("ff_music_pending_job", JSON.stringify({
+          startedAt: Date.now(),
+          prompt,
+          model: selectedModel.id,
+          duration,
+        }));
+      } catch {}
+
       const res = await axios.post("/api/music", {
         prompt,
         model: selectedModel.id,
@@ -201,6 +257,7 @@ const MusicPage = () => {
       });
 
       setAudioUrl(res.data.audioUrl);
+      try { localStorage.removeItem("ff_music_pending_job"); } catch {}
     } catch (error: any) {
       if (error?.response?.status === 403) {
         proModal.onOpen();
@@ -211,6 +268,7 @@ const MusicPage = () => {
           description: error?.response?.data ?? "Please try again.",
         });
       }
+      try { localStorage.removeItem("ff_music_pending_job"); } catch {}
     } finally {
       setIsGenerating(false);
     }

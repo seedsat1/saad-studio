@@ -549,6 +549,16 @@ function VideoPageInner() {
     const removePending = () => {
       setPendingTasks(prev => { const n = new Map(prev); n.delete(taskId); return n; });
       if (pollRefs.current.has(taskId)) { clearInterval(pollRefs.current.get(taskId)!); pollRefs.current.delete(taskId); }
+      // Remove from persisted list as well
+      try {
+        const raw = localStorage.getItem("ff_video_pending_jobs");
+        if (raw) {
+          const arr = JSON.parse(raw) as any[];
+          const next = (Array.isArray(arr) ? arr : []).filter((j) => j && j.taskId !== taskId);
+          if (next.length) localStorage.setItem("ff_video_pending_jobs", JSON.stringify(next));
+          else localStorage.removeItem("ff_video_pending_jobs");
+        }
+      } catch {}
     };
 
     const poll = async () => {
@@ -585,6 +595,39 @@ function VideoPageInner() {
     const intervalId = setInterval(poll, 4000);
     pollRefs.current.set(taskId, intervalId);
   }, [addAsset]);
+
+  // Resume any in-flight video generations that were interrupted by a page refresh.
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("ff_video_pending_jobs");
+      if (!raw) return;
+      const arr = JSON.parse(raw) as any[];
+      if (!Array.isArray(arr) || arr.length === 0) { localStorage.removeItem("ff_video_pending_jobs"); return; }
+      const NOW = Date.now();
+      const fresh = arr.filter((j) => j && j.taskId && (NOW - (j.startedAt || 0)) < 30 * 60 * 1000);
+      if (fresh.length === 0) { localStorage.removeItem("ff_video_pending_jobs"); return; }
+      // Restore pending markers + restart polling
+      setPendingTasks((prev) => {
+        const next = new Map(prev);
+        for (const j of fresh) {
+          const model = allModels.find((m) => m.api_route === j.modelRoute) ?? allModels[0];
+          if (!model) continue;
+          next.set(j.taskId, { model, promptText: j.promptText || "", ratio: j.ratio || "16:9", duration: j.duration ?? null });
+        }
+        return next;
+      });
+      for (const j of fresh) {
+        const model = allModels.find((m) => m.api_route === j.modelRoute);
+        if (!model) continue;
+        startPolling(j.taskId, { model, promptText: j.promptText || "", ratio: j.ratio || "16:9", duration: j.duration ?? null });
+      }
+      // Persist trimmed list (in case some were stale)
+      if (fresh.length !== arr.length) {
+        try { localStorage.setItem("ff_video_pending_jobs", JSON.stringify(fresh)); } catch {}
+      }
+    } catch { /* ignore */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleGenerate = useCallback(async () => {
     if (!guard()) return;
@@ -899,6 +942,14 @@ function VideoPageInner() {
         ? startFrameRatio
         : (aspectRatio ?? (size ? sizeToRatio(size) : "16:9"));
       setPendingTasks(prev => new Map(prev).set(data.taskId!, { model: selectedModel, promptText: basePrompt, ratio: _capturedRatio, duration }));
+      // Persist task so it survives a page refresh
+      try {
+        const raw = localStorage.getItem("ff_video_pending_jobs");
+        const arr = raw ? (JSON.parse(raw) as any[]) : [];
+        const list = Array.isArray(arr) ? arr : [];
+        list.push({ taskId: data.taskId, modelRoute: selectedModel.api_route, promptText: basePrompt, ratio: _capturedRatio, duration, startedAt: Date.now() });
+        localStorage.setItem("ff_video_pending_jobs", JSON.stringify(list));
+      } catch {}
       setIsSubmitting(false);
       startPolling(data.taskId, { model: selectedModel, promptText: basePrompt, ratio: _capturedRatio, duration });
     } catch (err) {

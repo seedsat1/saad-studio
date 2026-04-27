@@ -867,6 +867,13 @@ export default function AudioPage() {
     if (!canGenerate) return;
     setIsBusy(true);
     setErrorMessage(null);
+    // Persist a marker so a page refresh can recover the in-flight generation
+    try {
+      localStorage.setItem("ff_audio_pending_job", JSON.stringify({
+        startedAt: Date.now(),
+        activeTool,
+      }));
+    } catch {}
     try {
       const quote = await fetchDynamicQuote();
       setDynamicQuote(quote);
@@ -1146,6 +1153,7 @@ export default function AudioPage() {
     } catch (error) {
       setErrorMessage(sanitizePublicText(error instanceof Error ? error.message : "Audio request failed."));
     } finally {
+      try { localStorage.removeItem("ff_audio_pending_job"); } catch {}
       setTimeout(() => setIsBusy(false), 450);
     }
   }, [
@@ -1196,6 +1204,52 @@ export default function AudioPage() {
     voiceModel,
     selectedMusicModel,
   ]);
+
+  // Recover an in-flight audio generation interrupted by a page refresh.
+  // Polls /api/assets?type=audio for a freshly created asset newer than the marker timestamp.
+  useEffect(() => {
+    let cancelled = false;
+    let intervalId: ReturnType<typeof setInterval> | null = null;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    try {
+      const raw = localStorage.getItem("ff_audio_pending_job");
+      if (!raw) return;
+      const saved = JSON.parse(raw) as { startedAt: number; activeTool: string };
+      if (!saved || !saved.startedAt) { localStorage.removeItem("ff_audio_pending_job"); return; }
+      if (Date.now() - saved.startedAt > 10 * 60 * 1000) { localStorage.removeItem("ff_audio_pending_job"); return; }
+
+      setIsBusy(true);
+
+      const tryRecover = async () => {
+        if (cancelled) return;
+        try {
+          const res = await fetch("/api/assets?type=audio", { cache: "no-store" });
+          const data = await res.json().catch(() => null);
+          if (!res.ok || !Array.isArray(data?.assets)) return;
+          const match = data.assets.find((a: any) => a && a.url && a.createdAt && new Date(a.createdAt).getTime() >= saved.startedAt - 2000);
+          if (match) {
+            if (cancelled) return;
+            setGenerated(buildGeneratedAudio("Recovered Result", match.url));
+            try { localStorage.removeItem("ff_audio_pending_job"); } catch {}
+            setIsBusy(false);
+            if (intervalId) clearInterval(intervalId);
+            if (timeoutId) clearTimeout(timeoutId);
+          }
+        } catch { /* keep polling */ }
+      };
+      void tryRecover();
+      intervalId = setInterval(tryRecover, 3000);
+      // Auto-clear after 10 minutes
+      timeoutId = setTimeout(() => {
+        if (cancelled) return;
+        try { localStorage.removeItem("ff_audio_pending_job"); } catch {}
+        setIsBusy(false);
+        if (intervalId) clearInterval(intervalId);
+      }, 10 * 60 * 1000);
+    } catch { /* ignore */ }
+    return () => { cancelled = true; if (intervalId) clearInterval(intervalId); if (timeoutId) clearTimeout(timeoutId); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const onPickSingleFile = (setter: Dispatch<SetStateAction<UploadedAsset | null>>) => (files: FileList) => {
     const file = files[0] ?? null;

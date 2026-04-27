@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Upload, Sparkles, Box, Download, X, CheckCircle2,
@@ -385,6 +385,17 @@ export default function ThreeDStudioPage() {
       }
 
       const { taskId } = await submitRes.json();
+      // Persist taskId so we can resume polling after a page refresh.
+      try {
+        localStorage.setItem("ff_3d_pending_job", JSON.stringify({
+          taskId,
+          startedAt: Date.now(),
+          modelId: selectedModel,
+          modelLabel: modelData.label,
+          inputMode,
+          prompt: prompt || "",
+        }));
+      } catch {}
 
       // Poll up to 10 minutes
       for (let attempt = 0; attempt < 120; attempt++) {
@@ -406,10 +417,12 @@ export default function ThreeDStudioPage() {
               title: "Generated 3D Model",
             });
           }
+          try { localStorage.removeItem("ff_3d_pending_job"); } catch {}
           return;
         }
-        if (result.status === "failed") throw new Error(result.error || "Generation failed");
+        if (result.status === "failed") { try { localStorage.removeItem("ff_3d_pending_job"); } catch {} ; throw new Error(result.error || "Generation failed"); }
       }
+      try { localStorage.removeItem("ff_3d_pending_job"); } catch {}
       throw new Error("Generation timed out. Please try again.");
     } catch (err: unknown) {
       setGenerationError(err instanceof Error ? err.message : "Generation failed");
@@ -422,6 +435,68 @@ export default function ThreeDStudioPage() {
     artStyle, topology, symmetryMode, targetPolycount, shouldRemesh, meshyPbr, taPose, promptExpansion, shouldTexture,
     material, outputFormat, qualityAndMesh, seed,
   ]);
+
+  // Recover an in-flight 3D generation that was interrupted by a page refresh.
+  useEffect(() => {
+    let cancelled = false;
+    let stopped = false;
+    try {
+      const raw = localStorage.getItem("ff_3d_pending_job");
+      if (!raw) return;
+      const saved = JSON.parse(raw) as { taskId: string; startedAt: number; modelId: string; modelLabel: string; inputMode: string; prompt: string };
+      if (!saved || !saved.taskId) { localStorage.removeItem("ff_3d_pending_job"); return; }
+      // Discard markers older than 15 minutes
+      if (Date.now() - saved.startedAt > 15 * 60 * 1000) { localStorage.removeItem("ff_3d_pending_job"); return; }
+
+      setIsGenerating(true);
+      setGenerationError(null);
+
+      (async () => {
+        for (let attempt = 0; attempt < 120 && !cancelled && !stopped; attempt++) {
+          await new Promise((r) => setTimeout(r, 5000));
+          if (cancelled || stopped) return;
+          try {
+            const pollRes = await fetch(`/api/3d?taskId=${saved.taskId}`);
+            if (!pollRes.ok) continue;
+            const result = await pollRes.json();
+            if (result.status === "completed") {
+              const outputs: string[] = result.outputs ?? [];
+              if (cancelled) return;
+              setResultUrls(outputs);
+              setShowResult(true);
+              setGenCount((n) => n + 1);
+              if (outputs[0]) {
+                addAsset({
+                  type: "3d",
+                  url: outputs[0],
+                  model: saved.modelLabel,
+                  prompt: saved.prompt || `${saved.modelId} ${saved.inputMode}`,
+                  title: "Generated 3D Model",
+                });
+              }
+              try { localStorage.removeItem("ff_3d_pending_job"); } catch {}
+              setIsGenerating(false);
+              return;
+            }
+            if (result.status === "failed") {
+              if (cancelled) return;
+              setGenerationError(result.error || "Generation failed");
+              try { localStorage.removeItem("ff_3d_pending_job"); } catch {}
+              setIsGenerating(false);
+              return;
+            }
+          } catch { /* keep polling */ }
+        }
+        if (!cancelled) {
+          setGenerationError("Generation timed out. Please try again.");
+          try { localStorage.removeItem("ff_3d_pending_job"); } catch {}
+          setIsGenerating(false);
+        }
+      })();
+    } catch { /* ignore */ }
+    return () => { cancelled = true; stopped = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ── Render settings panel per model/mode ─────────────────────────────────
   const renderSettings = () => {

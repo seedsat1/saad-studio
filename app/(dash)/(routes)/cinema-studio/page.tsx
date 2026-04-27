@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import SimpleToast from "../../../../components/SimpleToast";
 
 /* ───────────────────────── static scene data ───────────────────────── */
@@ -483,6 +483,15 @@ export default function NextSceneEnginePage() {
       }
 
       if (json.taskId) {
+        // Persist taskId so we can resume polling after page refresh
+        try {
+          localStorage.setItem("ff_cinema_pending_job", JSON.stringify({
+            taskId: json.taskId,
+            startedAt: Date.now(),
+            prompt: prompt.trim(),
+            modelRoute,
+          }));
+        } catch {}
         // poll
         for (let i = 0; i < 90; i++) {
           await new Promise((r) => setTimeout(r, 3000));
@@ -490,10 +499,11 @@ export default function NextSceneEnginePage() {
           const p = await poll.json() as { status?: string; outputs?: string[]; videoUrl?: string };
           if (p.status === "completed" || p.videoUrl) {
             const url = p.videoUrl || p.outputs?.[0];
-            if (url) { setResultUrl(url); setToast("Video ready!"); return; }
+            if (url) { setResultUrl(url); setToast("Video ready!"); try { localStorage.removeItem("ff_cinema_pending_job"); } catch {} ; return; }
           }
-          if (p.status === "failed") throw new Error("Generation failed.");
+          if (p.status === "failed") { try { localStorage.removeItem("ff_cinema_pending_job"); } catch {} ; throw new Error("Generation failed."); }
         }
+        try { localStorage.removeItem("ff_cinema_pending_job"); } catch {}
         throw new Error("Timed out.");
       }
     } catch (err) {
@@ -502,6 +512,55 @@ export default function NextSceneEnginePage() {
       setGenerating(false);
     }
   }, [prompt, generating, uploadedImage, selectedModel, duration, aspectRatio, quality]);
+
+  // Resume in-flight cinema-studio video generation interrupted by a page refresh.
+  useEffect(() => {
+    let cancelled = false;
+    try {
+      const raw = localStorage.getItem("ff_cinema_pending_job");
+      if (!raw) return;
+      const saved = JSON.parse(raw) as { taskId: string; startedAt: number; prompt: string; modelRoute: string };
+      if (!saved || !saved.taskId) { localStorage.removeItem("ff_cinema_pending_job"); return; }
+      if (Date.now() - saved.startedAt > 15 * 60 * 1000) { localStorage.removeItem("ff_cinema_pending_job"); return; }
+      setGenerating(true);
+      setResultUrl(null);
+      (async () => {
+        for (let i = 0; i < 90 && !cancelled; i++) {
+          await new Promise((r) => setTimeout(r, 3000));
+          if (cancelled) return;
+          try {
+            const poll = await fetch(`/api/video?taskId=${encodeURIComponent(saved.taskId)}`, { cache: "no-store" });
+            const p = await poll.json() as { status?: string; outputs?: string[]; videoUrl?: string };
+            if (p.status === "completed" || p.videoUrl) {
+              const url = p.videoUrl || p.outputs?.[0];
+              if (url) {
+                if (cancelled) return;
+                setResultUrl(url);
+                setToast("Video ready!");
+                try { localStorage.removeItem("ff_cinema_pending_job"); } catch {}
+                setGenerating(false);
+                return;
+              }
+            }
+            if (p.status === "failed") {
+              if (cancelled) return;
+              setToast("Generation failed.");
+              try { localStorage.removeItem("ff_cinema_pending_job"); } catch {}
+              setGenerating(false);
+              return;
+            }
+          } catch { /* keep polling */ }
+        }
+        if (!cancelled) {
+          setToast("Timed out.");
+          try { localStorage.removeItem("ff_cinema_pending_job"); } catch {}
+          setGenerating(false);
+        }
+      })();
+    } catch { /* ignore */ }
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="relative min-h-screen overflow-hidden">
