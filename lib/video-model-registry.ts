@@ -179,6 +179,27 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
       max_reference_images: 3,
     }),
   },
+  {
+    id: "kling-v3.0-pro-4k-t2v",
+    name: "Kling 3.0 4K",
+    family: "kling", family_label: "Kling", family_color: "#06b6d4",
+    badge: "4K",
+    description: "Kling 3.0 with 4K ultra-high-definition output. Cinematic, 3–15 s.",
+    api_route: "kwaivgi/kling-v3.0-pro/text-to-video",
+    route_confirmed: true,
+    capabilities: t2vCaps({
+      optional_image:      true,
+      has_end_frame:       true,
+      aspect_ratios:       ["16:9", "9:16", "1:1"],
+      resolutions:         ["4k"],
+      quality_param:       "resolution",
+      durations:           [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+      has_sound:           true,
+      has_multi_prompt:    true,
+      has_element_list:    true,
+      max_reference_images: 3,
+    }),
+  },
   // NOTE: Kling 3.0 Omni / Omni Edit removed — KIE does not provide these endpoints.
   // The kwaivgi/kling-video-o3-pro/* routes were aliased to kling-3.0/video (duplicate of standard).
   // Re-add when KIE officially launches Omni 3 (O3) — see https://kie.ai/kling-3-0 FAQ.
@@ -383,7 +404,7 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
     name: "Seedance 2.0 Fast",
     family: "seedance", family_label: "Seedance", family_color: "#10b981",
     badge: "FAST",
-    description: "Bytedance Seedance 2.0 — fast text-to-video.",
+    description: "Bytedance Seedance 2.0 — fast text-to-video. Now supports 1080p (2026-04-17).",
     api_route: "bytedance/seedance-v2/text-to-video-fast",
     route_confirmed: true,
     capabilities: t2vCaps({
@@ -391,7 +412,7 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
       has_end_frame:  true,
       aspect_ratios: ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9", "adaptive"],
       durations:     [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
-      resolutions:   ["480p", "720p"], // KIE Fast variant: 1080p NOT supported
+      resolutions:   ["480p", "720p", "1080p"], // 1080p enabled per KIE update 2026-04-17
       max_reference_images: 9,
       max_reference_videos: 3,
       max_reference_video_total_seconds: 15,
