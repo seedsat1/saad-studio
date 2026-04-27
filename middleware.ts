@@ -37,6 +37,8 @@ const isPublicRoute = createRouteMatcher([
   '/api/editor/credits(.*)',
   '/api/webhook(.*)',
   '/api/webhooks(.*)',
+  '/api/models(.*)',
+  '/api/cron(.*)',
   '/sso-callback(.*)',
 ])
 
