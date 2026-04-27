@@ -41,3 +41,5 @@ next-env.d.ts
 /.idea/
 /aisaas.iml
 /prisma-notes.txt
+
+.vercel
