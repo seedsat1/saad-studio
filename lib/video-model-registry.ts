@@ -499,9 +499,39 @@ export interface ModelGroup {
   models:       WaveSpeedVideoModel[];
 }
 
+const PUBLIC_FAMILY_LABELS: Record<string, string> = {
+  wan22: "Studio Classic",
+  kling: "Studio Motion",
+  veo: "Studio Vision",
+  sora: "Studio Pro",
+  hailuo: "Studio Fast",
+  seedance: "Studio Scene",
+  luma: "Studio Motion",
+  pika: "Studio Motion",
+  pixverse: "Studio Motion",
+  runway: "Studio Motion",
+  grok: "Studio Imagine",
+};
+
+function publicModelName(model: WaveSpeedVideoModel): string {
+  const suffix = model.name.match(/\b(?:\d+(?:\.\d+)?|4K|I2V|T2V|Fast|Turbo|Pro|Lite|Motion Control)\b/gi)?.join(" ");
+  const base = PUBLIC_FAMILY_LABELS[model.family] ?? "Saad Studio AI";
+  return suffix ? `${base} ${suffix}` : base;
+}
+
+function toPublicVideoModel(model: WaveSpeedVideoModel): WaveSpeedVideoModel {
+  return {
+    ...model,
+    name: publicModelName(model),
+    family_label: PUBLIC_FAMILY_LABELS[model.family] ?? "Saad Studio AI",
+    description: "Saad Studio video generation model.",
+  };
+}
+
 export function getModelGroups(): ModelGroup[] {
   const map = new Map<string, ModelGroup>();
-  for (const m of VIDEO_MODEL_REGISTRY) {
+  for (const raw of VIDEO_MODEL_REGISTRY) {
+    const m = toPublicVideoModel(raw);
     if (!map.has(m.family)) {
       map.set(m.family, {
         family:       m.family,
@@ -516,9 +546,10 @@ export function getModelGroups(): ModelGroup[] {
 }
 
 export function getModelById(id: string): WaveSpeedVideoModel | undefined {
-  return VIDEO_MODEL_REGISTRY.find(m => m.id === id);
+  const model = VIDEO_MODEL_REGISTRY.find(m => m.id === id);
+  return model ? toPublicVideoModel(model) : undefined;
 }
 
-export const DEFAULT_MODEL = VIDEO_MODEL_REGISTRY[0]; // Kling 3.0
+export const DEFAULT_MODEL = toPublicVideoModel(VIDEO_MODEL_REGISTRY[0]);
 
 

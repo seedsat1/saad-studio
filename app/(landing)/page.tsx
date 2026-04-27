@@ -311,15 +311,15 @@ const APPS_MARQUEE = [
 ];
 
 const AI_MODELS = [
-  { name: "Kling 3.0",      tag: "Video",  color: "text-violet-400",  ring: "ring-violet-500/30"  },
-  { name: "OpenAI Sora",    tag: "Video",  color: "text-sky-400",     ring: "ring-sky-500/30"     },
+  { name: "Saad Studio Motion 3", tag: "Video", color: "text-violet-400", ring: "ring-violet-500/30" },
+  { name: "Saad Studio Pro", tag: "Video", color: "text-sky-400", ring: "ring-sky-500/30" },
   { name: "Alibaba WAN",    tag: "Video",  color: "text-orange-400",  ring: "ring-orange-500/30"  },
-  { name: "Google Veo 3",   tag: "Video",  color: "text-blue-400",    ring: "ring-blue-500/30"    },
-  { name: "MiniMax",        tag: "Video",  color: "text-rose-400",    ring: "ring-rose-500/30"    },
-  { name: "Seedance 2.0",   tag: "Video",  color: "text-teal-400",    ring: "ring-teal-500/30"    },
-  { name: "FLUX.2",         tag: "Image",  color: "text-violet-300",  ring: "ring-violet-400/30"  },
+  { name: "Saad Studio Video 3", tag: "Video", color: "text-blue-400", ring: "ring-blue-500/30" },
+  { name: "Saad Studio Fast", tag: "Video", color: "text-rose-400", ring: "ring-rose-500/30" },
+  { name: "Saad Studio Scene 2", tag: "Video", color: "text-teal-400", ring: "ring-teal-500/30" },
+  { name: "Saad Studio Image 2", tag: "Image", color: "text-violet-300", ring: "ring-violet-400/30" },
   { name: "GPT Image 1.5",  tag: "Image",  color: "text-emerald-400", ring: "ring-emerald-500/30" },
-  { name: "Google Imagen 4",tag: "Image",  color: "text-cyan-400",    ring: "ring-cyan-500/30"    },
+  { name: "Saad Studio Image 4", tag: "Image", color: "text-cyan-400", ring: "ring-cyan-500/30" },
   { name: "Nano Banana Pro", tag: "Image", color: "text-amber-400",   ring: "ring-amber-500/30"   },
 ];
 
@@ -684,8 +684,8 @@ function HeroCarousel({ slides = HERO_SLIDES }: { slides?: HeroSlide[] }) {
 
 // ─── Stats Counter Section ────────────────────────────────────────────────────
 const PLATFORM_STATS = [
-  { number: "20+", label: "Image Models", subtitle: "GPT Image, FLUX, Imagen 4 & more" },
-  { number: "17",  label: "Video Engines", subtitle: "Kling, Sora, Veo, Seedance & more" },
+  { number: "20+", label: "Image Models", subtitle: "Saad Studio image models and more" },
+  { number: "17",  label: "Video Engines", subtitle: "Saad Studio video engines and more" },
   { number: "85+", label: "AI Tools", subtitle: "Image, Video, Audio, 3D, Edit" },
   { number: "25", label: "Free Credits", subtitle: "No credit card required" },
 ];

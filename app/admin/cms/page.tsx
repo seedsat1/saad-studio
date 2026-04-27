@@ -197,15 +197,15 @@ const SEED_APPS: AppItem[] = [
 ];
 
 const SEED_MODELS: ModelItem[] = [
-  { _id: uid(), name: "Kling 3.0", tag: "Video", color: "text-violet-400", ring: "ring-violet-500/30" },
-  { _id: uid(), name: "OpenAI Sora", tag: "Video", color: "text-sky-400", ring: "ring-sky-500/30" },
+  { _id: uid(), name: "Saad Studio Motion 3", tag: "Video", color: "text-violet-400", ring: "ring-violet-500/30" },
+  { _id: uid(), name: "Saad Studio Pro", tag: "Video", color: "text-sky-400", ring: "ring-sky-500/30" },
   { _id: uid(), name: "Alibaba WAN", tag: "Video", color: "text-orange-400", ring: "ring-orange-500/30" },
-  { _id: uid(), name: "Google Veo 3", tag: "Video", color: "text-blue-400", ring: "ring-blue-500/30" },
-  { _id: uid(), name: "MiniMax", tag: "Video", color: "text-rose-400", ring: "ring-rose-500/30" },
-  { _id: uid(), name: "Seedance 2.0", tag: "Video", color: "text-teal-400", ring: "ring-teal-500/30" },
-  { _id: uid(), name: "FLUX.2", tag: "Image", color: "text-violet-300", ring: "ring-violet-400/30" },
+  { _id: uid(), name: "Saad Studio Video 3", tag: "Video", color: "text-blue-400", ring: "ring-blue-500/30" },
+  { _id: uid(), name: "Saad Studio Fast", tag: "Video", color: "text-rose-400", ring: "ring-rose-500/30" },
+  { _id: uid(), name: "Saad Studio Scene 2", tag: "Video", color: "text-teal-400", ring: "ring-teal-500/30" },
+  { _id: uid(), name: "Saad Studio Image 2", tag: "Image", color: "text-violet-300", ring: "ring-violet-400/30" },
   { _id: uid(), name: "GPT Image 1.5", tag: "Image", color: "text-emerald-400", ring: "ring-emerald-500/30" },
-  { _id: uid(), name: "Google Imagen 4", tag: "Image", color: "text-cyan-400", ring: "ring-cyan-500/30" },
+  { _id: uid(), name: "Saad Studio Image 4", tag: "Image", color: "text-cyan-400", ring: "ring-cyan-500/30" },
   { _id: uid(), name: "Nano Banana Pro", tag: "Image", color: "text-amber-400", ring: "ring-amber-500/30" },
 ];
 

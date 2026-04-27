@@ -730,7 +730,7 @@ export default function ModelTestPage() {
                 Model Test Lab
               </h1>
               <p className="text-xs text-white/40 mt-0.5">
-                {VIDEO_MODEL_REGISTRY.length} KIE models · {WS_ONLY_MODELS.length} WaveSpeed models · Live generation test
+                {VIDEO_MODEL_REGISTRY.length} core models · {WS_ONLY_MODELS.length} studio models · Live generation test
               </p>
             </div>
             <div className="text-xs text-white/30">
@@ -811,7 +811,7 @@ export default function ModelTestPage() {
       <div className="max-w-5xl mx-auto px-6 pb-16 space-y-2 mt-8">
         <div className="flex items-center gap-2 mb-3">
           <Radio className="w-3.5 h-3.5 text-emerald-400" />
-          <span className="text-xs font-semibold text-emerald-400 uppercase tracking-wider">WaveSpeed Models</span>
+          <span className="text-xs font-semibold text-emerald-400 uppercase tracking-wider">Studio Models</span>
           <span className="text-xs text-white/30">({WS_ONLY_MODELS.length} models · /api/generate/video legacy path)</span>
         </div>
         {WS_ONLY_MODELS.map(m => <ModelTestCard key={m.id} model={m} />)}

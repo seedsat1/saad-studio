@@ -8,9 +8,9 @@ type WhisperModel =
   | "wavespeed-ai/openai-whisper-with-video";
 
 const MODEL_OPTIONS: Array<{ value: WhisperModel; label: string }> = [
-  { value: "wavespeed-ai/openai-whisper", label: "OpenAI Whisper" },
-  { value: "wavespeed-ai/openai-whisper-turbo", label: "OpenAI Whisper Turbo" },
-  { value: "wavespeed-ai/openai-whisper-with-video", label: "OpenAI Whisper With Video" },
+  { value: "wavespeed-ai/openai-whisper", label: "Studio Captions" },
+  { value: "wavespeed-ai/openai-whisper-turbo", label: "Studio Captions Turbo" },
+  { value: "wavespeed-ai/openai-whisper-with-video", label: "Studio Captions With Video" },
 ];
 
 export default function CaptionsPage() {
@@ -84,7 +84,7 @@ export default function CaptionsPage() {
         <div className="rounded-xl border border-white/10 bg-zinc-900/80 p-5 md:p-6">
           <h1 className="text-2xl md:text-3xl font-semibold">Captions Studio</h1>
           <p className="mt-2 text-sm text-zinc-300">
-            Generate captions via WaveSpeed Whisper models without any localhost dependency.
+            Generate captions with Saad Studio models without any localhost dependency.
           </p>
         </div>
 

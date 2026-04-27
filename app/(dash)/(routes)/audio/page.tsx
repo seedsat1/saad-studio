@@ -1771,7 +1771,7 @@ export default function AudioPage() {
         </div>
       </Section>
       <Section title="Tool Notes">
-        <p className="text-xs text-zinc-500">This tool runs KIE async audio utilities on uploaded audio.</p>
+        <p className="text-xs text-zinc-500">This tool runs Saad Studio audio utilities on uploaded audio.</p>
       </Section>
     </>;
   };

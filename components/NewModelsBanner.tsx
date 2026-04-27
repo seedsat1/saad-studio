@@ -25,8 +25,18 @@ const FAMILY_COLORS: Record<string, string> = {
   Other: "from-slate-500/20 to-slate-700/20 border-slate-400/30 text-slate-200",
 };
 
+function publicModelLabel(label: string) {
+  return label
+    .replace(/\bgoogle\s+veo\b/gi, "Studio Vision")
+    .replace(/\bminimax\s+hailuo\b/gi, "Studio Fast")
+    .replace(/\b(kie|kling|google|veo|minimax|hailuo|wavespeed|bytedance|openai|xai|grok|qwen|flux|elevenlabs|suno)\b/gi, "Studio")
+    .replace(/\bStudio\s+Studio\b/gi, "Studio")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 /**
- * Renders a small pill row of newly detected KIE models. Hidden when nothing new.
+ * Renders a small pill row of newly detected models. Hidden when nothing new.
  */
 export function NewModelsBanner({ kind, knownIds, onPick, className = "" }: Props) {
   const { models, loading, error } = useDynamicKieModels(kind);
@@ -44,7 +54,7 @@ export function NewModelsBanner({ kind, knownIds, onPick, className = "" }: Prop
     >
       <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-violet-300/90">
         <Sparkles className="h-3.5 w-3.5" />
-        New from KIE
+        New from Saad Studio
       </span>
       <div className="flex flex-wrap gap-1.5">
         {fresh.slice(0, 12).map((m) => {
@@ -54,11 +64,10 @@ export function NewModelsBanner({ kind, knownIds, onPick, className = "" }: Prop
               key={m.id}
               type="button"
               onClick={() => onPick?.(m)}
-              title={m.id}
+              title="Saad Studio model"
               className={`inline-flex items-center gap-1 rounded-full border bg-gradient-to-r ${colors} px-2.5 py-1 text-[11px] font-medium transition hover:scale-[1.03]`}
             >
-              <span className="opacity-70">{m.family}</span>
-              <span className="font-semibold">{m.label}</span>
+              <span className="font-semibold">{publicModelLabel(m.label)}</span>
             </button>
           );
         })}

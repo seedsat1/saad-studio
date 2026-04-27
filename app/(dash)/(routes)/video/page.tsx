@@ -24,7 +24,7 @@ import { NewModelsBanner } from "@/components/NewModelsBanner";
 
 // -- Utilities -----------------------------------------------------------------
 
-/** Translate opaque KIE API error messages into user-friendly text. */
+/** Translate opaque provider API error messages into user-friendly text. */
 function normalizeGenerationError(raw: string | null | undefined): string {
   if (!raw) return "Generation failed. Please try again.";
   const lower = raw.toLowerCase();
@@ -37,7 +37,9 @@ function normalizeGenerationError(raw: string | null | undefined): string {
   if (lower.includes("rate limit") || lower.includes("too many requests")) {
     return "Too many requests. Please wait a moment and try again.";
   }
-  return raw;
+  return raw
+    .replace(/\b(kie(\.ai)?|wavespeed(\.ai)?|kling|google|veo|minimax|hailuo|bytedance|openai|xai|grok|qwen|flux)\b/gi, "Saad Studio")
+    .replace(/https?:\/\/\S+/gi, "Saad Studio service");
 }
 
 function hexA(hex: string, a: number): string {
@@ -775,7 +777,7 @@ function VideoPageInner() {
 
         // Validate duration
         if (resolvedDuration < 3 || resolvedDuration > 15) {
-          setGenerationError("Kling 3.0 duration must be between 3 and 15 seconds.");
+          setGenerationError("This model duration must be between 3 and 15 seconds.");
           setIsSubmitting(false);
           return;
         }
@@ -812,7 +814,7 @@ function VideoPageInner() {
 
         // Validate single-shot prompt
         if (!kling30MultiEnabled && !hasMain) {
-          setGenerationError("Kling 3.0 single-shot requires a prompt.");
+          setGenerationError("Single-shot generation requires a prompt.");
           setIsSubmitting(false);
           return;
         }

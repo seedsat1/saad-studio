@@ -227,7 +227,7 @@ function ModelDropdown({ selected, onSelect }: { selected: ImageModel; onSelect:
           label: dm.label,
           sublabel: dm.family,
           badge: dm.isNew ? "NEW" : "AUTO",
-          group: "🆕 New from KIE",
+          group: "New from Saad Studio",
           inputType: isEdit ? "image-to-image" : "text-to-image",
           aspectRatios: ["1:1", "16:9", "9:16", "3:4", "4:3"],
           maxImages: 1,

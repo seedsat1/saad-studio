@@ -27,7 +27,7 @@ const CATEGORIES = [
 const MODELS = [
   { value: "kling", label: "Kling 3.0" },
   { value: "seedance", label: "Seedance 2.0" },
-  { value: "minimax", label: "Minimax Hailuo 2.3" },
+  { value: "minimax", label: "Studio Fast 2.3" },
 ] as const;
 
 const MODEL_DURATIONS: Record<string, { value: number; label: string }[]> = {
