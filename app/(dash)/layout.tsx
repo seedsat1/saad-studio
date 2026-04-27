@@ -1,5 +1,4 @@
 import { ReactNode } from "react";
-import { redirect } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import TopNavbar from "@/components/TopNavbar";
 
@@ -9,11 +8,8 @@ const DashLayout = ({
 }: {
   children: ReactNode;
 }) => {
-  const { userId } = auth();
-
-  if (!userId) {
-    redirect("/?auth=login&redirect=/dash");
-  }
+  // Note: Removed redirect check to allow unauthenticated users to browse
+  // Authentication is enforced on API calls via useAuthGuard()
 
   return (
     <div className="min-h-screen" style={{ background: "#060c18" }}>
