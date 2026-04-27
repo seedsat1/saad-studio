@@ -182,6 +182,7 @@ video{display:none;width:100%;height:100%;object-fit:contain;background:#000;pos
 @media(max-width:768px){.layout{grid-template-columns:1fr;grid-template-rows:1fr 300px}}
 </style>
 </head>
+<script src="shared/active-job-tracker.js"></script>
 <body>
 <script>
 (function(){
@@ -875,9 +876,11 @@ async function genVid(){
   }
 
   setBusy(true);setLatestState(false);showProgressStart();setStatus('Submitting '+spec.label+' task…','info');
+  const _videoTracker = (window.ActiveJobTracker && window.ActiveJobTracker.create('video'));
   try{
     const created=spec.type==='veo31'?await createVeoTask(taskInput):await createTaskWithModelFallback(modelIds,taskInput);
     setStatus('Queued ('+created.modelUsed+'): '+created.taskId.slice(0,16)+'…','info');
+    if(_videoTracker) _videoTracker.save({ taskId: created.taskId, type: spec.type, label: spec.label, clipPrefix: clipPrefix, modelUsed: created.modelUsed });
     const record=spec.type==='veo31'?await waitVeoTask(created.taskId,st=>setStatus(spec.label+' status: '+st+'…','info'),300000):await waitKieTask(created.taskId,st=>setStatus(spec.label+' status: '+st+'…','info'),240000);
     const urls=extractResultUrls(record);
     if(!urls.length)throw new Error('No output URL returned.');
@@ -886,13 +889,46 @@ async function genVid(){
     videoState.latestUrl=outUrl;videoState.latestName=clipPrefix+'_'+Date.now()+'.mp4';videoState.latestDurationSec=durationSec;
     const vp=document.getElementById('vPreview');vp.src=outUrl;vp.style.display='block';vp.load();
     showProgressDone();setLatestState(true);setStatus(spec.label+' complete — adding to timeline…','ok');
+    if(_videoTracker) _videoTracker.clear();
     addToTimeline();
   }catch(err){
+    if(_videoTracker) _videoTracker.clear();
     if(videoState.progressTimer){clearInterval(videoState.progressTimer);videoState.progressTimer=null;}
     document.getElementById('prw').classList.remove('on');
     document.getElementById('ph2').style.display='flex';
     setStatus(spec.label+' failed: '+(err&&err.message?err.message:String(err)),'err');
   }finally{setBusy(false);}
+}
+
+/* ===== Resume in-flight job after refresh ===== */
+async function resumeActiveVideoJob(){
+  const tracker = (window.ActiveJobTracker && window.ActiveJobTracker.create('video'));
+  if(!tracker) return;
+  const saved = tracker.load();
+  if(!saved || !saved.taskId) return;
+  setBusy(true);showProgressStart();
+  setStatus('Resuming '+(saved.label||'video')+' generation…','info');
+  try{
+    const record = saved.type==='veo31'
+      ? await waitVeoTask(saved.taskId, st=>setStatus((saved.label||'Video')+' status: '+st+'…','info'), 300000)
+      : await waitKieTask(saved.taskId, st=>setStatus((saved.label||'Video')+' status: '+st+'…','info'), 300000);
+    const urls = extractResultUrls(record);
+    if(!urls.length) throw new Error('No output URL returned.');
+    const outUrl = urls[0];
+    const durationSec = await getVideoDuration(outUrl) || 6;
+    videoState.latestUrl = outUrl; videoState.latestName = (saved.clipPrefix||'video')+'_'+Date.now()+'.mp4'; videoState.latestDurationSec = durationSec;
+    const vp = document.getElementById('vPreview'); vp.src = outUrl; vp.style.display='block'; vp.load();
+    showProgressDone(); setLatestState(true);
+    tracker.clear();
+    setStatus((saved.label||'Video')+' complete — adding to timeline…','ok');
+    addToTimeline();
+  }catch(err){
+    tracker.clear();
+    if(videoState.progressTimer){clearInterval(videoState.progressTimer);videoState.progressTimer=null;}
+    document.getElementById('prw').classList.remove('on');
+    document.getElementById('ph2').style.display='flex';
+    setStatus('Resume failed: '+(err&&err.message?err.message:String(err)),'err');
+  }finally{ setBusy(false); }
 }
 
 /* ===== INIT ===== */
@@ -901,6 +937,7 @@ syncModelUi();
 renderSeedanceRefs();
 clearFrame('start');
 clearFrame('end');
+resumeActiveVideoJob();
 </script>
 <script src="shared/timeline-bridge.js"></script>
 <script src="shared/english-only.js"></script>

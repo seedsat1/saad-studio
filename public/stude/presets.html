@@ -131,6 +131,7 @@ body{background:#080c1a;color:#e8ecf8;font-family:'Sora',sans-serif;height:100vh
 @media(max-width:768px){.layout{grid-template-columns:1fr;grid-template-rows:auto 1fr}}
 </style>
 </head>
+<script src="shared/active-job-tracker.js"></script>
 <body>
 <script>
 (function(){
@@ -665,8 +666,10 @@ async function generateImage() {
 
     if (seedRaw) input.seed = Number(seedRaw);
 
+    var _imgTracker = (window.ActiveJobTracker && window.ActiveJobTracker.create('image'));
     var taskId = await createTask(cfg.id, input);
     setStatus('Generating\u2026 task: '+taskId.slice(0,12)+'...', 'info');
+    if (_imgTracker) _imgTracker.save({ taskId: taskId, modelId: cfg.id, label: cfg.label||'Image', aspectRatio: _currentAR });
     var record = await waitTask(taskId, 240000);
     var urls = parseResultUrls(record);
     if (!urls.length) throw new Error('No output image URL returned');
@@ -676,10 +679,40 @@ async function generateImage() {
 
     showResult(urls[0]);
     setOutputButtons(true);
+    if (_imgTracker) _imgTracker.clear();
     setStatus('\u2713 Image generated successfully!', 'ok');
     addImageToTimeline();
   } catch(err) {
+    var _t = (window.ActiveJobTracker && window.ActiveJobTracker.create('image'));
+    if (_t) _t.clear();
     setStatus('Failed: '+(err && err.message ? err.message : String(err)), 'err');
+  } finally {
+    setBusy(false);
+  }
+}
+
+/* Resume in-flight image job after refresh */
+async function resumeActiveImageJob(){
+  var tracker = (window.ActiveJobTracker && window.ActiveJobTracker.create('image'));
+  if (!tracker) return;
+  var saved = tracker.load();
+  if (!saved || !saved.taskId) return;
+  setBusy(true);
+  setStatus('Resuming '+(saved.label||'image')+' generation\u2026', 'info');
+  try {
+    var record = await waitTask(saved.taskId, 300000);
+    var urls = parseResultUrls(record);
+    if (!urls.length) throw new Error('No output image URL returned');
+    imageState.latestUrl = urls[0];
+    imageState.latestName = 'generated_image_'+Date.now()+'.png';
+    showResult(urls[0]);
+    setOutputButtons(true);
+    tracker.clear();
+    setStatus('\u2713 Image generated successfully!', 'ok');
+    addImageToTimeline();
+  } catch(err) {
+    tracker.clear();
+    setStatus('Resume failed: '+(err && err.message ? err.message : String(err)), 'err');
   } finally {
     setBusy(false);
   }
@@ -738,6 +771,7 @@ function downloadImage() {
 ================================================================ */
 setOutputButtons(false);
 syncModelUi();
+resumeActiveImageJob();
 </script>
 <script src="shared/timeline-bridge.js"></script>
 <script src="shared/english-only.js"></script>

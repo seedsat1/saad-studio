@@ -181,6 +181,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 @media(max-width:700px){.vm-grid{grid-template-columns:repeat(2,1fr)}.vm-topbar{padding:14px 16px}.mode-btn{padding:6px 13px;font-size:12px}}
 </style>
 </head>
+<script src="shared/active-job-tracker.js"></script>
 <body>
 <script>
 (function(){
@@ -800,7 +801,10 @@ async function getAudioDuration(url){return new Promise(resolve=>{const a=new Au
 async function createKieTask(model,input){const res=await fetch('/api/kie/createTask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model,input})});const json=await res.json();if(!res.ok||json?.code!==200||!json?.data?.taskId)throw new Error(json?.msg||`Create task failed (${res.status})`);return json.data.taskId;}
 async function createKieTaskWithFallback(model,input){try{return await createKieTask(model,input);}catch(error){const msg=String(error?.message||'').toLowerCase();if(Object.prototype.hasOwnProperty.call(input||{},'language_code')&&(msg.includes('language')||msg.includes('422'))){const ri={...input};delete ri.language_code;return await createKieTask(model,ri);}throw error;}}
 async function waitKieTask(taskId,maxMs){const started=Date.now();while(Date.now()-started<maxMs){const res=await fetch('/api/kie/recordInfo?taskId='+encodeURIComponent(taskId));const json=await res.json();if(!res.ok||json?.code!==200||!json?.data)throw new Error(json?.msg||`Polling failed (${res.status})`);const state=String(json.data.state||'').toLowerCase();if(state==='success')return json.data;if(state==='fail')throw new Error(json.data.failMsg||json.data.failCode||'Task failed');await new Promise(r=>setTimeout(r,1800));}throw new Error('Timeout waiting for Kie result');}
-async function runAudioJob(config){const btn=document.getElementById('sendBtn');if(btn){btn.disabled=true;btn.style.opacity='0.5';}setStatus(`Submitting ${config.label}...`,'info');try{const taskId=config.useLanguageFallback?await createKieTaskWithFallback(config.model,config.input):await createKieTask(config.model,config.input);setStatus(`${config.label} queued...`,'info');const record=await waitKieTask(taskId,config.timeoutMs||180000);const urls=extractResultUrls(record);if(!urls.length)throw new Error('No media URL returned');const url=urls[0];const dur=await getAudioDuration(url)||config.fallbackDuration||6;const asset={type:config.assetType,name:config.assetName,url,durationSec:dur};rememberLatest(asset);showOutput(config.assetType,config.assetName,url);setStatus(`${config.label} complete (${formatSec(dur)}).`,'ok');return{record,asset};}catch(error){setStatus(`${config.label} failed: ${error.message}`,'err');throw error;}finally{if(btn){btn.disabled=false;btn.style.opacity='1';}}}
+async function runAudioJob(config){const btn=document.getElementById('sendBtn');if(btn){btn.disabled=true;btn.style.opacity='0.5';}setStatus(`Submitting ${config.label}...`,'info');const _audioTracker=(window.ActiveJobTracker&&window.ActiveJobTracker.create('audio'));try{const taskId=config.useLanguageFallback?await createKieTaskWithFallback(config.model,config.input):await createKieTask(config.model,config.input);setStatus(`${config.label} queued...`,'info');if(_audioTracker)_audioTracker.save({taskId,model:config.model,label:config.label,assetType:config.assetType,assetName:config.assetName,fallbackDuration:config.fallbackDuration,timeoutMs:config.timeoutMs});const record=await waitKieTask(taskId,config.timeoutMs||180000);const urls=extractResultUrls(record);if(!urls.length)throw new Error('No media URL returned');const url=urls[0];const dur=await getAudioDuration(url)||config.fallbackDuration||6;const asset={type:config.assetType,name:config.assetName,url,durationSec:dur};rememberLatest(asset);showOutput(config.assetType,config.assetName,url);if(_audioTracker)_audioTracker.clear();setStatus(`${config.label} complete (${formatSec(dur)}).`,'ok');return{record,asset};}catch(error){if(_audioTracker)_audioTracker.clear();setStatus(`${config.label} failed: ${error.message}`,'err');throw error;}finally{if(btn){btn.disabled=false;btn.style.opacity='1';}}}
+
+/* Resume in-flight audio job after refresh */
+async function resumeActiveAudioJob(){const tracker=(window.ActiveJobTracker&&window.ActiveJobTracker.create('audio'));if(!tracker)return;const saved=tracker.load();if(!saved||!saved.taskId)return;const btn=document.getElementById('sendBtn');if(btn){btn.disabled=true;btn.style.opacity='0.5';}setStatus(`Resuming ${saved.label||'audio'}...`,'info');try{const record=await waitKieTask(saved.taskId,saved.timeoutMs||300000);const urls=extractResultUrls(record);if(!urls.length)throw new Error('No media URL returned');const url=urls[0];const dur=await getAudioDuration(url)||saved.fallbackDuration||6;const asset={type:saved.assetType,name:saved.assetName,url,durationSec:dur};rememberLatest(asset);showOutput(saved.assetType,saved.assetName,url);tracker.clear();setStatus(`${saved.label||'Audio'} complete (${formatSec(dur)}).`,'ok');}catch(error){tracker.clear();setStatus(`Resume failed: ${error.message}`,'err');}finally{if(btn){btn.disabled=false;btn.style.opacity='1';}}}
 
 /* GENERATE */
 function getSelectedVoiceId(){const c=(document.getElementById('customVoiceId')?.value||'').trim();if(c&&!c.startsWith('sample_')&&!c.startsWith('custom_'))return c;return _vmSelectedId||'21m00Tcm4TlvDq8ikWAM';}
@@ -927,6 +931,7 @@ async function isolateAudio(){
 }
 
 updateVmFavCount();
+resumeActiveAudioJob();
 </script>
 </body>
 </html>

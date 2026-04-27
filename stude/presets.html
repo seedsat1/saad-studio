@@ -1,677 +1,777 @@
-﻿<!DOCTYPE html>
-<html lang="en" dir="ltr">
+<!DOCTYPE html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Generate Image</title>
-<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#181818;--panel:#1e1e1e;--panel2:#232323;--border:#2d2d2d;--border2:#3a3a3a;--text:#d4d4d4;--dim:#777;--dim2:#555;--accent:#4a9eff;--accent2:#5cb8ff;--green:#4caf50;--orange:#ff9800;--red:#f44336;--purple:#b388ff;--cyan:#26c6da;--yellow:#ffd54f}
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:var(--bg);color:var(--text);font-family:'Tajawal',sans-serif;height:100vh;overflow:hidden;display:flex;flex-direction:column}
-.menubar{height:24px;background:#111;display:flex;align-items:center;padding:0 8px;gap:2px;border-bottom:1px solid #222;font-size:11px}
-.menubar span{padding:2px 8px;color:var(--dim);cursor:pointer;border-radius:2px}.menubar span:hover{color:var(--text);background:#333}
-.menubar .spacer{flex:1}.menubar .title{color:var(--accent);font-weight:700;letter-spacing:1px}
-.page-tabs{height:30px;background:#1a1a1a;display:flex;align-items:center;border-bottom:1px solid var(--border);padding:0 8px}
-.page-tab{padding:5px 14px;font-size:10px;color:var(--dim);cursor:pointer;border-bottom:2px solid transparent;transition:.15s;text-decoration:none;font-family:'Tajawal'}
-.page-tab:hover{color:var(--text)}.page-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
-.workspace{flex:1;display:flex;flex-direction:column;overflow:hidden}
-.top-row{flex:1;display:flex;min-height:0}
-.bottom-row{height:200px;border-top:2px solid var(--border);display:flex;flex-direction:column}
-.panel{background:var(--panel);display:flex;flex-direction:column;overflow:hidden}
-.ph{height:26px;background:#252525;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 10px;gap:8px;flex-shrink:0}
-.ph .l{font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.45px;font-weight:700;cursor:pointer}.ph .l.a{color:var(--accent)}
-.pb{flex:1;overflow-y:auto;padding:10px;font-size:12px}
-.vr{width:2px;background:var(--border);cursor:col-resize;flex-shrink:0}.vr:hover{background:var(--accent)}
-.ist{font-size:11px;color:#9aa7bb;text-transform:uppercase;letter-spacing:.45px;font-weight:700;padding:7px 0 6px;border-bottom:1px solid var(--border);margin-bottom:8px;display:flex;align-items:center;gap:6px}
-.ist .d{width:5px;height:5px;border-radius:50%}
-.cr{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px}
-.ch{padding:4px 10px;border-radius:4px;font-size:11px;cursor:pointer;border:1px solid var(--border);background:#1a1a1a;color:#9da9bc;font-family:'Tajawal';transition:.12s}
-.ch:hover{border-color:var(--border2);color:var(--text)}.ch.a{border-color:var(--accent);color:var(--accent);background:rgba(74,158,255,.08)}
-.in{width:100%;background:#1a1a1a;border:1px solid var(--border);border-radius:4px;padding:8px 9px;color:var(--text);font-family:'Tajawal';font-size:12px;outline:none;margin-bottom:8px;line-height:1.45}
-.in:focus{border-color:var(--accent)}
-.sbox{width:100%;height:32px;background:#1a1a1a;border:1px solid var(--border);border-radius:4px;padding:0 8px;color:var(--text);font-family:'Tajawal';font-size:12px;outline:none;margin-bottom:8px}
-.model-dd{position:relative;margin-bottom:8px}
-.model-dd-btn{width:100%;height:34px;background:#1a1a1a;border:1px solid var(--border);border-radius:6px;padding:0 10px;color:var(--text);font-family:'Tajawal';font-size:12px;display:flex;align-items:center;justify-content:space-between;cursor:pointer}
-.model-dd-btn:hover{border-color:var(--border2)}
-.model-dd-menu{position:absolute;left:0;right:0;top:38px;background:#171b24;border:1px solid #2f3a4f;border-radius:8px;max-height:260px;overflow:auto;z-index:40;display:none;padding:6px}
-.model-dd.open .model-dd-menu{display:block}
-.model-family{font-size:10px;color:#8ea3c7;letter-spacing:.4px;text-transform:uppercase;padding:6px 8px 4px}
-.model-item{width:100%;text-align:left;background:#121722;border:1px solid #29354a;color:#d4e1ff;border-radius:6px;padding:7px 9px;font-size:12px;cursor:pointer;margin-bottom:5px;font-family:'Tajawal'}
-.model-item:hover{filter:brightness(1.08)}
-.model-item.active{outline:1px solid #6da6ff}
-.mf-google{background:linear-gradient(90deg,rgba(74,158,255,.20),rgba(74,158,255,.04));border-color:#365a8a}
-.mf-grok{background:linear-gradient(90deg,rgba(255,174,102,.20),rgba(255,174,102,.05));border-color:#7a5a34}
-.mf-qwen{background:linear-gradient(90deg,rgba(180,136,255,.20),rgba(180,136,255,.05));border-color:#5e4c82}
-.mf-wan{background:linear-gradient(90deg,rgba(93,211,155,.20),rgba(93,211,155,.05));border-color:#3d6f5b}
-.mf-recraft{background:linear-gradient(90deg,rgba(76,201,240,.20),rgba(76,201,240,.05));border-color:#3f6c79}
-.mf-seedream{background:linear-gradient(90deg,rgba(255,213,79,.20),rgba(255,213,79,.05));border-color:#756033}
-.mf-topaz{background:linear-gradient(90deg,rgba(255,127,127,.20),rgba(255,127,127,.05));border-color:#7b4a4a}
-.prompt-composer{border:none;border-radius:0;background:transparent;padding:0;margin-bottom:10px;position:relative;overflow:visible}
-.prompt-composer.drag .prompt-toolbar{box-shadow:0 0 0 1px rgba(94,169,255,.35) inset,0 0 14px rgba(74,158,255,.15)}
-.prompt-toolbar{display:flex;align-items:center;gap:10px;padding:8px 0 10px;background:transparent}
-.plus-btn{width:28px;height:28px;border-radius:9px;border:1px solid #2a3342;background:#151a21;color:#e2ebff;font-size:18px;line-height:1;cursor:pointer;flex-shrink:0}
-.plus-btn:hover{border-color:#5b84bf;color:#fff;background:#1a2638}
-.prompt-drop-hint{font-size:13px;color:#8a96ab;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;line-height:1.2}
-.prompt-ref-meta{font-size:11px;color:#60739a;padding:4px 0 6px}
-.prompt-input{width:100%;margin:0;background:#11161d;border:1px solid #263246;border-radius:10px;padding:13px;color:#d9e4fb;font-family:'Tajawal';font-size:14px;resize:vertical;outline:none;line-height:1.55;min-height:122px}
-.prompt-input:focus{border-color:#4f8fe6;box-shadow:0 0 0 1px rgba(79,143,230,.22)}
-.bs{padding:6px 12px;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;border:none;font-family:'Tajawal';transition:.12s}
-.bb{background:var(--accent);color:#fff}.bb:hover{background:var(--accent2)}
-.bg{background:none;color:var(--dim);border:1px solid var(--border)}.bg:hover{color:var(--text);border-color:var(--border2)}
-.stt{font-size:11px;line-height:1.5;color:#95a5bd;margin-top:4px}
-.ref-list{display:flex;flex-wrap:wrap;gap:6px;max-height:120px;overflow:auto;margin:8px 0 6px}
-.ref-item{display:flex;align-items:center;gap:6px;border:1px solid #314362;border-radius:9px;padding:4px 6px;background:#141d2b;max-width:100%}
-.ref-item img{width:24px;height:24px;border-radius:5px;object-fit:cover;border:1px solid #3d567f;flex-shrink:0}
-.ref-item span{max-width:140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:10px;color:#c1d5fb}
-.ref-item .rm{padding:2px 7px;font-size:10px;border-radius:6px;border:1px solid #385075;background:#17253a;color:#b7cef5;cursor:pointer}
-.ref-item .rm:hover{border-color:#5c84c3;color:#e5efff}
-.prompt-count{font-size:11px;color:#8ea4cd;margin:2px 2px 8px;text-align:right}
-/* timeline */
-.th{height:26px;background:#252525;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 10px;gap:10px;flex-shrink:0}
-.th span{font-size:9px;color:var(--dim);cursor:pointer}.th span.a{color:var(--accent)}
-.tb{flex:1;display:flex;overflow:hidden}
-.ts{width:100px;background:#1c1c1c;border-left:1px solid var(--border);flex-shrink:0}
-.tl{height:32px;display:flex;align-items:center;padding:0 6px;gap:3px;border-bottom:1px solid #252525;font-size:9px;color:var(--dim)}
-.tl .dd{width:5px;height:5px;border-radius:50%}.tl .n{flex:1}.tl .x{display:flex;gap:1px;font-size:8px;opacity:.4}
-.ta{flex:1;position:relative;overflow:auto}
-.tr{height:18px;background:#1c1c1c;border-bottom:1px solid var(--border);display:flex;align-items:flex-end;padding:0 8px;gap:55px;position:sticky;top:0;z-index:2}
-.tr span{font-size:7px;color:var(--dim2);font-family:'JetBrains Mono'}
-.tt{position:relative}
-.tk{height:32px;border-bottom:1px solid #252525;position:relative}
-.tc2{position:absolute;top:2px;height:28px;border-radius:3px;display:flex;align-items:center;padding:0 5px;font-size:8px;color:#fff;overflow:hidden;cursor:pointer}
-.tc2:hover{filter:brightness(1.2)}.tc2 .cn{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tp2{position:absolute;top:0;bottom:0;width:2px;background:var(--red);z-index:10;pointer-events:none}
-.tp2::before{content:'';position:absolute;top:-1px;right:-3px;width:8px;height:8px;background:var(--red);clip-path:polygon(50% 100%,0 0,100% 0)}
+body{background:#080c1a;color:#e8ecf8;font-family:'Sora',sans-serif;height:100vh;overflow:hidden}
+.layout{display:grid;grid-template-columns:360px 1fr;height:100vh}
+
+/* ===== LEFT ===== */
+.tools{background:linear-gradient(180deg,#0c1024,#0a0e1c);border-right:1px solid rgba(255,255,255,.05);display:flex;flex-direction:column;overflow:hidden}
+.tools-header{padding:20px 20px 14px;border-bottom:1px solid rgba(255,255,255,.04);flex-shrink:0}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:16px;background:rgba(34,211,238,.1);border:1px solid rgba(34,211,238,.12);font-size:9px;font-weight:700;color:#22d3ee;letter-spacing:.8px;text-transform:uppercase;margin-bottom:10px}
+.badge .dot{width:5px;height:5px;border-radius:50%;background:#22d3ee;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.tools-title{font-size:18px;font-weight:800;letter-spacing:-.5px}
+
+.tools-scroll{flex:1;overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.06) transparent;min-height:0}
+.tools-scroll::-webkit-scrollbar{width:4px}
+.tools-scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:2px}
+
+.sec{padding:16px 20px;border-bottom:1px solid rgba(255,255,255,.04)}
+.sec:last-child{border-bottom:none}
+.sec-label{font-size:9px;font-weight:700;color:#4e5678;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.sec-label .d{width:5px;height:5px;border-radius:50%}
+
+/* Reference upload */
+.ref-upload{border-radius:10px;border:1.5px dashed rgba(34,211,238,.2);background:rgba(34,211,238,.02);padding:12px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;transition:.2s;margin-bottom:10px}
+.ref-upload:hover{border-color:rgba(34,211,238,.4);background:rgba(34,211,238,.04)}
+.ref-icon{width:32px;height:32px;border-radius:8px;background:rgba(34,211,238,.08);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ref-icon svg{width:16px;height:16px;color:#22d3ee}
+.ref-text{flex:1}
+.ref-title{font-size:11px;font-weight:600}
+.ref-sub{font-size:9px;color:#4e5678}
+.ref-count{font-size:9px;color:#4e5678;font-family:'JetBrains Mono',monospace}
+
+/* Ref thumbnails */
+.ref-list{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px}
+.ref-thumb{position:relative;width:44px;height:44px;border-radius:7px;overflow:hidden;border:1px solid rgba(255,255,255,.08)}
+.ref-thumb img{width:100%;height:100%;object-fit:cover}
+.ref-thumb .rm-btn{position:absolute;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;cursor:pointer;font-size:14px;color:#fb7185}
+.ref-thumb:hover .rm-btn{display:flex}
+
+/* Prompt */
+.prompt-box{width:100%;min-height:90px;max-height:160px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 12px;color:#e8ecf8;font-family:inherit;font-size:12px;line-height:1.6;font-weight:500;resize:vertical;outline:none;transition:.2s}
+.prompt-box::placeholder{color:#3d4568}
+.prompt-box:focus{border-color:rgba(34,211,238,.35);box-shadow:0 0 0 2px rgba(34,211,238,.06)}
+.char-ct{font-size:9px;color:#3d4568;text-align:right;margin-top:3px;font-family:'JetBrains Mono',monospace}
+
+/* Settings rows */
+.s-row{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.s-row:last-child{margin-bottom:0}
+.s-name{font-size:10px;font-weight:600;color:#6b7394;min-width:75px;flex-shrink:0}
+
+/* Dropdown */
+.dd{position:relative;flex:1}
+.dd-btn{width:100%;padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.03);color:#e8ecf8;font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:space-between;transition:.15s;user-select:none}
+.dd-btn:hover{border-color:rgba(255,255,255,.12)}
+.dd-btn.open{border-color:rgba(34,211,238,.35)}
+.dd-btn svg{width:9px;height:9px;color:#4e5678;transition:.2s;flex-shrink:0}
+.dd-btn.open svg{transform:rotate(180deg);color:#22d3ee}
+.dd-list{position:absolute;top:calc(100% + 4px);left:0;right:0;background:#13183a;border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:4px;z-index:50;opacity:0;visibility:hidden;transform:translateY(-4px);transition:.2s cubic-bezier(.16,1,.3,1);box-shadow:0 8px 30px rgba(0,0,0,.5);max-height:280px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.06) transparent}
+.dd-list.open{opacity:1;visibility:visible;transform:translateY(0)}
+.dd-opt{padding:7px 10px;border-radius:7px;font-size:11px;font-weight:500;color:#8890b0;cursor:pointer;transition:.1s}
+.dd-opt:hover{background:rgba(255,255,255,.04);color:#e8ecf8}
+.dd-opt.sel{background:rgba(34,211,238,.1);color:#22d3ee}
+.dd-hdr{padding:8px 10px 3px;font-size:8px;font-weight:700;color:#4e5678;letter-spacing:.8px;cursor:default;text-transform:uppercase}
+
+/* Chips */
+.chips{display:flex;gap:4px;flex:1;flex-wrap:wrap}
+.chip{padding:6px 10px;border-radius:7px;border:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.02);color:#6b7394;font-family:inherit;font-size:10px;font-weight:600;cursor:pointer;transition:.15s}
+.chip:hover{background:rgba(255,255,255,.04);color:#a0a8c8}
+.chip.on{background:rgba(34,211,238,.12);color:#22d3ee;border-color:rgba(34,211,238,.2)}
+.chip.disabled{opacity:.4;cursor:not-allowed}
+
+/* Text input */
+.input-sm{flex:1;padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.03);color:#e8ecf8;font-family:'JetBrains Mono',monospace;font-size:11px;outline:none;transition:.15s}
+.input-sm::placeholder{color:#3d4568}
+.input-sm:focus{border-color:rgba(34,211,238,.3)}
+
+/* Status */
+.status-row{display:flex;align-items:center;gap:6px;padding:8px 20px 4px;flex-shrink:0;font-size:10px;font-weight:600;min-height:22px;transition:.2s}
+.status-dot{width:6px;height:6px;border-radius:50%;background:#22c55e;flex-shrink:0}
+
+/* Generate bar */
+.gen-bar{padding:12px 20px;border-top:1px solid rgba(255,255,255,.04);display:flex;gap:8px;flex-shrink:0;background:linear-gradient(180deg,rgba(12,16,36,.95),rgba(10,14,28,.98))}
+.btn-gen{flex:1;padding:12px;border-radius:12px;border:none;position:relative;overflow:hidden;font-family:inherit;font-size:13px;font-weight:700;color:#fff;cursor:pointer;transition:.2s;display:flex;align-items:center;justify-content:center;gap:7px}
+.btn-gen::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,#0891b2,#22d3ee,#06b6d4);background-size:200% 200%;animation:gs 4s ease infinite}
+.btn-gen::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.1),transparent)}
+.btn-gen span,.btn-gen svg{position:relative;z-index:2}
+@keyframes gs{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+.btn-gen:hover{transform:translateY(-1px);box-shadow:0 6px 24px rgba(34,211,238,.3)}
+.btn-gen:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.btn-sec{padding:12px 16px;border-radius:12px;border:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.02);color:#6b7394;font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;transition:.15s;white-space:nowrap}
+.btn-sec:hover{background:rgba(255,255,255,.05);color:#a0a8c8}
+.btn-sec:disabled{opacity:.4;cursor:not-allowed}
+
+.progress{height:2px;overflow:hidden;flex-shrink:0}
+.progress.on{background:rgba(255,255,255,.03)}
+.progress-fill{height:100%;width:0%;background:linear-gradient(90deg,#22d3ee,#a78bfa);transition:width 2.5s cubic-bezier(.16,1,.3,1)}
+
+/* ===== RIGHT (Preview) ===== */
+.preview{background:#060914;display:flex;flex-direction:column;position:relative;overflow:hidden}
+.preview::before{content:'';position:absolute;width:400px;height:400px;background:radial-gradient(circle,rgba(34,211,238,.03),transparent 70%);top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none}
+.prev-header{padding:12px 20px;border-bottom:1px solid rgba(255,255,255,.04);font-size:9px;font-weight:700;color:#3d4568;letter-spacing:1px;text-transform:uppercase;flex-shrink:0;display:flex;align-items:center;justify-content:space-between}
+.prev-area{flex:1;display:flex;align-items:center;justify-content:center;position:relative;min-height:0}
+.prev-empty{text-align:center;color:#2d3460;display:flex;flex-direction:column;align-items:center;gap:12px}
+.prev-empty svg{width:48px;height:48px;color:#2d3460}
+.prev-empty span{font-size:12px;font-weight:500}
+
+/* Generated result */
+.result-wrap{display:none;flex-direction:column;width:100%;height:100%;align-items:center;justify-content:center;padding:20px}
+.result-wrap.on{display:flex}
+.result-img-box{position:relative;border-radius:12px;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.06);flex-shrink:0}
+.result-img-box img{display:block;max-width:calc(100vw - 400px);max-height:calc(100vh - 140px);width:auto;height:auto;object-fit:contain}
+.ar-indicator{position:absolute;bottom:8px;right:8px;padding:3px 9px;border-radius:8px;background:rgba(0,0,0,.6);backdrop-filter:blur(6px);font-size:9px;font-weight:700;color:#22d3ee;font-family:'JetBrains Mono',monospace;border:1px solid rgba(34,211,238,.15)}
+
+.prev-bar{padding:10px 20px;border-top:1px solid rgba(255,255,255,.04);display:flex;gap:8px;flex-shrink:0;background:linear-gradient(180deg,rgba(10,14,28,.0),rgba(10,14,28,.95))}
+.pb-btn{padding:7px 14px;border-radius:8px;border:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.02);color:#6b7394;font-family:inherit;font-size:10px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px;transition:.15s}
+.pb-btn:hover{background:rgba(255,255,255,.05);color:#a0a8c8}
+.pb-btn.pr{background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;border:none;flex:1;justify-content:center}
+.pb-btn.pr:hover{filter:brightness(1.1)}
+.pb-btn:disabled{opacity:.4;cursor:not-allowed}
+
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner{width:14px;height:14px;border:2px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:inline-block;position:relative;z-index:2}
+@media(max-width:768px){.layout{grid-template-columns:1fr;grid-template-rows:auto 1fr}}
 </style>
 </head>
+<script src="shared/active-job-tracker.js"></script>
 <body>
 <script>
 (function(){
   var params=new URLSearchParams(location.search);
   var isEmbed=params.get('embed')==='1';
-  var pageName='presets';
-  if(!isEmbed){
-    location.replace('studio-shell.html?page='+encodeURIComponent(pageName));
-    return;
-  }
+  if(!isEmbed){ location.replace('studio-shell.html?page=presets'); return; }
   window.__FF_EMBED_TOP=true;
   document.documentElement.lang='en';
   document.documentElement.dir='ltr';
-  document.addEventListener('DOMContentLoaded',function(){
-    var mb=document.querySelector('.menubar'); if(mb) mb.style.display='none';
-    var tabs=document.querySelector('.page-tabs'); if(tabs) tabs.style.display='none';
-    var br=document.querySelector('.bottom-row'); if(br) br.style.display='none';
-    var ws=document.querySelector('.workspace'); if(ws){ ws.style.height='100vh'; ws.style.display='flex'; ws.style.flexDirection='column'; }
-    var tr=document.querySelector('.top-row'); if(tr){ tr.style.flex='1 1 auto'; tr.style.minHeight='0'; }
-  });
 })();
 </script>
-<!-- FF_SHELL_BRIDGE -->
-<div class="menubar"><span class="title">FRAMEFORGE</span><span>File</span><span>Edit</span><span>View</span><div class="spacer"></div><span style="color:var(--dim2);font-family:'JetBrains Mono';font-size:9px">Untitled Project</span></div>
-<div class="page-tabs"><a class="page-tab" href="sound.html">Audio & Music</a>
-<a class="page-tab" href="video.html">Video Generation</a>
-<a class="page-tab active" href="presets.html">Generate Image</a>
-<a class="page-tab" href="transitions.html">Transitions</a>
-<a class="page-tab" href="lighting.html">Lighting</a>
-<a class="page-tab" href="prompt.html">Prompt</a>
-</div>
 
-<div class="workspace">
-  <div class="top-row">
-    <div class="panel" style="width:380px">
-      <div class="ph"><span class="l a">Generate Image Panel</span></div>
-      <div class="pb">
-        <div id="promptComposer" class="prompt-composer">
-          <div class="prompt-toolbar">
-            <button type="button" class="plus-btn" onclick="pickImageRefs()">+</button>
-            <div class="prompt-drop-hint">Upload image as a prompt or Describe the scene you imagine...</div>
+<div class="layout">
+
+  <!-- LEFT: Controls -->
+  <div class="tools">
+    <div class="tools-header">
+      <div class="badge"><span class="dot"></span>Generate Image</div>
+      <div class="tools-title">Image Generator</div>
+    </div>
+
+    <div class="tools-scroll">
+
+      <!-- Reference + Prompt -->
+      <div class="sec">
+        <div class="sec-label"><span class="d" style="background:#22d3ee"></span>REFERENCE <span id="refCountLabel" style="color:#3d4568;font-style:italic;text-transform:none;letter-spacing:0;font-size:9px">Optional (max 14)</span></div>
+        <div class="ref-upload" id="refUpload" onclick="pickImageRefs()">
+          <div class="ref-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           </div>
-          <div id="promptRefsMeta" class="prompt-ref-meta">References limit for selected model: 6</div>
-          <textarea id="iprompt" class="prompt-input" rows="5" placeholder="Describe the image in detail..."></textarea>
-          <div class="ref-list" id="refList"></div>
-          <div class="prompt-count"><span id="ipromptCount">0</span> characters</div>
+          <div class="ref-text">
+            <div class="ref-title" id="refTitle">Upload image as a prompt</div>
+            <div class="ref-sub" id="refSub">or use text description only</div>
+          </div>
         </div>
         <input id="imageRefsFile" type="file" accept="image/*" multiple style="display:none" onchange="handleImageRefFiles(this)">
+        <div class="ref-list" id="refList"></div>
 
-        <div class="ist" style="margin-top:10px"><span class="d" style="background:var(--green)"></span>Image Model</div>
-        <div id="modelDropdown" class="model-dd">
-          <button type="button" class="model-dd-btn" onclick="toggleModelDropdown(event)">
-            <span id="modelDdLabel">Google - Nano Banana 2</span>
-            <span>▾</span>
-          </button>
-          <div id="modelDdMenu" class="model-dd-menu">
-            <div class="model-family">Google</div>
-            <button type="button" class="model-item mf-google active" data-model="nano-banana-2" data-label="Google - Nano Banana 2" onclick="selectModelOption(this)">Google - Nano Banana 2</button>
-            <button type="button" class="model-item mf-google" data-model="nano-banana-pro" data-label="Google - Nano Banana Pro" onclick="selectModelOption(this)">Google - Nano Banana Pro</button>
-            <button type="button" class="model-item mf-google" data-model="google/nano-banana" data-label="Google - Nano Banana" onclick="selectModelOption(this)">Google - Nano Banana</button>
-            <button type="button" class="model-item mf-google" data-model="google/nano-banana-edit" data-label="Google - Nano Banana Edit" onclick="selectModelOption(this)">Google - Nano Banana Edit</button>
+        <div class="sec-label" style="margin-top:4px"><span class="d" style="background:#a78bfa"></span>PROMPT</div>
+        <textarea class="prompt-box" id="promptBox" placeholder="Describe the image in detail..." oninput="updateCount()"></textarea>
+        <div class="char-ct"><span id="charCount">0</span> characters</div>
+      </div>
 
-            <div class="model-family">Grok</div>
-            <button type="button" class="model-item mf-grok" data-model="grok-imagine/text-to-image" data-label="Grok Imagine - Text to Image" onclick="selectModelOption(this)">Grok Imagine - Text to Image</button>
-            <button type="button" class="model-item mf-grok" data-model="grok-imagine/image-to-image" data-label="Grok Imagine - Image to Image" onclick="selectModelOption(this)">Grok Imagine - Image to Image</button>
-
-            <div class="model-family">Qwen</div>
-            <button type="button" class="model-item mf-qwen" data-model="qwen2/text-to-image" data-label="Qwen2 - Text To Image" onclick="selectModelOption(this)">Qwen2 - Text To Image</button>
-            <button type="button" class="model-item mf-qwen" data-model="qwen2/image-edit" data-label="Qwen2 - Image Edit" onclick="selectModelOption(this)">Qwen2 - Image Edit</button>
-            <button type="button" class="model-item mf-qwen" data-model="qwen/image-to-image" data-label="Qwen - Image to Image" onclick="selectModelOption(this)">Qwen - Image to Image</button>
-
-            <div class="model-family">GPT Image</div>
-            <button type="button" class="model-item mf-gpt" data-model="gpt-image/1.5-text-to-image" data-label="GPT Image 1.5 - Text to Image" onclick="selectModelOption(this)">GPT Image 1.5 - Text to Image</button>
-            <button type="button" class="model-item mf-gpt" data-model="gpt-image/1.5-image-to-image" data-label="GPT Image 1.5 - Image to Image" onclick="selectModelOption(this)">GPT Image 1.5 - Image to Image</button>
-
-            <div class="model-family">Wan</div>
-            <button type="button" class="model-item mf-wan" data-model="wan/2-7-image-pro" data-label="Wan 2.7 Image Pro" onclick="selectModelOption(this)">Wan 2.7 Image Pro</button>
-
-            <div class="model-family">Seedream</div>
-            <button type="button" class="model-item mf-seedream" data-model="seedream/5-lite-text-to-image" data-label="Seedream 5 Lite - Text to Image" onclick="selectModelOption(this)">Seedream 5 Lite - Text to Image</button>
-            <button type="button" class="model-item mf-seedream" data-model="seedream/5-lite-image-to-image" data-label="Seedream 5 Lite - Image to Image" onclick="selectModelOption(this)">Seedream 5 Lite - Image to Image</button>
+      <!-- Model -->
+      <div class="sec">
+        <div class="sec-label"><span class="d" style="background:#fb923c"></span>IMAGE MODEL</div>
+        <div class="s-row">
+          <div class="dd" id="modelDD">
+            <div class="dd-btn" onclick="togDD('modelDD')">
+              <span id="modelLbl">Google - Nano Banana 2</span>
+              <svg viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M1 1L5 5L9 1"/></svg>
+            </div>
+            <div class="dd-list" id="modelDD-list">
+              <div class="dd-hdr">GOOGLE</div>
+              <div class="dd-opt sel" data-model="nano-banana-2" onclick="pickM(this)">Google - Nano Banana 2</div>
+              <div class="dd-opt" data-model="nano-banana-pro" onclick="pickM(this)">Google - Nano Banana Pro</div>
+              <div class="dd-opt" data-model="google/nano-banana" onclick="pickM(this)">Google - Nano Banana</div>
+              <div class="dd-opt" data-model="google/nano-banana-edit" onclick="pickM(this)">Google - Nano Banana Edit</div>
+              <div class="dd-hdr">GROK</div>
+              <div class="dd-opt" data-model="grok-imagine/text-to-image" onclick="pickM(this)">Grok Imagine - Text to Image</div>
+              <div class="dd-opt" data-model="grok-imagine/image-to-image" onclick="pickM(this)">Grok Imagine - Image to Image</div>
+              <div class="dd-hdr">QWEN</div>
+              <div class="dd-opt" data-model="qwen2/text-to-image" onclick="pickM(this)">Qwen2 - Text To Image</div>
+              <div class="dd-opt" data-model="qwen2/image-edit" onclick="pickM(this)">Qwen2 - Image Edit</div>
+              <div class="dd-opt" data-model="qwen/image-to-image" onclick="pickM(this)">Qwen - Image to Image</div>
+              <div class="dd-hdr">GPT IMAGE</div>
+              <div class="dd-opt" data-model="gpt-image/1.5-text-to-image" onclick="pickM(this)">GPT Image 1.5 - Text to Image</div>
+              <div class="dd-opt" data-model="gpt-image/1.5-image-to-image" onclick="pickM(this)">GPT Image 1.5 - Image to Image</div>
+              <div class="dd-hdr">WAN</div>
+              <div class="dd-opt" data-model="wan/2-7-image-pro" onclick="pickM(this)">Wan 2.7 Image Pro</div>
+              <div class="dd-hdr">SEEDREAM</div>
+              <div class="dd-opt" data-model="seedream/5-lite-text-to-image" onclick="pickM(this)">Seedream 5 Lite - Text to Image</div>
+              <div class="dd-opt" data-model="seedream/5-lite-image-to-image" onclick="pickM(this)">Seedream 5 Lite - Image to Image</div>
+            </div>
           </div>
         </div>
+        <div style="font-size:9px;color:#4e5678;margin-top:2px">Mode: <span style="color:#22d3ee" id="modeText">Text to Image</span></div>
         <input id="imageModel" type="hidden" value="nano-banana-2">
-        <div class="stt" id="modelModeHint">Mode: Text to Image</div>
-
-        <div class="ist"><span class="d" style="background:var(--orange)"></span>Image Settings</div>
-        <div class="cr" id="ratioChips"><span class="ch a">1:1</span><span class="ch">16:9</span><span class="ch">9:16</span><span class="ch">4:3</span><span class="ch">3:4</span></div>
-        <select id="imageQuality" class="sbox"><option>STD</option><option selected>PRO</option><option>HIGH</option></select>
-        <input id="seedInput" class="in" placeholder="Seed (optional integer)">
-
-        <div class="ist"><span class="d" style="background:var(--yellow)"></span>Status</div>
-        <div class="stt" id="imageStatus">Ready.</div>
       </div>
+
+      <!-- Settings -->
+      <div class="sec">
+        <div class="sec-label"><span class="d" style="background:#22c55e"></span>IMAGE SETTINGS</div>
+        <div class="s-row">
+          <span class="s-name">Aspect</span>
+          <div class="chips" id="arChips">
+            <button class="chip on" data-ratio="1:1" onclick="pickAR(this)">1:1</button>
+            <button class="chip" data-ratio="16:9" onclick="pickAR(this)">16:9</button>
+            <button class="chip" data-ratio="9:16" onclick="pickAR(this)">9:16</button>
+            <button class="chip" data-ratio="4:3" onclick="pickAR(this)">4:3</button>
+            <button class="chip" data-ratio="3:4" onclick="pickAR(this)">3:4</button>
+          </div>
+        </div>
+        <div class="s-row">
+          <span class="s-name">Resolution</span>
+          <div class="dd" id="resDD">
+            <div class="dd-btn" onclick="togDD('resDD')">
+              <span id="resLbl">Auto</span>
+              <svg viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M1 1L5 5L9 1"/></svg>
+            </div>
+            <div class="dd-list" id="resDD-list">
+              <div class="dd-opt sel" data-val="Auto" onclick="pickRes(this)">Auto</div>
+              <div class="dd-opt" data-val="1K" onclick="pickRes(this)">1K &nbsp;<span style="font-size:9px;color:#4e5678">1024&times;1024</span></div>
+              <div class="dd-opt" data-val="2K" onclick="pickRes(this)">2K &nbsp;<span style="font-size:9px;color:#4e5678">2048&times;2048</span></div>
+              <div class="dd-opt" data-val="4K" onclick="pickRes(this)">4K &nbsp;<span style="font-size:9px;color:#4e5678">4096&times;4096</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="s-row">
+          <span class="s-name">Seed</span>
+          <input class="input-sm" type="text" placeholder="Optional integer" id="seedInput">
+        </div>
+      </div>
+
+    </div><!-- /tools-scroll -->
+
+    <div class="status-row" id="statusRow">
+      <span class="status-dot" id="statusDot" style="background:#22c55e"></span>
+      <span id="statusText" style="color:#6b7394">Ready.</span>
     </div>
-
-    <div class="vr"></div>
-
-    <div class="panel" style="flex:1">
-      <div class="ph"><span class="l a">Image Preview</span></div>
-      <div style="flex:1;min-height:0;overflow:hidden;background:#111;border:1px solid var(--border);margin:6px;border-radius:4px;position:relative;display:flex;align-items:center;justify-content:center">
-        <div id="imgPlaceholder" style="opacity:.35;text-align:center"><div style="font-size:42px">🖼️</div><div style="font-size:11px">Generated image will appear here</div></div>
-        <img id="imagePreview" alt="Generated image" style="display:none;width:100%;height:100%;max-width:100%;max-height:100%;object-fit:contain;object-position:center center;border-radius:3px">
-      </div>
-      <div style="padding:6px;background:#1c1c1c;border-top:1px solid var(--border);display:flex;gap:6px">
-        <button id="genImageBtn" class="bs bb" style="flex:1" onclick="generateImage()">Generate Image</button>
-        <button id="addImageBtn" class="bs bg" onclick="addImageToTimeline()" disabled>Add to Timeline</button>
-        <button id="downloadImageBtn" class="bs bg" onclick="downloadImage()" disabled>Download</button>
-      </div>
+    <div class="progress" id="prog"><div class="progress-fill" id="progFill"></div></div>
+    <div class="gen-bar">
+      <button class="btn-gen" id="btnGen" onclick="generateImage()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+        <span id="btnGenText">Generate Image</span>
+      </button>
+      <button class="btn-sec" id="btnAdd" onclick="addImageToTimeline()" disabled>Add to Timeline</button>
+      <button class="btn-sec" id="btnDown" onclick="downloadImage()" disabled>Download</button>
     </div>
-  </div>
+  </div><!-- /tools -->
 
-  <!-- TIMELINE -->
-  <div class="bottom-row">
-    <div class="th"><span class="a">Timeline</span><span>Image Tracks</span><span style="flex:1"></span><span style="font-family:'JetBrains Mono';font-size:8px;color:var(--dim2)">Sequence 01</span></div>
-    <div class="tb">
-      <div class="ts">
-        <div class="tl"><span class="dd" style="background:var(--green)"></span><span class="n">V1</span><span class="x"></span></div>
-        <div class="tl"><span class="dd" style="background:var(--accent)"></span><span class="n">A1</span><span class="x">M S</span></div>
+  <!-- RIGHT: Preview -->
+  <div class="preview">
+    <div class="prev-header">
+      <span>IMAGE PREVIEW</span>
+      <span id="arLabel" style="font-family:'JetBrains Mono',monospace;color:#22d3ee;font-size:9px">1:1</span>
+    </div>
+    <div class="prev-area">
+      <div class="prev-empty" id="emptyPrev">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+        <span>Generated image will appear here</span>
       </div>
-      <div class="ta">
-        <div class="tr"><span>00:00</span><span>00:30</span><span>01:00</span><span>01:30</span><span>02:00</span></div>
-        <div class="tt">
-          <div class="tk"><div class="tc2" style="right:90px;width:240px;background:#355070"><span class="cn">generated_image.png</span></div></div>
-          <div class="tp2" style="right:150px"></div>
+      <div class="result-wrap" id="resultWrap">
+        <div class="result-img-box" id="resultBox">
+          <img id="resultImg" src="" alt="Generated image" style="animation:fadeIn .4s both">
+          <span class="ar-indicator" id="arLabelResult">1:1</span>
         </div>
       </div>
     </div>
+    <div class="prev-bar">
+      <button class="pb-btn pr" id="pbAdd" onclick="addImageToTimeline()" disabled>+ Add to Timeline</button>
+      <button class="pb-btn" id="pbDown" onclick="downloadImage()" disabled>&#x2B07; Download</button>
+    </div>
   </div>
-</div>
+
+</div><!-- /layout -->
 
 <script>
-const imageState = {
-  latestUrl: '',
-  latestName: '',
-  refs: []
-};
+/* ================================================================
+   STATE
+================================================================ */
+var imageState = { latestUrl: '', latestName: '', refs: [] };
+var _currentAR = '1:1';
+var _currentRes = 'Auto';
 
-document.getElementById('iprompt').addEventListener('input', function(){
-  document.getElementById('ipromptCount').textContent = this.value.length;
+/* ================================================================
+   MODEL CONFIG (matches server model IDs exactly)
+================================================================ */
+var IMAGE_MODEL_CONFIG = {
+  'nano-banana-2':                { mode:'text_to_image',  refsRequired:false, maxRefs:14, ratios:['1:1','16:9','9:16','4:3','3:4'],               quality:['1K','2K','4K'],          inputField:'image_input', aspectField:'aspect_ratio',    qualityField:'resolution' },
+  'nano-banana-pro':              { mode:'text_to_image',  refsRequired:false, maxRefs:8,  ratios:['1:1','16:9','9:16','4:3','3:4','21:9'],         quality:['1K','2K','4K'],          inputField:'image_input', aspectField:'aspect_ratio',    qualityField:'resolution' },
+  'google/nano-banana':           { mode:'text_to_image',  refsRequired:false, maxRefs:0,  ratios:['1:1','9:16','16:9','3:4','4:3','3:2','2:3','21:9'], quality:[],                   aspectField:'image_size_raw' },
+  'google/nano-banana-edit':      { mode:'image_edit',     refsRequired:true,  maxRefs:10, ratios:['1:1','9:16','16:9','3:4','4:3','3:2','2:3','21:9'], quality:[],                   inputField:'image_urls', aspectField:'image_size_raw' },
+  'grok-imagine/text-to-image':   { mode:'text_to_image',  refsRequired:false, maxRefs:0,  ratios:['2:3','3:2','1:1','16:9','9:16'],                quality:['speed','quality'],      aspectField:'aspect_ratio',    qualityField:'enable_pro' },
+  'grok-imagine/image-to-image':  { mode:'image_to_image', refsRequired:true,  maxRefs:5,  ratios:['source'],                                       quality:[],                        inputField:'image_urls', aspectField:'none' },
+  'qwen2/text-to-image':          { mode:'text_to_image',  refsRequired:false, maxRefs:0,  ratios:['1:1','3:4','4:3','9:16','16:9'],                quality:[],                        aspectField:'image_size_qwen' },
+  'qwen2/image-edit':             { mode:'image_edit',     refsRequired:true,  maxRefs:1,  ratios:['1:1','2:3','3:2','3:4','4:3','9:16','16:9','21:9'],quality:[],                   inputField:'image_url',   aspectField:'image_size_raw' },
+  'qwen/image-to-image':          { mode:'image_to_image', refsRequired:true,  maxRefs:1,  ratios:['source'],                                       quality:[],                        inputField:'image_url',   aspectField:'none' },
+  'gpt-image/1.5-text-to-image':  { mode:'text_to_image',  refsRequired:false, maxRefs:0,  ratios:['1:1','2:3','3:2'],                              quality:['medium','high'],         aspectField:'aspect_ratio',    qualityField:'quality' },
+  'gpt-image/1.5-image-to-image': { mode:'image_to_image', refsRequired:true,  maxRefs:16, ratios:['1:1','2:3','3:2'],                              quality:['medium','high'],         inputField:'input_urls',  aspectField:'aspect_ratio',    qualityField:'quality' },
+  'seedream/5-lite-text-to-image':{ mode:'text_to_image',  refsRequired:false, maxRefs:0,  ratios:['1:1','4:3','3:4','16:9','9:16','2:3','3:2','21:9'],quality:['basic','high'],     aspectField:'aspect_ratio',    qualityField:'quality' },
+  'seedream/5-lite-image-to-image':{ mode:'image_to_image',refsRequired:true,  maxRefs:14, ratios:['1:1','4:3','3:4','16:9','9:16','2:3','3:2','21:9'],quality:['basic','high'],    inputField:'image_urls',  aspectField:'aspect_ratio',    qualityField:'quality' },
+  'wan/2-7-image-pro':            { mode:'text_to_image',  refsRequired:false, maxRefs:9,  ratios:['1:1','16:9','4:3','21:9','3:4','9:16','8:1','1:8'],quality:['1K','2K','4K'],    inputField:'input_urls',  aspectField:'aspect_ratio',    qualityField:'resolution' },
+};
+var DEFAULT_RATIOS = ['1:1','16:9','9:16','4:3','3:4'];
+
+function getModelCfg() {
+  var id = document.getElementById('imageModel').value;
+  return Object.assign({ id: id }, IMAGE_MODEL_CONFIG[id] || { mode:'text_to_image', refsRequired:false, maxRefs:9, ratios:DEFAULT_RATIOS, quality:[] });
+}
+
+/* ================================================================
+   HELPERS
+================================================================ */
+function ratioToQwenSize(r) {
+  return ({ '1:1':'square_hd','3:4':'portrait_4_3','4:3':'landscape_4_3','9:16':'portrait_16_9','16:9':'landscape_16_9' })[r] || 'square_hd';
+}
+
+function setStatus(msg, kind) {
+  var colors = { info:'#a78bfa', ok:'#34d399', warn:'#fb923c', err:'#fb7185' };
+  var dotColors = { info:'#a78bfa', ok:'#22c55e', warn:'#fb923c', err:'#fb7185' };
+  document.getElementById('statusText').textContent = msg;
+  document.getElementById('statusText').style.color = colors[kind||'info'] || colors.info;
+  document.getElementById('statusDot').style.background = dotColors[kind||'info'] || dotColors.info;
+}
+
+function setBusy(on) {
+  var btn = document.getElementById('btnGen');
+  var txt = document.getElementById('btnGenText');
+  var prog = document.getElementById('prog');
+  var fill = document.getElementById('progFill');
+  btn.disabled = on;
+  if (on) {
+    txt.innerHTML = '<span class="spinner"></span> Generating...';
+    prog.classList.add('on');
+    fill.style.width = '0%';
+    requestAnimationFrame(function(){ fill.style.width = '100%'; });
+  } else {
+    txt.textContent = 'Generate Image';
+    prog.classList.remove('on');
+    fill.style.width = '0%';
+  }
+}
+
+function setOutputButtons(enabled) {
+  ['btnAdd','btnDown','pbAdd','pbDown'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.disabled = !enabled;
+  });
+}
+
+/* ================================================================
+   MODEL UI SYNC
+================================================================ */
+function syncModelUi() {
+  var cfg = getModelCfg();
+  var modeLbls = { text_to_image:'Text to Image', image_to_image:'Image to Image', image_edit:'Image Edit', remove_background:'Remove Background', upscale:'Image Upscale' };
+  document.getElementById('modeText').textContent = modeLbls[cfg.mode] || cfg.mode;
+
+  // Update ref count label
+  var mx = Number.isFinite(Number(cfg.maxRefs)) ? Number(cfg.maxRefs) : 0;
+  var needed = cfg.refsRequired ? 'Required' : 'Optional';
+  document.getElementById('refCountLabel').textContent = needed + (mx > 0 ? ' (max '+mx+')' : '');
+
+  // Rebuild AR chips
+  renderARChips(cfg.ratios);
+
+  // Rebuild resolution list
+  renderResDD(cfg.quality);
+}
+
+function renderARChips(ratios) {
+  var items = (Array.isArray(ratios) && ratios.length) ? ratios : DEFAULT_RATIOS;
+  var host = document.getElementById('arChips');
+  host.innerHTML = items.map(function(r, idx) {
+    var isSpecial = r === 'source' || r === 'adaptive';
+    var cls = 'chip' + (idx === 0 ? ' on' : '') + (isSpecial ? ' disabled' : '');
+    var label = r === 'source' ? 'SOURCE' : (r === 'adaptive' ? 'ADAPTIVE' : r);
+    return '<button class="'+cls+'" data-ratio="'+r+'" onclick="pickAR(this)">'+label+'</button>';
+  }).join('');
+  // Update current AR to first
+  var first = items[0];
+  if (first && first !== 'source' && first !== 'adaptive') {
+    _currentAR = first;
+    document.getElementById('arLabel').textContent = first;
+    document.getElementById('arLabelResult').textContent = first;
+  }
+}
+
+function renderResDD(quality) {
+  var list = document.getElementById('resDD-list');
+  var lbl = document.getElementById('resLbl');
+  if (!Array.isArray(quality) || !quality.length) {
+    list.innerHTML = '<div class="dd-opt sel" data-val="Auto" onclick="pickRes(this)">Auto</div>';
+    lbl.textContent = 'Auto';
+    _currentRes = 'Auto';
+    return;
+  }
+  list.innerHTML = quality.map(function(q, i) {
+    return '<div class="dd-opt'+(i===0?' sel':'')+'" data-val="'+q+'" onclick="pickRes(this)">'+q+'</div>';
+  }).join('');
+  lbl.textContent = quality[0];
+  _currentRes = quality[0];
+}
+
+/* ================================================================
+   DROPDOWNS
+================================================================ */
+function togDD(id) {
+  var list = document.getElementById(id+'-list');
+  var btn = document.querySelector('#'+id+' .dd-btn');
+  var isOpen = list.classList.contains('open');
+  // close all
+  document.querySelectorAll('.dd-list').forEach(function(l){ l.classList.remove('open'); });
+  document.querySelectorAll('.dd-btn').forEach(function(b){ b.classList.remove('open'); });
+  if (!isOpen) { list.classList.add('open'); btn.classList.add('open'); }
+}
+
+function pickM(el) {
+  var id = el.getAttribute('data-model') || '';
+  document.getElementById('imageModel').value = id;
+  document.getElementById('modelLbl').textContent = el.textContent.trim();
+  document.querySelectorAll('#modelDD-list .dd-opt').forEach(function(o){ o.classList.remove('sel'); });
+  el.classList.add('sel');
+  document.getElementById('modelDD-list').classList.remove('open');
+  document.querySelector('#modelDD .dd-btn').classList.remove('open');
+  syncModelUi();
+}
+
+function pickRes(el) {
+  _currentRes = el.getAttribute('data-val') || 'Auto';
+  document.getElementById('resLbl').textContent = el.textContent.trim().split('\u00a0')[0].trim();
+  document.querySelectorAll('#resDD-list .dd-opt').forEach(function(o){ o.classList.remove('sel'); });
+  el.classList.add('sel');
+  document.getElementById('resDD-list').classList.remove('open');
+  document.querySelector('#resDD .dd-btn').classList.remove('open');
+}
+
+document.addEventListener('click', function(ev) {
+  document.querySelectorAll('.dd').forEach(function(d) {
+    if (!d.contains(ev.target)) {
+      var l = d.querySelector('.dd-list'); if (l) l.classList.remove('open');
+      var b = d.querySelector('.dd-btn'); if (b) b.classList.remove('open');
+    }
+  });
 });
 
-function setImageStatus(text, tone){
-  const el = document.getElementById('imageStatus');
-  const colors = { info:'#9cb0cf', ok:'#6cd98d', warn:'#ffcc7a', err:'#ff7b7b' };
-  el.textContent = text;
-  el.style.color = colors[tone || 'info'] || colors.info;
+/* ================================================================
+   ASPECT RATIO
+================================================================ */
+function pickAR(el) {
+  var ratio = el.getAttribute('data-ratio') || '';
+  if (ratio === 'source' || ratio === 'adaptive') return;
+  document.querySelectorAll('#arChips .chip').forEach(function(c){ c.classList.remove('on'); });
+  el.classList.add('on');
+  _currentAR = ratio;
+  document.getElementById('arLabel').textContent = ratio;
+  document.getElementById('arLabelResult').textContent = ratio;
 }
 
-function setImageButtons(enabled){
-  ['addImageBtn','downloadImageBtn'].forEach((id)=>{
-    const b = document.getElementById(id);
-    b.disabled = !enabled;
-    b.style.opacity = enabled ? '1' : '.45';
-    b.style.cursor = enabled ? 'pointer' : 'not-allowed';
-  });
-}
+/* ================================================================
+   REFERENCE IMAGES
+================================================================ */
+function pickImageRefs() { document.getElementById('imageRefsFile').click(); }
 
-function setGenerateBusy(busy){
-  const b = document.getElementById('genImageBtn');
-  b.disabled = !!busy;
-  b.style.opacity = busy ? '.65' : '1';
-  b.style.cursor = busy ? 'not-allowed' : 'pointer';
-  b.textContent = busy ? 'Generating...' : 'Generate Image';
-}
-
-const IMAGE_MODEL_CONFIG = {
-  'nano-banana-2': { mode: 'text_to_image', refsRequired: false, maxRefs: 14, ratios: ['1:1','16:9','9:16','4:3','3:4'], quality: ['1K','2K','4K'], inputField: 'image_input', aspectField: 'aspect_ratio', qualityField: 'resolution', note: 'Balanced quality/speed for everyday generation.' },
-  'nano-banana-pro': { mode: 'text_to_image', refsRequired: false, maxRefs: 8, ratios: ['1:1','16:9','9:16','4:3','3:4','21:9'], quality: ['1K','2K','4K'], inputField: 'image_input', aspectField: 'aspect_ratio', qualityField: 'resolution', note: 'Higher fidelity than Nano Banana 2.' },
-  'google/nano-banana': { mode: 'text_to_image', refsRequired: false, maxRefs: 0, ratios: ['1:1','9:16','16:9','3:4','4:3','3:2','2:3','21:9'], quality: [], aspectField: 'image_size_raw', note: 'Google Nano Banana profile.' },
-  'google/nano-banana-edit': { mode: 'image_edit', refsRequired: true, maxRefs: 10, ratios: ['1:1','9:16','16:9','3:4','4:3','3:2','2:3','21:9'], quality: [], inputField: 'image_urls', aspectField: 'image_size_raw', note: 'Google Nano Banana edit/inpaint profile.' },
-  'grok-imagine/text-to-image': { mode: 'text_to_image', refsRequired: false, maxRefs: 0, ratios: ['2:3','3:2','1:1','16:9','9:16'], quality: ['speed','quality'], aspectField: 'aspect_ratio', qualityField: 'enable_pro', note: 'Prompt-first image synthesis.' },
-  'grok-imagine/image-to-image': { mode: 'image_to_image', refsRequired: true, maxRefs: 5, ratios: ['source'], quality: [], inputField: 'image_urls', aspectField: 'none', note: 'Uses reference image + prompt guidance.' },
-  'qwen2/text-to-image': { mode: 'text_to_image', refsRequired: false, maxRefs: 0, ratios: ['1:1','3:4','4:3','9:16','16:9'], quality: [], aspectField: 'image_size_qwen', note: 'Second-gen text image model.' },
-  'qwen2/image-edit': { mode: 'image_edit', refsRequired: true, maxRefs: 1, ratios: ['1:1','2:3','3:2','3:4','4:3','9:16','16:9','21:9'], quality: [], inputField: 'image_url', aspectField: 'image_size_raw', note: 'Second-gen edit model for precise changes.' },
-  'qwen/image-to-image': { mode: 'image_to_image', refsRequired: true, maxRefs: 1, ratios: ['source'], quality: [], inputField: 'image_url', aspectField: 'none', note: 'Transforms one reference image.' },
-  'gpt-image/1.5-text-to-image': { mode: 'text_to_image', refsRequired: false, maxRefs: 0, ratios: ['1:1','2:3','3:2'], quality: ['medium','high'], aspectField: 'aspect_ratio', qualityField: 'quality', note: 'GPT Image 1.5 text generation profile.' },
-  'gpt-image/1.5-image-to-image': { mode: 'image_to_image', refsRequired: true, maxRefs: 16, ratios: ['1:1','2:3','3:2'], quality: ['medium','high'], inputField: 'input_urls', aspectField: 'aspect_ratio', qualityField: 'quality', note: 'GPT Image 1.5 image transform profile.' },
-  'seedream/5-lite-text-to-image': { mode: 'text_to_image', refsRequired: false, maxRefs: 0, ratios: ['1:1','4:3','3:4','16:9','9:16','2:3','3:2','21:9'], quality: ['basic','high'], aspectField: 'aspect_ratio', qualityField: 'quality', note: 'Lightweight text generation profile.' },
-  'seedream/5-lite-image-to-image': { mode: 'image_to_image', refsRequired: true, maxRefs: 14, ratios: ['1:1','4:3','3:4','16:9','9:16','2:3','3:2','21:9'], quality: ['basic','high'], inputField: 'image_urls', aspectField: 'aspect_ratio', qualityField: 'quality', note: 'Lightweight image transform profile.' },
-  'wan/2-7-image-pro': { mode: 'text_to_image', refsRequired: false, maxRefs: 9, ratios: ['1:1','16:9','4:3','21:9','3:4','9:16','8:1','1:8'], quality: ['1K','2K','4K'], inputField: 'input_urls', aspectField: 'aspect_ratio', qualityField: 'resolution', note: 'Wan pro profile for generate/edit flows.' },
-};
-
-const DEFAULT_RATIO_OPTIONS = ['1:1','16:9','9:16','4:3','3:4'];
-
-function ratioToQwenImageSize(ratio){
-  const map = {
-    '1:1':'square_hd',
-    '3:4':'portrait_4_3',
-    '4:3':'landscape_4_3',
-    '9:16':'portrait_16_9',
-    '16:9':'landscape_16_9'
-  };
-  return map[ratio] || 'square_hd';
-}
-
-function renderRatioChips(ratios){
-  const host = document.getElementById('ratioChips');
-  if(!host) return;
-  const items = Array.isArray(ratios) && ratios.length ? ratios : DEFAULT_RATIO_OPTIONS;
-  const hasSelectable = items.some((x)=>x !== 'source' && x !== 'adaptive');
-  host.innerHTML = items.map((r,idx)=>{
-    const isSpecial = r === 'source' || r === 'adaptive';
-    const active = idx === 0 ? ' a' : '';
-    const text = r === 'source' ? 'SOURCE' : (r === 'adaptive' ? 'ADAPTIVE' : r);
-    return '<span class="ch'+active+(isSpecial ? ' disabled' : '')+'" data-ratio="'+r+'">'+text+'</span>';
-  }).join('');
-  if(hasSelectable){
-    host.querySelectorAll('.ch').forEach((chip)=>{
-      chip.addEventListener('click', function(){
-        const ratio = this.getAttribute('data-ratio') || '';
-        if(ratio === 'source' || ratio === 'adaptive') return;
-        host.querySelectorAll('.ch').forEach((x)=>x.classList.remove('a'));
-        this.classList.add('a');
-      });
-    });
-  }
-}
-
-function getSelectedModelConfig(){
-  const id = document.getElementById('imageModel').value;
-  const cfg = IMAGE_MODEL_CONFIG[id] || { mode: 'text_to_image', refsRequired: false, maxRefs: 9, ratios: ['1:1','16:9','9:16','4:3','3:4'], quality: ['STD','PRO','HIGH'], note: '' };
-  return { id, ...cfg };
-}
-
-function toggleModelDropdown(event){
-  if(event) event.stopPropagation();
-  const dd = document.getElementById('modelDropdown');
-  if(!dd) return;
-  dd.classList.toggle('open');
-}
-
-function closeModelDropdown(){
-  const dd = document.getElementById('modelDropdown');
-  if(!dd) return;
-  dd.classList.remove('open');
-}
-
-function selectModelOption(btn){
-  if(!btn) return;
-  const id = btn.getAttribute('data-model') || '';
-  const label = btn.getAttribute('data-label') || id;
-  document.getElementById('imageModel').value = id;
-  document.getElementById('modelDdLabel').textContent = label;
-  document.querySelectorAll('#modelDdMenu .model-item').forEach((x)=>x.classList.remove('active'));
-  btn.classList.add('active');
-  syncImageModelUi();
-  closeModelDropdown();
-}
-
-function syncImageModelUi(){
-  const cfg = getSelectedModelConfig();
-  const hint = document.getElementById('modelModeHint');
-  const refsMeta = document.getElementById('promptRefsMeta');
-  const modeLabels = {
-    text_to_image: 'Text to Image',
-    image_to_image: 'Image to Image',
-    image_edit: 'Image Edit',
-    remove_background: 'Remove Background',
-    upscale: 'Image Upscale'
-  };
-  const modeLabel = modeLabels[cfg.mode] || cfg.mode;
-  if(hint) hint.textContent = 'Mode: ' + modeLabel;
-  if(refsMeta){
-    const mx = Number.isFinite(Number(cfg.maxRefs)) ? Number(cfg.maxRefs) : 0;
-    const needed = cfg.refsRequired ? 'Required' : 'Optional';
-    refsMeta.textContent = 'References: ' + needed + (mx>0 ? ' (max '+mx+')' : '');
-  }
-  renderRatioChips(cfg.ratios);
-  const qSel = document.getElementById('imageQuality');
-  if(qSel){
-    if(Array.isArray(cfg.quality) && cfg.quality.length){
-      const current = String(qSel.value || '');
-      qSel.innerHTML = cfg.quality.map((q)=>'<option>'+q+'</option>').join('');
-      qSel.value = cfg.quality.includes(current) ? current : String(cfg.quality[0]);
-      qSel.disabled = false;
-      qSel.style.opacity = '1';
-    } else {
-      qSel.innerHTML = '<option>Auto</option>';
-      qSel.value = 'Auto';
-      qSel.disabled = true;
-      qSel.style.opacity = '.6';
-    }
-  }
-}
-
-function pickImageRefs(){
-  document.getElementById('imageRefsFile').click();
-}
-
-async function addReferenceFiles(files){
-  if(!files || !files.length) return;
-  const cfg = getSelectedModelConfig();
-  const maxRefs = Number.isFinite(Number(cfg.maxRefs)) && Number(cfg.maxRefs) > 0 ? Number(cfg.maxRefs) : 9;
-  let added = 0;
-  try{
-    for(const file of Array.from(files)){
-      if(!String(file.type || '').startsWith('image/')) continue;
-      if(imageState.refs.length >= maxRefs){
-        setImageStatus('Max '+maxRefs+' reference images reached for current model.', 'warn');
-        break;
-      }
-      const url = await uploadFile(file, 30);
-      imageState.refs.push({ url, name: file.name });
-      added++;
-    }
-    renderRefs();
-    if(added > 0) setImageStatus('Reference images uploaded.', 'ok');
-  }catch(err){
-    setImageStatus('Upload failed: '+(err && err.message ? err.message : String(err)), 'err');
-  }
-}
-
-function renderRefs(){
-  const host = document.getElementById('refList');
-  host.innerHTML = '';
-  imageState.refs.forEach((r,idx)=>{
-    const row = document.createElement('div');
-    row.className = 'ref-item';
-    const safeName = (r.name||('ref_'+(idx+1))).replace(/"/g,'&quot;');
-    row.innerHTML = '<img src="'+String(r.url||'')+'" alt="'+safeName+'"><span title="'+safeName+'">'+(r.name||('ref_'+(idx+1)))+'</span><button class="rm" data-i="'+idx+'">Remove</button>';
-    host.appendChild(row);
-  });
-  host.querySelectorAll('button.rm[data-i]').forEach((b)=>{
-    b.onclick = function(){
-      const i = Number(this.getAttribute('data-i'));
-      if(Number.isFinite(i)) imageState.refs.splice(i,1);
-      renderRefs();
-    }
-  });
-}
-
-function clearImageRefs(){
-  imageState.refs = [];
-  renderRefs();
-}
-
-async function uploadFile(file, maxMb){
-  if(file.size > maxMb * 1024 * 1024) throw new Error('Max '+maxMb+'MB per file');
-  const base64 = await new Promise((resolve,reject)=>{
-    const reader = new FileReader();
-    reader.onload = ()=>{
-      const out = String(reader.result||'');
-      const idx = out.indexOf(',');
-      if(idx < 0) return reject(new Error('Failed to read file'));
-      resolve(out.slice(idx+1));
-    };
-    reader.onerror = ()=>reject(new Error('Failed to read file'));
-    reader.readAsDataURL(file);
-  });
-  const res = await fetch('/api/upload/frame', {
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ filename:file.name, mimeType:file.type || 'application/octet-stream', base64 })
-  });
-  const json = await res.json();
-  if(!res.ok || !json || !json.url) throw new Error((json && json.msg) || 'Upload failed');
-  return json.url;
-}
-
-async function handleImageRefFiles(input){
-  const files = Array.from(input.files || []);
-  if(files.length) await addReferenceFiles(files);
+async function handleImageRefFiles(input) {
+  var files = Array.from(input.files || []);
+  if (files.length) await addReferenceFiles(files);
   input.value = '';
 }
 
-function getActiveText(id, fallback){
-  const host = document.getElementById(id);
-  const a = host ? host.querySelector('.ch.a') : null;
-  return a ? a.textContent.trim() : fallback;
+async function addReferenceFiles(files) {
+  if (!files || !files.length) return;
+  var cfg = getModelCfg();
+  var maxRefs = (Number.isFinite(Number(cfg.maxRefs)) && Number(cfg.maxRefs) > 0) ? Number(cfg.maxRefs) : 9;
+  var added = 0;
+  try {
+    for (var i = 0; i < files.length; i++) {
+      var file = files[i];
+      if (!String(file.type || '').startsWith('image/')) continue;
+      if (imageState.refs.length >= maxRefs) {
+        setStatus('Max '+maxRefs+' references reached.', 'warn');
+        break;
+      }
+      setStatus('Uploading reference '+(imageState.refs.length+1)+'...', 'info');
+      var url = await uploadFile(file, 30);
+      imageState.refs.push({ url: url, name: file.name });
+      added++;
+    }
+    renderRefs();
+    if (added > 0) setStatus('Reference images uploaded.', 'ok');
+  } catch(err) {
+    setStatus('Upload failed: '+(err && err.message ? err.message : String(err)), 'err');
+  }
 }
 
-async function createTask(model, input){
-  const res = await fetch('/api/kie/createTask', {
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ model, input })
+async function uploadFile(file, maxMb) {
+  if (file.size > maxMb * 1024 * 1024) throw new Error('Max '+maxMb+'MB per file');
+  var base64 = await new Promise(function(resolve, reject) {
+    var reader = new FileReader();
+    reader.onload = function() {
+      var out = String(reader.result || '');
+      var idx = out.indexOf(',');
+      if (idx < 0) return reject(new Error('Failed to read file'));
+      resolve(out.slice(idx + 1));
+    };
+    reader.onerror = function(){ reject(new Error('Failed to read file')); };
+    reader.readAsDataURL(file);
   });
-  const json = await res.json();
-  if(!res.ok || json.code !== 200 || !json.data || !json.data.taskId){
+  var res = await fetch('/api/upload/frame', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ filename: file.name, mimeType: file.type || 'application/octet-stream', base64: base64 })
+  });
+  var json = await res.json();
+  if (!res.ok || !json || !json.url) throw new Error((json && json.msg) || 'Upload failed');
+  return json.url;
+}
+
+function renderRefs() {
+  var host = document.getElementById('refList');
+  host.innerHTML = '';
+  imageState.refs.forEach(function(r, idx) {
+    var div = document.createElement('div');
+    div.className = 'ref-thumb';
+    var img = document.createElement('img');
+    img.src = r.url || '';
+    img.alt = r.name || ('ref_'+(idx+1));
+    var rm = document.createElement('div');
+    rm.className = 'rm-btn';
+    rm.textContent = '\u2715';
+    rm.addEventListener('click', function() {
+      imageState.refs.splice(idx, 1);
+      renderRefs();
+    });
+    div.appendChild(img);
+    div.appendChild(rm);
+    host.appendChild(div);
+  });
+  var ct = imageState.refs.length;
+  document.getElementById('refTitle').textContent = ct > 0 ? ct+' reference'+(ct>1?'s':'')+' loaded' : 'Upload image as a prompt';
+  document.getElementById('refSub').textContent = ct > 0 ? 'Click to add more' : 'or use text description only';
+}
+
+/* ================================================================
+   PROMPT
+================================================================ */
+function updateCount() {
+  document.getElementById('charCount').textContent = document.getElementById('promptBox').value.length;
+}
+
+/* ================================================================
+   KIE API HELPERS
+================================================================ */
+async function createTask(model, input) {
+  var res = await fetch('/api/kie/createTask', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model: model, input: input })
+  });
+  var json = await res.json();
+  if (!res.ok || json.code !== 200 || !json.data || !json.data.taskId) {
     throw new Error(json.msg || ('Create task failed ('+res.status+')'));
   }
   return json.data.taskId;
 }
 
-async function waitTask(taskId, timeoutMs){
-  const start = Date.now();
-  while(Date.now() - start < timeoutMs){
-    const res = await fetch('/api/kie/recordInfo?taskId='+encodeURIComponent(taskId));
-    const json = await res.json();
-    if(!res.ok || json.code !== 200 || !json.data){
+async function waitTask(taskId, timeoutMs) {
+  var start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    var res = await fetch('/api/kie/recordInfo?taskId='+encodeURIComponent(taskId));
+    var json = await res.json();
+    if (!res.ok || json.code !== 200 || !json.data) {
       throw new Error(json.msg || ('Polling failed ('+res.status+')'));
     }
-    const st = String(json.data.state || '').toLowerCase();
-    if(st === 'success') return json.data;
-    if(st === 'fail') throw new Error(json.data.failMsg || json.data.failCode || 'Task failed');
-    await new Promise((r)=>setTimeout(r,1800));
+    var st = String(json.data.state || '').toLowerCase();
+    if (st === 'success') return json.data;
+    if (st === 'fail') throw new Error(json.data.failMsg || json.data.failCode || 'Task failed');
+    await new Promise(function(r){ setTimeout(r, 1800); });
   }
   throw new Error('Timeout waiting for image result');
 }
 
-function parseResultUrls(record){
-  const raw = record && record.resultJson;
-  if(!raw) return [];
-  let parsed = null;
-  if(typeof raw === 'object') parsed = raw;
-  else { try{ parsed = JSON.parse(raw); }catch{} }
-  if(!parsed) return [];
-  if(Array.isArray(parsed.resultUrls)) return parsed.resultUrls.filter(Boolean);
-  if(parsed.resultObject && Array.isArray(parsed.resultObject.resultUrls)) return parsed.resultObject.resultUrls.filter(Boolean);
-  if(parsed.resultObject && parsed.resultObject.url) return [parsed.resultObject.url];
-  if(parsed.resultObject && parsed.resultObject.image_url) return [parsed.resultObject.image_url];
+function parseResultUrls(record) {
+  var raw = record && record.resultJson;
+  if (!raw) return [];
+  var parsed = null;
+  if (typeof raw === 'object') parsed = raw;
+  else { try { parsed = JSON.parse(raw); } catch(e){} }
+  if (!parsed) return [];
+  if (Array.isArray(parsed.resultUrls)) return parsed.resultUrls.filter(Boolean);
+  if (parsed.resultObject && Array.isArray(parsed.resultObject.resultUrls)) return parsed.resultObject.resultUrls.filter(Boolean);
+  if (parsed.resultObject && parsed.resultObject.url) return [parsed.resultObject.url];
+  if (parsed.resultObject && parsed.resultObject.image_url) return [parsed.resultObject.image_url];
   return [];
 }
 
-async function generateImage(){
-  const prompt = (document.getElementById('iprompt').value || '').trim();
-  const selectedCfg = getSelectedModelConfig();
-  const model = selectedCfg.id;
-  if(!model){
-    setImageStatus('Model id is required.', 'warn');
-    return;
-  }
-  const isTextMode = selectedCfg.mode === 'text_to_image';
-  const requiresRef = selectedCfg.mode === 'image_to_image' || selectedCfg.mode === 'image_edit' || selectedCfg.mode === 'remove_background' || selectedCfg.mode === 'upscale';
-  if(isTextMode && !prompt){
-    setImageStatus('Prompt is required for this model.', 'warn');
-    return;
-  }
-  if(requiresRef && !imageState.refs.length){
-    setImageStatus('This model requires at least 1 reference image.', 'warn');
-    return;
-  }
+/* ================================================================
+   GENERATE
+================================================================ */
+async function generateImage() {
+  var prompt = (document.getElementById('promptBox').value || '').trim();
+  var cfg = getModelCfg();
+  var isTextMode = cfg.mode === 'text_to_image';
+  var requiresRef = cfg.mode === 'image_to_image' || cfg.mode === 'image_edit';
 
-  const ratio = getActiveText('ratioChips', '1:1');
-  const quality = (document.getElementById('imageQuality').value || '').trim();
-  const seedRaw = (document.getElementById('seedInput').value || '').trim();
+  if (isTextMode && !prompt) { setStatus('Prompt is required for this model.', 'warn'); return; }
+  if (requiresRef && !imageState.refs.length) { setStatus('This model requires at least 1 reference image.', 'warn'); return; }
 
-  const input = {};
-  if(prompt) input.prompt = prompt;
-
-  if(selectedCfg.aspectField === 'aspect_ratio'){
-    if(ratio && ratio !== 'source' && ratio !== 'adaptive') input.aspect_ratio = ratio;
-  } else if(selectedCfg.aspectField === 'image_size_raw'){
-    if(ratio && ratio !== 'source' && ratio !== 'adaptive') input.image_size = ratio;
-  } else if(selectedCfg.aspectField === 'image_size_qwen'){
-    if(ratio && ratio !== 'source' && ratio !== 'adaptive') input.image_size = ratioToQwenImageSize(ratio);
+  var seedRaw = (document.getElementById('seedInput').value || '').trim();
+  if (seedRaw) {
+    var s = Number(seedRaw);
+    if (!Number.isInteger(s)) { setStatus('Seed must be an integer.', 'warn'); return; }
   }
 
-  if(quality && quality !== 'Auto'){
-    if(selectedCfg.qualityField === 'resolution'){
-      input.resolution = quality;
-    } else if(selectedCfg.qualityField === 'quality'){
-      input.quality = quality;
-    } else if(selectedCfg.qualityField === 'enable_pro'){
-      input.enable_pro = quality === 'quality';
+  setBusy(true);
+  setOutputButtons(false);
+  setStatus('Submitting image task...', 'info');
+
+  try {
+    var input = {};
+    if (prompt) input.prompt = prompt;
+
+    // aspect / image_size
+    if (cfg.aspectField === 'aspect_ratio') {
+      if (_currentAR && _currentAR !== 'source' && _currentAR !== 'adaptive') input.aspect_ratio = _currentAR;
+    } else if (cfg.aspectField === 'image_size_raw') {
+      if (_currentAR && _currentAR !== 'source' && _currentAR !== 'adaptive') input.image_size = _currentAR;
+    } else if (cfg.aspectField === 'image_size_qwen') {
+      if (_currentAR && _currentAR !== 'source' && _currentAR !== 'adaptive') input.image_size = ratioToQwenSize(_currentAR);
     }
-  }
 
-  const maxRefs = Number.isFinite(Number(selectedCfg.maxRefs)) && Number(selectedCfg.maxRefs) > 0 ? Number(selectedCfg.maxRefs) : 9;
-  const refs = imageState.refs.slice(0, maxRefs);
-  if(imageState.refs.length > maxRefs){
-    setImageStatus('Using first '+maxRefs+' references (model limit).', 'warn');
-  }
-  if(refs.length){
-    const refUrls = refs.map((x)=>x.url);
-    if(selectedCfg.inputField === 'image_input'){
-      input.image_input = refUrls;
-    } else if(selectedCfg.inputField === 'image_urls'){
-      input.image_urls = refUrls;
-    } else if(selectedCfg.inputField === 'input_urls'){
-      input.input_urls = refUrls;
-      delete input.aspect_ratio;
-      delete input.image_size;
-    } else {
-      input.image_url = refUrls[0];
+    // quality / resolution
+    if (_currentRes && _currentRes !== 'Auto') {
+      if (cfg.qualityField === 'resolution') input.resolution = _currentRes;
+      else if (cfg.qualityField === 'quality') input.quality = _currentRes;
+      else if (cfg.qualityField === 'enable_pro') input.enable_pro = (_currentRes === 'quality');
     }
-  }
-  if(seedRaw){
-    const s = Number(seedRaw);
-    if(!Number.isInteger(s)){
-      setImageStatus('Seed must be an integer.', 'warn');
-      return;
+
+    // references
+    var maxRefs = (Number.isFinite(Number(cfg.maxRefs)) && Number(cfg.maxRefs) > 0) ? Number(cfg.maxRefs) : 9;
+    var refs = imageState.refs.slice(0, maxRefs);
+    if (imageState.refs.length > maxRefs) setStatus('Using first '+maxRefs+' references (model limit).', 'warn');
+    if (refs.length) {
+      var refUrls = refs.map(function(x){ return x.url; });
+      if (cfg.inputField === 'image_input') input.image_input = refUrls;
+      else if (cfg.inputField === 'image_urls') input.image_urls = refUrls;
+      else if (cfg.inputField === 'input_urls') { input.input_urls = refUrls; delete input.aspect_ratio; delete input.image_size; }
+      else input.image_url = refUrls[0];
     }
-    input.seed = s;
-  }
 
-  setGenerateBusy(true);
-  setImageButtons(false);
-  setImageStatus('Submitting image task...', 'info');
+    if (seedRaw) input.seed = Number(seedRaw);
 
-  try{
-    const taskId = await createTask(model, input);
-    setImageStatus('Task queued: '+taskId.slice(0,16)+'...', 'info');
-    const record = await waitTask(taskId, 240000);
-    const urls = parseResultUrls(record);
-    if(!urls.length) throw new Error('No output image URL returned');
+    var _imgTracker = (window.ActiveJobTracker && window.ActiveJobTracker.create('image'));
+    var taskId = await createTask(cfg.id, input);
+    setStatus('Generating\u2026 task: '+taskId.slice(0,12)+'...', 'info');
+    if (_imgTracker) _imgTracker.save({ taskId: taskId, modelId: cfg.id, label: cfg.label||'Image', aspectRatio: _currentAR });
+    var record = await waitTask(taskId, 240000);
+    var urls = parseResultUrls(record);
+    if (!urls.length) throw new Error('No output image URL returned');
 
     imageState.latestUrl = urls[0];
     imageState.latestName = 'generated_image_'+Date.now()+'.png';
 
-    const img = document.getElementById('imagePreview');
-    img.src = imageState.latestUrl;
-    img.style.display = 'block';
-    document.getElementById('imgPlaceholder').style.display = 'none';
-
-    setImageButtons(true);
-    setImageStatus('Image generated — adding to timeline...', 'ok');
+    showResult(urls[0]);
+    setOutputButtons(true);
+    if (_imgTracker) _imgTracker.clear();
+    setStatus('\u2713 Image generated successfully!', 'ok');
     addImageToTimeline();
-  }catch(err){
-    setImageStatus('Generation failed: '+(err && err.message ? err.message : String(err)), 'err');
-  }finally{
-    setGenerateBusy(false);
+  } catch(err) {
+    var _t = (window.ActiveJobTracker && window.ActiveJobTracker.create('image'));
+    if (_t) _t.clear();
+    setStatus('Failed: '+(err && err.message ? err.message : String(err)), 'err');
+  } finally {
+    setBusy(false);
   }
 }
 
-function addImageToTimeline(){
-  if(!imageState.latestUrl){
-    setImageStatus('No image to add.', 'warn');
-    return;
+/* Resume in-flight image job after refresh */
+async function resumeActiveImageJob(){
+  var tracker = (window.ActiveJobTracker && window.ActiveJobTracker.create('image'));
+  if (!tracker) return;
+  var saved = tracker.load();
+  if (!saved || !saved.taskId) return;
+  setBusy(true);
+  setStatus('Resuming '+(saved.label||'image')+' generation\u2026', 'info');
+  try {
+    var record = await waitTask(saved.taskId, 300000);
+    var urls = parseResultUrls(record);
+    if (!urls.length) throw new Error('No output image URL returned');
+    imageState.latestUrl = urls[0];
+    imageState.latestName = 'generated_image_'+Date.now()+'.png';
+    showResult(urls[0]);
+    setOutputButtons(true);
+    tracker.clear();
+    setStatus('\u2713 Image generated successfully!', 'ok');
+    addImageToTimeline();
+  } catch(err) {
+    tracker.clear();
+    setStatus('Resume failed: '+(err && err.message ? err.message : String(err)), 'err');
+  } finally {
+    setBusy(false);
   }
-  const payload = {
-    type:'ff:addClip',
-    clip:{
+}
+
+/* ================================================================
+   RESULT
+================================================================ */
+function showResult(url) {
+  document.getElementById('emptyPrev').style.display = 'none';
+  var wrap = document.getElementById('resultWrap');
+  wrap.classList.add('on');
+  var img = document.getElementById('resultImg');
+  img.src = url;
+  document.getElementById('arLabelResult').textContent = _currentAR;
+}
+
+/* ================================================================
+   TIMELINE + DOWNLOAD
+================================================================ */
+function addImageToTimeline() {
+  if (!imageState.latestUrl) { setStatus('No image to add.', 'warn'); return; }
+  var payload = {
+    type: 'ff:addClip',
+    clip: {
       label: imageState.latestName || ('image_'+Date.now()+'.png'),
       url: imageState.latestUrl,
-      trackType:'image',
-      durationSec:5
+      trackType: 'image',
+      durationSec: 5
     }
   };
-  try{
-    if(window.parent && window.parent !== window){
-      const tf = window.parent.document.getElementById('timelineFrame');
-      if(tf && tf.contentWindow) tf.contentWindow.postMessage(payload,'*');
+  try {
+    if (window.parent && window.parent !== window) {
+      var tf = window.parent.document.getElementById('timelineFrame');
+      if (tf && tf.contentWindow) tf.contentWindow.postMessage(payload, '*');
     }
-  }catch{}
-  try{
-    const external = document.querySelector('#external-timeline-host iframe');
-    if(external && external.contentWindow) external.contentWindow.postMessage(payload,'*');
-  }catch{}
-  setImageStatus('Image added to timeline.', 'ok');
+  } catch(e){}
+  setStatus('Image added to timeline.', 'ok');
 }
 
-function downloadImage(){
-  if(!imageState.latestUrl){
-    setImageStatus('No image to download.', 'warn');
-    return;
-  }
-  const a = document.createElement('a');
+function downloadImage() {
+  if (!imageState.latestUrl) { setStatus('No image to download.', 'warn'); return; }
+  var a = document.createElement('a');
   a.href = imageState.latestUrl;
   a.target = '_blank';
-  a.rel = 'noopener';
+  a.rel = 'noopener noreferrer';
   a.download = imageState.latestName || 'generated_image.png';
   document.body.appendChild(a);
   a.click();
-  a.remove();
-  setImageStatus('Download started.', 'ok');
+  document.body.removeChild(a);
+  setStatus('Download started.', 'ok');
 }
 
-setImageButtons(false);
-syncImageModelUi();
-const promptComposer = document.getElementById('promptComposer');
-if(promptComposer){
-  ['dragenter','dragover'].forEach((evt)=>{
-    promptComposer.addEventListener(evt, function(e){
-      e.preventDefault();
-      e.stopPropagation();
-      promptComposer.classList.add('drag');
-    });
-  });
-  ['dragleave','drop'].forEach((evt)=>{
-    promptComposer.addEventListener(evt, function(e){
-      e.preventDefault();
-      e.stopPropagation();
-      promptComposer.classList.remove('drag');
-    });
-  });
-  promptComposer.addEventListener('drop', function(e){
-    const files = Array.from((e.dataTransfer && e.dataTransfer.files) || []);
-    if(files.length) addReferenceFiles(files);
-  });
-}
-document.addEventListener('click', function(ev){
-  const dd = document.getElementById('modelDropdown');
-  if(!dd) return;
-  if(!dd.contains(ev.target)) closeModelDropdown();
-});
+/* ================================================================
+   INIT
+================================================================ */
+setOutputButtons(false);
+syncModelUi();
+resumeActiveImageJob();
 </script>
 <script src="shared/timeline-bridge.js"></script>
 <script src="shared/english-only.js"></script>
