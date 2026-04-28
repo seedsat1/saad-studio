@@ -74,10 +74,19 @@ function inferImageInputField(kieModelId: string): "image_url" | "image_input" |
 }
 
 function resolveFlux2Variant(modelId: string, hasReferenceImages: boolean, quality?: string | null): string {
-  if (modelId !== "flux-2") return modelId;
+  const normalized = modelId.toLowerCase();
+  let prefix: "pro" | "flex" | null = null;
 
-  const tier = typeof quality === "string" ? quality.trim().toUpperCase() : "";
-  const prefix = tier === "1K" ? "flex" : "pro";
+  if (normalized === "flux-2/flex") {
+    prefix = "flex";
+  } else if (normalized === "flux-2/pro" || normalized === "flux-2/max") {
+    prefix = "pro";
+  } else if (normalized === "flux-2") {
+    const tier = typeof quality === "string" ? quality.trim().toUpperCase() : "";
+    prefix = tier === "1K" ? "flex" : "pro";
+  }
+
+  if (!prefix) return modelId;
   return hasReferenceImages
     ? `flux-2/${prefix}-image-to-image`
     : `flux-2/${prefix}-text-to-image`;

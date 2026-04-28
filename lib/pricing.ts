@@ -247,6 +247,9 @@ const MODEL_ALIAS_MAP: Record<string, string> = {
   "flux-2/pro-image-to-image":          "flux2_pro_i",
   "flux-2/flex-text-to-image":          "flux2_flex_t",
   "flux-2/flex-image-to-image":         "flux2_flex_i",
+  "flux-2/pro":                         "flux2_pro_t",
+  "flux-2/flex":                        "flux2_flex_t",
+  "flux-2/max":                         "flux2_pro_t",
   "flux-2":                             "flux2_flex_t",
 
   // ── Tools — app/api/generate/* (WaveSpeed tool routes) ───────────────────

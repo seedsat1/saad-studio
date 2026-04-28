@@ -96,7 +96,15 @@ const TOOLS = [
 ];
 
 const EDIT_MODELS = IMAGE_MODELS.filter((m) =>
-  ["google/nano-banana-edit", "seedream/4.5-edit", "gpt-image-2-image-to-image", "gpt-image/1.5-image-to-image", "flux-2"].includes(m.id),
+  [
+    "google/nano-banana-edit",
+    "seedream/4.5-edit",
+    "gpt-image-2-image-to-image",
+    "gpt-image/1.5-image-to-image",
+    "flux-2/pro",
+    "flux-2/flex",
+    "flux-2/max",
+  ].includes(m.id),
 );
 
 // All models that accept real image inputs (any inputType) — includes Nano Banana (up to 14 imgs), edit, and pure img2img
@@ -265,7 +273,7 @@ function ModelDropdown({ selected, onSelect }: { selected: ImageModel; onSelect:
         </div>
         <div className="min-w-0 flex-1 text-left">
           <p className="truncate text-xs font-semibold text-white">{selected.label}</p>
-          <p className="truncate text-[10px] text-zinc-500">{selected.id}</p>
+          <p className="truncate text-[10px] text-zinc-500">{selected.sublabel || selected.id}</p>
         </div>
         {selected.badge ? <span className="rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[9px] font-bold text-amber-300">{selected.badge}</span> : null}
         <ChevronDown className={cn("h-4 w-4 text-zinc-500 transition", open && "rotate-180")} />
@@ -295,7 +303,10 @@ function ModelDropdown({ selected, onSelect }: { selected: ImageModel; onSelect:
                     {models.map((model) => (
                       <button key={model.id} onClick={() => { onSelect(model); setOpen(false); }} className={cn("flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-white/[0.07]", selected.id === model.id && "bg-white/10")}>
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-xs font-semibold text-zinc-100">{model.label}</p>
+                          <div className="flex min-w-0 items-center gap-1.5">
+                            <p className="truncate text-xs font-semibold text-zinc-100">{model.label}</p>
+                            {model.badge ? <span className="shrink-0 rounded-full bg-lime-300 px-1.5 py-0.5 text-[8px] font-black uppercase text-black">{model.badge}</span> : null}
+                          </div>
                           <p className="truncate text-[10px] text-zinc-500">{model.sublabel || model.id}</p>
                         </div>
                         {selected.id === model.id ? <Check className="h-3.5 w-3.5 text-pink-400" /> : null}
