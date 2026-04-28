@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { getDefaultLayout } from "./cms-templates";
 
 export type CmsBlockType = "HERO" | "FEATURE_CARD" | "DISCOVER_GRID" | "TESTIMONIAL";
 
@@ -29,10 +30,20 @@ export function usePageLayout(pageName: string) {
       .then((data) => {
         if (cancelled) return;
         const raw = Array.isArray(data?.layoutBlocks) ? data.layoutBlocks : [];
+        if (raw.length === 0 && data?.layoutBlocks?.heroSlides) {
+          // It's a structured layout, convert to blocks if possible or keep empty
+          // For now, if it's structured, we don't try to map it to CmsLayoutBlock[]
+          // unless we want to support that.
+        }
         setBlocks(raw as CmsLayoutBlock[]);
       })
       .catch(() => {
-        if (!cancelled) setBlocks([]);
+        if (!cancelled) {
+          const fallback = getDefaultLayout(pageName);
+          // If fallback has blocks in a specific format, we could map them here.
+          // For now, keep it simple.
+          setBlocks([]);
+        }
       });
     return () => {
       cancelled = true;

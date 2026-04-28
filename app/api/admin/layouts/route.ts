@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { isAdmin } from "@/lib/is-admin";
 import prismadb from "@/lib/prismadb";
+import { getDefaultLayout } from "@/lib/cms-templates";
 
 export async function GET(req: NextRequest) {
   if (!(await isAdmin())) {
@@ -9,13 +10,24 @@ export async function GET(req: NextRequest) {
   }
 
   const { searchParams } = new URL(req.url);
-  const pageName = searchParams.get("page") ?? "home";
+  const pageName = searchParams.get("page") ?? "cms-home";
+  const slug = pageName.startsWith("cms-") ? pageName.replace("cms-", "") : pageName;
 
   try {
     const layout = await prismadb.pageLayout.findUnique({ where: { pageName } });
-    return NextResponse.json(layout ?? { pageName, layoutBlocks: [] });
+    if (layout) {
+      return NextResponse.json(layout);
+    }
+    // Fallback to registry if not in DB
+    return NextResponse.json({
+      pageName,
+      layoutBlocks: getDefaultLayout(slug),
+    });
   } catch {
-    return NextResponse.json({ pageName, layoutBlocks: [] });
+    return NextResponse.json({
+      pageName,
+      layoutBlocks: getDefaultLayout(slug),
+    });
   }
 }
 

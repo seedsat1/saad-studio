@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { getDefaultLayout } from "./cms-templates";
 
 /**
  * Fetch structured CMS data for any page.
@@ -20,10 +21,13 @@ export function useCmsData<T = Record<string, unknown>>(page: string) {
         const blocks = res?.layoutBlocks;
         if (blocks && typeof blocks === "object" && !Array.isArray(blocks)) {
           setData(blocks as T);
+        } else {
+          // Fallback to registry if API fails to provide object
+          setData(getDefaultLayout(page) as unknown as T);
         }
       })
       .catch(() => {
-        if (!cancelled) setData(null);
+        if (!cancelled) setData(getDefaultLayout(page) as unknown as T);
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
