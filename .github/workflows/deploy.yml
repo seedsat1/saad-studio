@@ -1,0 +1,55 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: SSH deploy to saadstudio VPS
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Trigger remote deploy over SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          command_timeout: 20m
+          script: |
+            set -euo pipefail
+            DEPLOY_PATH="${{ secrets.DEPLOY_PATH }}"
+            if [ -z "$DEPLOY_PATH" ]; then
+              echo "DEPLOY_PATH secret is not set" >&2
+              exit 1
+            fi
+
+            cd "$DEPLOY_PATH"
+
+            echo "==> git fetch & reset to origin/main"
+            git fetch --all --prune
+            git reset --hard origin/main
+
+            echo "==> npm ci"
+            npm ci --legacy-peer-deps
+
+            echo "==> prisma generate (safe no-op if not used)"
+            npx prisma generate || true
+
+            echo "==> next build"
+            npm run build
+
+            echo "==> pm2 restart saadstudio"
+            pm2 restart saadstudio --update-env
+            pm2 save
+
+            echo "==> deploy done: $(git rev-parse --short HEAD)"

@@ -1,0 +1,21 @@
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  // IMPORTANT: Capacitor needs static export
+  output: 'export',
+
+  // Disable image optimization (not available in static export)
+  images: {
+    unoptimized: true,
+  },
+
+  // Trailing slashes help with file-based routing in Capacitor
+  trailingSlash: true,
+
+  // Your existing config options below...
+  // Copy everything from your current next.config.js and add the above
+
+  // Example: if you have rewrites/redirects, they won't work in static export
+  // You'll need to handle routing client-side instead
+};
+
+module.exports = nextConfig;
