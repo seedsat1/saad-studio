@@ -296,7 +296,7 @@ function ModelDropdown({ selected, onSelect }: { selected: ImageModel; onSelect:
                       <button key={model.id} onClick={() => { onSelect(model); setOpen(false); }} className={cn("flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-white/[0.07]", selected.id === model.id && "bg-white/10")}>
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-xs font-semibold text-zinc-100">{model.label}</p>
-                          <p className="truncate text-[10px] text-zinc-500">{model.id}</p>
+                          <p className="truncate text-[10px] text-zinc-500">{model.sublabel || model.id}</p>
                         </div>
                         {selected.id === model.id ? <Check className="h-3.5 w-3.5 text-pink-400" /> : null}
                       </button>

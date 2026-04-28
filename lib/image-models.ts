@@ -369,8 +369,8 @@ export const IMAGE_MODELS: ImageModel[] = [
   // ── Flux-2 (PiAPI / Pro & Flex variants) ─────────────────────────────────────
   {
     id: "flux-2/pro-image-to-image",
-    label: "Flux-2 Pro I2I",
-    sublabel: "Pro Image to Image",
+    label: "FLUX.2 Pro - Image to Image",
+    sublabel: "Reference image generation",
     badge: "NEW",
     group: "Flux-2",
     inputType: "image-to-image",
@@ -385,8 +385,8 @@ export const IMAGE_MODELS: ImageModel[] = [
   },
   {
     id: "flux-2/pro-text-to-image",
-    label: "Flux-2 Pro T2I",
-    sublabel: "Pro Text to Image",
+    label: "FLUX.2 Pro - Text to Image",
+    sublabel: "Prompt-only generation",
     badge: "NEW",
     group: "Flux-2",
     inputType: "text-to-image",
@@ -398,8 +398,8 @@ export const IMAGE_MODELS: ImageModel[] = [
   },
   {
     id: "flux-2/flex-image-to-image",
-    label: "Flux-2 Flex I2I",
-    sublabel: "Image to Image",
+    label: "FLUX.2 Flex - Image to Image",
+    sublabel: "Reference image generation",
     badge: "",
     group: "Flux-2",
     inputType: "image-to-image",
@@ -412,8 +412,8 @@ export const IMAGE_MODELS: ImageModel[] = [
   },
   {
     id: "flux-2/flex-text-to-image",
-    label: "Flux-2 Flex T2I",
-    sublabel: "Text to Image",
+    label: "FLUX.2 Flex - Text to Image",
+    sublabel: "Prompt-only generation",
     badge: "",
     group: "Flux-2",
     inputType: "text-to-image",
