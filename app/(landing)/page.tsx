@@ -48,6 +48,26 @@ type HeroSlide = {
 
 const isVideoUrl = (url?: string) => Boolean(url && /\.(mp4|webm|mov|ogg)([?#]|$)/i.test(url));
 
+function stablePositiveIntFromString(input: string): number {
+  let hash = 5381;
+  for (let i = 0; i < input.length; i++) {
+    hash = ((hash << 5) + hash) ^ input.charCodeAt(i);
+  }
+  const n = hash >>> 0;
+  return (n % 1_000_000_000) + 1;
+}
+
+function safeParseJsonObject(input: string | null | undefined): Record<string, unknown> {
+  if (!input) return {};
+  try {
+    const parsed = JSON.parse(input);
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) return parsed as Record<string, unknown>;
+    return {};
+  } catch {
+    return {};
+  }
+}
+
 const TOOL_CARD_VIDEOS: Record<string, string> = {
   "create-image": "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
   "create-video": "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
@@ -464,7 +484,15 @@ function getYouTubeId(url: string): string | null {
   }
 }
 
-function HeroCarousel({ slides = HERO_SLIDES }: { slides?: HeroSlide[] }) {
+function HeroCarousel({
+  slides = HERO_SLIDES,
+  primaryCtaLabel = "Try Now",
+  trailerLabel = "Watch Trailer",
+}: {
+  slides?: HeroSlide[];
+  primaryCtaLabel?: string;
+  trailerLabel?: string;
+}) {
   const [active, setActive] = useState(0);
   const [dir, setDir] = useState(1);
   const [trailerOpen, setTrailerOpen] = useState(false);
@@ -592,7 +620,7 @@ function HeroCarousel({ slides = HERO_SLIDES }: { slides?: HeroSlide[] }) {
                     )}
                   >
                     <Zap className="h-4 w-4" />
-                    Try Now
+                    {primaryCtaLabel}
                   </motion.button>
                 </Link>
                 {trailerYtId && (
@@ -603,7 +631,7 @@ function HeroCarousel({ slides = HERO_SLIDES }: { slides?: HeroSlide[] }) {
                     className="flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-6 py-3 text-sm font-semibold text-white backdrop-blur-sm hover:bg-white/15 transition-colors"
                   >
                     <Play className="h-3.5 w-3.5 fill-white" />
-                    Watch Trailer
+                    {trailerLabel}
                   </motion.button>
                 )}
               </div>
@@ -718,14 +746,24 @@ function StatsCounter() {
 }
 
 // ─── 2. Core Tools Horizontal Scroll ──────────────────────────────────────────
-function CoreToolsRow({ cards = CORE_TOOLS }: { cards?: ToolCard[] }) {
+function CoreToolsRow({
+  cards = CORE_TOOLS,
+  title = "Core Studio Tools",
+  cta = "View All",
+  ctaHref = "/apps",
+}: {
+  cards?: ToolCard[];
+  title?: string;
+  cta?: string;
+  ctaHref?: string;
+}) {
   const rowRef = useRef<HTMLDivElement>(null);
   const scroll = (dir: number) => rowRef.current?.scrollBy({ left: dir * 300, behavior: "smooth" });
 
   return (
     <FadeIn>
       <section className="relative">
-        <SectionHeading title="Core Studio Tools" cta="View All" ctaHref="/apps" />
+        <SectionHeading title={title} cta={cta} ctaHref={ctaHref} />
         <div className="relative">
           <button
             onClick={() => scroll(-1)}
@@ -1132,14 +1170,61 @@ export default function ExplorePage() {
   const promoContent = usePromoContent();
   const { data: cms } = useCmsData<HomeCmsData>("home");
 
-  // ── Hero Slides: CMS → layout blocks → promo → hardcoded defaults ──────────
+  type PublicPageContent = { textContent?: string | null } | null;
+
+  const [heroContent, setHeroContent] = useState<PublicPageContent>(null);
+  const [coreToolsContent, setCoreToolsContent] = useState<PublicPageContent>(null);
+
+  useEffect(() => {
+    fetch("/api/content?slug=home&sectionName=hero")
+      .then((r) => r.json())
+      .then((d) => setHeroContent(d))
+      .catch(() => {});
+    fetch("/api/content?slug=home&sectionName=coreTools")
+      .then((r) => r.json())
+      .then((d) => setCoreToolsContent(d))
+      .catch(() => {});
+  }, []);
+
+  const heroSectionText = useMemo(() => safeParseJsonObject(heroContent?.textContent), [heroContent?.textContent]);
+  const coreToolsSectionText = useMemo(() => safeParseJsonObject(coreToolsContent?.textContent), [coreToolsContent?.textContent]);
+
+  const heroPrimaryCtaLabel =
+    typeof heroSectionText.primaryCtaLabel === "string" && heroSectionText.primaryCtaLabel.trim()
+      ? heroSectionText.primaryCtaLabel.trim()
+      : "Try Now";
+  const heroTrailerLabel =
+    typeof heroSectionText.trailerLabel === "string" && heroSectionText.trailerLabel.trim()
+      ? heroSectionText.trailerLabel.trim()
+      : "Watch Trailer";
+
+  const coreToolsTitle =
+    typeof coreToolsSectionText.title === "string" && coreToolsSectionText.title.trim()
+      ? coreToolsSectionText.title.trim()
+      : "Core Studio Tools";
+  const coreToolsCta =
+    (typeof coreToolsSectionText.cta === "string" && coreToolsSectionText.cta.trim()
+      ? coreToolsSectionText.cta.trim()
+      : null) ??
+    (typeof coreToolsSectionText.ctaText === "string" && coreToolsSectionText.ctaText.trim()
+      ? coreToolsSectionText.ctaText.trim()
+      : "View All");
+  const coreToolsCtaHref =
+    (typeof coreToolsSectionText.ctaHref === "string" && coreToolsSectionText.ctaHref.trim()
+      ? coreToolsSectionText.ctaHref.trim()
+      : null) ??
+    (typeof coreToolsSectionText.ctaLink === "string" && coreToolsSectionText.ctaLink.trim()
+      ? coreToolsSectionText.ctaLink.trim()
+      : "/apps");
+
+  // ── Hero Slides: CMS layout (cms-home) → promo → hardcoded defaults ─────────
   const homeHeroSlides = useMemo<HeroSlide[]>(() => {
-    // Priority 1: CMS data from admin/cms
     if (cms?.heroSlides && cms.heroSlides.length > 0) {
       return cms.heroSlides.map((s, idx) => {
         const fallback = HERO_SLIDES[idx % HERO_SLIDES.length];
+        const stableKey = s._id || `${s.title}|${s.ctaHref}|${idx}`;
         return {
-          id: idx + 1,
+          id: stablePositiveIntFromString(stableKey),
           title: s.title || fallback.title,
           subtitle: s.subtitle || fallback.subtitle,
           tag: s.tag || fallback.tag,
@@ -1154,28 +1239,7 @@ export default function ExplorePage() {
       });
     }
 
-    // Priority 2: Layout blocks (old system)
-    const heroBlocks = blocks.filter((b) => b.type === "HERO");
-    const base = heroBlocks.length === 0 ? HERO_SLIDES : heroBlocks.map((b, idx) => {
-      const fallback = HERO_SLIDES[idx % HERO_SLIDES.length];
-      const ytId = b.youtubeUrl ? getYouTubeId(b.youtubeUrl) : null;
-      const bgImage = ytId
-        ? `https://img.youtube.com/vi/${ytId}/maxresdefault.jpg`
-        : (b.mediaUrl && !b.isVideo ? b.mediaUrl : fallback.bgImage);
-      return {
-        ...fallback,
-        id: idx + 1,
-        title: b.title || fallback.title,
-        subtitle: b.subtitle || fallback.subtitle,
-        tag: b.badge || fallback.tag,
-        bgImage,
-        ctaHref: b.ctaHref || fallback.ctaHref,
-        trailerUrl: b.trailerUrl || undefined,
-        youtubeUrl: b.youtubeUrl || undefined,
-      };
-    });
-    // Priority 3: Promo overrides on top of base
-    return base.map((s, i) => {
+    return HERO_SLIDES.map((s, i) => {
       const slotId = HERO_SLOT_IDS[i];
       if (!slotId) return s;
       let updated = { ...s };
@@ -1190,9 +1254,9 @@ export default function ExplorePage() {
       }
       return updated;
     });
-  }, [blocks, promo, promoContent, cms]);
+  }, [promo, promoContent, cms]);
 
-  // ── Core Tools: CMS → layout blocks → promo → defaults ─────────────────────
+  // ── Core Tools: CMS layout (cms-home) → promo → hardcoded defaults ─────────
   const homeCoreCards = useMemo<ToolCard[]>(() => {
     if (cms?.coreTools && cms.coreTools.length > 0) {
       return cms.coreTools.map((c, idx) => {
@@ -1209,18 +1273,7 @@ export default function ExplorePage() {
       });
     }
 
-    const featureBlocks = blocks.filter((b) => b.type === "FEATURE_CARD");
-    const base = featureBlocks.length === 0 ? CORE_TOOLS : featureBlocks.map((b, idx) => {
-      const fallback = CORE_TOOLS[idx % CORE_TOOLS.length];
-      return {
-        ...fallback,
-        id: b.id || `feature-${idx}`,
-        title: b.title || fallback.title,
-        description: b.subtitle || fallback.description,
-        image: isVideoUrl(b.mediaUrl) ? (b.mediaUrl as string) : fallback.image,
-      };
-    });
-    return base.map((c) => {
+    return CORE_TOOLS.map((c) => {
       const slotId = CORE_TOOL_SLOT_MAP[c.id];
       if (!slotId) return c;
       let updated = { ...c };
@@ -1233,7 +1286,7 @@ export default function ExplorePage() {
       }
       return updated;
     });
-  }, [blocks, promo, promoContent, cms]);
+  }, [promo, promoContent, cms]);
 
   // ── Top Choice: CMS → layout blocks → promo → defaults ─────────────────────
   const homeTopCards = useMemo<ToolCard[]>(() => {
@@ -1322,9 +1375,9 @@ export default function ExplorePage() {
   }, [cms]);
 
   const sectionMap: Record<string, React.ReactNode> = {
-    heroSlides: <HeroCarousel key="hero" slides={homeHeroSlides} />,
+    heroSlides: <HeroCarousel key="hero" slides={homeHeroSlides} primaryCtaLabel={heroPrimaryCtaLabel} trailerLabel={heroTrailerLabel} />,
     statsCounter: <StatsCounter key="stats" />,
-    coreTools: <CoreToolsRow key="core" cards={homeCoreCards} />,
+    coreTools: <CoreToolsRow key="core" cards={homeCoreCards} title={coreToolsTitle} cta={coreToolsCta} ctaHref={coreToolsCtaHref} />,
     topChoice: <TopChoiceGrid key="top" cards={homeTopCards} />,
     adCards: <AdCardsRow key="ads" cards={homeAdCards} />,
     apps: <AppsMarquee key="apps" apps={homeApps} />,
