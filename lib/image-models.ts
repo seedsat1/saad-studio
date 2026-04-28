@@ -371,7 +371,7 @@ export const IMAGE_MODELS: ImageModel[] = [
     id: "flux-2/pro",
     label: "FLUX.2 Pro",
     sublabel: "Speed-optimized detail",
-    badge: "UNLIMITED",
+    badge: "",
     group: "Flux-2",
     inputType: "text-to-image",
     aspectRatios: ["auto", "1:1", "4:3", "3:4", "16:9", "9:16"],
