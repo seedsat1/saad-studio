@@ -96,7 +96,7 @@ const TOOLS = [
 ];
 
 const EDIT_MODELS = IMAGE_MODELS.filter((m) =>
-  ["google/nano-banana-edit", "seedream/4.5-edit", "gpt-image-2-image-to-image", "gpt-image/1.5-image-to-image", "flux-2/pro-image-to-image"].includes(m.id),
+  ["google/nano-banana-edit", "seedream/4.5-edit", "gpt-image-2-image-to-image", "gpt-image/1.5-image-to-image", "flux-2"].includes(m.id),
 );
 
 // All models that accept real image inputs (any inputType) — includes Nano Banana (up to 14 imgs), edit, and pure img2img
@@ -219,7 +219,7 @@ function ModelDropdown({ selected, onSelect }: { selected: ImageModel; onSelect:
     const knownIds = new Set(IMAGE_MODELS.map((m) => m.id.toLowerCase()));
     // Convert detected KIE models into ImageModel stubs so the dropdown can render them.
     const dynamicAsImage: ImageModel[] = dynamicModels
-      .filter((dm) => !knownIds.has(dm.id.toLowerCase()))
+      .filter((dm) => !knownIds.has(dm.id.toLowerCase()) && !dm.id.toLowerCase().startsWith("flux-2/"))
       .map((dm) => {
         const isEdit = /(edit|image-to-image|i2i|inpaint)/i.test(dm.id);
         return {

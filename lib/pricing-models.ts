@@ -100,6 +100,10 @@ export const DEFAULT_MODELS: PricingModel[] = [
   { id:"gpt15i",        name:"GPT Image 1.5 I2I",       notes:"I2I",          type:"image",  provider:"kie",       billing:"flat",    kieCredits:5,     waveUsd:0,     userCreditsRate:2,    maxDuration:null, isActive:true  },
   { id:"qwen_t",        name:"Qwen Image T2I",          notes:"T2I",          type:"image",  provider:"kie",       billing:"flat",    kieCredits:3,     waveUsd:0,     userCreditsRate:2,    maxDuration:null, isActive:true  },
   { id:"qwen_i",        name:"Qwen Image I2I",          notes:"I2I",          type:"image",  provider:"kie",       billing:"flat",    kieCredits:3.5,   waveUsd:0,     userCreditsRate:2,    maxDuration:null, isActive:true  },
+  { id:"flux2_pro_t",   name:"FLUX.2 Pro T2I",          notes:"hidden",       type:"image",  provider:"kie",       billing:"flat",    kieCredits:3,     waveUsd:0,     userCreditsRate:3,    maxDuration:null, isActive:true  },
+  { id:"flux2_pro_i",   name:"FLUX.2 Pro I2I",          notes:"hidden",       type:"image",  provider:"kie",       billing:"flat",    kieCredits:3,     waveUsd:0,     userCreditsRate:3,    maxDuration:null, isActive:true  },
+  { id:"flux2_flex_t",  name:"FLUX.2 Flex T2I",         notes:"hidden",       type:"image",  provider:"kie",       billing:"flat",    kieCredits:2,     waveUsd:0,     userCreditsRate:2,    maxDuration:null, isActive:true  },
+  { id:"flux2_flex_i",  name:"FLUX.2 Flex I2I",         notes:"hidden",       type:"image",  provider:"kie",       billing:"flat",    kieCredits:2,     waveUsd:0,     userCreditsRate:2,    maxDuration:null, isActive:true  },
   // ── AUDIO — flat via KIE ────────────────────────────────────────────────────
   { id:"el_v2",         name:"ElevenLabs V2",           notes:"29 langs",     type:"audio",  provider:"kie",       billing:"flat",    kieCredits:16,    waveUsd:0,     userCreditsRate:8,    maxDuration:null, isActive:true  },
   { id:"el_v3",         name:"ElevenLabs V3",           notes:"70+ langs",    type:"audio",  provider:"kie",       billing:"flat",    kieCredits:20,    waveUsd:0,     userCreditsRate:8,    maxDuration:null, isActive:true  },

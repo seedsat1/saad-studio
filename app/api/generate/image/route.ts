@@ -73,6 +73,16 @@ function inferImageInputField(kieModelId: string): "image_url" | "image_input" |
   return undefined;
 }
 
+function resolveFlux2Variant(modelId: string, hasReferenceImages: boolean, quality?: string | null): string {
+  if (modelId !== "flux-2") return modelId;
+
+  const tier = typeof quality === "string" ? quality.trim().toUpperCase() : "";
+  const prefix = tier === "1K" ? "flex" : "pro";
+  return hasReferenceImages
+    ? `flux-2/${prefix}-image-to-image`
+    : `flux-2/${prefix}-text-to-image`;
+}
+
 async function uploadBase64ToStorage(
   base64Data: string,
   userId: string,
@@ -212,20 +222,22 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const hasReferenceImages = Boolean(imageUrl || imageUrlsParam?.length);
+    const effectiveModelId = resolveFlux2Variant(modelId, hasReferenceImages, quality);
     const { imageModelMap } = getResolvedKieRoutingMaps();
 
-    const kieModelId = imageModelMap[modelId];
+    const kieModelId = imageModelMap[effectiveModelId];
     if (!kieModelId) {
       const supported = Object.keys(imageModelMap).join(", ");
       return NextResponse.json(
-        { error: `Unsupported modelId: ${modelId}. Supported: ${supported}` },
+        { error: `Unsupported modelId: ${effectiveModelId}. Supported: ${supported}` },
         { status: 400 },
       );
     }
 
     const effectiveImageInputField = imageInputField ?? inferImageInputField(kieModelId);
 
-    const creditsToCharge = await getGenerationCost(modelId, 5, numImages);
+    const creditsToCharge = await getGenerationCost(effectiveModelId, 5, numImages);
     if (creditsToCharge <= 0) {
       return NextResponse.json({ error: `No credit configuration for model: ${modelId}` }, { status: 400 });
     }
