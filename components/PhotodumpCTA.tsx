@@ -11,14 +11,18 @@ interface DiscoverCms {
   photodump?: { badge?: string; title?: string; subtitle?: string; cta?: string; ctaHref?: string; image?: string; floatingBadges?: string[] };
   [k: string]: unknown;
 }
-
 export default function PhotodumpCTA() {
   const promo = usePromoMedia();
   const content = usePromoContent();
   const { data: cms } = useCmsData<DiscoverCms>("discover");
   const pd = cms?.photodump;
 
+  const badge = pd?.badge || promoText(content, "explore/photodump-hero", "badge", "photodump");
+  const title = pd?.title || promoText(content, "explore/photodump-hero", "title", "Different Scenes Same Star");
+  const subtitle = pd?.subtitle || promoText(content, "explore/photodump-hero", "subtitle", "Build your character once. Drop them into any scene, outfit, or environment — one click does the rest. Consistent identity across unlimited contexts.");
+  const cta = pd?.cta || promoText(content, "explore/photodump-hero", "cta", "Try Photodump");
   const ctaHref = pd?.ctaHref || "/image/photodump";
+  const imageUrl = pd?.image || promoUrl(promo, "explore/photodump-hero", "/explore/photodump-hero.jpg");
   const floatingBadges = pd?.floatingBadges?.length ? pd.floatingBadges : ["Beach Scene", "City Night", "Studio Shot"];
 
   return (
@@ -64,7 +68,7 @@ export default function PhotodumpCTA() {
               viewport={{ once: true }}
               transition={{ delay: 0.1 }}
             >
-              {promoText(content, "explore/photodump-hero", "badge", "photodump")}
+              {badge}
             </motion.span>
 
             <motion.h2
@@ -74,7 +78,7 @@ export default function PhotodumpCTA() {
               viewport={{ once: true }}
               transition={{ delay: 0.15 }}
             >
-              {promoText(content, "explore/photodump-hero", "title", "Different Scenes Same Star")}
+              {title}
             </motion.h2>
 
             <motion.p
@@ -84,7 +88,7 @@ export default function PhotodumpCTA() {
               viewport={{ once: true }}
               transition={{ delay: 0.22 }}
             >
-              {promoText(content, "explore/photodump-hero", "subtitle", "Build your character once. Drop them into any scene, outfit, or environment — one click does the rest. Consistent identity across unlimited contexts.")}
+              {subtitle}
             </motion.p>
 
             <motion.div
@@ -107,7 +111,7 @@ export default function PhotodumpCTA() {
                     <path d="M3 7a2 2 0 012-2h.5l1-2h7l1 2H17a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
                     <circle cx="10" cy="11" r="2.5" stroke="currentColor" strokeWidth="1.5" />
                   </svg>
-                  {promoText(content, "explore/photodump-hero", "cta", "Try Photodump")}
+                  {cta}
                   <motion.div
                     className="absolute inset-0 opacity-0"
                     style={{ background: "rgba(255,255,255,0.12)" }}
@@ -156,11 +160,12 @@ export default function PhotodumpCTA() {
                 style={{ border: "1px solid rgba(148,163,184,0.10)" }}
               >
                 <Image
-                  src={promoUrl(promo, "explore/photodump-hero", "/explore/photodump-hero.jpg")}
-                  alt="Photodump — Different Scenes Same Star"
+                  src={imageUrl}
+                  alt={title}
                   fill
                   className="object-cover object-center"
                   sizes="420px"
+                  unoptimized
                 />
                 {/* Overlay */}
                 <div

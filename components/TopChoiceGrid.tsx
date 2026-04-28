@@ -159,6 +159,7 @@ export default function TopChoiceGrid() {
   }, [promo, promoContent]);
 
   useEffect(() => {
+    if (cms?.topChoice?.tools?.length) return;
     let canceled = false;
     const loadLayout = async () => {
       try {
@@ -193,7 +194,7 @@ export default function TopChoiceGrid() {
     return () => {
       canceled = true;
     };
-  }, []);
+  }, [cms]);
 
   return (
     <section className="py-14">

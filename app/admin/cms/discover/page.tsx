@@ -506,14 +506,18 @@ export default function DiscoverCmsPage() {
       footer,
     };
     try {
-      await fetch("/api/admin/layouts", {
+      const res = await fetch("/api/admin/layouts", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ pageName: "cms-discover", layoutBlocks: payload }),
       });
+      if (!res.ok) throw new Error("Save failed");
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
-    } catch { /* skip */ }
+    } catch {
+      setSaved(false);
+      alert("Save failed. Please check admin permissions and database connection.");
+    }
     setSaving(false);
   }, [coreHeading, coreSubtitle, coreTools, topHeading, topSubtitle, topSeeAll, topTools, photodump, appsHeading, appsSubtitle, apps, modelsHeading, modelsSubtitle, models, footer]);
 

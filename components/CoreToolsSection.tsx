@@ -165,9 +165,10 @@ export default function CoreToolsSection() {
         return updated;
       })
     );
-  }, [promo]);
+  }, [promo, promoContent]);
 
   useEffect(() => {
+    if (cms?.coreTools?.tools?.length) return;
     let canceled = false;
     const loadLayout = async () => {
       try {
@@ -201,7 +202,7 @@ export default function CoreToolsSection() {
     return () => {
       canceled = true;
     };
-  }, []);
+  }, [cms]);
 
   const scroll = (dir: "left" | "right") => {
     if (!scrollRef.current) return;
