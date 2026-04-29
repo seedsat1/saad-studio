@@ -53,8 +53,9 @@ model User {
   isBanned           Boolean       @default(false)
   createdAt          DateTime      @default(now())
 
-  generations   Generation[]
-  transactions  AdminTransaction[]
+  generations          Generation[]
+  creditLedgerEntries  CreditLedgerEntry[]
+  transactions         AdminTransaction[]
 }
 
 /// Records every AI generation for security monitoring and cost tracking.
@@ -69,6 +70,8 @@ model Generation {
   cost       Float    @default(0)
   isFlagged  Boolean  @default(false)
   createdAt  DateTime @default(now())
+
+  creditLedgerEntries CreditLedgerEntry[]
 
   @@index([userId])
   @@index([createdAt])
