@@ -111,11 +111,33 @@ export default function RootLayout({
               try {
                 var isBuilderPreview = window.location.search.indexOf('builderPreview=1') !== -1;
                 if (!isBuilderPreview) {
+                  var __saadReloadKey = 'saad_reload_recover_v1';
+                  function __saadMaybeRecover(err) {
+                    try {
+                      var msg = '';
+                      if (typeof err === 'string') msg = err;
+                      else if (err && typeof err.message === 'string') msg = err.message;
+                      else msg = String(err || '');
+
+                      var shouldReload =
+                        msg.indexOf("Cannot access 't5' before initialization") !== -1 ||
+                        msg.indexOf('before initialization') !== -1 ||
+                        msg.indexOf('ChunkLoadError') !== -1 ||
+                        msg.indexOf('Loading chunk') !== -1;
+
+                      if (!shouldReload) return;
+                      if (sessionStorage.getItem(__saadReloadKey) === '1') return;
+                      sessionStorage.setItem(__saadReloadKey, '1');
+                      window.location.reload();
+                    } catch (_) {}
+                  }
                   window.onerror = (msg, url, line, col, error) => {
                     console.error('Client Error:', { msg, url, line, col, stack: error && error.stack });
+                    __saadMaybeRecover(error || msg);
                   };
                   window.addEventListener('unhandledrejection', (event) => {
                     console.error('Unhandled Promise Rejection:', event.reason);
+                    __saadMaybeRecover(event.reason);
                   });
                 }
               } catch (_) {}
