@@ -1,7 +1,7 @@
-﻿import { auth } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { getGenerationCost } from "@/lib/pricing";
-import { InsufficientCreditsError, rollbackGenerationCharge, setGenerationMediaUrl, setGenerationTaskMarker, spendCredits } from "@/lib/credit-ledger";
+import { InsufficientCreditsError, precheckGenerationPolicy, refundGenerationCharge, setGenerationMediaUrl, setGenerationTaskMarker, spendCredits } from "@/lib/credit-ledger";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { getClientIp, isAllowedOrigin, sanitizePrompt } from "@/lib/security";
 import prismadb from "@/lib/prismadb";
@@ -136,6 +136,14 @@ export async function POST(req: Request) {
     const creditsToCharge = await getGenerationCost(endpointKey);
     if (creditsToCharge <= 0) {
       return new NextResponse(`No credit configuration for ${endpointKey}`, { status: 400 });
+    }
+
+    const precheck = await precheckGenerationPolicy({ prompt: typeof prompt === "string" ? prompt : "" });
+    if (!precheck.allowed) {
+      return NextResponse.json(
+        { error: precheck.message, blocked: true, reason: precheck.reason },
+        { status: 403 },
+      );
     }
 
     const charge = await spendCredits({
@@ -313,7 +321,10 @@ export async function POST(req: Request) {
     }
 
     if (chargedCredits > 0 && chargedUserId && generationId) {
-      await rollbackGenerationCharge(generationId, chargedUserId, chargedCredits);
+      await refundGenerationCharge(generationId, chargedUserId, chargedCredits, {
+        reason: "generation_refund_provider_failed",
+        clearMediaUrl: true,
+      }).catch(() => {});
     }
 
     console.error("[3D API POST]", error);
@@ -397,7 +408,10 @@ export async function GET(req: Request) {
     }
 
     if (status === "failed" && linkedGeneration && linkedGeneration.cost > 0) {
-      await rollbackGenerationCharge(linkedGeneration.id, userId, linkedGeneration.cost);
+        await refundGenerationCharge(linkedGeneration.id, userId, linkedGeneration.cost, {
+          reason: "generation_refund_provider_failed",
+          clearMediaUrl: true,
+        }).catch(() => {});
     }
 
     return NextResponse.json({
@@ -410,4 +424,3 @@ export async function GET(req: Request) {
     return new NextResponse("Internal Error", { status: 500 });
   }
 }
-

@@ -1,7 +1,7 @@
-﻿import { auth } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { getGenerationCost } from "@/lib/pricing";
-import { InsufficientCreditsError, refundCredits, spendCredits } from "@/lib/credit-ledger";
+import { InsufficientCreditsError, precheckGenerationPolicy, refundCredits, refundGenerationCharge, setGenerationMediaUrl, spendCredits } from "@/lib/credit-ledger";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { fetchWithTimeout, readErrorBody } from "@/lib/http";
 import { getClientIp, isAllowedOrigin, sanitizePrompt } from "@/lib/security";
@@ -40,6 +40,7 @@ function toQwenImageSize(aspectRatio: string): string {
 export async function POST(req: Request) {
   let chargedCredits = 0;
   let chargedUserId: string | null = null;
+  let generationId: string | null = null;
 
   try {
     if (!isAllowedOrigin(req.headers.get("origin"))) {
@@ -81,7 +82,15 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: `No credit configuration for model: ${model}` }, { status: 400 });
     }
 
-    await spendCredits({
+    const precheck = await precheckGenerationPolicy({ prompt });
+    if (!precheck.allowed) {
+      return NextResponse.json(
+        { error: precheck.message, blocked: true, reason: precheck.reason },
+        { status: 403 },
+      );
+    }
+
+    const charge = await spendCredits({
       userId,
       credits: creditsToCharge,
       prompt: sanitizePrompt(prompt, 5000),
@@ -90,6 +99,7 @@ export async function POST(req: Request) {
     });
     chargedCredits = creditsToCharge;
     chargedUserId = userId;
+    generationId = charge.generationId;
 
     const provider = resolveProvider(model);
     let imageUrl: string | null = null;
@@ -113,7 +123,7 @@ export async function POST(req: Request) {
 
       if (!externalRes.ok) {
         const detail = await readErrorBody(externalRes);
-        return NextResponse.json({ error: `WaveSpeed API returned ${externalRes.status}`, detail }, { status: externalRes.status });
+        throw new Error(`WaveSpeed API returned ${externalRes.status}: ${detail}`);
       }
 
       const data = await externalRes.json();
@@ -195,9 +205,12 @@ export async function POST(req: Request) {
     }
 
     if (!imageUrl) {
-      return NextResponse.json({ error: "The AI provider did not return an image URL" }, { status: 502 });
+      throw new Error("The AI provider did not return an image URL");
     }
 
+    if (generationId) {
+      await setGenerationMediaUrl(generationId, imageUrl).catch(() => {});
+    }
     return NextResponse.json({ success: true, message: "Image generated successfully", imageUrl });
   } catch (error) {
     if (error instanceof InsufficientCreditsError) {
@@ -211,8 +224,13 @@ export async function POST(req: Request) {
       );
     }
 
-    if (chargedCredits > 0 && chargedUserId) {
-      await refundCredits(chargedUserId, chargedCredits);
+    if (chargedCredits > 0 && chargedUserId && generationId) {
+      await refundGenerationCharge(generationId, chargedUserId, chargedCredits, {
+        reason: "generation_refund_provider_failed",
+        clearMediaUrl: true,
+      }).catch(() => {});
+    } else if (chargedCredits > 0 && chargedUserId) {
+      await refundCredits(chargedUserId, chargedCredits).catch(() => {});
     }
 
     console.error("[IMAGE_GENERATE_ERROR]", error);

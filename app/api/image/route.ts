@@ -1,4 +1,4 @@
-﻿import { auth } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 
 import { openai, OpenAIConfig } from "@/lib/gptutils";
@@ -6,7 +6,8 @@ import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { getClientIp, isAllowedOrigin, sanitizePrompt } from "@/lib/security";
 import {
   InsufficientCreditsError,
-  rollbackGenerationCharge,
+  precheckGenerationPolicy,
+  refundGenerationCharge,
   setGenerationMediaUrl,
   saveAdditionalGenerationUrls,
   spendCredits,
@@ -51,6 +52,14 @@ export async function POST(req: NextRequest) {
     }
     if (!Number.isFinite(amount) || amount < 1 || amount > 4) {
       return new NextResponse("Amount must be between 1 and 4", { status: 400 });
+    }
+
+    const precheck = await precheckGenerationPolicy({ prompt });
+    if (!precheck.allowed) {
+      return NextResponse.json(
+        { error: precheck.message, blocked: true, reason: precheck.reason },
+        { status: 403 },
+      );
     }
 
     creditsToCharge = await getGenerationCost("dall-e-3", 5, Math.floor(amount));
@@ -104,7 +113,10 @@ export async function POST(req: NextRequest) {
     }
 
     if (charge && chargeUserId && creditsToCharge > 0) {
-      await rollbackGenerationCharge(charge.generationId, chargeUserId, creditsToCharge).catch(() => {});
+      await refundGenerationCharge(charge.generationId, chargeUserId, creditsToCharge, {
+        reason: "generation_refund_provider_failed",
+        clearMediaUrl: true,
+      }).catch(() => {});
     }
 
     console.error("--- image generation error ---", error);

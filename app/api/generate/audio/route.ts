@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { getGenerationCost, getGenerationCostQuote } from "@/lib/pricing";
-import { InsufficientCreditsError, rollbackGenerationCharge, setGenerationMediaUrl, spendCredits } from "@/lib/credit-ledger";
+import { InsufficientCreditsError, precheckGenerationPolicy, refundGenerationCharge, setGenerationMediaUrl, spendCredits } from "@/lib/credit-ledger";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { getClientIp, isAllowedOrigin, isSafePublicHttpUrl, sanitizePrompt } from "@/lib/security";
 
@@ -874,6 +874,26 @@ export async function POST(req: NextRequest) {
       );
     }
     const creditsToCharge = quote.finalCredits;
+    const precheckPrompt =
+      (typeof body.prompt === "string" ? body.prompt : "") ||
+      (typeof body.text === "string" ? body.text : "") ||
+      "Audio generation";
+    const precheckExtraText = [
+      typeof body.lyrics === "string" ? body.lyrics : "",
+      typeof body.stylePrompt === "string" ? body.stylePrompt : "",
+    ]
+      .filter(Boolean)
+      .join("\n");
+    const precheck = await precheckGenerationPolicy({
+      prompt: precheckPrompt,
+      extraText: precheckExtraText || null,
+    });
+    if (!precheck.allowed) {
+      return NextResponse.json(
+        { error: precheck.message, blocked: true, reason: precheck.reason },
+        { status: 403 },
+      );
+    }
     const modelUsedForLedger =
       actionType === "voice-cloning"
         ? WS_VOICE_CLONING_MODEL
@@ -1294,7 +1314,10 @@ export async function POST(req: NextRequest) {
     }
 
     if (chargedCredits > 0 && chargedUserId && generationId) {
-      await rollbackGenerationCharge(generationId, chargedUserId, chargedCredits);
+      await refundGenerationCharge(generationId, chargedUserId, chargedCredits, {
+        reason: "generation_refund_provider_failed",
+        clearMediaUrl: true,
+      }).catch(() => {});
     }
 
     const message = error instanceof Error ? error.message : "An unexpected error occurred.";

@@ -8,7 +8,8 @@ import {
 } from "@/lib/cinema";
 import {
   InsufficientCreditsError,
-  rollbackGenerationCharge,
+  precheckGenerationPolicy,
+  refundGenerationCharge,
   setGenerationTaskMarker,
   spendCredits,
 } from "@/lib/credit-ledger";
@@ -67,6 +68,16 @@ export async function POST(req: NextRequest) {
       : null;
 
     const creditsToCharge = cinemaShotCredits(shot.duration, shot.consistencyLock);
+    const precheck = await precheckGenerationPolicy({
+      prompt: shot.prompt || project.conceptPrompt || "",
+      negativePrompt: shot.negativePrompt || project.negativePrompt || null,
+    });
+    if (!precheck.allowed) {
+      return NextResponse.json(
+        { error: precheck.message, blocked: true, reason: precheck.reason },
+        { status: 403 },
+      );
+    }
     const charge = await spendCredits({
       userId,
       credits: creditsToCharge,
@@ -113,7 +124,10 @@ export async function POST(req: NextRequest) {
     const taskId = createJson?.data?.taskId || createJson?.taskId;
     if (!createRes.ok || !taskId) {
       if (chargedCredits > 0 && chargedUserId && generationId) {
-        await rollbackGenerationCharge(generationId, chargedUserId, chargedCredits);
+        await refundGenerationCharge(generationId, chargedUserId, chargedCredits, {
+          reason: "generation_refund_provider_failed",
+          clearMediaUrl: true,
+        }).catch(() => {});
       }
       return NextResponse.json(
         { error: createJson?.msg || createJson?.message || "Failed to start generation" },
@@ -157,7 +171,10 @@ export async function POST(req: NextRequest) {
     }
 
     if (chargedCredits > 0 && chargedUserId && generationId) {
-      await rollbackGenerationCharge(generationId, chargedUserId, chargedCredits);
+      await refundGenerationCharge(generationId, chargedUserId, chargedCredits, {
+        reason: "generation_refund_provider_failed",
+        clearMediaUrl: true,
+      }).catch(() => {});
     }
 
     const message = error instanceof Error ? error.message : "Internal error";
@@ -165,4 +182,3 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: message }, { status });
   }
 }
-

@@ -1,9 +1,10 @@
-﻿import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { getVideoCreditsByModelId } from "@/lib/credit-pricing";
 import {
   InsufficientCreditsError,
-  rollbackGenerationCharge,
+  precheckGenerationPolicy,
+  refundGenerationCharge,
   setGenerationMediaUrl,
   spendCredits,
 } from "@/lib/credit-ledger";
@@ -160,6 +161,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing required fields: prompt, modelId." }, { status: 400 });
     }
 
+    const precheck = await precheckGenerationPolicy({ prompt });
+    if (!precheck.allowed) {
+      return NextResponse.json(
+        { error: precheck.message, blocked: true, reason: precheck.reason },
+        { status: 403 },
+      );
+    }
+
     if (imageUrl && !isSafePublicHttpUrl(imageUrl) && !imageUrl.startsWith("data:")) {
       return NextResponse.json({ error: "Invalid imageUrl provided." }, { status: 400 });
     }
@@ -284,7 +293,10 @@ export async function POST(req: NextRequest) {
     }
 
     if (chargedCredits > 0 && chargedUserId && generationId) {
-      await rollbackGenerationCharge(generationId, chargedUserId, chargedCredits);
+      await refundGenerationCharge(generationId, chargedUserId, chargedCredits, {
+        reason: "generation_refund_provider_failed",
+        clearMediaUrl: true,
+      }).catch(() => {});
     }
 
     const message = error instanceof Error ? error.message : "An unexpected error occurred.";

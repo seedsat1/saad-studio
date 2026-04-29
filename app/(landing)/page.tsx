@@ -97,6 +97,38 @@ const getToolCardVideo = (card: ToolCard) => {
   return TOOL_CARD_VIDEOS[card.id] || TOOL_CARD_VIDEOS.default;
 };
 
+const isDefaultToolImage = (url?: string) => Boolean(url?.startsWith("/landing/tool-"));
+
+const getToolCardMedia = (card: ToolCard) => {
+  if (card.image && !isDefaultToolImage(card.image)) return card.image;
+  return getToolCardVideo(card);
+};
+
+function MediaFill({ src, alt, className = "" }: { src: string; alt: string; className?: string }) {
+  if (isVideoUrl(src)) {
+    return (
+      <video
+        src={src}
+        autoPlay
+        muted
+        loop
+        playsInline
+        preload="metadata"
+        className={cn("absolute inset-0 h-full w-full object-cover object-center", className)}
+      />
+    );
+  }
+
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={src}
+      alt={alt}
+      className={cn("absolute inset-0 h-full w-full object-cover object-center", className)}
+    />
+  );
+}
+
 // ─── Hero Slides ──────────────────────────────────────────────────────────────
 const HERO_SLIDES: HeroSlide[] = [
   {
@@ -366,7 +398,7 @@ function BadgeChip({ badge }: { badge: Badge }) {
 function ToolCardItem({ card, wide = false }: { card: ToolCard; wide?: boolean }) {
   const [hovered, setHovered] = useState(false);
   const Icon = card.icon;
-  const mediaSrc = getToolCardVideo(card);
+  const mediaSrc = getToolCardMedia(card);
   return (
     <Link href={card.href}>
       <motion.div
@@ -379,16 +411,8 @@ function ToolCardItem({ card, wide = false }: { card: ToolCard; wide?: boolean }
           wide ? "w-[280px] aspect-[16/9]" : "aspect-[4/3]"
         )}
       >
-        {/* BG video + gradient overlay */}
-        <video
-          src={mediaSrc}
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="metadata"
-          className="absolute inset-0 h-full w-full object-cover object-center"
-        />
+        {/* BG media + gradient overlay */}
+        <MediaFill src={mediaSrc} alt={card.title} />
         <div className={cn(
           "absolute inset-0 bg-gradient-to-br transition-opacity duration-300",
           card.gradient,
@@ -1023,14 +1047,9 @@ function AdCardsRow({ cards }: { cards: CmsAdCard[] }) {
                 whileHover={{ scale: 1.025 }}
                 className="group relative overflow-hidden rounded-2xl border border-white/[0.08] bg-slate-900/60 cursor-pointer aspect-[4/3]"
               >
-                <video
-                  src={isVideoUrl(card.image) ? card.image : AD_CARD_VIDEOS[i % AD_CARD_VIDEOS.length]}
-                  autoPlay
-                  muted
-                  loop
-                  playsInline
-                  preload="metadata"
-                  className="absolute inset-0 h-full w-full object-cover"
+                <MediaFill
+                  src={card.image || AD_CARD_VIDEOS[i % AD_CARD_VIDEOS.length]}
+                  alt={card.title}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
                 <div className="absolute bottom-0 left-0 right-0 p-4">
@@ -1252,7 +1271,7 @@ export default function ExplorePage() {
           id: c.id || fallback.id,
           title: c.title || fallback.title,
           description: c.description || fallback.description,
-          image: isVideoUrl(c.image) ? c.image : fallback.image,
+          image: c.image || fallback.image,
           href: c.href || fallback.href,
           badge: (c.badge as Badge) || fallback.badge,
         };
@@ -1264,7 +1283,7 @@ export default function ExplorePage() {
       if (!slotId) return c;
       let updated = { ...c };
       const custom = promo[slotId];
-      if (isVideoUrl(custom?.url)) updated.image = custom.url;
+      if (custom?.url) updated.image = custom.url;
       const text = promoContent[slotId];
       if (text) {
         if (text.title) updated.title = text.title;
@@ -1284,7 +1303,7 @@ export default function ExplorePage() {
           id: c.id || fallback.id,
           title: c.title || fallback.title,
           description: c.description || fallback.description,
-          image: isVideoUrl(c.image) ? c.image : fallback.image,
+          image: c.image || fallback.image,
           href: c.href || fallback.href,
           badge: (c.badge as Badge) || fallback.badge,
         };
@@ -1299,7 +1318,7 @@ export default function ExplorePage() {
         id: b.id || `discover-${idx}`,
         title: b.title || fallback.title,
         description: b.subtitle || fallback.description,
-        image: isVideoUrl(b.mediaUrl) ? (b.mediaUrl as string) : fallback.image,
+        image: b.mediaUrl || fallback.image,
       };
     });
     return base.map((c) => {
@@ -1307,7 +1326,7 @@ export default function ExplorePage() {
       if (!slotId) return c;
       let updated = { ...c };
       const custom = promo[slotId];
-      if (isVideoUrl(custom?.url)) updated.image = custom.url;
+      if (custom?.url) updated.image = custom.url;
       const text = promoContent[slotId];
       if (text) {
         if (text.title) updated.title = text.title;

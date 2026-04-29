@@ -74,6 +74,21 @@ model Generation {
   @@index([createdAt])
 }
 
+model CreditLedgerEntry {
+  id           String      @id @default(cuid())
+  userId       String
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  generationId String?
+  generation   Generation? @relation(fields: [generationId], references: [id], onDelete: SetNull)
+  delta        Int
+  reason       String
+  createdAt    DateTime    @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([generationId])
+}
+
 /// Financial transactions: subscriptions and credit purchases.
 model AdminTransaction {
   id            String   @id @default(cuid())
@@ -470,4 +485,3 @@ model TimelineProject {
 
   @@index([userId, updatedAt])
 }
-

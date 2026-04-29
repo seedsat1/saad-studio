@@ -9,8 +9,9 @@ import type { VariationMode, VariationGenMode } from "@/lib/variations-presets";
 import { VARIATION_CREDIT_COSTS } from "@/lib/variations-presets";
 import {
   InsufficientCreditsError,
+  precheckGenerationPolicy,
+  refundGenerationCharge,
   spendCredits,
-  rollbackGenerationCharge,
 } from "@/lib/credit-ledger";
 
 const KIE_API_KEY = process.env.KIE_API_KEY ?? "";
@@ -63,6 +64,18 @@ export async function POST(req: NextRequest) {
     const genMode = output.project.selectedGenMode as VariationGenMode;
     const creditCost = VARIATION_CREDIT_COSTS[output.modelUsed as keyof typeof VARIATION_CREDIT_COSTS] ?? 3;
 
+    const precheck = await precheckGenerationPolicy({
+      prompt: output.project.direction ?? "",
+      negativePrompt: output.project.negativeDirection ?? "",
+      extraText: `Variations Studio – Regenerate ${output.presetId}`,
+    });
+    if (!precheck.allowed) {
+      return NextResponse.json(
+        { error: precheck.message, blocked: true, reason: precheck.reason },
+        { status: 403 },
+      );
+    }
+
     const { generationId: gid, remainingCredits } = await spendCredits({
       userId,
       credits: creditCost,
@@ -114,7 +127,12 @@ export async function POST(req: NextRequest) {
         { status: 402 },
       );
     }
-    if (generationId) await rollbackGenerationCharge(generationId, chargedUserId ?? "", chargedCredits).catch(() => {});
+    if (generationId) {
+      await refundGenerationCharge(generationId, chargedUserId ?? "", chargedCredits, {
+        reason: "generation_refund_provider_failed",
+        clearMediaUrl: true,
+      }).catch(() => {});
+    }
     console.error("[variations/regenerate]", err);
     return NextResponse.json({ error: "Regeneration failed" }, { status: 500 });
   }

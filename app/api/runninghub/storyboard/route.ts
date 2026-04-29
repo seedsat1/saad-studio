@@ -3,7 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import {
   InsufficientCreditsError,
   spendCredits,
-  rollbackGenerationCharge,
+  refundGenerationCharge,
   setGenerationMediaUrl,
 } from "@/lib/credit-ledger";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
@@ -153,7 +153,10 @@ export async function POST(req: NextRequest) {
       .filter((url): url is string => !!url);
 
     if (outputs.length === 0) {
-      await rollbackGenerationCharge(generationId, userId, CREDIT_COST).catch(() => null);
+      await refundGenerationCharge(generationId, userId, CREDIT_COST, {
+        reason: "generation_refund_no_output",
+        clearMediaUrl: true,
+      }).catch(() => null);
       return NextResponse.json(
         { error: "All frames failed to generate. Credits refunded." },
         { status: 502 },
@@ -169,7 +172,10 @@ export async function POST(req: NextRequest) {
     });
   } catch (err) {
     if (generationId && chargedUserId && chargedCredits > 0) {
-      await rollbackGenerationCharge(generationId, chargedUserId, chargedCredits).catch(() => null);
+      await refundGenerationCharge(generationId, chargedUserId, chargedCredits, {
+        reason: "generation_refund_provider_failed",
+        clearMediaUrl: true,
+      }).catch(() => null);
     }
 
     if (err instanceof InsufficientCreditsError) {

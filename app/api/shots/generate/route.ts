@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import {
   InsufficientCreditsError,
-  refundCredits,
+  precheckGenerationPolicy,
+  refundCreditsWithReason,
+  refundGenerationCharge,
   spendCredits,
   setGenerationMediaUrl,
 } from "@/lib/credit-ledger";
@@ -112,6 +114,14 @@ export async function POST(req: NextRequest) {
       1000,
     );
 
+    const precheck = await precheckGenerationPolicy({ prompt: sanitizedPrompt });
+    if (!precheck.allowed) {
+      return NextResponse.json(
+        { error: precheck.message, blocked: true, reason: precheck.reason },
+        { status: 403 },
+      );
+    }
+
     const spent = await spendCredits({
       userId,
       credits: estimate.total,
@@ -173,7 +183,12 @@ export async function POST(req: NextRequest) {
 
     // ── Partial refund for failures ──
     if (creditsToRefund > 0 && chargedUserId) {
-      await refundCredits(chargedUserId, creditsToRefund).catch(() => {});
+      await refundCreditsWithReason(
+        chargedUserId,
+        creditsToRefund,
+        "generation_refund_partial_failure",
+        generationId,
+      ).catch(() => {});
     }
 
     // ── Save first successful asset URL to the generation record ──
@@ -212,8 +227,11 @@ export async function POST(req: NextRequest) {
     }
 
     // Full refund on unexpected error
-    if (chargedCredits > 0 && chargedUserId) {
-      await refundCredits(chargedUserId, chargedCredits).catch(() => {});
+    if (chargedCredits > 0 && chargedUserId && generationId) {
+      await refundGenerationCharge(generationId, chargedUserId, chargedCredits, {
+        reason: "generation_refund_provider_failed",
+        clearMediaUrl: true,
+      }).catch(() => {});
     }
 
     const message = err instanceof Error ? err.message : "Unexpected error occurred.";

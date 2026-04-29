@@ -13,8 +13,9 @@ import {
 } from "@/lib/variations-adapter";
 import {
   InsufficientCreditsError,
+  precheckGenerationPolicy,
+  refundGenerationCharge,
   spendCredits,
-  rollbackGenerationCharge,
   setGenerationTaskMarker,
 } from "@/lib/credit-ledger";
 
@@ -77,6 +78,18 @@ export async function POST(req: NextRequest) {
 
     // Estimate cost
     const estimate = estimateVariationCost(mode, genMode, presetIds.length, consistencyLock);
+
+    const precheck = await precheckGenerationPolicy({
+      prompt: direction,
+      negativePrompt: negativeDirection,
+      extraText: `Variations Studio – ${mode} (${presetIds.length} outputs)`,
+    });
+    if (!precheck.allowed) {
+      return NextResponse.json(
+        { error: precheck.message, blocked: true, reason: precheck.reason },
+        { status: 403 },
+      );
+    }
 
     // Create job record
     const job = await prismadb.variationJob.create({
@@ -181,7 +194,10 @@ export async function POST(req: NextRequest) {
 
     if (successCount === 0) {
       // Refund if nothing submitted
-      await rollbackGenerationCharge(chargeResult.generationId, userId, estimate.totalCredits);
+      await refundGenerationCharge(chargeResult.generationId, userId, estimate.totalCredits, {
+        reason: "generation_refund_provider_failed",
+        clearMediaUrl: true,
+      }).catch(() => {});
       await prismadb.variationJob.update({
         where: { id: job.id },
         data: { status: "failed", error: "All tasks failed to submit" },
@@ -215,7 +231,10 @@ export async function POST(req: NextRequest) {
 
     if (chargedUserId && generationIds.length > 0) {
       for (const gid of generationIds) {
-        await rollbackGenerationCharge(gid, chargedUserId, totalCharged).catch(() => {});
+        await refundGenerationCharge(gid, chargedUserId, totalCharged, {
+          reason: "generation_refund_provider_failed",
+          clearMediaUrl: true,
+        }).catch(() => {});
       }
     }
 

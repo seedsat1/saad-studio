@@ -3,7 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import {
   InsufficientCreditsError,
   spendCredits,
-  rollbackGenerationCharge,
+  refundGenerationCharge,
   setGenerationMediaUrl,
 } from "@/lib/credit-ledger";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
@@ -194,7 +194,10 @@ export async function POST(req: NextRequest) {
       }
 
       if (status === "FAILED") {
-        await rollbackGenerationCharge(generationId, userId, CREDIT_COST).catch(() => null);
+        await refundGenerationCharge(generationId, userId, CREDIT_COST, {
+          reason: "generation_refund_provider_failed",
+          clearMediaUrl: true,
+        }).catch(() => null);
         return NextResponse.json(
           { error: result.errorMessage || "Character generation failed." },
           { status: 502 },
@@ -204,14 +207,20 @@ export async function POST(req: NextRequest) {
 
     // Timeout
     console.log(`[CHARGEN] Timed out. Last status: ${lastStatus}`);
-    await rollbackGenerationCharge(generationId, userId, CREDIT_COST).catch(() => null);
+    await refundGenerationCharge(generationId, userId, CREDIT_COST, {
+      reason: "generation_refund_provider_failed",
+      clearMediaUrl: true,
+    }).catch(() => null);
     return NextResponse.json(
       { error: `Generation timed out (last status: ${lastStatus}). Credits refunded.` },
       { status: 504 },
     );
   } catch (err) {
     if (generationId && chargedUserId) {
-      await rollbackGenerationCharge(generationId, chargedUserId, CREDIT_COST).catch(() => null);
+      await refundGenerationCharge(generationId, chargedUserId, CREDIT_COST, {
+        reason: "generation_refund_provider_failed",
+        clearMediaUrl: true,
+      }).catch(() => null);
     }
 
     if (err instanceof InsufficientCreditsError) {

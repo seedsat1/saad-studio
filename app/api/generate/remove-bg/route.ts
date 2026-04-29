@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { FIXED_TOOL_CREDITS } from "@/lib/credit-pricing";
-import { InsufficientCreditsError, rollbackGenerationCharge, setGenerationMediaUrl, spendCredits } from "@/lib/credit-ledger";
+import { InsufficientCreditsError, refundGenerationCharge, setGenerationMediaUrl, spendCredits } from "@/lib/credit-ledger";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { fetchWithTimeout, readErrorBody } from "@/lib/http";
 import { getClientIp, isAllowedOrigin, isSafePublicHttpUrl } from "@/lib/security";
@@ -210,7 +210,10 @@ export async function POST(req: NextRequest) {
     }
 
     if (chargedCredits > 0 && chargedUserId && generationId) {
-      await rollbackGenerationCharge(generationId, chargedUserId, chargedCredits);
+      await refundGenerationCharge(generationId, chargedUserId, chargedCredits, {
+        reason: "generation_refund_provider_failed",
+        clearMediaUrl: true,
+      }).catch(() => {});
     }
 
     const message = error instanceof Error ? error.message : "An unexpected error occurred.";

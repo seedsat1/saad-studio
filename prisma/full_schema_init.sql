@@ -50,6 +50,18 @@ CREATE TABLE IF NOT EXISTS "Generation" (
 CREATE INDEX IF NOT EXISTS "Generation_userId_idx"    ON "Generation"("userId");
 CREATE INDEX IF NOT EXISTS "Generation_createdAt_idx" ON "Generation"("createdAt");
 
+CREATE TABLE IF NOT EXISTS "CreditLedgerEntry" (
+  "id"           TEXT        NOT NULL PRIMARY KEY,
+  "userId"       TEXT        NOT NULL REFERENCES "User"("id") ON DELETE CASCADE,
+  "generationId" TEXT        REFERENCES "Generation"("id") ON DELETE SET NULL,
+  "delta"        INTEGER     NOT NULL,
+  "reason"       TEXT        NOT NULL,
+  "createdAt"    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS "CreditLedgerEntry_userId_idx"       ON "CreditLedgerEntry"("userId");
+CREATE INDEX IF NOT EXISTS "CreditLedgerEntry_createdAt_idx"    ON "CreditLedgerEntry"("createdAt");
+CREATE INDEX IF NOT EXISTS "CreditLedgerEntry_generationId_idx" ON "CreditLedgerEntry"("generationId");
+
 CREATE TABLE IF NOT EXISTS "AdminTransaction" (
   "id"            TEXT        NOT NULL PRIMARY KEY,
   "userId"        TEXT        NOT NULL REFERENCES "User"("id") ON DELETE CASCADE,

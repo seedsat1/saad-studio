@@ -1,7 +1,7 @@
-﻿import { auth } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { getGenerationCost } from "@/lib/pricing";
-import { InsufficientCreditsError, refundCredits, spendCredits } from "@/lib/credit-ledger";
+import { InsufficientCreditsError, precheckGenerationPolicy, refundCredits, refundGenerationCharge, setGenerationMediaUrl, spendCredits } from "@/lib/credit-ledger";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { fetchWithTimeout, readErrorBody } from "@/lib/http";
 import { getClientIp, isAllowedOrigin, sanitizePrompt } from "@/lib/security";
@@ -15,6 +15,7 @@ function isWaveSpeedModel(model: string): boolean {
 export async function POST(req: Request) {
   let chargedCredits = 0;
   let chargedUserId: string | null = null;
+  let generationId: string | null = null;
 
   try {
     if (!isAllowedOrigin(req.headers.get("origin"))) {
@@ -56,7 +57,18 @@ export async function POST(req: Request) {
       return new NextResponse("No credit configuration for this music model", { status: 400 });
     }
 
-    await spendCredits({
+    const precheck = await precheckGenerationPolicy({
+      prompt,
+      extraText: [style ?? "", lyrics ?? ""].filter(Boolean).join("\n") || null,
+    });
+    if (!precheck.allowed) {
+      return NextResponse.json(
+        { error: precheck.message, blocked: true, reason: precheck.reason },
+        { status: 403 },
+      );
+    }
+
+    const charge = await spendCredits({
       userId,
       credits: creditsToCharge,
       prompt: sanitizePrompt(prompt, 3000),
@@ -65,6 +77,7 @@ export async function POST(req: Request) {
     });
     chargedCredits = creditsToCharge;
     chargedUserId = userId;
+    generationId = charge.generationId;
 
     const apiKey = process.env.WAVESPEED_API_KEY;
     if (!apiKey) {
@@ -101,6 +114,12 @@ export async function POST(req: Request) {
     if (!externalRes.ok) {
       const detail = await readErrorBody(externalRes);
       console.error("[MUSIC_WAVESPEED_ERROR]", externalRes.status, detail);
+      if (chargedCredits > 0 && chargedUserId && generationId) {
+        await refundGenerationCharge(generationId, chargedUserId, chargedCredits, {
+          reason: "generation_refund_provider_failed",
+          clearMediaUrl: true,
+        }).catch(() => {});
+      }
       return new NextResponse(`Music generation failed: ${detail}`, { status: externalRes.status });
     }
 
@@ -111,9 +130,18 @@ export async function POST(req: Request) {
 
     if (!audioUrl) {
       console.error("[MUSIC_NO_URL]", JSON.stringify(data));
+      if (chargedCredits > 0 && chargedUserId && generationId) {
+        await refundGenerationCharge(generationId, chargedUserId, chargedCredits, {
+          reason: "generation_refund_no_output",
+          clearMediaUrl: true,
+        }).catch(() => {});
+      }
       return new NextResponse("No audio URL in provider response", { status: 502 });
     }
 
+    if (generationId) {
+      await setGenerationMediaUrl(generationId, audioUrl).catch(() => {});
+    }
     return NextResponse.json({ audioUrl });
   } catch (error) {
     if (error instanceof InsufficientCreditsError) {
@@ -127,8 +155,13 @@ export async function POST(req: Request) {
       );
     }
 
-    if (chargedCredits > 0 && chargedUserId) {
-      await refundCredits(chargedUserId, chargedCredits);
+    if (chargedCredits > 0 && chargedUserId && generationId) {
+      await refundGenerationCharge(generationId, chargedUserId, chargedCredits, {
+        reason: "generation_refund_provider_failed",
+        clearMediaUrl: true,
+      }).catch(() => {});
+    } else if (chargedCredits > 0 && chargedUserId) {
+      await refundCredits(chargedUserId, chargedCredits).catch(() => {});
     }
 
     console.error("[MUSIC_ERROR]", error);

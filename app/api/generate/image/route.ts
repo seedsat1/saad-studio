@@ -1,7 +1,7 @@
-﻿import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { getGenerationCost } from "@/lib/pricing";
-import { InsufficientCreditsError, refundCredits, spendCredits, setGenerationMediaUrl, saveAdditionalGenerationUrls } from "@/lib/credit-ledger";
+import { InsufficientCreditsError, precheckGenerationPolicy, refundGenerationCharge, saveAdditionalGenerationUrls, setGenerationMediaUrl, spendCredits } from "@/lib/credit-ledger";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { getClientIp, isAllowedOrigin, sanitizePrompt } from "@/lib/security";
 import { getResolvedKieRoutingMaps } from "@/lib/kie-model-routing";
@@ -231,6 +231,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const precheck = await precheckGenerationPolicy({ prompt, negativePrompt });
+    if (!precheck.allowed) {
+      return NextResponse.json(
+        { error: precheck.message, blocked: true, reason: precheck.reason },
+        { status: 403 },
+      );
+    }
+
     const hasReferenceImages = Boolean(imageUrl || imageUrlsParam?.length);
     const effectiveModelId = resolveFlux2Variant(modelId, hasReferenceImages, quality);
     const { imageModelMap } = getResolvedKieRoutingMaps();
@@ -443,8 +451,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (chargedCredits > 0 && chargedUserId) {
-      await refundCredits(chargedUserId, chargedCredits);
+    if (chargedCredits > 0 && chargedUserId && generationId) {
+      await refundGenerationCharge(generationId, chargedUserId, chargedCredits, {
+        reason: "generation_refund_provider_failed",
+        clearMediaUrl: true,
+      }).catch(() => {});
     }
 
     const message = error instanceof Error ? error.message : "An unexpected error occurred.";

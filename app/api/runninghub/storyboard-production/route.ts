@@ -3,7 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import {
   InsufficientCreditsError,
   spendCredits,
-  rollbackGenerationCharge,
+  refundGenerationCharge,
   setGenerationMediaUrl,
 } from "@/lib/credit-ledger";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
@@ -286,7 +286,10 @@ export async function POST(req: NextRequest) {
       } else {
         failures.push(r.error ?? "Panel generation failed");
         // Refund this panel's credits
-        await rollbackGenerationCharge(panelGenerationIds[i], userId, CREDIT_PER_PANEL).catch(() => null);
+        await refundGenerationCharge(panelGenerationIds[i], userId, CREDIT_PER_PANEL, {
+          reason: "generation_refund_provider_failed",
+          clearMediaUrl: true,
+        }).catch(() => null);
       }
     }
 
@@ -309,7 +312,10 @@ export async function POST(req: NextRequest) {
     // Rollback all panel generation charges on unexpected error
     if (chargedUserId && chargedCredits > 0 && panelGenerationIds.length > 0) {
       for (const pgId of panelGenerationIds) {
-        await rollbackGenerationCharge(pgId, chargedUserId, CREDIT_PER_PANEL).catch(() => null);
+        await refundGenerationCharge(pgId, chargedUserId, CREDIT_PER_PANEL, {
+          reason: "generation_refund_provider_failed",
+          clearMediaUrl: true,
+        }).catch(() => null);
       }
     }
 

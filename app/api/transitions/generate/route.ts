@@ -8,8 +8,9 @@ import {
 } from "@/lib/transition-presets";
 import {
   InsufficientCreditsError,
+  precheckGenerationPolicy,
+  refundGenerationCharge,
   spendCredits,
-  rollbackGenerationCharge,
   setGenerationTaskMarker,
 } from "@/lib/credit-ledger";
 import { uploadBufferToStorage } from "@/lib/supabase-storage";
@@ -102,7 +103,22 @@ export async function POST(req: NextRequest) {
 
     const creditsToCharge = calcTransitionCredits(presetId, duration);
 
-    // Charge credits
+    // Assemble hidden prompt
+    const { prompt, negativePrompt } = assembleHiddenPrompt(preset, controls);
+
+    const precheck = await precheckGenerationPolicy({
+      prompt,
+      negativePrompt,
+      extraText: `Transition: ${preset.name}`,
+    });
+    if (!precheck.allowed) {
+      return NextResponse.json(
+        { error: precheck.message, blocked: true, reason: precheck.reason },
+        { status: 403 },
+      );
+    }
+
+    // Charge credits (only after precheck passes)
     const charge = await spendCredits({
       userId,
       credits: creditsToCharge,
@@ -113,9 +129,6 @@ export async function POST(req: NextRequest) {
     generationId = charge.generationId;
     chargedCredits = creditsToCharge;
     chargedUserId = userId;
-
-    // Assemble hidden prompt
-    const { prompt, negativePrompt } = assembleHiddenPrompt(preset, controls);
 
     const apiKey = process.env.KIE_API_KEY ?? process.env.KIEAI_API_KEY;
     if (!apiKey) throw new Error("KIE API key is not configured.");
@@ -170,7 +183,10 @@ export async function POST(req: NextRequest) {
         where: { id: job.id },
         data: { status: "failed", error: createJson?.msg || "Submission failed" },
       });
-      await rollbackGenerationCharge(generationId, userId, chargedCredits);
+      await refundGenerationCharge(generationId, userId, chargedCredits, {
+        reason: "generation_refund_provider_failed",
+        clearMediaUrl: true,
+      }).catch(() => {});
       return NextResponse.json(
         { error: createJson?.msg || createJson?.message || "Failed to start generation" },
         { status: createRes.ok ? 500 : createRes.status }
@@ -205,7 +221,10 @@ export async function POST(req: NextRequest) {
 
     // Roll back charges if we haven't already
     if (chargedCredits > 0 && chargedUserId && generationId) {
-      await rollbackGenerationCharge(generationId, chargedUserId, chargedCredits).catch(() => null);
+      await refundGenerationCharge(generationId, chargedUserId, chargedCredits, {
+        reason: "generation_refund_provider_failed",
+        clearMediaUrl: true,
+      }).catch(() => null);
     }
     if (jobId) {
       await prismadb.transitionJob

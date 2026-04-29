@@ -40,6 +40,7 @@ interface HeroSlide {
 
 interface ToolCard {
   _id: string;
+  id?: string;
   title: string;
   description: string;
   image: string;
@@ -118,6 +119,100 @@ const DEFAULT_AD: AdCard = {
   _id: "", title: "Ad Title", description: "Promote your feature here", image: "", href: "/",
   badge: "NEW", gradient: "from-pink-600/40 via-rose-700/30 to-indigo-900/60",
 };
+
+const HOME_CORE_TOOLS: ToolCard[] = [
+  {
+    _id: "home-core-create-image",
+    id: "create-image",
+    title: "Create Image",
+    description: "Generate stunning visuals with 19 AI models",
+    image: "/landing/tool-create-image.png",
+    href: "/image",
+    badge: "TOP",
+    gradient: "from-pink-600/40 via-violet-700/30 to-indigo-900/60",
+    accentColor: "text-pink-400",
+  },
+  {
+    _id: "home-core-create-video",
+    id: "create-video",
+    title: "Create Video",
+    description: "Text-to-video with 13 production engines",
+    image: "/landing/tool-create-video.png",
+    href: "/video",
+    badge: "NEW",
+    gradient: "from-orange-600/40 via-rose-700/30 to-violet-900/60",
+    accentColor: "text-orange-400",
+  },
+  {
+    _id: "home-core-cinema-studio",
+    id: "cinema-studio",
+    title: "Cinema Studio Video",
+    description: "Professional cinematic AI production",
+    image: "/landing/tool-cinema.png",
+    href: "/cinema-studio",
+    badge: "PRO",
+    gradient: "from-violet-600/40 via-purple-700/30 to-slate-900/60",
+    accentColor: "text-violet-400",
+  },
+  {
+    _id: "home-core-ai-influencer",
+    id: "ai-influencer",
+    title: "AI Influencer",
+    description: "Build virtual influencer identities at scale",
+    image: "/landing/tool-ai-influencer.png",
+    href: "/image/ai-influencer",
+    badge: "HOT",
+    gradient: "from-amber-500/40 via-orange-600/30 to-rose-900/60",
+    accentColor: "text-amber-400",
+  },
+];
+
+const HOME_TOP_CHOICE: ToolCard[] = [
+  {
+    _id: "home-top-relight",
+    id: "relight",
+    title: "Relight",
+    description: "Relight any image with AI precision",
+    image: "/landing/tool-relight.png",
+    href: "/image",
+    badge: "NEW",
+    gradient: "from-yellow-500/40 via-amber-600/30 to-orange-900/60",
+    accentColor: "text-yellow-400",
+  },
+  {
+    _id: "home-top-face-swap",
+    id: "face-swap",
+    title: "Face Swap",
+    description: "Swap faces with pixel-perfect accuracy",
+    image: "/landing/tool-face-swap.png",
+    href: "/image",
+    badge: "TOP",
+    gradient: "from-rose-600/40 via-pink-700/30 to-purple-900/60",
+    accentColor: "text-rose-400",
+  },
+  {
+    _id: "home-top-ugc-factory",
+    id: "ugc-factory",
+    title: "UGC Factory",
+    description: "User-generated content simulator",
+    image: "/landing/tool-ugc-factory.png",
+    href: "/video",
+    badge: "HOT",
+    gradient: "from-indigo-500/40 via-blue-600/30 to-sky-900/60",
+    accentColor: "text-indigo-400",
+  },
+  {
+    _id: "home-top-upscale",
+    id: "upscale",
+    title: "Video Upscale",
+    description: "Enhance resolution to 4K / 8K",
+    image: "/landing/tool-upscale.png",
+    href: "/video",
+    badge: "",
+    gradient: "from-emerald-600/40 via-teal-700/30 to-cyan-900/60",
+    accentColor: "text-teal-400",
+  },
+];
 
 const DEFAULT_APP: AppItem = { _id: "", title: "New App", color: "text-violet-400" };
 const DEFAULT_MODEL: ModelItem = { _id: "", name: "Model", tag: "AI", color: "text-violet-400", ring: "ring-violet-500/30" };
@@ -490,8 +585,8 @@ export default function VisualCmsPage() {
         if (b && typeof b === "object" && !Array.isArray(b)) {
           if (b.sectionOrder?.length) setSectionOrder(b.sectionOrder);
           if (b.heroSlides?.length) setHeroSlides(b.heroSlides);
-          if (b.coreTools?.length) setCoreTools(b.coreTools);
-          if (b.topChoice?.length) setTopChoice(b.topChoice);
+          setCoreTools(b.coreTools?.length ? b.coreTools : slug === "home" ? HOME_CORE_TOOLS : []);
+          setTopChoice(b.topChoice?.length ? b.topChoice : slug === "home" ? HOME_TOP_CHOICE : []);
           if (b.adCards?.length) setAdCards(b.adCards);
           if (b.apps?.length) setApps(b.apps);
           if (b.models?.length) setModels(b.models);
@@ -506,8 +601,8 @@ export default function VisualCmsPage() {
           const def = getDefaultLayout(slug || "home");
           setSectionOrder(def.sectionOrder);
           setHeroSlides([]);
-          setCoreTools([]);
-          setTopChoice([]);
+          setCoreTools(slug === "home" ? HOME_CORE_TOOLS : []);
+          setTopChoice(slug === "home" ? HOME_TOP_CHOICE : []);
           setAdCards([]);
           setApps([]);
           setModels([]);
@@ -519,8 +614,8 @@ export default function VisualCmsPage() {
         const def = getDefaultLayout(slug || "home");
         setSectionOrder(def.sectionOrder);
         setHeroSlides([]);
-        setCoreTools([]);
-        setTopChoice([]);
+        setCoreTools(slug === "home" ? HOME_CORE_TOOLS : []);
+        setTopChoice(slug === "home" ? HOME_TOP_CHOICE : []);
         setAdCards([]);
         setApps([]);
         setModels([]);

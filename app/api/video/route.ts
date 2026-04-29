@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
 import { getGenerationCost } from "@/lib/pricing";
-import { InsufficientCreditsError, rollbackGenerationCharge, setGenerationMediaUrl, setGenerationTaskMarker, spendCredits } from "@/lib/credit-ledger";
+import { InsufficientCreditsError, precheckGenerationPolicy, refundGenerationCharge, setGenerationMediaUrl, setGenerationTaskMarker, spendCredits } from "@/lib/credit-ledger";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { getClientIp, isAllowedOrigin, sanitizePrompt } from "@/lib/security";
 import prismadb from "@/lib/prismadb";
@@ -816,6 +816,17 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "No credit configuration for this model" }, { status: 400 });
     }
 
+    const precheck = await precheckGenerationPolicy({
+      prompt: typeof payload.prompt === "string" ? payload.prompt : "",
+      negativePrompt: typeof (payload as any).negative_prompt === "string" ? String((payload as any).negative_prompt) : null,
+    });
+    if (!precheck.allowed) {
+      return NextResponse.json(
+        { error: precheck.message, blocked: true, reason: precheck.reason },
+        { status: 403 },
+      );
+    }
+
     // ── WaveSpeed path ────────────────────────────────────────────────────────
     if (wavespeedRoute && !kieModel) {
       const wsInput = mapToWavespeedInput(payload);
@@ -846,7 +857,10 @@ export async function POST(req: Request) {
 
       if (!wsRes.ok || !wsPredictionId) {
         if (chargedCredits > 0 && chargedUserId && generationId) {
-          await rollbackGenerationCharge(generationId, chargedUserId, chargedCredits);
+          await refundGenerationCharge(generationId, chargedUserId, chargedCredits, {
+            reason: "generation_refund_provider_failed",
+            clearMediaUrl: true,
+          }).catch(() => {});
         }
         return NextResponse.json(
           { error: (wsJson as Record<string, unknown>)?.message || `WaveSpeed submit failed (${wsRes.status})` },
@@ -937,7 +951,10 @@ export async function POST(req: Request) {
       const text = await createRes.text().catch(() => "");
       console.error("[api/video POST] KIE non-JSON response", createRes.status, text.slice(0, 300));
       if (chargedCredits > 0 && chargedUserId && generationId) {
-        await rollbackGenerationCharge(generationId, chargedUserId, chargedCredits);
+        await refundGenerationCharge(generationId, chargedUserId, chargedCredits, {
+          reason: "generation_refund_provider_failed",
+          clearMediaUrl: true,
+        }).catch(() => {});
       }
       return NextResponse.json(
         { error: `KIE returned non-JSON (${createRes.status}): ${text.slice(0, 200)}` },
@@ -953,7 +970,10 @@ export async function POST(req: Request) {
     if (!createRes.ok || !taskId) {
       console.error("[api/video POST] KIE createTask failed", createRes.status, JSON.stringify(createJson).slice(0, 500));
       if (chargedCredits > 0 && chargedUserId && generationId) {
-        await rollbackGenerationCharge(generationId, chargedUserId, chargedCredits);
+        await refundGenerationCharge(generationId, chargedUserId, chargedCredits, {
+          reason: "generation_refund_provider_failed",
+          clearMediaUrl: true,
+        }).catch(() => {});
       }
       return NextResponse.json(
         { error: createJson?.msg || createJson?.message || `KIE createTask failed (${createRes.status})` },
@@ -982,7 +1002,10 @@ export async function POST(req: Request) {
     }
 
     if (chargedCredits > 0 && chargedUserId && generationId) {
-      await rollbackGenerationCharge(generationId, chargedUserId, chargedCredits);
+      await refundGenerationCharge(generationId, chargedUserId, chargedCredits, {
+        reason: "generation_refund_provider_failed",
+        clearMediaUrl: true,
+      }).catch(() => {});
     }
 
     const msg = err instanceof Error ? err.message : "Internal Error";
@@ -1041,7 +1064,10 @@ export async function GET(req: Request) {
             await setGenerationMediaUrl(linkedGeneration.id, wsOutputs[0]);
           }
           if (wsStatus === "failed" && linkedGeneration.cost > 0) {
-            await rollbackGenerationCharge(linkedGeneration.id, userId, linkedGeneration.cost);
+            await refundGenerationCharge(linkedGeneration.id, userId, linkedGeneration.cost, {
+              reason: "generation_refund_provider_failed",
+              clearMediaUrl: true,
+            }).catch(() => {});
           }
         }
       } catch { /* best-effort */ }
@@ -1098,7 +1124,10 @@ export async function GET(req: Request) {
             await setGenerationMediaUrl(linkedGeneration.id, veoOutputs[0]);
           }
           if (veoStatus === "failed" && linkedGeneration.cost > 0) {
-            await rollbackGenerationCharge(linkedGeneration.id, userId, linkedGeneration.cost);
+            await refundGenerationCharge(linkedGeneration.id, userId, linkedGeneration.cost, {
+              reason: "generation_refund_provider_failed",
+              clearMediaUrl: true,
+            }).catch(() => {});
           }
         }
       } catch { /* best-effort */ }
@@ -1176,7 +1205,10 @@ export async function GET(req: Request) {
       }
 
       if (status === "failed" && linkedGeneration && linkedGeneration.cost > 0) {
-        await rollbackGenerationCharge(linkedGeneration.id, userId, linkedGeneration.cost);
+        await refundGenerationCharge(linkedGeneration.id, userId, linkedGeneration.cost, {
+          reason: "generation_refund_provider_failed",
+          clearMediaUrl: true,
+        }).catch(() => {});
       }
     } catch (dbErr) {
       console.error("[api/video GET] non-fatal DB sync error", dbErr);
