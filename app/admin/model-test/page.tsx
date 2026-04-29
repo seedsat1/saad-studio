@@ -26,6 +26,7 @@ import {
   RotateCcw,
   Radio,
 } from "lucide-react";
+import { useGenerationGate } from "@/hooks/use-generation-gate";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -105,6 +106,7 @@ function defaultTestState(m: WaveSpeedVideoModel): TestState {
 // ─── ModelTestCard ─────────────────────────────────────────────────────────────
 
 function ModelTestCard({ model }: { model: WaveSpeedVideoModel }) {
+  const { guardGeneration, getSafeErrorMessage } = useGenerationGate();
   const c = model.capabilities;
   const [open, setOpen] = useState(false);
   const [st, setSt] = useState<TestState>(() => defaultTestState(model));
@@ -147,6 +149,17 @@ function ModelTestCard({ model }: { model: WaveSpeedVideoModel }) {
     }
     if (c.requires_image && !st.startFrame) {
       setSt(s => ({ ...s, error: "This model requires an image." }));
+      return;
+    }
+
+    const gate = await guardGeneration({
+      requiredCredits: 6,
+      action: "admin:model-test:video",
+    });
+    if (!gate.ok) {
+      if (gate.reason === "error") {
+        setSt(s => ({ ...s, status: "error", error: gate.message ?? getSafeErrorMessage(gate.message) }));
+      }
       return;
     }
 
@@ -203,7 +216,7 @@ function ModelTestCard({ model }: { model: WaveSpeedVideoModel }) {
         setSt(s => ({
           ...s,
           status: "error",
-          error:  data?.error ?? `HTTP ${res.status}`,
+          error:  getSafeErrorMessage(data?.error ?? `HTTP ${res.status}`),
         }));
         return;
       }
@@ -232,7 +245,7 @@ function ModelTestCard({ model }: { model: WaveSpeedVideoModel }) {
             setSt(s => ({
               ...s,
               status: "error",
-              error:  pd.error ?? "Generation failed",
+              error:  getSafeErrorMessage(pd.error ?? "Generation failed"),
             }));
           }
         } catch {
@@ -244,11 +257,11 @@ function ModelTestCard({ model }: { model: WaveSpeedVideoModel }) {
       setSt(s => ({
         ...s,
         status: "error",
-        error:  e instanceof Error ? e.message : "Unexpected error",
+        error:  getSafeErrorMessage(e),
       }));
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [st, model, c]);
+  }, [st, model, c, guardGeneration, getSafeErrorMessage]);
 
   const isRunning  = st.status === "generating" || st.status === "polling";
   const maxRefs    = c.max_reference_images;

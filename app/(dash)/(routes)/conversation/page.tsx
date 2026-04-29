@@ -22,6 +22,7 @@ import {Loader} from "@/components/loader";
 import { useToast } from "@/components/ui/use-toast"
 
 import { useProModal } from "@/hooks/use-pro-modal";
+import { useGenerationGate } from "@/hooks/use-generation-gate";
 
 class ChatRequestMessage {
     key: string;
@@ -38,6 +39,7 @@ class ChatRequestMessage {
 const ConversationPage = () => {
     const router = useRouter();
     const proModal = useProModal();
+    const { guardGeneration, getSafeErrorMessage } = useGenerationGate();
     const [messages, setMessages] = useState<ChatRequestMessage[]>([]);
 
     const form = useForm<z.infer<typeof formSchema>>({
@@ -52,6 +54,12 @@ const ConversationPage = () => {
 
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
         try {
+            const gate = await guardGeneration({
+                requiredCredits: 1,
+                action: "conversation:send",
+            });
+            if (!gate.ok) return;
+
             const index = messages.length
             const prompt = values.prompt
             const userMessage = new ChatRequestMessage("user", prompt, index.toString());
@@ -77,7 +85,7 @@ const ConversationPage = () => {
                 toast({
                     variant: "destructive",
                     title: "Something went wrong",
-                    description: error?.response?.data,
+                    description: getSafeErrorMessage(error),
                 });
             }
         } finally {
@@ -153,5 +161,4 @@ const ConversationPage = () => {
 
 
 export default ConversationPage;
-
 

@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { useCreditModal } from "@/hooks/use-credit-modal";
+import { useGenerationGate } from "@/hooks/use-generation-gate";
 import { AssetInspector, type Asset } from "@/components/AssetInspector";
 
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-display", display: "swap" });
@@ -81,7 +81,7 @@ function ShimmerBlock() {
 }
 
 export default function MakeupPage() {
-  const openCreditModal = useCreditModal((s) => s.onOpen);
+  const { guardGeneration, getSafeErrorMessage } = useGenerationGate();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
@@ -141,6 +141,11 @@ export default function MakeupPage() {
 
   async function handleGenerate() {
     if (isGenerating || !imageDataUrl) return;
+    const gate = await guardGeneration({ requiredCredits: CREDIT_COST, action: "apps:makeup" });
+    if (!gate.ok) {
+      if (gate.reason === "error") setErrorMessage(gate.message ?? getSafeErrorMessage(gate.message));
+      return;
+    }
     setResultUrls([]);
     setErrorMessage("");
     setGenerationStatus("generating");
@@ -151,12 +156,6 @@ export default function MakeupPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ imageDataUrl: compressedImage }),
       });
-      if (res.status === 402) {
-        const data = (await res.json()) as { requiredCredits?: number; currentBalance?: number };
-        openCreditModal({ requiredCredits: data.requiredCredits, currentBalance: data.currentBalance });
-        setGenerationStatus("idle");
-        return;
-      }
       if (!res.ok) {
         let msg = "Failed to generate";
         try { const data = await res.json(); msg = data.error ?? msg; } catch { msg = `Server error (${res.status})`; }
@@ -175,7 +174,7 @@ export default function MakeupPage() {
         ...prev,
       ]);
     } catch (err) {
-      setErrorMessage(err instanceof Error ? err.message : "Generation failed.");
+      setErrorMessage(getSafeErrorMessage(err));
       setGenerationStatus("failed");
     }
   }

@@ -17,6 +17,7 @@ import {
   User,
   Zap,
 } from "lucide-react";
+import { useGenerationGate } from "@/hooks/use-generation-gate";
 
 // ─────────────────────────────────────────────────────────────────
 // Types
@@ -186,6 +187,7 @@ function renderMarkdown(content: string): React.ReactNode {
 // Page
 // ─────────────────────────────────────────────────────────────────
 export default function AssistPage() {
+  const { guardGeneration, getSafeErrorMessage } = useGenerationGate();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [activeId, setActiveId] = useState("");
   const [text, setText] = useState("");
@@ -289,6 +291,12 @@ export default function AssistPage() {
   const sendMessageWith = async (rawText: string) => {
     if (!activeSession || !rawText.trim() || isLoading) return;
 
+    const gate = await guardGeneration({
+      requiredCredits: 1,
+      action: "assist:send",
+    });
+    if (!gate.ok) return;
+
     const userMsg: Message = {
       id: newId("m"),
       role: "user",
@@ -330,7 +338,7 @@ export default function AssistPage() {
       const errMsg: Message = {
         id: newId("m"),
         role: "assistant",
-        content: `⚠ ${err instanceof Error ? err.message : "Unexpected error"}`,
+        content: getSafeErrorMessage(err),
         createdAt: Date.now(),
       };
       updateActive((s) => ({ ...s, messages: [...s.messages, errMsg], updatedAt: Date.now() }));
@@ -359,6 +367,13 @@ export default function AssistPage() {
     }
     if (lastUserIdx < 0) return;
     const trimmed = msgs.slice(0, lastUserIdx + 1);
+
+    const gate = await guardGeneration({
+      requiredCredits: 1,
+      action: "assist:regenerate",
+    });
+    if (!gate.ok) return;
+
     updateActive((s) => ({ ...s, messages: trimmed, updatedAt: Date.now() }));
 
     setIsLoading(true);
@@ -385,7 +400,7 @@ export default function AssistPage() {
       const errMsg: Message = {
         id: newId("m"),
         role: "assistant",
-        content: `⚠ ${err instanceof Error ? err.message : "Unexpected error"}`,
+        content: getSafeErrorMessage(err),
         createdAt: Date.now(),
       };
       updateActive((s) => ({ ...s, messages: [...s.messages, errMsg], updatedAt: Date.now() }));

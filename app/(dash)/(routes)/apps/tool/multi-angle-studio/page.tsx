@@ -4,7 +4,7 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import { Outfit, Plus_Jakarta_Sans } from "next/font/google";
 import { ArrowLeft, Upload, X, Loader2, Download, RefreshCw, CheckCircle, AlertCircle, Camera } from "lucide-react";
 import Link from "next/link";
-import { useCreditModal } from "@/hooks/use-credit-modal";
+import { useGenerationGate } from "@/hooks/use-generation-gate";
 
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-display", display: "swap" });
 const plusJakarta = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-body", display: "swap" });
@@ -173,7 +173,7 @@ function AngleCanvas({ h, v, imageDataUrl }: { h: number; v: number; imageDataUr
 }
 
 export default function MultiAngleStudioPage() {
-  const openCreditModal = useCreditModal((s) => s.onOpen);
+  const { guardGeneration, getSafeErrorMessage } = useGenerationGate();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
@@ -222,6 +222,11 @@ export default function MultiAngleStudioPage() {
       alert("Please upload a reference image first.");
       return;
     }
+    const gate = await guardGeneration({ requiredCredits: 30, action: "apps:multi-angle" });
+    if (!gate.ok) {
+      if (gate.reason === "error") setStatusMessage(gate.message ?? getSafeErrorMessage(gate.message));
+      return;
+    }
 
     setResult(null);
     setGenerationStatus("generating");
@@ -240,13 +245,6 @@ export default function MultiAngleStudioPage() {
         }),
       });
 
-      if (res.status === 402) {
-        const data = (await res.json()) as { requiredCredits?: number; currentBalance?: number };
-        openCreditModal({ requiredCredits: data.requiredCredits, currentBalance: data.currentBalance });
-        setGenerationStatus("idle");
-        return;
-      }
-
       if (!res.ok) {
         const data = (await res.json()) as { error?: string };
         throw new Error(data.error ?? "Failed to generate");
@@ -257,7 +255,7 @@ export default function MultiAngleStudioPage() {
       setGenerationStatus("success");
       setStatusMessage("");
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Generation failed.";
+      const message = getSafeErrorMessage(err);
       setResult({ outputs: [], status: "failed", error: message });
       setGenerationStatus("failed");
       setStatusMessage("");

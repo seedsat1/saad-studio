@@ -3,7 +3,6 @@
 import { useRef, useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import Script from "next/script";
 import { motion, AnimatePresence, useAnimation, useInView } from "framer-motion";
 import {
   Play, ChevronRight, ChevronLeft, ImageIcon, VideoIcon, Music,
@@ -924,27 +923,9 @@ function TiltPricingCard({
 }
 
 function PricingPreview() {
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const canHover = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
-    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (!canHover || reducedMotion) return;
-
-    const runInit = () => {
-      const vt = (window as unknown as { VanillaTilt?: { init: (nodes: Element[] | NodeListOf<Element>) => void } }).VanillaTilt;
-      if (!vt?.init) return;
-      vt.init(document.querySelectorAll("[data-tilt]"));
-    };
-
-    runInit();
-    const t = window.setTimeout(runInit, 60);
-    return () => window.clearTimeout(t);
-  }, []);
-
   return (
     <FadeIn>
       <section className="text-center">
-        <Script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.8.0/vanilla-tilt.min.js" strategy="afterInteractive" />
         <h2 className="text-2xl font-bold text-white tracking-tight">Simple, credit-based pricing</h2>
         <p className="mt-2 text-sm text-zinc-400">One credit balance. All AI models. No hidden fees.</p>
         <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-3xl mx-auto">
@@ -1174,6 +1155,11 @@ export default function ExplorePage() {
 
   const [heroContent, setHeroContent] = useState<PublicPageContent>(null);
   const [coreToolsContent, setCoreToolsContent] = useState<PublicPageContent>(null);
+
+  useEffect(() => {
+    if (process.env.NODE_ENV === "production") return;
+    console.log("[Home] cms-home coreTools length", cms?.coreTools?.length ?? 0);
+  }, [cms?.coreTools?.length]);
 
   useEffect(() => {
     fetch("/api/content?slug=home&sectionName=hero")

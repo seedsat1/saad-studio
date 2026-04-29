@@ -548,12 +548,19 @@ export default function VisualCmsPage() {
           message: maintenanceMessage || DEFAULT_MAINTENANCE_MESSAGE,
         },
       };
+      if (process.env.NODE_ENV !== "production") {
+        console.log("[CMS] Save Page payload", { pageName, layoutBlocks: payload });
+      }
       const res = await fetch("/api/admin/layouts", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ pageName, layoutBlocks: payload }),
       });
-      if (!res.ok) throw new Error("Save failed");
+      const saved = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(saved?.error || "Save failed");
+      if (process.env.NODE_ENV !== "production") {
+        console.log("[CMS] Saved layoutBlocks", saved?.layoutBlocks);
+      }
       setSaveMsg("Saved!");
       setTimeout(() => setSaveMsg(null), 3000);
     } catch {

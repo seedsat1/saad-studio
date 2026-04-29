@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useState, useCallback, useRef, useEffect, useMemo, Suspense, type DragEvent } from "react";
-import { useAuthGuard } from "@/hooks/use-auth-guard";
+import { useGenerationGate } from "@/hooks/use-generation-gate";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSearchParams } from "next/navigation";
 import {
@@ -546,7 +546,7 @@ function VideoPageInner() {
 
   // -- Generate -----------------------------------------------------------------
 
-  const guard = useAuthGuard();
+  const { guardGeneration, getSafeErrorMessage } = useGenerationGate();
   const { addAsset } = useAssetStore();
 
   const startPolling = useCallback((taskId: string, ctx: { model: WaveSpeedVideoModel; promptText: string; ratio: string; duration: number | null }) => {
@@ -634,7 +634,6 @@ function VideoPageInner() {
   }, []);
 
   const handleGenerate = useCallback(async () => {
-    if (!guard()) return;
     const hasMain = prompt.trim().length > 0;
     const hasMulti = multiPrompts.some((s) => s.trim().length > 0);
     const multiOn = caps.has_multi_prompt && (multiPrompts.length > 1 || multiPrompts[0] !== "");
@@ -644,6 +643,11 @@ function VideoPageInner() {
       selectedModel.api_route === "kwaivgi/kling-v3.0-pro/text-to-video";
     // Skip the generic prompt guard for Kling 3.0 (multi-shot can have no main prompt)
     if (!isKling30VideoEarly && !hasMain && !(multiOn && hasMulti)) return;
+    const gate = await guardGeneration({ requiredCredits: estimatedCredits, action: `video:${selectedModel.api_route}` });
+    if (!gate.ok) {
+      if (gate.reason === "error") setGenerationError(gate.message ?? getSafeErrorMessage(gate.message));
+      return;
+    }
     setIsSubmitting(true);
     setGenerationError(null);
 
@@ -930,13 +934,13 @@ function VideoPageInner() {
         const text = await clonedRes.text().catch(() => "");
         const preview = text.slice(0, 200);
         console.error("[video POST] non-JSON response", res.status, preview);
-        setGenerationError(preview || `Server error (${res.status})`);
+        setGenerationError(getSafeErrorMessage(preview || `Server error (${res.status})`));
         setIsSubmitting(false);
         return;
       }
 
       if (!res.ok || !data.taskId) {
-        setGenerationError(data.error ?? "Failed to start generation");
+        setGenerationError(getSafeErrorMessage(data.error ?? "Failed to start generation"));
         setIsSubmitting(false);
         return;
       }
@@ -958,7 +962,7 @@ function VideoPageInner() {
       setIsSubmitting(false);
       startPolling(data.taskId, { model: selectedModel, promptText: basePrompt, ratio: _capturedRatio, duration });
     } catch (err) {
-      setGenerationError(err instanceof Error ? err.message : "An unexpected error occurred");
+      setGenerationError(getSafeErrorMessage(err));
       setIsSubmitting(false);
     }
   }, [
@@ -967,6 +971,7 @@ function VideoPageInner() {
     negPrompt, cfgScale, sound, shotType, multiPrompts, elementList,
     sceneControl, orientation, startPolling,
     klingEls, kling30MultiEnabled, kling30MultiMode, kling30CustomShots,
+    estimatedCredits, getSafeErrorMessage, guardGeneration,
   ]);
 
   const [mobileSettingsOpen, setMobileSettingsOpen] = useState(false);

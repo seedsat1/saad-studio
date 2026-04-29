@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useMemo, useState } from "react";
+import { useGenerationGate } from "@/hooks/use-generation-gate";
 
 type WhisperModel =
   | "wavespeed-ai/openai-whisper"
@@ -14,6 +15,7 @@ const MODEL_OPTIONS: Array<{ value: WhisperModel; label: string }> = [
 ];
 
 export default function CaptionsPage() {
+  const { guardGeneration, getSafeErrorMessage } = useGenerationGate();
   const [model, setModel] = useState<WhisperModel>("wavespeed-ai/openai-whisper-with-video");
   const [mediaUrl, setMediaUrl] = useState("");
   const [language, setLanguage] = useState("auto");
@@ -31,6 +33,17 @@ export default function CaptionsPage() {
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!canSubmit || loading) return;
+
+    const gate = await guardGeneration({
+      requiredCredits: 1,
+      action: "captions:generate",
+    });
+    if (!gate.ok) {
+      if (gate.reason === "error") {
+        setError(gate.message ?? getSafeErrorMessage(gate.message));
+      }
+      return;
+    }
 
     setLoading(true);
     setError("");
@@ -72,7 +85,7 @@ export default function CaptionsPage() {
       setTranscript(typeof data?.text === "string" ? data.text : "");
       setCaptionUrl(typeof data?.captionUrl === "string" ? data.captionUrl : "");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unexpected error.");
+      setError(getSafeErrorMessage(err));
     } finally {
       setLoading(false);
     }

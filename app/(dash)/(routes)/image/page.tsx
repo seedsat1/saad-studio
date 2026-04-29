@@ -28,7 +28,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { IMAGE_MODELS, type ImageModel } from "@/lib/image-models";
-import { useAuthGuard } from "@/hooks/use-auth-guard";
+import { useGenerationGate } from "@/hooks/use-generation-gate";
 import { AssetInspector, type Asset } from "@/components/AssetInspector";
 import { useAssetStore } from "@/hooks/use-asset-store";
 import { useSearchParams } from "next/navigation";
@@ -913,7 +913,7 @@ function InpaintWorkspace({ source, setSource, brushSize, setBrushSize, maskVers
 
 export default function ImageWorkspacePage() {
   const searchParams = useSearchParams();
-  const guard = useAuthGuard();
+  const { guardGeneration, getSafeErrorMessage } = useGenerationGate();
   const { addAsset } = useAssetStore();
 
   const [activeTool, setActiveTool] = useState<ToolId>("create");
@@ -1124,6 +1124,15 @@ export default function ImageWorkspacePage() {
     return Boolean(faceSource && faceTarget);
   }, [activeTool, createNeedsImage, enhanceFiles.length, faceSource, faceTarget, generating, inpaintFile, prompt, referenceFiles.length, relightFile, upscaleFile]);
 
+  const estimatedCredits = useMemo(() => {
+    if (activeTool === "create") return (selectedModel.creditCost || (createNeedsImage ? 3 : 2)) * numImages;
+    if (activeTool === "enhance") return ENHANCE_MODELS.find((m) => m.id === enhanceModelId)?.creditCost ?? 2;
+    if (activeTool === "relight") return 3 * relightVariations;
+    if (activeTool === "inpaint") return 3 * inpaintVariations;
+    if (activeTool === "upscale") return 2;
+    return 4;
+  }, [activeTool, createNeedsImage, enhanceModelId, inpaintVariations, numImages, relightVariations, selectedModel.creditCost]);
+
   const addResultItems = useCallback((urls: string[], tool: ToolId, model: string, p: string, aspect: string) => {
     const newItems = urls.map((url) => ({ id: uid("img"), url, tool, model, prompt: p, aspect }));
     setResults((prev) => [...newItems, ...prev]);
@@ -1294,8 +1303,12 @@ export default function ImageWorkspacePage() {
   }, [addResultItems, enhanceFiles, enhanceModelId, prompt]);
 
   const handleGenerate = useCallback(async () => {
-    if (!guard()) return;
     if (!canGenerate) return;
+    const gate = await guardGeneration({ requiredCredits: estimatedCredits, action: `image:${activeTool}` });
+    if (!gate.ok) {
+      if (gate.reason === "error") setError(gate.message ?? getSafeErrorMessage(gate.message));
+      return;
+    }
     const pendingCount = activeTool === "create" ? numImages : activeTool === "relight" ? relightVariations : activeTool === "inpaint" ? inpaintVariations : 1;
     const pendingModel = activeTool === "create" ? selectedModel.label : activeTool === "enhance" ? (ENHANCE_MODELS.find((m) => m.id === enhanceModelId)?.label ?? enhanceModelId) : activeTool === "relight" ? "Seedream 4.5 Edit" : activeTool === "inpaint" ? inpaintModelId : activeTool === "upscale" ? "Upscaler" : "Face Swap";
     const pendingAspect = activeTool === "create" ? aspectRatio : "source";
@@ -1332,13 +1345,13 @@ export default function ImageWorkspacePage() {
       if (activeTool === "upscale") await generateUpscale();
       if (activeTool === "face-swap") await generateFaceSwap();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed");
+      setError(getSafeErrorMessage(e));
     } finally {
       setPendingItems((prev) => prev.filter((item) => !placeholders.some((ph) => ph.id === item.id)));
       setGenerating(false);
       try { localStorage.removeItem("ff_image_pending_job"); } catch {}
     }
-  }, [activeTool, aspectRatio, canGenerate, enhanceModelId, generateCreate, generateEnhance, generateFaceSwap, generateInpaint, generateRelight, generateUpscale, guard, inpaintModelId, inpaintVariations, numImages, prompt, relightVariations, selectedModel.label]);
+  }, [activeTool, aspectRatio, canGenerate, enhanceModelId, estimatedCredits, generateCreate, generateEnhance, generateFaceSwap, generateInpaint, generateRelight, generateUpscale, getSafeErrorMessage, guardGeneration, inpaintModelId, inpaintVariations, numImages, prompt, relightVariations, selectedModel.label]);
 
   const handleDelete = useCallback(async (id: string) => {
     setResults((prev) => prev.filter((i) => i.id !== id));

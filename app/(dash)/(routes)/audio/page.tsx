@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSearchParams } from "next/navigation";
+import { useGenerationGate } from "@/hooks/use-generation-gate";
 
 type AudioToolId =
   | "voice-generator"
@@ -612,6 +613,7 @@ export default function AudioPage() {
   const [progress, setProgress] = useState(0);
   const [isBusy, setIsBusy] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const { guardGeneration, getSafeErrorMessage } = useGenerationGate();
 
   const [cloneName, setCloneName] = useState("");
   const [cloneFiles, setCloneFiles] = useState<UploadedAsset[]>([]);
@@ -865,6 +867,14 @@ export default function AudioPage() {
 
   const runGenerate = useCallback(async () => {
     if (!canGenerate) return;
+    const initialGate = await guardGeneration({
+      requiredCredits: dynamicQuote?.finalCredits ?? 0,
+      action: `audio:${activeTool}`,
+    });
+    if (!initialGate.ok) {
+      if (initialGate.reason === "error") setErrorMessage(initialGate.message ?? getSafeErrorMessage(initialGate.message));
+      return;
+    }
     setIsBusy(true);
     setErrorMessage(null);
     // Persist a marker so a page refresh can recover the in-flight generation
@@ -877,6 +887,16 @@ export default function AudioPage() {
     try {
       const quote = await fetchDynamicQuote();
       setDynamicQuote(quote);
+      if (quote?.finalCredits) {
+        const creditGate = await guardGeneration({
+          requiredCredits: quote.finalCredits,
+          action: `audio:${activeTool}`,
+        });
+        if (!creditGate.ok) {
+          if (creditGate.reason === "error") setErrorMessage(creditGate.message ?? getSafeErrorMessage(creditGate.message));
+          return;
+        }
+      }
 
       if (activeTool === "voice-generator") {
         const effectiveTtsModel = ttsLanguage === "Arabic" && !voiceModel.startsWith("elevenlabs/text-to-") ? "elevenlabs/text-to-speech-multilingual-v2" : voiceModel;
@@ -1151,7 +1171,7 @@ export default function AudioPage() {
       setPlaying(false);
       setProgress(0);
     } catch (error) {
-      setErrorMessage(sanitizePublicText(error instanceof Error ? error.message : "Audio request failed."));
+      setErrorMessage(getSafeErrorMessage(error));
     } finally {
       try { localStorage.removeItem("ff_audio_pending_job"); } catch {}
       setTimeout(() => setIsBusy(false), 450);
@@ -1169,7 +1189,10 @@ export default function AudioPage() {
     cloneLabels,
     cloneName,
     cloneNoise,
+    dynamicQuote,
     fetchDynamicQuote,
+    getSafeErrorMessage,
+    guardGeneration,
     dubFile,
     dubUrl,
     addAudioMode,

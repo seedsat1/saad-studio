@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { useCreditModal } from "@/hooks/use-credit-modal";
+import { useGenerationGate } from "@/hooks/use-generation-gate";
 import { AssetInspector, type Asset } from "@/components/AssetInspector";
 
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-display", display: "swap" });
@@ -84,7 +84,7 @@ function compressImage(dataUrl: string, maxBytes = 2_500_000): Promise<string> {
 }
 
 export default function StoryboardProductionPage() {
-  const openCreditModal = useCreditModal((s) => s.onOpen);
+  const { guardGeneration, getSafeErrorMessage } = useGenerationGate();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
@@ -145,6 +145,11 @@ export default function StoryboardProductionPage() {
 
   async function handleGenerate() {
     if (isGenerating || !imageDataUrl) return;
+    const gate = await guardGeneration({ requiredCredits: totalCost, action: "apps:storyboard" });
+    if (!gate.ok) {
+      if (gate.reason === "error") setStatusMessage(gate.message ?? getSafeErrorMessage(gate.message));
+      return;
+    }
 
     setResult(null);
     setGenerationStatus("generating");
@@ -158,13 +163,6 @@ export default function StoryboardProductionPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ imageDataUrl: compressedImage, numPanels, storyboardType, aspectRatio }),
       });
-
-      if (res.status === 402) {
-        const data = (await res.json()) as { requiredCredits?: number; currentBalance?: number };
-        openCreditModal({ requiredCredits: data.requiredCredits, currentBalance: data.currentBalance });
-        setGenerationStatus("idle");
-        return;
-      }
 
       if (!res.ok) {
         let errorMsg = "Failed to generate";
@@ -192,7 +190,7 @@ export default function StoryboardProductionPage() {
       }));
       setHistory((prev) => [...newItems, ...prev]);
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Generation failed.";
+      const message = getSafeErrorMessage(err);
       setResult({ outputs: [], status: "failed", error: message });
       setGenerationStatus("failed");
       setStatusMessage("");

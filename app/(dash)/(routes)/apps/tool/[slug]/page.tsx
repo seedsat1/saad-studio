@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { ArrowLeft, Loader2, Upload } from "lucide-react";
 import { APP_TOOL_BY_ID, getAppToolAction } from "@/lib/apps-data";
+import { useGenerationGate } from "@/hooks/use-generation-gate";
 
 type ToolAction = ReturnType<typeof getAppToolAction>;
 
@@ -94,6 +95,10 @@ export default function AppToolRuntimePage({
   const slug = params.slug;
   const tool = APP_TOOL_BY_ID[slug];
   const action = useMemo(() => getAppToolAction(slug), [slug]);
+  const {
+    guardGeneration,
+    getSafeErrorMessage,
+  } = useGenerationGate();
 
   const [prompt, setPrompt] = useState("");
   const [fileA, setFileA] = useState<string | null>(null);
@@ -124,6 +129,17 @@ export default function AppToolRuntimePage({
 
   async function generate() {
     if (!canGenerate || loading) return;
+    const gate = await guardGeneration({
+      requiredCredits: estimatedCost(action),
+      action: `apps:${slug}:${action}`,
+    });
+    if (!gate.ok) {
+      if (gate.reason === "error") {
+        setError(gate.message ?? getSafeErrorMessage(gate.message));
+      }
+      return;
+    }
+
     setLoading(true);
     setError("");
     setResult(null);
@@ -189,7 +205,7 @@ export default function AppToolRuntimePage({
         setResult(json);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Request failed.");
+      setError(getSafeErrorMessage(err));
     } finally {
       setLoading(false);
     }

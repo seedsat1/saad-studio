@@ -16,6 +16,7 @@ import {
   Timer,
   Waves,
 } from "lucide-react";
+import { useGenerationGate } from "@/hooks/use-generation-gate";
 
 type StudioThemeKey = "darkSteel" | "midnightGold" | "newsroomPro";
 type InspectorTab =
@@ -231,6 +232,7 @@ async function parseError(res: Response): Promise<string> {
 }
 
 export default function BulletTimeStudioPage() {
+  const { guardGeneration, getSafeErrorMessage } = useGenerationGate();
   const [themeKey, setThemeKey] = useState<StudioThemeKey>("darkSteel");
   const [scenes, setScenes] = useState<Scene[]>(INITIAL_SCENES);
   const [selectedSceneId, setSelectedSceneId] = useState<string>(INITIAL_SCENES[0].id);
@@ -346,6 +348,17 @@ export default function BulletTimeStudioPage() {
   const pushLog = useCallback((line: string) => {
     setLogs((prev) => [`${new Date().toLocaleTimeString()} - ${line}`, ...prev].slice(0, 8));
   }, []);
+
+  const runGenerationGate = useCallback(async (requiredCredits: number, action: string) => {
+    const gate = await guardGeneration({ requiredCredits, action });
+    if (!gate.ok) {
+      if (gate.reason === "error") {
+        setError(gate.message ?? getSafeErrorMessage(gate.message));
+      }
+      return false;
+    }
+    return true;
+  }, [getSafeErrorMessage, guardGeneration]);
 
   useEffect(() => {
     setReferenceImages((prev) => prev.slice(0, refLimits.maxImageRefs));
@@ -515,10 +528,8 @@ export default function BulletTimeStudioPage() {
 
   async function generateVideo() {
     if (!prompt.trim() || videoLoading) return;
-    setVideoLoading(true);
     setError("");
     try {
-      pushLog(`Submitting video generation with ${videoRoute}`);
       if (generationMode === "multi" && !isKlingRoute) {
         throw new Error("Multi-shot is available with Kling 3 Pro only. Switch the video model to Kling.");
       }
@@ -533,6 +544,11 @@ export default function BulletTimeStudioPage() {
       if (referenceImages.length > refLimits.maxImageRefs) {
         throw new Error(`Too many image references for selected model. Max is ${refLimits.maxImageRefs}.`);
       }
+      const gateOk = await runGenerationGate(6, "apps:bullet-time:video");
+      if (!gateOk) return;
+
+      setVideoLoading(true);
+      pushLog("Submitting video generation");
       const multiPrompt =
         generationMode === "multi"
           ? multiShotText
@@ -628,7 +644,7 @@ export default function BulletTimeStudioPage() {
 
       throw new Error("Video generation timed out.");
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Video generation failed.";
+      const msg = getSafeErrorMessage(err);
       setError(msg);
       pushLog(`Video error: ${msg}`);
     } finally {
@@ -638,10 +654,13 @@ export default function BulletTimeStudioPage() {
 
   async function generateImage() {
     if (!prompt.trim() || imageLoading) return;
+    const gateOk = await runGenerationGate(2, "apps:bullet-time:image");
+    if (!gateOk) return;
+
     setImageLoading(true);
     setError("");
     try {
-      pushLog(`Submitting image generation with ${imageModel}`);
+      pushLog("Submitting image generation");
       const res = await fetch("/api/generate/image", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -663,7 +682,7 @@ export default function BulletTimeStudioPage() {
       pushLog("Image generated successfully.");
       await refreshState();
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Image generation failed.";
+      const msg = getSafeErrorMessage(err);
       setError(msg);
       pushLog(`Image error: ${msg}`);
     } finally {
@@ -673,10 +692,13 @@ export default function BulletTimeStudioPage() {
 
   async function generateVoice() {
     if (!voiceText.trim() || audioLoading) return;
+    const gateOk = await runGenerationGate(1, "apps:bullet-time:voice");
+    if (!gateOk) return;
+
     setAudioLoading(true);
     setError("");
     try {
-      pushLog("Submitting TTS generation with eleven_v3");
+      pushLog("Submitting voice generation");
       const res = await fetch("/api/generate/audio", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -699,7 +721,7 @@ export default function BulletTimeStudioPage() {
       pushLog("TTS generated successfully.");
       await refreshState();
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Audio generation failed.";
+      const msg = getSafeErrorMessage(err);
       setError(msg);
       pushLog(`Audio error: ${msg}`);
     } finally {
@@ -709,6 +731,9 @@ export default function BulletTimeStudioPage() {
 
   async function generateMusic() {
     if (!musicPrompt.trim() || musicLoading) return;
+    const gateOk = await runGenerationGate(4, "apps:bullet-time:music");
+    if (!gateOk) return;
+
     setMusicLoading(true);
     setError("");
     try {
@@ -735,7 +760,7 @@ export default function BulletTimeStudioPage() {
       pushLog("Music generated successfully.");
       await refreshState();
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Music generation failed.";
+      const msg = getSafeErrorMessage(err);
       setError(msg);
       pushLog(`Music error: ${msg}`);
     } finally {
@@ -745,6 +770,9 @@ export default function BulletTimeStudioPage() {
 
   async function generateSfx() {
     if (!sfxPrompt.trim() || sfxLoading) return;
+    const gateOk = await runGenerationGate(4, "apps:bullet-time:sfx");
+    if (!gateOk) return;
+
     setSfxLoading(true);
     setError("");
     try {
@@ -771,7 +799,7 @@ export default function BulletTimeStudioPage() {
       pushLog("SFX generated successfully.");
       await refreshState();
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "SFX generation failed.";
+      const msg = getSafeErrorMessage(err);
       setError(msg);
       pushLog(`SFX error: ${msg}`);
     } finally {
@@ -789,6 +817,9 @@ export default function BulletTimeStudioPage() {
 
   async function generateVoiceClone() {
     if (!cloneSampleDataUrl || !voiceText.trim() || cloneLoading) return;
+    const gateOk = await runGenerationGate(4, "apps:bullet-time:voice-clone");
+    if (!gateOk) return;
+
     setCloneLoading(true);
     setError("");
     try {
@@ -813,7 +844,7 @@ export default function BulletTimeStudioPage() {
       pushLog("Voice cloning generated successfully.");
       await refreshState();
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Voice cloning failed.";
+      const msg = getSafeErrorMessage(err);
       setError(msg);
       pushLog(`Voice cloning error: ${msg}`);
     } finally {

@@ -1,5 +1,12 @@
+import { auth } from "@clerk/nextjs/server";
+
 export async function POST(req: Request) {
   try {
+    const { userId } = await auth();
+    if (!userId) {
+      return Response.json({ code: -1, msg: "Unauthorized" }, { status: 401 });
+    }
+
     const serverApiKey = process.env.RUNNINGHUB_API_KEY;
     if (!serverApiKey) return Response.json({ code: -1, msg: "Service not configured" }, { status: 500 });
 

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import SimpleToast from "../../../../components/SimpleToast";
+import { useGenerationGate } from "@/hooks/use-generation-gate";
 
 /* ───────────────────────── static scene data ───────────────────────── */
 
@@ -337,6 +338,7 @@ async function uploadImageToStorage(file: File): Promise<string> {
 }
 
 export default function NextSceneEnginePage() {
+  const { guardGeneration, getSafeErrorMessage } = useGenerationGate();
     const [toast, setToast] = useState("");
     const [activeSceneId, setActiveSceneId] = useState<string|null>(null);
   const [prompt, setPrompt] = useState("");
@@ -439,6 +441,15 @@ export default function NextSceneEnginePage() {
   /* ── generate ── */
   const handleGenerate = useCallback(async () => {
     if (!prompt.trim() || generating) return;
+    const gate = await guardGeneration({
+      requiredCredits: 6,
+      action: "cinema-studio:video",
+    });
+    if (!gate.ok) {
+      if (gate.reason === "error") setToast(gate.message ?? getSafeErrorMessage(gate.message));
+      return;
+    }
+
     setGenerating(true);
     setResultUrl(null);
     setToast("");
@@ -507,11 +518,11 @@ export default function NextSceneEnginePage() {
         throw new Error("Timed out.");
       }
     } catch (err) {
-      setToast(err instanceof Error ? err.message : "Generation failed.");
+      setToast(getSafeErrorMessage(err));
     } finally {
       setGenerating(false);
     }
-  }, [prompt, generating, uploadedImage, selectedModel, duration, aspectRatio, quality]);
+  }, [prompt, generating, guardGeneration, getSafeErrorMessage, uploadedImage, selectedModel, duration, aspectRatio, quality]);
 
   // Resume in-flight cinema-studio video generation interrupted by a page refresh.
   useEffect(() => {

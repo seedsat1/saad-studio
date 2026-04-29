@@ -1,8 +1,10 @@
 "use client";
 
 import { useStudioStore } from "@/hooks/use-studio-store";
+import { useGenerationGate } from "@/hooks/use-generation-gate";
 
 export default function SceneActions() {
+  const { guardGeneration } = useGenerationGate();
   const activeIdx = useStudioStore((s) => s.activeIdx);
   const scene = useStudioStore((s) => s.scenes[s.activeIdx]);
   const scenesLength = useStudioStore((s) => s.scenes.length);
@@ -18,12 +20,17 @@ export default function SceneActions() {
     scene.status === "queued" ||
     scene.status === "running";
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     if (!scene.image) {
       alert("Please upload an image for this scene first.");
       return;
     }
-    generateScene(activeIdx);
+    const gate = await guardGeneration({
+      requiredCredits: 6,
+      action: "variations:generate-scene",
+    });
+    if (!gate.ok) return;
+    void generateScene(activeIdx);
   };
 
   return (

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
-import { useAuth } from "@clerk/nextjs";
 import toast from "react-hot-toast";
 import {
   Upload,
@@ -29,6 +28,7 @@ import {
   type NormalizedShotOutput,
   type ShotPack,
 } from "@/lib/shots-studio";
+import { useGenerationGate } from "@/hooks/use-generation-gate";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -198,7 +198,7 @@ function ShotPendingCard({ shotType }: { shotType: ShotType }) {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function ShotsStudioPage() {
-  const { isSignedIn } = useAuth();
+  const { guardGeneration, getSafeErrorMessage, insufficientCreditsMessage } = useGenerationGate();
 
   // ── Controls state ──
   const [referenceFile, setReferenceFile]     = useState<File | null>(null);
@@ -269,11 +269,16 @@ export default function ShotsStudioPage() {
 
   // ── Generate handler ──
   const handleGenerate = async () => {
-    if (!isSignedIn) {
-      toast.error("Please sign in to generate shots.");
+    if (!activePack) return;
+
+    const gate = await guardGeneration({
+      requiredCredits: estimate?.total ?? 0,
+      action: "shots:generate",
+    });
+    if (!gate.ok) {
+      if (gate.reason === "error") toast.error(gate.message ?? getSafeErrorMessage(gate.message));
       return;
     }
-    if (!activePack) return;
 
     setIsGenerating(true);
     setResults([]);
@@ -301,12 +306,10 @@ export default function ShotsStudioPage() {
 
       if (!res.ok) {
         if (res.status === 402) {
-          toast.error(
-            `Not enough credits. Need ${data.requiredCredits}, have ${data.currentBalance}.`,
-          );
+          toast.error(insufficientCreditsMessage);
           return;
         }
-        toast.error(data.error ?? "Generation failed. Please try again.");
+        toast.error(getSafeErrorMessage(data.error ?? "Generation failed. Please try again."));
         return;
       }
 
@@ -324,8 +327,8 @@ export default function ShotsStudioPage() {
           `${successCount} shots done${failedCount > 0 ? `, ${failedCount} failed (refunded)` : ""}.`,
         );
       }
-    } catch {
-      toast.error("Network error. Please try again.");
+    } catch (err) {
+      toast.error(getSafeErrorMessage(err));
     } finally {
       setIsGenerating(false);
     }
@@ -333,7 +336,16 @@ export default function ShotsStudioPage() {
 
   // ── Regenerate single shot ──
   const handleRegenerate = async (shotType: ShotType) => {
-    if (!isSignedIn || regeneratingShot) return;
+    if (regeneratingShot) return;
+    const shotEstimate = estimateShotCredits([shotType], mode, consistencyLock);
+    const gate = await guardGeneration({
+      requiredCredits: shotEstimate.total,
+      action: "shots:regenerate",
+    });
+    if (!gate.ok) {
+      if (gate.reason === "error") toast.error(gate.message ?? getSafeErrorMessage(gate.message));
+      return;
+    }
     setRegeneratingShot(shotType);
 
     try {
@@ -357,7 +369,7 @@ export default function ShotsStudioPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        toast.error(data.error ?? "Regeneration failed.");
+        toast.error(res.status === 402 ? insufficientCreditsMessage : getSafeErrorMessage(data.error ?? "Regeneration failed."));
         return;
       }
 
@@ -373,8 +385,8 @@ export default function ShotsStudioPage() {
           toast.error(`${SHOT_PRESETS[shotType].label} failed again. Credits refunded.`);
         }
       }
-    } catch {
-      toast.error("Network error during regeneration.");
+    } catch (err) {
+      toast.error(getSafeErrorMessage(err));
     } finally {
       setRegeneratingShot(null);
     }

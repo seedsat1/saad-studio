@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import { useGenerationGate } from "@/hooks/use-generation-gate";
 import {
   Maximize2,
   Minimize2,
@@ -765,6 +766,7 @@ interface AssetInspectorProps {
 
 export function AssetInspector({ asset, onClose }: AssetInspectorProps) {
   const router = useRouter();
+  const { guardGeneration, getSafeErrorMessage } = useGenerationGate();
   const [expanded, setExpanded] = useState(false);
   const cfg = TYPE_CONFIG[asset.type];
   const TypeIcon = cfg.Icon;
@@ -820,6 +822,18 @@ export function AssetInspector({ asset, onClose }: AssetInspectorProps) {
 
       case "Upscale 4K":
         if (!url) return;
+        {
+          const gate = await guardGeneration({
+            requiredCredits: 2,
+            action: "asset-inspector:upscale",
+          });
+          if (!gate.ok) {
+            if (gate.reason === "error") {
+              setActionStatus({ message: gate.message ?? getSafeErrorMessage(gate.message), ok: false });
+            }
+            return;
+          }
+        }
         setActiveAction(label);
         try {
           const res = await fetch("/api/generate/upscale", {
@@ -832,16 +846,28 @@ export function AssetInspector({ asset, onClose }: AssetInspectorProps) {
             setProcessedUrl(data.imageUrl);
             setActionStatus({ message: "Image upscaled to 4K!", ok: true });
           } else {
-            setActionStatus({ message: data.error ?? "Upscale failed.", ok: false });
+            setActionStatus({ message: getSafeErrorMessage(data.error ?? "Upscale failed."), ok: false });
           }
-        } catch {
-          setActionStatus({ message: "Network error. Try again.", ok: false });
+        } catch (err) {
+          setActionStatus({ message: getSafeErrorMessage(err), ok: false });
         }
         setActiveAction(null);
         break;
 
       case "Remove Background":
         if (!url) return;
+        {
+          const gate = await guardGeneration({
+            requiredCredits: 1,
+            action: "asset-inspector:remove-bg",
+          });
+          if (!gate.ok) {
+            if (gate.reason === "error") {
+              setActionStatus({ message: gate.message ?? getSafeErrorMessage(gate.message), ok: false });
+            }
+            return;
+          }
+        }
         setActiveAction(label);
         try {
           const res = await fetch("/api/generate/remove-bg", {
@@ -854,10 +880,10 @@ export function AssetInspector({ asset, onClose }: AssetInspectorProps) {
             setProcessedUrl(data.imageUrl);
             setActionStatus({ message: "Background removed!", ok: true });
           } else {
-            setActionStatus({ message: data.error ?? "BG removal failed.", ok: false });
+            setActionStatus({ message: getSafeErrorMessage(data.error ?? "BG removal failed."), ok: false });
           }
-        } catch {
-          setActionStatus({ message: "Network error. Try again.", ok: false });
+        } catch (err) {
+          setActionStatus({ message: getSafeErrorMessage(err), ok: false });
         }
         setActiveAction(null);
         break;
@@ -907,7 +933,7 @@ export function AssetInspector({ asset, onClose }: AssetInspectorProps) {
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [effectiveUrl, asset, router, onClose, downloadAsset]);
+  }, [effectiveUrl, asset, router, onClose, downloadAsset, getSafeErrorMessage, guardGeneration]);
 
   return (
     <div className="flex h-full w-full overflow-hidden bg-slate-950 rounded-2xl ring-1 ring-white/10 shadow-2xl shadow-black/60">

@@ -11,6 +11,12 @@ import {
   spendCredits,
 } from "@/lib/credit-ledger";
 import { ASSIST_CHAT_CREDITS } from "@/lib/credits-config";
+import {
+  assertSufficientCredits,
+  generationAuthResponse,
+  insufficientCreditsResponse,
+  safeGenerationErrorResponse,
+} from "@/lib/generation-guard";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY ?? "",
@@ -26,11 +32,11 @@ export async function POST(req: Request) {
     const { messages } = body;
 
     if (!userId) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return generationAuthResponse();
     }
 
     if (!process.env.OPENAI_API_KEY) {
-      return new NextResponse("OpenAI API Key not configured.", { status: 500 });
+      return safeGenerationErrorResponse(new Error("OpenAI API Key not configured."), "conversation");
     }
 
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
@@ -42,6 +48,8 @@ export async function POST(req: Request) {
         .reverse()
         .find((m) => m && typeof m === "object" && (m as { role?: string }).role === "user")
         ?.content ?? "Conversation request";
+
+    await assertSufficientCredits(userId, ASSIST_CHAT_CREDITS);
 
     charge = await spendCredits({
       userId,
@@ -71,14 +79,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ content: msg, remainingCredits: charge.remainingCredits });
   } catch (error) {
     if (error instanceof InsufficientCreditsError) {
-      return NextResponse.json(
-        {
-          error: "Insufficient credits",
-          currentBalance: error.currentBalance,
-          requiredCredits: error.requiredCredits,
-        },
-        { status: 402 },
-      );
+      return insufficientCreditsResponse(error.requiredCredits, error.currentBalance);
     }
 
     if (charge && chargeUserId) {
@@ -88,6 +89,6 @@ export async function POST(req: Request) {
     }
 
     console.log("--- gpt error ---", error);
-    return new NextResponse("Internal Error", { status: 500 });
+    return safeGenerationErrorResponse(error, "conversation");
   }
 }

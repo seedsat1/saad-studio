@@ -2,6 +2,11 @@ import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import { spendCredits, InsufficientCreditsError } from "@/lib/credit-ledger";
 import { ASSIST_CHAT_CREDITS } from "@/lib/credits-config";
+import {
+  assertSufficientCredits,
+  insufficientCreditsResponse,
+  safeGenerationErrorResponse,
+} from "@/lib/generation-guard";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { fetchWithTimeout, readErrorBody } from "@/lib/http";
 import {
@@ -217,6 +222,8 @@ export async function POST(req: NextRequest) {
     const systemPrompt = PERSONA_PROMPTS[persona] ?? PERSONA_PROMPTS.general;
     const allMessages: ChatMessage[] = [{ role: "system", content: systemPrompt }, ...messages];
 
+    await assertSufficientCredits(userId, ASSIST_CHAT_CREDITS);
+
     await spendCredits({
       userId,
       credits: ASSIST_CHAT_CREDITS,
@@ -232,17 +239,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ content });
   } catch (error) {
     if (error instanceof InsufficientCreditsError) {
-      return NextResponse.json(
-        {
-          error: "Insufficient credits. Please top up your balance.",
-          requiredCredits: error.requiredCredits,
-          currentBalance: error.currentBalance,
-        },
-        { status: 402 },
-      );
+      return insufficientCreditsResponse(error.requiredCredits, error.currentBalance);
     }
     console.error("assist API error", error);
-    const message = error instanceof Error ? error.message : "Internal error";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return safeGenerationErrorResponse(error, "assist");
   }
 }

@@ -32,6 +32,7 @@ import { motion, AnimatePresence, type Variants } from "framer-motion";
 import { BatteryLow, Sparkles, Zap, Crown } from "lucide-react";
 import { useCreditModal } from "@/hooks/use-credit-modal";
 import { useCmsData } from "@/lib/use-cms-data";
+import { INSUFFICIENT_CREDITS_MESSAGE } from "@/lib/generation-errors";
 
 interface CmsTopup {
   _id?: string;
@@ -148,12 +149,11 @@ export default function OutOfCreditsModal() {
               </motion.div>
 
               <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
-                You&rsquo;re Out of Credits!
+                Insufficient credits
               </h2>
 
               <p className="text-slate-400 text-sm sm:text-base max-w-md leading-relaxed">
-                Don&rsquo;t let your creativity stop here. Top up your account to
-                generate more AI masterpieces.
+                {INSUFFICIENT_CREDITS_MESSAGE}
               </p>
 
               {/* Optional credit context badge */}

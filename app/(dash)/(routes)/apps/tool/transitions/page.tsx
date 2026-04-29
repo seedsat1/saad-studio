@@ -35,6 +35,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePageLayout } from "@/lib/use-page-layout";
+import { useGenerationGate } from "@/hooks/use-generation-gate";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -735,6 +736,11 @@ function ProcessingStage({ status, error, onReset }: { status: GenerationStatus;
 
 export default function TransitionsStudioPage() {
   const { hero } = usePageLayout("apps-tool-transitions");
+  const {
+    guardGeneration,
+    getSafeErrorMessage,
+    insufficientCreditsMessage,
+  } = useGenerationGate();
   // Project
   const [projectId, setProjectId] = useState<string | null>(null);
   const [projectTitle, setProjectTitle] = useState("Untitled Transition");
@@ -935,14 +941,14 @@ export default function TransitionsStudioPage() {
         setTimeout(() => setGallerySaved(false), 5000);
       } else if (job.status === "failed") {
         setGenStatus("failed");
-        setGenError(job.error ?? "Generation failed. Please try again.");
+        setGenError(getSafeErrorMessage(job.error ?? "Generation failed. Please try again."));
       } else {
         pollRef.current = setTimeout(() => pollJob(jobId), POLL_INTERVAL);
       }
     } catch (_) {
       pollRef.current = setTimeout(() => pollJob(jobId), POLL_INTERVAL * 2);
     }
-  }, []);
+  }, [getSafeErrorMessage]);
 
   useEffect(() => {
     if (currentJobId && (genStatus === "processing" || genStatus === "queued")) {
@@ -995,6 +1001,18 @@ export default function TransitionsStudioPage() {
   const handleGenerate = async () => {
     if (!inputAUrl || !inputBUrl) { alert("Please add both Input A and Input B."); return; }
     if (!selectedPresetId) { setRightTab("presets"); return; }
+
+    const gate = await guardGeneration({
+      requiredCredits: creditEstimate,
+      action: "apps:transitions",
+    });
+    if (!gate.ok) {
+      if (gate.reason === "error") {
+        setGenStatus("failed");
+        setGenError(gate.message ?? getSafeErrorMessage(gate.message));
+      }
+      return;
+    }
 
     setGenStatus("validating");
     setGenError(null);
@@ -1054,7 +1072,7 @@ export default function TransitionsStudioPage() {
       if (!res.ok) {
         if (res.status === 402) {
           setGenStatus("failed");
-          setGenError(`Insufficient credits. Need ${data.required ?? "?"}, have ${data.current ?? "?"}.`);
+          setGenError(insufficientCreditsMessage);
           return;
         }
         throw new Error(data.error ?? "Generation failed");
@@ -1065,7 +1083,7 @@ export default function TransitionsStudioPage() {
       if (typeof data.remainingCredits === "number") setCreditBalance(data.remainingCredits);
     } catch (err) {
       setGenStatus("failed");
-      setGenError(err instanceof Error ? err.message : "Failed to start generation.");
+      setGenError(getSafeErrorMessage(err));
     }
   };
 

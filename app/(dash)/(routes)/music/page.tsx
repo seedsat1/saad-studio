@@ -19,6 +19,7 @@ import { useToast } from "@/components/ui/use-toast";
 import Heading from "@/components/heading";
 import { AssetInspector, type Asset } from "@/components/AssetInspector";
 import { NewModelsBanner } from "@/components/NewModelsBanner";
+import { useGenerationGate } from "@/hooks/use-generation-gate";
 
 // ─── Music Models ─────────────────────────────────────────────────────────────
 const MUSIC_BASE_CREDITS: Record<string, number> = {
@@ -144,6 +145,7 @@ const badgeColor = (badge: string) => {
 const MusicPage = () => {
   const proModal = useProModal();
   const { toast } = useToast();
+  const { guardGeneration, getSafeErrorMessage } = useGenerationGate();
 
   const [selectedModel, setSelectedModel] = useState<MusicModel>(MUSIC_MODELS[0]);
   const [prompt, setPrompt] = useState("");
@@ -234,6 +236,21 @@ const MusicPage = () => {
       return;
     }
 
+    const gate = await guardGeneration({
+      requiredCredits: calcMusicCredits(selectedModel.id, duration),
+      action: "music:generate",
+    });
+    if (!gate.ok) {
+      if (gate.reason === "error") {
+        toast({
+          variant: "destructive",
+          title: "Something went wrong",
+          description: gate.message ?? getSafeErrorMessage(gate.message),
+        });
+      }
+      return;
+    }
+
     try {
       setIsGenerating(true);
       setAudioUrl(null);
@@ -266,7 +283,7 @@ const MusicPage = () => {
         toast({
           variant: "destructive",
           title: "Something went wrong",
-          description: error?.response?.data ?? "Please try again.",
+          description: getSafeErrorMessage(error),
         });
       }
       try { localStorage.removeItem("ff_music_pending_job"); } catch {}

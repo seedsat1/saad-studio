@@ -9,7 +9,7 @@ const DashLayout = ({
   children: ReactNode;
 }) => {
   // Note: Removed redirect check to allow unauthenticated users to browse
-  // Authentication is enforced on API calls via useAuthGuard()
+  // Authentication is enforced on generation actions via useGenerationGate()
 
   return (
     <div className="min-h-screen" style={{ background: "#060c18" }}>

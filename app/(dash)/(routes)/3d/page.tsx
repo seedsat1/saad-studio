@@ -6,7 +6,7 @@ import {
   Upload, Sparkles, Box, Download, X, CheckCircle2,
   RotateCcw, Move, ZoomIn, Grid3X3,
 } from "lucide-react";
-import { useAuthGuard } from "@/hooks/use-auth-guard";
+import { useGenerationGate } from "@/hooks/use-generation-gate";
 import { AssetInspector, type Asset } from "@/components/AssetInspector";
 import { useAssetStore } from "@/hooks/use-asset-store";
 import { NewModelsBanner } from "@/components/NewModelsBanner";
@@ -334,10 +334,9 @@ export default function ThreeDStudioPage() {
   }, []);
 
   // ── Generate ──────────────────────────────────────────────────────────────
-  const guard = useAuthGuard();
+  const { guardGeneration, getSafeErrorMessage } = useGenerationGate();
   const { addAsset } = useAssetStore();
   const handleGenerate = useCallback(async () => {
-    if (!guard()) return;
     if (isGenerating) return;
     setGenerationError(null);
 
@@ -355,6 +354,15 @@ export default function ThreeDStudioPage() {
       if (!mvBase64.front || !mvBase64.back || !mvBase64.left || !mvBase64.right) {
         setGenerationError("Please upload all 4 multiview images."); return;
       }
+    }
+
+    const gate = await guardGeneration({
+      requiredCredits: calc3DCredits(selectedModel, inputMode),
+      action: `3d:${selectedModel}:${inputMode}`,
+    });
+    if (!gate.ok) {
+      if (gate.reason === "error") setGenerationError(gate.message ?? getSafeErrorMessage(gate.message));
+      return;
     }
 
     setShowResult(false); setResultUrls([]);
@@ -426,7 +434,7 @@ export default function ThreeDStudioPage() {
       try { localStorage.removeItem("ff_3d_pending_job"); } catch {}
       throw new Error("Generation timed out. Please try again.");
     } catch (err: unknown) {
-      setGenerationError(err instanceof Error ? err.message : "Generation failed");
+      setGenerationError(getSafeErrorMessage(err));
     } finally {
       setIsGenerating(false);
     }
@@ -435,6 +443,7 @@ export default function ThreeDStudioPage() {
     generateType, faceCount, enablePbr,
     artStyle, topology, symmetryMode, targetPolycount, shouldRemesh, meshyPbr, taPose, promptExpansion, shouldTexture,
     material, outputFormat, qualityAndMesh, seed,
+    guardGeneration, getSafeErrorMessage, modelData.label,
   ]);
 
   // Recover an in-flight 3D generation that was interrupted by a page refresh.

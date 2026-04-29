@@ -52,13 +52,18 @@ export async function PUT(req: NextRequest) {
   }
 
   try {
-    const safeLayoutBlocks = layoutBlocks as unknown as Prisma.InputJsonValue;
+    const safeLayoutBlocks = JSON.parse(JSON.stringify(layoutBlocks)) as Prisma.InputJsonValue;
     const layout = await prismadb.pageLayout.upsert({
       where: { pageName },
       update: { layoutBlocks: safeLayoutBlocks },
       create: { pageName, layoutBlocks: safeLayoutBlocks },
     });
-    return NextResponse.json({ ok: true, updatedAt: layout.updatedAt });
+    return NextResponse.json({
+      ok: true,
+      pageName: layout.pageName,
+      layoutBlocks: layout.layoutBlocks,
+      updatedAt: layout.updatedAt,
+    });
   } catch {
     return NextResponse.json({ ok: false, error: "DB not migrated" }, { status: 500 });
   }
