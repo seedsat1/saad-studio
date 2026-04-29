@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useCallback, useRef, useEffect, useMemo, Suspense, type DragEvent } from "react";
 import { useGenerationGate } from "@/hooks/use-generation-gate";
@@ -1226,6 +1226,25 @@ function VideoPageInner() {
             ? <Loader2 size={14} className="animate-spin flex-shrink-0" style={{ color: "#06b6d4" }} />
             : <Sparkles size={14} style={{ color: "#06b6d4", flexShrink: 0 }} />
           }
+          <button
+            type="button"
+            onClick={() => {
+              const el = document.querySelector("[data-character-ref='1']") as HTMLElement | null;
+              if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+            }}
+            className="hidden md:flex flex-shrink-0 items-center gap-2 rounded-lg px-2.5 py-1.5"
+            style={{
+              background: selectedCharacter ? "rgba(217,70,239,0.12)" : "rgba(255,255,255,0.05)",
+              border: `1px solid ${selectedCharacter ? "rgba(217,70,239,0.25)" : "rgba(255,255,255,0.08)"}`,
+              color: selectedCharacter ? "#f5d0fe" : "#94a3b8",
+            }}
+            title="Character reference"
+          >
+            <Users size={14} />
+            <span className="max-w-[120px] truncate text-[12px] font-semibold">
+              {selectedCharacter ? selectedCharacter.name : "No character"}
+            </span>
+          </button>
           <textarea
             rows={1}
             value={prompt}
@@ -2094,7 +2113,7 @@ function VideoPageInner() {
             </div>
           </div>
 
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2" data-character-ref="1">
             <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#475569" }}>Character Reference</label>
             <select
               value={selectedCharacterId}

@@ -1806,7 +1806,54 @@ export default function ImageWorkspacePage() {
               {composerDragActive ? (
                 <div className="mb-2 flex items-center justify-center rounded-xl border border-dashed border-pink-400/50 bg-pink-500/5 py-2 text-xs text-pink-300">Drop images here to add as reference</div>
               ) : (
-                <div className="mb-2 flex flex-wrap items-center gap-2 px-1">{referenceFiles.map((file, i) => { const u = URL.createObjectURL(file); return <div key={`${file.name}_${i}`} className="relative"><img src={u} alt={file.name} className="h-10 w-10 rounded-lg object-cover ring-1 ring-violet-400/30" /><button onClick={() => setReferenceFiles((prev) => prev.filter((_, idx) => idx !== i))} className="absolute -right-1 -top-1 rounded-full bg-black/70 p-0.5 text-zinc-200"><X className="h-3 w-3" /></button></div>; })}</div>
+                <div className="mb-2 flex flex-wrap items-center gap-2 px-1">
+                  {activeTool === "create" ? (
+                    selectedCharacter ? (
+                      <button
+                        type="button"
+                        onClick={() => setMobileSettingsOpen(true)}
+                        className="relative flex items-center gap-2 rounded-xl border border-fuchsia-400/20 bg-fuchsia-500/10 px-2 py-1.5 text-xs text-fuchsia-100 hover:bg-fuchsia-500/15"
+                        title="Selected character reference"
+                      >
+                        {selectedCharacter.coverUrl ? (
+                          <img src={selectedCharacter.coverUrl} alt={selectedCharacter.name} className="h-8 w-8 rounded-lg object-cover" />
+                        ) : (
+                          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/10 text-zinc-500">
+                            <ScanFace className="h-4 w-4" />
+                          </div>
+                        )}
+                        <span className="max-w-[160px] truncate font-semibold">{selectedCharacter.name}</span>
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); setSelectedCharacterId(""); }}
+                          className="ml-1 rounded-full bg-black/40 p-0.5 text-white/80 hover:text-white"
+                          title="Clear character"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </button>
+                    ) : (
+                      <a
+                        href="/character"
+                        className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-2 py-1.5 text-xs text-zinc-300 hover:bg-white/10"
+                        title="Create a character reference"
+                      >
+                        <ScanFace className="h-4 w-4 text-fuchsia-300" />
+                        <span className="font-semibold">Add character</span>
+                      </a>
+                    )
+                  ) : null}
+
+                  {referenceFiles.map((file, i) => {
+                    const u = URL.createObjectURL(file);
+                    return (
+                      <div key={`${file.name}_${i}`} className="relative">
+                        <img src={u} alt={file.name} className="h-10 w-10 rounded-lg object-cover ring-1 ring-violet-400/30" />
+                        <button onClick={() => setReferenceFiles((prev) => prev.filter((_, idx) => idx !== i))} className="absolute -right-1 -top-1 rounded-full bg-black/70 p-0.5 text-zinc-200"><X className="h-3 w-3" /></button>
+                      </div>
+                    );
+                  })}
+                </div>
               )}
               <div className="flex items-end gap-2">
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-pink-500/20 text-pink-300 ring-1 ring-pink-500/30"><Sparkles className="h-4 w-4" /></div>
