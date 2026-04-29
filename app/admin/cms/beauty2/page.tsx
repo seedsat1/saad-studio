@@ -27,8 +27,11 @@ interface HeroData {
   title: string;
   subtitle: string;
   badge: string;
-  mediaUrl: string;
-  isVideo: boolean;
+  media: {
+    type: "image" | "video";
+    url: string;
+    poster?: string;
+  };
   ctaLabel: string;
   ctaHref: string;
 }
@@ -37,8 +40,11 @@ interface FeatureCard {
   _id: string;
   title: string;
   subtitle: string;
-  mediaUrl: string;
-  isVideo: boolean;
+  media: {
+    type: "image" | "video";
+    url: string;
+    poster?: string;
+  };
 }
 
 interface CategoryTab {
@@ -87,16 +93,15 @@ const SEED_HERO: HeroData = {
   title: "Beauty & Model Studio",
   subtitle: "AI beauty and fashion studio — upload your photo, choose a style, and view the result.",
   badge: "SAAD STUDIO",
-  mediaUrl: "/img/beauty-hero.png",
-  isVideo: false,
+  media: { type: "image", url: "/img/beauty-hero.png" },
   ctaLabel: "",
   ctaHref: "",
 };
 
 const SEED_FEATURE_CARDS: FeatureCard[] = [
-  { _id: uid(), title: "Outfit Change", subtitle: "Upload your photo and change outfits with AI", mediaUrl: "/img/beauty-tools/outfit-change.png", isVideo: false },
-  { _id: uid(), title: "Full Glam Makeup", subtitle: "Choose your perfect makeup style", mediaUrl: "/img/beauty-tools/full-glam-makeup.png", isVideo: false },
-  { _id: uid(), title: "Hairstyle Change", subtitle: "Try different hairstyles instantly", mediaUrl: "/img/beauty-tools/hijab-styling.png", isVideo: false },
+  { _id: uid(), title: "Outfit Change", subtitle: "Upload your photo and change outfits with AI", media: { type: "image", url: "/img/beauty-tools/outfit-change.png" } },
+  { _id: uid(), title: "Full Glam Makeup", subtitle: "Choose your perfect makeup style", media: { type: "image", url: "/img/beauty-tools/full-glam-makeup.png" } },
+  { _id: uid(), title: "Hairstyle Change", subtitle: "Try different hairstyles instantly", media: { type: "image", url: "/img/beauty-tools/hijab-styling.png" } },
 ];
 
 const SEED_CATEGORIES: CategoryTab[] = [
@@ -253,8 +258,26 @@ function SortableItem({ id, children }: { id: string; children: React.ReactNode 
   );
 }
 
-function MediaUploader({ url, isVideo, onUpload, label }: {
-  url: string; isVideo: boolean; onUpload: (url: string, isVideo: boolean) => void; label: string;
+function normalizeMedia(input: unknown): HeroData["media"] {
+  const obj = (input && typeof input === "object" ? (input as Record<string, unknown>) : null) ?? null;
+  const mediaObj = obj?.media;
+  if (mediaObj && typeof mediaObj === "object") {
+    const m = mediaObj as Record<string, unknown>;
+    const type = m.type === "video" ? "video" : m.type === "image" ? "image" : "image";
+    const url = typeof m.url === "string" ? m.url : "";
+    const poster = typeof m.poster === "string" ? m.poster : undefined;
+    return { type, url, poster };
+  }
+  const url = typeof obj?.mediaUrl === "string" ? (obj.mediaUrl as string) : "";
+  const isVideo = Boolean(obj?.isVideo);
+  const poster = typeof obj?.poster === "string" ? (obj.poster as string) : undefined;
+  return isVideo ? { type: "video", url, poster } : { type: "image", url };
+}
+
+function ImageUploader({ url, onUpload, label }: {
+  url: string;
+  onUpload: (url: string) => void;
+  label: string;
 }) {
   const [uploading, setUploading] = useState(false);
   const ref = useRef<HTMLInputElement>(null);
@@ -265,7 +288,7 @@ function MediaUploader({ url, isVideo, onUpload, label }: {
     setUploading(true);
     try {
       const publicUrl = await uploadToSupabase(file);
-      onUpload(publicUrl, file.type.startsWith("video/"));
+      onUpload(publicUrl);
     } catch { /* skip */ }
     setUploading(false);
     if (ref.current) ref.current.value = "";
@@ -277,11 +300,7 @@ function MediaUploader({ url, isVideo, onUpload, label }: {
       <div className="relative rounded-xl border border-dashed border-white/15 bg-white/[.02] overflow-hidden"
         style={{ minHeight: 120 }}>
         {url ? (
-          isVideo ? (
-            <video src={url} className="w-full h-32 object-cover" muted loop autoPlay playsInline />
-          ) : (
-            <Image src={url} alt="" fill className="object-cover" unoptimized />
-          )
+          <Image src={url} alt="" fill className="object-cover" unoptimized />
         ) : (
           <div className="flex items-center justify-center h-32 text-zinc-600">
             <Upload className="w-5 h-5" />
@@ -299,13 +318,150 @@ function MediaUploader({ url, isVideo, onUpload, label }: {
           {uploading ? "Uploading..." : "Upload"}
         </button>
         {url && (
-          <button onClick={() => onUpload("", false)}
+          <button onClick={() => onUpload("")}
             className="px-3 py-1.5 rounded-lg bg-red-500/10 text-red-400 text-xs font-bold hover:bg-red-500/20 transition-colors">
             <X className="w-3 h-3" />
           </button>
         )}
       </div>
-      <input ref={ref} type="file" accept="image/*,video/*" onChange={handleFile} className="hidden" />
+      <input ref={ref} type="file" accept="image/*" onChange={handleFile} className="hidden" />
+    </div>
+  );
+}
+
+function MediaPicker({ media, onChange, label }: {
+  media: HeroData["media"];
+  onChange: (next: HeroData["media"]) => void;
+  label: string;
+}) {
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const posterRef = useRef<HTMLInputElement>(null);
+
+  const handleTypeChange = (nextType: "image" | "video") => {
+    if (nextType === media.type) return;
+    if (nextType === "video") {
+      const poster = media.type === "image" ? (media.url || media.poster) : media.poster;
+      onChange({ type: "video", url: "", poster });
+      return;
+    }
+    const url = media.type === "video" ? (media.poster ?? "") : media.url;
+    onChange({ type: "image", url });
+  };
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>, kind: "image" | "video" | "poster") => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const publicUrl = await uploadToSupabase(file);
+      if (kind === "video") onChange({ ...media, type: "video", url: publicUrl });
+      if (kind === "poster") onChange({ ...media, type: "video", poster: publicUrl });
+      if (kind === "image") onChange({ type: "image", url: publicUrl });
+    } catch { /* skip */ }
+    setUploading(false);
+    if (e.target) e.target.value = "";
+  };
+
+  const previewImage = media.type === "image" ? media.url : media.poster;
+
+  return (
+    <div className="space-y-2">
+      <span className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">{label}</span>
+      <label className="block space-y-1">
+        <span className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">Media Type</span>
+        <select
+          value={media.type}
+          onChange={(e) => handleTypeChange(e.target.value as "image" | "video")}
+          className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-white focus:outline-none"
+        >
+          <option value="image">Image</option>
+          <option value="video">Video</option>
+        </select>
+      </label>
+
+      <div className="relative rounded-xl border border-dashed border-white/15 bg-white/[.02] overflow-hidden" style={{ minHeight: 120 }}>
+        {media.type === "video" && media.url ? (
+          <video
+            src={media.url}
+            poster={media.poster}
+            className="w-full h-32 object-cover"
+            muted
+            loop
+            autoPlay
+            playsInline
+            preload="metadata"
+          />
+        ) : previewImage ? (
+          <Image src={previewImage} alt="" fill className="object-cover" unoptimized />
+        ) : (
+          <div className="flex items-center justify-center h-32 text-zinc-600">
+            <Upload className="w-5 h-5" />
+          </div>
+        )}
+        {uploading ? (
+          <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+            <Loader2 className="w-6 h-6 animate-spin text-violet-400" />
+          </div>
+        ) : null}
+      </div>
+
+      {media.type === "image" ? (
+        <div className="flex gap-2">
+          <button
+            onClick={() => fileRef.current?.click()}
+            className="flex-1 py-1.5 rounded-lg bg-violet-600/20 text-violet-400 text-xs font-bold hover:bg-violet-600/30 transition-colors"
+          >
+            {uploading ? "Uploading..." : "Upload Image"}
+          </button>
+          {media.url ? (
+            <button
+              onClick={() => onChange({ type: "image", url: "" })}
+              className="px-3 py-1.5 rounded-lg bg-red-500/10 text-red-400 text-xs font-bold hover:bg-red-500/20 transition-colors"
+            >
+              <X className="w-3 h-3" />
+            </button>
+          ) : null}
+        </div>
+      ) : (
+        <div className="flex gap-2">
+          <button
+            onClick={() => fileRef.current?.click()}
+            className="flex-1 py-1.5 rounded-lg bg-violet-600/20 text-violet-400 text-xs font-bold hover:bg-violet-600/30 transition-colors"
+          >
+            {uploading ? "Uploading..." : "Upload Video"}
+          </button>
+          <button
+            onClick={() => posterRef.current?.click()}
+            className="flex-1 py-1.5 rounded-lg bg-cyan-600/20 text-cyan-400 text-xs font-bold hover:bg-cyan-600/30 transition-colors"
+          >
+            {uploading ? "Uploading..." : "Upload Poster"}
+          </button>
+          {media.url ? (
+            <button
+              onClick={() => onChange({ ...media, url: "" })}
+              className="px-3 py-1.5 rounded-lg bg-red-500/10 text-red-400 text-xs font-bold hover:bg-red-500/20 transition-colors"
+            >
+              <X className="w-3 h-3" />
+            </button>
+          ) : null}
+        </div>
+      )}
+
+      <input
+        ref={fileRef}
+        type="file"
+        accept={media.type === "video" ? "video/mp4,video/webm,video/quicktime,video/ogg" : "image/*"}
+        onChange={(e) => handleUpload(e, media.type === "video" ? "video" : "image")}
+        className="hidden"
+      />
+      <input
+        ref={posterRef}
+        type="file"
+        accept="image/*"
+        onChange={(e) => handleUpload(e, "poster")}
+        className="hidden"
+      />
     </div>
   );
 }
@@ -319,12 +475,13 @@ function FeatureCardEditor({ card, onUpdate, onRemove }: {
 }) {
   const [open, setOpen] = useState(false);
   const up = (p: Partial<FeatureCard>) => onUpdate({ ...card, ...p });
+  const thumb = card.media.type === "video" ? (card.media.poster || "") : card.media.url;
   return (
     <div className="rounded-2xl border border-white/10 bg-slate-900/60 overflow-hidden">
       <div className="flex items-center gap-3 p-3 cursor-pointer hover:bg-white/[.02] transition-colors" onClick={() => setOpen(!open)}>
-        {card.mediaUrl ? (
+        {thumb ? (
           <div className="relative w-12 h-8 rounded-lg overflow-hidden flex-shrink-0 border border-white/10">
-            <Image src={card.mediaUrl} alt="" fill className="object-cover" unoptimized />
+            <Image src={thumb} alt="" fill className="object-cover" unoptimized />
           </div>
         ) : (
           <div className="w-12 h-8 rounded-lg bg-slate-800 border border-white/10 flex items-center justify-center flex-shrink-0">
@@ -344,8 +501,7 @@ function FeatureCardEditor({ card, onUpdate, onRemove }: {
         <div className="p-4 pt-2 space-y-3 border-t border-white/5">
           <Field label="Title" value={card.title} onChange={(v) => up({ title: v })} />
           <Field label="Subtitle" value={card.subtitle} onChange={(v) => up({ subtitle: v })} />
-          <MediaUploader url={card.mediaUrl} isVideo={card.isVideo}
-            onUpload={(url, isVid) => up({ mediaUrl: url, isVideo: isVid })} label="Card Image" />
+          <MediaPicker media={card.media} onChange={(media) => up({ media })} label="Card Media" />
         </div>
       )}
     </div>
@@ -378,8 +534,7 @@ function OptionEditor({ option, onUpdate, onRemove }: {
       </div>
       {open && (
         <div className="px-3 pb-3 pt-1 space-y-2 border-t border-white/5">
-          <MediaUploader url={option.img} isVideo={false}
-            onUpload={(url) => onUpdate({ img: url })} label="Option Image" />
+          <ImageUploader url={option.img} onUpload={(url) => onUpdate({ img: url })} label="Option Image" />
           <div className="grid grid-cols-2 gap-2">
             <Field label="Name (EN)" value={option.name} onChange={(v) => onUpdate({ name: v })} />
             <Field label="Name (AR)" value={option.nameAr} onChange={(v) => onUpdate({ nameAr: v })} />
@@ -437,8 +592,7 @@ function ToolCardEditor({ tool, onUpdate, onRemove }: {
       </div>
       {open && (
         <div className="p-4 pt-2 space-y-3 border-t border-white/5">
-          <MediaUploader url={tool.thumb} isVideo={false}
-            onUpload={(url) => up({ thumb: url })} label="Tool Thumbnail" />
+          <ImageUploader url={tool.thumb} onUpload={(url) => up({ thumb: url })} label="Tool Thumbnail" />
           <div className="grid grid-cols-2 gap-3">
             <Field label="Name (EN)" value={tool.nameEn} onChange={(v) => up({ nameEn: v })} />
             <Field label="Name (AR)" value={tool.nameAr} onChange={(v) => up({ nameAr: v })} />
@@ -539,8 +693,19 @@ export default function Beauty2CmsPage() {
         const row = await res.json();
         const b = row?.layoutBlocks;
         if (!b) return;
-        if (b.hero) setHero(b.hero);
-        if (b.featureCards?.length) setFeatureCards(b.featureCards);
+        if (b.hero) setHero({
+          ...SEED_HERO,
+          ...b.hero,
+          media: normalizeMedia(b.hero),
+        });
+        if (b.featureCards?.length) {
+          setFeatureCards(
+            b.featureCards.map((c: Record<string, unknown>) => ({
+              ...c,
+              media: normalizeMedia(c),
+            })) as FeatureCard[]
+          );
+        }
         if (b.categories?.length) setCategories(b.categories);
         if (b.tools?.length) setTools(b.tools.map((t: Record<string, unknown>) => ({
           ...t,
@@ -559,8 +724,10 @@ export default function Beauty2CmsPage() {
         type: "HERO",
         title: h.title,
         subtitle: h.subtitle,
-        mediaUrl: h.mediaUrl,
-        isVideo: h.isVideo,
+        media: h.media,
+        mediaUrl: h.media.url,
+        isVideo: h.media.type === "video",
+        poster: h.media.poster,
         badge: h.badge,
         ctaHref: h.ctaHref,
         ctaLabel: h.ctaLabel,
@@ -570,8 +737,10 @@ export default function Beauty2CmsPage() {
         type: "FEATURE_CARD",
         title: c.title,
         subtitle: c.subtitle,
-        mediaUrl: c.mediaUrl,
-        isVideo: c.isVideo,
+        media: c.media,
+        mediaUrl: c.media.url,
+        isVideo: c.media.type === "video",
+        poster: c.media.poster,
       })),
     ];
     await fetch("/api/admin/layouts", {
@@ -671,8 +840,7 @@ export default function Beauty2CmsPage() {
             Hero Section
           </h2>
           <div className="rounded-2xl border border-white/10 bg-slate-900/60 p-5 space-y-4">
-            <MediaUploader url={hero.mediaUrl} isVideo={hero.isVideo}
-              onUpload={(url, isVid) => setHero({ ...hero, mediaUrl: url, isVideo: isVid })} label="Background Image / Video" />
+            <MediaPicker media={hero.media} onChange={(media) => setHero({ ...hero, media })} label="Background" />
             <div className="grid grid-cols-2 gap-3">
               <Field label="Badge" value={hero.badge} onChange={(v) => setHero({ ...hero, badge: v })} placeholder="SAAD STUDIO" />
               <Field label="CTA Href" value={hero.ctaHref} onChange={(v) => setHero({ ...hero, ctaHref: v })} placeholder="/beauty2.html" />
@@ -690,7 +858,7 @@ export default function Beauty2CmsPage() {
           </h2>
           <div className="flex items-center justify-between">
             <p className="text-xs text-zinc-500">Shown above the tools grid (max 6)</p>
-            <button onClick={() => setFeatureCards([...featureCards, { _id: uid(), title: "New Card", subtitle: "Description", mediaUrl: "", isVideo: false }])}
+            <button onClick={() => setFeatureCards([...featureCards, { _id: uid(), title: "New Card", subtitle: "Description", media: { type: "image", url: "" } }])}
               className="flex items-center gap-1.5 rounded-lg bg-violet-600/20 px-3 py-1.5 text-xs font-bold text-violet-400 hover:bg-violet-600/30 transition-colors">
               <Plus className="h-3.5 w-3.5" /> Add Card
             </button>

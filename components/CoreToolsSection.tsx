@@ -39,7 +39,7 @@ const TOOLS = [
     image: "/explore/tool-motion-control.jpg",
     name: "Motion Control",
     desc: "Precise character control",
-    href: "/video/cinema-studio",
+    href: "/cinema-studio",
     badge: "NEW",
     badgeColor: "bg-emerald-500/20 text-emerald-300",
     glow: "rgba(139,92,246,0.3)",
@@ -68,7 +68,7 @@ const TOOLS = [
     image: "/explore/tool-upscale.jpg",
     name: "Upscale",
     desc: "Enhance media quality",
-    href: "/edit/upscale",
+    href: "/apps/tool/image-upscale",
     badge: "",
     glow: "rgba(20,184,166,0.3)",
   },
@@ -121,6 +121,12 @@ type LayoutBlock = {
 
 const CORE_SLOT_IDS = TOOLS.map((t) => `explore/tool-${t.id}`);
 
+function normalizeExploreHref(href: string): string {
+  if (href === "/video/cinema-studio") return "/cinema-studio";
+  if (href === "/edit/upscale") return "/apps/tool/image-upscale";
+  return href;
+}
+
 export default function CoreToolsSection() {
   const [tools, setTools] = useState(TOOLS);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -141,7 +147,7 @@ export default function CoreToolsSection() {
         image: ct.image || fallback?.image || "/explore/tool-" + ct.id + ".jpg",
         name: ct.name,
         desc: ct.desc,
-        href: ct.href,
+        href: normalizeExploreHref(ct.href),
         badge: ct.badge || "",
         badgeColor: fallback?.badgeColor || "",
         glow: fallback?.glow || "rgba(139,92,246,0.3)",

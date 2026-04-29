@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { useAuth, useUser, useClerk } from "@clerk/nextjs";
@@ -135,8 +135,8 @@ const IMAGE_MODEL_GROUPS = [
 
 const VIDEO_FEATURES = [
   { label: "Create Video",        href: "/video",           icon: VideoIcon,    color: "text-orange-400",  description: "Text-to-video generation",             badge: "" },
-  { label: "Cinema Workspace",   href: "/video-editor",    icon: Scissors,     color: "text-cyan-300",    description: "Unified studio shell workspace",      badge: "NEW" },
-  { label: "Cinema Studio",       href: "/cinema-studio",   icon: Clapperboard, color: "text-violet-400",  description: "Professional cinematic production",      badge: "TOP" },
+  { label: "Scene Editor",        href: "/video-editor",    icon: Scissors,     color: "text-cyan-300",    description: "Unified studio shell workspace",      badge: "NEW" },
+  { label: "Next Scene",          href: "/cinema-studio",   icon: Clapperboard, color: "text-violet-400",  description: "Professional cinematic production",      badge: "TOP" },
   { label: "Mixed Media",         href: "/video?tool=mixed-media",      icon: Blend,        color: "text-pink-400",    description: "Combine multiple visual styles",         badge: "" },
   { label: "Edit Video",          href: "/edit",            icon: Scissors,     color: "text-cyan-400",    description: "Advanced AI timeline editing",           badge: "" },
   { label: "Click to Ad",         href: "/video?tool=click-to-ad",      icon: Megaphone,    color: "text-amber-400",   description: "1-click commercial generation",          badge: "" },
@@ -413,9 +413,9 @@ function appHref(app: string): string {
 
 const STUDIO_LINKS = [
   { label: "Character", href: "/character", icon: Drama, color: "text-violet-400" },
-  { label: "Cinema Workspace", href: "/video-editor", icon: Scissors, color: "text-cyan-300" },
+  { label: "Scene Editor", href: "/video-editor", icon: Scissors, color: "text-cyan-300" },
   { label: "Moodboard", href: "/moodboard", icon: Palette, color: "text-rose-400" },
-  { label: "Cinema Studio", href: "/cinema-studio", icon: Clapperboard, color: "text-amber-400" },
+  { label: "Next Scene", href: "/cinema-studio", icon: Clapperboard, color: "text-amber-400" },
   { label: "Original Series", href: "/original-series", icon: Monitor, color: "text-blue-400" },
   { label: "3D Studio", href: "/3d", icon: Box, color: "text-indigo-400" },
 ];

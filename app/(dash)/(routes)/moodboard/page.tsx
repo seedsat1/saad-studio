@@ -38,6 +38,7 @@ const HOW_IT_WORKS = [
 
 export default function MoodboardPage() {
   const { hero } = usePageLayout("moodboard");
+  const heroMedia = hero?.media;
   const galleryRef = useRef<HTMLDivElement>(null);
   const howRef = useRef<HTMLDivElement>(null);
   const galleryInView = useInView(galleryRef, { once: true, margin: "-80px" });
@@ -57,9 +58,21 @@ export default function MoodboardPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.55, ease: "easeOut" }}
           className="pt-14 pb-24 flex flex-col items-center text-center relative overflow-hidden rounded-3xl"
-          style={hero?.mediaUrl ? { backgroundImage: `url(${hero.mediaUrl})`, backgroundSize: "cover", backgroundPosition: "center" } : undefined}
+          style={heroMedia?.type === "image" && heroMedia.url ? { backgroundImage: `url(${heroMedia.url})`, backgroundSize: "cover", backgroundPosition: "center" } : undefined}
         >
-          {hero?.mediaUrl ? <div className="absolute inset-0 bg-slate-950/70" /> : null}
+          {heroMedia?.type === "video" && heroMedia.url ? (
+            <video
+              src={heroMedia.url}
+              poster={heroMedia.poster}
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="metadata"
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+          ) : null}
+          {heroMedia?.url ? <div className="absolute inset-0 bg-slate-950/70" /> : null}
           <div className="relative z-10 w-full flex flex-col items-center">
           {/* Floating fan images */}
           <div

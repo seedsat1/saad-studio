@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import {
   useCallback,
@@ -1492,7 +1492,7 @@ export default function TransitionsStudioPage() {
                     <div className="grid grid-cols-3 gap-2">
                       {[
                         { label: "Lipsync Studio", href: "/video/lipsync", emoji: "🎙️", desc: "Add lip-synced audio" },
-                        { label: "Next Scene", href: "/video/cinema-studio", emoji: "🎬", desc: "Cinematic production" },
+                        { label: "Next Scene", href: "/cinema-studio", emoji: "🎬", desc: "Cinematic production" },
                         { label: "Video Editor", href: "/video/edit", emoji: "✂️", desc: "AI timeline editing" },
                         { label: "Video Upscale", href: "/video/upscale", emoji: "⬆️", desc: "Enhance to 4K/8K" },
                         { label: "Mixed Media", href: "/video/mixed-media", emoji: "🎭", desc: "Combine visual styles" },

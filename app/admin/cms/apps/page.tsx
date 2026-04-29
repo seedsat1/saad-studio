@@ -26,8 +26,11 @@ interface CmsHero {
   badge: string;
   title: string;
   subtitle: string;
-  mediaUrl: string;
-  isVideo: boolean;
+  media: {
+    type: "image" | "video";
+    url: string;
+    poster?: string;
+  };
 }
 
 type Badge = "NEW" | "TOP" | "PRO" | "HOT" | "TRENDING" | "FREE" | "";
@@ -80,8 +83,7 @@ const SEED_HERO: CmsHero = {
   badge: "Welcome to",
   title: "SAAD STUDIO Apps",
   subtitle: "One-click AI tools that transform any content into professional ads, viral trends, or artistic masterpieces",
-  mediaUrl: "",
-  isVideo: false,
+  media: { type: "image", url: "" },
 };
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -266,41 +268,160 @@ function SortableItem({ id, children }: { id: string; children: React.ReactNode 
   );
 }
 
-function MediaUploader({ url, isVideo, onUpload, label }: {
-  url: string; isVideo: boolean; onUpload: (url: string, isVideo: boolean) => void; label: string;
+function normalizeHero(input: unknown): CmsHero {
+  const obj = (input && typeof input === "object" ? (input as Record<string, unknown>) : null) ?? null;
+  const badge = typeof obj?.badge === "string" ? (obj.badge as string) : SEED_HERO.badge;
+  const title = typeof obj?.title === "string" ? (obj.title as string) : SEED_HERO.title;
+  const subtitle = typeof obj?.subtitle === "string" ? (obj.subtitle as string) : SEED_HERO.subtitle;
+
+  const mediaObj = obj?.media;
+  if (mediaObj && typeof mediaObj === "object") {
+    const m = mediaObj as Record<string, unknown>;
+    const type = m.type === "video" ? "video" : m.type === "image" ? "image" : "image";
+    const url = typeof m.url === "string" ? m.url : "";
+    const poster = typeof m.poster === "string" ? m.poster : undefined;
+    return { badge, title, subtitle, media: { type, url, poster } };
+  }
+
+  const legacyUrl = typeof obj?.mediaUrl === "string" ? (obj.mediaUrl as string) : "";
+  const legacyIsVideo = Boolean(obj?.isVideo);
+  const legacyPoster = typeof obj?.poster === "string" ? (obj.poster as string) : undefined;
+  return {
+    badge,
+    title,
+    subtitle,
+    media: legacyIsVideo ? { type: "video", url: legacyUrl, poster: legacyPoster } : { type: "image", url: legacyUrl },
+  };
+}
+
+function MediaPicker({ media, onChange, label }: {
+  media: CmsHero["media"];
+  onChange: (next: CmsHero["media"]) => void;
+  label: string;
 }) {
   const [uploading, setUploading] = useState(false);
-  const ref = useRef<HTMLInputElement>(null);
-  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const posterRef = useRef<HTMLInputElement>(null);
+
+  const handleTypeChange = (nextType: "image" | "video") => {
+    if (nextType === media.type) return;
+    if (nextType === "video") {
+      const poster = media.type === "image" ? (media.url || media.poster) : media.poster;
+      onChange({ type: "video", url: "", poster });
+      return;
+    }
+    const url = media.type === "video" ? (media.poster ?? "") : media.url;
+    onChange({ type: "image", url });
+  };
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>, kind: "image" | "video" | "poster") => {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
     try {
       const publicUrl = await uploadToSupabase(file);
-      onUpload(publicUrl, file.type.startsWith("video/"));
+      if (kind === "video") onChange({ ...media, type: "video", url: publicUrl });
+      if (kind === "poster") onChange({ ...media, type: "video", poster: publicUrl });
+      if (kind === "image") onChange({ type: "image", url: publicUrl });
     } catch { /* skip */ }
     setUploading(false);
-    if (ref.current) ref.current.value = "";
+    if (e.target) e.target.value = "";
   };
+
   return (
     <div className="space-y-2">
       <span className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">{label}</span>
+      <div className="grid grid-cols-2 gap-2">
+        <label className="block space-y-1">
+          <span className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">Media Type</span>
+          <select
+            value={media.type}
+            onChange={(e) => handleTypeChange(e.target.value as "image" | "video")}
+            className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-white focus:outline-none"
+          >
+            <option value="image">Image</option>
+            <option value="video">Video</option>
+          </select>
+        </label>
+      </div>
       <div className="relative rounded-xl border border-dashed border-white/15 bg-white/[.02] overflow-hidden" style={{ minHeight: 100 }}>
-        {url ? (
-          isVideo ? <video src={url} className="w-full h-28 object-cover" muted loop autoPlay playsInline />
-            : <Image src={url} alt="" fill className="object-cover" unoptimized />
+        {media.url ? (
+          media.type === "video" ? (
+            <video
+              src={media.url}
+              poster={media.poster}
+              className="w-full h-28 object-cover"
+              muted
+              loop
+              autoPlay
+              playsInline
+              preload="metadata"
+            />
+          ) : (
+            <Image src={media.url} alt="" fill className="object-cover" unoptimized />
+          )
         ) : (
           <div className="flex items-center justify-center h-28 text-zinc-600"><Upload className="w-5 h-5" /></div>
         )}
         {uploading && <div className="absolute inset-0 bg-black/60 flex items-center justify-center"><Loader2 className="w-6 h-6 animate-spin text-violet-400" /></div>}
       </div>
       <div className="flex gap-2">
-        <button onClick={() => ref.current?.click()} className="flex-1 py-1.5 rounded-lg bg-violet-600/20 text-violet-400 text-xs font-bold hover:bg-violet-600/30 transition-colors">
-          {uploading ? "Uploading..." : "Upload"}
-        </button>
-        {url && <button onClick={() => onUpload("", false)} className="px-3 py-1.5 rounded-lg bg-red-500/10 text-red-400 text-xs font-bold hover:bg-red-500/20 transition-colors"><X className="w-3 h-3" /></button>}
+        {media.type === "image" ? (
+          <>
+            <button
+              onClick={() => fileRef.current?.click()}
+              className="flex-1 py-1.5 rounded-lg bg-violet-600/20 text-violet-400 text-xs font-bold hover:bg-violet-600/30 transition-colors"
+            >
+              {uploading ? "Uploading..." : "Upload Image"}
+            </button>
+            {media.url ? (
+              <button
+                onClick={() => onChange({ type: "image", url: "" })}
+                className="px-3 py-1.5 rounded-lg bg-red-500/10 text-red-400 text-xs font-bold hover:bg-red-500/20 transition-colors"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            ) : null}
+          </>
+        ) : (
+          <>
+            <button
+              onClick={() => fileRef.current?.click()}
+              className="flex-1 py-1.5 rounded-lg bg-violet-600/20 text-violet-400 text-xs font-bold hover:bg-violet-600/30 transition-colors"
+            >
+              {uploading ? "Uploading..." : "Upload Video"}
+            </button>
+            <button
+              onClick={() => posterRef.current?.click()}
+              className="flex-1 py-1.5 rounded-lg bg-cyan-600/20 text-cyan-400 text-xs font-bold hover:bg-cyan-600/30 transition-colors"
+            >
+              {uploading ? "Uploading..." : "Upload Poster"}
+            </button>
+            {media.url || media.poster ? (
+              <button
+                onClick={() => onChange({ type: "video", url: "", poster: media.poster })}
+                className="px-3 py-1.5 rounded-lg bg-red-500/10 text-red-400 text-xs font-bold hover:bg-red-500/20 transition-colors"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            ) : null}
+          </>
+        )}
       </div>
-      <input ref={ref} type="file" accept="image/*,video/*" onChange={handleFile} className="hidden" />
+      <input
+        ref={fileRef}
+        type="file"
+        accept={media.type === "video" ? "video/mp4,video/webm,video/quicktime,video/ogg" : "image/*"}
+        onChange={(e) => handleUpload(e, media.type === "video" ? "video" : "image")}
+        className="hidden"
+      />
+      <input
+        ref={posterRef}
+        type="file"
+        accept="image/*"
+        onChange={(e) => handleUpload(e, "poster")}
+        className="hidden"
+      />
     </div>
   );
 }
@@ -470,7 +591,7 @@ export default function AppsCmsPage() {
         const row = await res.json();
         const b = row?.layoutBlocks;
         if (!b) return;
-        if (b.hero) setHero(b.hero);
+        if (b.hero) setHero(normalizeHero(b.hero));
         if (b.categories?.length) setCategories(b.categories);
       } catch { /* use seeds */ }
     })();
@@ -496,7 +617,10 @@ export default function AppsCmsPage() {
           layoutBlocks: [{
             id: "hero-1", type: "HERO",
             title: hero.title, subtitle: hero.subtitle,
-            mediaUrl: hero.mediaUrl, isVideo: hero.isVideo,
+            media: hero.media,
+            mediaUrl: hero.media.url,
+            isVideo: hero.media.type === "video",
+            poster: hero.media.poster,
             badge: hero.badge, ctaHref: "", ctaLabel: "",
           }],
         }),
@@ -564,8 +688,11 @@ export default function AppsCmsPage() {
             Page Header
           </h2>
           <div className="rounded-2xl border border-white/10 bg-slate-900/60 p-5 space-y-4">
-            <MediaUploader url={hero.mediaUrl} isVideo={hero.isVideo}
-              onUpload={(url, isVid) => setHero({ ...hero, mediaUrl: url, isVideo: isVid })} label="Background (optional)" />
+            <MediaPicker
+              media={hero.media}
+              onChange={(media) => setHero({ ...hero, media })}
+              label="Background (optional)"
+            />
             <Field label="Badge Text" value={hero.badge} onChange={(v) => setHero({ ...hero, badge: v })} placeholder="Welcome to" />
             <Field label="Title" value={hero.title} onChange={(v) => setHero({ ...hero, title: v })} />
             <Field label="Subtitle" value={hero.subtitle} onChange={(v) => setHero({ ...hero, subtitle: v })} multiline />

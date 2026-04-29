@@ -13,6 +13,7 @@ import {
   Camera,
   Layers,
   DollarSign,
+  Compass,
   ChevronRight,
   Paintbrush
 } from "lucide-react";
@@ -20,6 +21,7 @@ import { cn } from "@/lib/utils";
 
 const CMS_PAGES = [
   { id: "home", label: "Home Page", icon: Home },
+  { id: "explore", label: "Explore Page", icon: Compass },
   { id: "image", label: "Image Studio", icon: ImageIcon },
   { id: "video", label: "Video Studio", icon: Video },
   { id: "audio", label: "Audio & Music", icon: Music },

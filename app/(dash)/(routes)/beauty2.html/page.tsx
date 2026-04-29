@@ -11,6 +11,8 @@ export default function BeautyStudioPage() {
     [blocks]
   );
 
+  const heroMedia = hero?.media;
+
   return (
     <div className="min-h-screen" style={{ background: "#060c18" }}>
       {hero ? (
@@ -18,11 +20,24 @@ export default function BeautyStudioPage() {
           className="relative overflow-hidden border-b border-white/10"
           style={{
             minHeight: 260,
-            backgroundImage: hero.mediaUrl ? `url(${hero.mediaUrl})` : undefined,
+            backgroundImage:
+              heroMedia?.type === "image" && heroMedia.url ? `url(${heroMedia.url})` : undefined,
             backgroundSize: "cover",
             backgroundPosition: "center",
           }}
         >
+          {heroMedia?.type === "video" && heroMedia.url ? (
+            <video
+              src={heroMedia.url}
+              poster={heroMedia.poster}
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="metadata"
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+          ) : null}
           <div className="absolute inset-0 bg-slate-950/60" />
           <div className="relative z-10 max-w-6xl mx-auto px-6 py-12">
             {hero.badge ? (
@@ -43,13 +58,20 @@ export default function BeautyStudioPage() {
               key={block.id}
               className="rounded-xl border border-white/10 bg-slate-900/55 overflow-hidden"
             >
-              {block.mediaUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={block.mediaUrl}
-                  alt={block.title}
+              {block.media?.type === "video" && block.media.url ? (
+                <video
+                  src={block.media.url}
+                  poster={block.media.poster}
+                  muted
+                  loop
+                  autoPlay
+                  playsInline
+                  preload="metadata"
                   className="w-full h-40 object-cover"
                 />
+              ) : block.media?.type === "image" && block.media.url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={block.media.url} alt={block.title} className="w-full h-40 object-cover" />
               ) : null}
               <div className="p-4">
                 <h3 className="text-white font-semibold text-sm">{block.title}</h3>
@@ -69,4 +91,3 @@ export default function BeautyStudioPage() {
     </div>
   );
 }
-

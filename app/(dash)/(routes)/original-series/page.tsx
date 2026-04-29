@@ -85,6 +85,7 @@ const FEATURES = [
 export default function OriginalSeriesPage() {
   const { hero } = usePageLayout("original-series");
   const [activeGenre, setActiveGenre] = useState("All");
+  const heroMedia = hero?.media;
 
   const filtered = activeGenre === "All" ? SERIES : SERIES.filter((s) => s.genre === activeGenre);
 
@@ -99,14 +100,26 @@ export default function OriginalSeriesPage() {
           transition={{ duration: 0.55, ease: "easeOut" }}
           className="relative overflow-hidden rounded-3xl px-8 py-16 flex flex-col items-center text-center"
           style={{
-            background: hero?.mediaUrl
-              ? `linear-gradient(135deg, rgba(11,18,37,0.78), rgba(15,11,30,0.78)), url(${hero.mediaUrl})`
+            background: heroMedia?.type === "image" && heroMedia.url
+              ? `linear-gradient(135deg, rgba(11,18,37,0.78), rgba(15,11,30,0.78)), url(${heroMedia.url})`
               : "linear-gradient(135deg, #0b1225 0%, #0f0b1e 50%, #0b1225 100%)",
             backgroundSize: "cover",
             backgroundPosition: "center",
             border: "1px solid rgba(148,163,184,0.07)",
           }}
         >
+          {heroMedia?.type === "video" && heroMedia.url ? (
+            <video
+              src={heroMedia.url}
+              poster={heroMedia.poster}
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="metadata"
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+          ) : null}
           {/* Glow orbs */}
           <div className="absolute top-0 left-1/4 w-80 h-80 rounded-full opacity-20 blur-3xl pointer-events-none" style={{ background: "radial-gradient(circle, #3b82f6, transparent)" }} />
           <div className="absolute bottom-0 right-1/4 w-64 h-64 rounded-full opacity-15 blur-3xl pointer-events-none" style={{ background: "radial-gradient(circle, #8b5cf6, transparent)" }} />

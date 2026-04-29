@@ -4,6 +4,7 @@ import { usePageLayout } from "@/lib/use-page-layout";
 
 export default function CharacterPage() {
   const { hero } = usePageLayout("character");
+  const heroMedia = hero?.media;
 
   return (
     <div className="min-h-screen" style={{ background: "#060c18" }}>
@@ -12,11 +13,24 @@ export default function CharacterPage() {
           className="relative overflow-hidden border-b border-white/10"
           style={{
             minHeight: 220,
-            backgroundImage: hero.mediaUrl ? `url(${hero.mediaUrl})` : undefined,
+            backgroundImage:
+              heroMedia?.type === "image" && heroMedia.url ? `url(${heroMedia.url})` : undefined,
             backgroundSize: "cover",
             backgroundPosition: "center",
           }}
         >
+          {heroMedia?.type === "video" && heroMedia.url ? (
+            <video
+              src={heroMedia.url}
+              poster={heroMedia.poster}
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="metadata"
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+          ) : null}
           <div className="absolute inset-0 bg-slate-950/65" />
           <div className="relative z-10 max-w-6xl mx-auto px-6 py-10">
             {hero.badge ? (

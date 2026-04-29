@@ -31,7 +31,7 @@ const TOP_TOOLS = [
     image: "/explore/top-motion-control.jpg",
     name: "Motion Control",
     desc: "Character actions up to 30 seconds with precise cinematic control.",
-    href: "/video/cinema-studio",
+    href: "/cinema-studio",
     badge: "",
     accent: "#8b5cf6",
     glow: "rgba(139,92,246,0.2)",
@@ -111,6 +111,17 @@ type LayoutBlock = {
 
 const TOP_SLOT_IDS = TOP_TOOLS.map((t) => `explore/top-${t.id}`);
 
+function normalizeExploreHref(href: string): string {
+  if (href === "/video/cinema-studio") return "/cinema-studio";
+  if (href === "/edit/upscale") return "/apps/tool/image-upscale";
+  return href;
+}
+
+function fallbackTopImageForId(id: string): string {
+  if (id === "nano-banana") return "/explore/top-nano-banana-pro.jpg";
+  return `/explore/top-${id}.jpg`;
+}
+
 export default function TopChoiceGrid() {
   const [topTools, setTopTools] = useState(TOP_TOOLS);
   const promo = usePromoMedia();
@@ -128,10 +139,10 @@ export default function TopChoiceGrid() {
       const fallback = TOP_TOOLS.find((t) => t.id === ct.id);
       return {
         id: ct.id,
-        image: ct.image || fallback?.image || "/explore/top-" + ct.id + ".jpg",
+        image: ct.image || fallback?.image || fallbackTopImageForId(ct.id),
         name: ct.name,
         desc: ct.desc,
-        href: ct.href,
+        href: normalizeExploreHref(ct.href),
         badge: ct.badge || "",
         badgeColor: fallback?.badgeColor,
         accent: fallback?.accent || "from-violet-500 to-indigo-600",

@@ -78,7 +78,7 @@ export const NAV_CATEGORIES: NavCategory[] = [
     href: "/edit",
     subItems: [
       { label: "Background Remove", href: "/edit/bg-remove", description: "Remove backgrounds instantly" },
-      { label: "Upscale & Enhance", href: "/edit/upscale", description: "4K upscaling AI" },
+      { label: "Upscale & Enhance", href: "/apps/tool/image-upscale", description: "4K upscaling AI" },
       { label: "Smart Crop", href: "/edit/crop", description: "AI-powered composition" },
     ],
   },

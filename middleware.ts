@@ -11,6 +11,7 @@ const isPublicRoute = createRouteMatcher([
   '/terms(.*)',
   '/dash(.*)',
   '/dashboard(.*)',
+  '/explore(.*)',
   '/video(.*)',
   '/image(.*)',
   '/audio(.*)',
@@ -94,6 +95,7 @@ function applySecurityHeaders(res: NextResponse, req: Request) {
 function getCmsSlugFromPath(pathname: string) {
   const p = pathname || "/";
   if (p === "/") return "home";
+  if (p === "/explore" || p.startsWith("/explore/")) return "explore";
   if (p === "/pricing" || p.startsWith("/pricing/")) return "pricing";
   if (p === "/image" || p.startsWith("/image/")) return "image";
   if (p === "/video" || p.startsWith("/video/")) return "video";

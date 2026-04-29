@@ -12,7 +12,7 @@ const TABS = [
   {
     id: "soul-cinema",
     label: "Soul Cinema",
-    href: "/video/cinema-studio",
+    href: "/cinema-studio",
     items: [
       { id: "sc1", slotId: "explore/gallery-soul-cinema-1", image: "/explore/gallery-soul-cinema-1.jpg", name: "Noir City Nights" },
       { id: "sc2", slotId: "explore/gallery-soul-cinema-2", image: "/explore/gallery-soul-cinema-2.jpg", name: "Ocean Rebellion" },

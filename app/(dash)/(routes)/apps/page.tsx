@@ -47,8 +47,6 @@ interface AppsCmsData {
   categories: CmsAppsCategory[];
 }
 
-const isVideoUrl = (url?: string) => Boolean(url && /\.(mp4|webm|mov|ogg)([?#]|$)/i.test(url));
-
 export default function AppsPage() {
   const { hero } = usePageLayout("apps");
   const { data: cms } = useCmsData<AppsCmsData>("apps");
@@ -98,8 +96,7 @@ export default function AppsPage() {
   }, [cms]);
 
   const liveTotalTools = useMemo(() => liveCategories.reduce((s, c) => s + c.tools.length, 0), [liveCategories]);
-  const heroMediaUrl = hero?.mediaUrl;
-  const heroHasVideo = isVideoUrl(heroMediaUrl);
+  const heroMedia = hero?.media;
 
   const searchResults = useMemo<AppTool[]>(() => {
     if (!searchQuery) return [];
@@ -139,18 +136,23 @@ export default function AppsPage() {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-          style={heroMediaUrl ? {
-            backgroundImage: `linear-gradient(135deg, rgba(6,12,24,0.82), rgba(6,12,24,0.82)), url(${hero.mediaUrl})`,
+          style={heroMedia?.type === "image" && heroMedia.url ? {
+            backgroundImage: `linear-gradient(135deg, rgba(6,12,24,0.82), rgba(6,12,24,0.82)), url(${heroMedia.url})`,
             backgroundSize: "cover",
             backgroundPosition: "center",
             border: "1px solid rgba(148,163,184,0.08)",
             borderRadius: 20,
             padding: "28px 18px",
-          } : undefined}
+          } : {
+            border: "1px solid rgba(148,163,184,0.08)",
+            borderRadius: 20,
+            padding: "28px 18px",
+          }}
         >
-          {heroHasVideo && (
+          {heroMedia?.type === "video" && heroMedia.url && (
             <video
-              src={heroMediaUrl}
+              src={heroMedia.url}
+              poster={heroMedia.poster}
               autoPlay
               muted
               loop
