@@ -127,7 +127,9 @@ function normalizeExploreHref(href: string): string {
   return href;
 }
 
-export default function CoreToolsSection() {
+type CoreTool = (typeof TOOLS)[number];
+
+export default function CoreToolsSection({ toolsOverride }: { toolsOverride?: CoreTool[] }) {
   const [tools, setTools] = useState(TOOLS);
   const scrollRef = useRef<HTMLDivElement>(null);
   const promo = usePromoMedia();
@@ -139,6 +141,10 @@ export default function CoreToolsSection() {
 
   // Apply CMS tool overrides (order + add/remove)
   useEffect(() => {
+    if (toolsOverride?.length) {
+      setTools(toolsOverride);
+      return;
+    }
     if (!cms?.coreTools?.tools?.length) return;
     setTools(cms.coreTools.tools.map((ct) => {
       const fallback = TOOLS.find((t) => t.id === ct.id);
@@ -153,7 +159,7 @@ export default function CoreToolsSection() {
         glow: fallback?.glow || "rgba(139,92,246,0.3)",
       };
     }));
-  }, [cms]);
+  }, [cms, toolsOverride]);
 
   // Apply promo media + text overrides
   useEffect(() => {

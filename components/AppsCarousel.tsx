@@ -120,11 +120,24 @@ const MiniCard = ({ name, index }: MiniCardProps) => {
   );
 };
 
-export default function AppsCarousel() {
+export default function AppsCarousel({
+  toolsOverride,
+  headingOverride,
+  subtitleOverride,
+}: {
+  toolsOverride?: string[];
+  headingOverride?: string;
+  subtitleOverride?: string;
+}) {
   const { data: cms } = useCmsData<DiscoverCms>("discover");
-  const liveTools = cms?.appsCarousel?.apps?.length ? cms.appsCarousel.apps.map((a) => a.name) : TOOLS;
-  const heading = cms?.appsCarousel?.heading || "All AI Apps";
-  const subtitle = cms?.appsCarousel?.subtitle || "powerful tools in one studio";
+  const liveTools =
+    toolsOverride?.length
+      ? toolsOverride
+      : cms?.appsCarousel?.apps?.length
+        ? cms.appsCarousel.apps.map((a) => a.name)
+        : TOOLS;
+  const heading = headingOverride || cms?.appsCarousel?.heading || "All AI Apps";
+  const subtitle = subtitleOverride || cms?.appsCarousel?.subtitle || "powerful tools in one studio";
   const INITIAL_COUNT = 24;
   const [expanded, setExpanded] = useState(false);
   const visibleTools = expanded ? liveTools : liveTools.slice(0, INITIAL_COUNT);

@@ -122,7 +122,9 @@ function fallbackTopImageForId(id: string): string {
   return `/explore/top-${id}.jpg`;
 }
 
-export default function TopChoiceGrid() {
+type TopTool = (typeof TOP_TOOLS)[number];
+
+export default function TopChoiceGrid({ toolsOverride }: { toolsOverride?: TopTool[] }) {
   const [topTools, setTopTools] = useState(TOP_TOOLS);
   const promo = usePromoMedia();
   const promoContent = usePromoContent();
@@ -134,6 +136,10 @@ export default function TopChoiceGrid() {
 
   // Apply CMS tool overrides
   useEffect(() => {
+    if (toolsOverride?.length) {
+      setTopTools(toolsOverride);
+      return;
+    }
     if (!cms?.topChoice?.tools?.length) return;
     setTopTools(cms.topChoice.tools.map((ct) => {
       const fallback = TOP_TOOLS.find((t) => t.id === ct.id);
@@ -149,7 +155,7 @@ export default function TopChoiceGrid() {
         glow: fallback?.glow || "rgba(139,92,246,0.3)",
       };
     }));
-  }, [cms]);
+  }, [cms, toolsOverride]);
 
   // Apply promo media + text overrides
   useEffect(() => {

@@ -25,18 +25,6 @@ function getYouTubeId(url: string): string | null {
   }
 }
 
-function hexToGlow(hex: string): string {
-  try {
-    const r = parseInt(hex.slice(1, 3), 16);
-    const g = parseInt(hex.slice(3, 5), 16);
-    const b = parseInt(hex.slice(5, 7), 16);
-    if (isNaN(r)) return "rgba(139,92,246,0.25)";
-    return `rgba(${r},${g},${b},0.25)`;
-  } catch {
-    return "rgba(139,92,246,0.25)";
-  }
-}
-
 function getBadgeColorClass(badge: string): string {
   const lower = (badge || "").toLowerCase();
   if (lower === "new") return "bg-cyan-500/20 text-cyan-300 border-cyan-500/30";
@@ -64,19 +52,20 @@ type Slide = {
   trailerUrl?: string;
 };
 
-type LayoutBlock = {
-  type?: string;
-  title?: string;
-  subtitle?: string;
-  mediaUrl?: string;
-  isVideo?: boolean;
-  badge?: string;
-  ctaHref?: string;
-  ctaLabel?: string;
-  trailerUrl?: string;
-  accentColor?: string;
+type CmsHeroSlide = {
+  _id?: string;
+  title: string;
+  subtitle: string;
+  tag: string;
+  bgImage: string;
+  ctaHref: string;
   youtubeUrl?: string;
+  trailerUrl?: string;
 };
+
+function isVideoUrl(url: string): boolean {
+  return /\.(mp4|webm|mov|ogg)([?#]|$)/i.test(url || "");
+}
 
 // ─── Fallback slides ──────────────────────────────────────────────────────────
 const SLIDE_SLOT_IDS = [
@@ -138,7 +127,7 @@ const SLIDES: Slide[] = [
 ];
 
 // ─── Component ────────────────────────────────────────────────────────────────
-export default function HeroCarousel() {
+export default function HeroCarousel({ cmsSlides }: { cmsSlides?: CmsHeroSlide[] }) {
   const [slides, setSlides] = useState<Slide[]>(SLIDES);
   const [current, setCurrent] = useState(0);
   const [visible, setVisible] = useState(true);
@@ -146,6 +135,39 @@ export default function HeroCarousel() {
   const sectionRef = useRef<HTMLElement>(null);
   const promo = usePromoMedia();
   const promoContent = usePromoContent();
+
+  useEffect(() => {
+    if (!cmsSlides?.length) return;
+    setSlides(
+      cmsSlides.map((s, idx) => {
+        const fallback = SLIDES[idx % SLIDES.length];
+        const badge = s.tag || fallback.badge;
+        const ytId = s.youtubeUrl ? getYouTubeId(s.youtubeUrl) : null;
+        let image = fallback.image;
+        if (ytId) {
+          image = `https://img.youtube.com/vi/${ytId}/maxresdefault.jpg`;
+        } else if (s.bgImage) {
+          image = s.bgImage;
+        }
+
+        return {
+          id: idx + 1,
+          image,
+          badge,
+          badgeColor: badge ? getBadgeColorClass(badge) : fallback.badgeColor,
+          title: s.title || fallback.title,
+          subtitle: s.subtitle || fallback.subtitle,
+          cta: fallback.cta,
+          ctaHref: s.ctaHref || fallback.ctaHref,
+          accentColor: fallback.accentColor,
+          glow: fallback.glow,
+          isVideo: isVideoUrl(image) && !ytId,
+          youtubeUrl: s.youtubeUrl || undefined,
+          trailerUrl: s.trailerUrl || undefined,
+        };
+      })
+    );
+  }, [cmsSlides]);
 
   // Apply promo media + text overrides to slides
   useEffect(() => {
@@ -168,57 +190,6 @@ export default function HeroCarousel() {
       })
     );
   }, [promo, promoContent]);
-
-  useEffect(() => {
-    let canceled = false;
-    const loadLayout = async () => {
-      try {
-        const res = await fetch("/api/layouts?page=discover", { cache: "no-store" });
-        const data = await res.json().catch(() => null);
-        if (!res.ok || !Array.isArray(data?.layoutBlocks) || canceled) return;
-
-        const heroBlocks = (data.layoutBlocks as LayoutBlock[]).filter(
-          (b) => b?.type === "HERO"
-        );
-        if (!heroBlocks.length) return;
-
-        const cmsSlides: Slide[] = heroBlocks.map((b, idx) => {
-          const fallback = SLIDES[idx % SLIDES.length];
-          const accent = b.accentColor?.trim() || fallback.accentColor;
-          const ytId = b.youtubeUrl ? getYouTubeId(b.youtubeUrl) : null;
-          let image = fallback.image;
-          if (ytId) {
-            image = `https://img.youtube.com/vi/${ytId}/maxresdefault.jpg`;
-          } else if (b.mediaUrl) {
-            image = b.mediaUrl;
-          }
-          return {
-            id: idx + 1,
-            image,
-            badge: b.badge || fallback.badge,
-            badgeColor: b.badge ? getBadgeColorClass(b.badge) : fallback.badgeColor,
-            title: b.title || fallback.title,
-            subtitle: b.subtitle || fallback.subtitle,
-            cta: b.ctaLabel || fallback.cta,
-            ctaHref: b.ctaHref || fallback.ctaHref,
-            accentColor: accent,
-            glow: hexToGlow(accent),
-            isVideo: Boolean(b.isVideo) && !ytId,
-            youtubeUrl: b.youtubeUrl || undefined,
-            trailerUrl: b.trailerUrl || undefined,
-          };
-        });
-
-        if (!canceled) setSlides(cmsSlides);
-      } catch {
-        // keep local fallback slides
-      }
-    };
-    void loadLayout();
-    return () => {
-      canceled = true;
-    };
-  }, []);
 
   useEffect(() => {
     if (current >= slides.length) setCurrent(0);

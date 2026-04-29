@@ -1,7 +1,8 @@
 "use client";
 
 import { motion } from "framer-motion";
-import WelcomeHero from "@/components/WelcomeHero";
+import { useEffect, useMemo } from "react";
+import HeroCarousel from "@/components/HeroCarousel";
 import CoreToolsSection from "@/components/CoreToolsSection";
 import TopChoiceGrid from "@/components/TopChoiceGrid";
 import PhotodumpCTA from "@/components/PhotodumpCTA";
@@ -9,6 +10,7 @@ import CommunityGallery from "@/components/CommunityGallery";
 import AppsCarousel from "@/components/AppsCarousel";
 import ModelsShowcase from "@/components/ModelsShowcase";
 import Footer from "@/components/Footer";
+import { useCmsData } from "@/lib/use-cms-data";
 
 const Divider = () => (
   <div className="mx-auto max-w-[1600px] px-6 md:px-12">
@@ -16,7 +18,88 @@ const Divider = () => (
   </div>
 );
 
+type CmsHeroSlide = {
+  _id?: string;
+  title: string;
+  subtitle: string;
+  tag: string;
+  bgImage: string;
+  ctaHref: string;
+  youtubeUrl?: string;
+  trailerUrl?: string;
+};
+
+type CmsToolCard = {
+  _id?: string;
+  title: string;
+  description: string;
+  image: string;
+  href: string;
+  badge: string;
+};
+
+type CmsAppItem = { _id?: string; title: string; color?: string };
+
+type ExploreCmsData = {
+  heroSlides?: CmsHeroSlide[];
+  coreTools?: CmsToolCard[];
+  topChoice?: CmsToolCard[];
+  apps?: CmsAppItem[];
+};
+
+function stableIdFromTool(t: CmsToolCard, idx: number): string {
+  const key = (t._id || "").trim() || `${t.title}|${t.href}|${idx}`;
+  return key
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "") || `tool-${idx}`;
+}
+
+function normalizeExploreHref(href: string): string {
+  if (href === "/video/cinema-studio") return "/cinema-studio";
+  if (href === "/edit/upscale") return "/apps/tool/image-upscale";
+  return href;
+}
+
 export default function ExplorePage() {
+  const { data: cms } = useCmsData<ExploreCmsData>("explore");
+
+  useEffect(() => {
+    console.log("[Explore] cms-explore coreTools length", cms?.coreTools?.length ?? 0);
+  }, [cms?.coreTools?.length]);
+
+  const coreToolsOverride = useMemo(() => {
+    if (!cms?.coreTools?.length) return undefined;
+    return cms.coreTools.map((t, idx) => ({
+      id: stableIdFromTool(t, idx),
+      image: t.image || "/explore/tool-create-image.jpg",
+      name: t.title,
+      desc: t.description,
+      href: normalizeExploreHref(t.href),
+      badge: t.badge || "",
+      glow: "rgba(139,92,246,0.3)",
+    }));
+  }, [cms?.coreTools]);
+
+  const topChoiceOverride = useMemo(() => {
+    if (!cms?.topChoice?.length) return undefined;
+    return cms.topChoice.map((t, idx) => ({
+      id: stableIdFromTool(t, idx),
+      image: t.image || "/explore/top-nano-banana-pro.jpg",
+      name: t.title,
+      desc: t.description,
+      href: normalizeExploreHref(t.href),
+      badge: t.badge || "",
+      accent: "from-violet-500 to-indigo-600",
+      glow: "rgba(139,92,246,0.3)",
+    }));
+  }, [cms?.topChoice]);
+
+  const appsOverride = useMemo(() => {
+    if (!cms?.apps?.length) return undefined;
+    return cms.apps.map((a) => a.title).filter(Boolean);
+  }, [cms?.apps]);
+
   return (
     <div className="min-h-screen explore-bg">
       {/* Noise overlay */}
@@ -28,13 +111,13 @@ export default function ExplorePage() {
       />
 
       <div className="relative z-10">
-        {/* Section 1 — Personalized Welcome */}
+        {/* Section 1 — Hero */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.6 }}
         >
-          <WelcomeHero />
+          <HeroCarousel cmsSlides={cms?.heroSlides?.length ? cms.heroSlides : undefined} />
         </motion.div>
 
         {/* Section 2 — Core Tools */}
@@ -44,7 +127,7 @@ export default function ExplorePage() {
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
         >
-          <CoreToolsSection />
+          <CoreToolsSection toolsOverride={coreToolsOverride} />
         </motion.div>
 
         <Divider />
@@ -56,7 +139,7 @@ export default function ExplorePage() {
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
         >
-          <TopChoiceGrid />
+          <TopChoiceGrid toolsOverride={topChoiceOverride} />
         </motion.div>
 
         <Divider />
@@ -85,7 +168,7 @@ export default function ExplorePage() {
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
         >
-          <AppsCarousel />
+          <AppsCarousel toolsOverride={appsOverride} />
         </motion.div>
 
         <Divider />

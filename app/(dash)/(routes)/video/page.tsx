@@ -633,6 +633,17 @@ function VideoPageInner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const estimatedCredits = (() => {
+    const base = getGenerationCostSync(
+      selectedModel.api_route,
+      duration ?? 5,
+      1,
+      resolution ?? undefined,
+    );
+    const soundMultiplier = caps.has_sound && sound ? 1.5 : 1;
+    return parseFloat((base * soundMultiplier).toFixed(2));
+  })();
+
   const handleGenerate = useCallback(async () => {
     const hasMain = prompt.trim().length > 0;
     const hasMulti = multiPrompts.some((s) => s.trim().length > 0);
@@ -1048,17 +1059,6 @@ function VideoPageInner() {
       return prev.slice(0, maxShotsAllowed);
     });
   }, [caps.has_multi_prompt, maxShotsAllowed]);
-
-  const estimatedCredits = (() => {
-    const base = getGenerationCostSync(
-      selectedModel.api_route,
-      duration ?? 5,
-      1,
-      resolution ?? undefined,
-    );
-    const soundMultiplier = caps.has_sound && sound ? 1.5 : 1;
-    return parseFloat((base * soundMultiplier).toFixed(2));
-  })();
 
   // -- Render -------------------------------------------------------------------
 
