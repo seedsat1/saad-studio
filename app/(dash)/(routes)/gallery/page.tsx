@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Sparkles, ImageIcon, Video, Music, Box, FileText, Trash2, Download, RefreshCw, X, ChevronLeft, ChevronRight, Copy, Check, ExternalLink, FolderPlus, Folder, CheckSquare, Square, ListChecks } from "lucide-react";
@@ -124,6 +124,20 @@ export default function GalleryPage() {
     void loadAssets(activeFilter);
   }, [activeFilter, loadAssets]);
 
+  const visibleAssets = useMemo(() => {
+    if (!activeAlbumId) return assets;
+    const album = albums.find((a) => a.id === activeAlbumId);
+    if (!album) return assets;
+    const idSet = new Set(album.assetIds);
+    return assets.filter((a) => idSet.has(a.id));
+  }, [assets, albums, activeAlbumId]);
+
+  const viewableAssets = useMemo(() => visibleAssets.filter((a) => a.type === "image" && a.url), [visibleAssets]);
+
+  const lightboxAsset = lightboxIndex !== null ? viewableAssets[lightboxIndex] : null;
+
+  const allSelectedOnPage = visibleAssets.length > 0 && visibleAssets.every((a) => selectedIds.has(a.id));
+
   const titleCount = useMemo(() => {
     if (activeFilter === "all") return counts.all;
     return counts[activeFilter];
@@ -206,8 +220,6 @@ export default function GalleryPage() {
   }, [activeAlbumId]);
 
   // Lightbox navigation helpers
-  const viewableAssets = useMemo(() => assets.filter((a) => a.type === "image" && a.url), [assets]);
-
   const openLightbox = useCallback((asset: GalleryAsset) => {
     const idx = viewableAssets.findIndex((a) => a.id === asset.id);
     if (idx !== -1) setLightboxIndex(idx);
@@ -242,19 +254,6 @@ export default function GalleryPage() {
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [lightboxIndex, closeLightbox, prevImage, nextImage]);
-
-  const lightboxAsset = lightboxIndex !== null ? viewableAssets[lightboxIndex] : null;
-
-  // Filter by active album (client-side); applied AFTER server-side type filter.
-  const visibleAssets = useMemo(() => {
-    if (!activeAlbumId) return assets;
-    const album = albums.find((a) => a.id === activeAlbumId);
-    if (!album) return assets;
-    const idSet = new Set(album.assetIds);
-    return assets.filter((a) => idSet.has(a.id));
-  }, [assets, albums, activeAlbumId]);
-
-  const allSelectedOnPage = visibleAssets.length > 0 && visibleAssets.every((a) => selectedIds.has(a.id));
   const toggleSelectAll = useCallback(() => {
     setSelectedIds((prev) => {
       if (visibleAssets.length === 0) return prev;
