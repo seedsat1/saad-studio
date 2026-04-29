@@ -95,6 +95,15 @@ type ResultItem = {
   isPending?: boolean;
 };
 
+type CharacterReference = {
+  id: string;
+  name: string;
+  description?: string;
+  referenceUrls: string[];
+  coverUrl?: string | null;
+  status: string;
+};
+
 const RATIO_OPTIONS = [
   { value: "1:1", width: 1024, height: 1024, cls: "ratio-1-1" },
   { value: "16:9", width: 1920, height: 1080, cls: "ratio-16-9" },
@@ -955,6 +964,8 @@ export default function ImageWorkspacePage() {
   const [prompt, setPrompt] = useState("");
   const [quality, setQuality] = useState("standard");
   const [referenceFiles, setReferenceFiles] = useState<File[]>([]);
+  const [characters, setCharacters] = useState<CharacterReference[]>([]);
+  const [selectedCharacterId, setSelectedCharacterId] = useState("");
   const [relightFile, setRelightFile] = useState<File | null>(null);
   const [relightPreset, setRelightPreset] = useState<LightingPresetId>(LIGHTING_PRESETS[0].id);
   const [relightBrightness, setRelightBrightness] = useState(50);
@@ -1007,7 +1018,29 @@ export default function ImageWorkspacePage() {
       const model = IMAGE_MODELS.find((m) => m.id === requestedModel);
       if (model) setSelectedModel(model);
     }
+
+    const requestedCharacter = searchParams.get("characterId");
+    if (requestedCharacter) setSelectedCharacterId(requestedCharacter);
   }, [searchParams]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadCharacters = async () => {
+      try {
+        const res = await fetch("/api/characters", { cache: "no-store" });
+        const data = await res.json().catch(() => null);
+        if (!cancelled && res.ok && Array.isArray(data?.characters)) {
+          setCharacters(data.characters);
+        }
+      } catch {
+        if (!cancelled) setCharacters([]);
+      }
+    };
+    void loadCharacters();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -1120,6 +1153,10 @@ export default function ImageWorkspacePage() {
 
   const selectedRatio = useMemo(() => RATIO_OPTIONS.find((r) => r.value === aspectRatio) || RATIO_OPTIONS[0], [aspectRatio]);
   const createNeedsImage = selectedModel.inputType !== "text-to-image";
+  const selectedCharacter = useMemo(
+    () => characters.find((character) => character.id === selectedCharacterId) || null,
+    [characters, selectedCharacterId],
+  );
   const qualityOptions = useMemo(() => {
     const options = selectedModel.qualityParam ?? [];
     if (!selectedModel.id.startsWith("gpt-image-2-")) return options;
@@ -1148,13 +1185,13 @@ export default function ImageWorkspacePage() {
 
   const canGenerate = useMemo(() => {
     if (generating) return false;
-    if (activeTool === "create") return Boolean(prompt.trim()) && (!createNeedsImage || referenceFiles.length > 0);
+    if (activeTool === "create") return Boolean(prompt.trim()) && (!createNeedsImage || referenceFiles.length > 0 || Boolean(selectedCharacter));
     if (activeTool === "relight") return Boolean(relightFile && prompt.trim());
     if (activeTool === "inpaint") return Boolean(inpaintFile && prompt.trim());
     if (activeTool === "upscale") return Boolean(upscaleFile);
     if (activeTool === "enhance") return enhanceFiles.length > 0;
     return Boolean(faceSource && faceTarget);
-  }, [activeTool, createNeedsImage, enhanceFiles.length, faceSource, faceTarget, generating, inpaintFile, prompt, referenceFiles.length, relightFile, upscaleFile]);
+  }, [activeTool, createNeedsImage, enhanceFiles.length, faceSource, faceTarget, generating, inpaintFile, prompt, referenceFiles.length, relightFile, selectedCharacter, upscaleFile]);
 
   const estimatedCredits = useMemo(() => {
     if (activeTool === "create") return (selectedModel.creditCost || (createNeedsImage ? 3 : 2)) * numImages;
@@ -1174,8 +1211,16 @@ export default function ImageWorkspacePage() {
   const generateCreate = useCallback(async () => {
     const maxRef = selectedModel.maxRefImages;
     const filesToSend = maxRef > 0 ? referenceFiles.slice(0, maxRef) : [];
-    const imageUrls = await Promise.all(filesToSend.map(fileToDataUrl));
-    const body: Record<string, unknown> = { prompt, modelId: selectedModel.id, aspectRatio, numImages, quality: qualityOptions.length ? (quality || qualityOptions[0]) : undefined };
+    const uploadedReferenceUrls = await Promise.all(filesToSend.map(fileToDataUrl));
+    const characterReferenceUrls = selectedCharacter?.referenceUrls?.slice(0, Math.max(0, maxRef)) ?? [];
+    const imageUrls = maxRef > 0
+      ? [...characterReferenceUrls, ...uploadedReferenceUrls].slice(0, maxRef)
+      : [];
+    const characterPrompt = selectedCharacter
+      ? `Use the selected character identity reference: ${selectedCharacter.name}. Preserve the same face, identity, ethnicity, proportions, and recognizable features. ${selectedCharacter.description || ""}`.trim()
+      : "";
+    const effectivePrompt = characterPrompt ? `${characterPrompt}\n\n${prompt}` : prompt;
+    const body: Record<string, unknown> = { prompt: effectivePrompt, modelId: selectedModel.id, aspectRatio, numImages, quality: qualityOptions.length ? (quality || qualityOptions[0]) : undefined };
     if (imageUrls.length > 0) {
       // Always send imageInputField so the route knows which API field to use
       if (selectedModel.imageInputField) body.imageInputField = selectedModel.imageInputField;
@@ -1188,7 +1233,7 @@ export default function ImageWorkspacePage() {
     const urls = normalizeImageResponseUrls(data);
     if (!urls.length) throw new Error("Generation completed but no image URL was returned");
     addResultItems(urls, "create", selectedModel.label, prompt, aspectRatio);
-  }, [addResultItems, aspectRatio, numImages, prompt, quality, qualityOptions, referenceFiles, selectedModel]);
+  }, [addResultItems, aspectRatio, numImages, prompt, quality, qualityOptions, referenceFiles, selectedCharacter, selectedModel]);
 
   const generateRelight = useCallback(async () => {
     if (!relightFile) throw new Error("Upload image first");
@@ -1492,6 +1537,49 @@ export default function ImageWorkspacePage() {
             </div>
           </div>
           <ModelDropdown selected={selectedModel} onSelect={setSelectedModel} />
+        </SettingsAccordion>
+
+        <SettingsAccordion label="Character Reference" summary={selectedCharacter?.name || "None"} defaultOpen={Boolean(selectedCharacter)}>
+          <div className="space-y-3">
+            <select
+              value={selectedCharacterId}
+              onChange={(e) => setSelectedCharacterId(e.target.value)}
+              className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-pink-500"
+            >
+              <option value="">No saved character</option>
+              {characters.map((character) => (
+                <option key={character.id} value={character.id}>{character.name}</option>
+              ))}
+            </select>
+
+            {selectedCharacter ? (
+              <div className="rounded-xl border border-fuchsia-400/20 bg-fuchsia-500/10 p-3">
+                <div className="flex gap-3">
+                  {selectedCharacter.coverUrl ? (
+                    <img src={selectedCharacter.coverUrl} alt={selectedCharacter.name} className="h-14 w-14 rounded-lg object-cover" />
+                  ) : (
+                    <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-white/10 text-zinc-500">
+                      <ScanFace className="h-5 w-5" />
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-zinc-100">{selectedCharacter.name}</p>
+                    <p className="mt-1 line-clamp-2 text-xs text-zinc-500">{selectedCharacter.description || "Identity reference set"}</p>
+                    <p className="mt-1 text-[11px] text-fuchsia-200">{selectedCharacter.referenceUrls.length} reference image(s)</p>
+                  </div>
+                </div>
+                {selectedModel.maxRefImages <= 0 ? (
+                  <p className="mt-3 rounded-lg border border-amber-400/20 bg-amber-500/10 px-2 py-1.5 text-[11px] text-amber-200">
+                    This model does not accept reference images. Choose an image-to-image model to use this character.
+                  </p>
+                ) : null}
+              </div>
+            ) : (
+              <a href="/character" className="flex items-center justify-center rounded-xl border border-dashed border-white/15 px-3 py-3 text-xs font-semibold text-zinc-400 hover:border-fuchsia-400/50 hover:text-fuchsia-200">
+                Create a reusable character
+              </a>
+            )}
+          </div>
         </SettingsAccordion>
 
         {selectedModel.aspectRatios.length ? (

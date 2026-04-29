@@ -191,6 +191,15 @@ const FAMILY_GRADIENTS: Record<string, string> = {
 
 const MODEL_GROUPS = getModelGroups();
 
+type CharacterReference = {
+  id: string;
+  name: string;
+  description?: string;
+  referenceUrls: string[];
+  coverUrl?: string | null;
+  status: string;
+};
+
 // -- Main Component -------------------------------------------------------------
 
 function VideoPageInner() {
@@ -198,6 +207,8 @@ function VideoPageInner() {
   const [activeTool,    setActiveTool]    = useState("create-video");
   const [selectedModel, setSelectedModel] = useState<WaveSpeedVideoModel>(DEFAULT_MODEL);
   const [modelOpen,     setModelOpen]     = useState(false);
+  const [characters, setCharacters] = useState<CharacterReference[]>([]);
+  const [selectedCharacterId, setSelectedCharacterId] = useState("");
 
   useEffect(() => {
     const requestedTool = searchParams.get("tool");
@@ -218,7 +229,29 @@ function VideoPageInner() {
         setResolution(c.resolutions[0] ?? null);
       }
     }
+
+    const requestedCharacter = searchParams.get("characterId");
+    if (requestedCharacter) setSelectedCharacterId(requestedCharacter);
   }, [searchParams]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadCharacters = async () => {
+      try {
+        const res = await fetch("/api/characters", { cache: "no-store" });
+        const data = await res.json().catch(() => null);
+        if (!cancelled && res.ok && Array.isArray(data?.characters)) {
+          setCharacters(data.characters);
+        }
+      } catch {
+        if (!cancelled) setCharacters([]);
+      }
+    };
+    void loadCharacters();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Prompt fields
   const [prompt,    setPrompt]    = useState("");
@@ -416,6 +449,10 @@ function VideoPageInner() {
 
   // Capability shorthand
   const caps = selectedModel.capabilities;
+  const selectedCharacter = useMemo(
+    () => characters.find((character) => character.id === selectedCharacterId) || null,
+    [characters, selectedCharacterId],
+  );
   const isSoraModel = selectedModel.api_route.includes("openai/sora-2");
   const durationChoices = isSoraModel ? [4, 8, 12] : caps.durations;
   const resolutionChoices = isSoraModel ? [] : caps.resolutions;
@@ -670,21 +707,29 @@ function VideoPageInner() {
       const basePrompt = hasMain
         ? prompt.trim()
         : filledMultiPrompts.map((s) => s.trim()).join(" | ");
-      payload.prompt = toolPrefix ? `${toolPrefix} ${basePrompt}` : basePrompt;
+      const characterPrompt = selectedCharacter
+        ? `Use the selected character identity reference: ${selectedCharacter.name}. Preserve the same face, identity, proportions, and recognizable features. ${selectedCharacter.description || ""}`.trim()
+        : "";
+      const promptedText = characterPrompt ? `${characterPrompt}\n\n${basePrompt}` : basePrompt;
+      payload.prompt = toolPrefix ? `${toolPrefix} ${promptedText}` : promptedText;
 
       const isSeedanceV2 = selectedModel.id.startsWith("bytedance-seedance-v2");
       const isKling30Video =
         selectedModel.api_route === "kwaivgi/kling-v3.0-pro/text-to-video";
 
-      // Image inputs — reference media (images/videos/audios) take priority
-      if (referenceImages.length > 0) {
+      const characterReferenceUrls = caps.max_reference_images > 0 ? (selectedCharacter?.referenceUrls ?? []) : [];
+
+      // Image inputs — saved characters + uploaded reference media take priority
+      if (referenceImages.length > 0 || characterReferenceUrls.length > 0) {
         if (isSeedanceV2) {
           // Split unified referenceImages by type → 3 separate KIE fields
           const refImgs  = referenceImages.filter(f => f.type.startsWith("image/"));
           const refVids  = referenceImages.filter(f => f.type.startsWith("video/"));
           const refAuds  = referenceImages.filter(f => f.type.startsWith("audio/"));
-          if (refImgs.length > 0)
-            payload.reference_image_urls = await Promise.all(refImgs.slice(0, 9).map(f => fileToDataURL(f)));
+          const uploadedImageRefs = await Promise.all(refImgs.slice(0, 9).map(f => fileToDataURL(f)));
+          const mergedImageRefs = [...characterReferenceUrls, ...uploadedImageRefs].slice(0, 9);
+          if (mergedImageRefs.length > 0)
+            payload.reference_image_urls = mergedImageRefs;
           if (refVids.length > 0)
             payload.reference_video_urls = await Promise.all(refVids.slice(0, 3).map(f => fileToDataURL(f)));
           if (refAuds.length > 0)
@@ -693,12 +738,13 @@ function VideoPageInner() {
           if (caps.has_end_frame && endFrame)
             payload.last_frame_url = await fileToDataURL(endFrame);
         } else {
-          payload.reference_image_urls = await Promise.all(
-            referenceImages.map((f) => fileToDataURL(f))
-          );
+          const uploadedRefs = await Promise.all(referenceImages.map((f) => fileToDataURL(f)));
+          payload.reference_image_urls = [...characterReferenceUrls, ...uploadedRefs].slice(0, Math.max(1, caps.max_reference_images || 1));
         }
       } else if ((caps.requires_image || caps.optional_image) && startFrame) {
         payload[isSeedanceV2 ? "first_frame_url" : "image"] = await fileToDataURL(startFrame);
+      } else if ((caps.requires_image || caps.optional_image) && selectedCharacter?.referenceUrls?.[0]) {
+        payload[isSeedanceV2 ? "first_frame_url" : "image"] = selectedCharacter.referenceUrls[0];
       }
       if (caps.requires_video && motionVideo) {
         payload.video = await fileToDataURL(motionVideo);
@@ -846,6 +892,7 @@ function VideoPageInner() {
         const firstFrameDataUrl = startFrame ? await fileToDataURL(startFrame) : null;
         const lastFrameDataUrl =
           !kling30MultiEnabled && endFrame ? await fileToDataURL(endFrame) : null;
+        imageUrls.push(...(selectedCharacter?.referenceUrls ?? []).slice(0, 3));
         if (firstFrameDataUrl) imageUrls.push(firstFrameDataUrl);
         if (lastFrameDataUrl) imageUrls.push(lastFrameDataUrl);
         // Log so we can verify images are included
@@ -892,7 +939,7 @@ function VideoPageInner() {
         payload.sound = !!sound;
         payload.duration = resolvedDuration;
         payload.aspect_ratio = aspectRatio ?? "16:9";
-        payload.prompt = kling30MultiEnabled ? "" : (toolPrefix ? `${toolPrefix} ${prompt.trim()}` : prompt.trim());
+        payload.prompt = kling30MultiEnabled ? "" : (toolPrefix ? `${toolPrefix} ${promptedText.trim()}` : promptedText.trim());
 
         if (validKlingEls.length > 0) {
           payload.kling_elements = await Promise.all(
@@ -977,7 +1024,7 @@ function VideoPageInner() {
       setIsSubmitting(false);
     }
   }, [
-    activeTool, prompt, selectedModel, caps,
+    activeTool, prompt, selectedModel, selectedCharacter, caps,
     startFrame, endFrame, motionVideo, referenceImages, size, aspectRatio, startFrameRatio, duration, resolution,
     negPrompt, cfgScale, sound, shotType, multiPrompts, elementList,
     sceneControl, orientation, startPolling,
@@ -1021,7 +1068,7 @@ function VideoPageInner() {
   const hasMultiPrompt = multiPrompts.some((s) => s.trim().length > 0);
   const isSeedanceV2Model = selectedModel.id.startsWith("bytedance-seedance-v2");
   const hasRequiredImageInput =
-    !caps.requires_image || !!startFrame || referenceImages.length > 0;
+    !caps.requires_image || !!startFrame || referenceImages.length > 0 || Boolean(selectedCharacter?.referenceUrls?.length);
   const hasRequiredVideoInput = !caps.requires_video || !!motionVideo;
   const canGenerate = isKling30Video
     ? (
@@ -2045,6 +2092,45 @@ function VideoPageInner() {
                 )}
               </AnimatePresence>
             </div>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#475569" }}>Character Reference</label>
+            <select
+              value={selectedCharacterId}
+              onChange={(e) => setSelectedCharacterId(e.target.value)}
+              className="w-full rounded-xl px-3 py-2.5 text-sm outline-none"
+              style={{
+                background: "rgba(255,255,255,0.04)",
+                border: "1px solid rgba(255,255,255,0.08)",
+                color: "#e2e8f0",
+              }}
+            >
+              <option value="">No saved character</option>
+              {characters.map((character) => (
+                <option key={character.id} value={character.id}>{character.name}</option>
+              ))}
+            </select>
+            {selectedCharacter ? (
+              <div className="flex gap-3 rounded-xl p-2" style={{ background: hexA(selectedModel.family_color, 0.08), border: `1px solid ${hexA(selectedModel.family_color, 0.22)}` }}>
+                {selectedCharacter.coverUrl ? (
+                  <img src={selectedCharacter.coverUrl} alt={selectedCharacter.name} className="h-12 w-12 rounded-lg object-cover" />
+                ) : (
+                  <div className="flex h-12 w-12 items-center justify-center rounded-lg" style={{ background: "rgba(255,255,255,0.06)" }}>
+                    <Users size={18} style={{ color: selectedModel.family_color }} />
+                  </div>
+                )}
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[12px] font-semibold" style={{ color: "#e2e8f0" }}>{selectedCharacter.name}</p>
+                  <p className="mt-0.5 line-clamp-2 text-[10px]" style={{ color: "#64748b" }}>{selectedCharacter.description || "Reusable identity reference"}</p>
+                  <p className="mt-1 text-[10px]" style={{ color: selectedModel.family_color }}>{selectedCharacter.referenceUrls.length} reference image(s)</p>
+                </div>
+              </div>
+            ) : (
+              <a href="/character" className="rounded-xl border border-dashed border-white/10 px-3 py-2 text-center text-[11px] text-slate-500 hover:border-white/20 hover:text-slate-300">
+                Create a reusable character
+              </a>
+            )}
           </div>
 
           {/* ════════════════════════════════════════════════════════════

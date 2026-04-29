@@ -123,6 +123,7 @@ export const DEFAULT_MODELS: PricingModel[] = [
   { id:"tool_upscale",  name:"Video/Image Upscale",     notes:"4K/8K",        type:"image",  provider:"wavespeed", billing:"flat",    kieCredits:0,     waveUsd:0.03,  userCreditsRate:6,    maxDuration:null, isActive:true  },
   { id:"tool_rmbg",     name:"Remove Background",       notes:"RMBG-2.0",     type:"image",  provider:"wavespeed", billing:"flat",    kieCredits:0,     waveUsd:0.01,  userCreditsRate:4,    maxDuration:null, isActive:true  },
   { id:"tool_faceswap", name:"Face Swap",               notes:"pro",          type:"image",  provider:"wavespeed", billing:"flat",    kieCredits:0,     waveUsd:0.02,  userCreditsRate:4,    maxDuration:null, isActive:true  },
+  { id:"tool_instant_character", name:"Instant Character", notes:"$0.10/run", type:"image",  provider:"wavespeed", billing:"flat",    kieCredits:0,     waveUsd:0.10,  userCreditsRate:20,   maxDuration:null, isActive:true  },
   { id:"dalle3",        name:"DALL-E 3",                notes:"legacy",       type:"image",  provider:"kie",       billing:"flat",    kieCredits:5,     waveUsd:0,     userCreditsRate:2,    maxDuration:null, isActive:true  },
 ];
 

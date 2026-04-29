@@ -256,6 +256,7 @@ const MODEL_ALIAS_MAP: Record<string, string> = {
   "tool:upscale":                       "tool_upscale",
   "tool:remove-bg":                     "tool_rmbg",
   "tool:face-swap":                     "tool_faceswap",
+  "tool:instant-character":             "tool_instant_character",
   "dall-e-3":                           "dalle3",
 };
 
