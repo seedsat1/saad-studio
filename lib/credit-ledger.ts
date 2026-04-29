@@ -304,7 +304,7 @@ export async function refundGenerationCharge(
 
 export async function setGenerationMediaUrl(generationId: string, mediaUrl: string) {
   if (!generationId || !mediaUrl) return;
-  await prismadb.generation.update({
+  await prismadb.generation.updateMany({
     where: { id: generationId },
     data: { mediaUrl },
   });
