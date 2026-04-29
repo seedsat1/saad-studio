@@ -340,7 +340,7 @@ export async function saveAdditionalGenerationUrls(
 
 export async function setGenerationTaskMarker(generationId: string, taskId: string) {
   if (!generationId || !taskId) return;
-  await prismadb.generation.update({
+  await prismadb.generation.updateMany({
     where: { id: generationId },
     data: { mediaUrl: `task:${taskId}` },
   });
@@ -493,7 +493,7 @@ function isLikelyHttpImageUrl(url: string): boolean {
 }
 
 async function flagGeneration(generationId: string): Promise<void> {
-  await prismadb.generation.update({
+  await prismadb.generation.updateMany({
     where: { id: generationId },
     data: { isFlagged: true },
   });

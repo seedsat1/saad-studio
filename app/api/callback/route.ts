@@ -104,7 +104,7 @@ export async function POST(req: NextRequest) {
         await rollbackGenerationCharge(generation.id, generation.userId, generation.cost);
       }
       // Mark as failed in DB so polling returns failed
-      await prismadb.generation.update({
+      await prismadb.generation.updateMany({
         where: { id: generation.id },
         data: { mediaUrl: `failed:${taskId}${errorMsg ? `:${errorMsg}` : ""}` },
       });

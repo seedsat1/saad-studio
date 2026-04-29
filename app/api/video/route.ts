@@ -15,16 +15,18 @@ const KIE_BASE = "https://api.kie.ai/api/v1";
 const WAVESPEED_BASE = "https://api.wavespeed.ai/api/v3";
 const { videoRouteToKieModelMap, wavespeedFallbackMap } = getResolvedKieRoutingMaps();
 
-function getKieKey(): string {
+function getKieKeyFromEnv(): string | null {
   const key = process.env.KIE_API_KEY || process.env.KIEAI_API_KEY;
-  if (!key) throw new Error("KIE API key is not configured");
-  return key;
+  if (!key || !key.trim()) return null;
+  return key.trim();
 }
 
 function kieHeaders() {
+  const key = getKieKeyFromEnv();
+  if (!key) throw new Error("KIE API key is not configured");
   return {
     "Content-Type": "application/json",
-    Authorization: `Bearer ${getKieKey()}`,
+    Authorization: `Bearer ${key}`,
   };
 }
 
@@ -780,7 +782,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Too many requests" }, { status: 429, headers: rateLimitHeaders(rate) });
     }
 
-    const body = await req.json();
+    const body = await req.json().catch(() => null);
+    if (!body || typeof body !== "object") {
+      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    }
     const { modelRoute, payload } = body as {
       modelRoute?: string;
       payload?: Record<string, unknown>;
@@ -804,13 +809,22 @@ export async function POST(req: Request) {
       );
     }
 
-    const durationForCost = typeof payload.duration === "number" ? payload.duration : 5;
+    const isVeoModelRoute =
+      modelRoute === "google/veo3.1-lite-text-to-video" ||
+      modelRoute === "google/veo3.1-fast-text-to-video" ||
+      modelRoute === "google/veo3.1-text-to-video";
+    const durationForCost =
+      typeof payload.duration === "number"
+        ? payload.duration
+        : typeof payload.duration === "string"
+          ? Number.parseInt(payload.duration, 10) || (isVeoModelRoute ? 8 : 5)
+          : (isVeoModelRoute ? 8 : 5);
     const qualityForCost =
       (typeof payload.mode === "string" ? payload.mode : null) ||
       (typeof payload.resolution === "string" ? payload.resolution : null) ||
       (typeof payload.quality === "string" ? payload.quality : null);
     const soundEnabled = payload.sound === true || payload.generate_audio === true;
-    const baseCost = await getGenerationCost(modelRoute, durationForCost, 1, qualityForCost);
+    const baseCost = await getGenerationCost(modelRoute, durationForCost, 1, qualityForCost).catch(() => 0);
     const creditsToCharge = soundEnabled ? parseFloat((baseCost * 1.5).toFixed(2)) : baseCost;
     if (creditsToCharge <= 0) {
       return NextResponse.json({ error: "No credit configuration for this model" }, { status: 400 });
@@ -829,6 +843,13 @@ export async function POST(req: Request) {
 
     // ── WaveSpeed path ────────────────────────────────────────────────────────
     if (wavespeedRoute && !kieModel) {
+      const wavespeedKey = process.env.WAVESPEED_API_KEY;
+      if (!wavespeedKey) {
+        return NextResponse.json(
+          { error: "WaveSpeed provider is not configured.", code: "wavespeed_key_missing" },
+          { status: 503 },
+        );
+      }
       const wsInput = mapToWavespeedInput(payload);
       if (wsInput.image_url && typeof wsInput.image_url === "string" && wsInput.image_url.startsWith("data:")) {
         wsInput.image_url = await uploadDataUrlToKie(wsInput.image_url).catch(() => wsInput.image_url as string);
@@ -847,7 +868,10 @@ export async function POST(req: Request) {
 
       const wsRes = await fetch(`${WAVESPEED_BASE}/${wavespeedRoute}`, {
         method: "POST",
-        headers: wavespeedHeaders(),
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${wavespeedKey}`,
+        },
         body: JSON.stringify(wsInput),
       });
 
@@ -875,6 +899,14 @@ export async function POST(req: Request) {
     }
 
     // ── KIE path ──────────────────────────────────────────────────────────────
+    const kieKey = getKieKeyFromEnv();
+    if (!kieKey) {
+      return NextResponse.json(
+        { error: "KIE provider is not configured.", code: "kie_key_missing" },
+        { status: 503 },
+      );
+    }
+
     const normalizedInput = normalizeInputForKie(payload);
     const resolvedInput = await resolveMediaInInput(normalizedInput);
 
@@ -940,7 +972,10 @@ export async function POST(req: Request) {
 
     const createRes = await fetch(createEndpoint, {
       method: "POST",
-      headers: kieHeaders(),
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${kieKey}`,
+      },
       body: JSON.stringify(createBody),
     });
 
@@ -1031,9 +1066,9 @@ export async function GET(req: Request) {
     // ── WaveSpeed polling ────────────────────────────────────────────────────
     if (taskId.startsWith("ws:")) {
       const predictionId = taskId.slice(3);
-      let wsKey: string;
-      try { wsKey = getWaveSpeedKey(); } catch {
-        return NextResponse.json({ error: "WAVESPEED_API_KEY not configured" }, { status: 500 });
+      const wsKey = process.env.WAVESPEED_API_KEY;
+      if (!wsKey) {
+        return NextResponse.json({ error: "WaveSpeed provider is not configured.", code: "wavespeed_key_missing" }, { status: 503 });
       }
       const wsRes = await fetch(`${WAVESPEED_BASE}/predictions/${predictionId}/result`, {
         headers: { Authorization: `Bearer ${wsKey}` },
@@ -1079,10 +1114,14 @@ export async function GET(req: Request) {
     // Confirmed: https://docs.kie.ai/veo3-api/get-veo-3-video-details
     // successFlag: 0=generating, 1=success, 2=failed, 3=generation_failed
     if (taskId.startsWith("veo:")) {
+      const kieKey = getKieKeyFromEnv();
+      if (!kieKey) {
+        return NextResponse.json({ error: "KIE provider is not configured.", code: "kie_key_missing" }, { status: 503 });
+      }
       const veoTaskId = taskId.slice(4);
       const veoRes = await fetch(`${KIE_BASE}/veo/record-info?taskId=${encodeURIComponent(veoTaskId)}`, {
         method: "GET",
-        headers: kieHeaders(),
+        headers: { Authorization: `Bearer ${kieKey}` },
         cache: "no-store",
       });
       let veoJson: Record<string, unknown> | null = null;
@@ -1136,9 +1175,13 @@ export async function GET(req: Request) {
     }
 
     // ── KIE polling ──────────────────────────────────────────────────────────
+    const kieKey = getKieKeyFromEnv();
+    if (!kieKey) {
+      return NextResponse.json({ error: "KIE provider is not configured.", code: "kie_key_missing" }, { status: 503 });
+    }
     const pollRes = await fetch(`${KIE_BASE}/jobs/recordInfo?taskId=${encodeURIComponent(taskId)}`, {
       method: "GET",
-      headers: kieHeaders(),
+      headers: { Authorization: `Bearer ${kieKey}` },
       cache: "no-store",
     });
 

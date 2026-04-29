@@ -1,4 +1,4 @@
-﻿import { IMAGE_MODELS } from "@/lib/image-models";
+import { IMAGE_MODELS } from "@/lib/image-models";
 import { VIDEO_MODELS } from "@/lib/video-models";
 import { VIDEO_MODEL_REGISTRY } from "@/lib/video-model-registry";
 
@@ -174,18 +174,22 @@ function getVeo31Credits(modelRoute: string, payload?: VideoPayload): number {
   const duration = readDuration(payload, 8);
   const quality = readQuality(payload);
   const durationFactor = duration / 8;
+  const is4k = quality === "4k";
 
   if (modelRoute === "google/veo3.1-lite-text-to-video") {
-    return Math.max(1, Math.ceil(30 * durationFactor));
+    const base = Math.ceil(30 * durationFactor);
+    return Math.max(1, is4k ? Math.ceil(base * 2) : base);
   }
 
   if (modelRoute === "google/veo3.1-fast-text-to-video") {
-    return Math.max(1, Math.ceil(50 * durationFactor));
+    const base = Math.ceil(50 * durationFactor);
+    return Math.max(1, is4k ? Math.ceil(base * 2) : base);
   }
 
   const is1080 = quality.includes("1080");
   const base = is1080 ? 65 : 50;
-  return Math.max(1, Math.ceil(base * durationFactor));
+  const cost = Math.ceil(base * durationFactor);
+  return Math.max(1, is4k ? Math.ceil(cost * 2) : cost);
 }
 
 function applyGenericRouteDynamics(modelRoute: string, baseCost: number, payload?: VideoPayload): number {

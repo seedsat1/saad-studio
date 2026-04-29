@@ -328,7 +328,7 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
     name: "Google Veo 3.1 Lite",
     family: "veo", family_label: "Google Veo", family_color: "#3b82f6",
     badge: null,
-    description: "Lightweight, affordable Veo 3.1. Native audio always-on.",
+    description: "Lightweight, affordable Veo 3.1. Fixed ~8s. Native audio always-on.",
     api_route: "google/veo3.1-lite-text-to-video",
     route_confirmed: true,
     capabilities: t2vCaps({
@@ -336,7 +336,7 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
       has_end_frame:  true,
       aspect_ratios: ["16:9", "9:16", "Auto"],
       durations:     [],
-      resolutions:   ["720p", "1080p"],
+      resolutions:   ["1080p", "4k"],
       max_reference_images: 2, // Lite: 1 (animate) or 2 (first+last frames)
     }),
   },
@@ -345,7 +345,7 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
     name: "Google Veo 3.1 Fast",
     family: "veo", family_label: "Google Veo", family_color: "#3b82f6",
     badge: "FAST",
-    description: "Fast version of Veo 3.1. Native audio always-on. Supports REFERENCE_2_VIDEO (up to 3 reference images).",
+    description: "Fast Veo 3.1. Fixed ~8s. Native audio always-on. Supports REFERENCE_2_VIDEO (up to 3 reference images).",
     api_route: "google/veo3.1-fast-text-to-video",
     route_confirmed: true,
     capabilities: t2vCaps({
@@ -353,7 +353,7 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
       has_end_frame:  true,
       aspect_ratios: ["16:9", "9:16", "Auto"],
       durations:     [],
-      resolutions:   ["720p", "1080p"],
+      resolutions:   ["1080p", "4k"],
       max_reference_images: 3, // Fast: REFERENCE_2_VIDEO supports up to 3 reference images
     }),
   },
@@ -362,7 +362,7 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
     name: "Google Veo 3.1",
     family: "veo", family_label: "Google Veo", family_color: "#3b82f6",
     badge: "NEW",
-    description: "Latest Veo 3.1 — native audio, up to 1080p, ~8s. 4K available.",
+    description: "Latest Veo 3.1 — fixed ~8s, native audio always-on. Supports 1080p and 4K.",
     api_route: "google/veo3.1-text-to-video",
     route_confirmed: true,
     capabilities: t2vCaps({
@@ -370,7 +370,7 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
       has_end_frame:  true,
       aspect_ratios: ["16:9", "9:16", "Auto"],
       durations:     [],
-      resolutions:   ["720p", "1080p", "4k"],
+      resolutions:   ["1080p", "4k"],
       max_reference_images: 2, // Quality model: 1 (animate) or 2 (first+last)
     }),
   },

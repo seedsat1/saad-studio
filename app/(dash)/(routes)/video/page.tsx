@@ -581,6 +581,71 @@ function VideoPageInner() {
     }
   }, [caps.max_reference_images, caps.max_reference_videos]);
 
+  const pickDeviceFiles = useCallback(async (target: PickerTarget): Promise<boolean> => {
+    if (typeof window === "undefined") return false;
+    const anyWindow = window as any;
+    if (typeof anyWindow.showOpenFilePicker !== "function") return false;
+    if (!window.isSecureContext) return false;
+
+    const isSeedance2 = selectedModel.id.startsWith("bytedance-seedance-v2");
+    const multiple = target === "referenceImages";
+
+    const types =
+      target === "motionVideo"
+        ? [
+            {
+              description: "Video",
+              accept: { "video/*": [".mp4", ".mov", ".webm", ".mkv", ".avi"] },
+            },
+          ]
+        : target === "referenceImages" && isSeedance2
+          ? [
+              {
+                description: "Images",
+                accept: { "image/*": [".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp", ".tiff"] },
+              },
+              {
+                description: "Videos",
+                accept: { "video/*": [".mp4", ".mov", ".webm", ".mkv", ".avi"] },
+              },
+              {
+                description: "Audio",
+                accept: { "audio/*": [".mp3", ".wav", ".m4a", ".aac", ".ogg", ".flac"] },
+              },
+            ]
+          : [
+              {
+                description: "Images",
+                accept: { "image/*": [".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp", ".tiff"] },
+              },
+            ];
+
+    try {
+      const handles = (await anyWindow.showOpenFilePicker({
+        multiple,
+        types,
+        startIn: "downloads",
+      })) as Array<{ getFile: () => Promise<File> }>;
+
+      const files = await Promise.all(handles.map((h) => h.getFile()));
+      if (files.length === 0) return true;
+
+      if (target === "startFrame") setStartFrame(files[0] ?? null);
+      else if (target === "endFrame") setEndFrame(files[0] ?? null);
+      else if (target === "motionVideo") setMotionVideo(files[0] ?? null);
+      else if (target === "referenceImages") {
+        const isKling30 = selectedModel.api_route === "kwaivgi/kling-v3.0-pro/text-to-video";
+        const maxRefs = isKling30 ? 3 : caps.max_reference_images;
+        setReferenceImages((prev) => [...prev, ...files].slice(0, Math.max(0, maxRefs)));
+      }
+
+      return true;
+    } catch (e: any) {
+      if (e?.name === "AbortError") return true;
+      return false;
+    }
+  }, [caps.max_reference_images, selectedModel.api_route, selectedModel.id]);
+
   // -- Generate -----------------------------------------------------------------
 
   const { guardGeneration, getSafeErrorMessage } = useGenerationGate();
@@ -3400,12 +3465,18 @@ function VideoPageInner() {
                   <button
                     className="w-full h-full min-h-48 flex flex-col items-center justify-center gap-4 rounded-xl border-2 border-dashed transition-all hover:border-opacity-60"
                     style={{ borderColor: hexA(selectedModel.family_color, 0.3) }}
-                    onClick={() => {
-                      if (mediaPicker === "startFrame")        startFrameRef.current?.click();
-                      else if (mediaPicker === "endFrame")     endFrameRef.current?.click();
-                      else if (mediaPicker === "motionVideo")  motionVideoRef.current?.click();
-                      else if (mediaPicker === "referenceImages") referenceImagesRef.current?.click();
+                    onClick={async () => {
+                      const target = mediaPicker;
                       setMediaPicker(null);
+                      if (!target) return;
+
+                      const handled = await pickDeviceFiles(target);
+                      if (handled) return;
+
+                      if (target === "startFrame") startFrameRef.current?.click();
+                      else if (target === "endFrame") endFrameRef.current?.click();
+                      else if (target === "motionVideo") motionVideoRef.current?.click();
+                      else if (target === "referenceImages") referenceImagesRef.current?.click();
                     }}
                   >
                     <div

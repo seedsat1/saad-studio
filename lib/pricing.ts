@@ -335,6 +335,24 @@ export function qualityMultiplierFor(quality: string | null | undefined): number
   return QUALITY_MULTIPLIER[quality.trim().toLowerCase()] ?? 1.0;
 }
 
+function isVeo31ModelRef(modelRef: string): boolean {
+  return (
+    modelRef === "google/veo3.1-lite-text-to-video" ||
+    modelRef === "google/veo3.1-fast-text-to-video" ||
+    modelRef === "google/veo3.1-text-to-video" ||
+    modelRef === "veo31_lite" ||
+    modelRef === "veo31_fast" ||
+    modelRef === "veo31"
+  );
+}
+
+function qualityMultiplierForModel(modelRef: string, quality: string | null | undefined): number {
+  const q = quality?.trim().toLowerCase() ?? "";
+  if (!q) return 1.0;
+  if (isVeo31ModelRef(modelRef) && q === "4k") return 2.0;
+  return QUALITY_MULTIPLIER[q] ?? 1.0;
+}
+
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 /**
@@ -357,7 +375,7 @@ export async function getGenerationCost(
   const model = models.find((m) => m.id === constitutionId && m.isActive);
   if (!model) return 0;
   const perUnit = calcUserCredits(model, durationSec);
-  const qMul = qualityMultiplierFor(quality);
+  const qMul = qualityMultiplierForModel(modelRef, quality);
   return parseFloat((perUnit * numUnits * qMul).toFixed(2));
 }
 
@@ -415,6 +433,6 @@ export function getGenerationCostSync(
   const model = models.find((m) => m.id === constitutionId && m.isActive);
   if (!model) return 0;
   const perUnit = calcUserCredits(model, durationSec);
-  const qMul = qualityMultiplierFor(quality);
+  const qMul = qualityMultiplierForModel(modelRef, quality);
   return parseFloat((perUnit * numUnits * qMul).toFixed(2));
 }
