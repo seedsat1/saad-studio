@@ -15,7 +15,8 @@ import {
   DollarSign,
   Compass,
   ChevronRight,
-  Paintbrush
+  Paintbrush,
+  PanelBottom
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -30,6 +31,7 @@ const CMS_PAGES = [
   { id: "shots", label: "Shots Manager", icon: Camera },
   { id: "variations", label: "Variations", icon: Layers },
   { id: "pricing", label: "Pricing Page", icon: DollarSign },
+  { id: "discover", label: "Global Footer", icon: PanelBottom },
 ];
 
 export function CmsSidebar() {

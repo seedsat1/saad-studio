@@ -535,6 +535,28 @@ export default function DiscoverCmsPage() {
     }
   };
 
+  const handleFooterSectionDrag = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    setFooter((prev) => {
+      const oi = prev.sections.findIndex((x) => x._id === active.id);
+      const ni = prev.sections.findIndex((x) => x._id === over.id);
+      if (oi < 0 || ni < 0) return prev;
+      return { ...prev, sections: arrayMove(prev.sections, oi, ni) };
+    });
+  };
+
+  const handleFooterSocialDrag = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    setFooter((prev) => {
+      const oi = prev.socialLinks.findIndex((x) => x._id === active.id);
+      const ni = prev.socialLinks.findIndex((x) => x._id === over.id);
+      if (oi < 0 || ni < 0) return prev;
+      return { ...prev, socialLinks: arrayMove(prev.socialLinks, oi, ni) };
+    });
+  };
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200">
       {/* Top bar */}
@@ -717,13 +739,23 @@ export default function DiscoverCmsPage() {
               <button onClick={() => setFooter({ ...footer, sections: [...footer.sections, { _id: uid(), title: "New Section", links: [] }] })}
                 className="flex items-center gap-1 rounded-lg bg-white/5 px-2.5 py-1 text-[10px] font-bold text-zinc-400 hover:bg-white/10"><Plus className="h-3 w-3" /> Add Section</button>
             </div>
-            <div className="space-y-2">
-              {footer.sections.map((sec) => (
-                <FooterSectionEditor key={sec._id} section={sec}
-                  onUpdate={(s) => setFooter({ ...footer, sections: footer.sections.map((x) => x._id === s._id ? s : x) })}
-                  onRemove={() => setFooter({ ...footer, sections: footer.sections.filter((x) => x._id !== sec._id) })} />
-              ))}
-            </div>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleFooterSectionDrag}
+            >
+              <SortableContext items={footer.sections.map((sec) => sec._id)} strategy={rectSortingStrategy}>
+                <div className="grid grid-cols-1 gap-2 lg:grid-cols-3">
+                  {footer.sections.map((sec) => (
+                    <SortableItem key={sec._id} id={sec._id}>
+                      <FooterSectionEditor section={sec}
+                        onUpdate={(s) => setFooter({ ...footer, sections: footer.sections.map((x) => x._id === s._id ? s : x) })}
+                        onRemove={() => setFooter({ ...footer, sections: footer.sections.filter((x) => x._id !== sec._id) })} />
+                    </SortableItem>
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
 
             {/* Social Links */}
             <div className="flex items-center justify-between pt-2">
@@ -731,18 +763,28 @@ export default function DiscoverCmsPage() {
               <button onClick={() => setFooter({ ...footer, socialLinks: [...footer.socialLinks, { _id: uid(), platform: "Link", href: "#" }] })}
                 className="flex items-center gap-1 rounded-lg bg-white/5 px-2.5 py-1 text-[10px] font-bold text-zinc-400 hover:bg-white/10"><Plus className="h-3 w-3" /> Add</button>
             </div>
-            <div className="space-y-1">
-              {footer.socialLinks.map((sl) => (
-                <div key={sl._id} className="flex items-center gap-2 rounded-lg bg-white/[.02] border border-white/[.04] px-3 py-1.5">
-                  <input value={sl.platform} onChange={(e) => setFooter({ ...footer, socialLinks: footer.socialLinks.map((x) => x._id === sl._id ? { ...x, platform: e.target.value } : x) })}
-                    className="w-24 bg-transparent text-xs text-white focus:outline-none" placeholder="Platform" />
-                  <input value={sl.href} onChange={(e) => setFooter({ ...footer, socialLinks: footer.socialLinks.map((x) => x._id === sl._id ? { ...x, href: e.target.value } : x) })}
-                    className="flex-1 bg-transparent text-xs text-zinc-500 focus:outline-none" placeholder="https://..." />
-                  <button onClick={() => setFooter({ ...footer, socialLinks: footer.socialLinks.filter((x) => x._id !== sl._id) })}
-                    className="p-0.5 text-red-400/50 hover:text-red-400"><Trash2 className="h-2.5 w-2.5" /></button>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleFooterSocialDrag}
+            >
+              <SortableContext items={footer.socialLinks.map((sl) => sl._id)} strategy={rectSortingStrategy}>
+                <div className="grid grid-cols-1 gap-1 md:grid-cols-2">
+                  {footer.socialLinks.map((sl) => (
+                    <SortableItem key={sl._id} id={sl._id}>
+                      <div className="flex items-center gap-2 rounded-lg bg-white/[.02] border border-white/[.04] px-3 py-1.5">
+                        <input value={sl.platform} onChange={(e) => setFooter({ ...footer, socialLinks: footer.socialLinks.map((x) => x._id === sl._id ? { ...x, platform: e.target.value } : x) })}
+                          className="w-24 bg-transparent text-xs text-white focus:outline-none" placeholder="Platform" />
+                        <input value={sl.href} onChange={(e) => setFooter({ ...footer, socialLinks: footer.socialLinks.map((x) => x._id === sl._id ? { ...x, href: e.target.value } : x) })}
+                          className="flex-1 bg-transparent text-xs text-zinc-500 focus:outline-none" placeholder="https://..." />
+                        <button onClick={() => setFooter({ ...footer, socialLinks: footer.socialLinks.filter((x) => x._id !== sl._id) })}
+                          className="p-0.5 text-red-400/50 hover:text-red-400"><Trash2 className="h-2.5 w-2.5" /></button>
+                      </div>
+                    </SortableItem>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </SortableContext>
+            </DndContext>
           </div>
         </Section>
 

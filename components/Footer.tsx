@@ -117,7 +117,7 @@ const Footer = () => {
             </div>
           </div>
 
-          {sections.slice(0, 3).map((section) => (
+          {sections.map((section) => (
             <div key={section._id || section.title} className="lg:col-span-2">
               <h4 className="text-sm font-bold text-white">{section.title}</h4>
               <ul className="mt-4 space-y-2.5">
