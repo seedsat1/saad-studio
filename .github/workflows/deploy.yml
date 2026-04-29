@@ -17,17 +17,41 @@ jobs:
     timeout-minutes: 25
 
     steps:
+      - name: Validate deploy secrets
+        shell: bash
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER || secrets.SSH_USERNAME }}
+          SSH_KEY: ${{ secrets.SSH_KEY || secrets.SSH_PRIVATE_KEY }}
+          SSH_PORT: ${{ secrets.SSH_PORT || 22 }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH || secrets.VPS_DEPLOY_PATH }}
+        run: |
+          set -euo pipefail
+          missing=0
+          for v in SSH_HOST SSH_USER SSH_KEY DEPLOY_PATH; do
+            if [ -z "${!v:-}" ]; then
+              echo "::error::$v is not set"
+              missing=1
+            fi
+          done
+          if [ "$missing" -eq 1 ]; then
+            exit 1
+          fi
+          echo "Deploy secrets are present (host/user/key/path). Port=${SSH_PORT}"
+
       - name: Trigger remote deploy over SSH
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_KEY }}
+          username: ${{ secrets.SSH_USER || secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_KEY || secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT || 22 }}
+          fingerprint: ${{ secrets.SSH_FINGERPRINT || '' }}
           command_timeout: 20m
+          debug: true
           script: |
             set -euo pipefail
-            DEPLOY_PATH="${{ secrets.DEPLOY_PATH }}"
+            DEPLOY_PATH="${{ secrets.DEPLOY_PATH || secrets.VPS_DEPLOY_PATH }}"
             if [ -z "$DEPLOY_PATH" ]; then
               echo "DEPLOY_PATH secret is not set" >&2
               exit 1
