@@ -214,8 +214,95 @@ const HOME_TOP_CHOICE: ToolCard[] = [
   },
 ];
 
+const EXPLORE_HERO_SLIDES: HeroSlide[] = [
+  {
+    _id: "explore-hero-cinema-studio",
+    title: "Next Scene Engine",
+    subtitle: "Director-level control over AI video generation. Create cinematic masterpieces with unprecedented precision and style.",
+    tag: "NEW",
+    bgImage: "/explore/hero-cinema-studio.jpg",
+    ctaHref: "/cinema-studio",
+    gradient: "from-slate-950 via-cyan-950/50 to-slate-950",
+    accentFrom: "from-cyan-500",
+    accentTo: "to-blue-500",
+  },
+  {
+    _id: "explore-hero-nano-banana",
+    title: "Nano Banana Pro",
+    subtitle: "The most powerful 4K AI image model ever built. Photorealistic output in seconds with next-gen quality.",
+    tag: "Featured",
+    bgImage: "/explore/hero-nano-banana.jpg",
+    ctaHref: "/image",
+    gradient: "from-slate-950 via-violet-950/50 to-slate-950",
+    accentFrom: "from-violet-500",
+    accentTo: "to-indigo-500",
+  },
+  {
+    _id: "explore-hero-original-series",
+    title: "Original Series",
+    subtitle: "The first-ever AI-powered streaming platform. Create, direct, and publish your own AI series.",
+    tag: "NEW",
+    bgImage: "/explore/hero-original-series.jpg",
+    ctaHref: "/original-series",
+    gradient: "from-slate-950 via-pink-950/50 to-slate-950",
+    accentFrom: "from-pink-500",
+    accentTo: "to-rose-500",
+  },
+  {
+    _id: "explore-hero-soul-2",
+    title: "ماجك",
+    subtitle: "Ultra-realistic fashion & character visuals. Dress your AI characters with world-class designer aesthetics.",
+    tag: "Featured",
+    bgImage: "/explore/hero-soul-2.jpg",
+    ctaHref: "/image/soul-id-character",
+    gradient: "from-slate-950 via-emerald-950/50 to-slate-950",
+    accentFrom: "from-emerald-500",
+    accentTo: "to-teal-500",
+  },
+];
+
+const EXPLORE_CORE_TOOLS: ToolCard[] = [
+  { _id: "explore-core-create-image", id: "create-image", title: "Create Image", description: "Generate AI images", image: "/explore/tool-create-image.jpg", href: "/image", badge: "TOP", gradient: "from-pink-600/40 via-violet-700/30 to-indigo-900/60", accentColor: "text-pink-400" },
+  { _id: "explore-core-create-video", id: "create-video", title: "Create Video", description: "Generate AI videos", image: "/explore/tool-create-video.jpg", href: "/video", badge: "", gradient: "from-orange-600/40 via-rose-700/30 to-violet-900/60", accentColor: "text-orange-400" },
+  { _id: "explore-core-motion-control", id: "motion-control", title: "Motion Control", description: "Precise character control", image: "/explore/tool-motion-control.jpg", href: "/cinema-studio", badge: "NEW", gradient: "from-violet-600/40 via-purple-700/30 to-slate-900/60", accentColor: "text-violet-400" },
+  { _id: "explore-core-soul-2", id: "soul-2", title: "ماجك", description: "Ultra-realistic fashion visuals", image: "/explore/tool-soul-2.jpg", href: "/image/soul-id-character", badge: "NEW", gradient: "from-cyan-600/40 via-sky-700/30 to-indigo-900/60", accentColor: "text-cyan-400" },
+  { _id: "explore-core-soul-id", id: "soul-id", title: "Soul ID", description: "Create unique characters", image: "/explore/tool-soul-id.jpg", href: "/image/soul-id-character", badge: "", gradient: "from-indigo-500/40 via-blue-600/30 to-sky-900/60", accentColor: "text-sky-400" },
+  { _id: "explore-core-upscale", id: "upscale", title: "Upscale", description: "Enhance media quality", image: "/explore/tool-upscale.jpg", href: "/apps/tool/image-upscale", badge: "", gradient: "from-emerald-600/40 via-teal-700/30 to-cyan-900/60", accentColor: "text-teal-400" },
+  { _id: "explore-core-edit-image", id: "edit-image", title: "Edit Image", description: "AI-powered editing", image: "/explore/tool-edit-image.jpg", href: "/edit", badge: "", gradient: "from-indigo-500/40 via-blue-600/30 to-sky-900/60", accentColor: "text-indigo-400" },
+  { _id: "explore-core-edit-video", id: "edit-video", title: "Edit Video", description: "Advanced video editing", image: "/explore/tool-edit-video.jpg", href: "/video/edit", badge: "", gradient: "from-rose-600/40 via-pink-700/30 to-purple-900/60", accentColor: "text-rose-400" },
+  { _id: "explore-core-mixed-media", id: "mixed-media", title: "Mixed Media", description: "Transform with AI presets", image: "/explore/tool-mixed-media.jpg", href: "/video/mixed-media", badge: "", gradient: "from-fuchsia-600/40 via-violet-700/30 to-indigo-900/60", accentColor: "text-fuchsia-400" },
+  { _id: "explore-core-angles", id: "angles", title: "Angles 2.0", description: "Multi-angle generation", image: "/explore/tool-angles-2.jpg", href: "/image/angles", badge: "NEW", gradient: "from-emerald-600/40 via-teal-700/30 to-cyan-900/60", accentColor: "text-emerald-400" },
+];
+
+const EXPLORE_TOP_CHOICE: ToolCard[] = [
+  { _id: "explore-top-nano-banana-pro", id: "nano-banana-pro", title: "Nano Banana Pro", description: "Best 4K image model. Photorealistic output with state-of-the-art quality.", image: "/explore/top-nano-banana-pro.jpg", href: "/image", badge: "Popular", gradient: "from-yellow-500/40 via-amber-600/30 to-orange-900/60", accentColor: "text-amber-400" },
+  { _id: "explore-top-motion-control", id: "motion-control", title: "Motion Control", description: "Character actions up to 30 seconds with precise cinematic control.", image: "/explore/top-motion-control.jpg", href: "/cinema-studio", badge: "", gradient: "from-violet-600/40 via-purple-700/30 to-slate-900/60", accentColor: "text-violet-400" },
+  { _id: "explore-top-skin-enhancer", id: "skin-enhancer", title: "Skin Enhancer", description: "Natural, flawless skin textures with zero artifacts and real depth.", image: "/explore/top-skin-enhancer.jpg", href: "/image/skin-enhancer", badge: "Pro", gradient: "from-rose-600/40 via-pink-700/30 to-purple-900/60", accentColor: "text-pink-400" },
+  { _id: "explore-top-shots", id: "shots", title: "Shots", description: "9 unique cinematic shots from a single image. Instant variety.", image: "/explore/top-shots.jpg", href: "/image/shots", badge: "", gradient: "from-cyan-600/40 via-sky-700/30 to-indigo-900/60", accentColor: "text-cyan-400" },
+  { _id: "explore-top-angles-2", id: "angles-2", title: "Angles 2.0", description: "Multi-angle character and product generation from one source image.", image: "/explore/top-angles-2.jpg", href: "/image/angles", badge: "Pro", gradient: "from-emerald-600/40 via-teal-700/30 to-cyan-900/60", accentColor: "text-emerald-400" },
+  { _id: "explore-top-kling-3", id: "kling-3", title: "Kling 3.0", description: "15-second videos with frame-perfect consistency and motion depth.", image: "/explore/top-kling-3.jpg", href: "/video", badge: "", gradient: "from-orange-600/40 via-rose-700/30 to-violet-900/60", accentColor: "text-orange-400" },
+  { _id: "explore-top-seedream-5", id: "seedream-5", title: "Seedream 5.0", description: "Intelligent visual reasoning with contextual image generation.", image: "/explore/top-seedream-5.jpg", href: "/image", badge: "New", gradient: "from-emerald-600/40 via-teal-700/30 to-cyan-900/60", accentColor: "text-teal-400" },
+  { _id: "explore-top-soul-moodboard", id: "soul-moodboard", title: "Soul Moodboard", description: "Style your AI characters with real fashion references and presets.", image: "/explore/top-soul-moodboard.jpg", href: "/moodboard", badge: "", gradient: "from-rose-600/40 via-pink-700/30 to-purple-900/60", accentColor: "text-rose-400" },
+];
+
 const DEFAULT_APP: AppItem = { _id: "", title: "New App", color: "text-violet-400" };
 const DEFAULT_MODEL: ModelItem = { _id: "", name: "Model", tag: "AI", color: "text-violet-400", ring: "ring-violet-500/30" };
+
+function defaultHeroSlidesForSlug(slug: string): HeroSlide[] {
+  return slug === "explore" ? EXPLORE_HERO_SLIDES : [];
+}
+
+function defaultCoreToolsForSlug(slug: string): ToolCard[] {
+  if (slug === "home") return HOME_CORE_TOOLS;
+  if (slug === "explore") return EXPLORE_CORE_TOOLS;
+  return [];
+}
+
+function defaultTopChoiceForSlug(slug: string): ToolCard[] {
+  if (slug === "home") return HOME_TOP_CHOICE;
+  if (slug === "explore") return EXPLORE_TOP_CHOICE;
+  return [];
+}
 
 const GRADIENTS = [
   "from-pink-600/40 via-violet-700/30 to-indigo-900/60",
@@ -576,6 +663,7 @@ export default function VisualCmsPage() {
     if (!pageName) return;
     setLoading(true);
     const def = getDefaultLayout(slug || "home");
+    const safeSlug = slug || "home";
     setPageEnabled(def.maintenance?.enabled ?? true);
     setMaintenanceMessage(def.maintenance?.message ?? DEFAULT_MAINTENANCE_MESSAGE);
     fetch(`/api/admin/layouts?page=${pageName}`)
@@ -584,9 +672,9 @@ export default function VisualCmsPage() {
         const b = data?.layoutBlocks;
         if (b && typeof b === "object" && !Array.isArray(b)) {
           if (b.sectionOrder?.length) setSectionOrder(b.sectionOrder);
-          if (b.heroSlides?.length) setHeroSlides(b.heroSlides);
-          setCoreTools(b.coreTools?.length ? b.coreTools : slug === "home" ? HOME_CORE_TOOLS : []);
-          setTopChoice(b.topChoice?.length ? b.topChoice : slug === "home" ? HOME_TOP_CHOICE : []);
+          setHeroSlides(b.heroSlides?.length ? b.heroSlides : defaultHeroSlidesForSlug(safeSlug));
+          setCoreTools(b.coreTools?.length ? b.coreTools : defaultCoreToolsForSlug(safeSlug));
+          setTopChoice(b.topChoice?.length ? b.topChoice : defaultTopChoiceForSlug(safeSlug));
           if (b.adCards?.length) setAdCards(b.adCards);
           if (b.apps?.length) setApps(b.apps);
           if (b.models?.length) setModels(b.models);
@@ -600,9 +688,9 @@ export default function VisualCmsPage() {
           // Reset to defaults if no data found
           const def = getDefaultLayout(slug || "home");
           setSectionOrder(def.sectionOrder);
-          setHeroSlides([]);
-          setCoreTools(slug === "home" ? HOME_CORE_TOOLS : []);
-          setTopChoice(slug === "home" ? HOME_TOP_CHOICE : []);
+          setHeroSlides(defaultHeroSlidesForSlug(safeSlug));
+          setCoreTools(defaultCoreToolsForSlug(safeSlug));
+          setTopChoice(defaultTopChoiceForSlug(safeSlug));
           setAdCards([]);
           setApps([]);
           setModels([]);
@@ -613,9 +701,9 @@ export default function VisualCmsPage() {
       .catch(() => {
         const def = getDefaultLayout(slug || "home");
         setSectionOrder(def.sectionOrder);
-        setHeroSlides([]);
-        setCoreTools(slug === "home" ? HOME_CORE_TOOLS : []);
-        setTopChoice(slug === "home" ? HOME_TOP_CHOICE : []);
+        setHeroSlides(defaultHeroSlidesForSlug(safeSlug));
+        setCoreTools(defaultCoreToolsForSlug(safeSlug));
+        setTopChoice(defaultTopChoiceForSlug(safeSlug));
         setAdCards([]);
         setApps([]);
         setModels([]);

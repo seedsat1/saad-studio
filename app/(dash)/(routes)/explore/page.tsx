@@ -61,6 +61,10 @@ function normalizeExploreHref(href: string): string {
   return href;
 }
 
+function isVideoUrl(url?: string): boolean {
+  return Boolean(url && /\.(mp4|webm|mov|ogg)([?#]|$)/i.test(url));
+}
+
 export default function ExplorePage() {
   const { data: cms } = useCmsData<ExploreCmsData>("explore");
 
@@ -78,6 +82,7 @@ export default function ExplorePage() {
       href: normalizeExploreHref(t.href),
       badge: t.badge || "",
       glow: "rgba(139,92,246,0.3)",
+      isVideo: isVideoUrl(t.image),
     }));
   }, [cms?.coreTools]);
 
@@ -92,6 +97,7 @@ export default function ExplorePage() {
       badge: t.badge || "",
       accent: "from-violet-500 to-indigo-600",
       glow: "rgba(139,92,246,0.3)",
+      isVideo: isVideoUrl(t.image),
     }));
   }, [cms?.topChoice]);
 
