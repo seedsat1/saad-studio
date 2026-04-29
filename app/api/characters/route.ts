@@ -47,8 +47,12 @@ export async function GET() {
 
     return NextResponse.json({ characters: rows.map(normalizeCharacter) }, { status: 200 });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to load characters.";
-    return NextResponse.json({ error: message }, { status: 500 });
+    const msg = error instanceof Error ? error.message : "Failed to load characters.";
+    const lower = String(msg).toLowerCase();
+    if (lower.includes("usercharacter") && (lower.includes("does not exist") || lower.includes("doesn't exist") || lower.includes("no such table") || lower.includes("p2021"))) {
+      return NextResponse.json({ characters: [], warning: "characters_table_missing" }, { status: 200 });
+    }
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
 

@@ -149,95 +149,123 @@ export default function CharacterPage() {
     setTimeout(() => setCopiedId(null), 1400);
   }, []);
 
+  const heroBadge = hero?.badge || "Character Studio";
+  const heroTitle = hero?.title || "Create reusable AI characters";
+  const heroSubtitle = hero?.subtitle || "Build identity reference sets once, then reuse them across image and video tools.";
+
   return (
     <div className="min-h-screen bg-[#050914] text-white">
-      {hero ? (
-        <section className="relative overflow-hidden border-b border-white/10">
-          <div className="absolute inset-0">
-            {heroMedia?.type === "video" && heroMedia.url ? (
-              <video
-                src={heroMedia.url}
-                poster={heroMedia.poster}
-                autoPlay
-                muted
-                loop
-                playsInline
-                preload="none"
-                className="absolute inset-0 h-full w-full object-cover"
-              />
-            ) : heroMedia?.type === "image" && heroMedia.url ? (
-              <Image
-                src={heroMedia.url}
-                alt=""
-                fill
-                priority
-                sizes="100vw"
-                className="object-cover"
-              />
-            ) : null}
-            <div className="absolute inset-0 bg-gradient-to-b from-[#050914]/30 via-[#050914]/70 to-[#050914]" />
-            <div className="absolute inset-0 opacity-70 [background:radial-gradient(800px_circle_at_30%_20%,rgba(217,70,239,.22),transparent_55%),radial-gradient(700px_circle_at_70%_30%,rgba(59,130,246,.18),transparent_55%)]" />
-          </div>
+      <section className="relative overflow-hidden border-b border-white/10">
+        <div className="absolute inset-0">
+          {heroMedia?.type === "video" && heroMedia.url ? (
+            <video
+              src={heroMedia.url}
+              poster={heroMedia.poster}
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="none"
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+          ) : heroMedia?.type === "image" && heroMedia.url ? (
+            <Image
+              src={heroMedia.url}
+              alt=""
+              fill
+              priority
+              sizes="100vw"
+              className="object-cover"
+            />
+          ) : null}
+          <div className="absolute inset-0 bg-gradient-to-b from-[#050914]/25 via-[#050914]/75 to-[#050914]" />
+          <div className="absolute inset-0 opacity-70 [background:radial-gradient(950px_circle_at_25%_15%,rgba(217,70,239,.28),transparent_55%),radial-gradient(850px_circle_at_70%_20%,rgba(59,130,246,.20),transparent_55%),radial-gradient(900px_circle_at_55%_85%,rgba(34,197,94,.10),transparent_55%)]" />
+        </div>
 
-          <div className="relative mx-auto max-w-7xl px-4 py-10 md:px-6">
-            <div className="grid gap-6 md:grid-cols-[1.2fr_0.8fr] md:items-end">
-              <div>
-                <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-semibold tracking-wide text-white/90">
-                  {hero.badge || "Character Library"}
+        <div className="relative mx-auto max-w-7xl px-4 py-10 md:px-6">
+          <div className="grid gap-7 lg:grid-cols-[1.25fr_0.75fr] lg:items-end">
+            <div>
+              <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-semibold tracking-wide text-white/90">
+                {heroBadge}
+              </span>
+              <h1 className="mt-4 text-3xl font-semibold leading-tight md:text-4xl">
+                {heroTitle}
+              </h1>
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300">
+                {heroSubtitle}
+              </p>
+
+              <div className="mt-5 flex flex-wrap gap-2">
+                <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/30 px-3 py-1 text-xs text-slate-200">
+                  <span className="h-1.5 w-1.5 rounded-full bg-fuchsia-400" />
+                  Identity consistency
                 </span>
-                <h1 className="mt-4 text-3xl font-semibold leading-tight md:text-4xl">
-                  {hero.title || "Reusable AI Characters"}
-                </h1>
-                <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300">
-                  {hero.subtitle || "Create identity reference sets once, then reuse them across image and video tools."}
-                </p>
-                <div className="mt-5 flex flex-wrap gap-2">
-                  <a
-                    href="#create"
-                    className="inline-flex items-center gap-2 rounded-xl bg-fuchsia-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-fuchsia-500"
-                  >
-                    <Plus className="h-4 w-4" />
-                    Create Character
-                  </a>
-                  <a
-                    href="#library"
-                    className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white/90 hover:bg-white/10"
-                  >
-                    <UserRound className="h-4 w-4" />
-                    View Library
-                  </a>
+                <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/30 px-3 py-1 text-xs text-slate-200">
+                  <span className="h-1.5 w-1.5 rounded-full bg-sky-400" />
+                  Reuse in Image
+                </span>
+                <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/30 px-3 py-1 text-xs text-slate-200">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                  Fast variations
+                </span>
+              </div>
+
+              <div className="mt-6 flex flex-wrap gap-2">
+                <a
+                  href="#create"
+                  className="inline-flex items-center gap-2 rounded-xl bg-fuchsia-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-fuchsia-500"
+                >
+                  <Plus className="h-4 w-4" />
+                  Create Character
+                </a>
+                <a
+                  href="#library"
+                  className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white/90 hover:bg-white/10"
+                >
+                  <UserRound className="h-4 w-4" />
+                  View Library
+                </a>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 backdrop-blur">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-fuchsia-500/15 text-fuchsia-300">
+                  <Camera className="h-5 w-5" />
+                </div>
+                <div>
+                  <div className="text-sm font-semibold">Best results</div>
+                  <div className="text-xs text-slate-400">Upload 5–12 clear images of the same person.</div>
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 backdrop-blur">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-fuchsia-500/15 text-fuchsia-300">
-                    <Camera className="h-5 w-5" />
+              <div className="mt-3 grid gap-2 text-xs text-slate-300">
+                <div className="rounded-xl border border-white/10 bg-black/30 px-3 py-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400">Step 1</span>
+                    <span className="font-semibold text-slate-200">Upload references</span>
                   </div>
-                  <div>
-                    <div className="text-sm font-semibold">Best results</div>
-                    <div className="text-xs text-slate-400">Upload 5–12 clear images of the same person.</div>
-                  </div>
+                  <div className="mt-1 text-[11px] text-slate-400">Front · 3/4 · Side · full body</div>
                 </div>
-                <div className="mt-3 grid gap-2 text-xs text-slate-300">
-                  <div className="flex items-center justify-between rounded-xl border border-white/10 bg-black/30 px-3 py-2">
-                    <span className="text-slate-400">Angles</span>
-                    <span>Front · 3/4 · Side</span>
+                <div className="rounded-xl border border-white/10 bg-black/30 px-3 py-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400">Step 2</span>
+                    <span className="font-semibold text-slate-200">Save character</span>
                   </div>
-                  <div className="flex items-center justify-between rounded-xl border border-white/10 bg-black/30 px-3 py-2">
-                    <span className="text-slate-400">Lighting</span>
-                    <span>Even · No filters</span>
+                  <div className="mt-1 text-[11px] text-slate-400">Name + description (optional)</div>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-black/30 px-3 py-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400">Step 3</span>
+                    <span className="font-semibold text-slate-200">Generate variations</span>
                   </div>
-                  <div className="flex items-center justify-between rounded-xl border border-white/10 bg-black/30 px-3 py-2">
-                    <span className="text-slate-400">Avoid</span>
-                    <span>Heavy blur · Group shots</span>
-                  </div>
+                  <div className="mt-1 text-[11px] text-slate-400">Outfits · lighting · scenes</div>
                 </div>
               </div>
             </div>
           </div>
-        </section>
-      ) : null}
+        </div>
+      </section>
 
       <main className="mx-auto grid max-w-7xl gap-6 px-4 py-6 md:px-6 lg:grid-cols-[420px_minmax(0,1fr)]">
         <section id="create" className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
