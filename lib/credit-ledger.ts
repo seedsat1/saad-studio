@@ -308,7 +308,6 @@ export async function setGenerationMediaUrl(generationId: string, mediaUrl: stri
     where: { id: generationId },
     data: { mediaUrl },
   });
-  void maybeScanAndFlagGeneration(generationId).catch(() => {});
 }
 
 /**
@@ -335,7 +334,6 @@ export async function saveAdditionalGenerationUrls(
       cost: 0, // credits were already charged in the parent generation record
     })),
   });
-  void maybeScanAndFlagRecentGenerationsByMediaUrls(userId, additionalUrls).catch(() => {});
 }
 
 export async function setGenerationTaskMarker(generationId: string, taskId: string) {
@@ -397,6 +395,11 @@ function getPrecheckEnabled(): boolean {
   return raw !== "0";
 }
 
+function getOpenAiPrecheckBlocking(): boolean {
+  const raw = String(process.env.GENERATION_PRECHECK_OPENAI_BLOCKING ?? "0").trim();
+  return raw === "1";
+}
+
 function normalizeCombinedText(input: GenerationPrecheckInput): string {
   const parts = [input.prompt, input.negativePrompt ?? "", input.extraText ?? ""]
     .map((s) => (typeof s === "string" ? s.trim() : ""))
@@ -451,7 +454,7 @@ export async function precheckGenerationPolicy(input: GenerationPrecheckInput): 
   const model = String(process.env.GENERATION_PRECHECK_OPENAI_MODEL ?? "omni-moderation-latest").trim()
     || "omni-moderation-latest";
   const flagged = await openAiPromptModeration(text, model).catch(() => false);
-  if (flagged) {
+  if (flagged && getOpenAiPrecheckBlocking()) {
     return {
       allowed: false,
       message: "Request blocked by safety policy.",
@@ -460,115 +463,4 @@ export async function precheckGenerationPolicy(input: GenerationPrecheckInput): 
   }
 
   return { allowed: true };
-}
-
-type NsfwScanConfig = {
-  enabled: boolean;
-  provider: "openai" | "keywords";
-  openAiModel: string;
-  includeImageUrls: boolean;
-};
-
-function getNsfwScanConfig(): NsfwScanConfig {
-  const enabled = String(process.env.NSFW_SCAN_ENABLED ?? "").trim() === "1";
-  const providerRaw = String(process.env.NSFW_SCAN_PROVIDER ?? "openai").trim().toLowerCase();
-  const provider: "openai" | "keywords" = providerRaw === "keywords" ? "keywords" : "openai";
-  const openAiModel = String(process.env.NSFW_SCAN_OPENAI_MODEL ?? "omni-moderation-latest").trim()
-    || "omni-moderation-latest";
-  const includeImageUrls = String(process.env.NSFW_SCAN_INCLUDE_IMAGE_URLS ?? "").trim() === "1";
-  return { enabled, provider, openAiModel, includeImageUrls };
-}
-
-function isLikelyHttpImageUrl(url: string): boolean {
-  if (!/^https?:\/\//i.test(url)) return false;
-  const base = url.split("?")[0].toLowerCase();
-  return base.endsWith(".png") || base.endsWith(".jpg") || base.endsWith(".jpeg") || base.endsWith(".webp") || base.endsWith(".gif");
-}
-
-async function flagGeneration(generationId: string): Promise<void> {
-  await prismadb.generation.update({
-    where: { id: generationId },
-    data: { isFlagged: true },
-  });
-}
-
-async function openAiTextModeration(prompt: string, model: string): Promise<boolean> {
-  return await openAiPromptModeration(prompt, model).catch(() => false);
-}
-
-async function openAiImageUrlModeration(imageUrl: string, model: string): Promise<boolean> {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) return false;
-
-  const res = await fetch("https://api.openai.com/v1/moderations", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model,
-      input: [
-        { type: "image_url", image_url: { url: imageUrl } },
-      ],
-    }),
-    signal: AbortSignal.timeout(4_000),
-  }).catch(() => null);
-
-  if (!res || !res.ok) return false;
-  const json = (await res.json().catch(() => null)) as any;
-  return Boolean(json?.results?.[0]?.flagged);
-}
-
-async function maybeScanAndFlagGeneration(generationId: string): Promise<void> {
-  const cfg = getNsfwScanConfig();
-  if (!cfg.enabled) return;
-
-  const gen = await prismadb.generation.findUnique({
-    where: { id: generationId },
-    select: { id: true, prompt: true, mediaUrl: true, assetType: true, isFlagged: true },
-  });
-  if (!gen || gen.isFlagged) return;
-
-  if (keywordBlocksPrompt(gen.prompt)) {
-    await flagGeneration(gen.id);
-    return;
-  }
-
-  if (cfg.provider === "openai") {
-    const flaggedByText = await openAiTextModeration(gen.prompt, cfg.openAiModel).catch(() => false);
-    if (flaggedByText) {
-      await flagGeneration(gen.id);
-      return;
-    }
-
-    const mediaUrl = typeof gen.mediaUrl === "string" ? gen.mediaUrl : "";
-    if (cfg.includeImageUrls && mediaUrl && isLikelyHttpImageUrl(mediaUrl)) {
-      const flaggedByImage = await openAiImageUrlModeration(mediaUrl, cfg.openAiModel).catch(() => false);
-      if (flaggedByImage) {
-        await flagGeneration(gen.id);
-        return;
-      }
-    }
-  }
-}
-
-async function maybeScanAndFlagRecentGenerationsByMediaUrls(userId: string, mediaUrls: string[]): Promise<void> {
-  const cfg = getNsfwScanConfig();
-  if (!cfg.enabled) return;
-  if (!userId || !mediaUrls.length) return;
-
-  const since = new Date(Date.now() - 10 * 60_000);
-  const gens = await prismadb.generation.findMany({
-    where: {
-      userId,
-      createdAt: { gte: since },
-      mediaUrl: { in: mediaUrls },
-      isFlagged: false,
-    },
-    select: { id: true },
-    take: Math.min(25, mediaUrls.length),
-  });
-
-  await Promise.all(gens.map((g) => maybeScanAndFlagGeneration(g.id).catch(() => {})));
 }
