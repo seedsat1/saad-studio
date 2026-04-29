@@ -35,6 +35,58 @@ function normalizeCharacter(row: any) {
   };
 }
 
+function errorText(error: unknown): string {
+  if (!error) return "";
+  if (typeof error === "string") return error;
+  if (error instanceof Error) return error.message || String(error);
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return String(error);
+  }
+}
+
+function isMissingUserCharacterTable(error: unknown): boolean {
+  const anyErr = error as any;
+  const raw = `${errorText(error)} ${String(anyErr?.code ?? "")} ${String(anyErr?.meta?.cause ?? "")}`.toLowerCase();
+  if (!raw.includes("usercharacter")) return false;
+  return (
+    raw.includes("does not exist") ||
+    raw.includes("doesn't exist") ||
+    raw.includes("no such table") ||
+    raw.includes("relation") ||
+    raw.includes("p2021")
+  );
+}
+
+async function ensureUserCharacterTable(): Promise<boolean> {
+  try {
+    await prismadb.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "UserCharacter" (
+        "id"                  TEXT        NOT NULL PRIMARY KEY,
+        "userId"              TEXT        NOT NULL REFERENCES "User"("id") ON DELETE CASCADE,
+        "name"                TEXT        NOT NULL,
+        "description"         TEXT        NOT NULL DEFAULT '',
+        "referenceUrls"       JSONB       NOT NULL DEFAULT '[]',
+        "coverUrl"            TEXT,
+        "provider"            TEXT        NOT NULL DEFAULT 'reference',
+        "providerCharacterId" TEXT,
+        "status"              TEXT        NOT NULL DEFAULT 'ready',
+        "metadata"            JSONB       NOT NULL DEFAULT '{}',
+        "createdAt"           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        "updatedAt"           TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+    await prismadb.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS "UserCharacter_userId_updatedAt_idx"
+      ON "UserCharacter"("userId", "updatedAt");
+    `);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export async function GET() {
   try {
     const { userId } = await auth();
@@ -47,17 +99,29 @@ export async function GET() {
 
     return NextResponse.json({ characters: rows.map(normalizeCharacter) }, { status: 200 });
   } catch (error) {
-    const msg = error instanceof Error ? error.message : "Failed to load characters.";
-    const lower = String(msg).toLowerCase();
-    if (lower.includes("usercharacter") && (lower.includes("does not exist") || lower.includes("doesn't exist") || lower.includes("no such table") || lower.includes("p2021"))) {
+    if (isMissingUserCharacterTable(error)) {
+      const created = await ensureUserCharacterTable();
+      if (created) {
+        try {
+          const { userId } = await auth();
+          if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+          const rows = await prismadb.userCharacter.findMany({
+            where: { userId },
+            orderBy: { updatedAt: "desc" },
+          });
+          return NextResponse.json({ characters: rows.map(normalizeCharacter) }, { status: 200 });
+        } catch {}
+      }
       return NextResponse.json({ characters: [], warning: "characters_table_missing" }, { status: 200 });
     }
+
+    const msg = error instanceof Error ? error.message : "Failed to load characters.";
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
 
 export async function POST(req: NextRequest) {
-  try {
+  const run = async () => {
     const { userId } = await auth();
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -125,7 +189,27 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ character: normalizeCharacter(updated) }, { status: 201 });
+  };
+
+  try {
+    return await run();
   } catch (error) {
+    if (isMissingUserCharacterTable(error)) {
+      const created = await ensureUserCharacterTable();
+      if (created) {
+        try {
+          return await run();
+        } catch {}
+      }
+      return NextResponse.json(
+        {
+          error: "Character storage is not configured yet. Please run the database migration (UserCharacter table).",
+          code: "characters_table_missing",
+        },
+        { status: 503 },
+      );
+    }
+
     const message = error instanceof Error ? error.message : "Failed to create character.";
     return NextResponse.json({ error: message }, { status: 500 });
   }
