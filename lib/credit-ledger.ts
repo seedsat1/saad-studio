@@ -411,9 +411,9 @@ export function keywordBlocksPrompt(text: string): boolean {
   const p = (text || "").toLowerCase();
   if (!p) return false;
   const patterns: RegExp[] = [
-    /\b(nude|naked|porn|porno|sex\s*act|explicit|genitals|penis|vagina|nipples?)\b/i,
+    /\b(nude|naked|porn|porno|sex\s*act|explicit|genitals|penis|vagina)\b/i,
     /\b(blowjob|handjob|anal|cumshot|orgasm)\b/i,
-    /(عاري|عريان|تعري|إباحي|إباحية|سكس|جنس|قضيب|مهبل|حلمات)/i,
+    /(عاري|عريان|تعري|إباحي|إباحية|سكس|جنس|قضيب|مهبل)/i,
   ];
   return patterns.some((re) => re.test(p));
 }
