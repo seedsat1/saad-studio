@@ -17,7 +17,7 @@ import { fetchWithTimeout } from "@/lib/http";
 export const maxDuration = 180;
 
 const WAVESPEED_BASE_URL = "https://api.wavespeed.ai/api/v3";
-const WAVESPEED_MODEL = "wavespeed-ai/instant-character";
+const WAVESPEED_MODEL = "ideogram-ai/ideogram-character";
 
 function errorText(error: unknown): string {
   if (!error) return "";
@@ -99,29 +99,62 @@ function extractOutputs(input: unknown): string[] {
   return [];
 }
 
+function sizeToAspectRatio(size: string | null | undefined): string | null {
+  if (!size) return null;
+  const m = size.match(/^(\d+)\*(\d+)$/);
+  if (!m) return null;
+  const w = Number(m[1]);
+  const h = Number(m[2]);
+  if (!Number.isFinite(w) || !Number.isFinite(h) || w <= 0 || h <= 0) return null;
+  const r = w / h;
+  if (r > 1.5) return "16:9";
+  if (r < 0.8) return "9:16";
+  return "1:1";
+}
+
 async function pollWaveSpeedTask(taskId: string, apiKey: string, maxAttempts = 60, intervalMs = 2500): Promise<string[]> {
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     await new Promise((resolve) => setTimeout(resolve, intervalMs));
 
-    const res = await fetchWithTimeout(
-      `${WAVESPEED_BASE_URL}/predictions/${encodeURIComponent(taskId)}/result`,
+    const statusRes = await fetchWithTimeout(
+      `${WAVESPEED_BASE_URL}/predictions/${encodeURIComponent(taskId)}`,
       { headers: { Authorization: `Bearer ${apiKey}` } },
       30_000,
     );
-    const json = (await res.json().catch(() => null)) as any;
-    if (!res.ok || (json?.code != null && json.code !== 200)) {
-      throw new Error(json?.msg || json?.message || `WaveSpeed polling failed (${res.status})`);
+    const statusJson = (await statusRes.json().catch(() => null)) as any;
+    if (!statusRes.ok) {
+      if (statusRes.status === 404) continue;
+      throw new Error(statusJson?.msg || statusJson?.message || `WaveSpeed polling failed (${statusRes.status})`);
     }
 
-    const data = json?.data ?? json;
-    const status = String(data?.status ?? data?.taskStatus ?? "").toLowerCase();
+    const statusData = statusJson?.data ?? statusJson;
+    const status = String(statusData?.status ?? statusData?.taskStatus ?? "").toLowerCase();
     if (["success", "completed", "done"].includes(status)) {
-      const outputs = extractOutputs(data.outputs || data.result || data.resultJson || data.response || data.output);
+      const resultRes = await fetchWithTimeout(
+        `${WAVESPEED_BASE_URL}/predictions/${encodeURIComponent(taskId)}/result`,
+        { headers: { Authorization: `Bearer ${apiKey}` } },
+        30_000,
+      );
+      const resultJson = (await resultRes.json().catch(() => null)) as any;
+      if (!resultRes.ok) {
+        throw new Error(resultJson?.msg || resultJson?.message || `WaveSpeed result fetch failed (${resultRes.status})`);
+      }
+      const resultData = resultJson?.data ?? resultJson;
+      const outputs = extractOutputs(
+        resultData?.outputs ||
+          resultData?.resultUrls ||
+          resultData?.images ||
+          resultData?.urls ||
+          resultData?.result ||
+          resultData?.output ||
+          resultData?.response ||
+          resultData?.data,
+      );
       if (!outputs.length) throw new Error("No output URL in WaveSpeed result.");
       return outputs;
     }
     if (["fail", "failed", "error", "canceled", "cancelled"].includes(status)) {
-      throw new Error(String(data?.error || data?.errorMessage || "Instant character generation failed."));
+      throw new Error(String(statusData?.error || statusData?.errorMessage || "Instant character generation failed."));
     }
   }
 
@@ -174,8 +207,14 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const userPrompt = typeof body.prompt === "string" && body.prompt.trim()
       ? body.prompt.trim()
       : "Create a high-quality character portrait preserving the exact identity, face, and recognizable features.";
-    const size = typeof body.size === "string" && /^\d+\*\d+$/.test(body.size) ? body.size : "1024*1024";
-    const seed = Number.isFinite(Number(body.seed)) ? Number(body.seed) : -1;
+    const size = typeof body.size === "string" && /^\d+\*\d+$/.test(body.size) ? body.size : null;
+    const aspectRatio = typeof body.aspect_ratio === "string" && /^\d+:\d+$/.test(body.aspect_ratio)
+      ? body.aspect_ratio
+      : sizeToAspectRatio(size) ?? "1:1";
+    const style = typeof body.style === "string" && body.style.trim() ? body.style.trim().slice(0, 32) : "Auto";
+    const renderingSpeed = typeof body.rendering_speed === "string" && body.rendering_speed.trim()
+      ? body.rendering_speed.trim().slice(0, 32)
+      : "Quality";
 
     const fullPrompt = `Character: ${character.name}. Preserve the same identity, face, ethnicity, proportions, and recognizable features. ${character.description || ""}\n\n${userPrompt}`.trim();
     const precheck = await precheckGenerationPolicy({ prompt: fullPrompt });
@@ -213,7 +252,14 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
           "Content-Type": "application/json",
           Authorization: `Bearer ${apiKey}`,
         },
-        body: JSON.stringify({ image, prompt: fullPrompt, size, seed }),
+        body: JSON.stringify({
+          image,
+          prompt: fullPrompt,
+          aspect_ratio: aspectRatio,
+          enable_base64_output: false,
+          rendering_speed: renderingSpeed,
+          style,
+        }),
       },
       30_000,
     );
