@@ -16,6 +16,7 @@ function errorText(error: unknown): string {
 function isMissingUserCharacterTable(error: unknown): boolean {
   const anyErr = error as any;
   const raw = `${errorText(error)} ${String(anyErr?.code ?? "")} ${String(anyErr?.meta?.cause ?? "")}`.toLowerCase();
+  if (raw.includes("p2021")) return true;
   if (!raw.includes("usercharacter")) return false;
   return (
     raw.includes("does not exist") ||

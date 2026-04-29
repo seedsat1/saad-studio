@@ -33,6 +33,7 @@ function errorText(error: unknown): string {
 function isMissingUserCharacterTable(error: unknown): boolean {
   const anyErr = error as any;
   const raw = `${errorText(error)} ${String(anyErr?.code ?? "")} ${String(anyErr?.meta?.cause ?? "")}`.toLowerCase();
+  if (raw.includes("p2021")) return true;
   if (!raw.includes("usercharacter")) return false;
   return (
     raw.includes("does not exist") ||
@@ -69,12 +70,6 @@ async function ensureUserCharacterTable(): Promise<boolean> {
   } catch {
     return false;
   }
-}
-
-function getWaveSpeedKey(): string {
-  const key = process.env.WAVESPEED_API_KEY;
-  if (!key) throw new Error("WAVESPEED_API_KEY is not configured.");
-  return key;
 }
 
 function extractOutputs(input: unknown): string[] {
@@ -188,6 +183,14 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       return NextResponse.json({ error: precheck.message, blocked: true, reason: precheck.reason }, { status: 403 });
     }
 
+    const apiKey = process.env.WAVESPEED_API_KEY;
+    if (!apiKey) {
+      return NextResponse.json(
+        { error: "Instant character provider is not configured.", code: "wavespeed_key_missing" },
+        { status: 503 },
+      );
+    }
+
     const creditsToCharge = await getGenerationCost("tool:instant-character");
     if (creditsToCharge <= 0) return NextResponse.json({ error: "No credit configuration for instant character." }, { status: 400 });
 
@@ -202,7 +205,6 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     chargedCredits = creditsToCharge;
     chargedUserId = userId;
 
-    const apiKey = getWaveSpeedKey();
     const submitRes = await fetchWithTimeout(
       `${WAVESPEED_BASE_URL}/${WAVESPEED_MODEL}`,
       {
@@ -256,6 +258,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     }
 
     const message = error instanceof Error ? error.message : "Instant character generation failed.";
-    return NextResponse.json({ error: message }, { status: 500 });
+    const lower = String(message).toLowerCase();
+    const status =
+      lower.includes("timed out") ? 504 :
+      lower.includes("not configured") ? 503 :
+      lower.includes("wavespeed") ? 502 :
+      500;
+    return NextResponse.json({ error: message }, { status });
   }
 }
