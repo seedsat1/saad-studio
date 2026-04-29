@@ -408,8 +408,10 @@ function normalizeCombinedText(input: GenerationPrecheckInput): string {
 }
 
 export function keywordBlocksPrompt(text: string): boolean {
-  const p = (text || "").toLowerCase();
+  let p = (text || "").toLowerCase();
   if (!p) return false;
+  p = p.replace(/\bnude[-\s]?(berry|beige|pink|brown|peach|rose|mauve|lipstick|makeup|shade|color|tone|palette)\b/gi, "$1");
+  p = p.replace(/\b(lipstick|makeup|shade|color|tone|palette)[-\s]?nude\b/gi, "$1");
   const patterns: RegExp[] = [
     /\b(nude|naked|porn|porno|sex\s*act|explicit|genitals|penis|vagina)\b/i,
     /\b(blowjob|handjob|anal|cumshot|orgasm)\b/i,

@@ -55,6 +55,7 @@ describe("credit-ledger policy + refunds", () => {
     expect(keywordBlocksPrompt("change her outfit to an elegant black dress")).toBe(false);
     expect(keywordBlocksPrompt("natural breast enhancement and body shaping for a fashion photo")).toBe(false);
     expect(keywordBlocksPrompt("fuller lips, makeup retouch, deep neckline, no visible nipples")).toBe(false);
+    expect(keywordBlocksPrompt("rich nude-berry satin lipstick for a fashion portrait")).toBe(false);
   });
 
   it("precheckGenerationPolicy blocks keyword-matched prompts without charging", async () => {
