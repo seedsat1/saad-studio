@@ -53,6 +53,38 @@ function saveAlbums(albums: Album[]) {
   try { window.localStorage.setItem(ALBUMS_STORAGE_KEY, JSON.stringify(albums)); } catch { /* quota */ }
 }
 
+function normalizeImageResponseUrls(data: any): string[] {
+  const collect = (value: unknown): string[] => {
+    if (!value) return [];
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      return trimmed ? [trimmed] : [];
+    }
+    if (Array.isArray(value)) return value.flatMap(collect);
+    if (typeof value === "object") {
+      const rec = value as Record<string, unknown>;
+      return collect(rec.url ?? rec.imageUrl ?? rec.mediaUrl ?? rec.downloadUrl);
+    }
+    return [];
+  };
+
+  for (const candidate of [
+    data?.imageUrls,
+    data?.resultUrls,
+    data?.outputs,
+    data?.images,
+    data?.urls,
+    data?.imageUrl,
+    data?.mediaUrl,
+    data?.url,
+  ]) {
+    const urls = collect(candidate);
+    if (urls.length) return urls;
+  }
+
+  return [];
+}
+
 type ResultItem = {
   id: string;
   url: string;
@@ -1153,7 +1185,8 @@ export default function ImageWorkspacePage() {
     const res = await fetch("/api/generate/image", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
     const data = await res.json();
     if (!res.ok || data.error) throw new Error(data.error || "Generation failed");
-    const urls: string[] = data.imageUrls || [];
+    const urls = normalizeImageResponseUrls(data);
+    if (!urls.length) throw new Error("Generation completed but no image URL was returned");
     addResultItems(urls, "create", selectedModel.label, prompt, aspectRatio);
   }, [addResultItems, aspectRatio, numImages, prompt, quality, qualityOptions, referenceFiles, selectedModel]);
 
@@ -1176,7 +1209,8 @@ export default function ImageWorkspacePage() {
     });
     const data = await res.json();
     if (!res.ok || data.error) throw new Error(data.error || "Relight failed");
-    const urls: string[] = data.imageUrls || [];
+    const urls = normalizeImageResponseUrls(data);
+    if (!urls.length) throw new Error("Relight completed but no image URL was returned");
     const before = URL.createObjectURL(relightFile);
     if (urls[0]) setCompare({ before, after: urls[0] });
     addResultItems(urls, "relight", "Seedream 4.5 Edit", payload.prompt, "source");
@@ -1203,7 +1237,8 @@ export default function ImageWorkspacePage() {
     });
     const data = await res.json();
     if (!res.ok || data.error) throw new Error(data.error || "Inpaint failed");
-    const urls: string[] = data.imageUrls || [];
+    const urls = normalizeImageResponseUrls(data);
+    if (!urls.length) throw new Error("Inpaint completed but no image URL was returned");
     const before = URL.createObjectURL(inpaintFile);
     if (urls[0]) setCompare({ before, after: urls[0] });
     addResultItems(urls, "inpaint", inpaintModelId, prompt, "source");
@@ -1296,7 +1331,8 @@ export default function ImageWorkspacePage() {
     });
     const data = await res.json();
     if (!res.ok || data.error) throw new Error(data.error || "Enhancement failed");
-    const urls: string[] = data.imageUrls || [];
+    const urls = normalizeImageResponseUrls(data);
+    if (!urls.length) throw new Error("Enhancement completed but no image URL was returned");
     const before = URL.createObjectURL(enhanceFiles[0]);
     if (urls[0]) setCompare({ before, after: urls[0] });
     addResultItems(urls, "enhance", enhanceModel.label, enhancePrompt, "source");

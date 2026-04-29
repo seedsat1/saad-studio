@@ -43,6 +43,52 @@ interface KieApiResponse {
   data?: KieTaskData;
 }
 
+function extractKieOutputUrls(value: unknown): string[] {
+  if (!value) return [];
+
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) return [];
+    if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+      try {
+        return extractKieOutputUrls(JSON.parse(trimmed));
+      } catch {
+        return [];
+      }
+    }
+    if (/^https?:\/\//i.test(trimmed)) return [trimmed];
+    return [];
+  }
+
+  if (Array.isArray(value)) {
+    return value.flatMap((item) => extractKieOutputUrls(item));
+  }
+
+  if (typeof value === "object") {
+    const rec = value as Record<string, unknown>;
+    const direct = rec.url ?? rec.imageUrl ?? rec.image_url ?? rec.downloadUrl;
+    if (typeof direct === "string") return extractKieOutputUrls(direct);
+
+    const candidates = [
+      rec.resultUrls,
+      rec.imageUrls,
+      rec.images,
+      rec.outputs,
+      rec.urls,
+      rec.result,
+      rec.output,
+      rec.response,
+      rec.data,
+    ];
+    for (const candidate of candidates) {
+      const urls = extractKieOutputUrls(candidate);
+      if (urls.length) return urls;
+    }
+  }
+
+  return [];
+}
+
 function inferImageInputField(kieModelId: string): "image_url" | "image_input" | "image_urls" | "input_urls" | undefined {
   if ([
     "google/nano-banana-edit",
@@ -165,16 +211,16 @@ async function pollKieTask(
     const taskData = json?.data;
     const state = taskData?.state;
 
-    if (state === "success") {
+    if (String(state || "").toLowerCase() === "success") {
       const resultJson = taskData?.resultJson;
       if (!resultJson) throw new Error("KIE task succeeded but resultJson is empty.");
-      const parsed = JSON.parse(resultJson) as { resultUrls?: string[] };
-      const urls = parsed?.resultUrls ?? [];
+      const parsed = JSON.parse(resultJson) as unknown;
+      const urls = extractKieOutputUrls(parsed);
       if (!urls.length) throw new Error("KIE task succeeded but resultUrls is empty.");
       return urls;
     }
 
-    if (state === "fail") {
+    if (String(state || "").toLowerCase() === "fail") {
       const msg = taskData?.failMsg ?? taskData?.failCode ?? "Unknown error";
       throw new Error(`KIE generation failed: ${msg}`);
     }
@@ -423,7 +469,9 @@ export async function POST(req: NextRequest) {
 
     // Save the first result URL to the main generation record (Gallery + Image history)
     if (generationId && imageUrls[0]) {
-      await setGenerationMediaUrl(generationId, imageUrls[0]).catch(() => {});
+      await setGenerationMediaUrl(generationId, imageUrls[0]).catch((err) => {
+        console.error("[generate/image] Failed to save first image URL", err);
+      });
     }
 
     // Save each additional image as a separate zero-cost record so all images
@@ -435,10 +483,21 @@ export async function POST(req: NextRequest) {
         modelId,
         "IMAGE",
         imageUrls.slice(1),
-      ).catch(() => {});
+      ).catch((err) => {
+        console.error("[generate/image] Failed to save additional image URLs", err);
+      });
     }
 
-    return NextResponse.json({ imageUrls, taskId }, { status: 200 });
+    return NextResponse.json(
+      {
+        imageUrls,
+        resultUrls: imageUrls,
+        imageUrl: imageUrls[0] ?? null,
+        mediaUrl: imageUrls[0] ?? null,
+        taskId,
+      },
+      { status: 200 },
+    );
   } catch (error: unknown) {
     if (error instanceof InsufficientCreditsError) {
       return NextResponse.json(
