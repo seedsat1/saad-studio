@@ -62,6 +62,22 @@ CREATE INDEX IF NOT EXISTS "CreditLedgerEntry_userId_idx"       ON "CreditLedger
 CREATE INDEX IF NOT EXISTS "CreditLedgerEntry_createdAt_idx"    ON "CreditLedgerEntry"("createdAt");
 CREATE INDEX IF NOT EXISTS "CreditLedgerEntry_generationId_idx" ON "CreditLedgerEntry"("generationId");
 
+CREATE TABLE IF NOT EXISTS "UserCharacter" (
+  "id"                  TEXT        NOT NULL PRIMARY KEY,
+  "userId"              TEXT        NOT NULL REFERENCES "User"("id") ON DELETE CASCADE,
+  "name"                TEXT        NOT NULL,
+  "description"         TEXT        NOT NULL DEFAULT '',
+  "referenceUrls"       JSONB       NOT NULL DEFAULT '[]',
+  "coverUrl"            TEXT,
+  "provider"            TEXT        NOT NULL DEFAULT 'reference',
+  "providerCharacterId" TEXT,
+  "status"              TEXT        NOT NULL DEFAULT 'ready',
+  "metadata"            JSONB       NOT NULL DEFAULT '{}',
+  "createdAt"           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  "updatedAt"           TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS "UserCharacter_userId_updatedAt_idx" ON "UserCharacter"("userId", "updatedAt");
+
 CREATE TABLE IF NOT EXISTS "AdminTransaction" (
   "id"            TEXT        NOT NULL PRIMARY KEY,
   "userId"        TEXT        NOT NULL REFERENCES "User"("id") ON DELETE CASCADE,

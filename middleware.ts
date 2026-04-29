@@ -69,7 +69,7 @@ function applySecurityHeaders(res: NextResponse, req: Request) {
       "default-src 'self'",
         "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://clerk.saadstudio.app https://*.clerk.accounts.dev https://accounts.saadstudio.app https://accounts.google.com https://challenges.cloudflare.com",
       "worker-src 'self' blob:",
-      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://www.gstatic.com",
       "img-src 'self' data: blob: https:",
       "media-src 'self' data: blob: https:",
       "font-src 'self' https://fonts.gstatic.com data:",

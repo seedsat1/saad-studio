@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction, type ChangeEvent, type DragEvent } from "react";
 import {
@@ -836,7 +836,7 @@ function InpaintWorkspace({ source, setSource, brushSize, setBrushSize, maskVers
   const saveUndo = useCallback(() => {
     const mask = maskCanvasRef.current;
     if (!mask) return;
-    const ctx = mask.getContext("2d");
+    const ctx = mask.getContext("2d", { willReadFrequently: true });
     if (!ctx) return;
     undoStackRef.current.push(ctx.getImageData(0, 0, mask.width, mask.height));
   }, []);
@@ -863,7 +863,7 @@ function InpaintWorkspace({ source, setSource, brushSize, setBrushSize, maskVers
       const h = Math.round(img.height * scale);
       base.width = w; base.height = h; mask.width = w; mask.height = h;
       const baseCtx = base.getContext("2d");
-      const maskCtx = mask.getContext("2d");
+      const maskCtx = mask.getContext("2d", { willReadFrequently: true });
       if (!baseCtx || !maskCtx) return;
       baseCtx.clearRect(0, 0, w, h);
       baseCtx.drawImage(img, 0, 0, w, h);
@@ -878,7 +878,7 @@ function InpaintWorkspace({ source, setSource, brushSize, setBrushSize, maskVers
   const paint = (x: number, y: number) => {
     const mask = maskCanvasRef.current;
     if (!mask) return;
-    const ctx = mask.getContext("2d");
+    const ctx = mask.getContext("2d", { willReadFrequently: true });
     if (!ctx) return;
     ctx.fillStyle = "#fff";
     if (lastPointRef.current) {
@@ -905,7 +905,7 @@ function InpaintWorkspace({ source, setSource, brushSize, setBrushSize, maskVers
   const undo = () => {
     const mask = maskCanvasRef.current;
     if (!mask) return;
-    const ctx = mask.getContext("2d");
+    const ctx = mask.getContext("2d", { willReadFrequently: true });
     if (!ctx) return;
     const prev = undoStackRef.current.pop();
     if (!prev) return;
@@ -916,7 +916,7 @@ function InpaintWorkspace({ source, setSource, brushSize, setBrushSize, maskVers
   const clearMask = () => {
     const mask = maskCanvasRef.current;
     if (!mask) return;
-    const ctx = mask.getContext("2d");
+    const ctx = mask.getContext("2d", { willReadFrequently: true });
     if (!ctx) return;
     saveUndo();
     ctx.fillStyle = "#000";
