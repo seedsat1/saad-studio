@@ -248,6 +248,56 @@ const fileToDataUrl = (file: File) =>
     reader.readAsDataURL(file);
   });
 
+function getFileContentType(file: File): string {
+  if (file.type && file.type !== "application/octet-stream") return file.type;
+  const ext = file.name.split(".").pop()?.toLowerCase();
+  const byExt: Record<string, string> = {
+    mp4: "video/mp4",
+    mov: "video/quicktime",
+    webm: "video/webm",
+    mp3: "audio/mpeg",
+    m4a: "audio/mp4",
+    wav: "audio/wav",
+    ogg: "audio/ogg",
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    png: "image/png",
+    webp: "image/webp",
+  };
+  return ext ? (byExt[ext] || "application/octet-stream") : "application/octet-stream";
+}
+
+async function uploadFileForGeneration(file: File): Promise<string> {
+  const fileType = getFileContentType(file);
+  const signRes = await fetch("/api/media/upload", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ fileName: file.name, fileType }),
+  });
+
+  const signJson = await signRes.json().catch(() => ({})) as {
+    signedUrl?: string;
+    publicUrl?: string;
+    error?: string;
+  };
+
+  if (!signRes.ok || !signJson.signedUrl || !signJson.publicUrl) {
+    throw new Error(signJson.error || "Failed to prepare media upload.");
+  }
+
+  const uploadRes = await fetch(signJson.signedUrl, {
+    method: "PUT",
+    headers: { "Content-Type": fileType },
+    body: file,
+  });
+
+  if (!uploadRes.ok) {
+    throw new Error("Failed to upload media.");
+  }
+
+  return signJson.publicUrl;
+}
+
 const sanitizeCustomVoiceId = (raw: string) => {
   const normalized = raw
     .trim()
@@ -782,6 +832,9 @@ export default function AudioPage() {
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) {
+      if (response.status === 413) {
+        throw new Error("The uploaded media is too large to send directly. Please upload a smaller file or try again.");
+      }
       throw new Error(sanitizePublicText(data?.error || "Audio generation failed."));
     }
     return data;
@@ -1113,9 +1166,9 @@ export default function AudioPage() {
           throw new Error("Audio file is too large. Maximum allowed size is 50MB.");
         }
 
-        const audioInputUrl = lipAudioFile?.file ? await fileToDataUrl(lipAudioFile.file) : "";
-        const videoDataUrl = lipVideo?.file ? await fileToDataUrl(lipVideo.file) : "";
-        const imageDataUrl = lipImage?.file ? await fileToDataUrl(lipImage.file) : "";
+        const audioInputUrl = lipAudioFile?.file ? await uploadFileForGeneration(lipAudioFile.file) : "";
+        const videoDataUrl = lipVideo?.file ? await uploadFileForGeneration(lipVideo.file) : "";
+        const imageDataUrl = lipImage?.file ? await uploadFileForGeneration(lipImage.file) : "";
 
         const data = await callAudioApi({
           actionType: "lip-sync",

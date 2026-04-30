@@ -41,7 +41,7 @@ const TOP_TOOLS = [
     image: "/explore/top-skin-enhancer.jpg",
     name: "Skin Enhancer",
     desc: "Natural, flawless skin textures with zero artifacts and real depth.",
-    href: "/image/skin-enhancer",
+    href: "/apps/tool/skin-enhancer",
     badge: "Pro",
     badgeColor: "bg-violet-500/20 text-violet-300 border-violet-500/30",
     accent: "#ec4899",
@@ -114,6 +114,7 @@ const TOP_SLOT_IDS = TOP_TOOLS.map((t) => `explore/top-${t.id}`);
 function normalizeExploreHref(href: string): string {
   if (href === "/video/cinema-studio") return "/cinema-studio";
   if (href === "/edit/upscale") return "/apps/tool/image-upscale";
+  if (href === "/image/skin-enhancer") return "/apps/tool/skin-enhancer";
   return href;
 }
 

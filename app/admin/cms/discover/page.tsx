@@ -122,7 +122,7 @@ const SEED_CORE_TOOLS: CoreTool[] = [
 const SEED_TOP_TOOLS: TopTool[] = [
   { _id: uid(), id: "nano-banana-pro", name: "Nano Banana Pro", desc: "Best 4K image model. Photorealistic output with state-of-the-art quality.", href: "/image", badge: "Popular", image: "" },
   { _id: uid(), id: "motion-control", name: "Motion Control", desc: "Character actions up to 30 seconds with precise cinematic control.", href: "/cinema-studio", badge: "", image: "" },
-  { _id: uid(), id: "skin-enhancer", name: "Skin Enhancer", desc: "Natural, flawless skin textures with zero artifacts and real depth.", href: "/image/skin-enhancer", badge: "Pro", image: "" },
+  { _id: uid(), id: "skin-enhancer", name: "Skin Enhancer", desc: "Natural, flawless skin textures with zero artifacts and real depth.", href: "/apps/tool/skin-enhancer", badge: "Pro", image: "" },
   { _id: uid(), id: "shots", name: "Shots", desc: "9 unique cinematic shots from a single image. Instant variety.", href: "/image/shots", badge: "", image: "" },
   { _id: uid(), id: "angles-2", name: "Angles 2.0", desc: "Multi-angle character and product generation from one source image.", href: "/image/angles", badge: "Pro", image: "" },
   { _id: uid(), id: "kling-3", name: "Kling 3.0", desc: "15-second videos with frame-perfect consistency and motion depth.", href: "/video", badge: "", image: "" },

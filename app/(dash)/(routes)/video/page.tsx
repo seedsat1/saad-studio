@@ -197,8 +197,92 @@ type CharacterReference = {
   description?: string;
   referenceUrls: string[];
   coverUrl?: string | null;
+  providerCharacterId?: string | null;
   status: string;
 };
+
+type CharacterSupportMode = "none" | "image_reference" | "kling_element" | "provider_character_id";
+
+type CharacterSupport = {
+  mode: CharacterSupportMode;
+  label: string;
+  minImages: number;
+  maxImages: number;
+  note: string;
+};
+
+const NO_CHARACTER_SUPPORT: CharacterSupport = {
+  mode: "none",
+  label: "Not supported",
+  minImages: 0,
+  maxImages: 0,
+  note: "This model does not accept saved character references.",
+};
+
+function getVideoCharacterSupport(model: WaveSpeedVideoModel): CharacterSupport {
+  const route = model.api_route;
+
+  if (route === "kwaivgi/kling-v3.0-pro/text-to-video") {
+    return {
+      mode: "kling_element",
+      label: "Kling Element",
+      minImages: 2,
+      maxImages: 4,
+      note: "Kling 3.0 uses Elements and requires 2-4 reference images. The character is injected into the prompt as @name.",
+    };
+  }
+
+  if (model.id.startsWith("bytedance-seedance-v2")) {
+    return {
+      mode: "image_reference",
+      label: "Reference images",
+      minImages: 1,
+      maxImages: 9,
+      note: "Seedance 2.0 accepts saved character images as visual references.",
+    };
+  }
+
+  if (route === "google/veo3.1-fast-text-to-video") {
+    return {
+      mode: "image_reference",
+      label: "Reference-to-video",
+      minImages: 1,
+      maxImages: 3,
+      note: "Veo 3.1 Fast supports REFERENCE_2_VIDEO with up to 3 images.",
+    };
+  }
+
+  if (route === "x-ai/grok-imagine-video/edit-video") {
+    return {
+      mode: "image_reference",
+      label: "Image references",
+      minImages: 1,
+      maxImages: 7,
+      note: "Grok image-to-video can use saved character images as references.",
+    };
+  }
+
+  if (route.includes("openai/sora-2")) {
+    return {
+      mode: "provider_character_id",
+      label: "Provider character ID",
+      minImages: 0,
+      maxImages: 0,
+      note: "Sora character reuse requires a provider character ID, not ordinary reference images.",
+    };
+  }
+
+  return NO_CHARACTER_SUPPORT;
+}
+
+function normalizeCharacterTag(name: string): string {
+  const cleaned = name
+    .trim()
+    .replace(/[^a-zA-Z0-9_]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 30);
+  return cleaned || "character";
+}
 
 // -- Main Component -------------------------------------------------------------
 
@@ -449,10 +533,17 @@ function VideoPageInner() {
 
   // Capability shorthand
   const caps = selectedModel.capabilities;
-  const supportsCharacterReference = caps.max_reference_images > 0 || caps.optional_image || caps.requires_image;
+  const characterSupport = useMemo(() => getVideoCharacterSupport(selectedModel), [selectedModel]);
+  const selectableCharacters = useMemo(
+    () => characterSupport.mode === "provider_character_id"
+      ? characters.filter((character) => Boolean(character.providerCharacterId))
+      : characters,
+    [characters, characterSupport.mode],
+  );
+  const supportsCharacterReference = characterSupport.mode !== "none" && selectableCharacters.length > 0;
   const selectedCharacter = useMemo(
-    () => supportsCharacterReference ? characters.find((character) => character.id === selectedCharacterId) || null : null,
-    [characters, selectedCharacterId, supportsCharacterReference],
+    () => supportsCharacterReference ? selectableCharacters.find((character) => character.id === selectedCharacterId) || null : null,
+    [selectableCharacters, selectedCharacterId, supportsCharacterReference],
   );
   const isSoraModel = selectedModel.api_route.includes("openai/sora-2");
   const isVeo31Model = selectedModel.api_route.startsWith("google/veo3.1");
@@ -776,10 +867,14 @@ function VideoPageInner() {
       const basePrompt = hasMain
         ? prompt.trim()
         : filledMultiPrompts.map((s) => s.trim()).join(" | ");
-      const characterPrompt = selectedCharacter
+      const selectedCharacterTag = selectedCharacter ? normalizeCharacterTag(selectedCharacter.name) : "";
+      const characterPrompt = selectedCharacter && characterSupport.mode !== "kling_element"
         ? `Use the selected character identity reference: ${selectedCharacter.name}. Preserve the same face, identity, proportions, and recognizable features. ${selectedCharacter.description || ""}`.trim()
         : "";
-      const promptedText = characterPrompt ? `${characterPrompt}\n\n${basePrompt}` : basePrompt;
+      const klingCharacterPrompt = selectedCharacter && characterSupport.mode === "kling_element" && selectedCharacterTag
+        ? (basePrompt.includes(`@${selectedCharacterTag}`) ? basePrompt : `@${selectedCharacterTag} ${basePrompt}`.trim())
+        : basePrompt;
+      const promptedText = characterPrompt ? `${characterPrompt}\n\n${basePrompt}` : klingCharacterPrompt;
       payload.prompt = toolPrefix ? `${toolPrefix} ${promptedText}` : promptedText;
 
       const isSeedanceV2 = selectedModel.id.startsWith("bytedance-seedance-v2");
@@ -791,7 +886,17 @@ function VideoPageInner() {
         : [];
 
       // Image inputs — saved characters + uploaded reference media take priority
-      if (referenceImages.length > 0 || characterReferenceUrls.length > 0) {
+      if (selectedCharacter && characterSupport.mode === "kling_element" && characterReferenceUrls.length < characterSupport.minImages) {
+        setGenerationError(`${selectedCharacter.name} needs at least ${characterSupport.minImages} reference images for Kling 3.0 Elements.`);
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (characterSupport.mode === "provider_character_id" && selectedCharacter?.providerCharacterId) {
+        payload.character_id_list = [selectedCharacter.providerCharacterId];
+      }
+
+      if (referenceImages.length > 0 || (characterSupport.mode === "image_reference" && characterReferenceUrls.length > 0)) {
         if (isSeedanceV2) {
           // Split unified referenceImages by type → 3 separate KIE fields
           const refImgs  = referenceImages.filter(f => f.type.startsWith("image/"));
@@ -814,7 +919,7 @@ function VideoPageInner() {
         }
       } else if ((caps.requires_image || caps.optional_image) && startFrame) {
         payload[isSeedanceV2 ? "first_frame_url" : "image"] = await fileToDataURL(startFrame);
-      } else if ((caps.requires_image || caps.optional_image) && selectedCharacter?.referenceUrls?.[0]) {
+      } else if ((caps.requires_image || caps.optional_image) && characterSupport.mode === "image_reference" && selectedCharacter?.referenceUrls?.[0]) {
         payload[isSeedanceV2 ? "first_frame_url" : "image"] = selectedCharacter.referenceUrls[0];
       }
       if (caps.requires_video && motionVideo) {
@@ -977,7 +1082,6 @@ function VideoPageInner() {
         const firstFrameDataUrl = startFrame ? await fileToDataURL(startFrame) : null;
         const lastFrameDataUrl =
           !kling30MultiEnabled && endFrame ? await fileToDataURL(endFrame) : null;
-        imageUrls.push(...(selectedCharacter?.referenceUrls ?? []).slice(0, 3));
         if (firstFrameDataUrl) imageUrls.push(firstFrameDataUrl);
         if (lastFrameDataUrl) imageUrls.push(lastFrameDataUrl);
         // Log so we can verify images are included
@@ -991,6 +1095,13 @@ function VideoPageInner() {
         const validKlingEls = klingEls
           .slice(0, 3)
           .filter((el) => el.name.trim() && el.description.trim() && el.files.length >= 2);
+        const selectedCharacterElement = selectedCharacter && characterSupport.mode === "kling_element"
+          ? {
+              name: selectedCharacterTag,
+              description: selectedCharacter.description?.trim() || selectedCharacter.name,
+              element_input_urls: characterReferenceUrls.slice(0, characterSupport.maxImages),
+            }
+          : null;
 
         // ── multi_prompt: build from auto or custom mode ─────────────────────
         let multiPromptList: Array<{ prompt: string; duration: number }> = [];
@@ -998,7 +1109,7 @@ function VideoPageInner() {
           if (kling30MultiMode === "auto") {
             const shotCount = Math.min(5, Math.max(1, Math.floor(resolvedDuration / 3)));
             const splitD = splitShotDurations(resolvedDuration, shotCount);
-            const baseP = prompt.trim() || "Continue the scene";
+            const baseP = promptedText.trim() || "Continue the scene";
             multiPromptList = Array.from({ length: shotCount }, (_, i) => ({
               prompt: baseP,
               duration: splitD[i] ?? 3,
@@ -1007,7 +1118,13 @@ function VideoPageInner() {
             multiPromptList = kling30CustomShots
               .filter(s => s.prompt.trim())
               .slice(0, 5)
-              .map(s => ({ prompt: s.prompt.trim(), duration: s.duration }));
+              .map(s => {
+                const shotPrompt = s.prompt.trim();
+                const withCharacter = selectedCharacterTag && characterSupport.mode === "kling_element" && !shotPrompt.includes(`@${selectedCharacterTag}`)
+                  ? `@${selectedCharacterTag} ${shotPrompt}`
+                  : shotPrompt;
+                return { prompt: withCharacter, duration: s.duration };
+              });
           }
         }
 
@@ -1026,14 +1143,17 @@ function VideoPageInner() {
         payload.aspect_ratio = aspectRatio ?? "16:9";
         payload.prompt = kling30MultiEnabled ? "" : (toolPrefix ? `${toolPrefix} ${promptedText.trim()}` : promptedText.trim());
 
-        if (validKlingEls.length > 0) {
-          payload.kling_elements = await Promise.all(
-            validKlingEls.map(async (el) => ({
+        if (validKlingEls.length > 0 || selectedCharacterElement) {
+          const manualElements = await Promise.all(
+            validKlingEls.slice(0, selectedCharacterElement ? 2 : 3).map(async (el) => ({
               name: el.name.trim(),
               description: el.description.trim(),
               element_input_urls: await Promise.all(el.files.slice(0, 4).map((f) => fileToDataURL(f))),
             }))
           );
+          payload.kling_elements = selectedCharacterElement
+            ? [selectedCharacterElement, ...manualElements]
+            : manualElements;
         } else {
           delete payload.kling_elements;
         }
@@ -1110,7 +1230,7 @@ function VideoPageInner() {
       setIsSubmitting(false);
     }
   }, [
-    activeTool, prompt, selectedModel, selectedCharacter, caps, supportsCharacterReference, isVeo31Model, isVeo31FastModel,
+    activeTool, prompt, selectedModel, selectedCharacter, caps, supportsCharacterReference, characterSupport, isVeo31Model, isVeo31FastModel,
     startFrame, endFrame, motionVideo, referenceImages, size, aspectRatio, startFrameRatio, duration, resolution,
     negPrompt, cfgScale, sound, shotType, multiPrompts, elementList,
     sceneControl, orientation, startPolling,
@@ -1190,10 +1310,10 @@ function VideoPageInner() {
       setSelectedCharacterId("");
       return;
     }
-    if (selectedCharacterId && !characters.some((character) => character.id === selectedCharacterId)) {
+    if (selectedCharacterId && !selectableCharacters.some((character) => character.id === selectedCharacterId)) {
       setSelectedCharacterId("");
     }
-  }, [characters, selectedCharacterId, supportsCharacterReference]);
+  }, [selectableCharacters, selectedCharacterId, supportsCharacterReference]);
 
   useEffect(() => {
     if (!caps.has_multi_prompt) return;
@@ -2242,7 +2362,7 @@ function VideoPageInner() {
                 }}
               >
                 <option value="">No saved character</option>
-                {characters.map((character) => (
+                {selectableCharacters.map((character) => (
                   <option key={character.id} value={character.id}>{character.name}</option>
                 ))}
               </select>
@@ -2258,13 +2378,22 @@ function VideoPageInner() {
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[12px] font-semibold" style={{ color: "#e2e8f0" }}>{selectedCharacter.name}</p>
                     <p className="mt-0.5 line-clamp-2 text-[10px]" style={{ color: "#64748b" }}>{selectedCharacter.description || "Reusable identity reference"}</p>
-                    <p className="mt-1 text-[10px]" style={{ color: selectedModel.family_color }}>{selectedCharacter.referenceUrls.length} reference image(s)</p>
+                    <p className="mt-1 text-[10px]" style={{ color: selectedModel.family_color }}>{characterSupport.label} · {selectedCharacter.referenceUrls.length} reference image(s)</p>
                   </div>
+                </div>
+              ) : selectableCharacters.length === 0 ? (
+                <div className="rounded-xl border border-white/10 px-3 py-2 text-[11px] text-slate-500">
+                  {characterSupport.note}
                 </div>
               ) : (
                 <a href="/character" className="rounded-xl border border-dashed border-white/10 px-3 py-2 text-center text-[11px] text-slate-500 hover:border-white/20 hover:text-slate-300">
                   Create a reusable character
                 </a>
+              )}
+              {selectedCharacter && characterSupport.mode === "kling_element" && selectedCharacter.referenceUrls.length < characterSupport.minImages && (
+                <div className="rounded-xl border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-[11px] text-amber-200">
+                  Kling 3.0 Elements needs at least {characterSupport.minImages} reference images for this character.
+                </div>
               )}
             </div>
           )}

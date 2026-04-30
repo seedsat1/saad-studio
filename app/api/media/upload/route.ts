@@ -13,6 +13,47 @@ function getServerSupabase() {
   return createClient(url, key, { auth: { persistSession: false } });
 }
 
+function bucketForFileType(fileType: string): string {
+  if (fileType.startsWith("video/")) return "videos";
+  if (fileType.startsWith("audio/")) return "audio";
+  return "images";
+}
+
+function normalizeFileType(fileName: string, fileType: string): string {
+  if (fileType && fileType !== "application/octet-stream") return fileType;
+  const ext = fileName.split(".").pop()?.toLowerCase();
+  const byExt: Record<string, string> = {
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    png: "image/png",
+    webp: "image/webp",
+    gif: "image/gif",
+    mp4: "video/mp4",
+    mov: "video/quicktime",
+    webm: "video/webm",
+    mkv: "video/x-matroska",
+    mp3: "audio/mpeg",
+    m4a: "audio/mp4",
+    wav: "audio/wav",
+    ogg: "audio/ogg",
+    aac: "audio/aac",
+  };
+  return ext ? (byExt[ext] || fileType) : fileType;
+}
+
+function safeExtension(fileName: string, fileType: string): string {
+  const fromName = fileName.split(".").pop()?.replace(/[^a-zA-Z0-9]/g, "").slice(0, 8);
+  if (fromName) return fromName;
+  if (fileType.includes("quicktime")) return "mov";
+  if (fileType.includes("webm")) return "webm";
+  if (fileType.includes("mp4")) return "mp4";
+  if (fileType.includes("mpeg")) return "mp3";
+  if (fileType.includes("wav")) return "wav";
+  if (fileType.includes("png")) return "png";
+  if (fileType.includes("webp")) return "webp";
+  return "jpg";
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { userId } = await auth();
@@ -29,13 +70,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "fileName and fileType are required" }, { status: 400 });
     }
 
-    if (!fileType.startsWith("image/")) {
-      return NextResponse.json({ error: "Only image files are allowed" }, { status: 400 });
+    const effectiveFileType = normalizeFileType(fileName, fileType);
+    const isSupported =
+      effectiveFileType.startsWith("image/") ||
+      effectiveFileType.startsWith("video/") ||
+      effectiveFileType.startsWith("audio/");
+
+    if (!isSupported) {
+      return NextResponse.json({ error: "Only image, video, or audio files are allowed" }, { status: 400 });
     }
 
-    const ext = fileName.split(".").pop() || "jpg";
-    const bucket = "images";
-    const storagePath = `${userId}/cinema-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const ext = safeExtension(fileName, effectiveFileType);
+    const bucket = bucketForFileType(effectiveFileType);
+    const storagePath = `${userId}/generation-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
 
     const supabase = getServerSupabase();
     const { data, error } = await supabase.storage

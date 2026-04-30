@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useEffect, useMemo } from "react";
+import { useMemo } from "react";
 import HeroCarousel from "@/components/HeroCarousel";
 import CoreToolsSection from "@/components/CoreToolsSection";
 import TopChoiceGrid from "@/components/TopChoiceGrid";
@@ -58,6 +58,7 @@ function stableIdFromTool(t: CmsToolCard, idx: number): string {
 function normalizeExploreHref(href: string): string {
   if (href === "/video/cinema-studio") return "/cinema-studio";
   if (href === "/edit/upscale") return "/apps/tool/image-upscale";
+  if (href === "/image/skin-enhancer") return "/apps/tool/skin-enhancer";
   return href;
 }
 
@@ -67,10 +68,6 @@ function isVideoUrl(url?: string): boolean {
 
 export default function ExplorePage() {
   const { data: cms } = useCmsData<ExploreCmsData>("explore");
-
-  useEffect(() => {
-    console.log("[Explore] cms-explore coreTools length", cms?.coreTools?.length ?? 0);
-  }, [cms?.coreTools?.length]);
 
   const coreToolsOverride = useMemo(() => {
     if (!cms?.coreTools?.length) return undefined;
