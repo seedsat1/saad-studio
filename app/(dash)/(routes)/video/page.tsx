@@ -454,6 +454,7 @@ function VideoPageInner() {
     [characters, selectedCharacterId],
   );
   const isSoraModel = selectedModel.api_route.includes("openai/sora-2");
+  const isVeo31Model = selectedModel.api_route.startsWith("google/veo3.1");
   const durationChoices = isSoraModel ? [4, 8, 12] : caps.durations;
   const resolutionChoices = isSoraModel ? [] : caps.resolutions;
 
@@ -736,9 +737,10 @@ function VideoPageInner() {
   }, []);
 
   const estimatedCredits = (() => {
+    const pricingDuration = duration ?? (isVeo31Model ? 8 : 5);
     const base = getGenerationCostSync(
       selectedModel.api_route,
-      duration ?? 5,
+      pricingDuration,
       1,
       resolution ?? undefined,
     );
@@ -2715,6 +2717,14 @@ function VideoPageInner() {
               ════════════════════════════════════════════════════════════ */}
           {!isKling30Video && (<>
 
+          {/* -- Fixed Duration (Veo 3.1) ------------------------------------ */}
+          {isVeo31Model && (
+            <div className="flex items-center justify-between">
+              <span className="text-[12px]" style={{ color: "#64748b" }}>Duration</span>
+              <span className="text-[12px] font-semibold" style={{ color: selectedModel.family_color }}>~8s (fixed)</span>
+            </div>
+          )}
+
           {/* -- Duration ---------------------------------------------------- */}
           {durationChoices.length > 0 && duration != null && (
             <div className="flex flex-col gap-2">
@@ -2818,7 +2828,7 @@ function VideoPageInner() {
                 >
                   {resolutionChoices.map(r => (
                     <option key={r} value={r} style={{ background: "#0a1220", color: "#e2e8f0" }}>
-                      {r === "std" ? "std" : r === "pro" ? "pro" : r}
+                      {r === "std" ? "std" : r === "pro" ? "pro" : r.toLowerCase() === "4k" ? "4K" : r}
                     </option>
                   ))}
                 </select>
