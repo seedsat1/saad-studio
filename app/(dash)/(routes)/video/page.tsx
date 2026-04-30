@@ -141,7 +141,7 @@ const TOOLS = [
 ];
 
 const TOOL_DEFAULT_MODEL_ID: Record<string, string> = {
-  "create-video": "kling-v3.0-pro-t2v",
+  "create-video": "google-veo3.1-t2v",
   "cinema-studio": "bytedance-seedance-v2-t2v",
   // mixed-media / edit-video previously defaulted to Kling 3.0 Omni (removed — KIE has no Omni endpoint).
   "mixed-media": "kling-v3.0-pro-t2v",
@@ -449,9 +449,10 @@ function VideoPageInner() {
 
   // Capability shorthand
   const caps = selectedModel.capabilities;
+  const supportsCharacterReference = caps.max_reference_images > 0 || caps.optional_image || caps.requires_image;
   const selectedCharacter = useMemo(
-    () => characters.find((character) => character.id === selectedCharacterId) || null,
-    [characters, selectedCharacterId],
+    () => supportsCharacterReference ? characters.find((character) => character.id === selectedCharacterId) || null : null,
+    [characters, selectedCharacterId, supportsCharacterReference],
   );
   const isSoraModel = selectedModel.api_route.includes("openai/sora-2");
   const isVeo31Model = selectedModel.api_route.startsWith("google/veo3.1");
@@ -785,7 +786,9 @@ function VideoPageInner() {
       const isKling30Video =
         selectedModel.api_route === "kwaivgi/kling-v3.0-pro/text-to-video";
 
-      const characterReferenceUrls = caps.max_reference_images > 0 ? (selectedCharacter?.referenceUrls ?? []) : [];
+      const characterReferenceUrls = supportsCharacterReference
+        ? (selectedCharacter?.referenceUrls ?? []).filter((url) => typeof url === "string" && /^https?:\/\//i.test(url))
+        : [];
 
       // Image inputs — saved characters + uploaded reference media take priority
       if (referenceImages.length > 0 || characterReferenceUrls.length > 0) {
@@ -1107,7 +1110,7 @@ function VideoPageInner() {
       setIsSubmitting(false);
     }
   }, [
-    activeTool, prompt, selectedModel, selectedCharacter, caps, isVeo31Model, isVeo31FastModel,
+    activeTool, prompt, selectedModel, selectedCharacter, caps, supportsCharacterReference, isVeo31Model, isVeo31FastModel,
     startFrame, endFrame, motionVideo, referenceImages, size, aspectRatio, startFrameRatio, duration, resolution,
     negPrompt, cfgScale, sound, shotType, multiPrompts, elementList,
     sceneControl, orientation, startPolling,
@@ -1181,6 +1184,16 @@ function VideoPageInner() {
     });
     return out;
   })();
+
+  useEffect(() => {
+    if (!supportsCharacterReference && selectedCharacterId) {
+      setSelectedCharacterId("");
+      return;
+    }
+    if (selectedCharacterId && !characters.some((character) => character.id === selectedCharacterId)) {
+      setSelectedCharacterId("");
+    }
+  }, [characters, selectedCharacterId, supportsCharacterReference]);
 
   useEffect(() => {
     if (!caps.has_multi_prompt) return;
@@ -2108,6 +2121,25 @@ function VideoPageInner() {
               AI Model
             </label>
             <NewModelsBanner kind="video" knownIds={allModels.map((m) => m.api_route)} className="mb-1" />
+            {(() => {
+              const veoModel = allModels.find((m) => m.id === "google-veo3.1-t2v");
+              if (!veoModel || selectedModel.id === veoModel.id) return null;
+              return (
+                <button
+                  type="button"
+                  onClick={() => selectModel(veoModel)}
+                  className="mb-1 flex w-full items-center justify-between rounded-xl px-3 py-2 text-left transition-all"
+                  style={{
+                    background: "rgba(59,130,246,0.08)",
+                    border: "1px solid rgba(59,130,246,0.22)",
+                    color: "#bfdbfe",
+                  }}
+                >
+                  <span className="text-[12px] font-semibold">Switch to Google Veo 3.1</span>
+                  <span className="rounded-md px-1.5 py-0.5 text-[9px] font-bold" style={{ background: "rgba(16,185,129,0.15)", color: "#34d399" }}>NEW</span>
+                </button>
+              );
+            })()}
             <div className="relative">
               <button
                 onClick={() => setModelOpen(v => !v)}
@@ -2196,44 +2228,46 @@ function VideoPageInner() {
             </div>
           </div>
 
-          <div className="flex flex-col gap-2" data-character-ref="1">
-            <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#475569" }}>Character Reference</label>
-            <select
-              value={selectedCharacterId}
-              onChange={(e) => setSelectedCharacterId(e.target.value)}
-              className="w-full rounded-xl px-3 py-2.5 text-sm outline-none"
-              style={{
-                background: "rgba(255,255,255,0.04)",
-                border: "1px solid rgba(255,255,255,0.08)",
-                color: "#e2e8f0",
-              }}
-            >
-              <option value="">No saved character</option>
-              {characters.map((character) => (
-                <option key={character.id} value={character.id}>{character.name}</option>
-              ))}
-            </select>
-            {selectedCharacter ? (
-              <div className="flex gap-3 rounded-xl p-2" style={{ background: hexA(selectedModel.family_color, 0.08), border: `1px solid ${hexA(selectedModel.family_color, 0.22)}` }}>
-                {selectedCharacter.coverUrl ? (
-                  <img src={selectedCharacter.coverUrl} alt={selectedCharacter.name} className="h-12 w-12 rounded-lg object-cover" />
-                ) : (
-                  <div className="flex h-12 w-12 items-center justify-center rounded-lg" style={{ background: "rgba(255,255,255,0.06)" }}>
-                    <Users size={18} style={{ color: selectedModel.family_color }} />
+          {supportsCharacterReference && (
+            <div className="flex flex-col gap-2" data-character-ref="1">
+              <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#475569" }}>Character Reference</label>
+              <select
+                value={selectedCharacterId}
+                onChange={(e) => setSelectedCharacterId(e.target.value || "")}
+                className="w-full rounded-xl px-3 py-2.5 text-sm outline-none"
+                style={{
+                  background: "rgba(255,255,255,0.04)",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  color: "#e2e8f0",
+                }}
+              >
+                <option value="">No saved character</option>
+                {characters.map((character) => (
+                  <option key={character.id} value={character.id}>{character.name}</option>
+                ))}
+              </select>
+              {selectedCharacter ? (
+                <div className="flex gap-3 rounded-xl p-2" style={{ background: hexA(selectedModel.family_color, 0.08), border: `1px solid ${hexA(selectedModel.family_color, 0.22)}` }}>
+                  {selectedCharacter.coverUrl ? (
+                    <img src={selectedCharacter.coverUrl} alt={selectedCharacter.name} className="h-12 w-12 rounded-lg object-cover" />
+                  ) : (
+                    <div className="flex h-12 w-12 items-center justify-center rounded-lg" style={{ background: "rgba(255,255,255,0.06)" }}>
+                      <Users size={18} style={{ color: selectedModel.family_color }} />
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[12px] font-semibold" style={{ color: "#e2e8f0" }}>{selectedCharacter.name}</p>
+                    <p className="mt-0.5 line-clamp-2 text-[10px]" style={{ color: "#64748b" }}>{selectedCharacter.description || "Reusable identity reference"}</p>
+                    <p className="mt-1 text-[10px]" style={{ color: selectedModel.family_color }}>{selectedCharacter.referenceUrls.length} reference image(s)</p>
                   </div>
-                )}
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-[12px] font-semibold" style={{ color: "#e2e8f0" }}>{selectedCharacter.name}</p>
-                  <p className="mt-0.5 line-clamp-2 text-[10px]" style={{ color: "#64748b" }}>{selectedCharacter.description || "Reusable identity reference"}</p>
-                  <p className="mt-1 text-[10px]" style={{ color: selectedModel.family_color }}>{selectedCharacter.referenceUrls.length} reference image(s)</p>
                 </div>
-              </div>
-            ) : (
-              <a href="/character" className="rounded-xl border border-dashed border-white/10 px-3 py-2 text-center text-[11px] text-slate-500 hover:border-white/20 hover:text-slate-300">
-                Create a reusable character
-              </a>
-            )}
-          </div>
+              ) : (
+                <a href="/character" className="rounded-xl border border-dashed border-white/10 px-3 py-2 text-center text-[11px] text-slate-500 hover:border-white/20 hover:text-slate-300">
+                  Create a reusable character
+                </a>
+              )}
+            </div>
+          )}
 
           {/* ════════════════════════════════════════════════════════════
               KLING 3.0 — Dedicated full-spec panel
