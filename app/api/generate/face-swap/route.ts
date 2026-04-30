@@ -203,7 +203,11 @@ export async function POST(req: NextRequest) {
 
     const outputs = await pollWaveSpeedTask(taskId, waveKey);
     const url = outputs[0];
-    if (generationId) await setGenerationMediaUrl(generationId, url);
+    if (generationId) {
+      await setGenerationMediaUrl(generationId, url).catch((err) => {
+        console.error("[face-swap] Failed to attach media URL to generation", err);
+      });
+    }
 
     return NextResponse.json({ imageUrl: url }, { status: 200 });
   } catch (error: unknown) {

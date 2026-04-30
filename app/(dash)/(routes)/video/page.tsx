@@ -455,6 +455,7 @@ function VideoPageInner() {
   );
   const isSoraModel = selectedModel.api_route.includes("openai/sora-2");
   const isVeo31Model = selectedModel.api_route.startsWith("google/veo3.1");
+  const isVeo31FastModel = selectedModel.api_route === "google/veo3.1-fast-text-to-video";
   const durationChoices = isSoraModel ? [4, 8, 12] : caps.durations;
   const resolutionChoices = isSoraModel ? [] : caps.resolutions;
 
@@ -825,6 +826,20 @@ function VideoPageInner() {
         payload[endKey] = await fileToDataURL(endFrame);
       }
 
+      if (isVeo31Model) {
+        const refs = Array.isArray(payload.reference_image_urls)
+          ? payload.reference_image_urls.filter((value): value is string => typeof value === "string")
+          : [];
+        const hasStartImage = typeof payload.image === "string" || typeof payload.first_frame_url === "string";
+        const hasEndImage = typeof payload.end_image === "string" || typeof payload.last_frame_url === "string" || typeof payload.last_image === "string";
+        payload.enable_translation = true;
+        payload.generation_type = refs.length > 0 && isVeo31FastModel
+          ? "REFERENCE_2_VIDEO"
+          : refs.length > 0 || hasStartImage || hasEndImage
+            ? "FIRST_AND_LAST_FRAMES_2_VIDEO"
+            : "TEXT_2_VIDEO";
+      }
+
       // Size / Aspect ratio
       if (caps.sizes.length > 0 && size) {
         payload.size = size;
@@ -1075,23 +1090,24 @@ function VideoPageInner() {
       const _capturedRatio = (isKling30 && startFrame && startFrameRatio)
         ? startFrameRatio
         : (aspectRatio ?? (size ? sizeToRatio(size) : "16:9"));
-      setPendingTasks(prev => new Map(prev).set(data.taskId!, { model: selectedModel, promptText: basePrompt, ratio: _capturedRatio, duration }));
+      const capturedDuration = isVeo31Model ? 8 : duration;
+      setPendingTasks(prev => new Map(prev).set(data.taskId!, { model: selectedModel, promptText: basePrompt, ratio: _capturedRatio, duration: capturedDuration }));
       // Persist task so it survives a page refresh
       try {
         const raw = localStorage.getItem("ff_video_pending_jobs");
         const arr = raw ? (JSON.parse(raw) as any[]) : [];
         const list = Array.isArray(arr) ? arr : [];
-        list.push({ taskId: data.taskId, modelRoute: selectedModel.api_route, promptText: basePrompt, ratio: _capturedRatio, duration, startedAt: Date.now() });
+        list.push({ taskId: data.taskId, modelRoute: selectedModel.api_route, promptText: basePrompt, ratio: _capturedRatio, duration: capturedDuration, startedAt: Date.now() });
         localStorage.setItem("ff_video_pending_jobs", JSON.stringify(list));
       } catch {}
       setIsSubmitting(false);
-      startPolling(data.taskId, { model: selectedModel, promptText: basePrompt, ratio: _capturedRatio, duration });
+      startPolling(data.taskId, { model: selectedModel, promptText: basePrompt, ratio: _capturedRatio, duration: capturedDuration });
     } catch (err) {
       setGenerationError(getSafeErrorMessage(err));
       setIsSubmitting(false);
     }
   }, [
-    activeTool, prompt, selectedModel, selectedCharacter, caps,
+    activeTool, prompt, selectedModel, selectedCharacter, caps, isVeo31Model, isVeo31FastModel,
     startFrame, endFrame, motionVideo, referenceImages, size, aspectRatio, startFrameRatio, duration, resolution,
     negPrompt, cfgScale, sound, shotType, multiPrompts, elementList,
     sceneControl, orientation, startPolling,

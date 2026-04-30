@@ -349,7 +349,11 @@ function isVeo31ModelRef(modelRef: string): boolean {
 function qualityMultiplierForModel(modelRef: string, quality: string | null | undefined): number {
   const q = quality?.trim().toLowerCase() ?? "";
   if (!q) return 1.0;
-  if (isVeo31ModelRef(modelRef) && q === "4k") return 2.0;
+  if (isVeo31ModelRef(modelRef) && q === "4k") {
+    if (modelRef === "google/veo3.1-lite-text-to-video" || modelRef === "veo31_lite") return 3.285714;
+    if (modelRef === "google/veo3.1-fast-text-to-video" || modelRef === "veo31_fast") return 3.0;
+    return 1.8;
+  }
   return QUALITY_MULTIPLIER[q] ?? 1.0;
 }
 

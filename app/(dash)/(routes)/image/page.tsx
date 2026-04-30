@@ -898,8 +898,11 @@ function InpaintWorkspace({ source, setSource, brushSize, setBrushSize, maskVers
   };
 
   const pointFromEvent = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const mask = maskCanvasRef.current;
     const rect = e.currentTarget.getBoundingClientRect();
-    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    const scaleX = mask && rect.width ? mask.width / rect.width : 1;
+    const scaleY = mask && rect.height ? mask.height / rect.height : 1;
+    return { x: (e.clientX - rect.left) * scaleX, y: (e.clientY - rect.top) * scaleY };
   };
 
   const undo = () => {
@@ -935,18 +938,20 @@ function InpaintWorkspace({ source, setSource, brushSize, setBrushSize, maskVers
           <span>{brushSize}px</span>
         </div>
       </div>
-      <div className="relative flex h-[420px] items-center justify-center overflow-auto rounded-2xl border border-white/10 bg-black/40">
+      <div className="flex h-[420px] items-center justify-center overflow-auto rounded-2xl border border-white/10 bg-black/40 p-4">
         {!source ? <p className="text-sm text-zinc-500">Upload image to start painting mask.</p> : null}
-        <canvas ref={baseCanvasRef} className={cn(!source && "hidden")} />
-        <canvas
-          ref={maskCanvasRef}
-          className={cn("absolute cursor-crosshair", !source && "hidden")}
-          style={{ opacity: 0.4 }}
-          onMouseDown={(e) => { isDrawingRef.current = true; saveUndo(); const p = pointFromEvent(e); paint(p.x, p.y); }}
-          onMouseMove={(e) => { if (!isDrawingRef.current) return; const p = pointFromEvent(e); paint(p.x, p.y); }}
-          onMouseUp={() => { isDrawingRef.current = false; lastPointRef.current = null; setMaskVersion(maskVersion + 1); }}
-          onMouseLeave={() => { isDrawingRef.current = false; lastPointRef.current = null; }}
-        />
+        <div className={cn("relative shrink-0", !source && "hidden")}>
+          <canvas ref={baseCanvasRef} className="block" />
+          <canvas
+            ref={maskCanvasRef}
+            className="absolute inset-0 block cursor-crosshair"
+            style={{ opacity: 0.4 }}
+            onMouseDown={(e) => { isDrawingRef.current = true; saveUndo(); const p = pointFromEvent(e); paint(p.x, p.y); }}
+            onMouseMove={(e) => { if (!isDrawingRef.current) return; const p = pointFromEvent(e); paint(p.x, p.y); }}
+            onMouseUp={() => { isDrawingRef.current = false; lastPointRef.current = null; setMaskVersion((v) => v + 1); }}
+            onMouseLeave={() => { isDrawingRef.current = false; lastPointRef.current = null; }}
+          />
+        </div>
       </div>
     </div>
   );

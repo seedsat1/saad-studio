@@ -514,27 +514,26 @@ function mapToKieInput(model: string, payload: Record<string, unknown>) {
     const out: Record<string, unknown> = {};
     out.model = model;
     out.prompt = typeof input.prompt === "string" ? input.prompt : "";
-    // aspect_ratio: normalise to Veo's accepted set
+    // aspect_ratio/aspectRatio: KIE docs currently show both spellings; send both for compatibility.
     const arRaw = typeof input.aspect_ratio === "string" ? input.aspect_ratio : "16:9";
+    let veoAspectRatio = "16:9";
     if (arRaw === "9:16" || arRaw === "Auto" || arRaw === "auto") {
-      out.aspect_ratio = arRaw === "auto" ? "Auto" : arRaw;
-    } else {
-      out.aspect_ratio = "16:9";
+      veoAspectRatio = arRaw === "auto" ? "Auto" : arRaw;
     }
-    // resolution: only 720p / 1080p / 4k allowed
-    const resRaw = typeof input.resolution === "string" ? input.resolution.toLowerCase() : "";
-    if (resRaw === "1080p" || resRaw === "4k" || resRaw === "720p") {
-      out.resolution = resRaw;
-    }
+    out.aspect_ratio = veoAspectRatio;
+    out.aspectRatio = veoAspectRatio;
     // imageUrls: collect from various sources (max 3 for REFERENCE, 2 for first+last, 1 for animate)
     const collected: string[] = [];
+    const explicitReferenceMode = referenceImages.length > 0;
     if (referenceImages.length > 0) {
       collected.push(...referenceImages.slice(0, 3));
     } else {
       if (startImage) collected.push(startImage);
       if (endImage && endImage !== startImage) collected.push(endImage);
     }
-    if (collected.length > 0) out.imageUrls = collected;
+    const isReferenceMode = model === "veo3_fast" && explicitReferenceMode && collected.length > 0;
+    const imageLimit = isReferenceMode ? 3 : 2;
+    if (collected.length > 0) out.imageUrls = collected.slice(0, imageLimit);
     // generationType: explicit when reference mode is requested by frontend
     if (typeof input.generation_type === "string") {
       const gt = input.generation_type;
@@ -542,13 +541,18 @@ function mapToKieInput(model: string, payload: Record<string, unknown>) {
         out.generationType = gt;
       }
     }
+    if (!out.generationType) {
+      out.generationType = collected.length === 0
+        ? "TEXT_2_VIDEO"
+        : isReferenceMode
+          ? "REFERENCE_2_VIDEO"
+          : "FIRST_AND_LAST_FRAMES_2_VIDEO";
+    }
     // Optional pass-throughs
     if (typeof input.watermark === "string" && input.watermark.trim()) {
       out.watermark = input.watermark.trim();
     }
-    if (typeof input.enable_translation === "boolean") {
-      out.enableTranslation = input.enable_translation;
-    }
+    out.enableTranslation = typeof input.enable_translation === "boolean" ? input.enable_translation : true;
     if (typeof input.seeds === "number" && Number.isFinite(input.seeds)) {
       out.seeds = input.seeds;
     }
@@ -923,6 +927,10 @@ export async function POST(req: Request) {
       );
     }
 
+    const requestedVeoResolution =
+      kieModel === "veo3" || kieModel === "veo3_fast" || kieModel === "veo3_lite"
+        ? (typeof resolvedInput.resolution === "string" ? resolvedInput.resolution.toLowerCase() : "1080p")
+        : null;
     const kieInput = mapToKieInput(kieModel!, resolvedInput);
 
     // ── Post-map log ─────────────────────────────────────────────────────
@@ -1000,7 +1008,11 @@ export async function POST(req: Request) {
     const createData = createJson?.data as Record<string, unknown> | undefined;
     const rawTaskId = createData?.taskId || createJson?.taskId;
     // Prefix Veo tasks so the GET poller routes to /veo/record-info instead of /jobs/recordInfo
-    const taskId = rawTaskId && isVeoModel ? `veo:${String(rawTaskId)}` : rawTaskId;
+    const veoTaskPrefix =
+      requestedVeoResolution === "4k" ? "veo4k" :
+      requestedVeoResolution === "1080p" ? "veo1080" :
+      "veo";
+    const taskId = rawTaskId && isVeoModel ? `${veoTaskPrefix}:${String(rawTaskId)}` : rawTaskId;
 
     if (!createRes.ok || !taskId) {
       console.error("[api/video POST] KIE createTask failed", createRes.status, JSON.stringify(createJson).slice(0, 500));
@@ -1113,12 +1125,13 @@ export async function GET(req: Request) {
     // ── Veo 3.1 polling (dedicated endpoint /api/v1/veo/record-info) ─────────
     // Confirmed: https://docs.kie.ai/veo3-api/get-veo-3-video-details
     // successFlag: 0=generating, 1=success, 2=failed, 3=generation_failed
-    if (taskId.startsWith("veo:")) {
+    if (taskId.startsWith("veo:") || taskId.startsWith("veo1080:") || taskId.startsWith("veo4k:")) {
       const kieKey = getKieKeyFromEnv();
       if (!kieKey) {
         return NextResponse.json({ error: "KIE provider is not configured.", code: "kie_key_missing" }, { status: 503 });
       }
-      const veoTaskId = taskId.slice(4);
+      const veoVariant = taskId.startsWith("veo4k:") ? "4k" : taskId.startsWith("veo1080:") ? "1080p" : "base";
+      const veoTaskId = taskId.replace(/^veo(?:1080|4k)?:/, "");
       const veoRes = await fetch(`${KIE_BASE}/veo/record-info?taskId=${encodeURIComponent(veoTaskId)}`, {
         method: "GET",
         headers: { Authorization: `Bearer ${kieKey}` },
@@ -1145,11 +1158,50 @@ export async function GET(req: Request) {
       const resultUrls = Array.isArray(veoResponse.resultUrls)
         ? (veoResponse.resultUrls as unknown[]).filter((v): v is string => typeof v === "string")
         : [];
-      // Prefer fullResultUrls when present (post-extension), fall back to resultUrls
-      const veoOutputs = fullUrls.length > 0 ? fullUrls : resultUrls;
+      // Prefer fullResultUrls when present (post-extension), fall back to resultUrls.
+      const veoOutputs = [...(fullUrls.length > 0 ? fullUrls : resultUrls)];
       const veoError = typeof veoData.errorMessage === "string" && veoData.errorMessage
         ? veoData.errorMessage
         : null;
+
+      if (veoStatus === "completed" && veoVariant === "1080p") {
+        const hdRes = await fetch(`${KIE_BASE}/veo/get-1080p-video?taskId=${encodeURIComponent(veoTaskId)}&index=0`, {
+          method: "GET",
+          headers: { Authorization: `Bearer ${kieKey}` },
+          cache: "no-store",
+        });
+        const hdJson = (await hdRes.json().catch(() => null)) as Record<string, unknown> | null;
+        const hdData = (hdJson?.data ?? {}) as Record<string, unknown>;
+        const hdUrl = typeof hdData.resultUrl === "string" ? hdData.resultUrl : null;
+        if (hdRes.ok && hdUrl) {
+          veoOutputs.splice(0, veoOutputs.length, hdUrl);
+        } else {
+          return NextResponse.json({ taskId, status: "processing", outputs: [], error: null });
+        }
+      }
+
+      if (veoStatus === "completed" && veoVariant === "4k") {
+        const callbackUrl = `${process.env.NEXT_PUBLIC_APP_URL || "https://example.com"}/api/callback`;
+        const fourKRes = await fetch(`${KIE_BASE}/veo/get-4k-video`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${kieKey}`,
+          },
+          body: JSON.stringify({ taskId: veoTaskId, index: 0, callBackUrl: callbackUrl }),
+          cache: "no-store",
+        });
+        const fourKJson = (await fourKRes.json().catch(() => null)) as Record<string, unknown> | null;
+        const fourKData = (fourKJson?.data ?? {}) as Record<string, unknown>;
+        const urls = Array.isArray(fourKData.resultUrls)
+          ? (fourKData.resultUrls as unknown[]).filter((v): v is string => typeof v === "string")
+          : [];
+        if (fourKRes.ok && urls.length > 0) {
+          veoOutputs.splice(0, veoOutputs.length, urls[0]);
+        } else {
+          return NextResponse.json({ taskId, status: "processing", outputs: [], error: null });
+        }
+      }
 
       // DB sync (best-effort) — note generation row stores prefixed taskId via setGenerationTaskMarker
       try {
