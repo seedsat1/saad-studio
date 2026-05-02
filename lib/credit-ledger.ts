@@ -2,6 +2,7 @@ import { clerkClient } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
 import { WELCOME_SIGNUP_CREDITS } from "@/lib/credits-config";
 import { SAAD_PLANS } from "@/lib/pricing-models";
+import { isStorageConfigured, uploadUrlToStorage } from "@/lib/supabase-storage";
 
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 
@@ -172,6 +173,15 @@ async function tryCreateCreditLedgerEntry(
   }
 }
 
+function inferGenerationType(assetType: string): "image" | "video" {
+  const t = String(assetType || "").toLowerCase();
+  return t.includes("video") ? "video" : "image";
+}
+
+function isPublicHttpUrl(url: string): boolean {
+  return /^https?:\/\//i.test(url);
+}
+
 export async function spendCredits(input: SpendCreditsInput) {
   const credits = Math.max(0, Math.ceil(input.credits));
   if (credits <= 0) {
@@ -213,6 +223,9 @@ export async function spendCredits(input: SpendCreditsInput) {
         assetType: input.assetType,
         modelUsed: input.modelUsed,
         mediaUrl: input.mediaUrl ?? null,
+        outputUrl: input.mediaUrl && isPublicHttpUrl(input.mediaUrl) ? input.mediaUrl : null,
+        type: inferGenerationType(input.assetType),
+        status: input.mediaUrl && isPublicHttpUrl(input.mediaUrl) ? "completed" : "queued",
         cost: credits,
       },
       select: { id: true },
@@ -297,7 +310,8 @@ export async function refundGenerationCharge(
       where: { id: generationId },
       data: {
         cost: 0,
-        ...(clearMediaUrl ? { mediaUrl: null } : {}),
+        ...(clearMediaUrl ? { mediaUrl: null, outputUrl: null } : {}),
+        status: "failed",
         ...(flagGeneration && !generation.isFlagged ? { isFlagged: true } : {}),
       },
     });
@@ -313,9 +327,30 @@ export async function refundGenerationCharge(
 
 export async function setGenerationMediaUrl(generationId: string, mediaUrl: string) {
   if (!generationId || !mediaUrl) return;
+  const gen = await prismadb.generation.findUnique({
+    where: { id: generationId },
+    select: { id: true, userId: true, assetType: true },
+  });
+
+  let finalUrl: string | null = mediaUrl;
+  if (gen && isStorageConfigured() && isPublicHttpUrl(mediaUrl)) {
+    const persisted = await uploadUrlToStorage({
+      remoteUrl: mediaUrl,
+      userId: gen.userId,
+      assetType: gen.assetType,
+      generationId: gen.id,
+    }).catch(() => null);
+    if (persisted) finalUrl = persisted;
+  }
+
   await prismadb.generation.updateMany({
     where: { id: generationId },
-    data: { mediaUrl },
+    data: {
+      mediaUrl: finalUrl,
+      outputUrl: finalUrl,
+      status: finalUrl && finalUrl.startsWith("task:") ? "processing" : "completed",
+      ...(gen ? { type: inferGenerationType(gen.assetType) } : {}),
+    },
   });
   void maybeScanAndFlagGeneration(generationId).catch(() => {});
 }
@@ -334,16 +369,33 @@ export async function saveAdditionalGenerationUrls(
   additionalUrls: string[],
 ): Promise<void> {
   if (!additionalUrls.length || !userId) return;
-  await prismadb.generation.createMany({
-    data: additionalUrls.map((mediaUrl) => ({
-      userId,
-      prompt,
-      mediaUrl,
-      assetType,
-      modelUsed,
-      cost: 0, // credits were already charged in the parent generation record
-    })),
-  });
+  const prepared = await Promise.all(
+    additionalUrls.map(async (url, idx) => {
+      let finalUrl: string | null = url;
+      if (isStorageConfigured() && isPublicHttpUrl(url)) {
+        const persisted = await uploadUrlToStorage({
+          remoteUrl: url,
+          userId,
+          assetType,
+          generationId: `${Date.now()}-${Math.random().toString(36).slice(2, 10)}-${idx}`,
+        }).catch(() => null);
+        if (persisted) finalUrl = persisted;
+      }
+      return {
+        userId,
+        prompt,
+        mediaUrl: finalUrl,
+        outputUrl: finalUrl,
+        assetType,
+        modelUsed,
+        type: inferGenerationType(assetType),
+        status: finalUrl ? "completed" : "queued",
+        cost: 0,
+      };
+    }),
+  );
+
+  await prismadb.generation.createMany({ data: prepared });
   void maybeScanAndFlagRecentGenerationsByMediaUrls(userId, additionalUrls).catch(() => {});
 }
 
@@ -351,7 +403,7 @@ export async function setGenerationTaskMarker(generationId: string, taskId: stri
   if (!generationId || !taskId) return;
   await prismadb.generation.updateMany({
     where: { id: generationId },
-    data: { mediaUrl: `task:${taskId}` },
+    data: { mediaUrl: `task:${taskId}`, outputUrl: null, status: "processing" },
   });
 }
 
@@ -378,6 +430,8 @@ export async function rollbackGenerationCharge(generationId: string, userId: str
       data: {
         cost: 0,
         mediaUrl: null,
+        outputUrl: null,
+        status: "failed",
         isFlagged: true,
       },
     });

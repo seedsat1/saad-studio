@@ -1,15 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-// --- DIAGNOSTIC LOG ---
-console.log("IMAGE ROUTE HIT");
 import { auth } from "@clerk/nextjs/server";
 import { getGenerationCost } from "@/lib/pricing";
-import { InsufficientCreditsError, precheckGenerationPolicy, rollbackGenerationCharge, saveAdditionalGenerationUrls, setGenerationMediaUrl, spendCredits } from "@/lib/credit-ledger";
+import { InsufficientCreditsError, rollbackGenerationCharge, saveAdditionalGenerationUrls, setGenerationMediaUrl, spendCredits } from "@/lib/credit-ledger";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { getClientIp, isAllowedOrigin, sanitizePrompt } from "@/lib/security";
 import { getResolvedKieRoutingMaps } from "@/lib/kie-model-routing";
 import { syncKieModelCatalog } from "@/lib/kie-model-sync";
 import { uploadBufferToStorage } from "@/lib/supabase-storage";
-import { attachIdempotencyGeneration, beginIdempotency, completeIdempotency, getIdempotencyKey, hashRequestBody } from "@/lib/idempotency";
 
 export const maxDuration = 180;
 export const dynamic = "force-dynamic";
@@ -239,8 +236,6 @@ export async function POST(req: NextRequest) {
   let chargedCredits = 0;
   let chargedUserId: string | null = null;
   let generationId: string | null = null;
-  const idempotencyKey = getIdempotencyKey(req.headers);
-  let requestHash: string | null = null;
 
   try {
     // non-blocking periodic sync of KIE updates catalog
@@ -263,7 +258,6 @@ export async function POST(req: NextRequest) {
     }
 
     const body: ImageRequestBody = await req.json();
-    requestHash = hashRequestBody(body);
     const {
       prompt,
       modelId,
@@ -282,14 +276,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { error: "Missing required fields: prompt, modelId." },
         { status: 400 },
-      );
-    }
-
-    const precheck = await precheckGenerationPolicy({ prompt, negativePrompt });
-    if (!precheck.allowed) {
-      return NextResponse.json(
-        { error: precheck.message, blocked: true, reason: precheck.reason },
-        { status: 403 },
       );
     }
 
@@ -313,19 +299,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `No credit configuration for model: ${modelId}` }, { status: 400 });
     }
 
-    const idem = await beginIdempotency({
-      userId,
-      route: IDEMPOTENCY_ROUTE,
-      key: idempotencyKey,
-      requestHash,
-    });
-    if (idem.kind === "replay") {
-      return NextResponse.json(idem.responseJson, { status: idem.responseStatus });
-    }
-    if (idem.kind === "in_progress") {
-      return NextResponse.json({ status: "processing", generationId: idem.generationId }, { status: 202 });
-    }
-
     console.log("SPEND CREDITS ABOUT TO RUN");
     const spent = await spendCredits({
       userId,
@@ -337,12 +310,6 @@ export async function POST(req: NextRequest) {
     console.log("SPEND CREDITS SUCCESS");
     chargedCredits = creditsToCharge;
     generationId = spent.generationId;
-    await attachIdempotencyGeneration({
-      userId,
-      route: IDEMPOTENCY_ROUTE,
-      key: idempotencyKey,
-      generationId,
-    }).catch(() => {});
 
     const kieApiKey = process.env.KIE_API_KEY ?? process.env.KIEAI_API_KEY;
     if (!kieApiKey) {
@@ -524,32 +491,14 @@ export async function POST(req: NextRequest) {
       mediaUrl: imageUrls[0] ?? null,
       taskId,
     };
-    await completeIdempotency({
-      userId,
-      route: IDEMPOTENCY_ROUTE,
-      key: idempotencyKey,
-      generationId,
-      responseStatus: 200,
-      responseJson,
-    }).catch(() => {});
     return NextResponse.json(responseJson, { status: 200 });
   } catch (error: unknown) {
     if (error instanceof InsufficientCreditsError) {
-      const responseJson = {
+      const responseJson: Record<string, unknown> = {
         error: "Insufficient credits",
         requiredCredits: error.requiredCredits,
         currentBalance: error.currentBalance,
       };
-      if (chargedUserId && requestHash) {
-        await completeIdempotency({
-          userId: chargedUserId,
-          route: IDEMPOTENCY_ROUTE,
-          key: idempotencyKey,
-          generationId,
-          responseStatus: 402,
-          responseJson,
-        }).catch(() => {});
-      }
       return NextResponse.json(
         responseJson,
         { status: 402 },
@@ -561,16 +510,6 @@ export async function POST(req: NextRequest) {
     }
 
     const message = error instanceof Error ? error.message : "An unexpected error occurred.";
-    if (chargedUserId && requestHash) {
-      await completeIdempotency({
-        userId: chargedUserId,
-        route: IDEMPOTENCY_ROUTE,
-        key: idempotencyKey,
-        generationId,
-        responseStatus: 500,
-        responseJson: { error: message },
-      }).catch(() => {});
-    }
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
