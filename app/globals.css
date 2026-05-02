@@ -8,6 +8,11 @@ body,
   height: 100%;
 }
 
+@keyframes canvasPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.55; transform: scale(1.35); }
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;

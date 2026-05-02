@@ -1,158 +1,142 @@
 "use client";
 
+import { useState } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { type CanvasNodeType, NODE_CONFIGS, hexToRgb } from "./canvas-types";
 
-const LIBRARY_ITEMS: Array<{ type: CanvasNodeType; group: string }> = [
-  { type: "upload-image",   group: "Sources"   },
-  { type: "text-prompt",    group: "Sources"   },
-  { type: "text-to-image",  group: "Generate"  },
-  { type: "image-edit",     group: "Generate"  },
-  { type: "image-to-video", group: "Animate"   },
-  { type: "video-to-video", group: "Animate"   },
-  { type: "upscale",        group: "Enhance"   },
-  { type: "export",         group: "Output"    },
+const ITEMS: Array<{ type: CanvasNodeType; group: string }> = [
+  { type: "upload-image",   group: "Source"   },
+  { type: "text-prompt",    group: "Source"   },
+  { type: "text-to-image",  group: "Generate" },
+  { type: "image-edit",     group: "Generate" },
+  { type: "image-to-video", group: "Animate"  },
+  { type: "video-to-video", group: "Animate"  },
+  { type: "upscale",        group: "Enhance"  },
+  { type: "export",         group: "Output"   },
 ];
 
-const GROUPS = ["Sources", "Generate", "Animate", "Enhance", "Output"];
+const GROUPS = ["Source", "Generate", "Animate", "Enhance", "Output"];
 
 interface NodeLibraryProps {
   onAddNode: (type: CanvasNodeType) => void;
 }
 
 export function NodeLibrary({ onAddNode }: NodeLibraryProps) {
+  const [expanded, setExpanded] = useState(true);
+  const W = expanded ? 186 : 52;
+
   return (
-    <div
-      style={{
-        width:         224,
-        flexShrink:    0,
-        borderRight:   "1px solid rgba(255,255,255,0.06)",
-        background:    "#090e1c",
-        overflowY:     "auto",
-        display:       "flex",
-        flexDirection: "column",
-      }}
-    >
-      {/* Header */}
-      <div
-        style={{
-          padding:      "14px 16px 12px",
-          borderBottom: "1px solid rgba(255,255,255,0.05)",
-          flexShrink:   0,
-        }}
-      >
-        <div style={{ color: "#e2e8f0", fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>
-          Node Library
-        </div>
-        <div style={{ color: "#334155", fontSize: 10, marginTop: 2 }}>
-          Click to add to canvas
-        </div>
+    <div style={{
+      width: W, flexShrink: 0,
+      borderRight: "1px solid rgba(255,255,255,0.05)",
+      background: "#060b18",
+      overflowY: "auto",
+      overflowX: "hidden",
+      display: "flex",
+      flexDirection: "column",
+      transition: "width 0.22s ease",
+      userSelect: "none",
+    }}>
+      {/* Header + toggle */}
+      <div style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: expanded ? "space-between" : "center",
+        padding: expanded ? "12px 12px 11px 14px" : "12px 0 11px",
+        borderBottom: "1px solid rgba(255,255,255,0.04)",
+        flexShrink: 0,
+        minHeight: 44,
+      }}>
+        {expanded && (
+          <span style={{ color: "#283347", fontSize: 9, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase" }}>
+            Nodes
+          </span>
+        )}
+        <button
+          onClick={() => setExpanded(v => !v)}
+          style={{
+            background: "transparent", border: "none", cursor: "pointer",
+            color: "#283347", padding: "3px", display: "flex", alignItems: "center",
+            transition: "color 0.14s",
+          }}
+          onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = "#64748b"; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = "#283347"; }}
+        >
+          {expanded ? <ChevronLeft size={14} /> : <ChevronRight size={14} />}
+        </button>
       </div>
 
-      {/* Groups */}
-      <div style={{ padding: "10px 12px", flex: 1 }}>
-        {GROUPS.map(group => {
-          const items = LIBRARY_ITEMS.filter(i => i.group === group);
-          return (
-            <div key={group} style={{ marginBottom: 16 }}>
-              <div
-                style={{
-                  color:         "#334155",
-                  fontSize:      9,
-                  fontWeight:    700,
-                  letterSpacing: "0.1em",
-                  textTransform: "uppercase",
-                  marginBottom:  6,
-                  paddingLeft:   4,
-                }}
-              >
-                {group}
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                {items.map(({ type }) => {
-                  const cfg = NODE_CONFIGS[type];
-                  const rgb = hexToRgb(cfg.accentColor);
-                  return (
-                    <button
-                      key={type}
-                      onClick={() => onAddNode(type)}
-                      style={{
-                        display:       "flex",
-                        alignItems:    "center",
-                        gap:           9,
-                        padding:       "7px 10px",
-                        borderRadius:  8,
-                        border:        "1px solid rgba(255,255,255,0.05)",
-                        background:    "rgba(255,255,255,0.025)",
-                        cursor:        "pointer",
-                        textAlign:     "left",
-                        transition:    "background 0.15s, border-color 0.15s",
-                        width:         "100%",
-                      }}
-                      onMouseEnter={e => {
-                        const el = e.currentTarget as HTMLButtonElement;
-                        el.style.background    = `rgba(${rgb},0.08)`;
-                        el.style.borderColor   = `rgba(${rgb},0.25)`;
-                      }}
-                      onMouseLeave={e => {
-                        const el = e.currentTarget as HTMLButtonElement;
-                        el.style.background    = "rgba(255,255,255,0.025)";
-                        el.style.borderColor   = "rgba(255,255,255,0.05)";
-                      }}
-                    >
-                      <div
+      {/* Items */}
+      <div style={{ padding: expanded ? "10px 8px" : "6px 0", flex: 1 }}>
+        {expanded
+          ? GROUPS.map(group => {
+              const items = ITEMS.filter(i => i.group === group);
+              return (
+                <div key={group} style={{ marginBottom: 14 }}>
+                  <div style={{
+                    color: "#1c2940", fontSize: 8.5, fontWeight: 700,
+                    letterSpacing: "0.11em", textTransform: "uppercase",
+                    marginBottom: 5, paddingLeft: 5,
+                  }}>
+                    {group}
+                  </div>
+                  {items.map(({ type }) => {
+                    const c = NODE_CONFIGS[type];
+                    const rgb = hexToRgb(c.accentColor);
+                    return (
+                      <button key={type} onClick={() => onAddNode(type)}
                         style={{
-                          width:          26,
-                          height:         26,
-                          borderRadius:   7,
-                          background:     `rgba(${rgb},0.1)`,
-                          border:         `1px solid rgba(${rgb},0.18)`,
-                          display:        "flex",
-                          alignItems:     "center",
-                          justifyContent: "center",
-                          fontSize:       13,
-                          flexShrink:     0,
+                          width: "100%", display: "flex", alignItems: "center",
+                          gap: 9, padding: "7px 8px", borderRadius: 8, marginBottom: 2,
+                          border: "1px solid transparent", background: "transparent",
+                          cursor: "pointer", textAlign: "left", transition: "all 0.13s",
+                        }}
+                        onMouseEnter={e => {
+                          const el = e.currentTarget as HTMLButtonElement;
+                          el.style.background = `rgba(${rgb},0.07)`;
+                          el.style.borderColor = `rgba(${rgb},0.2)`;
+                        }}
+                        onMouseLeave={e => {
+                          const el = e.currentTarget as HTMLButtonElement;
+                          el.style.background = "transparent";
+                          el.style.borderColor = "transparent";
                         }}
                       >
-                        {cfg.emoji}
-                      </div>
-                      <div style={{ minWidth: 0 }}>
-                        <div style={{ color: "#cbd5e1", fontSize: 11, fontWeight: 600, lineHeight: 1.3 }}>
-                          {cfg.label}
+                        <span style={{ fontSize: 15, flexShrink: 0, lineHeight: 1 }}>{c.emoji}</span>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ color: "#7a8fa8", fontSize: 11, fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                            {c.label}
+                          </div>
+                          {c.creditCost > 0 && (
+                            <div style={{ color: "#1c2940", fontSize: 8.5, marginTop: 0.5 }}>{c.creditCost} cr</div>
+                          )}
                         </div>
-                        {cfg.creditCost > 0 && (
-                          <div style={{ color: "#334155", fontSize: 9 }}>{cfg.creditCost} credits</div>
-                        )}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Handle legend */}
-      <div
-        style={{
-          padding:      "10px 16px 14px",
-          borderTop:    "1px solid rgba(255,255,255,0.05)",
-          flexShrink:   0,
-        }}
-      >
-        <div style={{ color: "#1e293b", fontSize: 9, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 7 }}>
-          Handle types
-        </div>
-        {[
-          { color: "#3b82f6", label: "Image" },
-          { color: "#10b981", label: "Video" },
-          { color: "#8b5cf6", label: "Prompt" },
-        ].map(({ color, label }) => (
-          <div key={label} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
-            <div style={{ width: 8, height: 8, borderRadius: "50%", background: color, flexShrink: 0 }} />
-            <span style={{ color: "#334155", fontSize: 10 }}>{label}</span>
-          </div>
-        ))}
+                      </button>
+                    );
+                  })}
+                </div>
+              );
+            })
+          : ITEMS.map(({ type }) => {
+              const c = NODE_CONFIGS[type];
+              const rgb = hexToRgb(c.accentColor);
+              return (
+                <button key={type} onClick={() => onAddNode(type)}
+                  title={c.label}
+                  style={{
+                    width: 52, height: 42, display: "flex", alignItems: "center",
+                    justifyContent: "center", background: "transparent",
+                    border: "none", cursor: "pointer", fontSize: 18,
+                    transition: "background 0.13s", borderRadius: 0,
+                  }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = `rgba(${rgb},0.08)`; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
+                >
+                  {c.emoji}
+                </button>
+              );
+            })
+        }
       </div>
     </div>
   );

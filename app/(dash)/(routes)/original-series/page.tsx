@@ -23,7 +23,6 @@ import {
 
 import { CanvasNode } from "@/components/canvas/CanvasNode";
 import { NodeLibrary } from "@/components/canvas/NodeLibrary";
-import { NodeSettingsPanel } from "@/components/canvas/NodeSettingsPanel";
 import { CanvasToolbar } from "@/components/canvas/CanvasToolbar";
 import { ActivityPanel } from "@/components/canvas/ActivityPanel";
 import { CanvasContext, type CanvasContextValue } from "@/components/canvas/canvas-context";
@@ -38,9 +37,9 @@ import {
 const nodeTypes = { canvasNode: CanvasNode as ComponentType<NodeProps> };
 
 const defaultEdgeOptions = {
-  type: "smoothstep",
+  type: "default",
   animated: false,
-  style: { stroke: "rgba(99,102,241,0.35)", strokeWidth: 1.5 },
+  style: { stroke: "rgba(99,102,241,0.42)", strokeWidth: 2 },
 };
 
 function makeNode(
@@ -80,20 +79,20 @@ const INITIAL_EDGES: Edge[] = [
   {
     id: "e1-2", source: "n1", sourceHandle: "prompt",
     target: "n2", targetHandle: "prompt",
-    type: "smoothstep", animated: true,
-    style: { stroke: "rgba(139,92,246,0.45)", strokeWidth: 1.5 },
+    type: "default",
+    style: { stroke: "rgba(139,92,246,0.5)", strokeWidth: 2 },
   },
   {
     id: "e2-3", source: "n2", sourceHandle: "image",
     target: "n3", targetHandle: "image",
-    type: "smoothstep",
-    style: { stroke: "rgba(59,130,246,0.45)", strokeWidth: 1.5 },
+    type: "default",
+    style: { stroke: "rgba(59,130,246,0.5)", strokeWidth: 2 },
   },
   {
     id: "e3-4", source: "n3", sourceHandle: "video",
     target: "n4", targetHandle: "video",
-    type: "smoothstep",
-    style: { stroke: "rgba(16,185,129,0.45)", strokeWidth: 1.5 },
+    type: "default",
+    style: { stroke: "rgba(16,185,129,0.5)", strokeWidth: 2 },
   },
 ];
 
@@ -357,6 +356,32 @@ function AICanvasInner() {
     [setNodes, setEdges, selectedNodeId],
   );
 
+  const addNodeAfter = useCallback(
+    (sourceId: string, nodeType: CanvasNodeType) => {
+      const src = nodesRef.current.find(n => n.id === sourceId);
+      if (!src) return;
+      const cfg = NODE_CONFIGS[nodeType];
+      const id  = `node-${Date.now()}`;
+      const pos = { x: src.position.x + 430, y: src.position.y };
+      const newNode: Node<CanvasNodeData> = {
+        id, type: "canvasNode", position: pos,
+        data: { nodeType, label: cfg.label, description: cfg.description, status: "idle", settings: { ...cfg.defaultSettings }, creditCost: cfg.creditCost },
+      };
+      setNodes(nds => [...nds, newNode]);
+      const srcCfg = NODE_CONFIGS[src.data.nodeType];
+      const sh = srcCfg.hasVideoOutput ? "video" : srcCfg.hasTextOutput ? "prompt" : "image";
+      const th = cfg.hasVideoInput ? "video" : cfg.hasPromptInput ? "prompt" : "image";
+      setEdges(eds => [...eds, {
+        id: `e-${sourceId}-${id}`,
+        source: sourceId, sourceHandle: sh,
+        target: id,       targetHandle: th,
+        type: "default",
+        style: { stroke: "rgba(99,102,241,0.42)", strokeWidth: 2 },
+      }]);
+    },
+    [setNodes, setEdges],
+  );
+
   const updateNodeSettings = useCallback(
     (id: string, patch: Partial<CanvasNodeSettings>) => {
       setNodes(nds => nds.map(n => n.id === id ? { ...n, data: { ...n.data, settings: { ...n.data.settings, ...patch } } } : n));
@@ -399,11 +424,9 @@ function AICanvasInner() {
   );
 
   const canvasCtx = useMemo<CanvasContextValue>(
-    () => ({ runNode, deleteNode, updateNodeSettings }),
-    [runNode, deleteNode, updateNodeSettings],
+    () => ({ runNode, deleteNode, updateNodeSettings, addNodeAfter }),
+    [runNode, deleteNode, updateNodeSettings, addNodeAfter],
   );
-
-  const selectedNode = selectedNodeId ? nodes.find(n => n.id === selectedNodeId) ?? null : null;
 
   return (
     <CanvasContext.Provider value={canvasCtx}>
@@ -443,7 +466,6 @@ function AICanvasInner() {
               />
             </ReactFlow>
           </div>
-          <NodeSettingsPanel nodeId={selectedNodeId} data={selectedNode?.data ?? null} onClose={() => setSelectedNodeId(null)} />
         </div>
         <ActivityPanel entries={activity} open={activityOpen} onToggle={() => setActivityOpen(v => !v)} onClear={() => setActivity([])} />
       </div>
