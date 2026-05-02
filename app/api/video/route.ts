@@ -935,7 +935,7 @@ export async function POST(req: Request) {
       const wsTaskId = `ws:${String(wsPredictionId)}`;
       if (generationId) await setGenerationTaskMarker(generationId, wsTaskId);
 
-      const responseJson = { taskId: wsTaskId, status: "processing" };
+      const responseJson = { taskId: wsTaskId, generationId: generationId ?? undefined, status: "processing" };
       await completeIdempotency({
         userId,
         route: IDEMPOTENCY_ROUTE,
@@ -1101,6 +1101,7 @@ export async function POST(req: Request) {
 
     const responseJson = {
       taskId: String(taskId),
+      generationId: generationId ?? undefined,
       status: "processing",
     };
     await completeIdempotency({

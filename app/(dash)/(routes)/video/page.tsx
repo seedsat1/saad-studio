@@ -484,7 +484,7 @@ function VideoPageInner() {
   }, [referenceImages]);
 
   // Generation state
-  type PendingTask = { model: WaveSpeedVideoModel; promptText: string; ratio: string; duration: number | null };
+  type PendingTask = { model: WaveSpeedVideoModel; promptText: string; ratio: string; duration: number | null; generationId?: string };
   const [pendingTasks,    setPendingTasks]    = useState<Map<string, PendingTask>>(new Map());
   const [isSubmitting,    setIsSubmitting]    = useState(false);
   const [generationError, setGenerationError] = useState<string | null>(null);
@@ -745,7 +745,7 @@ function VideoPageInner() {
   const { guardGeneration, getSafeErrorMessage } = useGenerationGate();
   const { addAsset } = useAssetStore();
 
-  const startPolling = useCallback((taskId: string, ctx: { model: WaveSpeedVideoModel; promptText: string; ratio: string; duration: number | null }) => {
+  const startPolling = useCallback((taskId: string, ctx: { model: WaveSpeedVideoModel; promptText: string; ratio: string; duration: number | null; generationId?: string }) => {
     const removePending = () => {
       setPendingTasks(prev => { const n = new Map(prev); n.delete(taskId); return n; });
       if (pollRefs.current.has(taskId)) { clearInterval(pollRefs.current.get(taskId)!); pollRefs.current.delete(taskId); }
@@ -779,7 +779,7 @@ function VideoPageInner() {
               const persistRes = await fetch("/api/assets/persist", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ mediaUrl: videoUrl }),
+                body: JSON.stringify({ generationId: ctx.generationId, mediaUrl: videoUrl }),
               });
               if (persistRes.ok) {
                 const persistJson = await persistRes.json();
@@ -826,14 +826,14 @@ function VideoPageInner() {
         for (const j of fresh) {
           const model = allModels.find((m) => m.api_route === j.modelRoute) ?? allModels[0];
           if (!model) continue;
-          next.set(j.taskId, { model, promptText: j.promptText || "", ratio: j.ratio || "16:9", duration: j.duration ?? null });
+          next.set(j.taskId, { model, promptText: j.promptText || "", ratio: j.ratio || "16:9", duration: j.duration ?? null, generationId: j.generationId });
         }
         return next;
       });
       for (const j of fresh) {
         const model = allModels.find((m) => m.api_route === j.modelRoute);
         if (!model) continue;
-        startPolling(j.taskId, { model, promptText: j.promptText || "", ratio: j.ratio || "16:9", duration: j.duration ?? null });
+        startPolling(j.taskId, { model, promptText: j.promptText || "", ratio: j.ratio || "16:9", duration: j.duration ?? null, generationId: j.generationId });
       }
       // Persist trimmed list (in case some were stale)
       if (fresh.length !== arr.length) {
@@ -1203,7 +1203,7 @@ function VideoPageInner() {
         body: JSON.stringify({ modelRoute: selectedModel.api_route, payload }),
       });
 
-      let data: { taskId?: string; error?: string } = {};
+      let data: { taskId?: string; generationId?: string; error?: string } = {};
       const clonedRes = res.clone();
       try {
         data = await res.json();
@@ -1228,17 +1228,17 @@ function VideoPageInner() {
         ? startFrameRatio
         : (aspectRatio ?? (size ? sizeToRatio(size) : "16:9"));
       const capturedDuration = isVeo31Model ? 8 : duration;
-      setPendingTasks(prev => new Map(prev).set(data.taskId!, { model: selectedModel, promptText: basePrompt, ratio: _capturedRatio, duration: capturedDuration }));
+      setPendingTasks(prev => new Map(prev).set(data.taskId!, { model: selectedModel, promptText: basePrompt, ratio: _capturedRatio, duration: capturedDuration, generationId: data.generationId }));
       // Persist task so it survives a page refresh
       try {
         const raw = localStorage.getItem("ff_video_pending_jobs");
         const arr = raw ? (JSON.parse(raw) as any[]) : [];
         const list = Array.isArray(arr) ? arr : [];
-        list.push({ taskId: data.taskId, modelRoute: selectedModel.api_route, promptText: basePrompt, ratio: _capturedRatio, duration: capturedDuration, startedAt: Date.now() });
+        list.push({ taskId: data.taskId, generationId: data.generationId, modelRoute: selectedModel.api_route, promptText: basePrompt, ratio: _capturedRatio, duration: capturedDuration, startedAt: Date.now() });
         localStorage.setItem("ff_video_pending_jobs", JSON.stringify(list));
       } catch {}
       setIsSubmitting(false);
-      startPolling(data.taskId, { model: selectedModel, promptText: basePrompt, ratio: _capturedRatio, duration: capturedDuration });
+      startPolling(data.taskId, { model: selectedModel, promptText: basePrompt, ratio: _capturedRatio, duration: capturedDuration, generationId: data.generationId });
     } catch (err) {
       setGenerationError(getSafeErrorMessage(err));
       setIsSubmitting(false);
