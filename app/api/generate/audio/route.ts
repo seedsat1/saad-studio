@@ -952,15 +952,20 @@ export async function POST(req: NextRequest) {
     }).catch(() => {});
 
     const finalize = async (responseJson: unknown, responseStatus: number) => {
+      const wrapped =
+        responseJson && typeof responseJson === "object" && !Array.isArray(responseJson)
+          ? ({ generationId, ...(responseJson as Record<string, unknown>) } as Record<string, unknown>)
+          : ({ generationId, data: responseJson } as Record<string, unknown>);
+
       await completeIdempotency({
         userId,
         route: IDEMPOTENCY_ROUTE,
         key: idempotencyKey,
         generationId,
         responseStatus,
-        responseJson,
+        responseJson: wrapped,
       }).catch(() => {});
-      return NextResponse.json(responseJson, { status: responseStatus });
+      return NextResponse.json(wrapped, { status: responseStatus });
     };
 
     if (actionType === "tts") {
