@@ -517,6 +517,7 @@ export async function POST(req: NextRequest) {
     }
 
     const responseJson = {
+      generationId,
       imageUrls,
       resultUrls: imageUrls,
       imageUrl: imageUrls[0] ?? null,
