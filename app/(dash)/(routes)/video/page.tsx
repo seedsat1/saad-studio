@@ -772,7 +772,21 @@ function VideoPageInner() {
         }
         if (!res.ok || !data) { setGenerationError(data?.error ?? "Generation check failed"); removePending(); return; }
         if (data.status === "completed" && data.outputs.length > 0) {
-          const videoUrl = data.outputs[0];
+          let videoUrl = data.outputs[0];
+          // إذا كان الرابط ليس من Supabase، استدعي persist
+          if (videoUrl && !videoUrl.includes("supabase.co/storage/v1/object/public")) {
+            try {
+              const persistRes = await fetch("/api/assets/persist", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ mediaUrl: videoUrl }),
+              });
+              if (persistRes.ok) {
+                const persistJson = await persistRes.json();
+                if (persistJson?.url) videoUrl = persistJson.url;
+              }
+            } catch {}
+          }
           const newItem: MediaItem = {
             id: "gen-" + Date.now(), type: "video", src: videoUrl,
             model: ctx.model.name, modelColor: ctx.model.family_color,

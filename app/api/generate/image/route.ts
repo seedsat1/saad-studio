@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+// --- DIAGNOSTIC LOG ---
 console.log("IMAGE ROUTE HIT");
 import { auth } from "@clerk/nextjs/server";
 import { getGenerationCost } from "@/lib/pricing";
@@ -325,6 +326,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ status: "processing", generationId: idem.generationId }, { status: 202 });
     }
 
+    console.log("SPEND CREDITS ABOUT TO RUN");
     const spent = await spendCredits({
       userId,
       credits: creditsToCharge,
@@ -332,6 +334,7 @@ export async function POST(req: NextRequest) {
       assetType: "IMAGE",
       modelUsed: modelId,
     });
+    console.log("SPEND CREDITS SUCCESS");
     chargedCredits = creditsToCharge;
     generationId = spent.generationId;
     await attachIdempotencyGeneration({
