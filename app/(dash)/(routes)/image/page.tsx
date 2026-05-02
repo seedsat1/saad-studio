@@ -1232,12 +1232,40 @@ export default function ImageWorkspacePage() {
       if (imageUrls.length === 1) body.imageUrl = imageUrls[0];
       else body.imageUrls = imageUrls;
     }
+    // 1. Call /api/generate/image
     const res = await fetch("/api/generate/image", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
     const data = await res.json();
     if (!res.ok || data.error) throw new Error(data.error || "Generation failed");
     const urls = normalizeImageResponseUrls(data);
     if (!urls.length) throw new Error("Generation completed but no image URL was returned");
-    addResultItems(urls, "create", selectedModel.label, prompt, aspectRatio);
+
+    // 2. Call /api/assets/persist for each result
+    const generationId = data.generationId || data.taskId || data.id; // try to get generationId from response
+    let persistedUrls: string[] = [];
+    if (generationId && urls.length) {
+      // Only persist the first image (main record), as backend saves additional ones
+      try {
+        const persistRes = await fetch("/api/assets/persist", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ generationId, mediaUrl: urls[0] }),
+        });
+        const persistData = await persistRes.json();
+        if (persistRes.ok && persistData.url) {
+          // Replace the first URL with the permanent one
+          persistedUrls = [persistData.url, ...urls.slice(1)];
+        } else {
+          persistedUrls = urls;
+        }
+      } catch {
+        persistedUrls = urls;
+      }
+    } else {
+      persistedUrls = urls;
+    }
+
+    // 3. Update UI state with permanent Supabase URL(s)
+    addResultItems(persistedUrls, "create", selectedModel.label, prompt, aspectRatio);
   }, [addResultItems, aspectRatio, numImages, prompt, quality, qualityOptions, referenceFiles, selectedCharacter, selectedModel]);
 
   const generateRelight = useCallback(async () => {
