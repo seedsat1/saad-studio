@@ -924,10 +924,10 @@ export async function POST(req: Request) {
           key: idempotencyKey,
           generationId,
           responseStatus: 502,
-          responseJson: { error: (wsJson as Record<string, unknown>)?.message || `WaveSpeed submit failed (${wsRes.status})` },
+          responseJson: { generationId, error: (wsJson as Record<string, unknown>)?.message || `WaveSpeed submit failed (${wsRes.status})` },
         }).catch(() => {});
         return NextResponse.json(
-          { error: (wsJson as Record<string, unknown>)?.message || `WaveSpeed submit failed (${wsRes.status})` },
+          { generationId, error: (wsJson as Record<string, unknown>)?.message || `WaveSpeed submit failed (${wsRes.status})` },
           { status: 502 },
         );
       }
@@ -935,7 +935,7 @@ export async function POST(req: Request) {
       const wsTaskId = `ws:${String(wsPredictionId)}`;
       if (generationId) await setGenerationTaskMarker(generationId, wsTaskId);
 
-      const responseJson = { taskId: wsTaskId, status: "processing" };
+      const responseJson = { generationId, taskId: wsTaskId, status: "processing" };
       await completeIdempotency({
         userId,
         route: IDEMPOTENCY_ROUTE,
@@ -1100,6 +1100,7 @@ export async function POST(req: Request) {
     }
 
     const responseJson = {
+      generationId,
       taskId: String(taskId),
       status: "processing",
     };

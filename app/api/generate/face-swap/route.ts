@@ -209,7 +209,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    return NextResponse.json({ imageUrl: url }, { status: 200 });
+    return NextResponse.json({ generationId, imageUrl: url }, { status: 200 });
   } catch (error: unknown) {
     if (error instanceof InsufficientCreditsError) {
       return NextResponse.json(

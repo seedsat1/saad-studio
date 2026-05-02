@@ -211,7 +211,7 @@ export async function POST(req: Request) {
     if (generationId) {
       await setGenerationMediaUrl(generationId, imageUrl).catch(() => {});
     }
-    return NextResponse.json({ success: true, message: "Image generated successfully", imageUrl });
+    return NextResponse.json({ generationId, success: true, message: "Image generated successfully", imageUrl });
   } catch (error) {
     if (error instanceof InsufficientCreditsError) {
       return NextResponse.json(

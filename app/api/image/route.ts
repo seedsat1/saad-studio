@@ -99,7 +99,7 @@ export async function POST(req: NextRequest) {
       ).catch(() => {});
     }
 
-    return NextResponse.json(response.data);
+    return NextResponse.json({ generationId: charge?.generationId ?? null, images: response.data });
   } catch (error) {
     if (error instanceof InsufficientCreditsError) {
       return NextResponse.json(

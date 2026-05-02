@@ -281,6 +281,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     }
 
     return NextResponse.json({
+      generationId,
       imageUrls,
       resultUrls: imageUrls,
       imageUrl: imageUrls[0] ?? null,

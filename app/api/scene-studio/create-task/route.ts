@@ -50,17 +50,19 @@ export async function POST(req: Request) {
     const data = await res.json();
 
     // Spend credits if task creation was successful
+    let generationId: string | null = null;
     if (data.taskId) {
-      await spendCredits({
+      const charge = await spendCredits({
         userId,
         credits: SCENE_STUDIO_CREDITS,
         prompt: body.nodeInfoList?.find((n: any) => n.fieldName === "text")?.fieldValue?.slice(0, 500) || "Scene Studio Generation",
         assetType: "VIDEO",
         modelUsed: "scene-studio/runninghub",
       });
+      generationId = charge?.generationId ?? null;
     }
 
-    return Response.json(data);
+    return Response.json({ ...data, generationId });
   } catch (error) {
     if (error instanceof InsufficientCreditsError) {
       return insufficientCreditsResponse(error.requiredCredits, error.currentBalance);

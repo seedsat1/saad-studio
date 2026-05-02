@@ -334,7 +334,7 @@ export async function POST(req: Request) {
       await setGenerationTaskMarker(generationId, taskId);
     }
 
-    const responseJson = { taskId, provider };
+    const responseJson = { generationId, taskId, provider };
     await completeIdempotency({
       userId,
       route: IDEMPOTENCY_ROUTE,

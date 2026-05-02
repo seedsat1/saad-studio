@@ -231,7 +231,7 @@ export async function POST(req: NextRequest) {
       if (!videoUrl) throw new Error("No output URL in KIE result.");
       if (generationId) await setGenerationMediaUrl(generationId, videoUrl);
 
-      return NextResponse.json({ videoUrl, taskId: String(taskId), provider: "kie" }, { status: 200 });
+      return NextResponse.json({ generationId, videoUrl, taskId: String(taskId), provider: "kie" }, { status: 200 });
     }
 
     // FALLBACK: WaveSpeed (only when model is not available in KIE map)
@@ -279,7 +279,7 @@ export async function POST(req: NextRequest) {
       await setGenerationMediaUrl(generationId, videoUrl);
     }
 
-    return NextResponse.json({ videoUrl, predictionId, provider: "wavespeed" }, { status: 200 });
+    return NextResponse.json({ generationId, videoUrl, predictionId, provider: "wavespeed" }, { status: 200 });
   } catch (error: unknown) {
     if (error instanceof InsufficientCreditsError) {
       return NextResponse.json(
