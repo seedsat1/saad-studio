@@ -114,8 +114,8 @@ export const NAV_CATEGORIES: NavCategory[] = [
   },
   {
     id: "original-series",
-    label: "Original Series",
-    emoji: "📺",
+    label: "AI Canvas",
+    emoji: "🎨",
     href: "/original-series",
   },
   {

@@ -416,7 +416,7 @@ const STUDIO_LINKS = [
   { label: "Scene Editor", href: "/video-editor", icon: Scissors, color: "text-cyan-300" },
   { label: "Moodboard", href: "/moodboard", icon: Palette, color: "text-rose-400" },
   { label: "Next Scene", href: "/cinema-studio", icon: Clapperboard, color: "text-amber-400" },
-  { label: "Original Series", href: "/original-series", icon: Monitor, color: "text-blue-400" },
+  { label: "AI Canvas", href: "/original-series", icon: Monitor, color: "text-purple-400" },
   { label: "3D Studio", href: "/3d", icon: Box, color: "text-indigo-400" },
 ];
 
