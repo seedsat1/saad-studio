@@ -39,7 +39,11 @@ const nodeTypes = { canvasNode: CanvasNode as ComponentType<NodeProps> };
 const defaultEdgeOptions = {
   type: "default",
   animated: false,
-  style: { stroke: "rgba(99,102,241,0.42)", strokeWidth: 2 },
+  style: {
+    stroke: "rgba(99,102,241,0.55)",
+    strokeWidth: 2.5,
+    filter: "drop-shadow(0 0 6px rgba(99,102,241,0.4))",
+  },
 };
 
 function makeNode(
@@ -80,19 +84,19 @@ const INITIAL_EDGES: Edge[] = [
     id: "e1-2", source: "n1", sourceHandle: "prompt",
     target: "n2", targetHandle: "prompt",
     type: "default",
-    style: { stroke: "rgba(139,92,246,0.5)", strokeWidth: 2 },
+    style: { stroke: "rgba(139,92,246,0.6)", strokeWidth: 2.5, filter: "drop-shadow(0 0 6px rgba(139,92,246,0.45))" },
   },
   {
     id: "e2-3", source: "n2", sourceHandle: "image",
     target: "n3", targetHandle: "image",
     type: "default",
-    style: { stroke: "rgba(59,130,246,0.5)", strokeWidth: 2 },
+    style: { stroke: "rgba(59,130,246,0.6)", strokeWidth: 2.5, filter: "drop-shadow(0 0 6px rgba(59,130,246,0.45))" },
   },
   {
     id: "e3-4", source: "n3", sourceHandle: "video",
     target: "n4", targetHandle: "video",
     type: "default",
-    style: { stroke: "rgba(16,185,129,0.5)", strokeWidth: 2 },
+    style: { stroke: "rgba(16,185,129,0.6)", strokeWidth: 2.5, filter: "drop-shadow(0 0 6px rgba(16,185,129,0.45))" },
   },
 ];
 
@@ -444,14 +448,15 @@ function AICanvasInner() {
               onSelectionChange={onSelectionChange}
               nodeTypes={nodeTypes}
               defaultEdgeOptions={defaultEdgeOptions}
+              connectionLineStyle={{ stroke: "rgba(99,102,241,0.7)", strokeWidth: 2.5, filter: "drop-shadow(0 0 8px rgba(99,102,241,0.5))" }}
               fitView
-              fitViewOptions={{ padding: 0.25 }}
-              minZoom={0.25}
+              fitViewOptions={{ padding: 0.3 }}
+              minZoom={0.2}
               maxZoom={2}
               proOptions={{ hideAttribution: true }}
               style={{ background: "#060c18" }}
             >
-              <Background variant={BackgroundVariant.Dots} gap={28} size={1} color="rgba(255,255,255,0.06)" />
+              <Background variant={BackgroundVariant.Dots} gap={32} size={1} color="rgba(255,255,255,0.04)" />
               <Controls style={{ background: "rgba(8,13,26,0.95)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 10, bottom: 16, left: 16 }} />
               <MiniMap
                 style={{ background: "rgba(8,13,26,0.9)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 10, bottom: 16, right: 16 }}
