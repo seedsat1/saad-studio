@@ -176,7 +176,7 @@ export async function POST(req: Request) {
     if (generationId) {
       await setGenerationMediaUrl(generationId, audioUrl).catch(() => {});
     }
-    const responseJson = { audioUrl };
+    const responseJson = { generationId, audioUrl };
     await completeIdempotency({
       userId,
       route: IDEMPOTENCY_ROUTE,

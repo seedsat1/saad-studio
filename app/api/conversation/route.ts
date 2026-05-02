@@ -87,7 +87,7 @@ export async function POST(req: Request) {
     }
 
     await setGenerationMediaUrl(charge.generationId, "text:conversation");
-    return NextResponse.json({ content: msg, remainingCredits: charge.remainingCredits });
+    return NextResponse.json({ generationId: charge.generationId, content: msg, remainingCredits: charge.remainingCredits });
   } catch (error) {
     if (error instanceof InsufficientCreditsError) {
       return insufficientCreditsResponse(error.requiredCredits, error.currentBalance);

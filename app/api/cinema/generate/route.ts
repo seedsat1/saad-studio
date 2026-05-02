@@ -157,7 +157,7 @@ export async function POST(req: NextRequest) {
       data: { generationStatus: "processing" },
     });
 
-    return NextResponse.json({ jobId: job.id, taskId: String(taskId), status: "processing" });
+    return NextResponse.json({ generationId, jobId: job.id, taskId: String(taskId), status: "processing" });
   } catch (error) {
     if (error instanceof InsufficientCreditsError) {
       return NextResponse.json(

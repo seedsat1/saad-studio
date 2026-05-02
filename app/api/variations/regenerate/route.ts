@@ -115,6 +115,7 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({
+      generationId,
       outputId,
       kieTaskId: result.kieTaskId,
       modelUsed: result.modelUsed,

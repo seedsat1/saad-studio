@@ -243,7 +243,7 @@ export async function POST(req: NextRequest) {
     generationId = charge.generationId;
 
     const content = await callKie(allMessages, modelId);
-    return NextResponse.json({ content });
+    return NextResponse.json({ generationId, content });
   } catch (error) {
     if (error instanceof InsufficientCreditsError) {
       return insufficientCreditsResponse(error.requiredCredits, error.currentBalance);
