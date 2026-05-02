@@ -22,9 +22,6 @@ import {
 } from "@xyflow/react";
 
 import { CanvasNode } from "@/components/canvas/CanvasNode";
-import { NodeLibrary } from "@/components/canvas/NodeLibrary";
-import { CanvasToolbar } from "@/components/canvas/CanvasToolbar";
-import { ActivityPanel } from "@/components/canvas/ActivityPanel";
 import { CanvasContext, type CanvasContextValue } from "@/components/canvas/canvas-context";
 import {
   NODE_CONFIGS,
@@ -149,13 +146,64 @@ function topoSort(nodes: Node<CanvasNodeData>[], edges: Edge[]): Node<CanvasNode
   return sorted;
 }
 
+// ─── Floating toolbar helpers ─────────────────────────────────────────────────
+function ToolBtn({
+  children, onClick, title, active, disabled, accent,
+}: {
+  children: React.ReactNode;
+  onClick?: () => void;
+  title?: string;
+  active?: boolean;
+  disabled?: boolean;
+  accent?: string;
+}) {
+  return (
+    <button
+      title={title}
+      disabled={disabled}
+      onClick={onClick}
+      style={{
+        width: 36, height: 36, borderRadius: 10, flexShrink: 0,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        background: active ? (accent ? `rgba(99,102,241,0.18)` : "rgba(255,255,255,0.09)") : "transparent",
+        border: active ? `1px solid ${accent ?? "rgba(255,255,255,0.15)"}` : "1px solid transparent",
+        color: active ? (accent ?? "#a5b4fc") : disabled ? "#1a2c3e" : "#3d5573",
+        cursor: disabled ? "not-allowed" : "pointer",
+        transition: "all 0.13s",
+      }}
+      onMouseEnter={e => {
+        if (!disabled) {
+          const b = e.currentTarget as HTMLButtonElement;
+          b.style.background = "rgba(255,255,255,0.07)";
+          b.style.color = "#94a3b8";
+        }
+      }}
+      onMouseLeave={e => {
+        if (!disabled) {
+          const b = e.currentTarget as HTMLButtonElement;
+          b.style.background = active ? (accent ? "rgba(99,102,241,0.18)" : "rgba(255,255,255,0.09)") : "transparent";
+          b.style.color = active ? (accent ?? "#a5b4fc") : "#3d5573";
+        }
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+function Divider() {
+  return <div style={{ width: 20, height: 1, background: "rgba(255,255,255,0.06)", margin: "3px 0" }} />;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 function AICanvasInner() {
   const [nodes, setNodes, onNodesChange] = useNodesState<Node<CanvasNodeData>>(INITIAL_NODES);
   const [edges, setEdges, onEdgesChange] = useEdgesState(INITIAL_EDGES);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [activity, setActivity] = useState<ActivityEntry[]>([]);
-  const [activityOpen, setActivityOpen] = useState(true);
   const [isRunning, setIsRunning] = useState(false);
+  const [showAddMenu, setShowAddMenu] = useState(false);
 
   const nodesRef = useRef<Node<CanvasNodeData>[]>(nodes);
   const edgesRef = useRef<Edge[]>(edges);
@@ -432,47 +480,198 @@ function AICanvasInner() {
     [runNode, deleteNode, updateNodeSettings, addNodeAfter],
   );
 
+  const NODE_ADD_LIST: Array<{ type: CanvasNodeType; color: string }> = [
+    { type: "upload-image",  color: "#3b82f6" },
+    { type: "text-prompt",   color: "#8b5cf6" },
+    { type: "text-to-image", color: "#f59e0b" },
+    { type: "image-edit",    color: "#ec4899" },
+    { type: "image-to-video",color: "#10b981" },
+    { type: "video-to-video",color: "#6366f1" },
+    { type: "upscale",       color: "#14b8a6" },
+    { type: "export",        color: "#84cc16" },
+  ];
+
   return (
     <CanvasContext.Provider value={canvasCtx}>
-      <div style={{ height: "calc(100vh - 64px)", display: "flex", flexDirection: "column", overflow: "hidden", background: "#060c18" }}>
-        <CanvasToolbar onSave={saveCanvasState} onRunNode={runSelectedNode} onRunPipeline={runFullPipeline} isRunning={isRunning} nodeCount={nodes.length} />
-        <div style={{ flex: 1, display: "flex", overflow: "hidden", minHeight: 0 }}>
-          <NodeLibrary onAddNode={addNode} />
-          <div style={{ flex: 1, position: "relative", minWidth: 0 }}>
-            <ReactFlow
-              nodes={nodes}
-              edges={edges}
-              onNodesChange={onNodesChange}
-              onEdgesChange={onEdgesChange}
-              onConnect={onConnect}
-              onSelectionChange={onSelectionChange}
-              nodeTypes={nodeTypes}
-              defaultEdgeOptions={defaultEdgeOptions}
-              connectionLineStyle={{ stroke: "rgba(99,102,241,0.7)", strokeWidth: 2.5, filter: "drop-shadow(0 0 8px rgba(99,102,241,0.5))" }}
-              fitView
-              fitViewOptions={{ padding: 0.3 }}
-              minZoom={0.2}
-              maxZoom={2}
-              proOptions={{ hideAttribution: true }}
-              style={{ background: "#060c18" }}
-            >
-              <Background variant={BackgroundVariant.Dots} gap={32} size={1} color="rgba(255,255,255,0.04)" />
-              <Controls style={{ background: "rgba(8,13,26,0.95)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 10, bottom: 16, left: 16 }} />
-              <MiniMap
-                style={{ background: "rgba(8,13,26,0.9)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 10, bottom: 16, right: 16 }}
-                nodeColor={n => {
-                  const d = n.data as CanvasNodeData;
-                  if (d?.status === "done") return "rgba(16,185,129,0.6)";
-                  if (d?.status === "running") return "rgba(245,158,11,0.6)";
-                  if (d?.status === "error") return "rgba(239,68,68,0.6)";
-                  return "rgba(99,102,241,0.35)";
-                }}
-                maskColor="rgba(6,12,24,0.6)"
-              />
-            </ReactFlow>
+      <div style={{ position: "relative", width: "100%", height: "calc(100vh - 64px)", overflow: "hidden", background: "#060c18" }}>
+
+        {/* ── Full-screen canvas ── */}
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          onSelectionChange={onSelectionChange}
+          nodeTypes={nodeTypes}
+          defaultEdgeOptions={defaultEdgeOptions}
+          connectionLineStyle={{ stroke: "rgba(99,102,241,0.7)", strokeWidth: 2.5, filter: "drop-shadow(0 0 8px rgba(99,102,241,0.5))" }}
+          fitView
+          fitViewOptions={{ padding: 0.3 }}
+          minZoom={0.15}
+          maxZoom={2.5}
+          proOptions={{ hideAttribution: true }}
+          style={{ width: "100%", height: "100%", background: "#060c18" }}
+        >
+          <Background variant={BackgroundVariant.Dots} gap={32} size={1} color="rgba(255,255,255,0.04)" />
+          <MiniMap
+            style={{ background: "rgba(8,13,26,0.92)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 12, bottom: 20, right: 20 }}
+            nodeColor={n => {
+              const d = n.data as CanvasNodeData;
+              if (d?.status === "done")    return "rgba(16,185,129,0.7)";
+              if (d?.status === "running") return "rgba(245,158,11,0.7)";
+              if (d?.status === "error")   return "rgba(239,68,68,0.7)";
+              return "rgba(99,102,241,0.45)";
+            }}
+            maskColor="rgba(4,9,18,0.65)"
+          />
+        </ReactFlow>
+
+        {/* ── Floating vertical toolbar ── */}
+        <div
+          style={{
+            position: "absolute", top: "50%", left: 18,
+            transform: "translateY(-50%)",
+            zIndex: 100,
+            display: "flex", flexDirection: "column", alignItems: "center", gap: 3,
+            background: "rgba(9,16,28,0.95)",
+            backdropFilter: "blur(20px) saturate(160%)",
+            border: "1px solid rgba(255,255,255,0.08)",
+            borderRadius: 16, padding: "8px 0",
+            boxShadow: "0 8px 40px rgba(0,0,0,0.8), 0 1px 0 rgba(255,255,255,0.04) inset",
+          }}
+        >
+          {/* Canvas label */}
+          <div style={{ padding: "6px 12px 8px", borderBottom: "1px solid rgba(255,255,255,0.06)", marginBottom: 4, textAlign: "center" }}>
+            <div style={{ color: "#6366f1", fontSize: 16 }}>🎨</div>
+            {nodes.length > 0 && (
+              <div style={{ color: "#2a3f56", fontSize: 9, fontWeight: 600, letterSpacing: "0.05em", marginTop: 3 }}>{nodes.length}</div>
+            )}
           </div>
+
+          {/* + Add node */}
+          <div style={{ position: "relative" }}>
+            <ToolBtn
+              active={showAddMenu}
+              title="Add node"
+              onClick={() => setShowAddMenu(v => !v)}
+            >
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <path d="M7 1v12M1 7h12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+              </svg>
+            </ToolBtn>
+
+            {/* Add menu flyout */}
+            {showAddMenu && (
+              <div
+                style={{
+                  position: "absolute", left: "calc(100% + 10px)", top: "50%",
+                  transform: "translateY(-50%)",
+                  background: "rgba(7,13,24,0.98)",
+                  backdropFilter: "blur(24px) saturate(180%)",
+                  border: "1px solid rgba(255,255,255,0.09)",
+                  borderRadius: 14, overflow: "hidden", minWidth: 196,
+                  boxShadow: "0 20px 64px rgba(0,0,0,0.9), inset 0 1px 0 rgba(255,255,255,0.05)",
+                  zIndex: 200,
+                }}
+              >
+                <div style={{ padding: "10px 14px 8px", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+                  <span style={{ color: "#1e2f42", fontSize: 9, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase" }}>Add Node</span>
+                </div>
+                {NODE_ADD_LIST.map(({ type, color }) => {
+                  const cfg = NODE_CONFIGS[type];
+                  return (
+                    <button key={type}
+                      onClick={() => { addNode(type); setShowAddMenu(false); }}
+                      style={{
+                        width: "100%", display: "flex", alignItems: "center", gap: 10,
+                        padding: "9px 14px", background: "transparent", border: "none",
+                        cursor: "pointer", textAlign: "left", fontFamily: "inherit",
+                        borderBottom: "1px solid rgba(255,255,255,0.025)",
+                        transition: "background 0.1s",
+                      }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.05)"; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
+                    >
+                      <div style={{ width: 28, height: 28, borderRadius: 8, flexShrink: 0, fontSize: 13, background: `${color}15`, border: `1px solid ${color}28`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        {cfg.emoji}
+                      </div>
+                      <div>
+                        <div style={{ color: "#b0c8de", fontSize: 11.5, fontWeight: 500 }}>{cfg.label}</div>
+                        {cfg.creditCost > 0 && <div style={{ color: "#1e2f42", fontSize: 9, marginTop: 1 }}>{cfg.creditCost} cr</div>}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <Divider />
+
+          {/* Run pipeline */}
+          <ToolBtn
+            title={isRunning ? "Running…" : "Run pipeline"}
+            active={isRunning}
+            onClick={runFullPipeline}
+            disabled={isRunning}
+            accent="#6366f1"
+          >
+            {isRunning
+              ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ animation: "spin 1s linear infinite" }}><circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" strokeDasharray="28 56" strokeLinecap="round"/></svg>
+              : <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 2l9 5-9 5V2z" fill="currentColor"/></svg>
+            }
+          </ToolBtn>
+
+          <Divider />
+
+          {/* Fit view */}
+          <ToolBtn title="Fit view" onClick={saveCanvasState}>
+            <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
+              <rect x="1" y="1" width="4" height="4" rx="1" stroke="currentColor" strokeWidth="1.5"/>
+              <rect x="9" y="1" width="4" height="4" rx="1" stroke="currentColor" strokeWidth="1.5"/>
+              <rect x="1" y="9" width="4" height="4" rx="1" stroke="currentColor" strokeWidth="1.5"/>
+              <rect x="9" y="9" width="4" height="4" rx="1" stroke="currentColor" strokeWidth="1.5"/>
+            </svg>
+          </ToolBtn>
+
+          {/* Run selected */}
+          <ToolBtn title="Run selected node" onClick={runSelectedNode} disabled={!selectedNodeId}>
+            <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
+              <circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.5"/>
+              <path d="M5.5 5l3.5 2-3.5 2V5z" fill="currentColor"/>
+            </svg>
+          </ToolBtn>
+
+          <Divider />
+
+          {/* Clear activity log */}
+          <ToolBtn title="Clear log" onClick={() => setActivity([])}>
+            <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
+              <path d="M2 4h10M5 4V2.5h4V4M6 7v3M8 7v3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+              <path d="M3 4l.7 7.5h6.6L11 4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+            </svg>
+          </ToolBtn>
+
+          {/* Activity log indicator */}
+          {activity.length > 0 && (
+            <div style={{ width: 32, height: 20, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <span style={{
+                fontSize: 8.5, fontWeight: 700, color: "#344d65",
+                background: "rgba(99,102,241,0.1)", border: "1px solid rgba(99,102,241,0.15)",
+                borderRadius: 10, padding: "1px 6px", letterSpacing: "0.04em",
+              }}>{activity.length}</span>
+            </div>
+          )}
         </div>
-        <ActivityPanel entries={activity} open={activityOpen} onToggle={() => setActivityOpen(v => !v)} onClear={() => setActivity([])} />
+
+        {/* Click-outside to close add menu */}
+        {showAddMenu && (
+          <div
+            style={{ position: "fixed", inset: 0, zIndex: 99 }}
+            onClick={() => setShowAddMenu(false)}
+          />
+        )}
       </div>
     </CanvasContext.Provider>
   );
