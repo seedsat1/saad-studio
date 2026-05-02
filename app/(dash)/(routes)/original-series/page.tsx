@@ -8,11 +8,13 @@ import {
   ReactFlowProvider,
   Background,
   BackgroundVariant,
-  Controls,
   MiniMap,
+  Panel,
   addEdge,
   useNodesState,
   useEdgesState,
+  useReactFlow,
+  useViewport,
   type Node,
   type Edge,
   type Connection,
@@ -193,6 +195,222 @@ function ToolBtn({
 
 function Divider() {
   return <div style={{ width: 20, height: 1, background: "rgba(255,255,255,0.06)", margin: "3px 0" }} />;
+}
+
+// ─── Node Library Panel ───────────────────────────────────────────────────────
+type LibItem = { type: CanvasNodeType; label: string; icon: string; color: string };
+const NODE_LIBRARY_SECTIONS: Array<{ title: string; items: LibItem[] }> = [
+  {
+    title: "BASICS",
+    items: [
+      { type: "text-prompt"   as const, label: "Text",            icon: "T",  color: "#8b5cf6" },
+      { type: "text-to-image" as const, label: "Image Generator", icon: "🖼", color: "#f59e0b" },
+      { type: "image-to-video"as const, label: "Video Generator", icon: "🎬", color: "#10b981" },
+      { type: "image-edit"    as const, label: "Image Edit",      icon: "✏️", color: "#ec4899" },
+      { type: "upscale"       as const, label: "Image Upscaler",  icon: "⬆", color: "#14b8a6" },
+    ],
+  },
+  {
+    title: "MEDIA",
+    items: [
+      { type: "upload-image"  as const, label: "Upload",          icon: "📤", color: "#3b82f6" },
+      { type: "export"        as const, label: "Export",          icon: "💾", color: "#84cc16" },
+    ],
+  },
+  {
+    title: "VIDEO",
+    items: [
+      { type: "video-to-video"as const, label: "Video to Video",  icon: "🔄", color: "#6366f1" },
+    ],
+  },
+];
+
+function NodeLibraryPanel({
+  onAdd, onClose,
+}: {
+  onAdd: (t: CanvasNodeType) => void;
+  onClose: () => void;
+}) {
+  const [q, setQ] = useState("");
+  const allItems = NODE_LIBRARY_SECTIONS.flatMap(s => s.items) as LibItem[];
+  const filtered: LibItem[] | null = q.trim()
+    ? allItems.filter(i => i.label.toLowerCase().includes(q.toLowerCase()))
+    : null;
+
+  return (
+    <div
+      style={{
+        position: "absolute", left: 68, top: "50%",
+        transform: "translateY(-50%)",
+        width: 270,
+        background: "rgba(10,17,30,0.98)",
+        backdropFilter: "blur(28px) saturate(180%)",
+        border: "1px solid rgba(255,255,255,0.09)",
+        borderRadius: 16,
+        boxShadow: "0 24px 80px rgba(0,0,0,0.9), inset 0 1px 0 rgba(255,255,255,0.05)",
+        overflow: "hidden",
+        display: "flex", flexDirection: "column",
+        maxHeight: "min(440px, calc(100vh - 140px))",
+        zIndex: 200,
+      }}
+    >
+      {/* Search */}
+      <div style={{ padding: "12px 12px 8px", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 9, padding: "7px 10px" }}>
+          <svg width="12" height="12" viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0 }}>
+            <circle cx="5.5" cy="5.5" r="4" stroke="#3d5573" strokeWidth="1.4"/>
+            <path d="M8.5 8.5L12 12" stroke="#3d5573" strokeWidth="1.4" strokeLinecap="round"/>
+          </svg>
+          <input
+            autoFocus
+            value={q}
+            onChange={e => setQ(e.target.value)}
+            placeholder="Search"
+            style={{ flex: 1, background: "transparent", border: "none", outline: "none", color: "#94a3b8", fontSize: 12.5, fontFamily: "inherit" }}
+          />
+        </div>
+      </div>
+
+      {/* Category icon tabs */}
+      <div style={{ display: "flex", gap: 2, padding: "8px 12px", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+        {[
+          { icon: <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="5" height="5" rx="1.2" stroke="currentColor" strokeWidth="1.3"/><rect x="8" y="1" width="5" height="5" rx="1.2" stroke="currentColor" strokeWidth="1.3"/><rect x="1" y="8" width="5" height="5" rx="1.2" stroke="currentColor" strokeWidth="1.3"/><rect x="8" y="8" width="5" height="5" rx="1.2" stroke="currentColor" strokeWidth="1.3"/></svg>, label: "All" },
+          { icon: <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><rect x="1.5" y="1.5" width="11" height="11" rx="2" stroke="currentColor" strokeWidth="1.3"/><path d="M4.5 7h5M7 4.5v5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg>, label: "Basic" },
+          { icon: <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><rect x="1" y="2" width="12" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.3"/><path d="M5.5 5.5l3 2-3 2v-4z" fill="currentColor"/></svg>, label: "Image" },
+          { icon: <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M2 4h10M2 7h7M2 10h5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg>, label: "Text" },
+          { icon: <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M1 11V5l4 4 3-5 3 3 2-2" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg>, label: "Video" },
+        ].map((tab, i: number) => (
+          <button key={i} title={tab.label} style={{ width: 28, height: 26, borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center", background: i === 0 ? "rgba(255,255,255,0.07)" : "transparent", border: "1px solid transparent", color: i === 0 ? "#94a3b8" : "#3d5573", cursor: "pointer" }}>
+            {tab.icon}
+          </button>
+        ))}
+      </div>
+
+      {/* Node list */}
+      <div style={{ flex: 1, overflowY: "auto", padding: "8px 0" }}>
+        {filtered
+          ? filtered.map(item => (
+              <NodeLibItem key={item.type} item={item} onAdd={onAdd} onClose={onClose} />
+            ))
+          : NODE_LIBRARY_SECTIONS.map(sec => (
+              <div key={sec.title}>
+                <div style={{ padding: "4px 14px 6px", color: "#1a3050", fontSize: 9.5, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase" }}>{sec.title}</div>
+                {sec.items.map(item => (
+                  <NodeLibItem key={item.type} item={item} onAdd={onAdd} onClose={onClose} />
+                ))}
+              </div>
+            ))
+        }
+      </div>
+
+      {/* Footer shortcuts */}
+      <div style={{ borderTop: "1px solid rgba(255,255,255,0.05)", padding: "7px 14px", display: "flex", gap: 14 }}>
+        {[["N", "Open"], ["↑↓", "Navigate"], ["↵", "Insert"]].map(([k, v]) => (
+          <span key={k} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            <span style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 4, padding: "1px 5px", fontSize: 9, color: "#3d5573", fontWeight: 600 }}>{k}</span>
+            <span style={{ color: "#1a3050", fontSize: 9.5 }}>{v}</span>
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function NodeLibItem({
+  item, onAdd, onClose,
+}: {
+  item: { type: CanvasNodeType; label: string; icon: string; color: string };
+  onAdd: (t: CanvasNodeType) => void;
+  onClose: () => void;
+}) {
+  const cfg = NODE_CONFIGS[item.type];
+  return (
+    <button
+      onClick={() => { onAdd(item.type); onClose(); }}
+      style={{
+        width: "100%", display: "flex", alignItems: "center", gap: 10,
+        padding: "8px 14px", background: "transparent", border: "none",
+        cursor: "pointer", fontFamily: "inherit", textAlign: "left",
+      }}
+      onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.04)"; }}
+      onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
+    >
+      <div style={{ width: 30, height: 30, borderRadius: 9, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, background: `${item.color}18`, border: `1px solid ${item.color}30` }}>
+        {cfg.emoji}
+      </div>
+      <div style={{ color: "#a0bcd4", fontSize: 12.5, fontWeight: 400 }}>{item.label}</div>
+    </button>
+  );
+}
+
+// ─── Zoom bar (must be inside ReactFlow context) ──────────────────────────────
+function ZoomBar() {
+  const { zoomIn, zoomOut, zoomTo, fitView } = useReactFlow();
+  const { zoom } = useViewport();
+  const [open, setOpen] = useState(false);
+  const pct = Math.round(zoom * 100);
+
+  const actions = [
+    { label: "Zoom in",      shortcut: "⌘ +", fn: () => zoomIn({ duration: 200 }) },
+    { label: "Zoom out",     shortcut: "⌘ −", fn: () => zoomOut({ duration: 200 }) },
+    { label: "Zoom 100%",    shortcut: "⌘ 0", fn: () => zoomTo(1, { duration: 250 }) },
+    { label: "Zoom to fit",  shortcut: "D",   fn: () => fitView({ padding: 0.3, duration: 350 }) },
+  ];
+
+  return (
+    <div style={{ position: "relative" }}>
+      {open && (
+        <>
+          <div style={{ position: "fixed", inset: 0, zIndex: 299 }} onClick={() => setOpen(false)} />
+          <div style={{
+            position: "absolute", bottom: "calc(100% + 8px)", left: "50%",
+            transform: "translateX(-50%)",
+            background: "rgba(9,16,28,0.98)", backdropFilter: "blur(20px)",
+            border: "1px solid rgba(255,255,255,0.09)", borderRadius: 12,
+            overflow: "hidden", minWidth: 210,
+            boxShadow: "0 16px 48px rgba(0,0,0,0.85)",
+            zIndex: 300,
+          }}>
+            {actions.map(a => (
+              <button key={a.label}
+                onClick={() => { a.fn(); setOpen(false); }}
+                style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "9px 16px", background: "transparent", border: "none", borderBottom: "1px solid rgba(255,255,255,0.04)", cursor: "pointer", fontFamily: "inherit", color: "#94a3b8", fontSize: 12.5 }}
+                onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.05)"; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
+              >
+                <span>{a.label}</span>
+                <span style={{ color: "#1e3048", fontSize: 10.5 }}>{a.shortcut}</span>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+      <button
+        onClick={() => setOpen(v => !v)}
+        style={{
+          display: "flex", alignItems: "center", gap: 6,
+          background: "rgba(9,16,28,0.92)", backdropFilter: "blur(16px)",
+          border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10,
+          color: "#3d5573", fontSize: 12, fontWeight: 500,
+          padding: "6px 11px", cursor: "pointer", fontFamily: "inherit",
+          boxShadow: "0 4px 20px rgba(0,0,0,0.5)",
+          transition: "color 0.12s",
+        }}
+        onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = "#94a3b8"; }}
+        onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = "#3d5573"; }}
+      >
+        <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
+          <circle cx="5.5" cy="5.5" r="4" stroke="currentColor" strokeWidth="1.4"/>
+          <path d="M9 9L12.5 12.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+          <path d="M3.5 5.5h4M5.5 3.5v4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+        </svg>
+        {pct}%
+        <svg width="8" height="5" viewBox="0 0 8 5" fill="none">
+          <path d="M1 1l3 3 3-3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      </button>
+    </div>
+  );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -480,17 +698,6 @@ function AICanvasInner() {
     [runNode, deleteNode, updateNodeSettings, addNodeAfter],
   );
 
-  const NODE_ADD_LIST: Array<{ type: CanvasNodeType; color: string }> = [
-    { type: "upload-image",  color: "#3b82f6" },
-    { type: "text-prompt",   color: "#8b5cf6" },
-    { type: "text-to-image", color: "#f59e0b" },
-    { type: "image-edit",    color: "#ec4899" },
-    { type: "image-to-video",color: "#10b981" },
-    { type: "video-to-video",color: "#6366f1" },
-    { type: "upscale",       color: "#14b8a6" },
-    { type: "export",        color: "#84cc16" },
-  ];
-
   return (
     <CanvasContext.Provider value={canvasCtx}>
       <div style={{ position: "relative", width: "100%", height: "calc(100vh - 64px)", overflow: "hidden", background: "#060c18" }}>
@@ -514,6 +721,9 @@ function AICanvasInner() {
           style={{ width: "100%", height: "100%", background: "#060c18" }}
         >
           <Background variant={BackgroundVariant.Dots} gap={32} size={1} color="rgba(255,255,255,0.04)" />
+          <Panel position="bottom-center" style={{ margin: "0 0 14px 0" }}>
+            <ZoomBar />
+          </Panel>
           <MiniMap
             style={{ background: "rgba(8,13,26,0.92)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 12, bottom: 20, right: 20 }}
             nodeColor={n => {
@@ -561,49 +771,11 @@ function AICanvasInner() {
               </svg>
             </ToolBtn>
 
-            {/* Add menu flyout */}
             {showAddMenu && (
-              <div
-                style={{
-                  position: "absolute", left: "calc(100% + 10px)", top: "50%",
-                  transform: "translateY(-50%)",
-                  background: "rgba(7,13,24,0.98)",
-                  backdropFilter: "blur(24px) saturate(180%)",
-                  border: "1px solid rgba(255,255,255,0.09)",
-                  borderRadius: 14, overflow: "hidden", minWidth: 196,
-                  boxShadow: "0 20px 64px rgba(0,0,0,0.9), inset 0 1px 0 rgba(255,255,255,0.05)",
-                  zIndex: 200,
-                }}
-              >
-                <div style={{ padding: "10px 14px 8px", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
-                  <span style={{ color: "#1e2f42", fontSize: 9, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase" }}>Add Node</span>
-                </div>
-                {NODE_ADD_LIST.map(({ type, color }) => {
-                  const cfg = NODE_CONFIGS[type];
-                  return (
-                    <button key={type}
-                      onClick={() => { addNode(type); setShowAddMenu(false); }}
-                      style={{
-                        width: "100%", display: "flex", alignItems: "center", gap: 10,
-                        padding: "9px 14px", background: "transparent", border: "none",
-                        cursor: "pointer", textAlign: "left", fontFamily: "inherit",
-                        borderBottom: "1px solid rgba(255,255,255,0.025)",
-                        transition: "background 0.1s",
-                      }}
-                      onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.05)"; }}
-                      onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
-                    >
-                      <div style={{ width: 28, height: 28, borderRadius: 8, flexShrink: 0, fontSize: 13, background: `${color}15`, border: `1px solid ${color}28`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        {cfg.emoji}
-                      </div>
-                      <div>
-                        <div style={{ color: "#b0c8de", fontSize: 11.5, fontWeight: 500 }}>{cfg.label}</div>
-                        {cfg.creditCost > 0 && <div style={{ color: "#1e2f42", fontSize: 9, marginTop: 1 }}>{cfg.creditCost} cr</div>}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
+              <NodeLibraryPanel
+                onAdd={addNode}
+                onClose={() => setShowAddMenu(false)}
+              />
             )}
           </div>
 
@@ -672,6 +844,9 @@ function AICanvasInner() {
             onClick={() => setShowAddMenu(false)}
           />
         )}
+
+        {/* Spin animation for running state */}
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     </CanvasContext.Provider>
   );
