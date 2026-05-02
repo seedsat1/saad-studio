@@ -4,12 +4,14 @@ import { getGenerationCost, getGenerationCostQuote } from "@/lib/pricing";
 import { InsufficientCreditsError, precheckGenerationPolicy, refundGenerationCharge, setGenerationMediaUrl, spendCredits } from "@/lib/credit-ledger";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { getClientIp, isAllowedOrigin, isSafePublicHttpUrl, sanitizePrompt } from "@/lib/security";
+import { attachIdempotencyGeneration, beginIdempotency, completeIdempotency, getIdempotencyKey, hashRequestBody } from "@/lib/idempotency";
 
 export const runtime = "nodejs";
 
 const WAVESPEED_BASE_URL = "https://api.wavespeed.ai/api/v3";
 const KIE_BASE_URL = "https://api.kie.ai/api/v1";
 const KIE_FILE_UPLOAD_URL = "https://kieai.redpandaai.co/api/file-base64-upload";
+const IDEMPOTENCY_ROUTE = "generate:audio";
 
 const WS_TTS_MODEL = "elevenlabs/multilingual-v2";
 const WS_VIDEO2AUDIO_MODEL = "wavespeed-ai/mmaudio-v2";
@@ -710,6 +712,8 @@ export async function POST(req: NextRequest) {
   let chargedCredits = 0;
   let chargedUserId: string | null = null;
   let generationId: string | null = null;
+  const idempotencyKey = getIdempotencyKey(req.headers);
+  let requestHash: string | null = null;
 
   try {
     if (!isAllowedOrigin(req.headers.get("origin"))) {
@@ -720,6 +724,7 @@ export async function POST(req: NextRequest) {
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    chargedUserId = userId;
 
     const ip = getClientIp(req);
     const rate = checkRateLimit(`audio:${userId}:${ip}`, 30, 60_000);
@@ -737,6 +742,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body: AudioRequestBody = await req.json();
+    requestHash = hashRequestBody(body);
     const { actionType } = body;
 
     if (!actionType) {
@@ -912,6 +918,22 @@ export async function POST(req: NextRequest) {
               : actionType === "audio-isolation"
                 ? KIE_AUDIO_ISOLATION_MODEL
             : resolveWaveSpeedMusicModel(body.model);
+
+    if (requestHash) {
+      const idem = await beginIdempotency({
+        userId,
+        route: IDEMPOTENCY_ROUTE,
+        key: idempotencyKey,
+        requestHash,
+      });
+      if (idem.kind === "replay") {
+        return NextResponse.json(idem.responseJson, { status: idem.responseStatus });
+      }
+      if (idem.kind === "in_progress") {
+        return NextResponse.json({ status: "processing", generationId: idem.generationId }, { status: 202 });
+      }
+    }
+
     const charge = await spendCredits({
       userId,
       credits: creditsToCharge,
@@ -922,6 +944,24 @@ export async function POST(req: NextRequest) {
     generationId = charge.generationId;
     chargedCredits = creditsToCharge;
     chargedUserId = userId;
+    await attachIdempotencyGeneration({
+      userId,
+      route: IDEMPOTENCY_ROUTE,
+      key: idempotencyKey,
+      generationId,
+    }).catch(() => {});
+
+    const finalize = async (responseJson: unknown, responseStatus: number) => {
+      await completeIdempotency({
+        userId,
+        route: IDEMPOTENCY_ROUTE,
+        key: idempotencyKey,
+        generationId,
+        responseStatus,
+        responseJson,
+      }).catch(() => {});
+      return NextResponse.json(responseJson, { status: responseStatus });
+    };
 
     if (actionType === "tts") {
       const { text, voice = "Aria" } = body;
@@ -954,7 +994,7 @@ export async function POST(req: NextRequest) {
           if (generationId) {
             await setGenerationMediaUrl(generationId, audioUrl);
           }
-          return NextResponse.json({ audioUrl, provider, chargedCredits: creditsToCharge }, { status: 200 });
+          return await finalize({ audioUrl, provider, chargedCredits: creditsToCharge }, 200);
         } catch (error) {
           lastError = error instanceof Error ? error.message : "Unknown provider error.";
         }
@@ -976,7 +1016,7 @@ export async function POST(req: NextRequest) {
       if (generationId) {
         await setGenerationMediaUrl(generationId, audioUrl);
       }
-      return NextResponse.json({ audioUrl, provider: "wavespeed", chargedCredits: creditsToCharge }, { status: 200 });
+      return await finalize({ audioUrl, provider: "wavespeed", chargedCredits: creditsToCharge }, 200);
     }
 
     if (actionType === "music") {
@@ -1012,7 +1052,7 @@ export async function POST(req: NextRequest) {
             if (generationId) {
               await setGenerationMediaUrl(generationId, audioUrl);
             }
-            return NextResponse.json({ audioUrl, provider: "kie", chargedCredits: creditsToCharge }, { status: 200 });
+            return await finalize({ audioUrl, provider: "kie", chargedCredits: creditsToCharge }, 200);
           } catch (error) {
             kieError = error instanceof Error ? error.message : "KIE sound effect failed.";
           }
@@ -1035,7 +1075,7 @@ export async function POST(req: NextRequest) {
         if (generationId) {
           await setGenerationMediaUrl(generationId, fallbackAudioUrl);
         }
-        return NextResponse.json({ audioUrl: fallbackAudioUrl, provider: "wavespeed", chargedCredits: creditsToCharge }, { status: 200 });
+        return await finalize({ audioUrl: fallbackAudioUrl, provider: "wavespeed", chargedCredits: creditsToCharge }, 200);
       }
 
       if (!wavespeedKey) {
@@ -1076,12 +1116,12 @@ export async function POST(req: NextRequest) {
       if (generationId) {
         await setGenerationMediaUrl(generationId, audioUrl);
       }
-      return NextResponse.json({ audioUrl, provider: "wavespeed", chargedCredits: creditsToCharge }, { status: 200 });
+      return await finalize({ audioUrl, provider: "wavespeed", chargedCredits: creditsToCharge }, 200);
     }
     if (actionType === "speech-to-text") {
       if (!kieKey) throw new Error("KIE API key is required for speech-to-text.");
       const transcript = await runKieSpeechToText(body, kieKey);
-      return NextResponse.json({ transcript, provider: "kie", chargedCredits: creditsToCharge }, { status: 200 });
+      return await finalize({ transcript, provider: "kie", chargedCredits: creditsToCharge }, 200);
     }
     if (actionType === "audio-isolation") {
       if (!kieKey) throw new Error("KIE API key is required for audio-isolation.");
@@ -1089,7 +1129,7 @@ export async function POST(req: NextRequest) {
       if (generationId) {
         await setGenerationMediaUrl(generationId, audioUrl);
       }
-      return NextResponse.json({ audioUrl, provider: "kie", chargedCredits: creditsToCharge }, { status: 200 });
+      return await finalize({ audioUrl, provider: "kie", chargedCredits: creditsToCharge }, 200);
     }
     if (actionType === "voice-changer") {
       if (!wavespeedKey) {
@@ -1114,7 +1154,7 @@ export async function POST(req: NextRequest) {
       if (generationId) {
         await setGenerationMediaUrl(generationId, audioUrl);
       }
-      return NextResponse.json({ audioUrl, provider: "wavespeed", chargedCredits: creditsToCharge }, { status: 200 });
+      return await finalize({ audioUrl, provider: "wavespeed", chargedCredits: creditsToCharge }, 200);
     }
     if (actionType === "dubbing") {
       if (!wavespeedKey) {
@@ -1147,11 +1187,11 @@ export async function POST(req: NextRequest) {
       }
 
       const isVideo = /\.(mp4|mov|webm)(\?|$)/i.test(outputUrl);
-      return NextResponse.json(
+      return await finalize(
         isVideo
           ? { videoUrl: outputUrl, provider: "wavespeed", chargedCredits: creditsToCharge }
           : { audioUrl: outputUrl, provider: "wavespeed", chargedCredits: creditsToCharge },
-        { status: 200 },
+        200,
       );
     }
     if (actionType === "lip-sync") {
@@ -1191,7 +1231,7 @@ export async function POST(req: NextRequest) {
         if (generationId) {
           await setGenerationMediaUrl(generationId, videoUrl);
         }
-        return NextResponse.json({ videoUrl, provider: "kie", chargedCredits: creditsToCharge }, { status: 200 });
+        return await finalize({ videoUrl, provider: "kie", chargedCredits: creditsToCharge }, 200);
       }
 
       // Seedance 2: optional references + prompt in one video-generation call.
@@ -1232,7 +1272,7 @@ export async function POST(req: NextRequest) {
       if (generationId) {
         await setGenerationMediaUrl(generationId, videoUrl);
       }
-      return NextResponse.json({ videoUrl, provider: "kie", chargedCredits: creditsToCharge }, { status: 200 });
+      return await finalize({ videoUrl, provider: "kie", chargedCredits: creditsToCharge }, 200);
     }
     if (actionType === "voice-cloning") {
       const clonedVoiceName = (body.cloneName || "custom-voice").trim().slice(0, 64);
@@ -1245,7 +1285,7 @@ export async function POST(req: NextRequest) {
           if (generationId) {
             await setGenerationMediaUrl(generationId, audioUrl);
           }
-          return NextResponse.json(
+          return await finalize(
             {
               audioUrl,
               provider: "kie",
@@ -1253,7 +1293,7 @@ export async function POST(req: NextRequest) {
               voiceName: clonedVoiceName || customVoiceId,
               chargedCredits: creditsToCharge,
             },
-            { status: 200 },
+            200,
           );
         } catch (kieErr) {
           console.warn("[voice-cloning] KIE failed, falling back to WaveSpeed:", kieErr instanceof Error ? kieErr.message : kieErr);
@@ -1289,7 +1329,7 @@ export async function POST(req: NextRequest) {
       if (generationId) {
         await setGenerationMediaUrl(generationId, audioUrl);
       }
-      return NextResponse.json(
+      return await finalize(
         {
           audioUrl,
           provider: "wavespeed",
@@ -1297,18 +1337,29 @@ export async function POST(req: NextRequest) {
           voiceName: clonedVoiceName || customVoiceId,
           chargedCredits: creditsToCharge,
         },
-        { status: 200 },
+        200,
       );
     }
     throw new Error(`Unknown actionType: ${actionType}. Supported: tts | video2audio | music | speech-to-text | audio-isolation | voice-changer | dubbing | lip-sync | voice-cloning.`);
   } catch (error: unknown) {
     if (error instanceof InsufficientCreditsError) {
+      const responseJson = {
+        error: "Insufficient credits",
+        requiredCredits: error.requiredCredits,
+        currentBalance: error.currentBalance,
+      };
+      if (chargedUserId && requestHash) {
+        await completeIdempotency({
+          userId: chargedUserId,
+          route: IDEMPOTENCY_ROUTE,
+          key: idempotencyKey,
+          generationId,
+          responseStatus: 402,
+          responseJson,
+        }).catch(() => {});
+      }
       return NextResponse.json(
-        {
-          error: "Insufficient credits",
-          requiredCredits: error.requiredCredits,
-          currentBalance: error.currentBalance,
-        },
+        responseJson,
         { status: 402 },
       );
     }
@@ -1321,6 +1372,16 @@ export async function POST(req: NextRequest) {
     }
 
     const message = error instanceof Error ? error.message : "An unexpected error occurred.";
+    if (chargedUserId && requestHash) {
+      await completeIdempotency({
+        userId: chargedUserId,
+        route: IDEMPOTENCY_ROUTE,
+        key: idempotencyKey,
+        generationId,
+        responseStatus: 500,
+        responseJson: { error: message },
+      }).catch(() => {});
+    }
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

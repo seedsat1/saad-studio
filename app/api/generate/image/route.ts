@@ -1,18 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { getGenerationCost } from "@/lib/pricing";
-import { InsufficientCreditsError, precheckGenerationPolicy, refundGenerationCharge, saveAdditionalGenerationUrls, setGenerationMediaUrl, spendCredits } from "@/lib/credit-ledger";
+import { InsufficientCreditsError, precheckGenerationPolicy, rollbackGenerationCharge, saveAdditionalGenerationUrls, setGenerationMediaUrl, spendCredits } from "@/lib/credit-ledger";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { getClientIp, isAllowedOrigin, sanitizePrompt } from "@/lib/security";
 import { getResolvedKieRoutingMaps } from "@/lib/kie-model-routing";
 import { syncKieModelCatalog } from "@/lib/kie-model-sync";
 import { uploadBufferToStorage } from "@/lib/supabase-storage";
+import { attachIdempotencyGeneration, beginIdempotency, completeIdempotency, getIdempotencyKey, hashRequestBody } from "@/lib/idempotency";
 
 export const maxDuration = 180;
 export const dynamic = "force-dynamic";
 
 const KIE_CREATE_TASK_URL = "https://api.kie.ai/api/v1/jobs/createTask";
 const KIE_QUERY_TASK_URL = "https://api.kie.ai/api/v1/jobs/recordInfo";
+const IDEMPOTENCY_ROUTE = "generate:image";
 
 interface ImageRequestBody {
   prompt: string;
@@ -235,6 +237,8 @@ export async function POST(req: NextRequest) {
   let chargedCredits = 0;
   let chargedUserId: string | null = null;
   let generationId: string | null = null;
+  const idempotencyKey = getIdempotencyKey(req.headers);
+  let requestHash: string | null = null;
 
   try {
     // non-blocking periodic sync of KIE updates catalog
@@ -248,6 +252,7 @@ export async function POST(req: NextRequest) {
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    chargedUserId = userId;
 
     const ip = getClientIp(req);
     const rate = checkRateLimit(`image:${userId}:${ip}`, 30, 60_000);
@@ -256,6 +261,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body: ImageRequestBody = await req.json();
+    requestHash = hashRequestBody(body);
     const {
       prompt,
       modelId,
@@ -305,6 +311,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `No credit configuration for model: ${modelId}` }, { status: 400 });
     }
 
+    const idem = await beginIdempotency({
+      userId,
+      route: IDEMPOTENCY_ROUTE,
+      key: idempotencyKey,
+      requestHash,
+    });
+    if (idem.kind === "replay") {
+      return NextResponse.json(idem.responseJson, { status: idem.responseStatus });
+    }
+    if (idem.kind === "in_progress") {
+      return NextResponse.json({ status: "processing", generationId: idem.generationId }, { status: 202 });
+    }
+
     const spent = await spendCredits({
       userId,
       credits: creditsToCharge,
@@ -313,8 +332,13 @@ export async function POST(req: NextRequest) {
       modelUsed: modelId,
     });
     chargedCredits = creditsToCharge;
-    chargedUserId = userId;
     generationId = spent.generationId;
+    await attachIdempotencyGeneration({
+      userId,
+      route: IDEMPOTENCY_ROUTE,
+      key: idempotencyKey,
+      generationId,
+    }).catch(() => {});
 
     const kieApiKey = process.env.KIE_API_KEY ?? process.env.KIEAI_API_KEY;
     if (!kieApiKey) {
@@ -488,36 +512,60 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    return NextResponse.json(
-      {
-        imageUrls,
-        resultUrls: imageUrls,
-        imageUrl: imageUrls[0] ?? null,
-        mediaUrl: imageUrls[0] ?? null,
-        taskId,
-      },
-      { status: 200 },
-    );
+    const responseJson = {
+      imageUrls,
+      resultUrls: imageUrls,
+      imageUrl: imageUrls[0] ?? null,
+      mediaUrl: imageUrls[0] ?? null,
+      taskId,
+    };
+    await completeIdempotency({
+      userId,
+      route: IDEMPOTENCY_ROUTE,
+      key: idempotencyKey,
+      generationId,
+      responseStatus: 200,
+      responseJson,
+    }).catch(() => {});
+    return NextResponse.json(responseJson, { status: 200 });
   } catch (error: unknown) {
     if (error instanceof InsufficientCreditsError) {
+      const responseJson = {
+        error: "Insufficient credits",
+        requiredCredits: error.requiredCredits,
+        currentBalance: error.currentBalance,
+      };
+      if (chargedUserId && requestHash) {
+        await completeIdempotency({
+          userId: chargedUserId,
+          route: IDEMPOTENCY_ROUTE,
+          key: idempotencyKey,
+          generationId,
+          responseStatus: 402,
+          responseJson,
+        }).catch(() => {});
+      }
       return NextResponse.json(
-        {
-          error: "Insufficient credits",
-          requiredCredits: error.requiredCredits,
-          currentBalance: error.currentBalance,
-        },
+        responseJson,
         { status: 402 },
       );
     }
 
     if (chargedCredits > 0 && chargedUserId && generationId) {
-      await refundGenerationCharge(generationId, chargedUserId, chargedCredits, {
-        reason: "generation_refund_provider_failed",
-        clearMediaUrl: true,
-      }).catch(() => {});
+      await rollbackGenerationCharge(generationId, chargedUserId, chargedCredits).catch(() => {});
     }
 
     const message = error instanceof Error ? error.message : "An unexpected error occurred.";
+    if (chargedUserId && requestHash) {
+      await completeIdempotency({
+        userId: chargedUserId,
+        route: IDEMPOTENCY_ROUTE,
+        key: idempotencyKey,
+        generationId,
+        responseStatus: 500,
+        responseJson: { error: message },
+      }).catch(() => {});
+    }
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

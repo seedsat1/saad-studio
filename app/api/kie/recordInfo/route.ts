@@ -1,5 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
+import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
+import { getClientIp } from "@/lib/security";
 
 const KIE_BASE = "https://api.kie.ai/api/v1";
 
@@ -17,6 +19,14 @@ export async function GET(req: NextRequest) {
   try {
     const { userId } = await auth();
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const ip = getClientIp(req);
+    const rate = checkRateLimit(`proxy:kie:recordInfo:${userId}:${ip}`, 60, 60_000);
+    if (!rate.allowed) {
+      return NextResponse.json({ error: "Too many requests" }, { status: 429, headers: rateLimitHeaders(rate) });
+    }
+
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     const taskId = req.nextUrl.searchParams.get("taskId")?.trim();
     if (!taskId) {

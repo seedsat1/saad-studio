@@ -10,10 +10,12 @@ import { getClientIp, isAllowedOrigin, sanitizePrompt } from "@/lib/security";
 import prismadb from "@/lib/prismadb";
 import { getResolvedKieRoutingMaps } from "@/lib/kie-model-routing";
 import { syncKieModelCatalog } from "@/lib/kie-model-sync";
+import { attachIdempotencyGeneration, beginIdempotency, completeIdempotency, getIdempotencyKey, hashRequestBody } from "@/lib/idempotency";
 
 const KIE_BASE = "https://api.kie.ai/api/v1";
 const WAVESPEED_BASE = "https://api.wavespeed.ai/api/v3";
 const { videoRouteToKieModelMap, wavespeedFallbackMap } = getResolvedKieRoutingMaps();
+const IDEMPOTENCY_ROUTE = "generate:video";
 
 function getKieKeyFromEnv(): string | null {
   const key = process.env.KIE_API_KEY || process.env.KIEAI_API_KEY;
@@ -767,6 +769,8 @@ export async function POST(req: Request) {
   let chargedCredits = 0;
   let chargedUserId: string | null = null;
   let generationId: string | null = null;
+  const idempotencyKey = getIdempotencyKey(req.headers);
+  let requestHash: string | null = null;
 
   try {
     await syncKieModelCatalog(false).catch(() => null);
@@ -779,6 +783,7 @@ export async function POST(req: Request) {
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    chargedUserId = userId;
 
     const ip = getClientIp(req);
     const rate = checkRateLimit(`video:${userId}:${ip}`, 20, 60_000);
@@ -790,6 +795,7 @@ export async function POST(req: Request) {
     if (!body || typeof body !== "object") {
       return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
     }
+    requestHash = hashRequestBody(body);
     const { modelRoute, payload } = body as {
       modelRoute?: string;
       payload?: Record<string, unknown>;
@@ -845,6 +851,21 @@ export async function POST(req: Request) {
       );
     }
 
+    if (requestHash) {
+      const idem = await beginIdempotency({
+        userId,
+        route: IDEMPOTENCY_ROUTE,
+        key: idempotencyKey,
+        requestHash,
+      });
+      if (idem.kind === "replay") {
+        return NextResponse.json(idem.responseJson, { status: idem.responseStatus });
+      }
+      if (idem.kind === "in_progress") {
+        return NextResponse.json({ status: "processing", generationId: idem.generationId }, { status: 202 });
+      }
+    }
+
     // ── WaveSpeed path ────────────────────────────────────────────────────────
     if (wavespeedRoute && !kieModel) {
       const wavespeedKey = process.env.WAVESPEED_API_KEY;
@@ -869,6 +890,12 @@ export async function POST(req: Request) {
       generationId = charge.generationId;
       chargedCredits = creditsToCharge;
       chargedUserId = userId;
+      await attachIdempotencyGeneration({
+        userId,
+        route: IDEMPOTENCY_ROUTE,
+        key: idempotencyKey,
+        generationId,
+      }).catch(() => {});
 
       const wsRes = await fetch(`${WAVESPEED_BASE}/${wavespeedRoute}`, {
         method: "POST",
@@ -890,6 +917,14 @@ export async function POST(req: Request) {
             clearMediaUrl: true,
           }).catch(() => {});
         }
+        await completeIdempotency({
+          userId,
+          route: IDEMPOTENCY_ROUTE,
+          key: idempotencyKey,
+          generationId,
+          responseStatus: 502,
+          responseJson: { error: (wsJson as Record<string, unknown>)?.message || `WaveSpeed submit failed (${wsRes.status})` },
+        }).catch(() => {});
         return NextResponse.json(
           { error: (wsJson as Record<string, unknown>)?.message || `WaveSpeed submit failed (${wsRes.status})` },
           { status: 502 },
@@ -899,7 +934,16 @@ export async function POST(req: Request) {
       const wsTaskId = `ws:${String(wsPredictionId)}`;
       if (generationId) await setGenerationTaskMarker(generationId, wsTaskId);
 
-      return NextResponse.json({ taskId: wsTaskId, status: "processing" });
+      const responseJson = { taskId: wsTaskId, status: "processing" };
+      await completeIdempotency({
+        userId,
+        route: IDEMPOTENCY_ROUTE,
+        key: idempotencyKey,
+        generationId,
+        responseStatus: 200,
+        responseJson,
+      }).catch(() => {});
+      return NextResponse.json(responseJson);
     }
 
     // ── KIE path ──────────────────────────────────────────────────────────────
@@ -967,6 +1011,12 @@ export async function POST(req: Request) {
     generationId = charge.generationId;
     chargedCredits = creditsToCharge;
     chargedUserId = userId;
+    await attachIdempotencyGeneration({
+      userId,
+      route: IDEMPOTENCY_ROUTE,
+      key: idempotencyKey,
+      generationId,
+    }).catch(() => {});
 
     const callbackUrl = `${process.env.NEXT_PUBLIC_APP_URL || "https://example.com"}/api/callback`;
 
@@ -999,6 +1049,14 @@ export async function POST(req: Request) {
           clearMediaUrl: true,
         }).catch(() => {});
       }
+      await completeIdempotency({
+        userId,
+        route: IDEMPOTENCY_ROUTE,
+        key: idempotencyKey,
+        generationId,
+        responseStatus: 502,
+        responseJson: { error: `KIE returned non-JSON (${createRes.status}): ${text.slice(0, 200)}` },
+      }).catch(() => {});
       return NextResponse.json(
         { error: `KIE returned non-JSON (${createRes.status}): ${text.slice(0, 200)}` },
         { status: 502 },
@@ -1022,6 +1080,14 @@ export async function POST(req: Request) {
           clearMediaUrl: true,
         }).catch(() => {});
       }
+      await completeIdempotency({
+        userId,
+        route: IDEMPOTENCY_ROUTE,
+        key: idempotencyKey,
+        generationId,
+        responseStatus: 502,
+        responseJson: { error: createJson?.msg || createJson?.message || `KIE createTask failed (${createRes.status})` },
+      }).catch(() => {});
       return NextResponse.json(
         { error: createJson?.msg || createJson?.message || `KIE createTask failed (${createRes.status})` },
         { status: 502 },
@@ -1032,18 +1098,38 @@ export async function POST(req: Request) {
       await setGenerationTaskMarker(generationId, String(taskId));
     }
 
-    return NextResponse.json({
+    const responseJson = {
       taskId: String(taskId),
       status: "processing",
-    });
+    };
+    await completeIdempotency({
+      userId,
+      route: IDEMPOTENCY_ROUTE,
+      key: idempotencyKey,
+      generationId,
+      responseStatus: 200,
+      responseJson,
+    }).catch(() => {});
+    return NextResponse.json(responseJson);
   } catch (err) {
     if (err instanceof InsufficientCreditsError) {
+      const responseJson = {
+        error: "Insufficient credits",
+        requiredCredits: err.requiredCredits,
+        currentBalance: err.currentBalance,
+      };
+      if (chargedUserId && requestHash) {
+        await completeIdempotency({
+          userId: chargedUserId,
+          route: IDEMPOTENCY_ROUTE,
+          key: idempotencyKey,
+          generationId,
+          responseStatus: 402,
+          responseJson,
+        }).catch(() => {});
+      }
       return NextResponse.json(
-        {
-          error: "Insufficient credits",
-          requiredCredits: err.requiredCredits,
-          currentBalance: err.currentBalance,
-        },
+        responseJson,
         { status: 402 },
       );
     }
@@ -1057,6 +1143,16 @@ export async function POST(req: Request) {
 
     const msg = err instanceof Error ? err.message : "Internal Error";
     console.error("[api/video POST]", err);
+    if (chargedUserId && requestHash) {
+      await completeIdempotency({
+        userId: chargedUserId,
+        route: IDEMPOTENCY_ROUTE,
+        key: idempotencyKey,
+        generationId,
+        responseStatus: 500,
+        responseJson: { error: msg },
+      }).catch(() => {});
+    }
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

@@ -1,6 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
-import { spendCredits, InsufficientCreditsError } from "@/lib/credit-ledger";
+import { rollbackGenerationCharge, spendCredits, InsufficientCreditsError } from "@/lib/credit-ledger";
 import { ASSIST_CHAT_CREDITS } from "@/lib/credits-config";
 import {
   assertSufficientCredits,
@@ -190,6 +190,10 @@ function normalizeMessages(input: unknown): ChatMessage[] {
 }
 
 export async function POST(req: NextRequest) {
+  let chargedUserId: string | null = null;
+  let chargedCredits = 0;
+  let generationId: string | null = null;
+
   try {
     if (!isAllowedOrigin(req.headers.get("origin"))) {
       return NextResponse.json({ error: "Origin not allowed" }, { status: 403 });
@@ -199,6 +203,7 @@ export async function POST(req: NextRequest) {
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    chargedUserId = userId;
 
     const ip = getClientIp(req);
     const rate = checkRateLimit(`assist:${userId}:${ip}`, 30, 60000);
@@ -224,7 +229,7 @@ export async function POST(req: NextRequest) {
 
     await assertSufficientCredits(userId, ASSIST_CHAT_CREDITS);
 
-    await spendCredits({
+    const charge = await spendCredits({
       userId,
       credits: ASSIST_CHAT_CREDITS,
       prompt:
@@ -234,12 +239,17 @@ export async function POST(req: NextRequest) {
       assetType: "TEXT",
       modelUsed: `assist/${modelId}`,
     });
+    chargedCredits = ASSIST_CHAT_CREDITS;
+    generationId = charge.generationId;
 
     const content = await callKie(allMessages, modelId);
     return NextResponse.json({ content });
   } catch (error) {
     if (error instanceof InsufficientCreditsError) {
       return insufficientCreditsResponse(error.requiredCredits, error.currentBalance);
+    }
+    if (chargedCredits > 0 && chargedUserId && generationId) {
+      await rollbackGenerationCharge(generationId, chargedUserId, chargedCredits).catch(() => {});
     }
     console.error("assist API error", error);
     return safeGenerationErrorResponse(error, "assist");

@@ -78,6 +78,22 @@ model Generation {
   @@index([createdAt])
 }
 
+model ApiIdempotency {
+  id             String   @id @default(cuid())
+  userId         String
+  route          String
+  key            String
+  requestHash    String
+  generationId   String?
+  responseStatus Int?
+  responseJson   Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([userId, route, key])
+  @@index([userId, createdAt])
+}
+
 model CreditLedgerEntry {
   id           String      @id @default(cuid())
   userId       String

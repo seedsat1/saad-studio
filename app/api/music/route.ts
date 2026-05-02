@@ -1,12 +1,14 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { getGenerationCost } from "@/lib/pricing";
-import { InsufficientCreditsError, precheckGenerationPolicy, refundCredits, refundGenerationCharge, setGenerationMediaUrl, spendCredits } from "@/lib/credit-ledger";
+import { InsufficientCreditsError, precheckGenerationPolicy, rollbackGenerationCharge, setGenerationMediaUrl, spendCredits } from "@/lib/credit-ledger";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { fetchWithTimeout, readErrorBody } from "@/lib/http";
 import { getClientIp, isAllowedOrigin, sanitizePrompt } from "@/lib/security";
+import { attachIdempotencyGeneration, beginIdempotency, completeIdempotency, getIdempotencyKey, hashRequestBody } from "@/lib/idempotency";
 
 const WAVESPEED_MUSIC_PREFIXES = ["wavespeed-ai/", "minimax/", "elevenlabs/", "google/lyria"];
+const IDEMPOTENCY_ROUTE = "generate:music";
 
 function isWaveSpeedModel(model: string): boolean {
   return WAVESPEED_MUSIC_PREFIXES.some((p) => model.startsWith(p));
@@ -16,6 +18,8 @@ export async function POST(req: Request) {
   let chargedCredits = 0;
   let chargedUserId: string | null = null;
   let generationId: string | null = null;
+  const idempotencyKey = getIdempotencyKey(req.headers);
+  let requestHash: string | null = null;
 
   try {
     if (!isAllowedOrigin(req.headers.get("origin"))) {
@@ -26,6 +30,7 @@ export async function POST(req: Request) {
     if (!userId) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
+    chargedUserId = userId;
 
     const ip = getClientIp(req);
     const rate = checkRateLimit(`music:${userId}:${ip}`, 20, 60_000);
@@ -34,6 +39,7 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
+    requestHash = hashRequestBody(body);
     const { prompt, model = "elevenlabs/music", duration, style, lyrics, force_instrumental, output_format } = body as {
       prompt: string;
       model?: string;
@@ -57,6 +63,19 @@ export async function POST(req: Request) {
       return new NextResponse("No credit configuration for this music model", { status: 400 });
     }
 
+    const idem = await beginIdempotency({
+      userId,
+      route: IDEMPOTENCY_ROUTE,
+      key: idempotencyKey,
+      requestHash,
+    });
+    if (idem.kind === "replay") {
+      return NextResponse.json(idem.responseJson, { status: idem.responseStatus });
+    }
+    if (idem.kind === "in_progress") {
+      return NextResponse.json({ status: "processing", generationId: idem.generationId }, { status: 202 });
+    }
+
     const precheck = await precheckGenerationPolicy({
       prompt,
       extraText: [style ?? "", lyrics ?? ""].filter(Boolean).join("\n") || null,
@@ -76,8 +95,13 @@ export async function POST(req: Request) {
       modelUsed: model,
     });
     chargedCredits = creditsToCharge;
-    chargedUserId = userId;
     generationId = charge.generationId;
+    await attachIdempotencyGeneration({
+      userId,
+      route: IDEMPOTENCY_ROUTE,
+      key: idempotencyKey,
+      generationId,
+    }).catch(() => {});
 
     const apiKey = process.env.WAVESPEED_API_KEY;
     if (!apiKey) {
@@ -115,11 +139,16 @@ export async function POST(req: Request) {
       const detail = await readErrorBody(externalRes);
       console.error("[MUSIC_WAVESPEED_ERROR]", externalRes.status, detail);
       if (chargedCredits > 0 && chargedUserId && generationId) {
-        await refundGenerationCharge(generationId, chargedUserId, chargedCredits, {
-          reason: "generation_refund_provider_failed",
-          clearMediaUrl: true,
-        }).catch(() => {});
+        await rollbackGenerationCharge(generationId, chargedUserId, chargedCredits).catch(() => {});
       }
+      await completeIdempotency({
+        userId,
+        route: IDEMPOTENCY_ROUTE,
+        key: idempotencyKey,
+        generationId,
+        responseStatus: externalRes.status,
+        responseJson: { error: `Music generation failed: ${detail}` },
+      }).catch(() => {});
       return new NextResponse(`Music generation failed: ${detail}`, { status: externalRes.status });
     }
 
@@ -131,40 +160,71 @@ export async function POST(req: Request) {
     if (!audioUrl) {
       console.error("[MUSIC_NO_URL]", JSON.stringify(data));
       if (chargedCredits > 0 && chargedUserId && generationId) {
-        await refundGenerationCharge(generationId, chargedUserId, chargedCredits, {
-          reason: "generation_refund_no_output",
-          clearMediaUrl: true,
-        }).catch(() => {});
+        await rollbackGenerationCharge(generationId, chargedUserId, chargedCredits).catch(() => {});
       }
+      await completeIdempotency({
+        userId,
+        route: IDEMPOTENCY_ROUTE,
+        key: idempotencyKey,
+        generationId,
+        responseStatus: 502,
+        responseJson: { error: "No audio URL in provider response" },
+      }).catch(() => {});
       return new NextResponse("No audio URL in provider response", { status: 502 });
     }
 
     if (generationId) {
       await setGenerationMediaUrl(generationId, audioUrl).catch(() => {});
     }
-    return NextResponse.json({ audioUrl });
+    const responseJson = { audioUrl };
+    await completeIdempotency({
+      userId,
+      route: IDEMPOTENCY_ROUTE,
+      key: idempotencyKey,
+      generationId,
+      responseStatus: 200,
+      responseJson,
+    }).catch(() => {});
+    return NextResponse.json(responseJson);
   } catch (error) {
     if (error instanceof InsufficientCreditsError) {
+      const responseJson = {
+        error: "Insufficient credits",
+        requiredCredits: error.requiredCredits,
+        currentBalance: error.currentBalance,
+      };
+      if (chargedUserId && requestHash) {
+        await completeIdempotency({
+          userId: chargedUserId,
+          route: IDEMPOTENCY_ROUTE,
+          key: idempotencyKey,
+          generationId,
+          responseStatus: 402,
+          responseJson,
+        }).catch(() => {});
+      }
       return NextResponse.json(
-        {
-          error: "Insufficient credits",
-          requiredCredits: error.requiredCredits,
-          currentBalance: error.currentBalance,
-        },
+        responseJson,
         { status: 402 },
       );
     }
 
     if (chargedCredits > 0 && chargedUserId && generationId) {
-      await refundGenerationCharge(generationId, chargedUserId, chargedCredits, {
-        reason: "generation_refund_provider_failed",
-        clearMediaUrl: true,
-      }).catch(() => {});
-    } else if (chargedCredits > 0 && chargedUserId) {
-      await refundCredits(chargedUserId, chargedCredits).catch(() => {});
+      await rollbackGenerationCharge(generationId, chargedUserId, chargedCredits).catch(() => {});
     }
 
     console.error("[MUSIC_ERROR]", error);
+    const msg = error instanceof Error ? error.message : "Internal Error";
+    if (chargedUserId && requestHash) {
+      await completeIdempotency({
+        userId: chargedUserId,
+        route: IDEMPOTENCY_ROUTE,
+        key: idempotencyKey,
+        generationId,
+        responseStatus: 500,
+        responseJson: { error: msg },
+      }).catch(() => {});
+    }
     return new NextResponse("Internal Error", { status: 500 });
   }
 }

@@ -17,6 +17,8 @@ import {
   insufficientCreditsResponse,
   safeGenerationErrorResponse,
 } from "@/lib/generation-guard";
+import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
+import { getClientIp } from "@/lib/security";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY ?? "",
@@ -33,6 +35,15 @@ export async function POST(req: Request) {
 
     if (!userId) {
       return generationAuthResponse();
+    }
+
+    const ip = getClientIp(req);
+    const rate = checkRateLimit(`conversation:${userId}:${ip}`, 30, 60_000);
+    if (!rate.allowed) {
+      return NextResponse.json(
+        { error: "Too many requests" },
+        { status: 429, headers: rateLimitHeaders(rate) },
+      );
     }
 
     if (!process.env.OPENAI_API_KEY) {

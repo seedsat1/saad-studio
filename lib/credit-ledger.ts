@@ -184,16 +184,25 @@ export async function spendCredits(input: SpendCreditsInput) {
   await handleCreditExpiry(input.userId);
 
   return prismadb.$transaction(async (tx) => {
-    const user = await tx.user.findUnique({ where: { id: input.userId } });
-    const balance = user?.creditBalance ?? 0;
+    const updatedCount = await tx.user.updateMany({
+      where: {
+        id: input.userId,
+        creditBalance: { gte: credits },
+      },
+      data: { creditBalance: { decrement: credits } },
+    });
 
-    if (balance < credits) {
+    if (updatedCount.count !== 1) {
+      const user = await tx.user.findUnique({
+        where: { id: input.userId },
+        select: { creditBalance: true },
+      });
+      const balance = user?.creditBalance ?? 0;
       throw new InsufficientCreditsError(balance, credits);
     }
 
-    const updated = await tx.user.update({
+    const updated = await tx.user.findUnique({
       where: { id: input.userId },
-      data: { creditBalance: { decrement: credits } },
       select: { creditBalance: true },
     });
 
@@ -216,7 +225,7 @@ export async function spendCredits(input: SpendCreditsInput) {
       reason: "generation_charge",
     });
 
-    return { remainingCredits: updated.creditBalance, generationId: generation.id };
+    return { remainingCredits: Math.max(0, updated?.creditBalance ?? 0), generationId: generation.id };
   });
 }
 

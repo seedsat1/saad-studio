@@ -42,6 +42,14 @@ function extractOutputs(payload: unknown): string[] {
 
 export async function POST(req: NextRequest) {
   try {
+    const configuredSecret = process.env.CALLBACK_SECRET;
+    if (configuredSecret) {
+      const provided = req.headers.get("x-callback-secret");
+      if (!provided || provided !== configuredSecret) {
+        return new NextResponse("Unauthorized", { status: 401 });
+      }
+    }
+
     const body = await req.json().catch(() => null);
     if (!body) return new NextResponse("Invalid JSON", { status: 400 });
 

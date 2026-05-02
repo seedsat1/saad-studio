@@ -5,9 +5,11 @@ import { InsufficientCreditsError, precheckGenerationPolicy, refundGenerationCha
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { getClientIp, isAllowedOrigin, sanitizePrompt } from "@/lib/security";
 import prismadb from "@/lib/prismadb";
+import { attachIdempotencyGeneration, beginIdempotency, completeIdempotency, getIdempotencyKey, hashRequestBody } from "@/lib/idempotency";
 
 const WAVESPEED_BASE = "https://api.wavespeed.ai/api/v3";
 const KIE_BASE = "https://api.kie.ai/api/v1";
+const IDEMPOTENCY_ROUTE = "generate:3d";
 
 // Keep this list strict: only add models that are verified to work on KIE 3D endpoints.
 const KIE_3D_MODELS = new Set<string>([]);
@@ -83,6 +85,8 @@ export async function POST(req: Request) {
   let chargedCredits = 0;
   let chargedUserId: string | null = null;
   let generationId: string | null = null;
+  const idempotencyKey = getIdempotencyKey(req.headers);
+  let requestHash: string | null = null;
 
   try {
     if (!isAllowedOrigin(req.headers.get("origin"))) {
@@ -93,6 +97,7 @@ export async function POST(req: Request) {
     if (!userId) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
+    chargedUserId = userId;
 
     const ip = getClientIp(req);
     const rate = checkRateLimit(`3d:${userId}:${ip}`, 20, 60_000);
@@ -101,6 +106,7 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json() as RequestBody;
+    requestHash = hashRequestBody(body);
     const {
       modelId, mode, prompt,
       imageBase64, multiviewBase64s, optionalViewBase64s,
@@ -146,6 +152,21 @@ export async function POST(req: Request) {
       );
     }
 
+    if (requestHash) {
+      const idem = await beginIdempotency({
+        userId,
+        route: IDEMPOTENCY_ROUTE,
+        key: idempotencyKey,
+        requestHash,
+      });
+      if (idem.kind === "replay") {
+        return NextResponse.json(idem.responseJson, { status: idem.responseStatus });
+      }
+      if (idem.kind === "in_progress") {
+        return NextResponse.json({ status: "processing", generationId: idem.generationId }, { status: 202 });
+      }
+    }
+
     const charge = await spendCredits({
       userId,
       credits: creditsToCharge,
@@ -156,6 +177,12 @@ export async function POST(req: Request) {
     generationId = charge.generationId;
     chargedCredits = creditsToCharge;
     chargedUserId = userId;
+    await attachIdempotencyGeneration({
+      userId,
+      route: IDEMPOTENCY_ROUTE,
+      key: idempotencyKey,
+      generationId,
+    }).catch(() => {});
 
     const waveKey = process.env.WAVESPEED_API_KEY;
     const kieKey = process.env.KIE_API_KEY || process.env.KIEAI_API_KEY;
@@ -307,15 +334,35 @@ export async function POST(req: Request) {
       await setGenerationTaskMarker(generationId, taskId);
     }
 
-    return NextResponse.json({ taskId, provider });
+    const responseJson = { taskId, provider };
+    await completeIdempotency({
+      userId,
+      route: IDEMPOTENCY_ROUTE,
+      key: idempotencyKey,
+      generationId,
+      responseStatus: 200,
+      responseJson,
+    }).catch(() => {});
+    return NextResponse.json(responseJson);
   } catch (error) {
     if (error instanceof InsufficientCreditsError) {
+      const responseJson = {
+        error: "Insufficient credits",
+        requiredCredits: error.requiredCredits,
+        currentBalance: error.currentBalance,
+      };
+      if (chargedUserId && requestHash) {
+        await completeIdempotency({
+          userId: chargedUserId,
+          route: IDEMPOTENCY_ROUTE,
+          key: idempotencyKey,
+          generationId,
+          responseStatus: 402,
+          responseJson,
+        }).catch(() => {});
+      }
       return NextResponse.json(
-        {
-          error: "Insufficient credits",
-          requiredCredits: error.requiredCredits,
-          currentBalance: error.currentBalance,
-        },
+        responseJson,
         { status: 402 },
       );
     }
@@ -328,6 +375,17 @@ export async function POST(req: Request) {
     }
 
     console.error("[3D API POST]", error);
+    const msg = error instanceof Error ? error.message : "Internal Error";
+    if (chargedUserId && requestHash) {
+      await completeIdempotency({
+        userId: chargedUserId,
+        route: IDEMPOTENCY_ROUTE,
+        key: idempotencyKey,
+        generationId,
+        responseStatus: 500,
+        responseJson: { error: msg },
+      }).catch(() => {});
+    }
     return new NextResponse("Internal Error", { status: 500 });
   }
 }
