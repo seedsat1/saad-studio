@@ -1,4 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
+console.log("VIDEO ROUTE HIT");
 import { NextResponse } from "next/server";
 
 export const maxDuration = 60;

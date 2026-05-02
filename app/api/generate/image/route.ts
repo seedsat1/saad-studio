@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+console.log("IMAGE ROUTE HIT");
 import { auth } from "@clerk/nextjs/server";
 import { getGenerationCost } from "@/lib/pricing";
 import { InsufficientCreditsError, precheckGenerationPolicy, rollbackGenerationCharge, saveAdditionalGenerationUrls, setGenerationMediaUrl, spendCredits } from "@/lib/credit-ledger";
