@@ -199,10 +199,39 @@ export default function AppToolRuntimePage({
         if (!taskId) {
           throw new Error("Video task ID missing from response.");
         }
-        const videoUrl = await pollVideoTask(taskId);
+        let videoUrl = await pollVideoTask(taskId);
+        // إذا كان الرابط ليس من Supabase، استدعي persist
+        if (videoUrl && !videoUrl.includes("supabase.co/storage/v1/object/public")) {
+          try {
+            const persistRes = await fetch("/api/assets/persist", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ mediaUrl: videoUrl }),
+            });
+            if (persistRes.ok) {
+              const persistJson = await persistRes.json();
+              if (persistJson?.url) videoUrl = persistJson.url;
+            }
+          } catch {}
+        }
         setResult({ videoUrl, mediaUrl: videoUrl });
       } else {
-        setResult(json);
+        let url = json.mediaUrl || json.imageUrl || json.audioUrl;
+        // إذا كان الرابط ليس من Supabase، استدعي persist
+        if (url && !url.includes("supabase.co/storage/v1/object/public")) {
+          try {
+            const persistRes = await fetch("/api/assets/persist", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ mediaUrl: url }),
+            });
+            if (persistRes.ok) {
+              const persistJson = await persistRes.json();
+              if (persistJson?.url) url = persistJson.url;
+            }
+          } catch {}
+        }
+        setResult({ ...json, mediaUrl: url });
       }
     } catch (err) {
       setError(getSafeErrorMessage(err));
