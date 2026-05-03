@@ -345,7 +345,7 @@ function NodeLibraryPanel({
             ))
           : NODE_LIBRARY_SECTIONS.map(sec => (
               <div key={sec.title}>
-                <div style={{ padding: "4px 14px 6px", color: "#1a3050", fontSize: 9.5, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase" }}>{sec.title}</div>
+                <div style={{ padding: "4px 14px 6px", color: "#3a5573", fontSize: 9.5, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase" }}>{sec.title}</div>
                 {sec.items.map(item => (
                   <NodeLibItem key={item.type} item={item} onAdd={onAdd} onClose={onClose} />
                 ))}
@@ -358,8 +358,8 @@ function NodeLibraryPanel({
       <div style={{ borderTop: "1px solid rgba(255,255,255,0.05)", padding: "7px 14px", display: "flex", gap: 14 }}>
         {[["N", "Open"], ["↑↓", "Navigate"], ["↵", "Insert"]].map(([k, v]) => (
           <span key={k} style={{ display: "flex", alignItems: "center", gap: 4 }}>
-            <span style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 4, padding: "1px 5px", fontSize: 9, color: "#3d5573", fontWeight: 600 }}>{k}</span>
-            <span style={{ color: "#1a3050", fontSize: 9.5 }}>{v}</span>
+            <span style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 4, padding: "1px 6px", fontSize: 9, color: "#5a7a9a", fontWeight: 600 }}>{k}</span>
+            <span style={{ color: "#3a5573", fontSize: 9.5 }}>{v}</span>
           </span>
         ))}
       </div>
@@ -379,17 +379,25 @@ function NodeLibItem({
     <button
       onClick={() => { onAdd(item.type); onClose(); }}
       style={{
-        width: "100%", display: "flex", alignItems: "center", gap: 10,
+        width: "100%", display: "flex", alignItems: "center", gap: 11,
         padding: "8px 14px", background: "transparent", border: "none",
         cursor: "pointer", fontFamily: "inherit", textAlign: "left",
+        transition: "background 0.1s",
       }}
-      onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.04)"; }}
+      onMouseEnter={e => {
+        const el = e.currentTarget as HTMLButtonElement;
+        el.style.background = `${item.color}0f`;
+      }}
       onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
     >
-      <div style={{ width: 30, height: 30, borderRadius: 9, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: `${item.color}18`, border: `1px solid ${item.color}30` }}>
+      <div style={{ width: 32, height: 32, borderRadius: 9, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: `${item.color}18`, border: `1px solid ${item.color}35` }}>
         <NodeTypeIcon type={item.type} size={14} color={item.color} strokeWidth={1.75} />
       </div>
-      <div style={{ color: "#a0bcd4", fontSize: 12.5, fontWeight: 400 }}>{item.label}</div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ color: "#bdd0e8", fontSize: 12.5, fontWeight: 500 }}>{item.label}</div>
+        <div style={{ color: "#2d4560", fontSize: 10, marginTop: 1.5, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{cfg.description}</div>
+      </div>
+      <div style={{ width: 6, height: 6, borderRadius: "50%", background: item.color, opacity: 0.35, flexShrink: 0 }} />
     </button>
   );
 }
