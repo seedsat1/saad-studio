@@ -411,18 +411,47 @@ function NodeIdleVisual({ nodeType, accentColor, rgb }: { nodeType: CanvasNodeTy
 
     case "upscale":
     case "video-upscale":
-      return wrap(<>
-        {lbl("Scale Factor")}
-        <div style={{ display: "flex", gap: 8 }}>
-          {["2×","4×","8×"].map((s, i) => (
-            <div key={s} style={{ width: 46, height: 46, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", background: i === 1 ? `rgba(${rgb},0.18)` : "rgba(255,255,255,0.07)", border: `1px solid ${i === 1 ? `rgba(${rgb},0.40)` : "rgba(255,255,255,0.13)"}`, color: i === 1 ? accentColor : "#7a9ab8", fontSize: 14, fontWeight: 700 }}>
-              {s}
+      return (
+        <div style={{
+          position: "absolute", inset: 0, display: "flex", flexDirection: "column",
+          alignItems: "center", justifyContent: "center", gap: 14, padding: "16px 22px 76px",
+          pointerEvents: "none",
+        }}>
+          {/* Scale factor buttons — large, clear */}
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, width: "100%" }}>
+            <div style={{ color: "#4a6580", fontSize: 9, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase" }}>Scale Factor</div>
+            <div style={{ display: "flex", gap: 10 }}>
+              {["2×","4×","8×"].map((s, i) => (
+                <div key={s} style={{
+                  width: 58, height: 52, borderRadius: 12, display: "flex", flexDirection: "column",
+                  alignItems: "center", justifyContent: "center", gap: 2,
+                  background: i === 1 ? `rgba(${rgb},0.18)` : "rgba(255,255,255,0.06)",
+                  border: `1.5px solid ${i === 1 ? `rgba(${rgb},0.45)` : "rgba(255,255,255,0.12)"}`,
+                  color: i === 1 ? accentColor : "#7a9ab8",
+                  boxShadow: i === 1 ? `0 0 18px rgba(${rgb},0.15)` : "none",
+                }}>
+                  <span style={{ fontSize: 18, fontWeight: 800, lineHeight: 1 }}>{s}</span>
+                  <span style={{ fontSize: 8, opacity: 0.55 }}>{["HD","4K","8K"][i]}</span>
+                </div>
+              ))}
             </div>
-          ))}
+          </div>
+          {/* Mode pills */}
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, width: "100%" }}>
+            <div style={{ color: "#4a6580", fontSize: 9, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase" }}>Enhancement Mode</div>
+            <div style={{ display: "flex", gap: 7 }}>
+              {["General", "Face", "Art"].map((m, i) => (
+                <span key={m} style={{
+                  padding: "5px 14px", borderRadius: 99, fontSize: 10, fontWeight: i === 0 ? 600 : 400,
+                  background: i === 0 ? `rgba(${rgb},0.18)` : "rgba(255,255,255,0.06)",
+                  border: `1px solid ${i === 0 ? `rgba(${rgb},0.40)` : "rgba(255,255,255,0.11)"}`,
+                  color: i === 0 ? accentColor : "#7a9ab8",
+                }}>{m}</span>
+              ))}
+            </div>
+          </div>
         </div>
-        {lbl("Mode")}
-        {row(["General", "Face", "Art"], 0)}
-      </>);
+      );
 
     case "voiceover":
     case "speak":
