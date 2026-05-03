@@ -467,16 +467,39 @@ function NodeIdleVisual({ nodeType, accentColor, rgb }: { nodeType: CanvasNodeTy
       </>);
 
     case "assistant":
-      return wrap(<>
-        {lbl("Powered by Gemini")}
-        <div style={{ display: "flex", flexDirection: "column", gap: 6, width: "100%" }}>
-          {["Rewrite this caption…", "Generate 5 ideas for…", "Summarize this text…"].map((s, i) => (
-            <div key={i} style={{ padding: "6px 12px", borderRadius: 8, background: "rgba(99,102,241,0.08)", border: "1px solid rgba(99,102,241,0.18)", color: "#7a8ab8", fontSize: 10 }}>
-              {s}
+      return (
+        <div style={{
+          position: "absolute", inset: 0, display: "flex", flexDirection: "column",
+          justifyContent: "center", padding: "12px 18px 72px", gap: 10,
+          pointerEvents: "none",
+        }}>
+          {/* Sparkle header */}
+          <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+            <div style={{ width: 24, height: 24, borderRadius: "50%", background: `rgba(${rgb},0.16)`, border: `1px solid rgba(${rgb},0.35)`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={accentColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/></svg>
             </div>
-          ))}
+            <span style={{ color: accentColor, fontSize: 10, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase" }}>Ask the assistant</span>
+          </div>
+          {/* Suggestion cards */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 7, width: "100%" }}>
+            {[
+              { icon: "✦", text: "Rewrite this caption creatively" },
+              { icon: "◈", text: "Generate 5 ideas for this scene" },
+              { icon: "◎", text: "Summarize and refine this text" },
+            ].map(({ icon, text }, i) => (
+              <div key={i} style={{
+                display: "flex", alignItems: "center", gap: 9,
+                padding: "8px 12px", borderRadius: 10,
+                background: i === 0 ? `rgba(${rgb},0.10)` : "rgba(255,255,255,0.04)",
+                border: `1px solid ${i === 0 ? `rgba(${rgb},0.25)` : "rgba(255,255,255,0.08)"}`,
+              }}>
+                <span style={{ color: i === 0 ? accentColor : "#4a6580", fontSize: 12, lineHeight: 1, flexShrink: 0 }}>{icon}</span>
+                <span style={{ color: i === 0 ? "#a5b4d8" : "#5a7590", fontSize: 10.5 }}>{text}</span>
+              </div>
+            ))}
+          </div>
         </div>
-      </>);
+      );
 
     case "image-to-svg":
     case "svg-generator":
