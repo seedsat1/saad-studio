@@ -203,24 +203,74 @@ const NODE_LIBRARY_SECTIONS: Array<{ title: string; items: LibItem[] }> = [
   {
     title: "BASICS",
     items: [
-      { type: "text-prompt"   as const, label: "Text",            icon: "T",  color: "#8b5cf6" },
-      { type: "text-to-image" as const, label: "Image Generator", icon: "🖼", color: "#f59e0b" },
-      { type: "image-to-video"as const, label: "Video Generator", icon: "🎬", color: "#10b981" },
-      { type: "image-edit"    as const, label: "Image Edit",      icon: "✏️", color: "#ec4899" },
-      { type: "upscale"       as const, label: "Image Upscaler",  icon: "⬆", color: "#14b8a6" },
+      { type: "text-prompt"    as const, label: "Text",            icon: "T",   color: "#8b5cf6" },
+      { type: "text-to-image"  as const, label: "Image Generator", icon: "🖼",  color: "#f59e0b" },
+      { type: "text-to-video"  as const, label: "Video Generator", icon: "🎬",  color: "#10b981" },
+      { type: "assistant"      as const, label: "Assistant",       icon: "✨",  color: "#6366f1" },
+      { type: "upscale"        as const, label: "Image Upscaler",  icon: "⬆",  color: "#14b8a6" },
+      { type: "list"           as const, label: "List",            icon: "≡",   color: "#64748b" },
     ],
   },
   {
     title: "MEDIA",
     items: [
-      { type: "upload-image"  as const, label: "Upload",          icon: "📤", color: "#3b82f6" },
-      { type: "export"        as const, label: "Export",          icon: "💾", color: "#84cc16" },
+      { type: "upload-image"   as const, label: "Upload",          icon: "📤",  color: "#3b82f6" },
+      { type: "assets"         as const, label: "Assets",          icon: "📂",  color: "#84cc16" },
+      { type: "stock"          as const, label: "Stock",           icon: "🔍",  color: "#06b6d4" },
+    ],
+  },
+  {
+    title: "REFERENCES",
+    items: [
+      { type: "add-reference"  as const, label: "Add Reference",   icon: "🔗",  color: "#3b82f6" },
+    ],
+  },
+  {
+    title: "IMAGE",
+    items: [
+      { type: "text-to-image"  as const, label: "Image Generator", icon: "🖼",  color: "#f59e0b" },
+      { type: "upscale"        as const, label: "Image Upscaler",  icon: "⬆",  color: "#14b8a6" },
+      { type: "image-edit"     as const, label: "Image Editor",    icon: "✏️", color: "#ec4899" },
+      { type: "variations"     as const, label: "Variations",      icon: "🔀",  color: "#ec4899" },
+      { type: "designer"       as const, label: "Designer",        icon: "🎨",  color: "#f97316" },
+      { type: "image-to-svg"   as const, label: "Image to SVG",    icon: "⬡",  color: "#a855f7" },
+      { type: "svg-generator"  as const, label: "SVG Generator",   icon: "⬡",  color: "#06b6d4" },
     ],
   },
   {
     title: "VIDEO",
     items: [
-      { type: "video-to-video"as const, label: "Video to Video",  icon: "🔄", color: "#6366f1" },
+      { type: "image-to-video" as const, label: "Image to Video",  icon: "🎬",  color: "#10b981" },
+      { type: "text-to-video"  as const, label: "Text to Video",   icon: "🎬",  color: "#10b981" },
+      { type: "speak"          as const, label: "Speak",           icon: "🗣️", color: "#22c55e" },
+      { type: "video-combiner" as const, label: "Video Combiner",  icon: "🎞️", color: "#3b82f6" },
+      { type: "video-upscale"  as const, label: "Video Upscaler",  icon: "⬆️", color: "#14b8a6" },
+      { type: "video-to-video" as const, label: "Video to Video",  icon: "🔄",  color: "#6366f1" },
+      { type: "media-extractor"as const, label: "Media Extractor", icon: "📽️", color: "#f59e0b" },
+    ],
+  },
+  {
+    title: "AUDIO",
+    items: [
+      { type: "voiceover"      as const, label: "Voiceover",       icon: "🎙️", color: "#f59e0b" },
+      { type: "sound-effects"  as const, label: "Sound Effects",   icon: "🔊",  color: "#ef4444" },
+      { type: "music-generator"as const, label: "Music Generator", icon: "🎵",  color: "#8b5cf6" },
+    ],
+  },
+  {
+    title: "TEXT",
+    items: [
+      { type: "text-prompt"    as const, label: "Text",            icon: "T",   color: "#8b5cf6" },
+      { type: "assistant"      as const, label: "Assistant",       icon: "✨",  color: "#6366f1" },
+    ],
+  },
+  {
+    title: "UTILITIES",
+    items: [
+      { type: "list"           as const, label: "List",            icon: "≡",   color: "#64748b" },
+      { type: "sticky-note"    as const, label: "Sticky Note",     icon: "📝",  color: "#fbbf24" },
+      { type: "stickers"       as const, label: "Stickers",        icon: "😊",  color: "#f43f5e" },
+      { type: "export"         as const, label: "Export",          icon: "📥",  color: "#84cc16" },
     ],
   },
 ];
@@ -485,6 +535,8 @@ function AICanvasInner() {
 
         let outputImageUrl: string | undefined;
         let outputVideoUrl: string | undefined;
+        let outputAudioUrl: string | undefined;
+        let outputText: string | undefined;
 
         switch (data.nodeType) {
           case "text-to-image": {
@@ -561,6 +613,192 @@ function AICanvasInner() {
             outputVideoUrl = await pollVideoTask(createData.taskId);
             break;
           }
+          case "text-to-video": {
+            const createRes = await fetch("/api/video", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                modelRoute: s.modelId || "kwaivgi/kling-v3.0-pro/text-to-video",
+                payload: { prompt, duration: s.duration || 5, aspect_ratio: s.aspectRatio || "16:9", mode: "std" },
+              }),
+            });
+            if (!createRes.ok) { const err = await createRes.json().catch(() => ({})) as Record<string, string>; throw new Error(err.message || err.error || `HTTP ${createRes.status}`); }
+            const createData = await createRes.json() as { taskId?: string };
+            if (!createData.taskId) throw new Error("No taskId returned. Check KIE_API_KEY and model route.");
+            addActivity({ nodeId, nodeLabel: data.label, level: "info", message: `Task ${createData.taskId} created. Polling (1-3 min)...` });
+            outputVideoUrl = await pollVideoTask(createData.taskId);
+            break;
+          }
+          case "assistant": {
+            if (!prompt) throw new Error("Prompt required. Connect a Text node or set prompt in settings.");
+            const res = await fetch("/api/conversation", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ message: prompt }),
+            });
+            if (!res.ok) { const err = await res.json().catch(() => ({})) as Record<string, string>; throw new Error(err.message || err.error || `HTTP ${res.status}`); }
+            const d = await res.json() as { response?: string; text?: string; content?: string; answer?: string };
+            outputText = d.response || d.text || d.content || d.answer || "Done";
+            break;
+          }
+          case "voiceover":
+          case "speak": {
+            const ttsText = prompt;
+            if (!ttsText) throw new Error("Text required. Connect a Text node or set prompt in settings.");
+            const res = await fetch("/api/generate/audio", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ actionType: "tts", text: ttsText, voice: s.ttsVoice || "Aria", model: "elevenlabs/text-to-speech-multilingual-v2" }),
+            });
+            if (!res.ok) { const err = await res.json().catch(() => ({})) as Record<string, string>; throw new Error(err.message || err.error || `HTTP ${res.status}`); }
+            const d = await res.json() as { audioUrl?: string };
+            outputAudioUrl = d.audioUrl;
+            if (!outputAudioUrl) throw new Error("No audio URL returned.");
+            break;
+          }
+          case "sound-effects": {
+            if (!prompt) throw new Error("Prompt required for sound effect generation.");
+            const res = await fetch("/api/generate/audio", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ actionType: "music", prompt, model: "elevenlabs/sound-effect-v2", musicDuration: 10 }),
+            });
+            if (!res.ok) { const err = await res.json().catch(() => ({})) as Record<string, string>; throw new Error(err.message || err.error || `HTTP ${res.status}`); }
+            const d = await res.json() as { audioUrl?: string };
+            outputAudioUrl = d.audioUrl;
+            if (!outputAudioUrl) throw new Error("No audio URL returned.");
+            break;
+          }
+          case "music-generator": {
+            if (!prompt) throw new Error("Prompt required for music generation.");
+            const res = await fetch("/api/music", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ prompt, model: "elevenlabs/music", duration: s.duration || 30 }),
+            });
+            if (!res.ok) { const err = await res.json().catch(() => ({})) as Record<string, string>; throw new Error(err.message || err.error || `HTTP ${res.status}`); }
+            const d = await res.json() as { audioUrl?: string; url?: string; mediaUrl?: string };
+            outputAudioUrl = d.audioUrl || d.url || d.mediaUrl;
+            if (!outputAudioUrl) throw new Error("No audio URL returned from music API.");
+            break;
+          }
+          case "video-upscale": {
+            if (!videoUrl) throw new Error("Video input required. Connect a video node.");
+            const res = await fetch("/api/generate/upscale", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ videoUrl }),
+            });
+            if (!res.ok) { const err = await res.json().catch(() => ({})) as Record<string, string>; throw new Error(err.message || err.error || `HTTP ${res.status}`); }
+            const d = await res.json() as { videoUrl?: string; url?: string; outputUrl?: string };
+            outputVideoUrl = d.videoUrl || d.url || d.outputUrl;
+            if (!outputVideoUrl) throw new Error("No video URL returned from upscale API.");
+            break;
+          }
+          case "variations": {
+            if (!imageUrl) throw new Error("Image input required. Connect an image node.");
+            const res = await fetch("/api/generate/image", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ prompt: prompt || "create a variation of this image", modelId: s.modelId || "nano-banana-pro", imageUrl, aspectRatio: s.aspectRatio || "1:1" }),
+            });
+            if (!res.ok) { const err = await res.json().catch(() => ({})) as Record<string, string>; throw new Error(err.message || err.error || `HTTP ${res.status}`); }
+            const d = await res.json() as { imageUrl?: string; mediaUrl?: string; imageUrls?: string[] };
+            outputImageUrl = d.imageUrl || d.mediaUrl || d.imageUrls?.[0];
+            if (!outputImageUrl) throw new Error("No output URL returned.");
+            break;
+          }
+          case "designer": {
+            if (!prompt) throw new Error("Prompt required. Connect a Text node or set prompt in settings.");
+            const res = await fetch("/api/generate/image", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ prompt, modelId: s.modelId || "gpt-image/1.5-text-to-image", aspectRatio: s.aspectRatio || "1:1" }),
+            });
+            if (!res.ok) { const err = await res.json().catch(() => ({})) as Record<string, string>; throw new Error(err.message || err.error || `HTTP ${res.status}`); }
+            const d = await res.json() as { imageUrl?: string; mediaUrl?: string; imageUrls?: string[] };
+            outputImageUrl = d.imageUrl || d.mediaUrl || d.imageUrls?.[0];
+            if (!outputImageUrl) throw new Error("No output URL returned.");
+            break;
+          }
+          case "image-to-svg": {
+            if (!imageUrl) throw new Error("Image input required. Connect an image node.");
+            const res = await fetch("/api/generate/image", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ prompt: "convert to clean vector SVG illustration", modelId: "recraft/svg-text-to-image", imageUrl }),
+            });
+            if (!res.ok) { const err = await res.json().catch(() => ({})) as Record<string, string>; throw new Error(err.message || err.error || `HTTP ${res.status}`); }
+            const d = await res.json() as { imageUrl?: string; mediaUrl?: string; imageUrls?: string[] };
+            outputImageUrl = d.imageUrl || d.mediaUrl || d.imageUrls?.[0];
+            if (!outputImageUrl) throw new Error("No output URL returned.");
+            break;
+          }
+          case "svg-generator": {
+            if (!prompt) throw new Error("Prompt required for SVG generation.");
+            const res = await fetch("/api/generate/image", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ prompt, modelId: "recraft/svg-text-to-image", aspectRatio: s.aspectRatio || "1:1" }),
+            });
+            if (!res.ok) { const err = await res.json().catch(() => ({})) as Record<string, string>; throw new Error(err.message || err.error || `HTTP ${res.status}`); }
+            const d = await res.json() as { imageUrl?: string; mediaUrl?: string; imageUrls?: string[] };
+            outputImageUrl = d.imageUrl || d.mediaUrl || d.imageUrls?.[0];
+            if (!outputImageUrl) throw new Error("No output URL returned.");
+            break;
+          }
+          case "stickers": {
+            if (!prompt) throw new Error("Prompt required for sticker generation.");
+            const res = await fetch("/api/generate/image", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ prompt: `sticker style, ${prompt}, white background, clean outline`, modelId: s.modelId || "nano-banana-pro", aspectRatio: "1:1" }),
+            });
+            if (!res.ok) { const err = await res.json().catch(() => ({})) as Record<string, string>; throw new Error(err.message || err.error || `HTTP ${res.status}`); }
+            const d = await res.json() as { imageUrl?: string; mediaUrl?: string; imageUrls?: string[] };
+            outputImageUrl = d.imageUrl || d.mediaUrl || d.imageUrls?.[0];
+            if (!outputImageUrl) throw new Error("No output URL returned.");
+            break;
+          }
+          case "video-combiner": {
+            if (!videoUrl && !imageUrl) throw new Error("Video or image input required. Connect a media node.");
+            const createRes = await fetch("/api/video", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                modelRoute: s.modelId || "kwaivgi/kling-v3.0-pro/text-to-video",
+                payload: { prompt: prompt || "combine and extend this video", ...(videoUrl ? { video: videoUrl } : { image_urls: [imageUrl] }), duration: s.duration || 5, mode: "std" },
+              }),
+            });
+            if (!createRes.ok) { const err = await createRes.json().catch(() => ({})) as Record<string, string>; throw new Error(err.message || err.error || `HTTP ${createRes.status}`); }
+            const createData = await createRes.json() as { taskId?: string };
+            if (!createData.taskId) throw new Error("No taskId returned.");
+            addActivity({ nodeId, nodeLabel: data.label, level: "info", message: `Task ${createData.taskId} created. Polling...` });
+            outputVideoUrl = await pollVideoTask(createData.taskId);
+            break;
+          }
+          case "media-extractor": {
+            if (!videoUrl) throw new Error("Video input required. Connect a video node.");
+            const res = await fetch("/api/generate/audio", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ actionType: "video2audio", videoUrl }),
+            });
+            if (!res.ok) { const err = await res.json().catch(() => ({})) as Record<string, string>; throw new Error(err.message || err.error || `HTTP ${res.status}`); }
+            const d = await res.json() as { audioUrl?: string };
+            outputAudioUrl = d.audioUrl;
+            if (!outputAudioUrl) throw new Error("No audio URL returned from media extractor.");
+            break;
+          }
+          case "list":
+          case "sticky-note":
+          case "add-reference":
+          case "assets":
+          case "stock": {
+            addActivity({ nodeId, nodeLabel: data.label, level: "info", message: `${data.label} is a utility node — no generation needed.` });
+            patchNode(nodeId, { status: "idle" });
+            return;
+          }
           case "export": {
             outputImageUrl = imageUrl;
             outputVideoUrl = videoUrl;
@@ -574,8 +812,8 @@ function AICanvasInner() {
           }
         }
 
-        patchNode(nodeId, { status: "done", outputImageUrl, outputVideoUrl, errorMessage: undefined });
-        addActivity({ nodeId, nodeLabel: data.label, level: "success", message: `${data.label} completed.`, outputUrl: outputImageUrl || outputVideoUrl });
+        patchNode(nodeId, { status: "done", outputImageUrl, outputVideoUrl, outputAudioUrl, outputText, errorMessage: undefined });
+        addActivity({ nodeId, nodeLabel: data.label, level: "success", message: `${data.label} completed.`, outputUrl: outputImageUrl || outputVideoUrl || outputAudioUrl });
       } catch (err) {
         const msg = err instanceof Error ? err.message : "Unknown error";
         patchNode(nodeId, { status: "error", errorMessage: msg });
@@ -605,7 +843,7 @@ function AICanvasInner() {
     const sorted = topoSort(allNodes, allEdges);
     try {
       for (const node of sorted) {
-        if (node.data.nodeType === "text-prompt" || node.data.nodeType === "upload-image") continue;
+        if (["text-prompt", "upload-image", "list", "sticky-note", "add-reference", "assets", "stock"].includes(node.data.nodeType)) continue;
         await executeNode(node.id);
         await new Promise(r => setTimeout(r, 0));
       }

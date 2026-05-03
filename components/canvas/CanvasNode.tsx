@@ -78,8 +78,8 @@ const STATUS_CFG: Record<NodeStatus, { color: string; pulse?: boolean }> = {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function modelsFor(t: CanvasNodeType): ModelDef[] {
-  if (t === "image-to-video" || t === "video-to-video") return VIDEO_MODELS;
-  if (t === "image-edit") return IMAGE_EDIT_MODELS;
+  if (t === "image-to-video" || t === "video-to-video" || t === "text-to-video" || t === "video-combiner") return VIDEO_MODELS;
+  if (t === "image-edit" || t === "variations") return IMAGE_EDIT_MODELS;
   return IMAGE_MODELS;
 }
 function modelById(id: string | undefined, t: CanvasNodeType) {
@@ -333,10 +333,10 @@ function CanvasNodeInner({ id, data, selected }: NodeProps<Node<CanvasNodeData>>
     return () => document.removeEventListener("click", h, true);
   }, [openChip]);
 
-  const isVideo    = data.nodeType === "image-to-video" || data.nodeType === "video-to-video";
+  const isVideo    = ["image-to-video", "video-to-video", "text-to-video", "video-combiner"].includes(data.nodeType);
   const showPrompt = cfg.hasPromptInput || data.nodeType === "text-prompt";
-  const showModel  = !["export", "upload-image", "upscale"].includes(data.nodeType);
-  const showAR     = !["image-to-video", "video-to-video", "export", "upload-image", "upscale", "text-prompt"].includes(data.nodeType);
+  const showModel  = !["export", "upload-image", "upscale", "voiceover", "sound-effects", "music-generator", "speak", "media-extractor", "video-upscale", "list", "sticky-note", "add-reference", "assets", "stock", "assistant", "image-to-svg"].includes(data.nodeType);
+  const showAR     = !["image-to-video", "video-to-video", "text-to-video", "video-combiner", "export", "upload-image", "upscale", "text-prompt", "voiceover", "sound-effects", "music-generator", "speak", "media-extractor", "video-upscale", "list", "sticky-note", "add-reference", "assets", "stock", "assistant", "image-to-svg"].includes(data.nodeType);
   const showDur    = isVideo;
   const showRes    = isVideo;
   const showRun    = cfg.creditCost > 0;
@@ -361,7 +361,7 @@ function CanvasNodeInner({ id, data, selected }: NodeProps<Node<CanvasNodeData>>
   const selDur   = data.settings.duration    ?? 5;
   const selRes   = data.settings.quality     ?? "720p";
 
-  const hasPreviewMedia = data.status === "done" && (!!data.outputImageUrl || !!data.outputVideoUrl);
+  const hasPreviewMedia = data.status === "done" && (!!data.outputImageUrl || !!data.outputVideoUrl || !!data.outputAudioUrl || !!data.outputText);
 
   const onPrompt = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     SP(e); updateNodeSettings(id, { prompt: e.target.value });
@@ -444,6 +444,29 @@ function CanvasNodeInner({ id, data, selected }: NodeProps<Node<CanvasNodeData>>
             <video src={data.outputVideoUrl} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} controls muted playsInline />
           )}
 
+          {/* Output audio */}
+          {data.outputAudioUrl && data.status === "done" && (
+            <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16, padding: 24 }}>
+              <div style={{ fontSize: 48, opacity: 0.6 }}>{cfg.emoji}</div>
+              <div style={{ color: "#94a3b8", fontSize: 11, fontWeight: 500 }}>Audio ready</div>
+              <audio
+                src={data.outputAudioUrl}
+                controls
+                className="nodrag nowheel"
+                onMouseDown={SP}
+                style={{ width: "100%", borderRadius: 8, accentColor: cfg.accentColor }}
+              />
+            </div>
+          )}
+
+          {/* Output text (assistant) */}
+          {data.outputText && data.status === "done" && !data.outputImageUrl && !data.outputVideoUrl && !data.outputAudioUrl && (
+            <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", gap: 8, padding: 20, overflowY: "auto" }}>
+              <div style={{ color: "#6366f1", fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>Assistant</div>
+              <div style={{ color: "#c8d6ea", fontSize: 12.5, lineHeight: 1.7, whiteSpace: "pre-wrap" }}>{data.outputText}</div>
+            </div>
+          )}
+
           {/* Upload image zone */}
           {data.nodeType === "upload-image" && !data.settings.imageUrl && (
             <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12 }}>
@@ -470,6 +493,60 @@ function CanvasNodeInner({ id, data, selected }: NodeProps<Node<CanvasNodeData>>
                 Clear
               </button>
             </>
+          )}
+
+          {/* Add Reference / Assets / Stock image input zone */}
+          {(data.nodeType === "add-reference" || data.nodeType === "assets" || data.nodeType === "stock") && !data.settings.imageUrl && (
+            <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12 }}>
+              <div style={{ fontSize: 34, opacity: 0.35 }}>{cfg.emoji}</div>
+              <div style={{ color: "#1a2a3c", fontSize: 11 }}>Paste an image URL below</div>
+              <input className="nodrag nowheel" type="text"
+                placeholder="https://example.com/image.jpg"
+                defaultValue={data.settings.imageUrl ?? ""}
+                onBlur={e => { e.stopPropagation(); updateNodeSettings(id, { imageUrl: e.target.value }); e.target.style.borderColor = "rgba(255,255,255,0.1)"; }}
+                onMouseDown={SP}
+                onFocus={e => { e.target.style.borderColor = `rgba(${rgb},0.4)`; }}
+                style={{ width: "70%", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 9, padding: "9px 12px", color: "#c8d6ea", fontSize: 11, outline: "none", fontFamily: "inherit", transition: "border-color 0.15s" }}
+              />
+            </div>
+          )}
+          {(data.nodeType === "add-reference" || data.nodeType === "assets" || data.nodeType === "stock") && data.settings.imageUrl && (
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={data.settings.imageUrl} alt="reference" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+              <button className="nodrag" onClick={e => { SP(e); updateNodeSettings(id, { imageUrl: "" }); }}
+                style={{ position: "absolute", top: 10, right: 10, background: "rgba(0,0,0,0.75)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 8, padding: "4px 12px", color: "#94a3b8", fontSize: 10.5, cursor: "pointer", fontFamily: "inherit" }}>
+                Clear
+              </button>
+            </>
+          )}
+
+          {/* Sticky note */}
+          {data.nodeType === "sticky-note" && (
+            <div style={{ position: "absolute", inset: 0, background: "rgba(251,191,36,0.06)", display: "flex", flexDirection: "column", padding: 16, gap: 8 }}>
+              <div style={{ color: "#fbbf24", fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", opacity: 0.6 }}>📝 Note</div>
+              <textarea className="nodrag nowheel"
+                value={data.settings.noteText ?? ""}
+                onChange={e => { SP(e); updateNodeSettings(id, { noteText: e.target.value }); }}
+                onMouseDown={SP}
+                placeholder="Write a note…"
+                style={{ flex: 1, resize: "none", background: "transparent", border: "none", padding: 0, color: "#fde68a", fontSize: 13, lineHeight: 1.72, outline: "none", fontFamily: "inherit", boxSizing: "border-box" }}
+              />
+            </div>
+          )}
+
+          {/* List node */}
+          {data.nodeType === "list" && (
+            <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", padding: 16, gap: 8 }}>
+              <div style={{ color: "#64748b", fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", opacity: 0.8 }}>📋 List</div>
+              <textarea className="nodrag nowheel"
+                value={data.settings.noteText ?? ""}
+                onChange={e => { SP(e); updateNodeSettings(id, { noteText: e.target.value }); }}
+                onMouseDown={SP}
+                placeholder={"• Item 1\n• Item 2\n• Item 3"}
+                style={{ flex: 1, resize: "none", background: "transparent", border: "none", padding: 0, color: "#94a3b8", fontSize: 12.5, lineHeight: 1.8, outline: "none", fontFamily: "monospace, inherit", boxSizing: "border-box" }}
+              />
+            </div>
           )}
 
           {/* Export placeholder / links */}
@@ -515,7 +592,7 @@ function CanvasNodeInner({ id, data, selected }: NodeProps<Node<CanvasNodeData>>
           )}
 
           {/* Prompt — overlaid at bottom of preview */}
-          {showPrompt && data.nodeType !== "upload-image" && data.nodeType !== "export" && (
+          {showPrompt && !["upload-image", "export", "sticky-note", "list", "add-reference", "assets", "stock"].includes(data.nodeType) && (
             <div style={{
               position: "absolute", bottom: 0, left: 0, right: 0,
               background: hasPreviewMedia ? "linear-gradient(transparent, rgba(0,0,0,0.88))" : undefined,
@@ -528,6 +605,14 @@ function CanvasNodeInner({ id, data, selected }: NodeProps<Node<CanvasNodeData>>
                 placeholder={
                   data.nodeType === "text-prompt"
                     ? "Describe what you want to create…"
+                    : ["voiceover", "speak"].includes(data.nodeType)
+                    ? "Enter text to speak aloud…"
+                    : data.nodeType === "sound-effects"
+                    ? "Describe the sound effect…"
+                    : data.nodeType === "music-generator"
+                    ? "Describe the music you want…"
+                    : data.nodeType === "assistant"
+                    ? "Ask the assistant anything…"
                     : "Describe the video you want to generate…"
                 }
                 rows={3}
@@ -543,7 +628,7 @@ function CanvasNodeInner({ id, data, selected }: NodeProps<Node<CanvasNodeData>>
           )}
 
           {/* Save output corner */}
-          {hasPreviewMedia && (
+          {hasPreviewMedia && !data.outputAudioUrl && !data.outputText && (
             <a href={data.outputImageUrl ?? data.outputVideoUrl ?? "#"} target="_blank" rel="noopener noreferrer" onClick={SP}
               style={{ position: "absolute", top: 10, right: 44, background: "rgba(0,0,0,0.72)", border: "1px solid rgba(255,255,255,0.14)", borderRadius: 8, padding: "5px 10px", color: "#e2e8f0", fontSize: 10, display: "flex", alignItems: "center", gap: 5, textDecoration: "none", fontFamily: "inherit" }}>
               <Download size={9} /> Save

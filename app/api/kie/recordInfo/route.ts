@@ -26,8 +26,6 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Too many requests" }, { status: 429, headers: rateLimitHeaders(rate) });
     }
 
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-
     const taskId = req.nextUrl.searchParams.get("taskId")?.trim();
     if (!taskId) {
       return NextResponse.json({ code: -1, msg: "taskId is required." }, { status: 400 });

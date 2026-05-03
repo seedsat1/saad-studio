@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard الجرافيكس</title>
+
+<style>
+body{
+  font-family:"Cairo",sans-serif;
+  margin:0;
+  background:linear-gradient(135deg,#fdfbf7,#e0ebff);
+  min-height:100vh;
+}
+
+/* شاشة الترحيب */
+.welcome{
+  position:fixed;inset:0;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(0,0,0,.5);
+  z-index:9999;
+}
+
+.welcome-box{
+  background:#fff;
+  padding:40px;
+  border-radius:20px;
+  text-align:center;
+  box-shadow:0 20px 40px rgba(0,0,0,.2);
+}
+
+.welcome-box h1{margin-bottom:20px}
+
+.welcome-btn{
+  padding:12px 22px;
+  margin:10px;
+  border:0;
+  border-radius:12px;
+  cursor:pointer;
+  font-weight:bold;
+  font-size:15px;
+}
+
+.edit{background:#4CAF50;color:#fff}
+.view{background:#2196F3;color:#fff}
+
+/* أدوات */
+.tools{
+  padding:15px;
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+.btn{
+  padding:10px 15px;
+  border:0;
+  border-radius:10px;
+  cursor:pointer;
+  font-weight:bold;
+}
+
+.primary{background:#4CAF50;color:#fff}
+.alt{background:#3f51b5;color:#fff}
+.danger{background:#e53935;color:#fff}
+
+/* الوضع */
+.view-mode .tools,
+.view-mode .chip-actions,
+.view-mode .add-btn,
+.view-mode .emp-chip .remove{
+  display:none;
+}
+
+.view-mode .emp-chip{cursor:default}
+
+/* الأيام */
+.days{
+  padding:15px;
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:15px;
+}
+
+.day{
+  background:#fff;
+  padding:15px;
+  border-radius:15px;
+  box-shadow:0 10px 20px rgba(0,0,0,.1);
+  min-height:140px;
+}
+
+.day h3{margin:0 0 10px}
+
+/* الموظفين */
+.emp-chip{
+  background:#fff;
+  padding:8px 12px;
+  margin:5px;
+  border-radius:10px;
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  cursor:grab;
+  transition:.3s;
+  border:1px solid #ddd;
+  user-select:none;
+}
+
+.emp-chip:hover{
+  transform:scale(1.05) rotate3d(.5,1,0,8deg);
+  box-shadow:0 6px 12px rgba(0,0,0,.15);
+}
+
+.emp-chip .remove{
+  background:transparent;
+  border:0;
+  color:#e53935;
+  cursor:pointer;
+  font-weight:bold;
+  font-size:14px;
+}
+
+/* ثيمات */
+.theme-dark{background:#0f172a;color:#fff}
+.theme-dark .day{background:#1e293b;color:#fff}
+.theme-dark .emp-chip{background:#334155;color:#fff;border-color:#475569}
+
+.theme-green{background:#064e3b;color:#fff}
+.theme-green .day{background:#065f46;color:#fff}
+.theme-green .emp-chip{background:#047857;color:#fff;border-color:#10b981}
+
+.theme-purple{background:#4c1d95;color:#fff}
+.theme-purple .day{background:#5b21b6;color:#fff}
+.theme-purple .emp-chip{background:#6d28d9;color:#fff;border-color:#8b5cf6}
+</style>
+</head>
+
+<body>
+
+<!-- شاشة البداية -->
+<div class="welcome" id="welcome">
+  <div class="welcome-box">
+    <h1>جدول دوام موظفي قسم الجرافيكس</h1>
+    <button class="welcome-btn edit" onclick="enterEdit()">تعديل الجدول</button>
+    <button class="welcome-btn view" onclick="enterView()">مشاهدة فقط</button>
+  </div>
+</div>
+
+<!-- أدوات -->
+<div class="tools">
+  <button class="btn primary" onclick="toggleView()">👁️ وضع العرض</button>
+  <button class="btn alt" onclick="changeTheme()">🎨 تغيير اللون</button>
+  <button class="btn primary" onclick="addEmployee()">➕ إضافة موظف</button>
+  <button class="btn danger" onclick="resetData()">♻️ إعادة ضبط</button>
+</div>
+
+<!-- الأيام -->
+<div class="days" id="days"></div>
+
+<script>
+const DAY_NAMES = ["السبت","الأحد","الإثنين","الثلاثاء","الأربعاء","الخميس","الجمعة"];
+
+let schedule = loadData() || [
+  ["محمد","أحمد"],
+  ["علي"],
+  ["مصطفى"],
+  [],
+  [],
+  [],
+  []
+];
+
+let dragged = null;
+let theme = 0;
+
+function saveData(){
+  try{ localStorage.setItem("graphics_schedule", JSON.stringify(schedule)); }catch(e){}
+}
+
+function loadData(){
+  try{
+    const raw = localStorage.getItem("graphics_schedule");
+    return raw ? JSON.parse(raw) : null;
+  }catch(e){ return null; }
+}
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"
+  }[c]));
+}
+
+/* عرض */
+function render(){
+  const d = document.getElementById("days");
+  d.innerHTML = "";
+
+  schedule.forEach((day, i) => {
+    const dayEl = document.createElement("div");
+    dayEl.className = "day";
+    dayEl.addEventListener("dragover", allow);
+    dayEl.addEventListener("drop", e => drop(e, i));
+
+    const title = document.createElement("h3");
+    title.textContent = DAY_NAMES[i] || ("اليوم " + (i+1));
+    dayEl.appendChild(title);
+
+    day.forEach((emp, j) => {
+      const chip = document.createElement("div");
+      chip.className = "emp-chip";
+      chip.draggable = true;
+      chip.addEventListener("dragstart", () => { dragged = { name: emp, day: i, index: j }; });
+
+      const label = document.createElement("span");
+      label.textContent = emp;
+      chip.appendChild(label);
+
+      const rm = document.createElement("button");
+      rm.className = "remove";
+      rm.textContent = "✕";
+      rm.title = "حذف";
+      rm.addEventListener("click", e => {
+        e.stopPropagation();
+        schedule[i].splice(j, 1);
+        saveData();
+        render();
+      });
+      chip.appendChild(rm);
+
+      dayEl.appendChild(chip);
+    });
+
+    d.appendChild(dayEl);
+  });
+}
+
+/* السحب */
+function allow(e){ e.preventDefault(); }
+
+function drop(e, day){
+  e.preventDefault();
+  if(!dragged) return;
+  schedule[dragged.day].splice(dragged.index, 1);
+  schedule[day].push(dragged.name);
+  dragged = null;
+  saveData();
+  render();
+}
+
+/* إضافة */
+function addEmployee(){
+  const name = prompt("اسم الموظف:");
+  if(!name) return;
+  schedule[0].push(name.trim());
+  saveData();
+  render();
+}
+
+/* وضع العرض */
+function toggleView(){
+  document.body.classList.toggle("view-mode");
+}
+
+/* الثيم */
+function changeTheme(){
+  const t = ["theme-dark","theme-green","theme-purple",""];
+  document.body.classList.remove("theme-dark","theme-green","theme-purple");
+  if(t[theme]) document.body.classList.add(t[theme]);
+  theme = (theme + 1) % t.length;
+}
+
+/* إعادة ضبط */
+function resetData(){
+  if(!confirm("هل تريد مسح كل البيانات وإعادة الضبط؟")) return;
+  localStorage.removeItem("graphics_schedule");
+  schedule = [["محمد","أحمد"],["علي"],["مصطفى"],[],[],[],[]];
+  render();
+}
+
+/* شاشة البداية */
+function enterEdit(){
+  document.getElementById("welcome").style.display = "none";
+}
+
+function enterView(){
+  document.getElementById("welcome").style.display = "none";
+  document.body.classList.add("view-mode");
+}
+
+render();
+</script>
+
+</body>
+</html>
