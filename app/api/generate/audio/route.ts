@@ -1283,10 +1283,25 @@ export async function POST(req: NextRequest) {
       const clonedVoiceName = (body.cloneName || "custom-voice").trim().slice(0, 64);
       const customVoiceId = sanitizeCustomVoiceId(clonedVoiceName);
 
+      // Pre-upload audio files to get stable public URLs.
+      // This bypasses the unreliable kieai.redpandaai.co upload endpoint
+      // and avoids redundant uploads when falling back to WaveSpeed.
+      let sampleUrls: string[] = body.sampleAudioUrls || [];
+      if (wavespeedKey && sampleUrls.some((u) => u.startsWith("data:"))) {
+        try {
+          sampleUrls = await Promise.all(
+            sampleUrls.map((u) => (u.startsWith("data:") ? uploadDataUrlToWaveSpeed(u, wavespeedKey) : Promise.resolve(u))),
+          );
+        } catch (preUploadErr) {
+          console.warn("[voice-cloning] Pre-upload failed, will attempt inline upload:", preUploadErr instanceof Error ? preUploadErr.message : preUploadErr);
+        }
+      }
+      const bodyWithUrls = { ...body, sampleAudioUrls: sampleUrls };
+
       // --- Try KIE first ---
       if (kieKey) {
         try {
-          const audioUrl = await runKieVoiceClone(body, kieKey);
+          const audioUrl = await runKieVoiceClone(bodyWithUrls, kieKey);
           if (generationId) {
             await setGenerationMediaUrl(generationId, audioUrl);
           }
@@ -1311,7 +1326,7 @@ export async function POST(req: NextRequest) {
       }
 
       const samples = await Promise.all(
-        (body.sampleAudioUrls || []).map((url) =>
+        sampleUrls.map((url) =>
           url.startsWith("data:") ? uploadDataUrlToWaveSpeed(url, wavespeedKey) : Promise.resolve(url),
         ),
       );
