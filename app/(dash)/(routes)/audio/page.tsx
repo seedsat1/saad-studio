@@ -7,7 +7,7 @@ export default function AudioPage() {
       className="w-full border-0"
       style={{ height: "calc(100vh - 64px)", display: "block" }}
       title="Audio Studio"
-      allow="microphone; autoplay"
+      allow="microphone *; autoplay *"
     />
   );
 }
