@@ -415,12 +415,12 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
       <div class="vm-topbar-right">
         <button class="vm-pill" id="vmPillLang" onclick="cycleVmLang(this)">All languages <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5l3 3 3-3"/></svg></button>
         <button class="vm-pill" id="vmPillGender" onclick="cycleVmGender(this)">All genders <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5l3 3 3-3"/></svg></button>
-        <button class="vm-fav-btn" id="vmFavToggle" onclick="toggleFavFilter()" title="Favorites">&#9825;</button>
+        <button class="vm-fav-btn" id="vmFavToggle" onclick="toggleFavFilter()" title="Favorites"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1.1L12 21.3l7.8-7.8 1-1.1a5.5 5.5 0 0 0 0-7.8z"/></svg></button>
         <button class="vm-clone-btn" onclick="openCloneSection()">
           <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Clone voice
         </button>
-        <button class="vm-close" onclick="closeVoiceModal()">&#10005;</button>
+        <button class="vm-close" onclick="closeVoiceModal()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
       </div>
     </div>
     <div class="vm-searchbar">
@@ -452,7 +452,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 <div class="cv-overlay" id="cvOverlay" onclick="if(event.target===this)closeCvModal()">
   <div class="cv-modal">
     <div class="cv-header">
-      <button class="cv-back" onclick="closeCvModal()">&#8592;</button>
+      <button class="cv-back" onclick="closeCvModal()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg></button>
       <span class="cv-title">Create voice</span>
     </div>
     <div class="cv-body">
@@ -467,8 +467,8 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
           </div>
         </div>
         <div class="cv-audio-btns">
-          <button class="cv-audio-btn" onclick="document.getElementById('cvSampleInput').click()">&#8679; Upload</button>
-          <button class="cv-audio-btn rec" id="cvRecBtn" onclick="cvToggleRec()">&#9679; Record</button>
+          <button class="cv-audio-btn" onclick="document.getElementById('cvSampleInput').click()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Upload</button>
+          <button class="cv-audio-btn rec" id="cvRecBtn" onclick="cvToggleRec()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg> Record</button>
         </div>
         <div class="cv-progress" id="cvProgress">
           <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-sec);margin-bottom:4px"><span id="cvProgressLabel">Uploading...</span><span id="cvProgressPct">0%</span></div>
@@ -498,7 +498,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
       <div class="cv-footer-note">By creating a voice clone, you confirm that you have the right to use this audio sample and agree to our <a href="/privacy" target="_blank" rel="noopener">Terms of Service</a>.</div>
       <div class="cv-footer-btns">
         <button class="cv-btn-cancel" onclick="closeCvModal()">Cancel</button>
-        <button class="cv-btn-create" id="cvBtnCreate" onclick="cvCreateVoice()">&#9836; Create voice</button>
+        <button class="cv-btn-create" id="cvBtnCreate" onclick="cvCreateVoice()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg> Create voice</button>
       </div>
     </div>
   </div>
@@ -674,7 +674,7 @@ function toggleFavFilter(){
   const fav=!document.getElementById('vmTabFav').classList.contains('active');
   if(fav)setVmTab('fav');else setVmTab('all');
   document.getElementById('vmFavToggle').classList.toggle('active',fav);
-  document.getElementById('vmFavToggle').innerHTML=fav?'&#9829;':'&#9825;';
+  document.getElementById('vmFavToggle').innerHTML=fav?'<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1.1L12 21.3l7.8-7.8 1-1.1a5.5 5.5 0 0 0 0-7.8z"/></svg>':'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1.1L12 21.3l7.8-7.8 1-1.1a5.5 5.5 0 0 0 0-7.8z"/></svg>';
 }
 function toggleVmFav(id,ev){ev.stopPropagation();if(_vmFavs.has(id))_vmFavs.delete(id);else _vmFavs.add(id);saveVmFavs();updateVmFavCount();renderVmGrid();}
 function updateVmFavCount(){const el=document.getElementById('vmFavCount');if(el)el.textContent=_vmFavs.size>0?_vmFavs.size:'';}
@@ -728,14 +728,20 @@ function renderVmGrid(){
       av=`<div class="vm-v2-avatar"><img src="${getVoiceAvatar(v.id,v.gender)}" alt="${v.name}" loading="lazy" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.innerHTML='<span style=font-size:.95rem;font-weight:800>${init}</span>'"><div class="vm-v2-play-ov"><svg width="12" height="12" viewBox="0 0 24 24" fill="white"><polygon points="6 3 20 12 6 21 6 3"/></svg></div></div>`;
     }
     const wave=sel?'<div class="vm-v2-wave"><div class="b"></div><div class="b"></div><div class="b"></div><div class="b"></div><div class="b"></div></div>':'';
+    const icnP='<svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21 6 3"/></svg>';
+    const icnS='<svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>';
+    const icnCam='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>';
+    const icnDel='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>';
+    const icnHF='<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1.1L12 21.3l7.8-7.8 1-1.1a5.5 5.5 0 0 0 0-7.8z"/></svg>';
+    const icnHO='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1.1L12 21.3l7.8-7.8 1-1.1a5.5 5.5 0 0 0 0-7.8z"/></svg>';
     let acts;
     if(v.isCustom){
-      acts=`<button class="vm-play-btn${pl?' playing':''}" onclick="previewCustomVoice('${v.id}',event)" title="Preview">${pl?'&#9632;':'&#9654;'}</button>`
-          +`<button onclick="editMyVoicePhoto('${v.id}',event)" style="width:27px;height:27px;border-radius:50%;border:none;background:rgba(255,255,255,.06);color:var(--text-dim);cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center" title="Change photo">&#128247;</button>`
-          +`<button onclick="deleteMyVoice('${v.id}',event)" style="width:27px;height:27px;border-radius:50%;border:none;background:rgba(251,113,133,.1);color:var(--rose);cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center" title="Delete">&#128465;</button>`;
+      acts=`<button class="vm-play-btn${pl?' playing':''}" onclick="previewCustomVoice('${v.id}',event)" title="Preview">${pl?icnS:icnP}</button>`
+          +`<button onclick="editMyVoicePhoto('${v.id}',event)" style="width:27px;height:27px;border-radius:50%;border:none;background:rgba(255,255,255,.06);color:var(--text-dim);cursor:pointer;display:flex;align-items:center;justify-content:center" title="Change photo">${icnCam}</button>`
+          +`<button onclick="deleteMyVoice('${v.id}',event)" style="width:27px;height:27px;border-radius:50%;border:none;background:rgba(251,113,133,.1);color:var(--rose);cursor:pointer;display:flex;align-items:center;justify-content:center" title="Delete">${icnDel}</button>`;
     } else {
-      acts=`<button class="vm-play-btn${pl?' playing':''}" onclick="previewVmVoice('${v.id}','${sn}',event)">${pl?'&#9632;':'&#9654;'}</button>`
-          +`<button class="vm-v2-fav-btn${fav?' fav':''}" onclick="toggleVmFav('${v.id}',event)">${fav?'&#9829;':'&#9825;'}</button>`;
+      acts=`<button class="vm-play-btn${pl?' playing':''}" onclick="previewVmVoice('${v.id}','${sn}',event)">${pl?icnS:icnP}</button>`
+          +`<button class="vm-v2-fav-btn${fav?' fav':''}" onclick="toggleVmFav('${v.id}',event)">${fav?icnHF:icnHO}</button>`;
     }
     return `<div class="vm-vcard2${sel?' sel':''}" onclick="selectVmVoice('${v.id}','${sn}','${v.lang}','${v.accent}','','${clr}','${v.gender||''}')">` 
       +av
@@ -876,14 +882,14 @@ async function cvToggleRec(){
     _cvMediaRecorder.onstop=()=>{
       stream.getTracks().forEach(t=>t.stop());
       clearInterval(_cvRecInterval);
-      btn.innerHTML='&#9679; Record';btn.classList.remove('rec-active');
+      btn.innerHTML='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg> Record';btn.classList.remove('rec-active');
       document.getElementById('cvRecActive').style.display='none';
       const blob=new Blob(_cvRecChunks,{type:'audio/webm'});
       const f=new File([blob],`recording_${Date.now()}.webm`,{type:'audio/webm'});
       cvSetAudioFile(f);
     };
     _cvMediaRecorder.start();
-    btn.innerHTML='&#9632; Stop';
+    btn.innerHTML='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="5" width="14" height="14" rx="2"/></svg> Stop';
     document.getElementById('cvRecActive').style.display='flex';
     _cvRecInterval=setInterval(()=>{
       _cvRecSecs++;
@@ -932,7 +938,7 @@ async function cvCreateVoice(){
     setVmTab('my');
   }catch(err){setStatus('Failed: '+err.message,'err');}
   finally{
-    btn.disabled=false;btn.innerHTML='&#9836; Create voice';
+    btn.disabled=false;btn.innerHTML='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg> Create voice';
     if(prog)setTimeout(()=>{prog.style.display='none';},2000);
   }
 }
@@ -947,7 +953,7 @@ function cvResetForm(){
   document.getElementById('cvGender').value='';
   document.getElementById('cvLanguage').value='';
   document.getElementById('cvAccent').value='';
-  const btn=document.getElementById('cvBtnCreate');if(btn){btn.disabled=true;btn.innerHTML='&#9836; Create voice';}
+  const btn=document.getElementById('cvBtnCreate');if(btn){btn.disabled=true;btn.innerHTML='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg> Create voice';}
   const prog=document.getElementById('cvProgress');if(prog)prog.style.display='none';
 }
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeCvModal();closeVoiceModal();}});
