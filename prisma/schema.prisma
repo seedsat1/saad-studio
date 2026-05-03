@@ -53,10 +53,8 @@ model User {
   isBanned           Boolean       @default(false)
   createdAt          DateTime      @default(now())
 
-  generations          Generation[]
-  creditLedgerEntries  CreditLedgerEntry[]
-  transactions         AdminTransaction[]
-  characters           UserCharacter[]
+  generations   Generation[]
+  transactions  AdminTransaction[]
 }
 
 /// Records every AI generation for security monitoring and cost tracking.
@@ -66,65 +64,17 @@ model Generation {
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   prompt     String
   mediaUrl   String?
+  outputUrl  String?
+  type       String?
+  status     String?
   assetType  String
   modelUsed  String
   cost       Float    @default(0)
   isFlagged  Boolean  @default(false)
   createdAt  DateTime @default(now())
 
-  creditLedgerEntries CreditLedgerEntry[]
-
   @@index([userId])
   @@index([createdAt])
-}
-
-model ApiIdempotency {
-  id             String   @id @default(cuid())
-  userId         String
-  route          String
-  key            String
-  requestHash    String
-  generationId   String?
-  responseStatus Int?
-  responseJson   Json?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  @@unique([userId, route, key])
-  @@index([userId, createdAt])
-}
-
-model CreditLedgerEntry {
-  id           String      @id @default(cuid())
-  userId       String
-  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  generationId String?
-  generation   Generation? @relation(fields: [generationId], references: [id], onDelete: SetNull)
-  delta        Int
-  reason       String
-  createdAt    DateTime    @default(now())
-
-  @@index([userId])
-  @@index([createdAt])
-  @@index([generationId])
-}
-
-model UserCharacter {
-  id                  String   @id @default(cuid())
-  userId              String
-  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name                String
-  description         String   @default("")
-  referenceUrls       Json     @default("[]")
-  coverUrl            String?
-  provider            String   @default("reference")
-  providerCharacterId String?
-  status              String   @default("ready")
-  metadata            Json     @default("{}")
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-
-  @@index([userId, updatedAt])
 }
 
 /// Financial transactions: subscriptions and credit purchases.
@@ -523,3 +473,4 @@ model TimelineProject {
 
   @@index([userId, updatedAt])
 }
+

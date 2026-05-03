@@ -59,7 +59,7 @@ function makeNode(
     position,
     data: {
       nodeType: type,
-      label: cfg.label,
+      label: `${cfg.label} #1`,
       description: cfg.description,
       status: "idle",
       settings: { ...cfg.defaultSettings, ...settingsOverride },
@@ -879,10 +879,11 @@ function AICanvasInner() {
       if (!src) return;
       const cfg = NODE_CONFIGS[nodeType];
       const id  = `node-${Date.now()}`;
+      const typeCount = nodesRef.current.filter(n => n.data.nodeType === nodeType).length + 1;
       const pos = { x: src.position.x + 430, y: src.position.y };
       const newNode: Node<CanvasNodeData> = {
         id, type: "canvasNode", position: pos,
-        data: { nodeType, label: cfg.label, description: cfg.description, status: "idle", settings: { ...cfg.defaultSettings }, creditCost: cfg.creditCost },
+        data: { nodeType, label: `${cfg.label} #${typeCount}`, description: cfg.description, status: "idle", settings: { ...cfg.defaultSettings }, creditCost: cfg.creditCost },
       };
       setNodes(nds => [...nds, newNode]);
       const srcCfg = NODE_CONFIGS[src.data.nodeType];
@@ -910,11 +911,12 @@ function AICanvasInner() {
     (type: CanvasNodeType) => {
       const cfg = NODE_CONFIGS[type];
       const count = nodesRef.current.length;
+      const typeCount = nodesRef.current.filter(n => n.data.nodeType === type).length + 1;
       const pos = { x: 120 + (count % 5) * 260, y: 100 + Math.floor(count / 5) * 200 };
       const id = `node-${Date.now()}`;
       const newNode: Node<CanvasNodeData> = {
         id, type: "canvasNode", position: pos,
-        data: { nodeType: type, label: cfg.label, description: cfg.description, status: "idle", settings: { ...cfg.defaultSettings }, creditCost: cfg.creditCost },
+        data: { nodeType: type, label: `${cfg.label} #${typeCount}`, description: cfg.description, status: "idle", settings: { ...cfg.defaultSettings }, creditCost: cfg.creditCost },
       };
       setNodes(nds => [...nds, newNode]);
     },

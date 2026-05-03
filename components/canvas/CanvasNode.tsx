@@ -20,6 +20,13 @@ interface ModelDef {
   badge?: "FAST" | "NEW" | "PRO"; icon: string; family: string;
 }
 
+const LLM_MODELS: ModelDef[] = [
+  { id: "gpt-4o-mini",         label: "GPT-4o Mini",      short: "GPT-4o Mini",   desc: "Fast & smart",   badge: "FAST", icon: "AI", family: "OpenAI"    },
+  { id: "gpt-4o",              label: "GPT-4o",           short: "GPT-4o",        desc: "Most capable",                icon: "AI", family: "OpenAI"    },
+  { id: "gemini-2.0-flash",    label: "Gemini 2.0 Flash", short: "Gemini Flash",  desc: "Multimodal",    badge: "NEW",  icon: "G",  family: "Google"    },
+  { id: "claude-3-5-sonnet",   label: "Claude 3.5 Sonnet",short: "Claude 3.5",   desc: "Analytical",                  icon: "AN", family: "Anthropic" },
+];
+
 const IMAGE_MODELS: ModelDef[] = [
   { id: "nano-banana-pro",              label: "Nano Banana Pro",  short: "Nano",       desc: "Fast, sharp",         badge: "FAST", icon: "KIE", family: "KIE"         },
   { id: "google/imagen4",               label: "Imagen 4",         short: "Imagen 4",   desc: "Photorealism",        badge: "NEW",  icon: "G",   family: "Google"      },
@@ -80,6 +87,7 @@ const STATUS_CFG: Record<NodeStatus, { color: string; pulse?: boolean }> = {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function modelsFor(t: CanvasNodeType): ModelDef[] {
+  if (t === "assistant") return LLM_MODELS;
   if (t === "image-to-video" || t === "video-to-video" || t === "text-to-video" || t === "video-combiner") return VIDEO_MODELS;
   if (t === "image-edit" || t === "variations") return IMAGE_EDIT_MODELS;
   return IMAGE_MODELS;
@@ -499,33 +507,20 @@ function NodeIdleVisual({ nodeType, accentColor, rgb }: { nodeType: CanvasNodeTy
       return (
         <div style={{
           position: "absolute", inset: 0, display: "flex", flexDirection: "column",
-          justifyContent: "center", padding: "12px 18px 72px", gap: 10,
-          pointerEvents: "none",
+          padding: "14px 18px 72px", gap: 12, pointerEvents: "none",
         }}>
-          {/* Sparkle header */}
-          <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-            <div style={{ width: 24, height: 24, borderRadius: "50%", background: `rgba(${rgb},0.16)`, border: `1px solid rgba(${rgb},0.35)`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={accentColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/></svg>
+          {/* Two icon buttons at top */}
+          <div style={{ display: "flex", gap: 6 }}>
+            <div style={{ width: 28, height: 28, borderRadius: 8, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.09)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4a6580" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
             </div>
-            <span style={{ color: accentColor, fontSize: 10, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase" }}>Ask the assistant</span>
+            <div style={{ width: 28, height: 28, borderRadius: 8, background: `rgba(${rgb},0.08)`, border: `1px solid rgba(${rgb},0.2)`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={accentColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/></svg>
+            </div>
           </div>
-          {/* Suggestion cards */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 7, width: "100%" }}>
-            {[
-              { icon: "✦", text: "Rewrite this caption creatively" },
-              { icon: "◈", text: "Generate 5 ideas for this scene" },
-              { icon: "◎", text: "Summarize and refine this text" },
-            ].map(({ icon, text }, i) => (
-              <div key={i} style={{
-                display: "flex", alignItems: "center", gap: 9,
-                padding: "8px 12px", borderRadius: 10,
-                background: i === 0 ? `rgba(${rgb},0.10)` : "rgba(255,255,255,0.04)",
-                border: `1px solid ${i === 0 ? `rgba(${rgb},0.25)` : "rgba(255,255,255,0.08)"}`,
-              }}>
-                <span style={{ color: i === 0 ? accentColor : "#4a6580", fontSize: 12, lineHeight: 1, flexShrink: 0 }}>{icon}</span>
-                <span style={{ color: i === 0 ? "#a5b4d8" : "#5a7590", fontSize: 10.5 }}>{text}</span>
-              </div>
-            ))}
+          {/* Description text */}
+          <div style={{ color: "#3d566f", fontSize: 13, lineHeight: 1.78, flex: 1 }}>
+            Assistant is your creative sidekick—powered by a large language model. You can type a prompt, or even use images for context. It understands what you mean, builds on your ideas, and helps you move faster.
           </div>
         </div>
       );
@@ -600,7 +595,7 @@ function CanvasNodeInner({ id, data, selected }: NodeProps<Node<CanvasNodeData>>
 
   const isVideo    = ["image-to-video", "video-to-video", "text-to-video", "video-combiner"].includes(data.nodeType);
   const showPrompt = cfg.hasPromptInput || data.nodeType === "text-prompt";
-  const showModel  = !["export", "upload-image", "upscale", "voiceover", "sound-effects", "music-generator", "speak", "media-extractor", "video-upscale", "list", "sticky-note", "add-reference", "assets", "stock", "assistant", "image-to-svg"].includes(data.nodeType);
+  const showModel  = !["export", "upload-image", "upscale", "voiceover", "sound-effects", "music-generator", "speak", "media-extractor", "video-upscale", "list", "sticky-note", "add-reference", "assets", "stock", "image-to-svg"].includes(data.nodeType);
   const showAR     = !["image-to-video", "video-to-video", "text-to-video", "video-combiner", "export", "upload-image", "upscale", "text-prompt", "voiceover", "sound-effects", "music-generator", "speak", "media-extractor", "video-upscale", "list", "sticky-note", "add-reference", "assets", "stock", "assistant", "image-to-svg"].includes(data.nodeType);
   const showDur    = isVideo;
   const showRes    = isVideo;
@@ -663,8 +658,8 @@ function CanvasNodeInner({ id, data, selected }: NodeProps<Node<CanvasNodeData>>
           display: "flex", alignItems: "center", gap: 6,
           pointerEvents: "none", userSelect: "none",
         }}>
-          <NodeTypeIcon type="text-prompt" size={12} color="#3d546a" strokeWidth={1.8} />
-          <span style={{ color: "#3d546a", fontSize: 11.5, fontWeight: 500 }}>{data.label}</span>
+          <NodeTypeIcon type="text-prompt" size={12} color="#6b8aaa" strokeWidth={1.8} />
+          <span style={{ color: "#8aa8c8", fontSize: 11.5, fontWeight: 500 }}>{data.label}</span>
         </div>
 
         {/* Card */}
@@ -672,11 +667,11 @@ function CanvasNodeInner({ id, data, selected }: NodeProps<Node<CanvasNodeData>>
           borderRadius: 14, overflow: "hidden",
           background: "rgba(9,15,26,0.97)",
           border: selected
-            ? `1.5px solid rgba(${rgb},0.55)`
-            : `1.5px solid rgba(${rgb},0.22)`,
+            ? `1.5px solid rgba(59,130,246,0.72)`
+            : `1.5px solid rgba(59,130,246,0.35)`,
           boxShadow: selected
-            ? `0 0 0 3px rgba(${rgb},0.08), 0 12px 40px rgba(0,0,0,0.8)`
-            : `0 6px 28px rgba(0,0,0,0.7)`,
+            ? `0 0 0 3px rgba(59,130,246,0.09), 0 12px 40px rgba(0,0,0,0.8)`
+            : `0 6px 28px rgba(0,0,0,0.7), 0 0 0 0.5px rgba(59,130,246,0.1)`,
           transition: "border-color 0.2s, box-shadow 0.2s",
         }}>
           {/* Textarea */}
@@ -734,8 +729,8 @@ function CanvasNodeInner({ id, data, selected }: NodeProps<Node<CanvasNodeData>>
         display: "flex", alignItems: "center", gap: 7,
         pointerEvents: "none", userSelect: "none",
       }}>
-        <span style={{ display: "flex", alignItems: "center", opacity: 0.55 }}><NodeTypeIcon type={data.nodeType} size={13} color="#5a7a9a" strokeWidth={1.8} /></span>
-        <span style={{ color: "#3d546a", fontSize: 12, fontWeight: 500 }}>{cfg.label}</span>
+        <span style={{ display: "flex", alignItems: "center", opacity: 0.8 }}><NodeTypeIcon type={data.nodeType} size={13} color="#6b8aaa" strokeWidth={1.8} /></span>
+        <span style={{ color: "#8aa8c8", fontSize: 12, fontWeight: 500 }}>{data.label}</span>
         {data.status !== "idle" && (
           <div style={{
             width: 6, height: 6, borderRadius: "50%", background: sc.color,
@@ -754,10 +749,12 @@ function CanvasNodeInner({ id, data, selected }: NodeProps<Node<CanvasNodeData>>
       <div style={{
         borderRadius: 16, overflow: "hidden",
         background: "rgba(9,16,28,0.97)",
-        border: selected ? `1px solid rgba(${rgb},0.52)` : "1px solid rgba(255,255,255,0.09)",
+        border: selected
+          ? `1.5px solid rgba(59,130,246,0.72)`
+          : `1.5px solid rgba(59,130,246,0.35)`,
         boxShadow: selected
-          ? `0 0 0 1px rgba(${rgb},0.04), 0 20px 60px rgba(0,0,0,0.9), 0 0 80px rgba(${rgb},0.1)`
-          : "0 8px 48px rgba(0,0,0,0.8), 0 1px 4px rgba(0,0,0,0.6)",
+          ? `0 0 0 3px rgba(59,130,246,0.08), 0 20px 60px rgba(0,0,0,0.9), 0 0 24px rgba(59,130,246,0.12)`
+          : `0 8px 48px rgba(0,0,0,0.8), 0 0 0 0.5px rgba(59,130,246,0.1)`,
         transition: "border-color 0.2s, box-shadow 0.2s",
       }}>
 
@@ -899,36 +896,49 @@ function CanvasNodeInner({ id, data, selected }: NodeProps<Node<CanvasNodeData>>
           {/* List node */}
           {data.nodeType === "list" && (
             <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column" }}>
-              {/* Header */}
-              <div style={{ padding: "10px 14px 7px", display: "flex", alignItems: "center", gap: 6, borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
-                <div style={{ width: 18, height: 18, borderRadius: 5, background: "rgba(100,116,139,0.15)", border: "1px solid rgba(100,116,139,0.25)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2.5" strokeLinecap="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-                </div>
-                <span style={{ color: "#3a5068", fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase" }}>List</span>
-                <span style={{ marginLeft: "auto", color: "#1e2f42", fontSize: 9.5 }}>
-                  {(data.settings.noteText ?? "").split("\n").filter(l => l.trim()).length} items
-                </span>
-              </div>
-              {/* Textarea area */}
-              <div style={{ flex: 1, padding: "10px 14px", position: "relative" }}>
-                {!(data.settings.noteText ?? "").trim() && (
-                  <div style={{ position: "absolute", inset: "10px 14px", pointerEvents: "none", display: "flex", flexDirection: "column", gap: 7 }}>
-                    {["Item 1", "Item 2", "Item 3"].map((t, i) => (
-                      <div key={i} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <div style={{ width: 5, height: 5, borderRadius: "50%", background: "rgba(100,116,139,0.25)", flexShrink: 0 }} />
-                        <span style={{ color: "#1e2f42", fontSize: 12 }}>{t}</span>
-                      </div>
-                    ))}
+              {!(data.settings.noteText ?? "").trim() ? (
+                /* Empty state */
+                <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10 }}>
+                  <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="rgba(100,116,139,0.35)" strokeWidth="1.4" strokeLinecap="round">
+                    <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
+                    <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+                  </svg>
+                  <div style={{ textAlign: "center" }}>
+                    <div style={{ color: "#64748b", fontSize: 14, fontWeight: 500 }}>No elements yet</div>
+                    <div style={{ color: "#2a3a50", fontSize: 11.5, marginTop: 4 }}>Add elements to this list</div>
                   </div>
-                )}
-                <textarea className="nodrag nowheel"
-                  value={data.settings.noteText ?? ""}
-                  onChange={e => { SP(e); updateNodeSettings(id, { noteText: e.target.value }); }}
-                  onMouseDown={SP}
-                  placeholder=""
-                  style={{ width: "100%", height: "100%", resize: "none", background: "transparent", border: "none", padding: 0, color: "#94a3b8", fontSize: 12.5, lineHeight: 2, outline: "none", fontFamily: "inherit", boxSizing: "border-box" }}
-                />
-              </div>
+                  <div style={{ display: "flex", gap: 8, marginTop: 2 }}>
+                    <button className="nodrag" onClick={e => { SP(e); updateNodeSettings(id, { noteText: "Item 1\n" }); }}
+                      style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 10, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "#7a9ab8", fontSize: 11.5, cursor: "pointer", fontFamily: "inherit" }}>
+                      <span style={{ fontSize: 10, fontWeight: 700, color: "#8b5cf6" }}>T</span>
+                      Add text
+                    </button>
+                    <button className="nodrag" onClick={e => { SP(e); updateNodeSettings(id, { noteText: "media://\n" }); }}
+                      style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 10, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "#7a9ab8", fontSize: 11.5, cursor: "pointer", fontFamily: "inherit" }}>
+                      <ImageIcon size={12} style={{ color: "#3b82f6" }} />
+                      Add media
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                /* Content state */
+                <>
+                  <div style={{ padding: "10px 14px 7px", display: "flex", alignItems: "center", gap: 6, borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+                    <span style={{ color: "#3a5068", fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase" }}>List</span>
+                    <span style={{ marginLeft: "auto", color: "#1e2f42", fontSize: 9.5 }}>
+                      {(data.settings.noteText ?? "").split("\n").filter((l: string) => l.trim()).length} items
+                    </span>
+                  </div>
+                  <div style={{ flex: 1, padding: "10px 14px" }}>
+                    <textarea className="nodrag nowheel"
+                      value={data.settings.noteText ?? ""}
+                      onChange={e => { SP(e); updateNodeSettings(id, { noteText: e.target.value }); }}
+                      onMouseDown={SP}
+                      style={{ width: "100%", height: "100%", resize: "none", background: "transparent", border: "none", padding: 0, color: "#94a3b8", fontSize: 12.5, lineHeight: 2, outline: "none", fontFamily: "inherit", boxSizing: "border-box" }}
+                    />
+                  </div>
+                </>
+              )}
             </div>
           )}
 

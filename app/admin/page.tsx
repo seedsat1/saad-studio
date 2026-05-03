@@ -105,80 +105,19 @@ const MOCK_USERS = [
   },
 ];
 
-const MOCK_GENERATIONS = [
-  {
-    id: "g1",
-    userEmail: "alex.smith@gmail.com",
-    prompt:
-      "Cinematic futuristic city at dusk, neon reflections on rain-soaked cobblestone streets, volumetric fog, 8K UHD",
-    mediaUrl: "https://picsum.photos/seed/g1ai/400/260",
-    assetType: "IMAGE",
-    modelUsed: "Flux Pro 1.1",
-    cost: 0.05,
-    createdAt: "Apr 7, 2026 14:23",
-    flagged: false,
-  },
-  {
-    id: "g2",
-    userEmail: "maria.johnson@outlook.com",
-    prompt:
-      "Medieval knight in enchanted glowing forest, epic fantasy, hyper-realistic, dramatic rim lighting",
-    mediaUrl: "https://picsum.photos/seed/g2ai/400/260",
-    assetType: "IMAGE",
-    modelUsed: "Seedance v1",
-    cost: 0.12,
-    createdAt: "Apr 7, 2026 13:45",
-    flagged: false,
-  },
-  {
-    id: "g3",
-    userEmail: "david.chen@yahoo.com",
-    prompt:
-      "Luxury watch brand advertisement, slow motion water droplets in 4K, product reveal cinematic video",
-    mediaUrl: "https://picsum.photos/seed/g3ai/400/260",
-    assetType: "VIDEO",
-    modelUsed: "Kling 3.0",
-    cost: 0.5,
-    createdAt: "Apr 7, 2026 12:10",
-    flagged: false,
-  },
-  {
-    id: "g4",
-    userEmail: "sarah.king@gmail.com",
-    prompt:
-      "Anime girl with silver hair on skyscraper rooftop at night, cyberpunk neon aesthetic, Makoto Shinkai style",
-    mediaUrl: "https://picsum.photos/seed/g4ai/400/260",
-    assetType: "IMAGE",
-    modelUsed: "Flux Pro 1.1",
-    cost: 0.05,
-    createdAt: "Apr 7, 2026 11:55",
-    flagged: true,
-  },
-  {
-    id: "g5",
-    userEmail: "alex.smith@gmail.com",
-    prompt:
-      "Deep ambient lo-fi music for late night study sessions, soft rain in background, melancholic piano",
-    mediaUrl: "https://picsum.photos/seed/g5ai/400/260",
-    assetType: "AUDIO",
-    modelUsed: "ElevenLabs v3",
-    cost: 0.08,
-    createdAt: "Apr 7, 2026 10:30",
-    flagged: false,
-  },
-  {
-    id: "g6",
-    userEmail: "james.wilson@proton.me",
-    prompt:
-      "Explain quantum computing in simple terms using Python code examples, include Hadamard gates demo",
-    mediaUrl: null,
-    assetType: "CODE",
-    modelUsed: "GPT-4o",
-    cost: 0.02,
-    createdAt: "Apr 7, 2026 09:00",
-    flagged: false,
-  },
-];
+type AdminGenerationRow = {
+  id: string;
+  prompt: string;
+  userId: string;
+  userEmail: string;
+  model: string;
+  type: string;
+  status: string;
+  outputUrl: string | null;
+  createdAt: string;
+  apiCost: number;
+  flagged: boolean;
+};
 
 const MOCK_TRANSACTIONS = [
   {
@@ -506,7 +445,7 @@ export default function AdminDashboard() {
   const [activeSection, setActiveSection] = useState("overview");
   const [users, setUsers] = useState<typeof MOCK_USERS>([]);
   const [usersLoading, setUsersLoading] = useState(true);
-  const [generations, setGenerations] = useState<(typeof MOCK_GENERATIONS)[number][]>([]);
+  const [generations, setGenerations] = useState<AdminGenerationRow[]>([]);
   const [transactions, setTransactions] = useState<AdminTransactionRow[]>([]);
   const [transactionsLoading, setTransactionsLoading] = useState(true);
   const [transactionsRefreshing, setTransactionsRefreshing] = useState(false);
@@ -539,7 +478,8 @@ export default function AdminDashboard() {
   const refreshGenerations = useCallback(async () => {
     const res = await fetch("/api/admin/generations", { cache: "no-store" });
     const data = await res.json().catch(() => []);
-    setGenerations(Array.isArray(data) ? data : []);
+    console.log("[admin] /api/admin/generations:", Array.isArray(data) ? data.length : "non-array");
+    setGenerations(Array.isArray(data) ? (data as AdminGenerationRow[]) : []);
   }, []);
 
   // ── Fetch real data on mount ──────────────────────────────────────────────
@@ -1341,36 +1281,51 @@ export default function AdminDashboard() {
                       {/* Media Thumbnail */}
                       <div
                         className={`relative h-44 bg-slate-900 overflow-hidden flex-shrink-0 ${
-                          gen.mediaUrl ? "cursor-zoom-in" : ""
+                          gen.outputUrl ? "cursor-zoom-in" : ""
                         }`}
                         onClick={() => {
-                          if (!gen.mediaUrl) return;
+                          if (!gen.outputUrl) return;
                           setGenerationPreview({
-                            url: gen.mediaUrl,
-                            assetType: gen.assetType,
+                            url: gen.outputUrl,
+                            assetType: gen.type === "video" ? "VIDEO" : "IMAGE",
                             prompt: gen.prompt,
                             userEmail: gen.userEmail,
-                            modelUsed: gen.modelUsed,
-                            createdAt: gen.createdAt,
+                            modelUsed: gen.model,
+                            createdAt: new Date(gen.createdAt).toLocaleString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            }),
                           });
                         }}
                       >
-                        {gen.mediaUrl ? (
-                          <img
-                            src={gen.mediaUrl}
-                            alt="Generated media preview"
-                            className="w-full h-full object-cover opacity-80 hover:opacity-100 transition-opacity"
-                            loading="lazy"
-                          />
+                        {gen.outputUrl ? (
+                          gen.type === "video" ? (
+                            <video
+                              src={gen.outputUrl}
+                              controls
+                              className="w-full h-full object-cover opacity-80 hover:opacity-100 transition-opacity"
+                              preload="metadata"
+                            />
+                          ) : (
+                            <img
+                              src={gen.outputUrl}
+                              alt="Generated media preview"
+                              className="w-full h-full object-cover opacity-80 hover:opacity-100 transition-opacity"
+                              loading="lazy"
+                            />
+                          )
                         ) : (
                           <div className="w-full h-full flex items-center justify-center bg-slate-800/60">
                             <Code2 className="w-10 h-10 text-slate-600" />
                           </div>
                         )}
                         <div className="absolute top-2 left-2">
-                          <AssetIcon type={gen.assetType} />
+                          <AssetIcon type={gen.type === "video" ? "VIDEO" : "IMAGE"} />
                         </div>
-                        {gen.mediaUrl && (
+                        {gen.outputUrl && (
                           <div className="absolute left-2 bottom-2 rounded-md border border-white/25 bg-black/45 px-2 py-0.5 text-[10px] font-semibold text-white">
                             Preview
                           </div>
@@ -1400,15 +1355,18 @@ export default function AdminDashboard() {
                           </div>
                           <div className="text-right">
                             <p className="text-slate-600">Model</p>
-                            <p className="text-violet-400 font-semibold">{gen.modelUsed}</p>
+                            <p className="text-violet-400 font-semibold">{gen.model}</p>
                           </div>
                         </div>
                         <div className="flex items-center justify-between text-[11px]">
                           <div>
                             <p className="text-slate-600">API Cost</p>
-                            <p className="text-emerald-400 font-bold">${gen.cost.toFixed(3)}</p>
+                            <p className="text-emerald-400 font-bold">${Number(gen.apiCost || 0).toFixed(3)}</p>
                           </div>
-                          <p className="text-slate-600">{gen.createdAt}</p>
+                          <div className="text-right">
+                            <p className="text-slate-600">{new Date(gen.createdAt).toLocaleString("en-US")}</p>
+                            <p className="text-[10px] font-semibold text-slate-400">{gen.status}</p>
+                          </div>
                         </div>
                         {/* Action Buttons */}
                         <div className="flex gap-2 pt-1 mt-auto">
