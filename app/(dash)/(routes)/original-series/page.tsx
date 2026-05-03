@@ -24,6 +24,7 @@ import {
 } from "@xyflow/react";
 
 import { CanvasNode } from "@/components/canvas/CanvasNode";
+import { NodeTypeIcon } from "@/components/canvas/node-icons";
 import { CanvasContext, type CanvasContextValue } from "@/components/canvas/canvas-context";
 import {
   NODE_CONFIGS,
@@ -385,8 +386,8 @@ function NodeLibItem({
       onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.04)"; }}
       onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
     >
-      <div style={{ width: 30, height: 30, borderRadius: 9, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, background: `${item.color}18`, border: `1px solid ${item.color}30` }}>
-        {cfg.emoji}
+      <div style={{ width: 30, height: 30, borderRadius: 9, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: `${item.color}18`, border: `1px solid ${item.color}30` }}>
+        <NodeTypeIcon type={item.type} size={14} color={item.color} strokeWidth={1.75} />
       </div>
       <div style={{ color: "#a0bcd4", fontSize: 12.5, fontWeight: 400 }}>{item.label}</div>
     </button>

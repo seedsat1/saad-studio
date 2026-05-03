@@ -5,7 +5,9 @@ import { Handle, Position, type Node, type NodeProps } from "@xyflow/react";
 import {
   Play, Loader2, ChevronDown, Search, Plus,
   Download, AlertCircle, Settings, Minus, CheckCircle,
+  Image as ImageIcon, Video as VideoIcon,
 } from "lucide-react";
+import { NodeTypeIcon } from "./node-icons";
 import {
   type CanvasNodeData, type NodeStatus, type CanvasNodeType,
   NODE_CONFIGS, hexToRgb,
@@ -19,27 +21,27 @@ interface ModelDef {
 }
 
 const IMAGE_MODELS: ModelDef[] = [
-  { id: "nano-banana-pro",              label: "Nano Banana Pro",  short: "Nano",       desc: "Fast, sharp",         badge: "FAST", icon: "⚡", family: "KIE"         },
-  { id: "google/imagen4",               label: "Imagen 4",         short: "Imagen 4",   desc: "Photorealism",        badge: "NEW",  icon: "🖼", family: "Google"      },
-  { id: "google/imagen4-ultra",         label: "Imagen 4 Ultra",   short: "Imagen U",   desc: "Max fidelity",                       icon: "✨", family: "Google"      },
-  { id: "flux-2/pro-text-to-image",     label: "FLUX.2 Pro",       short: "FLUX.2",     desc: "Creative detail",                    icon: "🌊", family: "Black Forest" },
-  { id: "seedream/4.5-text-to-image",   label: "Seedream 4.5",     short: "Seedream",   desc: "Vivid artistic",                     icon: "🌸", family: "ByteDance"   },
-  { id: "gpt-image/1.5-text-to-image",  label: "GPT Image 1.5",    short: "GPT Image",  desc: "OpenAI",                             icon: "🤖", family: "OpenAI"      },
+  { id: "nano-banana-pro",              label: "Nano Banana Pro",  short: "Nano",       desc: "Fast, sharp",         badge: "FAST", icon: "KIE", family: "KIE"         },
+  { id: "google/imagen4",               label: "Imagen 4",         short: "Imagen 4",   desc: "Photorealism",        badge: "NEW",  icon: "G",   family: "Google"      },
+  { id: "google/imagen4-ultra",         label: "Imagen 4 Ultra",   short: "Imagen U",   desc: "Max fidelity",                       icon: "G",   family: "Google"      },
+  { id: "flux-2/pro-text-to-image",     label: "FLUX.2 Pro",       short: "FLUX.2",     desc: "Creative detail",                    icon: "BF",  family: "Black Forest" },
+  { id: "seedream/4.5-text-to-image",   label: "Seedream 4.5",     short: "Seedream",   desc: "Vivid artistic",                     icon: "BD",  family: "ByteDance"   },
+  { id: "gpt-image/1.5-text-to-image",  label: "GPT Image 1.5",    short: "GPT Image",  desc: "OpenAI",                             icon: "AI",  family: "OpenAI"      },
 ];
 
 const IMAGE_EDIT_MODELS: ModelDef[] = [
-  { id: "nano-banana-pro",                 label: "Nano Banana Pro",    short: "Nano",     desc: "Fast edits",  badge: "FAST", icon: "⚡", family: "KIE"         },
-  { id: "seedream/4.5-edit",               label: "Seedream 4.5 Edit",  short: "Seedream", desc: "Inpainting",                  icon: "🎯", family: "ByteDance"   },
-  { id: "flux-2/pro-image-to-image",       label: "FLUX.2 Pro I2I",     short: "FLUX I2I", desc: "Style xfer",                  icon: "🌊", family: "Black Forest" },
-  { id: "gpt-image/1.5-image-to-image",    label: "GPT Image 1.5 I2I",  short: "GPT I2I",  desc: "Guided",                      icon: "🤖", family: "OpenAI"      },
+  { id: "nano-banana-pro",                 label: "Nano Banana Pro",    short: "Nano",     desc: "Fast edits",  badge: "FAST", icon: "KIE", family: "KIE"         },
+  { id: "seedream/4.5-edit",               label: "Seedream 4.5 Edit",  short: "Seedream", desc: "Inpainting",                  icon: "BD",  family: "ByteDance"   },
+  { id: "flux-2/pro-image-to-image",       label: "FLUX.2 Pro I2I",     short: "FLUX I2I", desc: "Style xfer",                  icon: "BF",  family: "Black Forest" },
+  { id: "gpt-image/1.5-image-to-image",    label: "GPT Image 1.5 I2I",  short: "GPT I2I",  desc: "Guided",                      icon: "AI",  family: "OpenAI"      },
 ];
 
 const VIDEO_MODELS: ModelDef[] = [
-  { id: "kwaivgi/kling-v3.0-pro/text-to-video", label: "Kling 3.0 Pro",    short: "Kling 3",    desc: "Best motion",  badge: "PRO",  icon: "🎬", family: "KwaiVGI"   },
-  { id: "kling/v2-5-turbo-image-to-video-pro",  label: "Kling 2.5 Turbo",  short: "Kling 2.5",  desc: "Fast gen",     badge: "FAST", icon: "⚡", family: "KwaiVGI"   },
-  { id: "openai/sora-2/image-to-video",          label: "Sora 2",            short: "Sora 2",     desc: "OpenAI video", badge: "NEW",  icon: "🤖", family: "OpenAI"    },
-  { id: "minimax/hailuo-2.3/i2v-pro",            label: "Hailuo 2.3 Pro",    short: "Hailuo 2.3", desc: "Cinematic",                  icon: "🎞", family: "MiniMax"   },
-  { id: "bytedance/seedance-v2/text-to-video",   label: "Seedance v2",       short: "Seedance",   desc: "Stable fluid",               icon: "💫", family: "ByteDance" },
+  { id: "kwaivgi/kling-v3.0-pro/text-to-video", label: "Kling 3.0 Pro",    short: "Kling 3",    desc: "Best motion",  badge: "PRO",  icon: "KW", family: "KwaiVGI"   },
+  { id: "kling/v2-5-turbo-image-to-video-pro",  label: "Kling 2.5 Turbo",  short: "Kling 2.5",  desc: "Fast gen",     badge: "FAST", icon: "KW", family: "KwaiVGI"   },
+  { id: "openai/sora-2/image-to-video",          label: "Sora 2",            short: "Sora 2",     desc: "OpenAI video", badge: "NEW",  icon: "AI", family: "OpenAI"    },
+  { id: "minimax/hailuo-2.3/i2v-pro",            label: "Hailuo 2.3 Pro",    short: "Hailuo 2.3", desc: "Cinematic",                  icon: "MM", family: "MiniMax"   },
+  { id: "bytedance/seedance-v2/text-to-video",   label: "Seedance v2",       short: "Seedance",   desc: "Stable fluid",               icon: "BD", family: "ByteDance" },
 ];
 
 const ASPECT_RATIOS: Array<{ v: string; w: number; h: number }> = [
@@ -54,13 +56,13 @@ const ASPECT_RATIOS: Array<{ v: string; w: number; h: number }> = [
 const DURATIONS   = [3, 5, 8, 10];
 const RESOLUTIONS = ["480p", "720p", "1080p"];
 
-const ADD_MENU: Array<{ type: CanvasNodeType; label: string; desc: string; color: string; icon: string }> = [
-  { type: "text-to-image",  label: "Image Gen",   desc: "Text → Image",     color: "#f59e0b", icon: "🖼"  },
-  { type: "image-edit",     label: "Image Edit",  desc: "Inpaint & edit",   color: "#ec4899", icon: "✏️"  },
-  { type: "image-to-video", label: "Animate",     desc: "Image → Video",    color: "#10b981", icon: "🎬"  },
-  { type: "video-to-video", label: "Transform",   desc: "Restyle video",    color: "#6366f1", icon: "🔄"  },
-  { type: "upscale",        label: "Upscale 4K",  desc: "Enhance res",      color: "#14b8a6", icon: "🔍"  },
-  { type: "export",         label: "Export",      desc: "Save & download",  color: "#84cc16", icon: "📥"  },
+const ADD_MENU: Array<{ type: CanvasNodeType; label: string; desc: string; color: string }> = [
+  { type: "text-to-image",  label: "Image Gen",   desc: "Text → Image",     color: "#f59e0b" },
+  { type: "image-edit",     label: "Image Edit",  desc: "Inpaint & edit",   color: "#ec4899" },
+  { type: "image-to-video", label: "Animate",     desc: "Image → Video",    color: "#10b981" },
+  { type: "video-to-video", label: "Transform",   desc: "Restyle video",    color: "#6366f1" },
+  { type: "upscale",        label: "Upscale 4K",  desc: "Enhance res",      color: "#14b8a6" },
+  { type: "export",         label: "Export",      desc: "Save & download",  color: "#84cc16" },
 ];
 
 const BADGE_STYLES = {
@@ -158,7 +160,7 @@ function ModelDropdown({ value, onChange, nodeType, accentColor, rgb, onClose }:
               onMouseEnter={e => { if (!isSel) { (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.05)"; } }}
               onMouseLeave={e => { if (!isSel) { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; } }}
             >
-              <div style={{ width: 30, height: 30, borderRadius: 8, flexShrink: 0, fontSize: 15, background: isSel ? `rgba(${rgb},0.18)` : "rgba(255,255,255,0.06)", border: `1px solid ${isSel ? `rgba(${rgb},0.3)` : "rgba(255,255,255,0.08)"}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <div style={{ width: 30, height: 30, borderRadius: 8, flexShrink: 0, fontWeight: 700, fontFamily: "monospace", fontSize: m.icon.length <= 2 ? 11 : 9, letterSpacing: "-0.03em", background: isSel ? `rgba(${rgb},0.18)` : "rgba(255,255,255,0.06)", border: `1px solid ${isSel ? `rgba(${rgb},0.3)` : "rgba(255,255,255,0.08)"}`, display: "flex", alignItems: "center", justifyContent: "center", color: isSel ? `rgba(${rgb},1)` : "rgba(255,255,255,0.35)" }}>
                 {m.icon}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -264,7 +266,11 @@ function ResDropdown({ value, onChange, rgb, onClose }: {
 
 // ─── Handle with icon ─────────────────────────────────────────────────────────
 const HC_COLOR: Record<string, string> = { image: "#3b82f6", video: "#10b981", prompt: "#8b5cf6" };
-const HC_ICON:  Record<string, string> = { image: "🖼",      video: "🎬",      prompt: "T"       };
+const HC_ICON_EL: Record<string, React.ReactNode> = {
+  image:  <ImageIcon size={9} strokeWidth={2} />,
+  video:  <VideoIcon size={9} strokeWidth={2} />,
+  prompt: <span style={{ fontSize: 9, fontWeight: 700, lineHeight: 1 }}>T</span>,
+};
 const HC_FONT:  Record<string, number> = { image: 13,        video: 13,        prompt: 11        };
 
 function InputHandle({ slot, topPct }: { slot: string; topPct: string }) {
@@ -282,7 +288,7 @@ function InputHandle({ slot, topPct }: { slot: string; topPct: string }) {
       }}
     >
       <span style={{ pointerEvents: "none", userSelect: "none", color: c, fontSize: HC_FONT[slot] ?? 13, fontWeight: 700, lineHeight: 1 }}>
-        {HC_ICON[slot] ?? "•"}
+        {HC_ICON_EL[slot] ?? "•"}
       </span>
     </Handle>
   );
@@ -303,7 +309,7 @@ function OutputHandle({ slot, topPct }: { slot: string; topPct: string }) {
       }}
     >
       <span style={{ pointerEvents: "none", userSelect: "none", color: c, fontSize: HC_FONT[slot] ?? 13, lineHeight: 1 }}>
-        {HC_ICON[slot] ?? "•"}
+        {HC_ICON_EL[slot] ?? "•"}
       </span>
     </Handle>
   );
@@ -382,7 +388,7 @@ function CanvasNodeInner({ id, data, selected }: NodeProps<Node<CanvasNodeData>>
         display: "flex", alignItems: "center", gap: 7,
         pointerEvents: "none", userSelect: "none",
       }}>
-        <span style={{ fontSize: 14 }}>{cfg.emoji}</span>
+        <span style={{ display: "flex", alignItems: "center", opacity: 0.55 }}><NodeTypeIcon type={data.nodeType} size={13} color="#5a7a9a" strokeWidth={1.8} /></span>
         <span style={{ color: "#3d546a", fontSize: 12, fontWeight: 500 }}>{cfg.label}</span>
         {data.status !== "idle" && (
           <div style={{
@@ -447,7 +453,7 @@ function CanvasNodeInner({ id, data, selected }: NodeProps<Node<CanvasNodeData>>
           {/* Output audio */}
           {data.outputAudioUrl && data.status === "done" && (
             <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16, padding: 24 }}>
-              <div style={{ fontSize: 48, opacity: 0.6 }}>{cfg.emoji}</div>
+              <div style={{ opacity: 0.5, display: "flex" }}><NodeTypeIcon type={data.nodeType} size={44} color={cfg.accentColor} strokeWidth={1.4} /></div>
               <div style={{ color: "#94a3b8", fontSize: 11, fontWeight: 500 }}>Audio ready</div>
               <audio
                 src={data.outputAudioUrl}
@@ -470,7 +476,7 @@ function CanvasNodeInner({ id, data, selected }: NodeProps<Node<CanvasNodeData>>
           {/* Upload image zone */}
           {data.nodeType === "upload-image" && !data.settings.imageUrl && (
             <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12 }}>
-              <div style={{ fontSize: 34, opacity: 0.35 }}>🖼</div>
+              <div style={{ opacity: 0.3, display: "flex" }}><NodeTypeIcon type="upload-image" size={32} color="#3b82f6" strokeWidth={1.4} /></div>
               <div style={{ color: "#1a2a3c", fontSize: 11 }}>Paste an image URL below</div>
               <input className="nodrag nowheel" type="text"
                 placeholder="https://example.com/image.jpg"
@@ -498,7 +504,7 @@ function CanvasNodeInner({ id, data, selected }: NodeProps<Node<CanvasNodeData>>
           {/* Add Reference / Assets / Stock image input zone */}
           {(data.nodeType === "add-reference" || data.nodeType === "assets" || data.nodeType === "stock") && !data.settings.imageUrl && (
             <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12 }}>
-              <div style={{ fontSize: 34, opacity: 0.35 }}>{cfg.emoji}</div>
+              <div style={{ opacity: 0.3, display: "flex" }}><NodeTypeIcon type={data.nodeType} size={32} color={cfg.accentColor} strokeWidth={1.4} /></div>
               <div style={{ color: "#1a2a3c", fontSize: 11 }}>Paste an image URL below</div>
               <input className="nodrag nowheel" type="text"
                 placeholder="https://example.com/image.jpg"
@@ -847,8 +853,8 @@ function CanvasNodeInner({ id, data, selected }: NodeProps<Node<CanvasNodeData>>
                   onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.05)"; }}
                   onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
                 >
-                  <div style={{ width: 30, height: 30, borderRadius: 8, flexShrink: 0, fontSize: 14, background: `${item.color}15`, border: `1px solid ${item.color}25`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    {item.icon}
+                  <div style={{ width: 30, height: 30, borderRadius: 8, flexShrink: 0, background: `${item.color}15`, border: `1px solid ${item.color}25`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <NodeTypeIcon type={item.type} size={14} color={item.color} strokeWidth={1.8} />
                   </div>
                   <div>
                     <div style={{ color: "#c8d6ea", fontSize: 12, fontWeight: 500 }}>{item.label}</div>
