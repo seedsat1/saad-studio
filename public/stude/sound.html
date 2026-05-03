@@ -223,7 +223,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .vm-vcard2.sel{background:var(--accent-soft);border-color:rgba(75,127,255,.3)}
 .vm-vcard2:hover .vm-v2-fav-btn{opacity:1}
 .vm-vcard2:hover .vm-v2-play-ov{opacity:1}
-.vm-v2-avatar{width:42px;height:42px;border-radius:11px;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;font-size:.95rem;position:relative}
+.vm-v2-avatar{width:42px;height:42px;border-radius:11px;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;font-size:.95rem;position:relative;background:var(--bg-input)}
 .vm-v2-play-ov{position:absolute;inset:0;background:rgba(75,127,255,.88);display:flex;align-items:center;justify-content:center;opacity:0;transition:.2s;border-radius:11px}
 .vm-v2-info{flex:1;min-width:0}
 .vm-v2-name{font-size:.85rem;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -720,8 +720,13 @@ function renderVmGrid(){
     const tc=TC[v.cat]||'t-nar';
     const tl=TL[v.cat]||v.cat;
     let av;
-    if(v.isCustom&&v.photoUrl){av=`<div class="vm-v2-avatar"><img src="${v.photoUrl}" alt="${v.name}" style="width:100%;height:100%;object-fit:cover;border-radius:11px"></div>`;}
-    else{av=`<div class="vm-v2-avatar" style="background:linear-gradient(135deg,${clr},${clr}99)">${init}<div class="vm-v2-play-ov"><svg width="12" height="12" viewBox="0 0 24 24" fill="white"><polygon points="6 3 20 12 6 21 6 3"/></svg></div></div>`;}
+    if(v.isCustom&&v.photoUrl){
+      av=`<div class="vm-v2-avatar"><img src="${v.photoUrl}" alt="${v.name}" style="width:100%;height:100%;object-fit:cover"><div class="vm-v2-play-ov"><svg width="12" height="12" viewBox="0 0 24 24" fill="white"><polygon points="6 3 20 12 6 21 6 3"/></svg></div></div>`;
+    } else if(v.isCustom){
+      av=`<div class="vm-v2-avatar" style="background:linear-gradient(135deg,${clr},${clr}99)">${init}<div class="vm-v2-play-ov"><svg width="12" height="12" viewBox="0 0 24 24" fill="white"><polygon points="6 3 20 12 6 21 6 3"/></svg></div></div>`;
+    } else {
+      av=`<div class="vm-v2-avatar"><img src="${getVoiceAvatar(v.id,v.gender)}" alt="${v.name}" loading="lazy" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.innerHTML='<span style=font-size:.95rem;font-weight:800>${init}</span>'"><div class="vm-v2-play-ov"><svg width="12" height="12" viewBox="0 0 24 24" fill="white"><polygon points="6 3 20 12 6 21 6 3"/></svg></div></div>`;
+    }
     const wave=sel?'<div class="vm-v2-wave"><div class="b"></div><div class="b"></div><div class="b"></div><div class="b"></div><div class="b"></div></div>':'';
     let acts;
     if(v.isCustom){
