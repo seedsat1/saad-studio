@@ -734,7 +734,7 @@ function CanvasNodeInner({ id, data, selected }: NodeProps<Node<CanvasNodeData>>
           )}
 
           {/* ── Idle type-specific visual ── */}
-          {!hasPreviewMedia && data.status === "idle" &&
+          {!hasPreviewMedia && data.status !== "running" &&
             !["upload-image","add-reference","assets","stock","sticky-note","list","export","text-prompt"].includes(data.nodeType) && (
             <NodeIdleVisual nodeType={data.nodeType} accentColor={cfg.accentColor} rgb={rgb} />
           )}
