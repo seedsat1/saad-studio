@@ -886,7 +886,7 @@ async function genVid(){
     if(!urls.length)throw new Error('No output URL returned.');
     const outUrl=urls[0];
     const durationSec=await getVideoDuration(outUrl)||6;
-    videoState.latestUrl=outUrl;videoState.latestName=clipPrefix+'_'+Date.now()+'.mp4';videoState.latestDurationSec=durationSec;
+    videoState.latestUrl=outUrl;videoState.latestName='saadstudio_'+clipPrefix+'_'+Date.now()+'.mp4';videoState.latestDurationSec=durationSec;
     const vp=document.getElementById('vPreview');vp.src=outUrl;vp.style.display='block';vp.load();
     showProgressDone();setLatestState(true);setStatus(spec.label+' complete — adding to timeline…','ok');
     if(_videoTracker) _videoTracker.clear();

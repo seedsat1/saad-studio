@@ -812,7 +812,7 @@ function getSelectedLangCode(){const v=VOICE_CATALOG.find(x=>x.id===_vmSelectedI
 async function handleGenerate(){const text=(document.getElementById('promptInput')?.value||'').trim();if(!text){setStatus('Please enter a description or text.','warn');return;}if(currentMode==='voice')await generateVoice(text);else if(currentMode==='music')await generateMusic(text);else await generateSfx(text);}
 async function generateVoice(text){
   const speedBtn=document.getElementById('optSpeed');const speedTxt=speedBtn?.childNodes[1]?.textContent?.trim()||'1.0x';const speed=parseFloat(speedTxt)||1.0;
-  const assetName=`voice_${Date.now()}.mp3`;
+  const assetName=`saadstudio_voice_${Date.now()}.mp3`;
   const customId=(document.getElementById('customVoiceId')?.value||'').trim();
   const btn=document.getElementById('sendBtn');if(btn){btn.disabled=true;btn.style.opacity='0.5';}
   setStatus('Submitting Voice generation...','info');
@@ -864,7 +864,7 @@ async function generateMusic(text){
   const mood=document.getElementById('moodChips')?.querySelector('.chip.a')?.textContent?.trim()||'Calm';
   const bpm=document.getElementById('bmV')?.textContent||'120';
   const prompt=text||`Cinematic ${genre} background music, ${mood} mood, around ${bpm} BPM, no vocals.`;
-  const assetName=`music_${Date.now()}.mp3`;
+  const assetName=`saadstudio_music_${Date.now()}.mp3`;
   const btn=document.getElementById('sendBtn');if(btn){btn.disabled=true;btn.style.opacity='0.5';}
   setStatus('Submitting Music generation...','info');
   try{
@@ -881,7 +881,7 @@ async function generateMusic(text){
   finally{if(btn){btn.disabled=false;btn.style.opacity='1';}}
 }
 async function generateSfx(text){
-  const assetName=`sfx_${Date.now()}.mp3`;
+  const assetName=`saadstudio_sfx_${Date.now()}.mp3`;
   const btn=document.getElementById('sendBtn');if(btn){btn.disabled=true;btn.style.opacity='0.5';}
   setStatus('Submitting SFX generation...','info');
   try{

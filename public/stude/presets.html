@@ -675,7 +675,7 @@ async function generateImage() {
     if (!urls.length) throw new Error('No output image URL returned');
 
     imageState.latestUrl = urls[0];
-    imageState.latestName = 'generated_image_'+Date.now()+'.png';
+    imageState.latestName = 'saadstudio_image_'+Date.now()+'.png';
 
     showResult(urls[0]);
     setOutputButtons(true);
@@ -704,7 +704,7 @@ async function resumeActiveImageJob(){
     var urls = parseResultUrls(record);
     if (!urls.length) throw new Error('No output image URL returned');
     imageState.latestUrl = urls[0];
-    imageState.latestName = 'generated_image_'+Date.now()+'.png';
+    imageState.latestName = 'saadstudio_image_'+Date.now()+'.png';
     showResult(urls[0]);
     setOutputButtons(true);
     tracker.clear();

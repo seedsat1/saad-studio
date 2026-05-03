@@ -226,7 +226,7 @@ const MusicPage = () => {
     if (!audioUrl) return;
     const a = document.createElement("a");
     a.href = audioUrl;
-    a.download = `music-${Date.now()}.mp3`;
+    a.download = `saadstudio_music_${Date.now()}.mp3`;
     a.click();
   };
 

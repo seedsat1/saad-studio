@@ -564,7 +564,7 @@ function ResultGrid({ items, onInspect, onRemix, onUse, onDelete, onBulkDelete }
     for (const url of urls) {
       const a = document.createElement("a");
       a.href = url;
-      a.download = "";
+      a.download = `saadstudio_image_${Date.now()}`;
       a.target = "_blank";
       document.body.appendChild(a);
       a.click();
