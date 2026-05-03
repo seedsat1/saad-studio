@@ -319,19 +319,19 @@ function OutputHandle({ slot, topPct }: { slot: string; topPct: string }) {
 function NodeIdleVisual({ nodeType, accentColor, rgb }: { nodeType: CanvasNodeType; accentColor: string; rgb: string }) {
   const pill = (label: string, active = false) => (
     <span key={label} style={{
-      padding: "3px 9px", borderRadius: 99, fontSize: 9.5, fontWeight: active ? 600 : 400,
-      background: active ? `rgba(${rgb},0.14)` : "rgba(255,255,255,0.04)",
-      border: `1px solid ${active ? `rgba(${rgb},0.28)` : "rgba(255,255,255,0.07)"}`,
-      color: active ? accentColor : "#3d546a", userSelect: "none",
+      padding: "4px 11px", borderRadius: 99, fontSize: 10, fontWeight: active ? 600 : 400,
+      background: active ? `rgba(${rgb},0.18)` : "rgba(255,255,255,0.07)",
+      border: `1px solid ${active ? `rgba(${rgb},0.40)` : "rgba(255,255,255,0.13)"}`,
+      color: active ? accentColor : "#7a9ab8", userSelect: "none",
     }}>{label}</span>
   );
   const row = (items: string[], activeIdx = 0) => (
-    <div style={{ display: "flex", flexWrap: "wrap", gap: 5, justifyContent: "center" }}>
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, justifyContent: "center" }}>
       {items.map((s, i) => pill(s, i === activeIdx))}
     </div>
   );
   const lbl = (text: string) => (
-    <div style={{ color: "#1e2f42", fontSize: 9, fontWeight: 700, letterSpacing: "0.09em", textTransform: "uppercase" }}>{text}</div>
+    <div style={{ color: "#4a6580", fontSize: 9, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase" }}>{text}</div>
   );
   const wrap = (children: React.ReactNode) => (
     <div style={{
@@ -341,7 +341,7 @@ function NodeIdleVisual({ nodeType, accentColor, rgb }: { nodeType: CanvasNodeTy
     }}>{children}</div>
   );
   const slider = (pct: number) => (
-    <div style={{ width: "80%", height: 5, borderRadius: 3, background: "rgba(255,255,255,0.06)", position: "relative" }}>
+    <div style={{ width: "80%", height: 5, borderRadius: 3, background: "rgba(255,255,255,0.10)", position: "relative" }}>
       <div style={{ position: "absolute", left: 0, top: 0, width: `${pct}%`, height: "100%", borderRadius: 3, background: `rgba(${rgb},0.4)` }} />
       <div style={{ position: "absolute", left: `calc(${pct}% - 5px)`, top: "50%", transform: "translateY(-50%)", width: 9, height: 9, borderRadius: "50%", background: accentColor, boxShadow: `0 0 6px ${accentColor}80` }} />
     </div>
@@ -379,7 +379,7 @@ function NodeIdleVisual({ nodeType, accentColor, rgb }: { nodeType: CanvasNodeTy
                   {i === 3 && <><path d="M6 2v4"/><path d="M18 2v4"/><path d="M2 8h20"/><rect x="2" y="6" width="20" height="16" rx="2"/></>}
                 </svg>
               </div>
-              <span style={{ fontSize: 8.5, color: i === 0 ? "#5a7a9a" : "#1e2f42" }}>{t}</span>
+              <span style={{ fontSize: 8.5, color: i === 0 ? "#6a9ab8" : "#4a6580" }}>{t}</span>
             </div>
           ))}
         </div>
@@ -392,7 +392,7 @@ function NodeIdleVisual({ nodeType, accentColor, rgb }: { nodeType: CanvasNodeTy
         {lbl("Camera Motion")}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3,28px)", gridTemplateRows: "repeat(3,28px)", gap: 3 }}>
           {["↖","↑","↗","←","·","→","↙","↓","↘"].map((a, i) => (
-            <div key={i} style={{ width: 28, height: 28, borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center", background: i === 4 ? `rgba(${rgb},0.15)` : "rgba(255,255,255,0.04)", border: `1px solid ${i === 4 ? `rgba(${rgb},0.28)` : "rgba(255,255,255,0.07)"}`, color: i === 4 ? accentColor : "#2a3f56", fontSize: i === 4 ? 10 : 14, fontWeight: 500 }}>
+            <div key={i} style={{ width: 28, height: 28, borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center", background: i === 4 ? `rgba(${rgb},0.18)` : "rgba(255,255,255,0.07)", border: `1px solid ${i === 4 ? `rgba(${rgb},0.38)` : "rgba(255,255,255,0.13)"}`, color: i === 4 ? accentColor : "#6a8a9f", fontSize: i === 4 ? 10 : 14, fontWeight: 500 }}>
               {a}
             </div>
           ))}
@@ -415,7 +415,7 @@ function NodeIdleVisual({ nodeType, accentColor, rgb }: { nodeType: CanvasNodeTy
         {lbl("Scale Factor")}
         <div style={{ display: "flex", gap: 8 }}>
           {["2×","4×","8×"].map((s, i) => (
-            <div key={s} style={{ width: 46, height: 46, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", background: i === 1 ? `rgba(${rgb},0.14)` : "rgba(255,255,255,0.04)", border: `1px solid ${i === 1 ? `rgba(${rgb},0.3)` : "rgba(255,255,255,0.07)"}`, color: i === 1 ? accentColor : "#3d546a", fontSize: 14, fontWeight: 700 }}>
+            <div key={s} style={{ width: 46, height: 46, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", background: i === 1 ? `rgba(${rgb},0.18)` : "rgba(255,255,255,0.07)", border: `1px solid ${i === 1 ? `rgba(${rgb},0.40)` : "rgba(255,255,255,0.13)"}`, color: i === 1 ? accentColor : "#7a9ab8", fontSize: 14, fontWeight: 700 }}>
               {s}
             </div>
           ))}
@@ -431,10 +431,10 @@ function NodeIdleVisual({ nodeType, accentColor, rgb }: { nodeType: CanvasNodeTy
         <div style={{ display: "flex", gap: 10 }}>
           {[["Aria","F"],["Eric","M"],["Nova","N"]].map(([name, g], i) => (
             <div key={name} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5 }}>
-              <div style={{ width: 36, height: 36, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", background: i === 0 ? `rgba(${rgb},0.14)` : "rgba(255,255,255,0.05)", border: `1.5px solid ${i === 0 ? `rgba(${rgb},0.3)` : "rgba(255,255,255,0.08)"}`, color: i === 0 ? accentColor : "#3d546a", fontSize: 10, fontWeight: 700 }}>
+              <div style={{ width: 36, height: 36, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", background: i === 0 ? `rgba(${rgb},0.18)` : "rgba(255,255,255,0.07)", border: `1.5px solid ${i === 0 ? `rgba(${rgb},0.38)` : "rgba(255,255,255,0.13)"}`, color: i === 0 ? accentColor : "#7a9ab8", fontSize: 10, fontWeight: 700 }}>
                 {g}
               </div>
-              <span style={{ fontSize: 8.5, color: i === 0 ? "#5a7a9a" : "#1e2f42" }}>{name}</span>
+              <span style={{ fontSize: 8.5, color: i === 0 ? "#6a9ab8" : "#4a6580" }}>{name}</span>
             </div>
           ))}
         </div>
@@ -457,8 +457,8 @@ function NodeIdleVisual({ nodeType, accentColor, rgb }: { nodeType: CanvasNodeTy
         {lbl("Mood")}
         {row(["Energetic", "Calm", "Dark", "Upbeat"], 2)}
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ color: "#1e2f42", fontSize: 9 }}>BPM</span>
-          <div style={{ width: 70, height: 5, borderRadius: 3, background: "rgba(255,255,255,0.06)", position: "relative" }}>
+          <span style={{ color: "#4a6580", fontSize: 9 }}>BPM</span>
+          <div style={{ width: 70, height: 5, borderRadius: 3, background: "rgba(255,255,255,0.10)", position: "relative" }}>
             <div style={{ position: "absolute", left: 0, top: 0, width: "45%", height: "100%", borderRadius: 3, background: `rgba(${rgb},0.4)` }} />
             <div style={{ position: "absolute", left: "calc(45% - 4px)", top: "50%", transform: "translateY(-50%)", width: 8, height: 8, borderRadius: "50%", background: accentColor }} />
           </div>
@@ -471,7 +471,7 @@ function NodeIdleVisual({ nodeType, accentColor, rgb }: { nodeType: CanvasNodeTy
         {lbl("Powered by Gemini")}
         <div style={{ display: "flex", flexDirection: "column", gap: 6, width: "100%" }}>
           {["Rewrite this caption…", "Generate 5 ideas for…", "Summarize this text…"].map((s, i) => (
-            <div key={i} style={{ padding: "6px 12px", borderRadius: 8, background: "rgba(99,102,241,0.05)", border: "1px solid rgba(99,102,241,0.1)", color: "#2a3f56", fontSize: 10 }}>
+            <div key={i} style={{ padding: "6px 12px", borderRadius: 8, background: "rgba(99,102,241,0.08)", border: "1px solid rgba(99,102,241,0.18)", color: "#7a8ab8", fontSize: 10 }}>
               {s}
             </div>
           ))}
@@ -495,7 +495,7 @@ function NodeIdleVisual({ nodeType, accentColor, rgb }: { nodeType: CanvasNodeTy
         {lbl("Count")}
         <div style={{ display: "flex", gap: 7 }}>
           {["1","2","4"].map((n, i) => (
-            <div key={n} style={{ width: 36, height: 28, borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center", background: i === 1 ? `rgba(${rgb},0.12)` : "rgba(255,255,255,0.04)", border: `1px solid ${i === 1 ? `rgba(${rgb},0.25)` : "rgba(255,255,255,0.07)"}`, color: i === 1 ? accentColor : "#3d546a", fontSize: 11, fontWeight: 600 }}>
+            <div key={n} style={{ width: 36, height: 28, borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center", background: i === 1 ? `rgba(${rgb},0.18)` : "rgba(255,255,255,0.07)", border: `1px solid ${i === 1 ? `rgba(${rgb},0.38)` : "rgba(255,255,255,0.13)"}`, color: i === 1 ? accentColor : "#7a9ab8", fontSize: 11, fontWeight: 600 }}>
               {n}
             </div>
           ))}
@@ -508,7 +508,7 @@ function NodeIdleVisual({ nodeType, accentColor, rgb }: { nodeType: CanvasNodeTy
         {lbl("Output Format")}
         <div style={{ display: "flex", gap: 7 }}>
           {["MP3","WAV","FLAC"].map((f, i) => (
-            <div key={f} style={{ padding: "5px 14px", borderRadius: 8, background: i === 0 ? `rgba(${rgb},0.12)` : "rgba(255,255,255,0.04)", border: `1px solid ${i === 0 ? `rgba(${rgb},0.28)` : "rgba(255,255,255,0.07)"}`, color: i === 0 ? accentColor : "#3d546a", fontSize: 10, fontWeight: 600 }}>
+            <div key={f} style={{ padding: "5px 14px", borderRadius: 8, background: i === 0 ? `rgba(${rgb},0.18)` : "rgba(255,255,255,0.07)", border: `1px solid ${i === 0 ? `rgba(${rgb},0.38)` : "rgba(255,255,255,0.13)"}`, color: i === 0 ? accentColor : "#7a9ab8", fontSize: 10, fontWeight: 600 }}>
               {f}
             </div>
           ))}
@@ -945,6 +945,8 @@ function CanvasNodeInner({ id, data, selected }: NodeProps<Node<CanvasNodeData>>
                     ? "Describe the music you want…"
                     : data.nodeType === "assistant"
                     ? "Ask the assistant anything…"
+                    : ["text-to-image", "image-edit", "variations", "designer", "stickers", "image-to-svg", "svg-generator"].includes(data.nodeType)
+                    ? "Describe the image you want to generate…"
                     : "Describe the video you want to generate…"
                 }
                 rows={3}
