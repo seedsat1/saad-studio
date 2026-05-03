@@ -176,6 +176,11 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .clone-btn.save{border-color:rgba(75,127,255,.35);color:var(--accent);background:var(--accent-soft)}
 .clone-btn.save:hover{background:rgba(75,127,255,.18)}
 .clone-btn:disabled{opacity:.5;cursor:not-allowed}
+.clone-photo-zone{border:2px dashed var(--border-light);border-radius:10px;padding:12px;text-align:center;cursor:pointer;transition:.15s;aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;background:var(--bg-input);min-height:90px}
+.clone-photo-zone:hover{border-color:var(--accent);background:var(--accent-soft)}
+.clone-photo-zone.has-photo{border-color:var(--green);padding:0}
+.clone-photo-zone.has-photo img{width:100%;height:100%;object-fit:cover;border-radius:8px}
+.clone-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
 #activeCloneBar{display:none;background:var(--accent-soft);border:1px solid rgba(75,127,255,.25);border-radius:8px;padding:7px 12px;font-size:11px;color:var(--accent);align-items:center;gap:8px;width:100%;max-width:740px;flex-shrink:0}
 @media(max-width:1100px){.vm-grid{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:700px){.vm-grid{grid-template-columns:repeat(2,1fr)}.vm-topbar{padding:14px 16px}.mode-btn{padding:6px 13px;font-size:12px}}
@@ -400,6 +405,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
       </div>
       <div class="clone-grid">
         <div>
+          <div style="font-size:11px;color:var(--text-sec);margin-bottom:6px;font-weight:600">Audio sample</div>
           <div id="cloneUploadZone" class="clone-upload-zone" onclick="document.getElementById('cloneSampleInput').click()">
             <div style="font-size:24px;margin-bottom:6px">🎤</div>
             <div id="cloneSampleName" style="font-size:11px;color:var(--text-sec)">Click to choose audio file<br><span style="color:var(--text-dim);font-size:10px">10-60s clear speech</span></div>
@@ -408,6 +414,14 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
             <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-sec);margin-bottom:3px"><span id="cloneProgressLabel">Uploading...</span><span id="clonePct">0%</span></div>
             <div class="clone-progress-bar-bg"><div class="clone-progress-bar" id="cloneBar"></div></div>
           </div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--text-sec);margin-bottom:6px;font-weight:600">Preview image <span style="color:var(--text-dim);font-weight:400">(optional)</span></div>
+          <div id="clonePhotoZone" class="clone-photo-zone" onclick="document.getElementById('clonePhotoInput').click()" title="Upload a photo for this voice">
+            <div style="font-size:22px;margin-bottom:4px">🖼</div>
+            <div style="font-size:10px;color:var(--text-dim)">JPG, PNG, WebP<br>max 5MB</div>
+          </div>
+          <input id="clonePhotoInput" type="file" accept="image/*" style="display:none" onchange="onClonePhotoSelect(this)">
         </div>
         <div>
           <div style="font-size:11px;color:var(--text-sec);margin-bottom:6px;font-weight:600">Voice name</div>
@@ -600,7 +614,7 @@ function previewVmVoice(id,name,ev){
 
 function renderVmGrid(){
   const q=(document.getElementById('vmSearch')?.value||'').toLowerCase();
-  const myV=loadMyVoices().map(v=>({cat:'My Voices',id:v.id,name:v.name,gender:'custom',lang:'MULTI',accent:'Custom',emoji:'🎤',color:'#1a1a3a',isCustom:true}));
+  const myV=loadMyVoices().map(v=>({cat:'My Voices',id:v.id,name:v.name,gender:'custom',lang:'MULTI',accent:'Custom',emoji:'🎤',color:'#1a1a3a',isCustom:true,photoUrl:v.photoUrl||null}));
   const pool=_vmActiveTab==='my'?myV:[...myV,...VOICE_CATALOG];
   const filtered=pool.filter(v=>{
     if(_vmActiveTab==='fav'&&!_vmFavs.has(v.id))return false;
@@ -618,7 +632,7 @@ function renderVmGrid(){
   grid.innerHTML=uniq.map(v=>{
     const sel=v.id===_vmSelectedId;
     const sn=v.name.replace(/'/g,"\\'");
-    const av=v.isCustom?`<div class="vm-vemoji" style="background:${v.color}">${v.emoji}</div>`:`<div class="vm-vavatar"><img src="${getVoiceAvatar(v.id,v.gender)}" alt="${v.name}" loading="lazy"></div>`;
+    const av=v.isCustom?(v.photoUrl?`<div class="vm-vavatar"><img src="${v.photoUrl}" alt="${v.name}"></div>`:`<div class="vm-vemoji" style="background:${v.color}">${v.emoji}</div>`):`<div class="vm-vavatar"><img src="${getVoiceAvatar(v.id,v.gender)}" alt="${v.name}" loading="lazy"></div>`;
     const ll=v.lang==='MULTI'?'Multilingual':v.lang==='EN'?'English':v.lang==='AR'?'Arabic':v.lang;
     const fav=_vmFavs.has(v.id);const pl=_vmPlayingId===v.id;
     const customActions=v.isCustom?`<button class="vm-play-btn" onclick="previewCustomVoice('${v.id}',event)" title="Preview sample">${pl?'&#9632;':'&#9654;'}</button><button onclick="deleteMyVoice('${v.id}',event)" style="width:27px;height:27px;border-radius:50%;border:none;background:rgba(251,113,133,.1);color:var(--rose);cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center" title="Delete">&#128465;</button>`:'';
@@ -690,6 +704,20 @@ function openCloneSection(){
 }
 
 let _cloneSampleFile=null;
+let _clonePhotoDataUrl=null;
+function onClonePhotoSelect(input){
+  const file=input.files&&input.files[0];if(!file)return;
+  if(file.size>5*1024*1024){setStatus('Image too large (max 5MB).','warn');return;}
+  const reader=new FileReader();
+  reader.onload=e=>{
+    _clonePhotoDataUrl=e.target.result;
+    const zone=document.getElementById('clonePhotoZone');
+    zone.classList.add('has-photo');
+    zone.innerHTML=`<img src="${_clonePhotoDataUrl}" alt="preview">`;
+  };
+  reader.readAsDataURL(file);
+  input.value='';
+}
 function onCloneSampleSelect(input){
   const file=input.files&&input.files[0];if(!file)return;
   _cloneSampleFile=file;
@@ -724,13 +752,13 @@ async function cloneAndSaveVoice(){
     if(bar)bar.style.width='100%';if(pct)pct.textContent='100%';if(lbl)lbl.textContent='Creating clone...';
     let finalId='';
     // Clone API not available via KIE — voice is saved locally by sample URL
-    const entry={id:finalId||('sample_'+Date.now()),name:voiceName,sampleUrl:publicUrl,hasCloneId:!!finalId,addedAt:Date.now()};
+    const entry={id:finalId||('sample_'+Date.now()),name:voiceName,sampleUrl:publicUrl,photoUrl:_clonePhotoDataUrl||null,hasCloneId:!!finalId,addedAt:Date.now()};
     const list=loadMyVoices();list.unshift(entry);saveMyVoices(list);
     document.getElementById('customVoiceId').value=entry.id;
     document.getElementById('activeCloneBar').style.display='flex';
     document.getElementById('activeCloneName').textContent=voiceName;
     setStatus(finalId?`Voice "${voiceName}" cloned and saved!`:`Voice "${voiceName}" saved (sample stored).`,'ok');
-    _cloneSampleFile=null;document.getElementById('cloneVoiceName').value='';document.getElementById('cloneSampleName').textContent='Click to choose audio file';document.getElementById('cloneUploadZone').classList.remove('has-file');
+    _cloneSampleFile=null;_clonePhotoDataUrl=null;document.getElementById('cloneVoiceName').value='';document.getElementById('cloneSampleName').textContent='Click to choose audio file';document.getElementById('cloneUploadZone').classList.remove('has-file');const pz=document.getElementById('clonePhotoZone');pz.classList.remove('has-photo');pz.innerHTML='<div style="font-size:22px;margin-bottom:4px">🖼</div><div style="font-size:10px;color:var(--text-dim)">JPG, PNG, WebP<br>max 5MB</div>';
   }catch(err){setStatus('Failed: '+err.message,'err');}
   finally{if(prog)setTimeout(()=>{prog.style.display='none';},2000);if(btn){btn.disabled=false;btn.style.opacity='1';}}
 }
