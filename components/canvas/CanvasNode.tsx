@@ -530,7 +530,10 @@ function CanvasNodeInner({ id, data, selected }: NodeProps<Node<CanvasNodeData>>
           {/* Sticky note */}
           {data.nodeType === "sticky-note" && (
             <div style={{ position: "absolute", inset: 0, background: "rgba(251,191,36,0.06)", display: "flex", flexDirection: "column", padding: 16, gap: 8 }}>
-              <div style={{ color: "#fbbf24", fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", opacity: 0.6 }}>📝 Note</div>
+              <div style={{ color: "#fbbf24", fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", opacity: 0.6, display: "flex", alignItems: "center", gap: 5 }}>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                Note
+              </div>
               <textarea className="nodrag nowheel"
                 value={data.settings.noteText ?? ""}
                 onChange={e => { SP(e); updateNodeSettings(id, { noteText: e.target.value }); }}
@@ -544,7 +547,10 @@ function CanvasNodeInner({ id, data, selected }: NodeProps<Node<CanvasNodeData>>
           {/* List node */}
           {data.nodeType === "list" && (
             <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", padding: 16, gap: 8 }}>
-              <div style={{ color: "#64748b", fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", opacity: 0.8 }}>📋 List</div>
+              <div style={{ color: "#64748b", fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", opacity: 0.8, display: "flex", alignItems: "center", gap: 5 }}>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                List
+              </div>
               <textarea className="nodrag nowheel"
                 value={data.settings.noteText ?? ""}
                 onChange={e => { SP(e); updateNodeSettings(id, { noteText: e.target.value }); }}
@@ -558,7 +564,7 @@ function CanvasNodeInner({ id, data, selected }: NodeProps<Node<CanvasNodeData>>
           {/* Export placeholder / links */}
           {data.nodeType === "export" && !data.outputImageUrl && !data.outputVideoUrl && (
             <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8 }}>
-              <div style={{ fontSize: 34, opacity: 0.3 }}>📥</div>
+              <div style={{ opacity: 0.3, display: "flex" }}><Download size={32} strokeWidth={1.4} color="#84cc16" /></div>
               <div style={{ color: "#1a2a3c", fontSize: 11 }}>Output will appear here</div>
             </div>
           )}
