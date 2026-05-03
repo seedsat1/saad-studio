@@ -586,6 +586,93 @@ function CanvasNodeInner({ id, data, selected }: NodeProps<Node<CanvasNodeData>>
     SP(e); addNodeAfter(id, t); setOpenChip(null);
   }, [id, addNodeAfter]);
 
+  // ── text-prompt: compact standalone textarea card ──────────────────────────
+  if (data.nodeType === "text-prompt") {
+    const outHandle = (
+      <Handle id="prompt" type="source" position={Position.Right}
+        style={{
+          width: 32, height: 32, borderRadius: "50%",
+          background: "rgba(8,14,26,0.97)",
+          border: `1.5px solid rgba(${rgb},0.45)`,
+          boxShadow: `0 0 0 1px rgba(0,0,0,0.5), 0 0 14px rgba(${rgb},0.2)`,
+          top: "50%", right: -16, transform: "translateY(-50%)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          cursor: "crosshair", zIndex: 10,
+        }}
+      >
+        <span style={{ pointerEvents: "none", userSelect: "none", color: cfg.accentColor, fontSize: 11, fontWeight: 700 }}>T</span>
+      </Handle>
+    );
+    return (
+      <div ref={wrapRef} style={{ position: "relative", width: 340, fontFamily: "'Inter', system-ui, sans-serif" }}>
+        {/* Label above */}
+        <div style={{
+          position: "absolute", bottom: "calc(100% + 9px)", left: 2,
+          display: "flex", alignItems: "center", gap: 6,
+          pointerEvents: "none", userSelect: "none",
+        }}>
+          <NodeTypeIcon type="text-prompt" size={12} color="#3d546a" strokeWidth={1.8} />
+          <span style={{ color: "#3d546a", fontSize: 11.5, fontWeight: 500 }}>{data.label}</span>
+        </div>
+
+        {/* Card */}
+        <div style={{
+          borderRadius: 14, overflow: "hidden",
+          background: "rgba(9,15,26,0.97)",
+          border: selected
+            ? `1.5px solid rgba(${rgb},0.55)`
+            : `1.5px solid rgba(${rgb},0.22)`,
+          boxShadow: selected
+            ? `0 0 0 3px rgba(${rgb},0.08), 0 12px 40px rgba(0,0,0,0.8)`
+            : `0 6px 28px rgba(0,0,0,0.7)`,
+          transition: "border-color 0.2s, box-shadow 0.2s",
+        }}>
+          {/* Textarea */}
+          <div style={{ padding: "14px 16px 14px" }}>
+            <textarea
+              className="nodrag nowheel"
+              value={data.settings.prompt ?? ""}
+              onChange={onPrompt}
+              onMouseDown={SP}
+              placeholder='Try "A cinematic cityscape at night, neon lights, rain…"'
+              rows={4}
+              style={{
+                width: "100%", resize: "none", background: "transparent",
+                border: "none", padding: 0, outline: "none",
+                color: (data.settings.prompt ?? "").length > 0 ? "#c8d6ea" : "#2d4055",
+                fontSize: 13, lineHeight: 1.75, fontFamily: "inherit",
+                boxSizing: "border-box",
+              }}
+            />
+          </div>
+
+          {/* Bottom strip */}
+          <div style={{
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            padding: "7px 12px 8px",
+            borderTop: `1px solid rgba(${rgb},0.1)`,
+            background: `rgba(${rgb},0.04)`,
+          }}>
+            <span style={{ color: "#1a2f44", fontSize: 9.5 }}>
+              {(data.settings.prompt ?? "").length} chars
+            </span>
+            <button className="nodrag" onClick={onDelete}
+              style={{ background: "transparent", border: "none", cursor: "pointer", color: "#1e2f42", padding: 2, display: "flex", transition: "color 0.12s" }}
+              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = "#ef4444"; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = "#1e2f42"; }}
+            >
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                <path d="M1 1L9 9M9 1L1 9" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        {outHandle}
+      </div>
+    );
+  }
+
   return (
     <div ref={wrapRef} style={{ position: "relative", width: 480, fontFamily: "'Inter', system-ui, sans-serif" }}>
 
@@ -818,6 +905,28 @@ function CanvasNodeInner({ id, data, selected }: NodeProps<Node<CanvasNodeData>>
 
           {/* Prompt — overlaid at bottom of preview */}
           {showPrompt && !["upload-image", "export", "sticky-note", "list", "add-reference", "assets", "stock"].includes(data.nodeType) && (
+            data.nodeType === "text-prompt" ? (
+              /* text-prompt: full-area textarea */
+              <div style={{
+                position: "absolute", inset: 0,
+                padding: "46px 16px 16px",
+                display: "flex", flexDirection: "column",
+              }}>
+                <textarea className="nodrag nowheel"
+                  value={data.settings.prompt ?? ""}
+                  onChange={onPrompt}
+                  onMouseDown={SP}
+                  placeholder="Describe what you want to create…"
+                  style={{
+                    flex: 1, resize: "none", background: "transparent",
+                    border: "none", padding: 0,
+                    color: (data.settings.prompt ?? "").length > 0 ? "#c8d6ea" : "#2a3f56",
+                    fontSize: 13.5, lineHeight: 1.8, outline: "none",
+                    fontFamily: "inherit", boxSizing: "border-box",
+                  }}
+                />
+              </div>
+            ) : (
             <div style={{
               position: "absolute", bottom: 0, left: 0, right: 0,
               background: hasPreviewMedia ? "linear-gradient(transparent, rgba(0,0,0,0.88))" : undefined,
@@ -828,9 +937,7 @@ function CanvasNodeInner({ id, data, selected }: NodeProps<Node<CanvasNodeData>>
                 onChange={onPrompt}
                 onMouseDown={SP}
                 placeholder={
-                  data.nodeType === "text-prompt"
-                    ? "Describe what you want to create…"
-                    : ["voiceover", "speak"].includes(data.nodeType)
+                  ["voiceover", "speak"].includes(data.nodeType)
                     ? "Enter text to speak aloud…"
                     : data.nodeType === "sound-effects"
                     ? "Describe the sound effect…"
@@ -850,6 +957,7 @@ function CanvasNodeInner({ id, data, selected }: NodeProps<Node<CanvasNodeData>>
                 }}
               />
             </div>
+            )
           )}
 
           {/* Save output corner */}
