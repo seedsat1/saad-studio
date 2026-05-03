@@ -138,7 +138,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .vm-grid-scroll::-webkit-scrollbar{width:5px}
 .vm-grid-scroll::-webkit-scrollbar-track{background:transparent}
 .vm-grid-scroll::-webkit-scrollbar-thumb{background:var(--bg-hover);border-radius:3px}
-.vm-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+.vm-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .vm-vcard{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;cursor:pointer;transition:.15s;position:relative;border:1px solid transparent}
 .vm-vcard:hover{background:var(--bg-hover);border-color:var(--border)}
 .vm-vcard:hover .vm-vactions{opacity:1}
@@ -213,8 +213,31 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .cv-btn-create:hover{background:#3d6fe0}
 .cv-btn-create:disabled{opacity:.5;cursor:not-allowed}
 #activeCloneBar{display:none;background:var(--accent-soft);border:1px solid rgba(75,127,255,.25);border-radius:8px;padding:7px 12px;font-size:11px;color:var(--accent);align-items:center;gap:8px;width:100%;max-width:740px;flex-shrink:0}
-@media(max-width:1100px){.vm-grid{grid-template-columns:repeat(3,1fr)}}
-@media(max-width:700px){.vm-grid{grid-template-columns:repeat(2,1fr)}.vm-topbar{padding:14px 16px}.mode-btn{padding:6px 13px;font-size:12px}}
+/* ── New Voice Card Styles ── */
+.vm-cats{display:flex;gap:8px;padding:0 28px 14px;overflow-x:auto;scrollbar-width:none;flex-shrink:0}
+.vm-cats::-webkit-scrollbar{display:none}
+.vm-cat-pill{display:flex;align-items:center;gap:6px;padding:8px 16px;border-radius:50px;background:var(--bg-card);border:1px solid var(--border);color:var(--text-sec);font-size:12px;font-weight:500;cursor:pointer;white-space:nowrap;transition:all .2s;flex-shrink:0;font-family:inherit}
+.vm-cat-pill:hover{border-color:var(--border-light);color:var(--text)}.vm-cat-pill.active{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 2px 12px var(--accent-glow)}
+.vm-vcard2{background:var(--bg-card);border:1px solid transparent;border-radius:12px;padding:12px 14px;cursor:pointer;transition:all .25s cubic-bezier(.4,0,.2,1);display:flex;align-items:center;gap:11px;overflow:hidden}
+.vm-vcard2:hover{background:var(--bg-hover);border-color:var(--border);transform:translateY(-1px);box-shadow:0 4px 16px rgba(0,0,0,.2)}
+.vm-vcard2.sel{background:var(--accent-soft);border-color:rgba(75,127,255,.3)}
+.vm-vcard2:hover .vm-v2-fav-btn{opacity:1}
+.vm-vcard2:hover .vm-v2-play-ov{opacity:1}
+.vm-v2-avatar{width:42px;height:42px;border-radius:11px;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;font-size:.95rem;position:relative}
+.vm-v2-play-ov{position:absolute;inset:0;background:rgba(75,127,255,.88);display:flex;align-items:center;justify-content:center;opacity:0;transition:.2s;border-radius:11px}
+.vm-v2-info{flex:1;min-width:0}
+.vm-v2-name{font-size:.85rem;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vm-v2-meta{font-size:.7rem;color:var(--text-sec);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vm-v2-wave{display:flex;align-items:center;gap:1.5px;height:14px;margin-top:3px}
+.vm-v2-wave .b{width:2px;border-radius:2px;background:var(--accent);animation:wavePulse 1.2s ease-in-out infinite}
+.vm-v2-wave .b:nth-child(1){height:4px;animation-delay:0s}.vm-v2-wave .b:nth-child(2){height:10px;animation-delay:.1s}.vm-v2-wave .b:nth-child(3){height:6px;animation-delay:.2s}.vm-v2-wave .b:nth-child(4){height:12px;animation-delay:.25s}.vm-v2-wave .b:nth-child(5){height:8px;animation-delay:.35s}
+.vm-v2-tag{padding:3px 8px;border-radius:16px;font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.3px;flex-shrink:0}
+.vm-v2-tag.t-nar{background:rgba(34,197,94,.08);color:#22c55e}.vm-v2-tag.t-char{background:rgba(251,113,133,.08);color:var(--rose)}.vm-v2-tag.t-conv{background:rgba(38,198,218,.08);color:var(--cyan)}.vm-v2-tag.t-news{background:rgba(251,146,60,.08);color:var(--orange)}.vm-v2-tag.t-my{background:var(--purple-soft);color:var(--purple)}
+.vm-v2-fav-btn{width:26px;height:26px;border-radius:50%;border:none;background:transparent;color:var(--text-dim);cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:0;transition:.2s;flex-shrink:0;font-size:13px}
+.vm-v2-fav-btn:hover{color:var(--rose);background:rgba(251,113,133,.1)}.vm-v2-fav-btn.fav{color:var(--rose);opacity:1}
+.vm-v2-actions{display:flex;gap:3px;flex-shrink:0;align-items:center}
+@media(max-width:1100px){.vm-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:700px){.vm-grid{grid-template-columns:1fr}.vm-topbar{padding:14px 16px}.mode-btn{padding:6px 13px;font-size:12px}}
 </style>
 </head>
 <script src="shared/active-job-tracker.js"></script>
@@ -403,23 +426,16 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
     <div class="vm-searchbar">
       <input id="vmSearch" class="vm-search-input" placeholder="Search by name, accent..." oninput="renderVmGrid()">
     </div>
-    <div class="vm-usecases">
-      <div class="vm-uc-lbl">Use cases</div>
-      <div class="vm-uc-row">
-        <div class="vm-uc-scroll" id="vmUcScroll">
-          <div class="vm-uc-card" onclick="setVmCat('My Voices',this)"><img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&h=200&fit=crop" alt=""><div class="vm-uc-overlay"></div><div class="vm-uc-cnt"><div class="vm-uc-name">My voices</div><div class="vm-uc-arrow">&#8594;</div></div></div>
-          <div class="vm-uc-card" onclick="setVmCat('Narration',this)"><img src="https://images.unsplash.com/photo-1478737270239-2f02b77fc618?w=300&h=200&fit=crop" alt=""><div class="vm-uc-overlay"></div><div class="vm-uc-cnt"><div class="vm-uc-name">Narration</div><div class="vm-uc-arrow">&#8594;</div></div></div>
-          <div class="vm-uc-card" onclick="setVmCat('Characters',this)"><img src="https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=300&h=200&fit=crop" alt=""><div class="vm-uc-overlay"></div><div class="vm-uc-cnt"><div class="vm-uc-name">Characters</div><div class="vm-uc-arrow">&#8594;</div></div></div>
-          <div class="vm-uc-card" onclick="setVmCat('Conversational',this)"><img src="https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=300&h=200&fit=crop" alt=""><div class="vm-uc-overlay"></div><div class="vm-uc-cnt"><div class="vm-uc-name">Conversational</div><div class="vm-uc-arrow">&#8594;</div></div></div>
-          <div class="vm-uc-card" onclick="setVmCat('News &amp; Broadcast',this)"><img src="https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=300&h=200&fit=crop" alt=""><div class="vm-uc-overlay"></div><div class="vm-uc-cnt"><div class="vm-uc-name">News &amp; Broadcast</div><div class="vm-uc-arrow">&#8594;</div></div></div>
-          <div class="vm-uc-card" onclick="setVmCat('Trailer &amp; Epic',this)"><img src="https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=300&h=200&fit=crop" alt=""><div class="vm-uc-overlay"></div><div class="vm-uc-cnt"><div class="vm-uc-name">Trailer &amp; Epic</div><div class="vm-uc-arrow">&#8594;</div></div></div>
-          <div class="vm-uc-card" onclick="setVmCat('Social Media',this)"><img src="https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=300&h=200&fit=crop" alt=""><div class="vm-uc-overlay"></div><div class="vm-uc-cnt"><div class="vm-uc-name">Social Media</div><div class="vm-uc-arrow">&#8594;</div></div></div>
-          <div class="vm-uc-card" onclick="setVmCat('Meditation &amp; Calm',this)"><img src="https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=300&h=200&fit=crop" alt=""><div class="vm-uc-overlay"></div><div class="vm-uc-cnt"><div class="vm-uc-name">Meditation &amp; Calm</div><div class="vm-uc-arrow">&#8594;</div></div></div>
-          <div class="vm-uc-card" onclick="setVmCat('Arabic',this)"><img src="https://images.unsplash.com/photo-1580418827493-f2b22c0a76cb?w=300&h=200&fit=crop" alt=""><div class="vm-uc-overlay"></div><div class="vm-uc-cnt"><div class="vm-uc-name">Arabic</div><div class="vm-uc-arrow">&#8594;</div></div></div>
-        </div>
-        <button class="vm-nav-arrow" onclick="document.getElementById('vmUcScroll').scrollBy({left:-180,behavior:'smooth'})">&#8249;</button>
-        <button class="vm-nav-arrow" onclick="document.getElementById('vmUcScroll').scrollBy({left:180,behavior:'smooth'})">&#8250;</button>
-      </div>
+    <div class="vm-cats" id="vmCats">
+      <button class="vm-cat-pill active" onclick="setVmCatPill(this,'All')">🎙 All voices</button>
+      <button class="vm-cat-pill" onclick="setVmCatPill(this,'Narration')">📖 Narration</button>
+      <button class="vm-cat-pill" onclick="setVmCatPill(this,'Characters')">🎭 Characters</button>
+      <button class="vm-cat-pill" onclick="setVmCatPill(this,'Conversational')">💬 Conversational</button>
+      <button class="vm-cat-pill" onclick="setVmCatPill(this,'News &amp; Broadcast')">📡 News</button>
+      <button class="vm-cat-pill" onclick="setVmCatPill(this,'Trailer &amp; Epic')">🔥 Epic</button>
+      <button class="vm-cat-pill" onclick="setVmCatPill(this,'Social Media')">📱 Social</button>
+      <button class="vm-cat-pill" onclick="setVmCatPill(this,'Meditation &amp; Calm')">🧘 Calm</button>
+      <button class="vm-cat-pill" onclick="setVmCatPill(this,'Arabic')">🌙 Arabic</button>
     </div>
     <div class="vm-tabs">
       <div class="vm-tab active" id="vmTabAll" onclick="setVmTab('all')">All voices</div>
@@ -622,6 +638,17 @@ function setVmTab(tab){
   document.getElementById('vmTabAll').classList.toggle('active',tab==='all');
   document.getElementById('vmTabMy').classList.toggle('active',tab==='my');
   document.getElementById('vmTabFav').classList.toggle('active',tab==='fav');
+  // Reset category pills to All when switching tabs
+  document.querySelectorAll('.vm-cat-pill').forEach((p,i)=>p.classList.toggle('active',i===0));
+  renderVmGrid();
+}
+function setVmCatPill(el,cat){
+  document.querySelectorAll('.vm-cat-pill').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  _vmActiveCat=cat;_vmActiveTab='all';
+  document.getElementById('vmTabAll').classList.add('active');
+  document.getElementById('vmTabMy').classList.remove('active');
+  document.getElementById('vmTabFav').classList.remove('active');
   renderVmGrid();
 }
 function setVmCat(cat,cardEl){
@@ -666,7 +693,7 @@ function previewVmVoice(id,name,ev){
 
 function renderVmGrid(){
   const q=(document.getElementById('vmSearch')?.value||'').toLowerCase();
-  const myV=loadMyVoices().map(v=>({cat:'My Voices',id:v.id,name:v.name,gender:'custom',lang:'MULTI',accent:'Custom',emoji:'🎤',color:'#1a1a3a',isCustom:true,photoUrl:v.photoUrl||null}));
+  const myV=loadMyVoices().map(v=>({cat:'My Voices',id:v.id,name:v.name,gender:'custom',lang:'MULTI',accent:'Custom',emoji:'🎤',color:'#2a1a5a',isCustom:true,photoUrl:v.photoUrl||null}));
   const pool=_vmActiveTab==='my'?myV:[...myV,...VOICE_CATALOG];
   const filtered=pool.filter(v=>{
     if(_vmActiveTab==='fav'&&!_vmFavs.has(v.id))return false;
@@ -679,20 +706,38 @@ function renderVmGrid(){
   const seen=new Set();
   const uniq=filtered.filter(v=>{if(seen.has(v.id))return false;seen.add(v.id);return true;});
   const grid=document.getElementById('vmGrid');if(!grid)return;
-  if(!uniq.length){grid.innerHTML=`<div style="grid-column:span 4;text-align:center;color:var(--text-dim);padding:40px;font-size:13px">${_vmActiveTab==='fav'?'No favorites yet.':'No voices match your filters.'}</div>`;return;}
+  if(!uniq.length){grid.innerHTML=`<div style="grid-column:span 3;text-align:center;color:var(--text-dim);padding:40px;font-size:13px">${_vmActiveTab==='fav'?'No favorites yet.':'No voices match your filters.'}</div>`;return;}
+  const TC={'Narration':'t-nar','Characters':'t-char','Conversational':'t-conv','News & Broadcast':'t-news','Trailer & Epic':'t-news','Social Media':'t-conv','Meditation & Calm':'t-nar','Arabic':'t-nar','My Voices':'t-my'};
+  const TL={'Narration':'Narr','Characters':'Char','Conversational':'Chat','News & Broadcast':'News','Trailer & Epic':'Epic','Social Media':'Social','Meditation & Calm':'Calm','Arabic':'Arabic','My Voices':'Custom'};
   function hl(t,q){if(!q)return t;const i=t.toLowerCase().indexOf(q);if(i<0)return t;return t.slice(0,i)+'<span class="vm-match">'+t.slice(i,i+q.length)+'</span>'+t.slice(i+q.length);}
   grid.innerHTML=uniq.map(v=>{
     const sel=v.id===_vmSelectedId;
     const sn=v.name.replace(/'/g,"\\'");
-    const av=v.isCustom?(v.photoUrl?`<div class="vm-vavatar"><img src="${v.photoUrl}" alt="${v.name}"></div>`:`<div class="vm-vemoji" style="background:${v.color}">${v.emoji}</div>`):`<div class="vm-vavatar"><img src="${getVoiceAvatar(v.id,v.gender)}" alt="${v.name}" loading="lazy"></div>`;
     const ll=v.lang==='MULTI'?'Multilingual':v.lang==='EN'?'English':v.lang==='AR'?'Arabic':v.lang;
     const fav=_vmFavs.has(v.id);const pl=_vmPlayingId===v.id;
-    const customActions=v.isCustom?`<button class="vm-play-btn" onclick="previewCustomVoice('${v.id}',event)" title="Preview sample">${pl?'&#9632;':'&#9654;'}</button><button onclick="editMyVoicePhoto('${v.id}',event)" style="width:27px;height:27px;border-radius:50%;border:none;background:rgba(255,255,255,.06);color:var(--text-dim);cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center" title="Change photo">&#128247;</button><button onclick="deleteMyVoice('${v.id}',event)" style="width:27px;height:27px;border-radius:50%;border:none;background:rgba(251,113,133,.1);color:var(--rose);cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center" title="Delete">&#128465;</button>`:'';
-    const catalogActions=!v.isCustom?`<button class="vm-play-btn${pl?' playing':''}" onclick="previewVmVoice('${v.id}','${sn}',event)">${pl?'&#9632;':'&#9654;'}</button><button class="vm-heart-btn${fav?' fav':''}" onclick="toggleVmFav('${v.id}',event)">${fav?'&#9829;':'&#9825;'}</button>`:'';
-    return '<div class="vm-vcard'+(sel?' sel':'')+'" onclick="selectVmVoice(\''+v.id+'\',\''+sn+'\',\''+v.lang+'\',\''+v.accent+'\',\''+v.emoji+'\',\''+v.color+'\',\''+v.gender+'\')">'
-      +av+'<div class="vm-vinfo"><div class="vm-vname">'+hl(v.name,q)+'</div><div class="vm-vmeta">'+ll+' &middot; '+(v.isCustom?'Custom':v.accent)+'</div></div>'
-      +'<div class="vm-vactions">'+(v.isCustom?customActions:catalogActions)+'</div>'
-      +'</div>';
+    const init=v.name[0]||'?';
+    const clr=v.color||'#1a2a4a';
+    const tc=TC[v.cat]||'t-nar';
+    const tl=TL[v.cat]||v.cat;
+    let av;
+    if(v.isCustom&&v.photoUrl){av=`<div class="vm-v2-avatar"><img src="${v.photoUrl}" alt="${v.name}" style="width:100%;height:100%;object-fit:cover;border-radius:11px"></div>`;}
+    else{av=`<div class="vm-v2-avatar" style="background:linear-gradient(135deg,${clr},${clr}99)">${init}<div class="vm-v2-play-ov"><svg width="12" height="12" viewBox="0 0 24 24" fill="white"><polygon points="6 3 20 12 6 21 6 3"/></svg></div></div>`;}
+    const wave=sel?'<div class="vm-v2-wave"><div class="b"></div><div class="b"></div><div class="b"></div><div class="b"></div><div class="b"></div></div>':'';
+    let acts;
+    if(v.isCustom){
+      acts=`<button class="vm-play-btn${pl?' playing':''}" onclick="previewCustomVoice('${v.id}',event)" title="Preview">${pl?'&#9632;':'&#9654;'}</button>`
+          +`<button onclick="editMyVoicePhoto('${v.id}',event)" style="width:27px;height:27px;border-radius:50%;border:none;background:rgba(255,255,255,.06);color:var(--text-dim);cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center" title="Change photo">&#128247;</button>`
+          +`<button onclick="deleteMyVoice('${v.id}',event)" style="width:27px;height:27px;border-radius:50%;border:none;background:rgba(251,113,133,.1);color:var(--rose);cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center" title="Delete">&#128465;</button>`;
+    } else {
+      acts=`<button class="vm-play-btn${pl?' playing':''}" onclick="previewVmVoice('${v.id}','${sn}',event)">${pl?'&#9632;':'&#9654;'}</button>`
+          +`<button class="vm-v2-fav-btn${fav?' fav':''}" onclick="toggleVmFav('${v.id}',event)">${fav?'&#9829;':'&#9825;'}</button>`;
+    }
+    return `<div class="vm-vcard2${sel?' sel':''}" onclick="selectVmVoice('${v.id}','${sn}','${v.lang}','${v.accent}','','${clr}','${v.gender||''}')">` 
+      +av
+      +`<div class="vm-v2-info"><div class="vm-v2-name">${hl(v.name,q)}</div><div class="vm-v2-meta">${ll} &middot; ${v.isCustom?'Custom':v.accent}</div>${wave}</div>`
+      +`<span class="vm-v2-tag ${tc}">${tl}</span>`
+      +`<div class="vm-v2-actions">${acts}</div>`
+      +`</div>`;
   }).join('');
 }
 
