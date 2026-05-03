@@ -898,18 +898,37 @@ function CanvasNodeInner({ id, data, selected }: NodeProps<Node<CanvasNodeData>>
 
           {/* List node */}
           {data.nodeType === "list" && (
-            <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", padding: 16, gap: 8 }}>
-              <div style={{ color: "#64748b", fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", opacity: 0.8, display: "flex", alignItems: "center", gap: 5 }}>
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-                List
+            <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column" }}>
+              {/* Header */}
+              <div style={{ padding: "10px 14px 7px", display: "flex", alignItems: "center", gap: 6, borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+                <div style={{ width: 18, height: 18, borderRadius: 5, background: "rgba(100,116,139,0.15)", border: "1px solid rgba(100,116,139,0.25)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2.5" strokeLinecap="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                </div>
+                <span style={{ color: "#3a5068", fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase" }}>List</span>
+                <span style={{ marginLeft: "auto", color: "#1e2f42", fontSize: 9.5 }}>
+                  {(data.settings.noteText ?? "").split("\n").filter(l => l.trim()).length} items
+                </span>
               </div>
-              <textarea className="nodrag nowheel"
-                value={data.settings.noteText ?? ""}
-                onChange={e => { SP(e); updateNodeSettings(id, { noteText: e.target.value }); }}
-                onMouseDown={SP}
-                placeholder={"• Item 1\n• Item 2\n• Item 3"}
-                style={{ flex: 1, resize: "none", background: "transparent", border: "none", padding: 0, color: "#94a3b8", fontSize: 12.5, lineHeight: 1.8, outline: "none", fontFamily: "monospace, inherit", boxSizing: "border-box" }}
-              />
+              {/* Textarea area */}
+              <div style={{ flex: 1, padding: "10px 14px", position: "relative" }}>
+                {!(data.settings.noteText ?? "").trim() && (
+                  <div style={{ position: "absolute", inset: "10px 14px", pointerEvents: "none", display: "flex", flexDirection: "column", gap: 7 }}>
+                    {["Item 1", "Item 2", "Item 3"].map((t, i) => (
+                      <div key={i} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <div style={{ width: 5, height: 5, borderRadius: "50%", background: "rgba(100,116,139,0.25)", flexShrink: 0 }} />
+                        <span style={{ color: "#1e2f42", fontSize: 12 }}>{t}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <textarea className="nodrag nowheel"
+                  value={data.settings.noteText ?? ""}
+                  onChange={e => { SP(e); updateNodeSettings(id, { noteText: e.target.value }); }}
+                  onMouseDown={SP}
+                  placeholder=""
+                  style={{ width: "100%", height: "100%", resize: "none", background: "transparent", border: "none", padding: 0, color: "#94a3b8", fontSize: 12.5, lineHeight: 2, outline: "none", fontFamily: "inherit", boxSizing: "border-box" }}
+                />
+              </div>
             </div>
           )}
 
