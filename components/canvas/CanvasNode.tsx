@@ -315,6 +315,213 @@ function OutputHandle({ slot, topPct }: { slot: string; topPct: string }) {
   );
 }
 
+// ─── Idle visual per node type (purely decorative) ───────────────────────────
+function NodeIdleVisual({ nodeType, accentColor, rgb }: { nodeType: CanvasNodeType; accentColor: string; rgb: string }) {
+  const pill = (label: string, active = false) => (
+    <span key={label} style={{
+      padding: "3px 9px", borderRadius: 99, fontSize: 9.5, fontWeight: active ? 600 : 400,
+      background: active ? `rgba(${rgb},0.14)` : "rgba(255,255,255,0.04)",
+      border: `1px solid ${active ? `rgba(${rgb},0.28)` : "rgba(255,255,255,0.07)"}`,
+      color: active ? accentColor : "#3d546a", userSelect: "none",
+    }}>{label}</span>
+  );
+  const row = (items: string[], activeIdx = 0) => (
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 5, justifyContent: "center" }}>
+      {items.map((s, i) => pill(s, i === activeIdx))}
+    </div>
+  );
+  const lbl = (text: string) => (
+    <div style={{ color: "#1e2f42", fontSize: 9, fontWeight: 700, letterSpacing: "0.09em", textTransform: "uppercase" }}>{text}</div>
+  );
+  const wrap = (children: React.ReactNode) => (
+    <div style={{
+      position: "absolute", inset: 0, display: "flex", flexDirection: "column",
+      alignItems: "center", justifyContent: "center", gap: 13, padding: "16px 22px 68px",
+      pointerEvents: "none",
+    }}>{children}</div>
+  );
+  const slider = (pct: number) => (
+    <div style={{ width: "80%", height: 5, borderRadius: 3, background: "rgba(255,255,255,0.06)", position: "relative" }}>
+      <div style={{ position: "absolute", left: 0, top: 0, width: `${pct}%`, height: "100%", borderRadius: 3, background: `rgba(${rgb},0.4)` }} />
+      <div style={{ position: "absolute", left: `calc(${pct}% - 5px)`, top: "50%", transform: "translateY(-50%)", width: 9, height: 9, borderRadius: "50%", background: accentColor, boxShadow: `0 0 6px ${accentColor}80` }} />
+    </div>
+  );
+  const waveform = () => (
+    <div style={{ display: "flex", alignItems: "center", gap: 2.5, height: 30 }}>
+      {[5,9,15,11,20,13,7,17,11,9,15,7,13,19,9,11,17,7,12,16].map((h, i) => (
+        <div key={i} style={{ width: 3, height: h, borderRadius: 2, background: `rgba(${rgb},${0.12 + (i % 4) * 0.07})` }} />
+      ))}
+    </div>
+  );
+
+  switch (nodeType) {
+    case "text-to-image":
+    case "designer":
+      return wrap(<>
+        {lbl("Style")}
+        {row(["Photorealistic", "Artistic", "Anime", "Cinematic"], 0)}
+        {lbl("Lighting")}
+        {row(["Natural", "Studio", "Golden Hour", "Neon"], 1)}
+      </>);
+
+    case "image-edit":
+      return wrap(<>
+        {lbl("Edit Mode")}
+        {row(["Inpaint", "Outpaint", "Replace", "Enhance"], 0)}
+        <div style={{ display: "flex", gap: 8, marginTop: 2 }}>
+          {["Brush","Eraser","Magic","Crop"].map((t, i) => (
+            <div key={t} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+              <div style={{ width: 32, height: 32, borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center", background: i === 0 ? `rgba(${rgb},0.12)` : "rgba(255,255,255,0.04)", border: `1px solid ${i === 0 ? `rgba(${rgb},0.25)` : "rgba(255,255,255,0.07)"}` }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={i === 0 ? accentColor : "#2a3f56"} strokeWidth="1.8" strokeLinecap="round">
+                  {i === 0 && <><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></>}
+                  {i === 1 && <><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/></>}
+                  {i === 2 && <><path d="M12 2a5 5 0 1 0 5 5"/><path d="m8 14 4-4 4 4"/><path d="M12 14v8"/></>}
+                  {i === 3 && <><path d="M6 2v4"/><path d="M18 2v4"/><path d="M2 8h20"/><rect x="2" y="6" width="20" height="16" rx="2"/></>}
+                </svg>
+              </div>
+              <span style={{ fontSize: 8.5, color: i === 0 ? "#5a7a9a" : "#1e2f42" }}>{t}</span>
+            </div>
+          ))}
+        </div>
+      </>);
+
+    case "image-to-video":
+    case "text-to-video":
+    case "video-combiner":
+      return wrap(<>
+        {lbl("Camera Motion")}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,28px)", gridTemplateRows: "repeat(3,28px)", gap: 3 }}>
+          {["↖","↑","↗","←","·","→","↙","↓","↘"].map((a, i) => (
+            <div key={i} style={{ width: 28, height: 28, borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center", background: i === 4 ? `rgba(${rgb},0.15)` : "rgba(255,255,255,0.04)", border: `1px solid ${i === 4 ? `rgba(${rgb},0.28)` : "rgba(255,255,255,0.07)"}`, color: i === 4 ? accentColor : "#2a3f56", fontSize: i === 4 ? 10 : 14, fontWeight: 500 }}>
+              {a}
+            </div>
+          ))}
+        </div>
+        {lbl("Motion Speed")}
+        {row(["Slow", "Normal", "Fast"], 1)}
+      </>);
+
+    case "video-to-video":
+      return wrap(<>
+        {lbl("Transform Style")}
+        {row(["Cinematic", "Anime", "3D Render", "Sketch"], 0)}
+        {lbl("Strength")}
+        {slider(55)}
+      </>);
+
+    case "upscale":
+    case "video-upscale":
+      return wrap(<>
+        {lbl("Scale Factor")}
+        <div style={{ display: "flex", gap: 8 }}>
+          {["2×","4×","8×"].map((s, i) => (
+            <div key={s} style={{ width: 46, height: 46, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", background: i === 1 ? `rgba(${rgb},0.14)` : "rgba(255,255,255,0.04)", border: `1px solid ${i === 1 ? `rgba(${rgb},0.3)` : "rgba(255,255,255,0.07)"}`, color: i === 1 ? accentColor : "#3d546a", fontSize: 14, fontWeight: 700 }}>
+              {s}
+            </div>
+          ))}
+        </div>
+        {lbl("Mode")}
+        {row(["General", "Face", "Art"], 0)}
+      </>);
+
+    case "voiceover":
+    case "speak":
+      return wrap(<>
+        {lbl("Voice")}
+        <div style={{ display: "flex", gap: 10 }}>
+          {[["Aria","F"],["Eric","M"],["Nova","N"]].map(([name, g], i) => (
+            <div key={name} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5 }}>
+              <div style={{ width: 36, height: 36, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", background: i === 0 ? `rgba(${rgb},0.14)` : "rgba(255,255,255,0.05)", border: `1.5px solid ${i === 0 ? `rgba(${rgb},0.3)` : "rgba(255,255,255,0.08)"}`, color: i === 0 ? accentColor : "#3d546a", fontSize: 10, fontWeight: 700 }}>
+                {g}
+              </div>
+              <span style={{ fontSize: 8.5, color: i === 0 ? "#5a7a9a" : "#1e2f42" }}>{name}</span>
+            </div>
+          ))}
+        </div>
+        {lbl("Speed")}
+        {row(["0.75×", "1×", "1.25×", "1.5×"], 1)}
+      </>);
+
+    case "sound-effects":
+      return wrap(<>
+        {waveform()}
+        {lbl("Category")}
+        {row(["Nature", "Urban", "Foley", "Sci-Fi", "Impact"], 0)}
+        {row(["Ambient", "Transition", "Interface"], 2)}
+      </>);
+
+    case "music-generator":
+      return wrap(<>
+        {lbl("Genre")}
+        {row(["Electronic", "Cinematic", "Lo-Fi", "Jazz", "Rock"], 2)}
+        {lbl("Mood")}
+        {row(["Energetic", "Calm", "Dark", "Upbeat"], 2)}
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ color: "#1e2f42", fontSize: 9 }}>BPM</span>
+          <div style={{ width: 70, height: 5, borderRadius: 3, background: "rgba(255,255,255,0.06)", position: "relative" }}>
+            <div style={{ position: "absolute", left: 0, top: 0, width: "45%", height: "100%", borderRadius: 3, background: `rgba(${rgb},0.4)` }} />
+            <div style={{ position: "absolute", left: "calc(45% - 4px)", top: "50%", transform: "translateY(-50%)", width: 8, height: 8, borderRadius: "50%", background: accentColor }} />
+          </div>
+          <span style={{ color: accentColor, fontSize: 9, fontWeight: 600 }}>120</span>
+        </div>
+      </>);
+
+    case "assistant":
+      return wrap(<>
+        {lbl("Powered by Gemini")}
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, width: "100%" }}>
+          {["Rewrite this caption…", "Generate 5 ideas for…", "Summarize this text…"].map((s, i) => (
+            <div key={i} style={{ padding: "6px 12px", borderRadius: 8, background: "rgba(99,102,241,0.05)", border: "1px solid rgba(99,102,241,0.1)", color: "#2a3f56", fontSize: 10 }}>
+              {s}
+            </div>
+          ))}
+        </div>
+      </>);
+
+    case "image-to-svg":
+    case "svg-generator":
+      return wrap(<>
+        {lbl("Vector Style")}
+        {row(["Flat", "Outlined", "Gradient", "Minimal"], 1)}
+        {lbl("Path Detail")}
+        {slider(70)}
+      </>);
+
+    case "stickers":
+    case "variations":
+      return wrap(<>
+        {lbl(nodeType === "stickers" ? "Sticker Style" : "Variation Mode")}
+        {row(nodeType === "stickers" ? ["Cute","Pop Art","Minimal","Bold"] : ["Subtle","Creative","Dramatic","Random"], 0)}
+        {lbl("Count")}
+        <div style={{ display: "flex", gap: 7 }}>
+          {["1","2","4"].map((n, i) => (
+            <div key={n} style={{ width: 36, height: 28, borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center", background: i === 1 ? `rgba(${rgb},0.12)` : "rgba(255,255,255,0.04)", border: `1px solid ${i === 1 ? `rgba(${rgb},0.25)` : "rgba(255,255,255,0.07)"}`, color: i === 1 ? accentColor : "#3d546a", fontSize: 11, fontWeight: 600 }}>
+              {n}
+            </div>
+          ))}
+        </div>
+      </>);
+
+    case "media-extractor":
+      return wrap(<>
+        {waveform()}
+        {lbl("Output Format")}
+        <div style={{ display: "flex", gap: 7 }}>
+          {["MP3","WAV","FLAC"].map((f, i) => (
+            <div key={f} style={{ padding: "5px 14px", borderRadius: 8, background: i === 0 ? `rgba(${rgb},0.12)` : "rgba(255,255,255,0.04)", border: `1px solid ${i === 0 ? `rgba(${rgb},0.28)` : "rgba(255,255,255,0.07)"}`, color: i === 0 ? accentColor : "#3d546a", fontSize: 10, fontWeight: 600 }}>
+              {f}
+            </div>
+          ))}
+        </div>
+        {lbl("Quality")}
+        {row(["128 kbps", "256 kbps", "320 kbps"], 1)}
+      </>);
+
+    default:
+      return null;
+  }
+}
+
 // ─── Main node ────────────────────────────────────────────────────────────────
 function CanvasNodeInner({ id, data, selected }: NodeProps<Node<CanvasNodeData>>) {
   const cfg = NODE_CONFIGS[data.nodeType];
@@ -437,6 +644,12 @@ function CanvasNodeInner({ id, data, selected }: NodeProps<Node<CanvasNodeData>>
           {/* Accent glow */}
           {!hasPreviewMedia && (
             <div style={{ position: "absolute", top: -80, left: -50, width: 260, height: 200, background: `radial-gradient(ellipse, rgba(${rgb},0.06) 0%, transparent 70%)`, pointerEvents: "none" }} />
+          )}
+
+          {/* ── Idle type-specific visual ── */}
+          {!hasPreviewMedia && data.status === "idle" &&
+            !["upload-image","add-reference","assets","stock","sticky-note","list","export","text-prompt"].includes(data.nodeType) && (
+            <NodeIdleVisual nodeType={data.nodeType} accentColor={cfg.accentColor} rgb={rgb} />
           )}
 
           {/* Output image */}
