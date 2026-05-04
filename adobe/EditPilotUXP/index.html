@@ -351,6 +351,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;heigh
         <div class="prompt">
           <textarea id="tlPrompt" placeholder="Analyze timeline, suggest cut points, detect scenes..."></textarea>
           <div class="prompt-footer">
+            <button class="btn" data-action="timeline.scan">📡 Scan Clips</button>
             <button class="btn-gen" data-action="timeline.analyze">🧠 Analyze <span class="cost">credits</span></button>
             <button class="btn" data-action="timeline.markers">📌 Add Markers</button>
           </div>
@@ -567,6 +568,43 @@ async function getPremiereContext(){
     return{ok:true,app,project,sequence,info:{projectName:project.name,sequenceName:sequence.name,durationSeconds:end?end.seconds:0,videoTracks:v,audioTracks:a}};
   }catch(err){return{ok:false,msg:err?.message||"Premiere API not available"};}
 }
+
+/** Read all clip items from video + audio tracks — returns a compact text summary for AI. */
+async function scanTimelineClips(){
+  const ctx=await getPremiereContext();
+  if(!ctx.ok)return{ok:false,msg:ctx.msg,clips:[],summary:""};
+  const{app,sequence,info}=ctx;
+  const clips=[];
+  try{
+    const vCount=info.videoTracks;
+    for(let ti=0;ti<Math.min(vCount,8);ti++){
+      const track=await sequence.getVideoTrack(ti);
+      if(!track)continue;
+      const itemCount=await track.getTrackItemCount();
+      for(let ii=0;ii<Math.min(itemCount,60);ii++){
+        try{
+          const item=await track.getTrackItemAtIndex(ii);
+          if(!item)continue;
+          const inPt=await item.getStartTime();
+          const outPt=await item.getEndTime();
+          const startS=inPt?.seconds??0;
+          const endS=outPt?.seconds??0;
+          const dur=Math.round((endS-startS)*10)/10;
+          if(dur<=0)continue;
+          // getClipProjectItem gives the underlying ProjectItem with a name
+          let name="clip";
+          try{const pi=await item.getClipProjectItem();name=pi?.name||"clip";}catch{}
+          clips.push({track:`V${ti+1}`,start:startS,end:endS,dur,name});
+        }catch{}
+      }
+    }
+  }catch{}
+  // Build compact text table for the AI prompt
+  const mm=(s)=>{const m=Math.floor(s/60);const sc=Math.floor(s%60);return`${m}:${String(sc).padStart(2,"0")}`;};
+  const rows=clips.map(c=>`${c.track} | ${mm(c.start)}→${mm(c.end)} (${c.dur}s) | ${c.name}`).join("\n");
+  const summary=clips.length?`Clips (${clips.length} total):\n${rows}`:"No clips detected on video tracks.";
+  return{ok:true,clips,summary};
+}
 function secondsFromTC(t){const parts=String(t||"").trim().split(":").map(x=>Number(x.trim())).filter(Number.isFinite);if(parts.length===2)return parts[0]*60+parts[1];if(parts.length===3)return parts[0]*3600+parts[1]*60+parts[2];return NaN;}
 async function addMarkersToSequence(items,title){
   const ctx=await getPremiereContext();if(!ctx.ok)throw new Error(ctx.msg);
@@ -575,15 +613,34 @@ async function addMarkersToSequence(items,title){
 }
 
 async function handleTimelineAnalyze(){
-  const ctx=await getPremiereContext();const userText=(document.getElementById("tlPrompt").value||"").trim();const zonesEl=document.getElementById("tlZones");zonesEl.innerHTML="";
+  const ctx=await getPremiereContext();const userText=(document.getElementById("tlPrompt").value||"").trim();const zonesEl=document.getElementById("tlZones");
+  zonesEl.innerHTML=`<div class="mk"><span class="mk-tc">Scanning…</span><span class="mk-tx">Reading timeline clips</span></div>`;
   if(!userText)throw new Error("Timeline prompt is empty");
-  const head=ctx.ok?`Project: ${ctx.info.projectName}\nSequence: ${ctx.info.sequenceName}\nDuration: ${Math.round(ctx.info.durationSeconds)}s\nTracks: V${ctx.info.videoTracks}/A${ctx.info.audioTracks}\n\n`:"";
-  const msgs=[{role:"user",content:[{type:"text",text:head+userText+"\n\nReturn JSON only: {\"zones\":[{\"start\":\"MM:SS\",\"end\":\"MM:SS\",\"label\":\"...\",\"type\":\"Speech|Gap|Key|Dup\"}]}"}]}];
+  // Scan real clips from the timeline
+  const scan=await scanTimelineClips();
+  const meta=ctx.ok?`Project: ${ctx.info.projectName}\nSequence: ${ctx.info.sequenceName}\nDuration: ${Math.round(ctx.info.durationSeconds)}s\nTracks: V${ctx.info.videoTracks}/A${ctx.info.audioTracks}\n\n`:"";
+  const clipData=scan.ok?`${scan.summary}\n\n`:"";
+  zonesEl.innerHTML="";
+  const prompt=`${meta}${clipData}${userText}\n\nReturn JSON only: {"zones":[{"start":"MM:SS","end":"MM:SS","label":"...","type":"Speech|Gap|Key|Dup"}]}`;
+  const msgs=[{role:"user",content:[{type:"text",text:prompt}]}];
   const json=await siteApi("/api/panel/chat",{method:"POST",body:JSON.stringify({messages:msgs})});
   const txt=json?.choices?.[0]?.message?.content||"";const obj=safeJsonParse(txt.trim());
   if(!obj?.zones?.length){zonesEl.innerHTML=`<div class="mk"><span class="mk-tc">AI</span><span class="mk-tx">${escHtml(txt)}</span></div>`;return;}
-  for(const z of obj.zones.slice(0,20)){const badge=z.type==="Gap"||z.type==="Dup"?"warn":"high";const row=document.createElement("div");row.className="mk";row.innerHTML=`<span class="mk-tc">${escHtml(String(z.start||""))} → ${escHtml(String(z.end||""))}</span><span class="mk-tx">${escHtml(String(z.label||""))}</span><span class="mk-badge ${badge}">${escHtml(String(z.type||"Key"))}</span>`;zonesEl.appendChild(row);}
+  for(const z of obj.zones.slice(0,30)){const badge=z.type==="Gap"||z.type==="Dup"?"warn":"high";const row=document.createElement("div");row.className="mk";row.innerHTML=`<span class="mk-tc">${escHtml(String(z.start||""))} → ${escHtml(String(z.end||""))}</span><span class="mk-tx">${escHtml(String(z.label||""))}</span><span class="mk-badge ${badge}">${escHtml(String(z.type||"Key"))}</span>`;zonesEl.appendChild(row);}
+  if(scan.ok&&scan.clips.length){const info=document.createElement("div");info.className="mk";info.style.opacity=".5";info.innerHTML=`<span class="mk-tc">Scan</span><span class="mk-tx">Read ${scan.clips.length} clips from timeline</span>`;zonesEl.appendChild(info);}
   await refreshCredits();
+}
+
+async function handleTimelineScan(){
+  const zonesEl=document.getElementById("tlZones");
+  zonesEl.innerHTML=`<div class="mk"><span class="mk-tc">Scanning…</span><span class="mk-tx">Reading clips from Premiere timeline</span></div>`;
+  const scan=await scanTimelineClips();
+  if(!scan.ok){zonesEl.innerHTML=`<div class="mk"><span class="mk-tc">Error</span><span class="mk-tx">${escHtml(scan.msg||"Could not read timeline")}</span></div>`;return;}
+  if(!scan.clips.length){zonesEl.innerHTML=`<div class="mk"><span class="mk-tc">Empty</span><span class="mk-tx">No clips found on video tracks</span></div>`;return;}
+  zonesEl.innerHTML="";
+  const mm=(s)=>{const m=Math.floor(s/60);const sc=Math.floor(s%60);return`${m}:${String(sc).padStart(2,"0")}`;};
+  for(const c of scan.clips.slice(0,50)){const row=document.createElement("div");row.className="mk";row.innerHTML=`<span class="mk-tc">${escHtml(c.track)} · ${escHtml(mm(c.start))}→${escHtml(mm(c.end))}</span><span class="mk-tx">${escHtml(c.name)}</span><span class="mk-badge high">${escHtml(c.dur+"s")}</span>`;zonesEl.appendChild(row);}
+  const info=document.createElement("div");info.className="mk";info.style.opacity=".5";info.innerHTML=`<span class="mk-tc">Total</span><span class="mk-tx">${scan.clips.length} clips found — ready for AI analysis</span>`;zonesEl.appendChild(info);
 }
 async function handleTimelineMarkers(){
   const items=[];for(const r of document.querySelectorAll("#tlZones .mk")){const tc=(r.querySelector(".mk-tc")?.textContent||"").split("→")[0].trim();const label=(r.querySelector(".mk-tx")?.textContent||"").trim();const start=secondsFromTC(tc);if(Number.isFinite(start))items.push({startSeconds:start,durationSeconds:0.5,name:label.slice(0,60)||"Marker",comments:label});}
@@ -668,6 +725,7 @@ document.body.addEventListener("click",(e)=>{
     case"videogen.copyUrl":return void copyText((lastVideoUrls[0]||"").trim());
     case"imagegen.generate":return void runImageGen().catch(()=>{});
     case"imagegen.copyUrl":return void copyText((lastImageUrls[0]||"").trim());
+    case"timeline.scan":return void handleTimelineScan().catch(err=>{document.getElementById("tlZones").innerHTML=`<div class="mk"><span class="mk-tc">Error</span><span class="mk-tx">${escHtml(err.message||"Error")}</span></div>`;});
     case"timeline.analyze":return void handleTimelineAnalyze().catch(err=>{document.getElementById("tlZones").innerHTML=`<div class="mk"><span class="mk-tc">Error</span><span class="mk-tx">${escHtml(err.message||"Error")}</span></div>`;});
     case"timeline.markers":return void handleTimelineMarkers().catch(err=>{document.getElementById("tlZones").innerHTML=`<div class="mk"><span class="mk-tc">Error</span><span class="mk-tx">${escHtml(err.message||"Error")}</span></div>`;});
     case"translate.translate":return void handleTranslate().catch(err=>{document.getElementById("trMeta").textContent="Error: "+err.message;});
