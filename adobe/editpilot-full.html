@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EditPilot — AI Command Center for Premiere Pro</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#1a1a1a;
+  --surface:#222;
+  --surface-2:#282828;
+  --surface-3:#303030;
+  --surface-4:#383838;
+  --border:#3a3a3a;
+  --border-s:#2e2e2e;
+  --text:#d4d4d4;
+  --text-hi:#f0f0f0;
+  --text-m:#888;
+  --text-d:#555;
+  --accent:#4a9eff;
+  --accent-h:#5eadff;
+  --accent-g:rgba(74,158,255,.1);
+  --green:#50c878;
+  --orange:#e8923a;
+  --pink:#e06090;
+  --purple:#a78bfa;
+  --cyan:#40d0d0;
+  --red:#e05050;
+  --yellow:#e0c040;
+  --claude:#d97706;
+  --gpt:#10a37f;
+  --r:6px;
+  --f:'Plus Jakarta Sans',sans-serif;
+  --m:'IBM Plex Mono',monospace;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--f);height:100vh;display:flex;flex-direction:column;overflow:hidden;font-size:13px}
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--surface-4);border-radius:3px}
+
+/* ─── HEADER ─── */
+.hdr{background:#333;border-bottom:1px solid #444;height:32px;display:flex;align-items:center;padding:0 10px;gap:8px;user-select:none;flex-shrink:0}
+.hdr-logo{width:20px;height:20px;background:linear-gradient(135deg,#4a9eff,#a78bfa);border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:.5rem;font-weight:800;color:#fff}
+.hdr-name{font-size:.72rem;font-weight:700;color:var(--text-hi);letter-spacing:.2px}
+.hdr-v{font-size:.55rem;color:var(--text-d);font-family:var(--m)}
+.hdr-r{margin-left:auto;display:flex;gap:2px}
+.hdr-b{width:24px;height:24px;border:none;background:transparent;color:var(--text-d);cursor:pointer;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:.7rem}
+.hdr-b:hover{background:rgba(255,255,255,.06);color:var(--text)}
+
+/* ─── MODEL BAR ─── */
+.mbar{background:var(--surface);border-bottom:1px solid var(--border-s);padding:6px 10px;display:flex;align-items:center;gap:6px;flex-shrink:0}
+.msel{display:flex;border-radius:4px;overflow:hidden;border:1px solid var(--border)}
+.msel button{padding:4px 12px;font-size:.65rem;font-weight:600;border:none;cursor:pointer;color:var(--text-d);background:var(--surface-2);font-family:var(--f);transition:all .15s}
+.msel button:hover{color:var(--text)}
+.msel button.ac{background:var(--claude);color:#fff}
+.msel button.ag{background:var(--gpt);color:#fff}
+.mver{font-size:.58rem;color:var(--text-d);font-family:var(--m);margin-left:auto}
+.mbar .ico-btn{width:22px;height:22px;border-radius:3px;border:1px solid var(--border);background:transparent;color:var(--text-d);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.65rem}
+.mbar .ico-btn:hover{background:var(--surface-3);color:var(--text)}
+
+/* ─── ASSISTANT TABS (horizontal scroll) ─── */
+.atabs{background:var(--surface);border-bottom:1px solid var(--border-s);display:flex;gap:4px;padding:6px 8px;overflow-x:auto;scrollbar-width:none;flex-shrink:0}
+.atabs::-webkit-scrollbar{display:none}
+.atab{
+  padding:6px 14px;border-radius:20px;font-size:.65rem;font-weight:600;
+  border:1px solid var(--border);background:var(--surface-2);color:var(--text-m);
+  cursor:pointer;white-space:nowrap;transition:all .2s;flex-shrink:0;
+  font-family:var(--f);display:flex;align-items:center;gap:5px;
+}
+.atab:hover{border-color:var(--text-d);color:var(--text)}
+.atab.active{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 2px 10px rgba(74,158,255,.2)}
+
+/* ─── MAIN CONTENT ─── */
+.main{flex:1;overflow:hidden;display:flex;flex-direction:column}
+.pane{display:none;flex:1;flex-direction:column;overflow:hidden}
+.pane.vis{display:flex}
+
+/* ─── CHAT PANE ─── */
+.msgs{flex:1;overflow-y:auto;padding:12px 10px;display:flex;flex-direction:column;gap:10px}
+.msg{display:flex;gap:8px;animation:fi .2s ease}
+@keyframes fi{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.av{width:24px;height:24px;border-radius:5px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.5rem;font-weight:700;color:#fff;margin-top:1px}
+.av.u{background:#264f78}
+.av.c{background:var(--claude)}
+.av.g{background:var(--gpt)}
+.mb{flex:1;min-width:0}
+.mh{display:flex;gap:6px;align-items:center;margin-bottom:2px}
+.mn{font-size:.65rem;font-weight:600;color:var(--text-hi)}
+.mt{font-size:.55rem;color:var(--text-d);font-family:var(--m)}
+.mc{font-size:.75rem;line-height:1.55;color:var(--text)}
+.mc code{background:var(--surface-3);padding:1px 4px;border-radius:3px;font-family:var(--m);font-size:.68rem;color:var(--green)}
+.mc .cb{background:#151515;border:1px solid var(--border-s);border-radius:4px;padding:8px 10px;margin:6px 0;font-family:var(--m);font-size:.65rem;line-height:1.5;overflow-x:auto}
+.ma{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap}
+.ac{padding:3px 8px;border-radius:3px;font-size:.6rem;font-weight:600;border:1px solid var(--border);background:var(--surface-2);color:var(--text-m);cursor:pointer;transition:all .12s;display:flex;align-items:center;gap:3px;font-family:var(--f)}
+.ac:hover{border-color:var(--accent);color:var(--accent)}
+
+/* Context bar */
+.ctx{background:var(--surface);border-top:1px solid var(--border-s);padding:5px 10px;display:flex;align-items:center;gap:6px;flex-shrink:0}
+.ctx-l{font-size:.55rem;color:var(--text-d)}
+.ctx-t{display:flex;align-items:center;gap:3px;padding:2px 7px;border-radius:3px;font-size:.55rem;font-weight:600;background:var(--accent-g);color:var(--accent);border:1px solid rgba(74,158,255,.15)}
+
+/* Input */
+.inp{background:var(--surface);border-top:1px solid var(--border-s);padding:8px 10px;flex-shrink:0}
+.inp-r{display:flex;gap:6px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r);padding:7px 8px;transition:border-color .15s}
+.inp-r:focus-within{border-color:var(--accent)}
+.inp-r textarea{flex:1;background:transparent;border:none;outline:none;color:var(--text-hi);font-family:var(--f);font-size:.78rem;resize:none;line-height:1.4;min-height:18px;max-height:100px}
+.inp-r textarea::placeholder{color:var(--text-d)}
+.inp-t{display:flex;gap:3px;align-items:flex-end}
+.ib{width:26px;height:26px;border:none;border-radius:4px;background:transparent;color:var(--text-d);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.75rem;transition:all .12s}
+.ib:hover{background:var(--surface-3);color:var(--text)}
+.ib.send{background:var(--accent);color:#fff;border-radius:5px}
+.ib.send:hover{background:var(--accent-h)}
+
+/* Quick actions */
+.qa{background:var(--surface);border-top:1px solid var(--border-s);padding:5px 8px;display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;flex-shrink:0}
+.qa::-webkit-scrollbar{display:none}
+.qb{padding:4px 10px;border-radius:3px;font-size:.6rem;font-weight:500;border:1px solid var(--border);background:var(--surface-2);color:var(--text-d);cursor:pointer;white-space:nowrap;font-family:var(--f);transition:all .12s}
+.qb:hover{border-color:var(--accent);color:var(--accent)}
+
+/* ─── TOOL PANES (generic grid) ─── */
+.tool-pane{flex:1;overflow-y:auto;padding:12px 10px}
+.tool-sec{margin-bottom:16px}
+.tool-title{font-size:.6rem;font-weight:700;color:var(--text-d);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.tool-title::after{content:'';flex:1;height:1px;background:var(--border-s)}
+
+/* Prompt box */
+.pbox{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r);padding:10px;margin-bottom:10px}
+.pbox textarea{width:100%;min-height:60px;background:transparent;border:none;outline:none;color:var(--text);font-family:var(--f);font-size:.78rem;resize:vertical;line-height:1.5}
+.pbox textarea::placeholder{color:var(--text-d)}
+.pbox-footer{display:flex;gap:6px;margin-top:6px;align-items:center}
+
+/* Buttons */
+.btn{padding:7px 16px;border-radius:4px;border:none;font-family:var(--f);font-size:.7rem;font-weight:600;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:5px}
+.btn-p{background:var(--accent);color:#fff}
+.btn-p:hover{background:var(--accent-h)}
+.btn-s{background:var(--surface-3);border:1px solid var(--border);color:var(--text-m)}
+.btn-s:hover{border-color:var(--text-d);color:var(--text)}
+.btn-g{background:var(--green);color:#fff}
+.btn-o{background:var(--orange);color:#fff}
+
+/* Select / dropdown */
+.sel{padding:5px 10px;border-radius:4px;border:1px solid var(--border);background:var(--surface-2);color:var(--text);font-family:var(--f);font-size:.7rem;outline:none;cursor:pointer}
+.sel:focus{border-color:var(--accent)}
+option{background:var(--surface-2);color:var(--text)}
+
+/* Grid cards */
+.card-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
+.card{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r);padding:10px;cursor:pointer;transition:all .15s}
+.card:hover{border-color:var(--text-d);transform:translateY(-1px)}
+.card.sel{border-color:var(--accent);background:var(--accent-g)}
+.card-t{font-size:.72rem;font-weight:600;color:var(--text-hi);margin-bottom:2px}
+.card-d{font-size:.6rem;color:var(--text-d);line-height:1.3}
+
+/* Slider */
+.slider-g{margin-bottom:8px}
+.slider-h{display:flex;justify-content:space-between;margin-bottom:3px}
+.slider-l{font-size:.6rem;color:var(--text-m)}
+.slider-v{font-size:.55rem;color:var(--text-d);font-family:var(--m)}
+input[type=range]{width:100%;-webkit-appearance:none;height:3px;border-radius:2px;background:var(--border);outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:10px;height:10px;border-radius:50%;background:var(--accent);cursor:pointer}
+
+/* Preview area */
+.preview{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r);padding:10px;display:flex;align-items:center;gap:10px}
+.prev-play{width:30px;height:30px;border-radius:50%;background:var(--accent);border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:.65rem}
+.wave{flex:1;display:flex;align-items:center;gap:1px;height:28px}
+.wave .w{flex:1;border-radius:1px;background:var(--accent);opacity:.35}
+.prev-time{font-size:.55rem;color:var(--text-d);font-family:var(--m);flex-shrink:0}
+.prev-ins{padding:4px 10px;border-radius:3px;border:1px solid var(--accent);background:transparent;color:var(--accent);font-size:.6rem;font-weight:600;cursor:pointer;font-family:var(--f);flex-shrink:0}
+
+/* Upload area */
+.upload{border:2px dashed var(--border);border-radius:var(--r);padding:20px;text-align:center;cursor:pointer;transition:all .15s}
+.upload:hover{border-color:var(--text-d)}
+.upload-icon{font-size:1.5rem;margin-bottom:4px}
+.upload-text{font-size:.7rem;color:var(--text-d)}
+
+/* Result cards */
+.result{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:8px}
+.result-img{width:100%;height:120px;background:linear-gradient(135deg,#1a1a2e,#16213e,#0f3460);display:flex;align-items:center;justify-content:center;font-size:2rem}
+.result-body{padding:8px 10px}
+.result-meta{font-size:.55rem;color:var(--text-d);font-family:var(--m);margin-bottom:4px}
+.result-actions{display:flex;gap:4px}
+
+/* Voice cards (smaller) */
+.vgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}
+.vc{padding:6px 8px;border-radius:4px;border:1px solid var(--border);background:var(--surface-2);cursor:pointer;transition:all .12s;text-align:center}
+.vc:hover{border-color:var(--text-d)}
+.vc.sel{border-color:var(--accent);background:var(--accent-g)}
+.vc-n{font-size:.65rem;font-weight:600;color:var(--text-hi)}
+.vc-s{font-size:.5rem;color:var(--text-d);margin-top:1px}
+
+/* Translation */
+.lang-row{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.lang-row .arrow{color:var(--text-d);font-size:.8rem}
+
+/* Timeline markers */
+.marker{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:4px;background:var(--surface-2);border:1px solid var(--border);margin-bottom:4px;cursor:pointer;transition:all .12s}
+.marker:hover{border-color:var(--accent)}
+.marker-time{font-size:.6rem;font-family:var(--m);color:var(--accent);flex-shrink:0;width:70px}
+.marker-text{font-size:.68rem;color:var(--text);flex:1}
+.marker-score{font-size:.55rem;color:var(--green);font-weight:600;flex-shrink:0}
+
+/* Empty state */
+.empty{text-align:center;padding:30px 16px}
+.empty-icon{font-size:2rem;margin-bottom:8px}
+.empty-title{font-size:.8rem;font-weight:600;color:var(--text-m);margin-bottom:4px}
+.empty-desc{font-size:.7rem;color:var(--text-d);line-height:1.4;max-width:260px;margin:0 auto 12px}
+
+/* Settings modal */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;z-index:100}
+.modal-bg.vis{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:8px;width:360px;max-height:80vh;overflow-y:auto;box-shadow:0 16px 48px rgba(0,0,0,.4)}
+.modal-h{padding:14px 16px;border-bottom:1px solid var(--border-s);display:flex;align-items:center;justify-content:space-between}
+.modal-h h3{font-size:.8rem;font-weight:700;color:var(--text-hi)}
+.modal-x{background:transparent;border:none;color:var(--text-d);cursor:pointer;font-size:.85rem}
+.modal-b{padding:16px}
+.fg{margin-bottom:14px}
+.fg label{display:block;font-size:.65rem;font-weight:600;color:var(--text-m);margin-bottom:4px}
+.fg input{width:100%;padding:7px 8px;background:var(--surface-2);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:var(--m);font-size:.7rem;outline:none}
+.fg input:focus{border-color:var(--accent)}
+.fg .help{font-size:.55rem;color:var(--text-d);margin-top:3px;display:flex;align-items:center;gap:4px}
+.dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+.dot-g{background:var(--green)}
+.dot-r{background:var(--red)}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="hdr">
+  <div class="hdr-logo">EP</div>
+  <span class="hdr-name">EditPilot</span>
+  <span class="hdr-v">v1.0.0</span>
+  <div class="hdr-r">
+    <button class="hdr-b">─</button>
+    <button class="hdr-b">□</button>
+    <button class="hdr-b">✕</button>
+  </div>
+</div>
+
+<!-- MODEL BAR -->
+<div class="mbar">
+  <div class="msel" id="msel">
+    <button class="ac" data-m="claude" onclick="swM('claude')">⬡ Claude</button>
+    <button data-m="gpt" onclick="swM('gpt')">◈ GPT</button>
+  </div>
+  <span class="mver" id="mver">Sonnet 4.6</span>
+  <button class="ico-btn" onclick="togSet()" title="Settings">⚙</button>
+</div>
+
+<!-- ASSISTANT TABS -->
+<div class="atabs" id="atabs">
+  <button class="atab active" data-p="chat" onclick="swP('chat')">💬 Chat Assistant</button>
+  <button class="atab" data-p="videogen" onclick="swP('videogen')">🎬 Video Gen</button>
+  <button class="atab" data-p="imagegen" onclick="swP('imagegen')">🖼️ Image Gen</button>
+  <button class="atab" data-p="tts" onclick="swP('tts')">🔊 Voice / TTS</button>
+  <button class="atab" data-p="storycutter" onclick="swP('storycutter')">✂️ Story Cutter</button>
+  <button class="atab" data-p="translate" onclick="swP('translate')">🌍 Translate</button>
+  <button class="atab" data-p="color" onclick="swP('color')">🎨 Color Grade</button>
+  <button class="atab" data-p="script" onclick="swP('script')">📝 Script Writer</button>
+  <button class="atab" data-p="upscale" onclick="swP('upscale')">⬆️ Upscale</button>
+  <button class="atab" data-p="roto" onclick="swP('roto')">🎭 Rotoscope</button>
+  <button class="atab" data-p="thumb" onclick="swP('thumb')">📸 Thumbnails</button>
+  <button class="atab" data-p="captions" onclick="swP('captions')">💬 Captions</button>
+</div>
+
+<!-- ═══════════ PANELS ═══════════ -->
+<div class="main">
+
+<!-- ── CHAT ── -->
+<div class="pane vis" id="p-chat">
+  <div class="msgs" id="msgs">
+    <div class="msg">
+      <div class="av c">EP</div>
+      <div class="mb">
+        <div class="mh"><span class="mn">EditPilot</span><span class="mt">now</span></div>
+        <div class="mc">Connected to <code>Interview_Final_v3</code>. I can see <code>3 video</code> and <code>2 audio</code> tracks. What would you like to do?</div>
+        <div class="ma">
+          <div class="ac" onclick="inP('Analyze my timeline')">🔍 Analyze Timeline</div>
+          <div class="ac" onclick="inP('Find best soundbites')">🎯 Find Soundbites</div>
+          <div class="ac" onclick="inP('Generate B-roll for this scene')">🎬 Gen B-Roll</div>
+        </div>
+      </div>
+    </div>
+    <div class="msg">
+      <div class="av u">Y</div>
+      <div class="mb">
+        <div class="mh"><span class="mn">You</span><span class="mt">2m</span></div>
+        <div class="mc">Find the most engaging 15-second hook from this interview about AI in real estate</div>
+      </div>
+    </div>
+    <div class="msg">
+      <div class="av c">C</div>
+      <div class="mb">
+        <div class="mh"><span class="mn">Claude Sonnet 4.6</span><span class="mt">1m</span></div>
+        <div class="mc">
+          Found <strong>3 hook candidates</strong> ranked by engagement:
+          <div class="cb">
+🥇 <span style="color:var(--green)">01:23:15 → 01:23:30</span> Score: 94
+   "Every agent who ignores AI will be replaced
+    by one who doesn't."
+
+🥈 <span style="color:var(--yellow)">00:45:08 → 00:45:22</span> Score: 87
+   "We closed 3x more deals using AI-generated
+    virtual staging."
+
+🥉 <span style="color:var(--orange)">02:01:44 → 02:01:58</span> Score: 81
+   "The future of real estate isn't location —
+    it's intelligence."</div>
+        </div>
+        <div class="ma">
+          <div class="ac">📌 Add Markers</div>
+          <div class="ac">✂️ Create Subclip</div>
+          <div class="ac">⬆️ Move to V2</div>
+          <div class="ac">🔊 Voiceover</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="ctx">
+    <span class="ctx-l">Context:</span>
+    <div class="ctx-t">🎬 Active Sequence</div>
+    <div class="ctx-t">📄 Transcript</div>
+  </div>
+  <div class="inp">
+    <div class="inp-r">
+      <textarea id="ci" placeholder="Ask anything about your timeline..." rows="1" oninput="ar(this)"></textarea>
+      <div class="inp-t">
+        <button class="ib" title="Attach">📎</button>
+        <button class="ib" title="Voice">🎤</button>
+        <button class="ib" title="Screenshot">📸</button>
+        <button class="ib send" onclick="snd()">↑</button>
+      </div>
+    </div>
+  </div>
+  <div class="qa">
+    <button class="qb" onclick="inP('Add captions')">Captions</button>
+    <button class="qb" onclick="inP('Clean audio')">Clean Audio</button>
+    <button class="qb" onclick="inP('Generate B-roll')">B-Roll</button>
+    <button class="qb" onclick="inP('Social cut 60s')">Social Cut</button>
+    <button class="qb" onclick="inP('SEO description')">SEO Copy</button>
+    <button class="qb" onclick="inP('Color match')">Color Match</button>
+    <button class="qb" onclick="inP('Remove silence')">Remove Silence</button>
+  </div>
+</div>
+
+<!-- ── VIDEO GEN ── -->
+<div class="pane" id="p-videogen">
+  <div class="tool-pane">
+    <div class="tool-sec">
+      <div class="tool-title">Model</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+        <select class="sel"><option>Sora (OpenAI)</option><option>VEO 3 (Google)</option><option>Kling 2.0</option><option>Hailuo</option><option>Wan 2.1</option><option>Pika 2.2</option><option>LumaRay2</option></select>
+        <select class="sel"><option>Text → Video</option><option>Image → Video</option><option>Video → Video</option></select>
+      </div>
+    </div>
+    <div class="tool-sec">
+      <div class="tool-title">Prompt</div>
+      <div class="pbox">
+        <textarea placeholder="Describe the video you want to generate... e.g. 'Cinematic drone shot flying over a luxury modern house at sunset, warm golden light, 4K'"></textarea>
+        <div class="pbox-footer">
+          <button class="btn btn-p">🎬 Generate Video</button>
+          <button class="btn btn-s">📋 JSON Prompter</button>
+        </div>
+      </div>
+    </div>
+    <div class="tool-sec">
+      <div class="tool-title">Settings</div>
+      <div class="slider-g"><div class="slider-h"><span class="slider-l">Duration</span><span class="slider-v">5s</span></div><input type="range" min="2" max="16" value="5"></div>
+      <div class="slider-g"><div class="slider-h"><span class="slider-l">Aspect Ratio</span><span class="slider-v">16:9</span></div><input type="range" min="0" max="2" value="1"></div>
+      <div class="slider-g"><div class="slider-h"><span class="slider-l">CFG Scale</span><span class="slider-v">7.0</span></div><input type="range" min="1" max="20" value="7"></div>
+    </div>
+    <div class="tool-sec">
+      <div class="tool-title">Reference Image (optional)</div>
+      <div class="upload"><div class="upload-icon">🖼️</div><div class="upload-text">Drag & drop or click to upload reference</div></div>
+    </div>
+    <div class="tool-sec">
+      <div class="tool-title">Result</div>
+      <div class="result">
+        <div class="result-img">🎬</div>
+        <div class="result-body">
+          <div class="result-meta">Sora · 5s · 1920×1080 · $0.45</div>
+          <div class="result-actions">
+            <button class="btn btn-p" style="font-size:.6rem;padding:4px 10px">↗ Insert to Timeline</button>
+            <button class="btn btn-s" style="font-size:.6rem;padding:4px 10px">💾 Save</button>
+            <button class="btn btn-s" style="font-size:.6rem;padding:4px 10px">🔄 Regenerate</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── IMAGE GEN ── -->
+<div class="pane" id="p-imagegen">
+  <div class="tool-pane">
+    <div class="tool-sec">
+      <div class="tool-title">Model</div>
+      <div style="display:flex;gap:6px;margin-bottom:10px">
+        <select class="sel"><option>Flux Pro 1.1</option><option>DALL-E 3</option><option>Gemini Flash 2.5</option><option>Stable Diffusion 3.5</option><option>Midjourney v7</option></select>
+      </div>
+    </div>
+    <div class="tool-sec">
+      <div class="tool-title">Prompt</div>
+      <div class="pbox">
+        <textarea placeholder="Describe the image... e.g. 'Professional product photo of a smartwatch on a marble surface, soft studio lighting, 8K'"></textarea>
+        <div class="pbox-footer">
+          <button class="btn btn-p">🖼️ Generate Image</button>
+          <select class="sel"><option>1024×1024</option><option>1920×1080</option><option>1080×1920</option><option>1024×768</option></select>
+        </div>
+      </div>
+    </div>
+    <div class="tool-sec">
+      <div class="tool-title">Results</div>
+      <div class="card-grid">
+        <div class="result"><div class="result-img" style="height:100px">🌅</div><div class="result-body"><div class="result-meta">Flux · 1024×1024 · $0.04</div><div class="result-actions"><button class="btn btn-p" style="font-size:.55rem;padding:3px 8px">↗ Import</button><button class="btn btn-s" style="font-size:.55rem;padding:3px 8px">🔄</button></div></div></div>
+        <div class="result"><div class="result-img" style="height:100px;background:linear-gradient(135deg,#2d1b69,#11998e)">🏠</div><div class="result-body"><div class="result-meta">Flux · 1024×1024 · $0.04</div><div class="result-actions"><button class="btn btn-p" style="font-size:.55rem;padding:3px 8px">↗ Import</button><button class="btn btn-s" style="font-size:.55rem;padding:3px 8px">🔄</button></div></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── TTS / VOICE ── -->
+<div class="pane" id="p-tts">
+  <div class="tool-pane">
+    <div class="tool-sec">
+      <div class="tool-title">Text to Speech</div>
+      <div class="pbox"><textarea placeholder="Enter or paste text for voiceover...">In 2025, the average real estate agent spent 6 hours a day on tasks a machine could do in seconds.</textarea></div>
+    </div>
+    <div class="tool-sec">
+      <div class="tool-title">Voice</div>
+      <div class="vgrid">
+        <div class="vc sel"><div class="vc-n">Rachel</div><div class="vc-s">Warm · American</div></div>
+        <div class="vc"><div class="vc-n">Brian</div><div class="vc-s">Deep · Narrator</div></div>
+        <div class="vc"><div class="vc-n">Matilda</div><div class="vc-s">Soft · Australian</div></div>
+        <div class="vc"><div class="vc-n">Daniel</div><div class="vc-s">British · Calm</div></div>
+        <div class="vc"><div class="vc-n">Aria</div><div class="vc-s">Clear · American</div></div>
+        <div class="vc"><div class="vc-n">Arabella</div><div class="vc-s">Arabic · Warm</div></div>
+      </div>
+    </div>
+    <div class="tool-sec">
+      <div class="slider-g"><div class="slider-h"><span class="slider-l">Stability</span><span class="slider-v">0.65</span></div><input type="range" min="0" max="100" value="65"></div>
+      <div class="slider-g"><div class="slider-h"><span class="slider-l">Clarity</span><span class="slider-v">0.75</span></div><input type="range" min="0" max="100" value="75"></div>
+      <div class="slider-g"><div class="slider-h"><span class="slider-l">Speed</span><span class="slider-v">1.0x</span></div><input type="range" min="50" max="200" value="100"></div>
+      <button class="btn btn-p" style="width:100%;justify-content:center;margin-top:6px">🔊 Generate Voice</button>
+    </div>
+    <div class="tool-sec">
+      <div class="tool-title">Preview</div>
+      <div class="preview">
+        <button class="prev-play">▶</button>
+        <div class="wave" id="wv"></div>
+        <span class="prev-time">0:08.4</span>
+        <button class="prev-ins">↗ Insert</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── STORY CUTTER ── -->
+<div class="pane" id="p-storycutter">
+  <div class="tool-pane">
+    <div class="tool-sec">
+      <div class="tool-title">Story Cutter Assistant</div>
+      <div class="pbox"><textarea placeholder="Describe what you want: 'Find the best 60-second cut for Instagram Reels focusing on emotional moments' or 'Build a rough cut from this creative brief...'">Find the top 5 most engaging moments from this interview. Focus on emotional beats and strong statements. Create organized selects on V2.</textarea>
+        <div class="pbox-footer">
+          <button class="btn btn-p">✂️ Analyze & Cut</button>
+          <button class="btn btn-s">📋 From Script</button>
+        </div>
+      </div>
+    </div>
+    <div class="tool-sec">
+      <div class="tool-title">Detected Moments</div>
+      <div class="marker"><span class="marker-time">01:23:15</span><span class="marker-text">"Every agent who ignores AI will be replaced..."</span><span class="marker-score">94</span></div>
+      <div class="marker"><span class="marker-time">00:45:08</span><span class="marker-text">"We closed 3x more deals using AI staging..."</span><span class="marker-score">87</span></div>
+      <div class="marker"><span class="marker-time">02:01:44</span><span class="marker-text">"The future of real estate isn't location..."</span><span class="marker-score">81</span></div>
+      <div class="marker"><span class="marker-time">00:12:33</span><span class="marker-text">"I was spending more time editing photos..."</span><span class="marker-score">76</span></div>
+      <div class="marker"><span class="marker-time">01:55:20</span><span class="marker-text">"Our clients couldn't believe the results..."</span><span class="marker-score">73</span></div>
+    </div>
+    <div class="tool-sec">
+      <div class="tool-title">Actions</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn btn-p">📌 Add All as Markers</button>
+        <button class="btn btn-s">✂️ Create Subclips</button>
+        <button class="btn btn-s">🎬 Build Rough Cut</button>
+        <button class="btn btn-s">📤 Export Selects</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── TRANSLATE ── -->
+<div class="pane" id="p-translate">
+  <div class="tool-pane">
+    <div class="tool-sec">
+      <div class="tool-title">AI Translation & Dubbing</div>
+      <div class="lang-row">
+        <select class="sel"><option>English</option><option>Arabic</option><option>Spanish</option><option>French</option></select>
+        <span class="arrow">→</span>
+        <select class="sel"><option>Arabic</option><option>Spanish</option><option>French</option><option>German</option><option>Japanese</option><option>Korean</option><option>Portuguese</option><option>Hindi</option><option>Turkish</option></select>
+      </div>
+    </div>
+    <div class="tool-sec">
+      <div class="tool-title">Source</div>
+      <div class="card-grid">
+        <div class="card sel"><div class="card-t">Active Sequence</div><div class="card-d">Use transcript from timeline</div></div>
+        <div class="card"><div class="card-t">Upload SRT</div><div class="card-d">Import subtitle file</div></div>
+        <div class="card"><div class="card-t">Paste Text</div><div class="card-d">Manual text input</div></div>
+        <div class="card"><div class="card-t">Audio Track</div><div class="card-d">Transcribe & translate</div></div>
+      </div>
+    </div>
+    <div class="tool-sec">
+      <div class="tool-title">Options</div>
+      <div style="display:flex;gap:8px;flex-direction:column">
+        <label style="font-size:.7rem;display:flex;align-items:center;gap:6px;color:var(--text-m);cursor:pointer"><input type="checkbox" checked> Generate translated subtitles (.srt)</label>
+        <label style="font-size:.7rem;display:flex;align-items:center;gap:6px;color:var(--text-m);cursor:pointer"><input type="checkbox"> AI Voice Dubbing (TTS)</label>
+        <label style="font-size:.7rem;display:flex;align-items:center;gap:6px;color:var(--text-m);cursor:pointer"><input type="checkbox"> Lip sync (experimental)</label>
+      </div>
+    </div>
+    <button class="btn btn-p" style="width:100%;justify-content:center;margin-top:8px">🌍 Translate</button>
+  </div>
+</div>
+
+<!-- ── COLOR GRADE ── -->
+<div class="pane" id="p-color">
+  <div class="tool-pane">
+    <div class="tool-sec">
+      <div class="tool-title">Color Grade Assistant</div>
+      <div class="pbox"><textarea placeholder="Describe a look: 'Warm Wes Anderson palette' or 'Teal and orange cinematic' or 'Match this reference...'">Make this look cinematic with teal shadows and warm highlights, slight film grain, like a David Fincher film</textarea>
+        <div class="pbox-footer">
+          <button class="btn btn-p">🎨 Generate LUT</button>
+          <button class="btn btn-s">📸 Capture Frame</button>
+        </div>
+      </div>
+    </div>
+    <div class="tool-sec">
+      <div class="tool-title">Presets</div>
+      <div class="card-grid">
+        <div class="card"><div class="card-t">🎬 Cinematic</div><div class="card-d">Teal & orange, film grain</div></div>
+        <div class="card"><div class="card-t">📺 Documentary</div><div class="card-d">Natural, balanced, clean</div></div>
+        <div class="card"><div class="card-t">🌅 Warm Vintage</div><div class="card-d">Faded blacks, warm tones</div></div>
+        <div class="card"><div class="card-t">🌊 Cool Moody</div><div class="card-d">Blue tones, dark contrast</div></div>
+      </div>
+    </div>
+    <button class="btn btn-g" style="width:100%;justify-content:center;margin-top:8px">✅ Apply to Selected Clips</button>
+  </div>
+</div>
+
+<!-- ── SCRIPT WRITER ── -->
+<div class="pane" id="p-script">
+  <div class="tool-pane">
+    <div class="tool-sec">
+      <div class="tool-title">Script Writer</div>
+      <div style="display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap">
+        <button class="qb" style="border-color:var(--accent);color:var(--accent)">Ad Script</button>
+        <button class="qb">Documentary</button>
+        <button class="qb">YouTube</button>
+        <button class="qb">Podcast</button>
+        <button class="qb">Social Media</button>
+      </div>
+      <div class="pbox"><textarea placeholder="Describe what you need: 'Write a 30-second ad script for a real estate AI tool targeting agents, emphasize speed and ROI'">Write a 30-second ad script for a real estate AI tool. Target audience: real estate agents. Emphasize: speed, ROI, competitive advantage. Tone: professional but urgent.</textarea>
+        <div class="pbox-footer">
+          <button class="btn btn-p">📝 Generate Script</button>
+          <button class="btn btn-s">↗ Export to Timeline</button>
+        </div>
+      </div>
+    </div>
+    <div class="tool-sec">
+      <div class="tool-title">Brand Voice</div>
+      <div class="pbox"><textarea placeholder="Describe your brand voice, paste examples, or reference a previous project..." style="min-height:40px">Professional, direct, data-driven. Short sentences. No fluff.</textarea></div>
+    </div>
+    <div class="tool-sec">
+      <div class="tool-title">SEO & Copy Tools</div>
+      <div style="display:flex;gap:4px;flex-wrap:wrap">
+        <button class="qb">YouTube Description</button>
+        <button class="qb">SEO Title Ideas</button>
+        <button class="qb">Instagram Caption</button>
+        <button class="qb">CTA Generator</button>
+        <button class="qb">Hashtags</button>
+        <button class="qb">Hook Ideas</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── UPSCALE ── -->
+<div class="pane" id="p-upscale">
+  <div class="tool-pane">
+    <div class="empty">
+      <div class="empty-icon">⬆️</div>
+      <div class="empty-title">AI Upscaling</div>
+      <div class="empty-desc">Upscale HD footage to 4K using AI. Select a clip on your timeline or upload a file.</div>
+      <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap">
+        <button class="btn btn-p">📎 From Timeline Selection</button>
+        <button class="btn btn-s">📁 Upload File</button>
+      </div>
+      <div style="margin-top:12px;display:flex;gap:6px;justify-content:center">
+        <select class="sel"><option>2x Upscale (HD→4K)</option><option>4x Upscale (SD→4K)</option></select>
+        <select class="sel"><option>Real-ESRGAN</option><option>Topaz-style</option></select>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── ROTOSCOPE ── -->
+<div class="pane" id="p-roto">
+  <div class="tool-pane">
+    <div class="empty">
+      <div class="empty-icon">🎭</div>
+      <div class="empty-title">AI Rotoscope (SAM3)</div>
+      <div class="empty-desc">Automatically remove backgrounds or isolate subjects using Segment Anything Model 3.</div>
+      <button class="btn btn-p">📸 Capture Current Frame</button>
+      <div style="margin-top:12px;display:flex;gap:6px;justify-content:center;flex-wrap:wrap">
+        <button class="btn btn-s">🧑 Isolate Subject</button>
+        <button class="btn btn-s">🏠 Remove Background</button>
+        <button class="btn btn-s">✏️ Custom Mask</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── THUMBNAILS ── -->
+<div class="pane" id="p-thumb">
+  <div class="tool-pane">
+    <div class="tool-sec">
+      <div class="tool-title">AI Thumbnail Generator</div>
+      <div class="pbox"><textarea placeholder="Describe the thumbnail: 'Shocked face reaction, big text MIND BLOWN, bright yellow background' or 'Clean minimal with product photo'">Professional thumbnail for real estate AI video. Show before/after comparison of an empty room vs AI-staged room. Bold text: 'AI Changed Everything'. Clean, modern style.</textarea>
+        <div class="pbox-footer">
+          <button class="btn btn-p">📸 Generate Thumbnail</button>
+          <select class="sel"><option>1280×720 (YouTube)</option><option>1080×1080 (Instagram)</option><option>1080×1920 (Story)</option></select>
+        </div>
+      </div>
+    </div>
+    <div class="tool-sec">
+      <div class="tool-title">From Timeline</div>
+      <button class="btn btn-s">📸 Capture best frames for thumbnail</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── CAPTIONS ── -->
+<div class="pane" id="p-captions">
+  <div class="tool-pane">
+    <div class="tool-sec">
+      <div class="tool-title">AI Auto Captions</div>
+      <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
+        <select class="sel"><option>Whisper v3 (OpenAI)</option><option>Gemini Flash</option><option>Deepgram</option></select>
+        <select class="sel"><option>English</option><option>Arabic</option><option>Auto-detect</option></select>
+      </div>
+    </div>
+    <div class="tool-sec">
+      <div class="tool-title">Style</div>
+      <div class="card-grid">
+        <div class="card sel"><div class="card-t">Standard</div><div class="card-d">Clean white text, bottom</div></div>
+        <div class="card"><div class="card-t">Hormozi</div><div class="card-d">Bold animated, center</div></div>
+        <div class="card"><div class="card-t">Minimal</div><div class="card-d">Small, subtle, lowercase</div></div>
+        <div class="card"><div class="card-t">Karaoke</div><div class="card-d">Word-by-word highlight</div></div>
+      </div>
+    </div>
+    <div class="tool-sec">
+      <div class="slider-g"><div class="slider-h"><span class="slider-l">Font Size</span><span class="slider-v">42px</span></div><input type="range" min="20" max="80" value="42"></div>
+      <div class="slider-g"><div class="slider-h"><span class="slider-l">Max Words/Line</span><span class="slider-v">5</span></div><input type="range" min="2" max="10" value="5"></div>
+    </div>
+    <button class="btn btn-p" style="width:100%;justify-content:center">💬 Generate Captions & Add to Timeline</button>
+  </div>
+</div>
+
+</div><!-- /main -->
+
+<!-- SETTINGS MODAL -->
+<div class="modal-bg" id="setBg" onclick="if(event.target===this)togSet()">
+  <div class="modal">
+    <div class="modal-h"><h3>⚙ API Keys</h3><button class="modal-x" onclick="togSet()">✕</button></div>
+    <div class="modal-b">
+      <div class="fg"><label>🟠 Anthropic (Claude)</label><input type="password" value="sk-ant-••••••••"><div class="help"><span class="dot dot-g"></span> Connected · Sonnet 4.6</div></div>
+      <div class="fg"><label>🟢 OpenAI (GPT)</label><input type="password" value="sk-proj-••••••••"><div class="help"><span class="dot dot-g"></span> Connected · GPT-4.1</div></div>
+      <div class="fg"><label>🔊 ElevenLabs (TTS)</label><input type="password" value="xi-••••••••"><div class="help"><span class="dot dot-g"></span> Connected · 8,420 chars left</div></div>
+      <div class="fg"><label>🎬 Fal.ai (Video/Image)</label><input type="password" placeholder="fal-..."><div class="help"><span class="dot dot-r"></span> Not connected</div></div>
+      <div class="fg"><label>🌍 Google AI (Gemini/VEO)</label><input type="password" placeholder="AIza..."><div class="help"><span class="dot dot-r"></span> Not connected</div></div>
+      <button class="btn btn-p" style="width:100%;justify-content:center" onclick="togSet()">Save Configuration</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// Wave bars
+const wv=document.getElementById('wv');
+for(let i=0;i<50;i++){const b=document.createElement('div');b.className='w';b.style.height=(Math.random()*.7+.15)*100+'%';b.style.opacity=.2+Math.random()*.5;wv.appendChild(b)}
+
+// Panel switching
+function swP(id){
+  document.querySelectorAll('.atab').forEach(t=>t.classList.remove('active'));
+  document.querySelector(`.atab[data-p="${id}"]`).classList.add('active');
+  document.querySelectorAll('.pane').forEach(p=>p.classList.remove('vis'));
+  document.getElementById('p-'+id).classList.add('vis');
+}
+
+// Model switching
+function swM(m){
+  document.querySelectorAll('.msel button').forEach(b=>{b.classList.remove('ac','ag')});
+  const b=document.querySelector(`.msel button[data-m="${m}"]`);
+  b.classList.add(m==='claude'?'ac':'ag');
+  document.getElementById('mver').textContent=m==='claude'?'Sonnet 4.6':'GPT-4.1';
+}
+
+// Settings
+function togSet(){document.getElementById('setBg').classList.toggle('vis')}
+
+// Insert prompt
+function inP(t){document.getElementById('ci').value=t;document.getElementById('ci').focus()}
+
+// Auto resize
+function ar(el){el.style.height='18px';el.style.height=el.scrollHeight+'px'}
+
+// Send
+function snd(){
+  const i=document.getElementById('ci'),t=i.value.trim();if(!t)return;
+  const m=document.getElementById('msgs'),isG=document.querySelector('.msel button.ag');
+  const u=document.createElement('div');u.className='msg';
+  u.innerHTML=`<div class="av u">Y</div><div class="mb"><div class="mh"><span class="mn">You</span><span class="mt">now</span></div><div class="mc">${t}</div></div>`;
+  m.appendChild(u);
+  setTimeout(()=>{
+    const a=document.createElement('div');a.className='msg';
+    const cls=isG?'g':'c',ini=isG?'G':'C',nm=isG?'GPT-4.1':'Claude Sonnet 4.6';
+    a.innerHTML=`<div class="av ${cls}">${ini}</div><div class="mb"><div class="mh"><span class="mn">${nm}</span><span class="mt">now</span></div><div class="mc">Processing your request. In production, this connects to the ${isG?'OpenAI':'Anthropic'} API and interacts with your Premiere Pro timeline via UXP APIs.</div><div class="ma"><div class="ac">✅ Apply</div><div class="ac">📋 Copy</div></div></div>`;
+    m.appendChild(a);m.scrollTop=m.scrollHeight;
+  },600);
+  i.value='';i.style.height='18px';m.scrollTop=m.scrollHeight;
+}
+
+document.getElementById('ci').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();snd()}});
+
+// Voice card selection
+document.querySelectorAll('.vc').forEach(c=>{c.addEventListener('click',()=>{document.querySelectorAll('.vc').forEach(x=>x.classList.remove('sel'));c.classList.add('sel')})});
+
+// Generic card selection
+document.querySelectorAll('.card-grid .card').forEach(c=>{c.addEventListener('click',()=>{c.parentElement.querySelectorAll('.card').forEach(x=>x.classList.remove('sel'));c.classList.add('sel')})});
+</script>
+</body>
+</html>

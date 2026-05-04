@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Saad Studio — Premiere Pro</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&family=Outfit:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+
+/* ══════ SAAD STUDIO COLOR SYSTEM ══════ */
+:root{
+  --bg:#080b12;
+  --bg2:#0c1019;
+  --s1:#111621;
+  --s2:#161c29;
+  --s3:#1c2333;
+  --s4:#232c3f;
+  --b1:#1e2738;
+  --b2:#283348;
+  --bh:#3a4a68;
+  --tx:#b8c4d8;
+  --txh:#e8edf5;
+  --txm:#6e7f9a;
+  --txd:#3d4e68;
+  --ac:#14b8a6;    /* Saad Studio teal/cyan */
+  --ac2:#0ea5e9;
+  --acg:rgba(20,184,166,.08);
+  --ach:rgba(20,184,166,.15);
+  --acb:rgba(20,184,166,.25);
+  --gr:#22c55e;
+  --or:#f59e0b;
+  --pk:#ec4899;
+  --rd:#ef4444;
+  --vl:#8b5cf6;
+  --r:8px;
+  --rs:6px;
+  --rr:10px;
+  --f:'Manrope',sans-serif;
+  --fd:'Outfit',sans-serif;
+  --fm:'IBM Plex Mono',monospace;
+  --shadow:0 4px 24px rgba(0,0,0,.3);
+  --glow:0 0 20px rgba(20,184,166,.12);
+}
+
+body{background:var(--bg);color:var(--tx);font-family:var(--f);height:100vh;display:flex;flex-direction:column;overflow:hidden;font-size:13px;-webkit-font-smoothing:antialiased}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--s4);border-radius:2px}
+::-webkit-scrollbar-thumb:hover{background:var(--bh)}
+
+/* ══════ ANIMATIONS ══════ */
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+@keyframes glow{0%,100%{box-shadow:0 0 8px rgba(20,184,166,.15)}50%{box-shadow:0 0 20px rgba(20,184,166,.3)}}
+@keyframes slideIn{from{opacity:0;transform:translateX(-6px)}to{opacity:1;transform:none}}
+.anim-up{animation:fadeUp .35s ease both}
+.anim-in{animation:fadeIn .3s ease both}
+
+/* ══════ HEADER ══════ */
+.hdr{
+  background:linear-gradient(180deg,rgba(17,22,33,.95),var(--s1));
+  backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--b1);
+  height:44px;display:flex;align-items:center;padding:0 14px;gap:10px;flex-shrink:0;
+  position:relative;z-index:10;
+}
+.hdr::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent 10%,var(--ac) 50%,transparent 90%);opacity:.2}
+.hdr-logo{
+  width:28px;height:28px;border-radius:8px;overflow:hidden;flex-shrink:0;
+  background:linear-gradient(135deg,#0a1520,#111e2e);
+  border:1px solid var(--b1);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--fd);font-size:.65rem;font-weight:800;color:var(--ac);
+}
+.hdr-name{font-family:var(--fd);font-size:.85rem;font-weight:700;color:var(--txh)}
+.hdr-name span{color:var(--ac)}
+.hdr-plan{
+  font-size:.5rem;font-weight:700;padding:2px 7px;border-radius:4px;
+  background:linear-gradient(135deg,var(--ac),var(--ac2));
+  color:#fff;letter-spacing:.5px;text-transform:uppercase;
+}
+.hdr-r{margin-left:auto;display:flex;align-items:center;gap:8px}
+.hdr-credits{
+  display:flex;align-items:center;gap:6px;
+  padding:4px 10px;border-radius:20px;
+  background:var(--s2);border:1px solid var(--b1);
+  font-size:.6rem;color:var(--txm);
+}
+.cr-num{color:var(--ac);font-weight:700;font-family:var(--fm)}
+.cr-bar{width:36px;height:3px;border-radius:2px;background:var(--s4);overflow:hidden}
+.cr-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--ac),var(--ac2));transition:width .5s ease}
+.hdr-avatar{
+  width:28px;height:28px;border-radius:8px;overflow:hidden;
+  background:linear-gradient(135deg,var(--ac),var(--ac2));
+  display:flex;align-items:center;justify-content:center;
+  font-size:.55rem;font-weight:800;color:#fff;cursor:pointer;
+  transition:all .2s;border:2px solid transparent;
+}
+.hdr-avatar:hover{border-color:var(--ac);box-shadow:var(--glow)}
+.ib{
+  width:28px;height:28px;border-radius:var(--rs);border:1px solid var(--b1);
+  background:var(--s2);color:var(--txd);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;font-size:.7rem;
+  transition:all .2s;
+}
+.ib:hover{border-color:var(--ac);color:var(--ac);background:var(--acg);box-shadow:var(--glow)}
+
+/* ══════ NAV TABS ══════ */
+.nav{
+  background:var(--s1);border-bottom:1px solid var(--b1);
+  display:flex;gap:2px;padding:6px 10px;overflow-x:auto;scrollbar-width:none;flex-shrink:0;
+}
+.nav::-webkit-scrollbar{display:none}
+.nt{
+  padding:7px 14px;border-radius:6px;font-size:.65rem;font-weight:600;
+  border:1px solid transparent;background:transparent;color:var(--txd);
+  cursor:pointer;white-space:nowrap;transition:all .2s;flex-shrink:0;
+  font-family:var(--f);display:flex;align-items:center;gap:5px;position:relative;
+}
+.nt:hover{color:var(--txm);background:var(--s2);border-color:var(--b1)}
+.nt.active{
+  background:linear-gradient(135deg,rgba(20,184,166,.12),rgba(14,165,233,.06));
+  border-color:rgba(20,184,166,.3);color:var(--ac);
+  box-shadow:0 2px 12px rgba(20,184,166,.1);
+}
+.nt .dot{width:5px;height:5px;border-radius:50%;background:var(--pk);position:absolute;top:4px;right:4px}
+
+/* ══════ MAIN ══════ */
+.main{flex:1;overflow:hidden;display:flex;flex-direction:column}
+.pn{display:none;flex:1;flex-direction:column;overflow:hidden}
+.pn.vis{display:flex}
+.pn-scroll{flex:1;overflow-y:auto;padding:14px 12px}
+
+/* ══════ FORM COMPONENTS (matching saadstudio.app) ══════ */
+
+/* --- Labeled Select Dropdown --- */
+.field{margin-bottom:12px}
+.field-label{font-size:.6rem;font-weight:700;color:var(--txm);text-transform:uppercase;letter-spacing:.8px;margin-bottom:5px;display:block}
+.field-row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+
+.sel{
+  padding:8px 12px;border-radius:var(--rs);
+  border:1px solid var(--b1);background:var(--s2);
+  color:var(--txh);font-family:var(--f);font-size:.72rem;font-weight:500;
+  outline:none;cursor:pointer;transition:all .2s;
+  appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236e7f9a'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 10px center;
+  padding-right:28px;min-width:0;
+}
+.sel:hover{border-color:var(--bh)}
+.sel:focus{border-color:var(--ac);box-shadow:0 0 0 2px var(--acg)}
+option{background:var(--s2);color:var(--txh)}
+
+/* Model card selector (like saadstudio.app model picker) */
+.model-card{
+  display:flex;align-items:center;gap:8px;
+  padding:8px 12px;border-radius:var(--r);
+  border:1px solid var(--b1);background:var(--s2);
+  cursor:pointer;transition:all .2s;flex:1;min-width:0;
+}
+.model-card:hover{border-color:var(--bh);background:var(--s3)}
+.model-card.active{border-color:var(--ac);background:var(--ach);box-shadow:0 0 12px var(--acg)}
+.model-card .mc-name{font-size:.72rem;font-weight:600;color:var(--txh)}
+.model-card .mc-tag{font-size:.48rem;font-weight:700;padding:1px 5px;border-radius:3px;text-transform:uppercase;letter-spacing:.3px}
+.mc-tag.top{background:rgba(20,184,166,.12);color:var(--ac)}
+.mc-tag.new{background:rgba(139,92,246,.12);color:var(--vl)}
+.mc-tag.hot{background:rgba(236,72,153,.12);color:var(--pk)}
+
+/* --- Option Pills (aspect ratio, resolution, duration) --- */
+.pill-group{display:flex;gap:3px;flex-wrap:wrap}
+.pill{
+  padding:6px 14px;border-radius:var(--rs);
+  border:1px solid var(--b1);background:var(--s2);
+  color:var(--txm);font-size:.68rem;font-weight:600;
+  cursor:pointer;transition:all .2s;font-family:var(--f);
+}
+.pill:hover{border-color:var(--bh);color:var(--tx)}
+.pill.active{border-color:var(--ac);color:var(--ac);background:var(--ach);box-shadow:0 0 8px var(--acg)}
+
+/* --- Prompt Area --- */
+.prompt{
+  background:var(--s2);border:1px solid var(--b1);border-radius:var(--r);
+  padding:12px;margin-bottom:10px;position:relative;
+  transition:all .25s;
+}
+.prompt:focus-within{border-color:var(--ac);box-shadow:0 0 0 2px var(--acg),var(--glow)}
+.prompt textarea{
+  width:100%;min-height:56px;background:transparent;border:none;outline:none;
+  color:var(--txh);font-family:var(--f);font-size:.78rem;font-weight:400;
+  resize:vertical;line-height:1.6;
+}
+.prompt textarea::placeholder{color:var(--txd)}
+.prompt-footer{display:flex;gap:6px;align-items:center;margin-top:8px;padding-top:8px;border-top:1px solid var(--b1)}
+
+/* --- Generate Button (main CTA, matches saadstudio.app) --- */
+.btn-gen{
+  padding:10px 20px;border-radius:var(--r);border:none;
+  background:linear-gradient(135deg,var(--ac),var(--ac2));
+  color:#fff;font-family:var(--fd);font-size:.78rem;font-weight:700;
+  cursor:pointer;transition:all .25s;
+  display:flex;align-items:center;gap:6px;
+  box-shadow:0 4px 16px rgba(20,184,166,.25);
+  position:relative;overflow:hidden;
+}
+.btn-gen::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.1),transparent);
+  transform:translateX(-100%);transition:transform .6s;
+}
+.btn-gen:hover::before{transform:translateX(100%)}
+.btn-gen:hover{box-shadow:0 6px 24px rgba(20,184,166,.35);transform:translateY(-1px)}
+.btn-gen:active{transform:translateY(0)}
+.btn-gen .cost{
+  padding:2px 6px;border-radius:4px;background:rgba(0,0,0,.2);
+  font-size:.6rem;font-family:var(--fm);font-weight:500;
+}
+
+/* --- Secondary / Ghost Buttons --- */
+.btn{
+  padding:7px 14px;border-radius:var(--rs);border:1px solid var(--b1);
+  background:var(--s2);color:var(--txm);font-family:var(--f);
+  font-size:.68rem;font-weight:600;cursor:pointer;
+  transition:all .2s;display:flex;align-items:center;gap:4px;
+}
+.btn:hover{border-color:var(--ac);color:var(--ac);background:var(--acg)}
+.btn-sm{padding:5px 10px;font-size:.6rem}
+.btn-full{width:100%;justify-content:center}
+.btn-success{background:linear-gradient(135deg,var(--gr),#16a34a);border-color:var(--gr);color:#fff}
+
+/* --- Checkbox / Toggle --- */
+.toggle-row{display:flex;align-items:center;gap:8px;padding:6px 0}
+.toggle-row label{font-size:.7rem;color:var(--txm);cursor:pointer;display:flex;align-items:center;gap:6px}
+.toggle-row input[type=checkbox]{accent-color:var(--ac);width:14px;height:14px;cursor:pointer}
+
+/* --- Slider --- */
+.slider-g{margin-bottom:10px}
+.slider-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.slider-l{font-size:.62rem;color:var(--txm);font-weight:500}
+.slider-v{font-size:.58rem;color:var(--ac);font-family:var(--fm);font-weight:600}
+input[type=range]{width:100%;-webkit-appearance:none;height:4px;border-radius:2px;background:var(--s4);outline:none;transition:all .15s}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--ac);cursor:pointer;box-shadow:0 0 8px rgba(20,184,166,.3);transition:all .15s}
+input[type=range]::-webkit-slider-thumb:hover{box-shadow:0 0 14px rgba(20,184,166,.5);transform:scale(1.15)}
+
+/* --- Section Title --- */
+.sec{margin-bottom:14px;animation:fadeUp .35s ease both}
+.sec-t{
+  font-size:.58rem;font-weight:700;color:var(--txd);text-transform:uppercase;
+  letter-spacing:1px;margin-bottom:8px;display:flex;align-items:center;gap:8px;
+}
+.sec-t::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--b1),transparent)}
+.sec-badge{padding:2px 6px;border-radius:3px;font-size:.48rem;font-weight:700;letter-spacing:.3px}
+.sec-badge.teal{background:var(--acg);color:var(--ac)}
+.sec-badge.purple{background:rgba(139,92,246,.1);color:var(--vl)}
+.sec-badge.pink{background:rgba(236,72,153,.1);color:var(--pk)}
+
+/* --- Cards Grid --- */
+.cg{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
+.cd{
+  background:var(--s2);border:1px solid var(--b1);border-radius:var(--r);
+  padding:10px;cursor:pointer;transition:all .25s;position:relative;overflow:hidden;
+}
+.cd::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 30% 30%,var(--acg),transparent 70%);opacity:0;transition:opacity .3s;pointer-events:none}
+.cd:hover{border-color:var(--bh);transform:translateY(-1px);box-shadow:var(--shadow)}
+.cd:hover::after{opacity:1}
+.cd.sel{border-color:var(--ac);background:var(--ach);box-shadow:0 0 16px var(--acg)}
+.cd.sel::after{opacity:1}
+.cd-t{font-size:.72rem;font-weight:700;color:var(--txh);margin-bottom:2px;font-family:var(--fd)}
+.cd-d{font-size:.58rem;color:var(--txd);line-height:1.3}
+
+/* --- Markers / Timeline Items --- */
+.mk{
+  display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:var(--rs);
+  background:var(--s2);border:1px solid var(--b1);margin-bottom:4px;
+  cursor:pointer;transition:all .2s;animation:slideIn .3s ease both;
+}
+.mk:hover{border-color:var(--ac);background:var(--s3);box-shadow:0 2px 10px rgba(0,0,0,.15)}
+.mk-tc{font-size:.58rem;font-family:var(--fm);color:var(--ac);font-weight:500;flex-shrink:0;min-width:75px}
+.mk-tx{font-size:.68rem;color:var(--tx);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mk-badge{font-size:.5rem;font-weight:700;padding:2px 7px;border-radius:10px;flex-shrink:0}
+.mk-badge.high{background:rgba(20,184,166,.1);color:var(--ac)}
+.mk-badge.warn{background:rgba(245,158,11,.1);color:var(--or)}
+.mk-badge.info{background:rgba(139,92,246,.1);color:var(--vl)}
+
+/* --- Dashboard Cards --- */
+.dash{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-bottom:12px}
+.dash-card{
+  background:var(--s2);border:1px solid var(--b1);border-radius:var(--r);
+  padding:14px 12px;position:relative;overflow:hidden;
+  transition:all .25s;
+}
+.dash-card:hover{border-color:var(--bh);transform:translateY(-1px)}
+.dash-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;border-radius:2px 2px 0 0}
+.dash-card.d1::before{background:linear-gradient(90deg,var(--ac),var(--ac2))}
+.dash-card.d2::before{background:linear-gradient(90deg,var(--gr),var(--ac))}
+.dash-card.d3::before{background:linear-gradient(90deg,var(--or),var(--rd))}
+.dash-card.d4::before{background:linear-gradient(90deg,var(--vl),var(--pk))}
+.dc-v{font-family:var(--fd);font-size:1.2rem;font-weight:800;color:var(--txh)}
+.dc-l{font-size:.55rem;color:var(--txd);margin-top:2px;font-weight:500}
+
+/* --- Voice Grid --- */
+.vg{display:grid;grid-template-columns:repeat(3,1fr);gap:4px}
+.vc{
+  padding:8px;border-radius:var(--rs);border:1px solid var(--b1);
+  background:var(--s2);cursor:pointer;text-align:center;transition:all .2s;
+}
+.vc:hover{border-color:var(--bh)}
+.vc.sel{border-color:var(--ac);background:var(--ach);box-shadow:0 0 8px var(--acg)}
+.vc-n{font-size:.65rem;font-weight:600;color:var(--txh)}
+.vc-s{font-size:.5rem;color:var(--txd);margin-top:1px}
+
+/* --- Waveform Preview --- */
+.wfp{
+  background:var(--s2);border:1px solid var(--b1);border-radius:var(--r);
+  padding:10px;display:flex;align-items:center;gap:10px;
+}
+.wf-play{
+  width:32px;height:32px;border-radius:50%;
+  background:linear-gradient(135deg,var(--ac),var(--ac2));
+  border:none;color:#fff;cursor:pointer;display:flex;align-items:center;
+  justify-content:center;font-size:.65rem;flex-shrink:0;transition:all .2s;
+  box-shadow:0 2px 10px rgba(20,184,166,.25);
+}
+.wf-play:hover{box-shadow:0 4px 16px rgba(20,184,166,.4);transform:scale(1.05)}
+.wf-bars{flex:1;display:flex;align-items:center;gap:1px;height:28px}
+.wf-bars .wb{flex:1;border-radius:1px;background:var(--ac);transition:all .15s}
+.wf-time{font-size:.55rem;color:var(--txd);font-family:var(--fm);flex-shrink:0}
+
+/* --- Style Engine Cards --- */
+.style-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
+.style-card{
+  background:var(--s2);border:1px solid var(--b1);border-radius:var(--rr);
+  padding:16px 12px;cursor:pointer;transition:all .3s;text-align:center;
+  position:relative;overflow:hidden;
+}
+.style-card::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0%,var(--acg),transparent 70%);opacity:0;transition:opacity .3s;pointer-events:none}
+.style-card:hover{border-color:var(--bh);transform:translateY(-2px);box-shadow:var(--shadow)}
+.style-card:hover::before{opacity:1}
+.style-card.sel{border-color:var(--ac);box-shadow:0 0 20px var(--acg);animation:glow 2s ease infinite}
+.style-card.sel::before{opacity:1}
+.sc-ico{font-size:1.6rem;margin-bottom:8px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.3))}
+.sc-name{font-family:var(--fd);font-size:.78rem;font-weight:700;color:var(--txh)}
+.sc-desc{font-size:.52rem;color:var(--txd);margin-top:3px;line-height:1.3}
+
+/* ══════ CHAT ══════ */
+.msgs{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:12px}
+.msg{display:flex;gap:10px;animation:fadeUp .3s ease both}
+.av{
+  width:26px;height:26px;border-radius:7px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:.5rem;font-weight:800;color:#fff;margin-top:1px;
+}
+.av.u{background:linear-gradient(135deg,#3b82f6,#1d4ed8)}
+.av.ai{background:linear-gradient(135deg,var(--ac),var(--ac2))}
+.mbd{flex:1;min-width:0}
+.mhd{display:flex;gap:6px;align-items:center;margin-bottom:3px}
+.mn{font-size:.65rem;font-weight:700;color:var(--txh)}
+.mt-time{font-size:.5rem;color:var(--txd);font-family:var(--fm)}
+.mc{font-size:.75rem;line-height:1.6;color:var(--tx)}
+.mc code{background:var(--s3);padding:2px 6px;border-radius:4px;font-family:var(--fm);font-size:.65rem;color:var(--ac);border:1px solid var(--b1)}
+.mc .code-block{
+  background:var(--bg2);border:1px solid var(--b1);border-radius:var(--rs);
+  padding:10px 12px;margin:8px 0;font-family:var(--fm);font-size:.62rem;
+  line-height:1.6;overflow-x:auto;
+}
+.ma{display:flex;gap:4px;margin-top:8px;flex-wrap:wrap}
+.ac-chip{
+  padding:5px 10px;border-radius:var(--rs);font-size:.6rem;font-weight:600;
+  border:1px solid var(--b1);background:var(--s2);color:var(--txm);
+  cursor:pointer;transition:all .2s;font-family:var(--f);
+  display:flex;align-items:center;gap:3px;
+}
+.ac-chip:hover{border-color:var(--ac);color:var(--ac);background:var(--acg);box-shadow:0 2px 8px var(--acg)}
+
+/* Chat input */
+.cinp{background:var(--s1);border-top:1px solid var(--b1);padding:10px 12px;flex-shrink:0}
+.cinp-r{
+  display:flex;gap:8px;align-items:flex-end;
+  background:var(--s2);border:1px solid var(--b1);border-radius:var(--r);
+  padding:10px 12px;transition:all .25s;
+}
+.cinp-r:focus-within{border-color:var(--ac);box-shadow:0 0 0 2px var(--acg),var(--glow)}
+.cinp-r textarea{
+  flex:1;background:transparent;border:none;outline:none;
+  color:var(--txh);font-family:var(--f);font-size:.78rem;font-weight:400;
+  resize:none;line-height:1.5;min-height:20px;max-height:100px;
+}
+.cinp-r textarea::placeholder{color:var(--txd)}
+.cinp-tools{display:flex;gap:4px;align-items:center}
+.snd{
+  width:30px;height:30px;border:none;border-radius:var(--rs);
+  background:linear-gradient(135deg,var(--ac),var(--ac2));
+  color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  font-size:.8rem;flex-shrink:0;transition:all .2s;
+  box-shadow:0 2px 10px rgba(20,184,166,.2);
+}
+.snd:hover{box-shadow:0 4px 16px rgba(20,184,166,.35);transform:translateY(-1px)}
+
+/* Quick actions */
+.qas{
+  background:var(--s1);border-top:1px solid var(--b1);
+  padding:6px 10px;display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;flex-shrink:0;
+}
+.qas::-webkit-scrollbar{display:none}
+.qb{
+  padding:5px 12px;border-radius:20px;font-size:.58rem;font-weight:600;
+  border:1px solid var(--b1);background:transparent;color:var(--txd);
+  cursor:pointer;white-space:nowrap;font-family:var(--f);transition:all .2s;
+}
+.qb:hover{border-color:var(--ac);color:var(--ac);background:var(--acg)}
+
+/* ══════ MODAL ══════ */
+.modal-bg{
+  position:fixed;inset:0;background:rgba(4,6,10,.85);backdrop-filter:blur(6px);
+  display:none;align-items:center;justify-content:center;z-index:100;
+}
+.modal-bg.vis{display:flex}
+.modal{
+  background:var(--s1);border:1px solid var(--b1);border-radius:12px;
+  width:360px;max-height:80vh;overflow-y:auto;
+  box-shadow:0 24px 64px rgba(0,0,0,.5),0 0 40px var(--acg);
+  animation:fadeUp .3s ease;
+}
+.mdl-h{padding:16px 18px;border-bottom:1px solid var(--b1);display:flex;align-items:center;justify-content:space-between}
+.mdl-h h3{font-family:var(--fd);font-size:.85rem;font-weight:700;color:var(--txh)}
+.mdl-x{background:transparent;border:none;color:var(--txd);cursor:pointer;font-size:1rem;transition:color .2s}
+.mdl-x:hover{color:var(--txh)}
+.mdl-b{padding:18px}
+.fg{margin-bottom:14px}
+.fg label{display:block;font-size:.62rem;font-weight:700;color:var(--txm);margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px}
+.fg input[type=password],.fg input[type=text]{
+  width:100%;padding:8px 10px;background:var(--s2);border:1px solid var(--b1);
+  border-radius:var(--rs);color:var(--txh);font-family:var(--fm);font-size:.68rem;outline:none;transition:all .2s;
+}
+.fg input:focus{border-color:var(--ac);box-shadow:0 0 0 2px var(--acg)}
+.fg .help{font-size:.52rem;color:var(--txd);margin-top:4px;display:flex;align-items:center;gap:4px}
+.dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.dot-g{background:var(--gr)}.dot-r{background:var(--rd)}.dot-y{background:var(--or)}
+</style>
+</head>
+<body>
+
+<!-- ══════ HEADER ══════ -->
+<div class="hdr">
+  <div class="hdr-logo">SA</div>
+  <span class="hdr-name">Saad <span>Studio</span></span>
+  <span class="hdr-plan">PRO</span>
+  <div class="hdr-r">
+    <div class="hdr-credits">
+      <span class="cr-num">847</span> credits
+      <div class="cr-bar"><div class="cr-fill" style="width:65%"></div></div>
+    </div>
+    <div class="hdr-avatar" id="btnUser">SD</div>
+    <button class="ib" id="btnSettings" title="Settings">⚙</button>
+  </div>
+</div>
+
+<!-- ══════ NAV ══════ -->
+<div class="nav" id="nav">
+  <button class="nt active" data-p="chat">💬 Assistant</button>
+  <button class="nt" data-p="timeline">🧠 Timeline AI<span class="dot"></span></button>
+  <button class="nt" data-p="narrative">🎬 Narrative</button>
+  <button class="nt" data-p="multicam">📹 MultiCam</button>
+  <button class="nt" data-p="color">🎨 Color</button>
+  <button class="nt" data-p="audio">🔊 Audio Mix</button>
+  <button class="nt" data-p="refactor">⚡ Refactor</button>
+  <button class="nt" data-p="analyzer">📊 Analyzer</button>
+  <button class="nt" data-p="style">🎯 Style Engine</button>
+  <button class="nt" data-p="broll">💥 B-Roll Gen</button>
+  <button class="nt" data-p="videogen">🎬 Video Gen</button>
+  <button class="nt" data-p="imagegen">🖼️ Image Gen</button>
+  <button class="nt" data-p="tts">🔊 TTS</button>
+  <button class="nt" data-p="translate">🌍 Translate</button>
+  <button class="nt" data-p="captions">💬 Captions</button>
+</div>
+
+<!-- ══════ PANELS ══════ -->
+<div class="main">
+
+<!-- 💬 CHAT -->
+<div class="pn vis" id="p-chat">
+  <div class="msgs" id="msgs">
+    <div class="msg"><div class="av ai">SA</div><div class="mbd"><div class="mhd"><span class="mn">Saad Studio AI</span><span class="mt-time">now</span></div><div class="mc">Connected to <code>Real_Estate_AI_v3</code>. I see <code>3 video</code> and <code>2 audio</code> tracks. Duration: <code>00:04:23</code>.</div><div class="ma"><div class="ac-chip" onclick="inP('Analyze my timeline')">🧠 Analyze Timeline</div><div class="ac-chip" onclick="inP('Find best soundbites')">🎯 Soundbites</div><div class="ac-chip" onclick="inP('Generate B-roll')">💥 B-Roll</div><div class="ac-chip" onclick="inP('Apply style')">🎯 Style Engine</div></div></div></div>
+    <div class="msg" style="animation-delay:.1s"><div class="av u">Y</div><div class="mbd"><div class="mhd"><span class="mn">You</span><span class="mt-time">2m</span></div><div class="mc">Find the most engaging 15-second hook from this interview about AI in real estate</div></div></div>
+    <div class="msg" style="animation-delay:.2s"><div class="av ai">SA</div><div class="mbd"><div class="mhd"><span class="mn">Saad Studio AI</span><span class="mt-time">1m</span></div><div class="mc">Found <strong>3 hook candidates</strong> ranked by engagement:<div class="code-block"><span style="color:var(--ac)">🥇 01:23:15 → 01:23:30</span> Score: 94/100
+"Every agent who ignores AI will be replaced..."
+
+<span style="color:var(--or)">🥈 00:45:08 → 00:45:22</span> Score: 87/100
+"We closed 3x more deals using AI staging..."
+
+<span style="color:var(--pk)">🥉 02:01:44 → 02:01:58</span> Score: 81/100
+"The future isn't location — it's intelligence."</div></div><div class="ma"><div class="ac-chip">📌 Add Markers</div><div class="ac-chip">✂️ Subclip</div><div class="ac-chip">⬆ Move to V2</div><div class="ac-chip">🔊 Voiceover</div><div class="ac-chip">💥 Gen B-Roll</div></div></div></div>
+  </div>
+  <div class="cinp"><div class="cinp-r"><textarea id="ci" placeholder="Ask anything about your project..." rows="1" oninput="ar(this)"></textarea><div class="cinp-tools"><button class="ib" style="border:none;background:transparent">📎</button><button class="ib" style="border:none;background:transparent">🎤</button><button class="snd" onclick="snd()">↑</button></div></div></div>
+  <div class="qas">
+    <button class="qb" onclick="inP('Analyze timeline')">🧠 Analyze</button>
+    <button class="qb" onclick="inP('Soundbites')">🎯 Soundbites</button>
+    <button class="qb" onclick="inP('B-Roll')">💥 B-Roll</button>
+    <button class="qb" onclick="inP('Style')">🎯 Style</button>
+    <button class="qb" onclick="inP('Captions')">💬 Captions</button>
+    <button class="qb" onclick="inP('Social cut')">📱 Social</button>
+    <button class="qb" onclick="inP('Refactor')">⚡ Refactor</button>
+  </div>
+</div>
+
+<!-- 🎬 VIDEO GEN (matching saadstudio.app/video layout) -->
+<div class="pn" id="p-videogen"><div class="pn-scroll">
+  <div class="sec"><div class="sec-t">AI Model <span class="sec-badge teal">KIE.ai</span></div>
+    <div class="field-row" style="margin-bottom:10px">
+      <div class="model-card active" onclick="selCard(this)"><div class="mc-name">Kling 3.0</div><span class="mc-tag top">TOP</span></div>
+      <div class="model-card" onclick="selCard(this)"><div class="mc-name">Sora</div><span class="mc-tag new">NEW</span></div>
+      <div class="model-card" onclick="selCard(this)"><div class="mc-name">VEO 3</div><span class="mc-tag hot">HOT</span></div>
+    </div>
+    <div class="field-row" style="margin-bottom:10px">
+      <div class="model-card" onclick="selCard(this)"><div class="mc-name">Seedance 2.0</div></div>
+      <div class="model-card" onclick="selCard(this)"><div class="mc-name">Wan 2.1</div></div>
+      <div class="model-card" onclick="selCard(this)"><div class="mc-name">Hailuo</div></div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-t">Prompt</div>
+    <div class="prompt">
+      <textarea placeholder="Describe your video... e.g. 'Cinematic drone shot over luxury house at golden hour, warm sunlight, 4K'">Cinematic drone shot flying over luxury modern house at golden hour, warm sunlight reflecting off glass windows, smooth camera movement</textarea>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="field"><div class="field-label">Mode</div>
+      <div class="pill-group"><div class="pill active" onclick="selPill(this)">Text → Video</div><div class="pill" onclick="selPill(this)">Image → Video</div></div>
+    </div>
+    <div class="field"><div class="field-label">Duration</div>
+      <div class="pill-group"><div class="pill" onclick="selPill(this)">3s</div><div class="pill active" onclick="selPill(this)">5s</div><div class="pill" onclick="selPill(this)">10s</div><div class="pill" onclick="selPill(this)">15s</div></div>
+    </div>
+    <div class="field"><div class="field-label">Aspect Ratio</div>
+      <div class="pill-group"><div class="pill active" onclick="selPill(this)">16:9</div><div class="pill" onclick="selPill(this)">9:16</div><div class="pill" onclick="selPill(this)">1:1</div><div class="pill" onclick="selPill(this)">4:3</div></div>
+    </div>
+    <div class="field"><div class="field-label">Resolution</div>
+      <div class="pill-group"><div class="pill" onclick="selPill(this)">720p</div><div class="pill active" onclick="selPill(this)">1080p</div><div class="pill" onclick="selPill(this)">4K</div></div>
+    </div>
+    <div class="field"><div class="field-label">Quality</div>
+      <div class="slider-g"><div class="slider-h"><span class="slider-l">CFG Scale</span><span class="slider-v">7.0</span></div><input type="range" min="1" max="20" value="7"></div>
+    </div>
+  </div>
+
+  <div class="toggle-row"><label><input type="checkbox"> Multi-shot (multiple scenes)</label></div>
+  <div class="toggle-row"><label><input type="checkbox"> Generate Sound · ×1.5 cost</label></div>
+
+  <div style="margin-top:12px;display:flex;gap:8px">
+    <button class="btn-gen" style="flex:1">🎬 Generate Video <span class="cost">6 cr</span></button>
+    <button class="btn" title="Insert to Timeline">↗ Timeline</button>
+  </div>
+</div></div>
+
+<!-- 🖼️ IMAGE GEN -->
+<div class="pn" id="p-imagegen"><div class="pn-scroll">
+  <div class="sec"><div class="sec-t">AI Model <span class="sec-badge teal">KIE.ai</span></div>
+    <div class="field-row" style="margin-bottom:10px">
+      <div class="model-card active" onclick="selCard(this)"><div class="mc-name">GPT Image 2</div><span class="mc-tag new">NEW</span></div>
+      <div class="model-card" onclick="selCard(this)"><div class="mc-name">Flux 2 Pro</div><span class="mc-tag top">TOP</span></div>
+    </div>
+    <div class="field-row" style="margin-bottom:10px">
+      <div class="model-card" onclick="selCard(this)"><div class="mc-name">Imagen 4</div></div>
+      <div class="model-card" onclick="selCard(this)"><div class="mc-name">Seedream 5</div></div>
+      <div class="model-card" onclick="selCard(this)"><div class="mc-name">Ideogram V3</div></div>
+    </div>
+  </div>
+  <div class="sec"><div class="sec-t">Prompt</div>
+    <div class="prompt"><textarea placeholder="Describe your image...">Professional product photo of a modern smartwatch on marble surface, soft studio lighting</textarea></div>
+  </div>
+  <div class="field"><div class="field-label">Aspect Ratio</div>
+    <div class="pill-group"><div class="pill active" onclick="selPill(this)">1:1</div><div class="pill" onclick="selPill(this)">16:9</div><div class="pill" onclick="selPill(this)">9:16</div><div class="pill" onclick="selPill(this)">4:3</div><div class="pill" onclick="selPill(this)">3:4</div></div>
+  </div>
+  <div class="field"><div class="field-label">Number of Images</div>
+    <div class="pill-group"><div class="pill active" onclick="selPill(this)">1</div><div class="pill" onclick="selPill(this)">2</div><div class="pill" onclick="selPill(this)">3</div><div class="pill" onclick="selPill(this)">4</div></div>
+  </div>
+  <div class="field"><div class="field-label">Resolution</div>
+    <div class="pill-group"><div class="pill" onclick="selPill(this)">1K</div><div class="pill active" onclick="selPill(this)">2K</div><div class="pill" onclick="selPill(this)">4K</div></div>
+  </div>
+  <div style="margin-top:12px;display:flex;gap:8px">
+    <button class="btn-gen" style="flex:1">🖼️ Generate Image <span class="cost">2 cr</span></button>
+    <button class="btn">↗ Import</button>
+  </div>
+</div></div>
+
+<!-- 🔊 TTS -->
+<div class="pn" id="p-tts"><div class="pn-scroll">
+  <div class="sec"><div class="sec-t">Text to Speech</div>
+    <div class="prompt"><textarea>In 2025, the average real estate agent spent 6 hours a day on tasks a machine could do in seconds.</textarea></div>
+  </div>
+  <div class="sec"><div class="sec-t">Voice</div>
+    <div class="vg">
+      <div class="vc sel" onclick="selVc(this)"><div class="vc-n">Rachel</div><div class="vc-s">Warm · American</div></div>
+      <div class="vc" onclick="selVc(this)"><div class="vc-n">Brian</div><div class="vc-s">Deep · Narrator</div></div>
+      <div class="vc" onclick="selVc(this)"><div class="vc-n">Matilda</div><div class="vc-s">Soft · Australian</div></div>
+      <div class="vc" onclick="selVc(this)"><div class="vc-n">Daniel</div><div class="vc-s">British · Calm</div></div>
+      <div class="vc" onclick="selVc(this)"><div class="vc-n">Aria</div><div class="vc-s">Clear · American</div></div>
+      <div class="vc" onclick="selVc(this)"><div class="vc-n">Arabella</div><div class="vc-s">Arabic · Warm</div></div>
+    </div>
+  </div>
+  <div class="sec">
+    <div class="slider-g"><div class="slider-h"><span class="slider-l">Stability</span><span class="slider-v">0.65</span></div><input type="range" min="0" max="100" value="65"></div>
+    <div class="slider-g"><div class="slider-h"><span class="slider-l">Clarity</span><span class="slider-v">0.75</span></div><input type="range" min="0" max="100" value="75"></div>
+    <div class="slider-g"><div class="slider-h"><span class="slider-l">Speed</span><span class="slider-v">1.0x</span></div><input type="range" min="50" max="200" value="100"></div>
+  </div>
+  <button class="btn-gen btn-full">🔊 Generate Voice <span class="cost">3 cr</span></button>
+  <div class="sec" style="margin-top:12px"><div class="sec-t">Preview</div>
+    <div class="wfp"><button class="wf-play">▶</button><div class="wf-bars" id="wvb"></div><span class="wf-time">0:08</span><button class="btn btn-sm">↗ Insert</button></div>
+  </div>
+</div></div>
+
+<!-- 🧠 TIMELINE AI -->
+<div class="pn" id="p-timeline"><div class="pn-scroll">
+  <div class="sec"><div class="sec-t">🧠 Timeline Intelligence <span class="sec-badge teal">AI</span></div>
+    <div class="prompt"><textarea placeholder="Analyze my project: find speech zones, key scenes, duplicates, suggest smart cuts...">Analyze this interview: find all speech zones, identify the 5 most important scenes, detect duplicate shots, suggest better sequence order.</textarea><div class="prompt-footer"><button class="btn-gen">🧠 Deep Analyze <span class="cost">4 cr</span></button><button class="btn">🎯 Quick Scan</button></div></div>
+  </div>
+  <div class="sec"><div class="sec-t">Detected Zones</div>
+    <div class="mk"><span class="mk-tc">00:00 → 01:23</span><span class="mk-tx">🗣️ Speaker A — Introduction</span><span class="mk-badge high">Speech</span></div>
+    <div class="mk" style="animation-delay:.1s"><span class="mk-tc">01:23 → 01:30</span><span class="mk-tx">🔇 Silence gap — cut candidate</span><span class="mk-badge warn">Gap</span></div>
+    <div class="mk" style="animation-delay:.15s"><span class="mk-tc">01:30 → 02:45</span><span class="mk-tx">🗣️ Speaker A — Key insight about AI</span><span class="mk-badge high">Key</span></div>
+    <div class="mk" style="animation-delay:.2s"><span class="mk-tc">02:45 → 03:10</span><span class="mk-tx">🔄 Duplicate of 00:15 — remove</span><span class="mk-badge warn">Dup</span></div>
+  </div>
+  <div class="sec"><div style="display:flex;gap:5px;flex-wrap:wrap">
+    <button class="btn-gen" style="font-size:.65rem;padding:7px 14px">✂️ Apply Smart Cuts</button>
+    <button class="btn">📌 Mark Scenes</button><button class="btn">🗑️ Remove Dups</button><button class="btn">🔄 Reorder</button>
+  </div></div>
+</div></div>
+
+<!-- 🎬 NARRATIVE -->
+<div class="pn" id="p-narrative"><div class="pn-scroll">
+  <div class="sec"><div class="sec-t">🎬 Narrative Assistant <span class="sec-badge purple">Director</span></div>
+    <div class="prompt"><textarea placeholder="Paste your script or describe the story...">Opening hook → problem statement → discovery of AI tools → transformation montage → results → CTA</textarea><div class="prompt-footer"><button class="btn-gen">🎬 Map to Timeline <span class="cost">3 cr</span></button><button class="btn">📄 Import Script</button></div></div>
+  </div>
+  <div class="sec"><div class="sec-t">Scene Map</div>
+    <div class="mk"><span class="mk-tc">Scene 1</span><span class="mk-tx">🎬 Hook — "Every agent who ignores AI..."</span><span class="mk-badge high">0:00–0:05</span></div>
+    <div class="mk" style="animation-delay:.05s"><span class="mk-tc">Scene 2</span><span class="mk-tx">😰 Problem — Agent struggles</span><span class="mk-badge high">0:05–0:12</span></div>
+    <div class="mk" style="animation-delay:.1s"><span class="mk-tc">Scene 3</span><span class="mk-tx">💡 Discovery — AI staging tool</span><span class="mk-badge high">0:12–0:18</span></div>
+    <div class="mk" style="animation-delay:.15s"><span class="mk-tc">Scene 4</span><span class="mk-tx">🎥 Montage — Before/after</span><span class="mk-badge info">0:18–0:24</span></div>
+    <div class="mk" style="animation-delay:.2s"><span class="mk-tc">Scene 5</span><span class="mk-tx">📊 Results — 3x more deals</span><span class="mk-badge high">0:24–0:28</span></div>
+    <div class="mk" style="animation-delay:.25s"><span class="mk-tc">Scene 6</span><span class="mk-tx">🚀 CTA — "Start free trial"</span><span class="mk-badge high">0:28–0:30</span></div>
+  </div>
+</div></div>
+
+<!-- 📹 MULTICAM -->
+<div class="pn" id="p-multicam"><div class="pn-scroll">
+  <div class="sec"><div class="sec-t">📹 Multi-Camera AI Sync</div>
+    <div class="prompt"><textarea placeholder="How many cameras? Switching criteria?">Sync 3 cameras. Auto-switch: follow active speaker, wide shot on pauses, close-up on emotions.</textarea><div class="prompt-footer"><button class="btn-gen">📹 Sync & Auto-Cut <span class="cost">5 cr</span></button></div></div>
+  </div>
+  <div class="field"><div class="field-label">Switching Logic</div>
+    <div class="cg"><div class="cd sel" onclick="selCd(this)"><div class="cd-t">🗣️ Speech</div><div class="cd-d">Follow active speaker</div></div><div class="cd" onclick="selCd(this)"><div class="cd-t">🏃 Motion</div><div class="cd-d">Cut to movement</div></div><div class="cd" onclick="selCd(this)"><div class="cd-t">😀 Face</div><div class="cd-d">Close-up on faces</div></div><div class="cd" onclick="selCd(this)"><div class="cd-t">🎵 Beat</div><div class="cd-d">Cut on music beats</div></div></div>
+  </div>
+</div></div>
+
+<!-- 🎨 COLOR -->
+<div class="pn" id="p-color"><div class="pn-scroll">
+  <div class="sec"><div class="sec-t">🎨 Scene Color Matching</div>
+    <div class="prompt"><textarea placeholder="Describe the look...">Cinematic teal shadows, warm highlights, Fincher-style for interviews. Warmer for outdoor B-roll. Consistent across all scenes.</textarea><div class="prompt-footer"><button class="btn-gen">🎨 Analyze & Grade <span class="cost">4 cr</span></button><button class="btn">📸 From Reference</button></div></div>
+  </div>
+  <div class="sec"><div class="sec-t">Detected Scenes</div>
+    <div class="mk"><span class="mk-tc">Scene 1-3</span><span class="mk-tx">🎥 Interview (indoor, flat)</span><span class="mk-badge high">Grade</span></div>
+    <div class="mk"><span class="mk-tc">Scene 4</span><span class="mk-tx">🌅 B-roll (outdoor, warm)</span><span class="mk-badge high">Grade</span></div>
+    <div class="mk"><span class="mk-tc">Scene 5-6</span><span class="mk-tx">📊 Screen rec (needs contrast)</span><span class="mk-badge warn">Grade</span></div>
+  </div>
+  <button class="btn-success btn-full">✅ Apply All Scene Grades</button>
+</div></div>
+
+<!-- 🔊 AUDIO -->
+<div class="pn" id="p-audio"><div class="pn-scroll">
+  <div class="sec"><div class="sec-t">🔊 Audio Balancer</div>
+    <div class="slider-g"><div class="slider-h"><span class="slider-l">Voice Level</span><span class="slider-v">-6 dB</span></div><input type="range" min="0" max="100" value="70"></div>
+    <div class="slider-g"><div class="slider-h"><span class="slider-l">Music Level</span><span class="slider-v">-18 dB</span></div><input type="range" min="0" max="100" value="35"></div>
+    <div class="slider-g"><div class="slider-h"><span class="slider-l">SFX Level</span><span class="slider-v">-12 dB</span></div><input type="range" min="0" max="100" value="50"></div>
+    <div class="slider-g"><div class="slider-h"><span class="slider-l">Ducking</span><span class="slider-v">High</span></div><input type="range" min="0" max="100" value="80"></div>
+  </div>
+  <div style="display:flex;gap:5px;flex-wrap:wrap">
+    <button class="btn-gen" style="font-size:.65rem;padding:7px 14px">🔊 Auto Balance <span class="cost">2 cr</span></button>
+    <button class="btn">🎵 Smart Ducking</button><button class="btn">🔇 Denoise</button><button class="btn">📊 LUFS Check</button>
+  </div>
+</div></div>
+
+<!-- ⚡ REFACTOR -->
+<div class="pn" id="p-refactor"><div class="pn-scroll">
+  <div class="sec"><div class="sec-t">⚡ Timeline Refactoring</div>
+    <div class="cg"><div class="cd sel" onclick="selCd(this)"><div class="cd-t">🧹 Clean Tracks</div><div class="cd-d">Remove empty, organize layers</div></div><div class="cd" onclick="selCd(this)"><div class="cd-t">📐 Consolidate</div><div class="cd-d">Merge gaps, align clips</div></div><div class="cd" onclick="selCd(this)"><div class="cd-t">🏷️ Auto Label</div><div class="cd-d">Label clips by type</div></div><div class="cd" onclick="selCd(this)"><div class="cd-t">📁 Organize Bins</div><div class="cd-d">Sort into folders</div></div></div>
+  </div>
+  <button class="btn-gen btn-full" style="margin-top:8px">⚡ Refactor Timeline <span class="cost">3 cr</span></button>
+</div></div>
+
+<!-- 📊 ANALYZER -->
+<div class="pn" id="p-analyzer"><div class="pn-scroll">
+  <div class="sec"><div class="sec-t">📊 Project Analyzer</div>
+    <div class="dash">
+      <div class="dash-card d1"><div class="dc-v">6</div><div class="dc-l">Total Scenes</div></div>
+      <div class="dash-card d2"><div class="dc-v">2.3s</div><div class="dc-l">Avg Cut Length</div></div>
+      <div class="dash-card d3"><div class="dc-v">3</div><div class="dc-l">Issues Found</div></div>
+      <div class="dash-card d4"><div class="dc-v">87%</div><div class="dc-l">Engagement Score</div></div>
+    </div>
+  </div>
+  <div class="sec"><div class="sec-t">Issues</div>
+    <div class="mk"><span class="mk-tc">⚠️ 02:15</span><span class="mk-tx">Audio peak (-0.2dB clipping)</span><span class="mk-badge warn">Audio</span></div>
+    <div class="mk"><span class="mk-tc">⚠️ Scene 4</span><span class="mk-tx">No audio on B-roll segment</span><span class="mk-badge warn">Missing</span></div>
+    <div class="mk"><span class="mk-tc">💡 Scene 2</span><span class="mk-tx">Could be 40% shorter (pacing)</span><span class="mk-badge info">Pacing</span></div>
+  </div>
+  <button class="btn-gen btn-full">📊 Full Report <span class="cost">3 cr</span></button>
+</div></div>
+
+<!-- 🎯 STYLE ENGINE -->
+<div class="pn" id="p-style"><div class="pn-scroll">
+  <div class="sec"><div class="sec-t">🎯 Style Engine <span class="sec-badge pink">One-Click</span></div>
+    <div class="style-grid">
+      <div class="style-card sel" onclick="selSc(this)"><div class="sc-ico">🎬</div><div class="sc-name">Cinematic Ad</div><div class="sc-desc">Fast cuts · Color grade · Motion · Epic sound</div></div>
+      <div class="style-card" onclick="selSc(this)"><div class="sc-ico">📺</div><div class="sc-name">YouTube Doc</div><div class="sc-desc">Clean pacing · Natural color · Captions</div></div>
+      <div class="style-card" onclick="selSc(this)"><div class="sc-ico">🎙️</div><div class="sc-name">Podcast Clean</div><div class="sc-desc">Minimal cuts · Balanced audio · Titles</div></div>
+      <div class="style-card" onclick="selSc(this)"><div class="sc-ico">📱</div><div class="sc-name">Social Reels</div><div class="sc-desc">Vertical · Fast · Captions · Hook-first</div></div>
+      <div class="style-card" onclick="selSc(this)"><div class="sc-ico">📰</div><div class="sc-name">News Report</div><div class="sc-desc">Professional · Graphics · Balanced</div></div>
+      <div class="style-card" onclick="selSc(this)"><div class="sc-ico">✨</div><div class="sc-name">Custom</div><div class="sc-desc">Describe your own style...</div></div>
+    </div>
+  </div>
+  <div class="sec"><div class="sec-t">Transforms</div>
+    <div class="pill-group"><div class="pill active">✂️ Cuts</div><div class="pill active" style="border-color:var(--pk);color:var(--pk)">🎨 Color</div><div class="pill active" style="border-color:var(--or);color:var(--or)">🏃 Motion</div><div class="pill active" style="border-color:var(--gr);color:var(--gr)">🔊 Sound</div><div class="pill active" style="border-color:var(--vl);color:var(--vl)">💬 Captions</div></div>
+  </div>
+  <button class="btn-gen btn-full" style="margin-top:10px">🎯 Apply Style <span class="cost">8 cr</span></button>
+</div></div>
+
+<!-- 💥 B-ROLL -->
+<div class="pn" id="p-broll"><div class="pn-scroll">
+  <div class="sec"><div class="sec-t">💥 AI B-Roll Generator <span class="sec-badge teal">KIE.ai</span></div>
+    <div class="prompt"><textarea placeholder="Describe B-roll or let AI analyze speech...">Modern houses, AI screens, happy clients, data charts, drone shots of neighborhoods.</textarea><div class="prompt-footer"><button class="btn-gen">💥 Generate <span class="cost">6 cr</span></button><button class="btn">🧠 Auto from Speech</button></div></div>
+  </div>
+  <div class="field"><div class="field-label">Model</div><div class="field-row"><select class="sel"><option>Kling 3.0</option><option>Sora</option><option>VEO 3</option><option>Wan 2.1</option></select><select class="sel"><option>5s</option><option>10s</option></select><select class="sel"><option>16:9</option><option>9:16</option><option>1:1</option></select></div></div>
+  <div class="sec"><div class="sec-t">Speech → B-Roll</div>
+    <div class="mk"><span class="mk-tc">0:05–0:12</span><span class="mk-tx">"spent 6 hours" → Office, clock, paperwork</span><span class="mk-badge high">Gen</span></div>
+    <div class="mk"><span class="mk-tc">0:12–0:18</span><span class="mk-tx">"AI staging" → Empty → Staged room</span><span class="mk-badge high">Gen</span></div>
+    <div class="mk"><span class="mk-tc">0:24–0:28</span><span class="mk-tx">"3x deals" → Charts, sold signs</span><span class="mk-badge high">Gen</span></div>
+  </div>
+</div></div>
+
+<!-- 🌍 TRANSLATE -->
+<div class="pn" id="p-translate"><div class="pn-scroll">
+  <div class="sec"><div class="sec-t">🌍 Translation & Dubbing</div>
+    <div class="field"><div class="field-label">Languages</div>
+      <div class="field-row"><select class="sel"><option>English</option><option>Arabic</option></select><span style="color:var(--txd);font-size:.8rem">→</span><select class="sel"><option>Arabic</option><option>Spanish</option><option>French</option><option>German</option><option>Japanese</option><option>Korean</option><option>Hindi</option><option>Turkish</option></select></div>
+    </div>
+  </div>
+  <div class="toggle-row"><label><input type="checkbox" checked> Translated subtitles (.srt)</label></div>
+  <div class="toggle-row"><label><input type="checkbox"> AI Voice Dubbing</label></div>
+  <div class="toggle-row"><label><input type="checkbox"> Lip sync (beta)</label></div>
+  <button class="btn-gen btn-full" style="margin-top:10px">🌍 Translate <span class="cost">5 cr</span></button>
+</div></div>
+
+<!-- 💬 CAPTIONS -->
+<div class="pn" id="p-captions"><div class="pn-scroll">
+  <div class="sec"><div class="sec-t">💬 Auto Captions</div>
+    <div class="field"><div class="field-label">Engine</div><div class="field-row"><select class="sel"><option>Whisper v3</option><option>Gemini Flash</option><option>Deepgram</option></select><select class="sel"><option>English</option><option>Arabic</option><option>Auto-detect</option></select></div></div>
+  </div>
+  <div class="field"><div class="field-label">Style</div>
+    <div class="cg"><div class="cd sel" onclick="selCd(this)"><div class="cd-t">Standard</div><div class="cd-d">Clean white, bottom</div></div><div class="cd" onclick="selCd(this)"><div class="cd-t">Hormozi</div><div class="cd-d">Bold animated, center</div></div><div class="cd" onclick="selCd(this)"><div class="cd-t">Minimal</div><div class="cd-d">Small, subtle</div></div><div class="cd" onclick="selCd(this)"><div class="cd-t">Karaoke</div><div class="cd-d">Word-by-word</div></div></div>
+  </div>
+  <div class="slider-g"><div class="slider-h"><span class="slider-l">Font Size</span><span class="slider-v">42px</span></div><input type="range" min="20" max="80" value="42"></div>
+  <div class="slider-g"><div class="slider-h"><span class="slider-l">Max Words/Line</span><span class="slider-v">5</span></div><input type="range" min="2" max="10" value="5"></div>
+  <button class="btn-gen btn-full" style="margin-top:8px">💬 Generate Captions <span class="cost">3 cr</span></button>
+</div></div>
+
+</div>
+
+<!-- SETTINGS MODAL -->
+<div class="modal-bg" id="setBg" onclick="if(event.target===this)togSet()">
+  <div class="modal">
+    <div class="mdl-h"><h3>Settings</h3><button class="mdl-x" onclick="togSet()">✕</button></div>
+    <div class="mdl-b">
+      <div class="fg"><label>Account</label><div class="help"><span class="dot dot-g"></span> Signed in as <strong style="color:var(--txh)">Saad</strong> · Pro Plan</div></div>
+      <div class="fg"><label>KIE.ai API Key</label><input type="password" value="kie-••••••••"><div class="help"><span class="dot dot-g"></span> Connected · All models</div></div>
+      <div class="fg"><label>ElevenLabs API Key</label><input type="password" value="xi-••••••••"><div class="help"><span class="dot dot-g"></span> Connected · 8,420 chars</div></div>
+      <div class="fg"><label>AI Chat Model</label><select class="sel" style="width:100%"><option>Claude Sonnet 4.6</option><option>GPT-4.1</option><option>Gemini 2.5 Flash</option></select></div>
+      <button class="btn-gen btn-full" onclick="togSet()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const wvb=document.getElementById('wvb');
+if(wvb)for(let i=0;i<45;i++){const b=document.createElement('div');b.className='wb';b.style.height=(Math.random()*.7+.15)*100+'%';b.style.opacity=.15+Math.random()*.45;wvb.appendChild(b)}
+
+document.getElementById('nav').addEventListener('click',e=>{const t=e.target.closest('.nt');if(!t)return;document.querySelectorAll('.nt').forEach(n=>n.classList.remove('active'));t.classList.add('active');document.querySelectorAll('.pn').forEach(p=>p.classList.remove('vis'));const p=document.getElementById('p-'+t.dataset.p);if(p){p.classList.add('vis');p.querySelectorAll('.sec,.mk').forEach((el,i)=>{el.style.animationDelay=i*0.05+'s'})}});
+
+function togSet(){document.getElementById('setBg').classList.toggle('vis')}
+document.getElementById('btnSettings').onclick=togSet;
+
+function inP(t){const i=document.getElementById('ci');if(i){i.value=t;i.focus()}}
+function ar(el){el.style.height='20px';el.style.height=el.scrollHeight+'px'}
+function selPill(el){el.parentElement.querySelectorAll('.pill').forEach(p=>p.classList.remove('active'));el.classList.add('active')}
+function selCard(el){el.parentElement.querySelectorAll('.model-card').forEach(c=>c.classList.remove('active'));el.classList.add('active')}
+function selCd(el){el.parentElement.querySelectorAll('.cd').forEach(c=>c.classList.remove('sel'));el.classList.add('sel')}
+function selVc(el){el.parentElement.querySelectorAll('.vc').forEach(c=>c.classList.remove('sel'));el.classList.add('sel')}
+function selSc(el){el.parentElement.querySelectorAll('.style-card').forEach(c=>c.classList.remove('sel'));el.classList.add('sel')}
+
+function snd(){
+  const i=document.getElementById('ci'),t=i.value.trim();if(!t)return;
+  const m=document.getElementById('msgs');
+  const u=document.createElement('div');u.className='msg';
+  u.innerHTML=`<div class="av u">Y</div><div class="mbd"><div class="mhd"><span class="mn">You</span><span class="mt-time">now</span></div><div class="mc">${t}</div></div>`;
+  m.appendChild(u);
+  setTimeout(()=>{
+    const a=document.createElement('div');a.className='msg';
+    a.innerHTML=`<div class="av ai">SA</div><div class="mbd"><div class="mhd"><span class="mn">Saad Studio AI</span><span class="mt-time">now</span></div><div class="mc">Processing your request via Saad Studio AI. In production, this connects to your account and interacts with Premiere Pro timeline via UXP APIs + KIE.ai.</div><div class="ma"><div class="ac-chip">✅ Apply</div><div class="ac-chip">📋 Copy</div></div></div>`;
+    m.appendChild(a);m.scrollTop=m.scrollHeight;
+  },500);
+  i.value='';i.style.height='20px';m.scrollTop=m.scrollHeight;
+}
+document.getElementById('ci')?.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();snd()}});
+
+document.querySelectorAll('input[type=range]').forEach(s=>{s.addEventListener('input',()=>{const v=s.parentElement.querySelector('.slider-v');if(v){if(s.max==='200')v.textContent=(s.value/100).toFixed(1)+'x';else if(s.max==='20')v.textContent=parseFloat(s.value).toFixed(1);else if(s.max==='80')v.textContent=s.value+'px';else if(s.max==='10')v.textContent=s.value;else v.textContent=(s.value/100).toFixed(2)}})});
+</script>
+</body>
+</html>

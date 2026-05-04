@@ -1,0 +1,36 @@
+{
+  "manifestVersion": 5,
+  "id": "com.saadstudio.panel",
+  "name": "Saad Studio",
+  "version": "2.0.0",
+  "author": "Saad Studio",
+  "description": "Saad Studio AI Panel for Premiere Pro",
+  "main": "index.html",
+  "host": {
+    "app": "premierepro",
+    "minVersion": "24.0.0"
+  },
+  "entrypoints": [
+    {
+      "type": "panel",
+      "id": "saadstudio.panel",
+      "label": {
+        "default": "Saad Studio"
+      },
+      "minimumSize": {
+        "width": 360,
+        "height": 520
+      },
+      "maximumSize": {
+        "width": 1400,
+        "height": 1400
+      }
+    }
+  ],
+  "requiredPermissions": {
+    "network": {
+      "domains": "all"
+    },
+    "localFileSystem": "request"
+  }
+}
