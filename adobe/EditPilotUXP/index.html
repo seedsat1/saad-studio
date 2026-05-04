@@ -138,58 +138,118 @@
       <button class="btn-danger" id="btnDisconnect">Disconnect</button>
     </div>
 
-    <!-- AI Editing Tools -->
-    <div class="sec-hd">AI Editing Tools</div>
-
-    <div class="feature-grid">
-
-      <div class="feature-card" data-feature="story_cut" style="animation-delay:.05s">
-        <div class="fc-icon">&#9986;&#65039;</div>
-        <div class="fc-name">Story Cutter Engine</div>
-        <div class="fc-desc">AI-powered auto-cut from transcript. Removes silences &amp; filler words.</div>
-        <span class="fc-badge soon">Coming Soon</span>
-      </div>
-
-      <div class="feature-card" data-feature="broll" style="animation-delay:.10s">
-        <div class="fc-icon">&#127916;</div>
-        <div class="fc-name">B-Roll Generator</div>
-        <div class="fc-desc">Generate matching B-roll clips from your script using AI.</div>
-        <span class="fc-badge soon">Coming Soon</span>
-      </div>
-
-      <div class="feature-card" data-feature="timeline_ai" style="animation-delay:.15s">
-        <div class="fc-icon">&#129504;</div>
-        <div class="fc-name">Timeline Assistant</div>
-        <div class="fc-desc">Smart cut suggestions, pacing analysis, and scene detection.</div>
-        <span class="fc-badge soon">Coming Soon</span>
-      </div>
-
-      <div class="feature-card" data-feature="canvas" style="animation-delay:.20s">
-        <div class="fc-icon">&#128444;&#65039;</div>
-        <div class="fc-name">Canvas Editor</div>
-        <div class="fc-desc">AI-assisted frame compositing and visual layout tools.</div>
-        <span class="fc-badge soon">Coming Soon</span>
-      </div>
-
-      <div class="feature-card" data-feature="voiceover" style="animation-delay:.25s">
-        <div class="fc-icon">&#127897;&#65039;</div>
-        <div class="fc-name">Voice-Over AI</div>
-        <div class="fc-desc">Generate professional voice-overs from text, synced to timeline.</div>
-        <span class="fc-badge soon">Coming Soon</span>
-      </div>
-
-      <div class="feature-card" data-feature="captions" style="animation-delay:.30s">
-        <div class="fc-icon">&#128172;</div>
-        <div class="fc-name">Auto Captions</div>
-        <div class="fc-desc">Transcribe audio and burn styled captions to your sequence.</div>
-        <span class="fc-badge soon">Coming Soon</span>
-      </div>
-
+    <!-- Tab navigation -->
+    <div class="ep-tabs" id="epTabs">
+      <button class="ep-tab active" data-tab="home">Home</button>
+      <button class="ep-tab" data-tab="story">Story Engine</button>
     </div>
+
+    <!-- ── TAB: HOME ─────────────────────────────────── -->
+    <div class="ep-view vis" id="viewHome">
+
+      <div class="sec-hd">AI Editing Tools</div>
+
+      <div class="feature-grid">
+
+        <div class="feature-card feature-card--active" data-open-tab="story" style="animation-delay:.05s">
+          <div class="fc-icon">&#9986;&#65039;</div>
+          <div class="fc-name">Story Engine</div>
+          <div class="fc-desc">Paste a transcript — AI structures it into edit-ready sections.</div>
+          <span class="fc-badge live">Live &#9679;</span>
+        </div>
+
+        <div class="feature-card" data-feature="broll" style="animation-delay:.10s">
+          <div class="fc-icon">&#127916;</div>
+          <div class="fc-name">B-Roll Generator</div>
+          <div class="fc-desc">Generate matching B-roll clips from your script using AI.</div>
+          <span class="fc-badge soon">Soon</span>
+        </div>
+
+        <div class="feature-card" data-feature="timeline_ai" style="animation-delay:.15s">
+          <div class="fc-icon">&#129504;</div>
+          <div class="fc-name">Timeline Assistant</div>
+          <div class="fc-desc">Smart cut suggestions, pacing analysis, and scene detection.</div>
+          <span class="fc-badge soon">Soon</span>
+        </div>
+
+        <div class="feature-card" data-feature="voiceover" style="animation-delay:.20s">
+          <div class="fc-icon">&#127897;&#65039;</div>
+          <div class="fc-name">Voice-Over AI</div>
+          <div class="fc-desc">Generate professional voice-overs from text, synced to timeline.</div>
+          <span class="fc-badge soon">Soon</span>
+        </div>
+
+        <div class="feature-card" data-feature="captions" style="animation-delay:.25s">
+          <div class="fc-icon">&#128172;</div>
+          <div class="fc-name">Auto Captions</div>
+          <div class="fc-desc">Transcribe audio and burn styled captions to your sequence.</div>
+          <span class="fc-badge soon">Soon</span>
+        </div>
+
+        <div class="feature-card" data-feature="canvas" style="animation-delay:.30s">
+          <div class="fc-icon">&#128444;&#65039;</div>
+          <div class="fc-name">Canvas Editor</div>
+          <div class="fc-desc">AI-assisted frame compositing and visual layout tools.</div>
+          <span class="fc-badge soon">Soon</span>
+        </div>
+
+      </div>
+
+    </div><!-- /viewHome -->
+
+    <!-- ── TAB: STORY ENGINE ─────────────────────────── -->
+    <div class="ep-view" id="viewStory">
+
+      <div class="sec-hd">Story Engine</div>
+
+      <div class="story-intro">
+        Paste your video transcript below. AI will analyze the structure and
+        suggest sections for a cleaner edit.
+        <span class="story-cost">5 credits per analysis</span>
+      </div>
+
+      <div class="story-input-wrap">
+        <textarea
+          id="storyTranscript"
+          class="story-textarea"
+          placeholder="Paste transcript here&#10;&#10;Optional: include timestamps like [00:00:05] Speaker: text..."
+          spellcheck="false"
+        ></textarea>
+        <div class="story-char-count"><span id="storyCharCount">0</span> / 20,000</div>
+      </div>
+
+      <button class="btn-analyze" id="btnAnalyze">
+        <span id="btnAnalyzeText">&#10024; Analyze Transcript</span>
+        <span class="spinner" id="analyzeSpinner" style="display:none"></span>
+      </button>
+
+      <div class="story-err" id="storyError"></div>
+
+      <!-- Results -->
+      <div class="story-results-wrap" id="storyResultsWrap" style="display:none">
+
+        <div class="story-results-hd">
+          <span>Edit Structure</span>
+          <span class="story-credits-used" id="storyCreditsBadge"></span>
+          <button class="story-clear-btn" id="btnStoryClear">&#10005; Clear</button>
+        </div>
+
+        <div class="story-cards" id="storyCards"></div>
+
+        <!-- Selected section detail -->
+        <div class="story-detail" id="storyDetail" style="display:none">
+          <div class="sd-title" id="sdTitle"></div>
+          <div class="sd-time" id="sdTime"></div>
+          <div class="sd-reason" id="sdReason"></div>
+        </div>
+
+      </div>
+
+    </div><!-- /viewStory -->
 
     <!-- Footer -->
     <div style="text-align:center;padding:12px 0 4px;font-size:.55rem;color:var(--txd)">
-      EditPilot AI v1.1 &middot;
+      EditPilot AI v1.2 &middot;
       <a href="https://saadstudio.app" style="color:var(--ac);text-decoration:none">saadstudio.app</a>
     </div>
 

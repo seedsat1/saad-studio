@@ -21,6 +21,7 @@ import {
   updateHeader, updateCreditsDisplay,
   updateUserStrip, setSubWarning,
 } from './modules/ui.js';
+import { analyzeTranscript, renderStorySections } from './modules/storyEngine.js';
 
 // ─────────────────────────────────────────────────────────────
 // INIT
@@ -146,7 +147,121 @@ document.getElementById('hdrAvatar')?.addEventListener('click', () => {
 });
 
 // ─────────────────────────────────────────────────────────────
-// LOCKED FEATURE CARDS
+// TAB NAVIGATION
+// ─────────────────────────────────────────────────────────────
+
+function switchTab(tabId) {
+  document.querySelectorAll('.ep-tab').forEach(t => {
+    t.classList.toggle('active', t.getAttribute('data-tab') === tabId);
+  });
+  document.querySelectorAll('.ep-view').forEach(v => {
+    v.classList.toggle('vis', v.id === `view${tabId.charAt(0).toUpperCase() + tabId.slice(1)}`);
+  });
+}
+
+document.querySelectorAll('.ep-tab').forEach(tab => {
+  tab.addEventListener('click', () => switchTab(tab.getAttribute('data-tab')));
+});
+
+// Home feature cards that open a specific tab
+document.querySelectorAll('[data-open-tab]').forEach(card => {
+  card.addEventListener('click', () => switchTab(card.getAttribute('data-open-tab')));
+});
+
+// ─────────────────────────────────────────────────────────────
+// STORY ENGINE
+// ─────────────────────────────────────────────────────────────
+
+const storyTextarea    = document.getElementById('storyTranscript');
+const storyCharCount   = document.getElementById('storyCharCount');
+const btnAnalyze       = document.getElementById('btnAnalyze');
+const btnAnalyzeText   = document.getElementById('btnAnalyzeText');
+const analyzeSpinner   = document.getElementById('analyzeSpinner');
+const storyError       = document.getElementById('storyError');
+const storyResultsWrap = document.getElementById('storyResultsWrap');
+const storyCards       = document.getElementById('storyCards');
+const storyCreditsBadge = document.getElementById('storyCreditsBadge');
+const storyDetail      = document.getElementById('storyDetail');
+const sdTitle          = document.getElementById('sdTitle');
+const sdTime           = document.getElementById('sdTime');
+const sdReason         = document.getElementById('sdReason');
+
+// Character counter
+storyTextarea?.addEventListener('input', () => {
+  const len = storyTextarea.value.length;
+  if (storyCharCount) storyCharCount.textContent = len.toLocaleString('en-US');
+  if (storyCharCount) storyCharCount.style.color = len > 18000 ? 'var(--or)' : '';
+});
+
+// Analyze button
+btnAnalyze?.addEventListener('click', async () => {
+  const transcript = storyTextarea?.value?.trim() ?? '';
+  if (!transcript) {
+    if (storyError) storyError.textContent = 'Please paste a transcript first.';
+    return;
+  }
+
+  const token = getToken();
+  if (!token) {
+    if (storyError) storyError.textContent = 'Not connected. Please reconnect.';
+    return;
+  }
+
+  // Loading state
+  if (storyError) storyError.textContent = '';
+  if (storyResultsWrap) storyResultsWrap.style.display = 'none';
+  if (storyDetail) storyDetail.style.display = 'none';
+  setAnalyzeLoading(true);
+
+  try {
+    const result = await analyzeTranscript(token, transcript);
+
+    renderStorySections(result.sections, storyCards, (section) => {
+      // Show detail panel
+      if (sdTitle)  sdTitle.textContent  = section.title;
+      if (sdReason) sdReason.textContent = section.reason;
+      const hasTime = section.start !== '00:00:00' || section.end !== '00:00:00';
+      if (sdTime)   sdTime.textContent   = hasTime ? `${section.start} → ${section.end}` : 'No timestamps in transcript';
+      if (storyDetail) storyDetail.style.display = 'block';
+    });
+
+    if (storyCreditsBadge) {
+      storyCreditsBadge.textContent = `-${result.creditsUsed ?? 5} cr`;
+    }
+    if (storyResultsWrap) storyResultsWrap.style.display = 'block';
+
+    // Refresh credits display (server already deducted)
+    try {
+      const balance = await refreshCreditsFromServer();
+      updateCreditsDisplay(balance);
+    } catch (_) { /* silent */ }
+
+  } catch (err) {
+    let msg = err?.message || 'Analysis failed. Please try again.';
+    if (err?.isCreditsError) {
+      msg = `Not enough credits. Need ${err.requiredCredits ?? 5}, have ${err.currentBalance ?? 0}.`;
+    }
+    if (storyError) storyError.textContent = msg;
+  } finally {
+    setAnalyzeLoading(false);
+  }
+});
+
+// Clear results
+document.getElementById('btnStoryClear')?.addEventListener('click', () => {
+  if (storyResultsWrap) storyResultsWrap.style.display = 'none';
+  if (storyDetail)      storyDetail.style.display = 'none';
+  if (storyCards)       storyCards.innerHTML = '';
+  if (storyError)       storyError.textContent = '';
+});
+
+function setAnalyzeLoading(loading) {
+  if (!btnAnalyze) return;
+  btnAnalyze.disabled = loading;
+  if (btnAnalyzeText) btnAnalyzeText.style.display = loading ? 'none' : 'inline';
+  if (analyzeSpinner) analyzeSpinner.style.display  = loading ? 'inline-block' : 'none';
+}
+
 // ─────────────────────────────────────────────────────────────
 
 document.querySelectorAll('[data-feature]').forEach(card => {
