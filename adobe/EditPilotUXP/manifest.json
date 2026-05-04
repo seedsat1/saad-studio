@@ -1,10 +1,10 @@
 {
   "manifestVersion": 5,
-  "id": "com.saadstudio.panel",
-  "name": "Saad Studio",
-  "version": "2.0.0",
+  "id": "com.saadstudio.editpilot",
+  "name": "EditPilot AI",
+  "version": "1.0.0",
   "author": "Saad Studio",
-  "description": "Saad Studio AI Panel for Premiere Pro",
+  "description": "AI-powered video editing assistant for Premiere Pro — by Saad Studio",
   "main": "index.html",
   "host": {
     "app": "premierepro",
@@ -13,24 +13,36 @@
   "entrypoints": [
     {
       "type": "panel",
-      "id": "saadstudio.panel",
+      "id": "editpilot.panel",
       "label": {
-        "default": "Saad Studio"
+        "default": "EditPilot AI"
       },
       "minimumSize": {
-        "width": 360,
-        "height": 520
+        "width": 380,
+        "height": 560
       },
       "maximumSize": {
-        "width": 1400,
-        "height": 1400
+        "width": 800,
+        "height": 1200
+      },
+      "preferredDockedSize": {
+        "width": 400,
+        "height": 700
       }
     }
   ],
   "requiredPermissions": {
     "network": {
-      "domains": "all"
+      "domains": [
+        "https://saadstudio.app",
+        "https://fonts.googleapis.com",
+        "https://fonts.gstatic.com"
+      ]
     },
-    "localFileSystem": "request"
+    "localFileSystem": "request",
+    "clipboard": "readAndWrite",
+    "ipc": {
+      "enablePluginCommunication": false
+    }
   }
 }
