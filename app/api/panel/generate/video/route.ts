@@ -125,11 +125,12 @@ export async function POST(req: NextRequest) {
     const { videoModelMap } = getResolvedKieRoutingMaps();
     const kieModelId = videoModelMap[modelId] ?? modelId; // fallback: use as-is if already a KIE ID
 
-    const creditsToCharge = await getVideoCreditsByModelId(kieModelId, duration, resolution).catch(
-      () => 12, // fallback: 12 credits
-    );
-    if (creditsToCharge <= 0) {
-      return NextResponse.json({ error: `No credit config for model: ${modelId}` }, { status: 400 });
+    let creditsToCharge: number;
+    try {
+      creditsToCharge = getVideoCreditsByModelId(kieModelId, { duration, resolution });
+      if (!creditsToCharge || creditsToCharge <= 0) creditsToCharge = 12;
+    } catch {
+      creditsToCharge = 12; // fallback: 12 credits
     }
 
     const spent = await spendCredits({
