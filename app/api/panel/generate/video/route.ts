@@ -122,8 +122,8 @@ export async function POST(req: NextRequest) {
     }
 
     // Validate the model is a known KIE video model
-    const { videoModelMap } = getResolvedKieRoutingMaps();
-    const kieModelId = videoModelMap[modelId] ?? modelId; // fallback: use as-is if already a KIE ID
+    const { kieVideoModelMap } = getResolvedKieRoutingMaps();
+    const kieModelId = kieVideoModelMap[modelId] ?? modelId; // fallback: use as-is if already a KIE ID
 
     let creditsToCharge: number;
     try {
@@ -146,27 +146,44 @@ export async function POST(req: NextRequest) {
     const kieApiKey = process.env.KIE_API_KEY ?? process.env.KIEAI_API_KEY;
     if (!kieApiKey) throw new Error("KIE API key not configured on server.");
 
+    const isSeedance = kieModelId.includes("seedance") || kieModelId.includes("bytedance");
+    const isKling = kieModelId.includes("kling");
+
     const input: Record<string, unknown> = {
       prompt: sanitizePrompt(prompt, 5000),
-      duration: String(duration),
+      // Seedance: duration must be integer [4-15]; Kling/others: string "5"|"10"
+      duration: isSeedance
+        ? Math.max(4, Math.min(15, Number(duration) || 5))
+        : String(duration),
       aspect_ratio: aspectRatio,
     };
 
     // Add image reference if provided (image-to-video mode)
     if (imageUrl) {
-      if (kieModelId.includes("kling")) {
+      if (kieModelId === "kling-3.0/video" || kieModelId === "kling-3.0/motion-control") {
         input.image_urls = [imageUrl];
-      } else if (kieModelId.includes("seedance") || kieModelId.includes("bytedance")) {
-        input.input_urls = [imageUrl];
+      } else if (isKling) {
+        // Kling 2.x I2V uses image_url (single)
+        input.image_url = imageUrl;
+      } else if (isSeedance) {
+        // Seedance 2 uses first_frame_url for reference image
+        input.first_frame_url = imageUrl;
       } else {
         input.image_url = imageUrl;
       }
     }
 
     // Model-specific settings
-    if (kieModelId.includes("kling")) {
+    if (isKling) {
       const mode = resolution === "4K" ? "4K" : (resolution === "720p" ? "std" : "pro");
       input.mode = mode;
+    }
+
+    // Seedance: generate_audio defaults to TRUE (extra cost) — always disable unless explicitly set
+    if (isSeedance) {
+      input.generate_audio = false;
+      // resolution for Seedance: 480p/720p/1080p
+      if (resolution) input.resolution = resolution.toLowerCase();
     }
 
     const taskId = await createKieTask(kieApiKey, kieModelId, input);

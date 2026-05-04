@@ -112,6 +112,7 @@ export async function POST(req: NextRequest) {
       resolution?: string;
       numImages?: number;
       negativePrompt?: string;
+      imageUrl?: string;
     };
 
     const {
@@ -121,6 +122,7 @@ export async function POST(req: NextRequest) {
       resolution = "1K",
       numImages = 1,
       negativePrompt,
+      imageUrl,
     } = body;
 
     if (!prompt?.trim()) {
@@ -151,16 +153,23 @@ export async function POST(req: NextRequest) {
     const kieApiKey = process.env.KIE_API_KEY ?? process.env.KIEAI_API_KEY;
     if (!kieApiKey) throw new Error("KIE API key not configured on server.");
 
+    const isNanoBanana = ["nano-banana-pro", "nano-banana-2", "google/nano-banana"].includes(kieModelId);
+
     const input: Record<string, unknown> = {
       prompt: sanitizePrompt(prompt, 5000),
-      aspect_ratio: aspectRatio,
+      // Nano Banana uses image_size not aspect_ratio
+      ...(isNanoBanana ? { image_size: aspectRatio } : { aspect_ratio: aspectRatio }),
       resolution,
     };
     if (negativePrompt) input.negative_prompt = negativePrompt;
 
-    // Nano Banana family uses image_input field
-    if (["nano-banana-pro", "nano-banana-2", "google/nano-banana"].includes(kieModelId)) {
-      input.image_input = [];
+    // If a reference image URL is provided, add the correct field per model
+    if (imageUrl) {
+      if (isNanoBanana) {
+        input.image_input = [imageUrl];
+      } else {
+        input.image_url = imageUrl;
+      }
     }
 
     const fanout = Math.max(1, Math.min(4, numImages));
