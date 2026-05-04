@@ -6,7 +6,7 @@ import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { getClientIp, isAllowedOrigin, sanitizePrompt } from "@/lib/security";
 import { getResolvedKieRoutingMaps } from "@/lib/kie-model-routing";
 import { syncKieModelCatalog } from "@/lib/kie-model-sync";
-import { uploadBufferToStorage } from "@/lib/supabase-storage";
+import { isStorageConfigured, uploadBufferToStorage } from "@/lib/supabase-storage";
 
 export const maxDuration = 180;
 export const dynamic = "force-dynamic";
@@ -158,7 +158,7 @@ async function uploadBase64ToStorage(
     generationId: `${genId}-r${idx}`,
     fileName: `ref.${ext}`,
   });
-  if (!url) throw new Error("Failed to upload reference image to storage");
+  if (!url) throw new Error("Please check your storage configuration — reference image upload failed.");
   return url;
 }
 
@@ -279,6 +279,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Early check: reference images require Supabase storage to be configured
+    const rawRefUrls: string[] = [];
+    if (body.imageUrl) rawRefUrls.push(body.imageUrl);
+    if (body.imageUrls?.length) rawRefUrls.push(...body.imageUrls);
+
     const hasReferenceImages = Boolean(imageUrl || imageUrlsParam?.length);
     const effectiveModelId = resolveFlux2Variant(modelId, hasReferenceImages, quality);
     const { imageModelMap } = getResolvedKieRoutingMaps();
@@ -317,8 +322,11 @@ export async function POST(req: NextRequest) {
     }
 
     // Resolve all reference images: upload base64 → Supabase Storage, pass http URLs as-is.
+    // If Supabase is not configured, pass base64 data URLs directly to KIE (accepted by most models).
+    const storageAvailable = isStorageConfigured();
     const resolveRef = async (raw: string, idx: number): Promise<string> => {
       if (!raw.startsWith("data:")) return raw;
+      if (!storageAvailable) return raw; // pass base64 directly if no storage configured
       return await uploadBase64ToStorage(raw, userId, generationId!, idx);
     };
     const refUrls: string[] = [];

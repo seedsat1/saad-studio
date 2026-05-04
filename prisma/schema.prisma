@@ -55,6 +55,7 @@ model User {
 
   generations   Generation[]
   transactions  AdminTransaction[]
+  characters    UserCharacter[]
 }
 
 /// Records every AI generation for security monitoring and cost tracking.
@@ -470,6 +471,29 @@ model TimelineProject {
   stateJson Json     @default("{}")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([userId, updatedAt])
+}
+
+// ——————————————————————————————————————————————————————————
+// USER CHARACTERS — CHARACTER REFERENCE LIBRARY
+// ——————————————————————————————————————————————————————————
+
+/// Stores user-created character profiles with reference images.
+model UserCharacter {
+  id                    String   @id @default(cuid())
+  userId                String
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name                  String
+  description           String   @default("")
+  referenceUrls         Json     @default("[]")
+  coverUrl              String?
+  provider              String   @default("reference")
+  providerCharacterId   String?
+  status                String   @default("ready")
+  metadata              Json     @default("{}")
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 
   @@index([userId, updatedAt])
 }

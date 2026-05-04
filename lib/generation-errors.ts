@@ -13,6 +13,8 @@ const SAFE_VALIDATION_MESSAGES = new Set([
   "Please upload an image.",
   "Unsupported file type.",
   "File too large.",
+  "Please configure storage (Supabase) to use reference images.",
+  "Please check your storage configuration — reference image upload failed.",
 ]);
 
 export function isSafePublicGenerationMessage(message: unknown): message is string {

@@ -1459,6 +1459,7 @@ export default function ImageWorkspacePage() {
       if (activeTool === "upscale") await generateUpscale();
       if (activeTool === "face-swap") await generateFaceSwap();
     } catch (e) {
+      console.error("[image generation] actual error:", e);
       setError(getSafeErrorMessage(e));
     } finally {
       setPendingItems((prev) => prev.filter((item) => !placeholders.some((ph) => ph.id === item.id)));
