@@ -11,45 +11,74 @@
 </head>
 <body>
 
-<!-- LOGIN SCREEN -->
-<div class="login-screen vis" id="loginScreen">
+<!-- ======================================================
+     CONNECT SCREEN (Panel Token)
+     ====================================================== -->
+<div class="login-screen vis" id="connectScreen">
   <div class="login-card">
+
     <div class="login-logo-wrap">
       <div class="login-logo">EP</div>
     </div>
+
     <div class="login-title">Edit<span>Pilot</span> AI</div>
     <div class="login-sub">
-      Sign in to your Saad Studio account.<br>
-      Don't have an account? <a href="https://saadstudio.app/sign-up" id="signUpLink">Create one free &rarr;</a>
+      Connect your Saad Studio account.<br>
+      Get your token at
+      <a data-get-token-href href="https://saadstudio.app/panel" target="_blank">saadstudio.app/panel &#8599;</a>
     </div>
-    <form id="loginForm" autocomplete="on" novalidate>
+
+    <form id="connectForm" autocomplete="on" novalidate>
+
       <div class="lf">
-        <label for="loginEmail">Email</label>
-        <input id="loginEmail" type="email" autocomplete="email" placeholder="you@example.com" required>
+        <label for="inputSiteUrl">Site URL</label>
+        <input
+          id="inputSiteUrl"
+          type="url"
+          autocomplete="url"
+          placeholder="https://saadstudio.app"
+          value="https://saadstudio.app"
+        >
+        <div class="hint">Your Saad Studio deployment URL</div>
       </div>
+
       <div class="lf">
-        <label for="loginPassword">Password</label>
-        <input id="loginPassword" type="password" autocomplete="current-password" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" required>
+        <label for="inputToken">Panel Token</label>
+        <input
+          id="inputToken"
+          type="password"
+          autocomplete="off"
+          spellcheck="false"
+          placeholder="ssp_..."
+        >
         <div class="hint">
-          <a href="https://saadstudio.app/sign-in" style="color:var(--ac);text-decoration:none;font-size:.55rem">Forgot password? &rarr;</a>
+          Log in at your site &#8594; visit /panel &#8594; copy the token shown
         </div>
       </div>
-      <div class="login-err" id="loginError"></div>
-      <button class="btn-login" id="btnLogin" type="submit">Sign In</button>
+
+      <div class="login-err" id="connectError"></div>
+
+      <button class="btn-login" id="btnConnect" type="submit">Connect</button>
+
     </form>
+
     <div class="login-footer">
-      By signing in you agree to the <a href="https://saadstudio.app/terms">Terms of Service</a>
+      Don&#39;t have an account?
+      <a href="https://saadstudio.app/sign-up" target="_blank">Sign up free &#8599;</a>
     </div>
+
   </div>
 </div>
 
-<!-- HEADER -->
+<!-- ======================================================
+     HEADER
+     ====================================================== -->
 <header class="hdr">
   <div class="hdr-logo">EP</div>
   <span class="hdr-title">Edit<span>Pilot</span></span>
   <div class="hdr-r">
-    <div class="hdr-credits" id="hdrCredits" title="Your credits — click to top up">
-      <span class="cr-num" id="crNum">&mdash;</span>
+    <div class="hdr-credits" id="hdrCredits" title="Credits &#8212; click to top up">
+      <span class="cr-num" id="crNum">&#8212;</span>
       <span style="font-size:.5rem;color:var(--txd)">cr</span>
       <div class="cr-bar"><div class="cr-fill" id="crFill" style="width:0%"></div></div>
     </div>
@@ -58,14 +87,18 @@
   </div>
 </header>
 
-<!-- SUBSCRIPTION WARNING BANNER -->
+<!-- ======================================================
+     SUBSCRIPTION WARNING BANNER
+     ====================================================== -->
 <div class="sub-warn" id="subWarn">
   <span>&#9888;</span>
-  <span><strong>Subscription required</strong> &mdash; upgrade to use AI tools.</span>
-  <button class="sub-warn-btn" id="subWarnBtn">Manage Subscription &rarr;</button>
+  <span><strong>Subscription required</strong> &#8212; upgrade to unlock AI tools.</span>
+  <button class="sub-warn-btn" id="subWarnBtn">Upgrade &#8599;</button>
 </div>
 
-<!-- DASHBOARD -->
+<!-- ======================================================
+     DASHBOARD
+     ====================================================== -->
 <main class="dashboard" id="dashboard">
   <div class="dash-scroll">
 
@@ -73,8 +106,8 @@
     <div class="user-strip">
       <div class="user-strip-av" id="stripAvatar">EP</div>
       <div class="user-strip-info">
-        <div class="user-strip-name" id="stripName">Loading&hellip;</div>
-        <div class="user-strip-email" id="stripEmail">&mdash;</div>
+        <div class="user-strip-name" id="stripName">Loading&#8230;</div>
+        <div class="user-strip-email" id="stripEmail">&#8212;</div>
       </div>
       <div class="user-strip-r">
         <span style="padding:3px 9px;border-radius:20px;background:var(--acg);border:1px solid var(--acb);font-size:.55rem;font-weight:700;color:var(--vl);text-transform:uppercase" id="stripPlan">Free</span>
@@ -86,7 +119,7 @@
       <div class="credits-top">
         <div>
           <div class="credits-label">Credit Balance</div>
-          <div class="credits-val" id="dashCreditsVal">&mdash;<span>cr</span></div>
+          <div class="credits-val" id="dashCreditsVal">&#8212;<span>cr</span></div>
         </div>
         <div class="credits-plan" id="dashPlanBadge">Free</div>
       </div>
@@ -94,15 +127,15 @@
         <div class="credits-bar-bg">
           <div class="credits-bar-fill" id="dashCreditsBar" style="width:0%"></div>
         </div>
-        <div class="credits-bar-lbl">Server is source of truth &mdash; refreshed on demand</div>
+        <div class="credits-bar-lbl">Shared with saadstudio.app &#8212; same balance across all tools</div>
       </div>
     </div>
 
-    <!-- Actions row -->
+    <!-- Actions -->
     <div class="dash-actions" style="margin-bottom:20px">
       <button class="btn-primary" id="btnRefreshCredits">&#8635; Refresh Credits</button>
       <button class="btn" id="btnManageSub">&#11014; Upgrade Plan</button>
-      <button class="btn-danger" id="btnLogout">Sign Out</button>
+      <button class="btn-danger" id="btnDisconnect">Disconnect</button>
     </div>
 
     <!-- AI Editing Tools -->
@@ -156,7 +189,8 @@
 
     <!-- Footer -->
     <div style="text-align:center;padding:12px 0 4px;font-size:.55rem;color:var(--txd)">
-      EditPilot AI v1.0 &middot; <a href="https://saadstudio.app" style="color:var(--ac);text-decoration:none">saadstudio.app</a>
+      EditPilot AI v1.1 &middot;
+      <a href="https://saadstudio.app" style="color:var(--ac);text-decoration:none">saadstudio.app</a>
     </div>
 
   </div>

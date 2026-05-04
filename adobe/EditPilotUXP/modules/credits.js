@@ -1,63 +1,30 @@
 /**
  * credits.js — EditPilot AI (Saad Studio)
  *
- * Credit display helpers and server-side check/use wrappers.
+ * Credit display helpers and server-side balance refresh.
  *
- * CRITICAL:
- *  - Local balance is a DISPLAY CACHE only.
- *  - Never gate paid features based on local balance alone.
- *  - Always call checkCreditsOnServer() before starting a paid action.
- *  - The server is the single source of truth.
+ * Architecture:
+ *  - Credits live in Neon (PostgreSQL) → User.creditBalance
+ *  - Deduction happens inside spendCredits() in lib/credit-ledger.ts (server-side)
+ *  - The plugin only READS the balance — it never deducts locally
+ *  - After any generation completes, call refreshCreditsFromServer() to sync display
  */
 
-import { getCredits, checkCredits, useCredits } from './apiClient.js';
-import { updateCreditsCache, getToken }          from './storage.js';
+import { getCredits } from './apiClient.js';
+import { updateCreditsCache, getToken } from './storage.js';
 
 /**
- * Fetch fresh credit balance from the server and update the local cache.
+ * Fetch fresh credit balance from /api/panel/credits and update local cache.
  * @returns {Promise<number>} current balance
  */
 export async function refreshCreditsFromServer() {
   const token = getToken();
-  if (!token) throw new Error('Not authenticated.');
+  if (!token) throw new Error('Not connected.');
 
   const data = await getCredits(token);
-  const balance = Number(data?.balance ?? 0);
+  const balance = Number(data?.creditBalance ?? 0);
   updateCreditsCache(balance);
   return balance;
-}
-
-/**
- * Ask the server whether an action is allowed given the estimated cost.
- * Safe to call before showing a confirmation or starting generation.
- *
- * @param {string} action           - action identifier e.g. 'story_cut'
- * @param {number} estimatedCredits - estimated cost
- * @returns {Promise<{allowed:boolean, balance:number, estimatedCost:number}>}
- */
-export async function checkCreditsOnServer(action, estimatedCredits) {
-  const token = getToken();
-  if (!token) throw new Error('Not authenticated.');
-  return checkCredits(token, action, estimatedCredits);
-}
-
-/**
- * Record credit usage after a paid action completes on the server.
- * Returns the new remaining balance.
- *
- * @param {string} action
- * @param {number} credits
- * @param {object} [metadata]
- * @returns {Promise<number>} remaining credits
- */
-export async function recordCreditUsage(action, credits, metadata = {}) {
-  const token = getToken();
-  if (!token) throw new Error('Not authenticated.');
-
-  const data = await useCredits(token, action, credits, metadata);
-  const remaining = Number(data?.remainingCredits ?? 0);
-  updateCreditsCache(remaining);
-  return remaining;
 }
 
 /**
@@ -71,12 +38,13 @@ export function formatCredits(n) {
 }
 
 /**
- * Return a 0–100 percentage for the credit bar,
- * based on a reasonable max (default 2000).
+ * Return a 0–100 percentage for the credit bar.
+ * Uses a relative max based on known plan tiers:
+ *   Free ~25, Starter 250, Plus 600, Pro 1200, Max 3000
  * @param {number} balance
- * @param {number} [max=2000]
+ * @param {number} [max=1200]
  * @returns {number}
  */
-export function creditsPercent(balance, max = 2000) {
+export function creditsPercent(balance, max = 1200) {
   return Math.max(5, Math.min(100, (balance / max) * 100));
 }

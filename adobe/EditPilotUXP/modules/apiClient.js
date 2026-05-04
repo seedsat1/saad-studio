@@ -1,65 +1,33 @@
 /**
  * apiClient.js — EditPilot AI (Saad Studio)
  *
- * Reusable API layer for all plugin → server communication.
+ * Reusable API layer. All calls go to the existing Saad Studio backend.
  *
- * Base URL: https://saadstudio.app/api/plugin
+ * Auth flow:
+ *   User logs in on saadstudio.app (Clerk) → generates ssp_ panel token
+ *   at /panel page → pastes it into the plugin → plugin sends it as
+ *   Authorization: Bearer ssp_... on every request.
  *
- * SECURITY RULES:
- *  - No private keys or service role tokens stored here.
- *  - Token is treated as a session bearer only.
- *  - Credit deduction is ALWAYS server-side.
- *  - Plugin only calls check/use endpoints; server is source of truth.
+ * The backend verifies the HMAC token in lib/panel-auth.ts (no DB lookup
+ * for verification, userId is embedded in the token itself).
+ *
+ * Existing backend routes used:
+ *   GET  /api/panel/me       → user info + creditBalance + subscription
+ *   GET  /api/panel/credits  → creditBalance only (lightweight refresh)
+ *   POST /api/panel/chat     → AI chat via KIE
+ *   POST /api/panel/generate/image
+ *   POST /api/panel/generate/video
+ *
+ * SECURITY:
+ *   - No private keys stored in the plugin.
+ *   - Panel token is stateless HMAC — contains userId+nonce, NOT a password.
+ *   - Credit deduction happens server-side inside spendCredits() (credit-ledger.ts).
+ *   - Plugin never deducts credits locally.
  */
 
-const BASE_URL = 'https://saadstudio.app/api/plugin';
+import { getSiteUrl } from './storage.js';
 
-/**
- * Internal fetch wrapper.
- * @param {string} path  - e.g. '/auth/login'
- * @param {object} opts  - fetch options
- * @param {string} [token] - bearer token if available
- */
-async function request(path, opts = {}, token = null) {
-  const headers = {
-    'Content-Type': 'application/json',
-    ...(opts.headers || {}),
-  };
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-
-  let response;
-  try {
-    response = await fetch(BASE_URL + path, { ...opts, headers });
-  } catch (networkErr) {
-    throw new ApiError('Network error — check your connection.', 0);
-  }
-
-  let data = null;
-  try { data = await response.json(); } catch (_) { data = {}; }
-
-  if (response.status === 401) {
-    throw new ApiError(data?.error || 'Session expired. Please log in again.', 401);
-  }
-  if (response.status === 402) {
-    const err = new ApiError(data?.error || 'Insufficient credits.', 402);
-    err.isCreditsError    = true;
-    err.requiredCredits   = data?.requiredCredits;
-    err.currentBalance    = data?.currentBalance;
-    throw err;
-  }
-  if (response.status === 403) {
-    throw new ApiError(data?.error || 'Access denied — subscription required.', 403);
-  }
-  if (!response.ok) {
-    throw new ApiError(data?.error || `Server error (${response.status})`, response.status);
-  }
-
-  return data;
-}
-
-/** Custom error class for API errors. */
+/** Custom error class so callers can branch on status code. */
 export class ApiError extends Error {
   constructor(message, statusCode) {
     super(message);
@@ -70,82 +38,110 @@ export class ApiError extends Error {
 }
 
 // ─────────────────────────────────────────────────────────────
-// AUTH
+// INTERNAL FETCH WRAPPER
 // ─────────────────────────────────────────────────────────────
 
 /**
- * Login with email + password.
- * POST /auth/login
- * @param {string} email
- * @param {string} password
- * @returns {Promise<{success:boolean, token:string, user:object, subscription:object, credits:object}>}
+ * @param {string} path     - e.g. '/api/panel/me'
+ * @param {object} opts     - fetch options
+ * @param {string} [token]  - ssp_... bearer token
  */
-export async function login(email, password) {
-  return request('/auth/login', {
-    method: 'POST',
-    body: JSON.stringify({
-      email,
-      password,
-      plugin: 'editpilot',
-      app:    'premiere',
-    }),
-  });
+async function request(path, opts = {}, token = null) {
+  const headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const url = getSiteUrl() + path;
+
+  let response;
+  try {
+    response = await fetch(url, { ...opts, headers });
+  } catch (_) {
+    throw new ApiError('Network error — check your connection or site URL.', 0);
+  }
+
+  let data = null;
+  try { data = await response.json(); } catch (_) { data = {}; }
+
+  if (response.status === 401) {
+    throw new ApiError(data?.error || 'Invalid or expired panel token. Reconnect from saadstudio.app/panel.', 401);
+  }
+  if (response.status === 402) {
+    const err = new ApiError(data?.error || 'Insufficient credits.', 402);
+    err.isCreditsError  = true;
+    err.requiredCredits = data?.requiredCredits;
+    err.currentBalance  = data?.currentBalance;
+    throw err;
+  }
+  if (response.status === 403) {
+    throw new ApiError(data?.error || 'Access denied — account may be suspended.', 403);
+  }
+  if (!response.ok) {
+    throw new ApiError(data?.error || `Server error (${response.status})`, response.status);
+  }
+
+  return data;
+}
+
+// ─────────────────────────────────────────────────────────────
+// PUBLIC API FUNCTIONS
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Verify a panel token by calling /api/panel/me.
+ * Returns the full user+subscription object on success.
+ * Throws ApiError on invalid token or network failure.
+ *
+ * @param {string} token - ssp_... panel token from saadstudio.app/panel
+ */
+export async function verifyToken(token) {
+  return request('/api/panel/me', { method: 'GET' }, token);
 }
 
 /**
- * Clear local auth (client-side only — no server call needed).
- * Call clearSession() from storage.js to wipe storage too.
- */
-export function logoutLocal() {
-  // Intentionally no server call — token expiry is handled server-side.
-  // The caller should also invoke clearSession() from storage.js.
-}
-
-// ─────────────────────────────────────────────────────────────
-// CREDITS
-// ─────────────────────────────────────────────────────────────
-
-/**
- * Fetch the current credit balance from the server.
- * GET /credits/balance
+ * Fetch only the credit balance (lightweight).
  * @param {string} token
- * @returns {Promise<{balance:number}>}
+ * @returns {Promise<{creditBalance: number}>}
  */
 export async function getCredits(token) {
-  return request('/credits/balance', { method: 'GET' }, token);
+  return request('/api/panel/credits', { method: 'GET' }, token);
 }
 
 /**
- * Check if the user has enough credits for an action.
- * POST /credits/check
+ * Send a chat message through the existing KIE proxy.
+ * POST /api/panel/chat
  * @param {string} token
- * @param {string} action           - e.g. 'story_cut'
- * @param {number} estimatedCredits
- * @returns {Promise<{allowed:boolean, balance:number, estimatedCost:number}>}
+ * @param {Array}  messages - OpenAI-style message array
+ * @param {string} [reasoning_effort]
  */
-export async function checkCredits(token, action, estimatedCredits) {
-  return request('/credits/check', {
+export async function sendChat(token, messages, reasoning_effort = 'high') {
+  return request('/api/panel/chat', {
     method: 'POST',
-    body: JSON.stringify({ token, action, estimatedCredits }),
+    body: JSON.stringify({ messages, reasoning_effort }),
   }, token);
 }
 
 /**
- * Record credit usage for a completed action.
- * POST /credits/use
- *
- * NOTE: Never call this locally to "deduct" credits as a shortcut.
- * This endpoint is called AFTER the server has performed the action.
- *
+ * Generate an image via the existing panel route.
+ * POST /api/panel/generate/image
  * @param {string} token
- * @param {string} action
- * @param {number} credits
- * @param {object} [metadata]
- * @returns {Promise<{success:boolean, remainingCredits:number}>}
+ * @param {object} params - { prompt, modelId, aspectRatio, resolution, numImages }
  */
-export async function useCredits(token, action, credits, metadata = {}) {
-  return request('/credits/use', {
+export async function generateImage(token, params) {
+  return request('/api/panel/generate/image', {
     method: 'POST',
-    body: JSON.stringify({ token, action, credits, metadata }),
+    body: JSON.stringify(params),
+  }, token);
+}
+
+/**
+ * Generate a video via the existing panel route.
+ * POST /api/panel/generate/video
+ * @param {string} token
+ * @param {object} params - { prompt, modelId, duration, aspectRatio, resolution, imageUrl }
+ */
+export async function generateVideo(token, params) {
+  return request('/api/panel/generate/video', {
+    method: 'POST',
+    body: JSON.stringify(params),
   }, token);
 }

@@ -1,63 +1,75 @@
 /**
  * auth.js — EditPilot AI (Saad Studio)
  *
- * Handles login flow, session restore, and logout.
- * Coordinates between apiClient and storage.
+ * Handles the Panel Token connect flow, session restore, and disconnect.
+ *
+ * How to get a Panel Token:
+ *   1. Log in at saadstudio.app with Clerk (Google / email)
+ *   2. Visit saadstudio.app/panel
+ *   3. A token (ssp_...) is generated and shown — copy it
+ *   4. Paste it into this plugin's connect screen
+ *
+ * The token is a stateless HMAC-SHA256 blob — it embeds the userId
+ * and is verified server-side without a DB lookup.
+ * Verification happens by calling GET /api/panel/me.
  */
 
-import { login as apiLogin, logoutLocal as apiLogoutLocal } from './apiClient.js';
-import { saveSession, getSession, clearSession }            from './storage.js';
+import { verifyToken }                        from './apiClient.js';
+import { saveSession, getSession, clearSession,
+         saveSiteUrl, getSiteUrl }            from './storage.js';
 
 /**
- * Attempt login with email + password.
- * On success, saves session to storage and returns the session object.
+ * Connect the plugin using a Panel Token.
+ * Calls /api/panel/me to verify the token and fetch user data.
+ * On success, saves everything to local storage and returns the session.
  *
- * @param {string} email
- * @param {string} password
- * @returns {Promise<{token:string, email:string, name:string, plan:string, credits:number, subscriptionActive:boolean}>}
+ * @param {string} siteUrl    - e.g. 'https://saadstudio.app'
+ * @param {string} panelToken - ssp_... token from saadstudio.app/panel
+ * @returns {Promise<{token, email, name, plan, credits, subscriptionActive}>}
  */
-export async function attemptLogin(email, password) {
-  if (!email || !password) throw new Error('Email and password are required.');
+export async function connectWithToken(siteUrl, panelToken) {
+  const cleanUrl   = (siteUrl   || '').trim().replace(/\/+$/, '');
+  const cleanToken = (panelToken || '').trim();
 
-  const data = await apiLogin(email, password);
-
-  if (!data?.success || !data?.token) {
-    throw new Error(data?.error || 'Login failed. Check your credentials.');
+  if (!cleanUrl)   throw new Error('Please enter your Saad Studio site URL.');
+  if (!cleanToken) throw new Error('Please enter your Panel Token (ssp_...).');
+  if (!cleanToken.startsWith('ssp_')) {
+    throw new Error('Invalid token format. Make sure you copied the full ssp_... token.');
   }
 
+  // Save site URL before the request so apiClient.getSiteUrl() picks it up
+  saveSiteUrl(cleanUrl);
+
+  // Verify by calling the real backend
+  const data = await verifyToken(cleanToken);
+
   const session = {
-    token:   data.token,
-    email:   data.user?.email   || email,
-    name:    data.user?.name    || '',
-    plan:    data.subscription?.plan   || 'Free',
-    credits: data.credits?.balance     ?? 0,
+    token:              cleanToken,
+    email:              data.email              || '',
+    name:               data.name               || '',
+    plan:               data.subscription?.planId ?? 'Free',
+    credits:            data.creditBalance       ?? 0,
+    subscriptionActive: data.subscription?.active === true,
   };
 
   saveSession(session);
-
-  return {
-    ...session,
-    subscriptionActive: data.subscription?.active === true,
-  };
+  return session;
 }
 
 /**
  * Restore session from local storage.
- * Returns null if no stored token found.
- * Does NOT validate the token with the server — use refreshFromServer() for that.
+ * Returns null if no token is stored.
+ * Does NOT re-validate with the server — call verifyToken() explicitly if needed.
  *
- * @returns {{token:string, email:string, name:string, plan:string, credits:number}|null}
+ * @returns {{token, email, name, plan, credits, subscriptionActive}|null}
  */
 export function restoreSession() {
   return getSession();
 }
 
 /**
- * Fully log out:
- *  - clears local storage
- *  - marks client session as invalid
+ * Disconnect: wipe local session but keep the site URL for convenience.
  */
-export function logout() {
-  apiLogoutLocal();
+export function disconnect() {
   clearSession();
 }

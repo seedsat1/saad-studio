@@ -20,34 +20,34 @@ export function esc(s) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// AUTH SCREENS
+// CONNECT SCREEN (Panel Token)
 // ─────────────────────────────────────────────────────────────
 
-/** Show the full-screen login overlay */
-export function showLogin() {
-  el('loginScreen')?.classList.add('vis');
+/** Show the full-screen Panel Token connect overlay */
+export function showConnect() {
+  el('connectScreen')?.classList.add('vis');
   el('dashboard')?.classList.remove('vis');
-  el('loginError').textContent = '';
+  setConnectError('');
 }
 
-/** Hide login and reveal the main dashboard */
+/** Hide connect screen and reveal the main dashboard */
 export function showDashboard() {
-  el('loginScreen')?.classList.remove('vis');
+  el('connectScreen')?.classList.remove('vis');
   el('dashboard')?.classList.add('vis');
 }
 
-/** Display a login error message */
-export function setLoginError(msg) {
-  const e = el('loginError');
+/** Display a connect error message */
+export function setConnectError(msg) {
+  const e = el('connectError');
   if (e) e.textContent = msg || '';
 }
 
-/** Toggle the loading state on the login button */
-export function setLoginLoading(loading) {
-  const btn = el('btnLogin');
+/** Toggle the loading state on the connect button */
+export function setConnectLoading(loading) {
+  const btn = el('btnConnect');
   if (!btn) return;
   btn.disabled = loading;
-  btn.textContent = loading ? 'Signing in…' : 'Sign In';
+  btn.textContent = loading ? 'Connecting…' : 'Connect';
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -68,7 +68,7 @@ export function setSubWarning(show) {
  * @param {{name:string, email:string, plan:string, credits:number}} session
  */
 export function updateHeader(session) {
-  const initials = (session.name || session.email || 'US')
+  const initials = (session.name || session.email || 'SS')
     .split(' ')
     .map(p => p[0] || '')
     .join('')
@@ -85,7 +85,7 @@ export function updateHeader(session) {
 }
 
 /**
- * Update only the credit counter + bar.
+ * Update only the credit counter + bar in header and dashboard.
  * @param {number} balance
  */
 export function updateCreditsDisplay(balance) {
@@ -95,7 +95,7 @@ export function updateCreditsDisplay(balance) {
   const fill = el('crFill');
   if (fill) fill.style.width = creditsPercent(balance) + '%';
 
-  // Also update dashboard credits card
+  // Dashboard credits card
   const bigNum = el('dashCreditsVal');
   if (bigNum) bigNum.innerHTML = `${esc(formatCredits(balance))}<span>cr</span>`;
 
@@ -109,17 +109,17 @@ export function updateCreditsDisplay(balance) {
 
 /**
  * Fill in the dashboard user strip.
- * @param {{name:string, email:string, plan:string, subscriptionActive:boolean}} session
+ * @param {{name:string, email:string, plan:string}} session
  */
 export function updateUserStrip(session) {
-  const av = el('stripAvatar');
-  const initials = (session.name || session.email || 'US')
+  const initials = (session.name || session.email || 'SS')
     .split(' ')
     .map(p => p[0] || '')
     .join('')
     .slice(0, 2)
     .toUpperCase() || 'EP';
 
+  const av = el('stripAvatar');
   if (av) av.textContent = initials;
 
   const name = el('stripName');
@@ -130,6 +130,9 @@ export function updateUserStrip(session) {
 
   const planEl = el('stripPlan');
   if (planEl) planEl.textContent = session.plan || 'Free';
+
+  const dashPlan = el('dashPlanBadge');
+  if (dashPlan) dashPlan.textContent = session.plan || 'Free';
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -138,8 +141,8 @@ export function updateUserStrip(session) {
 
 /**
  * Show or update a status bar element.
- * @param {string} barId  - element id
- * @param {string} text   - '' to hide
+ * @param {string} barId   - element id
+ * @param {string} text    - '' to hide
  * @param {boolean} [loading]
  */
 export function setStatus(barId, text, loading = false) {
