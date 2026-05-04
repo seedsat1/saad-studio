@@ -590,7 +590,7 @@ function ResultGrid({ items, onInspect, onRemix, onUse, onDelete, onBulkDelete }
       <style>{`
         .result-masonry {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+          grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
           gap: 8px;
           width: 100%;
           max-width: 1200px;
@@ -628,14 +628,14 @@ function ResultGrid({ items, onInspect, onRemix, onUse, onDelete, onBulkDelete }
         
         @media (max-width: 1280px) {
           .result-masonry {
-            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
             grid-auto-rows: 120px;
           }
         }
         
         @media (max-width: 860px) {
           .result-masonry {
-            grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
             grid-auto-rows: 110px;
           }
         }
