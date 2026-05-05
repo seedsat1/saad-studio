@@ -622,6 +622,42 @@ input[type=range] {
 .dbg-safe-basic {
   display:block;
 }
+.dbg-txt-width {
+  width:100%;
+}
+.dbg-txt-min-height {
+  min-height:46px;
+}
+.dbg-txt-max-height {
+  max-height:90px;
+}
+.dbg-txt-background {
+  background:transparent;
+}
+.dbg-txt-border {
+  border:none;
+}
+.dbg-txt-outline {
+  outline:none;
+}
+.dbg-txt-color {
+  color:var(--txh);
+}
+.dbg-txt-font-size {
+  font-size:.68rem;
+}
+.dbg-txt-resize {
+  resize:none;
+}
+.dbg-txt-font-family {
+  font-family:inherit;
+}
+.dbg-txt-line-height {
+  line-height:1.5;
+}
+.dbg-txt-padding {
+  padding:0;
+}
 .cmp-txt {
   width:100%;min-height:46px;max-height:90px;
   background:transparent;border:none;outline:none;
