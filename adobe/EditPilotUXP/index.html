@@ -280,7 +280,7 @@ function selCard(el){el.parentElement.querySelectorAll('.model-card').forEach(fu
 function selCd(el){el.parentElement.querySelectorAll('.cd').forEach(function(c){c.classList.remove('sel')});el.classList.add('sel')}
 function selVc(el){el.parentElement.querySelectorAll('.vc').forEach(function(c){c.classList.remove('sel')});el.classList.add('sel')}
 
-var VIDEOGEN_DEBUG_STOP_AFTER = 17;
+var VIDEOGEN_DEBUG_STOP_AFTER = 20;
 
 function renderVideoGen(){
   var host = document.getElementById('videogenRenderHost');
@@ -501,6 +501,66 @@ function renderVideoGen(){
   console.log('[VideoGen] STEP 17 - after');
   if (VIDEOGEN_DEBUG_STOP_AFTER === 17) {
     console.log('[VideoGen] CHECKPOINT - stop after STEP 17');
+    return;
+  }
+
+  console.log('[VideoGen] STEP 18 - before');
+  assertUniqueId('vgPrompt');
+  var prompt = document.createElement('textarea');
+  prompt.className = 'cmp-txt';
+  prompt.id = 'vgPrompt';
+  prompt.placeholder = 'Describe your video...';
+  composer.appendChild(prompt);
+  console.log('[VideoGen] STEP 18 - after');
+  if (VIDEOGEN_DEBUG_STOP_AFTER === 18) {
+    console.log('[VideoGen] CHECKPOINT - stop after STEP 18');
+    return;
+  }
+
+  console.log('[VideoGen] STEP 19 - before');
+  assertUniqueId('vgBar');
+  var bar = document.createElement('div');
+  bar.className = 'cmp-bar';
+  bar.id = 'vgBar';
+  composer.appendChild(bar);
+  console.log('[VideoGen] STEP 19 - after');
+  if (VIDEOGEN_DEBUG_STOP_AFTER === 19) {
+    console.log('[VideoGen] CHECKPOINT - stop after STEP 19');
+    return;
+  }
+
+  console.log('[VideoGen] STEP 20 - before');
+  var barLeft = document.createElement('div');
+  barLeft.className = 'cmp-bar-l';
+  bar.appendChild(barLeft);
+  console.log('[VideoGen] STEP 20 - after');
+  if (VIDEOGEN_DEBUG_STOP_AFTER === 20) {
+    console.log('[VideoGen] CHECKPOINT - stop after STEP 20');
+    return;
+  }
+
+  console.log('[VideoGen] STEP 21 - before');
+  assertUniqueId('vgAttach');
+  var attach = document.createElement('button');
+  attach.className = 'cmp-icon-btn';
+  attach.id = 'vgAttach';
+  attach.type = 'button';
+  attach.title = 'Attach image for Image-to-Video';
+  attach.textContent = 'Attach';
+  barLeft.appendChild(attach);
+  console.log('[VideoGen] STEP 21 - after');
+  if (VIDEOGEN_DEBUG_STOP_AFTER === 21) {
+    console.log('[VideoGen] CHECKPOINT - stop after STEP 21');
+    return;
+  }
+
+  console.log('[VideoGen] STEP 22 - before');
+  var barRight = document.createElement('div');
+  barRight.className = 'cmp-bar-r';
+  bar.appendChild(barRight);
+  console.log('[VideoGen] STEP 22 - after');
+  if (VIDEOGEN_DEBUG_STOP_AFTER === 22) {
+    console.log('[VideoGen] CHECKPOINT - stop after STEP 22');
     return;
   }
 }
