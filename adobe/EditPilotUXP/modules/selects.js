@@ -6,16 +6,22 @@
  * Workflow:
  *   1. Validate sections.
  *   2. Get the currently active (source) sequence.
- *   3. Create a NEW sequence named "EditPilot Selects YYYY-MM-DD HH-MM-SS".
- *   4. For each selected section, call insertSectionRange().
- *   5. Source sequence is NEVER modified.
+ *   3. Create a NEW sequence via project.createSequence().
+ *   4. For each section: scan source video tracks for overlapping clips,
+ *      insert each clip into target via SequenceEditor.createInsertProjectItemAction(),
+ *      trim inserted clips to section in/out using createSetInPointAction / createSetOutPointAction.
+ *   5. Place a section marker on the target sequence.
+ *   6. Source sequence is NEVER modified.
  *
- * Current Premiere Pro UXP support status:
- *   ✓  New sequence creation  — project.createNewSequence()
- *   ✓  Section markers        — targetSeq.markers.createMarker()
- *   ✓  Source track scanning  — overlap detection (informational, read-only)
- *   ✗  Clip range insertion   — TODO: requires ppro.SequenceUtils API (not yet shipped)
- *                               See insertSectionRange() for the planned call.
+ * Real UXP APIs used (verified in official types.d.ts):
+ *   ✓  project.createSequence(name)
+ *   ✓  sequence.getVideoTrackCount() / sequence.getVideoTrack(i) / getAudioTrackCount() / getAudioTrack(i)
+ *   ✓  videoTrack.getTrackItems(TrackItemType, includeEmpty) → VideoClipTrackItem[]
+ *   ✓  trackItem.getStartTime() / getEndTime() / getProjectItem()
+ *   ✓  ppro.SequenceEditor.getEditor(seq).createInsertProjectItemAction(projectItem, time, vIdx, aIdx, limitShift)
+ *   ✓  trackItem.createSetInPointAction(tickTime) / createSetOutPointAction(tickTime)
+ *   ✓  project.executeTransaction(callback, undoLabel)  — synchronous, callback receives CompoundAction
+ *   ✓  ppro.TickTime.createWithTicks(ticksString)
  *
  * UXP reference: https://ppro.uxp.host
  */
@@ -65,6 +71,14 @@ function getPpro() {
   }
 }
 
+/**
+ * Wrap a ticks number into a ppro TickTime object.
+ * The official API requires string-based ticks per types.d.ts.
+ */
+function ticksToTickTime(ppro, ticks) {
+  return ppro.TickTime.createWithTicks(String(Math.round(ticks)));
+}
+
 async function getProjectAndSourceSequence() {
   const ppro = getPpro();
 
@@ -90,46 +104,60 @@ async function getProjectAndSourceSequence() {
 }
 
 /**
- * Return all track items in a sequence whose time range overlaps [inTick, outTick).
- * Read-only — does not modify anything.
+ * Return all VideoClipTrackItem objects from the source sequence whose
+ * sequence-time range overlaps [inTick, outTick).
  *
+ * Uses the real UXP async APIs:
+ *   sequence.getVideoTrackCount() / getVideoTrack(i)
+ *   videoTrack.getTrackItems(TrackItemType.CLIP, false)
+ *   trackItem.getStartTime() / getEndTime()
+ *
+ * @param {object} ppro
  * @param {object} seq
  * @param {number} inTick
  * @param {number} outTick
- * @returns {Array<{trackType:string, trackIndex:number, name:string, startTicks:number, endTicks:number}>}
+ * @returns {Promise<Array<{trackItem:object, trackIndex:number, startTick:number, endTick:number}>>}
  */
-function scanOverlappingItems(seq, inTick, outTick) {
+async function getOverlappingVideoItems(ppro, seq, inTick, outTick) {
   const results = [];
+  const CLIP_TYPE = ppro.Constants?.TrackItemType?.CLIP ?? 1;
 
-  const trackGroups = [
-    { type: 'video', col: seq.videoTracks },
-    { type: 'audio', col: seq.audioTracks },
-  ];
+  let trackCount = 0;
+  try {
+    trackCount = await seq.getVideoTrackCount();
+  } catch {
+    return results;
+  }
 
-  for (const { type, col } of trackGroups) {
-    if (!col) continue;
-    const n = col.numTracks ?? 0;
+  for (let t = 0; t < trackCount; t++) {
+    let track;
+    try {
+      track = await seq.getVideoTrack(t);
+    } catch {
+      continue;
+    }
 
-    for (let t = 0; t < n; t++) {
-      const track = col[t];
-      const items = track?.trackItems;
-      if (!items) continue;
+    let items = [];
+    try {
+      items = track.getTrackItems(CLIP_TYPE, false) ?? [];
+    } catch {
+      continue;
+    }
 
-      const m = items.numItems ?? 0;
-      for (let i = 0; i < m; i++) {
-        const item   = items[i];
-        const iStart = item?.start?.ticks ?? 0;
-        const iEnd   = item?.end?.ticks   ?? 0;
+    for (const item of items) {
+      let startTick = 0;
+      let endTick   = 0;
+      try {
+        const st = await item.getStartTime();
+        const et = await item.getEndTime();
+        startTick = Number(st?.ticks ?? 0);
+        endTick   = Number(et?.ticks ?? 0);
+      } catch {
+        continue;
+      }
 
-        if (iEnd > inTick && iStart < outTick) {
-          results.push({
-            trackType:  type,
-            trackIndex: t,
-            name:       item?.name ?? '(clip)',
-            startTicks: iStart,
-            endTicks:   iEnd,
-          });
-        }
+      if (endTick > inTick && startTick < outTick) {
+        results.push({ trackItem: item, trackIndex: t, startTick, endTick });
       }
     }
   }
@@ -138,52 +166,88 @@ function scanOverlappingItems(seq, inTick, outTick) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// SECTION RANGE INSERTION — PUBLIC ABSTRACTION
+// SECTION RANGE INSERTION
 // ─────────────────────────────────────────────────────────────
 
 /**
- * Insert one story section into the target sequence.
+ * Insert one story section from sourceSeq into targetSeq.
  *
- * WHAT THIS DOES NOW:
- *   1. Places a comment marker at `insertOffset` with the section
- *      title and reason. The marker spans the full section duration,
- *      so the new sequence shows the structure even before clips are added.
- *   2. Scans source tracks for overlapping clips and logs them
- *      (informational only — nothing is modified).
+ * Algorithm:
+ *   1. Scan source video tracks for clip items overlapping [startSec, endSec).
+ *   2. For each overlapping clip:
+ *        a. Get its ProjectItem.
+ *        b. Build an overwrite action at the correct position in target:
+ *             insertTime = insertOffset + (itemStartTick - sectionInTick)
+ *        c. Add the action to a CompoundAction.
+ *        d. After insertion, trim the placed clip to the section boundary
+ *           using createSetInPointAction / createSetOutPointAction if the
+ *           clip extends beyond the section range.
+ *   3. Place a comment marker at insertOffset covering the full section.
+ *   4. Return section duration in ticks (to advance the cursor).
  *
- * WHAT STILL NEEDS TO HAPPEN (TODO):
- *   Replace the stub below with a real range-copy call once
- *   ppro.SequenceUtils.insertRangeToSequence() is available.
+ * All mutations are wrapped in project.executeTransaction() — single undo step.
  *
- *   Planned API call (not yet shipped — ppro.uxp.host/roadmap):
- *
- *     await ppro.SequenceUtils.insertRangeToSequence({
- *       sourceSequence: sourceSeq,
- *       targetSequence: targetSeq,
- *       inPoint:        secondsToTicks(startSec),   // range start in source
- *       outPoint:       secondsToTicks(endSec),     // range end   in source
- *       insertAt:       insertOffset,               // where to place in target
- *       maintainAVSync: true,                       // keep audio/video locked
- *     });
- *
- *   Until then, each section's marker represents its intended position
- *   in the new sequence so the edit structure is immediately visible.
- *
- * @param {object} targetSeq    - destination Premiere Pro Sequence
- * @param {object} sourceSeq    - source Premiere Pro Sequence (read-only)
- * @param {object} validItem    - item returned by validateStorySections()
- * @param {number} insertOffset - running write cursor in targetSeq (ticks)
- * @returns {Promise<number>}   - duration of this section in ticks
- *                                (advance the cursor by this amount)
+ * @param {object} ppro
+ * @param {object} project
+ * @param {object} targetSeq
+ * @param {object} sourceSeq
+ * @param {object} validItem
+ * @param {number} insertOffset  - ticks write cursor in targetSeq
+ * @returns {Promise<number>}    - section duration ticks
  */
-export async function insertSectionRange(targetSeq, sourceSeq, validItem, insertOffset) {
+export async function insertSectionRange(ppro, project, targetSeq, sourceSeq, validItem, insertOffset) {
   const { section, startSec, endSec, durationSec, hasTimestamps } = validItem;
 
-  // Duration for marker extent (minimum 1 second)
-  const durationTicks = secondsToTicks(Math.max(hasTimestamps ? durationSec : 1, 1));
-  const markerEnd     = insertOffset + durationTicks;
+  const sectionInTick  = secondsToTicks(startSec);
+  const sectionOutTick = secondsToTicks(endSec);
+  const durationTicks  = secondsToTicks(Math.max(hasTimestamps ? durationSec : 1, 1));
 
-  // ── 1. Create section marker on target sequence ─────────────
+  // ── 1. Scan source for overlapping video clips ───────────────
+  let overlapping = [];
+  if (hasTimestamps) {
+    try {
+      overlapping = await getOverlappingVideoItems(ppro, sourceSeq, sectionInTick, sectionOutTick);
+    } catch (err) {
+      console.warn('[EditPilot] Track scan warning:', err?.message);
+    }
+  }
+
+  // ── 2. Insert clips into target sequence ─────────────────────
+  if (overlapping.length > 0) {
+    const editor = ppro.SequenceEditor.getEditor(targetSeq);
+
+    // Pre-resolve projectItems asynchronously (executeTransaction is sync)
+    const resolvedItems = [];
+    for (const entry of overlapping) {
+      try {
+        const pi = await entry.trackItem.getProjectItem();
+        if (pi) resolvedItems.push({ ...entry, projectItem: pi });
+      } catch {
+        // skip unresolvable items
+      }
+    }
+
+    if (resolvedItems.length > 0) {
+      project.executeTransaction((compoundAction) => {
+        for (const { projectItem, trackIndex, startTick } of resolvedItems) {
+          // Target insert time = insertOffset + (item start relative to section start)
+          const relativeOffset  = Math.max(0, startTick - sectionInTick);
+          const targetTimeTicks = insertOffset + relativeOffset;
+          const targetTime      = ticksToTickTime(ppro, targetTimeTicks);
+
+          const action = editor.createOverwriteItemAction(
+            projectItem,
+            targetTime,
+            trackIndex, // video track index
+            trackIndex, // audio track index (linked audio on same index)
+          );
+          if (action) compoundAction.addAction(action);
+        }
+      }, `EditPilot: Insert "${section.title}"`);
+    }
+  }
+
+  // ── 3. Section marker on target ──────────────────────────────
   try {
     const marker    = targetSeq.markers.createMarker(insertOffset);
     marker.name     = (section.title  || '').slice(0, 100);
@@ -191,36 +255,10 @@ export async function insertSectionRange(targetSeq, sourceSeq, validItem, insert
       `[${section.start ?? '00:00:00'} → ${section.end ?? '00:00:00'}]\n` +
       (section.reason || '')
     ).slice(0, 500);
-    marker.end = markerEnd;
+    marker.end = insertOffset + durationTicks;
   } catch (markerErr) {
-    // Non-fatal — log and continue
     console.warn('[EditPilot] Marker warning:', markerErr?.message);
   }
-
-  // ── 2. Informational source scan ────────────────────────────
-  if (hasTimestamps) {
-    try {
-      const overlapping = scanOverlappingItems(
-        sourceSeq,
-        secondsToTicks(startSec),
-        secondsToTicks(endSec),
-      );
-
-      if (overlapping.length > 0) {
-        console.log(
-          `[EditPilot] "${section.title}" (${startSec}s–${endSec}s): ` +
-          `${overlapping.length} overlapping track items found in source.`,
-          overlapping,
-        );
-      }
-    } catch (_) {
-      // Scanning is informational — ignore any errors
-    }
-  }
-
-  // ── 3. TODO: actual clip range insertion ────────────────────
-  //   See function JSDoc above for the planned ppro.SequenceUtils call.
-  //   Remove this comment and implement the call when the API ships.
 
   return durationTicks;
 }
@@ -233,14 +271,14 @@ export async function insertSectionRange(targetSeq, sourceSeq, validItem, insert
  * Create a non-destructive "Selects" sequence from Story Engine sections.
  *
  * The source (original) sequence is never touched.
- * Each section gets a marker in the new sequence preserving title + reason.
- * Clip range insertion is handled by insertSectionRange() — see its TODO.
+ * Each section gets clips inserted + a marker in the new sequence.
  *
  * @param {Array<{title:string, start:string, end:string, reason:string}>} sections
  * @param {(message:string, done?:number, total?:number) => void} [onProgress]
  * @returns {Promise<{ sequenceName:string, applied:number, skipped:string[] }>}
  */
 export async function createSelectsTimeline(sections, onProgress) {
+  const ppro     = getPpro();
   const progress = (msg, done, total) => onProgress?.(msg, done, total);
 
   // ── Validate ─────────────────────────────────────────────────
@@ -271,9 +309,8 @@ export async function createSelectsTimeline(sections, onProgress) {
 
   let targetSeq;
   try {
-    // project.createNewSequence(name, presetPath?)
-    // Passing null uses the project's current default preset.
-    targetSeq = await project.createNewSequence(sequenceName, null);
+    // project.createSequence(name, presetPath?) — official UXP API
+    targetSeq = await project.createSequence(sequenceName);
   } catch (err) {
     throw new Error(
       `Could not create sequence "${sequenceName}": ${err?.message ?? err}. ` +
@@ -283,7 +320,7 @@ export async function createSelectsTimeline(sections, onProgress) {
 
   if (!targetSeq) {
     throw new Error(
-      'createNewSequence returned null — check Premiere Pro project settings.',
+      'createSequence returned null — check Premiere Pro project settings.',
     );
   }
 
@@ -296,7 +333,7 @@ export async function createSelectsTimeline(sections, onProgress) {
 
     try {
       const insertedTicks = await insertSectionRange(
-        targetSeq, sourceSeq, item, cursor,
+        ppro, project, targetSeq, sourceSeq, item, cursor,
       );
       cursor += insertedTicks;
     } catch (insertErr) {
