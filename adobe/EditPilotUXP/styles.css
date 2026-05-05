@@ -1093,6 +1093,74 @@ body {
 .btn-selects:hover    { background: rgba(34,197,94,.14); border-color: rgba(34,197,94,.45); }
 .btn-selects:disabled { opacity: .5; cursor: default; }
 
+/* ═══════════════════════════════════════════════
+   ROUGH CUT BAR & OPTIONS
+═══════════════════════════════════════════════ */
+.story-roughcut-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.roughcut-opts {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 8px;
+  background: var(--s2);
+  border: 1px solid var(--b1);
+  border-radius: var(--rs);
+  flex-wrap: wrap;
+}
+
+.rco-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.rco-label {
+  font-size: .58rem;
+  color: var(--txd);
+  white-space: nowrap;
+}
+
+.rco-select {
+  font-size: .58rem;
+  color: var(--tx);
+  background: var(--s3);
+  border: 1px solid var(--b2);
+  border-radius: 3px;
+  padding: 1px 4px;
+  cursor: pointer;
+}
+
+.rco-item input[type='checkbox'] {
+  width: 11px;
+  height: 11px;
+  margin: 0;
+  cursor: pointer;
+  accent-color: #a855f7;
+}
+
+.btn-roughcut {
+  flex: 1;
+  background: rgba(168,85,247,.08);
+  border: 1px solid rgba(168,85,247,.25);
+  color: #c084fc;
+  border-radius: var(--r);
+  font-size: .65rem;
+  padding: 6px 10px;
+  cursor: pointer;
+  transition: background .2s, border-color .2s;
+  text-align: left;
+}
+.btn-roughcut:hover    { background: rgba(168,85,247,.16); border-color: rgba(168,85,247,.5); }
+.btn-roughcut:disabled { opacity: .5; cursor: default; }
+
 
 /* Apply One button in the detail panel */
 .btn-apply-one {

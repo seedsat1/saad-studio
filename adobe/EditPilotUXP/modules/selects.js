@@ -35,8 +35,11 @@ import { validateStorySections } from './timeline.js';
 /** Premiere Pro internal tick rate (fixed, frame-rate independent). */
 const TICKS_PER_SECOND = 254016000000;
 
-/** New sequence name prefix. */
+/** New sequence name prefix — Selects. */
 const SEQUENCE_PREFIX = 'EditPilot Selects';
+
+/** New sequence name prefix — Rough Cut. */
+const ROUGH_CUT_PREFIX = 'EditPilot Rough Cut';
 
 /** Minimum valid section duration in seconds. */
 const MIN_DURATION_SEC = 0.5;
@@ -55,16 +58,20 @@ function secondsToTicks(seconds) {
 /**
  * Build a safe sequence name without colons
  * (colons cause issues on Windows when Premiere maps names to filenames).
- * Result: "EditPilot Selects 2026-05-05 14-30-45"
  */
-function buildSequenceName() {
+function buildTimestamp() {
   const d   = new Date();
   const ymd = d.toLocaleDateString('en-CA'); // YYYY-MM-DD
   const hms = [d.getHours(), d.getMinutes(), d.getSeconds()]
     .map(n => String(n).padStart(2, '0'))
     .join('-');                               // HH-MM-SS
-  return `${SEQUENCE_PREFIX} ${ymd} ${hms}`;
+  return `${ymd} ${hms}`;
 }
+
+/** "EditPilot Selects 2026-05-05 14-30-45" */
+function buildSequenceName()  { return `${SEQUENCE_PREFIX}  ${buildTimestamp()}`; }
+/** "EditPilot Rough Cut 2026-05-05 14-30-45" */
+function buildRoughCutName()  { return `${ROUGH_CUT_PREFIX} ${buildTimestamp()}`; }
 
 // ─────────────────────────────────────────────────────────────
 // LOG HELPER
@@ -219,7 +226,8 @@ async function getOverlappingVideoItems(ppro, seq, inTick, outTick) {
  * @param {number} insertOffset  - running write cursor in targetSeq (ticks)
  * @returns {Promise<{ result: SectionResult, durationTicks: number }>}
  */
-export async function insertSectionRange(ppro, project, targetSeq, sourceSeq, validItem, insertOffset) {
+export async function insertSectionRange(ppro, project, targetSeq, sourceSeq, validItem, insertOffset, opts = {}) {
+  const { addMarkers = true, includeMarkerComments = true } = opts;
   const { section, startSec, endSec, durationSec, hasTimestamps } = validItem;
   const title = section.title || '(untitled)';
 
@@ -361,19 +369,23 @@ export async function insertSectionRange(ppro, project, targetSeq, sourceSeq, va
     logTimelineAction('warn', 'MARKER_ONLY', { title, reason: w });
   }
 
-  // ── 4. Section marker on target (always placed — safe fallback) ──
-  try {
-    const marker    = targetSeq.markers.createMarker(insertOffset);
-    marker.name     = title.slice(0, 100);
-    marker.comments = (
-      `[${section.start ?? '00:00:00'} → ${section.end ?? '00:00:00'}]\n` +
-      (section.reason || '')
-    ).slice(0, 500);
-    marker.end = insertOffset + durationTicks;
-  } catch (markerErr) {
-    const w = `Marker placement failed: ${markerErr?.message}`;
-    warnings.push(w);
-    logTimelineAction('warn', 'MARKER', { title, error: markerErr?.message });
+  // ── 4. Section marker on target ──────────────────────────────────
+  if (addMarkers) {
+    try {
+      const marker = targetSeq.markers.createMarker(insertOffset);
+      marker.name  = title.slice(0, 100);
+      if (includeMarkerComments) {
+        marker.comments = (
+          `[${section.start ?? '00:00:00'} → ${section.end ?? '00:00:00'}]\n` +
+          (section.reason || '')
+        ).slice(0, 500);
+      }
+      marker.end = insertOffset + durationTicks;
+    } catch (markerErr) {
+      const w = `Marker placement failed: ${markerErr?.message}`;
+      warnings.push(w);
+      logTimelineAction('warn', 'MARKER', { title, error: markerErr?.message });
+    }
   }
 
   // ── 5. Build per-section result ──────────────────────────────
@@ -531,6 +543,159 @@ export async function createSelectsTimeline(sections, onProgress) {
   });
 
   progress('Selects timeline created ✓', validItems.length, validItems.length);
+
+  return summary;
+}
+
+// ─────────────────────────────────────────────────────────────
+// ROUGH CUT EXPORT
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Create a non-destructive "Rough Cut" sequence from Story Engine sections.
+ *
+ * Unlike Selects (best-moments collection), Rough Cut produces a story-ordered
+ * draft edit with optional gaps and section markers.
+ *
+ * Options:
+ *   gapSec              {number}  Silence gap inserted between each section (0 / 1 / 2 s).
+ *   addMarkers          {boolean} Place a section marker at each section boundary.
+ *   includeMarkerComments {boolean} Write timecode + reason into the marker comment field.
+ *
+ * Returns same summary shape as createSelectsTimeline():
+ *   { sequenceName, totalSections, inserted, markerOnly, skipped,
+ *     totalOutputSec, sectionResults, skippedLabels }
+ *
+ * @param {Array<{title:string, start:string, end:string, reason:string}>} sections
+ * @param {{ gapSec?:number, addMarkers?:boolean, includeMarkerComments?:boolean }} [options]
+ * @param {(message:string, done?:number, total?:number) => void} [onProgress]
+ * @returns {Promise<object>}
+ */
+export async function createRoughCutTimeline(sections, options = {}, onProgress) {
+  const {
+    gapSec              = 0,
+    addMarkers          = true,
+    includeMarkerComments = true,
+  } = options;
+
+  const gapTicks = secondsToTicks(Math.max(0, Number.isFinite(gapSec) ? gapSec : 0));
+  const ppro     = getPpro();
+  const progress = (msg, done, total) => onProgress?.(msg, done, total);
+
+  // ── Validate ─────────────────────────────────────────────────
+  if (!Array.isArray(sections) || sections.length === 0) {
+    throw new Error('No sections provided.');
+  }
+
+  const validated    = validateStorySections(sections);
+  const validItems   = validated.filter(v => v.valid);
+  const skippedLabels = validated
+    .filter(v => !v.valid)
+    .map(v => `"${v.section?.title ?? 'Section'}": ${v.error}`);
+
+  if (validItems.length === 0) {
+    throw new Error(
+      'No valid sections to insert. ' +
+      'All sections have invalid or missing timestamps.',
+    );
+  }
+
+  logTimelineAction('info', 'RC_START', {
+    totalSections: sections.length,
+    validSections: validItems.length,
+    gapSec,
+    addMarkers,
+    includeMarkerComments,
+    preValidationSkipped: skippedLabels.length,
+  });
+
+  // ── Get source sequence ──────────────────────────────────────
+  progress('Getting active sequence…');
+  const { project, sequence: sourceSeq } = await getProjectAndSourceSequence();
+
+  // ── Create destination sequence ──────────────────────────────
+  const sequenceName = buildRoughCutName();
+  progress('Creating rough cut timeline…');
+
+  let targetSeq;
+  try {
+    targetSeq = await project.createSequence(sequenceName);
+  } catch (err) {
+    throw new Error(
+      `Could not create sequence "${sequenceName}": ${err?.message ?? err}. ` +
+      'Check that a project is open and has a valid default sequence preset.',
+    );
+  }
+
+  if (!targetSeq) {
+    throw new Error('createSequence returned null — check Premiere Pro project settings.');
+  }
+
+  logTimelineAction('info', 'RC_SEQ_CREATED', { sequenceName });
+
+  // ── Insert sections in story order ──────────────────────────
+  let cursor = 0; // running write cursor in targetSeq (ticks)
+  const sectionResults = [];
+  const sectionOpts    = { addMarkers, includeMarkerComments };
+
+  for (let i = 0; i < validItems.length; i++) {
+    const item = validItems[i];
+    progress(`Inserting ${i + 1}/${validItems.length}…`, i + 1, validItems.length);
+
+    try {
+      const { result, durationTicks } = await insertSectionRange(
+        ppro, project, targetSeq, sourceSeq, item, cursor, sectionOpts,
+      );
+      sectionResults.push(result);
+
+      if (result.status !== 'skipped') {
+        cursor += durationTicks;
+        // Add gap ticks between sections (but not after the last one)
+        if (gapTicks > 0 && i < validItems.length - 1) {
+          cursor += gapTicks;
+        }
+      }
+    } catch (insertErr) {
+      const title = item.section?.title ?? 'Section';
+      logTimelineAction('error', 'RC_SECTION_FAIL', { title, error: insertErr?.message });
+      sectionResults.push({
+        title,
+        start:         item.section?.start ?? null,
+        end:           item.section?.end   ?? null,
+        status:        'skipped',
+        warning:       insertErr?.message ?? 'Unexpected error',
+        durationSec:   null,
+        clipsInserted: 0,
+      });
+    }
+  }
+
+  const totalOutputSec  = cursor / TICKS_PER_SECOND;
+  const insertedCount   = sectionResults.filter(r => r.status === 'inserted').length;
+  const markerOnlyCount = sectionResults.filter(r => r.status === 'marker_only').length;
+  const skippedCount    = sectionResults.filter(r => r.status === 'skipped').length;
+
+  const summary = {
+    sequenceName,
+    totalSections: validItems.length,
+    inserted:      insertedCount,
+    markerOnly:    markerOnlyCount,
+    skipped:       skippedCount,
+    totalOutputSec,
+    sectionResults,
+    skippedLabels,
+  };
+
+  logTimelineAction('info', 'RC_COMPLETE', {
+    sequenceName,
+    inserted:      insertedCount,
+    markerOnly:    markerOnlyCount,
+    skipped:       skippedCount,
+    totalOutputSec: totalOutputSec.toFixed(2) + 's',
+    gapSec,
+  });
+
+  progress('Rough cut created ✓', validItems.length, validItems.length);
 
   return summary;
 }

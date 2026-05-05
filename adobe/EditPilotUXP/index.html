@@ -256,6 +256,40 @@
           <div class="sr-rows" id="srRows"></div>
         </div>
 
+        <!-- Create Rough Cut -->
+        <div class="story-roughcut-bar">
+          <div class="roughcut-opts" id="roughCutOpts">
+            <label class="rco-item">
+              <span class="rco-label">Gap</span>
+              <select class="rco-select" id="rcGap">
+                <option value="0">0s</option>
+                <option value="1">1s</option>
+                <option value="2">2s</option>
+              </select>
+            </label>
+            <label class="rco-item">
+              <input type="checkbox" id="rcAddMarkers" checked>
+              <span class="rco-label">Markers</span>
+            </label>
+            <label class="rco-item">
+              <input type="checkbox" id="rcMarkerComments" checked>
+              <span class="rco-label">Comments</span>
+            </label>
+          </div>
+          <button class="btn-roughcut" id="btnCreateRoughCut">&#127916; Create Rough Cut</button>
+          <span class="apply-feedback" id="roughCutFeedback"></span>
+        </div>
+
+        <!-- Rough Cut report (shown after creation) -->
+        <div class="selects-report" id="roughCutReport" style="display:none">
+          <div class="sr-header">
+            <span class="sr-title" id="rcTitle">Rough Cut Report</span>
+            <button class="sr-close" id="rcClose" title="Dismiss">&#10005;</button>
+          </div>
+          <div class="sr-summary" id="rcSummary"></div>
+          <div class="sr-rows" id="rcRows"></div>
+        </div>
+
         <div class="story-cards" id="storyCards"></div>
 
         <!-- Selected section detail -->

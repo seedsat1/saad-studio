@@ -24,7 +24,7 @@ import {
 import { analyzeTranscript, renderStorySections } from './modules/storyEngine.js';
 import { applySectionToTimeline, applyAllSectionsToTimeline } from './modules/timeline.js';
 import { openConfirmModal } from './modules/timeline-confirm.js';
-import { createSelectsTimeline } from './modules/selects.js';
+import { createSelectsTimeline, createRoughCutTimeline } from './modules/selects.js';
 
 // ─────────────────────────────────────────────────────────────
 // INIT
@@ -284,6 +284,10 @@ document.getElementById('btnStoryClear')?.addEventListener('click', () => {
   const sfb = document.getElementById('selectsFeedback');
   if (fb)  fb.textContent = '';
   if (sfb) { sfb.textContent = ''; sfb.className = 'apply-feedback'; }
+  const rcfb    = document.getElementById('roughCutFeedback');
+  const rcReport = document.getElementById('roughCutReport');
+  if (rcfb)    { rcfb.textContent = ''; rcfb.className = 'apply-feedback'; }
+  if (rcReport) { rcReport.style.display = 'none'; }
 });
 
 // ─────────────────────────────────────────────────────────────
@@ -440,24 +444,26 @@ document.getElementById('btnCreateSelects')?.addEventListener('click', async () 
 });
 
 /**
- * Render the Selects debug report panel.
- * Shows per-section ✅ inserted / ⚠️ skipped / 🟡 marker_only rows.
+ * Shared timeline report renderer.
+ * Populates the sr-* / rc-* panel elements with summary data.
  *
- * @param {object} summary - return value from createSelectsTimeline()
+ * @param {object} summary          - return value from createSelectsTimeline / createRoughCutTimeline
+ * @param {{ report:string, title:string, summary:string, rows:string, close:string }} ids
+ * @param {string} label            - e.g. "Selects" or "Rough Cut"
  */
-function renderSelectsReport(summary) {
-  const report  = document.getElementById('selectsReport');
-  const srTitle = document.getElementById('srTitle');
-  const srSum   = document.getElementById('srSummary');
-  const srRows  = document.getElementById('srRows');
-  const srClose = document.getElementById('srClose');
+function renderTimelineReport(summary, ids, label) {
+  const report  = document.getElementById(ids.report);
+  const srTitle = document.getElementById(ids.title);
+  const srSum   = document.getElementById(ids.summary);
+  const srRows  = document.getElementById(ids.rows);
+  const srClose = document.getElementById(ids.close);
   if (!report || !srSum || !srRows) return;
 
   // Header title
   if (srTitle) {
     const mins = Math.floor(summary.totalOutputSec / 60);
     const secs = Math.round(summary.totalOutputSec % 60);
-    srTitle.textContent = `Selects Report — ${mins}m ${secs}s output`;
+    srTitle.textContent = `${label} Report — ${mins}m ${secs}s output`;
   }
 
   // Summary stats
@@ -496,10 +502,37 @@ function renderSelectsReport(summary) {
 
   report.style.display = 'block';
 
-  // Close button
   if (srClose) {
     srClose.onclick = () => { report.style.display = 'none'; };
   }
+}
+
+/**
+ * Render the Selects debug report panel.
+ * @param {object} summary - return value from createSelectsTimeline()
+ */
+function renderSelectsReport(summary) {
+  renderTimelineReport(summary, {
+    report:  'selectsReport',
+    title:   'srTitle',
+    summary: 'srSummary',
+    rows:    'srRows',
+    close:   'srClose',
+  }, 'Selects');
+}
+
+/**
+ * Render the Rough Cut debug report panel.
+ * @param {object} summary - return value from createRoughCutTimeline()
+ */
+function renderRoughCutReport(summary) {
+  renderTimelineReport(summary, {
+    report:  'roughCutReport',
+    title:   'rcTitle',
+    summary: 'rcSummary',
+    rows:    'rcRows',
+    close:   'rcClose',
+  }, 'Rough Cut');
 }
 
 /** Minimal HTML escaping for report text nodes. */
@@ -510,6 +543,56 @@ function escHtml(str) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
 }
+
+// "Create Rough Cut" button
+document.getElementById('btnCreateRoughCut')?.addEventListener('click', async () => {
+  if (!currentSections.length) return;
+
+  const { confirmed, selected } = await openConfirmModal(currentSections, {
+    title:       'Create Rough Cut',
+    applyLabel:  '🎬 Create Rough Cut',
+    description: 'Select sections to include in the rough cut sequence.',
+  });
+
+  if (!confirmed || !selected.length) return;
+
+  // Read options from inline controls
+  const gapSec               = Number(document.getElementById('rcGap')?.value ?? 0);
+  const addMarkers           = document.getElementById('rcAddMarkers')?.checked ?? true;
+  const includeMarkerComments = document.getElementById('rcMarkerComments')?.checked ?? true;
+
+  const btn    = document.getElementById('btnCreateRoughCut');
+  const fb     = document.getElementById('roughCutFeedback');
+  const report = document.getElementById('roughCutReport');
+
+  if (btn)    { btn.disabled = true; btn.textContent = 'Creating…'; }
+  if (fb)     { fb.textContent = 'Creating rough cut…'; fb.className = 'apply-feedback'; }
+  if (report) { report.style.display = 'none'; }
+
+  try {
+    const summary = await createRoughCutTimeline(
+      selected,
+      { gapSec, addMarkers, includeMarkerComments },
+      (msg) => { if (fb) fb.textContent = msg; },
+    );
+
+    if (btn) { btn.disabled = false; btn.textContent = '🎬 Create Rough Cut'; }
+
+    const hasProblems = summary.skipped > 0 || summary.markerOnly > 0;
+    if (fb) {
+      fb.textContent = `✓ "${summary.sequenceName}" — ${summary.inserted} inserted`;
+      fb.className   = hasProblems ? 'apply-feedback warn' : 'apply-feedback ok';
+    }
+
+    renderRoughCutReport(summary);
+
+  } catch (err) {
+    if (btn) { btn.disabled = false; btn.textContent = '🎬 Create Rough Cut'; }
+    if (fb)  { fb.textContent = err?.message ?? 'Failed'; fb.className = 'apply-feedback err'; }
+  }
+});
+
+
 
 function setAnalyzeLoading(loading) {
   if (!btnAnalyze) return;
