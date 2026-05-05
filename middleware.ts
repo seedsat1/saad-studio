@@ -43,6 +43,8 @@ const isPublicRoute = createRouteMatcher([
   '/api/models(.*)',
   '/api/cron(.*)',
   '/sso-callback(.*)',
+  '/panel/connect(.*)',
+  '/api/panel/auth-session(.*)',
 ])
 
 function applySecurityHeaders(res: NextResponse, req: Request) {
