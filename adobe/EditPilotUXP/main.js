@@ -893,21 +893,22 @@ document.querySelectorAll('[data-feature]').forEach(card => {
 
 // Intercept ALL anchor clicks — prevent UXP panel navigation crashes
 document.addEventListener('click', (e) => {
-  const a = e.target.closest('a[href]');
-  if (!a) return;
-  const href = a.getAttribute('href');
-  if (!href || href.startsWith('#')) return;
-  e.preventDefault();
-  openExternal(href);
-});
-
-// Global error boundary — show errors in connectError div instead of crashing
-window.addEventListener('unhandledrejection', (e) => {
-  console.error('[EditPilot] Unhandled rejection:', e.reason);
-  const errEl = document.getElementById('connectError');
-  if (errEl && errEl.textContent === '') {
-    errEl.textContent = 'Error: ' + (e.reason?.message || String(e.reason));
-  }
+  try {
+    let el = e.target;
+    // Walk up DOM manually — .closest() may not exist in older UXP
+    while (el && el !== document) {
+      if (el.tagName === 'A' && el.getAttribute('href')) {
+        const href = el.getAttribute('href');
+        if (href && !href.startsWith('#')) {
+          e.preventDefault();
+          e.stopPropagation();
+          openExternal(href);
+        }
+        return;
+      }
+      el = el.parentNode;
+    }
+  } catch (_) { /* ignore */ }
 });
 
 try {
@@ -915,7 +916,6 @@ try {
 } catch (err) {
   console.error('[EditPilot] Boot error:', err);
   const errEl = document.getElementById('connectError');
-  if (errEl) errEl.textContent = 'Plugin error: ' + (err?.message || err);
-  // Make sure connect screen is visible even if init failed
+  if (errEl) errEl.textContent = 'Plugin error: ' + (err && err.message ? err.message : String(err));
   document.getElementById('connectScreen')?.classList.add('vis');
 }
