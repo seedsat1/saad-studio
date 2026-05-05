@@ -25,6 +25,7 @@ import { analyzeTranscript, renderStorySections } from './modules/storyEngine.js
 import { applySectionToTimeline, applyAllSectionsToTimeline } from './modules/timeline.js';
 import { openConfirmModal } from './modules/timeline-confirm.js';
 import { createSelectsTimeline, createRoughCutTimeline } from './modules/selects.js';
+import { parseCommand, getHelpText, INTENTS }           from './modules/assistant.js';
 
 // ─────────────────────────────────────────────────────────────
 // INIT
@@ -592,9 +593,292 @@ document.getElementById('btnCreateRoughCut')?.addEventListener('click', async ()
   }
 });
 
+// ─────────────────────────────────────────────────────────────
+// ASSISTANT PANEL
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Append a message bubble to the assistant chat history.
+ *
+ * @param {'user'|'system'} role
+ * @param {string}          text
+ * @param {'progress'|'ok'|'error'|''} [variant]
+ * @returns {HTMLElement}  the bubble element (so caller can update text in-place)
+ */
+function asstAppend(role, text, variant = '') {
+  const history = document.getElementById('asstHistory');
+  if (!history) return null;
+
+  const msg    = document.createElement('div');
+  msg.className = `asst-msg asst-msg--${role}${variant ? ` asst-msg--${variant}` : ''}`;
+
+  const avatar = document.createElement('span');
+  avatar.className = 'asst-avatar';
+  avatar.textContent = role === 'user' ? '🧑' : '🤖';
+
+  const bubble = document.createElement('div');
+  bubble.className = 'asst-bubble';
+  bubble.textContent = text;
+
+  msg.appendChild(avatar);
+  msg.appendChild(bubble);
+  history.appendChild(msg);
+  history.scrollTop = history.scrollHeight;
+
+  return bubble; // caller can set .textContent to update progress in-place
+}
+
+/**
+ * Set input + send button enabled/disabled state.
+ * @param {boolean} busy
+ */
+function asstSetBusy(busy) {
+  const inp  = document.getElementById('asstInput');
+  const send = document.getElementById('asstSend');
+  if (inp)  inp.disabled  = busy;
+  if (send) send.disabled = busy;
+}
+
+/**
+ * Route a parsed command to the matching feature.
+ * Each branch updates the chat with progress + result.
+ *
+ * @param {{ intent: string, raw: string }} cmd
+ */
+async function handleAssistantCommand(cmd) {
+  switch (cmd.intent) {
+
+    // ── HELP ──────────────────────────────────────────────────
+    case INTENTS.HELP: {
+      asstAppend('system', getHelpText());
+      return;
+    }
+
+    // ── CLEAR ─────────────────────────────────────────────────
+    case INTENTS.CLEAR: {
+      const history = document.getElementById('asstHistory');
+      if (history) history.innerHTML = '';
+      return;
+    }
+
+    // ── ANALYZE ───────────────────────────────────────────────
+    case INTENTS.ANALYZE: {
+      // Check transcript textarea has content
+      const transcriptEl = document.getElementById('storyTranscript');
+      const transcript   = transcriptEl?.value?.trim() ?? '';
+      if (!transcript) {
+        asstAppend('system',
+          'No transcript found. Switch to the Story Engine tab and paste your transcript first.',
+          'error',
+        );
+        return;
+      }
+
+      const token = getToken();
+      if (!token) {
+        asstAppend('system', 'Not connected. Please reconnect to your account.', 'error');
+        return;
+      }
+
+      const prog = asstAppend('system', 'Analyzing transcript…', 'progress');
+      asstSetBusy(true);
+      try {
+        const result = await analyzeTranscript(token, transcript);
+        currentSections = result.sections ?? [];
+        currentSelectedSection = null;
+
+        // Render sections into the Story Engine tab (reuses existing renderer)
+        const cardsEl = document.getElementById('storyCards');
+        if (cardsEl) {
+          renderStorySections(
+            result.sections, cardsEl,
+            (section) => { currentSelectedSection = section; },
+            async (section, btn) => applyOneSection(section, btn),
+          );
+          const wrap = document.getElementById('storyResultsWrap');
+          if (wrap) wrap.style.display = 'block';
+        }
+
+        if (prog) prog.textContent = '';
+        asstAppend(
+          'system',
+          `✅ Found ${currentSections.length} section${currentSections.length !== 1 ? 's' : ''}. ` +
+          `Switch to Story Engine to review them, or type "create selects" / "build rough cut".`,
+          'ok',
+        );
+
+        // Silently refresh credits
+        try {
+          const balance = await refreshCreditsFromServer();
+          updateCreditsDisplay(balance);
+        } catch (_) { /* silent */ }
+
+      } catch (err) {
+        let msg = err?.message || 'Analysis failed.';
+        if (err?.isCreditsError) {
+          msg = `Not enough credits. Need ${err.requiredCredits ?? 5}, have ${err.currentBalance ?? 0}.`;
+        }
+        if (prog) prog.textContent = '';
+        asstAppend('system', `❌ ${msg}`, 'error');
+      } finally {
+        asstSetBusy(false);
+      }
+      return;
+    }
+
+    // ── SELECTS ───────────────────────────────────────────────
+    case INTENTS.SELECTS: {
+      if (!currentSections.length) {
+        asstAppend('system',
+          'No sections available. Run "analyze" first, or use the Story Engine tab.',
+          'error',
+        );
+        return;
+      }
+
+      const { confirmed, selected } = await openConfirmModal(currentSections, {
+        title:      'Create Selects Timeline',
+        applyLabel: '衎 Create Selects',
+        description: 'Select sections to include in the new sequence.',
+      });
+      if (!confirmed || !selected.length) {
+        asstAppend('system', 'Cancelled.', 'progress');
+        return;
+      }
+
+      const prog = asstAppend('system', 'Creating selects timeline…', 'progress');
+      asstSetBusy(true);
+      try {
+        const summary = await createSelectsTimeline(
+          selected,
+          (msg) => { if (prog) prog.textContent = msg; },
+        );
+        if (prog) prog.textContent = '';
+        asstAppend(
+          'system',
+          `✅ Selects ready — "${summary.sequenceName}"
+${summary.inserted} inserted, ${summary.markerOnly} marker-only, ${summary.skipped} skipped
+Total output: ${summary.totalOutputSec.toFixed(1)}s`,
+          'ok',
+        );
+        // Also update report panel in Story Engine tab
+        renderSelectsReport(summary);
+      } catch (err) {
+        if (prog) prog.textContent = '';
+        asstAppend('system', `❌ ${err?.message ?? 'Failed'}`, 'error');
+      } finally {
+        asstSetBusy(false);
+      }
+      return;
+    }
+
+    // ── ROUGH CUT ─────────────────────────────────────────────
+    case INTENTS.ROUGH_CUT: {
+      if (!currentSections.length) {
+        asstAppend('system',
+          'No sections available. Run "analyze" first, or use the Story Engine tab.',
+          'error',
+        );
+        return;
+      }
+
+      const { confirmed, selected } = await openConfirmModal(currentSections, {
+        title:      'Create Rough Cut',
+        applyLabel: '🎬 Create Rough Cut',
+        description: 'Select sections to include in the rough cut sequence.',
+      });
+      if (!confirmed || !selected.length) {
+        asstAppend('system', 'Cancelled.', 'progress');
+        return;
+      }
+
+      // Inherit current options from the Story Engine tab controls
+      const gapSec               = Number(document.getElementById('rcGap')?.value ?? 0);
+      const addMarkers           = document.getElementById('rcAddMarkers')?.checked ?? true;
+      const includeMarkerComments = document.getElementById('rcMarkerComments')?.checked ?? true;
+
+      const prog = asstAppend('system', 'Creating rough cut…', 'progress');
+      asstSetBusy(true);
+      try {
+        const summary = await createRoughCutTimeline(
+          selected,
+          { gapSec, addMarkers, includeMarkerComments },
+          (msg) => { if (prog) prog.textContent = msg; },
+        );
+        if (prog) prog.textContent = '';
+        asstAppend(
+          'system',
+          `✅ Rough Cut ready — "${summary.sequenceName}"
+${summary.inserted} inserted, ${summary.markerOnly} marker-only, ${summary.skipped} skipped
+Total output: ${summary.totalOutputSec.toFixed(1)}s`,
+          'ok',
+        );
+        renderRoughCutReport(summary);
+      } catch (err) {
+        if (prog) prog.textContent = '';
+        asstAppend('system', `❌ ${err?.message ?? 'Failed'}`, 'error');
+      } finally {
+        asstSetBusy(false);
+      }
+      return;
+    }
+
+    // ── UNKNOWN ───────────────────────────────────────────────
+    default: {
+      asstAppend(
+        'system',
+        `❓ I didn’t understand "${escHtml(cmd.raw)}".
+Type "help" to see available commands.`,
+      );
+    }
+  }
+}
+
+// ── Chat input wiring ─────────────────────────────────────────
+
+async function asstSubmit() {
+  const inputEl = document.getElementById('asstInput');
+  const raw     = (inputEl?.value ?? '').trim();
+  if (!raw) return;
+
+  // Show user bubble
+  asstAppend('user', raw);
+  if (inputEl) inputEl.value = '';
+
+  // Parse and dispatch
+  const cmd = parseCommand(raw);
+  if (!cmd) return;
+
+  asstSetBusy(true);
+  try {
+    await handleAssistantCommand(cmd);
+  } finally {
+    asstSetBusy(false);
+  }
+}
+
+document.getElementById('asstSend')?.addEventListener('click', asstSubmit);
+
+document.getElementById('asstInput')?.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    asstSubmit();
+  }
+});
+
+// Hint chips in the intro trigger input+submit
+document.querySelectorAll('.asst-hint').forEach(hint => {
+  hint.style.cursor = 'pointer';
+  hint.addEventListener('click', () => {
+    const inputEl = document.getElementById('asstInput');
+    if (inputEl) {
+      inputEl.value = hint.textContent.trim();
+      inputEl.focus();
+    }
+  });
+});
 
 
-function setAnalyzeLoading(loading) {
   if (!btnAnalyze) return;
   btnAnalyze.disabled = loading;
   if (btnAnalyzeText) btnAnalyzeText.style.display = loading ? 'none' : 'inline';

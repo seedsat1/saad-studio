@@ -142,6 +142,7 @@
     <div class="ep-tabs" id="epTabs">
       <button class="ep-tab active" data-tab="home">Home</button>
       <button class="ep-tab" data-tab="story">Story Engine</button>
+      <button class="ep-tab" data-tab="assistant">Assistant</button>
     </div>
 
     <!-- ── TAB: HOME ─────────────────────────────────── -->
@@ -304,6 +305,38 @@
       </div>
 
     </div><!-- /viewStory -->
+
+    <!-- ── TAB: ASSISTANT ─────────────────────────────── -->
+    <div class="ep-view" id="viewAssistant">
+
+      <div class="asst-intro">
+        Type a command to control the plugin. Try:
+        <span class="asst-hint">analyze</span>,
+        <span class="asst-hint">create selects</span>,
+        <span class="asst-hint">build rough cut</span>,
+        <span class="asst-hint">help</span>
+      </div>
+
+      <!-- Message history -->
+      <div class="asst-history" id="asstHistory" role="log" aria-live="polite" aria-label="Assistant chat history"></div>
+
+      <!-- Input row -->
+      <div class="asst-input-row">
+        <input
+          type="text"
+          class="asst-input"
+          id="asstInput"
+          placeholder="Type a command…"
+          maxlength="500"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <button class="asst-send" id="asstSend" title="Send (Enter)">
+          &#9654;
+        </button>
+      </div>
+
+    </div><!-- /viewAssistant -->
 
     <!-- Footer -->
     <div style="text-align:center;padding:12px 0 4px;font-size:.55rem;color:var(--txd)">
