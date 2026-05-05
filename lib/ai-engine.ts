@@ -1,20 +1,39 @@
 /**
  * lib/ai-engine.ts — Saad Studio Centralized AI Execution Layer
  *
- * Decouples features from AI providers.
+ * ─ Architecture ────────────────────────────────────────────────────────────
  *
- * Usage:
- *   const result = await runAiTask({ task: "story_engine", input: transcript });
- *   // result.content  — raw model output (string)
- *   // result.modelId  — which model was actually used (for ledger)
- *   // result.provider — "openai" | "kie" | "local" | ...
+ *   Feature Route (app/api/...)
+ *        │
+ *        ▼
+ *   runAiTask({ task, input })          ← this file
+ *        │  reads TASK_REGISTRY
+ *        ▼
+ *   Provider Runner (lib/providers/*)
+ *        │  kie.ts  |  local.ts  |  mock.ts
+ *        ▼
+ *   External AI API (KIE / local model / mock)
  *
- * The caller (route.ts) never references a model name or provider directly.
+ * ─ Provider selection ──────────────────────────────────────────────────────
  *
- * To switch models system-wide: change TASK_REGISTRY or set env vars.
- * To add a new task: add an entry to TASK_REGISTRY.
- * To add a new provider: add a runner to PROVIDERS.
+ *   Global default  →  AI_PROVIDER=kie
+ *   Per-task        →  STORY_ENGINE_PROVIDER=kie
+ *   Per-task model  →  STORY_ENGINE_MODEL=claude-sonnet-4-6
+ *
+ * ─ Adding a new task ───────────────────────────────────────────────────────
+ *   1. Add the task name to AiTaskName union.
+ *   2. Add an entry to TASK_REGISTRY.
+ *   3. Feature route calls runAiTask({ task: "your_task", input: "..." }).
+ *
+ * ─ Adding a new provider ───────────────────────────────────────────────────
+ *   1. Create lib/providers/<name>.ts  exporting  runXxxTask(config, input)
+ *   2. Import it here and add to PROVIDERS map.
+ *   3. Set AI_PROVIDER=<name> in env.
  */
+
+import { runKieTask }   from "@/lib/providers/kie";
+import { runLocalTask } from "@/lib/providers/local";
+import { runMockTask }  from "@/lib/providers/mock";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TYPES
@@ -22,61 +41,75 @@
 
 export type AiTaskName =
   | "story_engine"
-  // Future tasks registered here:
+  // Extend here as new Saad Studio features are added:
   // | "caption_generator"
   // | "broll_suggester"
   // | "voiceover_script"
   // | "timeline_assistant"
   ;
 
-export type AiProvider = "openai" | "kie" | "local";
+/** Provider identifiers — KIE is the primary external provider. */
+export type AiProvider = "kie" | "local" | "mock";
 
 export interface AiTaskConfig {
-  /** Human-readable task name */
+  /** Human-readable feature name (used for mock key + logging) */
   name: string;
-  /** System prompt for chat-based models */
+  /** Chat system prompt */
   systemPrompt: string;
-  /** Preferred provider key */
+  /** Provider to use for this task */
   provider: AiProvider;
-  /** Provider-specific model identifier */
+  /** Provider-specific model identifier (e.g. "claude-sonnet-4-6") */
   modelId: string;
-  /** Fallback model if primary is unavailable */
+  /** Fallback model id if the primary call fails */
   fallbackModelId?: string;
-  /** Temperature (0–1). Lower = more deterministic. */
+  /** Sampling temperature 0–1 */
   temperature: number;
   /** Max output tokens */
   maxTokens: number;
+  /** Credits deducted per call (informational — enforced in the route) */
+  creditCost: number;
 }
 
 export interface AiRunInput {
   task: AiTaskName;
-  /** User-supplied text to process */
   input: string;
 }
 
 export interface AiRunResult {
-  /** Raw string output from the model */
-  content: string;
-  /** The model id that was actually used (for credit ledger) */
-  modelId: string;
-  /** The provider that handled the request */
+  content:  string;
+  modelId:  string;
   provider: AiProvider;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TASK REGISTRY
-// Centralizes all task configs. To change the model for a task, edit here.
 // ─────────────────────────────────────────────────────────────────────────────
+//
+// Provider resolution order for each task:
+//   1. STORY_ENGINE_PROVIDER env var  (per-task override)
+//   2. AI_PROVIDER env var            (global override)
+//   3. registry default               (KIE)
+//
+// Model resolution order:
+//   1. STORY_ENGINE_MODEL env var     (per-task override)
+//   2. registry default
+
+function resolveProvider(envKey: string, fallback: AiProvider): AiProvider {
+  const v = process.env[envKey] ?? process.env.AI_PROVIDER ?? fallback;
+  if (v === "kie" || v === "local" || v === "mock") return v;
+  console.warn(`[ai-engine] Unknown provider value "${v}" for ${envKey}, using "${fallback}"`);
+  return fallback;
+}
 
 const TASK_REGISTRY: Record<AiTaskName, AiTaskConfig> = {
   story_engine: {
-    name: "Story Engine",
-    provider: "openai",
-    // Override model via STORY_ENGINE_MODEL env var (e.g. "gpt-4o", "gpt-4.1-mini")
-    modelId: process.env.STORY_ENGINE_MODEL ?? "gpt-4o-mini",
-    fallbackModelId: "gpt-4o-mini",
+    name:        "Story Engine",
+    provider:    resolveProvider("STORY_ENGINE_PROVIDER", "kie"),
+    modelId:     process.env.STORY_ENGINE_MODEL ?? "claude-sonnet-4-6",
+    fallbackModelId: "gemini-3-pro",
     temperature: 0.3,
-    maxTokens: 1500,
+    maxTokens:   1500,
+    creditCost:  5,
     systemPrompt: `You are an expert video editor and story analyst working inside Adobe Premiere Pro.
 The user will paste a raw transcript of a video, possibly including speaker labels and timestamps.
 Your job is to identify the best structural sections for a professional edit.
@@ -104,74 +137,29 @@ Guidelines:
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PROVIDER RUNNERS
-// Each provider receives: config + user input → returns raw string content
+// PROVIDER DISPATCH MAP
 // ─────────────────────────────────────────────────────────────────────────────
 
-async function runOpenAI(config: AiTaskConfig, input: string): Promise<string> {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) throw new AiEngineError("AI service not configured.", "PROVIDER_NOT_CONFIGURED");
+type ProviderRunner = (config: AiTaskConfig, input: string) => Promise<string>;
 
-  const body = {
-    model: config.modelId,
-    temperature: config.temperature,
-    max_tokens: config.maxTokens,
-    messages: [
-      { role: "system", content: config.systemPrompt },
-      { role: "user",   content: input },
-    ],
-  };
-
-  const res = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify(body),
-  });
-
-  if (!res.ok) {
-    const errBody = await res.json().catch(() => ({})) as { error?: { message?: string } };
-    const msg = errBody?.error?.message ?? `Provider error ${res.status}`;
-
-    // Attempt fallback if primary model failed and fallback is different
-    if (config.fallbackModelId && config.fallbackModelId !== config.modelId) {
-      const fallback = { ...config, modelId: config.fallbackModelId };
-      return runOpenAI(fallback, input);
-    }
-    throw new AiEngineError(msg, "PROVIDER_ERROR");
-  }
-
-  const data = await res.json() as {
-    choices?: Array<{ message?: { content?: string } }>;
-  };
-
-  const content = data?.choices?.[0]?.message?.content ?? "";
-  if (!content) throw new AiEngineError("Provider returned empty response.", "EMPTY_RESPONSE");
-  return content;
-}
-
-// Provider dispatch map
-const PROVIDERS: Record<AiProvider, (config: AiTaskConfig, input: string) => Promise<string>> = {
-  openai: runOpenAI,
-  // Future providers wired here — route.ts never changes
-  kie:   (_c, _i) => Promise.reject(new AiEngineError("KIE text provider not yet implemented.", "NOT_IMPLEMENTED")),
-  local: (_c, _i) => Promise.reject(new AiEngineError("Local provider not yet implemented.", "NOT_IMPLEMENTED")),
+const PROVIDERS: Record<AiProvider, ProviderRunner> = {
+  kie:   runKieTask,
+  local: runLocalTask,
+  mock:  runMockTask,
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MAIN EXPORT
+// MAIN EXPORTS
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Run an AI task through the centralized engine.
+ * Execute an AI task through the centralized engine.
  *
  * @example
  * const result = await runAiTask({ task: "story_engine", input: transcript });
- * // result.content  — raw string from model
- * // result.modelId  — what was actually used (log/ledger)
- * // result.provider — "openai" | ...
+ * // result.content  — raw string from the model
+ * // result.modelId  — which model was used (for credit ledger)
+ * // result.provider — which provider handled it
  */
 export async function runAiTask(params: AiRunInput): Promise<AiRunResult> {
   const config = TASK_REGISTRY[params.task];
@@ -181,24 +169,53 @@ export async function runAiTask(params: AiRunInput): Promise<AiRunResult> {
 
   const runner = PROVIDERS[config.provider];
   if (!runner) {
-    throw new AiEngineError(`No runner for provider: "${config.provider}"`, "UNKNOWN_PROVIDER");
+    throw new AiEngineError(`No runner registered for provider: "${config.provider}"`, "UNKNOWN_PROVIDER");
   }
 
-  const content = await runner(config, params.input);
+  let content: string;
+  try {
+    content = await runner(config, params.input);
+  } catch (primaryErr) {
+    // Attempt fallback model on provider errors (same provider, different model)
+    if (config.fallbackModelId && config.fallbackModelId !== config.modelId) {
+      console.warn(
+        `[ai-engine] Primary model "${config.modelId}" failed, retrying with fallback "${config.fallbackModelId}"`,
+        primaryErr,
+      );
+      try {
+        content = await runner({ ...config, modelId: config.fallbackModelId }, params.input);
+      } catch (fallbackErr) {
+        throw new AiEngineError(
+          `Both primary ("${config.modelId}") and fallback ("${config.fallbackModelId}") models failed.`,
+          "PROVIDER_ERROR",
+        );
+      }
+    } else {
+      const msg = primaryErr instanceof Error ? primaryErr.message : String(primaryErr);
+      throw new AiEngineError(msg, "PROVIDER_ERROR");
+    }
+  }
 
-  return {
-    content,
-    modelId:  config.modelId,
-    provider: config.provider,
-  };
+  if (!content) {
+    throw new AiEngineError("Provider returned an empty response.", "EMPTY_RESPONSE");
+  }
+
+  return { content, modelId: config.modelId, provider: config.provider };
 }
 
 /**
- * Resolve the model ID that will be used for a task (for credit ledger logging).
- * Call this before runAiTask to determine the cost model string.
+ * Resolve the model ID that will be used for a task.
+ * Call before runAiTask to record the model in the credit ledger.
  */
 export function resolveModelId(task: AiTaskName): string {
   return TASK_REGISTRY[task]?.modelId ?? "unknown";
+}
+
+/**
+ * Resolve the credit cost for a task (informational reference for route handlers).
+ */
+export function resolveTaskCreditCost(task: AiTaskName): number {
+  return TASK_REGISTRY[task]?.creditCost ?? 0;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -219,4 +236,5 @@ export class AiEngineError extends Error {
     this.name = "AiEngineError";
   }
 }
+
 
