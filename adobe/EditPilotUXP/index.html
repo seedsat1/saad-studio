@@ -2,365 +2,131 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>EditPilot AI</title>
+<title>Saad Studio</title>
 <link rel="stylesheet" href="styles.css">
-<!-- Critical fallback: ensures login screen renders even if styles.css fails -->
-<style>
-html, body {
-  margin: 0; padding: 0;
-  width: 100%; height: 100%;
-  background: #0d0f1c;
-  color: #e2eaf6;
-  font-family: system-ui, -apple-system, sans-serif;
-  overflow: hidden;
-}
-/* Use absolute positioning — UXP does not fully support position:fixed */
-#connectScreen {
-  position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: #0d0f1c;
-  z-index: 300;
-  display: none;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 20px 16px;
-  overflow-y: auto;
-}
-#connectScreen.vis { display: flex; }
-.login-card {
-  width: 100%;
-  max-width: 310px;
-  background: #13152b;
-  border: 1px solid rgba(124,92,252,.25);
-  border-radius: 16px;
-  padding: 24px 20px 20px;
-}
-</style>
 </head>
 <body>
 
-<!-- ======================================================
-     CONNECT SCREEN
-     ====================================================== -->
-<div class="login-screen vis" id="connectScreen">
+<!-- CONNECT SCREEN OVERLAY -->
+<div class="login-screen" id="connectScreen" style="display:none!important">
   <div class="login-card">
-
-  <!-- Main login state -->
-  <div id="loginMain">
-
-    <!-- Logo row -->
     <div class="login-logo-row">
       <div class="login-logo-icon">
-        <svg width="20" height="20" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <svg width="20" height="20" viewBox="0 0 22 22" fill="none">
           <path d="M12.5 2L4 13h7l-1.5 7L18 9h-7l1.5-7z" fill="#fff" stroke="#fff" stroke-width=".5" stroke-linejoin="round"/>
         </svg>
       </div>
       <span class="login-logo-text">Saad Studio</span>
     </div>
-
-    <!-- Hero copy -->
     <h1 class="login-heading">Unlock the Power of<br>AI Generation</h1>
     <p class="login-desc">Start generating with your Saad Studio account</p>
+    <div id="loginMain">
+      <button class="btn-login-primary" id="btnOpenSite" type="button">
+        Login with Saad Studio
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none" style="flex-shrink:0" aria-hidden="true">
+          <path d="M2.5 10.5l8-8M10.5 10.5V2.5H2.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <a class="btn-login-secondary" href="#" id="linkCreateAccount">Create Account</a>
+      <div class="login-divider"><span>or connect with token</span></div>
+      <form id="connectForm" autocomplete="off" novalidate>
+        <div class="lf">
+          <input id="inputSiteUrl" type="text" autocomplete="off" spellcheck="false" placeholder="Website URL (e.g. https://www.saadstudio.app)">
+        </div>
+        <div class="lf">
+          <input id="inputToken" type="password" autocomplete="off" spellcheck="false" placeholder="Paste your connection token (ssp_…)">
+        </div>
+        <div class="login-err" id="connectError"></div>
+        <button class="btn-login-connect" id="btnConnect" type="submit">Connect →</button>
+      </form>
+      <p class="login-footer-note">Get your token at <a href="#" id="linkPanel">saadstudio.app/panel</a></p>
+    </div>
+    <div id="loginWaiting" style="display:none">
+      <p class="lw-title">Waiting for browser…</p>
+      <p class="lw-sub">Complete sign-in in the browser window that just opened.</p>
+      <p class="lw-timer" id="lwTimer"></p>
+      <button class="btn-login-cancel" id="btnCancelLogin" type="button">✕ Cancel</button>
+    </div>
+  </div>
+</div>
 
-    <!-- Primary CTA -->
-    <button class="btn-login-primary" id="btnOpenSite" type="button">
-      Login with Saad Studio
-      <svg width="13" height="13" viewBox="0 0 13 13" fill="none" style="flex-shrink:0" aria-hidden="true">
-        <path d="M2.5 10.5l8-8M10.5 10.5V2.5H2.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-    </button>
-
-    <!-- Secondary CTA -->
-    <a class="btn-login-secondary" href="#" id="linkCreateAccount">
-      Create Account
-    </a>
-
-    <!-- Divider -->
-    <div class="login-divider"><span>or connect with token</span></div>
-
-    <!-- Token form -->
-    <form id="connectForm" autocomplete="off" novalidate>
-      <div class="lf">
-        <input
-          id="inputSiteUrl"
-          type="text"
-          autocomplete="off"
-          spellcheck="false"
-          placeholder="Website URL (e.g. http://localhost:3000)"
-        >
-      </div>
-      <div class="lf">
-        <input
-          id="inputToken"
-          type="password"
-          autocomplete="off"
-          spellcheck="false"
-          placeholder="Paste your connection token (ssp_&#x2026;)"
-        >
-      </div>
-      <div class="login-err" id="connectError"></div>
-      <button class="btn-login-connect" id="btnConnect" type="submit">Connect &#8594;</button>
-    </form>
-
-    <!-- Footer -->
-    <p class="login-footer-note">
-      Get your token at
-      <a href="#" id="linkPanel">/panel</a>
-    </p>
-
-  </div><!-- /loginMain -->
-
-  <!-- Waiting state (shown while polling for browser login) -->
-  <div id="loginWaiting" style="display:none">
-    <p class="lw-title">Waiting for browser&#x2026;</p>
-    <p class="lw-sub">Complete sign-in in the browser window that just opened.<br>This will auto-connect when done.</p>
-    <p class="lw-timer" id="lwTimer"></p>
-    <button class="btn-login-cancel" id="btnCancelLogin" type="button">&#x2715; Cancel</button>
-  </div><!-- /loginWaiting -->
-
-  </div><!-- /login-card -->
-</div><!-- /login-screen -->
-
-<!-- ======================================================
-     HEADER
-     ====================================================== -->
-<header class="hdr">
-  <div class="hdr-logo">EP</div>
-  <span class="hdr-title">Edit<span>Pilot</span></span>
+<!-- HEADER -->
+<div class="hdr">
+  <div class="hdr-logo">SA</div>
+  <span class="hdr-name">Saad <span>Studio</span></span>
   <div class="hdr-r">
-    <div class="hdr-credits" id="hdrCredits" title="Credits &#8212; click to top up">
-      <span class="cr-num" id="crNum">&#8212;</span>
-      <span style="font-size:.5rem;color:var(--txd)">cr</span>
+    <div class="hdr-credits" id="hdrCredits">
+      <span class="cr-num" id="crNum">—</span><span class="cr-label">cr</span>
       <div class="cr-bar"><div class="cr-fill" id="crFill" style="width:0%"></div></div>
     </div>
     <div class="hdr-plan" id="hdrPlan">Free</div>
-    <div class="hdr-avatar" id="hdrAvatar" title="My account">EP</div>
+    <div class="hdr-avatar" id="hdrAvatar">EP</div>
+    <button class="ib" id="btnSettings" title="Settings">⚙</button>
   </div>
-</header>
-
-<!-- ======================================================
-     SUBSCRIPTION WARNING BANNER
-     ====================================================== -->
-<div class="sub-warn" id="subWarn">
-  <span>&#9888;</span>
-  <span><strong>Subscription required</strong> &#8212; upgrade to unlock AI tools.</span>
-  <button class="sub-warn-btn" id="subWarnBtn">Upgrade &#8599;</button>
 </div>
 
-<!-- ======================================================
-     DASHBOARD
-     ====================================================== -->
-<main class="dashboard" id="dashboard">
-  <div class="dash-scroll">
+<!-- SUB WARNING -->
+<div class="sub-warn" id="subWarn" style="display:none">
+  <span>⚠</span>
+  <span><strong>Subscription required</strong> — upgrade to unlock AI tools.</span>
+  <button class="sub-warn-btn" id="subWarnBtn">Upgrade ↗</button>
+</div>
 
-    <!-- User strip -->
-    <div class="user-strip">
-      <div class="user-strip-av" id="stripAvatar">EP</div>
-      <div class="user-strip-info">
-        <div class="user-strip-name" id="stripName">Loading&#8230;</div>
-        <div class="user-strip-email" id="stripEmail">&#8212;</div>
-      </div>
-      <div class="user-strip-r">
-        <span style="padding:3px 9px;border-radius:20px;background:var(--acg);border:1px solid var(--acb);font-size:.55rem;font-weight:700;color:var(--vl);text-transform:uppercase" id="stripPlan">Free</span>
-      </div>
-    </div>
+<!-- NAV -->
+<div class="nav" id="epTabs">
+  <button class="nt active" data-tab="chat">💬 Assistant</button>
+  <button class="nt" data-tab="story">✂ Story Engine</button>
+  <button class="nt" data-tab="videogen">🎬 Video Gen</button>
+  <button class="nt" data-tab="imagegen">🖼 Image Gen</button>
+  <button class="nt" data-tab="tts">🔊 TTS</button>
+  <button class="nt" data-tab="timeline">🧠 Timeline AI</button>
+  <button class="nt" data-tab="color">🎨 Color</button>
+  <button class="nt" data-tab="audio">🎚 Audio Mix</button>
+  <button class="nt" data-tab="broll">💥 B-Roll Gen</button>
+  <button class="nt" data-tab="captions">📝 Captions</button>
+</div>
 
-    <!-- Credits card -->
-    <div class="credits-card">
-      <div class="credits-top">
-        <div>
-          <div class="credits-label">Credit Balance</div>
-          <div class="credits-val" id="dashCreditsVal">&#8212;<span>cr</span></div>
+<!-- DASHBOARD -->
+<main class="main" id="dashboard">
+
+  <!-- ASSISTANT -->
+  <div class="pn vis" data-panel="chat" id="viewAssistant">
+    <div class="pn-scroll">
+
+      <div class="user-strip">
+        <div class="user-strip-av" id="stripAvatar">EP</div>
+        <div class="user-strip-info">
+          <div class="user-strip-name" id="stripName">Loading…</div>
+          <div class="user-strip-email" id="stripEmail">—</div>
         </div>
-        <div class="credits-plan" id="dashPlanBadge">Free</div>
-      </div>
-      <div class="credits-bar-wrap">
-        <div class="credits-bar-bg">
-          <div class="credits-bar-fill" id="dashCreditsBar" style="width:0%"></div>
+        <div class="user-strip-r">
+          <span class="strip-plan-badge" id="stripPlan">Free</span>
         </div>
-        <div class="credits-bar-lbl">Shared with saadstudio.app &#8212; same balance across all tools</div>
-      </div>
-    </div>
-
-    <!-- Actions -->
-    <div class="dash-actions" style="margin-bottom:20px">
-      <button class="btn-primary" id="btnRefreshCredits">&#8635; Refresh Credits</button>
-      <button class="btn" id="btnManageSub">&#11014; Upgrade Plan</button>
-      <button class="btn-danger" id="btnDisconnect">Disconnect</button>
-    </div>
-
-    <!-- Tab navigation -->
-    <div class="ep-tabs" id="epTabs">
-      <button class="ep-tab active" data-tab="home">Home</button>
-      <button class="ep-tab" data-tab="story">Story Engine</button>
-      <button class="ep-tab" data-tab="assistant">Assistant</button>
-    </div>
-
-    <!-- ── TAB: HOME ─────────────────────────────────── -->
-    <div class="ep-view vis" id="viewHome">
-
-      <div class="sec-hd">AI Editing Tools</div>
-
-      <div class="feature-grid">
-
-        <div class="feature-card feature-card--active" data-open-tab="story" style="animation-delay:.05s">
-          <div class="fc-icon">&#9986;&#65039;</div>
-          <div class="fc-name">Story Engine</div>
-          <div class="fc-desc">Paste a transcript — AI structures it into edit-ready sections.</div>
-          <span class="fc-badge live">Live &#9679;</span>
-        </div>
-
-        <div class="feature-card" data-feature="broll" style="animation-delay:.10s">
-          <div class="fc-icon">&#127916;</div>
-          <div class="fc-name">B-Roll Generator</div>
-          <div class="fc-desc">Generate matching B-roll clips from your script using AI.</div>
-          <span class="fc-badge soon">Soon</span>
-        </div>
-
-        <div class="feature-card" data-feature="timeline_ai" style="animation-delay:.15s">
-          <div class="fc-icon">&#129504;</div>
-          <div class="fc-name">Timeline Assistant</div>
-          <div class="fc-desc">Smart cut suggestions, pacing analysis, and scene detection.</div>
-          <span class="fc-badge soon">Soon</span>
-        </div>
-
-        <div class="feature-card" data-feature="voiceover" style="animation-delay:.20s">
-          <div class="fc-icon">&#127897;&#65039;</div>
-          <div class="fc-name">Voice-Over AI</div>
-          <div class="fc-desc">Generate professional voice-overs from text, synced to timeline.</div>
-          <span class="fc-badge soon">Soon</span>
-        </div>
-
-        <div class="feature-card" data-feature="captions" style="animation-delay:.25s">
-          <div class="fc-icon">&#128172;</div>
-          <div class="fc-name">Auto Captions</div>
-          <div class="fc-desc">Transcribe audio and burn styled captions to your sequence.</div>
-          <span class="fc-badge soon">Soon</span>
-        </div>
-
-        <div class="feature-card" data-feature="canvas" style="animation-delay:.30s">
-          <div class="fc-icon">&#128444;&#65039;</div>
-          <div class="fc-name">Canvas Editor</div>
-          <div class="fc-desc">AI-assisted frame compositing and visual layout tools.</div>
-          <span class="fc-badge soon">Soon</span>
-        </div>
-
       </div>
 
-    </div><!-- /viewHome -->
-
-    <!-- ── TAB: STORY ENGINE ─────────────────────────── -->
-    <div class="ep-view" id="viewStory">
-
-      <div class="sec-hd">Story Engine</div>
-
-      <div class="story-intro">
-        Paste your video transcript below. AI will analyze the structure and
-        suggest sections for a cleaner edit.
-        <span class="story-cost">5 credits per analysis</span>
-      </div>
-
-      <div class="story-input-wrap">
-        <textarea
-          id="storyTranscript"
-          class="story-textarea"
-          placeholder="Paste transcript here&#10;&#10;Optional: include timestamps like [00:00:05] Speaker: text..."
-          spellcheck="false"
-        ></textarea>
-        <div class="story-char-count"><span id="storyCharCount">0</span> / 20,000</div>
-      </div>
-
-      <button class="btn-analyze" id="btnAnalyze">
-        <span id="btnAnalyzeText">&#10024; Analyze Transcript</span>
-        <span class="spinner" id="analyzeSpinner" style="display:none"></span>
-      </button>
-
-      <div class="story-err" id="storyError"></div>
-
-      <!-- Results -->
-      <div class="story-results-wrap" id="storyResultsWrap" style="display:none">
-
-        <div class="story-results-hd">
-          <span>Edit Structure</span>
-          <span class="story-credits-used" id="storyCreditsBadge"></span>
-          <button class="story-clear-btn" id="btnStoryClear">&#10005; Clear</button>
-        </div>
-
-        <!-- Apply All to Timeline -->
-        <div class="story-apply-bar">
-          <button class="btn-apply-all" id="btnApplyAll">&#9654; Apply All to Timeline</button>
-          <span class="apply-feedback" id="applyAllFeedback"></span>
-        </div>
-
-        <!-- Create Selects Timeline -->
-        <div class="story-selects-bar">
-          <button class="btn-selects" id="btnCreateSelects">&#8862; Create Selects Timeline</button>
-          <span class="apply-feedback" id="selectsFeedback"></span>
-        </div>
-
-        <!-- Selects debug report (shown after creation) -->
-        <div class="selects-report" id="selectsReport" style="display:none">
-          <div class="sr-header">
-            <span class="sr-title" id="srTitle">Selects Report</span>
-            <button class="sr-close" id="srClose" title="Dismiss">&#10005;</button>
+      <div class="credits-card">
+        <div class="credits-top">
+          <div>
+            <div class="credits-label">Credit Balance</div>
+            <div class="credits-val" id="dashCreditsVal">—<span>cr</span></div>
           </div>
-          <div class="sr-summary" id="srSummary"></div>
-          <div class="sr-rows" id="srRows"></div>
+          <div class="credits-plan" id="dashPlanBadge">Free</div>
         </div>
-
-        <!-- Create Rough Cut -->
-        <div class="story-roughcut-bar">
-          <div class="roughcut-opts" id="roughCutOpts">
-            <label class="rco-item">
-              <span class="rco-label">Gap</span>
-              <select class="rco-select" id="rcGap">
-                <option value="0">0s</option>
-                <option value="1">1s</option>
-                <option value="2">2s</option>
-              </select>
-            </label>
-            <label class="rco-item">
-              <input type="checkbox" id="rcAddMarkers" checked>
-              <span class="rco-label">Markers</span>
-            </label>
-            <label class="rco-item">
-              <input type="checkbox" id="rcMarkerComments" checked>
-              <span class="rco-label">Comments</span>
-            </label>
+        <div class="credits-bar-wrap">
+          <div class="credits-bar-bg">
+            <div class="credits-bar-fill" id="dashCreditsBar" style="width:0%"></div>
           </div>
-          <button class="btn-roughcut" id="btnCreateRoughCut">&#127916; Create Rough Cut</button>
-          <span class="apply-feedback" id="roughCutFeedback"></span>
+          <div class="credits-bar-lbl">Shared with saadstudio.app — same balance across all tools</div>
         </div>
-
-        <!-- Rough Cut report (shown after creation) -->
-        <div class="selects-report" id="roughCutReport" style="display:none">
-          <div class="sr-header">
-            <span class="sr-title" id="rcTitle">Rough Cut Report</span>
-            <button class="sr-close" id="rcClose" title="Dismiss">&#10005;</button>
-          </div>
-          <div class="sr-summary" id="rcSummary"></div>
-          <div class="sr-rows" id="rcRows"></div>
-        </div>
-
-        <div class="story-cards" id="storyCards"></div>
-
-        <!-- Selected section detail -->
-        <div class="story-detail" id="storyDetail" style="display:none">
-          <div class="sd-title" id="sdTitle"></div>
-          <div class="sd-time" id="sdTime"></div>
-          <div class="sd-reason" id="sdReason"></div>
-          <button class="btn-apply-one" id="btnApplyOne">&#9654; Apply to Timeline</button>
-          <div class="apply-feedback" id="applyOneFeedback"></div>
-        </div>
-
       </div>
 
-    </div><!-- /viewStory -->
+      <div class="dash-actions">
+        <button class="btn" id="btnRefreshCredits">↺ Refresh Credits</button>
+        <button class="btn" id="btnManageSub">⬆ Upgrade Plan</button>
+        <button class="btn btn-danger" id="btnDisconnect">Disconnect</button>
+      </div>
 
-    <!-- ── TAB: ASSISTANT ─────────────────────────────── -->
-    <div class="ep-view" id="viewAssistant">
-
+      <div class="sec-t" style="margin-top:14px">💬 AI Assistant</div>
       <div class="asst-intro">
         Type a command to control the plugin. Try:
         <span class="asst-hint">analyze</span>,
@@ -368,36 +134,232 @@ html, body {
         <span class="asst-hint">build rough cut</span>,
         <span class="asst-hint">help</span>
       </div>
-
-      <!-- Message history -->
-      <div class="asst-history" id="asstHistory" role="log" aria-live="polite" aria-label="Assistant chat history"></div>
-
-      <!-- Input row -->
-      <div class="asst-input-row">
-        <input
-          type="text"
-          class="asst-input"
-          id="asstInput"
-          placeholder="Type a command…"
-          maxlength="500"
-          autocomplete="off"
-          spellcheck="false"
-        />
-        <button class="asst-send" id="asstSend" title="Send (Enter)">
-          &#9654;
-        </button>
-      </div>
-
-    </div><!-- /viewAssistant -->
-
-    <!-- Footer -->
-    <div style="text-align:center;padding:12px 0 4px;font-size:.55rem;color:var(--txd)">
-      EditPilot AI v1.2 &middot;
-      <a href="https://saadstudio.app" style="color:var(--ac);text-decoration:none">saadstudio.app</a>
+      <div class="asst-history" id="asstHistory" role="log" aria-live="polite"></div>
     </div>
-
+    <div class="cinp">
+      <div class="cinp-r">
+        <input type="text" class="asst-input" id="asstInput" placeholder="Type a command…" maxlength="500" autocomplete="off" spellcheck="false"/>
+        <button class="snd" id="asstSend">▶</button>
+      </div>
+    </div>
   </div>
+
+  <!-- STORY ENGINE -->
+  <div class="pn" data-panel="story" id="viewStory">
+    <div class="pn-scroll">
+      <div class="sec-t">✂ Story Engine <span class="sec-badge">AI</span></div>
+      <div class="story-intro">
+        Paste your video transcript. AI will analyze and suggest edit sections.
+        <span class="story-cost">5 credits per analysis</span>
+      </div>
+      <div class="story-input-wrap">
+        <textarea id="storyTranscript" class="story-textarea"
+          placeholder="Paste transcript here&#10;&#10;Optional: include timestamps like [00:00:05] Speaker: text..."
+          spellcheck="false"></textarea>
+        <div class="story-char-count"><span id="storyCharCount">0</span> / 20,000</div>
+      </div>
+      <button class="btn-gen btn-full" id="btnAnalyze" style="margin-bottom:10px">
+        <span id="btnAnalyzeText">✨ Analyze Transcript</span>
+        <span class="spinner" id="analyzeSpinner" style="display:none"></span>
+        <span class="cost">5 cr</span>
+      </button>
+      <div class="story-err" id="storyError"></div>
+      <div id="storyResultsWrap" style="display:none">
+        <div class="story-results-hd">
+          <span>Edit Structure</span>
+          <span class="story-credits-used" id="storyCreditsBadge"></span>
+          <button class="story-clear-btn" id="btnStoryClear">✕ Clear</button>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+          <button class="btn-gen" style="flex:1;font-size:.65rem;padding:7px 12px" id="btnApplyAll">▶ Apply All to Timeline</button>
+          <span class="apply-feedback" id="applyAllFeedback"></span>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+          <button class="btn" id="btnCreateSelects">⊟ Create Selects Timeline</button>
+          <span class="apply-feedback" id="selectsFeedback"></span>
+        </div>
+        <div id="selectsReport" class="selects-report" style="display:none">
+          <div class="sr-header"><span class="sr-title" id="srTitle">Selects Report</span><button class="sr-close" id="srClose">✕</button></div>
+          <div class="sr-summary" id="srSummary"></div>
+          <div class="sr-rows" id="srRows"></div>
+        </div>
+        <div style="margin-bottom:8px">
+          <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px">
+            <label style="font-size:.58rem;color:var(--txm)">Gap
+              <select id="rcGap" style="margin-left:4px;background:var(--s2);border:1px solid var(--b1);color:var(--txh);border-radius:4px;padding:2px 4px;font-size:.58rem">
+                <option value="0">0s</option><option value="1">1s</option><option value="2">2s</option>
+              </select>
+            </label>
+            <label style="font-size:.58rem;color:var(--txm);display:flex;align-items:center;gap:3px">
+              <input type="checkbox" id="rcAddMarkers" checked style="accent-color:var(--ac)"> Markers
+            </label>
+            <label style="font-size:.58rem;color:var(--txm);display:flex;align-items:center;gap:3px">
+              <input type="checkbox" id="rcMarkerComments" checked style="accent-color:var(--ac)"> Comments
+            </label>
+          </div>
+          <button class="btn" id="btnCreateRoughCut">🎬 Create Rough Cut</button>
+          <span class="apply-feedback" id="roughCutFeedback"></span>
+        </div>
+        <div id="roughCutReport" class="selects-report" style="display:none">
+          <div class="sr-header"><span class="sr-title" id="rcTitle">Rough Cut Report</span><button class="sr-close" id="rcClose">✕</button></div>
+          <div class="sr-summary" id="rcSummary"></div>
+          <div class="sr-rows" id="rcRows"></div>
+        </div>
+        <div class="story-cards" id="storyCards"></div>
+        <div class="story-detail" id="storyDetail" style="display:none">
+          <div class="sd-title" id="sdTitle"></div>
+          <div class="sd-time" id="sdTime"></div>
+          <div class="sd-reason" id="sdReason"></div>
+          <button class="btn-gen btn-full" style="font-size:.65rem;padding:7px" id="btnApplyOne">▶ Apply to Timeline</button>
+          <div class="apply-feedback" id="applyOneFeedback"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- VIDEO GEN -->
+  <div class="pn" data-panel="videogen" id="viewVideogen"><div class="pn-scroll">
+    <div class="sec-t">🎬 Video Generation <span class="sec-badge">KIE.ai</span></div>
+    <div class="field-row" style="margin-bottom:10px">
+      <div class="model-card active" onclick="selCard(this)"><div class="mc-name">Kling 3.0</div><span class="mc-tag top">TOP</span></div>
+      <div class="model-card" onclick="selCard(this)"><div class="mc-name">Sora</div><span class="mc-tag new">NEW</span></div>
+      <div class="model-card" onclick="selCard(this)"><div class="mc-name">VEO 3</div><span class="mc-tag hot">HOT</span></div>
+    </div>
+    <div class="prompt"><textarea placeholder="Describe your video...">Cinematic drone shot over luxury house at golden hour, warm sunlight, 4K</textarea></div>
+    <div class="field"><div class="field-label">Mode</div><div class="pill-group"><div class="pill active" onclick="selPill(this)">Text → Video</div><div class="pill" onclick="selPill(this)">Image → Video</div></div></div>
+    <div class="field"><div class="field-label">Duration</div><div class="pill-group"><div class="pill" onclick="selPill(this)">3s</div><div class="pill active" onclick="selPill(this)">5s</div><div class="pill" onclick="selPill(this)">10s</div></div></div>
+    <div class="field"><div class="field-label">Ratio</div><div class="pill-group"><div class="pill active" onclick="selPill(this)">16:9</div><div class="pill" onclick="selPill(this)">9:16</div><div class="pill" onclick="selPill(this)">1:1</div></div></div>
+    <button class="btn-gen btn-full" style="margin-top:12px" onclick="openSaadStudio('/video')">🎬 Generate Video <span class="cost">6 cr</span></button>
+  </div></div>
+
+  <!-- IMAGE GEN -->
+  <div class="pn" data-panel="imagegen" id="viewImagegen"><div class="pn-scroll">
+    <div class="sec-t">🖼 Image Generation <span class="sec-badge">KIE.ai</span></div>
+    <div class="field-row" style="margin-bottom:10px">
+      <div class="model-card active" onclick="selCard(this)"><div class="mc-name">GPT Image 2</div><span class="mc-tag new">NEW</span></div>
+      <div class="model-card" onclick="selCard(this)"><div class="mc-name">Flux 2 Pro</div><span class="mc-tag top">TOP</span></div>
+      <div class="model-card" onclick="selCard(this)"><div class="mc-name">Imagen 4</div></div>
+    </div>
+    <div class="prompt"><textarea placeholder="Describe your image...">Professional product photo, soft studio lighting</textarea></div>
+    <div class="field"><div class="field-label">Ratio</div><div class="pill-group"><div class="pill active" onclick="selPill(this)">1:1</div><div class="pill" onclick="selPill(this)">16:9</div><div class="pill" onclick="selPill(this)">9:16</div><div class="pill" onclick="selPill(this)">4:3</div></div></div>
+    <button class="btn-gen btn-full" style="margin-top:12px" onclick="openSaadStudio('/image')">🖼 Generate Image <span class="cost">2 cr</span></button>
+  </div></div>
+
+  <!-- TTS -->
+  <div class="pn" data-panel="tts" id="viewTts"><div class="pn-scroll">
+    <div class="sec-t">🔊 Text to Speech</div>
+    <div class="prompt"><textarea placeholder="Type text to convert to voice...">In 2025, the average real estate agent spent 6 hours a day on tasks a machine could do in seconds.</textarea></div>
+    <div class="sec-t" style="margin-top:10px">Voice</div>
+    <div class="vg">
+      <div class="vc sel" onclick="selVc(this)"><div class="vc-n">Rachel</div><div class="vc-s">Warm · EN</div></div>
+      <div class="vc" onclick="selVc(this)"><div class="vc-n">Brian</div><div class="vc-s">Deep · EN</div></div>
+      <div class="vc" onclick="selVc(this)"><div class="vc-n">Arabella</div><div class="vc-s">Arabic</div></div>
+      <div class="vc" onclick="selVc(this)"><div class="vc-n">Aria</div><div class="vc-s">Clear · EN</div></div>
+      <div class="vc" onclick="selVc(this)"><div class="vc-n">Daniel</div><div class="vc-s">British</div></div>
+      <div class="vc" onclick="selVc(this)"><div class="vc-n">Matilda</div><div class="vc-s">AU</div></div>
+    </div>
+    <button class="btn-gen btn-full" style="margin-top:12px" onclick="openSaadStudio('/audio')">🔊 Generate Voice <span class="cost">3 cr</span></button>
+  </div></div>
+
+  <!-- TIMELINE AI -->
+  <div class="pn" data-panel="timeline" id="viewTimeline"><div class="pn-scroll">
+    <div class="sec-t">🧠 Timeline Intelligence <span class="sec-badge">AI</span></div>
+    <div class="prompt"><textarea placeholder="Analyze my project...">Analyze this interview: find all speech zones, identify key scenes, detect duplicate shots.</textarea></div>
+    <div style="display:flex;gap:6px;margin-top:8px">
+      <button class="btn-gen" style="flex:1">🧠 Deep Analyze <span class="cost">4 cr</span></button>
+      <button class="btn">🎯 Quick Scan</button>
+    </div>
+    <div class="sec-t" style="margin-top:14px">Detected Zones</div>
+    <div class="mk"><span class="mk-tc">00:00 → 01:23</span><span class="mk-tx">🗣 Speaker A — Introduction</span><span class="mk-badge high">Speech</span></div>
+    <div class="mk"><span class="mk-tc">01:23 → 01:30</span><span class="mk-tx">🔇 Silence gap — cut candidate</span><span class="mk-badge warn">Gap</span></div>
+    <div class="mk"><span class="mk-tc">01:30 → 02:45</span><span class="mk-tx">🗣 Key insight</span><span class="mk-badge high">Key</span></div>
+  </div></div>
+
+  <!-- COLOR -->
+  <div class="pn" data-panel="color" id="viewColor"><div class="pn-scroll">
+    <div class="sec-t">🎨 Scene Color Matching</div>
+    <div class="prompt"><textarea placeholder="Describe the look...">Cinematic teal shadows, warm highlights, Fincher-style.</textarea></div>
+    <div style="display:flex;gap:6px;margin-top:8px">
+      <button class="btn-gen" style="flex:1">🎨 Analyze &amp; Grade <span class="cost">4 cr</span></button>
+      <button class="btn">📷 From Reference</button>
+    </div>
+    <div class="sec-t" style="margin-top:14px">Detected Scenes</div>
+    <div class="mk"><span class="mk-tc">Scene 1-3</span><span class="mk-tx">🎥 Interview (indoor)</span><span class="mk-badge high">Grade</span></div>
+    <div class="mk"><span class="mk-tc">Scene 4</span><span class="mk-tx">🌅 B-roll (outdoor, warm)</span><span class="mk-badge high">Grade</span></div>
+    <button class="btn-gen btn-full" style="margin-top:10px">✅ Apply All Scene Grades</button>
+  </div></div>
+
+  <!-- AUDIO -->
+  <div class="pn" data-panel="audio" id="viewAudio"><div class="pn-scroll">
+    <div class="sec-t">🎚 Audio Balancer</div>
+    <div class="slider-g"><div class="slider-h"><span class="slider-l">Voice Level</span><span class="slider-v">70%</span></div><input type="range" min="0" max="100" value="70" oninput="this.previousElementSibling.querySelector('.slider-v').textContent=this.value+'%'"></div>
+    <div class="slider-g"><div class="slider-h"><span class="slider-l">Music Level</span><span class="slider-v">35%</span></div><input type="range" min="0" max="100" value="35" oninput="this.previousElementSibling.querySelector('.slider-v').textContent=this.value+'%'"></div>
+    <div class="slider-g"><div class="slider-h"><span class="slider-l">SFX Level</span><span class="slider-v">50%</span></div><input type="range" min="0" max="100" value="50" oninput="this.previousElementSibling.querySelector('.slider-v').textContent=this.value+'%'"></div>
+    <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:10px">
+      <button class="btn-gen" style="font-size:.65rem;padding:7px 14px">🔊 Auto Balance <span class="cost">2 cr</span></button>
+      <button class="btn">🎵 Smart Ducking</button>
+      <button class="btn">🔇 Denoise</button>
+    </div>
+  </div></div>
+
+  <!-- B-ROLL -->
+  <div class="pn" data-panel="broll" id="viewBroll"><div class="pn-scroll">
+    <div class="sec-t">💥 AI B-Roll Generator <span class="sec-badge">KIE.ai</span></div>
+    <div class="prompt"><textarea placeholder="Describe B-roll...">Modern houses, AI screens, happy clients, drone shots.</textarea></div>
+    <div style="display:flex;gap:6px;margin-top:8px">
+      <button class="btn-gen" style="flex:1">💥 Generate <span class="cost">6 cr</span></button>
+      <button class="btn">🧠 Auto from Speech</button>
+    </div>
+    <div class="sec-t" style="margin-top:14px">Speech → B-Roll</div>
+    <div class="mk"><span class="mk-tc">0:05–0:12</span><span class="mk-tx">"spent 6 hours" → Office, clock</span><span class="mk-badge high">Gen</span></div>
+    <div class="mk"><span class="mk-tc">0:12–0:18</span><span class="mk-tx">"AI staging" → Before/After room</span><span class="mk-badge high">Gen</span></div>
+  </div></div>
+
+  <!-- CAPTIONS -->
+  <div class="pn" data-panel="captions" id="viewCaptions"><div class="pn-scroll">
+    <div class="sec-t">📝 Auto Captions</div>
+    <div class="field"><div class="field-label">Engine &amp; Language</div>
+      <div class="field-row">
+        <select class="sel-input"><option>Whisper v3</option><option>Gemini Flash</option><option>Deepgram</option></select>
+        <select class="sel-input"><option>English</option><option>Arabic</option><option>Auto-detect</option></select>
+      </div>
+    </div>
+    <div class="sec-t" style="margin-top:10px">Style</div>
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-bottom:10px">
+      <div class="cd sel" onclick="selCd(this)"><div class="cd-t">Standard</div><div class="cd-d">Clean white, bottom</div></div>
+      <div class="cd" onclick="selCd(this)"><div class="cd-t">Hormozi</div><div class="cd-d">Bold animated</div></div>
+      <div class="cd" onclick="selCd(this)"><div class="cd-t">Minimal</div><div class="cd-d">Small, subtle</div></div>
+      <div class="cd" onclick="selCd(this)"><div class="cd-t">Karaoke</div><div class="cd-d">Word-by-word</div></div>
+    </div>
+    <button class="btn-gen btn-full" onclick="openSaadStudio('/audio')">📝 Generate Captions <span class="cost">3 cr</span></button>
+  </div></div>
+
 </main>
+
+<!-- SETTINGS MODAL -->
+<div class="modal-bg" id="setBg">
+  <div class="modal">
+    <div class="mdl-h"><h3>Settings</h3><button class="mdl-x" onclick="document.getElementById('setBg').classList.remove('vis')">✕</button></div>
+    <div class="mdl-b">
+      <div class="fg"><label>Connection</label>
+        <div class="help" id="settingsStatus"><span class="dot dot-g"></span> Connected to saadstudio.app</div>
+      </div>
+      <button class="btn btn-full" id="btnDisconnect2" style="margin-top:8px;justify-content:center">Disconnect</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function openSaadStudio(path){
+  try{var u=globalThis.require?globalThis.require('uxp'):null;var s=u&&u.shell||globalThis.uxp&&globalThis.uxp.shell;if(s&&s.openExternal)s.openExternal('https://www.saadstudio.app'+(path||''));}catch(_){}
+}
+function selPill(el){el.parentElement.querySelectorAll('.pill').forEach(function(p){p.classList.remove('active')});el.classList.add('active')}
+function selCard(el){el.parentElement.querySelectorAll('.model-card').forEach(function(c){c.classList.remove('active')});el.classList.add('active')}
+function selCd(el){el.parentElement.querySelectorAll('.cd').forEach(function(c){c.classList.remove('sel')});el.classList.add('sel')}
+function selVc(el){el.parentElement.querySelectorAll('.vc').forEach(function(c){c.classList.remove('sel')});el.classList.add('sel')}
+document.getElementById('btnSettings')&&document.getElementById('btnSettings').addEventListener('click',function(){document.getElementById('setBg').classList.add('vis')});
+document.getElementById('btnDisconnect2')&&document.getElementById('btnDisconnect2').addEventListener('click',function(){document.getElementById('setBg').classList.remove('vis');var d=document.getElementById('btnDisconnect');if(d)d.click()});
+</script>
 
 <script type="module" src="main.js"></script>
 </body>
