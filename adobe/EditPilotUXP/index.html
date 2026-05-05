@@ -280,7 +280,8 @@ function selCard(el){el.parentElement.querySelectorAll('.model-card').forEach(fu
 function selCd(el){el.parentElement.querySelectorAll('.cd').forEach(function(c){c.classList.remove('sel')});el.classList.add('sel')}
 function selVc(el){el.parentElement.querySelectorAll('.vc').forEach(function(c){c.classList.remove('sel')});el.classList.add('sel')}
 
-var VIDEOGEN_DEBUG_STOP_AFTER = 19;
+var VIDEOGEN_DEBUG_STOP_AFTER = 17;
+var VIDEOGEN_DEBUG_MICRO_STOP = '18A';
 
 function renderVideoGen(){
   var host = document.getElementById('videogenRenderHost');
@@ -504,16 +505,45 @@ function renderVideoGen(){
     return;
   }
 
-  console.log('[VideoGen] STEP 18 - before');
-  assertUniqueId('vgPrompt');
+  // Original STEP 18 is intentionally split into micro-steps for crash isolation.
+  console.log('[VideoGen] STEP 18A - before');
   var prompt = document.createElement('textarea');
+  console.log('[VideoGen] STEP 18A - after');
+  if (VIDEOGEN_DEBUG_MICRO_STOP === '18A') {
+    console.log('[VideoGen] CHECKPOINT - stop after STEP 18A');
+    return;
+  }
+
+  console.log('[VideoGen] STEP 18B - before');
   prompt.className = 'cmp-txt';
+  console.log('[VideoGen] STEP 18B - after');
+  if (VIDEOGEN_DEBUG_MICRO_STOP === '18B') {
+    console.log('[VideoGen] CHECKPOINT - stop after STEP 18B');
+    return;
+  }
+
+  console.log('[VideoGen] STEP 18C - before');
+  assertUniqueId('vgPrompt');
   prompt.id = 'vgPrompt';
   prompt.placeholder = 'Describe your video...';
+  console.log('[VideoGen] STEP 18C - after');
+  if (VIDEOGEN_DEBUG_MICRO_STOP === '18C') {
+    console.log('[VideoGen] CHECKPOINT - stop after STEP 18C');
+    return;
+  }
+
+  console.log('[VideoGen] STEP 18D - before');
   composer.appendChild(prompt);
-  console.log('[VideoGen] STEP 18 - after');
-  if (VIDEOGEN_DEBUG_STOP_AFTER === 18) {
-    console.log('[VideoGen] CHECKPOINT - stop after STEP 18');
+  console.log('[VideoGen] STEP 18D - after');
+  if (VIDEOGEN_DEBUG_MICRO_STOP === '18D') {
+    console.log('[VideoGen] CHECKPOINT - stop after STEP 18D');
+    return;
+  }
+
+  console.log('[VideoGen] STEP 18E - before');
+  console.log('[VideoGen] STEP 18E - after');
+  if (VIDEOGEN_DEBUG_MICRO_STOP === '18E') {
+    console.log('[VideoGen] CHECKPOINT - stop after STEP 18E');
     return;
   }
 
