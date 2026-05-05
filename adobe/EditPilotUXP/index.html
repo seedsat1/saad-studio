@@ -217,32 +217,111 @@
   </div>
 
   <!-- VIDEO GEN -->
-  <div class="pn" data-panel="videogen" id="viewVideogen"><div class="pn-scroll">
-    <div class="sec-t">🎬 Video Generation <span class="sec-badge">KIE.ai</span></div>
-    <div class="field-row" style="margin-bottom:10px">
-      <div class="model-card active" onclick="selCard(this)"><div class="mc-name">Kling 3.0</div><span class="mc-tag top">TOP</span></div>
-      <div class="model-card" onclick="selCard(this)"><div class="mc-name">Sora</div><span class="mc-tag new">NEW</span></div>
-      <div class="model-card" onclick="selCard(this)"><div class="mc-name">VEO 3</div><span class="mc-tag hot">HOT</span></div>
+  <div class="pn" data-panel="videogen" id="viewVideogen">
+    <div class="gen-hist" id="vgHistory">
+      <div class="gen-empty" id="vgEmpty">Describe a video and click generate</div>
     </div>
-    <div class="prompt"><textarea placeholder="Describe your video...">Cinematic drone shot over luxury house at golden hour, warm sunlight, 4K</textarea></div>
-    <div class="field"><div class="field-label">Mode</div><div class="pill-group"><div class="pill active" onclick="selPill(this)">Text → Video</div><div class="pill" onclick="selPill(this)">Image → Video</div></div></div>
-    <div class="field"><div class="field-label">Duration</div><div class="pill-group"><div class="pill" onclick="selPill(this)">3s</div><div class="pill active" onclick="selPill(this)">5s</div><div class="pill" onclick="selPill(this)">10s</div></div></div>
-    <div class="field"><div class="field-label">Ratio</div><div class="pill-group"><div class="pill active" onclick="selPill(this)">16:9</div><div class="pill" onclick="selPill(this)">9:16</div><div class="pill" onclick="selPill(this)">1:1</div></div></div>
-    <button class="btn-gen btn-full" style="margin-top:12px" onclick="openSaadStudio('/video')">🎬 Generate Video <span class="cost">6 cr</span></button>
-  </div></div>
+    <div class="cmp">
+      <div class="cmp-top">
+        <div class="cmp-imgs-wrap" id="vgImgsWrap" style="display:none">
+          <div class="cmp-img-item">
+            <img class="cmp-img-preview" id="vgImgPreview" src="" alt="">
+            <button class="cmp-img-x" id="vgImgRemove">×</button>
+          </div>
+        </div>
+        <div class="cmp-opts">
+          <select class="cmp-sel" id="vgModel">
+            <option value="kling-3.0-pro">Kling 3.0 Pro</option>
+            <option value="kling-3.0-standard">Kling 3.0</option>
+            <option value="sora-2">Sora 2</option>
+            <option value="veo-3.1">VEO 3.1</option>
+            <option value="hailuo-2.3">Hailuo</option>
+            <option value="wan-2.7">WAN 2.7</option>
+          </select>
+          <select class="cmp-sel" id="vgDuration">
+            <option value="5">5s</option>
+            <option value="3">3s</option>
+            <option value="8">8s</option>
+            <option value="10">10s</option>
+          </select>
+          <select class="cmp-sel" id="vgRatio">
+            <option value="16:9">16:9</option>
+            <option value="9:16">9:16</option>
+            <option value="1:1">1:1</option>
+          </select>
+          <select class="cmp-sel" id="vgQuality">
+            <option value="1080p">1080p</option>
+            <option value="720p">720p</option>
+          </select>
+        </div>
+      </div>
+      <textarea class="cmp-txt" id="vgPrompt" placeholder="Describe your video…"></textarea>
+      <div class="cmp-bar">
+        <div class="cmp-bar-l">
+          <button class="cmp-icon-btn" id="vgAttach" title="Attach image for Image-to-Video">📎</button>
+        </div>
+        <div class="cmp-bar-r">
+          <span class="cmp-cost">6 cr</span>
+          <button class="cmp-send-btn" id="vgSend"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M11 6L1 1.5 3 6 1 10.5z" fill="currentColor"/></svg></button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- IMAGE GEN -->
-  <div class="pn" data-panel="imagegen" id="viewImagegen"><div class="pn-scroll">
-    <div class="sec-t">🖼 Image Generation <span class="sec-badge">KIE.ai</span></div>
-    <div class="field-row" style="margin-bottom:10px">
-      <div class="model-card active" onclick="selCard(this)"><div class="mc-name">GPT Image 2</div><span class="mc-tag new">NEW</span></div>
-      <div class="model-card" onclick="selCard(this)"><div class="mc-name">Flux 2 Pro</div><span class="mc-tag top">TOP</span></div>
-      <div class="model-card" onclick="selCard(this)"><div class="mc-name">Imagen 4</div></div>
+  <div class="pn" data-panel="imagegen" id="viewImagegen">
+    <div class="gen-hist" id="igHistory">
+      <div class="gen-empty" id="igEmpty">Describe an image and click generate</div>
     </div>
-    <div class="prompt"><textarea placeholder="Describe your image...">Professional product photo, soft studio lighting</textarea></div>
-    <div class="field"><div class="field-label">Ratio</div><div class="pill-group"><div class="pill active" onclick="selPill(this)">1:1</div><div class="pill" onclick="selPill(this)">16:9</div><div class="pill" onclick="selPill(this)">9:16</div><div class="pill" onclick="selPill(this)">4:3</div></div></div>
-    <button class="btn-gen btn-full" style="margin-top:12px" onclick="openSaadStudio('/image')">🖼 Generate Image <span class="cost">2 cr</span></button>
-  </div></div>
+    <div class="cmp">
+      <div class="cmp-top">
+        <div class="cmp-imgs-wrap" id="igImgsWrap" style="display:none">
+          <div class="cmp-img-item">
+            <img class="cmp-img-preview" id="igImgPreview" src="" alt="">
+            <button class="cmp-img-x" id="igImgRemove">×</button>
+          </div>
+        </div>
+        <div class="cmp-opts">
+          <select class="cmp-sel" id="igModel">
+            <option value="gpt-image-2">GPT Image 2</option>
+            <option value="flux-2-pro">Flux 2 Pro</option>
+            <option value="imagen-4">Imagen 4</option>
+            <option value="nano-banana-pro">Nano Banana</option>
+          </select>
+          <select class="cmp-sel" id="igMode">
+            <option value="standard">Standard</option>
+            <option value="thumbnail">Thumbnail</option>
+            <option value="blueprint">+ Blueprint</option>
+          </select>
+          <select class="cmp-sel" id="igRatio">
+            <option value="1:1">1:1</option>
+            <option value="16:9">16:9</option>
+            <option value="9:16">9:16</option>
+            <option value="4:3">4:3</option>
+          </select>
+          <select class="cmp-sel" id="igQuality">
+            <option value="1024">1K</option>
+            <option value="2048">2K</option>
+          </select>
+          <select class="cmp-sel" id="igCount">
+            <option value="1">1 img</option>
+            <option value="2">2 imgs</option>
+            <option value="4">4 imgs</option>
+          </select>
+        </div>
+      </div>
+      <textarea class="cmp-txt" id="igPrompt" placeholder="Describe the image you want to create…"></textarea>
+      <div class="cmp-bar">
+        <div class="cmp-bar-l">
+          <button class="cmp-icon-btn" id="igAttach" title="Attach reference image">📎</button>
+        </div>
+        <div class="cmp-bar-r">
+          <span class="cmp-cost">2 cr</span>
+          <button class="cmp-send-btn" id="igSend"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M11 6L1 1.5 3 6 1 10.5z" fill="currentColor"/></svg></button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- TTS -->
   <div class="pn" data-panel="tts" id="viewTts"><div class="pn-scroll">

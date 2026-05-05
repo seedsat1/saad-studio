@@ -1,6 +1,7 @@
 import { connectWithToken, restoreSession, disconnect } from './modules/auth.js';
 import { refreshCreditsFromServer } from './modules/credits.js';
 import { getToken } from './modules/storage.js';
+import { generateImage, generateVideo } from './modules/apiClient.js';
 import {
   showConnect,
   showDashboard,
@@ -50,6 +51,8 @@ async function init() {
     const devSession = { email: 'dev@saadstudio.app', name: 'Dev', plan: 'pro', credits: 999, subscriptionActive: true };
     renderDashboard(devSession);
     setActiveTab('chat');
+    setupVideoGen();
+    setupImageGen();
   } catch (err) {
     // Show error visibly so we can debug in UXP DevTool
     console.error('[EditPilot] init() failed:', err);
@@ -570,5 +573,260 @@ el('asstSend')?.addEventListener('click', sendAssistant);
 el('asstInput')?.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') sendAssistant();
 });
+
+// ─────────────────────────────────────────────────────────────
+// FILE PICK (UXP local filesystem)
+// ─────────────────────────────────────────────────────────────
+
+async function pickImageForComposer() {
+  try {
+    const uxp = require('uxp');
+    const file = await uxp.storage.localFileSystem.getFileForOpening({
+      allowMultiple: false,
+      types: ['jpg', 'jpeg', 'png', 'webp'],
+    });
+    if (!file) return null;
+    const buf = await file.read({ format: uxp.storage.formats.binary });
+    const bytes = new Uint8Array(buf);
+    let binary = '';
+    for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+    const b64 = btoa(binary);
+    const ext = (file.name || '').split('.').pop().toLowerCase();
+    const mime = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
+    return { dataUrl: `data:${mime};base64,${b64}`, name: file.name || 'image' };
+  } catch (_) {
+    return null;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// GEN ITEM HELPERS
+// ─────────────────────────────────────────────────────────────
+
+function appendGenItem(historyEl, emptyEl, meta, prompt, errMsg) {
+  if (!historyEl) return null;
+  if (emptyEl) emptyEl.style.display = 'none';
+
+  const item = document.createElement('div');
+  item.className = 'gen-item';
+
+  if (meta) {
+    const metaEl = document.createElement('div');
+    metaEl.className = 'gen-item-meta';
+    metaEl.textContent = Object.values(meta).filter(Boolean).join(' • ');
+    item.appendChild(metaEl);
+  }
+
+  const promptEl = document.createElement('div');
+  promptEl.className = 'gen-item-prompt';
+  promptEl.textContent = prompt;
+  item.appendChild(promptEl);
+
+  if (errMsg) {
+    const errEl = document.createElement('div');
+    errEl.className = 'gen-item-err';
+    errEl.textContent = errMsg;
+    item.appendChild(errEl);
+  } else {
+    const pending = document.createElement('div');
+    pending.className = 'gen-item-pending';
+    pending.innerHTML = '<span class="spinner" style="display:inline-block"></span> Generating\u2026';
+    item.appendChild(pending);
+  }
+
+  historyEl.appendChild(item);
+  historyEl.scrollTop = historyEl.scrollHeight;
+  return item;
+}
+
+function updateGenItem(item, videoUrl, imageUrls, errMsg) {
+  if (!item) return;
+  const pending = item.querySelector('.gen-item-pending');
+  if (pending) pending.remove();
+
+  if (errMsg) {
+    const errEl = document.createElement('div');
+    errEl.className = 'gen-item-err';
+    errEl.textContent = errMsg;
+    item.appendChild(errEl);
+    return;
+  }
+
+  const urls = Array.isArray(imageUrls) ? imageUrls : (imageUrls ? [imageUrls] : []);
+  urls.forEach((url) => {
+    if (!url) return;
+    const img = document.createElement('img');
+    img.className = 'gen-item-img';
+    img.src = url;
+    img.alt = 'Generated';
+    item.appendChild(img);
+  });
+
+  if (videoUrl) {
+    const actions = document.createElement('div');
+    actions.className = 'gen-item-actions';
+    const openBtn = document.createElement('button');
+    openBtn.className = 'btn';
+    openBtn.style.fontSize = '.6rem';
+    openBtn.textContent = 'Open Video';
+    openBtn.addEventListener('click', () => openExternal(videoUrl));
+    actions.appendChild(openBtn);
+    item.appendChild(actions);
+
+    const note = document.createElement('div');
+    note.className = 'gen-item-meta';
+    note.textContent = 'Video ready — click to view';
+    item.appendChild(note);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// VIDEO GEN
+// ─────────────────────────────────────────────────────────────
+
+let _vgImageData = null;
+
+function setupVideoGen() {
+  const attachBtn = el('vgAttach');
+  const imgsWrap = el('vgImgsWrap');
+  const imgPreview = el('vgImgPreview');
+  const imgRemove = el('vgImgRemove');
+  const sendBtn = el('vgSend');
+  const promptEl = el('vgPrompt');
+  const history = el('vgHistory');
+  const empty = el('vgEmpty');
+
+  if (!sendBtn || !promptEl) return;
+
+  attachBtn?.addEventListener('click', async () => {
+    const result = await pickImageForComposer();
+    if (!result) return;
+    _vgImageData = result.dataUrl;
+    if (imgPreview) imgPreview.src = result.dataUrl;
+    if (imgsWrap) imgsWrap.style.display = 'flex';
+  });
+
+  imgRemove?.addEventListener('click', () => {
+    _vgImageData = null;
+    if (imgsWrap) imgsWrap.style.display = 'none';
+    if (imgPreview) imgPreview.src = '';
+  });
+
+  sendBtn.addEventListener('click', async () => {
+    const prompt = (promptEl.value || '').trim();
+    if (!prompt) { promptEl.focus(); return; }
+
+    const token = getToken();
+    if (!token) {
+      appendGenItem(history, empty, null, prompt, 'Not connected. Reconnect from saadstudio.app/panel');
+      return;
+    }
+
+    const model = el('vgModel')?.value || 'kling-3.0-pro';
+    const duration = el('vgDuration')?.value || '5';
+    const ratio = el('vgRatio')?.value || '16:9';
+    const quality = el('vgQuality')?.value || '1080p';
+
+    const item = appendGenItem(history, empty, { model, duration: duration + 's', ratio }, prompt, null);
+    sendBtn.disabled = true;
+    promptEl.value = '';
+
+    try {
+      const result = await generateVideo(token, {
+        prompt,
+        modelId: model,
+        duration: parseInt(duration, 10),
+        aspectRatio: ratio,
+        resolution: quality,
+        imageUrl: _vgImageData || undefined,
+      });
+      _vgImageData = null;
+      if (imgsWrap) imgsWrap.style.display = 'none';
+      if (imgPreview) imgPreview.src = '';
+      updateGenItem(item, result?.videoUrl || result?.url || null, null, null);
+      try { const bal = await refreshCreditsFromServer(); updateCreditsDisplay(bal); } catch (_) {}
+    } catch (err) {
+      updateGenItem(item, null, null, err?.message || 'Generation failed');
+    } finally {
+      sendBtn.disabled = false;
+    }
+  });
+}
+
+// ─────────────────────────────────────────────────────────────
+// IMAGE GEN
+// ─────────────────────────────────────────────────────────────
+
+let _igImageData = null;
+
+function setupImageGen() {
+  const attachBtn = el('igAttach');
+  const imgsWrap = el('igImgsWrap');
+  const imgPreview = el('igImgPreview');
+  const imgRemove = el('igImgRemove');
+  const sendBtn = el('igSend');
+  const promptEl = el('igPrompt');
+  const history = el('igHistory');
+  const empty = el('igEmpty');
+
+  if (!sendBtn || !promptEl) return;
+
+  attachBtn?.addEventListener('click', async () => {
+    const result = await pickImageForComposer();
+    if (!result) return;
+    _igImageData = result.dataUrl;
+    if (imgPreview) imgPreview.src = result.dataUrl;
+    if (imgsWrap) imgsWrap.style.display = 'flex';
+  });
+
+  imgRemove?.addEventListener('click', () => {
+    _igImageData = null;
+    if (imgsWrap) imgsWrap.style.display = 'none';
+    if (imgPreview) imgPreview.src = '';
+  });
+
+  sendBtn.addEventListener('click', async () => {
+    const prompt = (promptEl.value || '').trim();
+    if (!prompt) { promptEl.focus(); return; }
+
+    const token = getToken();
+    if (!token) {
+      appendGenItem(history, empty, null, prompt, 'Not connected. Reconnect from saadstudio.app/panel');
+      return;
+    }
+
+    const model = el('igModel')?.value || 'gpt-image-2';
+    const mode = el('igMode')?.value || 'standard';
+    const ratio = el('igRatio')?.value || '1:1';
+    const quality = el('igQuality')?.value || '1024';
+    const count = parseInt(el('igCount')?.value || '1', 10);
+
+    const item = appendGenItem(history, empty, { model, mode, ratio }, prompt, null);
+    sendBtn.disabled = true;
+    promptEl.value = '';
+
+    try {
+      const result = await generateImage(token, {
+        prompt,
+        modelId: model,
+        mode,
+        aspectRatio: ratio,
+        resolution: parseInt(quality, 10),
+        numImages: count,
+        referenceImageUrl: _igImageData || undefined,
+      });
+      _igImageData = null;
+      if (imgsWrap) imgsWrap.style.display = 'none';
+      if (imgPreview) imgPreview.src = '';
+      const images = result?.images || (result?.imageUrl ? [result.imageUrl] : []);
+      updateGenItem(item, null, images, null);
+      try { const bal = await refreshCreditsFromServer(); updateCreditsDisplay(bal); } catch (_) {}
+    } catch (err) {
+      updateGenItem(item, null, null, err?.message || 'Generation failed');
+    } finally {
+      sendBtn.disabled = false;
+    }
+  });
+}
 
 init();
