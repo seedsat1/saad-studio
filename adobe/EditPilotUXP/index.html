@@ -282,164 +282,78 @@ function selVc(el){el.parentElement.querySelectorAll('.vc').forEach(function(c){
 
 function renderImageGen(){
   var host = document.getElementById('imagegenRenderHost');
-  if (!host || host.dataset.rendered === '1') return;
-  host.dataset.rendered = '1';
+  if (!host) {
+    console.error('[ImageGen] host missing');
+    return;
+  }
+  if (host.dataset.rendered === '1') {
+    console.log('[ImageGen] render skipped - already rendered');
+    return;
+  }
 
-  console.log('[ImageGen] STEP 0 - clear host');
+  function assertUniqueId(id) {
+    if (!id) return;
+    if (document.getElementById(id)) {
+      throw new Error('Duplicate id detected: ' + id);
+    }
+  }
+
+  console.log('[ImageGen] STEP 0 - before');
   host.textContent = '';
+  host.style.padding = '20px';
+  host.style.color = '#ffffff';
+  console.log('[ImageGen] STEP 0 - after');
 
-  console.log('[ImageGen] STEP 1 - base container');
+  console.log('[ImageGen] STEP 1 - before');
+  assertUniqueId('imagegen-root');
   var root = document.createElement('div');
   root.id = 'imagegen-root';
+  root.style.display = 'block';
   host.appendChild(root);
+  console.log('[ImageGen] STEP 1 - after');
 
-  console.log('[ImageGen] STEP 2 - title');
-  var title = document.createElement('div');
-  title.className = 'sec-t';
+  console.log('[ImageGen] STEP 2 - before');
+  var title = document.createElement('h3');
   title.textContent = 'Image Gen';
+  title.style.margin = '0 0 12px 0';
+  title.style.fontSize = '16px';
   root.appendChild(title);
+  console.log('[ImageGen] STEP 2 - after');
 
-  console.log('[ImageGen] STEP 3 - history');
+  console.log('[ImageGen] STEP 3 - before');
+  assertUniqueId('igHistory');
   var history = document.createElement('div');
-  history.className = 'gen-hist';
   history.id = 'igHistory';
+  history.style.minHeight = '56px';
+  history.style.padding = '10px';
+  history.style.marginBottom = '12px';
+  history.style.border = '1px solid #2f3542';
   root.appendChild(history);
+  console.log('[ImageGen] STEP 3 - after');
 
-  console.log('[ImageGen] STEP 4 - empty state');
+  console.log('[ImageGen] STEP 4 - before');
+  assertUniqueId('igEmpty');
   var empty = document.createElement('div');
-  empty.className = 'gen-empty';
   empty.id = 'igEmpty';
   empty.textContent = 'Describe an image and click generate';
+  empty.style.fontSize = '12px';
+  empty.style.color = '#c7cedb';
   history.appendChild(empty);
+  console.log('[ImageGen] STEP 4 - after');
 
-  console.log('[ImageGen] STEP 5 - composer');
+  console.log('[ImageGen] STEP 5 - before');
+  assertUniqueId('igComposer');
   var composer = document.createElement('div');
-  composer.className = 'cmp';
   composer.id = 'igComposer';
+  composer.style.display = 'block';
+  composer.style.border = '1px solid #2f3542';
+  composer.style.padding = '12px';
   root.appendChild(composer);
+  host.dataset.rendered = '1';
+  console.log('[ImageGen] STEP 5 - after');
 
-  console.log('[ImageGen] STEP 6 - top row');
-  var top = document.createElement('div');
-  top.className = 'cmp-top';
-  top.id = 'igTop';
-  composer.appendChild(top);
-
-  console.log('[ImageGen] STEP 7 - image wrap');
-  var imageWrap = document.createElement('div');
-  imageWrap.className = 'cmp-imgs-wrap';
-  imageWrap.id = 'igImgsWrap';
-  imageWrap.style.display = 'none';
-  top.appendChild(imageWrap);
-
-  console.log('[ImageGen] STEP 8 - image item');
-  var imageItem = document.createElement('div');
-  imageItem.className = 'cmp-img-item';
-  imageWrap.appendChild(imageItem);
-
-  console.log('[ImageGen] STEP 9 - preview image');
-  var preview = document.createElement('img');
-  preview.className = 'cmp-img-preview';
-  preview.id = 'igImgPreview';
-  preview.alt = '';
-  imageItem.appendChild(preview);
-
-  console.log('[ImageGen] STEP 10 - remove button');
-  var removeBtn = document.createElement('button');
-  removeBtn.className = 'cmp-img-x';
-  removeBtn.id = 'igImgRemove';
-  removeBtn.type = 'button';
-  removeBtn.textContent = 'x';
-  imageItem.appendChild(removeBtn);
-
-  console.log('[ImageGen] STEP 11 - options wrap');
-  var options = document.createElement('div');
-  options.className = 'cmp-opts';
-  options.id = 'igOptions';
-  top.appendChild(options);
-
-  console.log('[ImageGen] STEP 12 - model select');
-  var model = document.createElement('select');
-  model.className = 'cmp-sel';
-  model.id = 'igModel';
-  options.appendChild(model);
-
-  console.log('[ImageGen] STEP 13 - model option');
-  var modelOption = document.createElement('option');
-  modelOption.value = 'gpt-image-2';
-  modelOption.textContent = 'GPT Image 2';
-  model.appendChild(modelOption);
-
-  console.log('[ImageGen] STEP 14 - mode select');
-  var mode = document.createElement('select');
-  mode.className = 'cmp-sel';
-  mode.id = 'igMode';
-  options.appendChild(mode);
-
-  console.log('[ImageGen] STEP 15 - mode option');
-  var modeOption = document.createElement('option');
-  modeOption.value = 'standard';
-  modeOption.textContent = 'Standard';
-  mode.appendChild(modeOption);
-
-  console.log('[ImageGen] STEP 16 - ratio select');
-  var ratio = document.createElement('select');
-  ratio.className = 'cmp-sel';
-  ratio.id = 'igRatio';
-  options.appendChild(ratio);
-
-  console.log('[ImageGen] STEP 17 - ratio option');
-  var ratioOption = document.createElement('option');
-  ratioOption.value = '1:1';
-  ratioOption.textContent = '1:1';
-  ratio.appendChild(ratioOption);
-
-  console.log('[ImageGen] STEP 18 - prompt');
-  var prompt = document.createElement('textarea');
-  prompt.className = 'cmp-txt';
-  prompt.id = 'igPrompt';
-  prompt.placeholder = 'Describe the image you want to create...';
-  composer.appendChild(prompt);
-
-  console.log('[ImageGen] STEP 19 - action bar');
-  var bar = document.createElement('div');
-  bar.className = 'cmp-bar';
-  bar.id = 'igBar';
-  composer.appendChild(bar);
-
-  console.log('[ImageGen] STEP 20 - action left');
-  var barLeft = document.createElement('div');
-  barLeft.className = 'cmp-bar-l';
-  bar.appendChild(barLeft);
-
-  console.log('[ImageGen] STEP 21 - attach button');
-  var attach = document.createElement('button');
-  attach.className = 'cmp-icon-btn';
-  attach.id = 'igAttach';
-  attach.type = 'button';
-  attach.title = 'Attach reference image';
-  attach.textContent = 'Attach';
-  barLeft.appendChild(attach);
-
-  console.log('[ImageGen] STEP 22 - action right');
-  var barRight = document.createElement('div');
-  barRight.className = 'cmp-bar-r';
-  bar.appendChild(barRight);
-
-  console.log('[ImageGen] STEP 23 - cost');
-  var cost = document.createElement('span');
-  cost.className = 'cmp-cost';
-  cost.textContent = '2 cr';
-  barRight.appendChild(cost);
-
-  console.log('[ImageGen] STEP 24 - generate button');
-  var send = document.createElement('button');
-  send.className = 'cmp-send-btn';
-  send.id = 'igSend';
-  send.type = 'button';
-  send.textContent = 'Generate';
-  barRight.appendChild(send);
-
-  console.log('[ImageGen] STEP 25 - render complete');
+  console.log('[ImageGen] CHECKPOINT - stop after STEP 5');
+  return;
 }
 
 window._tabRenderers = window._tabRenderers || {};
