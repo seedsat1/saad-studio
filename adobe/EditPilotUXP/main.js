@@ -68,14 +68,14 @@ async function init() {
     const devSession = { email: 'dev@saadstudio.app', name: 'Dev', plan: 'pro', credits: 999, subscriptionActive: true };
     renderDashboard(devSession);
     setActiveTab('chat');
-    setupVideoGen();
-    setupImageGen();
-    setupTTS();
-    setupBroll();
-    setupCaptions();
-    setupTimeline();
-    setupColor();
-    setupAudio();
+    // setupVideoGen();
+    // setupImageGen();
+    // setupTTS();
+    // setupBroll();
+    // setupCaptions();
+    // setupTimeline();
+    // setupColor();
+    // setupAudio();
   } catch (err) {
     // Show error visibly so we can debug in UXP DevTool
     console.error('[EditPilot] init() failed:', err);
