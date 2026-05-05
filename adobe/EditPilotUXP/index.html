@@ -280,7 +280,7 @@ function selCard(el){el.parentElement.querySelectorAll('.model-card').forEach(fu
 function selCd(el){el.parentElement.querySelectorAll('.cd').forEach(function(c){c.classList.remove('sel')});el.classList.add('sel')}
 function selVc(el){el.parentElement.querySelectorAll('.vc').forEach(function(c){c.classList.remove('sel')});el.classList.add('sel')}
 
-var VIDEOGEN_DEBUG_STOP_AFTER = 14;
+var VIDEOGEN_DEBUG_STOP_AFTER = 17;
 
 function renderVideoGen(){
   var host = document.getElementById('videogenRenderHost');
@@ -467,6 +467,40 @@ function renderVideoGen(){
   console.log('[VideoGen] STEP 14 - after');
   if (VIDEOGEN_DEBUG_STOP_AFTER === 14) {
     console.log('[VideoGen] CHECKPOINT - stop after STEP 14');
+    return;
+  }
+
+  console.log('[VideoGen] STEP 15 - before');
+  var ratioOption = document.createElement('option');
+  ratioOption.value = '16:9';
+  ratioOption.textContent = '16:9';
+  ratio.appendChild(ratioOption);
+  console.log('[VideoGen] STEP 15 - after');
+  if (VIDEOGEN_DEBUG_STOP_AFTER === 15) {
+    console.log('[VideoGen] CHECKPOINT - stop after STEP 15');
+    return;
+  }
+
+  console.log('[VideoGen] STEP 16 - before');
+  assertUniqueId('vgQuality');
+  var quality = document.createElement('select');
+  quality.className = 'cmp-sel';
+  quality.id = 'vgQuality';
+  options.appendChild(quality);
+  console.log('[VideoGen] STEP 16 - after');
+  if (VIDEOGEN_DEBUG_STOP_AFTER === 16) {
+    console.log('[VideoGen] CHECKPOINT - stop after STEP 16');
+    return;
+  }
+
+  console.log('[VideoGen] STEP 17 - before');
+  var qualityOption = document.createElement('option');
+  qualityOption.value = '1080p';
+  qualityOption.textContent = '1080p';
+  quality.appendChild(qualityOption);
+  console.log('[VideoGen] STEP 17 - after');
+  if (VIDEOGEN_DEBUG_STOP_AFTER === 17) {
+    console.log('[VideoGen] CHECKPOINT - stop after STEP 17');
     return;
   }
 }
