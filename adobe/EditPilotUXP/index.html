@@ -281,7 +281,7 @@ function selCd(el){el.parentElement.querySelectorAll('.cd').forEach(function(c){
 function selVc(el){el.parentElement.querySelectorAll('.vc').forEach(function(c){c.classList.remove('sel')});el.classList.add('sel')}
 
 var VIDEOGEN_DEBUG_STOP_AFTER = 18;
-var VIDEOGEN_DEBUG_MICRO_STOP = '18D';
+var VIDEOGEN_DEBUG_MICRO_STOP = '19A';
 
 function renderVideoGen(){
   var host = document.getElementById('videogenRenderHost');
@@ -549,15 +549,36 @@ function renderVideoGen(){
     return;
   }
 
-  console.log('[VideoGen] STEP 19 - before');
-  assertUniqueId('vgBar');
+  console.log('[VideoGen] STEP 19A - before');
   var bar = document.createElement('div');
+  console.log('[VideoGen] STEP 19A - after');
+  if (VIDEOGEN_DEBUG_MICRO_STOP === '19A') {
+    console.log('[VideoGen] CHECKPOINT - stop after STEP 19A');
+    return;
+  }
+
+  console.log('[VideoGen] STEP 19B - before');
   bar.className = 'cmp-bar';
+  console.log('[VideoGen] STEP 19B - after');
+  if (VIDEOGEN_DEBUG_MICRO_STOP === '19B') {
+    console.log('[VideoGen] CHECKPOINT - stop after STEP 19B');
+    return;
+  }
+
+  console.log('[VideoGen] STEP 19C - before');
+  assertUniqueId('vgBar');
   bar.id = 'vgBar';
+  console.log('[VideoGen] STEP 19C - after');
+  if (VIDEOGEN_DEBUG_MICRO_STOP === '19C') {
+    console.log('[VideoGen] CHECKPOINT - stop after STEP 19C');
+    return;
+  }
+
+  console.log('[VideoGen] STEP 19D - before');
   composer.appendChild(bar);
-  console.log('[VideoGen] STEP 19 - after');
-  if (VIDEOGEN_DEBUG_STOP_AFTER === 19) {
-    console.log('[VideoGen] CHECKPOINT - stop after STEP 19');
+  console.log('[VideoGen] STEP 19D - after');
+  if (VIDEOGEN_DEBUG_MICRO_STOP === '19D') {
+    console.log('[VideoGen] CHECKPOINT - stop after STEP 19D');
     return;
   }
 
