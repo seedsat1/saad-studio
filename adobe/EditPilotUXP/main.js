@@ -51,14 +51,16 @@ async function init() {
     const devSession = { email: 'dev@saadstudio.app', name: 'Dev', plan: 'pro', credits: 999, subscriptionActive: true };
     renderDashboard(devSession);
     setActiveTab('chat');
-    setupVideoGen();
-    setupImageGen();
-    setupTTS();
-    setupBroll();
-    setupCaptions();
-    setupTimeline();
-    setupColor();
-    setupAudio();
+    // CRASH TEST: setup functions temporarily disabled
+    // Re-enable one at a time to find crash source:
+    // setupVideoGen();
+    // setupImageGen();
+    // setupTTS();
+    // setupBroll();
+    // setupCaptions();
+    // setupTimeline();
+    // setupColor();
+    // setupAudio();
   } catch (err) {
     // Show error visibly so we can debug in UXP DevTool
     console.error('[EditPilot] init() failed:', err);
@@ -754,98 +756,8 @@ function updateGenItem(item, videoUrl, imageUrls, errMsg) {
  * @param {string} label      Display label for logs and undo entry
  * @returns {Promise<string>} Resolves with `label` on success, throws on failure
  */
-async function importLocalAndInsertAtPlayhead(localPath, label) {
-  console.log('[EditPilot] importLocalAndInsertAtPlayhead — start', { localPath, label });
+// importLocalAndInsertAtPlayhead removed — use manual import drag-and-drop
 
-  // ── 1. Premiere Pro host API ─────────────────────────────────
-  let ppro;
-  try {
-    ppro = require('premierepro');
-  } catch (e) {
-    throw new Error('Premiere Pro API unavailable: ' + (e?.message || e));
-  }
-
-  // ── 2. Active project ────────────────────────────────────────
-  let project;
-  try {
-    project = await ppro.app.getActiveProjectAsync();
-  } catch {
-    try { project = ppro.app.getActiveProject?.(); } catch (_) {}
-  }
-  if (!project) throw new Error('No project open in Premiere Pro.');
-
-  // ── 3. Active sequence ───────────────────────────────────────
-  let sequence;
-  try {
-    sequence = project.getActiveSequence();
-  } catch (e) {
-    throw new Error('getActiveSequence() failed: ' + (e?.message || e));
-  }
-  if (!sequence) throw new Error('No active sequence — open a sequence first.');
-
-  // ── 4. Import local file ─────────────────────────────────────
-  let didImport = false;
-  try {
-    console.log('[EditPilot] importLocalAndInsertAtPlayhead — importFiles:', localPath);
-    didImport = await project.importFiles([localPath], true, null, false);
-    console.log('[EditPilot] importLocalAndInsertAtPlayhead — importFiles result:', didImport);
-  } catch (e) {
-    throw new Error('importFiles() failed: ' + (e?.message || e));
-  }
-  if (!didImport) throw new Error('Premiere rejected the import (unsupported format or locked project).');
-
-  // ── 5. Locate imported project item (last added) ─────────────
-  let projectItem = null;
-  try {
-    const children = project.rootItem.children;
-    const count = children?.numItems ?? children?.length ?? 0;
-    if (count > 0) projectItem = children[count - 1];
-  } catch (e) {
-    throw new Error('Could not read project items: ' + (e?.message || e));
-  }
-  if (!projectItem) throw new Error('Imported item not found in Project panel.');
-  console.log('[EditPilot] importLocalAndInsertAtPlayhead — item:', projectItem.name);
-
-  // ── 6. Playhead position ─────────────────────────────────────
-  let insertTick = 0;
-  try {
-    const pos = sequence.getPlayerPosition();
-    insertTick = Number(pos?.ticks ?? 0);
-  } catch {
-    insertTick = 0;
-  }
-  console.log('[EditPilot] importLocalAndInsertAtPlayhead — insertTick:', insertTick);
-
-  let insertTime;
-  try {
-    insertTime = ppro.TickTime.createWithTicks(String(insertTick));
-  } catch (e) {
-    throw new Error('TickTime.createWithTicks() failed: ' + (e?.message || e));
-  }
-
-  // ── 7. Insert — non-destructive (shifts existing clips) ──────
-  try {
-    const editor = ppro.SequenceEditor.getEditor(sequence);
-    project.executeTransaction((ca) => {
-      try {
-        const action = editor.createInsertProjectItemAction(
-          projectItem, insertTime,
-          0, 0,   // video track, audio track
-          true,   // limitShift — non-destructive
-        );
-        if (action) ca.addAction(action);
-      } catch (innerErr) {
-        // Swallow inside-transaction errors — prevents native crash
-        console.error('[EditPilot] transaction inner error:', innerErr?.message);
-      }
-    }, `EditPilot: Insert "${label}"`);
-    console.log('[EditPilot] importLocalAndInsertAtPlayhead — done');
-  } catch (e) {
-    throw new Error('executeTransaction failed: ' + (e?.message || e));
-  }
-
-  return label;
-}
 
 // ─────────────────────────────────────────────────────────────
 // VIDEO GEN
