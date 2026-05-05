@@ -2,31 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { generatePanelToken } from "@/lib/panel-auth";
 import { ensureUserRow } from "@/lib/credit-ledger";
+import prismadb from "@/lib/prismadb";
 
 export const dynamic = "force-dynamic";
 
-const TTL = 5 * 60 * 1000; // 5 minutes
-
-type Session = {
-  status: "pending" | "approved";
-  token?: string;
-  createdAt: number;
-};
-
-// Survive Next.js hot-reloads in dev via global
-declare global {
-  // eslint-disable-next-line no-var
-  var __panelAuthSessions: Map<string, Session> | undefined;
-}
-const db: Map<string, Session> =
-  global.__panelAuthSessions ??
-  (global.__panelAuthSessions = new Map<string, Session>());
+const TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 const SESSION_RE = /^[a-zA-Z0-9_-]{8,64}$/;
 
-function purge() {
-  const cut = Date.now() - TTL;
-  for (const [k, v] of db) if (v.createdAt < cut) db.delete(k);
+async function purgeExpired() {
+  await prismadb.panelAuthSession.deleteMany({
+    where: { expiresAt: { lt: new Date() } },
+  });
 }
 
 /** GET — plugin polls for result every 2.5 seconds */
@@ -34,21 +21,28 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: { sessionId: string } },
 ) {
-  purge();
   const { sessionId } = params;
   if (!SESSION_RE.test(sessionId))
     return NextResponse.json({ error: "Invalid session id" }, { status: 400 });
 
-  let s = db.get(sessionId);
+  await purgeExpired();
+
+  let s = await prismadb.panelAuthSession.findUnique({ where: { id: sessionId } });
+
   if (!s) {
     // First poll — register the session as pending
-    s = { status: "pending", createdAt: Date.now() };
-    db.set(sessionId, s);
+    s = await prismadb.panelAuthSession.create({
+      data: {
+        id: sessionId,
+        status: "pending",
+        expiresAt: new Date(Date.now() + TTL_MS),
+      },
+    });
     return NextResponse.json({ status: "pending" });
   }
 
-  if (Date.now() - s.createdAt > TTL) {
-    db.delete(sessionId);
+  if (s.expiresAt < new Date()) {
+    await prismadb.panelAuthSession.delete({ where: { id: sessionId } });
     return NextResponse.json({ status: "expired" });
   }
 
@@ -64,25 +58,40 @@ export async function POST(
   _req: NextRequest,
   { params }: { params: { sessionId: string } },
 ) {
-  purge();
   const { sessionId } = params;
   if (!SESSION_RE.test(sessionId))
     return NextResponse.json({ error: "Invalid session id" }, { status: 400 });
-
-  const s = db.get(sessionId);
-  if (!s || Date.now() - s.createdAt > TTL)
-    return NextResponse.json(
-      { error: "Session not found or expired." },
-      { status: 404 },
-    );
 
   const { userId } = await auth();
   if (!userId)
     return NextResponse.json({ error: "Not signed in." }, { status: 401 });
 
+  await purgeExpired();
+
+  let s = await prismadb.panelAuthSession.findUnique({ where: { id: sessionId } });
+
+  // If the browser POSTs before the plugin's first GET poll, create the session now
+  if (!s) {
+    s = await prismadb.panelAuthSession.create({
+      data: {
+        id: sessionId,
+        status: "pending",
+        expiresAt: new Date(Date.now() + TTL_MS),
+      },
+    });
+  } else if (s.expiresAt < new Date()) {
+    await prismadb.panelAuthSession.delete({ where: { id: sessionId } });
+    return NextResponse.json({ error: "Session expired." }, { status: 410 });
+  }
+
   await ensureUserRow(userId);
-  s.status = "approved";
-  s.token = generatePanelToken(userId);
+  const token = generatePanelToken(userId);
+
+  await prismadb.panelAuthSession.update({
+    where: { id: sessionId },
+    data: { status: "approved", token },
+  });
 
   return NextResponse.json({ ok: true });
 }
+

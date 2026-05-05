@@ -498,3 +498,15 @@ model UserCharacter {
   @@index([userId, updatedAt])
 }
 
+/// Short-lived session for UXP plugin auto-login flow.
+/// Created when plugin polls GET, approved when browser POSTs after sign-in.
+model PanelAuthSession {
+  id        String   @id                     // random hex session ID from plugin
+  status    String   @default("pending")     // "pending" | "approved"
+  token     String?                          // panel token set on approval
+  expiresAt DateTime                         // TTL = createdAt + 5 min
+  createdAt DateTime @default(now())
+
+  @@index([expiresAt])
+}
+
