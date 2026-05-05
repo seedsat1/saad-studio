@@ -746,6 +746,117 @@ function updateGenItem(item, videoUrl, imageUrls, errMsg) {
 }
 
 // ─────────────────────────────────────────────────────────────
+// TIMELINE IMPORT + INSERT HELPER
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Download a media URL to the UXP temp folder, import it into the active
+ * Premiere Pro project, then insert it at the current playhead position
+ * (non-destructive — shifts existing clips forward).
+ *
+ * Approved pipeline: Generate → Download → Import → Insert at playhead.
+ *
+ * UXP APIs used:
+ *   require('uxp').storage.localFileSystem.getTemporaryFolder()
+ *   tempFolder.createFile(name, { overwrite: true })
+ *   file.write(ArrayBuffer, { format: uxp.storage.formats.binary })
+ *   project.importFiles([localPath], suppressUI, targetBin, asNumberedStills)
+ *   sequence.getPlayerPosition()                   → current playhead TickTime
+ *   ppro.TickTime.createWithTicks(String(ticks))
+ *   ppro.SequenceEditor.getEditor(sequence)
+ *   editor.createInsertProjectItemAction(item, time, vTrack, aTrack, limitShift)
+ *   project.executeTransaction(callback, undoLabel)
+ *
+ * @param {string} mediaUrl   Public HTTPS URL of the generated video file
+ * @param {string} filename   Filename to use in the temp folder (with extension)
+ * @returns {Promise<string>} Resolves with `filename` on success
+ */
+async function importAndInsertAtPlayhead(mediaUrl, filename) {
+  // ── 1. Premiere Pro host API ─────────────────────────────────
+  let ppro;
+  try {
+    ppro = require('premierepro');
+  } catch {
+    throw new Error('Premiere Pro API unavailable — is the plugin running inside Premiere Pro?');
+  }
+
+  // ── 2. Active project + sequence ────────────────────────────
+  let project;
+  try {
+    project = await ppro.app.getActiveProjectAsync();
+  } catch {
+    project = ppro.app.getActiveProject?.();
+  }
+  if (!project) throw new Error('No project is open in Premiere Pro.');
+
+  const sequence = project.getActiveSequence();
+  if (!sequence) throw new Error('No active sequence — double-click a sequence in the Project panel first.');
+
+  // ── 3. Download file → UXP temp folder ──────────────────────
+  const uxp = require('uxp');
+  const fs = uxp.storage.localFileSystem;
+
+  const tempFolder = await fs.getTemporaryFolder();
+  const tempFile = await tempFolder.createFile(filename, { overwrite: true });
+
+  const response = await fetch(mediaUrl);
+  if (!response.ok) throw new Error(`Download failed: HTTP ${response.status} ${response.statusText}`);
+  const buffer = await response.arrayBuffer();
+  await tempFile.write(buffer, { format: uxp.storage.formats.binary });
+
+  const localPath = tempFile.nativePath;
+  if (!localPath) throw new Error('Could not resolve temp file path.');
+
+  // ── 4. Import into Premiere project ─────────────────────────
+  // importFiles(paths, suppressUI, targetBin, importAsNumberedStills)
+  const didImport = await project.importFiles([localPath], true, null, false);
+  if (!didImport) throw new Error('Premiere Pro rejected importFiles() — unsupported format or locked project.');
+
+  // ── 5. Find the newly imported projectItem ───────────────────
+  // Premiere adds new items at the end of rootItem.children.
+  const children = project.rootItem.children;
+  const count = children.numItems ?? children.length ?? 0;
+  let projectItem = null;
+  const baseName = filename.replace(/\.[^.]+$/, ''); // strip extension for fuzzy match
+  for (let i = count - 1; i >= 0; i--) {
+    const child = children[i];
+    if (!child) continue;
+    const name = child.name ?? '';
+    if (name === filename || name.startsWith(baseName)) {
+      projectItem = child;
+      break;
+    }
+  }
+  if (!projectItem) throw new Error('Imported item not found in Project panel. Import may have succeeded — check manually.');
+
+  // ── 6. Read current playhead position ───────────────────────
+  let insertTick = 0;
+  try {
+    const pos = sequence.getPlayerPosition();
+    insertTick = Number(pos?.ticks ?? 0);
+  } catch {
+    insertTick = 0; // fallback: insert at sequence start
+  }
+  const insertTime = ppro.TickTime.createWithTicks(String(insertTick));
+
+  // ── 7. Non-destructive insert at playhead ────────────────────
+  // createInsertProjectItemAction shifts existing clips forward — never overwrites.
+  const editor = ppro.SequenceEditor.getEditor(sequence);
+  project.executeTransaction((ca) => {
+    const action = editor.createInsertProjectItemAction(
+      projectItem,
+      insertTime,
+      0,    // video track index
+      0,    // audio track index
+      true, // limitShift — non-destructive
+    );
+    if (action) ca.addAction(action);
+  }, `EditPilot: Insert "${filename}"`);
+
+  return filename;
+}
+
+// ─────────────────────────────────────────────────────────────
 // VIDEO GEN
 // ─────────────────────────────────────────────────────────────
 
@@ -805,10 +916,28 @@ function setupVideoGen() {
         resolution: quality,
         imageUrl: _vgImageData || undefined,
       });
+      const videoUrl = result?.videoUrl || result?.url || null;
       _vgImageData = null;
       if (imgsWrap) imgsWrap.style.display = 'none';
       if (imgPreview) imgPreview.src = '';
-      updateGenItem(item, result?.videoUrl || result?.url || null, null, null);
+      updateGenItem(item, videoUrl, null, null);
+
+      // ── Import + Insert into Timeline ──────────────────────
+      if (videoUrl) {
+        const note = item.querySelector('.gen-item-meta');
+        if (note) note.textContent = 'Downloading and inserting into timeline…';
+        try {
+          // Build a safe filename from timestamp + prompt slug
+          const ext = (videoUrl.split('?')[0].split('.').pop() || 'mp4').slice(0, 4);
+          const slug = prompt.slice(0, 24).replace(/[^a-zA-Z0-9]/g, '_');
+          const filename = `ep_vg_${Date.now()}_${slug}.${ext}`;
+          await importAndInsertAtPlayhead(videoUrl, filename);
+          if (note) note.textContent = `Inserted at playhead \u2014 ${filename}`;
+        } catch (insErr) {
+          if (note) note.textContent = `Video ready \u2014 timeline insert failed: ${insErr?.message || 'Unknown error'}`;
+        }
+      }
+
       try { const bal = await refreshCreditsFromServer(); updateCreditsDisplay(bal); } catch (_) {}
     } catch (err) {
       updateGenItem(item, null, null, err?.message || 'Generation failed');
