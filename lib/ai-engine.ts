@@ -32,7 +32,7 @@
  * ─ Adding a new task ───────────────────────────────────────────────────────
  *   1. Add name to AiTaskName union.
  *   2. Add entry to TASK_REGISTRY (no modelId needed).
- *   3. Add tier→model mapping to MODEL_TIERS.
+ *   3. Add capability mapping in MODEL_TIERS for the new task.
  *   4. Route calls runAiTask({ task, input, userContext }).
  *
  * ─ Adding a new provider ───────────────────────────────────────────────────
@@ -112,27 +112,61 @@ export interface AiRunResult {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MODEL TIERS
+// MODEL CAPABILITIES + TIERS
 // ─────────────────────────────────────────────────────────────────────────────
 //
-// Maps each task × plan tier → KIE model id.
-// This is the ONLY place model names appear in the AI engine.
+// Full decoupling chain:  Feature → Plan → Capability → Model
 //
-// Tier order (cheapest → best):  free → starter → plus → pro → max
+//   MODEL_TIERS       maps  task × plan  →  capability name
+//   MODEL_CAPABILITIES maps  capability  →  { provider, model }
 //
-// To change a model for a tier, edit this table.
-// To force a single model in any environment, set the env var override.
-//   e.g. STORY_ENGINE_MODEL=claude-sonnet-4-6
+// Model names live ONLY in MODEL_CAPABILITIES.
+// Tasks and plan tiers reference capability names only.
+//
+// To swap a model:  edit MODEL_CAPABILITIES (one place, affects all tasks).
+// To change which tier gets which capability: edit MODEL_TIERS.
+// To force a model in a deployment: set env var, e.g. STORY_ENGINE_MODEL=...
 
+/** Capability tier names — describe what the model can do, not what it is. */
+type ModelCapability = "cheap_text" | "balanced_text" | "premium_text";
+
+/** Plan tiers in ascending order of value. */
 type PlanTier = "free" | "starter" | "plus" | "pro" | "max";
 
-const MODEL_TIERS: Record<AiTaskName, Record<PlanTier, string>> = {
+/**
+ * MODEL_CAPABILITIES — the ONLY place in the engine where provider/model names appear.
+ *
+ * To upgrade a tier globally (e.g. replace gemini-3-pro with a newer cheap model):
+ *   change cheap_text here — every task using cheap_text updates automatically.
+ */
+const MODEL_CAPABILITIES: Record<ModelCapability, { provider: AiProvider; model: string }> = {
+  cheap_text: {
+    provider: "kie",
+    model:    "gemini-3-pro",       // cost-efficient; solid structured JSON
+  },
+  balanced_text: {
+    provider: "kie",
+    model:    "claude-sonnet-4-6",  // strong reasoning + structured output
+  },
+  premium_text: {
+    provider: "kie",
+    model:    "gpt-5-4",            // highest capability available via KIE
+  },
+};
+
+/**
+ * MODEL_TIERS — maps each task × plan tier → a capability name.
+ *
+ * No model names here. Only capability references.
+ * Tier order (ascending):  free → starter → plus → pro → max
+ */
+const MODEL_TIERS: Record<AiTaskName, Record<PlanTier, ModelCapability>> = {
   story_engine: {
-    free:    "gemini-3-pro",       // cost-efficient — solid for transcript parsing
-    starter: "gemini-3-pro",       // same as free
-    plus:    "claude-sonnet-4-6",  // strong structured JSON + reasoning
-    pro:     "claude-sonnet-4-6",  // same as plus (pro value is higher credit allowance)
-    max:     "gpt-5-4",            // best available via KIE
+    free:    "cheap_text",
+    starter: "cheap_text",
+    plus:    "balanced_text",
+    pro:     "balanced_text",
+    max:     "premium_text",
   },
 };
 
@@ -187,35 +221,37 @@ Guidelines:
 /**
  * Resolve the model id for a task based on the user's plan tier.
  *
- * Resolution order:
- *   1. Env var override  (e.g. STORY_ENGINE_MODEL)  — admin / deployment control
- *   2. MODEL_TIERS table — plan-aware selection
+ * Resolution chain:  task + planId → capability → MODEL_CAPABILITIES → model string
+ *
+ * Override order:
+ *   1. Env var  (e.g. STORY_ENGINE_MODEL=...)  — admin / deployment control
+ *   2. MODEL_TIERS[task][planTier] → MODEL_CAPABILITIES[capability].model
  *
  * @param task         — AiTaskName
- * @param userContext  — { planId } from UserSubscription; omit for free tier
+ * @param userContext  — { planId } from UserSubscription; omit/null = free tier
  */
 export function resolveModelId(task: AiTaskName, userContext?: UserContext): string {
-  // 1. Admin env override (e.g. STORY_ENGINE_MODEL=gpt-5-4)
-  const envKey = `${task.toUpperCase()}_MODEL`; // e.g. STORY_ENGINE_MODEL
+  // 1. Admin env override  (e.g. STORY_ENGINE_MODEL=gpt-5-4)
+  const envKey  = `${task.toUpperCase()}_MODEL`;
   const override = process.env[envKey];
   if (override) return override;
 
-  // 2. Plan-aware selection from MODEL_TIERS
+  // 2. Plan tier → capability → model
   const tiers = MODEL_TIERS[task];
-  if (!tiers) return "gemini-3-pro"; // safe default if task has no tier map yet
+  if (!tiers) return MODEL_CAPABILITIES.cheap_text.model; // safe default
 
   const planId = userContext?.planId ?? null;
   let tier: PlanTier;
-
   switch (planId) {
     case "max":     tier = "max";     break;
     case "pro":     tier = "pro";     break;
     case "plus":    tier = "plus";    break;
     case "starter": tier = "starter"; break;
-    default:        tier = "free";    break; // null, undefined, unknown → free
+    default:        tier = "free";    break; // null / unknown → free
   }
 
-  return tiers[tier];
+  const capability = tiers[tier];
+  return MODEL_CAPABILITIES[capability].model;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
