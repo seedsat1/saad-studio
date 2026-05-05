@@ -164,35 +164,3 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Story analysis failed. Please try again." }, { status: 500 });
   }
 }
-
-
-    // Sanitize each section field
-    const sections = parsed.sections.map((s) => ({
-      title:  String(s?.title  ?? "Section").slice(0, 80),
-      start:  String(s?.start  ?? "00:00:00").slice(0, 12),
-      end:    String(s?.end    ?? "00:00:00").slice(0, 12),
-      reason: String(s?.reason ?? "").slice(0, 300),
-    }));
-
-    return NextResponse.json({
-      sections,
-      creditsUsed: STORY_CREDIT_COST,
-      generationId,
-    });
-
-  } catch (error) {
-    if (error instanceof InsufficientCreditsError) {
-      return NextResponse.json(
-        {
-          error: "Insufficient credits",
-          requiredCredits: error.requiredCredits,
-          currentBalance: error.currentBalance,
-        },
-        { status: 402 },
-      );
-    }
-
-    console.error("[panel/generate/story]", error);
-    return NextResponse.json({ error: "Story analysis failed. Please try again." }, { status: 500 });
-  }
-}
