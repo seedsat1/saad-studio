@@ -1,7 +1,7 @@
 {
   "manifestVersion": 5,
   "id": "com.saadstudio.editpilot",
-  "name": "EditPilot AI",
+  "name": "saadstudio",
   "version": "1.0.0",
   "author": "Saad Studio",
   "description": "AI-powered video editing assistant for Premiere Pro — by Saad Studio",
@@ -15,7 +15,7 @@
       "type": "panel",
       "id": "editpilot.panel",
       "label": {
-        "default": "EditPilot AI"
+        "default": "saadstudio"
       },
       "minimumSize": {
         "width": 380,
