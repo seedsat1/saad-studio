@@ -1,4 +1,4 @@
-﻿/**
+/**
  * main.js — EditPilot AI (Saad Studio)
  *
  * Plugin entry point.
@@ -14,7 +14,7 @@
 
 import { connectWithToken, restoreSession, disconnect } from './modules/auth.js';
 import { refreshCreditsFromServer }                     from './modules/credits.js';
-import { getToken, updateCreditsCache }                  from './modules/storage.js';
+import { getToken, updateCreditsCache, getSiteUrl, saveSiteUrl, DEFAULT_SITE_URL } from './modules/storage.js';
 import {
   showConnect, showDashboard,
   setConnectError, setConnectLoading,
@@ -31,11 +31,17 @@ import { parseCommand, getHelpText, INTENTS }           from './modules/assistan
 // INIT
 // ─────────────────────────────────────────────────────────────
 
+function showConnectScreen() {
+  showConnect();
+  const input = document.getElementById('inputSiteUrl');
+  if (input && !String(input.value || '').trim()) input.value = getSiteUrl() || DEFAULT_SITE_URL;
+}
+
 async function init() {
   const session = restoreSession();
 
   if (!session) {
-    showConnect();
+    showConnectScreen();
     return;
   }
 
@@ -50,7 +56,7 @@ async function init() {
     if (err?.statusCode === 401) {
       // Token invalid — send back to connect screen
       disconnect();
-      showConnect();
+      showConnectScreen();
     }
     // Other errors (network etc.) — leave cached display
   }
@@ -72,8 +78,21 @@ function renderDashboard(session) {
 // CONNECT FORM (Panel Token)
 // ─────────────────────────────────────────────────────────────
 
-/** Fixed production URL — no user-editable field. */
-const PRODUCTION_URL = 'https://www.saadstudio.app';
+function cleanBaseUrl(url) {
+  return (url || '').trim().replace(/\/+$/, '');
+}
+
+function getBaseUrlFromUi() {
+  return cleanBaseUrl(document.getElementById('inputSiteUrl')?.value);
+}
+
+function getBaseUrl() {
+  return getBaseUrlFromUi() || getSiteUrl() || DEFAULT_SITE_URL;
+}
+
+function persistBaseUrl() {
+  saveSiteUrl(getBaseUrl());
+}
 
 // ─────────────────────────────────────────────────────────────
 // AUTO-LOGIN — Browser-based OAuth-style polling flow
@@ -137,13 +156,13 @@ function stopPolling() {
 }
 
 /** Start polling /api/panel/auth-session/:sessionId every 2.5 s */
-function startPolling(sessionId) {
+function startPolling(sessionId, baseUrl) {
   _loginSession = sessionId;
 
   async function poll() {
     if (_loginSession !== sessionId) return; // cancelled
     try {
-      const res = await fetch(PRODUCTION_URL + '/api/panel/auth-session/' + sessionId);
+      const res = await fetch(baseUrl + '/api/panel/auth-session/' + sessionId);
       if (!res.ok) { scheduleNext(); return; }
       const data = await res.json();
 
@@ -152,7 +171,7 @@ function startPolling(sessionId) {
         hideWaitingState();
         setConnectLoading(true);
         try {
-          const session = await connectWithToken(PRODUCTION_URL, data.token);
+          const session = await connectWithToken(baseUrl, data.token);
           renderDashboard(session);
         } catch (err) {
           setConnectError(err.message || 'Auto-connect failed. Please paste token manually.');
@@ -186,10 +205,12 @@ function startPolling(sessionId) {
 
 // "Login with Saad Studio" → open browser, start polling
 document.getElementById('btnOpenSite')?.addEventListener('click', () => {
+  persistBaseUrl();
+  const baseUrl = getBaseUrl();
   const sessionId = generateSessionId();
-  openExternal(PRODUCTION_URL + '/panel/connect?session=' + sessionId);
+  openExternal(baseUrl + '/panel/connect?session=' + sessionId);
   showWaitingState();
-  startPolling(sessionId);
+  startPolling(sessionId, baseUrl);
 });
 
 // Cancel button in waiting state
@@ -200,13 +221,15 @@ document.getElementById('btnCancelLogin')?.addEventListener('click', () => {
 
 document.getElementById('connectForm')?.addEventListener('submit', async (e) => {
   e.preventDefault();
+  persistBaseUrl();
+  const baseUrl = getBaseUrl();
   const panelToken = (document.getElementById('inputToken')?.value || '').trim();
 
   setConnectError('');
   setConnectLoading(true);
 
   try {
-    const session = await connectWithToken(PRODUCTION_URL, panelToken);
+    const session = await connectWithToken(baseUrl, panelToken);
     renderDashboard(session);
   } catch (err) {
     setConnectError(err.message || 'Connection failed. Please try again.');
@@ -235,28 +258,51 @@ document.getElementById('btnRefreshCredits')?.addEventListener('click', async ()
 // Disconnect
 document.getElementById('btnDisconnect')?.addEventListener('click', () => {
   disconnect();
-  showConnect();
+  showConnectScreen();
 });
 
 // Manage subscription
 /** Open a URL in the system browser — works in UXP Premiere Pro */
 function openExternal(url) {
   try {
-    const uxp = require('uxp');
-    uxp.shell.openExternal(url);
+    const uxp = globalThis.require ? globalThis.require('uxp') : null;
+    const shell = uxp?.shell || globalThis.uxp?.shell;
+    if (shell?.openExternal) {
+      shell.openExternal(url);
+      return;
+    }
+    if (typeof globalThis.open === 'function') globalThis.open(url, '_blank');
   } catch (_) { /* silent in non-UXP context */ }
 }
 
+document.getElementById('inputSiteUrl')?.addEventListener('change', persistBaseUrl);
+document.getElementById('inputSiteUrl')?.addEventListener('blur', persistBaseUrl);
+
+document.getElementById('linkCreateAccount')?.addEventListener('click', (e) => {
+  e.preventDefault();
+  persistBaseUrl();
+  openExternal(getBaseUrl() + '/panel');
+});
+
+document.getElementById('linkPanel')?.addEventListener('click', (e) => {
+  e.preventDefault();
+  persistBaseUrl();
+  openExternal(getBaseUrl() + '/panel');
+});
+
 document.getElementById('btnManageSub')?.addEventListener('click', () => {
-  openExternal(PRODUCTION_URL + '/pricing');
+  persistBaseUrl();
+  openExternal(getBaseUrl() + '/pricing');
 });
 
 document.getElementById('subWarnBtn')?.addEventListener('click', () => {
-  openExternal(PRODUCTION_URL + '/pricing');
+  persistBaseUrl();
+  openExternal(getBaseUrl() + '/pricing');
 });
 
 document.getElementById('hdrCredits')?.addEventListener('click', () => {
-  openExternal(PRODUCTION_URL + '/pricing');
+  persistBaseUrl();
+  openExternal(getBaseUrl() + '/pricing');
 });
 
 document.getElementById('hdrAvatar')?.addEventListener('click', () => {
