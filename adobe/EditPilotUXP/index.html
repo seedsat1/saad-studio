@@ -352,7 +352,32 @@ function renderImageGen(){
   host.dataset.rendered = '1';
   console.log('[ImageGen] STEP 5 - after');
 
-  console.log('[ImageGen] CHECKPOINT - stop after STEP 5');
+  console.log('[ImageGen] STEP 6 - before');
+  assertUniqueId('igTop');
+  var top = document.createElement('div');
+  top.id = 'igTop';
+  top.style.display = 'block';
+  top.style.marginBottom = '12px';
+  composer.appendChild(top);
+  console.log('[ImageGen] STEP 6 - after');
+
+  console.log('[ImageGen] STEP 7 - before');
+  assertUniqueId('igImgsWrap');
+  var imageWrap = document.createElement('div');
+  imageWrap.id = 'igImgsWrap';
+  imageWrap.style.display = 'none';
+  imageWrap.style.border = '1px solid #2f3542';
+  imageWrap.style.padding = '8px';
+  top.appendChild(imageWrap);
+  console.log('[ImageGen] STEP 7 - after');
+
+  console.log('[ImageGen] STEP 8 - before');
+  var imageItem = document.createElement('div');
+  imageItem.style.display = 'block';
+  imageWrap.appendChild(imageItem);
+  console.log('[ImageGen] STEP 8 - after');
+
+  console.log('[ImageGen] CHECKPOINT - stop after STEP 8');
   return;
 }
 
