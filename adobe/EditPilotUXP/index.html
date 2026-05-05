@@ -12,60 +12,66 @@
 <body>
 
 <!-- ======================================================
-     CONNECT SCREEN (Panel Token)
+     CONNECT SCREEN
      ====================================================== -->
 <div class="login-screen vis" id="connectScreen">
   <div class="login-card">
 
-    <div class="login-logo-wrap">
-      <div class="login-logo">EP</div>
-    </div>
-
-    <div class="login-title">Edit<span>Pilot</span> AI</div>
-    <div class="login-sub">
-      Connect your Saad Studio account.<br>
-      Get your token at
-      <a data-get-token-href href="https://saadstudio.app/panel" target="_blank">saadstudio.app/panel &#8599;</a>
-    </div>
-
-    <form id="connectForm" autocomplete="on" novalidate>
-
-      <div class="lf">
-        <label for="inputSiteUrl">Site URL</label>
-        <input
-          id="inputSiteUrl"
-          type="url"
-          autocomplete="url"
-          placeholder="https://saadstudio.app"
-          value="https://saadstudio.app"
-        >
-        <div class="hint">Your Saad Studio deployment URL</div>
+    <!-- Brand hero -->
+    <div class="login-hero">
+      <div class="login-brand-mark">
+        <svg width="38" height="38" viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect width="38" height="38" rx="11" fill="url(#lg1)"/>
+          <path d="M11 19c0-4.418 3.582-8 8-8s8 3.582 8 8" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/>
+          <circle cx="19" cy="19" r="3.5" fill="#fff"/>
+          <defs>
+            <linearGradient id="lg1" x1="0" y1="0" x2="38" y2="38" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#7c5cfc"/>
+              <stop offset="1" stop-color="#a855f7"/>
+            </linearGradient>
+          </defs>
+        </svg>
       </div>
+      <div class="login-brand-name">saadstudio</div>
+      <div class="login-tagline">Unlock the Power of AI Generation</div>
+      <div class="login-sub">Start generating with your Saad Studio account</div>
+    </div>
 
+    <!-- Primary CTAs -->
+    <button class="btn-login-primary" id="btnOpenSite" type="button">
+      Login with Saad Studio &#8599;
+    </button>
+    <a class="btn-login-secondary" href="https://www.saadstudio.app/sign-up" target="_blank">
+      Create Account
+    </a>
+
+    <!-- Divider -->
+    <div class="login-divider">
+      <span>Already have a token?</span>
+    </div>
+
+    <!-- Token input — secondary -->
+    <form id="connectForm" autocomplete="off" novalidate>
       <div class="lf">
-        <label for="inputToken">Panel Token</label>
+        <label for="inputToken">Paste your connection token</label>
         <input
           id="inputToken"
           type="password"
           autocomplete="off"
           spellcheck="false"
-          placeholder="ssp_..."
+          placeholder="ssp_&#x2026;"
         >
         <div class="hint">
-          Log in at your site &#8594; visit /panel &#8594; copy the token shown
+          Log in at saadstudio.app/panel &#8594; copy the token shown there
         </div>
       </div>
 
       <div class="login-err" id="connectError"></div>
 
-      <button class="btn-login" id="btnConnect" type="submit">Connect</button>
-
+      <button class="btn-login" id="btnConnect" type="submit">
+        <span id="btnConnectText">Connect</span>
+      </button>
     </form>
-
-    <div class="login-footer">
-      Don&#39;t have an account?
-      <a href="https://saadstudio.app/sign-up" target="_blank">Sign up free &#8599;</a>
-    </div>
 
   </div>
 </div>

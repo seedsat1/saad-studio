@@ -14,7 +14,7 @@
 
 import { connectWithToken, restoreSession, disconnect } from './modules/auth.js';
 import { refreshCreditsFromServer }                     from './modules/credits.js';
-import { getToken, getSiteUrl, updateCreditsCache }     from './modules/storage.js';
+import { getToken, updateCreditsCache }                  from './modules/storage.js';
 import {
   showConnect, showDashboard,
   setConnectError, setConnectLoading,
@@ -72,16 +72,23 @@ function renderDashboard(session) {
 // CONNECT FORM (Panel Token)
 // ─────────────────────────────────────────────────────────────
 
+/** Fixed production URL — no user-editable field. */
+const PRODUCTION_URL = 'https://www.saadstudio.app';
+
+// "Login with Saad Studio" — opens browser to /panel so user can copy token
+document.getElementById('btnOpenSite')?.addEventListener('click', () => {
+  openExternal(PRODUCTION_URL + '/panel');
+});
+
 document.getElementById('connectForm')?.addEventListener('submit', async (e) => {
   e.preventDefault();
-  const siteUrl    = (document.getElementById('inputSiteUrl')?.value || '').trim();
   const panelToken = (document.getElementById('inputToken')?.value || '').trim();
 
   setConnectError('');
   setConnectLoading(true);
 
   try {
-    const session = await connectWithToken(siteUrl, panelToken);
+    const session = await connectWithToken(PRODUCTION_URL, panelToken);
     renderDashboard(session);
   } catch (err) {
     setConnectError(err.message || 'Connection failed. Please try again.');
@@ -89,20 +96,6 @@ document.getElementById('connectForm')?.addEventListener('submit', async (e) => 
     setConnectLoading(false);
   }
 });
-
-// Pre-fill site URL if previously saved
-const savedUrl = getSiteUrl();
-const inputUrl = document.getElementById('inputSiteUrl');
-if (inputUrl && savedUrl) inputUrl.value = savedUrl;
-
-// Update the "Get token" link dynamically
-function updateGetTokenLink() {
-  const url = (document.getElementById('inputSiteUrl')?.value || getSiteUrl()).replace(/\/+$/, '');
-  const links = document.querySelectorAll('[data-get-token-href]');
-  links.forEach(l => { l.href = url + '/panel'; });
-}
-document.getElementById('inputSiteUrl')?.addEventListener('input', updateGetTokenLink);
-updateGetTokenLink();
 
 // ─────────────────────────────────────────────────────────────
 // HEADER / DASHBOARD ACTIONS
@@ -135,19 +128,19 @@ function openExternal(url) {
 }
 
 document.getElementById('btnManageSub')?.addEventListener('click', () => {
-  openExternal(getSiteUrl() + '/pricing');
+  openExternal(PRODUCTION_URL + '/pricing');
 });
 
 document.getElementById('subWarnBtn')?.addEventListener('click', () => {
-  openExternal(getSiteUrl() + '/pricing');
+  openExternal(PRODUCTION_URL + '/pricing');
 });
 
 document.getElementById('hdrCredits')?.addEventListener('click', () => {
-  openExternal(getSiteUrl() + '/pricing');
+  openExternal(PRODUCTION_URL + '/pricing');
 });
 
 document.getElementById('hdrAvatar')?.addEventListener('click', () => {
-  openExternal(getSiteUrl() + '/dashboard');
+  openExternal(PRODUCTION_URL + '/dashboard');
 });
 
 // ─────────────────────────────────────────────────────────────
