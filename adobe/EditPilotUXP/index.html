@@ -17,61 +17,56 @@
 <div class="login-screen vis" id="connectScreen">
   <div class="login-card">
 
-    <!-- Brand hero -->
-    <div class="login-hero">
-      <div class="login-brand-mark">
-        <svg width="38" height="38" viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-          <rect width="38" height="38" rx="11" fill="url(#lg1)"/>
-          <path d="M11 19c0-4.418 3.582-8 8-8s8 3.582 8 8" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/>
-          <circle cx="19" cy="19" r="3.5" fill="#fff"/>
-          <defs>
-            <linearGradient id="lg1" x1="0" y1="0" x2="38" y2="38" gradientUnits="userSpaceOnUse">
-              <stop stop-color="#7c5cfc"/>
-              <stop offset="1" stop-color="#a855f7"/>
-            </linearGradient>
-          </defs>
+    <!-- Logo row -->
+    <div class="login-logo-row">
+      <div class="login-logo-icon">
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12.5 2L4 13h7l-1.5 7L18 9h-7l1.5-7z" fill="#fff" stroke="#fff" stroke-width=".5" stroke-linejoin="round"/>
         </svg>
       </div>
-      <div class="login-brand-name">saadstudio</div>
-      <div class="login-tagline">Unlock the Power of AI Generation</div>
-      <div class="login-sub">Start generating with your Saad Studio account</div>
+      <span class="login-logo-text">Saad Studio</span>
     </div>
 
-    <!-- Primary CTAs -->
+    <!-- Hero copy -->
+    <h1 class="login-heading">Unlock the Power of<br>AI Generation</h1>
+    <p class="login-desc">Start generating with your Saad Studio account</p>
+
+    <!-- Primary CTA -->
     <button class="btn-login-primary" id="btnOpenSite" type="button">
-      Login with Saad Studio &#8599;
+      Login with Saad Studio
+      <svg width="13" height="13" viewBox="0 0 13 13" fill="none" style="flex-shrink:0" aria-hidden="true">
+        <path d="M2.5 10.5l8-8M10.5 10.5V2.5H2.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
     </button>
+
+    <!-- Secondary CTA -->
     <a class="btn-login-secondary" href="https://www.saadstudio.app/sign-up" target="_blank">
       Create Account
     </a>
 
     <!-- Divider -->
-    <div class="login-divider">
-      <span>Already have a token?</span>
-    </div>
+    <div class="login-divider"><span>or connect with token</span></div>
 
-    <!-- Token input — secondary -->
+    <!-- Token form -->
     <form id="connectForm" autocomplete="off" novalidate>
       <div class="lf">
-        <label for="inputToken">Paste your connection token</label>
         <input
           id="inputToken"
           type="password"
           autocomplete="off"
           spellcheck="false"
-          placeholder="ssp_&#x2026;"
+          placeholder="Paste your connection token (ssp_&#x2026;)"
         >
-        <div class="hint">
-          Log in at saadstudio.app/panel &#8594; copy the token shown there
-        </div>
       </div>
-
       <div class="login-err" id="connectError"></div>
-
-      <button class="btn-login" id="btnConnect" type="submit">
-        <span id="btnConnectText">Connect</span>
-      </button>
+      <button class="btn-login-connect" id="btnConnect" type="submit">Connect &#8594;</button>
     </form>
+
+    <!-- Footer -->
+    <p class="login-footer-note">
+      Get your token at
+      <a href="https://www.saadstudio.app/panel" target="_blank">saadstudio.app/panel</a>
+    </p>
 
   </div>
 </div>
