@@ -60,9 +60,14 @@ function esc(v) {
  *   { confirmed: false, selected: []         }  — user cancelled
  *
  * @param {Array<{title:string, start:string, end:string, reason:string}>} sections
+ * @param {{ title?:string, applyLabel?:string, description?:string }} [options]
  * @returns {Promise<{ confirmed: boolean, selected: Array<object> }>}
  */
-export function openConfirmModal(sections) {
+export function openConfirmModal(sections, options = {}) {
+  const modalTitle  = options.title       ?? 'Confirm Timeline Markers';
+  const applyLabel  = options.applyLabel  ?? '▶ Apply to Timeline';
+  const description = options.description ?? 'Uncheck sections to skip. Markers only — no clips will move.';
+
   return new Promise((resolve) => {
 
     // ── Validate all sections up-front ──────────────────────
@@ -77,12 +82,12 @@ export function openConfirmModal(sections) {
       <div class="tl-modal">
 
         <div class="tl-modal-hdr">
-          <span class="tl-modal-title">Confirm Timeline Markers</span>
+          <span class="tl-modal-title">${modalTitle}</span>
           <button class="tl-modal-close" id="tlClose" title="Cancel (Esc)">✕</button>
         </div>
 
         <div class="tl-modal-sub">
-          <span>Uncheck sections to skip. Markers only — no clips will move.</span>
+          <span>${description}</span>
           <span class="tl-modal-badge${validCount === 0 ? ' err' : ''}">
             ${validCount} valid / ${validated.length}
           </span>
@@ -98,7 +103,7 @@ export function openConfirmModal(sections) {
           <button class="tl-modal-btn tl-btn-cancel" id="tlCancel">Cancel</button>
           <button class="tl-modal-btn tl-btn-apply" id="tlApply"
                   ${validCount === 0 ? 'disabled' : ''}>
-            ▶ Apply to Timeline
+            ${applyLabel}
           </button>
         </div>
 

@@ -24,6 +24,7 @@ import {
 import { analyzeTranscript, renderStorySections } from './modules/storyEngine.js';
 import { applySectionToTimeline, applyAllSectionsToTimeline } from './modules/timeline.js';
 import { openConfirmModal } from './modules/timeline-confirm.js';
+import { createSelectsTimeline } from './modules/selects.js';
 
 // ─────────────────────────────────────────────────────────────
 // INIT
@@ -279,8 +280,10 @@ document.getElementById('btnStoryClear')?.addEventListener('click', () => {
   if (storyDetail)      storyDetail.style.display = 'none';
   if (storyCards)       storyCards.innerHTML = '';
   if (storyError)       storyError.textContent = '';
-  const fb = document.getElementById('applyAllFeedback');
-  if (fb) fb.textContent = '';
+  const fb  = document.getElementById('applyAllFeedback');
+  const sfb = document.getElementById('selectsFeedback');
+  if (fb)  fb.textContent = '';
+  if (sfb) { sfb.textContent = ''; sfb.className = 'apply-feedback'; }
 });
 
 // ─────────────────────────────────────────────────────────────
@@ -387,6 +390,45 @@ document.getElementById('btnApplyAll')?.addEventListener('click', async () => {
     }
   } catch (err) {
     if (btn) { btn.disabled = false; btn.textContent = '▶ Apply All to Timeline'; }
+    if (fb)  { fb.textContent = err?.message ?? 'Failed'; fb.className = 'apply-feedback err'; }
+  }
+});
+
+// "Create Selects Timeline" button
+document.getElementById('btnCreateSelects')?.addEventListener('click', async () => {
+  if (!currentSections.length) return;
+
+  // Open confirm modal with selects-specific labels
+  const { confirmed, selected } = await openConfirmModal(currentSections, {
+    title:       'Create Selects Timeline',
+    applyLabel:  '衢 Create Selects',
+    description: 'Select sections to include in the new sequence.',
+  });
+
+  if (!confirmed || !selected.length) return;
+
+  const btn = document.getElementById('btnCreateSelects');
+  const fb  = document.getElementById('selectsFeedback');
+  if (btn) { btn.disabled = true; btn.textContent = 'Creating…'; }
+  if (fb)  { fb.textContent = 'Creating selects timeline…'; fb.className = 'apply-feedback'; }
+
+  try {
+    const { sequenceName, applied, skipped } = await createSelectsTimeline(
+      selected,
+      (msg) => { if (fb) fb.textContent = msg; },
+    );
+
+    if (btn) { btn.disabled = false; btn.textContent = '衢 Create Selects Timeline'; }
+    if (fb) {
+      fb.textContent = `✓ “${sequenceName}” — ${applied} section${applied !== 1 ? 's' : ''}`;
+      fb.className = 'apply-feedback ok';
+    }
+
+    if (skipped.length > 0) {
+      console.warn('[EditPilot] Selects skipped:', skipped);
+    }
+  } catch (err) {
+    if (btn) { btn.disabled = false; btn.textContent = '衢 Create Selects Timeline'; }
     if (fb)  { fb.textContent = err?.message ?? 'Failed'; fb.className = 'apply-feedback err'; }
   }
 });

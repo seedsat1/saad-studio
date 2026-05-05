@@ -1070,6 +1070,30 @@ body {
 .btn-apply-all:hover    { background: rgba(56,189,248,.15); }
 .btn-apply-all:disabled { opacity: .5; cursor: default; }
 
+/* Create Selects Timeline bar */
+.story-selects-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.btn-selects {
+  flex: 1;
+  background: rgba(34,197,94,.07);
+  border: 1px solid rgba(34,197,94,.22);
+  color: var(--gr);
+  border-radius: var(--r);
+  font-size: .65rem;
+  padding: 6px 10px;
+  cursor: pointer;
+  transition: background .2s, border-color .2s;
+  text-align: left;
+}
+.btn-selects:hover    { background: rgba(34,197,94,.14); border-color: rgba(34,197,94,.45); }
+.btn-selects:disabled { opacity: .5; cursor: default; }
+
+
 /* Apply One button in the detail panel */
 .btn-apply-one {
   display: block;
