@@ -109,7 +109,7 @@ body {
   border-radius: 18px;
   padding: 26px 22px 22px;
   box-shadow: 0 0 0 1px rgba(124,92,252,.08), 0 24px 60px rgba(0,0,0,.6);
-  animation: fadeUp .35s ease;
+  /* No animation — UXP may freeze at opacity:0 start state */
 }
 
 /* ── Logo row ──────────────────────────────────────────── */
