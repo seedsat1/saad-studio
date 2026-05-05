@@ -325,117 +325,17 @@
 
   <!-- TTS -->
   <div class="pn" data-panel="tts" id="viewTts">
-    <div class="gen-hist" id="ttsHistory">
-      <div class="gen-empty" id="ttsEmpty">Select a voice and type text to generate</div>
-    </div>
-    <div class="cmp">
-      <div class="cmp-top">
-        <div class="cmp-opts">
-          <select class="cmp-sel" id="ttsVoice">
-            <option value="rachel">Rachel — Warm EN</option>
-            <option value="brian">Brian — Deep EN</option>
-            <option value="aria">Aria — Clear EN</option>
-            <option value="daniel">Daniel — British</option>
-            <option value="matilda">Matilda — AU</option>
-            <option value="arabella">Arabella — Arabic</option>
-          </select>
-          <select class="cmp-sel" id="ttsSpeed">
-            <option value="0.75">0.75x</option>
-            <option value="1" selected>1x</option>
-            <option value="1.25">1.25x</option>
-            <option value="1.5">1.5x</option>
-          </select>
-          <select class="cmp-sel" id="ttsLang">
-            <option value="en">English</option>
-            <option value="ar">Arabic</option>
-            <option value="fr">French</option>
-            <option value="es">Spanish</option>
-            <option value="de">German</option>
-            <option value="auto">Auto-detect</option>
-          </select>
-        </div>
-      </div>
-      <textarea class="cmp-txt-safe" id="ttsPrompt" placeholder="Type text to convert to voice…"></textarea>
-      <div class="cmp-bar">
-        <div class="cmp-bar-l">
-          <span class="cmp-cost" id="ttsCharCount">0 chars</span>
-        </div>
-        <div class="cmp-bar-r">
-          <span class="cmp-cost">3 cr</span>
-          <button class="cmp-send-btn" id="ttsSend"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M11 6L1 1.5 3 6 1 10.5z" fill="currentColor"/></svg></button>
-        </div>
-      </div>
-    </div>
+    <div class="pn-safe-placeholder">TTS panel temporarily disabled for crash isolation.</div>
   </div>
 
   <!-- TIMELINE AI -->
   <div class="pn" data-panel="timeline" id="viewTimeline">
-    <div class="gen-hist" id="tlHistory">
-      <div class="gen-empty" id="tlEmpty">Describe your edit goal and click Analyze</div>
-    </div>
-    <div class="cmp">
-      <div class="cmp-top">
-        <div class="cmp-opts">
-          <select class="cmp-sel" id="tlMode">
-            <option value="speech">Speech Zones</option>
-            <option value="scenes">Scene Analysis</option>
-            <option value="pacing">Pacing + Cuts</option>
-            <option value="social">Social Clips</option>
-          </select>
-        </div>
-      </div>
-      <textarea class="cmp-txt-safe" id="tlPrompt" placeholder="Describe your edit goal or paste a transcript…"></textarea>
-      <div class="cmp-bar">
-        <div class="cmp-bar-l">
-          <button class="cmp-icon-btn" id="tlApplyAll" title="Apply suggestions to timeline">▶ Apply</button>
-        </div>
-        <div class="cmp-bar-r">
-          <span class="cmp-cost">2 cr</span>
-          <button class="cmp-send-btn" id="tlSend"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M11 6L1 1.5 3 6 1 10.5z" fill="currentColor"/></svg></button>
-        </div>
-      </div>
-    </div>
+    <div class="pn-safe-placeholder">Timeline panel temporarily disabled for crash isolation.</div>
   </div>
 
   <!-- COLOR -->
   <div class="pn" data-panel="color" id="viewColor">
-    <div class="gen-hist" id="clrHistory">
-      <div class="gen-empty" id="clrEmpty">Describe a look or attach a reference frame</div>
-    </div>
-    <div class="cmp">
-      <div class="cmp-top">
-        <div class="cmp-imgs-wrap" id="clrImgsWrap" style="display:none">
-          <div class="cmp-img-item">
-            <img class="cmp-img-preview" id="clrImgPreview" alt="">
-            <button class="cmp-img-x" id="clrImgRemove">×</button>
-          </div>
-        </div>
-        <div class="cmp-opts">
-          <select class="cmp-sel" id="clrStyle">
-            <option value="cinematic">Cinematic</option>
-            <option value="warm">Warm + Film</option>
-            <option value="cool">Cool + Teal</option>
-            <option value="bw">Black &amp; White</option>
-            <option value="custom">Custom</option>
-          </select>
-          <select class="cmp-sel" id="clrScope">
-            <option value="all">All Scenes</option>
-            <option value="interview">Interview</option>
-            <option value="broll">B-Roll</option>
-          </select>
-        </div>
-      </div>
-      <textarea class="cmp-txt-safe" id="clrPrompt" placeholder="Describe the color grade: teal shadows, warm highlights, Fincher-style…"></textarea>
-      <div class="cmp-bar">
-        <div class="cmp-bar-l">
-          <button class="cmp-icon-btn" id="clrAttach" title="Attach reference frame">📎</button>
-        </div>
-        <div class="cmp-bar-r">
-          <span class="cmp-cost">2 cr</span>
-          <button class="cmp-send-btn" id="clrSend"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M11 6L1 1.5 3 6 1 10.5z" fill="currentColor"/></svg></button>
-        </div>
-      </div>
-    </div>
+    <div class="pn-safe-placeholder">Color panel temporarily disabled for crash isolation.</div>
   </div>
 
   <!-- AUDIO -->
@@ -445,76 +345,12 @@
 
   <!-- B-ROLL -->
   <div class="pn" data-panel="broll" id="viewBroll">
-    <div class="gen-hist" id="brHistory">
-      <div class="gen-empty" id="brEmpty">Describe B-roll shots and click generate</div>
-    </div>
-    <div class="cmp">
-      <div class="cmp-top">
-        <div class="cmp-opts">
-          <select class="cmp-sel" id="brModel">
-            <option value="kling-3.0-pro">Kling 3.0 Pro</option>
-            <option value="kling-3.0-standard">Kling 3.0</option>
-            <option value="wan-2.7">WAN 2.7</option>
-            <option value="hailuo-2.3">Hailuo</option>
-          </select>
-          <select class="cmp-sel" id="brDuration">
-            <option value="5">5s</option>
-            <option value="3">3s</option>
-            <option value="8">8s</option>
-            <option value="10">10s</option>
-          </select>
-          <select class="cmp-sel" id="brRatio">
-            <option value="16:9">16:9</option>
-            <option value="9:16">9:16</option>
-            <option value="1:1">1:1</option>
-          </select>
-        </div>
-      </div>
-      <textarea class="cmp-txt-safe" id="brPrompt" placeholder="Describe B-roll: drone shot over city, modern office, happy client…"></textarea>
-      <div class="cmp-bar">
-        <div class="cmp-bar-l">
-          <span class="cmp-cost" style="font-size:.55rem">Uses Video Gen</span>
-        </div>
-        <div class="cmp-bar-r">
-          <span class="cmp-cost">6 cr</span>
-          <button class="cmp-send-btn" id="brSend"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M11 6L1 1.5 3 6 1 10.5z" fill="currentColor"/></svg></button>
-        </div>
-      </div>
-    </div>
+    <div class="pn-safe-placeholder">B-Roll panel temporarily disabled for crash isolation.</div>
   </div>
 
   <!-- CAPTIONS -->
   <div class="pn" data-panel="captions" id="viewCaptions">
-    <div class="gen-hist" id="capHistory">
-      <div class="gen-empty" id="capEmpty">Paste a video or audio URL to transcribe</div>
-    </div>
-    <div class="cmp">
-      <div class="cmp-top">
-        <div class="cmp-opts">
-          <select class="cmp-sel" id="capEngine">
-            <option value="wavespeed-ai/openai-whisper">Whisper v3</option>
-            <option value="wavespeed-ai/openai-whisper-turbo">Whisper Turbo</option>
-          </select>
-          <select class="cmp-sel" id="capLang">
-            <option value="en">English</option>
-            <option value="ar">Arabic</option>
-            <option value="fr">French</option>
-            <option value="es">Spanish</option>
-            <option value="auto">Auto-detect</option>
-          </select>
-        </div>
-      </div>
-      <textarea class="cmp-txt-safe" id="capUrl" placeholder="Paste video or audio URL (mp4, mp3, wav)…" style="font-size:.62rem"></textarea>
-      <div class="cmp-bar">
-        <div class="cmp-bar-l">
-          <span class="cmp-cost" id="capCopyBtn" style="cursor:pointer" title="Copy transcript">Copy</span>
-        </div>
-        <div class="cmp-bar-r">
-          <span class="cmp-cost">3 cr</span>
-          <button class="cmp-send-btn" id="capSend"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M11 6L1 1.5 3 6 1 10.5z" fill="currentColor"/></svg></button>
-        </div>
-      </div>
-    </div>
+    <div class="pn-safe-placeholder">Captions panel temporarily disabled for crash isolation.</div>
   </div>
 
 </main>
