@@ -131,14 +131,9 @@ html,body {
   background:var(--s1);
   border-bottom:1px solid var(--b0);
 }
-.hdr-logo {
-  width:26px;height:26px;border-radius:7px;
-  background:linear-gradient(135deg,var(--ac2),var(--ac));
-  display:flex;align-items:center;justify-content:center;
-  font-weight:900;font-size:.65rem;color:#000;flex-shrink:0;
+.hdr-logo-img {
+  height:26px;width:auto;object-fit:contain;flex-shrink:0;
 }
-.hdr-name { font-size:.72rem;font-weight:700;color:var(--vl); }
-.hdr-name span { color:var(--ac); }
 .hdr-r { margin-left:auto;display:flex;align-items:center;gap:6px; }
 .hdr-credits {
   display:flex;align-items:center;gap:3px;cursor:pointer;
