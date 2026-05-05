@@ -1,4 +1,4 @@
-/**
+﻿/**
  * main.js — EditPilot AI (Saad Studio)
  *
  * Plugin entry point.
@@ -407,31 +407,109 @@ document.getElementById('btnCreateSelects')?.addEventListener('click', async () 
 
   if (!confirmed || !selected.length) return;
 
-  const btn = document.getElementById('btnCreateSelects');
-  const fb  = document.getElementById('selectsFeedback');
-  if (btn) { btn.disabled = true; btn.textContent = 'Creating…'; }
-  if (fb)  { fb.textContent = 'Creating selects timeline…'; fb.className = 'apply-feedback'; }
+  const btn    = document.getElementById('btnCreateSelects');
+  const fb     = document.getElementById('selectsFeedback');
+  const report = document.getElementById('selectsReport');
+
+  if (btn)    { btn.disabled = true; btn.textContent = 'Creating…'; }
+  if (fb)     { fb.textContent = 'Creating selects timeline…'; fb.className = 'apply-feedback'; }
+  if (report) { report.style.display = 'none'; }
 
   try {
-    const { sequenceName, applied, skipped } = await createSelectsTimeline(
+    const summary = await createSelectsTimeline(
       selected,
       (msg) => { if (fb) fb.textContent = msg; },
     );
 
     if (btn) { btn.disabled = false; btn.textContent = '衢 Create Selects Timeline'; }
+
+    // ── Inline feedback line ─────────────────────────────────
+    const hasProblems = summary.skipped > 0 || summary.markerOnly > 0;
     if (fb) {
-      fb.textContent = `✓ “${sequenceName}” — ${applied} section${applied !== 1 ? 's' : ''}`;
-      fb.className = 'apply-feedback ok';
+      fb.textContent = `✓ "${summary.sequenceName}" — ${summary.inserted} inserted`;
+      fb.className   = hasProblems ? 'apply-feedback warn' : 'apply-feedback ok';
     }
 
-    if (skipped.length > 0) {
-      console.warn('[EditPilot] Selects skipped:', skipped);
-    }
+    // ── Render debug report panel ────────────────────────────
+    renderSelectsReport(summary);
+
   } catch (err) {
     if (btn) { btn.disabled = false; btn.textContent = '衢 Create Selects Timeline'; }
     if (fb)  { fb.textContent = err?.message ?? 'Failed'; fb.className = 'apply-feedback err'; }
   }
 });
+
+/**
+ * Render the Selects debug report panel.
+ * Shows per-section ✅ inserted / ⚠️ skipped / 🟡 marker_only rows.
+ *
+ * @param {object} summary - return value from createSelectsTimeline()
+ */
+function renderSelectsReport(summary) {
+  const report  = document.getElementById('selectsReport');
+  const srTitle = document.getElementById('srTitle');
+  const srSum   = document.getElementById('srSummary');
+  const srRows  = document.getElementById('srRows');
+  const srClose = document.getElementById('srClose');
+  if (!report || !srSum || !srRows) return;
+
+  // Header title
+  if (srTitle) {
+    const mins = Math.floor(summary.totalOutputSec / 60);
+    const secs = Math.round(summary.totalOutputSec % 60);
+    srTitle.textContent = `Selects Report — ${mins}m ${secs}s output`;
+  }
+
+  // Summary stats
+  srSum.innerHTML = [
+    { val: summary.totalSections, lbl: 'Total',          cls: '' },
+    { val: summary.inserted,      lbl: '✅ Inserted',     cls: summary.inserted > 0 ? 'ok' : '' },
+    { val: summary.markerOnly,    lbl: '🟡 Marker only',  cls: summary.markerOnly > 0 ? 'warn' : '' },
+    { val: summary.skipped,       lbl: '⚠️ Skipped',      cls: summary.skipped > 0 ? 'err' : '' },
+  ].map(({ val, lbl, cls }) =>
+    `<div class="sr-stat">
+       <span class="sr-stat-val ${cls}">${val}</span>
+       <span class="sr-stat-lbl">${lbl}</span>
+     </div>`,
+  ).join('');
+
+  // Per-section rows
+  const ICONS = { inserted: '✅', marker_only: '🟡', skipped: '⚠️' };
+  srRows.innerHTML = summary.sectionResults.map(r => {
+    const icon     = ICONS[r.status] ?? '•';
+    const timeStr  = r.start && r.end ? `${r.start} → ${r.end}` : '';
+    const durStr   = r.durationSec != null ? `${r.durationSec.toFixed(1)}s` : '';
+    const warnHtml = r.warning
+      ? `<span class="sr-row-warn" title="${escHtml(r.warning)}">⚠ ${escHtml(r.warning)}</span>`
+      : '';
+    return `
+      <div class="sr-row">
+        <span class="sr-icon">${icon}</span>
+        <div class="sr-row-body">
+          <span class="sr-row-title" title="${escHtml(r.title)}">${escHtml(r.title)}</span>
+          ${timeStr ? `<span class="sr-row-time">${escHtml(timeStr)}</span>` : ''}
+          ${warnHtml}
+        </div>
+        <span class="sr-row-dur">${durStr}</span>
+      </div>`;
+  }).join('');
+
+  report.style.display = 'block';
+
+  // Close button
+  if (srClose) {
+    srClose.onclick = () => { report.style.display = 'none'; };
+  }
+}
+
+/** Minimal HTML escaping for report text nodes. */
+function escHtml(str) {
+  return String(str ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
 
 function setAnalyzeLoading(loading) {
   if (!btnAnalyze) return;
