@@ -1,49 +1,59 @@
 import { NextRequest, NextResponse } from "next/server";
-import OpenAI from "openai";
 import { extractPanelToken, verifyPanelToken } from "@/lib/panel-auth";
 import {
   InsufficientCreditsError,
   ensureUserRow,
   spendCredits,
 } from "@/lib/credit-ledger";
+import { runAiTask, resolveModelId, AiEngineError } from "@/lib/ai-engine";
 
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
 
-const STORY_CREDIT_COST = 5; // 5 credits per transcript analysis
+const STORY_CREDIT_COST = 5;
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY ?? "",
-});
-
-const SYSTEM_PROMPT = `You are an expert video editor and story analyst working inside Adobe Premiere Pro.
-The user will paste a raw transcript of a video, possibly including speaker labels and timestamps.
-Your job is to identify the best structural sections for a professional edit.
-
-Respond ONLY with a valid JSON object — no markdown fences, no extra text.
-Use this exact schema:
-
-{
-  "sections": [
-    {
-      "title": "<short section name, 2-5 words>",
-      "start": "<HH:MM:SS or MM:SS — best guess from transcript context, or '00:00:00' if none>",
-      "end": "<HH:MM:SS or MM:SS — best guess, or '00:00:00' if none>",
-      "reason": "<one sentence explaining why this section matters>"
-    }
-  ]
-}
-
-Guidelines:
-- Identify 4–8 distinct structural sections (hook, setup, conflict, resolution, CTA, etc.)
-- If the transcript has timestamps, use them. If not, set start/end to "00:00:00".
-- Keep titles concise and editorial. Keep reasons actionable for an editor.
-- Do NOT include any text outside the JSON object.`;
-
-// ─── Input validation ─────────────────────────────────────────────────────────
+// ─── Input sanitization ───────────────────────────────────────────────────────
 
 function sanitizeTranscript(raw: string): string {
-  return raw.trim().slice(0, 20_000); // max 20k chars (~5k tokens)
+  return raw.trim().slice(0, 20_000);
+}
+
+// ─── Response parsing ─────────────────────────────────────────────────────────
+
+type StorySection = { title: string; start: string; end: string; reason: string };
+
+function parseAiResponse(raw: string): StorySection[] {
+  // Strip accidental markdown fences
+  const clean = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
+
+  let parsed: { sections?: unknown[] };
+  try {
+    parsed = JSON.parse(clean);
+  } catch {
+    // Return a single catch-all section rather than crashing
+    return [
+      {
+        title: "Full Transcript",
+        start: "00:00:00",
+        end: "00:00:00",
+        reason: "AI returned an unstructured response. Review transcript manually.",
+      },
+    ];
+  }
+
+  if (!Array.isArray(parsed?.sections) || parsed.sections.length === 0) {
+    return [];
+  }
+
+  return parsed.sections.map((s: unknown) => {
+    const sec = s as Record<string, unknown>;
+    return {
+      title:  String(sec?.title  ?? "Section").slice(0, 80),
+      start:  String(sec?.start  ?? "00:00:00").slice(0, 12),
+      end:    String(sec?.end    ?? "00:00:00").slice(0, 12),
+      reason: String(sec?.reason ?? "").slice(0, 300),
+    };
+  });
 }
 
 // ─── Route handler ────────────────────────────────────────────────────────────
@@ -62,8 +72,8 @@ export async function POST(req: NextRequest) {
 
   const { userId } = verified;
 
-  // 2. Parse body
-  let body: { transcript?: string; type?: string };
+  // 2. Parse + validate body
+  let body: { transcript?: string };
   try {
     body = await req.json();
   } catch {
@@ -77,67 +87,70 @@ export async function POST(req: NextRequest) {
 
   const transcript = sanitizeTranscript(rawTranscript);
 
-  // 3. Ensure user exists in DB
+  // 3. Ensure user row exists
   await ensureUserRow(userId);
-
-  // 4. Check OpenAI key
-  if (!process.env.OPENAI_API_KEY) {
-    return NextResponse.json({ error: "AI service not configured on server." }, { status: 503 });
-  }
 
   let generationId: string | null = null;
 
   try {
-    // 5. Spend credits BEFORE calling AI (same pattern as image/video routes)
+    // 4. Spend credits — deduct BEFORE calling AI (same pattern as image/video routes).
+    //    modelUsed comes from the engine so the ledger stays accurate.
+    const modelId = resolveModelId("story_engine");
+
     const spent = await spendCredits({
       userId,
       credits: STORY_CREDIT_COST,
-      prompt: transcript.slice(0, 200),    // store first 200 chars as prompt reference
+      prompt: transcript.slice(0, 200),
       assetType: "STORY_ANALYSIS",
-      modelUsed: "gpt-4o-mini",
+      modelUsed: modelId,
     });
     generationId = spent.generationId ?? null;
 
-    // 6. Call OpenAI
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      temperature: 0.3,
-      max_tokens: 1500,
-      messages: [
-        { role: "system", content: SYSTEM_PROMPT },
-        { role: "user",   content: `Here is the transcript:\n\n${transcript}` },
-      ],
+    // 5. Execute through centralized AI engine.
+    //    The route does NOT know which model or provider is used.
+    const aiResult = await runAiTask({
+      task:  "story_engine",
+      input: `Here is the transcript:\n\n${transcript}`,
     });
 
-    const raw = completion.choices[0]?.message?.content ?? "";
+    // 6. Parse structured output
+    const sections = parseAiResponse(aiResult.content);
 
-    // 7. Parse response — strict JSON only
-    let parsed: { sections: Array<{ title: string; start: string; end: string; reason: string }> };
-    try {
-      // Strip any accidental markdown fences
-      const clean = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
-      parsed = JSON.parse(clean);
-    } catch {
-      // Return raw text as a single section if JSON parsing fails
-      parsed = {
-        sections: [
-          {
-            title: "Full Transcript",
-            start: "00:00:00",
-            end: "00:00:00",
-            reason: "AI returned a non-structured response. Showing raw output for reference.",
-          },
-        ],
-      };
-    }
-
-    // 8. Validate sections array
-    if (!Array.isArray(parsed?.sections) || parsed.sections.length === 0) {
+    if (sections.length === 0) {
       return NextResponse.json(
         { error: "AI returned an empty sections list." },
         { status: 502 },
       );
     }
+
+    return NextResponse.json({
+      sections,
+      creditsUsed: STORY_CREDIT_COST,
+      generationId,
+    });
+
+  } catch (error) {
+    if (error instanceof InsufficientCreditsError) {
+      return NextResponse.json(
+        {
+          error: "Insufficient credits",
+          requiredCredits: error.requiredCredits,
+          currentBalance: error.currentBalance,
+        },
+        { status: 402 },
+      );
+    }
+
+    if (error instanceof AiEngineError) {
+      const status = error.code === "PROVIDER_NOT_CONFIGURED" ? 503 : 502;
+      return NextResponse.json({ error: error.message }, { status });
+    }
+
+    console.error("[panel/generate/story]", error);
+    return NextResponse.json({ error: "Story analysis failed. Please try again." }, { status: 500 });
+  }
+}
+
 
     // Sanitize each section field
     const sections = parsed.sections.map((s) => ({
