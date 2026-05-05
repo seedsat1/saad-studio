@@ -324,93 +324,220 @@
   </div>
 
   <!-- TTS -->
-  <div class="pn" data-panel="tts" id="viewTts"><div class="pn-scroll">
-    <div class="sec-t">🔊 Text to Speech</div>
-    <div class="prompt"><textarea placeholder="Type text to convert to voice...">In 2025, the average real estate agent spent 6 hours a day on tasks a machine could do in seconds.</textarea></div>
-    <div class="sec-t" style="margin-top:10px">Voice</div>
-    <div class="vg">
-      <div class="vc sel" onclick="selVc(this)"><div class="vc-n">Rachel</div><div class="vc-s">Warm · EN</div></div>
-      <div class="vc" onclick="selVc(this)"><div class="vc-n">Brian</div><div class="vc-s">Deep · EN</div></div>
-      <div class="vc" onclick="selVc(this)"><div class="vc-n">Arabella</div><div class="vc-s">Arabic</div></div>
-      <div class="vc" onclick="selVc(this)"><div class="vc-n">Aria</div><div class="vc-s">Clear · EN</div></div>
-      <div class="vc" onclick="selVc(this)"><div class="vc-n">Daniel</div><div class="vc-s">British</div></div>
-      <div class="vc" onclick="selVc(this)"><div class="vc-n">Matilda</div><div class="vc-s">AU</div></div>
+  <div class="pn" data-panel="tts" id="viewTts">
+    <div class="gen-hist" id="ttsHistory">
+      <div class="gen-empty" id="ttsEmpty">Select a voice and type text to generate</div>
     </div>
-    <button class="btn-gen btn-full" style="margin-top:12px" onclick="openSaadStudio('/audio')">🔊 Generate Voice <span class="cost">3 cr</span></button>
-  </div></div>
-
-  <!-- TIMELINE AI -->
-  <div class="pn" data-panel="timeline" id="viewTimeline"><div class="pn-scroll">
-    <div class="sec-t">🧠 Timeline Intelligence <span class="sec-badge">AI</span></div>
-    <div class="prompt"><textarea placeholder="Analyze my project...">Analyze this interview: find all speech zones, identify key scenes, detect duplicate shots.</textarea></div>
-    <div style="display:flex;gap:6px;margin-top:8px">
-      <button class="btn-gen" style="flex:1">🧠 Deep Analyze <span class="cost">4 cr</span></button>
-      <button class="btn">🎯 Quick Scan</button>
-    </div>
-    <div class="sec-t" style="margin-top:14px">Detected Zones</div>
-    <div class="mk"><span class="mk-tc">00:00 → 01:23</span><span class="mk-tx">🗣 Speaker A — Introduction</span><span class="mk-badge high">Speech</span></div>
-    <div class="mk"><span class="mk-tc">01:23 → 01:30</span><span class="mk-tx">🔇 Silence gap — cut candidate</span><span class="mk-badge warn">Gap</span></div>
-    <div class="mk"><span class="mk-tc">01:30 → 02:45</span><span class="mk-tx">🗣 Key insight</span><span class="mk-badge high">Key</span></div>
-  </div></div>
-
-  <!-- COLOR -->
-  <div class="pn" data-panel="color" id="viewColor"><div class="pn-scroll">
-    <div class="sec-t">🎨 Scene Color Matching</div>
-    <div class="prompt"><textarea placeholder="Describe the look...">Cinematic teal shadows, warm highlights, Fincher-style.</textarea></div>
-    <div style="display:flex;gap:6px;margin-top:8px">
-      <button class="btn-gen" style="flex:1">🎨 Analyze &amp; Grade <span class="cost">4 cr</span></button>
-      <button class="btn">📷 From Reference</button>
-    </div>
-    <div class="sec-t" style="margin-top:14px">Detected Scenes</div>
-    <div class="mk"><span class="mk-tc">Scene 1-3</span><span class="mk-tx">🎥 Interview (indoor)</span><span class="mk-badge high">Grade</span></div>
-    <div class="mk"><span class="mk-tc">Scene 4</span><span class="mk-tx">🌅 B-roll (outdoor, warm)</span><span class="mk-badge high">Grade</span></div>
-    <button class="btn-gen btn-full" style="margin-top:10px">✅ Apply All Scene Grades</button>
-  </div></div>
-
-  <!-- AUDIO -->
-  <div class="pn" data-panel="audio" id="viewAudio"><div class="pn-scroll">
-    <div class="sec-t">🎚 Audio Balancer</div>
-    <div class="slider-g"><div class="slider-h"><span class="slider-l">Voice Level</span><span class="slider-v">70%</span></div><input type="range" min="0" max="100" value="70" oninput="this.previousElementSibling.querySelector('.slider-v').textContent=this.value+'%'"></div>
-    <div class="slider-g"><div class="slider-h"><span class="slider-l">Music Level</span><span class="slider-v">35%</span></div><input type="range" min="0" max="100" value="35" oninput="this.previousElementSibling.querySelector('.slider-v').textContent=this.value+'%'"></div>
-    <div class="slider-g"><div class="slider-h"><span class="slider-l">SFX Level</span><span class="slider-v">50%</span></div><input type="range" min="0" max="100" value="50" oninput="this.previousElementSibling.querySelector('.slider-v').textContent=this.value+'%'"></div>
-    <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:10px">
-      <button class="btn-gen" style="font-size:.65rem;padding:7px 14px">🔊 Auto Balance <span class="cost">2 cr</span></button>
-      <button class="btn">🎵 Smart Ducking</button>
-      <button class="btn">🔇 Denoise</button>
-    </div>
-  </div></div>
-
-  <!-- B-ROLL -->
-  <div class="pn" data-panel="broll" id="viewBroll"><div class="pn-scroll">
-    <div class="sec-t">💥 AI B-Roll Generator <span class="sec-badge">KIE.ai</span></div>
-    <div class="prompt"><textarea placeholder="Describe B-roll...">Modern houses, AI screens, happy clients, drone shots.</textarea></div>
-    <div style="display:flex;gap:6px;margin-top:8px">
-      <button class="btn-gen" style="flex:1">💥 Generate <span class="cost">6 cr</span></button>
-      <button class="btn">🧠 Auto from Speech</button>
-    </div>
-    <div class="sec-t" style="margin-top:14px">Speech → B-Roll</div>
-    <div class="mk"><span class="mk-tc">0:05–0:12</span><span class="mk-tx">"spent 6 hours" → Office, clock</span><span class="mk-badge high">Gen</span></div>
-    <div class="mk"><span class="mk-tc">0:12–0:18</span><span class="mk-tx">"AI staging" → Before/After room</span><span class="mk-badge high">Gen</span></div>
-  </div></div>
-
-  <!-- CAPTIONS -->
-  <div class="pn" data-panel="captions" id="viewCaptions"><div class="pn-scroll">
-    <div class="sec-t">📝 Auto Captions</div>
-    <div class="field"><div class="field-label">Engine &amp; Language</div>
-      <div class="field-row">
-        <select class="sel-input"><option>Whisper v3</option><option>Gemini Flash</option><option>Deepgram</option></select>
-        <select class="sel-input"><option>English</option><option>Arabic</option><option>Auto-detect</option></select>
+    <div class="cmp">
+      <div class="cmp-top">
+        <div class="cmp-opts">
+          <select class="cmp-sel" id="ttsVoice">
+            <option value="rachel">Rachel — Warm EN</option>
+            <option value="brian">Brian — Deep EN</option>
+            <option value="aria">Aria — Clear EN</option>
+            <option value="daniel">Daniel — British</option>
+            <option value="matilda">Matilda — AU</option>
+            <option value="arabella">Arabella — Arabic</option>
+          </select>
+          <select class="cmp-sel" id="ttsSpeed">
+            <option value="0.75">0.75x</option>
+            <option value="1" selected>1x</option>
+            <option value="1.25">1.25x</option>
+            <option value="1.5">1.5x</option>
+          </select>
+          <select class="cmp-sel" id="ttsLang">
+            <option value="en">English</option>
+            <option value="ar">Arabic</option>
+            <option value="fr">French</option>
+            <option value="es">Spanish</option>
+            <option value="de">German</option>
+            <option value="auto">Auto-detect</option>
+          </select>
+        </div>
+      </div>
+      <textarea class="cmp-txt" id="ttsPrompt" placeholder="Type text to convert to voice…"></textarea>
+      <div class="cmp-bar">
+        <div class="cmp-bar-l">
+          <span class="cmp-cost" id="ttsCharCount">0 chars</span>
+        </div>
+        <div class="cmp-bar-r">
+          <span class="cmp-cost">3 cr</span>
+          <button class="cmp-send-btn" id="ttsSend"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M11 6L1 1.5 3 6 1 10.5z" fill="currentColor"/></svg></button>
+        </div>
       </div>
     </div>
-    <div class="sec-t" style="margin-top:10px">Style</div>
-    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-bottom:10px">
-      <div class="cd sel" onclick="selCd(this)"><div class="cd-t">Standard</div><div class="cd-d">Clean white, bottom</div></div>
-      <div class="cd" onclick="selCd(this)"><div class="cd-t">Hormozi</div><div class="cd-d">Bold animated</div></div>
-      <div class="cd" onclick="selCd(this)"><div class="cd-t">Minimal</div><div class="cd-d">Small, subtle</div></div>
-      <div class="cd" onclick="selCd(this)"><div class="cd-t">Karaoke</div><div class="cd-d">Word-by-word</div></div>
+  </div>
+
+  <!-- TIMELINE AI -->
+  <div class="pn" data-panel="timeline" id="viewTimeline">
+    <div class="gen-hist" id="tlHistory">
+      <div class="gen-empty" id="tlEmpty">Describe your edit goal and click Analyze</div>
     </div>
-    <button class="btn-gen btn-full" onclick="openSaadStudio('/audio')">📝 Generate Captions <span class="cost">3 cr</span></button>
-  </div></div>
+    <div class="cmp">
+      <div class="cmp-top">
+        <div class="cmp-opts">
+          <select class="cmp-sel" id="tlMode">
+            <option value="speech">Speech Zones</option>
+            <option value="scenes">Scene Analysis</option>
+            <option value="pacing">Pacing + Cuts</option>
+            <option value="social">Social Clips</option>
+          </select>
+        </div>
+      </div>
+      <textarea class="cmp-txt" id="tlPrompt" placeholder="Describe your edit goal or paste a transcript…"></textarea>
+      <div class="cmp-bar">
+        <div class="cmp-bar-l">
+          <button class="cmp-icon-btn" id="tlApplyAll" title="Apply suggestions to timeline">&#x25B6; Apply</button>
+        </div>
+        <div class="cmp-bar-r">
+          <span class="cmp-cost">2 cr</span>
+          <button class="cmp-send-btn" id="tlSend"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M11 6L1 1.5 3 6 1 10.5z" fill="currentColor"/></svg></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- COLOR -->
+  <div class="pn" data-panel="color" id="viewColor">
+    <div class="gen-hist" id="clrHistory">
+      <div class="gen-empty" id="clrEmpty">Describe a look or attach a reference frame</div>
+    </div>
+    <div class="cmp">
+      <div class="cmp-top">
+        <div class="cmp-imgs-wrap" id="clrImgsWrap" style="display:none">
+          <div class="cmp-img-item">
+            <img class="cmp-img-preview" id="clrImgPreview" src="" alt="">
+            <button class="cmp-img-x" id="clrImgRemove">×</button>
+          </div>
+        </div>
+        <div class="cmp-opts">
+          <select class="cmp-sel" id="clrStyle">
+            <option value="cinematic">Cinematic</option>
+            <option value="warm">Warm + Film</option>
+            <option value="cool">Cool + Teal</option>
+            <option value="bw">Black &amp; White</option>
+            <option value="custom">Custom</option>
+          </select>
+          <select class="cmp-sel" id="clrScope">
+            <option value="all">All Scenes</option>
+            <option value="interview">Interview</option>
+            <option value="broll">B-Roll</option>
+          </select>
+        </div>
+      </div>
+      <textarea class="cmp-txt" id="clrPrompt" placeholder="Describe the color grade: teal shadows, warm highlights, Fincher-style…"></textarea>
+      <div class="cmp-bar">
+        <div class="cmp-bar-l">
+          <button class="cmp-icon-btn" id="clrAttach" title="Attach reference frame">&#x1F4CE;</button>
+        </div>
+        <div class="cmp-bar-r">
+          <span class="cmp-cost">2 cr</span>
+          <button class="cmp-send-btn" id="clrSend"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M11 6L1 1.5 3 6 1 10.5z" fill="currentColor"/></svg></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AUDIO -->
+  <div class="pn" data-panel="audio" id="viewAudio">
+    <div class="pn-scroll">
+      <div class="sec-t">Audio Mix<span class="sec-badge">Premiere Pro</span></div>
+      <div class="slider-g">
+        <div class="slider-h"><span class="slider-l">Voice Level</span><span class="slider-v" id="audioVoiceVal">70%</span></div>
+        <input type="range" min="0" max="100" value="70" id="audioVoice" oninput="document.getElementById('audioVoiceVal').textContent=this.value+'%'">
+      </div>
+      <div class="slider-g">
+        <div class="slider-h"><span class="slider-l">Music Level</span><span class="slider-v" id="audioMusicVal">35%</span></div>
+        <input type="range" min="0" max="100" value="35" id="audioMusic" oninput="document.getElementById('audioMusicVal').textContent=this.value+'%'">
+      </div>
+      <div class="slider-g">
+        <div class="slider-h"><span class="slider-l">SFX Level</span><span class="slider-v" id="audioSfxVal">50%</span></div>
+        <input type="range" min="0" max="100" value="50" id="audioSfx" oninput="document.getElementById('audioSfxVal').textContent=this.value+'%'">
+      </div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:10px">
+        <button class="btn-gen" style="font-size:.65rem;padding:7px 14px" id="btnAudioApply">Apply Mix <span class="cost">Local</span></button>
+        <button class="btn" id="btnAudioDuck">Smart Ducking</button>
+        <button class="btn" id="btnAudioDenoise">Denoise</button>
+      </div>
+      <div class="story-err" id="audioFeedback" style="margin-top:8px"></div>
+      <div class="sec-t" style="margin-top:14px">About Audio Mix</div>
+      <div class="asst-intro">Adjust sliders and click <strong>Apply Mix</strong> to set clip volumes in the active Premiere Pro sequence.<br><br>Voice tracks (A1-A2) use Voice Level, music tracks (A3-A4) use Music Level, remaining tracks use SFX Level.</div>
+    </div>
+  </div>
+
+  <!-- B-ROLL -->
+  <div class="pn" data-panel="broll" id="viewBroll">
+    <div class="gen-hist" id="brHistory">
+      <div class="gen-empty" id="brEmpty">Describe B-roll shots and click generate</div>
+    </div>
+    <div class="cmp">
+      <div class="cmp-top">
+        <div class="cmp-opts">
+          <select class="cmp-sel" id="brModel">
+            <option value="kling-3.0-pro">Kling 3.0 Pro</option>
+            <option value="kling-3.0-standard">Kling 3.0</option>
+            <option value="wan-2.7">WAN 2.7</option>
+            <option value="hailuo-2.3">Hailuo</option>
+          </select>
+          <select class="cmp-sel" id="brDuration">
+            <option value="5">5s</option>
+            <option value="3">3s</option>
+            <option value="8">8s</option>
+            <option value="10">10s</option>
+          </select>
+          <select class="cmp-sel" id="brRatio">
+            <option value="16:9">16:9</option>
+            <option value="9:16">9:16</option>
+            <option value="1:1">1:1</option>
+          </select>
+        </div>
+      </div>
+      <textarea class="cmp-txt" id="brPrompt" placeholder="Describe B-roll: drone shot over city, modern office, happy client…"></textarea>
+      <div class="cmp-bar">
+        <div class="cmp-bar-l">
+          <span class="cmp-cost" style="font-size:.55rem">Uses Video Gen</span>
+        </div>
+        <div class="cmp-bar-r">
+          <span class="cmp-cost">6 cr</span>
+          <button class="cmp-send-btn" id="brSend"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M11 6L1 1.5 3 6 1 10.5z" fill="currentColor"/></svg></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CAPTIONS -->
+  <div class="pn" data-panel="captions" id="viewCaptions">
+    <div class="gen-hist" id="capHistory">
+      <div class="gen-empty" id="capEmpty">Paste a video or audio URL to transcribe</div>
+    </div>
+    <div class="cmp">
+      <div class="cmp-top">
+        <div class="cmp-opts">
+          <select class="cmp-sel" id="capEngine">
+            <option value="wavespeed-ai/openai-whisper">Whisper v3</option>
+            <option value="wavespeed-ai/openai-whisper-turbo">Whisper Turbo</option>
+          </select>
+          <select class="cmp-sel" id="capLang">
+            <option value="en">English</option>
+            <option value="ar">Arabic</option>
+            <option value="fr">French</option>
+            <option value="es">Spanish</option>
+            <option value="auto">Auto-detect</option>
+          </select>
+        </div>
+      </div>
+      <textarea class="cmp-txt" id="capUrl" placeholder="Paste video or audio URL (mp4, mp3, wav)…" style="font-size:.62rem"></textarea>
+      <div class="cmp-bar">
+        <div class="cmp-bar-l">
+          <span class="cmp-cost" id="capCopyBtn" style="cursor:pointer" title="Copy transcript">Copy</span>
+        </div>
+        <div class="cmp-bar-r">
+          <span class="cmp-cost">3 cr</span>
+          <button class="cmp-send-btn" id="capSend"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M11 6L1 1.5 3 6 1 10.5z" fill="currentColor"/></svg></button>
+        </div>
+      </div>
+    </div>
+  </div>
 
 </main>
 

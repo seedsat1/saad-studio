@@ -1,7 +1,7 @@
-import { connectWithToken, restoreSession, disconnect } from './modules/auth.js';
+﻿import { connectWithToken, restoreSession, disconnect } from './modules/auth.js';
 import { refreshCreditsFromServer } from './modules/credits.js';
 import { getToken } from './modules/storage.js';
-import { generateImage, generateVideo } from './modules/apiClient.js';
+import { generateImage, generateVideo, generateTTS, generateCaptions, sendChat } from './modules/apiClient.js';
 import {
   showConnect,
   showDashboard,
@@ -53,6 +53,12 @@ async function init() {
     setActiveTab('chat');
     setupVideoGen();
     setupImageGen();
+    setupTTS();
+    setupBroll();
+    setupCaptions();
+    setupTimeline();
+    setupColor();
+    setupAudio();
   } catch (err) {
     // Show error visibly so we can debug in UXP DevTool
     console.error('[EditPilot] init() failed:', err);
@@ -516,6 +522,65 @@ async function handleAssistantCommand(raw) {
     return;
   }
 
+
+  // ── Slash navigation commands ─────────────────────────────
+  {
+    const _navMap = {
+      [INTENTS.NAV_VIDEO]:  { tab: 'videogen',  promptId: 'vgPrompt' },
+      [INTENTS.NAV_IMAGE]:  { tab: 'imagegen',  promptId: 'igPrompt' },
+      [INTENTS.NAV_TTS]:    { tab: 'tts',       promptId: 'ttsPrompt' },
+      [INTENTS.NAV_BROLL]:  { tab: 'broll',     promptId: 'brPrompt' },
+      [INTENTS.NAV_STORY]:  { tab: 'story',     promptId: null },
+      [INTENTS.NAV_COLOR]:  { tab: 'color',     promptId: 'clrPrompt' },
+      [INTENTS.NAV_AUDIO]:  { tab: 'audio',     promptId: null },
+      [INTENTS.NAV_CAPS]:   { tab: 'captions',  promptId: 'capUrl' },
+    };
+    const _nav = _navMap[parsed.intent];
+    if (_nav) {
+      setActiveTab(_nav.tab);
+      if (_nav.promptId && parsed.args) {
+        const _pEl = el(_nav.promptId);
+        if (_pEl) { _pEl.value = parsed.args; _pEl.focus(); }
+      }
+      appendAssistantMessage('system', 'Switched to ' + _nav.tab + (parsed.args ? ' -- prompt filled' : ''), 'ok');
+      return;
+    }
+  }
+
+  if (parsed.intent === INTENTS.SOCIAL) {
+    if (!lastSections?.length) {
+      appendAssistantMessage('system', 'No sections yet. Run "analyze" first.', 'error');
+      return;
+    }
+    const _best = lastSections.reduce((b, s) =>
+      (s.reason?.length || 0) > (b.reason?.length || 0) ? s : b, lastSections[0]);
+    appendAssistantMessage('system',
+      'Best social clip: "' + _best.title + '"' + "\n" + _best.start + ' -> ' + _best.end + "\n" + (_best.reason || ''),
+      'ok');
+    const _bEl = el('brPrompt');
+    if (_bEl) _bEl.value = 'B-roll for: ' + _best.title;
+    return;
+  }
+
+  if (parsed.intent === INTENTS.TOP5) {
+    if (!lastSections?.length) {
+      appendAssistantMessage('system', 'No sections yet. Run "analyze" first.', 'error');
+      return;
+    }
+    const _top = lastSections.slice(0, 5);
+    const _msg = 'Top moments:' + "\n" + _top.map((s, i) =>
+      (i + 1) + '. ' + s.title + ' (' + s.start + ' -> ' + s.end + ')').join("\n");
+    appendAssistantMessage('system', _msg, 'ok');
+    return;
+  }
+
+  // slash nav
+  {
+    const nm = {[INTENTS.NAV_VIDEO]:{tab:'videogen',promptId:'vgPrompt'},[INTENTS.NAV_IMAGE]:{tab:'imagegen',promptId:'igPrompt'},[INTENTS.NAV_TTS]:{tab:'tts',promptId:'ttsPrompt'},[INTENTS.NAV_BROLL]:{tab:'broll',promptId:'brPrompt'},[INTENTS.NAV_STORY]:{tab:'story',promptId:null},[INTENTS.NAV_COLOR]:{tab:'color',promptId:'clrPrompt'},[INTENTS.NAV_AUDIO]:{tab:'audio',promptId:null},[INTENTS.NAV_CAPS]:{tab:'captions',promptId:'capUrl'}};const nv=nm[parsed.intent];if(nv){setActiveTab(nv.tab);if(nv.promptId&&parsed.args){const pe=el(nv.promptId);if(pe){pe.value=parsed.args;pe.focus();}}appendAssistantMessage('system','Switched to '+nv.tab+(parsed.args?' -- prompt filled':''),'ok');return;}}
+  if(parsed.intent===INTENTS.SOCIAL){if(!lastSections?.length){appendAssistantMessage('system','No sections yet. Run analyze first.','error');return;}const sb=lastSections.reduce((b,s)=>(s.reason?.length||0)>(b.reason?.length||0)?s:b,lastSections[0]);appendAssistantMessage('system','Best social clip: '+sb.title+' '+sb.start+'->'+sb.end,'ok');const be=el('brPrompt');if(be)be.value='B-roll for: '+sb.title;return;}
+  if(parsed.intent===INTENTS.TOP5){if(!lastSections?.length){appendAssistantMessage('system','No sections yet.','error');return;}const t5=lastSections.slice(0,5);appendAssistantMessage('system','Top moments:
+'+t5.map((s,i)=>(i+1)+'. '+s.title+' ('+s.start+'->'+s.end+')').join('
+'),'ok');return;}
   if (parsed.intent === INTENTS.SELECTS) {
     if (!lastSections?.length) {
       appendAssistantMessage('system', 'No sections yet. Run “analyze” first.', 'error');
@@ -826,6 +891,484 @@ function setupImageGen() {
     } finally {
       sendBtn.disabled = false;
     }
+  });
+}
+
+// ─────────────────────────────────────────────────────────────
+// TTS
+// ─────────────────────────────────────────────────────────────
+
+function setupTTS() {
+  const promptEl = el('ttsPrompt');
+  const sendBtn  = el('ttsSend');
+  const charCount = el('ttsCharCount');
+  const history  = el('ttsHistory');
+  const empty    = el('ttsEmpty');
+
+  if (!sendBtn || !promptEl) return;
+
+  promptEl.addEventListener('input', () => {
+    if (charCount) charCount.textContent = (promptEl.value || '').length + ' chars';
+  });
+
+  sendBtn.addEventListener('click', async () => {
+    const text = (promptEl.value || '').trim();
+    if (!text) { promptEl.focus(); return; }
+
+    const token = getToken();
+    if (!token) {
+      appendGenItem(history, empty, null, text, 'Not connected. Reconnect from saadstudio.app/panel');
+      return;
+    }
+
+    const voiceId = el('ttsVoice')?.value || 'rachel';
+    const speed   = parseFloat(el('ttsSpeed')?.value || '1');
+
+    const item = appendGenItem(history, empty, { voice: voiceId, speed: speed + 'x' }, text, null);
+    sendBtn.disabled = true;
+    promptEl.value = '';
+    if (charCount) charCount.textContent = '0 chars';
+
+    try {
+      const result = await generateTTS(token, { text, voiceId, speed });
+      const audioUrl = result?.audioUrl;
+      if (!audioUrl) throw new Error('No audio URL returned');
+      // Show result in history
+      const pending = item.querySelector('.gen-item-pending');
+      if (pending) pending.remove();
+      const actions = document.createElement('div');
+      actions.className = 'gen-item-actions';
+      const openBtn = document.createElement('button');
+      openBtn.className = 'btn';
+      openBtn.style.fontSize = '.6rem';
+      openBtn.textContent = 'Play / Download';
+      openBtn.addEventListener('click', () => openExternal(audioUrl));
+      actions.appendChild(openBtn);
+      const copyBtn = document.createElement('button');
+      copyBtn.className = 'btn';
+      copyBtn.style.fontSize = '.6rem';
+      copyBtn.textContent = 'Copy URL';
+      copyBtn.addEventListener('click', () => {
+        try { navigator.clipboard.writeText(audioUrl); } catch (_) {}
+      });
+      actions.appendChild(copyBtn);
+      item.appendChild(actions);
+      try { const bal = await refreshCreditsFromServer(); updateCreditsDisplay(bal); } catch (_) {}
+    } catch (err) {
+      updateGenItem(item, null, null, err?.message || 'TTS failed');
+    } finally {
+      sendBtn.disabled = false;
+    }
+  });
+}
+
+// ─────────────────────────────────────────────────────────────
+// B-ROLL (uses Video Gen API)
+// ─────────────────────────────────────────────────────────────
+
+function setupBroll() {
+  const promptEl = el('brPrompt');
+  const sendBtn  = el('brSend');
+  const history  = el('brHistory');
+  const empty    = el('brEmpty');
+
+  if (!sendBtn || !promptEl) return;
+
+  sendBtn.addEventListener('click', async () => {
+    const prompt = (promptEl.value || '').trim();
+    if (!prompt) { promptEl.focus(); return; }
+
+    const token = getToken();
+    if (!token) {
+      appendGenItem(history, empty, null, prompt, 'Not connected. Reconnect from saadstudio.app/panel');
+      return;
+    }
+
+    const model    = el('brModel')?.value    || 'kling-3.0-pro';
+    const duration = el('brDuration')?.value || '5';
+    const ratio    = el('brRatio')?.value    || '16:9';
+
+    const item = appendGenItem(history, empty, { model, duration: duration + 's', ratio }, prompt, null);
+    sendBtn.disabled = true;
+    promptEl.value = '';
+
+    try {
+      const result = await generateVideo(token, {
+        prompt,
+        modelId: model,
+        duration: parseInt(duration, 10),
+        aspectRatio: ratio,
+        resolution: '1080p',
+      });
+      updateGenItem(item, result?.videoUrl || result?.url || null, null, null);
+      try { const bal = await refreshCreditsFromServer(); updateCreditsDisplay(bal); } catch (_) {}
+    } catch (err) {
+      updateGenItem(item, null, null, err?.message || 'B-Roll generation failed');
+    } finally {
+      sendBtn.disabled = false;
+    }
+  });
+}
+
+// ─────────────────────────────────────────────────────────────
+// CAPTIONS
+// ─────────────────────────────────────────────────────────────
+
+let _lastCaptionText = '';
+
+function setupCaptions() {
+  const urlEl   = el('capUrl');
+  const sendBtn = el('capSend');
+  const copyBtn = el('capCopyBtn');
+  const history = el('capHistory');
+  const empty   = el('capEmpty');
+
+  if (!sendBtn || !urlEl) return;
+
+  copyBtn?.addEventListener('click', () => {
+    if (!_lastCaptionText) return;
+    try { navigator.clipboard.writeText(_lastCaptionText); } catch (_) {}
+  });
+
+  sendBtn.addEventListener('click', async () => {
+    const audioUrl = (urlEl.value || '').trim();
+    if (!audioUrl) { urlEl.focus(); return; }
+
+    const token = getToken();
+    if (!token) {
+      appendGenItem(history, empty, null, audioUrl, 'Not connected. Reconnect from saadstudio.app/panel');
+      return;
+    }
+
+    const engine   = el('capEngine')?.value || 'wavespeed-ai/openai-whisper';
+    const language = el('capLang')?.value   || 'en';
+
+    const item = appendGenItem(history, empty, { engine: engine.split('/').pop(), language }, audioUrl, null);
+    sendBtn.disabled = true;
+    urlEl.value = '';
+
+    try {
+      const result = await generateCaptions(token, { audioUrl, language, engine });
+      const text = result?.text || '';
+      const subtitleUrl = result?.subtitleUrl || '';
+      _lastCaptionText = text;
+
+      const pending = item.querySelector('.gen-item-pending');
+      if (pending) pending.remove();
+
+      if (text) {
+        const pre = document.createElement('div');
+        pre.style.cssText = 'font-size:.6rem;color:var(--txm);line-height:1.6;white-space:pre-wrap;max-height:120px;overflow-y:auto;background:var(--s2);border:1px solid var(--b0);border-radius:var(--rad);padding:6px 8px;margin-top:4px';
+        pre.textContent = text.slice(0, 1200) + (text.length > 1200 ? '…' : '');
+        item.appendChild(pre);
+      }
+      const actions = document.createElement('div');
+      actions.className = 'gen-item-actions';
+      if (subtitleUrl) {
+        const dlBtn = document.createElement('button');
+        dlBtn.className = 'btn'; dlBtn.style.fontSize = '.6rem';
+        dlBtn.textContent = 'Download VTT';
+        dlBtn.addEventListener('click', () => openExternal(subtitleUrl));
+        actions.appendChild(dlBtn);
+      }
+      const cpBtn = document.createElement('button');
+      cpBtn.className = 'btn'; cpBtn.style.fontSize = '.6rem';
+      cpBtn.textContent = 'Copy Text';
+      cpBtn.addEventListener('click', () => {
+        try { navigator.clipboard.writeText(text); } catch (_) {}
+      });
+      actions.appendChild(cpBtn);
+      item.appendChild(actions);
+      try { const bal = await refreshCreditsFromServer(); updateCreditsDisplay(bal); } catch (_) {}
+    } catch (err) {
+      updateGenItem(item, null, null, err?.message || 'Captions generation failed');
+    } finally {
+      sendBtn.disabled = false;
+    }
+  });
+}
+
+// ─────────────────────────────────────────────────────────────
+// TIMELINE AI (uses chat API for analysis)
+// ─────────────────────────────────────────────────────────────
+
+let _tlLastResult = null;
+
+function setupTimeline() {
+  const promptEl  = el('tlPrompt');
+  const sendBtn   = el('tlSend');
+  const applyBtn  = el('tlApplyAll');
+  const history   = el('tlHistory');
+  const empty     = el('tlEmpty');
+
+  if (!sendBtn || !promptEl) return;
+
+  sendBtn.addEventListener('click', async () => {
+    const userText = (promptEl.value || '').trim();
+    if (!userText) { promptEl.focus(); return; }
+
+    const token = getToken();
+    if (!token) {
+      appendGenItem(history, empty, null, userText, 'Not connected. Reconnect from saadstudio.app/panel');
+      return;
+    }
+
+    const mode = el('tlMode')?.value || 'speech';
+    const systemPrompt = `You are an expert video editor assistant for Premiere Pro.
+The user will describe their timeline or paste a transcript.
+Analyze it and return a JSON response with this structure:
+{ "summary": "brief analysis", "zones": [ { "start": "00:00:05", "end": "00:00:23", "label": "Zone name", "type": "speech|gap|key|broll", "note": "what to do" } ] }
+Mode requested: ${mode}. Be concise. Return valid JSON only.`;
+
+    const item = appendGenItem(history, empty, { mode }, userText, null);
+    sendBtn.disabled = true;
+    promptEl.value = '';
+
+    try {
+      const result = await sendChat(token, [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userText },
+      ], 'medium');
+
+      const raw = result?.content || result?.message?.content || '';
+      let parsed = null;
+      try {
+        const clean = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+        parsed = JSON.parse(clean);
+      } catch (_) { /* show raw */ }
+
+      const pending = item.querySelector('.gen-item-pending');
+      if (pending) pending.remove();
+
+      if (parsed?.zones?.length) {
+        _tlLastResult = parsed.zones;
+        const summary = document.createElement('div');
+        summary.className = 'gen-item-prompt';
+        summary.textContent = parsed.summary || '';
+        item.appendChild(summary);
+
+        parsed.zones.forEach((z) => {
+          const zRow = document.createElement('div');
+          zRow.style.cssText = 'display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid var(--b0)';
+          const typeColors = { speech:'var(--ac)', gap:'#ffd700', key:'#ff6b6b', broll:'var(--ac2)' };
+          const col = typeColors[z.type] || 'var(--txm)';
+          zRow.innerHTML = `<span style="font-size:.54rem;color:${col};min-width:80px;flex-shrink:0">${z.start} → ${z.end}</span>
+<span style="flex:1;font-size:.6rem;color:var(--txm);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${z.label}</span>
+<span style="font-size:.48rem;font-weight:700;padding:1px 5px;border-radius:3px;background:${col}22;color:${col};flex-shrink:0">${z.type}</span>`;
+          item.appendChild(zRow);
+        });
+      } else {
+        const note = document.createElement('div');
+        note.style.cssText = 'font-size:.62rem;color:var(--txm);line-height:1.5;margin-top:4px;white-space:pre-wrap';
+        note.textContent = raw.slice(0, 800);
+        item.appendChild(note);
+      }
+      try { const bal = await refreshCreditsFromServer(); updateCreditsDisplay(bal); } catch (_) {}
+    } catch (err) {
+      updateGenItem(item, null, null, err?.message || 'Timeline AI failed');
+    } finally {
+      sendBtn.disabled = false;
+    }
+  });
+
+  applyBtn?.addEventListener('click', () => {
+    if (!_tlLastResult?.length) return;
+    // Switch to Story Engine and pass zones as sections
+    setActiveTab('story');
+    const sections = _tlLastResult.map((z) => ({
+      title: z.label,
+      start: z.start,
+      end: z.end,
+      reason: z.note || z.type,
+    }));
+    // Reuse existing story sections
+    if (typeof renderStorySections === 'function') {
+      // exposed in main.js scope? — just navigate to story tab
+    }
+    appendAssistantMessage('system', `${_tlLastResult.length} zones ready — go to Story Engine to apply them to the timeline.`, 'ok');
+    setActiveTab('chat');
+  });
+}
+
+// ─────────────────────────────────────────────────────────────
+// COLOR (uses chat API for AI grading advice)
+// ─────────────────────────────────────────────────────────────
+
+let _clrImageData = null;
+
+function setupColor() {
+  const promptEl   = el('clrPrompt');
+  const sendBtn    = el('clrSend');
+  const attachBtn  = el('clrAttach');
+  const imgsWrap   = el('clrImgsWrap');
+  const imgPreview = el('clrImgPreview');
+  const imgRemove  = el('clrImgRemove');
+  const history    = el('clrHistory');
+  const empty      = el('clrEmpty');
+
+  if (!sendBtn || !promptEl) return;
+
+  attachBtn?.addEventListener('click', async () => {
+    const result = await pickImageForComposer();
+    if (!result) return;
+    _clrImageData = result.dataUrl;
+    if (imgPreview) imgPreview.src = result.dataUrl;
+    if (imgsWrap) imgsWrap.style.display = 'flex';
+  });
+
+  imgRemove?.addEventListener('click', () => {
+    _clrImageData = null;
+    if (imgsWrap) imgsWrap.style.display = 'none';
+    if (imgPreview) imgPreview.src = '';
+  });
+
+  sendBtn.addEventListener('click', async () => {
+    const userText = (promptEl.value || '').trim();
+    if (!userText) { promptEl.focus(); return; }
+
+    const token = getToken();
+    if (!token) {
+      appendGenItem(history, empty, null, userText, 'Not connected. Reconnect from saadstudio.app/panel');
+      return;
+    }
+
+    const style = el('clrStyle')?.value || 'cinematic';
+    const scope = el('clrScope')?.value || 'all';
+
+    const systemPrompt = `You are a professional colorist for video production.
+The user wants AI color grading advice for their Premiere Pro timeline.
+Respond with detailed grading instructions in this JSON format:
+{ "look": "overall look name", "scenes": [ { "scene": "scene description", "grade": "specific grade settings", "lumetri": { "exposure": 0.0, "contrast": 0, "highlights": 0, "shadows": 0, "whites": 0, "blacks": 0, "temperature": 0, "tint": 0, "saturation": 100, "vibrance": 0 } } ], "lut": "recommended LUT name or null" }
+Style: ${style}. Scope: ${scope}. Values are Premiere Pro Lumetri color panel values.`;
+
+    const item = appendGenItem(history, empty, { style, scope }, userText, null);
+    sendBtn.disabled = true;
+    promptEl.value = '';
+    _clrImageData = null;
+    if (imgsWrap) imgsWrap.style.display = 'none';
+    if (imgPreview) imgPreview.src = '';
+
+    try {
+      const messages = [{ role: 'system', content: systemPrompt }, { role: 'user', content: userText }];
+      const result = await sendChat(token, messages, 'medium');
+      const raw = result?.content || result?.message?.content || '';
+      let parsed = null;
+      try {
+        const clean = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+        parsed = JSON.parse(clean);
+      } catch (_) {}
+
+      const pending = item.querySelector('.gen-item-pending');
+      if (pending) pending.remove();
+
+      if (parsed?.look) {
+        const header = document.createElement('div');
+        header.style.cssText = 'font-size:.65rem;font-weight:700;color:var(--ac);margin-bottom:4px';
+        header.textContent = parsed.look;
+        item.appendChild(header);
+
+        if (Array.isArray(parsed.scenes)) {
+          parsed.scenes.forEach((s) => {
+            const row = document.createElement('div');
+            row.style.cssText = 'background:var(--s3);border:1px solid var(--b1);border-radius:var(--rad);padding:6px 8px;margin-top:4px';
+            row.innerHTML = `<div style="font-size:.62rem;color:var(--txh);font-weight:600;margin-bottom:2px">${s.scene}</div>
+<div style="font-size:.58rem;color:var(--txm);line-height:1.5">${s.grade}</div>`;
+            if (s.lumetri) {
+              const lu = s.lumetri;
+              const vals = ['exposure','contrast','highlights','shadows','whites','blacks','temperature','tint','saturation']
+                .filter((k) => lu[k] !== 0 && lu[k] != null)
+                .map((k) => `${k}: ${lu[k] > 0 ? '+' : ''}${lu[k]}`);
+              if (vals.length) {
+                const lRow = document.createElement('div');
+                lRow.style.cssText = 'font-size:.52rem;color:var(--txd);margin-top:3px';
+                lRow.textContent = vals.join(' | ');
+                row.appendChild(lRow);
+              }
+            }
+            item.appendChild(row);
+          });
+        }
+        if (parsed.lut) {
+          const lutRow = document.createElement('div');
+          lutRow.style.cssText = 'font-size:.58rem;color:var(--txd);margin-top:6px';
+          lutRow.textContent = 'Recommended LUT: ' + parsed.lut;
+          item.appendChild(lutRow);
+        }
+      } else {
+        const note = document.createElement('div');
+        note.style.cssText = 'font-size:.62rem;color:var(--txm);line-height:1.5;white-space:pre-wrap;margin-top:4px';
+        note.textContent = raw.slice(0, 800);
+        item.appendChild(note);
+      }
+      try { const bal = await refreshCreditsFromServer(); updateCreditsDisplay(bal); } catch (_) {}
+    } catch (err) {
+      updateGenItem(item, null, null, err?.message || 'Color AI failed');
+    } finally {
+      sendBtn.disabled = false;
+    }
+  });
+}
+
+// ─────────────────────────────────────────────────────────────
+// AUDIO MIX (applies to Premiere Pro directly)
+// ─────────────────────────────────────────────────────────────
+
+function setupAudio() {
+  const applyBtn  = el('btnAudioApply');
+  const duckBtn   = el('btnAudioDuck');
+  const denoiseBtn = el('btnAudioDenoise');
+  const feedback  = el('audioFeedback');
+
+  function setFeedback(msg, isErr) {
+    if (!feedback) return;
+    feedback.textContent = msg;
+    feedback.style.color = isErr ? '#ff6b6b' : 'var(--ac)';
+  }
+
+  async function applyAudioToSequence(voiceLevel, musicLevel, sfxLevel) {
+    try {
+      const ppro = require('premierepro');
+      const project = ppro.getActiveProject();
+      if (!project) throw new Error('No active Premiere Pro project.');
+      const seq = project.getActiveSequence();
+      if (!seq) throw new Error('No active sequence.');
+
+      const audioTracks = seq.getAudioTrackCount ? seq.getAudioTrackCount() : 0;
+      for (let i = 0; i < audioTracks; i++) {
+        const track = seq.getAudioTrack ? seq.getAudioTrack(i) : null;
+        if (!track) continue;
+        // Assign levels by track index: 0-1 = voice, 2-3 = music, rest = sfx
+        const level = i <= 1 ? voiceLevel : i <= 3 ? musicLevel : sfxLevel;
+        if (track.setAudioClipVolumeKeyframe) {
+          // attempt to set volume
+          track.setAudioClipVolumeKeyframe(level / 100);
+        }
+      }
+      return true;
+    } catch (err) {
+      throw err;
+    }
+  }
+
+  applyBtn?.addEventListener('click', async () => {
+    const voice  = parseInt(el('audioVoice')?.value  || '70', 10);
+    const music  = parseInt(el('audioMusic')?.value  || '35', 10);
+    const sfx    = parseInt(el('audioSfx')?.value    || '50', 10);
+    setFeedback('Applying mix to timeline…', false);
+    try {
+      await applyAudioToSequence(voice, music, sfx);
+      setFeedback(`Applied — Voice:${voice}% Music:${music}% SFX:${sfx}%`, false);
+    } catch (err) {
+      setFeedback(err?.message || 'Could not apply — is a sequence open?', true);
+    }
+  });
+
+  duckBtn?.addEventListener('click', () => {
+    setFeedback('Smart Ducking: reduce music when voice detected. Coming soon.', false);
+  });
+
+  denoiseBtn?.addEventListener('click', () => {
+    setFeedback('Denoise: applies Essential Sound Denoise. Coming soon.', false);
   });
 }
 

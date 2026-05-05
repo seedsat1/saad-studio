@@ -145,3 +145,31 @@ export async function generateVideo(token, params) {
     body: JSON.stringify(params),
   }, token);
 }
+
+/**
+ * Generate TTS audio via the panel route.
+ * POST /api/panel/generate/tts
+ * @param {string} token
+ * @param {object} params - { text, voiceId, speed }
+ * @returns {Promise<{audioUrl: string, creditsUsed: number}>}
+ */
+export async function generateTTS(token, params) {
+  return request('/api/panel/generate/tts', {
+    method: 'POST',
+    body: JSON.stringify(params),
+  }, token);
+}
+
+/**
+ * Generate captions/transcription from a video or audio URL.
+ * POST /api/panel/generate/captions
+ * @param {string} token
+ * @param {object} params - { audioUrl, language, engine }
+ * @returns {Promise<{text: string, subtitleUrl?: string, creditsUsed: number}>}
+ */
+export async function generateCaptions(token, params) {
+  return request('/api/panel/generate/captions', {
+    method: 'POST',
+    body: JSON.stringify(params),
+  }, token);
+}
