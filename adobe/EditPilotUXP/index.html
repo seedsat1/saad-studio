@@ -2,11 +2,43 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EditPilot AI — Saad Studio</title>
+<title>EditPilot AI</title>
 <link rel="stylesheet" href="styles.css">
+<!-- Critical fallback: ensures login screen renders even if styles.css fails -->
+<style>
+html, body {
+  margin: 0; padding: 0;
+  width: 100%; height: 100%;
+  background: #0d0f1c;
+  color: #e2eaf6;
+  font-family: system-ui, -apple-system, sans-serif;
+  overflow: hidden;
+}
+/* Use absolute positioning — UXP does not fully support position:fixed */
+#connectScreen {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: #0d0f1c;
+  z-index: 300;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 16px;
+  overflow-y: auto;
+}
+#connectScreen.vis { display: flex; }
+.login-card {
+  width: 100%;
+  max-width: 310px;
+  background: #13152b;
+  border: 1px solid rgba(124,92,252,.25);
+  border-radius: 16px;
+  padding: 24px 20px 20px;
+}
+</style>
 </head>
-<body style="background:#0d0f1c;color:#e2eaf6">
+<body>
 
 <!-- ======================================================
      CONNECT SCREEN

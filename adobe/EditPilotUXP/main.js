@@ -891,4 +891,31 @@ document.querySelectorAll('[data-feature]').forEach(card => {
 // BOOT
 // ─────────────────────────────────────────────────────────────
 
-init();
+// Intercept ALL anchor clicks — prevent UXP panel navigation crashes
+document.addEventListener('click', (e) => {
+  const a = e.target.closest('a[href]');
+  if (!a) return;
+  const href = a.getAttribute('href');
+  if (!href || href.startsWith('#')) return;
+  e.preventDefault();
+  openExternal(href);
+});
+
+// Global error boundary — show errors in connectError div instead of crashing
+window.addEventListener('unhandledrejection', (e) => {
+  console.error('[EditPilot] Unhandled rejection:', e.reason);
+  const errEl = document.getElementById('connectError');
+  if (errEl && errEl.textContent === '') {
+    errEl.textContent = 'Error: ' + (e.reason?.message || String(e.reason));
+  }
+});
+
+try {
+  init();
+} catch (err) {
+  console.error('[EditPilot] Boot error:', err);
+  const errEl = document.getElementById('connectError');
+  if (errEl) errEl.textContent = 'Plugin error: ' + (err?.message || err);
+  // Make sure connect screen is visible even if init failed
+  document.getElementById('connectScreen')?.classList.add('vis');
+}
