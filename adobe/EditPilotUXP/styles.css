@@ -307,7 +307,46 @@ body {
 .login-footer-note a:hover,
 .login-footer a:hover { text-decoration: underline; }
 
-.hdr {
+/* ── Waiting state (auto-login polling) ──────────────────── */
+#loginWaiting {
+  text-align: center;
+  padding: 12px 0 4px;
+}
+.lw-title {
+  font-family: var(--fd);
+  font-size: .92rem;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.45;
+  margin-bottom: 12px;
+}
+.lw-sub {
+  font-size: .62rem;
+  color: #7a8da8;
+  line-height: 1.6;
+  margin-bottom: 5px;
+}
+.lw-timer {
+  font-size: .57rem;
+  color: #3a4a60;
+  margin: 10px 0 18px;
+  font-family: var(--fm);
+}
+.btn-login-cancel {
+  padding: 8px 22px;
+  border-radius: 8px;
+  border: 1px solid #1e2840;
+  background: transparent;
+  color: #6a7d98;
+  font-family: var(--fd);
+  font-size: .68rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color .18s, color .18s;
+}
+.btn-login-cancel:hover { border-color: #3a4a60; color: #c9d4e8; }
+
+
   background: linear-gradient(180deg, rgba(15,19,32,.97), var(--s1) 100%);
   border-bottom: 1px solid var(--b1);
   height: 46px;

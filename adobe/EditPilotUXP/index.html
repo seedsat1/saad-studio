@@ -46,6 +46,9 @@ html, body {
 <div class="login-screen vis" id="connectScreen">
   <div class="login-card">
 
+  <!-- Main login state -->
+  <div id="loginMain">
+
     <!-- Logo row -->
     <div class="login-logo-row">
       <div class="login-logo-icon">
@@ -97,8 +100,18 @@ html, body {
       <a href="https://www.saadstudio.app/panel" target="_blank">saadstudio.app/panel</a>
     </p>
 
-  </div>
-</div>
+  </div><!-- /loginMain -->
+
+  <!-- Waiting state (shown while polling for browser login) -->
+  <div id="loginWaiting" style="display:none">
+    <p class="lw-title">Waiting for browser&#x2026;</p>
+    <p class="lw-sub">Complete sign-in in the browser window that just opened.<br>This will auto-connect when done.</p>
+    <p class="lw-timer" id="lwTimer"></p>
+    <button class="btn-login-cancel" id="btnCancelLogin" type="button">&#x2715; Cancel</button>
+  </div><!-- /loginWaiting -->
+
+  </div><!-- /login-card -->
+</div><!-- /login-screen -->
 
 <!-- ======================================================
      HEADER

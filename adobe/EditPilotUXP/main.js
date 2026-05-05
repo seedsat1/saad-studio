@@ -75,9 +75,127 @@ function renderDashboard(session) {
 /** Fixed production URL — no user-editable field. */
 const PRODUCTION_URL = 'https://www.saadstudio.app';
 
-// "Login with Saad Studio" — opens browser to /panel so user can copy token
+// ─────────────────────────────────────────────────────────────
+// AUTO-LOGIN — Browser-based OAuth-style polling flow
+// ─────────────────────────────────────────────────────────────
+
+let _loginSession = null; // active session ID
+let _pollTimer    = null; // setTimeout handle
+let _countdownTimer = null; // countdown interval
+let _countdownSecs  = 0;
+
+/** Generate a random hex session ID (32 chars) */
+function generateSessionId() {
+  try {
+    // crypto.randomUUID available in modern UXP
+    return crypto.randomUUID().replace(/-/g, '');
+  } catch (_) {
+    let s = '';
+    for (let i = 0; i < 32; i++) s += Math.floor(Math.random() * 16).toString(16);
+    return s;
+  }
+}
+
+/** Show the "waiting for browser" UI, hide the main login form */
+function showWaitingState() {
+  const main = document.getElementById('loginMain');
+  const wait = document.getElementById('loginWaiting');
+  if (main) main.style.display = 'none';
+  if (wait) wait.style.display = 'block';
+
+  // Countdown: 5 minutes
+  _countdownSecs = 300;
+  const timerEl = document.getElementById('lwTimer');
+  function tick() {
+    if (timerEl) {
+      const m = Math.floor(_countdownSecs / 60);
+      const s = String(_countdownSecs % 60).padStart(2, '0');
+      timerEl.textContent = 'Expires in ' + m + ':' + s;
+    }
+    _countdownSecs--;
+    if (_countdownSecs >= 0) {
+      _countdownTimer = setTimeout(tick, 1000);
+    }
+  }
+  tick();
+}
+
+/** Restore the main login form, hide the waiting state */
+function hideWaitingState() {
+  const main = document.getElementById('loginMain');
+  const wait = document.getElementById('loginWaiting');
+  if (main) main.style.display = '';
+  if (wait) wait.style.display = 'none';
+  if (_countdownTimer) { clearTimeout(_countdownTimer); _countdownTimer = null; }
+}
+
+/** Cancel any active polling session */
+function stopPolling() {
+  _loginSession = null;
+  if (_pollTimer) { clearTimeout(_pollTimer); _pollTimer = null; }
+  if (_countdownTimer) { clearTimeout(_countdownTimer); _countdownTimer = null; }
+}
+
+/** Start polling /api/panel/auth-session/:sessionId every 2.5 s */
+function startPolling(sessionId) {
+  _loginSession = sessionId;
+
+  async function poll() {
+    if (_loginSession !== sessionId) return; // cancelled
+    try {
+      const res = await fetch(PRODUCTION_URL + '/api/panel/auth-session/' + sessionId);
+      if (!res.ok) { scheduleNext(); return; }
+      const data = await res.json();
+
+      if (data.status === 'approved' && data.token) {
+        stopPolling();
+        hideWaitingState();
+        setConnectLoading(true);
+        try {
+          const session = await connectWithToken(PRODUCTION_URL, data.token);
+          renderDashboard(session);
+        } catch (err) {
+          setConnectError(err.message || 'Auto-connect failed. Please paste token manually.');
+        } finally {
+          setConnectLoading(false);
+        }
+        return;
+      }
+
+      if (data.status === 'expired') {
+        stopPolling();
+        hideWaitingState();
+        setConnectError('Login session expired. Please try again.');
+        return;
+      }
+
+      scheduleNext(); // still pending
+    } catch (_) {
+      scheduleNext(); // network error — retry
+    }
+  }
+
+  function scheduleNext() {
+    if (_loginSession !== sessionId) return;
+    _pollTimer = setTimeout(poll, 2500);
+  }
+
+  // First poll after 1 second (give browser time to open and load)
+  _pollTimer = setTimeout(poll, 1000);
+}
+
+// "Login with Saad Studio" → open browser, start polling
 document.getElementById('btnOpenSite')?.addEventListener('click', () => {
-  openExternal(PRODUCTION_URL + '/panel');
+  const sessionId = generateSessionId();
+  openExternal(PRODUCTION_URL + '/panel/connect?session=' + sessionId);
+  showWaitingState();
+  startPolling(sessionId);
+});
+
+// Cancel button in waiting state
+document.getElementById('btnCancelLogin')?.addEventListener('click', () => {
+  stopPolling();
+  hideWaitingState();
 });
 
 document.getElementById('connectForm')?.addEventListener('submit', async (e) => {
