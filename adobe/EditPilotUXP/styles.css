@@ -167,10 +167,11 @@ html,body {
 /* ── SUB WARNING ───────────────────────────────── */
 .sub-warn {
   flex-shrink:0;
-  display:flex;align-items:center;gap:6px;
+  display:none;align-items:center;gap:6px;
   padding:5px 10px;font-size:.62rem;
   background:#2d1a00;border-bottom:1px solid #5a3000;color:#ffb74d;
 }
+.sub-warn.vis { display:flex; }
 .sub-warn-btn {
   margin-left:auto;padding:3px 8px;border-radius:4px;
   background:#5a3000;border:none;color:#ffb74d;font-size:.58rem;cursor:pointer;
@@ -199,6 +200,14 @@ html,body {
 .nt.active { color:var(--ac);border-bottom-color:var(--ac); }
 
 /* ── MAIN / PANELS ─────────────────────────────── */
+/* #dashboard is shown by default; showConnect() removes .vis to hide it */
+#dashboard {
+  display:flex;flex-direction:column;flex:1;overflow:hidden;
+}
+#dashboard:not(.vis) {
+  /* hidden when connect screen is showing */
+  visibility:hidden;pointer-events:none;
+}
 .main {
   flex:1;overflow:hidden;position:relative;
 }

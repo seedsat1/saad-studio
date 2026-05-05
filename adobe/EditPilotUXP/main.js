@@ -45,9 +45,22 @@ function renderDashboard(session) {
 }
 
 async function init() {
-  // DEV: skip login
-  const devSession = { email: 'dev@saadstudio.app', name: 'Dev', plan: 'pro', credits: 999, subscriptionActive: true };
-  renderDashboard(devSession);
+  try {
+    // DEV: skip login — remove this block to re-enable real login
+    const devSession = { email: 'dev@saadstudio.app', name: 'Dev', plan: 'pro', credits: 999, subscriptionActive: true };
+    renderDashboard(devSession);
+    setActiveTab('chat');
+  } catch (err) {
+    // Show error visibly so we can debug in UXP DevTool
+    console.error('[EditPilot] init() failed:', err);
+    const body = document.body;
+    if (body) {
+      const dbg = document.createElement('div');
+      dbg.style.cssText = 'position:absolute;top:0;left:0;right:0;background:#ff000033;color:#ff6b6b;font-size:10px;padding:6px;z-index:999;white-space:pre-wrap;word-break:break-all';
+      dbg.textContent = 'INIT ERROR: ' + (err?.message || String(err));
+      body.appendChild(dbg);
+    }
+  }
 }
 
 function generateSessionId() {
