@@ -359,8 +359,42 @@ function selCd(el){el.parentElement.querySelectorAll('.cd').forEach(function(c){
 function selVc(el){el.parentElement.querySelectorAll('.vc').forEach(function(c){c.classList.remove('sel')});el.classList.add('sel')}
 document.getElementById('btnSettings')&&document.getElementById('btnSettings').addEventListener('click',function(){document.getElementById('setBg').classList.add('vis')});
 document.getElementById('btnDisconnect2')&&document.getElementById('btnDisconnect2').addEventListener('click',function(){document.getElementById('setBg').classList.remove('vis');var d=document.getElementById('btnDisconnect');if(d)d.click()});
+
+/* ── DEV FALLBACK: runs immediately, overridden by main.js when it loads ── */
+(function(){
+  function s(id,v){var e=document.getElementById(id);if(e)e.textContent=v;}
+  function si(id,h){var e=document.getElementById(id);if(e)e.innerHTML=h;}
+  function sw(id,p){var e=document.getElementById(id);if(e)e.style.width=p;}
+  s('stripName','Dev');
+  s('stripEmail','dev@saadstudio.app');
+  s('stripPlan','Pro');
+  s('stripAvatar','D');
+  s('hdrAvatar','D');
+  s('hdrPlan','Pro');
+  s('crNum','999');
+  sw('crFill','83%');
+  si('dashCreditsVal','999<span>cr</span>');
+  sw('dashCreditsBar','83%');
+  s('dashPlanBadge','Pro');
+  /* set first tab active */
+  var tabs=document.querySelectorAll('.nt');
+  tabs.forEach(function(t){t.classList.remove('active')});
+  if(tabs[0])tabs[0].classList.add('active');
+  var panels=document.querySelectorAll('.pn');
+  panels.forEach(function(p){p.classList.remove('vis')});
+  var first=document.querySelector('.pn[data-panel="chat"]');
+  if(first)first.classList.add('vis');
+})();
 </script>
 
-<script type="module" src="main.js"></script>
+<!-- module error capture — shows any JS module load error visually -->
+<script type="module">
+import('./main.js').catch(function(err){
+  var d=document.createElement('div');
+  d.style.cssText='position:absolute;top:40px;left:0;right:0;background:rgba(180,0,0,.9);color:#fff;padding:6px 10px;font-size:11px;z-index:9999;word-break:break-all;white-space:pre-wrap';
+  d.textContent='main.js failed: '+(err&&err.message||String(err));
+  document.body&&document.body.appendChild(d);
+});
+</script>
 </body>
 </html>
