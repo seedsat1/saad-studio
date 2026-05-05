@@ -1092,3 +1092,246 @@ body {
 .apply-feedback.ok   { color: #22c55e; }
 .apply-feedback.err  { color: var(--rd); cursor: help; }
 
+/* ─── Timeline Confirm Modal ────────────────────────────────────────────────── */
+
+/* Full-panel overlay */
+.tl-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, .78);
+  backdrop-filter: blur(4px);
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  animation: fadeIn .15s ease;
+}
+
+/* Modal card */
+.tl-modal {
+  background: var(--s1);
+  border: 1px solid var(--b2);
+  border-radius: var(--r);
+  width: 100%;
+  max-height: calc(100vh - 20px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  animation: fadeUp .2s ease;
+}
+
+/* ── Header ── */
+.tl-modal-hdr {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 14px 9px;
+  border-bottom: 1px solid var(--b1);
+  flex-shrink: 0;
+}
+.tl-modal-title {
+  flex: 1;
+  font-family: var(--fd);
+  font-size: .78rem;
+  font-weight: 700;
+  color: var(--txh);
+}
+.tl-modal-close {
+  background: transparent;
+  border: none;
+  color: var(--txd);
+  cursor: pointer;
+  font-size: .72rem;
+  padding: 3px 7px;
+  border-radius: 5px;
+  line-height: 1;
+  transition: background .15s, color .15s;
+}
+.tl-modal-close:hover { background: var(--s3); color: var(--tx); }
+
+/* ── Subtitle ── */
+.tl-modal-sub {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 7px 14px 5px;
+  font-size: .58rem;
+  color: var(--txd);
+  flex-shrink: 0;
+}
+.tl-modal-badge {
+  background: var(--acg);
+  border: 1px solid var(--acb);
+  color: var(--ac);
+  border-radius: 20px;
+  padding: 1px 9px;
+  font-size: .55rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.tl-modal-badge.err {
+  background: rgba(239, 68, 68, .08);
+  border-color: rgba(239, 68, 68, .25);
+  color: var(--rd);
+}
+
+/* ── Sequence warning banner ── */
+.tl-seq-warn {
+  display: none;
+  margin: 0 12px 4px;
+  padding: 6px 10px;
+  background: rgba(239, 68, 68, .07);
+  border: 1px solid rgba(239, 68, 68, .22);
+  border-radius: var(--rs);
+  font-size: .58rem;
+  color: var(--rd);
+  line-height: 1.5;
+  flex-shrink: 0;
+}
+
+/* ── Scrollable body ── */
+.tl-modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* ── Section row ── */
+.tl-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--s2);
+  border: 1px solid transparent;
+  border-radius: var(--rs);
+  transition: border-color .15s;
+}
+/* Highlight checked rows */
+.tl-row:has(.tl-row-check:checked) {
+  border-color: rgba(56, 189, 248, .22);
+}
+.tl-row--invalid { opacity: .5; }
+
+.tl-row-check-wrap {
+  display: flex;
+  align-items: flex-start;
+  padding-top: 2px;
+}
+.tl-row-check {
+  cursor: pointer;
+  accent-color: var(--ac2);
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+}
+.tl-row-check:disabled { cursor: default; }
+
+.tl-row-num {
+  font-size: .52rem;
+  color: var(--txd);
+  min-width: 14px;
+  text-align: right;
+  padding-top: 2px;
+  font-family: var(--fm);
+}
+
+.tl-row-info { flex: 1; min-width: 0; }
+.tl-row-title {
+  font-size: .65rem;
+  font-weight: 600;
+  color: var(--txh);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+.tl-row-time {
+  font-size: .52rem;
+  color: var(--txd);
+  font-family: var(--fm);
+  margin-top: 2px;
+}
+.tl-row-reason {
+  font-size: .55rem;
+  color: var(--txm);
+  margin-top: 3px;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.tl-row-dur {
+  font-size: .58rem;
+  color: var(--txd);
+  min-width: 38px;
+  text-align: right;
+  font-family: var(--fm);
+  padding-top: 2px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.tl-invalid-lbl {
+  color: var(--rd);
+  font-family: var(--f);
+  font-size: .52rem;
+  white-space: nowrap;
+  cursor: help;
+}
+
+/* ── Status line ── */
+.tl-modal-status {
+  padding: 7px 14px;
+  font-size: .62rem;
+  text-align: center;
+  border-top: 1px solid var(--b1);
+  flex-shrink: 0;
+  transition: color .2s;
+  color: var(--txm);
+}
+.tl-modal-status.ok   { color: var(--gr); }
+.tl-modal-status.warn { color: var(--or); }
+
+/* ── Footer ── */
+.tl-modal-footer {
+  display: flex;
+  gap: 8px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--b1);
+  flex-shrink: 0;
+}
+.tl-modal-btn {
+  flex: 1;
+  border-radius: var(--rs);
+  font-family: var(--f);
+  font-size: .68rem;
+  font-weight: 600;
+  padding: 9px 10px;
+  cursor: pointer;
+  transition: all .2s;
+}
+.tl-btn-cancel {
+  background: var(--s2);
+  border: 1px solid var(--b2);
+  color: var(--txm);
+}
+.tl-btn-cancel:hover { border-color: var(--bh); color: var(--tx); }
+.tl-btn-apply {
+  flex: 2;
+  background: var(--acg);
+  border: 1px solid var(--acb);
+  color: var(--ac);
+  font-weight: 700;
+}
+.tl-btn-apply:hover:not(:disabled) { background: var(--ach); border-color: var(--ac); }
+.tl-btn-apply:disabled { opacity: .4; cursor: default; }
+
+

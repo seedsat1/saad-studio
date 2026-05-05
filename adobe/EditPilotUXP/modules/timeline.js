@@ -146,6 +146,82 @@ export async function applySectionToTimeline(section) {
 }
 
 // ─────────────────────────────────────────────────────────────
+// VALIDATION
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Validate an array of story sections without touching Premiere Pro.
+ *
+ * Returns an enriched array. Each item contains:
+ *   { section, valid, error, startSec, endSec, durationSec, hasTimestamps }
+ *
+ * Rules:
+ *   • "00:00:00" / "00:00:00" → no timestamps → valid, 1 s duration placeholder
+ *   • Unparseable parts → invalid
+ *   • endSec <= startSec    → invalid
+ *
+ * @param {Array<{title:string, start:string, end:string, reason:string}>} sections
+ * @returns {Array<{section:object, valid:boolean, error:string|null,
+ *                  startSec:number, endSec:number, durationSec:number,
+ *                  hasTimestamps:boolean}>}
+ */
+export function validateStorySections(sections) {
+  if (!Array.isArray(sections)) return [];
+
+  return sections.map(section => {
+    const startRaw = (section.start ?? '').trim();
+    const endRaw   = (section.end   ?? '').trim();
+
+    // Both zeros → transcript had no timestamps → place 1 s marker at 0
+    if (startRaw === '00:00:00' && endRaw === '00:00:00') {
+      return { section, valid: true, error: null,
+               startSec: 0, endSec: 1, durationSec: 1, hasTimestamps: false };
+    }
+
+    // Validate start
+    const sParts = startRaw.split(':').map(Number);
+    if (sParts.length < 2 || sParts.some(isNaN)) {
+      return { section, valid: false, error: 'Invalid start timestamp',
+               startSec: 0, endSec: 0, durationSec: 0, hasTimestamps: true };
+    }
+    const startSec = timeToSeconds(startRaw);
+
+    // Validate end
+    const eParts = endRaw.split(':').map(Number);
+    if (eParts.length < 2 || eParts.some(isNaN)) {
+      return { section, valid: false, error: 'Invalid end timestamp',
+               startSec, endSec: 0, durationSec: 0, hasTimestamps: true };
+    }
+    const endSec = timeToSeconds(endRaw);
+
+    if (endSec <= startSec) {
+      return { section, valid: false, error: 'End time must be after start time',
+               startSec, endSec, durationSec: 0, hasTimestamps: true };
+    }
+
+    return {
+      section, valid: true, error: null,
+      startSec, endSec, durationSec: endSec - startSec, hasTimestamps: true,
+    };
+  });
+}
+
+/**
+ * Quick-check whether an active sequence is accessible.
+ * Does NOT create any markers. Never throws.
+ *
+ * @returns {Promise<{ ok: boolean, error: string|null }>}
+ */
+export async function checkActiveSequence() {
+  try {
+    await getActiveSequence();
+    return { ok: true, error: null };
+  } catch (err) {
+    return { ok: false, error: err?.message ?? 'No active sequence' };
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
 // BULK APPLY
 // ─────────────────────────────────────────────────────────────
 

@@ -23,6 +23,7 @@ import {
 } from './modules/ui.js';
 import { analyzeTranscript, renderStorySections } from './modules/storyEngine.js';
 import { applySectionToTimeline, applyAllSectionsToTimeline } from './modules/timeline.js';
+import { openConfirmModal } from './modules/timeline-confirm.js';
 
 // ─────────────────────────────────────────────────────────────
 // INIT
@@ -287,14 +288,30 @@ document.getElementById('btnStoryClear')?.addEventListener('click', () => {
 // ─────────────────────────────────────────────────────────────
 
 /**
- * Apply a single section marker. Updates the given button element.
+ * Apply a single section marker via the confirm modal.
  * @param {{ title:string, start:string, end:string, reason:string }} section
  * @param {HTMLElement|null} btn  - card apply button (optional)
  */
 async function applyOneSection(section, btn) {
+  // Temporarily disable button while modal is open
   if (btn) { btn.disabled = true; btn.textContent = '…'; }
+
+  let confirmed, selected;
   try {
-    await applySectionToTimeline(section);
+    ({ confirmed, selected } = await openConfirmModal([section]));
+  } catch (_) {
+    if (btn) { btn.disabled = false; }
+    return;
+  }
+
+  if (!confirmed || !selected.length) {
+    // User cancelled
+    if (btn) { btn.disabled = false; }
+    return;
+  }
+
+  try {
+    await applySectionToTimeline(selected[0]);
     if (btn) {
       btn.textContent = '✓';
       btn.classList.add('applied');
@@ -308,7 +325,6 @@ async function applyOneSection(section, btn) {
       btn.classList.add('error');
       btn.disabled = false;
     }
-    // Surface error as a brief alert (no modal needed)
     const errEl = document.getElementById('storyError');
     if (errEl) {
       errEl.textContent = `Timeline error: ${err?.message ?? 'Could not create marker.'}`;
@@ -322,10 +338,15 @@ document.getElementById('btnApplyOne')?.addEventListener('click', async () => {
   if (!currentSelectedSection) return;
   const btn = document.getElementById('btnApplyOne');
   const fb  = document.getElementById('applyOneFeedback');
+
+  // Open confirm modal for this single section
+  const { confirmed, selected } = await openConfirmModal([currentSelectedSection]);
+  if (!confirmed || !selected.length) return;
+
   if (btn) { btn.disabled = true; btn.textContent = 'Applying…'; }
   if (fb)  { fb.textContent = ''; fb.className = 'apply-feedback'; }
   try {
-    await applySectionToTimeline(currentSelectedSection);
+    await applySectionToTimeline(selected[0]);
     if (btn) { btn.disabled = false; btn.textContent = '▶ Apply to Timeline'; }
     if (fb)  { fb.textContent = '✓ Marker added'; fb.className = 'apply-feedback ok'; }
   } catch (err) {
@@ -337,20 +358,26 @@ document.getElementById('btnApplyOne')?.addEventListener('click', async () => {
 // "Apply All Sections" button
 document.getElementById('btnApplyAll')?.addEventListener('click', async () => {
   if (!currentSections.length) return;
+
+  // Open confirm modal — user reviews, toggles sections, then confirms
+  const { confirmed, selected } = await openConfirmModal(currentSections);
+  if (!confirmed || !selected.length) return;
+
   const btn = document.getElementById('btnApplyAll');
   const fb  = document.getElementById('applyAllFeedback');
-  if (btn) { btn.disabled = true; btn.textContent = 'Applying…'; }
+  if (btn) { btn.disabled = true; btn.textContent = `Applying 0/${selected.length}…`; }
   if (fb)  { fb.textContent = ''; fb.className = 'apply-feedback'; }
+
   try {
     const { applied, errors } = await applyAllSectionsToTimeline(
-      currentSections,
+      selected,
       (done, total) => {
         if (btn) btn.textContent = `Applying ${done}/${total}…`;
       },
     );
     if (btn) { btn.disabled = false; btn.textContent = '▶ Apply All to Timeline'; }
     if (errors.length === 0) {
-      if (fb) { fb.textContent = `✓ ${applied} markers added`; fb.className = 'apply-feedback ok'; }
+      if (fb) { fb.textContent = `✓ ${applied} marker${applied !== 1 ? 's' : ''} added`; fb.className = 'apply-feedback ok'; }
     } else {
       if (fb) {
         fb.textContent = `${applied} added, ${errors.length} failed`;
