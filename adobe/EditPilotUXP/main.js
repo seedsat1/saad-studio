@@ -1129,7 +1129,24 @@ function setupBroll() {
         aspectRatio: ratio,
         resolution: '1080p',
       });
-      updateGenItem(item, result?.videoUrl || result?.url || null, null, null);
+      const videoUrl = result?.videoUrl || result?.url || null;
+      updateGenItem(item, videoUrl, null, null);
+
+      // ── Import + Insert into Timeline ──────────────────────
+      if (videoUrl) {
+        const note = item.querySelector('.gen-item-meta');
+        if (note) note.textContent = 'Downloading and inserting into timeline…';
+        try {
+          const ext = (videoUrl.split('?')[0].split('.').pop() || 'mp4').slice(0, 4);
+          const slug = prompt.slice(0, 24).replace(/[^a-zA-Z0-9]/g, '_');
+          const filename = `ep_br_${Date.now()}_${slug}.${ext}`;
+          await importAndInsertAtPlayhead(videoUrl, filename);
+          if (note) note.textContent = `Inserted at playhead \u2014 ${filename}`;
+        } catch (insErr) {
+          if (note) note.textContent = `Video ready \u2014 timeline insert failed: ${insErr?.message || 'Unknown error'}`;
+        }
+      }
+
       try { const bal = await refreshCreditsFromServer(); updateCreditsDisplay(bal); } catch (_) {}
     } catch (err) {
       updateGenItem(item, null, null, err?.message || 'B-Roll generation failed');
