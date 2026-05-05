@@ -170,30 +170,45 @@ async function getOverlappingVideoItems(ppro, seq, inTick, outTick) {
 // ─────────────────────────────────────────────────────────────
 
 /**
- * Insert one story section from sourceSeq into targetSeq.
+ * Insert one story section from sourceSeq into targetSeq — TRIMMED to the
+ * exact section time range.
  *
- * Algorithm:
- *   1. Scan source video tracks for clip items overlapping [startSec, endSec).
- *   2. For each overlapping clip:
- *        a. Get its ProjectItem.
- *        b. Build an overwrite action at the correct position in target:
- *             insertTime = insertOffset + (itemStartTick - sectionInTick)
- *        c. Add the action to a CompoundAction.
- *        d. After insertion, trim the placed clip to the section boundary
- *           using createSetInPointAction / createSetOutPointAction if the
- *           clip extends beyond the section range.
- *   3. Place a comment marker at insertOffset covering the full section.
- *   4. Return section duration in ticks (to advance the cursor).
+ * Algorithm for each overlapping clip:
+ *   1. Resolve async data: projectItem, clipSeqStartTick, clipMediaInTick, clipMediaOutTick.
+ *   2. Compute actual overlap between section [sectionInTick, sectionOutTick) and
+ *      clip [clipSeqStartTick, clipSeqEndTick) in SOURCE sequence space.
+ *   3. Map overlap to MEDIA space:
+ *        newMediaIn  = clipMediaInTick + (overlapStart - clipSeqStartTick)
+ *        newMediaOut = clipMediaInTick + (overlapEnd   - clipSeqStartTick)
+ *   4. Compute target insert position:
+ *        targetInsertTick = insertOffset + (overlapStart - sectionInTick)
+ *        (preserves relative position within the section)
+ *   5. Execute one transaction per clip with three ordered actions:
+ *        A) projectItem.createSetInOutPointsAction(newMediaIn, newMediaOut)
+ *           → narrows the source clip to section range before insert
+ *        B) editor.createOverwriteItemAction(projectItem, targetInsert, vIdx, aIdx)
+ *           → inserts trimmed clip into target sequence
+ *        C) projectItem.createClearInOutPointsAction()
+ *           → restores the project item to its original state (non-destructive)
+ *   6. Place a comment marker spanning the full section at insertOffset.
  *
- * All mutations are wrapped in project.executeTransaction() — single undo step.
+ * CompoundAction executes steps in order, so A happens before B, and B before C.
+ * The source sequence and all project items are left unmodified after the call.
+ *
+ * Edge cases:
+ *   - Clip only partially covers the section → overlap is used (correct behaviour).
+ *   - Section spans multiple clips → each clip is inserted at its correct relative offset.
+ *   - No clips found → marker-only (structure preserved, clips absent).
+ *   - projectItem.createSetInOutPointsAction not available (wrong type) → skips set/clear,
+ *     inserts full clip with a console warning.
  *
  * @param {object} ppro
  * @param {object} project
  * @param {object} targetSeq
  * @param {object} sourceSeq
- * @param {object} validItem
- * @param {number} insertOffset  - ticks write cursor in targetSeq
- * @returns {Promise<number>}    - section duration ticks
+ * @param {object} validItem     - item from validateStorySections()
+ * @param {number} insertOffset  - running write cursor in targetSeq (ticks)
+ * @returns {Promise<number>}    - section duration ticks (advance cursor by this)
  */
 export async function insertSectionRange(ppro, project, targetSeq, sourceSeq, validItem, insertOffset) {
   const { section, startSec, endSec, durationSec, hasTimestamps } = validItem;
@@ -212,42 +227,112 @@ export async function insertSectionRange(ppro, project, targetSeq, sourceSeq, va
     }
   }
 
-  // ── 2. Insert clips into target sequence ─────────────────────
-  if (overlapping.length > 0) {
-    const editor = ppro.SequenceEditor.getEditor(targetSeq);
+  // ── 2. Resolve full async clip data ─────────────────────────
+  // executeTransaction is synchronous — all async work must finish before it.
+  const resolvedItems = [];
 
-    // Pre-resolve projectItems asynchronously (executeTransaction is sync)
-    const resolvedItems = [];
-    for (const entry of overlapping) {
-      try {
-        const pi = await entry.trackItem.getProjectItem();
-        if (pi) resolvedItems.push({ ...entry, projectItem: pi });
-      } catch {
-        // skip unresolvable items
+  for (const entry of overlapping) {
+    try {
+      const [projectItem, seqStartTime, mediaInTime, mediaOutTime] = await Promise.all([
+        entry.trackItem.getProjectItem(),
+        entry.trackItem.getStartTime(),
+        entry.trackItem.getInPoint(),
+        entry.trackItem.getOutPoint(),
+      ]);
+
+      if (!projectItem) {
+        console.warn('[EditPilot] trackItem.getProjectItem() returned null — skipping clip.');
+        continue;
       }
-    }
 
-    if (resolvedItems.length > 0) {
-      project.executeTransaction((compoundAction) => {
-        for (const { projectItem, trackIndex, startTick } of resolvedItems) {
-          // Target insert time = insertOffset + (item start relative to section start)
-          const relativeOffset  = Math.max(0, startTick - sectionInTick);
-          const targetTimeTicks = insertOffset + relativeOffset;
-          const targetTime      = ticksToTickTime(ppro, targetTimeTicks);
+      // Sequence-space start of this clip (fallback to startTick from initial scan)
+      const clipSeqStartTick = Number(seqStartTime?.ticks ?? entry.startTick);
 
-          const action = editor.createOverwriteItemAction(
-            projectItem,
-            targetTime,
-            trackIndex, // video track index
-            trackIndex, // audio track index (linked audio on same index)
-          );
-          if (action) compoundAction.addAction(action);
-        }
-      }, `EditPilot: Insert "${section.title}"`);
+      // Media-relative in/out of this clip (where its content starts/ends in media time)
+      const clipMediaInTick  = Number(mediaInTime?.ticks  ?? 0);
+      const clipMediaOutTick = Number(mediaOutTime?.ticks ?? 0);
+
+      // Actual overlap with the section (clamped to clip boundaries)
+      const overlapStart = Math.max(sectionInTick,  clipSeqStartTick);
+      const overlapEnd   = Math.min(sectionOutTick, entry.endTick);
+
+      if (overlapEnd <= overlapStart) {
+        // No real overlap (should not happen since getOverlappingVideoItems filters, but guard)
+        console.warn(`[EditPilot] Degenerate overlap for "${section.title}" — skipping clip.`);
+        continue;
+      }
+
+      // Map overlap to media time
+      const newMediaInTick  = clipMediaInTick + (overlapStart - clipSeqStartTick);
+      const newMediaOutTick = clipMediaInTick + (overlapEnd   - clipSeqStartTick);
+
+      // Target insert position preserves relative offset within the section
+      const targetInsertTick = insertOffset + (overlapStart - sectionInTick);
+
+      resolvedItems.push({
+        projectItem,
+        trackIndex:   entry.trackIndex,
+        newMediaIn:   ticksToTickTime(ppro, newMediaInTick),
+        newMediaOut:  ticksToTickTime(ppro, newMediaOutTick),
+        targetInsert: ticksToTickTime(ppro, targetInsertTick),
+      });
+    } catch (err) {
+      console.warn('[EditPilot] Clip resolve warning:', err?.message);
     }
   }
 
-  // ── 3. Section marker on target ──────────────────────────────
+  // ── 3. Insert each clip, trimmed to section range ────────────
+  if (resolvedItems.length > 0) {
+    const editor = ppro.SequenceEditor.getEditor(targetSeq);
+
+    for (const { projectItem, trackIndex, newMediaIn, newMediaOut, targetInsert } of resolvedItems) {
+      try {
+        project.executeTransaction((ca) => {
+          // A) Narrow the source clip to section range before inserting.
+          //    createSetInOutPointsAction lives on ClipProjectItem.
+          //    trackItem.getProjectItem() returns the base ProjectItem type in
+          //    the TypeScript definitions, but at runtime the object IS a
+          //    ClipProjectItem for clip items, so the method is available.
+          const setRangeAction = projectItem.createSetInOutPointsAction?.(newMediaIn, newMediaOut);
+          if (setRangeAction) {
+            ca.addAction(setRangeAction);
+          } else {
+            console.warn(
+              '[EditPilot] createSetInOutPointsAction not available on projectItem — ' +
+              'inserting full clip. Check that the clip is a standard media item.',
+            );
+          }
+
+          // B) Insert the (now-trimmed) clip into the target sequence.
+          const insertAction = editor.createOverwriteItemAction(
+            projectItem,
+            targetInsert,
+            trackIndex, // video track index
+            trackIndex, // audio track index (linked audio uses same index)
+          );
+          if (insertAction) ca.addAction(insertAction);
+
+          // C) Restore the project item to its original state so the source
+          //    project panel is left completely unchanged.
+          const clearAction = projectItem.createClearInOutPointsAction?.();
+          if (clearAction) ca.addAction(clearAction);
+
+        }, `EditPilot: Insert "${section.title}"`);
+      } catch (txErr) {
+        console.warn('[EditPilot] Insert transaction warning:', txErr?.message);
+      }
+    }
+  } else if (hasTimestamps && overlapping.length > 0) {
+    // Items were found in source but could not be resolved — marker only
+    console.warn(
+      `[EditPilot] "${section.title}": ${overlapping.length} source clip(s) found ` +
+      'but none resolved to a ProjectItem — section will be marker-only.',
+    );
+  }
+  // If overlapping.length === 0 and hasTimestamps: no source clips in this range,
+  // e.g. a gap or silence-only section. Marker still placed below.
+
+  // ── 4. Section marker on target ──────────────────────────────
   try {
     const marker    = targetSeq.markers.createMarker(insertOffset);
     marker.name     = (section.title  || '').slice(0, 100);
