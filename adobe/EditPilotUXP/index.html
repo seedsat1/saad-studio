@@ -357,14 +357,49 @@ function selPill(el){el.parentElement.querySelectorAll('.pill').forEach(function
 function selCard(el){el.parentElement.querySelectorAll('.model-card').forEach(function(c){c.classList.remove('active')});el.classList.add('active')}
 function selCd(el){el.parentElement.querySelectorAll('.cd').forEach(function(c){c.classList.remove('sel')});el.classList.add('sel')}
 function selVc(el){el.parentElement.querySelectorAll('.vc').forEach(function(c){c.classList.remove('sel')});el.classList.add('sel')}
-document.getElementById('btnSettings')&&document.getElementById('btnSettings').addEventListener('click',function(){document.getElementById('setBg').classList.add('vis')});
-document.getElementById('btnDisconnect2')&&document.getElementById('btnDisconnect2').addEventListener('click',function(){document.getElementById('setBg').classList.remove('vis');var d=document.getElementById('btnDisconnect');if(d)d.click()});
 
-/* ── DEV FALLBACK: runs immediately, overridden by main.js when it loads ── */
-(function(){
+/* ── TAB SWITCHING — works without main.js ── */
+function setActiveTab(tab){
+  document.querySelectorAll('#epTabs .nt').forEach(function(b){b.classList.remove('active')});
+  document.querySelectorAll('.pn').forEach(function(p){p.classList.remove('vis')});
+  var btn=document.querySelector('#epTabs .nt[data-tab="'+tab+'"]');
+  if(btn)btn.classList.add('active');
+  var panel=document.querySelector('.pn[data-panel="'+tab+'"]');
+  if(panel)panel.classList.add('vis');
+}
+window.setActiveTab=setActiveTab;
+
+document.addEventListener('DOMContentLoaded',function(){
+  /* Nav tabs */
+  var nav=document.getElementById('epTabs');
+  if(nav)nav.addEventListener('click',function(e){
+    var btn=e.target.closest('.nt');
+    if(btn&&btn.dataset.tab)setActiveTab(btn.dataset.tab);
+  });
+
+  /* Settings button */
+  var bs=document.getElementById('btnSettings');
+  if(bs)bs.addEventListener('click',function(){document.getElementById('setBg').classList.add('vis')});
+  var mx=document.getElementById('setBg');
+  if(mx)mx.addEventListener('click',function(e){if(e.target===mx)mx.classList.remove('vis')});
+  var bd2=document.getElementById('btnDisconnect2');
+  if(bd2)bd2.addEventListener('click',function(){
+    document.getElementById('setBg').classList.remove('vis');
+    var d=document.getElementById('btnDisconnect');if(d)d.click();
+  });
+
+  /* Upgrade Plan + subWarnBtn → open site */
+  var bm=document.getElementById('btnManageSub');
+  if(bm)bm.addEventListener('click',function(){openSaadStudio('/pricing')});
+  var sw=document.getElementById('subWarnBtn');
+  if(sw)sw.addEventListener('click',function(){openSaadStudio('/pricing')});
+  var hc=document.getElementById('hdrCredits');
+  if(hc)hc.addEventListener('click',function(){openSaadStudio('/pricing')});
+
+  /* DEV fallback values */
   function s(id,v){var e=document.getElementById(id);if(e)e.textContent=v;}
   function si(id,h){var e=document.getElementById(id);if(e)e.innerHTML=h;}
-  function sw(id,p){var e=document.getElementById(id);if(e)e.style.width=p;}
+  function sw2(id,p){var e=document.getElementById(id);if(e)e.style.width=p;}
   s('stripName','Dev');
   s('stripEmail','dev@saadstudio.app');
   s('stripPlan','Pro');
@@ -372,27 +407,22 @@ document.getElementById('btnDisconnect2')&&document.getElementById('btnDisconnec
   s('hdrAvatar','D');
   s('hdrPlan','Pro');
   s('crNum','999');
-  sw('crFill','83%');
+  sw2('crFill','83%');
   si('dashCreditsVal','999<span>cr</span>');
-  sw('dashCreditsBar','83%');
+  sw2('dashCreditsBar','83%');
   s('dashPlanBadge','Pro');
-  /* set first tab active */
-  var tabs=document.querySelectorAll('.nt');
-  tabs.forEach(function(t){t.classList.remove('active')});
-  if(tabs[0])tabs[0].classList.add('active');
-  var panels=document.querySelectorAll('.pn');
-  panels.forEach(function(p){p.classList.remove('vis')});
-  var first=document.querySelector('.pn[data-panel="chat"]');
-  if(first)first.classList.add('vis');
-})();
+
+  /* Start on chat tab */
+  setActiveTab('chat');
+});
 </script>
 
-<!-- module error capture — shows any JS module load error visually -->
+<!-- main.js handles: story engine, assistant, login, real data -->
 <script type="module">
 import('./main.js').catch(function(err){
   var d=document.createElement('div');
   d.style.cssText='position:absolute;top:40px;left:0;right:0;background:rgba(180,0,0,.9);color:#fff;padding:6px 10px;font-size:11px;z-index:9999;word-break:break-all;white-space:pre-wrap';
-  d.textContent='main.js failed: '+(err&&err.message||String(err));
+  d.textContent='main.js error: '+(err&&err.message||String(err));
   document.body&&document.body.appendChild(d);
 });
 </script>
