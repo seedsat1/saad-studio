@@ -216,230 +216,44 @@
     </div>
   </div>
 
-  <!-- VIDEO GEN -->
+  <!-- VIDEO GEN — SAFE MODE (original content backed up in git history) -->
   <div class="pn" data-panel="videogen" id="viewVideogen">
-    <div style="padding:20px;color:#fff">Video Gen panel - test</div>
+    <div style="padding:20px;color:#fff">VideoGen Loaded — SAFE MODE</div>
   </div>
 
-  <!-- IMAGE GEN -->
+  <!-- IMAGE GEN — SAFE MODE -->
   <div class="pn" data-panel="imagegen" id="viewImagegen">
-    <div style="padding:20px;color:#fff">Image Gen panel - test</div>
+    <div id="imagegenRenderHost" style="padding:20px;color:#fff">ImageGen Loaded — RESTORE MODE</div>
   </div>
 
-  <!-- TTS -->
+  <!-- TTS — SAFE MODE -->
   <div class="pn" data-panel="tts" id="viewTts">
-    <div class="gen-hist" id="ttsHistory">
-      <div class="gen-empty" id="ttsEmpty">Select a voice and type text to generate</div>
-    </div>
-    <div class="cmp">
-      <div class="cmp-top">
-        <div class="cmp-opts">
-          <select class="cmp-sel" id="ttsVoice">
-            <option value="rachel">Rachel — Warm EN</option>
-            <option value="brian">Brian — Deep EN</option>
-            <option value="aria">Aria — Clear EN</option>
-            <option value="daniel">Daniel — British</option>
-            <option value="matilda">Matilda — AU</option>
-            <option value="arabella">Arabella — Arabic</option>
-          </select>
-          <select class="cmp-sel" id="ttsSpeed">
-            <option value="0.75">0.75x</option>
-            <option value="1" selected>1x</option>
-            <option value="1.25">1.25x</option>
-            <option value="1.5">1.5x</option>
-          </select>
-          <select class="cmp-sel" id="ttsLang">
-            <option value="en">English</option>
-            <option value="ar">Arabic</option>
-            <option value="fr">French</option>
-            <option value="es">Spanish</option>
-            <option value="de">German</option>
-            <option value="auto">Auto-detect</option>
-          </select>
-        </div>
-      </div>
-      <textarea class="cmp-txt" id="ttsPrompt" placeholder="Type text to convert to voice…"></textarea>
-      <div class="cmp-bar">
-        <div class="cmp-bar-l">
-          <span class="cmp-cost" id="ttsCharCount">0 chars</span>
-        </div>
-        <div class="cmp-bar-r">
-          <span class="cmp-cost">3 cr</span>
-          <button class="cmp-send-btn" id="ttsSend"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M11 6L1 1.5 3 6 1 10.5z" fill="currentColor"/></svg></button>
-        </div>
-      </div>
-    </div>
+    <div style="padding:20px;color:#fff">TTS Loaded — SAFE MODE</div>
   </div>
 
-  <!-- TIMELINE AI -->
+  <!-- TIMELINE AI — SAFE MODE -->
   <div class="pn" data-panel="timeline" id="viewTimeline">
-    <div class="gen-hist" id="tlHistory">
-      <div class="gen-empty" id="tlEmpty">Describe your edit goal and click Analyze</div>
-    </div>
-    <div class="cmp">
-      <div class="cmp-top">
-        <div class="cmp-opts">
-          <select class="cmp-sel" id="tlMode">
-            <option value="speech">Speech Zones</option>
-            <option value="scenes">Scene Analysis</option>
-            <option value="pacing">Pacing + Cuts</option>
-            <option value="social">Social Clips</option>
-          </select>
-        </div>
-      </div>
-      <textarea class="cmp-txt" id="tlPrompt" placeholder="Describe your edit goal or paste a transcript…"></textarea>
-      <div class="cmp-bar">
-        <div class="cmp-bar-l">
-          <button class="cmp-icon-btn" id="tlApplyAll" title="Apply suggestions to timeline">&#x25B6; Apply</button>
-        </div>
-        <div class="cmp-bar-r">
-          <span class="cmp-cost">2 cr</span>
-          <button class="cmp-send-btn" id="tlSend"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M11 6L1 1.5 3 6 1 10.5z" fill="currentColor"/></svg></button>
-        </div>
-      </div>
-    </div>
+    <div style="padding:20px;color:#fff">Timeline Loaded — SAFE MODE</div>
   </div>
 
-  <!-- COLOR -->
+  <!-- COLOR — SAFE MODE -->
   <div class="pn" data-panel="color" id="viewColor">
-    <div class="gen-hist" id="clrHistory">
-      <div class="gen-empty" id="clrEmpty">Describe a look or attach a reference frame</div>
-    </div>
-    <div class="cmp">
-      <div class="cmp-top">
-        <div class="cmp-imgs-wrap" id="clrImgsWrap" style="display:none">
-          <div class="cmp-img-item">
-            <img class="cmp-img-preview" id="clrImgPreview" src="" alt="">
-            <button class="cmp-img-x" id="clrImgRemove">×</button>
-          </div>
-        </div>
-        <div class="cmp-opts">
-          <select class="cmp-sel" id="clrStyle">
-            <option value="cinematic">Cinematic</option>
-            <option value="warm">Warm + Film</option>
-            <option value="cool">Cool + Teal</option>
-            <option value="bw">Black &amp; White</option>
-            <option value="custom">Custom</option>
-          </select>
-          <select class="cmp-sel" id="clrScope">
-            <option value="all">All Scenes</option>
-            <option value="interview">Interview</option>
-            <option value="broll">B-Roll</option>
-          </select>
-        </div>
-      </div>
-      <textarea class="cmp-txt" id="clrPrompt" placeholder="Describe the color grade: teal shadows, warm highlights, Fincher-style…"></textarea>
-      <div class="cmp-bar">
-        <div class="cmp-bar-l">
-          <button class="cmp-icon-btn" id="clrAttach" title="Attach reference frame">&#x1F4CE;</button>
-        </div>
-        <div class="cmp-bar-r">
-          <span class="cmp-cost">2 cr</span>
-          <button class="cmp-send-btn" id="clrSend"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M11 6L1 1.5 3 6 1 10.5z" fill="currentColor"/></svg></button>
-        </div>
-      </div>
-    </div>
+    <div style="padding:20px;color:#fff">Color Loaded — SAFE MODE</div>
   </div>
 
-  <!-- AUDIO -->
+  <!-- AUDIO — SAFE MODE -->
   <div class="pn" data-panel="audio" id="viewAudio">
-    <div class="pn-scroll">
-      <div class="sec-t">Audio Mix<span class="sec-badge">Premiere Pro</span></div>
-      <div class="slider-g">
-        <div class="slider-h"><span class="slider-l">Voice Level</span><span class="slider-v" id="audioVoiceVal">70%</span></div>
-        <input type="range" min="0" max="100" value="70" id="audioVoice" oninput="document.getElementById('audioVoiceVal').textContent=this.value+'%'">
-      </div>
-      <div class="slider-g">
-        <div class="slider-h"><span class="slider-l">Music Level</span><span class="slider-v" id="audioMusicVal">35%</span></div>
-        <input type="range" min="0" max="100" value="35" id="audioMusic" oninput="document.getElementById('audioMusicVal').textContent=this.value+'%'">
-      </div>
-      <div class="slider-g">
-        <div class="slider-h"><span class="slider-l">SFX Level</span><span class="slider-v" id="audioSfxVal">50%</span></div>
-        <input type="range" min="0" max="100" value="50" id="audioSfx" oninput="document.getElementById('audioSfxVal').textContent=this.value+'%'">
-      </div>
-      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:10px">
-        <button class="btn-gen" style="font-size:.65rem;padding:7px 14px" id="btnAudioApply">Apply Mix <span class="cost">Local</span></button>
-        <button class="btn" id="btnAudioDuck">Smart Ducking</button>
-        <button class="btn" id="btnAudioDenoise">Denoise</button>
-      </div>
-      <div class="story-err" id="audioFeedback" style="margin-top:8px"></div>
-      <div class="sec-t" style="margin-top:14px">About Audio Mix</div>
-      <div class="asst-intro">Adjust sliders and click <strong>Apply Mix</strong> to set clip volumes in the active Premiere Pro sequence.<br><br>Voice tracks (A1-A2) use Voice Level, music tracks (A3-A4) use Music Level, remaining tracks use SFX Level.</div>
-    </div>
+    <div style="padding:20px;color:#fff">Audio Loaded — SAFE MODE</div>
   </div>
 
-  <!-- B-ROLL -->
+  <!-- B-ROLL — SAFE MODE -->
   <div class="pn" data-panel="broll" id="viewBroll">
-    <div class="gen-hist" id="brHistory">
-      <div class="gen-empty" id="brEmpty">Describe B-roll shots and click generate</div>
-    </div>
-    <div class="cmp">
-      <div class="cmp-top">
-        <div class="cmp-opts">
-          <select class="cmp-sel" id="brModel">
-            <option value="kling-3.0-pro">Kling 3.0 Pro</option>
-            <option value="kling-3.0-standard">Kling 3.0</option>
-            <option value="wan-2.7">WAN 2.7</option>
-            <option value="hailuo-2.3">Hailuo</option>
-          </select>
-          <select class="cmp-sel" id="brDuration">
-            <option value="5">5s</option>
-            <option value="3">3s</option>
-            <option value="8">8s</option>
-            <option value="10">10s</option>
-          </select>
-          <select class="cmp-sel" id="brRatio">
-            <option value="16:9">16:9</option>
-            <option value="9:16">9:16</option>
-            <option value="1:1">1:1</option>
-          </select>
-        </div>
-      </div>
-      <textarea class="cmp-txt" id="brPrompt" placeholder="Describe B-roll: drone shot over city, modern office, happy client…"></textarea>
-      <div class="cmp-bar">
-        <div class="cmp-bar-l">
-          <span class="cmp-cost" style="font-size:.55rem">Uses Video Gen</span>
-        </div>
-        <div class="cmp-bar-r">
-          <span class="cmp-cost">6 cr</span>
-          <button class="cmp-send-btn" id="brSend"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M11 6L1 1.5 3 6 1 10.5z" fill="currentColor"/></svg></button>
-        </div>
-      </div>
-    </div>
+    <div style="padding:20px;color:#fff">B-Roll Loaded — SAFE MODE</div>
   </div>
 
-  <!-- CAPTIONS -->
+  <!-- CAPTIONS — SAFE MODE -->
   <div class="pn" data-panel="captions" id="viewCaptions">
-    <div class="gen-hist" id="capHistory">
-      <div class="gen-empty" id="capEmpty">Paste a video or audio URL to transcribe</div>
-    </div>
-    <div class="cmp">
-      <div class="cmp-top">
-        <div class="cmp-opts">
-          <select class="cmp-sel" id="capEngine">
-            <option value="wavespeed-ai/openai-whisper">Whisper v3</option>
-            <option value="wavespeed-ai/openai-whisper-turbo">Whisper Turbo</option>
-          </select>
-          <select class="cmp-sel" id="capLang">
-            <option value="en">English</option>
-            <option value="ar">Arabic</option>
-            <option value="fr">French</option>
-            <option value="es">Spanish</option>
-            <option value="auto">Auto-detect</option>
-          </select>
-        </div>
-      </div>
-      <textarea class="cmp-txt" id="capUrl" placeholder="Paste video or audio URL (mp4, mp3, wav)…" style="font-size:.62rem"></textarea>
-      <div class="cmp-bar">
-        <div class="cmp-bar-l">
-          <span class="cmp-cost" id="capCopyBtn" style="cursor:pointer" title="Copy transcript">Copy</span>
-        </div>
-        <div class="cmp-bar-r">
-          <span class="cmp-cost">3 cr</span>
-          <button class="cmp-send-btn" id="capSend"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M11 6L1 1.5 3 6 1 10.5z" fill="currentColor"/></svg></button>
-        </div>
-      </div>
-    </div>
+    <div style="padding:20px;color:#fff">Captions Loaded — SAFE MODE</div>
   </div>
 
 </main>
@@ -466,23 +280,212 @@ function selCard(el){el.parentElement.querySelectorAll('.model-card').forEach(fu
 function selCd(el){el.parentElement.querySelectorAll('.cd').forEach(function(c){c.classList.remove('sel')});el.classList.add('sel')}
 function selVc(el){el.parentElement.querySelectorAll('.vc').forEach(function(c){c.classList.remove('sel')});el.classList.add('sel')}
 
-/* ── TAB SWITCHING — works without main.js ── */
+function renderImageGen(){
+  var host = document.getElementById('imagegenRenderHost');
+  if (!host || host.dataset.rendered === '1') return;
+  host.dataset.rendered = '1';
+
+  console.log('[ImageGen] STEP 0 - clear host');
+  host.textContent = '';
+
+  console.log('[ImageGen] STEP 1 - base container');
+  var root = document.createElement('div');
+  root.id = 'imagegen-root';
+  host.appendChild(root);
+
+  console.log('[ImageGen] STEP 2 - title');
+  var title = document.createElement('div');
+  title.className = 'sec-t';
+  title.textContent = 'Image Gen';
+  root.appendChild(title);
+
+  console.log('[ImageGen] STEP 3 - history');
+  var history = document.createElement('div');
+  history.className = 'gen-hist';
+  history.id = 'igHistory';
+  root.appendChild(history);
+
+  console.log('[ImageGen] STEP 4 - empty state');
+  var empty = document.createElement('div');
+  empty.className = 'gen-empty';
+  empty.id = 'igEmpty';
+  empty.textContent = 'Describe an image and click generate';
+  history.appendChild(empty);
+
+  console.log('[ImageGen] STEP 5 - composer');
+  var composer = document.createElement('div');
+  composer.className = 'cmp';
+  composer.id = 'igComposer';
+  root.appendChild(composer);
+
+  console.log('[ImageGen] STEP 6 - top row');
+  var top = document.createElement('div');
+  top.className = 'cmp-top';
+  top.id = 'igTop';
+  composer.appendChild(top);
+
+  console.log('[ImageGen] STEP 7 - image wrap');
+  var imageWrap = document.createElement('div');
+  imageWrap.className = 'cmp-imgs-wrap';
+  imageWrap.id = 'igImgsWrap';
+  imageWrap.style.display = 'none';
+  top.appendChild(imageWrap);
+
+  console.log('[ImageGen] STEP 8 - image item');
+  var imageItem = document.createElement('div');
+  imageItem.className = 'cmp-img-item';
+  imageWrap.appendChild(imageItem);
+
+  console.log('[ImageGen] STEP 9 - preview image');
+  var preview = document.createElement('img');
+  preview.className = 'cmp-img-preview';
+  preview.id = 'igImgPreview';
+  preview.alt = '';
+  imageItem.appendChild(preview);
+
+  console.log('[ImageGen] STEP 10 - remove button');
+  var removeBtn = document.createElement('button');
+  removeBtn.className = 'cmp-img-x';
+  removeBtn.id = 'igImgRemove';
+  removeBtn.type = 'button';
+  removeBtn.textContent = 'x';
+  imageItem.appendChild(removeBtn);
+
+  console.log('[ImageGen] STEP 11 - options wrap');
+  var options = document.createElement('div');
+  options.className = 'cmp-opts';
+  options.id = 'igOptions';
+  top.appendChild(options);
+
+  console.log('[ImageGen] STEP 12 - model select');
+  var model = document.createElement('select');
+  model.className = 'cmp-sel';
+  model.id = 'igModel';
+  options.appendChild(model);
+
+  console.log('[ImageGen] STEP 13 - model option');
+  var modelOption = document.createElement('option');
+  modelOption.value = 'gpt-image-2';
+  modelOption.textContent = 'GPT Image 2';
+  model.appendChild(modelOption);
+
+  console.log('[ImageGen] STEP 14 - mode select');
+  var mode = document.createElement('select');
+  mode.className = 'cmp-sel';
+  mode.id = 'igMode';
+  options.appendChild(mode);
+
+  console.log('[ImageGen] STEP 15 - mode option');
+  var modeOption = document.createElement('option');
+  modeOption.value = 'standard';
+  modeOption.textContent = 'Standard';
+  mode.appendChild(modeOption);
+
+  console.log('[ImageGen] STEP 16 - ratio select');
+  var ratio = document.createElement('select');
+  ratio.className = 'cmp-sel';
+  ratio.id = 'igRatio';
+  options.appendChild(ratio);
+
+  console.log('[ImageGen] STEP 17 - ratio option');
+  var ratioOption = document.createElement('option');
+  ratioOption.value = '1:1';
+  ratioOption.textContent = '1:1';
+  ratio.appendChild(ratioOption);
+
+  console.log('[ImageGen] STEP 18 - prompt');
+  var prompt = document.createElement('textarea');
+  prompt.className = 'cmp-txt';
+  prompt.id = 'igPrompt';
+  prompt.placeholder = 'Describe the image you want to create...';
+  composer.appendChild(prompt);
+
+  console.log('[ImageGen] STEP 19 - action bar');
+  var bar = document.createElement('div');
+  bar.className = 'cmp-bar';
+  bar.id = 'igBar';
+  composer.appendChild(bar);
+
+  console.log('[ImageGen] STEP 20 - action left');
+  var barLeft = document.createElement('div');
+  barLeft.className = 'cmp-bar-l';
+  bar.appendChild(barLeft);
+
+  console.log('[ImageGen] STEP 21 - attach button');
+  var attach = document.createElement('button');
+  attach.className = 'cmp-icon-btn';
+  attach.id = 'igAttach';
+  attach.type = 'button';
+  attach.title = 'Attach reference image';
+  attach.textContent = 'Attach';
+  barLeft.appendChild(attach);
+
+  console.log('[ImageGen] STEP 22 - action right');
+  var barRight = document.createElement('div');
+  barRight.className = 'cmp-bar-r';
+  bar.appendChild(barRight);
+
+  console.log('[ImageGen] STEP 23 - cost');
+  var cost = document.createElement('span');
+  cost.className = 'cmp-cost';
+  cost.textContent = '2 cr';
+  barRight.appendChild(cost);
+
+  console.log('[ImageGen] STEP 24 - generate button');
+  var send = document.createElement('button');
+  send.className = 'cmp-send-btn';
+  send.id = 'igSend';
+  send.type = 'button';
+  send.textContent = 'Generate';
+  barRight.appendChild(send);
+
+  console.log('[ImageGen] STEP 25 - render complete');
+}
+
+window._tabRenderers = window._tabRenderers || {};
+window._tabRenderers.imagegen = renderImageGen;
+
+/* ── TAB SWITCHING — PASSIVE NAVIGATION ONLY ──
+ * NEVER call Premiere host (require, ppro, getActiveProject, sequences, markers, etc.)
+ * during tab switching. Tab clicks must only toggle CSS classes.
+ * Tool logic is lazy-loaded only when the user presses an action button.
+ */
 function setActiveTab(tab){
-  document.querySelectorAll('#epTabs .nt').forEach(function(b){b.classList.remove('active')});
-  document.querySelectorAll('.pn').forEach(function(p){p.classList.remove('vis')});
-  var btn=document.querySelector('#epTabs .nt[data-tab="'+tab+'"]');
-  if(btn)btn.classList.add('active');
-  var panel=document.querySelector('.pn[data-panel="'+tab+'"]');
-  if(panel)panel.classList.add('vis');
+  console.log('[TAB_CLICK]', tab);
+  try {
+    document.querySelectorAll('#epTabs .nt').forEach(function(b){b.classList.remove('active')});
+    document.querySelectorAll('.pn').forEach(function(p){p.classList.remove('vis')});
+    var btn=document.querySelector('#epTabs .nt[data-tab="'+tab+'"]');
+    if(btn)btn.classList.add('active');
+    var panel=document.querySelector('.pn[data-panel="'+tab+'"]');
+    if(panel)panel.classList.add('vis');
+  } catch(e){
+    console.error('[TAB_SWITCH_ERROR]', tab, e && (e.stack||e.message||e));
+  }
+  // Lazy renderer: ONLY runs the registered render function for this tab
+  // once (subsequent clicks are no-ops). Each step logs before DOM injection
+  // so the exact failure line is visible in Console.
+  try {
+    if (window._tabRenderers && typeof window._tabRenderers[tab] === 'function') {
+      window._tabRenderers[tab]();
+    }
+  } catch(e){
+    console.error('[TAB_RENDER_ERROR]', tab, e && (e.stack||e.message||e));
+  }
 }
 window.setActiveTab=setActiveTab;
 
 document.addEventListener('DOMContentLoaded',function(){
-  /* Nav tabs */
+  /* Nav tabs — single source of truth for tab clicks.
+     Do NOT add a second listener in main.js. */
   var nav=document.getElementById('epTabs');
   if(nav)nav.addEventListener('click',function(e){
-    var btn=e.target.closest('.nt');
-    if(btn&&btn.dataset.tab)setActiveTab(btn.dataset.tab);
+    try {
+      var btn=e.target.closest('.nt');
+      if(btn&&btn.dataset.tab)setActiveTab(btn.dataset.tab);
+    } catch(err){
+      console.error('[TAB_CLICK_HANDLER_ERROR]', err && (err.stack||err.message||err));
+    }
   });
 
   /* Settings button */
