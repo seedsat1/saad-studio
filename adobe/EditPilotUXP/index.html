@@ -440,29 +440,7 @@
 
   <!-- AUDIO -->
   <div class="pn" data-panel="audio" id="viewAudio">
-    <div class="pn-scroll">
-      <div class="sec-t">Audio Mix<span class="sec-badge">Premiere Pro</span></div>
-      <div class="slider-g">
-        <div class="slider-h"><span class="slider-l">Voice Level</span><span class="slider-v" id="audioVoiceVal">70%</span></div>
-        <input type="range" min="0" max="100" value="70" id="audioVoice" oninput="document.getElementById('audioVoiceVal').textContent=this.value+'%'">
-      </div>
-      <div class="slider-g">
-        <div class="slider-h"><span class="slider-l">Music Level</span><span class="slider-v" id="audioMusicVal">35%</span></div>
-        <input type="range" min="0" max="100" value="35" id="audioMusic" oninput="document.getElementById('audioMusicVal').textContent=this.value+'%'">
-      </div>
-      <div class="slider-g">
-        <div class="slider-h"><span class="slider-l">SFX Level</span><span class="slider-v" id="audioSfxVal">50%</span></div>
-        <input type="range" min="0" max="100" value="50" id="audioSfx" oninput="document.getElementById('audioSfxVal').textContent=this.value+'%'">
-      </div>
-      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:10px">
-        <button class="btn-gen" style="font-size:.65rem;padding:7px 14px" id="btnAudioApply">Apply Mix <span class="cost">Local</span></button>
-        <button class="btn" id="btnAudioDuck">Smart Ducking</button>
-        <button class="btn" id="btnAudioDenoise">Denoise</button>
-      </div>
-      <div class="story-err" id="audioFeedback" style="margin-top:8px"></div>
-      <div class="sec-t" style="margin-top:14px">About Audio Mix</div>
-      <div class="asst-intro">Adjust sliders and click <strong>Apply Mix</strong> to set clip volumes in the active Premiere Pro sequence.<br><br>Voice tracks (A1-A2) use Voice Level, music tracks (A3-A4) use Music Level, remaining tracks use SFX Level.</div>
-    </div>
+    <div class="pn-safe-placeholder">Audio panel temporarily disabled for crash isolation.</div>
   </div>
 
   <!-- B-ROLL -->
