@@ -515,18 +515,7 @@ function renderVideoGen(){
   }
 
   console.log('[VideoGen] STEP 18B - before');
-  prompt.style.width = '100%';
-  prompt.style.minHeight = '46px';
-  prompt.style.maxHeight = '90px';
-  prompt.style.background = 'transparent';
-  prompt.style.border = 'none';
-  prompt.style.outline = 'none';
-  prompt.style.color = 'var(--txh)';
-  prompt.style.fontSize = '.68rem';
-  prompt.style.resize = 'none';
-  prompt.style.fontFamily = 'inherit';
-  prompt.style.lineHeight = '1.5';
-  prompt.style.padding = '0';
+  prompt.className = 'cmp-txt-safe';
   console.log('[VideoGen] STEP 18B - after');
   if (VIDEOGEN_DEBUG_MICRO_STOP === '18B') {
     console.log('[VideoGen] CHECKPOINT - stop after STEP 18B');

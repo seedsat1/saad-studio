@@ -658,13 +658,15 @@ input[type=range] {
 .dbg-txt-padding {
   padding:0;
 }
-.cmp-txt {
+.cmp-txt-safe {
   width:100%;min-height:46px;max-height:90px;
   background:transparent;border:none;outline:none;
   color:var(--txh);font-size:.68rem;
   resize:none;font-family:inherit;line-height:1.5;padding:0;
 }
-.cmp-txt::placeholder { color:var(--txd); }
+
+/* Deprecated: applying cmp-txt to textarea crashes UXP/Premiere. */
+.cmp-txt {}
 .cmp-bar {
   display:flex;align-items:center;justify-content:space-between;
 }
