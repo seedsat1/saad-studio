@@ -119,28 +119,15 @@ body {
 .login-logo-row {
   display: flex;
   align-items: center;
-  gap: 9px;
+  justify-content: center;
   margin-bottom: 20px;
 }
-.login-logo-icon {
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #7c3aed, #a855f7);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  box-shadow: 0 4px 14px rgba(124,58,237,.45);
+.login-logo-img {
+  width: 120px;
+  height: auto;
+  object-fit: contain;
 }
-.login-logo-text {
-  font-family: var(--fd);
-  font-size: .95rem;
-  font-weight: 700;
-  color: #fff;
-  letter-spacing: -.2px;
-  white-space: nowrap;
-}
+
 
 /* â”€â”€ Hero copy â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .login-heading {
