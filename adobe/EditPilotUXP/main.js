@@ -12,6 +12,7 @@
  *   5. Session saved locally; dashboard shown
  */
 
+import { shell } from 'uxp';
 import { connectWithToken, restoreSession, disconnect } from './modules/auth.js';
 import { refreshCreditsFromServer }                     from './modules/credits.js';
 import { getToken, updateCreditsCache }                  from './modules/storage.js';
@@ -240,8 +241,8 @@ document.getElementById('btnDisconnect')?.addEventListener('click', () => {
 
 // Manage subscription
 function openExternal(url) {
-  try { require('uxp').shell.openExternal(url); } catch (_) {
-    window.open?.(url, '_blank');
+  try { shell.openExternal(url); } catch (_) {
+    try { require('uxp').shell.openExternal(url); } catch (__) { /* silent */ }
   }
 }
 
