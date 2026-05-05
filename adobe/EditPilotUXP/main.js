@@ -990,6 +990,7 @@ document.querySelectorAll('.asst-hint').forEach(hint => {
 });
 
 
+function setAnalyzeLoading(loading) {
   if (!btnAnalyze) return;
   btnAnalyze.disabled = loading;
   if (btnAnalyzeText) btnAnalyzeText.style.display = loading ? 'none' : 'inline';
