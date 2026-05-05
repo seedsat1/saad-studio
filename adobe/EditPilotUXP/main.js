@@ -750,63 +750,26 @@ function updateGenItem(item, videoUrl, imageUrls, errMsg) {
 // ─────────────────────────────────────────────────────────────
 
 /**
- * Download a media URL to the UXP temp folder, import it into the active
- * Premiere Pro project, then insert it at the current playhead position
- * (non-destructive — shifts existing clips forward).
+ * Import a LOCAL file path into the active Premiere Pro project and insert
+ * it at the current playhead position (non-destructive).
  *
- * Approved pipeline: Generate → Download → Import → Insert at playhead.
+ * NOTE: project.importFiles() only accepts LOCAL file paths — not remote URLs.
+ * Remote URLs must be downloaded to a temp file first before calling this.
+ * Callers are responsible for ensuring localPath is a valid local path.
  *
- * UXP APIs used:
- *   require('uxp').storage.localFileSystem.getTemporaryFolder()
- *   tempFolder.createFile(name, { overwrite: true })
- *   file.write(ArrayBuffer, { format: uxp.storage.formats.binary })
- *   project.importFiles([localPath], suppressUI, targetBin, asNumberedStills)
- *   sequence.getPlayerPosition()                   → current playhead TickTime
- *   ppro.TickTime.createWithTicks(String(ticks))
- *   ppro.SequenceEditor.getEditor(sequence)
- *   editor.createInsertProjectItemAction(item, time, vTrack, aTrack, limitShift)
- *   project.executeTransaction(callback, undoLabel)
- *
- * @param {string} mediaUrl   Public HTTPS URL of the generated video file
- * @param {string} filename   Filename to use in the temp folder (with extension)
- * @returns {Promise<string>} Resolves with `filename` on success
+ * @param {string} localPath  Absolute local file path (e.g. from UXP temp folder)
+ * @param {string} label      Display label for logs and undo entry
+ * @returns {Promise<string>} Resolves with `label` on success, throws on failure
  */
-/**
- * Import a media URL into the active Premiere Pro project, then insert it
- * at the current playhead position (non-destructive).
- *
- * Pipeline: URL → importFiles() → find projectItem → insert at playhead
- *
- * IMPORTANT — no in-memory download:
- *   We pass the URL directly to project.importFiles(). Premiere handles
- *   the download internally without loading the file into the JS heap.
- *   This avoids the memory-crash caused by response.arrayBuffer().
- *
- * UXP APIs used:
- *   require('premierepro')
- *   ppro.app.getActiveProjectAsync()
- *   project.getActiveSequence()
- *   project.importFiles([url], suppressUI, targetBin, asNumberedStills)
- *   sequence.getPlayerPosition()
- *   ppro.TickTime.createWithTicks(String(ticks))
- *   ppro.SequenceEditor.getEditor(sequence)
- *   editor.createInsertProjectItemAction(item, time, vTrack, aTrack, limitShift)
- *   project.executeTransaction(callback, undoLabel)
- *
- * @param {string} mediaUrl   Public HTTPS URL of the generated video file
- * @param {string} filename   Logical name (used for locating imported item)
- * @returns {Promise<string>} Resolves with `filename` on success
- */
-async function importAndInsertAtPlayhead(mediaUrl, filename) {
-  console.log('[EditPilot] importAndInsertAtPlayhead — start', { filename });
+async function importLocalAndInsertAtPlayhead(localPath, label) {
+  console.log('[EditPilot] importLocalAndInsertAtPlayhead — start', { localPath, label });
 
-  // ── 1. Require Premiere Pro host API ────────────────────────
+  // ── 1. Premiere Pro host API ─────────────────────────────────
   let ppro;
   try {
     ppro = require('premierepro');
-    console.log('[EditPilot] importAndInsertAtPlayhead — ppro acquired');
   } catch (e) {
-    throw new Error('Premiere Pro API unavailable — is the plugin running inside Premiere Pro? ' + e?.message);
+    throw new Error('Premiere Pro API unavailable: ' + (e?.message || e));
   }
 
   // ── 2. Active project ────────────────────────────────────────
@@ -816,104 +779,79 @@ async function importAndInsertAtPlayhead(mediaUrl, filename) {
   } catch {
     try { project = ppro.app.getActiveProject?.(); } catch (_) {}
   }
-  if (!project) throw new Error('No project is open in Premiere Pro. Open or create a project first.');
-  console.log('[EditPilot] importAndInsertAtPlayhead — project ok');
+  if (!project) throw new Error('No project open in Premiere Pro.');
 
   // ── 3. Active sequence ───────────────────────────────────────
   let sequence;
   try {
     sequence = project.getActiveSequence();
   } catch (e) {
-    throw new Error('Could not get active sequence: ' + e?.message);
+    throw new Error('getActiveSequence() failed: ' + (e?.message || e));
   }
-  if (!sequence) throw new Error('No active sequence — double-click a sequence in the Project panel first.');
-  console.log('[EditPilot] importAndInsertAtPlayhead — sequence ok');
+  if (!sequence) throw new Error('No active sequence — open a sequence first.');
 
-  // ── 4. Import URL directly — no in-memory download ──────────
-  // Premiere handles the file download internally. This avoids loading
-  // the entire video file into the JS ArrayBuffer heap (crash risk).
+  // ── 4. Import local file ─────────────────────────────────────
   let didImport = false;
   try {
-    console.log('[EditPilot] importAndInsertAtPlayhead — calling importFiles', mediaUrl);
-    didImport = await project.importFiles([mediaUrl], true, null, false);
-    console.log('[EditPilot] importAndInsertAtPlayhead — importFiles result:', didImport);
+    console.log('[EditPilot] importLocalAndInsertAtPlayhead — importFiles:', localPath);
+    didImport = await project.importFiles([localPath], true, null, false);
+    console.log('[EditPilot] importLocalAndInsertAtPlayhead — importFiles result:', didImport);
   } catch (e) {
-    throw new Error('importFiles() failed: ' + e?.message);
+    throw new Error('importFiles() failed: ' + (e?.message || e));
   }
-  if (!didImport) throw new Error('Premiere Pro rejected the import. The URL may be inaccessible from Premiere, or the format is unsupported.');
+  if (!didImport) throw new Error('Premiere rejected the import (unsupported format or locked project).');
 
-  // ── 5. Find the newly imported projectItem ───────────────────
+  // ── 5. Locate imported project item (last added) ─────────────
   let projectItem = null;
   try {
     const children = project.rootItem.children;
     const count = children?.numItems ?? children?.length ?? 0;
-    console.log('[EditPilot] importAndInsertAtPlayhead — scanning', count, 'project items');
-    // Scan from the end — most recently imported items are last
-    const baseName = filename.replace(/\.[^.]+$/, '');
-    for (let i = count - 1; i >= Math.max(0, count - 20); i--) {
-      const child = children[i];
-      if (!child) continue;
-      const name = child.name ?? '';
-      // Match by URL segment or logical filename
-      if (
-        name === filename ||
-        name.startsWith(baseName) ||
-        mediaUrl.includes(name.replace(/\.[^.]+$/, ''))
-      ) {
-        projectItem = child;
-        break;
-      }
-    }
-    // Fallback: take the very last item regardless of name
-    if (!projectItem && count > 0) {
-      projectItem = children[count - 1];
-      console.log('[EditPilot] importAndInsertAtPlayhead — using last item as fallback:', projectItem?.name);
-    }
+    if (count > 0) projectItem = children[count - 1];
   } catch (e) {
-    throw new Error('Failed to locate imported item in Project panel: ' + e?.message);
+    throw new Error('Could not read project items: ' + (e?.message || e));
   }
-  if (!projectItem) throw new Error('Imported item not found in Project panel — import may have succeeded, check manually.');
-  console.log('[EditPilot] importAndInsertAtPlayhead — projectItem found:', projectItem.name);
+  if (!projectItem) throw new Error('Imported item not found in Project panel.');
+  console.log('[EditPilot] importLocalAndInsertAtPlayhead — item:', projectItem.name);
 
-  // ── 6. Read current playhead position ───────────────────────
+  // ── 6. Playhead position ─────────────────────────────────────
   let insertTick = 0;
   try {
     const pos = sequence.getPlayerPosition();
     insertTick = Number(pos?.ticks ?? 0);
-    console.log('[EditPilot] importAndInsertAtPlayhead — playhead ticks:', insertTick);
   } catch {
-    insertTick = 0; // safe fallback: insert at sequence start
-    console.log('[EditPilot] importAndInsertAtPlayhead — getPlayerPosition failed, using 0');
+    insertTick = 0;
   }
+  console.log('[EditPilot] importLocalAndInsertAtPlayhead — insertTick:', insertTick);
 
   let insertTime;
   try {
     insertTime = ppro.TickTime.createWithTicks(String(insertTick));
   } catch (e) {
-    throw new Error('TickTime.createWithTicks() failed: ' + e?.message);
+    throw new Error('TickTime.createWithTicks() failed: ' + (e?.message || e));
   }
 
-  // ── 7. Non-destructive insert at playhead ────────────────────
-  // createInsertProjectItemAction shifts existing clips — never overwrites.
+  // ── 7. Insert — non-destructive (shifts existing clips) ──────
   try {
     const editor = ppro.SequenceEditor.getEditor(sequence);
-    console.log('[EditPilot] importAndInsertAtPlayhead — calling executeTransaction');
     project.executeTransaction((ca) => {
-      const action = editor.createInsertProjectItemAction(
-        projectItem,
-        insertTime,
-        0,    // video track index
-        0,    // audio track index
-        true, // limitShift — non-destructive
-      );
-      if (action) ca.addAction(action);
-    }, `EditPilot: Insert "${filename}"`);
-    console.log('[EditPilot] importAndInsertAtPlayhead — transaction done');
+      try {
+        const action = editor.createInsertProjectItemAction(
+          projectItem, insertTime,
+          0, 0,   // video track, audio track
+          true,   // limitShift — non-destructive
+        );
+        if (action) ca.addAction(action);
+      } catch (innerErr) {
+        // Swallow inside-transaction errors — prevents native crash
+        console.error('[EditPilot] transaction inner error:', innerErr?.message);
+      }
+    }, `EditPilot: Insert "${label}"`);
+    console.log('[EditPilot] importLocalAndInsertAtPlayhead — done');
   } catch (e) {
-    throw new Error('Timeline insert transaction failed: ' + e?.message);
+    throw new Error('executeTransaction failed: ' + (e?.message || e));
   }
 
-  return filename;
+  return label;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -982,19 +920,32 @@ function setupVideoGen() {
       if (imgPreview) imgPreview.src = '';
       updateGenItem(item, videoUrl, null, null);
 
-      // ── Import + Insert into Timeline ──────────────────────
+      // ── Download → Import → Insert into Timeline ──────────
       if (videoUrl) {
         const note = item.querySelector('.gen-item-meta');
-        if (note) note.textContent = 'Importing into Premiere…';
+        if (note) note.textContent = 'Downloading for import…';
         try {
-          const ext = (videoUrl.split('?')[0].split('.').pop() || 'mp4').slice(0, 4);
-          const slug = prompt.slice(0, 24).replace(/[^a-zA-Z0-9]/g, '_');
+          const ext = (videoUrl.split('?')[0].split('.').pop() || 'mp4').slice(0, 4).replace(/[^a-zA-Z0-9]/g, '') || 'mp4';
+          const slug = prompt.slice(0, 20).replace(/[^a-zA-Z0-9]/g, '_');
           const filename = `ep_vg_${Date.now()}_${slug}.${ext}`;
-          await importAndInsertAtPlayhead(videoUrl, filename);
+
+          // Download via fetch → UXP temp file (correct way to get a local path)
+          const uxp = require('uxp');
+          const tempFolder = await uxp.storage.localFileSystem.getTemporaryFolder();
+          const tempFile = await tempFolder.createFile(filename, { overwrite: true });
+          const resp = await fetch(videoUrl);
+          if (!resp.ok) throw new Error(`Download HTTP ${resp.status}`);
+          const buf = await resp.arrayBuffer();
+          await tempFile.write(buf, { format: uxp.storage.formats.binary });
+          const localPath = tempFile.nativePath;
+          if (!localPath) throw new Error('Could not resolve temp file path');
+
+          if (note) note.textContent = 'Importing into Premiere…';
+          await importLocalAndInsertAtPlayhead(localPath, filename);
           if (note) note.textContent = `Inserted at playhead \u2014 ${filename}`;
         } catch (insErr) {
           console.warn('[EditPilot] Video Gen timeline insert failed:', insErr?.message);
-          if (note) note.textContent = `Video ready \u2014 timeline insert failed: ${insErr?.message || 'Unknown error'}`;
+          if (note) note.textContent = `Video ready \u2014 insert failed: ${insErr?.message || 'Unknown error'}`;
         }
       }
 
@@ -1195,16 +1146,28 @@ function setupBroll() {
       // ── Import + Insert into Timeline ──────────────────────
       if (videoUrl) {
         const note = item.querySelector('.gen-item-meta');
-        if (note) note.textContent = 'Importing into Premiere…';
+        if (note) note.textContent = 'Downloading for import…';
         try {
-          const ext = (videoUrl.split('?')[0].split('.').pop() || 'mp4').slice(0, 4);
-          const slug = prompt.slice(0, 24).replace(/[^a-zA-Z0-9]/g, '_');
+          const ext = (videoUrl.split('?')[0].split('.').pop() || 'mp4').slice(0, 4).replace(/[^a-zA-Z0-9]/g, '') || 'mp4';
+          const slug = prompt.slice(0, 20).replace(/[^a-zA-Z0-9]/g, '_');
           const filename = `ep_br_${Date.now()}_${slug}.${ext}`;
-          await importAndInsertAtPlayhead(videoUrl, filename);
+
+          const uxp = require('uxp');
+          const tempFolder = await uxp.storage.localFileSystem.getTemporaryFolder();
+          const tempFile = await tempFolder.createFile(filename, { overwrite: true });
+          const resp = await fetch(videoUrl);
+          if (!resp.ok) throw new Error(`Download HTTP ${resp.status}`);
+          const buf = await resp.arrayBuffer();
+          await tempFile.write(buf, { format: uxp.storage.formats.binary });
+          const localPath = tempFile.nativePath;
+          if (!localPath) throw new Error('Could not resolve temp file path');
+
+          if (note) note.textContent = 'Importing into Premiere…';
+          await importLocalAndInsertAtPlayhead(localPath, filename);
           if (note) note.textContent = `Inserted at playhead \u2014 ${filename}`;
         } catch (insErr) {
           console.warn('[EditPilot] B-Roll timeline insert failed:', insErr?.message);
-          if (note) note.textContent = `Video ready \u2014 timeline insert failed: ${insErr?.message || 'Unknown error'}`;
+          if (note) note.textContent = `Video ready \u2014 insert failed: ${insErr?.message || 'Unknown error'}`;
         }
       }
 
@@ -1535,7 +1498,8 @@ function setupAudio() {
   async function applyAudioToSequence(voiceLevel, musicLevel, sfxLevel) {
     try {
       const ppro = require('premierepro');
-      const project = ppro.getActiveProject();
+      let project;
+      try { project = await ppro.app.getActiveProjectAsync(); } catch { project = ppro.app.getActiveProject?.(); }
       if (!project) throw new Error('No active Premiere Pro project.');
       const seq = project.getActiveSequence();
       if (!seq) throw new Error('No active sequence.');
