@@ -218,7 +218,7 @@
 
   <!-- VIDEO GEN — SAFE MODE (original content backed up in git history) -->
   <div class="pn" data-panel="videogen" id="viewVideogen">
-    <div style="padding:20px;color:#fff">VideoGen Loaded — SAFE MODE</div>
+    <div id="videogenRenderHost" style="padding:20px;color:#fff">VideoGen Loaded — DEBUG MODE</div>
   </div>
 
   <!-- IMAGE GEN — SAFE MODE -->
@@ -279,6 +279,174 @@ function selPill(el){el.parentElement.querySelectorAll('.pill').forEach(function
 function selCard(el){el.parentElement.querySelectorAll('.model-card').forEach(function(c){c.classList.remove('active')});el.classList.add('active')}
 function selCd(el){el.parentElement.querySelectorAll('.cd').forEach(function(c){c.classList.remove('sel')});el.classList.add('sel')}
 function selVc(el){el.parentElement.querySelectorAll('.vc').forEach(function(c){c.classList.remove('sel')});el.classList.add('sel')}
+
+var VIDEOGEN_DEBUG_STOP_AFTER = 5;
+
+function renderVideoGen(){
+  var host = document.getElementById('videogenRenderHost');
+  if (!host) {
+    console.error('[VideoGen] host missing');
+    return;
+  }
+
+  function assertUniqueId(id) {
+    if (!id) return;
+    if (document.getElementById(id)) {
+      throw new Error('Duplicate id detected: ' + id);
+    }
+  }
+
+  console.log('[VideoGen] STEP 0 - before');
+  host.textContent = '';
+  host.style.padding = '0';
+  host.style.color = '';
+  console.log('[VideoGen] STEP 0 - after');
+
+  console.log('[VideoGen] STEP 1 - before');
+  assertUniqueId('vgHistory');
+  var history = document.createElement('div');
+  history.className = 'gen-hist';
+  history.id = 'vgHistory';
+  host.appendChild(history);
+  console.log('[VideoGen] STEP 1 - after');
+  if (VIDEOGEN_DEBUG_STOP_AFTER === 1) {
+    console.log('[VideoGen] CHECKPOINT - stop after STEP 1');
+    return;
+  }
+
+  console.log('[VideoGen] STEP 2 - before');
+  assertUniqueId('vgEmpty');
+  var empty = document.createElement('div');
+  empty.className = 'gen-empty';
+  empty.id = 'vgEmpty';
+  empty.textContent = 'Describe a video and click generate';
+  history.appendChild(empty);
+  console.log('[VideoGen] STEP 2 - after');
+  if (VIDEOGEN_DEBUG_STOP_AFTER === 2) {
+    console.log('[VideoGen] CHECKPOINT - stop after STEP 2');
+    return;
+  }
+
+  console.log('[VideoGen] STEP 3 - before');
+  var composer = document.createElement('div');
+  composer.className = 'cmp';
+  composer.id = 'vgComposer';
+  host.appendChild(composer);
+  console.log('[VideoGen] STEP 3 - after');
+  if (VIDEOGEN_DEBUG_STOP_AFTER === 3) {
+    console.log('[VideoGen] CHECKPOINT - stop after STEP 3');
+    return;
+  }
+
+  console.log('[VideoGen] STEP 4 - before');
+  assertUniqueId('vgTop');
+  var top = document.createElement('div');
+  top.className = 'cmp-top';
+  top.id = 'vgTop';
+  composer.appendChild(top);
+  console.log('[VideoGen] STEP 4 - after');
+  if (VIDEOGEN_DEBUG_STOP_AFTER === 4) {
+    console.log('[VideoGen] CHECKPOINT - stop after STEP 4');
+    return;
+  }
+
+  console.log('[VideoGen] STEP 5 - before');
+  assertUniqueId('vgImgsWrap');
+  var imageWrap = document.createElement('div');
+  imageWrap.className = 'cmp-imgs-wrap';
+  imageWrap.id = 'vgImgsWrap';
+  imageWrap.style.display = 'none';
+  top.appendChild(imageWrap);
+  console.log('[VideoGen] STEP 5 - after');
+  if (VIDEOGEN_DEBUG_STOP_AFTER === 5) {
+    console.log('[VideoGen] CHECKPOINT - stop after STEP 5');
+    return;
+  }
+
+  console.log('[VideoGen] STEP 6 - before');
+  var imageItem = document.createElement('div');
+  imageItem.className = 'cmp-img-item';
+  imageWrap.appendChild(imageItem);
+  console.log('[VideoGen] STEP 6 - after');
+  if (VIDEOGEN_DEBUG_STOP_AFTER === 6) {
+    console.log('[VideoGen] CHECKPOINT - stop after STEP 6');
+    return;
+  }
+
+  console.log('[VideoGen] STEP 7 - before');
+  assertUniqueId('vgImgPreview');
+  var preview = document.createElement('img');
+  preview.className = 'cmp-img-preview';
+  preview.id = 'vgImgPreview';
+  preview.alt = '';
+  imageItem.appendChild(preview);
+  console.log('[VideoGen] STEP 7 - after');
+  if (VIDEOGEN_DEBUG_STOP_AFTER === 7) {
+    console.log('[VideoGen] CHECKPOINT - stop after STEP 7');
+    return;
+  }
+
+  console.log('[VideoGen] STEP 8 - before');
+  assertUniqueId('vgImgRemove');
+  var removeBtn = document.createElement('button');
+  removeBtn.className = 'cmp-img-x';
+  removeBtn.id = 'vgImgRemove';
+  removeBtn.type = 'button';
+  removeBtn.textContent = 'x';
+  imageItem.appendChild(removeBtn);
+  console.log('[VideoGen] STEP 8 - after');
+  if (VIDEOGEN_DEBUG_STOP_AFTER === 8) {
+    console.log('[VideoGen] CHECKPOINT - stop after STEP 8');
+    return;
+  }
+
+  console.log('[VideoGen] STEP 9 - before');
+  assertUniqueId('vgOptions');
+  var options = document.createElement('div');
+  options.className = 'cmp-opts';
+  options.id = 'vgOptions';
+  top.appendChild(options);
+  console.log('[VideoGen] STEP 9 - after');
+  if (VIDEOGEN_DEBUG_STOP_AFTER === 9) {
+    console.log('[VideoGen] CHECKPOINT - stop after STEP 9');
+    return;
+  }
+
+  console.log('[VideoGen] STEP 10 - before');
+  assertUniqueId('vgModel');
+  var model = document.createElement('select');
+  model.className = 'cmp-sel';
+  model.id = 'vgModel';
+  options.appendChild(model);
+  console.log('[VideoGen] STEP 10 - after');
+  if (VIDEOGEN_DEBUG_STOP_AFTER === 10) {
+    console.log('[VideoGen] CHECKPOINT - stop after STEP 10');
+    return;
+  }
+
+  console.log('[VideoGen] STEP 11 - before');
+  var modelOption = document.createElement('option');
+  modelOption.value = 'kling-3.0-pro';
+  modelOption.textContent = 'Kling 3.0 Pro';
+  model.appendChild(modelOption);
+  console.log('[VideoGen] STEP 11 - after');
+  if (VIDEOGEN_DEBUG_STOP_AFTER === 11) {
+    console.log('[VideoGen] CHECKPOINT - stop after STEP 11');
+    return;
+  }
+
+  console.log('[VideoGen] STEP 12 - before');
+  assertUniqueId('vgDuration');
+  var duration = document.createElement('select');
+  duration.className = 'cmp-sel';
+  duration.id = 'vgDuration';
+  options.appendChild(duration);
+  console.log('[VideoGen] STEP 12 - after');
+  if (VIDEOGEN_DEBUG_STOP_AFTER === 12) {
+    console.log('[VideoGen] CHECKPOINT - stop after STEP 12');
+    return;
+  }
+}
 
 function renderImageGen(){
   var host = document.getElementById('imagegenRenderHost');
@@ -382,6 +550,7 @@ function renderImageGen(){
 }
 
 window._tabRenderers = window._tabRenderers || {};
+window._tabRenderers.videogen = renderVideoGen;
 window._tabRenderers.imagegen = renderImageGen;
 
 /* ── TAB SWITCHING — PASSIVE NAVIGATION ONLY ──
