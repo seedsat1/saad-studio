@@ -574,13 +574,6 @@ async function handleAssistantCommand(raw) {
     return;
   }
 
-  // slash nav
-  {
-    const nm = {[INTENTS.NAV_VIDEO]:{tab:'videogen',promptId:'vgPrompt'},[INTENTS.NAV_IMAGE]:{tab:'imagegen',promptId:'igPrompt'},[INTENTS.NAV_TTS]:{tab:'tts',promptId:'ttsPrompt'},[INTENTS.NAV_BROLL]:{tab:'broll',promptId:'brPrompt'},[INTENTS.NAV_STORY]:{tab:'story',promptId:null},[INTENTS.NAV_COLOR]:{tab:'color',promptId:'clrPrompt'},[INTENTS.NAV_AUDIO]:{tab:'audio',promptId:null},[INTENTS.NAV_CAPS]:{tab:'captions',promptId:'capUrl'}};const nv=nm[parsed.intent];if(nv){setActiveTab(nv.tab);if(nv.promptId&&parsed.args){const pe=el(nv.promptId);if(pe){pe.value=parsed.args;pe.focus();}}appendAssistantMessage('system','Switched to '+nv.tab+(parsed.args?' -- prompt filled':''),'ok');return;}}
-  if(parsed.intent===INTENTS.SOCIAL){if(!lastSections?.length){appendAssistantMessage('system','No sections yet. Run analyze first.','error');return;}const sb=lastSections.reduce((b,s)=>(s.reason?.length||0)>(b.reason?.length||0)?s:b,lastSections[0]);appendAssistantMessage('system','Best social clip: '+sb.title+' '+sb.start+'->'+sb.end,'ok');const be=el('brPrompt');if(be)be.value='B-roll for: '+sb.title;return;}
-  if(parsed.intent===INTENTS.TOP5){if(!lastSections?.length){appendAssistantMessage('system','No sections yet.','error');return;}const t5=lastSections.slice(0,5);appendAssistantMessage('system','Top moments:
-'+t5.map((s,i)=>(i+1)+'. '+s.title+' ('+s.start+'->'+s.end+')').join('
-'),'ok');return;}
   if (parsed.intent === INTENTS.SELECTS) {
     if (!lastSections?.length) {
       appendAssistantMessage('system', 'No sections yet. Run “analyze” first.', 'error');
