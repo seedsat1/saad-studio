@@ -5,7 +5,8 @@ import {
   ensureUserRow,
   spendCredits,
 } from "@/lib/credit-ledger";
-import { runAiTask, resolveModelId, AiEngineError } from "@/lib/ai-engine";
+import { runAiTask, resolveModelId, AiEngineError, type UserContext } from "@/lib/ai-engine";
+import prismadb from "@/lib/prismadb";
 
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
@@ -90,12 +91,24 @@ export async function POST(req: NextRequest) {
   // 3. Ensure user row exists
   await ensureUserRow(userId);
 
+  // 4. Resolve user plan for model tier selection
+  const subscription = await prismadb.userSubscription.findUnique({
+    where: { userId },
+    select: { planId: true, stripeCurrentPeriodEnd: true },
+  });
+  const isActive =
+    subscription?.stripeCurrentPeriodEnd != null &&
+    subscription.stripeCurrentPeriodEnd.getTime() > Date.now();
+  const userContext: UserContext = {
+    planId: isActive ? (subscription?.planId ?? null) : null,
+  };
+
   let generationId: string | null = null;
 
   try {
-    // 4. Spend credits — deduct BEFORE calling AI (same pattern as image/video routes).
-    //    modelUsed comes from the engine so the ledger stays accurate.
-    const modelId = resolveModelId("story_engine");
+    // 5. Spend credits — deduct BEFORE calling AI (same pattern as image/video routes).
+    //    modelId is resolved now so it is recorded accurately in the ledger.
+    const modelId = resolveModelId("story_engine", userContext);
 
     const spent = await spendCredits({
       userId,
@@ -106,11 +119,12 @@ export async function POST(req: NextRequest) {
     });
     generationId = spent.generationId ?? null;
 
-    // 5. Execute through centralized AI engine.
+    // 6. Execute through centralized AI engine.
     //    The route does NOT know which model or provider is used.
     const aiResult = await runAiTask({
-      task:  "story_engine",
-      input: `Here is the transcript:\n\n${transcript}`,
+      task:        "story_engine",
+      input:       `Here is the transcript:\n\n${transcript}`,
+      userContext,
     });
 
     // 6. Parse structured output

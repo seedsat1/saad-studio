@@ -10,9 +10,9 @@
  * TODO: implement when self-hosted inference is needed.
  */
 
-import type { AiTaskConfig } from "@/lib/ai-engine";
+import type { ResolvedTaskConfig } from "@/lib/ai-engine";
 
-export async function runLocalTask(config: AiTaskConfig, _userInput: string): Promise<string> {
+export async function runLocalTask(config: ResolvedTaskConfig, _userInput: string): Promise<string> {
   // TODO: implement local provider runner
   // Possible targets: Ollama (http://localhost:11434/api/chat), LM Studio, llama.cpp server
   // Env vars to add: LOCAL_AI_URL, LOCAL_AI_MODEL

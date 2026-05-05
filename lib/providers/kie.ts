@@ -18,10 +18,9 @@
  */
 
 import { fetchWithTimeout, readErrorBody } from "@/lib/http";
-import type { AiTaskConfig, AiEngineError as IAiEngineError } from "@/lib/ai-engine";
+import type { ResolvedTaskConfig } from "@/lib/ai-engine";
 
-// Re-use the error class from the engine (imported lazily to avoid circular dep)
-// We throw plain Error here; ai-engine wraps into AiEngineError.
+// Providers throw plain Error — ai-engine.ts wraps them into AiEngineError.
 
 // ─────────────────────────────────────────────────────────────────────────────
 // KEY RESOLUTION
@@ -51,7 +50,7 @@ interface ChatMessage { role: Role; content: string }
  * Endpoint: POST https://api.kie.ai/claude/v1/messages
  * Docs: https://docs.kie.ai/1973359m0
  */
-async function runClaude(messages: ChatMessage[], config: AiTaskConfig, key: string): Promise<string> {
+async function runClaude(messages: ChatMessage[], config: ResolvedTaskConfig, key: string): Promise<string> {
   const systemMsg = messages.find((m) => m.role === "system");
   const chatMsgs  = messages
     .filter((m) => m.role !== "system")
@@ -90,7 +89,7 @@ async function runClaude(messages: ChatMessage[], config: AiTaskConfig, key: str
  * Endpoint: POST https://api.kie.ai/codex/v1/responses
  * Docs: https://docs.kie.ai/1973359m0
  */
-async function runGpt54(messages: ChatMessage[], config: AiTaskConfig, key: string): Promise<string> {
+async function runGpt54(messages: ChatMessage[], config: ResolvedTaskConfig, key: string): Promise<string> {
   const systemMsg = messages.find((m) => m.role === "system");
   const chatMsgs  = messages.filter((m) => m.role !== "system");
 
@@ -143,7 +142,7 @@ async function runGpt54(messages: ChatMessage[], config: AiTaskConfig, key: stri
  * Endpoint: POST https://api.kie.ai/gemini-3-pro/v1/chat/completions
  * Docs: https://docs.kie.ai/1973359m0
  */
-async function runGemini(messages: ChatMessage[], config: AiTaskConfig, key: string): Promise<string> {
+async function runGemini(messages: ChatMessage[], config: ResolvedTaskConfig, key: string): Promise<string> {
   const res = await fetchWithTimeout(
     "https://api.kie.ai/gemini-3-pro/v1/chat/completions",
     {
@@ -183,7 +182,7 @@ const KIE_GEMINI_MODELS  = ["gemini-3-pro", "gemini-flash-2-5"];
  *
  * @throws Error — caught and wrapped in AiEngineError by ai-engine.ts
  */
-export async function runKieTask(config: AiTaskConfig, userInput: string): Promise<string> {
+export async function runKieTask(config: ResolvedTaskConfig, userInput: string): Promise<string> {
   const key = getKey();
 
   const messages: ChatMessage[] = [

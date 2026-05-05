@@ -4,30 +4,40 @@
  * ─ Architecture ────────────────────────────────────────────────────────────
  *
  *   Feature Route (app/api/...)
- *        │
+ *        │  passes { task, input, userContext: { planId } }
  *        ▼
- *   runAiTask({ task, input })          ← this file
- *        │  reads TASK_REGISTRY
+ *   runAiTask()                         ← this file
+ *        │  calls resolveModelId(task, userContext)
+ *        │  reads TASK_REGISTRY for config
  *        ▼
  *   Provider Runner (lib/providers/*)
  *        │  kie.ts  |  local.ts  |  mock.ts
  *        ▼
- *   External AI API (KIE / local model / mock)
+ *   External AI API  (KIE AI — https://docs.kie.ai/1973359m0)
+ *
+ * ─ Model selection is feature-driven, not hardcoded ───────────────────────
+ *
+ *   Models are selected by resolveModelId() based on:
+ *     1. Admin env override  (STORY_ENGINE_MODEL=...)
+ *     2. User plan tier      (free → starter → plus → pro → max)
+ *
+ *   Task definitions in TASK_REGISTRY do NOT contain modelId.
+ *   This keeps features decoupled from specific model names.
  *
  * ─ Provider selection ──────────────────────────────────────────────────────
  *
  *   Global default  →  AI_PROVIDER=kie
  *   Per-task        →  STORY_ENGINE_PROVIDER=kie
- *   Per-task model  →  STORY_ENGINE_MODEL=claude-sonnet-4-6
  *
  * ─ Adding a new task ───────────────────────────────────────────────────────
- *   1. Add the task name to AiTaskName union.
- *   2. Add an entry to TASK_REGISTRY.
- *   3. Feature route calls runAiTask({ task: "your_task", input: "..." }).
+ *   1. Add name to AiTaskName union.
+ *   2. Add entry to TASK_REGISTRY (no modelId needed).
+ *   3. Add tier→model mapping to MODEL_TIERS.
+ *   4. Route calls runAiTask({ task, input, userContext }).
  *
  * ─ Adding a new provider ───────────────────────────────────────────────────
  *   1. Create lib/providers/<name>.ts  exporting  runXxxTask(config, input)
- *   2. Import it here and add to PROVIDERS map.
+ *   2. Import here and add to PROVIDERS map.
  *   3. Set AI_PROVIDER=<name> in env.
  */
 
@@ -51,53 +61,89 @@ export type AiTaskName =
 /** Provider identifiers — KIE is the primary external provider. */
 export type AiProvider = "kie" | "local" | "mock";
 
+/**
+ * Task definition — describes the feature, NOT the model.
+ * Model selection happens at runtime via resolveModelId().
+ */
 export interface AiTaskConfig {
-  /** Human-readable feature name (used for mock key + logging) */
+  /** Human-readable feature name (for logging + mock dispatch) */
   name: string;
   /** Chat system prompt */
   systemPrompt: string;
   /** Provider to use for this task */
   provider: AiProvider;
-  /** Provider-specific model identifier (e.g. "claude-sonnet-4-6") */
-  modelId: string;
-  /** Fallback model id if the primary call fails */
-  fallbackModelId?: string;
   /** Sampling temperature 0–1 */
   temperature: number;
   /** Max output tokens */
   maxTokens: number;
-  /** Credits deducted per call (informational — enforced in the route) */
+  /** Credits deducted per call — enforced in the route, declared here for reference */
   creditCost: number;
+}
+
+/**
+ * Resolved config passed to provider runners — adds the dynamically chosen modelId.
+ * Created inside runAiTask(); never stored in TASK_REGISTRY.
+ */
+export interface ResolvedTaskConfig extends AiTaskConfig {
+  modelId: string;
+}
+
+/**
+ * User context supplied by the route — used to select the appropriate model tier.
+ * planId comes from UserSubscription.planId in the database.
+ */
+export interface UserContext {
+  /** "starter" | "plus" | "pro" | "max" | null (null = free / unauthenticated) */
+  planId?: string | null;
 }
 
 export interface AiRunInput {
   task: AiTaskName;
   input: string;
+  /** Pass the user's plan so the engine can select the right model tier. */
+  userContext?: UserContext;
 }
 
 export interface AiRunResult {
   content:  string;
+  /** The model id that was actually used — record in the credit ledger. */
   modelId:  string;
   provider: AiProvider;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// TASK REGISTRY
+// MODEL TIERS
 // ─────────────────────────────────────────────────────────────────────────────
 //
-// Provider resolution order for each task:
-//   1. STORY_ENGINE_PROVIDER env var  (per-task override)
-//   2. AI_PROVIDER env var            (global override)
-//   3. registry default               (KIE)
+// Maps each task × plan tier → KIE model id.
+// This is the ONLY place model names appear in the AI engine.
 //
-// Model resolution order:
-//   1. STORY_ENGINE_MODEL env var     (per-task override)
-//   2. registry default
+// Tier order (cheapest → best):  free → starter → plus → pro → max
+//
+// To change a model for a tier, edit this table.
+// To force a single model in any environment, set the env var override.
+//   e.g. STORY_ENGINE_MODEL=claude-sonnet-4-6
+
+type PlanTier = "free" | "starter" | "plus" | "pro" | "max";
+
+const MODEL_TIERS: Record<AiTaskName, Record<PlanTier, string>> = {
+  story_engine: {
+    free:    "gemini-3-pro",       // cost-efficient — solid for transcript parsing
+    starter: "gemini-3-pro",       // same as free
+    plus:    "claude-sonnet-4-6",  // strong structured JSON + reasoning
+    pro:     "claude-sonnet-4-6",  // same as plus (pro value is higher credit allowance)
+    max:     "gpt-5-4",            // best available via KIE
+  },
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TASK REGISTRY  (no modelId — model is resolved at runtime)
+// ─────────────────────────────────────────────────────────────────────────────
 
 function resolveProvider(envKey: string, fallback: AiProvider): AiProvider {
   const v = process.env[envKey] ?? process.env.AI_PROVIDER ?? fallback;
   if (v === "kie" || v === "local" || v === "mock") return v;
-  console.warn(`[ai-engine] Unknown provider value "${v}" for ${envKey}, using "${fallback}"`);
+  console.warn(`[ai-engine] Unknown provider "${v}" for ${envKey}, falling back to "${fallback}"`);
   return fallback;
 }
 
@@ -105,8 +151,6 @@ const TASK_REGISTRY: Record<AiTaskName, AiTaskConfig> = {
   story_engine: {
     name:        "Story Engine",
     provider:    resolveProvider("STORY_ENGINE_PROVIDER", "kie"),
-    modelId:     process.env.STORY_ENGINE_MODEL ?? "claude-sonnet-4-6",
-    fallbackModelId: "gemini-3-pro",
     temperature: 0.3,
     maxTokens:   1500,
     creditCost:  5,
@@ -137,10 +181,48 @@ Guidelines:
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+// MODEL RESOLUTION
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Resolve the model id for a task based on the user's plan tier.
+ *
+ * Resolution order:
+ *   1. Env var override  (e.g. STORY_ENGINE_MODEL)  — admin / deployment control
+ *   2. MODEL_TIERS table — plan-aware selection
+ *
+ * @param task         — AiTaskName
+ * @param userContext  — { planId } from UserSubscription; omit for free tier
+ */
+export function resolveModelId(task: AiTaskName, userContext?: UserContext): string {
+  // 1. Admin env override (e.g. STORY_ENGINE_MODEL=gpt-5-4)
+  const envKey = `${task.toUpperCase()}_MODEL`; // e.g. STORY_ENGINE_MODEL
+  const override = process.env[envKey];
+  if (override) return override;
+
+  // 2. Plan-aware selection from MODEL_TIERS
+  const tiers = MODEL_TIERS[task];
+  if (!tiers) return "gemini-3-pro"; // safe default if task has no tier map yet
+
+  const planId = userContext?.planId ?? null;
+  let tier: PlanTier;
+
+  switch (planId) {
+    case "max":     tier = "max";     break;
+    case "pro":     tier = "pro";     break;
+    case "plus":    tier = "plus";    break;
+    case "starter": tier = "starter"; break;
+    default:        tier = "free";    break; // null, undefined, unknown → free
+  }
+
+  return tiers[tier];
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // PROVIDER DISPATCH MAP
 // ─────────────────────────────────────────────────────────────────────────────
 
-type ProviderRunner = (config: AiTaskConfig, input: string) => Promise<string>;
+type ProviderRunner = (config: ResolvedTaskConfig, input: string) => Promise<string>;
 
 const PROVIDERS: Record<AiProvider, ProviderRunner> = {
   kie:   runKieTask,
@@ -155,64 +237,47 @@ const PROVIDERS: Record<AiProvider, ProviderRunner> = {
 /**
  * Execute an AI task through the centralized engine.
  *
+ * The route passes userContext so the engine picks the right model tier.
+ * The route does NOT know which model or provider is used.
+ *
  * @example
- * const result = await runAiTask({ task: "story_engine", input: transcript });
+ * const result = await runAiTask({ task: "story_engine", input: transcript, userContext: { planId } });
  * // result.content  — raw string from the model
- * // result.modelId  — which model was used (for credit ledger)
+ * // result.modelId  — the model that was used (record in credit ledger)
  * // result.provider — which provider handled it
  */
 export async function runAiTask(params: AiRunInput): Promise<AiRunResult> {
-  const config = TASK_REGISTRY[params.task];
-  if (!config) {
+  const baseConfig = TASK_REGISTRY[params.task];
+  if (!baseConfig) {
     throw new AiEngineError(`Unknown AI task: "${params.task}"`, "UNKNOWN_TASK");
   }
 
-  const runner = PROVIDERS[config.provider];
+  const runner = PROVIDERS[baseConfig.provider];
   if (!runner) {
-    throw new AiEngineError(`No runner registered for provider: "${config.provider}"`, "UNKNOWN_PROVIDER");
+    throw new AiEngineError(`No runner registered for provider: "${baseConfig.provider}"`, "UNKNOWN_PROVIDER");
   }
+
+  // Resolve model at runtime — plan-aware
+  const modelId = resolveModelId(params.task, params.userContext);
+  const config: ResolvedTaskConfig = { ...baseConfig, modelId };
 
   let content: string;
   try {
     content = await runner(config, params.input);
-  } catch (primaryErr) {
-    // Attempt fallback model on provider errors (same provider, different model)
-    if (config.fallbackModelId && config.fallbackModelId !== config.modelId) {
-      console.warn(
-        `[ai-engine] Primary model "${config.modelId}" failed, retrying with fallback "${config.fallbackModelId}"`,
-        primaryErr,
-      );
-      try {
-        content = await runner({ ...config, modelId: config.fallbackModelId }, params.input);
-      } catch (fallbackErr) {
-        throw new AiEngineError(
-          `Both primary ("${config.modelId}") and fallback ("${config.fallbackModelId}") models failed.`,
-          "PROVIDER_ERROR",
-        );
-      }
-    } else {
-      const msg = primaryErr instanceof Error ? primaryErr.message : String(primaryErr);
-      throw new AiEngineError(msg, "PROVIDER_ERROR");
-    }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    throw new AiEngineError(msg, "PROVIDER_ERROR");
   }
 
   if (!content) {
     throw new AiEngineError("Provider returned an empty response.", "EMPTY_RESPONSE");
   }
 
-  return { content, modelId: config.modelId, provider: config.provider };
+  return { content, modelId, provider: baseConfig.provider };
 }
 
 /**
- * Resolve the model ID that will be used for a task.
- * Call before runAiTask to record the model in the credit ledger.
- */
-export function resolveModelId(task: AiTaskName): string {
-  return TASK_REGISTRY[task]?.modelId ?? "unknown";
-}
-
-/**
- * Resolve the credit cost for a task (informational reference for route handlers).
+ * Resolve the credit cost for a task (for route handlers to reference).
  */
 export function resolveTaskCreditCost(task: AiTaskName): number {
   return TASK_REGISTRY[task]?.creditCost ?? 0;

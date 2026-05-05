@@ -13,7 +13,7 @@
  * Never use in production.
  */
 
-import type { AiTaskConfig } from "@/lib/ai-engine";
+import type { ResolvedTaskConfig } from "@/lib/ai-engine";
 
 const MOCK_RESPONSES: Record<string, string> = {
   story_engine: JSON.stringify({
@@ -33,7 +33,7 @@ const DEFAULT_MOCK = JSON.stringify({
   ],
 });
 
-export async function runMockTask(config: AiTaskConfig, _userInput: string): Promise<string> {
+export async function runMockTask(config: ResolvedTaskConfig, _userInput: string): Promise<string> {
   // Simulate a small network delay so tests mirror real async behavior
   await new Promise((resolve) => setTimeout(resolve, 80));
 
