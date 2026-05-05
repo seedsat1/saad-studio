@@ -22,6 +22,7 @@ import {
   updateUserStrip, setSubWarning,
 } from './modules/ui.js';
 import { analyzeTranscript, renderStorySections } from './modules/storyEngine.js';
+import { applySectionToTimeline, applyAllSectionsToTimeline } from './modules/timeline.js';
 
 // ─────────────────────────────────────────────────────────────
 // INIT
@@ -172,6 +173,11 @@ document.querySelectorAll('[data-open-tab]').forEach(card => {
 // STORY ENGINE
 // ─────────────────────────────────────────────────────────────
 
+/** Holds the sections from the latest analysis for "Apply All". */
+let currentSections = [];
+/** Holds the currently selected section for the detail-panel apply. */
+let currentSelectedSection = null;
+
 const storyTextarea    = document.getElementById('storyTranscript');
 const storyCharCount   = document.getElementById('storyCharCount');
 const btnAnalyze       = document.getElementById('btnAnalyze');
@@ -216,14 +222,31 @@ btnAnalyze?.addEventListener('click', async () => {
   try {
     const result = await analyzeTranscript(token, transcript);
 
-    renderStorySections(result.sections, storyCards, (section) => {
-      // Show detail panel
-      if (sdTitle)  sdTitle.textContent  = section.title;
-      if (sdReason) sdReason.textContent = section.reason;
-      const hasTime = section.start !== '00:00:00' || section.end !== '00:00:00';
-      if (sdTime)   sdTime.textContent   = hasTime ? `${section.start} → ${section.end}` : 'No timestamps in transcript';
-      if (storyDetail) storyDetail.style.display = 'block';
-    });
+    currentSections = result.sections ?? [];
+    currentSelectedSection = null;
+
+    renderStorySections(
+      result.sections,
+      storyCards,
+      // onSelect — update detail panel
+      (section) => {
+        currentSelectedSection = section;
+        if (sdTitle)  sdTitle.textContent  = section.title;
+        if (sdReason) sdReason.textContent = section.reason;
+        const hasTime = section.start !== '00:00:00' || section.end !== '00:00:00';
+        if (sdTime) sdTime.textContent = hasTime ? `${section.start} → ${section.end}` : 'No timestamps in transcript';
+        if (storyDetail) storyDetail.style.display = 'block';
+        // Reset detail-panel apply button
+        const btnOne = document.getElementById('btnApplyOne');
+        const fbOne  = document.getElementById('applyOneFeedback');
+        if (btnOne) { btnOne.disabled = false; btnOne.textContent = '▶ Apply to Timeline'; }
+        if (fbOne)  fbOne.textContent = '';
+      },
+      // onApply — per-card apply button
+      async (section, btn) => {
+        await applyOneSection(section, btn);
+      },
+    );
 
     if (storyCreditsBadge) {
       storyCreditsBadge.textContent = `-${result.creditsUsed ?? 5} cr`;
@@ -249,10 +272,96 @@ btnAnalyze?.addEventListener('click', async () => {
 
 // Clear results
 document.getElementById('btnStoryClear')?.addEventListener('click', () => {
+  currentSections = [];
+  currentSelectedSection = null;
   if (storyResultsWrap) storyResultsWrap.style.display = 'none';
   if (storyDetail)      storyDetail.style.display = 'none';
   if (storyCards)       storyCards.innerHTML = '';
   if (storyError)       storyError.textContent = '';
+  const fb = document.getElementById('applyAllFeedback');
+  if (fb) fb.textContent = '';
+});
+
+// ─────────────────────────────────────────────────────────────
+// TIMELINE ACTIONS
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Apply a single section marker. Updates the given button element.
+ * @param {{ title:string, start:string, end:string, reason:string }} section
+ * @param {HTMLElement|null} btn  - card apply button (optional)
+ */
+async function applyOneSection(section, btn) {
+  if (btn) { btn.disabled = true; btn.textContent = '…'; }
+  try {
+    await applySectionToTimeline(section);
+    if (btn) {
+      btn.textContent = '✓';
+      btn.classList.add('applied');
+      btn.disabled = false;
+    }
+  } catch (err) {
+    console.error('[EditPilot] Timeline apply error:', err);
+    if (btn) {
+      btn.textContent = '!';
+      btn.title = err?.message ?? 'Failed';
+      btn.classList.add('error');
+      btn.disabled = false;
+    }
+    // Surface error as a brief alert (no modal needed)
+    const errEl = document.getElementById('storyError');
+    if (errEl) {
+      errEl.textContent = `Timeline error: ${err?.message ?? 'Could not create marker.'}`;
+      setTimeout(() => { if (errEl) errEl.textContent = ''; }, 5000);
+    }
+  }
+}
+
+// Detail-panel "Apply to Timeline" button
+document.getElementById('btnApplyOne')?.addEventListener('click', async () => {
+  if (!currentSelectedSection) return;
+  const btn = document.getElementById('btnApplyOne');
+  const fb  = document.getElementById('applyOneFeedback');
+  if (btn) { btn.disabled = true; btn.textContent = 'Applying…'; }
+  if (fb)  { fb.textContent = ''; fb.className = 'apply-feedback'; }
+  try {
+    await applySectionToTimeline(currentSelectedSection);
+    if (btn) { btn.disabled = false; btn.textContent = '▶ Apply to Timeline'; }
+    if (fb)  { fb.textContent = '✓ Marker added'; fb.className = 'apply-feedback ok'; }
+  } catch (err) {
+    if (btn) { btn.disabled = false; btn.textContent = '▶ Apply to Timeline'; }
+    if (fb)  { fb.textContent = err?.message ?? 'Failed'; fb.className = 'apply-feedback err'; }
+  }
+});
+
+// "Apply All Sections" button
+document.getElementById('btnApplyAll')?.addEventListener('click', async () => {
+  if (!currentSections.length) return;
+  const btn = document.getElementById('btnApplyAll');
+  const fb  = document.getElementById('applyAllFeedback');
+  if (btn) { btn.disabled = true; btn.textContent = 'Applying…'; }
+  if (fb)  { fb.textContent = ''; fb.className = 'apply-feedback'; }
+  try {
+    const { applied, errors } = await applyAllSectionsToTimeline(
+      currentSections,
+      (done, total) => {
+        if (btn) btn.textContent = `Applying ${done}/${total}…`;
+      },
+    );
+    if (btn) { btn.disabled = false; btn.textContent = '▶ Apply All to Timeline'; }
+    if (errors.length === 0) {
+      if (fb) { fb.textContent = `✓ ${applied} markers added`; fb.className = 'apply-feedback ok'; }
+    } else {
+      if (fb) {
+        fb.textContent = `${applied} added, ${errors.length} failed`;
+        fb.className = 'apply-feedback err';
+        fb.title = errors.join('\n');
+      }
+    }
+  } catch (err) {
+    if (btn) { btn.disabled = false; btn.textContent = '▶ Apply All to Timeline'; }
+    if (fb)  { fb.textContent = err?.message ?? 'Failed'; fb.className = 'apply-feedback err'; }
+  }
 });
 
 function setAnalyzeLoading(loading) {

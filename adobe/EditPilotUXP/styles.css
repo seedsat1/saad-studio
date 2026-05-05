@@ -1025,3 +1025,70 @@ body {
   font-size: .65rem;
   padding: 20px;
 }
+
+/* ─── Timeline Actions ─────────────────────────────────────── */
+
+/* Per-card apply button inside sc-header */
+.sc-apply-btn {
+  margin-left: auto;
+  background: transparent;
+  border: 1px solid rgba(56,189,248,.35);
+  color: var(--ac2);
+  border-radius: 4px;
+  font-size: .5rem;
+  padding: 2px 7px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all .2s;
+  line-height: 1.4;
+}
+.sc-apply-btn:hover   { background: rgba(56,189,248,.12); border-color: var(--ac2); }
+.sc-apply-btn.applied { border-color: #22c55e; color: #22c55e; }
+.sc-apply-btn.error   { border-color: var(--rd); color: var(--rd); }
+.sc-apply-btn:disabled { opacity: .55; cursor: default; }
+
+/* Apply All bar — sits between results header and cards */
+.story-apply-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.btn-apply-all {
+  flex: 1;
+  background: var(--acg);
+  border: 1px solid var(--acb);
+  color: var(--ac);
+  border-radius: var(--r);
+  font-size: .65rem;
+  padding: 6px 10px;
+  cursor: pointer;
+  transition: background .2s;
+  text-align: left;
+}
+.btn-apply-all:hover    { background: rgba(56,189,248,.15); }
+.btn-apply-all:disabled { opacity: .5; cursor: default; }
+
+/* Apply One button in the detail panel */
+.btn-apply-one {
+  display: block;
+  width: 100%;
+  margin-top: 10px;
+  background: var(--acg);
+  border: 1px solid var(--acb);
+  color: var(--ac);
+  border-radius: var(--r);
+  font-size: .65rem;
+  padding: 7px;
+  cursor: pointer;
+  transition: background .2s;
+}
+.btn-apply-one:hover    { background: rgba(56,189,248,.15); }
+.btn-apply-one:disabled { opacity: .5; cursor: default; }
+
+/* Feedback text for apply actions */
+.apply-feedback      { font-size: .58rem; flex-shrink: 0; }
+.apply-feedback.ok   { color: #22c55e; }
+.apply-feedback.err  { color: var(--rd); cursor: help; }
+

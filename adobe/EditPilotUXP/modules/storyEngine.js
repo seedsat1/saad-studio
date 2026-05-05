@@ -58,9 +58,10 @@ export async function analyzeTranscript(token, transcript) {
  * Render story section cards into the results container.
  * @param {Array<{title:string, start:string, end:string, reason:string}>} sections
  * @param {HTMLElement} container
- * @param {(section: object) => void} onSelect   - called when a card is clicked
+ * @param {(section: object) => void}             onSelect   - called when a card is clicked
+ * @param {(section: object, btn: HTMLElement) => void} onApply   - called when "Apply" button is clicked
  */
-export function renderStorySections(sections, container, onSelect) {
+export function renderStorySections(sections, container, onSelect, onApply) {
   container.innerHTML = '';
 
   if (!sections?.length) {
@@ -83,15 +84,24 @@ export function renderStorySections(sections, container, onSelect) {
         <span class="sc-num">${idx + 1}</span>
         <span class="sc-title">${esc(section.title)}</span>
         ${timeBadge}
+        <button class="sc-apply-btn" title="Apply marker to Premiere timeline">&#9654;</button>
       </div>
       <div class="sc-reason">${esc(section.reason)}</div>
     `;
 
-    card.addEventListener('click', () => {
-      // Toggle selected state
+    // Card click → select (but not when clicking the apply button)
+    card.addEventListener('click', (e) => {
+      if (e.target.closest('.sc-apply-btn')) return;
       container.querySelectorAll('.story-card').forEach(c => c.classList.remove('selected'));
       card.classList.add('selected');
       onSelect?.(section);
+    });
+
+    // Apply button click
+    const applyBtn = card.querySelector('.sc-apply-btn');
+    applyBtn?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      onApply?.(section, applyBtn);
     });
 
     container.appendChild(card);
