@@ -919,36 +919,6 @@ function setupVideoGen() {
       if (imgsWrap) imgsWrap.style.display = 'none';
       if (imgPreview) imgPreview.src = '';
       updateGenItem(item, videoUrl, null, null);
-
-      // ── Download → Import → Insert into Timeline ──────────
-      if (videoUrl) {
-        const note = item.querySelector('.gen-item-meta');
-        if (note) note.textContent = 'Downloading for import…';
-        try {
-          const ext = (videoUrl.split('?')[0].split('.').pop() || 'mp4').slice(0, 4).replace(/[^a-zA-Z0-9]/g, '') || 'mp4';
-          const slug = prompt.slice(0, 20).replace(/[^a-zA-Z0-9]/g, '_');
-          const filename = `ep_vg_${Date.now()}_${slug}.${ext}`;
-
-          // Download via fetch → UXP temp file (correct way to get a local path)
-          const uxp = require('uxp');
-          const tempFolder = await uxp.storage.localFileSystem.getTemporaryFolder();
-          const tempFile = await tempFolder.createFile(filename, { overwrite: true });
-          const resp = await fetch(videoUrl);
-          if (!resp.ok) throw new Error(`Download HTTP ${resp.status}`);
-          const buf = await resp.arrayBuffer();
-          await tempFile.write(buf, { format: uxp.storage.formats.binary });
-          const localPath = tempFile.nativePath;
-          if (!localPath) throw new Error('Could not resolve temp file path');
-
-          if (note) note.textContent = 'Importing into Premiere…';
-          await importLocalAndInsertAtPlayhead(localPath, filename);
-          if (note) note.textContent = `Inserted at playhead \u2014 ${filename}`;
-        } catch (insErr) {
-          console.warn('[EditPilot] Video Gen timeline insert failed:', insErr?.message);
-          if (note) note.textContent = `Video ready \u2014 insert failed: ${insErr?.message || 'Unknown error'}`;
-        }
-      }
-
       try { const bal = await refreshCreditsFromServer(); updateCreditsDisplay(bal); } catch (_) {}
     } catch (err) {
       updateGenItem(item, null, null, err?.message || 'Generation failed');
@@ -1142,35 +1112,6 @@ function setupBroll() {
       });
       const videoUrl = result?.videoUrl || result?.url || null;
       updateGenItem(item, videoUrl, null, null);
-
-      // ── Import + Insert into Timeline ──────────────────────
-      if (videoUrl) {
-        const note = item.querySelector('.gen-item-meta');
-        if (note) note.textContent = 'Downloading for import…';
-        try {
-          const ext = (videoUrl.split('?')[0].split('.').pop() || 'mp4').slice(0, 4).replace(/[^a-zA-Z0-9]/g, '') || 'mp4';
-          const slug = prompt.slice(0, 20).replace(/[^a-zA-Z0-9]/g, '_');
-          const filename = `ep_br_${Date.now()}_${slug}.${ext}`;
-
-          const uxp = require('uxp');
-          const tempFolder = await uxp.storage.localFileSystem.getTemporaryFolder();
-          const tempFile = await tempFolder.createFile(filename, { overwrite: true });
-          const resp = await fetch(videoUrl);
-          if (!resp.ok) throw new Error(`Download HTTP ${resp.status}`);
-          const buf = await resp.arrayBuffer();
-          await tempFile.write(buf, { format: uxp.storage.formats.binary });
-          const localPath = tempFile.nativePath;
-          if (!localPath) throw new Error('Could not resolve temp file path');
-
-          if (note) note.textContent = 'Importing into Premiere…';
-          await importLocalAndInsertAtPlayhead(localPath, filename);
-          if (note) note.textContent = `Inserted at playhead \u2014 ${filename}`;
-        } catch (insErr) {
-          console.warn('[EditPilot] B-Roll timeline insert failed:', insErr?.message);
-          if (note) note.textContent = `Video ready \u2014 insert failed: ${insErr?.message || 'Unknown error'}`;
-        }
-      }
-
       try { const bal = await refreshCreditsFromServer(); updateCreditsDisplay(bal); } catch (_) {}
     } catch (err) {
       updateGenItem(item, null, null, err?.message || 'B-Roll generation failed');

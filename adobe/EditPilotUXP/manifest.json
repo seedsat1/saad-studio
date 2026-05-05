@@ -39,8 +39,7 @@
         "https://saadstudio.app",
         "https://www.saadstudio.app",
         "https://fonts.googleapis.com",
-        "https://fonts.gstatic.com",
-        "https://*"
+        "https://fonts.gstatic.com"
       ]
     },
     "localFileSystem": "request",
