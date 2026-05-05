@@ -216,44 +216,327 @@
     </div>
   </div>
 
-  <!-- VIDEO GEN — SAFE MODE (original content backed up in git history) -->
+  <!-- VIDEO GEN -->
   <div class="pn" data-panel="videogen" id="viewVideogen">
-    <div id="videogenRenderHost" style="padding:20px;color:#fff">VideoGen Loaded — DEBUG MODE</div>
+    <div class="gen-hist" id="vgHistory">
+      <div class="gen-empty" id="vgEmpty">Describe a video and click generate</div>
+    </div>
+    <div class="cmp">
+      <div class="cmp-top">
+        <div class="cmp-imgs-wrap" id="vgImgsWrap" style="display:none">
+          <div class="cmp-img-item">
+            <img class="cmp-img-preview" id="vgImgPreview" alt="">
+            <button class="cmp-img-x" id="vgImgRemove">×</button>
+          </div>
+        </div>
+        <div class="cmp-opts">
+          <select class="cmp-sel" id="vgModel">
+            <option value="kling-3.0-pro">Kling 3.0 Pro</option>
+            <option value="kling-3.0-standard">Kling 3.0</option>
+            <option value="sora-2">Sora 2</option>
+            <option value="veo-3.1">VEO 3.1</option>
+            <option value="hailuo-2.3">Hailuo</option>
+            <option value="wan-2.7">WAN 2.7</option>
+          </select>
+          <select class="cmp-sel" id="vgDuration">
+            <option value="5">5s</option>
+            <option value="3">3s</option>
+            <option value="8">8s</option>
+            <option value="10">10s</option>
+          </select>
+          <select class="cmp-sel" id="vgRatio">
+            <option value="16:9">16:9</option>
+            <option value="9:16">9:16</option>
+            <option value="1:1">1:1</option>
+          </select>
+          <select class="cmp-sel" id="vgQuality">
+            <option value="1080p">1080p</option>
+            <option value="720p">720p</option>
+          </select>
+        </div>
+      </div>
+      <textarea class="cmp-txt-safe" id="vgPrompt" placeholder="Describe your video…"></textarea>
+      <div class="cmp-bar">
+        <div class="cmp-bar-l">
+          <button class="cmp-icon-btn" id="vgAttach" title="Attach image for Image-to-Video">📎</button>
+        </div>
+        <div class="cmp-bar-r">
+          <span class="cmp-cost">6 cr</span>
+          <button class="cmp-send-btn" id="vgSend"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M11 6L1 1.5 3 6 1 10.5z" fill="currentColor"/></svg></button>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <!-- IMAGE GEN — SAFE MODE -->
+  <!-- IMAGE GEN -->
   <div class="pn" data-panel="imagegen" id="viewImagegen">
-    <div id="imagegenRenderHost" style="padding:20px;color:#fff">ImageGen Loaded — RESTORE MODE</div>
+    <div class="gen-hist" id="igHistory">
+      <div class="gen-empty" id="igEmpty">Describe an image and click generate</div>
+    </div>
+    <div class="cmp">
+      <div class="cmp-top">
+        <div class="cmp-imgs-wrap" id="igImgsWrap" style="display:none">
+          <div class="cmp-img-item">
+            <img class="cmp-img-preview" id="igImgPreview" alt="">
+            <button class="cmp-img-x" id="igImgRemove">×</button>
+          </div>
+        </div>
+        <div class="cmp-opts">
+          <select class="cmp-sel" id="igModel">
+            <option value="gpt-image-2">GPT Image 2</option>
+            <option value="flux-2-pro">Flux 2 Pro</option>
+            <option value="imagen-4">Imagen 4</option>
+            <option value="nano-banana-pro">Nano Banana</option>
+          </select>
+          <select class="cmp-sel" id="igMode">
+            <option value="standard">Standard</option>
+            <option value="thumbnail">Thumbnail</option>
+            <option value="blueprint">+ Blueprint</option>
+          </select>
+          <select class="cmp-sel" id="igRatio">
+            <option value="1:1">1:1</option>
+            <option value="16:9">16:9</option>
+            <option value="9:16">9:16</option>
+            <option value="4:3">4:3</option>
+          </select>
+          <select class="cmp-sel" id="igQuality">
+            <option value="1024">1K</option>
+            <option value="2048">2K</option>
+          </select>
+          <select class="cmp-sel" id="igCount">
+            <option value="1">1 img</option>
+            <option value="2">2 imgs</option>
+            <option value="4">4 imgs</option>
+          </select>
+        </div>
+      </div>
+      <textarea class="cmp-txt-safe" id="igPrompt" placeholder="Describe the image you want to create…"></textarea>
+      <div class="cmp-bar">
+        <div class="cmp-bar-l">
+          <button class="cmp-icon-btn" id="igAttach" title="Attach reference image">📎</button>
+        </div>
+        <div class="cmp-bar-r">
+          <span class="cmp-cost">2 cr</span>
+          <button class="cmp-send-btn" id="igSend"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M11 6L1 1.5 3 6 1 10.5z" fill="currentColor"/></svg></button>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <!-- TTS — SAFE MODE -->
+  <!-- TTS -->
   <div class="pn" data-panel="tts" id="viewTts">
-    <div style="padding:20px;color:#fff">TTS Loaded — SAFE MODE</div>
+    <div class="gen-hist" id="ttsHistory">
+      <div class="gen-empty" id="ttsEmpty">Select a voice and type text to generate</div>
+    </div>
+    <div class="cmp">
+      <div class="cmp-top">
+        <div class="cmp-opts">
+          <select class="cmp-sel" id="ttsVoice">
+            <option value="rachel">Rachel — Warm EN</option>
+            <option value="brian">Brian — Deep EN</option>
+            <option value="aria">Aria — Clear EN</option>
+            <option value="daniel">Daniel — British</option>
+            <option value="matilda">Matilda — AU</option>
+            <option value="arabella">Arabella — Arabic</option>
+          </select>
+          <select class="cmp-sel" id="ttsSpeed">
+            <option value="0.75">0.75x</option>
+            <option value="1" selected>1x</option>
+            <option value="1.25">1.25x</option>
+            <option value="1.5">1.5x</option>
+          </select>
+          <select class="cmp-sel" id="ttsLang">
+            <option value="en">English</option>
+            <option value="ar">Arabic</option>
+            <option value="fr">French</option>
+            <option value="es">Spanish</option>
+            <option value="de">German</option>
+            <option value="auto">Auto-detect</option>
+          </select>
+        </div>
+      </div>
+      <textarea class="cmp-txt-safe" id="ttsPrompt" placeholder="Type text to convert to voice…"></textarea>
+      <div class="cmp-bar">
+        <div class="cmp-bar-l">
+          <span class="cmp-cost" id="ttsCharCount">0 chars</span>
+        </div>
+        <div class="cmp-bar-r">
+          <span class="cmp-cost">3 cr</span>
+          <button class="cmp-send-btn" id="ttsSend"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M11 6L1 1.5 3 6 1 10.5z" fill="currentColor"/></svg></button>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <!-- TIMELINE AI — SAFE MODE -->
+  <!-- TIMELINE AI -->
   <div class="pn" data-panel="timeline" id="viewTimeline">
-    <div style="padding:20px;color:#fff">Timeline Loaded — SAFE MODE</div>
+    <div class="gen-hist" id="tlHistory">
+      <div class="gen-empty" id="tlEmpty">Describe your edit goal and click Analyze</div>
+    </div>
+    <div class="cmp">
+      <div class="cmp-top">
+        <div class="cmp-opts">
+          <select class="cmp-sel" id="tlMode">
+            <option value="speech">Speech Zones</option>
+            <option value="scenes">Scene Analysis</option>
+            <option value="pacing">Pacing + Cuts</option>
+            <option value="social">Social Clips</option>
+          </select>
+        </div>
+      </div>
+      <textarea class="cmp-txt-safe" id="tlPrompt" placeholder="Describe your edit goal or paste a transcript…"></textarea>
+      <div class="cmp-bar">
+        <div class="cmp-bar-l">
+          <button class="cmp-icon-btn" id="tlApplyAll" title="Apply suggestions to timeline">▶ Apply</button>
+        </div>
+        <div class="cmp-bar-r">
+          <span class="cmp-cost">2 cr</span>
+          <button class="cmp-send-btn" id="tlSend"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M11 6L1 1.5 3 6 1 10.5z" fill="currentColor"/></svg></button>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <!-- COLOR — SAFE MODE -->
+  <!-- COLOR -->
   <div class="pn" data-panel="color" id="viewColor">
-    <div style="padding:20px;color:#fff">Color Loaded — SAFE MODE</div>
+    <div class="gen-hist" id="clrHistory">
+      <div class="gen-empty" id="clrEmpty">Describe a look or attach a reference frame</div>
+    </div>
+    <div class="cmp">
+      <div class="cmp-top">
+        <div class="cmp-imgs-wrap" id="clrImgsWrap" style="display:none">
+          <div class="cmp-img-item">
+            <img class="cmp-img-preview" id="clrImgPreview" alt="">
+            <button class="cmp-img-x" id="clrImgRemove">×</button>
+          </div>
+        </div>
+        <div class="cmp-opts">
+          <select class="cmp-sel" id="clrStyle">
+            <option value="cinematic">Cinematic</option>
+            <option value="warm">Warm + Film</option>
+            <option value="cool">Cool + Teal</option>
+            <option value="bw">Black &amp; White</option>
+            <option value="custom">Custom</option>
+          </select>
+          <select class="cmp-sel" id="clrScope">
+            <option value="all">All Scenes</option>
+            <option value="interview">Interview</option>
+            <option value="broll">B-Roll</option>
+          </select>
+        </div>
+      </div>
+      <textarea class="cmp-txt-safe" id="clrPrompt" placeholder="Describe the color grade: teal shadows, warm highlights, Fincher-style…"></textarea>
+      <div class="cmp-bar">
+        <div class="cmp-bar-l">
+          <button class="cmp-icon-btn" id="clrAttach" title="Attach reference frame">📎</button>
+        </div>
+        <div class="cmp-bar-r">
+          <span class="cmp-cost">2 cr</span>
+          <button class="cmp-send-btn" id="clrSend"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M11 6L1 1.5 3 6 1 10.5z" fill="currentColor"/></svg></button>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <!-- AUDIO — SAFE MODE -->
+  <!-- AUDIO -->
   <div class="pn" data-panel="audio" id="viewAudio">
-    <div style="padding:20px;color:#fff">Audio Loaded — SAFE MODE</div>
+    <div class="pn-scroll">
+      <div class="sec-t">Audio Mix<span class="sec-badge">Premiere Pro</span></div>
+      <div class="slider-g">
+        <div class="slider-h"><span class="slider-l">Voice Level</span><span class="slider-v" id="audioVoiceVal">70%</span></div>
+        <input type="range" min="0" max="100" value="70" id="audioVoice" oninput="document.getElementById('audioVoiceVal').textContent=this.value+'%'">
+      </div>
+      <div class="slider-g">
+        <div class="slider-h"><span class="slider-l">Music Level</span><span class="slider-v" id="audioMusicVal">35%</span></div>
+        <input type="range" min="0" max="100" value="35" id="audioMusic" oninput="document.getElementById('audioMusicVal').textContent=this.value+'%'">
+      </div>
+      <div class="slider-g">
+        <div class="slider-h"><span class="slider-l">SFX Level</span><span class="slider-v" id="audioSfxVal">50%</span></div>
+        <input type="range" min="0" max="100" value="50" id="audioSfx" oninput="document.getElementById('audioSfxVal').textContent=this.value+'%'">
+      </div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:10px">
+        <button class="btn-gen" style="font-size:.65rem;padding:7px 14px" id="btnAudioApply">Apply Mix <span class="cost">Local</span></button>
+        <button class="btn" id="btnAudioDuck">Smart Ducking</button>
+        <button class="btn" id="btnAudioDenoise">Denoise</button>
+      </div>
+      <div class="story-err" id="audioFeedback" style="margin-top:8px"></div>
+      <div class="sec-t" style="margin-top:14px">About Audio Mix</div>
+      <div class="asst-intro">Adjust sliders and click <strong>Apply Mix</strong> to set clip volumes in the active Premiere Pro sequence.<br><br>Voice tracks (A1-A2) use Voice Level, music tracks (A3-A4) use Music Level, remaining tracks use SFX Level.</div>
+    </div>
   </div>
 
-  <!-- B-ROLL — SAFE MODE -->
+  <!-- B-ROLL -->
   <div class="pn" data-panel="broll" id="viewBroll">
-    <div style="padding:20px;color:#fff">B-Roll Loaded — SAFE MODE</div>
+    <div class="gen-hist" id="brHistory">
+      <div class="gen-empty" id="brEmpty">Describe B-roll shots and click generate</div>
+    </div>
+    <div class="cmp">
+      <div class="cmp-top">
+        <div class="cmp-opts">
+          <select class="cmp-sel" id="brModel">
+            <option value="kling-3.0-pro">Kling 3.0 Pro</option>
+            <option value="kling-3.0-standard">Kling 3.0</option>
+            <option value="wan-2.7">WAN 2.7</option>
+            <option value="hailuo-2.3">Hailuo</option>
+          </select>
+          <select class="cmp-sel" id="brDuration">
+            <option value="5">5s</option>
+            <option value="3">3s</option>
+            <option value="8">8s</option>
+            <option value="10">10s</option>
+          </select>
+          <select class="cmp-sel" id="brRatio">
+            <option value="16:9">16:9</option>
+            <option value="9:16">9:16</option>
+            <option value="1:1">1:1</option>
+          </select>
+        </div>
+      </div>
+      <textarea class="cmp-txt-safe" id="brPrompt" placeholder="Describe B-roll: drone shot over city, modern office, happy client…"></textarea>
+      <div class="cmp-bar">
+        <div class="cmp-bar-l">
+          <span class="cmp-cost" style="font-size:.55rem">Uses Video Gen</span>
+        </div>
+        <div class="cmp-bar-r">
+          <span class="cmp-cost">6 cr</span>
+          <button class="cmp-send-btn" id="brSend"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M11 6L1 1.5 3 6 1 10.5z" fill="currentColor"/></svg></button>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <!-- CAPTIONS — SAFE MODE -->
+  <!-- CAPTIONS -->
   <div class="pn" data-panel="captions" id="viewCaptions">
-    <div style="padding:20px;color:#fff">Captions Loaded — SAFE MODE</div>
+    <div class="gen-hist" id="capHistory">
+      <div class="gen-empty" id="capEmpty">Paste a video or audio URL to transcribe</div>
+    </div>
+    <div class="cmp">
+      <div class="cmp-top">
+        <div class="cmp-opts">
+          <select class="cmp-sel" id="capEngine">
+            <option value="wavespeed-ai/openai-whisper">Whisper v3</option>
+            <option value="wavespeed-ai/openai-whisper-turbo">Whisper Turbo</option>
+          </select>
+          <select class="cmp-sel" id="capLang">
+            <option value="en">English</option>
+            <option value="ar">Arabic</option>
+            <option value="fr">French</option>
+            <option value="es">Spanish</option>
+            <option value="auto">Auto-detect</option>
+          </select>
+        </div>
+      </div>
+      <textarea class="cmp-txt-safe" id="capUrl" placeholder="Paste video or audio URL (mp4, mp3, wav)…" style="font-size:.62rem"></textarea>
+      <div class="cmp-bar">
+        <div class="cmp-bar-l">
+          <span class="cmp-cost" id="capCopyBtn" style="cursor:pointer" title="Copy transcript">Copy</span>
+        </div>
+        <div class="cmp-bar-r">
+          <span class="cmp-cost">3 cr</span>
+          <button class="cmp-send-btn" id="capSend"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M11 6L1 1.5 3 6 1 10.5z" fill="currentColor"/></svg></button>
+        </div>
+      </div>
+    </div>
   </div>
 
 </main>
@@ -758,9 +1041,7 @@ function renderImageGen(){
   return;
 }
 
-window._tabRenderers = window._tabRenderers || {};
-window._tabRenderers.videogen = renderVideoGen;
-window._tabRenderers.imagegen = renderImageGen;
+window._tabRenderers = {};
 
 /* ── TAB SWITCHING — PASSIVE NAVIGATION ONLY ──
  * NEVER call Premiere host (require, ppro, getActiveProject, sequences, markers, etc.)
