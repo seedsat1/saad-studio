@@ -282,6 +282,7 @@ function selVc(el){el.parentElement.querySelectorAll('.vc').forEach(function(c){
 
 var VIDEOGEN_DEBUG_STOP_AFTER = 18;
 var VIDEOGEN_DEBUG_MICRO_STOP = '18B';
+var VIDEOGEN_DEBUG_STEP18B_CLASS = 'dbg-safe-basic';
 
 function renderVideoGen(){
   var host = document.getElementById('videogenRenderHost');
@@ -515,7 +516,7 @@ function renderVideoGen(){
   }
 
   console.log('[VideoGen] STEP 18B - before');
-  prompt.className = 'cmp-txt';
+  prompt.className = VIDEOGEN_DEBUG_STEP18B_CLASS;
   console.log('[VideoGen] STEP 18B - after');
   if (VIDEOGEN_DEBUG_MICRO_STOP === '18B') {
     console.log('[VideoGen] CHECKPOINT - stop after STEP 18B');

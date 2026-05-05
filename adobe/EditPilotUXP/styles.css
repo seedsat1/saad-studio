@@ -619,6 +619,9 @@ input[type=range] {
   max-width:120px;
 }
 .cmp-sel:focus { border-color:var(--ac); }
+.dbg-safe-basic {
+  display:block;
+}
 .cmp-txt {
   width:100%;min-height:46px;max-height:90px;
   background:transparent;border:none;outline:none;
