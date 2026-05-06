@@ -239,7 +239,7 @@
 
 <script>
 var VIDEOGEN_DEBUG_STOP_AFTER = 999;
-var VIDEOGEN_DEBUG_MICRO_STOP = '21A';
+var VIDEOGEN_DEBUG_MICRO_STOP = '21A1';
 
 function renderVideoGen(){
   var host = document.getElementById('videogenRenderHost');
@@ -440,11 +440,15 @@ function renderVideoGen(){
   console.log('[VideoGen] STEP 20 - after');
   if (VIDEOGEN_DEBUG_STOP_AFTER === 20) return;
 
-  console.log('[VideoGen] STEP 21A - before');
+  console.log('[VideoGen] STEP 21A1 - before');
   assertUniqueId('vgAttach');
+  console.log('[VideoGen] STEP 21A1 - after');
+  if (VIDEOGEN_DEBUG_MICRO_STOP === '21A1') return;
+
+  console.log('[VideoGen] STEP 21A2 - before');
   var attach = document.createElement('button');
-  console.log('[VideoGen] STEP 21A - after');
-  if (VIDEOGEN_DEBUG_MICRO_STOP === '21A') return;
+  console.log('[VideoGen] STEP 21A2 - after');
+  if (VIDEOGEN_DEBUG_MICRO_STOP === '21A2') return;
 
   console.log('[VideoGen] STEP 21B - before');
   attach.className = 'cmp-icon-btn';
