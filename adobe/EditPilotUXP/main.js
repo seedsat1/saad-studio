@@ -62,181 +62,160 @@ function renderDashboard(session) {
   setSubWarning(session.subscriptionActive === false);
 }
 
-// ─── CONTROLLED UI RESTORE — Image Gen ──────────────────────────
-// Builds the original Image Gen panel step-by-step using createElement
-// (no innerHTML, no inline handlers, no loops) so any step that crashes
-// UXP is logged immediately before the failure.
+function createImageGenSelect(id, options) {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'field vg2-field';
+
+  const select = document.createElement('select');
+  select.className = 'sel-input vg2-select';
+  select.id = id;
+
+  options.forEach((optionConfig) => {
+    const option = document.createElement('option');
+    option.value = optionConfig.value;
+    option.textContent = optionConfig.label;
+    select.appendChild(option);
+  });
+
+  wrapper.appendChild(select);
+  return wrapper;
+}
+
+function wireImageGen(host) {
+  if (!host || host.dataset.wired === '1') return;
+  if (typeof window.__editpilotSetupImageGen !== 'function') return;
+
+  window.__editpilotSetupImageGen();
+  host.dataset.wired = '1';
+}
+
 function renderImageGen() {
-  if (renderImageGen._done) {
-    console.log('[renderImageGen] already rendered, skipping');
+  const host = document.getElementById('imagegenRenderHost');
+  if (!host) return;
+
+  if (host.dataset.rendered === '1') {
+    wireImageGen(host);
     return;
   }
 
-  console.log('[renderImageGen] STEP 0 — locate panel');
-  const panel = document.getElementById('viewImagegen');
-  if (!panel) { console.error('[renderImageGen] panel not found'); return; }
+  host.textContent = '';
 
-  console.log('[renderImageGen] STEP 1 — clear panel & set root');
-  panel.textContent = '';
   const root = document.createElement('div');
-  root.id = 'imagegen-root';
-  panel.appendChild(root);
+  root.className = 'pn-scroll vg2-shell';
+  host.appendChild(root);
 
-  console.log('[renderImageGen] STEP 2 — gen-hist container');
-  const genHist = document.createElement('div');
-  genHist.className = 'gen-hist';
-  genHist.id = 'igHistory';
-  root.appendChild(genHist);
+  const introCard = document.createElement('div');
+  introCard.className = 'vg2-card';
+  root.appendChild(introCard);
 
-  console.log('[renderImageGen] STEP 3 — gen-empty placeholder');
-  const genEmpty = document.createElement('div');
-  genEmpty.className = 'gen-empty';
-  genEmpty.id = 'igEmpty';
-  genEmpty.textContent = 'Describe an image and click generate';
-  genHist.appendChild(genEmpty);
+  const title = document.createElement('div');
+  title.className = 'sec-t';
+  title.textContent = 'Image Gen';
+  introCard.appendChild(title);
 
-  console.log('[renderImageGen] STEP 4 — cmp wrapper');
-  const cmp = document.createElement('div');
-  cmp.className = 'cmp';
-  root.appendChild(cmp);
+  const blurb = document.createElement('div');
+  blurb.className = 'asst-intro';
+  blurb.textContent = 'Generate still images in Saad Studio style using model, mode, ratio, quality, and optional reference image.';
+  introCard.appendChild(blurb);
 
-  console.log('[renderImageGen] STEP 5 — cmp-top');
-  const cmpTop = document.createElement('div');
-  cmpTop.className = 'cmp-top';
-  cmp.appendChild(cmpTop);
+  const history = document.createElement('div');
+  history.className = 'gen-hist vg2-history';
+  history.id = 'igHistory';
+  root.appendChild(history);
 
-  console.log('[renderImageGen] STEP 6 — cmp-imgs-wrap (hidden)');
-  const imgsWrap = document.createElement('div');
-  imgsWrap.className = 'cmp-imgs-wrap';
-  imgsWrap.id = 'igImgsWrap';
-  imgsWrap.style.display = 'none';
-  cmpTop.appendChild(imgsWrap);
+  const empty = document.createElement('div');
+  empty.className = 'gen-empty';
+  empty.id = 'igEmpty';
+  empty.textContent = 'Describe an image and click Generate Image';
+  history.appendChild(empty);
 
-  console.log('[renderImageGen] STEP 7 — cmp-img-item');
-  const imgItem = document.createElement('div');
-  imgItem.className = 'cmp-img-item';
-  imgsWrap.appendChild(imgItem);
+  const composer = document.createElement('div');
+  composer.className = 'vg2-card vg2-composer';
+  root.appendChild(composer);
 
-  console.log('[renderImageGen] STEP 8 — img preview (no src)');
-  const imgPreview = document.createElement('img');
-  imgPreview.className = 'cmp-img-preview';
-  imgPreview.id = 'igImgPreview';
-  imgPreview.alt = '';
-  imgItem.appendChild(imgPreview);
+  const previewWrap = document.createElement('div');
+  previewWrap.className = 'vg2-preview';
+  previewWrap.id = 'igImgsWrap';
+  previewWrap.style.display = 'none';
+  composer.appendChild(previewWrap);
 
-  console.log('[renderImageGen] STEP 9 — img remove button');
-  const imgX = document.createElement('button');
-  imgX.className = 'cmp-img-x';
-  imgX.id = 'igImgRemove';
-  imgX.textContent = '×';
-  imgItem.appendChild(imgX);
+  const previewImage = document.createElement('img');
+  previewImage.className = 'vg2-preview-img';
+  previewImage.id = 'igImgPreview';
+  previewImage.alt = 'Reference';
+  previewWrap.appendChild(previewImage);
 
-  console.log('[renderImageGen] STEP 10 — cmp-opts container');
-  const opts = document.createElement('div');
-  opts.className = 'cmp-opts';
-  cmpTop.appendChild(opts);
+  const removeBtn = document.createElement('button');
+  removeBtn.className = 'btn vg2-remove';
+  removeBtn.id = 'igImgRemove';
+  removeBtn.type = 'button';
+  removeBtn.textContent = 'Remove';
+  previewWrap.appendChild(removeBtn);
 
-  console.log('[renderImageGen] STEP 11 — select igModel');
-  const selModel = document.createElement('select');
-  selModel.className = 'cmp-sel';
-  selModel.id = 'igModel';
-  [['gpt-image-2','GPT Image 2'],['flux-2-pro','Flux 2 Pro'],['imagen-4','Imagen 4'],['nano-banana-pro','Nano Banana']].forEach(function(o){
-    var op = document.createElement('option'); op.value = o[0]; op.textContent = o[1]; selModel.appendChild(op);
-  });
-  opts.appendChild(selModel);
+  const controls = document.createElement('div');
+  controls.className = 'vg2-grid';
+  controls.appendChild(createImageGenSelect('igModel', [
+    { value: 'gpt-image-2', label: 'GPT Image 2' },
+    { value: 'flux-2-pro', label: 'Flux 2 Pro' },
+    { value: 'imagen-4', label: 'Imagen 4' },
+    { value: 'nano-banana-pro', label: 'Nano Banana' }
+  ]));
+  controls.appendChild(createImageGenSelect('igMode', [
+    { value: 'standard', label: 'Standard' },
+    { value: 'thumbnail', label: 'Thumbnail' },
+    { value: 'blueprint', label: 'Blueprint' }
+  ]));
+  controls.appendChild(createImageGenSelect('igRatio', [
+    { value: '1:1', label: '1:1 Square' },
+    { value: '16:9', label: '16:9 Landscape' },
+    { value: '9:16', label: '9:16 Vertical' },
+    { value: '4:3', label: '4:3' }
+  ]));
+  controls.appendChild(createImageGenSelect('igQuality', [
+    { value: '1024', label: '1K' },
+    { value: '2048', label: '2K' }
+  ]));
+  controls.appendChild(createImageGenSelect('igCount', [
+    { value: '1', label: '1 Image' },
+    { value: '2', label: '2 Images' },
+    { value: '4', label: '4 Images' }
+  ]));
+  composer.appendChild(controls);
 
-  console.log('[renderImageGen] STEP 12 — select igMode');
-  const selMode = document.createElement('select');
-  selMode.className = 'cmp-sel';
-  selMode.id = 'igMode';
-  [['standard','Standard'],['thumbnail','Thumbnail'],['blueprint','+ Blueprint']].forEach(function(o){
-    var op = document.createElement('option'); op.value = o[0]; op.textContent = o[1]; selMode.appendChild(op);
-  });
-  opts.appendChild(selMode);
+  const promptWrap = document.createElement('div');
+  promptWrap.className = 'prompt vg2-prompt';
+  composer.appendChild(promptWrap);
 
-  console.log('[renderImageGen] STEP 13 — select igRatio');
-  const selRatio = document.createElement('select');
-  selRatio.className = 'cmp-sel';
-  selRatio.id = 'igRatio';
-  [['1:1','1:1'],['16:9','16:9'],['9:16','9:16'],['4:3','4:3']].forEach(function(o){
-    var op = document.createElement('option'); op.value = o[0]; op.textContent = o[1]; selRatio.appendChild(op);
-  });
-  opts.appendChild(selRatio);
+  const prompt = document.createElement('textarea');
+  prompt.id = 'igPrompt';
+  prompt.placeholder = 'Describe the image you want to create...';
+  promptWrap.appendChild(prompt);
 
-  console.log('[renderImageGen] STEP 14 — select igQuality');
-  const selQual = document.createElement('select');
-  selQual.className = 'cmp-sel';
-  selQual.id = 'igQuality';
-  [['1024','1K'],['2048','2K']].forEach(function(o){
-    var op = document.createElement('option'); op.value = o[0]; op.textContent = o[1]; selQual.appendChild(op);
-  });
-  opts.appendChild(selQual);
+  const actions = document.createElement('div');
+  actions.className = 'vg2-actions';
+  composer.appendChild(actions);
 
-  console.log('[renderImageGen] STEP 15 — select igCount');
-  const selCount = document.createElement('select');
-  selCount.className = 'cmp-sel';
-  selCount.id = 'igCount';
-  [['1','1 img'],['2','2 imgs'],['4','4 imgs']].forEach(function(o){
-    var op = document.createElement('option'); op.value = o[0]; op.textContent = o[1]; selCount.appendChild(op);
-  });
-  opts.appendChild(selCount);
+  const attachBtn = document.createElement('button');
+  attachBtn.className = 'btn';
+  attachBtn.id = 'igAttach';
+  attachBtn.type = 'button';
+  attachBtn.textContent = 'Attach Reference';
+  actions.appendChild(attachBtn);
 
-  console.log('[renderImageGen] STEP 16 — textarea igPrompt');
-  const ta = document.createElement('textarea');
-  ta.className = 'cmp-txt';
-  ta.id = 'igPrompt';
-  ta.placeholder = 'Describe the image you want to create…';
-  cmp.appendChild(ta);
+  const note = document.createElement('div');
+  note.className = 'vg2-note';
+  note.textContent = '2 cr';
+  actions.appendChild(note);
 
-  console.log('[renderImageGen] STEP 17 — cmp-bar');
-  const bar = document.createElement('div');
-  bar.className = 'cmp-bar';
-  cmp.appendChild(bar);
+  const sendBtn = document.createElement('button');
+  sendBtn.className = 'btn-gen';
+  sendBtn.id = 'igSend';
+  sendBtn.type = 'button';
+  sendBtn.textContent = 'Generate Image';
+  actions.appendChild(sendBtn);
 
-  console.log('[renderImageGen] STEP 18 — cmp-bar-l');
-  const barL = document.createElement('div');
-  barL.className = 'cmp-bar-l';
-  bar.appendChild(barL);
-
-  console.log('[renderImageGen] STEP 19 — attach button (📎 emoji)');
-  const btnAttach = document.createElement('button');
-  btnAttach.className = 'cmp-icon-btn';
-  btnAttach.id = 'igAttach';
-  btnAttach.title = 'Attach reference image';
-  btnAttach.textContent = '📎';
-  barL.appendChild(btnAttach);
-
-  console.log('[renderImageGen] STEP 20 — cmp-bar-r');
-  const barR = document.createElement('div');
-  barR.className = 'cmp-bar-r';
-  bar.appendChild(barR);
-
-  console.log('[renderImageGen] STEP 21 — cost label');
-  const cost = document.createElement('span');
-  cost.className = 'cmp-cost';
-  cost.textContent = '2 cr';
-  barR.appendChild(cost);
-
-  console.log('[renderImageGen] STEP 22 — send button (with SVG icon)');
-  const btnSend = document.createElement('button');
-  btnSend.className = 'cmp-send-btn';
-  btnSend.id = 'igSend';
-  // Build SVG via DOM (avoid innerHTML so the parser can't choke mid-render)
-  const svgNS = 'http://www.w3.org/2000/svg';
-  const svg = document.createElementNS(svgNS, 'svg');
-  svg.setAttribute('width', '12');
-  svg.setAttribute('height', '12');
-  svg.setAttribute('viewBox', '0 0 12 12');
-  svg.setAttribute('fill', 'none');
-  const path = document.createElementNS(svgNS, 'path');
-  path.setAttribute('d', 'M11 6L1 1.5 3 6 1 10.5z');
-  path.setAttribute('fill', 'currentColor');
-  svg.appendChild(path);
-  btnSend.appendChild(svg);
-  barR.appendChild(btnSend);
-
-  console.log('[renderImageGen] STEP 23 — DONE');
-  renderImageGen._done = true;
+  host.dataset.rendered = '1';
+  wireImageGen(host);
 }
 
 // Register the renderer so the inline tab handler can call it lazily.
@@ -1161,6 +1140,8 @@ function setupImageGen() {
     }
   });
 }
+
+window.__editpilotSetupImageGen = setupImageGen;
 
 // ─────────────────────────────────────────────────────────────
 // TTS

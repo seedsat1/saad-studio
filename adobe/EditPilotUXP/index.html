@@ -177,10 +177,7 @@
   </div>
 
   <div class="pn" data-panel="imagegen" id="viewImagegen">
-    <div class="pn-scroll">
-      <div class="sec-t">Image Gen</div>
-      <div class="asst-intro">Image Gen shell restored as a placeholder.</div>
-    </div>
+    <div id="imagegenRenderHost"></div>
   </div>
 
   <div class="pn" data-panel="tts" id="viewTts">
@@ -397,6 +394,9 @@ function setActiveTab(tab){
   if (activePanel) activePanel.classList.add('vis');
   try {
     if (tab === 'videogen') renderVideoGen();
+    if (window._tabRenderers && typeof window._tabRenderers[tab] === 'function') {
+      window._tabRenderers[tab]();
+    }
   } catch (error) {
     console.error('[TAB_RENDER_ERROR]', error && (error.stack || error.message || error));
   }
