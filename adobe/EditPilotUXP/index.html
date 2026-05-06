@@ -238,307 +238,154 @@
 </div>
 
 <script>
-var VIDEOGEN_DEBUG_STOP_AFTER = 999;
-var VIDEOGEN_DEBUG_MICRO_STOP = '18B';
+function createVideoGenSelect(id, options) {
+  var wrapper = document.createElement('div');
+  wrapper.className = 'field vg2-field';
+
+  var select = document.createElement('select');
+  select.className = 'sel-input vg2-select';
+  select.id = id;
+
+  options.forEach(function(optionConfig) {
+    var option = document.createElement('option');
+    option.value = optionConfig.value;
+    option.textContent = optionConfig.label;
+    select.appendChild(option);
+  });
+
+  wrapper.appendChild(select);
+  return wrapper;
+}
+
+function wireVideoGen(host) {
+  if (!host || host.dataset.wired === '1') return;
+  if (typeof window.__editpilotSetupVideoGen !== 'function') return;
+
+  window.__editpilotSetupVideoGen();
+  host.dataset.wired = '1';
+}
 
 function renderVideoGen(){
   var host = document.getElementById('videogenRenderHost');
-  if (!host) {
-    console.error('[VideoGen] host missing');
-    return;
-  }
+  if (!host) return;
+
   if (host.dataset.rendered === '1') {
-    console.log('[VideoGen] render skipped - already rendered');
+    wireVideoGen(host);
     return;
   }
 
-  function assertUniqueId(id) {
-    if (!id) return;
-    if (document.getElementById(id)) {
-      throw new Error('Duplicate id detected: ' + id);
-    }
-  }
-
-  console.log('[VideoGen] STEP 0 - before');
   host.textContent = '';
-  host.style.padding = '0';
-  host.style.color = '';
-  console.log('[VideoGen] STEP 0 - after');
 
-  console.log('[VideoGen] STEP 1 - before');
-  assertUniqueId('vgHistory');
+  var root = document.createElement('div');
+  root.className = 'pn-scroll vg2-shell';
+  host.appendChild(root);
+
+  var introCard = document.createElement('div');
+  introCard.className = 'vg2-card';
+  root.appendChild(introCard);
+
+  var title = document.createElement('div');
+  title.className = 'sec-t';
+  title.textContent = 'Video Gen';
+  introCard.appendChild(title);
+
+  var blurb = document.createElement('div');
+  blurb.className = 'asst-intro';
+  blurb.textContent = 'Generate AI video in Saad Studio style using prompt, duration, ratio, and optional reference image.';
+  introCard.appendChild(blurb);
+
   var history = document.createElement('div');
-  history.className = 'gen-hist';
+  history.className = 'gen-hist vg2-history';
   history.id = 'vgHistory';
-  host.appendChild(history);
-  console.log('[VideoGen] STEP 1 - after');
-  if (VIDEOGEN_DEBUG_STOP_AFTER === 1) return;
+  root.appendChild(history);
 
-  console.log('[VideoGen] STEP 2 - before');
-  assertUniqueId('vgEmpty');
   var empty = document.createElement('div');
   empty.className = 'gen-empty';
   empty.id = 'vgEmpty';
-  empty.textContent = 'Describe a video and click generate';
+  empty.textContent = 'Describe a shot and click Generate Video';
   history.appendChild(empty);
-  console.log('[VideoGen] STEP 2 - after');
-  if (VIDEOGEN_DEBUG_STOP_AFTER === 2) return;
 
-  console.log('[VideoGen] STEP 3 - before');
   var composer = document.createElement('div');
-  composer.className = 'cmp';
-  composer.id = 'vgComposer';
-  host.appendChild(composer);
-  console.log('[VideoGen] STEP 3 - after');
-  if (VIDEOGEN_DEBUG_STOP_AFTER === 3) return;
+  composer.className = 'vg2-card vg2-composer';
+  root.appendChild(composer);
 
-  console.log('[VideoGen] STEP 4 - before');
-  assertUniqueId('vgTop');
-  var top = document.createElement('div');
-  top.className = 'cmp-top';
-  top.id = 'vgTop';
-  composer.appendChild(top);
-  console.log('[VideoGen] STEP 4 - after');
-  if (VIDEOGEN_DEBUG_STOP_AFTER === 4) return;
+  var previewWrap = document.createElement('div');
+  previewWrap.className = 'vg2-preview';
+  previewWrap.id = 'vgImgsWrap';
+  previewWrap.style.display = 'none';
+  composer.appendChild(previewWrap);
 
-  console.log('[VideoGen] STEP 5 - before');
-  assertUniqueId('vgImgsWrap');
-  var imageWrap = document.createElement('div');
-  imageWrap.className = 'cmp-imgs-wrap';
-  imageWrap.id = 'vgImgsWrap';
-  imageWrap.style.display = 'none';
-  top.appendChild(imageWrap);
-  console.log('[VideoGen] STEP 5 - after');
-  if (VIDEOGEN_DEBUG_STOP_AFTER === 5) return;
+  var previewImage = document.createElement('img');
+  previewImage.className = 'vg2-preview-img';
+  previewImage.id = 'vgImgPreview';
+  previewImage.alt = 'Reference';
+  previewWrap.appendChild(previewImage);
 
-  console.log('[VideoGen] STEP 6 - before');
-  var imageItem = document.createElement('div');
-  imageItem.className = 'cmp-img-item';
-  imageWrap.appendChild(imageItem);
-  console.log('[VideoGen] STEP 6 - after');
-  if (VIDEOGEN_DEBUG_STOP_AFTER === 6) return;
-
-  console.log('[VideoGen] STEP 7 - before');
-  assertUniqueId('vgImgPreview');
-  var preview = document.createElement('img');
-  preview.className = 'cmp-img-preview';
-  preview.id = 'vgImgPreview';
-  preview.alt = '';
-  imageItem.appendChild(preview);
-  console.log('[VideoGen] STEP 7 - after');
-  if (VIDEOGEN_DEBUG_STOP_AFTER === 7) return;
-
-  console.log('[VideoGen] STEP 8 - before');
-  assertUniqueId('vgImgRemove');
   var removeBtn = document.createElement('button');
-  removeBtn.className = 'cmp-img-x';
+  removeBtn.className = 'btn vg2-remove';
   removeBtn.id = 'vgImgRemove';
   removeBtn.type = 'button';
-  removeBtn.textContent = 'x';
-  imageItem.appendChild(removeBtn);
-  console.log('[VideoGen] STEP 8 - after');
-  if (VIDEOGEN_DEBUG_STOP_AFTER === 8) return;
+  removeBtn.textContent = 'Remove';
+  previewWrap.appendChild(removeBtn);
 
-  console.log('[VideoGen] STEP 9 - before');
-  assertUniqueId('vgOptions');
-  var options = document.createElement('div');
-  options.className = 'cmp-opts';
-  options.id = 'vgOptions';
-  top.appendChild(options);
-  console.log('[VideoGen] STEP 9 - after');
-  if (VIDEOGEN_DEBUG_STOP_AFTER === 9) return;
+  var controls = document.createElement('div');
+  controls.className = 'vg2-grid';
+  controls.appendChild(createVideoGenSelect('vgModel', [
+    { value: 'kling-3.0-pro', label: 'Kling 3.0 Pro' },
+    { value: 'kling-3.0-standard', label: 'Kling 3.0' },
+    { value: 'veo-3.1', label: 'VEO 3.1' },
+    { value: 'wan-2.7', label: 'WAN 2.7' }
+  ]));
+  controls.appendChild(createVideoGenSelect('vgDuration', [
+    { value: '5', label: '5 Seconds' },
+    { value: '8', label: '8 Seconds' },
+    { value: '10', label: '10 Seconds' }
+  ]));
+  controls.appendChild(createVideoGenSelect('vgRatio', [
+    { value: '16:9', label: '16:9 Landscape' },
+    { value: '9:16', label: '9:16 Vertical' },
+    { value: '1:1', label: '1:1 Square' }
+  ]));
+  controls.appendChild(createVideoGenSelect('vgQuality', [
+    { value: '1080p', label: '1080p' },
+    { value: '720p', label: '720p' }
+  ]));
+  composer.appendChild(controls);
 
-  console.log('[VideoGen] STEP 10 - before');
-  assertUniqueId('vgModel');
-  var model = document.createElement('select');
-  model.className = 'cmp-sel';
-  model.id = 'vgModel';
-  options.appendChild(model);
-  console.log('[VideoGen] STEP 10 - after');
-  if (VIDEOGEN_DEBUG_STOP_AFTER === 10) return;
+  var promptWrap = document.createElement('div');
+  promptWrap.className = 'prompt vg2-prompt';
+  composer.appendChild(promptWrap);
 
-  console.log('[VideoGen] STEP 11 - before');
-  var modelOption = document.createElement('option');
-  modelOption.value = 'kling-3.0-pro';
-  modelOption.textContent = 'Kling 3.0 Pro';
-  model.appendChild(modelOption);
-  console.log('[VideoGen] STEP 11 - after');
-  if (VIDEOGEN_DEBUG_STOP_AFTER === 11) return;
-
-  console.log('[VideoGen] STEP 12 - before');
-  assertUniqueId('vgDuration');
-  var duration = document.createElement('select');
-  duration.className = 'cmp-sel';
-  duration.id = 'vgDuration';
-  options.appendChild(duration);
-  console.log('[VideoGen] STEP 12 - after');
-  if (VIDEOGEN_DEBUG_STOP_AFTER === 12) return;
-
-  console.log('[VideoGen] STEP 13 - before');
-  var durationOption = document.createElement('option');
-  durationOption.value = '5';
-  durationOption.textContent = '5s';
-  duration.appendChild(durationOption);
-  console.log('[VideoGen] STEP 13 - after');
-  if (VIDEOGEN_DEBUG_STOP_AFTER === 13) return;
-
-  console.log('[VideoGen] STEP 14 - before');
-  assertUniqueId('vgRatio');
-  var ratio = document.createElement('select');
-  ratio.className = 'cmp-sel';
-  ratio.id = 'vgRatio';
-  options.appendChild(ratio);
-  console.log('[VideoGen] STEP 14 - after');
-  if (VIDEOGEN_DEBUG_STOP_AFTER === 14) return;
-
-  console.log('[VideoGen] STEP 15 - before');
-  var ratioOption = document.createElement('option');
-  ratioOption.value = '16:9';
-  ratioOption.textContent = '16:9';
-  ratio.appendChild(ratioOption);
-  console.log('[VideoGen] STEP 15 - after');
-  if (VIDEOGEN_DEBUG_STOP_AFTER === 15) return;
-
-  console.log('[VideoGen] STEP 16 - before');
-  assertUniqueId('vgQuality');
-  var quality = document.createElement('select');
-  quality.className = 'cmp-sel';
-  quality.id = 'vgQuality';
-  options.appendChild(quality);
-  console.log('[VideoGen] STEP 16 - after');
-  if (VIDEOGEN_DEBUG_STOP_AFTER === 16) return;
-
-  console.log('[VideoGen] STEP 17 - before');
-  var qualityOption = document.createElement('option');
-  qualityOption.value = '1080p';
-  qualityOption.textContent = '1080p';
-  quality.appendChild(qualityOption);
-  console.log('[VideoGen] STEP 17 - after');
-  if (VIDEOGEN_DEBUG_STOP_AFTER === 17) return;
-
-  console.log('[VideoGen] STEP 18A - before');
   var prompt = document.createElement('textarea');
-  console.log('[VideoGen] STEP 18A - after');
-  if (VIDEOGEN_DEBUG_MICRO_STOP === '18A') return;
-
-  console.log('[VideoGen] STEP 18B - before');
-  prompt.className = 'cmp-txt-safe';
-  console.log('[VideoGen] STEP 18B - after');
-  if (VIDEOGEN_DEBUG_MICRO_STOP === '18B') return;
-
-  console.log('[VideoGen] STEP 18C - before');
   prompt.id = 'vgPrompt';
-  prompt.placeholder = 'Describe your video...';
-  console.log('[VideoGen] STEP 18C - after');
-  if (VIDEOGEN_DEBUG_MICRO_STOP === '18C') return;
+  prompt.placeholder = 'Describe your video shot, mood, camera move, and lighting...';
+  promptWrap.appendChild(prompt);
 
-  console.log('[VideoGen] STEP 18D - before');
-  composer.appendChild(prompt);
-  console.log('[VideoGen] STEP 18D - after');
-  if (VIDEOGEN_DEBUG_MICRO_STOP === '18D') return;
+  var actions = document.createElement('div');
+  actions.className = 'vg2-actions';
+  composer.appendChild(actions);
 
-  console.log('[VideoGen] STEP 19A - before');
-  var bar = document.createElement('div');
-  console.log('[VideoGen] STEP 19A - after');
-  if (VIDEOGEN_DEBUG_MICRO_STOP === '19A') return;
+  var attachBtn = document.createElement('button');
+  attachBtn.className = 'btn';
+  attachBtn.id = 'vgAttach';
+  attachBtn.type = 'button';
+  attachBtn.textContent = 'Attach Reference';
+  actions.appendChild(attachBtn);
 
-  console.log('[VideoGen] STEP 19B - before');
-  bar.className = 'cmp-bar';
-  console.log('[VideoGen] STEP 19B - after');
-  if (VIDEOGEN_DEBUG_MICRO_STOP === '19B') return;
+  var note = document.createElement('div');
+  note.className = 'vg2-note';
+  note.textContent = '6 cr';
+  actions.appendChild(note);
 
-  console.log('[VideoGen] STEP 19C - before');
-  bar.id = 'vgBar';
-  console.log('[VideoGen] STEP 19C - after');
-  if (VIDEOGEN_DEBUG_MICRO_STOP === '19C') return;
+  var sendBtn = document.createElement('button');
+  sendBtn.className = 'btn-gen';
+  sendBtn.id = 'vgSend';
+  sendBtn.type = 'button';
+  sendBtn.textContent = 'Generate Video';
+  actions.appendChild(sendBtn);
 
-  console.log('[VideoGen] STEP 19D - before');
-  composer.appendChild(bar);
-  console.log('[VideoGen] STEP 19D - after');
-  if (VIDEOGEN_DEBUG_MICRO_STOP === '19D') return;
-
-  console.log('[VideoGen] STEP 20A - before');
-  var barLeft = document.createElement('div');
-  console.log('[VideoGen] STEP 20A - after');
-  if (VIDEOGEN_DEBUG_MICRO_STOP === '20A') return;
-
-  console.log('[VideoGen] STEP 20B - before');
-  barLeft.className = 'cmp-bar-l';
-  console.log('[VideoGen] STEP 20B - after');
-  if (VIDEOGEN_DEBUG_MICRO_STOP === '20B') return;
-
-  console.log('[VideoGen] STEP 20C - before');
-  bar.appendChild(barLeft);
-  console.log('[VideoGen] STEP 20C - after');
-  if (VIDEOGEN_DEBUG_MICRO_STOP === '20C') return;
-
-  console.log('[VideoGen] STEP 21A1 - before');
-  console.log('[VideoGen] STEP 21A1 - after');
-  if (VIDEOGEN_DEBUG_MICRO_STOP === '21A1') return;
-
-  console.log('[VideoGen] STEP 21A2 - before');
-  var attach = document.createElement('button');
-  console.log('[VideoGen] STEP 21A2 - after');
-  if (VIDEOGEN_DEBUG_MICRO_STOP === '21A2') return;
-
-  console.log('[VideoGen] STEP 21B - before');
-  attach.className = 'cmp-icon-btn';
-  console.log('[VideoGen] STEP 21B - after');
-  if (VIDEOGEN_DEBUG_MICRO_STOP === '21B') return;
-
-  console.log('[VideoGen] STEP 21C - before');
-  attach.id = 'vgAttach';
-  attach.type = 'button';
-  attach.title = 'Attach image for Image-to-Video';
-  console.log('[VideoGen] STEP 21C - after');
-  if (VIDEOGEN_DEBUG_MICRO_STOP === '21C') return;
-
-  console.log('[VideoGen] STEP 21D - before');
-  attach.textContent = '📎';
-  console.log('[VideoGen] STEP 21D - after');
-  if (VIDEOGEN_DEBUG_MICRO_STOP === '21D') return;
-
-  console.log('[VideoGen] STEP 21E - before');
-  barLeft.appendChild(attach);
-  console.log('[VideoGen] STEP 21E - after');
-  if (VIDEOGEN_DEBUG_MICRO_STOP === '21E') return;
-
-  console.log('[VideoGen] STEP 22A - before');
-  var barRight = document.createElement('div');
-  console.log('[VideoGen] STEP 22A - after');
-  if (VIDEOGEN_DEBUG_MICRO_STOP === '22A') return;
-
-  console.log('[VideoGen] STEP 22B - before');
-  barRight.className = 'cmp-bar-r';
-  console.log('[VideoGen] STEP 22B - after');
-  if (VIDEOGEN_DEBUG_MICRO_STOP === '22B') return;
-
-  console.log('[VideoGen] STEP 22C - before');
-  bar.appendChild(barRight);
-  console.log('[VideoGen] STEP 22C - after');
-  if (VIDEOGEN_DEBUG_MICRO_STOP === '22C') return;
-
-  console.log('[VideoGen] STEP 23A - before');
-  var cost = null;
-  console.log('[VideoGen] STEP 23A - after');
-  if (VIDEOGEN_DEBUG_MICRO_STOP === '23A') return;
-
-  console.log('[VideoGen] STEP 23B - before');
-  cost = document.createElement('div');
-  cost.className = 'cmp-cost';
-  console.log('[VideoGen] STEP 23B - after');
-  if (VIDEOGEN_DEBUG_MICRO_STOP === '23B') return;
-
-  console.log('[VideoGen] STEP 23C - before');
-  cost.textContent = '6 cr';
-  console.log('[VideoGen] STEP 23C - after');
-  if (VIDEOGEN_DEBUG_MICRO_STOP === '23C') return;
-
-  console.log('[VideoGen] STEP 23D - before');
-  barRight.appendChild(cost);
-  console.log('[VideoGen] STEP 23D - after');
   host.dataset.rendered = '1';
-  if (VIDEOGEN_DEBUG_MICRO_STOP === '23D') return;
+  wireVideoGen(host);
 }
 
 function setActiveTab(tab){

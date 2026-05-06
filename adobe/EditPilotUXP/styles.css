@@ -695,6 +695,86 @@ input[type=range] {
 .cmp-send-btn:hover { background:var(--ac); }
 .cmp-send-btn:disabled { opacity:.4;cursor:not-allowed; }
 
+.vg2-shell {
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+.vg2-card {
+  background:var(--s1);
+  border:1px solid var(--b0);
+  border-radius:var(--rad2);
+  padding:10px;
+}
+
+.vg2-history {
+  min-height:150px;
+}
+
+.vg2-composer {
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+.vg2-preview {
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:8px;
+  border-radius:var(--rad);
+  background:var(--s2);
+  border:1px solid var(--b1);
+}
+
+.vg2-preview-img {
+  width:72px;
+  height:72px;
+  border-radius:var(--rad);
+  object-fit:cover;
+  border:1px solid var(--b1);
+}
+
+.vg2-remove {
+  margin-left:auto;
+}
+
+.vg2-grid {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px;
+}
+
+.vg2-field {
+  margin-bottom:0;
+}
+
+.vg2-select {
+  width:100%;
+}
+
+.vg2-prompt {
+  margin-bottom:0;
+}
+
+.vg2-actions {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+.vg2-note {
+  margin-left:auto;
+  font-size:.58rem;
+  color:var(--ac);
+  background:var(--acg);
+  border:1px solid var(--acb);
+  border-radius:20px;
+  padding:3px 8px;
+}
+
 /* ── GEN HISTORY ───────────────────────────────── */
 .gen-hist {
   flex:1;overflow-y:auto;overflow-x:hidden;
