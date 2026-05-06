@@ -462,7 +462,6 @@ function renderVideoGen(){
   console.log('[VideoGen] STEP 23A - before');
   var cost = document.createElement('span');
   console.log('[VideoGen] STEP 23A - after');
-  host.dataset.rendered = '1';
   if (VIDEOGEN_DEBUG_MICRO_STOP === '23A') return;
 
   console.log('[VideoGen] STEP 23B - before');
@@ -478,6 +477,7 @@ function renderVideoGen(){
   console.log('[VideoGen] STEP 23D - before');
   barRight.appendChild(cost);
   console.log('[VideoGen] STEP 23D - after');
+  host.dataset.rendered = '1';
   if (VIDEOGEN_DEBUG_MICRO_STOP === '23D') return;
 }
 
