@@ -10,36 +10,154 @@
 <div class="hdr">
   <span class="hdr-logo-img">Saad Studio</span>
   <div class="hdr-r">
-    <div class="hdr-credits">
-      <span class="cr-num">999</span><span class="cr-label">cr</span>
-      <div class="cr-bar"><div class="cr-fill" style="width:83%"></div></div>
+    <div class="hdr-credits" id="hdrCredits">
+      <span class="cr-num" id="crNum">999</span><span class="cr-label">cr</span>
+      <div class="cr-bar"><div class="cr-fill" id="crFill" style="width:83%"></div></div>
     </div>
-    <div class="hdr-plan">Pro</div>
-    <div class="hdr-avatar">D</div>
-    <button class="ib" type="button">⚙</button>
+    <div class="hdr-plan" id="hdrPlan">Pro</div>
+    <div class="hdr-avatar" id="hdrAvatar">D</div>
+    <button class="ib" id="btnSettings" type="button" title="Settings">⚙</button>
   </div>
 </div>
 
-<div class="sub-warn">
+<div class="sub-warn" id="subWarn">
   <span>⚠</span>
-  <span><strong>Shell Test</strong> - static UI only, no tool logic loaded.</span>
+  <span><strong>Safe Mode</strong> - shell and tab navigation are restored; tool logic is still disabled.</span>
 </div>
 
-<div class="nav">
-  <button class="nt active" type="button">Assistant</button>
-  <button class="nt" type="button">Story Engine</button>
-  <button class="nt" type="button">Video Gen</button>
-  <button class="nt" type="button">Image Gen</button>
+<div class="nav" id="epTabs">
+  <button class="nt active" data-tab="chat" type="button">Assistant</button>
+  <button class="nt" data-tab="story" type="button">Story Engine</button>
+  <button class="nt" data-tab="videogen" type="button">Video Gen</button>
+  <button class="nt" data-tab="imagegen" type="button">Image Gen</button>
+  <button class="nt" data-tab="tts" type="button">TTS</button>
+  <button class="nt" data-tab="timeline" type="button">Timeline AI</button>
+  <button class="nt" data-tab="color" type="button">Color</button>
+  <button class="nt" data-tab="audio" type="button">Audio Mix</button>
+  <button class="nt" data-tab="broll" type="button">B-Roll Gen</button>
+  <button class="nt" data-tab="captions" type="button">Captions</button>
 </div>
 
 <main class="main vis" id="dashboard">
-  <div class="pn vis">
+  <div class="pn vis" data-panel="chat" id="viewAssistant">
     <div class="pn-scroll">
-      <div class="sec-t">Shell Smoke Test</div>
-      <div class="asst-intro">If this opens and stays stable, the static shell is safe and the crash is in the restored interactive logic.</div>
+      <div class="sec-t">Assistant</div>
+      <div class="asst-intro">Assistant shell restored. Interactive assistant logic remains disabled during crash isolation.</div>
+    </div>
+  </div>
+
+  <div class="pn" data-panel="story" id="viewStory">
+    <div class="pn-scroll">
+      <div class="sec-t">Story Engine</div>
+      <div class="asst-intro">Story Engine panel restored as a safe placeholder.</div>
+    </div>
+  </div>
+
+  <div class="pn" data-panel="videogen" id="viewVideogen">
+    <div class="pn-scroll">
+      <div class="sec-t">Video Gen</div>
+      <div class="asst-intro">Video Gen remains disabled here until its crash-safe lazy renderer is reintroduced.</div>
+    </div>
+  </div>
+
+  <div class="pn" data-panel="imagegen" id="viewImagegen">
+    <div class="pn-scroll">
+      <div class="sec-t">Image Gen</div>
+      <div class="asst-intro">Image Gen shell restored as a placeholder.</div>
+    </div>
+  </div>
+
+  <div class="pn" data-panel="tts" id="viewTts">
+    <div class="pn-scroll">
+      <div class="sec-t">TTS</div>
+      <div class="asst-intro">TTS shell restored as a placeholder.</div>
+    </div>
+  </div>
+
+  <div class="pn" data-panel="timeline" id="viewTimeline">
+    <div class="pn-scroll">
+      <div class="sec-t">Timeline AI</div>
+      <div class="asst-intro">Timeline shell restored as a placeholder.</div>
+    </div>
+  </div>
+
+  <div class="pn" data-panel="color" id="viewColor">
+    <div class="pn-scroll">
+      <div class="sec-t">Color</div>
+      <div class="asst-intro">Color shell restored as a placeholder.</div>
+    </div>
+  </div>
+
+  <div class="pn" data-panel="audio" id="viewAudio">
+    <div class="pn-scroll">
+      <div class="sec-t">Audio Mix</div>
+      <div class="asst-intro">Audio Mix shell restored as a placeholder.</div>
+    </div>
+  </div>
+
+  <div class="pn" data-panel="broll" id="viewBroll">
+    <div class="pn-scroll">
+      <div class="sec-t">B-Roll Gen</div>
+      <div class="asst-intro">B-Roll shell restored as a placeholder.</div>
+    </div>
+  </div>
+
+  <div class="pn" data-panel="captions" id="viewCaptions">
+    <div class="pn-scroll">
+      <div class="sec-t">Captions</div>
+      <div class="asst-intro">Captions shell restored as a placeholder.</div>
     </div>
   </div>
 </main>
+
+<div class="modal-bg" id="setBg">
+  <div class="modal">
+    <div class="mdl-h"><h3>Settings</h3><button class="mdl-x" id="btnCloseSettings" type="button">✕</button></div>
+    <div class="mdl-b">
+      <div class="fg"><label>Mode</label>
+        <div class="help">Safe shell mode</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function setActiveTab(tab){
+  document.querySelectorAll('#epTabs .nt').forEach(function(button){ button.classList.remove('active'); });
+  document.querySelectorAll('.pn').forEach(function(panel){ panel.classList.remove('vis'); });
+  var activeButton = document.querySelector('#epTabs .nt[data-tab="' + tab + '"]');
+  if (activeButton) activeButton.classList.add('active');
+  var activePanel = document.querySelector('.pn[data-panel="' + tab + '"]');
+  if (activePanel) activePanel.classList.add('vis');
+}
+
+document.addEventListener('DOMContentLoaded', function(){
+  var nav = document.getElementById('epTabs');
+  if (nav) {
+    nav.addEventListener('click', function(event){
+      var button = event.target.closest('.nt');
+      if (button && button.dataset.tab) setActiveTab(button.dataset.tab);
+    });
+  }
+
+  var settingsButton = document.getElementById('btnSettings');
+  var closeSettingsButton = document.getElementById('btnCloseSettings');
+  var settingsModal = document.getElementById('setBg');
+  if (settingsButton && settingsModal) {
+    settingsButton.addEventListener('click', function(){ settingsModal.classList.add('vis'); });
+  }
+  if (closeSettingsButton && settingsModal) {
+    closeSettingsButton.addEventListener('click', function(){ settingsModal.classList.remove('vis'); });
+  }
+  if (settingsModal) {
+    settingsModal.addEventListener('click', function(event){
+      if (event.target === settingsModal) settingsModal.classList.remove('vis');
+    });
+  }
+
+  setActiveTab('chat');
+});
+</script>
 
 </body>
 </html>
