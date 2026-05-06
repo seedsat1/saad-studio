@@ -173,10 +173,7 @@
   </div>
 
   <div class="pn" data-panel="videogen" id="viewVideogen">
-    <div class="pn-scroll">
-      <div class="sec-t">Video Gen</div>
-      <div class="asst-intro">Video Gen remains disabled here until its crash-safe lazy renderer is reintroduced.</div>
-    </div>
+    <div id="videogenRenderHost"></div>
   </div>
 
   <div class="pn" data-panel="imagegen" id="viewImagegen">
@@ -241,6 +238,236 @@
 </div>
 
 <script>
+var VIDEOGEN_DEBUG_STOP_AFTER = 23;
+
+function renderVideoGen(){
+  var host = document.getElementById('videogenRenderHost');
+  if (!host) {
+    console.error('[VideoGen] host missing');
+    return;
+  }
+  if (host.dataset.rendered === '1') {
+    console.log('[VideoGen] render skipped - already rendered');
+    return;
+  }
+
+  function assertUniqueId(id) {
+    if (!id) return;
+    if (document.getElementById(id)) {
+      throw new Error('Duplicate id detected: ' + id);
+    }
+  }
+
+  console.log('[VideoGen] STEP 0 - before');
+  host.textContent = '';
+  host.style.padding = '0';
+  host.style.color = '';
+  console.log('[VideoGen] STEP 0 - after');
+
+  console.log('[VideoGen] STEP 1 - before');
+  assertUniqueId('vgHistory');
+  var history = document.createElement('div');
+  history.className = 'gen-hist';
+  history.id = 'vgHistory';
+  host.appendChild(history);
+  console.log('[VideoGen] STEP 1 - after');
+  if (VIDEOGEN_DEBUG_STOP_AFTER === 1) return;
+
+  console.log('[VideoGen] STEP 2 - before');
+  assertUniqueId('vgEmpty');
+  var empty = document.createElement('div');
+  empty.className = 'gen-empty';
+  empty.id = 'vgEmpty';
+  empty.textContent = 'Describe a video and click generate';
+  history.appendChild(empty);
+  console.log('[VideoGen] STEP 2 - after');
+  if (VIDEOGEN_DEBUG_STOP_AFTER === 2) return;
+
+  console.log('[VideoGen] STEP 3 - before');
+  var composer = document.createElement('div');
+  composer.className = 'cmp';
+  composer.id = 'vgComposer';
+  host.appendChild(composer);
+  console.log('[VideoGen] STEP 3 - after');
+  if (VIDEOGEN_DEBUG_STOP_AFTER === 3) return;
+
+  console.log('[VideoGen] STEP 4 - before');
+  assertUniqueId('vgTop');
+  var top = document.createElement('div');
+  top.className = 'cmp-top';
+  top.id = 'vgTop';
+  composer.appendChild(top);
+  console.log('[VideoGen] STEP 4 - after');
+  if (VIDEOGEN_DEBUG_STOP_AFTER === 4) return;
+
+  console.log('[VideoGen] STEP 5 - before');
+  assertUniqueId('vgImgsWrap');
+  var imageWrap = document.createElement('div');
+  imageWrap.className = 'cmp-imgs-wrap';
+  imageWrap.id = 'vgImgsWrap';
+  imageWrap.style.display = 'none';
+  top.appendChild(imageWrap);
+  console.log('[VideoGen] STEP 5 - after');
+  if (VIDEOGEN_DEBUG_STOP_AFTER === 5) return;
+
+  console.log('[VideoGen] STEP 6 - before');
+  var imageItem = document.createElement('div');
+  imageItem.className = 'cmp-img-item';
+  imageWrap.appendChild(imageItem);
+  console.log('[VideoGen] STEP 6 - after');
+  if (VIDEOGEN_DEBUG_STOP_AFTER === 6) return;
+
+  console.log('[VideoGen] STEP 7 - before');
+  assertUniqueId('vgImgPreview');
+  var preview = document.createElement('img');
+  preview.className = 'cmp-img-preview';
+  preview.id = 'vgImgPreview';
+  preview.alt = '';
+  imageItem.appendChild(preview);
+  console.log('[VideoGen] STEP 7 - after');
+  if (VIDEOGEN_DEBUG_STOP_AFTER === 7) return;
+
+  console.log('[VideoGen] STEP 8 - before');
+  assertUniqueId('vgImgRemove');
+  var removeBtn = document.createElement('button');
+  removeBtn.className = 'cmp-img-x';
+  removeBtn.id = 'vgImgRemove';
+  removeBtn.type = 'button';
+  removeBtn.textContent = 'x';
+  imageItem.appendChild(removeBtn);
+  console.log('[VideoGen] STEP 8 - after');
+  if (VIDEOGEN_DEBUG_STOP_AFTER === 8) return;
+
+  console.log('[VideoGen] STEP 9 - before');
+  assertUniqueId('vgOptions');
+  var options = document.createElement('div');
+  options.className = 'cmp-opts';
+  options.id = 'vgOptions';
+  top.appendChild(options);
+  console.log('[VideoGen] STEP 9 - after');
+  if (VIDEOGEN_DEBUG_STOP_AFTER === 9) return;
+
+  console.log('[VideoGen] STEP 10 - before');
+  assertUniqueId('vgModel');
+  var model = document.createElement('select');
+  model.className = 'cmp-sel';
+  model.id = 'vgModel';
+  options.appendChild(model);
+  console.log('[VideoGen] STEP 10 - after');
+  if (VIDEOGEN_DEBUG_STOP_AFTER === 10) return;
+
+  console.log('[VideoGen] STEP 11 - before');
+  var modelOption = document.createElement('option');
+  modelOption.value = 'kling-3.0-pro';
+  modelOption.textContent = 'Kling 3.0 Pro';
+  model.appendChild(modelOption);
+  console.log('[VideoGen] STEP 11 - after');
+  if (VIDEOGEN_DEBUG_STOP_AFTER === 11) return;
+
+  console.log('[VideoGen] STEP 12 - before');
+  assertUniqueId('vgDuration');
+  var duration = document.createElement('select');
+  duration.className = 'cmp-sel';
+  duration.id = 'vgDuration';
+  options.appendChild(duration);
+  console.log('[VideoGen] STEP 12 - after');
+  if (VIDEOGEN_DEBUG_STOP_AFTER === 12) return;
+
+  console.log('[VideoGen] STEP 13 - before');
+  var durationOption = document.createElement('option');
+  durationOption.value = '5';
+  durationOption.textContent = '5s';
+  duration.appendChild(durationOption);
+  console.log('[VideoGen] STEP 13 - after');
+  if (VIDEOGEN_DEBUG_STOP_AFTER === 13) return;
+
+  console.log('[VideoGen] STEP 14 - before');
+  assertUniqueId('vgRatio');
+  var ratio = document.createElement('select');
+  ratio.className = 'cmp-sel';
+  ratio.id = 'vgRatio';
+  options.appendChild(ratio);
+  console.log('[VideoGen] STEP 14 - after');
+  if (VIDEOGEN_DEBUG_STOP_AFTER === 14) return;
+
+  console.log('[VideoGen] STEP 15 - before');
+  var ratioOption = document.createElement('option');
+  ratioOption.value = '16:9';
+  ratioOption.textContent = '16:9';
+  ratio.appendChild(ratioOption);
+  console.log('[VideoGen] STEP 15 - after');
+  if (VIDEOGEN_DEBUG_STOP_AFTER === 15) return;
+
+  console.log('[VideoGen] STEP 16 - before');
+  assertUniqueId('vgQuality');
+  var quality = document.createElement('select');
+  quality.className = 'cmp-sel';
+  quality.id = 'vgQuality';
+  options.appendChild(quality);
+  console.log('[VideoGen] STEP 16 - after');
+  if (VIDEOGEN_DEBUG_STOP_AFTER === 16) return;
+
+  console.log('[VideoGen] STEP 17 - before');
+  var qualityOption = document.createElement('option');
+  qualityOption.value = '1080p';
+  qualityOption.textContent = '1080p';
+  quality.appendChild(qualityOption);
+  console.log('[VideoGen] STEP 17 - after');
+  if (VIDEOGEN_DEBUG_STOP_AFTER === 17) return;
+
+  console.log('[VideoGen] STEP 18 - before');
+  var prompt = document.createElement('textarea');
+  prompt.className = 'cmp-txt-safe';
+  prompt.id = 'vgPrompt';
+  prompt.placeholder = 'Describe your video...';
+  composer.appendChild(prompt);
+  console.log('[VideoGen] STEP 18 - after');
+  if (VIDEOGEN_DEBUG_STOP_AFTER === 18) return;
+
+  console.log('[VideoGen] STEP 19 - before');
+  var bar = document.createElement('div');
+  bar.className = 'cmp-bar';
+  bar.id = 'vgBar';
+  composer.appendChild(bar);
+  console.log('[VideoGen] STEP 19 - after');
+  if (VIDEOGEN_DEBUG_STOP_AFTER === 19) return;
+
+  console.log('[VideoGen] STEP 20 - before');
+  var barLeft = document.createElement('div');
+  barLeft.className = 'cmp-bar-l';
+  bar.appendChild(barLeft);
+  console.log('[VideoGen] STEP 20 - after');
+  if (VIDEOGEN_DEBUG_STOP_AFTER === 20) return;
+
+  console.log('[VideoGen] STEP 21 - before');
+  assertUniqueId('vgAttach');
+  var attach = document.createElement('button');
+  attach.className = 'cmp-icon-btn';
+  attach.id = 'vgAttach';
+  attach.type = 'button';
+  attach.title = 'Attach image for Image-to-Video';
+  attach.textContent = '📎';
+  barLeft.appendChild(attach);
+  console.log('[VideoGen] STEP 21 - after');
+  if (VIDEOGEN_DEBUG_STOP_AFTER === 21) return;
+
+  console.log('[VideoGen] STEP 22 - before');
+  var barRight = document.createElement('div');
+  barRight.className = 'cmp-bar-r';
+  bar.appendChild(barRight);
+  console.log('[VideoGen] STEP 22 - after');
+  if (VIDEOGEN_DEBUG_STOP_AFTER === 22) return;
+
+  console.log('[VideoGen] STEP 23 - before');
+  var cost = document.createElement('span');
+  cost.className = 'cmp-cost';
+  cost.textContent = '6 cr';
+  barRight.appendChild(cost);
+  console.log('[VideoGen] STEP 23 - after');
+  host.dataset.rendered = '1';
+  if (VIDEOGEN_DEBUG_STOP_AFTER === 23) return;
+}
+
 function setActiveTab(tab){
   document.querySelectorAll('#epTabs .nt').forEach(function(button){ button.classList.remove('active'); });
   document.querySelectorAll('.pn').forEach(function(panel){ panel.classList.remove('vis'); });
@@ -248,6 +475,11 @@ function setActiveTab(tab){
   if (activeButton) activeButton.classList.add('active');
   var activePanel = document.querySelector('.pn[data-panel="' + tab + '"]');
   if (activePanel) activePanel.classList.add('vis');
+  try {
+    if (tab === 'videogen') renderVideoGen();
+  } catch (error) {
+    console.error('[TAB_RENDER_ERROR]', error && (error.stack || error.message || error));
+  }
 }
 
 document.addEventListener('DOMContentLoaded', function(){
