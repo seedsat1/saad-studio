@@ -64,6 +64,7 @@ interface AudioRequestBody {
   sourceLang?: string;
   targetLang?: string;
   cloneName?: string;
+  customVoiceId?: string;
   sampleAudioUrls?: string[];
   description?: string;
   labels?: string;
@@ -276,6 +277,12 @@ function sanitizeCustomVoiceId(raw?: string): string {
   const base = normalized || "saad_clone_voice";
   const withPrefix = /^[A-Za-z]/.test(base) ? base : `v_${base}`;
   return withPrefix.slice(0, 64);
+}
+
+function buildUniqueCustomVoiceId(raw?: string): string {
+  const suffix = `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+  const base = sanitizeCustomVoiceId(raw).slice(0, Math.max(1, 63 - suffix.length));
+  return `${base}_${suffix}`;
 }
 
 async function pollKieTask(
@@ -570,7 +577,7 @@ async function runKieVoiceClone(
 
   const seedText = sanitizePrompt(body.text || body.prompt || "Hello from SAAD Studio voice cloning.", 5000);
   const clonedVoiceName = (body.cloneName || "custom-voice").trim().slice(0, 64);
-  const customVoiceId = sanitizeCustomVoiceId(clonedVoiceName);
+  const customVoiceId = body.customVoiceId || buildUniqueCustomVoiceId(clonedVoiceName);
 
   // Use submitKieTask + pollKieRecordInfo (same pattern as all other KIE models)
   const taskId = await submitKieTask(
@@ -1281,7 +1288,7 @@ export async function POST(req: NextRequest) {
     }
     if (actionType === "voice-cloning") {
       const clonedVoiceName = (body.cloneName || "custom-voice").trim().slice(0, 64);
-      const customVoiceId = sanitizeCustomVoiceId(clonedVoiceName);
+      const customVoiceId = buildUniqueCustomVoiceId(clonedVoiceName);
 
       // Pre-upload audio files to get stable public URLs.
       // This bypasses the unreliable kieai.redpandaai.co upload endpoint
@@ -1296,7 +1303,7 @@ export async function POST(req: NextRequest) {
           console.warn("[voice-cloning] Pre-upload failed, will attempt inline upload:", preUploadErr instanceof Error ? preUploadErr.message : preUploadErr);
         }
       }
-      const bodyWithUrls = { ...body, sampleAudioUrls: sampleUrls };
+      const bodyWithUrls = { ...body, sampleAudioUrls: sampleUrls, customVoiceId };
 
       // --- Try KIE first ---
       if (kieKey) {

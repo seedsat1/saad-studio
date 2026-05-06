@@ -975,6 +975,7 @@ function useOnce(){
   const name=document.getElementById('cloneVoiceName')?.value.trim()||'Custom Voice';
   document.getElementById('customVoiceId').value='custom_'+Date.now();
   window._cloneFileForJob=_cloneSampleFile;
+  window._cloneNameForJob=name;
   document.getElementById('activeCloneBar').style.display='flex';
   document.getElementById('activeCloneName').textContent=name+' (Use Once)';
   closeVoiceModal();setStatus(`Clone voice "${name}" ready.`,'ok');
@@ -1097,7 +1098,8 @@ async function generateVoice(text){
       const{signedUrl,publicUrl}=await ur.json();
       await new Promise((res,rej)=>{const xhr=new XMLHttpRequest();xhr.addEventListener('load',()=>xhr.status<300?res():rej(new Error('Upload failed')));xhr.addEventListener('error',()=>rej(new Error('Network error')));xhr.open('PUT',signedUrl);xhr.setRequestHeader('Content-Type',window._cloneFileForJob.type||'audio/mpeg');xhr.send(window._cloneFileForJob);});
       setStatus('Cloning voice...','info');
-      const res=await fetch('/api/generate/audio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({actionType:'voice-cloning',text,sampleAudioUrls:[publicUrl],cloneName:'Custom Clone'})});
+      const cloneName=window._cloneNameForJob||'Custom Voice';
+      const res=await fetch('/api/generate/audio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({actionType:'voice-cloning',text,sampleAudioUrls:[publicUrl],cloneName})});
       const json=await res.json();
       if(!res.ok)throw new Error(json?.error||json?.message||`Clone error (${res.status})`);
       url=json?.audioUrl||json?.url||'';
