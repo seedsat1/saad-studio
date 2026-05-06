@@ -238,7 +238,8 @@
 </div>
 
 <script>
-var VIDEOGEN_DEBUG_STOP_AFTER = 23;
+var VIDEOGEN_DEBUG_STOP_AFTER = 999;
+var VIDEOGEN_DEBUG_MICRO_STOP = '23A';
 
 function renderVideoGen(){
   var host = document.getElementById('videogenRenderHost');
@@ -458,14 +459,26 @@ function renderVideoGen(){
   console.log('[VideoGen] STEP 22 - after');
   if (VIDEOGEN_DEBUG_STOP_AFTER === 22) return;
 
-  console.log('[VideoGen] STEP 23 - before');
+  console.log('[VideoGen] STEP 23A - before');
   var cost = document.createElement('span');
-  cost.className = 'cmp-cost';
-  cost.textContent = '6 cr';
-  barRight.appendChild(cost);
-  console.log('[VideoGen] STEP 23 - after');
+  console.log('[VideoGen] STEP 23A - after');
   host.dataset.rendered = '1';
-  if (VIDEOGEN_DEBUG_STOP_AFTER === 23) return;
+  if (VIDEOGEN_DEBUG_MICRO_STOP === '23A') return;
+
+  console.log('[VideoGen] STEP 23B - before');
+  cost.className = 'cmp-cost';
+  console.log('[VideoGen] STEP 23B - after');
+  if (VIDEOGEN_DEBUG_MICRO_STOP === '23B') return;
+
+  console.log('[VideoGen] STEP 23C - before');
+  cost.textContent = '6 cr';
+  console.log('[VideoGen] STEP 23C - after');
+  if (VIDEOGEN_DEBUG_MICRO_STOP === '23C') return;
+
+  console.log('[VideoGen] STEP 23D - before');
+  barRight.appendChild(cost);
+  console.log('[VideoGen] STEP 23D - after');
+  if (VIDEOGEN_DEBUG_MICRO_STOP === '23D') return;
 }
 
 function setActiveTab(tab){
