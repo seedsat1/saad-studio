@@ -7,46 +7,40 @@
 </head>
 <body>
 
-<!-- CONNECT SCREEN OVERLAY -->
-<div class="login-screen" id="connectScreen" style="display:none!important">
-  <div class="login-card">
-    <div class="login-logo-row">
-      <div class="login-logo-icon">
-        <svg width="20" height="20" viewBox="0 0 22 22" fill="none">
-          <path d="M12.5 2L4 13h7l-1.5 7L18 9h-7l1.5-7z" fill="#fff" stroke="#fff" stroke-width=".5" stroke-linejoin="round"/>
-        </svg>
-      </div>
-      <span class="login-logo-text">Saad Studio</span>
+<div class="hdr">
+  <span class="hdr-logo-img">Saad Studio</span>
+  <div class="hdr-r">
+    <div class="hdr-credits">
+      <span class="cr-num">999</span><span class="cr-label">cr</span>
+      <div class="cr-bar"><div class="cr-fill" style="width:83%"></div></div>
     </div>
-    <h1 class="login-heading">Unlock the Power of<br>AI Generation</h1>
-    <p class="login-desc">Start generating with your Saad Studio account</p>
-    <div id="loginMain">
-      <button class="btn-login-primary" id="btnOpenSite" type="button">
-        Login with Saad Studio
-        <svg width="13" height="13" viewBox="0 0 13 13" fill="none" style="flex-shrink:0" aria-hidden="true">
-          <path d="M2.5 10.5l8-8M10.5 10.5V2.5H2.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
-      <a class="btn-login-secondary" href="#" id="linkCreateAccount">Create Account</a>
-      <div class="login-divider"><span>or connect with token</span></div>
-      <form id="connectForm" autocomplete="off" novalidate>
-        <div class="lf">
-          <input id="inputSiteUrl" type="text" autocomplete="off" spellcheck="false" placeholder="Website URL (e.g. https://www.saadstudio.app)">
-        </div>
-        <div class="lf">
-          <input id="inputToken" type="password" autocomplete="off" spellcheck="false" placeholder="Paste your connection token (ssp_…)">
-        </div>
-        <div class="login-err" id="connectError"></div>
-        <button class="btn-login-connect" id="btnConnect" type="submit">Connect →</button>
-      </form>
-      <p class="login-footer-note">Get your token at <a href="#" id="linkPanel">saadstudio.app/panel</a></p>
+    <div class="hdr-plan">Pro</div>
+    <div class="hdr-avatar">D</div>
+    <button class="ib" type="button">⚙</button>
+  </div>
+</div>
+
+<div class="sub-warn">
+  <span>⚠</span>
+  <span><strong>Shell Test</strong> - static UI only, no tool logic loaded.</span>
+</div>
+
+<div class="nav">
+  <button class="nt active" type="button">Assistant</button>
+  <button class="nt" type="button">Story Engine</button>
+  <button class="nt" type="button">Video Gen</button>
+  <button class="nt" type="button">Image Gen</button>
+</div>
+
+<main class="main vis" id="dashboard">
+  <div class="pn vis">
+    <div class="pn-scroll">
+      <div class="sec-t">Shell Smoke Test</div>
+      <div class="asst-intro">If this opens and stays stable, the static shell is safe and the crash is in the restored interactive logic.</div>
     </div>
-    <div id="loginWaiting" style="display:none">
-      <p class="lw-title">Waiting for browser…</p>
-      <p class="lw-sub">Complete sign-in in the browser window that just opened.</p>
-      <p class="lw-timer" id="lwTimer"></p>
-      <button class="btn-login-cancel" id="btnCancelLogin" type="button">✕ Cancel</button>
-      <div style="padding:20px;color:#fff;font-family:Arial,sans-serif">
-        <div id="uxpSmokeTest">EditPilot minimal smoke test</div>
-      </div>
+  </div>
+</main>
+
+</body>
+</html>
 
