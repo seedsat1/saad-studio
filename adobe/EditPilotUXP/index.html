@@ -238,8 +238,8 @@
 </div>
 
 <script>
-var VIDEOGEN_DEBUG_STOP_AFTER = 21;
-var VIDEOGEN_DEBUG_MICRO_STOP = null;
+var VIDEOGEN_DEBUG_STOP_AFTER = 999;
+var VIDEOGEN_DEBUG_MICRO_STOP = '21A';
 
 function renderVideoGen(){
   var host = document.getElementById('videogenRenderHost');
@@ -440,17 +440,33 @@ function renderVideoGen(){
   console.log('[VideoGen] STEP 20 - after');
   if (VIDEOGEN_DEBUG_STOP_AFTER === 20) return;
 
-  console.log('[VideoGen] STEP 21 - before');
+  console.log('[VideoGen] STEP 21A - before');
   assertUniqueId('vgAttach');
   var attach = document.createElement('button');
+  console.log('[VideoGen] STEP 21A - after');
+  if (VIDEOGEN_DEBUG_MICRO_STOP === '21A') return;
+
+  console.log('[VideoGen] STEP 21B - before');
   attach.className = 'cmp-icon-btn';
+  console.log('[VideoGen] STEP 21B - after');
+  if (VIDEOGEN_DEBUG_MICRO_STOP === '21B') return;
+
+  console.log('[VideoGen] STEP 21C - before');
   attach.id = 'vgAttach';
   attach.type = 'button';
   attach.title = 'Attach image for Image-to-Video';
+  console.log('[VideoGen] STEP 21C - after');
+  if (VIDEOGEN_DEBUG_MICRO_STOP === '21C') return;
+
+  console.log('[VideoGen] STEP 21D - before');
   attach.textContent = '📎';
+  console.log('[VideoGen] STEP 21D - after');
+  if (VIDEOGEN_DEBUG_MICRO_STOP === '21D') return;
+
+  console.log('[VideoGen] STEP 21E - before');
   barLeft.appendChild(attach);
-  console.log('[VideoGen] STEP 21 - after');
-  if (VIDEOGEN_DEBUG_STOP_AFTER === 21) return;
+  console.log('[VideoGen] STEP 21E - after');
+  if (VIDEOGEN_DEBUG_MICRO_STOP === '21E') return;
 
   console.log('[VideoGen] STEP 22A - before');
   var barRight = document.createElement('div');
