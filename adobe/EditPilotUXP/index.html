@@ -76,15 +76,99 @@
         </div>
       </div>
 
-      <div class="sec-t">Assistant</div>
-      <div class="asst-intro">Assistant shell restored. Interactive assistant logic remains disabled during crash isolation.</div>
+      <div class="dash-actions">
+        <button class="btn" id="btnRefreshCredits">↺ Refresh Credits</button>
+        <button class="btn" id="btnManageSub">⬆ Upgrade Plan</button>
+        <button class="btn btn-danger" id="btnDisconnect">Disconnect</button>
+      </div>
+
+      <div class="sec-t" style="margin-top:14px">💬 AI Assistant</div>
+      <div class="asst-intro">
+        Type a command to control the plugin. Try:
+        <span class="asst-hint">analyze</span>,
+        <span class="asst-hint">create selects</span>,
+        <span class="asst-hint">build rough cut</span>,
+        <span class="asst-hint">help</span>
+      </div>
+      <div class="asst-history" id="asstHistory" role="log" aria-live="polite"></div>
+    </div>
+    <div class="cinp">
+      <div class="cinp-r">
+        <input type="text" class="asst-input" id="asstInput" placeholder="Type a command…" maxlength="500" autocomplete="off" spellcheck="false"/>
+        <button class="snd" id="asstSend">▶</button>
+      </div>
     </div>
   </div>
 
   <div class="pn" data-panel="story" id="viewStory">
     <div class="pn-scroll">
-      <div class="sec-t">Story Engine</div>
-      <div class="asst-intro">Story Engine panel restored as a safe placeholder.</div>
+      <div class="sec-t">✂ Story Engine <span class="sec-badge">AI</span></div>
+      <div class="story-intro">
+        Paste your video transcript. AI will analyze and suggest edit sections.
+        <span class="story-cost">5 credits per analysis</span>
+      </div>
+      <div class="story-input-wrap">
+        <textarea id="storyTranscript" class="story-textarea"
+          placeholder="Paste transcript here&#10;&#10;Optional: include timestamps like [00:00:05] Speaker: text..."
+          spellcheck="false"></textarea>
+        <div class="story-char-count"><span id="storyCharCount">0</span> / 20,000</div>
+      </div>
+      <button class="btn-gen btn-full" id="btnAnalyze" style="margin-bottom:10px">
+        <span id="btnAnalyzeText">✨ Analyze Transcript</span>
+        <span class="spinner" id="analyzeSpinner" style="display:none"></span>
+        <span class="cost">5 cr</span>
+      </button>
+      <div class="story-err" id="storyError"></div>
+      <div id="storyResultsWrap" style="display:none">
+        <div class="story-results-hd">
+          <span>Edit Structure</span>
+          <span class="story-credits-used" id="storyCreditsBadge"></span>
+          <button class="story-clear-btn" id="btnStoryClear">✕ Clear</button>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+          <button class="btn-gen" style="flex:1;font-size:.65rem;padding:7px 12px" id="btnApplyAll">▶ Apply All to Timeline</button>
+          <span class="apply-feedback" id="applyAllFeedback"></span>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+          <button class="btn" id="btnCreateSelects">⊟ Create Selects Timeline</button>
+          <span class="apply-feedback" id="selectsFeedback"></span>
+        </div>
+        <div id="selectsReport" class="selects-report" style="display:none">
+          <div class="sr-header"><span class="sr-title" id="srTitle">Selects Report</span><button class="sr-close" id="srClose">✕</button></div>
+          <div class="sr-summary" id="srSummary"></div>
+          <div class="sr-rows" id="srRows"></div>
+        </div>
+        <div style="margin-bottom:8px">
+          <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px">
+            <label style="font-size:.58rem;color:var(--txm)">Gap
+              <select id="rcGap" style="margin-left:4px;background:var(--s2);border:1px solid var(--b1);color:var(--txh);border-radius:4px;padding:2px 4px;font-size:.58rem">
+                <option value="0">0s</option><option value="1">1s</option><option value="2">2s</option>
+              </select>
+            </label>
+            <label style="font-size:.58rem;color:var(--txm);display:flex;align-items:center;gap:3px">
+              <input type="checkbox" id="rcAddMarkers" checked style="accent-color:var(--ac)"> Markers
+            </label>
+            <label style="font-size:.58rem;color:var(--txm);display:flex;align-items:center;gap:3px">
+              <input type="checkbox" id="rcMarkerComments" checked style="accent-color:var(--ac)"> Comments
+            </label>
+          </div>
+          <button class="btn" id="btnCreateRoughCut">🎬 Create Rough Cut</button>
+          <span class="apply-feedback" id="roughCutFeedback"></span>
+        </div>
+        <div id="roughCutReport" class="selects-report" style="display:none">
+          <div class="sr-header"><span class="sr-title" id="rcTitle">Rough Cut Report</span><button class="sr-close" id="rcClose">✕</button></div>
+          <div class="sr-summary" id="rcSummary"></div>
+          <div class="sr-rows" id="rcRows"></div>
+        </div>
+        <div class="story-cards" id="storyCards"></div>
+        <div class="story-detail" id="storyDetail" style="display:none">
+          <div class="sd-title" id="sdTitle"></div>
+          <div class="sd-time" id="sdTime"></div>
+          <div class="sd-reason" id="sdReason"></div>
+          <button class="btn-gen btn-full" style="font-size:.65rem;padding:7px" id="btnApplyOne">▶ Apply to Timeline</button>
+          <div class="apply-feedback" id="applyOneFeedback"></div>
+        </div>
+      </div>
     </div>
   </div>
 
