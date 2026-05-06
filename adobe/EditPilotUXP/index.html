@@ -238,8 +238,8 @@
 </div>
 
 <script>
-var VIDEOGEN_DEBUG_STOP_AFTER = 20;
-var VIDEOGEN_DEBUG_MICRO_STOP = null;
+var VIDEOGEN_DEBUG_STOP_AFTER = 999;
+var VIDEOGEN_DEBUG_MICRO_STOP = '20A';
 
 function renderVideoGen(){
   var host = document.getElementById('videogenRenderHost');
@@ -433,12 +433,20 @@ function renderVideoGen(){
   console.log('[VideoGen] STEP 19 - after');
   if (VIDEOGEN_DEBUG_STOP_AFTER === 19) return;
 
-  console.log('[VideoGen] STEP 20 - before');
+  console.log('[VideoGen] STEP 20A - before');
   var barLeft = document.createElement('div');
+  console.log('[VideoGen] STEP 20A - after');
+  if (VIDEOGEN_DEBUG_MICRO_STOP === '20A') return;
+
+  console.log('[VideoGen] STEP 20B - before');
   barLeft.className = 'cmp-bar-l';
+  console.log('[VideoGen] STEP 20B - after');
+  if (VIDEOGEN_DEBUG_MICRO_STOP === '20B') return;
+
+  console.log('[VideoGen] STEP 20C - before');
   bar.appendChild(barLeft);
-  console.log('[VideoGen] STEP 20 - after');
-  if (VIDEOGEN_DEBUG_STOP_AFTER === 20) return;
+  console.log('[VideoGen] STEP 20C - after');
+  if (VIDEOGEN_DEBUG_MICRO_STOP === '20C') return;
 
   console.log('[VideoGen] STEP 21A1 - before');
   console.log('[VideoGen] STEP 21A1 - after');
