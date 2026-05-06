@@ -353,6 +353,125 @@ function renderTTS() {
 
 window._tabRenderers.tts = renderTTS;
 
+function createTimelineSelect(id, options) {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'field vg2-field';
+
+  const select = document.createElement('select');
+  select.className = 'sel-input vg2-select';
+  select.id = id;
+
+  options.forEach((optionConfig) => {
+    const option = document.createElement('option');
+    option.value = optionConfig.value;
+    option.textContent = optionConfig.label;
+    select.appendChild(option);
+  });
+
+  wrapper.appendChild(select);
+  return wrapper;
+}
+
+function wireTimeline(host) {
+  if (!host || host.dataset.wired === '1') return;
+  if (typeof window.__editpilotSetupTimeline !== 'function') return;
+
+  window.__editpilotSetupTimeline();
+  host.dataset.wired = '1';
+}
+
+function renderTimeline() {
+  const host = document.getElementById('timelineRenderHost');
+  if (!host) return;
+
+  if (host.dataset.rendered === '1') {
+    wireTimeline(host);
+    return;
+  }
+
+  host.textContent = '';
+
+  const root = document.createElement('div');
+  root.className = 'pn-scroll vg2-shell';
+  host.appendChild(root);
+
+  const introCard = document.createElement('div');
+  introCard.className = 'vg2-card';
+  root.appendChild(introCard);
+
+  const title = document.createElement('div');
+  title.className = 'sec-t';
+  title.textContent = 'Timeline AI';
+  introCard.appendChild(title);
+
+  const blurb = document.createElement('div');
+  blurb.className = 'asst-intro';
+  blurb.textContent = 'Analyze speech zones, scenes, pacing, or social moments and prepare guidance for the timeline.';
+  introCard.appendChild(blurb);
+
+  const history = document.createElement('div');
+  history.className = 'gen-hist vg2-history';
+  history.id = 'tlHistory';
+  root.appendChild(history);
+
+  const empty = document.createElement('div');
+  empty.className = 'gen-empty';
+  empty.id = 'tlEmpty';
+  empty.textContent = 'Describe your edit goal and click Analyze';
+  history.appendChild(empty);
+
+  const composer = document.createElement('div');
+  composer.className = 'vg2-card vg2-composer';
+  root.appendChild(composer);
+
+  const controls = document.createElement('div');
+  controls.className = 'vg2-grid';
+  controls.appendChild(createTimelineSelect('tlMode', [
+    { value: 'speech', label: 'Speech Zones' },
+    { value: 'scenes', label: 'Scene Analysis' },
+    { value: 'pacing', label: 'Pacing and Cuts' },
+    { value: 'social', label: 'Social Clips' }
+  ]));
+  composer.appendChild(controls);
+
+  const promptWrap = document.createElement('div');
+  promptWrap.className = 'prompt vg2-prompt';
+  composer.appendChild(promptWrap);
+
+  const prompt = document.createElement('textarea');
+  prompt.id = 'tlPrompt';
+  prompt.placeholder = 'Describe your edit goal or paste a transcript...';
+  promptWrap.appendChild(prompt);
+
+  const actions = document.createElement('div');
+  actions.className = 'vg2-actions';
+  composer.appendChild(actions);
+
+  const applyBtn = document.createElement('button');
+  applyBtn.className = 'btn';
+  applyBtn.id = 'tlApplyAll';
+  applyBtn.type = 'button';
+  applyBtn.textContent = 'Apply Suggestions';
+  actions.appendChild(applyBtn);
+
+  const note = document.createElement('div');
+  note.className = 'vg2-note';
+  note.textContent = '2 cr';
+  actions.appendChild(note);
+
+  const sendBtn = document.createElement('button');
+  sendBtn.className = 'btn-gen';
+  sendBtn.id = 'tlSend';
+  sendBtn.type = 'button';
+  sendBtn.textContent = 'Analyze Timeline';
+  actions.appendChild(sendBtn);
+
+  host.dataset.rendered = '1';
+  wireTimeline(host);
+}
+
+window._tabRenderers.timeline = renderTimeline;
+
 async function init() {
   try {
     // DEV: skip login — remove this block to re-enable real login
@@ -1572,6 +1691,8 @@ Mode requested: ${mode}. Be concise. Return valid JSON only.`;
     setActiveTab('chat');
   });
 }
+
+window.__editpilotSetupTimeline = setupTimeline;
 
 // ─────────────────────────────────────────────────────────────
 // COLOR (uses chat API for AI grading advice)
