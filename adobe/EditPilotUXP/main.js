@@ -222,6 +222,137 @@ function renderImageGen() {
 window._tabRenderers = window._tabRenderers || {};
 window._tabRenderers.imagegen = renderImageGen;
 
+function createTtsSelect(id, options) {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'field vg2-field';
+
+  const select = document.createElement('select');
+  select.className = 'sel-input vg2-select';
+  select.id = id;
+
+  options.forEach((optionConfig) => {
+    const option = document.createElement('option');
+    option.value = optionConfig.value;
+    option.textContent = optionConfig.label;
+    select.appendChild(option);
+  });
+
+  wrapper.appendChild(select);
+  return wrapper;
+}
+
+function wireTTS(host) {
+  if (!host || host.dataset.wired === '1') return;
+  if (typeof window.__editpilotSetupTTS !== 'function') return;
+
+  window.__editpilotSetupTTS();
+  host.dataset.wired = '1';
+}
+
+function renderTTS() {
+  const host = document.getElementById('ttsRenderHost');
+  if (!host) return;
+
+  if (host.dataset.rendered === '1') {
+    wireTTS(host);
+    return;
+  }
+
+  host.textContent = '';
+
+  const root = document.createElement('div');
+  root.className = 'pn-scroll vg2-shell';
+  host.appendChild(root);
+
+  const introCard = document.createElement('div');
+  introCard.className = 'vg2-card';
+  root.appendChild(introCard);
+
+  const title = document.createElement('div');
+  title.className = 'sec-t';
+  title.textContent = 'TTS';
+  introCard.appendChild(title);
+
+  const blurb = document.createElement('div');
+  blurb.className = 'asst-intro';
+  blurb.textContent = 'Generate voiceover in Saad Studio style with selectable voice and playback speed.';
+  introCard.appendChild(blurb);
+
+  const history = document.createElement('div');
+  history.className = 'gen-hist vg2-history';
+  history.id = 'ttsHistory';
+  root.appendChild(history);
+
+  const empty = document.createElement('div');
+  empty.className = 'gen-empty';
+  empty.id = 'ttsEmpty';
+  empty.textContent = 'Select a voice and type text to generate';
+  history.appendChild(empty);
+
+  const composer = document.createElement('div');
+  composer.className = 'vg2-card vg2-composer';
+  root.appendChild(composer);
+
+  const controls = document.createElement('div');
+  controls.className = 'vg2-grid';
+  controls.appendChild(createTtsSelect('ttsVoice', [
+    { value: 'alloy', label: 'Alloy' },
+    { value: 'rachel', label: 'Rachel' },
+    { value: 'echo', label: 'Echo' },
+    { value: 'aria', label: 'Aria' }
+  ]));
+  controls.appendChild(createTtsSelect('ttsSpeed', [
+    { value: '1', label: '1x' },
+    { value: '1.25', label: '1.25x' },
+    { value: '1.5', label: '1.5x' }
+  ]));
+  controls.appendChild(createTtsSelect('ttsLang', [
+    { value: 'en', label: 'English' },
+    { value: 'ar', label: 'Arabic' },
+    { value: 'fr', label: 'French' },
+    { value: 'es', label: 'Spanish' },
+    { value: 'de', label: 'German' },
+    { value: 'auto', label: 'Auto Detect' }
+  ]));
+  composer.appendChild(controls);
+
+  const promptWrap = document.createElement('div');
+  promptWrap.className = 'prompt vg2-prompt';
+  composer.appendChild(promptWrap);
+
+  const prompt = document.createElement('textarea');
+  prompt.id = 'ttsPrompt';
+  prompt.placeholder = 'Type text to convert to voice...';
+  promptWrap.appendChild(prompt);
+
+  const actions = document.createElement('div');
+  actions.className = 'vg2-actions';
+  composer.appendChild(actions);
+
+  const charCount = document.createElement('div');
+  charCount.className = 'vg2-note';
+  charCount.id = 'ttsCharCount';
+  charCount.textContent = '0 chars';
+  actions.appendChild(charCount);
+
+  const cost = document.createElement('div');
+  cost.className = 'vg2-note';
+  cost.textContent = '3 cr';
+  actions.appendChild(cost);
+
+  const sendBtn = document.createElement('button');
+  sendBtn.className = 'btn-gen';
+  sendBtn.id = 'ttsSend';
+  sendBtn.type = 'button';
+  sendBtn.textContent = 'Generate Voice';
+  actions.appendChild(sendBtn);
+
+  host.dataset.rendered = '1';
+  wireTTS(host);
+}
+
+window._tabRenderers.tts = renderTTS;
+
 async function init() {
   try {
     // DEV: skip login — remove this block to re-enable real login
@@ -1210,6 +1341,8 @@ function setupTTS() {
     }
   });
 }
+
+window.__editpilotSetupTTS = setupTTS;
 
 // ─────────────────────────────────────────────────────────────
 // B-ROLL (uses Video Gen API)
