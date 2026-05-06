@@ -7,6 +7,15 @@
 </head>
 <body>
 
+<div class="login-screen" id="connectScreen" style="display:none!important">
+  <div id="loginMain"></div>
+  <div id="loginWaiting" style="display:none">
+    <div id="lwTimer"></div>
+  </div>
+  <div id="connectError"></div>
+  <button id="btnConnect" type="button">Connect</button>
+</div>
+
 <div class="hdr">
   <span class="hdr-logo-img">Saad Studio</span>
   <div class="hdr-r">
@@ -41,6 +50,32 @@
 <main class="main vis" id="dashboard">
   <div class="pn vis" data-panel="chat" id="viewAssistant">
     <div class="pn-scroll">
+      <div class="user-strip">
+        <div class="user-strip-av" id="stripAvatar">D</div>
+        <div class="user-strip-info">
+          <div class="user-strip-name" id="stripName">Dev</div>
+          <div class="user-strip-email" id="stripEmail">dev@saadstudio.app</div>
+        </div>
+        <div class="user-strip-r">
+          <span class="strip-plan-badge" id="stripPlan">Pro</span>
+        </div>
+      </div>
+
+      <div class="credits-card">
+        <div class="credits-top">
+          <div>
+            <div class="credits-label">Credit Balance</div>
+            <div class="credits-val" id="dashCreditsVal">999<span>cr</span></div>
+          </div>
+          <div class="credits-plan" id="dashPlanBadge">Pro</div>
+        </div>
+        <div class="credits-bar-wrap">
+          <div class="credits-bar-bg">
+            <div class="credits-bar-fill" id="dashCreditsBar" style="width:83%"></div>
+          </div>
+        </div>
+      </div>
+
       <div class="sec-t">Assistant</div>
       <div class="asst-intro">Assistant shell restored. Interactive assistant logic remains disabled during crash isolation.</div>
     </div>
@@ -156,6 +191,15 @@ document.addEventListener('DOMContentLoaded', function(){
   }
 
   setActiveTab('chat');
+});
+</script>
+
+<script type="module">
+import('./main.js').catch(function(err){
+  var debugBanner = document.createElement('div');
+  debugBanner.style.cssText = 'position:absolute;top:0;left:0;right:0;background:rgba(180,0,0,.9);color:#fff;padding:6px 10px;font-size:11px;z-index:9999;word-break:break-all;white-space:pre-wrap';
+  debugBanner.textContent = 'main.js error: ' + (err && err.message || String(err));
+  document.body && document.body.appendChild(debugBanner);
 });
 </script>
 
