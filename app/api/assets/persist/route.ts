@@ -26,9 +26,39 @@ export async function POST(req: NextRequest) {
     const body = await req.json().catch(() => null);
     const generationId: string | undefined = body?.generationId;
     const mediaUrl: string | undefined = body?.mediaUrl;
+    const fallbackAssetType: string = typeof body?.assetType === "string" ? body.assetType : "video";
 
     if (!generationId || typeof generationId !== "string") {
-      return NextResponse.json({ error: "generationId is required" }, { status: 400 });
+      if (!mediaUrl || typeof mediaUrl !== "string" || mediaUrl.startsWith("task:")) {
+        return NextResponse.json({ error: "generationId or mediaUrl is required" }, { status: 400 });
+      }
+
+      const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+      if (supabaseUrl && mediaUrl.includes(supabaseUrl)) {
+        return NextResponse.json({ persisted: true, url: mediaUrl, skipped: true });
+      }
+
+      if (!isStorageConfigured()) {
+        return NextResponse.json({
+          persisted: false,
+          url: mediaUrl,
+          reason: "Storage not configured",
+        });
+      }
+
+      const permanentUrl = await uploadUrlToStorage({
+        remoteUrl: mediaUrl,
+        userId,
+        assetType: fallbackAssetType,
+        generationId: `persisted-${crypto.randomUUID()}`,
+      });
+
+      return NextResponse.json({
+        persisted: Boolean(permanentUrl),
+        url: permanentUrl || mediaUrl,
+        skipped: !permanentUrl,
+        reason: permanentUrl ? undefined : "Upload to storage failed - original URL kept",
+      });
     }
 
     // Verify this generation belongs to the authenticated user

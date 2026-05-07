@@ -206,7 +206,7 @@ export default function AppToolRuntimePage({
             const persistRes = await fetch("/api/assets/persist", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ mediaUrl: videoUrl }),
+              body: JSON.stringify({ mediaUrl: videoUrl, assetType: "video" }),
             });
             if (persistRes.ok) {
               const persistJson = await persistRes.json();
@@ -223,7 +223,7 @@ export default function AppToolRuntimePage({
             const persistRes = await fetch("/api/assets/persist", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ mediaUrl: url }),
+              body: JSON.stringify({ mediaUrl: url, assetType: action }),
             });
             if (persistRes.ok) {
               const persistJson = await persistRes.json();

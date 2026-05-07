@@ -779,7 +779,7 @@ function VideoPageInner() {
               const persistRes = await fetch("/api/assets/persist", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ mediaUrl: videoUrl }),
+                body: JSON.stringify({ mediaUrl: videoUrl, assetType: "video" }),
               });
               if (persistRes.ok) {
                 const persistJson = await persistRes.json();

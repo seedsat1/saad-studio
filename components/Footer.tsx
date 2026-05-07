@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import type { ReactNode } from "react";
 import { Instagram, Youtube, Github, Linkedin, MessageCircle, Mail } from "lucide-react";
 import { useCmsData } from "@/lib/use-cms-data";
 
@@ -48,6 +49,35 @@ const STUDIO_LINKS = [
   { label: "Privacy Policy", href: "/privacy" },
   { label: "Site Policy", href: "/terms" },
 ];
+
+function FooterAnchor({
+  href,
+  children,
+  className,
+  ariaLabel,
+}: {
+  href: string;
+  children: ReactNode;
+  className?: string;
+  ariaLabel?: string;
+}) {
+  const isExternal = /^https?:\/\//i.test(href);
+  const isHash = href === "#" || href.startsWith("#");
+
+  if (isExternal || isHash) {
+    return (
+      <a href={href} aria-label={ariaLabel} className={className} target={isExternal ? "_blank" : undefined} rel={isExternal ? "noopener noreferrer" : undefined}>
+        {children}
+      </a>
+    );
+  }
+
+  return (
+    <Link href={href} prefetch={false} aria-label={ariaLabel} className={className}>
+      {children}
+    </Link>
+  );
+}
 
 const Footer = () => {
   const year = new Date().getFullYear();
@@ -105,14 +135,14 @@ const Footer = () => {
 
             <div className="flex items-center gap-2 pt-1">
               {socials.map((s) => (
-                <Link
+                <FooterAnchor
                   key={s.label}
                   href={s.href}
-                  aria-label={s.label}
+                  ariaLabel={s.label}
                   className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-slate-400 transition-colors hover:border-cyan-400/40 hover:text-cyan-300"
                 >
                   <s.icon className="h-4 w-4" />
-                </Link>
+                </FooterAnchor>
               ))}
             </div>
           </div>
@@ -123,9 +153,9 @@ const Footer = () => {
               <ul className="mt-4 space-y-2.5">
                 {section.links.map((item) => (
                   <li key={item._id || item.href}>
-                    <Link href={item.href} className="text-sm text-slate-400 hover:text-white transition-colors">
+                    <FooterAnchor href={item.href} className="text-sm text-slate-400 hover:text-white transition-colors">
                       {item.label}
-                    </Link>
+                    </FooterAnchor>
                   </li>
                 ))}
               </ul>
