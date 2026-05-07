@@ -1,11 +1,12 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { ReactNode, useEffect, useRef, useState } from "react"
 import { motion } from "framer-motion"
 
 export interface Frame {
-  id: number
+  id: number | string
   video: string
+  mediaType?: "image" | "video"
   defaultPos: { x: number; y: number; w: number; h: number }
   corner?: string
   edgeHorizontal?: string
@@ -18,6 +19,7 @@ export interface Frame {
 
 interface FrameComponentProps {
   video: string
+  mediaType?: "image" | "video"
   width: number | string
   height: number | string
   className?: string
@@ -33,6 +35,7 @@ interface FrameComponentProps {
 
 function FrameComponent({
   video,
+  mediaType = "video",
   width,
   height,
   className = "",
@@ -85,15 +88,20 @@ function FrameComponent({
               transition: "transform 0.3s ease-in-out",
             }}
           >
-            <video
-              className="h-full w-full object-cover"
-              src={video}
-              loop
-              muted
-              playsInline
-              preload="metadata"
-              ref={videoRef}
-            />
+            {mediaType === "image" ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img className="h-full w-full object-cover" src={video} alt="" />
+            ) : (
+              <video
+                className="h-full w-full object-cover"
+                src={video}
+                loop
+                muted
+                playsInline
+                preload="metadata"
+                ref={videoRef}
+              />
+            )}
           </div>
         </div>
 
@@ -163,6 +171,7 @@ interface DynamicFrameLayoutProps {
   showFrames?: boolean
   hoverSize?: number
   gapSize?: number
+  renderOverlay?: (frame: Frame, isHovered: boolean) => ReactNode
 }
 
 export function DynamicFrameLayout({
@@ -171,6 +180,7 @@ export function DynamicFrameLayout({
   showFrames = false,
   hoverSize = 6,
   gapSize = 4,
+  renderOverlay,
 }: DynamicFrameLayoutProps) {
   const [frames] = useState<Frame[]>(initialFrames)
   const [hovered, setHovered] = useState<{ row: number; col: number } | null>(null)
@@ -214,7 +224,7 @@ export function DynamicFrameLayout({
         return (
           <motion.div
             key={frame.id}
-            className="relative overflow-hidden rounded-xl bg-slate-950"
+            className="group relative overflow-hidden rounded-xl bg-slate-950"
             style={{
               transformOrigin,
               transition: "transform 0.4s ease",
@@ -224,6 +234,7 @@ export function DynamicFrameLayout({
           >
             <FrameComponent
               video={frame.video}
+              mediaType={frame.mediaType}
               width="100%"
               height="100%"
               className="absolute inset-0"
@@ -236,6 +247,7 @@ export function DynamicFrameLayout({
               showFrame={showFrames}
               isHovered={hovered?.row === row && hovered?.col === col}
             />
+            {renderOverlay?.(frame, hovered?.row === row && hovered?.col === col)}
           </motion.div>
         )
       })}

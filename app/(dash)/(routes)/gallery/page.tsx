@@ -44,18 +44,6 @@ const TYPE_BADGE: Record<AssetType, string> = {
   text: "bg-violet-500/20 text-violet-200 border-violet-500/40",
 };
 
-const GALLERY_FALLBACK_VIDEOS = [
-  "https://static.cdn-luma.com/files/981e483f71aa764b/Company%20Thing%20Exported.mp4",
-  "https://static.cdn-luma.com/files/58ab7363888153e3/WebGL%20Exported%20(1).mp4",
-  "https://static.cdn-luma.com/files/58ab7363888153e3/Jitter%20Exported%20Poster.mp4",
-  "https://static.cdn-luma.com/files/58ab7363888153e3/Exported%20Web%20Video.mp4",
-  "https://static.cdn-luma.com/files/58ab7363888153e3/Logo%20Exported.mp4",
-  "https://static.cdn-luma.com/files/58ab7363888153e3/Animation%20Exported%20(4).mp4",
-  "https://static.cdn-luma.com/files/58ab7363888153e3/Illustration%20Exported%20(1).mp4",
-  "https://static.cdn-luma.com/files/58ab7363888153e3/Art%20Direction%20Exported.mp4",
-  "https://static.cdn-luma.com/files/58ab7363888153e3/Product%20Video.mp4",
-];
-
 const FRAME_POSITIONS = [
   { x: 0, y: 0, w: 4, h: 4 },
   { x: 4, y: 0, w: 4, h: 4 },
@@ -67,6 +55,12 @@ const FRAME_POSITIONS = [
   { x: 4, y: 8, w: 4, h: 4 },
   { x: 8, y: 8, w: 4, h: 4 },
 ];
+
+function chunkAssets<T>(items: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let i = 0; i < items.length; i += size) chunks.push(items.slice(i, i + size));
+  return chunks;
+}
 
 // ── Albums (client-side, persisted in localStorage) ────────────────────────────────────────────────────────────
 const ALBUMS_STORAGE_KEY = "saad_studio_gallery_albums_v1";
@@ -168,22 +162,34 @@ export default function GalleryPage() {
     return counts[activeFilter];
   }, [activeFilter, counts]);
 
-  const galleryFrames = useMemo<Frame[]>(() => {
-    const videoUrls = visibleAssets
-      .filter((asset) => asset.type === "video" && typeof asset.url === "string" && asset.url.trim())
-      .map((asset) => asset.url as string);
-    const sourceVideos = videoUrls.length > 0 ? videoUrls : GALLERY_FALLBACK_VIDEOS;
+  const visualAssets = useMemo(
+    () => visibleAssets.filter((asset) => (asset.type === "image" || asset.type === "video") && typeof asset.url === "string" && asset.url.trim()),
+    [visibleAssets],
+  );
 
-    return FRAME_POSITIONS.map((pos, index) => ({
-      id: index + 1,
-      video: sourceVideos[index % sourceVideos.length],
-      defaultPos: pos,
-      mediaSize: 1,
-      borderThickness: 0,
-      borderSize: 100,
-      isHovered: false,
-    }));
-  }, [visibleAssets]);
+  const nonVisualAssets = useMemo(
+    () => visibleAssets.filter((asset) => !visualAssets.some((visual) => visual.id === asset.id)),
+    [visibleAssets, visualAssets],
+  );
+
+  const galleryFrameGroups = useMemo(() => {
+    return chunkAssets(visualAssets, 9).map((group) =>
+      group.map((asset, index): Frame => ({
+        id: asset.id,
+        video: asset.url!,
+        mediaType: asset.type === "image" ? "image" : "video",
+        defaultPos: FRAME_POSITIONS[index],
+        mediaSize: 1,
+        borderThickness: 0,
+        borderSize: 100,
+        isHovered: false,
+      })),
+    );
+  }, [visualAssets]);
+
+  const visualAssetById = useMemo(() => {
+    return new Map(visualAssets.map((asset) => [asset.id, asset]));
+  }, [visualAssets]);
 
   const onDelete = useCallback(async (id: string) => {
     try {
@@ -435,50 +441,9 @@ export default function GalleryPage() {
         </div>
       )}
       <div className="max-w-screen-2xl mx-auto space-y-6">
-        <section className="overflow-hidden rounded-3xl border border-white/10 bg-slate-950/80 shadow-2xl shadow-black/30">
-          <div className="grid gap-0 lg:grid-cols-[minmax(0,0.92fr)_minmax(520px,1.5fr)]">
-            <div className="flex min-h-[360px] flex-col justify-between border-b border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(139,92,246,0.18),transparent_35%),linear-gradient(135deg,rgba(15,23,42,0.95),rgba(2,6,23,0.98))] p-6 sm:p-8 lg:border-b-0 lg:border-r">
-              <div>
-                <div className="inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-200">
-                  <Sparkles className="h-3.5 w-3.5" />
-                  Creative Vault
-                </div>
-                <h1 className="mt-6 text-3xl font-extrabold leading-tight text-white sm:text-4xl">
-                  My Creative Vault
-                </h1>
-                <p className="mt-3 max-w-md text-sm leading-6 text-slate-400">
-                  Hover over any frame to expand your latest motion work. When your gallery has videos, this wall uses your saved assets automatically.
-                </p>
-              </div>
-              <div className="mt-8 grid grid-cols-3 gap-3">
-                <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-                  <p className="text-2xl font-black text-cyan-300">{counts.all}</p>
-                  <p className="mt-1 text-[11px] uppercase tracking-wide text-slate-500">Assets</p>
-                </div>
-                <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-                  <p className="text-2xl font-black text-pink-300">{counts.image}</p>
-                  <p className="mt-1 text-[11px] uppercase tracking-wide text-slate-500">Images</p>
-                </div>
-                <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-                  <p className="text-2xl font-black text-emerald-300">{counts.video}</p>
-                  <p className="mt-1 text-[11px] uppercase tracking-wide text-slate-500">Videos</p>
-                </div>
-              </div>
-            </div>
-            <div className="h-[360px] bg-black p-2 sm:h-[460px] lg:h-[560px]">
-              <DynamicFrameLayout
-                frames={galleryFrames}
-                className="h-full w-full"
-                hoverSize={6}
-                gapSize={4}
-              />
-            </div>
-          </div>
-        </section>
-
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-extrabold">Library</h2>
+            <h1 className="text-3xl font-extrabold">My Creative Vault</h1>
             <p className="text-slate-400 text-sm mt-1">{titleCount} real assets from database</p>
           </div>
           <button
@@ -600,8 +565,93 @@ export default function GalleryPage() {
             {activeAlbumId ? "This album is empty." : "No assets found for this filter."}
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {visibleAssets.map((asset) => {
+          <div className="space-y-4">
+            {galleryFrameGroups.length > 0 && (
+              <div className="space-y-4">
+                {galleryFrameGroups.map((frames, groupIndex) => (
+                  <div key={groupIndex} className="h-[520px] overflow-hidden rounded-3xl border border-white/10 bg-black p-2 shadow-2xl shadow-black/30">
+                    <DynamicFrameLayout
+                      frames={frames}
+                      className="h-full w-full"
+                      hoverSize={6}
+                      gapSize={4}
+                      renderOverlay={(frame, isHovered) => {
+                        const asset = visualAssetById.get(String(frame.id));
+                        if (!asset) return null;
+                        const isSelected = selectedIds.has(asset.id);
+                        const handleTileClick = () => {
+                          if (selectionMode) toggleSelected(asset.id);
+                          else if (asset.type === "image" && asset.url) openLightbox(asset);
+                        };
+                        return (
+                          <div className="absolute inset-0 z-10">
+                            <button
+                              className={cn("absolute inset-0", selectionMode || asset.type === "image" ? "cursor-pointer" : "cursor-default")}
+                              onClick={handleTileClick}
+                              aria-label={selectionMode ? "Toggle selection" : "Open asset"}
+                            />
+                            <button
+                              onClick={(e) => { e.stopPropagation(); toggleSelected(asset.id); if (!selectionMode) setSelectionMode(true); }}
+                              className={cn(
+                                "absolute left-3 top-3 z-30 inline-flex h-7 w-7 items-center justify-center rounded-md border backdrop-blur transition",
+                                isSelected
+                                  ? "bg-pink-500 border-pink-400 text-white opacity-100"
+                                  : "bg-black/55 border-white/30 text-white/80 opacity-0 group-hover:opacity-100",
+                                (selectionMode || isHovered) && "opacity-100",
+                              )}
+                              aria-label={isSelected ? "Unselect" : "Select"}
+                              title={isSelected ? "Unselect" : "Select"}
+                            >
+                              {isSelected ? <Check className="h-4 w-4" /> : <Square className="h-3.5 w-3.5" />}
+                            </button>
+                            <div className={cn("absolute right-3 top-3 z-20 px-2 py-1 rounded-full border text-[11px] font-semibold", TYPE_BADGE[asset.type])}>
+                              {asset.type.toUpperCase()}
+                            </div>
+                            <div className="absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-black/85 via-black/45 to-transparent p-3 opacity-100 transition-opacity">
+                              <p className="line-clamp-1 text-xs font-medium text-white">{asset.prompt || "No prompt"}</p>
+                              <div className="mt-2 flex items-center gap-2">
+                                {asset.url ? (
+                                  <a
+                                    href={asset.url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="inline-flex items-center gap-1 rounded-lg border border-white/15 bg-white/10 px-2 py-1 text-[11px] text-slate-100 hover:bg-white/20"
+                                  >
+                                    <Download className="h-3 w-3" />
+                                    Open
+                                  </a>
+                                ) : null}
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); void onDelete(asset.id); }}
+                                  className="inline-flex items-center gap-1 rounded-lg border border-red-500/30 bg-red-500/15 px-2 py-1 text-[11px] text-red-100 hover:bg-red-500/25"
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                  Delete
+                                </button>
+                                {activeAlbumId && (
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); removeAssetFromAlbum(activeAlbumId, asset.id); }}
+                                    className="inline-flex items-center gap-1 rounded-lg border border-amber-500/30 bg-amber-500/15 px-2 py-1 text-[11px] text-amber-100 hover:bg-amber-500/25"
+                                  >
+                                    <X className="h-3 w-3" />
+                                    Remove
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {nonVisualAssets.length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {nonVisualAssets.map((asset) => {
               const isSelected = selectedIds.has(asset.id);
               const handleTileClick = () => {
                 if (selectionMode) toggleSelected(asset.id);
@@ -712,6 +762,8 @@ export default function GalleryPage() {
               </div>
               );
             })}
+              </div>
+            )}
           </div>
         )}
       </div>
