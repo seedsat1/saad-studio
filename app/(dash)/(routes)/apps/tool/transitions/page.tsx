@@ -143,13 +143,37 @@ function detectMediaType(file: File): InputType {
   return file.type.startsWith("video/") ? "video" : "image";
 }
 
-function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
+function dataUrlToFile(dataUrl: string, fileName: string): File {
+  const [header, base64] = dataUrl.split(",");
+  const mime = header.match(/^data:([^;]+);base64$/)?.[1] || "image/jpeg";
+  const binary = atob(base64 || "");
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new File([bytes], fileName, { type: mime });
+}
+
+async function uploadTransitionAsset(file: File, assetType: "image" | "video" | "thumbnail"): Promise<string> {
+  const urlRes = await fetch("/api/studio/upload-url", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      fileName: file.name,
+      contentType: file.type || "application/octet-stream",
+      assetType,
+    }),
   });
+  const urlData = await urlRes.json().catch(() => null);
+  if (!urlRes.ok || !urlData?.signedUrl || !urlData?.publicUrl) {
+    throw new Error(urlData?.error || "Failed to create upload URL.");
+  }
+
+  const uploadRes = await fetch(urlData.signedUrl, {
+    method: "PUT",
+    headers: { "Content-Type": file.type || "application/octet-stream" },
+    body: file,
+  });
+  if (!uploadRes.ok) throw new Error("Failed to upload transition asset.");
+  return String(urlData.publicUrl);
 }
 
 function extractVideoFrame(videoSrc: string, position: "first" | "last"): Promise<string> {
@@ -1043,31 +1067,63 @@ export default function TransitionsStudioPage() {
   // ── Input handlers ─────────────────────────────────────────────────────────
 
   const handleFileA = async (file: File) => {
-    const base64 = await fileToBase64(file);
-    const type = detectMediaType(file);
-    setInputAType(type);
-    setInputAUrl(base64);
-    if (type === "video") {
-      const frame = await extractVideoFrame(base64, "first").catch(() => null);
-      setInputAFrameUrl(frame);
-    } else {
-      setInputAFrameUrl(null);
+    setGenStatus("validating");
+    setGenError(null);
+    try {
+      const type = detectMediaType(file);
+      const previewUrl = URL.createObjectURL(file);
+      const uploadedUrl = await uploadTransitionAsset(file, type);
+      setInputAType(type);
+      setInputAUrl(uploadedUrl);
+      if (type === "video") {
+        const frame = await extractVideoFrame(previewUrl, "first").catch(() => null);
+        if (frame) {
+          const frameFile = dataUrlToFile(frame, `${file.name || "input-a"}-first-frame.jpg`);
+          const frameUrl = await uploadTransitionAsset(frameFile, "thumbnail");
+          setInputAFrameUrl(frameUrl);
+        } else {
+          setInputAFrameUrl(null);
+        }
+      } else {
+        setInputAFrameUrl(null);
+      }
+      URL.revokeObjectURL(previewUrl);
+      markDirty();
+      setGenStatus("idle");
+    } catch (err) {
+      setGenStatus("failed");
+      setGenError(getSafeErrorMessage(err));
     }
-    markDirty();
   };
 
   const handleFileB = async (file: File) => {
-    const base64 = await fileToBase64(file);
-    const type = detectMediaType(file);
-    setInputBType(type);
-    setInputBUrl(base64);
-    if (type === "video") {
-      const frame = await extractVideoFrame(base64, "last").catch(() => null);
-      setInputBFrameUrl(frame);
-    } else {
-      setInputBFrameUrl(null);
+    setGenStatus("validating");
+    setGenError(null);
+    try {
+      const type = detectMediaType(file);
+      const previewUrl = URL.createObjectURL(file);
+      const uploadedUrl = await uploadTransitionAsset(file, type);
+      setInputBType(type);
+      setInputBUrl(uploadedUrl);
+      if (type === "video") {
+        const frame = await extractVideoFrame(previewUrl, "last").catch(() => null);
+        if (frame) {
+          const frameFile = dataUrlToFile(frame, `${file.name || "input-b"}-last-frame.jpg`);
+          const frameUrl = await uploadTransitionAsset(frameFile, "thumbnail");
+          setInputBFrameUrl(frameUrl);
+        } else {
+          setInputBFrameUrl(null);
+        }
+      } else {
+        setInputBFrameUrl(null);
+      }
+      URL.revokeObjectURL(previewUrl);
+      markDirty();
+      setGenStatus("idle");
+    } catch (err) {
+      setGenStatus("failed");
+      setGenError(getSafeErrorMessage(err));
     }
-    markDirty();
   };
 
   // ── Generate ──────────────────────────────────────────────────────────────
