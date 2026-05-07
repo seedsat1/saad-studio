@@ -97,10 +97,8 @@ const getToolCardVideo = (card: ToolCard) => {
   return TOOL_CARD_VIDEOS[card.id] || TOOL_CARD_VIDEOS.default;
 };
 
-const isDefaultToolImage = (url?: string) => Boolean(url?.startsWith("/landing/tool-"));
-
 const getToolCardMedia = (card: ToolCard) => {
-  if (card.image && !isDefaultToolImage(card.image)) return card.image;
+  if (card.image) return card.image;
   return getToolCardVideo(card);
 };
 
