@@ -330,6 +330,80 @@ function ChipSelect({
 
 // ─── Input Slot ───────────────────────────────────────────────────────────────
 
+function CompactSelect({
+  value,
+  options,
+  onChange,
+  suffix = "",
+  minWidth = 70,
+}: {
+  value: string;
+  options: string[];
+  onChange: (v: string) => void;
+  suffix?: string;
+  minWidth?: number;
+}) {
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (event: PointerEvent) => {
+      if (!menuRef.current?.contains(event.target as Node)) setOpen(false);
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, [open]);
+
+  return (
+    <div ref={menuRef} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-semibold text-slate-400 hover:text-slate-200 transition-colors"
+        style={{ border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.03)" }}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+      >
+        {value}{suffix}
+        <ChevronDown className={cn("h-2.5 w-2.5 transition-transform", open && "rotate-180")} />
+      </button>
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.12 }}
+            className="absolute top-full mt-1 right-0 rounded-lg py-1 z-50 shadow-xl"
+            style={{ background: "#0d1321", border: "1px solid rgba(255,255,255,0.08)", minWidth }}
+            role="listbox"
+          >
+            {options.map((opt) => (
+              <button
+                key={opt}
+                type="button"
+                onClick={() => {
+                  onChange(opt);
+                  setOpen(false);
+                }}
+                className={cn(
+                  "w-full text-left px-3 py-1.5 text-[10px] font-semibold transition-colors",
+                  opt === value ? "text-violet-400" : "text-slate-400 hover:text-white"
+                )}
+                role="option"
+                aria-selected={opt === value}
+              >
+                {opt}{suffix}
+              </button>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 function InputSlot({
   label,
   slot,
@@ -1202,46 +1276,27 @@ export default function TransitionsStudioPage() {
         <StatusBadge status={genStatus} />
 
         {/* Aspect ratio picker */}
-        <div className="relative group">
-          <button
-            className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-semibold text-slate-400 hover:text-slate-200 transition-colors"
-            style={{ border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.03)" }}
-          >
-            {aspectRatio}
-            <ChevronDown className="h-2.5 w-2.5" />
-          </button>
-          <div
-            className="absolute top-full mt-1 right-0 rounded-lg py-1 z-30 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity"
-            style={{ background: "#0d1321", border: "1px solid rgba(255,255,255,0.08)", minWidth: 70 }}
-          >
-            {ASPECT_RATIOS.map((ar) => (
-              <button key={ar} onClick={() => { setAspectRatio(ar); markDirty(); }} className={cn("w-full text-left px-3 py-1 text-[10px] font-semibold transition-colors", ar === aspectRatio ? "text-violet-400" : "text-slate-400 hover:text-white")}>
-                {ar}
-              </button>
-            ))}
-          </div>
-        </div>
+        <CompactSelect
+          value={aspectRatio}
+          options={ASPECT_RATIOS}
+          onChange={(ar) => {
+            setAspectRatio(ar);
+            markDirty();
+          }}
+          minWidth={70}
+        />
 
         {/* Duration picker */}
-        <div className="relative group">
-          <button
-            className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-semibold text-slate-400 hover:text-slate-200 transition-colors"
-            style={{ border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.03)" }}
-          >
-            {duration}s
-            <ChevronDown className="h-2.5 w-2.5" />
-          </button>
-          <div
-            className="absolute top-full mt-1 right-0 rounded-lg py-1 z-30 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity"
-            style={{ background: "#0d1321", border: "1px solid rgba(255,255,255,0.08)", minWidth: 55 }}
-          >
-            {DURATIONS.map((d) => (
-              <button key={d} onClick={() => { setDuration(d); markDirty(); }} className={cn("w-full text-left px-3 py-1 text-[10px] font-semibold transition-colors", d === duration ? "text-violet-400" : "text-slate-400 hover:text-white")}>
-                {d}s
-              </button>
-            ))}
-          </div>
-        </div>
+        <CompactSelect
+          value={String(duration)}
+          options={DURATIONS.map(String)}
+          onChange={(d) => {
+            setDuration(Number(d));
+            markDirty();
+          }}
+          suffix="s"
+          minWidth={55}
+        />
 
         {/* Credits */}
         <div className="flex items-center gap-1 px-2 py-1 rounded shrink-0" style={{ border: "1px solid rgba(167,139,250,0.2)", background: "rgba(124,58,237,0.08)" }}>
