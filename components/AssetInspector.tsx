@@ -791,11 +791,15 @@ export function AssetInspector({ asset, onClose }: AssetInspectorProps) {
 
   const downloadAsset = useCallback(async (url: string, ext: string) => {
     try {
-      const res = await fetch(url);
+      const filename = `${asset.title?.slice(0, 40) ?? "asset"}${ext}`;
+      const downloadUrl = url.startsWith("data:") || url.startsWith("blob:")
+        ? url
+        : `/api/download?url=${encodeURIComponent(url)}&filename=${encodeURIComponent(filename)}`;
+      const res = await fetch(downloadUrl);
       const blob = await res.blob();
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
-      a.download = `${asset.title?.slice(0, 40) ?? "asset"}${ext}`;
+      a.download = filename;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);

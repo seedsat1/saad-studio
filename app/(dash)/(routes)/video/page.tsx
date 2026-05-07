@@ -113,6 +113,59 @@ function splitShotDurations(totalDuration: number, shotCount: number): number[] 
   return Array.from({ length: shotCount }, (_, idx) => base + (idx === shotCount - 1 ? remainder : 0));
 }
 
+function isSeedanceV2VideoModel(model: WaveSpeedVideoModel): boolean {
+  return model.id.startsWith("bytedance-seedance-v2");
+}
+
+function getReferenceFileLimits(model: WaveSpeedVideoModel) {
+  const isKling30 = model.api_route === "kwaivgi/kling-v3.0-pro/text-to-video";
+  return {
+    images: isKling30 ? 3 : Math.max(0, model.capabilities.max_reference_images || 0),
+    videos: isSeedanceV2VideoModel(model) ? Math.max(0, model.capabilities.max_reference_videos || 3) : 0,
+    audios: isSeedanceV2VideoModel(model) ? Math.max(0, model.capabilities.max_reference_audios || 3) : 0,
+  };
+}
+
+function isAllowedReferenceFile(file: File, model: WaveSpeedVideoModel): boolean {
+  if (file.type.startsWith("image/")) return true;
+  return isSeedanceV2VideoModel(model) && (file.type.startsWith("video/") || file.type.startsWith("audio/"));
+}
+
+function mergeReferenceFiles(current: File[], incoming: File[], model: WaveSpeedVideoModel): File[] {
+  const allFiles = [...current, ...incoming].filter((file) => isAllowedReferenceFile(file, model));
+  const limits = getReferenceFileLimits(model);
+
+  if (isSeedanceV2VideoModel(model)) {
+    const images = allFiles.filter((file) => file.type.startsWith("image/")).slice(0, limits.images);
+    const videos = allFiles.filter((file) => file.type.startsWith("video/")).slice(0, limits.videos);
+    const audios = allFiles.filter((file) => file.type.startsWith("audio/")).slice(0, limits.audios);
+    return [...images, ...videos, ...audios];
+  }
+
+  return allFiles.filter((file) => file.type.startsWith("image/")).slice(0, limits.images);
+}
+
+function getReferenceFileSummary(files: File[], model: WaveSpeedVideoModel): string {
+  const limits = getReferenceFileLimits(model);
+  const imageCount = files.filter((file) => file.type.startsWith("image/")).length;
+
+  if (isSeedanceV2VideoModel(model)) {
+    const videoCount = files.filter((file) => file.type.startsWith("video/")).length;
+    const audioCount = files.filter((file) => file.type.startsWith("audio/")).length;
+    return `Images ${imageCount}/${limits.images} | Videos ${videoCount}/${limits.videos} | Audio ${audioCount}/${limits.audios}`;
+  }
+
+  return `${imageCount}/${limits.images} reference image(s)`;
+}
+
+function getReferenceFileMaxLabel(model: WaveSpeedVideoModel): string {
+  const limits = getReferenceFileLimits(model);
+  if (isSeedanceV2VideoModel(model)) {
+    return `${limits.images} images + ${limits.videos} videos + ${limits.audios} audio`;
+  }
+  return `${limits.images}`;
+}
+
 // -- Constants -----------------------------------------------------------------
 
 const BADGE_STYLE = {
@@ -431,17 +484,10 @@ function VideoPageInner() {
   const handleDropReferenceImages = useCallback((event: DragEvent<HTMLElement>) => {
     event.preventDefault();
     setActiveDropZone(null);
-    const isSeedance2 = selectedModel.id.startsWith("bytedance-seedance-v2");
-    const dropped = Array.from(event.dataTransfer.files ?? []).filter((file) =>
-      isSeedance2
-        ? file.type.startsWith("image/") || file.type.startsWith("video/") || file.type.startsWith("audio/")
-        : file.type.startsWith("image/")
-    );
+    const dropped = Array.from(event.dataTransfer.files ?? []).filter((file) => isAllowedReferenceFile(file, selectedModel));
     if (!dropped.length) return;
-    const isKling30 = selectedModel.api_route === "kwaivgi/kling-v3.0-pro/text-to-video";
-    const maxRefs = isKling30 ? 3 : selectedModel.capabilities.max_reference_images;
-    if (maxRefs <= 0) return;
-    setReferenceImages(prev => [...prev, ...dropped].slice(0, maxRefs));
+    if (getReferenceFileLimits(selectedModel).images <= 0) return;
+    setReferenceImages((prev) => mergeReferenceFiles(prev, dropped, selectedModel));
   }, [selectedModel]);
 
   useEffect(() => {
@@ -666,14 +712,13 @@ function VideoPageInner() {
       else if (target === "endFrame")    setEndFrame(file);
       else if (target === "motionVideo") setMotionVideo(file);
       else if (target === "referenceImages") {
-        const maxR = caps.max_reference_images || 9;
-        setReferenceImages(prev => [...prev, file].slice(0, maxR));
+        setReferenceImages((prev) => mergeReferenceFiles(prev, [file], selectedModel));
       }
     } catch (err) {
       console.error("[pickGalleryAsset] Failed to load gallery asset:", err);
       // Fallback: show a user-visible toast or error here if needed
     }
-  }, [caps.max_reference_images, caps.max_reference_videos]);
+  }, [selectedModel]);
 
   const pickDeviceFiles = useCallback(async (target: PickerTarget): Promise<boolean> => {
     if (typeof window === "undefined") return false;
@@ -681,7 +726,6 @@ function VideoPageInner() {
     if (typeof anyWindow.showOpenFilePicker !== "function") return false;
     if (!window.isSecureContext) return false;
 
-    const isSeedance2 = selectedModel.id.startsWith("bytedance-seedance-v2");
     const multiple = target === "referenceImages";
 
     const types =
@@ -692,7 +736,7 @@ function VideoPageInner() {
               accept: { "video/*": [".mp4", ".mov", ".webm", ".mkv", ".avi"] },
             },
           ]
-        : target === "referenceImages" && isSeedance2
+        : target === "referenceImages" && isSeedanceV2VideoModel(selectedModel)
           ? [
               {
                 description: "Images",
@@ -728,9 +772,7 @@ function VideoPageInner() {
       else if (target === "endFrame") setEndFrame(files[0] ?? null);
       else if (target === "motionVideo") setMotionVideo(files[0] ?? null);
       else if (target === "referenceImages") {
-        const isKling30 = selectedModel.api_route === "kwaivgi/kling-v3.0-pro/text-to-video";
-        const maxRefs = isKling30 ? 3 : caps.max_reference_images;
-        setReferenceImages((prev) => [...prev, ...files].slice(0, Math.max(0, maxRefs)));
+        setReferenceImages((prev) => mergeReferenceFiles(prev, files, selectedModel));
       }
 
       return true;
@@ -738,7 +780,7 @@ function VideoPageInner() {
       if (e?.name === "AbortError") return true;
       return false;
     }
-  }, [caps.max_reference_images, selectedModel.api_route, selectedModel.id]);
+  }, [selectedModel]);
 
   // -- Generate -----------------------------------------------------------------
 
@@ -1287,6 +1329,8 @@ function VideoPageInner() {
   const hasMainPrompt = prompt.trim().length > 0;
   const hasMultiPrompt = multiPrompts.some((s) => s.trim().length > 0);
   const isSeedanceV2Model = selectedModel.id.startsWith("bytedance-seedance-v2");
+  const referenceFileSummary = getReferenceFileSummary(referenceImages, selectedModel);
+  const referenceFileMaxLabel = getReferenceFileMaxLabel(selectedModel);
   const hasRequiredImageInput =
     !caps.requires_image || !!startFrame || referenceImages.length > 0 || Boolean(selectedCharacter?.referenceUrls?.length);
   const hasRequiredVideoInput = !caps.requires_video || !!motionVideo;
@@ -1950,8 +1994,7 @@ function VideoPageInner() {
                 className="hidden"
                 onChange={e => {
                   const files = Array.from(e.target.files ?? []);
-                  const maxRefs = showSimpleKlingRefs ? 3 : selectedModel.capabilities.max_reference_images;
-                  setReferenceImages(prev => [...prev, ...files].slice(0, maxRefs));
+                  setReferenceImages((prev) => mergeReferenceFiles(prev, files, selectedModel));
                   e.target.value = "";
                 }}
               />
@@ -1959,7 +2002,7 @@ function VideoPageInner() {
                 className="absolute top-2 right-2 text-[9px] font-medium px-1.5 py-0.5 rounded"
                 style={{ background: "rgba(255,255,255,0.06)", color: "#475569" }}
               >
-                {`Max ${showSimpleKlingRefs ? 3 : caps.max_reference_images}`}
+                {`Max ${showSimpleKlingRefs ? 3 : referenceFileMaxLabel}`}
               </span>
               {referenceImages.length > 0 ? (
                 <>
@@ -1985,7 +2028,7 @@ function VideoPageInner() {
                     </div>
                   )}
                   <span className="absolute bottom-2 left-2 right-2 rounded-md bg-black/55 px-1.5 py-0.5 text-[10px] text-cyan-200 text-center leading-tight">
-                    {`${referenceImages.length} media file(s)`}
+                    {referenceFileSummary}
                   </span>
                   <button
                     className="absolute top-2 left-2"
@@ -2002,12 +2045,14 @@ function VideoPageInner() {
                   >
                     <ImageIcon size={16} style={{ color: "#475569" }} />
                   </div>
-                  <span className="text-[11px]" style={{ color: "#475569" }}>Reference images</span>
+                  <span className="text-[11px]" style={{ color: "#475569" }}>
+                    {isSeedanceV2Model ? "Reference media" : "Reference images"}
+                  </span>
                 </>
               )}
               {activeDropZone === "referenceImages" && (
                 <span className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-cyan-500/15 text-[12px] font-semibold text-cyan-300">
-                  Drop images here
+                  {isSeedanceV2Model ? "Drop media here" : "Drop images here"}
                 </span>
               )}
             </button>
@@ -2176,8 +2221,7 @@ function VideoPageInner() {
                     className="hidden"
                     onChange={e => {
                       const files = Array.from(e.target.files ?? []);
-                      const maxRefs = showSimpleKlingRefs ? 3 : selectedModel.capabilities.max_reference_images;
-                      setReferenceImages(prev => [...prev, ...files].slice(0, maxRefs));
+                      setReferenceImages((prev) => mergeReferenceFiles(prev, files, selectedModel));
                       e.target.value = "";
                     }}
                   />
@@ -2185,7 +2229,7 @@ function VideoPageInner() {
                     className="absolute top-2 right-2 text-[9px] font-medium px-1.5 py-0.5 rounded"
                     style={{ background: "rgba(255,255,255,0.06)", color: "#475569" }}
                   >
-                    {`Max ${showSimpleKlingRefs ? 3 : caps.max_reference_images}`}
+                    {`Max ${showSimpleKlingRefs ? 3 : referenceFileMaxLabel}`}
                   </span>
                   {referenceImages.length > 0 ? (
                     <>
@@ -2211,7 +2255,7 @@ function VideoPageInner() {
                         </div>
                       )}
                       <span className="absolute bottom-2 left-2 right-2 rounded-md bg-black/55 px-1.5 py-0.5 text-[10px] text-cyan-200 text-center leading-tight">
-                        {`${referenceImages.length} media file(s)`}
+                        {referenceFileSummary}
                       </span>
                       <button
                         className="absolute top-2 left-2"
@@ -2228,12 +2272,14 @@ function VideoPageInner() {
                       >
                         <ImageIcon size={16} style={{ color: "#475569" }} />
                       </div>
-                      <span className="text-[11px]" style={{ color: "#475569" }}>Reference images</span>
+                      <span className="text-[11px]" style={{ color: "#475569" }}>
+                        {isSeedanceV2Model ? "Reference media" : "Reference images"}
+                      </span>
                     </>
                   )}
                   {activeDropZone === "referenceImages" && (
                     <span className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-cyan-500/15 text-[12px] font-semibold text-cyan-300">
-                      Drop images here
+                      {isSeedanceV2Model ? "Drop media here" : "Drop images here"}
                     </span>
                   )}
                 </button>
@@ -2245,7 +2291,9 @@ function VideoPageInner() {
                 <p className="text-[10px] -mt-3" style={{ color: "#64748b" }}>
                   {showSimpleKlingRefs
                     ? "Use @image1, @image2, @image3 inside prompt/shot prompts to activate references."
-                    : "Reference images mode is active; first/last frame inputs will be ignored for this generation."}
+                    : isSeedanceV2Model
+                      ? "Seedance maps @Image1..@Image9 from image references only; video and audio references are sent separately."
+                      : "Reference images mode is active; first/last frame inputs will be ignored for this generation."}
                 </p>
               )}
 
@@ -3598,9 +3646,9 @@ function VideoPageInner() {
                     {mediaPicker === "motionVideo"
                       ? "Select Video"
                       : mediaPicker === "referenceImages" && isSeedanceV2Model
-                        ? `Upload media — Image, Video or Audio (${referenceImages.length}/${caps.max_reference_images})`
+                        ? `Upload media - ${referenceFileSummary}`
                         : mediaPicker === "referenceImages"
-                          ? `Select Reference Image (${referenceImages.length}/${caps.max_reference_images})`
+                          ? `Select Reference Image (${referenceFileSummary})`
                           : mediaPicker === "endFrame" ? "Select End Frame" : "Select Start Frame"}
                   </span>
                 </div>
@@ -3878,7 +3926,9 @@ function VideoPageInner() {
                 {/* Reference Images (mobile) */}
                 {(showReferenceImages || showSimpleKlingRefs) && (
                   <div className="mb-4">
-                    <label className="block text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: "#475569" }}>Reference Images</label>
+                    <label className="block text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: "#475569" }}>
+                      {isSeedanceV2Model ? "Reference Media" : "Reference Images"}
+                    </label>
                     <button
                       onClick={() => { setMobileSettingsOpen(false); openMediaPicker("referenceImages"); }}
                       className="w-full flex items-center justify-center gap-2 px-3 py-3 rounded-xl transition-all"
@@ -3891,8 +3941,8 @@ function VideoPageInner() {
                       <ImageIcon size={14} />
                       <span className="text-sm font-medium">
                         {referenceImages.length > 0
-                          ? `${referenceImages.length} reference image(s)`
-                          : "Add reference images"
+                          ? referenceFileSummary
+                          : isSeedanceV2Model ? "Add reference media" : "Add reference images"
                         }
                       </span>
                       {referenceImages.length > 0 && (
@@ -3907,6 +3957,11 @@ function VideoPageInner() {
                     {showSimpleKlingRefs && (
                       <p className="text-[10px] mt-1" style={{ color: "#475569" }}>
                         Use @image1, @image2, @image3 in your prompt
+                      </p>
+                    )}
+                    {isSeedanceV2Model && referenceImages.length > 0 && (
+                      <p className="text-[10px] mt-1" style={{ color: "#475569" }}>
+                        @Image1..@Image9 follow image reference order only.
                       </p>
                     )}
                   </div>

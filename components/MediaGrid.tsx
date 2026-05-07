@@ -35,6 +35,20 @@ interface MediaGridProps {
   className?: string;
 }
 
+function downloadMedia(item: MediaItem) {
+  if (!item.src || item.src.startsWith("gradient:")) return;
+  const a = document.createElement("a");
+  const filename = `saad-${item.id}`;
+  a.href = item.src.startsWith("data:") || item.src.startsWith("blob:")
+    ? item.src
+    : `/api/download?url=${encodeURIComponent(item.src)}&filename=${encodeURIComponent(filename)}`;
+  a.download = filename;
+  a.rel = "noopener";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
 // ─── Aspect ratio CSS map ─────────────────────────────────────────────────────
 function ratioCss(ratio: string): string {
   const map: Record<string, string> = {
@@ -121,7 +135,7 @@ function Lightbox({ item, onClose }: { item: MediaItem; onClose: () => void }) {
             {item.duration && <span style={{ fontSize: 10, color: "#64748b" }}>{item.duration}</span>}
           </div>
           {!isPlaceholder && (
-            <button onClick={() => { const a = document.createElement("a"); a.href = item.src; a.download = `saad-${item.id}`; a.click(); }}
+            <button onClick={() => downloadMedia(item)}
               style={{ display: "flex", alignItems: "center", gap: 6, background: hexA(color, 0.12), border: `1px solid ${hexA(color, 0.3)}`, borderRadius: 8, padding: "6px 14px", color, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
               <Download size={12} /> Download
             </button>
@@ -253,7 +267,7 @@ function MediaCard({ item, onOpen, onDelete }: {
         </div>
         <div style={{ display: "flex", gap: 3, flexShrink: 0, opacity: hov ? 1 : 0.45, transition: "opacity 0.2s" }}>
           {[{ icon: <Heart size={11} fill={liked ? color : "none"} color={liked ? color : "currentColor"} />, title: "Like", fn: (e: React.MouseEvent) => { e.stopPropagation(); setLiked(v => !v); }, red: false, active: liked },
-            { icon: <Download size={11} />, title: "Download", fn: (e: React.MouseEvent) => { e.stopPropagation(); if (!isPlaceholder) { const a = document.createElement("a"); a.href = item.src; a.download = `saad-${item.id}`; a.click(); } }, red: false, active: false },
+            { icon: <Download size={11} />, title: "Download", fn: (e: React.MouseEvent) => { e.stopPropagation(); downloadMedia(item); }, red: false, active: false },
             ...(onDelete ? [{ icon: <Trash2 size={11} />, title: "Delete", fn: (e: React.MouseEvent) => { e.stopPropagation(); onDelete!(item.id); }, red: true, active: false }] : []),
           ].map(({ icon, title, fn, red, active }, i) => (
             <MiniBtn key={i} title={title} onClick={fn} color={active ? color : undefined} danger={red}>{icon}</MiniBtn>
