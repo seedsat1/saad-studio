@@ -105,14 +105,21 @@
     <div class="pn-scroll">
       <div class="sec-t">✂ Story Engine <span class="sec-badge">AI</span></div>
       <div class="story-intro" style="margin-bottom:10px">
-        الصق التفريغ هنا (عربي أو إنجليزي). الذكاء الاصطناعي يحلله ويقترح أقسام التحرير.
+        اضغط الزر للقراءة من الـ sequence النشطة، أو ألصق التفريغ يدوياً.
         <span class="story-cost">5 credits</span>
       </div>
 
-      <!-- TRANSCRIPT INPUT — required, paste here -->
+      <!-- AUTO-READ FROM ACTIVE SEQUENCE -->
+      <button id="btnReadSequence" type="button"
+              style="width:100%;padding:10px;border-radius:6px;border:1px solid #4a9eff;background:rgba(74,158,255,0.1);color:#4a9eff;font-size:.75rem;font-weight:600;cursor:pointer;margin-bottom:8px">
+        📥 قراءة التفريغ من الـ Sequence النشطة
+      </button>
+      <div id="sequenceReadStatus" style="font-size:.55rem;color:#888;margin-bottom:8px;display:none;padding:6px 8px;border-radius:4px;background:#1a1a1a"></div>
+
+      <!-- TRANSCRIPT INPUT — auto-filled or paste manually -->
       <div class="story-input-wrap" style="margin-bottom:8px">
         <textarea id="storyTranscript" class="story-textarea"
-                  placeholder="الصق التفريغ هنا...&#10;&#10;Paste transcript here. SRT or plain text with optional timestamps like [00:00:05]"
+                  placeholder="سيُملأ تلقائياً من الـ sequence، أو الصق هنا يدوياً..."
                   dir="auto"
                   spellcheck="false"
                   style="width:100%;min-height:140px;padding:10px;border-radius:6px;background:#1a1a1a;color:#e8e8e8;border:1px solid #333;font-size:.7rem;line-height:1.5;resize:vertical;font-family:ui-monospace,SFMono-Regular,Menlo,monospace"></textarea>
@@ -543,7 +550,219 @@ document.addEventListener('DOMContentLoaded', function(){
 
   setActiveTab('chat');
   setupSubtitlesTab();
+  setupSequenceTranscriptReader();
 });
+
+// ─────────────────────────────────────────────────────────────────────────
+// READ TRANSCRIPT FROM ACTIVE SEQUENCE — Story Engine helper.
+// Walks the sequence's caption tracks (Premiere's transcribe output) and
+// assembles a timestamped transcript. Falls back gracefully on each API
+// variant since UXP Premiere has shifted the marker/caption surface across
+// 24/25/26 builds.
+// ─────────────────────────────────────────────────────────────────────────
+function setupSequenceTranscriptReader() {
+  var $btn      = document.getElementById('btnReadSequence');
+  var $status   = document.getElementById('sequenceReadStatus');
+  var $textarea = document.getElementById('storyTranscript');
+  if (!$btn || !$textarea) { console.warn('[SeqRead] Story panel not in DOM'); return; }
+
+  // Premiere internal tick rate (frame-rate independent)
+  var TICKS_PER_SECOND = 254016000000;
+
+  function setStatus(msg, kind) {
+    if (!msg) { $status.style.display = 'none'; return; }
+    var color = kind === 'err' ? '#ff6b6b' : kind === 'ok' ? '#4ade80' : '#aaa';
+    $status.style.display = 'block';
+    $status.style.color   = color;
+    $status.textContent   = msg;
+  }
+
+  function ticksToHMS(ticks) {
+    var sec = Math.max(0, Math.floor(Number(ticks) / TICKS_PER_SECOND));
+    var h = Math.floor(sec / 3600);
+    var m = Math.floor((sec % 3600) / 60);
+    var s = sec % 60;
+    function p(n){ return String(n).padStart(2, '0'); }
+    return p(h) + ':' + p(m) + ':' + p(s);
+  }
+
+  // Resolve the active project across UXP API surfaces (24 / 25 / 26)
+  async function resolveProject(ppro) {
+    if (ppro.Project && typeof ppro.Project.getActiveProject === 'function') {
+      try { var p = await ppro.Project.getActiveProject(); if (p) return p; } catch (e) {}
+    }
+    if (ppro.app && typeof ppro.app.getActiveProjectAsync === 'function') {
+      try { var p = await ppro.app.getActiveProjectAsync(); if (p) return p; } catch (e) {}
+    }
+    if (ppro.app && typeof ppro.app.getActiveProject === 'function') {
+      try { var p = ppro.app.getActiveProject(); if (p) return p; } catch (e) {}
+    }
+    throw new Error('No active project. Open a project in Premiere first.');
+  }
+
+  async function resolveSequence(project) {
+    if (typeof project.getActiveSequence === 'function') {
+      var r = project.getActiveSequence();
+      var seq = (r && typeof r.then === 'function') ? await r : r;
+      if (seq) return seq;
+    }
+    if (typeof project.getActiveSequenceAsync === 'function') {
+      var seq2 = await project.getActiveSequenceAsync();
+      if (seq2) return seq2;
+    }
+    throw new Error('No active sequence. Double-click a sequence in the Project panel.');
+  }
+
+  // Pull text from a single caption track item — different UXP builds expose
+  // different field/method names, so try every plausible one.
+  function extractCaptionText(item) {
+    var candidates = [
+      function(){ return item.getCaptionText && item.getCaptionText(); },
+      function(){ return item.getName && item.getName(); },
+      function(){ return item.text; },
+      function(){ return item.caption; },
+      function(){ return item.name; },
+    ];
+    for (var i = 0; i < candidates.length; i++) {
+      try {
+        var v = candidates[i]();
+        if (v && typeof v.then === 'function') v = null; // skip async — handled below
+        if (typeof v === 'string' && v.trim()) return v.trim();
+      } catch (e) {}
+    }
+    return '';
+  }
+
+  async function extractCaptionTextAsync(item) {
+    var asyncCandidates = [
+      function(){ return item.getCaptionTextAsync && item.getCaptionTextAsync(); },
+      function(){ return item.getNameAsync && item.getNameAsync(); },
+    ];
+    for (var i = 0; i < asyncCandidates.length; i++) {
+      try {
+        var v = await asyncCandidates[i]();
+        if (typeof v === 'string' && v.trim()) return v.trim();
+      } catch (e) {}
+    }
+    return '';
+  }
+
+  // Read all caption tracks → list of {startSec, endSec, text}
+  async function readCaptionsFromSequence(seq, ppro) {
+    var lines = [];
+
+    if (typeof seq.getCaptionTrackCount !== 'function') {
+      throw new Error('This Premiere version does not expose getCaptionTrackCount on Sequence.');
+    }
+
+    var trackCount = await seq.getCaptionTrackCount();
+    console.log('[SeqRead] caption track count:', trackCount);
+
+    if (!trackCount || trackCount === 0) {
+      throw new Error(
+        'لا توجد قنوات Captions في الـ sequence. ' +
+        'افتح Window → Text → Captions → Transcribe Sequence أولاً، أو أنشئ Captions track من الـ transcript.'
+      );
+    }
+
+    var CLIP_TYPE = (ppro.Constants && ppro.Constants.TrackItemType && ppro.Constants.TrackItemType.CLIP) || 1;
+
+    for (var t = 0; t < trackCount; t++) {
+      var track;
+      try { track = await seq.getCaptionTrack(t); } catch (e) {
+        console.warn('[SeqRead] getCaptionTrack(' + t + ') failed:', e && e.message);
+        continue;
+      }
+      if (!track) continue;
+
+      var items = [];
+      try {
+        if (typeof track.getTrackItems === 'function') {
+          items = track.getTrackItems(CLIP_TYPE, false) || [];
+        } else if (typeof track.getTrackItemsAsync === 'function') {
+          items = (await track.getTrackItemsAsync(CLIP_TYPE, false)) || [];
+        }
+      } catch (e) {
+        console.warn('[SeqRead] track.getTrackItems failed:', e && e.message);
+        continue;
+      }
+
+      console.log('[SeqRead] track', t, 'item count:', items.length);
+
+      for (var i = 0; i < items.length; i++) {
+        var item = items[i];
+        var text = extractCaptionText(item);
+        if (!text) text = await extractCaptionTextAsync(item);
+        if (!text) continue;
+
+        var startTicks = 0, endTicks = 0;
+        try {
+          var st = await item.getStartTime();
+          var et = await item.getEndTime();
+          startTicks = Number(st && st.ticks) || 0;
+          endTicks   = Number(et && et.ticks) || 0;
+        } catch (e) { /* keep zeros */ }
+
+        lines.push({
+          startSec: startTicks / TICKS_PER_SECOND,
+          endSec:   endTicks   / TICKS_PER_SECOND,
+          text:     text,
+        });
+      }
+    }
+
+    // Sort by start time so multi-track output is chronological
+    lines.sort(function(a, b){ return a.startSec - b.startSec; });
+    return lines;
+  }
+
+  function formatAsTranscript(lines) {
+    return lines.map(function(line){
+      var startTicks = Math.round(line.startSec * TICKS_PER_SECOND);
+      return '[' + ticksToHMS(startTicks) + '] ' + line.text;
+    }).join('\n');
+  }
+
+  $btn.addEventListener('click', async function () {
+    setStatus('جاري القراءة من الـ sequence…', '');
+    $btn.disabled = true;
+    $btn.style.opacity = '0.6';
+
+    try {
+      var ppro = require('premierepro');
+      var project = await resolveProject(ppro);
+      var seq     = await resolveSequence(project);
+      var seqName = (typeof seq.name === 'string' && seq.name) || 'sequence';
+
+      var lines = await readCaptionsFromSequence(seq, ppro);
+      if (!lines.length) {
+        setStatus('قرأ الـ caption tracks لكنها فاضية. هل عملت Transcribe Sequence من Premiere؟', 'err');
+        return;
+      }
+
+      var transcript = formatAsTranscript(lines);
+      $textarea.value = transcript;
+
+      // Trigger any input listeners (char count update, button state, etc.)
+      var ev = new Event('input', { bubbles: true });
+      $textarea.dispatchEvent(ev);
+
+      setStatus(
+        '✓ قرأ ' + lines.length + ' سطر من "' + seqName + '" (' +
+        Math.round(transcript.length / 1000 * 10) / 10 + 'k chars)',
+        'ok'
+      );
+    } catch (err) {
+      console.error('[SeqRead] error:', err);
+      setStatus('✗ ' + (err && err.message || err), 'err');
+    } finally {
+      $btn.disabled = false;
+      $btn.style.opacity = '1';
+    }
+  });
+
+  console.log('[SeqRead] tab wired');
+}
 
 // ─────────────────────────────────────────────────────────────────────────
 // SUBTITLES TAB — self-contained inline implementation.
