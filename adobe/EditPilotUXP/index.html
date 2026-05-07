@@ -738,6 +738,81 @@ function setupSequenceTranscriptReader() {
     return { text: text, startSec: startSec, endSec: endSec };
   }
 
+  // Walk a parsed JSON object recursively and collect every plausible
+  // transcript "segment". Premiere's exportToJSON shape isn't formally
+  // documented, but every variant we've seen has objects with both a
+  // text field and at least one of start/startTime/startTicks.
+  function harvestSegmentsFromJSON(root) {
+    var out = [];
+    function visit(node) {
+      if (!node || typeof node !== 'object') return;
+      if (Array.isArray(node)) { node.forEach(visit); return; }
+
+      var text = node.text || node.content || node.value || node.transcript || '';
+      var startRaw = node.start != null ? node.start
+                  : node.startTime != null ? node.startTime
+                  : node.startTicks != null ? node.startTicks
+                  : node['start_time'] != null ? node['start_time']
+                  : null;
+      var endRaw   = node.end != null ? node.end
+                  : node.endTime != null ? node.endTime
+                  : node.endTicks != null ? node.endTicks
+                  : node['end_time'] != null ? node['end_time']
+                  : null;
+
+      if (typeof text === 'string' && text.trim() && startRaw != null) {
+        var startSec = 0, endSec = 0;
+        if (typeof startRaw === 'number')          startSec = startRaw > 1e8 ? startRaw / TICKS_PER_SECOND : startRaw;
+        else if (typeof startRaw === 'string')     startSec = isNaN(+startRaw) ? 0 : +startRaw / (+startRaw > 1e8 ? TICKS_PER_SECOND : 1);
+        else if (startRaw && startRaw.ticks)       startSec = Number(startRaw.ticks) / TICKS_PER_SECOND;
+        else if (startRaw && startRaw.seconds)     startSec = Number(startRaw.seconds);
+
+        if (endRaw != null) {
+          if (typeof endRaw === 'number')          endSec = endRaw > 1e8 ? endRaw / TICKS_PER_SECOND : endRaw;
+          else if (typeof endRaw === 'string')     endSec = isNaN(+endRaw) ? 0 : +endRaw / (+endRaw > 1e8 ? TICKS_PER_SECOND : 1);
+          else if (endRaw && endRaw.ticks)         endSec = Number(endRaw.ticks) / TICKS_PER_SECOND;
+          else if (endRaw && endRaw.seconds)       endSec = Number(endRaw.seconds);
+        }
+
+        out.push({ startSec: startSec, endSec: endSec, text: text.trim() });
+        return; // don't recurse into a leaf segment
+      }
+
+      // Recurse into all object/array children
+      for (var k in node) {
+        if (Object.prototype.hasOwnProperty.call(node, k)) visit(node[k]);
+      }
+    }
+    visit(root);
+    return out;
+  }
+
+  async function tryExportTranscriptToJSON(seq, project, ppro) {
+    if (!ppro.Transcript || typeof ppro.Transcript.exportToJSON !== 'function') return null;
+
+    // Premiere's exportToJSON signature isn't documented — try every shape.
+    var attempts = [
+      function(){ return ppro.Transcript.exportToJSON(seq); },
+      function(){ return ppro.Transcript.exportToJSON(project, seq); },
+      function(){ return ppro.Transcript.exportToJSON(seq, project); },
+      function(){ return ppro.Transcript.exportToJSON(); },
+      function(){ return ppro.Transcript.exportToJSON(project); },
+    ];
+    for (var i = 0; i < attempts.length; i++) {
+      try {
+        var r = attempts[i]();
+        if (r && typeof r.then === 'function') r = await r;
+        if (r != null && r !== '') {
+          console.log('[SeqRead DIAG] exportToJSON shape #' + (i + 1) + ' returned:', typeof r, r);
+          return r;
+        }
+      } catch (e) {
+        console.log('[SeqRead DIAG] exportToJSON shape #' + (i + 1) + ' failed:', e && e.message);
+      }
+    }
+    return null;
+  }
+
   // Try ppro.Transcript / sequence.getTranscript / project.getTranscript
   // surfaces. Returns array of {startSec, endSec, text} or [].
   async function readTranscriptFromSequence(seq, project, ppro) {
@@ -752,6 +827,37 @@ function setupSequenceTranscriptReader() {
       }
       console.log('[SeqRead DIAG] seq.getTranscript exists?', typeof seq.getTranscript);
       console.log('[SeqRead DIAG] project.getTranscript exists?', typeof project.getTranscript);
+    }
+
+    // PRIMARY PATH (Premiere 26+): ppro.Transcript.exportToJSON(seq)
+    // Returns the sequence's transcribed text as JSON. We walk the JSON
+    // and harvest every text segment with a timestamp.
+    var jsonResult = await tryExportTranscriptToJSON(seq, project, ppro);
+    if (jsonResult != null) {
+      var data;
+      if (typeof jsonResult === 'string') {
+        try { data = JSON.parse(jsonResult); }
+        catch (e) {
+          console.log('[SeqRead DIAG] exportToJSON returned string but not valid JSON:', jsonResult.slice(0, 200));
+          data = null;
+        }
+      } else {
+        data = jsonResult;
+      }
+      if (data) {
+        var harvested = harvestSegmentsFromJSON(data);
+        console.log('[SeqRead DIAG] harvested', harvested.length, 'segments from JSON');
+        if (harvested.length > 0) {
+          // Sort chronologically and return — this path bypasses everything else
+          harvested.sort(function(a, b){ return a.startSec - b.startSec; });
+          return harvested;
+        } else {
+          // Show user the raw JSON keys so we know the shape
+          console.log('[SeqRead DIAG] JSON top-level keys:', Object.keys(data || {}).slice(0, 20));
+          console.log('[SeqRead DIAG] JSON sample (first 500 chars):',
+                      typeof jsonResult === 'string' ? jsonResult.slice(0, 500) : JSON.stringify(data).slice(0, 500));
+        }
+      }
     }
 
     var transcript = null;
@@ -964,12 +1070,23 @@ function setupSequenceTranscriptReader() {
       }
 
       if (!lines.length) {
-        // No automatic source worked — dump the API surface so the next
-        // iteration can target the right method exactly.
+        // No automatic source worked — dump the API surface AND any raw
+        // JSON returned by exportToJSON so we can pinpoint the right shape.
         var dump = buildDiagnosticDump(ppro, project, seq);
+
+        // Also try exportToJSON one more time and capture its raw output
+        var rawSample = '(exportToJSON not callable)';
+        try {
+          var raw = await tryExportTranscriptToJSON(seq, project, ppro);
+          if (raw != null) {
+            var rawStr = typeof raw === 'string' ? raw : JSON.stringify(raw, null, 2);
+            rawSample = rawStr.slice(0, 1500);
+          }
+        } catch (e) { rawSample = 'exportToJSON threw: ' + e.message; }
+
         $status.style.display     = 'block';
         $status.style.color       = '#ff6b6b';
-        $status.style.maxHeight   = '300px';
+        $status.style.maxHeight   = '400px';
         $status.style.overflow    = 'auto';
         $status.style.whiteSpace  = 'pre-wrap';
         $status.style.userSelect  = 'text';
@@ -977,7 +1094,8 @@ function setupSequenceTranscriptReader() {
         $status.style.fontSize    = '.55rem';
         $status.textContent =
           '✗ لم يُعثر على transcript تلقائياً. التشخيص (انسخه وأرسله):\n\n' + dump +
-          '\n\nالحل المؤقت: في Premiere، افتح Window → Text، انسخ كل النص، الصقه في الـ textarea بالأسفل يدوياً.';
+          '\n\n--- exportToJSON raw output (first 1500 chars) ---\n' + rawSample +
+          '\n\nالحل المؤقت: في Premiere، Window → Text، انسخ النص، الصقه في الـ textarea بالأسفل يدوياً.';
         return;
       }
 
