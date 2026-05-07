@@ -104,29 +104,29 @@
   <div class="pn" data-panel="story" id="viewStory">
     <div class="pn-scroll">
       <div class="sec-t">✂ Story Engine <span class="sec-badge">AI</span></div>
-      <div class="story-intro" style="margin-bottom:10px">
-        اضغط الزر للقراءة من الـ sequence النشطة، أو ألصق التفريغ يدوياً.
-        <span class="story-cost">5 credits</span>
+      <div class="story-intro" style="margin-bottom:10px;padding:8px 10px;border-radius:6px;background:rgba(74,158,255,0.08);border:1px solid rgba(74,158,255,0.2);font-size:.6rem;line-height:1.6;color:#cdd6e6">
+        <strong style="color:#4a9eff">📋 خطوات سريعة:</strong><br>
+        1. في Premiere: <kbd style="padding:1px 5px;border-radius:3px;background:#222;border:1px solid #444;font-size:.6rem">Window → Text → Transcript</kbd><br>
+        2. اضغط <kbd style="padding:1px 5px;border-radius:3px;background:#222;border:1px solid #444;font-size:.6rem">Ctrl+A</kbd> داخل الـ panel ثم <kbd style="padding:1px 5px;border-radius:3px;background:#222;border:1px solid #444;font-size:.6rem">Ctrl+C</kbd><br>
+        3. الصق هنا بـ <kbd style="padding:1px 5px;border-radius:3px;background:#222;border:1px solid #444;font-size:.6rem">Ctrl+V</kbd>
+        <span class="story-cost" style="float:right">5 credits</span>
       </div>
 
-      <!-- AUTO-READ FROM ACTIVE SEQUENCE -->
-      <button id="btnReadSequence" type="button"
-              style="width:100%;padding:10px;border-radius:6px;border:1px solid #4a9eff;background:rgba(74,158,255,0.1);color:#4a9eff;font-size:.75rem;font-weight:600;cursor:pointer;margin-bottom:8px">
-        📥 قراءة التفريغ من الـ Sequence النشطة
-      </button>
-      <div id="sequenceReadStatus" style="font-size:.55rem;color:#888;margin-bottom:8px;display:none;padding:6px 8px;border-radius:4px;background:#1a1a1a"></div>
-
-      <!-- TRANSCRIPT INPUT — auto-filled or paste manually -->
+      <!-- TRANSCRIPT INPUT -->
       <div class="story-input-wrap" style="margin-bottom:8px">
         <textarea id="storyTranscript" class="story-textarea"
-                  placeholder="سيُملأ تلقائياً من الـ sequence، أو الصق هنا يدوياً..."
+                  placeholder="ألصق التفريغ هنا (Ctrl+V بعد نسخه من Premiere)..."
                   dir="auto"
                   spellcheck="false"
-                  style="width:100%;min-height:140px;padding:10px;border-radius:6px;background:#1a1a1a;color:#e8e8e8;border:1px solid #333;font-size:.7rem;line-height:1.5;resize:vertical;font-family:ui-monospace,SFMono-Regular,Menlo,monospace"></textarea>
+                  style="width:100%;min-height:160px;padding:10px;border-radius:6px;background:#1a1a1a;color:#e8e8e8;border:1px solid #333;font-size:.7rem;line-height:1.5;resize:vertical;font-family:ui-monospace,SFMono-Regular,Menlo,monospace"></textarea>
         <div class="story-char-count" style="font-size:.55rem;color:#888;text-align:right;margin-top:4px">
           <span id="storyCharCount">0</span> / 20,000
         </div>
       </div>
+
+      <!-- Hidden helpers kept so existing JS can still target them -->
+      <div id="sequenceReadStatus" style="display:none"></div>
+      <button id="btnReadSequence" type="button" style="display:none"></button>
 
       <!-- AI MODEL SELECTION -->
       <div style="margin-bottom:10px">
