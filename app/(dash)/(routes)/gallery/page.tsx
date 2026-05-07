@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Sparkles, ImageIcon, Video, Music, Box, FileText, Trash2, Download, RefreshCw, X, ChevronLeft, ChevronRight, Copy, Check, ExternalLink, FolderPlus, Folder, CheckSquare, Square, ListChecks } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { DynamicFrameLayout, type Frame } from "@/components/ui/dynamic-frame-layout";
 
 type AssetType = "image" | "video" | "audio" | "3d" | "text";
 type FilterValue = "all" | "image" | "video" | "audio" | "3d";
@@ -43,24 +42,6 @@ const TYPE_BADGE: Record<AssetType, string> = {
   "3d": "bg-amber-500/20 text-amber-200 border-amber-500/40",
   text: "bg-violet-500/20 text-violet-200 border-violet-500/40",
 };
-
-const FRAME_POSITIONS = [
-  { x: 0, y: 0, w: 4, h: 4 },
-  { x: 4, y: 0, w: 4, h: 4 },
-  { x: 8, y: 0, w: 4, h: 4 },
-  { x: 0, y: 4, w: 4, h: 4 },
-  { x: 4, y: 4, w: 4, h: 4 },
-  { x: 8, y: 4, w: 4, h: 4 },
-  { x: 0, y: 8, w: 4, h: 4 },
-  { x: 4, y: 8, w: 4, h: 4 },
-  { x: 8, y: 8, w: 4, h: 4 },
-];
-
-function chunkAssets<T>(items: T[], size: number): T[][] {
-  const chunks: T[][] = [];
-  for (let i = 0; i < items.length; i += size) chunks.push(items.slice(i, i + size));
-  return chunks;
-}
 
 // ── Albums (client-side, persisted in localStorage) ────────────────────────────────────────────────────────────
 const ALBUMS_STORAGE_KEY = "saad_studio_gallery_albums_v1";
@@ -161,35 +142,6 @@ export default function GalleryPage() {
     if (activeFilter === "all") return counts.all;
     return counts[activeFilter];
   }, [activeFilter, counts]);
-
-  const visualAssets = useMemo(
-    () => visibleAssets.filter((asset) => (asset.type === "image" || asset.type === "video") && typeof asset.url === "string" && asset.url.trim()),
-    [visibleAssets],
-  );
-
-  const nonVisualAssets = useMemo(
-    () => visibleAssets.filter((asset) => !visualAssets.some((visual) => visual.id === asset.id)),
-    [visibleAssets, visualAssets],
-  );
-
-  const galleryFrameGroups = useMemo(() => {
-    return chunkAssets(visualAssets, 9).map((group) =>
-      group.map((asset, index): Frame => ({
-        id: asset.id,
-        video: asset.url!,
-        mediaType: asset.type === "image" ? "image" : "video",
-        defaultPos: FRAME_POSITIONS[index],
-        mediaSize: 1,
-        borderThickness: 0,
-        borderSize: 100,
-        isHovered: false,
-      })),
-    );
-  }, [visualAssets]);
-
-  const visualAssetById = useMemo(() => {
-    return new Map(visualAssets.map((asset) => [asset.id, asset]));
-  }, [visualAssets]);
 
   const onDelete = useCallback(async (id: string) => {
     try {
@@ -565,93 +517,8 @@ export default function GalleryPage() {
             {activeAlbumId ? "This album is empty." : "No assets found for this filter."}
           </div>
         ) : (
-          <div className="space-y-4">
-            {galleryFrameGroups.length > 0 && (
-              <div className="space-y-4">
-                {galleryFrameGroups.map((frames, groupIndex) => (
-                  <div key={groupIndex} className="h-[520px] overflow-hidden rounded-3xl border border-white/10 bg-black p-2 shadow-2xl shadow-black/30">
-                    <DynamicFrameLayout
-                      frames={frames}
-                      className="h-full w-full"
-                      hoverSize={6}
-                      gapSize={4}
-                      renderOverlay={(frame, isHovered) => {
-                        const asset = visualAssetById.get(String(frame.id));
-                        if (!asset) return null;
-                        const isSelected = selectedIds.has(asset.id);
-                        const handleTileClick = () => {
-                          if (selectionMode) toggleSelected(asset.id);
-                          else if (asset.type === "image" && asset.url) openLightbox(asset);
-                        };
-                        return (
-                          <div className="absolute inset-0 z-10">
-                            <button
-                              className={cn("absolute inset-0", selectionMode || asset.type === "image" ? "cursor-pointer" : "cursor-default")}
-                              onClick={handleTileClick}
-                              aria-label={selectionMode ? "Toggle selection" : "Open asset"}
-                            />
-                            <button
-                              onClick={(e) => { e.stopPropagation(); toggleSelected(asset.id); if (!selectionMode) setSelectionMode(true); }}
-                              className={cn(
-                                "absolute left-3 top-3 z-30 inline-flex h-7 w-7 items-center justify-center rounded-md border backdrop-blur transition",
-                                isSelected
-                                  ? "bg-pink-500 border-pink-400 text-white opacity-100"
-                                  : "bg-black/55 border-white/30 text-white/80 opacity-0 group-hover:opacity-100",
-                                (selectionMode || isHovered) && "opacity-100",
-                              )}
-                              aria-label={isSelected ? "Unselect" : "Select"}
-                              title={isSelected ? "Unselect" : "Select"}
-                            >
-                              {isSelected ? <Check className="h-4 w-4" /> : <Square className="h-3.5 w-3.5" />}
-                            </button>
-                            <div className={cn("absolute right-3 top-3 z-20 px-2 py-1 rounded-full border text-[11px] font-semibold", TYPE_BADGE[asset.type])}>
-                              {asset.type.toUpperCase()}
-                            </div>
-                            <div className="absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-black/85 via-black/45 to-transparent p-3 opacity-100 transition-opacity">
-                              <p className="line-clamp-1 text-xs font-medium text-white">{asset.prompt || "No prompt"}</p>
-                              <div className="mt-2 flex items-center gap-2">
-                                {asset.url ? (
-                                  <a
-                                    href={asset.url}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="inline-flex items-center gap-1 rounded-lg border border-white/15 bg-white/10 px-2 py-1 text-[11px] text-slate-100 hover:bg-white/20"
-                                  >
-                                    <Download className="h-3 w-3" />
-                                    Open
-                                  </a>
-                                ) : null}
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); void onDelete(asset.id); }}
-                                  className="inline-flex items-center gap-1 rounded-lg border border-red-500/30 bg-red-500/15 px-2 py-1 text-[11px] text-red-100 hover:bg-red-500/25"
-                                >
-                                  <Trash2 className="h-3 w-3" />
-                                  Delete
-                                </button>
-                                {activeAlbumId && (
-                                  <button
-                                    onClick={(e) => { e.stopPropagation(); removeAssetFromAlbum(activeAlbumId, asset.id); }}
-                                    className="inline-flex items-center gap-1 rounded-lg border border-amber-500/30 bg-amber-500/15 px-2 py-1 text-[11px] text-amber-100 hover:bg-amber-500/25"
-                                  >
-                                    <X className="h-3 w-3" />
-                                    Remove
-                                  </button>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      }}
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {nonVisualAssets.length > 0 && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {nonVisualAssets.map((asset) => {
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {visibleAssets.map((asset) => {
               const isSelected = selectedIds.has(asset.id);
               const handleTileClick = () => {
                 if (selectionMode) toggleSelected(asset.id);
@@ -762,8 +629,6 @@ export default function GalleryPage() {
               </div>
               );
             })}
-              </div>
-            )}
           </div>
         )}
       </div>
