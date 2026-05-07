@@ -889,6 +889,59 @@ function setupSequenceTranscriptReader() {
     }).join('\n');
   }
 
+  // Build a copy-friendly diagnostic block so the user can share what
+  // their UXP Premiere build actually exposes — without needing DevTools.
+  function buildDiagnosticDump(ppro, project, seq) {
+    var lines = [];
+    function L(label, val) { lines.push(label + ': ' + val); }
+
+    L('--- ppro top-level keys ---', '');
+    try { lines.push(Object.keys(ppro).sort().join(', ')); } catch (e) { lines.push('? ' + e.message); }
+
+    L('\n--- ppro.Transcript ---', '');
+    L('typeof', typeof ppro.Transcript);
+    if (ppro.Transcript) {
+      try { L('static keys', Object.getOwnPropertyNames(ppro.Transcript).join(', ')); } catch (e) {}
+      try {
+        var protoKeys = Object.getOwnPropertyNames(ppro.Transcript.prototype || {});
+        L('prototype keys', protoKeys.join(', '));
+      } catch (e) {}
+    }
+
+    L('\n--- ppro.TextSegments ---', '');
+    L('typeof', typeof ppro.TextSegments);
+    if (ppro.TextSegments) {
+      try { L('static keys', Object.getOwnPropertyNames(ppro.TextSegments).join(', ')); } catch (e) {}
+    }
+
+    L('\n--- ppro.SequenceUtils ---', '');
+    if (ppro.SequenceUtils) {
+      try { L('static keys', Object.getOwnPropertyNames(ppro.SequenceUtils).join(', ')); } catch (e) {}
+    }
+
+    L('\n--- Sequence proto ---', '');
+    try {
+      var sProto = Object.getOwnPropertyNames(Object.getPrototypeOf(seq) || {})
+                    .filter(function(k){ return /transcript|caption|text|segment/i.test(k); });
+      L('matching keys', sProto.join(', ') || '(none matched)');
+    } catch (e) {}
+
+    L('\n--- Project proto ---', '');
+    try {
+      var pProto = Object.getOwnPropertyNames(Object.getPrototypeOf(project) || {})
+                    .filter(function(k){ return /transcript|caption|text|segment/i.test(k); });
+      L('matching keys', pProto.join(', ') || '(none matched)');
+    } catch (e) {}
+
+    L('\n--- seq.getCaptionTrackCount ---', '');
+    try {
+      var cnt = typeof seq.getCaptionTrackCount === 'function' ? '[needs await]' : 'not a function';
+      L('value', cnt);
+    } catch (e) {}
+
+    return lines.join('\n');
+  }
+
   $btn.addEventListener('click', async function () {
     setStatus('جاري القراءة من الـ sequence…', '');
     $btn.disabled = true;
@@ -911,11 +964,20 @@ function setupSequenceTranscriptReader() {
       }
 
       if (!lines.length) {
-        setStatus(
-          'لم يُعثر على transcript أو caption track. ' +
-          'في Premiere افتح Window → Text → Transcript واضغط Transcribe Sequence.',
-          'err'
-        );
+        // No automatic source worked — dump the API surface so the next
+        // iteration can target the right method exactly.
+        var dump = buildDiagnosticDump(ppro, project, seq);
+        $status.style.display     = 'block';
+        $status.style.color       = '#ff6b6b';
+        $status.style.maxHeight   = '300px';
+        $status.style.overflow    = 'auto';
+        $status.style.whiteSpace  = 'pre-wrap';
+        $status.style.userSelect  = 'text';
+        $status.style.fontFamily  = 'ui-monospace,SFMono-Regular,Menlo,monospace';
+        $status.style.fontSize    = '.55rem';
+        $status.textContent =
+          '✗ لم يُعثر على transcript تلقائياً. التشخيص (انسخه وأرسله):\n\n' + dump +
+          '\n\nالحل المؤقت: في Premiere، افتح Window → Text، انسخ كل النص، الصقه في الـ textarea بالأسفل يدوياً.';
         return;
       }
 
