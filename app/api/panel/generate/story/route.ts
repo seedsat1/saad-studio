@@ -8,7 +8,7 @@ import {
 import { runAiTask, resolveModelId, AiEngineError, type UserContext } from "@/lib/ai-engine";
 import prismadb from "@/lib/prismadb";
 
-export const maxDuration = 60;
+export const maxDuration = 120;
 export const dynamic = "force-dynamic";
 
 const STORY_CREDIT_COST = 5;
@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
   const { userId } = verified;
 
   // 2. Parse + validate body
-  let body: { transcript?: string };
+  let body: { transcript?: string; modelId?: string };
   try {
     body = await req.json();
   } catch {
@@ -87,6 +87,10 @@ export async function POST(req: NextRequest) {
   }
 
   const transcript = sanitizeTranscript(rawTranscript);
+  const requestedModelId = body?.modelId; // Optional model override from plugin
+
+  console.log('[story/route] ✓ Received requestedModelId from plugin:', requestedModelId);
+  console.log('[story/route] ✓ userId:', userId);
 
   // 3. Ensure user row exists
   await ensureUserRow(userId);
@@ -108,7 +112,12 @@ export async function POST(req: NextRequest) {
   try {
     // 5. Spend credits — deduct BEFORE calling AI (same pattern as image/video routes).
     //    modelId is resolved now so it is recorded accurately in the ledger.
-    const modelId = resolveModelId("story_engine", userContext);
+    //    If user provided modelId via plugin UI, use it; otherwise resolve from plan tier.
+    const modelId = requestedModelId || resolveModelId("story_engine", userContext);
+
+    console.log('[story/route] ✓ Final modelId being used:', modelId);
+    console.log('[story/route] ✓ requestedModelId:', requestedModelId);
+    console.log('[story/route] ✓ userContext.planId:', userContext.planId);
 
     const spent = await spendCredits({
       userId,
@@ -120,11 +129,12 @@ export async function POST(req: NextRequest) {
     generationId = spent.generationId ?? null;
 
     // 6. Execute through centralized AI engine.
-    //    The route does NOT know which model or provider is used.
+    //    The route does NOT know which model or provider is used (unless overridden).
     const aiResult = await runAiTask({
       task:        "story_engine",
       input:       `Here is the transcript:\n\n${transcript}`,
       userContext,
+      modelId:     requestedModelId, // Pass explicit override if provided
     });
 
     // 6. Parse structured output

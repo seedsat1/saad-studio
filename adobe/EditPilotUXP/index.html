@@ -41,6 +41,7 @@
   <button class="nt" data-tab="imagegen" type="button">Image Gen</button>
   <button class="nt" data-tab="tts" type="button">TTS</button>
   <button class="nt" data-tab="timeline" type="button">Timeline AI</button>
+  <button class="nt" data-tab="multicam" type="button">Multi-Cam</button>
   <button class="nt" data-tab="color" type="button">Color</button>
   <button class="nt" data-tab="audio" type="button">Audio Mix</button>
   <button class="nt" data-tab="broll" type="button">B-Roll Gen</button>
@@ -103,22 +104,43 @@
   <div class="pn" data-panel="story" id="viewStory">
     <div class="pn-scroll">
       <div class="sec-t">✂ Story Engine <span class="sec-badge">AI</span></div>
-      <div class="story-intro">
-        Paste your video transcript. AI will analyze and suggest edit sections.
-        <span class="story-cost">5 credits per analysis</span>
+      <div class="story-intro" style="margin-bottom:10px">
+        الصق التفريغ هنا (عربي أو إنجليزي). الذكاء الاصطناعي يحلله ويقترح أقسام التحرير.
+        <span class="story-cost">5 credits</span>
       </div>
-      <div class="story-input-wrap">
+
+      <!-- TRANSCRIPT INPUT — required, paste here -->
+      <div class="story-input-wrap" style="margin-bottom:8px">
         <textarea id="storyTranscript" class="story-textarea"
-          placeholder="Paste transcript here&#10;&#10;Optional: include timestamps like [00:00:05] Speaker: text..."
-          spellcheck="false"></textarea>
-        <div class="story-char-count"><span id="storyCharCount">0</span> / 20,000</div>
+                  placeholder="الصق التفريغ هنا...&#10;&#10;Paste transcript here. SRT or plain text with optional timestamps like [00:00:05]"
+                  dir="auto"
+                  spellcheck="false"
+                  style="width:100%;min-height:140px;padding:10px;border-radius:6px;background:#1a1a1a;color:#e8e8e8;border:1px solid #333;font-size:.7rem;line-height:1.5;resize:vertical;font-family:ui-monospace,SFMono-Regular,Menlo,monospace"></textarea>
+        <div class="story-char-count" style="font-size:.55rem;color:#888;text-align:right;margin-top:4px">
+          <span id="storyCharCount">0</span> / 20,000
+        </div>
       </div>
-      <button class="btn-gen btn-full" id="btnAnalyze" style="margin-bottom:10px">
+
+      <!-- AI MODEL SELECTION -->
+      <div style="margin-bottom:10px">
+        <label style="display:block;font-size:.65rem;color:var(--txm);margin-bottom:4px;font-weight:600">
+          🤖 AI Model
+        </label>
+        <select id="storyModel" style="width:100%;padding:8px 10px;background:var(--s2);border:1px solid var(--b1);color:var(--txh);border-radius:6px;font-size:.7rem;cursor:pointer">
+          <option value="claude-haiku-4-5">Claude Haiku 4.5 (Balanced)</option>
+          <option value="gpt-5-2">GPT-5.2 (Premium)</option>
+          <option value="gemini-3.1-pro">Gemini 3.1 Pro (Fast)</option>
+        </select>
+      </div>
+
+      <button class="btn-gen btn-full" id="btnAnalyze" style="font-size:.9rem;padding:12px;margin-bottom:10px">
         <span id="btnAnalyzeText">✨ Analyze Transcript</span>
-        <span class="spinner" id="analyzeSpinner" style="display:none"></span>
-        <span class="cost">5 cr</span>
+        <span class="cost" style="margin-right:8px;opacity:.7">5 cr</span>
       </button>
+
       <div class="story-err" id="storyError"></div>
+
+      <!-- Old Results Section (keep for backward compatibility) -->
       <div id="storyResultsWrap" style="display:none">
         <div class="story-results-hd">
           <span>Edit Structure</span>
@@ -160,6 +182,32 @@
           <div class="sr-summary" id="rcSummary"></div>
           <div class="sr-rows" id="rcRows"></div>
         </div>
+        <div id="roughCutEditor" style="display:none;margin-top:8px">
+          <div class="sec-t" style="margin-bottom:6px">✏ Rough Cut Editor</div>
+          <div class="story-intro" style="margin-bottom:8px;font-size:.58rem">
+            Refine the generated rough cut: reorder sections, adjust gaps, and rebuild safely.
+          </div>
+          <div id="rcEditorPreview" style="display:flex;gap:12px;margin-bottom:8px;padding:8px 10px;background:var(--s3);border-radius:var(--rad);border:1px solid var(--b0)">
+            <div style="flex:1">
+              <div style="font-size:.5rem;color:var(--txd);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">Total</div>
+              <div style="font-size:.75rem;font-weight:700;color:var(--txh)" id="rcEditorTotal">0</div>
+            </div>
+            <div style="flex:1">
+              <div style="font-size:.5rem;color:var(--txd);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">Enabled</div>
+              <div style="font-size:.75rem;font-weight:700;color:var(--ac)" id="rcEditorEnabled">0</div>
+            </div>
+            <div style="flex:1">
+              <div style="font-size:.5rem;color:var(--txd);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">Duration</div>
+              <div style="font-size:.75rem;font-weight:700;color:var(--txm)" id="rcEditorDuration">0:00</div>
+            </div>
+          </div>
+          <div id="rcEditorList" style="display:flex;flex-direction:column;gap:4px;margin-bottom:8px"></div>
+          <button class="btn-gen btn-full" id="btnRebuildRoughCut" style="font-size:.65rem;padding:7px">
+            <span>🔄 Rebuild Rough Cut</span>
+            <span class="cost">varies</span>
+          </button>
+          <span class="apply-feedback" id="rebuildFeedback"></span>
+        </div>
         <div class="story-cards" id="storyCards"></div>
         <div class="story-detail" id="storyDetail" style="display:none">
           <div class="sd-title" id="sdTitle"></div>
@@ -188,31 +236,91 @@
     <div id="timelineRenderHost"></div>
   </div>
 
+  <div class="pn" data-panel="multicam" id="viewMulticam">
+    <div id="multicamRenderHost"></div>
+  </div>
+
   <div class="pn" data-panel="color" id="viewColor">
-    <div class="pn-scroll">
-      <div class="sec-t">Color</div>
-      <div class="asst-intro">Color shell restored as a placeholder.</div>
-    </div>
+    <div id="colorRenderHost"></div>
   </div>
 
   <div class="pn" data-panel="audio" id="viewAudio">
-    <div class="pn-scroll">
-      <div class="sec-t">Audio Mix</div>
-      <div class="asst-intro">Audio Mix shell restored as a placeholder.</div>
-    </div>
+    <div id="audioRenderHost"></div>
   </div>
 
   <div class="pn" data-panel="broll" id="viewBroll">
-    <div class="pn-scroll">
-      <div class="sec-t">B-Roll Gen</div>
-      <div class="asst-intro">B-Roll shell restored as a placeholder.</div>
-    </div>
+    <div id="brollRenderHost"></div>
   </div>
 
   <div class="pn" data-panel="captions" id="viewCaptions">
     <div class="pn-scroll">
-      <div class="sec-t">Captions</div>
-      <div class="asst-intro">Captions shell restored as a placeholder.</div>
+      <div class="sec-t">📝 Subtitle Translator <span class="sec-badge">AI</span></div>
+      <div class="story-intro" style="margin-bottom:10px">
+        الصق ترجمة SRT أو VTT — تُترجم بين العربية والإنجليزية مع الحفاظ على التوقيتات.
+        <span class="story-cost">~4 cr per 50 cues</span>
+      </div>
+
+      <!-- SRT INPUT -->
+      <div style="margin-bottom:8px">
+        <label style="display:block;font-size:.6rem;color:#aaa;margin-bottom:4px">SRT / VTT input</label>
+        <textarea id="subSrtInput"
+                  placeholder="1&#10;00:00:00,000 --> 00:00:03,000&#10;مرحباً بكم في فيديونا&#10;&#10;2&#10;00:00:03,500 --> 00:00:06,000&#10;اليوم سنتحدث عن..."
+                  dir="auto"
+                  spellcheck="false"
+                  style="width:100%;min-height:140px;padding:10px;border-radius:6px;background:#1a1a1a;color:#e8e8e8;border:1px solid #333;font-size:.65rem;line-height:1.5;resize:vertical;font-family:ui-monospace,SFMono-Regular,Menlo,monospace"></textarea>
+        <div style="display:flex;justify-content:space-between;font-size:.55rem;color:#888;margin-top:4px">
+          <span>Auto-detects source language (Arabic / English)</span>
+          <span><span id="subCueCount">0</span> cues</span>
+        </div>
+      </div>
+
+      <!-- TARGET LANGUAGE -->
+      <div style="margin-bottom:10px">
+        <label style="display:block;font-size:.6rem;color:#aaa;margin-bottom:4px">Translate to</label>
+        <div style="display:flex;gap:6px">
+          <button id="subTargetAr" type="button" data-lang="ar"
+                  style="flex:1;padding:10px;border-radius:6px;border:1px solid #444;background:#1a1a1a;color:#e8e8e8;font-size:.7rem;cursor:pointer">
+            🇸🇦 العربية
+          </button>
+          <button id="subTargetEn" type="button" data-lang="en"
+                  style="flex:1;padding:10px;border-radius:6px;border:1px solid #444;background:#1a1a1a;color:#e8e8e8;font-size:.7rem;cursor:pointer">
+            🇬🇧 English
+          </button>
+        </div>
+      </div>
+
+      <!-- ACTIONS -->
+      <button id="subTranslateBtn" type="button" disabled
+              style="width:100%;padding:12px;border-radius:6px;border:none;background:#7a3aed;color:#fff;font-size:.85rem;font-weight:600;cursor:pointer;opacity:0.5">
+        ✨ Translate
+      </button>
+
+      <div id="subStatus" style="margin-top:10px;font-size:.65rem;line-height:1.5;color:#aaa;padding:8px;border-radius:4px;background:#1a1a1a;display:none"></div>
+
+      <!-- OUTPUT -->
+      <div id="subOutputWrap" style="display:none;margin-top:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <label style="font-size:.6rem;color:#aaa">Translated SRT</label>
+          <span style="font-size:.55rem;color:#7a3aed" id="subOutMeta"></span>
+        </div>
+        <textarea id="subSrtOutput"
+                  readonly
+                  dir="auto"
+                  style="width:100%;min-height:120px;padding:10px;border-radius:6px;background:#0e0e0e;color:#d0d0d0;border:1px solid #333;font-size:.62rem;line-height:1.5;resize:vertical;font-family:ui-monospace,SFMono-Regular,Menlo,monospace"></textarea>
+        <div style="display:flex;gap:6px;margin-top:8px">
+          <button id="subSaveBtn" type="button"
+                  style="flex:1;padding:10px;border-radius:6px;border:1px solid #7a3aed;background:#7a3aed;color:#fff;font-size:.7rem;cursor:pointer">
+            💾 Save .srt to disk
+          </button>
+          <button id="subCopyBtn" type="button"
+                  style="flex:1;padding:10px;border-radius:6px;border:1px solid #444;background:transparent;color:#e8e8e8;font-size:.7rem;cursor:pointer">
+            📋 Copy
+          </button>
+        </div>
+        <div style="font-size:.55rem;color:#888;margin-top:6px;line-height:1.5">
+          💡 Tip: After saving, drag the .srt file into Premiere's Project panel — it imports as a Captions track automatically.
+        </div>
+      </div>
     </div>
   </div>
 </main>
@@ -387,14 +495,27 @@ function setActiveTab(tab){
   var activePanel = document.querySelector('.pn[data-panel="' + tab + '"]');
   if (activePanel) activePanel.classList.add('vis');
   try {
+    console.log('[setActiveTab] tab=' + tab);
     if (tab === 'videogen') renderVideoGen();
-    if (window._tabRenderers && typeof window._tabRenderers[tab] === 'function') {
-      window._tabRenderers[tab]();
+    if (window._tabRenderers) {
+      console.log('[setActiveTab] _tabRenderers exists, checking for ' + tab);
+      console.log('[setActiveTab] renderer type:', typeof window._tabRenderers[tab]);
+      if (typeof window._tabRenderers[tab] === 'function') {
+        console.log('[setActiveTab] calling renderer for ' + tab);
+        window._tabRenderers[tab]();
+      } else {
+        console.log('[setActiveTab] no renderer for ' + tab);
+      }
+    } else {
+      console.log('[setActiveTab] _tabRenderers not found');
     }
   } catch (error) {
     console.error('[TAB_RENDER_ERROR]', error && (error.stack || error.message || error));
   }
 }
+
+// Initialize _tabRenderers registry early so main.js can populate it
+window._tabRenderers = window._tabRenderers || {};
 
 document.addEventListener('DOMContentLoaded', function(){
   var nav = document.getElementById('epTabs');
@@ -421,18 +542,244 @@ document.addEventListener('DOMContentLoaded', function(){
   }
 
   setActiveTab('chat');
+  setupSubtitlesTab();
 });
+
+// ─────────────────────────────────────────────────────────────────────────
+// SUBTITLES TAB — self-contained inline implementation.
+// Independent of bundle.js so build/patch steps cannot wipe it out.
+// Wires textarea + buttons to /api/panel/generate/translate.
+// ─────────────────────────────────────────────────────────────────────────
+function setupSubtitlesTab() {
+  // ── DOM refs ──────────────────────────────────────────
+  var $in       = document.getElementById('subSrtInput');
+  var $count    = document.getElementById('subCueCount');
+  var $btnAr    = document.getElementById('subTargetAr');
+  var $btnEn    = document.getElementById('subTargetEn');
+  var $btnTrans = document.getElementById('subTranslateBtn');
+  var $status   = document.getElementById('subStatus');
+  var $outWrap  = document.getElementById('subOutputWrap');
+  var $out      = document.getElementById('subSrtOutput');
+  var $outMeta  = document.getElementById('subOutMeta');
+  var $btnSave  = document.getElementById('subSaveBtn');
+  var $btnCopy  = document.getElementById('subCopyBtn');
+  if (!$in || !$btnTrans) { console.warn('[Subtitles] panel not in DOM yet'); return; }
+
+  var targetLang = null;     // 'ar' | 'en'
+  var lastSrt    = null;     // most recent translated SRT string
+
+  // ── SRT parsing ──────────────────────────────────────
+  function parseSrtTime(ts) {
+    var m = String(ts).trim().match(/^(\d{1,2}):(\d{2}):(\d{2})[,.](\d{1,3})$/);
+    if (!m) return 0;
+    return Number(m[1]) * 3600 + Number(m[2]) * 60 + Number(m[3]) + Number(m[4]) / 1000;
+  }
+  function fmtSrtTime(seconds) {
+    var t  = Math.max(0, seconds);
+    var h  = Math.floor(t / 3600);
+    var m  = Math.floor((t % 3600) / 60);
+    var s  = Math.floor(t % 60);
+    var ms = Math.round((t - Math.floor(t)) * 1000);
+    function pad(n, w) { return String(n).padStart(w, '0'); }
+    return pad(h,2) + ':' + pad(m,2) + ':' + pad(s,2) + ',' + pad(ms,3);
+  }
+  function parseSRT(text) {
+    if (!text || typeof text !== 'string') return [];
+    var norm   = text.replace(/\r\n/g, '\n').replace(/^WEBVTT.*$/m, '').trim();
+    var blocks = norm.split(/\n\s*\n/);
+    var cues   = [];
+    var n      = 1;
+    for (var i = 0; i < blocks.length; i++) {
+      var lines = blocks[i].split('\n').map(function(l){return l.trim();}).filter(Boolean);
+      if (!lines.length) continue;
+      var ti = -1, tm = null;
+      for (var j = 0; j < lines.length; j++) {
+        var mm = lines[j].match(/^(\d{1,2}:\d{2}:\d{2}[,.]\d{1,3})\s*-->\s*(\d{1,2}:\d{2}:\d{2}[,.]\d{1,3})/);
+        if (mm) { ti = j; tm = mm; break; }
+      }
+      if (!tm) continue;
+      var s = parseSrtTime(tm[1]), e = parseSrtTime(tm[2]);
+      if (e <= s) continue;
+      var body = lines.slice(ti + 1).join('\n').trim();
+      if (!body) continue;
+      cues.push({ i: n++, startSec: s, endSec: e, text: body });
+    }
+    return cues;
+  }
+  function formatSRT(cues) {
+    return cues.map(function(c, idx){
+      var num = c.i || (idx + 1);
+      return num + '\r\n' + fmtSrtTime(c.startSec) + ' --> ' + fmtSrtTime(c.endSec) +
+             '\r\n' + String(c.text || '').trim() + '\r\n';
+    }).join('\r\n');
+  }
+  function detectLang(cues) {
+    var sample = cues.map(function(c){return c.text || '';}).join(' ');
+    var ar = (sample.match(/[؀-ۿݐ-ݿ]/g) || []).length;
+    var en = (sample.match(/[A-Za-z]/g) || []).length;
+    if (ar === 0 && en === 0) return 'en';
+    return ar / (ar + en) > 0.25 ? 'ar' : 'en';
+  }
+
+  // ── UI state ─────────────────────────────────────────
+  function setStatus(msg, kind) {
+    if (!msg) { $status.style.display = 'none'; return; }
+    var color = kind === 'err' ? '#ff6b6b' : kind === 'ok' ? '#7a3aed' : '#aaa';
+    $status.style.display = 'block';
+    $status.style.color   = color;
+    $status.textContent   = msg;
+  }
+  function updateCueCount() {
+    var n = parseSRT($in.value).length;
+    $count.textContent = String(n);
+    refreshButtonState();
+  }
+  function selectLang(lang) {
+    targetLang = lang;
+    [$btnAr, $btnEn].forEach(function(b){
+      var on = b.dataset.lang === lang;
+      b.style.background = on ? '#7a3aed' : '#1a1a1a';
+      b.style.borderColor = on ? '#7a3aed' : '#444';
+      b.style.color = on ? '#fff' : '#e8e8e8';
+    });
+    refreshButtonState();
+  }
+  function refreshButtonState() {
+    var nCues = parseSRT($in.value).length;
+    var ready = nCues > 0 && targetLang;
+    $btnTrans.disabled = !ready;
+    $btnTrans.style.opacity = ready ? '1' : '0.5';
+    $btnTrans.style.cursor  = ready ? 'pointer' : 'not-allowed';
+  }
+
+  // ── API call ─────────────────────────────────────────
+  function getToken() {
+    try { return localStorage.getItem('ep.token') || ''; } catch (e) { return ''; }
+  }
+  function getSiteUrl() {
+    try {
+      var saved = localStorage.getItem('ep.siteUrl');
+      if (saved && saved.trim()) return saved.replace(/\/+$/, '');
+    } catch (e) {}
+    return 'https://www.saadstudio.app';
+  }
+  async function translate() {
+    var cues = parseSRT($in.value);
+    if (!cues.length) { setStatus('No valid SRT cues found.', 'err'); return; }
+    if (!targetLang)  { setStatus('Pick a target language first.', 'err'); return; }
+    var src = detectLang(cues);
+    if (src === targetLang) {
+      setStatus('Source language is already ' + targetLang.toUpperCase() + '. Pick the other one.', 'err');
+      return;
+    }
+    var token = getToken();
+    if (!token) { setStatus('Not connected. Sign in first from Assistant tab.', 'err'); return; }
+
+    $btnTrans.disabled = true;
+    $btnTrans.style.opacity = '0.5';
+    setStatus('Translating ' + cues.length + ' cues (' + src + ' → ' + targetLang + ')…', '');
+
+    try {
+      var res = await fetch(getSiteUrl() + '/api/panel/generate/translate', {
+        method: 'POST',
+        headers: {
+          'Content-Type':  'application/json; charset=utf-8',
+          'Authorization': 'Bearer ' + token,
+        },
+        body: JSON.stringify({
+          cues: cues.map(function(c){ return { i: c.i, t: c.text }; }),
+          sourceLang: src,
+          targetLang: targetLang,
+        }),
+      });
+      var data = await res.json().catch(function(){ return {}; });
+      if (!res.ok) {
+        var msg = data && data.error ? data.error : ('Server error ' + res.status);
+        if (res.status === 402) {
+          msg = 'Insufficient credits. Required: ' + (data.requiredCredits || '?') +
+                ', balance: ' + (data.currentBalance || 0);
+        }
+        throw new Error(msg);
+      }
+
+      // Re-attach timestamps to translated cues by matching index
+      var byIdx = {};
+      (data.cues || []).forEach(function(c){
+        if (typeof c.i === 'number' && typeof c.t === 'string') byIdx[c.i] = c.t;
+      });
+      var translated = cues.map(function(orig){
+        return {
+          i:        orig.i,
+          startSec: orig.startSec,
+          endSec:   orig.endSec,
+          text:     byIdx[orig.i] || orig.text,
+        };
+      });
+      lastSrt = formatSRT(translated);
+      $out.value = lastSrt;
+      $outWrap.style.display = 'block';
+      $outMeta.textContent = (data.creditsUsed || 0) + ' cr · ' + translated.length + ' cues';
+      var partialMsg = (data.failedBatches && data.failedBatches.length)
+        ? ' (some batches failed: ' + data.failedBatches.join(',') + ')'
+        : '';
+      setStatus('✓ Translation complete' + partialMsg, 'ok');
+    } catch (err) {
+      setStatus('✗ ' + (err && err.message || err), 'err');
+    } finally {
+      refreshButtonState();
+    }
+  }
+
+  // ── Save to disk via UXP file system ─────────────────
+  async function saveSRT() {
+    if (!lastSrt) { setStatus('Nothing to save yet.', 'err'); return; }
+    var defaultName = 'subtitles_' + (targetLang || 'translated') + '.srt';
+    try {
+      var uxp = require('uxp');
+      var fs  = uxp.storage.localFileSystem;
+      var file = await fs.getFileForSaving(defaultName, { types: ['srt', 'vtt', 'txt'] });
+      if (!file) { setStatus('Save cancelled.', ''); return; }
+      await file.write(lastSrt, { format: uxp.storage.formats.utf8 });
+      setStatus('✓ Saved: ' + (file.nativePath || file.name), 'ok');
+    } catch (err) {
+      setStatus('✗ Save failed: ' + (err && err.message || err), 'err');
+    }
+  }
+
+  // ── Copy to clipboard ─────────────────────────────────
+  async function copySRT() {
+    if (!lastSrt) return;
+    try {
+      // UXP exposes navigator.clipboard.writeText in modern builds
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(lastSrt);
+      } else {
+        $out.select();
+        document.execCommand('copy');
+      }
+      setStatus('✓ Copied to clipboard', 'ok');
+    } catch (err) {
+      setStatus('✗ Copy failed: ' + (err && err.message || err), 'err');
+    }
+  }
+
+  // ── Wire ─────────────────────────────────────────────
+  $in.addEventListener('input', updateCueCount);
+  $btnAr.addEventListener('click', function(){ selectLang('ar'); });
+  $btnEn.addEventListener('click', function(){ selectLang('en'); });
+  $btnTrans.addEventListener('click', translate);
+  $btnSave.addEventListener('click', saveSRT);
+  $btnCopy.addEventListener('click', copySRT);
+
+  updateCueCount();
+  console.log('[Subtitles] tab wired');
+}
 </script>
 
-<script type="module">
-import('./main.js').catch(function(err){
-  var debugBanner = document.createElement('div');
-  debugBanner.style.cssText = 'position:absolute;top:0;left:0;right:0;background:rgba(180,0,0,.9);color:#fff;padding:6px 10px;font-size:11px;z-index:9999;word-break:break-all;white-space:pre-wrap';
-  debugBanner.textContent = 'main.js error: ' + (err && err.message || String(err));
-  document.body && document.body.appendChild(debugBanner);
-});
-</script>
+<!-- UXP requires the bundled IIFE — external <script type="module"> is
+     blocked by UXP runtime security. bundle.js is patched in-place when
+     the source modules change; see scripts/patch-bundle.js. -->
+<script src="bundle.js"></script>
 
 </body>
 </html>
-

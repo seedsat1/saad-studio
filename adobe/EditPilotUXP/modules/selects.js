@@ -26,7 +26,11 @@
  * UXP reference: https://ppro.uxp.host
  */
 
-import { validateStorySections } from './timeline.js';
+import {
+  validateStorySections,
+  resolveActiveProject,
+  resolveActiveSequence,
+} from './timeline.js';
 
 // ─────────────────────────────────────────────────────────────
 // CONSTANTS
@@ -114,26 +118,9 @@ function ticksToTickTime(ppro, ticks) {
 }
 
 async function getProjectAndSourceSequence() {
-  const ppro = getPpro();
-
-  let project;
-  try {
-    project = await ppro.app.getActiveProjectAsync();
-  } catch {
-    project = ppro.app.getActiveProject?.();
-  }
-
-  if (!project) {
-    throw new Error('No project is open in Premiere Pro.');
-  }
-
-  const sequence = project.getActiveSequence();
-  if (!sequence) {
-    throw new Error(
-      'No active sequence. Double-click a sequence in the Project panel first.',
-    );
-  }
-
+  // Cross-version safe — handles all UXP Premiere builds (24.x → 26.x).
+  const project  = await resolveActiveProject();
+  const sequence = await resolveActiveSequence();
   return { project, sequence };
 }
 

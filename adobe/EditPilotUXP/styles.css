@@ -809,3 +809,64 @@ input[type=range] {
   font-size:.62rem;color:var(--txm);padding:6px 0;
 }
 .gen-item-err { font-size:.6rem;color:#ff6b6b; }
+
+/* ── STORY CARDS (sections from Story Engine) ──────── */
+.sc-header {
+  display:flex;align-items:center;gap:6px;
+  margin-bottom:4px;
+}
+.sc-num {
+  flex-shrink:0;
+  display:inline-flex;align-items:center;justify-content:center;
+  min-width:18px;height:18px;padding:0 5px;border-radius:9px;
+  background:var(--ac);color:#0a0a0a;
+  font-size:.55rem;font-weight:700;
+  font-variant-numeric:tabular-nums;
+}
+.sc-title {
+  flex:1;min-width:0;
+  font-size:.66rem;font-weight:600;color:var(--vl);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.sc-time {
+  flex-shrink:0;
+  font-size:.54rem;color:var(--ac);
+  font-variant-numeric:tabular-nums;
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+.sc-time span { opacity:.6;margin:0 2px; }
+.sc-apply-btn {
+  flex-shrink:0;
+  width:22px;height:22px;padding:0;
+  background:var(--s3);border:1px solid var(--b1);border-radius:4px;
+  color:var(--ac);font-size:.7rem;line-height:1;cursor:pointer;
+}
+.sc-apply-btn:hover { background:var(--ac);color:#0a0a0a; }
+.sc-reason {
+  font-size:.6rem;color:var(--txm);line-height:1.55;
+}
+.story-empty {
+  padding:14px;text-align:center;
+  font-size:.62rem;color:var(--txd);
+}
+
+/* ── RTL VARIANT (Arabic story sections) ───────────── */
+.story-rtl,
+.story-card-rtl {
+  direction:rtl;
+  text-align:right;
+}
+.story-card-rtl .sc-title,
+.story-card-rtl .sc-reason {
+  /* Arabic uses 'Tahoma' fallback because UXP's default font has poor Arabic glyphs */
+  font-family:'Segoe UI', Tahoma, 'Geeza Pro', 'Arial Unicode MS', sans-serif;
+  line-height:1.7;
+}
+.story-card-rtl .sc-time {
+  /* Time codes stay LTR even inside RTL cards */
+  direction:ltr;unicode-bidi:isolate;
+}
+.story-card-rtl .sc-num {
+  /* Section numbers stay LTR for readability */
+  direction:ltr;unicode-bidi:isolate;
+}

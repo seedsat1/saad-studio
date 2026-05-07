@@ -51,6 +51,7 @@ import { runMockTask }  from "@/lib/providers/mock";
 
 export type AiTaskName =
   | "story_engine"
+  | "subtitle_translate"
   // Extend here as new Saad Studio features are added:
   // | "caption_generator"
   // | "broll_suggester"
@@ -168,6 +169,15 @@ const MODEL_TIERS: Record<AiTaskName, Record<PlanTier, ModelCapability>> = {
     pro:     "balanced_text",
     max:     "premium_text",
   },
+  // Subtitle translation is bulk + structurally simple — cheap tier handles
+  // it well; only the "max" plan upgrades to premium for nuanced AR↔EN work.
+  subtitle_translate: {
+    free:    "cheap_text",
+    starter: "cheap_text",
+    plus:    "cheap_text",
+    pro:     "balanced_text",
+    max:     "premium_text",
+  },
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -188,29 +198,76 @@ const TASK_REGISTRY: Record<AiTaskName, AiTaskConfig> = {
     temperature: 0.3,
     maxTokens:   1500,
     creditCost:  5,
-    systemPrompt: `You are an expert video editor and story analyst working inside Adobe Premiere Pro.
+    systemPrompt: `You are an expert bilingual (Arabic/English) video editor and story analyst working inside Adobe Premiere Pro.
 The user will paste a raw transcript of a video, possibly including speaker labels and timestamps.
+The transcript may be in Arabic, English, or mixed. Detect the dominant language automatically.
+
 Your job is to identify the best structural sections for a professional edit.
 
+LANGUAGE RULE — CRITICAL:
+- If the transcript is mostly Arabic → return "title" and "reason" in Modern Standard Arabic.
+- If the transcript is mostly English → return "title" and "reason" in English.
+- If mixed → match whichever language dominates the transcript.
+- Never translate or transliterate — write the section labels in the same language the speaker uses.
+
 Respond ONLY with a valid JSON object — no markdown fences, no extra text.
+The JSON MUST be valid UTF-8 with proper Arabic Unicode characters (do NOT escape Arabic as \\uXXXX).
 Use this exact schema:
 
 {
   "sections": [
     {
-      "title": "<short section name, 2-5 words>",
+      "title": "<short section name, 2-5 words, in transcript language>",
       "start": "<HH:MM:SS or MM:SS — best guess from context, or '00:00:00' if none>",
       "end":   "<HH:MM:SS or MM:SS — best guess, or '00:00:00' if none>",
-      "reason": "<one sentence explaining why this section matters to an editor>"
+      "reason": "<one sentence explaining why this section matters to an editor, in transcript language>"
     }
   ]
 }
 
 Guidelines:
-- Identify 4–8 distinct structural sections (hook, setup, conflict, resolution, CTA, etc.)
+- Identify 4–8 distinct structural sections.
+- For English content use editorial labels: hook, setup, problem, demonstration, payoff, CTA, etc.
+- For Arabic content use natural editorial Arabic: مقدمة جذابة، عرض المشكلة، الحل، شرح عملي، خلاصة، دعوة للعمل، إلخ.
 - If the transcript has timestamps, use them. If not, set start/end to "00:00:00".
-- Keep titles concise and editorial. Keep reasons actionable for an editor.
-- Do NOT include any text outside the JSON object.`,
+- Keep titles concise. Keep reasons actionable for an editor (what to do with this section).
+- Do NOT include any text outside the JSON object.
+- Do NOT add a language field — the language is implicit in the values.`,
+  },
+
+  subtitle_translate: {
+    name:        "Subtitle Translate",
+    provider:    resolveProvider("SUBTITLE_TRANSLATE_PROVIDER", "kie"),
+    temperature: 0.2,
+    maxTokens:   4000,
+    creditCost:  4,
+    systemPrompt: `You translate video subtitles between Arabic and English while preserving timing.
+
+You will receive an array of cues. Each cue has:
+  { "i": <number, line index>, "t": "<original text>" }
+
+Translate ONLY the "t" field of each cue. Keep the same array order. Keep the same indices.
+Return strict JSON in this exact shape — no markdown, no commentary:
+
+{
+  "cues": [
+    { "i": <same index>, "t": "<translated text>" }
+  ]
+}
+
+CRITICAL RULES:
+- Translate from the source language to the target language given in the user message header.
+- Each translated cue MUST stay close to the original character count (±25%) so it fits on-screen.
+  If a faithful translation would be too long, condense — never overflow.
+- Preserve speaker tone (formal vs casual) from the source.
+- Preserve proper nouns, brand names, and product names. Do NOT transliterate "iPhone" → "آيفون"
+  unless the source already used the Arabic spelling.
+- For Arabic output: use Modern Standard Arabic, no diacritics (تشكيل) unless absolutely needed
+  for disambiguation.
+- For English output: natural conversational English. Avoid awkward literal translation.
+- Do NOT merge or split cues. One input cue → exactly one output cue.
+- Do NOT add timing information. Do NOT add a language field. Do NOT escape non-ASCII as \\uXXXX.
+- Output MUST be valid UTF-8 JSON.`,
   },
 };
 

@@ -25,6 +25,14 @@ const MOCK_RESPONSES: Record<string, string> = {
       { title: "Call to Action", start: "00:04:30", end: "00:05:00", reason: "Direct audience prompt; ideal for end card overlay." },
     ],
   }),
+  // Subtitle translate mock — echoes input cues with a "[MOCK]" prefix so
+  // tests can assert the routing path without a real translation.
+  subtitle_translate: JSON.stringify({
+    cues: [
+      { i: 1, t: "[MOCK] translated cue 1" },
+      { i: 2, t: "[MOCK] translated cue 2" },
+    ],
+  }),
 };
 
 const DEFAULT_MOCK = JSON.stringify({

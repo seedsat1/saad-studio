@@ -76,25 +76,82 @@ function getPpro() {
 }
 
 /**
- * Get the active sequence from the current project.
- * @returns {Promise<object>} Premiere Pro Sequence object
+ * Resolve the active project across all known UXP API surfaces.
+ *
+ * The Premiere UXP API has evolved across versions — some builds expose
+ * `ppro.Project.getActiveProject()` (modern), some `ppro.app.getActiveProjectAsync()`,
+ * and older builds only `ppro.app.getActiveProject()`. We try them in order
+ * so the plugin works on Premiere 24.x → 26.x without forks.
+ *
+ * @returns {Promise<object>} Premiere Pro Project object
  */
-async function getActiveSequence() {
+export async function resolveActiveProject() {
   const ppro = getPpro();
 
-  let project;
+  // 1. Modern static method on Project class (Premiere 25+)
+  if (ppro.Project && typeof ppro.Project.getActiveProject === 'function') {
+    try {
+      const p = await ppro.Project.getActiveProject();
+      if (p) return p;
+    } catch (err) {
+      console.warn('[timeline] ppro.Project.getActiveProject failed:', err?.message);
+    }
+  }
+
+  // 2. Async method on app singleton (Premiere 24.x)
+  if (ppro.app && typeof ppro.app.getActiveProjectAsync === 'function') {
+    try {
+      const p = await ppro.app.getActiveProjectAsync();
+      if (p) return p;
+    } catch (err) {
+      console.warn('[timeline] ppro.app.getActiveProjectAsync failed:', err?.message);
+    }
+  }
+
+  // 3. Sync method on app singleton (older builds)
+  if (ppro.app && typeof ppro.app.getActiveProject === 'function') {
+    try {
+      const p = ppro.app.getActiveProject();
+      if (p) return p;
+    } catch (err) {
+      console.warn('[timeline] ppro.app.getActiveProject failed:', err?.message);
+    }
+  }
+
+  throw new Error(
+    'No Premiere Pro project is open. Please open a project first.',
+  );
+}
+
+/**
+ * Resolve the active sequence on the active project.
+ * Tries both async and sync sequence accessors for cross-version safety.
+ *
+ * @returns {Promise<object>} Premiere Pro Sequence object
+ */
+export async function resolveActiveSequence() {
+  const project = await resolveActiveProject();
+
+  // Modern: getActiveSequence may return a promise on newer builds
+  let sequence;
   try {
-    project = await ppro.app.getActiveProjectAsync();
-  } catch {
-    // Some UXP versions expose it synchronously
-    project = ppro.app.getActiveProject?.();
+    if (typeof project.getActiveSequence === 'function') {
+      const result = project.getActiveSequence();
+      sequence = (result && typeof result.then === 'function') ? await result : result;
+    }
+  } catch (err) {
+    console.warn('[timeline] project.getActiveSequence failed:', err?.message);
   }
 
-  if (!project) {
-    throw new Error('No Premiere Pro project is open. Please open a project first.');
+  // Fallback: getActiveSequenceAsync
+  if (!sequence && typeof project.getActiveSequenceAsync === 'function') {
+    try {
+      sequence = await project.getActiveSequenceAsync();
+    } catch (err) {
+      console.warn('[timeline] project.getActiveSequenceAsync failed:', err?.message);
+    }
   }
 
-  const sequence = project.getActiveSequence();
   if (!sequence) {
     throw new Error(
       'No active sequence. Please double-click a sequence in the Project panel to open it.',
@@ -102,6 +159,28 @@ async function getActiveSequence() {
   }
 
   return sequence;
+}
+
+/**
+ * Get the active sequence from the current project.
+ * Convenience wrapper kept for backward compatibility with existing callers.
+ * @returns {Promise<object>} Premiere Pro Sequence object
+ */
+async function getActiveSequence() {
+  return resolveActiveSequence();
+}
+
+function executeProjectAction(project, action, label) {
+  const run = () => project.executeTransaction((compoundAction) => {
+    const added = compoundAction.addAction(action);
+    console.log('[timeline] compoundAction.addAction:', added, label);
+  });
+
+  if (typeof project.lockedAccess === 'function') {
+    return project.lockedAccess(run);
+  }
+
+  return run();
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -129,20 +208,123 @@ export async function applySectionToTimeline(section) {
   const endSec   = timeToSeconds(section.end);
 
   const startTicks = secondsToTicks(startSec);
-  // Ensure at least 1-second duration so the marker is visible
   const endTicks   = endSec > startSec
     ? secondsToTicks(endSec)
     : secondsToTicks(startSec + 1);
 
   const sequence = await getActiveSequence();
+  const name     = (section.title  || '').slice(0, 100);
+  const comments = (section.reason || '').slice(0, 500);
+  const ppro     = getPpro();
 
-  // Premiere Pro UXP Markers API
-  // Docs: https://ppro.uxp.host/api/objects/markers/
-  const marker = sequence.markers.createMarker(startTicks);
-  marker.name     = (section.title  || '').slice(0, 100);
-  marker.comments = (section.reason || '').slice(0, 500);
-  marker.end      = endTicks;
-  // marker.type defaults to COMMENT (0) — safe, non-destructive
+  console.log('[applySectionToTimeline] ═══════════════════════════════════');
+  console.log('[applySectionToTimeline] Section:', { name, startSec, endSec, startTicks, endTicks });
+  console.log('[applySectionToTimeline] Sequence name:', sequence?.name);
+  console.log('[applySectionToTimeline] Sequence.markers exists?', !!sequence?.markers);
+  console.log('[applySectionToTimeline] Sequence.getMarkers exists?', typeof sequence?.getMarkers);
+  console.log('[applySectionToTimeline] ppro.Markers exists?', !!ppro.Markers);
+
+  if (sequence?.markers) {
+    console.log('[applySectionToTimeline] sequence.markers methods:', Object.getOwnPropertyNames(sequence.markers));
+  }
+
+  // Try Path 1: Modern transactional API (Premiere 26+)
+  try {
+    if (ppro.Markers && typeof ppro.Markers.getMarkers === 'function') {
+      console.log('[applySectionToTimeline] Trying Path 1: Modern transactional API');
+      const markers = await ppro.Markers.getMarkers(sequence);
+      const project = await resolveActiveProject();
+
+      if (markers && typeof markers.createAddMarkerAction === 'function') {
+        let TickTimeCtor = null;
+        if (!ppro.TickTime?.createWithTicks) {
+          const endTime = await sequence.getEndTime();
+          TickTimeCtor = endTime?.constructor;
+          if (!TickTimeCtor) {
+            throw new Error('Could not get TickTime constructor');
+          }
+        }
+
+        const startTT = ppro.TickTime?.createWithTicks
+          ? ppro.TickTime.createWithTicks(String(startTicks))
+          : new TickTimeCtor(String(startTicks));
+        const durTT = ppro.TickTime?.createWithTicks
+          ? ppro.TickTime.createWithTicks(String(endTicks - startTicks))
+          : new TickTimeCtor(String(endTicks - startTicks));
+        const markerType = ppro.Marker?.MARKER_TYPE_COMMENT || 'Comment';
+
+        console.log('[applySectionToTimeline] Created TickTime objects');
+
+        // Premiere Pro UXP 25+ signature:
+        // createAddMarkerAction(Name, markerType, startTime, duration, comments)
+        let action;
+        const signatures = [
+          () => markers.createAddMarkerAction(name, markerType, startTT, durTT, comments),
+        ];
+
+        for (const sig of signatures) {
+          try {
+            action = sig();
+            if (action) {
+              console.log('[applySectionToTimeline] Got action with signature');
+              break;
+            }
+          } catch (e) {
+            console.log('[applySectionToTimeline] Signature failed:', e?.message);
+          }
+        }
+
+        if (!action) {
+          throw new Error('All createAddMarkerAction signatures failed');
+        }
+
+        await executeProjectAction(project, action, `EditPilot: ${name}`);
+
+        console.log('[applySectionToTimeline] SUCCESS via Path 1');
+        return;
+      }
+    }
+  } catch (err) {
+    console.warn('[applySectionToTimeline] Path 1 failed:', err?.message);
+  }
+
+  // Try Path 2: Legacy sync API (Premiere 24.x)
+  try {
+    if (sequence.markers && typeof sequence.markers.createMarker === 'function') {
+      console.log('[applySectionToTimeline] Trying Path 2: Legacy sync API');
+      const marker = sequence.markers.createMarker(startTicks);
+      marker.name     = name;
+      marker.comments = comments;
+      marker.end      = endTicks;
+      console.log('[applySectionToTimeline] SUCCESS via Path 2');
+      return;
+    }
+  } catch (err) {
+    console.warn('[applySectionToTimeline] Path 2 failed:', err?.message);
+  }
+
+  // Try Path 3: Direct sequence.getMarkers() (fallback)
+  try {
+    if (typeof sequence.getMarkers === 'function') {
+      console.log('[applySectionToTimeline] Trying Path 3: sequence.getMarkers()');
+      const markers = await sequence.getMarkers();
+      if (markers && typeof markers.createMarker === 'function') {
+        const marker = await markers.createMarker(startTicks);
+        if (marker) {
+          try { marker.name = name; } catch (e) { console.warn('Could not set marker.name:', e?.message); }
+          try { marker.comments = comments; } catch (e) { console.warn('Could not set marker.comments:', e?.message); }
+          try { marker.end = endTicks; } catch (e) { console.warn('Could not set marker.end:', e?.message); }
+          console.log('[applySectionToTimeline] SUCCESS via Path 3');
+          return;
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('[applySectionToTimeline] Path 3 failed:', err?.message);
+  }
+
+  // All paths failed
+  throw new Error('No supported markers API found. Please ensure Premiere Pro 24.0+ is running with a sequence open.');
 }
 
 // ─────────────────────────────────────────────────────────────
