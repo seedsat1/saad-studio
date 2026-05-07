@@ -647,23 +647,189 @@ function setupSequenceTranscriptReader() {
     return '';
   }
 
+  // Pull text segments out of a Transcript object regardless of which
+  // accessor name this Premiere build uses.
+  function extractTranscriptSegments(transcript) {
+    var probes = [
+      function(){ return transcript.getSegments && transcript.getSegments(); },
+      function(){ return transcript.getTextSegments && transcript.getTextSegments(); },
+      function(){ return transcript.segments; },
+      function(){ return transcript.textSegments; },
+      function(){ return Array.isArray(transcript) ? transcript : null; },
+    ];
+    for (var i = 0; i < probes.length; i++) {
+      try {
+        var v = probes[i]();
+        if (v && v.length != null && v.length > 0) return v;
+      } catch (e) {}
+    }
+    return null;
+  }
+  async function extractTranscriptSegmentsAsync(transcript) {
+    var probes = [
+      function(){ return transcript.getSegmentsAsync && transcript.getSegmentsAsync(); },
+      function(){ return transcript.getTextSegmentsAsync && transcript.getTextSegmentsAsync(); },
+    ];
+    for (var i = 0; i < probes.length; i++) {
+      try {
+        var v = await probes[i]();
+        if (v && v.length != null && v.length > 0) return v;
+      } catch (e) {}
+    }
+    return null;
+  }
+
+  // Pull (text, startSec, endSec) from a transcript segment regardless of
+  // which field/method names this Premiere build uses.
+  async function readSegmentFields(seg) {
+    var text = '';
+    var startSec = 0, endSec = 0;
+
+    var textProbes = [
+      function(){ return seg.getText && seg.getText(); },
+      function(){ return seg.text; },
+      function(){ return seg.content; },
+      function(){ return seg.value; },
+    ];
+    for (var i = 0; i < textProbes.length; i++) {
+      try {
+        var v = textProbes[i]();
+        if (v && typeof v.then === 'function') v = await v;
+        if (typeof v === 'string' && v.trim()) { text = v.trim(); break; }
+      } catch (e) {}
+    }
+
+    var startProbes = [
+      function(){ return seg.getStart && seg.getStart(); },
+      function(){ return seg.getStartTime && seg.getStartTime(); },
+      function(){ return seg.start; },
+      function(){ return seg.startTime; },
+    ];
+    for (var j = 0; j < startProbes.length; j++) {
+      try {
+        var s = startProbes[j]();
+        if (s && typeof s.then === 'function') s = await s;
+        if (s != null) {
+          if (typeof s === 'number') { startSec = s; break; }
+          if (s.ticks != null)        { startSec = Number(s.ticks) / TICKS_PER_SECOND; break; }
+          if (s.seconds != null)      { startSec = Number(s.seconds); break; }
+        }
+      } catch (e) {}
+    }
+
+    var endProbes = [
+      function(){ return seg.getEnd && seg.getEnd(); },
+      function(){ return seg.getEndTime && seg.getEndTime(); },
+      function(){ return seg.end; },
+      function(){ return seg.endTime; },
+    ];
+    for (var k = 0; k < endProbes.length; k++) {
+      try {
+        var e = endProbes[k]();
+        if (e && typeof e.then === 'function') e = await e;
+        if (e != null) {
+          if (typeof e === 'number') { endSec = e; break; }
+          if (e.ticks != null)        { endSec = Number(e.ticks) / TICKS_PER_SECOND; break; }
+          if (e.seconds != null)      { endSec = Number(e.seconds); break; }
+        }
+      } catch (err) {}
+    }
+
+    return { text: text, startSec: startSec, endSec: endSec };
+  }
+
+  // Try ppro.Transcript / sequence.getTranscript / project.getTranscript
+  // surfaces. Returns array of {startSec, endSec, text} or [].
+  async function readTranscriptFromSequence(seq, project, ppro) {
+    // Diagnostic — prints once per session
+    if (!readTranscriptFromSequence.__diagged) {
+      readTranscriptFromSequence.__diagged = true;
+      console.log('[SeqRead DIAG] ppro.Transcript:', ppro.Transcript);
+      if (ppro.Transcript) {
+        var keys = [];
+        try { keys = Object.getOwnPropertyNames(ppro.Transcript); } catch(e){}
+        console.log('[SeqRead DIAG] ppro.Transcript static keys:', keys);
+      }
+      console.log('[SeqRead DIAG] seq.getTranscript exists?', typeof seq.getTranscript);
+      console.log('[SeqRead DIAG] project.getTranscript exists?', typeof project.getTranscript);
+    }
+
+    var transcript = null;
+
+    // Pattern 1: ppro.Transcript.<staticGetter>(seq)
+    if (ppro.Transcript) {
+      var staticFns = ['getTranscript', 'fromSequence', 'of', 'for', 'forSequence', 'create'];
+      for (var i = 0; i < staticFns.length; i++) {
+        if (typeof ppro.Transcript[staticFns[i]] === 'function') {
+          try {
+            var r = ppro.Transcript[staticFns[i]](seq);
+            r = (r && typeof r.then === 'function') ? await r : r;
+            if (r) {
+              console.log('[SeqRead DIAG] transcript via ppro.Transcript.' + staticFns[i]);
+              transcript = r;
+              break;
+            }
+          } catch (e) {
+            console.log('[SeqRead DIAG] ppro.Transcript.' + staticFns[i] + ' failed:', e && e.message);
+          }
+        }
+      }
+    }
+
+    // Pattern 2: sequence.getTranscript()
+    if (!transcript && typeof seq.getTranscript === 'function') {
+      try {
+        var r2 = seq.getTranscript();
+        r2 = (r2 && typeof r2.then === 'function') ? await r2 : r2;
+        if (r2) { console.log('[SeqRead DIAG] transcript via seq.getTranscript()'); transcript = r2; }
+      } catch (e) {}
+    }
+
+    // Pattern 3: project.getTranscript(seq)
+    if (!transcript && typeof project.getTranscript === 'function') {
+      try {
+        var r3 = project.getTranscript(seq);
+        r3 = (r3 && typeof r3.then === 'function') ? await r3 : r3;
+        if (r3) { console.log('[SeqRead DIAG] transcript via project.getTranscript(seq)'); transcript = r3; }
+      } catch (e) {}
+    }
+
+    if (!transcript) return [];
+
+    // Dump methods on the transcript object once
+    try {
+      var tKeys = Object.getOwnPropertyNames(Object.getPrototypeOf(transcript) || {});
+      console.log('[SeqRead DIAG] transcript proto keys:', tKeys);
+    } catch (e) {}
+
+    var segs = extractTranscriptSegments(transcript) || await extractTranscriptSegmentsAsync(transcript);
+    if (!segs || segs.length === 0) {
+      console.log('[SeqRead DIAG] transcript has no segments via known accessors');
+      return [];
+    }
+    console.log('[SeqRead DIAG] segment count:', segs.length);
+
+    var lines = [];
+    for (var s = 0; s < segs.length; s++) {
+      var f = await readSegmentFields(segs[s]);
+      if (f.text) lines.push(f);
+    }
+    return lines;
+  }
+
   // Read all caption tracks → list of {startSec, endSec, text}
   async function readCaptionsFromSequence(seq, ppro) {
     var lines = [];
 
     if (typeof seq.getCaptionTrackCount !== 'function') {
-      throw new Error('This Premiere version does not expose getCaptionTrackCount on Sequence.');
+      console.log('[SeqRead] no caption track API on this sequence');
+      return [];
     }
 
     var trackCount = await seq.getCaptionTrackCount();
     console.log('[SeqRead] caption track count:', trackCount);
 
-    if (!trackCount || trackCount === 0) {
-      throw new Error(
-        'لا توجد قنوات Captions في الـ sequence. ' +
-        'افتح Window → Text → Captions → Transcribe Sequence أولاً، أو أنشئ Captions track من الـ transcript.'
-      );
-    }
+    if (!trackCount || trackCount === 0) return [];
 
     var CLIP_TYPE = (ppro.Constants && ppro.Constants.TrackItemType && ppro.Constants.TrackItemType.CLIP) || 1;
 
@@ -734,9 +900,22 @@ function setupSequenceTranscriptReader() {
       var seq     = await resolveSequence(project);
       var seqName = (typeof seq.name === 'string' && seq.name) || 'sequence';
 
-      var lines = await readCaptionsFromSequence(seq, ppro);
+      // 1. Try Transcript API (works even before user converts to captions)
+      var lines = await readTranscriptFromSequence(seq, project, ppro);
+      var source = 'Transcript';
+
+      // 2. Fall back to Captions
       if (!lines.length) {
-        setStatus('قرأ الـ caption tracks لكنها فاضية. هل عملت Transcribe Sequence من Premiere؟', 'err');
+        lines = await readCaptionsFromSequence(seq, ppro);
+        source = 'Captions';
+      }
+
+      if (!lines.length) {
+        setStatus(
+          'لم يُعثر على transcript أو caption track. ' +
+          'في Premiere افتح Window → Text → Transcript واضغط Transcribe Sequence.',
+          'err'
+        );
         return;
       }
 
@@ -748,7 +927,7 @@ function setupSequenceTranscriptReader() {
       $textarea.dispatchEvent(ev);
 
       setStatus(
-        '✓ قرأ ' + lines.length + ' سطر من "' + seqName + '" (' +
+        '✓ قرأ ' + lines.length + ' سطر من ' + source + ' في "' + seqName + '" (' +
         Math.round(transcript.length / 1000 * 10) / 10 + 'k chars)',
         'ok'
       );
