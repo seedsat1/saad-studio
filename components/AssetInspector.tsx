@@ -774,9 +774,15 @@ export function AssetInspector({ asset, onClose }: AssetInspectorProps) {
   const primary = actions.find((a) => a.isPrimary)!;
   const secondary = actions.filter((a) => !a.isPrimary);
   const [copied, setCopied] = useState(false);
+  const [promptExpanded, setPromptExpanded] = useState(false);
   const [activeAction, setActiveAction] = useState<string | null>(null);
   const [processedUrl, setProcessedUrl] = useState<string | null>(null);
   const [actionStatus, setActionStatus] = useState<{ message: string; ok: boolean } | null>(null);
+  const promptText =
+    asset.prompt ??
+    "A cinematic ultra-detailed shot, volumetric lighting, photorealistic render, 8K resolution, dramatic shadows.";
+  const shortPrompt = promptText.length > 220 ? `${promptText.slice(0, 220).trim()}...` : promptText;
+  const canExpandPrompt = promptText.length > 220;
 
   // The effective URL used for operations (may be replaced by processed result)
   const effectiveUrl = processedUrl ?? asset.url;
@@ -1053,22 +1059,31 @@ export function AssetInspector({ asset, onClose }: AssetInspectorProps) {
 
             {/* ── Section 1: Prompt Details */}
             <InspectorSection title="Prompt Details" icon={Sparkles}>
-              <p className="text-[12px] leading-relaxed text-zinc-300 select-all">
-                {asset.prompt ??
-                  "A cinematic ultra-detailed shot, volumetric lighting, photorealistic render, 8K resolution, dramatic shadows."}
+              <p className="text-[12px] leading-relaxed text-zinc-300">
+                {promptExpanded ? promptText : shortPrompt}
               </p>
-              <button
-                onClick={handleCopyPrompt}
-                className={cn(
-                  "mt-2.5 flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[10px] font-semibold transition-all ring-1",
-                  copied
-                    ? "bg-emerald-500/15 text-emerald-300 ring-emerald-500/30"
-                    : "bg-white/5 text-zinc-400 ring-white/10 hover:bg-white/10 hover:text-zinc-200"
-                )}
-              >
-                <Copy className="h-3 w-3" />
-                {copied ? "Copied!" : "Copy Prompt"}
-              </button>
+              <div className="mt-2.5 flex flex-wrap items-center gap-2">
+                {canExpandPrompt ? (
+                  <button
+                    onClick={() => setPromptExpanded((value) => !value)}
+                    className="rounded-lg bg-white/5 px-2.5 py-1.5 text-[10px] font-semibold text-zinc-300 ring-1 ring-white/10 transition hover:bg-white/10 hover:text-white"
+                  >
+                    {promptExpanded ? "Show less" : "Show full"}
+                  </button>
+                ) : null}
+                <button
+                  onClick={handleCopyPrompt}
+                  className={cn(
+                    "flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[10px] font-semibold transition-all ring-1",
+                    copied
+                      ? "bg-emerald-500/15 text-emerald-300 ring-emerald-500/30"
+                      : "bg-white/5 text-zinc-400 ring-white/10 hover:bg-white/10 hover:text-zinc-200"
+                  )}
+                >
+                  <Copy className="h-3 w-3" />
+                  {copied ? "Copied!" : "Copy Prompt"}
+                </button>
+              </div>
             </InspectorSection>
 
             {/* ── Section 2: Model Info */}
