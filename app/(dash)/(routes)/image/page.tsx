@@ -576,85 +576,40 @@ function ResultGrid({ items, onInspect, onRemix, onUse, onDelete, onBulkDelete }
 
   if (!items.length) return <div className="flex h-full items-center justify-center text-sm text-zinc-500">Start generating to see results.</div>;
 
-  // Sort items by aspect ratio for better sequential display
-  const sortedItems = [...items].sort((a, b) => {
-    const ratioToNum = (r: string): number => {
-      const [w, h] = r.split(':').map(Number);
-      return w / h;
-    };
-    return ratioToNum(a.aspect) - ratioToNum(b.aspect);
-  });
-
   return (
     <>
       <style>{`
         .result-masonry {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-          gap: 8px;
+          column-count: auto;
+          column-width: 260px;
+          column-gap: 8px;
           width: 100%;
-          max-width: 1200px;
-          grid-auto-rows: 140px;
-          grid-auto-flow: dense;
-          margin: 0 auto;
+          max-width: none;
+          margin: 0;
         }
-        
-        /* Wide images: slightly wider but not too much */
-        .result-masonry > div[data-ratio="16:9"],
-        .result-masonry > div[data-ratio="3:2"] {
-          grid-column: span 1;
-          grid-row: span 1;
+
+        .result-card {
+          display: inline-block;
+          width: 100%;
+          break-inside: avoid;
+          margin: 0 0 8px;
         }
-        
-        /* Ultra-wide: only span 2 if needed */
-        .result-masonry > div[data-ratio="21:9"] {
-          grid-column: span 1;
-          grid-row: span 1;
-        }
-        
-        /* Tall images: slightly taller but balanced */
-        .result-masonry > div[data-ratio="9:16"],
-        .result-masonry > div[data-ratio="3:4"] {
-          grid-column: span 1;
-          grid-row: span 1;
-        }
-        
-        /* Square images: normal size */
-        .result-masonry > div[data-ratio="1:1"],
-        .result-masonry > div[data-ratio="4:3"] {
-          grid-column: span 1;
-          grid-row: span 1;
-        }
-        
+
         @media (max-width: 1280px) {
           .result-masonry {
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-            grid-auto-rows: 120px;
+            column-width: 230px;
           }
         }
-        
+
         @media (max-width: 860px) {
           .result-masonry {
-            grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-            grid-auto-rows: 110px;
+            column-width: 180px;
           }
         }
-        
+
         @media (max-width: 480px) {
           .result-masonry {
-            grid-template-columns: repeat(3, 1fr);
-            grid-auto-rows: 100px;
-          }
-          
-          .result-masonry > div[data-ratio="16:9"],
-          .result-masonry > div[data-ratio="21:9"],
-          .result-masonry > div[data-ratio="3:2"] {
-            grid-column: span 1;
-          }
-          
-          .result-masonry > div[data-ratio="9:16"],
-          .result-masonry > div[data-ratio="3:4"] {
-            grid-row: span 1;
+            column-width: 100%;
           }
         }
       `}</style>
@@ -696,7 +651,7 @@ function ResultGrid({ items, onInspect, onRemix, onUse, onDelete, onBulkDelete }
 
       <div className="result-masonry w-full">
         <AnimatePresence>
-          {sortedItems.map((item) => {
+          {items.map((item) => {
             const isSelected = selectedIds.has(item.id);
             return (
             <motion.div
@@ -706,11 +661,11 @@ function ResultGrid({ items, onInspect, onRemix, onUse, onDelete, onBulkDelete }
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ duration: 0.2 }}
               className={cn(
-                "group relative cursor-pointer overflow-hidden rounded-2xl ring-1 transition",
+                "result-card group relative cursor-pointer overflow-hidden rounded-lg border border-black/80 bg-black ring-1 transition",
                 isSelected ? "ring-2 ring-pink-400/70" : "ring-white/10",
               )}
               data-ratio={item.aspect}
-              style={{ aspectRatio: ratioCss(item.aspect) }}
+              style={item.isPending ? { aspectRatio: ratioCss(item.aspect) } : undefined}
               onClick={() => {
                 if (item.isPending) return;
                 if (selectionMode) { toggleSelected(item.id); return; }
@@ -731,7 +686,7 @@ function ResultGrid({ items, onInspect, onRemix, onUse, onDelete, onBulkDelete }
                   </div>
                 </div>
               ) : (
-                <img src={item.url} alt={item.prompt} className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.04]" />
+                <img src={item.url} alt={item.prompt} className="block h-auto w-full transition duration-300 group-hover:scale-[1.015]" />
               )}
 
               {/* Selection checkbox */}
