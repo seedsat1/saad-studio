@@ -63,17 +63,20 @@ function PreviewVideo({
   title,
   className,
   onDuration,
+  shouldPlay = false,
 }: {
   videoUrl: string;
   posterUrl?: string | null;
   title: string;
   className?: string;
   onDuration?: (seconds: number) => void;
+  shouldPlay?: boolean;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [playing, setPlaying] = useState(false);
+  const [frameReady, setFrameReady] = useState(false);
 
-  const play = async () => {
+  const play = useCallback(async () => {
     if (!videoRef.current) return;
     setPlaying(true);
     try {
@@ -82,16 +85,32 @@ function PreviewVideo({
     } catch {
       setPlaying(false);
     }
-  };
+  }, []);
 
-  const pause = () => {
+  const pause = useCallback(() => {
     setPlaying(false);
     videoRef.current?.pause();
-  };
+  }, []);
+
+  useEffect(() => {
+    const el = videoRef.current;
+    if (!el) return;
+    if (typeof window !== "undefined") {
+      const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+      if (reduceMotion) return;
+    }
+    if (shouldPlay) {
+      void play();
+    } else {
+      pause();
+      try {
+        el.currentTime = 0.05;
+      } catch {}
+    }
+  }, [pause, play, shouldPlay, videoUrl]);
 
   return (
-    <div className={cn("relative h-full w-full overflow-hidden", className)} onMouseEnter={() => void play()} onMouseLeave={pause}>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
+    <div className={cn("relative h-full w-full overflow-hidden", className)}>
       {posterUrl ? (
         <img
           src={posterUrl}
@@ -99,7 +118,12 @@ function PreviewVideo({
           className={cn("absolute inset-0 h-full w-full object-cover transition duration-700", playing ? "scale-110 opacity-0" : "scale-100 opacity-100")}
         />
       ) : (
-        <div className={cn("absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(34,211,238,0.22),transparent_35%),radial-gradient(circle_at_70%_10%,rgba(236,72,153,0.16),transparent_30%),linear-gradient(135deg,#050812,#070b18_45%,#111827)] transition duration-700", playing ? "scale-110 opacity-0" : "scale-100 opacity-100")} />
+        <div
+          className={cn(
+            "absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(34,211,238,0.22),transparent_35%),radial-gradient(circle_at_70%_10%,rgba(236,72,153,0.16),transparent_30%),linear-gradient(135deg,#050812,#070b18_45%,#111827)] transition duration-700",
+            playing || frameReady ? "scale-110 opacity-0" : "scale-100 opacity-100",
+          )}
+        />
       )}
       <video
         ref={videoRef}
@@ -111,8 +135,15 @@ function PreviewVideo({
         onLoadedMetadata={(event) => {
           const duration = (event.currentTarget as HTMLVideoElement).duration;
           if (Number.isFinite(duration) && duration > 0) onDuration?.(duration);
+          try {
+            (event.currentTarget as HTMLVideoElement).currentTime = 0.05;
+          } catch {}
         }}
-        className={cn("absolute inset-0 h-full w-full object-cover transition duration-700", playing ? "scale-100 opacity-100" : "scale-110 opacity-0")}
+        onLoadedData={() => setFrameReady(true)}
+        className={cn(
+          "absolute inset-0 h-full w-full object-cover transition duration-700",
+          playing || (!posterUrl && frameReady) ? "scale-100 opacity-100" : "scale-110 opacity-0",
+        )}
       />
     </div>
   );
@@ -179,13 +210,45 @@ function toMediaCardItemFromCommunity(item: CommunityFeedItem): MediaCardItem {
   };
 }
 
-function ReelCard({ item, size = "normal" }: { item: MediaCardItem; size?: "wide" | "tall" | "normal" }) {
+function ReelCard({
+  item,
+  size = "normal",
+  autoplayKey,
+  onAutoplayRequest,
+}: {
+  item: MediaCardItem;
+  size?: "wide" | "tall" | "normal";
+  autoplayKey: string | null;
+  onAutoplayRequest: (key: string) => void;
+}) {
   const [durationSec, setDurationSec] = useState<number | null>(null);
+  const [hovered, setHovered] = useState(false);
+  const [inView, setInView] = useState(false);
+  const cardRef = useRef<HTMLElement | null>(null);
 
   const likeItem = async () => {
     if (item.kind !== "showcase") return;
     await fetch(`/api/showcase/${item.id}`, { method: "PATCH" });
   };
+
+  useEffect(() => {
+    if (item.type !== "video" || !item.videoUrl) return;
+    const node = cardRef.current;
+    if (!node) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const first = entries[0];
+        const visible = Boolean(first?.isIntersecting);
+        setInView(visible);
+        if (visible) onAutoplayRequest(item.key);
+      },
+      { threshold: 0.35, rootMargin: "220px 0px" },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [item.key, item.type, item.videoUrl, onAutoplayRequest]);
+
+  const shouldPlay = item.type === "video" && Boolean(item.videoUrl) && (hovered || (inView && autoplayKey === item.key));
 
   return (
     <motion.article
@@ -198,6 +261,11 @@ function ReelCard({ item, size = "normal" }: { item: MediaCardItem; size?: "wide
         "group relative mb-5 break-inside-avoid overflow-hidden rounded-[1.35rem] border border-white/10 bg-white/[0.04] shadow-2xl shadow-black/30 transition",
         size === "wide" && "lg:col-span-2",
       )}
+      ref={(node) => {
+        cardRef.current = node;
+      }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
     >
       <div className={cn("relative", size === "wide" ? "aspect-[16/9]" : size === "tall" ? "aspect-[3/4]" : "aspect-[4/5]")}>
         {item.type === "video" && item.videoUrl ? (
@@ -206,6 +274,7 @@ function ReelCard({ item, size = "normal" }: { item: MediaCardItem; size?: "wide
             posterUrl={item.thumbnailUrl}
             title={item.title}
             onDuration={setDurationSec}
+            shouldPlay={shouldPlay}
           />
         ) : item.imageUrl ? (
           <img src={item.imageUrl} alt={item.title} className="absolute inset-0 h-full w-full object-cover" loading="lazy" />
@@ -277,6 +346,7 @@ export default function ExplorePage() {
   const [community, setCommunity] = useState<CommunityFeedItem[]>([]);
   const [communityCursor, setCommunityCursor] = useState<string | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [autoplayKey, setAutoplayKey] = useState<string | null>(null);
   const [activeFeed, setActiveFeed] = useState<"latest" | "featured" | "trending">("latest");
   const [query, setQuery] = useState("");
   const sentinelRef = useRef<HTMLDivElement | null>(null);
@@ -384,6 +454,10 @@ export default function ExplorePage() {
       setLoadingMore(false);
     }
   }, [activeFeed, communityCursor, featuredCursor, itemsCursor, loadingMore, trendingCursor]);
+
+  const requestAutoplay = useCallback((key: string) => {
+    setAutoplayKey((prev) => (prev === key ? prev : key));
+  }, []);
 
   useEffect(() => {
     const node = sentinelRef.current;
@@ -525,7 +599,7 @@ export default function ExplorePage() {
               const mapped = toMediaCardItemFromShowcase(item);
               return (
                 <div key={mapped.key} className="w-[280px] flex-none md:w-[360px]">
-                  <ReelCard item={mapped} size="wide" />
+                  <ReelCard item={mapped} size="wide" autoplayKey={autoplayKey} onAutoplayRequest={requestAutoplay} />
                 </div>
               );
             })}
@@ -533,7 +607,7 @@ export default function ExplorePage() {
               const mapped = toMediaCardItemFromCommunity(item);
               return (
                 <div key={mapped.key} className="w-[280px] flex-none md:w-[360px]">
-                  <ReelCard item={mapped} size="wide" />
+                  <ReelCard item={mapped} size="wide" autoplayKey={autoplayKey} onAutoplayRequest={requestAutoplay} />
                 </div>
               );
             })}
@@ -545,7 +619,7 @@ export default function ExplorePage() {
         {feedItems.length > 0 ? (
           <div className="columns-1 gap-5 sm:columns-2 lg:columns-3 xl:columns-4">
             {feedItems.map((item, index) => (
-              <ReelCard key={item.key} item={item} size={index % 6 === 0 ? "tall" : "normal"} />
+              <ReelCard key={item.key} item={item} size={index % 6 === 0 ? "tall" : "normal"} autoplayKey={autoplayKey} onAutoplayRequest={requestAutoplay} />
             ))}
           </div>
         ) : (
