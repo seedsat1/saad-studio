@@ -30,25 +30,6 @@ function compactNumber(value: number) {
   return Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 }).format(value);
 }
 
-type CommunityFeedItem = {
-  id: string;
-  type: "video" | "image";
-  title: string;
-  model: string;
-  creator: string;
-  durationSec: number | null;
-  mediaUrl: string;
-  thumbnailUrl: string | null;
-  prompt: string;
-  status: string | null;
-  createdAt: string;
-};
-
-type CommunityFeedResponse = {
-  items: CommunityFeedItem[];
-  nextCursor?: string | null;
-};
-
 function formatDuration(seconds: number | null) {
   if (!seconds || !Number.isFinite(seconds)) return "—";
   const s = Math.max(0, Math.floor(seconds));
@@ -151,7 +132,7 @@ function PreviewVideo({
 
 type MediaCardItem = {
   key: string;
-  kind: "showcase" | "community";
+  kind: "showcase";
   id: string;
   type: "video" | "image";
   title: string;
@@ -186,27 +167,6 @@ function toMediaCardItemFromShowcase(item: ShowcaseItem): MediaCardItem {
     videoUrl: item.video_url,
     imageUrl: null,
     thumbnailUrl: item.thumbnail_url,
-  };
-}
-
-function toMediaCardItemFromCommunity(item: CommunityFeedItem): MediaCardItem {
-  return {
-    key: `gen:${item.id}`,
-    kind: "community",
-    id: item.id,
-    type: item.type,
-    title: item.title,
-    model: item.model,
-    creator: item.creator,
-    prompt: item.prompt,
-    tags: [],
-    featured: false,
-    views: 0,
-    likes: 0,
-    createdAt: item.createdAt,
-    videoUrl: item.type === "video" ? item.mediaUrl : null,
-    imageUrl: item.type === "image" ? item.mediaUrl : null,
-    thumbnailUrl: item.thumbnailUrl,
   };
 }
 
@@ -357,10 +317,10 @@ function DiscoverSection({
   autoplayKey: string | null;
   onAutoplayRequest: (key: string) => void;
 }) {
-  const gridItems = items.slice(0, 7);
+  const gridItems = items.slice(0, 6);
 
   return (
-    <section className="mx-auto max-w-7xl px-5 pb-10 md:px-8">
+    <section className="w-full px-5 pb-12 md:px-10 lg:px-14 xl:px-20">
       <div className="grid gap-5 lg:grid-cols-12">
         <div className={cn("relative overflow-hidden rounded-[1.6rem] border border-white/10 bg-white/[0.03] p-7 shadow-2xl shadow-black/40 lg:col-span-4", accentClassName)}>
           <div className="relative">
@@ -371,6 +331,20 @@ function DiscoverSection({
               <Sparkles className="h-4 w-4" />
               {ctaLabel}
             </button>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/35 px-3 py-1 text-xs font-bold text-white/75 backdrop-blur">
+                <Play className="h-3.5 w-3.5" />
+                Demos
+              </span>
+              <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/35 px-3 py-1 text-xs font-bold text-white/75 backdrop-blur">
+                <ScrollText className="h-3.5 w-3.5" />
+                Tutorials
+              </span>
+              <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/35 px-3 py-1 text-xs font-bold text-white/75 backdrop-blur">
+                <Zap className="h-3.5 w-3.5" />
+                Best settings
+              </span>
+            </div>
           </div>
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/[0.06] via-transparent to-black/50" />
           <div className="pointer-events-none absolute -right-20 -top-24 h-64 w-64 rounded-full bg-cyan-400/10 blur-3xl" />
@@ -378,15 +352,16 @@ function DiscoverSection({
         </div>
 
         <div className="lg:col-span-8">
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-4 md:grid-rows-3">
             {gridItems.map((item, index) => {
               const span =
                 index === 0
-                  ? "md:col-span-2 md:row-span-2"
-                  : index === 1
+                  ? "md:col-span-2 md:row-span-3"
+                  : index === 5
                     ? "md:col-span-2"
-                    : "md:col-span-2";
-              const size = index === 0 ? "tall" : index === 1 ? "wide" : "normal";
+                    : "md:col-span-1";
+              const size = index === 0 ? "tall" : index === 5 ? "wide" : "normal";
+
               return (
                 <ReelCard
                   key={item.key}
@@ -394,7 +369,7 @@ function DiscoverSection({
                   size={size}
                   autoplayKey={autoplayKey}
                   onAutoplayRequest={onAutoplayRequest}
-                  className={cn(span)}
+                  className={span}
                 />
               );
             })}
@@ -412,8 +387,6 @@ export default function ExplorePage() {
   const [featuredCursor, setFeaturedCursor] = useState<string | null>(null);
   const [trending, setTrending] = useState<ShowcaseItem[]>([]);
   const [trendingCursor, setTrendingCursor] = useState<string | null>(null);
-  const [community, setCommunity] = useState<CommunityFeedItem[]>([]);
-  const [communityCursor, setCommunityCursor] = useState<string | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
   const [autoplayKey, setAutoplayKey] = useState<string | null>(null);
   const [activeFeed, setActiveFeed] = useState<"latest" | "featured" | "trending">("latest");
@@ -421,17 +394,15 @@ export default function ExplorePage() {
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   const loadInitial = useCallback(async () => {
-    const [latestRes, featuredRes, trendingRes, communityRes] = await Promise.all([
+    const [latestRes, featuredRes, trendingRes] = await Promise.all([
       fetch("/api/showcase?take=30", { cache: "no-store" }),
       fetch("/api/showcase/featured?take=18", { cache: "no-store" }),
       fetch("/api/showcase/trending?take=30", { cache: "no-store" }),
-      fetch("/api/explore/feed?take=30&type=video", { cache: "no-store" }),
     ]);
 
     const latestJson = latestRes.ok ? ((await latestRes.json()) as FeedResponse) : { items: [] };
     const featuredJson = featuredRes.ok ? ((await featuredRes.json()) as FeedResponse) : { items: [] };
     const trendingJson = trendingRes.ok ? ((await trendingRes.json()) as FeedResponse) : { items: [] };
-    const communityJson = communityRes.ok ? ((await communityRes.json()) as CommunityFeedResponse) : { items: [] };
 
     setItems(latestJson.items ?? []);
     setItemsCursor(latestJson.nextCursor ?? null);
@@ -439,8 +410,6 @@ export default function ExplorePage() {
     setFeaturedCursor((featuredJson as any).nextCursor ?? null);
     setTrending(trendingJson.items ?? []);
     setTrendingCursor((trendingJson as any).nextCursor ?? null);
-    setCommunity(communityJson.items ?? []);
-    setCommunityCursor(communityJson.nextCursor ?? null);
   }, []);
 
   useEffect(() => {
@@ -455,8 +424,7 @@ export default function ExplorePage() {
         : activeFeed === "featured"
           ? Boolean(featuredCursor)
           : Boolean(trendingCursor);
-    const haveCommunityMore = Boolean(communityCursor);
-    if (!havePrimaryMore && !haveCommunityMore) return;
+    if (!havePrimaryMore) return;
 
     setLoadingMore(true);
     try {
@@ -475,11 +443,7 @@ export default function ExplorePage() {
               : null;
 
       const primaryRes = primaryEndpoint ? fetch(primaryEndpoint, { cache: "no-store" }) : Promise.resolve(new Response(null, { status: 204 }));
-      const communityRes = communityCursor
-        ? fetch(`/api/explore/feed?take=30&type=video&cursor=${encodeURIComponent(communityCursor)}`, { cache: "no-store" })
-        : Promise.resolve(new Response(null, { status: 204 }));
-
-      const [primary, communityPage] = await Promise.all([primaryRes, communityRes]);
+      const primary = await primaryRes;
 
       if (primary.ok) {
         const json = (await primary.json().catch(() => null)) as FeedResponse | null;
@@ -500,29 +464,10 @@ export default function ExplorePage() {
           if (activeFeed === "trending") setTrendingCursor(null);
         }
       }
-
-      if (communityPage.ok) {
-        const json = (await communityPage.json().catch(() => null)) as CommunityFeedResponse | null;
-        if (json && Array.isArray(json.items) && json.items.length > 0) {
-          setCommunity((prev) => {
-            const seen = new Set(prev.map((x) => x.id));
-            const merged = [...prev];
-            for (const item of json.items) {
-              if (seen.has(item.id)) continue;
-              seen.add(item.id);
-              merged.push(item);
-            }
-            return merged;
-          });
-          setCommunityCursor(json.nextCursor ?? null);
-        } else {
-          setCommunityCursor(null);
-        }
-      }
     } finally {
       setLoadingMore(false);
     }
-  }, [activeFeed, communityCursor, featuredCursor, itemsCursor, loadingMore, trendingCursor]);
+  }, [activeFeed, featuredCursor, itemsCursor, loadingMore, trendingCursor]);
 
   const requestAutoplay = useCallback((key: string) => {
     setAutoplayKey((prev) => (prev === key ? prev : key));
@@ -547,50 +492,67 @@ export default function ExplorePage() {
 
   const feedItems = useMemo(() => {
     const source = activeFeed === "featured" ? featured : activeFeed === "trending" ? trending : items;
-    const combined = [...source.map(toMediaCardItemFromShowcase), ...community.map(toMediaCardItemFromCommunity)];
+    const combined = source.map(toMediaCardItemFromShowcase);
     const needle = query.trim().toLowerCase();
     if (!needle) return combined;
     return combined.filter((item) =>
       [item.title, item.prompt, item.model, item.creator, item.tags.join(" ")].some((value) => value.toLowerCase().includes(needle))
     );
-  }, [activeFeed, community, featured, items, query, trending]);
+  }, [activeFeed, featured, items, query, trending]);
 
   const hero = featured[0] ?? trending[0] ?? items[0] ?? null;
   const heroReelItems = (featured.length ? featured : trending.length ? trending : items).slice(0, 6);
 
   const sections = useMemo(() => {
-    const chunk = (start: number, count: number) => feedItems.slice(start, start + count);
-    return [
-      {
-        kicker: "NEW FEATURE",
-        title: "One canvas. Every workflow.",
-        subtitle: "اكتشف أحدث التجارب السينمائية — تشغيل تلقائي، بطاقات ميديا، وتدفق لا نهائي.",
-        ctaLabel: "Try Canvas",
-        accentClassName: "bg-[linear-gradient(135deg,rgba(34,211,238,0.14),rgba(236,72,153,0.10),rgba(0,0,0,0.25))]",
-        items: chunk(0, 8),
-      },
-      {
-        kicker: "NEW MODEL",
-        title: "Meet the newest generation.",
-        subtitle: "نماذج أقوى، نتائج أنظف، ولقطات أكثر واقعية — مباشرة داخل معرض سينمائي حي.",
-        ctaLabel: "Try Model",
-        accentClassName: "bg-[linear-gradient(135deg,rgba(255,255,255,0.06),rgba(0,0,0,0.25))]",
-        items: chunk(8, 8),
-      },
-      {
-        kicker: "TRENDING NOW",
-        title: "What people are watching.",
-        subtitle: "مجموعة متجددة تلقائياً من أكثر المقاطع مشاهدةً وإلهاماً.",
-        ctaLabel: "Explore",
-        accentClassName: "bg-[linear-gradient(135deg,rgba(236,72,153,0.12),rgba(34,211,238,0.08),rgba(0,0,0,0.25))]",
-        items: chunk(16, 8),
-      },
-    ];
-  }, [feedItems]);
+    const source = activeFeed === "featured" ? featured : activeFeed === "trending" ? trending : items;
+    const needle = query.trim().toLowerCase();
+    const filtered = !needle
+      ? source
+      : source.filter((item) =>
+          [item.title, item.prompt, item.model, item.provider, (item.tags ?? []).join(" ")].some((value) =>
+            String(value || "").toLowerCase().includes(needle),
+          ),
+        );
+
+    const byModel = new Map<string, ShowcaseItem[]>();
+    for (const item of filtered) {
+      const key = String(item.model || "Unknown model");
+      const list = byModel.get(key) ?? [];
+      list.push(item);
+      byModel.set(key, list);
+    }
+
+    const models = Array.from(byModel.entries())
+      .sort((a, b) => b[1].length - a[1].length)
+      .slice(0, 8);
+
+    return models.map(([modelName, modelItems], idx) => {
+      const accent = [
+        "bg-[linear-gradient(135deg,rgba(34,211,238,0.14),rgba(236,72,153,0.10),rgba(0,0,0,0.25))]",
+        "bg-[linear-gradient(135deg,rgba(255,255,255,0.06),rgba(0,0,0,0.25))]",
+        "bg-[linear-gradient(135deg,rgba(236,72,153,0.12),rgba(34,211,238,0.08),rgba(0,0,0,0.25))]",
+        "bg-[linear-gradient(135deg,rgba(167,139,250,0.12),rgba(34,211,238,0.06),rgba(0,0,0,0.25))]",
+        "bg-[linear-gradient(135deg,rgba(34,197,94,0.10),rgba(236,72,153,0.08),rgba(0,0,0,0.25))]",
+        "bg-[linear-gradient(135deg,rgba(251,191,36,0.10),rgba(34,211,238,0.06),rgba(0,0,0,0.25))]",
+      ];
+
+      const media = modelItems.map(toMediaCardItemFromShowcase);
+      const provider = modelItems[0]?.provider ? ` / ${modelItems[0].provider}` : "";
+
+      return {
+        kicker: "MODEL",
+        title: `${modelName}${provider}`,
+        subtitle: "هيرو للموديل + مصغرات لأعماله + مواد تعليمية وإعدادات موصى بها.",
+        ctaLabel: "Try this model",
+        accentClassName: accent[idx % accent.length],
+        items: media,
+      };
+    });
+  }, [activeFeed, featured, items, query, trending]);
 
   return (
     <main className="min-h-screen overflow-hidden bg-[#050812] text-white">
-      <section className="mx-auto max-w-7xl px-5 pt-10 md:px-8">
+      <section className="w-full px-5 pt-10 md:px-10 lg:px-14 xl:px-20">
         <div className="relative overflow-hidden rounded-[1.9rem] border border-white/10 bg-white/[0.03] shadow-2xl shadow-black/40">
           {hero ? (
             <PreviewVideo videoUrl={hero.video_url} posterUrl={hero.thumbnail_url} title={hero.title} className="absolute inset-0 opacity-65" />
@@ -603,7 +565,7 @@ export default function ExplorePage() {
               <div className="text-[11px] font-black uppercase tracking-[0.18em] text-white/70">NEW FEATURE</div>
               <h1 className="mt-4 text-3xl font-black leading-tight text-white md:text-5xl">One canvas. Every workflow.</h1>
               <p className="mt-4 max-w-md text-sm leading-6 text-slate-200/90 md:text-base">
-                واجهة اكتشف بتقسيم متكرر، مليانة ميديا حقيقية، وتشغيل تلقائي للفيديوهات.
+                صفحة اكتشف مخصصة لإعلانات الموديلات وتقسيماتها (بدون عرض أعمال المشتركين).
               </p>
               <div className="mt-6 flex flex-wrap items-center gap-3">
                 <button className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-black text-slate-950 transition hover:scale-[1.02]">
@@ -611,7 +573,7 @@ export default function ExplorePage() {
                   Try Canvas
                 </button>
                 <div className="rounded-full border border-white/15 bg-black/30 px-4 py-2 text-sm text-slate-200 backdrop-blur">
-                  {hero ? `${hero.title} / ${hero.model}` : "Live cinema feed"}
+                  {hero ? `${hero.model} / ${hero.provider}` : "Model gallery"}
                 </div>
               </div>
             </div>
@@ -643,7 +605,7 @@ export default function ExplorePage() {
         </div>
       </section>
 
-      <section className="relative mx-auto max-w-7xl px-5 pb-8 md:px-8">
+      <section className="relative w-full px-5 pb-10 md:px-10 lg:px-14 xl:px-20">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="flex flex-wrap gap-2">
             {([
@@ -689,28 +651,7 @@ export default function ExplorePage() {
         />
       ))}
 
-      <section className="mx-auto max-w-7xl px-5 pb-20 md:px-8">
-        <div className="rounded-[1.6rem] border border-white/10 bg-white/[0.02] p-6">
-          <div className="flex items-center justify-between gap-3">
-            <div className="text-sm font-black uppercase tracking-[0.18em] text-slate-400">Live feed continues</div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-bold text-white/70">
-              <Flame className="h-3.5 w-3.5 text-pink-300" />
-              Infinite
-            </div>
-          </div>
-          <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-6">
-            {feedItems.slice(24, 60).map((item, index) => (
-              <ReelCard
-                key={item.key}
-                item={item}
-                size={index % 9 === 0 ? "tall" : index % 7 === 0 ? "wide" : "normal"}
-                autoplayKey={autoplayKey}
-                onAutoplayRequest={requestAutoplay}
-                className={cn(index % 9 === 0 ? "md:col-span-2" : index % 7 === 0 ? "md:col-span-2" : "md:col-span-2")}
-              />
-            ))}
-          </div>
-        </div>
+      <section className="w-full px-5 pb-20 md:px-10 lg:px-14 xl:px-20">
         <div ref={sentinelRef} className="h-px w-full" />
         <div className="mt-10 flex items-center justify-center">
           <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-xs font-bold text-white/70">
@@ -722,7 +663,7 @@ export default function ExplorePage() {
             ) : (
               <>
                 <Sparkles className="h-3.5 w-3.5 text-cyan-200" />
-                {communityCursor || itemsCursor || featuredCursor || trendingCursor ? "Scroll for more" : "End of feed"}
+                {itemsCursor || featuredCursor || trendingCursor ? "Scroll for more" : "End of feed"}
               </>
             )}
           </div>
