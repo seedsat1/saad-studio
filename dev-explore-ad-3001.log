@@ -86,3 +86,37 @@
  GET /api/showcase/featured?take=18 404 in 2445ms
  GET /api/maintenance?slug=explore 200 in 2826ms
  GET /explore?_rsc=1hl0q 200 in 47ms
+ ✓ Compiled in 5.1s (2245 modules)
+ ○ Compiling /_not-found ...
+ ✓ Compiled /_not-found in 1807ms (2241 modules)
+ GET /api/showcase?take=30 404 in 2135ms
+ GET /api/showcase/featured?take=18 404 in 2130ms
+ GET /api/showcase/trending?take=30 404 in 2129ms
+ GET /api/maintenance?slug=explore 200 in 4284ms
+ GET /explore?_rsc=1hl0q 200 in 63ms
+ ✓ Compiled in 3s (2255 modules)
+ GET /api/showcase/trending?take=30 404 in 114ms
+ GET /api/showcase/featured?take=18 404 in 114ms
+ GET /api/showcase?take=30 404 in 124ms
+ GET /api/maintenance?slug=explore 200 in 448ms
+ GET /explore?_rsc=1hl0q 200 in 44ms
+ ✓ Compiled in 3.3s (2241 modules)
+ GET /api/showcase?take=30 404 in 1352ms
+ GET /api/showcase/featured?take=18 404 in 1344ms
+ GET /api/showcase/trending?take=30 404 in 1347ms
+ GET /api/maintenance?slug=explore 200 in 232ms
+ GET /explore?_rsc=1hl0q 200 in 45ms
+ GET /api/maintenance?slug=explore 200 in 419ms
+ GET /explore?seedance=1778249535859 200 in 145ms
+ GET /api/showcase?take=30 404 in 86ms
+ GET /api/showcase/trending?take=30 404 in 127ms
+ GET /api/showcase/featured?take=18 404 in 180ms
+ GET /api/showcase?take=30 404 in 181ms
+ GET /api/showcase/trending?take=30 404 in 254ms
+ GET /api/showcase/featured?take=18 404 in 287ms
+ GET /api/layouts?page=cms-auth 404 in 47ms
+ GET /api/layouts?page=cms-pricing 404 in 86ms
+ GET /api/layouts?page=cms-pricing 404 in 51ms
+ GET /api/layouts?page=cms-auth 404 in 83ms
+ GET /api/maintenance?slug=explore 200 in 423ms
+ GET /explore?servercheck=seedance 200 in 69ms
