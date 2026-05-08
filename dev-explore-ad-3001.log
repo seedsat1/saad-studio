@@ -1,0 +1,88 @@
+
+> aisaas@0.1.0 dev
+> next dev --port 3001
+
+  ▲ Next.js 14.2.35
+  - Local:        http://localhost:3001
+  - Environments: .env.local, .env
+
+ ✓ Starting...
+ ✓ Ready in 5.5s
+ ○ Compiling /middleware ...
+ ✓ Compiled /middleware in 691ms (183 modules)
+ ✓ Compiled /api/maintenance in 358ms (59 modules)
+ GET /api/maintenance?slug=explore 200 in 2879ms
+ ○ Compiling /explore ...
+ ✓ Compiled /explore in 10.2s (2252 modules)
+ GET /explore 200 in 11193ms
+ ✓ Compiled in 1631ms (998 modules)
+ ○ Compiling /_not-found ...
+ ✓ Compiled /_not-found in 1201ms (2241 modules)
+ GET /api/showcase?take=30 404 in 1573ms
+ GET /api/showcase/featured?take=18 404 in 1596ms
+ GET /api/showcase/featured?take=18 404 in 1631ms
+ GET /api/showcase/trending?take=30 404 in 1793ms
+ GET /api/showcase/trending?take=30 404 in 1804ms
+ GET /api/showcase?take=30 404 in 2153ms
+ GET /api/layouts?page=cms-auth 404 in 135ms
+ GET /api/layouts?page=cms-pricing 404 in 167ms
+ GET /api/layouts?page=cms-auth 404 in 119ms
+ GET /api/layouts?page=cms-pricing 404 in 128ms
+ GET /api/maintenance?slug=explore 200 in 393ms
+ GET /explore 200 in 162ms
+ GET /api/showcase/featured?take=18 404 in 72ms
+ GET /api/showcase?take=30 404 in 76ms
+ GET /api/showcase?take=30 404 in 76ms
+ GET /api/showcase/trending?take=30 404 in 75ms
+ GET /api/showcase/trending?take=30 404 in 78ms
+ GET /api/showcase/featured?take=18 404 in 78ms
+ GET /api/layouts?page=cms-auth 404 in 59ms
+ GET /api/layouts?page=cms-pricing 404 in 62ms
+ GET /api/layouts?page=cms-auth 404 in 47ms
+ GET /api/layouts?page=cms-pricing 404 in 48ms
+ ✓ Compiled in 5.1s (2255 modules)
+ GET /api/showcase?take=30 404 in 267ms
+ GET /api/showcase/featured?take=18 404 in 271ms
+ GET /api/showcase/trending?take=30 404 in 313ms
+ GET /api/maintenance?slug=explore 200 in 410ms
+ GET /explore?_rsc=1hl0q 200 in 54ms
+ GET /api/maintenance?slug=explore 200 in 192ms
+ GET /explore 200 in 79ms
+ GET /api/showcase?take=30 404 in 69ms
+ GET /api/showcase/featured?take=18 404 in 71ms
+ GET /api/showcase?take=30 404 in 71ms
+ GET /api/showcase/trending?take=30 404 in 70ms
+ GET /api/showcase/trending?take=30 404 in 72ms
+ GET /api/showcase/featured?take=18 404 in 107ms
+ GET /api/layouts?page=cms-auth 404 in 33ms
+ GET /api/layouts?page=cms-pricing 404 in 34ms
+ GET /api/layouts?page=cms-auth 404 in 35ms
+ GET /api/layouts?page=cms-pricing 404 in 36ms
+ ✓ Compiled in 2.7s (2255 modules)
+ GET /api/showcase?take=30 404 in 201ms
+ GET /api/showcase/featured?take=18 404 in 215ms
+ GET /api/showcase/trending?take=30 404 in 259ms
+ GET /api/maintenance?slug=explore 200 in 391ms
+ GET /explore?_rsc=1hl0q 200 in 55ms
+ GET /api/maintenance?slug=explore 200 in 367ms
+ GET /explore 200 in 112ms
+ GET /api/showcase?take=30 404 in 96ms
+ GET /api/showcase/featured?take=18 404 in 95ms
+ GET /api/showcase/trending?take=30 404 in 94ms
+ GET /api/showcase?take=30 404 in 77ms
+ GET /api/showcase/trending?take=30 404 in 78ms
+ GET /api/showcase/featured?take=18 404 in 96ms
+ GET /api/layouts?page=cms-auth 404 in 80ms
+ GET /api/layouts?page=cms-pricing 404 in 83ms
+ GET /api/layouts?page=cms-pricing 404 in 53ms
+ GET /api/layouts?page=cms-auth 404 in 53ms
+ GET /api/maintenance?slug=explore 200 in 360ms
+ GET /explore?probe=2 200 in 90ms
+ ✓ Compiled in 2s (2245 modules)
+ ○ Compiling /_not-found ...
+ ✓ Compiled /_not-found in 2.2s (2241 modules)
+ GET /api/showcase/trending?take=30 404 in 2443ms
+ GET /api/showcase?take=30 404 in 2449ms
+ GET /api/showcase/featured?take=18 404 in 2445ms
+ GET /api/maintenance?slug=explore 200 in 2826ms
+ GET /explore?_rsc=1hl0q 200 in 47ms

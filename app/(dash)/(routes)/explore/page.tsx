@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { Eye, Flame, Heart, Play, ScrollText, Search, Sparkles, Star, Zap } from "lucide-react";
+import { ArrowUpRight, Eye, Flame, Heart, Play, ScrollText, Search, Sparkles, Star, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type ShowcaseItem = {
@@ -188,9 +188,42 @@ function GptImage2ModelAd() {
             </div>
             <div className="pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black via-black/45 to-transparent" />
             <div className="absolute bottom-7 left-1/2 -translate-x-1/2">
-              <span className="inline-flex items-center gap-2 rounded-lg bg-lime-400 px-5 py-3 text-sm font-black text-lime-950 shadow-2xl shadow-lime-950/40 transition group-hover:scale-[1.04]">
+              <span className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white px-5 py-3 text-sm font-black text-slate-950 shadow-2xl shadow-black/45 transition group-hover:scale-[1.04] group-hover:bg-slate-100">
                 View all of GPT Image 2
-                <Zap className="h-4 w-4" />
+                <ArrowUpRight className="h-4 w-4" />
+              </span>
+            </div>
+          </div>
+        </div>
+      </Link>
+    </section>
+  );
+}
+
+function CanvasModelAd() {
+  return (
+    <section className="w-full px-5 pb-8 md:px-10 lg:px-14 xl:px-20">
+      <Link
+        href="https://www.saadstudio.app/original-series"
+        className="group relative block overflow-hidden rounded-[1.35rem] border border-white/10 bg-[#08090d] shadow-2xl shadow-black/50"
+      >
+        <div className="relative min-h-[430px]">
+          <img
+            src="/canvas.webp"
+            alt="Canvas model hero"
+            className="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-[1.025]"
+            loading="eager"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/72 via-black/25 to-black/5" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/92 via-black/10 to-black/10" />
+          <div className="relative flex min-h-[430px] items-end px-7 py-10 md:px-12 lg:px-16">
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="inline-flex rounded-lg border border-white/15 bg-black/45 px-4 py-3 text-sm font-black text-white shadow-2xl shadow-black/40 backdrop-blur">
+                Canvas
+              </span>
+              <span className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white px-5 py-3 text-sm font-black text-slate-950 shadow-2xl shadow-black/45 transition group-hover:scale-[1.04] group-hover:bg-slate-100">
+                Open
+                <ArrowUpRight className="h-4 w-4" />
               </span>
             </div>
           </div>
@@ -723,6 +756,7 @@ export default function ExplorePage() {
   return (
     <main className="min-h-screen overflow-hidden bg-[#050812] text-white">
       <GptImage2ModelAd />
+      <CanvasModelAd />
 
       <section className="relative w-full px-5 pb-10 md:px-10 lg:px-14 xl:px-20">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">

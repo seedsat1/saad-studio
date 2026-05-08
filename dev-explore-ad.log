@@ -7,49 +7,54 @@
   - Environments: .env.local, .env
 
  ✓ Starting...
- ✓ Ready in 25.6s
+ ✓ Ready in 5.8s
  ○ Compiling /middleware ...
- ✓ Compiled /middleware in 6.7s (183 modules)
+ ✓ Compiled /middleware in 624ms (183 modules)
  ○ Compiling /api/maintenance ...
- ✓ Compiled /api/maintenance in 1036ms (59 modules)
- GET /api/maintenance?slug=explore 200 in 4164ms
+ ✓ Compiled /api/maintenance in 644ms (59 modules)
+ GET /api/maintenance?slug=explore 200 in 2645ms
  ○ Compiling /explore ...
- ✓ Compiled /explore in 38.6s (2277 modules)
- GET /explore 200 in 39557ms
- ✓ Compiled in 1858ms (997 modules)
+ ✓ Compiled /explore in 14s (2279 modules)
+ GET /explore?fresh=canvas 200 in 14842ms
+ ✓ Compiled in 1481ms (998 modules)
  ○ Compiling /_not-found ...
- ✓ Compiled /_not-found in 5.7s (2239 modules)
- GET /api/showcase?take=30 404 in 6068ms
- GET /api/showcase/featured?take=18 404 in 6079ms
- GET /api/showcase/featured?take=18 404 in 6114ms
- GET /api/showcase/trending?take=30 404 in 6114ms
- GET /api/showcase/trending?take=30 404 in 6119ms
- GET /api/showcase?take=30 404 in 6120ms
- GET /api/layouts?page=cms-auth 404 in 50ms
- GET /api/layouts?page=cms-pricing 404 in 53ms
- GET /api/layouts?page=cms-pricing 404 in 82ms
- GET /api/layouts?page=cms-auth 404 in 83ms
- GET /api/maintenance?slug=explore 200 in 381ms
- GET /explore 200 in 171ms
- GET /api/showcase?take=30 404 in 108ms
- GET /api/showcase/trending?take=30 404 in 116ms
- GET /api/showcase?take=30 404 in 154ms
- GET /api/showcase/featured?take=18 404 in 217ms
- GET /api/showcase/featured?take=18 404 in 259ms
- GET /api/showcase/trending?take=30 404 in 284ms
- GET /api/layouts?page=cms-auth 404 in 49ms
- GET /api/layouts?page=cms-pricing 404 in 95ms
- GET /api/layouts?page=cms-auth 404 in 85ms
- GET /api/layouts?page=cms-pricing 404 in 97ms
- GET /api/maintenance?slug=explore 200 in 369ms
- GET /explore 200 in 92ms
- GET /api/showcase/featured?take=18 404 in 77ms
- GET /api/showcase/trending?take=30 404 in 78ms
- GET /api/showcase?take=30 404 in 83ms
+ ✓ Compiled /_not-found in 7.1s (2241 modules)
+ GET /api/showcase?take=30 404 in 7428ms
+ GET /api/showcase/trending?take=30 404 in 7439ms
+ GET /api/showcase?take=30 404 in 7470ms
+ GET /api/showcase/featured?take=18 404 in 7474ms
+ GET /api/showcase/featured?take=18 404 in 7472ms
+ GET /api/showcase/trending?take=30 404 in 7474ms
+ GET /api/layouts?page=cms-auth 404 in 72ms
+ GET /api/layouts?page=cms-pricing 404 in 71ms
+ GET /api/layouts?page=cms-auth 404 in 48ms
+ GET /api/layouts?page=cms-pricing 404 in 73ms
+ GET /api/maintenance?slug=explore 200 in 447ms
+ GET /explore?fresh=canvas 200 in 176ms
+ GET /api/showcase/featured?take=18 404 in 66ms
  GET /api/showcase?take=30 404 in 68ms
- GET /api/showcase/trending?take=30 404 in 69ms
- GET /api/showcase/featured?take=18 404 in 71ms
- GET /api/layouts?page=cms-auth 404 in 66ms
+ GET /api/showcase/featured?take=18 404 in 65ms
+ GET /api/showcase/trending?take=30 404 in 68ms
+ GET /api/showcase?take=30 404 in 70ms
+ GET /api/showcase/trending?take=30 404 in 111ms
+ GET /api/layouts?page=cms-auth 404 in 83ms
+ GET /api/layouts?page=cms-pricing 404 in 88ms
+ GET /api/layouts?page=cms-auth 404 in 69ms
  GET /api/layouts?page=cms-pricing 404 in 68ms
- GET /api/layouts?page=cms-pricing 404 in 52ms
- GET /api/layouts?page=cms-auth 404 in 53ms
+ GET /api/maintenance?slug=explore 200 in 486ms
+ GET /explore?probe=1 200 in 50ms
+ GET /api/maintenance?slug=explore 200 in 417ms
+ GET /explore?fresh=1778246282041 200 in 92ms
+ GET /api/showcase?take=30 404 in 58ms
+ GET /api/showcase?take=30 404 in 58ms
+ GET /api/showcase/featured?take=18 404 in 60ms
+ GET /api/showcase/trending?take=30 404 in 58ms
+ GET /api/showcase/trending?take=30 404 in 59ms
+ GET /api/showcase/featured?take=18 404 in 59ms
+ GET /api/layouts?page=cms-pricing 404 in 74ms
+ GET /api/layouts?page=cms-auth 404 in 79ms
+ GET /api/layouts?page=cms-auth 404 in 42ms
+ GET /api/layouts?page=cms-pricing 404 in 41ms
+ ✓ Compiled in 4.9s (2245 modules)
+ ✓ Compiled in 2.4s (2245 modules)
+ ✓ Compiled in 2.6s (2245 modules)
