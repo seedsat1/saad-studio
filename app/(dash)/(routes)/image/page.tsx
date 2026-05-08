@@ -489,18 +489,6 @@ function CompareSlider({ before, after }: { before: string; after: string }) {
   );
 }
 
-function ratioToNumber(ratio: string): number {
-  const [w, h] = ratio.split(":").map(Number);
-  if (!w || !h) return 1;
-  return w / h;
-}
-
-function ratioCss(ratio: string): string {
-  const [w, h] = ratio.split(":").map(Number);
-  if (!w || !h) return "1 / 1";
-  return `${w} / ${h}`;
-}
-
 function ResultGrid({ items, onInspect, onRemix, onUse, onDelete, onBulkDelete }: { items: ResultItem[]; onInspect: (asset: Asset) => void; onRemix: (item: ResultItem) => void; onUse: (item: ResultItem) => void; onDelete: (id: string) => void; onBulkDelete: (ids: string[]) => void }) {
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -581,30 +569,29 @@ function ResultGrid({ items, onInspect, onRemix, onUse, onDelete, onBulkDelete }
       <style>{`
         .result-masonry {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(240px, 280px));
-          justify-content: center;
-          align-items: start;
+          grid-template-columns: repeat(auto-fill, 240px);
+          justify-content: start;
+          align-content: start;
           gap: 10px;
           width: 100%;
-          max-width: 1180px;
-          margin: 0 auto;
+          max-width: none;
+          margin: 0;
         }
 
         .result-card {
           width: 100%;
+          aspect-ratio: 1 / 1;
         }
 
         @media (max-width: 1280px) {
           .result-masonry {
-            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-            max-width: 920px;
+            grid-template-columns: repeat(auto-fill, 210px);
           }
         }
 
         @media (max-width: 860px) {
           .result-masonry {
-            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-            max-width: none;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
           }
         }
 
@@ -666,7 +653,6 @@ function ResultGrid({ items, onInspect, onRemix, onUse, onDelete, onBulkDelete }
                 isSelected ? "ring-2 ring-pink-400/70" : "ring-white/10",
               )}
               data-ratio={item.aspect}
-              style={item.isPending ? { aspectRatio: ratioCss(item.aspect) } : undefined}
               onClick={() => {
                 if (item.isPending) return;
                 if (selectionMode) { toggleSelected(item.id); return; }
@@ -687,7 +673,7 @@ function ResultGrid({ items, onInspect, onRemix, onUse, onDelete, onBulkDelete }
                   </div>
                 </div>
               ) : (
-                <img src={item.url} alt={item.prompt} className="block h-auto w-full transition duration-300 group-hover:scale-[1.015]" />
+                <img src={item.url} alt={item.prompt} className="block h-full w-full object-cover transition duration-300 group-hover:scale-[1.04]" />
               )}
 
               {/* Selection checkbox */}
