@@ -580,36 +580,37 @@ function ResultGrid({ items, onInspect, onRemix, onUse, onDelete, onBulkDelete }
     <>
       <style>{`
         .result-masonry {
-          column-count: auto;
-          column-width: 260px;
-          column-gap: 8px;
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(240px, 280px));
+          justify-content: center;
+          align-items: start;
+          gap: 10px;
           width: 100%;
-          max-width: none;
-          margin: 0;
+          max-width: 1180px;
+          margin: 0 auto;
         }
 
         .result-card {
-          display: inline-block;
           width: 100%;
-          break-inside: avoid;
-          margin: 0 0 8px;
         }
 
         @media (max-width: 1280px) {
           .result-masonry {
-            column-width: 230px;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            max-width: 920px;
           }
         }
 
         @media (max-width: 860px) {
           .result-masonry {
-            column-width: 180px;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            max-width: none;
           }
         }
 
         @media (max-width: 480px) {
           .result-masonry {
-            column-width: 100%;
+            grid-template-columns: 1fr;
           }
         }
       `}</style>
