@@ -71,7 +71,9 @@ export default function GalleryPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [activeAssetId, setActiveAssetId] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [referenceSaved, setReferenceSaved] = useState(false);
   const lightboxRef = useRef<HTMLDivElement>(null);
 
   // Selection mode + multi-select state
@@ -132,9 +134,11 @@ export default function GalleryPage() {
     return assets.filter((a) => idSet.has(a.id));
   }, [assets, albums, activeAlbumId]);
 
-  const viewableAssets = useMemo(() => visibleAssets.filter((a) => a.type === "image" && a.url), [visibleAssets]);
+  const viewableAssets = useMemo(() => visibleAssets.filter((a) => a.url || a.textContent || a.prompt), [visibleAssets]);
 
-  const lightboxAsset = lightboxIndex !== null ? viewableAssets[lightboxIndex] : null;
+  const lightboxAsset = activeAssetId
+    ? visibleAssets.find((asset) => asset.id === activeAssetId) ?? null
+    : lightboxIndex !== null ? viewableAssets[lightboxIndex] : null;
 
   const allSelectedOnPage = visibleAssets.length > 0 && visibleAssets.every((a) => selectedIds.has(a.id));
 
@@ -156,6 +160,7 @@ export default function GalleryPage() {
       }
       // close lightbox if the deleted asset was open
       setLightboxIndex(null);
+      setActiveAssetId(null);
       await loadAssets(activeFilter);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Delete failed");
@@ -182,6 +187,7 @@ export default function GalleryPage() {
       setSelectedIds(new Set());
       setSelectionMode(false);
       setLightboxIndex(null);
+      setActiveAssetId(null);
       await loadAssets(activeFilter);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Bulk delete failed");
@@ -220,20 +226,36 @@ export default function GalleryPage() {
   }, [activeAlbumId]);
 
   // Lightbox navigation helpers
-  const openLightbox = useCallback((asset: GalleryAsset) => {
+  const openAssetDetails = useCallback((asset: GalleryAsset) => {
     const idx = viewableAssets.findIndex((a) => a.id === asset.id);
+    setActiveAssetId(asset.id);
+    setReferenceSaved(false);
     if (idx !== -1) setLightboxIndex(idx);
   }, [viewableAssets]);
 
-  const closeLightbox = useCallback(() => setLightboxIndex(null), []);
+  const closeLightbox = useCallback(() => {
+    setLightboxIndex(null);
+    setActiveAssetId(null);
+    setReferenceSaved(false);
+  }, []);
 
   const prevImage = useCallback(() => {
-    setLightboxIndex((i) => (i === null ? null : (i - 1 + viewableAssets.length) % viewableAssets.length));
-  }, [viewableAssets.length]);
+    setLightboxIndex((i) => {
+      if (i === null || viewableAssets.length === 0) return null;
+      const nextIndex = (i - 1 + viewableAssets.length) % viewableAssets.length;
+      setActiveAssetId(viewableAssets[nextIndex]?.id ?? null);
+      return nextIndex;
+    });
+  }, [viewableAssets]);
 
   const nextImage = useCallback(() => {
-    setLightboxIndex((i) => (i === null ? null : (i + 1) % viewableAssets.length));
-  }, [viewableAssets.length]);
+    setLightboxIndex((i) => {
+      if (i === null || viewableAssets.length === 0) return null;
+      const nextIndex = (i + 1) % viewableAssets.length;
+      setActiveAssetId(viewableAssets[nextIndex]?.id ?? null);
+      return nextIndex;
+    });
+  }, [viewableAssets]);
 
   const copyUrl = useCallback(async (url: string) => {
     try {
@@ -241,6 +263,45 @@ export default function GalleryPage() {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch { /* ignore */ }
+  }, []);
+
+  const downloadAsset = useCallback((asset: GalleryAsset) => {
+    if (!asset.url) return;
+    const filename = `saad-${asset.type}-${asset.id}`;
+    const href = asset.url.startsWith("data:") || asset.url.startsWith("blob:")
+      ? asset.url
+      : `/api/download?url=${encodeURIComponent(asset.url)}&filename=${encodeURIComponent(filename)}`;
+    const a = document.createElement("a");
+    a.href = href;
+    a.download = filename;
+    a.rel = "noopener";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }, []);
+
+  const saveAsReference = useCallback(async (asset: GalleryAsset) => {
+    if (!asset.url) return;
+    const reference = {
+      id: asset.id,
+      type: asset.type,
+      url: asset.url,
+      prompt: asset.prompt || asset.textContent || "",
+      model: asset.model || "",
+      createdAt: asset.createdAt || asset.date || "",
+    };
+    try {
+      window.localStorage.setItem("saad_studio_reference_asset", JSON.stringify(reference));
+      await navigator.clipboard.writeText(asset.url);
+      setReferenceSaved(true);
+      setCopied(true);
+      setTimeout(() => {
+        setReferenceSaved(false);
+        setCopied(false);
+      }, 2000);
+    } catch {
+      setError("Could not save this asset as a reference.");
+    }
   }, []);
 
   // Keyboard navigation
@@ -329,20 +390,54 @@ export default function GalleryPage() {
           )}
 
           {/* Main content */}
-          <div className="flex flex-col items-center max-w-5xl w-full mx-14 gap-4">
-            {/* Image */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={lightboxAsset.url}
-              alt={lightboxAsset.prompt || "image"}
-              className="max-h-[70vh] max-w-full rounded-xl object-contain shadow-2xl"
-            />
-
-            {/* Info + toolbar */}
-            <div className="w-full rounded-xl border border-white/10 bg-[#0b1222] p-4 space-y-3">
-              {lightboxAsset.prompt && (
-                <p className="text-sm text-slate-200 line-clamp-3">{lightboxAsset.prompt}</p>
+          <div className="grid max-h-[88vh] w-full max-w-6xl grid-cols-1 gap-4 overflow-y-auto px-4 md:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.8fr)]">
+            <div className="flex min-h-[320px] items-center justify-center rounded-2xl border border-white/10 bg-black/50 p-3 shadow-2xl">
+              {lightboxAsset.type === "image" && lightboxAsset.url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={lightboxAsset.url}
+                  alt={lightboxAsset.prompt || "image"}
+                  className="max-h-[76vh] max-w-full rounded-xl object-contain"
+                />
+              ) : lightboxAsset.type === "video" && lightboxAsset.url ? (
+                <video
+                  src={lightboxAsset.url}
+                  controls
+                  autoPlay
+                  playsInline
+                  className="max-h-[76vh] max-w-full rounded-xl object-contain"
+                />
+              ) : lightboxAsset.type === "audio" && lightboxAsset.url ? (
+                <div className="w-full max-w-xl rounded-2xl border border-emerald-400/20 bg-emerald-500/10 p-8">
+                  <Music className="h-12 w-12 text-emerald-300" />
+                  <audio src={lightboxAsset.url} controls className="mt-6 w-full" />
+                </div>
+              ) : lightboxAsset.type === "text" ? (
+                <div className="w-full max-w-2xl rounded-2xl border border-violet-400/20 bg-violet-500/10 p-6">
+                  <FileText className="h-10 w-10 text-violet-300" />
+                  <p className="mt-4 whitespace-pre-wrap text-sm leading-7 text-slate-100">
+                    {lightboxAsset.textContent || lightboxAsset.prompt || "Text output"}
+                  </p>
+                </div>
+              ) : (
+                <div className="text-sm text-slate-400">No preview available.</div>
               )}
+            </div>
+
+            <div className="space-y-4 rounded-2xl border border-white/10 bg-[#0b1222] p-5">
+              <div>
+                <div className={cn("inline-flex rounded-full border px-2.5 py-1 text-[11px] font-bold", TYPE_BADGE[lightboxAsset.type])}>
+                  {lightboxAsset.type.toUpperCase()}
+                </div>
+                <h2 className="mt-4 text-xl font-bold text-white">Asset Details</h2>
+                <p className="mt-1 break-all text-xs text-slate-500">{lightboxAsset.id}</p>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+                <p className="text-[11px] uppercase tracking-wide text-slate-500">Prompt</p>
+                <p className="mt-1 text-sm leading-6 text-slate-200">
+                  {lightboxAsset.prompt || lightboxAsset.textContent || "No prompt"}
+                </p>
+              </div>
               <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-400">
                 {lightboxAsset.model && <span>{lightboxAsset.model}</span>}
                 {lightboxAsset.model && lightboxAsset.date && <span>·</span>}
@@ -354,32 +449,44 @@ export default function GalleryPage() {
 
               {/* Toolbar */}
               <div className="flex flex-wrap items-center gap-2 pt-1">
-                <a
-                  href={lightboxAsset.url}
-                  download
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/15 bg-white/5 text-xs text-slate-200 hover:bg-white/10 transition-colors"
-                >
-                  <Download className="h-3.5 w-3.5" />
-                  Download
-                </a>
-                <a
-                  href={lightboxAsset.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/15 bg-white/5 text-xs text-slate-200 hover:bg-white/10 transition-colors"
-                >
-                  <ExternalLink className="h-3.5 w-3.5" />
-                  Open original
-                </a>
-                <button
-                  onClick={() => void copyUrl(lightboxAsset.url!)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/15 bg-white/5 text-xs text-slate-200 hover:bg-white/10 transition-colors"
-                >
-                  {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
-                  {copied ? "Copied!" : "Copy URL"}
-                </button>
+                {lightboxAsset.url && (
+                  <button
+                    onClick={() => downloadAsset(lightboxAsset)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-cyan-400/30 bg-cyan-500/10 text-xs text-cyan-100 hover:bg-cyan-500/20 transition-colors"
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                    Download
+                  </button>
+                )}
+                {lightboxAsset.url && (
+                  <button
+                    onClick={() => void saveAsReference(lightboxAsset)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-emerald-400/30 bg-emerald-500/10 text-xs text-emerald-100 hover:bg-emerald-500/20 transition-colors"
+                  >
+                    {referenceSaved ? <Check className="h-3.5 w-3.5" /> : <Sparkles className="h-3.5 w-3.5" />}
+                    {referenceSaved ? "Saved as reference" : "Use as reference"}
+                  </button>
+                )}
+                {lightboxAsset.url && (
+                  <a
+                    href={lightboxAsset.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/15 bg-white/5 text-xs text-slate-200 hover:bg-white/10 transition-colors"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    Open original
+                  </a>
+                )}
+                {lightboxAsset.url && (
+                  <button
+                    onClick={() => void copyUrl(lightboxAsset.url!)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/15 bg-white/5 text-xs text-slate-200 hover:bg-white/10 transition-colors"
+                  >
+                    {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
+                    {copied ? "Copied!" : "Copy URL"}
+                  </button>
+                )}
                 <button
                   onClick={() => void onDelete(lightboxAsset.id)}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-500/30 bg-red-500/10 text-xs text-red-200 hover:bg-red-500/20 transition-colors ml-auto"
@@ -522,7 +629,7 @@ export default function GalleryPage() {
               const isSelected = selectedIds.has(asset.id);
               const handleTileClick = () => {
                 if (selectionMode) toggleSelected(asset.id);
-                else if (asset.type === "image" && asset.url) openLightbox(asset);
+                else openAssetDetails(asset);
               };
               return (
               <div
@@ -553,7 +660,7 @@ export default function GalleryPage() {
                     <button
                       className={cn("block w-full h-full", selectionMode ? "cursor-pointer" : "cursor-zoom-in")}
                       onClick={handleTileClick}
-                      aria-label={selectionMode ? "Toggle selection" : "View image"}
+                      aria-label={selectionMode ? "Toggle selection" : "View asset details"}
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={asset.url} alt={asset.prompt || "image"} className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-300" />
@@ -564,23 +671,38 @@ export default function GalleryPage() {
                       )}
                     </button>
                   ) : asset.type === "video" && asset.url ? (
-                    selectionMode ? (
-                      <button onClick={handleTileClick} className="block w-full h-full">
-                        <video src={asset.url} className="w-full h-full object-cover pointer-events-none" muted />
-                      </button>
-                    ) : (
-                      <video src={asset.url} className="w-full h-full object-cover" muted controls />
-                    )
+                    <button
+                      onClick={handleTileClick}
+                      className="block w-full h-full cursor-pointer"
+                      aria-label={selectionMode ? "Toggle selection" : "View video details"}
+                    >
+                      <video src={asset.url} className="w-full h-full object-cover pointer-events-none" muted playsInline />
+                      {!selectionMode && (
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                          <ExternalLink className="h-7 w-7 text-white opacity-0 group-hover:opacity-80 transition-opacity drop-shadow-lg" />
+                        </div>
+                      )}
+                    </button>
                   ) : asset.type === "audio" && asset.url ? (
-                    <div className="w-full h-full p-4 flex flex-col justify-center gap-3" onClick={selectionMode ? handleTileClick : undefined}>
+                    <button
+                      type="button"
+                      className="w-full h-full p-4 flex flex-col justify-center gap-3 text-left cursor-pointer"
+                      onClick={handleTileClick}
+                      aria-label={selectionMode ? "Toggle selection" : "View audio details"}
+                    >
                       <Music className="h-10 w-10 text-emerald-300" />
-                      <audio src={asset.url} controls className="w-full" />
-                    </div>
+                      <span className="text-sm text-slate-200 line-clamp-2">{asset.prompt || "Audio asset"}</span>
+                    </button>
                   ) : asset.type === "text" ? (
-                    <div className="w-full h-full p-4 flex flex-col justify-center gap-3" onClick={selectionMode ? handleTileClick : undefined}>
+                    <button
+                      type="button"
+                      className="w-full h-full p-4 flex flex-col justify-center gap-3 text-left cursor-pointer"
+                      onClick={handleTileClick}
+                      aria-label={selectionMode ? "Toggle selection" : "View text details"}
+                    >
                       <FileText className="h-8 w-8 text-violet-300" />
                       <p className="text-sm text-slate-200 line-clamp-6">{asset.textContent || asset.prompt || "Text output"}</p>
-                    </div>
+                    </button>
                   ) : (
                     <div className="w-full h-full p-4 flex items-center justify-center text-slate-500 text-sm">No preview</div>
                   )}
