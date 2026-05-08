@@ -56,6 +56,19 @@ const SEEDANCE_2_SHOTS = [
   "/seedance%202/1%20(8).webp",
 ] as const;
 
+const TRANSITIONS_HERO = "/transitions/Hero.webp";
+const TRANSITIONS_SHOTS = [
+  "/transitions/1%20(1).webp",
+  "/transitions/1%20(2).webp",
+  "/transitions/1%20(3).webp",
+  "/transitions/1%20(4).webp",
+  "/transitions/1%20(5).webp",
+  "/transitions/1%20(6).webp",
+  "/transitions/1%20(7).webp",
+  "/transitions/1%20(8).webp",
+  "/transitions/1%20(9).webp",
+] as const;
+
 function GptImage2Ad() {
   const href = `/image?tool=create&model=${encodeURIComponent(GPT_IMAGE_2_MODEL_ID)}`;
   const heroShot = GPT_IMAGE_2_SHOTS[0];
@@ -341,6 +354,116 @@ function NextSceneEngineAd() {
             <div className="flex flex-wrap items-center gap-3">
               <span className="inline-flex rounded-lg border border-white/15 bg-black/45 px-4 py-3 text-sm font-black text-white shadow-2xl shadow-black/40 backdrop-blur">
                 NEXT SCENE ENGINE
+              </span>
+              <span className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white px-5 py-3 text-sm font-black text-slate-950 shadow-2xl shadow-black/45 transition group-hover:scale-[1.04] group-hover:bg-slate-100">
+                Open
+                <ArrowUpRight className="h-4 w-4" />
+              </span>
+            </div>
+          </div>
+        </div>
+      </Link>
+    </section>
+  );
+}
+
+function TransitionsModelAd() {
+  const galleryShots = TRANSITIONS_SHOTS;
+  const galleryLayout = [
+    "col-span-6 row-span-4",
+    "col-span-6 row-span-2",
+    "col-span-3 row-span-3",
+    "col-span-3 row-span-3",
+    "col-span-3 row-span-3",
+    "col-span-3 row-span-3",
+    "col-span-3 row-span-3",
+    "col-span-3 row-span-3",
+    "col-span-6 row-span-3",
+  ];
+
+  return (
+    <section className="w-full px-5 pb-8 md:px-10 lg:px-14 xl:px-20">
+      <Link
+        href="https://www.saadstudio.app/apps/tool/transitions"
+        className="group relative mx-auto block max-w-[1440px] overflow-hidden rounded-[1.35rem] border border-white/10 bg-[#07090c] shadow-2xl shadow-black/50"
+      >
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_48%,rgba(59,130,246,0.16),transparent_30%),linear-gradient(90deg,#050608_0%,#070b12_45%,#050506_100%)]" />
+        <div className="relative grid min-h-[520px] gap-0 lg:grid-cols-[24rem_1fr] xl:grid-cols-[30rem_1fr]">
+          <div className="relative flex min-h-[430px] flex-col items-center justify-start overflow-hidden border-b border-white/10 px-6 py-9 text-center lg:border-b-0 lg:border-r">
+            <img
+              src={TRANSITIONS_HERO}
+              alt="Transitions hero"
+              className="absolute inset-0 h-full w-full object-cover object-center opacity-95 transition duration-700 group-hover:scale-[1.03]"
+              loading="eager"
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-black/76 via-black/20 to-black/78" />
+            <div className="relative z-10">
+              <div className="text-[11px] font-black uppercase tracking-[0.26em] text-white/55">VIDEO TOOL</div>
+              <div className="mx-auto mt-4 h-px w-16 bg-gradient-to-r from-transparent via-blue-200/50 to-transparent" />
+              <h2 className="mt-5 text-3xl font-black leading-tight text-white md:text-4xl">Transitions</h2>
+              <p className="mt-3 max-w-sm text-sm leading-6 text-slate-300">Create stylized scene changes and motion bridges between your clips.</p>
+              <span className="mt-6 inline-flex items-center gap-2 rounded-lg bg-white px-4 py-3 text-sm font-black text-slate-950 transition group-hover:scale-[1.03]">
+                <Play className="h-4 w-4 fill-current" />
+                Open Tool
+              </span>
+            </div>
+            <div className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-black via-black/25 to-transparent" />
+          </div>
+
+          <div className="relative min-h-[520px] overflow-hidden p-4">
+            <div className="grid h-full min-h-[500px] grid-cols-12 grid-rows-8 gap-3">
+              {galleryShots.map((shot, index) => (
+                <div
+                  key={shot}
+                  className={cn(
+                    "relative overflow-hidden rounded-lg border border-white/10 bg-white/[0.03] shadow-xl shadow-black/30",
+                    galleryLayout[index],
+                  )}
+                >
+                  <img
+                    src={shot}
+                    alt={`Transitions showcase ${index + 1}`}
+                    className="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-[1.035]"
+                    loading={index < 3 ? "eager" : "lazy"}
+                  />
+                  <div className="absolute inset-0 bg-black/0 transition group-hover:bg-black/5" />
+                </div>
+              ))}
+            </div>
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black via-black/45 to-transparent" />
+            <div className="absolute bottom-7 left-1/2 -translate-x-1/2">
+              <span className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white px-5 py-3 text-sm font-black text-slate-950 shadow-2xl shadow-black/45 transition group-hover:scale-[1.04] group-hover:bg-slate-100">
+                View transitions
+                <ArrowUpRight className="h-4 w-4" />
+              </span>
+            </div>
+          </div>
+        </div>
+      </Link>
+    </section>
+  );
+}
+
+function NanoBananaAd() {
+  return (
+    <section className="w-full px-5 pb-8 md:px-10 lg:px-14 xl:px-20">
+      <Link
+        href="/image?tool=create&model=nano-banana-pro"
+        className="group relative mx-auto block max-w-[1440px] overflow-hidden rounded-[1.35rem] border border-white/10 bg-[#08090d] shadow-2xl shadow-black/50"
+      >
+        <div className="relative min-h-[430px]">
+          <img
+            src="/nano.webp"
+            alt="Nano Banana hero"
+            className="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-[1.025]"
+            loading="eager"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/34 to-black/10" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-black/10" />
+          <div className="relative flex min-h-[430px] items-end px-7 py-10 md:px-12 lg:px-16">
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="inline-flex rounded-lg border border-white/15 bg-black/45 px-4 py-3 text-sm font-black text-white shadow-2xl shadow-black/40 backdrop-blur">
+                نانوبنانا
               </span>
               <span className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white px-5 py-3 text-sm font-black text-slate-950 shadow-2xl shadow-black/45 transition group-hover:scale-[1.04] group-hover:bg-slate-100">
                 Open
@@ -880,6 +1003,8 @@ export default function ExplorePage() {
       <CanvasModelAd />
       <Seedance2ModelAd />
       <NextSceneEngineAd />
+      <TransitionsModelAd />
+      <NanoBananaAd />
 
       <section className="relative w-full px-5 pb-10 md:px-10 lg:px-14 xl:px-20">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
