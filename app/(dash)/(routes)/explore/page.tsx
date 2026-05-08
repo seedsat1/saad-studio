@@ -151,7 +151,7 @@ function GptImage2ModelAd() {
     <section className="w-full px-5 py-8 md:px-10 lg:px-14 xl:px-20">
       <Link
         href={href}
-        className="group relative block overflow-hidden rounded-[1.35rem] border border-white/10 bg-[#07090c] shadow-2xl shadow-black/50"
+        className="group relative mx-auto block max-w-[1440px] overflow-hidden rounded-[1.35rem] border border-white/10 bg-[#07090c] shadow-2xl shadow-black/50"
       >
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_50%,rgba(255,255,255,0.12),transparent_26%),linear-gradient(90deg,#070707_0%,#090b10_32%,#030405_100%)]" />
         <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black via-black/75 to-transparent" />
@@ -217,7 +217,7 @@ function CanvasModelAd() {
     <section className="w-full px-5 pb-8 md:px-10 lg:px-14 xl:px-20">
       <Link
         href="https://www.saadstudio.app/original-series"
-        className="group relative block overflow-hidden rounded-[1.35rem] border border-white/10 bg-[#08090d] shadow-2xl shadow-black/50"
+        className="group relative mx-auto block max-w-[1440px] overflow-hidden rounded-[1.35rem] border border-white/10 bg-[#08090d] shadow-2xl shadow-black/50"
       >
         <div className="relative min-h-[430px]">
           <img
@@ -261,7 +261,7 @@ function Seedance2ModelAd() {
     <section className="w-full px-5 pb-8 md:px-10 lg:px-14 xl:px-20">
       <Link
         href="/video?tool=create-video&model=bytedance-seedance-v2-t2v"
-        className="group relative block overflow-hidden rounded-[1.35rem] border border-white/10 bg-[#07090c] shadow-2xl shadow-black/50"
+        className="group relative mx-auto block max-w-[1440px] overflow-hidden rounded-[1.35rem] border border-white/10 bg-[#07090c] shadow-2xl shadow-black/50"
       >
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_78%_48%,rgba(45,212,191,0.18),transparent_30%),linear-gradient(90deg,#040506_0%,#07100f_55%,#050606_100%)]" />
         <div className="relative grid min-h-[520px] gap-0 lg:grid-cols-[1fr_24rem] xl:grid-cols-[1fr_30rem]">
@@ -326,7 +326,7 @@ function NextSceneEngineAd() {
     <section className="w-full px-5 pb-8 md:px-10 lg:px-14 xl:px-20">
       <Link
         href="https://www.saadstudio.app/cinema-studio"
-        className="group relative block overflow-hidden rounded-[1.35rem] border border-white/10 bg-[#08090d] shadow-2xl shadow-black/50"
+        className="group relative mx-auto block max-w-[1440px] overflow-hidden rounded-[1.35rem] border border-white/10 bg-[#08090d] shadow-2xl shadow-black/50"
       >
         <div className="relative min-h-[430px]">
           <img
