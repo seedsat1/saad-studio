@@ -260,7 +260,7 @@ function Seedance2ModelAd() {
   return (
     <section className="w-full px-5 pb-8 md:px-10 lg:px-14 xl:px-20">
       <Link
-        href="/video?model=seedance-2"
+        href="/video?tool=create-video&model=bytedance-seedance-v2-t2v"
         className="group relative block overflow-hidden rounded-[1.35rem] border border-white/10 bg-[#07090c] shadow-2xl shadow-black/50"
       >
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_78%_48%,rgba(45,212,191,0.18),transparent_30%),linear-gradient(90deg,#040506_0%,#07100f_55%,#050606_100%)]" />
