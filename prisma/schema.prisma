@@ -154,6 +154,30 @@ model AdCampaign {
   @@index([isActive])
 }
 
+/// Public cinematic showcase feed rendered on /explore.
+/// Backed by admin CMS uploads and optimized for featured/trending feeds.
+model ShowcaseItem {
+  id           String   @id @default(cuid())
+  title        String
+  slug         String   @unique
+  model        String
+  provider     String
+  videoUrl     String   @map("video_url")
+  thumbnailUrl String   @map("thumbnail_url")
+  prompt       String   @default("")
+  tags         String[] @default([])
+  featured     Boolean  @default(false)
+  views        Int      @default(0)
+  likes        Int      @default(0)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@index([featured, createdAt])
+  @@index([views, likes])
+  @@index([createdAt])
+  @@map("showcase_items")
+}
+
 // ——————————————————————————————————————————————————————————
 // CINEMA STUDIO — PRODUCTION MODELS
 // ——————————————————————————————————————————————————————————

@@ -1,443 +1,361 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import {
-  Activity,
-  ArrowRight,
-  Boxes,
-  Braces,
-  CheckCircle2,
-  Clock3,
-  Code2,
-  Copy,
-  Database,
-  Download,
-  ImageIcon,
-  KeyRound,
-  Layers3,
-  LockKeyhole,
-  Music,
+  ArrowUpRight,
+  Clapperboard,
+  Eye,
+  Flame,
+  Heart,
+  Loader2,
   Play,
-  ServerCog,
+  RefreshCw,
+  Search,
   Sparkles,
-  TerminalSquare,
+  Star,
+  Tags,
   Video,
-  Wand2,
-  Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type Endpoint = {
+type ShowcaseItem = {
   id: string;
-  method: "GET" | "POST";
-  path: string;
   title: string;
-  description: string;
-  latency: string;
-  credits: string;
-  icon: React.ElementType;
-  body: Record<string, unknown>;
+  slug: string;
+  model: string;
+  provider: string;
+  video_url: string;
+  thumbnail_url: string;
+  prompt: string;
+  tags: string[];
+  featured: boolean;
+  views: number;
+  likes: number;
+  created_at: string;
 };
 
-type SnippetLang = "curl" | "js" | "python";
+type FeedResponse = {
+  items: ShowcaseItem[];
+  nextCursor?: string | null;
+};
 
-const endpoints: Endpoint[] = [
-  {
-    id: "image",
-    method: "POST",
-    path: "/api/image/generate",
-    title: "Image Generation",
-    description: "Create product shots, ads, characters, and campaign visuals from prompt and reference images.",
-    latency: "8-18s",
-    credits: "4 cr",
-    icon: ImageIcon,
-    body: {
-      prompt: "Luxury perfume bottle on reflective black marble, cinematic rim light",
-      model: "nano-banana-pro",
-      aspect_ratio: "1:1",
-      references: ["https://cdn.example.com/reference.png"],
-    },
-  },
-  {
-    id: "video",
-    method: "POST",
-    path: "/api/video/generate",
-    title: "Video Generation",
-    description: "Generate motion clips with reference media, audio, duration, model, and aspect ratio controls.",
-    latency: "90-180s",
-    credits: "36 cr",
-    icon: Video,
-    body: {
-      prompt: "A cinematic tracking shot of a model walking through neon rain",
-      model: "seedance-2",
-      duration: 10,
-      aspect_ratio: "16:9",
-      generate_audio: true,
-      reference_image_urls: ["https://cdn.example.com/frame.png"],
-    },
-  },
-  {
-    id: "audio",
-    method: "POST",
-    path: "/api/audio/generate",
-    title: "Voice and Music",
-    description: "Create Arabic voiceovers, sound effects, and branded music beds with reusable presets.",
-    latency: "6-22s",
-    credits: "2 cr",
-    icon: Music,
-    body: {
-      mode: "voice",
-      text: "Welcome to Saad Studio, your AI creative engine.",
-      voice_id: "arabic-news-voice",
-      format: "mp3",
-    },
-  },
-  {
-    id: "assets",
-    method: "POST",
-    path: "/api/assets/persist",
-    title: "Asset Library",
-    description: "Persist generated media into the user's vault and reuse assets as references across tools.",
-    latency: "300-900ms",
-    credits: "0 cr",
-    icon: Database,
-    body: {
-      type: "image",
-      url: "https://cdn.example.com/output.png",
-      prompt: "Campaign hero image",
-      model: "nano-banana-pro",
-    },
-  },
-];
-
-const features = [
-  { icon: KeyRound, label: "API keys", text: "Scoped keys for production, staging, and internal automation." },
-  { icon: LockKeyhole, label: "Safe uploads", text: "Signed media URLs and validation before assets enter a workflow." },
-  { icon: Activity, label: "Webhooks", text: "Receive job.completed and job.failed events without polling." },
-  { icon: Download, label: "Direct files", text: "Download generated files through stable API download routes." },
-];
-
-const pipeline = [
-  "Authenticate request",
-  "Validate prompt and media",
-  "Queue generation job",
-  "Track progress or webhook",
-  "Persist output to gallery",
-];
-
-const stats = [
-  { value: "99.9%", label: "API uptime target" },
-  { value: "< 1s", label: "Asset persist response" },
-  { value: "9", label: "Reference inputs supported" },
-  { value: "24/7", label: "Production monitoring" },
-];
-
-function formatJson(value: unknown) {
-  return JSON.stringify(value, null, 2);
+function compactNumber(value: number) {
+  return Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 }).format(value);
 }
 
-function buildSnippet(endpoint: Endpoint, lang: SnippetLang) {
-  const body = formatJson(endpoint.body);
+function ShowcaseCard({ item, priority = false }: { item: ShowcaseItem; priority?: boolean }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [isPreviewing, setIsPreviewing] = useState(false);
 
-  if (lang === "curl") {
-    return `curl -X ${endpoint.method} https://www.saadstudio.app${endpoint.path} \\
-  -H "Authorization: Bearer $SAAD_API_KEY" \\
-  -H "Content-Type: application/json" \\
-  -d '${body}'`;
-  }
+  const startPreview = async () => {
+    if (!videoRef.current) return;
+    setIsPreviewing(true);
+    try {
+      videoRef.current.currentTime = 0;
+      await videoRef.current?.play();
+    } catch {
+      setIsPreviewing(false);
+    }
+  };
 
-  if (lang === "python") {
-    return `import requests
+  const stopPreview = () => {
+    setIsPreviewing(false);
+    videoRef.current?.pause();
+  };
 
-response = requests.${endpoint.method.toLowerCase()}(
-    "https://www.saadstudio.app${endpoint.path}",
-    headers={
-        "Authorization": "Bearer " + SAAD_API_KEY,
-        "Content-Type": "application/json",
-    },
-    json=${body.replace(/\n/g, "\n    ")},
-)
+  const likeItem = async () => {
+    await fetch(`/api/showcase/${item.id}`, { method: "PATCH" });
+  };
 
-print(response.json())`;
-  }
-
-  return `const response = await fetch("https://www.saadstudio.app${endpoint.path}", {
-  method: "${endpoint.method}",
-  headers: {
-    Authorization: \`Bearer \${process.env.SAAD_API_KEY}\`,
-    "Content-Type": "application/json",
-  },
-  body: JSON.stringify(${body.replace(/\n/g, "\n  ")}),
-});
-
-const result = await response.json();`;
+  return (
+    <motion.article
+      layout
+      initial={{ opacity: 0, y: 18 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35 }}
+      onMouseEnter={() => void startPreview()}
+      onMouseLeave={stopPreview}
+      className={cn(
+        "group relative overflow-hidden rounded-2xl border border-white/10 bg-[#090f1d] shadow-2xl shadow-black/30",
+        priority ? "md:col-span-2 md:row-span-2" : "",
+      )}
+    >
+      <div className={cn("relative bg-slate-950", priority ? "aspect-[16/10]" : "aspect-[4/5]")}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={item.thumbnail_url}
+          alt={item.title}
+          className={cn(
+            "absolute inset-0 h-full w-full object-cover transition duration-500",
+            isPreviewing ? "opacity-0 scale-105" : "opacity-100 scale-100",
+          )}
+        />
+        <video
+          ref={videoRef}
+          src={item.video_url}
+          muted
+          loop
+          playsInline
+          preload="metadata"
+          className={cn(
+            "absolute inset-0 h-full w-full object-cover transition duration-500",
+            isPreviewing ? "opacity-100 scale-100" : "opacity-0 scale-105",
+          )}
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
+        <div className="absolute left-3 top-3 flex flex-wrap gap-2">
+          {item.featured && (
+            <span className="inline-flex items-center gap-1 rounded-full border border-amber-300/40 bg-amber-400/15 px-2.5 py-1 text-[11px] font-bold text-amber-100">
+              <Star className="h-3 w-3" />
+              Featured
+            </span>
+          )}
+          <span className="inline-flex items-center gap-1 rounded-full border border-cyan-300/30 bg-cyan-400/10 px-2.5 py-1 text-[11px] font-bold text-cyan-100">
+            {item.provider}
+          </span>
+        </div>
+        <div className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-black/45 backdrop-blur">
+          <Play className="h-4 w-4 fill-white text-white" />
+        </div>
+        <div className="absolute inset-x-0 bottom-0 p-4">
+          <h3 className={cn("font-black leading-tight text-white", priority ? "text-2xl" : "text-base")}>{item.title}</h3>
+          <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-300">{item.prompt}</p>
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-slate-300">
+            <span className="rounded-full bg-white/10 px-2 py-1">{item.model}</span>
+            <span className="inline-flex items-center gap-1">
+              <Eye className="h-3.5 w-3.5" />
+              {compactNumber(item.views)}
+            </span>
+            <button onClick={() => void likeItem()} className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2 py-1 hover:bg-pink-500/20">
+              <Heart className="h-3.5 w-3.5" />
+              {compactNumber(item.likes)}
+            </button>
+          </div>
+        </div>
+      </div>
+    </motion.article>
+  );
 }
 
 export default function ExplorePage() {
-  const [selectedId, setSelectedId] = useState(endpoints[0].id);
-  const [lang, setLang] = useState<SnippetLang>("curl");
-  const [copied, setCopied] = useState(false);
+  const [items, setItems] = useState<ShowcaseItem[]>([]);
+  const [featured, setFeatured] = useState<ShowcaseItem[]>([]);
+  const [trending, setTrending] = useState<ShowcaseItem[]>([]);
+  const [activeFeed, setActiveFeed] = useState<"latest" | "featured" | "trending">("latest");
+  const [query, setQuery] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const selectedEndpoint = useMemo(
-    () => endpoints.find((endpoint) => endpoint.id === selectedId) ?? endpoints[0],
-    [selectedId],
-  );
-
-  const snippet = useMemo(() => buildSnippet(selectedEndpoint, lang), [lang, selectedEndpoint]);
-
-  const copySnippet = async () => {
+  const loadShowcase = useCallback(async () => {
+    setLoading(true);
+    setError(null);
     try {
-      await navigator.clipboard.writeText(snippet);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1600);
-    } catch {
-      setCopied(false);
+      const [latestRes, featuredRes, trendingRes] = await Promise.all([
+        fetch("/api/showcase", { cache: "no-store" }),
+        fetch("/api/showcase/featured", { cache: "no-store" }),
+        fetch("/api/showcase/trending", { cache: "no-store" }),
+      ]);
+
+      if (!latestRes.ok) throw new Error("Failed to load showcase feed");
+
+      const latestJson = (await latestRes.json()) as FeedResponse;
+      const featuredJson = featuredRes.ok ? ((await featuredRes.json()) as FeedResponse) : { items: [] };
+      const trendingJson = trendingRes.ok ? ((await trendingRes.json()) as FeedResponse) : { items: [] };
+
+      setItems(latestJson.items ?? []);
+      setFeatured(featuredJson.items ?? []);
+      setTrending(trendingJson.items ?? []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to load showcase");
+    } finally {
+      setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    void loadShowcase();
+  }, [loadShowcase]);
+
+  const feedItems = useMemo(() => {
+    const source = activeFeed === "featured" ? featured : activeFeed === "trending" ? trending : items;
+    const needle = query.trim().toLowerCase();
+    if (!needle) return source;
+    return source.filter((item) => {
+      return [
+        item.title,
+        item.prompt,
+        item.model,
+        item.provider,
+        item.tags.join(" "),
+      ].some((value) => value.toLowerCase().includes(needle));
+    });
+  }, [activeFeed, featured, items, query, trending]);
+
+  const hero = featured[0] ?? trending[0] ?? items[0] ?? null;
 
   return (
     <main className="min-h-screen bg-[#050812] text-white">
       <section className="relative overflow-hidden border-b border-white/10">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(34,211,238,0.18),transparent_30%),radial-gradient(circle_at_80%_20%,rgba(168,85,247,0.16),transparent_30%)]" />
-        <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[#050812] to-transparent" />
+        {hero ? (
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={hero.thumbnail_url} alt="" className="absolute inset-0 h-full w-full object-cover opacity-25 blur-sm" />
+            <div className="absolute inset-0 bg-gradient-to-b from-[#050812]/70 via-[#050812]/90 to-[#050812]" />
+          </>
+        ) : (
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_25%_15%,rgba(34,211,238,0.18),transparent_34%),radial-gradient(circle_at_80%_20%,rgba(168,85,247,0.16),transparent_32%)]" />
+        )}
 
-        <div className="relative mx-auto grid max-w-7xl grid-cols-1 gap-10 px-5 py-12 md:grid-cols-[minmax(0,0.9fr)_minmax(420px,1.1fr)] md:px-8 lg:py-16">
-          <motion.div
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.45 }}
-            className="flex flex-col justify-center"
-          >
-            <div className="inline-flex w-fit items-center gap-2 rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-1 text-xs font-semibold text-cyan-100">
+        <div className="relative mx-auto grid max-w-7xl grid-cols-1 gap-8 px-5 py-12 md:grid-cols-[minmax(0,0.95fr)_minmax(360px,0.8fr)] md:px-8 lg:py-16">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-1 text-xs font-bold text-cyan-100">
               <Sparkles className="h-3.5 w-3.5" />
-              SAAD STUDIO API
+              Showcase Feed
             </div>
             <h1 className="mt-5 max-w-3xl text-4xl font-black leading-tight tracking-normal md:text-6xl">
-              Showcase API for creative automation.
+              Explore cinematic AI work from Saad Studio.
             </h1>
             <p className="mt-5 max-w-2xl text-base leading-7 text-slate-300">
-              Connect image, video, audio, and gallery workflows into your product with one production-ready creative API surface.
+              A dynamic gallery powered by the showcase database, tuned for premium hover previews and scalable discovery feeds.
             </p>
             <div className="mt-7 flex flex-wrap gap-3">
-              <a
-                href="#api-console"
+              <button
+                onClick={() => setActiveFeed("featured")}
                 className="inline-flex items-center gap-2 rounded-xl bg-cyan-400 px-4 py-3 text-sm font-bold text-slate-950 transition hover:bg-cyan-300"
               >
-                Open API Console
-                <ArrowRight className="h-4 w-4" />
-              </a>
-              <a
-                href="/pricing"
+                <Star className="h-4 w-4" />
+                Featured
+              </button>
+              <button
+                onClick={() => setActiveFeed("trending")}
                 className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-sm font-semibold text-slate-100 transition hover:bg-white/10"
               >
-                View pricing
-              </a>
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.45, delay: 0.08 }}
-            className="rounded-2xl border border-white/10 bg-slate-950/80 shadow-2xl shadow-cyan-950/30"
-          >
-            <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
-              <div className="flex items-center gap-2 text-sm font-semibold text-slate-200">
-                <TerminalSquare className="h-4 w-4 text-cyan-300" />
-                Live request preview
-              </div>
-              <div className="flex gap-1.5">
-                <span className="h-2.5 w-2.5 rounded-full bg-red-400" />
-                <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
-                <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
-              </div>
-            </div>
-            <pre className="max-h-[420px] overflow-auto p-5 text-xs leading-6 text-cyan-50">
-              <code>{snippet}</code>
-            </pre>
-          </motion.div>
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-7xl px-5 py-8 md:px-8">
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          {stats.map((stat) => (
-            <div key={stat.label} className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
-              <div className="text-2xl font-black text-cyan-300">{stat.value}</div>
-              <div className="mt-1 text-xs text-slate-400">{stat.label}</div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section id="api-console" className="mx-auto grid max-w-7xl grid-cols-1 gap-5 px-5 pb-10 md:grid-cols-[320px_minmax(0,1fr)] md:px-8">
-        <aside className="space-y-3">
-          <div className="flex items-center gap-2 text-sm font-bold text-slate-200">
-            <ServerCog className="h-4 w-4 text-cyan-300" />
-            Endpoints
-          </div>
-          {endpoints.map((endpoint) => {
-            const Icon = endpoint.icon;
-            const isActive = selectedEndpoint.id === endpoint.id;
-            return (
-              <button
-                key={endpoint.id}
-                onClick={() => setSelectedId(endpoint.id)}
-                className={cn(
-                  "w-full rounded-xl border p-4 text-left transition",
-                  isActive
-                    ? "border-cyan-400/50 bg-cyan-400/10 shadow-lg shadow-cyan-950/30"
-                    : "border-white/10 bg-white/[0.04] hover:bg-white/[0.07]",
-                )}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/10">
-                    <Icon className="h-5 w-5 text-cyan-200" />
-                  </div>
-                  <div>
-                    <div className="text-sm font-bold text-white">{endpoint.title}</div>
-                    <div className="mt-1 text-[11px] text-slate-400">{endpoint.path}</div>
-                  </div>
-                </div>
+                <Flame className="h-4 w-4" />
+                Trending
               </button>
-            );
-          })}
-        </aside>
-
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
-          <div className="rounded-2xl border border-white/10 bg-white/[0.04]">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 p-4">
-              <div>
-                <div className="flex items-center gap-2 text-xs font-bold text-emerald-300">
-                  <span className="rounded-md bg-emerald-400/10 px-2 py-1">{selectedEndpoint.method}</span>
-                  <span className="font-mono text-slate-300">{selectedEndpoint.path}</span>
-                </div>
-                <h2 className="mt-3 text-2xl font-black">{selectedEndpoint.title}</h2>
-                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300">{selectedEndpoint.description}</p>
-              </div>
-              <div className="flex rounded-xl border border-white/10 bg-slate-950 p-1">
-                {(["curl", "js", "python"] as SnippetLang[]).map((item) => (
-                  <button
-                    key={item}
-                    onClick={() => setLang(item)}
-                    className={cn(
-                      "rounded-lg px-3 py-1.5 text-xs font-bold uppercase transition",
-                      lang === item ? "bg-cyan-400 text-slate-950" : "text-slate-400 hover:text-white",
-                    )}
-                  >
-                    {item}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="p-4">
-              <div className="mb-3 flex items-center justify-between">
-                <div className="inline-flex items-center gap-2 text-sm font-semibold text-slate-200">
-                  <Code2 className="h-4 w-4 text-cyan-300" />
-                  Request code
-                </div>
-                <button
-                  onClick={copySnippet}
-                  className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-slate-200 transition hover:bg-white/10"
-                >
-                  {copied ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-300" /> : <Copy className="h-3.5 w-3.5" />}
-                  {copied ? "Copied" : "Copy"}
-                </button>
-              </div>
-              <pre className="max-h-[520px] overflow-auto rounded-xl border border-white/10 bg-[#020617] p-4 text-xs leading-6 text-slate-100">
-                <code>{snippet}</code>
-              </pre>
             </div>
           </div>
 
-          <aside className="space-y-5">
-            <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
-              <div className="flex items-center gap-2 text-sm font-bold">
-                <Clock3 className="h-4 w-4 text-cyan-300" />
-                Runtime profile
+          <div className="rounded-2xl border border-white/10 bg-black/35 p-5 backdrop-blur">
+            <div className="flex items-center gap-2 text-sm font-bold text-slate-200">
+              <Video className="h-4 w-4 text-cyan-300" />
+              Live Feed Stats
+            </div>
+            <div className="mt-5 grid grid-cols-3 gap-3">
+              <div className="rounded-xl border border-white/10 bg-white/[0.05] p-3">
+                <div className="text-2xl font-black text-cyan-300">{items.length}</div>
+                <div className="mt-1 text-[11px] text-slate-400">Latest</div>
               </div>
-              <div className="mt-4 grid grid-cols-2 gap-3">
-                <div className="rounded-xl border border-white/10 bg-slate-950/70 p-3">
-                  <div className="text-xs text-slate-500">Latency</div>
-                  <div className="mt-1 text-lg font-black text-white">{selectedEndpoint.latency}</div>
-                </div>
-                <div className="rounded-xl border border-white/10 bg-slate-950/70 p-3">
-                  <div className="text-xs text-slate-500">Credits</div>
-                  <div className="mt-1 text-lg font-black text-white">{selectedEndpoint.credits}</div>
-                </div>
+              <div className="rounded-xl border border-white/10 bg-white/[0.05] p-3">
+                <div className="text-2xl font-black text-amber-300">{featured.length}</div>
+                <div className="mt-1 text-[11px] text-slate-400">Featured</div>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-white/[0.05] p-3">
+                <div className="text-2xl font-black text-pink-300">{trending.length}</div>
+                <div className="mt-1 text-[11px] text-slate-400">Trending</div>
               </div>
             </div>
-
-            <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
-              <div className="flex items-center gap-2 text-sm font-bold">
-                <Braces className="h-4 w-4 text-cyan-300" />
-                JSON payload
+            {hero && (
+              <div className="mt-5 rounded-xl border border-white/10 bg-slate-950/70 p-4">
+                <div className="text-xs uppercase tracking-wide text-slate-500">Hero pick</div>
+                <div className="mt-2 text-lg font-black text-white">{hero.title}</div>
+                <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-slate-300">
+                  {hero.tags.slice(0, 4).map((tag) => (
+                    <span key={tag} className="rounded-full bg-white/10 px-2 py-1">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
               </div>
-              <pre className="mt-4 max-h-[300px] overflow-auto rounded-xl border border-white/10 bg-slate-950/70 p-3 text-[11px] leading-5 text-slate-200">
-                <code>{formatJson(selectedEndpoint.body)}</code>
-              </pre>
-            </div>
-          </aside>
+            )}
+          </div>
         </div>
       </section>
 
-      <section className="mx-auto grid max-w-7xl grid-cols-1 gap-5 px-5 pb-14 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] md:px-8">
-        <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6">
-          <div className="inline-flex items-center gap-2 rounded-full border border-violet-400/30 bg-violet-400/10 px-3 py-1 text-xs font-bold text-violet-100">
-            <Layers3 className="h-3.5 w-3.5" />
-            Workflow
+      <section className="mx-auto max-w-7xl px-5 py-6 md:px-8">
+        <div className="flex flex-col gap-4 rounded-2xl border border-white/10 bg-white/[0.04] p-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setActiveFeed("latest")}
+              className={cn("rounded-xl px-4 py-2 text-sm font-bold", activeFeed === "latest" ? "bg-white text-slate-950" : "bg-white/5 text-slate-300 hover:bg-white/10")}
+            >
+              Latest
+            </button>
+            <button
+              onClick={() => setActiveFeed("featured")}
+              className={cn("rounded-xl px-4 py-2 text-sm font-bold", activeFeed === "featured" ? "bg-white text-slate-950" : "bg-white/5 text-slate-300 hover:bg-white/10")}
+            >
+              Featured
+            </button>
+            <button
+              onClick={() => setActiveFeed("trending")}
+              className={cn("rounded-xl px-4 py-2 text-sm font-bold", activeFeed === "trending" ? "bg-white text-slate-950" : "bg-white/5 text-slate-300 hover:bg-white/10")}
+            >
+              Trending
+            </button>
           </div>
-          <h2 className="mt-4 text-2xl font-black">From prompt to reusable asset.</h2>
-          <div className="mt-5 space-y-3">
-            {pipeline.map((step, index) => (
-              <div key={step} className="flex items-center gap-3 rounded-xl border border-white/10 bg-slate-950/60 p-3">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-400/10 text-sm font-black text-cyan-200">
-                  {index + 1}
-                </div>
-                <span className="text-sm text-slate-200">{step}</span>
-              </div>
+          <div className="flex flex-1 gap-3 md:max-w-lg">
+            <label className="relative flex-1">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+              <input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search model, provider, prompt, tags"
+                className="w-full rounded-xl border border-white/10 bg-slate-950/80 py-2.5 pl-10 pr-3 text-sm text-white outline-none transition focus:border-cyan-400/50"
+              />
+            </label>
+            <button
+              onClick={() => void loadShowcase()}
+              className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-200 hover:bg-white/10"
+            >
+              <RefreshCw className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-5 pb-14 md:px-8">
+        {loading ? (
+          <div className="flex min-h-[360px] items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03]">
+            <Loader2 className="h-7 w-7 animate-spin text-cyan-300" />
+          </div>
+        ) : error ? (
+          <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-6 text-sm text-red-100">{error}</div>
+        ) : feedItems.length === 0 ? (
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-10 text-center">
+            <Clapperboard className="mx-auto h-10 w-10 text-slate-500" />
+            <h2 className="mt-4 text-xl font-black">No showcase items yet</h2>
+            <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-slate-400">
+              Upload cinematic showcase videos from the admin CMS. Once added, this feed will populate automatically.
+            </p>
+            <a
+              href="/admin/cms/showcase"
+              className="mt-5 inline-flex items-center gap-2 rounded-xl bg-cyan-400 px-4 py-3 text-sm font-bold text-slate-950 hover:bg-cyan-300"
+            >
+              Open Showcase CMS
+              <ArrowUpRight className="h-4 w-4" />
+            </a>
+          </div>
+        ) : (
+          <div className="grid auto-rows-auto grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {feedItems.map((item, index) => (
+              <ShowcaseCard key={item.id} item={item} priority={index === 0 && activeFeed !== "latest"} />
             ))}
           </div>
-        </div>
-
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {features.map((feature) => {
-            const Icon = feature.icon;
-            return (
-              <div key={feature.label} className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-cyan-400/10">
-                  <Icon className="h-5 w-5 text-cyan-200" />
-                </div>
-                <h3 className="mt-4 text-base font-black text-white">{feature.label}</h3>
-                <p className="mt-2 text-sm leading-6 text-slate-400">{feature.text}</p>
-              </div>
-            );
-          })}
-        </div>
+        )}
       </section>
 
       <section className="border-t border-white/10 bg-slate-950/70">
-        <div className="mx-auto flex max-w-7xl flex-col gap-4 px-5 py-8 md:flex-row md:items-center md:justify-between md:px-8">
+        <div className="mx-auto flex max-w-7xl flex-col gap-4 px-5 py-7 md:flex-row md:items-center md:justify-between md:px-8">
           <div>
             <div className="flex items-center gap-2 text-sm font-bold text-cyan-200">
-              <Boxes className="h-4 w-4" />
-              Build with Saad Studio API
+              <Tags className="h-4 w-4" />
+              Dynamic Showcase System
             </div>
             <p className="mt-2 max-w-2xl text-sm text-slate-400">
-              Use the same creative engines behind the dashboard inside your app, automation, or client workflow.
+              Every card is served from the database through `/api/showcase`, with featured and trending routes ready for larger feeds.
             </p>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            <a href="/video" className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-sm font-semibold text-white hover:bg-white/10">
-              <Play className="h-4 w-4" />
-              Try video tools
-            </a>
-            <a href="/image" className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-3 text-sm font-bold text-slate-950 hover:bg-slate-200">
-              <Wand2 className="h-4 w-4" />
-              Generate image
-            </a>
           </div>
         </div>
       </section>
