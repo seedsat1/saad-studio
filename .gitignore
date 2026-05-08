@@ -47,3 +47,5 @@ next-env.d.ts
 /prisma-notes.txt
 
 .vercel
+
+.claude/

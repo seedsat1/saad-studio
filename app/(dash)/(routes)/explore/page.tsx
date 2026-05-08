@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Eye, Flame, Heart, Play, Search, Sparkles, Star } from "lucide-react";
+import Link from "next/link";
+import { Eye, Flame, Heart, Play, ScrollText, Search, Sparkles, Star, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type ShowcaseItem = {
@@ -28,6 +29,89 @@ type FeedResponse = {
 
 function compactNumber(value: number) {
   return Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 }).format(value);
+}
+
+const GPT_IMAGE_2_MODEL_ID = "gpt-image-2-text-to-image";
+const GPT_IMAGE_2_SHOTS = [
+  "/GPT%20Image%202/SHOT%201.webp",
+  "/GPT%20Image%202/SHOT%202.webp",
+  "/GPT%20Image%202/SHOT%203.webp",
+  "/GPT%20Image%202/SHOT%204.webp",
+  "/GPT%20Image%202/SHOT%205.webp",
+  "/GPT%20Image%202/SHOT%206.webp",
+  "/GPT%20Image%202/SHOT%207.webp",
+  "/GPT%20Image%202/SHOT%208.webp",
+  "/GPT%20Image%202/SHOT%209.webp",
+] as const;
+
+function GptImage2Ad() {
+  const href = `/image?tool=create&model=${encodeURIComponent(GPT_IMAGE_2_MODEL_ID)}`;
+  const collage = GPT_IMAGE_2_SHOTS.slice(0, 9);
+
+  return (
+    <section className="w-full px-5 pt-10 md:px-10 lg:px-14 xl:px-20">
+      <Link
+        href={href}
+        className="group relative block overflow-hidden rounded-[1.9rem] border border-white/10 bg-white/[0.03] shadow-2xl shadow-black/40"
+      >
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(34,211,238,0.22),transparent_32%),radial-gradient(circle_at_72%_18%,rgba(236,72,153,0.16),transparent_28%),linear-gradient(135deg,#050812,#070b18_45%,#111827)]" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/45 to-black/10" />
+        <div className="relative grid gap-6 p-7 lg:grid-cols-12 lg:p-10">
+          <div className="lg:col-span-4">
+            <div className="text-[11px] font-black uppercase tracking-[0.18em] text-white/70">NEW MODEL</div>
+            <h2 className="mt-4 text-3xl font-black leading-tight text-white md:text-5xl">Meet GPT Image 2</h2>
+            <p className="mt-4 max-w-md text-sm leading-6 text-slate-200/90 md:text-base">
+              4K images with near-perfect text rendering. اضغط لتجربة الموديل مباشرة.
+            </p>
+            <div className="mt-6 inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-black text-slate-950 transition group-hover:scale-[1.02]">
+              <Sparkles className="h-4 w-4" />
+              Try Model
+            </div>
+            <div className="mt-5 flex flex-wrap gap-2">
+              <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/35 px-3 py-1 text-xs font-bold text-white/75 backdrop-blur">
+                <Play className="h-3.5 w-3.5" />
+                Demos
+              </span>
+              <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/35 px-3 py-1 text-xs font-bold text-white/75 backdrop-blur">
+                <ScrollText className="h-3.5 w-3.5" />
+                Tutorials
+              </span>
+              <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/35 px-3 py-1 text-xs font-bold text-white/75 backdrop-blur">
+                <Zap className="h-3.5 w-3.5" />
+                Best settings
+              </span>
+            </div>
+          </div>
+
+          <div className="lg:col-span-8">
+            <div className="grid grid-cols-6 gap-3">
+              {collage.map((src, index) => (
+                <div
+                  key={src}
+                  className={cn(
+                    "relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]",
+                    index === 0 && "col-span-3 row-span-2 aspect-[3/4]",
+                    index === 1 && "col-span-3 aspect-[16/9]",
+                    index === 2 && "col-span-2 aspect-[4/5]",
+                    index === 3 && "col-span-2 aspect-[4/5]",
+                    index === 4 && "col-span-2 aspect-[4/5]",
+                    index >= 5 && "col-span-2 aspect-[4/5]",
+                  )}
+                >
+                  <img
+                    src={src}
+                    alt="GPT Image 2 sample"
+                    className="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-[1.02]"
+                    loading={index < 2 ? "eager" : "lazy"}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </Link>
+    </section>
+  );
 }
 
 function formatDuration(seconds: number | null) {
@@ -552,58 +636,7 @@ export default function ExplorePage() {
 
   return (
     <main className="min-h-screen overflow-hidden bg-[#050812] text-white">
-      <section className="w-full px-5 pt-10 md:px-10 lg:px-14 xl:px-20">
-        <div className="relative overflow-hidden rounded-[1.9rem] border border-white/10 bg-white/[0.03] shadow-2xl shadow-black/40">
-          {hero ? (
-            <PreviewVideo videoUrl={hero.video_url} posterUrl={hero.thumbnail_url} title={hero.title} className="absolute inset-0 opacity-65" />
-          ) : (
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(34,211,238,0.24),transparent_30%),radial-gradient(circle_at_72%_12%,rgba(236,72,153,0.18),transparent_26%),linear-gradient(135deg,#050812,#070b18_45%,#111827)]" />
-          )}
-          <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/35 to-black/10" />
-          <div className="relative grid gap-6 p-7 lg:grid-cols-12 lg:p-10">
-            <div className="lg:col-span-5">
-              <div className="text-[11px] font-black uppercase tracking-[0.18em] text-white/70">NEW FEATURE</div>
-              <h1 className="mt-4 text-3xl font-black leading-tight text-white md:text-5xl">One canvas. Every workflow.</h1>
-              <p className="mt-4 max-w-md text-sm leading-6 text-slate-200/90 md:text-base">
-                صفحة اكتشف مخصصة لإعلانات الموديلات وتقسيماتها (بدون عرض أعمال المشتركين).
-              </p>
-              <div className="mt-6 flex flex-wrap items-center gap-3">
-                <button className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-black text-slate-950 transition hover:scale-[1.02]">
-                  <Sparkles className="h-4 w-4" />
-                  Try Canvas
-                </button>
-                <div className="rounded-full border border-white/15 bg-black/30 px-4 py-2 text-sm text-slate-200 backdrop-blur">
-                  {hero ? `${hero.model} / ${hero.provider}` : "Model gallery"}
-                </div>
-              </div>
-            </div>
-
-            <div className="lg:col-span-7">
-              <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
-                {heroReelItems.slice(0, 3).map((item, idx) => (
-                  <div
-                    key={item.id}
-                    className={cn(
-                      "relative overflow-hidden rounded-[1.4rem] border border-white/10 bg-white/[0.03]",
-                      idx === 0 ? "md:col-span-2 aspect-[16/9]" : "aspect-[4/5]",
-                    )}
-                  >
-                    <PreviewVideo videoUrl={item.video_url} posterUrl={item.thumbnail_url} title={item.title} />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-transparent" />
-                    <div className="absolute inset-x-0 bottom-0 p-4">
-                      <div className="flex items-center justify-between gap-3 text-[10px] font-bold uppercase tracking-[0.18em] text-white/70">
-                        <span className="truncate">{item.model}</span>
-                        <span className="truncate">{item.provider}</span>
-                      </div>
-                      <div className="mt-2 text-base font-black leading-tight text-white line-clamp-1">{item.title}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      <GptImage2Ad />
 
       <section className="relative w-full px-5 pb-10 md:px-10 lg:px-14 xl:px-20">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
