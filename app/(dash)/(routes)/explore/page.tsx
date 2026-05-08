@@ -69,6 +69,18 @@ const TRANSITIONS_SHOTS = [
   "/transitions/1%20(9).webp",
 ] as const;
 
+const KLING_3_HERO = "/Kling%203.0/Hero.png";
+const KLING_3_SHOTS = [
+  "/Kling%203.0/1%20(1).png",
+  "/Kling%203.0/1%20(2).png",
+  "/Kling%203.0/1%20(3).png",
+  "/Kling%203.0/1%20(4).png",
+  "/Kling%203.0/1%20(5).png",
+  "/Kling%203.0/1%20(6).png",
+  "/Kling%203.0/1%20(7).png",
+  "/Kling%203.0/1%20(8).png",
+] as const;
+
 function GptImage2Ad() {
   const href = `/image?tool=create&model=${encodeURIComponent(GPT_IMAGE_2_MODEL_ID)}`;
   const heroShot = GPT_IMAGE_2_SHOTS[0];
@@ -470,6 +482,82 @@ function NanoBananaAd() {
                 <ArrowUpRight className="h-4 w-4" />
               </span>
             </div>
+          </div>
+        </div>
+      </Link>
+    </section>
+  );
+}
+
+function Kling3ModelAd() {
+  const galleryLayout = [
+    "col-span-6 row-span-4",
+    "col-span-6 row-span-2",
+    "col-span-3 row-span-3",
+    "col-span-3 row-span-3",
+    "col-span-3 row-span-3",
+    "col-span-3 row-span-3",
+    "col-span-6 row-span-3",
+    "col-span-6 row-span-3",
+  ];
+
+  return (
+    <section className="w-full px-5 pb-8 md:px-10 lg:px-14 xl:px-20">
+      <Link
+        href="/video?tool=create-video&model=kling-v3.0-pro-t2v"
+        className="group relative mx-auto block max-w-[1440px] overflow-hidden rounded-[1.35rem] border border-white/10 bg-[#07090c] shadow-2xl shadow-black/50"
+      >
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_78%_48%,rgba(124,58,237,0.2),transparent_30%),linear-gradient(90deg,#050506_0%,#0c0813_55%,#050506_100%)]" />
+        <div className="relative grid min-h-[520px] gap-0 lg:grid-cols-[1fr_24rem] xl:grid-cols-[1fr_30rem]">
+          <div className="relative min-h-[500px] overflow-hidden border-b border-white/10 p-4 lg:border-b-0 lg:border-r">
+            <div className="grid h-full min-h-[500px] grid-cols-12 grid-rows-8 gap-3">
+              {KLING_3_SHOTS.map((shot, index) => (
+                <div
+                  key={shot}
+                  className={cn(
+                    "relative overflow-hidden rounded-lg border border-white/10 bg-white/[0.03] shadow-xl shadow-black/30",
+                    galleryLayout[index],
+                  )}
+                >
+                  <img
+                    src={shot}
+                    alt={`Kling 3.0 showcase ${index + 1}`}
+                    className="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-[1.035]"
+                    loading={index < 3 ? "eager" : "lazy"}
+                  />
+                  <div className="absolute inset-0 bg-black/0 transition group-hover:bg-black/5" />
+                </div>
+              ))}
+            </div>
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black via-black/45 to-transparent" />
+            <div className="absolute bottom-7 left-1/2 -translate-x-1/2">
+              <span className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white px-5 py-3 text-sm font-black text-slate-950 shadow-2xl shadow-black/45 transition group-hover:scale-[1.04] group-hover:bg-slate-100">
+                View all of Kling 3.0
+                <ArrowUpRight className="h-4 w-4" />
+              </span>
+            </div>
+          </div>
+
+          <div className="relative flex min-h-[430px] flex-col items-center justify-start overflow-hidden px-6 py-9 text-center">
+            <img
+              src={KLING_3_HERO}
+              alt="Kling 3.0 hero"
+              className="absolute inset-0 h-full w-full object-cover object-center opacity-95 transition duration-700 group-hover:scale-[1.03]"
+              loading="eager"
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-black/74 via-black/18 to-black/76" />
+            <div className="absolute inset-0 bg-gradient-to-r from-black/35 via-transparent to-black/35" />
+            <div className="relative z-10">
+              <div className="text-[11px] font-black uppercase tracking-[0.26em] text-white/55">VIDEO MODEL</div>
+              <div className="mx-auto mt-4 h-px w-16 bg-gradient-to-r from-transparent via-violet-200/50 to-transparent" />
+              <h2 className="mt-5 text-3xl font-black leading-tight text-white md:text-4xl">Kling 3.0</h2>
+              <p className="mt-3 max-w-sm text-sm leading-6 text-slate-300">Cinematic motion, strong scene continuity, and polished video generation.</p>
+              <span className="mt-6 inline-flex items-center gap-2 rounded-lg bg-white px-4 py-3 text-sm font-black text-slate-950 transition group-hover:scale-[1.03]">
+                <Play className="h-4 w-4 fill-current" />
+                Try Model
+              </span>
+            </div>
+            <div className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-black via-black/25 to-transparent" />
           </div>
         </div>
       </Link>
@@ -1005,6 +1093,7 @@ export default function ExplorePage() {
       <NextSceneEngineAd />
       <TransitionsModelAd />
       <NanoBananaAd />
+      <Kling3ModelAd />
 
       {sections.map((section) => (
         <DiscoverSection
