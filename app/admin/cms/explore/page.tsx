@@ -49,6 +49,17 @@ type ShowcaseForm = {
   status: "draft" | "published";
 };
 
+type PromoMediaMap = Record<string, { url: string; type: string }>;
+type PromoContent = { title?: string; subtitle?: string; cta?: string; ctaHref?: string; badge?: string };
+type PromoContentMap = Record<string, PromoContent>;
+type ExploreAdCms = {
+  slotId: string;
+  name: string;
+  fallbackHero: string;
+  gallery?: string[];
+  defaults: PromoContent;
+};
+
 const emptyForm: ShowcaseForm = {
   title: "",
   slug: "",
@@ -61,6 +72,116 @@ const emptyForm: ShowcaseForm = {
   featured: false,
   status: "draft",
 };
+
+const EXPLORE_ADS: ExploreAdCms[] = [
+  {
+    slotId: "explore/ad/gpt-image-2",
+    name: "GPT Image 2",
+    fallbackHero: "/GPT%20Image%202/SHOT%201.webp",
+    gallery: [
+      "/GPT%20Image%202/SHOT%202.webp",
+      "/GPT%20Image%202/SHOT%203.webp",
+      "/GPT%20Image%202/SHOT%204.webp",
+      "/GPT%20Image%202/SHOT%205.webp",
+      "/GPT%20Image%202/SHOT%206.webp",
+      "/GPT%20Image%202/SHOT%207.webp",
+      "/GPT%20Image%202/SHOT%208.webp",
+      "/GPT%20Image%202/SHOT%209.webp",
+    ],
+    defaults: {
+      badge: "NEW MODEL",
+      title: "Meet GPT Image 2",
+      subtitle: "4K images with near-perfect text rendering",
+      cta: "Try Model",
+      ctaHref: "/image?tool=create&model=gpt-image-2-text-to-image",
+    },
+  },
+  {
+    slotId: "explore/ad/canvas",
+    name: "Canvas",
+    fallbackHero: "/canvas.webp",
+    defaults: { title: "Canvas", cta: "Open", ctaHref: "https://www.saadstudio.app/original-series" },
+  },
+  {
+    slotId: "explore/ad/seedance-2",
+    name: "Seedance 2",
+    fallbackHero: "/seedance%202/Hero.webp",
+    gallery: [
+      "/seedance%202/1%20(1).webp",
+      "/seedance%202/1%20(2).webp",
+      "/seedance%202/1%20(3).webp",
+      "/seedance%202/1%20(4).webp",
+      "/seedance%202/1%20(5).webp",
+      "/seedance%202/1%20(6).webp",
+      "/seedance%202/1%20(7).webp",
+      "/seedance%202/1%20(8).webp",
+    ],
+    defaults: {
+      badge: "VIDEO MODEL",
+      title: "Seedance 2",
+      subtitle: "Fast cinematic video generation with smooth motion and flexible references.",
+      cta: "Try Model",
+      ctaHref: "/video?tool=create-video&model=bytedance-seedance-v2-t2v",
+    },
+  },
+  {
+    slotId: "explore/ad/next-scene-engine",
+    name: "NEXT SCENE ENGINE",
+    fallbackHero: "/NEXT%20SCENE%20ENGINE.webp",
+    defaults: { title: "NEXT SCENE ENGINE", cta: "Open", ctaHref: "https://www.saadstudio.app/cinema-studio" },
+  },
+  {
+    slotId: "explore/ad/transitions",
+    name: "Transitions",
+    fallbackHero: "/transitions/Hero.webp",
+    gallery: [
+      "/transitions/1%20(1).webp",
+      "/transitions/1%20(2).webp",
+      "/transitions/1%20(3).webp",
+      "/transitions/1%20(4).webp",
+      "/transitions/1%20(5).webp",
+      "/transitions/1%20(6).webp",
+      "/transitions/1%20(7).webp",
+      "/transitions/1%20(8).webp",
+      "/transitions/1%20(9).webp",
+    ],
+    defaults: {
+      badge: "VIDEO TOOL",
+      title: "Transitions",
+      subtitle: "Create stylized scene changes and motion bridges between your clips.",
+      cta: "Open Tool",
+      ctaHref: "https://www.saadstudio.app/apps/tool/transitions",
+    },
+  },
+  {
+    slotId: "explore/ad/nano-banana",
+    name: "Nano Banana",
+    fallbackHero: "/nano.webp",
+    defaults: { title: "نانوبنانا", cta: "Open", ctaHref: "/image?tool=create&model=nano-banana-pro" },
+  },
+  {
+    slotId: "explore/ad/kling-3",
+    name: "Kling 3.0",
+    fallbackHero: "/Kling%203.0/Hero.webp",
+    gallery: [
+      "/Kling%203.0/1%20(1).webp",
+      "/Kling%203.0/1%20(2).webp",
+      "/Kling%203.0/1%20(3).webp",
+      "/Kling%203.0/1%20(4).webp",
+      "/Kling%203.0/1%20(5).webp",
+      "/Kling%203.0/1%20(6).webp",
+      "/Kling%203.0/1%20(7).webp",
+      "/Kling%203.0/1%20(8).webp",
+    ],
+    defaults: {
+      badge: "VIDEO MODEL",
+      title: "Kling 3.0",
+      subtitle: "Cinematic motion, strong scene continuity, and polished video generation.",
+      cta: "Try Model",
+      ctaHref: "/video?tool=create-video&model=kling-v3.0-pro-t2v",
+    },
+  },
+];
 
 async function uploadToSupabase(file: File): Promise<{ publicUrl: string; isVideo: boolean }> {
   const signRes = await fetch("/api/admin/media/upload", {
@@ -112,6 +233,11 @@ export default function ExploreCmsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState<"video" | "thumbnail" | null>(null);
+  const [promoMedia, setPromoMedia] = useState<PromoMediaMap>({});
+  const [promoContent, setPromoContent] = useState<PromoContentMap>({});
+  const [promoDrafts, setPromoDrafts] = useState<PromoContentMap>({});
+  const [promoSaving, setPromoSaving] = useState<string | null>(null);
+  const [promoUploading, setPromoUploading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const stats = useMemo(() => {
@@ -139,9 +265,98 @@ export default function ExploreCmsPage() {
     }
   };
 
+  const loadPromo = async () => {
+    try {
+      const [mediaRes, contentRes] = await Promise.all([
+        fetch("/api/admin/promo/media", { cache: "no-store" }),
+        fetch("/api/admin/promo/content", { cache: "no-store" }),
+      ]);
+      const mediaJson = mediaRes.ok ? await mediaRes.json() : { media: {} };
+      const contentJson = contentRes.ok ? await contentRes.json() : { content: {} };
+      const loadedContent = (contentJson.content ?? {}) as PromoContentMap;
+      setPromoMedia((mediaJson.media ?? {}) as PromoMediaMap);
+      setPromoContent(loadedContent);
+      setPromoDrafts(
+        EXPLORE_ADS.reduce<PromoContentMap>((acc, ad) => {
+          acc[ad.slotId] = { ...ad.defaults, ...(loadedContent[ad.slotId] ?? {}) };
+          return acc;
+        }, {}),
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load explore ad CMS");
+    }
+  };
+
   useEffect(() => {
     void loadItems();
+    void loadPromo();
   }, []);
+
+  const updatePromoDraft = (slotId: string, field: keyof PromoContent, value: string) => {
+    setPromoDrafts((current) => ({
+      ...current,
+      [slotId]: { ...(current[slotId] ?? {}), [field]: value },
+    }));
+  };
+
+  const savePromoContent = async (ad: ExploreAdCms) => {
+    setPromoSaving(ad.slotId);
+    setError(null);
+    try {
+      const draft = promoDrafts[ad.slotId] ?? ad.defaults;
+      const res = await fetch("/api/admin/promo/content", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slotId: ad.slotId, ...draft }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.error ?? "Failed to save ad content");
+      }
+      await loadPromo();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to save ad content");
+    } finally {
+      setPromoSaving(null);
+    }
+  };
+
+  const savePromoMedia = async (slotId: string, url: string) => {
+    if (!url.trim()) return;
+    setPromoSaving(slotId);
+    setError(null);
+    try {
+      const res = await fetch("/api/admin/promo/media", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slotId, url: url.trim(), mediaType: "image" }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.error ?? "Failed to save media");
+      }
+      await loadPromo();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to save media");
+    } finally {
+      setPromoSaving(null);
+    }
+  };
+
+  const uploadPromoFile = async (slotId: string, file: File | undefined) => {
+    if (!file) return;
+    setPromoUploading(slotId);
+    setError(null);
+    try {
+      const { publicUrl, isVideo } = await uploadToSupabase(file);
+      if (isVideo) throw new Error("Please upload an image for Explore ads");
+      await savePromoMedia(slotId, publicUrl);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setPromoUploading(null);
+    }
+  };
 
   const updateField = (field: keyof ShowcaseForm, value: string | boolean) => {
     setForm((current) => ({ ...current, [field]: value }));
@@ -244,6 +459,158 @@ export default function ExploreCmsPage() {
               Refresh
             </button>
           </div>
+
+          <section className="rounded-3xl border border-white/10 bg-white/[0.035] p-5">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h2 className="text-xl font-black">Explore page ads</h2>
+                <p className="mt-1 text-sm text-slate-400">
+                  These controls feed the live /explore model ads. Empty fields keep the polished default design.
+                </p>
+              </div>
+              <a
+                href="/explore"
+                target="_blank"
+                className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-200 hover:bg-white/10"
+              >
+                <Eye className="h-4 w-4" />
+                View Explore
+              </a>
+            </div>
+
+            <div className="mt-5 grid gap-4 xl:grid-cols-2">
+              {EXPLORE_ADS.map((ad) => {
+                const draft = promoDrafts[ad.slotId] ?? ad.defaults;
+                const mediaSlots = [
+                  { id: `${ad.slotId}/hero`, name: "Hero", fallback: ad.fallbackHero },
+                  ...(ad.gallery ?? []).map((fallback, index) => ({
+                    id: `${ad.slotId}/gallery-${index + 1}`,
+                    name: `Gallery ${index + 1}`,
+                    fallback,
+                  })),
+                ];
+
+                return (
+                  <div key={ad.slotId} className="rounded-2xl border border-white/10 bg-slate-950/70 p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-black text-white">{ad.name}</p>
+                        <p className="mt-1 text-[11px] text-slate-500">{ad.slotId}</p>
+                      </div>
+                      <button
+                        onClick={() => void savePromoContent(ad)}
+                        disabled={promoSaving === ad.slotId}
+                        className="inline-flex items-center gap-2 rounded-xl bg-cyan-500 px-3 py-2 text-xs font-black text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {promoSaving === ad.slotId ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                        Save text
+                      </button>
+                    </div>
+
+                    <div className="mt-4 grid gap-3 md:grid-cols-2">
+                      <label className="space-y-1.5 text-xs text-slate-400">
+                        Badge
+                        <input
+                          value={draft.badge ?? ""}
+                          onChange={(event) => updatePromoDraft(ad.slotId, "badge", event.target.value)}
+                          placeholder={ad.defaults.badge ?? ""}
+                          className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-white outline-none focus:border-cyan-400/50"
+                        />
+                      </label>
+                      <label className="space-y-1.5 text-xs text-slate-400">
+                        CTA
+                        <input
+                          value={draft.cta ?? ""}
+                          onChange={(event) => updatePromoDraft(ad.slotId, "cta", event.target.value)}
+                          placeholder={ad.defaults.cta ?? ""}
+                          className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-white outline-none focus:border-cyan-400/50"
+                        />
+                      </label>
+                      <label className="space-y-1.5 text-xs text-slate-400 md:col-span-2">
+                        Title
+                        <input
+                          value={draft.title ?? ""}
+                          onChange={(event) => updatePromoDraft(ad.slotId, "title", event.target.value)}
+                          placeholder={ad.defaults.title ?? ""}
+                          className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-white outline-none focus:border-cyan-400/50"
+                        />
+                      </label>
+                      <label className="space-y-1.5 text-xs text-slate-400 md:col-span-2">
+                        Subtitle
+                        <textarea
+                          value={draft.subtitle ?? ""}
+                          onChange={(event) => updatePromoDraft(ad.slotId, "subtitle", event.target.value)}
+                          placeholder={ad.defaults.subtitle ?? ""}
+                          rows={2}
+                          className="w-full resize-none rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-white outline-none focus:border-cyan-400/50"
+                        />
+                      </label>
+                      <label className="space-y-1.5 text-xs text-slate-400 md:col-span-2">
+                        Link
+                        <input
+                          value={draft.ctaHref ?? ""}
+                          onChange={(event) => updatePromoDraft(ad.slotId, "ctaHref", event.target.value)}
+                          placeholder={ad.defaults.ctaHref ?? ""}
+                          className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-white outline-none focus:border-cyan-400/50"
+                        />
+                      </label>
+                    </div>
+
+                    <div className="mt-4 space-y-3">
+                      <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">Images</p>
+                      <div className="grid gap-3 md:grid-cols-2">
+                        {mediaSlots.map((slot) => {
+                          const currentUrl = promoMedia[slot.id]?.url || slot.fallback;
+                          return (
+                            <div key={slot.id} className="rounded-xl border border-white/10 bg-black/25 p-3">
+                              <div className="flex gap-3">
+                                <img src={currentUrl} alt={slot.name} className="h-16 w-24 rounded-lg object-cover ring-1 ring-white/10" />
+                                <div className="min-w-0 flex-1">
+                                  <p className="truncate text-xs font-bold text-white">{slot.name}</p>
+                                  <p className="mt-1 truncate text-[10px] text-slate-500">{slot.id}</p>
+                                  <label className="mt-2 inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-slate-200 hover:bg-white/10">
+                                    {promoUploading === slot.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
+                                    Upload
+                                    <input
+                                      type="file"
+                                      accept="image/*"
+                                      className="hidden"
+                                      onChange={(event) => void uploadPromoFile(slot.id, event.target.files?.[0])}
+                                    />
+                                  </label>
+                                </div>
+                              </div>
+                              <form
+                                className="mt-2 flex gap-2"
+                                onSubmit={(event) => {
+                                  event.preventDefault();
+                                  const value = String(new FormData(event.currentTarget).get("url") ?? "");
+                                  void savePromoMedia(slot.id, value);
+                                }}
+                              >
+                                <input
+                                  name="url"
+                                  defaultValue={promoMedia[slot.id]?.url ?? ""}
+                                  placeholder="https://..."
+                                  className="min-w-0 flex-1 rounded-lg border border-white/10 bg-black/30 px-2 py-1.5 text-xs text-white outline-none focus:border-cyan-400/50"
+                                />
+                                <button
+                                  disabled={promoSaving === slot.id}
+                                  className="rounded-lg bg-white px-2.5 py-1.5 text-xs font-black text-slate-950 disabled:opacity-60"
+                                >
+                                  Save
+                                </button>
+                              </form>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
 
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
             <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">

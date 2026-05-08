@@ -5,6 +5,8 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { ArrowUpRight, Eye, Heart, Play, ScrollText, Sparkles, Star, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { usePromoMedia, promoUrl } from "@/hooks/use-promo-media";
+import { usePromoContent, promoText } from "@/hooks/use-promo-content";
 
 type ShowcaseItem = {
   id: string;
@@ -159,8 +161,16 @@ function GptImage2Ad() {
 }
 
 function GptImage2ModelAd() {
-  const href = `/image?tool=create&model=${encodeURIComponent(GPT_IMAGE_2_MODEL_ID)}`;
-  const galleryShots = GPT_IMAGE_2_SHOTS.slice(1);
+  const promo = usePromoMedia();
+  const content = usePromoContent();
+  const slotId = "explore/ad/gpt-image-2";
+  const href = promoText(content, slotId, "ctaHref", `/image?tool=create&model=${encodeURIComponent(GPT_IMAGE_2_MODEL_ID)}`);
+  const galleryShots = GPT_IMAGE_2_SHOTS.slice(1).map((shot, index) => promoUrl(promo, `${slotId}/gallery-${index + 1}`, shot));
+  const heroShot = promoUrl(promo, `${slotId}/hero`, GPT_IMAGE_2_SHOTS[0]);
+  const title = promoText(content, slotId, "title", "Meet GPT Image 2");
+  const subtitle = promoText(content, slotId, "subtitle", "4K images with near-perfect text rendering");
+  const cta = promoText(content, slotId, "cta", "Try Model");
+  const badge = promoText(content, slotId, "badge", "NEW MODEL");
   const galleryLayout = [
     "col-span-6 row-span-6",
     "col-span-6 row-span-2",
@@ -185,17 +195,17 @@ function GptImage2ModelAd() {
           <div className="relative flex min-h-[430px] flex-col items-center justify-start overflow-hidden border-b border-white/10 px-6 py-9 text-center lg:border-b-0 lg:border-r">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_78%,rgba(255,255,255,0.14),transparent_23%),linear-gradient(180deg,rgba(255,255,255,0.04),rgba(0,0,0,0.48))]" />
             <div className="relative z-10">
-              <div className="text-[11px] font-black uppercase tracking-[0.26em] text-white/45">NEW MODEL</div>
+              <div className="text-[11px] font-black uppercase tracking-[0.26em] text-white/45">{badge}</div>
               <div className="mx-auto mt-4 h-px w-16 bg-gradient-to-r from-transparent via-cyan-200/40 to-transparent" />
-              <h2 className="mt-5 text-3xl font-black leading-tight text-white md:text-4xl">Meet GPT Image 2</h2>
-              <p className="mt-3 max-w-sm text-sm leading-6 text-slate-400">4K images with near-perfect text rendering</p>
+              <h2 className="mt-5 text-3xl font-black leading-tight text-white md:text-4xl">{title}</h2>
+              <p className="mt-3 max-w-sm text-sm leading-6 text-slate-400">{subtitle}</p>
               <span className="mt-6 inline-flex items-center gap-2 rounded-lg bg-white px-4 py-3 text-sm font-black text-slate-950 transition group-hover:scale-[1.03]">
                 <Sparkles className="h-4 w-4" />
-                Try Model
+                {cta}
               </span>
             </div>
             <img
-              src={GPT_IMAGE_2_SHOTS[0]}
+              src={heroShot}
               alt="GPT Image 2 hero"
               className="absolute inset-x-0 bottom-0 mx-auto h-[62%] w-full object-cover object-bottom opacity-95 transition duration-700 group-hover:scale-[1.03]"
               loading="eager"
@@ -238,15 +248,23 @@ function GptImage2ModelAd() {
 }
 
 function CanvasModelAd() {
+  const promo = usePromoMedia();
+  const content = usePromoContent();
+  const slotId = "explore/ad/canvas";
+  const href = promoText(content, slotId, "ctaHref", "https://www.saadstudio.app/original-series");
+  const image = promoUrl(promo, `${slotId}/hero`, "/canvas.webp");
+  const title = promoText(content, slotId, "title", "Canvas");
+  const cta = promoText(content, slotId, "cta", "Open");
+
   return (
     <section className="w-full px-5 pb-8 md:px-10 lg:px-14 xl:px-20">
       <Link
-        href="https://www.saadstudio.app/original-series"
+        href={href}
         className="group relative mx-auto block max-w-[1440px] overflow-hidden rounded-[1.35rem] border border-white/10 bg-[#08090d] shadow-2xl shadow-black/50"
       >
         <div className="relative min-h-[430px]">
           <img
-            src="/canvas.webp"
+            src={image}
             alt="Canvas model hero"
             className="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-[1.025]"
             loading="eager"
@@ -256,10 +274,10 @@ function CanvasModelAd() {
           <div className="relative flex min-h-[430px] items-end px-7 py-10 md:px-12 lg:px-16">
             <div className="flex flex-wrap items-center gap-3">
               <span className="inline-flex rounded-lg border border-white/15 bg-black/45 px-4 py-3 text-sm font-black text-white shadow-2xl shadow-black/40 backdrop-blur">
-                Canvas
+                {title}
               </span>
               <span className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white px-5 py-3 text-sm font-black text-slate-950 shadow-2xl shadow-black/45 transition group-hover:scale-[1.04] group-hover:bg-slate-100">
-                Open
+                {cta}
                 <ArrowUpRight className="h-4 w-4" />
               </span>
             </div>
@@ -271,6 +289,16 @@ function CanvasModelAd() {
 }
 
 function Seedance2ModelAd() {
+  const promo = usePromoMedia();
+  const content = usePromoContent();
+  const slotId = "explore/ad/seedance-2";
+  const href = promoText(content, slotId, "ctaHref", "/video?tool=create-video&model=bytedance-seedance-v2-t2v");
+  const hero = promoUrl(promo, `${slotId}/hero`, SEEDANCE_2_HERO);
+  const galleryShots = SEEDANCE_2_SHOTS.map((shot, index) => promoUrl(promo, `${slotId}/gallery-${index + 1}`, shot));
+  const title = promoText(content, slotId, "title", "Seedance 2");
+  const subtitle = promoText(content, slotId, "subtitle", "Fast cinematic video generation with smooth motion and flexible references.");
+  const cta = promoText(content, slotId, "cta", "Try Model");
+  const badge = promoText(content, slotId, "badge", "VIDEO MODEL");
   const galleryLayout = [
     "col-span-6 row-span-4",
     "col-span-6 row-span-2",
@@ -285,14 +313,14 @@ function Seedance2ModelAd() {
   return (
     <section className="w-full px-5 pb-8 md:px-10 lg:px-14 xl:px-20">
       <Link
-        href="/video?tool=create-video&model=bytedance-seedance-v2-t2v"
+        href={href}
         className="group relative mx-auto block max-w-[1440px] overflow-hidden rounded-[1.35rem] border border-white/10 bg-[#07090c] shadow-2xl shadow-black/50"
       >
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_78%_48%,rgba(45,212,191,0.18),transparent_30%),linear-gradient(90deg,#040506_0%,#07100f_55%,#050606_100%)]" />
         <div className="relative grid min-h-[520px] gap-0 lg:grid-cols-[1fr_24rem] xl:grid-cols-[1fr_30rem]">
           <div className="relative min-h-[500px] overflow-hidden border-b border-white/10 p-4 lg:border-b-0 lg:border-r">
             <div className="grid h-full min-h-[500px] grid-cols-12 grid-rows-8 gap-3">
-              {SEEDANCE_2_SHOTS.map((shot, index) => (
+              {galleryShots.map((shot, index) => (
                 <div
                   key={shot}
                   className={cn(
@@ -321,7 +349,7 @@ function Seedance2ModelAd() {
 
           <div className="relative flex min-h-[430px] flex-col items-center justify-start overflow-hidden px-6 py-9 text-center">
             <img
-              src={SEEDANCE_2_HERO}
+              src={hero}
               alt="Seedance 2 hero"
               className="absolute inset-0 h-full w-full object-cover object-center opacity-95 transition duration-700 group-hover:scale-[1.03]"
               loading="eager"
@@ -329,13 +357,13 @@ function Seedance2ModelAd() {
             <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/20 to-black/72" />
             <div className="absolute inset-0 bg-gradient-to-r from-black/45 via-transparent to-black/20" />
             <div className="relative z-10">
-              <div className="text-[11px] font-black uppercase tracking-[0.26em] text-white/55">VIDEO MODEL</div>
+              <div className="text-[11px] font-black uppercase tracking-[0.26em] text-white/55">{badge}</div>
               <div className="mx-auto mt-4 h-px w-16 bg-gradient-to-r from-transparent via-teal-200/50 to-transparent" />
-              <h2 className="mt-5 text-3xl font-black leading-tight text-white md:text-4xl">Seedance 2</h2>
-              <p className="mt-3 max-w-sm text-sm leading-6 text-slate-300">Fast cinematic video generation with smooth motion and flexible references.</p>
+              <h2 className="mt-5 text-3xl font-black leading-tight text-white md:text-4xl">{title}</h2>
+              <p className="mt-3 max-w-sm text-sm leading-6 text-slate-300">{subtitle}</p>
               <span className="mt-6 inline-flex items-center gap-2 rounded-lg bg-white px-4 py-3 text-sm font-black text-slate-950 transition group-hover:scale-[1.03]">
                 <Play className="h-4 w-4 fill-current" />
-                Try Model
+                {cta}
               </span>
             </div>
             <div className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-black via-black/25 to-transparent" />
@@ -347,15 +375,23 @@ function Seedance2ModelAd() {
 }
 
 function NextSceneEngineAd() {
+  const promo = usePromoMedia();
+  const content = usePromoContent();
+  const slotId = "explore/ad/next-scene-engine";
+  const href = promoText(content, slotId, "ctaHref", "https://www.saadstudio.app/cinema-studio");
+  const image = promoUrl(promo, `${slotId}/hero`, "/NEXT%20SCENE%20ENGINE.webp");
+  const title = promoText(content, slotId, "title", "NEXT SCENE ENGINE");
+  const cta = promoText(content, slotId, "cta", "Open");
+
   return (
     <section className="w-full px-5 pb-8 md:px-10 lg:px-14 xl:px-20">
       <Link
-        href="https://www.saadstudio.app/cinema-studio"
+        href={href}
         className="group relative mx-auto block max-w-[1440px] overflow-hidden rounded-[1.35rem] border border-white/10 bg-[#08090d] shadow-2xl shadow-black/50"
       >
         <div className="relative min-h-[430px]">
           <img
-            src="/NEXT%20SCENE%20ENGINE.webp"
+            src={image}
             alt="Next Scene Engine hero"
             className="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-[1.025]"
             loading="eager"
@@ -365,10 +401,10 @@ function NextSceneEngineAd() {
           <div className="relative flex min-h-[430px] items-end px-7 py-10 md:px-12 lg:px-16">
             <div className="flex flex-wrap items-center gap-3">
               <span className="inline-flex rounded-lg border border-white/15 bg-black/45 px-4 py-3 text-sm font-black text-white shadow-2xl shadow-black/40 backdrop-blur">
-                NEXT SCENE ENGINE
+                {title}
               </span>
               <span className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white px-5 py-3 text-sm font-black text-slate-950 shadow-2xl shadow-black/45 transition group-hover:scale-[1.04] group-hover:bg-slate-100">
-                Open
+                {cta}
                 <ArrowUpRight className="h-4 w-4" />
               </span>
             </div>
@@ -380,7 +416,16 @@ function NextSceneEngineAd() {
 }
 
 function TransitionsModelAd() {
-  const galleryShots = TRANSITIONS_SHOTS;
+  const promo = usePromoMedia();
+  const content = usePromoContent();
+  const slotId = "explore/ad/transitions";
+  const href = promoText(content, slotId, "ctaHref", "https://www.saadstudio.app/apps/tool/transitions");
+  const hero = promoUrl(promo, `${slotId}/hero`, TRANSITIONS_HERO);
+  const galleryShots = TRANSITIONS_SHOTS.map((shot, index) => promoUrl(promo, `${slotId}/gallery-${index + 1}`, shot));
+  const title = promoText(content, slotId, "title", "Transitions");
+  const subtitle = promoText(content, slotId, "subtitle", "Create stylized scene changes and motion bridges between your clips.");
+  const cta = promoText(content, slotId, "cta", "Open Tool");
+  const badge = promoText(content, slotId, "badge", "VIDEO TOOL");
   const galleryLayout = [
     "col-span-6 row-span-4",
     "col-span-6 row-span-2",
@@ -396,27 +441,27 @@ function TransitionsModelAd() {
   return (
     <section className="w-full px-5 pb-8 md:px-10 lg:px-14 xl:px-20">
       <Link
-        href="https://www.saadstudio.app/apps/tool/transitions"
+        href={href}
         className="group relative mx-auto block max-w-[1440px] overflow-hidden rounded-[1.35rem] border border-white/10 bg-[#07090c] shadow-2xl shadow-black/50"
       >
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_48%,rgba(59,130,246,0.16),transparent_30%),linear-gradient(90deg,#050608_0%,#070b12_45%,#050506_100%)]" />
         <div className="relative grid min-h-[520px] gap-0 lg:grid-cols-[24rem_1fr] xl:grid-cols-[30rem_1fr]">
           <div className="relative flex min-h-[430px] flex-col items-center justify-start overflow-hidden border-b border-white/10 px-6 py-9 text-center lg:border-b-0 lg:border-r">
             <img
-              src={TRANSITIONS_HERO}
+              src={hero}
               alt="Transitions hero"
               className="absolute inset-0 h-full w-full object-cover object-center opacity-95 transition duration-700 group-hover:scale-[1.03]"
               loading="eager"
             />
             <div className="absolute inset-0 bg-gradient-to-b from-black/76 via-black/20 to-black/78" />
             <div className="relative z-10">
-              <div className="text-[11px] font-black uppercase tracking-[0.26em] text-white/55">VIDEO TOOL</div>
+              <div className="text-[11px] font-black uppercase tracking-[0.26em] text-white/55">{badge}</div>
               <div className="mx-auto mt-4 h-px w-16 bg-gradient-to-r from-transparent via-blue-200/50 to-transparent" />
-              <h2 className="mt-5 text-3xl font-black leading-tight text-white md:text-4xl">Transitions</h2>
-              <p className="mt-3 max-w-sm text-sm leading-6 text-slate-300">Create stylized scene changes and motion bridges between your clips.</p>
+              <h2 className="mt-5 text-3xl font-black leading-tight text-white md:text-4xl">{title}</h2>
+              <p className="mt-3 max-w-sm text-sm leading-6 text-slate-300">{subtitle}</p>
               <span className="mt-6 inline-flex items-center gap-2 rounded-lg bg-white px-4 py-3 text-sm font-black text-slate-950 transition group-hover:scale-[1.03]">
                 <Play className="h-4 w-4 fill-current" />
-                Open Tool
+                {cta}
               </span>
             </div>
             <div className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-black via-black/25 to-transparent" />
@@ -457,15 +502,22 @@ function TransitionsModelAd() {
 }
 
 function NanoBananaAd() {
+  const promo = usePromoMedia();
+  const content = usePromoContent();
+  const slotId = "explore/ad/nano-banana";
+  const href = promoText(content, slotId, "ctaHref", "/image?tool=create&model=nano-banana-pro");
+  const image = promoUrl(promo, `${slotId}/hero`, "/nano.webp");
+  const cta = promoText(content, slotId, "cta", "Open");
+
   return (
     <section className="w-full px-5 pb-8 md:px-10 lg:px-14 xl:px-20">
       <Link
-        href="/image?tool=create&model=nano-banana-pro"
+        href={href}
         className="group relative mx-auto block max-w-[1440px] overflow-hidden rounded-[1.35rem] border border-white/10 bg-[#08090d] shadow-2xl shadow-black/50"
       >
         <div className="relative min-h-[430px]">
           <img
-            src="/nano.webp"
+            src={image}
             alt="Nano Banana hero"
             className="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-[1.025]"
             loading="eager"
@@ -478,7 +530,7 @@ function NanoBananaAd() {
                 نانوبنانا
               </span>
               <span className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white px-5 py-3 text-sm font-black text-slate-950 shadow-2xl shadow-black/45 transition group-hover:scale-[1.04] group-hover:bg-slate-100">
-                Open
+                {cta}
                 <ArrowUpRight className="h-4 w-4" />
               </span>
             </div>
@@ -490,6 +542,16 @@ function NanoBananaAd() {
 }
 
 function Kling3ModelAd() {
+  const promo = usePromoMedia();
+  const content = usePromoContent();
+  const slotId = "explore/ad/kling-3";
+  const href = promoText(content, slotId, "ctaHref", "/video?tool=create-video&model=kling-v3.0-pro-t2v");
+  const hero = promoUrl(promo, `${slotId}/hero`, KLING_3_HERO);
+  const galleryShots = KLING_3_SHOTS.map((shot, index) => promoUrl(promo, `${slotId}/gallery-${index + 1}`, shot));
+  const title = promoText(content, slotId, "title", "Kling 3.0");
+  const subtitle = promoText(content, slotId, "subtitle", "Cinematic motion, strong scene continuity, and polished video generation.");
+  const cta = promoText(content, slotId, "cta", "Try Model");
+  const badge = promoText(content, slotId, "badge", "VIDEO MODEL");
   const galleryLayout = [
     "col-span-6 row-span-4",
     "col-span-6 row-span-2",
@@ -504,14 +566,14 @@ function Kling3ModelAd() {
   return (
     <section className="w-full px-5 pb-8 md:px-10 lg:px-14 xl:px-20">
       <Link
-        href="/video?tool=create-video&model=kling-v3.0-pro-t2v"
+        href={href}
         className="group relative mx-auto block max-w-[1440px] overflow-hidden rounded-[1.35rem] border border-white/10 bg-[#07090c] shadow-2xl shadow-black/50"
       >
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_78%_48%,rgba(124,58,237,0.2),transparent_30%),linear-gradient(90deg,#050506_0%,#0c0813_55%,#050506_100%)]" />
         <div className="relative grid min-h-[520px] gap-0 lg:grid-cols-[1fr_24rem] xl:grid-cols-[1fr_30rem]">
           <div className="relative min-h-[500px] overflow-hidden border-b border-white/10 p-4 lg:border-b-0 lg:border-r">
             <div className="grid h-full min-h-[500px] grid-cols-12 grid-rows-8 gap-3">
-              {KLING_3_SHOTS.map((shot, index) => (
+              {galleryShots.map((shot, index) => (
                 <div
                   key={shot}
                   className={cn(
@@ -540,7 +602,7 @@ function Kling3ModelAd() {
 
           <div className="relative flex min-h-[430px] flex-col items-center justify-start overflow-hidden px-6 py-9 text-center">
             <img
-              src={KLING_3_HERO}
+              src={hero}
               alt="Kling 3.0 hero"
               className="absolute inset-0 h-full w-full object-cover object-center opacity-95 transition duration-700 group-hover:scale-[1.03]"
               loading="eager"
@@ -548,13 +610,13 @@ function Kling3ModelAd() {
             <div className="absolute inset-0 bg-gradient-to-b from-black/74 via-black/18 to-black/76" />
             <div className="absolute inset-0 bg-gradient-to-r from-black/35 via-transparent to-black/35" />
             <div className="relative z-10">
-              <div className="text-[11px] font-black uppercase tracking-[0.26em] text-white/55">VIDEO MODEL</div>
+              <div className="text-[11px] font-black uppercase tracking-[0.26em] text-white/55">{badge}</div>
               <div className="mx-auto mt-4 h-px w-16 bg-gradient-to-r from-transparent via-violet-200/50 to-transparent" />
-              <h2 className="mt-5 text-3xl font-black leading-tight text-white md:text-4xl">Kling 3.0</h2>
-              <p className="mt-3 max-w-sm text-sm leading-6 text-slate-300">Cinematic motion, strong scene continuity, and polished video generation.</p>
+              <h2 className="mt-5 text-3xl font-black leading-tight text-white md:text-4xl">{title}</h2>
+              <p className="mt-3 max-w-sm text-sm leading-6 text-slate-300">{subtitle}</p>
               <span className="mt-6 inline-flex items-center gap-2 rounded-lg bg-white px-4 py-3 text-sm font-black text-slate-950 transition group-hover:scale-[1.03]">
                 <Play className="h-4 w-4 fill-current" />
-                Try Model
+                {cta}
               </span>
             </div>
             <div className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-black via-black/25 to-transparent" />
