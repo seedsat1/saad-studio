@@ -2,7 +2,7 @@
   "manifestVersion": 5,
   "id": "com.saadstudio.editpilot",
   "name": "saadstudio",
-  "version": "1.0.0",
+  "version": "2.1.1",
   "author": "Saad Studio",
   "description": "AI-powered video editing assistant for Premiere Pro — by Saad Studio",
   "main": "index.html",

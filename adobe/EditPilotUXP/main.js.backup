@@ -18,23 +18,6 @@ import { openConfirmModal } from './modules/timeline-confirm.js';
 import { createSelectsTimeline, createRoughCutTimeline } from './modules/selects.js';
 import { parseCommand, getHelpText, INTENTS } from './modules/assistant.js';
 
-// Global error capture so any uncaught error is visible in the panel
-// instead of silently crashing Premiere.
-function showFatal(prefix, err) {
-  try {
-    const msg = (err && (err.stack || err.message)) || String(err);
-    console.error('[EditPilot]', prefix, msg);
-    const body = document.body;
-    if (!body) return;
-    const dbg = document.createElement('div');
-    dbg.style.cssText = 'position:absolute;top:0;left:0;right:0;background:#7a0000;color:#fff;font-size:10px;padding:6px;z-index:9999;white-space:pre-wrap;word-break:break-all;max-height:120px;overflow:auto';
-    dbg.textContent = prefix + ': ' + msg;
-    body.appendChild(dbg);
-  } catch (_) { /* swallow */ }
-}
-window.addEventListener('error', (e) => showFatal('JS error', e.error || e.message));
-window.addEventListener('unhandledrejection', (e) => showFatal('Promise rejection', e.reason));
-
 const PRODUCTION_URL = 'https://www.saadstudio.app';
 
 function el(id) { return document.getElementById(id); }
@@ -62,423 +45,14 @@ function renderDashboard(session) {
   setSubWarning(session.subscriptionActive === false);
 }
 
-function createImageGenSelect(id, options) {
-  const wrapper = document.createElement('div');
-  wrapper.className = 'field vg2-field';
-
-  const select = document.createElement('select');
-  select.className = 'sel-input vg2-select';
-  select.id = id;
-
-  options.forEach((optionConfig) => {
-    const option = document.createElement('option');
-    option.value = optionConfig.value;
-    option.textContent = optionConfig.label;
-    select.appendChild(option);
-  });
-
-  wrapper.appendChild(select);
-  return wrapper;
-}
-
-function wireImageGen(host) {
-  if (!host || host.dataset.wired === '1') return;
-  if (typeof window.__editpilotSetupImageGen !== 'function') return;
-
-  window.__editpilotSetupImageGen();
-  host.dataset.wired = '1';
-}
-
-function renderImageGen() {
-  const host = document.getElementById('imagegenRenderHost');
-  if (!host) return;
-
-  if (host.dataset.rendered === '1') {
-    wireImageGen(host);
-    return;
-  }
-
-  host.textContent = '';
-
-  const root = document.createElement('div');
-  root.className = 'pn-scroll vg2-shell';
-  host.appendChild(root);
-
-  const introCard = document.createElement('div');
-  introCard.className = 'vg2-card';
-  root.appendChild(introCard);
-
-  const title = document.createElement('div');
-  title.className = 'sec-t';
-  title.textContent = 'Image Gen';
-  introCard.appendChild(title);
-
-  const blurb = document.createElement('div');
-  blurb.className = 'asst-intro';
-  blurb.textContent = 'Generate still images in Saad Studio style using model, mode, ratio, quality, and optional reference image.';
-  introCard.appendChild(blurb);
-
-  const history = document.createElement('div');
-  history.className = 'gen-hist vg2-history';
-  history.id = 'igHistory';
-  root.appendChild(history);
-
-  const empty = document.createElement('div');
-  empty.className = 'gen-empty';
-  empty.id = 'igEmpty';
-  empty.textContent = 'Describe an image and click Generate Image';
-  history.appendChild(empty);
-
-  const composer = document.createElement('div');
-  composer.className = 'vg2-card vg2-composer';
-  root.appendChild(composer);
-
-  const previewWrap = document.createElement('div');
-  previewWrap.className = 'vg2-preview';
-  previewWrap.id = 'igImgsWrap';
-  previewWrap.style.display = 'none';
-  composer.appendChild(previewWrap);
-
-  const previewImage = document.createElement('img');
-  previewImage.className = 'vg2-preview-img';
-  previewImage.id = 'igImgPreview';
-  previewImage.alt = 'Reference';
-  previewWrap.appendChild(previewImage);
-
-  const removeBtn = document.createElement('button');
-  removeBtn.className = 'btn vg2-remove';
-  removeBtn.id = 'igImgRemove';
-  removeBtn.type = 'button';
-  removeBtn.textContent = 'Remove';
-  previewWrap.appendChild(removeBtn);
-
-  const controls = document.createElement('div');
-  controls.className = 'vg2-grid';
-  controls.appendChild(createImageGenSelect('igModel', [
-    { value: 'gpt-image-2', label: 'GPT Image 2' },
-    { value: 'flux-2-pro', label: 'Flux 2 Pro' },
-    { value: 'imagen-4', label: 'Imagen 4' },
-    { value: 'nano-banana-pro', label: 'Nano Banana' }
-  ]));
-  controls.appendChild(createImageGenSelect('igMode', [
-    { value: 'standard', label: 'Standard' },
-    { value: 'thumbnail', label: 'Thumbnail' },
-    { value: 'blueprint', label: 'Blueprint' }
-  ]));
-  controls.appendChild(createImageGenSelect('igRatio', [
-    { value: '1:1', label: '1:1 Square' },
-    { value: '16:9', label: '16:9 Landscape' },
-    { value: '9:16', label: '9:16 Vertical' },
-    { value: '4:3', label: '4:3' }
-  ]));
-  controls.appendChild(createImageGenSelect('igQuality', [
-    { value: '1024', label: '1K' },
-    { value: '2048', label: '2K' }
-  ]));
-  controls.appendChild(createImageGenSelect('igCount', [
-    { value: '1', label: '1 Image' },
-    { value: '2', label: '2 Images' },
-    { value: '4', label: '4 Images' }
-  ]));
-  composer.appendChild(controls);
-
-  const promptWrap = document.createElement('div');
-  promptWrap.className = 'prompt vg2-prompt';
-  composer.appendChild(promptWrap);
-
-  const prompt = document.createElement('textarea');
-  prompt.id = 'igPrompt';
-  prompt.placeholder = 'Describe the image you want to create...';
-  promptWrap.appendChild(prompt);
-
-  const actions = document.createElement('div');
-  actions.className = 'vg2-actions';
-  composer.appendChild(actions);
-
-  const attachBtn = document.createElement('button');
-  attachBtn.className = 'btn';
-  attachBtn.id = 'igAttach';
-  attachBtn.type = 'button';
-  attachBtn.textContent = 'Attach Reference';
-  actions.appendChild(attachBtn);
-
-  const note = document.createElement('div');
-  note.className = 'vg2-note';
-  note.textContent = '2 cr';
-  actions.appendChild(note);
-
-  const sendBtn = document.createElement('button');
-  sendBtn.className = 'btn-gen';
-  sendBtn.id = 'igSend';
-  sendBtn.type = 'button';
-  sendBtn.textContent = 'Generate Image';
-  actions.appendChild(sendBtn);
-
-  host.dataset.rendered = '1';
-  wireImageGen(host);
-}
-
-// Register the renderer so the inline tab handler can call it lazily.
-window._tabRenderers = window._tabRenderers || {};
-window._tabRenderers.imagegen = renderImageGen;
-
-function createTtsSelect(id, options) {
-  const wrapper = document.createElement('div');
-  wrapper.className = 'field vg2-field';
-
-  const select = document.createElement('select');
-  select.className = 'sel-input vg2-select';
-  select.id = id;
-
-  options.forEach((optionConfig) => {
-    const option = document.createElement('option');
-    option.value = optionConfig.value;
-    option.textContent = optionConfig.label;
-    select.appendChild(option);
-  });
-
-  wrapper.appendChild(select);
-  return wrapper;
-}
-
-function wireTTS(host) {
-  if (!host || host.dataset.wired === '1') return;
-  if (typeof window.__editpilotSetupTTS !== 'function') return;
-
-  window.__editpilotSetupTTS();
-  host.dataset.wired = '1';
-}
-
-function renderTTS() {
-  const host = document.getElementById('ttsRenderHost');
-  if (!host) return;
-
-  if (host.dataset.rendered === '1') {
-    wireTTS(host);
-    return;
-  }
-
-  host.textContent = '';
-
-  const root = document.createElement('div');
-  root.className = 'pn-scroll vg2-shell';
-  host.appendChild(root);
-
-  const introCard = document.createElement('div');
-  introCard.className = 'vg2-card';
-  root.appendChild(introCard);
-
-  const title = document.createElement('div');
-  title.className = 'sec-t';
-  title.textContent = 'TTS';
-  introCard.appendChild(title);
-
-  const blurb = document.createElement('div');
-  blurb.className = 'asst-intro';
-  blurb.textContent = 'Generate voiceover in Saad Studio style with selectable voice and playback speed.';
-  introCard.appendChild(blurb);
-
-  const history = document.createElement('div');
-  history.className = 'gen-hist vg2-history';
-  history.id = 'ttsHistory';
-  root.appendChild(history);
-
-  const empty = document.createElement('div');
-  empty.className = 'gen-empty';
-  empty.id = 'ttsEmpty';
-  empty.textContent = 'Select a voice and type text to generate';
-  history.appendChild(empty);
-
-  const composer = document.createElement('div');
-  composer.className = 'vg2-card vg2-composer';
-  root.appendChild(composer);
-
-  const controls = document.createElement('div');
-  controls.className = 'vg2-grid';
-  controls.appendChild(createTtsSelect('ttsVoice', [
-    { value: 'alloy', label: 'Alloy' },
-    { value: 'rachel', label: 'Rachel' },
-    { value: 'echo', label: 'Echo' },
-    { value: 'aria', label: 'Aria' }
-  ]));
-  controls.appendChild(createTtsSelect('ttsSpeed', [
-    { value: '1', label: '1x' },
-    { value: '1.25', label: '1.25x' },
-    { value: '1.5', label: '1.5x' }
-  ]));
-  controls.appendChild(createTtsSelect('ttsLang', [
-    { value: 'en', label: 'English' },
-    { value: 'ar', label: 'Arabic' },
-    { value: 'fr', label: 'French' },
-    { value: 'es', label: 'Spanish' },
-    { value: 'de', label: 'German' },
-    { value: 'auto', label: 'Auto Detect' }
-  ]));
-  composer.appendChild(controls);
-
-  const promptWrap = document.createElement('div');
-  promptWrap.className = 'prompt vg2-prompt';
-  composer.appendChild(promptWrap);
-
-  const prompt = document.createElement('textarea');
-  prompt.id = 'ttsPrompt';
-  prompt.placeholder = 'Type text to convert to voice...';
-  promptWrap.appendChild(prompt);
-
-  const actions = document.createElement('div');
-  actions.className = 'vg2-actions';
-  composer.appendChild(actions);
-
-  const charCount = document.createElement('div');
-  charCount.className = 'vg2-note';
-  charCount.id = 'ttsCharCount';
-  charCount.textContent = '0 chars';
-  actions.appendChild(charCount);
-
-  const cost = document.createElement('div');
-  cost.className = 'vg2-note';
-  cost.textContent = '3 cr';
-  actions.appendChild(cost);
-
-  const sendBtn = document.createElement('button');
-  sendBtn.className = 'btn-gen';
-  sendBtn.id = 'ttsSend';
-  sendBtn.type = 'button';
-  sendBtn.textContent = 'Generate Voice';
-  actions.appendChild(sendBtn);
-
-  host.dataset.rendered = '1';
-  wireTTS(host);
-}
-
-window._tabRenderers.tts = renderTTS;
-
-function createTimelineSelect(id, options) {
-  const wrapper = document.createElement('div');
-  wrapper.className = 'field vg2-field';
-
-  const select = document.createElement('select');
-  select.className = 'sel-input vg2-select';
-  select.id = id;
-
-  options.forEach((optionConfig) => {
-    const option = document.createElement('option');
-    option.value = optionConfig.value;
-    option.textContent = optionConfig.label;
-    select.appendChild(option);
-  });
-
-  wrapper.appendChild(select);
-  return wrapper;
-}
-
-function wireTimeline(host) {
-  if (!host || host.dataset.wired === '1') return;
-  if (typeof window.__editpilotSetupTimeline !== 'function') return;
-
-  window.__editpilotSetupTimeline();
-  host.dataset.wired = '1';
-}
-
-function renderTimeline() {
-  const host = document.getElementById('timelineRenderHost');
-  if (!host) return;
-
-  if (host.dataset.rendered === '1') {
-    wireTimeline(host);
-    return;
-  }
-
-  host.textContent = '';
-
-  const root = document.createElement('div');
-  root.className = 'pn-scroll vg2-shell';
-  host.appendChild(root);
-
-  const introCard = document.createElement('div');
-  introCard.className = 'vg2-card';
-  root.appendChild(introCard);
-
-  const title = document.createElement('div');
-  title.className = 'sec-t';
-  title.textContent = 'Timeline AI';
-  introCard.appendChild(title);
-
-  const blurb = document.createElement('div');
-  blurb.className = 'asst-intro';
-  blurb.textContent = 'Analyze speech zones, scenes, pacing, or social moments and prepare guidance for the timeline.';
-  introCard.appendChild(blurb);
-
-  const history = document.createElement('div');
-  history.className = 'gen-hist vg2-history';
-  history.id = 'tlHistory';
-  root.appendChild(history);
-
-  const empty = document.createElement('div');
-  empty.className = 'gen-empty';
-  empty.id = 'tlEmpty';
-  empty.textContent = 'Describe your edit goal and click Analyze';
-  history.appendChild(empty);
-
-  const composer = document.createElement('div');
-  composer.className = 'vg2-card vg2-composer';
-  root.appendChild(composer);
-
-  const controls = document.createElement('div');
-  controls.className = 'vg2-grid';
-  controls.appendChild(createTimelineSelect('tlMode', [
-    { value: 'speech', label: 'Speech Zones' },
-    { value: 'scenes', label: 'Scene Analysis' },
-    { value: 'pacing', label: 'Pacing and Cuts' },
-    { value: 'social', label: 'Social Clips' }
-  ]));
-  composer.appendChild(controls);
-
-  const promptWrap = document.createElement('div');
-  promptWrap.className = 'prompt vg2-prompt';
-  composer.appendChild(promptWrap);
-
-  const prompt = document.createElement('textarea');
-  prompt.id = 'tlPrompt';
-  prompt.placeholder = 'Describe your edit goal or paste a transcript...';
-  promptWrap.appendChild(prompt);
-
-  const actions = document.createElement('div');
-  actions.className = 'vg2-actions';
-  composer.appendChild(actions);
-
-  const applyBtn = document.createElement('button');
-  applyBtn.className = 'btn';
-  applyBtn.id = 'tlApplyAll';
-  applyBtn.type = 'button';
-  applyBtn.textContent = 'Apply Suggestions';
-  actions.appendChild(applyBtn);
-
-  const note = document.createElement('div');
-  note.className = 'vg2-note';
-  note.textContent = '2 cr';
-  actions.appendChild(note);
-
-  const sendBtn = document.createElement('button');
-  sendBtn.className = 'btn-gen';
-  sendBtn.id = 'tlSend';
-  sendBtn.type = 'button';
-  sendBtn.textContent = 'Analyze Timeline';
-  actions.appendChild(sendBtn);
-
-  host.dataset.rendered = '1';
-  wireTimeline(host);
-}
-
-window._tabRenderers.timeline = renderTimeline;
-
 async function init() {
   try {
     // DEV: skip login — remove this block to re-enable real login
-    localStorage.setItem('ep.token', 'ssp_dev_token_12345');  // Set dev token
     const devSession = { email: 'dev@saadstudio.app', name: 'Dev', plan: 'pro', credits: 999, subscriptionActive: true };
     renderDashboard(devSession);
     setActiveTab('chat');
+    // CRASH TEST: setup functions temporarily disabled
+    // Re-enable one at a time to find crash source:
     // setupVideoGen();
     // setupImageGen();
     // setupTTS();
@@ -640,25 +214,23 @@ el('btnManageSub')?.addEventListener('click', () => openExternal(PRODUCTION_URL 
 el('subWarnBtn')?.addEventListener('click', () => openExternal(PRODUCTION_URL + '/pricing'));
 el('hdrCredits')?.addEventListener('click', () => openExternal(PRODUCTION_URL + '/pricing'));
 
-// PASSIVE TAB SWITCHING — DOM-only, no Premiere host calls.
-// The single click listener lives in index.html (inline). We do NOT register
-// another listener here; that would double-fire and risk side effects.
-// This function exists so init() can programmatically switch tabs.
 function setActiveTab(tab) {
-  console.log('[TAB_CLICK main.js]', tab);
-  try {
-    document.querySelectorAll('#epTabs .nt').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.pn').forEach(v => v.classList.remove('vis'));
+  document.querySelectorAll('#epTabs .nt').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.pn').forEach(v => v.classList.remove('vis'));
 
-    const tabBtn = document.querySelector(`#epTabs .nt[data-tab="${tab}"]`);
-    tabBtn?.classList.add('active');
+  const tabBtn = document.querySelector(`#epTabs .nt[data-tab="${tab}"]`);
+  tabBtn?.classList.add('active');
 
-    const panel = document.querySelector(`.pn[data-panel="${tab}"]`);
-    panel?.classList.add('vis');
-  } catch (e) {
-    console.error('[TAB_SWITCH_ERROR main.js]', tab, e?.stack || e?.message || e);
-  }
+  const panel = document.querySelector(`.pn[data-panel="${tab}"]`);
+  panel?.classList.add('vis');
 }
+
+el('epTabs')?.addEventListener('click', (e) => {
+  const btn = e.target.closest('.nt');
+  const tab = btn?.dataset?.tab;
+  if (!tab) return;
+  setActiveTab(tab);
+});
 
 function setStoryError(msg) {
   const err = el('storyError');
@@ -703,113 +275,48 @@ el('storyTranscript')?.addEventListener('input', updateCharCount);
 updateCharCount();
 
 el('btnAnalyze')?.addEventListener('click', async () => {
-  console.log('[Analyze] STEP 1 — click received');
+  const token = getToken();
+  const transcript = (el('storyTranscript')?.value || '').trim();
+
+  setStoryError('');
+  if (!token) { setStoryError('Not connected.'); return; }
+  if (!transcript) { setStoryError('Please paste a transcript first.'); return; }
+
+  setAnalyzeLoading(true);
+
   try {
-    console.log('[Analyze] STEP 2 — entered try');
-
-    const token = getToken();
-    console.log('[Analyze] STEP 3 — got token:', token ? 'present' : 'MISSING');
-
-    const transcript = (el('storyTranscript')?.value || '').trim();
-    console.log('[Analyze] STEP 4 — transcript length:', transcript.length);
-
-    setStoryError('');
-    if (!token) { console.log('[Analyze] EXIT — no token'); setStoryError('Not connected.'); return; }
-
-    // DEV MODE: Allow empty transcript for demo
-    if (!transcript && token !== 'ssp_dev_token_12345') {
-      console.log('[Analyze] EXIT — empty transcript (prod mode)');
-      setStoryError('Please paste a transcript first.');
-      return;
-    }
-
-    console.log('[Analyze] STEP 5 — setAnalyzeLoading(true)');
-    setAnalyzeLoading(true);
-
-    // Get selected model from dropdown
-    const selectedModel = el('storyModel')?.value || 'claude-haiku-4-5';
-    console.log('[Analyze] STEP 5a — selected model:', selectedModel);
-
-    console.log('[Analyze] STEP 6 — BEFORE API call');
-    let data;
-    try {
-      data = await analyzeTranscript(token, transcript, selectedModel);
-      console.log('[Analyze] STEP 7 — AFTER API call');
-    } catch (e) {
-      console.error('[Analyze] API CALL ERROR:', e?.stack || e?.message || e);
-      throw e;
-    }
-
-    console.log('[Analyze] STEP 8 — before processing data');
-    try {
-      console.log('[Analyze]   DATA TYPE:', typeof data);
-      console.log('[Analyze]   DATA KEYS:', Object.keys(data || {}));
-      console.log('[Analyze]   sections is array?', Array.isArray(data?.sections));
-    } catch (e) {
-      console.error('[Analyze] PROCESS ERROR:', e?.stack || e?.message || e);
-    }
-
+    const data = await analyzeTranscript(token, transcript);
     lastSections = Array.isArray(data?.sections) ? data.sections : [];
     selectedSection = null;
-    console.log('[Analyze] STEP 9 — sections count:', lastSections.length);
 
-    console.log('[Analyze] STEP 10 — before DOM updates');
-    try {
-      el('storyResultsWrap').style.display = 'block';
-      el('storyCreditsBadge').textContent = data?.creditsUsed ? `-${data.creditsUsed} cr` : '';
-      console.log('[Analyze] STEP 10a — results wrap visible');
-    } catch (e) {
-      console.error('[Analyze] DOM UPDATE ERROR:', e?.stack || e?.message || e);
-    }
+    el('storyResultsWrap').style.display = 'block';
+    el('storyCreditsBadge').textContent = data?.creditsUsed ? `-${data.creditsUsed} cr` : '';
 
-    console.log('[Analyze] STEP 11 — before render');
-    try {
-      renderStorySections(
-        lastSections,
-        el('storyCards'),
-        (section) => setStorySelected(section),
-        async (section, btn) => {
-          if (!section) return;
-          if (btn) btn.disabled = true;
-          try {
-            await applySectionToTimeline(section);
-          } catch (err) {
-            setStoryError(err?.message || 'Failed to apply marker.');
-          } finally {
-            if (btn) btn.disabled = false;
-          }
-        },
-        // Pass language so cards render RTL for Arabic transcripts
-        { language: data?.language },
-      );
-      console.log('[Analyze] STEP 11a — sections rendered, language:', data?.language);
-    } catch (e) {
-      console.error('[Analyze] RENDER ERROR:', e?.stack || e?.message || e);
-    }
+    renderStorySections(
+      lastSections,
+      el('storyCards'),
+      (section) => setStorySelected(section),
+      async (section, btn) => {
+        if (!section) return;
+        if (btn) btn.disabled = true;
+        try {
+          await applySectionToTimeline(section);
+        } catch (err) {
+          setStoryError(err?.message || 'Failed to apply marker.');
+        } finally {
+          if (btn) btn.disabled = false;
+        }
+      },
+    );
 
-    console.log('[Analyze] STEP 12 — before setStorySelected');
-    try {
-      setStorySelected(lastSections[0] || null);
-      console.log('[Analyze] STEP 12a — first section selected');
-    } catch (e) {
-      console.error('[Analyze] SELECT ERROR:', e?.stack || e?.message || e);
-    }
-
-    console.log('[Analyze] STEP 13 — before refreshing credits');
+    setStorySelected(lastSections[0] || null);
     try {
       const balance = await refreshCreditsFromServer();
       updateCreditsDisplay(balance);
-      console.log('[Analyze] STEP 13a — credits refreshed:', balance);
-    } catch (e) {
-      console.log('[Analyze] STEP 13 — credits refresh skipped:', e?.message);
-    }
-
-    console.log('[Analyze] STEP 14 — DONE');
+    } catch (_) { }
   } catch (err) {
-    console.error('[Analyze] ERROR:', err?.stack || err?.message || err);
     setStoryError(err?.message || 'Analyze failed.');
   } finally {
-    console.log('[Analyze] FINALLY — setAnalyzeLoading(false)');
     setAnalyzeLoading(false);
   }
 });
@@ -834,40 +341,18 @@ el('btnApplyOne')?.addEventListener('click', async () => {
   if (!selectedSection) return;
   const feedback = el('applyOneFeedback');
   if (feedback) feedback.textContent = '';
-  const btn = el('btnApplyOne');
-  if (btn) btn.disabled = true;
   try {
-    console.log('[ApplyOne] Applying section:', selectedSection.title);
     await applySectionToTimeline(selectedSection);
-    if (feedback) {
-      feedback.textContent = 'Applied ✓';
-      feedback.style.color = 'var(--ac)';
-    }
-    console.log('[ApplyOne] SUCCESS');
+    if (feedback) feedback.textContent = 'Applied ✓';
   } catch (err) {
-    console.error('[ApplyOne] ERROR:', err?.stack || err?.message || err);
-    if (feedback) {
-      feedback.textContent = err?.message || 'Failed to apply marker';
-      feedback.style.color = '#ff6b6b';
-    }
-  } finally {
-    if (btn) btn.disabled = false;
+    if (feedback) feedback.textContent = err?.message || 'Failed';
   }
 });
 
 el('btnApplyAll')?.addEventListener('click', async () => {
   const feedback = el('applyAllFeedback');
-  if (feedback) {
-    feedback.textContent = '';
-    feedback.style.color = 'var(--txm)';
-  }
-  if (!lastSections?.length) {
-    if (feedback) {
-      feedback.textContent = 'No sections to apply.';
-      feedback.style.color = '#ff6b6b';
-    }
-    return;
-  }
+  if (feedback) feedback.textContent = '';
+  if (!lastSections?.length) { if (feedback) feedback.textContent = 'No sections to apply.'; return; }
 
   const { confirmed, selected } = await openConfirmModal(lastSections);
   if (!confirmed) return;
@@ -876,30 +361,12 @@ el('btnApplyAll')?.addEventListener('click', async () => {
   if (btn) btn.disabled = true;
 
   try {
-    console.log('[ApplyAll] Applying', selected.length, 'sections');
     const res = await applyAllSectionsToTimeline(selected, (done, total) => {
-      if (feedback) {
-        feedback.textContent = `Applying… ${done}/${total}`;
-        feedback.style.color = 'var(--ac)';
-      }
+      if (feedback) feedback.textContent = `Applying… ${done}/${total}`;
     });
-    console.log('[ApplyAll] Result:', res);
     if (feedback) {
       const errCount = res.errors?.length || 0;
-      if (errCount) {
-        feedback.textContent = `Applied ${res.applied}/${selected.length}. ${errCount} failed.`;
-        feedback.style.color = '#ffaa00';
-        console.error('[ApplyAll] Errors:', res.errors);
-      } else {
-        feedback.textContent = `Applied ${res.applied} markers ✓`;
-        feedback.style.color = 'var(--ac)';
-      }
-    }
-  } catch (err) {
-    console.error('[ApplyAll] ERROR:', err?.stack || err?.message || err);
-    if (feedback) {
-      feedback.textContent = err?.message || 'Failed to apply markers';
-      feedback.style.color = '#ff6b6b';
+      feedback.textContent = errCount ? `Applied ${res.applied}. ${errCount} failed.` : `Applied ${res.applied} ✓`;
     }
   } finally {
     if (btn) btn.disabled = false;
@@ -1321,7 +788,7 @@ function setupVideoGen() {
   imgRemove?.addEventListener('click', () => {
     _vgImageData = null;
     if (imgsWrap) imgsWrap.style.display = 'none';
-    if (imgPreview) imgPreview.removeAttribute('src');
+    if (imgPreview) imgPreview.src = '';
   });
 
   sendBtn.addEventListener('click', async () => {
@@ -1355,7 +822,7 @@ function setupVideoGen() {
       const videoUrl = result?.videoUrl || result?.url || null;
       _vgImageData = null;
       if (imgsWrap) imgsWrap.style.display = 'none';
-      if (imgPreview) imgPreview.removeAttribute('src');
+      if (imgPreview) imgPreview.src = '';
       updateGenItem(item, videoUrl, null, null);
       try { const bal = await refreshCreditsFromServer(); updateCreditsDisplay(bal); } catch (_) {}
     } catch (err) {
@@ -1365,8 +832,6 @@ function setupVideoGen() {
     }
   });
 }
-
-window.__editpilotSetupVideoGen = setupVideoGen;
 
 // ─────────────────────────────────────────────────────────────
 // IMAGE GEN
@@ -1397,7 +862,7 @@ function setupImageGen() {
   imgRemove?.addEventListener('click', () => {
     _igImageData = null;
     if (imgsWrap) imgsWrap.style.display = 'none';
-    if (imgPreview) imgPreview.removeAttribute('src');
+    if (imgPreview) imgPreview.src = '';
   });
 
   sendBtn.addEventListener('click', async () => {
@@ -1432,7 +897,7 @@ function setupImageGen() {
       });
       _igImageData = null;
       if (imgsWrap) imgsWrap.style.display = 'none';
-      if (imgPreview) imgPreview.removeAttribute('src');
+      if (imgPreview) imgPreview.src = '';
       const images = result?.images || (result?.imageUrl ? [result.imageUrl] : []);
       updateGenItem(item, null, images, null);
       try { const bal = await refreshCreditsFromServer(); updateCreditsDisplay(bal); } catch (_) {}
@@ -1443,8 +908,6 @@ function setupImageGen() {
     }
   });
 }
-
-window.__editpilotSetupImageGen = setupImageGen;
 
 // ─────────────────────────────────────────────────────────────
 // TTS
@@ -1513,8 +976,6 @@ function setupTTS() {
     }
   });
 }
-
-window.__editpilotSetupTTS = setupTTS;
 
 // ─────────────────────────────────────────────────────────────
 // B-ROLL (uses Video Gen API)
@@ -1745,8 +1206,6 @@ Mode requested: ${mode}. Be concise. Return valid JSON only.`;
   });
 }
 
-window.__editpilotSetupTimeline = setupTimeline;
-
 // ─────────────────────────────────────────────────────────────
 // COLOR (uses chat API for AI grading advice)
 // ─────────────────────────────────────────────────────────────
@@ -1776,7 +1235,7 @@ function setupColor() {
   imgRemove?.addEventListener('click', () => {
     _clrImageData = null;
     if (imgsWrap) imgsWrap.style.display = 'none';
-    if (imgPreview) imgPreview.removeAttribute('src');
+    if (imgPreview) imgPreview.src = '';
   });
 
   sendBtn.addEventListener('click', async () => {
@@ -1803,7 +1262,7 @@ Style: ${style}. Scope: ${scope}. Values are Premiere Pro Lumetri color panel va
     promptEl.value = '';
     _clrImageData = null;
     if (imgsWrap) imgsWrap.style.display = 'none';
-    if (imgPreview) imgPreview.removeAttribute('src');
+    if (imgPreview) imgPreview.src = '';
 
     try {
       const messages = [{ role: 'system', content: systemPrompt }, { role: 'user', content: userText }];

@@ -326,3 +326,11 @@ html.saad-light select option {
   background-color: #ffffff;
   color: #0f172a;
 }
+
+/* ── Animated AI Chat — background container helper ───────────── */
+.lab-bg::before {
+  overflow: hidden;
+  max-width: 100vw;
+  max-height: 100vh;
+  box-sizing: border-box;
+}

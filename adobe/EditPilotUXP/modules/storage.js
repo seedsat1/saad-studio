@@ -22,7 +22,7 @@ const KEYS = {
 };
 
 /** Default site URL — can be overridden by the user for custom deployments. */
-export const DEFAULT_SITE_URL = 'https://saadstudio.app';
+export const DEFAULT_SITE_URL = 'http://localhost:3000';
 
 // ─── Site URL ────────────────────────────────────────────────────────────────
 
@@ -32,7 +32,7 @@ export function saveSiteUrl(url) {
 }
 
 export function getSiteUrl() {
-  return (localStorage.getItem(KEYS.SITE_URL) || '').trim().replace(/\/+$/, '') || DEFAULT_SITE_URL;
+  return DEFAULT_SITE_URL;
 }
 
 // ─── Session ─────────────────────────────────────────────────────────────────

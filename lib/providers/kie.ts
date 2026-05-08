@@ -9,7 +9,7 @@
  *   KIEAI_API_KEY — alternative key name (either is accepted)
  *
  * Supported model routes:
- *   claude-sonnet-4-6  →  POST https://api.kie.ai/claude/v1/messages       (Anthropic format)
+ *   claude-haiku-4-5   →  POST https://api.kie.ai/claude/v1/messages       (Anthropic format)
  *   gpt-5-4            →  POST https://api.kie.ai/codex/v1/responses        (Responses API)
  *   gemini-3-pro       →  POST https://api.kie.ai/gemini-3-pro/v1/chat/completions  (OAI-compat)
  *
@@ -85,6 +85,41 @@ async function runClaude(messages: ChatMessage[], config: ResolvedTaskConfig, ke
 }
 
 /**
+ * GPT-5.2 via KIE — OpenAI-compatible chat completions.
+ * Endpoint: POST https://api.kie.ai/gpt-5-2/v1/chat/completions
+ * Docs: https://docs.kie.ai/1973359m0
+ */
+async function runGpt52(messages: ChatMessage[], config: ResolvedTaskConfig, key: string): Promise<string> {
+  const res = await fetchWithTimeout(
+    "https://api.kie.ai/gpt-5-2/v1/chat/completions",
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        messages: messages.map((m) => {
+          const role = m.role === "system" ? "developer" : m.role;
+          return {
+            role,
+            content: [{ type: "text", text: m.content }],
+          };
+        }),
+        reasoning_effort: "high",
+      }),
+    },
+    120_000,
+  );
+
+  if (!res.ok) {
+    throw new Error(`KIE GPT-5.2 ${res.status}: ${await readErrorBody(res)}`);
+  }
+
+  const data = await res.json() as { choices?: { message?: { content?: string } }[] };
+  const text = data?.choices?.[0]?.message?.content ?? "";
+  if (!text) throw new Error("KIE GPT-5.2 returned an empty response.");
+  return String(text).trim();
+}
+
+/**
  * GPT-5.4 via KIE Responses API.
  * Endpoint: POST https://api.kie.ai/codex/v1/responses
  * Docs: https://docs.kie.ai/1973359m0
@@ -138,32 +173,79 @@ async function runGpt54(messages: ChatMessage[], config: ResolvedTaskConfig, key
 }
 
 /**
- * Gemini 3 Pro via KIE — OpenAI-compatible chat completions.
- * Endpoint: POST https://api.kie.ai/gemini-3-pro/v1/chat/completions
+ * Gemini 3 Flash via KIE — Native Gemini format.
+ * Endpoint: POST https://api.kie.ai/gemini/v1/models/gemini-3-flash-v1betamodels:streamGenerateContent
  * Docs: https://docs.kie.ai/1973359m0
  */
-async function runGemini(messages: ChatMessage[], config: ResolvedTaskConfig, key: string): Promise<string> {
+async function runGeminiFlash(messages: ChatMessage[], config: ResolvedTaskConfig, key: string): Promise<string> {
+  // Convert chat messages to Gemini format
+  const contents = messages.map((m) => ({
+    role: m.role === "assistant" ? "model" : m.role === "system" ? "user" : m.role,
+    parts: [{ text: m.content }],
+  }));
+
   const res = await fetchWithTimeout(
-    "https://api.kie.ai/gemini-3-pro/v1/chat/completions",
+    "https://api.kie.ai/gemini/v1/models/gemini-3-flash-v1betamodels:streamGenerateContent",
     {
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        messages: messages.map((m) => ({ role: m.role, content: m.content })),
         stream: false,
-        max_tokens: config.maxTokens,
+        contents,
+        generationConfig: {
+          thinkingConfig: {
+            includeThoughts: false,
+            thinkingLevel: "low",
+          },
+        },
       }),
     },
-    50_000,
+    120_000,
   );
 
   if (!res.ok) {
-    throw new Error(`KIE Gemini ${res.status}: ${await readErrorBody(res)}`);
+    throw new Error(`KIE Gemini Flash ${res.status}: ${await readErrorBody(res)}`);
+  }
+
+  const data = await res.json() as {
+    candidates?: { content?: { parts?: { text?: string }[] } }[];
+  };
+  const text = data?.candidates?.[0]?.content?.parts?.find((p) => p.text)?.text ?? "";
+  if (!text) throw new Error("KIE Gemini Flash returned an empty response.");
+  return String(text).trim();
+}
+
+/**
+ * Gemini 3 Pro via KIE — OpenAI-compatible chat completions.
+ * Endpoint: POST https://api.kie.ai/gemini-3-pro/v1/chat/completions
+ * Docs: https://docs.kie.ai/1973359m0
+ */
+async function runGemini31Pro(messages: ChatMessage[], config: ResolvedTaskConfig, key: string): Promise<string> {
+  const res = await fetchWithTimeout(
+    "https://api.kie.ai/gemini-3.1-pro/v1/chat/completions",
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        messages: messages.map((m) => ({
+          role: m.role === "system" ? "developer" : m.role,
+          content: [{ type: "text", text: m.content }],
+        })),
+        stream: false,
+        include_thoughts: false,
+        reasoning_effort: "high",
+      }),
+    },
+    120_000,
+  );
+
+  if (!res.ok) {
+    throw new Error(`KIE Gemini 3.1 Pro ${res.status}: ${await readErrorBody(res)}`);
   }
 
   const data = await res.json() as { choices?: { message?: { content?: string } }[] };
   const text = data?.choices?.[0]?.message?.content ?? "";
-  if (!text) throw new Error("KIE Gemini returned an empty response.");
+  if (!text) throw new Error("KIE Gemini 3.1 Pro returned an empty response.");
   return String(text).trim();
 }
 
@@ -172,9 +254,11 @@ async function runGemini(messages: ChatMessage[], config: ResolvedTaskConfig, ke
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** Known KIE chat model ids (not exhaustive — add as KIE expands their catalog). */
-const KIE_CLAUDE_MODELS  = ["claude-sonnet-4-6", "claude-opus-4", "claude-haiku-3-5"];
-const KIE_GPT54_MODELS   = ["gpt-5-4"];
-const KIE_GEMINI_MODELS  = ["gemini-3-pro", "gemini-flash-2-5"];
+const KIE_CLAUDE_MODELS      = ["claude-haiku-4-5", "claude-sonnet-4-5", "claude-opus-4", "claude-haiku-3-5"];
+const KIE_GPT52_MODELS       = ["gpt-5-2"];
+const KIE_GPT54_MODELS       = ["gpt-5-4"];
+const KIE_GEMINI_FLASH       = ["gemini-3-flash"];
+const KIE_GEMINI_PRO_MODELS  = ["gemini-3.1-pro", "gemini-3-pro", "gemini-flash-2-5"];
 
 /**
  * Run a task against the KIE AI provider.
@@ -196,12 +280,20 @@ export async function runKieTask(config: ResolvedTaskConfig, userInput: string):
     return runClaude(messages, config, key);
   }
 
+  if (KIE_GPT52_MODELS.includes(modelId)) {
+    return runGpt52(messages, config, key);
+  }
+
   if (KIE_GPT54_MODELS.includes(modelId)) {
     return runGpt54(messages, config, key);
   }
 
-  if (KIE_GEMINI_MODELS.some((m) => modelId.startsWith(m) || modelId === m)) {
-    return runGemini(messages, config, key);
+  if (KIE_GEMINI_FLASH.includes(modelId)) {
+    return runGeminiFlash(messages, config, key);
+  }
+
+  if (KIE_GEMINI_PRO_MODELS.some((m) => modelId.startsWith(m) || modelId === m)) {
+    return runGemini31Pro(messages, config, key);
   }
 
   // Unknown model — attempt generic OpenAI-compatible endpoint as fallback
