@@ -215,11 +215,13 @@ function ReelCard({
   size = "normal",
   autoplayKey,
   onAutoplayRequest,
+  className,
 }: {
   item: MediaCardItem;
   size?: "wide" | "tall" | "normal";
   autoplayKey: string | null;
   onAutoplayRequest: (key: string) => void;
+  className?: string;
 }) {
   const [durationSec, setDurationSec] = useState<number | null>(null);
   const [hovered, setHovered] = useState(false);
@@ -258,8 +260,8 @@ function ReelCard({
       transition={{ duration: 0.45 }}
       whileHover={{ y: -2, scale: 1.01 }}
       className={cn(
-        "group relative mb-5 break-inside-avoid overflow-hidden rounded-[1.35rem] border border-white/10 bg-white/[0.04] shadow-2xl shadow-black/30 transition",
-        size === "wide" && "lg:col-span-2",
+        "group relative overflow-hidden rounded-[1.35rem] border border-white/10 bg-white/[0.04] shadow-2xl shadow-black/30 transition",
+        className,
       )}
       ref={(node) => {
         cardRef.current = node;
@@ -333,6 +335,73 @@ function ReelCard({
         </div>
       </div>
     </motion.article>
+  );
+}
+
+function DiscoverSection({
+  kicker,
+  title,
+  subtitle,
+  ctaLabel,
+  items,
+  accentClassName,
+  autoplayKey,
+  onAutoplayRequest,
+}: {
+  kicker: string;
+  title: string;
+  subtitle: string;
+  ctaLabel: string;
+  items: MediaCardItem[];
+  accentClassName: string;
+  autoplayKey: string | null;
+  onAutoplayRequest: (key: string) => void;
+}) {
+  const gridItems = items.slice(0, 7);
+
+  return (
+    <section className="mx-auto max-w-7xl px-5 pb-10 md:px-8">
+      <div className="grid gap-5 lg:grid-cols-12">
+        <div className={cn("relative overflow-hidden rounded-[1.6rem] border border-white/10 bg-white/[0.03] p-7 shadow-2xl shadow-black/40 lg:col-span-4", accentClassName)}>
+          <div className="relative">
+            <div className="text-[11px] font-black uppercase tracking-[0.18em] text-white/70">{kicker}</div>
+            <div className="mt-4 text-2xl font-black leading-tight text-white">{title}</div>
+            <div className="mt-3 text-sm leading-6 text-slate-200/90">{subtitle}</div>
+            <button className="mt-6 inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-black text-slate-950 transition hover:scale-[1.02]">
+              <Sparkles className="h-4 w-4" />
+              {ctaLabel}
+            </button>
+          </div>
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/[0.06] via-transparent to-black/50" />
+          <div className="pointer-events-none absolute -right-20 -top-24 h-64 w-64 rounded-full bg-cyan-400/10 blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-20 -left-20 h-64 w-64 rounded-full bg-pink-400/10 blur-3xl" />
+        </div>
+
+        <div className="lg:col-span-8">
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+            {gridItems.map((item, index) => {
+              const span =
+                index === 0
+                  ? "md:col-span-2 md:row-span-2"
+                  : index === 1
+                    ? "md:col-span-2"
+                    : "md:col-span-2";
+              const size = index === 0 ? "tall" : index === 1 ? "wide" : "normal";
+              return (
+                <ReelCard
+                  key={item.key}
+                  item={item}
+                  size={size}
+                  autoplayKey={autoplayKey}
+                  onAutoplayRequest={onAutoplayRequest}
+                  className={cn(span)}
+                />
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -487,72 +556,90 @@ export default function ExplorePage() {
   }, [activeFeed, community, featured, items, query, trending]);
 
   const hero = featured[0] ?? trending[0] ?? items[0] ?? null;
-  const heroReelItems = (featured.length ? featured : trending.length ? trending : items).slice(0, 8);
-  const carouselItems = (trending.length ? trending : items).slice(0, 10);
+  const heroReelItems = (featured.length ? featured : trending.length ? trending : items).slice(0, 6);
+
+  const sections = useMemo(() => {
+    const chunk = (start: number, count: number) => feedItems.slice(start, start + count);
+    return [
+      {
+        kicker: "NEW FEATURE",
+        title: "One canvas. Every workflow.",
+        subtitle: "اكتشف أحدث التجارب السينمائية — تشغيل تلقائي، بطاقات ميديا، وتدفق لا نهائي.",
+        ctaLabel: "Try Canvas",
+        accentClassName: "bg-[linear-gradient(135deg,rgba(34,211,238,0.14),rgba(236,72,153,0.10),rgba(0,0,0,0.25))]",
+        items: chunk(0, 8),
+      },
+      {
+        kicker: "NEW MODEL",
+        title: "Meet the newest generation.",
+        subtitle: "نماذج أقوى، نتائج أنظف، ولقطات أكثر واقعية — مباشرة داخل معرض سينمائي حي.",
+        ctaLabel: "Try Model",
+        accentClassName: "bg-[linear-gradient(135deg,rgba(255,255,255,0.06),rgba(0,0,0,0.25))]",
+        items: chunk(8, 8),
+      },
+      {
+        kicker: "TRENDING NOW",
+        title: "What people are watching.",
+        subtitle: "مجموعة متجددة تلقائياً من أكثر المقاطع مشاهدةً وإلهاماً.",
+        ctaLabel: "Explore",
+        accentClassName: "bg-[linear-gradient(135deg,rgba(236,72,153,0.12),rgba(34,211,238,0.08),rgba(0,0,0,0.25))]",
+        items: chunk(16, 8),
+      },
+    ];
+  }, [feedItems]);
 
   return (
     <main className="min-h-screen overflow-hidden bg-[#050812] text-white">
-      <section className="relative min-h-[60vh] overflow-hidden">
-        {hero ? (
-          <PreviewVideo
-            videoUrl={hero.video_url}
-            posterUrl={hero.thumbnail_url}
-            title={hero.title}
-            className="absolute inset-0 opacity-55"
-          />
-        ) : (
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(34,211,238,0.24),transparent_30%),radial-gradient(circle_at_72%_12%,rgba(236,72,153,0.18),transparent_26%),linear-gradient(135deg,#050812,#070b18_45%,#111827)]" />
-        )}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-[#050812]/45 to-[#050812]" />
-        <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-[#050812] to-transparent" />
-
-        <div className="relative mx-auto flex min-h-[60vh] max-w-7xl flex-col justify-end px-5 pb-10 pt-20 md:px-8 lg:pb-12">
-          <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55 }} className="max-w-4xl">
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-bold text-white/85 backdrop-blur">
-              <Sparkles className="h-3.5 w-3.5 text-cyan-200" />
-              Explore
-            </div>
-            <h1 className="mt-5 text-5xl font-black leading-[0.95] tracking-normal md:text-7xl">
-              Discover the next language of motion.
-            </h1>
-            <p className="mt-5 max-w-2xl text-base leading-7 text-slate-200 md:text-lg">
-              Watch cinematic AI worlds, product films, character studies, and visual experiments from Saad Studio creators.
-            </p>
-            {hero && (
-              <div className="mt-7 flex flex-wrap items-center gap-3">
+      <section className="mx-auto max-w-7xl px-5 pt-10 md:px-8">
+        <div className="relative overflow-hidden rounded-[1.9rem] border border-white/10 bg-white/[0.03] shadow-2xl shadow-black/40">
+          {hero ? (
+            <PreviewVideo videoUrl={hero.video_url} posterUrl={hero.thumbnail_url} title={hero.title} className="absolute inset-0 opacity-65" />
+          ) : (
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(34,211,238,0.24),transparent_30%),radial-gradient(circle_at_72%_12%,rgba(236,72,153,0.18),transparent_26%),linear-gradient(135deg,#050812,#070b18_45%,#111827)]" />
+          )}
+          <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/35 to-black/10" />
+          <div className="relative grid gap-6 p-7 lg:grid-cols-12 lg:p-10">
+            <div className="lg:col-span-5">
+              <div className="text-[11px] font-black uppercase tracking-[0.18em] text-white/70">NEW FEATURE</div>
+              <h1 className="mt-4 text-3xl font-black leading-tight text-white md:text-5xl">One canvas. Every workflow.</h1>
+              <p className="mt-4 max-w-md text-sm leading-6 text-slate-200/90 md:text-base">
+                واجهة اكتشف بتقسيم متكرر، مليانة ميديا حقيقية، وتشغيل تلقائي للفيديوهات.
+              </p>
+              <div className="mt-6 flex flex-wrap items-center gap-3">
                 <button className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-black text-slate-950 transition hover:scale-[1.02]">
-                  <Play className="h-4 w-4 fill-current" />
-                  Watch reel
+                  <Sparkles className="h-4 w-4" />
+                  Try Canvas
                 </button>
                 <div className="rounded-full border border-white/15 bg-black/30 px-4 py-2 text-sm text-slate-200 backdrop-blur">
-                  {hero.title} / {hero.model}
+                  {hero ? `${hero.title} / ${hero.model}` : "Live cinema feed"}
                 </div>
               </div>
-            )}
-          </motion.div>
-          {heroReelItems.length > 0 && (
-            <div className="mt-10 flex gap-4 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              {heroReelItems.map((item) => (
-                <motion.div
-                  key={item.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5 }}
-                  className="group relative h-[150px] w-[280px] flex-none overflow-hidden rounded-[1.25rem] border border-white/10 bg-white/[0.03]"
-                >
-                  <PreviewVideo videoUrl={item.video_url} posterUrl={item.thumbnail_url} title={item.title} />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/15 to-transparent" />
-                  <div className="absolute inset-x-0 bottom-0 p-4">
-                    <div className="flex items-center justify-between gap-3 text-[10px] font-bold uppercase tracking-[0.18em] text-white/70">
-                      <span className="truncate">{item.model}</span>
-                      <span className="truncate">{item.provider}</span>
-                    </div>
-                    <div className="mt-2 text-base font-black leading-tight text-white line-clamp-1">{item.title}</div>
-                  </div>
-                </motion.div>
-              ))}
             </div>
-          )}
+
+            <div className="lg:col-span-7">
+              <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+                {heroReelItems.slice(0, 3).map((item, idx) => (
+                  <div
+                    key={item.id}
+                    className={cn(
+                      "relative overflow-hidden rounded-[1.4rem] border border-white/10 bg-white/[0.03]",
+                      idx === 0 ? "md:col-span-2 aspect-[16/9]" : "aspect-[4/5]",
+                    )}
+                  >
+                    <PreviewVideo videoUrl={item.video_url} posterUrl={item.thumbnail_url} title={item.title} />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-transparent" />
+                    <div className="absolute inset-x-0 bottom-0 p-4">
+                      <div className="flex items-center justify-between gap-3 text-[10px] font-bold uppercase tracking-[0.18em] text-white/70">
+                        <span className="truncate">{item.model}</span>
+                        <span className="truncate">{item.provider}</span>
+                      </div>
+                      <div className="mt-2 text-base font-black leading-tight text-white line-clamp-1">{item.title}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -588,48 +675,42 @@ export default function ExplorePage() {
         </div>
       </section>
 
-      {carouselItems.length > 0 && (
-        <section className="mx-auto max-w-7xl px-5 pb-10 md:px-8">
-          <div className="mb-4 flex items-center gap-2 text-sm font-black uppercase tracking-[0.18em] text-slate-400">
-            <Flame className="h-4 w-4 text-pink-300" />
-            Trending reels
-          </div>
-          <div className="flex gap-4 overflow-x-auto pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {carouselItems.map((item) => {
-              const mapped = toMediaCardItemFromShowcase(item);
-              return (
-                <div key={mapped.key} className="w-[280px] flex-none md:w-[360px]">
-                  <ReelCard item={mapped} size="wide" autoplayKey={autoplayKey} onAutoplayRequest={requestAutoplay} />
-                </div>
-              );
-            })}
-            {community.slice(0, 6).map((item) => {
-              const mapped = toMediaCardItemFromCommunity(item);
-              return (
-                <div key={mapped.key} className="w-[280px] flex-none md:w-[360px]">
-                  <ReelCard item={mapped} size="wide" autoplayKey={autoplayKey} onAutoplayRequest={requestAutoplay} />
-                </div>
-              );
-            })}
-          </div>
-        </section>
-      )}
+      {sections.map((section) => (
+        <DiscoverSection
+          key={section.kicker}
+          kicker={section.kicker}
+          title={section.title}
+          subtitle={section.subtitle}
+          ctaLabel={section.ctaLabel}
+          items={section.items}
+          accentClassName={section.accentClassName}
+          autoplayKey={autoplayKey}
+          onAutoplayRequest={requestAutoplay}
+        />
+      ))}
 
       <section className="mx-auto max-w-7xl px-5 pb-20 md:px-8">
-        {feedItems.length > 0 ? (
-          <div className="columns-1 gap-5 sm:columns-2 lg:columns-3 xl:columns-4">
-            {feedItems.map((item, index) => (
-              <ReelCard key={item.key} item={item} size={index % 6 === 0 ? "tall" : "normal"} autoplayKey={autoplayKey} onAutoplayRequest={requestAutoplay} />
-            ))}
-          </div>
-        ) : (
-          <div className="flex items-center justify-center rounded-[2rem] border border-white/10 bg-white/[0.03] px-6 py-14 text-center">
-            <div>
-              <div className="text-sm font-black uppercase tracking-[0.18em] text-slate-400">No media yet</div>
-              <div className="mt-3 text-2xl font-black text-white">Generate something cinematic to start the feed.</div>
+        <div className="rounded-[1.6rem] border border-white/10 bg-white/[0.02] p-6">
+          <div className="flex items-center justify-between gap-3">
+            <div className="text-sm font-black uppercase tracking-[0.18em] text-slate-400">Live feed continues</div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-bold text-white/70">
+              <Flame className="h-3.5 w-3.5 text-pink-300" />
+              Infinite
             </div>
           </div>
-        )}
+          <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-6">
+            {feedItems.slice(24, 60).map((item, index) => (
+              <ReelCard
+                key={item.key}
+                item={item}
+                size={index % 9 === 0 ? "tall" : index % 7 === 0 ? "wide" : "normal"}
+                autoplayKey={autoplayKey}
+                onAutoplayRequest={requestAutoplay}
+                className={cn(index % 9 === 0 ? "md:col-span-2" : index % 7 === 0 ? "md:col-span-2" : "md:col-span-2")}
+              />
+            ))}
+          </div>
+        </div>
         <div ref={sentinelRef} className="h-px w-full" />
         <div className="mt-10 flex items-center justify-center">
           <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-xs font-bold text-white/70">
