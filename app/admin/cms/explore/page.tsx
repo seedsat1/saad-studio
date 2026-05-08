@@ -125,6 +125,65 @@ type ExploreCmsLayout = {
   modules?: ExploreModule[];
 };
 
+const DEFAULT_EXPLORE_MODULES: ExploreModule[] = [
+  {
+    _id: "gpt-image-2",
+    kicker: "NEW MODEL",
+    title: "Meet GPT Image 2",
+    subtitle: "4K images with near-perfect text rendering",
+    ctaLabel: "Try Model",
+    ctaHref: "/image?tool=create&model=gpt-image-2-text-to-image",
+    badges: ["Demos", "Tutorials", "Best settings"],
+    media: [
+      { type: "image", url: "/GPT%20Image%202/SHOT%201.webp" },
+      { type: "image", url: "/GPT%20Image%202/SHOT%202.webp" },
+      { type: "image", url: "/GPT%20Image%202/SHOT%203.webp" },
+    ],
+  },
+  {
+    _id: "seedance-2",
+    kicker: "VIDEO MODEL",
+    title: "Seedance 2",
+    subtitle: "Fast cinematic video generation with smooth motion and flexible references.",
+    ctaLabel: "Try Model",
+    ctaHref: "/video?tool=create-video&model=bytedance-seedance-v2-t2v",
+    badges: ["Demos", "Tutorials", "Best settings"],
+    media: [
+      { type: "image", url: "/seedance%202/Hero.webp" },
+      { type: "image", url: "/seedance%202/1%20(1).webp" },
+      { type: "image", url: "/seedance%202/1%20(2).webp" },
+    ],
+  },
+  {
+    _id: "transitions",
+    kicker: "VIDEO TOOL",
+    title: "Transitions",
+    subtitle: "Create stylized scene changes and motion bridges between your clips.",
+    ctaLabel: "Open Tool",
+    ctaHref: "/apps/tool/transitions",
+    badges: ["Demos", "Tutorials", "Best settings"],
+    media: [
+      { type: "image", url: "/transitions/Hero.webp" },
+      { type: "image", url: "/transitions/1%20(1).webp" },
+      { type: "image", url: "/transitions/1%20(2).webp" },
+    ],
+  },
+  {
+    _id: "kling-3",
+    kicker: "VIDEO MODEL",
+    title: "Kling 3.0",
+    subtitle: "Cinematic motion, strong scene continuity, and polished video generation.",
+    ctaLabel: "Try Model",
+    ctaHref: "/video?tool=create-video&model=kling-v3.0-pro-t2v",
+    badges: ["Demos", "Tutorials", "Best settings"],
+    media: [
+      { type: "image", url: "/Kling%203.0/Hero.webp" },
+      { type: "image", url: "/Kling%203.0/1%20(1).webp" },
+      { type: "image", url: "/Kling%203.0/1%20(2).webp" },
+    ],
+  },
+];
+
 function parseBadges(text: string) {
   return text
     .split(",")
@@ -493,9 +552,9 @@ export default function ExploreCmsPage() {
       const row = await res.json();
       const b = row?.layoutBlocks as ExploreCmsLayout | null;
       const next = Array.isArray(b?.modules) ? b?.modules : [];
-      setModules(next);
+      setModules(next.length > 0 ? next : DEFAULT_EXPLORE_MODULES);
     } catch (err) {
-      setModules([]);
+      setModules(DEFAULT_EXPLORE_MODULES);
       setError(err instanceof Error ? err.message : "Failed to load Explore layout");
     } finally {
       setLoadingLayout(false);
