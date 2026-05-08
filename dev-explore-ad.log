@@ -1,0 +1,55 @@
+
+> aisaas@0.1.0 dev
+> next dev --port 3000
+
+  ▲ Next.js 14.2.35
+  - Local:        http://localhost:3000
+  - Environments: .env.local, .env
+
+ ✓ Starting...
+ ✓ Ready in 25.6s
+ ○ Compiling /middleware ...
+ ✓ Compiled /middleware in 6.7s (183 modules)
+ ○ Compiling /api/maintenance ...
+ ✓ Compiled /api/maintenance in 1036ms (59 modules)
+ GET /api/maintenance?slug=explore 200 in 4164ms
+ ○ Compiling /explore ...
+ ✓ Compiled /explore in 38.6s (2277 modules)
+ GET /explore 200 in 39557ms
+ ✓ Compiled in 1858ms (997 modules)
+ ○ Compiling /_not-found ...
+ ✓ Compiled /_not-found in 5.7s (2239 modules)
+ GET /api/showcase?take=30 404 in 6068ms
+ GET /api/showcase/featured?take=18 404 in 6079ms
+ GET /api/showcase/featured?take=18 404 in 6114ms
+ GET /api/showcase/trending?take=30 404 in 6114ms
+ GET /api/showcase/trending?take=30 404 in 6119ms
+ GET /api/showcase?take=30 404 in 6120ms
+ GET /api/layouts?page=cms-auth 404 in 50ms
+ GET /api/layouts?page=cms-pricing 404 in 53ms
+ GET /api/layouts?page=cms-pricing 404 in 82ms
+ GET /api/layouts?page=cms-auth 404 in 83ms
+ GET /api/maintenance?slug=explore 200 in 381ms
+ GET /explore 200 in 171ms
+ GET /api/showcase?take=30 404 in 108ms
+ GET /api/showcase/trending?take=30 404 in 116ms
+ GET /api/showcase?take=30 404 in 154ms
+ GET /api/showcase/featured?take=18 404 in 217ms
+ GET /api/showcase/featured?take=18 404 in 259ms
+ GET /api/showcase/trending?take=30 404 in 284ms
+ GET /api/layouts?page=cms-auth 404 in 49ms
+ GET /api/layouts?page=cms-pricing 404 in 95ms
+ GET /api/layouts?page=cms-auth 404 in 85ms
+ GET /api/layouts?page=cms-pricing 404 in 97ms
+ GET /api/maintenance?slug=explore 200 in 369ms
+ GET /explore 200 in 92ms
+ GET /api/showcase/featured?take=18 404 in 77ms
+ GET /api/showcase/trending?take=30 404 in 78ms
+ GET /api/showcase?take=30 404 in 83ms
+ GET /api/showcase?take=30 404 in 68ms
+ GET /api/showcase/trending?take=30 404 in 69ms
+ GET /api/showcase/featured?take=18 404 in 71ms
+ GET /api/layouts?page=cms-auth 404 in 66ms
+ GET /api/layouts?page=cms-pricing 404 in 68ms
+ GET /api/layouts?page=cms-pricing 404 in 52ms
+ GET /api/layouts?page=cms-auth 404 in 53ms

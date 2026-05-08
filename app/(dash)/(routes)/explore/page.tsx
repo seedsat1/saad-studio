@@ -121,6 +121,85 @@ function GptImage2Ad() {
   );
 }
 
+function GptImage2ModelAd() {
+  const href = `/image?tool=create&model=${encodeURIComponent(GPT_IMAGE_2_MODEL_ID)}`;
+  const galleryShots = GPT_IMAGE_2_SHOTS.slice(1);
+  const galleryLayout = [
+    "col-span-6 row-span-6",
+    "col-span-6 row-span-2",
+    "col-span-3 row-span-4",
+    "col-span-3 row-span-4",
+    "col-span-3 row-span-2",
+    "col-span-3 row-span-2",
+    "col-span-3 row-span-4",
+    "col-span-3 row-span-4",
+  ];
+
+  return (
+    <section className="w-full px-5 py-8 md:px-10 lg:px-14 xl:px-20">
+      <Link
+        href={href}
+        className="group relative block overflow-hidden rounded-[1.35rem] border border-white/10 bg-[#07090c] shadow-2xl shadow-black/50"
+      >
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_50%,rgba(255,255,255,0.12),transparent_26%),linear-gradient(90deg,#070707_0%,#090b10_32%,#030405_100%)]" />
+        <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black via-black/75 to-transparent" />
+
+        <div className="relative grid min-h-[520px] gap-0 lg:grid-cols-[24rem_1fr] xl:grid-cols-[30rem_1fr]">
+          <div className="relative flex min-h-[430px] flex-col items-center justify-start overflow-hidden border-b border-white/10 px-6 py-9 text-center lg:border-b-0 lg:border-r">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_78%,rgba(255,255,255,0.14),transparent_23%),linear-gradient(180deg,rgba(255,255,255,0.04),rgba(0,0,0,0.48))]" />
+            <div className="relative z-10">
+              <div className="text-[11px] font-black uppercase tracking-[0.26em] text-white/45">NEW MODEL</div>
+              <div className="mx-auto mt-4 h-px w-16 bg-gradient-to-r from-transparent via-cyan-200/40 to-transparent" />
+              <h2 className="mt-5 text-3xl font-black leading-tight text-white md:text-4xl">Meet GPT Image 2</h2>
+              <p className="mt-3 max-w-sm text-sm leading-6 text-slate-400">4K images with near-perfect text rendering</p>
+              <span className="mt-6 inline-flex items-center gap-2 rounded-lg bg-white px-4 py-3 text-sm font-black text-slate-950 transition group-hover:scale-[1.03]">
+                <Sparkles className="h-4 w-4" />
+                Try Model
+              </span>
+            </div>
+            <img
+              src={GPT_IMAGE_2_SHOTS[0]}
+              alt="GPT Image 2 hero"
+              className="absolute inset-x-0 bottom-0 mx-auto h-[62%] w-full object-cover object-bottom opacity-95 transition duration-700 group-hover:scale-[1.03]"
+              loading="eager"
+            />
+            <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black via-black/20 to-transparent" />
+          </div>
+
+          <div className="relative min-h-[520px] overflow-hidden p-4">
+            <div className="grid h-full min-h-[500px] grid-cols-12 grid-rows-8 gap-3">
+              {galleryShots.map((shot, index) => (
+                <div
+                  key={shot}
+                  className={cn(
+                    "relative overflow-hidden rounded-lg border border-white/10 bg-white/[0.03] shadow-xl shadow-black/30",
+                    galleryLayout[index],
+                  )}
+                >
+                  <img
+                    src={shot}
+                    alt={`GPT Image 2 showcase ${index + 1}`}
+                    className="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-[1.035]"
+                    loading={index < 3 ? "eager" : "lazy"}
+                  />
+                  <div className="absolute inset-0 bg-black/0 transition group-hover:bg-black/5" />
+                </div>
+              ))}
+            </div>
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black via-black/45 to-transparent" />
+            <div className="absolute bottom-7 left-1/2 -translate-x-1/2">
+              <span className="inline-flex items-center gap-2 rounded-lg bg-lime-400 px-5 py-3 text-sm font-black text-lime-950 shadow-2xl shadow-lime-950/40 transition group-hover:scale-[1.04]">
+                View all of GPT Image 2
+                <Zap className="h-4 w-4" />
+              </span>
+            </div>
+          </div>
+        </div>
+      </Link>
+    </section>
+  );
+}
+
 function formatDuration(seconds: number | null) {
   if (!seconds || !Number.isFinite(seconds)) return "—";
   const s = Math.max(0, Math.floor(seconds));
@@ -643,7 +722,7 @@ export default function ExplorePage() {
 
   return (
     <main className="min-h-screen overflow-hidden bg-[#050812] text-white">
-      <GptImage2Ad />
+      <GptImage2ModelAd />
 
       <section className="relative w-full px-5 pb-10 md:px-10 lg:px-14 xl:px-20">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
