@@ -69,16 +69,16 @@ const TRANSITIONS_SHOTS = [
   "/transitions/1%20(9).webp",
 ] as const;
 
-const KLING_3_HERO = "/Kling%203.0/Hero.png";
+const KLING_3_HERO = "/Kling%203.0/Hero.webp";
 const KLING_3_SHOTS = [
-  "/Kling%203.0/1%20(1).png",
-  "/Kling%203.0/1%20(2).png",
-  "/Kling%203.0/1%20(3).png",
-  "/Kling%203.0/1%20(4).png",
-  "/Kling%203.0/1%20(5).png",
-  "/Kling%203.0/1%20(6).png",
-  "/Kling%203.0/1%20(7).png",
-  "/Kling%203.0/1%20(8).png",
+  "/Kling%203.0/1%20(1).webp",
+  "/Kling%203.0/1%20(2).webp",
+  "/Kling%203.0/1%20(3).webp",
+  "/Kling%203.0/1%20(4).webp",
+  "/Kling%203.0/1%20(5).webp",
+  "/Kling%203.0/1%20(6).webp",
+  "/Kling%203.0/1%20(7).webp",
+  "/Kling%203.0/1%20(8).webp",
 ] as const;
 
 function GptImage2Ad() {
