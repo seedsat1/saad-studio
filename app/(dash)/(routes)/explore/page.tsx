@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { ArrowUpRight, Eye, Flame, Heart, Play, ScrollText, Search, Sparkles, Star, Zap } from "lucide-react";
+import { ArrowUpRight, Eye, Heart, Play, ScrollText, Sparkles, Star, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type ShowcaseItem = {
@@ -1006,38 +1006,6 @@ export default function ExplorePage() {
       <TransitionsModelAd />
       <NanoBananaAd />
 
-      <section className="relative w-full px-5 pb-10 md:px-10 lg:px-14 xl:px-20">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div className="flex flex-wrap gap-2">
-            {([
-              ["latest", "New visions"],
-              ["featured", "Featured"],
-              ["trending", "Trending"],
-            ] as const).map(([feed, label]) => (
-              <button
-                key={feed}
-                onClick={() => setActiveFeed(feed)}
-                className={cn(
-                  "rounded-full border px-4 py-2 text-sm font-bold transition",
-                  activeFeed === feed ? "border-white bg-white text-slate-950" : "border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/10",
-                )}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-          <label className="relative w-full md:w-[360px]">
-            <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search moods, models, creators"
-              className="w-full rounded-full border border-white/10 bg-white/[0.05] py-3 pl-11 pr-4 text-sm text-white outline-none backdrop-blur transition focus:border-cyan-300/50"
-            />
-          </label>
-        </div>
-      </section>
-
       {sections.map((section) => (
         <DiscoverSection
           key={section.kicker}
@@ -1052,24 +1020,7 @@ export default function ExplorePage() {
         />
       ))}
 
-      <section className="w-full px-5 pb-20 md:px-10 lg:px-14 xl:px-20">
-        <div ref={sentinelRef} className="h-px w-full" />
-        <div className="mt-10 flex items-center justify-center">
-          <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-xs font-bold text-white/70">
-            {loadingMore ? (
-              <>
-                <div className="h-3 w-3 animate-spin rounded-full border-2 border-white/40 border-t-transparent" />
-                Loading more
-              </>
-            ) : (
-              <>
-                <Sparkles className="h-3.5 w-3.5 text-cyan-200" />
-                {itemsCursor || featuredCursor || trendingCursor ? "Scroll for more" : "End of feed"}
-              </>
-            )}
-          </div>
-        </div>
-      </section>
+      <div ref={sentinelRef} className="h-px w-full" />
     </main>
   );
 }
