@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS "showcase_items" (
   "prompt" TEXT NOT NULL DEFAULT '',
   "tags" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
   "featured" BOOLEAN NOT NULL DEFAULT false,
+  "status" TEXT NOT NULL DEFAULT 'draft',
   "views" INTEGER NOT NULL DEFAULT 0,
   "likes" INTEGER NOT NULL DEFAULT 0,
   "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -20,6 +21,9 @@ CREATE TABLE IF NOT EXISTS "showcase_items" (
 
 CREATE INDEX IF NOT EXISTS "showcase_items_featured_created_at_idx"
   ON "showcase_items" ("featured", "created_at");
+
+CREATE INDEX IF NOT EXISTS "showcase_items_status_created_at_idx"
+  ON "showcase_items" ("status", "created_at");
 
 CREATE INDEX IF NOT EXISTS "showcase_items_views_likes_idx"
   ON "showcase_items" ("views", "likes");

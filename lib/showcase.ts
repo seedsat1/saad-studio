@@ -10,6 +10,7 @@ export type ShowcasePayload = {
   prompt?: string;
   tags?: string[];
   featured?: boolean;
+  status?: "draft" | "published";
   views?: number;
   likes?: number;
 };
@@ -28,6 +29,7 @@ export function toShowcaseDto(item: ShowcaseRecord) {
     prompt: item.prompt,
     tags: item.tags,
     featured: item.featured,
+    status: item.status,
     views: item.views,
     likes: item.likes,
     created_at: item.createdAt.toISOString(),
@@ -58,6 +60,10 @@ export function normalizeTags(tags: unknown): string[] {
   }
 
   return [];
+}
+
+export function normalizeShowcaseStatus(status: unknown): "draft" | "published" {
+  return status === "published" ? "published" : "draft";
 }
 
 export async function uniqueShowcaseSlug(input: string, currentId?: string) {
@@ -96,6 +102,7 @@ export function parseShowcasePayload(body: Record<string, unknown>): ShowcasePay
     prompt: String(body.prompt ?? "").trim(),
     tags: normalizeTags(body.tags),
     featured: Boolean(body.featured),
+    status: normalizeShowcaseStatus(body.status),
     views: Number.isFinite(Number(body.views)) ? Math.max(0, Number(body.views)) : undefined,
     likes: Number.isFinite(Number(body.likes)) ? Math.max(0, Number(body.likes)) : undefined,
   };

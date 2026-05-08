@@ -6,6 +6,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   const items = await prismadb.showcaseItem.findMany({
+    where: { status: "published" },
     orderBy: [{ views: "desc" }, { likes: "desc" }, { createdAt: "desc" }],
     take: 24,
   });

@@ -37,6 +37,7 @@ export async function POST(req: NextRequest) {
         prompt: payload.prompt ?? "",
         tags: payload.tags ?? [],
         featured: payload.featured ?? false,
+        status: payload.status ?? "draft",
         views: payload.views ?? 0,
         likes: payload.likes ?? 0,
       },

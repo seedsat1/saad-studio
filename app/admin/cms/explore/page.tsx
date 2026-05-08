@@ -29,6 +29,7 @@ type ShowcaseItem = {
   prompt: string;
   tags: string[];
   featured: boolean;
+  status: "draft" | "published";
   views: number;
   likes: number;
   created_at: string;
@@ -45,6 +46,7 @@ type ShowcaseForm = {
   prompt: string;
   tags: string;
   featured: boolean;
+  status: "draft" | "published";
 };
 
 const emptyForm: ShowcaseForm = {
@@ -57,6 +59,7 @@ const emptyForm: ShowcaseForm = {
   prompt: "",
   tags: "",
   featured: false,
+  status: "draft",
 };
 
 async function uploadToSupabase(file: File): Promise<{ publicUrl: string; isVideo: boolean }> {
@@ -99,10 +102,11 @@ function toForm(item: ShowcaseItem): ShowcaseForm {
     prompt: item.prompt,
     tags: item.tags.join(", "),
     featured: item.featured,
+    status: item.status,
   };
 }
 
-export default function ShowcaseCmsPage() {
+export default function ExploreCmsPage() {
   const [items, setItems] = useState<ShowcaseItem[]>([]);
   const [form, setForm] = useState<ShowcaseForm>(emptyForm);
   const [loading, setLoading] = useState(true);
@@ -114,6 +118,7 @@ export default function ShowcaseCmsPage() {
     return {
       total: items.length,
       featured: items.filter((item) => item.featured).length,
+      published: items.filter((item) => item.status === "published").length,
       views: items.reduce((sum, item) => sum + item.views, 0),
       likes: items.reduce((sum, item) => sum + item.likes, 0),
     };
@@ -182,6 +187,7 @@ export default function ShowcaseCmsPage() {
           prompt: form.prompt,
           tags: form.tags,
           featured: form.featured,
+          status: form.status,
         }),
       });
 
@@ -225,10 +231,10 @@ export default function ShowcaseCmsPage() {
             <div>
               <div className="inline-flex items-center gap-2 rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-1 text-xs font-bold text-cyan-100">
                 <Film className="h-3.5 w-3.5" />
-                Dynamic Showcase CMS
+                Explore Showcase CMS
               </div>
-              <h1 className="mt-4 text-3xl font-black">Showcase Feed Manager</h1>
-              <p className="mt-2 text-sm text-slate-400">Upload, edit, feature, and delete cinematic showcase cards rendered on /explore.</p>
+              <h1 className="mt-4 text-3xl font-black">Explore Feed Manager</h1>
+              <p className="mt-2 text-sm text-slate-400">Control the cinematic showcase cards rendered on the public /explore page.</p>
             </div>
             <button
               onClick={() => void loadItems()}
@@ -249,8 +255,8 @@ export default function ShowcaseCmsPage() {
               <div className="mt-1 text-xs text-slate-500">Featured</div>
             </div>
             <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-              <div className="text-2xl font-black text-cyan-300">{stats.views}</div>
-              <div className="mt-1 text-xs text-slate-500">Views</div>
+              <div className="text-2xl font-black text-emerald-300">{stats.published}</div>
+              <div className="mt-1 text-xs text-slate-500">Published</div>
             </div>
             <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
               <div className="text-2xl font-black text-pink-300">{stats.likes}</div>
@@ -311,6 +317,21 @@ export default function ShowcaseCmsPage() {
                   <input type="checkbox" checked={form.featured} onChange={(e) => updateField("featured", e.target.checked)} />
                   Feature this showcase
                 </label>
+                <div className="grid grid-cols-2 gap-2 rounded-xl border border-white/10 bg-slate-950 p-2">
+                  {(["draft", "published"] as const).map((status) => (
+                    <button
+                      key={status}
+                      type="button"
+                      onClick={() => updateField("status", status)}
+                      className={cn(
+                        "rounded-lg px-3 py-2 text-xs font-bold capitalize transition",
+                        form.status === status ? "bg-cyan-400 text-slate-950" : "bg-white/5 text-slate-300 hover:bg-white/10",
+                      )}
+                    >
+                      {status}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <button disabled={saving} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-cyan-400 px-4 py-3 text-sm font-black text-slate-950 hover:bg-cyan-300 disabled:opacity-50">
@@ -342,7 +363,12 @@ export default function ShowcaseCmsPage() {
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-start justify-between gap-3">
                           <div className="min-w-0">
-                            <h3 className="truncate font-bold text-white">{item.title}</h3>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <h3 className="truncate font-bold text-white">{item.title}</h3>
+                              <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-bold capitalize", item.status === "published" ? "bg-emerald-400/15 text-emerald-200" : "bg-slate-500/20 text-slate-300")}>
+                                {item.status}
+                              </span>
+                            </div>
                             <p className="mt-1 text-xs text-slate-500">{item.provider} / {item.model}</p>
                           </div>
                           <div className="flex gap-2">

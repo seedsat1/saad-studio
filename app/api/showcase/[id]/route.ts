@@ -7,6 +7,7 @@ export const dynamic = "force-dynamic";
 export async function GET(_: NextRequest, { params }: { params: { id: string } }) {
   const item = await prismadb.showcaseItem.findFirst({
     where: {
+      status: "published",
       OR: [{ id: params.id }, { slug: params.id }],
     },
   });
@@ -26,6 +27,7 @@ export async function GET(_: NextRequest, { params }: { params: { id: string } }
 export async function PATCH(_: NextRequest, { params }: { params: { id: string } }) {
   const item = await prismadb.showcaseItem.findFirst({
     where: {
+      status: "published",
       OR: [{ id: params.id }, { slug: params.id }],
     },
   });

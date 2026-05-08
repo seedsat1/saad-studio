@@ -40,6 +40,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         prompt: payload.prompt ?? "",
         tags: normalizeTags(payload.tags),
         featured: payload.featured ?? false,
+        status: payload.status ?? existing.status,
         views: payload.views ?? existing.views,
         likes: payload.likes ?? existing.likes,
       },

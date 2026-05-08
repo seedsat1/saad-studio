@@ -44,7 +44,6 @@ import {
   LayoutTemplate,
   ShieldCheck,
   Compass,
-  Clapperboard,
 } from "lucide-react";
 
 // ─── MOCK DATA ──────────────────────────────────────────────────────────────
@@ -792,7 +791,7 @@ export default function AdminDashboard() {
             { label: "Beauty Studio CMS", href: "/admin/cms/beauty2", icon: Sparkles },
             { label: "Apps CMS", href: "/admin/cms/apps", icon: Globe },
             { label: "Auth Page CMS", href: "/admin/cms/auth", icon: ShieldCheck },
-            { label: "Showcase CMS", href: "/admin/cms/showcase", icon: Clapperboard },
+            { label: "Explore CMS", href: "/admin/cms/explore", icon: Compass },
             { label: "Discover CMS", href: "/admin/cms/discover", icon: Compass },
             { label: "Page Builder", href: "/admin/page-builder", icon: LayoutTemplate },
             { label: "Model Test Lab", href: "/admin/model-test", icon: Zap },

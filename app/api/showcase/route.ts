@@ -11,7 +11,10 @@ export async function GET(req: NextRequest) {
   const cursor = searchParams.get("cursor");
 
   const items = await prismadb.showcaseItem.findMany({
-    where: tag ? { tags: { has: tag } } : undefined,
+    where: {
+      status: "published",
+      ...(tag ? { tags: { has: tag } } : {}),
+    },
     orderBy: [{ featured: "desc" }, { createdAt: "desc" }],
     take: take + 1,
     ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),

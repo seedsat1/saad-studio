@@ -330,10 +330,10 @@ export default function ExplorePage() {
               Upload cinematic showcase videos from the admin CMS. Once added, this feed will populate automatically.
             </p>
             <a
-              href="/admin/cms/showcase"
+              href="/admin/cms/explore"
               className="mt-5 inline-flex items-center gap-2 rounded-xl bg-cyan-400 px-4 py-3 text-sm font-bold text-slate-950 hover:bg-cyan-300"
             >
-              Open Showcase CMS
+              Open Explore CMS
               <ArrowUpRight className="h-4 w-4" />
             </a>
           </div>
