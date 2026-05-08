@@ -120,3 +120,16 @@
  GET /api/layouts?page=cms-auth 404 in 83ms
  GET /api/maintenance?slug=explore 200 in 423ms
  GET /explore?servercheck=seedance 200 in 69ms
+ GET /api/maintenance?slug=explore 200 in 420ms
+ GET /explore?newtab=1778249589401 200 in 103ms
+ GET /api/showcase?take=30 404 in 73ms
+ GET /api/showcase/trending?take=30 404 in 73ms
+ GET /api/showcase/featured?take=18 404 in 74ms
+ GET /api/showcase?take=30 404 in 63ms
+ GET /api/showcase/trending?take=30 404 in 61ms
+ GET /api/showcase/featured?take=18 404 in 66ms
+ GET /api/layouts?page=cms-auth 404 in 55ms
+ GET /api/layouts?page=cms-pricing 404 in 54ms
+ GET /api/layouts?page=cms-auth 404 in 56ms
+ GET /api/layouts?page=cms-pricing 404 in 57ms
+[?25h
