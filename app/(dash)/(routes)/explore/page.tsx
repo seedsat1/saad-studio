@@ -46,7 +46,9 @@ const GPT_IMAGE_2_SHOTS = [
 
 function GptImage2Ad() {
   const href = `/image?tool=create&model=${encodeURIComponent(GPT_IMAGE_2_MODEL_ID)}`;
-  const collage = GPT_IMAGE_2_SHOTS.slice(0, 9);
+  const heroShot = GPT_IMAGE_2_SHOTS[0];
+  const topRightShot = GPT_IMAGE_2_SHOTS[1];
+  const bottomRightShot = GPT_IMAGE_2_SHOTS[2];
 
   return (
     <section className="w-full px-5 pt-10 md:px-10 lg:px-14 xl:px-20">
@@ -84,28 +86,33 @@ function GptImage2Ad() {
           </div>
 
           <div className="lg:col-span-8">
-            <div className="grid grid-cols-6 gap-3">
-              {collage.map((src, index) => (
-                <div
-                  key={src}
-                  className={cn(
-                    "relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]",
-                    index === 0 && "col-span-3 row-span-2 aspect-[3/4]",
-                    index === 1 && "col-span-3 aspect-[16/9]",
-                    index === 2 && "col-span-2 aspect-[4/5]",
-                    index === 3 && "col-span-2 aspect-[4/5]",
-                    index === 4 && "col-span-2 aspect-[4/5]",
-                    index >= 5 && "col-span-2 aspect-[4/5]",
-                  )}
-                >
+            <div className="grid grid-cols-12 gap-3">
+              <div className="relative col-span-7 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] aspect-[3/4]">
+                <img
+                  src={heroShot}
+                  alt="GPT Image 2 sample"
+                  className="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-[1.02]"
+                  loading="eager"
+                />
+              </div>
+              <div className="col-span-5 flex flex-col gap-3">
+                <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] aspect-[16/10]">
                   <img
-                    src={src}
+                    src={topRightShot}
                     alt="GPT Image 2 sample"
                     className="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-[1.02]"
-                    loading={index < 2 ? "eager" : "lazy"}
+                    loading="eager"
                   />
                 </div>
-              ))}
+                <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] aspect-[4/5]">
+                  <img
+                    src={bottomRightShot}
+                    alt="GPT Image 2 sample"
+                    className="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-[1.02]"
+                    loading="lazy"
+                  />
+                </div>
+              </div>
             </div>
           </div>
         </div>
