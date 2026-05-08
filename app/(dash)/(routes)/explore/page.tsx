@@ -235,7 +235,7 @@ export default function ExplorePage() {
       .then((data) => {
         if (cancelled) return;
         const raw = data?.layoutBlocks as ExploreCmsLayout | null;
-        if (Array.isArray(raw?.modules) && raw.modules.length > 0) setModules(raw.modules);
+        if (Array.isArray(raw?.modules)) setModules(raw.modules);
       })
       .catch(() => {})
       .finally(() => {
