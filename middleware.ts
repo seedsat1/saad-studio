@@ -25,6 +25,7 @@ const isPublicRoute = createRouteMatcher([
   '/gallery(.*)',
   '/edit(.*)',
   '/cinema-studio(.*)',
+  '/cinema-board(.*)',
   '/moodboard(.*)',
   '/original-series(.*)',
   '/3d(.*)',
