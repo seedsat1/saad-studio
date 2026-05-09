@@ -754,12 +754,12 @@ const PLATFORM_STATS = [
   { number: "25", label: "Free Credits", subtitle: "No credit card required" },
 ];
 
-function StatsCounter() {
+function StatsCounter({ stats = PLATFORM_STATS }: { stats?: typeof PLATFORM_STATS }) {
   return (
     <FadeIn>
       <section>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {PLATFORM_STATS.map((stat, i) => (
+          {stats.map((stat, i) => (
             <motion.div
               key={stat.label}
               initial={{ opacity: 0, y: 16 }}
@@ -900,13 +900,13 @@ const HOME_INJECTED_SECTIONS: Record<string, { after: string }> = {
   pricingPreview: { after: "apps" },
 };
 
-function StudioPathways() {
+function StudioPathways({ items = STUDIO_PATHWAYS }: { items?: typeof STUDIO_PATHWAYS }) {
   return (
     <FadeIn delay={0.05}>
       <section>
         <SectionHeading title="Choose your studio" cta="Open Explore" ctaHref="/explore" />
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {STUDIO_PATHWAYS.map((item, index) => {
+          {items.map((item, index) => {
             const IconComp = item.icon;
             return (
               <Link key={item.title} href={item.href}>
@@ -941,13 +941,13 @@ function StudioPathways() {
   );
 }
 
-function ShowcaseWall() {
+function ShowcaseWall({ tiles = SHOWCASE_TILES }: { tiles?: typeof SHOWCASE_TILES }) {
   return (
     <FadeIn delay={0.05}>
       <section>
         <SectionHeading title="Built for real outputs" />
         <div className="grid auto-rows-[170px] gap-3 md:grid-cols-12 md:auto-rows-[190px]">
-          {SHOWCASE_TILES.map((tile, index) => (
+          {tiles.map((tile, index) => (
             <Link key={tile.title} href={tile.href} className={cn("group relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.035]", tile.className)}>
               <motion.div
                 initial={{ opacity: 0, scale: 0.97 }}
@@ -970,7 +970,7 @@ function ShowcaseWall() {
   );
 }
 
-function ProductionWorkflow() {
+function ProductionWorkflow({ steps = WORKFLOW_STEPS }: { steps?: typeof WORKFLOW_STEPS }) {
   return (
     <FadeIn delay={0.05}>
       <section>
@@ -996,7 +996,7 @@ function ProductionWorkflow() {
               </Link>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
-              {WORKFLOW_STEPS.map((step, index) => {
+              {steps.map((step, index) => {
                 const IconComp = step.icon;
                 return (
                   <div key={step.title} className="rounded-xl border border-white/10 bg-black/35 p-4 backdrop-blur">
@@ -1019,13 +1019,13 @@ function ProductionWorkflow() {
   );
 }
 
-function ModelSpotlightRail() {
+function ModelSpotlightRail({ items = MODEL_SPOTLIGHTS }: { items?: typeof MODEL_SPOTLIGHTS }) {
   return (
     <FadeIn delay={0.05}>
       <section>
         <SectionHeading title="Featured model drops" cta="View Explore" ctaHref="/explore" />
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          {MODEL_SPOTLIGHTS.map((item, index) => (
+          {items.map((item, index) => (
             <Link key={item.title} href={item.href}>
               <motion.div
                 initial={{ opacity: 0, y: 18 }}
@@ -1433,6 +1433,15 @@ interface CmsAdCard {
   href: string;
   badge: string;
   gradient?: string;
+  className?: string;
+  accentColor?: string;
+}
+
+interface CmsStatItem {
+  _id?: string;
+  number: string;
+  label: string;
+  subtitle: string;
 }
 
 interface CmsSectionOrder {
@@ -1445,6 +1454,11 @@ interface CmsSectionOrder {
 interface HomeCmsData {
   sectionOrder?: CmsSectionOrder[];
   heroSlides?: CmsHeroSlide[];
+  studioPathways?: CmsAdCard[];
+  showcaseTiles?: CmsAdCard[];
+  stats?: CmsStatItem[];
+  modelSpotlights?: CmsAdCard[];
+  workflowSteps?: CmsAdCard[];
   coreTools?: CmsToolCard[];
   topChoice?: CmsToolCard[];
   apps?: CmsAppItem[];
@@ -1637,6 +1651,71 @@ export default function ExplorePage() {
 
   const homeAdCards = useMemo(() => cms?.adCards ?? [], [cms]);
 
+  const homeStudioPathways = useMemo(() => {
+    if (!cms?.studioPathways?.length) return STUDIO_PATHWAYS;
+    return cms.studioPathways.map((item, idx) => {
+      const fallback = STUDIO_PATHWAYS[idx % STUDIO_PATHWAYS.length];
+      return {
+        title: item.title || fallback.title,
+        description: item.description || fallback.description,
+        href: item.href || fallback.href,
+        image: item.image || fallback.image,
+        icon: fallback.icon,
+        accent: item.accentColor || fallback.accent,
+      };
+    });
+  }, [cms]);
+
+  const homeShowcaseTiles = useMemo(() => {
+    if (!cms?.showcaseTiles?.length) return SHOWCASE_TILES;
+    return cms.showcaseTiles.map((item, idx) => {
+      const fallback = SHOWCASE_TILES[idx % SHOWCASE_TILES.length];
+      return {
+        title: item.title || fallback.title,
+        href: item.href || fallback.href,
+        image: item.image || fallback.image,
+        className: item.className || fallback.className,
+      };
+    });
+  }, [cms]);
+
+  const homeStats = useMemo(() => {
+    if (!cms?.stats?.length) return PLATFORM_STATS;
+    return cms.stats.map((item, idx) => {
+      const fallback = PLATFORM_STATS[idx % PLATFORM_STATS.length];
+      return {
+        number: item.number || fallback.number,
+        label: item.label || fallback.label,
+        subtitle: item.subtitle || fallback.subtitle,
+      };
+    });
+  }, [cms]);
+
+  const homeModelSpotlights = useMemo(() => {
+    if (!cms?.modelSpotlights?.length) return MODEL_SPOTLIGHTS;
+    return cms.modelSpotlights.map((item, idx) => {
+      const fallback = MODEL_SPOTLIGHTS[idx % MODEL_SPOTLIGHTS.length];
+      return {
+        title: item.title || fallback.title,
+        badge: item.badge || fallback.badge,
+        href: item.href || fallback.href,
+        image: item.image || fallback.image,
+      };
+    });
+  }, [cms]);
+
+  const homeWorkflowSteps = useMemo(() => {
+    if (!cms?.workflowSteps?.length) return WORKFLOW_STEPS;
+    return cms.workflowSteps.map((item, idx) => {
+      const fallback = WORKFLOW_STEPS[idx % WORKFLOW_STEPS.length];
+      return {
+        title: item.title || fallback.title,
+        description: item.description || fallback.description,
+        icon: fallback.icon,
+      };
+    });
+  }, [cms]);
+
   // ── Section order from CMS (default if none saved) ──────────────────────────
   const sectionOrder = useMemo(() => {
     const base = cms?.sectionOrder && cms.sectionOrder.length > 0
@@ -1661,11 +1740,11 @@ export default function ExplorePage() {
 
   const sectionMap: Record<string, React.ReactNode> = {
     heroSlides: <HeroCarousel key="hero" slides={homeHeroSlides} primaryCtaLabel={heroPrimaryCtaLabel} trailerLabel={heroTrailerLabel} />,
-    studioPathways: <StudioPathways key="studioPathways" />,
-    showcaseWall: <ShowcaseWall key="showcaseWall" />,
-    statsCounter: <StatsCounter key="stats" />,
-    modelSpotlights: <ModelSpotlightRail key="modelSpotlights" />,
-    productionWorkflow: <ProductionWorkflow key="productionWorkflow" />,
+    studioPathways: <StudioPathways key="studioPathways" items={homeStudioPathways} />,
+    showcaseWall: <ShowcaseWall key="showcaseWall" tiles={homeShowcaseTiles} />,
+    statsCounter: <StatsCounter key="stats" stats={homeStats} />,
+    modelSpotlights: <ModelSpotlightRail key="modelSpotlights" items={homeModelSpotlights} />,
+    productionWorkflow: <ProductionWorkflow key="productionWorkflow" steps={homeWorkflowSteps} />,
     coreTools: <CoreToolsRow key="core" cards={homeCoreCards} title={coreToolsTitle} cta={coreToolsCta} ctaHref={coreToolsCtaHref} />,
     topChoice: <TopChoiceGrid key="top" cards={homeTopCards} />,
     adCards: <AdCardsRow key="ads" cards={homeAdCards} />,

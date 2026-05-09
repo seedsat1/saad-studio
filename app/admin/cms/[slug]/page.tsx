@@ -72,9 +72,30 @@ interface AdCard {
   href: string;
   badge: string;
   gradient: string;
+  accentColor?: string;
+  className?: string;
 }
 
-type SectionType = "heroSlides" | "coreTools" | "topChoice" | "apps" | "models" | "adCards";
+interface StatItem {
+  _id: string;
+  number: string;
+  label: string;
+  subtitle: string;
+}
+
+type SectionType =
+  | "heroSlides"
+  | "studioPathways"
+  | "showcaseWall"
+  | "statsCounter"
+  | "modelSpotlights"
+  | "productionWorkflow"
+  | "coreTools"
+  | "topChoice"
+  | "apps"
+  | "models"
+  | "adCards"
+  | "pricingPreview";
 
 interface SectionOrder {
   _id: string;
@@ -86,6 +107,11 @@ interface SectionOrder {
 interface HomeCmsData {
   sectionOrder: SectionOrder[];
   heroSlides: HeroSlide[];
+  studioPathways: AdCard[];
+  showcaseTiles: AdCard[];
+  stats: StatItem[];
+  modelSpotlights: AdCard[];
+  workflowSteps: AdCard[];
   coreTools: ToolCard[];
   topChoice: ToolCard[];
   apps: AppItem[];
@@ -118,6 +144,13 @@ const DEFAULT_TOOL: ToolCard = {
 const DEFAULT_AD: AdCard = {
   _id: "", title: "Ad Title", description: "Promote your feature here", image: "", href: "/",
   badge: "NEW", gradient: "from-pink-600/40 via-rose-700/30 to-indigo-900/60",
+};
+
+const DEFAULT_STAT: StatItem = {
+  _id: "",
+  number: "25",
+  label: "Free Credits",
+  subtitle: "No credit card required",
 };
 
 const HOME_CORE_TOOLS: ToolCard[] = [
@@ -288,6 +321,46 @@ const EXPLORE_TOP_CHOICE: ToolCard[] = [
 const DEFAULT_APP: AppItem = { _id: "", title: "New App", color: "text-violet-400" };
 const DEFAULT_MODEL: ModelItem = { _id: "", name: "Model", tag: "AI", color: "text-violet-400", ring: "ring-violet-500/30" };
 
+const HOME_STUDIO_PATHWAYS: AdCard[] = [
+  { _id: "home-path-image", title: "Image Studio", description: "High-detail images, ads, portraits, product visuals, and edits.", image: "/GPT%20Image%202/SHOT%203.webp", href: "/image", badge: "", gradient: "", accentColor: "text-cyan-300" },
+  { _id: "home-path-video", title: "Video Studio", description: "Generate cinematic motion, character shots, and social clips.", image: "/seedance%202/1%20(4).webp", href: "/video", badge: "", gradient: "", accentColor: "text-fuchsia-300" },
+  { _id: "home-path-canvas", title: "AI Canvas", description: "Build complete creative workflows from one visual workspace.", image: "/canvas.webp", href: "/original-series", badge: "", gradient: "", accentColor: "text-amber-200" },
+  { _id: "home-path-next-scene", title: "Next Scene", description: "Direct scenes, storyboards, shots, and cinematic worlds.", image: "/NEXT%20SCENE%20ENGINE.webp", href: "/cinema-studio", badge: "", gradient: "", accentColor: "text-emerald-300" },
+  { _id: "home-path-character", title: "Character", description: "Create consistent characters for brands, stories, and campaigns.", image: "/seedance%202/1%20(7).webp", href: "/character", badge: "", gradient: "", accentColor: "text-violet-300" },
+  { _id: "home-path-apps", title: "Apps", description: "Specialized tools for edit, audio, relight, transitions, and more.", image: "/transitions/1%20(2).webp", href: "/apps", badge: "", gradient: "", accentColor: "text-lime-300" },
+];
+
+const HOME_SHOWCASE_TILES: AdCard[] = [
+  { _id: "home-showcase-campaign", title: "Campaign visuals", description: "", image: "/GPT%20Image%202/SHOT%204.webp", href: "/image", badge: "", gradient: "", className: "md:col-span-5 md:row-span-2" },
+  { _id: "home-showcase-cinematic", title: "Cinematic models", description: "", image: "/seedance%202/Hero.webp", href: "/video", badge: "", gradient: "", className: "md:col-span-4 md:row-span-2" },
+  { _id: "home-showcase-scene", title: "Scene engine", description: "", image: "/NEXT%20SCENE%20ENGINE.webp", href: "/cinema-studio", badge: "", gradient: "", className: "md:col-span-3" },
+  { _id: "home-showcase-transitions", title: "Transitions", description: "", image: "/transitions/Hero.webp", href: "/apps/tool/transitions", badge: "", gradient: "", className: "md:col-span-3" },
+  { _id: "home-showcase-nano", title: "Nano Banana", description: "", image: "/nano.webp", href: "/image?model=nano-banana-pro", badge: "", gradient: "", className: "md:col-span-4" },
+  { _id: "home-showcase-canvas", title: "Canvas workflow", description: "", image: "/canvas.webp", href: "/original-series", badge: "", gradient: "", className: "md:col-span-5" },
+  { _id: "home-showcase-kling", title: "Kling 3.0", description: "", image: "/Kling%203.0/Hero.webp", href: "/video?tool=create-video&model=kling-v3.0-pro-t2v", badge: "", gradient: "", className: "md:col-span-3" },
+];
+
+const HOME_STATS: StatItem[] = [
+  { _id: "home-stat-images", number: "20+", label: "Image Models", subtitle: "GPT Image, FLUX, Imagen 4 & more" },
+  { _id: "home-stat-video", number: "17", label: "Video Engines", subtitle: "Kling, Sora, Veo, Seedance & more" },
+  { _id: "home-stat-tools", number: "85+", label: "AI Tools", subtitle: "Image, Video, Audio, 3D, Edit" },
+  { _id: "home-stat-credits", number: "25", label: "Free Credits", subtitle: "No credit card required" },
+];
+
+const HOME_MODEL_SPOTLIGHTS: AdCard[] = [
+  { _id: "home-spot-gpt", title: "GPT Image 2", description: "", image: "/GPT%20Image%202/SHOT%201.webp", href: "/image?tool=create&model=gpt-image-2-text-to-image", badge: "Image", gradient: "" },
+  { _id: "home-spot-canvas", title: "Canvas", description: "", image: "/canvas.webp", href: "/original-series", badge: "Workflow", gradient: "" },
+  { _id: "home-spot-seedance", title: "Seedance 2", description: "", image: "/seedance%202/Hero.webp", href: "/video?tool=create-video&model=bytedance-seedance-v2-t2v", badge: "Video", gradient: "" },
+  { _id: "home-spot-kling", title: "Kling 3.0", description: "", image: "/Kling%203.0/Hero.webp", href: "/video?tool=create-video&model=kling-v3.0-pro-t2v", badge: "Video", gradient: "" },
+];
+
+const HOME_WORKFLOW_STEPS: AdCard[] = [
+  { _id: "home-flow-start", title: "Start", description: "Pick a studio path", image: "", href: "", badge: "", gradient: "" },
+  { _id: "home-flow-generate", title: "Generate", description: "Use the right model", image: "", href: "", badge: "", gradient: "" },
+  { _id: "home-flow-shape", title: "Shape", description: "Edit, relight, upscale", image: "", href: "", badge: "", gradient: "" },
+  { _id: "home-flow-publish", title: "Publish", description: "Move into video or scene", image: "", href: "", badge: "", gradient: "" },
+];
+
 function defaultHeroSlidesForSlug(slug: string): HeroSlide[] {
   return slug === "explore" ? EXPLORE_HERO_SLIDES : [];
 }
@@ -302,6 +375,38 @@ function defaultTopChoiceForSlug(slug: string): ToolCard[] {
   if (slug === "home") return HOME_TOP_CHOICE;
   if (slug === "explore") return EXPLORE_TOP_CHOICE;
   return [];
+}
+
+function defaultStudioPathwaysForSlug(slug: string): AdCard[] {
+  return slug === "home" ? HOME_STUDIO_PATHWAYS : [];
+}
+
+function defaultShowcaseTilesForSlug(slug: string): AdCard[] {
+  return slug === "home" ? HOME_SHOWCASE_TILES : [];
+}
+
+function defaultStatsForSlug(slug: string): StatItem[] {
+  return slug === "home" ? HOME_STATS : [];
+}
+
+function defaultModelSpotlightsForSlug(slug: string): AdCard[] {
+  return slug === "home" ? HOME_MODEL_SPOTLIGHTS : [];
+}
+
+function defaultWorkflowStepsForSlug(slug: string): AdCard[] {
+  return slug === "home" ? HOME_WORKFLOW_STEPS : [];
+}
+
+function mergeSectionOrder(slug: string, saved?: SectionOrder[]): SectionOrder[] {
+  const defaults = getDefaultLayout(slug).sectionOrder as SectionOrder[];
+  const base = saved?.length ? saved : defaults;
+  const merged = [...base];
+  for (const section of defaults) {
+    if (!merged.some((item) => item.type === section.type)) {
+      merged.push(section);
+    }
+  }
+  return merged;
 }
 
 const GRADIENTS = [
@@ -531,6 +636,12 @@ function ToolPreviewCard({ card, onUpdate, onRemove, isAd = false }: {
 
       <InlineField label="Title" value={card.title} onChange={(v) => onUpdate({ ...card, title: v })} />
       <InlineField label="Link" value={card.href} onChange={(v) => onUpdate({ ...card, href: v })} />
+      {"className" in card && (
+        <InlineField label="Layout class" value={(card as any).className || ""} onChange={(v) => onUpdate({ ...card, className: v })} />
+      )}
+      {"accentColor" in card && (
+        <InlineField label="Accent color" value={(card as any).accentColor || ""} onChange={(v) => onUpdate({ ...card, accentColor: v })} />
+      )}
 
       {!isAd && (
         <>
@@ -589,6 +700,24 @@ function ModelItemCard({ item, onUpdate, onRemove }: {
    SECTION WRAPPER (with header, visibility toggle, add button)
    ═══════════════════════════════════════════════════════════════════════════════ */
 
+function StatItemCard({ item, onUpdate, onRemove }: {
+  item: StatItem; onUpdate: (m: StatItem) => void; onRemove: () => void;
+}) {
+  return (
+    <div className="rounded-xl border border-white/10 bg-white/[0.04] p-3 space-y-3">
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] font-bold uppercase tracking-widest text-cyan-400">Stat</span>
+        <button onClick={onRemove} className="text-zinc-600 hover:text-red-400 transition-colors">
+          <Trash2 className="h-4 w-4" />
+        </button>
+      </div>
+      <InlineField label="Number" value={item.number} onChange={(v) => onUpdate({ ...item, number: v })} />
+      <InlineField label="Label" value={item.label} onChange={(v) => onUpdate({ ...item, label: v })} />
+      <InlineField label="Subtitle" value={item.subtitle} onChange={(v) => onUpdate({ ...item, subtitle: v })} />
+    </div>
+  );
+}
+
 function SectionBlock({ section, children, onToggle, onAddItem }: {
   section: SectionOrder; children: React.ReactNode; onToggle: () => void; onAddItem?: () => void;
 }) {
@@ -642,6 +771,11 @@ export default function VisualCmsPage() {
   const defaultLayout = getDefaultLayout(slug || "home");
   const [sectionOrder, setSectionOrder] = useState<SectionOrder[]>(defaultLayout.sectionOrder);
   const [heroSlides, setHeroSlides] = useState<HeroSlide[]>([]);
+  const [studioPathways, setStudioPathways] = useState<AdCard[]>([]);
+  const [showcaseTiles, setShowcaseTiles] = useState<AdCard[]>([]);
+  const [stats, setStats] = useState<StatItem[]>([]);
+  const [modelSpotlights, setModelSpotlights] = useState<AdCard[]>([]);
+  const [workflowSteps, setWorkflowSteps] = useState<AdCard[]>([]);
   const [coreTools, setCoreTools] = useState<ToolCard[]>([]);
   const [topChoice, setTopChoice] = useState<ToolCard[]>([]);
   const [adCards, setAdCards] = useState<AdCard[]>([]);
@@ -671,8 +805,13 @@ export default function VisualCmsPage() {
       .then((data) => {
         const b = data?.layoutBlocks;
         if (b && typeof b === "object" && !Array.isArray(b)) {
-          if (b.sectionOrder?.length) setSectionOrder(b.sectionOrder);
+          setSectionOrder(mergeSectionOrder(safeSlug, b.sectionOrder));
           setHeroSlides(b.heroSlides?.length ? b.heroSlides : defaultHeroSlidesForSlug(safeSlug));
+          setStudioPathways(b.studioPathways?.length ? b.studioPathways : defaultStudioPathwaysForSlug(safeSlug));
+          setShowcaseTiles(b.showcaseTiles?.length ? b.showcaseTiles : defaultShowcaseTilesForSlug(safeSlug));
+          setStats(b.stats?.length ? b.stats : defaultStatsForSlug(safeSlug));
+          setModelSpotlights(b.modelSpotlights?.length ? b.modelSpotlights : defaultModelSpotlightsForSlug(safeSlug));
+          setWorkflowSteps(b.workflowSteps?.length ? b.workflowSteps : defaultWorkflowStepsForSlug(safeSlug));
           setCoreTools(b.coreTools?.length ? b.coreTools : defaultCoreToolsForSlug(safeSlug));
           setTopChoice(b.topChoice?.length ? b.topChoice : defaultTopChoiceForSlug(safeSlug));
           if (b.adCards?.length) setAdCards(b.adCards);
@@ -689,6 +828,11 @@ export default function VisualCmsPage() {
           const def = getDefaultLayout(slug || "home");
           setSectionOrder(def.sectionOrder);
           setHeroSlides(defaultHeroSlidesForSlug(safeSlug));
+          setStudioPathways(defaultStudioPathwaysForSlug(safeSlug));
+          setShowcaseTiles(defaultShowcaseTilesForSlug(safeSlug));
+          setStats(defaultStatsForSlug(safeSlug));
+          setModelSpotlights(defaultModelSpotlightsForSlug(safeSlug));
+          setWorkflowSteps(defaultWorkflowStepsForSlug(safeSlug));
           setCoreTools(defaultCoreToolsForSlug(safeSlug));
           setTopChoice(defaultTopChoiceForSlug(safeSlug));
           setAdCards([]);
@@ -702,6 +846,11 @@ export default function VisualCmsPage() {
         const def = getDefaultLayout(slug || "home");
         setSectionOrder(def.sectionOrder);
         setHeroSlides(defaultHeroSlidesForSlug(safeSlug));
+        setStudioPathways(defaultStudioPathwaysForSlug(safeSlug));
+        setShowcaseTiles(defaultShowcaseTilesForSlug(safeSlug));
+        setStats(defaultStatsForSlug(safeSlug));
+        setModelSpotlights(defaultModelSpotlightsForSlug(safeSlug));
+        setWorkflowSteps(defaultWorkflowStepsForSlug(safeSlug));
         setCoreTools(defaultCoreToolsForSlug(safeSlug));
         setTopChoice(defaultTopChoiceForSlug(safeSlug));
         setAdCards([]);
@@ -721,6 +870,11 @@ export default function VisualCmsPage() {
       const payload: HomeCmsData = {
         sectionOrder,
         heroSlides,
+        studioPathways,
+        showcaseTiles,
+        stats,
+        modelSpotlights,
+        workflowSteps,
         coreTools,
         topChoice,
         adCards,
@@ -754,6 +908,11 @@ export default function VisualCmsPage() {
     pageName,
     sectionOrder,
     heroSlides,
+    studioPathways,
+    showcaseTiles,
+    stats,
+    modelSpotlights,
+    workflowSteps,
     coreTools,
     topChoice,
     adCards,
@@ -789,6 +948,11 @@ export default function VisualCmsPage() {
 
   /* ── Add helpers ────────────────────────────────────────────────────────── */
   const addHero = () => setHeroSlides((p) => [...p, { ...DEFAULT_HERO, _id: uid(), gradient: GRADIENTS[p.length % GRADIENTS.length] }]);
+  const addStudioPathway = () => setStudioPathways((p) => [...p, { ...DEFAULT_AD, _id: uid(), title: "New Studio Path", description: "Describe this path", accentColor: COLORS[p.length % COLORS.length] }]);
+  const addShowcaseTile = () => setShowcaseTiles((p) => [...p, { ...DEFAULT_AD, _id: uid(), title: "New Showcase", description: "", className: "md:col-span-4" }]);
+  const addStat = () => setStats((p) => [...p, { ...DEFAULT_STAT, _id: uid() }]);
+  const addModelSpotlight = () => setModelSpotlights((p) => [...p, { ...DEFAULT_AD, _id: uid(), title: "New Model", badge: "AI" }]);
+  const addWorkflowStep = () => setWorkflowSteps((p) => [...p, { ...DEFAULT_AD, _id: uid(), title: "New Step", description: "Describe the step", image: "", href: "", badge: "" }]);
   const addCoreTool = () => setCoreTools((p) => [...p, { ...DEFAULT_TOOL, _id: uid(), gradient: GRADIENTS[p.length % GRADIENTS.length] }]);
   const addTopChoice = () => setTopChoice((p) => [...p, { ...DEFAULT_TOOL, _id: uid(), gradient: GRADIENTS[p.length % GRADIENTS.length] }]);
   const addAdCard = () => setAdCards((p) => [...p, { ...DEFAULT_AD, _id: uid(), gradient: GRADIENTS[p.length % GRADIENTS.length] }]);
@@ -821,6 +985,80 @@ export default function VisualCmsPage() {
             </SortableContext>
           </DndContext>
         );
+
+      case "studioPathways":
+      case "showcaseWall":
+      case "modelSpotlights": {
+        const items =
+          sec.type === "studioPathways" ? studioPathways :
+          sec.type === "showcaseWall" ? showcaseTiles :
+          modelSpotlights;
+        const setter =
+          sec.type === "studioPathways" ? setStudioPathways :
+          sec.type === "showcaseWall" ? setShowcaseTiles :
+          setModelSpotlights;
+        return (
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={makeItemDragEnd(setter)}>
+            <SortableContext items={items.map((c) => c._id)} strategy={rectSortingStrategy}>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                {items.map((card) => (
+                  <SortableItem key={card._id} id={card._id}>
+                    <ToolPreviewCard card={card as any}
+                      onUpdate={(c: AdCard) => setter((prev: AdCard[]) => prev.map((x) => x._id === c._id ? c : x))}
+                      onRemove={() => setter((prev: AdCard[]) => prev.filter((x) => x._id !== card._id))} />
+                  </SortableItem>
+                ))}
+                {items.length === 0 && (
+                  <div className="col-span-full text-sm text-zinc-600 py-8 text-center">No items. Click <strong>Add</strong>.</div>
+                )}
+              </div>
+            </SortableContext>
+          </DndContext>
+        );
+      }
+
+      case "statsCounter":
+        return (
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={makeItemDragEnd(setStats)}>
+            <SortableContext items={stats.map((c) => c._id)} strategy={rectSortingStrategy}>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {stats.map((item) => (
+                  <SortableItem key={item._id} id={item._id}>
+                    <StatItemCard item={item}
+                      onUpdate={(c) => setStats((prev) => prev.map((x) => x._id === c._id ? c : x))}
+                      onRemove={() => setStats((prev) => prev.filter((x) => x._id !== item._id))} />
+                  </SortableItem>
+                ))}
+                {stats.length === 0 && (
+                  <div className="col-span-full text-sm text-zinc-600 py-8 text-center">No stats. Click <strong>Add</strong>.</div>
+                )}
+              </div>
+            </SortableContext>
+          </DndContext>
+        );
+
+      case "productionWorkflow":
+        return (
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={makeItemDragEnd(setWorkflowSteps)}>
+            <SortableContext items={workflowSteps.map((c) => c._id)} strategy={rectSortingStrategy}>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {workflowSteps.map((card) => (
+                  <SortableItem key={card._id} id={card._id}>
+                    <ToolPreviewCard card={card as any}
+                      onUpdate={(c: AdCard) => setWorkflowSteps((prev) => prev.map((x) => x._id === c._id ? c : x))}
+                      onRemove={() => setWorkflowSteps((prev) => prev.filter((x) => x._id !== card._id))} />
+                  </SortableItem>
+                ))}
+                {workflowSteps.length === 0 && (
+                  <div className="col-span-full text-sm text-zinc-600 py-8 text-center">No workflow steps. Click <strong>Add</strong>.</div>
+                )}
+              </div>
+            </SortableContext>
+          </DndContext>
+        );
+
+      case "pricingPreview":
+        return <div className="text-sm text-zinc-500">This section is controlled from the Pricing CMS. You can reorder or hide it here.</div>;
 
       case "coreTools":
       case "topChoice":
@@ -908,9 +1146,19 @@ export default function VisualCmsPage() {
     }
   };
 
-  const addMap: Record<SectionType, () => void> = {
-    heroSlides: addHero, coreTools: addCoreTool, topChoice: addTopChoice,
-    adCards: addAdCard, apps: addApp, models: addModel,
+  const addMap: Record<SectionType, (() => void) | undefined> = {
+    heroSlides: addHero,
+    studioPathways: addStudioPathway,
+    showcaseWall: addShowcaseTile,
+    statsCounter: addStat,
+    modelSpotlights: addModelSpotlight,
+    productionWorkflow: addWorkflowStep,
+    coreTools: addCoreTool,
+    topChoice: addTopChoice,
+    adCards: addAdCard,
+    apps: addApp,
+    pricingPreview: undefined,
+    models: addModel,
   };
 
   /* ── Render ─────────────────────────────────────────────────────────────── */

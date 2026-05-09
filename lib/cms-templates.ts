@@ -3,7 +3,19 @@
  * Defines default layouts and metadata for all CMS slugs.
  */
 
-export type SectionType = "heroSlides" | "coreTools" | "topChoice" | "apps" | "models" | "adCards";
+export type SectionType =
+  | "heroSlides"
+  | "studioPathways"
+  | "showcaseWall"
+  | "statsCounter"
+  | "modelSpotlights"
+  | "productionWorkflow"
+  | "coreTools"
+  | "topChoice"
+  | "apps"
+  | "models"
+  | "adCards"
+  | "pricingPreview";
 
 export interface SectionOrder {
   _id: string;
@@ -15,6 +27,11 @@ export interface SectionOrder {
 export interface CmsLayout {
   sectionOrder: SectionOrder[];
   heroSlides?: any[];
+  studioPathways?: any[];
+  showcaseTiles?: any[];
+  stats?: any[];
+  modelSpotlights?: any[];
+  workflowSteps?: any[];
   coreTools?: any[];
   topChoice?: any[];
   apps?: any[];
@@ -48,13 +65,24 @@ export const DEFAULT_LAYOUTS: Record<CmsSlug, CmsLayout> = {
   home: {
     sectionOrder: [
       { _id: "s1", type: "heroSlides", label: "Hero Carousel", visible: true },
-      { _id: "s2", type: "coreTools", label: "Core Studio Tools", visible: true },
-      { _id: "s3", type: "topChoice", label: "Top Choice", visible: true },
-      { _id: "s4", type: "adCards", label: "Ad Cards", visible: true },
-      { _id: "s5", type: "apps", label: "Apps Marquee", visible: true },
-      { _id: "s6", type: "models", label: "AI Models Strip", visible: true },
+      { _id: "s2", type: "studioPathways", label: "Choose Your Studio", visible: true },
+      { _id: "s3", type: "showcaseWall", label: "Showcase Wall", visible: true },
+      { _id: "s4", type: "statsCounter", label: "Stats Counter", visible: true },
+      { _id: "s5", type: "modelSpotlights", label: "Model Spotlights", visible: true },
+      { _id: "s6", type: "productionWorkflow", label: "Production Workflow", visible: true },
+      { _id: "s7", type: "coreTools", label: "Core Studio Tools", visible: true },
+      { _id: "s8", type: "topChoice", label: "Top Choice", visible: true },
+      { _id: "s9", type: "adCards", label: "Ad Cards", visible: true },
+      { _id: "s10", type: "apps", label: "Apps Marquee", visible: true },
+      { _id: "s11", type: "pricingPreview", label: "Pricing Preview", visible: true },
+      { _id: "s12", type: "models", label: "AI Models Strip", visible: true },
     ],
     heroSlides: [],
+    studioPathways: [],
+    showcaseTiles: [],
+    stats: [],
+    modelSpotlights: [],
+    workflowSteps: [],
     coreTools: [],
     topChoice: [],
     apps: [],
