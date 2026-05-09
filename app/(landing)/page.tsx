@@ -602,7 +602,7 @@ function HeroCarousel({
 
         {/* Content */}
         <div className="relative z-10 flex min-h-[calc(100vh-4rem)] flex-col justify-end px-5 pb-10 pt-24 sm:px-10 lg:px-16 xl:px-20">
-          <div className="grid items-end gap-8 lg:grid-cols-[minmax(0,1fr)_26rem] xl:grid-cols-[minmax(0,1fr)_31rem]">
+          <div className="max-w-5xl">
             <AnimatePresence custom={dir} mode="wait">
               <motion.div
                 key={slide.id}
@@ -670,31 +670,24 @@ function HeroCarousel({
               </motion.div>
             </AnimatePresence>
 
-            <div className="hidden rounded-2xl border border-white/10 bg-black/35 p-3 shadow-2xl shadow-black/40 backdrop-blur-md lg:block">
-              <div className="relative overflow-hidden rounded-xl aspect-[4/5]">
-                {isVideoUrl(slide.bgImage) ? (
-                  <video src={slide.bgImage} autoPlay muted loop playsInline className="absolute inset-0 h-full w-full object-cover" />
-                ) : (
-                  <Image src={slide.bgImage} alt={slide.title} fill sizes="32rem" className="object-cover" />
-                )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-transparent" />
-                <div className="absolute bottom-0 left-0 right-0 p-5">
-                  <p className="text-[11px] font-black uppercase tracking-[0.18em] text-white/55">Featured workflow</p>
-                  <h2 className="mt-2 text-2xl font-black text-white">{slide.title}</h2>
-                  <p className="mt-2 line-clamp-2 text-sm leading-6 text-zinc-300">{slide.subtitle}</p>
-                </div>
-              </div>
-              <div className="mt-3 grid grid-cols-4 gap-2">
-                {safeSlides.map((s, i) => (
-                  <button
-                    key={s.id}
-                    onClick={() => go(i, i > active ? 1 : -1)}
-                    className={cn("relative overflow-hidden rounded-lg border bg-white/5 aspect-square", i === active ? "border-white/70" : "border-white/10")}
-                  >
-                    <MediaFill src={s.bgImage} alt={s.title} />
-                  </button>
-                ))}
-              </div>
+            <div className="mt-10 hidden max-w-3xl grid-cols-4 gap-2 sm:grid">
+              {safeSlides.map((s, i) => (
+                <button
+                  key={s.id}
+                  onClick={() => go(i, i > active ? 1 : -1)}
+                  className={cn(
+                    "group relative overflow-hidden rounded-xl border bg-black/35 p-2 text-left backdrop-blur transition",
+                    i === active ? "border-white/70" : "border-white/10 hover:border-white/35"
+                  )}
+                >
+                  <span className="block text-[10px] font-black uppercase tracking-[0.14em] text-white/45">
+                    0{i + 1}
+                  </span>
+                  <span className="mt-1 block truncate text-xs font-bold text-white/80 group-hover:text-white">
+                    {s.title}
+                  </span>
+                </button>
+              ))}
             </div>
           </div>
         </div>
