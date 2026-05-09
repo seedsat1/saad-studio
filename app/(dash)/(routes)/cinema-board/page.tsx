@@ -34,6 +34,13 @@ type CastCharacter = {
   image: string;
 };
 
+type LinkedShot = {
+  localId: number;
+  id: string;
+  title: string;
+  status: string;
+};
+
 const cameraOptions = ["ARRI Alexa Mini LF", "Sony Venice 2", "RED V-Raptor", "Blackmagic URSA 12K"];
 const lensOptions = ["Anamorphic 40mm", "Spherical 28mm", "Macro 100mm", "Handheld 24-70mm"];
 const lightingOptions = ["Cold fluorescent", "Sodium practicals", "Neon noir", "Moonlit contrast"];
@@ -265,9 +272,18 @@ export default function CinemaBoardPage() {
   const [paletteKey, setPaletteKey] = useState<PaletteKey>("steel");
   const [referencePreview, setReferencePreview] = useState<string | null>(null);
   const [characters, setCharacters] = useState<CastCharacter[]>(defaultCharacters);
+  const [linkedProjectId, setLinkedProjectId] = useState<string | null>(null);
+  const [linkedShots, setLinkedShots] = useState<LinkedShot[]>([]);
+  const [syncing, setSyncing] = useState(false);
+  const [syncMessage, setSyncMessage] = useState<string | null>(null);
+  const [generatingShotId, setGeneratingShotId] = useState<string | null>(null);
 
   const activePalette = palettes[paletteKey];
   const shots = useMemo(() => buildShots(scenePrompt, shotCount, characters), [scenePrompt, shotCount, characters]);
+  const numericDuration = useMemo(() => {
+    const match = duration.match(/\d+/);
+    return match ? Math.max(3, Math.min(20, Number.parseInt(match[0], 10))) : 5;
+  }, [duration]);
 
   const uploadReference = (file?: File) => {
     if (!file) return;
@@ -289,6 +305,113 @@ export default function CinemaBoardPage() {
         image: "/GPT%20Image%202/SHOT%205.webp",
       },
     ]);
+  };
+
+  const createLinkedProject = async () => {
+    setSyncing(true);
+    setSyncMessage(null);
+    setLinkedProjectId(null);
+    setLinkedShots([]);
+    try {
+      const projectRes = await fetch("/api/cinema/project", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: sceneTitle || "Cinema Board Project",
+          conceptPrompt: scenePrompt,
+          toneGenre: style,
+          aspectRatio,
+          defaultDuration: numericDuration,
+        }),
+      });
+      const projectJson = await projectRes.json().catch(() => null);
+      if (!projectRes.ok || !projectJson?.project?.id) {
+        throw new Error(projectJson?.error || "Failed to create cinema project");
+      }
+
+      const projectId = projectJson.project.id as string;
+      const createdCharacters = await Promise.all(characters.map(async (character) => {
+        const res = await fetch("/api/cinema/character", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            projectId,
+            name: character.name,
+            description: character.description,
+            referenceUrl: character.image.startsWith("blob:") ? null : character.image,
+            attributes: {
+              role: character.role,
+              wardrobe: character.wardrobe,
+              emotion: character.emotion,
+              consistencyPrompt: `${character.name}, ${character.role}, ${character.description}, wardrobe: ${character.wardrobe}, emotion: ${character.emotion}`,
+            },
+          }),
+        });
+        const json = await res.json().catch(() => null);
+        if (!res.ok || !json?.character?.id) throw new Error(json?.error || `Failed to create ${character.name}`);
+        return { localId: character.id, id: json.character.id as string };
+      }));
+
+      const characterIds = createdCharacters.map((item) => item.id);
+      const createdShots: LinkedShot[] = [];
+      for (const shot of shots) {
+        const res = await fetch("/api/cinema/shot", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            projectId,
+            title: `${String(shot.id).padStart(2, "0")} - ${shot.type}`,
+            prompt: [
+              scenePrompt,
+              shot.description,
+              `Cast: ${characters.map((character) => `${character.name} (${character.role}) - ${character.description}; wardrobe: ${character.wardrobe}; emotion: ${character.emotion}`).join(" | ")}`,
+              `Camera: ${camera}. Lens: ${lens}. Lighting: ${lighting}. Style: ${style}. Palette: ${activePalette.label}. Movement: ${shot.movement}.`,
+              "Maintain exact character identity, wardrobe, role continuity, geography continuity, and cinematic production-board consistency.",
+            ].join("\n"),
+            duration: numericDuration,
+            ratio: aspectRatio,
+            cameraPreset: shot.movement,
+            characterIds,
+            lighting,
+            lens,
+            colorGrade: activePalette.label,
+            consistencyLock: true,
+          }),
+        });
+        const json = await res.json().catch(() => null);
+        if (!res.ok || !json?.shot?.id) throw new Error(json?.error || `Failed to create shot ${shot.id}`);
+        createdShots.push({ localId: shot.id, id: json.shot.id as string, title: json.shot.title as string, status: "ready" });
+      }
+
+      setLinkedProjectId(projectId);
+      setLinkedShots(createdShots);
+      setSyncMessage(`Linked project created with ${characters.length} characters and ${createdShots.length} shots.`);
+    } catch (error) {
+      setSyncMessage(error instanceof Error ? error.message : "Failed to link cinema board");
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const generateLinkedShot = async (shotId: string) => {
+    if (!linkedProjectId) return;
+    setGeneratingShotId(shotId);
+    setSyncMessage(null);
+    try {
+      const res = await fetch("/api/cinema/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ projectId: linkedProjectId, shotId }),
+      });
+      const json = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(json?.error || "Failed to start generation");
+      setLinkedShots((items) => items.map((item) => item.id === shotId ? { ...item, status: "processing" } : item));
+      setSyncMessage(`Shot generation started. Task: ${json?.taskId || "queued"}`);
+    } catch (error) {
+      setSyncMessage(error instanceof Error ? error.message : "Failed to generate shot");
+    } finally {
+      setGeneratingShotId(null);
+    }
   };
 
   return (
@@ -455,6 +578,55 @@ export default function CinemaBoardPage() {
                   </div>
                 )}
               </div>
+            </section>
+
+            <section className="rounded-2xl border border-cyan-200/20 bg-cyan-950/20 p-4 shadow-2xl shadow-cyan-950/20 backdrop-blur">
+              <div className="mb-4 flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-cyan-100" />
+                <h2 className="text-sm font-black uppercase tracking-[0.16em] text-white">Real Cinema Link</h2>
+              </div>
+              <p className="text-xs leading-6 text-cyan-50/75">
+                Creates a real Cinema Project, saves cast profiles, links every shot to the same characters, then enables generation per shot.
+              </p>
+              <button
+                onClick={createLinkedProject}
+                disabled={syncing}
+                className="mt-4 w-full rounded-xl bg-cyan-200 px-4 py-3 text-sm font-black text-slate-950 hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {syncing ? "Linking board..." : linkedProjectId ? "Rebuild linked project" : "Create linked project"}
+              </button>
+              {linkedProjectId && (
+                <a
+                  href="/cinema-studio"
+                  className="mt-2 block rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-center text-xs font-black text-white hover:bg-white/10"
+                >
+                  Open Next Scene Studio
+                </a>
+              )}
+              {syncMessage && (
+                <p className={cn("mt-3 rounded-lg border px-3 py-2 text-xs leading-5", syncMessage.toLowerCase().includes("failed") || syncMessage.toLowerCase().includes("unauthorized") ? "border-red-400/25 bg-red-500/10 text-red-100" : "border-cyan-200/20 bg-cyan-200/10 text-cyan-50")}>
+                  {syncMessage}
+                </p>
+              )}
+              {linkedShots.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  {linkedShots.map((shot) => (
+                    <div key={shot.id} className="flex items-center justify-between gap-2 rounded-lg border border-white/10 bg-black/25 px-3 py-2">
+                      <div>
+                        <p className="text-xs font-bold text-white">{shot.title}</p>
+                        <p className="text-[10px] uppercase tracking-[0.12em] text-cyan-100/60">{shot.status}</p>
+                      </div>
+                      <button
+                        onClick={() => generateLinkedShot(shot.id)}
+                        disabled={generatingShotId === shot.id || shot.status === "processing"}
+                        className="rounded-lg bg-white px-3 py-2 text-[11px] font-black text-slate-950 disabled:opacity-50"
+                      >
+                        {generatingShotId === shot.id ? "Starting..." : shot.status === "processing" ? "Processing" : "Generate"}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </section>
           </aside>
 

@@ -27,6 +27,14 @@ export async function POST(req: NextRequest) {
         negativePrompt: typeof body.negativePrompt === "string" ? body.negativePrompt : "",
         duration: normalizeDuration(body.duration, 5),
         ratio: typeof body.ratio === "string" && body.ratio.trim() ? body.ratio.trim() : "16:9",
+        characterIds: Array.isArray(body.characterIds)
+          ? body.characterIds.filter((id): id is string => typeof id === "string" && id.trim().length > 0)
+          : [],
+        lighting: typeof body.lighting === "string" && body.lighting.trim() ? body.lighting.trim() : "neutral",
+        lens: typeof body.lens === "string" && body.lens.trim() ? body.lens.trim() : "35mm",
+        colorGrade: typeof body.colorGrade === "string" && body.colorGrade.trim() ? body.colorGrade.trim() : "cinematic",
+        audioPrompt: typeof body.audioPrompt === "string" ? body.audioPrompt : "",
+        consistencyLock: typeof body.consistencyLock === "boolean" ? body.consistencyLock : true,
         cameraPreset: typeof body.cameraPreset === "string" ? body.cameraPreset : "static",
       },
     });
@@ -38,4 +46,3 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: message }, { status });
   }
 }
-
