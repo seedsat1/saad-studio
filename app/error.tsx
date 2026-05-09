@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { SiteErrorScene } from "@/components/site-error-scene";
 
-export default function LandingError({
+export default function Error({
   error,
   reset,
 }: {
@@ -11,16 +11,16 @@ export default function LandingError({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error("Saad Studio landing error:", error);
+    console.error("Saad Studio route error:", error);
   }, [error]);
 
   return (
     <SiteErrorScene
       code="500"
-      eyebrow="Landing page fault"
-      title="This scene failed to render"
-      message="Something interrupted the page while loading. You can retry or return to the homepage."
-      actionLabel="Homepage"
+      eyebrow="Render interrupted"
+      title="A scene failed to load"
+      message="Something went wrong while opening this part of Saad Studio. Your credits and project data are safe."
+      actionLabel="Back to homepage"
       actionHref="/"
       onRetry={reset}
     />
