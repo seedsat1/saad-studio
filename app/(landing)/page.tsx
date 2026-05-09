@@ -815,10 +815,81 @@ const MODEL_SPOTLIGHTS = [
   },
 ];
 
+const STUDIO_PATHWAYS = [
+  {
+    title: "Image Studio",
+    description: "High-detail images, ads, portraits, product visuals, and edits.",
+    href: "/image",
+    image: "/GPT%20Image%202/SHOT%203.webp",
+    icon: ImageIcon,
+    accent: "text-cyan-300",
+  },
+  {
+    title: "Video Studio",
+    description: "Generate cinematic motion, character shots, and social clips.",
+    href: "/video",
+    image: "/seedance%202/1%20(4).webp",
+    icon: VideoIcon,
+    accent: "text-fuchsia-300",
+  },
+  {
+    title: "AI Canvas",
+    description: "Build complete creative workflows from one visual workspace.",
+    href: "/original-series",
+    image: "/canvas.webp",
+    icon: Layers,
+    accent: "text-amber-200",
+  },
+  {
+    title: "Next Scene",
+    description: "Direct scenes, storyboards, shots, and cinematic worlds.",
+    href: "/cinema-studio",
+    image: "/NEXT%20SCENE%20ENGINE.webp",
+    icon: Clapperboard,
+    accent: "text-emerald-300",
+  },
+  {
+    title: "Character",
+    description: "Create consistent characters for brands, stories, and campaigns.",
+    href: "/character",
+    image: "/seedance%202/1%20(7).webp",
+    icon: ScanFace,
+    accent: "text-violet-300",
+  },
+  {
+    title: "Apps",
+    description: "Specialized tools for edit, audio, relight, transitions, and more.",
+    href: "/apps",
+    image: "/transitions/1%20(2).webp",
+    icon: Wand2,
+    accent: "text-lime-300",
+  },
+];
+
+const SHOWCASE_TILES = [
+  { title: "Campaign visuals", href: "/image", image: "/GPT%20Image%202/SHOT%204.webp", className: "md:col-span-5 md:row-span-2" },
+  { title: "Cinematic models", href: "/video", image: "/seedance%202/Hero.webp", className: "md:col-span-4 md:row-span-2" },
+  { title: "Scene engine", href: "/cinema-studio", image: "/NEXT%20SCENE%20ENGINE.webp", className: "md:col-span-3" },
+  { title: "Transitions", href: "/apps/tool/transitions", image: "/transitions/Hero.webp", className: "md:col-span-3" },
+  { title: "Nano Banana", href: "/image?model=nano-banana-pro", image: "/nano.webp", className: "md:col-span-4" },
+  { title: "Canvas workflow", href: "/original-series", image: "/canvas.webp", className: "md:col-span-5" },
+  { title: "Kling 3.0", href: "/video?tool=create-video&model=kling-v3.0-pro-t2v", image: "/Kling%203.0/Hero.webp", className: "md:col-span-3" },
+];
+
+const WORKFLOW_STEPS = [
+  { title: "Start", description: "Pick a studio path", icon: Aperture },
+  { title: "Generate", description: "Use the right model", icon: Sparkles },
+  { title: "Shape", description: "Edit, relight, upscale", icon: Scissors },
+  { title: "Publish", description: "Move into video or scene", icon: Film },
+];
+
 const HOME_DEFAULT_SECTION_ORDER = [
   "heroSlides",
+  "studioPathways",
+  "showcaseWall",
   "statsCounter",
   "modelSpotlights",
+  "productionWorkflow",
   "coreTools",
   "topChoice",
   "adCards",
@@ -828,10 +899,132 @@ const HOME_DEFAULT_SECTION_ORDER = [
 ];
 
 const HOME_INJECTED_SECTIONS: Record<string, { after: string }> = {
-  statsCounter: { after: "heroSlides" },
+  studioPathways: { after: "heroSlides" },
+  showcaseWall: { after: "studioPathways" },
+  statsCounter: { after: "showcaseWall" },
   modelSpotlights: { after: "statsCounter" },
+  productionWorkflow: { after: "modelSpotlights" },
   pricingPreview: { after: "apps" },
 };
+
+function StudioPathways() {
+  return (
+    <FadeIn delay={0.05}>
+      <section>
+        <SectionHeading title="Choose your studio" cta="Open Explore" ctaHref="/explore" />
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {STUDIO_PATHWAYS.map((item, index) => {
+            const IconComp = item.icon;
+            return (
+              <Link key={item.title} href={item.href}>
+                <motion.div
+                  initial={{ opacity: 0, y: 18 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.05, duration: 0.35 }}
+                  whileHover={{ y: -4 }}
+                  className="group relative min-h-[220px] overflow-hidden rounded-2xl border border-white/10 bg-white/[0.035] shadow-xl shadow-black/20"
+                >
+                  <MediaFill src={item.image} alt={item.title} className="opacity-70 transition duration-700 group-hover:scale-[1.05] group-hover:opacity-90" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black via-black/55 to-black/5" />
+                  <div className="absolute inset-0 flex flex-col justify-end p-5">
+                    <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl border border-white/15 bg-black/45 backdrop-blur">
+                      <IconComp className={cn("h-5 w-5", item.accent)} />
+                    </div>
+                    <h3 className="text-2xl font-black text-white">{item.title}</h3>
+                    <p className="mt-2 max-w-sm text-sm leading-6 text-zinc-300">{item.description}</p>
+                    <span className="mt-4 inline-flex w-fit items-center gap-2 rounded-lg bg-white px-3 py-2 text-xs font-black text-slate-950">
+                      Open
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </span>
+                  </div>
+                </motion.div>
+              </Link>
+            );
+          })}
+        </div>
+      </section>
+    </FadeIn>
+  );
+}
+
+function ShowcaseWall() {
+  return (
+    <FadeIn delay={0.05}>
+      <section>
+        <SectionHeading title="Built for real outputs" />
+        <div className="grid auto-rows-[170px] gap-3 md:grid-cols-12 md:auto-rows-[190px]">
+          {SHOWCASE_TILES.map((tile, index) => (
+            <Link key={tile.title} href={tile.href} className={cn("group relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.035]", tile.className)}>
+              <motion.div
+                initial={{ opacity: 0, scale: 0.97 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.04, duration: 0.35 }}
+                className="absolute inset-0"
+              >
+                <MediaFill src={tile.image} alt={tile.title} className="transition duration-700 group-hover:scale-[1.04]" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/15 to-transparent" />
+                <div className="absolute bottom-0 left-0 right-0 p-4">
+                  <p className="text-sm font-black text-white">{tile.title}</p>
+                </div>
+              </motion.div>
+            </Link>
+          ))}
+        </div>
+      </section>
+    </FadeIn>
+  );
+}
+
+function ProductionWorkflow() {
+  return (
+    <FadeIn delay={0.05}>
+      <section>
+        <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.035]">
+          <div className="absolute inset-0">
+            <MediaFill src="/canvas.webp" alt="Saad Studio workflow" className="opacity-35" />
+            <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/90 to-slate-950/55" />
+          </div>
+          <div className="relative grid gap-8 p-6 md:p-8 lg:grid-cols-[0.9fr_1.1fr] lg:p-10">
+            <div>
+              <span className="inline-flex rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-white/70">
+                Production workflow
+              </span>
+              <h2 className="mt-4 max-w-xl text-3xl font-black leading-tight text-white sm:text-4xl">
+                From idea to publish-ready creative in one place.
+              </h2>
+              <p className="mt-4 max-w-lg text-sm leading-7 text-zinc-300">
+                Move between images, video, character, audio, scene tools, and app utilities without losing the creative thread.
+              </p>
+              <Link href="/apps" className="mt-6 inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-black text-slate-950">
+                Browse tools
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {WORKFLOW_STEPS.map((step, index) => {
+                const IconComp = step.icon;
+                return (
+                  <div key={step.title} className="rounded-xl border border-white/10 bg-black/35 p-4 backdrop-blur">
+                    <div className="flex items-center gap-3">
+                      <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 text-white">
+                        <IconComp className="h-4 w-4" />
+                      </span>
+                      <span className="text-[11px] font-black uppercase tracking-[0.18em] text-cyan-200">0{index + 1}</span>
+                    </div>
+                    <h3 className="mt-4 text-xl font-black text-white">{step.title}</h3>
+                    <p className="mt-1 text-sm text-zinc-400">{step.description}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </section>
+    </FadeIn>
+  );
+}
 
 function ModelSpotlightRail() {
   return (
@@ -1475,8 +1668,11 @@ export default function ExplorePage() {
 
   const sectionMap: Record<string, React.ReactNode> = {
     heroSlides: <HeroCarousel key="hero" slides={homeHeroSlides} primaryCtaLabel={heroPrimaryCtaLabel} trailerLabel={heroTrailerLabel} />,
+    studioPathways: <StudioPathways key="studioPathways" />,
+    showcaseWall: <ShowcaseWall key="showcaseWall" />,
     statsCounter: <StatsCounter key="stats" />,
     modelSpotlights: <ModelSpotlightRail key="modelSpotlights" />,
+    productionWorkflow: <ProductionWorkflow key="productionWorkflow" />,
     coreTools: <CoreToolsRow key="core" cards={homeCoreCards} title={coreToolsTitle} cta={coreToolsCta} ctaHref={coreToolsCtaHref} />,
     topChoice: <TopChoiceGrid key="top" cards={homeTopCards} />,
     adCards: <AdCardsRow key="ads" cards={homeAdCards} />,
