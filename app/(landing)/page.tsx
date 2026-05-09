@@ -547,7 +547,7 @@ function HeroCarousel({
 
   return (
     <>
-      <section className="relative w-full h-[75vh] min-h-[520px] max-h-[800px] overflow-hidden">
+      <section className="relative w-full min-h-[calc(100vh-4rem)] overflow-hidden">
         {/* BG image / YouTube / gradient overlay */}
         <AnimatePresence custom={dir} initial={false}>
           <motion.div
@@ -583,7 +583,7 @@ function HeroCarousel({
                 priority
               />
             )}
-            <div className={cn("absolute inset-0 bg-gradient-to-br opacity-75", slide.gradient)} />
+            <div className={cn("absolute inset-0 bg-gradient-to-br opacity-80", slide.gradient)} />
           </motion.div>
         </AnimatePresence>
 
@@ -597,83 +597,105 @@ function HeroCarousel({
         />
 
         {/* Vignette */}
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-slate-950/30" />
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-slate-950/60 via-transparent to-slate-950/60" />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/12 to-slate-950/50" />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-slate-950/82 via-slate-950/35 to-slate-950/70" />
 
         {/* Content */}
-        <div className="relative z-10 flex h-full flex-col justify-end pb-16 px-6 sm:px-12 lg:px-20">
-          <AnimatePresence custom={dir} mode="wait">
-            <motion.div
-              key={slide.id}
-              custom={dir}
-              variants={variants}
-              initial="enter" animate="center" exit="exit"
-              transition={{ duration: 0.55, ease: [0.25, 0.46, 0.45, 0.94] }}
-              className="max-w-2xl"
-            >
-              {/* Tag */}
-              <div className={cn(
-                "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold uppercase tracking-widest ring-1 mb-4",
-                `bg-gradient-to-r ${slide.accentFrom} ${slide.accentTo} bg-opacity-20 ring-white/20 text-white/90`
-              )}>
-                <Sparkles className="h-3 w-3" />{slide.tag}
-              </div>
-
-              {/* Title */}
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight text-white leading-[1.05] drop-shadow-2xl">
-                {slide.title}
-              </h1>
-
-              {/* Subtitle */}
-              <p className="mt-3 text-base sm:text-lg text-zinc-300 max-w-lg leading-relaxed">
-                {slide.subtitle}
-              </p>
-
-              {/* CTAs */}
-              <div className="mt-7 flex flex-wrap items-center gap-3">
-                <Link href={slide.ctaHref}>
-                  <motion.button
-                    whileHover={{ scale: 1.04 }}
-                    whileTap={{ scale: 0.96 }}
-                    className={cn(
-                      "relative overflow-hidden flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-bold text-white shadow-2xl",
-                      `bg-gradient-to-r ${slide.accentFrom} ${slide.accentTo}`
-                    )}
-                  >
-                    <Zap className="h-4 w-4" />
-                    {primaryCtaLabel}
-                  </motion.button>
-                </Link>
-                {trailerYtId && (
-                  <motion.button
-                    whileHover={{ scale: 1.04 }}
-                    whileTap={{ scale: 0.96 }}
-                    onClick={() => setTrailerOpen(true)}
-                    className="flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-6 py-3 text-sm font-semibold text-white backdrop-blur-sm hover:bg-white/15 transition-colors"
-                  >
-                    <Play className="h-3.5 w-3.5 fill-white" />
-                    {trailerLabel}
-                  </motion.button>
-                )}
-              </div>
-            </motion.div>
-          </AnimatePresence>
-
-          {/* Pagination dots */}
-          <div className="mt-8 flex items-center gap-2">
-            {safeSlides.map((s, i) => (
-              <button
-                key={s.id}
-                onClick={() => go(i, i > active ? 1 : -1)}
-                className="group relative h-1.5 overflow-hidden rounded-full transition-all duration-300"
-                style={{ width: i === active ? 32 : 12 }}
+        <div className="relative z-10 flex min-h-[calc(100vh-4rem)] flex-col justify-end px-5 pb-10 pt-24 sm:px-10 lg:px-16 xl:px-20">
+          <div className="grid items-end gap-8 lg:grid-cols-[minmax(0,1fr)_26rem] xl:grid-cols-[minmax(0,1fr)_31rem]">
+            <AnimatePresence custom={dir} mode="wait">
+              <motion.div
+                key={slide.id}
+                custom={dir}
+                variants={variants}
+                initial="enter" animate="center" exit="exit"
+                transition={{ duration: 0.55, ease: [0.25, 0.46, 0.45, 0.94] }}
+                className="max-w-4xl"
               >
-                <span className={cn(
-                  "absolute inset-0 rounded-full transition-all duration-300",
-                  i === active ? `bg-gradient-to-r ${slide.accentFrom} ${slide.accentTo}` : "bg-white/25 group-hover:bg-white/40"
-                )} />
-              </button>
-            ))}
+                <div className={cn(
+                  "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-black uppercase tracking-[0.18em] ring-1 mb-4",
+                  `bg-gradient-to-r ${slide.accentFrom} ${slide.accentTo} bg-opacity-20 ring-white/20 text-white/90`
+                )}>
+                  <Sparkles className="h-3 w-3" />{slide.tag}
+                </div>
+
+                <h1 className="max-w-4xl text-5xl font-black leading-[0.98] tracking-tight text-white drop-shadow-2xl sm:text-6xl lg:text-7xl xl:text-8xl">
+                  Saad Studio
+                </h1>
+                <p className="mt-5 max-w-2xl text-lg leading-8 text-zinc-200 sm:text-xl">
+                  Images, videos, scenes, characters, audio, and workflows in one AI production studio.
+                </p>
+                <div className="mt-5 flex flex-wrap items-center gap-2 text-sm text-white/70">
+                  <span className="rounded-full border border-white/15 bg-black/35 px-3 py-1 backdrop-blur">Now featuring {slide.title}</span>
+                  <span className="rounded-full border border-white/15 bg-black/35 px-3 py-1 backdrop-blur">25 free credits</span>
+                  <span className="rounded-full border border-white/15 bg-black/35 px-3 py-1 backdrop-blur">85+ AI tools</span>
+                </div>
+
+                <div className="mt-8 flex flex-wrap items-center gap-3">
+                  <Link href={slide.ctaHref}>
+                    <motion.button
+                      whileHover={{ scale: 1.04 }}
+                      whileTap={{ scale: 0.96 }}
+                      className={cn(
+                        "relative flex items-center gap-2 overflow-hidden rounded-xl px-6 py-3 text-sm font-black text-white shadow-2xl",
+                        `bg-gradient-to-r ${slide.accentFrom} ${slide.accentTo}`
+                      )}
+                    >
+                      <Zap className="h-4 w-4" />
+                      {primaryCtaLabel}
+                    </motion.button>
+                  </Link>
+                  <Link href="/explore">
+                    <motion.button
+                      whileHover={{ scale: 1.04 }}
+                      whileTap={{ scale: 0.96 }}
+                      className="flex items-center gap-2 rounded-xl border border-white/20 bg-white px-6 py-3 text-sm font-black text-slate-950 shadow-2xl shadow-black/30 hover:bg-slate-100"
+                    >
+                      Explore Models
+                      <ArrowRight className="h-4 w-4" />
+                    </motion.button>
+                  </Link>
+                  {trailerYtId && (
+                    <motion.button
+                      whileHover={{ scale: 1.04 }}
+                      whileTap={{ scale: 0.96 }}
+                      onClick={() => setTrailerOpen(true)}
+                      className="flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-6 py-3 text-sm font-semibold text-white backdrop-blur-sm hover:bg-white/15 transition-colors"
+                    >
+                      <Play className="h-3.5 w-3.5 fill-white" />
+                      {trailerLabel}
+                    </motion.button>
+                  )}
+                </div>
+              </motion.div>
+            </AnimatePresence>
+
+            <div className="hidden rounded-2xl border border-white/10 bg-black/35 p-3 shadow-2xl shadow-black/40 backdrop-blur-md lg:block">
+              <div className="relative overflow-hidden rounded-xl aspect-[4/5]">
+                {isVideoUrl(slide.bgImage) ? (
+                  <video src={slide.bgImage} autoPlay muted loop playsInline className="absolute inset-0 h-full w-full object-cover" />
+                ) : (
+                  <Image src={slide.bgImage} alt={slide.title} fill sizes="32rem" className="object-cover" />
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-transparent" />
+                <div className="absolute bottom-0 left-0 right-0 p-5">
+                  <p className="text-[11px] font-black uppercase tracking-[0.18em] text-white/55">Featured workflow</p>
+                  <h2 className="mt-2 text-2xl font-black text-white">{slide.title}</h2>
+                  <p className="mt-2 line-clamp-2 text-sm leading-6 text-zinc-300">{slide.subtitle}</p>
+                </div>
+              </div>
+              <div className="mt-3 grid grid-cols-4 gap-2">
+                {safeSlides.map((s, i) => (
+                  <button
+                    key={s.id}
+                    onClick={() => go(i, i > active ? 1 : -1)}
+                    className={cn("relative overflow-hidden rounded-lg border bg-white/5 aspect-square", i === active ? "border-white/70" : "border-white/10")}
+                  >
+                    <MediaFill src={s.bgImage} alt={s.title} />
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -759,6 +781,88 @@ function StatsCounter() {
               <span className="mt-1 text-lg font-semibold text-white">{stat.label}</span>
               <span className="mt-0.5 text-sm text-gray-400">{stat.subtitle}</span>
             </motion.div>
+          ))}
+        </div>
+      </section>
+    </FadeIn>
+  );
+}
+
+const MODEL_SPOTLIGHTS = [
+  {
+    title: "GPT Image 2",
+    badge: "Image",
+    href: "/image?tool=create&model=gpt-image-2-text-to-image",
+    image: "/GPT%20Image%202/SHOT%201.webp",
+  },
+  {
+    title: "Canvas",
+    badge: "Workflow",
+    href: "/original-series",
+    image: "/canvas.webp",
+  },
+  {
+    title: "Seedance 2",
+    badge: "Video",
+    href: "/video?tool=create-video&model=bytedance-seedance-v2-t2v",
+    image: "/seedance%202/Hero.webp",
+  },
+  {
+    title: "Kling 3.0",
+    badge: "Video",
+    href: "/video?tool=create-video&model=kling-v3.0-pro-t2v",
+    image: "/Kling%203.0/Hero.webp",
+  },
+];
+
+const HOME_DEFAULT_SECTION_ORDER = [
+  "heroSlides",
+  "statsCounter",
+  "modelSpotlights",
+  "coreTools",
+  "topChoice",
+  "adCards",
+  "apps",
+  "pricingPreview",
+  "models",
+];
+
+const HOME_INJECTED_SECTIONS: Record<string, { after: string }> = {
+  statsCounter: { after: "heroSlides" },
+  modelSpotlights: { after: "statsCounter" },
+  pricingPreview: { after: "apps" },
+};
+
+function ModelSpotlightRail() {
+  return (
+    <FadeIn delay={0.05}>
+      <section>
+        <SectionHeading title="Featured model drops" cta="View Explore" ctaHref="/explore" />
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          {MODEL_SPOTLIGHTS.map((item, index) => (
+            <Link key={item.title} href={item.href}>
+              <motion.div
+                initial={{ opacity: 0, y: 18 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.06, duration: 0.35 }}
+                whileHover={{ y: -4 }}
+                className="group relative min-h-[260px] overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] shadow-2xl shadow-black/25"
+              >
+                <MediaFill src={item.image} alt={item.title} className="transition duration-700 group-hover:scale-[1.04]" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/35 to-transparent" />
+                <div className="absolute inset-x-0 bottom-0 p-5">
+                  <span className="inline-flex rounded-full border border-white/15 bg-black/45 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white/70 backdrop-blur">
+                    {item.badge}
+                  </span>
+                  <h3 className="mt-3 text-2xl font-black text-white">{item.title}</h3>
+                  <span className="mt-4 inline-flex items-center gap-2 rounded-lg bg-white px-3 py-2 text-xs font-black text-slate-950 transition group-hover:scale-[1.04]">
+                    Open
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </span>
+                </div>
+              </motion.div>
+            </Link>
           ))}
         </div>
       </section>
@@ -1348,22 +1452,14 @@ export default function ExplorePage() {
   const homeAdCards = useMemo(() => cms?.adCards ?? [], [cms]);
 
   // ── Section order from CMS (default if none saved) ──────────────────────────
-  const defaultOrder = ["heroSlides", "statsCounter", "coreTools", "topChoice", "adCards", "apps", "pricingPreview", "models"];
-
-  // Hardcoded sections that are always injected (not CMS-managed)
-  const INJECTED_SECTIONS: Record<string, { after: string }> = {
-    statsCounter: { after: "heroSlides" },
-    pricingPreview: { after: "apps" },
-  };
-
   const sectionOrder = useMemo(() => {
     const base = cms?.sectionOrder && cms.sectionOrder.length > 0
       ? cms.sectionOrder
-      : defaultOrder.map((type) => ({ _id: type, type, label: type, visible: true }));
+      : HOME_DEFAULT_SECTION_ORDER.map((type) => ({ _id: type, type, label: type, visible: true }));
 
     // Inject hardcoded sections if missing from CMS order
     let result = [...base];
-    for (const [type, { after }] of Object.entries(INJECTED_SECTIONS)) {
+    for (const [type, { after }] of Object.entries(HOME_INJECTED_SECTIONS)) {
       if (!result.some((s) => s.type === type)) {
         const afterIdx = result.findIndex((s) => s.type === after);
         const entry = { _id: type, type, label: type, visible: true };
@@ -1380,6 +1476,7 @@ export default function ExplorePage() {
   const sectionMap: Record<string, React.ReactNode> = {
     heroSlides: <HeroCarousel key="hero" slides={homeHeroSlides} primaryCtaLabel={heroPrimaryCtaLabel} trailerLabel={heroTrailerLabel} />,
     statsCounter: <StatsCounter key="stats" />,
+    modelSpotlights: <ModelSpotlightRail key="modelSpotlights" />,
     coreTools: <CoreToolsRow key="core" cards={homeCoreCards} title={coreToolsTitle} cta={coreToolsCta} ctaHref={coreToolsCtaHref} />,
     topChoice: <TopChoiceGrid key="top" cards={homeTopCards} />,
     adCards: <AdCardsRow key="ads" cards={homeAdCards} />,
