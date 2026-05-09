@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { CmsSidebar } from "@/components/admin/cms-sidebar";
 import { cn } from "@/lib/utils";
+import { DEFAULT_EXPLORE_MODULES, type ExploreMedia, type ExploreModule, type ExploreModuleLayout } from "@/lib/explore-cms";
 
 type ShowcaseItem = {
   id: string;
@@ -238,6 +239,11 @@ export default function ExploreCmsPage() {
   const [promoDrafts, setPromoDrafts] = useState<PromoContentMap>({});
   const [promoSaving, setPromoSaving] = useState<string | null>(null);
   const [promoUploading, setPromoUploading] = useState<string | null>(null);
+  const [exploreModules, setExploreModules] = useState<ExploreModule[]>(DEFAULT_EXPLORE_MODULES);
+  const [exploreSaving, setExploreSaving] = useState(false);
+  const [exploreUploading, setExploreUploading] = useState<string | null>(null);
+  const [draggedModuleId, setDraggedModuleId] = useState<string | null>(null);
+  const [draggedMedia, setDraggedMedia] = useState<{ moduleId: string; mediaId: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const stats = useMemo(() => {
@@ -287,10 +293,166 @@ export default function ExploreCmsPage() {
     }
   };
 
+  const loadExploreCms = async () => {
+    try {
+      const res = await fetch("/api/admin/explore/cms", { cache: "no-store" });
+      const json = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(json?.error ?? "Failed to load Explore page CMS");
+      setExploreModules(Array.isArray(json?.config?.modules) ? json.config.modules : DEFAULT_EXPLORE_MODULES);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load Explore page CMS");
+    }
+  };
+
   useEffect(() => {
     void loadItems();
     void loadPromo();
+    void loadExploreCms();
   }, []);
+
+  const updateModule = (moduleId: string, patch: Partial<ExploreModule>) => {
+    setExploreModules((current) => current.map((module) => (module.id === moduleId ? { ...module, ...patch } : module)));
+  };
+
+  const updateHero = (moduleId: string, patch: Partial<ExploreMedia>) => {
+    setExploreModules((current) =>
+      current.map((module) =>
+        module.id === moduleId ? { ...module, hero: { ...module.hero, ...patch } } : module,
+      ),
+    );
+  };
+
+  const updateGalleryMedia = (moduleId: string, mediaId: string, patch: Partial<ExploreMedia>) => {
+    setExploreModules((current) =>
+      current.map((module) =>
+        module.id === moduleId
+          ? { ...module, gallery: module.gallery.map((media) => (media.id === mediaId ? { ...media, ...patch } : media)) }
+          : module,
+      ),
+    );
+  };
+
+  const moveModule = (fromId: string, toId: string) => {
+    if (fromId === toId) return;
+    setExploreModules((current) => {
+      const fromIndex = current.findIndex((module) => module.id === fromId);
+      const toIndex = current.findIndex((module) => module.id === toId);
+      if (fromIndex < 0 || toIndex < 0) return current;
+      const next = [...current];
+      const [item] = next.splice(fromIndex, 1);
+      next.splice(toIndex, 0, item);
+      return next;
+    });
+  };
+
+  const moveGalleryMedia = (moduleId: string, fromId: string, toId: string) => {
+    if (fromId === toId) return;
+    setExploreModules((current) =>
+      current.map((module) => {
+        if (module.id !== moduleId) return module;
+        const fromIndex = module.gallery.findIndex((media) => media.id === fromId);
+        const toIndex = module.gallery.findIndex((media) => media.id === toId);
+        if (fromIndex < 0 || toIndex < 0) return module;
+        const gallery = [...module.gallery];
+        const [item] = gallery.splice(fromIndex, 1);
+        gallery.splice(toIndex, 0, item);
+        return { ...module, gallery };
+      }),
+    );
+  };
+
+  const addModule = (layout: ExploreModuleLayout) => {
+    const id = `custom-${Date.now()}`;
+    setExploreModules((current) => [
+      ...current,
+      {
+        id,
+        enabled: true,
+        layout,
+        badge: layout === "banner" ? "NEW" : "MODEL",
+        title: layout === "banner" ? "New Hero" : "New Model Ad",
+        subtitle: "",
+        cta: "Open",
+        href: "/explore",
+        hero: { id: "hero", url: "/canvas.webp", type: "image", alt: "New Explore ad" },
+        gallery: layout === "banner" ? [] : [{ id: `gallery-${Date.now()}`, url: "/canvas.webp", type: "image" }],
+      },
+    ]);
+  };
+
+  const duplicateModule = (module: ExploreModule) => {
+    const id = `${module.id}-copy-${Date.now()}`;
+    setExploreModules((current) => [
+      ...current,
+      {
+        ...module,
+        id,
+        title: `${module.title} Copy`,
+        hero: { ...module.hero, id: "hero" },
+        gallery: module.gallery.map((media, index) => ({ ...media, id: `gallery-${index + 1}-${Date.now()}` })),
+      },
+    ]);
+  };
+
+  const addGalleryCard = (moduleId: string) => {
+    setExploreModules((current) =>
+      current.map((module) =>
+        module.id === moduleId
+          ? {
+              ...module,
+              gallery: [
+                ...module.gallery,
+                { id: `gallery-${Date.now()}`, url: module.hero.url, type: module.hero.type, alt: module.title },
+              ],
+            }
+          : module,
+      ),
+    );
+  };
+
+  const removeGalleryCard = (moduleId: string, mediaId: string) => {
+    setExploreModules((current) =>
+      current.map((module) =>
+        module.id === moduleId ? { ...module, gallery: module.gallery.filter((media) => media.id !== mediaId) } : module,
+      ),
+    );
+  };
+
+  const uploadExploreMedia = async (moduleId: string, target: "hero" | string, file: File | undefined) => {
+    if (!file) return;
+    const uploadKey = `${moduleId}:${target}`;
+    setExploreUploading(uploadKey);
+    setError(null);
+    try {
+      const { publicUrl, isVideo } = await uploadToSupabase(file);
+      const patch: Partial<ExploreMedia> = { url: publicUrl, type: isVideo ? "video" : "image" };
+      if (target === "hero") updateHero(moduleId, patch);
+      else updateGalleryMedia(moduleId, target, patch);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setExploreUploading(null);
+    }
+  };
+
+  const saveExploreCms = async () => {
+    setExploreSaving(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/admin/explore/cms", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ config: { modules: exploreModules } }),
+      });
+      const json = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(json?.error ?? "Failed to save Explore page CMS");
+      setExploreModules(Array.isArray(json?.config?.modules) ? json.config.modules : exploreModules);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to save Explore page CMS");
+    } finally {
+      setExploreSaving(false);
+    }
+  };
 
   const updatePromoDraft = (slotId: string, field: keyof PromoContent, value: string) => {
     setPromoDrafts((current) => ({
@@ -460,155 +622,169 @@ export default function ExploreCmsPage() {
             </button>
           </div>
 
-          <section className="rounded-3xl border border-white/10 bg-white/[0.035] p-5">
-            <div className="flex flex-wrap items-start justify-between gap-3">
+          <section className="rounded-3xl border border-cyan-400/20 bg-cyan-400/[0.035] p-5 shadow-2xl shadow-black/30">
+            <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
-                <h2 className="text-xl font-black">Explore page ads</h2>
-                <p className="mt-1 text-sm text-slate-400">
-                  These controls feed the live /explore model ads. Empty fields keep the polished default design.
+                <h2 className="text-2xl font-black">Live Explore Page Builder</h2>
+                <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-400">
+                  This is the real source for /explore. Drag modules or cards to reorder, edit any text, upload image/video, add hero banners or gallery ads, then save.
                 </p>
               </div>
-              <a
-                href="/explore"
-                target="_blank"
-                className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-200 hover:bg-white/10"
-              >
-                <Eye className="h-4 w-4" />
-                View Explore
-              </a>
+              <div className="flex flex-wrap gap-2">
+                <button onClick={() => addModule("banner")} className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white hover:bg-white/10">
+                  <Plus className="h-4 w-4" /> Add hero
+                </button>
+                <button onClick={() => addModule("gallery-right")} className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white hover:bg-white/10">
+                  <Plus className="h-4 w-4" /> Add cards ad
+                </button>
+                <button onClick={() => void saveExploreCms()} disabled={exploreSaving} className="inline-flex items-center gap-2 rounded-xl bg-cyan-400 px-4 py-2 text-sm font-black text-slate-950 disabled:opacity-60">
+                  {exploreSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                  Save Explore
+                </button>
+              </div>
             </div>
 
-            <div className="mt-5 grid gap-4 xl:grid-cols-2">
-              {EXPLORE_ADS.map((ad) => {
-                const draft = promoDrafts[ad.slotId] ?? ad.defaults;
-                const mediaSlots = [
-                  { id: `${ad.slotId}/hero`, name: "Hero", fallback: ad.fallbackHero },
-                  ...(ad.gallery ?? []).map((fallback, index) => ({
-                    id: `${ad.slotId}/gallery-${index + 1}`,
-                    name: `Gallery ${index + 1}`,
-                    fallback,
-                  })),
-                ];
-
-                return (
-                  <div key={ad.slotId} className="rounded-2xl border border-white/10 bg-slate-950/70 p-4">
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-black text-white">{ad.name}</p>
-                        <p className="mt-1 text-[11px] text-slate-500">{ad.slotId}</p>
-                      </div>
-                      <button
-                        onClick={() => void savePromoContent(ad)}
-                        disabled={promoSaving === ad.slotId}
-                        className="inline-flex items-center gap-2 rounded-xl bg-cyan-500 px-3 py-2 text-xs font-black text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
-                      >
-                        {promoSaving === ad.slotId ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-                        Save text
+            <div className="mt-5 space-y-4">
+              {exploreModules.map((module, moduleIndex) => (
+                <div
+                  key={module.id}
+                  draggable
+                  onDragStart={() => setDraggedModuleId(module.id)}
+                  onDragOver={(event) => event.preventDefault()}
+                  onDrop={() => {
+                    if (draggedModuleId) moveModule(draggedModuleId, module.id);
+                    setDraggedModuleId(null);
+                  }}
+                  className={cn(
+                    "rounded-2xl border border-white/10 bg-slate-950/80 p-4 transition",
+                    draggedModuleId === module.id && "opacity-60",
+                  )}
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-black text-white">#{moduleIndex + 1} {module.title || "Untitled"}</p>
+                      <p className="mt-1 truncate text-[11px] text-slate-500">{module.id}</p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <select value={module.layout} onChange={(event) => updateModule(module.id, { layout: event.target.value as ExploreModuleLayout })} className="rounded-lg border border-white/10 bg-black/40 px-2 py-1.5 text-xs text-white">
+                        <option value="banner">Hero banner</option>
+                        <option value="gallery-right">Hero left / cards right</option>
+                        <option value="gallery-left">Cards left / hero right</option>
+                      </select>
+                      <button onClick={() => updateModule(module.id, { enabled: !module.enabled })} className={cn("rounded-lg px-2 py-1.5 text-xs font-bold", module.enabled ? "bg-emerald-500/15 text-emerald-200" : "bg-white/5 text-slate-400")}>
+                        {module.enabled ? "Visible" : "Hidden"}
+                      </button>
+                      <button onClick={() => duplicateModule(module)} className="rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-xs text-white hover:bg-white/10">Duplicate</button>
+                      <button onClick={() => setExploreModules((current) => current.filter((item) => item.id !== module.id))} className="rounded-lg border border-red-500/30 bg-red-500/10 px-2 py-1.5 text-xs text-red-200 hover:bg-red-500/20">
+                        Delete
                       </button>
                     </div>
+                  </div>
 
-                    <div className="mt-4 grid gap-3 md:grid-cols-2">
+                  <div className="mt-4 grid gap-3 lg:grid-cols-2">
+                    <div className="grid gap-3 md:grid-cols-2">
                       <label className="space-y-1.5 text-xs text-slate-400">
                         Badge
-                        <input
-                          value={draft.badge ?? ""}
-                          onChange={(event) => updatePromoDraft(ad.slotId, "badge", event.target.value)}
-                          placeholder={ad.defaults.badge ?? ""}
-                          className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-white outline-none focus:border-cyan-400/50"
-                        />
+                        <input value={module.badge ?? ""} onChange={(event) => updateModule(module.id, { badge: event.target.value })} className="w-full rounded-xl border border-white/10 bg-black/35 px-3 py-2 text-sm text-white outline-none focus:border-cyan-400/50" />
                       </label>
                       <label className="space-y-1.5 text-xs text-slate-400">
                         CTA
-                        <input
-                          value={draft.cta ?? ""}
-                          onChange={(event) => updatePromoDraft(ad.slotId, "cta", event.target.value)}
-                          placeholder={ad.defaults.cta ?? ""}
-                          className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-white outline-none focus:border-cyan-400/50"
-                        />
+                        <input value={module.cta ?? ""} onChange={(event) => updateModule(module.id, { cta: event.target.value })} className="w-full rounded-xl border border-white/10 bg-black/35 px-3 py-2 text-sm text-white outline-none focus:border-cyan-400/50" />
                       </label>
                       <label className="space-y-1.5 text-xs text-slate-400 md:col-span-2">
                         Title
-                        <input
-                          value={draft.title ?? ""}
-                          onChange={(event) => updatePromoDraft(ad.slotId, "title", event.target.value)}
-                          placeholder={ad.defaults.title ?? ""}
-                          className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-white outline-none focus:border-cyan-400/50"
-                        />
+                        <input value={module.title} onChange={(event) => updateModule(module.id, { title: event.target.value })} className="w-full rounded-xl border border-white/10 bg-black/35 px-3 py-2 text-sm text-white outline-none focus:border-cyan-400/50" />
                       </label>
                       <label className="space-y-1.5 text-xs text-slate-400 md:col-span-2">
                         Subtitle
-                        <textarea
-                          value={draft.subtitle ?? ""}
-                          onChange={(event) => updatePromoDraft(ad.slotId, "subtitle", event.target.value)}
-                          placeholder={ad.defaults.subtitle ?? ""}
-                          rows={2}
-                          className="w-full resize-none rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-white outline-none focus:border-cyan-400/50"
-                        />
+                        <textarea value={module.subtitle ?? ""} onChange={(event) => updateModule(module.id, { subtitle: event.target.value })} rows={2} className="w-full resize-none rounded-xl border border-white/10 bg-black/35 px-3 py-2 text-sm text-white outline-none focus:border-cyan-400/50" />
                       </label>
                       <label className="space-y-1.5 text-xs text-slate-400 md:col-span-2">
-                        Link
-                        <input
-                          value={draft.ctaHref ?? ""}
-                          onChange={(event) => updatePromoDraft(ad.slotId, "ctaHref", event.target.value)}
-                          placeholder={ad.defaults.ctaHref ?? ""}
-                          className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-white outline-none focus:border-cyan-400/50"
-                        />
+                        Ad page / target link
+                        <input value={module.href} onChange={(event) => updateModule(module.id, { href: event.target.value })} className="w-full rounded-xl border border-white/10 bg-black/35 px-3 py-2 text-sm text-white outline-none focus:border-cyan-400/50" />
                       </label>
                     </div>
 
-                    <div className="mt-4 space-y-3">
-                      <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">Images</p>
-                      <div className="grid gap-3 md:grid-cols-2">
-                        {mediaSlots.map((slot) => {
-                          const currentUrl = promoMedia[slot.id]?.url || slot.fallback;
-                          return (
-                            <div key={slot.id} className="rounded-xl border border-white/10 bg-black/25 p-3">
-                              <div className="flex gap-3">
-                                <img src={currentUrl} alt={slot.name} className="h-16 w-24 rounded-lg object-cover ring-1 ring-white/10" />
-                                <div className="min-w-0 flex-1">
-                                  <p className="truncate text-xs font-bold text-white">{slot.name}</p>
-                                  <p className="mt-1 truncate text-[10px] text-slate-500">{slot.id}</p>
-                                  <label className="mt-2 inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-slate-200 hover:bg-white/10">
-                                    {promoUploading === slot.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
+                    <div className="space-y-3">
+                      <div className="rounded-xl border border-white/10 bg-black/25 p-3">
+                        <div className="flex gap-3">
+                          {module.hero.type === "video" ? (
+                            <video src={module.hero.url} className="h-24 w-36 rounded-lg object-cover ring-1 ring-white/10" muted playsInline />
+                          ) : (
+                            <img src={module.hero.url} alt={module.hero.alt || module.title} className="h-24 w-36 rounded-lg object-cover ring-1 ring-white/10" />
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-black text-white">Hero media</p>
+                            <input value={module.hero.url} onChange={(event) => updateHero(module.id, { url: event.target.value })} className="mt-2 w-full rounded-lg border border-white/10 bg-black/35 px-2 py-1.5 text-xs text-white outline-none focus:border-cyan-400/50" />
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              <select value={module.hero.type} onChange={(event) => updateHero(module.id, { type: event.target.value as "image" | "video" })} className="rounded-lg border border-white/10 bg-black/35 px-2 py-1.5 text-xs text-white">
+                                <option value="image">Image</option>
+                                <option value="video">Video</option>
+                              </select>
+                              <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-xs text-white hover:bg-white/10">
+                                {exploreUploading === `${module.id}:hero` ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+                                Upload
+                                <input type="file" accept="image/*,video/*" className="hidden" onChange={(event) => void uploadExploreMedia(module.id, "hero", event.target.files?.[0])} />
+                              </label>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {module.layout !== "banner" ? (
+                        <div className="rounded-xl border border-white/10 bg-black/25 p-3">
+                          <div className="mb-3 flex items-center justify-between">
+                            <p className="text-xs font-black text-white">Gallery cards</p>
+                            <button onClick={() => addGalleryCard(module.id)} className="inline-flex items-center gap-1 rounded-lg bg-white px-2 py-1 text-xs font-black text-slate-950">
+                              <Plus className="h-3 w-3" /> Add card
+                            </button>
+                          </div>
+                          <div className="grid gap-2 md:grid-cols-2">
+                            {module.gallery.map((media, mediaIndex) => (
+                              <div
+                                key={media.id}
+                                draggable
+                                onDragStart={() => setDraggedMedia({ moduleId: module.id, mediaId: media.id })}
+                                onDragOver={(event) => event.preventDefault()}
+                                onDrop={() => {
+                                  if (draggedMedia?.moduleId === module.id) moveGalleryMedia(module.id, draggedMedia.mediaId, media.id);
+                                  setDraggedMedia(null);
+                                }}
+                                className="rounded-lg border border-white/10 bg-slate-900/70 p-2"
+                              >
+                                <div className="flex gap-2">
+                                  {media.type === "video" ? (
+                                    <video src={media.url} className="h-14 w-20 rounded object-cover" muted playsInline />
+                                  ) : (
+                                    <img src={media.url} alt={media.alt || ""} className="h-14 w-20 rounded object-cover" />
+                                  )}
+                                  <div className="min-w-0 flex-1">
+                                    <p className="text-[10px] font-bold text-slate-400">Card {mediaIndex + 1}</p>
+                                    <input value={media.url} onChange={(event) => updateGalleryMedia(module.id, media.id, { url: event.target.value })} className="mt-1 w-full rounded border border-white/10 bg-black/35 px-2 py-1 text-[11px] text-white outline-none" />
+                                  </div>
+                                </div>
+                                <div className="mt-2 flex flex-wrap items-center gap-2">
+                                  <select value={media.type} onChange={(event) => updateGalleryMedia(module.id, media.id, { type: event.target.value as "image" | "video" })} className="rounded border border-white/10 bg-black/35 px-2 py-1 text-[11px] text-white">
+                                    <option value="image">Image</option>
+                                    <option value="video">Video</option>
+                                  </select>
+                                  <label className="cursor-pointer rounded border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-white hover:bg-white/10">
                                     Upload
-                                    <input
-                                      type="file"
-                                      accept="image/*"
-                                      className="hidden"
-                                      onChange={(event) => void uploadPromoFile(slot.id, event.target.files?.[0])}
-                                    />
+                                    <input type="file" accept="image/*,video/*" className="hidden" onChange={(event) => void uploadExploreMedia(module.id, media.id, event.target.files?.[0])} />
                                   </label>
+                                  <button onClick={() => removeGalleryCard(module.id, media.id)} className="rounded border border-red-500/30 bg-red-500/10 px-2 py-1 text-[11px] text-red-200">
+                                    Remove
+                                  </button>
                                 </div>
                               </div>
-                              <form
-                                className="mt-2 flex gap-2"
-                                onSubmit={(event) => {
-                                  event.preventDefault();
-                                  const value = String(new FormData(event.currentTarget).get("url") ?? "");
-                                  void savePromoMedia(slot.id, value);
-                                }}
-                              >
-                                <input
-                                  name="url"
-                                  defaultValue={promoMedia[slot.id]?.url ?? ""}
-                                  placeholder="https://..."
-                                  className="min-w-0 flex-1 rounded-lg border border-white/10 bg-black/30 px-2 py-1.5 text-xs text-white outline-none focus:border-cyan-400/50"
-                                />
-                                <button
-                                  disabled={promoSaving === slot.id}
-                                  className="rounded-lg bg-white px-2.5 py-1.5 text-xs font-black text-slate-950 disabled:opacity-60"
-                                >
-                                  Save
-                                </button>
-                              </form>
-                            </div>
-                          );
-                        })}
-                      </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
                     </div>
                   </div>
-                );
-              })}
+                </div>
+              ))}
             </div>
           </section>
 

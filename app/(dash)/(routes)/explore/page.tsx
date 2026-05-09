@@ -7,6 +7,7 @@ import { ArrowUpRight, Eye, Heart, Play, ScrollText, Sparkles, Star, Zap } from 
 import { cn } from "@/lib/utils";
 import { usePromoMedia, promoUrl } from "@/hooks/use-promo-media";
 import { usePromoContent, promoText } from "@/hooks/use-promo-content";
+import { DEFAULT_EXPLORE_MODULES, type ExploreMedia, type ExploreModule } from "@/lib/explore-cms";
 
 type ShowcaseItem = {
   id: string;
@@ -627,6 +628,168 @@ function Kling3ModelAd() {
   );
 }
 
+function ExploreModuleMedia({ media, className, eager = false }: { media: ExploreMedia; className: string; eager?: boolean }) {
+  if (media.type === "video") {
+    return (
+      <video
+        src={media.url}
+        className={className}
+        muted
+        loop
+        playsInline
+        autoPlay
+        preload={eager ? "auto" : "metadata"}
+      />
+    );
+  }
+
+  return (
+    <img
+      src={media.url}
+      alt={media.alt || ""}
+      className={className}
+      loading={eager ? "eager" : "lazy"}
+    />
+  );
+}
+
+const DYNAMIC_GALLERY_LAYOUTS = [
+  "col-span-6 row-span-4",
+  "col-span-6 row-span-2",
+  "col-span-3 row-span-3",
+  "col-span-3 row-span-3",
+  "col-span-3 row-span-3",
+  "col-span-3 row-span-3",
+  "col-span-6 row-span-3",
+  "col-span-6 row-span-3",
+  "col-span-6 row-span-3",
+];
+
+function DynamicGallery({ module, reverse = false }: { module: ExploreModule; reverse?: boolean }) {
+  const gallery = module.gallery.length ? module.gallery : [module.hero];
+  const heroPanel = (
+    <div className="relative flex min-h-[430px] flex-col items-center justify-start overflow-hidden px-6 py-9 text-center">
+      <ExploreModuleMedia
+        media={module.hero}
+        className="absolute inset-0 h-full w-full object-cover object-center opacity-95 transition duration-700 group-hover:scale-[1.03]"
+        eager
+      />
+      <div className="absolute inset-0 bg-gradient-to-b from-black/74 via-black/18 to-black/76" />
+      <div className="absolute inset-0 bg-gradient-to-r from-black/35 via-transparent to-black/35" />
+      <div className="relative z-10">
+        {module.badge ? <div className="text-[11px] font-black uppercase tracking-[0.26em] text-white/55">{module.badge}</div> : null}
+        <div className="mx-auto mt-4 h-px w-16 bg-gradient-to-r from-transparent via-white/50 to-transparent" />
+        <h2 className="mt-5 text-3xl font-black leading-tight text-white md:text-4xl">{module.title}</h2>
+        {module.subtitle ? <p className="mt-3 max-w-sm text-sm leading-6 text-slate-300">{module.subtitle}</p> : null}
+        {module.cta ? (
+          <span className="mt-6 inline-flex items-center gap-2 rounded-lg bg-white px-4 py-3 text-sm font-black text-slate-950 transition group-hover:scale-[1.03]">
+            <Play className="h-4 w-4 fill-current" />
+            {module.cta}
+          </span>
+        ) : null}
+      </div>
+      <div className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-black via-black/25 to-transparent" />
+    </div>
+  );
+
+  const galleryPanel = (
+    <div className="relative min-h-[520px] overflow-hidden border-white/10 p-4 lg:border-r">
+      <div className="grid h-full min-h-[500px] grid-cols-12 grid-rows-8 gap-3">
+        {gallery.slice(0, 9).map((media, index) => (
+          <div
+            key={media.id}
+            className={cn(
+              "relative overflow-hidden rounded-lg border border-white/10 bg-white/[0.03] shadow-xl shadow-black/30",
+              DYNAMIC_GALLERY_LAYOUTS[index] ?? "col-span-3 row-span-3",
+            )}
+          >
+            <ExploreModuleMedia
+              media={media}
+              className="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-[1.035]"
+              eager={index < 3}
+            />
+            <div className="absolute inset-0 bg-black/0 transition group-hover:bg-black/5" />
+          </div>
+        ))}
+      </div>
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black via-black/45 to-transparent" />
+      {module.cta ? (
+        <div className="absolute bottom-7 left-1/2 -translate-x-1/2">
+          <span className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white px-5 py-3 text-sm font-black text-slate-950 shadow-2xl shadow-black/45 transition group-hover:scale-[1.04] group-hover:bg-slate-100">
+            {module.cta}
+            <ArrowUpRight className="h-4 w-4" />
+          </span>
+        </div>
+      ) : null}
+    </div>
+  );
+
+  return (
+    <section className="w-full px-5 pb-8 md:px-10 lg:px-14 xl:px-20">
+      <Link
+        href={module.href || "#"}
+        className="group relative mx-auto block max-w-[1440px] overflow-hidden rounded-[1.35rem] border border-white/10 bg-[#07090c] shadow-2xl shadow-black/50"
+      >
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_78%_48%,rgba(124,58,237,0.16),transparent_30%),linear-gradient(90deg,#050506_0%,#0c0813_55%,#050506_100%)]" />
+        <div className={cn("relative grid min-h-[520px] gap-0 lg:grid-cols-[1fr_24rem] xl:grid-cols-[1fr_30rem]", reverse && "lg:grid-cols-[24rem_1fr] xl:grid-cols-[30rem_1fr]")}>
+          {reverse ? (
+            <>
+              <div className="border-b border-white/10 lg:border-b-0 lg:border-r">{heroPanel}</div>
+              {galleryPanel}
+            </>
+          ) : (
+            <>
+              {galleryPanel}
+              {heroPanel}
+            </>
+          )}
+        </div>
+      </Link>
+    </section>
+  );
+}
+
+function DynamicBanner({ module }: { module: ExploreModule }) {
+  return (
+    <section className="w-full px-5 pb-8 md:px-10 lg:px-14 xl:px-20">
+      <Link
+        href={module.href || "#"}
+        className="group relative mx-auto block max-w-[1440px] overflow-hidden rounded-[1.35rem] border border-white/10 bg-[#08090d] shadow-2xl shadow-black/50"
+      >
+        <div className="relative min-h-[430px]">
+          <ExploreModuleMedia
+            media={module.hero}
+            className="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-[1.025]"
+            eager
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/78 via-black/34 to-black/10" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-black/10" />
+          <div className="relative flex min-h-[430px] items-end px-7 py-10 md:px-12 lg:px-16">
+            <div className="flex max-w-2xl flex-wrap items-center gap-3">
+              <span className="inline-flex rounded-lg border border-white/15 bg-black/45 px-4 py-3 text-sm font-black text-white shadow-2xl shadow-black/40 backdrop-blur">
+                {module.title}
+              </span>
+              {module.cta ? (
+                <span className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white px-5 py-3 text-sm font-black text-slate-950 shadow-2xl shadow-black/45 transition group-hover:scale-[1.04] group-hover:bg-slate-100">
+                  {module.cta}
+                  <ArrowUpRight className="h-4 w-4" />
+                </span>
+              ) : null}
+              {module.subtitle ? <p className="basis-full text-sm leading-6 text-white/75">{module.subtitle}</p> : null}
+            </div>
+          </div>
+        </div>
+      </Link>
+    </section>
+  );
+}
+
+function DynamicExploreModule({ module }: { module: ExploreModule }) {
+  if (!module.enabled) return null;
+  if (module.layout === "banner") return <DynamicBanner module={module} />;
+  return <DynamicGallery module={module} reverse={module.layout === "gallery-right"} />;
+}
+
 function formatDuration(seconds: number | null) {
   if (!seconds || !Number.isFinite(seconds)) return "—";
   const s = Math.max(0, Math.floor(seconds));
@@ -978,6 +1141,7 @@ function DiscoverSection({
 }
 
 export default function ExplorePage() {
+  const [cmsModules, setCmsModules] = useState<ExploreModule[]>(DEFAULT_EXPLORE_MODULES);
   const [items, setItems] = useState<ShowcaseItem[]>([]);
   const [itemsCursor, setItemsCursor] = useState<string | null>(null);
   const [featured, setFeatured] = useState<ShowcaseItem[]>([]);
@@ -1012,6 +1176,25 @@ export default function ExplorePage() {
   useEffect(() => {
     void loadInitial();
   }, [loadInitial]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadCms = async () => {
+      try {
+        const res = await fetch("/api/explore/cms", { cache: "no-store" });
+        const json = await res.json().catch(() => null);
+        if (!cancelled && res.ok && Array.isArray(json?.config?.modules)) {
+          setCmsModules(json.config.modules);
+        }
+      } catch {
+        if (!cancelled) setCmsModules(DEFAULT_EXPLORE_MODULES);
+      }
+    };
+    void loadCms();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const loadMore = useCallback(async () => {
     if (loadingMore) return;
@@ -1149,13 +1332,9 @@ export default function ExplorePage() {
 
   return (
     <main className="min-h-screen overflow-hidden bg-[#050812] text-white">
-      <GptImage2ModelAd />
-      <CanvasModelAd />
-      <Seedance2ModelAd />
-      <NextSceneEngineAd />
-      <TransitionsModelAd />
-      <NanoBananaAd />
-      <Kling3ModelAd />
+      {cmsModules.map((module) => (
+        <DynamicExploreModule key={module.id} module={module} />
+      ))}
 
       {sections.map((section) => (
         <DiscoverSection
