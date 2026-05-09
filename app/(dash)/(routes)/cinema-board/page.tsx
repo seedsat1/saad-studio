@@ -12,14 +12,27 @@ import {
   Lightbulb,
   Palette,
   Play,
+  Plus,
   ScanFace,
   Sparkles,
+  Trash2,
   Video,
   Wand2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type PaletteKey = "steel" | "amber" | "noir" | "neon";
+type CharacterRole = "Hero" | "Villain" | "Support" | "Extra";
+
+type CastCharacter = {
+  id: string;
+  name: string;
+  role: CharacterRole;
+  description: string;
+  wardrobe: string;
+  emotion: string;
+  image: string;
+};
 
 const cameraOptions = ["ARRI Alexa Mini LF", "Sony Venice 2", "RED V-Raptor", "Blackmagic URSA 12K"];
 const lensOptions = ["Anamorphic 40mm", "Spherical 28mm", "Macro 100mm", "Handheld 24-70mm"];
@@ -54,11 +67,34 @@ const palettes: Record<PaletteKey, { label: string; colors: string[]; accent: st
   },
 };
 
-const characterRefs = [
-  { title: "Lead profile", note: "front / side / emotion", image: "/seedance%202/1%20(1).webp" },
-  { title: "Action pose", note: "impact / motion / danger", image: "/seedance%202/1%20(4).webp" },
-  { title: "Wardrobe", note: "texture / silhouette", image: "/seedance%202/1%20(7).webp" },
-  { title: "Opponent", note: "neutral / injured / rage", image: "/GPT%20Image%202/SHOT%206.webp" },
+const defaultCharacters: CastCharacter[] = [
+  {
+    id: "hero",
+    name: "Mira",
+    role: "Hero",
+    description: "Masked tactical fighter, controlled movement, sharp eyes, silent threat.",
+    wardrobe: "black tactical suit, textured mask, wet fabric highlights",
+    emotion: "focused, restrained anger",
+    image: "/seedance%202/1%20(1).webp",
+  },
+  {
+    id: "villain",
+    name: "Karim",
+    role: "Villain",
+    description: "Wounded ex-operative, cornered but dangerous, bruised face.",
+    wardrobe: "dark blazer, open collar, blood detail, damp sleeves",
+    emotion: "panic turning into rage",
+    image: "/GPT%20Image%202/SHOT%206.webp",
+  },
+  {
+    id: "support",
+    name: "Nadia",
+    role: "Support",
+    description: "Lookout near the exit, keeps the escape route open.",
+    wardrobe: "long coat, practical boots, concealed earpiece",
+    emotion: "tense and alert",
+    image: "/seedance%202/1%20(7).webp",
+  },
 ];
 
 const environmentRefs = [
@@ -68,20 +104,26 @@ const environmentRefs = [
   { title: "Props", image: "/transitions/1%20(6).webp" },
 ];
 
-function buildShots(scene: string, count: number) {
+function buildShots(scene: string, count: number, characters: CastCharacter[]) {
+  const hero = characters.find((item) => item.role === "Hero") ?? characters[0];
+  const villain = characters.find((item) => item.role === "Villain") ?? characters[1] ?? hero;
+  const support = characters.find((item) => item.role === "Support") ?? characters[2] ?? hero;
+  const heroName = hero?.name || "Hero";
+  const villainName = villain?.name || "Villain";
+  const supportName = support?.name || "Support";
   const beats = [
-    ["Wide establishing", "Slow dolly push", "The location breathes before the first threat appears."],
-    ["Over-shoulder", "Handheld push-in", "The lead enters frame and catches the opponent in the reflection."],
-    ["Tight impact", "Snap zoom", "First collision lands hard, cutting the rhythm into close combat."],
-    ["Low angle", "Tilt reveal", "A prop or environmental hazard becomes part of the choreography."],
-    ["POV insert", "Micro shake", "A breath, glance, or hand movement reveals the next move."],
-    ["Wide impact", "Whip pan", "Bodies cross the frame, breaking glass and changing screen direction."],
-    ["Tracking exit", "Low follow", "The lead moves through the set as the opponent collapses behind."],
-    ["Static aftermath", "Locked frame", "The room settles, smoke and reflections carrying the damage."],
-    ["ECU end beat", "Smash cut", "A final eye-line or object detail sets up the next scene."],
-    ["High angle", "Crane drift", "The geometry of the room clarifies the blocking and escape path."],
-    ["Insert detail", "Rack focus", "Blood, water, dust, fabric, or metal gives the scene tactile memory."],
-    ["Hero frame", "Slow push", "The final composition sells the emotional cost of the scene."],
+    ["Wide establishing", "Slow dolly push", `${heroName} enters the location while ${villainName} is visible in a broken reflection.`],
+    ["Over-shoulder", "Handheld push-in", `${villainName} tracks ${heroName}'s movement and shifts into attack position.`],
+    ["Tight impact", "Snap zoom", `${heroName} blocks the first strike, forcing ${villainName} into the hard practical light.`],
+    ["Low angle", "Tilt reveal", `${supportName} appears near the exit, changing the geography of the scene.`],
+    ["POV insert", "Micro shake", `${heroName} notices a prop or hazard that can turn the fight.`],
+    ["Wide impact", "Whip pan", `${heroName} and ${villainName} cross frame fast, breaking the set rhythm.`],
+    ["Tracking exit", "Low follow", `${supportName} clears the path while ${heroName} drives the action forward.`],
+    ["Static aftermath", "Locked frame", `${villainName} collapses into the background as the room settles.`],
+    ["ECU end beat", "Smash cut", `${heroName}'s eyes hold the final emotional beat before the cut.`],
+    ["High angle", "Crane drift", `The blocking map clarifies ${heroName}, ${villainName}, and ${supportName}'s positions.`],
+    ["Insert detail", "Rack focus", `A detail from ${villainName}'s wardrobe or injury becomes the next story clue.`],
+    ["Hero frame", "Slow push", `${heroName} lands in the final composition, carrying the cost of the scene.`],
   ];
 
   return beats.slice(0, count).map(([type, movement, description], index) => ({
@@ -136,6 +178,80 @@ function MediaTile({ title, note, image }: { title: string; note?: string; image
   );
 }
 
+function CharacterCard({
+  character,
+  onUpdate,
+  onRemove,
+}: {
+  character: CastCharacter;
+  onUpdate: (character: CastCharacter) => void;
+  onRemove: () => void;
+}) {
+  const uploadCharacterImage = (file?: File) => {
+    if (!file) return;
+    onUpdate({ ...character, image: URL.createObjectURL(file) });
+  };
+
+  return (
+    <div className="rounded-xl border border-white/10 bg-white/[0.035] p-3">
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <div className="relative h-12 w-12 overflow-hidden rounded-lg border border-white/10 bg-black/40">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={character.image} alt={character.name} className="h-full w-full object-cover" />
+          </div>
+          <div>
+            <p className="text-sm font-black text-white">{character.name || "Unnamed"}</p>
+            <p className="text-[10px] uppercase tracking-[0.14em] text-cyan-200">{character.role}</p>
+          </div>
+        </div>
+        <button onClick={onRemove} className="rounded-lg border border-red-400/20 bg-red-500/10 p-2 text-red-200 hover:bg-red-500/20">
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      </div>
+      <div className="grid gap-2">
+        <input
+          value={character.name}
+          onChange={(event) => onUpdate({ ...character, name: event.target.value })}
+          placeholder="Character name"
+          className="rounded-lg border border-white/10 bg-slate-950/80 px-3 py-2 text-xs font-semibold text-white outline-none focus:border-cyan-300/60"
+        />
+        <select
+          value={character.role}
+          onChange={(event) => onUpdate({ ...character, role: event.target.value as CharacterRole })}
+          className="rounded-lg border border-white/10 bg-slate-950/80 px-3 py-2 text-xs font-semibold text-white outline-none focus:border-cyan-300/60"
+        >
+          {["Hero", "Villain", "Support", "Extra"].map((role) => <option key={role} value={role}>{role}</option>)}
+        </select>
+        <textarea
+          value={character.description}
+          onChange={(event) => onUpdate({ ...character, description: event.target.value })}
+          rows={2}
+          placeholder="Face, body, identity, screen presence"
+          className="resize-none rounded-lg border border-white/10 bg-slate-950/80 px-3 py-2 text-xs leading-5 text-white outline-none focus:border-cyan-300/60"
+        />
+        <input
+          value={character.wardrobe}
+          onChange={(event) => onUpdate({ ...character, wardrobe: event.target.value })}
+          placeholder="Wardrobe / texture"
+          className="rounded-lg border border-white/10 bg-slate-950/80 px-3 py-2 text-xs text-white outline-none focus:border-cyan-300/60"
+        />
+        <input
+          value={character.emotion}
+          onChange={(event) => onUpdate({ ...character, emotion: event.target.value })}
+          placeholder="Emotion / performance"
+          className="rounded-lg border border-white/10 bg-slate-950/80 px-3 py-2 text-xs text-white outline-none focus:border-cyan-300/60"
+        />
+        <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-white/15 bg-white/[0.03] px-3 py-2 text-xs font-bold text-slate-300 hover:border-white/35">
+          <ImagePlus className="h-3.5 w-3.5" />
+          Character reference
+          <input type="file" accept="image/*" className="hidden" onChange={(event) => uploadCharacterImage(event.target.files?.[0])} />
+        </label>
+      </div>
+    </div>
+  );
+}
+
 export default function CinemaBoardPage() {
   const [sceneTitle, setSceneTitle] = useState("Action Restroom Fight");
   const [scenePrompt, setScenePrompt] = useState("A masked woman ambushes a wounded man inside a wet public restroom.");
@@ -148,14 +264,31 @@ export default function CinemaBoardPage() {
   const [shotCount, setShotCount] = useState(9);
   const [paletteKey, setPaletteKey] = useState<PaletteKey>("steel");
   const [referencePreview, setReferencePreview] = useState<string | null>(null);
+  const [characters, setCharacters] = useState<CastCharacter[]>(defaultCharacters);
 
   const activePalette = palettes[paletteKey];
-  const shots = useMemo(() => buildShots(scenePrompt, shotCount), [scenePrompt, shotCount]);
+  const shots = useMemo(() => buildShots(scenePrompt, shotCount, characters), [scenePrompt, shotCount, characters]);
 
   const uploadReference = (file?: File) => {
     if (!file) return;
     const url = URL.createObjectURL(file);
     setReferencePreview(url);
+  };
+
+  const addCharacter = () => {
+    const index = characters.length + 1;
+    setCharacters((items) => [
+      ...items,
+      {
+        id: `character-${Date.now()}`,
+        name: `Character ${index}`,
+        role: "Extra",
+        description: "Describe the face, body language, and story function.",
+        wardrobe: "wardrobe, texture, silhouette",
+        emotion: "primary emotional state",
+        image: "/GPT%20Image%202/SHOT%205.webp",
+      },
+    ]);
   };
 
   return (
@@ -229,6 +362,32 @@ export default function CinemaBoardPage() {
                   </label>
                   <SelectField label="Aspect" value={aspectRatio} options={["16:9", "2.39:1", "1:1", "9:16"]} onChange={setAspectRatio} />
                 </div>
+              </div>
+            </section>
+
+            <section className="rounded-2xl border border-white/10 bg-slate-950/75 p-4 shadow-2xl shadow-black/30 backdrop-blur">
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <ScanFace className="h-4 w-4 text-cyan-200" />
+                  <h2 className="text-sm font-black uppercase tracking-[0.16em] text-white">Cast Builder</h2>
+                </div>
+                <button
+                  onClick={addCharacter}
+                  className="inline-flex items-center gap-1 rounded-lg bg-cyan-200 px-2.5 py-1.5 text-[11px] font-black text-slate-950 hover:bg-white"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Add
+                </button>
+              </div>
+              <div className="space-y-3">
+                {characters.map((character) => (
+                  <CharacterCard
+                    key={character.id}
+                    character={character}
+                    onUpdate={(updated) => setCharacters((items) => items.map((item) => item.id === updated.id ? updated : item))}
+                    onRemove={() => setCharacters((items) => items.length > 1 ? items.filter((item) => item.id !== character.id) : items)}
+                  />
+                ))}
               </div>
             </section>
 
@@ -311,6 +470,7 @@ export default function CinemaBoardPage() {
                   <span>Style: {style}</span>
                   <span>Camera: {camera}</span>
                   <span>Lens: {lens}</span>
+                  <span>Cast: {characters.map((item) => `${item.name} / ${item.role}`).join(" | ")}</span>
                 </div>
               </div>
 
@@ -318,10 +478,29 @@ export default function CinemaBoardPage() {
                 <section className="rounded-lg border border-white/15 bg-slate-950/70 p-3">
                   <div className="mb-2 flex items-center gap-2 border-b border-white/10 pb-2">
                     <ScanFace className="h-4 w-4 text-cyan-200" />
-                    <h3 className="text-xs font-black uppercase tracking-[0.16em] text-white">A) Character Reference</h3>
+                    <h3 className="text-xs font-black uppercase tracking-[0.16em] text-white">A) Cast / Character Reference</h3>
                   </div>
-                  <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-                    {characterRefs.map((item) => <MediaTile key={item.title} {...item} />)}
+                  <div className="grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-4">
+                    {characters.map((character) => (
+                      <div key={character.id} className="overflow-hidden rounded-lg border border-white/10 bg-black/35">
+                        <div className="relative aspect-[4/3]">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={character.image} alt={character.name} className="h-full w-full object-cover" />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                          <div className="absolute left-2 top-2 rounded bg-black/70 px-2 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-cyan-100">
+                            {character.role}
+                          </div>
+                          <div className="absolute bottom-2 left-2 right-2">
+                            <p className="text-[11px] font-black uppercase tracking-[0.12em] text-white">{character.name}</p>
+                            <p className="mt-0.5 line-clamp-2 text-[9px] leading-4 text-slate-300">{character.description}</p>
+                          </div>
+                        </div>
+                        <div className="space-y-1 p-2 text-[9px] leading-4 text-slate-400">
+                          <p><span className="font-black uppercase text-slate-300">Wardrobe:</span> {character.wardrobe}</p>
+                          <p><span className="font-black uppercase text-slate-300">Emotion:</span> {character.emotion}</p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </section>
 
