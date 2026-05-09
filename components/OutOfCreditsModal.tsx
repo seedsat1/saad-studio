@@ -1,38 +1,12 @@
 "use client";
 
-/**
- * OutOfCreditsModal
- * ─────────────────────────────────────────────────────────────────────────────
- * A high-converting "Out of Credits" modal that renders inside the Studio
- * workspace when a user hits a 402 / insufficient-credits API response.
- *
- * HOW TO TRIGGER (in any client page / component):
- * ─────────────────────────────────────────────────
- *  import { useCreditModal } from "@/hooks/use-credit-modal";
- *
- *  const openCreditModal = useCreditModal((s) => s.onOpen);
- *
- *  // Inside your API call catch block:
- *  try {
- *    const res = await axios.post("/api/generate/image", payload);
- *  } catch (err: any) {
- *    if (err?.response?.status === 402) {
- *      const { requiredCredits, currentBalance } = err.response.data ?? {};
- *      openCreditModal({ requiredCredits, currentBalance });
- *    }
- *  }
- *
- *  // Legacy route check (if the route returns a plain message):
- *  if (data.message === "no credit balance") openCreditModal();
- * ─────────────────────────────────────────────────────────────────────────────
- */
-
 import { useRouter } from "next/navigation";
-import { motion, AnimatePresence, type Variants } from "framer-motion";
-import { BatteryLow, Sparkles, Zap, Crown } from "lucide-react";
+import { AnimatePresence, motion, type Variants } from "framer-motion";
+import { ArrowRight, BatteryLow, Crown, Sparkles, X, Zap } from "lucide-react";
 import { useCreditModal } from "@/hooks/use-credit-modal";
 import { useCmsData } from "@/lib/use-cms-data";
 import { INSUFFICIENT_CREDITS_MESSAGE } from "@/lib/generation-errors";
+import { SaadRobotMascot } from "@/components/site-error-scene";
 
 interface CmsTopup {
   _id?: string;
@@ -54,39 +28,32 @@ const DEFAULT_TOPUPS: CmsTopup[] = [
   { credits: "+500 Credits", price: "$30", pricePerCredit: "$0.060", popular: false },
 ];
 
-// ─── Animation variants ───────────────────────────────────────────────────────
 const backdropVariants: Variants = {
   hidden: { opacity: 0 },
-  visible: { opacity: 1, transition: { duration: 0.25 } },
-  exit: { opacity: 0, transition: { duration: 0.2 } },
+  visible: { opacity: 1, transition: { duration: 0.22 } },
+  exit: { opacity: 0, transition: { duration: 0.18 } },
 };
 
 const cardVariants: Variants = {
-  hidden: { opacity: 0, scale: 0.92, y: 24 },
+  hidden: { opacity: 0, scale: 0.94, y: 18 },
   visible: {
     opacity: 1,
     scale: 1,
     y: 0,
-    transition: { type: "spring", stiffness: 260, damping: 22, delay: 0.05 },
+    transition: { type: "spring", stiffness: 260, damping: 24, delay: 0.04 },
   },
-  exit: {
-    opacity: 0,
-    scale: 0.92,
-    y: 24,
-    transition: { duration: 0.18 },
-  },
+  exit: { opacity: 0, scale: 0.94, y: 18, transition: { duration: 0.16 } },
 };
 
 const tierVariants: Variants = {
-  hidden: { opacity: 0, y: 20 },
+  hidden: { opacity: 0, y: 18 },
   visible: (i: number) => ({
     opacity: 1,
     y: 0,
-    transition: { delay: 0.15 + i * 0.08, duration: 0.35 },
+    transition: { delay: 0.12 + i * 0.05, duration: 0.3 },
   }),
 };
 
-// ─── Component ────────────────────────────────────────────────────────────────
 export default function OutOfCreditsModal() {
   const { isOpen, onClose, requiredCredits, currentBalance } = useCreditModal();
   const router = useRouter();
@@ -103,170 +70,130 @@ export default function OutOfCreditsModal() {
   return (
     <AnimatePresence>
       {isOpen && (
-        // ── Backdrop ────────────────────────────────────────────────────────
         <motion.div
-          key="ooc-backdrop"
-          className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-md flex justify-center items-center p-4"
+          key="credits-backdrop"
+          className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/82 p-4 backdrop-blur-md"
           variants={backdropVariants}
           initial="hidden"
           animate="visible"
           exit="exit"
-          // Close when clicking outside the card
           onClick={onClose}
         >
-          {/* ── Modal Card ──────────────────────────────────────────────── */}
           <motion.div
-            key="ooc-card"
-            className="
-              max-w-5xl w-full bg-slate-900
-              overflow-hidden
-              shadow-[0_0_50px_rgba(59,130,246,0.15)]
-              border border-slate-800
-              rounded-3xl p-8
-            "
+            key="credits-card"
+            className="relative w-full max-w-6xl overflow-hidden rounded-[2rem] border border-white/15 bg-[#0c0c12] shadow-[0_0_0_1px_rgba(255,255,255,.08),0_40px_120px_rgba(0,0,0,.8)]"
             variants={cardVariants}
             initial="hidden"
             animate="visible"
             exit="exit"
-            // Stop backdrop-click propagating through the card
-            onClick={(e) => e.stopPropagation()}
+            onClick={(event) => event.stopPropagation()}
           >
-            {/* ── Top Section ─────────────────────────────────────────── */}
-            <div className="flex flex-col items-center text-center gap-y-3">
-              {/* Animated warning icon */}
-              <motion.div
-                className="relative flex items-center justify-center w-16 h-16 rounded-full bg-amber-500/10 border border-amber-500/30"
-                animate={{
-                  boxShadow: [
-                    "0 0 0px rgba(245,158,11,0)",
-                    "0 0 18px rgba(245,158,11,0.35)",
-                    "0 0 0px rgba(245,158,11,0)",
-                  ],
-                }}
-                transition={{ repeat: Infinity, duration: 2.4, ease: "easeInOut" }}
-              >
-                <BatteryLow className="w-8 h-8 text-amber-400" />
-              </motion.div>
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(34,211,238,.2),transparent_26%),radial-gradient(circle_at_84%_72%,rgba(168,85,247,.18),transparent_28%)]" />
+            <div className="relative flex h-12 items-center border-b border-white/10 bg-white/[0.03]">
+              <div className="flex h-full items-center gap-2 border-r border-white/10 px-4">
+                <span className="flex h-5 w-5 items-center justify-center rounded-md border border-amber-300/40 bg-amber-300/10">
+                  <BatteryLow className="h-3 w-3 text-amber-200" />
+                </span>
+                <span className="text-[10px] font-black uppercase tracking-[0.16em] text-white/70">Credit system</span>
+              </div>
+              <div className="ml-auto px-3">
+                <button onClick={onClose} className="rounded-lg border border-white/10 bg-white/5 p-2 text-white/60 hover:bg-white/10 hover:text-white">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
 
-              <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
-                Insufficient credits
-              </h2>
+            <div className="relative grid gap-6 p-5 sm:p-7 lg:grid-cols-[0.9fr_1.1fr] lg:p-8">
+              <div className="flex flex-col justify-between rounded-3xl border border-white/10 bg-black/25 p-5">
+                <div>
+                  <div className="mb-5 h-px w-44 bg-gradient-to-r from-amber-300 via-cyan-300 to-violet-400" />
+                  <p className="text-[11px] font-black uppercase tracking-[0.24em] text-amber-100/80">Generation paused</p>
+                  <h2 className="mt-4 text-4xl font-light leading-tight text-white sm:text-5xl">
+                    Credits are empty
+                  </h2>
+                  <p className="mt-4 max-w-sm text-sm leading-7 text-slate-300">
+                    {INSUFFICIENT_CREDITS_MESSAGE}
+                  </p>
 
-              <p className="text-slate-400 text-sm sm:text-base max-w-md leading-relaxed">
-                {INSUFFICIENT_CREDITS_MESSAGE}
-              </p>
-
-              {/* Optional credit context badge */}
-              {(requiredCredits !== null || currentBalance !== null) && (
-                <div className="flex gap-3 mt-1 flex-wrap justify-center">
-                  {currentBalance !== null && (
-                    <span className="px-3 py-1 rounded-full bg-slate-800 border border-slate-700 text-xs text-slate-400">
-                      Balance:{" "}
-                      <span className="text-white font-semibold">
-                        {currentBalance} cr
-                      </span>
-                    </span>
-                  )}
-                  {requiredCredits !== null && (
-                    <span className="px-3 py-1 rounded-full bg-slate-800 border border-slate-700 text-xs text-slate-400">
-                      Needed:{" "}
-                      <span className="text-amber-400 font-semibold">
-                        {requiredCredits} cr
-                      </span>
-                    </span>
+                  {(requiredCredits !== null || currentBalance !== null) && (
+                    <div className="mt-5 grid grid-cols-2 gap-3">
+                      <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+                        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Balance</p>
+                        <p className="mt-2 text-2xl font-black text-white">{currentBalance ?? 0}</p>
+                        <p className="text-xs text-slate-500">credits</p>
+                      </div>
+                      <div className="rounded-2xl border border-amber-300/20 bg-amber-300/10 p-4">
+                        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-amber-100/70">Needed</p>
+                        <p className="mt-2 text-2xl font-black text-amber-100">{requiredCredits ?? "-"}</p>
+                        <p className="text-xs text-amber-100/60">credits</p>
+                      </div>
+                    </div>
                   )}
                 </div>
-              )}
-            </div>
 
-            {/* ── Pricing Grid ─────────────────────────────────────────── */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mt-8">
-              {liveTopups.map((tier, i) => {
-                const Icon = iconSet[i % iconSet.length];
-                return (
-                  <motion.div
-                    key={tier._id ?? `${tier.credits}-${tier.price}`}
-                    custom={i}
-                    variants={tierVariants}
-                    initial="hidden"
-                    animate="visible"
-                    whileHover={{ scale: 1.05 }}
-                    transition={{ type: "spring" as const, stiffness: 350, damping: 20 }}
-                    className={`
-                      relative flex flex-col gap-y-3 p-5 rounded-2xl
-                      bg-gradient-to-br ${tier.popular ? "from-amber-600/20 to-orange-700/20" : "from-slate-700 to-slate-800"}
-                      border ${tier.popular ? "border-amber-500" : "border-slate-700"}
-                      ${tier.popular ? "shadow-[0_0_24px_rgba(245,158,11,0.25)]" : ""}
-                    `}
-                  >
-                    {/* Badge */}
-                    {tier.popular && (
-                      <span
+                <div className="mt-7">
+                  <SaadRobotMascot />
+                </div>
+              </div>
+
+              <div>
+                <div className="mb-5">
+                  <p className="text-[11px] font-black uppercase tracking-[0.22em] text-cyan-100/70">Top up instantly</p>
+                  <h3 className="mt-2 text-2xl font-black text-white">Choose extra credits</h3>
+                  <p className="mt-2 text-sm leading-6 text-slate-400">
+                    Pick a pack and continue generating images, videos, scenes, and audio.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  {liveTopups.map((tier, i) => {
+                    const Icon = iconSet[i % iconSet.length];
+                    return (
+                      <motion.div
+                        key={tier._id ?? `${tier.credits}-${tier.price}`}
+                        custom={i}
+                        variants={tierVariants}
+                        initial="hidden"
+                        animate="visible"
+                        whileHover={{ y: -3 }}
                         className={`
-                          absolute -top-3 left-1/2 -translate-x-1/2
-                          px-3 py-0.5 rounded-full text-[11px] font-semibold
-                          whitespace-nowrap
-                          bg-amber-500 text-white
+                          relative overflow-hidden rounded-2xl border p-4
+                          ${tier.popular ? "border-amber-300/50 bg-amber-300/10 shadow-[0_0_30px_rgba(245,158,11,.18)]" : "border-white/10 bg-white/[0.04]"}
                         `}
                       >
-                        Best Value
-                      </span>
-                    )}
+                        {tier.popular && (
+                          <span className="absolute right-3 top-3 rounded-full bg-amber-300 px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-slate-950">
+                            Best value
+                          </span>
+                        )}
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-black/30">
+                          <Icon className={tier.popular ? "h-5 w-5 text-amber-200" : "h-5 w-5 text-cyan-100"} />
+                        </div>
+                        <p className="mt-4 text-2xl font-black text-white">{tier.credits}</p>
+                        <p className="mt-1 text-sm font-bold text-slate-300">{tier.price}</p>
+                        <p className="mt-1 text-xs text-slate-500">{tier.pricePerCredit} per credit</p>
+                        <button
+                          onClick={() => handleBuyNow(tier.credits)}
+                          className={`
+                            mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-black transition
+                            ${tier.popular ? "bg-amber-300 text-slate-950 hover:bg-white" : "bg-white text-slate-950 hover:bg-cyan-100"}
+                          `}
+                        >
+                          Buy credits
+                          <ArrowRight className="h-4 w-4" />
+                        </button>
+                      </motion.div>
+                    );
+                  })}
+                </div>
 
-                    {/* Icon + label */}
-                    <div className="flex items-center gap-2 mt-1">
-                      <Icon
-                        className={`w-5 h-5 ${
-                          tier.popular ? "text-amber-300" : "text-slate-300"
-                        }`}
-                      />
-                      <span className="text-white font-semibold text-sm">Extra Credits</span>
-                    </div>
-
-                    {/* Credits */}
-                    <p className="text-3xl font-bold text-white">
-                      {tier.credits}
-                    </p>
-
-                    {/* Price + per-credit */}
-                    <div className="flex items-end gap-1">
-                      <span className="text-2xl font-bold text-white">
-                        {tier.price}
-                      </span>
-                      <span className="text-xs text-slate-400 mb-0.5">
-                        / {tier.pricePerCredit} per credit
-                      </span>
-                    </div>
-
-                    {/* CTA button */}
-                    <motion.button
-                      whileTap={{ scale: 0.96 }}
-                      onClick={() => handleBuyNow(tier.credits)}
-                      className={`
-                        mt-auto w-full py-2 rounded-xl text-sm font-semibold
-                        transition-colors duration-150
-                        ${tier.popular ? "bg-amber-500 hover:bg-amber-400 text-white" : "bg-slate-700 hover:bg-slate-600 text-white"}
-                      `}
-                    >
-                      Buy Credits
-                    </motion.button>
-                  </motion.div>
-                );
-              })}
-            </div>
-
-            {/* ── Footer ───────────────────────────────────────────────── */}
-            <div className="mt-6 flex flex-col items-center gap-2">
-              <p className="text-xs text-slate-500">
-                Credits never expire &bull; One-time purchase &bull; All AI
-                models included
-              </p>
-              <button
-                onClick={onClose}
-                className="text-slate-500 hover:text-slate-300 transition-colors text-sm underline underline-offset-2"
-              >
-                Maybe Later
-              </button>
+                <div className="mt-5 flex flex-col items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-center">
+                  <p className="text-xs text-slate-400">Credits never expire. One balance for all AI models.</p>
+                  <button onClick={onClose} className="text-sm font-semibold text-slate-500 underline underline-offset-4 hover:text-white">
+                    Maybe later
+                  </button>
+                </div>
+              </div>
             </div>
           </motion.div>
         </motion.div>

@@ -15,7 +15,7 @@ type SiteErrorSceneProps = {
   className?: string;
 };
 
-function RobotMascot() {
+export function SaadRobotMascot() {
   return (
     <div className="relative mx-auto h-[300px] w-[300px] sm:h-[380px] sm:w-[380px]">
       <div className="absolute left-1/2 top-12 h-48 w-48 -translate-x-1/2 animate-[saad-float_4s_ease-in-out_infinite] rounded-[2.2rem] border border-white/45 bg-[linear-gradient(135deg,#f7f4e8,#b9b0a1_45%,#6d6460)] p-3 shadow-[0_0_80px_rgba(103,232,249,.28)]">
@@ -134,7 +134,7 @@ export function SiteErrorScene({
 
             <div className="relative">
               <div className="absolute left-1/2 top-1/2 h-80 w-80 -translate-x-1/2 -translate-y-1/2 rounded-full bg-cyan-300/10 blur-3xl" />
-              <RobotMascot />
+              <SaadRobotMascot />
             </div>
           </div>
         </div>
