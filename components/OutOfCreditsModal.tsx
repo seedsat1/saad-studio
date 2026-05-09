@@ -81,6 +81,7 @@ export default function OutOfCreditsModal() {
         >
           <motion.div
             key="credits-card"
+            data-credits-modal-version="robot-v2"
             className="relative w-full max-w-6xl overflow-hidden rounded-[2rem] border border-white/15 bg-[#0c0c12] shadow-[0_0_0_1px_rgba(255,255,255,.08),0_40px_120px_rgba(0,0,0,.8)]"
             variants={cardVariants}
             initial="hidden"
@@ -104,7 +105,13 @@ export default function OutOfCreditsModal() {
             </div>
 
             <div className="relative grid gap-6 p-5 sm:p-7 lg:grid-cols-[0.9fr_1.1fr] lg:p-8">
-              <div className="flex flex-col justify-between rounded-3xl border border-white/10 bg-black/25 p-5">
+              <div className="flex flex-col rounded-3xl border border-white/10 bg-black/25 p-5">
+                <div className="relative mb-5 h-56 overflow-hidden rounded-3xl border border-white/10 bg-[radial-gradient(circle_at_50%_24%,rgba(34,211,238,.22),transparent_34%),linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.01))]">
+                  <div className="absolute left-1/2 top-[-18px] origin-top -translate-x-1/2 scale-[0.58] sm:scale-[0.64]">
+                    <SaadRobotMascot />
+                  </div>
+                </div>
+
                 <div>
                   <div className="mb-5 h-px w-44 bg-gradient-to-r from-amber-300 via-cyan-300 to-violet-400" />
                   <p className="text-[11px] font-black uppercase tracking-[0.24em] text-amber-100/80">Generation paused</p>
@@ -129,10 +136,6 @@ export default function OutOfCreditsModal() {
                       </div>
                     </div>
                   )}
-                </div>
-
-                <div className="mt-7">
-                  <SaadRobotMascot />
                 </div>
               </div>
 
