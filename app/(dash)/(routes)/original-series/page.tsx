@@ -624,6 +624,13 @@ function createCommercialWorkflow(rawBrief = "Luxury Jewelry Ad") {
 const DEFAULT_WORKFLOW = createCommercialWorkflow();
 const INITIAL_NODES: Node<CanvasNodeData>[] = DEFAULT_WORKFLOW.nodes;
 const INITIAL_EDGES: Edge[] = DEFAULT_WORKFLOW.edges;
+const CANVAS_WORKSPACE_KEY = "ai-canvas-workspace-v1";
+
+type CanvasWorkspace = {
+  name: string;
+  nodes: Node<CanvasNodeData>[];
+  edges: Edge[];
+};
 
 type ProductionAssetKind = "character" | "product" | "environment" | "logo" | "style";
 
@@ -1215,8 +1222,12 @@ function ZoomBar() {
 
 function AICanvasInner() {
   const { fitView, screenToFlowPosition } = useReactFlow();
-  const [nodes, setNodes, onNodesChange] = useNodesState<Node<CanvasNodeData>>(INITIAL_NODES);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(INITIAL_EDGES);
+  const [nodes, setNodes, onNodesChange] = useNodesState<Node<CanvasNodeData>>([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
+  const [canvasNameInput, setCanvasNameInput] = useState("My Canvas");
+  const [canvasName, setCanvasName] = useState("My Canvas");
+  const [hasOpenedCanvas, setHasOpenedCanvas] = useState(false);
+  const [savedWorkspace, setSavedWorkspace] = useState<CanvasWorkspace | null>(null);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [activity, setActivity] = useState<ActivityEntry[]>([]);
   const [isRunning, setIsRunning] = useState(false);
@@ -1234,15 +1245,20 @@ function AICanvasInner() {
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem("ai-canvas-v6");
+      const saved = localStorage.getItem(CANVAS_WORKSPACE_KEY);
       if (!saved) return;
-      const parsed = JSON.parse(saved) as { nodes?: Node<CanvasNodeData>[]; edges?: Edge[] };
-      if (Array.isArray(parsed.nodes) && parsed.nodes.length > 0) setNodes(parsed.nodes);
-      if (Array.isArray(parsed.edges)) setEdges(parsed.edges);
+      const parsed = JSON.parse(saved) as Partial<CanvasWorkspace>;
+      if (!parsed || !Array.isArray(parsed.nodes) || !Array.isArray(parsed.edges)) return;
+      setSavedWorkspace({
+        name: parsed.name || "My Canvas",
+        nodes: parsed.nodes,
+        edges: parsed.edges,
+      });
+      setCanvasNameInput(parsed.name || "My Canvas");
     } catch {
-      // Keep the built-in template if saved canvas data is unavailable.
+      // Start from the creation screen if saved workspace data is unavailable.
     }
-  }, [setNodes, setEdges]);
+  }, []);
 
   useEffect(() => {
     try {
@@ -1758,6 +1774,38 @@ function AICanvasInner() {
     }
   }, [executeNode, addActivity]);
 
+  const openCanvasWorkspace = useCallback((mode: "blank" | "saved" | "template") => {
+    const name = canvasNameInput.trim() || "My Canvas";
+    setCanvasName(name);
+    setHasOpenedCanvas(true);
+    setSelectedNodeId(null);
+
+    if (mode === "saved" && savedWorkspace) {
+      setNodes(savedWorkspace.nodes);
+      setEdges(savedWorkspace.edges);
+      setTimeout(() => fitView({ padding: 0.22, duration: 450 }), 80);
+      return;
+    }
+
+    if (mode === "template") {
+      const workflow = createCommercialWorkflow(name);
+      setNodes(workflow.nodes);
+      setEdges(workflow.edges);
+      assets.forEach(routeAssetToWorkflow);
+      try {
+        localStorage.setItem(CANVAS_WORKSPACE_KEY, JSON.stringify({ name, nodes: workflow.nodes, edges: workflow.edges }));
+      } catch {}
+      setTimeout(() => fitView({ padding: 0.2, duration: 450 }), 80);
+      return;
+    }
+
+    setNodes([]);
+    setEdges([]);
+    try {
+      localStorage.setItem(CANVAS_WORKSPACE_KEY, JSON.stringify({ name, nodes: [], edges: [] }));
+    } catch {}
+  }, [assets, canvasNameInput, fitView, routeAssetToWorkflow, savedWorkspace, setEdges, setNodes]);
+
   const deleteNode = useCallback(
     (id: string) => {
       setNodes(nds => nds.filter(n => n.id !== id));
@@ -1925,12 +1973,14 @@ function AICanvasInner() {
 
   const saveCanvasState = useCallback(() => {
     try {
-      localStorage.setItem("ai-canvas-v6", JSON.stringify({ nodes: nodesRef.current, edges: edgesRef.current }));
+      const workspace = { name: canvasName, nodes: nodesRef.current, edges: edgesRef.current };
+      localStorage.setItem(CANVAS_WORKSPACE_KEY, JSON.stringify(workspace));
+      setSavedWorkspace(workspace);
       addActivity({ nodeId: "", nodeLabel: "Canvas", level: "success", message: "Canvas saved to local storage." });
     } catch {
       addActivity({ nodeId: "", nodeLabel: "Canvas", level: "error", message: "Failed to save canvas." });
     }
-  }, [addActivity]);
+  }, [addActivity, canvasName]);
 
   const buildWorkflowFromBrief = useCallback(async () => {
     const brief = briefInput.trim() || "Luxury Jewelry Ad";
@@ -1949,7 +1999,9 @@ function AICanvasInner() {
       setEdges(workflow.edges);
       assets.forEach(routeAssetToWorkflow);
       setSelectedNodeId(null);
-      localStorage.setItem("ai-canvas-v6", JSON.stringify(workflow));
+      const workspace = { name: canvasName, nodes: workflow.nodes, edges: workflow.edges };
+      localStorage.setItem(CANVAS_WORKSPACE_KEY, JSON.stringify(workspace));
+      setSavedWorkspace(workspace);
       addActivity({
         nodeId: "creative-brief",
         nodeLabel: "AI Workflow Architect",
@@ -1964,7 +2016,9 @@ function AICanvasInner() {
       assets.forEach(routeAssetToWorkflow);
       setSelectedNodeId(null);
       try {
-        localStorage.setItem("ai-canvas-v6", JSON.stringify(fallback));
+        const workspace = { name: canvasName, nodes: fallback.nodes, edges: fallback.edges };
+        localStorage.setItem(CANVAS_WORKSPACE_KEY, JSON.stringify(workspace));
+        setSavedWorkspace(workspace);
       } catch {}
       addActivity({
         nodeId: "creative-brief",
@@ -1976,7 +2030,7 @@ function AICanvasInner() {
       setIsRunning(false);
       setTimeout(() => fitView({ padding: 0.18, duration: 450 }), 80);
     }
-  }, [briefInput, setNodes, setEdges, addActivity, fitView, assets, routeAssetToWorkflow]);
+  }, [briefInput, setNodes, setEdges, addActivity, fitView, assets, routeAssetToWorkflow, canvasName]);
 
   const resetToTemplate = useCallback(() => {
     setNodes(INITIAL_NODES);
@@ -1984,11 +2038,13 @@ function AICanvasInner() {
     assets.forEach(routeAssetToWorkflow);
     setSelectedNodeId(null);
     try {
-      localStorage.setItem("ai-canvas-v6", JSON.stringify({ nodes: INITIAL_NODES, edges: INITIAL_EDGES }));
+      const workspace = { name: canvasName, nodes: INITIAL_NODES, edges: INITIAL_EDGES };
+      localStorage.setItem(CANVAS_WORKSPACE_KEY, JSON.stringify(workspace));
+      setSavedWorkspace(workspace);
     } catch {}
     addActivity({ nodeId: "", nodeLabel: "Template", level: "success", message: "Loaded the commercial production operating system template." });
     setTimeout(() => fitView({ padding: 0.18, duration: 450 }), 80);
-  }, [setNodes, setEdges, addActivity, fitView, assets, routeAssetToWorkflow]);
+  }, [setNodes, setEdges, addActivity, fitView, assets, routeAssetToWorkflow, canvasName]);
 
   const onConnect: OnConnect = useCallback(
     (connection: Connection) => setEdges(eds => addEdge(connection, eds)),
@@ -2006,6 +2062,144 @@ function AICanvasInner() {
   );
   const selectedNode = selectedNodeId ? nodes.find(node => node.id === selectedNodeId) : null;
   const selectedSuperNode = selectedNode?.data.isSuperNode ? selectedNode : null;
+
+  if (!hasOpenedCanvas) {
+    return (
+      <CanvasContext.Provider value={canvasCtx}>
+        <div
+          style={{
+            minHeight: "calc(100vh - 64px)",
+            background:
+              "radial-gradient(circle at 28% 18%, rgba(34,211,238,0.14), transparent 32%), radial-gradient(circle at 76% 26%, rgba(99,102,241,0.14), transparent 34%), #060c18",
+            color: "#e2e8f0",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 24,
+          }}
+        >
+          <div
+            style={{
+              width: "min(760px, 100%)",
+              borderRadius: 24,
+              border: "1px solid rgba(148,163,184,0.16)",
+              background: "linear-gradient(180deg, rgba(15,23,42,0.82), rgba(3,7,18,0.92))",
+              boxShadow: "0 30px 120px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.05)",
+              padding: 28,
+            }}
+          >
+            <div style={{ color: "#67e8f9", fontSize: 11, fontWeight: 900, letterSpacing: "0.18em", textTransform: "uppercase", marginBottom: 14 }}>
+              Saad Studio AI Canvas
+            </div>
+            <h1 style={{ margin: 0, fontSize: 42, lineHeight: 1.05, letterSpacing: 0, fontWeight: 900 }}>
+              Create My Canvas
+            </h1>
+            <p style={{ margin: "14px 0 24px", color: "rgba(203,213,225,0.72)", fontSize: 15, lineHeight: 1.6, maxWidth: 560 }}>
+              Start with a clean production workspace. No scattered nodes appear until you create or open a canvas.
+            </p>
+
+            <label style={{ display: "block", color: "#93c5fd", fontSize: 12, fontWeight: 800, marginBottom: 8 }}>
+              Canvas name
+            </label>
+            <input
+              autoFocus
+              value={canvasNameInput}
+              onChange={event => setCanvasNameInput(event.target.value)}
+              onKeyDown={event => {
+                if (event.key === "Enter") openCanvasWorkspace("blank");
+              }}
+              placeholder="My Canvas"
+              style={{
+                width: "100%",
+                height: 52,
+                borderRadius: 14,
+                border: "1px solid rgba(148,163,184,0.18)",
+                background: "rgba(2,6,23,0.72)",
+                color: "#f8fafc",
+                outline: "none",
+                padding: "0 16px",
+                fontSize: 15,
+                fontWeight: 700,
+                fontFamily: "inherit",
+              }}
+            />
+
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 22 }}>
+              <button
+                type="button"
+                onClick={() => openCanvasWorkspace("blank")}
+                style={{
+                  height: 44,
+                  borderRadius: 13,
+                  border: "1px solid rgba(34,211,238,0.34)",
+                  background: "linear-gradient(135deg, rgba(8,145,178,0.96), rgba(79,70,229,0.92))",
+                  color: "#fff",
+                  padding: "0 18px",
+                  fontSize: 13,
+                  fontWeight: 900,
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                }}
+              >
+                Create empty canvas
+              </button>
+              {savedWorkspace && (
+                <button
+                  type="button"
+                  onClick={() => openCanvasWorkspace("saved")}
+                  style={{
+                    height: 44,
+                    borderRadius: 13,
+                    border: "1px solid rgba(255,255,255,0.12)",
+                    background: "rgba(255,255,255,0.06)",
+                    color: "#e2e8f0",
+                    padding: "0 16px",
+                    fontSize: 13,
+                    fontWeight: 800,
+                    cursor: "pointer",
+                    fontFamily: "inherit",
+                  }}
+                >
+                  Open saved canvas
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => openCanvasWorkspace("template")}
+                style={{
+                  height: 44,
+                  borderRadius: 13,
+                  border: "1px solid rgba(251,191,36,0.22)",
+                  background: "rgba(251,191,36,0.08)",
+                  color: "#fde68a",
+                  padding: "0 16px",
+                  fontSize: 13,
+                  fontWeight: 800,
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                }}
+              >
+                Start with production template
+              </button>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 10, marginTop: 24 }}>
+              {[
+                ["Clean start", "No default graph on entry"],
+                ["Named workspace", "Your canvas title is saved"],
+                ["Production ready", "Build nodes only when needed"],
+              ].map(([title, body]) => (
+                <div key={title} style={{ borderRadius: 14, border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.035)", padding: 13 }}>
+                  <div style={{ color: "#f8fafc", fontSize: 12.5, fontWeight: 850 }}>{title}</div>
+                  <div style={{ color: "rgba(148,163,184,0.72)", fontSize: 11.5, marginTop: 5, lineHeight: 1.35 }}>{body}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </CanvasContext.Provider>
+    );
+  }
 
   return (
     <CanvasContext.Provider value={canvasCtx}>
@@ -2115,7 +2309,7 @@ function AICanvasInner() {
               </span>
               <span style={{ height: 18, width: 1, background: "rgba(255,255,255,0.12)" }} />
               <span style={{ color: "#e2e8f0", fontSize: 13, fontWeight: 700 }}>
-                Untitled workflow
+                {canvasName}
               </span>
               <span style={{ color: "rgba(148,163,184,0.72)", fontSize: 12 }}>
                 {nodes.length} nodes
