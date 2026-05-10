@@ -90,10 +90,10 @@ const INITIAL_NODES: Node<CanvasNodeData>[] = [
     description: "Paste the environment, set, or lighting reference",
   }),
   makeNode("style-prompt", "text-prompt", { x: -280, y: 140 }, {
-    prompt: "Create a premium cinematic campaign using the connected references. Keep the same character identity, same product details, same lighting language, and same brand mood across every generated shot. Use clean composition, realistic materials, controlled motion, no warped hands, no inconsistent product shapes.",
+    prompt: "Create an original luxury jewelry advertising key visual. A sophisticated woman wearing an elegant black evening dress and a ruby-gold jewelry set, standing in a warm dusk desert landscape with soft wind and atmospheric dust. The ruby necklace, earrings, bracelet, and ring should be visually consistent, detailed, and realistic. Warm golden sunset rim light, shallow depth of field, high-end perfume commercial mood, ARRI Alexa look, anamorphic lens, rich contrast, natural skin tones, editorial fashion composition, 16:9 landscape. No text, no logos, no watermark, no distorted hands, no extra fingers, no warped jewelry.",
   }, {
-    label: "Master style prompt",
-    description: "Global prompt shared by every shot",
+    label: "Prompt - campaign key visual",
+    description: "The prompt that produced the generated result",
   }),
   makeNode("shot-wide", "text-to-image", { x: 180, y: -210 }, {
     prompt: "Wide hero shot using the connected character, product, and location references. Show the full scene, premium cinematic lighting, clean brand composition.",
@@ -101,7 +101,9 @@ const INITIAL_NODES: Node<CanvasNodeData>[] = [
     aspectRatio: "16:9",
   }, {
     label: "Nano Banana - wide hero",
-    description: "Generate the campaign hero frame",
+    description: "Generated campaign key visual",
+    status: "done",
+    outputImageUrl: "/ai-canvas-generated/luxury-jewelry-key-visual.png",
   }),
   makeNode("shot-portrait", "text-to-image", { x: 180, y: 130 }, {
     prompt: "Medium portrait using the connected references. Preserve the same identity and product details, cinematic key light, premium ad mood.",
@@ -146,8 +148,10 @@ const INITIAL_NODES: Node<CanvasNodeData>[] = [
     description: "Animate product detail shots",
   }),
   makeNode("final-export", "export", { x: 1080, y: 200 }, undefined, {
-    label: "Campaign export",
-    description: "Collect approved frames and motion clips",
+    label: "Final image output",
+    description: "Complete generated result from the prompt path",
+    status: "done",
+    outputImageUrl: "/ai-canvas-generated/luxury-jewelry-key-visual.png",
   }),
 ];
 
@@ -157,6 +161,7 @@ const INITIAL_EDGES: Edge[] = [
   { id: "style-hand", source: "style-prompt", sourceHandle: "prompt", target: "shot-hand", targetHandle: "prompt", type: "default", style: { stroke: "rgba(216,180,254,0.7)", strokeWidth: 2.5, filter: "drop-shadow(0 0 6px rgba(216,180,254,0.45))" } },
   { id: "style-necklace", source: "style-prompt", sourceHandle: "prompt", target: "shot-necklace", targetHandle: "prompt", type: "default", style: { stroke: "rgba(216,180,254,0.7)", strokeWidth: 2.5, filter: "drop-shadow(0 0 6px rgba(216,180,254,0.45))" } },
   { id: "char-wide", source: "character-ref", sourceHandle: "image", target: "shot-wide", targetHandle: "image", type: "default", style: { stroke: "rgba(94,234,212,0.65)", strokeWidth: 2.5 } },
+  { id: "hero-final", source: "shot-wide", sourceHandle: "image", target: "final-export", targetHandle: "image", type: "default", style: { stroke: "rgba(251,191,36,0.72)", strokeWidth: 3, filter: "drop-shadow(0 0 8px rgba(251,191,36,0.45))" } },
   { id: "product-hand", source: "product-ref", sourceHandle: "image", target: "shot-hand", targetHandle: "image", type: "default", style: { stroke: "rgba(94,234,212,0.65)", strokeWidth: 2.5 } },
   { id: "product-necklace", source: "product-ref", sourceHandle: "image", target: "shot-necklace", targetHandle: "image", type: "default", style: { stroke: "rgba(94,234,212,0.65)", strokeWidth: 2.5 } },
   { id: "wide-motion", source: "shot-wide", sourceHandle: "image", target: "motion-wide", targetHandle: "image", type: "default", style: { stroke: "rgba(16,185,129,0.68)", strokeWidth: 2.5 } },
@@ -570,7 +575,7 @@ function AICanvasInner() {
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem("ai-canvas-v3");
+      const saved = localStorage.getItem("ai-canvas-v4");
       if (!saved) return;
       const parsed = JSON.parse(saved) as { nodes?: Node<CanvasNodeData>[]; edges?: Edge[] };
       if (Array.isArray(parsed.nodes) && parsed.nodes.length > 0) setNodes(parsed.nodes);
@@ -1050,7 +1055,7 @@ function AICanvasInner() {
 
   const saveCanvasState = useCallback(() => {
     try {
-      localStorage.setItem("ai-canvas-v3", JSON.stringify({ nodes: nodesRef.current, edges: edgesRef.current }));
+      localStorage.setItem("ai-canvas-v4", JSON.stringify({ nodes: nodesRef.current, edges: edgesRef.current }));
       addActivity({ nodeId: "", nodeLabel: "Canvas", level: "success", message: "Canvas saved to local storage." });
     } catch {
       addActivity({ nodeId: "", nodeLabel: "Canvas", level: "error", message: "Failed to save canvas." });
@@ -1062,7 +1067,7 @@ function AICanvasInner() {
     setEdges(INITIAL_EDGES);
     setSelectedNodeId(null);
     try {
-      localStorage.setItem("ai-canvas-v3", JSON.stringify({ nodes: INITIAL_NODES, edges: INITIAL_EDGES }));
+      localStorage.setItem("ai-canvas-v4", JSON.stringify({ nodes: INITIAL_NODES, edges: INITIAL_EDGES }));
     } catch {}
     addActivity({ nodeId: "", nodeLabel: "Template", level: "success", message: "Loaded the clean reference workflow template." });
   }, [setNodes, setEdges, addActivity]);
@@ -1105,46 +1110,30 @@ function AICanvasInner() {
           style={{ width: "100%", height: "100%", background: "#060c18" }}
         >
           <Background variant={BackgroundVariant.Dots} gap={32} size={1} color="rgba(255,255,255,0.04)" />
-          <Panel position="top-center" style={{ marginTop: 18, pointerEvents: "none" }}>
+          <Panel position="top-center" style={{ marginTop: 14 }}>
             <div
               style={{
-                width: "min(760px, calc(100vw - 160px))",
-                borderRadius: 22,
-                overflow: "hidden",
-                border: "1px solid rgba(255,255,255,0.12)",
-                background: "rgba(8,13,26,0.72)",
-                boxShadow: "0 24px 90px rgba(0,0,0,0.55)",
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                borderRadius: 14,
+                border: "1px solid rgba(255,255,255,0.08)",
+                background: "rgba(7,12,24,0.78)",
+                backdropFilter: "blur(18px)",
+                boxShadow: "0 10px 36px rgba(0,0,0,0.45)",
+                padding: "9px 12px",
               }}
             >
-              <div
-                style={{
-                  height: 170,
-                  background:
-                    "radial-gradient(circle at 24% 30%, rgba(168,85,247,0.28), transparent 34%), radial-gradient(circle at 76% 56%, rgba(20,184,166,0.22), transparent 34%), linear-gradient(135deg, rgba(15,23,42,0.96), rgba(3,7,18,0.98))",
-                  borderBottom: "1px solid rgba(255,255,255,0.08)",
-                  position: "relative",
-                }}
-              >
-                <div style={{ position: "absolute", inset: 0, backgroundImage: "linear-gradient(rgba(255,255,255,0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.045) 1px, transparent 1px)", backgroundSize: "34px 34px" }} />
-                <div style={{ position: "absolute", left: 24, bottom: 22, display: "flex", gap: 10 }}>
-                  {["Reference", "Prompt", "Image", "Video", "Export"].map((label, index) => (
-                    <div key={label} style={{ padding: "9px 12px", borderRadius: 12, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.11)", color: index === 0 ? "#67e8f9" : index === 2 ? "#fbbf24" : "#cbd5e1", fontSize: 11, fontWeight: 800 }}>
-                      {label}
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div style={{ padding: "18px 22px 20px" }}>
-                <div style={{ fontSize: 12, fontWeight: 900, letterSpacing: "0.22em", color: "rgba(251,191,36,0.78)", textTransform: "uppercase" }}>
-                  Saad Canvas workflow
-                </div>
-                <h1 style={{ margin: "8px 0 0", color: "white", fontSize: "clamp(28px, 4vw, 48px)", lineHeight: 1, fontWeight: 900, letterSpacing: "-0.02em" }}>
-                  Build From <span style={{ color: "#67e8f9" }}>Your References</span>
-                </h1>
-                <p style={{ margin: "10px 0 0", maxWidth: 620, color: "rgba(226,232,240,0.72)", fontSize: 13, lineHeight: 1.7 }}>
-                  Paste your own character, product, and location images. Run image nodes, then run downstream to turn approved frames into video clips.
-                </p>
-              </div>
+              <span style={{ color: "#67e8f9", fontSize: 11, fontWeight: 900, letterSpacing: "0.16em", textTransform: "uppercase" }}>
+                AI Canvas
+              </span>
+              <span style={{ height: 18, width: 1, background: "rgba(255,255,255,0.12)" }} />
+              <span style={{ color: "#e2e8f0", fontSize: 13, fontWeight: 700 }}>
+                Untitled workflow
+              </span>
+              <span style={{ color: "rgba(148,163,184,0.72)", fontSize: 12 }}>
+                {nodes.length} nodes
+              </span>
             </div>
           </Panel>
           <Panel position="bottom-center" style={{ margin: "0 0 14px 0" }}>
