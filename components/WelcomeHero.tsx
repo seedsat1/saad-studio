@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
@@ -54,8 +55,12 @@ const QUICK_TOOLS = [
 
 export default function WelcomeHero() {
   const { user } = useUser();
+  const [greeting, setGreeting] = useState("Welcome back");
   const firstName = user?.firstName || "Creator";
-  const greeting = getGreeting();
+
+  useEffect(() => {
+    setGreeting(getGreeting());
+  }, []);
 
   return (
     <section className="relative overflow-hidden py-12 md:py-16">

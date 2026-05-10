@@ -135,9 +135,6 @@ const IMAGE_MODEL_GROUPS = [
 
 const VIDEO_FEATURES = [
   { label: "Create Video",        href: "/video",           icon: VideoIcon,    color: "text-orange-400",  description: "Text-to-video generation",             badge: "" },
-  { label: "Scene Editor",        href: "/video-editor",    icon: Scissors,     color: "text-cyan-300",    description: "Unified studio shell workspace",      badge: "NEW" },
-  { label: "Cinema Board",        href: "/cinema-board",    icon: Film,         color: "text-cyan-200",    description: "Cinematic previs production sheets", badge: "NEW" },
-  { label: "Next Scene",          href: "/cinema-studio",   icon: Clapperboard, color: "text-violet-400",  description: "Professional cinematic production",      badge: "TOP" },
   { label: "Mixed Media",         href: "/video?tool=mixed-media",      icon: Blend,        color: "text-pink-400",    description: "Combine multiple visual styles",         badge: "" },
   { label: "Edit Video",          href: "/edit",            icon: Scissors,     color: "text-cyan-400",    description: "Advanced AI timeline editing",           badge: "" },
   { label: "Click to Ad",         href: "/video?tool=click-to-ad",      icon: Megaphone,    color: "text-amber-400",   description: "1-click commercial generation",          badge: "" },
@@ -412,13 +409,9 @@ function appHref(app: string): string {
   return APPS_LINK_MAP[app] ?? "/apps";
 }
 
+const SHOW_EXPERIMENTAL_NAV = false;
+
 const STUDIO_LINKS = [
-  { label: "Character", href: "/character", icon: Drama, color: "text-violet-400" },
-  { label: "Scene Editor", href: "/video-editor", icon: Scissors, color: "text-cyan-300" },
-  { label: "Cinema Board", href: "/cinema-board", icon: Film, color: "text-cyan-200" },
-  { label: "Moodboard", href: "/moodboard", icon: Palette, color: "text-rose-400" },
-  { label: "Next Scene", href: "/cinema-studio", icon: Clapperboard, color: "text-amber-400" },
-  { label: "AI Canvas", href: "/original-series", icon: Monitor, color: "text-purple-400" },
   { label: "3D Studio", href: "/3d", icon: Box, color: "text-indigo-400" },
 ];
 
@@ -1019,33 +1012,34 @@ const TopNavbar = () => {
                 ))}
               </div>
 
-              {/* Apps */}
-              <HoverNavItem href="/apps" icon={<LayoutGrid className="h-3 w-3 text-indigo-400" />} label="Apps">
-                <div className="w-[min(760px,calc(100vw-2rem))] p-5">
-                  <div className="mb-4 flex items-center gap-2">
-                    <LayoutGrid className="h-4 w-4 text-indigo-400" />
-                    <h3 className="text-sm font-semibold text-white">All AI Apps</h3>
-                    <span className="rounded-full bg-indigo-500/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-indigo-300 ring-1 ring-indigo-500/30">8 Categories</span>
-                  </div>
-                  <div className="grid grid-cols-4 gap-3">
-                    {APPS_CATEGORIES.map((cat) => (
-                      <div key={cat.category} className={cn("rounded-xl border bg-gradient-to-b p-3 transition-all hover:scale-[1.02]", cat.color, cat.border)}>
-                        <div className="mb-2 flex items-center gap-1.5">
-                          <cat.icon className={cn("h-3.5 w-3.5", cat.iconColor)} />
-                          <span className={cn("text-xs font-bold", cat.iconColor)}>{cat.category}</span>
+              {SHOW_EXPERIMENTAL_NAV && (
+                <HoverNavItem href="/apps" icon={<LayoutGrid className="h-3 w-3 text-indigo-400" />} label="Apps">
+                  <div className="w-[min(760px,calc(100vw-2rem))] p-5">
+                    <div className="mb-4 flex items-center gap-2">
+                      <LayoutGrid className="h-4 w-4 text-indigo-400" />
+                      <h3 className="text-sm font-semibold text-white">All AI Apps</h3>
+                      <span className="rounded-full bg-indigo-500/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-indigo-300 ring-1 ring-indigo-500/30">8 Categories</span>
+                    </div>
+                    <div className="grid grid-cols-4 gap-3">
+                      {APPS_CATEGORIES.map((cat) => (
+                        <div key={cat.category} className={cn("rounded-xl border bg-gradient-to-b p-3 transition-all hover:scale-[1.02]", cat.color, cat.border)}>
+                          <div className="mb-2 flex items-center gap-1.5">
+                            <cat.icon className={cn("h-3.5 w-3.5", cat.iconColor)} />
+                            <span className={cn("text-xs font-bold", cat.iconColor)}>{cat.category}</span>
+                          </div>
+                          <div className="space-y-1">
+                            {cat.apps.map((app) => (
+                              <Link key={app} href={appHref(app)} className="block rounded-md px-2 py-1 text-[11px] text-zinc-400 hover:bg-white/10 hover:text-white transition-colors">
+                                {app}
+                              </Link>
+                            ))}
+                          </div>
                         </div>
-                        <div className="space-y-1">
-                          {cat.apps.map((app) => (
-                            <Link key={app} href={appHref(app)} className="block rounded-md px-2 py-1 text-[11px] text-zinc-400 hover:bg-white/10 hover:text-white transition-colors">
-                              {app}
-                            </Link>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </div>
-              </HoverNavItem>
+                </HoverNavItem>
+              )}
 
               {/* Assist | Gallery */}
               <div className="flex items-center">
@@ -1332,6 +1326,7 @@ const TopNavbar = () => {
               </div>
 
               {/* Apps accordion – 8 categories */}
+              {SHOW_EXPERIMENTAL_NAV && (
               <MobileAccordion
                 label="Apps" href="/apps" badge="8 cats"
                 icon={<LayoutGrid className="h-4 w-4 text-indigo-400" />}
@@ -1356,6 +1351,7 @@ const TopNavbar = () => {
                   ))}
                 </div>
               </MobileAccordion>
+              )}
 
               {/* Assist | Gallery */}
               <div className="grid grid-cols-2 gap-1 pt-0.5">

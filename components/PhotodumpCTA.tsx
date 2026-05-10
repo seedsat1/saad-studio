@@ -187,6 +187,7 @@ export default function PhotodumpCTA() {
                     { bottom: "20%", left: "5%", color: "text-violet-400" },
                     { bottom: "8%", right: "8%", color: "text-pink-400" },
                   ];
+                  const floatDelay = (idx % positions.length) * 0.45;
                   const pos = positions[idx % positions.length];
                   return (
                     <motion.div
@@ -194,7 +195,7 @@ export default function PhotodumpCTA() {
                       className="absolute glass rounded-full px-3 py-1.5 text-[10px] font-bold whitespace-nowrap z-10"
                       style={{ top: pos.top, right: pos.right, bottom: pos.bottom, left: pos.left }}
                       animate={{ y: [0, -5, 0] }}
-                      transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: Math.random() * 2 }}
+                      transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: floatDelay }}
                     >
                       <span className={pos.color}>{label}</span>
                     </motion.div>

@@ -51,7 +51,7 @@ export default function RootLayout({
       signUpForceRedirectUrl="/dash"
       afterSignOutUrl="/"
     >
-      <html lang="en" dir="ltr">
+      <html lang="en" dir="ltr" suppressHydrationWarning>
         <head>
           <meta name="referrer" content="strict-origin-when-cross-origin" />
           <meta httpEquiv="X-Content-Type-Options" content="nosniff" />
