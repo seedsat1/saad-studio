@@ -72,95 +72,81 @@ function makeNode(
 
 const INITIAL_NODES: Node<CanvasNodeData>[] = [
   makeNode("hero", "sticky-note", { x: -720, y: -350 }, {
-    noteText: "Luxury Jewelry AI ad using consistency workflow\n\n1. Lock character, jewelry, and desert references.\n2. Generate multiple campaign frames from the same identity.\n3. Route approved frames into motion nodes for ad clips.",
+    noteText: "Production canvas\n\n1. Paste your own character, product, and location references.\n2. Write one master prompt that controls style and consistency.\n3. Generate image shots, then run downstream to animate approved frames.",
   }, {
-    label: "Workflow brief",
-    description: "Campaign overview and consistency rules",
+    label: "Workflow guide",
+    description: "Use your own references to build a real campaign graph",
   }),
-  makeNode("character-ref", "add-reference", { x: -720, y: -20 }, {
-    imageUrl: "/ai-canvas/jewelry-08.jpg",
-  }, {
+  makeNode("character-ref", "add-reference", { x: -720, y: -20 }, undefined, {
     label: "Character reference",
-    description: "Same model, dress, pose language, and face continuity",
+    description: "Paste your own model, actor, or identity reference",
   }),
-  makeNode("product-ref", "add-reference", { x: -720, y: 320 }, {
-    imageUrl: "/ai-canvas/jewelry-07.jpg",
-  }, {
-    label: "Jewelry reference",
-    description: "Ruby necklace, rings, bracelet, and earrings",
+  makeNode("product-ref", "add-reference", { x: -720, y: 320 }, undefined, {
+    label: "Product reference",
+    description: "Paste the product, wardrobe, prop, or hero object",
   }),
-  makeNode("location-ref", "add-reference", { x: -720, y: 660 }, {
-    imageUrl: "/ai-canvas/jewelry-09.jpg",
-  }, {
-    label: "Desert location",
-    description: "Warm sunset desert, black sand, shallow depth",
+  makeNode("location-ref", "add-reference", { x: -720, y: 660 }, undefined, {
+    label: "Location reference",
+    description: "Paste the environment, set, or lighting reference",
   }),
   makeNode("style-prompt", "text-prompt", { x: -280, y: 140 }, {
-    prompt: "Luxury jewelry campaign, ruby and gold set, same elegant woman in a black dress, sunset desert, black sand, warm cinematic light, shallow depth of field, premium perfume-ad pacing, consistent face, consistent jewelry, no extra fingers, no warped gems.",
+    prompt: "Create a premium cinematic campaign using the connected references. Keep the same character identity, same product details, same lighting language, and same brand mood across every generated shot. Use clean composition, realistic materials, controlled motion, no warped hands, no inconsistent product shapes.",
   }, {
     label: "Master style prompt",
     description: "Global prompt shared by every shot",
   }),
   makeNode("shot-wide", "text-to-image", { x: 180, y: -210 }, {
-    prompt: "Wide cinematic shot of the woman walking through black sand at sunset, ruby necklace visible, long black dress flowing, luxury ad composition.",
+    prompt: "Wide hero shot using the connected character, product, and location references. Show the full scene, premium cinematic lighting, clean brand composition.",
     modelId: "nano-banana-pro",
     aspectRatio: "16:9",
   }, {
-    label: "Gemini 3 / Nano Banana - wide",
-    description: "Hero wide campaign frame",
-    status: "done",
-    outputImageUrl: "/ai-canvas/jewelry-02.jpg",
+    label: "Nano Banana - wide hero",
+    description: "Generate the campaign hero frame",
   }),
   makeNode("shot-portrait", "text-to-image", { x: 180, y: 130 }, {
-    prompt: "Medium portrait of the same woman facing camera, ruby necklace and earrings, sunset rim light, elegant luxury mood.",
+    prompt: "Medium portrait using the connected references. Preserve the same identity and product details, cinematic key light, premium ad mood.",
     modelId: "nano-banana-pro",
     aspectRatio: "16:9",
   }, {
-    label: "Gemini 3 / Nano Banana - portrait",
-    description: "Identity locked beauty frame",
-    status: "done",
-    outputImageUrl: "/ai-canvas/jewelry-05.jpg",
+    label: "Nano Banana - portrait",
+    description: "Generate an identity-focused frame",
   }),
   makeNode("shot-hand", "text-to-image", { x: 180, y: 470 }, {
-    prompt: "Close-up of the same woman's hand touching black sand, ruby bracelet and ring sharp, warm sunset highlights, macro luxury jewelry ad.",
+    prompt: "Close-up product detail using the connected product reference. Show realistic materials, hands, texture, and brand lighting.",
     modelId: "nano-banana-pro",
     aspectRatio: "16:9",
   }, {
-    label: "Gemini 3 / Nano Banana - hand",
-    description: "Macro product detail frame",
-    status: "done",
-    outputImageUrl: "/ai-canvas/jewelry-10.jpg",
+    label: "Nano Banana - product detail",
+    description: "Generate a product macro frame",
   }),
   makeNode("shot-necklace", "text-to-image", { x: 180, y: 810 }, {
-    prompt: "Close-up of ruby necklace and earrings on the same woman, fingers gently touching jewelry, warm golden sunset light, premium cinematic macro.",
+    prompt: "Alternate close-up using the same references. Emphasize product design, texture, and consistent campaign color grade.",
     modelId: "nano-banana-pro",
     aspectRatio: "16:9",
   }, {
-    label: "Gemini 3 / Nano Banana - jewelry close",
-    description: "Hero jewelry macro frame",
-    status: "done",
-    outputImageUrl: "/ai-canvas/jewelry-06.jpg",
+    label: "Nano Banana - alternate detail",
+    description: "Generate a second product detail frame",
   }),
   makeNode("motion-wide", "image-to-video", { x: 650, y: -150 }, {
-    prompt: "Slow dolly push as the woman walks across black sand, dress moving in the wind, sunset flares, luxury commercial pacing.",
+    prompt: "Slow cinematic dolly push from the generated hero image. Preserve identity and product details, premium commercial pacing.",
     modelId: "kling/v2-5-turbo-image-to-video-pro",
     aspectRatio: "16:9",
     duration: 5,
   }, {
-    label: "Kling 2.5 - wide motion",
-    description: "Animate the wide campaign shot",
+    label: "Kling - hero motion",
+    description: "Animate the hero frame",
   }),
   makeNode("motion-product", "image-to-video", { x: 650, y: 560 }, {
-    prompt: "Macro camera glide over ruby jewelry and hand on black sand, soft focus falloff, slow premium motion, warm highlights.",
+    prompt: "Macro camera glide from the generated product image. Keep product shape stable, soft focus falloff, premium motion.",
     modelId: "kling/v2-5-turbo-image-to-video-pro",
     aspectRatio: "16:9",
     duration: 5,
   }, {
-    label: "Kling 2.5 - product motion",
+    label: "Kling - product motion",
     description: "Animate product detail shots",
   }),
   makeNode("final-export", "export", { x: 1080, y: 200 }, undefined, {
-    label: "Ad export",
+    label: "Campaign export",
     description: "Collect approved frames and motion clips",
   }),
 ];
@@ -584,7 +570,7 @@ function AICanvasInner() {
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem("ai-canvas-v2");
+      const saved = localStorage.getItem("ai-canvas-v3");
       if (!saved) return;
       const parsed = JSON.parse(saved) as { nodes?: Node<CanvasNodeData>[]; edges?: Edge[] };
       if (Array.isArray(parsed.nodes) && parsed.nodes.length > 0) setNodes(parsed.nodes);
@@ -1064,7 +1050,7 @@ function AICanvasInner() {
 
   const saveCanvasState = useCallback(() => {
     try {
-      localStorage.setItem("ai-canvas-v2", JSON.stringify({ nodes: nodesRef.current, edges: edgesRef.current }));
+      localStorage.setItem("ai-canvas-v3", JSON.stringify({ nodes: nodesRef.current, edges: edgesRef.current }));
       addActivity({ nodeId: "", nodeLabel: "Canvas", level: "success", message: "Canvas saved to local storage." });
     } catch {
       addActivity({ nodeId: "", nodeLabel: "Canvas", level: "error", message: "Failed to save canvas." });
@@ -1076,9 +1062,9 @@ function AICanvasInner() {
     setEdges(INITIAL_EDGES);
     setSelectedNodeId(null);
     try {
-      localStorage.setItem("ai-canvas-v2", JSON.stringify({ nodes: INITIAL_NODES, edges: INITIAL_EDGES }));
+      localStorage.setItem("ai-canvas-v3", JSON.stringify({ nodes: INITIAL_NODES, edges: INITIAL_EDGES }));
     } catch {}
-    addActivity({ nodeId: "", nodeLabel: "Template", level: "success", message: "Loaded the Luxury Jewelry consistency workflow." });
+    addActivity({ nodeId: "", nodeLabel: "Template", level: "success", message: "Loaded the clean reference workflow template." });
   }, [setNodes, setEdges, addActivity]);
 
   const onConnect: OnConnect = useCallback(
@@ -1132,22 +1118,31 @@ function AICanvasInner() {
             >
               <div
                 style={{
-                  height: 240,
-                  backgroundImage:
-                    "linear-gradient(180deg, rgba(0,0,0,0.05), rgba(0,0,0,0.72)), url('/ai-canvas/jewelry-cover.jpg')",
-                  backgroundSize: "cover",
-                  backgroundPosition: "center",
+                  height: 170,
+                  background:
+                    "radial-gradient(circle at 24% 30%, rgba(168,85,247,0.28), transparent 34%), radial-gradient(circle at 76% 56%, rgba(20,184,166,0.22), transparent 34%), linear-gradient(135deg, rgba(15,23,42,0.96), rgba(3,7,18,0.98))",
+                  borderBottom: "1px solid rgba(255,255,255,0.08)",
+                  position: "relative",
                 }}
-              />
+              >
+                <div style={{ position: "absolute", inset: 0, backgroundImage: "linear-gradient(rgba(255,255,255,0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.045) 1px, transparent 1px)", backgroundSize: "34px 34px" }} />
+                <div style={{ position: "absolute", left: 24, bottom: 22, display: "flex", gap: 10 }}>
+                  {["Reference", "Prompt", "Image", "Video", "Export"].map((label, index) => (
+                    <div key={label} style={{ padding: "9px 12px", borderRadius: 12, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.11)", color: index === 0 ? "#67e8f9" : index === 2 ? "#fbbf24" : "#cbd5e1", fontSize: 11, fontWeight: 800 }}>
+                      {label}
+                    </div>
+                  ))}
+                </div>
+              </div>
               <div style={{ padding: "18px 22px 20px" }}>
                 <div style={{ fontSize: 12, fontWeight: 900, letterSpacing: "0.22em", color: "rgba(251,191,36,0.78)", textTransform: "uppercase" }}>
-                  Consistency workflow
+                  Saad Canvas workflow
                 </div>
                 <h1 style={{ margin: "8px 0 0", color: "white", fontSize: "clamp(28px, 4vw, 48px)", lineHeight: 1, fontWeight: 900, letterSpacing: "-0.02em" }}>
-                  Luxury <span style={{ color: "#dc2626" }}>Jewelry</span> AI Ad
+                  Build From <span style={{ color: "#67e8f9" }}>Your References</span>
                 </h1>
                 <p style={{ margin: "10px 0 0", maxWidth: 620, color: "rgba(226,232,240,0.72)", fontSize: 13, lineHeight: 1.7 }}>
-                  Reference assets feed the same Nano Banana image nodes, then approved frames route into Kling motion nodes for a consistent campaign.
+                  Paste your own character, product, and location images. Run image nodes, then run downstream to turn approved frames into video clips.
                 </p>
               </div>
             </div>
@@ -1243,7 +1238,7 @@ function AICanvasInner() {
             </svg>
           </ToolBtn>
 
-          <ToolBtn title="Load jewelry workflow template" onClick={resetToTemplate}>
+          <ToolBtn title="Load clean reference workflow template" onClick={resetToTemplate}>
             <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
               <path d="M2 3.5h10M2 7h10M2 10.5h10" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
               <path d="M3.2 2.2h7.6v9.6H3.2z" stroke="currentColor" strokeWidth="1.1" opacity=".45"/>
