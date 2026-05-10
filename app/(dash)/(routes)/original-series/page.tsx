@@ -2,7 +2,7 @@
 
 import "@xyflow/react/dist/style.css";
 
-import { useCallback, useEffect, useRef, useState, useMemo, type ComponentType } from "react";
+import { useCallback, useEffect, useRef, useState, useMemo, type ComponentType, type ReactNode } from "react";
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -797,6 +797,8 @@ function Divider() {
 
 // ─── Node Library Panel ───────────────────────────────────────────────────────
 type LibItem = { type: CanvasNodeType; label: string; icon: string; color: string };
+type NodeLibraryTab = "All" | "BASICS" | "MEDIA" | "IMAGE" | "VIDEO" | "TEXT";
+
 const NODE_LIBRARY_SECTIONS: Array<{ title: string; items: LibItem[] }> = [
   {
     title: "BASICS",
@@ -875,6 +877,15 @@ const NODE_LIBRARY_SECTIONS: Array<{ title: string; items: LibItem[] }> = [
   },
 ];
 
+function uniqueLibItems(items: LibItem[]) {
+  const seen = new Set<CanvasNodeType>();
+  return items.filter(item => {
+    if (seen.has(item.type)) return false;
+    seen.add(item.type);
+    return true;
+  });
+}
+
 function NodeLibraryPanel({
   onAdd, onClose,
 }: {
@@ -882,10 +893,22 @@ function NodeLibraryPanel({
   onClose: () => void;
 }) {
   const [q, setQ] = useState("");
-  const allItems = NODE_LIBRARY_SECTIONS.flatMap(s => s.items) as LibItem[];
+  const [activeCategory, setActiveCategory] = useState<NodeLibraryTab>("All");
+  const activeSections = activeCategory === "All"
+    ? NODE_LIBRARY_SECTIONS
+    : NODE_LIBRARY_SECTIONS.filter(s => s.title === activeCategory);
+  const visibleItems = uniqueLibItems(activeSections.flatMap(s => s.items));
   const filtered: LibItem[] | null = q.trim()
-    ? allItems.filter(i => i.label.toLowerCase().includes(q.toLowerCase()))
+    ? visibleItems.filter(i => i.label.toLowerCase().includes(q.toLowerCase()))
     : null;
+  const tabs: Array<{ icon: ReactNode; label: string; category: NodeLibraryTab }> = [
+    { icon: <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="5" height="5" rx="1.2" stroke="currentColor" strokeWidth="1.3"/><rect x="8" y="1" width="5" height="5" rx="1.2" stroke="currentColor" strokeWidth="1.3"/><rect x="1" y="8" width="5" height="5" rx="1.2" stroke="currentColor" strokeWidth="1.3"/><rect x="8" y="8" width="5" height="5" rx="1.2" stroke="currentColor" strokeWidth="1.3"/></svg>, label: "All nodes", category: "All" },
+    { icon: <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><rect x="1.5" y="1.5" width="11" height="11" rx="2" stroke="currentColor" strokeWidth="1.3"/><path d="M4.5 7h5M7 4.5v5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg>, label: "Basics", category: "BASICS" },
+    { icon: <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M2 4.5h4.2l1-1.5H12a1 1 0 0 1 1 1v6.5a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1v-5a1 1 0 0 1 1-1z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/></svg>, label: "Media", category: "MEDIA" },
+    { icon: <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><rect x="1" y="2" width="12" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.3"/><path d="M3.5 9l2-2 2 1.7 1.5-1.2 1.8 1.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/><circle cx="9.8" cy="5.2" r="1" fill="currentColor"/></svg>, label: "Image", category: "IMAGE" },
+    { icon: <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M5.5 2h3M7 2v10M4.5 12h5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg>, label: "Text", category: "TEXT" },
+    { icon: <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><rect x="1" y="2" width="12" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.3"/><path d="M5.5 5.5l3 1.5-3 1.5v-3z" fill="currentColor"/></svg>, label: "Video", category: "VIDEO" },
+  ];
 
   return (
     <div
@@ -923,29 +946,35 @@ function NodeLibraryPanel({
 
       {/* Category icon tabs */}
       <div style={{ display: "flex", gap: 2, padding: "8px 12px", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
-        {[
-          { icon: <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="5" height="5" rx="1.2" stroke="currentColor" strokeWidth="1.3"/><rect x="8" y="1" width="5" height="5" rx="1.2" stroke="currentColor" strokeWidth="1.3"/><rect x="1" y="8" width="5" height="5" rx="1.2" stroke="currentColor" strokeWidth="1.3"/><rect x="8" y="8" width="5" height="5" rx="1.2" stroke="currentColor" strokeWidth="1.3"/></svg>, label: "All" },
-          { icon: <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><rect x="1.5" y="1.5" width="11" height="11" rx="2" stroke="currentColor" strokeWidth="1.3"/><path d="M4.5 7h5M7 4.5v5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg>, label: "Basic" },
-          { icon: <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><rect x="1" y="2" width="12" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.3"/><path d="M5.5 5.5l3 2-3 2v-4z" fill="currentColor"/></svg>, label: "Image" },
-          { icon: <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M2 4h10M2 7h7M2 10h5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg>, label: "Text" },
-          { icon: <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M1 11V5l4 4 3-5 3 3 2-2" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg>, label: "Video" },
-        ].map((tab, i: number) => (
-          <button key={i} title={tab.label} style={{ width: 28, height: 26, borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center", background: i === 0 ? "rgba(255,255,255,0.07)" : "transparent", border: "1px solid transparent", color: i === 0 ? "#94a3b8" : "#3d5573", cursor: "pointer" }}>
+        {tabs.map(tab => {
+          const active = activeCategory === tab.category;
+          return (
+          <button
+            key={tab.category}
+            type="button"
+            title={tab.label}
+            aria-pressed={active}
+            onClick={() => setActiveCategory(tab.category)}
+            style={{ width: 28, height: 26, borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center", background: active ? "rgba(255,255,255,0.08)" : "transparent", border: active ? "1px solid rgba(103,232,249,0.22)" : "1px solid transparent", color: active ? "#94e8ff" : "#3d5573", cursor: "pointer" }}
+          >
             {tab.icon}
           </button>
-        ))}
+          );
+        })}
       </div>
 
       {/* Node list */}
       <div style={{ flex: 1, overflowY: "auto", padding: "8px 0" }}>
         {filtered
-          ? filtered.map(item => (
-              <NodeLibItem key={item.type} item={item} onAdd={onAdd} onClose={onClose} />
-            ))
-          : NODE_LIBRARY_SECTIONS.map(sec => (
+          ? filtered.length > 0
+            ? filtered.map(item => (
+                <NodeLibItem key={item.type} item={item} onAdd={onAdd} onClose={onClose} />
+              ))
+            : <div style={{ padding: "18px 14px", color: "#5f7896", fontSize: 12 }}>No nodes found.</div>
+          : activeSections.map(sec => (
               <div key={sec.title}>
                 <div style={{ padding: "4px 14px 6px", color: "#3a5573", fontSize: 9.5, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase" }}>{sec.title}</div>
-                {sec.items.map(item => (
+                {uniqueLibItems(sec.items).map(item => (
                   <NodeLibItem key={item.type} item={item} onAdd={onAdd} onClose={onClose} />
                 ))}
               </div>
@@ -953,15 +982,6 @@ function NodeLibraryPanel({
         }
       </div>
 
-      {/* Footer shortcuts */}
-      <div style={{ borderTop: "1px solid rgba(255,255,255,0.05)", padding: "7px 14px", display: "flex", gap: 14 }}>
-        {[["N", "Open"], ["↑↓", "Navigate"], ["↵", "Insert"]].map(([k, v]) => (
-          <span key={k} style={{ display: "flex", alignItems: "center", gap: 4 }}>
-            <span style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 4, padding: "1px 6px", fontSize: 9, color: "#5a7a9a", fontWeight: 600 }}>{k}</span>
-            <span style={{ color: "#3a5573", fontSize: 9.5 }}>{v}</span>
-          </span>
-        ))}
-      </div>
     </div>
   );
 }
