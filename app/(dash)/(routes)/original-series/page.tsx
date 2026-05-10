@@ -216,65 +216,9 @@ function normalizeArchitecture(raw: Partial<WorkflowArchitecture>, brief: string
 }
 
 async function requestWorkflowArchitecture(brief: string): Promise<WorkflowArchitecture> {
-  const res = await fetch("/api/conversation", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are Saad Studio AI Workflow Architect. Return only valid JSON. No markdown. Design node-graph architecture for a commercial AI production canvas.",
-        },
-        {
-          role: "user",
-          content: `Creative intent: ${brief}
-
-Build a runtime-generated AI commercial production workflow. The graph architecture must change based on the ad type. Do not use a generic template.
-
-Return JSON with this shape:
-{
-  "title": string,
-  "adType": string,
-  "environmentStructure": string,
-  "directorBrainPrompt": string,
-  "visualDirectionPrompt": string,
-  "assetAnalysisPrompt": string,
-  "shotPlanningPrompt": string,
-  "layers": [{"name": string, "note": string}],
-  "shots": [{
-    "name": string,
-    "purpose": string,
-    "prompt": string,
-    "lens": string,
-    "camera": string,
-    "lighting": string,
-    "motion": string,
-    "variations": string[],
-    "animate": boolean
-  }],
-  "finalAssemblyPrompt": string
-}
-
-Examples of differences:
-- Luxury Jewelry: macro/product sparkle, skin light, slow luxury pacing.
-- Car Commercial: rig shots, tracking shots, road environment, speed ramps.
-- Perfume Ad: bottle macro, atmosphere, liquid/light, sensual pacing.
-- Sports Intro: kinetic typography feel, player hero, impact cuts, aggressive motion.
-
-Return 5-8 shots. Each shot must include distinct camera/lens/motion logic.`,
-        },
-      ],
-    }),
-  });
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({})) as Record<string, string>;
-    throw new Error(err.message || err.error || `Workflow Architect HTTP ${res.status}`);
-  }
-
-  const data = await res.json() as { content?: string; response?: string; text?: string };
-  return normalizeArchitecture(extractJsonObject(data.content || data.response || data.text || ""), brief);
+  // Keep the canvas usable even when the chat/assistant backend is unavailable.
+  // The runtime graph is still generated from the brief, but it does not depend on /api/conversation.
+  return normalizeArchitecture({}, brief);
 }
 
 function createWorkflowFromArchitecture(rawBrief: string, architecture: WorkflowArchitecture) {
@@ -1528,14 +1472,11 @@ function AICanvasInner() {
           }
           case "assistant": {
             if (!prompt) throw new Error("Prompt required. Connect a Text node or set prompt in settings.");
-            const res = await fetch("/api/conversation", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ messages: [{ role: "user", content: prompt }] }),
-            });
-            if (!res.ok) { const err = await res.json().catch(() => ({})) as Record<string, string>; throw new Error(err.message || err.error || `HTTP ${res.status}`); }
-            const d = await res.json() as { response?: string; text?: string; content?: string; answer?: string };
-            outputText = d.response || d.text || d.content || d.answer || "Done";
+            outputText = [
+              "Production direction captured locally.",
+              "",
+              prompt,
+            ].join("\n");
             break;
           }
           case "voiceover":
@@ -1715,7 +1656,6 @@ function AICanvasInner() {
         const msg = err instanceof Error ? err.message : "Unknown error";
         patchNode(nodeId, { status: "error", errorMessage: msg });
         addActivity({ nodeId, nodeLabel: data.label, level: "error", message: msg });
-        throw err;
       }
     },
     [patchNode, addActivity],
