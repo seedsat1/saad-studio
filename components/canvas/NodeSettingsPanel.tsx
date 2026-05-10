@@ -296,7 +296,7 @@ export function NodeSettingsPanel({ nodeId, data, onClose }: NodeSettingsPanelPr
               )}
             </Field>
             <div style={{ color: "#334155", fontSize: 10, lineHeight: 1.5, marginTop: 8 }}>
-              Paste a publicly accessible image URL. File upload coming soon.
+              You can upload directly from the node preview or paste a hosted image URL here.
             </div>
           </>
         )}

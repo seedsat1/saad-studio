@@ -97,6 +97,36 @@ function modelById(id: string | undefined, t: CanvasNodeType) {
 }
 const SP = (e: React.SyntheticEvent) => e.stopPropagation();
 
+async function uploadCanvasMedia(file: File): Promise<string> {
+  const signRes = await fetch("/api/media/upload", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ fileName: file.name, fileType: file.type || "application/octet-stream" }),
+  });
+
+  const signJson = await signRes.json().catch(() => ({})) as {
+    signedUrl?: string;
+    publicUrl?: string;
+    error?: string;
+  };
+
+  if (!signRes.ok || !signJson.signedUrl || !signJson.publicUrl) {
+    throw new Error(signJson.error || "Failed to prepare upload.");
+  }
+
+  const uploadRes = await fetch(signJson.signedUrl, {
+    method: "PUT",
+    headers: { "Content-Type": file.type || "application/octet-stream" },
+    body: file,
+  });
+
+  if (!uploadRes.ok) {
+    throw new Error("Failed to upload file.");
+  }
+
+  return signJson.publicUrl;
+}
+
 // ─── Chip ─────────────────────────────────────────────────────────────────────
 function Chip({ label, active, onClick }: {
   label: React.ReactNode; active?: boolean; onClick: (e: React.MouseEvent) => void;
@@ -579,7 +609,9 @@ function CanvasNodeInner({ id, data, selected }: NodeProps<Node<CanvasNodeData>>
 
   const [openChip, setOpenChip] = useState<"model" | "ar" | "dur" | "res" | "add" | null>(null);
   const [count,    setCount]    = useState(1);
+  const [uploadingAsset, setUploadingAsset] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
+  const assetFileInputRef = useRef<HTMLInputElement>(null);
 
   const toggleChip = (chip: typeof openChip) =>
     setOpenChip(v => v === chip ? null : chip);
@@ -632,6 +664,19 @@ function CanvasNodeInner({ id, data, selected }: NodeProps<Node<CanvasNodeData>>
   const onAdd    = useCallback((e: React.MouseEvent, t: CanvasNodeType) => {
     SP(e); addNodeAfter(id, t); setOpenChip(null);
   }, [id, addNodeAfter]);
+  const onAssetFile = useCallback(async (file?: File | null) => {
+    if (!file) return;
+    setUploadingAsset(true);
+    try {
+      const publicUrl = await uploadCanvasMedia(file);
+      updateNodeSettings(id, { imageUrl: publicUrl });
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : "Upload failed.");
+    } finally {
+      setUploadingAsset(false);
+      if (assetFileInputRef.current) assetFileInputRef.current.value = "";
+    }
+  }, [id, updateNodeSettings]);
 
   // ── text-prompt: compact standalone textarea card ──────────────────────────
   if (data.nodeType === "text-prompt") {
@@ -826,7 +871,34 @@ function CanvasNodeInner({ id, data, selected }: NodeProps<Node<CanvasNodeData>>
           {data.nodeType === "upload-image" && !data.settings.imageUrl && (
             <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12 }}>
               <div style={{ opacity: 0.3, display: "flex" }}><NodeTypeIcon type="upload-image" size={32} color="#3b82f6" strokeWidth={1.4} /></div>
-              <div style={{ color: "#1a2a3c", fontSize: 11 }}>Paste an image URL below</div>
+              <div style={{ color: "#7da2c8", fontSize: 11, fontWeight: 700 }}>{uploadingAsset ? "Uploading..." : "Upload image or paste URL"}</div>
+              <input
+                ref={assetFileInputRef}
+                className="nodrag nowheel"
+                type="file"
+                accept="image/*"
+                style={{ display: "none" }}
+                onChange={e => onAssetFile(e.target.files?.[0])}
+              />
+              <button
+                className="nodrag"
+                disabled={uploadingAsset}
+                onClick={e => { SP(e); assetFileInputRef.current?.click(); }}
+                style={{
+                  height: 32,
+                  borderRadius: 9,
+                  border: "1px solid rgba(59,130,246,0.32)",
+                  background: "rgba(59,130,246,0.12)",
+                  color: "#bfdbfe",
+                  padding: "0 14px",
+                  fontSize: 11,
+                  fontWeight: 800,
+                  cursor: uploadingAsset ? "not-allowed" : "pointer",
+                  fontFamily: "inherit",
+                }}
+              >
+                {uploadingAsset ? "Uploading" : "Upload image"}
+              </button>
               <input className="nodrag nowheel" type="text"
                 placeholder="https://example.com/image.jpg"
                 defaultValue={data.settings.imageUrl ?? ""}
@@ -854,7 +926,34 @@ function CanvasNodeInner({ id, data, selected }: NodeProps<Node<CanvasNodeData>>
           {(data.nodeType === "add-reference" || data.nodeType === "assets" || data.nodeType === "stock") && !data.settings.imageUrl && (
             <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12 }}>
               <div style={{ opacity: 0.3, display: "flex" }}><NodeTypeIcon type={data.nodeType} size={32} color={cfg.accentColor} strokeWidth={1.4} /></div>
-              <div style={{ color: "#1a2a3c", fontSize: 11 }}>Paste an image URL below</div>
+              <div style={{ color: "#7da2c8", fontSize: 11, fontWeight: 700 }}>{uploadingAsset ? "Uploading..." : "Upload reference or paste URL"}</div>
+              <input
+                ref={assetFileInputRef}
+                className="nodrag nowheel"
+                type="file"
+                accept="image/*"
+                style={{ display: "none" }}
+                onChange={e => onAssetFile(e.target.files?.[0])}
+              />
+              <button
+                className="nodrag"
+                disabled={uploadingAsset}
+                onClick={e => { SP(e); assetFileInputRef.current?.click(); }}
+                style={{
+                  height: 32,
+                  borderRadius: 9,
+                  border: `1px solid rgba(${rgb},0.32)`,
+                  background: `rgba(${rgb},0.12)`,
+                  color: "#dbeafe",
+                  padding: "0 14px",
+                  fontSize: 11,
+                  fontWeight: 800,
+                  cursor: uploadingAsset ? "not-allowed" : "pointer",
+                  fontFamily: "inherit",
+                }}
+              >
+                {uploadingAsset ? "Uploading" : "Upload image"}
+              </button>
               <input className="nodrag nowheel" type="text"
                 placeholder="https://example.com/image.jpg"
                 defaultValue={data.settings.imageUrl ?? ""}
@@ -986,7 +1085,7 @@ function CanvasNodeInner({ id, data, selected }: NodeProps<Node<CanvasNodeData>>
 
           {/* Prompt — overlaid at bottom of preview */}
           {showPrompt && !["upload-image", "export", "sticky-note", "list", "add-reference", "assets", "stock"].includes(data.nodeType) && (
-            data.nodeType === "text-prompt" ? (
+            String(data.nodeType) === "text-prompt" ? (
               /* text-prompt: full-area textarea */
               <div style={{
                 position: "absolute", inset: 0,

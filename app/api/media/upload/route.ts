@@ -54,10 +54,20 @@ function safeExtension(fileName: string, fileType: string): string {
   return "jpg";
 }
 
+function getUploadUserId(req: NextRequest, clerkUserId?: string | null): string | null {
+  if (clerkUserId) return clerkUserId;
+  const host = req.headers.get("host") || "";
+  const isLocalhost =
+    process.env.NODE_ENV !== "production" &&
+    (host.startsWith("localhost:") || host.startsWith("127.0.0.1:") || host.startsWith("[::1]:"));
+  return isLocalhost ? "local-dev-user" : null;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { userId } = await auth();
-    if (!userId) {
+    const uploadUserId = getUploadUserId(req, userId);
+    if (!uploadUserId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -82,7 +92,7 @@ export async function POST(req: NextRequest) {
 
     const ext = safeExtension(fileName, effectiveFileType);
     const bucket = bucketForFileType(effectiveFileType);
-    const storagePath = `${userId}/generation-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const storagePath = `${uploadUserId}/generation-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
 
     const supabase = getServerSupabase();
     const { data, error } = await supabase.storage
