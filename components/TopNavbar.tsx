@@ -135,6 +135,9 @@ const IMAGE_MODEL_GROUPS = [
 
 const VIDEO_FEATURES = [
   { label: "Create Video",        href: "/video",           icon: VideoIcon,    color: "text-orange-400",  description: "Text-to-video generation",             badge: "" },
+  { label: "Transitions",         href: "/apps/tool/transitions", icon: Blend, color: "text-cyan-300", description: "Generate styled scene transitions", badge: "READY" },
+  { label: "Storyboard Studio",   href: "/apps/tool/storyboard-studio", icon: Clapperboard, color: "text-violet-300", description: "Create cinematic production boards", badge: "READY" },
+  { label: "Multi-Angle Studio",  href: "/apps/tool/multi-angle-studio", icon: Aperture, color: "text-sky-300", description: "Generate controlled camera angle sets", badge: "READY" },
   { label: "Mixed Media",         href: "/video?tool=mixed-media",      icon: Blend,        color: "text-pink-400",    description: "Combine multiple visual styles",         badge: "" },
   { label: "Edit Video",          href: "/edit",            icon: Scissors,     color: "text-cyan-400",    description: "Advanced AI timeline editing",           badge: "" },
   { label: "Click to Ad",         href: "/video?tool=click-to-ad",      icon: Megaphone,    color: "text-amber-400",   description: "1-click commercial generation",          badge: "" },
@@ -412,6 +415,9 @@ function appHref(app: string): string {
 const SHOW_EXPERIMENTAL_NAV = false;
 
 const STUDIO_LINKS = [
+  { label: "Transitions", href: "/apps/tool/transitions", icon: Blend, color: "text-cyan-300" },
+  { label: "Storyboard", href: "/apps/tool/storyboard-studio", icon: Clapperboard, color: "text-violet-300" },
+  { label: "Multi Angle", href: "/apps/tool/multi-angle-studio", icon: Aperture, color: "text-sky-300" },
   { label: "3D Studio", href: "/3d", icon: Box, color: "text-indigo-400" },
 ];
 
