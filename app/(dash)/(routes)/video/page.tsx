@@ -252,6 +252,18 @@ type CharacterReference = {
   coverUrl?: string | null;
   providerCharacterId?: string | null;
   status: string;
+  metadata?: {
+    characterPackage?: {
+      mainIdentity?: string;
+      faceMemory?: string;
+      bodyProfile?: string;
+      outfitMemory?: string;
+      styleDna?: string;
+      motionReferences?: string;
+      consistencyProfile?: string;
+      states?: Record<string, string>;
+    };
+  };
 };
 
 type CharacterSupportMode = "none" | "image_reference" | "kling_element" | "provider_character_id";
@@ -924,8 +936,19 @@ function VideoPageInner() {
         ? prompt.trim()
         : filledMultiPrompts.map((s) => s.trim()).join(" | ");
       const selectedCharacterTag = selectedCharacter ? normalizeCharacterTag(selectedCharacter.name) : "";
+      const pkg = selectedCharacter?.metadata?.characterPackage;
       const characterPrompt = selectedCharacter && characterSupport.mode !== "kling_element"
-        ? `Use the selected character identity reference: ${selectedCharacter.name}. Preserve the same face, identity, proportions, and recognizable features. ${selectedCharacter.description || ""}`.trim()
+        ? [
+            `Use the selected Character Package: ${selectedCharacter.name}.`,
+            pkg?.mainIdentity ? `Main Identity: ${pkg.mainIdentity}` : selectedCharacter.description,
+            pkg?.faceMemory ? `Face Memory: ${pkg.faceMemory}` : "Preserve the same face, identity, proportions, and recognizable features.",
+            pkg?.bodyProfile ? `Body Profile: ${pkg.bodyProfile}` : "",
+            pkg?.outfitMemory ? `Outfit Memory: ${pkg.outfitMemory}` : "",
+            pkg?.styleDna ? `Style DNA: ${pkg.styleDna}` : "",
+            pkg?.motionReferences ? `Motion Rules: ${pkg.motionReferences}` : "",
+            pkg?.states?.motion ? `Active State: ${pkg.states.motion}` : "",
+            pkg?.consistencyProfile ? `Consistency Profile: ${pkg.consistencyProfile}` : "",
+          ].filter(Boolean).join("\n")
         : "";
       const klingCharacterPrompt = selectedCharacter && characterSupport.mode === "kling_element" && selectedCharacterTag
         ? (basePrompt.includes(`@${selectedCharacterTag}`) ? basePrompt : `@${selectedCharacterTag} ${basePrompt}`.trim())

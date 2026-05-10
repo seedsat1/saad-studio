@@ -9,6 +9,15 @@ type CharacterImageInput = {
   name?: string;
 };
 
+function safeMetadata(input: unknown): Record<string, unknown> {
+  if (!input || typeof input !== "object" || Array.isArray(input)) return {};
+  try {
+    return JSON.parse(JSON.stringify(input)) as Record<string, unknown>;
+  } catch {
+    return {};
+  }
+}
+
 function parseDataUrl(dataUrl: string): { buffer: Buffer; contentType: string } | null {
   const match = dataUrl.match(/^data:([^;,]+);base64,(.+)$/);
   if (!match) return null;
@@ -129,6 +138,7 @@ export async function POST(req: NextRequest) {
     const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
     const name = typeof body.name === "string" && body.name.trim() ? body.name.trim().slice(0, 80) : "Character";
     const description = typeof body.description === "string" ? body.description.trim().slice(0, 1200) : "";
+    const metadataInput = safeMetadata(body.metadata);
     const images = Array.isArray(body.images) ? (body.images as CharacterImageInput[]).slice(0, 24) : [];
     const directUrls = Array.isArray(body.referenceUrls)
       ? (body.referenceUrls as unknown[]).filter((v): v is string => typeof v === "string" && /^https?:\/\//i.test(v))
@@ -145,7 +155,13 @@ export async function POST(req: NextRequest) {
         description,
         referenceUrls: [],
         status: "processing",
-        metadata: { source: "saad-character-library", imageCount: images.length + directUrls.length },
+        metadata: {
+          ...metadataInput,
+          source: "saad-character-library",
+          imageCount: images.length + directUrls.length,
+          productionEntity: metadataInput.productionEntity || "global-character-identity",
+          smartAssetKind: metadataInput.smartAssetKind || "character",
+        },
       },
     });
 
@@ -182,9 +198,12 @@ export async function POST(req: NextRequest) {
         coverUrl: uploadedUrls[0],
         status: "ready",
         metadata: {
+          ...metadataInput,
           source: "saad-character-library",
           imageCount: uploadedUrls.length,
-          note: "Used as a reusable reference image set across generation tools.",
+          productionEntity: metadataInput.productionEntity || "global-character-identity",
+          smartAssetKind: metadataInput.smartAssetKind || "character",
+          note: "Used as a persistent Character Package across production tools.",
         },
       },
     });

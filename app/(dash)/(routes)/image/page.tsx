@@ -102,6 +102,18 @@ type CharacterReference = {
   referenceUrls: string[];
   coverUrl?: string | null;
   status: string;
+  metadata?: {
+    characterPackage?: {
+      mainIdentity?: string;
+      faceMemory?: string;
+      bodyProfile?: string;
+      outfitMemory?: string;
+      styleDna?: string;
+      consistencyProfile?: string;
+      cinematicMetadata?: string[];
+      states?: Record<string, string>;
+    };
+  };
 };
 
 const RATIO_OPTIONS = [
@@ -1163,8 +1175,18 @@ export default function ImageWorkspacePage() {
     const imageUrls = maxRef > 0
       ? [...characterReferenceUrls, ...uploadedReferenceUrls].slice(0, maxRef)
       : [];
+    const pkg = selectedCharacter?.metadata?.characterPackage;
     const characterPrompt = selectedCharacter
-      ? `Use the selected character identity reference: ${selectedCharacter.name}. Preserve the same face, identity, ethnicity, proportions, and recognizable features. ${selectedCharacter.description || ""}`.trim()
+      ? [
+          `Use the selected Character Package: ${selectedCharacter.name}.`,
+          pkg?.mainIdentity ? `Main Identity: ${pkg.mainIdentity}` : selectedCharacter.description,
+          pkg?.faceMemory ? `Face Memory: ${pkg.faceMemory}` : "Preserve the same face, identity, ethnicity, proportions, and recognizable features.",
+          pkg?.bodyProfile ? `Body Profile: ${pkg.bodyProfile}` : "",
+          pkg?.outfitMemory ? `Outfit Memory: ${pkg.outfitMemory}` : "",
+          pkg?.styleDna ? `Style DNA: ${pkg.styleDna}` : "",
+          pkg?.states?.hero ? `Active State: ${pkg.states.hero}` : "",
+          pkg?.consistencyProfile ? `Consistency Profile: ${pkg.consistencyProfile}` : "",
+        ].filter(Boolean).join("\n")
       : "";
     const effectivePrompt = characterPrompt ? `${characterPrompt}\n\n${prompt}` : prompt;
     const body: Record<string, unknown> = { prompt: effectivePrompt, modelId: selectedModel.id, aspectRatio, numImages, quality: qualityOptions.length ? (quality || qualityOptions[0]) : undefined };
