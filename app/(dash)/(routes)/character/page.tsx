@@ -151,21 +151,23 @@ function packageToPrompt(character: CharacterRecord) {
 function RuleGroup({ type, items }: { type: "good" | "avoid"; items: string[] }) {
   const good = type === "good";
   return (
-    <div className="rounded-2xl border border-white/10 bg-[#15171b] p-4">
+    <div className="rounded-2xl border border-white/10 bg-[#15171b] p-5">
       <div className="flex items-center gap-3">
-        <div className={cn("flex h-9 w-9 items-center justify-center rounded-full", good ? "bg-emerald-500 text-black" : "bg-red-500 text-black")}>
-          {good ? <Check className="h-5 w-5" /> : <X className="h-5 w-5" />}
+        <div className={cn("flex h-11 w-11 items-center justify-center rounded-full", good ? "bg-emerald-400 text-black" : "bg-red-500 text-black")}>
+          {good ? <Check className="h-6 w-6" /> : <X className="h-6 w-6" />}
         </div>
         <div>
-          <div className="text-sm font-bold text-white">{good ? "Recommended references" : "Avoid these"}</div>
-          <div className="text-xs text-zinc-500">{good ? "Higher consistency quality" : "These weaken identity memory"}</div>
+          <div className="text-base font-bold text-white">{good ? "Use photos like this" : "Do not upload these"}</div>
+          <div className="text-sm text-zinc-500">{good ? "The system learns identity faster" : "These damage consistency"}</div>
         </div>
       </div>
-      <div className="mt-4 grid grid-cols-2 gap-2">
-        {items.map((item, index) => (
-          <div key={item} className={cn("rounded-xl border p-3 text-xs font-semibold", good ? "border-emerald-400/20 bg-emerald-400/5 text-emerald-100" : "border-red-400/20 bg-red-400/5 text-red-100")}>
-            <div className={cn("mb-2 aspect-[4/3] rounded-lg border", good ? "border-emerald-300/20 bg-gradient-to-br from-zinc-700 to-zinc-900" : "border-red-300/25 bg-gradient-to-br from-zinc-800 to-black")} />
-            {index + 1}. {item}
+      <div className="mt-5 grid gap-2">
+        {items.map((item) => (
+          <div key={item} className={cn("flex items-center gap-3 rounded-xl border px-3 py-3 text-sm font-semibold", good ? "border-emerald-400/20 bg-emerald-400/5 text-emerald-100" : "border-red-400/20 bg-red-400/5 text-red-100")}>
+            <span className={cn("flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-black", good ? "bg-emerald-400" : "bg-red-500")}>
+              {good ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
+            </span>
+            {item}
           </div>
         ))}
       </div>
@@ -336,42 +338,43 @@ export default function CharacterPage() {
 
   return (
     <div className="min-h-screen bg-black text-white">
-      <main className="mx-auto max-w-6xl px-4 py-8">
-        <div className="mb-7 flex items-center justify-between gap-3">
+      <main className="mx-auto max-w-5xl px-5 py-10">
+        <div className="mb-8 flex items-center justify-between gap-4">
           <div>
-            <div className="text-xs text-zinc-500">Characters / <span className="text-zinc-200">New</span></div>
-            <h1 className="mt-2 text-2xl font-semibold tracking-tight">Create Character Identity</h1>
+            <div className="text-sm font-medium text-zinc-500">Characters / <span className="text-zinc-200">New</span></div>
+            <h1 className="mt-3 text-4xl font-semibold tracking-tight">Create Character Identity</h1>
+            <p className="mt-2 max-w-2xl text-base text-zinc-500">Upload one person, build a persistent identity, then reuse it automatically across image, video, and canvas workflows.</p>
           </div>
-          <button onClick={() => void loadCharacters()} className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-zinc-950 px-3 py-2 text-xs font-semibold text-zinc-300 hover:bg-zinc-900">
-            <RefreshCw className="h-3.5 w-3.5" />
+          <button onClick={() => void loadCharacters()} className="inline-flex h-11 items-center gap-2 rounded-xl border border-white/10 bg-zinc-950 px-4 text-sm font-semibold text-zinc-300 hover:bg-zinc-900">
+            <RefreshCw className="h-4 w-4" />
             Refresh
           </button>
         </div>
 
-        <section className="rounded-[22px] border border-white/10 bg-[#111214] p-2 shadow-2xl shadow-black">
-          <label className="group flex min-h-[290px] cursor-pointer flex-col items-center justify-center rounded-[18px] border border-dashed border-white/10 bg-gradient-to-b from-[#232426] to-[#17181a] text-center transition hover:border-lime-300/60">
+        <section className="rounded-[28px] border border-white/10 bg-[#101113] p-3 shadow-2xl shadow-black">
+          <label className="group flex min-h-[390px] cursor-pointer flex-col items-center justify-center rounded-[23px] border border-dashed border-white/10 bg-gradient-to-b from-[#242527] to-[#17181a] text-center transition hover:border-lime-300/60">
             {refs.length === 0 ? (
               <>
-                <span className="inline-flex items-center gap-2 rounded-xl bg-lime-300 px-5 py-3 text-sm font-black text-black transition group-hover:bg-lime-200">
-                  Upload <Upload className="h-4 w-4" />
+                <span className="inline-flex items-center gap-2 rounded-2xl bg-lime-300 px-7 py-4 text-base font-black text-black transition group-hover:bg-lime-200">
+                  Upload character photos <Upload className="h-5 w-5" />
                 </span>
-                <span className="mt-5 text-sm font-semibold text-zinc-400">Upload 10-24 photos for best results</span>
-                <span className="mt-2 max-w-md text-xs leading-5 text-zinc-600">One person, clear face, multiple angles. The system builds a persistent Character Package from these images.</span>
+                <span className="mt-6 text-lg font-semibold text-zinc-300">10-24 photos recommended</span>
+                <span className="mt-2 max-w-lg text-sm leading-6 text-zinc-500">One person, clear face, multiple angles. The system builds a persistent Character Package from these images.</span>
               </>
             ) : (
-              <div className="w-full p-5">
-                <div className="mb-4 flex items-center justify-between">
+              <div className="w-full p-6">
+                <div className="mb-5 flex items-center justify-between">
                   <div className="text-left">
-                    <div className="text-sm font-bold">{refs.length} reference image{refs.length === 1 ? "" : "s"} selected</div>
-                    <div className="text-xs text-zinc-500">Add more angles or continue below.</div>
+                    <div className="text-lg font-bold">{refs.length} reference image{refs.length === 1 ? "" : "s"} selected</div>
+                    <div className="mt-1 text-sm text-zinc-500">Add more angles or continue to identity setup.</div>
                   </div>
-                  <span className="inline-flex items-center gap-2 rounded-xl bg-lime-300 px-4 py-2 text-xs font-black text-black">
-                    Add more <ImagePlus className="h-4 w-4" />
+                  <span className="inline-flex items-center gap-2 rounded-xl bg-lime-300 px-5 py-3 text-sm font-black text-black">
+                    Add more <ImagePlus className="h-5 w-5" />
                   </span>
                 </div>
-                <div className="grid grid-cols-4 gap-2 md:grid-cols-8">
+                <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6">
                   {refs.slice(0, 24).map((ref) => (
-                    <div key={ref.id} className="group/thumb relative aspect-square overflow-hidden rounded-xl border border-white/10 bg-black">
+                    <div key={ref.id} className="group/thumb relative aspect-square overflow-hidden rounded-2xl border border-white/10 bg-black">
                       <img src={ref.dataUrl} alt="" className="h-full w-full object-cover" />
                       <button
                         type="button"
@@ -391,41 +394,41 @@ export default function CharacterPage() {
             <input type="file" accept="image/*" multiple className="hidden" onChange={onPickImages} />
           </label>
 
-          <div className="grid gap-4 p-4 lg:grid-cols-2">
+          <div className="grid gap-4 p-5 lg:grid-cols-2">
             <RuleGroup type="good" items={GOOD_RULES} />
             <RuleGroup type="avoid" items={AVOID_RULES} />
           </div>
         </section>
 
-        <section className="mt-5 grid gap-5 lg:grid-cols-[420px_minmax(0,1fr)]">
-          <div className="rounded-[22px] border border-white/10 bg-[#111214] p-4">
+        <section className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+          <div className="rounded-[28px] border border-white/10 bg-[#111214] p-6">
             <div className="mb-4 flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-lime-300 text-black">
-                <Fingerprint className="h-5 w-5" />
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-lime-300 text-black">
+                <Fingerprint className="h-6 w-6" />
               </div>
               <div>
-                <div className="text-sm font-bold">Identity setup</div>
-                <div className="text-xs text-zinc-500">Only name is required. Advanced memory is optional.</div>
+                <div className="text-lg font-bold">Identity setup</div>
+                <div className="text-sm text-zinc-500">Only name is required. Advanced memory is optional.</div>
               </div>
             </div>
 
-            <div className="space-y-3">
-              <input value={name} onChange={(event) => setName(event.target.value)} placeholder="Character name" className="h-11 w-full rounded-xl border border-white/10 bg-black px-3 text-sm outline-none focus:border-lime-300/60" />
-              <textarea value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Short identity note, role, personality..." rows={3} className="w-full resize-none rounded-xl border border-white/10 bg-black px-3 py-2 text-sm outline-none focus:border-lime-300/60" />
+            <div className="space-y-4">
+              <input value={name} onChange={(event) => setName(event.target.value)} placeholder="Character name" className="h-14 w-full rounded-2xl border border-white/10 bg-black px-4 text-base outline-none focus:border-lime-300/60" />
+              <textarea value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Short identity note, role, personality..." rows={4} className="w-full resize-none rounded-2xl border border-white/10 bg-black px-4 py-3 text-base outline-none focus:border-lime-300/60" />
 
-              <button onClick={() => setShowAdvanced((value) => !value)} className="flex w-full items-center justify-between rounded-xl border border-white/10 bg-zinc-950 px-3 py-3 text-left text-xs font-semibold text-zinc-300 hover:bg-zinc-900">
+              <button onClick={() => setShowAdvanced((value) => !value)} className="flex w-full items-center justify-between rounded-2xl border border-white/10 bg-zinc-950 px-4 py-4 text-left text-sm font-semibold text-zinc-300 hover:bg-zinc-900">
                 Advanced Character Package
                 <span className="text-zinc-500">{showAdvanced ? "Hide" : "Open"}</span>
               </button>
 
               {showAdvanced ? (
                 <div className="space-y-2">
-                  <textarea value={faceNotes} onChange={(event) => setFaceNotes(event.target.value)} placeholder="Face Memory: face shape, eyes, nose, lips, hair, skin tone..." rows={2} className="w-full resize-none rounded-xl border border-white/10 bg-black px-3 py-2 text-sm outline-none focus:border-lime-300/60" />
-                  <textarea value={bodyNotes} onChange={(event) => setBodyNotes(event.target.value)} placeholder="Body Profile: proportions, posture, height impression..." rows={2} className="w-full resize-none rounded-xl border border-white/10 bg-black px-3 py-2 text-sm outline-none focus:border-lime-300/60" />
-                  <textarea value={outfitNotes} onChange={(event) => setOutfitNotes(event.target.value)} placeholder="Outfit Memory: wardrobe, colors, fabric, accessories..." rows={2} className="w-full resize-none rounded-xl border border-white/10 bg-black px-3 py-2 text-sm outline-none focus:border-lime-300/60" />
-                  <textarea value={styleNotes} onChange={(event) => setStyleNotes(event.target.value)} placeholder="Style DNA: mood, commercial identity, lighting language..." rows={2} className="w-full resize-none rounded-xl border border-white/10 bg-black px-3 py-2 text-sm outline-none focus:border-lime-300/60" />
-                  <textarea value={motionNotes} onChange={(event) => setMotionNotes(event.target.value)} placeholder="Motion rules: walk style, face stability, animation limits..." rows={2} className="w-full resize-none rounded-xl border border-white/10 bg-black px-3 py-2 text-sm outline-none focus:border-lime-300/60" />
-                  <input value={cinematicTags} onChange={(event) => setCinematicTags(event.target.value)} placeholder="Cinematic tags, comma separated" className="h-11 w-full rounded-xl border border-white/10 bg-black px-3 text-sm outline-none focus:border-lime-300/60" />
+                  <textarea value={faceNotes} onChange={(event) => setFaceNotes(event.target.value)} placeholder="Face Memory: face shape, eyes, nose, lips, hair, skin tone..." rows={3} className="w-full resize-none rounded-2xl border border-white/10 bg-black px-4 py-3 text-sm outline-none focus:border-lime-300/60" />
+                  <textarea value={bodyNotes} onChange={(event) => setBodyNotes(event.target.value)} placeholder="Body Profile: proportions, posture, height impression..." rows={3} className="w-full resize-none rounded-2xl border border-white/10 bg-black px-4 py-3 text-sm outline-none focus:border-lime-300/60" />
+                  <textarea value={outfitNotes} onChange={(event) => setOutfitNotes(event.target.value)} placeholder="Outfit Memory: wardrobe, colors, fabric, accessories..." rows={3} className="w-full resize-none rounded-2xl border border-white/10 bg-black px-4 py-3 text-sm outline-none focus:border-lime-300/60" />
+                  <textarea value={styleNotes} onChange={(event) => setStyleNotes(event.target.value)} placeholder="Style DNA: mood, commercial identity, lighting language..." rows={3} className="w-full resize-none rounded-2xl border border-white/10 bg-black px-4 py-3 text-sm outline-none focus:border-lime-300/60" />
+                  <textarea value={motionNotes} onChange={(event) => setMotionNotes(event.target.value)} placeholder="Motion rules: walk style, face stability, animation limits..." rows={3} className="w-full resize-none rounded-2xl border border-white/10 bg-black px-4 py-3 text-sm outline-none focus:border-lime-300/60" />
+                  <input value={cinematicTags} onChange={(event) => setCinematicTags(event.target.value)} placeholder="Cinematic tags, comma separated" className="h-12 w-full rounded-2xl border border-white/10 bg-black px-4 text-sm outline-none focus:border-lime-300/60" />
                 </div>
               ) : null}
 
@@ -451,7 +454,7 @@ export default function CharacterPage() {
                 onClick={createCharacter}
                 disabled={!canCreate}
                 className={cn(
-                  "flex h-12 w-full items-center justify-center gap-2 rounded-xl text-sm font-black transition",
+                  "flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-black transition",
                   canCreate ? "bg-lime-300 text-black hover:bg-lime-200" : "cursor-not-allowed bg-white/10 text-zinc-600",
                 )}
               >
@@ -461,17 +464,17 @@ export default function CharacterPage() {
             </div>
           </div>
 
-          <div className="rounded-[22px] border border-white/10 bg-[#111214] p-4">
+          <div className="rounded-[28px] border border-white/10 bg-[#111214] p-6">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h2 className="text-base font-semibold">Character library</h2>
-                <p className="text-xs text-zinc-500">Reusable identities for Image, Video, and AI Canvas.</p>
+                <h2 className="text-xl font-semibold">Character library</h2>
+                <p className="text-sm text-zinc-500">Reusable identities for Image, Video, and AI Canvas.</p>
               </div>
             </div>
 
             <div className="mb-4 rounded-2xl border border-white/10 bg-black p-3">
               <label className="text-[11px] font-black uppercase tracking-[0.16em] text-zinc-500">Test generation prompt</label>
-              <textarea value={variationPrompt} onChange={(event) => setVariationPrompt(event.target.value)} rows={3} className="mt-2 w-full resize-none rounded-xl border border-white/10 bg-[#08090b] px-3 py-2 text-sm outline-none focus:border-lime-300/60" />
+              <textarea value={variationPrompt} onChange={(event) => setVariationPrompt(event.target.value)} rows={4} className="mt-2 w-full resize-none rounded-2xl border border-white/10 bg-[#08090b] px-4 py-3 text-sm outline-none focus:border-lime-300/60" />
             </div>
 
             {loading ? (
