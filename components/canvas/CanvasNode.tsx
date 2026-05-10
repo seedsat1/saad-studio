@@ -70,6 +70,7 @@ const ADD_MENU: Array<{ type: CanvasNodeType; label: string; desc: string; color
   { type: "image-to-video", label: "Animate",     desc: "Image → Video",    color: "#10b981" },
   { type: "video-to-video", label: "Transform",   desc: "Restyle video",    color: "#6366f1" },
   { type: "upscale",        label: "Upscale 4K",  desc: "Enhance res",      color: "#14b8a6" },
+  { type: "connector",      label: "Connector",   desc: "Route line",       color: "#14b8a6" },
   { type: "export",         label: "Export",      desc: "Save & download",  color: "#84cc16" },
 ];
 
@@ -767,6 +768,56 @@ function CanvasNodeInner({ id, data, selected }: NodeProps<Node<CanvasNodeData>>
         </div>
 
         {outHandle}
+      </div>
+    );
+  }
+
+  if (data.nodeType === "connector") {
+    return (
+      <div ref={wrapRef} style={{ position: "relative", width: 190, fontFamily: "'Inter', system-ui, sans-serif" }}>
+        <Handle id="image" type="target" position={Position.Left}
+          style={{
+            width: 18, height: 18, borderRadius: "50%",
+            background: "rgba(8,14,26,0.98)",
+            border: `1.5px solid rgba(${rgb},0.58)`,
+            left: -9, top: "50%", transform: "translateY(-50%)",
+            boxShadow: `0 0 14px rgba(${rgb},0.22)`,
+          }}
+        />
+        <div
+          style={{
+            height: 42,
+            borderRadius: 8,
+            border: selected ? `1.5px solid rgba(${rgb},0.75)` : `1px solid rgba(${rgb},0.28)`,
+            background: "rgba(18,18,22,0.96)",
+            boxShadow: selected ? `0 0 0 3px rgba(${rgb},0.08), 0 12px 32px rgba(0,0,0,0.75)` : "0 8px 24px rgba(0,0,0,0.65)",
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "0 12px",
+          }}
+        >
+          <NodeTypeIcon type="connector" size={13} color={cfg.accentColor} />
+          <span style={{ color: "#c8d6ea", fontSize: 12, fontWeight: 700 }}>{data.label.replace(/ #\d+$/, "")}</span>
+          <span style={{ marginLeft: "auto", color: "#556b83", fontSize: 18, lineHeight: 1 }}>...</span>
+          <button className="nodrag" onClick={onDelete}
+            style={{ background: "transparent", border: "none", color: "#334155", cursor: "pointer", padding: 2 }}
+            title="Delete connector"
+          >
+            <svg width="9" height="9" viewBox="0 0 10 10" fill="none">
+              <path d="M1 1L9 9M9 1L1 9" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
+            </svg>
+          </button>
+        </div>
+        <Handle id="image" type="source" position={Position.Right}
+          style={{
+            width: 18, height: 18, borderRadius: "50%",
+            background: "rgba(8,14,26,0.98)",
+            border: `1.5px solid rgba(${rgb},0.58)`,
+            right: -9, top: "50%", transform: "translateY(-50%)",
+            boxShadow: `0 0 14px rgba(${rgb},0.22)`,
+          }}
+        />
       </div>
     );
   }

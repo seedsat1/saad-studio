@@ -5,7 +5,7 @@ import {
   ZoomIn, Download, Clapperboard, Bot, Mic, Zap, Music,
   TrendingUp, Shuffle, Palette, PenTool, Hexagon,
   MessageCircle, Layers, Scissors, List, FileText,
-  Smile, Link, FolderOpen, Search, Image as ImageIcon,
+  Smile, Link, FolderOpen, Search, Image as ImageIcon, Workflow,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { CanvasNodeType } from "./canvas-types";
@@ -33,6 +33,7 @@ export const NODE_ICON_MAP: Record<CanvasNodeType, LucideIcon> = {
   "video-combiner":  Layers,
   "media-extractor": Scissors,
   "list":            List,
+  "connector":       Workflow,
   "sticky-note":     FileText,
   "stickers":        Smile,
   "add-reference":   Link,

@@ -23,6 +23,7 @@ export type CanvasNodeType =
   | 'video-combiner'
   | 'media-extractor'
   | 'list'
+  | 'connector'
   | 'sticky-note'
   | 'stickers'
   | 'add-reference'
@@ -410,6 +411,20 @@ export const NODE_CONFIGS: Record<CanvasNodeType, NodeTypeConfig> = {
     hasVideoOutput: false,
     hasTextOutput: true,
     defaultSettings: { noteText: '' },
+  },
+  connector: {
+    label: 'Connector',
+    description: 'Route image output through a clean relay node',
+    emoji: '↔',
+    accentColor: '#14b8a6',
+    creditCost: 0,
+    hasImageInput: true,
+    hasVideoInput: false,
+    hasPromptInput: false,
+    hasImageOutput: true,
+    hasVideoOutput: false,
+    hasTextOutput: false,
+    defaultSettings: {},
   },
   'sticky-note': {
     label: 'Sticky Note',

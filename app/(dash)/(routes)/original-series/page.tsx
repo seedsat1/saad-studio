@@ -806,6 +806,7 @@ const NODE_LIBRARY_SECTIONS: Array<{ title: string; items: LibItem[] }> = [
       { type: "text-to-video"  as const, label: "Video Generator", icon: "🎬",  color: "#10b981" },
       { type: "assistant"      as const, label: "Assistant",       icon: "✨",  color: "#6366f1" },
       { type: "upscale"        as const, label: "Image Upscaler",  icon: "⬆",  color: "#14b8a6" },
+      { type: "connector"      as const, label: "Connector",       icon: "↔",  color: "#14b8a6" },
       { type: "list"           as const, label: "List",            icon: "≡",   color: "#64748b" },
     ],
   },
@@ -866,6 +867,7 @@ const NODE_LIBRARY_SECTIONS: Array<{ title: string; items: LibItem[] }> = [
     title: "UTILITIES",
     items: [
       { type: "list"           as const, label: "List",            icon: "≡",   color: "#64748b" },
+      { type: "connector"      as const, label: "Connector",       icon: "↔",  color: "#14b8a6" },
       { type: "sticky-note"    as const, label: "Sticky Note",     icon: "📝",  color: "#fbbf24" },
       { type: "stickers"       as const, label: "Stickers",        icon: "😊",  color: "#f43f5e" },
       { type: "export"         as const, label: "Export",          icon: "📥",  color: "#84cc16" },
@@ -1199,6 +1201,7 @@ function AICanvasInner() {
   const [activity, setActivity] = useState<ActivityEntry[]>([]);
   const [isRunning, setIsRunning] = useState(false);
   const [showAddMenu, setShowAddMenu] = useState(false);
+  const [showWorkflowBuilder, setShowWorkflowBuilder] = useState(false);
   const [showAssetsPanel, setShowAssetsPanel] = useState(false);
   const [briefInput, setBriefInput] = useState("Luxury Jewelry Ad");
   const [assets, setAssets] = useState<ProductionAsset[]>([]);
@@ -1628,6 +1631,15 @@ function AICanvasInner() {
             if (!outputAudioUrl) throw new Error("No audio URL returned from media extractor.");
             break;
           }
+          case "connector": {
+            outputImageUrl = imageUrl;
+            outputVideoUrl = videoUrl;
+            outputText = prompt || undefined;
+            if (!outputImageUrl && !outputVideoUrl && !outputText) {
+              throw new Error("Connector needs an input connection.");
+            }
+            break;
+          }
           case "list":
           case "sticky-note":
           case "add-reference":
@@ -1876,8 +1888,8 @@ function AICanvasInner() {
         y: window.innerHeight / 2,
       });
       const pos = {
-        x: Math.round(center.x - (type === "text-prompt" ? 170 : 240)),
-        y: Math.round(center.y - (type === "text-prompt" ? 80 : 150)),
+        x: Math.round(center.x - (type === "text-prompt" ? 170 : type === "connector" ? 95 : 240)),
+        y: Math.round(center.y - (type === "text-prompt" ? 80 : type === "connector" ? 21 : 150)),
       };
       const id = `node-${Date.now()}`;
       const newNode: Node<CanvasNodeData> = {
@@ -1999,6 +2011,7 @@ function AICanvasInner() {
           style={{ width: "100%", height: "100%", background: "#060c18" }}
         >
           <Background variant={BackgroundVariant.Dots} gap={32} size={1} color="rgba(255,255,255,0.04)" />
+          {showWorkflowBuilder && (
           <Panel position="top-left" style={{ marginTop: 14, marginLeft: 18 }}>
             <div
               style={{
@@ -2062,6 +2075,7 @@ function AICanvasInner() {
               </div>
             </div>
           </Panel>
+          )}
           <Panel position="top-center" style={{ marginTop: 14 }}>
             <div
               style={{
@@ -2150,6 +2164,18 @@ function AICanvasInner() {
               />
             )}
           </div>
+
+          <ToolBtn
+            active={showWorkflowBuilder}
+            title={showWorkflowBuilder ? "Hide workflow builder" : "Open workflow builder"}
+            onClick={() => setShowWorkflowBuilder(v => !v)}
+            accent="#38bdf8"
+          >
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M2 3.5h10M2 7h6M2 10.5h8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+              <path d="M10.5 6.2l1.3.8-1.3.8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </ToolBtn>
 
           <ToolBtn
             active={showAssetsPanel}
