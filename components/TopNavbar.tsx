@@ -418,6 +418,7 @@ const STUDIO_LINKS = [
   { label: "Transitions", href: "/apps/tool/transitions", icon: Blend, color: "text-cyan-300" },
   { label: "Storyboard", href: "/apps/tool/storyboard-studio", icon: Clapperboard, color: "text-violet-300" },
   { label: "Multi Angle", href: "/apps/tool/multi-angle-studio", icon: Aperture, color: "text-sky-300" },
+  { label: "AI Canvas", href: "/original-series", icon: Monitor, color: "text-purple-400" },
   { label: "3D Studio", href: "/3d", icon: Box, color: "text-indigo-400" },
 ];
 

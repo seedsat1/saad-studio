@@ -2,7 +2,7 @@
 
 import "@xyflow/react/dist/style.css";
 
-import { useCallback, useRef, useState, useMemo, type ComponentType } from "react";
+import { useCallback, useEffect, useRef, useState, useMemo, type ComponentType } from "react";
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -51,6 +51,7 @@ function makeNode(
   type: CanvasNodeType,
   position: { x: number; y: number },
   settingsOverride?: Partial<CanvasNodeSettings>,
+  dataOverride?: Partial<CanvasNodeData>,
 ): Node<CanvasNodeData> {
   const cfg = NODE_CONFIGS[type];
   return {
@@ -64,40 +65,118 @@ function makeNode(
       status: "idle",
       settings: { ...cfg.defaultSettings, ...settingsOverride },
       creditCost: cfg.creditCost,
+      ...dataOverride,
     },
   };
 }
 
 const INITIAL_NODES: Node<CanvasNodeData>[] = [
-  makeNode("n1", "text-prompt", { x: 80, y: 220 }, {
-    prompt: "A cinematic shot of a futuristic cityscape at night, neon lights, rain, ultra realistic",
+  makeNode("hero", "sticky-note", { x: -720, y: -350 }, {
+    noteText: "Luxury Jewelry AI ad using consistency workflow\n\n1. Lock character, jewelry, and desert references.\n2. Generate multiple campaign frames from the same identity.\n3. Route approved frames into motion nodes for ad clips.",
+  }, {
+    label: "Workflow brief",
+    description: "Campaign overview and consistency rules",
   }),
-  makeNode("n2", "text-to-image", { x: 360, y: 170 }),
-  makeNode("n3", "image-to-video", { x: 640, y: 140 }, {
-    prompt: "Smooth cinematic pan, rain falling, dramatic lighting",
+  makeNode("character-ref", "add-reference", { x: -720, y: -20 }, {
+    imageUrl: "/ai-canvas/jewelry-08.jpg",
+  }, {
+    label: "Character reference",
+    description: "Same model, dress, pose language, and face continuity",
   }),
-  makeNode("n4", "export", { x: 930, y: 160 }),
+  makeNode("product-ref", "add-reference", { x: -720, y: 320 }, {
+    imageUrl: "/ai-canvas/jewelry-07.jpg",
+  }, {
+    label: "Jewelry reference",
+    description: "Ruby necklace, rings, bracelet, and earrings",
+  }),
+  makeNode("location-ref", "add-reference", { x: -720, y: 660 }, {
+    imageUrl: "/ai-canvas/jewelry-09.jpg",
+  }, {
+    label: "Desert location",
+    description: "Warm sunset desert, black sand, shallow depth",
+  }),
+  makeNode("style-prompt", "text-prompt", { x: -280, y: 140 }, {
+    prompt: "Luxury jewelry campaign, ruby and gold set, same elegant woman in a black dress, sunset desert, black sand, warm cinematic light, shallow depth of field, premium perfume-ad pacing, consistent face, consistent jewelry, no extra fingers, no warped gems.",
+  }, {
+    label: "Master style prompt",
+    description: "Global prompt shared by every shot",
+  }),
+  makeNode("shot-wide", "text-to-image", { x: 180, y: -210 }, {
+    prompt: "Wide cinematic shot of the woman walking through black sand at sunset, ruby necklace visible, long black dress flowing, luxury ad composition.",
+    modelId: "nano-banana-pro",
+    aspectRatio: "16:9",
+  }, {
+    label: "Gemini 3 / Nano Banana - wide",
+    description: "Hero wide campaign frame",
+    status: "done",
+    outputImageUrl: "/ai-canvas/jewelry-02.jpg",
+  }),
+  makeNode("shot-portrait", "text-to-image", { x: 180, y: 130 }, {
+    prompt: "Medium portrait of the same woman facing camera, ruby necklace and earrings, sunset rim light, elegant luxury mood.",
+    modelId: "nano-banana-pro",
+    aspectRatio: "16:9",
+  }, {
+    label: "Gemini 3 / Nano Banana - portrait",
+    description: "Identity locked beauty frame",
+    status: "done",
+    outputImageUrl: "/ai-canvas/jewelry-05.jpg",
+  }),
+  makeNode("shot-hand", "text-to-image", { x: 180, y: 470 }, {
+    prompt: "Close-up of the same woman's hand touching black sand, ruby bracelet and ring sharp, warm sunset highlights, macro luxury jewelry ad.",
+    modelId: "nano-banana-pro",
+    aspectRatio: "16:9",
+  }, {
+    label: "Gemini 3 / Nano Banana - hand",
+    description: "Macro product detail frame",
+    status: "done",
+    outputImageUrl: "/ai-canvas/jewelry-10.jpg",
+  }),
+  makeNode("shot-necklace", "text-to-image", { x: 180, y: 810 }, {
+    prompt: "Close-up of ruby necklace and earrings on the same woman, fingers gently touching jewelry, warm golden sunset light, premium cinematic macro.",
+    modelId: "nano-banana-pro",
+    aspectRatio: "16:9",
+  }, {
+    label: "Gemini 3 / Nano Banana - jewelry close",
+    description: "Hero jewelry macro frame",
+    status: "done",
+    outputImageUrl: "/ai-canvas/jewelry-06.jpg",
+  }),
+  makeNode("motion-wide", "image-to-video", { x: 650, y: -150 }, {
+    prompt: "Slow dolly push as the woman walks across black sand, dress moving in the wind, sunset flares, luxury commercial pacing.",
+    modelId: "kling/v2-5-turbo-image-to-video-pro",
+    aspectRatio: "16:9",
+    duration: 5,
+  }, {
+    label: "Kling 2.5 - wide motion",
+    description: "Animate the wide campaign shot",
+  }),
+  makeNode("motion-product", "image-to-video", { x: 650, y: 560 }, {
+    prompt: "Macro camera glide over ruby jewelry and hand on black sand, soft focus falloff, slow premium motion, warm highlights.",
+    modelId: "kling/v2-5-turbo-image-to-video-pro",
+    aspectRatio: "16:9",
+    duration: 5,
+  }, {
+    label: "Kling 2.5 - product motion",
+    description: "Animate product detail shots",
+  }),
+  makeNode("final-export", "export", { x: 1080, y: 200 }, undefined, {
+    label: "Ad export",
+    description: "Collect approved frames and motion clips",
+  }),
 ];
 
 const INITIAL_EDGES: Edge[] = [
-  {
-    id: "e1-2", source: "n1", sourceHandle: "prompt",
-    target: "n2", targetHandle: "prompt",
-    type: "default",
-    style: { stroke: "rgba(139,92,246,0.6)", strokeWidth: 2.5, filter: "drop-shadow(0 0 6px rgba(139,92,246,0.45))" },
-  },
-  {
-    id: "e2-3", source: "n2", sourceHandle: "image",
-    target: "n3", targetHandle: "image",
-    type: "default",
-    style: { stroke: "rgba(59,130,246,0.6)", strokeWidth: 2.5, filter: "drop-shadow(0 0 6px rgba(59,130,246,0.45))" },
-  },
-  {
-    id: "e3-4", source: "n3", sourceHandle: "video",
-    target: "n4", targetHandle: "video",
-    type: "default",
-    style: { stroke: "rgba(16,185,129,0.6)", strokeWidth: 2.5, filter: "drop-shadow(0 0 6px rgba(16,185,129,0.45))" },
-  },
+  { id: "style-wide", source: "style-prompt", sourceHandle: "prompt", target: "shot-wide", targetHandle: "prompt", type: "default", style: { stroke: "rgba(216,180,254,0.7)", strokeWidth: 2.5, filter: "drop-shadow(0 0 6px rgba(216,180,254,0.45))" } },
+  { id: "style-portrait", source: "style-prompt", sourceHandle: "prompt", target: "shot-portrait", targetHandle: "prompt", type: "default", style: { stroke: "rgba(216,180,254,0.7)", strokeWidth: 2.5, filter: "drop-shadow(0 0 6px rgba(216,180,254,0.45))" } },
+  { id: "style-hand", source: "style-prompt", sourceHandle: "prompt", target: "shot-hand", targetHandle: "prompt", type: "default", style: { stroke: "rgba(216,180,254,0.7)", strokeWidth: 2.5, filter: "drop-shadow(0 0 6px rgba(216,180,254,0.45))" } },
+  { id: "style-necklace", source: "style-prompt", sourceHandle: "prompt", target: "shot-necklace", targetHandle: "prompt", type: "default", style: { stroke: "rgba(216,180,254,0.7)", strokeWidth: 2.5, filter: "drop-shadow(0 0 6px rgba(216,180,254,0.45))" } },
+  { id: "char-wide", source: "character-ref", sourceHandle: "image", target: "shot-wide", targetHandle: "image", type: "default", style: { stroke: "rgba(94,234,212,0.65)", strokeWidth: 2.5 } },
+  { id: "product-hand", source: "product-ref", sourceHandle: "image", target: "shot-hand", targetHandle: "image", type: "default", style: { stroke: "rgba(94,234,212,0.65)", strokeWidth: 2.5 } },
+  { id: "product-necklace", source: "product-ref", sourceHandle: "image", target: "shot-necklace", targetHandle: "image", type: "default", style: { stroke: "rgba(94,234,212,0.65)", strokeWidth: 2.5 } },
+  { id: "wide-motion", source: "shot-wide", sourceHandle: "image", target: "motion-wide", targetHandle: "image", type: "default", style: { stroke: "rgba(16,185,129,0.68)", strokeWidth: 2.5 } },
+  { id: "hand-motion", source: "shot-hand", sourceHandle: "image", target: "motion-product", targetHandle: "image", type: "default", style: { stroke: "rgba(16,185,129,0.68)", strokeWidth: 2.5 } },
+  { id: "motion-export-a", source: "motion-wide", sourceHandle: "video", target: "final-export", targetHandle: "video", type: "default", style: { stroke: "rgba(251,191,36,0.62)", strokeWidth: 2.5 } },
+  { id: "motion-export-b", source: "motion-product", sourceHandle: "video", target: "final-export", targetHandle: "video", type: "default", style: { stroke: "rgba(251,191,36,0.62)", strokeWidth: 2.5 } },
 ];
 
 async function pollVideoTask(taskId: string): Promise<string> {
@@ -147,6 +226,22 @@ function topoSort(nodes: Node<CanvasNodeData>[], edges: Edge[]): Node<CanvasNode
     }
   }
   return sorted;
+}
+
+function downstreamSort(startId: string, nodes: Node<CanvasNodeData>[], edges: Edge[]): Node<CanvasNodeData>[] {
+  const seen = new Set<string>();
+  const queue = [startId];
+  while (queue.length > 0) {
+    const id = queue.shift()!;
+    for (const edge of edges.filter(e => e.source === id)) {
+      if (!seen.has(edge.target)) {
+        seen.add(edge.target);
+        queue.push(edge.target);
+      }
+    }
+  }
+  const sorted = topoSort(nodes.filter(n => seen.has(n.id)), edges.filter(e => seen.has(e.source) && seen.has(e.target)));
+  return sorted.filter(n => seen.has(n.id));
 }
 
 // ─── Floating toolbar helpers ─────────────────────────────────────────────────
@@ -487,6 +582,18 @@ function AICanvasInner() {
   nodesRef.current = nodes;
   edgesRef.current = edges;
 
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("ai-canvas-v2");
+      if (!saved) return;
+      const parsed = JSON.parse(saved) as { nodes?: Node<CanvasNodeData>[]; edges?: Edge[] };
+      if (Array.isArray(parsed.nodes) && parsed.nodes.length > 0) setNodes(parsed.nodes);
+      if (Array.isArray(parsed.edges)) setEdges(parsed.edges);
+    } catch {
+      // Keep the built-in template if saved canvas data is unavailable.
+    }
+  }, [setNodes, setEdges]);
+
   const patchNode = useCallback(
     (id: string, patch: Partial<CanvasNodeData>) => {
       setNodes(nds => nds.map(n => n.id === id ? { ...n, data: { ...n.data, ...patch } } : n));
@@ -524,6 +631,7 @@ function AICanvasInner() {
 
       try {
         const inEdges = allEdges.filter(e => e.target === nodeId);
+        const inputImageUrls: string[] = [];
         let inputImageUrl: string | undefined;
         let inputVideoUrl: string | undefined;
         let inputPrompt: string | undefined;
@@ -533,13 +641,17 @@ function AICanvasInner() {
           if (!src) continue;
           const sd = src.data;
           if (sd.nodeType === "text-prompt") inputPrompt = sd.settings.prompt;
-          else if (sd.nodeType === "upload-image") inputImageUrl = sd.settings.imageUrl;
-          else if (sd.outputImageUrl) inputImageUrl = sd.outputImageUrl;
+          else if (["upload-image", "add-reference", "assets", "stock"].includes(sd.nodeType) && sd.settings.imageUrl) {
+            inputImageUrls.push(sd.settings.imageUrl);
+          }
+          else if (sd.outputImageUrl) inputImageUrls.push(sd.outputImageUrl);
           else if (sd.outputVideoUrl) inputVideoUrl = sd.outputVideoUrl;
         }
 
         const prompt = inputPrompt || s.prompt || "";
-        const imageUrl = inputImageUrl || s.imageUrl;
+        if (s.imageUrl) inputImageUrls.push(s.imageUrl);
+        inputImageUrl = inputImageUrls[0];
+        const imageUrl = inputImageUrl;
         const videoUrl = inputVideoUrl || s.videoUrl;
 
         let outputImageUrl: string | undefined;
@@ -553,7 +665,7 @@ function AICanvasInner() {
             const res = await fetch("/api/generate/image", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ prompt, modelId: s.modelId || "nano-banana-pro", aspectRatio: s.aspectRatio || "1:1", negativePrompt: s.negativePrompt }),
+              body: JSON.stringify({ prompt, modelId: s.modelId || "nano-banana-pro", aspectRatio: s.aspectRatio || "1:1", negativePrompt: s.negativePrompt, imageUrls: inputImageUrls }),
             });
             if (!res.ok) { const err = await res.json().catch(() => ({})) as Record<string, string>; throw new Error(err.message || err.error || `HTTP ${res.status}`); }
             const d = await res.json() as { imageUrl?: string; mediaUrl?: string; imageUrls?: string[] };
@@ -567,7 +679,7 @@ function AICanvasInner() {
             const res = await fetch("/api/generate/image", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ prompt, modelId: s.modelId || "nano-banana-pro", aspectRatio: s.aspectRatio || "1:1", imageUrl }),
+              body: JSON.stringify({ prompt, modelId: s.modelId || "nano-banana-pro", aspectRatio: s.aspectRatio || "1:1", imageUrl, imageUrls: inputImageUrls }),
             });
             if (!res.ok) { const err = await res.json().catch(() => ({})) as Record<string, string>; throw new Error(err.message || err.error || `HTTP ${res.status}`); }
             const d = await res.json() as { imageUrl?: string; mediaUrl?: string; imageUrls?: string[] };
@@ -709,7 +821,7 @@ function AICanvasInner() {
             const res = await fetch("/api/generate/image", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ prompt: prompt || "create a variation of this image", modelId: s.modelId || "nano-banana-pro", imageUrl, aspectRatio: s.aspectRatio || "1:1" }),
+              body: JSON.stringify({ prompt: prompt || "create a variation of this image", modelId: s.modelId || "nano-banana-pro", imageUrl, imageUrls: inputImageUrls, aspectRatio: s.aspectRatio || "1:1" }),
             });
             if (!res.ok) { const err = await res.json().catch(() => ({})) as Record<string, string>; throw new Error(err.message || err.error || `HTTP ${res.status}`); }
             const d = await res.json() as { imageUrl?: string; mediaUrl?: string; imageUrls?: string[] };
@@ -843,6 +955,33 @@ function AICanvasInner() {
     runNode(selectedNodeId);
   }, [selectedNodeId, runNode, addActivity]);
 
+  const runDownstream = useCallback(async () => {
+    if (!selectedNodeId) {
+      addActivity({ nodeId: "", nodeLabel: "Canvas", level: "warn", message: "Select a node first, then click Run Downstream." });
+      return;
+    }
+    const allNodes = nodesRef.current;
+    const allEdges = edgesRef.current;
+    const sorted = downstreamSort(selectedNodeId, allNodes, allEdges);
+    if (sorted.length === 0) {
+      addActivity({ nodeId: selectedNodeId, nodeLabel: "Canvas", level: "warn", message: "No downstream nodes connected to the selected node." });
+      return;
+    }
+    setIsRunning(true);
+    addActivity({ nodeId: selectedNodeId, nodeLabel: "Downstream", level: "info", message: `Running ${sorted.length} downstream node(s)...` });
+    try {
+      for (const node of sorted) {
+        if (["text-prompt", "upload-image", "list", "sticky-note", "add-reference", "assets", "stock"].includes(node.data.nodeType)) continue;
+        await executeNode(node.id);
+      }
+      addActivity({ nodeId: selectedNodeId, nodeLabel: "Downstream", level: "success", message: "Downstream workflow completed." });
+    } catch {
+      addActivity({ nodeId: selectedNodeId, nodeLabel: "Downstream", level: "error", message: "Downstream workflow stopped due to a node error." });
+    } finally {
+      setIsRunning(false);
+    }
+  }, [selectedNodeId, executeNode, addActivity]);
+
   const runFullPipeline = useCallback(async () => {
     const allNodes = nodesRef.current;
     const allEdges = edgesRef.current;
@@ -925,12 +1064,22 @@ function AICanvasInner() {
 
   const saveCanvasState = useCallback(() => {
     try {
-      localStorage.setItem("ai-canvas-v1", JSON.stringify({ nodes: nodesRef.current, edges: edgesRef.current }));
+      localStorage.setItem("ai-canvas-v2", JSON.stringify({ nodes: nodesRef.current, edges: edgesRef.current }));
       addActivity({ nodeId: "", nodeLabel: "Canvas", level: "success", message: "Canvas saved to local storage." });
     } catch {
       addActivity({ nodeId: "", nodeLabel: "Canvas", level: "error", message: "Failed to save canvas." });
     }
   }, [addActivity]);
+
+  const resetToTemplate = useCallback(() => {
+    setNodes(INITIAL_NODES);
+    setEdges(INITIAL_EDGES);
+    setSelectedNodeId(null);
+    try {
+      localStorage.setItem("ai-canvas-v2", JSON.stringify({ nodes: INITIAL_NODES, edges: INITIAL_EDGES }));
+    } catch {}
+    addActivity({ nodeId: "", nodeLabel: "Template", level: "success", message: "Loaded the Luxury Jewelry consistency workflow." });
+  }, [setNodes, setEdges, addActivity]);
 
   const onConnect: OnConnect = useCallback(
     (connection: Connection) => setEdges(eds => addEdge(connection, eds)),
@@ -970,6 +1119,39 @@ function AICanvasInner() {
           style={{ width: "100%", height: "100%", background: "#060c18" }}
         >
           <Background variant={BackgroundVariant.Dots} gap={32} size={1} color="rgba(255,255,255,0.04)" />
+          <Panel position="top-center" style={{ marginTop: 18, pointerEvents: "none" }}>
+            <div
+              style={{
+                width: "min(760px, calc(100vw - 160px))",
+                borderRadius: 22,
+                overflow: "hidden",
+                border: "1px solid rgba(255,255,255,0.12)",
+                background: "rgba(8,13,26,0.72)",
+                boxShadow: "0 24px 90px rgba(0,0,0,0.55)",
+              }}
+            >
+              <div
+                style={{
+                  height: 240,
+                  backgroundImage:
+                    "linear-gradient(180deg, rgba(0,0,0,0.05), rgba(0,0,0,0.72)), url('/ai-canvas/jewelry-cover.jpg')",
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
+                }}
+              />
+              <div style={{ padding: "18px 22px 20px" }}>
+                <div style={{ fontSize: 12, fontWeight: 900, letterSpacing: "0.22em", color: "rgba(251,191,36,0.78)", textTransform: "uppercase" }}>
+                  Consistency workflow
+                </div>
+                <h1 style={{ margin: "8px 0 0", color: "white", fontSize: "clamp(28px, 4vw, 48px)", lineHeight: 1, fontWeight: 900, letterSpacing: "-0.02em" }}>
+                  Luxury <span style={{ color: "#dc2626" }}>Jewelry</span> AI Ad
+                </h1>
+                <p style={{ margin: "10px 0 0", maxWidth: 620, color: "rgba(226,232,240,0.72)", fontSize: 13, lineHeight: 1.7 }}>
+                  Reference assets feed the same Nano Banana image nodes, then approved frames route into Kling motion nodes for a consistent campaign.
+                </p>
+              </div>
+            </div>
+          </Panel>
           <Panel position="bottom-center" style={{ margin: "0 0 14px 0" }}>
             <ZoomBar />
           </Panel>
@@ -1051,8 +1233,8 @@ function AICanvasInner() {
 
           <Divider />
 
-          {/* Fit view */}
-          <ToolBtn title="Fit view" onClick={saveCanvasState}>
+          {/* Save canvas */}
+          <ToolBtn title="Save canvas" onClick={saveCanvasState}>
             <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
               <rect x="1" y="1" width="4" height="4" rx="1" stroke="currentColor" strokeWidth="1.5"/>
               <rect x="9" y="1" width="4" height="4" rx="1" stroke="currentColor" strokeWidth="1.5"/>
@@ -1061,11 +1243,25 @@ function AICanvasInner() {
             </svg>
           </ToolBtn>
 
+          <ToolBtn title="Load jewelry workflow template" onClick={resetToTemplate}>
+            <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
+              <path d="M2 3.5h10M2 7h10M2 10.5h10" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+              <path d="M3.2 2.2h7.6v9.6H3.2z" stroke="currentColor" strokeWidth="1.1" opacity=".45"/>
+            </svg>
+          </ToolBtn>
+
           {/* Run selected */}
           <ToolBtn title="Run selected node" onClick={runSelectedNode} disabled={!selectedNodeId}>
             <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
               <circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.5"/>
               <path d="M5.5 5l3.5 2-3.5 2V5z" fill="currentColor"/>
+            </svg>
+          </ToolBtn>
+
+          <ToolBtn title="Run downstream from selected node" onClick={runDownstream} disabled={!selectedNodeId || isRunning} accent="#14b8a6">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M2 3.5h4.5M6.5 3.5l2 2M6.5 3.5l2-2M2 10.5h4.5M6.5 10.5l2 2M6.5 10.5l2-2" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M8.5 7H12" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
             </svg>
           </ToolBtn>
 
