@@ -1059,10 +1059,12 @@ function ProductionAssetsPanel({
   assets,
   uploadingKind,
   onUpload,
+  onClose,
 }: {
   assets: ProductionAsset[];
   uploadingKind: ProductionAssetKind | null;
   onUpload: (kind: ProductionAssetKind, file?: File | null) => void;
+  onClose: () => void;
 }) {
   const fileRefs = useRef<Record<ProductionAssetKind, HTMLInputElement | null>>({
     character: null,
@@ -1089,7 +1091,26 @@ function ProductionAssetsPanel({
         <div style={{ color: "#67e8f9", fontSize: 10, fontWeight: 900, letterSpacing: "0.16em", textTransform: "uppercase" }}>
           Universal Assets
         </div>
-        <div style={{ color: "rgba(148,163,184,0.7)", fontSize: 10 }}>{assets.length} routed</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ color: "rgba(148,163,184,0.7)", fontSize: 10 }}>{assets.length} routed</div>
+          <button
+            onClick={onClose}
+            style={{
+              height: 24,
+              borderRadius: 8,
+              border: "1px solid rgba(255,255,255,0.1)",
+              background: "rgba(255,255,255,0.05)",
+              color: "#94a3b8",
+              padding: "0 9px",
+              fontSize: 10,
+              fontWeight: 800,
+              cursor: "pointer",
+              fontFamily: "inherit",
+            }}
+          >
+            Hide
+          </button>
+        </div>
       </div>
       <div style={{ color: "rgba(148,163,184,0.72)", fontSize: 11, lineHeight: 1.45, marginBottom: 10 }}>
         Upload assets here. The AI Canvas routes them into consistency, shot planning, generation, and animation systems automatically.
@@ -1234,6 +1255,7 @@ function AICanvasInner() {
   const [activity, setActivity] = useState<ActivityEntry[]>([]);
   const [isRunning, setIsRunning] = useState(false);
   const [showAddMenu, setShowAddMenu] = useState(false);
+  const [showAssetsPanel, setShowAssetsPanel] = useState(false);
   const [briefInput, setBriefInput] = useState("Luxury Jewelry Ad");
   const [assets, setAssets] = useState<ProductionAsset[]>([]);
   const [uploadingAssetKind, setUploadingAssetKind] = useState<ProductionAssetKind | null>(null);
@@ -2041,11 +2063,6 @@ function AICanvasInner() {
                 Calls the AI Workflow Architect to generate the node graph, shot logic, camera language, motion system, routes, and final assembly for this specific intent.
               </div>
             </div>
-            <ProductionAssetsPanel
-              assets={assets}
-              uploadingKind={uploadingAssetKind}
-              onUpload={uploadAndRouteAsset}
-            />
           </Panel>
           <Panel position="top-center" style={{ marginTop: 14 }}>
             <div
@@ -2135,6 +2152,19 @@ function AICanvasInner() {
               />
             )}
           </div>
+
+          <ToolBtn
+            active={showAssetsPanel}
+            title={showAssetsPanel ? "Hide assets" : "Open assets"}
+            onClick={() => setShowAssetsPanel(v => !v)}
+            accent="#22d3ee"
+          >
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <rect x="2" y="3" width="10" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.4"/>
+              <path d="M4 5.2h3M4 7h5.5M4 8.8h2.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+              <path d="M10.8 2.2v3M9.3 3.7h3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+            </svg>
+          </ToolBtn>
 
           <Divider />
 
@@ -2229,6 +2259,23 @@ function AICanvasInner() {
             style={{ position: "fixed", inset: 0, zIndex: 99 }}
             onClick={() => setShowAddMenu(false)}
           />
+        )}
+
+        {showAssetsPanel && (
+          <>
+            <div
+              style={{ position: "fixed", inset: 0, zIndex: 109 }}
+              onClick={() => setShowAssetsPanel(false)}
+            />
+            <div style={{ position: "absolute", left: 72, top: 118, zIndex: 170 }}>
+              <ProductionAssetsPanel
+                assets={assets}
+                uploadingKind={uploadingAssetKind}
+                onUpload={uploadAndRouteAsset}
+                onClose={() => setShowAssetsPanel(false)}
+              />
+            </div>
+          </>
         )}
 
         {/* Spin animation for running state */}
