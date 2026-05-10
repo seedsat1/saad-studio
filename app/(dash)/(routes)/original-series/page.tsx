@@ -1722,7 +1722,14 @@ function AICanvasInner() {
   );
 
   const runNode = useCallback(
-    (id: string) => { setIsRunning(true); executeNode(id).finally(() => setIsRunning(false)); },
+    (id: string) => {
+      setIsRunning(true);
+      executeNode(id)
+        .catch(() => {
+          // The node already stores the error state and activity entry.
+        })
+        .finally(() => setIsRunning(false));
+    },
     [executeNode],
   );
 
@@ -1787,6 +1794,48 @@ function AICanvasInner() {
     },
     [setNodes, setEdges, selectedNodeId],
   );
+
+  const deleteSelectedNode = useCallback(() => {
+    if (!selectedNodeId) {
+      addActivity({ nodeId: "", nodeLabel: "Canvas", level: "warn", message: "Select a node first, then press Delete." });
+      return;
+    }
+    const node = nodesRef.current.find(n => n.id === selectedNodeId);
+    deleteNode(selectedNodeId);
+    addActivity({
+      nodeId: selectedNodeId,
+      nodeLabel: node?.data.label || "Canvas",
+      level: "info",
+      message: `${node?.data.label || "Selected node"} deleted.`,
+    });
+  }, [selectedNodeId, deleteNode, addActivity]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      const tag = target?.tagName?.toLowerCase();
+      const isTyping =
+        tag === "input" ||
+        tag === "textarea" ||
+        tag === "select" ||
+        Boolean(target?.isContentEditable);
+      if (isTyping) return;
+
+      if (event.key === "Delete" || event.key === "Backspace") {
+        if (!selectedNodeId) return;
+        event.preventDefault();
+        deleteSelectedNode();
+      }
+
+      if (event.key.toLowerCase() === "n") {
+        event.preventDefault();
+        setShowAddMenu(value => !value);
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [deleteSelectedNode, selectedNodeId]);
 
   const addNodeAfter = useCallback(
     (sourceId: string, nodeType: CanvasNodeType) => {
@@ -1991,6 +2040,7 @@ function AICanvasInner() {
           onConnect={onConnect}
           onSelectionChange={onSelectionChange}
           nodeTypes={nodeTypes}
+          deleteKeyCode={["Backspace", "Delete"]}
           defaultEdgeOptions={defaultEdgeOptions}
           connectionLineStyle={{ stroke: "rgba(99,102,241,0.7)", strokeWidth: 2.5, filter: "drop-shadow(0 0 8px rgba(99,102,241,0.5))" }}
           fitView
@@ -2213,6 +2263,13 @@ function AICanvasInner() {
               <rect x="8" y="2" width="4" height="4" rx="1" stroke="currentColor" strokeWidth="1.3"/>
               <rect x="5" y="8" width="4" height="4" rx="1" stroke="currentColor" strokeWidth="1.3"/>
               <path d="M6 4h2M7 6v2" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+            </svg>
+          </ToolBtn>
+
+          <ToolBtn title="Delete selected node (Delete)" onClick={deleteSelectedNode} disabled={!selectedNodeId} accent="#ef4444">
+            <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
+              <path d="M2 4h10M5 4V2.5h4V4M6 7v3M8 7v3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+              <path d="M3 4l.7 7.5h6.6L11 4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
             </svg>
           </ToolBtn>
 
