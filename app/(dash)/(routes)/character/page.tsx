@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   BadgeCheck,
@@ -185,6 +185,7 @@ function MemoryBlock({ label, value }: { label: string; value: string }) {
 }
 
 export default function CharacterPage() {
+  const nameInputRef = useRef<HTMLInputElement | null>(null);
   const [characters, setCharacters] = useState<CharacterRecord[]>([]);
   const [refs, setRefs] = useState<LocalRefImage[]>([]);
   const [name, setName] = useState("");
@@ -204,7 +205,7 @@ export default function CharacterPage() {
   const [error, setError] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  const canCreate = useMemo(() => name.trim().length > 0 && refs.length > 0 && !saving, [name, refs.length, saving]);
+  const canCreate = useMemo(() => refs.length > 0 && !saving, [refs.length, saving]);
   const packagePreview = useMemo(() => buildCharacterPackage({
     name,
     description,
@@ -242,6 +243,10 @@ export default function CharacterPage() {
     if (!files.length) return;
     const mapped = await Promise.all(files.map(async (file) => ({ id: uid("ref"), file, dataUrl: await fileToDataUrl(file) })));
     setRefs((prev) => [...prev, ...mapped].slice(0, 24));
+    window.setTimeout(() => {
+      document.getElementById("identity-setup")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      nameInputRef.current?.focus();
+    }, 120);
   }, [refs.length]);
 
   const createCharacter = useCallback(async () => {
@@ -249,8 +254,9 @@ export default function CharacterPage() {
     setSaving(true);
     setError(null);
     try {
+      const finalName = name.trim() || `Character ${new Date().toLocaleDateString("en-CA")}`;
       const characterPackage = buildCharacterPackage({
-        name,
+        name: finalName,
         description,
         refsCount: refs.length,
         faceNotes,
@@ -264,7 +270,7 @@ export default function CharacterPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: name.trim(),
+          name: finalName,
           description: description.trim(),
           images: refs.map((ref) => ({ name: ref.file.name, dataUrl: ref.dataUrl })),
           metadata: {
@@ -368,9 +374,21 @@ export default function CharacterPage() {
                     <div className="text-lg font-bold">{refs.length} reference image{refs.length === 1 ? "" : "s"} selected</div>
                     <div className="mt-1 text-sm text-zinc-500">Add more angles or continue to identity setup.</div>
                   </div>
-                  <span className="inline-flex items-center gap-2 rounded-xl bg-lime-300 px-5 py-3 text-sm font-black text-black">
-                    Add more <ImagePlus className="h-5 w-5" />
-                  </span>
+                  <div className="flex flex-wrap justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.preventDefault();
+                        document.getElementById("identity-setup")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                      }}
+                      className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white px-5 py-3 text-sm font-black text-black hover:bg-zinc-200"
+                    >
+                      Continue setup
+                    </button>
+                    <span className="inline-flex items-center gap-2 rounded-xl bg-lime-300 px-5 py-3 text-sm font-black text-black">
+                      Add more <ImagePlus className="h-5 w-5" />
+                    </span>
+                  </div>
                 </div>
                 <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6">
                   {refs.slice(0, 24).map((ref) => (
@@ -398,22 +416,56 @@ export default function CharacterPage() {
             <RuleGroup type="good" items={GOOD_RULES} />
             <RuleGroup type="avoid" items={AVOID_RULES} />
           </div>
+
+          {refs.length > 0 ? (
+            <div className="mx-5 mb-5 rounded-2xl border border-lime-300/25 bg-lime-300/10 p-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <div className="text-sm font-black text-lime-200">Next step</div>
+                  <div className="mt-1 text-sm text-zinc-300">Create the Character Entity now, or add a name and optional notes first.</div>
+                </div>
+                <div className="flex shrink-0 flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={createCharacter}
+                    disabled={!canCreate}
+                    className={cn(
+                      "inline-flex h-11 items-center justify-center rounded-xl px-5 text-sm font-black transition",
+                      canCreate ? "bg-lime-300 text-black hover:bg-lime-200" : "cursor-not-allowed bg-white/10 text-zinc-600",
+                    )}
+                  >
+                    {saving ? "Creating..." : "Create now"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      document.getElementById("identity-setup")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                      window.setTimeout(() => nameInputRef.current?.focus(), 180);
+                    }}
+                    className="inline-flex h-11 items-center justify-center rounded-xl border border-white/10 bg-black/40 px-5 text-sm font-bold text-white hover:bg-white/10"
+                  >
+                    Add details
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : null}
         </section>
 
         <section className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
-          <div className="rounded-[28px] border border-white/10 bg-[#111214] p-6">
+          <div id="identity-setup" className="scroll-mt-8 rounded-[28px] border border-white/10 bg-[#111214] p-6">
             <div className="mb-4 flex items-center gap-3">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-lime-300 text-black">
                 <Fingerprint className="h-6 w-6" />
               </div>
               <div>
-                <div className="text-lg font-bold">Identity setup</div>
-                <div className="text-sm text-zinc-500">Only name is required. Advanced memory is optional.</div>
+                <div className="text-lg font-bold">Step 2: Identity setup</div>
+                <div className="text-sm text-zinc-500">Optional details. The uploaded images are enough to create the identity.</div>
               </div>
             </div>
 
             <div className="space-y-4">
-              <input value={name} onChange={(event) => setName(event.target.value)} placeholder="Character name" className="h-14 w-full rounded-2xl border border-white/10 bg-black px-4 text-base outline-none focus:border-lime-300/60" />
+              <input ref={nameInputRef} value={name} onChange={(event) => setName(event.target.value)} placeholder="Character name (optional)" className="h-14 w-full rounded-2xl border border-white/10 bg-black px-4 text-base outline-none focus:border-lime-300/60" />
               <textarea value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Short identity note, role, personality..." rows={4} className="w-full resize-none rounded-2xl border border-white/10 bg-black px-4 py-3 text-base outline-none focus:border-lime-300/60" />
 
               <button onClick={() => setShowAdvanced((value) => !value)} className="flex w-full items-center justify-between rounded-2xl border border-white/10 bg-zinc-950 px-4 py-4 text-left text-sm font-semibold text-zinc-300 hover:bg-zinc-900">
