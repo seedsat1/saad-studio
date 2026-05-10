@@ -60,8 +60,9 @@ const ASPECT_RATIOS: Array<{ v: string; w: number; h: number }> = [
   { v: "3:4",  w: 15, h: 20 },
 ];
 
-const DURATIONS   = [3, 5, 8, 10];
-const RESOLUTIONS = ["480p", "720p", "1080p"];
+const DURATIONS = [3, 5, 8, 10];
+const IMAGE_QUALITIES = ["1K", "2K", "4K"];
+const VIDEO_RESOLUTIONS = ["480p", "720p", "1080p"];
 
 const ADD_MENU: Array<{ type: CanvasNodeType; label: string; desc: string; color: string }> = [
   { type: "text-to-image",  label: "Image Gen",   desc: "Text → Image",     color: "#f59e0b" },
@@ -275,8 +276,10 @@ function DurDropdown({ value, onChange, rgb, onClose }: {
 }
 
 // ─── Resolution dropdown ──────────────────────────────────────────────────────
-function ResDropdown({ value, onChange, rgb, onClose }: {
+function ResDropdown({ value, options, fallback, onChange, rgb, onClose }: {
   value: string; onChange: (v: string) => void; rgb: string; onClose: () => void;
+  options: string[];
+  fallback: string;
 }) {
   return (
     <div className="nodrag nowheel" onMouseDown={SP} style={{
@@ -285,8 +288,8 @@ function ResDropdown({ value, onChange, rgb, onClose }: {
       border: "1px solid rgba(255,255,255,0.1)", borderRadius: 14, overflow: "hidden", padding: 6,
       boxShadow: "0 -24px 80px rgba(0,0,0,0.9), inset 0 1px 0 rgba(255,255,255,0.06)",
     }}>
-      {RESOLUTIONS.map(r => {
-        const active = (value || "720p") === r;
+      {options.map(r => {
+        const active = (value || fallback) === r;
         return (
           <button key={r} className="nodrag"
             onClick={e => { SP(e); onChange(r); onClose(); }}
@@ -626,11 +629,12 @@ function CanvasNodeInner({ id, data, selected }: NodeProps<Node<CanvasNodeData>>
   }, [openChip]);
 
   const isVideo    = ["image-to-video", "video-to-video", "text-to-video", "video-combiner"].includes(data.nodeType);
+  const isImageGen = ["text-to-image", "image-edit", "variations", "designer", "stickers", "svg-generator"].includes(data.nodeType);
   const showPrompt = cfg.hasPromptInput || data.nodeType === "text-prompt";
   const showModel  = !["export", "upload-image", "upscale", "voiceover", "sound-effects", "music-generator", "speak", "media-extractor", "video-upscale", "list", "sticky-note", "add-reference", "assets", "stock", "image-to-svg"].includes(data.nodeType);
   const showAR     = !["image-to-video", "video-to-video", "text-to-video", "video-combiner", "export", "upload-image", "upscale", "text-prompt", "voiceover", "sound-effects", "music-generator", "speak", "media-extractor", "video-upscale", "list", "sticky-note", "add-reference", "assets", "stock", "assistant", "image-to-svg"].includes(data.nodeType);
   const showDur    = isVideo;
-  const showRes    = isVideo;
+  const showRes    = isVideo || isImageGen;
   const showRun    = cfg.creditCost > 0;
   const hasOutput  = cfg.hasImageOutput || cfg.hasVideoOutput || cfg.hasTextOutput;
 
@@ -651,7 +655,9 @@ function CanvasNodeInner({ id, data, selected }: NodeProps<Node<CanvasNodeData>>
   const selModel = modelById(data.settings.modelId, data.nodeType);
   const selAR    = data.settings.aspectRatio ?? (isVideo ? "auto" : "1:1");
   const selDur   = data.settings.duration    ?? 5;
-  const selRes   = data.settings.quality     ?? "720p";
+  const resOptions = isVideo ? VIDEO_RESOLUTIONS : IMAGE_QUALITIES;
+  const resFallback = isVideo ? "720p" : "1K";
+  const selRes   = data.settings.quality     ?? resFallback;
 
   const hasPreviewMedia = data.status === "done" && (!!data.outputImageUrl || !!data.outputVideoUrl || !!data.outputAudioUrl || !!data.outputText);
 
@@ -1242,12 +1248,12 @@ function CanvasNodeInner({ id, data, selected }: NodeProps<Node<CanvasNodeData>>
             </div>
           )}
 
-          {/* Resolution chip */}
+          {/* Quality / Resolution chip */}
           {showRes && (
             <div style={{ position: "relative", flexShrink: 0 }}>
               <Chip label={selRes} active={openChip === "res"} onClick={() => toggleChip("res")} />
               {openChip === "res" && (
-                <ResDropdown value={selRes} onChange={v => updateNodeSettings(id, { quality: v })} rgb={rgb} onClose={() => setOpenChip(null)} />
+                <ResDropdown value={selRes} options={resOptions} fallback={resFallback} onChange={v => updateNodeSettings(id, { quality: v })} rgb={rgb} onClose={() => setOpenChip(null)} />
               )}
             </div>
           )}

@@ -130,7 +130,7 @@ export const NODE_CONFIGS: Record<CanvasNodeType, NodeTypeConfig> = {
     hasImageOutput: true,
     hasVideoOutput: false,
     hasTextOutput: false,
-    defaultSettings: { prompt: '', modelId: 'nano-banana-pro', aspectRatio: '1:1' },
+    defaultSettings: { prompt: '', modelId: 'nano-banana-pro', aspectRatio: '1:1', quality: '1K' },
   },
   'text-to-image': {
     label: 'Text to Image',
@@ -144,7 +144,7 @@ export const NODE_CONFIGS: Record<CanvasNodeType, NodeTypeConfig> = {
     hasImageOutput: true,
     hasVideoOutput: false,
     hasTextOutput: false,
-    defaultSettings: { prompt: '', modelId: 'nano-banana-pro', aspectRatio: '1:1' },
+    defaultSettings: { prompt: '', modelId: 'nano-banana-pro', aspectRatio: '1:1', quality: '1K' },
   },
   'image-to-video': {
     label: 'Image to Video',
@@ -310,7 +310,7 @@ export const NODE_CONFIGS: Record<CanvasNodeType, NodeTypeConfig> = {
     hasImageOutput: true,
     hasVideoOutput: false,
     hasTextOutput: false,
-    defaultSettings: { prompt: '', modelId: 'nano-banana-pro', aspectRatio: '1:1' },
+    defaultSettings: { prompt: '', modelId: 'nano-banana-pro', aspectRatio: '1:1', quality: '1K' },
   },
   designer: {
     label: 'Designer',
@@ -324,7 +324,7 @@ export const NODE_CONFIGS: Record<CanvasNodeType, NodeTypeConfig> = {
     hasImageOutput: true,
     hasVideoOutput: false,
     hasTextOutput: false,
-    defaultSettings: { prompt: '', modelId: 'gpt-image/1.5-text-to-image', aspectRatio: '1:1' },
+    defaultSettings: { prompt: '', modelId: 'gpt-image/1.5-text-to-image', aspectRatio: '1:1', quality: '1K' },
   },
   'image-to-svg': {
     label: 'Image to SVG',
@@ -352,7 +352,7 @@ export const NODE_CONFIGS: Record<CanvasNodeType, NodeTypeConfig> = {
     hasImageOutput: true,
     hasVideoOutput: false,
     hasTextOutput: false,
-    defaultSettings: { prompt: '', modelId: 'recraft/svg-text-to-image' },
+    defaultSettings: { prompt: '', modelId: 'recraft/svg-text-to-image', quality: '1K' },
   },
   speak: {
     label: 'Speak',
@@ -437,7 +437,7 @@ export const NODE_CONFIGS: Record<CanvasNodeType, NodeTypeConfig> = {
     hasImageOutput: true,
     hasVideoOutput: false,
     hasTextOutput: false,
-    defaultSettings: { prompt: '', modelId: 'nano-banana-pro', aspectRatio: '1:1' },
+    defaultSettings: { prompt: '', modelId: 'nano-banana-pro', aspectRatio: '1:1', quality: '1K' },
   },
   'add-reference': {
     label: 'Add Reference',

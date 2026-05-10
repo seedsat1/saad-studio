@@ -1385,7 +1385,7 @@ function AICanvasInner() {
             const res = await fetch("/api/generate/image", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ prompt, modelId: s.modelId || "nano-banana-pro", aspectRatio: s.aspectRatio || "1:1", negativePrompt: s.negativePrompt, imageUrls: inputImageUrls }),
+              body: JSON.stringify({ prompt, modelId: s.modelId || "nano-banana-pro", aspectRatio: s.aspectRatio || "1:1", quality: s.quality || "1K", resolution: s.quality || "1K", negativePrompt: s.negativePrompt, imageUrls: inputImageUrls }),
             });
             if (!res.ok) { const err = await res.json().catch(() => ({})) as Record<string, string>; throw new Error(err.message || err.error || `HTTP ${res.status}`); }
             const d = await res.json() as { imageUrl?: string; mediaUrl?: string; imageUrls?: string[] };
@@ -1399,7 +1399,7 @@ function AICanvasInner() {
             const res = await fetch("/api/generate/image", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ prompt, modelId: s.modelId || "nano-banana-pro", aspectRatio: s.aspectRatio || "1:1", imageUrl, imageUrls: inputImageUrls }),
+              body: JSON.stringify({ prompt, modelId: s.modelId || "nano-banana-pro", aspectRatio: s.aspectRatio || "1:1", quality: s.quality || "1K", resolution: s.quality || "1K", imageUrl, imageUrls: inputImageUrls }),
             });
             if (!res.ok) { const err = await res.json().catch(() => ({})) as Record<string, string>; throw new Error(err.message || err.error || `HTTP ${res.status}`); }
             const d = await res.json() as { imageUrl?: string; mediaUrl?: string; imageUrls?: string[] };
@@ -1538,7 +1538,7 @@ function AICanvasInner() {
             const res = await fetch("/api/generate/image", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ prompt: prompt || "create a variation of this image", modelId: s.modelId || "nano-banana-pro", imageUrl, imageUrls: inputImageUrls, aspectRatio: s.aspectRatio || "1:1" }),
+              body: JSON.stringify({ prompt: prompt || "create a variation of this image", modelId: s.modelId || "nano-banana-pro", imageUrl, imageUrls: inputImageUrls, aspectRatio: s.aspectRatio || "1:1", quality: s.quality || "1K", resolution: s.quality || "1K" }),
             });
             if (!res.ok) { const err = await res.json().catch(() => ({})) as Record<string, string>; throw new Error(err.message || err.error || `HTTP ${res.status}`); }
             const d = await res.json() as { imageUrl?: string; mediaUrl?: string; imageUrls?: string[] };
@@ -1551,7 +1551,7 @@ function AICanvasInner() {
             const res = await fetch("/api/generate/image", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ prompt, modelId: s.modelId || "gpt-image/1.5-text-to-image", aspectRatio: s.aspectRatio || "1:1" }),
+              body: JSON.stringify({ prompt, modelId: s.modelId || "gpt-image/1.5-text-to-image", aspectRatio: s.aspectRatio || "1:1", quality: s.quality || "1K", resolution: s.quality || "1K" }),
             });
             if (!res.ok) { const err = await res.json().catch(() => ({})) as Record<string, string>; throw new Error(err.message || err.error || `HTTP ${res.status}`); }
             const d = await res.json() as { imageUrl?: string; mediaUrl?: string; imageUrls?: string[] };
@@ -1577,7 +1577,7 @@ function AICanvasInner() {
             const res = await fetch("/api/generate/image", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ prompt, modelId: "recraft/svg-text-to-image", aspectRatio: s.aspectRatio || "1:1" }),
+              body: JSON.stringify({ prompt, modelId: "recraft/svg-text-to-image", aspectRatio: s.aspectRatio || "1:1", quality: s.quality || "1K", resolution: s.quality || "1K" }),
             });
             if (!res.ok) { const err = await res.json().catch(() => ({})) as Record<string, string>; throw new Error(err.message || err.error || `HTTP ${res.status}`); }
             const d = await res.json() as { imageUrl?: string; mediaUrl?: string; imageUrls?: string[] };
@@ -1590,7 +1590,7 @@ function AICanvasInner() {
             const res = await fetch("/api/generate/image", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ prompt: `sticker style, ${prompt}, white background, clean outline`, modelId: s.modelId || "nano-banana-pro", aspectRatio: "1:1" }),
+              body: JSON.stringify({ prompt: `sticker style, ${prompt}, white background, clean outline`, modelId: s.modelId || "nano-banana-pro", aspectRatio: "1:1", quality: s.quality || "1K", resolution: s.quality || "1K" }),
             });
             if (!res.ok) { const err = await res.json().catch(() => ({})) as Record<string, string>; throw new Error(err.message || err.error || `HTTP ${res.status}`); }
             const d = await res.json() as { imageUrl?: string; mediaUrl?: string; imageUrls?: string[] };
