@@ -1192,7 +1192,7 @@ function ZoomBar() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function AICanvasInner() {
-  const { fitView } = useReactFlow();
+  const { fitView, screenToFlowPosition } = useReactFlow();
   const [nodes, setNodes, onNodesChange] = useNodesState<Node<CanvasNodeData>>(INITIAL_NODES);
   const [edges, setEdges, onEdgesChange] = useEdgesState(INITIAL_EDGES);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
@@ -1870,17 +1870,25 @@ function AICanvasInner() {
   const addNode = useCallback(
     (type: CanvasNodeType) => {
       const cfg = NODE_CONFIGS[type];
-      const count = nodesRef.current.length;
       const typeCount = nodesRef.current.filter(n => n.data.nodeType === type).length + 1;
-      const pos = { x: 120 + (count % 5) * 260, y: 100 + Math.floor(count / 5) * 200 };
+      const center = screenToFlowPosition({
+        x: window.innerWidth / 2,
+        y: window.innerHeight / 2,
+      });
+      const pos = {
+        x: Math.round(center.x - (type === "text-prompt" ? 170 : 240)),
+        y: Math.round(center.y - (type === "text-prompt" ? 80 : 150)),
+      };
       const id = `node-${Date.now()}`;
       const newNode: Node<CanvasNodeData> = {
         id, type: "canvasNode", position: pos,
         data: { nodeType: type, label: `${cfg.label} #${typeCount}`, description: cfg.description, status: "idle", settings: { ...cfg.defaultSettings }, creditCost: cfg.creditCost },
       };
       setNodes(nds => [...nds, newNode]);
+      setSelectedNodeId(id);
+      addActivity({ nodeId: id, nodeLabel: newNode.data.label, level: "info", message: `${newNode.data.label} added at the current view.` });
     },
-    [setNodes],
+    [setNodes, screenToFlowPosition, addActivity],
   );
 
   const saveCanvasState = useCallback(() => {
