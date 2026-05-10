@@ -70,104 +70,158 @@ function makeNode(
   };
 }
 
+const GENERATED_KEY_VISUAL = "/ai-canvas-generated/luxury-jewelry-key-visual.png";
+const GENERATED_CAMPAIGN_BOARD = "/ai-canvas-generated/luxury-jewelry-campaign-board.png";
+
+const promptEdgeStyle = { stroke: "rgba(216,180,254,0.78)", strokeWidth: 2.5, filter: "drop-shadow(0 0 6px rgba(216,180,254,0.45))" };
+const imageEdgeStyle = { stroke: "rgba(94,234,212,0.72)", strokeWidth: 2.5, filter: "drop-shadow(0 0 6px rgba(94,234,212,0.32))" };
+const boardEdgeStyle = { stroke: "rgba(251,191,36,0.78)", strokeWidth: 3, filter: "drop-shadow(0 0 8px rgba(251,191,36,0.45))" };
+const videoEdgeStyle = { stroke: "rgba(16,185,129,0.72)", strokeWidth: 2.5, filter: "drop-shadow(0 0 6px rgba(16,185,129,0.35))" };
+
 const INITIAL_NODES: Node<CanvasNodeData>[] = [
-  makeNode("hero", "sticky-note", { x: -720, y: -350 }, {
-    noteText: "Production canvas\n\n1. Paste your own character, product, and location references.\n2. Write one master prompt that controls style and consistency.\n3. Generate image shots, then run downstream to animate approved frames.",
+  makeNode("brief", "sticky-note", { x: -1260, y: -260 }, {
+    noteText: "Campaign production graph\n\nGoal: build a full luxury jewelry ad from controlled references.\n\nFlow:\n1. Add character, jewelry, location, and brand references.\n2. Use one master prompt to lock style and identity.\n3. Generate approved still frames.\n4. Assemble the campaign board.\n5. Animate selected frames and export the final package.",
   }, {
-    label: "Workflow guide",
-    description: "Use your own references to build a real campaign graph",
+    label: "Production brief",
+    description: "The workflow starts here",
   }),
-  makeNode("character-ref", "add-reference", { x: -720, y: -20 }, undefined, {
+  makeNode("character-ref", "add-reference", { x: -1260, y: 130 }, undefined, {
     label: "Character reference",
-    description: "Paste your own model, actor, or identity reference",
+    description: "Actor/model identity sheet",
   }),
-  makeNode("product-ref", "add-reference", { x: -720, y: 320 }, undefined, {
-    label: "Product reference",
-    description: "Paste the product, wardrobe, prop, or hero object",
+  makeNode("product-ref", "add-reference", { x: -1260, y: 470 }, undefined, {
+    label: "Jewelry reference",
+    description: "Ruby-gold necklace, earrings, bracelet, and ring",
   }),
-  makeNode("location-ref", "add-reference", { x: -720, y: 660 }, undefined, {
-    label: "Location reference",
-    description: "Paste the environment, set, or lighting reference",
+  makeNode("location-ref", "add-reference", { x: -1260, y: 810 }, undefined, {
+    label: "Desert location reference",
+    description: "Warm dusk desert and atmospheric dust",
   }),
-  makeNode("style-prompt", "text-prompt", { x: -280, y: 140 }, {
-    prompt: "Create an original luxury jewelry advertising key visual. A sophisticated woman wearing an elegant black evening dress and a ruby-gold jewelry set, standing in a warm dusk desert landscape with soft wind and atmospheric dust. The ruby necklace, earrings, bracelet, and ring should be visually consistent, detailed, and realistic. Warm golden sunset rim light, shallow depth of field, high-end perfume commercial mood, ARRI Alexa look, anamorphic lens, rich contrast, natural skin tones, editorial fashion composition, 16:9 landscape. No text, no logos, no watermark, no distorted hands, no extra fingers, no warped jewelry.",
+  makeNode("brand-ref", "add-reference", { x: -1260, y: 1150 }, undefined, {
+    label: "Brand mood reference",
+    description: "Editorial lighting, color, and premium tone",
+  }),
+  makeNode("master-prompt", "text-prompt", { x: -760, y: 230 }, {
+    prompt: "Create an original luxury jewelry advertising campaign for a ruby-gold jewelry set. Keep one sophisticated woman consistent across all frames, wearing an elegant black evening dress in a warm dusk desert landscape. The necklace, earrings, bracelet, and ring must stay consistent, realistic, detailed, and premium. Visual language: golden sunset rim light, soft wind, atmospheric dust, shallow depth of field, ARRI Alexa commercial look, anamorphic lens, rich contrast, natural skin tones, editorial fashion composition. Generate a coherent ad sequence: wide hero, portrait, hand macro, necklace close-up, jewelry product study, walking silhouette, beauty profile, and final campaign board. No text, no logos, no watermark, no distorted hands, no extra fingers, no warped jewelry.",
   }, {
-    label: "Prompt - campaign key visual",
-    description: "The prompt that produced the generated result",
+    label: "Master campaign prompt",
+    description: "One prompt controls the whole graph",
   }),
-  makeNode("shot-wide", "text-to-image", { x: 180, y: -210 }, {
-    prompt: "Wide hero shot using the connected character, product, and location references. Show the full scene, premium cinematic lighting, clean brand composition.",
+  makeNode("shot-plan", "list", { x: -760, y: 610 }, {
+    noteText: "01 Wide desert hero\n02 Beauty portrait with jewelry\n03 Hand macro with ruby ring\n04 Necklace and earrings close-up\n05 Jewelry product study\n06 Walking silhouette in wind\n07 Profile shot with sunset rim light\n08 Final campaign board / contact sheet",
+  }, {
+    label: "Shot list",
+    description: "Planned frames before generation",
+  }),
+  makeNode("quality-rules", "sticky-note", { x: -760, y: 960 }, {
+    noteText: "Consistency checks\n\n- Same character identity in every frame.\n- Jewelry design must not drift.\n- Warm gold/black/red palette only.\n- Keep hands natural and products readable.\n- Approved frames can be routed to video.",
+  }, {
+    label: "Approval rules",
+    description: "Quality gate before downstream generation",
+  }),
+  makeNode("hero-frame", "text-to-image", { x: -260, y: -170 }, {
+    prompt: "Wide hero shot using the connected character, jewelry, location, and brand references. Show the woman in the black dress holding the ruby jewelry in a warm desert sunset. Premium cinematic lighting, clean high-end campaign composition.",
     modelId: "nano-banana-pro",
     aspectRatio: "16:9",
   }, {
-    label: "Nano Banana - wide hero",
-    description: "Generated campaign key visual",
+    label: "Nano Banana - hero frame",
+    description: "Generated wide hero image",
     status: "done",
-    outputImageUrl: "/ai-canvas-generated/luxury-jewelry-key-visual.png",
+    outputImageUrl: GENERATED_KEY_VISUAL,
   }),
-  makeNode("shot-portrait", "text-to-image", { x: 180, y: 130 }, {
-    prompt: "Medium portrait using the connected references. Preserve the same identity and product details, cinematic key light, premium ad mood.",
+  makeNode("portrait-frame", "text-to-image", { x: -260, y: 200 }, {
+    prompt: "Medium beauty portrait from the same campaign. Preserve the same woman, black evening dress, ruby-gold jewelry, golden rim light, and natural skin texture.",
     modelId: "nano-banana-pro",
     aspectRatio: "16:9",
   }, {
     label: "Nano Banana - portrait",
-    description: "Generate an identity-focused frame",
+    description: "Identity and beauty frame",
   }),
-  makeNode("shot-hand", "text-to-image", { x: 180, y: 470 }, {
-    prompt: "Close-up product detail using the connected product reference. Show realistic materials, hands, texture, and brand lighting.",
+  makeNode("hand-macro-frame", "text-to-image", { x: -260, y: 570 }, {
+    prompt: "Cinematic macro close-up of a hand wearing the ruby ring and bracelet, touching dark desert sand. Realistic fingers, detailed gemstone reflections, premium jewelry lighting.",
     modelId: "nano-banana-pro",
     aspectRatio: "16:9",
   }, {
-    label: "Nano Banana - product detail",
-    description: "Generate a product macro frame",
+    label: "Nano Banana - hand macro",
+    description: "Product detail frame",
   }),
-  makeNode("shot-necklace", "text-to-image", { x: 180, y: 810 }, {
-    prompt: "Alternate close-up using the same references. Emphasize product design, texture, and consistent campaign color grade.",
+  makeNode("necklace-frame", "text-to-image", { x: -260, y: 940 }, {
+    prompt: "Close-up of the ruby necklace and earrings on the same woman, warm sunset light, soft shadows, elegant fashion ad framing, realistic stones and metal.",
     modelId: "nano-banana-pro",
     aspectRatio: "16:9",
   }, {
-    label: "Nano Banana - alternate detail",
-    description: "Generate a second product detail frame",
+    label: "Nano Banana - necklace close",
+    description: "Premium product close-up",
   }),
-  makeNode("motion-wide", "image-to-video", { x: 650, y: -150 }, {
-    prompt: "Slow cinematic dolly push from the generated hero image. Preserve identity and product details, premium commercial pacing.",
+  makeNode("product-study-frame", "text-to-image", { x: 220, y: 200 }, {
+    prompt: "Clean product reference board of the ruby-gold jewelry set on neutral background: necklace, earrings, ring, and bracelet. Keep the same design language from the campaign.",
+    modelId: "nano-banana-pro",
+    aspectRatio: "16:9",
+  }, {
+    label: "Nano Banana - product study",
+    description: "Product continuity check",
+  }),
+  makeNode("campaign-board", "text-to-image", { x: 220, y: 620 }, {
+    prompt: "Assemble the approved frames into a cinematic campaign production board/contact sheet. Include the wide hero, portrait, macro hand, necklace close-up, jewelry product study, walking silhouette, beauty profile, and final campaign composition. No labels, no logos, no text overlays.",
+    modelId: "nano-banana-pro",
+    aspectRatio: "16:9",
+  }, {
+    label: "Final image board",
+    description: "Generated campaign board from the graph",
+    status: "done",
+    outputImageUrl: GENERATED_CAMPAIGN_BOARD,
+  }),
+  makeNode("motion-hero", "image-to-video", { x: 720, y: -70 }, {
+    prompt: "Slow cinematic dolly push from the approved hero frame. Preserve character identity, jewelry design, desert sunset, and premium commercial pacing.",
     modelId: "kling/v2-5-turbo-image-to-video-pro",
     aspectRatio: "16:9",
     duration: 5,
   }, {
     label: "Kling - hero motion",
-    description: "Animate the hero frame",
+    description: "Animate the approved hero frame",
   }),
-  makeNode("motion-product", "image-to-video", { x: 650, y: 560 }, {
-    prompt: "Macro camera glide from the generated product image. Keep product shape stable, soft focus falloff, premium motion.",
+  makeNode("motion-detail", "image-to-video", { x: 720, y: 500 }, {
+    prompt: "Macro camera glide over the approved jewelry close-up. Keep gemstone shape stable, natural hand anatomy, shallow focus, and warm premium lighting.",
     modelId: "kling/v2-5-turbo-image-to-video-pro",
     aspectRatio: "16:9",
     duration: 5,
   }, {
     label: "Kling - product motion",
-    description: "Animate product detail shots",
+    description: "Animate the product detail frames",
   }),
-  makeNode("final-export", "export", { x: 1080, y: 200 }, undefined, {
-    label: "Final image output",
-    description: "Complete generated result from the prompt path",
+  makeNode("final-export", "export", { x: 1200, y: 310 }, undefined, {
+    label: "Final campaign output",
+    description: "Complete result from prompt to board and video routing",
     status: "done",
-    outputImageUrl: "/ai-canvas-generated/luxury-jewelry-key-visual.png",
+    outputImageUrl: GENERATED_CAMPAIGN_BOARD,
   }),
 ];
 
 const INITIAL_EDGES: Edge[] = [
-  { id: "style-wide", source: "style-prompt", sourceHandle: "prompt", target: "shot-wide", targetHandle: "prompt", type: "default", style: { stroke: "rgba(216,180,254,0.7)", strokeWidth: 2.5, filter: "drop-shadow(0 0 6px rgba(216,180,254,0.45))" } },
-  { id: "style-portrait", source: "style-prompt", sourceHandle: "prompt", target: "shot-portrait", targetHandle: "prompt", type: "default", style: { stroke: "rgba(216,180,254,0.7)", strokeWidth: 2.5, filter: "drop-shadow(0 0 6px rgba(216,180,254,0.45))" } },
-  { id: "style-hand", source: "style-prompt", sourceHandle: "prompt", target: "shot-hand", targetHandle: "prompt", type: "default", style: { stroke: "rgba(216,180,254,0.7)", strokeWidth: 2.5, filter: "drop-shadow(0 0 6px rgba(216,180,254,0.45))" } },
-  { id: "style-necklace", source: "style-prompt", sourceHandle: "prompt", target: "shot-necklace", targetHandle: "prompt", type: "default", style: { stroke: "rgba(216,180,254,0.7)", strokeWidth: 2.5, filter: "drop-shadow(0 0 6px rgba(216,180,254,0.45))" } },
-  { id: "char-wide", source: "character-ref", sourceHandle: "image", target: "shot-wide", targetHandle: "image", type: "default", style: { stroke: "rgba(94,234,212,0.65)", strokeWidth: 2.5 } },
-  { id: "hero-final", source: "shot-wide", sourceHandle: "image", target: "final-export", targetHandle: "image", type: "default", style: { stroke: "rgba(251,191,36,0.72)", strokeWidth: 3, filter: "drop-shadow(0 0 8px rgba(251,191,36,0.45))" } },
-  { id: "product-hand", source: "product-ref", sourceHandle: "image", target: "shot-hand", targetHandle: "image", type: "default", style: { stroke: "rgba(94,234,212,0.65)", strokeWidth: 2.5 } },
-  { id: "product-necklace", source: "product-ref", sourceHandle: "image", target: "shot-necklace", targetHandle: "image", type: "default", style: { stroke: "rgba(94,234,212,0.65)", strokeWidth: 2.5 } },
-  { id: "wide-motion", source: "shot-wide", sourceHandle: "image", target: "motion-wide", targetHandle: "image", type: "default", style: { stroke: "rgba(16,185,129,0.68)", strokeWidth: 2.5 } },
-  { id: "hand-motion", source: "shot-hand", sourceHandle: "image", target: "motion-product", targetHandle: "image", type: "default", style: { stroke: "rgba(16,185,129,0.68)", strokeWidth: 2.5 } },
-  { id: "motion-export-a", source: "motion-wide", sourceHandle: "video", target: "final-export", targetHandle: "video", type: "default", style: { stroke: "rgba(251,191,36,0.62)", strokeWidth: 2.5 } },
-  { id: "motion-export-b", source: "motion-product", sourceHandle: "video", target: "final-export", targetHandle: "video", type: "default", style: { stroke: "rgba(251,191,36,0.62)", strokeWidth: 2.5 } },
+  { id: "brief-master", source: "brief", sourceHandle: "prompt", target: "master-prompt", targetHandle: "prompt", type: "default", style: promptEdgeStyle },
+  { id: "master-hero", source: "master-prompt", sourceHandle: "prompt", target: "hero-frame", targetHandle: "prompt", type: "default", style: promptEdgeStyle },
+  { id: "master-portrait", source: "master-prompt", sourceHandle: "prompt", target: "portrait-frame", targetHandle: "prompt", type: "default", style: promptEdgeStyle },
+  { id: "master-hand", source: "master-prompt", sourceHandle: "prompt", target: "hand-macro-frame", targetHandle: "prompt", type: "default", style: promptEdgeStyle },
+  { id: "master-necklace", source: "master-prompt", sourceHandle: "prompt", target: "necklace-frame", targetHandle: "prompt", type: "default", style: promptEdgeStyle },
+  { id: "master-product", source: "master-prompt", sourceHandle: "prompt", target: "product-study-frame", targetHandle: "prompt", type: "default", style: promptEdgeStyle },
+  { id: "plan-board", source: "shot-plan", sourceHandle: "prompt", target: "campaign-board", targetHandle: "prompt", type: "default", style: promptEdgeStyle },
+  { id: "char-hero", source: "character-ref", sourceHandle: "image", target: "hero-frame", targetHandle: "image", type: "default", style: imageEdgeStyle },
+  { id: "char-portrait", source: "character-ref", sourceHandle: "image", target: "portrait-frame", targetHandle: "image", type: "default", style: imageEdgeStyle },
+  { id: "product-hand", source: "product-ref", sourceHandle: "image", target: "hand-macro-frame", targetHandle: "image", type: "default", style: imageEdgeStyle },
+  { id: "product-necklace", source: "product-ref", sourceHandle: "image", target: "necklace-frame", targetHandle: "image", type: "default", style: imageEdgeStyle },
+  { id: "product-study", source: "product-ref", sourceHandle: "image", target: "product-study-frame", targetHandle: "image", type: "default", style: imageEdgeStyle },
+  { id: "location-hero", source: "location-ref", sourceHandle: "image", target: "hero-frame", targetHandle: "image", type: "default", style: imageEdgeStyle },
+  { id: "brand-board", source: "brand-ref", sourceHandle: "image", target: "campaign-board", targetHandle: "image", type: "default", style: imageEdgeStyle },
+  { id: "hero-board", source: "hero-frame", sourceHandle: "image", target: "campaign-board", targetHandle: "image", type: "default", style: boardEdgeStyle },
+  { id: "portrait-board", source: "portrait-frame", sourceHandle: "image", target: "campaign-board", targetHandle: "image", type: "default", style: boardEdgeStyle },
+  { id: "hand-board", source: "hand-macro-frame", sourceHandle: "image", target: "campaign-board", targetHandle: "image", type: "default", style: boardEdgeStyle },
+  { id: "necklace-board", source: "necklace-frame", sourceHandle: "image", target: "campaign-board", targetHandle: "image", type: "default", style: boardEdgeStyle },
+  { id: "study-board", source: "product-study-frame", sourceHandle: "image", target: "campaign-board", targetHandle: "image", type: "default", style: boardEdgeStyle },
+  { id: "hero-motion", source: "hero-frame", sourceHandle: "image", target: "motion-hero", targetHandle: "image", type: "default", style: videoEdgeStyle },
+  { id: "detail-motion", source: "hand-macro-frame", sourceHandle: "image", target: "motion-detail", targetHandle: "image", type: "default", style: videoEdgeStyle },
+  { id: "board-export", source: "campaign-board", sourceHandle: "image", target: "final-export", targetHandle: "image", type: "default", style: boardEdgeStyle },
+  { id: "hero-video-export", source: "motion-hero", sourceHandle: "video", target: "final-export", targetHandle: "video", type: "default", style: videoEdgeStyle },
+  { id: "detail-video-export", source: "motion-detail", sourceHandle: "video", target: "final-export", targetHandle: "video", type: "default", style: videoEdgeStyle },
 ];
 
 async function pollVideoTask(taskId: string): Promise<string> {
@@ -575,7 +629,7 @@ function AICanvasInner() {
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem("ai-canvas-v4");
+      const saved = localStorage.getItem("ai-canvas-v5");
       if (!saved) return;
       const parsed = JSON.parse(saved) as { nodes?: Node<CanvasNodeData>[]; edges?: Edge[] };
       if (Array.isArray(parsed.nodes) && parsed.nodes.length > 0) setNodes(parsed.nodes);
@@ -1055,7 +1109,7 @@ function AICanvasInner() {
 
   const saveCanvasState = useCallback(() => {
     try {
-      localStorage.setItem("ai-canvas-v4", JSON.stringify({ nodes: nodesRef.current, edges: edgesRef.current }));
+      localStorage.setItem("ai-canvas-v5", JSON.stringify({ nodes: nodesRef.current, edges: edgesRef.current }));
       addActivity({ nodeId: "", nodeLabel: "Canvas", level: "success", message: "Canvas saved to local storage." });
     } catch {
       addActivity({ nodeId: "", nodeLabel: "Canvas", level: "error", message: "Failed to save canvas." });
@@ -1067,9 +1121,9 @@ function AICanvasInner() {
     setEdges(INITIAL_EDGES);
     setSelectedNodeId(null);
     try {
-      localStorage.setItem("ai-canvas-v4", JSON.stringify({ nodes: INITIAL_NODES, edges: INITIAL_EDGES }));
+      localStorage.setItem("ai-canvas-v5", JSON.stringify({ nodes: INITIAL_NODES, edges: INITIAL_EDGES }));
     } catch {}
-    addActivity({ nodeId: "", nodeLabel: "Template", level: "success", message: "Loaded the clean reference workflow template." });
+    addActivity({ nodeId: "", nodeLabel: "Template", level: "success", message: "Loaded the full campaign workflow map." });
   }, [setNodes, setEdges, addActivity]);
 
   const onConnect: OnConnect = useCallback(
