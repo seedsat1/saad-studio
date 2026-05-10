@@ -70,159 +70,259 @@ function makeNode(
   };
 }
 
-const GENERATED_KEY_VISUAL = "/ai-canvas-generated/luxury-jewelry-key-visual.png";
-const GENERATED_CAMPAIGN_BOARD = "/ai-canvas-generated/luxury-jewelry-campaign-board.png";
-
 const promptEdgeStyle = { stroke: "rgba(216,180,254,0.78)", strokeWidth: 2.5, filter: "drop-shadow(0 0 6px rgba(216,180,254,0.45))" };
 const imageEdgeStyle = { stroke: "rgba(94,234,212,0.72)", strokeWidth: 2.5, filter: "drop-shadow(0 0 6px rgba(94,234,212,0.32))" };
 const boardEdgeStyle = { stroke: "rgba(251,191,36,0.78)", strokeWidth: 3, filter: "drop-shadow(0 0 8px rgba(251,191,36,0.45))" };
 const videoEdgeStyle = { stroke: "rgba(16,185,129,0.72)", strokeWidth: 2.5, filter: "drop-shadow(0 0 6px rgba(16,185,129,0.35))" };
+const analysisEdgeStyle = { stroke: "rgba(56,189,248,0.72)", strokeWidth: 2.5, filter: "drop-shadow(0 0 6px rgba(56,189,248,0.35))" };
 
-const INITIAL_NODES: Node<CanvasNodeData>[] = [
-  makeNode("brief", "sticky-note", { x: -1260, y: -260 }, {
-    noteText: "Campaign production graph\n\nGoal: build a full luxury jewelry ad from controlled references.\n\nFlow:\n1. Add character, jewelry, location, and brand references.\n2. Use one master prompt to lock style and identity.\n3. Generate approved still frames.\n4. Assemble the campaign board.\n5. Animate selected frames and export the final package.",
-  }, {
-    label: "Production brief",
-    description: "The workflow starts here",
-  }),
-  makeNode("character-ref", "add-reference", { x: -1260, y: 130 }, undefined, {
-    label: "Character reference",
-    description: "Actor/model identity sheet",
-  }),
-  makeNode("product-ref", "add-reference", { x: -1260, y: 470 }, undefined, {
-    label: "Jewelry reference",
-    description: "Ruby-gold necklace, earrings, bracelet, and ring",
-  }),
-  makeNode("location-ref", "add-reference", { x: -1260, y: 810 }, undefined, {
-    label: "Desert location reference",
-    description: "Warm dusk desert and atmospheric dust",
-  }),
-  makeNode("brand-ref", "add-reference", { x: -1260, y: 1150 }, undefined, {
-    label: "Brand mood reference",
-    description: "Editorial lighting, color, and premium tone",
-  }),
-  makeNode("master-prompt", "text-prompt", { x: -760, y: 230 }, {
-    prompt: "Create an original luxury jewelry advertising campaign for a ruby-gold jewelry set. Keep one sophisticated woman consistent across all frames, wearing an elegant black evening dress in a warm dusk desert landscape. The necklace, earrings, bracelet, and ring must stay consistent, realistic, detailed, and premium. Visual language: golden sunset rim light, soft wind, atmospheric dust, shallow depth of field, ARRI Alexa commercial look, anamorphic lens, rich contrast, natural skin tones, editorial fashion composition. Generate a coherent ad sequence: wide hero, portrait, hand macro, necklace close-up, jewelry product study, walking silhouette, beauty profile, and final campaign board. No text, no logos, no watermark, no distorted hands, no extra fingers, no warped jewelry.",
-  }, {
-    label: "Master campaign prompt",
-    description: "One prompt controls the whole graph",
-  }),
-  makeNode("shot-plan", "list", { x: -760, y: 610 }, {
-    noteText: "01 Wide desert hero\n02 Beauty portrait with jewelry\n03 Hand macro with ruby ring\n04 Necklace and earrings close-up\n05 Jewelry product study\n06 Walking silhouette in wind\n07 Profile shot with sunset rim light\n08 Final campaign board / contact sheet",
-  }, {
-    label: "Shot list",
-    description: "Planned frames before generation",
-  }),
-  makeNode("quality-rules", "sticky-note", { x: -760, y: 960 }, {
-    noteText: "Consistency checks\n\n- Same character identity in every frame.\n- Jewelry design must not drift.\n- Warm gold/black/red palette only.\n- Keep hands natural and products readable.\n- Approved frames can be routed to video.",
-  }, {
-    label: "Approval rules",
-    description: "Quality gate before downstream generation",
-  }),
-  makeNode("hero-frame", "text-to-image", { x: -260, y: -170 }, {
-    prompt: "Wide hero shot using the connected character, jewelry, location, and brand references. Show the woman in the black dress holding the ruby jewelry in a warm desert sunset. Premium cinematic lighting, clean high-end campaign composition.",
-    modelId: "nano-banana-pro",
-    aspectRatio: "16:9",
-  }, {
-    label: "Nano Banana - hero frame",
-    description: "Generated wide hero image",
-    status: "done",
-    outputImageUrl: GENERATED_KEY_VISUAL,
-  }),
-  makeNode("portrait-frame", "text-to-image", { x: -260, y: 200 }, {
-    prompt: "Medium beauty portrait from the same campaign. Preserve the same woman, black evening dress, ruby-gold jewelry, golden rim light, and natural skin texture.",
-    modelId: "nano-banana-pro",
-    aspectRatio: "16:9",
-  }, {
-    label: "Nano Banana - portrait",
-    description: "Identity and beauty frame",
-  }),
-  makeNode("hand-macro-frame", "text-to-image", { x: -260, y: 570 }, {
-    prompt: "Cinematic macro close-up of a hand wearing the ruby ring and bracelet, touching dark desert sand. Realistic fingers, detailed gemstone reflections, premium jewelry lighting.",
-    modelId: "nano-banana-pro",
-    aspectRatio: "16:9",
-  }, {
-    label: "Nano Banana - hand macro",
-    description: "Product detail frame",
-  }),
-  makeNode("necklace-frame", "text-to-image", { x: -260, y: 940 }, {
-    prompt: "Close-up of the ruby necklace and earrings on the same woman, warm sunset light, soft shadows, elegant fashion ad framing, realistic stones and metal.",
-    modelId: "nano-banana-pro",
-    aspectRatio: "16:9",
-  }, {
-    label: "Nano Banana - necklace close",
-    description: "Premium product close-up",
-  }),
-  makeNode("product-study-frame", "text-to-image", { x: 220, y: 200 }, {
-    prompt: "Clean product reference board of the ruby-gold jewelry set on neutral background: necklace, earrings, ring, and bracelet. Keep the same design language from the campaign.",
-    modelId: "nano-banana-pro",
-    aspectRatio: "16:9",
-  }, {
-    label: "Nano Banana - product study",
-    description: "Product continuity check",
-  }),
-  makeNode("campaign-board", "text-to-image", { x: 220, y: 620 }, {
-    prompt: "Assemble the approved frames into a cinematic campaign production board/contact sheet. Include the wide hero, portrait, macro hand, necklace close-up, jewelry product study, walking silhouette, beauty profile, and final campaign composition. No labels, no logos, no text overlays.",
-    modelId: "nano-banana-pro",
-    aspectRatio: "16:9",
-  }, {
-    label: "Final image board",
-    description: "Generated campaign board from the graph",
-    status: "done",
-    outputImageUrl: GENERATED_CAMPAIGN_BOARD,
-  }),
-  makeNode("motion-hero", "image-to-video", { x: 720, y: -70 }, {
-    prompt: "Slow cinematic dolly push from the approved hero frame. Preserve character identity, jewelry design, desert sunset, and premium commercial pacing.",
-    modelId: "kling/v2-5-turbo-image-to-video-pro",
-    aspectRatio: "16:9",
-    duration: 5,
-  }, {
-    label: "Kling - hero motion",
-    description: "Animate the approved hero frame",
-  }),
-  makeNode("motion-detail", "image-to-video", { x: 720, y: 500 }, {
-    prompt: "Macro camera glide over the approved jewelry close-up. Keep gemstone shape stable, natural hand anatomy, shallow focus, and warm premium lighting.",
-    modelId: "kling/v2-5-turbo-image-to-video-pro",
-    aspectRatio: "16:9",
-    duration: 5,
-  }, {
-    label: "Kling - product motion",
-    description: "Animate the product detail frames",
-  }),
-  makeNode("final-export", "export", { x: 1200, y: 310 }, undefined, {
-    label: "Final campaign output",
-    description: "Complete result from prompt to board and video routing",
-    status: "done",
-    outputImageUrl: GENERATED_CAMPAIGN_BOARD,
-  }),
-];
+function makeEdge(
+  id: string,
+  source: string,
+  target: string,
+  sourceHandle: "prompt" | "image" | "video",
+  targetHandle: "prompt" | "image" | "video",
+  style: Edge["style"],
+): Edge {
+  return { id, source, target, sourceHandle, targetHandle, type: "default", style };
+}
 
-const INITIAL_EDGES: Edge[] = [
-  { id: "brief-master", source: "brief", sourceHandle: "prompt", target: "master-prompt", targetHandle: "prompt", type: "default", style: promptEdgeStyle },
-  { id: "master-hero", source: "master-prompt", sourceHandle: "prompt", target: "hero-frame", targetHandle: "prompt", type: "default", style: promptEdgeStyle },
-  { id: "master-portrait", source: "master-prompt", sourceHandle: "prompt", target: "portrait-frame", targetHandle: "prompt", type: "default", style: promptEdgeStyle },
-  { id: "master-hand", source: "master-prompt", sourceHandle: "prompt", target: "hand-macro-frame", targetHandle: "prompt", type: "default", style: promptEdgeStyle },
-  { id: "master-necklace", source: "master-prompt", sourceHandle: "prompt", target: "necklace-frame", targetHandle: "prompt", type: "default", style: promptEdgeStyle },
-  { id: "master-product", source: "master-prompt", sourceHandle: "prompt", target: "product-study-frame", targetHandle: "prompt", type: "default", style: promptEdgeStyle },
-  { id: "plan-board", source: "shot-plan", sourceHandle: "prompt", target: "campaign-board", targetHandle: "prompt", type: "default", style: promptEdgeStyle },
-  { id: "char-hero", source: "character-ref", sourceHandle: "image", target: "hero-frame", targetHandle: "image", type: "default", style: imageEdgeStyle },
-  { id: "char-portrait", source: "character-ref", sourceHandle: "image", target: "portrait-frame", targetHandle: "image", type: "default", style: imageEdgeStyle },
-  { id: "product-hand", source: "product-ref", sourceHandle: "image", target: "hand-macro-frame", targetHandle: "image", type: "default", style: imageEdgeStyle },
-  { id: "product-necklace", source: "product-ref", sourceHandle: "image", target: "necklace-frame", targetHandle: "image", type: "default", style: imageEdgeStyle },
-  { id: "product-study", source: "product-ref", sourceHandle: "image", target: "product-study-frame", targetHandle: "image", type: "default", style: imageEdgeStyle },
-  { id: "location-hero", source: "location-ref", sourceHandle: "image", target: "hero-frame", targetHandle: "image", type: "default", style: imageEdgeStyle },
-  { id: "brand-board", source: "brand-ref", sourceHandle: "image", target: "campaign-board", targetHandle: "image", type: "default", style: imageEdgeStyle },
-  { id: "hero-board", source: "hero-frame", sourceHandle: "image", target: "campaign-board", targetHandle: "image", type: "default", style: boardEdgeStyle },
-  { id: "portrait-board", source: "portrait-frame", sourceHandle: "image", target: "campaign-board", targetHandle: "image", type: "default", style: boardEdgeStyle },
-  { id: "hand-board", source: "hand-macro-frame", sourceHandle: "image", target: "campaign-board", targetHandle: "image", type: "default", style: boardEdgeStyle },
-  { id: "necklace-board", source: "necklace-frame", sourceHandle: "image", target: "campaign-board", targetHandle: "image", type: "default", style: boardEdgeStyle },
-  { id: "study-board", source: "product-study-frame", sourceHandle: "image", target: "campaign-board", targetHandle: "image", type: "default", style: boardEdgeStyle },
-  { id: "hero-motion", source: "hero-frame", sourceHandle: "image", target: "motion-hero", targetHandle: "image", type: "default", style: videoEdgeStyle },
-  { id: "detail-motion", source: "hand-macro-frame", sourceHandle: "image", target: "motion-detail", targetHandle: "image", type: "default", style: videoEdgeStyle },
-  { id: "board-export", source: "campaign-board", sourceHandle: "image", target: "final-export", targetHandle: "image", type: "default", style: boardEdgeStyle },
-  { id: "hero-video-export", source: "motion-hero", sourceHandle: "video", target: "final-export", targetHandle: "video", type: "default", style: videoEdgeStyle },
-  { id: "detail-video-export", source: "motion-detail", sourceHandle: "video", target: "final-export", targetHandle: "video", type: "default", style: videoEdgeStyle },
-];
+function createCommercialWorkflow(rawBrief = "Luxury Jewelry Ad") {
+  const brief = rawBrief.trim() || "Luxury Jewelry Ad";
+  const nodes: Node<CanvasNodeData>[] = [
+    makeNode("layer-creative", "sticky-note", { x: -1660, y: -360 }, {
+      noteText: "Layer 1 - Creative Direction\n\nThe brief feeds the Director Brain. The Director Brain defines mood, lighting language, lens logic, pacing, camera behavior, luxury level, and commercial identity.",
+    }, {
+      label: "Layer 1 / Creative Direction",
+      description: "Commercial strategy layer",
+    }),
+    makeNode("creative-brief", "text-prompt", { x: -1660, y: -60 }, {
+      prompt: brief,
+    }, {
+      label: "Creative Brief",
+      description: "Write the commercial idea here, then build or run the pipeline",
+    }),
+    makeNode("director-brain", "assistant", { x: -1180, y: -80 }, {
+      prompt: "You are the Director Brain for Saad Studio AI Canvas. Transform the connected creative brief into a production direction document. Define: ad type, target feeling, mood, cinematic style, lighting language, lens style, camera behavior, pacing, luxury level, color world, commercial identity, continuity rules, and what every downstream node must preserve. Output concise production instructions that can be injected into image and video generation prompts.",
+    }, {
+      label: "Director Brain",
+      description: "Central intelligence shared with every downstream node",
+    }),
+    makeNode("visual-direction", "assistant", { x: -760, y: -260 }, {
+      prompt: "Convert the Director Brain output into visual direction. Include composition rules, frame hierarchy, color palette, styling, set language, lens choices, lighting ratios, and negative constraints. Keep it production-ready and specific.",
+    }, {
+      label: "Visual Direction",
+      description: "Defines the visual identity of the commercial",
+    }),
+    makeNode("layer-assets", "sticky-note", { x: -1660, y: 300 }, {
+      noteText: "Layer 2 - Assets\n\nUpload real inputs here. Character grid is only a reference asset, not the center of the system. The real center is Director Brain + Brand Identity + Shot Planning.",
+    }, {
+      label: "Layer 2 / Assets",
+      description: "Character, product, and environment inputs",
+    }),
+    makeNode("character-asset", "upload-image", { x: -1660, y: 600 }, { imageUrl: "" }, {
+      label: "Character Asset",
+      description: "Upload model / actor / person reference",
+    }),
+    makeNode("product-asset", "add-reference", { x: -1660, y: 940 }, { imageUrl: "" }, {
+      label: "Product Asset",
+      description: "Upload product, wardrobe, prop, or hero object",
+    }),
+    makeNode("environment-asset", "add-reference", { x: -1660, y: 1280 }, { imageUrl: "" }, {
+      label: "Environment Asset",
+      description: "Upload location, set, mood, or lighting reference",
+    }),
+    makeNode("asset-analysis", "assistant", { x: -1180, y: 650 }, {
+      prompt: "Create a production asset analysis from the connected brief and uploaded assets. Describe how the character, product, and environment should be used across the commercial. Define identity consistency, product readability, styling constraints, and risks to avoid.",
+    }, {
+      label: "Product / Character Analysis",
+      description: "Turns uploaded assets into production rules",
+    }),
+    makeNode("character-grid-reference", "image-edit", { x: -760, y: 620 }, {
+      prompt: "Generate a character reference grid from the uploaded character asset. Use this only as a consistency reference: full body front, side profile, rear view, face close-up, profile close-up, hands, wardrobe detail, walking pose, expression close-up. Clean production grid, no text, no logos.",
+      modelId: "nano-banana-pro",
+      aspectRatio: "1:1",
+    }, {
+      label: "Character Grid Reference",
+      description: "Reference only, not the workflow center",
+    }),
+    makeNode("layer-cinema", "sticky-note", { x: -1180, y: 1060 }, {
+      noteText: "Layer 3 - Cinematography\n\nShot Director converts the Director Brain into structured shots. No random grids. Each shot has purpose, lens behavior, framing, and motion logic.",
+    }, {
+      label: "Layer 3 / Cinematography",
+      description: "Shot planning and camera logic",
+    }),
+    makeNode("shot-director", "assistant", { x: -760, y: 1060 }, {
+      prompt: "You are the Shot Director. Build a structured commercial shot plan from the Director Brain, Visual Direction, and Asset Analysis. Required shots: Hero Shot, Establishing Shot, Macro Shot, Beauty Shot, Product Detail Shot, Motion Shot, Editorial Shot. For each shot define purpose, composition, lens, camera angle, lighting, movement, pacing, and consistency constraints.",
+    }, {
+      label: "Shot Director System",
+      description: "Creates organized commercial shots",
+    }),
+    makeNode("auto-shot-expansion", "assistant", { x: -320, y: 1060 }, {
+      prompt: "Expand every shot into production variations. For each shot produce: wide, medium, close-up, macro, side angle, and cinematic motion variation. Keep the same Director Brain identity, brand logic, and asset consistency. Output clear prompts that downstream image/video nodes can use.",
+    }, {
+      label: "Auto Shot Expansion",
+      description: "Expands shots into renderable variations",
+    }),
+    makeNode("layer-generation", "sticky-note", { x: -320, y: -360 }, {
+      noteText: "Layer 4 - Generation\n\nEach shot is generated separately. Run a shot node, inspect it, then run its variation or animation nodes downstream.",
+    }, {
+      label: "Layer 4 / Generation",
+      description: "Still frame generation layer",
+    }),
+    makeNode("hero-shot", "image-edit", { x: -320, y: -60 }, {
+      prompt: "Generate the Hero Shot from the Director Brain and Shot Director plan. Use connected assets and character grid only for consistency. Make the strongest commercial frame for the brief. 16:9, cinematic, no text, no logos.",
+      modelId: "nano-banana-pro",
+      aspectRatio: "16:9",
+    }, {
+      label: "Hero Shot",
+      description: "Primary commercial image",
+    }),
+    makeNode("establishing-shot", "image-edit", { x: -320, y: 260 }, {
+      prompt: "Generate the Establishing Shot. Show the world, product context, mood, and visual language before the commercial action begins. 16:9 cinematic advertising frame, no text, no logos.",
+      modelId: "nano-banana-pro",
+      aspectRatio: "16:9",
+    }, {
+      label: "Establishing Shot",
+      description: "Sets location and commercial world",
+    }),
+    makeNode("macro-shot", "image-edit", { x: -320, y: 580 }, {
+      prompt: "Generate the Macro Shot. Focus on product/material/detail interaction with cinematic shallow depth of field. Product must be readable and premium. Natural anatomy, no distortions, no text.",
+      modelId: "nano-banana-pro",
+      aspectRatio: "16:9",
+    }, {
+      label: "Macro Shot",
+      description: "High-detail commercial close-up",
+    }),
+    makeNode("beauty-shot", "image-edit", { x: 140, y: -60 }, {
+      prompt: "Generate the Beauty Shot. Prioritize face, styling, light on skin, fashion posture, premium brand mood, and identity consistency. 16:9 cinematic advertising frame, no text.",
+      modelId: "nano-banana-pro",
+      aspectRatio: "16:9",
+    }, {
+      label: "Beauty Shot",
+      description: "Character and styling hero frame",
+    }),
+    makeNode("product-detail-shot", "image-edit", { x: 140, y: 260 }, {
+      prompt: "Generate the Product Detail Shot. The product or wardrobe detail must be sharp, luxurious, and consistent with the uploaded asset. Strong commercial lighting, no text, no logos.",
+      modelId: "nano-banana-pro",
+      aspectRatio: "16:9",
+    }, {
+      label: "Product Detail Shot",
+      description: "Product readability frame",
+    }),
+    makeNode("editorial-shot", "image-edit", { x: 140, y: 580 }, {
+      prompt: "Generate the Editorial Shot. Make it feel like a high-end campaign still with strong composition, pose, color language, and brand identity. Keep asset consistency. No text.",
+      modelId: "nano-banana-pro",
+      aspectRatio: "16:9",
+    }, {
+      label: "Editorial Shot",
+      description: "Campaign/editorial frame",
+    }),
+    makeNode("layer-variations", "sticky-note", { x: 600, y: -360 }, {
+      noteText: "Layer 4B - Variations\n\nVariations are attached to approved shots. They are not random; they inherit Director Brain, Shot Director, and asset rules.",
+    }, {
+      label: "Layer 4B / Variations",
+      description: "Controlled shot expansion",
+    }),
+    makeNode("hero-variations", "variations", { x: 600, y: -60 }, {
+      prompt: "Create controlled Hero Shot variations: wide, medium, close-up, side angle, and cinematic motion-ready frame. Preserve the same identity, product, lighting language, and brand mood.",
+      modelId: "nano-banana-pro",
+      aspectRatio: "16:9",
+    }, {
+      label: "Hero Variations",
+      description: "Auto expansion for hero shot",
+    }),
+    makeNode("macro-variations", "variations", { x: 600, y: 300 }, {
+      prompt: "Create controlled macro/product variations from the approved macro shot. Explore angle, depth of field, highlight, and product readability while preserving consistency.",
+      modelId: "nano-banana-pro",
+      aspectRatio: "16:9",
+    }, {
+      label: "Macro Variations",
+      description: "Auto expansion for product detail",
+    }),
+    makeNode("layer-animation", "sticky-note", { x: 1060, y: -360 }, {
+      noteText: "Layer 5 - Animation\n\nAnimation nodes receive approved stills plus Director Brain pacing and camera behavior. They should preserve identity and product shape.",
+    }, {
+      label: "Layer 5 / Animation",
+      description: "Motion production layer",
+    }),
+    makeNode("motion-shot", "image-to-video", { x: 1060, y: -60 }, {
+      prompt: "Animate this approved commercial frame using the Director Brain motion language. Preserve identity, product shape, lighting continuity, and cinematic pacing. Use smooth premium camera movement.",
+      modelId: "kling/v2-5-turbo-image-to-video-pro",
+      aspectRatio: "16:9",
+      duration: 5,
+    }, {
+      label: "Motion Shot",
+      description: "Primary animated commercial clip",
+    }),
+    makeNode("macro-motion-shot", "image-to-video", { x: 1060, y: 300 }, {
+      prompt: "Animate the approved macro/product frame with subtle premium camera movement, controlled focus, stable product shape, and no warping.",
+      modelId: "kling/v2-5-turbo-image-to-video-pro",
+      aspectRatio: "16:9",
+      duration: 5,
+    }, {
+      label: "Macro Motion Shot",
+      description: "Product detail animation",
+    }),
+    makeNode("layer-final", "sticky-note", { x: 1520, y: -360 }, {
+      noteText: "Layer 6 - Final Edit\n\nThe final assembly receives stills and videos. Export only after generation and animation nodes produce real outputs.",
+    }, {
+      label: "Layer 6 / Final Edit",
+      description: "Assembly and export layer",
+    }),
+    makeNode("commercial-assembly", "image-edit", { x: 1520, y: -40 }, {
+      prompt: "Assemble the connected approved stills into a final commercial production board. Show the campaign logic: creative direction, hero, establishing, macro, beauty, product detail, editorial, and motion-ready frames. No text, no logos, no watermark.",
+      modelId: "nano-banana-pro",
+      aspectRatio: "16:9",
+    }, {
+      label: "Final Commercial Assembly",
+      description: "Builds the final campaign board from real generated outputs",
+    }),
+    makeNode("final-export", "export", { x: 1980, y: 80 }, undefined, {
+      label: "Final Export",
+      description: "Exports generated still board and connected commercial videos",
+    }),
+  ];
+
+  const edges: Edge[] = [
+    makeEdge("brief-director", "creative-brief", "director-brain", "prompt", "prompt", promptEdgeStyle),
+    makeEdge("director-visual", "director-brain", "visual-direction", "prompt", "prompt", analysisEdgeStyle),
+    makeEdge("brief-analysis", "creative-brief", "asset-analysis", "prompt", "prompt", promptEdgeStyle),
+    makeEdge("director-analysis", "director-brain", "asset-analysis", "prompt", "prompt", analysisEdgeStyle),
+    makeEdge("character-grid-input", "character-asset", "character-grid-reference", "image", "image", imageEdgeStyle),
+    makeEdge("visual-character-grid", "visual-direction", "character-grid-reference", "prompt", "prompt", analysisEdgeStyle),
+    makeEdge("analysis-shot-director", "asset-analysis", "shot-director", "prompt", "prompt", analysisEdgeStyle),
+    makeEdge("visual-shot-director", "visual-direction", "shot-director", "prompt", "prompt", analysisEdgeStyle),
+    makeEdge("shot-expansion", "shot-director", "auto-shot-expansion", "prompt", "prompt", analysisEdgeStyle),
+    ...["hero-shot", "establishing-shot", "macro-shot", "beauty-shot", "product-detail-shot", "editorial-shot"].flatMap(target => [
+      makeEdge(`expansion-${target}`, "auto-shot-expansion", target, "prompt", "prompt", promptEdgeStyle),
+      makeEdge(`character-${target}`, "character-asset", target, "image", "image", imageEdgeStyle),
+      makeEdge(`product-${target}`, "product-asset", target, "image", "image", imageEdgeStyle),
+      makeEdge(`environment-${target}`, "environment-asset", target, "image", "image", imageEdgeStyle),
+      makeEdge(`grid-${target}`, "character-grid-reference", target, "image", "image", imageEdgeStyle),
+    ]),
+    makeEdge("hero-to-variations", "hero-shot", "hero-variations", "image", "image", boardEdgeStyle),
+    makeEdge("macro-to-variations", "macro-shot", "macro-variations", "image", "image", boardEdgeStyle),
+    makeEdge("expansion-hero-variations", "auto-shot-expansion", "hero-variations", "prompt", "prompt", promptEdgeStyle),
+    makeEdge("expansion-macro-variations", "auto-shot-expansion", "macro-variations", "prompt", "prompt", promptEdgeStyle),
+    makeEdge("hero-motion", "hero-variations", "motion-shot", "image", "image", videoEdgeStyle),
+    makeEdge("macro-motion", "macro-variations", "macro-motion-shot", "image", "image", videoEdgeStyle),
+    makeEdge("director-motion", "director-brain", "motion-shot", "prompt", "prompt", analysisEdgeStyle),
+    makeEdge("director-macro-motion", "director-brain", "macro-motion-shot", "prompt", "prompt", analysisEdgeStyle),
+    ...["hero-shot", "establishing-shot", "macro-shot", "beauty-shot", "product-detail-shot", "editorial-shot", "hero-variations", "macro-variations"].map(source =>
+      makeEdge(`${source}-assembly`, source, "commercial-assembly", "image", "image", boardEdgeStyle),
+    ),
+    makeEdge("assembly-export", "commercial-assembly", "final-export", "image", "image", boardEdgeStyle),
+    makeEdge("motion-export", "motion-shot", "final-export", "video", "video", videoEdgeStyle),
+    makeEdge("macro-motion-export", "macro-motion-shot", "final-export", "video", "video", videoEdgeStyle),
+  ];
+
+  return { nodes, edges };
+}
+
+const DEFAULT_WORKFLOW = createCommercialWorkflow();
+const INITIAL_NODES: Node<CanvasNodeData>[] = DEFAULT_WORKFLOW.nodes;
+const INITIAL_EDGES: Edge[] = DEFAULT_WORKFLOW.edges;
 
 async function pollVideoTask(taskId: string): Promise<string> {
   const MAX = 70;
@@ -615,12 +715,14 @@ function ZoomBar() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function AICanvasInner() {
+  const { fitView } = useReactFlow();
   const [nodes, setNodes, onNodesChange] = useNodesState<Node<CanvasNodeData>>(INITIAL_NODES);
   const [edges, setEdges, onEdgesChange] = useEdgesState(INITIAL_EDGES);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [activity, setActivity] = useState<ActivityEntry[]>([]);
   const [isRunning, setIsRunning] = useState(false);
   const [showAddMenu, setShowAddMenu] = useState(false);
+  const [briefInput, setBriefInput] = useState("Luxury Jewelry Ad");
 
   const nodesRef = useRef<Node<CanvasNodeData>[]>(nodes);
   const edgesRef = useRef<Edge[]>(edges);
@@ -629,7 +731,7 @@ function AICanvasInner() {
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem("ai-canvas-v5");
+      const saved = localStorage.getItem("ai-canvas-v6");
       if (!saved) return;
       const parsed = JSON.parse(saved) as { nodes?: Node<CanvasNodeData>[]; edges?: Edge[] };
       if (Array.isArray(parsed.nodes) && parsed.nodes.length > 0) setNodes(parsed.nodes);
@@ -677,15 +779,17 @@ function AICanvasInner() {
       try {
         const inEdges = allEdges.filter(e => e.target === nodeId);
         const inputImageUrls: string[] = [];
+        const inputPrompts: string[] = [];
         let inputImageUrl: string | undefined;
         let inputVideoUrl: string | undefined;
-        let inputPrompt: string | undefined;
 
         for (const edge of inEdges) {
           const src = allNodes.find(n => n.id === edge.source);
           if (!src) continue;
           const sd = src.data;
-          if (sd.nodeType === "text-prompt") inputPrompt = sd.settings.prompt;
+          if (sd.nodeType === "text-prompt" && sd.settings.prompt) inputPrompts.push(sd.settings.prompt);
+          else if (sd.outputText) inputPrompts.push(sd.outputText);
+          else if ((sd.nodeType === "list" || sd.nodeType === "sticky-note") && sd.settings.noteText) inputPrompts.push(sd.settings.noteText);
           else if (["upload-image", "add-reference", "assets", "stock"].includes(sd.nodeType) && sd.settings.imageUrl) {
             inputImageUrls.push(sd.settings.imageUrl);
           }
@@ -693,7 +797,7 @@ function AICanvasInner() {
           else if (sd.outputVideoUrl) inputVideoUrl = sd.outputVideoUrl;
         }
 
-        const prompt = inputPrompt || s.prompt || "";
+        const prompt = [...inputPrompts, s.prompt].filter(Boolean).join("\n\n");
         if (s.imageUrl) inputImageUrls.push(s.imageUrl);
         inputImageUrl = inputImageUrls[0];
         const imageUrl = inputImageUrl;
@@ -1109,22 +1213,41 @@ function AICanvasInner() {
 
   const saveCanvasState = useCallback(() => {
     try {
-      localStorage.setItem("ai-canvas-v5", JSON.stringify({ nodes: nodesRef.current, edges: edgesRef.current }));
+      localStorage.setItem("ai-canvas-v6", JSON.stringify({ nodes: nodesRef.current, edges: edgesRef.current }));
       addActivity({ nodeId: "", nodeLabel: "Canvas", level: "success", message: "Canvas saved to local storage." });
     } catch {
       addActivity({ nodeId: "", nodeLabel: "Canvas", level: "error", message: "Failed to save canvas." });
     }
   }, [addActivity]);
 
+  const buildWorkflowFromBrief = useCallback(() => {
+    const workflow = createCommercialWorkflow(briefInput);
+    setNodes(workflow.nodes);
+    setEdges(workflow.edges);
+    setSelectedNodeId(null);
+    setActivity([]);
+    try {
+      localStorage.setItem("ai-canvas-v6", JSON.stringify(workflow));
+    } catch {}
+    addActivity({
+      nodeId: "creative-brief",
+      nodeLabel: "Dynamic Builder",
+      level: "success",
+      message: `Built a directed commercial production workflow for: ${briefInput.trim() || "Luxury Jewelry Ad"}.`,
+    });
+    setTimeout(() => fitView({ padding: 0.18, duration: 450 }), 80);
+  }, [briefInput, setNodes, setEdges, addActivity, fitView]);
+
   const resetToTemplate = useCallback(() => {
     setNodes(INITIAL_NODES);
     setEdges(INITIAL_EDGES);
     setSelectedNodeId(null);
     try {
-      localStorage.setItem("ai-canvas-v5", JSON.stringify({ nodes: INITIAL_NODES, edges: INITIAL_EDGES }));
+      localStorage.setItem("ai-canvas-v6", JSON.stringify({ nodes: INITIAL_NODES, edges: INITIAL_EDGES }));
     } catch {}
-    addActivity({ nodeId: "", nodeLabel: "Template", level: "success", message: "Loaded the full campaign workflow map." });
-  }, [setNodes, setEdges, addActivity]);
+    addActivity({ nodeId: "", nodeLabel: "Template", level: "success", message: "Loaded the commercial production operating system template." });
+    setTimeout(() => fitView({ padding: 0.18, duration: 450 }), 80);
+  }, [setNodes, setEdges, addActivity, fitView]);
 
   const onConnect: OnConnect = useCallback(
     (connection: Connection) => setEdges(eds => addEdge(connection, eds)),
@@ -1164,6 +1287,69 @@ function AICanvasInner() {
           style={{ width: "100%", height: "100%", background: "#060c18" }}
         >
           <Background variant={BackgroundVariant.Dots} gap={32} size={1} color="rgba(255,255,255,0.04)" />
+          <Panel position="top-left" style={{ marginTop: 14, marginLeft: 18 }}>
+            <div
+              style={{
+                width: 360,
+                borderRadius: 16,
+                border: "1px solid rgba(103,232,249,0.16)",
+                background: "rgba(7,12,24,0.86)",
+                backdropFilter: "blur(18px)",
+                boxShadow: "0 18px 60px rgba(0,0,0,0.48)",
+                padding: 12,
+              }}
+            >
+              <div style={{ color: "#67e8f9", fontSize: 10, fontWeight: 900, letterSpacing: "0.16em", textTransform: "uppercase", marginBottom: 8 }}>
+                Dynamic Workflow Builder
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <input
+                  value={briefInput}
+                  onChange={e => setBriefInput(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === "Enter") buildWorkflowFromBrief();
+                  }}
+                  placeholder="Luxury Jewelry Ad"
+                  style={{
+                    flex: 1,
+                    minWidth: 0,
+                    height: 38,
+                    borderRadius: 11,
+                    border: "1px solid rgba(255,255,255,0.1)",
+                    background: "rgba(3,7,18,0.72)",
+                    color: "#e2e8f0",
+                    outline: "none",
+                    padding: "0 12px",
+                    fontSize: 12.5,
+                    fontWeight: 600,
+                    fontFamily: "inherit",
+                  }}
+                />
+                <button
+                  onClick={buildWorkflowFromBrief}
+                  disabled={isRunning}
+                  style={{
+                    height: 38,
+                    borderRadius: 11,
+                    border: "1px solid rgba(34,211,238,0.28)",
+                    background: "linear-gradient(135deg, rgba(8,145,178,0.95), rgba(79,70,229,0.9))",
+                    color: "white",
+                    padding: "0 13px",
+                    fontSize: 12,
+                    fontWeight: 800,
+                    cursor: isRunning ? "not-allowed" : "pointer",
+                    fontFamily: "inherit",
+                    opacity: isRunning ? 0.55 : 1,
+                  }}
+                >
+                  Build
+                </button>
+              </div>
+              <div style={{ marginTop: 8, color: "rgba(148,163,184,0.72)", fontSize: 11, lineHeight: 1.45 }}>
+                Builds Director Brain, shot structure, variations, animation routing, and final assembly from the brief.
+              </div>
+            </div>
+          </Panel>
           <Panel position="top-center" style={{ marginTop: 14 }}>
             <div
               style={{
