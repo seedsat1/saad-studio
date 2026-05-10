@@ -87,6 +87,253 @@ function makeEdge(
   return { id, source, target, sourceHandle, targetHandle, type: "default", style };
 }
 
+type ArchitectShot = {
+  name: string;
+  purpose: string;
+  prompt: string;
+  lens?: string;
+  camera?: string;
+  lighting?: string;
+  motion?: string;
+  variations?: string[];
+  animate?: boolean;
+};
+
+type WorkflowArchitecture = {
+  title: string;
+  adType: string;
+  environmentStructure: string;
+  directorBrainPrompt: string;
+  visualDirectionPrompt: string;
+  assetAnalysisPrompt: string;
+  shotPlanningPrompt: string;
+  layers: Array<{ name: string; note: string }>;
+  shots: ArchitectShot[];
+  finalAssemblyPrompt: string;
+};
+
+function slugifyId(input: string, fallback: string) {
+  const slug = input
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 42);
+  return slug || fallback;
+}
+
+function extractJsonObject(input: string) {
+  const trimmed = input.trim().replace(/^```(?:json)?/i, "").replace(/```$/i, "").trim();
+  const start = trimmed.indexOf("{");
+  const end = trimmed.lastIndexOf("}");
+  if (start < 0 || end <= start) throw new Error("No JSON object returned by the workflow architect.");
+  return JSON.parse(trimmed.slice(start, end + 1)) as Partial<WorkflowArchitecture>;
+}
+
+function normalizeArchitecture(raw: Partial<WorkflowArchitecture>, brief: string): WorkflowArchitecture {
+  const adType = raw.adType || brief;
+  const title = raw.title || `${adType} Production System`;
+  const shots = Array.isArray(raw.shots) && raw.shots.length > 0
+    ? raw.shots.slice(0, 10).map((shot, index) => ({
+        name: shot?.name || `Shot ${index + 1}`,
+        purpose: shot?.purpose || "Commercial production frame",
+        prompt: shot?.prompt || `Generate ${shot?.name || `shot ${index + 1}`} for ${brief}.`,
+        lens: shot?.lens,
+        camera: shot?.camera,
+        lighting: shot?.lighting,
+        motion: shot?.motion,
+        variations: Array.isArray(shot?.variations) ? shot.variations.slice(0, 6) : [],
+        animate: Boolean(shot?.animate ?? index < 2),
+      }))
+    : [
+        { name: "Hero Shot", purpose: "Primary commercial frame", prompt: `Generate the strongest hero shot for ${brief}.`, animate: true },
+        { name: "Establishing Shot", purpose: "World and environment setup", prompt: `Generate an establishing shot for ${brief}.`, animate: false },
+        { name: "Macro Shot", purpose: "Premium product/detail close-up", prompt: `Generate a cinematic macro detail shot for ${brief}.`, animate: true },
+        { name: "Beauty Shot", purpose: "Character/style/brand expression", prompt: `Generate a beauty/editorial shot for ${brief}.`, animate: false },
+      ];
+
+  return {
+    title,
+    adType,
+    environmentStructure: raw.environmentStructure || "Environment chosen by Director Brain based on the creative intent.",
+    directorBrainPrompt: raw.directorBrainPrompt || `Act as Director Brain for ${brief}. Define ad type, mood, cinematic style, lighting, lens, pacing, camera behavior, luxury level, and continuity rules.`,
+    visualDirectionPrompt: raw.visualDirectionPrompt || `Translate ${brief} into visual direction: composition, palette, lens language, lighting, set design, motion rules, and negative constraints.`,
+    assetAnalysisPrompt: raw.assetAnalysisPrompt || `Analyze uploaded character, product, and environment assets for ${brief}. Define consistency rules and production risks.`,
+    shotPlanningPrompt: raw.shotPlanningPrompt || `Design a shot plan for ${brief}. Define shot purpose, framing, lens, lighting, movement, and pacing.`,
+    layers: Array.isArray(raw.layers) && raw.layers.length > 0
+      ? raw.layers.slice(0, 8).map(layer => ({ name: layer?.name || "Production Layer", note: layer?.note || "Runtime generated layer." }))
+      : [
+          { name: "Creative Direction", note: "Brief, Director Brain, commercial identity." },
+          { name: "Assets", note: "Character, product, and environment references." },
+          { name: "Cinematography", note: "Shot logic, lenses, camera behavior, pacing." },
+          { name: "Generation", note: "Shot-specific still generation." },
+          { name: "Variations", note: "Controlled expansion of approved shots." },
+          { name: "Animation", note: "Motion system for selected frames." },
+          { name: "Final Edit", note: "Commercial assembly and export." },
+        ],
+    shots,
+    finalAssemblyPrompt: raw.finalAssemblyPrompt || `Assemble the generated stills and videos into a final commercial production board for ${brief}.`,
+  };
+}
+
+async function requestWorkflowArchitecture(brief: string): Promise<WorkflowArchitecture> {
+  const res = await fetch("/api/conversation", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are Saad Studio AI Workflow Architect. Return only valid JSON. No markdown. Design node-graph architecture for a commercial AI production canvas.",
+        },
+        {
+          role: "user",
+          content: `Creative intent: ${brief}
+
+Build a runtime-generated AI commercial production workflow. The graph architecture must change based on the ad type. Do not use a generic template.
+
+Return JSON with this shape:
+{
+  "title": string,
+  "adType": string,
+  "environmentStructure": string,
+  "directorBrainPrompt": string,
+  "visualDirectionPrompt": string,
+  "assetAnalysisPrompt": string,
+  "shotPlanningPrompt": string,
+  "layers": [{"name": string, "note": string}],
+  "shots": [{
+    "name": string,
+    "purpose": string,
+    "prompt": string,
+    "lens": string,
+    "camera": string,
+    "lighting": string,
+    "motion": string,
+    "variations": string[],
+    "animate": boolean
+  }],
+  "finalAssemblyPrompt": string
+}
+
+Examples of differences:
+- Luxury Jewelry: macro/product sparkle, skin light, slow luxury pacing.
+- Car Commercial: rig shots, tracking shots, road environment, speed ramps.
+- Perfume Ad: bottle macro, atmosphere, liquid/light, sensual pacing.
+- Sports Intro: kinetic typography feel, player hero, impact cuts, aggressive motion.
+
+Return 5-8 shots. Each shot must include distinct camera/lens/motion logic.`,
+        },
+      ],
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({})) as Record<string, string>;
+    throw new Error(err.message || err.error || `Workflow Architect HTTP ${res.status}`);
+  }
+
+  const data = await res.json() as { content?: string; response?: string; text?: string };
+  return normalizeArchitecture(extractJsonObject(data.content || data.response || data.text || ""), brief);
+}
+
+function createWorkflowFromArchitecture(rawBrief: string, architecture: WorkflowArchitecture) {
+  const brief = rawBrief.trim() || architecture.adType || "Commercial Ad";
+  const layerNote = (index: number, fallback: string) => {
+    const layer = architecture.layers[index];
+    return `${layer?.name || fallback}\n\n${layer?.note || fallback}`;
+  };
+
+  const nodes: Node<CanvasNodeData>[] = [
+    makeNode("layer-creative", "sticky-note", { x: -1760, y: -380 }, { noteText: `AI-generated graph\n\n${architecture.title}\n\nAd type: ${architecture.adType}\nEnvironment: ${architecture.environmentStructure}` }, { label: "Runtime Architecture", description: "Generated by AI Workflow Architect" }),
+    makeNode("creative-brief", "text-prompt", { x: -1760, y: -70 }, { prompt: brief }, { label: "Creative Brief", description: "User intent that generated this graph" }),
+    makeNode("director-brain", "assistant", { x: -1280, y: -90 }, { prompt: architecture.directorBrainPrompt }, { label: "Director Brain", description: "Runtime commercial intelligence" }),
+    makeNode("visual-direction", "assistant", { x: -840, y: -260 }, { prompt: architecture.visualDirectionPrompt }, { label: "Visual Direction", description: "Cinematic identity from the architect" }),
+    makeNode("layer-assets", "sticky-note", { x: -1760, y: 310 }, { noteText: layerNote(1, "Assets") }, { label: "Layer / Assets", description: "Runtime asset layer" }),
+    makeNode("character-asset", "upload-image", { x: -1760, y: 610 }, { imageUrl: "" }, { label: "Character / Main Asset", description: "Upload required campaign input" }),
+    makeNode("product-asset", "add-reference", { x: -1760, y: 950 }, { imageUrl: "" }, { label: "Product / Object Asset", description: "Upload product or hero object if needed" }),
+    makeNode("environment-asset", "add-reference", { x: -1760, y: 1290 }, { imageUrl: "" }, { label: "Environment Asset", description: "Upload location, world, or mood reference" }),
+    makeNode("asset-analysis", "assistant", { x: -1280, y: 660 }, { prompt: architecture.assetAnalysisPrompt }, { label: "Product / Character Analysis", description: "AI analyzes uploaded assets" }),
+    makeNode("reference-grid", "image-edit", { x: -840, y: 650 }, { prompt: "Create only the reference grid needed by this specific commercial architecture. Preserve identity/product consistency. This is a support reference, not the center of the workflow.", modelId: "nano-banana-pro", aspectRatio: "1:1" }, { label: "Reference Grid", description: "Support reference generated only if useful" }),
+    makeNode("layer-cinematography", "sticky-note", { x: -1280, y: 1080 }, { noteText: layerNote(2, "Cinematography") }, { label: "Layer / Cinematography", description: "Runtime shot logic" }),
+    makeNode("shot-director", "assistant", { x: -840, y: 1080 }, { prompt: architecture.shotPlanningPrompt }, { label: "Shot Director System", description: "AI-generated shot structure" }),
+  ];
+
+  const edges: Edge[] = [
+    makeEdge("brief-director", "creative-brief", "director-brain", "prompt", "prompt", promptEdgeStyle),
+    makeEdge("director-visual", "director-brain", "visual-direction", "prompt", "prompt", analysisEdgeStyle),
+    makeEdge("brief-analysis", "creative-brief", "asset-analysis", "prompt", "prompt", promptEdgeStyle),
+    makeEdge("director-analysis", "director-brain", "asset-analysis", "prompt", "prompt", analysisEdgeStyle),
+    makeEdge("asset-character-grid", "character-asset", "reference-grid", "image", "image", imageEdgeStyle),
+    makeEdge("visual-reference-grid", "visual-direction", "reference-grid", "prompt", "prompt", analysisEdgeStyle),
+    makeEdge("analysis-shot-director", "asset-analysis", "shot-director", "prompt", "prompt", analysisEdgeStyle),
+    makeEdge("visual-shot-director", "visual-direction", "shot-director", "prompt", "prompt", analysisEdgeStyle),
+  ];
+
+  const generationSources: string[] = [];
+  const variationSources: string[] = [];
+  const videoSources: string[] = [];
+  const shotBaseY = -80;
+  architecture.shots.forEach((shot, index) => {
+    const col = index % 2;
+    const row = Math.floor(index / 2);
+    const shotId = `shot-${slugifyId(shot.name, String(index + 1))}`;
+    const variationId = `${shotId}-variations`;
+    const motionId = `${shotId}-motion`;
+    const x = -360 + col * 470;
+    const y = shotBaseY + row * 360;
+    const fullPrompt = [
+      shot.prompt,
+      shot.purpose && `Purpose: ${shot.purpose}`,
+      shot.lens && `Lens: ${shot.lens}`,
+      shot.camera && `Camera: ${shot.camera}`,
+      shot.lighting && `Lighting: ${shot.lighting}`,
+      shot.motion && `Motion intent: ${shot.motion}`,
+      "Use Director Brain, Visual Direction, Asset Analysis, Shot Director output, and uploaded assets. No text, no logos, no watermark.",
+    ].filter(Boolean).join("\n");
+
+    nodes.push(makeNode(shotId, "image-edit", { x, y }, { prompt: fullPrompt, modelId: "nano-banana-pro", aspectRatio: "16:9" }, { label: shot.name, description: shot.purpose || "Runtime-generated shot" }));
+    generationSources.push(shotId);
+    edges.push(
+      makeEdge(`director-${shotId}`, "director-brain", shotId, "prompt", "prompt", analysisEdgeStyle),
+      makeEdge(`shot-plan-${shotId}`, "shot-director", shotId, "prompt", "prompt", promptEdgeStyle),
+      makeEdge(`character-${shotId}`, "character-asset", shotId, "image", "image", imageEdgeStyle),
+      makeEdge(`product-${shotId}`, "product-asset", shotId, "image", "image", imageEdgeStyle),
+      makeEdge(`environment-${shotId}`, "environment-asset", shotId, "image", "image", imageEdgeStyle),
+      makeEdge(`reference-${shotId}`, "reference-grid", shotId, "image", "image", imageEdgeStyle),
+    );
+
+    if (shot.variations && shot.variations.length > 0) {
+      nodes.push(makeNode(variationId, "variations", { x: 600 + col * 360, y }, { prompt: `Create controlled variations for ${shot.name}: ${shot.variations.join(", ")}. Preserve Director Brain, brand identity, asset consistency, lens logic, and commercial purpose.`, modelId: "nano-banana-pro", aspectRatio: "16:9" }, { label: `${shot.name} Variations`, description: "AI-selected expansion path" }));
+      variationSources.push(variationId);
+      edges.push(makeEdge(`${shotId}-variation`, shotId, variationId, "image", "image", boardEdgeStyle), makeEdge(`director-${variationId}`, "director-brain", variationId, "prompt", "prompt", analysisEdgeStyle));
+    }
+
+    if (shot.animate) {
+      nodes.push(makeNode(motionId, "image-to-video", { x: 1060 + col * 360, y }, { prompt: `Animate ${shot.name}. ${shot.motion || "Use the camera behavior selected by the AI Workflow Architect."} Preserve identity, product shape, lighting continuity, and pacing.`, modelId: "kling/v2-5-turbo-image-to-video-pro", aspectRatio: "16:9", duration: 5 }, { label: `${shot.name} Motion`, description: "AI-selected motion system" }));
+      videoSources.push(motionId);
+      edges.push(makeEdge(`${variationSources.includes(variationId) ? variationId : shotId}-motion`, variationSources.includes(variationId) ? variationId : shotId, motionId, "image", "image", videoEdgeStyle), makeEdge(`director-${motionId}`, "director-brain", motionId, "prompt", "prompt", analysisEdgeStyle));
+    }
+  });
+
+  const maxRows = Math.max(2, Math.ceil(architecture.shots.length / 2));
+  nodes.push(
+    makeNode("layer-final", "sticky-note", { x: 1500, y: -360 }, { noteText: layerNote(architecture.layers.length - 1, "Final Edit") }, { label: "Layer / Final Edit", description: "Runtime assembly layer" }),
+    makeNode("commercial-assembly", "image-edit", { x: 1500, y: 120 + maxRows * 120 }, { prompt: architecture.finalAssemblyPrompt, modelId: "nano-banana-pro", aspectRatio: "16:9" }, { label: "Final Commercial Assembly", description: "Assembles generated outputs" }),
+    makeNode("final-export", "export", { x: 1960, y: 160 + maxRows * 120 }, undefined, { label: "Final Export", description: "Exports board and videos" }),
+  );
+
+  [...generationSources, ...variationSources].forEach(source => {
+    edges.push(makeEdge(`${source}-assembly`, source, "commercial-assembly", "image", "image", boardEdgeStyle));
+  });
+  videoSources.forEach(source => {
+    edges.push(makeEdge(`${source}-export`, source, "final-export", "video", "video", videoEdgeStyle));
+  });
+  edges.push(makeEdge("assembly-export", "commercial-assembly", "final-export", "image", "image", boardEdgeStyle));
+
+  return { nodes, edges };
+}
+
 function createCommercialWorkflow(rawBrief = "Luxury Jewelry Ad") {
   const brief = rawBrief.trim() || "Luxury Jewelry Ad";
   const nodes: Node<CanvasNodeData>[] = [
@@ -904,7 +1151,7 @@ function AICanvasInner() {
             const res = await fetch("/api/conversation", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ message: prompt }),
+              body: JSON.stringify({ messages: [{ role: "user", content: prompt }] }),
             });
             if (!res.ok) { const err = await res.json().catch(() => ({})) as Record<string, string>; throw new Error(err.message || err.error || `HTTP ${res.status}`); }
             const d = await res.json() as { response?: string; text?: string; content?: string; answer?: string };
@@ -1220,22 +1467,48 @@ function AICanvasInner() {
     }
   }, [addActivity]);
 
-  const buildWorkflowFromBrief = useCallback(() => {
-    const workflow = createCommercialWorkflow(briefInput);
-    setNodes(workflow.nodes);
-    setEdges(workflow.edges);
-    setSelectedNodeId(null);
+  const buildWorkflowFromBrief = useCallback(async () => {
+    const brief = briefInput.trim() || "Luxury Jewelry Ad";
+    setIsRunning(true);
     setActivity([]);
-    try {
-      localStorage.setItem("ai-canvas-v6", JSON.stringify(workflow));
-    } catch {}
     addActivity({
       nodeId: "creative-brief",
-      nodeLabel: "Dynamic Builder",
-      level: "success",
-      message: `Built a directed commercial production workflow for: ${briefInput.trim() || "Luxury Jewelry Ad"}.`,
+      nodeLabel: "AI Workflow Architect",
+      level: "info",
+      message: `Designing runtime node graph for: ${brief}.`,
     });
-    setTimeout(() => fitView({ padding: 0.18, duration: 450 }), 80);
+    try {
+      const architecture = await requestWorkflowArchitecture(brief);
+      const workflow = createWorkflowFromArchitecture(brief, architecture);
+      setNodes(workflow.nodes);
+      setEdges(workflow.edges);
+      setSelectedNodeId(null);
+      localStorage.setItem("ai-canvas-v6", JSON.stringify(workflow));
+      addActivity({
+        nodeId: "creative-brief",
+        nodeLabel: "AI Workflow Architect",
+        level: "success",
+        message: `Generated ${workflow.nodes.length} nodes for ${architecture.adType}.`,
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Workflow Architect failed.";
+      const fallback = createCommercialWorkflow(brief);
+      setNodes(fallback.nodes);
+      setEdges(fallback.edges);
+      setSelectedNodeId(null);
+      try {
+        localStorage.setItem("ai-canvas-v6", JSON.stringify(fallback));
+      } catch {}
+      addActivity({
+        nodeId: "creative-brief",
+        nodeLabel: "AI Workflow Architect",
+        level: "warn",
+        message: `${message} Loaded the local operating-system fallback so the canvas remains usable.`,
+      });
+    } finally {
+      setIsRunning(false);
+      setTimeout(() => fitView({ padding: 0.18, duration: 450 }), 80);
+    }
   }, [briefInput, setNodes, setEdges, addActivity, fitView]);
 
   const resetToTemplate = useCallback(() => {
@@ -1342,11 +1615,11 @@ function AICanvasInner() {
                     opacity: isRunning ? 0.55 : 1,
                   }}
                 >
-                  Build
+                  {isRunning ? "Thinking" : "Build AI Graph"}
                 </button>
               </div>
               <div style={{ marginTop: 8, color: "rgba(148,163,184,0.72)", fontSize: 11, lineHeight: 1.45 }}>
-                Builds Director Brain, shot structure, variations, animation routing, and final assembly from the brief.
+                Calls the AI Workflow Architect to generate the node graph, shot logic, camera language, motion system, routes, and final assembly for this specific intent.
               </div>
             </div>
           </Panel>
