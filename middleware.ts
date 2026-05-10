@@ -110,6 +110,12 @@ function getCmsSlugFromPath(pathname: string) {
   return null;
 }
 
+function isLocalDevRequest(req: Request) {
+  if (process.env.NODE_ENV === "production") return false;
+  const host = req.headers.get("host")?.split(":")[0]?.toLowerCase();
+  return host === "localhost" || host === "127.0.0.1" || host === "::1";
+}
+
 export default clerkMiddleware(async (auth, req) => {
   if (req.method === "OPTIONS" && req.nextUrl.pathname.startsWith("/api")) {
     return applySecurityHeaders(new NextResponse(null, { status: 204 }), req);
@@ -117,8 +123,9 @@ export default clerkMiddleware(async (auth, req) => {
 
   const pathname = req.nextUrl.pathname;
   const slug = getCmsSlugFromPath(pathname);
+  const isLocalDev = isLocalDevRequest(req);
   const adminId = process.env.ADMIN_USER_ID;
-  const isAdmin = Boolean(adminId && auth().userId && auth().userId === adminId);
+  const isAdmin = isLocalDev || Boolean(adminId && auth().userId && auth().userId === adminId);
 
   if (slug && !isAdmin) {
     try {
@@ -146,7 +153,7 @@ export default clerkMiddleware(async (auth, req) => {
     } catch {}
   }
 
-  if (!isPublicRoute(req)) {
+  if (!isLocalDev && !isPublicRoute(req)) {
     auth().protect()
   }
   return applySecurityHeaders(NextResponse.next(), req);
