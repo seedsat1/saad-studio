@@ -34,13 +34,7 @@ interface DiscoverCms {
   [k: string]: unknown;
 }
 
-const SOCIALS = [
-  { icon: Instagram, href: "#", label: "Instagram" },
-  { icon: Youtube, href: "#", label: "YouTube" },
-  { icon: Github, href: "#", label: "GitHub" },
-  { icon: Linkedin, href: "#", label: "LinkedIn" },
-  { icon: MessageCircle, href: "#", label: "Community" },
-];
+const SOCIALS: Array<{ icon: typeof Instagram; href: string; label: string }> = [];
 
 const STUDIO_LINKS = [
   { label: "Our Work", href: "/apps" },

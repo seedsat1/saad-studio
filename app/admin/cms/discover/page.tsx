@@ -212,14 +212,7 @@ const SEED_FOOTER: FooterData = {
       ],
     },
   ],
-  socialLinks: [
-    { _id: uid(), platform: "Twitter", href: "#" },
-    { _id: uid(), platform: "Instagram", href: "#" },
-    { _id: uid(), platform: "YouTube", href: "#" },
-    { _id: uid(), platform: "GitHub", href: "#" },
-    { _id: uid(), platform: "LinkedIn", href: "#" },
-    { _id: uid(), platform: "Discord", href: "#" },
-  ],
+  socialLinks: [],
   newsletterHeading: "Stay in the loop ✨",
   newsletterSubtitle: "New models & drops. No spam.",
 };
