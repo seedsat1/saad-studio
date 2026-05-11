@@ -1624,6 +1624,41 @@ function AICanvasInner() {
     }
   }, [addActivity, routeAssetToWorkflow]);
 
+  const refreshConnectedExports = useCallback((sourceNodeId?: string) => {
+    const allNodes = nodesRef.current;
+    const allEdges = edgesRef.current;
+
+    const exportTargets = new Set(
+      allEdges
+        .filter((edge) => {
+          if (sourceNodeId && edge.source !== sourceNodeId) return false;
+          const targetNode = allNodes.find((node) => node.id === edge.target);
+          return targetNode?.data.nodeType === "export";
+        })
+        .map((edge) => edge.target),
+    );
+
+    for (const exportNodeId of exportTargets) {
+      const inEdges = allEdges.filter((edge) => edge.target === exportNodeId);
+      let outputImageUrl: string | undefined;
+      let outputVideoUrl: string | undefined;
+
+      for (const edge of inEdges) {
+        const sourceNode = allNodes.find((node) => node.id === edge.source);
+        if (!sourceNode) continue;
+        if (!outputImageUrl && sourceNode.data.outputImageUrl) outputImageUrl = sourceNode.data.outputImageUrl;
+        if (!outputVideoUrl && sourceNode.data.outputVideoUrl) outputVideoUrl = sourceNode.data.outputVideoUrl;
+      }
+
+      patchNode(exportNodeId, {
+        status: outputImageUrl || outputVideoUrl ? "done" : "idle",
+        outputImageUrl,
+        outputVideoUrl,
+        errorMessage: undefined,
+      });
+    }
+  }, [patchNode]);
+
   const executeNode = useCallback(
     async (nodeId: string): Promise<void> => {
       const allNodes = nodesRef.current;
@@ -1980,6 +2015,7 @@ function AICanvasInner() {
         }
 
         patchNode(nodeId, { status: "done", outputImageUrl, outputVideoUrl, outputAudioUrl, outputText, errorMessage: undefined });
+        refreshConnectedExports(nodeId);
         addActivity({ nodeId, nodeLabel: data.label, level: "success", message: `${data.label} completed.`, outputUrl: outputImageUrl || outputVideoUrl || outputAudioUrl });
       } catch (err) {
         const msg = err instanceof Error ? err.message : "Unknown error";
@@ -1987,7 +2023,7 @@ function AICanvasInner() {
         addActivity({ nodeId, nodeLabel: data.label, level: "error", message: msg });
       }
     },
-    [patchNode, addActivity],
+    [patchNode, addActivity, refreshConnectedExports],
   );
 
   const runNode = useCallback(
@@ -2104,8 +2140,9 @@ function AICanvasInner() {
       setNodes(nds => nds.filter(n => n.id !== id));
       setEdges(eds => eds.filter(e => e.source !== id && e.target !== id));
       if (selectedNodeId === id) setSelectedNodeId(null);
+      setTimeout(() => refreshConnectedExports(), 0);
     },
-    [setNodes, setEdges, selectedNodeId],
+    [setNodes, setEdges, selectedNodeId, refreshConnectedExports],
   );
 
   const deleteSelectedNode = useCallback(() => {
