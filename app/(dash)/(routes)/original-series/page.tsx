@@ -621,6 +621,196 @@ function createCommercialWorkflow(rawBrief = "Luxury Jewelry Ad") {
   return { nodes, edges };
 }
 
+function createFashionPhotoshootWorkflow(rawBrief = "AI Fashion Photoshoot System") {
+  const brief = rawBrief.trim() || "AI Fashion Photoshoot System";
+  const nodes: Node<CanvasNodeData>[] = [
+    makeNode("fashion-brief", "text-prompt", { x: -1640, y: -120 }, {
+      prompt: `${brief}\n\nBuild a full AI fashion photoshoot system that lets a brand upload fashion items, lock brand identity, create consistent characters, dress characters with items, and generate campaign-ready visuals with multiple poses, angles, and compositions.`,
+    }, {
+      label: "Fashion Photoshoot Brief",
+      description: "The starting brief for the automated fashion campaign workflow",
+    }),
+    makeNode("workflow-instructions", "sticky-note", { x: -1640, y: 220 }, {
+      noteText: [
+        "AI Fashion Photoshoot System",
+        "",
+        "1. Upload character references, fashion items, and brand/location references.",
+        "2. Run Brand Identity Lock and Character Army System.",
+        "3. Run Outfit Dressing System to place items on characters.",
+        "4. Run Shot Prompt System and Auto Shot Variations.",
+        "5. Run the campaign visual nodes to generate multiple poses, angles, and compositions.",
+        "6. Send approved stills to Final Campaign Board.",
+        "",
+        "This template is built for jewelry, fashion products, wardrobe items, accessories, and full editorial photoshoots.",
+      ].join("\n"),
+    }, {
+      label: "How To Run",
+      description: "Production instructions for this template",
+    }),
+    makeNode("brand-identity-lock", "assistant", { x: -1180, y: -120 }, {
+      prompt: "Lock the brand identity for a premium AI fashion photoshoot system. Define brand mood, target audience, luxury level, color palette, lighting language, wardrobe rules, material behavior, model casting direction, location tone, and negative constraints. This context must be reused by every downstream node.",
+    }, {
+      label: "Brand Identity Lock",
+      description: "Locks campaign identity before image generation",
+    }),
+    makeNode("prompt-system", "assistant", { x: -1180, y: 220 }, {
+      prompt: "Create a reusable prompt system for a full fashion photoshoot. It must convert uploaded character, fashion item, and brand references into production prompts for full-body shots, close-ups, outfit details, jewelry/product macros, editorial poses, camera angles, and campaign-ready compositions.",
+    }, {
+      label: "Prompt System",
+      description: "Turns brand and assets into reusable shot prompts",
+    }),
+    makeNode("character-references", "upload-image", { x: -720, y: -280 }, { imageUrl: "" }, {
+      label: "Character References",
+      description: "Upload one or more model/character references",
+    }),
+    makeNode("fashion-items", "add-reference", { x: -720, y: 60 }, { imageUrl: "" }, {
+      label: "Fashion Items",
+      description: "Upload jewelry, wardrobe, accessories, shoes, or product items",
+    }),
+    makeNode("brand-location-reference", "add-reference", { x: -720, y: 400 }, { imageUrl: "" }, {
+      label: "Brand / Location Reference",
+      description: "Upload campaign mood, location, lighting, or brand reference",
+    }),
+    makeNode("character-army-system", "image-edit", { x: -240, y: -280 }, {
+      prompt: "Generate an army of consistent campaign characters from the uploaded character reference. Create a clean production reference sheet with multiple consistent characters or consistent identity states: full body, close-up, side angle, back angle, walking pose, editorial pose, neutral expression, confident expression, and fashion posture. Preserve face identity, body proportions, hair, skin tone, and premium styling. No text, no logos.",
+      modelId: "nano-banana-pro",
+      aspectRatio: "16:9",
+      quality: "2K",
+    }, {
+      label: "Character Army System",
+      description: "Creates consistent character references for the photoshoot",
+    }),
+    makeNode("outfit-dressing-system", "image-edit", { x: -240, y: 80 }, {
+      prompt: "Dress the consistent characters with the uploaded fashion items. Place jewelry, garments, accessories, and styling elements naturally on the characters. Preserve the exact item design, material, color, gemstone/product shape, wardrobe fit, and brand identity. Generate campaign-ready outfit combinations with clean fashion styling. No text, no logos.",
+      modelId: "nano-banana-pro",
+      aspectRatio: "16:9",
+      quality: "2K",
+    }, {
+      label: "Outfit Dressing System",
+      description: "Places fashion items on characters with consistency",
+    }),
+    makeNode("shot-variation-system", "assistant", { x: -240, y: 440 }, {
+      prompt: "Automatically generate multiple fashion photoshoot shot plans for every outfit. For each outfit create: full-body hero, seated editorial pose, walking motion pose, over-shoulder angle, close-up beauty shot, jewelry/product macro, outfit detail, side profile, low-angle power pose, and clean e-commerce detail frame. Each shot must include camera lens, composition, lighting, pose, and consistency constraints.",
+    }, {
+      label: "Auto Shot Variations",
+      description: "Generates poses, angles, and campaign shot logic",
+    }),
+    makeNode("full-body-campaign", "image-edit", { x: 240, y: -440 }, {
+      prompt: "Generate a full-body campaign-ready fashion photoshoot image using the dressed character and brand identity. Elegant pose, full outfit visible, premium commercial lighting, clean composition, realistic fabric/materials, accurate accessories, no text, no logos.",
+      modelId: "nano-banana-pro",
+      aspectRatio: "4:5",
+      quality: "2K",
+    }, {
+      label: "Full Body Campaign Shot",
+      description: "Campaign-ready full outfit visual",
+    }),
+    makeNode("editorial-pose-shot", "image-edit", { x: 240, y: -80 }, {
+      prompt: "Generate an editorial fashion pose from the dressed character. Strong composition, magazine-level styling, confident body language, premium brand identity, luxurious lighting, consistent face and outfit, no text.",
+      modelId: "nano-banana-pro",
+      aspectRatio: "4:5",
+      quality: "2K",
+    }, {
+      label: "Editorial Pose Shot",
+      description: "High-end editorial composition",
+    }),
+    makeNode("angle-variation-shot", "image-edit", { x: 240, y: 280 }, {
+      prompt: "Generate multiple angle variations of the same styled character and outfit: front, 3/4, side, back, seated, walking, and close-up crop. Preserve identity, outfit, jewelry/product shape, lighting, and brand mood.",
+      modelId: "nano-banana-pro",
+      aspectRatio: "16:9",
+      quality: "2K",
+    }, {
+      label: "Angles And Poses Sheet",
+      description: "Multiple poses, angles, and compositions",
+    }),
+    makeNode("beauty-closeup-shot", "image-edit", { x: 720, y: -440 }, {
+      prompt: "Generate a beauty close-up for the campaign. Focus on face identity, makeup, skin texture, hair, jewelry/accessory placement, expressive eyes, premium editorial lighting, shallow depth of field, no text.",
+      modelId: "nano-banana-pro",
+      aspectRatio: "1:1",
+      quality: "2K",
+    }, {
+      label: "Beauty Close-Up",
+      description: "Face and styling hero frame",
+    }),
+    makeNode("product-macro-shot", "image-edit", { x: 720, y: -80 }, {
+      prompt: "Generate a luxury macro shot of the fashion item on the character: jewelry, fabric, accessory, gemstone, stitching, metal, texture, or product detail. Product must be sharp, readable, and accurate. Premium commercial lighting, no text.",
+      modelId: "nano-banana-pro",
+      aspectRatio: "16:9",
+      quality: "2K",
+    }, {
+      label: "Product / Jewelry Macro",
+      description: "High-detail fashion item shot",
+    }),
+    makeNode("endless-variations", "variations", { x: 720, y: 280 }, {
+      prompt: "Create endless controlled variations from the approved fashion photoshoot outputs. Change pose, angle, composition, lens, location framing, and editorial mood while preserving the same character identity, outfit, fashion items, and brand identity.",
+      modelId: "nano-banana-pro",
+      aspectRatio: "4:5",
+      quality: "2K",
+    }, {
+      label: "Endless Variations",
+      description: "Scalable campaign visual expansion",
+    }),
+    makeNode("fashion-motion", "image-to-video", { x: 1180, y: -260 }, {
+      prompt: "Animate the approved fashion campaign still with premium runway/editorial motion. Subtle camera dolly, fabric movement, confident model posture, stable face identity, accurate jewelry/product shape, no warping.",
+      modelId: "kling/v2-5-turbo-image-to-video-pro",
+      aspectRatio: "9:16",
+      duration: 5,
+    }, {
+      label: "Fashion Motion Clip",
+      description: "Turns approved stills into short campaign motion",
+    }),
+    makeNode("campaign-board", "image-edit", { x: 1180, y: 180 }, {
+      prompt: "Assemble the generated fashion photoshoot outputs into a final campaign board: brand identity, consistent characters, dressed outfits, full-body hero, editorial pose, angle sheet, beauty close-up, macro product detail, and variation outputs. Clean luxury presentation, no text, no logos.",
+      modelId: "nano-banana-pro",
+      aspectRatio: "16:9",
+      quality: "2K",
+    }, {
+      label: "Final Campaign Board",
+      description: "Final fashion photoshoot contact sheet",
+    }),
+    makeNode("fashion-export", "export", { x: 1640, y: 180 }, undefined, {
+      label: "Export Photoshoot Set",
+      description: "Export final stills, campaign board, and motion clips",
+    }),
+  ];
+
+  const campaignShotIds = [
+    "full-body-campaign",
+    "editorial-pose-shot",
+    "angle-variation-shot",
+    "beauty-closeup-shot",
+    "product-macro-shot",
+    "endless-variations",
+  ];
+
+  const edges: Edge[] = [
+    makeEdge("brief-brand", "fashion-brief", "brand-identity-lock", "prompt", "prompt", promptEdgeStyle),
+    makeEdge("brief-prompt-system", "fashion-brief", "prompt-system", "prompt", "prompt", promptEdgeStyle),
+    makeEdge("brand-prompt-system", "brand-identity-lock", "prompt-system", "prompt", "prompt", analysisEdgeStyle),
+    makeEdge("character-army-input", "character-references", "character-army-system", "image", "image", imageEdgeStyle),
+    makeEdge("brand-character-army", "brand-identity-lock", "character-army-system", "prompt", "prompt", analysisEdgeStyle),
+    makeEdge("character-outfit", "character-army-system", "outfit-dressing-system", "image", "image", imageEdgeStyle),
+    makeEdge("items-outfit", "fashion-items", "outfit-dressing-system", "image", "image", imageEdgeStyle),
+    makeEdge("location-outfit", "brand-location-reference", "outfit-dressing-system", "image", "image", imageEdgeStyle),
+    makeEdge("prompt-outfit", "prompt-system", "outfit-dressing-system", "prompt", "prompt", promptEdgeStyle),
+    makeEdge("prompt-shot-variations", "prompt-system", "shot-variation-system", "prompt", "prompt", promptEdgeStyle),
+    makeEdge("brand-shot-variations", "brand-identity-lock", "shot-variation-system", "prompt", "prompt", analysisEdgeStyle),
+    ...campaignShotIds.flatMap(target => [
+      makeEdge(`outfit-${target}`, "outfit-dressing-system", target, "image", "image", imageEdgeStyle),
+      makeEdge(`shotplan-${target}`, "shot-variation-system", target, "prompt", "prompt", promptEdgeStyle),
+      makeEdge(`brand-${target}`, "brand-identity-lock", target, "prompt", "prompt", analysisEdgeStyle),
+    ]),
+    makeEdge("full-body-variations", "full-body-campaign", "endless-variations", "image", "image", boardEdgeStyle),
+    makeEdge("editorial-variations", "editorial-pose-shot", "endless-variations", "image", "image", boardEdgeStyle),
+    makeEdge("editorial-motion", "editorial-pose-shot", "fashion-motion", "image", "image", videoEdgeStyle),
+    makeEdge("variations-motion", "endless-variations", "fashion-motion", "image", "image", videoEdgeStyle),
+    ...campaignShotIds.map(source => makeEdge(`${source}-board`, source, "campaign-board", "image", "image", boardEdgeStyle)),
+    makeEdge("campaign-board-export", "campaign-board", "fashion-export", "image", "image", boardEdgeStyle),
+    makeEdge("fashion-motion-export", "fashion-motion", "fashion-export", "video", "video", videoEdgeStyle),
+  ];
+
+  return { nodes, edges };
+}
+
 const DEFAULT_WORKFLOW = createCommercialWorkflow();
 const INITIAL_NODES: Node<CanvasNodeData>[] = DEFAULT_WORKFLOW.nodes;
 const INITIAL_EDGES: Edge[] = DEFAULT_WORKFLOW.edges;
@@ -1774,7 +1964,7 @@ function AICanvasInner() {
     }
   }, [executeNode, addActivity]);
 
-  const openCanvasWorkspace = useCallback((mode: "blank" | "saved" | "template") => {
+  const openCanvasWorkspace = useCallback((mode: "blank" | "saved" | "template" | "fashion") => {
     const name = canvasNameInput.trim() || "My Canvas";
     setCanvasName(name);
     setHasOpenedCanvas(true);
@@ -1796,6 +1986,18 @@ function AICanvasInner() {
         localStorage.setItem(CANVAS_WORKSPACE_KEY, JSON.stringify({ name, nodes: workflow.nodes, edges: workflow.edges }));
       } catch {}
       setTimeout(() => fitView({ padding: 0.2, duration: 450 }), 80);
+      return;
+    }
+
+    if (mode === "fashion") {
+      const workflow = createFashionPhotoshootWorkflow(name);
+      setNodes(workflow.nodes);
+      setEdges(workflow.edges);
+      assets.forEach(routeAssetToWorkflow);
+      try {
+        localStorage.setItem(CANVAS_WORKSPACE_KEY, JSON.stringify({ name, nodes: workflow.nodes, edges: workflow.edges }));
+      } catch {}
+      setTimeout(() => fitView({ padding: 0.18, duration: 450 }), 80);
       return;
     }
 
@@ -2046,6 +2248,21 @@ function AICanvasInner() {
     setTimeout(() => fitView({ padding: 0.18, duration: 450 }), 80);
   }, [setNodes, setEdges, addActivity, fitView, assets, routeAssetToWorkflow, canvasName]);
 
+  const loadFashionPhotoshootTemplate = useCallback(() => {
+    const workflow = createFashionPhotoshootWorkflow(canvasName || "AI Fashion Photoshoot System");
+    setNodes(workflow.nodes);
+    setEdges(workflow.edges);
+    assets.forEach(routeAssetToWorkflow);
+    setSelectedNodeId(null);
+    try {
+      const workspace = { name: canvasName, nodes: workflow.nodes, edges: workflow.edges };
+      localStorage.setItem(CANVAS_WORKSPACE_KEY, JSON.stringify(workspace));
+      setSavedWorkspace(workspace);
+    } catch {}
+    addActivity({ nodeId: "", nodeLabel: "Fashion Template", level: "success", message: "Loaded the AI Fashion Photoshoot System template." });
+    setTimeout(() => fitView({ padding: 0.18, duration: 450 }), 80);
+  }, [setNodes, setEdges, addActivity, fitView, assets, routeAssetToWorkflow, canvasName]);
+
   const onConnect: OnConnect = useCallback(
     (connection: Connection) => setEdges(eds => addEdge(connection, eds)),
     [setEdges],
@@ -2180,6 +2397,24 @@ function AICanvasInner() {
                 }}
               >
                 Start with production template
+              </button>
+              <button
+                type="button"
+                onClick={() => openCanvasWorkspace("fashion")}
+                style={{
+                  height: 44,
+                  borderRadius: 13,
+                  border: "1px solid rgba(236,72,153,0.28)",
+                  background: "linear-gradient(135deg, rgba(236,72,153,0.18), rgba(251,191,36,0.12))",
+                  color: "#fbcfe8",
+                  padding: "0 16px",
+                  fontSize: 13,
+                  fontWeight: 900,
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                }}
+              >
+                AI Fashion Photoshoot Template
               </button>
             </div>
 
@@ -2436,6 +2671,13 @@ function AICanvasInner() {
             <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
               <path d="M2 3.5h10M2 7h10M2 10.5h10" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
               <path d="M3.2 2.2h7.6v9.6H3.2z" stroke="currentColor" strokeWidth="1.1" opacity=".45"/>
+            </svg>
+          </ToolBtn>
+
+          <ToolBtn title="Load AI fashion photoshoot template" onClick={loadFashionPhotoshootTemplate} accent="#ec4899">
+            <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
+              <path d="M4.2 2.2h5.6l1.2 9.6H3L4.2 2.2z" stroke="currentColor" strokeWidth="1.25" strokeLinejoin="round"/>
+              <path d="M5 4.8c.7.7 3.3.7 4 0M4.4 8.2h5.2" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
             </svg>
           </ToolBtn>
 
