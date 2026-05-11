@@ -3,6 +3,7 @@
 import { type CanvasNodeData, type CanvasNodeSettings, NODE_CONFIGS, hexToRgb } from "./canvas-types";
 import { useCanvasActions } from "./canvas-context";
 import { X, ExternalLink } from "lucide-react";
+import { VIDEO_MODEL_REGISTRY } from "@/lib/video-model-registry";
 
 const IMAGE_MODELS = [
   { id: "nano-banana-pro",                label: "Nano Banana Pro" },
@@ -22,15 +23,10 @@ const IMAGE_EDIT_MODELS = [
   { id: "gpt-image/1.5-image-to-image",   label: "GPT Image 1.5 I2I" },
 ];
 
-const VIDEO_MODELS = [
-  { id: "kwaivgi/kling-v3.0-pro/text-to-video",     label: "Kling 3.0 (T2V/I2V)" },
-  { id: "kling/v2-5-turbo-text-to-video-pro",        label: "Kling v2.5 Turbo T2V" },
-  { id: "kling/v2-5-turbo-image-to-video-pro",       label: "Kling v2.5 Turbo I2V" },
-  { id: "openai/sora-2/image-to-video",              label: "Sora 2 I2V" },
-  { id: "openai/sora-2/text-to-video",               label: "Sora 2 T2V" },
-  { id: "minimax/hailuo-2.3/i2v-pro",                label: "Hailuo 2.3 I2V Pro" },
-  { id: "bytedance/seedance-v2/text-to-video",       label: "Seedance v2 T2V" },
-];
+const VIDEO_MODELS = VIDEO_MODEL_REGISTRY.map((model) => ({
+  id: model.api_route,
+  label: model.name,
+}));
 
 const ASPECT_RATIOS_IMAGE = ["1:1", "4:3", "3:4", "16:9", "9:16", "3:2", "2:3"];
 const ASPECT_RATIOS_VIDEO = ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9"];
@@ -186,6 +182,18 @@ export function NodeSettingsPanel({ nodeId, data, onClose }: NodeSettingsPanelPr
   const cfg = NODE_CONFIGS[data.nodeType];
   const rgb = hexToRgb(cfg.accentColor);
   const s   = data.settings;
+  const selectedVideoModel = VIDEO_MODEL_REGISTRY.find((model) => model.api_route === s.modelId || model.id === s.modelId);
+  const videoAspectOptions = selectedVideoModel?.capabilities.aspect_ratios?.length
+    ? selectedVideoModel.capabilities.aspect_ratios
+    : ["Auto"];
+  const videoDurations = selectedVideoModel?.capabilities.durations?.length
+    ? selectedVideoModel.capabilities.durations
+    : [];
+  const videoQualities = selectedVideoModel?.capabilities.resolutions?.length
+    ? selectedVideoModel.capabilities.resolutions
+    : selectedVideoModel?.capabilities.quality_param === "mode"
+      ? ["std", "pro", "4K"]
+      : [];
 
   return (
     <div
@@ -397,18 +405,33 @@ export function NodeSettingsPanel({ nodeId, data, onClose }: NodeSettingsPanelPr
             </Field>
             <Field label="Aspect Ratio">
               <SelectField
-                value={s.aspectRatio ?? "16:9"}
+                value={s.aspectRatio ?? videoAspectOptions[0] ?? "Auto"}
                 onChange={v => update({ aspectRatio: v })}
-                options={ASPECT_RATIOS_VIDEO.map(r => ({ id: r, label: r }))}
+                options={videoAspectOptions.map(r => ({ id: r, label: r }))}
               />
             </Field>
-            <Field label="Duration (seconds)">
-              <SelectField
-                value={String(s.duration ?? 5)}
-                onChange={v => update({ duration: Number(v) })}
-                options={DURATIONS.map(d => ({ id: String(d), label: `${d}s` }))}
-              />
-            </Field>
+            {videoDurations.length > 0 ? (
+              <Field label="Duration (seconds)">
+                <SelectField
+                  value={String(s.duration ?? videoDurations[0])}
+                  onChange={v => update({ duration: Number(v) })}
+                  options={videoDurations.map(d => ({ id: String(d), label: `${d}s` }))}
+                />
+              </Field>
+            ) : (
+              <Field label="Duration">
+                <div style={{ color: "#64748b", fontSize: 11 }}>Fixed by model</div>
+              </Field>
+            )}
+            {videoQualities.length > 0 && (
+              <Field label="Quality">
+                <SelectField
+                  value={s.quality ?? videoQualities[0]}
+                  onChange={v => update({ quality: v })}
+                  options={videoQualities.map(q => ({ id: q, label: q }))}
+                />
+              </Field>
+            )}
           </>
         )}
 
@@ -430,13 +453,28 @@ export function NodeSettingsPanel({ nodeId, data, onClose }: NodeSettingsPanelPr
                 options={VIDEO_MODELS}
               />
             </Field>
-            <Field label="Duration (seconds)">
-              <SelectField
-                value={String(s.duration ?? 5)}
-                onChange={v => update({ duration: Number(v) })}
-                options={DURATIONS.map(d => ({ id: String(d), label: `${d}s` }))}
-              />
-            </Field>
+            {videoDurations.length > 0 ? (
+              <Field label="Duration (seconds)">
+                <SelectField
+                  value={String(s.duration ?? videoDurations[0])}
+                  onChange={v => update({ duration: Number(v) })}
+                  options={videoDurations.map(d => ({ id: String(d), label: `${d}s` }))}
+                />
+              </Field>
+            ) : (
+              <Field label="Duration">
+                <div style={{ color: "#64748b", fontSize: 11 }}>Fixed by model</div>
+              </Field>
+            )}
+            {videoQualities.length > 0 && (
+              <Field label="Quality">
+                <SelectField
+                  value={s.quality ?? videoQualities[0]}
+                  onChange={v => update({ quality: v })}
+                  options={videoQualities.map(q => ({ id: q, label: q }))}
+                />
+              </Field>
+            )}
           </>
         )}
 

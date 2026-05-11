@@ -13,11 +13,12 @@ import {
   NODE_CONFIGS, hexToRgb,
 } from "./canvas-types";
 import { useCanvasActions } from "./canvas-context";
+import { VIDEO_MODEL_REGISTRY, type WaveSpeedVideoModel } from "@/lib/video-model-registry";
 
 // ─── Model definitions ────────────────────────────────────────────────────────
 interface ModelDef {
   id: string; label: string; short: string; desc: string;
-  badge?: "FAST" | "NEW" | "PRO"; icon: string; family: string;
+  badge?: "TOP" | "FAST" | "NEW" | "PRO" | "4K"; icon: string; family: string;
 }
 
 const LLM_MODELS: ModelDef[] = [
@@ -43,13 +44,24 @@ const IMAGE_EDIT_MODELS: ModelDef[] = [
   { id: "gpt-image/1.5-image-to-image",    label: "GPT Image 1.5 I2I",  short: "GPT I2I",  desc: "Guided",                      icon: "AI",  family: "OpenAI"      },
 ];
 
-const VIDEO_MODELS: ModelDef[] = [
-  { id: "kwaivgi/kling-v3.0-pro/text-to-video", label: "Kling 3.0 Pro",    short: "Kling 3",    desc: "Best motion",  badge: "PRO",  icon: "KW", family: "KwaiVGI"   },
-  { id: "kling/v2-5-turbo-image-to-video-pro",  label: "Kling 2.5 Turbo",  short: "Kling 2.5",  desc: "Fast gen",     badge: "FAST", icon: "KW", family: "KwaiVGI"   },
-  { id: "openai/sora-2/image-to-video",          label: "Sora 2",            short: "Sora 2",     desc: "OpenAI video", badge: "NEW",  icon: "AI", family: "OpenAI"    },
-  { id: "minimax/hailuo-2.3/i2v-pro",            label: "Hailuo 2.3 Pro",    short: "Hailuo 2.3", desc: "Cinematic",                  icon: "MM", family: "MiniMax"   },
-  { id: "bytedance/seedance-v2/text-to-video",   label: "Seedance v2",       short: "Seedance",   desc: "Stable fluid",               icon: "BD", family: "ByteDance" },
-];
+const VIDEO_MODELS: ModelDef[] = VIDEO_MODEL_REGISTRY.map((model) => {
+  const icon = model.family_label
+    .split(" ")
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+
+  return {
+    id: model.api_route,
+    label: model.name,
+    short: model.name,
+    desc: model.description,
+    badge: model.badge ?? undefined,
+    icon: icon || "AI",
+    family: model.family_label,
+  };
+});
 
 const ASPECT_RATIOS: Array<{ v: string; w: number; h: number }> = [
   { v: "auto", w: 18, h: 14 },
@@ -86,6 +98,31 @@ const STATUS_CFG: Record<NodeStatus, { color: string; pulse?: boolean }> = {
   done:    { color: "#10b981"              },
   error:   { color: "#ef4444"              },
 };
+
+function getVideoModelByRoute(modelRoute: string | undefined): WaveSpeedVideoModel | undefined {
+  if (!modelRoute) return undefined;
+  return VIDEO_MODEL_REGISTRY.find((model) => model.api_route === modelRoute || model.id === modelRoute);
+}
+
+function getVideoAspectOptions(modelRoute: string | undefined): string[] {
+  const model = getVideoModelByRoute(modelRoute);
+  if (!model) return ["16:9", "9:16", "1:1"];
+  return model.capabilities.aspect_ratios.length > 0 ? model.capabilities.aspect_ratios : ["Auto"];
+}
+
+function getVideoDurationOptions(modelRoute: string | undefined): number[] {
+  const model = getVideoModelByRoute(modelRoute);
+  if (!model) return [5, 10];
+  return model.capabilities.durations;
+}
+
+function getVideoQualityOptions(modelRoute: string | undefined): string[] {
+  const model = getVideoModelByRoute(modelRoute);
+  if (!model) return ["720p", "1080p"];
+  if (model.capabilities.resolutions.length > 0) return model.capabilities.resolutions;
+  if (model.capabilities.quality_param === "mode") return ["std", "pro", "4K"];
+  return [];
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function modelsFor(t: CanvasNodeType): ModelDef[] {
@@ -219,9 +256,11 @@ function ModelDropdown({ value, onChange, nodeType, accentColor, rgb, onClose }:
 }
 
 // ─── AR dropdown ──────────────────────────────────────────────────────────────
-function ARDropdown({ value, onChange, rgb, onClose }: {
+function ARDropdown({ value, onChange, options, rgb, onClose }: {
   value: string; onChange: (v: string) => void; rgb: string; onClose: () => void;
+  options: string[];
 }) {
+  const ratioOptions = options.length > 0 ? options : ["Auto"];
   return (
     <div className="nodrag nowheel" onMouseDown={SP} style={{
       position: "absolute", bottom: "calc(100% + 8px)", left: 0, minWidth: 155, zIndex: 5000,
@@ -229,7 +268,11 @@ function ARDropdown({ value, onChange, rgb, onClose }: {
       border: "1px solid rgba(255,255,255,0.1)", borderRadius: 14, overflow: "hidden", padding: 7,
       boxShadow: "0 -24px 80px rgba(0,0,0,0.9), inset 0 1px 0 rgba(255,255,255,0.06)",
     }}>
-      {ASPECT_RATIOS.map(({ v, w, h }) => {
+      {ratioOptions.map((ratio) => {
+        const preset = ASPECT_RATIOS.find((item) => item.v.toLowerCase() === ratio.toLowerCase()) || { v: ratio, w: 18, h: 14 };
+        const v = preset.v;
+        const w = preset.w;
+        const h = preset.h;
         const active = (value || "auto") === v;
         return (
           <button key={v} className="nodrag"
@@ -249,9 +292,11 @@ function ARDropdown({ value, onChange, rgb, onClose }: {
 }
 
 // ─── Duration dropdown ────────────────────────────────────────────────────────
-function DurDropdown({ value, onChange, rgb, onClose }: {
+function DurDropdown({ value, onChange, options, rgb, onClose }: {
   value: number; onChange: (v: number) => void; rgb: string; onClose: () => void;
+  options: number[];
 }) {
+  const durationOptions = options.length > 0 ? options : [8];
   return (
     <div className="nodrag nowheel" onMouseDown={SP} style={{
       position: "absolute", bottom: "calc(100% + 8px)", left: 0, minWidth: 96, zIndex: 5000,
@@ -259,7 +304,7 @@ function DurDropdown({ value, onChange, rgb, onClose }: {
       border: "1px solid rgba(255,255,255,0.1)", borderRadius: 14, overflow: "hidden", padding: 6,
       boxShadow: "0 -24px 80px rgba(0,0,0,0.9), inset 0 1px 0 rgba(255,255,255,0.06)",
     }}>
-      {DURATIONS.map(d => {
+      {durationOptions.map(d => {
         const active = (value || 5) === d;
         return (
           <button key={d} className="nodrag"
@@ -654,10 +699,21 @@ function CanvasNodeInner({ id, data, selected }: NodeProps<Node<CanvasNodeData>>
     t === 1 ? "50%" : `${((i + 1) / (t + 1)) * 100}%`;
 
   const selModel = modelById(data.settings.modelId, data.nodeType);
-  const selAR    = data.settings.aspectRatio ?? (isVideo ? "auto" : "1:1");
-  const selDur   = data.settings.duration    ?? 5;
-  const resOptions = isVideo ? VIDEO_RESOLUTIONS : IMAGE_QUALITIES;
-  const resFallback = isVideo ? "720p" : "1K";
+  const videoModelMeta = isVideo ? getVideoModelByRoute(data.settings.modelId) : undefined;
+  const videoAROptions = isVideo ? getVideoAspectOptions(data.settings.modelId) : [];
+  const videoDurOptions = isVideo ? getVideoDurationOptions(data.settings.modelId) : [];
+  const videoResOptions = isVideo ? getVideoQualityOptions(data.settings.modelId) : [];
+  const showVideoAR = isVideo && videoAROptions.length > 0;
+  const showVideoDur = isVideo && videoDurOptions.length > 0;
+  const showVideoRes = isVideo && videoResOptions.length > 0;
+
+  const arFallback = isVideo ? (videoAROptions[0] || "Auto") : "1:1";
+  const durFallback = isVideo ? (videoDurOptions[0] || 8) : 5;
+  const resOptions = isVideo ? videoResOptions : IMAGE_QUALITIES;
+  const resFallback = isVideo ? (videoResOptions[0] || "720p") : "1K";
+
+  const selAR    = data.settings.aspectRatio ?? arFallback;
+  const selDur   = data.settings.duration    ?? durFallback;
   const selRes   = data.settings.quality     ?? resFallback;
 
   const hasPreviewMedia = data.status === "done" && (!!data.outputImageUrl || !!data.outputVideoUrl || !!data.outputAudioUrl || !!data.outputText);
@@ -1280,33 +1336,39 @@ function CanvasNodeInner({ id, data, selected }: NodeProps<Node<CanvasNodeData>>
           )}
 
           {/* AR chip (video nodes) */}
-          {isVideo && (
+          {showVideoAR && (
             <div style={{ position: "relative", flexShrink: 0 }}>
               <Chip label={selAR} active={openChip === "ar"} onClick={() => toggleChip("ar")} />
               {openChip === "ar" && (
-                <ARDropdown value={selAR} onChange={v => updateNodeSettings(id, { aspectRatio: v })} rgb={rgb} onClose={() => setOpenChip(null)} />
+                <ARDropdown value={selAR} onChange={v => updateNodeSettings(id, { aspectRatio: v })} options={videoAROptions} rgb={rgb} onClose={() => setOpenChip(null)} />
               )}
             </div>
           )}
 
           {/* Duration chip */}
-          {showDur && (
+          {(showDur && (!isVideo || showVideoDur)) && (
             <div style={{ position: "relative", flexShrink: 0 }}>
               <Chip label={`${selDur}s`} active={openChip === "dur"} onClick={() => toggleChip("dur")} />
               {openChip === "dur" && (
-                <DurDropdown value={selDur} onChange={v => updateNodeSettings(id, { duration: v })} rgb={rgb} onClose={() => setOpenChip(null)} />
+                <DurDropdown value={selDur} onChange={v => updateNodeSettings(id, { duration: v })} options={isVideo ? videoDurOptions : DURATIONS} rgb={rgb} onClose={() => setOpenChip(null)} />
               )}
             </div>
           )}
 
           {/* Quality / Resolution chip */}
-          {showRes && (
+          {(showRes && (!isVideo || showVideoRes)) && (
             <div style={{ position: "relative", flexShrink: 0 }}>
               <Chip label={selRes} active={openChip === "res"} onClick={() => toggleChip("res")} />
               {openChip === "res" && (
                 <ResDropdown value={selRes} options={resOptions} fallback={resFallback} onChange={v => updateNodeSettings(id, { quality: v })} rgb={rgb} onClose={() => setOpenChip(null)} />
               )}
             </div>
+          )}
+
+          {isVideo && !showVideoDur && (
+            <span style={{ color: "#5a7590", fontSize: 11, fontWeight: 500, flexShrink: 0 }}>
+              {videoModelMeta?.name?.includes("Veo") ? "~8s fixed" : "Duration fixed"}
+            </span>
           )}
 
           {/* Credits badge */}

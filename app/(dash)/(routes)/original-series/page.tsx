@@ -33,6 +33,7 @@ import {
   type CanvasNodeSettings,
   type ActivityEntry,
 } from "@/components/canvas/canvas-types";
+import { VIDEO_MODEL_REGISTRY, type WaveSpeedVideoModel } from "@/lib/video-model-registry";
 
 const nodeTypes = { canvasNode: CanvasNode as ComponentType<NodeProps> };
 
@@ -903,6 +904,72 @@ async function pollVideoTask(taskId: string): Promise<string> {
   throw new Error("Video generation timed out (4 min). Check the video page for results.");
 }
 
+function getVideoModelMeta(modelRoute?: string): WaveSpeedVideoModel | undefined {
+  if (!modelRoute) return undefined;
+  return VIDEO_MODEL_REGISTRY.find((model) => model.api_route === modelRoute || model.id === modelRoute);
+}
+
+function pickAllowedString(value: string | undefined, allowed: string[], fallback?: string): string | undefined {
+  if (allowed.length === 0) return fallback;
+  if (value && allowed.includes(value)) return value;
+  return fallback ?? allowed[0];
+}
+
+function pickAllowedNumber(value: number | undefined, allowed: number[], fallback?: number): number | undefined {
+  if (allowed.length === 0) return fallback;
+  if (typeof value === "number" && allowed.includes(value)) return value;
+  return fallback ?? allowed[0];
+}
+
+function buildVideoTaskRequest(params: {
+  nodeType: CanvasNodeType;
+  modelRoute?: string;
+  prompt: string;
+  imageUrl?: string;
+  videoUrl?: string;
+  aspectRatio?: string;
+  duration?: number;
+  quality?: string;
+}) {
+  const fallbackRoute = "kwaivgi/kling-v3.0-pro/text-to-video";
+  const modelMeta = getVideoModelMeta(params.modelRoute || fallbackRoute);
+  const modelRoute = modelMeta?.api_route || params.modelRoute || fallbackRoute;
+  const payload: Record<string, unknown> = { prompt: params.prompt };
+
+  if (params.nodeType === "video-to-video") {
+    if (params.videoUrl) payload.video = params.videoUrl;
+    else if (params.imageUrl) payload.image_urls = [params.imageUrl];
+  } else if (params.nodeType === "video-combiner") {
+    if (params.videoUrl) payload.video = params.videoUrl;
+    else if (params.imageUrl) payload.image_urls = [params.imageUrl];
+  } else if (params.imageUrl) {
+    payload.image_urls = [params.imageUrl];
+  }
+
+  if (modelMeta) {
+    const caps = modelMeta.capabilities;
+    const selectedAR = pickAllowedString(params.aspectRatio, caps.aspect_ratios);
+    if (selectedAR) payload.aspect_ratio = selectedAR;
+
+    const selectedDuration = pickAllowedNumber(params.duration, caps.durations);
+    if (typeof selectedDuration === "number") payload.duration = selectedDuration;
+
+    const qualityOptions = caps.resolutions.length > 0
+      ? caps.resolutions
+      : caps.quality_param === "mode"
+        ? ["std", "pro", "4K"]
+        : [];
+    const selectedQuality = pickAllowedString(params.quality, qualityOptions);
+    if (selectedQuality) payload[caps.quality_param] = selectedQuality;
+  } else {
+    if (params.aspectRatio) payload.aspect_ratio = params.aspectRatio;
+    if (typeof params.duration === "number") payload.duration = params.duration;
+    payload.mode = "std";
+  }
+
+  return { modelRoute, payload };
+}
+
 function topoSort(nodes: Node<CanvasNodeData>[], edges: Edge[]): Node<CanvasNodeData>[] {
   const inDeg = new Map<string, number>(nodes.map(n => [n.id, 0]));
   const adj = new Map<string, string[]>(nodes.map(n => [n.id, []]));
@@ -1651,13 +1718,19 @@ function AICanvasInner() {
           }
           case "image-to-video": {
             if (!imageUrl) throw new Error("Image input required. Connect an image node.");
+            const taskRequest = buildVideoTaskRequest({
+              nodeType: data.nodeType,
+              modelRoute: s.modelId,
+              prompt,
+              imageUrl,
+              aspectRatio: s.aspectRatio,
+              duration: s.duration,
+              quality: s.quality,
+            });
             const createRes = await fetch("/api/video", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                modelRoute: s.modelId || "kwaivgi/kling-v3.0-pro/text-to-video",
-                payload: { prompt, image_urls: [imageUrl], duration: s.duration || 5, aspect_ratio: s.aspectRatio || "16:9", mode: "std" },
-              }),
+              body: JSON.stringify(taskRequest),
             });
             if (!createRes.ok) { const err = await createRes.json().catch(() => ({})) as Record<string, string>; throw new Error(err.message || err.error || `HTTP ${createRes.status}`); }
             const createData = await createRes.json() as { taskId?: string };
@@ -1668,13 +1741,19 @@ function AICanvasInner() {
           }
           case "video-to-video": {
             if (!videoUrl) throw new Error("Video input required. Connect a video node.");
+            const taskRequest = buildVideoTaskRequest({
+              nodeType: data.nodeType,
+              modelRoute: s.modelId,
+              prompt,
+              videoUrl,
+              aspectRatio: s.aspectRatio,
+              duration: s.duration,
+              quality: s.quality,
+            });
             const createRes = await fetch("/api/video", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                modelRoute: s.modelId || "kwaivgi/kling-v3.0-pro/text-to-video",
-                payload: { prompt, video: videoUrl, duration: s.duration || 5, mode: "std" },
-              }),
+              body: JSON.stringify(taskRequest),
             });
             if (!createRes.ok) { const err = await createRes.json().catch(() => ({})) as Record<string, string>; throw new Error(err.message || err.error || `HTTP ${createRes.status}`); }
             const createData = await createRes.json() as { taskId?: string };
@@ -1684,13 +1763,18 @@ function AICanvasInner() {
             break;
           }
           case "text-to-video": {
+            const taskRequest = buildVideoTaskRequest({
+              nodeType: data.nodeType,
+              modelRoute: s.modelId,
+              prompt,
+              aspectRatio: s.aspectRatio,
+              duration: s.duration,
+              quality: s.quality,
+            });
             const createRes = await fetch("/api/video", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                modelRoute: s.modelId || "kwaivgi/kling-v3.0-pro/text-to-video",
-                payload: { prompt, duration: s.duration || 5, aspect_ratio: s.aspectRatio || "16:9", mode: "std" },
-              }),
+              body: JSON.stringify(taskRequest),
             });
             if (!createRes.ok) { const err = await createRes.json().catch(() => ({})) as Record<string, string>; throw new Error(err.message || err.error || `HTTP ${createRes.status}`); }
             const createData = await createRes.json() as { taskId?: string };
@@ -1829,13 +1913,20 @@ function AICanvasInner() {
           }
           case "video-combiner": {
             if (!videoUrl && !imageUrl) throw new Error("Video or image input required. Connect a media node.");
+            const taskRequest = buildVideoTaskRequest({
+              nodeType: data.nodeType,
+              modelRoute: s.modelId,
+              prompt: prompt || "combine and extend this video",
+              imageUrl,
+              videoUrl,
+              aspectRatio: s.aspectRatio,
+              duration: s.duration,
+              quality: s.quality,
+            });
             const createRes = await fetch("/api/video", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                modelRoute: s.modelId || "kwaivgi/kling-v3.0-pro/text-to-video",
-                payload: { prompt: prompt || "combine and extend this video", ...(videoUrl ? { video: videoUrl } : { image_urls: [imageUrl] }), duration: s.duration || 5, mode: "std" },
-              }),
+              body: JSON.stringify(taskRequest),
             });
             if (!createRes.ok) { const err = await createRes.json().catch(() => ({})) as Record<string, string>; throw new Error(err.message || err.error || `HTTP ${createRes.status}`); }
             const createData = await createRes.json() as { taskId?: string };
