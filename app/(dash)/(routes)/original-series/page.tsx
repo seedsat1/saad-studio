@@ -812,6 +812,197 @@ function createFashionPhotoshootWorkflow(rawBrief = "AI Fashion Photoshoot Syste
   return { nodes, edges };
 }
 
+function createConsistentCharacterFashionAdWorkflow(rawBrief = "Consistent Character Fashion Ad") {
+  const brief = rawBrief.trim() || "Consistent Character Fashion Ad";
+
+  const nodes: Node<CanvasNodeData>[] = [
+    makeNode("workflow-brief", "text-prompt", { x: -1580, y: -80 }, {
+      prompt: `${brief}\n\nGoal: a woman in a red dress spreads color and power, transforming everything she touches. Build a consistent-character ad workflow with reproducible outputs.`,
+    }, {
+      label: "Campaign Brief",
+      description: "Single-source story and production goal",
+    }),
+    makeNode("run-guide", "sticky-note", { x: -1580, y: 220 }, {
+      noteText: [
+        "Run Order (Real Workflow)",
+        "",
+        "1) Upload model + dress + environment refs.",
+        "2) Run Character Grid node.",
+        "3) Run 3x3 Pose Grid node.",
+        "4) Select extract nodes + click Run Selected.",
+        "5) Run Kling animation nodes.",
+        "6) Run Final Board then Export.",
+      ].join("\n"),
+    }, {
+      label: "Operator Run Guide",
+      description: "Practical sequence for reliable results",
+    }),
+    makeNode("consistency-brain", "assistant", { x: -1120, y: -80 }, {
+      prompt: "Lock identity consistency for the same woman across all frames: face proportions, skin tone, eye spacing, nose geometry, jawline, hairstyle, body shape, and dress silhouette. Output strict constraints for generation and animation.",
+    }, {
+      label: "Consistency Brain",
+      description: "Identity lock rules used by downstream nodes",
+    }),
+
+    makeNode("model-upload", "upload-image", { x: -1100, y: 260 }, { imageUrl: "" }, {
+      label: "Main Model Photo",
+      description: "Upload primary model portrait/full-body",
+    }),
+    makeNode("dress-upload", "add-reference", { x: -1100, y: 520 }, { imageUrl: "" }, {
+      label: "Red Dress Reference",
+      description: "Upload dress/product style reference",
+    }),
+    makeNode("environment-upload", "add-reference", { x: -860, y: 520 }, { imageUrl: "" }, {
+      label: "Environment / Color Mood",
+      description: "Upload color and atmosphere reference",
+    }),
+
+    makeNode("character-grid", "image-edit", { x: -620, y: 130 }, {
+      prompt: "Create a complete character reference grid from the uploaded model: full body front, side, back, close-up front, close-up profile, walking pose, static power pose, hand detail, and neutral frame. Keep exact identity and dress consistency. No text, no logos.",
+      modelId: "nano-banana-pro",
+      aspectRatio: "16:9",
+      quality: "2K",
+    }, {
+      label: "Character Reference Grid",
+      description: "Full-body and close-up consistency matrix",
+    }),
+
+    makeNode("pose-grid-3x3", "image-edit", { x: -180, y: 130 }, {
+      prompt: "Combine the main photo with the character grid and generate a 3x3 production grid with different poses, angles, and framing. Preserve same woman identity and red dress details across all 9 shots. No text, no logos.",
+      modelId: "nano-banana-pro",
+      aspectRatio: "16:9",
+      quality: "2K",
+    }, {
+      label: "3x3 Pose Grid Builder",
+      description: "Controlled pose/angle grid for shot selection",
+    }),
+
+    makeNode("shot-selector", "assistant", { x: 250, y: -70 }, {
+      prompt: "From the 3x3 grid, pick the best cinematic high-resolution candidates for: Hero, Mid, Close-up, Profile, Power Touch. Reject frames with anatomy drift, face mismatch, dress distortion, or weak composition.",
+    }, {
+      label: "Shot Selection Director",
+      description: "Selects best frames for extraction",
+    }),
+
+    makeNode("extract-hero", "image-edit", { x: 260, y: 170 }, {
+      prompt: "Extract and upscale the best Hero frame from the 3x3 grid. Keep exact identity and dress folds. Cinematic ad grade, clean skin detail, no watermark, no text.",
+      modelId: "nano-banana-pro",
+      aspectRatio: "9:16",
+      quality: "2K",
+    }, {
+      label: "Extract Hero Shot",
+      description: "Primary ad hero frame",
+    }),
+    makeNode("extract-profile", "image-edit", { x: 260, y: 440 }, {
+      prompt: "Extract best profile/side-angle frame with strict identity lock. Preserve facial geometry and red dress shape. Clean cinematic finish, no text.",
+      modelId: "nano-banana-pro",
+      aspectRatio: "9:16",
+      quality: "2K",
+    }, {
+      label: "Extract Profile Shot",
+      description: "Secondary profile frame",
+    }),
+    makeNode("extract-power-touch", "image-edit", { x: 680, y: 300 }, {
+      prompt: "Extract the strongest power-touch frame where she transforms the environment with red energy/color spread. Keep realistic anatomy and same identity. No text.",
+      modelId: "nano-banana-pro",
+      aspectRatio: "9:16",
+      quality: "2K",
+    }, {
+      label: "Extract Power Touch Frame",
+      description: "Narrative transformation keyframe",
+    }),
+
+    makeNode("kling-hero", "image-to-video", { x: 1120, y: 120 }, {
+      prompt: "Animate hero frame with premium cinematic movement. Maintain face consistency and dress geometry. Smooth camera dolly and controlled energy trails.",
+      modelId: "kwaivgi/kling-v3.0-pro/text-to-video",
+      aspectRatio: "9:16",
+      duration: 10,
+      quality: "pro",
+    }, {
+      label: "Kling Hero Animation",
+      description: "Hero motion clip",
+    }),
+    makeNode("kling-profile", "image-to-video", { x: 1120, y: 380 }, {
+      prompt: "Animate profile shot with slow camera orbit and stable identity retention. Preserve jawline and hairstyle consistency with elegant motion.",
+      modelId: "kwaivgi/kling-v3.0-pro/text-to-video",
+      aspectRatio: "9:16",
+      duration: 10,
+      quality: "pro",
+    }, {
+      label: "Kling Profile Animation",
+      description: "Profile motion clip",
+    }),
+    makeNode("kling-power-touch", "image-to-video", { x: 1120, y: 640 }, {
+      prompt: "Animate power-touch frame: red color waves spread from her movement to environment. Keep same woman identity and no warping artifacts.",
+      modelId: "kwaivgi/kling-v3.0-pro/text-to-video",
+      aspectRatio: "9:16",
+      duration: 10,
+      quality: "pro",
+    }, {
+      label: "Kling Power Touch Animation",
+      description: "Transformation narrative clip",
+    }),
+
+    makeNode("final-board", "image-edit", { x: 1540, y: 320 }, {
+      prompt: "Assemble final campaign board from extracted frames and animation keyframes: consistency grid, hero, profile, power-touch, and visual progression. Keep premium commercial style. No text, no logos.",
+      modelId: "nano-banana-pro",
+      aspectRatio: "16:9",
+      quality: "2K",
+    }, {
+      label: "Final Campaign Board",
+      description: "Presentation-ready storyboard board",
+    }),
+    makeNode("final-export", "export", { x: 1980, y: 320 }, undefined, {
+      label: "Export Fashion Ad Set",
+      description: "Export board + animated clips",
+    }),
+  ];
+
+  const edges: Edge[] = [
+    makeEdge("brief-to-brain", "workflow-brief", "consistency-brain", "prompt", "prompt", promptEdgeStyle),
+    makeEdge("brief-to-selector", "workflow-brief", "shot-selector", "prompt", "prompt", promptEdgeStyle),
+
+    makeEdge("model-to-grid", "model-upload", "character-grid", "image", "image", imageEdgeStyle),
+    makeEdge("dress-to-grid", "dress-upload", "character-grid", "image", "image", imageEdgeStyle),
+    makeEdge("env-to-grid", "environment-upload", "character-grid", "image", "image", imageEdgeStyle),
+    makeEdge("brain-to-grid", "consistency-brain", "character-grid", "prompt", "prompt", analysisEdgeStyle),
+
+    makeEdge("grid-to-3x3", "character-grid", "pose-grid-3x3", "image", "image", imageEdgeStyle),
+    makeEdge("model-to-3x3", "model-upload", "pose-grid-3x3", "image", "image", imageEdgeStyle),
+    makeEdge("brain-to-3x3", "consistency-brain", "pose-grid-3x3", "prompt", "prompt", analysisEdgeStyle),
+
+    makeEdge("3x3-to-selector", "pose-grid-3x3", "shot-selector", "image", "prompt", boardEdgeStyle),
+
+    makeEdge("3x3-to-hero", "pose-grid-3x3", "extract-hero", "image", "image", boardEdgeStyle),
+    makeEdge("3x3-to-profile", "pose-grid-3x3", "extract-profile", "image", "image", boardEdgeStyle),
+    makeEdge("3x3-to-power", "pose-grid-3x3", "extract-power-touch", "image", "image", boardEdgeStyle),
+    makeEdge("selector-to-hero", "shot-selector", "extract-hero", "prompt", "prompt", promptEdgeStyle),
+    makeEdge("selector-to-profile", "shot-selector", "extract-profile", "prompt", "prompt", promptEdgeStyle),
+    makeEdge("selector-to-power", "shot-selector", "extract-power-touch", "prompt", "prompt", promptEdgeStyle),
+    makeEdge("brain-to-hero", "consistency-brain", "extract-hero", "prompt", "prompt", analysisEdgeStyle),
+    makeEdge("brain-to-profile", "consistency-brain", "extract-profile", "prompt", "prompt", analysisEdgeStyle),
+    makeEdge("brain-to-power", "consistency-brain", "extract-power-touch", "prompt", "prompt", analysisEdgeStyle),
+
+    makeEdge("hero-to-kling", "extract-hero", "kling-hero", "image", "image", videoEdgeStyle),
+    makeEdge("profile-to-kling", "extract-profile", "kling-profile", "image", "image", videoEdgeStyle),
+    makeEdge("power-to-kling", "extract-power-touch", "kling-power-touch", "image", "image", videoEdgeStyle),
+    makeEdge("brain-to-kling-hero", "consistency-brain", "kling-hero", "prompt", "prompt", analysisEdgeStyle),
+    makeEdge("brain-to-kling-profile", "consistency-brain", "kling-profile", "prompt", "prompt", analysisEdgeStyle),
+    makeEdge("brain-to-kling-power", "consistency-brain", "kling-power-touch", "prompt", "prompt", analysisEdgeStyle),
+
+    makeEdge("hero-to-board", "extract-hero", "final-board", "image", "image", boardEdgeStyle),
+    makeEdge("profile-to-board", "extract-profile", "final-board", "image", "image", boardEdgeStyle),
+    makeEdge("power-to-board", "extract-power-touch", "final-board", "image", "image", boardEdgeStyle),
+
+    makeEdge("board-to-export", "final-board", "final-export", "image", "image", boardEdgeStyle),
+    makeEdge("kling-hero-to-export", "kling-hero", "final-export", "video", "video", videoEdgeStyle),
+    makeEdge("kling-profile-to-export", "kling-profile", "final-export", "video", "video", videoEdgeStyle),
+    makeEdge("kling-power-to-export", "kling-power-touch", "final-export", "video", "video", videoEdgeStyle),
+  ];
+
+  return { nodes, edges };
+}
+
 const DEFAULT_WORKFLOW = createCommercialWorkflow();
 const INITIAL_NODES: Node<CanvasNodeData>[] = DEFAULT_WORKFLOW.nodes;
 const INITIAL_EDGES: Edge[] = DEFAULT_WORKFLOW.edges;
@@ -2091,7 +2282,7 @@ function AICanvasInner() {
     }
   }, [executeNode, addActivity]);
 
-  const openCanvasWorkspace = useCallback((mode: "blank" | "saved" | "template" | "fashion") => {
+  const openCanvasWorkspace = useCallback((mode: "blank" | "saved" | "template" | "fashion" | "consistency") => {
     const name = canvasNameInput.trim() || "My Canvas";
     setCanvasName(name);
     setHasOpenedCanvas(true);
@@ -2118,6 +2309,18 @@ function AICanvasInner() {
 
     if (mode === "fashion") {
       const workflow = createFashionPhotoshootWorkflow(name);
+      setNodes(workflow.nodes);
+      setEdges(workflow.edges);
+      assets.forEach(routeAssetToWorkflow);
+      try {
+        localStorage.setItem(CANVAS_WORKSPACE_KEY, JSON.stringify({ name, nodes: workflow.nodes, edges: workflow.edges }));
+      } catch {}
+      setTimeout(() => fitView({ padding: 0.18, duration: 450 }), 80);
+      return;
+    }
+
+    if (mode === "consistency") {
+      const workflow = createConsistentCharacterFashionAdWorkflow(name || "Consistent Character Fashion Ad");
       setNodes(workflow.nodes);
       setEdges(workflow.edges);
       assets.forEach(routeAssetToWorkflow);
@@ -2391,6 +2594,21 @@ function AICanvasInner() {
     setTimeout(() => fitView({ padding: 0.18, duration: 450 }), 80);
   }, [setNodes, setEdges, addActivity, fitView, assets, routeAssetToWorkflow, canvasName]);
 
+  const loadConsistentCharacterTemplate = useCallback(() => {
+    const workflow = createConsistentCharacterFashionAdWorkflow(canvasName || "Consistent Character Fashion Ad");
+    setNodes(workflow.nodes);
+    setEdges(workflow.edges);
+    assets.forEach(routeAssetToWorkflow);
+    setSelectedNodeId(null);
+    try {
+      const workspace = { name: canvasName, nodes: workflow.nodes, edges: workflow.edges };
+      localStorage.setItem(CANVAS_WORKSPACE_KEY, JSON.stringify(workspace));
+      setSavedWorkspace(workspace);
+    } catch {}
+    addActivity({ nodeId: "", nodeLabel: "Consistency Template", level: "success", message: "Loaded the Consistent Character Fashion Ad template." });
+    setTimeout(() => fitView({ padding: 0.18, duration: 450 }), 80);
+  }, [setNodes, setEdges, addActivity, fitView, assets, routeAssetToWorkflow, canvasName]);
+
   const onConnect: OnConnect = useCallback(
     (connection: Connection) => setEdges(eds => addEdge(connection, eds)),
     [setEdges],
@@ -2543,6 +2761,24 @@ function AICanvasInner() {
                 }}
               >
                 AI Fashion Photoshoot Template
+              </button>
+              <button
+                type="button"
+                onClick={() => openCanvasWorkspace("consistency")}
+                style={{
+                  height: 44,
+                  borderRadius: 13,
+                  border: "1px solid rgba(34,197,94,0.28)",
+                  background: "linear-gradient(135deg, rgba(16,185,129,0.18), rgba(34,197,94,0.12))",
+                  color: "#bbf7d0",
+                  padding: "0 16px",
+                  fontSize: 13,
+                  fontWeight: 900,
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                }}
+              >
+                Consistent Character Ad Template
               </button>
             </div>
 
@@ -2806,6 +3042,13 @@ function AICanvasInner() {
             <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
               <path d="M4.2 2.2h5.6l1.2 9.6H3L4.2 2.2z" stroke="currentColor" strokeWidth="1.25" strokeLinejoin="round"/>
               <path d="M5 4.8c.7.7 3.3.7 4 0M4.4 8.2h5.2" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+            </svg>
+          </ToolBtn>
+
+          <ToolBtn title="Load consistent character ad template" onClick={loadConsistentCharacterTemplate} accent="#22c55e">
+            <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
+              <circle cx="7" cy="4" r="2.2" stroke="currentColor" strokeWidth="1.2"/>
+              <path d="M2.8 11.6c.9-2 2.4-3.1 4.2-3.1s3.3 1.1 4.2 3.1" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
             </svg>
           </ToolBtn>
 
