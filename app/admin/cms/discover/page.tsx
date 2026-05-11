@@ -187,25 +187,10 @@ const SEED_FOOTER: FooterData = {
         { _id: uid(), label: "Apps Gallery", href: "/apps" },
       ],
     },
+
     {
-      _id: uid(), title: "Resources",
+      _id: uid(), title: "Studio",
       links: [
-        { _id: uid(), label: "Documentation", href: "/docs" },
-        { _id: uid(), label: "API Reference", href: "/api-docs" },
-        { _id: uid(), label: "Tutorials", href: "/tutorials" },
-        { _id: uid(), label: "Blog", href: "/blog" },
-        { _id: uid(), label: "Changelog", href: "/changelog" },
-        { _id: uid(), label: "Status", href: "/status" },
-        { _id: uid(), label: "Community", href: "/community" },
-      ],
-    },
-    {
-      _id: uid(), title: "Company",
-      links: [
-        { _id: uid(), label: "About Us", href: "/about" },
-        { _id: uid(), label: "Careers", href: "/careers" },
-        { _id: uid(), label: "Press Kit", href: "/press" },
-        { _id: uid(), label: "Contact", href: "/contact" },
         { _id: uid(), label: "Pricing", href: "/pricing" },
         { _id: uid(), label: "Privacy Policy", href: "/privacy" },
         { _id: uid(), label: "Terms & Conditions", href: "/terms" },
