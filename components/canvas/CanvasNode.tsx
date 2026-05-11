@@ -681,7 +681,7 @@ function CanvasNodeInner({ id, data, selected }: NodeProps<Node<CanvasNodeData>>
   const showAR     = !["image-to-video", "video-to-video", "text-to-video", "video-combiner", "export", "upload-image", "upscale", "text-prompt", "voiceover", "sound-effects", "music-generator", "speak", "media-extractor", "video-upscale", "list", "sticky-note", "add-reference", "assets", "stock", "assistant", "image-to-svg"].includes(data.nodeType);
   const showDur    = isVideo;
   const showRes    = isVideo || isImageGen;
-  const showRun    = cfg.creditCost > 0;
+  const showRun    = cfg.creditCost > 0 || data.nodeType === "export";
   const hasOutput  = cfg.hasImageOutput || cfg.hasVideoOutput || cfg.hasTextOutput;
 
   const inSlots  = (["image", "video", "prompt"] as const).filter(s =>
