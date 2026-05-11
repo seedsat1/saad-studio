@@ -717,6 +717,7 @@ function CanvasNodeInner({ id, data, selected }: NodeProps<Node<CanvasNodeData>>
   const selRes   = data.settings.quality     ?? resFallback;
 
   const hasPreviewMedia = data.status === "done" && (!!data.outputImageUrl || !!data.outputVideoUrl || !!data.outputAudioUrl || !!data.outputText);
+  const previewMediaUrl = data.outputVideoUrl ?? data.outputImageUrl ?? data.outputAudioUrl;
 
   const onPrompt = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     SP(e); updateNodeSettings(id, { prompt: e.target.value });
@@ -724,6 +725,11 @@ function CanvasNodeInner({ id, data, selected }: NodeProps<Node<CanvasNodeData>>
 
   const onRun    = useCallback((e: React.MouseEvent) => { SP(e); runNode(id); }, [id, runNode]);
   const onDelete = useCallback((e: React.MouseEvent) => { SP(e); deleteNode(id); }, [id, deleteNode]);
+  const onOpenOutput = useCallback((e: React.MouseEvent) => {
+    SP(e);
+    if (!previewMediaUrl) return;
+    window.open(previewMediaUrl, "_blank", "noopener,noreferrer");
+  }, [previewMediaUrl]);
   const onAdd    = useCallback((e: React.MouseEvent, t: CanvasNodeType) => {
     SP(e); addNodeAfter(id, t); setOpenChip(null);
   }, [id, addNodeAfter]);
@@ -922,6 +928,32 @@ function CanvasNodeInner({ id, data, selected }: NodeProps<Node<CanvasNodeData>>
           background: "rgba(5,9,18,1)",
           overflow: "hidden",
         }}>
+          {previewMediaUrl && data.status === "done" && (
+            <button
+              className="nodrag"
+              onClick={onOpenOutput}
+              style={{
+                position: "absolute",
+                top: 10,
+                left: 10,
+                zIndex: 8,
+                height: 28,
+                borderRadius: 8,
+                border: "1px solid rgba(59,130,246,0.3)",
+                background: "rgba(15,23,42,0.78)",
+                color: "#bfdbfe",
+                padding: "0 11px",
+                fontSize: 10.5,
+                fontWeight: 700,
+                letterSpacing: "0.02em",
+                cursor: "pointer",
+                fontFamily: "inherit",
+              }}
+            >
+              View Output
+            </button>
+          )}
+
           {/* Subtle grid */}
           {!hasPreviewMedia && (
             <div style={{
