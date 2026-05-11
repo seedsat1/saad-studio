@@ -87,9 +87,11 @@ const ADD_MENU: Array<{ type: CanvasNodeType; label: string; desc: string; color
 ];
 
 const BADGE_STYLES = {
+  TOP:  { color: "#a78bfa", bg: "rgba(167,139,250,0.14)" },
   FAST: { color: "#60a5fa", bg: "rgba(96,165,250,0.12)"  },
   NEW:  { color: "#34d399", bg: "rgba(52,211,153,0.12)"  },
   PRO:  { color: "#fbbf24", bg: "rgba(251,191,36,0.12)"  },
+  "4K": { color: "#22d3ee", bg: "rgba(34,211,238,0.14)" },
 };
 
 const STATUS_CFG: Record<NodeStatus, { color: string; pulse?: boolean }> = {
@@ -244,7 +246,14 @@ function ModelDropdown({ value, onChange, nodeType, accentColor, rgb, onClose }:
                 <div style={{ color: isSel ? "#e2e8f0" : "#7d96b0", fontSize: 11.5, fontWeight: isSel ? 600 : 400 }}>{m.label}</div>
                 <div style={{ color: "#1a2a3c", fontSize: 9, marginTop: 2 }}>{m.family} · {m.desc}</div>
               </div>
-              {m.badge && <span style={{ fontSize: 8, fontWeight: 700, padding: "2px 6px", borderRadius: 5, flexShrink: 0, color: BADGE_STYLES[m.badge].color, background: BADGE_STYLES[m.badge].bg }}>{m.badge}</span>}
+              {m.badge && (() => {
+                const badgeStyle = BADGE_STYLES[m.badge] ?? { color: "#94a3b8", bg: "rgba(148,163,184,0.14)" };
+                return (
+                  <span style={{ fontSize: 8, fontWeight: 700, padding: "2px 6px", borderRadius: 5, flexShrink: 0, color: badgeStyle.color, background: badgeStyle.bg }}>
+                    {m.badge}
+                  </span>
+                );
+              })()}
               {isSel && <CheckCircle size={11} style={{ color: accentColor, flexShrink: 0 }} />}
             </button>
           );
