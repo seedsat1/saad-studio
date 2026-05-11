@@ -85,7 +85,9 @@ const Footer = () => {
     ? footer.sections
     : [{ _id: "studio", title: "Studio", links: STUDIO_LINKS }];
   const socials = footer?.socialLinks?.length
-    ? footer.socialLinks.map((social) => {
+    ? footer.socialLinks
+      .filter((social) => social.href && social.href !== "#" && social.href.trim() !== "")
+      .map((social) => {
         const iconMap = {
           Instagram,
           YouTube: Youtube,
