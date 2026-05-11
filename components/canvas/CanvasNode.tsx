@@ -1330,7 +1330,7 @@ function CanvasNodeInner({ id, data, selected }: NodeProps<Node<CanvasNodeData>>
             <div style={{ position: "relative", flexShrink: 0 }}>
               <Chip label={selAR} active={openChip === "ar"} onClick={() => toggleChip("ar")} />
               {openChip === "ar" && (
-                <ARDropdown value={selAR} onChange={v => updateNodeSettings(id, { aspectRatio: v })} rgb={rgb} onClose={() => setOpenChip(null)} />
+                <ARDropdown value={selAR} onChange={v => updateNodeSettings(id, { aspectRatio: v })} options={ASPECT_RATIOS.filter(({ v }) => v !== "auto").map(({ v }) => v)} rgb={rgb} onClose={() => setOpenChip(null)} />
               )}
             </div>
           )}
