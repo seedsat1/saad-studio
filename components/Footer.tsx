@@ -36,12 +36,38 @@ interface DiscoverCms {
 
 const SOCIALS: Array<{ icon: typeof Instagram; href: string; label: string }> = [];
 
-const STUDIO_LINKS = [
-  { label: "Our Work", href: "/apps" },
-  { label: "Services", href: "/pricing" },
-  { label: "Contact Us", href: "/contact" },
-  { label: "Privacy Policy", href: "/privacy" },
-  { label: "Site Policy", href: "/terms" },
+const ALLOWED_FOOTER_LINKS = new Set([
+  "/image",
+  "/video",
+  "/character",
+  "/cinema-studio",
+  "/apps",
+  "/pricing",
+  "/privacy",
+  "/terms",
+]);
+
+const DEFAULT_SECTIONS: FooterSection[] = [
+  {
+    _id: "create",
+    title: "Create",
+    links: [
+      { label: "Image Generation", href: "/image" },
+      { label: "Video Generation", href: "/video" },
+      { label: "Character Studio", href: "/character" },
+      { label: "Next Scene", href: "/cinema-studio" },
+      { label: "Apps Gallery", href: "/apps" },
+    ],
+  },
+  {
+    _id: "company",
+    title: "Company",
+    links: [
+      { label: "Pricing", href: "/pricing" },
+      { label: "Privacy Policy", href: "/privacy" },
+      { label: "Terms & Conditions", href: "/terms" },
+    ],
+  },
 ];
 
 function FooterAnchor({
@@ -81,9 +107,15 @@ const Footer = () => {
   const tagline = footer?.tagline || "We craft visual experiences that go beyond limits.";
   const email = footer?.email || "support@saadstudio.app";
   const logoUrl = footer?.logoUrl || "/logo-saad-transparent.png";
-  const sections = footer?.sections?.length
-    ? footer.sections
-    : [{ _id: "studio", title: "Studio", links: STUDIO_LINKS }];
+  const sections = (footer?.sections?.length ? footer.sections : DEFAULT_SECTIONS)
+    .map((section) => ({
+      ...section,
+      links: section.links.filter((item) => {
+        const href = item.href?.trim();
+        return Boolean(item.label?.trim()) && Boolean(href) && ALLOWED_FOOTER_LINKS.has(href);
+      }),
+    }))
+    .filter((section) => section.links.length > 0);
   const socials = footer?.socialLinks?.length
     ? footer.socialLinks
       .filter((social) => social.href && social.href !== "#" && social.href.trim() !== "")
@@ -143,7 +175,7 @@ const Footer = () => {
             </div>
           </div>
 
-          {sections.map((section) => (
+          {(sections.length ? sections : DEFAULT_SECTIONS).map((section) => (
             <div key={section._id || section.title} className="lg:col-span-2">
               <h4 className="text-sm font-bold text-white">{section.title}</h4>
               <ul className="mt-4 space-y-2.5">
