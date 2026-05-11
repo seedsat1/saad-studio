@@ -175,21 +175,18 @@ const SEED_FOOTER: FooterData = {
   logoUrl: "/logo-saad-transparent.png",
   sections: [
     {
-      _id: uid(), title: "AI Tools",
+      _id: uid(), title: "Studio",
       links: [
         { _id: uid(), label: "Image Generation", href: "/image" },
         { _id: uid(), label: "Video Generation", href: "/video" },
-        { _id: uid(), label: "Audio & Music", href: "/music" },
         { _id: uid(), label: "AI Editing Suite", href: "/edit" },
         { _id: uid(), label: "Character Studio", href: "/character" },
         { _id: uid(), label: "Next Scene", href: "/cinema-studio" },
-        { _id: uid(), label: "AI Assist (Chat)", href: "/conversation" },
         { _id: uid(), label: "Apps Gallery", href: "/apps" },
       ],
     },
-
     {
-      _id: uid(), title: "Studio",
+      _id: uid(), title: "Company",
       links: [
         { _id: uid(), label: "Pricing", href: "/pricing" },
         { _id: uid(), label: "Privacy Policy", href: "/privacy" },
