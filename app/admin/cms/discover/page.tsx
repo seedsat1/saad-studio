@@ -179,7 +179,6 @@ const SEED_FOOTER: FooterData = {
       links: [
         { _id: uid(), label: "Image Generation", href: "/image" },
         { _id: uid(), label: "Video Generation", href: "/video" },
-        { _id: uid(), label: "AI Editing Suite", href: "/edit" },
         { _id: uid(), label: "Character Studio", href: "/character" },
         { _id: uid(), label: "Next Scene", href: "/cinema-studio" },
         { _id: uid(), label: "Apps Gallery", href: "/apps" },
