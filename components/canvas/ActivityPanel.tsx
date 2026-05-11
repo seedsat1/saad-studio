@@ -10,6 +10,12 @@ const LEVEL_CFG = {
   warn:    { color: "#f59e0b",  bg: "rgba(245,158,11,0.08)",  Icon: AlertTriangle },
 };
 
+function getLevelCfg(level: string | undefined) {
+  if (!level) return LEVEL_CFG.info;
+  if (level === "warning") return LEVEL_CFG.warn;
+  return LEVEL_CFG[level as keyof typeof LEVEL_CFG] ?? LEVEL_CFG.info;
+}
+
 interface ActivityPanelProps {
   entries:   ActivityEntry[];
   open:      boolean;
@@ -64,7 +70,7 @@ export function ActivityPanel({ entries, open, onToggle, onClear }: ActivityPane
           )}
           {/* Show last entry level indicator */}
           {entries[0] && (
-            <span style={{ color: LEVEL_CFG[entries[0].level].color, fontSize: 10, opacity: 0.8 }}>
+            <span style={{ color: getLevelCfg(entries[0].level).color, fontSize: 10, opacity: 0.8 }}>
               {entries[0].message.length > 56 ? entries[0].message.slice(0, 56) + "…" : entries[0].message}
             </span>
           )}
@@ -97,7 +103,7 @@ export function ActivityPanel({ entries, open, onToggle, onClear }: ActivityPane
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
               {entries.map(entry => {
-                const lc = LEVEL_CFG[entry.level];
+                const lc = getLevelCfg(entry.level);
                 return (
                   <div
                     key={entry.id}
