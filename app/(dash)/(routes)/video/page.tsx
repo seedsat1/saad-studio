@@ -6,9 +6,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useSearchParams } from "next/navigation";
 import {
   Film, Sparkles, ChevronDown, ImageIcon,
-  Video, Clapperboard, Layers, Pencil, ShoppingBag, TrendingUp,
-  Mic2, PenTool, Factory, ArrowUpCircle, Zap, Music2, Users,
+  Video, Clapperboard, Layers,
+  PenTool, Zap, Music2, Users,
   X, AlertCircle, Loader2, Upload, CheckCircle2, Settings,
+  type LucideIcon,
 } from "lucide-react";
 
 import MediaGrid, { MediaItem } from "@/components/MediaGrid";
@@ -176,56 +177,80 @@ const BADGE_STYLE = {
   "4K": { bg: "rgba(236,72,153,0.16)",  text: "#f472b6" },
 };
 
-const TOOLS = [
-  { id: "create-video",       label: "Create Video",         icon: Video },
-  { id: "cinema-studio",      label: "Next Scene Video",    icon: Clapperboard },
-  { id: "mixed-media",        label: "Mixed Media",          icon: Layers },
-  { id: "edit-video",         label: "Edit Video",           icon: Pencil },
-  { id: "click-to-ad",        label: "Click to Ad",          icon: ShoppingBag },
-  { id: "sora-trends",        label: "Sora 2 Trends",        icon: TrendingUp },
-  { id: "lipsync",            label: "Lipsync Studio",       icon: Mic2 },
-  { id: "draw-to-video",      label: "Draw to Video",        icon: PenTool },
-  { id: "sketch-to-video",    label: "Sketch to Video",      icon: PenTool },
-  { id: "ugc-factory",        label: "UGC Factory",          icon: Factory },
-  { id: "video-upscale",      label: "Video Upscale",        icon: ArrowUpCircle },
-  { id: "higgsfield-animate", label: "Character Animate",    icon: Zap },
-  { id: "vibe-motion",        label: "Vibe Motion",          icon: Music2 },
-  { id: "recast-studio",      label: "Recast Studio",        icon: Users },
-];
+type VideoToolId =
+  | "create-video"
+  | "image-to-video"
+  | "kling-3"
+  | "kling-motion"
+  | "seedance-2"
+  | "sora-2"
+  | "veo-fast"
+  | "hailuo-i2v"
+  | "grok-video";
 
-const TOOL_DEFAULT_MODEL_ID: Record<string, string> = {
-  "create-video": "google-veo3.1-t2v",
-  "cinema-studio": "bytedance-seedance-v2-t2v",
-  // mixed-media / edit-video previously defaulted to Kling 3.0 Omni (removed — KIE has no Omni endpoint).
-  "mixed-media": "kling-v3.0-pro-t2v",
-  "edit-video": "kling-v3.0-pro-t2v",
-  "click-to-ad": "google-veo3.1-fast-t2v",
-  "sora-trends": "openai-sora-2-pro-t2v",
-  "lipsync": "kling-v3.0-pro-motion",
-  "draw-to-video": "minimax-hailuo-2.3-i2v-fast",
-  "sketch-to-video": "minimax-hailuo-2.3-i2v-pro",
-  "ugc-factory": "google-veo3.1-lite-t2v",
-  "video-upscale": "xai-grok-imagine-edit",
-  "higgsfield-animate": "bytedance-seedance-v2-t2v-fast",
-  "vibe-motion": "xai-grok-imagine-t2v",
-  "recast-studio": "xai-grok-imagine-edit",
+type VideoTool = {
+  id: VideoToolId;
+  label: string;
+  description: string;
+  icon: LucideIcon;
 };
 
-const TOOL_PROMPT_PREFIX: Record<string, string> = {
+const TOOLS: VideoTool[] = [
+  { id: "create-video", label: "Text to Video", description: "Prompt based video generation", icon: Video },
+  { id: "image-to-video", label: "Image to Video", description: "Animate an uploaded start frame", icon: ImageIcon },
+  { id: "kling-3", label: "Kling 3.0", description: "Structured multi-shot generation", icon: Clapperboard },
+  { id: "kling-motion", label: "Kling Motion", description: "Guided motion and camera control", icon: Zap },
+  { id: "seedance-2", label: "Seedance 2", description: "Reference based cinematic video", icon: Sparkles },
+  { id: "sora-2", label: "Sora 2", description: "OpenAI Sora generation preset", icon: Film },
+  { id: "veo-fast", label: "Veo 3.1 Fast", description: "Fast commercial video drafts", icon: Video },
+  { id: "hailuo-i2v", label: "Hailuo I2V", description: "Image to video animation preset", icon: PenTool },
+  { id: "grok-video", label: "Grok Imagine", description: "Stylized text and image video", icon: Layers },
+];
+
+const TOOL_ALIASES: Record<string, VideoToolId> = {
+  "cinema-studio": "seedance-2",
+  "mixed-media": "kling-3",
+  "edit-video": "grok-video",
+  "click-to-ad": "veo-fast",
+  "sora-trends": "sora-2",
+  "lipsync": "kling-motion",
+  "draw-to-video": "hailuo-i2v",
+  "sketch-to-video": "hailuo-i2v",
+  "ugc-factory": "veo-fast",
+  "video-upscale": "grok-video",
+  "higgsfield-animate": "seedance-2",
+  "vibe-motion": "grok-video",
+  "recast-studio": "grok-video",
+};
+
+function resolveVideoTool(toolId: string | null): VideoToolId | null {
+  if (!toolId) return null;
+  if (TOOLS.some((tool) => tool.id === toolId)) return toolId as VideoToolId;
+  return TOOL_ALIASES[toolId] ?? null;
+}
+
+const TOOL_DEFAULT_MODEL_ID: Record<VideoToolId, string> = {
+  "create-video": "google-veo3.1-t2v",
+  "image-to-video": "kling-v2.5-turbo-i2v",
+  "kling-3": "kling-v3.0-pro-t2v",
+  "kling-motion": "kling-v3.0-pro-motion",
+  "seedance-2": "bytedance-seedance-v2-t2v",
+  "sora-2": "openai-sora-2-pro-t2v",
+  "veo-fast": "google-veo3.1-fast-t2v",
+  "hailuo-i2v": "minimax-hailuo-2.3-i2v-fast",
+  "grok-video": "xai-grok-imagine-t2v",
+};
+
+const TOOL_PROMPT_PREFIX: Record<VideoToolId, string> = {
   "create-video": "",
-  "cinema-studio": "",
-  "mixed-media": "",
-  "edit-video": "",
-  "click-to-ad": "",
-  "sora-trends": "",
-  "lipsync": "",
-  "draw-to-video": "",
-  "sketch-to-video": "",
-  "ugc-factory": "",
-  "video-upscale": "",
-  "higgsfield-animate": "",
-  "vibe-motion": "",
-  "recast-studio": "",
+  "image-to-video": "Animate the uploaded start frame with natural cinematic motion. ",
+  "kling-3": "Create a structured cinematic video with clear subject continuity and controlled composition. ",
+  "kling-motion": "Use controlled camera motion and preserve subject identity across the motion. ",
+  "seedance-2": "Create a cinematic reference-based video with smooth motion and strong scene consistency. ",
+  "sora-2": "Create a polished Sora-style cinematic video with clear pacing and atmosphere. ",
+  "veo-fast": "Create a concise commercial-ready video with strong composition and clean motion. ",
+  "hailuo-i2v": "Animate the uploaded image with natural movement, stable subject identity, and cinematic framing. ",
+  "grok-video": "Create a stylized dynamic video with clear subject readability and strong visual direction. ",
 };
 
 const FAMILY_GRADIENTS: Record<string, string> = {
@@ -353,17 +378,15 @@ function normalizeCharacterTag(name: string): string {
 
 function VideoPageInner() {
   const searchParams = useSearchParams();
-  const [activeTool,    setActiveTool]    = useState("create-video");
+  const [activeTool,    setActiveTool]    = useState<VideoToolId>("create-video");
   const [selectedModel, setSelectedModel] = useState<WaveSpeedVideoModel>(DEFAULT_MODEL);
   const [modelOpen,     setModelOpen]     = useState(false);
   const [characters, setCharacters] = useState<CharacterReference[]>([]);
   const [selectedCharacterId, setSelectedCharacterId] = useState("");
 
   useEffect(() => {
-    const requestedTool = searchParams.get("tool");
-    if (requestedTool && TOOLS.some((tool) => tool.id === requestedTool)) {
-      setActiveTool(requestedTool);
-    }
+    const requestedTool = resolveVideoTool(searchParams.get("tool"));
+    if (requestedTool) setActiveTool(requestedTool);
 
     const requestedModel = searchParams.get("model");
     if (requestedModel) {
@@ -650,8 +673,8 @@ function VideoPageInner() {
     if (!targetModel) return;
     selectModel(targetModel);
 
-    if (activeTool === "vibe-motion") setSound(true);
-    if (activeTool === "lipsync") {
+    if (activeTool === "grok-video") setSound(true);
+    if (activeTool === "kling-motion") {
       setSceneControl(true);
       setOrientation("video");
     }
@@ -1418,7 +1441,7 @@ function VideoPageInner() {
       >
         <div className="px-3 pt-5 pb-2">
           <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "#475569" }}>
-            Video Tools
+            Video Engines
           </span>
         </div>
         {TOOLS.map(t => {
@@ -1427,15 +1450,20 @@ function VideoPageInner() {
             <button
               key={t.id}
               onClick={() => setActiveTool(t.id)}
-              className="group relative flex items-center gap-2.5 w-full px-3 py-2.5 text-left transition-all"
+              className="group relative flex items-start gap-2.5 w-full px-3 py-2.5 text-left transition-all"
               style={{
                 borderLeft: active ? "2px solid #06b6d4" : "2px solid transparent",
                 background:  active ? "rgba(6,182,212,0.08)" : "transparent",
                 color:       active ? "#e2e8f0" : "#64748b",
               }}
             >
-              <t.icon size={14} style={{ color: active ? "#06b6d4" : "#475569", flexShrink: 0 }} />
-              <span className="text-[13px] font-medium leading-tight">{t.label}</span>
+              <t.icon size={14} style={{ color: active ? "#06b6d4" : "#475569", flexShrink: 0, marginTop: 2 }} />
+              <span className="flex min-w-0 flex-col">
+                <span className="text-[13px] font-medium leading-tight">{t.label}</span>
+                <span className="mt-0.5 text-[10px] leading-snug" style={{ color: active ? "#94a3b8" : "#475569" }}>
+                  {t.description}
+                </span>
+              </span>
               {active && (
                 <motion.div
                   layoutId="active-tool-glow"
