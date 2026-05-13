@@ -1,7 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
-import { ensureUserRow } from "@/lib/credit-ledger";
+import { ensureWelcomeCredits } from "@/lib/credit-ledger";
 
 type UsageBuckets = {
   images: number;
@@ -45,7 +45,7 @@ export async function GET() {
     }
 
     const [userRow, projectCounts, recentRows, allRows] = await Promise.all([
-      ensureUserRow(userId),
+      ensureWelcomeCredits(userId),
       Promise.all([
         prismadb.cinemaProject.count({ where: { userId } }),
         prismadb.variationProject.count({ where: { userId } }),

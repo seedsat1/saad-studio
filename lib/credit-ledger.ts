@@ -51,6 +51,27 @@ export async function ensureUserRow(userId: string) {
   }
 }
 
+export async function ensureWelcomeCredits(userId: string) {
+  const user = await ensureUserRow(userId);
+  if (user.creditBalance > 0) return user;
+
+  const [generationCount, transactionCount] = await Promise.all([
+    prismadb.generation.count({ where: { userId } }),
+    prismadb.adminTransaction.count({ where: { userId } }),
+  ]);
+
+  if (generationCount > 0 || transactionCount > 0 || user.monthlyCredits > 0) {
+    return user;
+  }
+
+  return prismadb.user.update({
+    where: { id: userId },
+    data: {
+      creditBalance: WELCOME_SIGNUP_CREDITS,
+      creditsExpireAt: user.creditsExpireAt ?? new Date(Date.now() + THIRTY_DAYS_MS),
+    },
+  });
+}
 // ─── Credit Expiry & Renewal ─────────────────────────────────────────────────
 
 /**
