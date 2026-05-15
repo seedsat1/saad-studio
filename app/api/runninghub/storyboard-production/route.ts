@@ -301,6 +301,7 @@ async function pollWavespeedTask(
  */
 export async function POST(req: NextRequest) {
   let chargedCredits = 0;
+  let chargedCreditsPerPanel = QUALITY_CREDIT_PER_PANEL["1k"];
   let chargedUserId: string | null = null;
   let generationId: string | null = null;
   const panelGenerationIds: string[] = [];
@@ -400,6 +401,7 @@ export async function POST(req: NextRequest) {
       remainingCredits = spent.remainingCredits;
     }
     chargedCredits = totalCost;
+    chargedCreditsPerPanel = creditsPerPanel;
     chargedUserId = userId;
     generationId = firstGenerationId;
 
@@ -475,11 +477,8 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     // Rollback all panel generation charges on unexpected error
     if (chargedUserId && chargedCredits > 0 && panelGenerationIds.length > 0) {
-      const reqBody = await req.clone().json().catch(() => ({} as { quality?: QualityTier }));
-      const rollbackQuality: QualityTier = reqBody?.quality === "2k" || reqBody?.quality === "4k" ? reqBody.quality : "1k";
-      const rollbackCreditsPerPanel = QUALITY_CREDIT_PER_PANEL[rollbackQuality];
       for (const pgId of panelGenerationIds) {
-        await refundGenerationCharge(pgId, chargedUserId, rollbackCreditsPerPanel, {
+        await refundGenerationCharge(pgId, chargedUserId, chargedCreditsPerPanel, {
           reason: "generation_refund_provider_failed",
           clearMediaUrl: true,
         }).catch(() => null);
