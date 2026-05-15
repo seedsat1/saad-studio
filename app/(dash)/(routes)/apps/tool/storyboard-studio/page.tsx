@@ -152,6 +152,10 @@ export default function StoryboardProductionPage() {
   const creditsPerPanel = selectedQuality.creditsPerPanel;
   const totalCost = numPanels * creditsPerPanel;
 
+  useEffect(() => {
+    setSelectedAngles((prev) => prev.slice(0, numPanels));
+  }, [numPanels]);
+
   const handleFileSelect = useCallback(async (file: File) => {
     if (!file.type.startsWith("image/")) return;
     const dataUrl = await readFileAsDataUrl(file);
@@ -160,9 +164,15 @@ export default function StoryboardProductionPage() {
   }, []);
 
   const toggleCameraAngle = (angleId: string) => {
-    setSelectedAngles((prev) =>
-      prev.includes(angleId) ? prev.filter((id) => id !== angleId) : [...prev, angleId]
-    );
+    setSelectedAngles((prev) => {
+      if (prev.includes(angleId)) {
+        return prev.filter((id) => id !== angleId);
+      }
+      if (prev.length >= numPanels) {
+        return prev;
+      }
+      return [...prev, angleId];
+    });
   };
 
   const handleDrop = useCallback(
@@ -339,10 +349,10 @@ export default function StoryboardProductionPage() {
                       exit={{ opacity: 0, scale: 0.95 }}
                       transition={{ duration: 0.2 }}
                       className="group relative cursor-pointer overflow-hidden rounded-2xl ring-1 ring-white/10"
-                      style={{ aspectRatio: aspectRatio.replace(":", " / "), background: "#060c18" }}
+                      style={{ background: "#060c18" }}
                       onClick={() => setInspectorAsset({ type: "image", url, title: `Panel ${i + 1}`, prompt: "Storyboard panel", model: "Qwen Image Edit" })}
                     >
-                      <img src={url} alt={`Panel ${i + 1}`} className="h-full w-full object-contain transition duration-300 group-hover:scale-[1.02]" />
+                      <img src={url} alt={`Panel ${i + 1}`} className="w-full h-auto object-contain transition duration-300 group-hover:scale-[1.02]" />
                       <div className="absolute left-2 top-2 rounded-md bg-black/60 px-2 py-0.5 text-[10px] text-zinc-200">Panel {i + 1}</div>
                       <div className="absolute inset-0 flex items-end justify-center gap-2 bg-black/0 pb-3 opacity-0 transition duration-200 group-hover:bg-black/45 group-hover:opacity-100">
                         <button onClick={(e) => { e.stopPropagation(); setInspectorAsset({ type: "image", url, title: `Panel ${i + 1}`, prompt: "Storyboard panel", model: "Qwen Image Edit" }); }} className="rounded-lg bg-white/15 p-2 text-white ring-1 ring-white/20"><Eye className="h-4 w-4" /></button>
@@ -605,7 +615,7 @@ export default function StoryboardProductionPage() {
               ))}
             </div>
             <div className="text-[10px] mt-2" style={{ color: "#475569" }}>
-              Selected: {selectedAngles.length} angle{selectedAngles.length !== 1 ? "s" : ""}
+              Selected: {selectedAngles.length}/{numPanels} angle{numPanels !== 1 ? "s" : ""}. You cannot select more than the panel count.
             </div>
           </div>
 
