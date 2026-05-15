@@ -42,21 +42,54 @@ const QUALITY_OPTIONS = [
 
 const CAMERA_ANGLES = [
   { id: "ext-long-shot", label: "Ext. long shot" },
-  { id: "long-shot", label: "Long shot" },
+  { id: "eye-level", label: "Eye level" },
   { id: "closeup", label: "Closeup" },
-  { id: "extreme-closeup", label: "Extreme closeup" },
   { id: "back-view", label: "Back view" },
+  { id: "profile", label: "Profile" },
+  { id: "aerial", label: "Aerial" },
+  { id: "low-angle", label: "Low angle" },
+  { id: "high-angle", label: "High angle" },
+  { id: "pov", label: "POV" },
+  { id: "long-shot", label: "Long shot" },
+  { id: "extreme-closeup", label: "Extreme closeup" },
   { id: "med-closeup", label: "Med. closeup" },
   { id: "ots", label: "OTS" },
   { id: "wide", label: "Wide" },
-  { id: "aerial", label: "Aerial" },
-  { id: "profile", label: "Profile" },
-  { id: "low-angle", label: "Low angle" },
-  { id: "high-angle", label: "High angle" },
-  { id: "eye-level", label: "Eye level" },
   { id: "3-4-view", label: "3/4 view" },
-  { id: "pov", label: "POV" },
 ] as const;
+
+const PRIMARY_CAMERA_SEQUENCE = [
+  "ext-long-shot",
+  "eye-level",
+  "closeup",
+  "back-view",
+  "profile",
+  "aerial",
+  "low-angle",
+  "high-angle",
+  "pov",
+  "long-shot",
+  "med-closeup",
+  "wide",
+  "ots",
+  "3-4-view",
+  "extreme-closeup",
+] as const;
+
+function orderAngles(angleIds: string[]) {
+  return PRIMARY_CAMERA_SEQUENCE.filter((angleId) => angleIds.includes(angleId));
+}
+
+function getAutoAngleSelection(numPanels: number, currentAngles: string[] = []) {
+  const normalized = orderAngles(currentAngles);
+  if (normalized.length >= numPanels) {
+    return normalized.slice(0, numPanels);
+  }
+  const missing = PRIMARY_CAMERA_SEQUENCE
+    .filter((angleId) => !normalized.includes(angleId))
+    .slice(0, numPanels - normalized.length);
+  return [...normalized, ...missing];
+}
 
 type GenerationStatus = "idle" | "generating" | "success" | "failed";
 
@@ -115,7 +148,7 @@ export default function StoryboardProductionPage() {
   const [storyboardType, setStoryboardType] = useState<string>("production");
   const [aspectRatio, setAspectRatio] = useState<string>("1:1");
   const [ratioOpen, setRatioOpen] = useState(false);
-  const [selectedAngles, setSelectedAngles] = useState<string[]>(["long-shot", "closeup", "wide", "high-angle"]);
+  const [selectedAngles, setSelectedAngles] = useState<string[]>(() => getAutoAngleSelection(4));
   const [quality, setQuality] = useState<(typeof QUALITY_OPTIONS)[number]["id"]>("1k");
   const [generationStatus, setGenerationStatus] = useState<GenerationStatus>("idle");
   const [result, setResult] = useState<ResultState | null>(null);
@@ -153,7 +186,7 @@ export default function StoryboardProductionPage() {
   const totalCost = numPanels * creditsPerPanel;
 
   useEffect(() => {
-    setSelectedAngles((prev) => prev.slice(0, numPanels));
+    setSelectedAngles((prev) => getAutoAngleSelection(numPanels, prev));
   }, [numPanels]);
 
   const handleFileSelect = useCallback(async (file: File) => {
@@ -171,7 +204,7 @@ export default function StoryboardProductionPage() {
       if (prev.length >= numPanels) {
         return prev;
       }
-      return [...prev, angleId];
+      return orderAngles([...prev, angleId]);
     });
   };
 
@@ -204,9 +237,7 @@ export default function StoryboardProductionPage() {
 
     try {
       const compressedImage = await compressImage(imageDataUrl, selectedQuality.maxBytes, selectedQuality.maxSide);
-      const orderedAngles = CAMERA_ANGLES
-        .filter((angle) => selectedAngles.includes(angle.id))
-        .map((angle) => angle.id);
+      const orderedAngles = orderAngles(selectedAngles).slice(0, numPanels);
 
       const res = await fetch("/api/runninghub/storyboard-production", {
         method: "POST",
