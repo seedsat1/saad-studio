@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 const tools = [
   {
     name: "generate_image",
-    description: "Generate Image: create a Saad Studio image request with prompt, aspect ratio, language, and style controls.",
+    description: "Create a Saad Studio image request with prompt, aspect ratio, language, and style controls.",
     inputSchema: {
       type: "object",
       properties: {
@@ -16,7 +16,7 @@ const tools = [
   },
   {
     name: "generate_video",
-    description: "Generate Video: create a Saad Studio video request with platform, duration, scene direction, and motion notes.",
+    description: "Create a Saad Studio video request with platform, duration, scene direction, and motion notes.",
     inputSchema: {
       type: "object",
       properties: {
@@ -28,21 +28,29 @@ const tools = [
     },
   },
   {
-    name: "show_marketing_studio",
-    description: "Show Marketing Studio: prepare campaign assets, ad variations, and social content plans.",
+    name: "job_display",
+    description: "Display a running or completed Saad Studio generation job.",
     inputSchema: {
       type: "object",
       properties: {
-        product: { type: "string" },
-        audience: { type: "string" },
-        deliverables: { type: "array", items: { type: "string" } },
+        jobId: { type: "string" },
       },
-      required: ["product"],
+      required: ["jobId"],
+    },
+  },
+  {
+    name: "show_characters",
+    description: "Show saved characters and reusable identity assets.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        workspaceId: { type: "string" },
+      },
     },
   },
   {
     name: "show_generations",
-    description: "Show Generations: list and organize the latest generated Saad Studio assets.",
+    description: "Show generated media and recent outputs.",
     inputSchema: {
       type: "object",
       properties: {
@@ -52,19 +60,8 @@ const tools = [
     },
   },
   {
-    name: "display_results",
-    description: "Display Results: return generated previews, result links, and output summaries to the chat.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        resultId: { type: "string" },
-        format: { type: "string", default: "summary" },
-      },
-    },
-  },
-  {
-    name: "create_campaign_pack",
-    description: "Create Campaign Pack: create image prompts, video prompts, captions, and review checklist from one brief.",
+    name: "show_marketing_studio",
+    description: "Open campaign and marketing asset workflows.",
     inputSchema: {
       type: "object",
       properties: {
@@ -76,18 +73,89 @@ const tools = [
     },
   },
   {
-    name: "read_brand_kit",
-    description: "Read Brand Kit: use saved brand voice, colors, language rules, and product terms.",
+    name: "show_medias",
+    description: "Browse uploaded and generated media assets.",
     inputSchema: {
       type: "object",
       properties: {
-        brandId: { type: "string" },
+        limit: { type: "number", default: 10 },
+        assetType: { type: "string", default: "all" },
       },
     },
   },
   {
-    name: "use_asset_url",
-    description: "Use Asset URL: accept product image links or uploaded asset URLs as creative references.",
+    name: "show_plans_and_credits",
+    description: "Show plan limits, credits, and usage summary.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        workspaceId: { type: "string" },
+      },
+    },
+  },
+  {
+    name: "virality_predictor",
+    description: "Score a clip or concept for hook, retention, and engagement.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        prompt: { type: "string" },
+        mediaUrl: { type: "string" },
+      },
+    },
+  },
+  {
+    name: "balance",
+    description: "Read the available credit balance.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        workspaceId: { type: "string" },
+      },
+    },
+  },
+  {
+    name: "list_workspaces",
+    description: "List workspaces available to the account.",
+    inputSchema: {
+      type: "object",
+      properties: {},
+    },
+  },
+  {
+    name: "models_explore",
+    description: "Explore available image and video models.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        mediaType: { type: "string", default: "all" },
+      },
+    },
+  },
+  {
+    name: "transactions",
+    description: "Read credit transactions and usage history.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        limit: { type: "number", default: 20 },
+      },
+    },
+  },
+  {
+    name: "media_confirm",
+    description: "Confirm selected media for use in a workflow.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        mediaId: { type: "string" },
+      },
+      required: ["mediaId"],
+    },
+  },
+  {
+    name: "media_upload",
+    description: "Upload media references for generation.",
     inputSchema: {
       type: "object",
       properties: {
@@ -98,13 +166,25 @@ const tools = [
     },
   },
   {
-    name: "manage_approvals",
-    description: "Manage Approvals: keep generation actions behind approval settings.",
+    name: "select_workspace",
+    description: "Select the workspace used by future actions.",
     inputSchema: {
       type: "object",
       properties: {
-        mode: { type: "string", default: "needs_approval" },
+        workspaceId: { type: "string" },
       },
+      required: ["workspaceId"],
+    },
+  },
+  {
+    name: "job_status",
+    description: "Read internal job status for the app UI.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        jobId: { type: "string" },
+      },
+      required: ["jobId"],
     },
   },
 ];

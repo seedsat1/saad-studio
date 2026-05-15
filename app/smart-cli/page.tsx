@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ComponentProps } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -24,6 +24,7 @@ import {
   PlaySquare,
   ShieldCheck,
   Terminal,
+  Upload,
 } from "lucide-react";
 
 import TopNavbar from "@/components/TopNavbar";
@@ -95,59 +96,57 @@ const SETUP: Record<SetupTab, Array<{ title: string; text: string; value: string
   ],
 };
 
-const TOOLS = [
+const TOOL_GROUPS = [
   {
-    icon: ImageIcon,
-    title: "Generate Image",
-    text: "Create an image request through Saad Studio with prompt, aspect ratio, language, and style controls.",
+    title: "Interactive tools",
+    tools: [
+      { icon: ImageIcon, title: "generate_image", text: "Create an image request through Saad Studio." },
+      { icon: PlaySquare, title: "generate_video", text: "Create a video request with scene, motion, and duration." },
+      { icon: Eye, title: "job_display", text: "Display a running or completed generation job." },
+      { icon: KeyRound, title: "show_characters", text: "Show saved characters and reusable identity assets." },
+      { icon: Images, title: "show_generations", text: "Show generated media and recent outputs." },
+      { icon: Megaphone, title: "show_marketing_studio", text: "Open campaign and marketing asset workflows." },
+      { icon: Images, title: "show_medias", text: "Browse uploaded and generated media assets." },
+      { icon: CreditIcon, title: "show_plans_and_credits", text: "Show plan limits, credits, and usage summary." },
+      { icon: ListChecks, title: "virality_predictor", text: "Score a clip or concept for hook, retention, and engagement." },
+    ],
   },
   {
-    icon: PlaySquare,
-    title: "Generate Video",
-    text: "Create a video request with platform, duration, camera motion, scene direction, and copy notes.",
+    title: "Read-only tools",
+    tools: [
+      { icon: CreditIcon, title: "balance", text: "Read the available credit balance." },
+      { icon: Globe2, title: "list_workspaces", text: "List workspaces available to the account." },
+      { icon: Boxes, title: "models_explore", text: "Explore available image and video models." },
+      { icon: ListChecks, title: "transactions", text: "Read credit transactions and usage history." },
+    ],
   },
   {
-    icon: Megaphone,
-    title: "Show Marketing Studio",
-    text: "Prepare campaign assets, social formats, product launch plans, and ad variations.",
+    title: "Write/delete tools",
+    tools: [
+      { icon: Check, title: "media_confirm", text: "Confirm selected media for use in a workflow." },
+      { icon: Upload, title: "media_upload", text: "Upload media references for generation." },
+      { icon: Globe2, title: "select_workspace", text: "Select the workspace used by future actions." },
+    ],
   },
   {
-    icon: Images,
-    title: "Show Generations",
-    text: "Read the latest generated assets and organize them for review.",
-  },
-  {
-    icon: Eye,
-    title: "Display Results",
-    text: "Return generated results, previews, and links back to the agent chat.",
-  },
-  {
-    icon: ListChecks,
-    title: "Create Campaign Pack",
-    text: "Build a full campaign pack with image prompts, video prompts, captions, and checklist.",
-  },
-  {
-    icon: KeyRound,
-    title: "Read Brand Kit",
-    text: "Use saved brand voice, color rules, content language, and product terms.",
-  },
-  {
-    icon: Link2,
-    title: "Use Asset URL",
-    text: "Accept product image links or uploaded asset URLs as creative references.",
-  },
-  {
-    icon: ShieldCheck,
-    title: "Manage Approvals",
-    text: "Keep sensitive generation actions behind Claude approval settings.",
+    title: "App-only tools",
+    tools: [
+      { icon: Clock3, title: "job_status", text: "Read internal job status for the app UI." },
+    ],
   },
 ];
+
+const TOOLS = TOOL_GROUPS.flatMap((group) => group.tools);
 
 const PERMISSION_OPTIONS = [
   { label: "Always allow", icon: CircleCheck, color: "text-emerald-300" },
   { label: "Needs approval", icon: Clock3, color: "text-cyan-300" },
   { label: "Block", icon: Ban, color: "text-rose-300" },
 ];
+
+function CreditIcon(props: ComponentProps<typeof KeyRound>) {
+  return <KeyRound {...props} />;
+}
 
 function CopyBox({ value }: { value: string }) {
   const [copied, setCopied] = useState(false);
@@ -309,37 +308,54 @@ export default function SmartCliPage() {
             </div>
 
             <div className="divide-y divide-white/10">
-              {TOOLS.map((tool) => (
-                <div key={tool.title} className="grid gap-4 px-5 py-4 md:grid-cols-[1fr_auto] md:items-center">
-                  <div className="flex min-w-0 items-center gap-3">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-white/[0.05] text-cyan-200">
-                      <tool.icon className="h-4 w-4" />
+              {TOOL_GROUPS.map((group) => (
+                <div key={group.title}>
+                  <div className="flex items-center justify-between px-5 py-4">
+                    <div className="flex items-center gap-2 font-bold text-white">
+                      <span>{group.title}</span>
+                      <span className="rounded-md bg-white/10 px-2 py-0.5 text-xs text-slate-300">{group.tools.length}</span>
                     </div>
-                    <div className="min-w-0">
-                      <div className="font-semibold text-white">{tool.title}</div>
-                      <div className="truncate text-sm text-slate-500">{tool.text}</div>
+                    <div className="inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.05] px-3 py-2 text-sm font-semibold text-slate-200">
+                      <Clock3 className="h-4 w-4" />
+                      Needs approval
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-2">
-                    {PERMISSION_OPTIONS.map((option) => {
-                      const Icon = option.icon;
-                      const active = option.label === "Needs approval";
-                      return (
-                        <button
-                          key={option.label}
-                          type="button"
-                          aria-label={`${tool.title}: ${option.label}`}
-                          className={cn(
-                            "flex h-9 w-9 items-center justify-center rounded-md border transition",
-                            active ? "border-cyan-300/50 bg-cyan-300/15" : "border-white/10 bg-white/[0.03] hover:bg-white/[0.07]",
-                          )}
-                          title={option.label}
-                        >
-                          <Icon className={cn("h-4 w-4", active ? "text-cyan-200" : option.color)} />
-                        </button>
-                      );
-                    })}
+                  <div className="divide-y divide-white/10">
+                    {group.tools.map((tool) => (
+                      <div key={tool.title} className="grid gap-4 px-5 py-4 md:grid-cols-[1fr_auto] md:items-center">
+                        <div className="flex min-w-0 items-center gap-3">
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-white/[0.05] text-cyan-200">
+                            <tool.icon className="h-4 w-4" />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="font-mono font-semibold text-white">{tool.title}</div>
+                            <div className="truncate text-sm text-slate-500">{tool.text}</div>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-2">
+                          {PERMISSION_OPTIONS.map((option) => {
+                            const Icon = option.icon;
+                            const active = option.label === "Needs approval";
+                            return (
+                              <button
+                                key={option.label}
+                                type="button"
+                                aria-label={`${tool.title}: ${option.label}`}
+                                className={cn(
+                                  "flex h-9 w-9 items-center justify-center rounded-md border transition",
+                                  active ? "border-cyan-300/50 bg-cyan-300/15" : "border-white/10 bg-white/[0.03] hover:bg-white/[0.07]",
+                                )}
+                                title={option.label}
+                              >
+                                <Icon className={cn("h-4 w-4", active ? "text-cyan-200" : option.color)} />
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               ))}
