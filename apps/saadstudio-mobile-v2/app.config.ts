@@ -25,10 +25,10 @@ const config: ExpoConfig = {
       backgroundColor: "#050711"
     }
   },
-  web: {
-    favicon: "./assets/favicon.png"
-  },
-  plugins: ["expo-secure-store"]
+  plugins: ["expo-secure-store"],
+  experiments: {
+    typedRoutes: false
+  }
 };
 
 export default config;
