@@ -55,6 +55,7 @@ import {
   Lightbulb,
   Atom,
   Box,
+  Command,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -415,6 +416,7 @@ function appHref(app: string): string {
 const SHOW_EXPERIMENTAL_NAV = false;
 
 const STUDIO_LINKS = [
+  { label: "Smart CLI", href: "/smart-cli", icon: Command, color: "text-emerald-300" },
   { label: "Transitions", href: "/apps/tool/transitions", icon: Blend, color: "text-cyan-300" },
   { label: "Storyboard", href: "/apps/tool/storyboard-studio", icon: Clapperboard, color: "text-violet-300" },
   { label: "Multi Angle", href: "/apps/tool/multi-angle-studio", icon: Aperture, color: "text-sky-300" },
