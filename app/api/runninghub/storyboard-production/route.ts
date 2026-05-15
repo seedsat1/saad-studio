@@ -13,7 +13,7 @@ import { uploadBufferToStorage } from "@/lib/supabase-storage";
 /** Allow up to 5 minutes */
 export const maxDuration = 300;
 
-const MAX_PANELS = 6;
+const MAX_PANELS = 9;
 
 type QualityTier = "1k" | "2k" | "4k";
 const QUALITY_CREDIT_PER_PANEL: Record<QualityTier, number> = {

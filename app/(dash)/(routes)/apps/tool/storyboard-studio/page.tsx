@@ -339,7 +339,17 @@ export default function StoryboardProductionPage() {
                   <RefreshCw size={11} /> New
                 </button>
               </div>
-              <div className="grid w-full gap-2.5" style={{ gridTemplateColumns: result.outputs.length === 1 ? "1fr" : "repeat(2, 1fr)" }}>
+              <div
+                className="grid w-full gap-2.5"
+                style={{
+                  gridTemplateColumns:
+                    result.outputs.length === 1
+                      ? "1fr"
+                      : result.outputs.length <= 4
+                        ? "repeat(2, 1fr)"
+                        : "repeat(3, 1fr)",
+                }}
+              >
                 <AnimatePresence>
                   {result.outputs.map((url, i) => (
                     <motion.div
@@ -407,7 +417,7 @@ export default function StoryboardProductionPage() {
                 <div className="text-[10px] mt-0.5" style={{ color: "#64748b" }}>Credits/Panel</div>
               </div>
               <div className="rounded-lg py-3 px-2" style={{ background: "#060c18" }}>
-                <div className="text-lg font-bold" style={{ color: "#8b5cf6", fontFamily: "var(--font-display)" }}>1-6</div>
+                <div className="text-lg font-bold" style={{ color: "#8b5cf6", fontFamily: "var(--font-display)" }}>1-9</div>
                 <div className="text-[10px] mt-0.5" style={{ color: "#64748b" }}>Panels</div>
               </div>
               <div className="rounded-lg py-3 px-2" style={{ background: "#060c18" }}>
@@ -534,8 +544,8 @@ export default function StoryboardProductionPage() {
           {/* Number of panels */}
           <div className="mt-5">
             <SectionLabel>Number of Panels</SectionLabel>
-            <div className="flex gap-1.5">
-              {[1, 2, 3, 4, 5, 6].map((n) => (
+            <div className="grid grid-cols-3 gap-1.5">
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
                 <button
                   key={n}
                   className="flex-1 py-2.5 rounded-lg text-[12px] font-bold transition-all"
