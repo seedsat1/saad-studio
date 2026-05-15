@@ -24,8 +24,6 @@ import { AssetInspector, type Asset } from "@/components/AssetInspector";
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-display", display: "swap" });
 const plusJakarta = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-body", display: "swap" });
 
-const CREDIT_PER_PANEL = 2;
-
 const STORYBOARD_TYPES = [
   { id: "production", label: "Storyboard Production" },
   { id: "short-drama", label: "Short Drama" },
@@ -37,8 +35,9 @@ const STORYBOARD_TYPES = [
 const ASPECT_RATIOS = ["1:1", "3:4", "4:3", "9:16", "16:9"] as const;
 
 const QUALITY_OPTIONS = [
-  { id: "standard", label: "Standard", outputFormat: "jpeg" as const },
-  { id: "high", label: "High", outputFormat: "png" as const },
+  { id: "1k", label: "1K", creditsPerPanel: 2, outputFormat: "jpeg" as const, maxBytes: 2_500_000, maxSide: 1024 },
+  { id: "2k", label: "2K", creditsPerPanel: 4, outputFormat: "png" as const, maxBytes: 4_500_000, maxSide: 2048 },
+  { id: "4k", label: "4K", creditsPerPanel: 8, outputFormat: "png" as const, maxBytes: 8_000_000, maxSide: 4096 },
 ] as const;
 
 const CAMERA_ANGLES = [
@@ -76,12 +75,12 @@ function readFileAsDataUrl(file: File): Promise<string> {
   });
 }
 
-/** Compress image to JPEG ≤ maxBytes using canvas (keeps aspect ratio, max 2048px side) */
-function compressImage(dataUrl: string, maxBytes = 2_500_000): Promise<string> {
+/** Compress image to JPEG ≤ maxBytes using canvas while respecting quality tier max side. */
+function compressImage(dataUrl: string, maxBytes = 2_500_000, maxSide = 2048): Promise<string> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => {
-      const MAX_SIDE = 2048;
+      const MAX_SIDE = maxSide;
       let { width, height } = img;
       if (width > MAX_SIDE || height > MAX_SIDE) {
         const scale = MAX_SIDE / Math.max(width, height);
@@ -117,7 +116,7 @@ export default function StoryboardProductionPage() {
   const [aspectRatio, setAspectRatio] = useState<string>("1:1");
   const [ratioOpen, setRatioOpen] = useState(false);
   const [selectedAngles, setSelectedAngles] = useState<string[]>(["long-shot", "closeup", "wide", "high-angle"]);
-  const [quality, setQuality] = useState<"standard" | "high">("high");
+  const [quality, setQuality] = useState<(typeof QUALITY_OPTIONS)[number]["id"]>("1k");
   const [generationStatus, setGenerationStatus] = useState<GenerationStatus>("idle");
   const [result, setResult] = useState<ResultState | null>(null);
   const [statusMessage, setStatusMessage] = useState("");
@@ -149,7 +148,9 @@ export default function StoryboardProductionPage() {
   }, []);
 
   const isGenerating = generationStatus === "generating";
-  const totalCost = numPanels * CREDIT_PER_PANEL;
+  const selectedQuality = QUALITY_OPTIONS.find((option) => option.id === quality) ?? QUALITY_OPTIONS[0];
+  const creditsPerPanel = selectedQuality.creditsPerPanel;
+  const totalCost = numPanels * creditsPerPanel;
 
   const handleFileSelect = useCallback(async (file: File) => {
     if (!file.type.startsWith("image/")) return;
@@ -192,8 +193,7 @@ export default function StoryboardProductionPage() {
     setStatusMessage(`Compressing image & generating ${numPanels} panels… this may take 1–3 minutes.`);
 
     try {
-      const compressedImage = await compressImage(imageDataUrl, quality === "high" ? 4_500_000 : 2_500_000);
-      const selectedQuality = QUALITY_OPTIONS.find((option) => option.id === quality) ?? QUALITY_OPTIONS[0];
+      const compressedImage = await compressImage(imageDataUrl, selectedQuality.maxBytes, selectedQuality.maxSide);
       const orderedAngles = CAMERA_ANGLES
         .filter((angle) => selectedAngles.includes(angle.id))
         .map((angle) => angle.id);
@@ -395,7 +395,7 @@ export default function StoryboardProductionPage() {
             </p>
             <div className="mt-3 grid grid-cols-3 gap-3 text-center">
               <div className="rounded-lg py-3 px-2" style={{ background: "#060c18" }}>
-                <div className="text-lg font-bold" style={{ color: "#06b6d4", fontFamily: "var(--font-display)" }}>2</div>
+                <div className="text-lg font-bold" style={{ color: "#06b6d4", fontFamily: "var(--font-display)" }}>{creditsPerPanel}</div>
                 <div className="text-[10px] mt-0.5" style={{ color: "#64748b" }}>Credits/Panel</div>
               </div>
               <div className="rounded-lg py-3 px-2" style={{ background: "#060c18" }}>
@@ -544,14 +544,14 @@ export default function StoryboardProductionPage() {
               ))}
             </div>
             <div className="text-right text-[10px] mt-1.5" style={{ color: "#475569" }}>
-              {numPanels} panel{numPanels !== 1 ? "s" : ""} × {CREDIT_PER_PANEL} = <span style={{ color: "#8b5cf6", fontWeight: 600 }}>{totalCost} credits</span>
+              {numPanels} panel{numPanels !== 1 ? "s" : ""} × {creditsPerPanel} = <span style={{ color: "#8b5cf6", fontWeight: 600 }}>{totalCost} credits</span>
             </div>
           </div>
 
           {/* Quality */}
           <div className="mt-5">
             <SectionLabel>Quality</SectionLabel>
-            <div className="grid grid-cols-2 gap-1.5">
+            <div className="grid grid-cols-3 gap-1.5">
               {QUALITY_OPTIONS.map((q) => (
                 <button
                   key={q.id}
@@ -569,7 +569,7 @@ export default function StoryboardProductionPage() {
               ))}
             </div>
             <div className="text-[10px] mt-1.5" style={{ color: "#475569" }}>
-              {quality === "high" ? "High uses PNG output for cleaner details." : "Standard uses JPEG output for faster generation."}
+              {selectedQuality.label} quality costs {selectedQuality.creditsPerPanel} credits per panel.
             </div>
           </div>
 

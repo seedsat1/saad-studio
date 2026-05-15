@@ -13,8 +13,14 @@ import { uploadBufferToStorage } from "@/lib/supabase-storage";
 /** Allow up to 5 minutes */
 export const maxDuration = 300;
 
-const CREDIT_PER_PANEL = 2;
 const MAX_PANELS = 6;
+
+type QualityTier = "1k" | "2k" | "4k";
+const QUALITY_CREDIT_PER_PANEL: Record<QualityTier, number> = {
+  "1k": 2,
+  "2k": 4,
+  "4k": 8,
+};
 
 const WAVESPEED_BASE = "https://api.wavespeed.ai/api/v3";
 const WAVESPEED_MODEL = "wavespeed-ai/qwen-image/edit-2509-multiple-angles";
@@ -323,7 +329,7 @@ export async function POST(req: NextRequest) {
       numPanels?: number;
       storyboardType?: string;
       aspectRatio?: string;
-      quality?: "standard" | "high";
+      quality?: QualityTier;
       outputFormat?: "jpeg" | "png";
       prompt?: string;
       cameraAngles?: string[];
@@ -331,14 +337,16 @@ export async function POST(req: NextRequest) {
 
     const { imageDataUrl, prompt, cameraAngles } = body;
     const numPanels = Math.max(1, Math.min(MAX_PANELS, body.numPanels ?? 4));
+    const quality: QualityTier = body.quality === "2k" || body.quality === "4k" ? body.quality : "1k";
+    const creditsPerPanel = QUALITY_CREDIT_PER_PANEL[quality];
     const aspectRatio = typeof body.aspectRatio === "string" && SUPPORTED_ASPECT_RATIOS.has(body.aspectRatio)
       ? body.aspectRatio
       : "1:1";
     const outputFormat = typeof body.outputFormat === "string" && SUPPORTED_OUTPUT_FORMATS.has(body.outputFormat)
       ? (body.outputFormat as "jpeg" | "png")
-      : body.quality === "high"
-        ? "png"
-        : "jpeg";
+      : quality === "1k"
+        ? "jpeg"
+        : "png";
     const sbType = (ANGLE_PRESETS[body.storyboardType as StoryboardType] ? body.storyboardType : "production") as StoryboardType;
     
     // If cameraAngles are provided, use them; otherwise use preset angles
@@ -372,7 +380,7 @@ export async function POST(req: NextRequest) {
     }
 
     const apiKey = getWavespeedApiKey();
-    const totalCost = numPanels * CREDIT_PER_PANEL;
+    const totalCost = numPanels * creditsPerPanel;
     const storyLabel = sbType.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
     // Create one Generation row per panel so each image is persisted in assets
@@ -382,7 +390,7 @@ export async function POST(req: NextRequest) {
     for (let i = 0; i < numPanels; i++) {
       const spent = await spendCredits({
         userId,
-        credits: CREDIT_PER_PANEL,
+        credits: creditsPerPanel,
         prompt: `${storyLabel} – Panel ${i + 1}/${numPanels}`,
         assetType: "STORYBOARD",
         modelUsed: "wavespeed/qwen-image-edit-multiple-angles",
@@ -440,7 +448,7 @@ export async function POST(req: NextRequest) {
       } else {
         failures.push(r.error ?? "Panel generation failed");
         // Refund this panel's credits
-        await refundGenerationCharge(panelGenerationIds[i], userId, CREDIT_PER_PANEL, {
+        await refundGenerationCharge(panelGenerationIds[i], userId, creditsPerPanel, {
           reason: "generation_refund_provider_failed",
           clearMediaUrl: true,
         }).catch(() => null);
@@ -458,6 +466,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       outputs,
       generationId: firstGenerationId,
+      quality,
+      creditsPerPanel,
       totalPanels: numPanels,
       successfulPanels: outputs.length,
       remainingCredits,
@@ -465,8 +475,11 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     // Rollback all panel generation charges on unexpected error
     if (chargedUserId && chargedCredits > 0 && panelGenerationIds.length > 0) {
+      const reqBody = await req.clone().json().catch(() => ({} as { quality?: QualityTier }));
+      const rollbackQuality: QualityTier = reqBody?.quality === "2k" || reqBody?.quality === "4k" ? reqBody.quality : "1k";
+      const rollbackCreditsPerPanel = QUALITY_CREDIT_PER_PANEL[rollbackQuality];
       for (const pgId of panelGenerationIds) {
-        await refundGenerationCharge(pgId, chargedUserId, CREDIT_PER_PANEL, {
+        await refundGenerationCharge(pgId, chargedUserId, rollbackCreditsPerPanel, {
           reason: "generation_refund_provider_failed",
           clearMediaUrl: true,
         }).catch(() => null);
