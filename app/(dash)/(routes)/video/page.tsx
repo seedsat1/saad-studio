@@ -459,6 +459,7 @@ function VideoPageInner() {
 
   // Image inputs
   const [startFrame,   setStartFrame]   = useState<File | null>(null);
+  const [linkedStartFrameUrl, setLinkedStartFrameUrl] = useState<string | null>(null);
   const [endFrame,     setEndFrame]     = useState<File | null>(null);
   const [motionVideo,  setMotionVideo]  = useState<File | null>(null);
   const [referenceImages, setReferenceImages] = useState<File[]>([]); // unified: image + video + audio for Seedance 2
@@ -472,6 +473,39 @@ function VideoPageInner() {
   const motionVideoRef = useRef<HTMLInputElement>(null);
   const referenceImagesRef = useRef<HTMLInputElement>(null);
   const [activeDropZone, setActiveDropZone] = useState<string | null>(null);
+
+  useEffect(() => {
+    const requestedPrompt = searchParams.get("prompt");
+    if (requestedPrompt) setPrompt(requestedPrompt);
+
+    const requestedImageUrl = searchParams.get("imageUrl");
+    if (!requestedImageUrl || !/^https?:\/\//i.test(requestedImageUrl)) return;
+
+    let cancelled = false;
+    setLinkedStartFrameUrl(requestedImageUrl);
+    setStartFrame(null);
+    setOmniTab("frames");
+
+    void fetch(requestedImageUrl)
+      .then((res) => {
+        if (!res.ok) throw new Error("Unable to load linked image");
+        return res.blob();
+      })
+      .then((blob) => {
+        if (cancelled) return;
+        const type = blob.type || "image/jpeg";
+        const ext = type.includes("png") ? "png" : type.includes("webp") ? "webp" : "jpg";
+        setStartFrame(new File([blob], `linked-start-frame.${ext}`, { type }));
+        setLinkedStartFrameUrl(null);
+      })
+      .catch(() => {
+        if (!cancelled) setLinkedStartFrameUrl(requestedImageUrl);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [searchParams]);
 
   // Model info banner (shown briefly after model switch)
   const [modelBanner, setModelBanner] = useState<WaveSpeedVideoModel | null>(null);
@@ -527,8 +561,17 @@ function VideoPageInner() {
 
   useEffect(() => {
     if (!startFrame) {
-      setStartFramePreview(null);
+      setStartFramePreview(linkedStartFrameUrl);
       setStartFrameRatio(null);
+      if (linkedStartFrameUrl) {
+        const img = new window.Image();
+        img.onload = () => {
+          const r = img.naturalWidth / img.naturalHeight;
+          const snapped = Math.abs(r - 1) < 0.15 ? "1:1" : (r > 1 ? "16:9" : "9:16");
+          setStartFrameRatio(snapped);
+        };
+        img.src = linkedStartFrameUrl;
+      }
       return;
     }
     const url = URL.createObjectURL(startFrame);
@@ -542,7 +585,7 @@ function VideoPageInner() {
     };
     img.src = url;
     return () => URL.revokeObjectURL(url);
-  }, [startFrame]);
+  }, [linkedStartFrameUrl, startFrame]);
 
   useEffect(() => {
     if (!endFrame) {
@@ -643,6 +686,7 @@ function VideoPageInner() {
     setSize(c.sizes[0] ?? null);
     setResolution(c.resolutions[0] ?? null);
     setStartFrame(null);
+    setLinkedStartFrameUrl(null);
     setEndFrame(null);
     setMotionVideo(null);
     setReferenceImages([]);
@@ -1181,7 +1225,7 @@ function VideoPageInner() {
         // payload.image / payload.end_image are set by the generic block above,
         // but we re-read from state to guarantee no silent data loss.
         const imageUrls: string[] = [];
-        const firstFrameDataUrl = startFrame ? await fileToDataURL(startFrame) : null;
+        const firstFrameDataUrl = startFrame ? await fileToDataURL(startFrame) : linkedStartFrameUrl;
         const lastFrameDataUrl =
           !kling30MultiEnabled && endFrame ? await fileToDataURL(endFrame) : null;
         if (firstFrameDataUrl) imageUrls.push(firstFrameDataUrl);
@@ -1333,7 +1377,7 @@ function VideoPageInner() {
     }
   }, [
     activeTool, prompt, selectedModel, selectedCharacter, caps, supportsCharacterReference, characterSupport, isVeo31Model, isVeo31FastModel,
-    startFrame, endFrame, motionVideo, referenceImages, size, aspectRatio, startFrameRatio, duration, resolution,
+    startFrame, linkedStartFrameUrl, endFrame, motionVideo, referenceImages, size, aspectRatio, startFrameRatio, duration, resolution,
     negPrompt, cfgScale, sound, shotType, multiPrompts, elementList,
     sceneControl, orientation, startPolling,
     klingEls, kling30MultiEnabled, kling30MultiMode, kling30CustomShots,
@@ -1378,7 +1422,7 @@ function VideoPageInner() {
   const referenceFileSummary = getReferenceFileSummary(referenceImages, selectedModel);
   const referenceFileMaxLabel = getReferenceFileMaxLabel(selectedModel);
   const hasRequiredImageInput =
-    !caps.requires_image || !!startFrame || referenceImages.length > 0 || Boolean(selectedCharacter?.referenceUrls?.length);
+    !caps.requires_image || !!startFrame || !!linkedStartFrameUrl || referenceImages.length > 0 || Boolean(selectedCharacter?.referenceUrls?.length);
   const hasRequiredVideoInput = !caps.requires_video || !!motionVideo;
   const canGenerate = isKling30Video
     ? (

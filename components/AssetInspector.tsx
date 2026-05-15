@@ -824,7 +824,7 @@ export function AssetInspector({ asset, onClose }: AssetInspectorProps) {
       case "Animate → Video":
         if (url) {
           router.push(
-            `/video/create-video?imageUrl=${encodeURIComponent(url)}&prompt=${encodeURIComponent(asset.prompt ?? "")}`
+            `/video?tool=kling-3&model=kling-v3.0-pro-t2v&imageUrl=${encodeURIComponent(url)}&prompt=${encodeURIComponent(asset.prompt ?? "")}`
           );
           onClose?.();
         }
