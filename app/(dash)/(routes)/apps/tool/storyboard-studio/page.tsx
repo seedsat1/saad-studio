@@ -36,6 +36,24 @@ const STORYBOARD_TYPES = [
 
 const ASPECT_RATIOS = ["1:1", "3:4", "4:3", "9:16", "16:9", "2:3", "3:2"] as const;
 
+const CAMERA_ANGLES = [
+  { id: "ext-long-shot", label: "Ext. long shot" },
+  { id: "long-shot", label: "Long shot" },
+  { id: "closeup", label: "Closeup" },
+  { id: "extreme-closeup", label: "Extreme closeup" },
+  { id: "back-view", label: "Back view" },
+  { id: "med-closeup", label: "Med. closeup" },
+  { id: "ots", label: "OTS" },
+  { id: "wide", label: "Wide" },
+  { id: "aerial", label: "Aerial" },
+  { id: "profile", label: "Profile" },
+  { id: "low-angle", label: "Low angle" },
+  { id: "high-angle", label: "High angle" },
+  { id: "eye-level", label: "Eye level" },
+  { id: "3-4-view", label: "3/4 view" },
+  { id: "pov", label: "POV" },
+] as const;
+
 type GenerationStatus = "idle" | "generating" | "success" | "failed";
 
 interface ResultState {
@@ -93,6 +111,7 @@ export default function StoryboardProductionPage() {
   const [storyboardType, setStoryboardType] = useState<string>("production");
   const [aspectRatio, setAspectRatio] = useState<string>("1:1");
   const [ratioOpen, setRatioOpen] = useState(false);
+  const [selectedAngles, setSelectedAngles] = useState<string[]>(["long-shot", "closeup", "wide", "high-angle"]);
   const [generationStatus, setGenerationStatus] = useState<GenerationStatus>("idle");
   const [result, setResult] = useState<ResultState | null>(null);
   const [statusMessage, setStatusMessage] = useState("");
@@ -133,6 +152,12 @@ export default function StoryboardProductionPage() {
     setResult(null);
   }, []);
 
+  const toggleCameraAngle = (angleId: string) => {
+    setSelectedAngles((prev) =>
+      prev.includes(angleId) ? prev.filter((id) => id !== angleId) : [...prev, angleId]
+    );
+  };
+
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
       e.preventDefault();
@@ -161,7 +186,7 @@ export default function StoryboardProductionPage() {
       const res = await fetch("/api/runninghub/storyboard-production", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageDataUrl: compressedImage, numPanels, storyboardType, aspectRatio }),
+        body: JSON.stringify({ imageDataUrl: compressedImage, numPanels, storyboardType, aspectRatio, cameraAngles: selectedAngles }),
       });
 
       if (!res.ok) {
@@ -355,8 +380,8 @@ export default function StoryboardProductionPage() {
                 <div className="text-[10px] mt-0.5" style={{ color: "#64748b" }}>Panels</div>
               </div>
               <div className="rounded-lg py-3 px-2" style={{ background: "#060c18" }}>
-                <div className="text-lg font-bold" style={{ color: "#a3e635", fontFamily: "var(--font-display)" }}>6</div>
-                <div className="text-[10px] mt-0.5" style={{ color: "#64748b" }}>Angles</div>
+                <div className="text-lg font-bold" style={{ color: "#a3e635", fontFamily: "var(--font-display)" }}>15</div>
+                <div className="text-[10px] mt-0.5" style={{ color: "#64748b" }}>Camera Angles</div>
               </div>
             </div>
           </div>
@@ -500,6 +525,44 @@ export default function StoryboardProductionPage() {
             </div>
           </div>
 
+          {/* Camera Angles */}
+          <div className="mt-5">
+            <SectionLabel>Camera Angles</SectionLabel>
+            <div className="grid grid-cols-2 gap-1.5">
+              {CAMERA_ANGLES.map((angle) => (
+                <button
+                  key={angle.id}
+                  className="px-2.5 py-2 rounded-lg text-[11px] font-semibold transition-all text-left"
+                  style={{
+                    border: `1px solid ${selectedAngles.includes(angle.id) ? "rgba(139,92,246,0.4)" : "#1e293b"}`,
+                    background: selectedAngles.includes(angle.id) ? "rgba(139,92,246,0.1)" : "#0e1630",
+                    color: selectedAngles.includes(angle.id) ? "#a78bfa" : "#64748b",
+                    fontFamily: "var(--font-display)",
+                  }}
+                  onClick={() => toggleCameraAngle(angle.id)}
+                >
+                  <span className="flex items-center gap-1.5">
+                    <span
+                      className="flex-shrink-0 w-3 h-3 rounded-[2px] flex items-center justify-center"
+                      style={{
+                        border: `1px solid ${selectedAngles.includes(angle.id) ? "#a78bfa" : "#475569"}`,
+                        background: selectedAngles.includes(angle.id) ? "#8b5cf6" : "transparent",
+                      }}
+                    >
+                      {selectedAngles.includes(angle.id) && (
+                        <svg width="8" height="8" viewBox="0 0 10 10" fill="none"><path d="M2 5.5L4 7.5L8 3" stroke="#060c18" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                      )}
+                    </span>
+                    {angle.label}
+                  </span>
+                </button>
+              ))}
+            </div>
+            <div className="text-[10px] mt-2" style={{ color: "#475569" }}>
+              Selected: {selectedAngles.length} angle{selectedAngles.length !== 1 ? "s" : ""}
+            </div>
+          </div>
+
           {/* Generate button */}
           <button
             className="mt-5 w-full py-4 rounded-2xl font-semibold text-sm text-white transition-all relative overflow-hidden"
@@ -530,8 +593,8 @@ export default function StoryboardProductionPage() {
             <ol className="text-xs space-y-1.5" style={{ color: "#64748b" }}>
               <li className="flex gap-2"><span style={{ color: "#8b5cf6", fontWeight: 700 }}>1.</span> Upload a reference image</li>
               <li className="flex gap-2"><span style={{ color: "#8b5cf6", fontWeight: 700 }}>2.</span> Choose storyboard type & aspect ratio</li>
-              <li className="flex gap-2"><span style={{ color: "#8b5cf6", fontWeight: 700 }}>3.</span> Select number of panels (1–6)</li>
-              <li className="flex gap-2"><span style={{ color: "#8b5cf6", fontWeight: 700 }}>4.</span> AI generates cinematic angles automatically</li>
+              <li className="flex gap-2"><span style={{ color: "#8b5cf6", fontWeight: 700 }}>3.</span> Select camera angles & number of panels</li>
+              <li className="flex gap-2"><span style={{ color: "#8b5cf6", fontWeight: 700 }}>4.</span> AI generates cinematic scenes automatically</li>
             </ol>
           </div>
         </div>

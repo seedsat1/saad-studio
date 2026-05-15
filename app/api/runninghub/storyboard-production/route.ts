@@ -78,6 +78,25 @@ const ANGLE_PRESETS: Record<StoryboardType, AnglePreset[]> = {
   ],
 };
 
+// Map camera angle names to AnglePresets
+const CAMERA_ANGLE_MAP: Record<string, AnglePreset> = {
+  "ext-long-shot": { horizontal_angle: 0, vertical_angle: 0, distance: 2, label: "Ext. long shot" },
+  "long-shot": { horizontal_angle: 0, vertical_angle: 0, distance: 1, label: "Long shot" },
+  "closeup": { horizontal_angle: 0, vertical_angle: 0, distance: 0, label: "Closeup" },
+  "extreme-closeup": { horizontal_angle: 0, vertical_angle: 0, distance: -1, label: "Extreme closeup" },
+  "back-view": { horizontal_angle: 180, vertical_angle: 0, distance: 1, label: "Back view" },
+  "med-closeup": { horizontal_angle: 0, vertical_angle: 0, distance: -0.5, label: "Med. closeup" },
+  "ots": { horizontal_angle: 45, vertical_angle: 0, distance: 1, label: "OTS" },
+  "wide": { horizontal_angle: 0, vertical_angle: 0, distance: 2, label: "Wide" },
+  "aerial": { horizontal_angle: 0, vertical_angle: 60, distance: 2, label: "Aerial" },
+  "profile": { horizontal_angle: 90, vertical_angle: 0, distance: 1, label: "Profile" },
+  "low-angle": { horizontal_angle: 0, vertical_angle: -45, distance: 1, label: "Low angle" },
+  "high-angle": { horizontal_angle: 0, vertical_angle: 45, distance: 2, label: "High angle" },
+  "eye-level": { horizontal_angle: 0, vertical_angle: 0, distance: 1, label: "Eye level" },
+  "3-4-view": { horizontal_angle: 45, vertical_angle: 0, distance: 1, label: "3/4 view" },
+  "pov": { horizontal_angle: 0, vertical_angle: 0, distance: 0, label: "POV" },
+};
+
 function getWavespeedApiKey(): string {
   const key = process.env.WAVESPEED_API_KEY;
   if (!key) throw new Error("WAVESPEED_API_KEY is not configured");
@@ -223,12 +242,31 @@ export async function POST(req: NextRequest) {
       storyboardType?: string;
       aspectRatio?: string;
       prompt?: string;
+      cameraAngles?: string[];
     };
 
-    const { imageDataUrl, prompt, aspectRatio } = body;
+    const { imageDataUrl, prompt, aspectRatio, cameraAngles } = body;
     const numPanels = Math.max(1, Math.min(MAX_PANELS, body.numPanels ?? 4));
     const sbType = (ANGLE_PRESETS[body.storyboardType as StoryboardType] ? body.storyboardType : "production") as StoryboardType;
-    const angles = ANGLE_PRESETS[sbType];
+    
+    // If cameraAngles are provided, use them; otherwise use preset angles
+    let angles: AnglePreset[];
+    if (cameraAngles && cameraAngles.length > 0) {
+      angles = cameraAngles
+        .slice(0, numPanels)
+        .map(angleId => CAMERA_ANGLE_MAP[angleId] || ANGLE_PRESETS[sbType][0])
+        .filter(Boolean);
+      
+      // If not enough angles provided, fill remaining with presets
+      if (angles.length < numPanels) {
+        const presetAngles = ANGLE_PRESETS[sbType];
+        for (let i = angles.length; i < numPanels; i++) {
+          angles.push(presetAngles[i % presetAngles.length]);
+        }
+      }
+    } else {
+      angles = ANGLE_PRESETS[sbType];
+    }
 
     if (!imageDataUrl?.startsWith("data:image/")) {
       return NextResponse.json({ error: "A valid reference image is required." }, { status: 400 });
@@ -264,7 +302,7 @@ export async function POST(req: NextRequest) {
     // Launch all panel tasks in parallel
     const predictionIds: string[] = [];
     for (let i = 0; i < numPanels; i++) {
-      const angle = angles[i % angles.length];
+      const angle = angles[i] || angles[i % angles.length];
       const predId = await createWavespeedTask(apiKey, hostedImageUrl, angle, aspectRatio, prompt);
       predictionIds.push(predId);
     }
