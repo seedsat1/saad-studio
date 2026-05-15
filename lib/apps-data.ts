@@ -27,7 +27,6 @@ export const TOOL_ROUTE_MAP: Record<string, string> = {
   shots: "/shots",
   "beauty2-studio": "/beauty2.html",
   "storyboard-studio": "/apps/tool/storyboard-studio",
-  "multi-angle-studio": "/apps/tool/multi-angle-studio",
 };
 
 const APP_CATEGORIES_RAW: AppCategory[] = [
@@ -40,7 +39,6 @@ const APP_CATEGORIES_RAW: AppCategory[] = [
       { id: "variations-studio", title: "Next Scene Studio", description: "AI video scene generator with filmstrip timeline & camera moves", href: "/variations", badge: "NEW", gradient: "from-violet-600/30 to-indigo-900/30" },
       { id: "smart-cli", title: "Smart CLI", description: "External command layer for Saad Studio creative workflows", href: "/smart-cli", badge: "NEW", gradient: "from-sky-600/30 to-emerald-900/30" },
       { id: "storyboard-studio", title: "Storyboard Studio", description: "Multi-panel storyboards with perspective control from one image", href: "/apps/tool/storyboard-studio", badge: "NEW", gradient: "from-cyan-600/30 to-violet-900/30" },
-      { id: "multi-angle-studio", title: "Multi-Angle Studio", description: "Generate any angle view in 3D space with precision controls", href: "/apps/tool/multi-angle-studio", badge: "PRO", gradient: "from-violet-600/30 to-cyan-900/30" },
       { id: "expand-image", title: "Expand Image", description: "Expand any image beyond its edges", href: "/apps/tool/expand-image", badge: null, gradient: "from-violet-600/30 to-indigo-900/30" },
       { id: "angles", title: "Angles 2.0", description: "Generate any angle view in seconds", href: "/apps/tool/angles", badge: "PRO", gradient: "from-emerald-600/30 to-teal-900/30" },
       { id: "shots", title: "Shots", description: "9 unique shots from one image", href: "/shots", badge: "TOP", gradient: "from-amber-600/30 to-orange-900/30" },

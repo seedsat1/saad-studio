@@ -1,7 +1,7 @@
 /**
  * RunningHub API utility
  * Handles image upload, task creation, and polling for both
- * Storyboard Studio and Multi-Angle Studio workflows.
+ * image and storyboard workflows.
  */
 
 const RUNNINGHUB_API_BASE = "https://www.runninghub.ai/openapi/v2";
