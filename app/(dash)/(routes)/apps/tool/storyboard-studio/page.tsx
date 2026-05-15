@@ -194,6 +194,9 @@ export default function StoryboardProductionPage() {
     try {
       const compressedImage = await compressImage(imageDataUrl, quality === "high" ? 4_500_000 : 2_500_000);
       const selectedQuality = QUALITY_OPTIONS.find((option) => option.id === quality) ?? QUALITY_OPTIONS[0];
+      const orderedAngles = CAMERA_ANGLES
+        .filter((angle) => selectedAngles.includes(angle.id))
+        .map((angle) => angle.id);
 
       const res = await fetch("/api/runninghub/storyboard-production", {
         method: "POST",
@@ -205,7 +208,7 @@ export default function StoryboardProductionPage() {
           aspectRatio,
           quality,
           outputFormat: selectedQuality.outputFormat,
-          cameraAngles: selectedAngles,
+          cameraAngles: orderedAngles,
         }),
       });
 

@@ -35,6 +35,11 @@ interface AnglePreset {
   label: string;
 }
 
+interface PanelPlan {
+  angleId: string;
+  angle: AnglePreset;
+}
+
 const SUPPORTED_ASPECT_RATIOS = new Set(["1:1", "3:4", "4:3", "9:16", "16:9"]);
 const SUPPORTED_OUTPUT_FORMATS = new Set(["jpeg", "png"]);
 const ALLOWED_HORIZONTAL = [-90, -45, 0, 45, 90] as const;
@@ -54,6 +59,36 @@ function normalizeAnglePreset(angle: AnglePreset): AnglePreset {
     distance: snapToAllowed(angle.distance, ALLOWED_DISTANCE),
     label: angle.label,
   };
+}
+
+function hashToSeed(input: string): number {
+  let hash = 0;
+  for (let i = 0; i < input.length; i++) {
+    hash = ((hash << 5) - hash + input.charCodeAt(i)) | 0;
+  }
+  const positive = Math.abs(hash);
+  return (positive % 2_147_483_646) + 1;
+}
+
+function getDistanceLabel(distance: number): string {
+  if (distance <= 0) return "close-up";
+  if (distance === 1) return "medium";
+  return "wide";
+}
+
+function buildPanelPrompt(input: {
+  storyLabel: string;
+  panelIndex: number;
+  totalPanels: number;
+  angle: AnglePreset;
+  userPrompt?: string;
+}): string {
+  const header = `${input.storyLabel} storyboard panel ${input.panelIndex + 1} of ${input.totalPanels}.`;
+  const cameraRule = `Use camera angle: ${input.angle.label}. Horizontal ${input.angle.horizontal_angle}deg, vertical ${input.angle.vertical_angle}deg, distance ${getDistanceLabel(input.angle.distance)}.`;
+  const continuityRule = "Keep the same subject identity, outfit, and location as the reference image.";
+  const uniquenessRule = "Make this framing clearly different from other panels with distinct composition.";
+  const userText = input.userPrompt?.trim() ? `Scene direction: ${input.userPrompt.trim()}.` : "";
+  return [header, userText, cameraRule, continuityRule, uniquenessRule].filter(Boolean).join(" ");
 }
 
 const ANGLE_PRESETS: Record<StoryboardType, AnglePreset[]> = {
@@ -150,6 +185,7 @@ async function createWavespeedTask(
   angle: AnglePreset,
   aspectRatio?: string,
   outputFormat?: "jpeg" | "png",
+  seed?: number,
   prompt?: string,
 ): Promise<string> {
   const body: Record<string, unknown> = {
@@ -158,7 +194,7 @@ async function createWavespeedTask(
     vertical_angle: angle.vertical_angle,
     distance: angle.distance,
     output_format: outputFormat ?? "jpeg",
-    seed: -1,
+    seed: typeof seed === "number" ? seed : -1,
     enable_base64_output: false,
     enable_sync_mode: false,
   };
@@ -282,22 +318,29 @@ export async function POST(req: NextRequest) {
     const sbType = (ANGLE_PRESETS[body.storyboardType as StoryboardType] ? body.storyboardType : "production") as StoryboardType;
     
     // If cameraAngles are provided, use them; otherwise use preset angles
-    let angles: AnglePreset[];
+    let panelPlan: PanelPlan[];
     if (cameraAngles && cameraAngles.length > 0) {
-      angles = cameraAngles
+      panelPlan = cameraAngles
         .slice(0, numPanels)
-        .map((angleId) => normalizeAnglePreset(CAMERA_ANGLE_MAP[angleId] || ANGLE_PRESETS[sbType][0]))
+        .map((angleId) => ({
+          angleId,
+          angle: normalizeAnglePreset(CAMERA_ANGLE_MAP[angleId] || ANGLE_PRESETS[sbType][0]),
+        }))
         .filter(Boolean);
       
       // If not enough angles provided, fill remaining with presets
-      if (angles.length < numPanels) {
+      if (panelPlan.length < numPanels) {
         const presetAngles = ANGLE_PRESETS[sbType];
-        for (let i = angles.length; i < numPanels; i++) {
-          angles.push(normalizeAnglePreset(presetAngles[i % presetAngles.length]));
+        for (let i = panelPlan.length; i < numPanels; i++) {
+          const preset = normalizeAnglePreset(presetAngles[i % presetAngles.length]);
+          panelPlan.push({ angleId: `preset-${i}`, angle: preset });
         }
       }
     } else {
-      angles = ANGLE_PRESETS[sbType].map(normalizeAnglePreset);
+      panelPlan = ANGLE_PRESETS[sbType].map((preset, i) => ({
+        angleId: `preset-${i}`,
+        angle: normalizeAnglePreset(preset),
+      }));
     }
 
     if (!imageDataUrl?.startsWith("data:image/")) {
@@ -334,8 +377,24 @@ export async function POST(req: NextRequest) {
     // Launch all panel tasks in parallel
     const predictionIds: string[] = [];
     for (let i = 0; i < numPanels; i++) {
-      const angle = angles[i] || angles[i % angles.length];
-      const predId = await createWavespeedTask(apiKey, hostedImageUrl, angle, aspectRatio, outputFormat, prompt);
+      const plan = panelPlan[i] || panelPlan[i % panelPlan.length];
+      const panelSeed = hashToSeed(`${firstGenerationId}:${plan.angleId}:${i}`);
+      const panelPrompt = buildPanelPrompt({
+        storyLabel,
+        panelIndex: i,
+        totalPanels: numPanels,
+        angle: plan.angle,
+        userPrompt: prompt,
+      });
+      const predId = await createWavespeedTask(
+        apiKey,
+        hostedImageUrl,
+        plan.angle,
+        aspectRatio,
+        outputFormat,
+        panelSeed,
+        panelPrompt,
+      );
       predictionIds.push(predId);
     }
 
