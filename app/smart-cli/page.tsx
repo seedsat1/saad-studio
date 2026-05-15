@@ -4,17 +4,23 @@ import { useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
+  Ban,
   Boxes,
   Check,
+  CircleCheck,
+  Clock3,
   Clipboard,
   Code2,
   Command,
+  Eye,
   FileCode2,
   Globe2,
   Image as ImageIcon,
+  Images,
   KeyRound,
   Link2,
   ListChecks,
+  Megaphone,
   PlaySquare,
   ShieldCheck,
   Terminal,
@@ -92,19 +98,55 @@ const SETUP: Record<SetupTab, Array<{ title: string; text: string; value: string
 const TOOLS = [
   {
     icon: ImageIcon,
-    title: "create_image_brief",
-    text: "Turns a prompt into a structured Saad Studio image request with aspect ratio, language, and style notes.",
+    title: "Generate Image",
+    text: "Create an image request through Saad Studio with prompt, aspect ratio, language, and style controls.",
   },
   {
     icon: PlaySquare,
-    title: "create_video_brief",
-    text: "Builds a short video brief with platform, duration, movement, scene direction, and copy notes.",
+    title: "Generate Video",
+    text: "Create a video request with platform, duration, camera motion, scene direction, and copy notes.",
+  },
+  {
+    icon: Megaphone,
+    title: "Show Marketing Studio",
+    text: "Prepare campaign assets, social formats, product launch plans, and ad variations.",
+  },
+  {
+    icon: Images,
+    title: "Show Generations",
+    text: "Read the latest generated assets and organize them for review.",
+  },
+  {
+    icon: Eye,
+    title: "Display Results",
+    text: "Return generated results, previews, and links back to the agent chat.",
   },
   {
     icon: ListChecks,
-    title: "create_campaign_pack",
-    text: "Creates a campaign plan with posts, video concepts, captions, and review checklist.",
+    title: "Create Campaign Pack",
+    text: "Build a full campaign pack with image prompts, video prompts, captions, and checklist.",
   },
+  {
+    icon: KeyRound,
+    title: "Read Brand Kit",
+    text: "Use saved brand voice, color rules, content language, and product terms.",
+  },
+  {
+    icon: Link2,
+    title: "Use Asset URL",
+    text: "Accept product image links or uploaded asset URLs as creative references.",
+  },
+  {
+    icon: ShieldCheck,
+    title: "Manage Approvals",
+    text: "Keep sensitive generation actions behind Claude approval settings.",
+  },
+];
+
+const PERMISSION_OPTIONS = [
+  { label: "Always allow", icon: CircleCheck, color: "text-emerald-300" },
+  { label: "Needs approval", icon: Clock3, color: "text-cyan-300" },
+  { label: "Block", icon: Ban, color: "text-rose-300" },
 ];
 
 function CopyBox({ value }: { value: string }) {
@@ -250,6 +292,58 @@ export default function SmartCliPage() {
                 </div>
               );
             })}
+          </div>
+        </section>
+
+        <section className="mx-auto max-w-7xl px-4 pb-10 md:px-8">
+          <div className="rounded-lg border border-white/10 bg-[#0c111b]">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-5 py-4">
+              <div>
+                <h2 className="text-xl font-black">Tool Permissions</h2>
+                <p className="mt-1 text-sm text-slate-400">Choose when Claude is allowed to use each Smart CLI tool.</p>
+              </div>
+              <div className="inline-flex items-center gap-2 rounded-md border border-cyan-300/20 bg-cyan-300/10 px-3 py-2 text-sm font-semibold text-cyan-100">
+                <Clock3 className="h-4 w-4" />
+                Needs approval
+              </div>
+            </div>
+
+            <div className="divide-y divide-white/10">
+              {TOOLS.map((tool) => (
+                <div key={tool.title} className="grid gap-4 px-5 py-4 md:grid-cols-[1fr_auto] md:items-center">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-white/[0.05] text-cyan-200">
+                      <tool.icon className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="font-semibold text-white">{tool.title}</div>
+                      <div className="truncate text-sm text-slate-500">{tool.text}</div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2">
+                    {PERMISSION_OPTIONS.map((option) => {
+                      const Icon = option.icon;
+                      const active = option.label === "Needs approval";
+                      return (
+                        <button
+                          key={option.label}
+                          type="button"
+                          aria-label={`${tool.title}: ${option.label}`}
+                          className={cn(
+                            "flex h-9 w-9 items-center justify-center rounded-md border transition",
+                            active ? "border-cyan-300/50 bg-cyan-300/15" : "border-white/10 bg-white/[0.03] hover:bg-white/[0.07]",
+                          )}
+                          title={option.label}
+                        >
+                          <Icon className={cn("h-4 w-4", active ? "text-cyan-200" : option.color)} />
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </section>
 

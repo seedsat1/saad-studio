@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 
 const tools = [
   {
-    name: "create_image_brief",
-    description: "Create a structured Saad Studio image generation brief.",
+    name: "generate_image",
+    description: "Generate Image: create a Saad Studio image request with prompt, aspect ratio, language, and style controls.",
     inputSchema: {
       type: "object",
       properties: {
@@ -15,8 +15,8 @@ const tools = [
     },
   },
   {
-    name: "create_video_brief",
-    description: "Create a structured Saad Studio short video brief.",
+    name: "generate_video",
+    description: "Generate Video: create a Saad Studio video request with platform, duration, scene direction, and motion notes.",
     inputSchema: {
       type: "object",
       properties: {
@@ -28,8 +28,8 @@ const tools = [
     },
   },
   {
-    name: "create_campaign_pack",
-    description: "Create a Saad Studio campaign pack brief.",
+    name: "show_marketing_studio",
+    description: "Show Marketing Studio: prepare campaign assets, ad variations, and social content plans.",
     inputSchema: {
       type: "object",
       properties: {
@@ -38,6 +38,73 @@ const tools = [
         deliverables: { type: "array", items: { type: "string" } },
       },
       required: ["product"],
+    },
+  },
+  {
+    name: "show_generations",
+    description: "Show Generations: list and organize the latest generated Saad Studio assets.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        limit: { type: "number", default: 10 },
+        assetType: { type: "string", default: "all" },
+      },
+    },
+  },
+  {
+    name: "display_results",
+    description: "Display Results: return generated previews, result links, and output summaries to the chat.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        resultId: { type: "string" },
+        format: { type: "string", default: "summary" },
+      },
+    },
+  },
+  {
+    name: "create_campaign_pack",
+    description: "Create Campaign Pack: create image prompts, video prompts, captions, and review checklist from one brief.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        product: { type: "string" },
+        audience: { type: "string" },
+        deliverables: { type: "array", items: { type: "string" } },
+      },
+      required: ["product"],
+    },
+  },
+  {
+    name: "read_brand_kit",
+    description: "Read Brand Kit: use saved brand voice, colors, language rules, and product terms.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        brandId: { type: "string" },
+      },
+    },
+  },
+  {
+    name: "use_asset_url",
+    description: "Use Asset URL: accept product image links or uploaded asset URLs as creative references.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        url: { type: "string" },
+        purpose: { type: "string", default: "reference" },
+      },
+      required: ["url"],
+    },
+  },
+  {
+    name: "manage_approvals",
+    description: "Manage Approvals: keep generation actions behind approval settings.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        mode: { type: "string", default: "needs_approval" },
+      },
     },
   },
 ];
