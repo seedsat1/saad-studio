@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { IMAGE_MODELS, type ImageModel } from "@/lib/image-models";
+import { IMAGE_MODELS, getImageCreditCost, type ImageModel } from "@/lib/image-models";
 import { useGenerationGate } from "@/hooks/use-generation-gate";
 import { AssetInspector, type Asset } from "@/components/AssetInspector";
 import { useAssetStore } from "@/hooks/use-asset-store";
@@ -1126,15 +1126,15 @@ export default function ImageWorkspacePage() {
 
   const composer = useMemo(() => {
     if (activeTool === "create") {
-      const perImage = createNeedsImage ? 3 : 2;
-      return { placeholder: "Describe what you want to generate...", button: `Generate Image · ${perImage * numImages} cr`, promptEnabled: true };
+      const credits = getImageCreditCost(selectedModel, numImages, qualityOptions.length ? (quality || qualityOptions[0]) : undefined);
+      return { placeholder: "Describe what you want to generate...", button: `Generate Image · ${credits} cr`, promptEnabled: true };
     }
     if (activeTool === "enhance") return { placeholder: "Enhancement instructions (optional) — e.g. \"cinematic, 8K, sharp\"...", button: "Enhance Photo · 2 cr", promptEnabled: true };
     if (activeTool === "relight") return { placeholder: "Describe the lighting you want...", button: `Relight Image ✦ ${3 * relightVariations}`, promptEnabled: true };
     if (activeTool === "inpaint") return { placeholder: "Describe what should replace the painted area...", button: `Inpaint ✦ ${3 * inpaintVariations}`, promptEnabled: true };
     if (activeTool === "upscale") return { placeholder: "Upload media to upscale", button: "Upscale Image ✦ 2", promptEnabled: false };
     return { placeholder: "Upload source face and target above", button: "Swap Face ✦ 4", promptEnabled: false };
-  }, [activeTool, createNeedsImage, inpaintVariations, numImages, relightVariations]);
+  }, [activeTool, inpaintVariations, numImages, quality, qualityOptions, relightVariations, selectedModel]);
 
   useEffect(() => {
     setNumImages(Math.min(Math.max(1, numImages), selectedModel.maxImages));
@@ -1153,13 +1153,13 @@ export default function ImageWorkspacePage() {
   }, [activeTool, createNeedsImage, enhanceFiles.length, faceSource, faceTarget, generating, inpaintFile, prompt, referenceFiles.length, relightFile, selectedCharacter, upscaleFile]);
 
   const estimatedCredits = useMemo(() => {
-    if (activeTool === "create") return (selectedModel.creditCost || (createNeedsImage ? 3 : 2)) * numImages;
+    if (activeTool === "create") return getImageCreditCost(selectedModel, numImages, qualityOptions.length ? (quality || qualityOptions[0]) : undefined);
     if (activeTool === "enhance") return ENHANCE_MODELS.find((m) => m.id === enhanceModelId)?.creditCost ?? 2;
     if (activeTool === "relight") return 3 * relightVariations;
     if (activeTool === "inpaint") return 3 * inpaintVariations;
     if (activeTool === "upscale") return 2;
     return 4;
-  }, [activeTool, createNeedsImage, enhanceModelId, inpaintVariations, numImages, relightVariations, selectedModel.creditCost]);
+  }, [activeTool, enhanceModelId, inpaintVariations, numImages, quality, qualityOptions, relightVariations, selectedModel]);
 
   const addResultItems = useCallback((urls: string[], tool: ToolId, model: string, p: string, aspect: string) => {
     const newItems = urls.map((url) => ({ id: uid("img"), url, tool, model, prompt: p, aspect }));

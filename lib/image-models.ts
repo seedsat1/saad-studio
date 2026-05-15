@@ -43,6 +43,17 @@ export interface ImageModel {
   creditCost: number;
 }
 
+const IMAGE_QUALITY_CREDIT_MULTIPLIER: Record<string, number> = {
+  "4k": 3.73,
+};
+
+export function getImageCreditCost(model: ImageModel, numImages = 1, quality?: string | null): number {
+  const safeUnits = Math.max(1, Math.ceil(Number(numImages) || 1));
+  const qualityKey = quality?.trim().toLowerCase() ?? "";
+  const multiplier = IMAGE_QUALITY_CREDIT_MULTIPLIER[qualityKey] ?? 1;
+  return Math.ceil((model.creditCost || 2) * safeUnits * multiplier);
+}
+
 // ─── All Aspect Options lookup (for the UI toggle buttons) ────────────────────
 export const ALL_ASPECT_OPTIONS = [
   { value: "auto",  label: "Auto",  cls: "w-7 h-7"        },

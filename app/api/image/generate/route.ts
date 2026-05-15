@@ -77,7 +77,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Model is required" }, { status: 400 });
     }
 
-    const creditsToCharge = await getGenerationCost(model, 5, numImages);
+    const creditsToCharge = await getGenerationCost(model, 5, numImages, resolution ?? quality ?? imageSize);
     if (creditsToCharge <= 0) {
       return NextResponse.json({ error: `No credit configuration for model: ${model}` }, { status: 400 });
     }

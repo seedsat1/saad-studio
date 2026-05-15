@@ -299,7 +299,7 @@ export async function POST(req: NextRequest) {
 
     const effectiveImageInputField = imageInputField ?? inferImageInputField(kieModelId);
 
-    const creditsToCharge = await getGenerationCost(effectiveModelId, 5, numImages);
+    const creditsToCharge = await getGenerationCost(effectiveModelId, 5, numImages, resolution ?? quality ?? imageSize);
     if (creditsToCharge <= 0) {
       return NextResponse.json({ error: `No credit configuration for model: ${modelId}` }, { status: 400 });
     }
