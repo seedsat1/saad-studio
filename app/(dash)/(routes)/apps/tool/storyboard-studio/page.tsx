@@ -356,15 +356,13 @@ export default function StoryboardProductionPage() {
           )}
 
           {/* History gallery — persisted panels */}
-          {history.length > 0 && (
+          {history.length > 0 && generationStatus !== "success" && (
             <div className="mt-6">
-              {generationStatus !== "success" && (
-                <div className="flex items-center gap-2 mb-3">
-                  <Film size={14} style={{ color: "#06b6d4" }} />
-                  <span className="text-sm font-semibold" style={{ color: "#94a3b8", fontFamily: "var(--font-display)" }}>Your Storyboards</span>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: "rgba(6,182,212,0.1)", color: "#06b6d4" }}>{history.length}</span>
-                </div>
-              )}
+              <div className="flex items-center gap-2 mb-3">
+                <Film size={14} style={{ color: "#06b6d4" }} />
+                <span className="text-sm font-semibold" style={{ color: "#94a3b8", fontFamily: "var(--font-display)" }}>Previous Storyboards</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: "rgba(6,182,212,0.1)", color: "#06b6d4" }}>{history.length}</span>
+              </div>
               <div className="grid w-full gap-1.5" style={{ gridTemplateColumns: "repeat(6, 1fr)" }}>
                 {history.map((item) => (
                   <div
