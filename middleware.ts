@@ -43,6 +43,7 @@ const isPublicRoute = createRouteMatcher([
   '/api/webhooks(.*)',
   '/api/models(.*)',
   '/api/cron(.*)',
+  '/api/smart-cli(.*)',
   '/sso-callback(.*)',
   '/panel(.*)',
   '/api/panel(.*)',
