@@ -13,6 +13,7 @@ const config: ExpoConfig = {
     resizeMode: "cover",
     backgroundColor: "#050711"
   },
+  platforms: ["ios", "android", "web"],
   ios: {
     supportsTablet: false,
     bundleIdentifier: "app.saadstudio.mobile"
@@ -23,6 +24,9 @@ const config: ExpoConfig = {
       foregroundImage: "./assets/adaptive-icon.png",
       backgroundColor: "#050711"
     }
+  },
+  web: {
+    favicon: "./assets/favicon.png"
   },
   plugins: ["expo-secure-store"]
 };
