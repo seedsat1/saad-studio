@@ -35,6 +35,27 @@ interface AnglePreset {
   label: string;
 }
 
+const SUPPORTED_ASPECT_RATIOS = new Set(["1:1", "3:4", "4:3", "9:16", "16:9"]);
+const SUPPORTED_OUTPUT_FORMATS = new Set(["jpeg", "png"]);
+const ALLOWED_HORIZONTAL = [-90, -45, 0, 45, 90] as const;
+const ALLOWED_VERTICAL = [-30, 0, 30, 60] as const;
+const ALLOWED_DISTANCE = [0, 1, 2] as const;
+
+function snapToAllowed(value: number, allowed: readonly number[]): number {
+  return allowed.reduce((closest, current) => (
+    Math.abs(current - value) < Math.abs(closest - value) ? current : closest
+  ), allowed[0]);
+}
+
+function normalizeAnglePreset(angle: AnglePreset): AnglePreset {
+  return {
+    horizontal_angle: snapToAllowed(angle.horizontal_angle, ALLOWED_HORIZONTAL),
+    vertical_angle: snapToAllowed(angle.vertical_angle, ALLOWED_VERTICAL),
+    distance: snapToAllowed(angle.distance, ALLOWED_DISTANCE),
+    label: angle.label,
+  };
+}
+
 const ANGLE_PRESETS: Record<StoryboardType, AnglePreset[]> = {
   production: [
     { horizontal_angle: 0,   vertical_angle: 0,   distance: 1, label: "Front – Medium" },
@@ -83,15 +104,15 @@ const CAMERA_ANGLE_MAP: Record<string, AnglePreset> = {
   "ext-long-shot": { horizontal_angle: 0, vertical_angle: 0, distance: 2, label: "Ext. long shot" },
   "long-shot": { horizontal_angle: 0, vertical_angle: 0, distance: 1, label: "Long shot" },
   "closeup": { horizontal_angle: 0, vertical_angle: 0, distance: 0, label: "Closeup" },
-  "extreme-closeup": { horizontal_angle: 0, vertical_angle: 0, distance: -1, label: "Extreme closeup" },
-  "back-view": { horizontal_angle: 180, vertical_angle: 0, distance: 1, label: "Back view" },
-  "med-closeup": { horizontal_angle: 0, vertical_angle: 0, distance: -0.5, label: "Med. closeup" },
+  "extreme-closeup": { horizontal_angle: 0, vertical_angle: 0, distance: 0, label: "Extreme closeup" },
+  "back-view": { horizontal_angle: 90, vertical_angle: 0, distance: 1, label: "Back view" },
+  "med-closeup": { horizontal_angle: 0, vertical_angle: 0, distance: 0, label: "Med. closeup" },
   "ots": { horizontal_angle: 45, vertical_angle: 0, distance: 1, label: "OTS" },
   "wide": { horizontal_angle: 0, vertical_angle: 0, distance: 2, label: "Wide" },
   "aerial": { horizontal_angle: 0, vertical_angle: 60, distance: 2, label: "Aerial" },
   "profile": { horizontal_angle: 90, vertical_angle: 0, distance: 1, label: "Profile" },
-  "low-angle": { horizontal_angle: 0, vertical_angle: -45, distance: 1, label: "Low angle" },
-  "high-angle": { horizontal_angle: 0, vertical_angle: 45, distance: 2, label: "High angle" },
+  "low-angle": { horizontal_angle: 0, vertical_angle: -30, distance: 1, label: "Low angle" },
+  "high-angle": { horizontal_angle: 0, vertical_angle: 30, distance: 2, label: "High angle" },
   "eye-level": { horizontal_angle: 0, vertical_angle: 0, distance: 1, label: "Eye level" },
   "3-4-view": { horizontal_angle: 45, vertical_angle: 0, distance: 1, label: "3/4 view" },
   "pov": { horizontal_angle: 0, vertical_angle: 0, distance: 0, label: "POV" },
@@ -128,6 +149,7 @@ async function createWavespeedTask(
   imageUrl: string,
   angle: AnglePreset,
   aspectRatio?: string,
+  outputFormat?: "jpeg" | "png",
   prompt?: string,
 ): Promise<string> {
   const body: Record<string, unknown> = {
@@ -135,12 +157,12 @@ async function createWavespeedTask(
     horizontal_angle: angle.horizontal_angle,
     vertical_angle: angle.vertical_angle,
     distance: angle.distance,
-    output_format: "jpeg",
+    output_format: outputFormat ?? "jpeg",
     seed: -1,
     enable_base64_output: false,
     enable_sync_mode: false,
   };
-  if (aspectRatio && aspectRatio !== "auto") body.aspect_ratio = aspectRatio;
+  if (aspectRatio && SUPPORTED_ASPECT_RATIOS.has(aspectRatio)) body.aspect_ratio = aspectRatio;
   if (prompt) body.prompt = prompt;
 
   const res = await fetch(`${WAVESPEED_BASE}/${WAVESPEED_MODEL}`, {
@@ -241,12 +263,22 @@ export async function POST(req: NextRequest) {
       numPanels?: number;
       storyboardType?: string;
       aspectRatio?: string;
+      quality?: "standard" | "high";
+      outputFormat?: "jpeg" | "png";
       prompt?: string;
       cameraAngles?: string[];
     };
 
-    const { imageDataUrl, prompt, aspectRatio, cameraAngles } = body;
+    const { imageDataUrl, prompt, cameraAngles } = body;
     const numPanels = Math.max(1, Math.min(MAX_PANELS, body.numPanels ?? 4));
+    const aspectRatio = typeof body.aspectRatio === "string" && SUPPORTED_ASPECT_RATIOS.has(body.aspectRatio)
+      ? body.aspectRatio
+      : "1:1";
+    const outputFormat = typeof body.outputFormat === "string" && SUPPORTED_OUTPUT_FORMATS.has(body.outputFormat)
+      ? (body.outputFormat as "jpeg" | "png")
+      : body.quality === "high"
+        ? "png"
+        : "jpeg";
     const sbType = (ANGLE_PRESETS[body.storyboardType as StoryboardType] ? body.storyboardType : "production") as StoryboardType;
     
     // If cameraAngles are provided, use them; otherwise use preset angles
@@ -254,18 +286,18 @@ export async function POST(req: NextRequest) {
     if (cameraAngles && cameraAngles.length > 0) {
       angles = cameraAngles
         .slice(0, numPanels)
-        .map(angleId => CAMERA_ANGLE_MAP[angleId] || ANGLE_PRESETS[sbType][0])
+        .map((angleId) => normalizeAnglePreset(CAMERA_ANGLE_MAP[angleId] || ANGLE_PRESETS[sbType][0]))
         .filter(Boolean);
       
       // If not enough angles provided, fill remaining with presets
       if (angles.length < numPanels) {
         const presetAngles = ANGLE_PRESETS[sbType];
         for (let i = angles.length; i < numPanels; i++) {
-          angles.push(presetAngles[i % presetAngles.length]);
+          angles.push(normalizeAnglePreset(presetAngles[i % presetAngles.length]));
         }
       }
     } else {
-      angles = ANGLE_PRESETS[sbType];
+      angles = ANGLE_PRESETS[sbType].map(normalizeAnglePreset);
     }
 
     if (!imageDataUrl?.startsWith("data:image/")) {
@@ -303,7 +335,7 @@ export async function POST(req: NextRequest) {
     const predictionIds: string[] = [];
     for (let i = 0; i < numPanels; i++) {
       const angle = angles[i] || angles[i % angles.length];
-      const predId = await createWavespeedTask(apiKey, hostedImageUrl, angle, aspectRatio, prompt);
+      const predId = await createWavespeedTask(apiKey, hostedImageUrl, angle, aspectRatio, outputFormat, prompt);
       predictionIds.push(predId);
     }
 

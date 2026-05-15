@@ -34,7 +34,12 @@ const STORYBOARD_TYPES = [
   { id: "comic-drama-2", label: "Comic Drama 2" },
 ] as const;
 
-const ASPECT_RATIOS = ["1:1", "3:4", "4:3", "9:16", "16:9", "2:3", "3:2"] as const;
+const ASPECT_RATIOS = ["1:1", "3:4", "4:3", "9:16", "16:9"] as const;
+
+const QUALITY_OPTIONS = [
+  { id: "standard", label: "Standard", outputFormat: "jpeg" as const },
+  { id: "high", label: "High", outputFormat: "png" as const },
+] as const;
 
 const CAMERA_ANGLES = [
   { id: "ext-long-shot", label: "Ext. long shot" },
@@ -112,6 +117,7 @@ export default function StoryboardProductionPage() {
   const [aspectRatio, setAspectRatio] = useState<string>("1:1");
   const [ratioOpen, setRatioOpen] = useState(false);
   const [selectedAngles, setSelectedAngles] = useState<string[]>(["long-shot", "closeup", "wide", "high-angle"]);
+  const [quality, setQuality] = useState<"standard" | "high">("high");
   const [generationStatus, setGenerationStatus] = useState<GenerationStatus>("idle");
   const [result, setResult] = useState<ResultState | null>(null);
   const [statusMessage, setStatusMessage] = useState("");
@@ -170,6 +176,11 @@ export default function StoryboardProductionPage() {
 
   async function handleGenerate() {
     if (isGenerating || !imageDataUrl) return;
+    if (selectedAngles.length === 0) {
+      setGenerationStatus("failed");
+      setResult({ outputs: [], status: "failed", error: "Please select at least one camera angle." });
+      return;
+    }
     const gate = await guardGeneration({ requiredCredits: totalCost, action: "apps:storyboard" });
     if (!gate.ok) {
       if (gate.reason === "error") setStatusMessage(gate.message ?? getSafeErrorMessage(gate.message));
@@ -181,12 +192,21 @@ export default function StoryboardProductionPage() {
     setStatusMessage(`Compressing image & generating ${numPanels} panels… this may take 1–3 minutes.`);
 
     try {
-      const compressedImage = await compressImage(imageDataUrl);
+      const compressedImage = await compressImage(imageDataUrl, quality === "high" ? 4_500_000 : 2_500_000);
+      const selectedQuality = QUALITY_OPTIONS.find((option) => option.id === quality) ?? QUALITY_OPTIONS[0];
 
       const res = await fetch("/api/runninghub/storyboard-production", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageDataUrl: compressedImage, numPanels, storyboardType, aspectRatio, cameraAngles: selectedAngles }),
+        body: JSON.stringify({
+          imageDataUrl: compressedImage,
+          numPanels,
+          storyboardType,
+          aspectRatio,
+          quality,
+          outputFormat: selectedQuality.outputFormat,
+          cameraAngles: selectedAngles,
+        }),
       });
 
       if (!res.ok) {
@@ -316,10 +336,10 @@ export default function StoryboardProductionPage() {
                       exit={{ opacity: 0, scale: 0.95 }}
                       transition={{ duration: 0.2 }}
                       className="group relative cursor-pointer overflow-hidden rounded-2xl ring-1 ring-white/10"
-                      style={{ aspectRatio: "1 / 1" }}
+                      style={{ aspectRatio: aspectRatio.replace(":", " / "), background: "#060c18" }}
                       onClick={() => setInspectorAsset({ type: "image", url, title: `Panel ${i + 1}`, prompt: "Storyboard panel", model: "Qwen Image Edit" })}
                     >
-                      <img src={url} alt={`Panel ${i + 1}`} className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.04]" />
+                      <img src={url} alt={`Panel ${i + 1}`} className="h-full w-full object-contain transition duration-300 group-hover:scale-[1.02]" />
                       <div className="absolute left-2 top-2 rounded-md bg-black/60 px-2 py-0.5 text-[10px] text-zinc-200">Panel {i + 1}</div>
                       <div className="absolute inset-0 flex items-end justify-center gap-2 bg-black/0 pb-3 opacity-0 transition duration-200 group-hover:bg-black/45 group-hover:opacity-100">
                         <button onClick={(e) => { e.stopPropagation(); setInspectorAsset({ type: "image", url, title: `Panel ${i + 1}`, prompt: "Storyboard panel", model: "Qwen Image Edit" }); }} className="rounded-lg bg-white/15 p-2 text-white ring-1 ring-white/20"><Eye className="h-4 w-4" /></button>
@@ -522,6 +542,31 @@ export default function StoryboardProductionPage() {
             </div>
             <div className="text-right text-[10px] mt-1.5" style={{ color: "#475569" }}>
               {numPanels} panel{numPanels !== 1 ? "s" : ""} × {CREDIT_PER_PANEL} = <span style={{ color: "#8b5cf6", fontWeight: 600 }}>{totalCost} credits</span>
+            </div>
+          </div>
+
+          {/* Quality */}
+          <div className="mt-5">
+            <SectionLabel>Quality</SectionLabel>
+            <div className="grid grid-cols-2 gap-1.5">
+              {QUALITY_OPTIONS.map((q) => (
+                <button
+                  key={q.id}
+                  className="px-2.5 py-2 rounded-lg text-[11px] font-semibold transition-all text-center"
+                  style={{
+                    border: `1px solid ${quality === q.id ? "rgba(6,182,212,0.4)" : "#1e293b"}`,
+                    background: quality === q.id ? "rgba(6,182,212,0.1)" : "#0e1630",
+                    color: quality === q.id ? "#06b6d4" : "#64748b",
+                    fontFamily: "var(--font-display)",
+                  }}
+                  onClick={() => setQuality(q.id)}
+                >
+                  {q.label}
+                </button>
+              ))}
+            </div>
+            <div className="text-[10px] mt-1.5" style={{ color: "#475569" }}>
+              {quality === "high" ? "High uses PNG output for cleaner details." : "Standard uses JPEG output for faster generation."}
             </div>
           </div>
 
