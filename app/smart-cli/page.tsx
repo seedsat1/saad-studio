@@ -7,7 +7,6 @@ import {
   Ban,
   Boxes,
   Check,
-  CircleCheck,
   Clock3,
   Clipboard,
   Code2,
@@ -139,7 +138,7 @@ const TOOL_GROUPS = [
 const TOOLS = TOOL_GROUPS.flatMap((group) => group.tools);
 
 const PERMISSION_OPTIONS = [
-  { label: "Always allow", icon: CircleCheck, color: "text-emerald-300" },
+  { label: "Always allow", icon: Check, color: "text-emerald-300" },
   { label: "Needs approval", icon: Clock3, color: "text-cyan-300" },
   { label: "Block", icon: Ban, color: "text-rose-300" },
 ];
