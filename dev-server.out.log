@@ -1,0 +1,13 @@
+
+> aisaas@0.1.0 dev
+> next dev
+
+  ▲ Next.js 14.2.35
+  - Local:        http://localhost:3000
+  - Environments: .env.local, .env
+
+ ✓ Starting...
+ ✓ Ready in 19.8s
+ ○ Compiling /middleware ...
+ ✓ Compiled /middleware in 1489ms (183 modules)
+ ○ Compiling /api/smart-cli/mcp ...

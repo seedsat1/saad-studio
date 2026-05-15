@@ -76,19 +76,43 @@ function getDistanceLabel(distance: number): string {
   return "wide";
 }
 
+function getAngleDirective(angleId: string, angle: AnglePreset): string {
+  const fallback = `Camera framing should match ${angle.label} with clear composition.`;
+  const directives: Record<string, string> = {
+    "ext-long-shot": "Use an extreme long shot with the subject small in frame and strong environmental context.",
+    "long-shot": "Use a long shot showing full body and surrounding environment.",
+    "closeup": "Use a closeup emphasizing face details and expression.",
+    "extreme-closeup": "Use an extreme closeup focused on one key facial feature with tight crop.",
+    "back-view": "Subject must face away from camera; show the back clearly and do not show a front-facing portrait.",
+    "med-closeup": "Use a medium closeup from chest-up with clear subject prominence.",
+    "ots": "Use an over-the-shoulder framing with foreground shoulder/back edge visible.",
+    "wide": "Use a wide cinematic composition emphasizing space and scene depth.",
+    "aerial": "Use a high aerial perspective from above with visible floor/ground layout.",
+    "profile": "Use strict side profile view at approximately 90 degrees.",
+    "low-angle": "Use a low-angle hero framing with camera below eye level.",
+    "high-angle": "Use a high-angle framing looking down at the subject.",
+    "eye-level": "Use neutral eye-level framing with natural perspective.",
+    "3-4-view": "Use a three-quarter view showing depth of the face/body.",
+    "pov": "Use first-person POV perspective as if seen through the subject's own eyes.",
+  };
+  return directives[angleId] ?? fallback;
+}
+
 function buildPanelPrompt(input: {
   storyLabel: string;
   panelIndex: number;
   totalPanels: number;
+  angleId: string;
   angle: AnglePreset;
   userPrompt?: string;
 }): string {
   const header = `${input.storyLabel} storyboard panel ${input.panelIndex + 1} of ${input.totalPanels}.`;
   const cameraRule = `Use camera angle: ${input.angle.label}. Horizontal ${input.angle.horizontal_angle}deg, vertical ${input.angle.vertical_angle}deg, distance ${getDistanceLabel(input.angle.distance)}.`;
+  const angleDirective = getAngleDirective(input.angleId, input.angle);
   const continuityRule = "Keep the same subject identity, outfit, and location as the reference image.";
   const uniquenessRule = "Make this framing clearly different from other panels with distinct composition.";
   const userText = input.userPrompt?.trim() ? `Scene direction: ${input.userPrompt.trim()}.` : "";
-  return [header, userText, cameraRule, continuityRule, uniquenessRule].filter(Boolean).join(" ");
+  return [header, userText, cameraRule, angleDirective, continuityRule, uniquenessRule].filter(Boolean).join(" ");
 }
 
 const ANGLE_PRESETS: Record<StoryboardType, AnglePreset[]> = {
@@ -383,6 +407,7 @@ export async function POST(req: NextRequest) {
         storyLabel,
         panelIndex: i,
         totalPanels: numPanels,
+        angleId: plan.angleId,
         angle: plan.angle,
         userPrompt: prompt,
       });
