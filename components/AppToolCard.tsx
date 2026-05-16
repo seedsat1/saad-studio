@@ -27,6 +27,9 @@ const TOPICAL_IMAGE_BY_ID: Record<string, string> = {
   "mixed-media": "/explore/tool-mixed-media.jpg",
   "soul-id": "/explore/tool-soul-id.jpg",
   "soul-2": "/explore/tool-soul-2.jpg",
+  "character-reference-sheet": "/explore/top-soul-id.jpg",
+  "model-reference-sheet": "/explore/top-shots.jpg",
+  "makeup-analysis-guide": "/explore/top-skin-enhancer.jpg",
   upscale: "/explore/tool-upscale.jpg",
 };
 
