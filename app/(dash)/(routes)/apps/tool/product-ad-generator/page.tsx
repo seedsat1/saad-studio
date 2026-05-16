@@ -17,7 +17,6 @@ import {
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { useGenerationGate } from "@/hooks/use-generation-gate";
-import { AssetInspector, type Asset } from "@/components/AssetInspector";
 
 // 2 credits per scene (storyboard 1k tier)
 const CREDITS_PER_SCENE = 2;
@@ -161,7 +160,7 @@ export default function ProductAdGeneratorPage() {
   const [status, setStatus] = useState<GenerationStatus>("idle");
   const [scenes, setScenes] = useState<AdScene[]>([]);
   const [error, setError] = useState("");
-  const [inspectorAsset, setInspectorAsset] = useState<Asset | null>(null);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   const currentStyle = SHOOT_STYLES.find((s) => s.id === shootStyleId) ?? SHOOT_STYLES[0];
   const totalCredits = numScenes * CREDITS_PER_SCENE;
@@ -196,7 +195,6 @@ export default function ProductAdGeneratorPage() {
       return;
     }
 
-    setScenes([]);
     setError("");
     setStatus("generating");
 
@@ -393,7 +391,7 @@ export default function ProductAdGeneratorPage() {
                 })}
               </div>
               <p className="text-[10px] mt-2" style={{ color: "rgba(255,255,255,0.2)" }}>
-                {totalCredits} credits Â· {currentStyle.label} style
+                {totalCredits} credits &middot; {currentStyle.label} style
               </p>
             </div>
 
@@ -494,7 +492,7 @@ export default function ProductAdGeneratorPage() {
           )}
 
           {/* Results */}
-          {status === "success" && scenes.length > 0 && (
+          {(status === "success" || status === "failed") && scenes.length > 0 && (
             <div className="p-6">
               <div className="flex items-center justify-between mb-5">
                 <div className="flex items-center gap-2.5">
@@ -530,12 +528,7 @@ export default function ProductAdGeneratorPage() {
                       transition={{ duration: 0.3, delay: i * 0.07 }}
                       className="group relative rounded-xl overflow-hidden cursor-pointer"
                       style={{ aspectRatio: "3/4", background: "#0c1630" }}
-                      onClick={() => setInspectorAsset({
-                        id: scene.id, type: "image", url: scene.url,
-                        title: `${productName || "Product"} - ${scene.shotLabel}`,
-                        prompt: buildScenePrompt(currentStyle.stylePrompt, productName),
-                        model: "wavespeed/qwen-image-edit-multiple-angles",
-                      })}
+                      onClick={() => setLightboxIndex(i)}
                     >
                       <img src={scene.url} alt={scene.shotLabel} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.04]" />
 
@@ -557,7 +550,7 @@ export default function ProductAdGeneratorPage() {
                       {/* Action buttons */}
                       <div className="absolute top-2 right-2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
-                          onClick={(e) => { e.stopPropagation(); setInspectorAsset({ id: scene.id, type: "image", url: scene.url, title: `${productName || "Product"} - ${scene.shotLabel}` }); }}
+                          onClick={(e) => { e.stopPropagation(); setLightboxIndex(i); }}
                           className="p-1.5 rounded-lg transition-colors"
                           style={{ background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)" }}
                         ><Eye className="w-3.5 h-3.5 text-white" /></button>
@@ -576,7 +569,79 @@ export default function ProductAdGeneratorPage() {
         </div>
       </div>
 
-      {inspectorAsset && <AssetInspector asset={inspectorAsset} onClose={() => setInspectorAsset(null)} />}
+      {/* Lightbox */}
+      <AnimatePresence>
+        {lightboxIndex !== null && scenes[lightboxIndex] && (
+          <motion.div
+            key="lightbox"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center"
+            style={{ background: "rgba(0,0,0,0.92)", backdropFilter: "blur(8px)" }}
+            onClick={() => setLightboxIndex(null)}
+          >
+            {/* Close */}
+            <button
+              onClick={() => setLightboxIndex(null)}
+              className="absolute top-4 right-4 p-2 rounded-xl transition-colors hover:bg-white/10"
+              style={{ background: "rgba(255,255,255,0.07)" }}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+
+            {/* Prev */}
+            {lightboxIndex > 0 && (
+              <button
+                onClick={(e) => { e.stopPropagation(); setLightboxIndex(lightboxIndex - 1); }}
+                className="absolute left-4 p-3 rounded-xl transition-colors hover:bg-white/10"
+                style={{ background: "rgba(255,255,255,0.07)" }}
+              >
+                <ArrowLeft className="w-5 h-5 text-white" />
+              </button>
+            )}
+
+            {/* Image */}
+            <motion.div
+              key={lightboxIndex}
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.2 }}
+              className="relative flex flex-col items-center gap-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <img
+                src={scenes[lightboxIndex].url}
+                alt={scenes[lightboxIndex].shotLabel}
+                className="rounded-2xl object-contain"
+                style={{ maxHeight: "80vh", maxWidth: "min(600px, 90vw)" }}
+              />
+              <div className="flex items-center gap-4">
+                <span className="text-sm font-semibold text-white">{scenes[lightboxIndex].shotLabel}</span>
+                <span className="text-xs" style={{ color: "rgba(255,255,255,0.35)" }}>{lightboxIndex + 1} / {scenes.length}</span>
+                <button
+                  onClick={() => void downloadImage(scenes[lightboxIndex!].url, `${(productName || "product").replace(/\s+/g, "-")}-${scenes[lightboxIndex!].shotLabel.replace(/\s+/g, "-").toLowerCase()}.jpg`)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors hover:bg-white/10"
+                  style={{ background: "rgba(255,255,255,0.07)", color: "rgba(255,255,255,0.7)" }}
+                >
+                  <Download className="w-3.5 h-3.5" /> Download
+                </button>
+              </div>
+            </motion.div>
+
+            {/* Next */}
+            {lightboxIndex < scenes.length - 1 && (
+              <button
+                onClick={(e) => { e.stopPropagation(); setLightboxIndex(lightboxIndex + 1); }}
+                className="absolute right-4 p-3 rounded-xl transition-colors hover:bg-white/10"
+                style={{ background: "rgba(255,255,255,0.07)" }}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><path d="M9 18l6-6-6-6"/></svg>
+              </button>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
