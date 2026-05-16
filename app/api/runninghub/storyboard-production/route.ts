@@ -250,11 +250,11 @@ async function checkReferenceImageSafety(imageUrl: string): Promise<void> {
     const result = json?.results?.[0] ?? {};
     const categories = result?.categories ?? {};
 
-    const flagged = Boolean(result?.flagged);
     const sexual = Boolean(categories?.sexual);
     const sexualMinors = Boolean(categories?.["sexual/minors"] ?? categories?.sexual_minors);
 
-    if (flagged || sexual || sexualMinors) {
+    // Block only explicit sexual content to reduce false positives from generic flags.
+    if (sexual || sexualMinors) {
       throw new UnsafeReferenceImageError("Uploading explicit images is not allowed.");
     }
   } catch (error) {
