@@ -489,6 +489,9 @@ export default function StoryboardProductionPage() {
       setGenerationStatus("success");
       setStatusMessage("");
       await loadStoryboardAssets().catch(() => null);
+      if (typeof window !== "undefined") {
+        window.location.assign("/gallery");
+      }
     } catch (err) {
       const message = getSafeErrorMessage(err);
       setResult({ outputs: [], status: "failed", error: message });
