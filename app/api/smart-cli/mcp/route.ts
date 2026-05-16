@@ -14,16 +14,36 @@ type JsonRpcRequest = {
   };
 };
 
+type JsonRpcPayload = {
+  jsonrpc: "2.0";
+  id: unknown;
+  result?: unknown;
+  error?: {
+    code: number;
+    message: string;
+  };
+};
+
+const DEFAULT_IMAGE_MODEL = "nano-banana-pro";
+
 const tools = [
   {
     name: "generate_image",
-    description: "Create a Saad Studio image request with prompt, aspect ratio, language, and style controls.",
+    description: "Generate an image through Saad Studio using Nano Banana Pro.",
     inputSchema: {
       type: "object",
       properties: {
-        prompt: { type: "string" },
+        prompt: { type: "string", description: "Image prompt to generate." },
+        modelId: { type: "string", default: DEFAULT_IMAGE_MODEL },
         aspectRatio: { type: "string", default: "1:1" },
-        language: { type: "string", default: "ar" },
+        resolution: { type: "string", default: "1K" },
+        numImages: { type: "number", default: 1 },
+        negativePrompt: { type: "string" },
+        imageUrl: { type: "string", description: "Optional reference image URL." },
+        panelToken: {
+          type: "string",
+          description: "Optional Saad Studio panel token. Prefer Authorization: Bearer ssp_... when your client supports headers.",
+        },
       },
       required: ["prompt"],
     },
@@ -209,12 +229,25 @@ function withMcpHeaders(response: NextResponse) {
   return response;
 }
 
-function jsonRpc(id: unknown, result: unknown) {
-  return NextResponse.json({
+function rpcPayload(id: unknown, result: unknown): JsonRpcPayload {
+  return {
     jsonrpc: "2.0",
     id,
     result,
-  }, {
+  };
+}
+
+function rpcErrorPayload(id: unknown, code: number, message: string): JsonRpcPayload {
+  return {
+    jsonrpc: "2.0",
+    id,
+    error: { code, message },
+  };
+}
+
+function rpcResponse(payload: JsonRpcPayload, status = 200) {
+  return NextResponse.json(payload, {
+    status,
     headers: {
       "Cache-Control": "no-store",
       "MCP-Protocol-Version": "2024-11-05",
@@ -222,43 +255,133 @@ function jsonRpc(id: unknown, result: unknown) {
   });
 }
 
-function jsonRpcError(id: unknown, code: number, message: string, status = 200) {
-  return NextResponse.json(
-    {
-      jsonrpc: "2.0",
-      id,
-      error: { code, message },
-    },
-    {
-      status,
-      headers: {
-        "Cache-Control": "no-store",
-        "MCP-Protocol-Version": "2024-11-05",
-      },
-    },
-  );
+function jsonRpc(id: unknown, result: unknown) {
+  return rpcResponse(rpcPayload(id, result));
 }
 
-function handleRpc(body: JsonRpcRequest) {
+function jsonRpcError(id: unknown, code: number, message: string, status = 200) {
+  return rpcResponse(rpcErrorPayload(id, code, message), status);
+}
+
+function toolTextResult(id: unknown, value: unknown, isError = false) {
+  return rpcPayload(id, {
+    content: [
+      {
+        type: "text",
+        text: typeof value === "string" ? value : JSON.stringify(value, null, 2),
+      },
+    ],
+    isError,
+  });
+}
+
+function getBearerToken(request: Request, args: Record<string, unknown>) {
+  const header = request.headers.get("authorization");
+  if (header?.startsWith("Bearer ")) return header.slice(7).trim();
+  const argToken = args.panelToken;
+  return typeof argToken === "string" && argToken.trim() ? argToken.trim() : null;
+}
+
+async function callPanelImageGeneration(request: Request, args: Record<string, unknown>) {
+  const prompt = typeof args.prompt === "string" ? args.prompt.trim() : "";
+  if (!prompt) {
+    return toolTextResult(null, "Missing prompt.", true).result;
+  }
+
+  const token = getBearerToken(request, args);
+  if (!token) {
+    return {
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(
+            {
+              status: "auth_required",
+              modelId: DEFAULT_IMAGE_MODEL,
+              message:
+                "generate_image uses Nano Banana Pro, but Saad Studio needs an authenticated panel token before spending credits. Send Authorization: Bearer ssp_... or pass panelToken.",
+            },
+            null,
+            2,
+          ),
+        },
+      ],
+      isError: true,
+    };
+  }
+
+  const url = new URL("/api/panel/generate/image", request.url);
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      prompt,
+      modelId: DEFAULT_IMAGE_MODEL,
+      aspectRatio: typeof args.aspectRatio === "string" ? args.aspectRatio : "1:1",
+      resolution: typeof args.resolution === "string" ? args.resolution : "1K",
+      numImages: typeof args.numImages === "number" ? args.numImages : 1,
+      negativePrompt: typeof args.negativePrompt === "string" ? args.negativePrompt : undefined,
+      imageUrl: typeof args.imageUrl === "string" ? args.imageUrl : undefined,
+    }),
+  });
+
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return {
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(
+            {
+              status: "failed",
+              modelId: DEFAULT_IMAGE_MODEL,
+              error: (json as { error?: string }).error ?? res.statusText,
+            },
+            null,
+            2,
+          ),
+        },
+      ],
+      isError: true,
+    };
+  }
+
+  return {
+    content: [
+      {
+        type: "text",
+        text: JSON.stringify(
+          {
+            status: "completed",
+            modelId: DEFAULT_IMAGE_MODEL,
+            ...json,
+          },
+          null,
+          2,
+        ),
+      },
+    ],
+    isError: false,
+  };
+}
+
+async function handleRpcPayload(body: JsonRpcRequest, request: Request): Promise<JsonRpcPayload | null> {
   const id = body?.id ?? null;
   const method = body?.method;
 
   if (!method) {
-    return jsonRpcError(id, -32600, "Invalid request");
+    return rpcErrorPayload(id, -32600, "Invalid request");
   }
 
   if (method.startsWith("notifications/")) {
-    return new NextResponse(null, {
-      status: 202,
-      headers: {
-        "Cache-Control": "no-store",
-        "MCP-Protocol-Version": "2024-11-05",
-      },
-    });
+    return null;
   }
 
   if (method === "initialize") {
-    return jsonRpc(id, {
+    return rpcPayload(id, {
       protocolVersion: body?.params?.protocolVersion ?? "2024-11-05",
       capabilities: {
         tools: {
@@ -273,11 +396,11 @@ function handleRpc(body: JsonRpcRequest) {
   }
 
   if (method === "ping") {
-    return jsonRpc(id, {});
+    return rpcPayload(id, {});
   }
 
   if (method === "tools/list") {
-    return jsonRpc(id, { tools });
+    return rpcPayload(id, { tools });
   }
 
   if (method === "tools/call") {
@@ -286,31 +409,37 @@ function handleRpc(body: JsonRpcRequest) {
     const tool = tools.find((item) => item.name === name);
 
     if (!tool) {
-      return jsonRpcError(id, -32602, `Unknown tool: ${name ?? "missing"}`);
+      return rpcErrorPayload(id, -32602, `Unknown tool: ${name ?? "missing"}`);
     }
 
-    return jsonRpc(id, {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify(
-            {
-              tool: name,
-              status: "accepted",
-              message:
-                "Saad Studio received the tool call. This connector currently prepares and validates requests; connect the generation backend before enabling automatic media output.",
-              arguments: args,
-            },
-            null,
-            2,
-          ),
-        },
-      ],
-      isError: false,
+    if (name === "generate_image") {
+      const result = await callPanelImageGeneration(request, args);
+      return rpcPayload(id, result);
+    }
+
+    return toolTextResult(id, {
+      tool: name,
+      status: "accepted",
+      message: "Saad Studio received the tool call.",
+      arguments: args,
     });
   }
 
-  return jsonRpcError(id, -32601, "Method not found");
+  return rpcErrorPayload(id, -32601, "Method not found");
+}
+
+async function handleRpc(body: JsonRpcRequest, request: Request) {
+  const payload = await handleRpcPayload(body, request);
+  if (!payload) {
+    return new NextResponse(null, {
+      status: 202,
+      headers: {
+        "Cache-Control": "no-store",
+        "MCP-Protocol-Version": "2024-11-05",
+      },
+    });
+  }
+  return rpcResponse(payload);
 }
 
 export async function GET() {
@@ -325,14 +454,12 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
 
   if (Array.isArray(body)) {
-    const results = body
-      .map((item) => {
-        const response = handleRpc(item);
-        return response;
-      });
+    const results = (await Promise.all(
+      body.map((item) => handleRpcPayload(item, request)),
+    )).filter((item): item is JsonRpcPayload => Boolean(item));
 
-    return results[0] ?? jsonRpcError(null, -32600, "Invalid batch request");
+    return withMcpHeaders(NextResponse.json(results));
   }
 
-  return handleRpc(body);
+  return handleRpc(body, request);
 }
