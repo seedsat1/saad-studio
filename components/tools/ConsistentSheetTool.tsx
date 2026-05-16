@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowLeft, CheckCircle, Download, Eye, ImageIcon, Loader2, RefreshCw, Sparkles, Upload } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useGenerationGate } from "@/hooks/use-generation-gate";
+import { AssetInspector, type Asset } from "@/components/AssetInspector";
 
 type GenerationStatus = "idle" | "generating" | "success" | "failed";
 
@@ -83,6 +84,34 @@ function buildPrompt(lockedDirection: string, stylePrompt: string, customPrompt:
   return `${lockedDirection}\n\n${stylePrompt}\n\nAdditional production notes:\n${normalized}`;
 }
 
+function framingHint(label: string): string {
+  const t = label.toLowerCase();
+  if (t.includes("upper-body") || t.includes("mid") || t.includes("portrait")) {
+    return "waist-up framing, shoulders and head clearly visible";
+  }
+  if (t.includes("close") || t.includes("beauty")) {
+    return "tight face framing, eyes in sharp focus, cinematic close-up";
+  }
+  if (t.includes("full body") || t.includes("full")) {
+    return "head-to-toe full body fully visible, centered composition";
+  }
+  if (t.includes("back")) {
+    return "full body back-facing view, head-to-toe visible";
+  }
+  return "distinct framing and composition from other panels";
+}
+
+function buildPanelDirectives(panelDefs: PanelDef[]): string {
+  const lines = panelDefs.map((p, i) => {
+    return `Panel ${i + 1}: ${p.label} | camera angle=${p.angle} | framing=${framingHint(p.label)}`;
+  });
+  return [
+    "Shot plan (must follow exactly and keep each panel visually different):",
+    ...lines,
+    "Do not repeat same crop/composition across panels.",
+  ].join("\n");
+}
+
 async function downloadImage(url: string, filename: string) {
   const isExternal = /^https?:\/\//i.test(url);
   const response = await fetch(isExternal ? `/api/download?url=${encodeURIComponent(url)}` : url, {
@@ -112,6 +141,7 @@ export function ConsistentSheetTool({ config }: { config: ToolConfig }) {
   const [error, setError] = useState("");
   const [scenes, setScenes] = useState<Scene[]>([]);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [inspectorAsset, setInspectorAsset] = useState<Asset | null>(null);
 
   const panelDefs = useMemo(() => {
     const selected = config.panelDefsByCount[count] ?? config.panelDefsByCount[config.defaultCount] ?? [];
@@ -170,7 +200,7 @@ export function ConsistentSheetTool({ config }: { config: ToolConfig }) {
           quality: "1k",
           outputFormat: "jpeg",
           cameraAngles: panelDefs.map((d) => d.angle),
-          prompt: buildPrompt(config.lockedDirection, config.stylePrompt, prompt),
+          prompt: `${buildPrompt(config.lockedDirection, config.stylePrompt, prompt)}\n\n${buildPanelDirectives(panelDefs)}`,
         }),
       });
 
@@ -339,7 +369,7 @@ export function ConsistentSheetTool({ config }: { config: ToolConfig }) {
               <div className="flex items-center gap-2 mb-5" style={{ color: "rgba(255,255,255,0.6)" }}>
                 <Loader2 className="w-4 h-4 animate-spin" style={{ color: "#10b981" }} /> Generating {count} frames...
               </div>
-              <div className={`grid gap-3 ${count <= 4 ? "grid-cols-2" : "grid-cols-3"}`}>
+              <div className={`grid gap-3 ${count <= 4 ? "grid-cols-2 xl:grid-cols-4" : "grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"}`}>
                 {Array.from({ length: count }).map((_, i) => (
                   <div key={i} className="rounded-xl" style={{ aspectRatio: "3/4", background: "#0c1630" }} />
                 ))}
@@ -348,7 +378,7 @@ export function ConsistentSheetTool({ config }: { config: ToolConfig }) {
           )}
 
           {(status === "success" || status === "failed") && scenes.length > 0 && (
-            <div className="p-6">
+            <div className="p-6 max-w-[1220px] mx-auto">
               <div className="flex items-center justify-between mb-5">
                 <div className="flex items-center gap-2" style={{ color: "rgba(255,255,255,0.78)" }}>
                   <CheckCircle className="w-4 h-4" style={{ color: "#10b981" }} /> {scenes.length} Frames Ready
@@ -365,7 +395,7 @@ export function ConsistentSheetTool({ config }: { config: ToolConfig }) {
                 </button>
               </div>
 
-              <div className={`grid gap-3 ${scenes.length <= 4 ? "grid-cols-2" : "grid-cols-3"}`}>
+              <div className={`grid gap-3 ${scenes.length <= 4 ? "grid-cols-2 xl:grid-cols-4" : "grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"}`}>
                 {scenes.map((scene, i) => (
                   <motion.div
                     key={scene.id}
@@ -405,6 +435,24 @@ export function ConsistentSheetTool({ config }: { config: ToolConfig }) {
                       >
                         <Download className="w-3.5 h-3.5 text-white" />
                       </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setInspectorAsset({
+                            id: scene.id,
+                            type: "image",
+                            url: scene.url,
+                            title: `${config.title} - ${scene.label}`,
+                            prompt: buildPrompt(config.lockedDirection, config.stylePrompt, prompt),
+                            model: "wavespeed/qwen-image-edit-multiple-angles",
+                          });
+                        }}
+                        className="p-1.5 rounded-lg"
+                        style={{ background: "rgba(0,0,0,0.5)" }}
+                        title="Use as reference in studio"
+                      >
+                        <Sparkles className="w-3.5 h-3.5 text-white" />
+                      </button>
                     </div>
                   </motion.div>
                 ))}
@@ -441,6 +489,10 @@ export function ConsistentSheetTool({ config }: { config: ToolConfig }) {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {inspectorAsset && (
+        <AssetInspector asset={inspectorAsset} onClose={() => setInspectorAsset(null)} />
+      )}
     </div>
   );
 }
