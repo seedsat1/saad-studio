@@ -207,7 +207,10 @@ export default function StoryboardProductionPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
+  const [safeReferenceImageDataUrl, setSafeReferenceImageDataUrl] = useState<string | null>(null);
+  const [referenceSafetyToken, setReferenceSafetyToken] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [isCheckingImageSafety, setIsCheckingImageSafety] = useState(false);
   const [numPanels, setNumPanels] = useState(4);
   const [storyboardType, setStoryboardType] = useState<string>("production");
   const [storyboardTypeOpen, setStoryboardTypeOpen] = useState(false);
@@ -267,6 +270,7 @@ export default function StoryboardProductionPage() {
   }, [albums]);
 
   const isGenerating = generationStatus === "generating";
+  const isBusy = isGenerating || isCheckingImageSafety;
   const selectedQuality = QUALITY_OPTIONS.find((option) => option.id === quality) ?? QUALITY_OPTIONS[0];
   const creditsPerPanel = selectedQuality.creditsPerPanel;
   const totalCost = numPanels * creditsPerPanel;
@@ -386,10 +390,50 @@ export default function StoryboardProductionPage() {
 
   const handleFileSelect = useCallback(async (file: File) => {
     if (!file.type.startsWith("image/")) return;
-    const dataUrl = await readFileAsDataUrl(file);
-    setImageDataUrl(dataUrl);
+    setIsCheckingImageSafety(true);
+    setImageDataUrl(null);
+    setSafeReferenceImageDataUrl(null);
+    setReferenceSafetyToken(null);
     setResult(null);
-  }, []);
+    setGenerationStatus("idle");
+    setStatusMessage("Checking image safety...");
+
+    try {
+      const dataUrl = await readFileAsDataUrl(file);
+      const safetyImage = await compressImage(dataUrl, 2_500_000, 1024);
+      const res = await fetch("/api/runninghub/storyboard-production/safety-check", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageDataUrl: safetyImage }),
+      });
+      const safetyResult = await res.json().catch(() => null) as { safetyToken?: string; error?: string } | null;
+
+      if (!res.ok) {
+        throw new Error(safetyResult?.error || "Restricted content detected. This reference image cannot be used.");
+      }
+      if (!safetyResult?.safetyToken) {
+        throw new Error("Unable to verify image safety. Please use another image.");
+      }
+
+      setImageDataUrl(dataUrl);
+      setSafeReferenceImageDataUrl(safetyImage);
+      setReferenceSafetyToken(safetyResult.safetyToken);
+      setResult(null);
+      setGenerationStatus("idle");
+      setStatusMessage("");
+    } catch (err) {
+      const message = getSafeErrorMessage(err);
+      setImageDataUrl(null);
+      setSafeReferenceImageDataUrl(null);
+      setReferenceSafetyToken(null);
+      setResult({ outputs: [], status: "failed", error: message });
+      setGenerationStatus("failed");
+      setStatusMessage("");
+    } finally {
+      setIsCheckingImageSafety(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }, [getSafeErrorMessage]);
 
   const toggleCameraAngle = (angleId: string) => {
     setSelectedAngles((prev) => {
@@ -408,9 +452,9 @@ export default function StoryboardProductionPage() {
       e.preventDefault();
       setIsDragging(false);
       const file = e.dataTransfer.files[0];
-      if (file) handleFileSelect(file);
+      if (file && !isCheckingImageSafety) handleFileSelect(file);
     },
-    [handleFileSelect],
+    [handleFileSelect, isCheckingImageSafety],
   );
 
   const downloadStoryboardImage = useCallback(async (url: string, nameBase: string) => {
@@ -442,7 +486,7 @@ export default function StoryboardProductionPage() {
   }, []);
 
   async function handleGenerate() {
-    if (isGenerating || !imageDataUrl) return;
+    if (isBusy || !imageDataUrl) return;
     if (selectedAngles.length === 0) {
       setGenerationStatus("failed");
       setResult({ outputs: [], status: "failed", error: "Please select at least one camera angle." });
@@ -456,11 +500,13 @@ export default function StoryboardProductionPage() {
 
     setResult(null);
     setGenerationStatus("generating");
-    setStatusMessage(`Compressing image & generating ${numPanels} panels… this may take 1–3 minutes.`);
+    setStatusMessage("Preparing approved reference image...");
 
     try {
-      const compressedImage = await compressImage(imageDataUrl, selectedQuality.maxBytes, selectedQuality.maxSide);
+      const compressedImage = safeReferenceImageDataUrl
+        ?? await compressImage(imageDataUrl, selectedQuality.maxBytes, selectedQuality.maxSide);
       const orderedAngles = orderAngles(selectedAngles).slice(0, numPanels);
+      setStatusMessage(`Generating ${numPanels} panels from the approved reference image...`);
 
       const res = await fetch("/api/runninghub/storyboard-production", {
         method: "POST",
@@ -473,6 +519,7 @@ export default function StoryboardProductionPage() {
           quality,
           outputFormat: selectedQuality.outputFormat,
           cameraAngles: orderedAngles,
+          referenceSafetyToken,
         }),
       });
 
@@ -567,7 +614,18 @@ export default function StoryboardProductionPage() {
           {/* Error */}
           {generationStatus === "failed" && result?.error && (
             <div className="rounded-xl p-4 text-sm" style={{ background: "rgba(249,115,22,0.08)", border: "1px solid rgba(249,115,22,0.2)", color: "#f97316" }}>
-              <div className="flex items-center gap-2 mb-1"><AlertCircle size={14} /><span className="font-semibold">Generation failed</span></div>
+              {result.error.toLowerCase().includes("restricted content") && (
+                <div className="mb-3 flex flex-wrap gap-2">
+                  <span className="rounded-full bg-white/10 px-3 py-1 text-[11px] font-bold text-white">NSFW</span>
+                  <span className="rounded-full bg-white/10 px-3 py-1 text-[11px] font-bold text-white">No credits charged</span>
+                </div>
+              )}
+              <div className="flex items-center gap-2 mb-1">
+                <AlertCircle size={14} />
+                <span className="font-semibold">
+                  {result.error.toLowerCase().includes("restricted content") ? "Restricted content detected" : "Generation failed"}
+                </span>
+              </div>
               {result.error}
               <button className="ml-3 underline text-xs" onClick={reset}>Try again</button>
             </div>
@@ -777,7 +835,7 @@ export default function StoryboardProductionPage() {
               padding: imageDataUrl ? "8px" : "24px 16px",
               textAlign: imageDataUrl ? undefined : "center",
             }}
-            onClick={() => !imageDataUrl && fileInputRef.current?.click()}
+            onClick={() => !imageDataUrl && !isCheckingImageSafety && fileInputRef.current?.click()}
             onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
             onDragLeave={() => setIsDragging(false)}
             onDrop={handleDrop}
@@ -785,9 +843,17 @@ export default function StoryboardProductionPage() {
             {imageDataUrl ? (
               <>
                 <img src={imageDataUrl} alt="Reference" className="w-full rounded-lg object-contain" style={{ maxHeight: 180 }} />
-                <button className="absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center" style={{ background: "rgba(0,0,0,0.7)", border: "1px solid #1e293b" }} onClick={(e) => { e.stopPropagation(); setImageDataUrl(null); setResult(null); }}>
+                <button className="absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center" style={{ background: "rgba(0,0,0,0.7)", border: "1px solid #1e293b" }} onClick={(e) => { e.stopPropagation(); setImageDataUrl(null); setSafeReferenceImageDataUrl(null); setReferenceSafetyToken(null); setResult(null); }}>
                   <X size={13} />
                 </button>
+              </>
+            ) : isCheckingImageSafety ? (
+              <>
+                <div className="w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-3" style={{ background: "rgba(34,211,238,0.1)" }}>
+                  <Loader2 size={20} className="animate-spin" style={{ color: "#22d3ee" }} />
+                </div>
+                <div className="text-sm font-medium">Checking image safety...</div>
+                <div className="text-xs mt-1.5" style={{ color: "#64748b" }}>The image will be accepted only if it passes.</div>
               </>
             ) : (
               <>
@@ -800,6 +866,10 @@ export default function StoryboardProductionPage() {
             )}
           </div>
           <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileSelect(f); }} />
+          <div className="mt-2 flex items-center gap-1.5 text-[10px] font-semibold" style={{ color: "#22d3ee" }}>
+            <CheckCircle size={12} />
+            NSFW image filter runs before generation and before credits are charged.
+          </div>
 
           {/* Storyboard Type */}
           <div className="mt-5">
@@ -1001,14 +1071,16 @@ export default function StoryboardProductionPage() {
           <button
             className="mt-5 flex w-full items-center justify-center py-4 rounded-2xl font-semibold text-sm text-white transition-all relative overflow-hidden text-center"
             style={{
-              background: isGenerating || !imageDataUrl ? "#1e293b" : "linear-gradient(135deg, #8b5cf6, #06b6d4)",
+              background: isBusy || !imageDataUrl ? "#1e293b" : "linear-gradient(135deg, #8b5cf6, #06b6d4)",
               fontFamily: "var(--font-display)",
-              cursor: isGenerating || !imageDataUrl ? "not-allowed" : "pointer",
+              cursor: isBusy || !imageDataUrl ? "not-allowed" : "pointer",
             }}
-            disabled={isGenerating || !imageDataUrl}
+            disabled={isBusy || !imageDataUrl}
             onClick={handleGenerate}
           >
-            {isGenerating ? (
+            {isCheckingImageSafety ? (
+              <span className="flex w-full items-center justify-center gap-2"><Loader2 size={16} className="animate-spin" /> Checking image...</span>
+            ) : isGenerating ? (
               <span className="flex w-full items-center justify-center gap-2"><Loader2 size={16} className="animate-spin" /> Processing…</span>
             ) : (
               <span className="flex w-full items-center justify-center gap-2"><Sparkles size={15} /> Generate Storyboard</span>

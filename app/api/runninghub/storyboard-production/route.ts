@@ -8,7 +8,13 @@ import {
 } from "@/lib/credit-ledger";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { getClientIp, isAllowedOrigin } from "@/lib/security";
-import { uploadBufferToStorage } from "@/lib/supabase-storage";
+import {
+  checkStoryboardReferenceImageSafety,
+  getStoryboardReferenceImageHash,
+  UnsafeReferenceImageError,
+  verifyStoryboardReferenceSafetyToken,
+} from "@/lib/storyboard-reference-safety";
+import { deleteFromStorage, uploadBufferToStorage } from "@/lib/supabase-storage";
 
 /** Allow up to 5 minutes */
 export const maxDuration = 300;
@@ -24,13 +30,6 @@ const QUALITY_CREDIT_PER_PANEL: Record<QualityTier, number> = {
 
 const WAVESPEED_BASE = "https://api.wavespeed.ai/api/v3";
 const WAVESPEED_MODEL = "wavespeed-ai/qwen-image/edit-2509-multiple-angles";
-
-class UnsafeReferenceImageError extends Error {
-  constructor(message = "Uploading explicit images is not allowed.") {
-    super(message);
-    this.name = "UnsafeReferenceImageError";
-  }
-}
 
 /**
  * Each panel is a unique camera angle/distance combo.
@@ -217,82 +216,6 @@ async function uploadRefImage(base64DataUrl: string, userId: string, genId: stri
   return url;
 }
 
-async function checkReferenceImageSafety(imageUrl: string): Promise<void> {
-  const moderationProvider = String(process.env.STORYBOARD_MODERATION_PROVIDER ?? "provider").trim().toLowerCase();
-  if (moderationProvider !== "openai") {
-    // Default path: rely on provider-side safety checks (WaveSpeed/KIE).
-    return;
-  }
-
-  const apiKey = String(
-    process.env.OPENAI_API_KEY
-      ?? process.env.NSFW_SCAN_OPENAI_API_KEY
-      ?? "",
-  ).trim();
-  const enforceSafety = String(process.env.STORYBOARD_NSFW_ENFORCE ?? "0").trim() !== "0";
-  if (!apiKey) {
-    if (enforceSafety) {
-      throw new UnsafeReferenceImageError("Safety check service is unavailable. Upload is blocked.");
-    }
-    return;
-  }
-
-  const model = String(process.env.STORYBOARD_NSFW_MODEL ?? "omni-moderation-latest").trim() || "omni-moderation-latest";
-  const failClosed = String(process.env.STORYBOARD_NSFW_FAIL_CLOSED ?? "1").trim() !== "0";
-  const thresholdRaw = Number(process.env.STORYBOARD_NSFW_SEXUAL_THRESHOLD ?? "0.85");
-  const sexualThreshold = Number.isFinite(thresholdRaw)
-    ? Math.max(0, Math.min(1, thresholdRaw))
-    : 0.97;
-
-  try {
-    const res = await fetch("https://api.openai.com/v1/moderations", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model,
-        input: [
-          {
-            type: "image_url",
-            image_url: { url: imageUrl },
-          },
-        ],
-      }),
-    });
-
-    const json = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      throw new Error(`Moderation request failed (${res.status})`);
-    }
-
-    const result = json?.results?.[0] ?? {};
-    const categories = result?.categories ?? {};
-    const scores = result?.category_scores ?? {};
-
-    const sexual = Boolean(categories?.sexual);
-    const sexualMinors = Boolean(categories?.["sexual/minors"] ?? categories?.sexual_minors);
-    const sexualScore = Number(scores?.sexual);
-    const sexualMinorsScore = Number(scores?.["sexual/minors"] ?? scores?.sexual_minors);
-
-    const blockForSexual = sexual && (!Number.isFinite(sexualScore) || sexualScore >= sexualThreshold);
-    const blockForSexualMinors = sexualMinors || (Number.isFinite(sexualMinorsScore) && sexualMinorsScore > 0);
-
-    // Block only high-confidence sexual content and always block sexual/minors.
-    if (blockForSexual || blockForSexualMinors) {
-      throw new UnsafeReferenceImageError("Uploading explicit images is not allowed.");
-    }
-  } catch (error) {
-    if (error instanceof UnsafeReferenceImageError) {
-      throw error;
-    }
-    if (failClosed) {
-      throw new UnsafeReferenceImageError("Unable to verify image safety. Please use another image.");
-    }
-  }
-}
-
 /** Submit a WaveSpeed task and return the prediction ID */
 async function createWavespeedTask(
   apiKey: string,
@@ -422,6 +345,7 @@ export async function POST(req: NextRequest) {
       outputFormat?: "jpeg" | "png";
       prompt?: string;
       cameraAngles?: string[];
+      referenceSafetyToken?: string;
     };
 
     const { imageDataUrl, prompt, cameraAngles } = body;
@@ -468,9 +392,31 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "A valid reference image is required." }, { status: 400 });
     }
 
-    const apiKey = getWavespeedApiKey();
     const totalCost = numPanels * creditsPerPanel;
     const storyLabel = sbType.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+
+    const imageHash = getStoryboardReferenceImageHash(imageDataUrl);
+    const hasUploadSafetyPass = verifyStoryboardReferenceSafetyToken({
+      userId,
+      imageHash,
+      token: typeof body.referenceSafetyToken === "string" ? body.referenceSafetyToken : undefined,
+    });
+    const precheckGenerationId = `storyboard-precheck-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const hostedImageUrl = await uploadRefImage(imageDataUrl, userId, precheckGenerationId);
+    if (!hasUploadSafetyPass) {
+      try {
+        await checkStoryboardReferenceImageSafety(hostedImageUrl);
+      } catch (err) {
+        await deleteFromStorage({
+          userId,
+          generationId: `${precheckGenerationId}-storyboard-ref`,
+          assetType: "image-ref",
+        }).catch(() => null);
+        throw err;
+      }
+    }
+
+    const apiKey = getWavespeedApiKey();
 
     // Create one Generation row per panel so each image is persisted in assets
     let firstGenerationId: string | null = null;
@@ -492,10 +438,6 @@ export async function POST(req: NextRequest) {
     chargedCreditsPerPanel = creditsPerPanel;
     chargedUserId = userId;
     generationId = firstGenerationId;
-
-    // Upload reference image to Supabase Storage
-    const hostedImageUrl = await uploadRefImage(imageDataUrl, userId, firstGenerationId!);
-    await checkReferenceImageSafety(hostedImageUrl);
 
     // Launch all panel tasks in parallel
     const predictionIds: string[] = [];
