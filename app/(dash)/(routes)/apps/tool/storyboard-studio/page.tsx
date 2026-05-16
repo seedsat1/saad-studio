@@ -211,7 +211,7 @@ function getStoryboardErrorMessage(error: unknown, getSafeErrorMessage: (error: 
         : "";
 
   if (message.toLowerCase().includes("restricted content detected")) {
-    return "This image was automatically removed for violating the platform's NSFW content policy.\nPlease follow the platform content guidelines.";
+    return "تم حذف هذه الصورة تلقائياً لمخالفتها قوانين ومعايير المحتوى العاري (NSFW).\nيرجى الالتزام بسياسة المنصة.";
   }
   if (message.toLowerCase().includes("unable to verify image safety")) {
     return "Unable to verify image safety. Please try again or use another image.";
@@ -225,7 +225,7 @@ function getStoryboardErrorMessage(error: unknown, getSafeErrorMessage: (error: 
 
 function isStoryboardNsfwError(message: string): boolean {
   const normalized = message.toLowerCase();
-  return normalized.includes("restricted content") || normalized.includes("nsfw");
+  return normalized.includes("restricted content") || normalized.includes("nsfw") || message.includes("المحتوى العاري");
 }
 
 export default function StoryboardProductionPage() {
@@ -649,7 +649,7 @@ export default function StoryboardProductionPage() {
               <div className="flex items-center gap-2 mb-1">
                 <AlertCircle size={14} />
                 <span className="font-semibold">
-                  {isStoryboardNsfwError(result.error) ? "Image removed automatically" : "Generation failed"}
+                  {isStoryboardNsfwError(result.error) ? "تم حذف الصورة تلقائياً" : "Generation failed"}
                 </span>
               </div>
               <span className="whitespace-pre-line">{result.error}</span>
