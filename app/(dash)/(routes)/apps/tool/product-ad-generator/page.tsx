@@ -409,7 +409,7 @@ export default function ProductAdGeneratorPage() {
               }}
             >
               {isGenerating ? (
-                <><Loader2 className="w-4 h-4 animate-spin" />Generatingâ€¦</>
+                <><Loader2 className="w-4 h-4 animate-spin" />Generating...</>
               ) : (
                 <><Sparkles className="w-4 h-4" />Generate {numScenes} Scenes</>
               )}
@@ -457,7 +457,7 @@ export default function ProductAdGeneratorPage() {
               </div>
               <div className="rounded-xl p-4 w-full max-w-sm" style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)" }}>
                 <p className="text-xs font-semibold mb-3" style={{ color: "rgba(255,255,255,0.3)" }}>
-                  {currentStyle.label} â€” {numScenes} shots will include:
+                  {currentStyle.label} - {numScenes} shots will include:
                 </p>
                 <div className="flex flex-wrap gap-1.5">
                   {currentStyle.cameraAngles.slice(0, numScenes).map((angle) => (
@@ -477,7 +477,7 @@ export default function ProductAdGeneratorPage() {
               <div className="flex items-center gap-3 mb-6">
                 <Loader2 className="w-4 h-4 animate-spin" style={{ color: "#10b981" }} />
                 <p className="text-sm font-medium" style={{ color: "rgba(255,255,255,0.5)" }}>
-                  Generating {numScenes} {currentStyle.label} scenesâ€¦
+                  Generating {numScenes} {currentStyle.label} scenes...
                 </p>
               </div>
               <div className={`grid gap-3 ${numScenes <= 4 ? "grid-cols-2" : "grid-cols-3"}`}>
@@ -500,7 +500,7 @@ export default function ProductAdGeneratorPage() {
                 <div className="flex items-center gap-2.5">
                   <CheckCircle className="w-4 h-4" style={{ color: "#10b981" }} />
                   <span className="font-semibold text-sm" style={{ color: "rgba(255,255,255,0.8)" }}>
-                    {scenes.length} Scenes â€” {currentStyle.label} Shoot
+                    {scenes.length} Scenes - {currentStyle.label} Shoot
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -532,7 +532,7 @@ export default function ProductAdGeneratorPage() {
                       style={{ aspectRatio: "3/4", background: "#0c1630" }}
                       onClick={() => setInspectorAsset({
                         id: scene.id, type: "image", url: scene.url,
-                        title: `${productName || "Product"} â€” ${scene.shotLabel}`,
+                        title: `${productName || "Product"} - ${scene.shotLabel}`,
                         prompt: buildScenePrompt(currentStyle.stylePrompt, productName),
                         model: "wavespeed/qwen-image-edit-multiple-angles",
                       })}
@@ -557,7 +557,7 @@ export default function ProductAdGeneratorPage() {
                       {/* Action buttons */}
                       <div className="absolute top-2 right-2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
-                          onClick={(e) => { e.stopPropagation(); setInspectorAsset({ id: scene.id, type: "image", url: scene.url, title: `${productName || "Product"} â€” ${scene.shotLabel}` }); }}
+                          onClick={(e) => { e.stopPropagation(); setInspectorAsset({ id: scene.id, type: "image", url: scene.url, title: `${productName || "Product"} - ${scene.shotLabel}` }); }}
                           className="p-1.5 rounded-lg transition-colors"
                           style={{ background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)" }}
                         ><Eye className="w-3.5 h-3.5 text-white" /></button>
