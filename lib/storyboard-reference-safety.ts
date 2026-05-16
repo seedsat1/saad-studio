@@ -70,7 +70,7 @@ export async function checkStoryboardReferenceImageSafety(imageUrl: string): Pro
       ?? "",
   ).trim();
   if (!apiKey) {
-    return;
+    throw new Error("Unable to verify image safety. Please try again or use another image.");
   }
 
   const model = String(process.env.STORYBOARD_NSFW_MODEL ?? "omni-moderation-latest").trim() || "omni-moderation-latest";
@@ -98,43 +98,41 @@ async function checkReferenceImageWithModerationSafety(input: {
   model: string;
   sexualThreshold: number;
 }): Promise<boolean> {
-  try {
-    const res = await fetch("https://api.openai.com/v1/moderations", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${input.apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: input.model,
-        input: [
-          {
-            type: "image_url",
-            image_url: { url: input.imageUrl },
-          },
-        ],
-      }),
-      signal: AbortSignal.timeout(10_000),
-    });
+  const res = await fetch("https://api.openai.com/v1/moderations", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${input.apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: input.model,
+      input: [
+        {
+          type: "image_url",
+          image_url: { url: input.imageUrl },
+        },
+      ],
+    }),
+    signal: AbortSignal.timeout(10_000),
+  });
 
-    const json = await res.json().catch(() => ({}));
-    if (!res.ok) return false;
-
-    const result = json?.results?.[0] ?? {};
-    const categories = result?.categories ?? {};
-    const scores = result?.category_scores ?? {};
-
-    const sexual = Boolean(categories?.sexual);
-    const sexualMinors = Boolean(categories?.["sexual/minors"] ?? categories?.sexual_minors);
-    const sexualScore = Number(scores?.sexual);
-    const sexualMinorsScore = Number(scores?.["sexual/minors"] ?? scores?.sexual_minors);
-
-    const blockForSexual = sexual && Number.isFinite(sexualScore) && sexualScore >= input.sexualThreshold;
-    const blockForSexualMinors = sexualMinors || (Number.isFinite(sexualMinorsScore) && sexualMinorsScore > 0);
-    return blockForSexual || blockForSexualMinors;
-  } catch {
-    return false;
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error("Unable to verify image safety. Please try again or use another image.");
   }
+
+  const result = json?.results?.[0] ?? {};
+  const categories = result?.categories ?? {};
+  const scores = result?.category_scores ?? {};
+
+  const sexual = Boolean(categories?.sexual);
+  const sexualMinors = Boolean(categories?.["sexual/minors"] ?? categories?.sexual_minors);
+  const sexualScore = Number(scores?.sexual);
+  const sexualMinorsScore = Number(scores?.["sexual/minors"] ?? scores?.sexual_minors);
+
+  const blockForSexual = sexual && Number.isFinite(sexualScore) && sexualScore >= input.sexualThreshold;
+  const blockForSexualMinors = sexualMinors || (Number.isFinite(sexualMinorsScore) && sexualMinorsScore > 0);
+  return blockForSexual || blockForSexualMinors;
 }
 
 async function checkReferenceImageWithVisionSafety(imageUrl: string, apiKey: string): Promise<void> {
@@ -142,56 +140,58 @@ async function checkReferenceImageWithVisionSafety(imageUrl: string, apiKey: str
   if (!enabled) return;
 
   const model = String(process.env.STORYBOARD_VISION_NSFW_MODEL ?? "gpt-4o-mini").trim() || "gpt-4o-mini";
-  try {
-    const res = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model,
-        temperature: 0,
-        response_format: { type: "json_object" },
-        messages: [
-          {
-            role: "user",
-            content: [
-              {
-                type: "text",
-                text: [
-                  "Classify whether this reference image must be blocked before image generation.",
-                  "Return only JSON with blocked:boolean and reason:string.",
-                  "Set blocked=true ONLY for these explicit cases: (1) Visible genitals (penis, vagina, anus), (2) Completely nude breasts without any covering, (3) Actual pornographic content or visible sex acts, (4) Explicit fetish or hardcore NSFW material.",
-                  "Set blocked=false for ALL other cases including: any normal clothing (dress, top, shirt), swimwear, bikini, lingerie, partial cleavage or exposed chest area while clothed, bare shoulders, bare legs, low-cut clothing, glamour photography, fashion photography, artistic photography, and any cultural or fashion-appropriate attire.",
-                  "Focus ONLY on actual explicit nudity and pornographic content. Do NOT block based on clothing choices, body exposure within normal fashion standards, or cultural differences in dress codes.",
-                  "When uncertain, choose blocked=false. Only block if genitals are clearly visible or it is obvious hardcore pornography.",
-                ].join(" "),
-              },
-              {
-                type: "image_url",
-                image_url: { url: imageUrl },
-              },
-            ],
-          },
-        ],
-      }),
-      signal: AbortSignal.timeout(15_000),
-    });
+  if (!apiKey) {
+    throw new Error("Unable to verify image safety. Please try again or use another image.");
+  }
 
-    const json = await res.json().catch(() => ({}));
-    if (!res.ok) return;
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model,
+      temperature: 0,
+      response_format: { type: "json_object" },
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: [
+                "Classify whether this reference image must be blocked before image generation.",
+                "Return only JSON with blocked:boolean and reason:string.",
+                "Set blocked=true ONLY for these explicit cases: (1) Visible genitals (penis, vagina, anus), (2) Completely nude breasts without any covering, (3) Actual pornographic content or visible sex acts, (4) Explicit fetish or hardcore NSFW material.",
+                "Set blocked=false for ALL other cases including: any normal clothing (dress, top, shirt), swimwear, bikini, lingerie, partial cleavage or exposed chest area while clothed, bare shoulders, bare legs, low-cut clothing, glamour photography, fashion photography, artistic photography, and any cultural or fashion-appropriate attire.",
+                "Focus ONLY on actual explicit nudity and pornographic content. Do NOT block based on clothing choices, body exposure within normal fashion standards, or cultural differences in dress codes.",
+                "When uncertain, choose blocked=false. Only block if genitals are clearly visible or it is obvious hardcore pornography.",
+              ].join(" "),
+            },
+            {
+              type: "image_url",
+              image_url: { url: imageUrl },
+            },
+          ],
+        },
+      ],
+    }),
+    signal: AbortSignal.timeout(15_000),
+  });
 
-    const content = String(json?.choices?.[0]?.message?.content ?? "{}");
-    const parsed = JSON.parse(content) as { blocked?: unknown; reason?: unknown };
-    if (parsed.blocked === true) {
-      throw new UnsafeReferenceImageError(
-        typeof parsed.reason === "string" && parsed.reason.trim()
-          ? `Restricted content detected. ${parsed.reason.trim()}`
-          : undefined,
-      );
-    }
-  } catch (error) {
-    if (error instanceof UnsafeReferenceImageError) throw error;
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error("Unable to verify image safety. Please try again or use another image.");
+  }
+
+  const content = String(json?.choices?.[0]?.message?.content ?? "{}");
+  const parsed = JSON.parse(content) as { blocked?: unknown; reason?: unknown };
+  if (parsed.blocked === true) {
+    throw new UnsafeReferenceImageError(
+      typeof parsed.reason === "string" && parsed.reason.trim()
+        ? `Restricted content detected. ${parsed.reason.trim()}`
+        : undefined,
+    );
   }
 }
