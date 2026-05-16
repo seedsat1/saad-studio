@@ -162,9 +162,10 @@ async function checkReferenceImageWithVisionSafety(imageUrl: string, apiKey: str
                 text: [
                   "Classify whether this reference image must be blocked before image generation.",
                   "Return only JSON with blocked:boolean and reason:string.",
-                  "Set blocked=true only for explicit NSFW content: visible genitals, exposed anus, exposed female nipples, pornographic content, sex acts, masturbation, oral sex, intercourse, or explicit fetish nudity.",
-                  "Set blocked=false for ordinary portraits, logos, icons, symbols, text, products, cleavage, bikini, swimsuit, lingerie, bodysuit, bodycon fashion, bare legs, bare shoulders, glamour poses, plus-size fashion, fantasy portraits, and cinematic scenes when there is no explicit nudity or sex act.",
-                  "When uncertain, choose blocked=false unless explicit nudity or a sex act is clearly visible.",
+                  "Set blocked=true ONLY for these explicit cases: (1) Visible genitals (penis, vagina, anus), (2) Completely nude breasts without any covering, (3) Actual pornographic content or visible sex acts, (4) Explicit fetish or hardcore NSFW material.",
+                  "Set blocked=false for ALL other cases including: any normal clothing (dress, top, shirt), swimwear, bikini, lingerie, partial cleavage or exposed chest area while clothed, bare shoulders, bare legs, low-cut clothing, glamour photography, fashion photography, artistic photography, and any cultural or fashion-appropriate attire.",
+                  "Focus ONLY on actual explicit nudity and pornographic content. Do NOT block based on clothing choices, body exposure within normal fashion standards, or cultural differences in dress codes.",
+                  "When uncertain, choose blocked=false. Only block if genitals are clearly visible or it is obvious hardcore pornography.",
                 ].join(" "),
               },
               {
