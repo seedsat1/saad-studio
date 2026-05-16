@@ -25,7 +25,7 @@ import { AssetInspector, type Asset } from "@/components/AssetInspector";
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-display", display: "swap" });
 const plusJakarta = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-body", display: "swap" });
 
-const CREDIT_COST_PER_SCENE = 3;
+const CREDIT_COST_PER_SCENE = 2;
 const DEFAULT_SCENES = 8;
 
 type GenerationStatus = "idle" | "generating" | "success" | "failed";
@@ -198,10 +198,9 @@ export default function ProductAdGeneratorPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           prompt,
-          modelId: "qwen-image-edit-multiple-angles",
+          modelId: "qwen2/image-edit",
           numImages: numScenes,
           imageUrl: compressed,
-          quality: "1k",
         }),
       });
 
