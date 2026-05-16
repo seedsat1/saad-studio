@@ -1,11 +1,9 @@
-"use client";
+﻿"use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
-import { Outfit, Plus_Jakarta_Sans } from "next/font/google";
+import { useState, useCallback, useRef } from "react";
 import {
   ArrowLeft,
   Upload,
-  X,
   Loader2,
   Download,
   RefreshCw,
@@ -14,60 +12,102 @@ import {
   Sparkles,
   Eye,
   ShoppingBag,
-  Package,
-  Palette,
+  ImageIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { useGenerationGate } from "@/hooks/use-generation-gate";
 import { AssetInspector, type Asset } from "@/components/AssetInspector";
 
-const outfit = Outfit({ subsets: ["latin"], variable: "--font-display", display: "swap" });
-const plusJakarta = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-body", display: "swap" });
-
-const CREDIT_COST_PER_SCENE = 2;
-const DEFAULT_SCENES = 8;
+// 2 credits per scene (storyboard 1k tier)
+const CREDITS_PER_SCENE = 2;
 
 type GenerationStatus = "idle" | "generating" | "success" | "failed";
 
-interface ProductScene {
+interface AdScene {
   id: string;
-  imageUrl: string;
-  description: string;
+  url: string;
+  shotLabel: string;
+  cameraAngle: string;
 }
 
-const PRODUCT_STYLES = [
-  { id: "skincare", label: "Skincare & Beauty", icon: "💄" },
-  { id: "luxury", label: "Luxury Product", icon: "✨" },
-  { id: "lifestyle", label: "Lifestyle", icon: "🌿" },
-  { id: "minimalist", label: "Minimalist & Clean", icon: "⚪" },
-  { id: "vibrant", label: "Vibrant & Bold", icon: "🎨" },
+// â”€â”€ Shoot Styles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+const SHOOT_STYLES = [
+  {
+    id: "luxury",
+    label: "Luxury",
+    desc: "Elegant & Premium",
+    accent: "#f59e0b",
+    cameraAngles: ["ext-long-shot", "eye-level", "closeup", "3-4-view", "extreme-closeup", "profile", "low-angle", "wide", "high-angle"],
+    stylePrompt: "Luxury fashion campaign photography. Elegant premium lighting, rich textures, sophisticated high-end setting.",
+  },
+  {
+    id: "editorial",
+    label: "Editorial",
+    desc: "Magazine Fashion",
+    accent: "#a855f7",
+    cameraAngles: ["wide", "3-4-view", "ext-long-shot", "closeup", "dutch-angle", "low-angle", "extreme-closeup", "eye-level", "profile"],
+    stylePrompt: "High-fashion editorial magazine spread. Artistic composition, dramatic lighting, bold fashion photography.",
+  },
+  {
+    id: "ecommerce",
+    label: "eCommerce",
+    desc: "Clean Product Shots",
+    accent: "#3b82f6",
+    cameraAngles: ["eye-level", "closeup", "profile", "3-4-view", "ext-long-shot", "extreme-closeup", "back-view", "high-angle", "wide"],
+    stylePrompt: "Professional ecommerce product photography. Clean neutral background, precise lighting, commercial catalog quality.",
+  },
+  {
+    id: "lifestyle",
+    label: "Lifestyle",
+    desc: "Natural & Authentic",
+    accent: "#10b981",
+    cameraAngles: ["eye-level", "wide", "closeup", "3-4-view", "ext-long-shot", "profile", "extreme-closeup", "dutch-angle", "low-angle"],
+    stylePrompt: "Lifestyle fashion photography. Natural warm lighting, authentic candid feel, real-world settings.",
+  },
+  {
+    id: "street",
+    label: "Street",
+    desc: "Urban & Dynamic",
+    accent: "#ef4444",
+    cameraAngles: ["eye-level", "low-angle", "wide", "closeup", "dutch-angle", "3-4-view", "ext-long-shot", "extreme-closeup", "profile"],
+    stylePrompt: "Urban street style fashion photography. Dynamic composition, city environment, contemporary and energetic.",
+  },
+  {
+    id: "minimal",
+    label: "Minimal",
+    desc: "Studio & Clean",
+    accent: "#94a3b8",
+    cameraAngles: ["eye-level", "closeup", "3-4-view", "ext-long-shot", "extreme-closeup", "profile", "high-angle", "wide", "back-view"],
+    stylePrompt: "Minimalist studio fashion photography. Pure white background, perfect lighting, crisp clean aesthetic.",
+  },
 ] as const;
 
-const PRODUCT_CAMERA_SEQUENCE = [
-  "ext-long-shot",
-  "eye-level",
-  "closeup",
-  "3-4-view",
-  "profile",
-  "low-angle",
-  "high-angle",
-  "wide",
-  "extreme-closeup",
-] as const;
+const SHOT_LABELS: Record<string, string> = {
+  "ext-long-shot": "Full Length",
+  "eye-level": "Portrait",
+  "closeup": "Close-Up",
+  "3-4-view": "Three-Quarter",
+  "profile": "Side Profile",
+  "low-angle": "Power Shot",
+  "high-angle": "Overhead",
+  "wide": "Wide Editorial",
+  "extreme-closeup": "Detail Shot",
+  "dutch-angle": "Dynamic Tilt",
+  "back-view": "Back View",
+  "ots": "Over Shoulder",
+  "med-closeup": "Mid Close-Up",
+  "pov": "POV",
+  "aerial": "Aerial",
+};
 
-function buildProductCameraAngles(numScenes: number): string[] {
-  if (numScenes <= PRODUCT_CAMERA_SEQUENCE.length) {
-    return PRODUCT_CAMERA_SEQUENCE.slice(0, numScenes);
-  }
-  const result = [...PRODUCT_CAMERA_SEQUENCE];
-  let i = 0;
-  while (result.length < numScenes) {
-    result.push(PRODUCT_CAMERA_SEQUENCE[i % PRODUCT_CAMERA_SEQUENCE.length]);
-    i += 1;
-  }
-  return result;
-}
+const SCENE_COUNT_OPTIONS = [
+  { n: 4, sublabel: "Quick" },
+  { n: 6, sublabel: "Standard" },
+  { n: 9, sublabel: "Campaign" },
+];
+
+// â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function readFileAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -78,14 +118,13 @@ function readFileAsDataUrl(file: File): Promise<string> {
   });
 }
 
-function compressImage(dataUrl: string, maxBytes = 2_500_000, maxSide = 2048): Promise<string> {
+function compressImage(dataUrl: string, maxBytes = 2_500_000, maxSide = 1024): Promise<string> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => {
-      const MAX_SIDE = maxSide;
       let { width, height } = img;
-      if (width > MAX_SIDE || height > MAX_SIDE) {
-        const scale = MAX_SIDE / Math.max(width, height);
+      if (width > maxSide || height > maxSide) {
+        const scale = maxSide / Math.max(width, height);
         width = Math.round(width * scale);
         height = Math.round(height * scale);
       }
@@ -94,42 +133,21 @@ function compressImage(dataUrl: string, maxBytes = 2_500_000, maxSide = 2048): P
       canvas.height = height;
       const ctx = canvas.getContext("2d")!;
       ctx.drawImage(img, 0, 0, width, height);
-      let quality = 0.85;
-      let result = canvas.toDataURL("image/jpeg", quality);
-      while (result.length > maxBytes && quality > 0.3) {
-        quality -= 0.1;
-        result = canvas.toDataURL("image/jpeg", quality);
-      }
-      resolve(result);
+      let q = 0.85;
+      let out = canvas.toDataURL("image/jpeg", q);
+      while (out.length > maxBytes && q > 0.3) { q -= 0.1; out = canvas.toDataURL("image/jpeg", q); }
+      resolve(out);
     };
-    img.onerror = () => reject(new Error("Failed to load image for compression"));
+    img.onerror = () => reject(new Error("Failed to load image"));
     img.src = dataUrl;
   });
 }
 
-function getProductAdPrompt(style: string, productName: string, numScenes: number): string {
-  const styleDescriptions: Record<string, string> = {
-    skincare: "White clean background, professional lighting, showcasing skincare product with natural beauty",
-    luxury: "Premium aesthetic with elegant composition, luxury lighting, sophisticated styling",
-    lifestyle: "Natural and relatable scenarios with the product, warm ambient lighting",
-    minimalist: "Pure white background, minimalist composition, focus on product details",
-    vibrant: "Colorful and dynamic scenes, energetic composition, modern styling",
-  };
-
-  const description = styleDescriptions[style] || styleDescriptions.skincare;
-
-  return `Generate ${numScenes} professional product advertisement scenes for "${productName}". 
-Each scene should show:
-- Different camera angles and compositions (close-up, medium, wide shots, hand shots, product detail shots)
-- ${description}
-- Consistent model/person appearance across all scenes
-- Consistent product appearance and branding
-- Professional advertisement quality
-- Movie-like lighting and cinematography
-
-Scenes should tell a story of the product usage, from introduction to application/satisfaction. 
-Generate realistic, high-quality advertisement photography suitable for social media and marketing campaigns.`;
+function buildScenePrompt(stylePrompt: string, productName: string): string {
+  return `${stylePrompt} Subject is wearing/presenting the product: ${productName || "the featured item"}. Maintain consistent product appearance. Professional advertisement photography.`;
 }
+
+// â”€â”€ Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export default function ProductAdGeneratorPage() {
   const { guardGeneration, getSafeErrorMessage } = useGenerationGate();
@@ -137,51 +155,26 @@ export default function ProductAdGeneratorPage() {
 
   const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
   const [productName, setProductName] = useState("");
-  const [productStyle, setProductStyle] = useState<string>("skincare");
-  const [numScenes, setNumScenes] = useState(DEFAULT_SCENES);
+  const [shootStyleId, setShootStyleId] = useState<string>("luxury");
+  const [numScenes, setNumScenes] = useState(4);
   const [isDragging, setIsDragging] = useState(false);
-  const [generationStatus, setGenerationStatus] = useState<GenerationStatus>("idle");
-  const [scenes, setScenes] = useState<ProductScene[]>([]);
-  const [errorMessage, setErrorMessage] = useState("");
+  const [status, setStatus] = useState<GenerationStatus>("idle");
+  const [scenes, setScenes] = useState<AdScene[]>([]);
+  const [error, setError] = useState("");
   const [inspectorAsset, setInspectorAsset] = useState<Asset | null>(null);
-  const [history, setHistory] = useState<{ id: string; url: string; prompt: string; model: string; date: string }[]>([]);
 
-  const isGenerating = generationStatus === "generating";
-  const totalCreditsNeeded = numScenes * CREDIT_COST_PER_SCENE;
-
-  useEffect(() => {
-    let cancelled = false;
-    const load = async () => {
-      try {
-        const res = await fetch("/api/assets?type=image", { cache: "no-store" });
-        const data = await res.json().catch(() => null);
-        if (!res.ok || !Array.isArray(data?.assets) || cancelled) return;
-        const adAssets = data.assets.filter((a: { model?: string }) =>
-          a.model?.includes("wavespeed/qwen-image-edit-multiple-angles") || a.model?.includes("product-ad-generator")
-        );
-        setHistory(
-          adAssets.map((a: { id: string; url: string; prompt?: string; model?: string; date?: string }) => ({
-            id: a.id,
-            url: a.url,
-            prompt: a.prompt || "Product Ad Scene",
-            model: a.model || "Product Ad Generator",
-            date: a.date || "",
-          }))
-        );
-      } catch {
-        /* ignore */
-      }
-    };
-    void load();
-    return () => { cancelled = true; };
-  }, []);
+  const currentStyle = SHOOT_STYLES.find((s) => s.id === shootStyleId) ?? SHOOT_STYLES[0];
+  const totalCredits = numScenes * CREDITS_PER_SCENE;
+  const isGenerating = status === "generating";
+  const canGenerate = !isGenerating && !!imageDataUrl && !!productName.trim();
 
   const handleFileSelect = useCallback(async (file: File) => {
     if (!file.type.startsWith("image/")) return;
     const dataUrl = await readFileAsDataUrl(file);
     setImageDataUrl(dataUrl);
     setScenes([]);
-    setGenerationStatus("idle");
+    setStatus("idle");
+    setError("");
   }, []);
 
   const handleDrop = useCallback(
@@ -189,35 +182,28 @@ export default function ProductAdGeneratorPage() {
       e.preventDefault();
       setIsDragging(false);
       const file = e.dataTransfer.files[0];
-      if (file) handleFileSelect(file);
+      if (file) void handleFileSelect(file);
     },
     [handleFileSelect]
   );
 
   async function handleGenerate() {
-    if (isGenerating || !imageDataUrl || !productName.trim()) return;
+    if (!canGenerate) return;
 
-    const gate = await guardGeneration({
-      requiredCredits: totalCreditsNeeded,
-      action: "apps:product-ad-generator",
-    });
-
+    const gate = await guardGeneration({ requiredCredits: totalCredits, action: "apps:product-ad-generator" });
     if (!gate.ok) {
-      if (gate.reason === "error") {
-        setErrorMessage(gate.message ?? getSafeErrorMessage(gate.message));
-      }
+      if (gate.reason === "error") setError(gate.message ?? getSafeErrorMessage(gate.message));
       return;
     }
 
     setScenes([]);
-    setErrorMessage("");
-    setGenerationStatus("generating");
+    setError("");
+    setStatus("generating");
 
     try {
-      const compressed = await compressImage(imageDataUrl, 2_500_000, 1024);
-
-      const prompt = getProductAdPrompt(productStyle, productName, numScenes);
-      const cameraAngles = buildProductCameraAngles(numScenes);
+      const compressed = await compressImage(imageDataUrl!, 2_500_000, 1024);
+      const cameraAngles = currentStyle.cameraAngles.slice(0, numScenes);
+      const prompt = buildScenePrompt(currentStyle.stylePrompt, productName);
 
       const res = await fetch("/api/runninghub/storyboard-production", {
         method: "POST",
@@ -226,7 +212,7 @@ export default function ProductAdGeneratorPage() {
           imageDataUrl: compressed,
           numPanels: numScenes,
           storyboardType: "production",
-          aspectRatio: "1:1",
+          aspectRatio: "3:4",
           quality: "1k",
           outputFormat: "jpeg",
           cameraAngles,
@@ -235,223 +221,361 @@ export default function ProductAdGeneratorPage() {
       });
 
       const data = await res.json().catch(() => null);
-
-      if (!res.ok) {
-        throw new Error(data?.error || "Generation failed");
+      if (!res.ok) throw new Error(data?.error || `Generation failed (${res.status})`);
+      if (!Array.isArray(data?.outputs) || data.outputs.length === 0) {
+        throw new Error("No images were returned. Please try again.");
       }
 
-      if (data?.outputs && Array.isArray(data.outputs)) {
-        const newScenes: ProductScene[] = data.outputs.map((url: string, idx: number) => ({
+      setScenes(
+        (data.outputs as string[]).map((url, idx) => ({
           id: `scene-${idx}`,
-          imageUrl: url,
-          description: `Scene ${idx + 1} of ${numScenes}`,
-        }));
-        setScenes(newScenes);
-        setGenerationStatus("success");
-      } else {
-        throw new Error("No images returned from generation");
-      }
+          url,
+          cameraAngle: currentStyle.cameraAngles[idx] ?? "",
+          shotLabel: SHOT_LABELS[currentStyle.cameraAngles[idx]] ?? `Scene ${idx + 1}`,
+        }))
+      );
+      setStatus("success");
     } catch (err) {
-      const errorMsg =
-        err instanceof Error ? err.message : "An unexpected error occurred";
-      setErrorMessage(errorMsg);
-      setGenerationStatus("failed");
+      setError(err instanceof Error ? err.message : "An error occurred. Please try again.");
+      setStatus("failed");
     }
   }
 
+  async function downloadImage(url: string, filename: string) {
+    try {
+      const isExternal = /^https?:\/\//i.test(url);
+      const res = await fetch(
+        isExternal ? `/api/download?url=${encodeURIComponent(url)}` : url,
+        { cache: "no-store" }
+      );
+      if (!res.ok) throw new Error("Download failed");
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = objectUrl;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(objectUrl);
+    } catch { /* ignore */ }
+  }
+
   return (
-    <div className={`${outfit.variable} ${plusJakarta.variable} min-h-screen flex flex-col bg-[#0f1225]`}>
-      {/* Header */}
-      <div className="border-b border-white/10 bg-gradient-to-b from-white/5 to-transparent px-6 py-4">
-        <Link href="/apps" className="flex items-center gap-2 text-white/60 hover:text-white transition-colors w-fit">
-          <ArrowLeft className="w-4 h-4" />
-          <span className="text-sm">Back to Apps</span>
+    <div className="min-h-screen flex flex-col" style={{ background: "#08101f", color: "white" }}>
+      {/* â”€â”€ Topbar â”€â”€ */}
+      <div className="flex-shrink-0 flex items-center gap-3 px-6 h-14 border-b" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
+        <Link href="/apps" className="flex items-center gap-1.5 text-sm transition-colors hover:text-white" style={{ color: "rgba(255,255,255,0.4)" }}>
+          <ArrowLeft className="w-4 h-4" /> Apps
         </Link>
-        <div className="mt-4 flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-gradient-to-br from-emerald-500/20 to-teal-500/20">
-            <ShoppingBag className="w-6 h-6 text-emerald-400" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-white">Product Ad Generator</h1>
-            <p className="text-sm text-white/40">Create professional advertisement scenes for your product</p>
-          </div>
+        <span style={{ color: "rgba(255,255,255,0.15)" }}>/</span>
+        <div className="flex items-center gap-2">
+          <ShoppingBag className="w-4 h-4" style={{ color: "#10b981" }} />
+          <span className="font-semibold text-sm">Product Ad Generator</span>
+        </div>
+        <div className="ml-auto">
+          <span className="text-[11px] font-medium px-2 py-0.5 rounded-full" style={{ background: "rgba(16,185,129,0.1)", color: "#10b981", border: "1px solid rgba(16,185,129,0.2)" }}>
+            Beta
+          </span>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 overflow-auto">
-        <div className="max-w-7xl mx-auto px-6 py-8">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Left: Controls */}
-            <div className="lg:col-span-1">
-              <div className="space-y-6 sticky top-8">
-                {/* Reference Image Upload */}
-                <div>
-                  <h2 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
-                    <Package className="w-4 h-4 text-emerald-400" />
-                    Product Image
-                  </h2>
-                  <div
-                    onDrop={handleDrop}
-                    onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-                    onDragLeave={() => setIsDragging(false)}
-                    onClick={() => fileInputRef.current?.click()}
-                    className={`relative border-2 border-dashed rounded-xl p-6 cursor-pointer transition-all ${
-                      isDragging
-                        ? "border-emerald-400 bg-emerald-400/10"
-                        : "border-white/20 hover:border-white/40 bg-white/5"
-                    }`}
-                  >
-                    {imageDataUrl ? (
-                      <div className="relative group">
-                        <img src={imageDataUrl} alt="Product" className="w-full h-32 object-cover rounded-lg" />
-                        <button
-                          onClick={(e) => { e.stopPropagation(); setImageDataUrl(null); }}
-                          className="absolute -top-2 -right-2 p-1 rounded-full bg-red-500/80 hover:bg-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <X className="w-4 h-4 text-white" />
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="text-center py-4">
-                        <Upload className="w-8 h-8 text-white/40 mx-auto mb-2" />
-                        <p className="text-sm text-white/60">Drop product image or click to upload</p>
-                      </div>
-                    )}
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0])}
-                      className="hidden"
-                    />
-                  </div>
-                </div>
+      {/* â”€â”€ Body â”€â”€ */}
+      <div className="flex flex-1 overflow-hidden">
 
-                {/* Product Name */}
-                <div>
-                  <label className="text-sm font-semibold text-white mb-2 block">Product Name</label>
-                  <input
-                    type="text"
-                    value={productName}
-                    onChange={(e) => setProductName(e.target.value)}
-                    placeholder="e.g., Face Serum, Skincare Cream"
-                    className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/30 focus:outline-none focus:border-emerald-400 transition-colors"
-                  />
-                </div>
+        {/* â”€â”€ Sidebar â”€â”€ */}
+        <div className="w-72 flex-shrink-0 flex flex-col overflow-y-auto" style={{ borderRight: "1px solid rgba(255,255,255,0.05)" }}>
+          <div className="flex flex-col gap-6 p-5">
 
-                {/* Style Selection */}
-                <div>
-                  <label className="text-sm font-semibold text-white mb-3 block">Ad Style</label>
-                  <div className="space-y-2">
-                    {PRODUCT_STYLES.map((style) => (
+            {/* Upload */}
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest mb-2.5" style={{ color: "rgba(255,255,255,0.35)" }}>
+                Reference Image
+              </p>
+              <div
+                onDrop={handleDrop}
+                onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                onDragLeave={() => setIsDragging(false)}
+                onClick={() => !imageDataUrl && fileInputRef.current?.click()}
+                className="relative rounded-xl overflow-hidden transition-all"
+                style={{
+                  aspectRatio: "3/4",
+                  background: "#0c1630",
+                  border: isDragging ? "2px solid #10b981" : imageDataUrl ? "1px solid rgba(255,255,255,0.08)" : "2px dashed rgba(255,255,255,0.1)",
+                  cursor: imageDataUrl ? "default" : "pointer",
+                }}
+              >
+                {imageDataUrl ? (
+                  <div className="relative w-full h-full group">
+                    <img src={imageDataUrl} alt="Reference" className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity" style={{ background: "rgba(0,0,0,0.55)" }}>
                       <button
-                        key={style.id}
-                        onClick={() => setProductStyle(style.id)}
-                        className={`w-full text-left px-3 py-2 rounded-lg transition-all ${
-                          productStyle === style.id
-                            ? "bg-emerald-500/20 border border-emerald-400/50 text-emerald-100"
-                            : "bg-white/5 border border-white/10 text-white/70 hover:bg-white/10"
-                        }`}
-                      >
-                        <span className="mr-2">{style.icon}</span>
-                        {style.label}
-                      </button>
-                    ))}
+                        onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
+                        className="px-3 py-1.5 rounded-lg text-xs font-medium"
+                        style={{ background: "rgba(255,255,255,0.15)" }}
+                      >Change</button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setImageDataUrl(null); setScenes([]); setStatus("idle"); setError(""); }}
+                        className="px-3 py-1.5 rounded-lg text-xs font-medium"
+                        style={{ background: "rgba(239,68,68,0.2)", color: "#fca5a5" }}
+                      >Remove</button>
+                    </div>
                   </div>
-                </div>
-
-                {/* Number of Scenes */}
-                <div>
-                  <label className="text-sm font-semibold text-white mb-2 block">Number of Scenes</label>
-                  <select
-                    value={numScenes}
-                    onChange={(e) => setNumScenes(Number(e.target.value))}
-                    className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-emerald-400 transition-colors"
-                  >
-                    {[4, 6, 8, 12, 16].map((n) => (
-                      <option key={n} value={n}>
-                        {n} Scenes ({n * CREDIT_COST_PER_SCENE} credits)
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Generate Button */}
-                <button
-                  onClick={handleGenerate}
-                  disabled={isGenerating || !imageDataUrl || !productName.trim()}
-                  className="w-full py-3 rounded-lg font-semibold transition-all flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 disabled:opacity-50 disabled:cursor-not-allowed text-white"
-                >
-                  {isGenerating ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Generating...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="w-4 h-4" />
-                      Generate Scenes
-                    </>
-                  )}
-                </button>
-
-                {/* Error Message */}
-                {errorMessage && (
-                  <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 flex gap-2">
-                    <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
-                    <p className="text-sm text-red-200">{errorMessage}</p>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full gap-3 p-4">
+                    <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: "rgba(255,255,255,0.04)" }}>
+                      <Upload className="w-5 h-5" style={{ color: "rgba(255,255,255,0.2)" }} />
+                    </div>
+                    <div className="text-center">
+                      <p className="text-xs font-medium" style={{ color: "rgba(255,255,255,0.3)" }}>Upload reference image</p>
+                      <p className="text-[10px] mt-0.5" style={{ color: "rgba(255,255,255,0.15)" }}>Product, person or outfit</p>
+                    </div>
                   </div>
                 )}
+                <input ref={fileInputRef} type="file" accept="image/*" className="hidden"
+                  onChange={(e) => e.target.files?.[0] && void handleFileSelect(e.target.files[0])} />
               </div>
             </div>
 
-            {/* Right: Gallery */}
-            <div className="lg:col-span-2">
-              {scenes.length > 0 ? (
-                <div>
-                  <h2 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-emerald-400" />
-                    Generated Scenes ({scenes.length})
-                  </h2>
-                  <div className="grid grid-cols-2 gap-4">
-                    {scenes.map((scene) => (
-                      <motion.div
-                        key={scene.id}
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className="group relative rounded-xl overflow-hidden aspect-square bg-white/5 border border-white/10 hover:border-emerald-400/50 transition-all cursor-pointer"
-                        onClick={() => setInspectorAsset({ id: scene.id, url: scene.imageUrl, type: "image" })}
-                      >
-                        <img src={scene.imageUrl} alt={scene.description} className="w-full h-full object-cover" />
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                          <Eye className="w-6 h-6 text-white" />
-                        </div>
-                        <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/60 to-transparent">
-                          <p className="text-xs text-white">{scene.description}</p>
-                        </div>
-                      </motion.div>
-                    ))}
+            {/* Product Name */}
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: "rgba(255,255,255,0.35)" }}>Product Name</p>
+              <input
+                type="text"
+                value={productName}
+                onChange={(e) => setProductName(e.target.value)}
+                placeholder="e.g., Silk Evening Gown"
+                className="w-full px-3 py-2.5 rounded-lg text-sm transition-all focus:outline-none"
+                style={{ background: "#0c1630", border: "1px solid rgba(255,255,255,0.07)", color: "white" }}
+                onFocus={(e) => (e.currentTarget.style.borderColor = "rgba(16,185,129,0.5)")}
+                onBlur={(e) => (e.currentTarget.style.borderColor = "rgba(255,255,255,0.07)")}
+              />
+            </div>
+
+            {/* Shoot Style */}
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest mb-2.5" style={{ color: "rgba(255,255,255,0.35)" }}>Shoot Style</p>
+              <div className="grid grid-cols-2 gap-1.5">
+                {SHOOT_STYLES.map((style) => {
+                  const active = shootStyleId === style.id;
+                  return (
+                    <button key={style.id} onClick={() => setShootStyleId(style.id)}
+                      className="p-3 rounded-xl text-left transition-all"
+                      style={{
+                        background: active ? `${style.accent}14` : "#0c1630",
+                        border: active ? `1px solid ${style.accent}40` : "1px solid rgba(255,255,255,0.05)",
+                      }}
+                    >
+                      <p className="text-xs font-semibold" style={{ color: active ? style.accent : "rgba(255,255,255,0.7)" }}>{style.label}</p>
+                      <p className="text-[10px] mt-0.5" style={{ color: "rgba(255,255,255,0.3)" }}>{style.desc}</p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Scene Count */}
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: "rgba(255,255,255,0.35)" }}>Scenes</p>
+              <div className="flex gap-2">
+                {SCENE_COUNT_OPTIONS.map(({ n, sublabel }) => {
+                  const active = numScenes === n;
+                  return (
+                    <button key={n} onClick={() => setNumScenes(n)}
+                      className="flex-1 py-2.5 rounded-xl transition-all text-center"
+                      style={{
+                        background: active ? "rgba(16,185,129,0.12)" : "#0c1630",
+                        border: active ? "1px solid rgba(16,185,129,0.35)" : "1px solid rgba(255,255,255,0.05)",
+                      }}
+                    >
+                      <p className="text-sm font-bold" style={{ color: active ? "#10b981" : "rgba(255,255,255,0.6)" }}>{n}</p>
+                      <p className="text-[9px] mt-0.5" style={{ color: "rgba(255,255,255,0.25)" }}>{sublabel}</p>
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-[10px] mt-2" style={{ color: "rgba(255,255,255,0.2)" }}>
+                {totalCredits} credits Â· {currentStyle.label} style
+              </p>
+            </div>
+
+            {/* Generate */}
+            <button
+              onClick={() => void handleGenerate()}
+              disabled={!canGenerate}
+              className="w-full py-3 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2"
+              style={{
+                background: canGenerate ? "linear-gradient(135deg, #10b981 0%, #0d9488 100%)" : "rgba(16,185,129,0.15)",
+                color: canGenerate ? "white" : "rgba(255,255,255,0.3)",
+                cursor: canGenerate ? "pointer" : "not-allowed",
+              }}
+            >
+              {isGenerating ? (
+                <><Loader2 className="w-4 h-4 animate-spin" />Generatingâ€¦</>
+              ) : (
+                <><Sparkles className="w-4 h-4" />Generate {numScenes} Scenes</>
+              )}
+            </button>
+
+            {/* Error */}
+            <AnimatePresence>
+              {error && (
+                <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                  className="rounded-xl p-3 flex gap-2.5 text-xs"
+                  style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.18)" }}
+                >
+                  <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: "#f87171" }} />
+                  <div>
+                    <p className="font-semibold mb-0.5" style={{ color: "#fca5a5" }}>Generation Failed</p>
+                    <p style={{ color: "rgba(252,165,165,0.7)" }}>{error}</p>
+                    <button onClick={() => { setError(""); setStatus("idle"); }}
+                      className="mt-2 flex items-center gap-1 font-medium transition-colors hover:text-white"
+                      style={{ color: "rgba(252,165,165,0.6)" }}
+                    >
+                      <RefreshCw className="w-3 h-3" /> Try again
+                    </button>
                   </div>
-                </div>
-              ) : generationStatus === "generating" ? (
-                <div className="grid grid-cols-2 gap-4">
-                  {Array.from({ length: numScenes }).map((_, i) => (
-                    <div key={i} className="rounded-xl aspect-square bg-white/5 border border-white/10 animate-pulse" />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
+
+        {/* â”€â”€ Canvas â”€â”€ */}
+        <div className="flex-1 overflow-y-auto" style={{ background: "#080f1c" }}>
+
+          {/* Empty State */}
+          {status === "idle" && scenes.length === 0 && (
+            <div className="flex flex-col items-center justify-center min-h-full gap-5 p-12">
+              <div className="w-16 h-16 rounded-2xl flex items-center justify-center"
+                style={{ background: "rgba(16,185,129,0.05)", border: "1px solid rgba(16,185,129,0.1)" }}>
+                <ImageIcon className="w-7 h-7" style={{ color: "rgba(16,185,129,0.4)" }} />
+              </div>
+              <div className="text-center max-w-sm">
+                <p className="font-semibold mb-1.5" style={{ color: "rgba(255,255,255,0.4)" }}>Your ad scenes will appear here</p>
+                <p className="text-sm" style={{ color: "rgba(255,255,255,0.2)" }}>
+                  Upload a reference image, choose a shoot style, and generate professional photography.
+                </p>
+              </div>
+              <div className="rounded-xl p-4 w-full max-w-sm" style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)" }}>
+                <p className="text-xs font-semibold mb-3" style={{ color: "rgba(255,255,255,0.3)" }}>
+                  {currentStyle.label} â€” {numScenes} shots will include:
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {currentStyle.cameraAngles.slice(0, numScenes).map((angle) => (
+                    <span key={angle} className="text-[10px] px-2 py-0.5 rounded-full"
+                      style={{ background: `${currentStyle.accent}12`, border: `1px solid ${currentStyle.accent}25`, color: currentStyle.accent }}>
+                      {SHOT_LABELS[angle] ?? angle}
+                    </span>
                   ))}
                 </div>
-              ) : (
-                <div className="rounded-xl border-2 border-dashed border-white/10 p-12 text-center">
-                  <Palette className="w-12 h-12 text-white/20 mx-auto mb-3" />
-                  <p className="text-white/40">Upload a product image and configure settings to generate scenes</p>
-                </div>
-              )}
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* Loading */}
+          {isGenerating && (
+            <div className="p-6">
+              <div className="flex items-center gap-3 mb-6">
+                <Loader2 className="w-4 h-4 animate-spin" style={{ color: "#10b981" }} />
+                <p className="text-sm font-medium" style={{ color: "rgba(255,255,255,0.5)" }}>
+                  Generating {numScenes} {currentStyle.label} scenesâ€¦
+                </p>
+              </div>
+              <div className={`grid gap-3 ${numScenes <= 4 ? "grid-cols-2" : "grid-cols-3"}`}>
+                {Array.from({ length: numScenes }).map((_, i) => (
+                  <div key={i} className="rounded-xl overflow-hidden" style={{ aspectRatio: "3/4", background: "#0c1630" }}>
+                    <motion.div className="w-full h-full"
+                      animate={{ opacity: [0.3, 0.6, 0.3] }}
+                      transition={{ duration: 1.8, repeat: Infinity, delay: i * 0.15 }}
+                      style={{ background: "linear-gradient(135deg, #0c1630, #1a2a50, #0c1630)" }} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Results */}
+          {status === "success" && scenes.length > 0 && (
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center gap-2.5">
+                  <CheckCircle className="w-4 h-4" style={{ color: "#10b981" }} />
+                  <span className="font-semibold text-sm" style={{ color: "rgba(255,255,255,0.8)" }}>
+                    {scenes.length} Scenes â€” {currentStyle.label} Shoot
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => scenes.forEach((s, i) => void downloadImage(s.url, `${(productName || "product").replace(/\s+/g, "-")}-${s.shotLabel.replace(/\s+/g, "-").toLowerCase()}-${i + 1}.jpg`))}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors hover:bg-white/10"
+                    style={{ border: "1px solid rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.5)" }}
+                  >
+                    <Download className="w-3.5 h-3.5" /> Download All
+                  </button>
+                  <button
+                    onClick={() => { setScenes([]); setStatus("idle"); }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors hover:bg-white/10"
+                    style={{ border: "1px solid rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.5)" }}
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" /> New Shoot
+                  </button>
+                </div>
+              </div>
+
+              <div className={`grid gap-3 ${scenes.length <= 4 ? "grid-cols-2" : "grid-cols-3"}`}>
+                <AnimatePresence>
+                  {scenes.map((scene, i) => (
+                    <motion.div key={scene.id}
+                      initial={{ opacity: 0, scale: 0.97, y: 8 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      transition={{ duration: 0.3, delay: i * 0.07 }}
+                      className="group relative rounded-xl overflow-hidden cursor-pointer"
+                      style={{ aspectRatio: "3/4", background: "#0c1630" }}
+                      onClick={() => setInspectorAsset({
+                        id: scene.id, type: "image", url: scene.url,
+                        title: `${productName || "Product"} â€” ${scene.shotLabel}`,
+                        prompt: buildScenePrompt(currentStyle.stylePrompt, productName),
+                        model: "wavespeed/qwen-image-edit-multiple-angles",
+                      })}
+                    >
+                      <img src={scene.url} alt={scene.shotLabel} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.04]" />
+
+                      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                        style={{ background: "linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.2) 50%, transparent 100%)" }} />
+
+                      {/* Bottom label */}
+                      <div className="absolute bottom-0 left-0 right-0 px-3 py-2.5"
+                        style={{ background: "linear-gradient(to top, rgba(0,0,0,0.8), transparent)" }}>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-semibold text-white">{scene.shotLabel}</span>
+                          <span className="text-[10px] px-1.5 py-0.5 rounded"
+                            style={{ background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.6)" }}>
+                            {i + 1}/{scenes.length}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Action buttons */}
+                      <div className="absolute top-2 right-2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setInspectorAsset({ id: scene.id, type: "image", url: scene.url, title: `${productName || "Product"} â€” ${scene.shotLabel}` }); }}
+                          className="p-1.5 rounded-lg transition-colors"
+                          style={{ background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)" }}
+                        ><Eye className="w-3.5 h-3.5 text-white" /></button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); void downloadImage(scene.url, `${(productName || "product").replace(/\s+/g, "-")}-${scene.shotLabel.replace(/\s+/g, "-").toLowerCase()}.jpg`); }}
+                          className="p-1.5 rounded-lg transition-colors"
+                          style={{ background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)" }}
+                        ><Download className="w-3.5 h-3.5 text-white" /></button>
+                      </div>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Asset Inspector */}
       {inspectorAsset && <AssetInspector asset={inspectorAsset} onClose={() => setInspectorAsset(null)} />}
     </div>
   );
