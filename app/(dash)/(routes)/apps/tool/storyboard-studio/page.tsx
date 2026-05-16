@@ -210,6 +210,7 @@ export default function StoryboardProductionPage() {
   const [isDragging, setIsDragging] = useState(false);
   const [numPanels, setNumPanels] = useState(4);
   const [storyboardType, setStoryboardType] = useState<string>("production");
+  const [storyboardTypeOpen, setStoryboardTypeOpen] = useState(false);
   const [aspectRatio, setAspectRatio] = useState<string>("1:1");
   const [ratioOpen, setRatioOpen] = useState(false);
   const [selectedAngles, setSelectedAngles] = useState<string[]>(() => getAutoAngleSelection(4));
@@ -804,22 +805,45 @@ export default function StoryboardProductionPage() {
           {/* Storyboard Type */}
           <div className="mt-5">
             <SectionLabel>Storyboard Type</SectionLabel>
-            <div className="flex flex-col gap-1.5">
-              {STORYBOARD_TYPES.map((t) => (
-                <button
-                  key={t.id}
-                  className="w-full py-2.5 px-3 rounded-lg text-[12px] font-semibold transition-all text-left"
-                  style={{
-                    border: `1px solid ${storyboardType === t.id ? "rgba(139,92,246,0.4)" : "#1e293b"}`,
-                    background: storyboardType === t.id ? "rgba(139,92,246,0.1)" : "#0e1630",
-                    color: storyboardType === t.id ? "#a78bfa" : "#64748b",
-                    fontFamily: "var(--font-display)",
-                  }}
-                  onClick={() => setStoryboardType(t.id)}
+            <div className="relative">
+              <button
+                className="flex items-center justify-between w-full px-3 py-2.5 rounded-lg text-[12px] font-bold transition-all"
+                style={{
+                  border: "1px solid #1e293b",
+                  background: "#0e1630",
+                  color: "#a78bfa",
+                  fontFamily: "var(--font-display)",
+                }}
+                onClick={() => setStoryboardTypeOpen((prev) => !prev)}
+              >
+                <span>{STORYBOARD_TYPES.find((type) => type.id === storyboardType)?.label ?? "Storyboard Production"}</span>
+                <ChevronDown size={14} style={{ color: "#64748b", transform: storyboardTypeOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
+              </button>
+
+              {storyboardTypeOpen && (
+                <div
+                  className="absolute left-0 right-0 top-full mt-1 z-20 rounded-lg overflow-hidden"
+                  style={{ background: "#0e1630", border: "1px solid #1e293b" }}
                 >
-                  {t.label}
-                </button>
-              ))}
+                  {STORYBOARD_TYPES.map((t) => (
+                    <button
+                      key={t.id}
+                      className="w-full py-2.5 px-3 text-[12px] font-semibold transition-all text-left hover:bg-white/5"
+                      style={{
+                        background: storyboardType === t.id ? "rgba(139,92,246,0.1)" : "transparent",
+                        color: storyboardType === t.id ? "#a78bfa" : "#64748b",
+                        fontFamily: "var(--font-display)",
+                      }}
+                      onClick={() => {
+                        setStoryboardType(t.id);
+                        setStoryboardTypeOpen(false);
+                      }}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
