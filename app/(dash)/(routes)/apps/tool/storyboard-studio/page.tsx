@@ -202,6 +202,21 @@ function compressImage(dataUrl: string, maxBytes = 2_500_000, maxSide = 2048): P
   });
 }
 
+function getStoryboardErrorMessage(error: unknown, getSafeErrorMessage: (error: unknown) => string): string {
+  const message =
+    error instanceof Error
+      ? error.message
+      : typeof error === "string"
+        ? error
+        : "";
+
+  if (message.toLowerCase().includes("restricted content detected")) {
+    return "Restricted content detected. This reference image cannot be used.";
+  }
+
+  return getSafeErrorMessage(error);
+}
+
 export default function StoryboardProductionPage() {
   const { guardGeneration, getSafeErrorMessage } = useGenerationGate();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -422,7 +437,7 @@ export default function StoryboardProductionPage() {
       setGenerationStatus("idle");
       setStatusMessage("");
     } catch (err) {
-      const message = getSafeErrorMessage(err);
+      const message = getStoryboardErrorMessage(err, getSafeErrorMessage);
       setImageDataUrl(null);
       setSafeReferenceImageDataUrl(null);
       setReferenceSafetyToken(null);
@@ -540,7 +555,7 @@ export default function StoryboardProductionPage() {
       setStatusMessage("");
       await loadStoryboardAssets().catch(() => null);
     } catch (err) {
-      const message = getSafeErrorMessage(err);
+      const message = getStoryboardErrorMessage(err, getSafeErrorMessage);
       setResult({ outputs: [], status: "failed", error: message });
       setGenerationStatus("failed");
       setStatusMessage("");
