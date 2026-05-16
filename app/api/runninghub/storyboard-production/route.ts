@@ -26,7 +26,7 @@ const WAVESPEED_BASE = "https://api.wavespeed.ai/api/v3";
 const WAVESPEED_MODEL = "wavespeed-ai/qwen-image/edit-2509-multiple-angles";
 
 class UnsafeReferenceImageError extends Error {
-  constructor(message = "Reference image violates safety policy.") {
+  constructor(message = "Uploading explicit images is not allowed.") {
     super(message);
     this.name = "UnsafeReferenceImageError";
   }
@@ -255,14 +255,14 @@ async function checkReferenceImageSafety(imageUrl: string): Promise<void> {
     const sexualMinors = Boolean(categories?.["sexual/minors"] ?? categories?.sexual_minors);
 
     if (flagged || sexual || sexualMinors) {
-      throw new UnsafeReferenceImageError("Reference image contains adult/sexual content and cannot be processed.");
+      throw new UnsafeReferenceImageError("Uploading explicit images is not allowed.");
     }
   } catch (error) {
     if (error instanceof UnsafeReferenceImageError) {
       throw error;
     }
     if (failClosed) {
-      throw new UnsafeReferenceImageError("Unable to verify image safety. Please use a different image.");
+      throw new UnsafeReferenceImageError("Unable to verify image safety. Please use another image.");
     }
   }
 }
