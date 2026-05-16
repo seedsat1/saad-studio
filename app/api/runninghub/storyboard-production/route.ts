@@ -218,12 +218,22 @@ async function uploadRefImage(base64DataUrl: string, userId: string, genId: stri
 }
 
 async function checkReferenceImageSafety(imageUrl: string): Promise<void> {
-  const apiKey = String(process.env.OPENAI_API_KEY ?? "").trim();
-  if (!apiKey) return;
+  const apiKey = String(
+    process.env.OPENAI_API_KEY
+      ?? process.env.NSFW_SCAN_OPENAI_API_KEY
+      ?? "",
+  ).trim();
+  const enforceSafety = String(process.env.STORYBOARD_NSFW_ENFORCE ?? "1").trim() !== "0";
+  if (!apiKey) {
+    if (enforceSafety) {
+      throw new UnsafeReferenceImageError("Safety check service is unavailable. Upload is blocked.");
+    }
+    return;
+  }
 
   const model = String(process.env.STORYBOARD_NSFW_MODEL ?? "omni-moderation-latest").trim() || "omni-moderation-latest";
   const failClosed = String(process.env.STORYBOARD_NSFW_FAIL_CLOSED ?? "1").trim() !== "0";
-  const thresholdRaw = Number(process.env.STORYBOARD_NSFW_SEXUAL_THRESHOLD ?? "0.97");
+  const thresholdRaw = Number(process.env.STORYBOARD_NSFW_SEXUAL_THRESHOLD ?? "0.85");
   const sexualThreshold = Number.isFinite(thresholdRaw)
     ? Math.max(0, Math.min(1, thresholdRaw))
     : 0.97;
@@ -260,7 +270,7 @@ async function checkReferenceImageSafety(imageUrl: string): Promise<void> {
     const sexualScore = Number(scores?.sexual);
     const sexualMinorsScore = Number(scores?.["sexual/minors"] ?? scores?.sexual_minors);
 
-    const blockForSexual = sexual && Number.isFinite(sexualScore) && sexualScore >= sexualThreshold;
+    const blockForSexual = sexual && (!Number.isFinite(sexualScore) || sexualScore >= sexualThreshold);
     const blockForSexualMinors = sexualMinors || (Number.isFinite(sexualMinorsScore) && sexualMinorsScore > 0);
 
     // Block only high-confidence sexual content and always block sexual/minors.
