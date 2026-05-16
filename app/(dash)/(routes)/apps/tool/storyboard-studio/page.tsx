@@ -861,7 +861,11 @@ export default function StoryboardProductionPage() {
                   color: "#06b6d4",
                   fontFamily: "var(--font-display)",
                 }}
-                onClick={() => setRatioOpen(!ratioOpen)}
+                onClick={() => {
+                  setRatioOpen((prev) => !prev);
+                  setPanelsOpen(false);
+                  setQualityOpen(false);
+                }}
               >
                 <span className="flex items-center gap-2.5">
                   <RatioIcon ratio={aspectRatio} />
@@ -885,17 +889,6 @@ export default function StoryboardProductionPage() {
                       }}
                       onClick={() => { setAspectRatio(r); setRatioOpen(false); }}
                     >
-                      <span
-                        className="flex-shrink-0 w-4 h-4 rounded-[3px] flex items-center justify-center"
-                        style={{
-                          border: `1.5px solid ${aspectRatio === r ? "#06b6d4" : "#334155"}`,
-                          background: aspectRatio === r ? "#06b6d4" : "transparent",
-                        }}
-                      >
-                        {aspectRatio === r && (
-                          <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5.5L4 7.5L8 3" stroke="#060c18" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                        )}
-                      </span>
                       <RatioIcon ratio={r} />
                       {r}
                     </button>
@@ -920,6 +913,7 @@ export default function StoryboardProductionPage() {
                 onClick={() => {
                   setPanelsOpen((prev) => !prev);
                   setQualityOpen(false);
+                  setRatioOpen(false);
                 }}
               >
                 <span>{numPanels} panel{numPanels !== 1 ? "s" : ""}</span>
@@ -970,6 +964,7 @@ export default function StoryboardProductionPage() {
                 onClick={() => {
                   setQualityOpen((prev) => !prev);
                   setPanelsOpen(false);
+                  setRatioOpen(false);
                 }}
               >
                 <span>{selectedQuality.label}</span>
