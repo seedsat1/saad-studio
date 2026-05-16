@@ -614,31 +614,61 @@ export default function StoryboardProductionPage() {
             </p>
           </div>
 
-          {/* Promotional Banner - Product Ad Generator */}
-          <Link href="/apps/tool/product-ad-generator">
-            <div className="mb-6 rounded-xl p-4 cursor-pointer transition-all hover:shadow-lg hover:shadow-emerald-500/10" style={{ background: "linear-gradient(135deg, rgba(16,185,129,0.08), rgba(20,184,166,0.08))", border: "1px solid rgba(16,185,129,0.2)" }}>
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg" style={{ background: "rgba(16,185,129,0.15)" }}>
-                    <ShoppingBag size={20} style={{ color: "#10b981" }} />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-semibold mb-0.5" style={{ color: "#10b981" }}>
-                      New: Product Ad Generator
-                    </h3>
-                    <p className="text-xs" style={{ color: "#6b7280" }}>
-                      Create professional advertisement scenes for your products
-                    </p>
-                  </div>
-                </div>
-                <div style={{ color: "#10b981" }}>
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </div>
-              </div>
+          {/* Promotional Tools Section */}
+          <div className="mb-6 rounded-xl p-4" style={{ background: "linear-gradient(135deg, rgba(16,185,129,0.06), rgba(14,165,233,0.05))", border: "1px solid rgba(16,185,129,0.18)" }}>
+            <div className="flex items-center gap-2 mb-3">
+              <Sparkles size={14} style={{ color: "#10b981" }} />
+              <span className="text-xs font-semibold" style={{ color: "#10b981" }}>
+                New AI Production Tools
+              </span>
             </div>
-          </Link>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <Link href="/apps/tool/product-ad-generator" className="rounded-lg p-3 transition-all hover:translate-y-[-1px]" style={{ background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.2)" }}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <ShoppingBag size={16} style={{ color: "#10b981" }} />
+                    <span className="text-xs font-semibold" style={{ color: "#bbf7d0" }}>Product Ad Generator</span>
+                  </div>
+                  <span className="text-[10px]" style={{ color: "#10b981" }}>OPEN</span>
+                </div>
+                <p className="text-[11px] mt-1" style={{ color: "#6b7280" }}>Professional ad scenes for products</p>
+              </Link>
+
+              <Link href="/apps/tool/character-reference-sheet" className="rounded-lg p-3 transition-all hover:translate-y-[-1px]" style={{ background: "rgba(139,92,246,0.08)", border: "1px solid rgba(139,92,246,0.2)" }}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Film size={16} style={{ color: "#a78bfa" }} />
+                    <span className="text-xs font-semibold" style={{ color: "#ddd6fe" }}>Character Reference Sheet</span>
+                  </div>
+                  <span className="text-[10px]" style={{ color: "#a78bfa" }}>OPEN</span>
+                </div>
+                <p className="text-[11px] mt-1" style={{ color: "#6b7280" }}>Multi-angle consistent identity frames</p>
+              </Link>
+
+              <Link href="/apps/tool/model-reference-sheet" className="rounded-lg p-3 transition-all hover:translate-y-[-1px]" style={{ background: "rgba(14,165,233,0.08)", border: "1px solid rgba(14,165,233,0.2)" }}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Eye size={16} style={{ color: "#38bdf8" }} />
+                    <span className="text-xs font-semibold" style={{ color: "#bae6fd" }}>Model Reference Sheet</span>
+                  </div>
+                  <span className="text-[10px]" style={{ color: "#38bdf8" }}>OPEN</span>
+                </div>
+                <p className="text-[11px] mt-1" style={{ color: "#6b7280" }}>Front, upper-body, and back consistency</p>
+              </Link>
+
+              <Link href="/apps/tool/makeup-analysis-guide" className="rounded-lg p-3 transition-all hover:translate-y-[-1px]" style={{ background: "rgba(244,63,94,0.08)", border: "1px solid rgba(244,63,94,0.2)" }}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Sparkles size={16} style={{ color: "#fb7185" }} />
+                    <span className="text-xs font-semibold" style={{ color: "#fecdd3" }}>Makeup Analysis Guide</span>
+                  </div>
+                  <span className="text-[10px]" style={{ color: "#fb7185" }}>OPEN</span>
+                </div>
+                <p className="text-[11px] mt-1" style={{ color: "#6b7280" }}>Beauty angles with locked identity/style</p>
+              </Link>
+            </div>
+          </div>
 
           {/* Empty state */}
           {generationStatus === "idle" && !result && (
