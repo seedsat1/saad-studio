@@ -212,6 +212,8 @@ export default function StoryboardProductionPage() {
   const [albums, setAlbums] = useState<Album[]>([]);
   const [activeAlbumId, setActiveAlbumId] = useState<string | null>(null);
   const [showAlbumPicker, setShowAlbumPicker] = useState(false);
+  const [albumPickerMode, setAlbumPickerMode] = useState<"add" | "move">("add");
+  const [draggedAssetId, setDraggedAssetId] = useState<string | null>(null);
 
   const loadStoryboardAssets = useCallback(async () => {
     const res = await fetch("/api/assets?type=image", { cache: "no-store" });
@@ -253,8 +255,11 @@ export default function StoryboardProductionPage() {
   const selectedQuality = QUALITY_OPTIONS.find((option) => option.id === quality) ?? QUALITY_OPTIONS[0];
   const creditsPerPanel = selectedQuality.creditsPerPanel;
   const totalCost = numPanels * creditsPerPanel;
-  const visibleHistory = activeAlbumId
-    ? history.filter((item) => albums.find((album) => album.id === activeAlbumId)?.assetIds.includes(item.id))
+  const activeAlbum = activeAlbumId ? albums.find((album) => album.id === activeAlbumId) ?? null : null;
+  const visibleHistory = activeAlbum
+    ? activeAlbum.assetIds
+      .map((assetId) => history.find((item) => item.id === assetId))
+      .filter((item): item is StoryboardHistoryItem => Boolean(item))
     : history;
 
   useEffect(() => {
@@ -305,20 +310,63 @@ export default function StoryboardProductionPage() {
     setShowAlbumPicker(false);
   }, [selectedIds, exitSelectionMode]);
 
+  const moveSelectionToAlbum = useCallback((albumId: string) => {
+    if (selectedIds.size === 0) return;
+    const movedIds = Array.from(selectedIds);
+    setAlbums((prev) => prev.map((album) => {
+      const filtered = album.assetIds.filter((assetId) => !selectedIds.has(assetId));
+      if (album.id !== albumId) {
+        return { ...album, assetIds: filtered };
+      }
+      return { ...album, assetIds: [...filtered, ...movedIds] };
+    }));
+    setActiveAlbumId(albumId);
+    exitSelectionMode();
+    setShowAlbumPicker(false);
+  }, [selectedIds, exitSelectionMode]);
+
   const createAlbumWithSelection = useCallback((name: string) => {
     const trimmed = name.trim();
     if (!trimmed || selectedIds.size === 0) return;
     const id = `story_alb_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
-    setAlbums((prev) => [...prev, { id, name: trimmed, assetIds: Array.from(selectedIds) }]);
+    setAlbums((prev) => {
+      const nextAlbums = albumPickerMode === "move"
+        ? prev.map((album) => ({ ...album, assetIds: album.assetIds.filter((assetId) => !selectedIds.has(assetId)) }))
+        : prev;
+      return [...nextAlbums, { id, name: trimmed, assetIds: Array.from(selectedIds) }];
+    });
     setActiveAlbumId(id);
     exitSelectionMode();
     setShowAlbumPicker(false);
-  }, [selectedIds, exitSelectionMode]);
+  }, [selectedIds, exitSelectionMode, albumPickerMode]);
+
+  const renameAlbum = useCallback((albumId: string) => {
+    if (typeof window === "undefined") return;
+    const current = albums.find((album) => album.id === albumId);
+    if (!current) return;
+    const nextName = window.prompt("Rename album", current.name)?.trim();
+    if (!nextName || nextName === current.name) return;
+    setAlbums((prev) => prev.map((album) => album.id === albumId ? { ...album, name: nextName } : album));
+  }, [albums]);
 
   const deleteAlbum = useCallback((albumId: string) => {
     if (typeof window !== "undefined" && !window.confirm("Delete this album? Images will stay in your storyboard library.")) return;
     setAlbums((prev) => prev.filter((album) => album.id !== albumId));
     if (activeAlbumId === albumId) setActiveAlbumId(null);
+  }, [activeAlbumId]);
+
+  const moveAssetWithinAlbum = useCallback((fromId: string, toId: string) => {
+    if (!activeAlbumId || fromId === toId) return;
+    setAlbums((prev) => prev.map((album) => {
+      if (album.id !== activeAlbumId) return album;
+      const fromIndex = album.assetIds.indexOf(fromId);
+      const toIndex = album.assetIds.indexOf(toId);
+      if (fromIndex === -1 || toIndex === -1) return album;
+      const nextIds = [...album.assetIds];
+      const [moved] = nextIds.splice(fromIndex, 1);
+      nextIds.splice(toIndex, 0, moved);
+      return { ...album, assetIds: nextIds };
+    }));
   }, [activeAlbumId]);
 
   const handleFileSelect = useCallback(async (file: File) => {
@@ -542,9 +590,13 @@ export default function StoryboardProductionPage() {
                 </button>
                 {selectionMode && selectedIds.size > 0 && (
                   <>
-                    <button onClick={() => setShowAlbumPicker(true)} className="inline-flex items-center gap-1.5 rounded-lg border border-amber-400/30 bg-amber-500/10 px-2.5 py-1 text-[11px] text-amber-100 hover:bg-amber-500/20">
+                    <button onClick={() => { setAlbumPickerMode("add"); setShowAlbumPicker(true); }} className="inline-flex items-center gap-1.5 rounded-lg border border-amber-400/30 bg-amber-500/10 px-2.5 py-1 text-[11px] text-amber-100 hover:bg-amber-500/20">
                       <FolderPlus className="h-3.5 w-3.5" />
-                      Album
+                      Add to Album
+                    </button>
+                    <button onClick={() => { setAlbumPickerMode("move"); setShowAlbumPicker(true); }} className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-400/30 bg-cyan-500/10 px-2.5 py-1 text-[11px] text-cyan-100 hover:bg-cyan-500/20">
+                      <Folder className="h-3.5 w-3.5" />
+                      Move
                     </button>
                     <button onClick={() => void onBulkDelete()} className="inline-flex items-center gap-1.5 rounded-lg border border-red-400/30 bg-red-500/10 px-2.5 py-1 text-[11px] text-red-100 hover:bg-red-500/20">
                       <Trash2 className="h-3.5 w-3.5" />
@@ -568,6 +620,7 @@ export default function StoryboardProductionPage() {
                           {album.name}
                           <span className="opacity-70">{album.assetIds.length}</span>
                         </button>
+                        <button onClick={() => renameAlbum(album.id)} className="px-2 py-1 text-[11px] text-slate-400 hover:text-cyan-300">Rename</button>
                         <button onClick={() => deleteAlbum(album.id)} className="px-2 py-1 text-[11px] text-slate-400 hover:text-red-300">×</button>
                       </div>
                     );
@@ -580,8 +633,21 @@ export default function StoryboardProductionPage() {
                   <div
                     key={item.id}
                     className="group relative cursor-pointer overflow-hidden rounded-lg ring-1 ring-white/10"
-                    style={{ aspectRatio: "1 / 1" }}
+                    style={{ aspectRatio: "1 / 1", opacity: draggedAssetId === item.id ? 0.55 : 1 }}
                     onClick={() => selectionMode ? toggleSelected(item.id) : setInspectorAsset({ type: "image", url: item.url, title: item.prompt, prompt: item.prompt, model: "Qwen Image Edit" })}
+                    draggable={Boolean(activeAlbumId && !selectionMode)}
+                    onDragStart={() => setDraggedAssetId(item.id)}
+                    onDragEnd={() => setDraggedAssetId(null)}
+                    onDragOver={(e) => {
+                      if (!activeAlbumId || selectionMode) return;
+                      e.preventDefault();
+                    }}
+                    onDrop={(e) => {
+                      if (!activeAlbumId || selectionMode || !draggedAssetId) return;
+                      e.preventDefault();
+                      moveAssetWithinAlbum(draggedAssetId, item.id);
+                      setDraggedAssetId(null);
+                    }}
                   >
                     <img src={item.url} alt={item.prompt} className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.04]" />
                     {selectionMode && (
@@ -602,6 +668,12 @@ export default function StoryboardProductionPage() {
               {visibleHistory.length === 0 && (
                 <div className="mt-3 rounded-xl border border-white/10 bg-[#060c18] px-4 py-6 text-center text-xs text-slate-400">
                   {activeAlbumId ? "This album is empty." : "No storyboard images found yet."}
+                </div>
+              )}
+
+              {activeAlbumId && visibleHistory.length > 1 && !selectionMode && (
+                <div className="mt-2 text-[10px] text-slate-500">
+                  Drag images to reorder this album.
                 </div>
               )}
             </div>
@@ -886,7 +958,8 @@ export default function StoryboardProductionPage() {
         <AlbumPicker
           albums={albums}
           count={selectedIds.size}
-          onPick={addSelectionToAlbum}
+          mode={albumPickerMode}
+          onPick={albumPickerMode === "move" ? moveSelectionToAlbum : addSelectionToAlbum}
           onCreate={createAlbumWithSelection}
           onClose={() => setShowAlbumPicker(false)}
         />
@@ -895,14 +968,16 @@ export default function StoryboardProductionPage() {
   );
 }
 
-function AlbumPicker({ albums, count, onPick, onCreate, onClose }: { albums: Album[]; count: number; onPick: (id: string) => void; onCreate: (name: string) => void; onClose: () => void }) {
+function AlbumPicker({ albums, count, mode, onPick, onCreate, onClose }: { albums: Album[]; count: number; mode: "add" | "move"; onPick: (id: string) => void; onCreate: (name: string) => void; onClose: () => void }) {
   const [newName, setNewName] = useState("");
+  const title = mode === "move" ? `Move ${count} image(s) to album` : `Add ${count} image(s) to album`;
+  const createLabel = mode === "move" ? "Create & Move" : "Create";
 
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={onClose}>
       <div className="w-full max-w-md rounded-2xl border border-white/10 bg-[#0b1222] p-5 space-y-4" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold">Add {count} image(s) to album</h3>
+          <h3 className="text-lg font-semibold">{title}</h3>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/10"><X className="h-4 w-4" /></button>
         </div>
 
@@ -930,7 +1005,7 @@ function AlbumPicker({ albums, count, onPick, onCreate, onClose }: { albums: Alb
             />
             <button onClick={() => onCreate(newName)} disabled={!newName.trim()} className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-amber-400/40 bg-amber-500/20 text-sm text-amber-100 hover:bg-amber-500/30 disabled:opacity-40 disabled:cursor-not-allowed">
               <FolderPlus className="h-3.5 w-3.5" />
-              Create
+              {createLabel}
             </button>
           </div>
         </div>
