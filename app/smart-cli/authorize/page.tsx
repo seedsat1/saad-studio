@@ -2,6 +2,7 @@
 
 import { Suspense, useMemo, useState } from "react";
 import { SignInButton, useAuth, useUser } from "@clerk/nextjs";
+import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { Check, LockKeyhole, X } from "lucide-react";
 
@@ -55,8 +56,14 @@ function AuthorizeContent() {
               <LockKeyhole className="h-5 w-5" />
             </div>
             <div className="h-px w-9 border-t border-dashed border-white/40" />
-            <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-cyan-300 text-lg font-black text-black">
-              SS
+            <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-black/20">
+              <Image
+                src="/logo-saad-transparent.png"
+                alt="Saad Studio"
+                width={48}
+                height={48}
+                className="h-12 w-12 object-contain"
+              />
             </div>
           </div>
 
