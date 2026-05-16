@@ -927,19 +927,6 @@ export default function StoryboardProductionPage() {
             Costs <span style={{ color: "#8b5cf6", fontWeight: 600 }}>{totalCost} credits</span> for {numPanels} panel{numPanels !== 1 ? "s" : ""}
           </div>
 
-          {/* How it works */}
-          <div className="mt-6 rounded-xl p-4" style={{ background: "#060c18", border: "1px solid #1e293b" }}>
-            <div className="flex items-center gap-2 mb-2.5">
-              <Film size={13} style={{ color: "#06b6d4" }} />
-              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "#64748b" }}>How it works</span>
-            </div>
-            <ol className="text-xs space-y-1.5" style={{ color: "#64748b" }}>
-              <li className="flex gap-2"><span style={{ color: "#8b5cf6", fontWeight: 700 }}>1.</span> Upload a reference image</li>
-              <li className="flex gap-2"><span style={{ color: "#8b5cf6", fontWeight: 700 }}>2.</span> Choose storyboard type & aspect ratio</li>
-              <li className="flex gap-2"><span style={{ color: "#8b5cf6", fontWeight: 700 }}>3.</span> Select camera angles & number of panels</li>
-              <li className="flex gap-2"><span style={{ color: "#8b5cf6", fontWeight: 700 }}>4.</span> AI generates cinematic scenes automatically</li>
-            </ol>
-          </div>
         </div>
       </div>
 
