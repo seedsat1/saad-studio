@@ -397,7 +397,7 @@ export async function POST(req: NextRequest) {
         // n=1-4 default; 1-12 with enable_sequential.
         input.n = Math.max(1, Math.min(12, requestedCount));
         if (requestedCount > 4) input.enable_sequential = true;
-        input.nsfw_checker = false;
+        input.nsfw_checker = true;
         input.watermark = false;
         input.seed = 0;
       } else if (isImagen4Fast) {
