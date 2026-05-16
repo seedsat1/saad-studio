@@ -51,6 +51,22 @@ export interface Asset {
   date?: string;
 }
 
+function extensionFromBlobType(type: string, fallback: string): string {
+  const t = type.toLowerCase();
+  if (t.includes("png")) return ".png";
+  if (t.includes("webp")) return ".webp";
+  if (t.includes("jpeg") || t.includes("jpg")) return ".jpg";
+  if (t.includes("avif")) return ".avif";
+  if (t.includes("gif")) return ".gif";
+  if (t.includes("mp4")) return ".mp4";
+  if (t.includes("webm")) return ".webm";
+  if (t.includes("mpeg") || t.includes("mp3")) return ".mp3";
+  if (t.includes("wav")) return ".wav";
+  if (t.includes("glb")) return ".glb";
+  if (t.includes("obj")) return ".obj";
+  return fallback;
+}
+
 // ── Per-type design tokens ─────────────────────────────────────────────────────
 
 const TYPE_CONFIG = {
@@ -795,14 +811,17 @@ export function AssetInspector({ asset, onClose }: AssetInspectorProps) {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const downloadAsset = useCallback(async (url: string, ext: string) => {
+  const downloadAsset = useCallback(async (url: string, fallbackExt: string) => {
     try {
-      const filename = `${asset.title?.slice(0, 40) ?? "asset"}${ext}`;
+      const baseName = `${asset.title?.slice(0, 40) ?? "asset"}`;
+      const tentative = `${baseName}${fallbackExt}`;
       const downloadUrl = url.startsWith("data:") || url.startsWith("blob:")
         ? url
-        : `/api/download?url=${encodeURIComponent(url)}&filename=${encodeURIComponent(filename)}`;
+        : `/api/download?url=${encodeURIComponent(url)}&filename=${encodeURIComponent(tentative)}`;
       const res = await fetch(downloadUrl);
       const blob = await res.blob();
+      const ext = extensionFromBlobType(blob.type || "", fallbackExt);
+      const filename = `${baseName}${ext}`;
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
       a.download = filename;

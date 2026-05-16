@@ -151,6 +151,16 @@ function saveAlbums(albums: Album[]) {
   }
 }
 
+function fileExtensionFromMime(mimeType: string): string {
+  const mime = mimeType.toLowerCase();
+  if (mime.includes("png")) return "png";
+  if (mime.includes("webp")) return "webp";
+  if (mime.includes("jpeg") || mime.includes("jpg")) return "jpg";
+  if (mime.includes("avif")) return "avif";
+  if (mime.includes("gif")) return "gif";
+  return "png";
+}
+
 function readFileAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -398,6 +408,34 @@ export default function StoryboardProductionPage() {
     [handleFileSelect],
   );
 
+  const downloadStoryboardImage = useCallback(async (url: string, nameBase: string) => {
+    try {
+      const isExternal = /^https?:\/\//i.test(url);
+      const response = await fetch(
+        isExternal ? `/api/download?url=${encodeURIComponent(url)}` : url,
+        { cache: "no-store" },
+      );
+      if (!response.ok) {
+        throw new Error(`Download failed (${response.status})`);
+      }
+      const blob = await response.blob();
+      const extension = fileExtensionFromMime(blob.type || "");
+      const safeBase = nameBase.replace(/[^a-z0-9-_]/gi, "-").replace(/-+/g, "-").toLowerCase();
+      const objectUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = objectUrl;
+      a.download = `${safeBase}.${extension}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(objectUrl);
+    } catch {
+      if (typeof window !== "undefined") {
+        window.open(url, "_blank", "noopener,noreferrer");
+      }
+    }
+  }, []);
+
   async function handleGenerate() {
     if (isGenerating || !imageDataUrl) return;
     if (selectedAngles.length === 0) {
@@ -564,11 +602,21 @@ export default function StoryboardProductionPage() {
                       style={{ background: "#060c18" }}
                       onClick={() => setInspectorAsset({ type: "image", url, title: `Panel ${i + 1}`, prompt: "Storyboard panel", model: "Qwen Image Edit" })}
                     >
-                      <img src={url} alt={`Panel ${i + 1}`} className="w-full h-auto object-contain transition duration-300 group-hover:scale-[1.02]" />
+                      <div className="flex min-h-[180px] items-center justify-center bg-[#060c18] p-2">
+                        <img src={url} alt={`Panel ${i + 1}`} className="w-full max-h-[320px] object-contain transition duration-300 group-hover:scale-[1.02]" />
+                      </div>
                       <div className="absolute left-2 top-2 rounded-md bg-black/60 px-2 py-0.5 text-[10px] text-zinc-200">Panel {i + 1}</div>
                       <div className="absolute inset-0 flex items-end justify-center gap-2 bg-black/0 pb-3 opacity-0 transition duration-200 group-hover:bg-black/45 group-hover:opacity-100">
                         <button onClick={(e) => { e.stopPropagation(); setInspectorAsset({ type: "image", url, title: `Panel ${i + 1}`, prompt: "Storyboard panel", model: "Qwen Image Edit" }); }} className="rounded-lg bg-white/15 p-2 text-white ring-1 ring-white/20"><Eye className="h-4 w-4" /></button>
-                        <a href={url} download={`storyboard-panel-${i + 1}`} onClick={(e) => e.stopPropagation()} className="rounded-lg bg-white/15 p-2 text-white ring-1 ring-white/20"><Download className="h-4 w-4" /></a>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void downloadStoryboardImage(url, `storyboard-panel-${i + 1}`);
+                          }}
+                          className="rounded-lg bg-white/15 p-2 text-white ring-1 ring-white/20"
+                        >
+                          <Download className="h-4 w-4" />
+                        </button>
                       </div>
                     </motion.div>
                   ))}
@@ -658,7 +706,15 @@ export default function StoryboardProductionPage() {
                     {!selectionMode && (
                       <div className="absolute inset-0 flex items-end justify-center gap-1.5 bg-black/0 pb-2 opacity-0 transition duration-200 group-hover:bg-black/45 group-hover:opacity-100">
                         <button onClick={(e) => { e.stopPropagation(); setInspectorAsset({ type: "image", url: item.url, title: item.prompt, prompt: item.prompt, model: "Qwen Image Edit" }); }} className="rounded-md bg-white/15 p-1.5 text-white ring-1 ring-white/20"><Eye className="h-3 w-3" /></button>
-                        <a href={item.url} download onClick={(e) => e.stopPropagation()} className="rounded-md bg-white/15 p-1.5 text-white ring-1 ring-white/20"><Download className="h-3 w-3" /></a>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void downloadStoryboardImage(item.url, item.prompt || "storyboard-image");
+                          }}
+                          className="rounded-md bg-white/15 p-1.5 text-white ring-1 ring-white/20"
+                        >
+                          <Download className="h-3 w-3" />
+                        </button>
                       </div>
                     )}
                   </div>
