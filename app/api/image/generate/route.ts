@@ -5,6 +5,7 @@ import { InsufficientCreditsError, precheckGenerationPolicy, refundCredits, refu
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { fetchWithTimeout, readErrorBody } from "@/lib/http";
 import { getClientIp, isAllowedOrigin, sanitizePrompt } from "@/lib/security";
+import { checkStoryboardReferenceImageSafety, UnsafeReferenceImageError } from "@/lib/storyboard-reference-safety";
 
 /** Allow up to 3 minutes for async KIE polling */
 export const maxDuration = 180;
@@ -75,6 +76,10 @@ export async function POST(req: Request) {
     }
     if (!model?.trim()) {
       return NextResponse.json({ error: "Model is required" }, { status: 400 });
+    }
+
+    if (typeof refImageUrl === "string" && /^https?:\/\//i.test(refImageUrl)) {
+      await checkStoryboardReferenceImageSafety(refImageUrl);
     }
 
     const creditsToCharge = await getGenerationCost(model, 5, numImages, resolution ?? quality ?? imageSize);
@@ -222,6 +227,16 @@ export async function POST(req: Request) {
         },
         { status: 402 },
       );
+    }
+
+    if (error instanceof UnsafeReferenceImageError) {
+      if (chargedCredits > 0 && chargedUserId && generationId) {
+        await refundGenerationCharge(generationId, chargedUserId, chargedCredits, {
+          reason: "generation_refund_provider_failed",
+          clearMediaUrl: true,
+        }).catch(() => {});
+      }
+      return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
     if (chargedCredits > 0 && chargedUserId && generationId) {

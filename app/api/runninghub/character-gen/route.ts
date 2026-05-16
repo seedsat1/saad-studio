@@ -15,6 +15,7 @@ import {
   discoverWorkflowNodes,
   getRunningHubApiKey,
 } from "@/lib/runninghub";
+import { checkStoryboardReferenceImageSafety, UnsafeReferenceImageError } from "@/lib/storyboard-reference-safety";
 
 export const maxDuration = 300;
 
@@ -56,6 +57,8 @@ export async function POST(req: NextRequest) {
     if (!imageDataUrl?.startsWith("data:image/")) {
       return NextResponse.json({ error: "A valid image is required." }, { status: 400 });
     }
+
+    await checkStoryboardReferenceImageSafety(imageDataUrl);
 
     // Validate API key early
     getRunningHubApiKey();
@@ -232,6 +235,10 @@ export async function POST(req: NextRequest) {
         },
         { status: 402 },
       );
+    }
+
+    if (err instanceof UnsafeReferenceImageError) {
+      return NextResponse.json({ error: err.message }, { status: 400 });
     }
 
     console.error("[CHARGEN_POST]", err);

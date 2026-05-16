@@ -7,6 +7,7 @@ import { getClientIp, isAllowedOrigin, sanitizePrompt } from "@/lib/security";
 import { getResolvedKieRoutingMaps } from "@/lib/kie-model-routing";
 import { syncKieModelCatalog } from "@/lib/kie-model-sync";
 import { isStorageConfigured, uploadBufferToStorage } from "@/lib/supabase-storage";
+import { checkStoryboardReferenceImageSafety, UnsafeReferenceImageError } from "@/lib/storyboard-reference-safety";
 
 export const maxDuration = 180;
 export const dynamic = "force-dynamic";
@@ -332,6 +333,11 @@ export async function POST(req: NextRequest) {
     const refUrls: string[] = [];
     if (imageUrl) refUrls.push(imageUrl);
     if (imageUrlsParam?.length) refUrls.push(...imageUrlsParam);
+
+    for (const ref of refUrls) {
+      await checkStoryboardReferenceImageSafety(ref);
+    }
+
     const resolvedRefs = await Promise.all(refUrls.map((r, i) => resolveRef(r, i)));
 
     const isWanModel = kieModelId.startsWith("wan/");
@@ -511,6 +517,13 @@ export async function POST(req: NextRequest) {
         responseJson,
         { status: 402 },
       );
+    }
+
+    if (error instanceof UnsafeReferenceImageError) {
+      if (chargedCredits > 0 && chargedUserId && generationId) {
+        await rollbackGenerationCharge(generationId, chargedUserId, chargedCredits).catch(() => {});
+      }
+      return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
     if (chargedCredits > 0 && chargedUserId && generationId) {

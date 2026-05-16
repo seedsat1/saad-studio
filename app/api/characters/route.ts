@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
 import { uploadBufferToStorage } from "@/lib/supabase-storage";
+import { checkStoryboardReferenceImageSafety, UnsafeReferenceImageError } from "@/lib/storyboard-reference-safety";
 
 type CharacterImageInput = {
   dataUrl?: string;
@@ -166,13 +167,18 @@ export async function POST(req: NextRequest) {
     });
 
     const uploadedUrls: string[] = [...directUrls];
+    for (const url of directUrls) {
+      await checkStoryboardReferenceImageSafety(url);
+    }
     for (let i = 0; i < images.length; i++) {
       const image = images[i];
       if (typeof image?.url === "string" && /^https?:\/\//i.test(image.url)) {
+        await checkStoryboardReferenceImageSafety(image.url);
         uploadedUrls.push(image.url);
         continue;
       }
       if (typeof image?.dataUrl !== "string") continue;
+      await checkStoryboardReferenceImageSafety(image.dataUrl);
       const parsed = parseDataUrl(image.dataUrl);
       if (!parsed || parsed.buffer.length === 0) continue;
       const uploaded = await uploadBufferToStorage({
@@ -214,6 +220,10 @@ export async function POST(req: NextRequest) {
   try {
     return await run();
   } catch (error) {
+    if (error instanceof UnsafeReferenceImageError) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+
     if (isMissingUserCharacterTable(error)) {
       const created = await ensureUserCharacterTable();
       if (created) {

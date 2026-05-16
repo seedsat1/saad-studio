@@ -12,6 +12,7 @@ import { getGenerationCost } from "@/lib/pricing";
 import { getResolvedKieRoutingMaps } from "@/lib/kie-model-routing";
 import { sanitizePrompt } from "@/lib/security";
 import prismadb from "@/lib/prismadb";
+import { checkStoryboardReferenceImageSafety, UnsafeReferenceImageError } from "@/lib/storyboard-reference-safety";
 
 export const maxDuration = 180;
 export const dynamic = "force-dynamic";
@@ -165,6 +166,7 @@ export async function POST(req: NextRequest) {
 
     // If a reference image URL is provided, add the correct field per model
     if (imageUrl) {
+      await checkStoryboardReferenceImageSafety(imageUrl);
       if (isNanoBanana) {
         input.image_input = [imageUrl];
       } else {
@@ -199,6 +201,12 @@ export async function POST(req: NextRequest) {
         { error: "Insufficient credits", requiredCredits: error.requiredCredits, currentBalance: error.currentBalance },
         { status: 402 },
       );
+    }
+    if (error instanceof UnsafeReferenceImageError) {
+      if (chargedCredits > 0 && generationId) {
+        await rollbackGenerationCharge(generationId, userId, chargedCredits).catch(() => {});
+      }
+      return NextResponse.json({ error: error.message }, { status: 400 });
     }
     if (chargedCredits > 0 && generationId) {
       await rollbackGenerationCharge(generationId, userId, chargedCredits).catch(() => {});
