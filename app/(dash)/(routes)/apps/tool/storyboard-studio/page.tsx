@@ -15,6 +15,12 @@ import {
   Sparkles,
   Eye,
   ChevronDown,
+  Trash2,
+  FolderPlus,
+  Folder,
+  CheckSquare,
+  Square,
+  ListChecks,
 } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -99,6 +105,52 @@ interface ResultState {
   error?: string;
 }
 
+interface StoryboardHistoryItem {
+  id: string;
+  url: string;
+  prompt: string;
+  model: string;
+  date: string;
+}
+
+interface Album {
+  id: string;
+  name: string;
+  assetIds: string[];
+}
+
+const STORYBOARD_ALBUMS_STORAGE_KEY = "saad_studio_storyboard_albums_v1";
+
+function loadAlbums(): Album[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(STORYBOARD_ALBUMS_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((album) => album && typeof album.id === "string" && typeof album.name === "string")
+      .map((album) => ({
+        id: album.id,
+        name: album.name,
+        assetIds: Array.isArray(album.assetIds)
+          ? album.assetIds.filter((assetId: unknown) => typeof assetId === "string")
+          : [],
+      }));
+  } catch {
+    return [];
+  }
+}
+
+function saveAlbums(albums: Album[]) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(STORYBOARD_ALBUMS_STORAGE_KEY, JSON.stringify(albums));
+  } catch {
+    // ignore storage quota issues
+  }
+}
+
 function readFileAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -154,40 +206,120 @@ export default function StoryboardProductionPage() {
   const [result, setResult] = useState<ResultState | null>(null);
   const [statusMessage, setStatusMessage] = useState("");
   const [inspectorAsset, setInspectorAsset] = useState<Asset | null>(null);
-  const [history, setHistory] = useState<{ id: string; url: string; prompt: string; model: string; date: string }[]>([]);
+  const [history, setHistory] = useState<StoryboardHistoryItem[]>([]);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [albums, setAlbums] = useState<Album[]>([]);
+  const [activeAlbumId, setActiveAlbumId] = useState<string | null>(null);
+  const [showAlbumPicker, setShowAlbumPicker] = useState(false);
+
+  const loadStoryboardAssets = useCallback(async () => {
+    const res = await fetch("/api/assets?type=image", { cache: "no-store" });
+    const data = await res.json().catch(() => null);
+    if (!res.ok || !Array.isArray(data?.assets)) {
+      throw new Error(data?.error || "Failed to load storyboard assets.");
+    }
+    const storyboardAssets = data.assets.filter((asset: { model?: string; url?: string }) =>
+      asset.model?.includes("qwen-image-edit-multiple-angles") && typeof asset.url === "string"
+    );
+    setHistory(storyboardAssets.map((asset: { id: string; url: string; prompt?: string; model?: string; date?: string }) => ({
+      id: asset.id,
+      url: asset.url,
+      prompt: asset.prompt || "Storyboard panel",
+      model: asset.model || "Qwen Image Edit",
+      date: asset.date || "",
+    })));
+  }, []);
 
   // Load saved storyboard panels on mount
   useEffect(() => {
-    let cancelled = false;
     const load = async () => {
       try {
-        const res = await fetch("/api/assets?type=image", { cache: "no-store" });
-        const data = await res.json().catch(() => null);
-        if (!res.ok || !Array.isArray(data?.assets) || cancelled) return;
-        const storyboardAssets = data.assets.filter((a: { model?: string }) =>
-          a.model?.includes("qwen-image-edit-multiple-angles")
-        );
-        setHistory(storyboardAssets.map((a: { id: string; url: string; prompt?: string; model?: string; date?: string }) => ({
-          id: a.id,
-          url: a.url,
-          prompt: a.prompt || "Storyboard panel",
-          model: a.model || "Qwen Image Edit",
-          date: a.date || "",
-        })));
+        await loadStoryboardAssets();
       } catch { /* ignore */ }
     };
     void load();
-    return () => { cancelled = true; };
+  }, [loadStoryboardAssets]);
+
+  useEffect(() => {
+    setAlbums(loadAlbums());
   }, []);
+
+  useEffect(() => {
+    saveAlbums(albums);
+  }, [albums]);
 
   const isGenerating = generationStatus === "generating";
   const selectedQuality = QUALITY_OPTIONS.find((option) => option.id === quality) ?? QUALITY_OPTIONS[0];
   const creditsPerPanel = selectedQuality.creditsPerPanel;
   const totalCost = numPanels * creditsPerPanel;
+  const visibleHistory = activeAlbumId
+    ? history.filter((item) => albums.find((album) => album.id === activeAlbumId)?.assetIds.includes(item.id))
+    : history;
 
   useEffect(() => {
     setSelectedAngles((prev) => getAutoAngleSelection(numPanels, prev));
   }, [numPanels]);
+
+  const toggleSelected = useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const exitSelectionMode = useCallback(() => {
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+  }, []);
+
+  const onBulkDelete = useCallback(async () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    if (typeof window !== "undefined" && !window.confirm(`Delete ${ids.length} storyboard image(s)? This cannot be undone.`)) return;
+    try {
+      const res = await fetch("/api/assets", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error || "Bulk delete failed");
+      }
+      setAlbums((prev) => prev.map((album) => ({ ...album, assetIds: album.assetIds.filter((assetId) => !selectedIds.has(assetId)) })));
+      exitSelectionMode();
+      await loadStoryboardAssets();
+    } catch (err) {
+      setStatusMessage(getSafeErrorMessage(err));
+    }
+  }, [selectedIds, exitSelectionMode, loadStoryboardAssets, getSafeErrorMessage]);
+
+  const addSelectionToAlbum = useCallback((albumId: string) => {
+    if (selectedIds.size === 0) return;
+    setAlbums((prev) => prev.map((album) => album.id === albumId
+      ? { ...album, assetIds: Array.from(new Set([...album.assetIds, ...Array.from(selectedIds)])) }
+      : album));
+    exitSelectionMode();
+    setShowAlbumPicker(false);
+  }, [selectedIds, exitSelectionMode]);
+
+  const createAlbumWithSelection = useCallback((name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed || selectedIds.size === 0) return;
+    const id = `story_alb_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+    setAlbums((prev) => [...prev, { id, name: trimmed, assetIds: Array.from(selectedIds) }]);
+    setActiveAlbumId(id);
+    exitSelectionMode();
+    setShowAlbumPicker(false);
+  }, [selectedIds, exitSelectionMode]);
+
+  const deleteAlbum = useCallback((albumId: string) => {
+    if (typeof window !== "undefined" && !window.confirm("Delete this album? Images will stay in your storyboard library.")) return;
+    setAlbums((prev) => prev.filter((album) => album.id !== albumId));
+    if (activeAlbumId === albumId) setActiveAlbumId(null);
+  }, [activeAlbumId]);
 
   const handleFileSelect = useCallback(async (file: File) => {
     if (!file.type.startsWith("image/")) return;
@@ -268,16 +400,7 @@ export default function StoryboardProductionPage() {
       setResult({ outputs, status: "success" });
       setGenerationStatus("success");
       setStatusMessage("");
-
-      // Add new panels to history
-      const newItems = outputs.map((url, i) => ({
-        id: `new-${Date.now()}-${i}`,
-        url,
-        prompt: `${STORYBOARD_TYPES.find(t => t.id === storyboardType)?.label || "Storyboard"} – Panel ${i + 1}`,
-        model: "wavespeed/qwen-image-edit-multiple-angles",
-        date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
-      }));
-      setHistory((prev) => [...newItems, ...prev]);
+      await loadStoryboardAssets().catch(() => null);
     } catch (err) {
       const message = getSafeErrorMessage(err);
       setResult({ outputs: [], status: "failed", error: message });
@@ -406,30 +529,81 @@ export default function StoryboardProductionPage() {
             </>
           )}
 
-          {/* History gallery — persisted panels */}
-          {history.length > 0 && generationStatus !== "success" && (
+          {/* Storyboard library */}
+          {(history.length > 0 || activeAlbumId) && generationStatus !== "success" && (
             <div className="mt-6">
-              <div className="flex items-center gap-2 mb-3">
+              <div className="flex flex-wrap items-center gap-2 mb-3">
                 <Film size={14} style={{ color: "#06b6d4" }} />
-                <span className="text-sm font-semibold" style={{ color: "#94a3b8", fontFamily: "var(--font-display)" }}>Previous Storyboards</span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: "rgba(6,182,212,0.1)", color: "#06b6d4" }}>{history.length}</span>
+                <span className="text-sm font-semibold" style={{ color: "#94a3b8", fontFamily: "var(--font-display)" }}>Storyboard Library</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: "rgba(6,182,212,0.1)", color: "#06b6d4" }}>{visibleHistory.length}</span>
+                <button onClick={() => setSelectionMode((prev) => !prev)} className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-slate-300 hover:bg-white/10">
+                  <ListChecks className="h-3.5 w-3.5" />
+                  {selectionMode ? "Cancel" : "Manage"}
+                </button>
+                {selectionMode && selectedIds.size > 0 && (
+                  <>
+                    <button onClick={() => setShowAlbumPicker(true)} className="inline-flex items-center gap-1.5 rounded-lg border border-amber-400/30 bg-amber-500/10 px-2.5 py-1 text-[11px] text-amber-100 hover:bg-amber-500/20">
+                      <FolderPlus className="h-3.5 w-3.5" />
+                      Album
+                    </button>
+                    <button onClick={() => void onBulkDelete()} className="inline-flex items-center gap-1.5 rounded-lg border border-red-400/30 bg-red-500/10 px-2.5 py-1 text-[11px] text-red-100 hover:bg-red-500/20">
+                      <Trash2 className="h-3.5 w-3.5" />
+                      Delete
+                    </button>
+                  </>
+                )}
               </div>
+
+              {albums.length > 0 && (
+                <div className="mb-3 flex flex-wrap items-center gap-2">
+                  <button onClick={() => setActiveAlbumId(null)} className="rounded-lg border px-2.5 py-1 text-[11px] transition-all" style={{ borderColor: activeAlbumId ? "#1e293b" : "rgba(6,182,212,0.4)", background: activeAlbumId ? "#0e1630" : "rgba(6,182,212,0.1)", color: activeAlbumId ? "#64748b" : "#06b6d4" }}>
+                    All
+                  </button>
+                  {albums.map((album) => {
+                    const isActive = activeAlbumId === album.id;
+                    return (
+                      <div key={album.id} className="inline-flex items-center rounded-lg border" style={{ borderColor: isActive ? "rgba(245,158,11,0.35)" : "#1e293b", background: isActive ? "rgba(245,158,11,0.1)" : "#0e1630" }}>
+                        <button onClick={() => setActiveAlbumId(isActive ? null : album.id)} className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px]" style={{ color: isActive ? "#fbbf24" : "#94a3b8" }}>
+                          <Folder className="h-3.5 w-3.5" />
+                          {album.name}
+                          <span className="opacity-70">{album.assetIds.length}</span>
+                        </button>
+                        <button onClick={() => deleteAlbum(album.id)} className="px-2 py-1 text-[11px] text-slate-400 hover:text-red-300">×</button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
               <div className="grid w-full gap-1.5" style={{ gridTemplateColumns: "repeat(6, 1fr)" }}>
-                {history.map((item) => (
+                {visibleHistory.map((item) => (
                   <div
                     key={item.id}
                     className="group relative cursor-pointer overflow-hidden rounded-lg ring-1 ring-white/10"
                     style={{ aspectRatio: "1 / 1" }}
-                    onClick={() => setInspectorAsset({ type: "image", url: item.url, title: item.prompt, prompt: item.prompt, model: "Qwen Image Edit" })}
+                    onClick={() => selectionMode ? toggleSelected(item.id) : setInspectorAsset({ type: "image", url: item.url, title: item.prompt, prompt: item.prompt, model: "Qwen Image Edit" })}
                   >
                     <img src={item.url} alt={item.prompt} className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.04]" />
-                    <div className="absolute inset-0 flex items-end justify-center gap-1.5 bg-black/0 pb-2 opacity-0 transition duration-200 group-hover:bg-black/45 group-hover:opacity-100">
-                      <button onClick={(e) => { e.stopPropagation(); setInspectorAsset({ type: "image", url: item.url, title: item.prompt, prompt: item.prompt, model: "Qwen Image Edit" }); }} className="rounded-md bg-white/15 p-1.5 text-white ring-1 ring-white/20"><Eye className="h-3 w-3" /></button>
-                      <a href={item.url} download onClick={(e) => e.stopPropagation()} className="rounded-md bg-white/15 p-1.5 text-white ring-1 ring-white/20"><Download className="h-3 w-3" /></a>
-                    </div>
+                    {selectionMode && (
+                      <div className="absolute left-2 top-2 rounded-md bg-black/60 p-1 text-white">
+                        {selectedIds.has(item.id) ? <CheckSquare className="h-3.5 w-3.5" /> : <Square className="h-3.5 w-3.5" />}
+                      </div>
+                    )}
+                    {!selectionMode && (
+                      <div className="absolute inset-0 flex items-end justify-center gap-1.5 bg-black/0 pb-2 opacity-0 transition duration-200 group-hover:bg-black/45 group-hover:opacity-100">
+                        <button onClick={(e) => { e.stopPropagation(); setInspectorAsset({ type: "image", url: item.url, title: item.prompt, prompt: item.prompt, model: "Qwen Image Edit" }); }} className="rounded-md bg-white/15 p-1.5 text-white ring-1 ring-white/20"><Eye className="h-3 w-3" /></button>
+                        <a href={item.url} download onClick={(e) => e.stopPropagation()} className="rounded-md bg-white/15 p-1.5 text-white ring-1 ring-white/20"><Download className="h-3 w-3" /></a>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
+
+              {visibleHistory.length === 0 && (
+                <div className="mt-3 rounded-xl border border-white/10 bg-[#060c18] px-4 py-6 text-center text-xs text-slate-400">
+                  {activeAlbumId ? "This album is empty." : "No storyboard images found yet."}
+                </div>
+              )}
             </div>
           )}
 
@@ -707,6 +881,60 @@ export default function StoryboardProductionPage() {
           </motion.div>
         ) : null}
       </AnimatePresence>
+
+      {showAlbumPicker ? (
+        <AlbumPicker
+          albums={albums}
+          count={selectedIds.size}
+          onPick={addSelectionToAlbum}
+          onCreate={createAlbumWithSelection}
+          onClose={() => setShowAlbumPicker(false)}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function AlbumPicker({ albums, count, onPick, onCreate, onClose }: { albums: Album[]; count: number; onPick: (id: string) => void; onCreate: (name: string) => void; onClose: () => void }) {
+  const [newName, setNewName] = useState("");
+
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={onClose}>
+      <div className="w-full max-w-md rounded-2xl border border-white/10 bg-[#0b1222] p-5 space-y-4" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold">Add {count} image(s) to album</h3>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/10"><X className="h-4 w-4" /></button>
+        </div>
+
+        {albums.length > 0 && (
+          <div className="space-y-1.5 max-h-56 overflow-y-auto">
+            {albums.map((album) => (
+              <button key={album.id} onClick={() => onPick(album.id)} className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-sm">
+                <span className="inline-flex items-center gap-2"><Folder className="h-4 w-4 text-amber-300" />{album.name}</span>
+                <span className="text-xs text-slate-400">{album.assetIds.length}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        <div className="space-y-2 pt-2 border-t border-white/10">
+          <label className="text-xs text-slate-400">Create new album</label>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") onCreate(newName); }}
+              placeholder="Album name"
+              className="flex-1 rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-sm placeholder-slate-500 focus:outline-none focus:border-amber-400/50"
+            />
+            <button onClick={() => onCreate(newName)} disabled={!newName.trim()} className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-amber-400/40 bg-amber-500/20 text-sm text-amber-100 hover:bg-amber-500/30 disabled:opacity-40 disabled:cursor-not-allowed">
+              <FolderPlus className="h-3.5 w-3.5" />
+              Create
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
