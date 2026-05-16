@@ -73,10 +73,10 @@ export async function checkStoryboardReferenceImageSafety(imageUrl: string): Pro
   }
 
   const model = String(process.env.STORYBOARD_NSFW_MODEL ?? "omni-moderation-latest").trim() || "omni-moderation-latest";
-  const thresholdRaw = Number(process.env.STORYBOARD_NSFW_SEXUAL_THRESHOLD ?? "0.5");
+  const thresholdRaw = Number(process.env.STORYBOARD_NSFW_SEXUAL_THRESHOLD ?? "0.98");
   const sexualThreshold = Number.isFinite(thresholdRaw)
     ? Math.max(0, Math.min(1, thresholdRaw))
-    : 0.5;
+    : 0.98;
 
   try {
     const res = await fetch("https://api.openai.com/v1/moderations", {
@@ -111,7 +111,7 @@ export async function checkStoryboardReferenceImageSafety(imageUrl: string): Pro
     const sexualScore = Number(scores?.sexual);
     const sexualMinorsScore = Number(scores?.["sexual/minors"] ?? scores?.sexual_minors);
 
-    const blockForSexual = sexual && (!Number.isFinite(sexualScore) || sexualScore >= sexualThreshold);
+    const blockForSexual = sexual && Number.isFinite(sexualScore) && sexualScore >= sexualThreshold;
     const blockForSexualMinors = sexualMinors || (Number.isFinite(sexualMinorsScore) && sexualMinorsScore > 0);
 
     if (blockForSexual || blockForSexualMinors) {
@@ -151,8 +151,9 @@ async function checkReferenceImageWithVisionSafety(imageUrl: string, apiKey: str
               text: [
                 "Classify whether this reference image must be blocked before image generation.",
                 "Return only JSON with blocked:boolean and reason:string.",
-                "Set blocked=true for pornographic or explicit sexual content, visible genitals, sex acts, exposed anus, explicit fetish content, or sexualized nudity.",
-                "Set blocked=false for ordinary portraits, non-sexual fashion, swimwear, or cinematic scenes without explicit sexual content.",
+                "Set blocked=true only for explicit NSFW content: visible genitals, exposed anus, exposed female nipples, pornographic content, sex acts, masturbation, oral sex, intercourse, or explicit fetish nudity.",
+                "Set blocked=false for ordinary portraits, cleavage, bikini, swimsuit, lingerie, bodysuit, bodycon fashion, bare legs, bare shoulders, glamour poses, plus-size fashion, fantasy portraits, and cinematic scenes when there is no explicit nudity or sex act.",
+                "When uncertain, choose blocked=false unless explicit nudity or a sex act is clearly visible.",
               ].join(" "),
             },
             {

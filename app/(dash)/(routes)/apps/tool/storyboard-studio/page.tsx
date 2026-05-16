@@ -211,7 +211,7 @@ function getStoryboardErrorMessage(error: unknown, getSafeErrorMessage: (error: 
         : "";
 
   if (message.toLowerCase().includes("restricted content detected")) {
-    return "Restricted content detected. This reference image cannot be used.";
+    return "This image was automatically removed for violating the platform's NSFW content policy.\nPlease follow the platform content guidelines.";
   }
   if (message.toLowerCase().includes("unable to verify image safety")) {
     return "Unable to verify image safety. Please try again or use another image.";
@@ -221,6 +221,11 @@ function getStoryboardErrorMessage(error: unknown, getSafeErrorMessage: (error: 
   }
 
   return getSafeErrorMessage(error);
+}
+
+function isStoryboardNsfwError(message: string): boolean {
+  const normalized = message.toLowerCase();
+  return normalized.includes("restricted content") || normalized.includes("nsfw");
 }
 
 export default function StoryboardProductionPage() {
@@ -635,7 +640,7 @@ export default function StoryboardProductionPage() {
           {/* Error */}
           {generationStatus === "failed" && result?.error && (
             <div className="rounded-xl p-4 text-sm" style={{ background: "rgba(249,115,22,0.08)", border: "1px solid rgba(249,115,22,0.2)", color: "#f97316" }}>
-              {result.error.toLowerCase().includes("restricted content") && (
+              {isStoryboardNsfwError(result.error) && (
                 <div className="mb-3 flex flex-wrap gap-2">
                   <span className="rounded-full bg-white/10 px-3 py-1 text-[11px] font-bold text-white">NSFW</span>
                   <span className="rounded-full bg-white/10 px-3 py-1 text-[11px] font-bold text-white">No credits charged</span>
@@ -644,10 +649,10 @@ export default function StoryboardProductionPage() {
               <div className="flex items-center gap-2 mb-1">
                 <AlertCircle size={14} />
                 <span className="font-semibold">
-                  {result.error.toLowerCase().includes("restricted content") ? "Restricted content detected" : "Generation failed"}
+                  {isStoryboardNsfwError(result.error) ? "Image removed automatically" : "Generation failed"}
                 </span>
               </div>
-              {result.error}
+              <span className="whitespace-pre-line">{result.error}</span>
               <button className="ml-3 underline text-xs" onClick={reset}>Try again</button>
             </div>
           )}
@@ -887,10 +892,6 @@ export default function StoryboardProductionPage() {
             )}
           </div>
           <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileSelect(f); }} />
-          <div className="mt-2 flex items-center gap-1.5 text-[10px] font-semibold" style={{ color: "#22d3ee" }}>
-            <CheckCircle size={12} />
-            NSFW image filter runs before generation and before credits are charged.
-          </div>
 
           {/* Storyboard Type */}
           <div className="mt-5">
