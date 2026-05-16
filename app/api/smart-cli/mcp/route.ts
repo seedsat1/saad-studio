@@ -282,6 +282,21 @@ function getBearerToken(request: Request, args: Record<string, unknown>) {
   return typeof argToken === "string" && argToken.trim() ? argToken.trim() : null;
 }
 
+function normalizeToolName(name: unknown) {
+  if (typeof name !== "string") return "";
+  const trimmed = name.trim();
+  const unprefixed = trimmed.includes(":") ? trimmed.split(":").pop() : trimmed;
+  return unprefixed ?? trimmed;
+}
+
+function normalizeToolArgs(args: Record<string, unknown>) {
+  const nested = args.params;
+  if (nested && typeof nested === "object" && !Array.isArray(nested)) {
+    return nested as Record<string, unknown>;
+  }
+  return args;
+}
+
 async function callPanelImageGeneration(request: Request, args: Record<string, unknown>) {
   const prompt = typeof args.prompt === "string" ? args.prompt.trim() : "";
   if (!prompt) {
@@ -404,12 +419,13 @@ async function handleRpcPayload(body: JsonRpcRequest, request: Request): Promise
   }
 
   if (method === "tools/call") {
-    const name = body?.params?.name;
-    const args = body?.params?.arguments ?? {};
+    const requestedName = body?.params?.name;
+    const name = normalizeToolName(requestedName);
+    const args = normalizeToolArgs(body?.params?.arguments ?? {});
     const tool = tools.find((item) => item.name === name);
 
     if (!tool) {
-      return rpcErrorPayload(id, -32602, `Unknown tool: ${name ?? "missing"}`);
+      return rpcErrorPayload(id, -32602, `Unknown tool: ${String(requestedName ?? "missing")}`);
     }
 
     if (name === "generate_image") {
