@@ -33,6 +33,8 @@ type SetupTab = "mcp" | "cli" | "skill";
 
 const MCP_URL = "https://saadstudio.app/api/smart-cli/mcp";
 
+const SUPPORTED_CLIENTS = ["Perplexity", "Hermes"];
+
 const SETUP: Record<SetupTab, Array<{ title: string; text: string; value: string }>> = {
   mcp: [
     {
@@ -227,6 +229,22 @@ export default function SmartCliPage() {
                     </button>
                   ))}
                 </div>
+
+                {setupTab === "mcp" && (
+                  <div className="inline-flex rounded-full border border-white/10 bg-white/[0.06] p-1">
+                    {SUPPORTED_CLIENTS.map((client) => (
+                      <span
+                        key={client}
+                        className={cn(
+                          "inline-flex h-10 items-center rounded-full px-4 text-sm font-semibold",
+                          client === "Hermes" ? "bg-white text-black" : "text-slate-400",
+                        )}
+                      >
+                        {client}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="grid overflow-hidden rounded-xl border border-white/10 bg-[#101318] shadow-2xl shadow-black/30 md:grid-cols-3">
