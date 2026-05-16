@@ -14,7 +14,9 @@ export async function POST(request: NextRequest) {
     redirect_uris: body.redirect_uris ?? [],
     grant_types: ["authorization_code"],
     response_types: ["code"],
+    scope: "openid email profile smart_cli.generate smart_cli.read",
     token_endpoint_auth_method: "none",
+    client_id_issued_at: Math.floor(Date.now() / 1000),
   }, {
     status: 201,
     headers: { "Cache-Control": "no-store" },

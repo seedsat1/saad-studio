@@ -156,7 +156,9 @@ export default clerkMiddleware(async (auth, req) => {
   const pathname = req.nextUrl.pathname;
   if (
     pathname === "/.well-known/oauth-authorization-server" ||
-    pathname === "/.well-known/openid-configuration"
+    pathname.startsWith("/.well-known/oauth-authorization-server/") ||
+    pathname === "/.well-known/openid-configuration" ||
+    pathname.startsWith("/.well-known/openid-configuration/")
   ) {
     return applySecurityHeaders(smartCliOAuthMetadata(req), req);
   }

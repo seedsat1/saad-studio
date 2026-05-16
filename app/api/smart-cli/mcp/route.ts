@@ -242,7 +242,7 @@ function authChallenge(request: Request) {
     headers: {
       "Cache-Control": "no-store",
       "MCP-Protocol-Version": "2024-11-05",
-      "WWW-Authenticate": `Bearer resource_metadata="${origin}/.well-known/oauth-protected-resource"`,
+      "WWW-Authenticate": `Bearer resource_metadata="${origin}/.well-known/oauth-protected-resource/api/smart-cli/mcp", scope="openid email profile smart_cli.generate smart_cli.read"`,
     },
   });
 }
