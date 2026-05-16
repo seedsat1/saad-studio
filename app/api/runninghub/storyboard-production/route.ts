@@ -223,6 +223,10 @@ async function checkReferenceImageSafety(imageUrl: string): Promise<void> {
 
   const model = String(process.env.STORYBOARD_NSFW_MODEL ?? "omni-moderation-latest").trim() || "omni-moderation-latest";
   const failClosed = String(process.env.STORYBOARD_NSFW_FAIL_CLOSED ?? "1").trim() !== "0";
+  const thresholdRaw = Number(process.env.STORYBOARD_NSFW_SEXUAL_THRESHOLD ?? "0.97");
+  const sexualThreshold = Number.isFinite(thresholdRaw)
+    ? Math.max(0, Math.min(1, thresholdRaw))
+    : 0.97;
 
   try {
     const res = await fetch("https://api.openai.com/v1/moderations", {
@@ -249,12 +253,18 @@ async function checkReferenceImageSafety(imageUrl: string): Promise<void> {
 
     const result = json?.results?.[0] ?? {};
     const categories = result?.categories ?? {};
+    const scores = result?.category_scores ?? {};
 
     const sexual = Boolean(categories?.sexual);
     const sexualMinors = Boolean(categories?.["sexual/minors"] ?? categories?.sexual_minors);
+    const sexualScore = Number(scores?.sexual);
+    const sexualMinorsScore = Number(scores?.["sexual/minors"] ?? scores?.sexual_minors);
 
-    // Block only explicit sexual content to reduce false positives from generic flags.
-    if (sexual || sexualMinors) {
+    const blockForSexual = sexual && Number.isFinite(sexualScore) && sexualScore >= sexualThreshold;
+    const blockForSexualMinors = sexualMinors || (Number.isFinite(sexualMinorsScore) && sexualMinorsScore > 0);
+
+    // Block only high-confidence sexual content and always block sexual/minors.
+    if (blockForSexual || blockForSexualMinors) {
       throw new UnsafeReferenceImageError("Uploading explicit images is not allowed.");
     }
   } catch (error) {
