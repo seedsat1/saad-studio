@@ -2,13 +2,14 @@
 
 import { ConsistentSheetTool } from "@/components/tools/ConsistentSheetTool";
 
-const LOCKED_DIRECTION = `Production direction locked for premium makeup analysis outputs.
-Preserve exact identity, skin tone, face geometry, and styling consistency.
-Ensure realistic texture, clean beauty lighting, and true-to-skin color fidelity.
-No text overlays, no logos, no collage, no artifacts.`;
+const LOCKED_DIRECTION = `Production direction captured locally. My Canvas Build a full AI fashion photoshoot system that lets a brand upload fashion items, lock brand identity, create consistent characters, dress characters with items, and generate campaign-ready visuals with multiple poses, angles, and compositions.
+Lock the brand identity for a premium AI fashion photoshoot system. Define brand mood, target audience, luxury level, color palette, lighting language, wardrobe rules, material behavior, model casting direction, location tone, and negative constraints. This context must be reused by every downstream node.
+Create a reusable prompt system for a full fashion photoshoot. It must convert uploaded character, fashion item, and brand references into production prompts for full-body shots, close-ups, outfit details, jewelry/product macros, editorial poses, camera angles, and campaign-ready compositions.`;
 
-const STYLE_PROMPT = `Generate campaign-ready beauty angles for makeup and skin analysis.
-Outputs must be editorial, ultra-clean, and consistent in quality and lighting.`;
+const STYLE_PROMPT = `Assemble the generated fashion photoshoot outputs into a final campaign board: brand identity, consistent characters, dressed outfits, full-body hero, editorial pose, angle sheet, beauty close-up, macro product detail, and variation outputs.
+Clean luxury presentation, no text, no logos.
+
+Generate campaign-ready beauty outputs with strict identity consistency and style consistency.`;
 
 export default function MakeupAnalysisGuidePage() {
   return (

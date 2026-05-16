@@ -2,15 +2,15 @@
 
 import { ConsistentSheetTool } from "@/components/tools/ConsistentSheetTool";
 
-const LOCKED_DIRECTION = `Production direction locked for a premium fashion campaign.
-Brand mood: modern luxury, clean editorial, refined confidence.
-Lighting language: soft key light, controlled fill, realistic shadows.
-Consistency constraints: exact same face identity, hairstyle, skin tone, body proportions, outfit, and accessories.
-Negative constraints: no text, no logos, no watermark, no collage, no split-screen, no anatomy distortion, no identity drift.`;
+const LOCKED_DIRECTION = `Production direction captured locally. My Canvas Build a full AI fashion photoshoot system that lets a brand upload fashion items, lock brand identity, create consistent characters, dress characters with items, and generate campaign-ready visuals with multiple poses, angles, and compositions.
+Lock the brand identity for a premium AI fashion photoshoot system. Define brand mood, target audience, luxury level, color palette, lighting language, wardrobe rules, material behavior, model casting direction, location tone, and negative constraints. This context must be reused by every downstream node.
+Generate an army of consistent campaign characters from the uploaded character reference. Create a clean production reference sheet with multiple consistent characters or consistent identity states: full body, close-up, side angle, back angle, walking pose, editorial pose, neutral expression, confident expression, and fashion posture.
+Preserve face identity, body proportions, hair, skin tone, and premium styling.
+No text, no logos.`;
 
-const STYLE_PROMPT = `Generate a consistent fashion character reference sheet style output.
-Create standalone production-quality frames that preserve exact identity and styling continuity.
-Keep clean neutral background and centered composition.`;
+const STYLE_PROMPT = `Generate multiple angle variations of the same styled character and outfit: front, 3/4, side, back, seated, walking, and close-up crop.
+Preserve identity, outfit, jewelry/product shape, lighting, and brand mood.
+Create endless controlled variations from the approved fashion photoshoot outputs. Change pose, angle, composition, lens, location framing, and editorial mood while preserving the same character identity, outfit, fashion items, and brand identity.`;
 
 export default function CharacterReferenceSheetPage() {
   return (
