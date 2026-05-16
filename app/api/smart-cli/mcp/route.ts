@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { verifyPanelToken } from "@/lib/panel-auth";
+
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
@@ -229,6 +231,22 @@ function withMcpHeaders(response: NextResponse) {
   return response;
 }
 
+function getOrigin(request: Request) {
+  return new URL(request.url).origin;
+}
+
+function authChallenge(request: Request) {
+  const origin = getOrigin(request);
+  return new NextResponse(null, {
+    status: 401,
+    headers: {
+      "Cache-Control": "no-store",
+      "MCP-Protocol-Version": "2024-11-05",
+      "WWW-Authenticate": `Bearer resource_metadata="${origin}/.well-known/oauth-protected-resource"`,
+    },
+  });
+}
+
 function rpcPayload(id: unknown, result: unknown): JsonRpcPayload {
   return {
     jsonrpc: "2.0",
@@ -280,6 +298,12 @@ function getBearerToken(request: Request, args: Record<string, unknown>) {
   if (header?.startsWith("Bearer ")) return header.slice(7).trim();
   const argToken = args.panelToken;
   return typeof argToken === "string" && argToken.trim() ? argToken.trim() : null;
+}
+
+function hasValidToken(request: Request) {
+  const header = request.headers.get("authorization");
+  if (!header?.startsWith("Bearer ")) return false;
+  return Boolean(verifyPanelToken(header.slice(7).trim()));
 }
 
 function normalizeToolName(name: unknown) {
@@ -458,7 +482,9 @@ async function handleRpc(body: JsonRpcRequest, request: Request) {
   return rpcResponse(payload);
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  if (!hasValidToken(request)) return authChallenge(request);
+
   return withMcpHeaders(NextResponse.json({
     name: "Saad Studio Smart CLI",
     description: "MCP-compatible endpoint for Saad Studio creative briefs.",
@@ -468,6 +494,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
+  if (!hasValidToken(request)) return authChallenge(request);
 
   if (Array.isArray(body)) {
     const results = (await Promise.all(

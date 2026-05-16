@@ -117,12 +117,53 @@ function isLocalDevRequest(req: Request) {
   return host === "localhost" || host === "127.0.0.1" || host === "::1";
 }
 
+function smartCliOAuthMetadata(req: Request) {
+  const origin = new URL(req.url).origin;
+  return NextResponse.json({
+    issuer: origin,
+    authorization_endpoint: `${origin}/smart-cli/authorize`,
+    token_endpoint: `${origin}/api/smart-cli/oauth/token`,
+    registration_endpoint: `${origin}/api/smart-cli/oauth/register`,
+    response_types_supported: ["code"],
+    grant_types_supported: ["authorization_code"],
+    code_challenge_methods_supported: ["S256", "plain"],
+    token_endpoint_auth_methods_supported: ["none", "client_secret_post", "client_secret_basic"],
+    scopes_supported: ["openid", "email", "profile", "smart_cli.generate", "smart_cli.read"],
+    resource_parameter_supported: true,
+  }, {
+    headers: { "Cache-Control": "no-store" },
+  });
+}
+
+function smartCliProtectedResourceMetadata(req: Request) {
+  const origin = new URL(req.url).origin;
+  return NextResponse.json({
+    resource: `${origin}/api/smart-cli/mcp`,
+    authorization_servers: [origin],
+    bearer_methods_supported: ["header"],
+    scopes_supported: ["openid", "email", "profile", "smart_cli.generate", "smart_cli.read"],
+    resource_name: "Saad Studio Smart CLI",
+  }, {
+    headers: { "Cache-Control": "no-store" },
+  });
+}
+
 export default clerkMiddleware(async (auth, req) => {
   if (req.method === "OPTIONS" && req.nextUrl.pathname.startsWith("/api")) {
     return applySecurityHeaders(new NextResponse(null, { status: 204 }), req);
   }
 
   const pathname = req.nextUrl.pathname;
+  if (
+    pathname === "/.well-known/oauth-authorization-server" ||
+    pathname === "/.well-known/openid-configuration"
+  ) {
+    return applySecurityHeaders(smartCliOAuthMetadata(req), req);
+  }
+  if (pathname.startsWith("/.well-known/oauth-protected-resource")) {
+    return applySecurityHeaders(smartCliProtectedResourceMetadata(req), req);
+  }
+
   const slug = getCmsSlugFromPath(pathname);
   const isLocalDev = isLocalDevRequest(req);
   const adminId = process.env.ADMIN_USER_ID;
