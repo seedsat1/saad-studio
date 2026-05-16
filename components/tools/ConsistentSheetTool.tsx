@@ -129,6 +129,84 @@ async function downloadImage(url: string, filename: string) {
   URL.revokeObjectURL(objectUrl);
 }
 
+async function loadImageForCanvas(url: string): Promise<HTMLImageElement> {
+  const isExternal = /^https?:\/\//i.test(url);
+  const response = await fetch(isExternal ? `/api/download?url=${encodeURIComponent(url)}` : url, {
+    cache: "no-store",
+  });
+  if (!response.ok) {
+    throw new Error("Failed to load image for board.");
+  }
+  const blob = await response.blob();
+  const objectUrl = URL.createObjectURL(blob);
+
+  const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error("Failed to decode image."));
+    img.src = objectUrl;
+  });
+
+  URL.revokeObjectURL(objectUrl);
+  return image;
+}
+
+async function buildComposedBoard(scenes: Scene[], title: string): Promise<string> {
+  const count = scenes.length;
+  const cols = count <= 4 ? count : 3;
+  const rows = count <= 4 ? 1 : count <= 6 ? 2 : 3;
+
+  const cellW = 420;
+  const cellH = 560;
+  const gap = 16;
+  const pad = 24;
+  const header = 54;
+
+  const width = pad * 2 + cols * cellW + (cols - 1) * gap;
+  const height = pad * 2 + header + rows * cellH + (rows - 1) * gap;
+
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Canvas not supported.");
+
+  ctx.fillStyle = "#efe7dc";
+  ctx.fillRect(0, 0, width, height);
+
+  ctx.fillStyle = "#1f2937";
+  ctx.font = "700 24px Inter, Arial, sans-serif";
+  ctx.fillText(`${title} - Output Set`, pad, pad + 24);
+
+  const images = await Promise.all(scenes.map((s) => loadImageForCanvas(s.url)));
+
+  images.forEach((img, i) => {
+    const row = Math.floor(i / cols);
+    const col = i % cols;
+    const x = pad + col * (cellW + gap);
+    const y = pad + header + row * (cellH + gap);
+
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(x, y, cellW, cellH);
+
+    const scale = Math.max(cellW / img.width, cellH / img.height);
+    const drawW = img.width * scale;
+    const drawH = img.height * scale;
+    const drawX = x + (cellW - drawW) / 2;
+    const drawY = y + (cellH - drawH) / 2;
+    ctx.drawImage(img, drawX, drawY, drawW, drawH);
+
+    ctx.fillStyle = "rgba(0,0,0,0.55)";
+    ctx.fillRect(x, y + cellH - 30, cellW, 30);
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "600 14px Inter, Arial, sans-serif";
+    const label = `${i + 1}. ${scenes[i].label}`;
+    ctx.fillText(label, x + 10, y + cellH - 10);
+  });
+
+  return canvas.toDataURL("image/jpeg", 0.92);
+}
+
 export function ConsistentSheetTool({ config }: { config: ToolConfig }) {
   const { guardGeneration, getSafeErrorMessage } = useGenerationGate();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -140,6 +218,8 @@ export function ConsistentSheetTool({ config }: { config: ToolConfig }) {
   const [status, setStatus] = useState<GenerationStatus>("idle");
   const [error, setError] = useState("");
   const [scenes, setScenes] = useState<Scene[]>([]);
+  const [composedBoardUrl, setComposedBoardUrl] = useState<string | null>(null);
+  const [isBuildingBoard, setIsBuildingBoard] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [inspectorAsset, setInspectorAsset] = useState<Asset | null>(null);
 
@@ -158,6 +238,7 @@ export function ConsistentSheetTool({ config }: { config: ToolConfig }) {
     setImageDataUrl(dataUrl);
     setStatus("idle");
     setError("");
+    setComposedBoardUrl(null);
   }, []);
 
   const handleDrop = useCallback(
@@ -186,6 +267,8 @@ export function ConsistentSheetTool({ config }: { config: ToolConfig }) {
 
     setError("");
     setStatus("generating");
+    setComposedBoardUrl(null);
+    setIsBuildingBoard(false);
 
     try {
       const compressed = await compressImage(imageDataUrl as string);
@@ -217,6 +300,15 @@ export function ConsistentSheetTool({ config }: { config: ToolConfig }) {
         label: panelDefs[idx]?.label ?? `Scene ${idx + 1}`,
       }));
       setScenes(mapped);
+      try {
+        setIsBuildingBoard(true);
+        const board = await buildComposedBoard(mapped, config.title);
+        setComposedBoardUrl(board);
+      } catch {
+        setComposedBoardUrl(null);
+      } finally {
+        setIsBuildingBoard(false);
+      }
       setStatus("success");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error.");
@@ -394,6 +486,65 @@ export function ConsistentSheetTool({ config }: { config: ToolConfig }) {
                   <RefreshCw className="w-3.5 h-3.5" /> New Run
                 </button>
               </div>
+
+              {(isBuildingBoard || composedBoardUrl) && (
+                <div className="mb-4 rounded-xl p-3" style={{ border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.02)" }}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-semibold" style={{ color: "rgba(255,255,255,0.75)" }}>
+                      Composed Set Image
+                    </span>
+                    {composedBoardUrl && (
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => void downloadImage(composedBoardUrl, `${config.toolId}-composed-set.jpg`)}
+                          className="px-2.5 py-1 rounded-md text-[11px]"
+                          style={{ border: "1px solid rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.75)" }}
+                        >
+                          Download Set
+                        </button>
+                        <button
+                          onClick={() => setInspectorAsset({
+                            id: `${config.toolId}-composed-board`,
+                            type: "image",
+                            url: composedBoardUrl,
+                            title: `${config.title} - Composed Set`,
+                            prompt: buildPrompt(config.lockedDirection, config.stylePrompt, prompt),
+                            model: "composed-output-board",
+                          })}
+                          className="px-2.5 py-1 rounded-md text-[11px]"
+                          style={{ border: "1px solid rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.75)" }}
+                        >
+                          Use as Reference
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {isBuildingBoard && (
+                    <div className="h-28 rounded-lg flex items-center justify-center" style={{ background: "#0c1630" }}>
+                      <div className="flex items-center gap-2 text-sm" style={{ color: "rgba(255,255,255,0.6)" }}>
+                        <Loader2 className="w-4 h-4 animate-spin" /> Building composed set image...
+                      </div>
+                    </div>
+                  )}
+
+                  {composedBoardUrl && (
+                    <button
+                      onClick={() => setInspectorAsset({
+                        id: `${config.toolId}-composed-board`,
+                        type: "image",
+                        url: composedBoardUrl,
+                        title: `${config.title} - Composed Set`,
+                        prompt: buildPrompt(config.lockedDirection, config.stylePrompt, prompt),
+                        model: "composed-output-board",
+                      })}
+                      className="w-full text-left"
+                    >
+                      <img src={composedBoardUrl} alt="Composed output set" className="w-full rounded-lg object-cover" />
+                    </button>
+                  )}
+                </div>
+              )}
 
               <div className={`grid gap-3 ${scenes.length <= 4 ? "grid-cols-2 xl:grid-cols-4" : "grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"}`}>
                 {scenes.map((scene, i) => (
