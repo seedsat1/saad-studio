@@ -14,7 +14,7 @@ import {
   UnsafeReferenceImageError,
   verifyStoryboardReferenceSafetyToken,
 } from "@/lib/storyboard-reference-safety";
-import { deleteFromStorage, uploadBufferToStorage } from "@/lib/supabase-storage";
+import { uploadBufferToStorage } from "@/lib/supabase-storage";
 
 /** Allow up to 5 minutes */
 export const maxDuration = 300;
@@ -401,21 +401,16 @@ export async function POST(req: NextRequest) {
       imageHash,
       token: typeof body.referenceSafetyToken === "string" ? body.referenceSafetyToken : undefined,
     });
-    const precheckGenerationId = `storyboard-precheck-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    const hostedImageUrl = await uploadRefImage(imageDataUrl, userId, precheckGenerationId);
     if (!hasUploadSafetyPass) {
       try {
-        await checkStoryboardReferenceImageSafety(hostedImageUrl);
+        await checkStoryboardReferenceImageSafety(imageDataUrl);
       } catch (err) {
-        await deleteFromStorage({
-          userId,
-          generationId: `${precheckGenerationId}-storyboard-ref`,
-          assetType: "image-ref",
-        }).catch(() => null);
         throw err;
       }
     }
 
+    const precheckGenerationId = `storyboard-ref-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const hostedImageUrl = await uploadRefImage(imageDataUrl, userId, precheckGenerationId);
     const apiKey = getWavespeedApiKey();
 
     // Create one Generation row per panel so each image is persisted in assets

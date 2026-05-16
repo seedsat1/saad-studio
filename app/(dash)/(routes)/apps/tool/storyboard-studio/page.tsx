@@ -213,6 +213,12 @@ function getStoryboardErrorMessage(error: unknown, getSafeErrorMessage: (error: 
   if (message.toLowerCase().includes("restricted content detected")) {
     return "Restricted content detected. This reference image cannot be used.";
   }
+  if (message.toLowerCase().includes("unable to verify image safety")) {
+    return "Unable to verify image safety. Please try again or use another image.";
+  }
+  if (message.toLowerCase().includes("safety check service is unavailable")) {
+    return "Image safety check is unavailable. Please try again later.";
+  }
 
   return getSafeErrorMessage(error);
 }
