@@ -44,6 +44,31 @@ const PRODUCT_STYLES = [
   { id: "vibrant", label: "Vibrant & Bold", icon: "🎨" },
 ] as const;
 
+const PRODUCT_CAMERA_SEQUENCE = [
+  "ext-long-shot",
+  "eye-level",
+  "closeup",
+  "3-4-view",
+  "profile",
+  "low-angle",
+  "high-angle",
+  "wide",
+  "extreme-closeup",
+] as const;
+
+function buildProductCameraAngles(numScenes: number): string[] {
+  if (numScenes <= PRODUCT_CAMERA_SEQUENCE.length) {
+    return PRODUCT_CAMERA_SEQUENCE.slice(0, numScenes);
+  }
+  const result = [...PRODUCT_CAMERA_SEQUENCE];
+  let i = 0;
+  while (result.length < numScenes) {
+    result.push(PRODUCT_CAMERA_SEQUENCE[i % PRODUCT_CAMERA_SEQUENCE.length]);
+    i += 1;
+  }
+  return result;
+}
+
 function readFileAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -132,7 +157,7 @@ export default function ProductAdGeneratorPage() {
         const data = await res.json().catch(() => null);
         if (!res.ok || !Array.isArray(data?.assets) || cancelled) return;
         const adAssets = data.assets.filter((a: { model?: string }) =>
-          a.model?.includes("product-ad-generator")
+          a.model?.includes("wavespeed/qwen-image-edit-multiple-angles") || a.model?.includes("product-ad-generator")
         );
         setHistory(
           adAssets.map((a: { id: string; url: string; prompt?: string; model?: string; date?: string }) => ({
@@ -192,26 +217,31 @@ export default function ProductAdGeneratorPage() {
       const compressed = await compressImage(imageDataUrl, 2_500_000, 1024);
 
       const prompt = getProductAdPrompt(productStyle, productName, numScenes);
+      const cameraAngles = buildProductCameraAngles(numScenes);
 
-      const res = await fetch("/api/generate/image", {
+      const res = await fetch("/api/runninghub/storyboard-production", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          imageDataUrl: compressed,
+          numPanels: numScenes,
+          storyboardType: "production",
+          aspectRatio: "1:1",
+          quality: "1k",
+          outputFormat: "jpeg",
+          cameraAngles,
           prompt,
-          modelId: "qwen2/image-edit",
-          numImages: numScenes,
-          imageUrl: compressed,
         }),
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => null);
 
       if (!res.ok) {
         throw new Error(data?.error || "Generation failed");
       }
 
-      if (data.imageUrls && Array.isArray(data.imageUrls)) {
-        const newScenes: ProductScene[] = data.imageUrls.map((url: string, idx: number) => ({
+      if (data?.outputs && Array.isArray(data.outputs)) {
+        const newScenes: ProductScene[] = data.outputs.map((url: string, idx: number) => ({
           id: `scene-${idx}`,
           imageUrl: url,
           description: `Scene ${idx + 1} of ${numScenes}`,
