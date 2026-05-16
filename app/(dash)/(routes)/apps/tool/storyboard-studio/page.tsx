@@ -929,7 +929,7 @@ export default function StoryboardProductionPage() {
           {/* Camera Angles */}
           <div className="mt-5">
             <SectionLabel>Camera Angles</SectionLabel>
-            <div className="grid grid-cols-2 gap-1.5">
+            <div className="grid grid-cols-3 gap-1.5">
               {CAMERA_ANGLES.map((angle) => (
                 <button
                   key={angle.id}
