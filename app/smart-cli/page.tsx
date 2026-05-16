@@ -33,7 +33,7 @@ type SetupTab = "mcp" | "cli" | "skill";
 
 const MCP_URL = "https://saadstudio.app/api/smart-cli/mcp";
 
-const SUPPORTED_CLIENTS = ["Perplexity", "Hermes"];
+const SUPPORTED_CLIENTS = ["Claude", "Perplexity", "Hermes"];
 
 const SETUP: Record<SetupTab, Array<{ title: string; text: string; value: string }>> = {
   mcp: [
@@ -237,7 +237,7 @@ export default function SmartCliPage() {
                         key={client}
                         className={cn(
                           "inline-flex h-10 items-center rounded-full px-4 text-sm font-semibold",
-                          client === "Hermes" ? "bg-white text-black" : "text-slate-400",
+                          client === "Claude" ? "bg-white text-black" : "text-slate-400",
                         )}
                       >
                         {client}
