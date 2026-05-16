@@ -4,6 +4,7 @@ import { getGenerationCost } from "@/lib/pricing";
 import { InsufficientCreditsError, precheckGenerationPolicy, refundGenerationCharge, setGenerationMediaUrl, setGenerationTaskMarker, spendCredits } from "@/lib/credit-ledger";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { getClientIp, isAllowedOrigin, sanitizePrompt } from "@/lib/security";
+import { checkStoryboardReferenceImageSafety, UnsafeReferenceImageError } from "@/lib/storyboard-reference-safety";
 import prismadb from "@/lib/prismadb";
 import { attachIdempotencyGeneration, beginIdempotency, completeIdempotency, getIdempotencyKey, hashRequestBody } from "@/lib/idempotency";
 
@@ -40,6 +41,11 @@ async function uploadImageToWaveSpeed(base64DataUri: string, apiKey: string): Pr
   const url: string = json?.data?.download_url;
   if (!url) throw new Error("WaveSpeed upload returned no download_url");
   return url;
+}
+
+async function checkBase64ImageSafety(value?: string | null): Promise<void> {
+  if (!value || !value.startsWith("data:image/")) return;
+  await checkStoryboardReferenceImageSafety(value);
 }
 
 const ENDPOINTS: Record<string, string> = {
@@ -138,6 +144,17 @@ export async function POST(req: Request) {
         return new NextResponse("All 4 multiview images are required", { status: 400 });
       }
     }
+
+    await checkBase64ImageSafety(imageBase64);
+    await Promise.all([
+      checkBase64ImageSafety(multiviewBase64s?.front),
+      checkBase64ImageSafety(multiviewBase64s?.back),
+      checkBase64ImageSafety(multiviewBase64s?.left),
+      checkBase64ImageSafety(multiviewBase64s?.right),
+      checkBase64ImageSafety(optionalViewBase64s?.back),
+      checkBase64ImageSafety(optionalViewBase64s?.left),
+      checkBase64ImageSafety(optionalViewBase64s?.right),
+    ]);
 
     const creditsToCharge = await getGenerationCost(endpointKey);
     if (creditsToCharge <= 0) {
@@ -345,6 +362,16 @@ export async function POST(req: Request) {
     }).catch(() => {});
     return NextResponse.json(responseJson);
   } catch (error) {
+    if (error instanceof UnsafeReferenceImageError) {
+      if (chargedCredits > 0 && chargedUserId && generationId) {
+        await refundGenerationCharge(generationId, chargedUserId, chargedCredits, {
+          reason: "generation_refund_provider_failed",
+          clearMediaUrl: true,
+        }).catch(() => null);
+      }
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+
     if (error instanceof InsufficientCreditsError) {
       const responseJson = {
         error: "Insufficient credits",

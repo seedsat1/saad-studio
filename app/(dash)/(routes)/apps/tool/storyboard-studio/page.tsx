@@ -211,7 +211,7 @@ function getStoryboardErrorMessage(error: unknown, getSafeErrorMessage: (error: 
         : "";
 
   if (message.toLowerCase().includes("restricted content detected")) {
-    return "تم حذف هذه الصورة تلقائياً لمخالفتها قوانين ومعايير المحتوى العاري (NSFW).\nيرجى الالتزام بسياسة المنصة.";
+    return "This image was removed automatically because it violates the NSFW content policy.\nPlease upload a different image.";
   }
   if (message.toLowerCase().includes("unable to verify image safety")) {
     return "Unable to verify image safety. Please try again or use another image.";
@@ -225,7 +225,7 @@ function getStoryboardErrorMessage(error: unknown, getSafeErrorMessage: (error: 
 
 function isStoryboardNsfwError(message: string): boolean {
   const normalized = message.toLowerCase();
-  return normalized.includes("restricted content") || normalized.includes("nsfw") || message.includes("المحتوى العاري");
+  return normalized.includes("restricted content") || normalized.includes("nsfw") || normalized.includes("policy");
 }
 
 export default function StoryboardProductionPage() {

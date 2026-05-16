@@ -1,4 +1,11 @@
 import { auth } from "@clerk/nextjs/server";
+import { checkStoryboardReferenceImageSafety, UnsafeReferenceImageError } from "@/lib/storyboard-reference-safety";
+
+async function fileToDataUrl(file: File): Promise<string | null> {
+  if (!file.type.startsWith("image/")) return null;
+  const buffer = Buffer.from(await file.arrayBuffer());
+  return `data:${file.type};base64,${buffer.toString("base64")}`;
+}
 
 export async function POST(req: Request) {
   try {
@@ -11,6 +18,13 @@ export async function POST(req: Request) {
     if (!serverApiKey) return Response.json({ code: -1, msg: "Service not configured" }, { status: 500 });
 
     const incomingForm = await req.formData();
+    for (const value of incomingForm.values()) {
+      if (value instanceof File) {
+        const dataUrl = await fileToDataUrl(value);
+        if (dataUrl) await checkStoryboardReferenceImageSafety(dataUrl);
+      }
+    }
+
     const outForm = new FormData();
     for (const [key, value] of incomingForm.entries()) {
       if (key !== "apiKey") outForm.append(key, value);
@@ -24,6 +38,10 @@ export async function POST(req: Request) {
     const data = await res.json();
     return Response.json(data);
   } catch (err) {
+    if (err instanceof UnsafeReferenceImageError) {
+      return Response.json({ code: -1, msg: err.message }, { status: 400 });
+    }
+
     return Response.json(
       { code: -1, msg: "Upload failed. Please try again." },
       { status: 500 }

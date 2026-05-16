@@ -14,6 +14,7 @@ import {
   setGenerationTaskMarker,
 } from "@/lib/credit-ledger";
 import { uploadBufferToStorage } from "@/lib/supabase-storage";
+import { checkStoryboardReferenceImageSafety, UnsafeReferenceImageError } from "@/lib/storyboard-reference-safety";
 
 const KIE_BASE = "https://api.kie.ai/api/v1";
 
@@ -53,6 +54,12 @@ async function resolveInputUrl(raw: string, userId: string): Promise<string> {
   return uploadedUrl;
 }
 
+async function validateTransitionInput(raw: string): Promise<void> {
+  if (raw.startsWith("data:image/") || raw.startsWith("http://") || raw.startsWith("https://")) {
+    await checkStoryboardReferenceImageSafety(raw);
+  }
+}
+
 export async function POST(req: NextRequest) {
   let chargedCredits = 0;
   let chargedUserId: string | null = null;
@@ -87,6 +94,11 @@ export async function POST(req: NextRequest) {
     if (!inputAUrl) return NextResponse.json({ error: "Input A is required" }, { status: 400 });
     if (!inputBUrl) return NextResponse.json({ error: "Input B is required" }, { status: 400 });
     if (!projectId) return NextResponse.json({ error: "projectId is required" }, { status: 400 });
+
+    await Promise.all([
+      validateTransitionInput(inputAUrl),
+      validateTransitionInput(inputBUrl),
+    ]);
 
     // Validate project ownership
     const project = await prismadb.transitionProject.findUnique({
@@ -212,6 +224,16 @@ export async function POST(req: NextRequest) {
       remainingCredits: charge.remainingCredits,
     });
   } catch (err) {
+    if (err instanceof UnsafeReferenceImageError) {
+      if (chargedCredits > 0 && chargedUserId && generationId) {
+        await refundGenerationCharge(generationId, chargedUserId, chargedCredits, {
+          reason: "generation_refund_provider_failed",
+          clearMediaUrl: true,
+        }).catch(() => null);
+      }
+      return NextResponse.json({ error: err.message }, { status: 400 });
+    }
+
     if (err instanceof InsufficientCreditsError) {
       return NextResponse.json(
         { error: "Insufficient credits", required: err.requiredCredits, current: err.currentBalance },
