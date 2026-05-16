@@ -213,6 +213,8 @@ export default function StoryboardProductionPage() {
   const [storyboardTypeOpen, setStoryboardTypeOpen] = useState(false);
   const [aspectRatio, setAspectRatio] = useState<string>("1:1");
   const [ratioOpen, setRatioOpen] = useState(false);
+  const [panelsOpen, setPanelsOpen] = useState(false);
+  const [qualityOpen, setQualityOpen] = useState(false);
   const [selectedAngles, setSelectedAngles] = useState<string[]>(() => getAutoAngleSelection(4));
   const [quality, setQuality] = useState<(typeof QUALITY_OPTIONS)[number]["id"]>("1k");
   const [generationStatus, setGenerationStatus] = useState<GenerationStatus>("idle");
@@ -906,22 +908,47 @@ export default function StoryboardProductionPage() {
           {/* Number of panels */}
           <div className="mt-5">
             <SectionLabel>Number of Panels</SectionLabel>
-            <div className="grid grid-cols-3 gap-1.5">
-              {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
-                <button
-                  key={n}
-                  className="flex-1 py-2.5 rounded-lg text-[12px] font-bold transition-all"
-                  style={{
-                    border: `1px solid ${numPanels === n ? "rgba(6,182,212,0.4)" : "#1e293b"}`,
-                    background: numPanels === n ? "rgba(6,182,212,0.1)" : "#0e1630",
-                    color: numPanels === n ? "#06b6d4" : "#64748b",
-                    fontFamily: "var(--font-display)",
-                  }}
-                  onClick={() => setNumPanels(n)}
+            <div className="relative">
+              <button
+                className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-[12px] font-bold transition-all"
+                style={{
+                  border: "1px solid #1e293b",
+                  background: "#0e1630",
+                  color: "#94a3b8",
+                  fontFamily: "var(--font-display)",
+                }}
+                onClick={() => {
+                  setPanelsOpen((prev) => !prev);
+                  setQualityOpen(false);
+                }}
+              >
+                <span>{numPanels} panel{numPanels !== 1 ? "s" : ""}</span>
+                <ChevronDown size={14} style={{ color: "#64748b", transform: panelsOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
+              </button>
+              {panelsOpen && (
+                <div
+                  className="absolute left-0 right-0 top-full mt-1 z-20 rounded-lg overflow-hidden"
+                  style={{ background: "#0e1630", border: "1px solid #1e293b" }}
                 >
-                  {n}
-                </button>
-              ))}
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
+                    <button
+                      key={n}
+                      className="w-full px-3 py-2 text-[12px] font-bold transition-all text-left hover:bg-white/5"
+                      style={{
+                        background: numPanels === n ? "rgba(6,182,212,0.1)" : "transparent",
+                        color: numPanels === n ? "#06b6d4" : "#94a3b8",
+                        fontFamily: "var(--font-display)",
+                      }}
+                      onClick={() => {
+                        setNumPanels(n);
+                        setPanelsOpen(false);
+                      }}
+                    >
+                      {n}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             <div className="text-right text-[10px] mt-1.5" style={{ color: "#475569" }}>
               {numPanels} panel{numPanels !== 1 ? "s" : ""} × {creditsPerPanel} = <span style={{ color: "#8b5cf6", fontWeight: 600 }}>{totalCost} credits</span>
@@ -931,22 +958,47 @@ export default function StoryboardProductionPage() {
           {/* Quality */}
           <div className="mt-5">
             <SectionLabel>Quality</SectionLabel>
-            <div className="grid grid-cols-3 gap-1.5">
-              {QUALITY_OPTIONS.map((q) => (
-                <button
-                  key={q.id}
-                  className="px-2.5 py-2 rounded-lg text-[11px] font-semibold transition-all text-center"
-                  style={{
-                    border: `1px solid ${quality === q.id ? "rgba(6,182,212,0.4)" : "#1e293b"}`,
-                    background: quality === q.id ? "rgba(6,182,212,0.1)" : "#0e1630",
-                    color: quality === q.id ? "#06b6d4" : "#64748b",
-                    fontFamily: "var(--font-display)",
-                  }}
-                  onClick={() => setQuality(q.id)}
+            <div className="relative">
+              <button
+                className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-[12px] font-bold transition-all"
+                style={{
+                  border: "1px solid #1e293b",
+                  background: "#0e1630",
+                  color: "#94a3b8",
+                  fontFamily: "var(--font-display)",
+                }}
+                onClick={() => {
+                  setQualityOpen((prev) => !prev);
+                  setPanelsOpen(false);
+                }}
+              >
+                <span>{selectedQuality.label}</span>
+                <ChevronDown size={14} style={{ color: "#64748b", transform: qualityOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
+              </button>
+              {qualityOpen && (
+                <div
+                  className="absolute left-0 right-0 top-full mt-1 z-20 rounded-lg overflow-hidden"
+                  style={{ background: "#0e1630", border: "1px solid #1e293b" }}
                 >
-                  {q.label}
-                </button>
-              ))}
+                  {QUALITY_OPTIONS.map((q) => (
+                    <button
+                      key={q.id}
+                      className="w-full px-3 py-2 text-[12px] font-bold transition-all text-left hover:bg-white/5"
+                      style={{
+                        background: quality === q.id ? "rgba(6,182,212,0.1)" : "transparent",
+                        color: quality === q.id ? "#06b6d4" : "#94a3b8",
+                        fontFamily: "var(--font-display)",
+                      }}
+                      onClick={() => {
+                        setQuality(q.id);
+                        setQualityOpen(false);
+                      }}
+                    >
+                      {q.label}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             <div className="text-[10px] mt-1.5" style={{ color: "#475569" }}>
               {selectedQuality.label} quality costs {selectedQuality.creditsPerPanel} credits per panel.
