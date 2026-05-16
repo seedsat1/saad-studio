@@ -25,6 +25,13 @@ const QUALITY_CREDIT_PER_PANEL: Record<QualityTier, number> = {
 const WAVESPEED_BASE = "https://api.wavespeed.ai/api/v3";
 const WAVESPEED_MODEL = "wavespeed-ai/qwen-image/edit-2509-multiple-angles";
 
+class UnsafeReferenceImageError extends Error {
+  constructor(message = "Reference image violates safety policy.") {
+    super(message);
+    this.name = "UnsafeReferenceImageError";
+  }
+}
+
 /**
  * Each panel is a unique camera angle/distance combo.
  * horizontal_angle: -90 (left), -45, 0 (front), 45, 90 (right)
@@ -208,6 +215,56 @@ async function uploadRefImage(base64DataUrl: string, userId: string, genId: stri
   });
   if (!url) throw new Error("Failed to upload reference image to storage");
   return url;
+}
+
+async function checkReferenceImageSafety(imageUrl: string): Promise<void> {
+  const apiKey = String(process.env.OPENAI_API_KEY ?? "").trim();
+  if (!apiKey) return;
+
+  const model = String(process.env.STORYBOARD_NSFW_MODEL ?? "omni-moderation-latest").trim() || "omni-moderation-latest";
+  const failClosed = String(process.env.STORYBOARD_NSFW_FAIL_CLOSED ?? "1").trim() !== "0";
+
+  try {
+    const res = await fetch("https://api.openai.com/v1/moderations", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model,
+        input: [
+          {
+            type: "image_url",
+            image_url: { url: imageUrl },
+          },
+        ],
+      }),
+    });
+
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(`Moderation request failed (${res.status})`);
+    }
+
+    const result = json?.results?.[0] ?? {};
+    const categories = result?.categories ?? {};
+
+    const flagged = Boolean(result?.flagged);
+    const sexual = Boolean(categories?.sexual);
+    const sexualMinors = Boolean(categories?.["sexual/minors"] ?? categories?.sexual_minors);
+
+    if (flagged || sexual || sexualMinors) {
+      throw new UnsafeReferenceImageError("Reference image contains adult/sexual content and cannot be processed.");
+    }
+  } catch (error) {
+    if (error instanceof UnsafeReferenceImageError) {
+      throw error;
+    }
+    if (failClosed) {
+      throw new UnsafeReferenceImageError("Unable to verify image safety. Please use a different image.");
+    }
+  }
 }
 
 /** Submit a WaveSpeed task and return the prediction ID */
@@ -409,6 +466,7 @@ export async function POST(req: NextRequest) {
 
     // Upload reference image to Supabase Storage
     const hostedImageUrl = await uploadRefImage(imageDataUrl, userId, firstGenerationId!);
+    await checkReferenceImageSafety(hostedImageUrl);
 
     // Launch all panel tasks in parallel
     const predictionIds: string[] = [];
@@ -495,6 +553,13 @@ export async function POST(req: NextRequest) {
           currentBalance: err.currentBalance,
         },
         { status: 402 },
+      );
+    }
+
+    if (err instanceof UnsafeReferenceImageError) {
+      return NextResponse.json(
+        { error: err.message },
+        { status: 400 },
       );
     }
 
