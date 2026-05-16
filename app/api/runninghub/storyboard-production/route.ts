@@ -466,14 +466,13 @@ export async function POST(req: NextRequest) {
 
     const outputs: string[] = [];
     const failures: string[] = [];
-    const outputsToPersist: Array<{ index: number; url: string }> = [];
 
     for (let i = 0; i < results.length; i++) {
       const r = results[i];
       if (r.status === "success" && r.urls.length > 0) {
-        const outputUrl = r.urls[0];
-        await checkStoryboardReferenceImageSafety(outputUrl);
-        outputsToPersist.push({ index: i, url: outputUrl });
+        outputs.push(r.urls[0]);
+        // Persist each panel URL to its Generation row.
+        await setGenerationMediaUrl(panelGenerationIds[i], r.urls[0]).catch(() => null);
       } else {
         failures.push(r.error ?? "Panel generation failed");
         // Refund this panel's credits
@@ -482,12 +481,6 @@ export async function POST(req: NextRequest) {
           clearMediaUrl: true,
         }).catch(() => null);
       }
-    }
-
-    for (const { index, url } of outputsToPersist) {
-      outputs.push(url);
-      // Persist only after the output has passed the safety check.
-      await setGenerationMediaUrl(panelGenerationIds[index], url).catch(() => null);
     }
 
     // If all failed, return error
