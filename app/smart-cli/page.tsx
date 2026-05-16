@@ -30,16 +30,8 @@ import TopNavbar from "@/components/TopNavbar";
 import { cn } from "@/lib/utils";
 
 type SetupTab = "mcp" | "cli" | "skill";
-type ClientTab = "claude" | "codex" | "cursor" | "hermes";
 
 const MCP_URL = "https://saadstudio.app/api/smart-cli/mcp";
-
-const CLIENTS: Array<{ id: ClientTab; label: string }> = [
-  { id: "claude", label: "Claude" },
-  { id: "codex", label: "Codex" },
-  { id: "cursor", label: "Cursor" },
-  { id: "hermes", label: "Hermes" },
-];
 
 const SETUP: Record<SetupTab, Array<{ title: string; text: string; value: string }>> = {
   mcp: [
@@ -181,7 +173,6 @@ function StepCard({ step, index }: { step: { title: string; text: string; value:
 
 export default function SmartCliPage() {
   const [setupTab, setSetupTab] = useState<SetupTab>("mcp");
-  const [clientTab, setClientTab] = useState<ClientTab>("claude");
   const steps = SETUP[setupTab];
 
   return (
@@ -215,7 +206,7 @@ export default function SmartCliPage() {
             </div>
 
             <div className="mx-auto max-w-5xl">
-              <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+              <div className="mb-3 flex flex-wrap items-center gap-3">
                 <div className="inline-flex rounded-full border border-white/10 bg-white/[0.06] p-1">
                   {([
                     ["mcp", Boxes, "MCP"],
@@ -236,24 +227,6 @@ export default function SmartCliPage() {
                     </button>
                   ))}
                 </div>
-
-                {setupTab === "mcp" && (
-                  <div className="inline-flex rounded-full border border-white/10 bg-white/[0.06] p-1">
-                    {CLIENTS.map((client) => (
-                      <button
-                        key={client.id}
-                        type="button"
-                        onClick={() => setClientTab(client.id)}
-                        className={cn(
-                          "h-10 rounded-full px-4 text-sm font-semibold transition",
-                          clientTab === client.id ? "bg-white text-black" : "text-slate-400 hover:text-white",
-                        )}
-                      >
-                        {client.label}
-                      </button>
-                    ))}
-                  </div>
-                )}
               </div>
 
               <div className="grid overflow-hidden rounded-xl border border-white/10 bg-[#101318] shadow-2xl shadow-black/30 md:grid-cols-3">
@@ -262,12 +235,10 @@ export default function SmartCliPage() {
                 ))}
               </div>
 
-              {setupTab === "mcp" && (
-                <div className="mx-auto mt-4 flex max-w-max items-center gap-2 rounded-full border border-emerald-300/20 bg-emerald-300/10 px-4 py-2 text-sm text-emerald-100">
-                  <Link2 className="h-4 w-4" />
-                  Selected client: {CLIENTS.find((client) => client.id === clientTab)?.label}
-                </div>
-              )}
+              <div className="mx-auto mt-4 flex max-w-max items-center gap-2 rounded-full border border-emerald-300/20 bg-emerald-300/10 px-4 py-2 text-sm text-emerald-100">
+                <Link2 className="h-4 w-4" />
+                Use the same connector URL in any supported client.
+              </div>
             </div>
           </div>
         </section>
