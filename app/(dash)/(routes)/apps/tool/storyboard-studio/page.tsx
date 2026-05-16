@@ -55,6 +55,7 @@ const CAMERA_ANGLES = [
   { id: "aerial", label: "Aerial" },
   { id: "low-angle", label: "Low angle" },
   { id: "high-angle", label: "High angle" },
+  { id: "dutch-angle", label: "Dutch angle" },
   { id: "pov", label: "POV" },
   { id: "long-shot", label: "Long shot" },
   { id: "extreme-closeup", label: "Extreme closeup" },
@@ -73,6 +74,7 @@ const PRIMARY_CAMERA_SEQUENCE = [
   "aerial",
   "low-angle",
   "high-angle",
+  "dutch-angle",
   "pov",
   "long-shot",
   "med-closeup",
@@ -754,7 +756,7 @@ export default function StoryboardProductionPage() {
                 <div className="text-[10px] mt-0.5" style={{ color: "#64748b" }}>Panels</div>
               </div>
               <div className="rounded-lg py-3 px-2" style={{ background: "#060c18" }}>
-                <div className="text-lg font-bold" style={{ color: "#a3e635", fontFamily: "var(--font-display)" }}>15</div>
+                <div className="text-lg font-bold" style={{ color: "#a3e635", fontFamily: "var(--font-display)" }}>{CAMERA_ANGLES.length}</div>
                 <div className="text-[10px] mt-0.5" style={{ color: "#64748b" }}>Camera Angles</div>
               </div>
             </div>
