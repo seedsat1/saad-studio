@@ -964,7 +964,7 @@ export default function StoryboardProductionPage() {
 
           {/* Generate button */}
           <button
-            className="mt-5 w-full py-4 rounded-2xl font-semibold text-sm text-white transition-all relative overflow-hidden"
+            className="mt-5 flex w-full items-center justify-center py-4 rounded-2xl font-semibold text-sm text-white transition-all relative overflow-hidden text-center"
             style={{
               background: isGenerating || !imageDataUrl ? "#1e293b" : "linear-gradient(135deg, #8b5cf6, #06b6d4)",
               fontFamily: "var(--font-display)",
@@ -974,9 +974,9 @@ export default function StoryboardProductionPage() {
             onClick={handleGenerate}
           >
             {isGenerating ? (
-              <span className="flex items-center justify-center gap-2"><Loader2 size={16} className="animate-spin" /> Processing…</span>
+              <span className="flex w-full items-center justify-center gap-2"><Loader2 size={16} className="animate-spin" /> Processing…</span>
             ) : (
-              <span className="flex items-center justify-center gap-2"><Sparkles size={15} /> Generate Storyboard</span>
+              <span className="flex w-full items-center justify-center gap-2"><Sparkles size={15} /> Generate Storyboard</span>
             )}
           </button>
           <div className="text-center mt-2 text-[10px]" style={{ color: "#475569" }}>
