@@ -21,6 +21,7 @@ import {
   CheckSquare,
   Square,
   ListChecks,
+  ShoppingBag,
 } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -612,6 +613,32 @@ export default function StoryboardProductionPage() {
               Transform a single image into cinematic storyboard panels
             </p>
           </div>
+
+          {/* Promotional Banner - Product Ad Generator */}
+          <Link href="/apps/tool/product-ad-generator">
+            <div className="mb-6 rounded-xl p-4 cursor-pointer transition-all hover:shadow-lg hover:shadow-emerald-500/10" style={{ background: "linear-gradient(135deg, rgba(16,185,129,0.08), rgba(20,184,166,0.08))", border: "1px solid rgba(16,185,129,0.2)" }}>
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg" style={{ background: "rgba(16,185,129,0.15)" }}>
+                    <ShoppingBag size={20} style={{ color: "#10b981" }} />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-semibold mb-0.5" style={{ color: "#10b981" }}>
+                      New: Product Ad Generator
+                    </h3>
+                    <p className="text-xs" style={{ color: "#6b7280" }}>
+                      Create professional advertisement scenes for your products
+                    </p>
+                  </div>
+                </div>
+                <div style={{ color: "#10b981" }}>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </Link>
 
           {/* Empty state */}
           {generationStatus === "idle" && !result && (
