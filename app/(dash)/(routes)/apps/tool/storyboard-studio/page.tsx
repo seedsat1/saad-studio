@@ -926,6 +926,27 @@ export default function StoryboardProductionPage() {
             </div>
           </div>
 
+          {/* Generate button */}
+          <button
+            className="mt-5 flex w-full items-center justify-center py-4 rounded-2xl font-semibold text-sm text-white transition-all relative overflow-hidden text-center"
+            style={{
+              background: isGenerating || !imageDataUrl ? "#1e293b" : "linear-gradient(135deg, #8b5cf6, #06b6d4)",
+              fontFamily: "var(--font-display)",
+              cursor: isGenerating || !imageDataUrl ? "not-allowed" : "pointer",
+            }}
+            disabled={isGenerating || !imageDataUrl}
+            onClick={handleGenerate}
+          >
+            {isGenerating ? (
+              <span className="flex w-full items-center justify-center gap-2"><Loader2 size={16} className="animate-spin" /> Processing…</span>
+            ) : (
+              <span className="flex w-full items-center justify-center gap-2"><Sparkles size={15} /> Generate Storyboard</span>
+            )}
+          </button>
+          <div className="text-center mt-2 text-[10px]" style={{ color: "#475569" }}>
+            Costs <span style={{ color: "#8b5cf6", fontWeight: 600 }}>{totalCost} credits</span> for {numPanels} panel{numPanels !== 1 ? "s" : ""}
+          </div>
+
           {/* Camera Angles */}
           <div className="mt-5">
             <SectionLabel>Camera Angles</SectionLabel>
@@ -962,27 +983,6 @@ export default function StoryboardProductionPage() {
             <div className="text-[10px] mt-2" style={{ color: "#475569" }}>
               Selected: {selectedAngles.length}/{numPanels} angle{numPanels !== 1 ? "s" : ""}. You cannot select more than the panel count.
             </div>
-          </div>
-
-          {/* Generate button */}
-          <button
-            className="mt-5 flex w-full items-center justify-center py-4 rounded-2xl font-semibold text-sm text-white transition-all relative overflow-hidden text-center"
-            style={{
-              background: isGenerating || !imageDataUrl ? "#1e293b" : "linear-gradient(135deg, #8b5cf6, #06b6d4)",
-              fontFamily: "var(--font-display)",
-              cursor: isGenerating || !imageDataUrl ? "not-allowed" : "pointer",
-            }}
-            disabled={isGenerating || !imageDataUrl}
-            onClick={handleGenerate}
-          >
-            {isGenerating ? (
-              <span className="flex w-full items-center justify-center gap-2"><Loader2 size={16} className="animate-spin" /> Processing…</span>
-            ) : (
-              <span className="flex w-full items-center justify-center gap-2"><Sparkles size={15} /> Generate Storyboard</span>
-            )}
-          </button>
-          <div className="text-center mt-2 text-[10px]" style={{ color: "#475569" }}>
-            Costs <span style={{ color: "#8b5cf6", fontWeight: 600 }}>{totalCost} credits</span> for {numPanels} panel{numPanels !== 1 ? "s" : ""}
           </div>
 
         </div>
