@@ -415,7 +415,6 @@ function appHref(app: string): string {
 const SHOW_EXPERIMENTAL_NAV = false;
 
 const STUDIO_LINKS = [
-  { label: "Smart CLI", href: "/smart-cli", icon: Command, color: "text-emerald-300" },
   { label: "Transitions", href: "/apps/tool/transitions", icon: Blend, color: "text-cyan-300" },
   { label: "Storyboard", href: "/apps/tool/storyboard-studio", icon: Clapperboard, color: "text-violet-300" },
   { label: "AI Canvas", href: "/original-series", icon: Monitor, color: "text-purple-400" },
