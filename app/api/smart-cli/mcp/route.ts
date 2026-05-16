@@ -1,5 +1,19 @@
 import { NextResponse } from "next/server";
 
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
+type JsonRpcRequest = {
+  jsonrpc?: string;
+  id?: string | number | null;
+  method?: string;
+  params?: {
+    name?: string;
+    arguments?: Record<string, unknown>;
+    protocolVersion?: string;
+  };
+};
+
 const tools = [
   {
     name: "generate_image",
@@ -189,38 +203,77 @@ const tools = [
   },
 ];
 
+function withMcpHeaders(response: NextResponse) {
+  response.headers.set("Cache-Control", "no-store");
+  response.headers.set("MCP-Protocol-Version", "2024-11-05");
+  return response;
+}
+
 function jsonRpc(id: unknown, result: unknown) {
   return NextResponse.json({
     jsonrpc: "2.0",
     id,
     result,
+  }, {
+    headers: {
+      "Cache-Control": "no-store",
+      "MCP-Protocol-Version": "2024-11-05",
+    },
   });
 }
 
-export async function GET() {
-  return NextResponse.json({
-    name: "Saad Studio Smart CLI",
-    description: "MCP-compatible endpoint for Saad Studio creative briefs.",
-    tools: tools.map(({ name, description }) => ({ name, description })),
-  });
+function jsonRpcError(id: unknown, code: number, message: string, status = 200) {
+  return NextResponse.json(
+    {
+      jsonrpc: "2.0",
+      id,
+      error: { code, message },
+    },
+    {
+      status,
+      headers: {
+        "Cache-Control": "no-store",
+        "MCP-Protocol-Version": "2024-11-05",
+      },
+    },
+  );
 }
 
-export async function POST(request: Request) {
-  const body = await request.json().catch(() => null);
+function handleRpc(body: JsonRpcRequest) {
   const id = body?.id ?? null;
   const method = body?.method;
 
+  if (!method) {
+    return jsonRpcError(id, -32600, "Invalid request");
+  }
+
+  if (method.startsWith("notifications/")) {
+    return new NextResponse(null, {
+      status: 202,
+      headers: {
+        "Cache-Control": "no-store",
+        "MCP-Protocol-Version": "2024-11-05",
+      },
+    });
+  }
+
   if (method === "initialize") {
     return jsonRpc(id, {
-      protocolVersion: "2024-11-05",
+      protocolVersion: body?.params?.protocolVersion ?? "2024-11-05",
       capabilities: {
-        tools: {},
+        tools: {
+          listChanged: false,
+        },
       },
       serverInfo: {
         name: "saad-studio-smart-cli",
         version: "0.1.0",
       },
     });
+  }
+
+  if (method === "ping") {
+    return jsonRpc(id, {});
   }
 
   if (method === "tools/list") {
@@ -230,6 +283,11 @@ export async function POST(request: Request) {
   if (method === "tools/call") {
     const name = body?.params?.name;
     const args = body?.params?.arguments ?? {};
+    const tool = tools.find((item) => item.name === name);
+
+    if (!tool) {
+      return jsonRpcError(id, -32602, `Unknown tool: ${name ?? "missing"}`);
+    }
 
     return jsonRpc(id, {
       content: [
@@ -238,27 +296,43 @@ export async function POST(request: Request) {
           text: JSON.stringify(
             {
               tool: name,
-              status: "brief_created",
-              note: "This endpoint prepares a structured Saad Studio brief. Connect execution to the generation backend before enabling automatic media creation.",
-              brief: args,
+              status: "accepted",
+              message:
+                "Saad Studio received the tool call. This connector currently prepares and validates requests; connect the generation backend before enabling automatic media output.",
+              arguments: args,
             },
             null,
             2,
           ),
         },
       ],
+      isError: false,
     });
   }
 
-  return NextResponse.json(
-    {
-      jsonrpc: "2.0",
-      id,
-      error: {
-        code: -32601,
-        message: "Method not found",
-      },
-    },
-    { status: 404 },
-  );
+  return jsonRpcError(id, -32601, "Method not found");
+}
+
+export async function GET() {
+  return withMcpHeaders(NextResponse.json({
+    name: "Saad Studio Smart CLI",
+    description: "MCP-compatible endpoint for Saad Studio creative briefs.",
+    tools: tools.map(({ name, description }) => ({ name, description })),
+  }));
+}
+
+export async function POST(request: Request) {
+  const body = await request.json().catch(() => null);
+
+  if (Array.isArray(body)) {
+    const results = body
+      .map((item) => {
+        const response = handleRpc(item);
+        return response;
+      });
+
+    return results[0] ?? jsonRpcError(null, -32600, "Invalid batch request");
+  }
+
+  return handleRpc(body);
 }
