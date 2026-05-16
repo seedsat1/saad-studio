@@ -261,8 +261,8 @@ export default function ProductAdGeneratorPage() {
     <div className="min-h-screen flex flex-col" style={{ background: "#08101f", color: "white" }}>
       {/* â”€â”€ Topbar â”€â”€ */}
       <div className="flex-shrink-0 flex items-center gap-3 px-6 h-14 border-b" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
-        <Link href="/apps" className="flex items-center gap-1.5 text-sm transition-colors hover:text-white" style={{ color: "rgba(255,255,255,0.4)" }}>
-          <ArrowLeft className="w-4 h-4" /> Apps
+        <Link href="/apps/tool/storyboard-studio" className="flex items-center gap-1.5 text-sm transition-colors hover:text-white" style={{ color: "rgba(255,255,255,0.4)" }}>
+          <ArrowLeft className="w-4 h-4" /> Storyboard Studio
         </Link>
         <span style={{ color: "rgba(255,255,255,0.15)" }}>/</span>
         <div className="flex items-center gap-2">
