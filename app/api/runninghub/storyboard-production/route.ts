@@ -218,12 +218,18 @@ async function uploadRefImage(base64DataUrl: string, userId: string, genId: stri
 }
 
 async function checkReferenceImageSafety(imageUrl: string): Promise<void> {
+  const moderationProvider = String(process.env.STORYBOARD_MODERATION_PROVIDER ?? "provider").trim().toLowerCase();
+  if (moderationProvider !== "openai") {
+    // Default path: rely on provider-side safety checks (WaveSpeed/KIE).
+    return;
+  }
+
   const apiKey = String(
     process.env.OPENAI_API_KEY
       ?? process.env.NSFW_SCAN_OPENAI_API_KEY
       ?? "",
   ).trim();
-  const enforceSafety = String(process.env.STORYBOARD_NSFW_ENFORCE ?? "1").trim() !== "0";
+  const enforceSafety = String(process.env.STORYBOARD_NSFW_ENFORCE ?? "0").trim() !== "0";
   if (!apiKey) {
     if (enforceSafety) {
       throw new UnsafeReferenceImageError("Safety check service is unavailable. Upload is blocked.");
@@ -306,6 +312,9 @@ async function createWavespeedTask(
     seed: typeof seed === "number" ? seed : -1,
     enable_base64_output: false,
     enable_sync_mode: false,
+    // Provider-side safety filter (WaveSpeed/KIE-compatible where supported).
+    nsfw_checker: true,
+    safety_checker: true,
   };
   if (aspectRatio && SUPPORTED_ASPECT_RATIOS.has(aspectRatio)) body.aspect_ratio = aspectRatio;
   if (prompt) body.prompt = prompt;
