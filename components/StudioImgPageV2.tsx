@@ -736,7 +736,7 @@ export default function StudioImgPage() {
         {!loading && filteredItems.length > 0 && (
           <>
             {viewMode === "masonry" && (
-              <div className="columns-[170px] gap-3 sm:columns-[190px] lg:columns-[210px] 2xl:columns-[230px]">
+              <div className="columns-[210px] gap-4 sm:columns-[230px] lg:columns-[250px] 2xl:columns-[270px]">
                 {filteredItems.map((item) => (
                   <div key={item.id} className="mb-3 break-inside-avoid">
                     <StudioCard
@@ -759,7 +759,7 @@ export default function StudioImgPage() {
             )}
 
             {viewMode === "grid" && (
-              <div className="grid content-start items-start gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(190px, 1fr))" }}>
+              <div className="grid content-start items-start gap-4" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))" }}>
                 {filteredItems.map((item) => (
                   <StudioCard
                     key={item.id}
@@ -1084,7 +1084,7 @@ function StudioCard({
   const hasCompare = Boolean(item.beforeUrl && item.afterUrl);
   const hasVideo = Boolean(item.videoUrl);
   const image = item.afterUrl || item.beforeUrl || item.posterUrl;
-  const ratioClass = "";
+  const ratioClass = "aspect-[4/5]";
 
   return (
     <motion.article
@@ -1140,9 +1140,9 @@ function StudioCard({
       )}
 
       <button onClick={onOpen} className="block w-full text-left">
-        <div className="relative w-full overflow-hidden">
+        <div className="relative h-full w-full overflow-hidden">
           {hasCompare ? (
-            <CompareImage beforeUrl={item.beforeUrl!} afterUrl={item.afterUrl!} position={position} cover={false} />
+            <CompareImage beforeUrl={item.beforeUrl!} afterUrl={item.afterUrl!} position={position} />
           ) : hasVideo ? (
             <video
               src={item.videoUrl}
@@ -1157,23 +1157,17 @@ function StudioCard({
                 v.pause();
                 v.currentTime = 0;
               }}
-              className={cn(
-                "w-full transition duration-500",
-                "h-auto object-contain bg-black/30",
-              )}
+              className="h-full w-full object-cover transition duration-500"
             />
           ) : image ? (
             <img
               src={image}
               alt={item.title}
               loading="lazy"
-              className={cn(
-                "w-full transition duration-500 group-hover:scale-[1.03]",
-                "h-auto object-contain bg-black/30",
-              )}
+              className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
             />
           ) : (
-            <div className="flex h-48 w-full items-center justify-center bg-white/[0.02] text-slate-600">
+            <div className="flex h-full w-full items-center justify-center bg-white/[0.02] text-slate-600">
               <ImagePlus className="h-8 w-8" />
             </div>
           )}
@@ -1259,7 +1253,7 @@ function ListRow({
           {selected ? <CheckSquare className="h-4 w-4 text-pink-300" /> : <Square className="h-4 w-4" />}
         </button>
       )}
-      <button onClick={onPreview} className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-black/40">
+      <button onClick={onPreview} className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-black/40">
         {image ? (
           <img src={image} alt={item.title} className="h-full w-full object-cover" />
         ) : (
