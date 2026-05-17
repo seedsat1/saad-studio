@@ -759,7 +759,7 @@ export default function StudioImgPage() {
             )}
 
             {viewMode === "grid" && (
-              <div className="grid content-start items-start gap-4" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))" }}>
+              <div className="grid content-start items-start gap-4" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))" }}>
                 {filteredItems.map((item) => (
                   <StudioCard
                     key={item.id}
@@ -1141,7 +1141,9 @@ function StudioCard({
 
       <button onClick={onOpen} className="block w-full text-left">
         <div className="relative h-full w-full overflow-hidden">
-          {hasVideo ? (
+          {hasCompare ? (
+            <CompareImage beforeUrl={item.beforeUrl!} afterUrl={item.afterUrl!} position={position} />
+          ) : hasVideo ? (
             <video
               src={item.videoUrl}
               poster={item.posterUrl}
