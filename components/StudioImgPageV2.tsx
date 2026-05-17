@@ -137,7 +137,7 @@ function readJson<T>(key: string, fallback: T): T {
     return raw ? (JSON.parse(raw) as T) : fallback;
   } catch {
     return fallback;
-  }
+  
 }
 
 function saveJson(key: string, value: unknown) {
