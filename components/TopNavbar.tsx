@@ -74,6 +74,7 @@ const montserrat = Montserrat({ weight: "600", subsets: ["latin"] });
 
 const IMAGE_FEATURES = [
   { label: "Create Image", icon: Wand2, color: "text-pink-400", description: "Generate stunning AI images instantly", badge: "TOP" },
+  { label: "Studio Img", icon: GalleryHorizontalEnd, color: "text-cyan-400", description: "Private prompt and result library", badge: "NEW" },
   { label: "Cinema Studio Image 2.0", icon: Clapperboard, color: "text-violet-400", description: "Cinematic quality image generation", badge: "NEW" },
   { label: "Soul ID Character", icon: ScanFace, color: "text-cyan-400", description: "Consistent character design system", badge: "" },
   { label: "AI Influencer", icon: Sparkles, color: "text-amber-400", description: "Create virtual AI influencers", badge: "TOP" },
@@ -344,6 +345,7 @@ const EDIT_TOOL_MAP: Record<string, string> = {
 };
 
 function imageFeatureHref(label: string): string {
+  if (label === "Studio Img") return "/studio-img";
   const tool = IMAGE_TOOL_MAP[label] ?? "create";
   return `/image?tool=${encodeURIComponent(tool)}`;
 }
@@ -865,7 +867,7 @@ const TopNavbar = () => {
                       </div>
                       <h3 className="text-sm font-semibold text-white">Image Studio</h3>
                       <span className="rounded-full bg-pink-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-pink-300 ring-1 ring-pink-500/30">
-                        12 Features
+                        13 Features
                       </span>
                     </div>
                     <Link
@@ -1049,6 +1051,14 @@ const TopNavbar = () => {
 
               {/* Assist | Gallery */}
               <div className="flex items-center">
+                <Link href="/about" className={cn("flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium transition-all hover:bg-white/[0.08] whitespace-nowrap", pathname === "/about" ? "text-white bg-white/[0.08]" : "text-zinc-400 hover:text-white")}>
+                  <Sparkles className="h-3 w-3 text-cyan-400" />About
+                </Link>
+                <NavSep />
+                <Link href="/contact" className={cn("flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium transition-all hover:bg-white/[0.08] whitespace-nowrap", pathname === "/contact" ? "text-white bg-white/[0.08]" : "text-zinc-400 hover:text-white")}>
+                  <Command className="h-3 w-3 text-lime-400" />Contact
+                </Link>
+                <NavSep />
                 <Link href="/assist" className={cn("flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium transition-all hover:bg-white/[0.08] whitespace-nowrap", pathname === "/assist" ? "text-white bg-white/[0.08]" : "text-zinc-400 hover:text-white")}>
                   <Bot className="h-3 w-3 text-green-400" />Assist
                 </Link>
@@ -1361,6 +1371,16 @@ const TopNavbar = () => {
 
               {/* Assist | Gallery */}
               <div className="grid grid-cols-2 gap-1 pt-0.5">
+                <Link href="/about"
+                  className={cn("flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                    pathname === "/about" ? "bg-white/10 text-white" : "text-zinc-400 hover:bg-white/5 hover:text-white")}>
+                  <Sparkles className="h-4 w-4 text-cyan-400" />About
+                </Link>
+                <Link href="/contact"
+                  className={cn("flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                    pathname === "/contact" ? "bg-white/10 text-white" : "text-zinc-400 hover:bg-white/5 hover:text-white")}>
+                  <Command className="h-4 w-4 text-lime-400" />Contact
+                </Link>
                 <Link href="/assist"
                   className={cn("flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
                     pathname === "/assist" ? "bg-white/10 text-white" : "text-zinc-400 hover:bg-white/5 hover:text-white")}>

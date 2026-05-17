@@ -1,0 +1,251 @@
+
+> aisaas@0.1.0 dev
+> next dev -p 3000
+
+  ▲ Next.js 14.2.35
+  - Local:        http://localhost:3000
+  - Environments: .env.local, .env
+
+ ✓ Starting...
+ ✓ Ready in 16.5s
+ ○ Compiling /middleware ...
+ ✓ Compiled /middleware in 7.9s (183 modules)
+ ○ Compiling /studio-img ...
+ ✓ Compiled /studio-img in 15s (2058 modules)
+ GET /studio-img?fresh=20 200 in 15772ms
+ ✓ Compiled in 1601ms (891 modules)
+ GET /studio-img?fresh=20 200 in 74ms
+ ○ Compiling /api/layouts ...
+ ✓ Compiled /api/layouts in 865ms (1155 modules)
+ GET /api/layouts?page=cms-auth 200 in 3367ms
+ GET /api/layouts?page=cms-pricing 200 in 3458ms
+ GET /api/layouts?page=cms-auth 200 in 395ms
+ GET /api/layouts?page=cms-pricing 200 in 1579ms
+ ✓ Compiled in 3.6s (2040 modules)
+ GET /studio-img?fresh=20&_rsc=1gb1m 200 in 207ms
+ ✓ Compiled in 2.8s (2040 modules)
+ GET /studio-img?fresh=20&_rsc=1gb1m 200 in 110ms
+ GET /studio-img?fresh=21 200 in 247ms
+ GET /studio-img?fresh=20 200 in 123ms
+ ○ Compiling /api/layouts ...
+ ✓ Compiled /api/layouts in 999ms (1155 modules)
+ GET /api/layouts?page=cms-auth 200 in 2860ms
+ GET /api/layouts?page=cms-pricing 200 in 3023ms
+ GET /api/layouts?page=cms-pricing 200 in 3184ms
+ GET /api/layouts?page=cms-auth 200 in 3186ms
+ ✓ Compiled in 3.5s (2040 modules)
+ GET /studio-img?fresh=20&_rsc=1gb1m 200 in 112ms
+ GET /studio-img?fresh=20 200 in 253ms
+ ○ Compiling /api/layouts ...
+ ✓ Compiled /api/layouts in 1072ms (1155 modules)
+ GET /api/layouts?page=cms-pricing 200 in 1722ms
+ GET /api/layouts?page=cms-auth 200 in 1724ms
+ GET /api/layouts?page=cms-auth 200 in 206ms
+ GET /api/layouts?page=cms-pricing 200 in 431ms
+ GET /studio-img?fresh=20 200 in 288ms
+ GET /api/layouts?page=cms-auth 200 in 207ms
+ GET /api/layouts?page=cms-pricing 200 in 207ms
+ GET /api/layouts?page=cms-auth 200 in 214ms
+ GET /api/layouts?page=cms-pricing 200 in 214ms
+ ✓ Compiled in 6.4s (2048 modules)
+ GET /studio-img?fresh=20&_rsc=1gb1m 200 in 130ms
+ GET /studio-img?fresh=20 200 in 265ms
+ ○ Compiling /favicon.ico ...
+ ✓ Compiled /favicon.ico in 1586ms (1159 modules)
+ ✓ Compiled (1188 modules)
+ GET /studio-img?fresh=20 200 in 260ms
+ GET /api/layouts?page=cms-auth 200 in 451ms
+ GET /api/layouts?page=cms-auth 200 in 198ms
+ GET /api/layouts?page=cms-pricing 200 in 1713ms
+ GET /api/layouts?page=cms-pricing 200 in 207ms
+ ✓ Compiled in 2.5s (895 modules)
+ GET /studio-img?fresh=20&_rsc=1gb1m 200 in 382ms
+ ✓ Compiled in 1774ms (895 modules)
+ GET /studio-img?fresh=20&_rsc=1gb1m 200 in 36ms
+ ✓ Compiled in 994ms (895 modules)
+ GET /studio-img?fresh=20&_rsc=1gb1m 200 in 42ms
+ GET /studio-img?fresh=20 200 in 80ms
+ GET /api/layouts?page=cms-pricing 200 in 378ms
+ GET /api/layouts?page=cms-auth 200 in 397ms
+ GET /api/layouts?page=cms-pricing 200 in 219ms
+ GET /api/layouts?page=cms-auth 200 in 208ms
+ ✓ Compiled in 6.2s (2066 modules)
+ GET /studio-img?fresh=20&_rsc=1gb1m 200 in 168ms
+ ✓ Compiled in 5.8s (2066 modules)
+ GET /studio-img?fresh=20&_rsc=1gb1m 200 in 101ms
+ ✓ Compiled in 4.7s (2066 modules)
+ GET /studio-img?fresh=20&_rsc=1gb1m 200 in 66ms
+ ✓ Compiled in 5.2s (2066 modules)
+ GET /studio-img?fresh=20&_rsc=1gb1m 200 in 124ms
+ ✓ Compiled in 4.8s (2066 modules)
+ GET /studio-img?fresh=20&_rsc=1gb1m 200 in 126ms
+ ✓ Compiled in 3.4s (2064 modules)
+ GET /studio-img?fresh=20&_rsc=1gb1m 200 in 74ms
+ ✓ Compiled in 2.9s (2066 modules)
+ GET /studio-img?fresh=20&_rsc=1gb1m 200 in 90ms
+ GET /studio-img?fresh=20 200 in 296ms
+ ○ Compiling /api/layouts ...
+ ✓ Compiled /api/layouts in 3.3s (2101 modules)
+ GET /favicon.ico 200 in 2916ms
+ GET /studio-img?fresh=20&_rsc=1gb1m 200 in 381ms
+ GET /api/layouts?page=cms-auth 200 in 3343ms
+ GET /api/layouts?page=cms-pricing 200 in 3344ms
+ GET /studio-img?fresh=20 200 in 454ms
+ GET /api/layouts?page=cms-auth 200 in 1783ms
+ GET /api/layouts?page=cms-pricing 200 in 1796ms
+ GET /api/layouts?page=cms-auth 200 in 843ms
+ GET /api/layouts?page=cms-pricing 200 in 913ms
+ ✓ Compiled in 2.9s (2101 modules)
+ GET /studio-img?fresh=20&_rsc=1gb1m 200 in 119ms
+ GET /studio-img?fresh=20 200 in 161ms
+ GET /api/layouts?page=cms-auth 200 in 302ms
+ GET /api/layouts?page=cms-pricing 200 in 345ms
+ GET /api/layouts?page=cms-auth 200 in 200ms
+ GET /api/layouts?page=cms-pricing 200 in 202ms
+ ✓ Compiled in 2.7s (2101 modules)
+ GET /studio-img?fresh=20&_rsc=1gb1m 200 in 124ms
+ GET /studio-img?fresh=20 200 in 100ms
+ GET /api/layouts?page=cms-auth 200 in 193ms
+ GET /api/layouts?page=cms-pricing 200 in 239ms
+ GET /api/layouts?page=cms-auth 200 in 194ms
+ GET /api/layouts?page=cms-pricing 200 in 238ms
+ ✓ Compiled in 4.1s (2074 modules)
+ GET /studio-img?fresh=20&_rsc=1gb1m 200 in 156ms
+ GET /studio-img?fresh=20 200 in 311ms
+ ✓ Compiled /api/layouts in 474ms (1172 modules)
+ GET /api/layouts?page=cms-pricing 200 in 1111ms
+ GET /api/layouts?page=cms-auth 200 in 1112ms
+ GET /api/layouts?page=cms-pricing 200 in 203ms
+ GET /api/layouts?page=cms-auth 200 in 222ms
+ ✓ Compiled in 2.9s (2080 modules)
+ GET /studio-img?fresh=20&_rsc=1gb1m 200 in 103ms
+ GET /studio-img?fresh=20 200 in 208ms
+ GET /api/layouts?page=cms-pricing 200 in 199ms
+ GET /api/layouts?page=cms-auth 200 in 389ms
+ GET /api/layouts?page=cms-pricing 200 in 186ms
+ GET /api/layouts?page=cms-auth 200 in 189ms
+ ✓ Compiled in 3s (2080 modules)
+ GET /studio-img?fresh=20&_rsc=1gb1m 200 in 82ms
+ GET /studio-img?fresh=20 200 in 159ms
+ GET /api/layouts?page=cms-auth 200 in 238ms
+ GET /api/layouts?page=cms-pricing 200 in 401ms
+ GET /api/layouts?page=cms-auth 200 in 192ms
+ GET /api/layouts?page=cms-pricing 200 in 191ms
+ ✓ Compiled in 3.1s (2080 modules)
+ GET /studio-img?fresh=20&_rsc=1gb1m 200 in 77ms
+ GET /studio-img?fresh=20 200 in 115ms
+ GET /api/layouts?page=cms-auth 200 in 259ms
+ GET /api/layouts?page=cms-pricing 200 in 437ms
+ GET /api/layouts?page=cms-auth 200 in 454ms
+ GET /api/layouts?page=cms-pricing 200 in 191ms
+ ✓ Compiled in 2.8s (2080 modules)
+ GET /studio-img?fresh=20&_rsc=1gb1m 200 in 70ms
+ GET /studio-img?fresh=20 200 in 106ms
+ GET /api/layouts?page=cms-auth 200 in 431ms
+ GET /api/layouts?page=cms-pricing 200 in 378ms
+ GET /api/layouts?page=cms-pricing 200 in 195ms
+ GET /api/layouts?page=cms-auth 200 in 221ms
+ ✓ Compiled in 3.1s (2080 modules)
+ GET /studio-img?fresh=20&_rsc=1gb1m 200 in 82ms
+ GET /studio-img?fresh=20 200 in 136ms
+ GET /api/layouts?page=cms-auth 200 in 378ms
+ GET /api/layouts?page=cms-pricing 200 in 383ms
+ GET /api/layouts?page=cms-auth 200 in 208ms
+ GET /api/layouts?page=cms-pricing 200 in 208ms
+ ✓ Compiled in 3.1s (2084 modules)
+ GET /studio-img?fresh=20&_rsc=1gb1m 200 in 70ms
+ GET /studio-img?fresh=20 200 in 149ms
+ GET /api/layouts?page=cms-pricing 200 in 378ms
+ GET /api/layouts?page=cms-auth 200 in 381ms
+ GET /api/layouts?page=cms-auth 200 in 197ms
+ GET /api/layouts?page=cms-pricing 200 in 201ms
+ ✓ Compiled in 2.9s (2084 modules)
+ GET /studio-img?fresh=20&_rsc=1gb1m 200 in 71ms
+ GET /studio-img?fresh=20 200 in 112ms
+ GET /api/layouts?page=cms-auth 200 in 359ms
+ GET /api/layouts?page=cms-pricing 200 in 415ms
+ GET /api/layouts?page=cms-pricing 200 in 203ms
+ GET /api/layouts?page=cms-auth 200 in 373ms
+ GET /studio-img?fresh=20 200 in 85ms
+ GET /api/layouts?page=cms-pricing 200 in 369ms
+ GET /api/layouts?page=cms-auth 200 in 374ms
+ GET /api/layouts?page=cms-pricing 200 in 193ms
+ GET /api/layouts?page=cms-auth 200 in 231ms
+ GET /studio-img?fresh=20 200 in 84ms
+ GET /api/layouts?page=cms-pricing 200 in 371ms
+ GET /api/layouts?page=cms-auth 200 in 371ms
+ GET /api/layouts?page=cms-pricing 200 in 212ms
+ GET /api/layouts?page=cms-auth 200 in 372ms
+ ✓ Compiled in 1634ms (910 modules)
+ GET /studio-img?fresh=20&_rsc=1gb1m 200 in 442ms
+ ✓ Compiled in 3.4s (910 modules)
+ GET /studio-img?fresh=20&_rsc=1gb1m 200 in 43ms
+ GET /studio-img?fresh=20&_rsc=1gb1m 200 in 1362ms
+ ✓ Compiled in 7.9s (2261 modules)
+ GET /studio-img?fresh=20&_rsc=1gb1m 200 in 130ms
+ GET /studio-img?fresh=20&_rsc=1gb1m 200 in 635ms
+ ✓ Compiled in 5s (2261 modules)
+ GET /studio-img?fresh=20&_rsc=1gb1m 200 in 107ms
+ GET /studio-img?fresh=20&_rsc=1gb1m 200 in 703ms
+ ✓ Compiled in 3.3s (910 modules)
+ GET /studio-img?fresh=20&_rsc=1gb1m 200 in 57ms
+ GET /studio-img?fresh=20&_rsc=1gb1m 200 in 646ms
+ ✓ Compiled in 2.3s (910 modules)
+ GET /studio-img?fresh=20&_rsc=1gb1m 200 in 30ms
+ GET /studio-img?fresh=20&_rsc=1gb1m 200 in 551ms
+ ✓ Compiled in 4.2s (2261 modules)
+ GET /studio-img?fresh=20&_rsc=1gb1m 200 in 53ms
+ GET /studio-img?fresh=20&_rsc=1gb1m 200 in 715ms
+ ✓ Compiled in 5.1s (2261 modules)
+ GET /studio-img?fresh=20&_rsc=1gb1m 200 in 71ms
+ GET /studio-img?fresh=20&_rsc=1gb1m 200 in 659ms
+ ✓ Compiled in 5.4s (2261 modules)
+ GET /studio-img?fresh=20&_rsc=1gb1m 200 in 59ms
+ GET /studio-img?fresh=20&_rsc=1gb1m 200 in 610ms
+ ✓ Compiled in 4.3s (2261 modules)
+ GET /studio-img?fresh=20&_rsc=1gb1m 200 in 65ms
+ ✓ Compiled in 865ms (910 modules)
+ GET /studio-img?fresh=20&_rsc=1gb1m 200 in 437ms
+ ✓ Compiled in 978ms (910 modules)
+ GET /studio-img?fresh=20&_rsc=1gb1m 200 in 35ms
+ ✓ Compiled in 1609ms (910 modules)
+ GET /studio-img?fresh=20&_rsc=1gb1m 200 in 601ms
+ ✓ Compiled in 1394ms (910 modules)
+ GET /studio-img?fresh=20&_rsc=1gb1m 200 in 124ms
+ GET /studio-img?fresh=20&_rsc=1gb1m 200 in 2856ms
+ ✓ Compiled in 9.9s (2261 modules)
+ GET /studio-img?fresh=20&_rsc=1gb1m 200 in 132ms
+ ✓ Compiled in 5.7s (2078 modules)
+ GET /studio-img?fresh=20&_rsc=1gb1m 200 in 241ms
+ ✓ Compiled in 3.1s (2078 modules)
+ GET /studio-img?fresh=20&_rsc=1gb1m 200 in 69ms
+ ✓ Compiled in 3.1s (2078 modules)
+ GET /studio-img?fresh=20&_rsc=1gb1m 200 in 70ms
+ ✓ Compiled in 2.6s (2078 modules)
+ GET /studio-img?fresh=20&_rsc=1gb1m 200 in 75ms
+ ✓ Compiled in 2.8s (2078 modules)
+ GET /studio-img?fresh=20&_rsc=1gb1m 200 in 69ms
+ ✓ Compiled in 3.5s (2078 modules)
+ GET /studio-img?fresh=20&_rsc=1gb1m 200 in 68ms
+ ✓ Compiled in 3.3s (2078 modules)
+ GET /studio-img?fresh=20&_rsc=1gb1m 200 in 73ms
+ ✓ Compiled in 3.1s (2078 modules)
+ GET /studio-img?fresh=20&_rsc=1gb1m 200 in 64ms
+ ✓ Compiled in 2.6s (2078 modules)
+ GET /studio-img?fresh=20&_rsc=1gb1m 200 in 75ms
+ ✓ Compiled in 3.6s (2078 modules)
+ GET /studio-img?fresh=20&_rsc=1gb1m 200 in 77ms
+ ✓ Compiled in 2.8s (2078 modules)
+ GET /studio-img?fresh=20&_rsc=1gb1m 200 in 70ms
+ ✓ Compiled in 3.3s (2078 modules)
+ GET /studio-img?fresh=20&_rsc=1gb1m 200 in 66ms
+ ✓ Compiled in 2.1s (910 modules)
+ GET /studio-img?fresh=20&_rsc=1gb1m 200 in 39ms
+ ✓ Compiled in 3.7s (910 modules)
+ GET /studio-img?fresh=20&_rsc=1gb1m 200 in 49ms
+ ✓ Compiled in 9.3s (2261 modules)
+ GET /studio-img?fresh=20&_rsc=1gb1m 200 in 7735ms
+ GET /studio-img?fresh=20&_rsc=1gb1m 200 in 30ms
+ GET /studio-img?fresh=20&_rsc=1gb1m 200 in 40ms
+ ✓ Compiled in 2.3s (910 modules)
+ GET /studio-img?fresh=20&_rsc=1gb1m 200 in 41ms

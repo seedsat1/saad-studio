@@ -16,7 +16,8 @@ import {
   Compass,
   ChevronRight,
   Paintbrush,
-  PanelBottom
+  PanelBottom,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -27,6 +28,7 @@ const CMS_PAGES = [
   { id: "video", label: "Video Studio", icon: Video },
   { id: "audio", label: "Audio & Music", icon: Music },
   { id: "apps", label: "AI Apps / Tools", icon: LayoutTemplate },
+  { id: "studio-img", label: "Studio Image Library", icon: Sparkles },
   { id: "cinema-studio", label: "Cinema Studio", icon: Film },
   { id: "shots", label: "Shots Manager", icon: Camera },
   { id: "variations", label: "Variations", icon: Layers },

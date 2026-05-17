@@ -27,8 +27,16 @@ const plusJakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Saad Studio | The Ultimate AI Super Studio",
-  description: "Premium AI Video, Image, and Audio Generation Platform.",
+  title: "Saad Studio | AI Creative Production Platform",
+  description: "Saad Studio is a cloud-based AI creative production platform for generating, editing, and publishing images, video, audio, and cinematic scenes.",
+  keywords: ["Saad Studio", "AI creative platform", "AI video generation", "AI image generation", "creative SaaS"],
+  authors: [{ name: "Saad Studio" }],
+  openGraph: {
+    title: "Saad Studio | AI Creative Production Platform",
+    description: "A cloud-based AI creative production platform for teams, creators, and businesses.",
+    siteName: "Saad Studio",
+    type: "website",
+  },
   manifest: "/manifest.webmanifest",
   icons: {
     icon: "/favicon-v2.ico",

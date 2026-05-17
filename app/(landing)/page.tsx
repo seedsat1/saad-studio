@@ -878,6 +878,7 @@ const WORKFLOW_STEPS = [
 
 const HOME_DEFAULT_SECTION_ORDER = [
   "heroSlides",
+  "startupVerification",
   "studioPathways",
   "showcaseWall",
   "statsCounter",
@@ -892,13 +893,59 @@ const HOME_DEFAULT_SECTION_ORDER = [
 ];
 
 const HOME_INJECTED_SECTIONS: Record<string, { after: string }> = {
-  studioPathways: { after: "heroSlides" },
+  startupVerification: { after: "heroSlides" },
+  studioPathways: { after: "startupVerification" },
   showcaseWall: { after: "studioPathways" },
   statsCounter: { after: "showcaseWall" },
   modelSpotlights: { after: "statsCounter" },
   productionWorkflow: { after: "modelSpotlights" },
   pricingPreview: { after: "apps" },
 };
+
+function StartupVerification() {
+  const points = [
+    { title: "Product", text: "A cloud platform for AI image, video, audio, and cinematic scene production.", icon: Sparkles },
+    { title: "Customers", text: "Built for creators, agencies, small businesses, and media teams shipping visual content.", icon: Bot },
+    { title: "Workflow", text: "Users generate assets, edit results, organize projects, and publish production-ready media.", icon: Film },
+  ];
+
+  return (
+    <FadeIn delay={0.05}>
+      <section className="grid gap-5 rounded-2xl border border-cyan-400/20 bg-slate-900/70 p-5 shadow-2xl shadow-black/20 lg:grid-cols-[1.1fr_0.9fr] lg:p-7">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.22em] text-cyan-300">Company Overview</p>
+          <h2 className="mt-3 max-w-3xl text-3xl font-black tracking-tight text-white md:text-4xl">
+            Saad Studio helps teams create production-ready visual content with AI.
+          </h2>
+          <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-300 md:text-base">
+            Saad Studio is a software-as-a-service creative production platform. The product combines multiple AI models and focused studio workflows so users can generate images, create videos, build consistent characters, edit media, produce audio, and manage creative projects from one browser-based workspace.
+          </p>
+          <div className="mt-5 flex flex-wrap gap-3">
+            <Link href="/about" className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-cyan-100">
+              About Saad Studio <ArrowRight className="h-4 w-4" />
+            </Link>
+            <Link href="/contact" className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-white/10">
+              Contact
+            </Link>
+          </div>
+        </div>
+        <div className="grid gap-3">
+          {points.map((point) => (
+            <div key={point.title} className="flex gap-3 rounded-xl border border-white/10 bg-white/[0.04] p-4">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-cyan-400/10 ring-1 ring-cyan-400/25">
+                <point.icon className="h-5 w-5 text-cyan-300" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-white">{point.title}</h3>
+                <p className="mt-1 text-sm leading-6 text-slate-400">{point.text}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+    </FadeIn>
+  );
+}
 
 function StudioPathways({ items = STUDIO_PATHWAYS }: { items?: typeof STUDIO_PATHWAYS }) {
   return (
@@ -1740,6 +1787,7 @@ export default function ExplorePage() {
 
   const sectionMap: Record<string, React.ReactNode> = {
     heroSlides: <HeroCarousel key="hero" slides={homeHeroSlides} primaryCtaLabel={heroPrimaryCtaLabel} trailerLabel={heroTrailerLabel} />,
+    startupVerification: <StartupVerification key="startupVerification" />,
     studioPathways: <StudioPathways key="studioPathways" items={homeStudioPathways} />,
     showcaseWall: <ShowcaseWall key="showcaseWall" tiles={homeShowcaseTiles} />,
     statsCounter: <StatsCounter key="stats" stats={homeStats} />,

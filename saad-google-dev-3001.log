@@ -1,0 +1,40 @@
+
+> aisaas@0.1.0 dev
+> next dev --port 3001
+
+  ▲ Next.js 14.2.35
+  - Local:        http://localhost:3001
+  - Environments: .env.local, .env
+
+ ✓ Starting...
+ ✓ Ready in 45.8s
+ ○ Compiling /middleware ...
+ ✓ Compiled /middleware in 1346ms (183 modules)
+ ○ Compiling / ...
+Browserslist: caniuse-lite is outdated. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+ ✓ Compiled / in 21.3s (2326 modules)
+ GET / 200 in 22465ms
+ ✓ Compiled in 2.4s (1023 modules)
+ ○ Compiling /api/promo/media ...
+ ✓ Compiled /about in 5.4s (1282 modules)
+ ✓ Compiled in 2.5s (1010 modules)
+ GET /contact 200 in 7867ms
+ GET /about 200 in 7885ms
+ GET /api/promo/content 200 in 10076ms
+ GET /api/promo/media 200 in 10139ms
+ GET /api/layouts?page=cms-auth 200 in 904ms
+ GET /api/layouts?page=cms-pricing 200 in 193ms
+ GET /api/layouts?page=cms-auth 200 in 186ms
+ GET /api/layouts?page=cms-discover 200 in 2466ms
+ GET /api/layouts?page=cms-pricing 200 in 404ms
+ GET /api/content?slug=home&sectionName=hero 200 in 12563ms
+ GET /api/content?slug=home&sectionName=coreTools 200 in 12563ms
+ GET /api/layouts?page=cms-home 200 in 12566ms
+ GET /api/layouts?page=home 200 in 12567ms
+ GET /api/layouts?page=cms-discover 200 in 362ms
+ GET /api/content?slug=home&sectionName=hero 200 in 383ms
+ GET /api/content?slug=home&sectionName=coreTools 200 in 383ms
+ GET /api/layouts?page=cms-home 200 in 542ms
+ GET /api/layouts?page=home 200 in 542ms

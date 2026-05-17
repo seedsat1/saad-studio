@@ -536,3 +536,77 @@ model PanelAuthSession {
   @@index([expiresAt])
 }
 
+// ——————————————————————————————————————————————————————————
+// STUDIO IMG — ADMIN-CURATED PROMPT LIBRARY (browseable by subscribers)
+// ——————————————————————————————————————————————————————————
+
+/// Curated cards in the Studio Image library. Admin uploads, subscribers
+/// browse and copy prompts. Each card has a cover (image and/or video)
+/// plus an ordered sequence of retouching steps.
+model StudioImg {
+  id          String   @id @default(cuid())
+  title       String
+  prompt      String   @default("")
+  params      String   @default("")
+  model       String   @default("")
+  category    String   @default("")
+
+  // Cover media — image (before/after) and/or video with poster
+  beforeUrl   String?
+  afterUrl    String?
+  videoUrl    String?
+  posterUrl   String?
+  mediaType   String   @default("image") // "image" | "video" | "both"
+
+  steps       StudioImgStep[]
+
+  isPublished Boolean  @default(true)
+  sortOrder   Int      @default(0)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([category])
+  @@index([model])
+  @@index([isPublished, sortOrder])
+}
+
+/// Ordered retouching steps inside a StudioImg card. Each step has its own
+/// optional before/after media and content (prompt for that step).
+model StudioImgStep {
+  id          String    @id @default(cuid())
+  studioImgId String
+  studioImg   StudioImg @relation(fields: [studioImgId], references: [id], onDelete: Cascade)
+
+  label       String   @default("")
+  content     String   @default("")
+  beforeUrl   String?
+  afterUrl    String?
+  videoUrl    String?
+  posterUrl   String?
+  viewMode    String   @default("slider") // "slider" | "side"
+
+  sortOrder   Int      @default(0)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([studioImgId, sortOrder])
+}
+
+/// Admin-managed list of categories used in the Studio Image library.
+model StudioImgCategory {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+}
+
+/// Admin-managed list of AI models referenced by Studio Image cards.
+model StudioImgModel {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+}
+

@@ -37,6 +37,8 @@ interface DiscoverCms {
 const SOCIALS: Array<{ icon: typeof Instagram; href: string; label: string }> = [];
 
 const ALLOWED_FOOTER_LINKS = new Set([
+  "/about",
+  "/contact",
   "/image",
   "/video",
   "/character",
@@ -63,6 +65,8 @@ const DEFAULT_SECTIONS: FooterSection[] = [
     _id: "company",
     title: "Company",
     links: [
+      { label: "About", href: "/about" },
+      { label: "Contact", href: "/contact" },
       { label: "Pricing", href: "/pricing" },
       { label: "Privacy Policy", href: "/privacy" },
       { label: "Terms & Conditions", href: "/terms" },

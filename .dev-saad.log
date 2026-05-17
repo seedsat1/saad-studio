@@ -1,0 +1,57 @@
+
+> aisaas@0.1.0 dev
+> next dev
+
+  ▲ Next.js 14.2.35
+  - Local:        http://localhost:3000
+  - Environments: .env.local, .env
+
+ ✓ Starting...
+ ✓ Ready in 66.5s
+ ○ Compiling /middleware ...
+ ✓ Compiled /middleware in 31.6s (183 modules)
+ ○ Compiling / ...
+Browserslist: caniuse-lite is outdated. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+ ✓ Compiled / in 42.4s (2324 modules)
+ GET / 200 in 43388ms
+ ✓ Compiled in 1734ms (1022 modules)
+ GET / 200 in 129ms
+ ○ Compiling /api/content ...
+ ✓ Compiled /api/content in 1448ms (1281 modules)
+ ✓ Compiled (1326 modules)
+ GET /api/promo/content 200 in 3391ms
+ GET /api/promo/media 200 in 3473ms
+ GET /api/layouts?page=cms-auth 200 in 1577ms
+ GET /api/layouts?page=cms-pricing 200 in 180ms
+ GET /api/layouts?page=cms-auth 200 in 183ms
+ GET /api/layouts?page=cms-pricing 200 in 191ms
+ GET /api/content?slug=home&sectionName=hero 200 in 6128ms
+ GET /api/content?slug=home&sectionName=coreTools 200 in 4716ms
+ GET /api/layouts?page=cms-discover 200 in 2794ms
+ GET /api/layouts?page=home 200 in 6408ms
+ GET /api/layouts?page=cms-home 200 in 6407ms
+ GET /api/content?slug=home&sectionName=hero 200 in 428ms
+ GET /api/content?slug=home&sectionName=coreTools 200 in 427ms
+ GET /api/layouts?page=cms-discover 200 in 369ms
+ GET /api/layouts?page=home 200 in 274ms
+ GET /api/layouts?page=cms-home 200 in 401ms
+ GET / 200 in 505ms
+ GET / 200 in 103ms
+ GET /api/promo/media 200 in 511ms
+ GET /api/promo/content 200 in 617ms
+ GET /api/layouts?page=home 200 in 1553ms
+ GET /api/content?slug=home&sectionName=hero 200 in 1647ms
+ GET /api/content?slug=home&sectionName=coreTools 200 in 1647ms
+ GET /api/layouts?page=cms-pricing 200 in 181ms
+ GET /api/layouts?page=cms-home 200 in 1822ms
+ GET /api/layouts?page=home 200 in 369ms
+ GET /api/layouts?page=cms-discover 200 in 1590ms
+ GET /api/content?slug=home&sectionName=hero 200 in 348ms
+ GET /api/content?slug=home&sectionName=coreTools 200 in 354ms
+ GET /api/layouts?page=cms-auth 200 in 1563ms
+ GET /api/layouts?page=cms-discover 200 in 185ms
+ GET /api/layouts?page=cms-auth 200 in 191ms
+ GET /api/layouts?page=cms-home 200 in 357ms
+ GET /api/layouts?page=cms-pricing 200 in 1607ms
