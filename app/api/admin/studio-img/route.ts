@@ -6,6 +6,8 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import path from "path";
+import { promises as fs } from "fs";
 import { isAdmin } from "@/lib/is-admin";
 import prismadb from "@/lib/prismadb";
 import {
@@ -17,12 +19,47 @@ import {
 
 export const dynamic = "force-dynamic";
 
+async function ensureStudioImgTables() {
+  try {
+    await prismadb.$queryRawUnsafe('SELECT 1 FROM "StudioImg" LIMIT 1');
+    return { ok: true as const, bootstrapped: false as const };
+  } catch {
+    const sqlPath = path.join(process.cwd(), "prisma", "studio_img_init.sql");
+    const raw = await fs.readFile(sqlPath, "utf8");
+    const withoutComments = raw
+      .split("\n")
+      .filter((line) => !line.trim().startsWith("--"))
+      .join("\n");
+    const statements = withoutComments
+      .split(";")
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    for (const stmt of statements) {
+      await prismadb.$executeRawUnsafe(stmt);
+    }
+
+    return { ok: true as const, bootstrapped: true as const };
+  }
+}
+
 export async function GET() {
   if (!(await isAdmin())) {
     return new NextResponse("Unauthorized", { status: 401 });
   }
-  const items = await fetchStudioImgList({ includeUnpublished: true });
-  return NextResponse.json({ items: items.map(toStudioImgDto) });
+  try {
+    const setup = await ensureStudioImgTables();
+    const items = await fetchStudioImgList({ includeUnpublished: true });
+    return NextResponse.json({ items: items.map(toStudioImgDto), bootstrapped: setup.bootstrapped });
+  } catch (err) {
+    return NextResponse.json(
+      {
+        items: [],
+        error: err instanceof Error ? err.message : "Failed to load studio-img CMS",
+      },
+      { status: 200 },
+    );
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -30,6 +67,7 @@ export async function POST(req: NextRequest) {
     return new NextResponse("Unauthorized", { status: 401 });
   }
   try {
+    await ensureStudioImgTables();
     const body = await req.json();
     const payload = parseStudioImgPayload(body);
     const initialSteps = Array.isArray(body?.steps)

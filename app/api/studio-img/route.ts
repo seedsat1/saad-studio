@@ -20,18 +20,22 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const items = await fetchStudioImgList({ includeUnpublished: false });
+  try {
+    const items = await fetchStudioImgList({ includeUnpublished: false });
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const db = prismadb as any;
-  const [categories, models] = await Promise.all([
-    db.studioImgCategory.findMany({ orderBy: [{ sortOrder: "asc" }, { name: "asc" }] }),
-    db.studioImgModel.findMany({ orderBy: [{ sortOrder: "asc" }, { name: "asc" }] }),
-  ]);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = prismadb as any;
+    const [categories, models] = await Promise.all([
+      db.studioImgCategory.findMany({ orderBy: [{ sortOrder: "asc" }, { name: "asc" }] }),
+      db.studioImgModel.findMany({ orderBy: [{ sortOrder: "asc" }, { name: "asc" }] }),
+    ]);
 
-  return NextResponse.json({
-    items: items.map(toStudioImgDto),
-    categories: categories.map((c: { name: string }) => c.name),
-    models: models.map((m: { name: string }) => m.name),
-  });
+    return NextResponse.json({
+      items: items.map(toStudioImgDto),
+      categories: categories.map((c: { name: string }) => c.name),
+      models: models.map((m: { name: string }) => m.name),
+    });
+  } catch {
+    return NextResponse.json({ items: [], categories: [], models: [] }, { status: 200 });
+  }
 }

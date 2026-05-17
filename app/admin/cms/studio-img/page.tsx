@@ -106,6 +106,9 @@ export default function CmsStudioImgPage() {
       const res = await fetch("/api/admin/studio-img");
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
+      if (typeof data?.error === "string" && data.error) {
+        setError(data.error);
+      }
       setItems(Array.isArray(data?.items) ? data.items : []);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load");

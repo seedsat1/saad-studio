@@ -50,9 +50,40 @@ type SeedPayload = {
   imgModels?: string[];
 };
 
+async function ensureStudioImgTables() {
+  try {
+    await prismadb.$queryRawUnsafe('SELECT 1 FROM "StudioImg" LIMIT 1');
+    return;
+  } catch {
+    const sqlPath = path.join(process.cwd(), "prisma", "studio_img_init.sql");
+    const raw = await fs.readFile(sqlPath, "utf8");
+    const withoutComments = raw
+      .split("\n")
+      .filter((line) => !line.trim().startsWith("--"))
+      .join("\n");
+    const statements = withoutComments
+      .split(";")
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    for (const stmt of statements) {
+      await prismadb.$executeRawUnsafe(stmt);
+    }
+  }
+}
+
 export async function POST(req: NextRequest) {
   if (!(await isAdmin())) {
     return new NextResponse("Unauthorized", { status: 401 });
+  }
+
+  try {
+    await ensureStudioImgTables();
+  } catch (err) {
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Failed to setup StudioImg tables" },
+      { status: 400 },
+    );
   }
 
   // 1. Get payload (from body or from public/studio-img-seed.json)
