@@ -209,7 +209,7 @@ export default function StudioImgPage() {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("all");
   const [model, setModel] = useState("all");
-  const [viewMode, setViewMode] = useState<ViewMode>("masonry");
+  const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [sortMode, setSortMode] = useState<SortMode>("newest");
   const [draft, setDraft] = useState<DraftImage>(emptyDraft);
   const [editorOpen, setEditorOpen] = useState(false);
@@ -736,7 +736,7 @@ export default function StudioImgPage() {
         {!loading && filteredItems.length > 0 && (
           <>
             {viewMode === "masonry" && (
-              <div className="columns-2 gap-3 sm:columns-3 md:columns-4 lg:columns-5 xl:columns-6 2xl:columns-7">
+              <div className="columns-[170px] gap-3 sm:columns-[190px] lg:columns-[210px] 2xl:columns-[230px]">
                 {filteredItems.map((item) => (
                   <div key={item.id} className="mb-3 break-inside-avoid">
                     <StudioCard
