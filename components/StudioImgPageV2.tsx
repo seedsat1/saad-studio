@@ -1141,9 +1141,7 @@ function StudioCard({
 
       <button onClick={onOpen} className="block w-full text-left">
         <div className="relative h-full w-full overflow-hidden">
-          {hasCompare ? (
-            <CompareImage beforeUrl={item.beforeUrl!} afterUrl={item.afterUrl!} position={position} />
-          ) : hasVideo ? (
+          {hasVideo ? (
             <video
               src={item.videoUrl}
               poster={item.posterUrl}
