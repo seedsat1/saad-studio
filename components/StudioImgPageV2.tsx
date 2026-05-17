@@ -759,7 +759,7 @@ export default function StudioImgPage() {
             )}
 
             {viewMode === "grid" && (
-              <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(190px, 1fr))" }}>
+              <div className="grid content-start items-start gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(190px, 1fr))" }}>
                 {filteredItems.map((item) => (
                   <StudioCard
                     key={item.id}
@@ -1091,7 +1091,7 @@ function StudioCard({
       whileHover={{ y: -2 }}
       transition={{ duration: 0.18 }}
       className={cn(
-        "group relative overflow-hidden rounded-2xl border bg-[#0b1222] shadow-lg shadow-black/40 transition",
+        "group relative h-fit self-start overflow-hidden rounded-2xl border bg-[#0b1222] shadow-lg shadow-black/40 transition",
         selected
           ? "border-pink-400/60 ring-2 ring-pink-400/40"
           : "border-white/10 hover:border-violet-400/40 hover:shadow-violet-500/10",
@@ -1173,7 +1173,7 @@ function StudioCard({
               )}
             />
           ) : (
-            <div className={cn("flex w-full items-center justify-center bg-white/[0.02] text-slate-600", mode === "grid" ? "h-full" : "h-48")}>
+            <div className="flex h-48 w-full items-center justify-center bg-white/[0.02] text-slate-600">
               <ImagePlus className="h-8 w-8" />
             </div>
           )}
