@@ -857,33 +857,6 @@ const TopNavbar = () => {
 
               {/* Image */}
               <HoverNavItem href="/image" icon={<ImageIcon className="h-3 w-3 text-pink-400" />} label="Image">
-                {/* ...existing code... */}
-              </HoverNavItem>
-
-              {/* Prompt */}
-              <Link
-                href="/prompt"
-                className={cn(
-                  "flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium transition-colors hover:bg-white/[0.08] whitespace-nowrap",
-                  pathname === "/prompt" ? "text-white bg-white/[0.08]" : "text-cyan-300 hover:text-cyan-400"
-                )}
-              >
-                <GalleryHorizontalEnd className="h-3 w-3 text-cyan-400" />Prompt
-              </Link>
-
-              {/* Explore */}
-              <Link
-                href="/dash"
-                className={cn(
-                  "flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium transition-colors hover:bg-white/[0.08] whitespace-nowrap",
-                  pathname === "/dash" ? "text-white bg-white/[0.08]" : "text-zinc-300 hover:text-white"
-                )}
-              >
-                <Globe className="h-3 w-3 text-sky-400" />Explore
-              </Link>
-
-              {/* Image */}
-              <HoverNavItem href="/image" icon={<ImageIcon className="h-3 w-3 text-pink-400" />} label="Image">
                 <div className="w-[min(860px,calc(100vw-2rem))] p-5">
                   <div className="mb-4 flex items-center justify-between">
                     <div className="flex items-center gap-2">
