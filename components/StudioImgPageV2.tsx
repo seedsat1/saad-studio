@@ -568,52 +568,7 @@ export default function StudioImgPage() {
         <div className="absolute bottom-0 left-1/2 h-[300px] w-[600px] -translate-x-1/2 rounded-full bg-pink-600/5 blur-[140px]" />
       </div>
 
-      <div className="relative w-full px-4 py-5 sm:px-6 lg:px-8">
-        {/* Hero / Header */}
-        <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-slate-900/40 p-4 backdrop-blur-xl">
-          <div className="flex items-center gap-3">
-            <motion.span
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 shadow-lg shadow-violet-500/40"
-            >
-              <Sparkles className="h-5 w-5 text-white" />
-            </motion.span>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="bg-gradient-to-r from-violet-300 via-white to-indigo-300 bg-clip-text text-base font-extrabold tracking-tight text-transparent sm:text-xl">
-                  Studio Image Library
-                </h1>
-                {serverMode && (
-                  <span className="rounded-md bg-emerald-500/20 px-2 py-0.5 text-[9px] font-bold text-emerald-200 ring-1 ring-emerald-400/30">
-                    Admin Library
-                  </span>
-                )}
-              </div>
-              <p className="text-[11px] text-slate-400 sm:text-xs">
-                {items.length} cards · {allCategories.length} categories · {serverMode ? "Published by admin" : "Local browser library"}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setTourOpen(true)}
-              className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:border-violet-400/40 hover:text-white"
-            >
-              <HelpCircle className="h-3.5 w-3.5 text-violet-300" />
-              <span className="hidden sm:inline">Interactive Guide</span>
-            </button>
-            {!serverMode && (
-              <button
-                onClick={reloadSeed}
-                title="Reload original seed"
-                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-slate-300 transition hover:border-indigo-400/40 hover:text-white"
-              >
-                <RefreshCw className="h-3.5 w-3.5" />
-              </button>
-            )}
-          </div>
-        </div>
+
 
         {/* Toolbar Row 1: Search + view modes + actions */}
         <div className="mb-3 flex flex-wrap items-center gap-2">

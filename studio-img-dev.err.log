@@ -11,3 +11,102 @@ Browserslist: caniuse-lite is outdated. Please run:
  ⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
  ⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
  ⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ ⨯ Error: The default export is not a React Component in page: "/studio-img"
+    at rq (E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:40:9630)
+    at async E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:40:10388
+    at async Promise.all (index 0)
+    at async rq (E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:40:10093)
+    at async E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:40:10388
+    at async Promise.all (index 0)
+    at async rq (E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:40:10093)
+    at async rJ (E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:40:12680)
+    at async r3 (E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:40:16174)
+    at async doRender (E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\base-server.js:1427:30)
+    at async cacheEntry.responseCache.get.routeKind (E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\base-server.js:1588:28)
+    at async DevServer.renderToResponseWithComponentsImpl (E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\base-server.js:1496:28)
+    at async DevServer.renderPageComponent (E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\base-server.js:1924:24)
+    at async DevServer.renderToResponseImpl (E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\base-server.js:1962:32)
+    at async DevServer.pipeImpl (E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\base-server.js:922:25)
+    at async NextNodeServer.handleCatchallRenderRequest (E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\next-server.js:272:17)
+    at async DevServer.handleRequestImpl (E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\base-server.js:818:17)
+    at async E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\dev\next-dev-server.js:339:20
+    at async Span.traceAsyncFn (E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\trace\trace.js:154:20)
+    at async DevServer.handleRequest (E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\dev\next-dev-server.js:336:24)
+    at async invokeRender (E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\lib\router-server.js:179:21)
+    at async handleRequest (E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\lib\router-server.js:359:24)
+    at async requestHandlerImpl (E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\lib\router-server.js:383:13)
+    at async Server.requestListener (E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\lib\start-server.js:141:13) {
+  page: '/studio-img'
+}
+ ⨯ Error: The default export is not a React Component in page: "/studio-img"
+    at rq (E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:40:9630)
+    at async E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:40:10388
+    at async Promise.all (index 0)
+    at async rq (E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:40:10093)
+    at async E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:40:10388
+    at async Promise.all (index 0)
+    at async rq (E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:40:10093)
+    at async rJ (E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:40:12680)
+    at async r3 (E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:40:16174)
+    at async doRender (E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\base-server.js:1427:30)
+    at async cacheEntry.responseCache.get.routeKind (E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\base-server.js:1588:28)
+    at async DevServer.renderToResponseWithComponentsImpl (E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\base-server.js:1496:28)
+    at async DevServer.renderPageComponent (E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\base-server.js:1924:24)
+    at async DevServer.renderToResponseImpl (E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\base-server.js:1962:32)
+    at async DevServer.pipeImpl (E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\base-server.js:922:25)
+    at async NextNodeServer.handleCatchallRenderRequest (E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\next-server.js:272:17)
+    at async DevServer.handleRequestImpl (E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\base-server.js:818:17)
+    at async E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\dev\next-dev-server.js:339:20
+    at async Span.traceAsyncFn (E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\trace\trace.js:154:20)
+    at async DevServer.handleRequest (E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\dev\next-dev-server.js:336:24)
+    at async invokeRender (E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\lib\router-server.js:179:21)
+    at async handleRequest (E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\lib\router-server.js:359:24)
+    at async requestHandlerImpl (E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\lib\router-server.js:383:13)
+    at async Server.requestListener (E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\lib\start-server.js:141:13) {
+  page: '/studio-img'
+}
+ ⨯ Error: The default export is not a React Component in page: "/studio-img"
+    at rq (E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:40:9630)
+    at async E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:40:10388
+    at async Promise.all (index 0)
+    at async rq (E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:40:10093)
+    at async E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:40:10388
+    at async Promise.all (index 0)
+    at async rq (E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:40:10093)
+    at async rJ (E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:40:12680)
+    at async r3 (E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:40:16174)
+    at async doRender (E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\base-server.js:1427:30)
+    at async cacheEntry.responseCache.get.routeKind (E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\base-server.js:1588:28)
+    at async DevServer.renderToResponseWithComponentsImpl (E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\base-server.js:1496:28)
+    at async DevServer.renderPageComponent (E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\base-server.js:1924:24)
+    at async DevServer.renderToResponseImpl (E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\base-server.js:1962:32)
+    at async DevServer.pipeImpl (E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\base-server.js:922:25)
+    at async NextNodeServer.handleCatchallRenderRequest (E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\next-server.js:272:17)
+    at async DevServer.handleRequestImpl (E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\base-server.js:818:17)
+    at async E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\dev\next-dev-server.js:339:20
+    at async Span.traceAsyncFn (E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\trace\trace.js:154:20)
+    at async DevServer.handleRequest (E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\dev\next-dev-server.js:336:24)
+    at async invokeRender (E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\lib\router-server.js:179:21)
+    at async handleRequest (E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\lib\router-server.js:359:24)
+    at async requestHandlerImpl (E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\lib\router-server.js:383:13)
+    at async Server.requestListener (E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\lib\start-server.js:141:13) {
+  page: '/studio-img'
+}
+ ⨯ Error: The default export is not a React Component in page: "/studio-img"
+    at async Promise.all (index 0)
+    at async Promise.all (index 0)
+digest: "206583966"
+ ⨯ Error: The default export is not a React Component in page: "/studio-img"
+    at async Promise.all (index 0)
+    at async Promise.all (index 0)
+digest: "206583966"
+ ⨯ Error: The default export is not a React Component in page: "/studio-img"
+    at async Promise.all (index 0)
+    at async Promise.all (index 0)
+digest: "206583966"
+ ⨯ Error: The default export is not a React Component in page: "/studio-img"
+    at async Promise.all (index 0)
+    at async Promise.all (index 0)
+digest: "206583966"
+Could not find files for /_error in .next/build-manifest.json
+Could not find files for /_error in .next/build-manifest.json
