@@ -2840,8 +2840,8 @@ function SettingsModal({
   itemsCount,
   categoriesCount,
   modelsCount,
-  onExport,
-  onImportClick,
+  // onExport,
+  // onImportClick,
   onReloadSeed,
   onClearAll,
   onClose,
@@ -2849,8 +2849,8 @@ function SettingsModal({
   itemsCount: number;
   categoriesCount: number;
   modelsCount: number;
-  onExport: () => void;
-  onImportClick: () => void;
+  // onExport: () => void;
+  // onImportClick: () => void;
   onReloadSeed: () => void;
   onClearAll: () => void;
   onClose: () => void;
@@ -2868,8 +2868,8 @@ function SettingsModal({
               <Settings className="h-4 w-4 text-white" />
             </span>
             <div>
-              <h2 className="text-base font-bold text-white">الإعدادات والنسخ الاحتياطي</h2>
-              <p className="text-[11px] text-slate-400">إدارة المكتبة المحلية</p>
+              <h2 className="text-base font-bold text-white">Settings</h2>
+              <p className="text-[11px] text-slate-400">Manage your local library</p>
             </div>
           </div>
           <button onClick={onClose} className="rounded-lg p-1.5 text-slate-400 hover:bg-white/5 hover:text-white">
@@ -2880,54 +2880,32 @@ function SettingsModal({
         <div className="space-y-4 px-5 py-4">
           {/* Stats */}
           <div className="grid grid-cols-3 gap-2">
-            <StatChip label="صور" value={itemsCount} accent="violet" />
-            <StatChip label="تصنيفات" value={categoriesCount} accent="indigo" />
-            <StatChip label="موديلات" value={modelsCount} accent="pink" />
-          </div>
-
-          {/* Backup section */}
-          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
-            <p className="mb-3 text-[11px] font-bold uppercase tracking-wider text-violet-300/70">النسخ الاحتياطي</p>
-            <button
-              onClick={onExport}
-              className="mb-2 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-500 to-indigo-600 text-sm font-bold text-white shadow shadow-violet-500/30"
-            >
-              <Download className="h-4 w-4" />
-              تصدير المكتبة (.json)
-            </button>
-            <button
-              onClick={() => {
-                onImportClick();
-                onClose();
-              }}
-              className="flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] text-sm font-bold text-slate-200 hover:border-violet-400/40 hover:text-white"
-            >
-              <Upload className="h-4 w-4" />
-              استيراد JSON
-            </button>
+            <StatChip label="Images" value={itemsCount} accent="violet" />
+            <StatChip label="Categories" value={categoriesCount} accent="indigo" />
+            <StatChip label="Models" value={modelsCount} accent="pink" />
           </div>
 
           {/* Danger zone */}
           <div className="rounded-xl border border-pink-400/20 bg-pink-500/[0.04] p-4">
-            <p className="mb-3 text-[11px] font-bold uppercase tracking-wider text-pink-300/80">منطقة الخطر</p>
+            <p className="mb-3 text-[11px] font-bold uppercase tracking-wider text-pink-300/80">Danger Zone</p>
             <button
               onClick={onReloadSeed}
               className="mb-2 flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] text-xs font-bold text-slate-200 hover:border-indigo-400/40 hover:text-white"
             >
               <RotateCcw className="h-4 w-4" />
-              إعادة تحميل البذرة الأصلية
+              Reload original seed
             </button>
             <button
               onClick={onClearAll}
               className="flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-pink-400/30 bg-pink-500/10 text-xs font-bold text-pink-100 hover:border-pink-400/60 hover:bg-pink-500/20"
             >
               <Trash2 className="h-4 w-4" />
-              مسح كل البيانات
+              Delete all data
             </button>
           </div>
 
           <p className="text-center text-[10px] text-slate-500">
-            البيانات محفوظة محلياً في المتصفح. للحفظ السحابي والمشاركة، يلزم الربط بقاعدة البيانات (المرحلة 2).
+            Data is stored locally in your browser. For cloud backup and sharing, database integration is required (phase 2).
           </p>
         </div>
       </motion.div>
