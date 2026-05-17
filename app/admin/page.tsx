@@ -787,6 +787,7 @@ export default function AdminDashboard() {
           {[
             { label: "Pricing Constitution", href: "/admin/pricing", icon: CreditCard },
             { label: "CMS & Ad Manager", href: "/admin/cms", icon: Layers },
+            { label: "Prompt Page CMS", href: "/admin/cms/studio-img", icon: ScrollText },
             { label: "Pricing & Payment CMS", href: "/admin/cms/pricing", icon: CreditCard },
             { label: "Beauty Studio CMS", href: "/admin/cms/beauty2", icon: Sparkles },
             { label: "Apps CMS", href: "/admin/cms/apps", icon: Globe },

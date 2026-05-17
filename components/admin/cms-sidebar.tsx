@@ -14,6 +14,7 @@ import {
   Layers,
   DollarSign,
   Compass,
+  ScrollText,
   ChevronRight,
   Paintbrush,
   PanelBottom,
@@ -22,12 +23,12 @@ import {
 import { cn } from "@/lib/utils";
 
 const CMS_PAGES = [
+  { id: "studio-img", label: "Prompt Page", icon: ScrollText },
   { id: "home", label: "Home Page", icon: Home },
   { id: "explore", label: "Explore Page", icon: Compass },
   { id: "image", label: "Image Studio", icon: ImageIcon },
   { id: "video", label: "Video Studio", icon: Video },
   { id: "audio", label: "Audio & Music", icon: Music },
-  { id: "apps", label: "AI Apps / Tools", icon: LayoutTemplate },
   { id: "studio-img", label: "Studio Image Library", icon: Sparkles },
   { id: "cinema-studio", label: "Cinema Studio", icon: Film },
   { id: "shots", label: "Shots Manager", icon: Camera },
