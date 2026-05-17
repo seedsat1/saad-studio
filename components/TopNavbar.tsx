@@ -55,7 +55,6 @@ import {
   Lightbulb,
   Atom,
   Box,
-  Command,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -845,6 +844,32 @@ const TopNavbar = () => {
 
           <div className="hidden 2xl:flex items-center flex-1 justify-center min-w-0">
             <div className="flex items-center gap-0">
+              {/* Explore */}
+              <Link
+                href="/dash"
+                className={cn(
+                  "flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium transition-colors hover:bg-white/[0.08] whitespace-nowrap",
+                  pathname === "/dash" ? "text-white bg-white/[0.08]" : "text-zinc-300 hover:text-white"
+                )}
+              >
+                <Globe className="h-3 w-3 text-sky-400" />Explore
+              </Link>
+
+              {/* Image */}
+              <HoverNavItem href="/image" icon={<ImageIcon className="h-3 w-3 text-pink-400" />} label="Image">
+                {/* ...existing code... */}
+              </HoverNavItem>
+
+              {/* Prompt */}
+              <Link
+                href="/prompt"
+                className={cn(
+                  "flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium transition-colors hover:bg-white/[0.08] whitespace-nowrap",
+                  pathname === "/prompt" ? "text-white bg-white/[0.08]" : "text-cyan-300 hover:text-cyan-400"
+                )}
+              >
+                <GalleryHorizontalEnd className="h-3 w-3 text-cyan-400" />Prompt
+              </Link>
 
               {/* Explore */}
               <Link
@@ -1051,14 +1076,6 @@ const TopNavbar = () => {
 
               {/* Assist | Gallery */}
               <div className="flex items-center">
-                <Link href="/about" className={cn("flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium transition-all hover:bg-white/[0.08] whitespace-nowrap", pathname === "/about" ? "text-white bg-white/[0.08]" : "text-zinc-400 hover:text-white")}>
-                  <Sparkles className="h-3 w-3 text-cyan-400" />About
-                </Link>
-                <NavSep />
-                <Link href="/contact" className={cn("flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium transition-all hover:bg-white/[0.08] whitespace-nowrap", pathname === "/contact" ? "text-white bg-white/[0.08]" : "text-zinc-400 hover:text-white")}>
-                  <Command className="h-3 w-3 text-lime-400" />Contact
-                </Link>
-                <NavSep />
                 <Link href="/assist" className={cn("flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium transition-all hover:bg-white/[0.08] whitespace-nowrap", pathname === "/assist" ? "text-white bg-white/[0.08]" : "text-zinc-400 hover:text-white")}>
                   <Bot className="h-3 w-3 text-green-400" />Assist
                 </Link>
@@ -1371,16 +1388,6 @@ const TopNavbar = () => {
 
               {/* Assist | Gallery */}
               <div className="grid grid-cols-2 gap-1 pt-0.5">
-                <Link href="/about"
-                  className={cn("flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-                    pathname === "/about" ? "bg-white/10 text-white" : "text-zinc-400 hover:bg-white/5 hover:text-white")}>
-                  <Sparkles className="h-4 w-4 text-cyan-400" />About
-                </Link>
-                <Link href="/contact"
-                  className={cn("flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-                    pathname === "/contact" ? "bg-white/10 text-white" : "text-zinc-400 hover:bg-white/5 hover:text-white")}>
-                  <Command className="h-4 w-4 text-lime-400" />Contact
-                </Link>
                 <Link href="/assist"
                   className={cn("flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
                     pathname === "/assist" ? "bg-white/10 text-white" : "text-zinc-400 hover:bg-white/5 hover:text-white")}>

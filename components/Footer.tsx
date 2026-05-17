@@ -108,7 +108,7 @@ const Footer = () => {
   const { data: cms } = useCmsData<DiscoverCms>("discover");
   const footer = cms?.footer;
   const brandName = footer?.brandName || "Saad Studio";
-  const tagline = footer?.tagline || "We craft visual experiences that go beyond limits.";
+  const tagline = footer?.tagline || "Cloud-based AI creative production software for image, video, audio, and cinematic workflows.";
   const email = footer?.email || "support@saadstudio.app";
   const logoUrl = footer?.logoUrl || "/logo-saad-transparent.png";
   const sections = (footer?.sections?.length ? footer.sections : DEFAULT_SECTIONS)

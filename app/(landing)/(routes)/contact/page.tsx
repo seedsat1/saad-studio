@@ -16,7 +16,7 @@ export default function ContactPage() {
           Get in touch with Saad Studio.
         </h1>
         <p className="mt-6 max-w-3xl text-base leading-8 text-slate-300">
-          For product support, partnerships, startup program verification, or business questions, contact the Saad Studio team using the details below.
+          For product support, partnerships, startup program verification, or business questions, contact the Saad Studio team using the details below. This page provides a public contact point for reviewers who need to verify the company website and product information.
         </p>
 
         <div className="mt-10 grid gap-4 md:grid-cols-3">
@@ -55,6 +55,10 @@ export default function ContactPage() {
             <div>
               <dt className="text-slate-500">Primary contact</dt>
               <dd className="mt-1 font-semibold text-white">support@saadstudio.app</dd>
+            </div>
+            <div>
+              <dt className="text-slate-500">Website verification</dt>
+              <dd className="mt-1 font-semibold text-white">Public About, Pricing, Privacy, and Terms pages are available from the footer.</dd>
             </div>
           </dl>
           <Link href="/about" className="mt-6 inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-cyan-100">

@@ -8,7 +8,7 @@ import {
   Play, ChevronRight, ChevronLeft, ImageIcon, VideoIcon, Music,
   Scissors, Wand2, ScanFace, Sparkles, Zap, Star, Layers,
   Clapperboard, Mic2, Bot, TrendingUp, Palette, Film,
-  ArrowRight, Volume2, Aperture, PenTool, X,
+  ArrowRight, Volume2, Aperture, PenTool, X, ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePageLayout } from "@/lib/use-page-layout";
@@ -904,9 +904,9 @@ const HOME_INJECTED_SECTIONS: Record<string, { after: string }> = {
 
 function StartupVerification() {
   const points = [
-    { title: "Product", text: "A cloud platform for AI image, video, audio, and cinematic scene production.", icon: Sparkles },
-    { title: "Customers", text: "Built for creators, agencies, small businesses, and media teams shipping visual content.", icon: Bot },
-    { title: "Workflow", text: "Users generate assets, edit results, organize projects, and publish production-ready media.", icon: Film },
+    { title: "Product", text: "A browser-based AI creative production SaaS for image, video, audio, and cinematic scene workflows.", icon: Sparkles },
+    { title: "Customers", text: "Built for creators, agencies, small businesses, ecommerce teams, and media teams shipping visual content.", icon: Bot },
+    { title: "Public review", text: "Company, product, policies, and contact information are available through the footer and verification pages.", icon: ShieldCheck },
   ];
 
   return (
@@ -918,14 +918,38 @@ function StartupVerification() {
             Saad Studio helps teams create production-ready visual content with AI.
           </h2>
           <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-300 md:text-base">
-            Saad Studio is a software-as-a-service creative production platform. The product combines multiple AI models and focused studio workflows so users can generate images, create videos, build consistent characters, edit media, produce audio, and manage creative projects from one browser-based workspace.
+            Saad Studio is a software-as-a-service creative production platform. The product combines multiple AI models and focused studio workflows so users can generate images, create videos, build consistent characters, edit media, produce audio, and manage creative projects from one browser-based workspace. This website includes public product information, company details, contact information, pricing, privacy, and terms for program review.
           </p>
+          <dl className="mt-5 grid max-w-3xl gap-3 text-sm sm:grid-cols-2">
+            <div className="rounded-xl border border-white/10 bg-white/[0.035] p-3">
+              <dt className="text-slate-500">Company</dt>
+              <dd className="mt-1 font-bold text-white">Saad Studio</dd>
+            </div>
+            <div className="rounded-xl border border-white/10 bg-white/[0.035] p-3">
+              <dt className="text-slate-500">Contact</dt>
+              <dd className="mt-1 font-bold text-white">support@saadstudio.app</dd>
+            </div>
+            <div className="rounded-xl border border-white/10 bg-white/[0.035] p-3">
+              <dt className="text-slate-500">Product type</dt>
+              <dd className="mt-1 font-bold text-white">AI creative production SaaS</dd>
+            </div>
+            <div className="rounded-xl border border-white/10 bg-white/[0.035] p-3">
+              <dt className="text-slate-500">Review links</dt>
+              <dd className="mt-1 font-bold text-white">About, Contact, Pricing, Privacy, Terms</dd>
+            </div>
+          </dl>
           <div className="mt-5 flex flex-wrap gap-3">
             <Link href="/about" className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-cyan-100">
               About Saad Studio <ArrowRight className="h-4 w-4" />
             </Link>
             <Link href="/contact" className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-white/10">
               Contact
+            </Link>
+            <Link href="/privacy" className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-white/10">
+              Privacy
+            </Link>
+            <Link href="/terms" className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-white/10">
+              Terms
             </Link>
           </div>
         </div>

@@ -26,7 +26,10 @@ const plusJakarta = Plus_Jakarta_Sans({
   weight: ["400", "500", "600", "700"],
 });
 
+const siteUrl = new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://saadstudio.app");
+
 export const metadata: Metadata = {
+  metadataBase: siteUrl,
   title: "Saad Studio | AI Creative Production Platform",
   description: "Saad Studio is a cloud-based AI creative production platform for generating, editing, and publishing images, video, audio, and cinematic scenes.",
   keywords: ["Saad Studio", "AI creative platform", "AI video generation", "AI image generation", "creative SaaS"],
@@ -34,8 +37,12 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Saad Studio | AI Creative Production Platform",
     description: "A cloud-based AI creative production platform for teams, creators, and businesses.",
+    url: siteUrl,
     siteName: "Saad Studio",
     type: "website",
+  },
+  alternates: {
+    canonical: "/",
   },
   manifest: "/manifest.webmanifest",
   icons: {
@@ -50,6 +57,36 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": `${siteUrl.origin}/#organization`,
+        name: "Saad Studio",
+        url: siteUrl.origin,
+        email: "support@saadstudio.app",
+        description: "Saad Studio is a cloud-based AI creative production software company.",
+      },
+      {
+        "@type": "WebSite",
+        "@id": `${siteUrl.origin}/#website`,
+        name: "Saad Studio",
+        url: siteUrl.origin,
+        publisher: { "@id": `${siteUrl.origin}/#organization` },
+      },
+      {
+        "@type": "SoftwareApplication",
+        name: "Saad Studio",
+        applicationCategory: "MultimediaApplication",
+        operatingSystem: "Web",
+        url: siteUrl.origin,
+        description: "Cloud-based AI creative production platform for generating and editing images, videos, audio, characters, and cinematic scenes.",
+        provider: { "@id": `${siteUrl.origin}/#organization` },
+      },
+    ],
+  };
+
   return (
     <ClerkProvider
       appearance={{ baseTheme: dark }}
@@ -61,6 +98,12 @@ export default function RootLayout({
     >
       <html lang="en" dir="ltr" suppressHydrationWarning>
         <head>
+          <Script
+            id="saad-structured-data"
+            type="application/ld+json"
+            strategy="beforeInteractive"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+          />
           <meta name="referrer" content="strict-origin-when-cross-origin" />
           <meta httpEquiv="X-Content-Type-Options" content="nosniff" />
           <link rel="preconnect" href="https://fonts.googleapis.com" />

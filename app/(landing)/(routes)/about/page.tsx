@@ -14,6 +14,15 @@ const capabilities = [
   { title: "Project Workflow", text: "Organize generated media, manage credits, and move assets between creative tools.", icon: Layers },
 ];
 
+const reviewDetails = [
+  ["Company", "Saad Studio"],
+  ["Product", "AI creative production SaaS"],
+  ["Primary users", "Creators, agencies, businesses, and media teams"],
+  ["Use cases", "Image generation, video generation, media editing, audio tools, character workflows, cinematic scene production"],
+  ["Contact", "support@saadstudio.app"],
+  ["Public policies", "Privacy Policy and Terms & Conditions are linked in the footer"],
+];
+
 export default function AboutPage() {
   return (
     <div className="text-slate-100">
@@ -47,10 +56,12 @@ export default function AboutPage() {
                 <dt className="text-slate-500">Product Type</dt>
                 <dd className="text-right font-semibold text-white">AI creative SaaS</dd>
               </div>
-              <div className="flex justify-between gap-4 border-t border-white/10 pt-3">
-                <dt className="text-slate-500">Contact</dt>
-                <dd className="text-right font-semibold text-white">support@saadstudio.app</dd>
-              </div>
+              {reviewDetails.slice(2, 6).map(([label, value]) => (
+                <div key={label} className="flex justify-between gap-4 border-t border-white/10 pt-3">
+                  <dt className="text-slate-500">{label}</dt>
+                  <dd className="max-w-[60%] text-right font-semibold text-white">{value}</dd>
+                </div>
+              ))}
             </dl>
           </div>
         </div>
@@ -82,6 +93,21 @@ export default function AboutPage() {
               Contact us <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
+        </section>
+
+        <section className="mt-6 rounded-2xl border border-cyan-400/20 bg-slate-900/70 p-6">
+          <h2 className="text-xl font-bold text-white">Public review information</h2>
+          <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-300">
+            This page is intended to make the company website easy to verify for customers, partners, and startup program reviewers.
+          </p>
+          <dl className="mt-5 grid gap-3 text-sm md:grid-cols-2">
+            {reviewDetails.map(([label, value]) => (
+              <div key={label} className="rounded-xl border border-white/10 bg-white/[0.035] p-4">
+                <dt className="text-slate-500">{label}</dt>
+                <dd className="mt-1 font-semibold leading-6 text-white">{value}</dd>
+              </div>
+            ))}
+          </dl>
         </section>
       </section>
     </div>
