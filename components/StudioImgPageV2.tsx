@@ -440,65 +440,7 @@ export default function StudioImgPage() {
     window.setTimeout(() => setCopied((current) => (current === key ? null : current)), 1200);
   };
 
-  const exportJson = () => {
-    const payload = {
-      version: 1,
-      exportedAt: new Date().toISOString(),
-      items,
-      categories,
-      models,
-      imageLibrary: items.map((item) => ({
-        id: item.id,
-        title: item.title,
-        prompt: item.prompt,
-        params: item.params,
-        model: item.model,
-        category: item.category,
-        imgBefore: item.beforeUrl,
-        imgAfter: item.afterUrl,
-        steps: item.steps.map((step) => ({
-          id: step.id,
-          label: step.label,
-          content: step.content,
-          img: step.beforeUrl,
-          imgAfter: step.afterUrl,
-        })),
-      })),
-      imgModels: models,
-      imgCategories: categories.map((name) => ({ id: name, name })),
-    };
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `studio_img_${new Date().toISOString().slice(0, 10)}.json`;
-    link.click();
-    URL.revokeObjectURL(url);
-  };
 
-  const importJson = async (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    event.target.value = "";
-    if (!file) return;
-
-    try {
-      const payload = JSON.parse(await file.text());
-      const importedCategories: { id: string; name: string }[] = Array.isArray(payload.imgCategories)
-        ? payload.imgCategories.filter((cat: { id?: unknown; name?: unknown }) => typeof cat.id === "string" && typeof cat.name === "string")
-        : [];
-      const categoryNameById = new Map(importedCategories.map((cat) => [cat.id, cat.name]));
-      const nextItems = Array.isArray(payload.items) ? payload.items : payload.imageLibrary;
-      if (!Array.isArray(nextItems)) return window.alert("No image library found in this file.");
-
-      setItems((prev) => [...nextItems.map((item: unknown) => normalizeImportedImage(item as ImportedImage, categoryNameById)), ...prev]);
-      if (Array.isArray(payload.categories)) setCategories((prev) => uniqueList([...payload.categories, ...prev]));
-      if (importedCategories.length) setCategories((prev) => uniqueList([...importedCategories.map((cat) => cat.name), ...prev]));
-      if (Array.isArray(payload.models)) setModels((prev) => uniqueList([...payload.models, ...prev]));
-      if (Array.isArray(payload.imgModels)) setModels((prev) => uniqueList([...payload.imgModels, ...prev]));
-    } catch {
-      window.alert("Could not import this JSON file.");
-    }
-  };
 
   const reloadSeed = () => {
     if (!window.confirm("سيتم استبدال المكتبة الحالية بنسخة البذرة الأصلية. متابعة؟")) return;
@@ -644,13 +586,12 @@ export default function StudioImgPage() {
                 </h1>
                 {serverMode && (
                   <span className="rounded-md bg-emerald-500/20 px-2 py-0.5 text-[9px] font-bold text-emerald-200 ring-1 ring-emerald-400/30">
-                    مكتبة الأدمن
+                    Admin Library
                   </span>
                 )}
               </div>
               <p className="text-[11px] text-slate-400 sm:text-xs">
-                {items.length} بطاقة · {allCategories.length} تصنيف ·{" "}
-                {serverMode ? "محتوى منشور من الإدارة" : "مكتبة محلية في المتصفح"}
+                {items.length} cards · {allCategories.length} categories · {serverMode ? "Published by admin" : "Local browser library"}
               </p>
             </div>
           </div>
@@ -660,12 +601,12 @@ export default function StudioImgPage() {
               className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:border-violet-400/40 hover:text-white"
             >
               <HelpCircle className="h-3.5 w-3.5 text-violet-300" />
-              <span className="hidden sm:inline">شرح تفاعلي</span>
+              <span className="hidden sm:inline">Interactive Guide</span>
             </button>
             {!serverMode && (
               <button
                 onClick={reloadSeed}
-                title="إعادة تحميل البذرة الأصلية"
+                title="Reload original seed"
                 className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-slate-300 transition hover:border-indigo-400/40 hover:text-white"
               >
                 <RefreshCw className="h-3.5 w-3.5" />
@@ -752,20 +693,20 @@ export default function StudioImgPage() {
               </button>
             </>
           )}
-          <input ref={importRef} type="file" accept=".json" onChange={importJson} className="hidden" />
+          {/* Removed JSON import/export */}
         </div>
 
         {/* Category pills */}
         <div className="-mx-1 mb-3 flex gap-2 overflow-x-auto px-1 pb-1 hide-scrollbar">
           <FilterPill active={category === "all"} onClick={() => setCategory("all")} count={items.length}>
-            الكل
+            All
           </FilterPill>
           <FilterPill
             active={category === "none"}
             onClick={() => setCategory("none")}
             count={items.filter((i) => !i.category).length}
           >
-            بدون تصنيف
+            Uncategorized
           </FilterPill>
           {allCategories.map((cat) => {
             const count = items.filter((i) => i.category === cat).length;
@@ -781,9 +722,9 @@ export default function StudioImgPage() {
         {allModels.length > 0 && (
           <div className="-mx-1 mb-4 flex items-center gap-2 overflow-x-auto px-1 pb-1 hide-scrollbar">
             <span className="shrink-0 text-[11px] font-bold uppercase tracking-wider text-slate-500">
-              الموديل:
+              Model:
             </span>
-            <ModelPill active={model === "all"} onClick={() => setModel("all")}>الكل</ModelPill>
+            <ModelPill active={model === "all"} onClick={() => setModel("all")}>All</ModelPill>
             {allModels.map((m) => (
               <ModelPill key={m} active={model === m} onClick={() => setModel(m)}>
                 {m}
@@ -801,12 +742,12 @@ export default function StudioImgPage() {
           >
             <div className="flex items-center gap-3 text-sm">
               <span className="font-bold text-pink-100">{selectedIds.size}</span>
-              <span className="text-pink-200/70">عنصر محدد</span>
+              <span className="text-pink-200/70">selected</span>
               <button onClick={selectAll} className="rounded-md border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-slate-200 hover:bg-white/10">
-                تحديد الكل
+                Select All
               </button>
               <button onClick={clearSelection} className="rounded-md border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-slate-200 hover:bg-white/10">
-                مسح
+                Clear
               </button>
             </div>
             <button
@@ -815,7 +756,7 @@ export default function StudioImgPage() {
               className="flex items-center gap-1.5 rounded-md bg-pink-500 px-3 py-1.5 text-xs font-bold text-white shadow shadow-pink-500/30 transition hover:bg-pink-600 disabled:cursor-not-allowed disabled:opacity-40"
             >
               <Trash2 className="h-3.5 w-3.5" />
-              حذف المحدد
+              Delete Selected
             </button>
           </motion.div>
         )}
@@ -960,17 +901,12 @@ export default function StudioImgPage() {
             itemsCount={items.length}
             categoriesCount={allCategories.length}
             modelsCount={uniqueList([...models, ...items.map((i) => i.model)]).length}
-            onExport={() => {
-              exportJson();
-              setSettingsOpen(false);
-            }}
-            onImportClick={() => importRef.current?.click()}
             onReloadSeed={() => {
               setSettingsOpen(false);
               reloadSeed();
             }}
             onClearAll={() => {
-              if (!window.confirm("سيتم مسح كل البيانات نهائياً. متابعة؟")) return;
+              if (!window.confirm("All data will be deleted permanently. Continue?")) return;
               window.localStorage.removeItem(STORAGE_KEY);
               window.localStorage.removeItem(CATEGORY_KEY);
               window.localStorage.removeItem(MODEL_KEY);
@@ -1016,10 +952,10 @@ function ViewModeBtn({ active, onClick, title, children }: { active?: boolean; o
 function SortMenu({ value, onChange }: { value: SortMode; onChange: (v: SortMode) => void }) {
   const [open, setOpen] = useState(false);
   const labelMap: Record<SortMode, string> = {
-    newest: "الأحدث",
-    oldest: "الأقدم",
-    title: "العنوان",
-    model: "الموديل",
+    newest: "Newest",
+    oldest: "Oldest",
+    title: "Title",
+    model: "Model",
   };
   return (
     <div className="relative">
@@ -1133,12 +1069,12 @@ function EmptyState({
         <ImagePlus className="h-8 w-8 text-violet-300" />
       </div>
       <p className="text-base font-bold text-slate-200">
-        {hasItems ? "لا توجد نتائج مطابقة" : "المكتبة فارغة"}
+        {hasItems ? "No matching results" : "Library is empty"}
       </p>
       <p className="mt-1 text-xs">
         {hasItems
-          ? "جرّب تصفية مختلفة أو امسح البحث"
-          : "أضف صورة جديدة أو حمّل البذرة الأصلية لبدء العمل"}
+          ? "Try a different filter or clear search."
+          : "Add a new image or load the original seed to get started."}
       </p>
       <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
         {hasItems ? (
@@ -1146,7 +1082,7 @@ function EmptyState({
             onClick={onReset}
             className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-bold text-slate-200 hover:bg-white/10"
           >
-            مسح الفلاتر
+            Clear Filters
           </button>
         ) : (
           <>
@@ -1154,13 +1090,13 @@ function EmptyState({
               onClick={onAdd}
               className="rounded-xl bg-gradient-to-r from-violet-500 to-indigo-600 px-4 py-2 text-xs font-bold text-white shadow shadow-violet-500/30"
             >
-              + صورة جديدة
+              + New Image
             </button>
             <button
               onClick={onReloadSeed}
               className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-bold text-slate-200 hover:bg-white/10"
             >
-              تحميل البذرة
+              Load Seed
             </button>
           </>
         )}
