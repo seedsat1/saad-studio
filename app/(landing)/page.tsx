@@ -928,6 +928,7 @@ function StartupVerification() {
             <div className="rounded-xl border border-white/10 bg-white/[0.035] p-3">
               <dt className="text-slate-500">Contact</dt>
               <dd className="mt-1 font-bold text-white">support@saadstudio.app</dd>
+              <dd className="mt-1 font-bold text-white">009647755815500</dd>
             </div>
             <div className="rounded-xl border border-white/10 bg-white/[0.035] p-3">
               <dt className="text-slate-500">Product type</dt>

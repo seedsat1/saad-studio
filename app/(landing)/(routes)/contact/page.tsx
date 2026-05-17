@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, Mail, MessageCircle, ShieldCheck } from "lucide-react";
+import { ArrowRight, Mail, MessageCircle, Phone, ShieldCheck } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Contact Saad Studio",
@@ -19,11 +19,16 @@ export default function ContactPage() {
           For product support, partnerships, startup program verification, or business questions, contact the Saad Studio team using the details below. This page provides a public contact point for reviewers who need to verify the company website and product information.
         </p>
 
-        <div className="mt-10 grid gap-4 md:grid-cols-3">
+        <div className="mt-10 grid gap-4 md:grid-cols-4">
           <a href="mailto:support@saadstudio.app" className="rounded-2xl border border-white/10 bg-slate-900/70 p-5 transition hover:border-cyan-400/40 hover:bg-white/[0.06]">
             <Mail className="h-6 w-6 text-cyan-300" />
             <h2 className="mt-4 text-lg font-bold text-white">Email</h2>
             <p className="mt-2 text-sm text-slate-400">support@saadstudio.app</p>
+          </a>
+          <a href="tel:+9647755815500" className="rounded-2xl border border-white/10 bg-slate-900/70 p-5 transition hover:border-cyan-400/40 hover:bg-white/[0.06]">
+            <Phone className="h-6 w-6 text-cyan-300" />
+            <h2 className="mt-4 text-lg font-bold text-white">Phone</h2>
+            <p className="mt-2 text-sm text-slate-400">009647755815500</p>
           </a>
           <div className="rounded-2xl border border-white/10 bg-slate-900/70 p-5">
             <MessageCircle className="h-6 w-6 text-lime-300" />
@@ -55,6 +60,10 @@ export default function ContactPage() {
             <div>
               <dt className="text-slate-500">Primary contact</dt>
               <dd className="mt-1 font-semibold text-white">support@saadstudio.app</dd>
+            </div>
+            <div>
+              <dt className="text-slate-500">Phone</dt>
+              <dd className="mt-1 font-semibold text-white">009647755815500</dd>
             </div>
             <div>
               <dt className="text-slate-500">Website verification</dt>

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import type { ReactNode } from "react";
-import { Instagram, Youtube, Github, Linkedin, MessageCircle, Mail } from "lucide-react";
+import { Instagram, Youtube, Github, Linkedin, MessageCircle, Mail, Phone } from "lucide-react";
 import { useCmsData } from "@/lib/use-cms-data";
 
 interface FooterLink {
@@ -110,6 +110,7 @@ const Footer = () => {
   const brandName = footer?.brandName || "Saad Studio";
   const tagline = footer?.tagline || "Cloud-based AI creative production software for image, video, audio, and cinematic workflows.";
   const email = footer?.email || "support@saadstudio.app";
+  const phone = "009647755815500";
   const logoUrl = footer?.logoUrl || "/logo-saad-transparent.png";
   const sections = (footer?.sections?.length ? footer.sections : DEFAULT_SECTIONS)
     .map((section) => ({
@@ -163,6 +164,11 @@ const Footer = () => {
             <a href={`mailto:${email}`} className="inline-flex items-center gap-2 text-sm text-slate-400 hover:text-cyan-300 transition-colors">
               <Mail className="h-4 w-4" />
               {email}
+            </a>
+
+            <a href="tel:+9647755815500" className="inline-flex items-center gap-2 text-sm text-slate-400 hover:text-cyan-300 transition-colors">
+              <Phone className="h-4 w-4" />
+              {phone}
             </a>
 
             <div className="flex items-center gap-2 pt-1">

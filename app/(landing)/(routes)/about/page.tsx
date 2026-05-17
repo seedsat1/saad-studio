@@ -19,7 +19,7 @@ const reviewDetails = [
   ["Product", "AI creative production SaaS"],
   ["Primary users", "Creators, agencies, businesses, and media teams"],
   ["Use cases", "Image generation, video generation, media editing, audio tools, character workflows, cinematic scene production"],
-  ["Contact", "support@saadstudio.app"],
+  ["Contact", "support@saadstudio.app | 009647755815500"],
   ["Public policies", "Privacy Policy and Terms & Conditions are linked in the footer"],
 ];
 
