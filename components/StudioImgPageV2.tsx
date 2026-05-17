@@ -137,7 +137,7 @@ function readJson<T>(key: string, fallback: T): T {
     return raw ? (JSON.parse(raw) as T) : fallback;
   } catch {
     return fallback;
-  
+  }
 }
 
 function saveJson(key: string, value: unknown) {
@@ -568,8 +568,7 @@ export default function StudioImgPage() {
         <div className="absolute bottom-0 left-1/2 h-[300px] w-[600px] -translate-x-1/2 rounded-full bg-pink-600/5 blur-[140px]" />
       </div>
 
-
-
+      <div className="relative w-full px-4 py-5 sm:px-6 lg:px-8">
         {/* Toolbar Row 1: Search + view modes + actions */}
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <div className="relative min-w-[180px] flex-1">
