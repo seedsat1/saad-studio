@@ -736,9 +736,9 @@ export default function StudioImgPage() {
         {!loading && filteredItems.length > 0 && (
           <>
             {viewMode === "masonry" && (
-              <div className="columns-[210px] gap-4 sm:columns-[230px] lg:columns-[250px] 2xl:columns-[270px]">
+              <div className="columns-[220px] gap-4 sm:columns-[240px] lg:columns-[260px] 2xl:columns-[280px]">
                 {filteredItems.map((item) => (
-                  <div key={item.id} className="mb-3 break-inside-avoid">
+                  <div key={item.id} className="mb-4 break-inside-avoid">
                     <StudioCard
                       item={item}
                       mode="masonry"
@@ -759,7 +759,7 @@ export default function StudioImgPage() {
             )}
 
             {viewMode === "grid" && (
-              <div className="grid content-start items-start gap-4" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))" }}>
+              <div className="grid content-start items-start gap-4" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))" }}>
                 {filteredItems.map((item) => (
                   <StudioCard
                     key={item.id}
@@ -1091,7 +1091,7 @@ function StudioCard({
       whileHover={{ y: -2 }}
       transition={{ duration: 0.18 }}
       className={cn(
-        "group relative h-fit self-start overflow-hidden rounded-2xl border bg-[#0b1222] shadow-lg shadow-black/40 transition",
+        "group relative overflow-hidden rounded-2xl border bg-[#0b1222] shadow-lg shadow-black/40 transition",
         selected
           ? "border-pink-400/60 ring-2 ring-pink-400/40"
           : "border-white/10 hover:border-violet-400/40 hover:shadow-violet-500/10",
@@ -1139,7 +1139,7 @@ function StudioCard({
         </span>
       )}
 
-      <button onClick={onOpen} className="block w-full text-left">
+      <button onClick={onOpen} className="block h-full w-full text-left">
         <div className="relative h-full w-full overflow-hidden">
           {hasCompare ? (
             <CompareImage beforeUrl={item.beforeUrl!} afterUrl={item.afterUrl!} position={position} />
@@ -1253,7 +1253,7 @@ function ListRow({
           {selected ? <CheckSquare className="h-4 w-4 text-pink-300" /> : <Square className="h-4 w-4" />}
         </button>
       )}
-      <button onClick={onPreview} className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-black/40">
+      <button onClick={onPreview} className="relative h-[90px] w-[72px] shrink-0 overflow-hidden rounded-lg bg-black/40">
         {image ? (
           <img src={image} alt={item.title} className="h-full w-full object-cover" />
         ) : (
