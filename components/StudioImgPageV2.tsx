@@ -736,24 +736,23 @@ export default function StudioImgPage() {
         {!loading && filteredItems.length > 0 && (
           <>
             {viewMode === "masonry" && (
-              <div className="columns-[220px] gap-4 sm:columns-[240px] lg:columns-[260px] 2xl:columns-[280px]">
+              <div className="grid content-start items-start gap-4" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))" }}>
                 {filteredItems.map((item) => (
-                  <div key={item.id} className="mb-4 break-inside-avoid">
-                    <StudioCard
-                      item={item}
-                      mode="masonry"
-                      selectionMode={selectionMode}
-                      selected={selectedIds.has(item.id)}
-                      onOpen={() => (selectionMode ? toggleSelected(item.id) : setDetailItem(item))}
-                      onPreview={() => {
-                        setLightboxItem(item);
-                        setComparePosition(50);
-                      }}
-                      onDelete={() => removeItem(item.id)}
-                      onSelectToggle={() => toggleSelected(item.id)}
-                      readOnly={serverMode}
-                    />
-                  </div>
+                  <StudioCard
+                    key={item.id}
+                    item={item}
+                    mode="masonry"
+                    selectionMode={selectionMode}
+                    selected={selectedIds.has(item.id)}
+                    onOpen={() => (selectionMode ? toggleSelected(item.id) : setDetailItem(item))}
+                    onPreview={() => {
+                      setLightboxItem(item);
+                      setComparePosition(50);
+                    }}
+                    onDelete={() => removeItem(item.id)}
+                    onSelectToggle={() => toggleSelected(item.id)}
+                    readOnly={serverMode}
+                  />
                 ))}
               </div>
             )}
