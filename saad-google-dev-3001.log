@@ -38,3 +38,37 @@ Browserslist: caniuse-lite is outdated. Please run:
  GET /api/content?slug=home&sectionName=coreTools 200 in 383ms
  GET /api/layouts?page=cms-home 200 in 542ms
  GET /api/layouts?page=home 200 in 542ms
+ GET / 200 in 168ms
+ GET /api/content?slug=home&sectionName=coreTools 200 in 242ms
+ GET /api/content?slug=home&sectionName=hero 200 in 242ms
+ GET /api/promo/content 200 in 332ms
+ GET /api/promo/media 200 in 380ms
+ GET /api/layouts?page=home 200 in 398ms
+ GET /api/layouts?page=cms-home 200 in 417ms
+ GET /api/layouts?page=cms-discover 200 in 238ms
+ GET /api/layouts?page=cms-auth 200 in 270ms
+ GET /api/layouts?page=cms-pricing 200 in 249ms
+ GET /api/layouts?page=cms-home 200 in 203ms
+ GET /api/layouts?page=cms-discover 200 in 198ms
+ GET /api/content?slug=home&sectionName=coreTools 200 in 391ms
+ GET /api/layouts?page=cms-auth 200 in 184ms
+ GET /api/layouts?page=cms-pricing 200 in 188ms
+ GET /about 200 in 66ms
+ GET /api/layouts?page=home 200 in 618ms
+ GET /api/content?slug=home&sectionName=hero 200 in 631ms
+ GET /api/layouts?page=cms-discover 200 in 205ms
+ GET /api/layouts?page=cms-auth 200 in 188ms
+ GET /api/layouts?page=cms-pricing 200 in 188ms
+ GET /api/layouts?page=cms-discover 200 in 206ms
+ GET /api/layouts?page=cms-auth 200 in 347ms
+ GET /api/layouts?page=cms-pricing 200 in 347ms
+ GET /contact 200 in 74ms
+ GET /api/layouts?page=cms-discover 200 in 244ms
+ GET /api/layouts?page=cms-auth 200 in 217ms
+ GET /api/layouts?page=cms-pricing 200 in 217ms
+ GET /api/layouts?page=cms-discover 200 in 208ms
+ GET /api/layouts?page=cms-pricing 200 in 208ms
+ GET /api/layouts?page=cms-auth 200 in 207ms
+ ✓ Compiled in 13s (2496 modules)
+ GET /contact?_rsc=hqxbs 200 in 9281ms
+ GET /contact?_rsc=hqxbs 200 in 29ms

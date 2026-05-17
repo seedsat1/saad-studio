@@ -74,7 +74,7 @@ const montserrat = Montserrat({ weight: "600", subsets: ["latin"] });
 
 const IMAGE_FEATURES = [
   { label: "Create Image", icon: Wand2, color: "text-pink-400", description: "Generate stunning AI images instantly", badge: "TOP" },
-  { label: "Studio Img", icon: GalleryHorizontalEnd, color: "text-cyan-400", description: "Private prompt and result library", badge: "NEW" },
+  { label: "Prompt", icon: GalleryHorizontalEnd, color: "text-cyan-400", description: "Private prompt and result library", badge: "NEW" },
   { label: "Cinema Studio Image 2.0", icon: Clapperboard, color: "text-violet-400", description: "Cinematic quality image generation", badge: "NEW" },
   { label: "Soul ID Character", icon: ScanFace, color: "text-cyan-400", description: "Consistent character design system", badge: "" },
   { label: "AI Influencer", icon: Sparkles, color: "text-amber-400", description: "Create virtual AI influencers", badge: "TOP" },
@@ -345,7 +345,7 @@ const EDIT_TOOL_MAP: Record<string, string> = {
 };
 
 function imageFeatureHref(label: string): string {
-  if (label === "Studio Img") return "/studio-img";
+  if (label === "Prompt") return "/prompt";
   const tool = IMAGE_TOOL_MAP[label] ?? "create";
   return `/image?tool=${encodeURIComponent(tool)}`;
 }
