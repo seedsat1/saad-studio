@@ -1084,7 +1084,7 @@ function StudioCard({
   const hasCompare = Boolean(item.beforeUrl && item.afterUrl);
   const hasVideo = Boolean(item.videoUrl);
   const image = item.afterUrl || item.beforeUrl || item.posterUrl;
-  const ratioClass = mode === "grid" ? "aspect-[4/5]" : "";
+  const ratioClass = "";
 
   return (
     <motion.article
@@ -1140,9 +1140,9 @@ function StudioCard({
       )}
 
       <button onClick={onOpen} className="block w-full text-left">
-        <div className={cn("relative w-full overflow-hidden", mode === "grid" ? "h-full" : "")}>
+        <div className="relative w-full overflow-hidden">
           {hasCompare ? (
-            <CompareImage beforeUrl={item.beforeUrl!} afterUrl={item.afterUrl!} position={position} />
+            <CompareImage beforeUrl={item.beforeUrl!} afterUrl={item.afterUrl!} position={position} cover={false} />
           ) : hasVideo ? (
             <video
               src={item.videoUrl}
@@ -1159,7 +1159,7 @@ function StudioCard({
               }}
               className={cn(
                 "w-full transition duration-500",
-                mode === "grid" ? "h-full object-cover" : "h-auto object-cover",
+                "h-auto object-contain bg-black/30",
               )}
             />
           ) : image ? (
@@ -1169,7 +1169,7 @@ function StudioCard({
               loading="lazy"
               className={cn(
                 "w-full transition duration-500 group-hover:scale-[1.03]",
-                mode === "grid" ? "h-full object-cover" : "h-auto object-cover",
+                "h-auto object-contain bg-black/30",
               )}
             />
           ) : (
