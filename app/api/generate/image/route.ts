@@ -14,6 +14,7 @@ export const dynamic = "force-dynamic";
 
 const KIE_CREATE_TASK_URL = "https://api.kie.ai/api/v1/jobs/createTask";
 const KIE_QUERY_TASK_URL = "https://api.kie.ai/api/v1/jobs/recordInfo";
+const WAVESPEED_BASE_URL = "https://api.wavespeed.ai/api/v3";
 const IDEMPOTENCY_ROUTE = "generate:image";
 
 interface ImageRequestBody {
@@ -191,6 +192,53 @@ async function createKieTask(
   return taskId;
 }
 
+async function pollWaveSpeedImageTask(taskId: string, apiKey: string, maxAttempts = 60, intervalMs = 2500): Promise<string[]> {
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+
+    const statusRes = await fetch(
+      `${WAVESPEED_BASE_URL}/predictions/${encodeURIComponent(taskId)}`,
+      { headers: { Authorization: `Bearer ${apiKey}` } },
+    );
+    const statusJson = await statusRes.json().catch(() => null) as Record<string, unknown> | null;
+    if (!statusRes.ok) {
+      if (statusRes.status === 404) continue;
+      throw new Error(`WaveSpeed polling failed (${statusRes.status})`);
+    }
+
+    const statusData = (statusJson?.data ?? statusJson) as Record<string, unknown> | null;
+    const status = String(statusData?.status ?? statusData?.taskStatus ?? "").toLowerCase();
+    if (["success", "completed", "done"].includes(status)) {
+      const resultRes = await fetch(
+        `${WAVESPEED_BASE_URL}/predictions/${encodeURIComponent(taskId)}/result`,
+        { headers: { Authorization: `Bearer ${apiKey}` } },
+      );
+      const resultJson = await resultRes.json().catch(() => null) as Record<string, unknown> | null;
+      if (!resultRes.ok) throw new Error(`WaveSpeed result fetch failed (${resultRes.status})`);
+      const resultData = (resultJson?.data ?? resultJson) as Record<string, unknown> | null;
+      const urls = extractKieOutputUrls(
+        resultData?.outputs ??
+          resultData?.resultUrls ??
+          resultData?.imageUrls ??
+          resultData?.images ??
+          resultData?.urls ??
+          resultData?.result ??
+          resultData?.output ??
+          resultData?.response ??
+          resultData?.data,
+      );
+      if (!urls.length) throw new Error("No output URL in WaveSpeed result.");
+      return urls;
+    }
+
+    if (["fail", "failed", "error", "canceled", "cancelled"].includes(status)) {
+      throw new Error(String(statusData?.error ?? statusData?.errorMessage ?? "WaveSpeed image generation failed."));
+    }
+  }
+
+  throw new Error("WaveSpeed image generation timed out.");
+}
+
 async function pollKieTask(
   apiKey: string,
   taskId: string,
@@ -288,8 +336,9 @@ export async function POST(req: NextRequest) {
     const hasReferenceImages = Boolean(imageUrl || imageUrlsParam?.length);
     const effectiveModelId = resolveFlux2Variant(modelId, hasReferenceImages, quality);
     const { imageModelMap } = getResolvedKieRoutingMaps();
+    const isWaveSpeedImageModel = effectiveModelId.startsWith("kwaivgi/");
 
-    const kieModelId = imageModelMap[effectiveModelId];
+    const kieModelId = isWaveSpeedImageModel ? effectiveModelId : imageModelMap[effectiveModelId];
     if (!kieModelId) {
       const supported = Object.keys(imageModelMap).join(", ");
       return NextResponse.json(
@@ -317,11 +366,6 @@ export async function POST(req: NextRequest) {
     chargedCredits = creditsToCharge;
     generationId = spent.generationId;
 
-    const kieApiKey = process.env.KIE_API_KEY ?? process.env.KIEAI_API_KEY;
-    if (!kieApiKey) {
-      throw new Error("KIE_API_KEY is not configured on the server.");
-    }
-
     // Resolve all reference images: upload base64 → Supabase Storage, pass http URLs as-is.
     // If Supabase is not configured, pass base64 data URLs directly to KIE (accepted by most models).
     const storageAvailable = isStorageConfigured();
@@ -339,6 +383,73 @@ export async function POST(req: NextRequest) {
     }
 
     const resolvedRefs = await Promise.all(refUrls.map((r, i) => resolveRef(r, i)));
+
+    if (isWaveSpeedImageModel) {
+      const waveSpeedApiKey = process.env.WAVESPEED_API_KEY;
+      if (!waveSpeedApiKey) {
+        throw new Error("WAVESPEED_API_KEY is not configured on the server.");
+      }
+
+      const submitRes = await fetch(
+        `${WAVESPEED_BASE_URL}/${effectiveModelId}`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${waveSpeedApiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            prompt: sanitizePrompt(prompt, 5000),
+            images: resolvedRefs,
+            aspect_ratio: aspectRatio,
+            resolution: typeof quality === "string" ? quality.toLowerCase() : "1k",
+            num_images: Math.max(1, Math.min(4, numImages)),
+            enable_base64_output: false,
+            enable_safety_checker: false,
+          }),
+        },
+      );
+
+      const submitJson = await submitRes.json().catch(() => null) as Record<string, unknown> | null;
+      const taskId = ((submitJson?.data as Record<string, unknown> | undefined)?.id ?? submitJson?.id) as string | undefined;
+      if (!submitRes.ok || !taskId) {
+        throw new Error(`WaveSpeed submit failed (${submitRes.status})`);
+      }
+
+      const imageUrls = await pollWaveSpeedImageTask(taskId, waveSpeedApiKey);
+
+      if (generationId && imageUrls[0]) {
+        await setGenerationMediaUrl(generationId, imageUrls[0]).catch((err) => {
+          console.error("[generate-image] Failed to save WaveSpeed media URL", err);
+        });
+      }
+      if (imageUrls.length > 1 && chargedUserId) {
+        await saveAdditionalGenerationUrls(
+          chargedUserId,
+          sanitizePrompt(prompt, 5000),
+          modelId,
+          "IMAGE",
+          imageUrls.slice(1),
+        ).catch((err) => {
+          console.error("[generate-image] Failed to save additional WaveSpeed URLs", err);
+        });
+      }
+
+      return NextResponse.json({
+        generationId,
+        taskId,
+        imageUrls,
+        resultUrls: imageUrls,
+        imageUrl: imageUrls[0] ?? null,
+        mediaUrl: imageUrls[0] ?? null,
+        credits: creditsToCharge,
+      });
+    }
+
+    const kieApiKey = process.env.KIE_API_KEY ?? process.env.KIEAI_API_KEY;
+    if (!kieApiKey) {
+      throw new Error("KIE_API_KEY is not configured on the server.");
+    }
 
     const isWanModel = kieModelId.startsWith("wan/");
     const isImagen4Fast = kieModelId === "google/imagen4-fast";

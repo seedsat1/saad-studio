@@ -181,6 +181,7 @@ const MAX_ANNUAL_INCLUDED_MODELS = [
   { name: "FLUX.2 Pro 1K", badge: "500/day" },
   { name: "Seedream 4.5", badge: "500/day" },
   { name: "Nano Banana", badge: "500/day" },
+  { name: "Kling 01 Image", badge: "500/day" },
   { name: "GPT Image", badge: "500/day" },
 ];
 
