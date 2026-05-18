@@ -3,11 +3,13 @@ import { extractPanelToken, verifyPanelToken } from "@/lib/panel-auth";
 import {
   InsufficientCreditsError,
   ensureUserRow,
+  recordFreeGeneration,
   rollbackGenerationCharge,
   saveAdditionalGenerationUrls,
   setGenerationMediaUrl,
   spendCredits,
 } from "@/lib/credit-ledger";
+import { getAnnualUnlimitedImageEligibility } from "@/lib/annual-image-unlimited";
 import { getGenerationCost } from "@/lib/pricing";
 import { getResolvedKieRoutingMaps } from "@/lib/kie-model-routing";
 import { sanitizePrompt } from "@/lib/security";
@@ -136,18 +138,27 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `Unsupported model: ${modelId}` }, { status: 400 });
     }
 
-    const creditsToCharge = await getGenerationCost(modelId, 5, numImages);
-    if (creditsToCharge <= 0) {
+    const unlimited = await getAnnualUnlimitedImageEligibility({
+      userId,
+      modelId,
+      quality: resolution,
+    });
+    const creditsToCharge = unlimited.eligible
+      ? 0
+      : await getGenerationCost(modelId, 5, numImages, resolution);
+    if (!unlimited.eligible && creditsToCharge <= 0) {
       return NextResponse.json({ error: `No credit config for model: ${modelId}` }, { status: 400 });
     }
 
-    const spent = await spendCredits({
+    const chargeInput = {
       userId,
-      credits: creditsToCharge,
       prompt: sanitizePrompt(prompt, 5000),
       assetType: "IMAGE",
       modelUsed: modelId,
-    });
+    };
+    const spent = unlimited.eligible
+      ? await recordFreeGeneration(chargeInput)
+      : await spendCredits({ ...chargeInput, credits: creditsToCharge });
     chargedCredits = creditsToCharge;
     generationId = spent.generationId;
 

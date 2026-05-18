@@ -177,17 +177,18 @@ const PLAN_ANNUAL_DISCOUNT: Record<string, number> = {
   max: 15,
 };
 
-const MAX_ANNUAL_INCLUDED_MODELS = [
-  { name: "FLUX.2 Pro 1K", badge: "500/day" },
-  { name: "Seedream 4.5", badge: "500/day" },
-  { name: "Nano Banana", badge: "500/day" },
-  { name: "Kling 01 Image", badge: "500/day" },
-  { name: "GPT Image", badge: "500/day" },
+const ANNUAL_UNLIMITED_IMAGE_MODELS = [
+  { name: "FLUX.2 Pro", badge: "Unlimited" },
+  { name: "Seedream 4.5", badge: "Unlimited" },
+  { name: "Nano Banana", badge: "Unlimited" },
+  { name: "Kling 01 Image", badge: "Unlimited" },
+  { name: "GPT Image", badge: "Unlimited" },
 ];
 
-const MAX_ANNUAL_PREMIUM_TRIAL_MODELS = [
-  { name: "Nano Banana 2", badge: "7-day" },
-  { name: "Nano Banana Pro", badge: "7-day" },
+const MAX_ANNUAL_UNLIMITED_IMAGE_MODELS = [
+  ...ANNUAL_UNLIMITED_IMAGE_MODELS,
+  { name: "Nano Banana 2", badge: "Unlimited" },
+  { name: "Nano Banana Pro", badge: "Unlimited" },
 ];
 
 const NANO_BANANA_PRO_CREDITS = 2;
@@ -454,44 +455,25 @@ export default function PricingPage() {
                   ))}
                 </ul>
 
-                {billingCycle === "annual" && plan.id === "max" && (
+                {billingCycle === "annual" && plan.id !== "starter" && (
                   <div className="mb-5 rounded-2xl border border-amber-400/25 bg-amber-400/10 p-3">
                     <div className="mb-2 flex items-center justify-between gap-2">
                       <p className="text-[11px] font-black uppercase tracking-[0.14em] text-amber-200">
-                        Annual Bonus
+                        Annual Unlimited Images
                       </p>
                       <span className="rounded-full bg-lime-300 px-2 py-0.5 text-[9px] font-black uppercase text-slate-950">
-                        daily limits
+                        1K only
                       </span>
                     </div>
 
                     <div className="space-y-1.5">
-                      {MAX_ANNUAL_INCLUDED_MODELS.map((model) => (
+                      {(plan.id === "max" ? MAX_ANNUAL_UNLIMITED_IMAGE_MODELS : ANNUAL_UNLIMITED_IMAGE_MODELS).map((model) => (
                         <div key={model.name} className="flex items-center justify-between gap-2 text-xs text-slate-200">
                           <span className="flex items-center gap-1.5">
                             <Check className="h-3 w-3 text-emerald-300" />
                             {model.name}
                           </span>
                           <span className="rounded-full bg-lime-300 px-1.5 py-0.5 text-[9px] font-black text-slate-950">
-                            {model.badge}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className="my-2 border-t border-amber-300/15" />
-
-                    <p className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">
-                      7-day premium image access
-                    </p>
-                    <div className="space-y-1.5">
-                      {MAX_ANNUAL_PREMIUM_TRIAL_MODELS.map((model) => (
-                        <div key={model.name} className="flex items-center justify-between gap-2 text-xs text-slate-200">
-                          <span className="flex items-center gap-1.5">
-                            <Check className="h-3 w-3 text-emerald-300" />
-                            {model.name}
-                          </span>
-                          <span className="rounded-full bg-amber-300 px-1.5 py-0.5 text-[9px] font-black text-slate-950">
                             {model.badge}
                           </span>
                         </div>

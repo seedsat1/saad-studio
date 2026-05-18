@@ -263,6 +263,27 @@ export async function spendCredits(input: SpendCreditsInput) {
   });
 }
 
+export async function recordFreeGeneration(input: Omit<SpendCreditsInput, "credits">) {
+  await ensureUserRow(input.userId);
+
+  const generation = await prismadb.generation.create({
+    data: {
+      userId: input.userId,
+      prompt: input.prompt,
+      assetType: input.assetType,
+      modelUsed: input.modelUsed,
+      mediaUrl: input.mediaUrl ?? null,
+      outputUrl: input.mediaUrl && isPublicHttpUrl(input.mediaUrl) ? input.mediaUrl : null,
+      type: inferGenerationType(input.assetType),
+      status: input.mediaUrl && isPublicHttpUrl(input.mediaUrl) ? "completed" : "queued",
+      cost: 0,
+    },
+    select: { id: true },
+  });
+
+  return { remainingCredits: null, generationId: generation.id };
+}
+
 export async function refundCredits(userId: string, credits: number) {
   const safeCredits = Math.max(0, Math.floor(credits));
   if (safeCredits <= 0) return;

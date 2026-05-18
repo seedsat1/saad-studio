@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { getGenerationCost } from "@/lib/pricing";
-import { InsufficientCreditsError, rollbackGenerationCharge, saveAdditionalGenerationUrls, setGenerationMediaUrl, spendCredits } from "@/lib/credit-ledger";
+import { InsufficientCreditsError, recordFreeGeneration, rollbackGenerationCharge, saveAdditionalGenerationUrls, setGenerationMediaUrl, spendCredits } from "@/lib/credit-ledger";
+import { getAnnualUnlimitedImageEligibility } from "@/lib/annual-image-unlimited";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { getClientIp, isAllowedOrigin, sanitizePrompt } from "@/lib/security";
 import { getResolvedKieRoutingMaps } from "@/lib/kie-model-routing";
@@ -349,20 +350,28 @@ export async function POST(req: NextRequest) {
 
     const effectiveImageInputField = imageInputField ?? inferImageInputField(kieModelId);
 
-    const creditsToCharge = await getGenerationCost(effectiveModelId, 5, numImages, resolution ?? quality ?? imageSize);
-    if (creditsToCharge <= 0) {
+    const chargeQuality = resolution ?? quality ?? imageSize;
+    const unlimited = await getAnnualUnlimitedImageEligibility({
+      userId,
+      modelId: effectiveModelId,
+      quality: chargeQuality,
+    });
+    const creditsToCharge = unlimited.eligible
+      ? 0
+      : await getGenerationCost(effectiveModelId, 5, numImages, chargeQuality);
+    if (!unlimited.eligible && creditsToCharge <= 0) {
       return NextResponse.json({ error: `No credit configuration for model: ${modelId}` }, { status: 400 });
     }
 
-    console.log("SPEND CREDITS ABOUT TO RUN");
-    const spent = await spendCredits({
+    const chargeInput = {
       userId,
-      credits: creditsToCharge,
       prompt: sanitizePrompt(prompt, 5000),
       assetType: "IMAGE",
       modelUsed: modelId,
-    });
-    console.log("SPEND CREDITS SUCCESS");
+    };
+    const spent = unlimited.eligible
+      ? await recordFreeGeneration(chargeInput)
+      : await spendCredits({ ...chargeInput, credits: creditsToCharge });
     chargedCredits = creditsToCharge;
     generationId = spent.generationId;
 

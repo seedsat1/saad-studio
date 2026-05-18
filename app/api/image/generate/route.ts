@@ -1,7 +1,8 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { getGenerationCost } from "@/lib/pricing";
-import { InsufficientCreditsError, precheckGenerationPolicy, refundCredits, refundGenerationCharge, setGenerationMediaUrl, spendCredits } from "@/lib/credit-ledger";
+import { InsufficientCreditsError, precheckGenerationPolicy, recordFreeGeneration, refundCredits, refundGenerationCharge, setGenerationMediaUrl, spendCredits } from "@/lib/credit-ledger";
+import { getAnnualUnlimitedImageEligibility } from "@/lib/annual-image-unlimited";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { fetchWithTimeout, readErrorBody } from "@/lib/http";
 import { getClientIp, isAllowedOrigin, sanitizePrompt } from "@/lib/security";
@@ -82,8 +83,16 @@ export async function POST(req: Request) {
       await checkStoryboardReferenceImageSafety(refImageUrl);
     }
 
-    const creditsToCharge = await getGenerationCost(model, 5, numImages, resolution ?? quality ?? imageSize);
-    if (creditsToCharge <= 0) {
+    const chargeQuality = resolution ?? quality ?? imageSize;
+    const unlimited = await getAnnualUnlimitedImageEligibility({
+      userId,
+      modelId: model,
+      quality: chargeQuality,
+    });
+    const creditsToCharge = unlimited.eligible
+      ? 0
+      : await getGenerationCost(model, 5, numImages, chargeQuality);
+    if (!unlimited.eligible && creditsToCharge <= 0) {
       return NextResponse.json({ error: `No credit configuration for model: ${model}` }, { status: 400 });
     }
 
@@ -95,13 +104,15 @@ export async function POST(req: Request) {
       );
     }
 
-    const charge = await spendCredits({
+    const chargeInput = {
       userId,
-      credits: creditsToCharge,
       prompt: sanitizePrompt(prompt, 5000),
       assetType: "IMAGE",
       modelUsed: model,
-    });
+    };
+    const charge = unlimited.eligible
+      ? await recordFreeGeneration(chargeInput)
+      : await spendCredits({ ...chargeInput, credits: creditsToCharge });
     chargedCredits = creditsToCharge;
     chargedUserId = userId;
     generationId = charge.generationId;
