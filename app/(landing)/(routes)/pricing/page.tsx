@@ -186,8 +186,6 @@ const MAX_ANNUAL_INCLUDED_MODELS = [
 ];
 
 const MAX_ANNUAL_PREMIUM_TRIAL_MODELS = [
-  { name: "Seedance 1.5 Pro", badge: "7-day" },
-  { name: "Kling 2.6", badge: "7-day" },
   { name: "Nano Banana 2", badge: "7-day" },
   { name: "Nano Banana Pro", badge: "7-day" },
 ];
@@ -484,7 +482,7 @@ export default function PricingPage() {
                     <div className="my-2 border-t border-amber-300/15" />
 
                     <p className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">
-                      7-day premium access
+                      7-day premium image access
                     </p>
                     <div className="space-y-1.5">
                       {MAX_ANNUAL_PREMIUM_TRIAL_MODELS.map((model) => (
