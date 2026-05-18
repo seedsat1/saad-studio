@@ -242,7 +242,7 @@ function VerificationStatus({
 }) {
   const configs = {
     pending:  { Icon: Clock,         iconColor: "text-amber-400",   iconBg: "bg-amber-500/15",   title: "Pending Verification",   desc: "Your payment is under review. We typically verify within 1–4 hours during business hours.", border: "border-amber-500/30",   bg: "bg-amber-500/5"   },
-    approved: { Icon: CheckCircle2,  iconColor: "text-emerald-400", iconBg: "bg-emerald-500/15", title: "Payment Approved!",       desc: "Credits have been added to your wallet.",                                                border: "border-emerald-500/30", bg: "bg-emerald-500/5" },
+    approved: { Icon: CheckCircle2,  iconColor: "text-emerald-400", iconBg: "bg-emerald-500/15", title: "Payment Approved!",       desc: "Your subscription is active. Credits are available in your wallet.",                      border: "border-emerald-500/30", bg: "bg-emerald-500/5" },
     rejected: { Icon: XCircle,       iconColor: "text-red-400",     iconBg: "bg-red-500/15",     title: "Payment Rejected",       desc: "",                                                                                       border: "border-red-500/30",     bg: "bg-red-500/5"     },
   };
   const c = configs[status];
@@ -571,8 +571,8 @@ export default function PaymentPage() {
   };
 
   useEffect(() => {
-    if (step !== 3) return;
     let cancelled = false;
+    let intervalId: number | null = null;
     const run = async () => {
       try {
         const res = await fetch(`/api/payments/status?orderId=${encodeURIComponent(orderId)}`, { cache: "no-store" });
@@ -580,18 +580,33 @@ export default function PaymentPage() {
         const data = await res.json().catch(() => ({}));
         const s = String(data?.status ?? "");
         if (cancelled) return;
-        if (s === "COMPLETED") setStatus("approved");
-        else if (s === "FAILED") setStatus("rejected");
-        else if (s === "PENDING") setStatus("pending");
+        if (s === "NOT_FOUND") {
+          if (intervalId != null) window.clearInterval(intervalId);
+          intervalId = null;
+          return;
+        }
+        setStep(3);
+        if (s === "COMPLETED") {
+          setStatus("approved");
+          if (intervalId != null) window.clearInterval(intervalId);
+          intervalId = null;
+        } else if (s === "FAILED") {
+          setStatus("rejected");
+          if (intervalId != null) window.clearInterval(intervalId);
+          intervalId = null;
+        } else if (s === "PENDING") {
+          setStatus("pending");
+        }
       } catch {}
     };
     void run();
-    const id = window.setInterval(run, 8000);
+    intervalId = window.setInterval(run, 8000);
     return () => {
       cancelled = true;
-      window.clearInterval(id);
+      if (intervalId != null) window.clearInterval(intervalId);
     };
-  }, [orderId, step]);
+    // Keep a short poll loop: stops automatically once status is COMPLETED/FAILED/NOT_FOUND
+  }, [orderId]);
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">

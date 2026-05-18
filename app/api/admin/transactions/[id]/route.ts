@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { isAdmin } from "@/lib/is-admin";
 import prismadb from "@/lib/prismadb";
-import { allocateSubscriptionCredits } from "@/lib/credit-ledger";
 import { SAAD_PLANS } from "@/lib/pricing-models";
 
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
@@ -62,6 +61,33 @@ function formatDateISO(date: Date): string {
   const m = String(date.getUTCMonth() + 1).padStart(2, "0");
   const d = String(date.getUTCDate()).padStart(2, "0");
   return `${y}-${m}-${d}`;
+}
+
+async function allocateSubscriptionCreditsPreserveBalance(params: {
+  userId: string;
+  planId: string;
+}): Promise<void> {
+  const plan = SAAD_PLANS.find((p) => p.id === params.planId);
+  if (!plan) return;
+
+  const user = await prismadb.user.findUnique({
+    where: { id: params.userId },
+    select: { creditBalance: true },
+  });
+
+  const now = new Date();
+  const currentBalance = Math.max(0, Math.floor(user?.creditBalance ?? 0));
+  const nextBalance = Math.max(currentBalance, plan.credits);
+
+  await prismadb.user.update({
+    where: { id: params.userId },
+    data: {
+      creditBalance: nextBalance,
+      monthlyCredits: plan.credits,
+      creditsExpireAt: new Date(now.getTime() + THIRTY_DAYS_MS),
+      lastCreditRenewal: now,
+    },
+  });
 }
 
 async function sendApprovalEmail(params: {
@@ -279,13 +305,16 @@ export async function PATCH(
           }),
         ]);
       } else {
-        // Subscription plan: allocate credits with 30-day expiry
+        // Subscription plan: allocate credits without deleting existing (higher) credit balance
         await prismadb.adminTransaction.update({
           where: { id },
           data: { paymentStatus: "COMPLETED" },
         });
 
-        await allocateSubscriptionCredits(tx.userId, planId ?? "starter", billingInterval);
+        await allocateSubscriptionCreditsPreserveBalance({
+          userId: tx.userId,
+          planId: planId ?? "starter",
+        });
 
         // Update UserSubscription so handleCreditExpiry can check billingInterval
         const now = new Date();
@@ -314,8 +343,8 @@ export async function PATCH(
       try {
         const user = await prismadb.user.findUnique({ where: { id: tx.userId }, select: { email: true } });
         const to = user?.email;
-        const orderId = extractOrderId(tx.plan);
-        if (to && orderId) {
+        const orderId = extractOrderId(tx.plan) ?? tx.id;
+        if (to) {
           const now = new Date();
           const { isTopup, planId, billingInterval } = parsePlanString(tx.plan ?? "");
           const endsAt = isTopup
