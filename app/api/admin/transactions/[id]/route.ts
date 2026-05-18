@@ -30,6 +30,87 @@ function parsePlanString(plan: string): {
   return { isTopup: false, planId: matched?.id ?? null, billingInterval };
 }
 
+function extractOrderId(plan: string | null | undefined): string | null {
+  const raw = String(plan ?? "");
+  const m = raw.match(/(?:^|\|)\s*ORDER:([A-Za-z0-9_-]+)\s*(?:\||$)/);
+  return m?.[1] ?? null;
+}
+
+function extractDisplayPlan(plan: string | null | undefined): string {
+  const raw = String(plan ?? "");
+  const parts = raw.split("|").map((p) => p.trim()).filter(Boolean);
+  let display = "";
+  for (const part of parts) {
+    if (part.startsWith("method:")) continue;
+    if (part.startsWith("ORDER:")) continue;
+    if (part.startsWith("proofName:")) continue;
+    if (part.startsWith("proofUrl:")) continue;
+    display = display ? `${display} | ${part}` : part;
+  }
+  return display || raw;
+}
+
+async function sendApprovalEmail(params: {
+  to: string;
+  orderId: string;
+  displayPlan: string;
+  amount: number;
+  credits: number;
+}) {
+  const key = process.env.RESEND_API_KEY;
+  const from = process.env.RESEND_FROM;
+  if (!key || !from) return { ok: false as const, skipped: true as const };
+
+  const subject = `Saad Studio — Payment Approved (Order ${params.orderId})`;
+  const text =
+    `Payment approved.\n\n` +
+    `Order ID: ${params.orderId}\n` +
+    `Plan: ${params.displayPlan}\n` +
+    `Amount: $${params.amount}\n` +
+    `Credits: ${params.credits}\n\n` +
+    `Thank you.`;
+
+  const html = `
+    <div style="font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial">
+      <h2 style="margin:0 0 12px">Payment Approved</h2>
+      <p style="margin:0 0 12px;color:#334155">Your payment has been approved and your credits have been activated.</p>
+      <table style="border-collapse:collapse;width:100%;max-width:520px">
+        <tr><td style="padding:8px 0;color:#64748b">Order ID</td><td style="padding:8px 0;font-weight:700">${params.orderId}</td></tr>
+        <tr><td style="padding:8px 0;color:#64748b">Plan</td><td style="padding:8px 0">${params.displayPlan}</td></tr>
+        <tr><td style="padding:8px 0;color:#64748b">Amount</td><td style="padding:8px 0">$${params.amount}</td></tr>
+        <tr><td style="padding:8px 0;color:#64748b">Credits</td><td style="padding:8px 0">${params.credits}</td></tr>
+      </table>
+      <p style="margin:16px 0 0;color:#334155">Thank you,<br/>Saad Studio</p>
+    </div>
+  `.trim();
+
+  try {
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${key}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from,
+        to: [params.to],
+        subject,
+        text,
+        html,
+      }),
+    });
+    if (!res.ok) {
+      const msg = await res.text().catch(() => "");
+      console.error("[admin/transactions] email failed:", res.status, msg.slice(0, 500));
+      return { ok: false as const, skipped: false as const };
+    }
+    return { ok: true as const, skipped: false as const };
+  } catch (err) {
+    console.error("[admin/transactions] email error:", err);
+    return { ok: false as const, skipped: false as const };
+  }
+}
+
 export async function PATCH(
   req: Request,
   { params }: { params: { id: string } },
@@ -53,7 +134,7 @@ export async function PATCH(
 
     const tx = await prismadb.adminTransaction.findUnique({
       where: { id },
-      select: { id: true, userId: true, credits: true, paymentStatus: true, plan: true },
+      select: { id: true, userId: true, credits: true, paymentStatus: true, plan: true, amount: true },
     });
 
     if (!tx) {
@@ -140,6 +221,23 @@ export async function PATCH(
             stripeCurrentPeriodEnd: periodEnd,
           },
         });
+      }
+
+      try {
+        const user = await prismadb.user.findUnique({ where: { id: tx.userId }, select: { email: true } });
+        const to = user?.email;
+        const orderId = extractOrderId(tx.plan);
+        if (to && orderId) {
+          await sendApprovalEmail({
+            to,
+            orderId,
+            displayPlan: extractDisplayPlan(tx.plan),
+            amount: Number(tx.amount ?? 0),
+            credits: Number(tx.credits ?? 0),
+          });
+        }
+      } catch (err) {
+        console.error("[admin/transactions] approval email error:", err);
       }
 
       return NextResponse.json({ ok: true, status: "COMPLETED", credited: tx.credits });

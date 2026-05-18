@@ -308,6 +308,10 @@ const inputCls = (err?: string) =>
 export default function PaymentPage() {
   const searchParams = useSearchParams();
   const { data: cms } = useCmsData<PricingCmsData>("pricing");
+  const initialOrderIdRef = useRef<string | null>(null);
+  if (!initialOrderIdRef.current) {
+    initialOrderIdRef.current = searchParams.get("order") || generateOrderId();
+  }
   const [step, setStep]                     = useState<Step>(1);
   const [orderType, setOrderType]           = useState<OrderType>("plan");
   const [selectedPlanId, setSelectedPlanId] = useState("");
@@ -373,7 +377,7 @@ export default function PaymentPage() {
   const [selectedMethod, setSelectedMethod] = useState(METHODS[0].id);
   const [status, setStatus]                 = useState<Status>("idle");
   const [rejectionReason]                   = useState("The transfer reference number could not be verified. Please resubmit with a clear screenshot.");
-  const [orderId]                           = useState(generateOrderId);
+  const [orderId, setOrderId]               = useState(String(initialOrderIdRef.current));
 
   const [proofFile, setProofFile]   = useState<File | null>(null);
   const [proofError, setProofError] = useState("");
@@ -381,6 +385,20 @@ export default function PaymentPage() {
   const [confirmError, setConfirmError] = useState("");
   const [submitError, setSubmitError] = useState("");
   const [loading, setLoading]       = useState(false);
+
+  const syncOrderInUrl = useCallback((id: string) => {
+    if (typeof window === "undefined") return;
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set("order", id);
+      window.history.replaceState(null, "", url.toString());
+      window.localStorage.setItem("saad_last_payment_order", id);
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    syncOrderInUrl(orderId);
+  }, [orderId, syncOrderInUrl]);
 
   const cycleQuery = (searchParams.get("cycle") || searchParams.get("billing") || searchParams.get("interval") || "").toLowerCase();
   const billingCycle: BillingCycle = ["annual", "yearly", "year"].includes(cycleQuery) ? "annual" : "monthly";
@@ -545,10 +563,35 @@ export default function PaymentPage() {
 
   const handleResubmit = () => { setStatus("idle"); setStep(2); setProofError(""); setConfirmError(""); };
   const handleNew = () => {
+    const nextId = generateOrderId();
+    setOrderId(nextId);
     setStep(1); setStatus("idle"); setSelectedPlanId(""); setSelectedTopupId("");
     setSelectedMethod(liveMethods[0]?.id ?? METHODS[0].id);
     setProofFile(null); setConfirmed(false); setProofError(""); setConfirmError("");
   };
+
+  useEffect(() => {
+    if (step !== 3) return;
+    let cancelled = false;
+    const run = async () => {
+      try {
+        const res = await fetch(`/api/payments/status?orderId=${encodeURIComponent(orderId)}`, { cache: "no-store" });
+        if (!res.ok) return;
+        const data = await res.json().catch(() => ({}));
+        const s = String(data?.status ?? "");
+        if (cancelled) return;
+        if (s === "COMPLETED") setStatus("approved");
+        else if (s === "FAILED") setStatus("rejected");
+        else if (s === "PENDING") setStatus("pending");
+      } catch {}
+    };
+    void run();
+    const id = window.setInterval(run, 8000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
+  }, [orderId, step]);
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
