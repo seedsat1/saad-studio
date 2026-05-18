@@ -462,7 +462,7 @@ export default function PricingPage() {
                         Annual Unlimited Images
                       </p>
                       <span className="rounded-full bg-lime-300 px-2 py-0.5 text-[9px] font-black uppercase text-slate-950">
-                        1K only
+                        Unlimited
                       </span>
                     </div>
 
