@@ -26,6 +26,36 @@ interface PricingCmsData {
 
 // â”€â”€â”€ Data â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
+const PLAN_FEATURES: Record<string, string[]> = {
+  starter: [
+    "Selected model access",
+    "Up to 2 video or 4 image parallel generations",
+    "Credit-based usage across supported tools",
+    "Good for light monthly creation",
+  ],
+  plus: [
+    "Standard model access",
+    "Up to 3 video or 6 image parallel generations",
+    "Faster queue priority",
+    "Email support",
+  ],
+  pro: [
+    "Premium model access",
+    "Up to 5 video or 10 image parallel generations",
+    "Priority generation queue",
+    "Commercial usage rights",
+    "Early access to new models",
+  ],
+  max: [
+    "Access to all available models",
+    "Up to 10 video or 20 image parallel generations",
+    "Dedicated priority queue",
+    "Dedicated account manager",
+    "Team collaboration features",
+    "Full API access",
+  ],
+};
+
 const PLANS = [
   {
     id: "starter",
@@ -145,36 +175,6 @@ const PLAN_ANNUAL_DISCOUNT: Record<string, number> = {
   plus: 10,
   pro: 12,
   max: 15,
-};
-
-const PLAN_FEATURES: Record<string, string[]> = {
-  starter: [
-    "Selected model access",
-    "Up to 2 video or 4 image parallel generations",
-    "Credit-based usage across supported tools",
-    "Good for light monthly creation",
-  ],
-  plus: [
-    "Standard model access",
-    "Up to 3 video or 6 image parallel generations",
-    "Faster queue priority",
-    "Email support",
-  ],
-  pro: [
-    "Premium model access",
-    "Up to 5 video or 10 image parallel generations",
-    "Priority generation queue",
-    "Commercial usage rights",
-    "Early access to new models",
-  ],
-  max: [
-    "Access to all available models",
-    "Up to 10 video or 20 image parallel generations",
-    "Dedicated priority queue",
-    "Dedicated account manager",
-    "Team collaboration features",
-    "Full API access",
-  ],
 };
 
 const NANO_BANANA_PRO_CREDITS = 2;
