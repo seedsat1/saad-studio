@@ -1,8 +1,8 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { motion, type Variants } from "framer-motion";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Check, X, Zap, Sparkles, Star, Crown, Rocket,
   Video, ImageIcon, Infinity, ShoppingCart,
@@ -245,6 +245,27 @@ const slideUp: Variants = {
 export default function PricingPage() {
   const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">("monthly");
   const { data: cms } = useCmsData<PricingCmsData>("pricing");
+  const [currentPlanId, setCurrentPlanId] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/profile/settings", { cache: "no-store" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!data || data?.error) return;
+        const active = Boolean(data?.subscription?.active);
+        const planId = String(data?.subscription?.planId ?? "").toLowerCase();
+        const interval = String(data?.subscription?.billingInterval ?? "").toLowerCase();
+        if (interval === "annual" || interval === "yearly" || interval === "year") {
+          setBillingCycle("annual");
+        } else if (interval === "monthly" || interval === "month") {
+          setBillingCycle("monthly");
+        }
+        if (active && ["starter", "plus", "pro", "max"].includes(planId)) {
+          setCurrentPlanId(planId);
+        }
+      })
+      .catch(() => null);
+  }, []);
 
   const ICON_MAP: Record<string, typeof Rocket> = { starter: Rocket, plus: Sparkles, pro: Star, max: Crown };
   const ACCENT_MAP: Record<string, { bg: string; border: string; iconColor: string; ctaStyle: string }> = {
@@ -392,12 +413,15 @@ export default function PricingPage() {
             {livePlans.map((plan) => (
               (() => {
                 const pricing = getPlanPricing(plan);
+                const isCurrent = currentPlanId === plan.id;
                 return (
               <motion.div
                 key={plan.id}
                 variants={slideUp}
                 className={`relative flex flex-col rounded-3xl border p-6 backdrop-blur-sm transition-all duration-300
-                  ${plan.highlight
+                  ${isCurrent
+                    ? "bg-slate-900/85 border-emerald-400 shadow-[0_0_44px_rgba(16,185,129,0.28)] scale-[1.03]"
+                    : plan.highlight
                     ? "bg-slate-900/80 border-blue-500 shadow-[0_0_40px_rgba(59,130,246,0.25)] scale-[1.03]"
                     : "bg-slate-900/60 border-slate-800 hover:border-slate-700"
                   }`}
@@ -406,6 +430,11 @@ export default function PricingPage() {
                 {plan.highlight && (
                   <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-gradient-to-r from-blue-500 to-violet-600 text-xs font-bold text-white shadow-lg whitespace-nowrap">
                     Most Popular
+                  </div>
+                )}
+                {isCurrent && (
+                  <div className="absolute -top-3.5 left-4 px-3 py-1 rounded-full bg-emerald-500 text-xs font-bold text-white shadow-lg whitespace-nowrap">
+                    اشتراكك الحالي
                   </div>
                 )}
 
@@ -436,12 +465,21 @@ export default function PricingPage() {
                 </div>
 
                 {/* CTA */}
-                <Link
-                  href={`/payment?type=plan&id=${plan.id}&cycle=${pricing.cycle}`}
-                  className={`block w-full mt-3 py-3 rounded-2xl text-sm font-bold text-center transition-all duration-200 ${plan.ctaStyle}`}
-                >
-                  {plan.cta}
-                </Link>
+                {isCurrent ? (
+                  <Link
+                    href="/settings"
+                    className="block w-full mt-3 py-3 rounded-2xl text-sm font-bold text-center transition-all duration-200 bg-emerald-500 hover:bg-emerald-400 text-white shadow-lg shadow-emerald-500/25"
+                  >
+                    إدارة اشتراكك
+                  </Link>
+                ) : (
+                  <Link
+                    href={`/payment?type=plan&id=${plan.id}&cycle=${pricing.cycle}`}
+                    className={`block w-full mt-3 py-3 rounded-2xl text-sm font-bold text-center transition-all duration-200 ${plan.ctaStyle}`}
+                  >
+                    {plan.cta}
+                  </Link>
+                )}
 
                 <div className="my-5 border-t border-slate-800" />
 

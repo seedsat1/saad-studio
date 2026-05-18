@@ -5,9 +5,19 @@ import prismadb from "@/lib/prismadb";
 function inferPlan(stripePriceId?: string | null, hasSubscription?: boolean) {
   const id = (stripePriceId ?? "").toLowerCase();
   if (id.includes("max") || id.includes("ultra")) return "Max";
+  if (id.includes("plus")) return "Plus";
   if (id.includes("pro") || hasSubscription) return "Pro";
   if (id.includes("starter") || id.includes("basic")) return "Starter";
   return "Free";
+}
+
+function inferPlanId(stripePriceId?: string | null, hasSubscription?: boolean) {
+  const id = (stripePriceId ?? "").toLowerCase();
+  if (id.includes("max") || id.includes("ultra")) return "max";
+  if (id.includes("pro") || hasSubscription) return "pro";
+  if (id.includes("plus")) return "plus";
+  if (id.includes("starter") || id.includes("basic")) return "starter";
+  return "free";
 }
 
 export async function GET() {
@@ -39,6 +49,7 @@ export async function GET() {
       },
       subscription: {
         plan: inferPlan(subscription?.stripePriceId, Boolean(subscription?.stripeSubscriptionId)),
+        planId: inferPlanId(subscription?.stripePriceId, Boolean(subscription?.stripeSubscriptionId)),
         active: subscriptionActive,
         billingInterval: subscription?.billingInterval ?? null,
         nextBillingAt: subscription?.stripeCurrentPeriodEnd?.toISOString() ?? null,
