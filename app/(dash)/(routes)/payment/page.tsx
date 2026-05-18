@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { motion, AnimatePresence } from "framer-motion";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -379,6 +379,7 @@ export default function PaymentPage() {
   const [proofError, setProofError] = useState("");
   const [confirmed, setConfirmed]   = useState(false);
   const [confirmError, setConfirmError] = useState("");
+  const [submitError, setSubmitError] = useState("");
   const [loading, setLoading]       = useState(false);
 
   const cycleQuery = (searchParams.get("cycle") || searchParams.get("billing") || searchParams.get("interval") || "").toLowerCase();
@@ -434,9 +435,16 @@ export default function PaymentPage() {
   };
 
   const method      = liveMethods.find((m) => m.id === selectedMethod) ?? liveMethods[0];
-  const effectiveOrderType: OrderType = incomingType === "topup" ? "topup" : "plan";
-  const effectivePlanId = incomingPlanId && livePlans.some((p) => p.id === incomingPlanId) ? incomingPlanId : selectedPlanId;
-  const effectiveTopupId = incomingType === "topup" ? (incomingTopupId || selectedTopupId) : selectedTopupId;
+  const lockedType: OrderType | null = incomingType === "topup" ? "topup" : incomingType === "plan" ? "plan" : null;
+  const effectiveOrderType: OrderType = lockedType ?? orderType;
+  const effectivePlanId =
+    lockedType === "plan" && incomingPlanId && livePlans.some((p) => p.id === incomingPlanId)
+      ? incomingPlanId
+      : selectedPlanId;
+  const effectiveTopupId =
+    lockedType === "topup"
+      ? (incomingTopupId || selectedTopupId)
+      : selectedTopupId;
   const selectedItem =
     effectiveOrderType === "plan"
       ? livePlans.find((p) => p.id === effectivePlanId)
@@ -458,14 +466,81 @@ export default function PaymentPage() {
 
   const handleSubmit = async () => {
     let hasError = false;
+    setSubmitError("");
     if (!proofFile) { setProofError("Please upload your payment proof."); hasError = true; } else setProofError("");
     if (!confirmed) { setConfirmError("Please confirm before submitting."); hasError = true; } else setConfirmError("");
     if (hasError) return;
+    if (!selectedItem) {
+      setSubmitError("Please select a plan or top-up.");
+      return;
+    }
+
+    const amount =
+      effectiveOrderType === "plan"
+        ? Number(selectedPlanBilling?.usd ?? 0)
+        : Number((selectedItem as typeof TOPUPS[number])?.usd ?? 0);
+    const credits =
+      effectiveOrderType === "plan"
+        ? Number(selectedPlan?.credits ?? 0)
+        : Number((selectedItem as typeof TOPUPS[number])?.credits ?? 0);
+
+    if (!Number.isFinite(amount) || amount <= 0 || !Number.isFinite(credits) || credits <= 0) {
+      setSubmitError("Invalid order amount. Please re-select your plan/top-up.");
+      return;
+    }
+
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 1500));
-    setLoading(false);
-    setStatus("pending");
-    setStep(3);
+    try {
+      const fd = new FormData();
+      fd.append("file", proofFile);
+      fd.append("orderId", orderId);
+
+      const uploadRes = await fetch("/api/payments/upload-proof", {
+        method: "POST",
+        body: fd,
+      });
+
+      if (!uploadRes.ok) {
+        const err = await uploadRes.json().catch(() => ({}));
+        throw new Error(err?.error ?? `Proof upload failed (${uploadRes.status})`);
+      }
+
+      const uploaded = (await uploadRes.json()) as { proofUrl: string; proofFileName: string };
+      const proofUrl = String(uploaded?.proofUrl ?? "").trim();
+      const proofFileName = String(uploaded?.proofFileName ?? "").trim();
+      if (!proofUrl) throw new Error("Payment proof upload failed");
+
+      const reqRes = await fetch("/api/payments/request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orderId,
+          orderType: effectiveOrderType,
+          planId: effectiveOrderType === "plan" ? effectivePlanId : null,
+          planLabel: effectiveOrderType === "plan" ? (selectedPlan?.label ?? effectivePlanId ?? null) : null,
+          billingCycle,
+          topupId: effectiveOrderType === "topup" ? effectiveTopupId : null,
+          methodId: method?.id ?? null,
+          methodName: method?.name ?? null,
+          amount,
+          credits,
+          proofFileName,
+          proofUrl,
+        }),
+      });
+
+      if (!reqRes.ok) {
+        const err = await reqRes.json().catch(() => ({}));
+        throw new Error(err?.error ?? `Failed to submit request (${reqRes.status})`);
+      }
+
+      setStatus("pending");
+      setStep(3);
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : "Failed to submit request");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleResubmit = () => { setStatus("idle"); setStep(2); setProofError(""); setConfirmError(""); };
@@ -615,6 +690,7 @@ export default function PaymentPage() {
 
               <ProofUpload file={proofFile} onFile={(f) => { setProofFile(f); setProofError(""); }} onClear={() => setProofFile(null)} />
               {proofError && <p className="text-xs text-red-400 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{proofError}</p>}
+              {submitError && <p className="text-xs text-red-400 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{submitError}</p>}
 
               {/* Compliance */}
               <div className="p-4 rounded-2xl bg-slate-800/40 border border-slate-700 space-y-2 text-xs text-slate-500">
@@ -664,4 +740,3 @@ export default function PaymentPage() {
     </div>
   );
 }
-
