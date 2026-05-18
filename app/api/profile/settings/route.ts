@@ -22,9 +22,14 @@ export async function GET() {
       }),
       prismadb.userSubscription.findUnique({
         where: { userId },
-        select: { stripePriceId: true, stripeCurrentPeriodEnd: true, stripeSubscriptionId: true },
+        select: { stripePriceId: true, stripeCurrentPeriodEnd: true, stripeSubscriptionId: true, billingInterval: true },
       }),
     ]);
+
+    const subscriptionActive = Boolean(
+      subscription?.stripeCurrentPeriodEnd &&
+        subscription.stripeCurrentPeriodEnd.getTime() + 86_400_000 > Date.now(),
+    );
 
     return NextResponse.json({
       profile: {
@@ -34,6 +39,8 @@ export async function GET() {
       },
       subscription: {
         plan: inferPlan(subscription?.stripePriceId, Boolean(subscription?.stripeSubscriptionId)),
+        active: subscriptionActive,
+        billingInterval: subscription?.billingInterval ?? null,
         nextBillingAt: subscription?.stripeCurrentPeriodEnd?.toISOString() ?? null,
       },
       credits: Math.max(0, Math.floor(userRow?.creditBalance ?? 0)),

@@ -390,7 +390,7 @@ export const IMAGE_MODELS: ImageModel[] = [
     maxRefImages: 10,
     imageInputField: "image_urls",
     qualityParam: ["1K", "2K"],
-    creditCost: 3,
+    creditCost: 6,
   },
   {
     id: "flux-2/pro",

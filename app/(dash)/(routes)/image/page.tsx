@@ -36,6 +36,26 @@ import { useDynamicKieModels } from "@/hooks/use-dynamic-models";
 
 type ToolId = "create" | "relight" | "inpaint" | "upscale" | "face-swap" | "enhance";
 
+const ANNUAL_UNLIMITED_IMAGE_MODEL_IDS = new Set([
+  "flux-2/pro",
+  "flux-2/flex",
+  "seedream/4.5-text-to-image",
+  "seedream/4.5-edit",
+  "google/nano-banana",
+  "kwaivgi/kling-image-o1",
+  "gpt-image/1.5-text-to-image",
+  "gpt-image/1.5-image-to-image",
+  "gpt-image-2-text-to-image",
+  "gpt-image-2-image-to-image",
+  "nano-banana-2",
+  "nano-banana-pro",
+]);
+
+function isAnnualUnlimitedImageQuality(value?: string | null) {
+  const normalized = String(value ?? "1K").trim().toLowerCase();
+  return normalized === "1k" || normalized === "1024" || normalized === "1024x1024";
+}
+
 // Shared with /gallery so albums sync across pages
 const ALBUMS_STORAGE_KEY = "saad_studio_gallery_albums_v1";
 interface Album { id: string; name: string; assetIds: string[] }
@@ -918,6 +938,7 @@ export default function ImageWorkspacePage() {
 
   const [activeTool, setActiveTool] = useState<ToolId>("create");
   const [selectedModel, setSelectedModel] = useState<ImageModel>(IMAGE_MODELS[0]);
+  const [hasAnnualUnlimitedImages, setHasAnnualUnlimitedImages] = useState(false);
   const [aspectRatio, setAspectRatio] = useState("1:1");
   const [numImages, setNumImages] = useState(1);
   const [prompt, setPrompt] = useState("");
@@ -1123,10 +1144,35 @@ export default function ImageWorkspacePage() {
     if (aspectRatio === "1:1") return options.filter((q) => q !== "4K");
     return options;
   }, [aspectRatio, selectedModel]);
+  const selectedQuality = qualityOptions.length ? (quality || qualityOptions[0]) : undefined;
+  const isAnnualUnlimitedCreate = activeTool === "create" &&
+    hasAnnualUnlimitedImages &&
+    ANNUAL_UNLIMITED_IMAGE_MODEL_IDS.has(selectedModel.id) &&
+    isAnnualUnlimitedImageQuality(selectedQuality);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/profile/settings", { cache: "no-store" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (cancelled) return;
+        const subscription = data?.subscription;
+        setHasAnnualUnlimitedImages(Boolean(subscription?.active && subscription?.billingInterval === "annual"));
+      })
+      .catch(() => {
+        if (!cancelled) setHasAnnualUnlimitedImages(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const composer = useMemo(() => {
     if (activeTool === "create") {
-      const credits = getImageCreditCost(selectedModel, numImages, qualityOptions.length ? (quality || qualityOptions[0]) : undefined);
+      if (isAnnualUnlimitedCreate) {
+        return { placeholder: "Describe what you want to generate...", button: "Generate Image - Unlimited", promptEnabled: true };
+      }
+      const credits = getImageCreditCost(selectedModel, numImages, selectedQuality);
       return { placeholder: "Describe what you want to generate...", button: `Generate Image · ${credits} cr`, promptEnabled: true };
     }
     if (activeTool === "enhance") return { placeholder: "Enhancement instructions (optional) — e.g. \"cinematic, 8K, sharp\"...", button: "Enhance Photo · 2 cr", promptEnabled: true };
@@ -1134,7 +1180,7 @@ export default function ImageWorkspacePage() {
     if (activeTool === "inpaint") return { placeholder: "Describe what should replace the painted area...", button: `Inpaint ✦ ${3 * inpaintVariations}`, promptEnabled: true };
     if (activeTool === "upscale") return { placeholder: "Upload media to upscale", button: "Upscale Image ✦ 2", promptEnabled: false };
     return { placeholder: "Upload source face and target above", button: "Swap Face ✦ 4", promptEnabled: false };
-  }, [activeTool, inpaintVariations, numImages, quality, qualityOptions, relightVariations, selectedModel]);
+  }, [activeTool, inpaintVariations, isAnnualUnlimitedCreate, numImages, relightVariations, selectedModel, selectedQuality]);
 
   useEffect(() => {
     setNumImages(Math.min(Math.max(1, numImages), selectedModel.maxImages));
@@ -1153,13 +1199,16 @@ export default function ImageWorkspacePage() {
   }, [activeTool, createNeedsImage, enhanceFiles.length, faceSource, faceTarget, generating, inpaintFile, prompt, referenceFiles.length, relightFile, selectedCharacter, upscaleFile]);
 
   const estimatedCredits = useMemo(() => {
-    if (activeTool === "create") return getImageCreditCost(selectedModel, numImages, qualityOptions.length ? (quality || qualityOptions[0]) : undefined);
+    if (activeTool === "create") {
+      if (isAnnualUnlimitedCreate) return 0;
+      return getImageCreditCost(selectedModel, numImages, selectedQuality);
+    }
     if (activeTool === "enhance") return ENHANCE_MODELS.find((m) => m.id === enhanceModelId)?.creditCost ?? 2;
     if (activeTool === "relight") return 3 * relightVariations;
     if (activeTool === "inpaint") return 3 * inpaintVariations;
     if (activeTool === "upscale") return 2;
     return 4;
-  }, [activeTool, enhanceModelId, inpaintVariations, numImages, quality, qualityOptions, relightVariations, selectedModel]);
+  }, [activeTool, enhanceModelId, inpaintVariations, isAnnualUnlimitedCreate, numImages, relightVariations, selectedModel, selectedQuality]);
 
   const addResultItems = useCallback((urls: string[], tool: ToolId, model: string, p: string, aspect: string) => {
     const newItems = urls.map((url) => ({ id: uid("img"), url, tool, model, prompt: p, aspect }));
