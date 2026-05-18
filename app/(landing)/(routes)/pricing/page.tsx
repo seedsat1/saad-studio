@@ -434,7 +434,7 @@ export default function PricingPage() {
                 )}
                 {isCurrent && (
                   <div className="absolute -top-3.5 left-4 px-3 py-1 rounded-full bg-emerald-500 text-xs font-bold text-white shadow-lg whitespace-nowrap">
-                    اشتراكك الحالي
+                    Current Plan
                   </div>
                 )}
 
@@ -470,7 +470,7 @@ export default function PricingPage() {
                     href="/settings"
                     className="block w-full mt-3 py-3 rounded-2xl text-sm font-bold text-center transition-all duration-200 bg-emerald-500 hover:bg-emerald-400 text-white shadow-lg shadow-emerald-500/25"
                   >
-                    إدارة اشتراكك
+                    Manage Subscription
                   </Link>
                 ) : (
                   <Link
