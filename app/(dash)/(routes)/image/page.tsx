@@ -66,6 +66,8 @@ const ANNUAL_UNLIMITED_IMAGE_MODEL_PREFIXES = [
   "wan/2-7-image-pro",
   "flux-2/",
 ];
+const isBlockedDynamicImageModel = (id: string, label: string) =>
+  id.includes("kling-" + "image-o1") || label === "kling 01 image";
 
 function isAnnualUnlimitedImageQuality(value?: string | null) {
   const normalized = String(value ?? "1K").trim().toLowerCase();
@@ -322,7 +324,13 @@ function ModelDropdown({ selected, onSelect }: { selected: ImageModel; onSelect:
     const knownIds = new Set(IMAGE_MODELS.map((m) => m.id.toLowerCase()));
     // Convert detected KIE models into ImageModel stubs so the dropdown can render them.
     const dynamicAsImage: ImageModel[] = dynamicModels
-      .filter((dm) => !knownIds.has(dm.id.toLowerCase()) && !dm.id.toLowerCase().startsWith("flux-2/"))
+      .filter((dm) => {
+        const id = dm.id.toLowerCase();
+        const label = dm.label.toLowerCase();
+        return !knownIds.has(id) &&
+          !id.startsWith("flux-2/") &&
+          !isBlockedDynamicImageModel(id, label);
+      })
       .map((dm) => {
         const isEdit = /(edit|image-to-image|i2i|inpaint)/i.test(dm.id);
         return {

@@ -62,25 +62,6 @@ function mapToWavespeedInput(payload: Record<string, unknown>, route?: string): 
     (typeof payload.last_image === "string" ? payload.last_image : null) ||
     (typeof payload.last_frame_url === "string" ? payload.last_frame_url : null);
 
-  if (route === "kwaivgi/kling-v2.6-pro/image-to-video") {
-    if (imgSrc) out.image = imgSrc;
-    if (endImage) out.end_image = endImage;
-    out.duration = out.duration === 10 ? 10 : 5;
-    if (typeof out.cfg_scale !== "number") out.cfg_scale = 0.5;
-    out.sound = payload.sound === true;
-    out.voice_list = Array.isArray(payload.voice_list) ? payload.voice_list : [];
-    return out;
-  }
-
-  if (route === "kwaivgi/kling-v2.6-pro/text-to-video") {
-    out.duration = out.duration === 10 ? 10 : 5;
-    if (typeof out.cfg_scale !== "number") out.cfg_scale = 0.5;
-    out.sound = payload.sound === true;
-    out.voice_list = Array.isArray(payload.voice_list) ? payload.voice_list : [];
-    if (typeof payload.aspect_ratio === "string") out.aspect_ratio = payload.aspect_ratio;
-    return out;
-  }
-
   if (typeof payload.aspect_ratio === "string") out.aspect_ratio = payload.aspect_ratio;
   if (typeof payload.resolution === "string") out.resolution = payload.resolution;
   if (imgSrc) out.image_url = imgSrc;

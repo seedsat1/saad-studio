@@ -79,7 +79,14 @@ async function sendApprovalEmail(params: {
   if (!key || !from) return { ok: false as const, skipped: true as const };
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://saadstudio.app";
-  const logoSrc = `${siteUrl.replace(/\/$/, "")}/logo.png`;
+  const siteLogoUrl = await prismadb.siteSetting
+    .findFirst({ select: { logoUrl: true } })
+    .then((s) => s?.logoUrl ?? null)
+    .catch(() => null);
+  const logoPath = (siteLogoUrl || "/logo-saad-transparent.png").trim();
+  const logoSrc = /^https?:\/\//i.test(logoPath)
+    ? logoPath
+    : `${siteUrl.replace(/\/$/, "")}${logoPath.startsWith("/") ? "" : "/"}${logoPath}`;
   const issuedAt = new Date();
   const subject = `Saad Studio — Invoice / فاتورة اشتراك (${params.orderId})`;
   const startsIso = formatDateISO(params.startsAt);

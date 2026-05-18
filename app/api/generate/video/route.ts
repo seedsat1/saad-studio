@@ -253,25 +253,13 @@ export async function POST(req: NextRequest) {
       throw new Error("WAVESPEED_API_KEY is not configured.");
     }
 
-    const wavespeedPayload =
-      wavespeedModel === "kwaivgi/kling-v2.6-pro/image-to-video"
-        ? {
-            prompt: sanitizePrompt(prompt, 5000),
-            duration: duration === 10 ? 10 : 5,
-            image: imageUrl,
-            cfg_scale: 0.5,
-            sound,
-            voice_list: [],
-          }
-        : payload;
-
     const submitRes = await fetch(`${WAVESPEED_BASE_URL}/${wavespeedModel}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${wavespeedKey}`,
       },
-      body: JSON.stringify(wavespeedPayload),
+      body: JSON.stringify(payload),
     });
 
     if (!submitRes.ok) {

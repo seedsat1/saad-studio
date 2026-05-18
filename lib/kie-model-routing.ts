@@ -74,8 +74,6 @@ export const BASE_KIE_VIDEO_MODEL_MAP: Record<string, string> = {
 };
 
 export const WAVESPEED_VIDEO_FALLBACK_MAP: Record<string, string> = {
-  "kling-2.6/text-to-video": "kwaivgi/kling-v2.6-pro/text-to-video",
-  "kling-2.6/image-to-video": "kwaivgi/kling-v2.6-pro/image-to-video",
   // Kling 2.5 Turbo I2V Pro removed — now routed to KIE "kling/v2-5-turbo-image-to-video-pro"
   // (was incorrectly aliased to WaveSpeed std endpoint).
   "hailuo/02-text-to-video-pro": "minimax/hailuo-02/t2v-pro",

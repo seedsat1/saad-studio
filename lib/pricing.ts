@@ -122,8 +122,6 @@ const MODEL_ALIAS_MAP: Record<string, string> = {
   "kling-3.0/motion-control":                     "kling30_mc",
   "kling/v2-5-turbo-text-to-video-pro":           "kling25t",
   "kling/v2-5-turbo-image-to-video-pro":          "kling25t",
-  "kling-2.6/text-to-video":                      "kling25t",
-  "kling-2.6/image-to-video":                     "kling25t",
   "hailuo/2-3-image-to-video-pro":                "hailuo23",
   "hailuo/2-3-image-to-video-standard":           "hailuo23f",
   "hailuo/02-text-to-video-pro":                  "hailuo23",
