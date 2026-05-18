@@ -43,10 +43,7 @@ const PLANS = [
     accentBg: "bg-violet-500/10",
     accentBorder: "border-violet-500/30",
     features: [
-      "Selected model access",
-      "2 video - 4 image parallel gens",
-      "Early access to new AI features",
-      "Lowest cost per credit",
+      ...PLAN_FEATURES.starter,
     ],
     unlimited: {
       active: [],
@@ -70,10 +67,7 @@ const PLANS = [
     accentBg: "bg-slate-500/10",
     accentBorder: "border-slate-700",
     features: [
-      "ALL standard model access",
-      "3 video - 6 image parallel gens",
-      "Faster queue priority",
-      "Email support",
+      ...PLAN_FEATURES.plus,
     ],
     unlimited: {
       active: [],
@@ -97,11 +91,7 @@ const PLANS = [
     accentBg: "bg-blue-500/10",
     accentBorder: "border-blue-500/40",
     features: [
-      "ALL models including premium",
-      "5 video - 10 image parallel gens",
-      "Priority generation queue",
-      "Commercial usage rights",
-      "Early access to every new model",
+      ...PLAN_FEATURES.pro,
     ],
     unlimited: {
       active: [],
@@ -125,12 +115,7 @@ const PLANS = [
     accentBg: "bg-amber-500/10",
     accentBorder: "border-amber-500/30",
     features: [
-      "Unlimited access to ALL models",
-      "10 video - 20 image parallel gens",
-      "Dedicated priority queue",
-      "Dedicated account manager",
-      "Team collaboration features",
-      "Full API access",
+      ...PLAN_FEATURES.max,
     ],
     unlimited: {
       active: [],
@@ -160,6 +145,36 @@ const PLAN_ANNUAL_DISCOUNT: Record<string, number> = {
   plus: 10,
   pro: 12,
   max: 15,
+};
+
+const PLAN_FEATURES: Record<string, string[]> = {
+  starter: [
+    "Selected model access",
+    "Up to 2 video or 4 image parallel generations",
+    "Credit-based usage across supported tools",
+    "Good for light monthly creation",
+  ],
+  plus: [
+    "Standard model access",
+    "Up to 3 video or 6 image parallel generations",
+    "Faster queue priority",
+    "Email support",
+  ],
+  pro: [
+    "Premium model access",
+    "Up to 5 video or 10 image parallel generations",
+    "Priority generation queue",
+    "Commercial usage rights",
+    "Early access to new models",
+  ],
+  max: [
+    "Access to all available models",
+    "Up to 10 video or 20 image parallel generations",
+    "Dedicated priority queue",
+    "Dedicated account manager",
+    "Team collaboration features",
+    "Full API access",
+  ],
 };
 
 const NANO_BANANA_PRO_CREDITS = 2;
@@ -237,7 +252,20 @@ export default function PricingPage() {
     return cmsPlans.map((cp) => {
       const accent = ACCENT_MAP[cp.id] ?? ACCENT_MAP.starter;
       const Icon = ICON_MAP[cp.id] ?? Rocket;
-      return { ...cp, Icon, iconColor: accent.iconColor, accentBg: accent.bg, accentBorder: accent.border, ctaStyle: accent.ctaStyle, price: `$${cp.monthlyPrice}`, period: "per month", _monthlyPrice: cp.monthlyPrice, _annualDiscount: cp.annualDiscount, unlimited: { active: [] as string[], coming: [] as string[], none: [] as string[] } };
+      return {
+        ...cp,
+        features: PLAN_FEATURES[cp.id] ?? cp.features,
+        Icon,
+        iconColor: accent.iconColor,
+        accentBg: accent.bg,
+        accentBorder: accent.border,
+        ctaStyle: accent.ctaStyle,
+        price: `$${cp.monthlyPrice}`,
+        period: "per month",
+        _monthlyPrice: cp.monthlyPrice,
+        _annualDiscount: cp.annualDiscount,
+        unlimited: { active: [] as string[], coming: [] as string[], none: [] as string[] },
+      };
     });
   }, [cmsPlans]);
 
