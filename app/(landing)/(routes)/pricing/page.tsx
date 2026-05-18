@@ -177,6 +177,20 @@ const PLAN_ANNUAL_DISCOUNT: Record<string, number> = {
   max: 15,
 };
 
+const MAX_ANNUAL_INCLUDED_MODELS = [
+  { name: "FLUX.2 Pro 1K", badge: "500/day" },
+  { name: "Seedream 4.5", badge: "500/day" },
+  { name: "Nano Banana", badge: "500/day" },
+  { name: "GPT Image", badge: "500/day" },
+];
+
+const MAX_ANNUAL_PREMIUM_TRIAL_MODELS = [
+  { name: "Seedance 1.5 Pro", badge: "7-day" },
+  { name: "Kling 2.6", badge: "7-day" },
+  { name: "Nano Banana 2", badge: "7-day" },
+  { name: "Nano Banana Pro", badge: "7-day" },
+];
+
 const NANO_BANANA_PRO_CREDITS = 2;
 const KLING_3_STARTER_CREDITS = 6;
 
@@ -440,6 +454,52 @@ export default function PricingPage() {
                     </li>
                   ))}
                 </ul>
+
+                {billingCycle === "annual" && plan.id === "max" && (
+                  <div className="mb-5 rounded-2xl border border-amber-400/25 bg-amber-400/10 p-3">
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <p className="text-[11px] font-black uppercase tracking-[0.14em] text-amber-200">
+                        Annual Bonus
+                      </p>
+                      <span className="rounded-full bg-lime-300 px-2 py-0.5 text-[9px] font-black uppercase text-slate-950">
+                        daily limits
+                      </span>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      {MAX_ANNUAL_INCLUDED_MODELS.map((model) => (
+                        <div key={model.name} className="flex items-center justify-between gap-2 text-xs text-slate-200">
+                          <span className="flex items-center gap-1.5">
+                            <Check className="h-3 w-3 text-emerald-300" />
+                            {model.name}
+                          </span>
+                          <span className="rounded-full bg-lime-300 px-1.5 py-0.5 text-[9px] font-black text-slate-950">
+                            {model.badge}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="my-2 border-t border-amber-300/15" />
+
+                    <p className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">
+                      7-day premium access
+                    </p>
+                    <div className="space-y-1.5">
+                      {MAX_ANNUAL_PREMIUM_TRIAL_MODELS.map((model) => (
+                        <div key={model.name} className="flex items-center justify-between gap-2 text-xs text-slate-200">
+                          <span className="flex items-center gap-1.5">
+                            <Check className="h-3 w-3 text-emerald-300" />
+                            {model.name}
+                          </span>
+                          <span className="rounded-full bg-amber-300 px-1.5 py-0.5 text-[9px] font-black text-slate-950">
+                            {model.badge}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Unlimited section */}
                 <div className="space-y-2 mt-auto">
