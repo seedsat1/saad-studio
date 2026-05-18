@@ -110,3 +110,39 @@ digest: "206583966"
 digest: "206583966"
 Could not find files for /_error in .next/build-manifest.json
 Could not find files for /_error in .next/build-manifest.json
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, lstat 'E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\.next\server\app\api'
+<w> [webpack.cache.PackFileCacheStrategy/webpack.FileSystemInfo] Resolving '../../../../.next/server/app/api/layouts/route' in E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server for build dependencies doesn't lead to expected result 'E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\.next\server\app\api\layouts\route.js', but to 'Error: Can't resolve '../../../../.next/server/app/api/layouts/route' in 'E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server'' instead. Resolving dependencies are ignored for this path.
+<w>  at resolve commonjs file ../../../../.next/server/app/api/layouts/route (expected E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\.next\server\app\api\layouts\route.js)
+<w>  at file dependencies E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\require.js
+<w>  at file E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\require.js
+<w>  at file dependencies E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\load-components.js
+<w>  at file E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\load-components.js
+<w>  at file dependencies E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\build\utils.js
+<w>  at file E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\build\utils.js
+<w>  at file dependencies E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\build\webpack\loaders\next-route-loader\index.js
+<w>  at file E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\build\webpack\loaders\next-route-loader\index.js
+<w>  at resolve commonjs E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\build\webpack\loaders\next-route-loader\index.js
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, lstat 'E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\.next\server\app\api'
+<w> [webpack.cache.PackFileCacheStrategy/webpack.FileSystemInfo] Resolving '../../../../.next/server/app/api/layouts/route' in E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server for build dependencies doesn't lead to expected result 'E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\.next\server\app\api\layouts\route.js', but to 'Error: Can't resolve '../../../../.next/server/app/api/layouts/route' in 'E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server'' instead. Resolving dependencies are ignored for this path.
+<w>  at resolve commonjs file ../../../../.next/server/app/api/layouts/route (expected E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\.next\server\app\api\layouts\route.js)
+<w>  at file dependencies E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\require.js
+<w>  at file E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\require.js
+<w>  at file dependencies E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\load-components.js
+<w>  at file E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\load-components.js
+<w>  at file dependencies E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\build\utils.js
+<w>  at file E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\build\utils.js
+<w>  at file dependencies E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\build\webpack\loaders\next-route-loader\index.js
+<w>  at file E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\build\webpack\loaders\next-route-loader\index.js
+<w>  at resolve commonjs E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\build\webpack\loaders\next-route-loader\index.js
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, lstat 'E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\.next\server\app\api'
+<w> [webpack.cache.PackFileCacheStrategy/webpack.FileSystemInfo] Resolving '../../../../.next/server/app/api/layouts/route' in E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server for build dependencies doesn't lead to expected result 'E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\.next\server\app\api\layouts\route.js', but to 'Error: Can't resolve '../../../../.next/server/app/api/layouts/route' in 'E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server'' instead. Resolving dependencies are ignored for this path.
+<w>  at resolve commonjs file ../../../../.next/server/app/api/layouts/route (expected E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\.next\server\app\api\layouts\route.js)
+<w>  at file dependencies E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\require.js
+<w>  at file E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\require.js
+<w>  at file dependencies E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\load-components.js
+<w>  at file E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\server\load-components.js
+<w>  at file dependencies E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\build\utils.js
+<w>  at file E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\build\utils.js
+<w>  at file dependencies E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\build\webpack\loaders\next-route-loader\index.js
+<w>  at file E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\build\webpack\loaders\next-route-loader\index.js
+<w>  at resolve commonjs E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\next\dist\build\webpack\loaders\next-route-loader\index.js

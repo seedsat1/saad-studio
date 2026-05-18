@@ -138,7 +138,7 @@ const VIDEO_FEATURES = [
   { label: "Create Video",        href: "/video",           icon: VideoIcon,    color: "text-orange-400",  description: "Text-to-video generation",             badge: "" },
   { label: "Transitions",         href: "/apps/tool/transitions", icon: Blend, color: "text-cyan-300", description: "Generate styled scene transitions", badge: "READY" },
   { label: "Storyboard Studio",   href: "/apps/tool/storyboard-studio", icon: Clapperboard, color: "text-violet-300", description: "Create cinematic production boards", badge: "READY" },
-  { label: "Mixed Media",         href: "/video?tool=mixed-media",      icon: Blend,        color: "text-pink-400",    description: "Combine multiple visual styles",         badge: "" },
+  { label: "Cinematic Styles",    href: "/apps/tool/cinematic-styles", icon: Blend,        color: "text-cyan-300",    description: "Apply stylized motion presets to clips", badge: "READY" },
   { label: "Edit Video",          href: "/edit",            icon: Scissors,     color: "text-cyan-400",    description: "Advanced AI timeline editing",           badge: "" },
   { label: "Click to Ad",         href: "/video?tool=click-to-ad",      icon: Megaphone,    color: "text-amber-400",   description: "1-click commercial generation",          badge: "" },
   { label: "Sora 2 Trends",       href: "/video?tool=sora-trends",      icon: TrendingUp,   color: "text-sky-400",     description: "Viral cinematic templates",              badge: "" },
@@ -147,7 +147,7 @@ const VIDEO_FEATURES = [
   { label: "Sketch to Video",     href: "/video?tool=sketch-to-video",  icon: PenTool,      color: "text-lime-400",    description: "Turn rough outlines into motion",        badge: "" },
   { label: "UGC Factory",         href: "/video?tool=ugc-factory",      icon: Layers,       color: "text-teal-400",    description: "User-generated content simulator",       badge: "" },
   { label: "Video Upscale",       href: "/video?tool=video-upscale",    icon: Aperture,     color: "text-blue-400",    description: "Enhance resolution to 4K/8K",            badge: "" },
-  { label: "Character Animate",   href: "/video?tool=higgsfield-animate", icon: Sparkles,   color: "text-emerald-400", description: "Character and object animation",         badge: "" },
+  { label: "Character Animate",   href: "/video?tool=character-animate", icon: Sparkles,   color: "text-emerald-400", description: "Character and object animation",         badge: "" },
   { label: "Vibe Motion",         href: "/video?tool=vibe-motion",      icon: Music,        color: "text-indigo-400",  description: "Music-synced dynamic edits",             badge: "" },
   { label: "Recast Studio",       href: "/video?tool=recast-studio",    icon: Film,         color: "text-red-400",     description: "Repurpose existing videos",              badge: "" },
 ];
@@ -416,6 +416,7 @@ function appHref(app: string): string {
 const SHOW_EXPERIMENTAL_NAV = false;
 
 const STUDIO_LINKS = [
+  { label: "Cinematic Styles", href: "/apps/tool/cinematic-styles", icon: Blend, color: "text-cyan-300" },
   { label: "Transitions", href: "/apps/tool/transitions", icon: Blend, color: "text-cyan-300" },
   { label: "Storyboard", href: "/apps/tool/storyboard-studio", icon: Clapperboard, color: "text-violet-300" },
   { label: "AI Canvas", href: "/original-series", icon: Monitor, color: "text-purple-400" },

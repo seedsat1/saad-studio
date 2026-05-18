@@ -12,7 +12,7 @@ import { useCmsData } from "@/lib/use-cms-data";
 /* ─── CMS types (must match admin/cms/pricing) ─── */
 interface CmsPlan {
   _id: string; id: string; badge: string; tagline: string; credits: string;
-  equiv: string; monthlyPrice: number; annualDiscount: number; cta: string;
+  equiv: string; creditsNum?: number; monthlyPrice: number; annualDiscount: number; cta: string;
   highlight: boolean; features: string[];
 }
 interface CmsTopup { _id: string; credits: string; price: string; pricePerCredit: string; popular: boolean; }
@@ -160,6 +160,30 @@ const PLAN_ANNUAL_DISCOUNT: Record<string, number> = {
   plus: 10,
   pro: 12,
   max: 15,
+};
+
+const NANO_BANANA_PRO_CREDITS = 2;
+const KLING_3_STARTER_CREDITS = 6;
+
+const parsePlanCredits = (plan: { credits: string; creditsNum?: number }): number => {
+  if (typeof plan.creditsNum === "number" && Number.isFinite(plan.creditsNum)) {
+    return plan.creditsNum;
+  }
+
+  const parsed = Number.parseInt(plan.credits.replace(/[^0-9]/g, ""), 10);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const formatCount = (value: number): string => value.toLocaleString("en-US");
+
+const getPlanGenerationAllowance = (plan: { credits: string; creditsNum?: number }): string => {
+  const credits = parsePlanCredits(plan);
+  if (!credits) return "";
+
+  const imageCount = Math.floor(credits / NANO_BANANA_PRO_CREDITS);
+  const videoCount = Math.floor(credits / KLING_3_STARTER_CREDITS);
+
+  return `Up to ${formatCount(imageCount)} Nano Banana Pro images OR ${formatCount(videoCount)} Kling 3.0 videos`;
 };
 
 const MODEL_COSTS = {
@@ -366,7 +390,7 @@ export default function PricingPage() {
                 {/* Credits callout */}
                 <div className={`rounded-xl px-3 py-2.5 mb-2 border ${plan.accentBg} ${plan.accentBorder}`}>
                   <p className="text-sm font-bold text-white">{plan.credits}</p>
-                  <p className="text-xs text-slate-500 mt-0.5">{plan.equiv}</p>
+                  <p className="text-xs text-slate-500 mt-0.5">{getPlanGenerationAllowance(plan)}</p>
                 </div>
 
                 {/* CTA */}
