@@ -456,12 +456,12 @@ export default function PricingPage() {
                 </ul>
 
                 {billingCycle === "annual" && plan.id !== "starter" && (
-                  <div className="mb-5 rounded-2xl border border-amber-400/25 bg-amber-400/10 p-3">
+                  <div className="mb-5 rounded-2xl border border-cyan-400/25 bg-cyan-400/10 p-3">
                     <div className="mb-2 flex items-center justify-between gap-2">
-                      <p className="text-[11px] font-black uppercase tracking-[0.14em] text-amber-200">
+                      <p className="text-[11px] font-black uppercase tracking-[0.14em] text-cyan-100">
                         Annual Unlimited Images
                       </p>
-                      <span className="rounded-full bg-lime-300 px-2 py-0.5 text-[9px] font-black uppercase text-slate-950">
+                      <span className="rounded-full bg-cyan-300 px-2 py-0.5 text-[9px] font-black uppercase text-slate-950">
                         Unlimited
                       </span>
                     </div>
@@ -473,7 +473,7 @@ export default function PricingPage() {
                             <Check className="h-3 w-3 text-emerald-300" />
                             {model.name}
                           </span>
-                          <span className="rounded-full bg-lime-300 px-1.5 py-0.5 text-[9px] font-black text-slate-950">
+                          <span className="rounded-full bg-cyan-300 px-1.5 py-0.5 text-[9px] font-black text-slate-950">
                             {model.badge}
                           </span>
                         </div>
