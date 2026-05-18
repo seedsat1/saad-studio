@@ -26,6 +26,12 @@ const TYPE_GRADIENTS: Record<string, string> = {
 
 type ProfileOverview = {
   credits: number;
+  subscription?: {
+    active: boolean;
+    planId: string | null;
+    billingInterval: string | null;
+    renewsAt: string | null;
+  };
   topStats: {
     generations: number;
     projects: number;
@@ -43,6 +49,15 @@ type ProfileOverview = {
     createdAt: string;
   }>;
 };
+
+function formatPlanBadge(overview: ProfileOverview | null, fallbackRole?: unknown) {
+  if (overview?.subscription?.active && overview.subscription.planId) {
+    const planName = overview.subscription.planId.charAt(0).toUpperCase() + overview.subscription.planId.slice(1);
+    const interval = overview.subscription.billingInterval === "annual" ? "Annual" : "Monthly";
+    return `${planName} ${interval}`;
+  }
+  return `${typeof fallbackRole === "string" && fallbackRole ? fallbackRole : "Free"} Member`;
+}
 
 function formatTimeAgo(iso: string) {
   const then = new Date(iso).getTime();
@@ -380,7 +395,7 @@ export default function ProfilePage() {
             <div className="flex-1">
               <div className="flex flex-wrap items-center gap-3 mb-1">
                 <h1 className="text-2xl md:text-3xl font-bold text-white">{fullName}</h1>
-                <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30">{(user?.publicMetadata?.role as string) || "Free"} Member</span>
+                <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30">{formatPlanBadge(overview, user?.publicMetadata?.role)}</span>
               </div>
               <div className="flex flex-wrap items-center gap-4 text-sm text-slate-400 mt-1">
                 <span className="flex items-center gap-1.5"><Mail className="w-3.5 h-3.5" />{email}</span>

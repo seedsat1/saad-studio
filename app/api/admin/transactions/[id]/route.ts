@@ -61,6 +61,32 @@ export async function PATCH(
     }
 
     if (nextStatus === tx.paymentStatus) {
+      if (nextStatus === "COMPLETED") {
+        const { isTopup, planId, billingInterval } = parsePlanString(tx.plan ?? "");
+        if (!isTopup) {
+          const now = new Date();
+          const periodEnd = billingInterval === "annual"
+            ? new Date(now.getTime() + ONE_YEAR_MS)
+            : new Date(now.getTime() + THIRTY_DAYS_MS);
+
+          await prismadb.userSubscription.upsert({
+            where: { userId: tx.userId },
+            create: {
+              userId: tx.userId,
+              planId: planId ?? "starter",
+              billingInterval,
+              stripePriceId: planId ?? "starter",
+              stripeCurrentPeriodEnd: periodEnd,
+            },
+            update: {
+              planId: planId ?? "starter",
+              billingInterval,
+              stripePriceId: planId ?? "starter",
+              stripeCurrentPeriodEnd: periodEnd,
+            },
+          });
+        }
+      }
       return NextResponse.json({ ok: true, status: tx.paymentStatus, unchanged: true });
     }
 
@@ -130,4 +156,3 @@ export async function PATCH(
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
-

@@ -44,8 +44,12 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const [userRow, projectCounts, recentRows, allRows] = await Promise.all([
+    const [userRow, subscription, projectCounts, recentRows, allRows] = await Promise.all([
       ensureWelcomeCredits(userId),
+      prismadb.userSubscription.findUnique({
+        where: { userId },
+        select: { planId: true, billingInterval: true, stripeCurrentPeriodEnd: true },
+      }),
       Promise.all([
         prismadb.cinemaProject.count({ where: { userId } }),
         prismadb.variationProject.count({ where: { userId } }),
@@ -94,6 +98,15 @@ export async function GET() {
 
     return NextResponse.json({
       credits: Math.max(0, Math.floor(userRow?.creditBalance ?? 0)),
+      subscription: {
+        active: Boolean(
+          subscription?.stripeCurrentPeriodEnd &&
+            subscription.stripeCurrentPeriodEnd.getTime() + 86_400_000 > Date.now(),
+        ),
+        planId: subscription?.planId ?? null,
+        billingInterval: subscription?.billingInterval ?? null,
+        renewsAt: subscription?.stripeCurrentPeriodEnd?.toISOString() ?? null,
+      },
       topStats: {
         generations: totalGenerations,
         projects: totalProjects,
