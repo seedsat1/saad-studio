@@ -61,26 +61,25 @@ async function sendApprovalEmail(params: {
   const from = process.env.RESEND_FROM;
   if (!key || !from) return { ok: false as const, skipped: true as const };
 
-  const subject = `Saad Studio — Payment Approved (Order ${params.orderId})`;
+  const subject = `تمت الموافقة على طلبك — Saad Studio (${params.orderId})`;
   const text =
-    `Payment approved.\n\n` +
-    `Order ID: ${params.orderId}\n` +
-    `Plan: ${params.displayPlan}\n` +
-    `Amount: $${params.amount}\n` +
-    `Credits: ${params.credits}\n\n` +
-    `Thank you.`;
+    `مرحباً بك في Saad Studio.\n\n` +
+    `تمت الموافقة على طلب الاشتراك الخاص بك.\n` +
+    `رقم الطلب: ${params.orderId}\n` +
+    `نوع الاشتراك: ${params.displayPlan}\n` +
+    `مبلغ الاشتراك: $${params.amount}\n\n` +
+    `شكراً لاختيارك Saad Studio.`;
 
   const html = `
-    <div style="font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial">
-      <h2 style="margin:0 0 12px">Payment Approved</h2>
-      <p style="margin:0 0 12px;color:#334155">Your payment has been approved and your credits have been activated.</p>
+    <div dir="rtl" style="font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial; text-align:right">
+      <h2 style="margin:0 0 12px">تمت الموافقة على طلبك</h2>
+      <p style="margin:0 0 12px;color:#334155">مرحباً بك في Saad Studio. تم تفعيل طلب الاشتراك الخاص بك.</p>
       <table style="border-collapse:collapse;width:100%;max-width:520px">
-        <tr><td style="padding:8px 0;color:#64748b">Order ID</td><td style="padding:8px 0;font-weight:700">${params.orderId}</td></tr>
-        <tr><td style="padding:8px 0;color:#64748b">Plan</td><td style="padding:8px 0">${params.displayPlan}</td></tr>
-        <tr><td style="padding:8px 0;color:#64748b">Amount</td><td style="padding:8px 0">$${params.amount}</td></tr>
-        <tr><td style="padding:8px 0;color:#64748b">Credits</td><td style="padding:8px 0">${params.credits}</td></tr>
+        <tr><td style="padding:8px 0;color:#64748b">رقم الطلب</td><td style="padding:8px 0;font-weight:700">${params.orderId}</td></tr>
+        <tr><td style="padding:8px 0;color:#64748b">نوع الاشتراك</td><td style="padding:8px 0">${params.displayPlan}</td></tr>
+        <tr><td style="padding:8px 0;color:#64748b">مبلغ الاشتراك</td><td style="padding:8px 0">$${params.amount}</td></tr>
       </table>
-      <p style="margin:16px 0 0;color:#334155">Thank you,<br/>Saad Studio</p>
+      <p style="margin:16px 0 0;color:#334155">شكراً لاختيارك<br/>Saad Studio</p>
     </div>
   `.trim();
 
