@@ -181,7 +181,7 @@ const ANNUAL_UNLIMITED_IMAGE_MODELS = [
   { name: "FLUX.2 Pro", badge: "Unlimited" },
   { name: "Seedream 4.5", badge: "Unlimited" },
   { name: "Nano Banana", badge: "Unlimited" },
-  { name: "Kling 01 Image", badge: "Unlimited" },
+  { name: "Seedream 5 Lite", badge: "Unlimited" },
   { name: "GPT Image", badge: "Unlimited" },
 ];
 

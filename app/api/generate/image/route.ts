@@ -337,9 +337,9 @@ export async function POST(req: NextRequest) {
     const hasReferenceImages = Boolean(imageUrl || imageUrlsParam?.length);
     const effectiveModelId = resolveFlux2Variant(modelId, hasReferenceImages, quality);
     const { imageModelMap } = getResolvedKieRoutingMaps();
-    const isWaveSpeedImageModel = effectiveModelId.startsWith("kwaivgi/");
+    const isWaveSpeedImageModel = false;
 
-    const kieModelId = isWaveSpeedImageModel ? effectiveModelId : imageModelMap[effectiveModelId];
+    const kieModelId = imageModelMap[effectiveModelId];
     if (!kieModelId) {
       const supported = Object.keys(imageModelMap).join(", ");
       return NextResponse.json(

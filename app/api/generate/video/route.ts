@@ -15,6 +15,7 @@ import { syncKieModelCatalog } from "@/lib/kie-model-sync";
 
 const KIE_BASE_URL = "https://api.kie.ai/api/v1";
 const WAVESPEED_BASE_URL = "https://api.wavespeed.ai/api/v3";
+const { kieVideoModelMap, wavespeedFallbackMap } = getResolvedKieRoutingMaps();
 
 interface VideoRequestBody {
   prompt: string;
@@ -24,6 +25,7 @@ interface VideoRequestBody {
   resolution?: string;
   quality?: string;
   aspectRatio?: string;
+  sound?: boolean;
 }
 
 interface ProviderResult {
@@ -76,7 +78,7 @@ async function pollWaveSpeed(predictionId: string, apiKey: string, maxAttempts =
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     await new Promise((r) => setTimeout(r, intervalMs));
 
-    const res = await fetch(`${WAVESPEED_BASE_URL}/predictions/${predictionId}/result`, {
+    const res = await fetch(`${WAVESPEED_BASE_URL}/predictions/${predictionId}`, {
       headers: { Authorization: `Bearer ${apiKey}` },
     });
 
@@ -87,7 +89,12 @@ async function pollWaveSpeed(predictionId: string, apiKey: string, maxAttempts =
     const status = String(data?.status || "").toLowerCase();
 
     if (["completed", "success", "done"].includes(status)) {
-      return { status: "completed", outputs: extractOutputs(data?.outputs ?? data?.result ?? data?.response) };
+      const resultRes = await fetch(`${WAVESPEED_BASE_URL}/predictions/${predictionId}/result`, {
+        headers: { Authorization: `Bearer ${apiKey}` },
+      });
+      const resultJson = await resultRes.json().catch(() => ({}));
+      const resultData = resultJson?.data ?? resultJson ?? {};
+      return { status: "completed", outputs: extractOutputs(resultData?.outputs ?? resultData?.result ?? resultData?.response ?? data?.outputs) };
     }
 
     if (["failed", "fail", "error", "cancelled", "canceled"].includes(status)) {
@@ -155,7 +162,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body: VideoRequestBody = await req.json();
-    const { prompt, modelId, imageUrl, duration = 5, resolution, quality, aspectRatio = "16:9" } = body;
+    const { prompt, modelId, imageUrl, duration = 5, resolution, quality, aspectRatio = "16:9", sound = false } = body;
 
     if (!prompt || !modelId) {
       return NextResponse.json({ error: "Missing required fields: prompt, modelId." }, { status: 400 });
@@ -246,13 +253,25 @@ export async function POST(req: NextRequest) {
       throw new Error("WAVESPEED_API_KEY is not configured.");
     }
 
+    const wavespeedPayload =
+      wavespeedModel === "kwaivgi/kling-v2.6-pro/image-to-video"
+        ? {
+            prompt: sanitizePrompt(prompt, 5000),
+            duration: duration === 10 ? 10 : 5,
+            image: imageUrl,
+            cfg_scale: 0.5,
+            sound,
+            voice_list: [],
+          }
+        : payload;
+
     const submitRes = await fetch(`${WAVESPEED_BASE_URL}/${wavespeedModel}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${wavespeedKey}`,
       },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(wavespeedPayload),
     });
 
     if (!submitRes.ok) {
@@ -303,4 +322,3 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
-    const { kieVideoModelMap, wavespeedFallbackMap } = getResolvedKieRoutingMaps();

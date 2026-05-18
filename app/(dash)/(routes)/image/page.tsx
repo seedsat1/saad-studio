@@ -42,7 +42,6 @@ const ANNUAL_UNLIMITED_IMAGE_MODEL_IDS = new Set([
   "seedream/4.5-text-to-image",
   "seedream/4.5-edit",
   "google/nano-banana",
-  "kwaivgi/kling-image-o1",
   "gpt-image/1.5-text-to-image",
   "gpt-image/1.5-image-to-image",
   "gpt-image-2-text-to-image",
@@ -65,7 +64,6 @@ const ANNUAL_UNLIMITED_IMAGE_MODEL_PREFIXES = [
   "grok-imagine/",
   "gpt-image",
   "wan/2-7-image-pro",
-  "kwaivgi/kling-image-o1",
   "flux-2/",
 ];
 

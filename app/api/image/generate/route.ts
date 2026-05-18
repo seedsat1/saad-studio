@@ -11,7 +11,7 @@ import { checkStoryboardReferenceImageSafety, UnsafeReferenceImageError } from "
 /** Allow up to 3 minutes for async KIE polling */
 export const maxDuration = 180;
 
-const WAVESPEED_PREFIXES = ["seedream", "wavespeed-ai", "kwaivgi/"];
+const WAVESPEED_PREFIXES = ["seedream", "wavespeed-ai"];
 
 const KIE_CREATE = "https://api.kie.ai/api/v1/jobs/createTask";
 const KIE_QUERY  = "https://api.kie.ai/api/v1/jobs/recordInfo";

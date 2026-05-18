@@ -45,18 +45,44 @@ function wavespeedHeaders() {
   };
 }
 
-function mapToWavespeedInput(payload: Record<string, unknown>): Record<string, unknown> {
+function mapToWavespeedInput(payload: Record<string, unknown>, route?: string): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   if (typeof payload.prompt === "string") out.prompt = payload.prompt;
   if (typeof payload.duration === "number") out.duration = payload.duration;
   else if (typeof payload.duration === "string") out.duration = Number.parseInt(payload.duration, 10);
-  if (typeof payload.aspect_ratio === "string") out.aspect_ratio = payload.aspect_ratio;
-  if (typeof payload.resolution === "string") out.resolution = payload.resolution;
-  // Normalise image inputs → image_url for WaveSpeed
+  if (typeof payload.negative_prompt === "string") out.negative_prompt = payload.negative_prompt;
+  if (typeof payload.cfg_scale === "number") out.cfg_scale = payload.cfg_scale;
+
   const imgSrc =
     (typeof payload.image === "string" ? payload.image : null) ||
     (typeof payload.first_frame_url === "string" ? payload.first_frame_url : null) ||
     (typeof payload.image_url === "string" ? payload.image_url : null);
+  const endImage =
+    (typeof payload.end_image === "string" ? payload.end_image : null) ||
+    (typeof payload.last_image === "string" ? payload.last_image : null) ||
+    (typeof payload.last_frame_url === "string" ? payload.last_frame_url : null);
+
+  if (route === "kwaivgi/kling-v2.6-pro/image-to-video") {
+    if (imgSrc) out.image = imgSrc;
+    if (endImage) out.end_image = endImage;
+    out.duration = out.duration === 10 ? 10 : 5;
+    if (typeof out.cfg_scale !== "number") out.cfg_scale = 0.5;
+    out.sound = payload.sound === true;
+    out.voice_list = Array.isArray(payload.voice_list) ? payload.voice_list : [];
+    return out;
+  }
+
+  if (route === "kwaivgi/kling-v2.6-pro/text-to-video") {
+    out.duration = out.duration === 10 ? 10 : 5;
+    if (typeof out.cfg_scale !== "number") out.cfg_scale = 0.5;
+    out.sound = payload.sound === true;
+    out.voice_list = Array.isArray(payload.voice_list) ? payload.voice_list : [];
+    if (typeof payload.aspect_ratio === "string") out.aspect_ratio = payload.aspect_ratio;
+    return out;
+  }
+
+  if (typeof payload.aspect_ratio === "string") out.aspect_ratio = payload.aspect_ratio;
+  if (typeof payload.resolution === "string") out.resolution = payload.resolution;
   if (imgSrc) out.image_url = imgSrc;
   return out;
 }
@@ -875,9 +901,11 @@ export async function POST(req: Request) {
           { status: 503 },
         );
       }
-      const wsInput = mapToWavespeedInput(payload);
-      if (wsInput.image_url && typeof wsInput.image_url === "string" && wsInput.image_url.startsWith("data:")) {
-        wsInput.image_url = await uploadDataUrlToKie(wsInput.image_url).catch(() => wsInput.image_url as string);
+      const wsInput = mapToWavespeedInput(payload, wavespeedRoute);
+      for (const key of ["image", "image_url", "end_image"] as const) {
+        if (wsInput[key] && typeof wsInput[key] === "string" && wsInput[key].startsWith("data:")) {
+          wsInput[key] = await uploadDataUrlToKie(wsInput[key]).catch(() => wsInput[key] as string);
+        }
       }
 
       const charge = await spendCredits({
@@ -1179,21 +1207,34 @@ export async function GET(req: Request) {
       if (!wsKey) {
         return NextResponse.json({ error: "WaveSpeed provider is not configured.", code: "wavespeed_key_missing" }, { status: 503 });
       }
-      const wsRes = await fetch(`${WAVESPEED_BASE}/predictions/${predictionId}/result`, {
+      const wsStatusRes = await fetch(`${WAVESPEED_BASE}/predictions/${predictionId}`, {
         headers: { Authorization: `Bearer ${wsKey}` },
         cache: "no-store",
       });
       let wsJson: Record<string, unknown> | null = null;
-      try { wsJson = await wsRes.json(); } catch { /* ignore */ }
-      if (!wsRes.ok || !wsJson) {
+      try { wsJson = await wsStatusRes.json(); } catch { /* ignore */ }
+      if (!wsStatusRes.ok || !wsJson) {
         return NextResponse.json({ taskId, status: "processing", outputs: [], error: null });
       }
-      const wsData = (wsJson.data as Record<string, unknown>) ?? wsJson;
+      let wsData = (wsJson.data as Record<string, unknown>) ?? wsJson;
       const rawStatus = String(wsData.status || "");
       const wsStatus = normalizeTaskState(rawStatus);
-      const wsOutputs = Array.isArray(wsData.outputs)
+      let wsOutputs = Array.isArray(wsData.outputs)
         ? (wsData.outputs as unknown[]).filter((v): v is string => typeof v === "string")
         : [];
+
+      if (wsStatus === "completed" && wsOutputs.length === 0) {
+        const wsResultRes = await fetch(`${WAVESPEED_BASE}/predictions/${predictionId}/result`, {
+          headers: { Authorization: `Bearer ${wsKey}` },
+          cache: "no-store",
+        });
+        let wsResultJson: Record<string, unknown> | null = null;
+        try { wsResultJson = await wsResultRes.json(); } catch { /* ignore */ }
+        if (wsResultRes.ok && wsResultJson) {
+          wsData = (wsResultJson.data as Record<string, unknown>) ?? wsResultJson;
+          wsOutputs = extractOutputs(wsData.outputs ?? wsData.result ?? wsData.response);
+        }
+      }
       const wsError = typeof wsData.error === "string" ? wsData.error : null;
 
       // DB sync for completion / refund on failure

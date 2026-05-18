@@ -50,52 +50,117 @@ function extractDisplayPlan(plan: string | null | undefined): string {
   return display || raw;
 }
 
+function extractMethod(plan: string | null | undefined): string | null {
+  const raw = String(plan ?? "");
+  const m = raw.match(/(?:^|\|)\s*method:([^|]+)\s*(?:\||$)/i);
+  const method = (m?.[1] ?? "").trim();
+  return method || null;
+}
+
+function formatDateISO(date: Date): string {
+  const y = date.getUTCFullYear();
+  const m = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const d = String(date.getUTCDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
 async function sendApprovalEmail(params: {
   to: string;
   orderId: string;
   displayPlan: string;
   amount: number;
   credits: number;
+  startsAt: Date;
+  endsAt: Date;
+  method?: string | null;
 }) {
   const key = process.env.RESEND_API_KEY;
   const from = process.env.RESEND_FROM;
   if (!key || !from) return { ok: false as const, skipped: true as const };
 
-  const subject = `Saad Studio — Payment Approved / تمت الموافقة على طلبك (${params.orderId})`;
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://saadstudio.app";
+  const logoSrc = `${siteUrl.replace(/\/$/, "")}/logo.png`;
+  const issuedAt = new Date();
+  const subject = `Saad Studio — Invoice / فاتورة اشتراك (${params.orderId})`;
+  const startsIso = formatDateISO(params.startsAt);
+  const endsIso = formatDateISO(params.endsAt);
+  const issuedIso = formatDateISO(issuedAt);
+  const methodLabel = params.method ? String(params.method) : "manual";
+
   const text =
-    `مرحباً بك في Saad Studio.\n` +
-    `تمت الموافقة على طلب الاشتراك الخاص بك.\n` +
+    `فاتورة اشتراك — Saad Studio\n` +
     `رقم الطلب: ${params.orderId}\n` +
     `نوع الاشتراك: ${params.displayPlan}\n` +
-    `مبلغ الاشتراك: $${params.amount}\n\n` +
-    `Welcome to Saad Studio.\n` +
-    `Your subscription payment has been approved.\n` +
+    `مبلغ الاشتراك: $${params.amount}\n` +
+    `تاريخ الاشتراك: ${startsIso}\n` +
+    `تاريخ الانتهاء: ${endsIso}\n` +
+    `تاريخ إصدار الفاتورة: ${issuedIso}\n` +
+    `طريقة الدفع: ${methodLabel}\n\n` +
+    `Subscription Invoice — Saad Studio\n` +
     `Order ID: ${params.orderId}\n` +
     `Plan: ${params.displayPlan}\n` +
-    `Amount: $${params.amount}\n`;
+    `Amount: $${params.amount}\n` +
+    `Starts: ${startsIso}\n` +
+    `Ends: ${endsIso}\n` +
+    `Issued: ${issuedIso}\n` +
+    `Payment method: ${methodLabel}\n`;
 
   const html = `
-    <div style="font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial">
-      <div dir="rtl" style="text-align:right">
-        <h2 style="margin:0 0 12px">تمت الموافقة على طلبك</h2>
-        <p style="margin:0 0 12px;color:#334155">مرحباً بك في Saad Studio. تم تفعيل طلب الاشتراك الخاص بك.</p>
-        <table style="border-collapse:collapse;width:100%;max-width:520px">
-          <tr><td style="padding:8px 0;color:#64748b">رقم الطلب</td><td style="padding:8px 0;font-weight:700">${params.orderId}</td></tr>
-          <tr><td style="padding:8px 0;color:#64748b">نوع الاشتراك</td><td style="padding:8px 0">${params.displayPlan}</td></tr>
-          <tr><td style="padding:8px 0;color:#64748b">مبلغ الاشتراك</td><td style="padding:8px 0">$${params.amount}</td></tr>
-        </table>
-        <p style="margin:16px 0 0;color:#334155">شكراً لاختيارك<br/>Saad Studio</p>
-      </div>
-      <div style="height:1px;background:#e2e8f0;margin:18px 0"></div>
-      <div dir="ltr" style="text-align:left">
-        <h2 style="margin:0 0 12px">Payment Approved</h2>
-        <p style="margin:0 0 12px;color:#334155">Welcome to Saad Studio. Your subscription payment has been approved.</p>
-        <table style="border-collapse:collapse;width:100%;max-width:520px">
-          <tr><td style="padding:8px 0;color:#64748b">Order ID</td><td style="padding:8px 0;font-weight:700">${params.orderId}</td></tr>
-          <tr><td style="padding:8px 0;color:#64748b">Plan</td><td style="padding:8px 0">${params.displayPlan}</td></tr>
-          <tr><td style="padding:8px 0;color:#64748b">Amount</td><td style="padding:8px 0">$${params.amount}</td></tr>
-        </table>
-        <p style="margin:16px 0 0;color:#334155">Thank you,<br/>Saad Studio</p>
+    <div style="font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial;background:#f8fafc;padding:24px">
+      <div style="max-width:720px;margin:0 auto;background:#ffffff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 20px;background:#0b1220">
+          <div style="display:flex;align-items:center;gap:12px;min-width:0">
+            <img src="${logoSrc}" alt="Saad Studio" width="36" height="36" style="display:block;border-radius:10px" />
+            <div style="min-width:0">
+              <div style="color:#ffffff;font-weight:800;letter-spacing:.2px">Saad Studio</div>
+              <div style="color:#94a3b8;font-size:12px">Subscription Invoice / فاتورة اشتراك</div>
+            </div>
+          </div>
+          <div style="text-align:right">
+            <div style="color:#e2e8f0;font-size:12px">Invoice No. / رقم الفاتورة</div>
+            <div style="color:#ffffff;font-weight:800">${params.orderId}</div>
+          </div>
+        </div>
+
+        <div style="padding:20px">
+          <div style="display:flex;gap:18px;flex-wrap:wrap">
+            <div style="flex:1;min-width:260px;border:1px solid #e2e8f0;border-radius:12px;padding:14px">
+              <div dir="rtl" style="text-align:right">
+                <div style="font-weight:800;color:#0f172a;margin-bottom:10px">تفاصيل الاشتراك</div>
+                <table style="width:100%;border-collapse:collapse">
+                  <tr><td style="padding:8px 0;color:#64748b">نوع الاشتراك</td><td style="padding:8px 0;font-weight:700;color:#0f172a;text-align:left" dir="ltr">${params.displayPlan}</td></tr>
+                  <tr><td style="padding:8px 0;color:#64748b">مبلغ الاشتراك</td><td style="padding:8px 0;font-weight:800;color:#0f172a;text-align:left" dir="ltr">$${params.amount}</td></tr>
+                  <tr><td style="padding:8px 0;color:#64748b">تاريخ الاشتراك</td><td style="padding:8px 0;color:#0f172a;text-align:left" dir="ltr">${startsIso}</td></tr>
+                  <tr><td style="padding:8px 0;color:#64748b">تاريخ الانتهاء</td><td style="padding:8px 0;color:#0f172a;text-align:left" dir="ltr">${endsIso}</td></tr>
+                  <tr><td style="padding:8px 0;color:#64748b">تاريخ إصدار الفاتورة</td><td style="padding:8px 0;color:#0f172a;text-align:left" dir="ltr">${issuedIso}</td></tr>
+                </table>
+              </div>
+            </div>
+
+            <div style="flex:1;min-width:260px;border:1px solid #e2e8f0;border-radius:12px;padding:14px">
+              <div dir="ltr" style="text-align:left">
+                <div style="font-weight:800;color:#0f172a;margin-bottom:10px">Invoice Details</div>
+                <table style="width:100%;border-collapse:collapse">
+                  <tr><td style="padding:8px 0;color:#64748b">Plan</td><td style="padding:8px 0;font-weight:700;color:#0f172a;text-align:right" dir="ltr">${params.displayPlan}</td></tr>
+                  <tr><td style="padding:8px 0;color:#64748b">Amount</td><td style="padding:8px 0;font-weight:800;color:#0f172a;text-align:right" dir="ltr">$${params.amount}</td></tr>
+                  <tr><td style="padding:8px 0;color:#64748b">Start Date</td><td style="padding:8px 0;color:#0f172a;text-align:right" dir="ltr">${startsIso}</td></tr>
+                  <tr><td style="padding:8px 0;color:#64748b">End Date</td><td style="padding:8px 0;color:#0f172a;text-align:right" dir="ltr">${endsIso}</td></tr>
+                  <tr><td style="padding:8px 0;color:#64748b">Issued</td><td style="padding:8px 0;color:#0f172a;text-align:right" dir="ltr">${issuedIso}</td></tr>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-top:16px;border:1px dashed #cbd5e1;border-radius:12px;padding:12px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap">
+            <div style="color:#475569;font-size:12px">Payment method / طريقة الدفع: <span style="color:#0f172a;font-weight:700">${methodLabel}</span></div>
+            <div style="color:#475569;font-size:12px">To print: open this email and print it / للطباعة: اطبع هذه الرسالة</div>
+          </div>
+
+          <div style="margin-top:18px;color:#64748b;font-size:12px;line-height:1.6">
+            <div dir="rtl" style="text-align:right">شكراً لاختيارك Saad Studio.</div>
+            <div dir="ltr" style="text-align:left">Thank you for choosing Saad Studio.</div>
+          </div>
+        </div>
       </div>
     </div>
   `.trim();
@@ -244,12 +309,20 @@ export async function PATCH(
         const to = user?.email;
         const orderId = extractOrderId(tx.plan);
         if (to && orderId) {
+          const now = new Date();
+          const { isTopup, planId, billingInterval } = parsePlanString(tx.plan ?? "");
+          const endsAt = isTopup
+            ? new Date(now.getTime() + THIRTY_DAYS_MS)
+            : new Date(now.getTime() + (billingInterval === "annual" ? ONE_YEAR_MS : THIRTY_DAYS_MS));
           await sendApprovalEmail({
             to,
             orderId,
             displayPlan: extractDisplayPlan(tx.plan),
             amount: Number(tx.amount ?? 0),
             credits: Number(tx.credits ?? 0),
+            startsAt: now,
+            endsAt,
+            method: extractMethod(tx.plan),
           });
         }
       } catch (err) {

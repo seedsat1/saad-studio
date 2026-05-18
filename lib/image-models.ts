@@ -379,20 +379,6 @@ export const IMAGE_MODELS: ImageModel[] = [
   },
   // ── FLUX.2 (public tiers; server resolves T2I/I2I variants privately) ─────────
   {
-    id: "kwaivgi/kling-image-o1",
-    label: "Kling 01 Image",
-    sublabel: "Kling O1 - Image editing",
-    badge: "NEW",
-    group: "Kling",
-    inputType: "image-to-image",
-    aspectRatios: ["1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3", "21:9"],
-    maxImages: 4,
-    maxRefImages: 10,
-    imageInputField: "image_urls",
-    qualityParam: ["1K", "2K"],
-    creditCost: 6,
-  },
-  {
     id: "flux-2/pro",
     label: "FLUX.2 Pro",
     sublabel: "Speed-optimized detail",
