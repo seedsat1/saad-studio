@@ -308,10 +308,6 @@ const inputCls = (err?: string) =>
 export default function PaymentPage() {
   const searchParams = useSearchParams();
   const { data: cms } = useCmsData<PricingCmsData>("pricing");
-  const initialOrderIdRef = useRef<string | null>(null);
-  if (!initialOrderIdRef.current) {
-    initialOrderIdRef.current = searchParams.get("order") || generateOrderId();
-  }
   const [step, setStep]                     = useState<Step>(1);
   const [orderType, setOrderType]           = useState<OrderType>("plan");
   const [selectedPlanId, setSelectedPlanId] = useState("");
@@ -377,7 +373,7 @@ export default function PaymentPage() {
   const [selectedMethod, setSelectedMethod] = useState(METHODS[0].id);
   const [status, setStatus]                 = useState<Status>("idle");
   const [rejectionReason]                   = useState("The transfer reference number could not be verified. Please resubmit with a clear screenshot.");
-  const [orderId, setOrderId]               = useState(String(initialOrderIdRef.current));
+  const [orderId, setOrderId]               = useState("");
 
   const [proofFile, setProofFile]   = useState<File | null>(null);
   const [proofError, setProofError] = useState("");
@@ -388,6 +384,7 @@ export default function PaymentPage() {
 
   const syncOrderInUrl = useCallback((id: string) => {
     if (typeof window === "undefined") return;
+    if (!id) return;
     try {
       const url = new URL(window.location.href);
       url.searchParams.set("order", id);
@@ -399,6 +396,14 @@ export default function PaymentPage() {
   useEffect(() => {
     syncOrderInUrl(orderId);
   }, [orderId, syncOrderInUrl]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const urlOrder = (searchParams.get("order") ?? "").trim();
+    const storedOrder = (window.localStorage.getItem("saad_last_payment_order") ?? "").trim();
+    const nextId = (urlOrder || storedOrder || generateOrderId()).trim();
+    setOrderId(nextId);
+  }, [searchParams]);
 
   const cycleQuery = (searchParams.get("cycle") || searchParams.get("billing") || searchParams.get("interval") || "").toLowerCase();
   const billingCycle: BillingCycle = ["annual", "yearly", "year"].includes(cycleQuery) ? "annual" : "monthly";
@@ -571,6 +576,7 @@ export default function PaymentPage() {
   };
 
   useEffect(() => {
+    if (!orderId) return;
     let cancelled = false;
     let intervalId: number | null = null;
     const run = async () => {
