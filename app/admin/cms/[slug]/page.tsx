@@ -19,6 +19,7 @@ import {
   Upload, X, Sparkles, Pencil, Eye, Link2, Loader2,
   ArrowLeft, Monitor, Megaphone, ExternalLink,
 } from "lucide-react";
+import { PRESETS } from "@/app/(dash)/(routes)/apps/tool/cinematic-styles/page";
 
 /* ═══════════════════════════════════════════════════════════════════════════════
    TYPES
@@ -758,6 +759,301 @@ function SectionBlock({ section, children, onToggle, onAddItem }: {
   );
 }
 
+type CinematicPresetMedia = {
+  type: "image" | "video";
+  url: string;
+  poster?: string;
+};
+
+function CinematicStylesCms() {
+  const pageName = "cms-cinematic-styles";
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [saveMsg, setSaveMsg] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+  const [presetMedia, setPresetMedia] = useState<Record<string, CinematicPresetMedia>>({});
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    fetch(`/api/admin/layouts?page=${encodeURIComponent(pageName)}`, { cache: "no-store" })
+      .then((r) => r.json())
+      .then((data) => {
+        if (cancelled) return;
+        const blocks = data?.layoutBlocks;
+        if (blocks && typeof blocks === "object" && !Array.isArray(blocks)) {
+          const m = (blocks as Record<string, unknown>)?.presetMedia;
+          if (m && typeof m === "object" && !Array.isArray(m)) {
+            setPresetMedia(m as Record<string, CinematicPresetMedia>);
+          } else {
+            setPresetMedia({});
+          }
+        } else {
+          setPresetMedia({});
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setPresetMedia({});
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const filtered = React.useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return PRESETS;
+    return PRESETS.filter((p) => (
+      p.id.toLowerCase().includes(q) ||
+      p.name.toLowerCase().includes(q) ||
+      p.family.toLowerCase().includes(q)
+    ));
+  }, [query]);
+
+  const updateMedia = useCallback((presetId: string, next: CinematicPresetMedia | null) => {
+    setPresetMedia((prev) => {
+      const copy = { ...prev };
+      if (!next || !next.url) {
+        delete copy[presetId];
+        return copy;
+      }
+      copy[presetId] = next;
+      return copy;
+    });
+  }, []);
+
+  const handleUpload = useCallback(async (presetId: string, kind: "image" | "video" | "poster", file: File) => {
+    const current = presetMedia[presetId];
+    const url = await uploadFile(file);
+    if (kind === "poster") {
+      updateMedia(presetId, { type: "video", url: current?.type === "video" ? current.url : "", poster: url });
+      return;
+    }
+    if (kind === "video") {
+      updateMedia(presetId, { type: "video", url, poster: current?.type === "video" ? current.poster : undefined });
+      return;
+    }
+    updateMedia(presetId, { type: "image", url });
+  }, [presetMedia, updateMedia]);
+
+  const handleSave = useCallback(async () => {
+    setSaving(true);
+    setSaveMsg(null);
+    try {
+      const res = await fetch("/api/admin/layouts", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pageName, layoutBlocks: { presetMedia } }),
+      });
+      if (!res.ok) throw new Error("Save failed");
+      setSaveMsg("Saved.");
+      window.setTimeout(() => setSaveMsg(null), 2500);
+    } catch {
+      setSaveMsg("Save failed.");
+    } finally {
+      setSaving(false);
+    }
+  }, [presetMedia]);
+
+  return (
+    <div className="p-8">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-black text-white">Cinematic Styles Tool</h1>
+          <p className="mt-1 text-sm text-slate-400">Upload an image or video for each preset card.</p>
+        </div>
+        <div className="flex items-center gap-2">
+          {saveMsg ? <span className="text-xs text-slate-400">{saveMsg}</span> : null}
+          <button
+            onClick={handleSave}
+            disabled={saving || loading}
+            className="inline-flex items-center gap-2 rounded-xl bg-violet-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-violet-500 disabled:opacity-60"
+          >
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            Save
+          </button>
+        </div>
+      </div>
+
+      <div className="mb-5 flex flex-wrap items-center gap-3">
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search presets…"
+          className="w-full max-w-md rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-white placeholder:text-slate-600 outline-none focus:border-violet-500/40"
+        />
+        <div className="text-xs text-slate-500">
+          {filtered.length} presets
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="rounded-xl border border-white/8 bg-white/5 p-6 text-sm text-slate-400">
+          Loading…
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {filtered.map((preset) => {
+            const media = presetMedia[preset.id];
+            return (
+              <div key={preset.id} className="rounded-2xl border border-white/8 bg-white/5 p-4">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
+                  <div className="w-full lg:w-[220px]">
+                    <div className="relative aspect-video overflow-hidden rounded-xl border border-white/10 bg-black/40">
+                      {media?.url ? (
+                        media.type === "video" ? (
+                          <video src={media.url} poster={media.poster} className="h-full w-full object-cover" muted playsInline preload="metadata" />
+                        ) : (
+                          <img src={media.url} alt="" className="h-full w-full object-cover" loading="lazy" />
+                        )
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center text-xs text-slate-500">
+                          No media
+                        </div>
+                      )}
+                    </div>
+                    <div className="mt-2 text-[11px] text-slate-500 font-mono break-all">{preset.id}</div>
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="min-w-0">
+                        <div className="inline-flex rounded bg-black/35 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-300">
+                          {preset.family}
+                        </div>
+                        <div className="mt-2 truncate text-lg font-black text-white">{preset.name}</div>
+                        <div className="mt-1 text-sm text-slate-400">{preset.description}</div>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2">
+                        <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-200 hover:bg-white/10">
+                          <Upload className="h-4 w-4" />
+                          Upload Image
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              e.target.value = "";
+                              if (!file) return;
+                              try { await handleUpload(preset.id, "image", file); } catch {}
+                            }}
+                          />
+                        </label>
+
+                        <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-200 hover:bg-white/10">
+                          <Upload className="h-4 w-4" />
+                          Upload Video
+                          <input
+                            type="file"
+                            accept="video/*"
+                            className="hidden"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              e.target.value = "";
+                              if (!file) return;
+                              try { await handleUpload(preset.id, "video", file); } catch {}
+                            }}
+                          />
+                        </label>
+
+                        {media?.type === "video" ? (
+                          <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-200 hover:bg-white/10">
+                            <Upload className="h-4 w-4" />
+                            Poster
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                e.target.value = "";
+                                if (!file) return;
+                                try { await handleUpload(preset.id, "poster", file); } catch {}
+                              }}
+                            />
+                          </label>
+                        ) : null}
+
+                        {media?.url ? (
+                          <button
+                            type="button"
+                            onClick={() => updateMedia(preset.id, null)}
+                            className="inline-flex items-center gap-2 rounded-xl border border-red-500/25 bg-red-500/10 px-3 py-2 text-xs font-semibold text-red-200 hover:bg-red-500/15"
+                          >
+                            <X className="h-4 w-4" />
+                            Clear
+                          </button>
+                        ) : null}
+                      </div>
+                    </div>
+
+                    <div className="mt-4 grid gap-3 md:grid-cols-2">
+                      <label className="block space-y-1">
+                        <span className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">Media Type</span>
+                        <select
+                          value={media?.type ?? "image"}
+                          onChange={(e) => {
+                            const nextType = e.target.value === "video" ? "video" : "image";
+                            const current = presetMedia[preset.id];
+                            if (!current) return;
+                            if (nextType === "image") updateMedia(preset.id, { type: "image", url: current.type === "video" ? (current.poster ?? "") : current.url });
+                            else updateMedia(preset.id, { type: "video", url: current.type === "video" ? current.url : "", poster: current.type === "video" ? current.poster : current.url });
+                          }}
+                          className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-violet-500/40"
+                        >
+                          <option value="image">Image</option>
+                          <option value="video">Video</option>
+                        </select>
+                      </label>
+
+                      <label className="block space-y-1">
+                        <span className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">URL</span>
+                        <input
+                          value={media?.url ?? ""}
+                          onChange={(e) => {
+                            const url = e.target.value;
+                            const current = presetMedia[preset.id];
+                            if (!url) { updateMedia(preset.id, null); return; }
+                            updateMedia(preset.id, { type: current?.type === "video" ? "video" : "image", url, poster: current?.poster });
+                          }}
+                          className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-violet-500/40"
+                          placeholder="https://..."
+                        />
+                      </label>
+
+                      {media?.type === "video" ? (
+                        <label className="block space-y-1 md:col-span-2">
+                          <span className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">Poster URL (optional)</span>
+                          <input
+                            value={media?.poster ?? ""}
+                            onChange={(e) => {
+                              const poster = e.target.value;
+                              const current = presetMedia[preset.id];
+                              if (!current || current.type !== "video") return;
+                              updateMedia(preset.id, { ...current, poster: poster || undefined });
+                            }}
+                            className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-violet-500/40"
+                            placeholder="https://..."
+                          />
+                        </label>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════════
    MAIN PAGE
    ═══════════════════════════════════════════════════════════════════════════════ */
@@ -766,6 +1062,10 @@ export default function VisualCmsPage() {
   const params = useParams();
   const slug = params?.slug as string;
   const pageName = `cms-${slug || "home"}`;
+
+  if (slug === "cinematic-styles") {
+    return <CinematicStylesCms />;
+  }
 
   /* ── State ──────────────────────────────────────────────────────────────── */
   const defaultLayout = getDefaultLayout(slug || "home");

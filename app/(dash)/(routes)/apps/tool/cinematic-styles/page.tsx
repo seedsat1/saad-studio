@@ -97,7 +97,7 @@ type OutputItem = {
 
 type Rgb = { r: number; g: number; b: number };
 
-const PRESETS: Preset[] = [
+export const PRESETS: Preset[] = [
   {
     id: "layer-mixed-media",
     effect: "layer-mixed-media",
@@ -1001,6 +1001,7 @@ export default function CinematicStylesPage() {
   const [taskId, setTaskId] = useState<string | null>(null);
   const [outputUrl, setOutputUrl] = useState<string | null>(null);
   const [outputs, setOutputs] = useState<OutputItem[]>([]);
+  const [presetMedia, setPresetMedia] = useState<Record<string, { type: "image" | "video"; url: string; poster?: string }>>({});
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const previewVideoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -1017,6 +1018,31 @@ export default function CinematicStylesPage() {
     const urls = objectUrls.current;
     return () => {
       urls.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`/api/layouts?page=${encodeURIComponent("cms-cinematic-styles")}`, { cache: "no-store" })
+      .then((r) => r.json())
+      .then((res) => {
+        if (cancelled) return;
+        const blocks = res?.layoutBlocks;
+        const next = (blocks && typeof blocks === "object" && !Array.isArray(blocks))
+          ? (blocks as Record<string, unknown>)
+          : null;
+        const m = next?.presetMedia;
+        if (m && typeof m === "object" && !Array.isArray(m)) {
+          setPresetMedia(m as Record<string, { type: "image" | "video"; url: string; poster?: string }>);
+        } else {
+          setPresetMedia({});
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setPresetMedia({});
+      });
+    return () => {
+      cancelled = true;
     };
   }, []);
 
@@ -1538,6 +1564,25 @@ export default function CinematicStylesPage() {
                       selectedPresetId === preset.id ? "border-cyan-300 shadow-[0_0_0_1px_rgba(6,182,212,0.45)]" : "border-white/8 hover:border-white/20"
                     )}
                   >
+                    {presetMedia[preset.id]?.url ? (
+                      presetMedia[preset.id]?.type === "video" ? (
+                        <video
+                          src={presetMedia[preset.id]?.url}
+                          poster={presetMedia[preset.id]?.poster}
+                          className="absolute inset-0 h-full w-full object-cover opacity-65"
+                          muted
+                          playsInline
+                          preload="metadata"
+                        />
+                      ) : (
+                        <img
+                          src={presetMedia[preset.id]?.url}
+                          alt=""
+                          className="absolute inset-0 h-full w-full object-cover opacity-65"
+                          loading="lazy"
+                        />
+                      )
+                    ) : null}
                     <div
                       className="absolute inset-0"
                       style={{

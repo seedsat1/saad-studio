@@ -31,6 +31,7 @@ const CMS_PAGES = [
   { id: "audio", label: "Audio & Music", icon: Music },
   { id: "studio-img", label: "Studio Image Library", icon: Sparkles },
   { id: "cinema-studio", label: "Cinema Studio", icon: Film },
+  { id: "cinematic-styles", label: "Cinematic Styles Tool", icon: Film },
   { id: "shots", label: "Shots Manager", icon: Camera },
   { id: "variations", label: "Variations", icon: Layers },
   { id: "pricing", label: "Pricing Page", icon: DollarSign },
