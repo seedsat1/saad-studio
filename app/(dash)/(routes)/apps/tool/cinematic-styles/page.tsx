@@ -142,10 +142,6 @@ const FPS_OPTIONS: Array<{ value: FpsMode; label: string; helper?: string }> = [
 ];
 
 const RESOLUTION_OPTIONS: ResolutionMode[] = ["1K", "2K", "4K"];
-const PROVIDER_OPTIONS: Array<{ value: ProviderMode; label: string; helper?: string }> = [
-  { value: "kie", label: "KIE.ai", helper: "Primary model source" },
-  { value: "local", label: "Local Preview", helper: "Browser render fallback" },
-];
 const KIE_IMAGE_TO_VIDEO_ROUTE = "kling/v2-5-turbo-image-to-video-pro";
 const WAVESPEED_IMAGE_TO_VIDEO_ROUTE = "bytedance/v1-pro-image-to-video";
 const POLL_INTERVAL_MS = 5000;
@@ -271,7 +267,7 @@ async function preflightGeneration(requiredCredits: number) {
   });
   const payload = await response.json().catch(() => null);
   if (response.status === 401) {
-    return { ok: false as const, message: "Sign in to generate with cloud providers." };
+    return { ok: false as const, message: "Sign in to generate with Saad Cloud." };
   }
   if (response.status === 402) {
     return { ok: false as const, message: payload?.error || "Insufficient credits. Please purchase more credits to continue." };
@@ -615,7 +611,7 @@ export default function CinematicStylesPage() {
   const [sourceName, setSourceName] = useState("");
   const [sourceDuration, setSourceDuration] = useState<number | null>(null);
   const [selectedPresetId, setSelectedPresetId] = useState<PresetId>("layer-mixed-media");
-  const [providerMode, setProviderMode] = useState<ProviderMode>("kie");
+  const [providerMode] = useState<ProviderMode>("kie");
   const [activeTab, setActiveTab] = useState<ActiveTab>("presets");
   const [fpsMode, setFpsMode] = useState<FpsMode>("24");
   const [manualFps, setManualFps] = useState(16);
@@ -816,7 +812,6 @@ export default function CinematicStylesPage() {
   }, [colors, effectiveFps, outputUrl, resolution, selectedPreset.name, selectedPresetId, sourceUrl, status]);
 
   const resetSettings = () => {
-    setProviderMode("kie");
     setFpsMode("24");
     setManualFps(16);
     setResolution("1K");
@@ -897,7 +892,7 @@ export default function CinematicStylesPage() {
               image_url: keyframeUrl,
             };
 
-      setStatusMessage(`Submitting to ${providerMode === "kie" ? "KIE.ai" : "WaveSpeed"}.`);
+      setStatusMessage("Submitting to Saad Cloud.");
       const submitRes = await fetch("/api/video", {
         method: "POST",
         headers: {
@@ -908,14 +903,14 @@ export default function CinematicStylesPage() {
       });
       const submitJson = await submitRes.json().catch(() => null);
       if (!submitRes.ok || !submitJson?.taskId) {
-        throw new Error(submitJson?.error || "Provider generation could not be started.");
+        throw new Error(submitJson?.error || "Cloud generation could not be started.");
       }
 
       const nextTaskId = String(submitJson.taskId);
       const generationId = typeof submitJson.generationId === "string" ? submitJson.generationId : undefined;
       setTaskId(nextTaskId);
       setProgress(35);
-      setStatusMessage("Provider is processing the video.");
+      setStatusMessage("Saad Cloud is processing the video.");
 
       for (let attempt = 0; attempt < MAX_POLL_ATTEMPTS; attempt++) {
         await new Promise((resolve) => window.setTimeout(resolve, POLL_INTERVAL_MS));
@@ -923,20 +918,20 @@ export default function CinematicStylesPage() {
         const pollRes = await fetch(`/api/video?taskId=${encodeURIComponent(nextTaskId)}`, { cache: "no-store" });
         const pollJson = await pollRes.json().catch(() => null);
         if (!pollRes.ok) {
-          throw new Error(pollJson?.error || "Provider status check failed.");
+          throw new Error(pollJson?.error || "Cloud status check failed.");
         }
         if (pollJson?.status === "failed") {
-          throw new Error(pollJson?.error || "Provider generation failed.");
+          throw new Error(pollJson?.error || "Cloud generation failed.");
         }
         const outputs = Array.isArray(pollJson?.outputs) ? pollJson.outputs.filter((item: unknown): item is string => typeof item === "string") : [];
         if (pollJson?.status === "completed" && outputs.length > 0) {
-          setStatusMessage("Saving the provider output to storage.");
+          setStatusMessage("Saving the Saad Cloud output to storage.");
           const finalUrl = await persistOutputUrl(outputs[0], generationId);
           setOutputUrl(finalUrl);
           setOutputs((items) => [
             {
               id: `${Date.now()}`,
-              name: `${selectedPreset.name} - ${providerMode === "kie" ? "KIE.ai" : "WaveSpeed"}`,
+              name: `${selectedPreset.name} - Saad Cloud`,
               url: finalUrl,
               createdAt: new Date().toLocaleTimeString(),
               fps: effectiveFps,
@@ -952,11 +947,11 @@ export default function CinematicStylesPage() {
         }
       }
 
-      throw new Error("Provider generation timed out.");
+      throw new Error("Cloud generation timed out.");
     } catch (err) {
-      setError(safeErrorMessage(err, "Provider generation failed."));
+      setError(safeErrorMessage(err, "Cloud generation failed."));
       setStatus("failed");
-      setStatusMessage("Provider generation failed.");
+      setStatusMessage("Cloud generation failed.");
       setProgress(0);
     }
   }, [colors, effectiveFps, outputUrl, providerMode, resolution, selectedPreset, sourceUrl, status]);
@@ -1017,13 +1012,9 @@ export default function CinematicStylesPage() {
           </button>
 
           <div className="mt-3 grid grid-cols-2 gap-2">
-            <div className="col-span-2">
-              <SelectMenu<ProviderMode>
-                value={providerMode}
-                label="Source"
-                options={PROVIDER_OPTIONS}
-                onChange={setProviderMode}
-              />
+            <div className="col-span-2 rounded-lg border border-white/8 bg-[#171b22] p-4">
+              <p className="text-xs font-medium text-slate-400">Engine</p>
+              <p className="mt-1 text-sm font-black text-white">Saad Cloud</p>
             </div>
             <SelectMenu<FpsMode>
               value={fpsMode}
@@ -1085,7 +1076,7 @@ export default function CinematicStylesPage() {
             <div className="mt-3 space-y-2 text-xs text-slate-400">
               <p>Frame extraction: {effectiveFps} FPS</p>
               <p>Output target: {resolution}</p>
-              <p>Processor: {providerMode === "kie" ? "KIE.ai primary cloud generation" : providerMode === "wavespeed" ? "WaveSpeed emergency fallback" : "browser canvas + MediaRecorder"}</p>
+              <p>Processor: Saad Cloud generation</p>
               {taskId ? <p>Task: {taskId.slice(0, 18)}...</p> : null}
             </div>
           </div>
@@ -1197,8 +1188,8 @@ export default function CinematicStylesPage() {
                   </div>
                   <div className="mt-5 grid gap-3 md:grid-cols-2">
                     <div className="rounded-lg border border-white/8 bg-black/20 p-4">
-                      <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Source</p>
-                      <p className="mt-1 text-sm font-semibold text-white">{providerMode === "kie" ? "KIE.ai Primary" : providerMode === "wavespeed" ? "WaveSpeed Emergency" : "Local Preview"}</p>
+                      <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Engine</p>
+                      <p className="mt-1 text-sm font-semibold text-white">Saad Cloud</p>
                     </div>
                     <div className="rounded-lg border border-white/8 bg-black/20 p-4">
                       <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Cost check</p>
