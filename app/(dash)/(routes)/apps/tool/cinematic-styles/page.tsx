@@ -1103,7 +1103,7 @@ export default function CinematicStylesPage() {
                         <video
                           src={presetMedia[preset.id]?.url}
                           poster={presetMedia[preset.id]?.poster}
-                          className="absolute inset-0 h-full w-full object-cover opacity-65"
+                          className="absolute inset-0 h-full w-full object-cover"
                           autoPlay
                           loop
                           muted
@@ -1118,20 +1118,19 @@ export default function CinematicStylesPage() {
                         <img
                           src={presetMedia[preset.id]?.url}
                           alt=""
-                          className="absolute inset-0 h-full w-full object-cover opacity-65"
+                          className="absolute inset-0 h-full w-full object-cover"
                           loading="lazy"
                         />
                       )
-                    ) : null}
-                    <div
-                      className="absolute inset-0"
-                      style={{
-                        background: `linear-gradient(135deg, ${preset.accent}33, rgba(15,23,42,0.2) 42%, ${colors.mid}22), radial-gradient(circle at 74% 22%, ${colors.object}55, transparent 30%), linear-gradient(0deg, rgba(0,0,0,0.84), rgba(0,0,0,0.06))`,
-                      }}
-                    />
-                    <div className="absolute inset-0 opacity-30 mix-blend-screen">
-                      <div className="h-full w-full bg-[repeating-linear-gradient(90deg,rgba(255,255,255,0.22)_0_1px,transparent_1px_18px)]" />
-                    </div>
+                    ) : (
+                      <div
+                        className="absolute inset-0"
+                        style={{
+                          background: `linear-gradient(135deg, ${preset.accent}33, rgba(15,23,42,0.2) 42%, ${colors.mid}22), radial-gradient(circle at 74% 22%, ${colors.object}55, transparent 30%), linear-gradient(0deg, rgba(0,0,0,0.84), rgba(0,0,0,0.06))`,
+                        }}
+                      />
+                    )}
+                    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/85 via-black/40 to-transparent" />
                     <div className="absolute inset-x-0 bottom-0 p-4">
                       <div className="mb-2 inline-flex rounded bg-black/45 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-300">
                         {preset.family}
