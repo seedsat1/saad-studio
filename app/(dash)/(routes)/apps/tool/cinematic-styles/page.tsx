@@ -670,7 +670,10 @@ async function loadPersistedVideoOutputs() {
   const data = await response.json().catch(() => null);
   if (!response.ok || !Array.isArray(data?.assets)) return [];
   return data.assets
-    .filter((asset: Record<string, unknown>) => typeof asset.url === "string")
+    .filter((asset: Record<string, unknown>) => {
+      const url = asset.url;
+      return typeof url === "string" && /^https?:\/\//i.test(url);
+    })
     .map((asset: Record<string, unknown>) => ({
       id: String(asset.id || asset.url),
       name: "Saad Cloud video",
@@ -1034,7 +1037,9 @@ export default function CinematicStylesPage() {
   }, [effectiveFps, providerMode, resolution, selectedPresetId, sourceUrl]);
 
   const clearOutput = useCallback(() => {
-    if (outputUrl?.startsWith("blob:")) URL.revokeObjectURL(outputUrl);
+    // Don't revoke the blob URL — it may still be referenced by entries in
+    // the outputs array (Outputs tab). The unmount cleanup will revoke all
+    // tracked URLs on navigate-away.
     setOutputUrl(null);
     setProgress(0);
     setStatus(sourceUrl ? "ready" : "idle");
@@ -1071,10 +1076,7 @@ export default function CinematicStylesPage() {
     setProgress(0);
     setError("");
     setStatusMessage("Rendering locally in the browser.");
-    if (outputUrl?.startsWith("blob:")) {
-      URL.revokeObjectURL(outputUrl);
-      setOutputUrl(null);
-    }
+    setOutputUrl(null);
 
     const video = document.createElement("video");
     video.src = sourceUrl;
@@ -1201,10 +1203,7 @@ export default function CinematicStylesPage() {
     setQuotedCredits(null);
     setStatusMessage("Checking account and credits.");
     setTaskId(null);
-    if (outputUrl?.startsWith("blob:")) {
-      URL.revokeObjectURL(outputUrl);
-      setOutputUrl(null);
-    }
+    setOutputUrl(null);
 
     try {
       const sourceVideo = await readVideoMetadata(sourceUrl);
