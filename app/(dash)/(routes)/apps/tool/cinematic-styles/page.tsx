@@ -300,7 +300,7 @@ async function loadPersistedVideoOutputs() {
     .filter((asset: Record<string, unknown>) => typeof asset.url === "string")
     .map((asset: Record<string, unknown>) => ({
       id: String(asset.id || asset.url),
-      name: typeof asset.model === "string" ? asset.model : "Saved video",
+      name: "Saad Cloud video",
       url: String(asset.url),
       createdAt: typeof asset.date === "string" ? asset.date : "Saved",
     }))

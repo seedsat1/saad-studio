@@ -2,6 +2,10 @@ import crypto from "crypto";
 import prismadb from "@/lib/prismadb";
 import { Prisma } from "@prisma/client";
 
+const idempotencyClient = (prismadb as unknown as { apiIdempotency?: unknown }).apiIdempotency
+  ? ((prismadb as unknown as { apiIdempotency: typeof prismadb }).apiIdempotency as any)
+  : null;
+
 export type IdempotencyBeginResult =
   | { kind: "none" }
   | { kind: "replay"; responseStatus: number; responseJson: unknown; generationId: string | null }
@@ -29,8 +33,9 @@ export async function beginIdempotency(input: {
   requestHash: string;
 }): Promise<IdempotencyBeginResult> {
   if (!input.key) return { kind: "none" };
+  if (!idempotencyClient) return { kind: "none" };
 
-  const existing = await prismadb.apiIdempotency.findUnique({
+  const existing = await idempotencyClient.findUnique({
     where: {
       userId_route_key: {
         userId: input.userId,
@@ -62,7 +67,7 @@ export async function beginIdempotency(input: {
   }
 
   try {
-    await prismadb.apiIdempotency.create({
+    await idempotencyClient.create({
       data: {
         userId: input.userId,
         route: input.route,
@@ -73,7 +78,7 @@ export async function beginIdempotency(input: {
     return { kind: "created", key: input.key, requestHash: input.requestHash };
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
-      const raced = await prismadb.apiIdempotency.findUnique({
+      const raced = await idempotencyClient.findUnique({
         where: {
           userId_route_key: {
             userId: input.userId,
@@ -111,7 +116,8 @@ export async function attachIdempotencyGeneration(input: {
   generationId: string;
 }): Promise<void> {
   if (!input.key) return;
-  await prismadb.apiIdempotency.update({
+  if (!idempotencyClient) return;
+  await idempotencyClient.update({
     where: {
       userId_route_key: { userId: input.userId, route: input.route, key: input.key },
     },
@@ -128,7 +134,8 @@ export async function completeIdempotency(input: {
   responseJson: unknown;
 }): Promise<void> {
   if (!input.key) return;
-  await prismadb.apiIdempotency.update({
+  if (!idempotencyClient) return;
+  await idempotencyClient.update({
     where: {
       userId_route_key: { userId: input.userId, route: input.route, key: input.key },
     },
