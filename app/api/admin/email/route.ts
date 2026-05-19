@@ -6,6 +6,11 @@ const DAY_MS = 86_400_000;
 
 type Audience = "active_subscribers";
 type Mode = "single" | "bulk";
+type EmailAttachment = {
+  filename: string;
+  path: string;
+  contentType?: string;
+};
 
 function normalizeEmail(value: string): string {
   return String(value || "").trim().toLowerCase();
@@ -71,12 +76,18 @@ async function resolveActiveSubscriberEmails(params: { planId?: string | null })
   return emails;
 }
 
-async function sendResendEmail(params: { to: string; subject: string; text: string; html: string }) {
+async function sendResendEmail(params: { to: string; subject: string; text: string; html: string; attachments?: EmailAttachment[] }) {
   const key = process.env.RESEND_API_KEY;
   const from = process.env.RESEND_FROM;
   if (!key || !from) {
     return { ok: false as const, error: "Missing RESEND_API_KEY/RESEND_FROM" };
   }
+
+  const attachments = (params.attachments ?? []).slice(0, 3).map((a) => ({
+    filename: a.filename,
+    path: a.path,
+    contentType: a.contentType,
+  }));
 
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
@@ -90,6 +101,7 @@ async function sendResendEmail(params: { to: string; subject: string; text: stri
       subject: params.subject,
       text: params.text,
       html: params.html,
+      ...(attachments.length ? { attachments } : {}),
     }),
   });
 
@@ -141,6 +153,7 @@ type SendBody = {
   to?: string | null;
   subject?: string | null;
   message?: string | null;
+  attachments?: EmailAttachment[] | null;
 };
 
 export async function POST(req: NextRequest) {
@@ -154,6 +167,15 @@ export async function POST(req: NextRequest) {
   const message = String(body.message ?? "").trim();
   const planId = (body.planId ?? "").trim().toLowerCase();
   const to = normalizeEmail(String(body.to ?? ""));
+  const rawAttachments = Array.isArray(body.attachments) ? body.attachments : [];
+  const attachments: EmailAttachment[] = rawAttachments
+    .map((a) => ({
+      filename: String(a?.filename ?? "").trim(),
+      path: String(a?.path ?? "").trim(),
+      contentType: String(a?.contentType ?? "").trim() || undefined,
+    }))
+    .filter((a) => a.filename && a.path && /^https?:\/\//i.test(a.path))
+    .slice(0, 3);
 
   if (!subject) return NextResponse.json({ error: "subject is required" }, { status: 400 });
   if (!message) return NextResponse.json({ error: "message is required" }, { status: 400 });
@@ -204,7 +226,7 @@ export async function POST(req: NextRequest) {
     recipients,
     5,
     async (email) => {
-      const r = await sendResendEmail({ to: email, subject, text, html });
+      const r = await sendResendEmail({ to: email, subject, text, html, attachments });
       return { email, ok: r.ok, error: r.ok ? null : r.error };
     },
   );
@@ -223,4 +245,3 @@ export async function POST(req: NextRequest) {
     failures,
   });
 }
-

@@ -24,11 +24,23 @@ export async function POST(req: NextRequest) {
   try {
     const { fileName, fileType } = await req.json() as { fileName: string; fileType: string };
 
-    if (!fileType?.startsWith("image/") && !fileType?.startsWith("video/")) {
-      return NextResponse.json({ error: "Only image/video files are allowed" }, { status: 400 });
+    const t = String(fileType || "").toLowerCase();
+    const allowed =
+      t.startsWith("image/") ||
+      t.startsWith("video/") ||
+      t === "application/pdf" ||
+      t === "text/plain" ||
+      t === "application/zip" ||
+      t === "application/msword" ||
+      t === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+      t === "application/vnd.ms-excel" ||
+      t === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+
+    if (!allowed) {
+      return NextResponse.json({ error: "Unsupported file type" }, { status: 400 });
     }
 
-    const isVideo = fileType.startsWith("video/");
+    const isVideo = t.startsWith("video/");
     const bucket = isVideo ? "videos" : "images";
     const ext = fileName?.split(".").pop() ?? (isVideo ? "mp4" : "jpg");
     const storagePath = `admin-cms/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
@@ -53,4 +65,3 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: err instanceof Error ? err.message : "Upload failed" }, { status: 500 });
   }
 }
-

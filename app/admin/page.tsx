@@ -486,6 +486,10 @@ export default function AdminDashboard() {
   const [emailResult, setEmailResult] = useState<{ sent: number; failed: number; requested: number } | null>(null);
   const [emailError, setEmailError] = useState("");
   const [emailAudienceCount, setEmailAudienceCount] = useState<number | null>(null);
+  const [emailQuery, setEmailQuery] = useState("");
+  const [emailAttachments, setEmailAttachments] = useState<Array<{ filename: string; path: string; contentType: string }>>([]);
+  const [emailAttachmentUploading, setEmailAttachmentUploading] = useState(false);
+  const [emailAttachmentError, setEmailAttachmentError] = useState("");
 
   const refreshGenerations = useCallback(async () => {
     const res = await fetch("/api/admin/generations", { cache: "no-store" });
@@ -588,6 +592,7 @@ export default function AdminDashboard() {
   const handleSendEmail = async () => {
     setEmailError("");
     setEmailResult(null);
+    setEmailAttachmentError("");
 
     const subject = emailSubject.trim();
     const message = emailMessage.trim();
@@ -609,6 +614,7 @@ export default function AdminDashboard() {
           to: emailMode === "single" ? to : null,
           subject,
           message,
+          attachments: emailAttachments.map((a) => ({ filename: a.filename, path: a.path, contentType: a.contentType })),
         }),
       });
 
@@ -624,6 +630,44 @@ export default function AdminDashboard() {
       });
     } finally {
       setEmailSending(false);
+    }
+  };
+
+  const uploadEmailAttachment = async (file: File) => {
+    setEmailAttachmentError("");
+    if (!file) return;
+    if (emailAttachments.length >= 3) {
+      setEmailAttachmentError("Maximum 3 attachments.");
+      return;
+    }
+
+    setEmailAttachmentUploading(true);
+    try {
+      const signRes = await fetch("/api/admin/media/upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fileName: file.name, fileType: file.type || "application/octet-stream" }),
+      });
+      const signData = await signRes.json().catch(() => ({}));
+      if (!signRes.ok || !signData?.signedUrl || !signData?.publicUrl) {
+        throw new Error(String(signData?.error || "Failed to create upload URL"));
+      }
+
+      const put = await fetch(signData.signedUrl, {
+        method: "PUT",
+        headers: { "Content-Type": file.type || "application/octet-stream" },
+        body: file,
+      });
+      if (!put.ok) throw new Error("Upload failed");
+
+      setEmailAttachments((prev) => [
+        ...prev,
+        { filename: file.name, path: String(signData.publicUrl), contentType: file.type || "application/octet-stream" },
+      ]);
+    } catch (e) {
+      setEmailAttachmentError(e instanceof Error ? e.message : "Attachment upload failed");
+    } finally {
+      setEmailAttachmentUploading(false);
     }
   };
 
@@ -1707,14 +1751,57 @@ export default function AdminDashboard() {
                       </div>
                     </div>
                   ) : (
-                    <div className="space-y-1">
-                      <p className="text-xs text-slate-500">Recipient email</p>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between gap-3 flex-wrap">
+                        <p className="text-xs text-slate-500">Recipient</p>
+                        {emailTo ? (
+                          <span className="text-[11px] px-2 py-1 rounded-lg border border-slate-700 bg-slate-950/30 text-slate-200">
+                            {emailTo}
+                          </span>
+                        ) : (
+                          <span className="text-[11px] text-slate-500">No recipient selected</span>
+                        )}
+                      </div>
                       <input
-                        value={emailTo}
-                        onChange={(e) => setEmailTo(e.target.value)}
-                        placeholder="example@domain.com"
+                        value={emailQuery}
+                        onChange={(e) => {
+                          setEmailQuery(e.target.value);
+                          setEmailTo("");
+                        }}
+                        placeholder="Search email…"
                         className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-slate-200 outline-none"
                       />
+                      <div className="max-h-44 overflow-auto rounded-xl border border-slate-800 bg-slate-950/20">
+                        {Array.from(
+                          new Set(
+                            (users || [])
+                              .map((u: any) => String(u?.email ?? "").trim())
+                              .filter(Boolean),
+                          ),
+                        )
+                          .filter((e) => !emailQuery.trim() || e.toLowerCase().includes(emailQuery.trim().toLowerCase()))
+                          .slice(0, 40)
+                          .map((e) => (
+                            <button
+                              key={e}
+                              type="button"
+                              onClick={() => {
+                                setEmailTo(e);
+                                setEmailQuery(e);
+                              }}
+                              className={`w-full text-left px-3 py-2 text-sm border-b border-slate-900 last:border-b-0 hover:bg-slate-900/40 ${
+                                emailTo === e ? "text-violet-200 bg-violet-600/10" : "text-slate-200"
+                              }`}
+                            >
+                              {e}
+                            </button>
+                          ))}
+                        {Array.from(
+                          new Set((users || []).map((u: any) => String(u?.email ?? "").trim()).filter(Boolean)),
+                        ).length === 0 ? (
+                          <div className="px-3 py-3 text-sm text-slate-500">No emails found</div>
+                        ) : null}
+                      </div>
                     </div>
                   )}
 
@@ -1737,6 +1824,49 @@ export default function AdminDashboard() {
                       rows={8}
                       className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-slate-200 outline-none resize-none"
                     />
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-3 flex-wrap">
+                      <p className="text-xs text-slate-500">Attachments (optional)</p>
+                      <p className="text-[11px] text-slate-500">Max 3</p>
+                    </div>
+                    <input
+                      type="file"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        e.target.value = "";
+                        if (f) void uploadEmailAttachment(f);
+                      }}
+                      className="w-full text-sm text-slate-200 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-slate-900 file:text-slate-200 hover:file:bg-slate-800"
+                    />
+                    {emailAttachmentUploading ? (
+                      <div className="text-xs text-slate-500">Uploading…</div>
+                    ) : null}
+                    {emailAttachmentError ? (
+                      <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+                        {emailAttachmentError}
+                      </div>
+                    ) : null}
+                    {emailAttachments.length ? (
+                      <div className="rounded-xl border border-slate-800 bg-slate-950/20 divide-y divide-slate-900">
+                        {emailAttachments.map((a) => (
+                          <div key={a.path} className="flex items-center justify-between gap-3 px-3 py-2">
+                            <div className="min-w-0">
+                              <p className="text-sm text-slate-200 truncate">{a.filename}</p>
+                              <p className="text-[11px] text-slate-500 truncate">{a.path}</p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setEmailAttachments((prev) => prev.filter((x) => x.path !== a.path))}
+                              className="px-2.5 py-1 rounded-md text-[11px] font-semibold bg-slate-800/60 border border-slate-700 text-slate-200 hover:bg-slate-800"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
                   </div>
 
                   {emailError && (
