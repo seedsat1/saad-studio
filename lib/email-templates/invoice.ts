@@ -129,7 +129,7 @@ export async function buildInvoiceHtml(params: InvoiceParams): Promise<string> {
   const itemTitleEn = isTopupItem ? "Credit Top-up" : params.displayPlan;
   const itemTitleAr = isTopupItem ? "إعادة شحن كريدت" : "اشتراك";
   const supportEmail = "support@saadstudio.app";
-  const dashboardUrl = `${siteUrl.replace(/\/$/, "")}/dashboard`;
+  const profileUrl = `${siteUrl.replace(/\/$/, "")}/profile`;
   const siteHostname = siteUrl.replace(/^https?:\/\//i, "").replace(/\/$/, "");
   const yearLabel = String(issuedAt.getUTCFullYear());
 
@@ -255,10 +255,9 @@ export async function buildInvoiceHtml(params: InvoiceParams): Promise<string> {
                     <tr>
                       <td style="vertical-align:middle">
                         <div style="color:#065f46;font-size:13px;font-weight:600">⚡ +${creditsFmt} credits added to your wallet</div>
-                        <div dir="rtl" style="color:#047857;font-size:12px;font-weight:500;margin-top:2px;text-align:left">⚡ تمت إضافة ${creditsFmt} كريدت إلى محفظتك</div>
                       </td>
                       <td align="right" style="vertical-align:middle;white-space:nowrap">
-                        <a href="${dashboardUrl}" style="color:#7c3aed;text-decoration:none;font-weight:600;font-size:13px">Open →</a>
+                        <a href="${profileUrl}" style="color:#7c3aed;text-decoration:none;font-weight:600;font-size:13px">Open →</a>
                       </td>
                     </tr>
                   </table>
