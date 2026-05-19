@@ -884,8 +884,9 @@ export async function POST(req: Request) {
       }
       const wsInput = mapToWavespeedInput(payload, wavespeedRoute);
       for (const key of ["image", "image_url", "end_image"] as const) {
-        if (wsInput[key] && typeof wsInput[key] === "string" && wsInput[key].startsWith("data:")) {
-          wsInput[key] = await uploadDataUrlToKie(wsInput[key]).catch(() => wsInput[key] as string);
+        const mediaValue = wsInput[key];
+        if (typeof mediaValue === "string" && mediaValue.startsWith("data:")) {
+          wsInput[key] = await uploadDataUrlToKie(mediaValue).catch(() => mediaValue);
         }
       }
 

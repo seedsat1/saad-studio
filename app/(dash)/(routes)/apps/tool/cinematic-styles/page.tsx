@@ -24,6 +24,7 @@ type FpsMode = "4" | "8" | "10" | "12" | "24" | "manual";
 type ResolutionMode = "1K" | "2K" | "4K";
 type RenderStatus = "idle" | "ready" | "processing" | "completed" | "failed";
 type ProviderMode = "kie" | "wavespeed" | "local";
+type ActiveTab = "presets" | "processing" | "outputs";
 
 type PresetId =
   | "layer-mixed-media"
@@ -50,8 +51,8 @@ type OutputItem = {
   name: string;
   url: string;
   createdAt: string;
-  fps: number;
-  resolution: ResolutionMode;
+  fps?: number;
+  resolution?: ResolutionMode;
 };
 
 type Rgb = { r: number; g: number; b: number };
@@ -142,10 +143,15 @@ const FPS_OPTIONS: Array<{ value: FpsMode; label: string; helper?: string }> = [
 
 const RESOLUTION_OPTIONS: ResolutionMode[] = ["1K", "2K", "4K"];
 const PROVIDER_OPTIONS: Array<{ value: ProviderMode; label: string; helper?: string }> = [
-  { value: "kie", label: "KIE.ai", helper: "Kling 3 image-to-video" },
-  { value: "wavespeed", label: "WaveSpeed", helper: "Seedance image-to-video" },
-  { value: "local", label: "Local", helper: "Browser render fallback" },
+  { value: "kie", label: "KIE.ai", helper: "Primary model source" },
+  { value: "local", label: "Local Preview", helper: "Browser render fallback" },
 ];
+const KIE_IMAGE_TO_VIDEO_ROUTE = "kling/v2-5-turbo-image-to-video-pro";
+const WAVESPEED_IMAGE_TO_VIDEO_ROUTE = "bytedance/v1-pro-image-to-video";
+const POLL_INTERVAL_MS = 5000;
+const MAX_POLL_ATTEMPTS = 120;
+const CLOUD_NEGATIVE_PROMPT = "text overlays, subtitles, watermark, flicker, distorted face, unstable identity";
+const CLOUD_CFG_SCALE = 0.5;
 const DEFAULT_COLORS = {
   background: "#ffffff",
   mid: "#0c33a5",
@@ -224,6 +230,87 @@ function buildStylePrompt(
   ].join(". ");
 }
 
+function getModelRoute(provider: ProviderMode) {
+  return provider === "wavespeed" ? WAVESPEED_IMAGE_TO_VIDEO_ROUTE : KIE_IMAGE_TO_VIDEO_ROUTE;
+}
+
+function dataUrlToFile(dataUrl: string, fileName: string) {
+  const [header, data] = dataUrl.split(",");
+  const mime = header?.match(/data:(.*?);base64/)?.[1] || "image/jpeg";
+  const binary = atob(data || "");
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1) {
+    bytes[index] = binary.charCodeAt(index);
+  }
+  return new File([bytes], fileName, { type: mime });
+}
+
+function safeErrorMessage(error: unknown, fallback = "Generation failed.") {
+  if (error instanceof Error && error.message) return error.message;
+  if (typeof error === "string" && error.trim()) return error;
+  return fallback;
+}
+
+function outputMetaLabel(item: OutputItem) {
+  const parts = [
+    item.resolution,
+    typeof item.fps === "number" ? `${item.fps} FPS` : null,
+    item.createdAt,
+  ].filter((part): part is string => Boolean(part));
+  return parts.join(" - ");
+}
+
+async function preflightGeneration(requiredCredits: number) {
+  const response = await fetch("/api/generation/preflight", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      requiredCredits,
+      action: "apps:cinematic-styles:generate",
+    }),
+  });
+  const payload = await response.json().catch(() => null);
+  if (response.status === 401) {
+    return { ok: false as const, message: "Sign in to generate with cloud providers." };
+  }
+  if (response.status === 402) {
+    return { ok: false as const, message: payload?.error || "Insufficient credits. Please purchase more credits to continue." };
+  }
+  if (!response.ok) {
+    return { ok: false as const, message: payload?.error || "Generation preflight failed." };
+  }
+  return { ok: true as const };
+}
+
+async function quoteVideoCredits(modelRoute: string, payload: Record<string, unknown>) {
+  const response = await fetch("/api/video/quote", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ modelRoute, payload }),
+  });
+  const data = await response.json().catch(() => null);
+  if (!response.ok || typeof data?.credits !== "number") {
+    throw new Error(data?.error || "Could not calculate credits for this generation.");
+  }
+  return data.credits as number;
+}
+
+async function loadPersistedVideoOutputs() {
+  const response = await fetch("/api/assets?type=video", { cache: "no-store" });
+  if (response.status === 401) return [];
+  const data = await response.json().catch(() => null);
+  if (!response.ok || !Array.isArray(data?.assets)) return [];
+  return data.assets
+    .filter((asset: Record<string, unknown>) => typeof asset.url === "string")
+    .map((asset: Record<string, unknown>) => ({
+      id: String(asset.id || asset.url),
+      name: typeof asset.model === "string" ? asset.model : "Saved video",
+      url: String(asset.url),
+      createdAt: typeof asset.date === "string" ? asset.date : "Saved",
+    }))
+    .slice(0, 8);
+}
+
 function readVideoMetadata(videoSrc: string): Promise<HTMLVideoElement> {
   return new Promise((resolve, reject) => {
     const video = document.createElement("video");
@@ -255,6 +342,46 @@ async function extractKeyframe(videoSrc: string): Promise<string> {
   video.removeAttribute("src");
   video.load();
   return canvas.toDataURL("image/jpeg", 0.92);
+}
+
+async function uploadKeyframe(dataUrl: string) {
+  const file = dataUrlToFile(dataUrl, `cinematic-style-keyframe-${Date.now()}.jpg`);
+  const urlRes = await fetch("/api/studio/upload-url", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      fileName: file.name,
+      contentType: file.type,
+      assetType: "image",
+    }),
+  });
+  const urlJson = await urlRes.json().catch(() => null);
+  if (!urlRes.ok || !urlJson?.signedUrl || !urlJson?.publicUrl) {
+    throw new Error(urlJson?.error || "Could not prepare a storage upload.");
+  }
+
+  const uploadRes = await fetch(String(urlJson.signedUrl), {
+    method: "PUT",
+    headers: { "Content-Type": file.type },
+    body: file,
+  });
+  if (!uploadRes.ok) throw new Error("Keyframe upload failed.");
+  return String(urlJson.publicUrl);
+}
+
+async function persistOutputUrl(mediaUrl: string, generationId?: string) {
+  const persistRes = await fetch("/api/assets/persist", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      generationId,
+      mediaUrl,
+      assetType: "video",
+    }),
+  });
+  const persistJson = await persistRes.json().catch(() => null);
+  if (!persistRes.ok) return mediaUrl;
+  return typeof persistJson?.url === "string" ? persistJson.url : mediaUrl;
 }
 
 function applyPixelPreset(
@@ -489,6 +616,7 @@ export default function CinematicStylesPage() {
   const [sourceDuration, setSourceDuration] = useState<number | null>(null);
   const [selectedPresetId, setSelectedPresetId] = useState<PresetId>("layer-mixed-media");
   const [providerMode, setProviderMode] = useState<ProviderMode>("kie");
+  const [activeTab, setActiveTab] = useState<ActiveTab>("presets");
   const [fpsMode, setFpsMode] = useState<FpsMode>("24");
   const [manualFps, setManualFps] = useState(16);
   const [resolution, setResolution] = useState<ResolutionMode>("1K");
@@ -496,6 +624,8 @@ export default function CinematicStylesPage() {
   const [status, setStatus] = useState<RenderStatus>("idle");
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState("");
+  const [statusMessage, setStatusMessage] = useState("Upload a short clip to begin.");
+  const [quotedCredits, setQuotedCredits] = useState<number | null>(null);
   const [taskId, setTaskId] = useState<string | null>(null);
   const [outputUrl, setOutputUrl] = useState<string | null>(null);
   const [outputs, setOutputs] = useState<OutputItem[]>([]);
@@ -518,11 +648,28 @@ export default function CinematicStylesPage() {
     };
   }, []);
 
+  useEffect(() => {
+    let alive = true;
+    loadPersistedVideoOutputs()
+      .then((items) => {
+        if (alive && items.length) setOutputs(items);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    setQuotedCredits(null);
+  }, [effectiveFps, providerMode, resolution, selectedPresetId, sourceUrl]);
+
   const clearOutput = useCallback(() => {
-    if (outputUrl) URL.revokeObjectURL(outputUrl);
+    if (outputUrl?.startsWith("blob:")) URL.revokeObjectURL(outputUrl);
     setOutputUrl(null);
     setProgress(0);
     setStatus(sourceUrl ? "ready" : "idle");
+    setStatusMessage(sourceUrl ? "Ready to generate." : "Upload a short clip to begin.");
   }, [outputUrl, sourceUrl]);
 
   const handleFile = useCallback((file: File) => {
@@ -539,6 +686,7 @@ export default function CinematicStylesPage() {
     setSourceName(file.name);
     setSourceDuration(null);
     setStatus("ready");
+    setStatusMessage("Clip loaded. Choose a preset and generate.");
   }, [clearOutput]);
 
   const onFileChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -550,9 +698,11 @@ export default function CinematicStylesPage() {
   const renderVideo = useCallback(async () => {
     if (!sourceUrl || status === "processing") return;
     setStatus("processing");
+    setActiveTab("processing");
     setProgress(0);
     setError("");
-    if (outputUrl) {
+    setStatusMessage("Rendering locally in the browser.");
+    if (outputUrl?.startsWith("blob:")) {
       URL.revokeObjectURL(outputUrl);
       setOutputUrl(null);
     }
@@ -611,6 +761,7 @@ export default function CinematicStylesPage() {
           applyPixelPreset(frameData, selectedPresetId, colors, frame);
           ctx.putImageData(frameData, 0, 0);
           drawOverlay(ctx, selectedPresetId, canvas.width, canvas.height, frame, colors);
+          setStatusMessage("Applying the selected preset to video frames.");
           setProgress(Math.min(99, Math.round((video.currentTime / duration) * 100)));
         }
         if (video.currentTime < duration) {
@@ -651,9 +802,12 @@ export default function CinematicStylesPage() {
       ].slice(0, 8));
       setProgress(100);
       setStatus("completed");
+      setStatusMessage("Local output is ready.");
+      setActiveTab("outputs");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Rendering failed.");
+      setError(safeErrorMessage(err, "Rendering failed."));
       setStatus("failed");
+      setStatusMessage("Rendering failed.");
       setProgress(0);
     } finally {
       video.removeAttribute("src");
@@ -673,10 +827,13 @@ export default function CinematicStylesPage() {
   const runCloudGeneration = useCallback(async () => {
     if (!sourceUrl || status === "processing") return;
     setStatus("processing");
+    setActiveTab("processing");
     setProgress(5);
     setError("");
+    setQuotedCredits(null);
+    setStatusMessage("Checking account and credits.");
     setTaskId(null);
-    if (outputUrl) {
+    if (outputUrl?.startsWith("blob:")) {
       URL.revokeObjectURL(outputUrl);
       setOutputUrl(null);
     }
@@ -689,36 +846,58 @@ export default function CinematicStylesPage() {
       sourceVideo.removeAttribute("src");
       sourceVideo.load();
 
-      setProgress(15);
-      const keyframe = await extractKeyframe(sourceUrl);
-      setProgress(25);
-
       const prompt = buildStylePrompt(selectedPreset, colors, effectiveFps, resolution);
-      const modelRoute =
-        providerMode === "wavespeed"
-          ? "bytedance/v1-pro-image-to-video"
-          : "kwaivgi/kling-v3.0-pro/text-to-video";
+      const modelRoute = getModelRoute(providerMode);
       const providerResolution = resolutionToProviderValue(resolution, providerMode);
-      const payload: Record<string, unknown> =
+      const outputDuration = Math.max(providerMode === "wavespeed" ? 4 : 5, Math.min(10, Math.round(duration)));
+      const basePayload: Record<string, unknown> =
         providerMode === "wavespeed"
           ? {
               prompt,
-              image_url: keyframe,
-              duration: Math.max(4, Math.min(10, Math.round(duration))),
+              duration: outputDuration,
               resolution: providerResolution,
               aspect_ratio: "16:9",
+              negative_prompt: CLOUD_NEGATIVE_PROMPT,
+              cfg_scale: CLOUD_CFG_SCALE,
             }
           : {
               prompt,
-              image_urls: [keyframe],
-              duration: String(Math.max(3, Math.min(10, Math.round(duration)))),
-              aspect_ratio: "16:9",
-              mode: "std",
-              sound: false,
-              multi_shots: false,
-              multi_prompt: [],
+              duration: String(outputDuration),
+              resolution: providerResolution,
+              negative_prompt: CLOUD_NEGATIVE_PROMPT,
+              cfg_scale: CLOUD_CFG_SCALE,
+            };
+      const credits = await quoteVideoCredits(modelRoute, basePayload);
+      setQuotedCredits(credits);
+      const gate = await preflightGeneration(credits);
+      if (!gate.ok) {
+        setStatus(sourceUrl ? "ready" : "idle");
+        setStatusMessage("Generation was not started.");
+        if (gate.message) setError(gate.message);
+        setProgress(0);
+        return;
+      }
+
+      setProgress(15);
+      setStatusMessage("Extracting a keyframe from the uploaded clip.");
+      const keyframe = await extractKeyframe(sourceUrl);
+      setProgress(22);
+      setStatusMessage("Uploading the keyframe to storage.");
+      const keyframeUrl = await uploadKeyframe(keyframe);
+      setProgress(30);
+
+      const payload: Record<string, unknown> =
+        providerMode === "wavespeed"
+          ? {
+              ...basePayload,
+              image_url: keyframeUrl,
+            }
+          : {
+              ...basePayload,
+              image_url: keyframeUrl,
             };
 
+      setStatusMessage(`Submitting to ${providerMode === "kie" ? "KIE.ai" : "WaveSpeed"}.`);
       const submitRes = await fetch("/api/video", {
         method: "POST",
         headers: {
@@ -733,12 +912,14 @@ export default function CinematicStylesPage() {
       }
 
       const nextTaskId = String(submitJson.taskId);
+      const generationId = typeof submitJson.generationId === "string" ? submitJson.generationId : undefined;
       setTaskId(nextTaskId);
       setProgress(35);
+      setStatusMessage("Provider is processing the video.");
 
-      for (let attempt = 0; attempt < 90; attempt++) {
-        await new Promise((resolve) => window.setTimeout(resolve, 3000));
-        setProgress(Math.min(92, 35 + Math.round((attempt / 90) * 55)));
+      for (let attempt = 0; attempt < MAX_POLL_ATTEMPTS; attempt++) {
+        await new Promise((resolve) => window.setTimeout(resolve, POLL_INTERVAL_MS));
+        setProgress(Math.min(92, 35 + Math.round((attempt / MAX_POLL_ATTEMPTS) * 55)));
         const pollRes = await fetch(`/api/video?taskId=${encodeURIComponent(nextTaskId)}`, { cache: "no-store" });
         const pollJson = await pollRes.json().catch(() => null);
         if (!pollRes.ok) {
@@ -749,12 +930,13 @@ export default function CinematicStylesPage() {
         }
         const outputs = Array.isArray(pollJson?.outputs) ? pollJson.outputs.filter((item: unknown): item is string => typeof item === "string") : [];
         if (pollJson?.status === "completed" && outputs.length > 0) {
-          const finalUrl = outputs[0];
+          setStatusMessage("Saving the provider output to storage.");
+          const finalUrl = await persistOutputUrl(outputs[0], generationId);
           setOutputUrl(finalUrl);
           setOutputs((items) => [
             {
               id: `${Date.now()}`,
-              name: `${selectedPreset.name} · ${providerMode === "kie" ? "KIE.ai" : "WaveSpeed"}`,
+              name: `${selectedPreset.name} - ${providerMode === "kie" ? "KIE.ai" : "WaveSpeed"}`,
               url: finalUrl,
               createdAt: new Date().toLocaleTimeString(),
               fps: effectiveFps,
@@ -764,14 +946,17 @@ export default function CinematicStylesPage() {
           ].slice(0, 8));
           setProgress(100);
           setStatus("completed");
+          setStatusMessage("Cloud output is ready.");
+          setActiveTab("outputs");
           return;
         }
       }
 
       throw new Error("Provider generation timed out.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Provider generation failed.");
+      setError(safeErrorMessage(err, "Provider generation failed."));
       setStatus("failed");
+      setStatusMessage("Provider generation failed.");
       setProgress(0);
     }
   }, [colors, effectiveFps, outputUrl, providerMode, resolution, selectedPreset, sourceUrl, status]);
@@ -835,7 +1020,7 @@ export default function CinematicStylesPage() {
             <div className="col-span-2">
               <SelectMenu<ProviderMode>
                 value={providerMode}
-                label="Provider"
+                label="Source"
                 options={PROVIDER_OPTIONS}
                 onChange={setProviderMode}
               />
@@ -900,7 +1085,7 @@ export default function CinematicStylesPage() {
             <div className="mt-3 space-y-2 text-xs text-slate-400">
               <p>Frame extraction: {effectiveFps} FPS</p>
               <p>Output target: {resolution}</p>
-              <p>Processor: {providerMode === "kie" ? "KIE.ai cloud generation" : providerMode === "wavespeed" ? "WaveSpeed cloud generation" : "browser canvas + MediaRecorder"}</p>
+              <p>Processor: {providerMode === "kie" ? "KIE.ai primary cloud generation" : providerMode === "wavespeed" ? "WaveSpeed emergency fallback" : "browser canvas + MediaRecorder"}</p>
               {taskId ? <p>Task: {taskId.slice(0, 18)}...</p> : null}
             </div>
           </div>
@@ -922,7 +1107,7 @@ export default function CinematicStylesPage() {
               className="flex h-14 flex-1 items-center justify-center gap-2 rounded-lg bg-cyan-400 px-4 text-sm font-black text-slate-950 transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {status === "processing" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-              {status === "processing" ? `Rendering ${progress}%` : "Generate"}
+              {status === "processing" ? "Processing" : "Generate"}
             </button>
           </div>
         </aside>
@@ -930,27 +1115,40 @@ export default function CinematicStylesPage() {
         <main className="min-w-0 p-5">
           <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap gap-2">
-              {["All Presets", "Processing", "Outputs"].map((item, index) => (
+              {[
+                { id: "presets" as const, label: "All Presets", icon: Layers },
+                { id: "processing" as const, label: "Processing", icon: Wand2 },
+                { id: "outputs" as const, label: "Outputs", icon: Film },
+              ].map((item) => {
+                const Icon = item.icon;
+                return (
                 <button
-                  key={item}
+                  key={item.id}
                   type="button"
+                  onClick={() => setActiveTab(item.id)}
                   className={cn(
                     "flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold transition",
-                    index === 0 ? "border-white/10 bg-white/8 text-white" : "border-white/6 bg-transparent text-slate-500 hover:text-slate-300"
+                    activeTab === item.id ? "border-white/10 bg-white/8 text-white" : "border-white/6 bg-transparent text-slate-500 hover:text-slate-300"
                   )}
                 >
-                  {index === 0 ? <Layers className="h-4 w-4" /> : index === 1 ? <Wand2 className="h-4 w-4" /> : <Film className="h-4 w-4" />}
-                  {item}
+                  <Icon className="h-4 w-4" />
+                  {item.label}
                 </button>
-              ))}
+                );
+              })}
             </div>
             <div className="rounded-lg border border-white/8 bg-[#11161d] px-3 py-2 text-xs font-medium text-slate-400">
-              Real-time local render. No mock output.
+              {providerMode === "local"
+                ? "Local browser render."
+                : quotedCredits
+                  ? `${quotedCredits} credits quoted by server.`
+                  : "Credits are checked before submit."}
             </div>
           </div>
 
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
             <section className="min-w-0">
+              {activeTab === "presets" ? (
               <div className="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
                 {PRESETS.map((preset) => (
                   <button
@@ -986,6 +1184,67 @@ export default function CinematicStylesPage() {
                   </button>
                 ))}
               </div>
+              ) : activeTab === "processing" ? (
+                <div className="rounded-lg border border-white/8 bg-[#11161d] p-6">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-cyan-400/10 text-cyan-300">
+                      {status === "processing" ? <Loader2 className="h-5 w-5 animate-spin" /> : <Wand2 className="h-5 w-5" />}
+                    </div>
+                    <div>
+                      <p className="text-sm font-black text-white">Pipeline status</p>
+                      <p className="text-sm text-slate-400" aria-live="polite">{statusMessage}</p>
+                    </div>
+                  </div>
+                  <div className="mt-5 grid gap-3 md:grid-cols-2">
+                    <div className="rounded-lg border border-white/8 bg-black/20 p-4">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Source</p>
+                      <p className="mt-1 text-sm font-semibold text-white">{providerMode === "kie" ? "KIE.ai Primary" : providerMode === "wavespeed" ? "WaveSpeed Emergency" : "Local Preview"}</p>
+                    </div>
+                    <div className="rounded-lg border border-white/8 bg-black/20 p-4">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Cost check</p>
+                      <p className="mt-1 text-sm font-semibold text-white">
+                        {providerMode === "local"
+                          ? "No cloud credits"
+                          : quotedCredits
+                            ? `${quotedCredits} credits quoted by server`
+                            : "Checked before submit"}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border border-white/8 bg-black/20 p-4">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Task</p>
+                      <p className="mt-1 truncate text-sm font-semibold text-white">{taskId || "Pending"}</p>
+                    </div>
+                    <div className="rounded-lg border border-white/8 bg-black/20 p-4">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Preset</p>
+                      <p className="mt-1 text-sm font-semibold text-white">{selectedPreset.name}</p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
+                  {outputs.length ? outputs.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => {
+                        setOutputUrl(item.url);
+                        setStatus("completed");
+                      }}
+                      className="overflow-hidden rounded-lg border border-white/8 bg-[#11161d] text-left transition hover:border-white/20"
+                    >
+                      <video src={item.url} className="aspect-video w-full bg-black object-cover" muted />
+                      <div className="p-3">
+                        <p className="truncate text-sm font-black text-white">{item.name}</p>
+                        <p className="mt-1 text-xs text-slate-500">{outputMetaLabel(item)}</p>
+                      </div>
+                    </button>
+                  )) : (
+                    <div className="rounded-lg border border-white/8 bg-[#11161d] p-6 text-sm text-slate-500">
+                      Completed outputs will appear here.
+                    </div>
+                  )}
+                </div>
+              )}
             </section>
 
             <aside className="space-y-4">
@@ -1032,9 +1291,9 @@ export default function CinematicStylesPage() {
                 </div>
 
                 {status === "processing" ? (
-                  <div className="mt-4">
+                  <div className="mt-4" aria-live="polite">
                     <div className="mb-2 flex items-center justify-between text-xs font-semibold text-slate-400">
-                      <span>Processing frames</span>
+                      <span>{statusMessage}</span>
                       <span>{progress}%</span>
                     </div>
                     <div className="h-2 overflow-hidden rounded-full bg-white/8">
@@ -1053,7 +1312,7 @@ export default function CinematicStylesPage() {
                 {outputUrl ? (
                   <a
                     href={outputUrl}
-                    download={`saad-mixed-media-${selectedPreset.id}.webm`}
+                    download={`cinematic-styles-${selectedPreset.id}.webm`}
                     className="mt-4 flex h-11 items-center justify-center gap-2 rounded-lg bg-white text-sm font-bold text-slate-950 transition hover:bg-slate-200"
                   >
                     <Download className="h-4 w-4" />
@@ -1078,7 +1337,7 @@ export default function CinematicStylesPage() {
                       >
                         <span className="min-w-0">
                           <span className="block truncate text-sm font-semibold text-white">{item.name}</span>
-                          <span className="block text-xs text-slate-500">{item.resolution} · {item.fps} FPS · {item.createdAt}</span>
+                          <span className="block text-xs text-slate-500">{outputMetaLabel(item)}</span>
                         </span>
                         <Film className="h-4 w-4 text-slate-500" />
                       </button>
