@@ -11,7 +11,6 @@ import {
   Palette,
   Play,
   RefreshCw,
-  SlidersHorizontal,
   Sparkles,
   Upload,
   Video,
@@ -1058,19 +1057,6 @@ export default function CinematicStylesPage() {
               <ColorControl label="Background color" value={colors.background} onChange={(background) => setColors((current) => ({ ...current, background }))} />
               <ColorControl label="Mid layer color" value={colors.mid} onChange={(mid) => setColors((current) => ({ ...current, mid }))} />
               <ColorControl label="Main object color" value={colors.object} onChange={(object) => setColors((current) => ({ ...current, object }))} />
-            </div>
-          </div>
-
-          <div className="mt-4 rounded-lg border border-white/8 bg-[#11161d] p-4">
-            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
-              <SlidersHorizontal className="h-4 w-4 text-cyan-300" />
-              Render pipeline
-            </div>
-            <div className="mt-3 space-y-2 text-xs text-slate-400">
-              <p>Frame extraction: {effectiveFps} FPS</p>
-              <p>Output target: {resolution}</p>
-              <p>Processor: Saad Cloud generation</p>
-              {taskId ? <p>Task: {taskId.slice(0, 18)}...</p> : null}
             </div>
           </div>
 
