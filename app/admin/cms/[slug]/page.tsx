@@ -905,7 +905,20 @@ function CinematicStylesCms() {
                     <div className="relative aspect-video overflow-hidden rounded-xl border border-white/10 bg-black/40">
                       {media?.url ? (
                         media.type === "video" ? (
-                          <video src={media.url} poster={media.poster} className="h-full w-full object-cover" muted playsInline preload="metadata" />
+                          <video
+                            src={media.url}
+                            poster={media.poster}
+                            className="h-full w-full object-cover"
+                            autoPlay
+                            loop
+                            muted
+                            playsInline
+                            preload="auto"
+                            onCanPlay={(e) => {
+                              const el = e.currentTarget;
+                              try { void el.play(); } catch {}
+                            }}
+                          />
                         ) : (
                           <img src={media.url} alt="" className="h-full w-full object-cover" loading="lazy" />
                         )
