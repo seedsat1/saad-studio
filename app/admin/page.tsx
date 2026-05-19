@@ -45,6 +45,7 @@ import {
   ShieldCheck,
   Compass,
   Mail,
+  FileText,
 } from "lucide-react";
 
 // ─── MOCK DATA ──────────────────────────────────────────────────────────────
@@ -477,7 +478,7 @@ export default function AdminDashboard() {
     syncedAt: null,
   });
 
-  const [emailMode, setEmailMode] = useState<"single" | "bulk">("bulk");
+  const [emailMode, setEmailMode] = useState<"single" | "bulk" | "invoice">("bulk");
   const [emailPlanId, setEmailPlanId] = useState<"all" | "starter" | "plus" | "pro" | "max">("all");
   const [emailTo, setEmailTo] = useState("");
   const [emailSubject, setEmailSubject] = useState("");
@@ -490,6 +491,18 @@ export default function AdminDashboard() {
   const [emailAttachments, setEmailAttachments] = useState<Array<{ filename: string; path: string; contentType: string }>>([]);
   const [emailAttachmentUploading, setEmailAttachmentUploading] = useState(false);
   const [emailAttachmentError, setEmailAttachmentError] = useState("");
+
+  // Invoice mode fields
+  const [invoiceOrderId, setInvoiceOrderId] = useState("");
+  const [invoicePlan, setInvoicePlan] = useState("Pro");
+  const [invoiceBilling, setInvoiceBilling] = useState<"monthly" | "annual">("monthly");
+  const [invoiceAmount, setInvoiceAmount] = useState("70");
+  const [invoiceCredits, setInvoiceCredits] = useState("1200");
+  const [invoiceStartDate, setInvoiceStartDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [invoiceEndDate, setInvoiceEndDate] = useState(() => new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10));
+  const [invoiceMethod, setInvoiceMethod] = useState("QiCard");
+  const [invoicePreviewHtml, setInvoicePreviewHtml] = useState<string | null>(null);
+  const [invoiceLoadingPreview, setInvoiceLoadingPreview] = useState(false);
 
   const refreshGenerations = useCallback(async () => {
     const res = await fetch("/api/admin/generations", { cache: "no-store" });
@@ -628,6 +641,80 @@ export default function AdminDashboard() {
         sent: Number(data?.sent ?? 0),
         failed: Number(data?.failed ?? 0),
       });
+    } finally {
+      setEmailSending(false);
+    }
+  };
+
+  const buildInvoicePayload = () => {
+    const trimmedPlan = invoicePlan.trim();
+    const displayPlan = invoiceBilling === "annual"
+      ? `${trimmedPlan} (annual)`
+      : `${trimmedPlan} (monthly)`;
+    return {
+      to: emailTo.trim(),
+      orderId: invoiceOrderId.trim(),
+      displayPlan,
+      amount: Number(invoiceAmount),
+      credits: Number(invoiceCredits),
+      startsAt: invoiceStartDate ? new Date(invoiceStartDate).toISOString() : null,
+      endsAt: invoiceEndDate ? new Date(invoiceEndDate).toISOString() : null,
+      method: invoiceMethod.trim() || null,
+      billingCycle: invoiceBilling,
+    };
+  };
+
+  const validateInvoice = () => {
+    if (!emailTo.trim()) return "Recipient email is required.";
+    if (!invoicePlan.trim()) return "Plan / description is required.";
+    const amount = Number(invoiceAmount);
+    if (!Number.isFinite(amount) || amount <= 0) return "Amount must be a positive number.";
+    return null;
+  };
+
+  const handlePreviewInvoice = async () => {
+    setEmailError("");
+    setEmailResult(null);
+    const err = validateInvoice();
+    if (err) { setEmailError(err); return; }
+
+    setInvoiceLoadingPreview(true);
+    try {
+      const res = await fetch("/api/admin/email/invoice", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...buildInvoicePayload(), preview: true }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setEmailError(String(data?.error || "Preview failed."));
+        return;
+      }
+      setInvoicePreviewHtml(String(data?.html ?? ""));
+    } finally {
+      setInvoiceLoadingPreview(false);
+    }
+  };
+
+  const handleSendInvoice = async () => {
+    setEmailError("");
+    setEmailResult(null);
+    const err = validateInvoice();
+    if (err) { setEmailError(err); return; }
+
+    setEmailSending(true);
+    try {
+      const res = await fetch("/api/admin/email/invoice", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(buildInvoicePayload()),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setEmailError(String(data?.error || "Failed to send invoice."));
+        return;
+      }
+      setEmailResult({ requested: 1, sent: 1, failed: 0 });
     } finally {
       setEmailSending(false);
     }
@@ -1702,9 +1789,9 @@ export default function AdminDashboard() {
                 </div>
 
                 <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-5 space-y-5">
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-3 gap-3">
                     <button
-                      onClick={() => { setEmailMode("bulk"); setEmailTo(""); setEmailError(""); setEmailResult(null); }}
+                      onClick={() => { setEmailMode("bulk"); setEmailTo(""); setEmailError(""); setEmailResult(null); setInvoicePreviewHtml(null); }}
                       className={`p-3 rounded-xl border text-left transition-all ${
                         emailMode === "bulk"
                           ? "border-violet-500/40 bg-violet-600/10"
@@ -1715,7 +1802,7 @@ export default function AdminDashboard() {
                       <p className="text-xs text-slate-500 mt-0.5">Active subscribers</p>
                     </button>
                     <button
-                      onClick={() => { setEmailMode("single"); setEmailPlanId("all"); setEmailError(""); setEmailResult(null); }}
+                      onClick={() => { setEmailMode("single"); setEmailPlanId("all"); setEmailError(""); setEmailResult(null); setInvoicePreviewHtml(null); }}
                       className={`p-3 rounded-xl border text-left transition-all ${
                         emailMode === "single"
                           ? "border-violet-500/40 bg-violet-600/10"
@@ -1724,6 +1811,17 @@ export default function AdminDashboard() {
                     >
                       <p className="text-sm font-semibold text-white">Single</p>
                       <p className="text-xs text-slate-500 mt-0.5">One email address</p>
+                    </button>
+                    <button
+                      onClick={() => { setEmailMode("invoice"); setEmailError(""); setEmailResult(null); }}
+                      className={`p-3 rounded-xl border text-left transition-all ${
+                        emailMode === "invoice"
+                          ? "border-violet-500/40 bg-violet-600/10"
+                          : "border-slate-800 bg-slate-950/30 hover:border-slate-700"
+                      }`}
+                    >
+                      <p className="text-sm font-semibold text-white">Invoice</p>
+                      <p className="text-xs text-slate-500 mt-0.5">Receipt template</p>
                     </button>
                   </div>
 
@@ -1805,6 +1903,131 @@ export default function AdminDashboard() {
                     </div>
                   )}
 
+                  {emailMode === "invoice" && (
+                    <div className="space-y-4 rounded-xl border border-violet-500/20 bg-violet-600/5 p-4">
+                      <div className="flex items-center gap-2">
+                        <FileText className="w-4 h-4 text-violet-300" />
+                        <p className="text-sm font-semibold text-violet-200">Invoice Details</p>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <p className="text-xs text-slate-500">Order / Receipt ID</p>
+                          <input
+                            value={invoiceOrderId}
+                            onChange={(e) => setInvoiceOrderId(e.target.value)}
+                            placeholder="auto-generated if empty"
+                            className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-slate-200 outline-none font-mono"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-xs text-slate-500">Plan / Description</p>
+                          <input
+                            value={invoicePlan}
+                            onChange={(e) => setInvoicePlan(e.target.value)}
+                            placeholder="Pro, Starter, Custom..."
+                            className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-slate-200 outline-none"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div className="space-y-1">
+                          <p className="text-xs text-slate-500">Billing</p>
+                          <select
+                            value={invoiceBilling}
+                            onChange={(e) => setInvoiceBilling(e.target.value as "monthly" | "annual")}
+                            className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-slate-200 outline-none"
+                          >
+                            <option value="monthly">Monthly</option>
+                            <option value="annual">Annual</option>
+                          </select>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-xs text-slate-500">Amount (USD)</p>
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={invoiceAmount}
+                            onChange={(e) => setInvoiceAmount(e.target.value)}
+                            className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-slate-200 outline-none"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-xs text-slate-500">Credits</p>
+                          <input
+                            type="number"
+                            min="0"
+                            value={invoiceCredits}
+                            onChange={(e) => setInvoiceCredits(e.target.value)}
+                            className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-slate-200 outline-none"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div className="space-y-1">
+                          <p className="text-xs text-slate-500">Start Date</p>
+                          <input
+                            type="date"
+                            value={invoiceStartDate}
+                            onChange={(e) => setInvoiceStartDate(e.target.value)}
+                            className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-slate-200 outline-none"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-xs text-slate-500">End Date</p>
+                          <input
+                            type="date"
+                            value={invoiceEndDate}
+                            onChange={(e) => setInvoiceEndDate(e.target.value)}
+                            className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-slate-200 outline-none"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-xs text-slate-500">Payment Method</p>
+                          <input
+                            value={invoiceMethod}
+                            onChange={(e) => setInvoiceMethod(e.target.value)}
+                            placeholder="QiCard, Zain Cash, manual..."
+                            className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-slate-200 outline-none"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between gap-3 pt-2">
+                        <button
+                          onClick={handlePreviewInvoice}
+                          disabled={invoiceLoadingPreview}
+                          className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-200 disabled:opacity-60"
+                        >
+                          {invoiceLoadingPreview ? "Loading…" : invoicePreviewHtml ? "Refresh Preview" : "Preview"}
+                        </button>
+                        {invoicePreviewHtml && (
+                          <button
+                            onClick={() => setInvoicePreviewHtml(null)}
+                            className="text-xs text-slate-500 hover:text-slate-300"
+                          >
+                            Hide preview
+                          </button>
+                        )}
+                      </div>
+
+                      {invoicePreviewHtml && (
+                        <div className="rounded-xl border border-slate-700 bg-white overflow-hidden">
+                          <iframe
+                            title="Invoice preview"
+                            srcDoc={invoicePreviewHtml}
+                            className="w-full"
+                            style={{ height: "720px", border: 0, background: "#f5f6f8" }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {emailMode !== "invoice" && (
                   <div className="space-y-1">
                     <p className="text-xs text-slate-500">Subject</p>
                     <input
@@ -1814,7 +2037,9 @@ export default function AdminDashboard() {
                       className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-slate-200 outline-none"
                     />
                   </div>
+                  )}
 
+                  {emailMode !== "invoice" && (
                   <div className="space-y-1">
                     <p className="text-xs text-slate-500">Message</p>
                     <textarea
@@ -1825,7 +2050,9 @@ export default function AdminDashboard() {
                       className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-slate-200 outline-none resize-none"
                     />
                   </div>
+                  )}
 
+                  {emailMode !== "invoice" && (
                   <div className="space-y-2">
                     <div className="flex items-center justify-between gap-3 flex-wrap">
                       <p className="text-xs text-slate-500">Attachments (optional)</p>
@@ -1868,6 +2095,7 @@ export default function AdminDashboard() {
                       </div>
                     ) : null}
                   </div>
+                  )}
 
                   {emailError && (
                     <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
@@ -1891,14 +2119,16 @@ export default function AdminDashboard() {
 
                   <div className="flex items-center justify-between gap-3 flex-wrap">
                     <p className="text-xs text-slate-500">
-                      Uses RESEND_API_KEY / RESEND_FROM. Bulk mode targets active subscribers only.
+                      {emailMode === "invoice"
+                        ? "Sends a styled receipt using the same template auto-sent on approval."
+                        : "Uses RESEND_API_KEY / RESEND_FROM. Bulk mode targets active subscribers only."}
                     </p>
                     <button
-                      onClick={handleSendEmail}
+                      onClick={emailMode === "invoice" ? handleSendInvoice : handleSendEmail}
                       disabled={emailSending}
                       className="px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold disabled:opacity-60"
                     >
-                      {emailSending ? "Sending…" : "Send Email"}
+                      {emailSending ? "Sending…" : emailMode === "invoice" ? "Send Invoice" : "Send Email"}
                     </button>
                   </div>
                 </div>
