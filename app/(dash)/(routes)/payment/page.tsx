@@ -372,8 +372,6 @@ export default function PaymentPage() {
 
   const [proofFile, setProofFile]   = useState<File | null>(null);
   const [proofError, setProofError] = useState("");
-  const [confirmed, setConfirmed]   = useState(false);
-  const [confirmError, setConfirmError] = useState("");
   const [submitError, setSubmitError] = useState("");
   const [loading, setLoading]       = useState(false);
 
@@ -486,7 +484,6 @@ export default function PaymentPage() {
     let hasError = false;
     setSubmitError("");
     if (!proofFile) { setProofError("Please upload your payment proof."); hasError = true; } else setProofError("");
-    if (!confirmed) { setConfirmError("Please confirm before submitting."); hasError = true; } else setConfirmError("");
     if (hasError) return;
     if (!selectedItem) {
       setSubmitError("Please select a plan or top-up.");
@@ -561,13 +558,13 @@ export default function PaymentPage() {
     }
   };
 
-  const handleResubmit = () => { setStatus("idle"); setStep(2); setProofError(""); setConfirmError(""); };
+  const handleResubmit = () => { setStatus("idle"); setStep(2); setProofError(""); };
   const handleNew = () => {
     const nextId = generateOrderId();
     setOrderId(nextId);
     setStep(1); setStatus("idle"); setSelectedPlanId(""); setSelectedTopupId("");
     setSelectedMethod(liveMethods[0]?.id ?? METHODS[0].id);
-    setProofFile(null); setConfirmed(false); setProofError(""); setConfirmError("");
+    setProofFile(null); setProofError("");
   };
 
   useEffect(() => {
@@ -750,23 +747,6 @@ export default function PaymentPage() {
               <ProofUpload file={proofFile} onFile={(f) => { setProofFile(f); setProofError(""); }} onClear={() => setProofFile(null)} />
               {proofError && <p className="text-xs text-red-400 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{proofError}</p>}
               {submitError && <p className="text-xs text-red-400 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{submitError}</p>}
-
-              {/* Compliance */}
-              <div className="p-4 rounded-2xl bg-slate-800/40 border border-slate-700 space-y-2 text-xs text-slate-500">
-                <p>⚠ Credits are added after payment verification.</p>
-                <p>⚠ Completed AI generations are non-refundable except in cases of verified technical errors.</p>
-              </div>
-
-              {/* Confirm */}
-              <label className="flex items-start gap-3 cursor-pointer group">
-                <div onClick={() => { setConfirmed((p) => !p); setConfirmError(""); }}
-                  className={`mt-0.5 w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-all duration-200
-                    ${confirmed ? "bg-violet-600 border-violet-600" : "border-slate-600 group-hover:border-violet-500/60"}`}>
-                  {confirmed && <Check className="w-3 h-3 text-white" />}
-                </div>
-                <span className="text-sm text-slate-300">I confirm I have made the transfer and the proof above is correct.</span>
-              </label>
-              {confirmError && <p className="text-xs text-red-400 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{confirmError}</p>}
 
               <div className="flex gap-3">
                 <button onClick={() => setStep(1)} className="flex-1 py-3 rounded-2xl border border-slate-700 text-slate-300 hover:bg-slate-800 text-sm font-medium transition-colors">← Back</button>
