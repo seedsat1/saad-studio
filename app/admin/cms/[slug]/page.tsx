@@ -19,7 +19,7 @@ import {
   Upload, X, Sparkles, Pencil, Eye, Link2, Loader2,
   ArrowLeft, Monitor, Megaphone, ExternalLink,
 } from "lucide-react";
-import { PRESETS } from "@/app/(dash)/(routes)/apps/tool/cinematic-styles/page";
+import { PRESETS } from "@/lib/cinematic-presets";
 
 /* ═══════════════════════════════════════════════════════════════════════════════
    TYPES
