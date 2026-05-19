@@ -44,6 +44,7 @@ import {
   LayoutTemplate,
   ShieldCheck,
   Compass,
+  Mail,
 } from "lucide-react";
 
 // ─── MOCK DATA ──────────────────────────────────────────────────────────────
@@ -298,6 +299,7 @@ const NAV_ITEMS = [
   { id: "users", label: "User Management", icon: Users },
   { id: "security", label: "Security & Monitor", icon: Shield },
   { id: "financials", label: "Financials & Transactions", icon: DollarSign },
+  { id: "emails", label: "Email Center", icon: Mail },
   { id: "cms", label: "Visual CMS (Site Builder)", icon: Paintbrush },
   { id: "apikeys", label: "API Keys Manager", icon: Key },
   { id: "logs", label: "System Logs", icon: ScrollText },
@@ -475,6 +477,16 @@ export default function AdminDashboard() {
     syncedAt: null,
   });
 
+  const [emailMode, setEmailMode] = useState<"single" | "bulk">("bulk");
+  const [emailPlanId, setEmailPlanId] = useState<"all" | "starter" | "plus" | "pro" | "max">("all");
+  const [emailTo, setEmailTo] = useState("");
+  const [emailSubject, setEmailSubject] = useState("");
+  const [emailMessage, setEmailMessage] = useState("");
+  const [emailSending, setEmailSending] = useState(false);
+  const [emailResult, setEmailResult] = useState<{ sent: number; failed: number; requested: number } | null>(null);
+  const [emailError, setEmailError] = useState("");
+  const [emailAudienceCount, setEmailAudienceCount] = useState<number | null>(null);
+
   const refreshGenerations = useCallback(async () => {
     const res = await fetch("/api/admin/generations", { cache: "no-store" });
     const data = await res.json().catch(() => []);
@@ -556,6 +568,64 @@ export default function AdminDashboard() {
       window.clearInterval(timer);
     };
   }, []);
+
+  useEffect(() => {
+    if (activeSection !== "emails") return;
+    if (emailMode !== "bulk") {
+      setEmailAudienceCount(null);
+      return;
+    }
+    setEmailAudienceCount(null);
+    fetch(`/api/admin/email?planId=${encodeURIComponent(emailPlanId)}`, { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        const count = Number(data?.count);
+        if (Number.isFinite(count)) setEmailAudienceCount(count);
+      })
+      .catch(() => {});
+  }, [activeSection, emailMode, emailPlanId]);
+
+  const handleSendEmail = async () => {
+    setEmailError("");
+    setEmailResult(null);
+
+    const subject = emailSubject.trim();
+    const message = emailMessage.trim();
+    const to = emailTo.trim();
+
+    if (!subject) { setEmailError("Subject is required."); return; }
+    if (!message) { setEmailError("Message is required."); return; }
+    if (emailMode === "single" && !to) { setEmailError("Recipient email is required."); return; }
+
+    setEmailSending(true);
+    try {
+      const res = await fetch("/api/admin/email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode: emailMode,
+          audience: "active_subscribers",
+          planId: emailMode === "bulk" ? emailPlanId : null,
+          to: emailMode === "single" ? to : null,
+          subject,
+          message,
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setEmailError(String(data?.error || "Failed to send."));
+        return;
+      }
+      setEmailResult({
+        requested: Number(data?.requested ?? 0),
+        sent: Number(data?.sent ?? 0),
+        failed: Number(data?.failed ?? 0),
+      });
+    } finally {
+      setEmailSending(false);
+    }
+  };
 
   const balanceIndicator = getBalanceIndicator(kieBalance.status);
   const formattedKieAmount =
@@ -1563,6 +1633,144 @@ export default function AdminDashboard() {
                       ))}
                     </tbody>
                   </table>
+                </div>
+              </motion.div>
+            )}
+
+            {/* ════════ EMAIL CENTER ═══════════════════════════════════════════ */}
+            {activeSection === "emails" && (
+              <motion.div
+                key="emails"
+                variants={sectionVariants}
+                initial="initial"
+                animate="animate"
+                exit="exit"
+                className="space-y-6 max-w-3xl"
+              >
+                <div>
+                  <h1 className="text-2xl font-bold text-white flex items-center gap-2.5">
+                    <Mail className="w-6 h-6 text-violet-400" />
+                    Email Center
+                  </h1>
+                  <p className="text-slate-400 text-sm mt-1">
+                    Send email messages to active subscribers (bulk) or a single recipient.
+                  </p>
+                </div>
+
+                <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-5 space-y-5">
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      onClick={() => { setEmailMode("bulk"); setEmailTo(""); setEmailError(""); setEmailResult(null); }}
+                      className={`p-3 rounded-xl border text-left transition-all ${
+                        emailMode === "bulk"
+                          ? "border-violet-500/40 bg-violet-600/10"
+                          : "border-slate-800 bg-slate-950/30 hover:border-slate-700"
+                      }`}
+                    >
+                      <p className="text-sm font-semibold text-white">Bulk</p>
+                      <p className="text-xs text-slate-500 mt-0.5">Active subscribers</p>
+                    </button>
+                    <button
+                      onClick={() => { setEmailMode("single"); setEmailPlanId("all"); setEmailError(""); setEmailResult(null); }}
+                      className={`p-3 rounded-xl border text-left transition-all ${
+                        emailMode === "single"
+                          ? "border-violet-500/40 bg-violet-600/10"
+                          : "border-slate-800 bg-slate-950/30 hover:border-slate-700"
+                      }`}
+                    >
+                      <p className="text-sm font-semibold text-white">Single</p>
+                      <p className="text-xs text-slate-500 mt-0.5">One email address</p>
+                    </button>
+                  </div>
+
+                  {emailMode === "bulk" ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <p className="text-xs text-slate-500">Plan filter</p>
+                        <select
+                          value={emailPlanId}
+                          onChange={(e) => setEmailPlanId(e.target.value as "all" | "starter" | "plus" | "pro" | "max")}
+                          className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-slate-200 outline-none"
+                        >
+                          <option value="all">All plans</option>
+                          <option value="starter">Starter</option>
+                          <option value="plus">Plus</option>
+                          <option value="pro">Pro</option>
+                          <option value="max">Max</option>
+                        </select>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-xs text-slate-500">Audience size</p>
+                        <div className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-slate-200">
+                          {emailAudienceCount == null ? "Loading…" : `${emailAudienceCount.toLocaleString()} recipients`}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      <p className="text-xs text-slate-500">Recipient email</p>
+                      <input
+                        value={emailTo}
+                        onChange={(e) => setEmailTo(e.target.value)}
+                        placeholder="example@domain.com"
+                        className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-slate-200 outline-none"
+                      />
+                    </div>
+                  )}
+
+                  <div className="space-y-1">
+                    <p className="text-xs text-slate-500">Subject</p>
+                    <input
+                      value={emailSubject}
+                      onChange={(e) => setEmailSubject(e.target.value)}
+                      placeholder="Subject"
+                      className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-slate-200 outline-none"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <p className="text-xs text-slate-500">Message</p>
+                    <textarea
+                      value={emailMessage}
+                      onChange={(e) => setEmailMessage(e.target.value)}
+                      placeholder="Write your message (Arabic/English supported)."
+                      rows={8}
+                      className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-slate-200 outline-none resize-none"
+                    />
+                  </div>
+
+                  {emailError && (
+                    <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+                      {emailError}
+                    </div>
+                  )}
+                  {emailResult && (
+                    <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200 flex items-center justify-between gap-3 flex-wrap">
+                      <span>
+                        Sent {emailResult.sent.toLocaleString()} / {emailResult.requested.toLocaleString()}
+                        {emailResult.failed ? ` (failed: ${emailResult.failed.toLocaleString()})` : ""}
+                      </span>
+                      <button
+                        onClick={() => setEmailResult(null)}
+                        className="text-xs font-semibold text-emerald-200/80 hover:text-emerald-200 transition-colors"
+                      >
+                        Dismiss
+                      </button>
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <p className="text-xs text-slate-500">
+                      Uses RESEND_API_KEY / RESEND_FROM. Bulk mode targets active subscribers only.
+                    </p>
+                    <button
+                      onClick={handleSendEmail}
+                      disabled={emailSending}
+                      className="px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold disabled:opacity-60"
+                    >
+                      {emailSending ? "Sending…" : "Send Email"}
+                    </button>
+                  </div>
                 </div>
               </motion.div>
             )}
