@@ -1504,33 +1504,6 @@ export default function CinematicStylesPage() {
                   </a>
                 ) : null}
               </div>
-
-              <div className="rounded-lg border border-white/8 bg-[#11161d] p-4">
-                <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">Output history</p>
-                {outputs.length ? (
-                  <div className="space-y-2">
-                    {outputs.map((item) => (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => {
-                          setOutputUrl(item.url);
-                          setStatus("completed");
-                        }}
-                        className="flex w-full items-center justify-between rounded-lg border border-white/8 bg-white/[0.03] px-3 py-2 text-left transition hover:border-white/16"
-                      >
-                        <span className="min-w-0">
-                          <span className="block truncate text-sm font-semibold text-white">{item.name}</span>
-                          <span className="block text-xs text-slate-500">{outputMetaLabel(item)}</span>
-                        </span>
-                        <Film className="h-4 w-4 text-slate-500" />
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-slate-500">Rendered clips will appear here.</p>
-                )}
-              </div>
             </aside>
           </div>
         </main>
