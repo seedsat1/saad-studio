@@ -1,4 +1,4 @@
-﻿export type AppBadge = "NEW" | "TOP" | "PRO" | "HOT" | "TRENDING" | "FREE" | null;
+export type AppBadge = "NEW" | "TOP" | "PRO" | "HOT" | "TRENDING" | "FREE" | null;
 
 export interface AppTool {
   id: string;
@@ -101,6 +101,7 @@ const APP_CATEGORIES_RAW: AppCategory[] = [
       { id: "video-upscale", title: "Video Upscale", description: "Enhance video resolution to 4K", href: "/apps/tool/video-upscale", badge: "PRO", gradient: "from-sky-600/30 to-blue-900/30" },
       { id: "draw-to-video", title: "Draw to Video", description: "Sketch scenes, generate video", href: "/apps/tool/draw-to-video", badge: "NEW", gradient: "from-indigo-600/30 to-violet-900/30" },
       { id: "mixed-media", title: "Mixed Media", description: "Transform videos with artistic presets", href: "/apps/tool/mixed-media", badge: "TOP", gradient: "from-pink-600/30 to-fuchsia-900/30" },
+      { id: "cinematic-styles", title: "Cinematic Styles", description: "Layered motion presets for short-form edits", href: "/apps/tool/cinematic-styles", badge: "NEW", gradient: "from-cyan-600/30 to-indigo-900/30" },
     ],
   },
   {
