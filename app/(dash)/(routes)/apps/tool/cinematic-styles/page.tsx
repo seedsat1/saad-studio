@@ -907,20 +907,77 @@ export default function CinematicStylesPage() {
 
       <div className="grid min-h-[calc(100vh-64px)] grid-cols-1 xl:grid-cols-[360px_minmax(0,1fr)]">
         <aside className="border-b border-white/8 bg-[#0a0e14] p-5 xl:border-b-0 xl:border-r">
-          <div className="rounded-lg border border-white/8 bg-[#11161d] p-3">
-            <div className="relative aspect-video overflow-hidden rounded-md bg-[#0d1118]">
-              <div
-                className="absolute inset-0 opacity-80"
-                style={{
-                  background:
-                    "linear-gradient(135deg, rgba(6,182,212,0.18), rgba(59,130,246,0.1) 42%, rgba(139,92,246,0.12)), repeating-linear-gradient(0deg, rgba(255,255,255,0.08) 0 1px, transparent 1px 9px)",
-                }}
-              />
-              <div className="absolute inset-x-0 bottom-0 p-4">
-                <p className="text-lg font-black uppercase tracking-tight text-cyan-300">Cinematic Styles</p>
-                <p className="text-xs font-medium text-slate-300">Layered motion presets for short-form edits</p>
+          <div className="rounded-lg border border-white/8 bg-[#11161d] p-4">
+            <div className="mb-3 flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-wider text-cyan-300">Selected preset</p>
+                <h1 className="mt-1 truncate text-lg font-black text-white">{selectedPreset.name}</h1>
               </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setOutputUrl(null);
+                  setProgress(0);
+                  setStatus(sourceUrl ? "ready" : "idle");
+                  setError("");
+                }}
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/8 text-slate-300 transition hover:text-white"
+                aria-label="Clear current output"
+              >
+                <RefreshCw className="h-4 w-4" />
+              </button>
             </div>
+            <p className="text-xs leading-5 text-slate-400 line-clamp-3">{selectedPreset.description}</p>
+
+            <div className="mt-3 overflow-hidden rounded-lg border border-white/8 bg-black">
+              {outputUrl ? (
+                <video src={outputUrl} controls className="aspect-video w-full object-contain" />
+              ) : sourceUrl ? (
+                <video
+                  ref={previewVideoRef}
+                  src={sourceUrl}
+                  controls
+                  className="aspect-video w-full object-contain"
+                  onLoadedMetadata={(event) => {
+                    setSourceDuration(event.currentTarget.duration);
+                  }}
+                />
+              ) : (
+                <div className="flex aspect-video items-center justify-center text-xs text-slate-500">
+                  Upload a clip to preview
+                </div>
+              )}
+            </div>
+
+            {status === "processing" ? (
+              <div className="mt-3" aria-live="polite">
+                <div className="mb-2 flex items-center justify-between text-[11px] font-semibold text-slate-400">
+                  <span className="truncate pr-2">{statusMessage}</span>
+                  <span>{progress}%</span>
+                </div>
+                <div className="h-1.5 overflow-hidden rounded-full bg-white/8">
+                  <div className="h-full rounded-full bg-cyan-400 transition-all" style={{ width: `${progress}%` }} />
+                </div>
+              </div>
+            ) : null}
+
+            {error ? (
+              <div className="mt-3 flex items-start gap-2 rounded-lg border border-red-400/20 bg-red-500/10 p-2 text-xs text-red-100">
+                <X className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                <p>{error}</p>
+              </div>
+            ) : null}
+
+            {outputUrl ? (
+              <a
+                href={outputUrl}
+                download={`cinematic-styles-${selectedPreset.id}.webm`}
+                className="mt-3 flex h-10 items-center justify-center gap-2 rounded-lg bg-white text-xs font-bold text-slate-950 transition hover:bg-slate-200"
+              >
+                <Download className="h-3.5 w-3.5" />
+                Download output
+              </a>
+            ) : null}
           </div>
 
           <button
@@ -1084,7 +1141,7 @@ export default function CinematicStylesPage() {
             </div>
           </div>
 
-          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
+          <div className="grid gap-4">
             <section className="min-w-0">
               {activeTab === "presets" ? (
               <div className="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
@@ -1209,80 +1266,6 @@ export default function CinematicStylesPage() {
               )}
             </section>
 
-            <aside className="space-y-4">
-              <div className="rounded-lg border border-white/8 bg-[#11161d] p-4">
-                <div className="mb-3 flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-cyan-300">Selected preset</p>
-                    <h1 className="mt-1 text-xl font-black text-white">{selectedPreset.name}</h1>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setOutputUrl(null);
-                      setProgress(0);
-                      setStatus(sourceUrl ? "ready" : "idle");
-                      setError("");
-                    }}
-                    className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/8 text-slate-300 transition hover:text-white"
-                    aria-label="Clear current output"
-                  >
-                    <RefreshCw className="h-4 w-4" />
-                  </button>
-                </div>
-                <p className="text-sm leading-6 text-slate-400">{selectedPreset.description}</p>
-
-                <div className="mt-4 overflow-hidden rounded-lg border border-white/8 bg-black">
-                  {outputUrl ? (
-                    <video src={outputUrl} controls className="aspect-video w-full object-contain" />
-                  ) : sourceUrl ? (
-                    <video
-                      ref={previewVideoRef}
-                      src={sourceUrl}
-                      controls
-                      className="aspect-video w-full object-contain"
-                      onLoadedMetadata={(event) => {
-                        setSourceDuration(event.currentTarget.duration);
-                      }}
-                    />
-                  ) : (
-                    <div className="flex aspect-video items-center justify-center text-sm text-slate-500">
-                      Upload a clip to preview
-                    </div>
-                  )}
-                </div>
-
-                {status === "processing" ? (
-                  <div className="mt-4" aria-live="polite">
-                    <div className="mb-2 flex items-center justify-between text-xs font-semibold text-slate-400">
-                      <span>{statusMessage}</span>
-                      <span>{progress}%</span>
-                    </div>
-                    <div className="h-2 overflow-hidden rounded-full bg-white/8">
-                      <div className="h-full rounded-full bg-cyan-400 transition-all" style={{ width: `${progress}%` }} />
-                    </div>
-                  </div>
-                ) : null}
-
-                {error ? (
-                  <div className="mt-4 flex items-start gap-2 rounded-lg border border-red-400/20 bg-red-500/10 p-3 text-sm text-red-100">
-                    <X className="mt-0.5 h-4 w-4 shrink-0" />
-                    <p>{error}</p>
-                  </div>
-                ) : null}
-
-                {outputUrl ? (
-                  <a
-                    href={outputUrl}
-                    download={`cinematic-styles-${selectedPreset.id}.webm`}
-                    className="mt-4 flex h-11 items-center justify-center gap-2 rounded-lg bg-white text-sm font-bold text-slate-950 transition hover:bg-slate-200"
-                  >
-                    <Download className="h-4 w-4" />
-                    Download output
-                  </a>
-                ) : null}
-              </div>
-            </aside>
           </div>
         </main>
       </div>
