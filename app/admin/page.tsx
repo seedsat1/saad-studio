@@ -994,6 +994,7 @@ export default function AdminDashboard() {
             { label: "Beauty Studio CMS", href: "/admin/cms/beauty2", icon: Sparkles },
             { label: "Apps CMS", href: "/admin/cms/apps", icon: Globe },
             { label: "Cinematic Styles CMS", href: "/admin/cms/cinematic-styles", icon: Film },
+            { label: "Transitions CMS", href: "/admin/page-builder?section=transitions", icon: Film },
             { label: "Auth Page CMS", href: "/admin/cms/auth", icon: ShieldCheck },
             { label: "Explore CMS", href: "/admin/cms/explore", icon: Compass },
             { label: "Discover CMS", href: "/admin/cms/discover", icon: Compass },

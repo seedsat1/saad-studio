@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Upload,
@@ -1091,8 +1092,16 @@ function StatsBar({ presets, optionMedia }: { presets: PresetMedia[]; optionMedi
    MAIN PAGE
    ═══════════════════════════════════════════════════════════════════════ */
 
+function isAssetSection(value: string | null): value is AssetSection {
+  return value === "transitions" || value === "beauty-tools" || value === "promo" || value === "announcement";
+}
+
 export default function PageBuilderPage() {
-  const [section, setSection] = useState<AssetSection>("transitions");
+  const searchParams = useSearchParams();
+  const initialSection: AssetSection = isAssetSection(searchParams.get("section"))
+    ? (searchParams.get("section") as AssetSection)
+    : "transitions";
+  const [section, setSection] = useState<AssetSection>(initialSection);
   const [presets, setPresets] = useState<PresetMedia[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState<string | null>(null);
