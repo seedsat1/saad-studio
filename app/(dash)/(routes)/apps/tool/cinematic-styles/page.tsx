@@ -26,7 +26,7 @@ type RenderStatus = "idle" | "ready" | "processing" | "completed" | "failed";
 type ProviderMode = "kie" | "wavespeed" | "local";
 type ActiveTab = "presets" | "processing" | "outputs";
 
-type PresetId =
+type LocalEffectId =
   | "layer-mixed-media"
   | "sketch"
   | "canvas"
@@ -37,8 +37,30 @@ type PresetId =
   | "particles"
   | "hand-paint";
 
+type PresetId =
+  | LocalEffectId
+  | "cinematic-trailer"
+  | "k-drama-soft"
+  | "vhs-memories"
+  | "cyberpunk-neon"
+  | "paparazzi-flash"
+  | "anime-pulse"
+  | "polaroid-snap"
+  | "y2k-camcorder"
+  | "golden-hour"
+  | "synthwave-drive"
+  | "watercolor-dream"
+  | "studio-portrait"
+  | "manga-lines"
+  | "hip-hop-visual"
+  | "pixel-arcade"
+  | "comic-action"
+  | "storm-light"
+  | "cafe-window";
+
 type Preset = {
   id: PresetId;
+  effect: LocalEffectId;
   name: string;
   family: string;
   description: string;
@@ -60,6 +82,7 @@ type Rgb = { r: number; g: number; b: number };
 const PRESETS: Preset[] = [
   {
     id: "layer-mixed-media",
+    effect: "layer-mixed-media",
     name: "Urban Cutout",
     family: "Scene Layers",
     description: "Three-tone subject separation with gritty grain, hard edges, and poster contrast.",
@@ -68,6 +91,7 @@ const PRESETS: Preset[] = [
   },
   {
     id: "sketch",
+    effect: "sketch",
     name: "Pencil Pulse",
     family: "Draft Look",
     description: "Edge extraction with clean paper brightness and subtle pencil-shadow motion.",
@@ -76,6 +100,7 @@ const PRESETS: Preset[] = [
   },
   {
     id: "canvas",
+    effect: "canvas",
     name: "Studio Brush",
     family: "Paint Pass",
     description: "Soft color blocks with animated marker strokes over the source frame.",
@@ -84,6 +109,7 @@ const PRESETS: Preset[] = [
   },
   {
     id: "flash-comic",
+    effect: "flash-comic",
     name: "Impact Ink",
     family: "Pop Action",
     description: "Posterized saturation, inked shadows, and high-energy color punches.",
@@ -92,6 +118,7 @@ const PRESETS: Preset[] = [
   },
   {
     id: "overexposed",
+    effect: "overexposed",
     name: "Hot Light",
     family: "Exposure FX",
     description: "Lifted whites with compressed shadows and a clean washed broadcast feel.",
@@ -100,6 +127,7 @@ const PRESETS: Preset[] = [
   },
   {
     id: "paper",
+    effect: "paper",
     name: "Archive Grain",
     family: "Tactile Film",
     description: "Warm toning, softened contrast, and fine ink texture over the moving image.",
@@ -108,6 +136,7 @@ const PRESETS: Preset[] = [
   },
   {
     id: "noir",
+    effect: "noir",
     name: "Shadow Reel",
     family: "Mono Drama",
     description: "High-contrast monochrome with crushed blacks and heavy film grain.",
@@ -116,6 +145,7 @@ const PRESETS: Preset[] = [
   },
   {
     id: "particles",
+    effect: "particles",
     name: "Signal Trails",
     family: "Motion Marks",
     description: "Darkened source plate with light traces and tracked energy marks.",
@@ -124,11 +154,174 @@ const PRESETS: Preset[] = [
   },
   {
     id: "hand-paint",
+    effect: "hand-paint",
     name: "Pastel Motion",
     family: "Soft Frames",
     description: "Reduced color bands, gentle edges, and pastel brush texture.",
     accent: "#fb7185",
     prompt: "soft pastel motion illustration, reduced color bands, gentle edges, handmade brush texture, calm cinematic flow",
+  },
+  {
+    id: "cinematic-trailer",
+    effect: "layer-mixed-media",
+    name: "Cinematic Trailer",
+    family: "Cinema",
+    description: "Hollywood blockbuster grade with teal-orange contrast and anamorphic lens feel.",
+    accent: "#fb923c",
+    prompt: "epic Hollywood cinematic trailer aesthetic, anamorphic lens flares, teal and orange color grading, dramatic atmosphere, premium movie quality",
+  },
+  {
+    id: "k-drama-soft",
+    effect: "hand-paint",
+    name: "K-Drama",
+    family: "Cinema",
+    description: "Korean drama softness with dreamy bokeh, pastel rose tints, and gentle motion.",
+    accent: "#f9a8d4",
+    prompt: "Korean drama romantic cinematic aesthetic, dreamy bokeh, pastel rose hues, soft skin tones, gentle slow motion, emotional close-up feel",
+  },
+  {
+    id: "vhs-memories",
+    effect: "paper",
+    name: "VHS Memories",
+    family: "Retro",
+    description: "1980s VHS tape feel with chromatic edges and warm tape wear.",
+    accent: "#a78bfa",
+    prompt: "1980s VHS analog tape aesthetic, chromatic aberration, tracking lines, warm color shift, nostalgic home video texture, low-fi charm",
+  },
+  {
+    id: "cyberpunk-neon",
+    effect: "particles",
+    name: "Cyberpunk Neon",
+    family: "Future",
+    description: "Blade Runner palette with magenta-cyan neon reflections and rain-soaked highlights.",
+    accent: "#d946ef",
+    prompt: "Blade Runner cyberpunk aesthetic, magenta and cyan neon lights, wet street reflections, futuristic city atmosphere, moody high contrast",
+  },
+  {
+    id: "paparazzi-flash",
+    effect: "overexposed",
+    name: "Paparazzi Flash",
+    family: "Celebrity",
+    description: "Sudden strobe pops with high-key whites and tabloid candid feel.",
+    accent: "#fef3c7",
+    prompt: "celebrity paparazzi flash photography aesthetic, harsh strobe burst, blown highlights, candid tabloid moment, glamorous chaos",
+  },
+  {
+    id: "anime-pulse",
+    effect: "flash-comic",
+    name: "Anime Pulse",
+    family: "Anime",
+    description: "Japanese anime cel shading with bold outlines and emotional motion lines.",
+    accent: "#ec4899",
+    prompt: "japanese anime cel-shaded motion, bold ink outlines, dramatic eyes, emotional speed lines, vibrant saturated palette, studio Ghibli energy",
+  },
+  {
+    id: "polaroid-snap",
+    effect: "paper",
+    name: "Polaroid Snap",
+    family: "Retro",
+    description: "Faded Polaroid warmth with soft borders and instant-film nostalgia.",
+    accent: "#fde68a",
+    prompt: "instant Polaroid photograph aesthetic, faded warm yellows, soft white border, slight color shift, vintage memory texture, sun-faded charm",
+  },
+  {
+    id: "y2k-camcorder",
+    effect: "paper",
+    name: "Y2K Camcorder",
+    family: "Retro",
+    description: "Year 2000 mini-DV feel with soft compression and low-fi pixel charm.",
+    accent: "#67e8f9",
+    prompt: "year 2000 digital camcorder footage aesthetic, soft compression artifacts, mini-DV color cast, low-fi nostalgic Y2K vibe, early 2000s home movie",
+  },
+  {
+    id: "golden-hour",
+    effect: "overexposed",
+    name: "Golden Hour",
+    family: "Mood",
+    description: "Warm sun-kissed amber tones with long shadows and magic-hour glow.",
+    accent: "#fbbf24",
+    prompt: "warm golden hour cinematic light, sun-kissed amber tones, long soft shadows, magic hour atmosphere, dreamy summer afternoon glow",
+  },
+  {
+    id: "synthwave-drive",
+    effect: "particles",
+    name: "Synthwave Drive",
+    family: "Future",
+    description: "80s retro-future palette with palm silhouettes and pink neon sunset grid.",
+    accent: "#f472b6",
+    prompt: "retro synthwave aesthetic, palm tree silhouettes, magenta pink sunset, 80s neon grid horizon, outrun chrome, retro-futurism",
+  },
+  {
+    id: "watercolor-dream",
+    effect: "hand-paint",
+    name: "Watercolor Dream",
+    family: "Art",
+    description: "Soft watercolor bleed with paper texture and gentle pigment flow.",
+    accent: "#7dd3fc",
+    prompt: "soft watercolor painting motion, gentle pigment bleed, cold-press paper texture, dreamy washes, artisan illustration, calm flowing brushwork",
+  },
+  {
+    id: "studio-portrait",
+    effect: "overexposed",
+    name: "Studio Portrait",
+    family: "Fashion",
+    description: "Professional studio lighting with diffused softboxes and magazine clarity.",
+    accent: "#e2e8f0",
+    prompt: "professional photo studio portrait, diffused softbox lighting, clean seamless backdrop, magazine cover quality, refined skin tones, editorial polish",
+  },
+  {
+    id: "manga-lines",
+    effect: "sketch",
+    name: "Manga Lines",
+    family: "Anime",
+    description: "Black-and-white manga panel with screen tone halftone and dramatic ink.",
+    accent: "#cbd5e1",
+    prompt: "japanese manga panel aesthetic, black and white ink linework, screen tone halftone shading, dramatic perspective, dynamic action panel",
+  },
+  {
+    id: "hip-hop-visual",
+    effect: "flash-comic",
+    name: "Hip-Hop Visual",
+    family: "Music",
+    description: "Music-video swagger with bold saturation, gold tones, and slow-mo grit.",
+    accent: "#fbbf24",
+    prompt: "hip hop music video aesthetic, bold saturated colors, gold tones, urban grit, slow motion swagger, street style cinematic moment",
+  },
+  {
+    id: "pixel-arcade",
+    effect: "canvas",
+    name: "Pixel Arcade",
+    family: "Game",
+    description: "16-bit pixel art look with limited palette and retro arcade vibes.",
+    accent: "#a3e635",
+    prompt: "16-bit pixel art animation aesthetic, retro arcade game look, limited 8-color palette, blocky pixelation, nostalgic gaming feel",
+  },
+  {
+    id: "comic-action",
+    effect: "flash-comic",
+    name: "Comic Action",
+    family: "Pop Action",
+    description: "Comic-book panel motion with halftone dots and dynamic bold outlines.",
+    accent: "#f43f5e",
+    prompt: "american comic book panel aesthetic, halftone Ben Day dots, bold ink outlines, dynamic action pose, vibrant superhero palette, BAM POW energy",
+  },
+  {
+    id: "storm-light",
+    effect: "noir",
+    name: "Storm Light",
+    family: "Mood",
+    description: "Dramatic stormy weather with overcast tension and silver-blue tones.",
+    accent: "#64748b",
+    prompt: "dramatic stormy weather cinematic, overcast moody atmosphere, silver-blue cold tones, lightning hints, brooding tension, atmospheric depth",
+  },
+  {
+    id: "cafe-window",
+    effect: "hand-paint",
+    name: "Café Window",
+    family: "Lifestyle",
+    description: "Cozy café interior with warm tungsten glow and soft rain-on-glass mood.",
+    accent: "#fb923c",
+    prompt: "cozy café window aesthetic, warm tungsten interior light, soft rain droplets on glass, calm lifestyle moment, intimate atmosphere",
   },
 ];
 
@@ -382,7 +575,7 @@ async function persistOutputUrl(mediaUrl: string, generationId?: string) {
 
 function applyPixelPreset(
   imageData: ImageData,
-  presetId: PresetId,
+  effect: LocalEffectId,
   colors: { background: string; mid: string; object: string },
   frame: number
 ) {
@@ -403,13 +596,13 @@ function applyPixelPreset(
       const l = luminance(r, g, b);
       const noise = deterministicNoise(x, y, frame);
 
-      if (presetId === "layer-mixed-media") {
+      if (effect === "layer-mixed-media") {
         const target = l < 82 ? obj : l < 170 ? mid : bg;
         const edgeBoost = noise > 0.84 ? 34 : 0;
         data[i] = clamp(mixChannel(r, target.r, 0.78) - edgeBoost);
         data[i + 1] = clamp(mixChannel(g, target.g, 0.78) - edgeBoost);
         data[i + 2] = clamp(mixChannel(b, target.b, 0.78) - edgeBoost);
-      } else if (presetId === "sketch") {
+      } else if (effect === "sketch") {
         const right = x < width - 1 ? (y * width + x + 1) * 4 : i;
         const down = y < height - 1 ? ((y + 1) * width + x) * 4 : i;
         const lr = luminance(source[right], source[right + 1], source[right + 2]);
@@ -419,32 +612,32 @@ function applyPixelPreset(
         data[i] = clamp(paper + edge * 0.18);
         data[i + 1] = clamp(paper - edge * 0.16);
         data[i + 2] = clamp(paper - edge * 0.12);
-      } else if (presetId === "canvas") {
+      } else if (effect === "canvas") {
         data[i] = clamp(posterize(mixChannel(r, bg.r, 0.12), 7) + (noise - 0.5) * 18);
         data[i + 1] = clamp(posterize(mixChannel(g, mid.g, 0.15), 7) + (noise - 0.5) * 18);
         data[i + 2] = clamp(posterize(mixChannel(b, obj.b, 0.1), 7) + (noise - 0.5) * 18);
-      } else if (presetId === "flash-comic") {
+      } else if (effect === "flash-comic") {
         data[i] = clamp(posterize(r * 1.24 + obj.r * 0.16, 5));
         data[i + 1] = clamp(posterize(g * 1.12 + mid.g * 0.12, 5));
         data[i + 2] = clamp(posterize(b * 1.2 + bg.b * 0.08, 5));
-      } else if (presetId === "overexposed") {
+      } else if (effect === "overexposed") {
         data[i] = clamp(r * 1.55 + 30);
         data[i + 1] = clamp(g * 1.55 + 30);
         data[i + 2] = clamp(b * 1.45 + 38);
-      } else if (presetId === "paper") {
+      } else if (effect === "paper") {
         data[i] = clamp(mixChannel(r, 245, 0.22) + noise * 16);
         data[i + 1] = clamp(mixChannel(g, 225, 0.22) + noise * 12);
         data[i + 2] = clamp(mixChannel(b, 188, 0.28) + noise * 8);
-      } else if (presetId === "noir") {
+      } else if (effect === "noir") {
         const contrast = clamp((l - 128) * 1.85 + 128 + (noise - 0.5) * 42);
         data[i] = contrast;
         data[i + 1] = contrast;
         data[i + 2] = contrast;
-      } else if (presetId === "particles") {
+      } else if (effect === "particles") {
         data[i] = clamp(r * 0.48 + mid.r * 0.1);
         data[i + 1] = clamp(g * 0.54 + mid.g * 0.18);
         data[i + 2] = clamp(b * 0.7 + obj.b * 0.12);
-      } else if (presetId === "hand-paint") {
+      } else if (effect === "hand-paint") {
         data[i] = clamp(posterize(mixChannel(r, bg.r, 0.18), 6));
         data[i + 1] = clamp(posterize(mixChannel(g, mid.g, 0.1), 6));
         data[i + 2] = clamp(posterize(mixChannel(b, obj.b, 0.08), 6));
@@ -453,11 +646,11 @@ function applyPixelPreset(
   }
 }
 
-function drawOverlay(ctx: CanvasRenderingContext2D, presetId: PresetId, width: number, height: number, frame: number, colors: { background: string; mid: string; object: string }) {
-  if (presetId === "layer-mixed-media" || presetId === "noir") {
+function drawOverlay(ctx: CanvasRenderingContext2D, effect: LocalEffectId, width: number, height: number, frame: number, colors: { background: string; mid: string; object: string }) {
+  if (effect === "layer-mixed-media" || effect === "noir") {
     ctx.save();
     ctx.globalAlpha = 0.22;
-    ctx.strokeStyle = presetId === "noir" ? "rgba(255,255,255,0.16)" : colors.object;
+    ctx.strokeStyle = effect === "noir" ? "rgba(255,255,255,0.16)" : colors.object;
     ctx.lineWidth = Math.max(1, width / 640);
     for (let y = 0; y < height; y += Math.max(10, Math.round(height / 34))) {
       ctx.beginPath();
@@ -468,16 +661,16 @@ function drawOverlay(ctx: CanvasRenderingContext2D, presetId: PresetId, width: n
     ctx.restore();
   }
 
-  if (presetId === "particles" || presetId === "canvas" || presetId === "hand-paint") {
+  if (effect === "particles" || effect === "canvas" || effect === "hand-paint") {
     ctx.save();
-    ctx.globalCompositeOperation = presetId === "particles" ? "screen" : "source-over";
+    ctx.globalCompositeOperation = effect === "particles" ? "screen" : "source-over";
     for (let i = 0; i < 36; i++) {
       const x = ((i * 97 + frame * 9) % width);
       const y = ((i * 53 + frame * 5) % height);
       const length = 20 + (i % 7) * 10;
-      ctx.globalAlpha = presetId === "particles" ? 0.35 : 0.16;
+      ctx.globalAlpha = effect === "particles" ? 0.35 : 0.16;
       ctx.strokeStyle = i % 3 === 0 ? colors.object : i % 3 === 1 ? colors.mid : colors.background;
-      ctx.lineWidth = presetId === "particles" ? 1.4 : 5;
+      ctx.lineWidth = effect === "particles" ? 1.4 : 5;
       ctx.beginPath();
       ctx.moveTo(x, y);
       ctx.lineTo(x + Math.cos(i + frame * 0.05) * length, y + Math.sin(i * 1.7) * length);
@@ -486,7 +679,7 @@ function drawOverlay(ctx: CanvasRenderingContext2D, presetId: PresetId, width: n
     ctx.restore();
   }
 
-  if (presetId === "flash-comic") {
+  if (effect === "flash-comic") {
     ctx.save();
     ctx.globalCompositeOperation = "multiply";
     ctx.globalAlpha = 0.12;
@@ -754,9 +947,9 @@ export default function CinematicStylesPage() {
           frame += 1;
           ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
           const frameData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-          applyPixelPreset(frameData, selectedPresetId, colors, frame);
+          applyPixelPreset(frameData, selectedPreset.effect, colors, frame);
           ctx.putImageData(frameData, 0, 0);
-          drawOverlay(ctx, selectedPresetId, canvas.width, canvas.height, frame, colors);
+          drawOverlay(ctx, selectedPreset.effect, canvas.width, canvas.height, frame, colors);
           setStatusMessage("Applying the selected preset to video frames.");
           setProgress(Math.min(99, Math.round((video.currentTime / duration) * 100)));
         }
