@@ -198,7 +198,6 @@ function ProofUpload({ file, onFile, onClear }: { file: File | null; onFile: (f:
 
   return (
     <div>
-      <p className="text-sm font-medium text-slate-300 mb-1">Upload Payment Proof</p>
       {file ? (
         <div className="flex items-center gap-3 p-3 bg-slate-800/60 rounded-xl border border-emerald-500/30">
           <div className="w-9 h-9 rounded-lg bg-emerald-500/15 flex items-center justify-center flex-shrink-0">
