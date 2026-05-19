@@ -56,7 +56,25 @@ type PresetId =
   | "pixel-arcade"
   | "comic-action"
   | "storm-light"
-  | "cafe-window";
+  | "cafe-window"
+  | "toxic-glow"
+  | "motion-tracker"
+  | "black-light"
+  | "liquid-chrome"
+  | "duotone-bold"
+  | "shattered-frame"
+  | "paper-fold"
+  | "glow-drift"
+  | "old-hollywood"
+  | "soap-bubbles"
+  | "glossy-page"
+  | "frost-bite"
+  | "mirror-shards"
+  | "magma-heat"
+  | "marble-bust"
+  | "deep-tide"
+  | "editorial-modern"
+  | "graffiti-spray";
 
 type Preset = {
   id: PresetId;
@@ -322,6 +340,168 @@ const PRESETS: Preset[] = [
     description: "Cozy café interior with warm tungsten glow and soft rain-on-glass mood.",
     accent: "#fb923c",
     prompt: "cozy café window aesthetic, warm tungsten interior light, soft rain droplets on glass, calm lifestyle moment, intimate atmosphere",
+  },
+  {
+    id: "toxic-glow",
+    effect: "flash-comic",
+    name: "Toxic Glow",
+    family: "Future",
+    description: "Acidic neon greens with UV-reactive surfaces and eerie post-apocalyptic glow.",
+    accent: "#a3e635",
+    prompt: "toxic radioactive glow aesthetic, neon green and acid yellow palette, fluorescent UV reactive surfaces, eerie post-apocalyptic atmosphere, hazardous beauty",
+  },
+  {
+    id: "motion-tracker",
+    effect: "particles",
+    name: "Motion Tracker",
+    family: "Future",
+    description: "Surveillance HUD with target reticles, timestamps, and military thermal feel.",
+    accent: "#22d3ee",
+    prompt: "surveillance camera tracking HUD aesthetic, target reticle overlays, frame timestamps, military thermal vision, intelligence operative atmosphere",
+  },
+  {
+    id: "black-light",
+    effect: "particles",
+    name: "Black Light",
+    family: "Future",
+    description: "UV blacklight party glow with fluorescent neon paint and dark room atmosphere.",
+    accent: "#c084fc",
+    prompt: "blacklight UV nightclub aesthetic, fluorescent neon purple and magenta paint glow, dark room party atmosphere, ultraviolet reactive surfaces",
+  },
+  {
+    id: "liquid-chrome",
+    effect: "hand-paint",
+    name: "Liquid Chrome",
+    family: "Art",
+    description: "Psychedelic chrome distortion with fluid metallic surfaces and surreal motion.",
+    accent: "#94a3b8",
+    prompt: "liquid chrome psychedelic distortion aesthetic, fluid mirror metallic surfaces, surreal abstract motion, melting reflective material",
+  },
+  {
+    id: "duotone-bold",
+    effect: "noir",
+    name: "Duotone Bold",
+    family: "Art",
+    description: "Bold two-color graphic style with magazine-cover contrast and poster impact.",
+    accent: "#fb7185",
+    prompt: "bold duotone graphic aesthetic, exactly two contrasting colors, high contrast poster look, magazine cover style, screen print energy",
+  },
+  {
+    id: "shattered-frame",
+    effect: "layer-mixed-media",
+    name: "Shattered Frame",
+    family: "Art",
+    description: "Fragmented broken-glass composition with collage panels and cubist motion.",
+    accent: "#f97316",
+    prompt: "shattered fragmented composition aesthetic, broken glass panels, dimensional rifts between fragments, collage cubist motion, identity dissolution",
+  },
+  {
+    id: "paper-fold",
+    effect: "canvas",
+    name: "Paper Fold",
+    family: "Art",
+    description: "Origami-style geometric creases with sharp paper-craft texture and sculpted shadows.",
+    accent: "#fde68a",
+    prompt: "origami paper folding aesthetic, sharp geometric creases, paper craft texture, sculpted dimensional shadows, minimal craft beauty",
+  },
+  {
+    id: "glow-drift",
+    effect: "particles",
+    name: "Glow Drift",
+    family: "Mood",
+    description: "Dreamy glowing orbs drifting through frame with bokeh and magical light dust.",
+    accent: "#fde047",
+    prompt: "random glowing orbs drifting through frame, soft bokeh lights, magical particle dust, dreamy atmospheric light leaks, fairytale shimmer",
+  },
+  {
+    id: "old-hollywood",
+    effect: "paper",
+    name: "Old Hollywood",
+    family: "Vintage",
+    description: "Golden age cinema glamour with classic black-and-white grain and starry lighting.",
+    accent: "#fef3c7",
+    prompt: "old Hollywood golden age cinematic aesthetic, classic black and white film grain, soft glamour starlight, vintage diva portrait, timeless elegance",
+  },
+  {
+    id: "soap-bubbles",
+    effect: "particles",
+    name: "Soap Bubbles",
+    family: "Whimsy",
+    description: "Floating soap bubbles with rainbow reflections and slow dreamy drifting motion.",
+    accent: "#a5f3fc",
+    prompt: "floating soap bubbles aesthetic, rainbow reflections on spherical surfaces, dreamy childhood whimsy, slow drifting motion, magical iridescent shimmer",
+  },
+  {
+    id: "glossy-page",
+    effect: "canvas",
+    name: "Glossy Page",
+    family: "Fashion",
+    description: "Editorial fashion magazine page with print-quality polish and commercial sheen.",
+    accent: "#f5d0fe",
+    prompt: "glossy magazine page aesthetic, editorial fashion print quality, clean typography negative space, high-end commercial polish, designer brand sheen",
+  },
+  {
+    id: "frost-bite",
+    effect: "noir",
+    name: "Frost Bite",
+    family: "Mood",
+    description: "Frostbitten cold vision with icy blue tones, frozen breath, and arctic chill.",
+    accent: "#bae6fd",
+    prompt: "frostbitten cold vision aesthetic, icy blue and frozen white palette, breath fog atmosphere, arctic chill mood, deep winter cinematic",
+  },
+  {
+    id: "mirror-shards",
+    effect: "layer-mixed-media",
+    name: "Mirror Shards",
+    family: "Art",
+    description: "Reflective broken-mirror facets with sharp geometric fragments and dimensional fracture.",
+    accent: "#e2e8f0",
+    prompt: "broken mirror shards reflective aesthetic, fragmented mirror reflections, sharp geometric facets, dimensional fracture, kaleidoscopic identity",
+  },
+  {
+    id: "magma-heat",
+    effect: "flash-comic",
+    name: "Magma Heat",
+    family: "Mood",
+    description: "Molten volcanic energy with glowing embers, intense heat, and primal fire tones.",
+    accent: "#f97316",
+    prompt: "molten magma volcanic aesthetic, glowing red and orange embers, intense heat distortion shimmer, primal fire energy, lava flow texture",
+  },
+  {
+    id: "marble-bust",
+    effect: "paper",
+    name: "Marble Bust",
+    family: "Vintage",
+    description: "Classical marble sculpture with smooth stone texture and museum-quality lighting.",
+    accent: "#f1f5f9",
+    prompt: "marble sculpture classical aesthetic, smooth carved stone texture, museum gallery lighting, ancient Greek bust dignity, timeless white marble",
+  },
+  {
+    id: "deep-tide",
+    effect: "particles",
+    name: "Deep Tide",
+    family: "Mood",
+    description: "Underwater submerged feel with blue-green caustics and fluid drifting motion.",
+    accent: "#67e8f9",
+    prompt: "underwater deep ocean aesthetic, blue green caustic light patterns, fluid motion through water, submerged dreamy atmosphere, drifting marine quality",
+  },
+  {
+    id: "editorial-modern",
+    effect: "overexposed",
+    name: "Editorial Modern",
+    family: "Fashion",
+    description: "Contemporary editorial cinema with minimal composition and bright commercial polish.",
+    accent: "#fafafa",
+    prompt: "modern editorial cinematic aesthetic, clean minimal composition, contemporary commercial polish, bright spacious mood, premium magazine quality",
+  },
+  {
+    id: "graffiti-spray",
+    effect: "flash-comic",
+    name: "Graffiti Spray",
+    family: "Urban",
+    description: "Street graffiti energy with spray-paint texture, bold tags, and urban grit.",
+    accent: "#a78bfa",
+    prompt: "street graffiti spray paint aesthetic, bold spray paint texture, urban wall tags, hip hop alley grit, raw street art energy",
   },
 ];
 
