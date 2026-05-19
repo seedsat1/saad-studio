@@ -198,7 +198,7 @@ function ProofUpload({ file, onFile, onClear }: { file: File | null; onFile: (f:
 
   return (
     <div>
-      <p className="text-sm font-medium text-slate-300 mb-1">{"Upload Payment Proof"}</p>
+      <p className="text-sm font-medium text-slate-300 mb-1">Upload Payment Proof</p>
       {file ? (
         <div className="flex items-center gap-3 p-3 bg-slate-800/60 rounded-xl border border-emerald-500/30">
           <div className="w-9 h-9 rounded-lg bg-emerald-500/15 flex items-center justify-center flex-shrink-0">
@@ -217,10 +217,6 @@ function ProofUpload({ file, onFile, onClear }: { file: File | null; onFile: (f:
             ${dragging ? "border-violet-500 bg-violet-500/10" : "border-slate-700 hover:border-violet-500/60 hover:bg-slate-800/40"}`}
         >
           <div className="w-12 h-12 rounded-xl bg-slate-800 flex items-center justify-center"><Upload className="w-5 h-5 text-violet-400" /></div>
-          <div className="text-center">
-            <p className="text-sm font-medium text-slate-200">Drop your file here, or click to browse</p>
-            <p className="text-xs text-slate-500 mt-0.5">PNG, JPG, PDF — max 10 MB</p>
-          </div>
         </div>
       )}
       <input ref={ref} type="file" accept="image/png,image/jpeg,application/pdf" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handle(f); }} />
