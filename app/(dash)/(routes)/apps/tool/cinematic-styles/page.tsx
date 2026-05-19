@@ -97,7 +97,7 @@ type OutputItem = {
 
 type Rgb = { r: number; g: number; b: number };
 
-const PRESETS: Preset[] = [
+export const PRESETS: Preset[] = [
   {
     id: "layer-mixed-media",
     effect: "layer-mixed-media",

@@ -803,15 +803,16 @@ function CinematicStylesCms() {
     };
   }, []);
 
+  const presetCatalog = Array.isArray(PRESETS) ? PRESETS : [];
   const filtered = React.useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return PRESETS;
-    return PRESETS.filter((p) => (
+    if (!q) return presetCatalog;
+    return presetCatalog.filter((p) => (
       p.id.toLowerCase().includes(q) ||
       p.name.toLowerCase().includes(q) ||
       p.family.toLowerCase().includes(q)
     ));
-  }, [query]);
+  }, [query, presetCatalog]);
 
   const updateMedia = useCallback((presetId: string, next: CinematicPresetMedia | null) => {
     setPresetMedia((prev) => {
