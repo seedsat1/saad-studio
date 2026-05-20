@@ -373,10 +373,11 @@ const cardVariants = {
   }),
 };
 
-type KieBalanceState = {
+type SupplierBalanceState = {
   amount: number | null;
   status: "HIGH" | "MEDIUM" | "LOW" | "UNAVAILABLE" | "LOADING";
   syncedAt: string | null;
+  billingUrl?: string | null;
 };
 
 type AdminTransactionRow = {
@@ -407,7 +408,7 @@ type GenerationPreviewState = {
   createdAt: string;
 };
 
-function getBalanceIndicator(status: KieBalanceState["status"]) {
+function getBalanceIndicator(status: SupplierBalanceState["status"]) {
   switch (status) {
     case "HIGH":
       return {
@@ -473,7 +474,12 @@ export default function AdminDashboard() {
     pendingCredits: 17,
     apiCalls: 98430,
   });
-  const [kieBalance, setKieBalance] = useState<KieBalanceState>({
+  const [kieBalance, setKieBalance] = useState<SupplierBalanceState>({
+    amount: null,
+    status: "LOADING",
+    syncedAt: null,
+  });
+  const [googleBalance, setGoogleBalance] = useState<SupplierBalanceState>({
     amount: null,
     status: "LOADING",
     syncedAt: null,
@@ -578,8 +584,36 @@ export default function AdminDashboard() {
       }
     };
 
+    const loadGoogleBalance = async () => {
+      try {
+        const res = await fetch("/api/admin/suppliers/google-billing", { cache: "no-store" });
+        if (!res.ok) throw new Error("Failed to load Google billing");
+        const data = await res.json();
+        if (!active) return;
+
+        setGoogleBalance({
+          amount: Number.isFinite(Number(data?.amount)) ? Number(data.amount) : null,
+          status: data?.status ?? "UNAVAILABLE",
+          syncedAt: typeof data?.syncedAt === "string" ? data.syncedAt : new Date().toISOString(),
+          billingUrl: typeof data?.billingUrl === "string" ? data.billingUrl : null,
+        });
+      } catch {
+        if (!active) return;
+        setGoogleBalance({
+          amount: null,
+          status: "UNAVAILABLE",
+          syncedAt: new Date().toISOString(),
+          billingUrl: "https://console.cloud.google.com/billing/reports",
+        });
+      }
+    };
+
     loadKieBalance();
-    const timer = window.setInterval(loadKieBalance, 60_000);
+    loadGoogleBalance();
+    const timer = window.setInterval(() => {
+      loadKieBalance();
+      loadGoogleBalance();
+    }, 60_000);
 
     return () => {
       active = false;
@@ -759,11 +793,18 @@ export default function AdminDashboard() {
     }
   };
 
-  const balanceIndicator = getBalanceIndicator(kieBalance.status);
+  const kieBalanceIndicator = getBalanceIndicator(kieBalance.status);
+  const googleBalanceIndicator = getBalanceIndicator(googleBalance.status);
   const formattedKieAmount =
     kieBalance.amount !== null ? `$${kieBalance.amount.toFixed(2)}` : "Unavailable";
-  const lastSyncText = kieBalance.syncedAt
-    ? new Date(kieBalance.syncedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+  const formattedGoogleAmount =
+    googleBalance.amount !== null ? `$${googleBalance.amount.toFixed(2)}` : "Open report";
+  const latestSync = [kieBalance.syncedAt, googleBalance.syncedAt]
+    .filter(Boolean)
+    .sort()
+    .at(-1);
+  const lastSyncText = latestSync
+    ? new Date(latestSync).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
     : "Never";
 
   const handleSaveCms = async () => {
@@ -1046,13 +1087,35 @@ export default function AdminDashboard() {
 
           <div className="flex items-center gap-5 flex-shrink-0">
             <div className="flex items-center gap-2">
-              <span className={`w-2 h-2 rounded-full animate-pulse ${balanceIndicator.dotClass}`} />
-              <span className="text-xs text-slate-400">Provider Billing Balance:</span>
-              <span className={`text-sm font-bold ${balanceIndicator.valueClass}`}>{formattedKieAmount}</span>
+              <span className={`w-2 h-2 rounded-full animate-pulse ${kieBalanceIndicator.dotClass}`} />
+              <span className="text-xs text-slate-400">KIE Balance:</span>
+              <span className={`text-sm font-bold ${kieBalanceIndicator.valueClass}`}>{formattedKieAmount}</span>
               <span
-                className={`text-[10px] px-1.5 py-0.5 rounded border font-semibold ${balanceIndicator.badgeClass}`}
+                className={`text-[10px] px-1.5 py-0.5 rounded border font-semibold ${kieBalanceIndicator.badgeClass}`}
               >
                 {kieBalance.status}
+              </span>
+            </div>
+            <div className="h-4 w-px bg-white/10" />
+            <div className="flex items-center gap-2">
+              <span className={`w-2 h-2 rounded-full animate-pulse ${googleBalanceIndicator.dotClass}`} />
+              <span className="text-xs text-slate-400">Google Cost:</span>
+              {googleBalance.amount !== null ? (
+                <span className={`text-sm font-bold ${googleBalanceIndicator.valueClass}`}>{formattedGoogleAmount}</span>
+              ) : (
+                <a
+                  href={googleBalance.billingUrl ?? "https://console.cloud.google.com/billing/reports"}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-sm font-bold text-sky-300 hover:text-sky-200"
+                >
+                  {formattedGoogleAmount}
+                </a>
+              )}
+              <span
+                className={`text-[10px] px-1.5 py-0.5 rounded border font-semibold ${googleBalanceIndicator.badgeClass}`}
+              >
+                {googleBalance.status}
               </span>
             </div>
           </div>
