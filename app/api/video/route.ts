@@ -11,6 +11,7 @@ import prismadb from "@/lib/prismadb";
 import { getResolvedKieRoutingMaps } from "@/lib/kie-model-routing";
 import { syncKieModelCatalog } from "@/lib/kie-model-sync";
 import { attachIdempotencyGeneration, beginIdempotency, completeIdempotency, getIdempotencyKey, hashRequestBody } from "@/lib/idempotency";
+import { VIDEO_PROVIDER_BUSY_MESSAGE } from "@/lib/generation-errors";
 
 const KIE_BASE = "https://api.kie.ai/api/v1";
 const WAVESPEED_BASE = "https://api.wavespeed.ai/api/v3";
@@ -173,6 +174,14 @@ function normalizeInputForKie(payload: Record<string, unknown>) {
   return { ...payload };
 }
 
+function normalizeKling30Mode(value: unknown) {
+  const raw = typeof value === "string" ? value.trim() : "";
+  const lower = raw.toLowerCase();
+  if (lower === "4k") return "4K";
+  if (lower === "pro" || lower === "1080p") return "pro";
+  return "std";
+}
+
 function mapToKieInput(model: string, payload: Record<string, unknown>) {
   const input: Record<string, unknown> = { ...payload };
 
@@ -197,7 +206,7 @@ function mapToKieInput(model: string, payload: Record<string, unknown>) {
 
   if (model === "kling-3.0/video") {
     const out: Record<string, unknown> = {};
-    const mode = typeof input.mode === "string" ? input.mode : "std";
+    const mode = normalizeKling30Mode(input.mode ?? input.resolution ?? input.quality);
     const sound = input.sound === true;
     const multiShots = input.multi_shots === true;
     const durationRaw = input.duration;
@@ -1059,16 +1068,21 @@ export async function POST(req: Request) {
           clearMediaUrl: true,
         }).catch(() => {});
       }
+      const responseJson = {
+        error: `KIE returned non-JSON (${createRes.status}): ${text.slice(0, 200)}`,
+        publicError: VIDEO_PROVIDER_BUSY_MESSAGE,
+        code: "provider_submit_failed",
+      };
       await completeIdempotency({
         userId,
         route: IDEMPOTENCY_ROUTE,
         key: idempotencyKey,
         generationId,
         responseStatus: 502,
-        responseJson: { error: `KIE returned non-JSON (${createRes.status}): ${text.slice(0, 200)}` },
+        responseJson,
       }).catch(() => {});
       return NextResponse.json(
-        { error: `KIE returned non-JSON (${createRes.status}): ${text.slice(0, 200)}` },
+        responseJson,
         { status: 502 },
       );
     }
@@ -1090,16 +1104,22 @@ export async function POST(req: Request) {
           clearMediaUrl: true,
         }).catch(() => {});
       }
+      const responseJson = {
+        generationId,
+        error: createJson?.msg || createJson?.message || `KIE createTask failed (${createRes.status})`,
+        publicError: VIDEO_PROVIDER_BUSY_MESSAGE,
+        code: "provider_submit_failed",
+      };
       await completeIdempotency({
         userId,
         route: IDEMPOTENCY_ROUTE,
         key: idempotencyKey,
         generationId,
         responseStatus: 502,
-        responseJson: { error: createJson?.msg || createJson?.message || `KIE createTask failed (${createRes.status})` },
+        responseJson,
       }).catch(() => {});
       return NextResponse.json(
-        { error: createJson?.msg || createJson?.message || `KIE createTask failed (${createRes.status})` },
+        responseJson,
         { status: 502 },
       );
     }

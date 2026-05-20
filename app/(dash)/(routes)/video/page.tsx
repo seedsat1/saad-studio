@@ -1219,7 +1219,12 @@ function VideoPageInner() {
 
         // Resolution → mode: "std" | "pro" | "4K"
         const normalizedResolution = resolution?.trim().toLowerCase();
-        const modeValue = normalizedResolution === "4k" ? "4K" : normalizedResolution === "pro" ? "pro" : "std";
+        const modeValue =
+          normalizedResolution === "4k"
+            ? "4K"
+            : normalizedResolution === "pro" || normalizedResolution === "1080p"
+              ? "pro"
+              : "std";
 
         // ── image_urls: read DIRECTLY from React state (authoritative source) ──
         // payload.image / payload.end_image are set by the generic block above,
@@ -1335,7 +1340,7 @@ function VideoPageInner() {
         body: JSON.stringify({ modelRoute: selectedModel.api_route, payload }),
       });
 
-      let data: { taskId?: string; error?: string } = {};
+      let data: { taskId?: string; error?: string; publicError?: string } = {};
       const clonedRes = res.clone();
       try {
         data = await res.json();
@@ -1349,7 +1354,7 @@ function VideoPageInner() {
       }
 
       if (!res.ok || !data.taskId) {
-        setGenerationError(getSafeErrorMessage(data.error ?? "Failed to start generation"));
+        setGenerationError(getSafeErrorMessage(data.publicError ?? data.error ?? "Failed to start generation"));
         setIsSubmitting(false);
         return;
       }

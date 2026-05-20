@@ -5,10 +5,14 @@ export const INSUFFICIENT_CREDITS_MESSAGE =
   "Insufficient credits. Please purchase more credits to continue.";
 
 export const LOGIN_REQUIRED_MESSAGE = "Please sign in to continue.";
+export const VIDEO_PROVIDER_BUSY_MESSAGE =
+  "The video provider is busy right now. Please try again in a few minutes.";
 
 const SAFE_VALIDATION_MESSAGES = new Set([
   LOGIN_REQUIRED_MESSAGE,
   INSUFFICIENT_CREDITS_MESSAGE,
+  "Insufficient credits",
+  VIDEO_PROVIDER_BUSY_MESSAGE,
   "Please enter a prompt.",
   "Please upload an image.",
   "Unsupported file type.",
@@ -22,6 +26,10 @@ export function isSafePublicGenerationMessage(message: unknown): message is stri
   if (SAFE_VALIDATION_MESSAGES.has(message)) return true;
   return (
     message.startsWith("Please ") ||
+    message.startsWith("Kling 3.0 ") ||
+    message.startsWith("Element @") ||
+    message.includes("multi-shot") ||
+    message.includes("shot prompt") ||
     message.includes(" is required") ||
     message.includes(" required") ||
     message.includes("Unsupported file type") ||
