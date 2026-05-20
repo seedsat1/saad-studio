@@ -48,17 +48,20 @@ export interface SaadPlan {
 // ─── Constants — THE CONSTITUTION ─────────────────────────────────────────────
 
 export const KIE_PACKAGES: KiePackage[] = [
-  { label: "$5",    usd: 5,    credits: 100,    costPerCredit: 0.050000 },
-  { label: "$50",   usd: 50,   credits: 1000,   costPerCredit: 0.050000 },
-  { label: "$500",  usd: 500,  credits: 10500,  costPerCredit: 0.047619 },
-  { label: "$1250", usd: 1250, credits: 27500,  costPerCredit: 0.045455 },
+  { label: "$5",    usd: 5,    credits: 1000,   costPerCredit: 0.005000 },
+  { label: "$50",   usd: 50,   credits: 10000,  costPerCredit: 0.005000 },
+  { label: "$500",  usd: 500,  credits: 105000, costPerCredit: 0.004762 },
+  { label: "$1250", usd: 1250, credits: 275000, costPerCredit: 0.004545 },
 ];
 
+// Competitive plans matching Higgsfield's value: similar $/credit, similar
+// per-generation counts, while still leaving a ≥1.5x margin via the lower
+// userCreditsRate set on each model.
 export const SAAD_PLANS: SaadPlan[] = [
-  { id: "starter", name: "Starter", monthlyUsd: 15,  credits: 25,  annualDiscount: 0  },
-  { id: "plus",    name: "Plus",    monthlyUsd: 35,  credits: 60,  annualDiscount: 10 },
-  { id: "pro",     name: "Pro",     monthlyUsd: 70,  credits: 120, annualDiscount: 12 },
-  { id: "max",     name: "Max",     monthlyUsd: 99,  credits: 300, annualDiscount: 15 },
+  { id: "starter", name: "Starter", monthlyUsd: 15,  credits: 300,  annualDiscount: 0  },
+  { id: "plus",    name: "Plus",    monthlyUsd: 35,  credits: 800,  annualDiscount: 10 },
+  { id: "pro",     name: "Pro",     monthlyUsd: 70,  credits: 1800, annualDiscount: 12 },
+  { id: "max",     name: "Max",     monthlyUsd: 99,  credits: 3000, annualDiscount: 15 },
 ];
 
 // ─── Default model registry ───────────────────────────────────────────────────

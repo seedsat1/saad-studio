@@ -61,8 +61,8 @@ const PLANS = [
     id: "starter",
     badge: "Starter",
     tagline: "For first-time AI content creators",
-    credits: "250 credits / mo",
-    equiv: "= 125 Nano Banana Pro images - ~41 Kling 3.0 videos",
+    credits: "300 credits / mo",
+    equiv: "= 111 Nano Banana Pro images - ~9 Kling 3.0 videos (15s)",
     price: "$15",
     period: "per month, billed annually",
     cta: "Get Starter",
@@ -85,8 +85,8 @@ const PLANS = [
     id: "plus",
     badge: "Plus",
     tagline: "For consistent AI creation",
-    credits: "600 credits / mo",
-    equiv: "= 300 Nano Banana Pro images - ~100 Kling 3.0 videos",
+    credits: "800 credits / mo",
+    equiv: "= 296 Nano Banana Pro images - ~25 Kling 3.0 videos (15s)",
     price: "$35",
     period: "per month, billed annually",
     cta: "Get Plus",
@@ -109,8 +109,8 @@ const PLANS = [
     id: "pro",
     badge: "Pro",
     tagline: "For serious AI content studios",
-    credits: "1,200 credits / mo",
-    equiv: "= 600 Nano Banana Pro images - ~200 Kling 3.0 videos",
+    credits: "1,800 credits / mo",
+    equiv: "= 666 Nano Banana Pro images - ~57 Kling 3.0 videos (15s)",
     price: "$70",
     period: "per month, billed annually",
     cta: "Get Pro - Most Popular",
@@ -134,7 +134,7 @@ const PLANS = [
     badge: "Max",
     tagline: "For high-volume studios & agencies",
     credits: "3,000 credits / mo",
-    equiv: "= 1,500 Nano Banana Pro images - ~500 Kling 3.0 videos",
+    equiv: "= 1,111 Nano Banana Pro images - ~95 Kling 3.0 videos (15s)",
     price: "$99",
     period: "per month, billed annually",
     cta: "Get Max",
@@ -191,8 +191,12 @@ const MAX_ANNUAL_UNLIMITED_IMAGE_MODELS = [
   { name: "Nano Banana Pro", badge: "Unlimited" },
 ];
 
-const NANO_BANANA_PRO_CREDITS = 2;
-const KLING_3_STARTER_CREDITS = 6;
+// Source-of-truth values must match lib/pricing-models.ts:
+//   nano_pro.userCreditsRate = 2.7  (per image)
+//   kling30.userCreditsRate  = 2.1  (per second; 5s clip = 10.5 credits)
+// These constants drive the "X images / Y videos" copy on each plan card.
+const NANO_BANANA_PRO_CREDITS = 2.7;
+const KLING_3_STARTER_CREDITS = 10.5;
 
 const parsePlanCredits = (plan: { credits: string; creditsNum?: number }): number => {
   if (typeof plan.creditsNum === "number" && Number.isFinite(plan.creditsNum)) {
