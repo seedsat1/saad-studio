@@ -4,8 +4,11 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } f
 import {
   Check,
   ChevronDown,
+  Copy,
   Download,
+  ExternalLink,
   Film,
+  Info,
   Layers,
   Loader2,
   Palette,
@@ -535,6 +538,9 @@ export default function CinematicStylesPage() {
   const [outputUrl, setOutputUrl] = useState<string | null>(null);
   const [outputs, setOutputs] = useState<OutputItem[]>([]);
   const [presetMedia, setPresetMedia] = useState<Record<string, { type: "image" | "video"; url: string; poster?: string }>>({});
+  const [lightboxPresetId, setLightboxPresetId] = useState<string | null>(null);
+  const [lightboxCopied, setLightboxCopied] = useState(false);
+  const [lightboxReferenceSaved, setLightboxReferenceSaved] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const previewVideoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -544,8 +550,78 @@ export default function CinematicStylesPage() {
     () => PRESETS.find((preset) => preset.id === selectedPresetId) ?? PRESETS[0],
     [selectedPresetId]
   );
+  const lightboxPreset = useMemo(
+    () => (lightboxPresetId ? PRESETS.find((preset) => preset.id === lightboxPresetId) ?? null : null),
+    [lightboxPresetId]
+  );
+  const lightboxMedia = lightboxPresetId ? presetMedia[lightboxPresetId] : null;
   const effectiveFps = fpsMode === "manual" ? manualFps : Number(fpsMode);
   const canGenerate = Boolean(sourceUrl) && status !== "processing" && effectiveFps > 0;
+
+  const closeLightbox = useCallback(() => {
+    setLightboxPresetId(null);
+    setLightboxCopied(false);
+    setLightboxReferenceSaved(false);
+  }, []);
+
+  const downloadLightboxMedia = useCallback(async () => {
+    if (!lightboxMedia?.url || !lightboxPreset) return;
+    try {
+      const res = await fetch(lightboxMedia.url, { mode: "cors" });
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const ext = lightboxMedia.type === "video" ? "mp4" : "jpg";
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = `cinematic-styles-${lightboxPreset.id}.${ext}`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+    } catch {
+      window.open(lightboxMedia.url, "_blank", "noopener,noreferrer");
+    }
+  }, [lightboxMedia, lightboxPreset]);
+
+  const copyLightboxUrl = useCallback(async () => {
+    if (!lightboxMedia?.url) return;
+    try {
+      await navigator.clipboard.writeText(lightboxMedia.url);
+      setLightboxCopied(true);
+      setTimeout(() => setLightboxCopied(false), 2000);
+    } catch {
+      /* noop */
+    }
+  }, [lightboxMedia]);
+
+  const saveLightboxAsReference = useCallback(async () => {
+    if (!lightboxMedia?.url || !lightboxPreset) return;
+    try {
+      const reference = {
+        id: lightboxPreset.id,
+        type: lightboxMedia.type,
+        url: lightboxMedia.url,
+        prompt: lightboxPreset.prompt,
+        model: "Saad Cloud",
+        createdAt: new Date().toISOString(),
+      };
+      window.localStorage.setItem("saad_studio_reference_asset", JSON.stringify(reference));
+      await navigator.clipboard.writeText(lightboxMedia.url);
+      setLightboxReferenceSaved(true);
+      setTimeout(() => setLightboxReferenceSaved(false), 2000);
+    } catch {
+      /* noop */
+    }
+  }, [lightboxMedia, lightboxPreset]);
+
+  useEffect(() => {
+    if (!lightboxPresetId) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeLightbox();
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [lightboxPresetId, closeLightbox]);
 
   useEffect(() => {
     const urls = objectUrls.current;
@@ -1132,12 +1208,14 @@ export default function CinematicStylesPage() {
               {activeTab === "presets" ? (
               <div className="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
                 {PRESETS.map((preset) => (
-                  <button
+                  <div
                     key={preset.id}
-                    type="button"
+                    role="button"
+                    tabIndex={0}
                     onClick={() => setSelectedPresetId(preset.id)}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelectedPresetId(preset.id); } }}
                     className={cn(
-                      "group relative aspect-video overflow-hidden rounded-lg border bg-[#11161d] text-left transition",
+                      "group relative aspect-video overflow-hidden rounded-lg border bg-[#11161d] text-left transition cursor-pointer",
                       selectedPresetId === preset.id ? "border-cyan-300 shadow-[0_0_0_1px_rgba(6,182,212,0.45)]" : "border-white/8 hover:border-white/20"
                     )}
                   >
@@ -1181,12 +1259,23 @@ export default function CinematicStylesPage() {
                       <p className="text-sm font-black text-white">{preset.name}</p>
                       <p className="mt-1 line-clamp-2 text-xs text-slate-300">{preset.description}</p>
                     </div>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setLightboxPresetId(preset.id);
+                      }}
+                      className="absolute left-3 top-3 flex h-7 w-7 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-sm transition hover:bg-black/75"
+                      aria-label="View preset details"
+                    >
+                      <Info className="h-3.5 w-3.5" />
+                    </button>
                     {selectedPresetId === preset.id ? (
                       <div className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full bg-cyan-400 text-slate-950">
                         <Check className="h-4 w-4" />
                       </div>
                     ) : null}
-                  </button>
+                  </div>
                 ))}
               </div>
               ) : activeTab === "processing" ? (
@@ -1255,6 +1344,130 @@ export default function CinematicStylesPage() {
           </div>
         </main>
       </div>
+
+      {lightboxPreset ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm"
+          onClick={(e) => { if (e.target === e.currentTarget) closeLightbox(); }}
+        >
+          <button
+            type="button"
+            onClick={closeLightbox}
+            className="absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-white/10 transition hover:bg-white/20"
+            aria-label="Close"
+          >
+            <X className="h-5 w-5 text-white" />
+          </button>
+
+          <div className="grid max-h-[88vh] w-full max-w-6xl grid-cols-1 gap-4 overflow-y-auto px-4 md:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.8fr)]">
+            <div className="flex min-h-[320px] items-center justify-center rounded-2xl border border-white/10 bg-black/50 p-3 shadow-2xl">
+              {lightboxMedia?.url ? (
+                lightboxMedia.type === "video" ? (
+                  <video
+                    src={lightboxMedia.url}
+                    controls
+                    autoPlay
+                    loop
+                    playsInline
+                    className="max-h-[76vh] max-w-full rounded-xl object-contain"
+                  />
+                ) : (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={lightboxMedia.url}
+                    alt={lightboxPreset.name}
+                    className="max-h-[76vh] max-w-full rounded-xl object-contain"
+                  />
+                )
+              ) : (
+                <div
+                  className="flex aspect-video w-full max-w-2xl items-center justify-center rounded-xl text-sm text-slate-400"
+                  style={{
+                    background: `linear-gradient(135deg, ${lightboxPreset.accent}33, rgba(15,23,42,0.4) 60%, rgba(0,0,0,0.7))`,
+                  }}
+                >
+                  No preview media uploaded yet.
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-4 rounded-2xl border border-white/10 bg-[#0b1222] p-5">
+              <div>
+                <div
+                  className="inline-flex rounded-full border border-white/15 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider"
+                  style={{ color: lightboxPreset.accent }}
+                >
+                  {lightboxPreset.family}
+                </div>
+                <h2 className="mt-4 text-xl font-black text-white">{lightboxPreset.name}</h2>
+                <p className="mt-1 text-xs text-slate-500">{lightboxPreset.id}</p>
+              </div>
+
+              <p className="text-sm leading-6 text-slate-300">{lightboxPreset.description}</p>
+
+              <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 max-h-72 overflow-y-auto">
+                <p className="text-[11px] uppercase tracking-wide text-slate-500">Prompt</p>
+                <p className="mt-1 text-sm leading-6 text-slate-200 whitespace-pre-wrap">{lightboxPreset.prompt}</p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                {lightboxMedia?.url ? (
+                  <button
+                    type="button"
+                    onClick={() => void downloadLightboxMedia()}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-400/30 bg-cyan-500/10 px-3 py-1.5 text-xs text-cyan-100 transition-colors hover:bg-cyan-500/20"
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                    Download
+                  </button>
+                ) : null}
+                {lightboxMedia?.url ? (
+                  <button
+                    type="button"
+                    onClick={() => void saveLightboxAsReference()}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-400/30 bg-emerald-500/10 px-3 py-1.5 text-xs text-emerald-100 transition-colors hover:bg-emerald-500/20"
+                  >
+                    {lightboxReferenceSaved ? <Check className="h-3.5 w-3.5" /> : <Sparkles className="h-3.5 w-3.5" />}
+                    {lightboxReferenceSaved ? "Saved as reference" : "Use as reference"}
+                  </button>
+                ) : null}
+                {lightboxMedia?.url ? (
+                  <a
+                    href={lightboxMedia.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-white/5 px-3 py-1.5 text-xs text-slate-200 transition-colors hover:bg-white/10"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    Open original
+                  </a>
+                ) : null}
+                {lightboxMedia?.url ? (
+                  <button
+                    type="button"
+                    onClick={() => void copyLightboxUrl()}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-white/5 px-3 py-1.5 text-xs text-slate-200 transition-colors hover:bg-white/10"
+                  >
+                    {lightboxCopied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
+                    {lightboxCopied ? "Copied!" : "Copy URL"}
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedPresetId(lightboxPreset.id);
+                    closeLightbox();
+                  }}
+                  className="ml-auto inline-flex items-center gap-1.5 rounded-lg border border-violet-400/30 bg-violet-500/10 px-3 py-1.5 text-xs text-violet-100 transition-colors hover:bg-violet-500/20"
+                >
+                  <Check className="h-3.5 w-3.5" />
+                  Select this preset
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }
