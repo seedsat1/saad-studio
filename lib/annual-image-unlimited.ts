@@ -8,11 +8,12 @@ const DEFAULT_DAILY_LIMIT_BY_PLAN: Record<string, number> = {
   max: 200,
 };
 // After FAST_DAILY_LIMIT images per day, each additional generation must
-// wait SLOWDOWN_MS before submitting. Tightened (10→5, 30s→60s) so that
-// burning through the daily quota on expensive 1K-only models like
-// nano-banana-pro requires meaningful wait time, deterring abuse without
-// punishing honest annual subscribers.
-const DEFAULT_FAST_DAILY_LIMIT = 5;
+// wait SLOWDOWN_MS before submitting. The unlimited toggle in the UI lets
+// annual subscribers generate 1K-only images for free; first 10 per day
+// run at full speed, then a 60s slowdown discourages burning the daily
+// quota on expensive models like nano-banana-pro without hard-blocking
+// honest subscribers.
+const DEFAULT_FAST_DAILY_LIMIT = 10;
 const DEFAULT_SLOWDOWN_MS = 60_000;
 
 export const ANNUAL_UNLIMITED_IMAGE_MODELS = [
