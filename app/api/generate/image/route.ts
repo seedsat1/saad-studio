@@ -207,6 +207,10 @@ async function generateGoogleImage(params: {
     parts.push({ inline_data: inline });
   }
 
+  // Gemini image-gen models accept aspect ratio as a plain string ("1:1",
+  // "16:9", ...) via `imageConfig`. The legacy `responseFormat.image` path
+  // expects protobuf enum values (ASPECT_RATIO_1_1, IMAGE_SIZE_*) and rejects
+  // plain strings with a 400 — so we use the imageConfig path only.
   const imageConfig: Record<string, string> = { aspectRatio: params.aspectRatio || "1:1" };
   const imageSize = normalizeGoogleImageSize(params.googleModel, params.quality);
   if (imageSize) imageConfig.imageSize = imageSize;
@@ -223,7 +227,7 @@ async function generateGoogleImage(params: {
         contents: [{ parts }],
         generationConfig: {
           responseModalities: ["IMAGE"],
-          responseFormat: { image: imageConfig },
+          imageConfig,
         },
       }),
     },
