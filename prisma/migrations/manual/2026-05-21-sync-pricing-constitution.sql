@@ -1,0 +1,23 @@
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Manual migration: sync PricingConstitution to new DEFAULT_MODELS
+-- ─────────────────────────────────────────────────────────────────────────────
+--
+-- The pricing system reads from prismadb.pricingConstitution first and only
+-- falls back to lib/pricing-models.ts (DEFAULT_MODELS) when the table is
+-- empty. The DB still holds the pre-rewrite values (e.g. nano-banana-pro
+-- userCreditsRate = 8 credits/image), so the Generate Image button kept
+-- charging 8 credits even after the code was updated to 2.7 credits.
+--
+-- This script wipes the table so DEFAULT_MODELS becomes the live source.
+-- The admin "Pricing Constitution" page can re-populate the table from the
+-- new defaults at any time (it upserts on save).
+--
+-- HOW TO RUN
+--   Open Neon Console → SQL Editor → paste this file → Run
+-- or
+--   psql "$DATABASE_URL" -f prisma/migrations/manual/2026-05-21-sync-pricing-constitution.sql
+--
+-- Safe to run more than once: TRUNCATE is idempotent.
+-- ─────────────────────────────────────────────────────────────────────────────
+
+TRUNCATE TABLE "PricingConstitution";
