@@ -1,4 +1,4 @@
-import { IMAGE_MODELS } from "@/lib/image-models";
+import { IMAGE_MODELS, getImageCreditCost } from "@/lib/image-models";
 import { VIDEO_MODELS } from "@/lib/video-models";
 import { VIDEO_MODEL_REGISTRY } from "@/lib/video-model-registry";
 
@@ -9,7 +9,7 @@ type ImagePricingOptions = {
   imageSize?: string;
 };
 
-const IMAGE_COST_MAP = new Map(IMAGE_MODELS.map((m) => [m.id, m.creditCost]));
+const IMAGE_MODEL_MAP = new Map(IMAGE_MODELS.map((m) => [m.id, m]));
 const VIDEO_MODEL_ID_COST_MAP = new Map(VIDEO_MODELS.map((m) => [m.id, m.creditCost]));
 const VIDEO_MODEL_BY_ID_MAP = new Map(VIDEO_MODELS.map((m) => [m.id, m]));
 const VIDEO_ROUTE_REGISTRY_MAP = new Map(VIDEO_MODEL_REGISTRY.map((m) => [m.api_route, m]));
@@ -62,10 +62,9 @@ const THREE_D_COST_MAP = new Map<string, number>([
 
 export function getImageCredits(modelId: string, numImages = 1, options?: ImagePricingOptions): number {
   const count = Number.isFinite(numImages) ? Math.max(1, Math.floor(numImages)) : 1;
-  void options;
-  const base = IMAGE_COST_MAP.get(modelId);
-  if (!base) return 0;
-  return 2 * count;
+  const model = IMAGE_MODEL_MAP.get(modelId);
+  if (!model) return 0;
+  return getImageCreditCost(model, count, options?.quality ?? options?.resolution ?? options?.imageSize);
 }
 
 function readDuration(payload?: VideoPayload, fallback = 5): number {

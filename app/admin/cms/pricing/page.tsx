@@ -120,12 +120,12 @@ const SEED_TOPUPS: CmsTopup[] = [
 ];
 
 const SEED_MODEL_COSTS: CmsModelCost[] = [
-  { _id: uid(), name: "Kling 3.0", cost: "6+ Credits", per: "std/pro, duration based", type: "video" },
+  { _id: uid(), name: "Kling 3.0", cost: "10.5+ Credits", per: "5s 720p, duration based", type: "video" },
   { _id: uid(), name: "Wan 2.6", cost: "8 Credits", per: "per video", type: "video" },
-  { _id: uid(), name: "Seedance 2.0", cost: "24 / 85 Credits", per: "4s / 15s", type: "video" },
-  { _id: uid(), name: "Nano Banana Pro", cost: "2 Credits", per: "per image", type: "image" },
-  { _id: uid(), name: "Flux.2 Pro 1K", cost: "2 Credits", per: "per image", type: "image" },
-  { _id: uid(), name: "GPT Image", cost: "2 Credits", per: "per image", type: "image" },
+  { _id: uid(), name: "Seedance 2.0", cost: "7 / 26 Credits", per: "4s / 15s", type: "video" },
+  { _id: uid(), name: "Nano Banana Pro", cost: "2.7+ Credits", per: "1K image", type: "image" },
+  { _id: uid(), name: "Flux.2 Pro 1K", cost: "0.5 Credits", per: "1K image", type: "image" },
+  { _id: uid(), name: "GPT Image 2", cost: "0.9+ Credits", per: "1K image", type: "image" },
 ];
 
 const SEED_PAYMENT_METHODS: CmsPaymentMethod[] = [

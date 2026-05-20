@@ -9,12 +9,12 @@ const DEFAULT_DAILY_LIMIT_BY_PLAN: Record<string, number> = {
 };
 // After FAST_DAILY_LIMIT images per day, each additional generation must
 // wait SLOWDOWN_MS before submitting. The unlimited toggle in the UI lets
-// annual subscribers generate 1K-only images for free; first 10 per day
-// run at full speed, then a 60s slowdown discourages burning the daily
+// annual subscribers generate 1K-only images for free; first 6 per day
+// run at full speed, then a 90s slowdown mirrors the free queue
 // quota on expensive models like nano-banana-pro without hard-blocking
 // honest subscribers.
-const DEFAULT_FAST_DAILY_LIMIT = 10;
-const DEFAULT_SLOWDOWN_MS = 60_000;
+const DEFAULT_FAST_DAILY_LIMIT = 6;
+const DEFAULT_SLOWDOWN_MS = 90_000;
 
 export const ANNUAL_UNLIMITED_IMAGE_MODELS = [
   "flux-2/pro",

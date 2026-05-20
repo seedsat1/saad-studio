@@ -969,7 +969,7 @@ export default function ImageWorkspacePage() {
   const [activeTool, setActiveTool] = useState<ToolId>("create");
   const [selectedModel, setSelectedModel] = useState<ImageModel>(IMAGE_MODELS[0]);
   const [hasAnnualUnlimitedImages, setHasAnnualUnlimitedImages] = useState(false);
-  const [annualUnlimitedEnabled, setAnnualUnlimitedEnabled] = useState(true);
+  const [annualUnlimitedEnabled, setAnnualUnlimitedEnabled] = useState(false);
   const [aspectRatio, setAspectRatio] = useState("1:1");
   const [numImages, setNumImages] = useState(1);
   const [prompt, setPrompt] = useState("");

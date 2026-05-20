@@ -221,14 +221,14 @@ const getPlanGenerationAllowance = (plan: { credits: string; creditsNum?: number
 
 const MODEL_COSTS = {
   video: [
-    { name: "Kling 3.0",        cost: "6+ Credits", per: "std/pro, duration based", free: false, color: "text-blue-400",    bg: "bg-blue-500/10",    border: "border-blue-500/20" },
+    { name: "Kling 3.0",        cost: "10.5+ Credits", per: "5s 720p, duration based", free: false, color: "text-blue-400",    bg: "bg-blue-500/10",    border: "border-blue-500/20" },
     { name: "Wan 2.6",          cost: "8 Credits",  per: "per video",              free: false, color: "text-purple-400",  bg: "bg-purple-500/10",  border: "border-purple-500/20" },
-    { name: "Seedance 2.0",     cost: "24 / 85 Credits", per: "4s / 15s",          free: false, color: "text-cyan-400",    bg: "bg-cyan-500/10",    border: "border-cyan-500/20" },
+    { name: "Seedance 2.0",     cost: "7 / 26 Credits", per: "4s / 15s",          free: false, color: "text-cyan-400",    bg: "bg-cyan-500/10",    border: "border-cyan-500/20" },
   ],
   image: [
-    { name: "Nano Banana Pro",  cost: "2 Credits",  per: "per image",              free: false, color: "text-yellow-400",  bg: "bg-yellow-500/10",  border: "border-yellow-500/20" },
-    { name: "Flux.2 Pro 1K",    cost: "2 Credits",  per: "per image",              free: false, color: "text-violet-400",  bg: "bg-violet-500/10",  border: "border-violet-500/20" },
-    { name: "GPT Image",        cost: "2 Credits",  per: "per image",              free: false, color: "text-rose-400",    bg: "bg-rose-500/10",    border: "border-rose-500/20" },
+    { name: "Nano Banana Pro",  cost: "2.7+ Credits",  per: "1K image",              free: false, color: "text-yellow-400",  bg: "bg-yellow-500/10",  border: "border-yellow-500/20" },
+    { name: "Flux.2 Pro 1K",    cost: "0.5 Credits",  per: "1K image",              free: false, color: "text-violet-400",  bg: "bg-violet-500/10",  border: "border-violet-500/20" },
+    { name: "GPT Image 2",      cost: "0.9+ Credits",  per: "1K image",              free: false, color: "text-rose-400",    bg: "bg-rose-500/10",    border: "border-rose-500/20" },
   ],
 };
 
