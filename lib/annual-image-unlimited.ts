@@ -7,8 +7,13 @@ const DEFAULT_DAILY_LIMIT_BY_PLAN: Record<string, number> = {
   pro: 100,
   max: 200,
 };
-const DEFAULT_FAST_DAILY_LIMIT = 10;
-const DEFAULT_SLOWDOWN_MS = 30_000;
+// After FAST_DAILY_LIMIT images per day, each additional generation must
+// wait SLOWDOWN_MS before submitting. Tightened (10→5, 30s→60s) so that
+// burning through the daily quota on expensive 1K-only models like
+// nano-banana-pro requires meaningful wait time, deterring abuse without
+// punishing honest annual subscribers.
+const DEFAULT_FAST_DAILY_LIMIT = 5;
+const DEFAULT_SLOWDOWN_MS = 60_000;
 
 export const ANNUAL_UNLIMITED_IMAGE_MODELS = [
   "flux-2/pro",
