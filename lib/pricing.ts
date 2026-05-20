@@ -262,12 +262,25 @@ const MODEL_ALIAS_MAP: Record<string, string> = {
 // (Kling, Wan, etc.) or explicit resolution tiers are affected.
 // Values are intentionally modest — "pro" is ~50% more than "std".
 
+// Quality / resolution multipliers applied on top of a model's base
+// userCreditsRate when no per-model override is set in
+// IMAGE_MODEL_QUALITY_MULTIPLIER below.
+//
+// Naming mirrors the strings the routes pass through (lowercased):
+//   "1k", "2k", "4k"           — image resolution tiers
+//   "480p", "720p", "1080p"    — video resolution tiers
+//   "std", "pro"               — Kling generation mode
 const QUALITY_MULTIPLIER: Record<string, number> = {
   // Kling std/pro mode
   "std":    1.0,
   "pro":    1.5,
-  "4k":     3.73,
-  // Resolution tiers
+  // Image resolution tiers
+  "1k":     1.0,
+  "1024":   1.0,
+  "2k":     1.5,
+  "2048":   1.5,
+  "4k":     3.0,
+  // Video resolution tiers
   "480p":   0.8,
   "720p":   1.0,
   "768p":   1.0,
@@ -342,16 +355,25 @@ function isVeo31ModelRef(modelRef: string): boolean {
   );
 }
 
+// Per-model resolution overrides. Falls back to the global
+// QUALITY_MULTIPLIER above when a model/quality combo is absent here.
+//
+// nano-banana-* and gpt-image-2 charge non-linearly at 4K because KIE
+// passes through provider-specific cost bumps for those models.
 const IMAGE_MODEL_QUALITY_MULTIPLIER: Record<string, Record<string, number>> = {
-  "nano-banana-pro": { "4k": 1.875 },
-  "nano_pro": { "4k": 1.875 },
-  "wan/2-7-image-pro": { "4k": 1.875 },
-  "nano-banana-2": { "2k": 1.5, "4k": 2.25 },
-  "nano2": { "2k": 1.5, "4k": 2.25 },
-  "gpt-image-2-text-to-image": { "4k": 1.875 },
-  "gpt-image-2-image-to-image": { "4k": 1.875 },
-  "gpt2t": { "4k": 1.875 },
-  "gpt2i": { "4k": 1.875 },
+  "nano-banana-pro":              { "2k": 1.5, "4k": 1.875 },
+  "nano_pro":                     { "2k": 1.5, "4k": 1.875 },
+  "wan/2-7-image-pro":            { "2k": 1.5, "4k": 1.875 },
+  "nano-banana-2":                { "2k": 1.5, "4k": 2.25 },
+  "nano2":                        { "2k": 1.5, "4k": 2.25 },
+  "gpt-image-2-text-to-image":    { "2k": 1.5, "4k": 1.875 },
+  "gpt-image-2-image-to-image":   { "2k": 1.5, "4k": 1.875 },
+  "gpt2t":                        { "2k": 1.5, "4k": 1.875 },
+  "gpt2i":                        { "2k": 1.5, "4k": 1.875 },
+  "google/imagen4":               { "2k": 1.5, "4k": 2.0 },
+  "imagen4":                      { "2k": 1.5, "4k": 2.0 },
+  "google/imagen4-ultra":         { "2k": 1.5, "4k": 2.0 },
+  "imagen4u":                     { "2k": 1.5, "4k": 2.0 },
 };
 
 function qualityMultiplierForModel(modelRef: string, quality: string | null | undefined): number {
