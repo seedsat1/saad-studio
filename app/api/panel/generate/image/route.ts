@@ -9,7 +9,7 @@ import {
   setGenerationMediaUrl,
   spendCredits,
 } from "@/lib/credit-ledger";
-import { getAnnualUnlimitedImageEligibility } from "@/lib/annual-image-unlimited";
+import { applyAnnualUnlimitedImageSlowdown, getAnnualUnlimitedImageEligibility } from "@/lib/annual-image-unlimited";
 import { getGenerationCost } from "@/lib/pricing";
 import { getResolvedKieRoutingMaps } from "@/lib/kie-model-routing";
 import { sanitizePrompt } from "@/lib/security";
@@ -116,6 +116,7 @@ export async function POST(req: NextRequest) {
       numImages?: number;
       negativePrompt?: string;
       imageUrl?: string;
+      useAnnualUnlimited?: boolean;
     };
 
     const {
@@ -126,6 +127,7 @@ export async function POST(req: NextRequest) {
       numImages = 1,
       negativePrompt,
       imageUrl,
+      useAnnualUnlimited = true,
     } = body;
 
     if (!prompt?.trim()) {
@@ -138,11 +140,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `Unsupported model: ${modelId}` }, { status: 400 });
     }
 
-    const unlimited = await getAnnualUnlimitedImageEligibility({
-      userId,
-      modelId,
-      quality: resolution,
-    });
+    const unlimited = useAnnualUnlimited
+      ? await getAnnualUnlimitedImageEligibility({
+          userId,
+          modelId,
+          quality: resolution,
+          requestedUnits: numImages,
+        })
+      : { eligible: false, planId: null as string | null, reason: "disabled", dailyUsed: undefined };
     const creditsToCharge = unlimited.eligible
       ? 0
       : await getGenerationCost(modelId, 5, numImages, resolution);
@@ -161,6 +166,11 @@ export async function POST(req: NextRequest) {
       : await spendCredits({ ...chargeInput, credits: creditsToCharge });
     chargedCredits = creditsToCharge;
     generationId = spent.generationId;
+    await applyAnnualUnlimitedImageSlowdown({
+      eligible: unlimited.eligible,
+      dailyUsed: unlimited.dailyUsed,
+      requestedUnits: numImages,
+    });
 
     const kieApiKey = process.env.KIE_API_KEY ?? process.env.KIEAI_API_KEY;
     if (!kieApiKey) throw new Error("KIE API key not configured on server.");

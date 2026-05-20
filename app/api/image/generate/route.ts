@@ -2,7 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { getGenerationCost } from "@/lib/pricing";
 import { InsufficientCreditsError, precheckGenerationPolicy, recordFreeGeneration, refundCredits, refundGenerationCharge, setGenerationMediaUrl, spendCredits } from "@/lib/credit-ledger";
-import { getAnnualUnlimitedImageEligibility } from "@/lib/annual-image-unlimited";
+import { applyAnnualUnlimitedImageSlowdown, getAnnualUnlimitedImageEligibility } from "@/lib/annual-image-unlimited";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { fetchWithTimeout, readErrorBody } from "@/lib/http";
 import { getClientIp, isAllowedOrigin, sanitizePrompt } from "@/lib/security";
@@ -61,7 +61,7 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { prompt, model, aspectRatio = "1:1", numImages = 1, quality, resolution, imageSize, imageUrl: refImageUrl } = body as {
+    const { prompt, model, aspectRatio = "1:1", numImages = 1, quality, resolution, imageSize, imageUrl: refImageUrl, useAnnualUnlimited = true } = body as {
       prompt: string;
       model: string;
       aspectRatio?: string;
@@ -70,6 +70,7 @@ export async function POST(req: Request) {
       resolution?: string;
       imageSize?: string;
       imageUrl?: string;
+      useAnnualUnlimited?: boolean;
     };
 
     if (!prompt?.trim()) {
@@ -84,11 +85,14 @@ export async function POST(req: Request) {
     }
 
     const chargeQuality = resolution ?? quality ?? imageSize;
-    const unlimited = await getAnnualUnlimitedImageEligibility({
-      userId,
-      modelId: model,
-      quality: chargeQuality,
-    });
+    const unlimited = useAnnualUnlimited
+      ? await getAnnualUnlimitedImageEligibility({
+          userId,
+          modelId: model,
+          quality: chargeQuality,
+          requestedUnits: numImages,
+        })
+      : { eligible: false, planId: null as string | null, reason: "disabled", dailyUsed: undefined };
     const creditsToCharge = unlimited.eligible
       ? 0
       : await getGenerationCost(model, 5, numImages, chargeQuality);
@@ -116,6 +120,11 @@ export async function POST(req: Request) {
     chargedCredits = creditsToCharge;
     chargedUserId = userId;
     generationId = charge.generationId;
+    await applyAnnualUnlimitedImageSlowdown({
+      eligible: unlimited.eligible,
+      dailyUsed: unlimited.dailyUsed,
+      requestedUnits: numImages,
+    });
 
     const provider = resolveProvider(model);
     let imageUrl: string | null = null;

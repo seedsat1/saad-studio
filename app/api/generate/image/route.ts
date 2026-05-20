@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { getGenerationCost } from "@/lib/pricing";
 import { InsufficientCreditsError, recordFreeGeneration, rollbackGenerationCharge, saveAdditionalGenerationUrls, setGenerationMediaUrl, spendCredits } from "@/lib/credit-ledger";
-import { getAnnualUnlimitedImageEligibility } from "@/lib/annual-image-unlimited";
+import { applyAnnualUnlimitedImageSlowdown, getAnnualUnlimitedImageEligibility } from "@/lib/annual-image-unlimited";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { getClientIp, isAllowedOrigin, sanitizePrompt } from "@/lib/security";
 import { getResolvedKieRoutingMaps } from "@/lib/kie-model-routing";
@@ -17,6 +17,12 @@ const KIE_CREATE_TASK_URL = "https://api.kie.ai/api/v1/jobs/createTask";
 const KIE_QUERY_TASK_URL = "https://api.kie.ai/api/v1/jobs/recordInfo";
 const WAVESPEED_BASE_URL = "https://api.wavespeed.ai/api/v3";
 const IDEMPOTENCY_ROUTE = "generate:image";
+const GOOGLE_IMAGE_MODEL_MAP: Record<string, string> = {
+  "google/nano-banana": "gemini-2.5-flash-image",
+  "google/nano-banana-edit": "gemini-2.5-flash-image",
+  "nano-banana-2": "gemini-3.1-flash-image-preview",
+  "nano-banana-pro": "gemini-3-pro-image-preview",
+};
 
 interface ImageRequestBody {
   prompt: string;
@@ -29,6 +35,7 @@ interface ImageRequestBody {
   imageUrl?: string;
   imageUrls?: string[];
   quality?: string;
+  useAnnualUnlimited?: boolean;
   /** KIE input field for reference images: "image_url" (default) or "image_input" (Gemini models) or "input_urls" (GPT I2I, Wan, Flux-2 I2I). */
   imageInputField?: string;
 }
@@ -140,6 +147,97 @@ function resolveFlux2Variant(modelId: string, hasReferenceImages: boolean, quali
   return hasReferenceImages
     ? `flux-2/${prefix}-image-to-image`
     : `flux-2/${prefix}-text-to-image`;
+}
+
+function getGoogleImageModel(modelId: string): string | null {
+  return GOOGLE_IMAGE_MODEL_MAP[modelId] ?? null;
+}
+
+function normalizeGoogleImageSize(model: string, requested?: string | null): string | null {
+  if (model === "gemini-2.5-flash-image") return null;
+  const normalized = String(requested ?? "1K").trim().toUpperCase();
+  return ["1K", "2K", "4K"].includes(normalized) ? normalized : "1K";
+}
+
+function dataUrlToInlineData(dataUrl: string): { mimeType: string; data: string } | null {
+  const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/s);
+  if (!match) return null;
+  return { mimeType: match[1], data: match[2] };
+}
+
+async function imageUrlToInlineData(url: string): Promise<{ mimeType: string; data: string }> {
+  const inline = dataUrlToInlineData(url);
+  if (inline) return inline;
+
+  const res = await fetch(url, { signal: AbortSignal.timeout(60_000) });
+  if (!res.ok) throw new Error(`Failed to fetch reference image for Google (${res.status})`);
+  const mimeType = res.headers.get("content-type")?.split(";")[0] || "image/png";
+  const buffer = Buffer.from(await res.arrayBuffer());
+  return { mimeType, data: buffer.toString("base64") };
+}
+
+function extractGoogleInlineImages(value: unknown): Array<{ data: string; mimeType: string }> {
+  if (!value || typeof value !== "object") return [];
+  const rec = value as Record<string, unknown>;
+  const candidates = Array.isArray(rec.candidates) ? rec.candidates : [];
+  return candidates.flatMap((candidate) => {
+    const content = (candidate as Record<string, unknown>)?.content as Record<string, unknown> | undefined;
+    const parts = Array.isArray(content?.parts) ? content.parts : [];
+    return parts.flatMap((part) => {
+      const inlineData = (part as Record<string, unknown>)?.inlineData as Record<string, unknown> | undefined;
+      const data = inlineData?.data;
+      if (typeof data !== "string" || !data) return [];
+      const mimeType = typeof inlineData?.mimeType === "string" ? inlineData.mimeType : "image/png";
+      return [{ data, mimeType }];
+    });
+  });
+}
+
+async function generateGoogleImage(params: {
+  apiKey: string;
+  googleModel: string;
+  prompt: string;
+  referenceUrls: string[];
+  aspectRatio: string;
+  quality?: string | null;
+}): Promise<Array<{ buffer: Buffer; mimeType: string }>> {
+  const parts: Array<Record<string, unknown>> = [{ text: sanitizePrompt(params.prompt, 5000) }];
+  for (const ref of params.referenceUrls) {
+    const inline = await imageUrlToInlineData(ref);
+    parts.push({ inline_data: inline });
+  }
+
+  const imageConfig: Record<string, string> = { aspectRatio: params.aspectRatio || "1:1" };
+  const imageSize = normalizeGoogleImageSize(params.googleModel, params.quality);
+  if (imageSize) imageConfig.imageSize = imageSize;
+
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${params.googleModel}:generateContent`,
+    {
+      method: "POST",
+      headers: {
+        "x-goog-api-key": params.apiKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        contents: [{ parts }],
+        generationConfig: {
+          responseModalities: ["IMAGE"],
+          responseFormat: { image: imageConfig },
+        },
+      }),
+    },
+  );
+
+  const json = await res.json().catch(() => null);
+  if (!res.ok) {
+    const message = typeof json?.error?.message === "string" ? json.error.message : `Google image generation failed (${res.status})`;
+    throw new Error(message);
+  }
+
+  const images = extractGoogleInlineImages(json);
+  if (!images.length) throw new Error("Google completed but returned no image.");
+  return images.map((image) => ({ buffer: Buffer.from(image.data, "base64"), mimeType: image.mimeType }));
 }
 
 async function uploadBase64ToStorage(
@@ -319,6 +417,7 @@ export async function POST(req: NextRequest) {
       quality,
       resolution,
       imageSize,
+      useAnnualUnlimited = true,
       imageInputField,
     } = body;
 
@@ -349,13 +448,24 @@ export async function POST(req: NextRequest) {
     }
 
     const effectiveImageInputField = imageInputField ?? inferImageInputField(kieModelId);
+    const googleImageModel = getGoogleImageModel(effectiveModelId);
+    const googleApiKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
+    if (googleImageModel && !googleApiKey) {
+      return NextResponse.json(
+        { error: "Google image API key is not configured. Set GOOGLE_API_KEY on the server." },
+        { status: 500 },
+      );
+    }
 
     const chargeQuality = resolution ?? quality ?? imageSize;
-    const unlimited = await getAnnualUnlimitedImageEligibility({
-      userId,
-      modelId: effectiveModelId,
-      quality: chargeQuality,
-    });
+    const unlimited = useAnnualUnlimited
+      ? await getAnnualUnlimitedImageEligibility({
+          userId,
+          modelId: effectiveModelId,
+          quality: chargeQuality,
+          requestedUnits: numImages,
+        })
+      : { eligible: false, planId: null as string | null, reason: "disabled", dailyUsed: undefined };
     const creditsToCharge = unlimited.eligible
       ? 0
       : await getGenerationCost(effectiveModelId, 5, numImages, chargeQuality);
@@ -374,6 +484,11 @@ export async function POST(req: NextRequest) {
       : await spendCredits({ ...chargeInput, credits: creditsToCharge });
     chargedCredits = creditsToCharge;
     generationId = spent.generationId;
+    await applyAnnualUnlimitedImageSlowdown({
+      eligible: unlimited.eligible,
+      dailyUsed: unlimited.dailyUsed,
+      requestedUnits: numImages,
+    });
 
     // Resolve all reference images: upload base64 → Supabase Storage, pass http URLs as-is.
     // If Supabase is not configured, pass base64 data URLs directly to KIE (accepted by most models).
@@ -392,6 +507,69 @@ export async function POST(req: NextRequest) {
     }
 
     const resolvedRefs = await Promise.all(refUrls.map((r, i) => resolveRef(r, i)));
+
+    if (googleImageModel && googleApiKey) {
+      const fanout = Math.max(1, Math.min(4, numImages));
+      const googleResults = await Promise.all(
+        Array.from({ length: fanout }, () =>
+          generateGoogleImage({
+            apiKey: googleApiKey,
+            googleModel: googleImageModel,
+            prompt,
+            referenceUrls: resolvedRefs,
+            aspectRatio,
+            quality: chargeQuality,
+          }),
+        ),
+      );
+      const images = googleResults.flat().slice(0, fanout);
+
+      const imageUrls = await Promise.all(
+        images.map(async (image, index) => {
+          const stored = generationId
+            ? await uploadBufferToStorage({
+                buffer: image.buffer,
+                contentType: image.mimeType,
+                userId,
+                assetType: "IMAGE",
+                generationId: index === 0 ? generationId : `${generationId}-${index}`,
+              }).catch((err) => {
+                console.error("[generate/image] Failed to upload Google image", err);
+                return null;
+              })
+            : null;
+          return stored ?? `data:${image.mimeType};base64,${image.buffer.toString("base64")}`;
+        }),
+      );
+
+      if (generationId && imageUrls[0]) {
+        await setGenerationMediaUrl(generationId, imageUrls[0]).catch((err) => {
+          console.error("[generate/image] Failed to save Google media URL", err);
+        });
+      }
+
+      if (imageUrls.length > 1 && chargedUserId) {
+        await saveAdditionalGenerationUrls(
+          chargedUserId,
+          sanitizePrompt(prompt, 5000),
+          modelId,
+          "IMAGE",
+          imageUrls.slice(1),
+        ).catch((err) => {
+          console.error("[generate/image] Failed to save additional Google URLs", err);
+        });
+      }
+
+      return NextResponse.json({
+        generationId,
+        imageUrls,
+        resultUrls: imageUrls,
+        imageUrl: imageUrls[0] ?? null,
+        mediaUrl: imageUrls[0] ?? null,
+        provider: "google",
+        model: googleImageModel,
+      }, { status: 200 });
+    }
 
     if (isWaveSpeedImageModel) {
       const waveSpeedApiKey = process.env.WAVESPEED_API_KEY;

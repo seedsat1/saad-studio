@@ -969,6 +969,7 @@ export default function ImageWorkspacePage() {
   const [activeTool, setActiveTool] = useState<ToolId>("create");
   const [selectedModel, setSelectedModel] = useState<ImageModel>(IMAGE_MODELS[0]);
   const [hasAnnualUnlimitedImages, setHasAnnualUnlimitedImages] = useState(false);
+  const [annualUnlimitedEnabled, setAnnualUnlimitedEnabled] = useState(true);
   const [aspectRatio, setAspectRatio] = useState("1:1");
   const [numImages, setNumImages] = useState(1);
   const [prompt, setPrompt] = useState("");
@@ -1175,10 +1176,11 @@ export default function ImageWorkspacePage() {
     return options;
   }, [aspectRatio, selectedModel]);
   const selectedQuality = qualityOptions.length ? (quality || qualityOptions[0]) : undefined;
-  const isAnnualUnlimitedCreate = activeTool === "create" &&
+  const canUseAnnualUnlimitedCreate = activeTool === "create" &&
     hasAnnualUnlimitedImages &&
     isAnnualUnlimitedImageModel(selectedModel.id) &&
     isAnnualUnlimitedImageQuality(selectedQuality);
+  const isAnnualUnlimitedCreate = canUseAnnualUnlimitedCreate && annualUnlimitedEnabled;
 
   useEffect(() => {
     let cancelled = false;
@@ -1268,7 +1270,14 @@ export default function ImageWorkspacePage() {
         ].filter(Boolean).join("\n")
       : "";
     const effectivePrompt = characterPrompt ? `${characterPrompt}\n\n${prompt}` : prompt;
-    const body: Record<string, unknown> = { prompt: effectivePrompt, modelId: selectedModel.id, aspectRatio, numImages, quality: qualityOptions.length ? (quality || qualityOptions[0]) : undefined };
+    const body: Record<string, unknown> = {
+      prompt: effectivePrompt,
+      modelId: selectedModel.id,
+      aspectRatio,
+      numImages,
+      quality: qualityOptions.length ? (quality || qualityOptions[0]) : undefined,
+      useAnnualUnlimited: isAnnualUnlimitedCreate,
+    };
     if (imageUrls.length > 0) {
       // Always send imageInputField so the route knows which API field to use
       if (selectedModel.imageInputField) body.imageInputField = selectedModel.imageInputField;
@@ -1309,7 +1318,7 @@ export default function ImageWorkspacePage() {
 
     // 3. Update UI state with permanent Supabase URL(s)
     addResultItems(persistedUrls, "create", selectedModel.label, prompt, aspectRatio);
-  }, [addResultItems, aspectRatio, numImages, prompt, quality, qualityOptions, referenceFiles, selectedCharacter, selectedModel]);
+  }, [addResultItems, aspectRatio, isAnnualUnlimitedCreate, numImages, prompt, quality, qualityOptions, referenceFiles, selectedCharacter, selectedModel]);
 
   const generateRelight = useCallback(async () => {
     if (!relightFile) throw new Error("Upload image first");
@@ -1919,6 +1928,35 @@ export default function ImageWorkspacePage() {
                         <span className="font-semibold">Add character</span>
                       </a>
                     )
+                  ) : null}
+
+                  {canUseAnnualUnlimitedCreate ? (
+                    <button
+                      type="button"
+                      onClick={() => setAnnualUnlimitedEnabled((value) => !value)}
+                      className={cn(
+                        "flex h-9 items-center gap-2 rounded-xl border px-3 text-xs font-bold transition",
+                        annualUnlimitedEnabled
+                          ? "border-pink-400/30 bg-pink-500/10 text-pink-200"
+                          : "border-white/10 bg-white/5 text-zinc-500 hover:text-zinc-300",
+                      )}
+                      title={annualUnlimitedEnabled ? "Unlimited generation enabled" : "Use credits instead of unlimited"}
+                    >
+                      <span>Unlimited</span>
+                      <span
+                        className={cn(
+                          "relative h-5 w-9 rounded-full transition",
+                          annualUnlimitedEnabled ? "bg-gradient-to-r from-pink-500 to-violet-500" : "bg-zinc-700",
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            "absolute top-0.5 h-4 w-4 rounded-full bg-white transition",
+                            annualUnlimitedEnabled ? "left-4" : "left-0.5",
+                          )}
+                        />
+                      </span>
+                    </button>
                   ) : null}
 
                   {referenceFiles.map((file, i) => {

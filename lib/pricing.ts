@@ -203,8 +203,6 @@ const MODEL_ALIAS_MAP: Record<string, string> = {
   "sync/lipsync-3":                          "lipsync",
   "infinitalk/from-audio":                   "lipsync",
   "kling/ai-avatar-pro":                     "lipsync",
-  "bytedance/seedance-2":                    "lipsync",
-  "bytedance/seedance-2-fast":               "lipsync",
   "minimax/voice-clone":                     "voice_clone",
 
   // ── Audio actions — app/api/generate/audio ───────────────────────────────
@@ -225,7 +223,7 @@ const MODEL_ALIAS_MAP: Record<string, string> = {
   "google/nano-banana-edit":            "nano_edit",
   "google/imagen4-fast":                "imagen4f",
   "google/imagen4":                     "imagen4",
-  "google/imagen4-ultra":               "imagen4",
+  "google/imagen4-ultra":               "imagen4u",
   "seedream/4.5-text-to-image":         "seedream45",
   "seedream/4.5-edit":                  "seedream45e",
   "seedream/5-lite-text-to-image":      "seedream5l",
@@ -344,9 +342,23 @@ function isVeo31ModelRef(modelRef: string): boolean {
   );
 }
 
+const IMAGE_MODEL_QUALITY_MULTIPLIER: Record<string, Record<string, number>> = {
+  "nano-banana-pro": { "4k": 1.875 },
+  "nano_pro": { "4k": 1.875 },
+  "wan/2-7-image-pro": { "4k": 1.875 },
+  "nano-banana-2": { "2k": 1.5, "4k": 2.25 },
+  "nano2": { "2k": 1.5, "4k": 2.25 },
+  "gpt-image-2-text-to-image": { "4k": 1.875 },
+  "gpt-image-2-image-to-image": { "4k": 1.875 },
+  "gpt2t": { "4k": 1.875 },
+  "gpt2i": { "4k": 1.875 },
+};
+
 function qualityMultiplierForModel(modelRef: string, quality: string | null | undefined): number {
   const q = quality?.trim().toLowerCase() ?? "";
   if (!q) return 1.0;
+  const imageMultiplier = IMAGE_MODEL_QUALITY_MULTIPLIER[modelRef]?.[q];
+  if (imageMultiplier) return imageMultiplier;
   if (isVeo31ModelRef(modelRef) && q === "4k") {
     if (modelRef === "google/veo3.1-lite-text-to-video" || modelRef === "veo31_lite") return 3.285714;
     if (modelRef === "google/veo3.1-fast-text-to-video" || modelRef === "veo31_fast") return 3.0;

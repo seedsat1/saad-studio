@@ -1,6 +1,14 @@
 import prismadb from "@/lib/prismadb";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+const DEFAULT_DAILY_LIMIT_BY_PLAN: Record<string, number> = {
+  starter: 25,
+  plus: 50,
+  pro: 100,
+  max: 200,
+};
+const DEFAULT_FAST_DAILY_LIMIT = 10;
+const DEFAULT_SLOWDOWN_MS = 30_000;
 
 export const ANNUAL_UNLIMITED_IMAGE_MODELS = [
   "flux-2/pro",
@@ -41,6 +49,42 @@ const IMAGE_MODEL_PREFIXES = [
 
 function normalizeQuality(value?: string | null): string {
   return String(value ?? "1K").trim().toLowerCase();
+}
+
+function readPositiveIntEnv(name: string): number | null {
+  const value = Number(process.env[name]);
+  if (!Number.isFinite(value) || value <= 0) return null;
+  return Math.floor(value);
+}
+
+function readNonNegativeIntEnv(name: string): number | null {
+  const value = Number(process.env[name]);
+  if (!Number.isFinite(value) || value < 0) return null;
+  return Math.floor(value);
+}
+
+function getAnnualUnlimitedDailyLimit(planId: string): number {
+  const planKey = planId.toUpperCase().replace(/[^A-Z0-9]+/g, "_");
+  return readPositiveIntEnv(`ANNUAL_UNLIMITED_IMAGE_DAILY_LIMIT_${planKey}`)
+    ?? readPositiveIntEnv("ANNUAL_UNLIMITED_IMAGE_DAILY_LIMIT")
+    ?? DEFAULT_DAILY_LIMIT_BY_PLAN[planId]
+    ?? DEFAULT_DAILY_LIMIT_BY_PLAN.pro;
+}
+
+function getAnnualUnlimitedFastDailyLimit(): number {
+  return readPositiveIntEnv("ANNUAL_UNLIMITED_IMAGE_FAST_DAILY_LIMIT") ?? DEFAULT_FAST_DAILY_LIMIT;
+}
+
+function getAnnualUnlimitedSlowdownMs(): number {
+  return readNonNegativeIntEnv("ANNUAL_UNLIMITED_IMAGE_SLOWDOWN_MS") ?? DEFAULT_SLOWDOWN_MS;
+}
+
+function startOfUtcDay(date = new Date()): Date {
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 export function isAnnualUnlimitedImageQuality(value?: string | null): boolean {
@@ -88,7 +132,15 @@ export async function getAnnualUnlimitedImageEligibility(input: {
   userId: string;
   modelId: string;
   quality?: string | null;
-}): Promise<{ eligible: boolean; planId: string | null; reason?: string }> {
+  requestedUnits?: number;
+}): Promise<{
+  eligible: boolean;
+  planId: string | null;
+  reason?: string;
+  dailyLimit?: number;
+  dailyUsed?: number;
+  dailyRemaining?: number;
+}> {
   const planId = await getActiveAnnualPlanId(input.userId);
   if (!planId) return { eligible: false, planId: null, reason: "not_annual" };
   if (!isAnnualUnlimitedImageModel(input.modelId)) {
@@ -97,5 +149,41 @@ export async function getAnnualUnlimitedImageEligibility(input: {
   if (!isAnnualUnlimitedImageQuality(input.quality)) {
     return { eligible: false, planId, reason: "quality_not_1k" };
   }
-  return { eligible: true, planId };
+
+  const dailyLimit = getAnnualUnlimitedDailyLimit(planId);
+  const requestedUnits = Math.max(1, Math.floor(Number(input.requestedUnits ?? 1)));
+  const dailyUsed = await prismadb.generation.count({
+    where: {
+      userId: input.userId,
+      assetType: "IMAGE",
+      cost: 0,
+      createdAt: { gte: startOfUtcDay() },
+      OR: [
+        ...ANNUAL_UNLIMITED_IMAGE_MODELS.map((modelId) => ({ modelUsed: modelId })),
+        ...IMAGE_MODEL_PREFIXES.map((prefix) => ({ modelUsed: { startsWith: prefix } })),
+      ],
+    },
+  });
+  const dailyRemaining = Math.max(0, dailyLimit - dailyUsed);
+
+  return { eligible: true, planId, dailyLimit, dailyUsed, dailyRemaining };
+}
+
+export async function applyAnnualUnlimitedImageSlowdown(input: {
+  eligible: boolean;
+  dailyUsed?: number;
+  requestedUnits?: number;
+}): Promise<number> {
+  if (!input.eligible) return 0;
+
+  const requestedUnits = Math.max(1, Math.floor(Number(input.requestedUnits ?? 1)));
+  const dailyUsed = Math.max(0, Math.floor(Number(input.dailyUsed ?? 0)));
+  const fastDailyLimit = getAnnualUnlimitedFastDailyLimit();
+  if (dailyUsed + requestedUnits <= fastDailyLimit) return 0;
+
+  const slowdownMs = getAnnualUnlimitedSlowdownMs();
+  if (slowdownMs <= 0) return 0;
+
+  await sleep(slowdownMs);
+  return slowdownMs;
 }
