@@ -42,6 +42,7 @@ export interface SaadPlan {
   name: string;
   monthlyUsd: number;
   credits: number;
+  annualDiscount: number;
 }
 
 // ─── Constants — THE CONSTITUTION ─────────────────────────────────────────────
@@ -54,10 +55,10 @@ export const KIE_PACKAGES: KiePackage[] = [
 ];
 
 export const SAAD_PLANS: SaadPlan[] = [
-  { id: "starter", name: "Starter", monthlyUsd: 15,  credits: 250  },
-  { id: "plus",    name: "Plus",    monthlyUsd: 35,  credits: 600  },
-  { id: "pro",     name: "Pro",     monthlyUsd: 70,  credits: 1200 },
-  { id: "max",     name: "Max",     monthlyUsd: 99,  credits: 3000 },
+  { id: "starter", name: "Starter", monthlyUsd: 15,  credits: 250,  annualDiscount: 0  },
+  { id: "plus",    name: "Plus",    monthlyUsd: 35,  credits: 600,  annualDiscount: 10 },
+  { id: "pro",     name: "Pro",     monthlyUsd: 70,  credits: 1200, annualDiscount: 12 },
+  { id: "max",     name: "Max",     monthlyUsd: 99,  credits: 3000, annualDiscount: 15 },
 ];
 
 // ─── Default model registry ───────────────────────────────────────────────────

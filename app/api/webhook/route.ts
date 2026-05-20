@@ -16,11 +16,15 @@ export const dynamic = 'force-dynamic';
 function resolvePlanFromPrice(unitAmount: number | null, interval: string | null): { planId: string; billingInterval: "monthly" | "annual" } | null {
     if (!unitAmount) return null;
     const isAnnual = interval === "year";
-    // For annual plans, Stripe price is yearly; divide by 12 to get monthly equivalent
-    const monthlyUsd = isAnnual ? unitAmount / 100 / 12 : unitAmount / 100;
+    const paidUsd = unitAmount / 100;
 
     // Find closest plan by price (±$2 tolerance)
-    const plan = SAAD_PLANS.find((p) => Math.abs(p.monthlyUsd - monthlyUsd) <= 2);
+    const plan = SAAD_PLANS.find((p) => {
+        const expectedUsd = isAnnual
+            ? p.monthlyUsd * 12 * (1 - p.annualDiscount / 100)
+            : p.monthlyUsd;
+        return Math.abs(expectedUsd - paidUsd) <= 2;
+    });
     if (!plan) return null;
     return { planId: plan.id, billingInterval: isAnnual ? "annual" : "monthly" };
 }
@@ -115,5 +119,4 @@ export async function POST(req: Request) {
 
     return new NextResponse(null, { status: 200 })
 };
-
 

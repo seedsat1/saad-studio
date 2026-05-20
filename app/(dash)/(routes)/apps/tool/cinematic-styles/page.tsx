@@ -57,6 +57,7 @@ const POLL_INTERVAL_MS = 5000;
 const MAX_POLL_ATTEMPTS = 120;
 const CLOUD_NEGATIVE_PROMPT = "subtitles, video player UI, watermark, flicker, distorted face, unstable identity, cartoon exaggeration, jitter, face deformation";
 const CLOUD_CFG_SCALE = 0.8;
+const CLOUD_NATIVE_AUDIO_INCLUDED = true;
 const DEFAULT_COLORS = {
   background: "#ffffff",
   mid: "#0c33a5",
@@ -119,6 +120,11 @@ function getMimeType() {
 function resolutionToProviderValue(resolution: ResolutionMode, provider: ProviderMode) {
   if (provider === "wavespeed") return resolution === "1K" ? "720p" : "1080p";
   return resolution === "1K" ? "720p" : resolution === "2K" ? "1080p" : "1080p";
+}
+
+function getProviderQualityForPricing(resolution: ResolutionMode, provider: ProviderMode) {
+  if (provider === "kie") return null;
+  return resolutionToProviderValue(resolution, provider);
 }
 
 function buildStylePrompt(
@@ -851,13 +857,14 @@ export default function CinematicStylesPage() {
       const prompt = buildStylePrompt(selectedPreset, colors, effectiveFps, resolution);
       const modelRoute = getModelRoute(providerMode);
       const providerResolution = resolutionToProviderValue(resolution, providerMode);
+      const providerQualityForPricing = getProviderQualityForPricing(resolution, providerMode);
       const outputDuration = Math.max(providerMode === "wavespeed" ? 4 : 5, Math.min(10, Math.round(duration)));
       const basePayload: Record<string, unknown> =
         providerMode === "wavespeed"
           ? {
               prompt,
               duration: outputDuration,
-              resolution: providerResolution,
+              resolution: providerQualityForPricing ?? providerResolution,
               aspect_ratio: "16:9",
               negative_prompt: CLOUD_NEGATIVE_PROMPT,
               cfg_scale: CLOUD_CFG_SCALE,
@@ -865,7 +872,7 @@ export default function CinematicStylesPage() {
           : {
               prompt,
               duration: String(outputDuration),
-              resolution: providerResolution,
+              sound: CLOUD_NATIVE_AUDIO_INCLUDED,
               negative_prompt: CLOUD_NEGATIVE_PROMPT,
               cfg_scale: CLOUD_CFG_SCALE,
             };

@@ -6,7 +6,7 @@ import { stripe } from "@/lib/stripe";
 import { absoluteUrl } from "@/lib/utils";
 import { SAAD_PLANS } from "@/lib/pricing-models";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 const settingsUrl = absoluteUrl("/settings");
 
@@ -28,23 +28,25 @@ export async function GET(req: NextRequest) {
 
     const userSubscription = await prismadb.userSubscription.findUnique({
       where: {
-        userId
-      }
-    })
+        userId,
+      },
+    });
 
     if (userSubscription && userSubscription.stripeCustomerId) {
       const stripeSession = await stripe.billingPortal.sessions.create({
         customer: userSubscription.stripeCustomerId,
         return_url: settingsUrl,
-      })
+      });
 
-      return new NextResponse(JSON.stringify({ url: stripeSession.url }))
+      return new NextResponse(JSON.stringify({ url: stripeSession.url }));
     }
 
-    // Annual = monthly price × 12 (billed once per year)
+    const annualMultiplier = 1 - plan.annualDiscount / 100;
+    const annualUsd = plan.monthlyUsd * 12 * annualMultiplier;
     const unitAmount = isAnnual
-      ? Math.round(plan.monthlyUsd * 12 * 100)
+      ? Math.round(annualUsd * 100)
       : Math.round(plan.monthlyUsd * 100);
+    const displayPrice = isAnnual ? `$${Math.round(annualUsd)}/year` : `$${plan.monthlyUsd}/month`;
 
     const stripeSession = await stripe.checkout.sessions.create({
       success_url: settingsUrl,
@@ -59,7 +61,11 @@ export async function GET(req: NextRequest) {
             currency: "USD",
             product_data: {
               name: `Saad Studio ${plan.name}`,
-              description: `${plan.credits} credits/month — ${isAnnual ? "Annual" : "Monthly"} plan`,
+              description: `${plan.credits} credits/month - ${
+                isAnnual
+                  ? `Annual plan (${plan.annualDiscount}% off, ${displayPrice})`
+                  : "Monthly plan"
+              }`,
             },
             unit_amount: unitAmount,
             recurring: {
@@ -74,11 +80,11 @@ export async function GET(req: NextRequest) {
         planId: plan.id,
         billingInterval: isAnnual ? "annual" : "monthly",
       },
-    })
+    });
 
-    return new NextResponse(JSON.stringify({ url: stripeSession.url }))
+    return new NextResponse(JSON.stringify({ url: stripeSession.url }));
   } catch (error) {
     console.log("stripe error", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
-};
+}

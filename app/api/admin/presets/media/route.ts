@@ -4,47 +4,47 @@
  * PUT  → updates a preset's previewVideoUrl by id
  * Body: { presetId: string; previewVideoUrl: string }
  *
- * Storage: Supabase storage JSON (admin-cms/transition-media.json)
- * In-memory presets come from lib/transition-presets.ts (read-only on Vercel).
- * Preview URLs are overlaid from the Supabase JSON map.
+ * Storage: Neon (PageLayout table) under pageName "cms-transitions-media".
+ * In-memory presets come from lib/transition-presets.ts.
+ * Preview URLs are overlaid from the Neon map.
  */
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { isAdmin } from "@/lib/is-admin";
+import prismadb from "@/lib/prismadb";
 import { getClientSafePresets } from "@/lib/transition-presets";
-import { createClient } from "@supabase/supabase-js";
 
-const MEDIA_FILE = "admin-cms/transition-media.json";
-const BUCKET = "media";
-
-function getSupabase() {
-  const url = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) throw new Error("Supabase not configured");
-  return createClient(url, key, { auth: { persistSession: false } });
-}
+const PAGE_NAME = "cms-transitions-media";
 
 type MediaMap = Record<string, string>; // presetId → previewVideoUrl
 
 async function loadMediaMap(): Promise<MediaMap> {
   try {
-    const supabase = getSupabase();
-    const { data, error } = await supabase.storage.from(BUCKET).download(MEDIA_FILE);
-    if (error || !data) return {};
-    const text = await data.text();
-    return JSON.parse(text) as MediaMap;
+    const layout = await prismadb.pageLayout.findUnique({ where: { pageName: PAGE_NAME } });
+    const blocks = layout?.layoutBlocks;
+    if (blocks && typeof blocks === "object" && !Array.isArray(blocks)) {
+      const map = (blocks as { presetMedia?: unknown }).presetMedia;
+      if (map && typeof map === "object" && !Array.isArray(map)) {
+        return Object.fromEntries(
+          Object.entries(map as Record<string, unknown>).filter(
+            ([, v]) => typeof v === "string",
+          ) as Array<[string, string]>,
+        );
+      }
+    }
+    return {};
   } catch {
     return {};
   }
 }
 
 async function saveMediaMap(map: MediaMap): Promise<void> {
-  const supabase = getSupabase();
-  const blob = new Blob([JSON.stringify(map, null, 2)], { type: "application/json" });
-  const { error } = await supabase.storage.from(BUCKET).upload(MEDIA_FILE, blob, {
-    upsert: true,
-    contentType: "application/json",
+  const layoutBlocks = { presetMedia: map } as unknown as Prisma.InputJsonValue;
+  await prismadb.pageLayout.upsert({
+    where: { pageName: PAGE_NAME },
+    update: { layoutBlocks },
+    create: { pageName: PAGE_NAME, layoutBlocks },
   });
-  if (error) throw new Error(`Failed to save media map: ${error.message}`);
 }
 
 export async function GET() {
@@ -53,7 +53,6 @@ export async function GET() {
   }
   const presets = getClientSafePresets();
   const mediaMap = await loadMediaMap();
-  // Overlay saved preview URLs onto presets
   const merged = presets.map((p: { id: string; previewVideoUrl?: string; [k: string]: unknown }) => ({
     ...p,
     previewVideoUrl: mediaMap[p.id] || p.previewVideoUrl || "",
@@ -79,13 +78,16 @@ export async function PUT(req: NextRequest) {
       );
     }
 
-    // Validate URL
     if (previewVideoUrl && !previewVideoUrl.startsWith("https://")) {
       return NextResponse.json({ error: "URL must use HTTPS" }, { status: 400 });
     }
 
     const map = await loadMediaMap();
-    map[presetId] = previewVideoUrl;
+    if (previewVideoUrl) {
+      map[presetId] = previewVideoUrl;
+    } else {
+      delete map[presetId];
+    }
     await saveMediaMap(map);
 
     return NextResponse.json({ ok: true, presetId, previewVideoUrl });
