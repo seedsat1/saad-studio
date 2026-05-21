@@ -178,6 +178,40 @@ function splitShotDurations(totalDuration: number, shotCount: number): number[] 
   return Array.from({ length: shotCount }, (_, idx) => base + (idx === shotCount - 1 ? remainder : 0));
 }
 
+function compactKlingSingleShotPrompt(value: string, maxChars = 2400): string {
+  const prompt = value.trim();
+  if (prompt.length <= maxChars) return prompt;
+
+  const lines = prompt
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .filter((line) => !/^duration\s*:/i.test(line));
+  const priority: string[] = [];
+  const rules: string[] = [];
+
+  for (const line of lines) {
+    if (
+      /reference|preserve|no text|no extra|no watermark|original printed|vertical|9:16|4k|ultra realistic|cinematic|product|packaging|global cinematic rules/i.test(line)
+    ) {
+      priority.push(line);
+    } else if (/^shot\s+\d+/i.test(line)) {
+      priority.push(line.replace(/^SHOT\s+\d+\s*[—-]\s*/i, "Scene beat: "));
+    } else if (/rules/i.test(line)) {
+      rules.push(line);
+    }
+  }
+
+  const compact = [
+    "Create one coherent 15-second cinematic commercial. Preserve the uploaded reference product and frame continuity.",
+    ...priority,
+    ...rules,
+    "Keep the result vertical 9:16, polished, realistic, stable, and free of added text overlays or watermarks.",
+  ].join("\n");
+
+  return compact.length > maxChars ? `${compact.slice(0, maxChars - 1).trim()}…` : compact;
+}
+
 function isSeedanceV2VideoModel(model: WaveSpeedVideoModel): boolean {
   return model.id.startsWith("bytedance-seedance-v2");
 }
@@ -1366,7 +1400,8 @@ function VideoPageInner() {
         payload.sound = !!sound;
         payload.duration = resolvedDuration;
         payload.aspect_ratio = targetKlingRatio;
-        payload.prompt = kling30MultiEnabled ? "" : (toolPrefix ? `${toolPrefix} ${promptedText.trim()}` : promptedText.trim());
+        const rawKlingPrompt = toolPrefix ? `${toolPrefix} ${promptedText.trim()}` : promptedText.trim();
+        payload.prompt = kling30MultiEnabled ? "" : compactKlingSingleShotPrompt(rawKlingPrompt);
 
         if (validKlingEls.length > 0 || selectedCharacterElement) {
           const manualElements = await Promise.all(
@@ -1439,6 +1474,11 @@ function VideoPageInner() {
       }
 
       if (!res.ok || !data.taskId) {
+        console.error("[video POST] failed", {
+          status: res.status,
+          modelRoute: requestModelRoute,
+          response: data,
+        });
         setGenerationError(getSafeErrorMessage(data.publicError ?? data.error ?? "Failed to start generation"));
         setIsSubmitting(false);
         return;

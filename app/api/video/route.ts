@@ -32,6 +32,16 @@ function resolveKieVideoModel(modelRoute: string): string | undefined {
   return LOCKED_VIDEO_ROUTE_TO_KIE_MODEL[modelRoute] ?? videoRouteToKieModelMap[modelRoute];
 }
 
+function providerFailureMessage(payload: Record<string, unknown> | null, status: number) {
+  const raw =
+    payload?.msg ??
+    payload?.message ??
+    payload?.error ??
+    payload?.code ??
+    `HTTP ${status}`;
+  return String(raw).slice(0, 260);
+}
+
 function getKieKeyFromEnv(): string | null {
   const key = process.env.KIE_API_KEY || process.env.KIEAI_API_KEY;
   if (!key || !key.trim()) return null;
@@ -1098,6 +1108,9 @@ export async function POST(req: Request) {
         error: `KIE returned non-JSON (${createRes.status}): ${text.slice(0, 200)}`,
         publicError: VIDEO_PROVIDER_BUSY_MESSAGE,
         code: "provider_submit_failed",
+        providerStatus: createRes.status,
+        providerModel: kieModel,
+        modelRoute,
       };
       await completeIdempotency({
         userId,
@@ -1132,9 +1145,12 @@ export async function POST(req: Request) {
       }
       const responseJson = {
         generationId,
-        error: createJson?.msg || createJson?.message || `KIE createTask failed (${createRes.status})`,
+        error: providerFailureMessage(createJson, createRes.status),
         publicError: VIDEO_PROVIDER_BUSY_MESSAGE,
         code: "provider_submit_failed",
+        providerStatus: createRes.status,
+        providerModel: kieModel,
+        modelRoute,
       };
       await completeIdempotency({
         userId,
