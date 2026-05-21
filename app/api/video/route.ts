@@ -871,6 +871,56 @@ export async function POST(req: Request) {
       modelRoute === "google/veo3.1-lite-text-to-video" ||
       modelRoute === "google/veo3.1-fast-text-to-video" ||
       modelRoute === "google/veo3.1-text-to-video";
+    if (isVeoModelRoute) {
+      const requestedResolution =
+        typeof payload.resolution === "string"
+          ? payload.resolution.toLowerCase()
+          : typeof payload.quality === "string"
+            ? payload.quality.toLowerCase()
+            : "720p";
+
+      if (modelRoute === "google/veo3.1-lite-text-to-video" && requestedResolution === "4k") {
+        return NextResponse.json(
+          {
+            error: "Google Veo 3.1 Lite does not support 4K. Choose 720p or 1080p.",
+            publicError: "Veo 3.1 Lite supports 720p or 1080p only.",
+          },
+          { status: 400 },
+        );
+      }
+
+      const requestedAspect =
+        typeof payload.aspect_ratio === "string"
+          ? payload.aspect_ratio
+          : typeof payload.aspectRatio === "string"
+            ? payload.aspectRatio
+            : "16:9";
+      const safeAspect = requestedAspect === "9:16" ? "9:16" : "16:9";
+      payload.aspect_ratio = safeAspect;
+      payload.aspectRatio = safeAspect;
+
+      if (typeof payload.resolution !== "string" && typeof payload.quality !== "string") {
+        payload.resolution = "720p";
+      }
+
+      const referenceUrls = Array.isArray(payload.reference_image_urls)
+        ? payload.reference_image_urls.filter((value): value is string => typeof value === "string")
+        : [];
+      const hasReferenceInput =
+        referenceUrls.length > 0 ||
+        typeof payload.image === "string" ||
+        typeof payload.first_frame_url === "string" ||
+        typeof payload.end_image === "string" ||
+        typeof payload.last_frame_url === "string" ||
+        typeof payload.last_image === "string";
+
+      if (hasReferenceInput || requestedResolution === "1080p" || requestedResolution === "4k") {
+        payload.duration = 8;
+      }
+
+      delete payload.sound;
+      delete payload.generate_audio;
+    }
     const isSeedance2Route =
       modelRoute === "bytedance/dreamina-v3.0/text-to-video-720p" ||
       modelRoute === "bytedance/seedance-v2/text-to-video" ||

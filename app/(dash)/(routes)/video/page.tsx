@@ -775,9 +775,54 @@ function VideoPageInner() {
   );
   const isSoraModel = selectedModel.api_route.includes("openai/sora-2");
   const isVeo31Model = selectedModel.api_route.startsWith("google/veo3.1");
+  const isVeo31LiteModel = selectedModel.api_route === "google/veo3.1-lite-text-to-video";
   const isVeo31FastModel = selectedModel.api_route === "google/veo3.1-fast-text-to-video";
-  const durationChoices = isSoraModel ? [4, 8, 12] : caps.durations;
-  const resolutionChoices = isSoraModel ? [] : caps.resolutions;
+  const hasVeo31ReferenceInput = isVeo31Model && (
+    Boolean(startFrame) ||
+    Boolean(linkedStartFrameUrl) ||
+    Boolean(endFrame) ||
+    referenceImages.length > 0
+  );
+  const isVeo31HighResolution = isVeo31Model && ["1080p", "4k"].includes((resolution ?? "").toLowerCase());
+  const isVeo31FixedEightSecond = isVeo31Model && (hasVeo31ReferenceInput || isVeo31HighResolution);
+  const durationChoices = isSoraModel ? [4, 8, 12] : isVeo31FixedEightSecond ? [8] : caps.durations;
+  const resolutionChoices = isSoraModel
+    ? []
+    : isVeo31LiteModel
+      ? caps.resolutions.filter((value) => value.toLowerCase() !== "4k")
+      : caps.resolutions;
+
+  useEffect(() => {
+    if (!isVeo31Model) return;
+
+    if (aspectRatio !== "16:9" && aspectRatio !== "9:16") {
+      setAspectRatio("16:9");
+    }
+
+    if (isVeo31LiteModel && resolution?.toLowerCase() === "4k") {
+      setResolution("720p");
+    } else if (resolutionChoices.length > 0 && resolution && !resolutionChoices.includes(resolution)) {
+      setResolution(resolutionChoices[0]);
+    }
+
+    if (isVeo31FixedEightSecond && duration !== 8) {
+      setDuration(8);
+    } else if (!isVeo31FixedEightSecond && duration == null && caps.durations.includes(8)) {
+      setDuration(8);
+    }
+
+    if (sound) setSound(false);
+  }, [
+    aspectRatio,
+    caps.durations,
+    duration,
+    isVeo31FixedEightSecond,
+    isVeo31LiteModel,
+    isVeo31Model,
+    resolution,
+    resolutionChoices,
+    sound,
+  ]);
 
   // -- Model selection ---------------------------------------------------------
 
@@ -1092,7 +1137,9 @@ function VideoPageInner() {
     selectedModel.api_route === "bytedance/seedance-v2/text-to-video-fast";
 
   const estimatedCredits = (() => {
-    const pricingDuration = duration ?? (isVeo31Model ? 8 : 5);
+    // Veo 3.1 supports 4/6/8 — use whatever the user picked (defaults to 8).
+    const pricingDuration = isVeo31FixedEightSecond ? 8 : (duration ?? (isVeo31Model ? 8 : 5));
+    // NOTE: capturedDuration below also defaults to 8 if duration is null.
     const base = getGenerationCostSync(
       selectedModel.api_route,
       pricingDuration,
@@ -1231,7 +1278,7 @@ function VideoPageInner() {
 
       // Duration
       if (durationChoices.length > 0 && duration != null) {
-        payload.duration = duration;
+        payload.duration = isVeo31FixedEightSecond ? 8 : duration;
       }
 
       // Quality / Resolution
@@ -1514,7 +1561,8 @@ function VideoPageInner() {
       const _capturedRatio = isKling30
         ? (aspectRatio ?? "16:9")
         : (aspectRatio ?? (size ? sizeToRatio(size) : "16:9"));
-      const capturedDuration = isVeo31Model ? 8 : duration;
+      // Veo 3.1 accepts 4/6/8 — honor the user's choice (fallback to 8).
+      const capturedDuration = isVeo31Model ? (isVeo31FixedEightSecond ? 8 : (duration ?? 8)) : duration;
       setPendingTasks(prev => new Map(prev).set(data.taskId!, { model: selectedModel, promptText: basePrompt, ratio: _capturedRatio, duration: capturedDuration }));
       // Persist task so it survives a page refresh
       try {
@@ -1531,7 +1579,7 @@ function VideoPageInner() {
       setIsSubmitting(false);
     }
   }, [
-    activeTool, prompt, selectedModel, selectedCharacter, caps, supportsCharacterReference, characterSupport, isVeo31Model, isVeo31FastModel,
+    activeTool, prompt, selectedModel, selectedCharacter, caps, supportsCharacterReference, characterSupport, isVeo31Model, isVeo31FastModel, isVeo31FixedEightSecond,
     startFrame, linkedStartFrameUrl, endFrame, motionVideo, referenceImages, size, aspectRatio, startFrameRatio, duration, resolution,
     negPrompt, cfgScale, sound, shotType, multiPrompts, elementList,
     sceneControl, orientation, startPolling,
@@ -3204,13 +3252,7 @@ function VideoPageInner() {
               ════════════════════════════════════════════════════════════ */}
           {!isKling30Video && (<>
 
-          {/* -- Fixed Duration (Veo 3.1) ------------------------------------ */}
-          {isVeo31Model && (
-            <div className="flex items-center justify-between">
-              <span className="text-[12px]" style={{ color: "#64748b" }}>Duration</span>
-              <span className="text-[12px] font-semibold" style={{ color: selectedModel.family_color }}>~8s (fixed)</span>
-            </div>
-          )}
+          {/* -- Veo 3.1 — Duration buttons (Google spec: 4 / 6 / 8 only) ---- */}
 
           {/* -- Duration ---------------------------------------------------- */}
           {durationChoices.length > 0 && duration != null && (

@@ -334,9 +334,9 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
     capabilities: t2vCaps({
       optional_image: true,
       has_end_frame:  true,
-      aspect_ratios: ["16:9", "9:16", "Auto"],
-      durations:     [],
-      resolutions:   ["1080p", "4k"],
+      aspect_ratios: ["16:9", "9:16"],
+      durations:     [4, 6, 8],
+      resolutions:   ["720p", "1080p"],
       max_reference_images: 2, // Lite: 1 (animate) or 2 (first+last frames)
     }),
   },
@@ -345,16 +345,20 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
     name: "Google Veo 3.1 Fast",
     family: "veo", family_label: "Google Veo", family_color: "#3b82f6",
     badge: "FAST",
-    description: "Fast Veo 3.1. Fixed ~8s. Native audio always-on. Supports REFERENCE_2_VIDEO (up to 3 reference images).",
+    description: "Veo 3.1 Fast. Durations: 4/6/8s. Native audio always-on. Up to 3 reference images.",
     api_route: "google/veo3.1-fast-text-to-video",
     route_confirmed: true,
     capabilities: t2vCaps({
       optional_image: true,
       has_end_frame:  true,
-      aspect_ratios: ["16:9", "9:16", "Auto"],
-      durations:     [],
-      resolutions:   ["1080p", "4k"],
-      max_reference_images: 3, // Fast: REFERENCE_2_VIDEO supports up to 3 reference images
+      // Google spec: 16:9 or 9:16 only. "Auto" is NOT a documented value.
+      aspect_ratios: ["16:9", "9:16"],
+      // Google spec: 4, 6, 8 are the only valid durations.
+      durations:     [4, 6, 8],
+      // Google spec: 720p (default), 1080p, 4k.
+      resolutions:   ["720p", "1080p", "4k"],
+      // Google spec: up to 3 reference images of a single person/character/product.
+      max_reference_images: 3,
     }),
   },
   {
@@ -362,16 +366,20 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
     name: "Google Veo 3.1",
     family: "veo", family_label: "Google Veo", family_color: "#3b82f6",
     badge: "NEW",
-    description: "Latest Veo 3.1 — fixed ~8s, native audio always-on. Supports 1080p and 4K.",
+    description: "Veo 3.1 (Pro). Durations: 4/6/8s. Native audio always-on. Up to 3 reference images. 720p/1080p/4K.",
     api_route: "google/veo3.1-text-to-video",
     route_confirmed: true,
     capabilities: t2vCaps({
       optional_image: true,
       has_end_frame:  true,
-      aspect_ratios: ["16:9", "9:16", "Auto"],
-      durations:     [],
-      resolutions:   ["1080p", "4k"],
-      max_reference_images: 2, // Quality model: 1 (animate) or 2 (first+last)
+      // Google spec: 16:9 or 9:16 only.
+      aspect_ratios: ["16:9", "9:16"],
+      // Google spec: 4, 6, 8 are the only valid durations.
+      durations:     [4, 6, 8],
+      // Google spec: 720p (default), 1080p, 4k.
+      resolutions:   ["720p", "1080p", "4k"],
+      // Google spec: up to 3 reference images for both Fast and Pro variants.
+      max_reference_images: 3,
     }),
   },
 
