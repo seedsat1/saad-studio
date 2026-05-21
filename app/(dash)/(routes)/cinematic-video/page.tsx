@@ -479,6 +479,7 @@ export default function CinematicVideoPage() {
   const [muted, setMuted] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const elapsedTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const generationLockRef = useRef(false);
 
   const cost = useMemo(() => {
     const tierDef = TIERS.find((t) => t.id === tier)!;
@@ -662,7 +663,9 @@ export default function CinematicVideoPage() {
 
   // ── Generate ────────────────────────────────────────────────────────
   const handleGenerate = useCallback(async () => {
+    if (generationLockRef.current) return;
     if (!isReadyForMode) return;
+    generationLockRef.current = true;
 
     const guard = await gate.guardGeneration({
       requiredCredits: cost,
@@ -670,6 +673,7 @@ export default function CinematicVideoPage() {
     });
     if (!guard.ok) {
       if (guard.message) setErrorMessage(guard.message);
+      generationLockRef.current = false;
       return;
     }
 
@@ -750,6 +754,7 @@ export default function CinematicVideoPage() {
     } finally {
       setIsGenerating(false);
       setStatusMessage("");
+      generationLockRef.current = false;
     }
   }, [
     gate,

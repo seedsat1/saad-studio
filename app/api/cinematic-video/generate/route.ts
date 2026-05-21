@@ -13,6 +13,7 @@ import {
   InsufficientCreditsError,
   precheckGenerationPolicy,
   rollbackGenerationCharge,
+  setGenerationTaskMarker,
   spendCredits,
 } from "@/lib/credit-ledger";
 import { getGenerationCost } from "@/lib/pricing";
@@ -256,13 +257,16 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: message }, { status: 502 });
     }
 
+    await setGenerationTaskMarker(generationId, opHandle.name);
+
     return NextResponse.json({
       generationId,
       operationName: opHandle.name,
       model: opHandle.model,
       creditsCharged: chargedCredits,
       remainingCredits: spendResult.remainingCredits,
-    });
+      status: "processing",
+    }, { status: 202 });
   } catch (err) {
     if (generationId && chargedUserId && chargedCredits > 0) {
       await rollbackGenerationCharge(

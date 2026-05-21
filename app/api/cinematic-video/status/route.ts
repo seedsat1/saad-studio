@@ -48,9 +48,9 @@ export async function POST(req: Request) {
     }
 
     const raw = (await req.json().catch(() => null)) as StatusRequestBody | null;
-    if (!raw?.operationName || !raw?.generationId) {
+    if (!raw?.generationId) {
       return NextResponse.json(
-        { error: "operationName and generationId required" },
+        { error: "generationId required" },
         { status: 400 },
       );
     }
@@ -83,9 +83,21 @@ export async function POST(req: Request) {
       });
     }
 
+    const operationName =
+      raw.operationName ||
+      (generation.mediaUrl?.startsWith("task:")
+        ? generation.mediaUrl.slice("task:".length)
+        : "");
+    if (!operationName) {
+      return NextResponse.json(
+        { error: "operationName required" },
+        { status: 400 },
+      );
+    }
+
     // Poll Google
     const poll = await pollVeoOperation({
-      name: raw.operationName,
+      name: operationName,
       model: raw.model || "veo-3.1-generate-preview",
     });
 
