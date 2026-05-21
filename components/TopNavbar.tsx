@@ -417,6 +417,7 @@ function appHref(app: string): string {
 const SHOW_EXPERIMENTAL_NAV = false;
 
 const STUDIO_LINKS = [
+  { label: "Cinema Studio VS.O", href: "/cinema-studio-vso", icon: Film, color: "text-rose-300" },
   { label: "Cinematic Styles", href: "/apps/tool/cinematic-styles", icon: Blend, color: "text-cyan-300" },
   { label: "Cinematic Video", href: "/cinematic-video", icon: Film, color: "text-amber-300" },
   { label: "Transitions", href: "/apps/tool/transitions", icon: Blend, color: "text-cyan-300" },
