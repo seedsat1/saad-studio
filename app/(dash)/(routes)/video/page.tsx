@@ -711,6 +711,8 @@ function VideoPageInner() {
   const [isSubmitting,    setIsSubmitting]    = useState(false);
   const [generationError, setGenerationError] = useState<string | null>(null);
   const pollRefs = useRef<Map<string, ReturnType<typeof setInterval>>>(new Map());
+  const completedTaskRefs = useRef<Set<string>>(new Set());
+  const resultUrlsRef = useRef<Set<string>>(new Set());
 
   // Results
   const [results, setResults] = useState<MediaItem[]>([]);
@@ -725,9 +727,12 @@ function VideoPageInner() {
         const data = await res.json().catch(() => null);
         if (!res.ok || !Array.isArray(data?.assets) || cancelled) return;
 
-        const mapped: MediaItem[] = data.assets.map((asset: any) => {
+        const seenUrls = new Set<string>();
+        const mapped: MediaItem[] = data.assets.flatMap((asset: any) => {
+          if (!asset?.url || seenUrls.has(asset.url)) return [];
+          seenUrls.add(asset.url);
           const model = allModels.find((m) => m.api_route === asset.model || m.name === asset.model);
-          return {
+          return [{
             id: asset.id,
             type: "video",
             src: asset.url,
@@ -738,9 +743,10 @@ function VideoPageInner() {
             prompt: asset.prompt || "",
             gradient: model ? (FAMILY_GRADIENTS[model.family] ?? "from-slate-900 via-slate-800 to-slate-900") : "from-slate-900 via-slate-800 to-slate-900",
             createdAt: asset.createdAt ? new Date(asset.createdAt) : new Date(),
-          };
+          }];
         });
 
+        resultUrlsRef.current = seenUrls;
         setResults(mapped);
       } catch {
         // keep local results only
@@ -965,6 +971,10 @@ function VideoPageInner() {
   const { addAsset } = useAssetStore();
 
   const startPolling = useCallback((taskId: string, ctx: { model: WaveSpeedVideoModel; promptText: string; ratio: string; duration: number | null }) => {
+    if (pollRefs.current.has(taskId) || completedTaskRefs.current.has(taskId)) {
+      return;
+    }
+
     const removePending = () => {
       setPendingTasks(prev => { const n = new Map(prev); n.delete(taskId); return n; });
       if (pollRefs.current.has(taskId)) { clearInterval(pollRefs.current.get(taskId)!); pollRefs.current.delete(taskId); }
@@ -991,6 +1001,12 @@ function VideoPageInner() {
         }
         if (!res.ok || !data) { setGenerationError(data?.error ?? "Generation check failed"); removePending(); return; }
         if (data.status === "completed" && data.outputs.length > 0) {
+          if (completedTaskRefs.current.has(taskId)) {
+            removePending();
+            return;
+          }
+          completedTaskRefs.current.add(taskId);
+
           let videoUrl = data.outputs[0];
           // إذا كان الرابط ليس من Supabase، استدعي persist
           if (videoUrl && !videoUrl.includes("supabase.co/storage/v1/object/public")) {
@@ -1007,15 +1023,23 @@ function VideoPageInner() {
             } catch {}
           }
           const newItem: MediaItem = {
-            id: "gen-" + Date.now(), type: "video", src: videoUrl,
+            id: "gen-" + taskId, type: "video", src: videoUrl,
             model: ctx.model.name, modelColor: ctx.model.family_color,
             ratio: ctx.ratio, duration: ctx.duration != null ? `${ctx.duration}s` : "auto",
             prompt: ctx.promptText,
             gradient: FAMILY_GRADIENTS[ctx.model.family] ?? "from-slate-900 via-slate-800 to-slate-900",
             createdAt: new Date(),
           };
-          setResults(prev => [newItem, ...prev]);
-          addAsset({ type: "video", url: videoUrl, prompt: ctx.promptText, model: ctx.model.name, duration: ctx.duration != null ? `${ctx.duration}s` : undefined });
+          const alreadyKnownUrl = resultUrlsRef.current.has(videoUrl);
+          setResults(prev => {
+            const alreadyShown = prev.some((item) => item.id === newItem.id || item.src === videoUrl);
+            if (alreadyShown) return prev;
+            resultUrlsRef.current.add(videoUrl);
+            return [newItem, ...prev];
+          });
+          if (!alreadyKnownUrl) {
+            addAsset({ type: "video", url: videoUrl, prompt: ctx.promptText, model: ctx.model.name, duration: ctx.duration != null ? `${ctx.duration}s` : undefined });
+          }
           removePending();
           setGenerationError(null);
         } else if (data.status === "failed") {
