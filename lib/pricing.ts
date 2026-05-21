@@ -352,7 +352,10 @@ function isVeo31ModelRef(modelRef: string): boolean {
     modelRef === "google/veo3.1-text-to-video" ||
     modelRef === "veo31_lite" ||
     modelRef === "veo31_fast" ||
-    modelRef === "veo31"
+    modelRef === "veo31" ||
+    modelRef === "veo31_gem_lite" ||
+    modelRef === "veo31_gem_fast" ||
+    modelRef === "veo31_gem"
   );
 }
 
@@ -395,8 +398,8 @@ function qualityMultiplierForModel(modelRef: string, quality: string | null | un
   const videoMultiplier = VIDEO_MODEL_QUALITY_MULTIPLIER[modelRef]?.[q];
   if (videoMultiplier) return videoMultiplier;
   if (isVeo31ModelRef(modelRef) && q === "4k") {
-    if (modelRef === "google/veo3.1-lite-text-to-video" || modelRef === "veo31_lite") return 3.285714;
-    if (modelRef === "google/veo3.1-fast-text-to-video" || modelRef === "veo31_fast") return 3.0;
+    if (modelRef === "google/veo3.1-lite-text-to-video" || modelRef === "veo31_lite" || modelRef === "veo31_gem_lite") return 3.285714;
+    if (modelRef === "google/veo3.1-fast-text-to-video" || modelRef === "veo31_fast" || modelRef === "veo31_gem_fast") return 3.0;
     return 1.8;
   }
   return QUALITY_MULTIPLIER[q] ?? 1.0;

@@ -92,6 +92,10 @@ export const DEFAULT_MODELS: PricingModel[] = [
   { id:"veo31_lite",    name:"Google Veo 3.1 Lite",     notes:"fast",         type:"cinema", provider:"kie",       billing:"per_sec", kieCredits:10.0,  waveUsd:0,     userCreditsRate:1.71,  maxDuration:8,    isActive:true  },
   { id:"veo31_fast",    name:"Google Veo 3.1 Fast",     notes:"8s",           type:"cinema", provider:"kie",       billing:"per_sec", kieCredits:10.0,  waveUsd:0,     userCreditsRate:1.71,  maxDuration:8,    isActive:true  },
   { id:"veo31",         name:"Google Veo 3.1",          notes:"HQ 8s",        type:"cinema", provider:"kie",       billing:"per_sec", kieCredits:31.25, waveUsd:0,     userCreditsRate:5.32,  maxDuration:8,    isActive:true  },
+  // ── CINEMA via Gemini API (direct Google) ───────────────────────────────────
+  { id:"veo31_gem_lite", name:"Veo 3.1 Lite (Gemini)",  notes:"direct API",   type:"cinema", provider:"kie",       billing:"per_sec", kieCredits:8.0,   waveUsd:0,     userCreditsRate:1.71,  maxDuration:8,    isActive:true  },
+  { id:"veo31_gem_fast", name:"Veo 3.1 Fast (Gemini)",  notes:"direct API",   type:"cinema", provider:"kie",       billing:"per_sec", kieCredits:8.0,   waveUsd:0,     userCreditsRate:1.71,  maxDuration:8,    isActive:true  },
+  { id:"veo31_gem",      name:"Veo 3.1 Pro (Gemini)",   notes:"direct API",   type:"cinema", provider:"kie",       billing:"per_sec", kieCredits:25.0,  waveUsd:0,     userCreditsRate:5.32,  maxDuration:8,    isActive:true  },
   // ── IMAGE — flat via KIE ────────────────────────────────────────────────────
   { id:"nano_pro",      name:"Nano Banana Pro",         notes:"4K I2I",       type:"image",  provider:"kie",       billing:"flat",    kieCredits:18,    waveUsd:0,     userCreditsRate:3.07,  maxDuration:null, isActive:true  },
   { id:"nano2",         name:"Nano Banana 2",           notes:"T2I",          type:"image",  provider:"kie",       billing:"flat",    kieCredits:3.5,   waveUsd:0,     userCreditsRate:0.6,  maxDuration:null, isActive:true  },
