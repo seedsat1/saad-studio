@@ -55,6 +55,36 @@ function resolvePlanFromPrice(unitAmount: number | null, interval: string | null
     return { planId: plan.id, billingInterval: isAnnual ? "annual" : "monthly" };
 }
 
+function creditsForPlan(planId: string): number {
+    return SAAD_PLANS.find((p) => p.id === planId)?.credits ?? 0;
+}
+
+async function recordStripeTransaction(input: {
+    userId: string;
+    planId: string;
+    billingInterval: string;
+    amountCents: number | null | undefined;
+    credits: number;
+    eventId: string;
+    stripeObjectId: string;
+    type: "checkout" | "renewal";
+}) {
+    await prismadb.adminTransaction.create({
+        data: {
+            userId: input.userId,
+            plan: [
+                `STRIPE_${input.type.toUpperCase()}:${input.planId}`,
+                `interval:${input.billingInterval}`,
+                `stripeObject:${input.stripeObjectId}`,
+                `STRIPE_EVENT:${input.eventId}`,
+            ].join(" | "),
+            amount: Math.max(0, Number(input.amountCents ?? 0)) / 100,
+            credits: Math.max(0, Math.floor(input.credits)),
+            paymentStatus: "COMPLETED",
+        },
+    });
+}
+
 export async function POST(req: Request) {
     const body = await req.text()
     const signature = (await headers()).get("Stripe-Signature") as string
@@ -130,6 +160,16 @@ export async function POST(req: Request) {
 
             // Allocate subscription credits (valid for 30 days)
             await allocateSubscriptionCredits(userId, planId, billingInterval);
+            await recordStripeTransaction({
+                userId,
+                planId,
+                billingInterval,
+                amountCents: session.amount_total ?? priceItem.price.unit_amount,
+                credits: creditsForPlan(planId),
+                eventId: event.id,
+                stripeObjectId: session.id,
+                type: "checkout",
+            });
         }
 
         if (event.type === "invoice.payment_succeeded") {
@@ -161,6 +201,11 @@ export async function POST(req: Request) {
                 },
             })
 
+            const billingReason = typeof invoice.billing_reason === "string" ? invoice.billing_reason : "";
+            if (billingReason === "subscription_create") {
+                return NextResponse.json({ received: true, skipped: "initial_invoice_after_checkout" }, { status: 200 });
+            }
+
             // Renew credits on payment (both monthly renewal and annual monthly cycle)
             if (existingSub?.userId && existingSub?.planId) {
                 await allocateSubscriptionCredits(
@@ -168,6 +213,16 @@ export async function POST(req: Request) {
                     existingSub.planId,
                     (existingSub.billingInterval as "monthly" | "annual") ?? "monthly",
                 );
+                await recordStripeTransaction({
+                    userId: existingSub.userId,
+                    planId: existingSub.planId,
+                    billingInterval: existingSub.billingInterval ?? "monthly",
+                    amountCents: invoice.amount_paid,
+                    credits: creditsForPlan(existingSub.planId),
+                    eventId: event.id,
+                    stripeObjectId: invoice.id,
+                    type: "renewal",
+                });
             }
         }
     } catch (error) {
