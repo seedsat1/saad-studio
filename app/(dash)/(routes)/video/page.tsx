@@ -1317,6 +1317,7 @@ function VideoPageInner() {
         // ── PAYLOAD VERIFICATION LOG ─────────────────────────────────────────
         // Logs a compact diagnostic payload (data URLs truncated to 60 chars)
         const debugPayload = {
+          modelRoute: selectedModel.api_route,
           model: "kling-3.0/video",
           prompt: payload.prompt,
           mode: payload.mode,
@@ -1339,10 +1340,19 @@ function VideoPageInner() {
         console.log("[Kling 3.0] ✅ Final payload (before send):", JSON.stringify(debugPayload, null, 2));
       }
 
+      const requestModelRoute = selectedModel.api_route;
+      if (
+        requestModelRoute === "kwaivgi/kling-v3.0-pro/text-to-video" ||
+        requestModelRoute === "bytedance/seedance-v2/text-to-video" ||
+        requestModelRoute === "bytedance/seedance-v2/text-to-video-fast"
+      ) {
+        console.log("[video POST] modelRoute sent:", requestModelRoute);
+      }
+
       const res = await fetch("/api/video", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ modelRoute: selectedModel.api_route, payload }),
+        body: JSON.stringify({ modelRoute: requestModelRoute, payload }),
       });
 
       let data: { taskId?: string; error?: string; publicError?: string } = {};

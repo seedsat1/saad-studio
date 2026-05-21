@@ -18,6 +18,20 @@ const WAVESPEED_BASE = "https://api.wavespeed.ai/api/v3";
 const { videoRouteToKieModelMap, wavespeedFallbackMap } = getResolvedKieRoutingMaps();
 const IDEMPOTENCY_ROUTE = "generate:video";
 
+const LOCKED_VIDEO_ROUTE_TO_KIE_MODEL: Record<string, string> = {
+  // These are high-traffic paid routes. Keep them immutable so a catalog sync or
+  // env override can never accidentally submit a Kling request as Seedance, or
+  // the reverse. New aliases can still be added below the lock.
+  "kwaivgi/kling-v3.0-pro/text-to-video": "kling-3.0/video",
+  "kwaivgi/kling-v3.0-pro/motion-control": "kling-3.0/motion-control",
+  "bytedance/seedance-v2/text-to-video": "bytedance/seedance-2",
+  "bytedance/seedance-v2/text-to-video-fast": "bytedance/seedance-2-fast",
+};
+
+function resolveKieVideoModel(modelRoute: string): string | undefined {
+  return LOCKED_VIDEO_ROUTE_TO_KIE_MODEL[modelRoute] ?? videoRouteToKieModelMap[modelRoute];
+}
+
 function getKieKeyFromEnv(): string | null {
   const key = process.env.KIE_API_KEY || process.env.KIEAI_API_KEY;
   if (!key || !key.trim()) return null;
@@ -824,8 +838,17 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "payload is required" }, { status: 400 });
     }
 
-    const kieModel = videoRouteToKieModelMap[modelRoute];
+    const kieModel = resolveKieVideoModel(modelRoute);
     const wavespeedRoute = wavespeedFallbackMap[modelRoute];
+
+    if (
+      modelRoute.includes("kling") ||
+      modelRoute.includes("seedance") ||
+      kieModel?.includes("kling") ||
+      kieModel?.includes("seedance")
+    ) {
+      console.log("[api/video POST] resolved provider model", JSON.stringify({ modelRoute, kieModel }));
+    }
 
     if (!kieModel && !wavespeedRoute) {
       return NextResponse.json(
