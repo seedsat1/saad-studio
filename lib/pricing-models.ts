@@ -83,8 +83,8 @@ export const DEFAULT_MODELS: PricingModel[] = [
   { id:"hailuo23f",     name:"Hailuo 2.3 Fast",         notes:"fast",         type:"video",  provider:"kie",       billing:"per_sec", kieCredits:6.0,   waveUsd:0,     userCreditsRate:1.03,  maxDuration:10,   isActive:true  },
   { id:"hailuo23",      name:"Hailuo 2.3",              notes:"pro",          type:"video",  provider:"kie",       billing:"per_sec", kieCredits:10.0,  waveUsd:0,     userCreditsRate:1.71,  maxDuration:10,   isActive:true  },
   { id:"grok_vid",      name:"Grok Imagine Video",      notes:"T2V/I2V",      type:"video",  provider:"kie",       billing:"per_sec", kieCredits:9.0,   waveUsd:0,     userCreditsRate:1.54,  maxDuration:20,   isActive:true  },
-  { id:"seedance2f",    name:"Seedance 2.0 Fast",       notes:"fast",         type:"video",  provider:"kie",       billing:"per_sec", kieCredits:19.0,  waveUsd:0,     userCreditsRate:5.0,  maxDuration:15,   isActive:true  },
-  { id:"seedance2",     name:"Seedance 2.0",            notes:"HQ",           type:"video",  provider:"kie",       billing:"per_sec", kieCredits:41.0,  waveUsd:0,     userCreditsRate:10.0, maxDuration:15,   isActive:true  },
+  { id:"seedance2f",    name:"Seedance 2.0 Fast",       notes:"fast",         type:"video",  provider:"kie",       billing:"per_sec", kieCredits:33.0,  waveUsd:0,     userCreditsRate:6.7,  maxDuration:15,   isActive:true  },
+  { id:"seedance2",     name:"Seedance 2.0",            notes:"HQ",           type:"video",  provider:"kie",       billing:"per_sec", kieCredits:41.0,  waveUsd:0,     userCreditsRate:8.0,  maxDuration:15,   isActive:true  },
   // ── CINEMA — per second via KIE ─────────────────────────────────────────────
   { id:"sora2",         name:"Sora 2",                  notes:"10s max",      type:"cinema", provider:"kie",       billing:"per_sec", kieCredits:20.0,  waveUsd:0,     userCreditsRate:3.41,  maxDuration:10,   isActive:true  },
   { id:"sora2_i2v",     name:"Sora 2 I2V",              notes:"img2vid",      type:"cinema", provider:"kie",       billing:"per_sec", kieCredits:22.0,  waveUsd:0,     userCreditsRate:3.75,  maxDuration:10,   isActive:true  },
@@ -157,6 +157,7 @@ export function calcUserCredits(model: PricingModel, durationSec: number): numbe
 }
 
 const DEFAULT_MODEL_BY_ID = new Map(DEFAULT_MODELS.map((model) => [model.id, model]));
+const CODE_LOCKED_MODEL_IDS = new Set(["seedance2", "seedance2f"]);
 
 /**
  * DB rows may be older than the code reference. Keep admin overrides that raise
@@ -165,6 +166,15 @@ const DEFAULT_MODEL_BY_ID = new Map(DEFAULT_MODELS.map((model) => [model.id, mod
 export function applyPricingFloor(model: PricingModel): PricingModel {
   const floor = DEFAULT_MODEL_BY_ID.get(model.id);
   if (!floor) return model;
+
+  if (CODE_LOCKED_MODEL_IDS.has(model.id)) {
+    return {
+      ...floor,
+      name: model.name || floor.name,
+      notes: model.notes || floor.notes,
+      isActive: model.isActive && floor.isActive,
+    };
+  }
 
   return {
     ...model,

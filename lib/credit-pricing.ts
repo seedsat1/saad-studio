@@ -29,7 +29,7 @@ const VIDEO_ROUTE_COST_MAP = new Map<string, number>([
   ["google/veo3.1-lite-text-to-video", 13.68],
   ["google/veo3.1-fast-text-to-video", 13.68],
   ["google/veo3.1-text-to-video", 42.56],
-  ["bytedance/seedance-v2/text-to-video-fast", 20],
+  ["bytedance/seedance-v2/text-to-video-fast", 27],
   ["bytedance/seedance-v2/text-to-video", 40],
   ["x-ai/grok-imagine-video/text-to-video", 9.24],
   ["x-ai/grok-imagine-video/edit-video", 9.24],
@@ -123,10 +123,12 @@ function getKlingMotionCredits(payload?: VideoPayload): number {
 function getSeedance2Credits(payload?: VideoPayload, variant: "hq" | "fast" = "hq"): number {
   const duration = readDuration(payload, 4);
   const quality = readQuality(payload);
-  let cost = duration * (variant === "fast" ? 5 : 10);
+  let cost = duration * (variant === "fast" ? 6.7 : 8);
 
   if (variant === "hq" && quality.includes("1080")) {
-    cost *= 1.3;
+    cost *= 3;
+  } else if (variant === "fast" && quality.includes("480")) {
+    cost *= 0.5;
   } else if (quality.includes("480")) {
     cost *= 0.8;
   }
@@ -201,8 +203,8 @@ function applyGenericRouteDynamics(modelRoute: string, baseCost: number, payload
 export function getVideoCreditsByModelId(modelId: string, payload?: VideoPayload): number {
   if (modelId === "kling-3.0/video") return applySoundMultiplier(getKling3Credits(payload), payload);
   if (modelId === "kling-3.0/motion-control") return applySoundMultiplier(getKlingMotionCredits(payload), payload);
-  if (modelId === "bytedance/seedance-2") return applySoundMultiplier(getSeedance2Credits(payload, "hq"), payload);
-  if (modelId === "bytedance/seedance-2-fast") return applySoundMultiplier(getSeedance2Credits(payload, "fast"), payload);
+  if (modelId === "bytedance/seedance-2") return getSeedance2Credits(payload, "hq");
+  if (modelId === "bytedance/seedance-2-fast") return getSeedance2Credits(payload, "fast");
 
   const base = VIDEO_MODEL_ID_COST_MAP.get(modelId) ?? 0;
   if (!base) return 0;
@@ -239,10 +241,10 @@ export function getVideoCreditsByRoute(modelRoute: string, payload?: VideoPayloa
     modelRoute === "bytedance/dreamina-v3.0/text-to-video-720p" ||
     modelRoute === "bytedance/seedance-v2/text-to-video"
   ) {
-    return applySoundMultiplier(getSeedance2Credits(payload, "hq"), payload);
+    return getSeedance2Credits(payload, "hq");
   }
   if (modelRoute === "bytedance/seedance-v2/text-to-video-fast") {
-    return applySoundMultiplier(getSeedance2Credits(payload, "fast"), payload);
+    return getSeedance2Credits(payload, "fast");
   }
   if (
     modelRoute === "google/veo3.1-lite-text-to-video" ||

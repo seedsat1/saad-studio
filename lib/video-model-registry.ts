@@ -391,7 +391,7 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
       has_end_frame:  true,
       aspect_ratios: ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9", "adaptive"],
       durations:     [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
-      resolutions:   ["480p", "720p", "1080p"], // 1080p enabled per KIE update 2026-04-17
+      resolutions:   ["480p", "720p"],
       max_reference_images: 9,
       max_reference_videos: 3,
       max_reference_video_total_seconds: 15,

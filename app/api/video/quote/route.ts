@@ -28,7 +28,11 @@ export async function POST(req: NextRequest) {
       (typeof payload.quality === "string" ? payload.quality : null);
     const baseCost = await getGenerationCost(modelRoute, duration, 1, quality);
     const hasSound = payload.sound === true || payload.generate_audio === true;
-    const credits = Math.ceil(hasSound ? baseCost * 1.5 : baseCost);
+    const isSeedance2Route =
+      modelRoute === "bytedance/dreamina-v3.0/text-to-video-720p" ||
+      modelRoute === "bytedance/seedance-v2/text-to-video" ||
+      modelRoute === "bytedance/seedance-v2/text-to-video-fast";
+    const credits = Math.ceil(hasSound && !isSeedance2Route ? baseCost * 1.5 : baseCost);
 
     if (!Number.isFinite(credits) || credits <= 0) {
       return NextResponse.json({ error: "No credit configuration for this model" }, { status: 400 });

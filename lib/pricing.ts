@@ -377,11 +377,23 @@ const IMAGE_MODEL_QUALITY_MULTIPLIER: Record<string, Record<string, number>> = {
   "imagen4u":                     { "2k": 1.5, "4k": 2.0 },
 };
 
+const VIDEO_MODEL_QUALITY_MULTIPLIER: Record<string, Record<string, number>> = {
+  "bytedance/seedance-2-fast":                  { "480p": 0.5, "720p": 1.0 },
+  "bytedance/seedance-v2/text-to-video-fast":   { "480p": 0.5, "720p": 1.0 },
+  "seedance2f":                                 { "480p": 0.5, "720p": 1.0 },
+  "bytedance/seedance-2":                       { "480p": 0.8, "720p": 1.0, "1080p": 3.0 },
+  "bytedance/seedance-v2/text-to-video":        { "480p": 0.8, "720p": 1.0, "1080p": 3.0 },
+  "bytedance/dreamina-v3.0/text-to-video-720p": { "480p": 0.8, "720p": 1.0, "1080p": 3.0 },
+  "seedance2":                                  { "480p": 0.8, "720p": 1.0, "1080p": 3.0 },
+};
+
 function qualityMultiplierForModel(modelRef: string, quality: string | null | undefined): number {
   const q = quality?.trim().toLowerCase() ?? "";
   if (!q) return 1.0;
   const imageMultiplier = IMAGE_MODEL_QUALITY_MULTIPLIER[modelRef]?.[q];
   if (imageMultiplier) return imageMultiplier;
+  const videoMultiplier = VIDEO_MODEL_QUALITY_MULTIPLIER[modelRef]?.[q];
+  if (videoMultiplier) return videoMultiplier;
   if (isVeo31ModelRef(modelRef) && q === "4k") {
     if (modelRef === "google/veo3.1-lite-text-to-video" || modelRef === "veo31_lite") return 3.285714;
     if (modelRef === "google/veo3.1-fast-text-to-video" || modelRef === "veo31_fast") return 3.0;

@@ -292,7 +292,7 @@ function mapToKieInput(model: string, payload: Record<string, unknown>) {
   // Spec (docs.kie.ai/market/bytedance/seedance-2 + seedance-2-fast):
   //   prompt (REQUIRED, 3-20000)
   //   first_frame_url, last_frame_url, reference_image_urls (max 9)
-  //   generate_audio (default TRUE → must be sent explicitly to avoid charge)
+  //   generate_audio (send explicitly so the user sound choice is respected)
   //   resolution: HQ allows 480p/720p/1080p; Fast allows 480p/720p only
   //   aspect_ratio: 1:1 / 4:3 / 3:4 / 16:9 / 9:16 / 21:9 / adaptive (default 16:9)
   //   duration: 4-15 (integer)
@@ -359,8 +359,7 @@ function mapToKieInput(model: string, payload: Record<string, unknown>) {
       out.aspect_ratio = "16:9";
     }
 
-    // generate_audio: KIE defaults to TRUE (audio = extra cost). Always send
-    // explicit boolean so the user's "off" choice isn't silently overridden.
+    // generate_audio: always send explicit boolean so the user sound choice is respected. KIE logs currently show the same Seedance 2 cost either way.
     out.generate_audio = out.generate_audio === true;
 
     // prompt length: hard cap at 20000 chars (KIE limit)
@@ -839,6 +838,10 @@ export async function POST(req: Request) {
       modelRoute === "google/veo3.1-lite-text-to-video" ||
       modelRoute === "google/veo3.1-fast-text-to-video" ||
       modelRoute === "google/veo3.1-text-to-video";
+    const isSeedance2Route =
+      modelRoute === "bytedance/dreamina-v3.0/text-to-video-720p" ||
+      modelRoute === "bytedance/seedance-v2/text-to-video" ||
+      modelRoute === "bytedance/seedance-v2/text-to-video-fast";
     const durationForCost =
       typeof payload.duration === "number"
         ? payload.duration
@@ -851,7 +854,7 @@ export async function POST(req: Request) {
       (typeof payload.quality === "string" ? payload.quality : null);
     const soundEnabled = payload.sound === true || payload.generate_audio === true;
     const baseCost = await getGenerationCost(modelRoute, durationForCost, 1, qualityForCost).catch(() => 0);
-    const creditsToCharge = Math.ceil(soundEnabled ? baseCost * 1.5 : baseCost);
+    const creditsToCharge = Math.ceil(soundEnabled && !isSeedance2Route ? baseCost * 1.5 : baseCost);
     if (creditsToCharge <= 0) {
       return NextResponse.json({ error: "No credit configuration for this model" }, { status: 400 });
     }

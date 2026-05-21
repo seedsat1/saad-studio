@@ -223,7 +223,7 @@ const MODEL_COSTS = {
   video: [
     { name: "Kling 3.0",        cost: "17.5+ Credits", per: "5s 720p, duration based", free: false, color: "text-blue-400",    bg: "bg-blue-500/10",    border: "border-blue-500/20" },
     { name: "Wan 2.6",          cost: "8 Credits",  per: "per video",              free: false, color: "text-purple-400",  bg: "bg-purple-500/10",  border: "border-purple-500/20" },
-    { name: "Seedance 2.0",     cost: "40 / 150 Credits", per: "4s / 15s",          free: false, color: "text-cyan-400",    bg: "bg-cyan-500/10",    border: "border-cyan-500/20" },
+    { name: "Seedance 2.0",     cost: "32 / 120 Credits", per: "4s / 15s",          free: false, color: "text-cyan-400",    bg: "bg-cyan-500/10",    border: "border-cyan-500/20" },
   ],
   image: [
     { name: "Nano Banana Pro",  cost: "3.07+ Credits",  per: "1K image",              free: false, color: "text-yellow-400",  bg: "bg-yellow-500/10",  border: "border-yellow-500/20" },

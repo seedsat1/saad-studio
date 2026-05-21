@@ -92,7 +92,7 @@ insert into public.model_credit_rules (model_id, asset_type, base_credits, formu
 values
   ('*image*', 'image', 2, 'fixed_per_image', '{"credits_per_image":2}'::jsonb),
   ('kling-3.0/video', 'video', 0, 'kling_duration_quality', '{}'::jsonb),
-  ('bytedance/seedance-2', 'video', 0, 'seedance_duration', '{"d4":24,"d15":85}'::jsonb),
+  ('bytedance/seedance-2', 'video', 0, 'seedance_duration', '{"d4":32,"d15":120}'::jsonb),
   ('minimax/hailuo-2.3/i2v-standard', 'video', 12, 'fixed', '{}'::jsonb)
 on conflict (model_id) do update
 set
@@ -157,8 +157,17 @@ begin
 
   if p_model_id = 'bytedance/seedance-2' then
     v_duration := greatest(1, coalesce((p_payload->>'duration')::integer, 4));
+    v_quality := lower(coalesce(p_payload->>'quality', p_payload->>'resolution', p_payload->>'mode', '720p'));
 
-    return greatest(10, ceil(v_duration * 10.0)::integer);
+    if position('1080' in v_quality) > 0 then
+      return greatest(24, ceil(v_duration * 8.0 * 3.0)::integer);
+    end if;
+
+    if position('480' in v_quality) > 0 then
+      return greatest(7, ceil(v_duration * 8.0 * 0.8)::integer);
+    end if;
+
+    return greatest(8, ceil(v_duration * 8.0)::integer);
   end if;
 
   select base_credits into v_base

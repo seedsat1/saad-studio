@@ -964,6 +964,11 @@ function VideoPageInner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const isSelectedSeedance2Route =
+    selectedModel.api_route === "bytedance/dreamina-v3.0/text-to-video-720p" ||
+    selectedModel.api_route === "bytedance/seedance-v2/text-to-video" ||
+    selectedModel.api_route === "bytedance/seedance-v2/text-to-video-fast";
+
   const estimatedCredits = (() => {
     const pricingDuration = duration ?? (isVeo31Model ? 8 : 5);
     const base = getGenerationCostSync(
@@ -972,7 +977,7 @@ function VideoPageInner() {
       1,
       resolution ?? undefined,
     );
-    const soundMultiplier = caps.has_sound && sound ? 1.5 : 1;
+    const soundMultiplier = caps.has_sound && sound && !isSelectedSeedance2Route ? 1.5 : 1;
     return parseFloat((base * soundMultiplier).toFixed(2));
   })();
 
@@ -3038,7 +3043,7 @@ function VideoPageInner() {
                     <Music2 size={13} style={{ color: "#475569" }} />
                     <div className="flex flex-col">
                       <span className="text-[12px]" style={{ color: "#64748b" }}>Generate Sound</span>
-                      <span className="text-[10px]" style={{ color: "#475569" }}>AI-generated audio track · ×1.5 cost</span>
+                      <span className="text-[10px]" style={{ color: "#475569" }}>{isSelectedSeedance2Route ? "AI-generated audio track - included" : "AI-generated audio track - x1.5 cost"}</span>
                     </div>
                   </div>
                   <button
@@ -3621,7 +3626,7 @@ function VideoPageInner() {
                   className="text-[10px] px-1 rounded"
                   style={{ background: "rgba(245,158,11,0.1)", color: "#fbbf24" }}
                 >
-                  ×1.5 cost
+                  {isSelectedSeedance2Route ? "included" : "x1.5 cost"}
                 </span>
               </div>
               <button
