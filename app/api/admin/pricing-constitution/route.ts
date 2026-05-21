@@ -6,7 +6,7 @@
 
 import { NextResponse } from "next/server";
 import { isAdmin } from "@/lib/is-admin";
-import { DEFAULT_MODELS, type PricingModel } from "@/lib/pricing-models";
+import { DEFAULT_MODELS, applyPricingFloor, type PricingModel } from "@/lib/pricing-models";
 import { invalidatePricingCache } from "@/lib/pricing";
 import prismadb from "@/lib/prismadb";
 
@@ -21,7 +21,8 @@ export async function GET() {
       orderBy: { type: "asc" },
     });
     if (rows.length) {
-      return NextResponse.json({ models: rows });
+      const models = rows.map((row) => applyPricingFloor(row as PricingModel));
+      return NextResponse.json({ models });
     }
     // Table is empty on first run — seed it with defaults
     await prismadb.pricingConstitution.createMany({
@@ -69,8 +70,9 @@ export async function POST(req: Request) {
   try {
     // Upsert all models in a transaction
     await prismadb.$transaction(
-      (models as PricingModel[]).map((m) =>
-        prismadb.pricingConstitution.upsert({
+      (models as PricingModel[]).map((input) => {
+        const m = applyPricingFloor(input);
+        return prismadb.pricingConstitution.upsert({
           where: { id: m.id },
           create: {
             id:              m.id,
@@ -94,8 +96,8 @@ export async function POST(req: Request) {
             maxDuration:     m.maxDuration ?? null,
             isActive:        m.isActive,
           },
-        })
-      )
+        });
+      })
     );
 
     // Save kie_pkg_index if provided

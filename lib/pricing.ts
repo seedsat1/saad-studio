@@ -9,7 +9,7 @@
  * hardcoded functions in credit-pricing.ts.
  */
 
-import { DEFAULT_MODELS, KIE_PACKAGES, calcUserCredits, type PricingModel } from "@/lib/pricing-models";
+import { DEFAULT_MODELS, KIE_PACKAGES, applyPricingFloor, calcUserCredits, type PricingModel } from "@/lib/pricing-models";
 import prismadb from "@/lib/prismadb";
 
 // ─── In-memory cache ──────────────────────────────────────────────────────────
@@ -90,6 +90,7 @@ async function loadModels(): Promise<PricingModel[]> {
       // Merge: DB rows override defaults, but keep defaults for any missing models
       const dbModels = (rows as unknown as Array<Partial<PricingModel>>)
         .map((row) => sanitizePricingModel(row))
+        .map((row) => applyPricingFloor(row))
         .filter((row) => Boolean(row.id));
       const dbIds = new Set(dbModels.map((m) => m.id));
       const merged = [...dbModels, ...DEFAULT_MODELS.filter((d) => !dbIds.has(d.id))];

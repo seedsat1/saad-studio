@@ -105,10 +105,10 @@ interface PricingCmsData {
 const uid = () => Math.random().toString(36).slice(2, 10);
 
 const SEED_PLANS: CmsPlan[] = [
-  { _id: uid(), id: "starter", badge: "Starter", tagline: "For first-time AI content creators", credits: "250 credits / mo", creditsNum: 250, equiv: "= 125 Nano Banana Pro images - ~41 Kling 3.0 videos", monthlyPrice: 15, iqd: 19500, annualDiscount: 0, cta: "Get Starter", highlight: false, features: ["Selected model access", "2 video - 4 image parallel gens", "Early access to new AI features", "Lowest cost per credit"] },
-  { _id: uid(), id: "plus", badge: "Plus", tagline: "For consistent AI creation", credits: "600 credits / mo", creditsNum: 600, equiv: "= 300 Nano Banana Pro images - ~100 Kling 3.0 videos", monthlyPrice: 35, iqd: 45500, annualDiscount: 10, cta: "Get Plus", highlight: false, features: ["ALL standard model access", "3 video - 6 image parallel gens", "Faster queue priority", "Email support"] },
-  { _id: uid(), id: "pro", badge: "Pro", tagline: "For serious AI content studios", credits: "1,200 credits / mo", creditsNum: 1200, equiv: "= 600 Nano Banana Pro images - ~200 Kling 3.0 videos", monthlyPrice: 70, iqd: 91000, annualDiscount: 12, cta: "Get Pro - Most Popular", highlight: true, features: ["ALL models including premium", "5 video - 10 image parallel gens", "Priority generation queue", "Commercial usage rights", "Early access to every new model"] },
-  { _id: uid(), id: "max", badge: "Max", tagline: "For high-volume studios & agencies", credits: "3,000 credits / mo", creditsNum: 3000, equiv: "= 1,500 Nano Banana Pro images - ~500 Kling 3.0 videos", monthlyPrice: 99, iqd: 128700, annualDiscount: 15, cta: "Get Max", highlight: false, features: ["Unlimited access to ALL models", "10 video - 20 image parallel gens", "Dedicated priority queue", "Dedicated account manager", "Team collaboration features", "Full API access"] },
+  { _id: uid(), id: "starter", badge: "Starter", tagline: "For first-time AI content creators", credits: "300 credits / mo", creditsNum: 300, equiv: "= 97 Nano Banana Pro images - ~5 Kling 3.0 videos (15s)", monthlyPrice: 15, iqd: 19500, annualDiscount: 0, cta: "Get Starter", highlight: false, features: ["Selected model access", "2 video - 4 image parallel gens", "Early access to new AI features", "Lowest cost per credit"] },
+  { _id: uid(), id: "plus", badge: "Plus", tagline: "For consistent AI creation", credits: "800 credits / mo", creditsNum: 800, equiv: "= 260 Nano Banana Pro images - ~15 Kling 3.0 videos (15s)", monthlyPrice: 35, iqd: 45500, annualDiscount: 10, cta: "Get Plus", highlight: false, features: ["ALL standard model access", "3 video - 6 image parallel gens", "Faster queue priority", "Email support"] },
+  { _id: uid(), id: "pro", badge: "Pro", tagline: "For serious AI content studios", credits: "1,800 credits / mo", creditsNum: 1800, equiv: "= 586 Nano Banana Pro images - ~34 Kling 3.0 videos (15s)", monthlyPrice: 70, iqd: 91000, annualDiscount: 12, cta: "Get Pro - Most Popular", highlight: true, features: ["ALL models including premium", "5 video - 10 image parallel gens", "Priority generation queue", "Commercial usage rights", "Early access to every new model"] },
+  { _id: uid(), id: "max", badge: "Max", tagline: "For high-volume studios & agencies", credits: "3,000 credits / mo", creditsNum: 3000, equiv: "= 977 Nano Banana Pro images - ~57 Kling 3.0 videos (15s)", monthlyPrice: 99, iqd: 128700, annualDiscount: 15, cta: "Get Max", highlight: false, features: ["Unlimited access to ALL models", "10 video - 20 image parallel gens", "Dedicated priority queue", "Dedicated account manager", "Team collaboration features", "Full API access"] },
 ];
 
 const SEED_TOPUPS: CmsTopup[] = [
@@ -120,12 +120,12 @@ const SEED_TOPUPS: CmsTopup[] = [
 ];
 
 const SEED_MODEL_COSTS: CmsModelCost[] = [
-  { _id: uid(), name: "Kling 3.0", cost: "10.5+ Credits", per: "5s 720p, duration based", type: "video" },
+  { _id: uid(), name: "Kling 3.0", cost: "17.5+ Credits", per: "5s 720p, duration based", type: "video" },
   { _id: uid(), name: "Wan 2.6", cost: "8 Credits", per: "per video", type: "video" },
-  { _id: uid(), name: "Seedance 2.0", cost: "7 / 26 Credits", per: "4s / 15s", type: "video" },
-  { _id: uid(), name: "Nano Banana Pro", cost: "2.7+ Credits", per: "1K image", type: "image" },
-  { _id: uid(), name: "Flux.2 Pro 1K", cost: "0.5 Credits", per: "1K image", type: "image" },
-  { _id: uid(), name: "GPT Image 2", cost: "0.9+ Credits", per: "1K image", type: "image" },
+  { _id: uid(), name: "Seedance 2.0", cost: "40 / 150 Credits", per: "4s / 15s", type: "video" },
+  { _id: uid(), name: "Nano Banana Pro", cost: "3.07+ Credits", per: "1K image", type: "image" },
+  { _id: uid(), name: "Flux.2 Pro 1K", cost: "0.52 Credits", per: "1K image", type: "image" },
+  { _id: uid(), name: "GPT Image 2", cost: "1.03+ Credits", per: "1K image", type: "image" },
 ];
 
 const SEED_PAYMENT_METHODS: CmsPaymentMethod[] = [

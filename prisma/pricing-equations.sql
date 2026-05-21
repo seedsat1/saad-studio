@@ -115,10 +115,33 @@ declare
   v_num_images integer;
   v_base integer;
 begin
-  -- Global image policy: all image models = 2 credits per image
+  -- Global image policy mirrors lib/image-models.ts display floors.
   if p_model_id like '%image%' or p_model_id like '%nano-banana%' or p_model_id like '%flux%' or p_model_id like '%gpt-image%' or p_model_id like '%imagen%' or p_model_id like '%seedream%' or p_model_id = 'z-image' then
     v_num_images := greatest(1, coalesce((p_payload->>'numImages')::integer, 1));
-    return v_num_images * 2;
+    if p_model_id = 'nano-banana-pro' or p_model_id = 'wan/2-7-image-pro' then
+      return ceil(v_num_images * 3.07)::integer;
+    elsif p_model_id = 'google/imagen4-ultra' then
+      return ceil(v_num_images * 2.05)::integer;
+    elsif p_model_id = 'gpt-image-2-image-to-image' then
+      return ceil(v_num_images * 1.20)::integer;
+    elsif p_model_id = 'google/imagen4' or p_model_id = 'gpt-image-2-text-to-image' then
+      return ceil(v_num_images * 1.03)::integer;
+    elsif p_model_id = 'grok-imagine/image-to-image' or p_model_id = 'gpt-image/1.5-image-to-image' then
+      return ceil(v_num_images * 0.86)::integer;
+    elsif p_model_id = 'google/nano-banana-edit' or p_model_id = 'seedream/4.5-edit' or p_model_id = 'grok-imagine/text-to-image' or p_model_id = 'gpt-image/1.5-text-to-image' then
+      return ceil(v_num_images * 0.69)::integer;
+    elsif p_model_id = 'nano-banana-2' or p_model_id = 'seedream/4.5-text-to-image' or p_model_id = 'qwen2/image-edit' or p_model_id = 'qwen/image-to-image' then
+      return ceil(v_num_images * 0.60)::integer;
+    elsif p_model_id = 'seedream/5-lite-image-to-image' then
+      return ceil(v_num_images * 0.57)::integer;
+    elsif p_model_id = 'z-image' or p_model_id = 'qwen2/text-to-image' or p_model_id = 'flux-2/pro' or p_model_id = 'flux-2/max' then
+      return ceil(v_num_images * 0.52)::integer;
+    elsif p_model_id = 'seedream/5-lite-text-to-image' then
+      return ceil(v_num_images * 0.45)::integer;
+    elsif p_model_id = 'google/nano-banana' or p_model_id = 'flux-2/flex' then
+      return ceil(v_num_images * 0.35)::integer;
+    end if;
+    return v_num_images;
   end if;
 
   if p_model_id = 'kling-3.0/video' then
@@ -126,27 +149,16 @@ begin
     v_quality := lower(coalesce(p_payload->>'quality', p_payload->>'resolution', p_payload->>'mode', 'std'));
 
     if v_quality = 'pro' or position('1080' in v_quality) > 0 then
-      if v_duration <= 3 then
-        return 9;
-      end if;
-      return greatest(9, ceil((v_duration * 41.0) / 15.0)::integer);
+      return greatest(16, ceil(v_duration * 3.5 * 1.5)::integer);
     end if;
 
-    return greatest(6, v_duration * 2);
+    return greatest(11, ceil(v_duration * 3.5)::integer);
   end if;
 
   if p_model_id = 'bytedance/seedance-2' then
     v_duration := greatest(1, coalesce((p_payload->>'duration')::integer, 4));
 
-    if v_duration = 4 then
-      return 24;
-    elsif v_duration = 15 then
-      return 85;
-    elsif v_duration < 4 then
-      return greatest(1, ceil(v_duration * 6.0)::integer);
-    else
-      return ceil((v_duration * 85.0) / 15.0)::integer;
-    end if;
+    return greatest(10, ceil(v_duration * 10.0)::integer);
   end if;
 
   select base_credits into v_base

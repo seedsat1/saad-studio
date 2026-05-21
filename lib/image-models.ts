@@ -98,7 +98,7 @@ export const IMAGE_MODELS: ImageModel[] = [
     maxRefImages: 8,
     imageInputField: "image_input",
     qualityParam: ["1K", "2K", "4K"],
-    creditCost: 2.7,
+    creditCost: 3.07,
   },
   {
     id: "nano-banana-2",
@@ -126,7 +126,7 @@ export const IMAGE_MODELS: ImageModel[] = [
     // Spec has no num_images field → batched via parallel createTasks in the route.
     maxImages: 4,
     maxRefImages: 0,
-    creditCost: 0.3,
+    creditCost: 0.35,
   },
   {
     id: "google/nano-banana-edit",
@@ -139,7 +139,7 @@ export const IMAGE_MODELS: ImageModel[] = [
     maxImages: 1,
     maxRefImages: 10,
     imageInputField: "image_urls",
-    creditCost: 0.6,
+    creditCost: 0.69,
   },
   // ── Google Imagen 4 ───────────────────────────────────────────────────────
   {
@@ -164,7 +164,7 @@ export const IMAGE_MODELS: ImageModel[] = [
     aspectRatios: ["1:1", "16:9", "9:16", "3:4", "4:3"],
     maxImages: 1,
     maxRefImages: 0,
-    creditCost: 0.9,
+    creditCost: 1.03,
   },
   {
     id: "google/imagen4-ultra",
@@ -176,7 +176,7 @@ export const IMAGE_MODELS: ImageModel[] = [
     aspectRatios: ["1:1", "16:9", "9:16", "3:4", "4:3"],
     maxImages: 1,
     maxRefImages: 0,
-    creditCost: 1.8,
+    creditCost: 2.05,
   },
   // ── Seedream ──────────────────────────────────────────────────────────────
   {
@@ -206,7 +206,7 @@ export const IMAGE_MODELS: ImageModel[] = [
     maxRefImages: 14,
     imageInputField: "image_urls",
     qualityParam: ["basic", "high"],
-    creditCost: 0.6,
+    creditCost: 0.69,
   },
   {
     id: "seedream/5-lite-text-to-image",
@@ -219,7 +219,7 @@ export const IMAGE_MODELS: ImageModel[] = [
     maxImages: 4,
     maxRefImages: 0,
     qualityParam: ["basic", "high"],
-    creditCost: 0.4,
+    creditCost: 0.45,
   },
   {
     id: "seedream/5-lite-image-to-image",
@@ -233,7 +233,7 @@ export const IMAGE_MODELS: ImageModel[] = [
     maxRefImages: 14,
     imageInputField: "image_urls",
     qualityParam: ["basic", "high"],
-    creditCost: 0.5,
+    creditCost: 0.57,
   },
   // ── Z-Image ───────────────────────────────────────────────────────────────
   {
@@ -246,7 +246,7 @@ export const IMAGE_MODELS: ImageModel[] = [
     aspectRatios: ["1:1", "4:3", "3:4", "16:9", "9:16"],
     maxImages: 4,
     maxRefImages: 0,
-    creditCost: 0.5,
+    creditCost: 0.52,
   },
   // ── Qwen ─────────────────────────────────────────────────────────────────
   {
@@ -261,7 +261,7 @@ export const IMAGE_MODELS: ImageModel[] = [
     // No num_images → parallel batching.
     maxImages: 4,
     maxRefImages: 0,
-    creditCost: 0.5,
+    creditCost: 0.52,
   },
   {
     id: "qwen2/image-edit",
@@ -305,7 +305,7 @@ export const IMAGE_MODELS: ImageModel[] = [
     // Speed (false) vs Quality (true) maps to enable_pro.
     qualityParam: ["speed", "quality"],
     grokProToggle: true,
-    creditCost: 0.6,
+    creditCost: 0.69,
   },
   {
     id: "grok-imagine/image-to-image",
@@ -319,7 +319,7 @@ export const IMAGE_MODELS: ImageModel[] = [
     // KIE spec image_urls maxItems: 5
     maxRefImages: 5,
     imageInputField: "image_urls",
-    creditCost: 0.8,
+    creditCost: 0.86,
   },
   // ── GPT Image ─────────────────────────────────────────────────────────────
   {
@@ -333,7 +333,7 @@ export const IMAGE_MODELS: ImageModel[] = [
     maxImages: 1,
     maxRefImages: 0,
     qualityParam: ["1K", "2K", "4K"],
-    creditCost: 0.9,
+    creditCost: 1.03,
   },
   {
     id: "gpt-image-2-image-to-image",
@@ -347,7 +347,7 @@ export const IMAGE_MODELS: ImageModel[] = [
     maxRefImages: 16,
     imageInputField: "input_urls",
     qualityParam: ["1K", "2K", "4K"],
-    creditCost: 1.1,
+    creditCost: 1.2,
   },
   {
     id: "gpt-image/1.5-text-to-image",
@@ -360,7 +360,7 @@ export const IMAGE_MODELS: ImageModel[] = [
     maxImages: 1,
     maxRefImages: 0,
     qualityParam: ["medium", "high"],
-    creditCost: 0.6,
+    creditCost: 0.69,
   },
   {
     id: "gpt-image/1.5-image-to-image",
@@ -374,7 +374,7 @@ export const IMAGE_MODELS: ImageModel[] = [
     maxRefImages: 16,
     imageInputField: "input_urls",
     qualityParam: ["medium", "high"],
-    creditCost: 0.8,
+    creditCost: 0.86,
   },
   // ── Wan ───────────────────────────────────────────────────────────────────
   {
@@ -391,7 +391,7 @@ export const IMAGE_MODELS: ImageModel[] = [
     imageInputField: "input_urls",
     qualityParam: ["1K", "2K", "4K"],
     wanSequentialMode: true,
-    creditCost: 2.7,
+    creditCost: 3.07,
   },
   // ── FLUX.2 (public tiers; server resolves T2I/I2I variants privately) ─────────
   {
@@ -406,7 +406,7 @@ export const IMAGE_MODELS: ImageModel[] = [
     maxRefImages: 8,
     imageInputField: "input_urls",
     qualityParam: ["1K", "2K"],
-    creditCost: 0.5,
+    creditCost: 0.52,
   },
   {
     id: "flux-2/flex",
@@ -420,7 +420,7 @@ export const IMAGE_MODELS: ImageModel[] = [
     maxRefImages: 8,
     imageInputField: "input_urls",
     qualityParam: ["1K"],
-    creditCost: 0.3,
+    creditCost: 0.35,
   },
   {
     id: "flux-2/max",
@@ -434,7 +434,7 @@ export const IMAGE_MODELS: ImageModel[] = [
     maxRefImages: 8,
     imageInputField: "input_urls",
     qualityParam: ["2K"],
-    creditCost: 0.5,
+    creditCost: 0.52,
   },
 ];
 

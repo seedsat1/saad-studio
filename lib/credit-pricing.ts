@@ -15,24 +15,24 @@ const VIDEO_MODEL_BY_ID_MAP = new Map(VIDEO_MODELS.map((m) => [m.id, m]));
 const VIDEO_ROUTE_REGISTRY_MAP = new Map(VIDEO_MODEL_REGISTRY.map((m) => [m.api_route, m]));
 
 const VIDEO_ROUTE_COST_MAP = new Map<string, number>([
-  ["kwaivgi/kling-v3.0-pro/text-to-video", 20],
+  ["kwaivgi/kling-v3.0-pro/text-to-video", 17.5],
   // Kling 3.0 Omni / Omni Edit removed — KIE has no Omni endpoint.
-  ["kwaivgi/kling-v3.0-pro/motion-control", 22],
-  ["kling/v2-5-turbo-text-to-video-pro", 10],
-  ["kling/v2-5-turbo-image-to-video-pro", 10],
-  ["minimax/hailuo-2.3/i2v-standard", 12],
-  ["minimax/hailuo-2.3/i2v-pro", 18],
-  ["openai/sora-2/text-to-video", 25],
-  ["openai/sora-2/text-to-video-pro", 35],
-  ["openai/sora-2-pro/text-to-video", 35],
-  ["openai/sora-2-pro/text-to-video-pro", 45],
-  ["google/veo3.1-lite-text-to-video", 30],
-  ["google/veo3.1-fast-text-to-video", 50],
-  ["google/veo3.1-text-to-video", 65],
-  ["bytedance/seedance-v2/text-to-video-fast", 12],
-  ["bytedance/seedance-v2/text-to-video", 20],
-  ["x-ai/grok-imagine-video/text-to-video", 20],
-  ["x-ai/grok-imagine-video/edit-video", 20],
+  ["kwaivgi/kling-v3.0-pro/motion-control", 14],
+  ["kling/v2-5-turbo-text-to-video-pro", 7.15],
+  ["kling/v2-5-turbo-image-to-video-pro", 7.15],
+  ["minimax/hailuo-2.3/i2v-standard", 6.18],
+  ["minimax/hailuo-2.3/i2v-pro", 10.26],
+  ["openai/sora-2/text-to-video", 13.64],
+  ["openai/sora-2/text-to-video-pro", 20.48],
+  ["openai/sora-2-pro/text-to-video", 20.48],
+  ["openai/sora-2-pro/text-to-video-pro", 20.48],
+  ["google/veo3.1-lite-text-to-video", 13.68],
+  ["google/veo3.1-fast-text-to-video", 13.68],
+  ["google/veo3.1-text-to-video", 42.56],
+  ["bytedance/seedance-v2/text-to-video-fast", 20],
+  ["bytedance/seedance-v2/text-to-video", 40],
+  ["x-ai/grok-imagine-video/text-to-video", 9.24],
+  ["x-ai/grok-imagine-video/edit-video", 9.24],
 ]);
 
 const MUSIC_MODEL_BASE_COST = new Map<string, number>([
@@ -47,15 +47,15 @@ const MUSIC_MODEL_BASE_COST = new Map<string, number>([
 ]);
 
 const THREE_D_COST_MAP = new Map<string, number>([
-  ["tripo3d-2.5.image", 10],
-  ["tripo3d-2.5.multiview", 14],
+  ["tripo3d-2.5.image", 3.9],
+  ["tripo3d-2.5.multiview", 3.9],
   ["hunyuan3d-3.1.text", 3],
   ["hunyuan3d-3.1.image", 4],
   ["hunyuan3d-3.text", 38],
   ["hunyuan3d-3.image", 38],
   ["hunyuan3d-3.sketch", 40],
-  ["meshy-6.text", 20],
-  ["meshy-6.image", 20],
+  ["meshy-6.text", 7.8],
+  ["meshy-6.image", 7.8],
   ["hyper3d-rodin-2.text", 40],
   ["hyper3d-rodin-2.image", 40],
 ]);
@@ -102,22 +102,20 @@ function getKling3Credits(payload?: VideoPayload): number {
   const isPro = quality === "pro" || quality.includes("1080");
 
   if (is4k) {
-    if (duration <= 3) return 18;
-    return Math.max(18, Math.ceil((duration * 82) / 15));
+    return parseFloat(Math.max(31.5, duration * 3.5 * 3).toFixed(2));
   }
 
   if (isPro) {
-    if (duration <= 3) return 9;
-    return Math.max(9, Math.ceil((duration * 41) / 15));
+    return parseFloat(Math.max(15.75, duration * 3.5 * 1.5).toFixed(2));
   }
 
-  return Math.max(6, duration * 2);
+  return parseFloat(Math.max(10.5, duration * 3.5).toFixed(2));
 }
 
 function getKlingMotionCredits(payload?: VideoPayload): number {
   const quality = readQuality(payload);
   const is1080 = quality.includes("1080") || quality === "pro";
-  return is1080 ? 33 : 22;
+  return is1080 ? 21.84 : 16.8;
 }
 
 // Kling Omni Edit credit helper removed — endpoint not provided by KIE.
@@ -125,70 +123,55 @@ function getKlingMotionCredits(payload?: VideoPayload): number {
 function getSeedance2Credits(payload?: VideoPayload, variant: "hq" | "fast" = "hq"): number {
   const duration = readDuration(payload, 4);
   const quality = readQuality(payload);
+  let cost = duration * (variant === "fast" ? 5 : 10);
 
-  // HQ baseline: 24 cr @4s → 85 cr @15s. Linear by second between, capped at endpoints.
-  let cost: number;
-  if (duration === 4) cost = 24;
-  else if (duration === 15) cost = 85;
-  else if (duration < 4) cost = Math.max(1, Math.ceil(duration * 6));
-  else cost = Math.ceil((duration * 85) / 15);
-
-  // Fast variant is roughly half the price per KIE pricing
-  if (variant === "fast") cost = Math.max(1, Math.ceil(cost * 0.5));
-
-  // 1080p (HQ only) costs ~50% more than 720p per KIE
   if (variant === "hq" && quality.includes("1080")) {
-    cost = Math.max(1, Math.ceil(cost * 1.5));
+    cost *= 1.3;
   } else if (quality.includes("480")) {
-    // 480p discount ~25%
-    cost = Math.max(1, Math.ceil(cost * 0.75));
+    cost *= 0.8;
   }
 
-  return cost;
+  return parseFloat(Math.max(1, cost).toFixed(2));
 }
 
 function getSora2Credits(modelRoute: string, payload?: VideoPayload): number {
   const duration = readDuration(payload, 4);
   const isPro = modelRoute.includes("text-to-video-pro") || modelRoute.includes("sora-2-pro");
-  const baseAt4s = isPro ? 35 : 25;
-  return Math.max(1, Math.ceil((baseAt4s * duration) / 4));
+  return parseFloat(Math.max(1, duration * (isPro ? 5.12 : 3.41)).toFixed(2));
 }
 
 function getHailuoCredits(modelRoute: string, payload?: VideoPayload): number {
   const duration = readDuration(payload, 6);
   const isPro = modelRoute.includes("i2v-pro");
-  const baseAt6s = isPro ? 18 : 12;
-  return Math.max(1, Math.ceil((baseAt6s * duration) / 6));
+  return parseFloat(Math.max(1, duration * (isPro ? 1.71 : 1.03)).toFixed(2));
 }
 
 function getGrokCredits(payload?: VideoPayload): number {
   const duration = readDuration(payload, 6);
   const quality = readQuality(payload);
-  const qualityMultiplier = quality.includes("720") ? 1.5 : 1;
-  const baseAt6s = 20;
-  return Math.max(1, Math.ceil(((baseAt6s * duration) / 6) * qualityMultiplier));
+  const qualityMultiplier = quality.includes("480") ? 0.8 : 1;
+  return parseFloat(Math.max(1, duration * 1.54 * qualityMultiplier).toFixed(2));
 }
 
 function getVeo31Credits(modelRoute: string, payload?: VideoPayload): number {
   const duration = readDuration(payload, 8);
   const quality = readQuality(payload);
-  const durationFactor = duration / 8;
   const is4k = quality === "4k";
 
   if (modelRoute === "google/veo3.1-lite-text-to-video") {
-    const base = Math.ceil(30 * durationFactor);
-    return Math.max(1, is4k ? Math.ceil(base * 2) : base);
+    const base = duration * 1.71;
+    return parseFloat(Math.max(1, is4k ? base * 3.285714 : base).toFixed(2));
   }
 
   if (modelRoute === "google/veo3.1-fast-text-to-video") {
-    const base = Math.ceil(50 * durationFactor);
-    return Math.max(1, is4k ? Math.ceil(base * 2) : base);
+    const base = duration * 1.71;
+    return parseFloat(Math.max(1, is4k ? base * 3 : base).toFixed(2));
   }
 
-  const is1080 = quality.includes("1080");
-  const base = is1080 ? 65 : 50;
-  const cost = Math.ceil(base * durationFactor);
-  return Math.max(1, is4k ? Math.ceil(cost * 2) : cost);
+  let cost = duration * 5.32;
+  if (quality.includes("1080")) cost *= 1.3;
+  if (is4k) cost *= 1.8;
+  return parseFloat(Math.max(1, cost).toFixed(2));
 }
 
 function applyGenericRouteDynamics(modelRoute: string, baseCost: number, payload?: VideoPayload): number {

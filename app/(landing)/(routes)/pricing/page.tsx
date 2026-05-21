@@ -62,7 +62,7 @@ const PLANS = [
     badge: "Starter",
     tagline: "For first-time AI content creators",
     credits: "300 credits / mo",
-    equiv: "= 111 Nano Banana Pro images - ~9 Kling 3.0 videos (15s)",
+    equiv: "= 97 Nano Banana Pro images - ~5 Kling 3.0 videos (15s)",
     price: "$15",
     period: "per month, billed annually",
     cta: "Get Starter",
@@ -86,7 +86,7 @@ const PLANS = [
     badge: "Plus",
     tagline: "For consistent AI creation",
     credits: "800 credits / mo",
-    equiv: "= 296 Nano Banana Pro images - ~25 Kling 3.0 videos (15s)",
+    equiv: "= 260 Nano Banana Pro images - ~15 Kling 3.0 videos (15s)",
     price: "$35",
     period: "per month, billed annually",
     cta: "Get Plus",
@@ -110,7 +110,7 @@ const PLANS = [
     badge: "Pro",
     tagline: "For serious AI content studios",
     credits: "1,800 credits / mo",
-    equiv: "= 666 Nano Banana Pro images - ~57 Kling 3.0 videos (15s)",
+    equiv: "= 586 Nano Banana Pro images - ~34 Kling 3.0 videos (15s)",
     price: "$70",
     period: "per month, billed annually",
     cta: "Get Pro - Most Popular",
@@ -134,7 +134,7 @@ const PLANS = [
     badge: "Max",
     tagline: "For high-volume studios & agencies",
     credits: "3,000 credits / mo",
-    equiv: "= 1,111 Nano Banana Pro images - ~95 Kling 3.0 videos (15s)",
+    equiv: "= 977 Nano Banana Pro images - ~57 Kling 3.0 videos (15s)",
     price: "$99",
     period: "per month, billed annually",
     cta: "Get Max",
@@ -192,11 +192,11 @@ const MAX_ANNUAL_UNLIMITED_IMAGE_MODELS = [
 ];
 
 // Source-of-truth values must match lib/pricing-models.ts:
-//   nano_pro.userCreditsRate = 2.7  (per image)
-//   kling30.userCreditsRate  = 2.1  (per second; 5s clip = 10.5 credits)
+//   nano_pro.userCreditsRate = 3.07  (per image)
+//   kling30.userCreditsRate  = 3.5   (per second; 15s clip = 52.5 credits)
 // These constants drive the "X images / Y videos" copy on each plan card.
-const NANO_BANANA_PRO_CREDITS = 2.7;
-const KLING_3_STARTER_CREDITS = 10.5;
+const NANO_BANANA_PRO_CREDITS = 3.07;
+const KLING_3_15S_CREDITS = 52.5;
 
 const parsePlanCredits = (plan: { credits: string; creditsNum?: number }): number => {
   if (typeof plan.creditsNum === "number" && Number.isFinite(plan.creditsNum)) {
@@ -214,21 +214,21 @@ const getPlanGenerationAllowance = (plan: { credits: string; creditsNum?: number
   if (!credits) return "";
 
   const imageCount = Math.floor(credits / NANO_BANANA_PRO_CREDITS);
-  const videoCount = Math.floor(credits / KLING_3_STARTER_CREDITS);
+  const videoCount = Math.floor(credits / KLING_3_15S_CREDITS);
 
   return `Up to ${formatCount(imageCount)} Nano Banana Pro images OR ${formatCount(videoCount)} Kling 3.0 videos`;
 };
 
 const MODEL_COSTS = {
   video: [
-    { name: "Kling 3.0",        cost: "10.5+ Credits", per: "5s 720p, duration based", free: false, color: "text-blue-400",    bg: "bg-blue-500/10",    border: "border-blue-500/20" },
+    { name: "Kling 3.0",        cost: "17.5+ Credits", per: "5s 720p, duration based", free: false, color: "text-blue-400",    bg: "bg-blue-500/10",    border: "border-blue-500/20" },
     { name: "Wan 2.6",          cost: "8 Credits",  per: "per video",              free: false, color: "text-purple-400",  bg: "bg-purple-500/10",  border: "border-purple-500/20" },
-    { name: "Seedance 2.0",     cost: "7 / 26 Credits", per: "4s / 15s",          free: false, color: "text-cyan-400",    bg: "bg-cyan-500/10",    border: "border-cyan-500/20" },
+    { name: "Seedance 2.0",     cost: "40 / 150 Credits", per: "4s / 15s",          free: false, color: "text-cyan-400",    bg: "bg-cyan-500/10",    border: "border-cyan-500/20" },
   ],
   image: [
-    { name: "Nano Banana Pro",  cost: "2.7+ Credits",  per: "1K image",              free: false, color: "text-yellow-400",  bg: "bg-yellow-500/10",  border: "border-yellow-500/20" },
-    { name: "Flux.2 Pro 1K",    cost: "0.5 Credits",  per: "1K image",              free: false, color: "text-violet-400",  bg: "bg-violet-500/10",  border: "border-violet-500/20" },
-    { name: "GPT Image 2",      cost: "0.9+ Credits",  per: "1K image",              free: false, color: "text-rose-400",    bg: "bg-rose-500/10",    border: "border-rose-500/20" },
+    { name: "Nano Banana Pro",  cost: "3.07+ Credits",  per: "1K image",              free: false, color: "text-yellow-400",  bg: "bg-yellow-500/10",  border: "border-yellow-500/20" },
+    { name: "Flux.2 Pro 1K",    cost: "0.52 Credits",  per: "1K image",              free: false, color: "text-violet-400",  bg: "bg-violet-500/10",  border: "border-violet-500/20" },
+    { name: "GPT Image 2",      cost: "1.03+ Credits",  per: "1K image",              free: false, color: "text-rose-400",    bg: "bg-rose-500/10",    border: "border-rose-500/20" },
   ],
 };
 
@@ -271,13 +271,13 @@ export default function PricingPage() {
       .catch(() => null);
   }, []);
 
-  const ICON_MAP: Record<string, typeof Rocket> = { starter: Rocket, plus: Sparkles, pro: Star, max: Crown };
-  const ACCENT_MAP: Record<string, { bg: string; border: string; iconColor: string; ctaStyle: string }> = {
+  const ICON_MAP = useMemo<Record<string, typeof Rocket>>(() => ({ starter: Rocket, plus: Sparkles, pro: Star, max: Crown }), []);
+  const ACCENT_MAP = useMemo<Record<string, { bg: string; border: string; iconColor: string; ctaStyle: string }>>(() => ({
     starter: { bg: "bg-violet-500/10", border: "border-violet-500/30", iconColor: "text-violet-400", ctaStyle: "bg-violet-600 hover:bg-violet-500 text-white shadow-lg shadow-violet-500/25" },
     plus:    { bg: "bg-slate-500/10",  border: "border-slate-700",     iconColor: "text-slate-400",  ctaStyle: "border border-slate-700 text-slate-200 hover:bg-slate-800" },
     pro:     { bg: "bg-blue-500/10",   border: "border-blue-500/40",   iconColor: "text-blue-400",   ctaStyle: "bg-gradient-to-r from-blue-500 to-violet-600 hover:from-blue-400 hover:to-violet-500 text-white shadow-lg shadow-blue-500/30" },
     max:     { bg: "bg-amber-500/10",  border: "border-amber-500/30",  iconColor: "text-amber-400",  ctaStyle: "bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white shadow-lg shadow-amber-500/30" },
-  };
+  }), []);
 
   // CMS-driven data with fallback to hardcoded
   const heroData = cms?.hero ?? { badge: "Credits-Based - Cancel Anytime", heading: "Choose Your", headingHighlight: "Creative Plan", subtitle: "One credit balance. All AI models. No hidden fees. Top up anytime - credits never expire." };
@@ -306,7 +306,7 @@ export default function PricingPage() {
         unlimited: { active: [] as string[], coming: [] as string[], none: [] as string[] },
       };
     });
-  }, [cmsPlans]);
+  }, [ACCENT_MAP, ICON_MAP, cmsPlans]);
 
   const liveTopups = cms?.topups?.length ? cms.topups : TOPUPS;
   const liveModelCosts = cms?.modelCosts?.length ? cms.modelCosts : [...MODEL_COSTS.video.map((m) => ({ ...m, type: "video" as const, _id: m.name })), ...MODEL_COSTS.image.map((m) => ({ ...m, type: "image" as const, _id: m.name }))];

@@ -27,9 +27,9 @@ interface PricingCmsData {
 // ─── Data ────────────────────────────────────────────────────────────────────
 
 const PLANS = [
-  { id: "starter", label: "Starter", usd: 15, iqd: 19500,  credits: 250,  Icon: Rocket, color: "text-violet-400", bg: "bg-violet-500/10", border: "border-violet-500/40" },
-  { id: "plus",    label: "Plus",    usd: 35, iqd: 45500,  credits: 600,  Icon: Sparkles, color: "text-slate-300", bg: "bg-slate-500/10", border: "border-slate-500/40" },
-  { id: "pro",     label: "Pro",     usd: 70, iqd: 91000,  credits: 1200, Icon: Star,   color: "text-blue-400",   bg: "bg-blue-500/10",   border: "border-blue-500/40"   },
+  { id: "starter", label: "Starter", usd: 15, iqd: 19500,  credits: 300,  Icon: Rocket, color: "text-violet-400", bg: "bg-violet-500/10", border: "border-violet-500/40" },
+  { id: "plus",    label: "Plus",    usd: 35, iqd: 45500,  credits: 800,  Icon: Sparkles, color: "text-slate-300", bg: "bg-slate-500/10", border: "border-slate-500/40" },
+  { id: "pro",     label: "Pro",     usd: 70, iqd: 91000,  credits: 1800, Icon: Star,   color: "text-blue-400",   bg: "bg-blue-500/10",   border: "border-blue-500/40"   },
   { id: "max",     label: "Max",     usd: 99, iqd: 128700, credits: 3000, Icon: Crown,  color: "text-amber-400",  bg: "bg-amber-500/10",  border: "border-amber-500/40"  },
 ];
 
@@ -327,14 +327,14 @@ export default function PaymentPage() {
   const liveWhatsApp = cms?.whatsappNumber ?? "9647902585579";
 
   // Live plans from CMS (with IQD prices + styling fallback)
-  const ICON_MAP: Record<string, typeof Rocket> = { starter: Rocket, plus: Sparkles, pro: Star, max: Crown };
-  const STYLE_MAP_PLANS: Record<string, { color: string; bg: string; border: string }> = {
+  const ICON_MAP = useMemo<Record<string, typeof Rocket>>(() => ({ starter: Rocket, plus: Sparkles, pro: Star, max: Crown }), []);
+  const STYLE_MAP_PLANS = useMemo<Record<string, { color: string; bg: string; border: string }>>(() => ({
     starter: { color: "text-violet-400", bg: "bg-violet-500/10", border: "border-violet-500/40" },
     plus:    { color: "text-slate-300",  bg: "bg-slate-500/10",  border: "border-slate-500/40" },
     pro:     { color: "text-blue-400",   bg: "bg-blue-500/10",   border: "border-blue-500/40" },
     max:     { color: "text-amber-400",  bg: "bg-amber-500/10",  border: "border-amber-500/40" },
-  };
-  const defaultPlanStyle = { color: "text-violet-400", bg: "bg-violet-500/10", border: "border-violet-500/40" };
+  }), []);
+  const defaultPlanStyle = useMemo(() => ({ color: "text-violet-400", bg: "bg-violet-500/10", border: "border-violet-500/40" }), []);
 
   const livePlans = useMemo(() => {
     if (!cms?.plans?.length) return PLANS;
@@ -345,7 +345,7 @@ export default function PaymentPage() {
         Icon: ICON_MAP[cp.id] ?? Rocket, ...s,
       };
     });
-  }, [cms?.plans]);
+  }, [ICON_MAP, STYLE_MAP_PLANS, cms?.plans, defaultPlanStyle]);
 
   const liveTopups = useMemo(() => {
     if (!cms?.topups?.length) return TOPUPS;
