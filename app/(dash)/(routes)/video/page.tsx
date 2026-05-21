@@ -86,6 +86,70 @@ async function fileToDataURL(file: File, maxPx = 1920, quality = 0.85): Promise<
   });
 }
 
+function aspectRatioToNumbers(ratio: string | null | undefined): { w: number; h: number } {
+  if (ratio === "9:16") return { w: 9, h: 16 };
+  if (ratio === "1:1") return { w: 1, h: 1 };
+  return { w: 16, h: 9 };
+}
+
+function targetCanvasSizeForRatio(ratio: string | null | undefined, maxLongSide = 1920) {
+  const { w, h } = aspectRatioToNumbers(ratio);
+  if (h > w) {
+    return { width: Math.round((maxLongSide * w) / h), height: maxLongSide };
+  }
+  if (w > h) {
+    return { width: maxLongSide, height: Math.round((maxLongSide * h) / w) };
+  }
+  return { width: maxLongSide, height: maxLongSide };
+}
+
+async function fileToAspectDataURL(file: File, ratio: string | null | undefined, quality = 0.88): Promise<string> {
+  if (!file.type.startsWith("image/")) return fileToDataURL(file);
+
+  const raw = await fileToDataURL(file, 2400, quality);
+  return imageSourceToAspectDataURL(raw, ratio, quality);
+}
+
+async function imageSourceToAspectDataURL(source: string, ratio: string | null | undefined, quality = 0.88): Promise<string> {
+  if (!source || !source.startsWith("data:image/")) return source;
+
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onerror = () => resolve(source);
+    img.onload = () => {
+      const { width, height } = targetCanvasSizeForRatio(ratio);
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        resolve(source);
+        return;
+      }
+
+      ctx.fillStyle = "#050507";
+      ctx.fillRect(0, 0, width, height);
+
+      const coverScale = Math.max(width / img.naturalWidth, height / img.naturalHeight);
+      const coverW = img.naturalWidth * coverScale;
+      const coverH = img.naturalHeight * coverScale;
+      ctx.globalAlpha = 0.35;
+      ctx.filter = "blur(28px)";
+      ctx.drawImage(img, (width - coverW) / 2, (height - coverH) / 2, coverW, coverH);
+
+      const containScale = Math.min(width / img.naturalWidth, height / img.naturalHeight);
+      const containW = img.naturalWidth * containScale;
+      const containH = img.naturalHeight * containScale;
+      ctx.globalAlpha = 1;
+      ctx.filter = "none";
+      ctx.drawImage(img, (width - containW) / 2, (height - containH) / 2, containW, containH);
+
+      resolve(canvas.toDataURL("image/jpeg", quality));
+    };
+    img.src = source;
+  });
+}
+
 function sizeToRatio(size: string): string {
   const [w, h] = size.split("*").map(Number);
   if (!w || !h) return "16:9";
@@ -1235,14 +1299,19 @@ function VideoPageInner() {
         // payload.image / payload.end_image are set by the generic block above,
         // but we re-read from state to guarantee no silent data loss.
         const imageUrls: string[] = [];
-        const firstFrameDataUrl = startFrame ? await fileToDataURL(startFrame) : linkedStartFrameUrl;
+        const targetKlingRatio = aspectRatio ?? "16:9";
+        const firstFrameDataUrl = startFrame
+          ? await fileToAspectDataURL(startFrame, targetKlingRatio)
+          : linkedStartFrameUrl
+            ? await imageSourceToAspectDataURL(linkedStartFrameUrl, targetKlingRatio)
+            : null;
         const lastFrameDataUrl =
-          !kling30MultiEnabled && endFrame ? await fileToDataURL(endFrame) : null;
+          !kling30MultiEnabled && endFrame ? await fileToAspectDataURL(endFrame, targetKlingRatio) : null;
         if (firstFrameDataUrl) imageUrls.push(firstFrameDataUrl);
         if (lastFrameDataUrl) imageUrls.push(lastFrameDataUrl);
         // Log so we can verify images are included
         console.log(
-          `[Kling 3.0] image_urls built: start=${firstFrameDataUrl ? "✓ (" + firstFrameDataUrl.slice(0, 40) + "…)" : "✗ none"}, end=${lastFrameDataUrl ? "✓" : kling30MultiEnabled ? "skipped (multi-shot)" : "✗ none"}`
+          `[Kling 3.0] image_urls built: targetRatio=${targetKlingRatio}, start=${firstFrameDataUrl ? "✓ (" + firstFrameDataUrl.slice(0, 40) + "…)" : "✗ none"}, end=${lastFrameDataUrl ? "✓" : kling30MultiEnabled ? "skipped (multi-shot)" : "✗ none"}`
         );
 
         // ── kling_elements ───────────────────────────────────────────────────
@@ -1296,7 +1365,7 @@ function VideoPageInner() {
         payload.mode = modeValue;
         payload.sound = !!sound;
         payload.duration = resolvedDuration;
-        payload.aspect_ratio = aspectRatio ?? "16:9";
+        payload.aspect_ratio = targetKlingRatio;
         payload.prompt = kling30MultiEnabled ? "" : (toolPrefix ? `${toolPrefix} ${promptedText.trim()}` : promptedText.trim());
 
         if (validKlingEls.length > 0 || selectedCharacterElement) {
@@ -1319,6 +1388,7 @@ function VideoPageInner() {
         const debugPayload = {
           modelRoute: selectedModel.api_route,
           model: "kling-3.0/video",
+          target_frame_ratio: targetKlingRatio,
           prompt: payload.prompt,
           mode: payload.mode,
           duration: payload.duration,
@@ -1374,10 +1444,11 @@ function VideoPageInner() {
         return;
       }
 
-      // Kling 3.0 i2v auto-adapts to the start frame's aspect — prefer detected ratio when available
+      // Show the ratio the user explicitly requested. Kling frames are normalized
+      // to this ratio before submit, so the pending/result card should match it.
       const isKling30 = selectedModel.api_route === "kwaivgi/kling-v3.0-pro/text-to-video";
-      const _capturedRatio = (isKling30 && startFrame && startFrameRatio)
-        ? startFrameRatio
+      const _capturedRatio = isKling30
+        ? (aspectRatio ?? "16:9")
         : (aspectRatio ?? (size ? sizeToRatio(size) : "16:9"));
       const capturedDuration = isVeo31Model ? 8 : duration;
       setPendingTasks(prev => new Map(prev).set(data.taskId!, { model: selectedModel, promptText: basePrompt, ratio: _capturedRatio, duration: capturedDuration }));
@@ -2703,21 +2774,17 @@ function VideoPageInner() {
                 <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#475569" }}>Aspect Ratio</label>
                 <div className="flex gap-1">
                   {(["16:9", "9:16", "1:1"] as const).map(r => {
-                    const effectiveRatio = startFrame ? (startFrameRatio ?? aspectRatio) : aspectRatio;
-                    const isActive = effectiveRatio === r;
-                    const isDisabled = !!startFrame;
+                    const isActive = aspectRatio === r;
                     return (
                       <button
                         key={r}
-                        onClick={() => !isDisabled && setAspectRatio(r)}
-                        disabled={isDisabled}
+                        onClick={() => setAspectRatio(r)}
                         className="flex-1 py-2 rounded-lg text-[12px] font-semibold transition-all"
                         style={{
                           background: isActive ? hexA(selectedModel.family_color, 0.15) : "rgba(255,255,255,0.04)",
                           border:     isActive ? `1px solid ${hexA(selectedModel.family_color, 0.5)}` : "1px solid rgba(255,255,255,0.06)",
                           color:      isActive ? selectedModel.family_color : "#64748b",
-                          opacity:    isDisabled && !isActive ? 0.4 : 1,
-                          cursor:     isDisabled ? "not-allowed" : "pointer",
+                          cursor:     "pointer",
                         }}
                       >
                         {r}
