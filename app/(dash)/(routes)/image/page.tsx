@@ -995,7 +995,11 @@ export default function ImageWorkspacePage() {
   const [enhanceModelId, setEnhanceModelId] = useState(
     ENHANCE_MODELS.find((m) => m.id === "gpt-image-2-image-to-image")?.id ?? ENHANCE_MODELS[0]?.id ?? "gpt-image-2-image-to-image",
   );
-  const [generating, setGenerating] = useState(false);
+  const [activeGenerationCount, setActiveGenerationCount] = useState(0);
+  const generating = activeGenerationCount > 0;
+  const beginGeneration = useCallback(() => setActiveGenerationCount((count) => count + 1), []);
+  const finishGeneration = useCallback(() => setActiveGenerationCount((count) => Math.max(0, count - 1)), []);
+  const lastSubmitAtRef = useRef(0);
   const [error, setError] = useState<string | null>(null);
   const [results, setResults] = useState<ResultItem[]>([]);
   const [pendingItems, setPendingItems] = useState<ResultItem[]>([]);
@@ -1096,7 +1100,7 @@ export default function ImageWorkspacePage() {
         isPending: true,
       }));
       setPendingItems((prev) => [...placeholders, ...prev]);
-      setGenerating(true);
+      beginGeneration();
 
       const finish = (matched: ResultItem[] | null) => {
         if (cancelled) return;
@@ -1108,7 +1112,7 @@ export default function ImageWorkspacePage() {
           });
         }
         setPendingItems((prev) => prev.filter((p) => !placeholders.some((ph) => ph.id === p.id)));
-        setGenerating(false);
+        finishGeneration();
         try { localStorage.removeItem("ff_image_pending_job"); } catch {}
         if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
       };
@@ -1146,7 +1150,7 @@ export default function ImageWorkspacePage() {
       cancelled = true;
       if (pollTimer) clearInterval(pollTimer);
     };
-  }, []);
+  }, [beginGeneration, finishGeneration]);
 
   const selectedRatio = useMemo(() => RATIO_OPTIONS.find((r) => r.value === aspectRatio) || RATIO_OPTIONS[0], [aspectRatio]);
   const createNeedsImage = selectedModel.inputType !== "text-to-image";
@@ -1207,14 +1211,13 @@ export default function ImageWorkspacePage() {
   }, [selectedModel, numImages, aspectRatio, quality, qualityOptions]);
 
   const canGenerate = useMemo(() => {
-    if (generating) return false;
     if (activeTool === "create") return Boolean(prompt.trim()) && (!createNeedsImage || referenceFiles.length > 0 || Boolean(selectedCharacter));
     if (activeTool === "relight") return Boolean(relightFile && prompt.trim());
     if (activeTool === "inpaint") return Boolean(inpaintFile && prompt.trim());
     if (activeTool === "upscale") return Boolean(upscaleFile);
     if (activeTool === "enhance") return enhanceFiles.length > 0;
     return Boolean(faceSource && faceTarget);
-  }, [activeTool, createNeedsImage, enhanceFiles.length, faceSource, faceTarget, generating, inpaintFile, prompt, referenceFiles.length, relightFile, selectedCharacter, upscaleFile]);
+  }, [activeTool, createNeedsImage, enhanceFiles.length, faceSource, faceTarget, inpaintFile, prompt, referenceFiles.length, relightFile, selectedCharacter, upscaleFile]);
 
   const estimatedCredits = useMemo(() => {
     if (activeTool === "create") {
@@ -1456,6 +1459,9 @@ export default function ImageWorkspacePage() {
 
   const handleGenerate = useCallback(async () => {
     if (!canGenerate) return;
+    const now = Date.now();
+    if (now - lastSubmitAtRef.current < 800) return;
+    lastSubmitAtRef.current = now;
     const gate = await guardGeneration({ requiredCredits: estimatedCredits, action: `image:${activeTool}` });
     if (!gate.ok) {
       if (gate.reason === "error") setError(gate.message ?? getSafeErrorMessage(gate.message));
@@ -1476,7 +1482,7 @@ export default function ImageWorkspacePage() {
     }));
 
     setPendingItems((prev) => [...placeholders, ...prev]);
-    setGenerating(true);
+    beginGeneration();
     setError(null);
     // Persist generation marker so we can recover after a page refresh
     try {
@@ -1501,10 +1507,10 @@ export default function ImageWorkspacePage() {
       setError(getSafeErrorMessage(e));
     } finally {
       setPendingItems((prev) => prev.filter((item) => !placeholders.some((ph) => ph.id === item.id)));
-      setGenerating(false);
+      finishGeneration();
       try { localStorage.removeItem("ff_image_pending_job"); } catch {}
     }
-  }, [activeTool, aspectRatio, canGenerate, enhanceModelId, estimatedCredits, generateCreate, generateEnhance, generateFaceSwap, generateInpaint, generateRelight, generateUpscale, getSafeErrorMessage, guardGeneration, inpaintModelId, inpaintVariations, numImages, prompt, relightVariations, selectedModel.label]);
+  }, [activeTool, aspectRatio, beginGeneration, canGenerate, enhanceModelId, estimatedCredits, finishGeneration, generateCreate, generateEnhance, generateFaceSwap, generateInpaint, generateRelight, generateUpscale, getSafeErrorMessage, guardGeneration, inpaintModelId, inpaintVariations, numImages, prompt, relightVariations, selectedModel.label]);
 
   const handleDelete = useCallback(async (id: string) => {
     setResults((prev) => prev.filter((i) => i.id !== id));
@@ -1969,7 +1975,7 @@ export default function ImageWorkspacePage() {
                   </>
                 ) : null}
                 <button onClick={handleGenerate} disabled={!canGenerate} className={cn("flex h-9 w-9 items-center justify-center rounded-xl", canGenerate ? "bg-pink-600 text-white" : "bg-white/5 text-zinc-600")}><ArrowUp className="h-4 w-4" /></button>
-                <button onClick={handleGenerate} disabled={!canGenerate} className={cn("btn-generate rounded-xl px-4 py-2.5 text-sm", !canGenerate && "cursor-not-allowed opacity-40")}>{generating ? "Generating..." : composer.button}</button>
+                <button onClick={handleGenerate} disabled={!canGenerate} className={cn("btn-generate rounded-xl px-4 py-2.5 text-sm", !canGenerate && "cursor-not-allowed opacity-40")}>{generating ? "Generate another" : composer.button}</button>
               </div>
             </div>
           </div>

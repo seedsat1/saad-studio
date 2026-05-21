@@ -478,8 +478,20 @@ export default function CinematicVideoPage() {
   const [copied, setCopied] = useState(false);
   const [muted, setMuted] = useState(false);
   const [elapsed, setElapsed] = useState(0);
+  const [isSubmittingGeneration, setIsSubmittingGeneration] = useState(false);
   const elapsedTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const generationLockRef = useRef(false);
+  const generationSubmitLockRef = useRef(false);
+  const activeGenerationCountRef = useRef(0);
+
+  const beginVideoGeneration = useCallback(() => {
+    activeGenerationCountRef.current += 1;
+    setIsGenerating(true);
+  }, []);
+
+  const finishVideoGeneration = useCallback(() => {
+    activeGenerationCountRef.current = Math.max(0, activeGenerationCountRef.current - 1);
+    setIsGenerating(activeGenerationCountRef.current > 0);
+  }, []);
 
   const cost = useMemo(() => {
     const tierDef = TIERS.find((t) => t.id === tier)!;
@@ -663,9 +675,10 @@ export default function CinematicVideoPage() {
 
   // ── Generate ────────────────────────────────────────────────────────
   const handleGenerate = useCallback(async () => {
-    if (generationLockRef.current) return;
+    if (generationSubmitLockRef.current) return;
     if (!isReadyForMode) return;
-    generationLockRef.current = true;
+    generationSubmitLockRef.current = true;
+    setIsSubmittingGeneration(true);
 
     const guard = await gate.guardGeneration({
       requiredCredits: cost,
@@ -673,14 +686,15 @@ export default function CinematicVideoPage() {
     });
     if (!guard.ok) {
       if (guard.message) setErrorMessage(guard.message);
-      generationLockRef.current = false;
+      generationSubmitLockRef.current = false;
+      setIsSubmittingGeneration(false);
       return;
     }
 
     setErrorMessage("");
     setResultUrl(null);
     setStatusMessage("Submitting to Veo…");
-    setIsGenerating(true);
+    beginVideoGeneration();
 
     try {
       const body: Record<string, unknown> = {
@@ -715,6 +729,8 @@ export default function CinematicVideoPage() {
         throw new Error(msg);
       }
 
+      generationSubmitLockRef.current = false;
+      setIsSubmittingGeneration(false);
       setStatusMessage("Rendering… this usually takes 1–6 minutes.");
 
       const operationName = data.operationName as string;
@@ -752,14 +768,17 @@ export default function CinematicVideoPage() {
     } catch (err) {
       setErrorMessage(err instanceof Error ? err.message : "Generation failed.");
     } finally {
-      setIsGenerating(false);
-      setStatusMessage("");
-      generationLockRef.current = false;
+      generationSubmitLockRef.current = false;
+      setIsSubmittingGeneration(false);
+      finishVideoGeneration();
+      if (activeGenerationCountRef.current === 0) setStatusMessage("");
     }
   }, [
     gate,
     cost,
     isReadyForMode,
+    beginVideoGeneration,
+    finishVideoGeneration,
     tier,
     prompt,
     claritySuffix,
@@ -1269,13 +1288,18 @@ export default function CinematicVideoPage() {
                   </div>
                   <button
                     onClick={handleGenerate}
-                    disabled={!isReadyForMode || isGenerating || uploading}
+                    disabled={!isReadyForMode || isSubmittingGeneration || uploading}
                     className="group relative inline-flex items-center gap-2 overflow-hidden rounded-xl bg-gradient-to-r from-amber-400 via-orange-500 to-red-500 px-6 py-3 text-sm font-black text-black shadow-lg shadow-amber-500/30 transition-all hover:shadow-amber-500/50 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    {isGenerating ? (
+                    {isSubmittingGeneration ? (
                       <>
                         <Loader2 className="h-4 w-4 animate-spin" />
-                        Rendering…
+                        Submitting...
+                      </>
+                    ) : isGenerating ? (
+                      <>
+                        <Film className="h-4 w-4" />
+                        Queue another
                       </>
                     ) : (
                       <>
