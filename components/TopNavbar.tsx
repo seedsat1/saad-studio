@@ -136,6 +136,7 @@ const IMAGE_MODEL_GROUPS = [
 
 const VIDEO_FEATURES = [
   { label: "Create Video",        href: "/video",           icon: VideoIcon,    color: "text-orange-400",  description: "Text-to-video generation",             badge: "" },
+  { label: "Cinematic Video",     href: "/cinematic-video", icon: Film,         color: "text-amber-300",   description: "Google Veo cinematic generation",       badge: "NEW" },
   { label: "Transitions",         href: "/apps/tool/transitions", icon: Blend, color: "text-cyan-300", description: "Generate styled scene transitions", badge: "READY" },
   { label: "Storyboard Studio",   href: "/apps/tool/storyboard-studio", icon: Clapperboard, color: "text-violet-300", description: "Create cinematic production boards", badge: "READY" },
   { label: "Cinematic Styles",    href: "/apps/tool/cinematic-styles", icon: Blend,        color: "text-cyan-300",    description: "Apply stylized motion presets to clips", badge: "READY" },
@@ -417,6 +418,7 @@ const SHOW_EXPERIMENTAL_NAV = false;
 
 const STUDIO_LINKS = [
   { label: "Cinematic Styles", href: "/apps/tool/cinematic-styles", icon: Blend, color: "text-cyan-300" },
+  { label: "Cinematic Video", href: "/cinematic-video", icon: Film, color: "text-amber-300" },
   { label: "Transitions", href: "/apps/tool/transitions", icon: Blend, color: "text-cyan-300" },
   { label: "Storyboard", href: "/apps/tool/storyboard-studio", icon: Clapperboard, color: "text-violet-300" },
   { label: "AI Canvas", href: "/original-series", icon: Monitor, color: "text-purple-400" },
@@ -925,7 +927,7 @@ const TopNavbar = () => {
                       </div>
                       <h3 className="text-sm font-semibold text-white">Video Studio</h3>
                       <span className="rounded-full bg-orange-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-orange-300 ring-1 ring-orange-500/30">
-                        15 Features
+                        16 Features
                       </span>
                     </div>
                     <Link
@@ -1189,7 +1191,7 @@ const TopNavbar = () => {
 
               {/* Video accordion – Features + Models */}
               <MobileAccordion
-                label="Video" href="/video" badge="15+27"
+                label="Video" href="/video" badge="16+27"
                 icon={<VideoIcon className="h-4 w-4 text-orange-400" />}
                 open={mobileSection === "video"} onToggle={() => toggleSection("video")}
               >
