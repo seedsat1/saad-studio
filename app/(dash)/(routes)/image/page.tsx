@@ -53,19 +53,6 @@ const EXCLUDED_ANNUAL_UNLIMITED_IMAGE_MODEL_IDS = new Set([
   "google/imagen4-ultra",
   "flux-2/max",
 ]);
-const ANNUAL_UNLIMITED_IMAGE_MODEL_PREFIXES = [
-  "nano-banana",
-  "google/nano-banana",
-  "google/imagen4",
-  "seedream/",
-  "z-image",
-  "qwen2/",
-  "qwen/",
-  "grok-imagine/",
-  "gpt-image",
-  "wan/2-7-image-pro",
-  "flux-2/",
-];
 const isBlockedDynamicImageModel = (id: string, label: string) =>
   id.includes("kling-" + "image-o1") || label === "kling 01 image";
 
@@ -76,8 +63,7 @@ function isAnnualUnlimitedImageQuality(value?: string | null) {
 
 function isAnnualUnlimitedImageModel(modelId: string) {
   if (EXCLUDED_ANNUAL_UNLIMITED_IMAGE_MODEL_IDS.has(modelId)) return false;
-  return ANNUAL_UNLIMITED_IMAGE_MODEL_IDS.has(modelId) ||
-    ANNUAL_UNLIMITED_IMAGE_MODEL_PREFIXES.some((prefix) => modelId.startsWith(prefix));
+  return ANNUAL_UNLIMITED_IMAGE_MODEL_IDS.has(modelId);
 }
 
 // Shared with /gallery so albums sync across pages

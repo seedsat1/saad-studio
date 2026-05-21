@@ -39,20 +39,6 @@ const EXCLUDED_ANNUAL_UNLIMITED_IMAGE_MODELS = new Set<string>([
   "google/imagen4-ultra",
   "flux-2/max",
 ]);
-const IMAGE_MODEL_PREFIXES = [
-  "nano-banana",
-  "google/nano-banana",
-  "google/imagen4",
-  "seedream/",
-  "z-image",
-  "qwen2/",
-  "qwen/",
-  "grok-imagine/",
-  "gpt-image",
-  "wan/2-7-image-pro",
-  "flux-2/",
-];
-
 function normalizeQuality(value?: string | null): string {
   return String(value ?? "1K").trim().toLowerCase();
 }
@@ -108,8 +94,7 @@ export function isAnnualUnlimitedImageQuality(value?: string | null): boolean {
 
 export function isAnnualUnlimitedImageModel(modelId: string): boolean {
   if (EXCLUDED_ANNUAL_UNLIMITED_IMAGE_MODELS.has(modelId)) return false;
-  return ANNUAL_UNLIMITED_IMAGE_MODEL_SET.has(modelId) ||
-    IMAGE_MODEL_PREFIXES.some((prefix) => modelId.startsWith(prefix));
+  return ANNUAL_UNLIMITED_IMAGE_MODEL_SET.has(modelId);
 }
 
 export async function getActiveAnnualPlanId(userId: string): Promise<string | null> {
