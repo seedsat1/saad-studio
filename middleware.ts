@@ -35,6 +35,7 @@ const isPublicRoute = createRouteMatcher([
   '/video-editor(.*)',
   '/video-project-editor(.*)',
   '/api/maintenance(.*)',
+  '/api/layouts(.*)',
   '/api/content(.*)',
   '/api/generate(.*)',
   '/api/cinema(.*)',
