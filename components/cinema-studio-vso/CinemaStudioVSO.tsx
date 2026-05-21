@@ -765,39 +765,33 @@ export default function App() {
     lens: string,
     genre: string
   ) => {
-    const isAr = /[\u0600-\u06FF]/.test(ptext || dtext);
-    
     // Determine customized color gradient depending on chosen Genre and Style
     let particles: "rain" | "snow" | "dust" | "fog" | "none" = "none";
-    if (ptext.includes("مطر") || ptext.includes("rain")) particles = "rain";
-    else if (ptext.includes("ثلج") || ptext.includes("snow")) particles = "snow";
-    else if (ptext.includes("غبار") || ptext.includes("dust") || ptext.includes("تراب")) particles = "dust";
-    else if (ptext.includes("ضباب") || ptext.includes("fog")) particles = "fog";
+    if (ptext.includes("rain")) particles = "rain";
+    else if (ptext.includes("snow")) particles = "snow";
+    else if (ptext.includes("dust") || ptext.includes("sand")) particles = "dust";
+    else if (ptext.includes("fog") || ptext.includes("mist")) particles = "fog";
 
     let moodGrad = "radial-gradient(circle at 50% 40%, rgba(99, 102, 241, 0.15) 0%, rgba(0, 0, 0, 0) 80%)";
     if (genre === "Noir") {
       moodGrad = "radial-gradient(circle at 50% 40%, rgba(59, 130, 246, 0.16) 0%, rgba(0, 0, 0, 0) 85%)";
-    } else if (genre === "Action" || ptext.includes("أحمر")) {
+    } else if (genre === "Action" || ptext.includes("red")) {
       moodGrad = "radial-gradient(circle at 50% 40%, rgba(239, 68, 68, 0.18) 0%, rgba(0, 0, 0, 0) 80%)";
-    } else if (genre === "Epic" || ptext.includes("ذهب")) {
+    } else if (genre === "Epic" || ptext.includes("gold")) {
       moodGrad = "radial-gradient(circle at 50% 40%, rgba(234, 179, 8, 0.15) 0%, rgba(0, 0, 0, 0) 80%)";
     } else if (genre === "Horror") {
       moodGrad = "radial-gradient(circle at center, rgba(153, 27, 27, 0.22) 0%, rgba(0, 0, 0, 0) 90%)";
     }
 
     const compiled = {
-      title: isAr ? `${ptext.slice(0, 30)}...` : `Cinematography: ${ptext.slice(0, 30)}...`,
-      directorNotes: isAr
-        ? `تحليل المخرج الفني: تم مواءمة عدسة ${lens} مع إعداد حركة ${camMove} لخلق عمق بصري رائع وتجارة تباينات ممتازة مدمجة بالفلم.`
-        : `Active Scene: utilizing ${lens} and ${camMove} configuration.`,
+      title: `Cinematography: ${ptext.slice(0, 30)}...`,
+      directorNotes: `Director analysis: ${lens} and ${camMove} are aligned to create depth, contrast, and a polished cinematic frame.`,
       particlesType: particles,
       accentColor: genre === "Action" ? "#ef4444" : genre === "Epic" ? "#eab308" : "#3b82f6",
       scenes: [
         {
-          visualDescription: isAr 
-            ? `مشهد سينمائي معدل: إضاءة خلفية تبرز الملامح الجمالية لبطل السرد مع محاذاة اللقطات للعدسة السينمائية المحددة.`
-            : `Scene preview: backlit silhouette with interactive lens parameters active.`,
-          dialogue: dtext || "الأداء الحواري الافتراضي",
+          visualDescription: `Scene preview: backlit subject with interactive lens parameters active and a controlled production-grade lighting setup.`,
+          dialogue: dtext || "Default cinematic dialogue performance",
           subtitles: [
             { text: dtext.slice(0, Math.floor(dtext.length / 2)), start: 0, end: 3.8 },
             { text: dtext.slice(Math.floor(dtext.length / 2)), start: 3.8, end: 7.8 }
@@ -807,7 +801,7 @@ export default function App() {
           soundEffects: particles === "rain" ? "wet_ambient_rain" : "cinematic_drone_subbass",
           visualLayout: {
             backgroundColor: "bg-[#060609]",
-            foregroundElements: isAr ? ["ظلال نيون متحركة", "بيئة مبللة منعكسة على الشاشة"] : ["Silhouette model", "Neo-noir street lamp glow"],
+            foregroundElements: ["Silhouette model", "Neo-noir street lamp glow"],
             lightingGradient: moodGrad
           }
         }
@@ -820,7 +814,7 @@ export default function App() {
     setProgress(100);
   };
 
-  // High-fidelity procedural actor maker ("عمل كاركتر جديد")
+  // High-fidelity procedural actor maker.
   const buildCustomCharacterObj = (e: React.FormEvent) => {
     e.preventDefault();
     if (!custName.trim()) return;
@@ -849,10 +843,10 @@ export default function App() {
         const newbornChar = {
           id: `custom_char_${Math.random().toString(36).substr(2, 9)}`,
           name: custName,
-          tagline: custTagline || "ملامح مصممة بالذكاء الفني المالي",
+          tagline: custTagline || "A production-ready cinematic character profile",
           url: mockPicUrl,
-          style: custStyle || "يرتدي معطفاً سينمائياً كلاسيكياً يتماشى مع السرد السينمائي",
-          voice: custVoice || "صوت ذكوري دافئ متزن روائي",
+          style: custStyle || "Classic cinematic wardrobe shaped for the scene narrative",
+          voice: custVoice || "Warm balanced narrative voice",
           gender: custGender
         };
 
@@ -866,9 +860,9 @@ export default function App() {
         // Add to history preset automatically!
         const newProj = {
           id: `recent_${Math.random().toString(36).substr(2, 9)}`,
-          title: `مشهد: ${custName}`,
-          prompt: `لقطة تفصيلية تركز على ${custName} بأسلوب ${selectedGenre} وبسترة ${custStyle || "أنيقة"}`,
-          dialogueText: `هذا هو السجل الدرامي الجديد للممثل الفني المبتكر قريباً...`,
+          title: `Scene: ${custName}`,
+          prompt: `A detailed cinematic shot focused on ${custName} in a ${selectedGenre} style with ${custStyle || "an elegant wardrobe"}`,
+          dialogueText: `This is the new dramatic profile for the generated character, ready for a cinematic scene...`,
           cameraMovement: cameraMovement,
           lensType: lensType,
           genre: selectedGenre,
@@ -882,8 +876,8 @@ export default function App() {
         setCustName("");
         setCustTagline("");
         setCustStyle("");
-        setCustVoice("صوت ذكوري دافئ متزن روائي");
-        setCustVoicePreset("صوت ذكوري دافئ متزن روائي");
+        setCustVoice("Warm balanced narrative voice");
+        setCustVoicePreset("Warm balanced narrative voice");
       } else {
         setCharProgress(simulatedVal);
       }
@@ -1054,8 +1048,8 @@ export default function App() {
             <div className="flex flex-col gap-2">
               <button 
                 onClick={() => {
-                  setPrompt("رجل يعبر جسر المدينة مبيتاً نواياه تحت المطر مع أضواء نيون دافئة وظلال ممتدة ومصابيح عتيقة");
-                  setDialogueText("ألف عام من السرد يطوي كبرياء المسافات في هذه الخطى المثقلة برذاذ المطر والذكريات الحالمة...");
+                  setPrompt("A man crosses a city bridge at night under rain, warm neon lights, stretched shadows, and vintage street lamps");
+                  setDialogueText("A thousand years of stories fold into these rain-heavy steps and the memory of distant lights...");
                   setActiveScenario(null);
                   setStatus("IDLE");
                   setIsPlaying(false);
@@ -1063,7 +1057,7 @@ export default function App() {
                 className="w-full bg-[#12131e] hover:bg-[#1a1b2d] border border-[#1f2135] text-[11px] font-bold py-2.5 px-3 rounded-lg flex items-center gap-2 text-zinc-200 transition-all duration-200 shadow-sm"
               >
                 <Plus size={14} className="text-cyan-400" />
-                <span>+ مشروع جديد جديد كلياً</span>
+                <span>+ New cinematic project</span>
               </button>
 
               <button 
@@ -1076,7 +1070,7 @@ export default function App() {
               >
                 <div className="flex items-center gap-2">
                   <MessageSquare size={14} className="text-cyan-500" />
-                  <span>المساعد الفني الذكي (AI Director)</span>
+                  <span>AI Director Assistant</span>
                 </div>
                 <span className="bg-[#141525] text-cyan-400 text-[8px] font-mono px-1.5 py-0.2 rounded">LIVE</span>
               </button>
@@ -1085,35 +1079,35 @@ export default function App() {
             {/* Expander list Header */}
             <div>
               <span className="text-[9px] font-mono font-bold tracking-wider text-zinc-500 block mb-2 uppercase">
-                ⚙️ أدوات التحكم والإعدادات الفورية
+                Live control deck
               </span>
               <div className="flex flex-col gap-1 text-xs">
                 <button 
                   onClick={() => setActiveModal("genre")}
                   className="flex items-center justify-between p-2 rounded-lg bg-zinc-950/30 hover:bg-[#12131f] text-zinc-400 hover:text-zinc-200 transition-all border border-transparent hover:border-zinc-900/60"
                 >
-                  <span className="flex items-center gap-2">🎭 تصوير Genre المَشاهد</span>
+                  <span className="flex items-center gap-2">Scene genre</span>
                   <span className="text-[10px] text-zinc-500 font-mono italic">{selectedGenre}</span>
                 </button>
                 <button 
                   onClick={() => setActiveModal("style")}
                   className="flex items-center justify-between p-2 rounded-lg bg-zinc-950/30 hover:bg-[#12131f] text-zinc-400 hover:text-zinc-200 transition-all border border-transparent hover:border-zinc-900/60"
                 >
-                  <span>💡 نظام الإضاءة والألوان</span>
+                  <span>Lighting and color system</span>
                   <span className="text-[10px] text-cyan-500 font-mono">Custom</span>
                 </button>
                 <button 
                   onClick={() => setActiveModal("camera")}
                   className="flex items-center justify-between p-2 rounded-lg bg-zinc-950/30 hover:bg-[#12131f] text-zinc-400 hover:text-zinc-200 transition-all border border-transparent hover:border-zinc-900/60"
                 >
-                  <span>🎥 العدسة والعد التفاعلي</span>
+                  <span>Lens and camera setup</span>
                   <span className="text-[10px] text-zinc-500 font-mono truncate max-w-28 text-left">{lensType}</span>
                 </button>
                 <button 
                   onClick={() => setActiveModal("casting")}
                   className="flex items-center justify-between p-2 rounded-lg bg-zinc-950/30 hover:bg-[#12131f] text-zinc-400 hover:text-zinc-200 transition-all border border-transparent hover:border-zinc-900/60"
                 >
-                  <span>👥 كاستينغ وغرفة الممثلين</span>
+                  <span>Casting and actor room</span>
                   <span className="text-[10px] text-zinc-500 font-mono text-left">{currentActor.name}</span>
                 </button>
               </div>
@@ -1122,7 +1116,7 @@ export default function App() {
             {/* Presets and History */}
             <div className="flex-1 flex flex-col min-h-[220px]">
               <span className="text-[9px] font-mono font-bold tracking-wider text-zinc-500 block mb-2.5 uppercase">
-                📜 سجل ومسودات المشاهد الفنية ({recentProjects.length})
+                Scene drafts and history ({recentProjects.length})
               </span>
               <div className="space-y-2 max-h-[280px] overflow-y-auto pr-1">
                 {recentProjects.map((proj) => {
@@ -1194,7 +1188,7 @@ export default function App() {
                   </h1>
 
                   <p className="text-xs text-zinc-500 font-sans max-w-md leading-relaxed">
-                    اكتب رؤيتك السينمائية تحت ثم اضغط على زر توليد لإنشاء تكوين مائي مذهل وتجربة العدسة التفاعلية الفورية مع تركيب الأصوات للممثل بشكل فوري.
+                    Describe the cinematic scene below, then generate a production-style visual plan with lens, camera, lighting, subtitles, and sound direction.
                   </p>
 
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-4 max-w-xl">
@@ -1202,19 +1196,19 @@ export default function App() {
                       onClick={() => handleLoadProject(recentProjects[0])}
                       className="px-4 py-2 bg-[#090a10]/50 hover:bg-[#12131e]/50 border border-zinc-900 hover:border-zinc-800 text-[11px] text-zinc-400 hover:text-white rounded-lg transition-all"
                     >
-                      أزقة المدينة الحالمة 🌧️
+                      Rainy city alley
                     </button>
                     <button 
                       onClick={() => handleLoadProject(recentProjects[1])}
                       className="px-4 py-2 bg-[#090a10]/50 hover:bg-[#12131e]/50 border border-zinc-900 hover:border-zinc-800 text-[11px] text-zinc-400 hover:text-white rounded-lg transition-all"
                     >
-                      شابة بأسوار قلعة أسطورية 🏺
+                      Mythic castle portrait
                     </button>
                     <button 
                       onClick={() => handleLoadProject(recentProjects[2])}
                       className="px-4 py-2 bg-[#090a10]/50 hover:bg-[#12131e]/50 border border-zinc-900 hover:border-zinc-800 text-[11px] text-zinc-400 hover:text-white rounded-lg transition-all"
                     >
-                      فناء الحكيم التراثي 🌅
+                      Heritage courtyard
                     </button>
                   </div>
                 </motion.div>
@@ -1242,7 +1236,7 @@ export default function App() {
 
                   <div className="space-y-2">
                     <div className="flex items-center justify-between text-[11px] text-zinc-400 font-mono">
-                      <span>رندرة الأبعاد والملامح {progress}%</span>
+                      <span>Rendering frame and character detail {progress}%</span>
                       <span>GEN_PIPELINE_ACTIVE</span>
                     </div>
                     {/* Progress Bar Container Grid */}
@@ -1256,10 +1250,10 @@ export default function App() {
                   </div>
 
                   <p className="text-[10px] text-zinc-500 leading-relaxed font-mono tracking-wide animate-pulse">
-                    {progress < 30 ? "» تحليل السيناريو بالذكاء الفني..."
-                     : progress < 60 ? "» تتبع مسار أضواء الميتامادية والعدسات..."
-                     : progress < 85 ? "» محاكاة الحركة العميقة ومعالجة التوهج..."
-                     : "» رندرة وتنسيق إطارات المشهد السينمائي الأخير..."}
+                    {progress < 30 ? "» Analyzing script intent and visual tone..."
+                     : progress < 60 ? "» Mapping lighting paths, camera movement, and lens behavior..."
+                     : progress < 85 ? "» Simulating depth, motion, glow, and atmosphere..."
+                     : "» Rendering and composing the final cinematic frame plan..."}
                   </p>
                 </motion.div>
               )}
@@ -1555,7 +1549,7 @@ export default function App() {
                                       {/* Left badges column */}
                                       <div className="flex items-center gap-1 font-mono text-[7px]" dir="ltr">
                                         {model.supportsLongDuration && (
-                                          <span className="px-1 py-0.2 rounded bg-cyan-950/60 border border-cyan-400/20 text-[#1fe6ff] font-bold">طويل 60ث</span>
+                                          <span className="px-1 py-0.2 rounded bg-cyan-950/60 border border-cyan-400/20 text-[#1fe6ff] font-bold">60s LONG</span>
                                         )}
                                         {model.badge && (
                                           <span className={`px-1 py-0.2 rounded font-bold ${
@@ -1605,7 +1599,7 @@ export default function App() {
 
                   {activeDropdown === "duration" && (
                     <div className="absolute bottom-9 right-0 md:-right-8 w-52 bg-[#04040a]/98 border border-white/5 md:border-cyan-500/10 rounded-lg p-1.5 shadow-2xl z-50 text-right font-sans backdrop-blur-md">
-                      <div className="text-[8.5px] text-zinc-500 pb-1 mb-1 border-b border-zinc-900 px-1.5 font-bold">اختر مدة رندرة الإطار</div>
+                      <div className="text-[8.5px] text-zinc-500 pb-1 mb-1 border-b border-zinc-900 px-1.5 font-bold">Select render duration</div>
                       <div className="space-y-0.5">
                         {DURATION_OPTIONS.map((opt) => {
                           const isSelected = duration === opt.value;
@@ -1633,7 +1627,7 @@ export default function App() {
                                 <span className={`text-[7px] font-bold font-mono px-1 rounded ${
                                   modelSupports ? "bg-cyan-950/40 text-cyan-400" : "bg-red-950/30 text-red-400"
                                 }`}>
-                                  {modelSupports ? "طويل" : "غير مدعوم"}
+                                  {modelSupports ? "LONG" : "UNSUPPORTED"}
                                 </span>
                               )}
                               <span>{opt.label}</span>
@@ -1657,7 +1651,7 @@ export default function App() {
 
                   {activeDropdown === "resolution" && (
                     <div className="absolute bottom-9 right-0 md:-right-8 w-44 bg-[#04040a]/98 border border-white/5 md:border-cyan-500/10 rounded-lg p-1.5 shadow-2xl z-50 text-right font-sans backdrop-blur-md">
-                      <div className="text-[8.5px] text-zinc-500 pb-1 mb-1 border-b border-zinc-900 px-1.5 font-bold">دقة مخرجات الذكاء</div>
+                      <div className="text-[8.5px] text-zinc-500 pb-1 mb-1 border-b border-zinc-900 px-1.5 font-bold">AI output resolution</div>
                       <div className="space-y-0.5">
                         {RESOLUTION_OPTIONS.map((opt) => {
                           const isSelected = resolution === opt.value;
@@ -1693,7 +1687,7 @@ export default function App() {
 
                   {activeDropdown === "ratio" && (
                     <div className="absolute bottom-9 right-0 md:-right-8 w-48 bg-[#04040a]/98 border border-white/5 md:border-cyan-500/10 rounded-lg p-1.5 shadow-2xl z-50 text-right font-sans backdrop-blur-md">
-                      <div className="text-[8.5px] text-zinc-500 pb-1 mb-1 border-b border-zinc-900 px-1.5 font-bold">أبعاد الكادر والسيناريو</div>
+                      <div className="text-[8.5px] text-zinc-500 pb-1 mb-1 border-b border-zinc-900 px-1.5 font-bold">Frame and scene aspect</div>
                       <div className="space-y-0.5">
                         {ASPECT_RATIO_OPTIONS.map((opt) => {
                           const isSelected = aspectRatio === opt.value;
@@ -1729,7 +1723,7 @@ export default function App() {
 
                   {activeDropdown === "speed" && (
                     <div className="absolute bottom-9 right-0 w-52 bg-[#04040a]/98 border border-white/5 md:border-cyan-500/10 rounded-lg p-1.5 shadow-2xl z-50 text-right font-sans backdrop-blur-md text-right">
-                      <div className="text-[8.5px] text-zinc-500 pb-1 mb-1 border-b border-zinc-900 px-1.5 font-bold">معيار الدفعة والسرعة</div>
+                      <div className="text-[8.5px] text-zinc-500 pb-1 mb-1 border-b border-zinc-900 px-1.5 font-bold">Batch and speed mode</div>
                       <div className="space-y-0.5">
                         {SPEED_OPTIONS.map((opt) => {
                           const isSelected = batchSize === opt.value;
