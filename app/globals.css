@@ -13,6 +13,115 @@ body,
   50%       { opacity: 0.55; transform: scale(1.35); }
 }
 
+/* ========== Cinema Studio VSO — Anamorphic Noir cinematic background ========== */
+@keyframes cine-grain-shift {
+  0%   { transform: translate(0, 0); }
+  20%  { transform: translate(-2%, 1%); }
+  40%  { transform: translate(1%, -2%); }
+  60%  { transform: translate(-1%, 2%); }
+  80%  { transform: translate(2%, 1%); }
+  100% { transform: translate(0, 0); }
+}
+@keyframes cine-flare-drift-a {
+  0%, 100% { transform: translateX(0) scaleY(1); opacity: 0.3; }
+  50%      { transform: translateX(40vw) scaleY(2); opacity: 0.6; }
+}
+@keyframes cine-flare-drift-b {
+  0%, 100% { transform: translateX(20vw) scaleY(0.8); opacity: 0.2; }
+  50%      { transform: translateX(-30vw) scaleY(1.5); opacity: 0.5; }
+}
+@keyframes cine-dust-float {
+  0%   { transform: translate(0, 100vh); opacity: 0; }
+  10%  { opacity: 0.7; }
+  90%  { opacity: 0.7; }
+  100% { transform: translate(50px, -10vh); opacity: 0; }
+}
+@keyframes cine-dd-item-in {
+  from { opacity: 0; transform: translateX(-8px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes cine-sweep {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+@keyframes cine-pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.5; transform: scale(0.85); }
+}
+
+.cine-bg-grain {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1   0 0 0 0 1   0 0 0 0 1   0 0 0 0.5 0'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.45'/></svg>");
+  opacity: 0.045;
+  mix-blend-mode: overlay;
+  animation: cine-grain-shift 0.6s steps(6) infinite;
+}
+.cine-bg-scan {
+  background-image: repeating-linear-gradient(
+    0deg,
+    transparent 0,
+    transparent 2px,
+    rgba(255, 255, 255, 0.02) 2px,
+    rgba(255, 255, 255, 0.02) 3px
+  );
+}
+.cine-bg-vignette {
+  background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.45) 100%);
+}
+.cine-bg-radial {
+  background: radial-gradient(ellipse at center,
+    rgba(92, 64, 36, 0.42) 0%,
+    #17120E 65%,
+    #0E0A07 100%);
+}
+.cine-flare {
+  position: fixed;
+  width: 140vw;
+  height: 2px;
+  left: -20vw;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(233, 180, 76, 0) 20%,
+    rgba(233, 180, 76, 0.32) 50%,
+    rgba(233, 180, 76, 0) 80%,
+    transparent 100%);
+  filter: blur(1.5px);
+  pointer-events: none;
+  box-shadow: 0 0 30px rgba(233, 180, 76, 0.22);
+}
+.cine-flare.f1 { top: 35vh; animation: cine-flare-drift-a 60s ease-in-out infinite; }
+.cine-flare.f2 { top: 72vh; animation: cine-flare-drift-b 80s ease-in-out infinite; opacity: 0.6; }
+
+.cine-dust {
+  position: absolute;
+  background: rgba(255, 248, 234, 0.45);
+  border-radius: 50%;
+  box-shadow: 0 0 4px rgba(255, 179, 71, 0.3);
+  animation: cine-dust-float linear infinite;
+  pointer-events: none;
+}
+
+.cine-dd-panel > .cine-dd-item {
+  opacity: 0;
+  transform: translateX(-8px);
+}
+.cine-dd-panel.cine-open > .cine-dd-item {
+  animation: cine-dd-item-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.cine-pulse-dot { animation: cine-pulse-dot 2s ease-in-out infinite; }
+
+/* Render shutter button overlay */
+.cine-shutter-top, .cine-shutter-bottom {
+  position: absolute; left: 0; right: 0;
+  background: #17120E;
+  pointer-events: none;
+  transition: transform 0.25s ease;
+}
+.cine-shutter-top    { top: 0;    height: 50%; transform: translateY(-100%); }
+.cine-shutter-bottom { bottom: 0; height: 50%; transform: translateY(100%); }
+.cine-shuttering .cine-shutter-top    { transform: translateY(0); }
+.cine-shuttering .cine-shutter-bottom { transform: translateY(0); }
+
 @layer base {
   :root {
     --background: 0 0% 100%;

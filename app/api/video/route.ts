@@ -1,7 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
-export const maxDuration = 60;
+export const maxDuration = 90;
 export const dynamic = "force-dynamic";
 import { getGenerationCost } from "@/lib/pricing";
 import { InsufficientCreditsError, precheckGenerationPolicy, refundGenerationCharge, setGenerationMediaUrl, setGenerationTaskMarker, spendCredits } from "@/lib/credit-ledger";

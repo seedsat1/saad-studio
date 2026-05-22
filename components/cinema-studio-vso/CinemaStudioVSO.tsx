@@ -344,7 +344,7 @@ const AVAILABLE_MOVEMENTS = [
     arabicName: "First Person POV Run",
     shutterCue: "Gimbals POV Run physics",
     description: "First-person subjective run mockup, pairing heavy breathing effects with realistic perspective bobbing to simulation action.",
-    url: "http://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=250&auto=format&fit=crop",
+    url: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=250&auto=format&fit=crop",
     intensity: "Ideal for racing pulses & chases"
   }
 ];
@@ -364,6 +364,7 @@ const CINEMA_MODELS = VIDEO_MODEL_REGISTRY.filter((model) => {
   const caps = model.capabilities;
   return !caps.requires_image && !caps.requires_video;
 });
+const FALLBACK_CINEMA_MODEL = CINEMA_MODELS[0] ?? VIDEO_MODEL_REGISTRY[0];
 
 const getModelCategory = (model: WaveSpeedVideoModel) => model.family_label.toUpperCase();
 const buildDurationOptions = (model: WaveSpeedVideoModel) =>
@@ -480,7 +481,7 @@ const getShortVoice = (voice: string): string => {
 
 export default function App() {
   const [castingActors, setCastingActors] = useState(INITIAL_CASTING_CHARACTERS);
-  const [selectedModelId, setSelectedModelId] = useState(CINEMA_MODELS[0]?.id ?? "kling-v3.0-pro-t2v");
+  const [selectedModelId, setSelectedModelId] = useState(FALLBACK_CINEMA_MODEL?.id ?? "kling-v3.0-pro-t2v");
   const [activeDropdown, setActiveDropdown] = useState<"model" | "duration" | "resolution" | "ratio" | "speed" | null>(null);
   const [selectedCharId, setSelectedCharId] = useState("char_1");
   const [selectedGenre, setSelectedGenre] = useState("Noir");
@@ -501,13 +502,14 @@ export default function App() {
   // Custom Studio status manager
   const [status, setStatus] = useState<"IDLE" | "RENDERING" | "SUCCESS" | "FAILED">("IDLE");
   const [progress, setProgress] = useState(0);
-  const [activeJobId, setActiveJobId] = useState<string | null>(null);
   const [activeScenario, setActiveScenario] = useState<any>(null);
   const [generatedVideoUrl, setGeneratedVideoUrl] = useState<string | null>(null);
   const [renderNotice, setRenderNotice] = useState<string | null>(null);
   const [generatedAudioUrl, setGeneratedAudioUrl] = useState<string | null>(null);
   const [isPreviewingVoice, setIsPreviewingVoice] = useState(false);
   const voicePreviewRef = useRef<HTMLAudioElement | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const actorGenIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const activeActorVoiceInputRef = useRef<HTMLInputElement | null>(null);
   const modalCustomVoiceInputRef = useRef<HTMLInputElement | null>(null);
  
@@ -581,18 +583,17 @@ export default function App() {
   ]);
 
   const currentActor = castingActors.find((c) => c.id === selectedCharId) || castingActors[0];
-  const activeModelObj = CINEMA_MODELS.find((m) => m.id === selectedModelId) || CINEMA_MODELS[0];
+  const activeModelObj = CINEMA_MODELS.find((m) => m.id === selectedModelId) || FALLBACK_CINEMA_MODEL;
   const activeGenreObj = AVAILABLE_GENRES.find((g) => g.id === selectedGenre) || AVAILABLE_GENRES[0];
+  const activeScene = activeScenario?.scenes?.[0] ?? null;
   const durationOptions = useMemo(() => buildDurationOptions(activeModelObj), [activeModelObj]);
   const resolutionOptions = useMemo(() => buildResolutionOptions(activeModelObj), [activeModelObj]);
   const aspectRatioOptions = useMemo(() => buildAspectRatioOptions(activeModelObj), [activeModelObj]);
   const playbackDuration = Number.parseInt(duration, 10) || 8;
-  const selectedVoicePreset = VOICE_PRESETS.find((v) => v.voiceId === currentActor?.voiceId || v.label === currentActor?.voice || v.voiceId === currentActor?.voice) || VOICE_PRESETS[0];
-  const selectedVoiceId = currentActor?.voiceId || selectedVoicePreset.voiceId;
+  const selectedVoiceId = currentActor?.voiceId || VOICE_PRESETS.find((v) => v.label === currentActor?.voice || v.voiceId === currentActor?.voice)?.voiceId || VOICE_PRESETS[0].voiceId;
   const estimatedCredits = getVideoCreditsByRoute(activeModelObj.api_route, {
     duration: playbackDuration,
-    resolution,
-    mode: resolution,
+    ...(activeModelObj.family === "kling" ? { mode: resolution } : { resolution }),
     sound: soundEnabled,
     generate_audio: soundEnabled,
   });
@@ -622,9 +623,7 @@ export default function App() {
     setReferenceImages((prev) => prev.slice(0, activeModelObj.capabilities.max_reference_images));
     if (!activeModelObj.capabilities.has_end_frame) setEndFrameUrl("");
     if (!activeModelObj.capabilities.has_negative_prompt) setNegativePrompt("");
-    if (!activeModelObj.capabilities.has_cfg_scale) setCfgScale(0.5);
   }, [
-    activeModelObj.capabilities.has_cfg_scale,
     activeModelObj.capabilities.has_end_frame,
     activeModelObj.capabilities.has_negative_prompt,
     activeModelObj.capabilities.max_reference_images,
@@ -636,6 +635,41 @@ export default function App() {
     resolution,
     resolutionOptions,
   ]);
+
+  useEffect(() => {
+    const stored = window.localStorage.getItem("cinema-studio-vso-recent-projects");
+    if (!stored) return;
+    try {
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        setRecentProjects(parsed.slice(0, 12));
+      }
+    } catch {
+      window.localStorage.removeItem("cinema-studio-vso-recent-projects");
+    }
+  }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem("cinema-studio-vso-recent-projects", JSON.stringify(recentProjects.slice(0, 12)));
+  }, [recentProjects]);
+
+  useEffect(() => {
+    return () => {
+      if (actorGenIntervalRef.current) {
+        clearInterval(actorGenIntervalRef.current);
+        actorGenIntervalRef.current = null;
+      }
+      voicePreviewRef.current?.pause();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (activeModal === "casting" || !actorGenIntervalRef.current) return;
+    clearInterval(actorGenIntervalRef.current);
+    actorGenIntervalRef.current = null;
+    setIsGeneratingChar(false);
+    setCharProgress(0);
+  }, [activeModal]);
 
   // Handle live clock state for cinema-engine look
   useEffect(() => {
@@ -656,9 +690,8 @@ export default function App() {
     if (isPlaying && activeScenario) {
       loopTimer = setInterval(() => {
         setCurrentTime((prev) => {
-          const sizeLimit = Number.parseInt(duration, 10) || 8;
           const nextVal = prev + 0.1;
-          if (nextVal >= sizeLimit) {
+          if (nextVal >= playbackDuration) {
             return 0; // seamless movie loop
           }
           return nextVal;
@@ -668,16 +701,25 @@ export default function App() {
       clearInterval(loopTimer);
     }
     return () => clearInterval(loopTimer);
-  }, [isPlaying, activeScenario, duration]);
+  }, [isPlaying, activeScenario, playbackDuration]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    if (isPlaying) {
+      video.play().catch(() => {});
+    } else {
+      video.pause();
+    }
+  }, [isPlaying, generatedVideoUrl]);
 
   // Sync subtitle timeline
   useEffect(() => {
-    if (!activeScenario || activeScenario.scenes.length === 0) {
+    if (!activeScene) {
       setActiveSubtitle("");
       return;
     }
-    const scene = activeScenario.scenes[0];
-    const match = scene.subtitles.find(
+    const match = activeScene.subtitles.find(
       (sub: any) => currentTime >= sub.start && currentTime <= sub.end
     );
     if (match) {
@@ -685,7 +727,7 @@ export default function App() {
     } else {
       setActiveSubtitle("");
     }
-  }, [currentTime, activeScenario]);
+  }, [currentTime, activeScene]);
 
   // Load a preset project instantly from sidebar
   const handleLoadProject = (project: any) => {
@@ -700,18 +742,41 @@ export default function App() {
     generateClientScene(project.prompt, project.dialogueText, project.cameraMovement, project.lensType, project.genre);
   };
 
+  const uploadImageFile = async (file: File) => {
+    const response = await fetch("/api/media/upload", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fileName: file.name, fileType: file.type || "image/jpeg" }),
+    });
+    const payload = await response.json().catch(() => null);
+    if (!response.ok || !payload?.signedUrl || !payload?.publicUrl) {
+      throw new Error(payload?.error || "Storage upload URL failed");
+    }
+    const upload = await fetch(payload.signedUrl, {
+      method: "PUT",
+      headers: { "Content-Type": file.type || "image/jpeg" },
+      body: file,
+    });
+    if (!upload.ok) throw new Error("Storage upload failed");
+    return String(payload.publicUrl);
+  };
+
   const readImageFiles = async (files: FileList | null, limit: number) => {
     const selected = Array.from(files ?? []).slice(0, Math.max(0, limit));
     const urls = await Promise.all(
-      selected.map(
-        (file) =>
-          new Promise<string>((resolve, reject) => {
+      selected.map(async (file) => {
+        try {
+          return await uploadImageFile(file);
+        } catch (err) {
+          console.warn("Reference image storage upload failed, using local preview data URL:", err);
+          return await new Promise<string>((resolve, reject) => {
             const reader = new FileReader();
             reader.onload = () => resolve(String(reader.result));
             reader.onerror = () => reject(reader.error);
             reader.readAsDataURL(file);
-          }),
-      ),
+          });
+        }
+      }),
     );
     return urls;
   };
@@ -759,7 +824,7 @@ export default function App() {
         body: JSON.stringify({
           actionType: "tts",
           model: "elevenlabs/text-to-speech-multilingual-v2",
-          text: dialogueText.slice(0, 280),
+          text: dialogueText.slice(0, 1200),
           voice: voiceId,
           stability: 0.5,
           clarity: 75,
@@ -807,10 +872,10 @@ export default function App() {
           referenceImages,
           endFrameUrl,
           negativePrompt,
-          cfgScale,
+          ...(activeModelObj.capabilities.has_cfg_scale ? { cfgScale } : {}),
           seed,
           sound: soundEnabled,
-          grokMode,
+          ...(activeModelObj.family === "grok" ? { grokMode } : {}),
           colorPalette,
           lightingStyle,
           cameraMovesetStyle,
@@ -821,7 +886,6 @@ export default function App() {
       const payload = await response.json().catch(() => null);
 
       if (response.ok && payload?.status === "COMPLETED" && payload?.data) {
-        setActiveJobId(payload.generationId ?? null);
         setActiveScenario(payload.data);
         setGeneratedVideoUrl(payload.videoUrl ?? payload.data?.videoUrl ?? null);
         setRenderNotice(payload.previewOnly ? (payload.providerError || "Preview mode: video provider did not start.") : null);
@@ -829,7 +893,6 @@ export default function App() {
         setStatus("SUCCESS");
         setIsPlaying(true);
       } else if ((response.status === 202 || response.ok) && payload?.success && (payload?.taskId || payload?.generationId)) {
-        setActiveJobId(payload.taskId ?? payload.generationId);
         if (payload.data) setActiveScenario(payload.data);
         setRenderNotice(null);
         setProgress(payload.progress ?? 10);
@@ -842,20 +905,6 @@ export default function App() {
       setStatus("FAILED");
       setProgress(0);
     }
-  };
-
-  // Safe client-side simulations using rich styles parameters
-  const simulateClientRenderingFallbacks = () => {
-    let virtualVal = 5;
-    const progressTimer = setInterval(() => {
-      virtualVal += Math.floor(Math.random() * 12) + 6;
-      if (virtualVal >= 100) {
-        clearInterval(progressTimer);
-        generateClientScene(prompt, dialogueText, cameraMovement, lensType, selectedGenre);
-      } else {
-        setProgress(virtualVal);
-      }
-    }, 220);
   };
 
   // Multi-route polling
@@ -964,10 +1013,14 @@ export default function App() {
     setCharProgress(10);
     
     let simulatedVal = 10;
-    const actorGenInterval = setInterval(() => {
+    if (actorGenIntervalRef.current) clearInterval(actorGenIntervalRef.current);
+    actorGenIntervalRef.current = setInterval(() => {
       simulatedVal += 20;
       if (simulatedVal >= 100) {
-        clearInterval(actorGenInterval);
+        if (actorGenIntervalRef.current) {
+          clearInterval(actorGenIntervalRef.current);
+          actorGenIntervalRef.current = null;
+        }
 
         // Map portrait using category chosen
         let mockPicUrl = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=250&auto=format&fit=crop";
@@ -983,7 +1036,7 @@ export default function App() {
 
         const customVoicePreset = VOICE_PRESETS.find((voice) => voice.label === custVoicePreset);
         const newbornChar = {
-          id: `custom_char_${Math.random().toString(36).substr(2, 9)}`,
+          id: `custom_char_${crypto.randomUUID().slice(0, 8)}`,
           name: custName,
           tagline: custTagline || "A production-ready cinematic character profile",
           url: mockPicUrl,
@@ -1002,7 +1055,7 @@ export default function App() {
 
         // Add to history preset automatically!
         const newProj = {
-          id: `recent_${Math.random().toString(36).substr(2, 9)}`,
+          id: `recent_${crypto.randomUUID().slice(0, 8)}`,
           title: `Scene: ${custName}`,
           prompt: `A detailed cinematic shot focused on ${custName} in a ${selectedGenre} style with ${custStyle || "an elegant wardrobe"}`,
           dialogueText: `This is the new dramatic profile for the generated character, ready for a cinematic scene...`,
@@ -1044,7 +1097,7 @@ export default function App() {
             return (
               <motion.div
                 key={idx}
-                className="absolute bg-sky-200/30"
+                className="absolute bg-[#FFB347]/40"
                 style={{
                   left: `${randLeft}%`,
                   top: `-20px`,
@@ -1092,7 +1145,7 @@ export default function App() {
             return (
               <motion.div
                 key={idx}
-                className="absolute bg-amber-400/20 rounded-full"
+                className="absolute bg-[#FFB347]/20 rounded-full"
                 style={{
                   left: `${randLeft}%`,
                   top: `${Math.random() * 100}%`,
@@ -1143,19 +1196,42 @@ export default function App() {
   };
 
   return (
-    <div id="full_studio_page" className="min-h-screen bg-[#17120E] text-[#FFF8EA] flex flex-col font-sans overflow-hidden select-none selection:bg-[#E9B44C]/30">
-      
+    <div id="full_studio_page" className="min-h-screen bg-[#17120E] text-[#FFF8EA] flex flex-col font-sans overflow-hidden select-none selection:bg-[#FFB347]/30 relative">
+
+      {/* CINEMATIC BACKGROUND LAYERS — Anamorphic Noir */}
+      <div className="cine-bg-radial fixed inset-0 pointer-events-none z-0" aria-hidden />
+      <div className="cine-flare f1" aria-hidden />
+      <div className="cine-flare f2" aria-hidden />
+      <div className="cine-bg-scan fixed inset-0 pointer-events-none z-[4]" aria-hidden />
+      <div className="cine-bg-vignette fixed inset-0 pointer-events-none z-[5]" aria-hidden />
+      <div className="cine-bg-grain fixed inset-0 pointer-events-none z-[6]" aria-hidden />
+      <div className="fixed inset-0 pointer-events-none z-[3] overflow-hidden" aria-hidden>
+        {Array.from({ length: 14 }).map((_, i) => (
+          <span
+            key={i}
+            className="cine-dust"
+            style={{
+              left: `${(i * 7.3) % 100}%`,
+              width: `${1.5 + (i % 3) * 0.6}px`,
+              height: `${1.5 + (i % 3) * 0.6}px`,
+              animationDuration: `${35 + (i * 3) % 25}s`,
+              animationDelay: `-${(i * 2.4) % 30}s`,
+            }}
+          />
+        ))}
+      </div>
+
       {/* 1. STATE-OF-THE-ART SLICK HEADER */}
       <header id="top_cinema_header" className="h-14 bg-[#24201B] border-b border-[#544737] px-6 flex items-center justify-between relative z-50">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-[#E9B44C] to-[#B45309] flex items-center justify-center shadow-lg shadow-cyan-950/40">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-[#FFB347] to-[#FF8C42] flex items-center justify-center shadow-lg shadow-black/60">
             <Film size={16} className="text-white animate-pulse" />
           </div>
           <div className="flex items-center gap-2">
-            <span className="font-extrabold text-sm tracking-wider uppercase bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-100 to-zinc-400">
+            <span className="font-extrabold text-sm tracking-wider uppercase bg-clip-text text-transparent bg-gradient-to-r from-white via-[#FFB347] to-[#FFB347]">
               SAAD CINEMA STUDIO v5.0
             </span>
-            <span className="text-xs font-mono bg-[#544737] text-[#E9B44C] font-bold px-2 py-0.5 rounded border border-cyan-900/40">
+            <span className="text-xs font-mono bg-[#544737] text-[#FFB347] font-bold px-2 py-0.5 rounded border border-[#D6A84F]/40">
               ULTRA-ENGINE
             </span>
           </div>
@@ -1164,13 +1240,13 @@ export default function App() {
         {/* STATUS COUNTERS & LIVE TIMECODE IN HEADER */}
         <div className="flex items-center gap-4 text-xs font-mono">
           <div className="hidden md:flex items-center gap-1.5 bg-[#302920]/80 border border-[#544737]/80 px-3 py-1 rounded-full text-[#F0E1C8] text-[13px]">
-            <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full inline-block animate-ping" />
+            <span className="w-1.5 h-1.5 bg-[#F6D58B] rounded-full inline-block animate-ping" />
             <span>PIPELINE: ACTIVE</span>
           </div>
 
           <div className="bg-[#302920] border border-[#544737] px-3.5 py-1 rounded-lg text-[#FFF8EA] font-mono text-[13px] flex items-center gap-2">
             <span className="text-[#C8B89F]">ENG TIMECODE:</span>
-            <span className="text-[#E9B44C] tracking-wider font-bold">{timecode}</span>
+            <span className="text-[#FFB347] tracking-wider font-bold">{timecode}</span>
           </div>
         </div>
       </header>
@@ -1195,7 +1271,7 @@ export default function App() {
                 }}
                 className="w-full bg-[#302920] hover:bg-[#3B3328] border border-[#544737] text-sm font-bold py-2.5 px-3 rounded-lg flex items-center gap-2 text-[#FFF8EA] transition-all duration-200 shadow-sm"
               >
-                <Plus size={14} className="text-[#E9B44C]" />
+                <Plus size={14} className="text-[#FFB347]" />
                 <span>+ New cinematic project</span>
               </button>
 
@@ -1203,15 +1279,15 @@ export default function App() {
                 onClick={() => setActiveModal(activeModal === "ai_director" ? null : "ai_director")}
                 className={`w-full text-sm font-bold py-2.5 px-3 rounded-lg flex items-center justify-between transition-all duration-200 border ${
                   activeModal === "ai_director"
-                    ? "bg-[#3B2C19] text-[#F6D58B] border-[#D6A84F]/70 shadow"
+                    ? "bg-[#3B2C19] text-[#FFCB7A] border-[#FFB347]/70 shadow"
                     : "bg-transparent text-[#F0E1C8] hover:text-[#FFF8EA] border-transparent"
                 }`}
               >
                 <div className="flex items-center gap-2">
-                  <MessageSquare size={14} className="text-[#E9B44C]" />
+                  <MessageSquare size={14} className="text-[#FFB347]" />
                   <span>AI Director Assistant</span>
                 </div>
-                <span className="bg-[#544737] text-[#E9B44C] text-[13px] font-mono px-1.5 py-0.2 rounded">LIVE</span>
+                <span className="bg-[#544737] text-[#FFB347] text-[13px] font-mono px-1.5 py-0.2 rounded">LIVE</span>
               </button>
             </div>
 
@@ -1233,7 +1309,7 @@ export default function App() {
                   className="flex items-center justify-between p-2 rounded-lg bg-[#24201B]/70 hover:bg-[#302920] text-[#F0E1C8] hover:text-[#FFF8EA] transition-all border border-transparent hover:border-[#544737]/60"
                 >
                   <span>Lighting and color system</span>
-                  <span className="text-[13px] text-[#E9B44C] font-mono">Custom</span>
+                  <span className="text-[13px] text-[#FFB347] font-mono">Custom</span>
                 </button>
                 <button 
                   onClick={() => setActiveModal("camera")}
@@ -1266,15 +1342,15 @@ export default function App() {
                       onClick={() => handleLoadProject(proj)}
                       className={`w-full text-right p-2.5 rounded-lg border flex flex-col gap-1 transition-all text-xs outline-none ${
                         isCur
-                          ? "bg-[#3B2C19] border-[#D6A84F]/70"
-                          : "bg-[#302920] border-[#544737]/80 hover:bg-[#302920]/70 hover:border-[#7A674F]"
+                          ? "bg-[#3B2C19] border-[#FFB347]/70"
+                          : "bg-[#302920] border-[#544737]/80 hover:bg-[#302920]/70 hover:border-[#D6A84F]"
                       }`}
                     >
                       <div className="flex items-center justify-between w-full">
                         <span className="text-[#FFF8EA] font-bold truncate block flex-1 pl-2">
                           {proj.title}
                         </span>
-                        <span className="text-[13px] bg-[#302920] text-[#E9B44C] px-1.5 py-0.2 rounded font-mono uppercase">
+                        <span className="text-[13px] bg-[#302920] text-[#FFB347] px-1.5 py-0.2 rounded font-mono uppercase">
                           {proj.genre}
                         </span>
                       </div>
@@ -1292,12 +1368,12 @@ export default function App() {
           {/* Core watermark credit line according to guidelines */}
           <div className="p-4 border-t border-[#544737] bg-[#17120E] text-center">
             <p className="text-xs text-[#8A7964]">SAAD DIGITAL STUDIOS INC</p>
-            <p className="text-[13px] text-[#C8B89F] font-mono mt-0.5">EST. 2026 • GEMINI 2.5 FLASH PLAN</p>
+            <p className="text-[13px] text-[#C8B89F] font-mono mt-0.5">EST. 2026 • MULTI-PROVIDER VIDEO ENGINE</p>
           </div>
         </aside>
 
         {/* WORKSPACE AREA: DYNAMIC CANVAS STAGE & POPUPS */}
-        <section id="center_viewport" className="flex-1 flex flex-col justify-between p-6 relative overflow-y-auto bg-gradient-to-b from-[#1D1712] to-[#17120E]">
+        <section id="center_viewport" className="flex-1 flex flex-col justify-between p-6 relative overflow-y-auto bg-gradient-to-b from-[#0A0F1A] to-[#17120E]">
           
           {/* AESTHETIC CORNER MARKINGS FOR EMPTY STATE / PREVIEW */}
           <div className="absolute top-10 left-10 w-4 h-4 border-t border-l border-[#544737] pointer-events-none" />
@@ -1322,7 +1398,7 @@ export default function App() {
                     {activeModelObj.name} ULTRA ENGINE
                   </span>
                   
-                  <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-slate-100 via-[#FFF1C7] to-[#E9B44C] font-sans max-w-xl leading-relaxed">
+                  <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-[#FFB347] to-[#FFB347] font-sans max-w-xl leading-relaxed">
                     What would you shoot with infinite budget?
                   </h1>
 
@@ -1333,19 +1409,19 @@ export default function App() {
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-4 max-w-xl">
                     <button 
                       onClick={() => handleLoadProject(recentProjects[0])}
-                      className="px-4 py-2 bg-[#24201B]/50 hover:bg-[#302920]/50 border border-[#544737] hover:border-[#7A674F] text-sm text-[#F0E1C8] hover:text-white rounded-lg transition-all"
+                      className="px-4 py-2 bg-[#24201B]/50 hover:bg-[#302920]/50 border border-[#544737] hover:border-[#D6A84F] text-sm text-[#F0E1C8] hover:text-white rounded-lg transition-all"
                     >
                       Rainy city alley
                     </button>
                     <button 
                       onClick={() => handleLoadProject(recentProjects[1])}
-                      className="px-4 py-2 bg-[#24201B]/50 hover:bg-[#302920]/50 border border-[#544737] hover:border-[#7A674F] text-sm text-[#F0E1C8] hover:text-white rounded-lg transition-all"
+                      className="px-4 py-2 bg-[#24201B]/50 hover:bg-[#302920]/50 border border-[#544737] hover:border-[#D6A84F] text-sm text-[#F0E1C8] hover:text-white rounded-lg transition-all"
                     >
                       Mythic castle portrait
                     </button>
                     <button 
                       onClick={() => handleLoadProject(recentProjects[2])}
-                      className="px-4 py-2 bg-[#24201B]/50 hover:bg-[#302920]/50 border border-[#544737] hover:border-[#7A674F] text-sm text-[#F0E1C8] hover:text-white rounded-lg transition-all"
+                      className="px-4 py-2 bg-[#24201B]/50 hover:bg-[#302920]/50 border border-[#544737] hover:border-[#D6A84F] text-sm text-[#F0E1C8] hover:text-white rounded-lg transition-all"
                     >
                       Heritage courtyard
                     </button>
@@ -1366,10 +1442,10 @@ export default function App() {
                     <motion.div 
                       animate={{ rotate: 360 }}
                       transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                      className="absolute inset-0 border-2 border-t-[#E9B44C] border-[#544737] rounded-full"
+                      className="absolute inset-0 border-2 border-t-[#FFB347] border-[#544737] rounded-full"
                     />
                     <div className="absolute inset-2 bg-[#17120E] rounded-full flex items-center justify-center">
-                      <Camera size={20} className="text-[#E9B44C]" />
+                      <Camera size={20} className="text-[#FFB347]" />
                     </div>
                   </div>
 
@@ -1381,7 +1457,7 @@ export default function App() {
                     {/* Progress Bar Container Grid */}
                     <div className="h-1 w-full bg-[#302920] rounded-full overflow-hidden">
                       <motion.div 
-                        className="h-full bg-gradient-to-r from-[#E9B44C] to-[#B45309] rounded-full"
+                        className="h-full bg-gradient-to-r from-[#FFB347] to-[#FF8C42] rounded-full"
                         style={{ width: `${progress}%` }}
                         layoutId="rendering_progress_bar"
                       />
@@ -1398,7 +1474,7 @@ export default function App() {
               )}
 
               {/* CINEMATIC WIDESCREEN ACTIVE PLAYER SIMULATOR VIEWPORT */}
-              {status === "SUCCESS" && activeScenario && (
+              {status === "SUCCESS" && activeScenario && activeScene && (
                 <motion.div
                   key="success_player"
                   initial={{ opacity: 0, scale: 0.99 }}
@@ -1415,14 +1491,14 @@ export default function App() {
                   {/* Shifting radial color backlights */}
                   <div 
                     className="absolute inset-0 pointer-events-none transition-all duration-1000 z-10"
-                    style={{ background: activeScenario.scenes[0].visualLayout.lightingGradient }}
+                    style={{ background: activeScene.visualLayout.lightingGradient }}
                   />
 
                   {generatedVideoUrl ? (
                     <video
+                      ref={videoRef}
                       src={generatedVideoUrl}
                       className="absolute inset-0 w-full h-full object-cover select-none pointer-events-none z-0 brightness-[0.55]"
-                      autoPlay
                       muted
                       loop
                       playsInline
@@ -1438,7 +1514,7 @@ export default function App() {
                   {/* TOP BANNER CORNER STATS OVERLAY IN MONITOR */}
                   <div className="p-4 flex items-center justify-between relative z-35 bg-gradient-to-b from-black/80 to-transparent pointer-events-none">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-mono bg-[#3B2C19]/90 border border-[#D6A84F]/60 text-[#F6D58B] px-2.5 py-0.5 rounded uppercase font-bold tracking-wider">
+                      <span className="text-xs font-mono bg-[#3B2C19]/90 border border-[#FFB347]/60 text-[#FFCB7A] px-2.5 py-0.5 rounded uppercase font-bold tracking-wider">
                         PREVIEW ACTIVE
                       </span>
                       <span className="text-xs font-mono text-[#F0E1C8] bg-black/40 px-2 py-0.5 rounded truncate max-w-[240px] block">
@@ -1452,7 +1528,7 @@ export default function App() {
                   </div>
 
                   {renderNotice && (
-                    <div className="absolute top-12 left-4 right-4 z-45 rounded-lg border border-[#F4A261]/40 bg-black/70 px-3 py-2 text-xs font-bold text-[#F4A261] backdrop-blur-sm">
+                    <div className="absolute top-12 left-4 right-4 z-45 rounded-lg border border-[#FF8C42]/40 bg-black/70 px-3 py-2 text-xs font-bold text-[#FF8C42] backdrop-blur-sm">
                       {renderNotice}
                     </div>
                   )}
@@ -1472,7 +1548,7 @@ export default function App() {
                       <span className="text-[13px] font-mono text-[#C8B89F] w-10">00:00</span>
                       <div className="flex-1 h-1 bg-[#302920] rounded-full relative overflow-hidden group hover:h-1.5 transition-all cursor-pointer">
                         <div 
-                          className="h-full bg-[#E9B44C] rounded-full transition-all"
+                          className="h-full bg-[#FFB347] rounded-full transition-all"
                           style={{ width: `${Math.min(100, (currentTime / playbackDuration) * 100)}%` }}
                         />
                       </div>
@@ -1486,13 +1562,13 @@ export default function App() {
                       <div className="flex items-center gap-2">
                         <button 
                           onClick={() => setIsPlaying(!isPlaying)}
-                          className="w-7 h-7 bg-[#302920] border border-[#7A674F] hover:bg-[#3B3328] text-[#FFF8EA] hover:text-white rounded-lg flex items-center justify-center transition-colors outline-none"
+                          className="w-7 h-7 bg-[#302920] border border-[#D6A84F] hover:bg-[#3B3328] text-[#FFF8EA] hover:text-white rounded-lg flex items-center justify-center transition-colors outline-none"
                         >
                           {isPlaying ? <Pause size={11} /> : <Play size={11} className="relative left-[1px]" />}
                         </button>
                         <button 
                           onClick={() => setCurrentTime(0)}
-                          className="w-7 h-7 bg-[#302920] border border-[#7A674F] hover:bg-[#3B3328] text-[#FFF8EA] hover:text-white rounded-lg flex items-center justify-center transition-colors outline-none"
+                          className="w-7 h-7 bg-[#302920] border border-[#D6A84F] hover:bg-[#3B3328] text-[#FFF8EA] hover:text-white rounded-lg flex items-center justify-center transition-colors outline-none"
                         >
                           <RotateCcw size={11} />
                         </button>
@@ -1516,15 +1592,15 @@ export default function App() {
                               setSoundVolume(Number(e.target.value));
                               setIsMuted(false);
                             }}
-                            className="w-12 h-1 bg-[#24201B] rounded-lg appearance-none cursor-pointer accent-[#E9B44C]"
+                            className="w-12 h-1 bg-[#24201B] rounded-lg appearance-none cursor-pointer accent-[#FFB347]"
                           />
                         </div>
                       </div>
 
                       <div className="text-xs font-mono text-[#C8B89F] flex items-center gap-2">
-                        <span>AUDIO: {generatedAudioUrl ? "ELEVENLABS PREVIEW READY" : `PREVIEW MIX (${activeScenario.scenes[0].soundEffects})`}</span>
+                        <span>AUDIO: {generatedAudioUrl ? "ELEVENLABS PREVIEW READY" : `PREVIEW MIX (${activeScene.soundEffects})`}</span>
                         <span>•</span>
-                        <span className="text-[#E9B44C] font-bold uppercase">SEC: {currentTime.toFixed(1)}s</span>
+                        <span className="text-[#FFB347] font-bold uppercase">SEC: {currentTime.toFixed(1)}s</span>
                       </div>
                     </div>
 
@@ -1540,65 +1616,65 @@ export default function App() {
           <div className="max-w-[850px] mx-auto w-full mb-3 flex flex-wrap items-center justify-center gap-2 pointer-events-auto">
             <button
               onClick={() => setActiveModal("genre")}
-              className={`px-3 py-1.5 rounded-full border text-sm font-bold flex items-center gap-1.5 transition-all duration-200 outline-none ${
+              className={`px-3 py-1.5 rounded-full border text-[12px] font-bold flex items-center gap-1.5 transition-all duration-200 outline-none backdrop-blur-md ${
                 activeModal === "genre"
-                  ? "bg-[#3B2C19] text-[#F6D58B] border-[#D6A84F]/70 shadow"
-                  : "bg-[#302920]/90 border-[#544737]/80 hover:bg-[#302920]/80 text-[#F0E1C8]"
+                  ? "bg-[#3B2C19] text-[#FFCB7A] border-[#FFB347]/70 shadow-lg shadow-[#FFB347]/10"
+                  : "bg-[#302920]/70 border-[#544737] hover:bg-[#302920] hover:border-[#D6A84F] text-[#F0E1C8] hover:text-white hover:-translate-y-px"
               }`}
             >
-              <div 
-                className="w-2 h-2 rounded-full inline-block filter blur-[1px] animate-pulse" 
+              <div
+                className="w-2 h-2 rounded-full inline-block filter blur-[1px] animate-pulse"
                 style={{ background: activeGenreObj.color }}
               />
-              <span>Mood</span>
+              <span>Mood: <span className="font-mono text-[#FFB347]">{activeGenreObj.id}</span></span>
             </button>
 
             <button
               onClick={() => setActiveModal("style")}
-              className={`px-3 py-1.5 rounded-full border text-sm font-bold flex items-center gap-1.5 transition-all duration-200 outline-none ${
+              className={`px-3 py-1.5 rounded-full border text-[12px] font-bold flex items-center gap-1.5 transition-all duration-200 outline-none backdrop-blur-md ${
                 activeModal === "style"
-                  ? "bg-[#F4A261]/10 text-[#F4A261] border-[#F4A261]/50 shadow"
-                  : "bg-[#302920]/90 border-[#544737]/80 hover:bg-[#302920]/80 text-[#F0E1C8]"
+                  ? "bg-[#FF8C42]/12 text-[#FF8C42] border-[#FF8C42]/50 shadow-lg shadow-[#FF8C42]/10"
+                  : "bg-[#302920]/70 border-[#544737] hover:bg-[#302920] hover:border-[#D6A84F] text-[#F0E1C8] hover:text-white hover:-translate-y-px"
               }`}
             >
-              <Sliders size={11} className="text-[#F4A261]" />
-              <span>Grade</span>
+              <Sliders size={11} className="text-[#FF8C42]" />
+              <span>Grade: <span className="font-mono text-[#FFB347]">{colorPalette === "Auto" ? "Auto" : colorPalette.split(" ")[0]}</span></span>
             </button>
 
             <button
               onClick={() => setActiveModal("camera")}
-              className={`px-3 py-1.5 rounded-full border text-sm font-bold flex items-center gap-1.5 transition-all duration-200 outline-none ${
+              className={`px-3 py-1.5 rounded-full border text-[12px] font-bold flex items-center gap-1.5 transition-all duration-200 outline-none backdrop-blur-md ${
                 activeModal === "camera"
-                  ? "bg-[#3B2C19] text-[#F6D58B] border-[#D6A84F]/70 shadow"
-                  : "bg-[#302920]/90 border-[#544737]/80 hover:bg-[#302920]/80 text-[#F0E1C8]"
+                  ? "bg-[#3B2C19] text-[#FFB347] border-[#FFB347]/50 shadow-lg shadow-[#FFB347]/10"
+                  : "bg-[#302920]/70 border-[#544737] hover:bg-[#302920] hover:border-[#D6A84F] text-[#F0E1C8] hover:text-white hover:-translate-y-px"
               }`}
             >
-              <Camera size={11} className="text-[#E9B44C]" />
-              <span>Shoot</span>
+              <Camera size={11} className="text-[#FFB347]" />
+              <span>Shoot: <span className="font-mono text-[#FFB347]">{getShortLens(lensType)} · {getShortMovement(cameraMovement)}</span></span>
             </button>
 
             <button
               onClick={() => setActiveModal("casting")}
-              className={`px-3 py-1.5 rounded-full border text-sm font-bold flex items-center gap-1.5 transition-all duration-200 outline-none ${
+              className={`px-3 py-1.5 rounded-full border text-[12px] font-bold flex items-center gap-1.5 transition-all duration-200 outline-none backdrop-blur-md ${
                 activeModal === "casting"
-                  ? "bg-[#263A2A] text-[#A7F3B7] border-[#6EA774]/60 shadow"
-                  : "bg-[#302920]/90 border-[#544737]/80 hover:bg-[#302920]/80 text-[#F0E1C8]"
+                  ? "bg-[#3B2C19] text-[#F6D58B] border-[#F6D58B]/50 shadow-lg shadow-[#F6D58B]/10"
+                  : "bg-[#302920]/70 border-[#544737] hover:bg-[#302920] hover:border-[#D6A84F] text-[#F0E1C8] hover:text-white hover:-translate-y-px"
               }`}
             >
-              <UserCheck size={11} className="text-[#A7F3B7]" />
-              <span>Cast</span>
+              <UserCheck size={11} className="text-[#F6D58B]" />
+              <span>Cast: <span className="font-mono text-[#FFB347]">{getShortCast(currentActor.name)}</span></span>
             </button>
 
             <button
               onClick={() => setActiveModal("voice")}
-              className={`px-3 py-1.5 rounded-full border text-sm font-bold flex items-center gap-1.5 transition-all duration-200 outline-none ${
+              className={`px-3 py-1.5 rounded-full border text-[12px] font-bold flex items-center gap-1.5 transition-all duration-200 outline-none backdrop-blur-md ${
                 activeModal === "voice"
-                  ? "bg-[#4A251D] text-[#F2A38F] border-[#E76F51]/60 shadow"
-                  : "bg-[#302920]/90 border-[#544737]/80 hover:bg-[#302920]/80 text-[#F0E1C8]"
+                  ? "bg-[#4A251D] text-[#F2A38F] border-[#D9754F]/50 shadow-lg shadow-[#D9754F]/10"
+                  : "bg-[#302920]/70 border-[#544737] hover:bg-[#302920] hover:border-[#D6A84F] text-[#F0E1C8] hover:text-white hover:-translate-y-px"
               }`}
             >
-              <span className="text-[#E76F51] text-[12px]">🎙️</span>
-              <span>Speak</span>
+              <span className="text-[#D9754F] text-[12px]">🎙️</span>
+              <span>Voice: <span className="font-mono text-[#FFB347]">{getShortVoice(currentActor.voice)}</span></span>
             </button>
           </div>
 
@@ -1622,21 +1698,25 @@ export default function App() {
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                   placeholder="Describe the cinematic scene in detail... e.g., A vintage car cruising down the neon-drenched streets under heavy rain"
-                  className="w-full bg-transparent text-sm text-white focus:outline-none placeholder-zinc-500 text-left font-sans"
+                  className="w-full bg-transparent text-sm text-white focus:outline-none placeholder:text-[#8A7964] text-left font-sans"
                 />
               </div>
 
               <button
                 onClick={triggerRender}
                 disabled={status === "RENDERING"}
-                className={`h-10 px-5 rounded-lg text-xs font-black flex items-center gap-1.5 transition-all duration-300 outline-none ${
+                className={`relative overflow-hidden h-10 px-5 rounded-lg text-xs font-black flex items-center gap-1.5 transition-all duration-300 outline-none ${
                   status === "RENDERING"
-                    ? "bg-zinc-800 text-[#C8B89F] cursor-not-allowed"
-                    : "bg-[#E9B44C] hover:bg-[#F6D58B] text-black shadow-lg shadow-cyan-950/30 font-extrabold cursor-pointer"
+                    ? "bg-[#544737] text-[#C8B89F] cursor-not-allowed cine-shuttering"
+                    : "bg-gradient-to-br from-[#FFB347] to-[#FF8C42] hover:from-[#FFCB7A] hover:to-[#FFA460] text-black shadow-lg shadow-[#FFB347]/30 hover:shadow-[#FFB347]/50 hover:-translate-y-px font-extrabold cursor-pointer"
                 }`}
               >
-                <span>Render Scene ✦</span>
-                <Sparkles size={12} className="relative top-[-0.5px]" />
+                <span className="cine-shutter-top" aria-hidden />
+                <span className="cine-shutter-bottom" aria-hidden />
+                <span className="relative z-10 flex items-center gap-1.5">
+                  Render Scene ✦
+                  <Sparkles size={12} className="relative top-[-0.5px]" />
+                </span>
               </button>
             </div>
 
@@ -1650,7 +1730,7 @@ export default function App() {
                   value={dialogueText}
                   onChange={(e) => setDialogueText(e.target.value)}
                   placeholder="Voice-dub dialogue or attached subtitles..."
-                  className="bg-transparent text-sm text-[#F0E1C8] focus:outline-none placeholder-zinc-500 text-left w-[200px] md:w-[320px] font-sans"
+                  className="bg-transparent text-sm text-[#F0E1C8] focus:outline-none placeholder:text-[#8A7964] text-left w-[200px] md:w-[320px] font-sans"
                 />
               </div>
 
@@ -1663,31 +1743,32 @@ export default function App() {
                     onClick={() => setActiveDropdown(activeDropdown === "model" ? null : "model")}
                     className={`px-2.5 py-1.5 rounded text-[13px] font-sans font-semibold transition-all flex items-center gap-1 cursor-pointer ${
                       activeDropdown === "model" 
-                        ? "bg-[#3B2C19] border border-[#D6A84F] text-[#F6D58B] shadow-md shadow-black/30" 
+                        ? "bg-[#3B2C19] border border-[#FFB347] text-[#FFCB7A] shadow-md shadow-black/30" 
                         : "bg-[#24201B] hover:bg-[#24201B]/85 border border-[#544737] text-[#FFF8EA] hover:text-white"
                     }`}
                   >
                     <span>🎬 {activeModelObj.name}</span>
-                    <ChevronDown size={10} className={`text-[#C8B89F] transition-transform ${activeDropdown === "model" ? "rotate-180 text-[#E9B44C]" : ""}`} />
+                    <ChevronDown size={10} className={`text-[#C8B89F] transition-transform ${activeDropdown === "model" ? "rotate-180 text-[#FFB347]" : ""}`} />
                   </button>
 
                   {activeDropdown === "model" && (
-                    <div className="absolute bottom-9 left-1/2 md:-left-12 -translate-x-[40%] md:translate-x-0 w-80 max-h-[380px] overflow-y-auto bg-[#F8F1E4] border border-[#D6A84F] rounded-xl p-2.5 shadow-2xl shadow-black/45 z-50 text-left font-sans animate-in fade-in slide-in-from-bottom-2 duration-150">
+                    <div className="cine-dd-panel cine-open absolute bottom-9 left-1/2 md:-left-12 -translate-x-[40%] md:translate-x-0 w-80 max-h-[380px] overflow-y-auto bg-[#F8F1E4] border border-[#D6A84F] rounded-xl p-2.5 shadow-2xl shadow-black/45 z-50 text-left font-sans animate-in fade-in slide-in-from-bottom-2 duration-200">
                       <div className="text-[13px] text-[#3A2B1D] font-extrabold pb-2 border-b border-[#D9C6A7] mb-2 font-mono flex items-center justify-between px-1">
-                        <span className="text-[13px] uppercase tracking-widest text-[#9A5B12] font-mono">CINEMATIC MODEL DIRECTORY</span>
-                        <span>Select Render Engine</span>
+                        <span className="text-[11px] uppercase tracking-[0.2em] text-[#FFB347] font-mono">CINEMATIC MODEL DIRECTORY</span>
+                        <span className="text-[11px] text-[#6B4D2E] uppercase tracking-wider">Select Engine</span>
                       </div>
                       <div className="space-y-3">
-                        {Array.from(new Set(CINEMA_MODELS.map(getModelCategory))).map((cat) => {
+                        {(Array.from(new Set(CINEMA_MODELS.map(getModelCategory))) as string[]).map((cat, catIdx) => {
                           const catModels = CINEMA_MODELS.filter(m => getModelCategory(m) === cat);
                           return (
                             <div key={cat} className="space-y-1">
-                              <div className="text-[13px] font-mono font-bold text-[#7C6040] tracking-wider text-left uppercase px-2 py-0.5 border-l-2 border-[#D6A84F]">
+                              <div className="text-[10px] font-mono font-bold text-[#7C6040] tracking-[0.18em] text-left uppercase px-2 py-0.5 border-l-2 border-[#D6A84F]">
                                 • {cat}
                               </div>
-                              <div className="space-y-0.5 animate-none">
-                                {catModels.map((model) => {
+                              <div className="space-y-0.5">
+                                {catModels.map((model, mIdx) => {
                                   const isSelected = selectedModelId === model.id;
+                                  const itemIndex = catIdx * 4 + mIdx;
                                   return (
                                     <button
                                       key={model.id}
@@ -1695,39 +1776,40 @@ export default function App() {
                                         setSelectedModelId(model.id);
                                         setActiveDropdown(null);
                                       }}
-                                      className={`w-full text-right px-2.5 py-1.5 rounded-md text-[13px] transition-all flex items-center justify-between cursor-pointer ${
-                                        isSelected 
-                                          ? "bg-[#F1DFAE] text-[#2B2118] border border-[#D6A84F] font-bold" 
-                                          : "text-[#3A2B1D] hover:text-[#17120E] hover:bg-[#EFE2CC] border border-transparent"
+                                      style={{ animationDelay: `${itemIndex * 35}ms` }}
+                                      className={`cine-dd-item w-full text-right px-2.5 py-1.5 rounded-md text-[13px] transition-all flex items-center justify-between cursor-pointer ${
+                                        isSelected
+                                          ? "bg-[#F1DFAE] text-[#2B2118] border border-[#D6A84F] font-bold shadow-inner shadow-[#D6A84F]/20"
+                                          : "text-[#3A2B1D] hover:text-[#17120E] hover:bg-[#EFE2CC] border border-transparent hover:border-[#D6A84F]/40"
                                       }`}
                                     >
                                       {/* Left badges column */}
-                                      <div className="flex items-center gap-1 font-mono text-[13px]" dir="ltr">
+                                      <div className="flex items-center gap-1 font-mono text-[10px]" dir="ltr">
                                         {model.capabilities.max_reference_images > 0 && (
-                                          <span className="px-1 py-0.2 rounded bg-[#FFF7DD] border border-[#D6A84F] text-[#9A5B12] font-bold">REF x{model.capabilities.max_reference_images}</span>
+                                          <span className="px-1.5 py-[2px] rounded bg-[#FFB347]/10 border border-[#FFB347]/30 text-[#FFB347] font-bold tracking-wider">REF×{model.capabilities.max_reference_images}</span>
                                         )}
                                         {model.badge && (
-                                          <span className={`px-1 py-0.2 rounded font-bold ${
-                                            model.badge === "TOP" ? "bg-[#F4A261]/10 border border-[#F4A261]/40 text-[#F4A261]" :
-                                            model.badge === "PRO" ? "bg-violet-950/80 border border-violet-800/30 text-purple-400" :
-                                            model.badge === "FAST" ? "bg-[#EAF4FF] border border-[#8EB6E5] text-[#1D5D9B]" :
-                                            "bg-emerald-950/80 border border-emerald-800/20 text-emerald-400"
+                                          <span className={`px-1.5 py-[2px] rounded font-bold tracking-wider ${
+                                            model.badge === "TOP" ? "bg-[#FFF7DD] border border-[#D6A84F] text-[#9A5B12]" :
+                                            model.badge === "PRO" ? "bg-[#F4D8B4] border border-[#C9823B] text-[#8A3F14]" :
+                                            model.badge === "FAST" ? "bg-[#EAF1D5] border border-[#A9B86A] text-[#5B681F]" :
+                                            "bg-[#F6E7C8] border border-[#D6A84F] text-[#7C6040]"
                                           }`}>
                                             {model.badge}
                                           </span>
                                         )}
                                       </div>
-                                      
+
                                       {/* Right name column */}
                                       <div className="flex items-center gap-2">
                                         <span className="text-[13px] font-medium">{model.name}</span>
-                                        <span className={`w-1.5 h-1.5 rounded-full ${
-                                          model.family === "kling" ? "bg-[#E9B44C]" :
-                                          model.family === "hailuo" ? "bg-[#F4A261]" :
-                                          model.family === "sora" ? "bg-purple-500" :
-                                          model.family === "veo" ? "bg-blue-500" :
-                                          model.family === "seedance" ? "bg-emerald-500" :
-                                          "bg-rose-500"
+                                        <span className={`w-1.5 h-1.5 rounded-full shadow-[0_0_8px_currentColor] ${
+                                          model.family === "kling" ? "bg-[#D6A84F] text-[#D6A84F]" :
+                                          model.family === "hailuo" ? "bg-[#C9823B] text-[#C9823B]" :
+                                          model.family === "sora" ? "bg-[#9A5B12] text-[#9A5B12]" :
+                                          model.family === "veo" ? "bg-[#B67C32] text-[#B67C32]" :
+                                          model.family === "seedance" ? "bg-[#A9B86A] text-[#A9B86A]" :
+                                          "bg-[#D9754F] text-[#D9754F]"
                                         }`} />
                                       </div>
                                     </button>
@@ -1896,7 +1978,7 @@ export default function App() {
 
               <div className="w-full flex flex-wrap items-center gap-2 text-sm text-[#F0E1C8]">
                 {activeModelObj.capabilities.max_reference_images > 0 && (
-                  <label className="px-2 py-1 rounded border border-[#544737] bg-[#24201B] hover:border-[#D6A84F]/70 cursor-pointer">
+                  <label className="px-2 py-1 rounded border border-[#544737] bg-[#24201B] hover:border-[#FFB347]/70 cursor-pointer">
                     Ref images {referenceImages.length}/{activeModelObj.capabilities.max_reference_images}
                     <input
                       type="file"
@@ -1909,7 +1991,7 @@ export default function App() {
                 )}
 
                 {activeModelObj.capabilities.has_end_frame && (
-                  <label className="px-2 py-1 rounded border border-[#544737] bg-[#24201B] hover:border-[#D6A84F]/70 cursor-pointer">
+                  <label className="px-2 py-1 rounded border border-[#544737] bg-[#24201B] hover:border-[#FFB347]/70 cursor-pointer">
                     {endFrameUrl ? "End frame ready" : "End frame"}
                     <input type="file" accept="image/*" className="hidden" onChange={(e) => handleEndFrameUpload(e.target.files)} />
                   </label>
@@ -1920,7 +2002,7 @@ export default function App() {
                     value={negativePrompt}
                     onChange={(e) => setNegativePrompt(e.target.value)}
                     placeholder="Negative prompt"
-                    className="min-w-[150px] flex-1 bg-[#24201B] border border-[#544737] rounded px-2 py-1 text-sm text-[#FFF8EA] outline-none focus:border-cyan-700"
+                    className="min-w-[150px] flex-1 bg-[#24201B] border border-[#544737] rounded px-2 py-1 text-sm text-[#FFF8EA] outline-none focus:border-[#D6A84F]"
                   />
                 )}
 
@@ -1934,7 +2016,7 @@ export default function App() {
                       step="0.1"
                       value={cfgScale}
                       onChange={(e) => setCfgScale(Number(e.target.value))}
-                      className="w-20 accent-[#E9B44C]"
+                      className="w-20 accent-[#FFB347]"
                     />
                   </label>
                 )}
@@ -1944,7 +2026,7 @@ export default function App() {
                     value={seed}
                     onChange={(e) => setSeed(e.target.value.replace(/\D/g, "").slice(0, 10))}
                     placeholder="Seed"
-                    className="w-24 bg-[#24201B] border border-[#544737] rounded px-2 py-1 text-sm text-[#FFF8EA] outline-none focus:border-cyan-700"
+                    className="w-24 bg-[#24201B] border border-[#544737] rounded px-2 py-1 text-sm text-[#FFF8EA] outline-none focus:border-[#D6A84F]"
                   />
                 )}
 
@@ -1952,7 +2034,7 @@ export default function App() {
                   <button
                     type="button"
                     onClick={() => setSoundEnabled((v) => !v)}
-                    className={`px-2 py-1 rounded border font-bold ${soundEnabled ? "border-emerald-800/50 bg-emerald-950/20 text-emerald-400" : "border-[#544737] bg-[#24201B] text-[#C8B89F]"}`}
+                    className={`px-2 py-1 rounded border font-bold ${soundEnabled ? "border-[#FFB347]/50 bg-[#FFB347]/15 text-[#FFB347]" : "border-[#544737] bg-[#24201B] text-[#C8B89F]"}`}
                   >
                     Sound {soundEnabled ? "ON" : "OFF"}
                   </button>
@@ -1970,7 +2052,7 @@ export default function App() {
                   </select>
                 )}
 
-                <span className="ml-auto px-2 py-1 rounded border border-[#F4A261]/40 bg-[#F4A261]/10 text-[#F4A261] font-mono">
+                <span className="ml-auto px-2 py-1 rounded border border-[#FF8C42]/40 bg-[#FF8C42]/10 text-[#FF8C42] font-mono">
                   Est. {estimatedCredits || 1} credits
                 </span>
               </div>
@@ -2054,8 +2136,8 @@ export default function App() {
                             }}
                             className={`w-full text-left p-3 rounded-lg border flex items-center justify-between gap-3 transition-colors outline-none ${
                               isChosen 
-                                ? "bg-[#3B2C19] border-[#D6A84F]/70" 
-                                : "bg-[#24201B]/60 border-[#544737]/80 hover:bg-[#302920]/70 hover:border-[#7A674F]"
+                                ? "bg-[#3B2C19] border-[#FFB347]/70" 
+                                : "bg-[#24201B]/60 border-[#544737]/80 hover:bg-[#302920]/70 hover:border-[#D6A84F]"
                             }`}
                           >
                             <div className="min-w-0 flex-1">
@@ -2066,7 +2148,7 @@ export default function App() {
                                 {g.desc}
                               </span>
                             </div>
-                            {isChosen && <div className="w-2 h-2 rounded-full bg-cyan-400" />}
+                            {isChosen && <div className="w-2 h-2 rounded-full bg-[#FFB347]" />}
                           </button>
                         );
                       })}
@@ -2089,7 +2171,7 @@ export default function App() {
                             onClick={() => setColorPalette(p)}
                             className={`w-full text-left p-2 rounded-lg text-xs font-bold transition-all outline-none ${
                               colorPalette === p
-                                ? "bg-[#3B2C19] text-[#F6D58B] border border-[#D6A84F]/70"
+                                ? "bg-[#3B2C19] text-[#FFCB7A] border border-[#FFB347]/70"
                                 : "bg-[#24201B]/60 text-[#F0E1C8] border border-[#544737]/80 hover:bg-[#302920]/70"
                             }`}
                           >
@@ -2109,7 +2191,7 @@ export default function App() {
                             onClick={() => setLightingStyle(l)}
                             className={`w-full text-left p-2 rounded-lg text-xs font-bold transition-all outline-none ${
                               lightingStyle === l
-                                ? "bg-[#3B2C19] text-[#F6D58B] border border-[#D6A84F]/70"
+                                ? "bg-[#3B2C19] text-[#FFCB7A] border border-[#FFB347]/70"
                                 : "bg-[#24201B]/60 text-[#F0E1C8] border border-[#544737]/80 hover:bg-[#302920]/70"
                             }`}
                           >
@@ -2129,7 +2211,7 @@ export default function App() {
                             onClick={() => setCameraMovesetStyle(c)}
                             className={`w-full text-left p-2 rounded-lg text-xs font-bold transition-all outline-none ${
                               cameraMovesetStyle === c
-                                ? "bg-[#3B2C19] text-[#F6D58B] border border-[#D6A84F]/70"
+                                ? "bg-[#3B2C19] text-[#FFCB7A] border border-[#FFB347]/70"
                                 : "bg-[#24201B]/60 text-[#F0E1C8] border border-[#544737]/80 hover:bg-[#302920]/70"
                             }`}
                           >
@@ -2148,7 +2230,7 @@ export default function App() {
                     
                     {/* C1. ALL LENSES SECTION WITH SPECIFIC DESCRIPTIVE IMAGE */}
                     <div>
-                      <span className="text-[13px] font-bold text-[#E9B44C] uppercase font-mono tracking-wider block border-b border-[#544737] pb-2 mb-3">
+                      <span className="text-[13px] font-bold text-[#FFB347] uppercase font-mono tracking-wider block border-b border-[#544737] pb-2 mb-3">
                         🔍 Available Cinematic Lenses
                       </span>
                       
@@ -2164,8 +2246,8 @@ export default function App() {
                               }}
                               className={`p-2.5 rounded-xl border text-left transition-all duration-200 outline-none flex flex-col justify-between h-[155px] ${
                                 isActive
-                                  ? "border-[#E9B44C] bg-cyan-950/15"
-                                  : "border-[#544737] bg-[#24201B]/80 hover:bg-[#302920]/70 hover:border-[#7A674F]"
+                                  ? "border-[#FFB347] bg-[#FFB347]/10"
+                                  : "border-[#544737] bg-[#24201B]/80 hover:bg-[#302920]/70 hover:border-[#D6A84F]"
                               }`}
                             >
                               <div className="relative w-full h-16 rounded overflow-hidden mb-1.5 flex-shrink-0">
@@ -2173,7 +2255,7 @@ export default function App() {
                                 <div className="absolute top-1 left-1 bg-black/60 px-1 py-0.2 rounded text-[13px] text-[#FFF8EA] font-mono tracking-wide">{l.tStop}</div>
                               </div>
                               <div className="min-w-0 w-full mt-auto">
-                                <span className="text-[13px] font-black text-slate-100 block truncate leading-tight">
+                                <span className="text-[13px] font-black text-[#FFF8EA] block truncate leading-tight">
                                   {l.arabicName}
                                 </span>
                                 <span className="text-[13px] text-[#C8B89F] block truncate leading-tight mt-0.5">
@@ -2188,7 +2270,7 @@ export default function App() {
 
                     {/* C2. ALL CAMERA MOVEMENTS SECTION WITH DESCRIPTION IMAGE */}
                     <div>
-                      <span className="text-[13px] font-bold text-[#F4A261] uppercase font-mono tracking-wider block border-b border-[#544737] pb-2 mb-3">
+                      <span className="text-[13px] font-bold text-[#FF8C42] uppercase font-mono tracking-wider block border-b border-[#544737] pb-2 mb-3">
                         🎥 Available Camera Movements
                       </span>
 
@@ -2204,15 +2286,15 @@ export default function App() {
                               }}
                               className={`p-2.5 rounded-xl border text-left transition-all duration-200 outline-none flex flex-col justify-between h-[155px] ${
                                 isActive
-                                  ? "border-[#F4A261] bg-[#F4A261]/10"
-                                  : "border-[#544737] bg-[#24201B]/80 hover:bg-[#302920]/70 hover:border-[#7A674F]"
+                                  ? "border-[#FF8C42] bg-[#FF8C42]/10"
+                                  : "border-[#544737] bg-[#24201B]/80 hover:bg-[#302920]/70 hover:border-[#D6A84F]"
                               }`}
                             >
                               <div className="relative w-full h-16 rounded overflow-hidden mb-1.5 flex-shrink-0">
                                 <img src={mv.url} alt={mv.name} className="w-full h-full object-cover select-none pointer-events-none grayscale" />
                               </div>
                               <div className="min-w-0 w-full mt-auto">
-                                <span className="text-[13px] font-black text-slate-100 block truncate leading-tight">
+                                <span className="text-[13px] font-black text-[#FFF8EA] block truncate leading-tight">
                                   {mv.arabicName}
                                 </span>
                                 <span className="text-[13px] text-[#C8B89F] block truncate leading-tight mt-0.5">
@@ -2254,8 +2336,8 @@ export default function App() {
                                 }}
                                 className={`p-1.5 rounded-xl border flex flex-col items-center text-center justify-between transition-all duration-200 h-[115px] outline-none ${
                                   isSelected
-                                    ? "border-[#E9B44C] bg-cyan-950/10"
-                                    : "border-[#544737] bg-[#24201B]/80 hover:bg-[#302920]/70 hover:border-[#7A674F]"
+                                    ? "border-[#FFB347] bg-[#FFB347]/8"
+                                    : "border-[#544737] bg-[#24201B]/80 hover:bg-[#302920]/70 hover:border-[#D6A84F]"
                                 }`}
                               >
                                 <div className="relative w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
@@ -2263,10 +2345,10 @@ export default function App() {
                                 </div>
                                 <div className="text-center w-full min-w-0 mt-1">
                                   <span className="text-xs font-bold text-white block truncate leading-none">{actor.name}</span>
-                                  <span className="text-[13px] text-[#E76F51]/90 font-medium block truncate mt-1" title={actor.voice}>
+                                  <span className="text-[13px] text-[#D9754F]/90 font-medium block truncate mt-1" title={actor.voice}>
                                     🎙️ {actor.voice}
                                   </span>
-                                  {isC && <span className="text-[13px] text-[#E9B44C] block mt-0.5 uppercase">AI LAB</span>}
+                                  {isC && <span className="text-[13px] text-[#FFB347] block mt-0.5 uppercase">AI LAB</span>}
                                 </div>
                               </button>
                             );
@@ -2276,14 +2358,14 @@ export default function App() {
                         {/* Current Actor Sound Control Sheet */}
                         <div className="mt-4 p-3 bg-[#24201B] rounded-xl border border-[#544737]/80 space-y-2 text-left">
                           <div className="flex items-center justify-between border-b border-[#544737] pb-1.5">
-                            <span className="text-[13px] text-[#E9B44C] font-mono font-bold tracking-wider">AUDIO MIX & VOICE DUB</span>
-                            <span className="text-sm font-black text-slate-100">🎙️ Manage & Select Actor Voices: {currentActor.name}</span>
+                            <span className="text-[13px] text-[#FFB347] font-mono font-bold tracking-wider">AUDIO MIX & VOICE DUB</span>
+                            <span className="text-sm font-black text-[#FFF8EA]">🎙️ Manage & Select Actor Voices: {currentActor.name}</span>
                           </div>
                           
                           <div className="text-[13px] leading-relaxed text-[#F0E1C8] space-y-1 font-sans">
                             <div>
                               <span className="text-[#C8B89F] font-semibold">Current Selected Voice:</span>{" "}
-                              <span className="text-[#E9B44C] font-bold">{currentActor.voice}</span>
+                              <span className="text-[#FFB347] font-bold">{currentActor.voice}</span>
                             </div>
                             <p className="text-xs text-[#C8B89F] leading-tight">
                               Choose a default cinematic voice preset or enter a custom voice description to synthesize and assign it immediately:
@@ -2298,7 +2380,7 @@ export default function App() {
                                 onChange={(e) => {
                                   assignPresetVoiceToActor(currentActor.id, e.target.value);
                                 }}
-                                className="bg-[#24201B] border border-[#7A674F] text-[13px] rounded p-1.5 outline-none text-[#FFF8EA] w-full font-sans text-left"
+                                className="bg-[#24201B] border border-[#D6A84F] text-[13px] rounded p-1.5 outline-none text-[#FFF8EA] w-full font-sans text-left"
                               >
                                 {VOICE_PRESETS.map((voice) => (
                                   <option key={voice.voiceId} value={voice.label}>
@@ -2313,7 +2395,6 @@ export default function App() {
                               <div className="flex gap-1.5">
                                 <input 
                                   type="text"
-                                  id="customActiveActorVoiceInput"
                                   ref={activeActorVoiceInputRef}
                                   placeholder="e.g., voice with whispering echo..."
                                   onKeyDown={(e) => {
@@ -2326,7 +2407,7 @@ export default function App() {
                                       }
                                     }
                                   }}
-                                  className="bg-[#24201B] border border-[#7A674F] px-2 py-1 rounded text-[13px] text-white focus:border-[#E9B44C] outline-none w-full font-sans text-left"
+                                  className="bg-[#24201B] border border-[#D6A84F] px-2 py-1 rounded text-[13px] text-white focus:border-[#FFB347] outline-none w-full font-sans text-left"
                                 />
                                 <button 
                                   onClick={() => {
@@ -2337,7 +2418,7 @@ export default function App() {
                                       input.value = "";
                                     }
                                   }}
-                                  className="px-3 bg-[#E9B44C] hover:bg-[#F6D58B] text-black text-xs rounded font-black cursor-pointer transition-colors"
+                                  className="px-3 bg-[#FFB347] hover:bg-[#FFCB7A] text-black text-xs rounded font-black cursor-pointer transition-colors"
                                 >
                                   Apply
                                 </button>
@@ -2349,7 +2430,7 @@ export default function App() {
 
                       {/* Right: Modern Actor procedural builder */}
                       <form onSubmit={buildCustomCharacterObj} className="md:col-span-12 lg:col-span-5 bg-[#24201B]/80 p-3.5 rounded-xl border border-[#544737] space-y-3 text-left">
-                        <span className="text-[13px] font-bold text-[#E9B44C] uppercase font-mono block border-b border-[#544737] pb-1 flex items-center gap-1">
+                        <span className="text-[13px] font-bold text-[#FFB347] uppercase font-mono block border-b border-[#544737] pb-1 flex items-center gap-1">
                           🧪 Creator Lab (Synthetic Character Builder)
                         </span>
 
@@ -2361,7 +2442,7 @@ export default function App() {
                             value={custName}
                             onChange={(e) => setCustName(e.target.value)}
                             placeholder="e.g., Sean Kenani"
-                            className="w-full bg-[#24201B] border border-[#7A674F] px-2 py-1.5 rounded text-xs text-white focus:border-[#E9B44C] outline-none"
+                            className="w-full bg-[#24201B] border border-[#D6A84F] px-2 py-1.5 rounded text-xs text-white focus:border-[#FFB347] outline-none"
                           />
                         </div>
 
@@ -2399,13 +2480,13 @@ export default function App() {
                             value={custStyle}
                             onChange={(e) => setCustStyle(e.target.value)}
                             placeholder="e.g., wet black trench coat, intense steel gaze..."
-                            className="w-full bg-[#24201B] border border-[#7A674F] px-2 py-1.5 rounded text-xs text-white focus:border-[#E9B44C] outline-none"
+                            className="w-full bg-[#24201B] border border-[#D6A84F] px-2 py-1.5 rounded text-xs text-white focus:border-[#FFB347] outline-none"
                           />
                         </div>
 
                         {/* Voice Selection & Custom Addition */}
                         <div className="space-y-1.5 pt-2 border-t border-[#544737]/60 text-left">
-                          <label className="text-xs text-[#E9B44C] uppercase flex items-center gap-1 font-bold">
+                          <label className="text-xs text-[#FFB347] uppercase flex items-center gap-1 font-bold">
                             🎙️ Sourced Voice Pattern (Voice Synthesis)
                           </label>
                           <select 
@@ -2420,7 +2501,7 @@ export default function App() {
                                 setCustVoice("");
                               }
                             }}
-                            className="w-full bg-[#24201B] border border-[#7A674F] text-sm rounded p-2 outline-none text-[#FFF8EA] font-sans"
+                            className="w-full bg-[#24201B] border border-[#D6A84F] text-sm rounded p-2 outline-none text-[#FFF8EA] font-sans"
                           >
                             {VOICE_PRESETS.map((voice) => (
                               <option key={voice.voiceId} value={voice.label}>
@@ -2439,7 +2520,7 @@ export default function App() {
                                 value={custVoice}
                                 onChange={(e) => setCustVoice(e.target.value)}
                                 placeholder="e.g., deep raspy whispered voice with a subtle Irish accent..."
-                                className="w-full bg-[#24201B] border border-[#7A674F] px-2 py-1.5 rounded text-xs text-white focus:border-[#E9B44C] outline-none font-sans"
+                                className="w-full bg-[#24201B] border border-[#D6A84F] px-2 py-1.5 rounded text-xs text-white focus:border-[#FFB347] outline-none font-sans"
                               />
                             </div>
                           )}
@@ -2447,17 +2528,17 @@ export default function App() {
 
                         {isGeneratingChar ? (
                           <div className="space-y-1.5 pt-1.5">
-                            <div className="flex items-center justify-between text-[13px] font-mono text-[#E9B44C]">
+                            <div className="flex items-center justify-between text-[13px] font-mono text-[#FFB347]">
                               <span>AI synthesizing character profile... {charProgress}%</span>
                             </div>
                             <div className="h-0.5 bg-[#302920] rounded overflow-hidden">
-                              <div className="h-full bg-cyan-400" style={{ width: `${charProgress}%` }} />
+                              <div className="h-full bg-[#FFB347]" style={{ width: `${charProgress}%` }} />
                             </div>
                           </div>
                         ) : (
                           <button
                             type="submit"
-                            className="w-full py-2 bg-[#E9B44C] hover:bg-[#F6D58B] text-black font-bold text-xs rounded transition-colors"
+                            className="w-full py-2 bg-[#FFB347] hover:bg-[#FFCB7A] text-black font-bold text-xs rounded transition-colors"
                           >
                             Synthesize and Add Character to Roster 🧪
                           </button>
@@ -2473,21 +2554,21 @@ export default function App() {
                 {activeModal === "voice" && (
                   <div className="space-y-4">
                     <p className="text-xs text-[#F0E1C8] leading-relaxed font-sans text-left">
-                      🎙️ Voice Engineering & Dubbing Studio - Customize the vocal signature for <span className="text-[#E76F51] font-bold">{currentActor.name}</span>:
+                      🎙️ Voice Engineering & Dubbing Studio - Customize the vocal signature for <span className="text-[#D9754F] font-bold">{currentActor.name}</span>:
                     </p>
 
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
                       {/* Left: Current Actor Status & Profile */}
                       <div className="md:col-span-4 bg-[#24201B] border border-[#544737] rounded-xl p-4 flex flex-col items-center justify-center text-center">
-                        <div className="relative w-16 h-16 rounded-full overflow-hidden border border-[#7A674F] mb-3">
+                        <div className="relative w-16 h-16 rounded-full overflow-hidden border border-[#D6A84F] mb-3">
                           <img src={currentActor.url} alt={currentActor.name} className="w-full h-full object-cover grayscale" />
                         </div>
-                        <h4 className="text-xs font-bold text-slate-100">{currentActor.name}</h4>
+                        <h4 className="text-xs font-bold text-[#FFF8EA]">{currentActor.name}</h4>
                         <p className="text-[13px] text-[#C8B89F] mt-1">{currentActor.tagline}</p>
                         
                         <div className="mt-4 w-full bg-[#24201B] border border-[#544737] rounded-lg p-3 text-left">
                           <span className="text-xs text-[#C8B89F] uppercase block font-sans">Active Voice Setting</span>
-                          <span className="text-sm font-bold text-[#E76F51] block mt-1 leading-tight break-all font-sans">
+                          <span className="text-sm font-bold text-[#D9754F] block mt-1 leading-tight break-all font-sans">
                             {currentActor.voice}
                           </span>
                         </div>
@@ -2508,8 +2589,8 @@ export default function App() {
                                   }}
                                   className={`p-2.5 rounded-lg border text-left transition-all duration-150 flex flex-col justify-between cursor-pointer ${
                                     isSelected
-                                      ? "border-[#E76F51] bg-rose-950/10"
-                                      : "border-[#544737] bg-[#24201B]/80 hover:bg-[#302920]/70 hover:border-[#7A674F]"
+                                      ? "border-[#D9754F] bg-[#D9754F]/8"
+                                      : "border-[#544737] bg-[#24201B]/80 hover:bg-[#302920]/70 hover:border-[#D6A84F]"
                                   }`}
                                 >
                                   <span className="text-[13px] font-bold text-white block truncate">{v.label}</span>
@@ -2522,7 +2603,7 @@ export default function App() {
                             type="button"
                             onClick={() => previewVoice(selectedVoiceId)}
                             disabled={isPreviewingVoice || !dialogueText.trim()}
-                            className="mt-2 px-3 py-2 rounded-lg bg-[#E76F51] hover:bg-[#F2A38F] disabled:bg-zinc-800 disabled:text-[#C8B89F] text-white text-sm font-bold transition-colors"
+                            className="mt-2 px-3 py-2 rounded-lg bg-[#D9754F] hover:bg-[#F2A38F] disabled:bg-[#544737] disabled:text-[#C8B89F] text-white text-sm font-bold transition-colors"
                           >
                             {isPreviewingVoice ? "Previewing..." : "Preview Voice"}
                           </button>
@@ -2530,7 +2611,7 @@ export default function App() {
 
                         {/* Custom voice descriptor input logic */}
                         <div className="bg-[#302920] border border-[#544737] rounded-xl p-3 space-y-2">
-                          <span className="text-xs text-[#E9B44C] uppercase flex items-center gap-1 font-bold">
+                          <span className="text-xs text-[#FFB347] uppercase flex items-center gap-1 font-bold">
                             ➕ Custom Voice Integration
                           </span>
                           <p className="text-xs text-[#C8B89F] leading-relaxed font-sans">
@@ -2539,7 +2620,6 @@ export default function App() {
                           <div className="flex gap-2">
                             <input 
                               type="text"
-                              id="modalCustomVoiceInputText"
                               ref={modalCustomVoiceInputRef}
                               placeholder="e.g., A child-like soft whisper recounting old memories with quiet grace..."
                               onKeyDown={(e) => {
@@ -2552,7 +2632,7 @@ export default function App() {
                                   }
                                 }
                               }}
-                              className="bg-[#24201B] border border-[#7A674F] px-3 py-2 rounded-lg text-xs text-white focus:border-[#E76F51] outline-none w-full font-sans text-left placeholder:text-[#8A7964]"
+                              className="bg-[#24201B] border border-[#D6A84F] px-3 py-2 rounded-lg text-xs text-white focus:border-[#D9754F] outline-none w-full font-sans text-left placeholder:text-[#8A7964]"
                             />
                             <button 
                               onClick={() => {
@@ -2563,7 +2643,7 @@ export default function App() {
                                   input.value = "";
                                 }
                               }}
-                              className="px-4 bg-[#E76F51] hover:bg-[#F2A38F] text-white text-[13px] font-bold rounded-lg cursor-pointer transition-colors whitespace-nowrap"
+                              className="px-4 bg-[#D9754F] hover:bg-[#F2A38F] text-white text-[13px] font-bold rounded-lg cursor-pointer transition-colors whitespace-nowrap"
                             >
                               Synthesize & Apply
                             </button>
@@ -2583,11 +2663,11 @@ export default function App() {
 
                     <div className="bg-[#24201B]/80 border border-[#544737] rounded-xl p-4 text-xs space-y-3 font-sans">
                       <div className="flex items-start gap-2 text-[#FFF8EA]">
-                        <span className="bg-[#E9B44C] text-black text-xs font-black px-1.5 py-0.2 rounded font-mono">ADVISOR</span>
+                        <span className="bg-[#FFB347] text-black text-xs font-black px-1.5 py-0.2 rounded font-mono">ADVISOR</span>
                         <div>
                           <p className="font-extrabold text-white text-sm mb-1">Macro Lens & Drama Focus Recommendation</p>
                           <p className="text-[#F0E1C8] leading-relaxed text-sm">
-                            You have chosen <span className="text-[#E9B44C] font-bold">{lensType}</span>. We recommend adjusting the dialog text to include silent beats or pregnant pauses to enhance character isolation by 20%.
+                            You have chosen <span className="text-[#FFB347] font-bold">{lensType}</span>. We recommend adjusting the dialog text to include silent beats or pregnant pauses to enhance character isolation by 20%.
                           </p>
                         </div>
                       </div>
@@ -2595,11 +2675,11 @@ export default function App() {
                       <div className="h-[1px] bg-[#302920]/80" />
 
                       <div className="flex items-start gap-2 text-[#F0E1C8]">
-                        <span className="bg-[#F4A261] text-black text-xs font-black px-1.5 py-0.2 rounded font-mono">DOP_NOTE</span>
+                        <span className="bg-[#FF8C42] text-black text-xs font-black px-1.5 py-0.2 rounded font-mono">DOP_NOTE</span>
                         <div>
                           <p className="font-extrabold text-white text-sm mb-1">Calculated Hydraulic Dolly Zoom Application</p>
                           <p className="text-[#F0E1C8] leading-relaxed text-sm">
-                            When simulating the Vertigo effect, increase volumetric scattering and darken color grading to highlight the psychological shock of the actor <span className="text-[#F4A261] font-bold">{currentActor.name}</span>.
+                            When simulating the Vertigo effect, increase volumetric scattering and darken color grading to highlight the psychological shock of the actor <span className="text-[#FF8C42] font-bold">{currentActor.name}</span>.
                           </p>
                         </div>
                       </div>
@@ -2609,7 +2689,7 @@ export default function App() {
                       <input 
                         type="text"
                         placeholder="Ask another directorial or technical question..."
-                        className="flex-1 bg-[#24201B] border border-[#544737] px-3 py-2 rounded text-xs text-white focus:border-[#E9B44C] outline-none font-sans text-left"
+                        className="flex-1 bg-[#24201B] border border-[#544737] px-3 py-2 rounded text-xs text-white focus:border-[#FFB347] outline-none font-sans text-left"
                       />
                       <button 
                         onClick={() => setActiveModal(null)}
