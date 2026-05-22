@@ -1068,6 +1068,33 @@ export default function ImageWorkspacePage() {
 
     const requestedCharacter = searchParams.get("characterId");
     if (requestedCharacter) setSelectedCharacterId(requestedCharacter);
+
+    // ── Style Library preset hydration ──────────────────────────────
+    // When the user clicks a card on /image-presets, we land here with
+    // ?prompt= ?aspect= ?quality= ?preset=… params. Apply them once.
+    const requestedPrompt = searchParams.get("prompt");
+    if (requestedPrompt) setPrompt(requestedPrompt);
+
+    const requestedAspect = searchParams.get("aspect");
+    if (requestedAspect) setAspectRatio(requestedAspect);
+
+    const requestedQuality = searchParams.get("quality");
+    if (requestedQuality) setQuality(requestedQuality);
+
+    // If we applied any preset params, strip them from the URL so a
+    // page refresh doesn't reapply them on top of the user's edits.
+    if (
+      searchParams.get("preset") ||
+      requestedPrompt ||
+      requestedAspect ||
+      requestedQuality
+    ) {
+      const url = new URL(window.location.href);
+      ["prompt", "aspect", "quality", "preset"].forEach((k) =>
+        url.searchParams.delete(k),
+      );
+      window.history.replaceState({}, "", url.toString());
+    }
   }, [searchParams]);
 
   useEffect(() => {
