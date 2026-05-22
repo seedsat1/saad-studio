@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Cinema Studio VS.O — Anamorphic Noir Mockup</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  /* ============ ANAMORPHIC NOIR PALETTE ============ */
+  :root {
+    --bg-base:        #070B14;
+    --bg-panel:       #0F1620;
+    --bg-elevated:    #131C29;
+    --border-soft:    #1E2939;
+    --border-strong:  #2A6F7A;
+    --text-primary:   #E8EDF3;
+    --text-secondary: #8A95A7;
+    --text-muted:     #5A6478;
+    --accent-amber:   #FFB347;   /* primary */
+    --accent-teal:    #67E8E0;   /* secondary / hover */
+    --accent-warm:    #FF8C42;
+    --warning:        #FF6B6B;
+    --success:        #86EFAC;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", system-ui, sans-serif;
+    background: var(--bg-base);
+    color: var(--text-primary);
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+    user-select: none;
+    position: relative;
+  }
+
+  /* ============ CINEMATIC BACKGROUND LAYERS ============ */
+
+  /* 1. Radial darkening */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background: radial-gradient(ellipse at center,
+      rgba(20, 30, 50, 0.4) 0%,
+      var(--bg-base) 65%,
+      #02050B 100%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* 2. Film grain (SVG noise) */
+  body::after {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1   0 0 0 0 1   0 0 0 0 1   0 0 0 0.5 0'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.45'/></svg>");
+    opacity: 0.045;
+    pointer-events: none;
+    z-index: 2;
+    mix-blend-mode: overlay;
+    animation: grain-shift 0.6s steps(6) infinite;
+  }
+  @keyframes grain-shift {
+    0%   { transform: translate(0, 0); }
+    20%  { transform: translate(-2%, 1%); }
+    40%  { transform: translate(1%, -2%); }
+    60%  { transform: translate(-1%, 2%); }
+    80%  { transform: translate(2%, 1%); }
+    100% { transform: translate(0, 0); }
+  }
+
+  /* 3. Anamorphic horizontal lens flares (the signature blue streaks) */
+  .lens-flare {
+    position: fixed;
+    width: 140vw;
+    height: 2px;
+    left: -20vw;
+    background: linear-gradient(90deg,
+      transparent 0%,
+      rgba(103, 232, 224, 0) 20%,
+      rgba(103, 232, 224, 0.35) 50%,
+      rgba(103, 232, 224, 0) 80%,
+      transparent 100%);
+    filter: blur(1.5px);
+    pointer-events: none;
+    z-index: 3;
+    box-shadow: 0 0 30px rgba(103, 232, 224, 0.25);
+  }
+  .lens-flare.f1 { top: 35vh; animation: flare-drift-a 60s ease-in-out infinite; }
+  .lens-flare.f2 { top: 72vh; animation: flare-drift-b 80s ease-in-out infinite; opacity: 0.6; }
+  @keyframes flare-drift-a {
+    0%, 100% { transform: translateX(0) scaleY(1); opacity: 0.3; }
+    50%      { transform: translateX(40vw) scaleY(2); opacity: 0.6; }
+  }
+  @keyframes flare-drift-b {
+    0%, 100% { transform: translateX(20vw) scaleY(0.8); opacity: 0.2; }
+    50%      { transform: translateX(-30vw) scaleY(1.5); opacity: 0.5; }
+  }
+
+  /* 4. Scan lines */
+  .scan-lines {
+    position: fixed; inset: 0;
+    background-image: repeating-linear-gradient(
+      0deg,
+      transparent 0,
+      transparent 2px,
+      rgba(255, 255, 255, 0.018) 2px,
+      rgba(255, 255, 255, 0.018) 3px
+    );
+    pointer-events: none;
+    z-index: 4;
+  }
+
+  /* 5. Vignette */
+  .vignette {
+    position: fixed; inset: 0;
+    background: radial-gradient(ellipse at center,
+      transparent 50%,
+      rgba(0, 0, 0, 0.4) 100%);
+    pointer-events: none;
+    z-index: 5;
+  }
+
+  /* 6. Floating dust particles */
+  .dust-layer { position: fixed; inset: 0; pointer-events: none; z-index: 3; overflow: hidden; }
+  .dust {
+    position: absolute;
+    width: 2px; height: 2px;
+    background: rgba(232, 237, 243, 0.5);
+    border-radius: 50%;
+    box-shadow: 0 0 4px rgba(255, 179, 71, 0.3);
+    animation: dust-float linear infinite;
+  }
+  @keyframes dust-float {
+    0%   { transform: translate(0, 100vh); opacity: 0; }
+    10%  { opacity: 0.7; }
+    90%  { opacity: 0.7; }
+    100% { transform: translate(50px, -10vh); opacity: 0; }
+  }
+
+  /* ============ LAYOUT ============ */
+  .app {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+  }
+
+  /* ============ HEADER ============ */
+  header {
+    height: 56px;
+    background: linear-gradient(180deg, rgba(15, 22, 32, 0.95) 0%, rgba(15, 22, 32, 0.85) 100%);
+    border-bottom: 1px solid var(--border-soft);
+    backdrop-filter: blur(20px);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 24px;
+    flex-shrink: 0;
+  }
+  .logo-cluster { display: flex; align-items: center; gap: 12px; }
+  .logo-mark {
+    width: 36px; height: 36px;
+    border-radius: 9px;
+    background: linear-gradient(135deg, var(--accent-amber) 0%, var(--accent-warm) 100%);
+    display: grid; place-items: center;
+    box-shadow: 0 4px 20px rgba(255, 179, 71, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    position: relative;
+  }
+  .logo-mark::after {
+    content: '';
+    position: absolute; inset: -3px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--accent-amber), transparent);
+    opacity: 0.3;
+    z-index: -1;
+    filter: blur(8px);
+  }
+  .logo-mark svg { color: #1a0f00; }
+  .logo-title {
+    font-size: 13px; font-weight: 800;
+    letter-spacing: 0.18em;
+    background: linear-gradient(90deg, #fff 0%, #8A95A7 100%);
+    -webkit-background-clip: text; background-clip: text;
+    color: transparent;
+  }
+  .badge-engine {
+    font-size: 10px; font-weight: 700; font-family: 'SF Mono', Menlo, monospace;
+    color: var(--accent-amber);
+    background: rgba(255, 179, 71, 0.08);
+    border: 1px solid rgba(255, 179, 71, 0.3);
+    padding: 3px 8px;
+    border-radius: 4px;
+    letter-spacing: 0.1em;
+  }
+  .header-right { display: flex; align-items: center; gap: 12px; }
+  .status-chip {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 11px;
+    color: var(--text-secondary);
+    background: rgba(30, 41, 57, 0.6);
+    border: 1px solid var(--border-soft);
+    padding: 5px 12px;
+    border-radius: 999px;
+  }
+  .live-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--success);
+    box-shadow: 0 0 8px var(--success);
+    animation: pulse-dot 2s ease-in-out infinite;
+  }
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%      { opacity: 0.5; transform: scale(0.85); }
+  }
+  .timecode {
+    font-family: 'SF Mono', Menlo, monospace;
+    font-size: 12px;
+    color: var(--accent-teal);
+    background: rgba(42, 111, 122, 0.1);
+    border: 1px solid rgba(42, 111, 122, 0.4);
+    padding: 6px 14px;
+    border-radius: 6px;
+    letter-spacing: 0.1em;
+  }
+  .timecode .label { color: var(--text-secondary); margin-right: 8px; }
+
+  /* ============ WORKSPACE ============ */
+  .workspace { flex: 1; display: flex; overflow: hidden; }
+
+  /* ============ SIDEBAR ============ */
+  aside {
+    width: 260px;
+    background: linear-gradient(180deg, rgba(15, 22, 32, 0.7) 0%, rgba(15, 22, 32, 0.95) 100%);
+    border-right: 1px solid var(--border-soft);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    overflow-y: auto;
+  }
+  .sidebar-section { display: flex; flex-direction: column; gap: 8px; }
+  .sidebar-label {
+    font-size: 10px;
+    font-weight: 700;
+    font-family: 'SF Mono', Menlo, monospace;
+    color: var(--text-muted);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+  .sidebar-btn {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-soft);
+    color: var(--text-primary);
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+    display: flex; align-items: center; gap: 8px;
+    transition: all 0.2s ease;
+  }
+  .sidebar-btn:hover {
+    background: rgba(42, 111, 122, 0.15);
+    border-color: var(--border-strong);
+    transform: translateX(2px);
+  }
+  .sidebar-link {
+    padding: 8px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    display: flex; justify-content: space-between; align-items: center;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    border: 1px solid transparent;
+  }
+  .sidebar-link:hover {
+    background: rgba(42, 111, 122, 0.08);
+    color: var(--text-primary);
+    border-color: var(--border-soft);
+  }
+  .sidebar-link .value {
+    font-family: 'SF Mono', Menlo, monospace;
+    font-size: 10px;
+    color: var(--accent-amber);
+    font-style: italic;
+  }
+  .preset-card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-soft);
+    padding: 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .preset-card:hover {
+    border-color: var(--border-strong);
+    background: rgba(42, 111, 122, 0.1);
+    transform: translateY(-1px);
+  }
+  .preset-title {
+    font-size: 12px;
+    font-weight: 700;
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 4px;
+  }
+  .preset-genre {
+    font-size: 9px;
+    font-family: 'SF Mono', Menlo, monospace;
+    color: var(--accent-teal);
+    background: rgba(103, 232, 224, 0.08);
+    padding: 2px 6px;
+    border-radius: 3px;
+    border: 1px solid rgba(103, 232, 224, 0.2);
+  }
+  .preset-prompt {
+    font-size: 11px;
+    color: var(--text-secondary);
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* ============ CENTER VIEWPORT ============ */
+  main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 24px;
+    gap: 16px;
+    overflow: hidden;
+    position: relative;
+  }
+  .corner-mark {
+    position: absolute;
+    width: 18px; height: 18px;
+    border: 1px solid var(--border-soft);
+  }
+  .corner-mark.tl { top: 24px; left: 24px; border-right: none; border-bottom: none; }
+  .corner-mark.tr { top: 24px; right: 24px; border-left: none; border-bottom: none; }
+  .corner-mark.bl { bottom: 24px; left: 24px; border-right: none; border-top: none; }
+  .corner-mark.br { bottom: 24px; right: 24px; border-left: none; border-top: none; }
+
+  .canvas-area {
+    flex: 1;
+    display: grid;
+    place-items: center;
+    min-height: 0;
+  }
+  .idle-card { text-align: center; max-width: 480px; }
+  .idle-eyebrow {
+    font-size: 11px;
+    font-family: 'SF Mono', Menlo, monospace;
+    color: var(--text-secondary);
+    letter-spacing: 0.3em;
+    margin-bottom: 18px;
+  }
+  .idle-headline {
+    font-size: 32px;
+    font-weight: 800;
+    line-height: 1.2;
+    background: linear-gradient(135deg, #fff 0%, var(--accent-teal) 50%, var(--accent-amber) 100%);
+    -webkit-background-clip: text; background-clip: text;
+    color: transparent;
+    margin-bottom: 14px;
+    letter-spacing: -0.02em;
+  }
+  .idle-sub { color: var(--text-secondary); line-height: 1.6; font-size: 13px; margin-bottom: 24px; }
+  .idle-presets { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+  .idle-preset-btn {
+    background: rgba(15, 22, 32, 0.6);
+    border: 1px solid var(--border-soft);
+    color: var(--text-secondary);
+    padding: 8px 14px;
+    font-size: 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .idle-preset-btn:hover {
+    background: rgba(42, 111, 122, 0.15);
+    color: var(--text-primary);
+    border-color: var(--border-strong);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  }
+
+  /* ============ PILLS ROW ============ */
+  .pills-row {
+    display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;
+    max-width: 850px;
+    margin: 0 auto;
+    width: 100%;
+  }
+  .pill {
+    background: rgba(15, 22, 32, 0.7);
+    border: 1px solid var(--border-soft);
+    color: var(--text-secondary);
+    padding: 8px 14px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex; align-items: center; gap: 7px;
+    transition: all 0.2s ease;
+    backdrop-filter: blur(8px);
+  }
+  .pill:hover {
+    color: var(--text-primary);
+    border-color: var(--border-strong);
+    transform: translateY(-1px);
+  }
+  .pill.active {
+    background: rgba(42, 111, 122, 0.2);
+    color: var(--accent-teal);
+    border-color: var(--accent-teal);
+    box-shadow: 0 0 16px rgba(103, 232, 224, 0.2);
+  }
+  .pill .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent-amber);
+    box-shadow: 0 0 8px var(--accent-amber);
+  }
+
+  /* ============ INPUT BAR ============ */
+  .input-bar {
+    max-width: 850px;
+    margin: 0 auto;
+    width: 100%;
+    background: rgba(15, 22, 32, 0.85);
+    border: 1px solid var(--border-soft);
+    border-radius: 14px;
+    padding: 14px;
+    backdrop-filter: blur(20px);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  }
+  .input-row { display: flex; gap: 12px; align-items: center; }
+  .icon-btn {
+    width: 40px; height: 40px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-soft);
+    border-radius: 10px;
+    cursor: pointer;
+    display: grid; place-items: center;
+    color: var(--text-secondary);
+    transition: all 0.2s ease;
+  }
+  .icon-btn:hover { color: var(--accent-amber); border-color: var(--border-strong); }
+  .prompt-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: white;
+    font-size: 14px;
+    padding: 0 4px;
+    outline: none;
+    font-family: inherit;
+  }
+  .prompt-input::placeholder { color: var(--text-muted); }
+
+  .render-btn {
+    height: 40px;
+    padding: 0 24px;
+    background: linear-gradient(135deg, var(--accent-amber) 0%, var(--accent-warm) 100%);
+    color: #1a0f00;
+    border: none;
+    border-radius: 10px;
+    font-weight: 800;
+    font-size: 12px;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    display: flex; align-items: center; gap: 6px;
+    box-shadow: 0 6px 20px rgba(255, 179, 71, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    position: relative;
+    overflow: hidden;
+    transition: all 0.2s ease;
+  }
+  .render-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 30px rgba(255, 179, 71, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  }
+  .render-btn:active { transform: translateY(0); }
+
+  /* Shutter animation on click */
+  .render-btn .shutter-top, .render-btn .shutter-bottom {
+    position: absolute; left: 0; right: 0; background: #1a0f00;
+    pointer-events: none; transition: transform 0.25s ease;
+  }
+  .render-btn .shutter-top    { top: 0;    height: 50%; transform: translateY(-100%); }
+  .render-btn .shutter-bottom { bottom: 0; height: 50%; transform: translateY(100%); }
+  .render-btn.shuttering .shutter-top    { transform: translateY(0); }
+  .render-btn.shuttering .shutter-bottom { transform: translateY(0); }
+
+  /* ============ DIALOGUE ROW ============ */
+  .dialogue-row {
+    margin-top: 12px; padding-top: 12px;
+    border-top: 1px solid var(--border-soft);
+    display: flex; justify-content: space-between; align-items: center;
+    flex-wrap: wrap; gap: 10px;
+  }
+  .dialogue-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 12px;
+    outline: none;
+    min-width: 200px;
+    font-family: inherit;
+  }
+  .dialogue-input::placeholder { color: var(--text-muted); }
+  .controls-cluster { display: flex; gap: 6px; flex-wrap: wrap; }
+
+  /* ============ DROPDOWN BUTTON ============ */
+  .dd-wrap { position: relative; }
+  .dd-btn {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-soft);
+    color: var(--text-primary);
+    padding: 7px 12px;
+    border-radius: 7px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex; align-items: center; gap: 6px;
+    transition: all 0.18s ease;
+  }
+  .dd-btn:hover { border-color: var(--border-strong); }
+  .dd-btn.active {
+    background: rgba(42, 111, 122, 0.2);
+    color: var(--accent-teal);
+    border-color: var(--accent-teal);
+    box-shadow: 0 0 12px rgba(103, 232, 224, 0.2);
+  }
+  .dd-btn .chev { transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1); }
+  .dd-btn.active .chev { transform: rotate(180deg); color: var(--accent-teal); }
+
+  .dd-panel {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    right: 0;
+    width: 320px;
+    max-height: 380px;
+    overflow-y: auto;
+    background: rgba(7, 11, 20, 0.95);
+    border: 1px solid rgba(103, 232, 224, 0.2);
+    border-radius: 12px;
+    padding: 10px;
+    backdrop-filter: blur(24px);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(103, 232, 224, 0.05) inset;
+    z-index: 100;
+    opacity: 0;
+    transform: scale(0.92) translateY(8px);
+    transform-origin: bottom right;
+    pointer-events: none;
+    transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .dd-panel.open {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    pointer-events: auto;
+  }
+  .dd-panel::-webkit-scrollbar { width: 6px; }
+  .dd-panel::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 3px; }
+
+  .dd-header {
+    display: flex; justify-content: space-between;
+    font-size: 9px;
+    color: var(--accent-teal);
+    font-family: 'SF Mono', Menlo, monospace;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    padding: 4px 8px;
+    border-bottom: 1px solid var(--border-soft);
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+  }
+  .dd-group { margin-bottom: 10px; }
+  .dd-group-label {
+    font-size: 9px;
+    font-family: 'SF Mono', Menlo, monospace;
+    color: var(--text-muted);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    padding: 4px 8px;
+    border-left: 2px solid rgba(103, 232, 224, 0.3);
+    margin-bottom: 4px;
+  }
+  .dd-item {
+    width: 100%;
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--text-secondary);
+    padding: 8px 10px;
+    border-radius: 7px;
+    font-size: 12px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: space-between;
+    text-align: left;
+    transition: all 0.15s ease;
+    margin-bottom: 1px;
+    opacity: 0;
+    transform: translateX(-8px);
+    position: relative;
+  }
+  .dd-panel.open .dd-item {
+    animation: dd-item-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+  @keyframes dd-item-in {
+    to { opacity: 1; transform: translateX(0); }
+  }
+  .dd-item:hover {
+    background: rgba(42, 111, 122, 0.12);
+    color: var(--text-primary);
+    border-color: rgba(103, 232, 224, 0.15);
+  }
+  .dd-item.selected {
+    background: rgba(42, 111, 122, 0.18);
+    color: var(--accent-teal);
+    border-color: rgba(103, 232, 224, 0.3);
+    font-weight: 700;
+  }
+  .dd-item .meta { display: flex; gap: 5px; align-items: center; }
+  .dd-item .badge {
+    font-size: 9px; font-weight: 700; font-family: 'SF Mono', Menlo, monospace;
+    padding: 2px 5px; border-radius: 3px; letter-spacing: 0.06em;
+  }
+  .badge-top  { background: rgba(255, 179, 71, 0.12); color: var(--accent-amber); border: 1px solid rgba(255, 179, 71, 0.3); }
+  .badge-pro  { background: rgba(232, 121, 249, 0.1); color: #E879F9; border: 1px solid rgba(232, 121, 249, 0.3); }
+  .badge-fast { background: rgba(103, 232, 224, 0.1); color: var(--accent-teal); border: 1px solid rgba(103, 232, 224, 0.3); }
+  .badge-new  { background: rgba(134, 239, 172, 0.1); color: var(--success); border: 1px solid rgba(134, 239, 172, 0.3); }
+  .dd-item .family-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    box-shadow: 0 0 8px currentColor;
+  }
+  .dot-kling    { background: var(--accent-teal);   color: var(--accent-teal); }
+  .dot-sora     { background: #A78BFA;              color: #A78BFA; }
+  .dot-veo      { background: #60A5FA;              color: #60A5FA; }
+  .dot-seedance { background: var(--success);       color: var(--success); }
+  .dot-grok     { background: var(--warning);       color: var(--warning); }
+
+  /* Sweep highlight on selected item */
+  .dd-item.selected::after {
+    content: '';
+    position: absolute; left: 0; top: 0; bottom: 0;
+    width: 100%;
+    background: linear-gradient(90deg, transparent, rgba(103, 232, 224, 0.15), transparent);
+    animation: sweep 1.4s ease-out;
+    border-radius: 7px;
+    pointer-events: none;
+  }
+  @keyframes sweep {
+    0%   { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+
+  /* ============ TOAST ============ */
+  .toast {
+    position: fixed;
+    bottom: 30px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: rgba(15, 22, 32, 0.95);
+    border: 1px solid var(--accent-teal);
+    color: var(--text-primary);
+    padding: 12px 18px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 600;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 30px rgba(103, 232, 224, 0.2);
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    z-index: 200;
+    backdrop-filter: blur(20px);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .toast .toast-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--accent-teal);
+    box-shadow: 0 0 10px var(--accent-teal);
+  }
+
+  /* Render flash overlay */
+  .flash {
+    position: fixed; inset: 0;
+    background: white;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 999;
+    transition: opacity 0.15s ease;
+  }
+  .flash.active { opacity: 0.25; }
+
+  /* Mood pill dot uses dynamic color */
+  .mood-dot { box-shadow: 0 0 10px currentColor; }
+</style>
+</head>
+<body>
+
+<!-- Cinematic background layers -->
+<div class="lens-flare f1"></div>
+<div class="lens-flare f2"></div>
+<div class="scan-lines"></div>
+<div class="vignette"></div>
+<div class="dust-layer" id="dustLayer"></div>
+<div class="flash" id="flash"></div>
+
+<div class="app">
+
+  <!-- HEADER -->
+  <header>
+    <div class="logo-cluster">
+      <div class="logo-mark">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="3" width="20" height="18" rx="2.18"/>
+          <line x1="7" y1="3" x2="7" y2="21"/>
+          <line x1="17" y1="3" x2="17" y2="21"/>
+          <line x1="2" y1="9" x2="7" y2="9"/>
+          <line x1="2" y1="15" x2="7" y2="15"/>
+          <line x1="17" y1="9" x2="22" y2="9"/>
+          <line x1="17" y1="15" x2="22" y2="15"/>
+        </svg>
+      </div>
+      <div>
+        <div class="logo-title">SAAD CINEMA STUDIO v5.0</div>
+      </div>
+      <span class="badge-engine">ULTRA-ENGINE</span>
+    </div>
+
+    <div class="header-right">
+      <div class="status-chip"><span class="live-dot"></span> PIPELINE: ACTIVE</div>
+      <div class="timecode"><span class="label">ENG TIMECODE:</span><span id="timecode">14:32:08:12</span></div>
+    </div>
+  </header>
+
+  <!-- WORKSPACE -->
+  <div class="workspace">
+
+    <!-- SIDEBAR -->
+    <aside>
+      <div class="sidebar-section">
+        <button class="sidebar-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color: var(--accent-amber)">
+            <path d="M12 5v14M5 12h14"/>
+          </svg>
+          New cinematic project
+        </button>
+        <button class="sidebar-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color: var(--accent-teal)">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+          </svg>
+          AI Director Assistant
+        </button>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-label">Live control deck</div>
+        <div class="sidebar-link"><span>Scene genre</span><span class="value">Noir</span></div>
+        <div class="sidebar-link"><span>Lighting & color</span><span class="value">Custom</span></div>
+        <div class="sidebar-link"><span>Lens & camera</span><span class="value">85mm Ana...</span></div>
+        <div class="sidebar-link"><span>Casting room</span><span class="value">Marwan</span></div>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-label">Scene drafts (3)</div>
+        <div class="preset-card">
+          <div class="preset-title">Dreamy City Alleys 🌧️ <span class="preset-genre">NOIR</span></div>
+          <div class="preset-prompt">A man crossing a city bridge at night under driving rain...</div>
+        </div>
+        <div class="preset-card">
+          <div class="preset-title">Ancient Civilization 🏛️ <span class="preset-genre">EPIC</span></div>
+          <div class="preset-prompt">A young woman with long hair standing before a colossal fortress...</div>
+        </div>
+        <div class="preset-card">
+          <div class="preset-title">Council of Elders 📜 <span class="preset-genre">DRAMA</span></div>
+          <div class="preset-prompt">A wise elder speaking earnestly in heritage estate courtyard...</div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main>
+      <div class="corner-mark tl"></div>
+      <div class="corner-mark tr"></div>
+      <div class="corner-mark bl"></div>
+      <div class="corner-mark br"></div>
+
+      <div class="canvas-area">
+        <div class="idle-card">
+          <div class="idle-eyebrow">KLING 3.0 ULTRA ENGINE</div>
+          <h1 class="idle-headline">What would you shoot with infinite budget?</h1>
+          <p class="idle-sub">Describe the cinematic scene below, then generate a production-grade visual plan with lens, camera, lighting, subtitles, and sound direction.</p>
+          <div class="idle-presets">
+            <button class="idle-preset-btn">Rainy city alley</button>
+            <button class="idle-preset-btn">Mythic castle portrait</button>
+            <button class="idle-preset-btn">Heritage courtyard</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pills -->
+      <div class="pills-row">
+        <button class="pill" data-toast="Mood: Noir"><span class="dot mood-dot" style="background: #7c3aed; color: #7c3aed;"></span>Mood: Noir</button>
+        <button class="pill" data-toast="Style: Auto LUT">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color: var(--accent-warm)"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg>
+          Grade: Auto LUT
+        </button>
+        <button class="pill" data-toast="Camera: Kling 3.0 · 85mm · Dolly">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color: var(--accent-teal)"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          Shoot: Kling 3.0 · 85mm · Dolly
+        </button>
+        <button class="pill" data-toast="Cast: Marwan the Narrator">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color: var(--success)"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>
+          Cast: Marwan
+        </button>
+        <button class="pill" data-toast="Voice: Documentary Narrator">
+          🎙️ Voice: Documentary Narrator
+        </button>
+      </div>
+
+      <!-- Input bar -->
+      <div class="input-bar">
+        <div class="input-row">
+          <button class="icon-btn" title="Add actor">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+          </button>
+          <input class="prompt-input" type="text" value="A man crossing a city bridge at night under driving rain, with warm neon lights, long shadows..." />
+          <button class="render-btn" id="renderBtn">
+            <span class="shutter-top"></span>
+            <span class="shutter-bottom"></span>
+            Render Scene ✦
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.5 6.5L20 10l-6.5 1.5L12 18l-1.5-6.5L4 10l6.5-1.5z"/></svg>
+          </button>
+        </div>
+
+        <div class="dialogue-row">
+          <div style="display: flex; gap: 6px; align-items: center;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-secondary)"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"/></svg>
+            <input class="dialogue-input" type="text" value="A thousand years of storytelling unfold in these heavy footsteps..." />
+          </div>
+
+          <div class="controls-cluster">
+            <!-- Model dropdown -->
+            <div class="dd-wrap">
+              <button class="dd-btn" data-dd="model">
+                🎬 Kling 3.0
+                <svg class="chev" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+              <div class="dd-panel" id="dd-model">
+                <div class="dd-header">
+                  <span>Model Directory</span>
+                  <span>Select Engine</span>
+                </div>
+
+                <div class="dd-group">
+                  <div class="dd-group-label">• KLING</div>
+                  <button class="dd-item selected">
+                    <span class="meta"><span class="badge badge-top">TOP</span><span class="badge badge-fast">REF×3</span></span>
+                    <span style="display: flex; align-items: center; gap: 6px;">Kling 3.0 <span class="family-dot dot-kling"></span></span>
+                  </button>
+                  <button class="dd-item">
+                    <span class="meta"><span class="badge badge-fast">FAST</span></span>
+                    <span style="display: flex; align-items: center; gap: 6px;">Kling 2.5 Turbo <span class="family-dot dot-kling"></span></span>
+                  </button>
+                </div>
+
+                <div class="dd-group">
+                  <div class="dd-group-label">• OPENAI SORA 2</div>
+                  <button class="dd-item">
+                    <span class="meta"></span>
+                    <span style="display: flex; align-items: center; gap: 6px;">Sora 2 <span class="family-dot dot-sora"></span></span>
+                  </button>
+                  <button class="dd-item">
+                    <span class="meta"><span class="badge badge-pro">PRO</span></span>
+                    <span style="display: flex; align-items: center; gap: 6px;">Sora 2 Pro <span class="family-dot dot-sora"></span></span>
+                  </button>
+                </div>
+
+                <div class="dd-group">
+                  <div class="dd-group-label">• GOOGLE VEO</div>
+                  <button class="dd-item">
+                    <span class="meta"><span class="badge badge-fast">REF×2</span></span>
+                    <span style="display: flex; align-items: center; gap: 6px;">Google Veo 3.1 Lite <span class="family-dot dot-veo"></span></span>
+                  </button>
+                  <button class="dd-item">
+                    <span class="meta"><span class="badge badge-fast">FAST</span><span class="badge badge-fast">REF×3</span></span>
+                    <span style="display: flex; align-items: center; gap: 6px;">Google Veo 3.1 Fast <span class="family-dot dot-veo"></span></span>
+                  </button>
+                  <button class="dd-item">
+                    <span class="meta"><span class="badge badge-new">NEW</span></span>
+                    <span style="display: flex; align-items: center; gap: 6px;">Google Veo 3.1 <span class="family-dot dot-veo"></span></span>
+                  </button>
+                </div>
+
+                <div class="dd-group">
+                  <div class="dd-group-label">• SEEDANCE</div>
+                  <button class="dd-item">
+                    <span class="meta"><span class="badge badge-fast">FAST</span><span class="badge badge-fast">REF×9</span></span>
+                    <span style="display: flex; align-items: center; gap: 6px;">Seedance 2.0 Fast <span class="family-dot dot-seedance"></span></span>
+                  </button>
+                  <button class="dd-item">
+                    <span class="meta"><span class="badge badge-new">NEW</span></span>
+                    <span style="display: flex; align-items: center; gap: 6px;">Seedance 2.0 <span class="family-dot dot-seedance"></span></span>
+                  </button>
+                </div>
+
+                <div class="dd-group">
+                  <div class="dd-group-label">• XAI GROK</div>
+                  <button class="dd-item">
+                    <span class="meta"><span class="badge badge-new">NEW</span></span>
+                    <span style="display: flex; align-items: center; gap: 6px;">Grok Imagine <span class="family-dot dot-grok"></span></span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Duration -->
+            <div class="dd-wrap">
+              <button class="dd-btn" data-dd="duration">⏱️ 8s <svg class="chev" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></button>
+              <div class="dd-panel" id="dd-duration" style="width: 180px;">
+                <div class="dd-header"><span>Duration</span><span></span></div>
+                <button class="dd-item">3s</button>
+                <button class="dd-item">5s</button>
+                <button class="dd-item selected">8s</button>
+                <button class="dd-item">10s</button>
+                <button class="dd-item">15s</button>
+              </div>
+            </div>
+
+            <!-- Resolution -->
+            <div class="dd-wrap">
+              <button class="dd-btn" data-dd="res">📐 1080p <svg class="chev" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></button>
+              <div class="dd-panel" id="dd-res" style="width: 180px;">
+                <div class="dd-header"><span>Resolution</span><span></span></div>
+                <button class="dd-item">std</button>
+                <button class="dd-item selected">1080p / pro</button>
+                <button class="dd-item">4K</button>
+              </div>
+            </div>
+
+            <!-- Ratio -->
+            <div class="dd-wrap">
+              <button class="dd-btn" data-dd="ratio">🎞️ 16:9 <svg class="chev" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></button>
+              <div class="dd-panel" id="dd-ratio" style="width: 180px;">
+                <div class="dd-header"><span>Aspect</span><span></span></div>
+                <button class="dd-item selected">16:9 Widescreen</button>
+                <button class="dd-item">9:16 Portrait</button>
+                <button class="dd-item">1:1 Square</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+  </div>
+</div>
+
+<div class="toast" id="toast">
+  <span class="toast-dot"></span>
+  <span id="toastText">Pill clicked</span>
+</div>
+
+<script>
+  // ============ DUST PARTICLES ============
+  const dustLayer = document.getElementById('dustLayer');
+  for (let i = 0; i < 12; i++) {
+    const d = document.createElement('div');
+    d.className = 'dust';
+    d.style.left = Math.random() * 100 + '%';
+    d.style.animationDuration = (35 + Math.random() * 25) + 's';
+    d.style.animationDelay = -Math.random() * 30 + 's';
+    d.style.width = d.style.height = (1.5 + Math.random() * 2) + 'px';
+    dustLayer.appendChild(d);
+  }
+
+  // ============ LIVE TIMECODE ============
+  const tcEl = document.getElementById('timecode');
+  setInterval(() => {
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2, '0');
+    const mm = String(now.getMinutes()).padStart(2, '0');
+    const ss = String(now.getSeconds()).padStart(2, '0');
+    const ff = String(Math.floor(now.getMilliseconds() / 41)).padStart(2, '0');
+    tcEl.textContent = `${hh}:${mm}:${ss}:${ff}`;
+  }, 41);
+
+  // ============ DROPDOWN BEHAVIOR ============
+  let activeDropdown = null;
+  document.querySelectorAll('.dd-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const targetId = 'dd-' + btn.dataset.dd;
+      const panel = document.getElementById(targetId);
+
+      if (activeDropdown && activeDropdown !== panel) {
+        activeDropdown.classList.remove('open');
+        document.querySelector(`[data-dd="${activeDropdown.id.replace('dd-', '')}"]`)?.classList.remove('active');
+        // reset stagger
+        activeDropdown.querySelectorAll('.dd-item').forEach(it => it.style.animation = '');
+      }
+
+      const isOpen = panel.classList.toggle('open');
+      btn.classList.toggle('active', isOpen);
+
+      if (isOpen) {
+        // stagger items
+        panel.querySelectorAll('.dd-item').forEach((item, idx) => {
+          item.style.animation = `dd-item-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) ${idx * 35}ms forwards`;
+        });
+        activeDropdown = panel;
+      } else {
+        activeDropdown = null;
+      }
+    });
+  });
+
+  // close on outside click
+  document.addEventListener('click', () => {
+    if (activeDropdown) {
+      activeDropdown.classList.remove('open');
+      document.querySelector(`[data-dd="${activeDropdown.id.replace('dd-', '')}"]`)?.classList.remove('active');
+      activeDropdown.querySelectorAll('.dd-item').forEach(it => it.style.animation = '');
+      activeDropdown = null;
+    }
+  });
+
+  // dropdown items select
+  document.querySelectorAll('.dd-panel').forEach(panel => {
+    panel.addEventListener('click', e => e.stopPropagation());
+    panel.querySelectorAll('.dd-item').forEach(item => {
+      item.addEventListener('click', () => {
+        panel.querySelectorAll('.dd-item').forEach(i => i.classList.remove('selected'));
+        item.classList.add('selected');
+        showToast('✓ ' + item.textContent.trim().split('\n')[0].slice(0, 32));
+      });
+    });
+  });
+
+  // ============ PILLS ============
+  document.querySelectorAll('.pill').forEach(p => {
+    p.addEventListener('click', () => {
+      document.querySelectorAll('.pill').forEach(other => other.classList.remove('active'));
+      p.classList.add('active');
+      showToast(p.dataset.toast);
+    });
+  });
+
+  // ============ MAGNETIC HOVER ON DROPDOWN ITEMS ============
+  document.querySelectorAll('.dd-item').forEach(item => {
+    item.addEventListener('mousemove', (e) => {
+      const rect = item.getBoundingClientRect();
+      const x = (e.clientX - rect.left - rect.width / 2) / 30;
+      item.style.transform = `translateX(${x}px)`;
+    });
+    item.addEventListener('mouseleave', () => {
+      item.style.transform = '';
+    });
+  });
+
+  // ============ RENDER BUTTON SHUTTER ============
+  const renderBtn = document.getElementById('renderBtn');
+  const flash = document.getElementById('flash');
+  renderBtn.addEventListener('click', () => {
+    renderBtn.classList.add('shuttering');
+    setTimeout(() => flash.classList.add('active'), 220);
+    setTimeout(() => flash.classList.remove('active'), 380);
+    setTimeout(() => renderBtn.classList.remove('shuttering'), 600);
+    showToast('🎬 Render initiated · sending to Kling 3.0...');
+  });
+
+  // ============ TOAST ============
+  const toast = document.getElementById('toast');
+  const toastText = document.getElementById('toastText');
+  let toastTimer = null;
+  function showToast(msg) {
+    toastText.textContent = msg;
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove('show'), 2200);
+  }
+
+  // ============ IDLE PRESET BUTTONS ============
+  document.querySelectorAll('.idle-preset-btn').forEach(b => {
+    b.addEventListener('click', () => showToast('📂 Loaded preset: ' + b.textContent.trim()));
+  });
+</script>
+</body>
+</html>

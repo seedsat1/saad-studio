@@ -2,20 +2,22 @@
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  Film, 
-  Sparkles, 
-  Play, 
-  Pause, 
-  RotateCcw, 
-  Volume2, 
-  VolumeX, 
-  UserCheck, 
-  Camera, 
-  Plus, 
+import {
+  Film,
+  Sparkles,
+  Play,
+  Pause,
+  RotateCcw,
+  Volume2,
+  VolumeX,
+  UserCheck,
+  Camera,
+  Plus,
   Sliders,
   Mic,
   ChevronDown,
+  ChevronUp,
+  Aperture,
   X,
   MessageSquare
 } from "lucide-react";
@@ -124,7 +126,7 @@ const AVAILABLE_LENSES = [
     arabicName: "85mm Anamorphic Lens (Drama & Depth)",
     tStop: "T1.5 Cine-Prime",
     description: "Dreamy focus and striking lateral distortion with classic horizontal blue flares that masterfully isolate the protagonist.",
-    url: "https://images.unsplash.com/photo-1617005080133-c15b1a7c5b62?q=80&w=250&auto=format&fit=crop",
+    url: "/Lens/85mm Anamorphic Lens.png",
     lensCategory: "Cinema Pro Prime"
   },
   {
@@ -133,7 +135,7 @@ const AVAILABLE_LENSES = [
     arabicName: "Leica Noctilux 50mm Lens (T0.95 Vintage)",
     tStop: "T0.95 Prime-Lux",
     description: "Warm, dreamy vintage bokeh with luxurious elliptical spotlighting that perfectly mimics 1980s cinematic and emotional close-ups.",
-    url: "https://images.unsplash.com/photo-1512790182412-b19e6d62bc39?q=80&w=250&auto=format&fit=crop",
+    url: "/Lens/Leica Noctilux 50mm Lens.png",
     lensCategory: "Nocturnal Vintage"
   },
   {
@@ -142,7 +144,7 @@ const AVAILABLE_LENSES = [
     arabicName: "35mm Street Documentary Lens (Urban Beauty)",
     tStop: "T2.0 Snap-Prime",
     description: "Medium-wide field of view that subtly blends characters with raw streets, historical architecture, and rainy vintage ambiance.",
-    url: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?q=80&w=250&auto=format&fit=crop",
+    url: "/Lens/Leica Summilux 50mm.png",
     lensCategory: "Street Narrative"
   },
   {
@@ -151,7 +153,7 @@ const AVAILABLE_LENSES = [
     arabicName: "50mm Prime Portrait Lens (Human Eye Mockup)",
     tStop: "T1.2 Super-Fast",
     description: "The standard lens that perfectly replicates the field of view of the human eye, offering stunning intimacy and warp-free realism.",
-    url: "https://images.unsplash.com/photo-1542038784456-1ea8e935640e?q=80&w=250&auto=format&fit=crop",
+    url: "/Lens/50mm Prime Portrait Lens.png",
     lensCategory: "Standard Human Eye"
   },
   {
@@ -160,7 +162,7 @@ const AVAILABLE_LENSES = [
     arabicName: "100mm Macro Cine-Tessar (Detail Close-up)",
     tStop: "T2.0 Super-Macro",
     description: "Extreme close-up capability, revealing fine skin textures and teardrops under rain, highlighting deep emotional micro-expressions.",
-    url: "https://images.unsplash.com/photo-1511556532299-8f662fc26c06?q=80&w=250&auto=format&fit=crop",
+    url: "/Lens/Zeiss  Commercial Prime Look.png",
     lensCategory: "Super Macro Detail"
   },
   {
@@ -169,7 +171,7 @@ const AVAILABLE_LENSES = [
     arabicName: "24mm Epic Ultra Wide Lens (Wide Angle Scale)",
     tStop: "T2.8 Architectural",
     description: "Expansive angle capturing the rich background environment and majestic landmarks, positioning the subject within a grand visual frame.",
-    url: "https://images.unsplash.com/photo-1502224562085-639556652f33?q=80&w=250&auto=format&fit=crop",
+    url: "/Lens/24mm Epic Ultra Wide Lens.png",
     lensCategory: "Epic Sceneries"
   },
   {
@@ -178,7 +180,7 @@ const AVAILABLE_LENSES = [
     arabicName: "Arri Signature 18mm Lens (Colossal Angle)",
     tStop: "T1.8 Pro-Prime",
     description: "Stunning geological and ambient depth for ultra-wide outdoor shots, delivering an endless perspective of historical nature.",
-    url: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=250&auto=format&fit=crop",
+    url: "/Lens/Arri Signature 18mm Lens.png",
     lensCategory: "Titan Wide-Angle"
   },
   {
@@ -187,7 +189,7 @@ const AVAILABLE_LENSES = [
     arabicName: "Hawk Anamorphic 45mm Lens (Dreamy Cinema)",
     tStop: "T1.5 Dream Anamorphic",
     description: "Delightful specular warmth, oval flare aberrations, and soft corners that evoke nostalgic sequences of memory or subconscious dreams.",
-    url: "https://images.unsplash.com/photo-1528164344705-47542687000d?q=80&w=250&auto=format&fit=crop",
+    url: "/Lens/Hawk Anamorphic 45mm Lens.png",
     lensCategory: "Ethereal Anamorphic"
   },
   {
@@ -196,7 +198,7 @@ const AVAILABLE_LENSES = [
     arabicName: "70-200mm Pro Zoom Lens (Isolation & Distance)",
     tStop: "T2.8 Telephoto Zoom",
     description: "Heavy compression that completely reduces the apparent distance between the subject and background, building dramatic tension.",
-    url: "https://images.unsplash.com/photo-1452780212940-6f5c0d14d84a?q=80&w=250&auto=format&fit=crop",
+    url: "/Lens/70-200mm Pro Zoom Lens.png",
     lensCategory: "Telephoto Isolation"
   },
   {
@@ -205,7 +207,7 @@ const AVAILABLE_LENSES = [
     arabicName: "Isolator 135mm Lens (Cold Separation)",
     tStop: "T2.0 Tele-Focus",
     description: "Razor-sharp focal isolation that detaches objects with surveillance-like coldness, perfect for tracking characters at a distance.",
-    url: "https://images.unsplash.com/photo-1473163928189-364b2c4e1135?q=80&w=250&auto=format&fit=crop",
+    url: "/Lens/Isolator 135mm Lens.png",
     lensCategory: "Surveillance Isolator"
   },
   {
@@ -214,7 +216,7 @@ const AVAILABLE_LENSES = [
     arabicName: "Fisheye 12mm Lens (Surrealism & Sci-Fi)",
     tStop: "T3.5 Creative Wide",
     description: "Highly curved wide-angle perspective capturing internal psychological states, anxiety, or paranoia with futuristic avant-garde flair.",
-    url: "https://images.unsplash.com/photo-1495707902641-75cac588d2e9?q=80&w=250&auto=format&fit=crop",
+    url: "/Lens/Fisheye 12mm Lens.png",
     lensCategory: "Surrealist Eye"
   },
   {
@@ -223,10 +225,31 @@ const AVAILABLE_LENSES = [
     arabicName: "Helios 58mm Lens (Soviet Swirly Bokeh)",
     tStop: "T2.0 Soviet Prime",
     description: "Legendary circular swirly bokeh background, adding an inimitable organic and epic aesthetic to early cinema-inspired shorts.",
-    url: "https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?q=80&w=250&auto=format&fit=crop",
+    url: "/Lens/Helios 58mm Lens.png",
     lensCategory: "Soviet Swirly Vintage"
   }
 ];
+
+// Camera rig matrix — bodies / focal lengths / apertures / lens categories
+const CAMERA_BODIES = [
+  { id: "clean_digital",   name: "Clean Digital",      tag: "Modern reference look" },
+  { id: "arri_alexa_35",   name: "ARRI Alexa 35",      tag: "Premium digital cinema" },
+  { id: "arri_alexa_mini", name: "ARRI Alexa Mini LF", tag: "Large-format cinematic" },
+  { id: "red_komodo",      name: "RED Komodo",         tag: "Compact 6K raw" },
+  { id: "red_v_raptor",    name: "RED V-Raptor",       tag: "High-resolution 8K" },
+  { id: "sony_venice_2",   name: "Sony Venice 2",      tag: "Filmic colour science" },
+  { id: "sony_fx9",        name: "Sony FX9",           tag: "Documentary workhorse" },
+  { id: "canon_c500",      name: "Canon C500 Mk II",   tag: "Broadcast cinema" },
+  { id: "blackmagic_12k",  name: "Blackmagic URSA 12K", tag: "Indie cinema raw" },
+  { id: "phantom_flex",    name: "Phantom Flex 4K",    tag: "Ultra slow-motion" },
+  { id: "kodak_35mm",      name: "Kodak Vision3 35mm", tag: "Photochemical film" },
+  { id: "kodak_super16",   name: "Kodak Super 16mm",   tag: "Vintage film grain" },
+  { id: "iphone_pro",      name: "iPhone Pro",         tag: "Mobile cinema" },
+];
+
+const FOCAL_LENGTHS = [8, 12, 14, 16, 18, 24, 28, 35, 50, 65, 85, 100, 135, 200, 300];
+
+const APERTURES = ["Auto", "f/0.95", "f/1.2", "f/1.4", "f/1.8", "f/2.0", "f/2.8", "f/4.0", "f/5.6", "f/8.0", "f/11", "f/16", "f/22"];
 
 // Camera movement profiles with high-quality descriptions and visuals
 const AVAILABLE_MOVEMENTS = [
@@ -470,6 +493,9 @@ export default function App() {
   
   // Custom camera parameters states
   const [lensType, setLensType] = useState("85mm Anamorphic Cinema");
+  const [cameraBody, setCameraBody] = useState("Clean Digital");
+  const [focalLength, setFocalLength] = useState<number>(85);
+  const [aperture, setAperture] = useState<string>("Auto");
   const [cameraMovement, setCameraMovement] = useState("Dolly Zoom (Vertigo Effect)");
   
   // Cinematic Style Settings Modals state
@@ -861,7 +887,10 @@ export default function App() {
           colorPalette,
           lightingStyle,
           cameraMovesetStyle,
-          batchSize
+          batchSize,
+          cameraBody,
+          focalLength,
+          aperture
         }),
       });
 
@@ -1632,7 +1661,12 @@ export default function App() {
               }`}
             >
               <Camera size={11} className="text-[#FFB347]" />
-              <span>Shoot</span>
+              <span>
+                Rig:{" "}
+                <span className="font-mono text-[#FFB347]">
+                  {cameraBody.split(" ").slice(0, 2).join(" ")} · {focalLength}mm · {aperture}
+                </span>
+              </span>
             </button>
 
             <button
@@ -2209,14 +2243,123 @@ export default function App() {
                 {/* C. PROFESSIONAL LENS & MOVEMENT DIRECTIVE (EXHAUSTIVE & WITH PHOTO CARDS) */}
                 {activeModal === "camera" && (
                   <div className="space-y-6">
-                    
-                    {/* C1. ALL LENSES SECTION WITH SPECIFIC DESCRIPTIVE IMAGE */}
+
+                    {/* C0. CAMERA RIG MATRIX — 3-column vertical pickers */}
+                    <div className="grid grid-cols-3 gap-3 bg-gradient-to-b from-[#1a1812]/70 to-[#0a0807]/70 rounded-2xl p-4 border border-[#544737]/60 shadow-inner shadow-black/40">
+                      {/* CAMERA column */}
+                      <div className="flex flex-col items-center gap-2 p-3 rounded-2xl bg-[#0a0807]/40 border border-[#544737]/30">
+                        <span className="text-[10px] font-mono text-[#C8B89F] uppercase tracking-[0.18em] font-bold">CAMERA</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const idx = CAMERA_BODIES.findIndex(c => c.name === cameraBody);
+                            const next = (idx - 1 + CAMERA_BODIES.length) % CAMERA_BODIES.length;
+                            setCameraBody(CAMERA_BODIES[next].name);
+                          }}
+                          className="w-7 h-7 rounded-full bg-[#544737]/40 hover:bg-[#FFB347]/30 border border-[#544737] hover:border-[#FFB347] text-[#C8B89F] hover:text-[#FFB347] flex items-center justify-center transition-all"
+                          aria-label="Previous camera"
+                        >
+                          <ChevronUp size={14} />
+                        </button>
+                        <div className="my-1 w-full h-[70px] rounded-xl bg-gradient-to-b from-[#1a1812]/70 to-[#0a0807]/90 border border-[#544737]/40 flex items-center justify-center">
+                          <Camera size={32} className="text-[#FFB347] drop-shadow-[0_0_8px_rgba(255,179,71,0.45)]" />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const idx = CAMERA_BODIES.findIndex(c => c.name === cameraBody);
+                            const next = (idx + 1) % CAMERA_BODIES.length;
+                            setCameraBody(CAMERA_BODIES[next].name);
+                          }}
+                          className="w-7 h-7 rounded-full bg-[#544737]/40 hover:bg-[#FFB347]/30 border border-[#544737] hover:border-[#FFB347] text-[#C8B89F] hover:text-[#FFB347] flex items-center justify-center transition-all"
+                          aria-label="Next camera"
+                        >
+                          <ChevronDown size={14} />
+                        </button>
+                        <span className="text-[12px] font-bold text-[#FFF8EA] text-center truncate w-full" title={cameraBody}>
+                          {cameraBody}
+                        </span>
+                      </div>
+
+                      {/* FOCAL LENGTH column */}
+                      <div className="flex flex-col items-center gap-2 p-3 rounded-2xl bg-[#0a0807]/40 border border-[#544737]/30">
+                        <span className="text-[10px] font-mono text-[#C8B89F] uppercase tracking-[0.18em] font-bold">FOCAL LENGTH</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const idx = FOCAL_LENGTHS.indexOf(focalLength);
+                            const next = (idx - 1 + FOCAL_LENGTHS.length) % FOCAL_LENGTHS.length;
+                            setFocalLength(FOCAL_LENGTHS[next]);
+                          }}
+                          className="w-7 h-7 rounded-full bg-[#544737]/40 hover:bg-[#FFB347]/30 border border-[#544737] hover:border-[#FFB347] text-[#C8B89F] hover:text-[#FFB347] flex items-center justify-center transition-all"
+                          aria-label="Smaller focal length"
+                        >
+                          <ChevronUp size={14} />
+                        </button>
+                        <div className="my-1 w-full h-[70px] rounded-xl bg-gradient-to-b from-[#1a1812]/70 to-[#0a0807]/90 border border-[#544737]/40 flex items-center justify-center">
+                          <span className="text-[32px] font-extrabold text-[#FFB347] drop-shadow-[0_0_8px_rgba(255,179,71,0.5)] font-mono tabular-nums">
+                            {focalLength}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const idx = FOCAL_LENGTHS.indexOf(focalLength);
+                            const next = (idx + 1) % FOCAL_LENGTHS.length;
+                            setFocalLength(FOCAL_LENGTHS[next]);
+                          }}
+                          className="w-7 h-7 rounded-full bg-[#544737]/40 hover:bg-[#FFB347]/30 border border-[#544737] hover:border-[#FFB347] text-[#C8B89F] hover:text-[#FFB347] flex items-center justify-center transition-all"
+                          aria-label="Larger focal length"
+                        >
+                          <ChevronDown size={14} />
+                        </button>
+                        <span className="text-[12px] font-bold text-[#FFF8EA]">mm</span>
+                      </div>
+
+                      {/* APERTURE column */}
+                      <div className="flex flex-col items-center gap-2 p-3 rounded-2xl bg-[#0a0807]/40 border border-[#544737]/30">
+                        <span className="text-[10px] font-mono text-[#C8B89F] uppercase tracking-[0.18em] font-bold">APERTURE</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const idx = APERTURES.indexOf(aperture);
+                            const next = (idx - 1 + APERTURES.length) % APERTURES.length;
+                            setAperture(APERTURES[next]);
+                          }}
+                          className="w-7 h-7 rounded-full bg-[#544737]/40 hover:bg-[#FFB347]/30 border border-[#544737] hover:border-[#FFB347] text-[#C8B89F] hover:text-[#FFB347] flex items-center justify-center transition-all"
+                          aria-label="Wider aperture"
+                        >
+                          <ChevronUp size={14} />
+                        </button>
+                        <div className="my-1 w-full h-[70px] rounded-xl bg-gradient-to-b from-[#1a1812]/70 to-[#0a0807]/90 border border-[#544737]/40 flex items-center justify-center">
+                          <Aperture size={36} className="text-[#FFB347] drop-shadow-[0_0_8px_rgba(255,179,71,0.5)] cine-aperture-spin" />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const idx = APERTURES.indexOf(aperture);
+                            const next = (idx + 1) % APERTURES.length;
+                            setAperture(APERTURES[next]);
+                          }}
+                          className="w-7 h-7 rounded-full bg-[#544737]/40 hover:bg-[#FFB347]/30 border border-[#544737] hover:border-[#FFB347] text-[#C8B89F] hover:text-[#FFB347] flex items-center justify-center transition-all"
+                          aria-label="Narrower aperture"
+                        >
+                          <ChevronDown size={14} />
+                        </button>
+                        <span className="text-[12px] font-bold text-[#FFF8EA]">{aperture}</span>
+                      </div>
+                    </div>
+
+                    {/* C1. ALL LENSES SECTION — horizontal scroll, no background */}
                     <div>
-                      <span className="text-[13px] font-bold text-[#FFB347] uppercase font-mono tracking-wider block border-b border-[#544737] pb-2 mb-3">
-                        🔍 Available Cinematic Lenses
-                      </span>
-                      
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-h-[220px] overflow-y-auto pr-1">
+                      <div className="flex items-center justify-between border-b border-[#544737] pb-2 mb-3">
+                        <span className="text-[13px] font-bold text-[#FFB347] uppercase font-mono tracking-wider">
+                          🔍 Available Cinematic Lenses
+                        </span>
+                        <span className="text-[10px] text-[#C8B89F] font-mono">{AVAILABLE_LENSES.length} lenses · scroll →</span>
+                      </div>
+
+                      <div className="flex gap-4 overflow-x-auto overflow-y-hidden pb-3 -mx-1 px-1 snap-x snap-mandatory scroll-smooth cine-scroll-row">
                         {AVAILABLE_LENSES.map((l) => {
                           const isActive = lensType === l.id;
                           return (
@@ -2226,37 +2369,59 @@ export default function App() {
                                 setLensType(l.id);
                                 generateClientScene(prompt, dialogueText, cameraMovement, l.id, selectedGenre);
                               }}
-                              className={`p-2.5 rounded-xl border text-left transition-all duration-200 outline-none flex flex-col justify-between h-[155px] ${
+                              className={`group relative flex-shrink-0 w-[130px] snap-start text-center transition-all duration-300 outline-none ${
                                 isActive
-                                  ? "border-[#FFB347] bg-[#FFB347]/10"
-                                  : "border-[#544737] bg-[#24201B]/80 hover:bg-[#302920]/70 hover:border-[#D6A84F]"
+                                  ? "scale-105"
+                                  : "opacity-70 hover:opacity-100 hover:scale-105"
                               }`}
                             >
-                              <div className="relative w-full h-16 rounded overflow-hidden mb-1.5 flex-shrink-0">
-                                <img src={l.url} alt={l.name} className="w-full h-full object-cover select-none pointer-events-none grayscale" />
-                                <div className="absolute top-1 left-1 bg-black/60 px-1 py-0.2 rounded text-[13px] text-[#FFF8EA] font-mono tracking-wide">{l.tStop}</div>
-                              </div>
-                              <div className="min-w-0 w-full mt-auto">
-                                <span className="text-[13px] font-black text-[#FFF8EA] block truncate leading-tight">
-                                  {l.arabicName}
+                              <div className={`relative w-full h-[110px] flex items-center justify-center transition-all duration-300 ${
+                                isActive
+                                  ? "drop-shadow-[0_0_18px_rgba(255,179,71,0.55)]"
+                                  : "group-hover:drop-shadow-[0_0_14px_rgba(255,179,71,0.35)]"
+                              }`}>
+                                <img
+                                  src={l.url}
+                                  alt={l.name}
+                                  className="max-w-full max-h-full object-contain select-none pointer-events-none"
+                                />
+                                <span className={`absolute top-0 left-0 text-[9px] font-mono px-1.5 py-0.5 rounded font-bold tracking-wide ${
+                                  isActive
+                                    ? "bg-[#FFB347] text-black"
+                                    : "bg-black/70 text-[#FFB347] border border-[#FFB347]/30"
+                                }`}>
+                                  {l.tStop.split(" ")[0]}
                                 </span>
-                                <span className="text-[13px] text-[#C8B89F] block truncate leading-tight mt-0.5">
+                              </div>
+                              <div className="mt-2 w-full px-1">
+                                <span className={`text-[11px] font-bold block truncate leading-tight ${
+                                  isActive ? "text-[#FFB347]" : "text-[#FFF8EA]"
+                                }`}>
+                                  {l.arabicName.split("(")[0].trim()}
+                                </span>
+                                <span className="text-[9px] text-[#C8B89F] block truncate leading-tight mt-0.5 font-mono uppercase tracking-wider">
                                   {l.lensCategory}
                                 </span>
                               </div>
+                              {isActive && (
+                                <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-8 h-[2px] bg-[#FFB347] rounded-full shadow-[0_0_10px_#FFB347]" />
+                              )}
                             </button>
                           );
                         })}
                       </div>
                     </div>
 
-                    {/* C2. ALL CAMERA MOVEMENTS SECTION WITH DESCRIPTION IMAGE */}
+                    {/* C2. CAMERA MOVEMENTS — horizontal scroll, no background */}
                     <div>
-                      <span className="text-[13px] font-bold text-[#FF8C42] uppercase font-mono tracking-wider block border-b border-[#544737] pb-2 mb-3">
-                        🎥 Available Camera Movements
-                      </span>
+                      <div className="flex items-center justify-between border-b border-[#544737] pb-2 mb-3">
+                        <span className="text-[13px] font-bold text-[#FF8C42] uppercase font-mono tracking-wider">
+                          🎥 Available Camera Movements
+                        </span>
+                        <span className="text-[10px] text-[#C8B89F] font-mono">{AVAILABLE_MOVEMENTS.length} moves · scroll →</span>
+                      </div>
 
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-h-[220px] overflow-y-auto pr-1">
+                      <div className="flex gap-4 overflow-x-auto overflow-y-hidden pb-3 -mx-1 px-1 snap-x snap-mandatory scroll-smooth cine-scroll-row">
                         {AVAILABLE_MOVEMENTS.map((mv) => {
                           const isActive = cameraMovement === mv.id;
                           return (
@@ -2266,23 +2431,44 @@ export default function App() {
                                 setCameraMovement(mv.id);
                                 generateClientScene(prompt, dialogueText, mv.id, lensType, selectedGenre);
                               }}
-                              className={`p-2.5 rounded-xl border text-left transition-all duration-200 outline-none flex flex-col justify-between h-[155px] ${
+                              className={`group relative flex-shrink-0 w-[150px] snap-start text-center transition-all duration-300 outline-none ${
                                 isActive
-                                  ? "border-[#FF8C42] bg-[#FF8C42]/10"
-                                  : "border-[#544737] bg-[#24201B]/80 hover:bg-[#302920]/70 hover:border-[#D6A84F]"
+                                  ? "scale-105"
+                                  : "opacity-70 hover:opacity-100 hover:scale-105"
                               }`}
                             >
-                              <div className="relative w-full h-16 rounded overflow-hidden mb-1.5 flex-shrink-0">
-                                <img src={mv.url} alt={mv.name} className="w-full h-full object-cover select-none pointer-events-none grayscale" />
+                              <div className={`relative w-full h-[90px] rounded-xl overflow-hidden transition-all duration-300 ${
+                                isActive
+                                  ? "ring-2 ring-[#FF8C42] shadow-[0_0_18px_rgba(255,140,66,0.55)]"
+                                  : "ring-1 ring-[#544737]/40 group-hover:ring-[#FF8C42]/60"
+                              }`}>
+                                <img
+                                  src={mv.url}
+                                  alt={mv.name}
+                                  className={`w-full h-full object-cover select-none pointer-events-none transition-all duration-300 ${
+                                    isActive ? "grayscale-0 brightness-100" : "grayscale brightness-90 group-hover:grayscale-0"
+                                  }`}
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
+                                {isActive && (
+                                  <span className="absolute top-1.5 right-1.5 text-[8px] font-mono px-1.5 py-0.5 rounded bg-[#FF8C42] text-black font-bold tracking-wider">
+                                    LIVE
+                                  </span>
+                                )}
                               </div>
-                              <div className="min-w-0 w-full mt-auto">
-                                <span className="text-[13px] font-black text-[#FFF8EA] block truncate leading-tight">
+                              <div className="mt-2 w-full px-1">
+                                <span className={`text-[11px] font-bold block truncate leading-tight ${
+                                  isActive ? "text-[#FF8C42]" : "text-[#FFF8EA]"
+                                }`}>
                                   {mv.arabicName}
                                 </span>
-                                <span className="text-[13px] text-[#C8B89F] block truncate leading-tight mt-0.5">
-                                  {mv.intensity}
+                                <span className="text-[9px] text-[#C8B89F] block truncate leading-tight mt-0.5 font-mono uppercase tracking-wider">
+                                  {mv.intensity.replace(/^Ideal for /i, "")}
                                 </span>
                               </div>
+                              {isActive && (
+                                <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-8 h-[2px] bg-[#FF8C42] rounded-full shadow-[0_0_10px_#FF8C42]" />
+                              )}
                             </button>
                           );
                         })}

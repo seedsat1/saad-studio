@@ -18,6 +18,10 @@ Create a practical cinematic scene plan for a visual preview tool.
 Return JSON only. No markdown. No explanation.
 The plan must include title, directorNotes, moodColor, accentColor, particlesType, and one or more scenes.
 Each scene must include visualDescription, dialogue, subtitles with start/end seconds, lensType, cameraMovement, soundEffects, and visualLayout.
+Use the supplied Camera body to bias colour science and grain (ARRI = warm filmic, RED = sharp digital, Sony Venice = balanced wide-gamut, Kodak film = grain + halation, iPhone = clean modern, etc.).
+Use the Focal length to drive composition (wide = environmental scale, normal = intimate, tele = compression and bokeh).
+Use the Aperture to drive depth-of-field language (f/0.95–f/2 = shallow + creamy bokeh, f/2.8–f/5.6 = balanced, f/8+ = deep focus). "Auto" = let the scene decide.
+Mention these explicitly in directorNotes so the user knows they were honoured.
 Keep subtitle timings inside the validated requested duration.`;
 
 function resolveCinemaModel(raw: Partial<CinemaRenderInput> & Record<string, unknown>) {
@@ -171,6 +175,10 @@ export async function POST(req: Request) {
     const cameraMovesetStyle = sanitizePrompt(typeof raw?.cameraMovesetStyle === "string" ? raw.cameraMovesetStyle : "Auto").slice(0, 80);
     const batchSize = sanitizePrompt(typeof raw?.batchSize === "string" ? raw.batchSize : "1/4").slice(0, 20);
     const negativePrompt = sanitizePrompt(typeof raw?.negativePrompt === "string" ? raw.negativePrompt : "").slice(0, 1200);
+    const cameraBody = sanitizePrompt(typeof raw?.cameraBody === "string" ? raw.cameraBody : "Clean Digital").slice(0, 80);
+    const focalLengthRaw = Number(raw?.focalLength);
+    const focalLength = Number.isFinite(focalLengthRaw) && focalLengthRaw > 0 ? Math.min(2000, Math.max(1, Math.round(focalLengthRaw))) : 85;
+    const aperture = sanitizePrompt(typeof raw?.aperture === "string" ? raw.aperture : "Auto").slice(0, 16);
 
     const input: CinemaRenderInput = {
       prompt,
@@ -204,6 +212,15 @@ ${input.cameraMovement}
 
 Lens:
 ${input.lensType}
+
+Camera body:
+${cameraBody}
+
+Focal length:
+${focalLength}mm
+
+Aperture:
+${aperture}
 
 Voice reference:
 ${input.voiceId || "(default)"}
@@ -266,6 +283,9 @@ ${negativePrompt || "(none)"}`,
             lightingStyle,
             cameraMovesetStyle,
             batchSize,
+            cameraBody,
+            focalLength,
+            aperture,
           },
           data,
         },

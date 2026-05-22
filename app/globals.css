@@ -13,6 +13,39 @@ body,
   50%       { opacity: 0.55; transform: scale(1.35); }
 }
 
+/* Cinema Studio — slow aperture spin on hover */
+@keyframes cine-aperture-rotate {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+.cine-aperture-spin {
+  transition: transform 0.6s ease;
+}
+.cine-aperture-spin:hover {
+  animation: cine-aperture-rotate 4s linear infinite;
+}
+
+/* Cinema Studio — thin amber scrollbar for the horizontal lens picker */
+.cine-scroll-row {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 179, 71, 0.5) transparent;
+}
+.cine-scroll-row::-webkit-scrollbar {
+  height: 6px;
+}
+.cine-scroll-row::-webkit-scrollbar-track {
+  background: rgba(84, 71, 55, 0.15);
+  border-radius: 999px;
+}
+.cine-scroll-row::-webkit-scrollbar-thumb {
+  background: linear-gradient(90deg, rgba(255, 179, 71, 0.6), rgba(255, 140, 66, 0.6));
+  border-radius: 999px;
+  transition: background 0.2s ease;
+}
+.cine-scroll-row::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(90deg, rgba(255, 179, 71, 0.9), rgba(255, 140, 66, 0.9));
+}
+
 /* ========== Cinema Studio VSO — Anamorphic Noir cinematic background ========== */
 @keyframes cine-grain-shift {
   0%   { transform: translate(0, 0); }
