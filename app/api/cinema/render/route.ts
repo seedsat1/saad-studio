@@ -11,14 +11,14 @@ import {
 } from "@/lib/cinema-studio-vso";
 
 export const runtime = "nodejs";
-export const maxDuration = 45;
+export const maxDuration = 300;
 
 const SYSTEM = `You are Saad Studio's cinema director engine.
 Create a practical cinematic scene plan for a visual preview tool.
 Return JSON only. No markdown. No explanation.
 The plan must include title, directorNotes, moodColor, accentColor, particlesType, and one or more scenes.
 Each scene must include visualDescription, dialogue, subtitles with start/end seconds, lensType, cameraMovement, soundEffects, and visualLayout.
-Keep subtitle timings inside 0 to 8 seconds.`;
+Keep subtitle timings inside the validated requested duration.`;
 
 function resolveCinemaModel(raw: Partial<CinemaRenderInput> & Record<string, unknown>) {
   const requestedId = typeof raw?.modelId === "string" ? raw.modelId : "";
@@ -52,6 +52,89 @@ function parseJsonObject(text: string): unknown {
   }
 }
 
+function asStringArray(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string" && item.length > 0) : [];
+}
+
+function firstString(value: unknown): string | null {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function buildProviderPayload(
+  raw: Partial<CinemaRenderInput> & Record<string, unknown>,
+  input: CinemaRenderInput,
+  model: ReturnType<typeof resolveCinemaModel>,
+  safeDuration: number,
+  resolution: string,
+  aspectRatio: string,
+) {
+  const caps = model.capabilities;
+  const referenceImages = asStringArray(raw.referenceImages).slice(0, caps.max_reference_images);
+  const endFrameUrl = firstString(raw.endFrameUrl);
+  const negativePrompt = firstString(raw.negativePrompt);
+  const seedRaw = raw.seed;
+  const seed = typeof seedRaw === "number"
+    ? seedRaw
+    : typeof seedRaw === "string" && seedRaw.trim()
+      ? Number.parseInt(seedRaw, 10)
+      : undefined;
+  const cfgScale = typeof raw.cfgScale === "number" ? raw.cfgScale : undefined;
+  const sound = raw.sound === true;
+  const grokMode = firstString(raw.grokMode) ?? "normal";
+
+  const payload: Record<string, unknown> = {
+    prompt: input.prompt,
+    duration: safeDuration,
+    resolution: resolution || caps.resolutions[0] || "720p",
+    quality: resolution || caps.resolutions[0] || "720p",
+    mode: resolution || caps.resolutions[0] || "std",
+    aspect_ratio: aspectRatio || caps.aspect_ratios[0] || "16:9",
+    aspectRatio: aspectRatio || caps.aspect_ratios[0] || "16:9",
+    sound,
+    generate_audio: sound,
+  };
+
+  if (input.dialogueText) {
+    payload.dialogue = input.dialogueText;
+    payload.audio_prompt = input.dialogueText;
+  }
+  if (referenceImages.length > 0) {
+    payload.reference_image_urls = referenceImages;
+    payload.image_urls = referenceImages;
+    payload.image = referenceImages[0];
+    payload.image_url = referenceImages[0];
+    payload.first_frame_url = referenceImages[0];
+  }
+  if (endFrameUrl) {
+    payload.end_image = endFrameUrl;
+    payload.last_image = endFrameUrl;
+    payload.last_frame_url = endFrameUrl;
+    if (referenceImages.length > 0) payload.image_urls = [referenceImages[0], endFrameUrl];
+  }
+  if (negativePrompt && caps.has_negative_prompt) payload.negative_prompt = negativePrompt;
+  if (typeof cfgScale === "number" && caps.has_cfg_scale) payload.cfg_scale = cfgScale;
+  if (Number.isFinite(seed)) payload.seed = seed;
+  if (model.family === "grok") payload.mode = grokMode;
+
+  return payload;
+}
+
+async function proxyVideoRequest(req: Request, body: Record<string, unknown>) {
+  const url = new URL(req.url);
+  const response = await fetch(`${url.origin}/api/video`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Cookie: req.headers.get("cookie") ?? "",
+      "x-forwarded-for": getClientIp(req),
+    },
+    body: JSON.stringify(body),
+    cache: "no-store",
+  });
+  const payload = await response.json().catch(() => null);
+  return { response, payload };
+}
+
 export async function POST(req: Request) {
   try {
     if (!isAllowedOrigin(req.headers.get("origin"))) {
@@ -83,6 +166,11 @@ export async function POST(req: Request) {
     const resolution = sanitizePrompt(typeof raw?.resolution === "string" ? raw.resolution : "").slice(0, 20);
     const aspectRatio = sanitizePrompt(typeof raw?.aspectRatio === "string" ? raw.aspectRatio : "").slice(0, 20);
     const voiceId = sanitizePrompt(typeof raw?.voiceId === "string" ? raw.voiceId : "").slice(0, 120);
+    const colorPalette = sanitizePrompt(typeof raw?.colorPalette === "string" ? raw.colorPalette : "Auto").slice(0, 80);
+    const lightingStyle = sanitizePrompt(typeof raw?.lightingStyle === "string" ? raw.lightingStyle : "Auto").slice(0, 80);
+    const cameraMovesetStyle = sanitizePrompt(typeof raw?.cameraMovesetStyle === "string" ? raw.cameraMovesetStyle : "Auto").slice(0, 80);
+    const batchSize = sanitizePrompt(typeof raw?.batchSize === "string" ? raw.batchSize : "1/4").slice(0, 20);
+    const negativePrompt = sanitizePrompt(typeof raw?.negativePrompt === "string" ? raw.negativePrompt : "").slice(0, 1200);
 
     const input: CinemaRenderInput = {
       prompt,
@@ -124,7 +212,13 @@ Selected video model:
 ${model.name} (${model.api_route})
 
 Validated output settings:
-duration=${safeDuration}s, aspect_ratio=${aspectRatio || "(model default)"}, resolution=${resolution || "(model default)"}`,
+duration=${safeDuration}s, aspect_ratio=${aspectRatio || "(model default)"}, resolution=${resolution || "(model default)"}
+
+Look and production settings:
+palette=${colorPalette}, lighting=${lightingStyle}, camera_moveset=${cameraMovesetStyle}, batch=${batchSize}
+
+Negative prompt:
+${negativePrompt || "(none)"}`,
               },
             ],
           },
@@ -143,11 +237,48 @@ duration=${safeDuration}s, aspect_ratio=${aspectRatio || "(model default)"}, res
       console.error("[cinema-studio-vso] Gemini render fallback:", err);
     }
 
+    const providerPayload = buildProviderPayload(raw ?? {}, input, model, safeDuration, resolution, aspectRatio);
+    const videoSubmit = await proxyVideoRequest(req, {
+      modelRoute: model.api_route,
+      payload: providerPayload,
+    });
+
+    if (!videoSubmit.response.ok || !videoSubmit.payload?.taskId) {
+      return NextResponse.json(
+        {
+          success: true,
+          generationId: `cin_${Date.now().toString(36)}`,
+          status: "COMPLETED",
+          progress: 100,
+          previewOnly: true,
+          providerError: videoSubmit.payload?.publicError || videoSubmit.payload?.error || "Video provider did not accept the request.",
+          model: {
+            id: model.id,
+            name: model.name,
+            route: model.api_route,
+          },
+          settings: {
+            duration: safeDuration,
+            resolution,
+            aspectRatio,
+            voiceId,
+            colorPalette,
+            lightingStyle,
+            cameraMovesetStyle,
+            batchSize,
+          },
+          data,
+        },
+        { status: 200 },
+      );
+    }
+
     return NextResponse.json({
       success: true,
-      generationId: `cin_${Date.now().toString(36)}`,
-      status: "COMPLETED",
-      progress: 100,
+      generationId: videoSubmit.payload.generationId ?? `cin_${Date.now().toString(36)}`,
+      taskId: videoSubmit.payload.taskId,
+      status: "PROCESSING",
+      progress: 10,
       model: {
         id: model.id,
         name: model.name,
@@ -158,12 +289,57 @@ duration=${safeDuration}s, aspect_ratio=${aspectRatio || "(model default)"}, res
         resolution,
         aspectRatio,
         voiceId,
+        colorPalette,
+        lightingStyle,
+        cameraMovesetStyle,
+        batchSize,
       },
       data,
-    });
+    }, { status: 202 });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Internal Server Error rendering cinema scene";
     console.error("[cinema-studio-vso] render error:", err);
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
+
+export async function GET(req: Request) {
+  try {
+    const { userId } = await auth();
+    if (!userId) return new NextResponse("Unauthorized", { status: 401 });
+
+    const { searchParams, origin } = new URL(req.url);
+    const taskId = searchParams.get("taskId");
+    if (!taskId) {
+      return NextResponse.json({ error: "taskId is required" }, { status: 400 });
+    }
+
+    const response = await fetch(`${origin}/api/video?taskId=${encodeURIComponent(taskId)}`, {
+      method: "GET",
+      headers: {
+        Cookie: req.headers.get("cookie") ?? "",
+        "x-forwarded-for": getClientIp(req),
+      },
+      cache: "no-store",
+    });
+    const payload = await response.json().catch(() => null);
+    if (!response.ok) {
+      return NextResponse.json(payload ?? { error: "Failed to query video task" }, { status: response.status });
+    }
+
+    const status = String(payload?.status || "").toLowerCase();
+    const outputs = asStringArray(payload?.outputs);
+    return NextResponse.json({
+      taskId,
+      status: status === "completed" ? "COMPLETED" : status === "failed" ? "FAILED" : "PROCESSING",
+      progress: status === "completed" ? 100 : status === "failed" ? 0 : 35,
+      outputs,
+      videoUrl: outputs[0] ?? null,
+      error: payload?.error ?? null,
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Internal Server Error polling cinema render";
+    console.error("[cinema-studio-vso] poll error:", err);
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

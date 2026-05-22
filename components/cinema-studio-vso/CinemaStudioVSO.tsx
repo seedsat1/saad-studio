@@ -10,33 +10,17 @@ import {
   RotateCcw, 
   Volume2, 
   VolumeX, 
-  Layers, 
-  Cpu, 
-  Compass, 
-  Info, 
   UserCheck, 
   Camera, 
   Plus, 
-  SlidersHorizontal, 
-  FolderOpen, 
-  User, 
-  CheckCircle2, 
-  ExternalLink,
   Sliders,
-  Maximize2,
   Mic,
-  Smile,
-  Zap,
   ChevronDown,
   X,
-  PlusCircle,
-  Video,
-  Eye,
-  Settings,
-  Image as ImageIcon,
   MessageSquare
 } from "lucide-react";
 import { VIDEO_MODEL_REGISTRY, type WaveSpeedVideoModel } from "@/lib/video-model-registry";
+import { getVideoCreditsByRoute } from "@/lib/credit-pricing";
 
 // Extensive casting characters database
 const INITIAL_CASTING_CHARACTERS = [
@@ -46,7 +30,8 @@ const INITIAL_CASTING_CHARACTERS = [
     tagline: "Sharp anxiety & mysterious dramatic features", 
     url: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=250&auto=format&fit=crop",
     style: "A young man with a dark leather coat and features overflowing with elegant, sharp anxiety",
-    voice: "Warm, balanced male narrator voice",
+    voice: "Gulf Male Narrator",
+    voiceId: "pNInz6obpgDQGcFmaJgB",
     gender: "male"
   },
   { 
@@ -55,7 +40,8 @@ const INITIAL_CASTING_CHARACTERS = [
     tagline: "Prestige, dignity & depth of long years", 
     url: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=80&w=250&auto=format&fit=crop",
     style: "A seventy-year-old man with a silver beard and authentic cloak telling ancient tales of human heritage",
-    voice: "Resonant, slow, dignified tone brimming with wisdom",
+    voice: "Documentary Narrator",
+    voiceId: "DGTOOUoGpoP6UZ9uSWfA",
     gender: "senior"
   },
   { 
@@ -64,7 +50,8 @@ const INITIAL_CASTING_CHARACTERS = [
     tagline: "Smart, piercing tone & dreamy eyes", 
     url: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=250&auto=format&fit=crop",
     style: "A young woman with long black hair and classic oriental features wearing vintage gilded jewelry from the golden era of storytelling",
-    voice: "Classic, firm, confident female voice",
+    voice: "Arabic Classical Female",
+    voiceId: "Z3R5wn05IrDiVCyEkUrK",
     gender: "female"
   },
   { 
@@ -73,7 +60,8 @@ const INITIAL_CASTING_CHARACTERS = [
     tagline: "Simplicity of the good earth & sweat of struggle", 
     url: "https://images.unsplash.com/photo-1560250097-0b93528c311a?q=80&w=250&auto=format&fit=crop",
     style: "Warm brown skin weathered by the sun with a simple rustic attire and a patient smile",
-    voice: "Warm rural dialect with a calm pitch",
+    voice: "Egyptian Male Storyteller",
+    voiceId: "nPczCjzI2devNBz1zQrb",
     gender: "male"
   },
   { 
@@ -82,7 +70,8 @@ const INITIAL_CASTING_CHARACTERS = [
     tagline: "Iron will & relentless pursuit of truth", 
     url: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=250&auto=format&fit=crop",
     style: "A young woman wearing a sandy protective vest, carrying a notebook and a pen of sharp words with steadfast gaze",
-    voice: "Fast, confident, bold radio broadcasting voice",
+    voice: "Classic Confident Female",
+    voiceId: "21m00Tcm4TlvDq8ikWAM",
     gender: "female"
   },
   { 
@@ -91,7 +80,8 @@ const INITIAL_CASTING_CHARACTERS = [
     tagline: "Red keffiyeh & silent hawk-like eyes", 
     url: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=250&auto=format&fit=crop",
     style: "A Bedouin man with a dark red keffiyeh, a sharp hawk-like gaze, and a scarf wrapped with wild prestige",
-    voice: "Gruff, deep, concise desert male voice",
+    voice: "Deep Trailer Male",
+    voiceId: "N2lVS1w4EtoT3dr4eOWO",
     gender: "male"
   },
   { 
@@ -100,7 +90,8 @@ const INITIAL_CASTING_CHARACTERS = [
     tagline: "Comforting, gentle features & soothing kindness", 
     url: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=250&auto=format&fit=crop",
     style: "A teacher wearing delicate prescription glasses and relaxed soft features radiating immense warmth",
-    voice: "Warm, balanced, soothing female voice",
+    voice: "Arabic Classical Female",
+    voiceId: "Z3R5wn05IrDiVCyEkUrK",
     gender: "female"
   },
   { 
@@ -109,7 +100,8 @@ const INITIAL_CASTING_CHARACTERS = [
     tagline: "Futuristic reflections & digital neon lights", 
     url: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=250&auto=format&fit=crop",
     style: "A visionary tech innovator surrounded by immersive screens, blue neon lights, and a state-of-the-art cyber jacket",
-    voice: "Slightly synthesized digital voice with neon frequency variations",
+    voice: "Levantine Male Dialogue",
+    voiceId: "onwK4e9ZLuTAKqWW03F9",
     gender: "cyber"
   },
   { 
@@ -118,7 +110,8 @@ const INITIAL_CASTING_CHARACTERS = [
     tagline: "Silent power & guardian of the gate", 
     url: "https://images.unsplash.com/photo-1506803682981-6e718a9dd3ee?q=80&w=250&auto=format&fit=crop",
     style: "A strong, majestic figure with features veiled in a dark cloak, sharp silent piercing eyes, and unwavering resolve",
-    voice: "Thick, low, analog voice with cinematic resonance",
+    voice: "Documentary Narrator",
+    voiceId: "DGTOOUoGpoP6UZ9uSWfA",
     gender: "senior"
   }
 ];
@@ -381,20 +374,16 @@ const buildResolutionOptions = (model: WaveSpeedVideoModel) => {
 };
 const buildAspectRatioOptions = (model: WaveSpeedVideoModel) => {
   const values = model.capabilities.aspect_ratios.length ? model.capabilities.aspect_ratios : ["default"];
-  return values.map((value) => ({ value, label: value === "default" ? "Model default" : value }));
-};
-const estimateCinemaCredits = (model: WaveSpeedVideoModel, duration: number, resolution: string, sound: boolean) => {
-  const familyRate: Record<string, number> = {
-    kling: 3.5,
-    sora: model.id.includes("pro") ? 5.12 : 3.41,
-    veo: model.id.includes("lite") || model.id.includes("fast") ? 1.71 : 5.32,
-    seedance: model.id.includes("fast") ? 6.7 : 8,
-    grok: 1.54,
-  };
-  const base = duration * (familyRate[model.family] ?? 2);
-  const quality = resolution.toLowerCase();
-  const qualityMultiplier = quality.includes("4k") ? 3 : quality.includes("1080") || quality.includes("pro") ? 1.5 : 1;
-  return Math.max(1, Math.ceil(base * qualityMultiplier * (sound && model.capabilities.has_sound ? 1.15 : 1)));
+  return values.map((value) => ({
+    value,
+    label: value === "default"
+      ? "Model default"
+      : value === "landscape"
+        ? "16:9 Landscape"
+        : value === "portrait"
+          ? "9:16 Portrait"
+          : value,
+  }));
 };
 
 const VOICE_PRESETS = [
@@ -515,9 +504,12 @@ export default function App() {
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
   const [activeScenario, setActiveScenario] = useState<any>(null);
   const [generatedVideoUrl, setGeneratedVideoUrl] = useState<string | null>(null);
+  const [renderNotice, setRenderNotice] = useState<string | null>(null);
   const [generatedAudioUrl, setGeneratedAudioUrl] = useState<string | null>(null);
   const [isPreviewingVoice, setIsPreviewingVoice] = useState(false);
   const voicePreviewRef = useRef<HTMLAudioElement | null>(null);
+  const activeActorVoiceInputRef = useRef<HTMLInputElement | null>(null);
+  const modalCustomVoiceInputRef = useRef<HTMLInputElement | null>(null);
  
   // Playback simulator states
   const [isPlaying, setIsPlaying] = useState(false);
@@ -548,8 +540,8 @@ export default function App() {
   const [custTagline, setCustTagline] = useState("");
   const [custGender, setCustGender] = useState("male");
   const [custStyle, setCustStyle] = useState("");
-  const [custVoice, setCustVoice] = useState("Deep, calm, resonant male voice");
-  const [custVoicePreset, setCustVoicePreset] = useState("Deep, calm, resonant male voice");
+  const [custVoice, setCustVoice] = useState("Documentary Narrator");
+  const [custVoicePreset, setCustVoicePreset] = useState("Documentary Narrator");
   const [custPicUrl, setCustPicUrl] = useState("classic");
   const [isGeneratingChar, setIsGeneratingChar] = useState(false);
   const [charProgress, setCharProgress] = useState(0);
@@ -594,8 +586,16 @@ export default function App() {
   const durationOptions = useMemo(() => buildDurationOptions(activeModelObj), [activeModelObj]);
   const resolutionOptions = useMemo(() => buildResolutionOptions(activeModelObj), [activeModelObj]);
   const aspectRatioOptions = useMemo(() => buildAspectRatioOptions(activeModelObj), [activeModelObj]);
-  const selectedVoicePreset = VOICE_PRESETS.find((v) => v.label === currentActor?.voice || v.voiceId === currentActor?.voice) || VOICE_PRESETS[0];
-  const estimatedCredits = estimateCinemaCredits(activeModelObj, Number.parseInt(duration, 10) || 8, resolution, soundEnabled);
+  const playbackDuration = Number.parseInt(duration, 10) || 8;
+  const selectedVoicePreset = VOICE_PRESETS.find((v) => v.voiceId === currentActor?.voiceId || v.label === currentActor?.voice || v.voiceId === currentActor?.voice) || VOICE_PRESETS[0];
+  const selectedVoiceId = currentActor?.voiceId || selectedVoicePreset.voiceId;
+  const estimatedCredits = getVideoCreditsByRoute(activeModelObj.api_route, {
+    duration: playbackDuration,
+    resolution,
+    mode: resolution,
+    sound: soundEnabled,
+    generate_audio: soundEnabled,
+  });
 
   // Close custom settings dropdowns when clicking outside
   useEffect(() => {
@@ -728,7 +728,27 @@ export default function App() {
     if (url) setEndFrameUrl(url);
   };
 
-  const previewVoice = async (voiceId = selectedVoicePreset.voiceId) => {
+  const assignPresetVoiceToActor = (actorId: string, presetLabel: string) => {
+    const preset = VOICE_PRESETS.find((voice) => voice.label === presetLabel || voice.voiceId === presetLabel);
+    if (!preset) return;
+    setCastingActors((prev) =>
+      prev.map((actor) =>
+        actor.id === actorId ? { ...actor, voice: preset.label, voiceId: preset.voiceId } : actor,
+      ),
+    );
+  };
+
+  const assignCustomVoiceToActor = (actorId: string, voiceDescription: string) => {
+    const trimmed = voiceDescription.trim();
+    if (!trimmed) return;
+    setCastingActors((prev) =>
+      prev.map((actor) =>
+        actor.id === actorId ? { ...actor, voice: trimmed } : actor,
+      ),
+    );
+  };
+
+  const previewVoice = async (voiceId = selectedVoiceId) => {
     if (!dialogueText.trim()) return;
     voicePreviewRef.current?.pause();
     setIsPreviewingVoice(true);
@@ -767,6 +787,7 @@ export default function App() {
     setIsPlaying(false);
     setCurrentTime(0);
     setGeneratedVideoUrl(null);
+    setRenderNotice(null);
 
     try {
       const response = await fetch("/api/cinema/render", {
@@ -777,10 +798,10 @@ export default function App() {
           dialogueText: dialogueText,
           cameraMovement: cameraMovement,
           lensType: lensType,
-          voiceId: selectedVoicePreset.voiceId,
+          voiceId: selectedVoiceId,
           modelId: selectedModelId,
           modelRoute: activeModelObj.api_route,
-          duration: Number.parseInt(duration, 10),
+          duration: playbackDuration,
           resolution,
           aspectRatio,
           referenceImages,
@@ -789,7 +810,11 @@ export default function App() {
           cfgScale,
           seed,
           sound: soundEnabled,
-          grokMode
+          grokMode,
+          colorPalette,
+          lightingStyle,
+          cameraMovesetStyle,
+          batchSize
         }),
       });
 
@@ -799,12 +824,16 @@ export default function App() {
         setActiveJobId(payload.generationId ?? null);
         setActiveScenario(payload.data);
         setGeneratedVideoUrl(payload.videoUrl ?? payload.data?.videoUrl ?? null);
+        setRenderNotice(payload.previewOnly ? (payload.providerError || "Preview mode: video provider did not start.") : null);
         setProgress(100);
         setStatus("SUCCESS");
         setIsPlaying(true);
-      } else if (response.status === 202 && payload?.success && payload?.generationId) {
-        setActiveJobId(payload.generationId);
-        startPollingJob(payload.generationId);
+      } else if ((response.status === 202 || response.ok) && payload?.success && (payload?.taskId || payload?.generationId)) {
+        setActiveJobId(payload.taskId ?? payload.generationId);
+        if (payload.data) setActiveScenario(payload.data);
+        setRenderNotice(null);
+        setProgress(payload.progress ?? 10);
+        startPollingJob(payload.taskId ?? payload.generationId);
       } else {
         throw new Error(payload?.error || "Cinema Studio render failed");
       }
@@ -834,20 +863,22 @@ export default function App() {
     let countAttempts = 0;
     const pollObj = setInterval(async () => {
       countAttempts++;
-      if (countAttempts > 25) {
+      if (countAttempts > 180) {
         clearInterval(pollObj);
         generateClientScene(prompt, dialogueText, cameraMovement, lensType, selectedGenre);
         return;
       }
 
       try {
-        const response = await fetch(`/api/generation/${jobId}`);
+        const response = await fetch(`/api/cinema/render?taskId=${encodeURIComponent(jobId)}`);
         if (!response.ok) throw new Error("Job not found in cache storage");
         const body = await response.json();
         
-        if (body.status === "COMPLETED" && body.data) {
+        if (body.status === "COMPLETED") {
           clearInterval(pollObj);
-          setActiveScenario(body.data);
+          if (body.data) setActiveScenario(body.data);
+          setGeneratedVideoUrl(body.videoUrl ?? body.outputs?.[0] ?? null);
+          setRenderNotice(null);
           setProgress(100);
           setStatus("SUCCESS");
           setIsPlaying(true);
@@ -860,7 +891,7 @@ export default function App() {
       } catch (err) {
         console.warn("Retrying state polling...", err);
       }
-    }, 1200);
+    }, 2000);
   };
 
   // Beautiful visual construction logic for scenes
@@ -889,6 +920,10 @@ export default function App() {
       moodGrad = "radial-gradient(circle at center, rgba(153, 27, 27, 0.22) 0%, rgba(0, 0, 0, 0) 90%)";
     }
 
+    const subtitleDuration = Math.max(1, playbackDuration);
+    const subtitleMidpoint = Number((subtitleDuration / 2).toFixed(1));
+    const subtitleEnd = Number(Math.max(subtitleMidpoint + 0.1, subtitleDuration - 0.2).toFixed(1));
+
     const compiled = {
       title: `Cinematography: ${ptext.slice(0, 30)}...`,
       directorNotes: `Director analysis: ${lens} and ${camMove} are aligned to create depth, contrast, and a polished cinematic frame.`,
@@ -899,8 +934,8 @@ export default function App() {
           visualDescription: `Scene preview: backlit subject with interactive lens parameters active and a controlled production-grade lighting setup.`,
           dialogue: dtext || "Default cinematic dialogue performance",
           subtitles: [
-            { text: dtext.slice(0, Math.floor(dtext.length / 2)), start: 0, end: 3.8 },
-            { text: dtext.slice(Math.floor(dtext.length / 2)), start: 3.8, end: 7.8 }
+            { text: dtext.slice(0, Math.floor(dtext.length / 2)), start: 0, end: subtitleMidpoint },
+            { text: dtext.slice(Math.floor(dtext.length / 2)), start: subtitleMidpoint, end: subtitleEnd }
           ],
           lensType: lens,
           cameraMovement: camMove,
@@ -946,13 +981,15 @@ export default function App() {
           mockPicUrl = "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=250&auto=format&fit=crop";
         }
 
+        const customVoicePreset = VOICE_PRESETS.find((voice) => voice.label === custVoicePreset);
         const newbornChar = {
           id: `custom_char_${Math.random().toString(36).substr(2, 9)}`,
           name: custName,
           tagline: custTagline || "A production-ready cinematic character profile",
           url: mockPicUrl,
           style: custStyle || "Classic cinematic wardrobe shaped for the scene narrative",
-          voice: custVoice || "Warm balanced narrative voice",
+          voice: custVoice || customVoicePreset?.label || "Documentary Narrator",
+          voiceId: customVoicePreset?.voiceId || selectedVoiceId,
           gender: custGender
         };
 
@@ -982,8 +1019,8 @@ export default function App() {
         setCustName("");
         setCustTagline("");
         setCustStyle("");
-        setCustVoice("Warm balanced narrative voice");
-        setCustVoicePreset("Warm balanced narrative voice");
+        setCustVoice("Documentary Narrator");
+        setCustVoicePreset("Documentary Narrator");
       } else {
         setCharProgress(simulatedVal);
       }
@@ -1386,7 +1423,7 @@ export default function App() {
                       src={generatedVideoUrl}
                       className="absolute inset-0 w-full h-full object-cover select-none pointer-events-none z-0 brightness-[0.55]"
                       autoPlay
-                      muted={isMuted}
+                      muted
                       loop
                       playsInline
                     />
@@ -1414,6 +1451,12 @@ export default function App() {
                     </div>
                   </div>
 
+                  {renderNotice && (
+                    <div className="absolute top-12 left-4 right-4 z-45 rounded-lg border border-[#F5C451]/40 bg-black/70 px-3 py-2 text-xs font-bold text-[#F5C451] backdrop-blur-sm">
+                      {renderNotice}
+                    </div>
+                  )}
+
                   {/* ACTIVE SYNCHRONIZED MIDDLE SUBTITLE OR SENTENCE */}
                   <div className="px-6 py-2 text-center relative z-40 max-w-xl mx-auto pointer-events-none bg-black/20 backdrop-blur-[1px] rounded-xl">
                     <p className="text-white text-xs md:text-sm font-black tracking-wide leading-relaxed filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
@@ -1426,15 +1469,15 @@ export default function App() {
                     
                     {/* Media Seekable Timeline Bar */}
                     <div className="flex items-center gap-3">
-                      <span className="text-[13px] font-mono text-[#A1A1AA] w-6">00:00</span>
+                      <span className="text-[13px] font-mono text-[#A1A1AA] w-10">00:00</span>
                       <div className="flex-1 h-1 bg-[#14161D] rounded-full relative overflow-hidden group hover:h-1.5 transition-all cursor-pointer">
                         <div 
                           className="h-full bg-[#22D3EE] rounded-full transition-all"
-                          style={{ width: `${(currentTime / (duration === "16s" ? 16 : duration === "8s" ? 8 : 4)) * 100}%` }}
+                          style={{ width: `${Math.min(100, (currentTime / playbackDuration) * 100)}%` }}
                         />
                       </div>
-                      <span className="text-[13px] font-mono text-[#A1A1AA] w-6 text-right">
-                        00:0{duration === "16s" ? "16" : duration === "8s" ? "8" : "4"}
+                      <span className="text-[13px] font-mono text-[#A1A1AA] w-10 text-right">
+                        00:{String(playbackDuration).padStart(2, "0")}
                       </span>
                     </div>
 
@@ -1579,7 +1622,7 @@ export default function App() {
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                   placeholder="Describe the cinematic scene in detail... e.g., A vintage car cruising down the neon-drenched streets under heavy rain"
-                  className="w-full bg-transparent text-sm text-white focus:outline-none placeholder-zinc-550 text-left font-sans"
+                  className="w-full bg-transparent text-sm text-white focus:outline-none placeholder-zinc-500 text-left font-sans"
                 />
               </div>
 
@@ -2038,7 +2081,7 @@ export default function App() {
                     
                     {/* Column 1: COLOR PALETTE */}
                     <div className="space-y-3">
-                      <span className="text-[13px] font-bold text-[#D4D4D8] uppercase font-mono block border-b border-[#262933] pb-1.5 matches">Palette LUTs</span>
+                      <span className="text-[13px] font-bold text-[#D4D4D8] uppercase font-mono block border-b border-[#262933] pb-1.5">Palette LUTs</span>
                       <div className="flex flex-col gap-2">
                         {["Auto", "Hollywood Teal-Orange", "Neo-Noir Shadow", "Warm Sun Vintage", "Cyberpunk Neon", "Desaturated Iron"].map((p) => (
                           <button
@@ -2058,7 +2101,7 @@ export default function App() {
 
                     {/* Column 2: LIGHTING SYSTEM */}
                     <div className="space-y-3">
-                      <span className="text-[13px] font-bold text-[#D4D4D8] uppercase font-mono block border-b border-[#262933] pb-1.5 matches">Ambient Lights</span>
+                      <span className="text-[13px] font-bold text-[#D4D4D8] uppercase font-mono block border-b border-[#262933] pb-1.5">Ambient Lights</span>
                       <div className="flex flex-col gap-2">
                         {["Auto", "Volumetric Foggy", "High-Contrast Chiaroscuro", "Golden Sunset", "Low-key Midnight"].map((l) => (
                           <button
@@ -2078,7 +2121,7 @@ export default function App() {
 
                     {/* Column 3: CAMERA MOVESET */}
                     <div className="space-y-3">
-                      <span className="text-[13px] font-bold text-[#D4D4D8] uppercase font-mono block border-b border-[#262933] pb-1.5 matches">Cam Moveset Speed</span>
+                      <span className="text-[13px] font-bold text-[#D4D4D8] uppercase font-mono block border-b border-[#262933] pb-1.5">Cam Moveset Speed</span>
                       <div className="flex flex-col gap-2">
                         {["Auto", "Steady Grounded", "Documentary Jitter", "Dreamy Flying", "Suspense Snapping"].map((c) => (
                           <button
@@ -2253,10 +2296,7 @@ export default function App() {
                               <select 
                                 value={currentActor.voice}
                                 onChange={(e) => {
-                                  const newVoice = e.target.value;
-                                  if (newVoice) {
-                                    setCastingActors(prev => prev.map(act => act.id === currentActor.id ? { ...act, voice: newVoice } : act));
-                                  }
+                                  assignPresetVoiceToActor(currentActor.id, e.target.value);
                                 }}
                                 className="bg-[#0D0E12] border border-[#3F4452] text-[13px] rounded p-1.5 outline-none text-[#F4F4F5] w-full font-sans text-left"
                               >
@@ -2274,13 +2314,14 @@ export default function App() {
                                 <input 
                                   type="text"
                                   id="customActiveActorVoiceInput"
+                                  ref={activeActorVoiceInputRef}
                                   placeholder="e.g., voice with whispering echo..."
                                   onKeyDown={(e) => {
                                     if (e.key === 'Enter') {
                                       e.preventDefault();
                                       const val = (e.currentTarget as HTMLInputElement).value;
                                       if (val.trim()) {
-                                        setCastingActors(prev => prev.map(act => act.id === currentActor.id ? { ...act, voice: val.trim() } : act));
+                                        assignCustomVoiceToActor(currentActor.id, val);
                                         (e.currentTarget as HTMLInputElement).value = "";
                                       }
                                     }
@@ -2289,10 +2330,10 @@ export default function App() {
                                 />
                                 <button 
                                   onClick={() => {
-                                    const input = document.getElementById("customActiveActorVoiceInput") as HTMLInputElement;
+                                    const input = activeActorVoiceInputRef.current;
                                     const val = input ? input.value : "";
                                     if (val.trim()) {
-                                      setCastingActors(prev => prev.map(act => act.id === currentActor.id ? { ...act, voice: val.trim() } : act));
+                                      assignCustomVoiceToActor(currentActor.id, val);
                                       input.value = "";
                                     }
                                   }}
@@ -2373,7 +2414,8 @@ export default function App() {
                               const val = e.target.value;
                               setCustVoicePreset(val);
                               if (val !== "custom") {
-                                setCustVoice(val);
+                                const preset = VOICE_PRESETS.find((voice) => voice.label === val);
+                                setCustVoice(preset?.label ?? val);
                               } else {
                                 setCustVoice("");
                               }
@@ -2462,7 +2504,7 @@ export default function App() {
                                 <button
                                   key={v.voiceId}
                                   onClick={() => {
-                                    setCastingActors(prev => prev.map(act => act.id === currentActor.id ? { ...act, voice: v.label } : act));
+                                    assignPresetVoiceToActor(currentActor.id, v.label);
                                   }}
                                   className={`p-2.5 rounded-lg border text-left transition-all duration-150 flex flex-col justify-between cursor-pointer ${
                                     isSelected
@@ -2478,7 +2520,7 @@ export default function App() {
                           </div>
                           <button
                             type="button"
-                            onClick={() => previewVoice(selectedVoicePreset.voiceId)}
+                            onClick={() => previewVoice(selectedVoiceId)}
                             disabled={isPreviewingVoice || !dialogueText.trim()}
                             className="mt-2 px-3 py-2 rounded-lg bg-[#FB7185] hover:bg-[#FDA4AF] disabled:bg-zinc-800 disabled:text-[#A1A1AA] text-white text-sm font-bold transition-colors"
                           >
@@ -2498,13 +2540,14 @@ export default function App() {
                             <input 
                               type="text"
                               id="modalCustomVoiceInputText"
+                              ref={modalCustomVoiceInputRef}
                               placeholder="e.g., A child-like soft whisper recounting old memories with quiet grace..."
                               onKeyDown={(e) => {
                                 if (e.key === 'Enter') {
                                   e.preventDefault();
                                   const val = (e.currentTarget as HTMLInputElement).value;
                                   if (val.trim()) {
-                                    setCastingActors(prev => prev.map(act => act.id === currentActor.id ? { ...act, voice: val.trim() } : act));
+                                    assignCustomVoiceToActor(currentActor.id, val);
                                     (e.currentTarget as HTMLInputElement).value = "";
                                   }
                                 }
@@ -2513,10 +2556,10 @@ export default function App() {
                             />
                             <button 
                               onClick={() => {
-                                const input = document.getElementById("modalCustomVoiceInputText") as HTMLInputElement;
+                                const input = modalCustomVoiceInputRef.current;
                                 const val = input ? input.value : "";
                                 if (val.trim()) {
-                                  setCastingActors(prev => prev.map(act => act.id === currentActor.id ? { ...act, voice: val.trim() } : act));
+                                  assignCustomVoiceToActor(currentActor.id, val);
                                   input.value = "";
                                 }
                               }}
