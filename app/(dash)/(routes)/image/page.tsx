@@ -522,6 +522,52 @@ function SettingsAccordion({ label, summary, children, defaultOpen = false }: { 
   );
 }
 
+/* ─── Gateway card — leads to /image-presets ───────────────────────── */
+function StyleLibraryGatewayCard() {
+  return (
+    <a
+      href="/image-presets"
+      className="group relative block overflow-hidden rounded-2xl border border-amber-400/25 bg-black/40 transition-all hover:border-amber-400/55 hover:shadow-xl hover:shadow-amber-500/20"
+    >
+      {/* Hero image — tall to give the collage room to breathe */}
+      <div className="relative h-44 overflow-hidden">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/preset/card.webp"
+          alt="Style Library — featured styles"
+          className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+          loading="lazy"
+        />
+        {/* Vignette so text below remains separable from the art */}
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/85 via-black/0 to-transparent" />
+      </div>
+
+      {/* Text */}
+      <div className="px-3 pb-3 pt-2.5">
+        <div className="flex items-center gap-2">
+          <span className="rounded-md bg-amber-400/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-amber-200 ring-1 ring-amber-400/40">
+            New
+          </span>
+          <span className="text-[10px] uppercase tracking-wider text-amber-300/70">
+            18 styles
+          </span>
+        </div>
+        <h3 className="mt-1.5 text-sm font-black text-white">
+          Style Library
+        </h3>
+        <p className="mt-0.5 text-[11px] leading-5 text-zinc-400">
+          Tap a curated style — the prompt, model, and aspect ratio
+          apply instantly.
+        </p>
+        <div className="mt-2.5 inline-flex items-center gap-1 text-[11px] font-bold text-amber-300 group-hover:text-amber-200">
+          Browse styles
+          <span className="transition-transform group-hover:translate-x-0.5">→</span>
+        </div>
+      </div>
+    </a>
+  );
+}
+
 function CompareSlider({ before, after }: { before: string; after: string }) {
   const [position, setPosition] = useState(50);
   return (
@@ -1696,6 +1742,8 @@ export default function ImageWorkspacePage() {
           </SettingsAccordion>
         ) : null}
 
+        {/* ── Gateway card → /image-presets ── */}
+        <StyleLibraryGatewayCard />
 
       </>;
     }
