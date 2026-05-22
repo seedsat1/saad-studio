@@ -1507,7 +1507,7 @@ export default function App() {
                 className="w-2 h-2 rounded-full inline-block filter blur-[1px] animate-pulse" 
                 style={{ background: activeGenreObj.color }}
               />
-              <span>Genre: {activeGenreObj.id}</span>
+              <span>Mood</span>
             </button>
 
             <button
@@ -1519,7 +1519,7 @@ export default function App() {
               }`}
             >
               <Sliders size={11} className="text-amber-500" />
-              <span>Style: LUT {colorPalette === "Auto" ? "Auto" : colorPalette} • {lightingStyle === "Auto" ? "Auto" : lightingStyle}</span>
+              <span>Grade</span>
             </button>
 
             <button
@@ -1531,7 +1531,7 @@ export default function App() {
               }`}
             >
               <Camera size={11} className="text-cyan-500" />
-              <span>Cam: {getShortModel(activeModelObj.name)} • {getShortLens(lensType)} • {getShortMovement(cameraMovement)}</span>
+              <span>Shoot</span>
             </button>
 
             <button
@@ -1543,7 +1543,7 @@ export default function App() {
               }`}
             >
               <UserCheck size={11} className="text-teal-500" />
-              <span>Cast: {getShortCast(currentActor.name)}</span>
+              <span>Cast</span>
             </button>
 
             <button
@@ -1555,7 +1555,7 @@ export default function App() {
               }`}
             >
               <span className="text-rose-500 text-[12px]">🎙️</span>
-              <span>Voice: {getShortVoice(currentActor.voice)}</span>
+              <span>Speak</span>
             </button>
           </div>
 
