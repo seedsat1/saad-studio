@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Film, 
@@ -36,6 +36,7 @@ import {
   Image as ImageIcon,
   MessageSquare
 } from "lucide-react";
+import { VIDEO_MODEL_REGISTRY, type WaveSpeedVideoModel } from "@/lib/video-model-registry";
 
 // Extensive casting characters database
 const INITIAL_CASTING_CHARACTERS = [
@@ -366,61 +367,45 @@ const AVAILABLE_GENRES = [
   { id: "Comedy", arabicName: "Comedy", desc: "Bright saturated colors, warm daylit sets, and funny whimsical expressions.", color: "radial-gradient(circle at center, #eab308 15%, #020617 80%)" }
 ];
 
-interface CineModel {
-  id: string;
-  name: string;
-  arabicName: string;
-  category: string;
-  badge?: "TOP" | "PRO" | "FAST" | "NEW" | "";
-  supportsLongDuration?: boolean;
-}
+const CINEMA_MODELS = VIDEO_MODEL_REGISTRY.filter((model) => {
+  const caps = model.capabilities;
+  return !caps.requires_image && !caps.requires_video;
+});
 
-const CINEMA_MODELS: CineModel[] = [
-  // KLING
-  { id: "kling_3_0", name: "Kling 3.0", arabicName: "Kling 3.0", category: "KLING", badge: "TOP", supportsLongDuration: true },
-  { id: "kling_3_0_mc", name: "Kling 3.0 Motion Control", arabicName: "Kling 3.0 Motion Control", category: "KLING", badge: "PRO", supportsLongDuration: true },
-  { id: "kling_2_5_turbo", name: "Kling 2.5 Turbo", arabicName: "Kling 2.5 Turbo", category: "KLING", badge: "FAST", supportsLongDuration: false },
-  { id: "kling_2_5_i2v", name: "Kling 2.5 Turbo I2V", arabicName: "Kling 2.5 Turbo I2V", category: "KLING", badge: "FAST", supportsLongDuration: false },
-  // MINIMAX
-  { id: "hailuo_2_3_fast", name: "Minimax Hailuo 2.3 Fast", arabicName: "Minimax Hailuo 2.3 Fast", category: "MINIMAX HAILUO", badge: "FAST", supportsLongDuration: false },
-  { id: "hailuo_2_3", name: "Minimax Hailuo 2.3", arabicName: "Minimax Hailuo 2.3", category: "MINIMAX HAILUO", badge: "PRO", supportsLongDuration: true },
-  // SORA
-  { id: "sora_2", name: "Sora 2", arabicName: "Sora 2", category: "OPENAI SORA 2", supportsLongDuration: true },
-  { id: "sora_2_i2v", name: "Sora 2 I2V", arabicName: "Sora 2 I2V", category: "OPENAI SORA 2", supportsLongDuration: true },
-  { id: "sora_2_pro", name: "Sora 2 Pro", arabicName: "Sora 2 Pro", category: "OPENAI SORA 2", badge: "PRO", supportsLongDuration: true },
-  // GOOGLE VEO
-  { id: "veo_3_1_lite", name: "Google Veo 3.1 Lite", arabicName: "Google Veo 3.1 Lite", category: "GOOGLE VEO", supportsLongDuration: false },
-  { id: "veo_3_1_fast", name: "Google Veo 3.1 Fast", arabicName: "Google Veo 3.1 Fast", category: "GOOGLE VEO", badge: "FAST", supportsLongDuration: true },
-  { id: "veo_3_1", name: "Google Veo 3.1", arabicName: "Google Veo 3.1", category: "GOOGLE VEO", badge: "NEW", supportsLongDuration: true },
-  // SEEDANCE
-  { id: "seedance_2_0_fast", name: "Seedance 2.0 Fast", arabicName: "Seedance 2.0 Fast", category: "SEEDANCE", badge: "FAST", supportsLongDuration: false },
-  { id: "seedance_2_0", name: "Seedance 2.0", arabicName: "Seedance 2.0", category: "SEEDANCE", badge: "NEW", supportsLongDuration: true },
-  // GROK
-  { id: "grok_imagine", name: "Grok Imagine", arabicName: "Grok Imagine", category: "XAI GROK", badge: "NEW", supportsLongDuration: true },
-  { id: "grok_imagine_edit", name: "Grok Imagine Edit", arabicName: "Grok Imagine Edit", category: "XAI GROK", supportsLongDuration: false }
-];
+const getModelCategory = (model: WaveSpeedVideoModel) => model.family_label.toUpperCase();
+const buildDurationOptions = (model: WaveSpeedVideoModel) =>
+  model.capabilities.durations.map((sec) => ({ value: `${sec}s`, label: `${sec}s` }));
+const buildResolutionOptions = (model: WaveSpeedVideoModel) => {
+  const values = model.capabilities.resolutions.length ? model.capabilities.resolutions : ["default"];
+  return values.map((value) => ({ value, label: value === "default" ? "Model default" : value.toUpperCase() }));
+};
+const buildAspectRatioOptions = (model: WaveSpeedVideoModel) => {
+  const values = model.capabilities.aspect_ratios.length ? model.capabilities.aspect_ratios : ["default"];
+  return values.map((value) => ({ value, label: value === "default" ? "Model default" : value }));
+};
+const estimateCinemaCredits = (model: WaveSpeedVideoModel, duration: number, resolution: string, sound: boolean) => {
+  const familyRate: Record<string, number> = {
+    kling: 3.5,
+    sora: model.id.includes("pro") ? 5.12 : 3.41,
+    veo: model.id.includes("lite") || model.id.includes("fast") ? 1.71 : 5.32,
+    seedance: model.id.includes("fast") ? 6.7 : 8,
+    grok: 1.54,
+  };
+  const base = duration * (familyRate[model.family] ?? 2);
+  const quality = resolution.toLowerCase();
+  const qualityMultiplier = quality.includes("4k") ? 3 : quality.includes("1080") || quality.includes("pro") ? 1.5 : 1;
+  return Math.max(1, Math.ceil(base * qualityMultiplier * (sound && model.capabilities.has_sound ? 1.15 : 1)));
+};
 
-const DURATION_OPTIONS = [
-  { value: "4s", label: "4s (Fast short clip)" },
-  { value: "8s", label: "8s (Standard narrative duration)" },
-  { value: "16s", label: "16s (Long - Kling & Veo)", supportsLong: true },
-  { value: "24s", label: "24s (Premium extended duration)", supportsLong: true },
-  { value: "32s", label: "32s (Extra long epic narrative)", supportsLong: true },
-  { value: "60s", label: "60s (Full cinematic sequence)", supportsLong: true }
-];
-
-const RESOLUTION_OPTIONS = [
-  { value: "720p", label: "720p (Super fast preview rendering)" },
-  { value: "1080p", label: "1080p (Cinema Full HD quality)" },
-  { value: "1440p", label: "2K QuadHD (High Fidelity)" },
-  { value: "4K", label: "4K Ultra-HD (Superb pixel clarity)" }
-];
-
-const ASPECT_RATIO_OPTIONS = [
-  { value: "16:9", label: "16:9 Modern Widescreen" },
-  { value: "2.35:1", label: "2.35:1 Anamorphic Cinema Scope" },
-  { value: "9:16", label: "9:16 Portrait Reels / Mobile" },
-  { value: "1:1", label: "1:1 Standard Square" }
+const VOICE_PRESETS = [
+  { label: "Gulf Male Narrator", voiceId: "pNInz6obpgDQGcFmaJgB", desc: "Arabic Gulf male tone for confident narration", lang: "AR" },
+  { label: "Egyptian Male Storyteller", voiceId: "nPczCjzI2devNBz1zQrb", desc: "Warm Arabic/Egyptian-style storyteller", lang: "AR" },
+  { label: "Levantine Male Dialogue", voiceId: "onwK4e9ZLuTAKqWW03F9", desc: "Grounded Arabic dialogue voice", lang: "AR" },
+  { label: "Arabic Classical Female", voiceId: "Z3R5wn05IrDiVCyEkUrK", desc: "Clear modern standard Arabic female delivery", lang: "AR" },
+  { label: "Child Voice", voiceId: "pPdl9cQBQq4p6mRkZy2Z", desc: "Bright youthful child-like tone", lang: "MULTI" },
+  { label: "Documentary Narrator", voiceId: "DGTOOUoGpoP6UZ9uSWfA", desc: "Deep documentary narration voice", lang: "MULTI" },
+  { label: "Classic Confident Female", voiceId: "21m00Tcm4TlvDq8ikWAM", desc: "Crisp confident female narration", lang: "EN" },
+  { label: "Deep Trailer Male", voiceId: "N2lVS1w4EtoT3dr4eOWO", desc: "Trailer-style low cinematic presence", lang: "EN" }
 ];
 
 const SPEED_OPTIONS = [
@@ -506,7 +491,7 @@ const getShortVoice = (voice: string): string => {
 
 export default function App() {
   const [castingActors, setCastingActors] = useState(INITIAL_CASTING_CHARACTERS);
-  const [selectedModelId, setSelectedModelId] = useState("kling_3_0");
+  const [selectedModelId, setSelectedModelId] = useState(CINEMA_MODELS[0]?.id ?? "kling-v3.0-pro-t2v");
   const [activeDropdown, setActiveDropdown] = useState<"model" | "duration" | "resolution" | "ratio" | "speed" | null>(null);
   const [selectedCharId, setSelectedCharId] = useState("char_1");
   const [selectedGenre, setSelectedGenre] = useState("Noir");
@@ -529,6 +514,10 @@ export default function App() {
   const [progress, setProgress] = useState(0);
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
   const [activeScenario, setActiveScenario] = useState<any>(null);
+  const [generatedVideoUrl, setGeneratedVideoUrl] = useState<string | null>(null);
+  const [generatedAudioUrl, setGeneratedAudioUrl] = useState<string | null>(null);
+  const [isPreviewingVoice, setIsPreviewingVoice] = useState(false);
+  const voicePreviewRef = useRef<HTMLAudioElement | null>(null);
  
   // Playback simulator states
   const [isPlaying, setIsPlaying] = useState(false);
@@ -541,8 +530,15 @@ export default function App() {
   // Bottom parameters controls state
   const [duration, setDuration] = useState("8s");
   const [resolution, setResolution] = useState("1080p");
-  const [aspectRatio, setAspectRatio] = useState("2.35:1");
+  const [aspectRatio, setAspectRatio] = useState("16:9");
   const [batchSize, setBatchSize] = useState("1/4");
+  const [referenceImages, setReferenceImages] = useState<string[]>([]);
+  const [endFrameUrl, setEndFrameUrl] = useState("");
+  const [negativePrompt, setNegativePrompt] = useState("");
+  const [cfgScale, setCfgScale] = useState(0.5);
+  const [seed, setSeed] = useState("");
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [grokMode, setGrokMode] = useState<"fun" | "normal" | "spicy">("normal");
  
   // Dialog overlays controllers
   const [activeModal, setActiveModal] = useState<"genre" | "style" | "camera" | "casting" | "ai_director" | "voice" | null>(null);
@@ -592,6 +588,15 @@ export default function App() {
     }
   ]);
 
+  const currentActor = castingActors.find((c) => c.id === selectedCharId) || castingActors[0];
+  const activeModelObj = CINEMA_MODELS.find((m) => m.id === selectedModelId) || CINEMA_MODELS[0];
+  const activeGenreObj = AVAILABLE_GENRES.find((g) => g.id === selectedGenre) || AVAILABLE_GENRES[0];
+  const durationOptions = useMemo(() => buildDurationOptions(activeModelObj), [activeModelObj]);
+  const resolutionOptions = useMemo(() => buildResolutionOptions(activeModelObj), [activeModelObj]);
+  const aspectRatioOptions = useMemo(() => buildAspectRatioOptions(activeModelObj), [activeModelObj]);
+  const selectedVoicePreset = VOICE_PRESETS.find((v) => v.label === currentActor?.voice || v.voiceId === currentActor?.voice) || VOICE_PRESETS[0];
+  const estimatedCredits = estimateCinemaCredits(activeModelObj, Number.parseInt(duration, 10) || 8, resolution, soundEnabled);
+
   // Close custom settings dropdowns when clicking outside
   useEffect(() => {
     const handleOutsideClick = (event: MouseEvent) => {
@@ -603,6 +608,34 @@ export default function App() {
     document.addEventListener("mousedown", handleOutsideClick);
     return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, []);
+
+  useEffect(() => {
+    if (!durationOptions.some((opt) => opt.value === duration)) {
+      setDuration(durationOptions[0]?.value ?? "8s");
+    }
+    if (!resolutionOptions.some((opt) => opt.value === resolution)) {
+      setResolution(resolutionOptions[0]?.value ?? "default");
+    }
+    if (!aspectRatioOptions.some((opt) => opt.value === aspectRatio)) {
+      setAspectRatio(aspectRatioOptions[0]?.value ?? "default");
+    }
+    setReferenceImages((prev) => prev.slice(0, activeModelObj.capabilities.max_reference_images));
+    if (!activeModelObj.capabilities.has_end_frame) setEndFrameUrl("");
+    if (!activeModelObj.capabilities.has_negative_prompt) setNegativePrompt("");
+    if (!activeModelObj.capabilities.has_cfg_scale) setCfgScale(0.5);
+  }, [
+    activeModelObj.capabilities.has_cfg_scale,
+    activeModelObj.capabilities.has_end_frame,
+    activeModelObj.capabilities.has_negative_prompt,
+    activeModelObj.capabilities.max_reference_images,
+    activeModelObj.id,
+    aspectRatio,
+    aspectRatioOptions,
+    duration,
+    durationOptions,
+    resolution,
+    resolutionOptions,
+  ]);
 
   // Handle live clock state for cinema-engine look
   useEffect(() => {
@@ -623,7 +656,7 @@ export default function App() {
     if (isPlaying && activeScenario) {
       loopTimer = setInterval(() => {
         setCurrentTime((prev) => {
-          const sizeLimit = duration === "16s" ? 16 : duration === "8s" ? 8 : 4;
+          const sizeLimit = Number.parseInt(duration, 10) || 8;
           const nextVal = prev + 0.1;
           if (nextVal >= sizeLimit) {
             return 0; // seamless movie loop
@@ -667,6 +700,65 @@ export default function App() {
     generateClientScene(project.prompt, project.dialogueText, project.cameraMovement, project.lensType, project.genre);
   };
 
+  const readImageFiles = async (files: FileList | null, limit: number) => {
+    const selected = Array.from(files ?? []).slice(0, Math.max(0, limit));
+    const urls = await Promise.all(
+      selected.map(
+        (file) =>
+          new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(String(reader.result));
+            reader.onerror = () => reject(reader.error);
+            reader.readAsDataURL(file);
+          }),
+      ),
+    );
+    return urls;
+  };
+
+  const handleReferenceUpload = async (files: FileList | null) => {
+    const limit = activeModelObj.capabilities.max_reference_images;
+    if (!limit) return;
+    const urls = await readImageFiles(files, limit);
+    setReferenceImages(urls.slice(0, limit));
+  };
+
+  const handleEndFrameUpload = async (files: FileList | null) => {
+    const [url] = await readImageFiles(files, 1);
+    if (url) setEndFrameUrl(url);
+  };
+
+  const previewVoice = async (voiceId = selectedVoicePreset.voiceId) => {
+    if (!dialogueText.trim()) return;
+    voicePreviewRef.current?.pause();
+    setIsPreviewingVoice(true);
+    try {
+      const response = await fetch("/api/generate/audio", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          actionType: "tts",
+          model: "elevenlabs/text-to-speech-multilingual-v2",
+          text: dialogueText.slice(0, 280),
+          voice: voiceId,
+          stability: 0.5,
+          clarity: 75,
+          use_speaker_boost: true,
+        }),
+      });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok || !payload?.audioUrl) throw new Error(payload?.error || "Voice preview failed");
+      setGeneratedAudioUrl(payload.audioUrl);
+      const audio = new Audio(payload.audioUrl);
+      voicePreviewRef.current = audio;
+      audio.onended = () => setIsPreviewingVoice(false);
+      await audio.play();
+    } catch (err) {
+      console.error("Voice preview failed:", err);
+      setIsPreviewingVoice(false);
+    }
+  };
+
   // Run render pipeline
   const triggerRender = async () => {
     if (!prompt.trim()) return;
@@ -674,6 +766,7 @@ export default function App() {
     setProgress(5);
     setIsPlaying(false);
     setCurrentTime(0);
+    setGeneratedVideoUrl(null);
 
     try {
       const response = await fetch("/api/cinema/render", {
@@ -684,7 +777,19 @@ export default function App() {
           dialogueText: dialogueText,
           cameraMovement: cameraMovement,
           lensType: lensType,
-          voiceId: selectedCharId
+          voiceId: selectedVoicePreset.voiceId,
+          modelId: selectedModelId,
+          modelRoute: activeModelObj.api_route,
+          duration: Number.parseInt(duration, 10),
+          resolution,
+          aspectRatio,
+          referenceImages,
+          endFrameUrl,
+          negativePrompt,
+          cfgScale,
+          seed,
+          sound: soundEnabled,
+          grokMode
         }),
       });
 
@@ -693,6 +798,7 @@ export default function App() {
       if (response.ok && payload?.status === "COMPLETED" && payload?.data) {
         setActiveJobId(payload.generationId ?? null);
         setActiveScenario(payload.data);
+        setGeneratedVideoUrl(payload.videoUrl ?? payload.data?.videoUrl ?? null);
         setProgress(100);
         setStatus("SUCCESS");
         setIsPlaying(true);
@@ -999,10 +1105,6 @@ export default function App() {
     );
   };
 
-  const currentActor = castingActors.find((c) => c.id === selectedCharId) || castingActors[0];
-  const activeModelObj = CINEMA_MODELS.find((m) => m.id === selectedModelId) || CINEMA_MODELS[0];
-  const activeGenreObj = AVAILABLE_GENRES.find((g) => g.id === selectedGenre) || AVAILABLE_GENRES[0];
-
   return (
     <div id="full_studio_page" className="min-h-screen bg-[#040407] text-[#eeeff5] flex flex-col font-sans overflow-hidden select-none selection:bg-cyan-500/30">
       
@@ -1016,7 +1118,7 @@ export default function App() {
             <span className="font-extrabold text-sm tracking-wider uppercase bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-100 to-zinc-400">
               SAAD CINEMA STUDIO v5.0
             </span>
-            <span className="text-[9px] font-mono bg-[#141522] text-cyan-400 font-bold px-2 py-0.5 rounded border border-cyan-900/40">
+            <span className="text-xs font-mono bg-[#141522] text-cyan-400 font-bold px-2 py-0.5 rounded border border-cyan-900/40">
               ULTRA-ENGINE
             </span>
           </div>
@@ -1024,12 +1126,12 @@ export default function App() {
 
         {/* STATUS COUNTERS & LIVE TIMECODE IN HEADER */}
         <div className="flex items-center gap-4 text-xs font-mono">
-          <div className="hidden md:flex items-center gap-1.5 bg-zinc-900/60 border border-zinc-800/80 px-3 py-1 rounded-full text-zinc-400 text-[10px]">
+          <div className="hidden md:flex items-center gap-1.5 bg-zinc-900/60 border border-zinc-800/80 px-3 py-1 rounded-full text-zinc-400 text-[13px]">
             <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full inline-block animate-ping" />
             <span>PIPELINE: ACTIVE</span>
           </div>
 
-          <div className="bg-[#0e0e16] border border-[#1d1f30] px-3.5 py-1 rounded-lg text-zinc-300 font-mono text-[10px] flex items-center gap-2">
+          <div className="bg-[#0e0e16] border border-[#1d1f30] px-3.5 py-1 rounded-lg text-zinc-300 font-mono text-[13px] flex items-center gap-2">
             <span className="text-zinc-500">ENG TIMECODE:</span>
             <span className="text-cyan-400 tracking-wider font-bold">{timecode}</span>
           </div>
@@ -1054,7 +1156,7 @@ export default function App() {
                   setStatus("IDLE");
                   setIsPlaying(false);
                 }}
-                className="w-full bg-[#12131e] hover:bg-[#1a1b2d] border border-[#1f2135] text-[11px] font-bold py-2.5 px-3 rounded-lg flex items-center gap-2 text-zinc-200 transition-all duration-200 shadow-sm"
+                className="w-full bg-[#12131e] hover:bg-[#1a1b2d] border border-[#1f2135] text-sm font-bold py-2.5 px-3 rounded-lg flex items-center gap-2 text-zinc-200 transition-all duration-200 shadow-sm"
               >
                 <Plus size={14} className="text-cyan-400" />
                 <span>+ New cinematic project</span>
@@ -1062,7 +1164,7 @@ export default function App() {
 
               <button 
                 onClick={() => setActiveModal(activeModal === "ai_director" ? null : "ai_director")}
-                className={`w-full text-[11px] font-bold py-2.5 px-3 rounded-lg flex items-center justify-between transition-all duration-200 border ${
+                className={`w-full text-sm font-bold py-2.5 px-3 rounded-lg flex items-center justify-between transition-all duration-200 border ${
                   activeModal === "ai_director"
                     ? "bg-cyan-950/30 text-cyan-400 border-cyan-800/60 shadow"
                     : "bg-transparent text-zinc-400 hover:text-zinc-200 border-transparent"
@@ -1072,13 +1174,13 @@ export default function App() {
                   <MessageSquare size={14} className="text-cyan-500" />
                   <span>AI Director Assistant</span>
                 </div>
-                <span className="bg-[#141525] text-cyan-400 text-[8px] font-mono px-1.5 py-0.2 rounded">LIVE</span>
+                <span className="bg-[#141525] text-cyan-400 text-[13px] font-mono px-1.5 py-0.2 rounded">LIVE</span>
               </button>
             </div>
 
             {/* Expander list Header */}
             <div>
-              <span className="text-[9px] font-mono font-bold tracking-wider text-zinc-500 block mb-2 uppercase">
+              <span className="text-xs font-mono font-bold tracking-wider text-zinc-500 block mb-2 uppercase">
                 Live control deck
               </span>
               <div className="flex flex-col gap-1 text-xs">
@@ -1087,36 +1189,36 @@ export default function App() {
                   className="flex items-center justify-between p-2 rounded-lg bg-zinc-950/30 hover:bg-[#12131f] text-zinc-400 hover:text-zinc-200 transition-all border border-transparent hover:border-zinc-900/60"
                 >
                   <span className="flex items-center gap-2">Scene genre</span>
-                  <span className="text-[10px] text-zinc-500 font-mono italic">{selectedGenre}</span>
+                  <span className="text-[13px] text-zinc-500 font-mono italic">{selectedGenre}</span>
                 </button>
                 <button 
                   onClick={() => setActiveModal("style")}
                   className="flex items-center justify-between p-2 rounded-lg bg-zinc-950/30 hover:bg-[#12131f] text-zinc-400 hover:text-zinc-200 transition-all border border-transparent hover:border-zinc-900/60"
                 >
                   <span>Lighting and color system</span>
-                  <span className="text-[10px] text-cyan-500 font-mono">Custom</span>
+                  <span className="text-[13px] text-cyan-500 font-mono">Custom</span>
                 </button>
                 <button 
                   onClick={() => setActiveModal("camera")}
                   className="flex items-center justify-between p-2 rounded-lg bg-zinc-950/30 hover:bg-[#12131f] text-zinc-400 hover:text-zinc-200 transition-all border border-transparent hover:border-zinc-900/60"
                 >
                   <span>Lens and camera setup</span>
-                  <span className="text-[10px] text-zinc-500 font-mono truncate max-w-28 text-left">{lensType}</span>
+                  <span className="text-[13px] text-zinc-500 font-mono truncate max-w-28 text-left">{lensType}</span>
                 </button>
                 <button 
                   onClick={() => setActiveModal("casting")}
                   className="flex items-center justify-between p-2 rounded-lg bg-zinc-950/30 hover:bg-[#12131f] text-zinc-400 hover:text-zinc-200 transition-all border border-transparent hover:border-zinc-900/60"
                 >
                   <span>Casting and actor room</span>
-                  <span className="text-[10px] text-zinc-500 font-mono text-left">{currentActor.name}</span>
+                  <span className="text-[13px] text-zinc-500 font-mono text-left">{currentActor.name}</span>
                 </button>
               </div>
             </div>
 
             {/* Presets and History */}
             <div className="flex-1 flex flex-col min-h-[220px]">
-              <span className="text-[9px] font-mono font-bold tracking-wider text-zinc-500 block mb-2.5 uppercase">
-                Scene drafts and history ({recentProjects.length})
+              <span className="text-xs font-mono font-bold tracking-wider text-zinc-500 block mb-2.5 uppercase">
+                Scene draft presets ({recentProjects.length})
               </span>
               <div className="space-y-2 max-h-[280px] overflow-y-auto pr-1">
                 {recentProjects.map((proj) => {
@@ -1127,7 +1229,7 @@ export default function App() {
                       onClick={() => handleLoadProject(proj)}
                       className={`w-full text-right p-2.5 rounded-lg border flex flex-col gap-1 transition-all text-xs outline-none ${
                         isCur
-                          ? "bg-zinc-905/60 border-cyan-800/40"
+                          ? "bg-zinc-900/60 border-cyan-800/40"
                           : "bg-[#0b0c11] border-zinc-900/80 hover:bg-zinc-900/40 hover:border-zinc-800"
                       }`}
                     >
@@ -1135,11 +1237,11 @@ export default function App() {
                         <span className="text-zinc-300 font-bold truncate block flex-1 pl-2">
                           {proj.title}
                         </span>
-                        <span className="text-[8px] bg-zinc-900 text-cyan-400 px-1.5 py-0.2 rounded font-mono uppercase">
+                        <span className="text-[13px] bg-zinc-900 text-cyan-400 px-1.5 py-0.2 rounded font-mono uppercase">
                           {proj.genre}
                         </span>
                       </div>
-                      <p className="text-[9px] text-zinc-500 line-clamp-1 truncate w-full">
+                      <p className="text-xs text-zinc-500 line-clamp-1 truncate w-full">
                         {proj.prompt}
                       </p>
                     </button>
@@ -1152,8 +1254,8 @@ export default function App() {
 
           {/* Core watermark credit line according to guidelines */}
           <div className="p-4 border-t border-[#141520] bg-[#050508] text-center">
-            <p className="text-[9px] text-zinc-650">SAAD DIGITAL STUDIOS INC</p>
-            <p className="text-[8px] text-zinc-500 font-mono mt-0.5">EST. 2026 • AI MODEL FLASH 3.5</p>
+            <p className="text-xs text-zinc-600">SAAD DIGITAL STUDIOS INC</p>
+            <p className="text-[13px] text-zinc-500 font-mono mt-0.5">EST. 2026 • GEMINI 2.5 FLASH PLAN</p>
           </div>
         </aside>
 
@@ -1179,7 +1281,7 @@ export default function App() {
                   exit={{ opacity: 0 }}
                   className="text-center flex flex-col items-center gap-4 py-8 pointer-events-auto"
                 >
-                  <span className="text-[10px] text-zinc-500 font-mono tracking-[0.3em] uppercase">
+                  <span className="text-[13px] text-zinc-500 font-mono tracking-[0.3em] uppercase">
                     {activeModelObj.name} ULTRA ENGINE
                   </span>
                   
@@ -1194,19 +1296,19 @@ export default function App() {
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-4 max-w-xl">
                     <button 
                       onClick={() => handleLoadProject(recentProjects[0])}
-                      className="px-4 py-2 bg-[#090a10]/50 hover:bg-[#12131e]/50 border border-zinc-900 hover:border-zinc-800 text-[11px] text-zinc-400 hover:text-white rounded-lg transition-all"
+                      className="px-4 py-2 bg-[#090a10]/50 hover:bg-[#12131e]/50 border border-zinc-900 hover:border-zinc-800 text-sm text-zinc-400 hover:text-white rounded-lg transition-all"
                     >
                       Rainy city alley
                     </button>
                     <button 
                       onClick={() => handleLoadProject(recentProjects[1])}
-                      className="px-4 py-2 bg-[#090a10]/50 hover:bg-[#12131e]/50 border border-zinc-900 hover:border-zinc-800 text-[11px] text-zinc-400 hover:text-white rounded-lg transition-all"
+                      className="px-4 py-2 bg-[#090a10]/50 hover:bg-[#12131e]/50 border border-zinc-900 hover:border-zinc-800 text-sm text-zinc-400 hover:text-white rounded-lg transition-all"
                     >
                       Mythic castle portrait
                     </button>
                     <button 
                       onClick={() => handleLoadProject(recentProjects[2])}
-                      className="px-4 py-2 bg-[#090a10]/50 hover:bg-[#12131e]/50 border border-zinc-900 hover:border-zinc-800 text-[11px] text-zinc-400 hover:text-white rounded-lg transition-all"
+                      className="px-4 py-2 bg-[#090a10]/50 hover:bg-[#12131e]/50 border border-zinc-900 hover:border-zinc-800 text-sm text-zinc-400 hover:text-white rounded-lg transition-all"
                     >
                       Heritage courtyard
                     </button>
@@ -1235,7 +1337,7 @@ export default function App() {
                   </div>
 
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between text-[11px] text-zinc-400 font-mono">
+                    <div className="flex items-center justify-between text-sm text-zinc-400 font-mono">
                       <span>Rendering frame and character detail {progress}%</span>
                       <span>GEN_PIPELINE_ACTIVE</span>
                     </div>
@@ -1249,7 +1351,7 @@ export default function App() {
                     </div>
                   </div>
 
-                  <p className="text-[10px] text-zinc-500 leading-relaxed font-mono tracking-wide animate-pulse">
+                  <p className="text-[13px] text-zinc-500 leading-relaxed font-mono tracking-wide animate-pulse">
                     {progress < 30 ? "» Analyzing script intent and visual tone..."
                      : progress < 60 ? "» Mapping lighting paths, camera movement, and lens behavior..."
                      : progress < 85 ? "» Simulating depth, motion, glow, and atmosphere..."
@@ -1279,25 +1381,35 @@ export default function App() {
                     style={{ background: activeScenario.scenes[0].visualLayout.lightingGradient }}
                   />
 
-                  {/* Absolute Backdrop Scene Actor Illustrative Image mockup */}
-                  <img 
-                    src={currentActor.url} 
-                    alt="active actor snapshot mockup" 
-                    className="absolute inset-0 w-full h-full object-cover select-none pointer-events-none z-0 filter saturate-[0.7] brightness-[0.45] transition-all duration-[1200ms] pointer-events-none grayscale"
-                  />
+                  {generatedVideoUrl ? (
+                    <video
+                      src={generatedVideoUrl}
+                      className="absolute inset-0 w-full h-full object-cover select-none pointer-events-none z-0 brightness-[0.55]"
+                      autoPlay
+                      muted={isMuted}
+                      loop
+                      playsInline
+                    />
+                  ) : (
+                    <img 
+                      src={currentActor.url} 
+                      alt="active actor snapshot mockup" 
+                      className="absolute inset-0 w-full h-full object-cover select-none pointer-events-none z-0 filter saturate-[0.7] brightness-[0.45] transition-all duration-[1200ms] grayscale"
+                    />
+                  )}
 
                   {/* TOP BANNER CORNER STATS OVERLAY IN MONITOR */}
                   <div className="p-4 flex items-center justify-between relative z-35 bg-gradient-to-b from-black/80 to-transparent pointer-events-none">
                     <div className="flex items-center gap-2">
-                      <span className="text-[9px] font-mono bg-cyan-950/80 border border-cyan-800/40 text-cyan-400 px-2.5 py-0.5 rounded uppercase font-bold tracking-wider">
+                      <span className="text-xs font-mono bg-cyan-950/80 border border-cyan-800/40 text-cyan-400 px-2.5 py-0.5 rounded uppercase font-bold tracking-wider">
                         PREVIEW ACTIVE
                       </span>
-                      <span className="text-[9px] font-mono text-zinc-400 bg-black/40 px-2 py-0.5 rounded truncate max-w-[240px] block">
+                      <span className="text-xs font-mono text-zinc-400 bg-black/40 px-2 py-0.5 rounded truncate max-w-[240px] block">
                         {lensType} • {cameraMovement}
                       </span>
                     </div>
 
-                    <div className="bg-black/40 px-2 py-0.5 rounded text-[9px] font-mono text-zinc-400">
+                    <div className="bg-black/40 px-2 py-0.5 rounded text-xs font-mono text-zinc-400">
                       24.00 FPS • PRORES RAW
                     </div>
                   </div>
@@ -1314,14 +1426,14 @@ export default function App() {
                     
                     {/* Media Seekable Timeline Bar */}
                     <div className="flex items-center gap-3">
-                      <span className="text-[8px] font-mono text-zinc-500 w-6">00:00</span>
+                      <span className="text-[13px] font-mono text-zinc-500 w-6">00:00</span>
                       <div className="flex-1 h-1 bg-zinc-900 rounded-full relative overflow-hidden group hover:h-1.5 transition-all cursor-pointer">
                         <div 
                           className="h-full bg-cyan-500 rounded-full transition-all"
                           style={{ width: `${(currentTime / (duration === "16s" ? 16 : duration === "8s" ? 8 : 4)) * 100}%` }}
                         />
                       </div>
-                      <span className="text-[8px] font-mono text-zinc-500 w-6 text-right">
+                      <span className="text-[13px] font-mono text-zinc-500 w-6 text-right">
                         00:0{duration === "16s" ? "16" : duration === "8s" ? "8" : "4"}
                       </span>
                     </div>
@@ -1331,13 +1443,13 @@ export default function App() {
                       <div className="flex items-center gap-2">
                         <button 
                           onClick={() => setIsPlaying(!isPlaying)}
-                          className="w-7 h-7 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-350 hover:text-white rounded-lg flex items-center justify-center transition-colors outline-none"
+                          className="w-7 h-7 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-300 hover:text-white rounded-lg flex items-center justify-center transition-colors outline-none"
                         >
                           {isPlaying ? <Pause size={11} /> : <Play size={11} className="relative left-[1px]" />}
                         </button>
                         <button 
                           onClick={() => setCurrentTime(0)}
-                          className="w-7 h-7 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-350 hover:text-white rounded-lg flex items-center justify-center transition-colors outline-none"
+                          className="w-7 h-7 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-300 hover:text-white rounded-lg flex items-center justify-center transition-colors outline-none"
                         >
                           <RotateCcw size={11} />
                         </button>
@@ -1366,8 +1478,8 @@ export default function App() {
                         </div>
                       </div>
 
-                      <div className="text-[9px] font-mono text-zinc-500 flex items-center gap-2">
-                        <span>AUDIO: SIMULATED ({activeScenario.scenes[0].soundEffects})</span>
+                      <div className="text-xs font-mono text-zinc-500 flex items-center gap-2">
+                        <span>AUDIO: {generatedAudioUrl ? "ELEVENLABS PREVIEW READY" : `PREVIEW MIX (${activeScenario.scenes[0].soundEffects})`}</span>
                         <span>•</span>
                         <span className="text-cyan-400 font-bold uppercase">SEC: {currentTime.toFixed(1)}s</span>
                       </div>
@@ -1385,7 +1497,7 @@ export default function App() {
           <div className="max-w-[850px] mx-auto w-full mb-3 flex flex-wrap items-center justify-center gap-2 pointer-events-auto">
             <button
               onClick={() => setActiveModal("genre")}
-              className={`px-3 py-1.5 rounded-full border text-[11px] font-bold flex items-center gap-1.5 transition-all duration-200 outline-none ${
+              className={`px-3 py-1.5 rounded-full border text-sm font-bold flex items-center gap-1.5 transition-all duration-200 outline-none ${
                 activeModal === "genre"
                   ? "bg-purple-950/20 text-purple-400 border-purple-800/50 shadow"
                   : "bg-[#0b0c11]/90 border-[#141525]/80 hover:bg-zinc-900/60 text-zinc-400"
@@ -1400,7 +1512,7 @@ export default function App() {
 
             <button
               onClick={() => setActiveModal("style")}
-              className={`px-3 py-1.5 rounded-full border text-[11px] font-bold flex items-center gap-1.5 transition-all duration-200 outline-none ${
+              className={`px-3 py-1.5 rounded-full border text-sm font-bold flex items-center gap-1.5 transition-all duration-200 outline-none ${
                 activeModal === "style"
                   ? "bg-amber-950/20 text-amber-400 border-amber-800/50 shadow"
                   : "bg-[#0b0c11]/90 border-[#141525]/80 hover:bg-zinc-900/60 text-zinc-400"
@@ -1412,7 +1524,7 @@ export default function App() {
 
             <button
               onClick={() => setActiveModal("camera")}
-              className={`px-3 py-1.5 rounded-full border text-[11px] font-bold flex items-center gap-1.5 transition-all duration-200 outline-none ${
+              className={`px-3 py-1.5 rounded-full border text-sm font-bold flex items-center gap-1.5 transition-all duration-200 outline-none ${
                 activeModal === "camera"
                   ? "bg-blue-950/20 text-cyan-400 border-cyan-800/50 shadow"
                   : "bg-[#0b0c11]/90 border-[#141525]/80 hover:bg-zinc-900/60 text-zinc-400"
@@ -1424,21 +1536,21 @@ export default function App() {
 
             <button
               onClick={() => setActiveModal("casting")}
-              className={`px-3 py-1.5 rounded-full border text-[11px] font-bold flex items-center gap-1.5 transition-all duration-200 outline-none ${
+              className={`px-3 py-1.5 rounded-full border text-sm font-bold flex items-center gap-1.5 transition-all duration-200 outline-none ${
                 activeModal === "casting"
                   ? "bg-teal-950/20 text-teal-400 border-teal-800/50 shadow"
                   : "bg-[#0b0c11]/90 border-[#141525]/80 hover:bg-zinc-900/60 text-zinc-400"
               }`}
             >
-              <UserCheck size={11} className="text-teal-555" />
+              <UserCheck size={11} className="text-teal-500" />
               <span>Cast: {getShortCast(currentActor.name)}</span>
             </button>
 
             <button
               onClick={() => setActiveModal("voice")}
-              className={`px-3 py-1.5 rounded-full border text-[11px] font-bold flex items-center gap-1.5 transition-all duration-200 outline-none ${
+              className={`px-3 py-1.5 rounded-full border text-sm font-bold flex items-center gap-1.5 transition-all duration-200 outline-none ${
                 activeModal === "voice"
-                  ? "bg-rose-950/20 text-rose-450 border-rose-800/50 shadow"
+                  ? "bg-rose-950/20 text-rose-400 border-rose-800/50 shadow"
                   : "bg-[#0b0c11]/90 border-[#141525]/80 hover:bg-zinc-900/60 text-zinc-400"
               }`}
             >
@@ -1456,7 +1568,7 @@ export default function App() {
               <button 
                 onClick={() => setActiveModal("casting")}
                 title="Add or synthesize an actor"
-                className="w-10 h-10 bg-[#121320] hover:bg-[#1a1b2d] border border-zinc-800/60 rounded-lg flex items-center justify-center text-zinc-450 hover:text-white transition-colors"
+                className="w-10 h-10 bg-[#121320] hover:bg-[#1a1b2d] border border-zinc-800/60 rounded-lg flex items-center justify-center text-zinc-400 hover:text-white transition-colors"
               >
                 <Plus size={16} />
               </button>
@@ -1495,7 +1607,7 @@ export default function App() {
                   value={dialogueText}
                   onChange={(e) => setDialogueText(e.target.value)}
                   placeholder="Voice-dub dialogue or attached subtitles..."
-                  className="bg-transparent text-[11px] text-zinc-450 focus:outline-none placeholder-zinc-700 text-left w-[200px] md:w-[320px] font-sans"
+                  className="bg-transparent text-sm text-zinc-400 focus:outline-none placeholder-zinc-700 text-left w-[200px] md:w-[320px] font-sans"
                 />
               </div>
 
@@ -1506,7 +1618,7 @@ export default function App() {
                 <div className="relative cine-dropdown-container">
                   <button 
                     onClick={() => setActiveDropdown(activeDropdown === "model" ? null : "model")}
-                    className={`px-2.5 py-1.5 rounded text-[10px] font-sans font-semibold transition-all flex items-center gap-1 cursor-pointer ${
+                    className={`px-2.5 py-1.5 rounded text-[13px] font-sans font-semibold transition-all flex items-center gap-1 cursor-pointer ${
                       activeDropdown === "model" 
                         ? "bg-cyan-950/80 border border-cyan-400 text-cyan-400 shadow-md shadow-cyan-950/50" 
                         : "bg-zinc-950 hover:bg-zinc-950/60 border border-zinc-900 text-zinc-300 hover:text-white"
@@ -1518,16 +1630,16 @@ export default function App() {
 
                   {activeDropdown === "model" && (
                     <div className="absolute bottom-9 left-1/2 md:-left-12 -translate-x-[40%] md:translate-x-0 w-80 max-h-[380px] overflow-y-auto bg-[#040409]/98 border border-cyan-500/20 rounded-xl p-2.5 shadow-2xl z-50 text-left font-sans backdrop-blur-xl animate-in fade-in slide-in-from-bottom-2 duration-150">
-                      <div className="text-[10px] text-zinc-400 font-extrabold pb-2 border-b border-white/5 mb-2 font-mono flex items-center justify-between px-1">
-                        <span className="text-[8px] uppercase tracking-widest text-[#1fe6ff] font-mono">CINEMATIC MODEL DIRECTORY</span>
+                      <div className="text-[13px] text-zinc-400 font-extrabold pb-2 border-b border-white/5 mb-2 font-mono flex items-center justify-between px-1">
+                        <span className="text-[13px] uppercase tracking-widest text-[#1fe6ff] font-mono">CINEMATIC MODEL DIRECTORY</span>
                         <span>Select Render Engine</span>
                       </div>
                       <div className="space-y-3">
-                        {Array.from(new Set(CINEMA_MODELS.map(m => m.category))).map((cat) => {
-                          const catModels = CINEMA_MODELS.filter(m => m.category === cat);
+                        {Array.from(new Set(CINEMA_MODELS.map(getModelCategory))).map((cat) => {
+                          const catModels = CINEMA_MODELS.filter(m => getModelCategory(m) === cat);
                           return (
                             <div key={cat} className="space-y-1">
-                              <div className="text-[8px] font-mono font-bold text-zinc-650 tracking-wider text-left uppercase px-2 py-0.5 border-l-2 border-cyan-500/30">
+                              <div className="text-[13px] font-mono font-bold text-zinc-600 tracking-wider text-left uppercase px-2 py-0.5 border-l-2 border-cyan-500/30">
                                 • {cat}
                               </div>
                               <div className="space-y-0.5 animate-none">
@@ -1540,21 +1652,21 @@ export default function App() {
                                         setSelectedModelId(model.id);
                                         setActiveDropdown(null);
                                       }}
-                                      className={`w-full text-right px-2.5 py-1.5 rounded-md text-[10.5px] transition-all flex items-center justify-between cursor-pointer ${
+                                      className={`w-full text-right px-2.5 py-1.5 rounded-md text-[13px] transition-all flex items-center justify-between cursor-pointer ${
                                         isSelected 
                                           ? "bg-cyan-950/40 text-cyan-300 border border-cyan-500/20 font-bold" 
-                                          : "text-zinc-400 hover:text-zinc-150 hover:bg-zinc-900/40 border border-transparent"
+                                          : "text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900/40 border border-transparent"
                                       }`}
                                     >
                                       {/* Left badges column */}
-                                      <div className="flex items-center gap-1 font-mono text-[7px]" dir="ltr">
-                                        {model.supportsLongDuration && (
-                                          <span className="px-1 py-0.2 rounded bg-cyan-950/60 border border-cyan-400/20 text-[#1fe6ff] font-bold">60s LONG</span>
+                                      <div className="flex items-center gap-1 font-mono text-[13px]" dir="ltr">
+                                        {model.capabilities.max_reference_images > 0 && (
+                                          <span className="px-1 py-0.2 rounded bg-cyan-950/60 border border-cyan-400/20 text-[#1fe6ff] font-bold">REF x{model.capabilities.max_reference_images}</span>
                                         )}
                                         {model.badge && (
                                           <span className={`px-1 py-0.2 rounded font-bold ${
                                             model.badge === "TOP" ? "bg-amber-950/80 border border-amber-800/30 text-amber-400" :
-                                            model.badge === "PRO" ? "bg-violet-950/80 border border-violet-850/30 text-purple-400" :
+                                            model.badge === "PRO" ? "bg-violet-950/80 border border-violet-800/30 text-purple-400" :
                                             model.badge === "FAST" ? "bg-blue-950/80 border border-blue-800/20 text-blue-400" :
                                             "bg-emerald-950/80 border border-emerald-800/20 text-emerald-400"
                                           }`}>
@@ -1565,13 +1677,13 @@ export default function App() {
                                       
                                       {/* Right name column */}
                                       <div className="flex items-center gap-2">
-                                        <span className="text-[10px] font-medium">{model.name}</span>
+                                        <span className="text-[13px] font-medium">{model.name}</span>
                                         <span className={`w-1.5 h-1.5 rounded-full ${
-                                          cat === "KLING" ? "bg-[#1fe6ff]" :
-                                          cat === "MINIMAX HAILUO" ? "bg-amber-500" :
-                                          cat === "OPENAI SORA 2" ? "bg-purple-500" :
-                                          cat === "GOOGLE VEO" ? "bg-blue-500" :
-                                          cat === "SEEDANCE" ? "bg-emerald-500" :
+                                          model.family === "kling" ? "bg-[#1fe6ff]" :
+                                          model.family === "hailuo" ? "bg-amber-500" :
+                                          model.family === "sora" ? "bg-purple-500" :
+                                          model.family === "veo" ? "bg-blue-500" :
+                                          model.family === "seedance" ? "bg-emerald-500" :
                                           "bg-rose-500"
                                         }`} />
                                       </div>
@@ -1591,45 +1703,35 @@ export default function App() {
                 <div className="relative cine-dropdown-container">
                   <button 
                     onClick={() => setActiveDropdown(activeDropdown === "duration" ? null : "duration")}
-                    className={`px-2 py-1 bg-zinc-950 border border-zinc-900 rounded text-[9px] font-mono text-zinc-400 hover:text-white transition-colors flex items-center gap-1 cursor-pointer`}
+                    className={`px-2 py-1 bg-zinc-950 border border-zinc-900 rounded text-xs font-mono text-zinc-400 hover:text-white transition-colors flex items-center gap-1 cursor-pointer`}
                   >
                     <span>⏱️ {duration}</span>
-                    <ChevronDown size={8} className="text-zinc-650" />
+                    <ChevronDown size={8} className="text-zinc-600" />
                   </button>
 
                   {activeDropdown === "duration" && (
                     <div className="absolute bottom-9 right-0 md:-right-8 w-52 bg-[#04040a]/98 border border-white/5 md:border-cyan-500/10 rounded-lg p-1.5 shadow-2xl z-50 text-right font-sans backdrop-blur-md">
-                      <div className="text-[8.5px] text-zinc-500 pb-1 mb-1 border-b border-zinc-900 px-1.5 font-bold">Select render duration</div>
+                      <div className="text-xs text-zinc-500 pb-1 mb-1 border-b border-zinc-900 px-1.5 font-bold">Select render duration</div>
                       <div className="space-y-0.5">
-                        {DURATION_OPTIONS.map((opt) => {
+                        {durationOptions.map((opt) => {
                           const isSelected = duration === opt.value;
-                          const modelSupports = activeModelObj.supportsLongDuration;
-                          const isLong = opt.supportsLong;
-                          const isDisabled = isLong && !modelSupports;
                           
                           return (
                             <button
                               key={opt.value}
-                              disabled={isDisabled}
                               onClick={() => {
                                 setDuration(opt.value);
                                 setActiveDropdown(null);
                               }}
-                              className={`w-full text-right px-2 py-1 rounded text-[10px] transition-all flex items-center justify-between cursor-pointer ${
+                              className={`w-full text-right px-2 py-1 rounded text-[13px] transition-all flex items-center justify-between cursor-pointer ${
                                 isSelected 
                                   ? "bg-cyan-950/40 text-cyan-400 font-bold" 
-                                  : isDisabled 
-                                    ? "opacity-30 cursor-not-allowed text-zinc-600" 
-                                    : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900"
+                                  : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900"
                               }`}
                             >
-                              {isLong && (
-                                <span className={`text-[7px] font-bold font-mono px-1 rounded ${
-                                  modelSupports ? "bg-cyan-950/40 text-cyan-400" : "bg-red-950/30 text-red-400"
-                                }`}>
-                                  {modelSupports ? "LONG" : "UNSUPPORTED"}
-                                </span>
-                              )}
+                              <span className="text-[13px] font-bold font-mono px-1 rounded bg-cyan-950/40 text-cyan-400">
+                                OK
+                              </span>
                               <span>{opt.label}</span>
                             </button>
                           );
@@ -1643,17 +1745,17 @@ export default function App() {
                 <div className="relative cine-dropdown-container">
                   <button 
                     onClick={() => setActiveDropdown(activeDropdown === "resolution" ? null : "resolution")}
-                    className={`px-2 py-1 bg-zinc-950 border border-zinc-900 rounded text-[9px] font-mono text-zinc-400 hover:text-white transition-colors flex items-center gap-1 cursor-pointer`}
+                    className={`px-2 py-1 bg-zinc-950 border border-zinc-900 rounded text-xs font-mono text-zinc-400 hover:text-white transition-colors flex items-center gap-1 cursor-pointer`}
                   >
                     <span>📐 {resolution}</span>
-                    <ChevronDown size={8} className="text-zinc-650" />
+                    <ChevronDown size={8} className="text-zinc-600" />
                   </button>
 
                   {activeDropdown === "resolution" && (
                     <div className="absolute bottom-9 right-0 md:-right-8 w-44 bg-[#04040a]/98 border border-white/5 md:border-cyan-500/10 rounded-lg p-1.5 shadow-2xl z-50 text-right font-sans backdrop-blur-md">
-                      <div className="text-[8.5px] text-zinc-500 pb-1 mb-1 border-b border-zinc-900 px-1.5 font-bold">AI output resolution</div>
+                      <div className="text-xs text-zinc-500 pb-1 mb-1 border-b border-zinc-900 px-1.5 font-bold">AI output resolution</div>
                       <div className="space-y-0.5">
-                        {RESOLUTION_OPTIONS.map((opt) => {
+                        {resolutionOptions.map((opt) => {
                           const isSelected = resolution === opt.value;
                           return (
                             <button
@@ -1662,7 +1764,7 @@ export default function App() {
                                 setResolution(opt.value);
                                 setActiveDropdown(null);
                               }}
-                              className={`w-full text-right px-2 py-1 rounded text-[10px] transition-all cursor-pointer ${
+                              className={`w-full text-right px-2 py-1 rounded text-[13px] transition-all cursor-pointer ${
                                 isSelected ? "bg-cyan-950/40 text-cyan-400 font-bold" : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900"
                               }`}
                             >
@@ -1679,17 +1781,17 @@ export default function App() {
                 <div className="relative cine-dropdown-container">
                   <button 
                     onClick={() => setActiveDropdown(activeDropdown === "ratio" ? null : "ratio")}
-                    className={`px-2 py-1 bg-zinc-950 border border-zinc-900 rounded text-[9px] font-mono text-zinc-400 hover:text-white transition-colors flex items-center gap-1 cursor-pointer`}
+                    className={`px-2 py-1 bg-zinc-950 border border-zinc-900 rounded text-xs font-mono text-zinc-400 hover:text-white transition-colors flex items-center gap-1 cursor-pointer`}
                   >
                     <span>🎞️ {aspectRatio}</span>
-                    <ChevronDown size={8} className="text-zinc-650" />
+                    <ChevronDown size={8} className="text-zinc-600" />
                   </button>
 
                   {activeDropdown === "ratio" && (
                     <div className="absolute bottom-9 right-0 md:-right-8 w-48 bg-[#04040a]/98 border border-white/5 md:border-cyan-500/10 rounded-lg p-1.5 shadow-2xl z-50 text-right font-sans backdrop-blur-md">
-                      <div className="text-[8.5px] text-zinc-500 pb-1 mb-1 border-b border-zinc-900 px-1.5 font-bold">Frame and scene aspect</div>
+                      <div className="text-xs text-zinc-500 pb-1 mb-1 border-b border-zinc-900 px-1.5 font-bold">Frame and scene aspect</div>
                       <div className="space-y-0.5">
-                        {ASPECT_RATIO_OPTIONS.map((opt) => {
+                        {aspectRatioOptions.map((opt) => {
                           const isSelected = aspectRatio === opt.value;
                           return (
                             <button
@@ -1698,7 +1800,7 @@ export default function App() {
                                 setAspectRatio(opt.value);
                                 setActiveDropdown(null);
                               }}
-                              className={`w-full text-right px-2 py-1 rounded text-[10px] transition-all cursor-pointer ${
+                              className={`w-full text-right px-2 py-1 rounded text-[13px] transition-all cursor-pointer ${
                                 isSelected ? "bg-cyan-950/40 text-cyan-400 font-bold" : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900"
                               }`}
                             >
@@ -1715,15 +1817,15 @@ export default function App() {
                 <div className="relative cine-dropdown-container">
                   <button 
                     onClick={() => setActiveDropdown(activeDropdown === "speed" ? null : "speed")}
-                    className={`px-2 py-1 bg-zinc-950 border border-zinc-900 rounded text-[9px] font-mono text-zinc-400 hover:text-white transition-colors flex items-center gap-1 cursor-pointer`}
+                    className={`px-2 py-1 bg-zinc-950 border border-zinc-900 rounded text-xs font-mono text-zinc-400 hover:text-white transition-colors flex items-center gap-1 cursor-pointer`}
                   >
                     <span>⚡ Speed: {batchSize}</span>
-                    <ChevronDown size={8} className="text-zinc-650" />
+                    <ChevronDown size={8} className="text-zinc-600" />
                   </button>
 
                   {activeDropdown === "speed" && (
                     <div className="absolute bottom-9 right-0 w-52 bg-[#04040a]/98 border border-white/5 md:border-cyan-500/10 rounded-lg p-1.5 shadow-2xl z-50 text-right font-sans backdrop-blur-md text-right">
-                      <div className="text-[8.5px] text-zinc-500 pb-1 mb-1 border-b border-zinc-900 px-1.5 font-bold">Batch and speed mode</div>
+                      <div className="text-xs text-zinc-500 pb-1 mb-1 border-b border-zinc-900 px-1.5 font-bold">Batch and speed mode</div>
                       <div className="space-y-0.5">
                         {SPEED_OPTIONS.map((opt) => {
                           const isSelected = batchSize === opt.value;
@@ -1734,7 +1836,7 @@ export default function App() {
                                 setBatchSize(opt.value);
                                 setActiveDropdown(null);
                               }}
-                              className={`w-full text-right px-2 py-1 rounded text-[10px] transition-all cursor-pointer ${
+                              className={`w-full text-right px-2 py-1 rounded text-[13px] transition-all cursor-pointer ${
                                 isSelected ? "bg-cyan-950/40 text-cyan-400 font-bold" : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900"
                               }`}
                             >
@@ -1747,6 +1849,87 @@ export default function App() {
                   )}
                 </div>
 
+              </div>
+
+              <div className="w-full flex flex-wrap items-center gap-2 text-sm text-zinc-400">
+                {activeModelObj.capabilities.max_reference_images > 0 && (
+                  <label className="px-2 py-1 rounded border border-zinc-900 bg-zinc-950 hover:border-cyan-800/50 cursor-pointer">
+                    Ref images {referenceImages.length}/{activeModelObj.capabilities.max_reference_images}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      onChange={(e) => handleReferenceUpload(e.target.files)}
+                    />
+                  </label>
+                )}
+
+                {activeModelObj.capabilities.has_end_frame && (
+                  <label className="px-2 py-1 rounded border border-zinc-900 bg-zinc-950 hover:border-cyan-800/50 cursor-pointer">
+                    {endFrameUrl ? "End frame ready" : "End frame"}
+                    <input type="file" accept="image/*" className="hidden" onChange={(e) => handleEndFrameUpload(e.target.files)} />
+                  </label>
+                )}
+
+                {activeModelObj.capabilities.has_negative_prompt && (
+                  <input
+                    value={negativePrompt}
+                    onChange={(e) => setNegativePrompt(e.target.value)}
+                    placeholder="Negative prompt"
+                    className="min-w-[150px] flex-1 bg-zinc-950 border border-zinc-900 rounded px-2 py-1 text-sm text-zinc-200 outline-none focus:border-cyan-700"
+                  />
+                )}
+
+                {activeModelObj.capabilities.has_cfg_scale && (
+                  <label className="flex items-center gap-2 px-2 py-1 rounded border border-zinc-900 bg-zinc-950">
+                    CFG {cfgScale.toFixed(1)}
+                    <input
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.1"
+                      value={cfgScale}
+                      onChange={(e) => setCfgScale(Number(e.target.value))}
+                      className="w-20 accent-cyan-500"
+                    />
+                  </label>
+                )}
+
+                {activeModelObj.capabilities.has_seed && (
+                  <input
+                    value={seed}
+                    onChange={(e) => setSeed(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                    placeholder="Seed"
+                    className="w-24 bg-zinc-950 border border-zinc-900 rounded px-2 py-1 text-sm text-zinc-200 outline-none focus:border-cyan-700"
+                  />
+                )}
+
+                {activeModelObj.capabilities.has_sound && (
+                  <button
+                    type="button"
+                    onClick={() => setSoundEnabled((v) => !v)}
+                    className={`px-2 py-1 rounded border font-bold ${soundEnabled ? "border-emerald-800/50 bg-emerald-950/20 text-emerald-400" : "border-zinc-900 bg-zinc-950 text-zinc-500"}`}
+                  >
+                    Sound {soundEnabled ? "ON" : "OFF"}
+                  </button>
+                )}
+
+                {activeModelObj.family === "grok" && (
+                  <select
+                    value={grokMode}
+                    onChange={(e) => setGrokMode(e.target.value as "fun" | "normal" | "spicy")}
+                    className="bg-zinc-950 border border-zinc-900 rounded px-2 py-1 text-sm text-zinc-200 outline-none"
+                  >
+                    <option value="normal">Grok normal</option>
+                    <option value="fun">Grok fun</option>
+                    <option value="spicy">Grok spicy</option>
+                  </select>
+                )}
+
+                <span className="ml-auto px-2 py-1 rounded border border-amber-900/40 bg-amber-950/10 text-amber-300 font-mono">
+                  Est. {estimatedCredits || 1} credits
+                </span>
               </div>
 
             </div>
@@ -1786,7 +1969,7 @@ export default function App() {
                 </span>
                 <button 
                   onClick={() => setActiveModal(null)}
-                  className="w-7 h-7 bg-zinc-900 hover:bg-zinc-800 rounded-md flex items-center justify-center text-zinc-450 hover:text-white transition-colors outline-none"
+                  className="w-7 h-7 bg-zinc-900 hover:bg-zinc-800 rounded-md flex items-center justify-center text-zinc-400 hover:text-white transition-colors outline-none"
                 >
                   <X size={12} />
                 </button>
@@ -1810,8 +1993,8 @@ export default function App() {
                         className="w-32 h-32 rounded-full filter blur-[24px] opacity-80"
                         style={{ background: activeGenreObj.color }}
                       />
-                      <span className="text-[10px] font-mono text-zinc-500 mt-4 uppercase">Dynamic Mood Aura</span>
-                      <span className="text-xs font-bold text-center mt-1 text-zinc-350">{activeGenreObj.arabicName}</span>
+                      <span className="text-[13px] font-mono text-zinc-500 mt-4 uppercase">Dynamic Mood Aura</span>
+                      <span className="text-xs font-bold text-center mt-1 text-zinc-300">{activeGenreObj.arabicName}</span>
                     </div>
 
                     {/* Right scrolling items selection */}
@@ -1836,7 +2019,7 @@ export default function App() {
                               <span className="text-xs font-black text-white block leading-tight">
                                 {g.arabicName}
                               </span>
-                              <span className="text-[10px] text-zinc-500 block leading-tight mt-1">
+                              <span className="text-[13px] text-zinc-500 block leading-tight mt-1">
                                 {g.desc}
                               </span>
                             </div>
@@ -1855,7 +2038,7 @@ export default function App() {
                     
                     {/* Column 1: COLOR PALETTE */}
                     <div className="space-y-3">
-                      <span className="text-[10px] font-bold text-zinc-400 uppercase font-mono block border-b border-zinc-900 pb-1.5 matches">Palette LUTs</span>
+                      <span className="text-[13px] font-bold text-zinc-400 uppercase font-mono block border-b border-zinc-900 pb-1.5 matches">Palette LUTs</span>
                       <div className="flex flex-col gap-2">
                         {["Auto", "Hollywood Teal-Orange", "Neo-Noir Shadow", "Warm Sun Vintage", "Cyberpunk Neon", "Desaturated Iron"].map((p) => (
                           <button
@@ -1875,7 +2058,7 @@ export default function App() {
 
                     {/* Column 2: LIGHTING SYSTEM */}
                     <div className="space-y-3">
-                      <span className="text-[10px] font-bold text-zinc-400 uppercase font-mono block border-b border-zinc-900 pb-1.5 matches">Ambient Lights</span>
+                      <span className="text-[13px] font-bold text-zinc-400 uppercase font-mono block border-b border-zinc-900 pb-1.5 matches">Ambient Lights</span>
                       <div className="flex flex-col gap-2">
                         {["Auto", "Volumetric Foggy", "High-Contrast Chiaroscuro", "Golden Sunset", "Low-key Midnight"].map((l) => (
                           <button
@@ -1895,7 +2078,7 @@ export default function App() {
 
                     {/* Column 3: CAMERA MOVESET */}
                     <div className="space-y-3">
-                      <span className="text-[10px] font-bold text-zinc-400 uppercase font-mono block border-b border-zinc-900 pb-1.5 matches">Cam Moveset Speed</span>
+                      <span className="text-[13px] font-bold text-zinc-400 uppercase font-mono block border-b border-zinc-900 pb-1.5 matches">Cam Moveset Speed</span>
                       <div className="flex flex-col gap-2">
                         {["Auto", "Steady Grounded", "Documentary Jitter", "Dreamy Flying", "Suspense Snapping"].map((c) => (
                           <button
@@ -1922,7 +2105,7 @@ export default function App() {
                     
                     {/* C1. ALL LENSES SECTION WITH SPECIFIC DESCRIPTIVE IMAGE */}
                     <div>
-                      <span className="text-[10px] font-bold text-cyan-400 uppercase font-mono tracking-wider block border-b border-zinc-900 pb-2 mb-3">
+                      <span className="text-[13px] font-bold text-cyan-400 uppercase font-mono tracking-wider block border-b border-zinc-900 pb-2 mb-3">
                         🔍 Available Cinematic Lenses
                       </span>
                       
@@ -1944,13 +2127,13 @@ export default function App() {
                             >
                               <div className="relative w-full h-16 rounded overflow-hidden mb-1.5 flex-shrink-0">
                                 <img src={l.url} alt={l.name} className="w-full h-full object-cover select-none pointer-events-none grayscale" />
-                                <div className="absolute top-1 left-1 bg-black/60 px-1 py-0.2 rounded text-[7px] text-zinc-300 font-mono tracking-wide">{l.tStop}</div>
+                                <div className="absolute top-1 left-1 bg-black/60 px-1 py-0.2 rounded text-[13px] text-zinc-300 font-mono tracking-wide">{l.tStop}</div>
                               </div>
                               <div className="min-w-0 w-full mt-auto">
-                                <span className="text-[10.5px] font-black text-slate-100 block truncate leading-tight">
+                                <span className="text-[13px] font-black text-slate-100 block truncate leading-tight">
                                   {l.arabicName}
                                 </span>
-                                <span className="text-[8px] text-zinc-500 block truncate leading-tight mt-0.5">
+                                <span className="text-[13px] text-zinc-500 block truncate leading-tight mt-0.5">
                                   {l.lensCategory}
                                 </span>
                               </div>
@@ -1962,7 +2145,7 @@ export default function App() {
 
                     {/* C2. ALL CAMERA MOVEMENTS SECTION WITH DESCRIPTION IMAGE */}
                     <div>
-                      <span className="text-[10px] font-bold text-amber-500 uppercase font-mono tracking-wider block border-b border-zinc-900 pb-2 mb-3">
+                      <span className="text-[13px] font-bold text-amber-500 uppercase font-mono tracking-wider block border-b border-zinc-900 pb-2 mb-3">
                         🎥 Available Camera Movements
                       </span>
 
@@ -1986,10 +2169,10 @@ export default function App() {
                                 <img src={mv.url} alt={mv.name} className="w-full h-full object-cover select-none pointer-events-none grayscale" />
                               </div>
                               <div className="min-w-0 w-full mt-auto">
-                                <span className="text-[10.5px] font-black text-slate-100 block truncate leading-tight">
+                                <span className="text-[13px] font-black text-slate-100 block truncate leading-tight">
                                   {mv.arabicName}
                                 </span>
-                                <span className="text-[8px] text-zinc-500 block truncate leading-tight mt-0.5">
+                                <span className="text-[13px] text-zinc-500 block truncate leading-tight mt-0.5">
                                   {mv.intensity}
                                 </span>
                               </div>
@@ -2011,7 +2194,7 @@ export default function App() {
                       
                       {/* Left: Pre-configured Active Actors roster */}
                       <div className="md:col-span-7 space-y-3">
-                        <span className="text-[10px] font-bold text-zinc-400 uppercase font-mono block border-b border-zinc-900 pb-1.5">
+                        <span className="text-[13px] font-bold text-zinc-400 uppercase font-mono block border-b border-zinc-900 pb-1.5">
                           Active Studio Cast Roster ({castingActors.length})
                         </span>
 
@@ -2036,11 +2219,11 @@ export default function App() {
                                   <img src={actor.url} alt={actor.name} className="w-full h-full object-cover grayscale" />
                                 </div>
                                 <div className="text-center w-full min-w-0 mt-1">
-                                  <span className="text-[9.5px] font-bold text-white block truncate leading-none">{actor.name}</span>
-                                  <span className="text-[8px] text-rose-400/90 font-medium block truncate mt-1" title={actor.voice}>
+                                  <span className="text-xs font-bold text-white block truncate leading-none">{actor.name}</span>
+                                  <span className="text-[13px] text-rose-400/90 font-medium block truncate mt-1" title={actor.voice}>
                                     🎙️ {actor.voice}
                                   </span>
-                                  {isC && <span className="text-[7px] text-cyan-400 block mt-0.5 uppercase">AI LAB</span>}
+                                  {isC && <span className="text-[13px] text-cyan-400 block mt-0.5 uppercase">AI LAB</span>}
                                 </div>
                               </button>
                             );
@@ -2050,23 +2233,23 @@ export default function App() {
                         {/* Current Actor Sound Control Sheet */}
                         <div className="mt-4 p-3 bg-[#0a0b12] rounded-xl border border-zinc-900/80 space-y-2 text-left">
                           <div className="flex items-center justify-between border-b border-zinc-900 pb-1.5">
-                            <span className="text-[10px] text-[#1fe6ff] font-mono font-bold tracking-wider">AUDIO MIX & VOICE DUB</span>
-                            <span className="text-[11px] font-black text-slate-100">🎙️ Manage & Select Actor Voices: {currentActor.name}</span>
+                            <span className="text-[13px] text-[#1fe6ff] font-mono font-bold tracking-wider">AUDIO MIX & VOICE DUB</span>
+                            <span className="text-sm font-black text-slate-100">🎙️ Manage & Select Actor Voices: {currentActor.name}</span>
                           </div>
                           
-                          <div className="text-[10.5px] leading-relaxed text-zinc-400 space-y-1 font-sans">
+                          <div className="text-[13px] leading-relaxed text-zinc-400 space-y-1 font-sans">
                             <div>
                               <span className="text-zinc-500 font-semibold">Current Selected Voice:</span>{" "}
                               <span className="text-cyan-400 font-bold">{currentActor.voice}</span>
                             </div>
-                            <p className="text-[9px] text-zinc-500 leading-tight">
+                            <p className="text-xs text-zinc-500 leading-tight">
                               Choose a default cinematic voice preset or enter a custom voice description to synthesize and assign it immediately:
                             </p>
                           </div>
 
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pt-2 border-t border-zinc-900/60">
                             <div className="space-y-1 text-left">
-                              <label className="text-[8.5px] text-zinc-500 block">Select Voice Preset</label>
+                              <label className="text-xs text-zinc-500 block">Select Voice Preset</label>
                               <select 
                                 value={currentActor.voice}
                                 onChange={(e) => {
@@ -2075,21 +2258,18 @@ export default function App() {
                                     setCastingActors(prev => prev.map(act => act.id === currentActor.id ? { ...act, voice: newVoice } : act));
                                   }
                                 }}
-                                className="bg-zinc-950 border border-zinc-850 text-[10.5px] rounded p-1.5 outline-none text-zinc-300 w-full font-sans text-left"
+                                className="bg-zinc-950 border border-zinc-800 text-[13px] rounded p-1.5 outline-none text-zinc-300 w-full font-sans text-left"
                               >
-                                <option value="Warm, balanced male narrator voice">Warm, balanced male narrator</option>
-                                <option value="Classic, firm, confident female voice">Classic, confident female</option>
-                                <option value="Resonant, slow, dignified tone brimming with wisdom">Resonant, wise old sage</option>
-                                <option value="Warm, balanced, soothing female voice">Warm, soft, soothing female</option>
-                                <option value="Slightly synthesized digital voice with neon frequency variations">Slight synthesized digital cyber</option>
-                                <option value="Thick, low, analog voice with cinematic resonance">Thick, low analog cinematic</option>
-                                <option value="Gruff, deep, concise desert male voice">Gruff, deep desert male</option>
-                                <option value="Warm rural dialect with a calm pitch">Warm rural dialect</option>
+                                {VOICE_PRESETS.map((voice) => (
+                                  <option key={voice.voiceId} value={voice.label}>
+                                    {voice.label} ({voice.lang})
+                                  </option>
+                                ))}
                               </select>
                             </div>
 
                             <div className="space-y-1 text-left">
-                              <label className="text-[8.5px] text-zinc-500 block">Or Write Custom Voice Pattern</label>
+                              <label className="text-xs text-zinc-500 block">Or Write Custom Voice Pattern</label>
                               <div className="flex gap-1.5">
                                 <input 
                                   type="text"
@@ -2105,7 +2285,7 @@ export default function App() {
                                       }
                                     }
                                   }}
-                                  className="bg-zinc-950 border border-zinc-850 px-2 py-1 rounded text-[10.5px] text-white focus:border-cyan-500 outline-none w-full font-sans text-left"
+                                  className="bg-zinc-950 border border-zinc-800 px-2 py-1 rounded text-[13px] text-white focus:border-cyan-500 outline-none w-full font-sans text-left"
                                 />
                                 <button 
                                   onClick={() => {
@@ -2116,7 +2296,7 @@ export default function App() {
                                       input.value = "";
                                     }
                                   }}
-                                  className="px-3 bg-cyan-500 hover:bg-cyan-400 text-black text-[9.5px] rounded font-black cursor-pointer transition-colors"
+                                  className="px-3 bg-cyan-500 hover:bg-cyan-400 text-black text-xs rounded font-black cursor-pointer transition-colors"
                                 >
                                   Apply
                                 </button>
@@ -2128,29 +2308,29 @@ export default function App() {
 
                       {/* Right: Modern Actor procedural builder */}
                       <form onSubmit={buildCustomCharacterObj} className="md:col-span-12 lg:col-span-5 bg-zinc-950/40 p-3.5 rounded-xl border border-zinc-900 space-y-3 text-left">
-                        <span className="text-[10px] font-bold text-cyan-400 uppercase font-mono block border-b border-zinc-900 pb-1 flex items-center gap-1">
+                        <span className="text-[13px] font-bold text-cyan-400 uppercase font-mono block border-b border-zinc-900 pb-1 flex items-center gap-1">
                           🧪 Creator Lab (Synthetic Character Builder)
                         </span>
 
                         <div className="space-y-1">
-                          <label className="text-[9px] text-zinc-500 uppercase block">Actor Name or Code</label>
+                          <label className="text-xs text-zinc-500 uppercase block">Actor Name or Code</label>
                           <input 
                             type="text"
                             required
                             value={custName}
                             onChange={(e) => setCustName(e.target.value)}
                             placeholder="e.g., Sean Kenani"
-                            className="w-full bg-zinc-950 border border-zinc-850 px-2 py-1.5 rounded text-xs text-white focus:border-cyan-500 outline-none"
+                            className="w-full bg-zinc-950 border border-zinc-800 px-2 py-1.5 rounded text-xs text-white focus:border-cyan-500 outline-none"
                           />
                         </div>
 
                         <div className="grid grid-cols-2 gap-2">
                           <div className="space-y-1">
-                            <label className="text-[9px] text-zinc-500 block">Gender Roster</label>
+                            <label className="text-xs text-zinc-500 block">Gender Roster</label>
                             <select 
                               value={custGender}
                               onChange={(e) => setCustGender(e.target.value)}
-                              className="w-full bg-zinc-950 border border-[#1b1c31] text-[10.5px] rounded p-1 outline-none text-zinc-300"
+                              className="w-full bg-zinc-950 border border-[#1b1c31] text-[13px] rounded p-1 outline-none text-zinc-300"
                             >
                               <option value="male">Male</option>
                               <option value="female">Female</option>
@@ -2158,11 +2338,11 @@ export default function App() {
                           </div>
                           
                           <div className="space-y-1">
-                            <label className="text-[9px] text-zinc-500 block">Portrait Concept</label>
+                            <label className="text-xs text-zinc-500 block">Portrait Concept</label>
                             <select 
                               value={custPicUrl}
                               onChange={(e) => setCustPicUrl(e.target.value)}
-                              className="w-full bg-zinc-950 border border-[#1b1c31] text-[10.5px] rounded p-1 outline-none text-zinc-300"
+                              className="w-full bg-zinc-950 border border-[#1b1c31] text-[13px] rounded p-1 outline-none text-zinc-300"
                             >
                               <option value="classic">Dramatic & Anticipating</option>
                               <option value="wise_old">Wise with Silver Beard</option>
@@ -2172,19 +2352,19 @@ export default function App() {
                         </div>
 
                         <div className="space-y-1">
-                          <label className="text-[9px] text-zinc-500 block">Appearance & Attire Details</label>
+                          <label className="text-xs text-zinc-500 block">Appearance & Attire Details</label>
                           <input 
                             type="text"
                             value={custStyle}
                             onChange={(e) => setCustStyle(e.target.value)}
                             placeholder="e.g., wet black trench coat, intense steel gaze..."
-                            className="w-full bg-zinc-950 border border-zinc-850 px-2 py-1.5 rounded text-xs text-white focus:border-cyan-500 outline-none"
+                            className="w-full bg-zinc-950 border border-zinc-800 px-2 py-1.5 rounded text-xs text-white focus:border-cyan-500 outline-none"
                           />
                         </div>
 
                         {/* Voice Selection & Custom Addition */}
                         <div className="space-y-1.5 pt-2 border-t border-zinc-900/60 text-left">
-                          <label className="text-[9.5px] text-[#1fe6ff] uppercase flex items-center gap-1 font-bold">
+                          <label className="text-xs text-[#1fe6ff] uppercase flex items-center gap-1 font-bold">
                             🎙️ Sourced Voice Pattern (Voice Synthesis)
                           </label>
                           <select 
@@ -2198,27 +2378,26 @@ export default function App() {
                                 setCustVoice("");
                               }
                             }}
-                            className="w-full bg-zinc-950 border border-zinc-850 text-[11px] rounded p-2 outline-none text-zinc-300 font-sans"
+                            className="w-full bg-zinc-950 border border-zinc-800 text-sm rounded p-2 outline-none text-zinc-300 font-sans"
                           >
-                            <option value="Warm, balanced male narrator voice">Warm, balanced male narrator</option>
-                            <option value="Classic, firm, confident female voice">Classic, confident female</option>
-                            <option value="Resonant, slow, dignified tone brimming with wisdom">Resonant, wise old sage</option>
-                            <option value="Warm, balanced, soothing female voice">Warm, soft, soothing female</option>
-                            <option value="Slightly synthesized digital voice with neon frequency variations">Slight synthesized digital cyber</option>
-                            <option value="Thick, low, analog voice with cinematic resonance">Thick, low analog cinematic</option>
+                            {VOICE_PRESETS.map((voice) => (
+                              <option key={voice.voiceId} value={voice.label}>
+                                {voice.label} ({voice.lang})
+                              </option>
+                            ))}
                             <option value="custom">✍️ Describe Custom Voice / Add Custom Description...</option>
                           </select>
 
                           {custVoicePreset === "custom" && (
                             <div className="space-y-1 mt-1">
-                              <label className="text-[9px] text-zinc-500 block">Write the exact customized voice detail:</label>
+                              <label className="text-xs text-zinc-500 block">Write the exact customized voice detail:</label>
                               <input 
                                 type="text"
                                 required
                                 value={custVoice}
                                 onChange={(e) => setCustVoice(e.target.value)}
                                 placeholder="e.g., deep raspy whispered voice with a subtle Irish accent..."
-                                className="w-full bg-zinc-950 border border-zinc-850 px-2 py-1.5 rounded text-xs text-white focus:border-cyan-500 outline-none font-sans"
+                                className="w-full bg-zinc-950 border border-zinc-800 px-2 py-1.5 rounded text-xs text-white focus:border-cyan-500 outline-none font-sans"
                               />
                             </div>
                           )}
@@ -2226,7 +2405,7 @@ export default function App() {
 
                         {isGeneratingChar ? (
                           <div className="space-y-1.5 pt-1.5">
-                            <div className="flex items-center justify-between text-[8px] font-mono text-cyan-400">
+                            <div className="flex items-center justify-between text-[13px] font-mono text-cyan-400">
                               <span>AI synthesizing character profile... {charProgress}%</span>
                             </div>
                             <div className="h-0.5 bg-zinc-900 rounded overflow-hidden">
@@ -2258,15 +2437,15 @@ export default function App() {
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
                       {/* Left: Current Actor Status & Profile */}
                       <div className="md:col-span-4 bg-[#0a0a0f] border border-zinc-900 rounded-xl p-4 flex flex-col items-center justify-center text-center">
-                        <div className="relative w-16 h-16 rounded-full overflow-hidden border border-zinc-850 mb-3">
+                        <div className="relative w-16 h-16 rounded-full overflow-hidden border border-zinc-800 mb-3">
                           <img src={currentActor.url} alt={currentActor.name} className="w-full h-full object-cover grayscale" />
                         </div>
                         <h4 className="text-xs font-bold text-slate-100">{currentActor.name}</h4>
-                        <p className="text-[10px] text-zinc-500 mt-1">{currentActor.tagline}</p>
+                        <p className="text-[13px] text-zinc-500 mt-1">{currentActor.tagline}</p>
                         
                         <div className="mt-4 w-full bg-zinc-950 border border-zinc-900 rounded-lg p-3 text-left">
-                          <span className="text-[9px] text-zinc-500 uppercase block font-sans">Active Voice Setting</span>
-                          <span className="text-[11px] font-bold text-rose-400 block mt-1 leading-tight break-all font-sans">
+                          <span className="text-xs text-zinc-500 uppercase block font-sans">Active Voice Setting</span>
+                          <span className="text-sm font-bold text-rose-400 block mt-1 leading-tight break-all font-sans">
                             {currentActor.voice}
                           </span>
                         </div>
@@ -2275,22 +2454,13 @@ export default function App() {
                       {/* Right: Sound presets selection grid and additions builder */}
                       <div className="md:col-span-8 space-y-4 text-left">
                         <div className="space-y-2">
-                          <span className="text-[10px] text-zinc-300 font-bold block font-sans">Select a default cinematic voice preset:</span>
+                          <span className="text-[13px] text-zinc-300 font-bold block font-sans">Select a real ElevenLabs voice preset:</span>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[160px] overflow-y-auto pr-1">
-                            {[
-                              { label: "Warm, balanced male narrator voice", desc: "Calm, steady tone perfect for deep narrative storytelling" },
-                              { label: "Classic, firm, confident female voice", desc: "Strong, commanding delivery with retro mid-century aesthetic" },
-                              { label: "Resonant, slow, dignified tone brimming with wisdom", desc: "Ideal for deep dramatic pacing and ancient wisdom scripts" },
-                              { label: "Warm, balanced, soothing female voice", desc: "Intimate and delicate voicing filled with rich emotional warmth" },
-                              { label: "Slightly synthesized digital voice with neon frequency variations", desc: "Scientific droids or highly atmospheric artificial intelligence" },
-                              { label: "Thick, low, analog voice with cinematic resonance", desc: "Low-frequency vintage timbre matching mid-century dramatic films" },
-                              { label: "Warm rural dialect with a calm pitch", desc: "Authentic, rustic, and cozy dialogue style" },
-                              { label: "Gruff, deep, concise desert male voice", desc: "Thick throat presence, broad resonance, and commanding posture" }
-                            ].map((v, idx) => {
+                            {VOICE_PRESETS.map((v) => {
                               const isSelected = currentActor.voice === v.label;
                               return (
                                 <button
-                                  key={idx}
+                                  key={v.voiceId}
                                   onClick={() => {
                                     setCastingActors(prev => prev.map(act => act.id === currentActor.id ? { ...act, voice: v.label } : act));
                                   }}
@@ -2300,20 +2470,28 @@ export default function App() {
                                       : "border-zinc-900 bg-zinc-950/40 hover:bg-zinc-900/40 hover:border-zinc-800"
                                   }`}
                                 >
-                                  <span className="text-[10.5px] font-bold text-white block truncate">{v.label}</span>
-                                  <span className="text-[8.5px] text-zinc-500 block leading-tight mt-1">{v.desc}</span>
+                                  <span className="text-[13px] font-bold text-white block truncate">{v.label}</span>
+                                  <span className="text-xs text-zinc-500 block leading-tight mt-1">{v.lang} - {v.desc}</span>
                                 </button>
                               );
                             })}
                           </div>
+                          <button
+                            type="button"
+                            onClick={() => previewVoice(selectedVoicePreset.voiceId)}
+                            disabled={isPreviewingVoice || !dialogueText.trim()}
+                            className="mt-2 px-3 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 disabled:bg-zinc-800 disabled:text-zinc-500 text-white text-sm font-bold transition-colors"
+                          >
+                            {isPreviewingVoice ? "Previewing..." : "Preview Voice"}
+                          </button>
                         </div>
 
                         {/* Custom voice descriptor input logic */}
                         <div className="bg-[#0b0c13] border border-zinc-900 rounded-xl p-3 space-y-2">
-                          <span className="text-[9.5px] text-[#1fe6ff] uppercase flex items-center gap-1 font-bold">
+                          <span className="text-xs text-[#1fe6ff] uppercase flex items-center gap-1 font-bold">
                             ➕ Custom Voice Integration
                           </span>
-                          <p className="text-[9px] text-zinc-500 leading-relaxed font-sans">
+                          <p className="text-xs text-zinc-500 leading-relaxed font-sans">
                             Describe the voice qualities, ages, or dialects, and the dubbing system will synthesize them instantly:
                           </p>
                           <div className="flex gap-2">
@@ -2331,7 +2509,7 @@ export default function App() {
                                   }
                                 }
                               }}
-                              className="bg-zinc-950 border border-zinc-850 px-3 py-2 rounded-lg text-xs text-white focus:border-rose-500 outline-none w-full font-sans text-left placeholder:text-zinc-600"
+                              className="bg-zinc-950 border border-zinc-800 px-3 py-2 rounded-lg text-xs text-white focus:border-rose-500 outline-none w-full font-sans text-left placeholder:text-zinc-600"
                             />
                             <button 
                               onClick={() => {
@@ -2342,7 +2520,7 @@ export default function App() {
                                   input.value = "";
                                 }
                               }}
-                              className="px-4 bg-rose-600 hover:bg-rose-500 text-white text-[10.5px] font-bold rounded-lg cursor-pointer transition-colors whitespace-nowrap"
+                              className="px-4 bg-rose-600 hover:bg-rose-500 text-white text-[13px] font-bold rounded-lg cursor-pointer transition-colors whitespace-nowrap"
                             >
                               Synthesize & Apply
                             </button>
@@ -2362,10 +2540,10 @@ export default function App() {
 
                     <div className="bg-zinc-950/40 border border-zinc-900 rounded-xl p-4 text-xs space-y-3 font-sans">
                       <div className="flex items-start gap-2 text-zinc-300">
-                        <span className="bg-cyan-500 text-black text-[9px] font-black px-1.5 py-0.2 rounded font-mono">ADVISOR</span>
+                        <span className="bg-cyan-500 text-black text-xs font-black px-1.5 py-0.2 rounded font-mono">ADVISOR</span>
                         <div>
-                          <p className="font-extrabold text-white text-[11px] mb-1">Macro Lens & Drama Focus Recommendation</p>
-                          <p className="text-zinc-400 leading-relaxed text-[11px]">
+                          <p className="font-extrabold text-white text-sm mb-1">Macro Lens & Drama Focus Recommendation</p>
+                          <p className="text-zinc-400 leading-relaxed text-sm">
                             You have chosen <span className="text-cyan-400 font-bold">{lensType}</span>. We recommend adjusting the dialog text to include silent beats or pregnant pauses to enhance character isolation by 20%.
                           </p>
                         </div>
@@ -2373,11 +2551,11 @@ export default function App() {
 
                       <div className="h-[1px] bg-zinc-900/60" />
 
-                      <div className="flex items-start gap-2 text-zinc-440">
-                        <span className="bg-amber-500 text-black text-[9px] font-black px-1.5 py-0.2 rounded font-mono">DOP_NOTE</span>
+                      <div className="flex items-start gap-2 text-zinc-400">
+                        <span className="bg-amber-500 text-black text-xs font-black px-1.5 py-0.2 rounded font-mono">DOP_NOTE</span>
                         <div>
-                          <p className="font-extrabold text-white text-[11px] mb-1">Calculated Hydraulic Dolly Zoom Application</p>
-                          <p className="text-zinc-400 leading-relaxed text-[11px]">
+                          <p className="font-extrabold text-white text-sm mb-1">Calculated Hydraulic Dolly Zoom Application</p>
+                          <p className="text-zinc-400 leading-relaxed text-sm">
                             When simulating the Vertigo effect, increase volumetric scattering and darken color grading to highlight the psychological shock of the actor <span className="text-amber-400 font-bold">{currentActor.name}</span>.
                           </p>
                         </div>

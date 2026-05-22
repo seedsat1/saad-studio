@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { getGenAI } from "@/lib/gemini-veo";
+import { getModelById, VIDEO_MODEL_REGISTRY } from "@/lib/video-model-registry";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { getClientIp, isAllowedOrigin, sanitizePrompt } from "@/lib/security";
 import {
@@ -18,6 +19,18 @@ Return JSON only. No markdown. No explanation.
 The plan must include title, directorNotes, moodColor, accentColor, particlesType, and one or more scenes.
 Each scene must include visualDescription, dialogue, subtitles with start/end seconds, lensType, cameraMovement, soundEffects, and visualLayout.
 Keep subtitle timings inside 0 to 8 seconds.`;
+
+function resolveCinemaModel(raw: Partial<CinemaRenderInput> & Record<string, unknown>) {
+  const requestedId = typeof raw?.modelId === "string" ? raw.modelId : "";
+  const requestedRoute = typeof raw?.modelRoute === "string" ? raw.modelRoute : "";
+  const byId = requestedId ? getModelById(requestedId) : undefined;
+  const byRoute = requestedRoute ? VIDEO_MODEL_REGISTRY.find((m) => m.api_route === requestedRoute) : undefined;
+  const model = byId ?? byRoute ?? VIDEO_MODEL_REGISTRY[0];
+  if (model.capabilities.requires_image || model.capabilities.requires_video) {
+    throw new Error(`${model.name} is not available on this text-to-video page because it requires image/video input.`);
+  }
+  return model;
+}
 
 function extractText(response: any): string {
   return String(
@@ -57,18 +70,26 @@ export async function POST(req: Request) {
       });
     }
 
-    const raw = (await req.json().catch(() => null)) as Partial<CinemaRenderInput> | null;
+    const raw = (await req.json().catch(() => null)) as (Partial<CinemaRenderInput> & Record<string, unknown>) | null;
     const prompt = sanitizePrompt(typeof raw?.prompt === "string" ? raw.prompt : "");
     if (!prompt || prompt.length < 4) {
       return NextResponse.json({ error: "Description prompt is required." }, { status: 400 });
     }
+
+    const model = resolveCinemaModel(raw ?? {});
+    const duration = Number(raw?.duration);
+    const allowedDurations = model.capabilities.durations;
+    const safeDuration = allowedDurations.includes(duration) ? duration : allowedDurations[0] ?? 8;
+    const resolution = sanitizePrompt(typeof raw?.resolution === "string" ? raw.resolution : "").slice(0, 20);
+    const aspectRatio = sanitizePrompt(typeof raw?.aspectRatio === "string" ? raw.aspectRatio : "").slice(0, 20);
+    const voiceId = sanitizePrompt(typeof raw?.voiceId === "string" ? raw.voiceId : "").slice(0, 120);
 
     const input: CinemaRenderInput = {
       prompt,
       dialogueText: sanitizePrompt(typeof raw?.dialogueText === "string" ? raw.dialogueText : "").slice(0, 1200),
       cameraMovement: sanitizePrompt(typeof raw?.cameraMovement === "string" ? raw.cameraMovement : "Dolly Zoom").slice(0, 160),
       lensType: sanitizePrompt(typeof raw?.lensType === "string" ? raw.lensType : "85mm Anamorphic Cinema").slice(0, 160),
-      voiceId: sanitizePrompt(typeof raw?.voiceId === "string" ? raw.voiceId : "").slice(0, 120),
+      voiceId,
     };
 
     let data = generateProceduralCinemaScene(input);
@@ -97,7 +118,13 @@ Lens:
 ${input.lensType}
 
 Voice reference:
-${input.voiceId || "(default)"}`,
+${input.voiceId || "(default)"}
+
+Selected video model:
+${model.name} (${model.api_route})
+
+Validated output settings:
+duration=${safeDuration}s, aspect_ratio=${aspectRatio || "(model default)"}, resolution=${resolution || "(model default)"}`,
               },
             ],
           },
@@ -121,6 +148,17 @@ ${input.voiceId || "(default)"}`,
       generationId: `cin_${Date.now().toString(36)}`,
       status: "COMPLETED",
       progress: 100,
+      model: {
+        id: model.id,
+        name: model.name,
+        route: model.api_route,
+      },
+      settings: {
+        duration: safeDuration,
+        resolution,
+        aspectRatio,
+        voiceId,
+      },
       data,
     });
   } catch (err) {
