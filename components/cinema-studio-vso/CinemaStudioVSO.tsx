@@ -418,24 +418,6 @@ const getShortModel = (name: string): string => {
   return name;
 };
 
-const getShortLens = (lens: string): string => {
-  if (!lens) return "";
-  const l = lens.toLowerCase();
-  if (l.includes("anamorphic") && l.includes("85mm")) return "85mm Anamorphic";
-  if (l.includes("noctilux")) return "50mm Noctilux";
-  if (l.includes("street") || l.includes("documentary")) return "35mm Street";
-  if (l.includes("portrait") || l.includes("50mm prime")) return "50mm Prime";
-  if (l.includes("macro") || l.includes("tessar")) return "100mm Macro";
-  if (l.includes("24mm")) return "24mm Wide";
-  if (l.includes("arri") || l.includes("18mm")) return "18mm Arri Wide";
-  if (l.includes("hawk") || l.includes("45mm")) return "45mm Hawk";
-  if (l.includes("zoom") || l.includes("70-200")) return "70-200mm Zoom";
-  if (l.includes("isolator") || l.includes("135mm")) return "135mm Isolator";
-  if (l.includes("fisheye") || l.includes("12mm")) return "12mm Fisheye";
-  if (l.includes("helios")) return "58mm Helios";
-  return lens.replace(/\s*(Lens|Cine|Cinema|Vintage|Professional|Extreme|Prime|Portrait|Shot)\s*/gi, " ").replace(/\s+/g, " ").trim();
-};
-
 const getShortMovement = (mv: string): string => {
   if (!mv) return "";
   const m = mv.toLowerCase();
@@ -1626,7 +1608,7 @@ export default function App() {
                 className="w-2 h-2 rounded-full inline-block filter blur-[1px] animate-pulse"
                 style={{ background: activeGenreObj.color }}
               />
-              <span>Mood: <span className="font-mono text-[#FFB347]">{activeGenreObj.id}</span></span>
+              <span>Mood</span>
             </button>
 
             <button
@@ -1638,7 +1620,7 @@ export default function App() {
               }`}
             >
               <Sliders size={11} className="text-[#FF8C42]" />
-              <span>Grade: <span className="font-mono text-[#FFB347]">{colorPalette === "Auto" ? "Auto" : colorPalette.split(" ")[0]}</span></span>
+              <span>Grade</span>
             </button>
 
             <button
@@ -1650,7 +1632,7 @@ export default function App() {
               }`}
             >
               <Camera size={11} className="text-[#FFB347]" />
-              <span>Shoot: <span className="font-mono text-[#FFB347]">{getShortLens(lensType)} · {getShortMovement(cameraMovement)}</span></span>
+              <span>Shoot</span>
             </button>
 
             <button
@@ -1662,7 +1644,7 @@ export default function App() {
               }`}
             >
               <UserCheck size={11} className="text-[#F6D58B]" />
-              <span>Cast: <span className="font-mono text-[#FFB347]">{getShortCast(currentActor.name)}</span></span>
+              <span>Cast</span>
             </button>
 
             <button
@@ -1674,7 +1656,7 @@ export default function App() {
               }`}
             >
               <span className="text-[#D9754F] text-[12px]">🎙️</span>
-              <span>Voice: <span className="font-mono text-[#FFB347]">{getShortVoice(currentActor.voice)}</span></span>
+              <span>Speak</span>
             </button>
           </div>
 
