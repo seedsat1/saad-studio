@@ -1271,7 +1271,7 @@ const PRICING_CARDS = [
   {
     name: "Max",
     price: "$99/mo",
-    line1: "3,000 credits",
+    line1: "2,700 credits",
     line2: "Team features + API access",
     cta: "Get Max",
     ctaHref: "/pricing",

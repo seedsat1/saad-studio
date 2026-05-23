@@ -30,7 +30,7 @@ const PLANS = [
   { id: "starter", label: "Starter", usd: 15, credits: 300,  Icon: Rocket, color: "text-violet-400", bg: "bg-violet-500/10", border: "border-violet-500/40" },
   { id: "plus",    label: "Plus",    usd: 35, credits: 800,  Icon: Sparkles, color: "text-slate-300", bg: "bg-slate-500/10", border: "border-slate-500/40" },
   { id: "pro",     label: "Pro",     usd: 70, credits: 1800, Icon: Star,   color: "text-blue-400",   bg: "bg-blue-500/10",   border: "border-blue-500/40"   },
-  { id: "max",     label: "Max",     usd: 99, credits: 3000, Icon: Crown,  color: "text-amber-400",  bg: "bg-amber-500/10",  border: "border-amber-500/40"  },
+  { id: "max",     label: "Max",     usd: 99, credits: 2700, Icon: Crown,  color: "text-amber-400",  bg: "bg-amber-500/10",  border: "border-amber-500/40"  },
 ];
 
 const TOPUPS = [
