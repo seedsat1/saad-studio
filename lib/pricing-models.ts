@@ -58,6 +58,7 @@ export const KIE_PACKAGES: KiePackage[] = [
 // per-generation counts, while still leaving a ≥1.5x margin via the lower
 // userCreditsRate set on each model.
 export const SAAD_PLANS: SaadPlan[] = [
+  { id: "try",     name: "Try",     monthlyUsd: 5,   credits: 70,   annualDiscount: 0  },
   { id: "starter", name: "Starter", monthlyUsd: 15,  credits: 300,  annualDiscount: 0  },
   { id: "plus",    name: "Plus",    monthlyUsd: 35,  credits: 800,  annualDiscount: 10 },
   { id: "pro",     name: "Pro",     monthlyUsd: 70,  credits: 1800, annualDiscount: 12 },

@@ -27,6 +27,12 @@ interface PricingCmsData {
 // â”€â”€â”€ Data â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const PLAN_FEATURES: Record<string, string[]> = {
+  try: [
+    "Try the full studio with a small credit pack",
+    "Selected model access",
+    "Up to 1 video or 2 image parallel generations",
+    "Best to evaluate quality before committing",
+  ],
   starter: [
     "Selected model access",
     "Up to 2 video or 4 image parallel generations",
@@ -57,6 +63,30 @@ const PLAN_FEATURES: Record<string, string[]> = {
 };
 
 const PLANS = [
+  {
+    id: "try",
+    badge: "Try",
+    tagline: "Test the studio with one quick taste",
+    credits: "70 credits / mo",
+    equiv: "= 22 Nano Banana Pro images - ~1 Kling 3.0 video (8s)",
+    price: "$5",
+    period: "per month, billed monthly",
+    cta: "Try for $5",
+    ctaStyle: "border border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/10",
+    highlight: false,
+    Icon: Zap,
+    iconColor: "text-emerald-400",
+    accentBg: "bg-emerald-500/10",
+    accentBorder: "border-emerald-500/30",
+    features: [
+      ...PLAN_FEATURES.try,
+    ],
+    unlimited: {
+      active: [],
+      coming: [],
+      none: [],
+    },
+  },
   {
     id: "starter",
     badge: "Starter",
@@ -164,6 +194,7 @@ const TOPUPS = [
 ];
 
 const PLAN_MONTHLY_PRICE: Record<string, number> = {
+  try: 5,
   starter: 15,
   plus: 35,
   pro: 70,
@@ -171,6 +202,7 @@ const PLAN_MONTHLY_PRICE: Record<string, number> = {
 };
 
 const PLAN_ANNUAL_DISCOUNT: Record<string, number> = {
+  try: 0, // monthly only
   starter: 0, // monthly only
   plus: 10,
   pro: 12,
@@ -264,15 +296,16 @@ export default function PricingPage() {
         } else if (interval === "monthly" || interval === "month") {
           setBillingCycle("monthly");
         }
-        if (active && ["starter", "plus", "pro", "max"].includes(planId)) {
+        if (active && ["try", "starter", "plus", "pro", "max"].includes(planId)) {
           setCurrentPlanId(planId);
         }
       })
       .catch(() => null);
   }, []);
 
-  const ICON_MAP = useMemo<Record<string, typeof Rocket>>(() => ({ starter: Rocket, plus: Sparkles, pro: Star, max: Crown }), []);
+  const ICON_MAP = useMemo<Record<string, typeof Rocket>>(() => ({ try: Zap, starter: Rocket, plus: Sparkles, pro: Star, max: Crown }), []);
   const ACCENT_MAP = useMemo<Record<string, { bg: string; border: string; iconColor: string; ctaStyle: string }>>(() => ({
+    try:     { bg: "bg-emerald-500/10", border: "border-emerald-500/30", iconColor: "text-emerald-400", ctaStyle: "border border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/10" },
     starter: { bg: "bg-violet-500/10", border: "border-violet-500/30", iconColor: "text-violet-400", ctaStyle: "bg-violet-600 hover:bg-violet-500 text-white shadow-lg shadow-violet-500/25" },
     plus:    { bg: "bg-slate-500/10",  border: "border-slate-700",     iconColor: "text-slate-400",  ctaStyle: "border border-slate-700 text-slate-200 hover:bg-slate-800" },
     pro:     { bg: "bg-blue-500/10",   border: "border-blue-500/40",   iconColor: "text-blue-400",   ctaStyle: "bg-gradient-to-r from-blue-500 to-violet-600 hover:from-blue-400 hover:to-violet-500 text-white shadow-lg shadow-blue-500/30" },
@@ -408,7 +441,7 @@ export default function PricingPage() {
         {/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <section>
           <motion.div
-            className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 items-start"
+            className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4 items-start"
             variants={stagger}
             initial="hidden"
             whileInView="visible"

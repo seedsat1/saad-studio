@@ -1249,19 +1249,19 @@ function AppsMarquee({ apps = APPS_MARQUEE }: { apps?: { title: string; icon?: R
 // ─── Pricing Preview Section ──────────────────────────────────────────────────
 const PRICING_CARDS = [
   {
-    name: "Free",
-    price: null,
-    line1: "Browse the studio",
-    line2: "No card required",
-    cta: "Sign Up Free",
-    ctaHref: "/?auth=signup",
+    name: "Try",
+    price: "$5/mo",
+    line1: "70 credits — quick taste",
+    line2: "Try the full studio for a fiver",
+    cta: "Try for $5",
+    ctaHref: "/payment?type=plan&id=try",
     highlighted: false,
     badge: null,
   },
   {
     name: "Pro",
     price: "$70/mo",
-    line1: "1,200 credits",
+    line1: "1,800 credits",
     line2: "All models + Commercial rights",
     cta: "Get Pro",
     ctaHref: "/pricing",

@@ -511,6 +511,7 @@ export default function PricingConstitutionPage() {
             tag: "You",
             you: true,
             rows: [
+              ["Try plan",     "$5/mo · 70 cr"],
               ["Starter plan", "$15/mo · 300 cr"],
               ["Plus plan",    "$35/mo · 800 cr"],
               ["Pro plan",     "$70/mo · 1,800 cr"],

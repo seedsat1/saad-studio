@@ -27,6 +27,7 @@ interface PricingCmsData {
 // ─── Data ────────────────────────────────────────────────────────────────────
 
 const PLANS = [
+  { id: "try",     label: "Try",     usd: 5,  credits: 70,   Icon: Zap, color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/40" },
   { id: "starter", label: "Starter", usd: 15, credits: 300,  Icon: Rocket, color: "text-violet-400", bg: "bg-violet-500/10", border: "border-violet-500/40" },
   { id: "plus",    label: "Plus",    usd: 35, credits: 800,  Icon: Sparkles, color: "text-slate-300", bg: "bg-slate-500/10", border: "border-slate-500/40" },
   { id: "pro",     label: "Pro",     usd: 70, credits: 1800, Icon: Star,   color: "text-blue-400",   bg: "bg-blue-500/10",   border: "border-blue-500/40"   },
@@ -72,6 +73,7 @@ type Step = 1 | 2 | 3;
 type BillingCycle = "monthly" | "annual";
 
 const PLAN_ANNUAL_DISCOUNT: Record<string, number> = {
+  try: 0,
   starter: 0,
   plus: 10,
   pro: 12,
@@ -327,8 +329,9 @@ export default function PaymentPage() {
   const liveWhatsApp = cms?.whatsappNumber ?? "9647902585579";
 
   // Live plans from CMS (USD only — IQD removed)
-  const ICON_MAP = useMemo<Record<string, typeof Rocket>>(() => ({ starter: Rocket, plus: Sparkles, pro: Star, max: Crown }), []);
+  const ICON_MAP = useMemo<Record<string, typeof Rocket>>(() => ({ try: Zap, starter: Rocket, plus: Sparkles, pro: Star, max: Crown }), []);
   const STYLE_MAP_PLANS = useMemo<Record<string, { color: string; bg: string; border: string }>>(() => ({
+    try:     { color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/40" },
     starter: { color: "text-violet-400", bg: "bg-violet-500/10", border: "border-violet-500/40" },
     plus:    { color: "text-slate-300",  bg: "bg-slate-500/10",  border: "border-slate-500/40" },
     pro:     { color: "text-blue-400",   bg: "bg-blue-500/10",   border: "border-blue-500/40" },
