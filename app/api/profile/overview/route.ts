@@ -99,9 +99,10 @@ export async function GET() {
     return NextResponse.json({
       credits: Math.max(0, Math.floor(userRow?.creditBalance ?? 0)),
       subscription: {
+        // STRICT TIMING: no grace period of any kind.
         active: Boolean(
           subscription?.stripeCurrentPeriodEnd &&
-            subscription.stripeCurrentPeriodEnd.getTime() + 86_400_000 > Date.now(),
+            subscription.stripeCurrentPeriodEnd.getTime() > Date.now(),
         ),
         planId: subscription?.planId ?? null,
         billingInterval: subscription?.billingInterval ?? null,

@@ -59,7 +59,10 @@ export async function POST(req: NextRequest) {
 
   try {
     if (type === "user.created") {
-      const welcomeExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+      // Welcome bonus respects WELCOME_SIGNUP_CREDITS (default 0, can be
+      // enabled via env). When zero, do not set a phantom 30-day expiry.
+      const welcome = Math.max(0, Math.floor(WELCOME_SIGNUP_CREDITS));
+      const welcomeExpiry = welcome > 0 ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) : null;
       await prismadb.user.upsert({
         where: { id: data.id },
         update: { email, name, phone },
@@ -68,16 +71,20 @@ export async function POST(req: NextRequest) {
           email,
           name,
           phone,
-          creditBalance: WELCOME_SIGNUP_CREDITS,
+          creditBalance: welcome,
           creditsExpireAt: welcomeExpiry,
           role: "USER",
           isBanned: false,
         },
       });
-      console.log(`[clerk-webhook] User created: ${email} (+${WELCOME_SIGNUP_CREDITS} welcome credits, expires ${welcomeExpiry.toISOString()})`);
+      console.log(
+        `[clerk-webhook] User created: ${email} (+${welcome} welcome credits${welcomeExpiry ? `, expires ${welcomeExpiry.toISOString()}` : ""})`,
+      );
     }
 
     if (type === "user.updated") {
+      const welcome = Math.max(0, Math.floor(WELCOME_SIGNUP_CREDITS));
+      const welcomeExpiry = welcome > 0 ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) : null;
       await prismadb.user.upsert({
         where: { id: data.id },
         update: { email, name, phone },
@@ -86,8 +93,8 @@ export async function POST(req: NextRequest) {
           email,
           name,
           phone,
-          creditBalance: WELCOME_SIGNUP_CREDITS,
-          creditsExpireAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          creditBalance: welcome,
+          creditsExpireAt: welcomeExpiry,
           role: "USER",
           isBanned: false,
         },

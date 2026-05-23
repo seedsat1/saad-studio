@@ -3,6 +3,7 @@ import { isAdmin } from "@/lib/is-admin";
 import prismadb from "@/lib/prismadb";
 import { SAAD_PLANS } from "@/lib/pricing-models";
 import { sendInvoiceEmail } from "@/lib/email-templates/invoice";
+import { allocateSubscriptionCredits, applyTopupCredits } from "@/lib/credit-ledger";
 
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
@@ -55,33 +56,6 @@ function extractMethod(plan: string | null | undefined): string | null {
   const m = raw.match(/(?:^|\|)\s*method:([^|]+)\s*(?:\||$)/i);
   const method = (m?.[1] ?? "").trim();
   return method || null;
-}
-
-async function allocateSubscriptionCreditsPreserveBalance(params: {
-  userId: string;
-  planId: string;
-}): Promise<void> {
-  const plan = SAAD_PLANS.find((p) => p.id === params.planId);
-  if (!plan) return;
-
-  const user = await prismadb.user.findUnique({
-    where: { id: params.userId },
-    select: { creditBalance: true },
-  });
-
-  const now = new Date();
-  const currentBalance = Math.max(0, Math.floor(user?.creditBalance ?? 0));
-  const nextBalance = Math.max(currentBalance, plan.credits);
-
-  await prismadb.user.update({
-    where: { id: params.userId },
-    data: {
-      creditBalance: nextBalance,
-      monthlyCredits: plan.credits,
-      creditsExpireAt: new Date(now.getTime() + THIRTY_DAYS_MS),
-      lastCreditRenewal: now,
-    },
-  });
 }
 
 const sendApprovalEmail = sendInvoiceEmail;
@@ -150,32 +124,26 @@ export async function PATCH(
       const { isTopup, planId, billingInterval } = parsePlanString(tx.plan ?? "");
 
       if (isTopup) {
-        // Topup: add credits with 30-day expiry
-        const now = new Date();
-        await prismadb.$transaction([
-          prismadb.adminTransaction.update({
-            where: { id },
-            data: { paymentStatus: "COMPLETED" },
-          }),
-          prismadb.user.update({
-            where: { id: tx.userId },
-            data: {
-              creditBalance: { increment: tx.credits },
-              creditsExpireAt: new Date(now.getTime() + THIRTY_DAYS_MS),
-            },
-          }),
-        ]);
+        // Topup: increment credits and EXTEND (never shorten) creditsExpireAt.
+        // Annual subscribers keep their long expiry; free users get 30 days.
+        await prismadb.adminTransaction.update({
+          where: { id },
+          data: { paymentStatus: "COMPLETED" },
+        });
+        await applyTopupCredits(tx.userId, tx.credits);
       } else {
-        // Subscription plan: allocate credits without deleting existing (higher) credit balance
+        // Subscription plan: allocate credits via the single shared function
+        // (preserves balance and preserves expiry if it's already further out).
         await prismadb.adminTransaction.update({
           where: { id },
           data: { paymentStatus: "COMPLETED" },
         });
 
-        await allocateSubscriptionCreditsPreserveBalance({
-          userId: tx.userId,
-          planId: planId ?? "starter",
-        });
+        await allocateSubscriptionCredits(
+          tx.userId,
+          planId ?? "starter",
+          billingInterval,
+        );
 
         // Update UserSubscription so handleCreditExpiry can check billingInterval
         const now = new Date();

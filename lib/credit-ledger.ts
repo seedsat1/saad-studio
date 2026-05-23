@@ -29,14 +29,19 @@ export async function ensureUserRow(userId: string) {
   const email = clerkUser?.emailAddresses?.[0]?.emailAddress ?? `${userId}@unknown`;
   const name = [clerkUser?.firstName, clerkUser?.lastName].filter(Boolean).join(" ") || null;
 
+  // Welcome bonus is OFF by default. Only set creditsExpireAt when we
+  // actually allocate something — a zero-credit account doesn't need a
+  // ticking 30-day expiry.
+  const welcome = Math.max(0, Math.floor(WELCOME_SIGNUP_CREDITS));
+
   try {
     return await prismadb.user.create({
       data: {
         id: userId,
         email,
         name,
-        creditBalance: WELCOME_SIGNUP_CREDITS,
-        creditsExpireAt: new Date(Date.now() + THIRTY_DAYS_MS),
+        creditBalance: welcome,
+        creditsExpireAt: welcome > 0 ? new Date(Date.now() + THIRTY_DAYS_MS) : null,
         role: "USER",
         isBanned: false,
       },
@@ -53,6 +58,8 @@ export async function ensureUserRow(userId: string) {
 
 export async function ensureWelcomeCredits(userId: string) {
   const user = await ensureUserRow(userId);
+  // No-op when the welcome bonus is disabled — never silently top up.
+  if (WELCOME_SIGNUP_CREDITS <= 0) return user;
   if (user.creditBalance > 0) return user;
 
   const [generationCount, transactionCount] = await Promise.all([
@@ -98,10 +105,12 @@ async function handleCreditExpiry(userId: string): Promise<void> {
     },
   });
 
+  // STRICT TIMING: subscription is active only if stripeCurrentPeriodEnd is
+  // still in the future. NO grace period — not a day, not an hour.
   const isSubscriptionActive =
     subscription?.stripePriceId &&
     subscription?.stripeCurrentPeriodEnd &&
-    subscription.stripeCurrentPeriodEnd.getTime() + 86_400_000 > now.getTime();
+    subscription.stripeCurrentPeriodEnd.getTime() > now.getTime();
 
   // Only annual subscribers get auto-renewed every 30 days.
   // Monthly subscribers must pay again — their credits expire and stay at 0.
@@ -136,12 +145,36 @@ async function handleCreditExpiry(userId: string): Promise<void> {
 }
 
 /**
+ * Return the user's existing expiry IF it is still in the future, otherwise
+ * fall back to (now + 30 days). Used by topups: they MUST NOT extend the
+ * current cycle (no rollover), but new users with no active cycle still
+ * need a 30-day window to spend what they just purchased.
+ */
+function preserveExpiryOrFresh(current: Date | null | undefined): Date {
+  const now = Date.now();
+  if (current && current.getTime() > now) return current;
+  return new Date(now + THIRTY_DAYS_MS);
+}
+
+/**
  * Allocate subscription credits to a user after payment.
- * Sets creditBalance = plan credits, creditsExpireAt = now + 30 days.
+ *
+ * Behaviour (no rollover — matches the stated business model):
+ *   - creditBalance = plan.credits         → replaces the balance, any
+ *                                              unused credits from the
+ *                                              previous cycle are discarded.
+ *   - monthlyCredits = plan.credits        → recorded for auto-renew use.
+ *   - creditsExpireAt = now + 30 days      → fresh 30-day window starts.
+ *                                              Annual subscribers refresh
+ *                                              monthly via handleCreditExpiry().
+ *
+ * Same function used by Stripe webhook AND manual admin-approval flow,
+ * so both payment paths behave identically.
  */
 export async function allocateSubscriptionCredits(
   userId: string,
   planId: string,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   billingInterval: "monthly" | "annual",
 ): Promise<void> {
   await ensureUserRow(userId);
@@ -156,6 +189,39 @@ export async function allocateSubscriptionCredits(
       monthlyCredits: plan.credits,
       creditsExpireAt: new Date(now.getTime() + THIRTY_DAYS_MS),
       lastCreditRenewal: now,
+    },
+  });
+}
+
+/**
+ * Add stand-alone topup credits to a user.
+ *
+ * STRICT NO-ROLLOVER POLICY:
+ *   - creditBalance is incremented by the purchased amount.
+ *   - creditsExpireAt is INHERITED from the user's current cycle. The topup
+ *     does NOT extend the cycle and the topup credits die together with the
+ *     rest of the pool when the cycle ends — there is no carryover into
+ *     the next month, ever.
+ *   - For users with no active cycle (free users / expired credits), the
+ *     topup opens a single fresh 30-day window so the purchase is usable.
+ */
+export async function applyTopupCredits(userId: string, credits: number): Promise<void> {
+  const safeCredits = Math.max(0, Math.floor(credits));
+  if (!userId || safeCredits <= 0) return;
+  await ensureUserRow(userId);
+
+  const existing = await prismadb.user.findUnique({
+    where: { id: userId },
+    select: { creditsExpireAt: true },
+  });
+
+  const finalExpiry = preserveExpiryOrFresh(existing?.creditsExpireAt);
+
+  await prismadb.user.update({
+    where: { id: userId },
+    data: {
+      creditBalance: { increment: safeCredits },
+      creditsExpireAt: finalExpiry,
     },
   });
 }

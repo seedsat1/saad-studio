@@ -36,9 +36,11 @@ export async function GET() {
       }),
     ]);
 
+    // STRICT TIMING: no grace period — subscription ends at the exact moment
+    // stripeCurrentPeriodEnd passes.
     const subscriptionActive = Boolean(
       subscription?.stripeCurrentPeriodEnd &&
-        subscription.stripeCurrentPeriodEnd.getTime() + 86_400_000 > Date.now(),
+        subscription.stripeCurrentPeriodEnd.getTime() > Date.now(),
     );
 
     return NextResponse.json({

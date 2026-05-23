@@ -51,10 +51,11 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Account suspended." }, { status: 403 });
     }
 
+    // STRICT TIMING: no grace period of any kind.
     const subscriptionActive = !!(
       subscription?.stripePriceId &&
       subscription?.stripeCurrentPeriodEnd &&
-      subscription.stripeCurrentPeriodEnd.getTime() + DAY_IN_MS > Date.now()
+      subscription.stripeCurrentPeriodEnd.getTime() > Date.now()
     );
 
     return NextResponse.json({

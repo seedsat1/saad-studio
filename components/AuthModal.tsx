@@ -40,8 +40,8 @@ const DEFAULT_PROMO_SLIDES = [
     bg: "https://images.unsplash.com/photo-1686191128892-3b37add4c844?w=900&q=90&auto=format&fit=crop",
     tag: "🎬 AI Video Generation",
     headline: "Unlock the Power of AI Generation",
-    sub: "Sign up today and get 25 Free Credits to generate cinematic videos, photorealistic images, and immersive audio.",
-    cta: "Start Free →",
+    sub: "Sign up to generate cinematic videos, photorealistic images, and immersive audio across 20+ AI models.",
+    cta: "Get Started →",
     accent: "from-violet-600 to-purple-700",
   },
   {
@@ -161,7 +161,7 @@ export default function AuthModal() {
   const brandRating = cms?.branding?.rating ?? "AI Creative Studio";
   const brandName = cms?.branding?.brandName ?? "Saad Studio";
   const signupHeading = cms?.signup?.heading ?? "Create your account";
-  const signupSubtitle = cms?.signup?.subtitle ?? "Start generating with 25 free credits — no card needed.";
+  const signupSubtitle = cms?.signup?.subtitle ?? "Create your account to start generating — no card needed to sign up.";
   const signupButton = cms?.signup?.buttonText ?? "Create Account";
   const loginHeading = cms?.login?.heading ?? "Welcome back";
   const loginSubtitle = cms?.login?.subtitle ?? "Sign in to continue creating with AI.";

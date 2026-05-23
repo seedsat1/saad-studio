@@ -2,8 +2,6 @@ import { auth } from "@clerk/nextjs/server";
 
 import prismadb from "@/lib/prismadb";
 
-const DAY_IN_MS = 86_400_000;
-
 export const checkSubscription = async () => {
   const { userId } = await auth();
 
@@ -27,9 +25,11 @@ export const checkSubscription = async () => {
     return false;
   }
 
+  // STRICT TIMING: subscription is valid only while stripeCurrentPeriodEnd
+  // is still in the future. No grace period of any kind.
   const isValid =
     userSubscription.stripePriceId &&
-    userSubscription.stripeCurrentPeriodEnd?.getTime()! + DAY_IN_MS > Date.now()
+    (userSubscription.stripeCurrentPeriodEnd?.getTime() ?? 0) > Date.now();
 
   return !!isValid;  // guarantee it's a boolean
 };

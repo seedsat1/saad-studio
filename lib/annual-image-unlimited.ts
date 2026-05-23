@@ -109,10 +109,11 @@ export async function getActiveAnnualPlanId(userId: string): Promise<string | nu
   });
 
   const now = Date.now();
+  // STRICT TIMING: no grace period — expires the instant stripeCurrentPeriodEnd passes.
   const isActive = Boolean(
     subscription?.stripePriceId &&
       subscription?.stripeCurrentPeriodEnd &&
-      subscription.stripeCurrentPeriodEnd.getTime() + DAY_MS > now,
+      subscription.stripeCurrentPeriodEnd.getTime() > now,
   );
 
   if (!isActive || subscription?.billingInterval !== "annual") return null;

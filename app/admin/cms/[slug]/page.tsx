@@ -149,9 +149,9 @@ const DEFAULT_AD: AdCard = {
 
 const DEFAULT_STAT: StatItem = {
   _id: "",
-  number: "25",
-  label: "Free Credits",
-  subtitle: "No credit card required",
+  number: "4",
+  label: "Subscription Plans",
+  subtitle: "Starter, Plus, Pro, Max",
 };
 
 const HOME_CORE_TOOLS: ToolCard[] = [
@@ -345,7 +345,7 @@ const HOME_STATS: StatItem[] = [
   { _id: "home-stat-images", number: "20+", label: "Image Models", subtitle: "GPT Image, FLUX, Imagen 4 & more" },
   { _id: "home-stat-video", number: "17", label: "Video Engines", subtitle: "Kling, Sora, Veo, Seedance & more" },
   { _id: "home-stat-tools", number: "85+", label: "AI Tools", subtitle: "Image, Video, Audio, 3D, Edit" },
-  { _id: "home-stat-credits", number: "25", label: "Free Credits", subtitle: "No credit card required" },
+  { _id: "home-stat-credits", number: "4", label: "Subscription Plans", subtitle: "Starter, Plus, Pro, Max" },
 ];
 
 const HOME_MODEL_SPOTLIGHTS: AdCard[] = [
