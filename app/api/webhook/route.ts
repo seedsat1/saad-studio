@@ -225,6 +225,104 @@ export async function POST(req: Request) {
                 });
             }
         }
+
+        // ─── Cancellation: user cancelled via Stripe portal, or Stripe
+        //     auto-cancelled after retried payment failures. We must
+        //     remove the DB row immediately so the user stops appearing
+        //     "subscribed" while their cycle window is still open.
+        if (event.type === "customer.subscription.deleted") {
+            const subscription = event.data.object as Stripe.Subscription;
+            const existing = await prismadb.userSubscription.findUnique({
+                where: { stripeSubscriptionId: subscription.id },
+                select: { userId: true, planId: true, billingInterval: true },
+            });
+            if (existing?.userId) {
+                await prismadb.userSubscription.delete({
+                    where: { stripeSubscriptionId: subscription.id },
+                }).catch(() => {});
+                console.log(
+                    `[stripe-webhook] Subscription cancelled: user=${existing.userId} plan=${existing.planId} interval=${existing.billingInterval}`,
+                );
+            }
+        }
+
+        // ─── Mid-cycle plan change (upgrade / downgrade / interval flip).
+        //     Stripe fires this whenever the user changes their plan via
+        //     the Billing Portal. We re-resolve planId + billingInterval
+        //     from the new price and re-allocate credits so the user gets
+        //     the credits they paid for immediately.
+        if (event.type === "customer.subscription.updated") {
+            const subscription = event.data.object as Stripe.Subscription;
+            const priceItem = subscription.items.data[0];
+            if (priceItem) {
+                const planInfo = resolvePlanFromPrice(
+                    priceItem.price.unit_amount,
+                    priceItem.price.recurring?.interval ?? null,
+                );
+
+                const existing = await prismadb.userSubscription.findUnique({
+                    where: { stripeSubscriptionId: subscription.id },
+                    select: { userId: true, planId: true, billingInterval: true, stripePriceId: true },
+                });
+
+                if (existing?.userId) {
+                    const nextPlanId = planInfo?.planId ?? existing.planId ?? "pro";
+                    const nextInterval = planInfo?.billingInterval ?? (existing.billingInterval as "monthly" | "annual") ?? "monthly";
+                    const priceChanged = priceItem.price.id !== existing.stripePriceId;
+                    const planChanged = nextPlanId !== existing.planId;
+                    const intervalChanged = nextInterval !== existing.billingInterval;
+
+                    await prismadb.userSubscription.update({
+                        where: { stripeSubscriptionId: subscription.id },
+                        data: {
+                            stripePriceId: priceItem.price.id,
+                            stripeCurrentPeriodEnd: new Date(subscription.current_period_end * 1000),
+                            planId: nextPlanId,
+                            billingInterval: nextInterval,
+                        },
+                    });
+
+                    // Only re-allocate when the plan actually changed
+                    // (an upgrade/downgrade). Pure interval flips and
+                    // metadata edits don't reset credits.
+                    if (planChanged || (priceChanged && intervalChanged)) {
+                        await allocateSubscriptionCredits(existing.userId, nextPlanId, nextInterval);
+                        console.log(
+                            `[stripe-webhook] Subscription plan changed: user=${existing.userId} ${existing.planId}/${existing.billingInterval} -> ${nextPlanId}/${nextInterval} (credits re-allocated)`,
+                        );
+                    } else {
+                        console.log(
+                            `[stripe-webhook] Subscription updated: user=${existing.userId} plan=${nextPlanId} interval=${nextInterval}`,
+                        );
+                    }
+                }
+            }
+        }
+
+        // ─── Payment failure. Stripe will retry on its own (smart
+        //     retries) and eventually cancel if it gives up. We log
+        //     here so it shows up in admin reports; you can wire an
+        //     email notification in this block when desired.
+        if (event.type === "invoice.payment_failed") {
+            const invoice = event.data.object as Stripe.Invoice;
+            const invoiceAny = invoice as any;
+            const subscriptionId =
+                typeof invoiceAny.subscription === "string"
+                    ? invoiceAny.subscription
+                    : invoiceAny.subscription?.id;
+            if (subscriptionId) {
+                const existing = await prismadb.userSubscription.findUnique({
+                    where: { stripeSubscriptionId: subscriptionId },
+                    select: { userId: true, planId: true },
+                });
+                console.warn(
+                    `[stripe-webhook] Payment failed: user=${existing?.userId ?? "unknown"} plan=${existing?.planId ?? "?"} invoice=${invoice.id} attempt=${invoice.attempt_count}`,
+                );
+                // TODO (optional): trigger a "your payment failed" email
+                // here. The subscription stays active until Stripe gives
+                // up retrying and fires customer.subscription.deleted.
+            }
+        }
     } catch (error) {
         await releaseStripeEvent(event.id).catch(() => {});
         console.error("[stripe-webhook] processing error", error);
