@@ -29,7 +29,6 @@ interface CmsPlan {
   creditsNum: number;
   equiv: string;
   monthlyPrice: number;
-  iqd: number;
   annualDiscount: number;
   cta: string;
   highlight: boolean;
@@ -42,7 +41,6 @@ interface CmsTopup {
   creditsNum: number;
   price: string;
   usd: number;
-  iqd: number;
   pricePerCredit: string;
   popular: boolean;
 }
@@ -105,18 +103,18 @@ interface PricingCmsData {
 const uid = () => Math.random().toString(36).slice(2, 10);
 
 const SEED_PLANS: CmsPlan[] = [
-  { _id: uid(), id: "starter", badge: "Starter", tagline: "For first-time AI content creators", credits: "300 credits / mo", creditsNum: 300, equiv: "= 97 Nano Banana Pro images - ~5 Kling 3.0 videos (15s)", monthlyPrice: 15, iqd: 19500, annualDiscount: 0, cta: "Get Starter", highlight: false, features: ["Selected model access", "2 video - 4 image parallel gens", "Early access to new AI features", "Lowest cost per credit"] },
-  { _id: uid(), id: "plus", badge: "Plus", tagline: "For consistent AI creation", credits: "800 credits / mo", creditsNum: 800, equiv: "= 260 Nano Banana Pro images - ~15 Kling 3.0 videos (15s)", monthlyPrice: 35, iqd: 45500, annualDiscount: 10, cta: "Get Plus", highlight: false, features: ["ALL standard model access", "3 video - 6 image parallel gens", "Faster queue priority", "Email support"] },
-  { _id: uid(), id: "pro", badge: "Pro", tagline: "For serious AI content studios", credits: "1,800 credits / mo", creditsNum: 1800, equiv: "= 586 Nano Banana Pro images - ~34 Kling 3.0 videos (15s)", monthlyPrice: 70, iqd: 91000, annualDiscount: 12, cta: "Get Pro - Most Popular", highlight: true, features: ["ALL models including premium", "5 video - 10 image parallel gens", "Priority generation queue", "Commercial usage rights", "Early access to every new model"] },
-  { _id: uid(), id: "max", badge: "Max", tagline: "For high-volume studios & agencies", credits: "3,000 credits / mo", creditsNum: 3000, equiv: "= 977 Nano Banana Pro images - ~57 Kling 3.0 videos (15s)", monthlyPrice: 99, iqd: 128700, annualDiscount: 15, cta: "Get Max", highlight: false, features: ["Unlimited access to ALL models", "10 video - 20 image parallel gens", "Dedicated priority queue", "Dedicated account manager", "Team collaboration features", "Full API access"] },
+  { _id: uid(), id: "starter", badge: "Starter", tagline: "For first-time AI content creators", credits: "300 credits / mo", creditsNum: 300, equiv: "= 97 Nano Banana Pro images - ~5 Kling 3.0 videos (15s)", monthlyPrice: 15, annualDiscount: 0, cta: "Get Starter", highlight: false, features: ["Selected model access", "2 video - 4 image parallel gens", "Early access to new AI features", "Lowest cost per credit"] },
+  { _id: uid(), id: "plus", badge: "Plus", tagline: "For consistent AI creation", credits: "800 credits / mo", creditsNum: 800, equiv: "= 260 Nano Banana Pro images - ~15 Kling 3.0 videos (15s)", monthlyPrice: 35, annualDiscount: 10, cta: "Get Plus", highlight: false, features: ["ALL standard model access", "3 video - 6 image parallel gens", "Faster queue priority", "Email support"] },
+  { _id: uid(), id: "pro", badge: "Pro", tagline: "For serious AI content studios", credits: "1,800 credits / mo", creditsNum: 1800, equiv: "= 586 Nano Banana Pro images - ~34 Kling 3.0 videos (15s)", monthlyPrice: 70, annualDiscount: 12, cta: "Get Pro - Most Popular", highlight: true, features: ["ALL models including premium", "5 video - 10 image parallel gens", "Priority generation queue", "Commercial usage rights", "Early access to every new model"] },
+  { _id: uid(), id: "max", badge: "Max", tagline: "For high-volume studios & agencies", credits: "3,000 credits / mo", creditsNum: 3000, equiv: "= 977 Nano Banana Pro images - ~57 Kling 3.0 videos (15s)", monthlyPrice: 99, annualDiscount: 15, cta: "Get Max", highlight: false, features: ["Unlimited access to ALL models", "10 video - 20 image parallel gens", "Dedicated priority queue", "Dedicated account manager", "Team collaboration features", "Full API access"] },
 ];
 
 const SEED_TOPUPS: CmsTopup[] = [
-  { _id: uid(), credits: "+75 Credits", creditsNum: 75, price: "$5", usd: 5, iqd: 6500, pricePerCredit: "$0.067", popular: false },
-  { _id: uid(), credits: "+160 Credits", creditsNum: 160, price: "$10", usd: 10, iqd: 13000, pricePerCredit: "$0.063", popular: false },
-  { _id: uid(), credits: "+250 Credits", creditsNum: 250, price: "$15", usd: 15, iqd: 19500, pricePerCredit: "$0.060", popular: true },
-  { _id: uid(), credits: "+330 Credits", creditsNum: 330, price: "$20", usd: 20, iqd: 26000, pricePerCredit: "$0.061", popular: false },
-  { _id: uid(), credits: "+500 Credits", creditsNum: 500, price: "$30", usd: 30, iqd: 39000, pricePerCredit: "$0.060", popular: false },
+  { _id: uid(), credits: "+75 Credits", creditsNum: 75, price: "$5", usd: 5, pricePerCredit: "$0.067", popular: false },
+  { _id: uid(), credits: "+160 Credits", creditsNum: 160, price: "$10", usd: 10, pricePerCredit: "$0.063", popular: false },
+  { _id: uid(), credits: "+250 Credits", creditsNum: 250, price: "$15", usd: 15, pricePerCredit: "$0.060", popular: true },
+  { _id: uid(), credits: "+330 Credits", creditsNum: 330, price: "$20", usd: 20, pricePerCredit: "$0.061", popular: false },
+  { _id: uid(), credits: "+500 Credits", creditsNum: 500, price: "$30", usd: 30, pricePerCredit: "$0.060", popular: false },
 ];
 
 const SEED_MODEL_COSTS: CmsModelCost[] = [
@@ -216,7 +214,7 @@ function PlanCardEditor({ plan, onUpdate, onRemove }: {
           {plan.highlight && <Star className="h-4 w-4 text-blue-400 fill-blue-400" />}
           <div>
             <p className="text-sm font-bold text-white">{plan.badge}</p>
-            <p className="text-xs text-zinc-500">${plan.monthlyPrice}/mo · {plan.iqd.toLocaleString()} IQD · {plan.credits}</p>
+            <p className="text-xs text-zinc-500">${plan.monthlyPrice}/mo · {plan.credits}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -244,12 +242,9 @@ function PlanCardEditor({ plan, onUpdate, onRemove }: {
               <Field label="Tagline" value={plan.tagline} onChange={(v) => up({ tagline: v })} />
               <div className="grid grid-cols-2 gap-3">
                 <Field label="Monthly Price ($)" value={plan.monthlyPrice} onChange={(v) => up({ monthlyPrice: Number(v) || 0 })} type="number" />
-                <Field label="Price (IQD)" value={plan.iqd} onChange={(v) => up({ iqd: Number(v) || 0 })} type="number" />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
                 <Field label="Annual Discount (%)" value={plan.annualDiscount} onChange={(v) => up({ annualDiscount: Number(v) || 0 })} type="number" />
-                <Field label="Credits (number)" value={plan.creditsNum} onChange={(v) => up({ creditsNum: Number(v) || 0 })} type="number" />
               </div>
+              <Field label="Credits (number)" value={plan.creditsNum} onChange={(v) => up({ creditsNum: Number(v) || 0 })} type="number" />
               <Field label="Credits" value={plan.credits} onChange={(v) => up({ credits: v })} placeholder="250 credits / mo" />
               <Field label="Equivalent" value={plan.equiv} onChange={(v) => up({ equiv: v })} multiline />
               <Field label="CTA Text" value={plan.cta} onChange={(v) => up({ cta: v })} />
@@ -288,12 +283,10 @@ function TopupRow({ topup, onUpdate, onRemove }: {
   const up = (p: Partial<CmsTopup>) => onUpdate({ ...topup, ...p });
   return (
     <div className="flex items-center gap-2 p-3 rounded-xl border border-white/10 bg-slate-900/80">
-      <div className="flex-1 grid grid-cols-5 gap-2">
+      <div className="flex-1 grid grid-cols-4 gap-2">
         <input value={topup.credits} onChange={(e) => up({ credits: e.target.value })} placeholder="+75 Credits"
           className="rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-xs text-white focus:outline-none" />
         <input type="number" value={topup.usd} onChange={(e) => up({ usd: Number(e.target.value) || 0, price: `$${e.target.value}` })} placeholder="USD"
-          className="rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-xs text-white focus:outline-none" />
-        <input type="number" value={topup.iqd} onChange={(e) => up({ iqd: Number(e.target.value) || 0 })} placeholder="IQD"
           className="rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-xs text-white focus:outline-none" />
         <input value={topup.pricePerCredit} onChange={(e) => up({ pricePerCredit: e.target.value })} placeholder="$0.067"
           className="rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-xs text-white focus:outline-none" />
@@ -481,7 +474,7 @@ export default function PricingCmsPage() {
               <div className="h-6 w-1 rounded-full bg-blue-500" />
               Plans ({plans.length})
             </h2>
-            <button onClick={() => setPlans([...plans, { _id: uid(), id: "new", badge: "New Plan", tagline: "Description", credits: "100 credits / mo", creditsNum: 100, equiv: "", monthlyPrice: 10, iqd: 13000, annualDiscount: 0, cta: "Get Plan", highlight: false, features: ["Feature 1"] }])}
+            <button onClick={() => setPlans([...plans, { _id: uid(), id: "new", badge: "New Plan", tagline: "Description", credits: "100 credits / mo", creditsNum: 100, equiv: "", monthlyPrice: 10, annualDiscount: 0, cta: "Get Plan", highlight: false, features: ["Feature 1"] }])}
               className="flex items-center gap-1.5 rounded-lg bg-blue-600/20 px-3 py-1.5 text-xs font-bold text-blue-400 hover:bg-blue-600/30 transition-colors">
               <Plus className="h-3.5 w-3.5" /> Add Plan
             </button>
@@ -517,8 +510,8 @@ export default function PricingCmsPage() {
             <Field label="Subtitle" value={topupHero.subtitle} onChange={(v) => setTopupHero({ ...topupHero, subtitle: v })} multiline />
           </div>
           <div className="flex items-center justify-between">
-            <p className="text-xs text-zinc-500 uppercase font-bold tracking-wider">Credits · USD · IQD · $/Credit · #</p>
-            <button onClick={() => setTopups([...topups, { _id: uid(), credits: "+100 Credits", creditsNum: 100, price: "$10", usd: 10, iqd: 13000, pricePerCredit: "$0.100", popular: false }])}
+            <p className="text-xs text-zinc-500 uppercase font-bold tracking-wider">Credits · USD · $/Credit · #</p>
+            <button onClick={() => setTopups([...topups, { _id: uid(), credits: "+100 Credits", creditsNum: 100, price: "$10", usd: 10, pricePerCredit: "$0.100", popular: false }])}
               className="flex items-center gap-1.5 rounded-lg bg-amber-600/20 px-3 py-1.5 text-xs font-bold text-amber-400 hover:bg-amber-600/30 transition-colors">
               <Plus className="h-3.5 w-3.5" /> Add Top-up
             </button>

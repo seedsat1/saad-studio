@@ -12,8 +12,8 @@ import {
 import { useCmsData } from "@/lib/use-cms-data";
 
 /* ─── CMS types (shared with pricing CMS) ─── */
-interface CmsPlan { _id: string; id: string; monthlyPrice: number; iqd: number; annualDiscount: number; credits: string; creditsNum: number; badge: string; }
-interface CmsTopup { _id: string; credits: string; creditsNum: number; usd: number; iqd: number; price: string; pricePerCredit: string; popular: boolean; }
+interface CmsPlan { _id: string; id: string; monthlyPrice: number; annualDiscount: number; credits: string; creditsNum: number; badge: string; }
+interface CmsTopup { _id: string; credits: string; creditsNum: number; usd: number; price: string; pricePerCredit: string; popular: boolean; }
 interface CmsPaymentMethod { _id: string; name: string; account: string; logoText: string; }
 interface CmsPaymentHero { heading: string; subtitle: string; }
 interface PricingCmsData {
@@ -27,18 +27,18 @@ interface PricingCmsData {
 // ─── Data ────────────────────────────────────────────────────────────────────
 
 const PLANS = [
-  { id: "starter", label: "Starter", usd: 15, iqd: 19500,  credits: 300,  Icon: Rocket, color: "text-violet-400", bg: "bg-violet-500/10", border: "border-violet-500/40" },
-  { id: "plus",    label: "Plus",    usd: 35, iqd: 45500,  credits: 800,  Icon: Sparkles, color: "text-slate-300", bg: "bg-slate-500/10", border: "border-slate-500/40" },
-  { id: "pro",     label: "Pro",     usd: 70, iqd: 91000,  credits: 1800, Icon: Star,   color: "text-blue-400",   bg: "bg-blue-500/10",   border: "border-blue-500/40"   },
-  { id: "max",     label: "Max",     usd: 99, iqd: 128700, credits: 3000, Icon: Crown,  color: "text-amber-400",  bg: "bg-amber-500/10",  border: "border-amber-500/40"  },
+  { id: "starter", label: "Starter", usd: 15, credits: 300,  Icon: Rocket, color: "text-violet-400", bg: "bg-violet-500/10", border: "border-violet-500/40" },
+  { id: "plus",    label: "Plus",    usd: 35, credits: 800,  Icon: Sparkles, color: "text-slate-300", bg: "bg-slate-500/10", border: "border-slate-500/40" },
+  { id: "pro",     label: "Pro",     usd: 70, credits: 1800, Icon: Star,   color: "text-blue-400",   bg: "bg-blue-500/10",   border: "border-blue-500/40"   },
+  { id: "max",     label: "Max",     usd: 99, credits: 3000, Icon: Crown,  color: "text-amber-400",  bg: "bg-amber-500/10",  border: "border-amber-500/40"  },
 ];
 
 const TOPUPS = [
-  { id: "t75",  credits: 75,  usd: 5,  iqd: 6500  },
-  { id: "t160", credits: 160, usd: 10, iqd: 13000 },
-  { id: "t250", credits: 250, usd: 15, iqd: 19500 },
-  { id: "t330", credits: 330, usd: 20, iqd: 26000 },
-  { id: "t500", credits: 500, usd: 30, iqd: 39000 },
+  { id: "t75",  credits: 75,  usd: 5  },
+  { id: "t160", credits: 160, usd: 10 },
+  { id: "t250", credits: 250, usd: 15 },
+  { id: "t330", credits: 330, usd: 20 },
+  { id: "t500", credits: 500, usd: 30 },
 ];
 
 const METHODS = [
@@ -326,7 +326,7 @@ export default function PaymentPage() {
 
   const liveWhatsApp = cms?.whatsappNumber ?? "9647902585579";
 
-  // Live plans from CMS (with IQD prices + styling fallback)
+  // Live plans from CMS (USD only — IQD removed)
   const ICON_MAP = useMemo<Record<string, typeof Rocket>>(() => ({ starter: Rocket, plus: Sparkles, pro: Star, max: Crown }), []);
   const STYLE_MAP_PLANS = useMemo<Record<string, { color: string; bg: string; border: string }>>(() => ({
     starter: { color: "text-violet-400", bg: "bg-violet-500/10", border: "border-violet-500/40" },
@@ -341,7 +341,7 @@ export default function PaymentPage() {
     return cms.plans.map((cp) => {
       const s = STYLE_MAP_PLANS[cp.id] ?? defaultPlanStyle;
       return {
-        id: cp.id, label: cp.badge, usd: cp.monthlyPrice, iqd: cp.iqd, credits: cp.creditsNum,
+        id: cp.id, label: cp.badge, usd: cp.monthlyPrice, credits: cp.creditsNum,
         Icon: ICON_MAP[cp.id] ?? Rocket, ...s,
       };
     });
@@ -350,7 +350,7 @@ export default function PaymentPage() {
   const liveTopups = useMemo(() => {
     if (!cms?.topups?.length) return TOPUPS;
     return cms.topups.map((ct) => ({
-      id: `t${ct.creditsNum}`, credits: ct.creditsNum, usd: ct.usd, iqd: ct.iqd,
+      id: `t${ct.creditsNum}`, credits: ct.creditsNum, usd: ct.usd,
     }));
   }, [cms?.topups]);
 
@@ -423,16 +423,12 @@ export default function PaymentPage() {
   const resolvePlanBilling = (plan: (typeof PLANS)[number]) => {
     const discount = liveAnnualDiscount[plan.id] ?? 0;
     const monthlyUsd = plan.usd;
-    const monthlyIqd = plan.iqd;
     const yearlyBaseUsd = monthlyUsd * 12;
-    const yearlyBaseIqd = monthlyIqd * 12;
 
     if (billingCycle === "annual" && discount > 0) {
       return {
         usd: Math.round(yearlyBaseUsd * (1 - discount / 100)),
-        iqd: Math.round(yearlyBaseIqd * (1 - discount / 100)),
         previousUsd: yearlyBaseUsd,
-        previousIqd: yearlyBaseIqd,
         suffix: "/yr",
         creditsText: `${plan.credits.toLocaleString()} credits / mo`,
         periodText: `Billed yearly (${discount}% off)`,
@@ -440,9 +436,7 @@ export default function PaymentPage() {
     }
     return {
       usd: monthlyUsd,
-      iqd: monthlyIqd,
       previousUsd: null,
-      previousIqd: null,
       suffix: "/mo",
       creditsText: `${plan.credits.toLocaleString()} credits / mo`,
       periodText: "Billed monthly",
@@ -673,7 +667,6 @@ export default function PaymentPage() {
                           <p className="text-[10px] text-slate-500 line-through">${billing.previousUsd.toLocaleString()}/yr</p>
                         ) : null}
                         <p className="font-extrabold text-white">${billing.usd}<span className="text-xs text-slate-500 font-normal">{billing.suffix}</span></p>
-                        <p className="text-[10px] text-slate-500 mt-0.5">{billing.iqd.toLocaleString()} IQD</p>
                       </div>
                     </button>
                       );
@@ -692,7 +685,6 @@ export default function PaymentPage() {
                       <p className="text-sm font-extrabold text-white">+{tp.credits.toLocaleString()}</p>
                       <p className="text-xs text-slate-500 mt-0.5">credits</p>
                       <p className="text-base font-black text-white mt-1">${tp.usd}</p>
-                      <p className="text-[10px] text-slate-600 mt-0.5">{tp.iqd.toLocaleString()} IQD</p>
                     </button>
                   ))}
                 </div>
@@ -725,8 +717,8 @@ export default function PaymentPage() {
                     </p>
                     <p className="text-xs text-slate-500 mt-0.5">
                       {effectiveOrderType === "plan"
-                        ? `${selectedPlanBilling!.previousUsd ? `~~$${selectedPlanBilling!.previousUsd.toLocaleString()}/yr~~ → ` : ""}$${selectedPlanBilling!.usd} ${selectedPlanBilling!.suffix} · ${selectedPlanBilling!.iqd.toLocaleString()} IQD`
-                        : `$${(selectedItem as { usd: number }).usd} · ${(selectedItem as { iqd: number }).iqd.toLocaleString()} IQD`}
+                        ? `${selectedPlanBilling!.previousUsd ? `~~$${selectedPlanBilling!.previousUsd.toLocaleString()}/yr~~ → ` : ""}$${selectedPlanBilling!.usd} ${selectedPlanBilling!.suffix}`
+                        : `$${(selectedItem as { usd: number }).usd}`}
                     </p>
                     {effectiveOrderType === "plan" && (
                       <p className="text-[11px] text-violet-300 mt-1">{selectedPlanBilling!.periodText} • Total due now: ${selectedPlanBilling!.usd.toLocaleString()}</p>

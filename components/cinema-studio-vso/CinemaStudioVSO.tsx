@@ -23,6 +23,10 @@ import {
 } from "lucide-react";
 import { VIDEO_MODEL_REGISTRY, type WaveSpeedVideoModel } from "@/lib/video-model-registry";
 import { getVideoCreditsByRoute } from "@/lib/credit-pricing";
+// NOTE: getVideoCreditsByRoute is kept only as an offline fallback when
+// the /api/pricing/quote round-trip hasn't completed yet. The displayed
+// "Est. X credits" value is sourced from the server so it matches what
+// /api/video will actually charge.
 
 // Extensive casting characters database
 const INITIAL_CASTING_CHARACTERS = [
@@ -599,12 +603,59 @@ export default function App() {
   const aspectRatioOptions = useMemo(() => buildAspectRatioOptions(activeModelObj), [activeModelObj]);
   const playbackDuration = Number.parseInt(duration, 10) || 8;
   const selectedVoiceId = currentActor?.voiceId || VOICE_PRESETS.find((v) => v.label === currentActor?.voice || v.voiceId === currentActor?.voice)?.voiceId || VOICE_PRESETS[0].voiceId;
-  const estimatedCredits = getVideoCreditsByRoute(activeModelObj.api_route, {
-    duration: playbackDuration,
-    ...(activeModelObj.family === "kling" ? { mode: resolution } : { resolution }),
-    sound: soundEnabled,
-    generate_audio: soundEnabled,
-  });
+  // Fallback estimate used until the first /api/pricing/quote response
+  // returns. Same numbers as the legacy client-side estimator.
+  const fallbackEstimate = useMemo(
+    () =>
+      getVideoCreditsByRoute(activeModelObj.api_route, {
+        duration: playbackDuration,
+        ...(activeModelObj.family === "kling" ? { mode: resolution } : { resolution }),
+        sound: soundEnabled,
+        generate_audio: soundEnabled,
+      }),
+    [activeModelObj.api_route, activeModelObj.family, playbackDuration, resolution, soundEnabled],
+  );
+
+  // Authoritative estimate from the server (mirrors what /api/video will
+  // actually deduct). Refreshed (debounced) whenever a pricing input
+  // changes.
+  const [serverEstimate, setServerEstimate] = useState<number | null>(null);
+  const [estimateLoading, setEstimateLoading] = useState(false);
+  const estimateRequestRef = useRef(0);
+
+  useEffect(() => {
+    const myRequestId = ++estimateRequestRef.current;
+    setEstimateLoading(true);
+    const debounceTimer = setTimeout(async () => {
+      try {
+        const res = await fetch("/api/pricing/quote", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            modelRoute: activeModelObj.api_route,
+            duration: playbackDuration,
+            ...(activeModelObj.family === "kling"
+              ? { mode: resolution }
+              : { resolution }),
+            sound: soundEnabled,
+            generate_audio: soundEnabled,
+          }),
+        });
+        if (!res.ok) throw new Error("quote_failed");
+        const payload = await res.json();
+        if (estimateRequestRef.current !== myRequestId) return;
+        const value = Number(payload?.credits);
+        setServerEstimate(Number.isFinite(value) && value > 0 ? value : null);
+      } catch {
+        if (estimateRequestRef.current === myRequestId) setServerEstimate(null);
+      } finally {
+        if (estimateRequestRef.current === myRequestId) setEstimateLoading(false);
+      }
+    }, 250);
+    return () => clearTimeout(debounceTimer);
+  }, [activeModelObj.api_route, activeModelObj.family, playbackDuration, resolution, soundEnabled]);
+
+  const estimatedCredits = serverEstimate ?? fallbackEstimate;
 
   // Close custom settings dropdowns when clicking outside
   useEffect(() => {
@@ -2068,8 +2119,22 @@ export default function App() {
                   </select>
                 )}
 
-                <span className="ml-auto px-2 py-1 rounded border border-[#FF8C42]/40 bg-[#FF8C42]/10 text-[#FF8C42] font-mono">
+                <span
+                  className={`ml-auto px-2 py-1 rounded border font-mono transition-colors ${
+                    estimateLoading
+                      ? "border-[#FF8C42]/20 bg-[#FF8C42]/5 text-[#FF8C42]/70 animate-pulse"
+                      : "border-[#FF8C42]/40 bg-[#FF8C42]/10 text-[#FF8C42]"
+                  }`}
+                  title={
+                    serverEstimate != null
+                      ? "Live server quote — matches the actual deduction"
+                      : "Offline estimate (server quote pending)"
+                  }
+                >
                   Est. {estimatedCredits || 1} credits
+                  {serverEstimate == null && !estimateLoading && (
+                    <span className="ml-1 text-[10px] opacity-70">~</span>
+                  )}
                 </span>
               </div>
 
