@@ -96,20 +96,22 @@ function applySoundMultiplier(baseCost: number, payload?: VideoPayload): number 
 }
 
 function getKling3Credits(payload?: VideoPayload): number {
+  // Base rate reduced 3.5 -> 2.5 per second for Kling 3.0 to bring user
+  // prices closer to Higgsfield while keeping a 28%+ margin on Pro.
   const duration = readDuration(payload, 5);
   const quality = readQuality(payload);
   const is4k = quality === "4k";
   const isPro = quality === "pro" || quality.includes("1080");
 
   if (is4k) {
-    return parseFloat(Math.max(31.5, duration * 3.5 * 3).toFixed(2));
+    return parseFloat(Math.max(22.5, duration * 2.5 * 3).toFixed(2));
   }
 
   if (isPro) {
-    return parseFloat(Math.max(15.75, duration * 3.5 * 1.5).toFixed(2));
+    return parseFloat(Math.max(11.25, duration * 2.5 * 1.5).toFixed(2));
   }
 
-  return parseFloat(Math.max(10.5, duration * 3.5).toFixed(2));
+  return parseFloat(Math.max(7.5, duration * 2.5).toFixed(2));
 }
 
 function getKlingMotionCredits(payload?: VideoPayload): number {
@@ -121,9 +123,13 @@ function getKlingMotionCredits(payload?: VideoPayload): number {
 // Kling Omni Edit credit helper removed — endpoint not provided by KIE.
 
 function getSeedance2Credits(payload?: VideoPayload, variant: "hq" | "fast" = "hq"): number {
+  // Base rates reduced to widen the price gap closer to Higgsfield while
+  // keeping >=25% margin on Pro and >=20% on Max.
+  //   HQ:   8.0 -> 7.0 per second
+  //   Fast: 6.7 -> 6.0 per second
   const duration = readDuration(payload, 4);
   const quality = readQuality(payload);
-  let cost = duration * (variant === "fast" ? 6.7 : 8);
+  let cost = duration * (variant === "fast" ? 6.0 : 7.0);
 
   if (variant === "hq" && quality.includes("1080")) {
     cost *= 3;
