@@ -2,7 +2,8 @@
 
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 import { useRef, useState, useCallback, useEffect } from "react";
-import { useUser, useClerk } from "@clerk/nextjs";
+import Link from "next/link";
+import { useUser } from "@clerk/nextjs";
 import { useAvatar, PRESET_AVATARS } from "@/lib/avatar-context";
 import {
   User, Mail, Zap, Star, ImageIcon, VideoIcon, Music, Box,
@@ -279,7 +280,6 @@ function EditProfileModal({
 
 export default function ProfilePage() {
   const { user, isLoaded } = useUser();
-  const { openUserProfile } = useClerk();
   const [pickerOpen, setPickerOpen] = useState(false);
   const [realCreditBalance, setRealCreditBalance] = useState<number | null>(null);
   const [overview, setOverview] = useState<ProfileOverview | null>(null);
@@ -406,9 +406,9 @@ export default function ProfilePage() {
               </button>
             </div>
 
-            <button onClick={() => openUserProfile()} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 text-slate-300 hover:text-white text-sm font-medium transition-all duration-200">
+            <Link href="/settings" className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 text-slate-300 hover:text-white text-sm font-medium transition-all duration-200">
               <Edit3 className="w-3.5 h-3.5" /> Edit Profile
-            </button>
+            </Link>
           </div>
 
           <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-3">

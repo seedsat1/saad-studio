@@ -184,7 +184,7 @@ function Toggle({
 
 export default function SettingsPage() {
   const { user, isLoaded } = useUser();
-  const { openUserProfile, signOut } = useClerk();
+  const { signOut } = useClerk();
 
   const [loading, setLoading] = useState(true);
   const [settingsError, setSettingsError] = useState("");
@@ -414,7 +414,7 @@ export default function SettingsPage() {
       };
 
       if (typeof userWithPasswordApi.updatePassword !== "function") {
-        setPasswordError("Password update API is unavailable here. Open security settings.");
+        setPasswordError("Password update is unavailable for this login method. Use Forgot password from login.");
         return;
       }
 
@@ -571,12 +571,12 @@ export default function SettingsPage() {
                   </>
                 )}
               </button>
-              <button
-                onClick={() => openUserProfile()}
+              <Link
+                href="/?auth=login"
                 className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-sm font-medium transition-colors"
               >
-                <Shield className="w-4 h-4" /> Open Security Settings
-              </button>
+                <Shield className="w-4 h-4" /> Reset Password Flow
+              </Link>
             </div>
           </SectionCard>
 
