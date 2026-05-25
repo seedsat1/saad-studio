@@ -78,8 +78,15 @@ export async function GET() {
       rules: CORSRules,
     });
   } catch (err) {
+    const message = err instanceof Error ? err.message : "Failed to set CORS";
+    const accessDenied = /access\s*denied/i.test(message);
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Failed to set CORS" },
+      {
+        error: message,
+        hint: accessDenied
+          ? "R2 API key does not have bucket CORS permission (s3:PutBucketCORS). Set CORS in Cloudflare Dashboard or use a key with bucket admin scope."
+          : undefined,
+      },
       { status: 500 }
     );
   }

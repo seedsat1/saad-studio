@@ -335,54 +335,29 @@ const CATEGORY_COLORS: Record<string, string> = {
 async function uploadToSupabase(
   file: File
 ): Promise<{ publicUrl: string; isVideo: boolean }> {
-  const signRes = await fetch("/api/admin/media/upload", {
+  // Always use server-side upload in admin to avoid browser CORS on presigned PUT.
+  const form = new FormData();
+  form.append("file", file);
+
+  const directRes = await fetch("/api/admin/media/upload", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ fileName: file.name, fileType: file.type }),
+    body: form,
   });
-  if (!signRes.ok) {
-    const err = await signRes.json().catch(() => ({}));
-    throw new Error(err?.error ?? "Failed to get upload URL");
-  }
-  const { signedUrl, publicUrl, isVideo } = (await signRes.json()) as {
-    signedUrl: string;
-    publicUrl: string;
-    isVideo: boolean;
+
+  const directData = (await directRes.json().catch(() => ({}))) as {
+    publicUrl?: string;
+    isVideo?: boolean;
+    error?: string;
   };
 
-  try {
-    const uploadRes = await fetch(signedUrl, {
-      method: "PUT",
-      headers: { "Content-Type": file.type },
-      body: file,
-    });
-    if (!uploadRes.ok) throw new Error("Upload to storage failed");
-    return { publicUrl, isVideo };
-  } catch {
-    // Fallback: route upload through server when browser->R2 CORS blocks signed PUT.
-    const form = new FormData();
-    form.append("file", file);
-
-    const directRes = await fetch("/api/admin/media/upload", {
-      method: "POST",
-      body: form,
-    });
-
-    const directData = (await directRes.json().catch(() => ({}))) as {
-      publicUrl?: string;
-      isVideo?: boolean;
-      error?: string;
-    };
-
-    if (!directRes.ok || !directData.publicUrl) {
-      throw new Error(directData.error ?? "Upload blocked by storage CORS");
-    }
-
-    return {
-      publicUrl: directData.publicUrl,
-      isVideo: Boolean(directData.isVideo),
-    };
+  if (!directRes.ok || !directData.publicUrl) {
+    throw new Error(directData.error ?? "Upload failed");
   }
+
+  return {
+    publicUrl: directData.publicUrl,
+    isVideo: Boolean(directData.isVideo),
+  };
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
