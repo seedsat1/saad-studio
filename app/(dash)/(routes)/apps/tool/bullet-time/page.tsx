@@ -678,8 +678,12 @@ export default function BulletTimeStudioPage() {
       const json = (await res.json()) as { imageUrls?: string[] };
       let url = json.imageUrls?.[0];
       if (!url) throw new Error("Image URL missing.");
-      // إذا كان الرابط ليس من Supabase، استدعي persist
-      if (url && !url.includes("supabase.co/storage/v1/object/public")) {
+      const durableBaseUrl = process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_R2_PUBLIC_URL || "";
+      const isDurableUrl =
+        !!url &&
+        ((durableBaseUrl && url.startsWith(durableBaseUrl)) ||
+          url.includes("supabase.co/storage/v1/object/public"));
+      if (url && !isDurableUrl) {
         try {
           const persistRes = await fetch("/api/assets/persist", {
             method: "POST",

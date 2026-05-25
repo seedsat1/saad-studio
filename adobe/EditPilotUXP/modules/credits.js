@@ -4,7 +4,7 @@
  * Credit display helpers and server-side balance refresh.
  *
  * Architecture:
- *  - Credits live in Neon (PostgreSQL) → User.creditBalance
+ *  - Credits live in PostgreSQL → User.creditBalance
  *  - Deduction happens inside spendCredits() in lib/credit-ledger.ts (server-side)
  *  - The plugin only READS the balance — it never deducts locally
  *  - After any generation completes, call refreshCreditsFromServer() to sync display

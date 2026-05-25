@@ -5,17 +5,10 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { isAdmin } from "@/lib/is-admin";
-import { createClient } from "@supabase/supabase-js";
+import { BUCKETS, readJsonFromStorage, writeJsonToStorage } from "@/lib/r2-storage";
 
 const FILE = "admin-cms/announcement-bar.json";
 const BUCKET = "media";
-
-function getSupabase() {
-  const url = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) throw new Error("Supabase not configured");
-  return createClient(url, key, { auth: { persistSession: false } });
-}
 
 export type AnnouncementConfig = {
   enabled: boolean;
@@ -37,24 +30,15 @@ const DEFAULTS: AnnouncementConfig = {
 
 async function loadConfig(): Promise<AnnouncementConfig> {
   try {
-    const supabase = getSupabase();
-    const { data, error } = await supabase.storage.from(BUCKET).download(FILE);
-    if (error || !data) return DEFAULTS;
-    const text = await data.text();
-    return { ...DEFAULTS, ...JSON.parse(text) };
+    const config = await readJsonFromStorage<AnnouncementConfig>({ bucket: BUCKETS.media, path: FILE });
+    return { ...DEFAULTS, ...(config || {}) };
   } catch {
     return DEFAULTS;
   }
 }
 
 async function saveConfig(config: AnnouncementConfig): Promise<void> {
-  const supabase = getSupabase();
-  const blob = new Blob([JSON.stringify(config, null, 2)], { type: "application/json" });
-  const { error } = await supabase.storage.from(BUCKET).upload(FILE, blob, {
-    upsert: true,
-    contentType: "application/json",
-  });
-  if (error) throw new Error(`Failed to save: ${error.message}`);
+  await writeJsonToStorage({ bucket: BUCKETS.media, path: FILE, data: config });
 }
 
 export async function GET() {

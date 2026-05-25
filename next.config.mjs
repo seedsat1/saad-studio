@@ -1,4 +1,26 @@
 /** @type {import('next').NextConfig} */
+const r2PublicBaseUrl =
+  process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL ||
+  process.env.NEXT_PUBLIC_R2_PUBLIC_URL ||
+  process.env.R2_PUBLIC_BASE_URL ||
+  process.env.R2_PUBLIC_URL ||
+  "";
+const r2RemotePatterns = (() => {
+  if (!r2PublicBaseUrl) return [];
+  try {
+    const url = new URL(r2PublicBaseUrl);
+    const basePath = url.pathname.replace(/\/+$/, "");
+    return [{
+      protocol: url.protocol.replace(":", ""),
+      hostname: url.hostname,
+      port: url.port,
+      pathname: `${basePath || ""}/**`,
+    }];
+  } catch {
+    return [];
+  }
+})();
+
 const securityHeaders = [
   { key: "X-DNS-Prefetch-Control", value: "on" },
   { key: "X-Frame-Options", value: "SAMEORIGIN" },
@@ -65,7 +87,7 @@ const nextConfig = {
         port: "",
         pathname: "/**",
       },
-      // Supabase Storage — generated media
+      ...r2RemotePatterns,
       {
         protocol: "https",
         hostname: "*.supabase.co",

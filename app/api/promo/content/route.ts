@@ -3,21 +3,16 @@
  * Returns all promo text overrides for frontend rendering
  */
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { BUCKETS, isStorageConfigured, readJsonFromStorage } from "@/lib/r2-storage";
 
 const FILE = "admin-cms/promo-content.json";
 const BUCKET = "media";
 
 export async function GET() {
   try {
-    const url = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!url || !key) return NextResponse.json({ content: {} });
-    const supabase = createClient(url, key, { auth: { persistSession: false } });
-    const { data, error } = await supabase.storage.from(BUCKET).download(FILE);
-    if (error || !data) return NextResponse.json({ content: {} });
-    const text = await data.text();
-    const content = JSON.parse(text);
+    if (!isStorageConfigured()) return NextResponse.json({ content: {} });
+    const content = await readJsonFromStorage<Record<string, unknown>>({ bucket: BUCKETS.media, path: FILE });
+    if (!content) return NextResponse.json({ content: {} });
     return NextResponse.json({ content }, {
       headers: { "Cache-Control": "public, s-maxage=5, stale-while-revalidate=30" },
     });

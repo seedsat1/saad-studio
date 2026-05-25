@@ -1,20 +1,13 @@
 /**
  * /api/admin/media/upload
- * Returns a Supabase presigned upload URL so the browser can upload
- * directly to Supabase Storage (no file body passes through Next.js).
+ * Returns a Cloudflare R2 presigned upload URL so the browser can upload
+ * directly to object storage (no file body passes through Next.js).
  * Body: { fileName: string; fileType: string }
  * Response: { signedUrl, publicUrl, isVideo }
  */
 import { NextRequest, NextResponse } from "next/server";
 import { isAdmin } from "@/lib/is-admin";
-import { createClient } from "@supabase/supabase-js";
-
-function getServerSupabase() {
-  const url = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) throw new Error("Supabase not configured");
-  return createClient(url, key, { auth: { persistSession: false } });
-}
+import { BUCKETS, createSignedUploadUrl } from "@/lib/r2-storage";
 
 export async function POST(req: NextRequest) {
   if (!(await isAdmin())) {
@@ -41,24 +34,19 @@ export async function POST(req: NextRequest) {
     }
 
     const isVideo = t.startsWith("video/");
-    const bucket = isVideo ? "videos" : "images";
+    const bucket = isVideo ? BUCKETS.videos : BUCKETS.images;
     const ext = fileName?.split(".").pop() ?? (isVideo ? "mp4" : "jpg");
     const storagePath = `admin-cms/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
 
-    const supabase = getServerSupabase();
-    const { data, error } = await supabase.storage
-      .from(bucket)
-      .createSignedUploadUrl(storagePath);
-
-    if (error || !data) {
-      return NextResponse.json({ error: error?.message ?? "Failed to create upload URL" }, { status: 500 });
-    }
-
-    const { data: publicData } = supabase.storage.from(bucket).getPublicUrl(storagePath);
+    const { signedUrl, publicUrl } = await createSignedUploadUrl({
+      bucket,
+      path: storagePath,
+      contentType: t || "application/octet-stream",
+    });
 
     return NextResponse.json({
-      signedUrl: data.signedUrl,
-      publicUrl: publicData.publicUrl,
+      signedUrl,
+      publicUrl,
       isVideo,
     });
   } catch (err) {

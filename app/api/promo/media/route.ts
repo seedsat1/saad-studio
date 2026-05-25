@@ -4,25 +4,23 @@
  * Used by frontend components (HeroCarousel, TopChoiceGrid, etc.)
  */
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { BUCKETS, isStorageConfigured, readJsonFromStorage } from "@/lib/r2-storage";
 
 const MEDIA_FILE = "admin-cms/promo-media.json";
 const BUCKET = "media";
 
 export async function GET() {
   try {
-    const url = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!url || !key) {
+    if (!isStorageConfigured()) {
       return NextResponse.json({ media: {} });
     }
-    const supabase = createClient(url, key, { auth: { persistSession: false } });
-    const { data, error } = await supabase.storage.from(BUCKET).download(MEDIA_FILE);
-    if (error || !data) {
+    const media = await readJsonFromStorage<Record<string, unknown>>({
+      bucket: BUCKETS.media,
+      path: MEDIA_FILE,
+    });
+    if (!media) {
       return NextResponse.json({ media: {} });
     }
-    const text = await data.text();
-    const media = JSON.parse(text);
     return NextResponse.json({ media }, {
       headers: { "Cache-Control": "public, s-maxage=5, stale-while-revalidate=30" },
     });

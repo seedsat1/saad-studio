@@ -10,8 +10,8 @@ generator client {
 
 datasource db {
   provider  = "postgresql"
-  // DATABASE_URL  → Neon pooled connection (used at runtime, serverless-safe)
-  // DIRECT_URL    → Neon direct connection (used only by prisma migrate / db push)
+  // DATABASE_URL  → Primary PostgreSQL runtime connection
+  // DIRECT_URL    → Direct PostgreSQL connection for prisma migrate / db push
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }

@@ -7,7 +7,7 @@
  * IMPORTANT:
  *  - This is a local cache ONLY.
  *  - Never gate paid actions on local credit balance.
- *  - The server (Neon DB via saadstudio.app) is the source of truth.
+ *  - The server PostgreSQL database via saadstudio.app is the source of truth.
  *  - Panel token is a stateless HMAC token — no password stored.
  */
 

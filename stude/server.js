@@ -1,6 +1,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
 
 const ROOT = __dirname;
 const PORT = Number(process.env.PORT || 5050);
@@ -45,9 +46,28 @@ const KIE_BASE = 'https://api.kie.ai/api/v1/jobs';
 const KIE_VEO_BASE = 'https://api.kie.ai/api/v1/veo';
 const KIE_GPT52_BASE = 'https://api.kie.ai/gpt-5-2/v1';
 const KIE_API_KEY = process.env.KIE_API_KEY || '';
-const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-const SUPABASE_UPLOAD_BUCKET = process.env.SUPABASE_UPLOAD_BUCKET || 'studio-frames';
+const R2_BUCKET = process.env.R2_BUCKET || process.env.R2_BUCKET_NAME || '';
+const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID || '';
+const R2_SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY || '';
+const R2_PUBLIC_BASE_URL = (
+  process.env.R2_PUBLIC_BASE_URL ||
+  process.env.R2_PUBLIC_URL ||
+  process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL ||
+  process.env.NEXT_PUBLIC_R2_PUBLIC_URL ||
+  ''
+).replace(/\/+$/, '');
+const R2_ENDPOINT = (process.env.R2_ENDPOINT || (process.env.R2_ACCOUNT_ID ? `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com` : '')).replace(/\/+$/, '');
+const R2_ENABLED = Boolean(R2_BUCKET && R2_ACCESS_KEY_ID && R2_SECRET_ACCESS_KEY && R2_PUBLIC_BASE_URL && R2_ENDPOINT);
+const r2Client = R2_ENABLED
+  ? new S3Client({
+      region: process.env.R2_REGION || 'auto',
+      endpoint: R2_ENDPOINT,
+      credentials: {
+        accessKeyId: R2_ACCESS_KEY_ID,
+        secretAccessKey: R2_SECRET_ACCESS_KEY,
+      },
+    })
+  : null;
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -104,6 +124,14 @@ function safeFilePart(name) {
   return String(name || 'file')
     .replace(/[^\w.\-]/g, '_')
     .slice(-120);
+}
+
+function toPublicR2Url(key) {
+  return `${R2_PUBLIC_BASE_URL}/${String(key || '')
+    .split('/')
+    .filter(Boolean)
+    .map(encodeURIComponent)
+    .join('/')}`;
 }
 
 async function callKie(pathname, options) {
@@ -289,8 +317,8 @@ const server = http.createServer(async (req, res) => {
       const ext = path.extname(filename) || '.bin';
       const objectPath = `frames/${Date.now()}_${Math.random().toString(36).slice(2, 10)}${ext}`;
 
-      // Local fallback for development when Supabase keys are not configured.
-      if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+      // Local fallback for development when R2 is not configured.
+      if (!r2Client) {
         const localDir = path.join(ROOT, 'uploads', 'frames');
         fs.mkdirSync(localDir, { recursive: true });
         const localFile = path.join(localDir, path.basename(objectPath));
@@ -299,28 +327,16 @@ const server = http.createServer(async (req, res) => {
         return sendJson(res, 200, { code: 200, url: localUrl, path: objectPath, storage: 'local' });
       }
 
-      const upUrl = `${SUPABASE_URL.replace(/\/+$/, '')}/storage/v1/object/${SUPABASE_UPLOAD_BUCKET}/${objectPath}`;
-      const upRes = await fetch(upUrl, {
-        method: 'POST',
-        headers: {
-          apikey: SUPABASE_SERVICE_ROLE_KEY,
-          Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-          'Content-Type': mimeType,
-          'x-upsert': 'true'
-        },
-        body: bytes
-      });
-      const upText = await upRes.text();
-      if (!upRes.ok) {
-        let parsed = {};
-        try { parsed = JSON.parse(upText); } catch {}
-        return sendJson(res, upRes.status, {
-          code: upRes.status,
-          msg: parsed?.message || parsed?.error || upText || 'Supabase upload failed'
-        });
-      }
+      const r2Key = `images/${objectPath}`;
+      await r2Client.send(new PutObjectCommand({
+        Bucket: R2_BUCKET,
+        Key: r2Key,
+        Body: bytes,
+        ContentType: mimeType,
+        CacheControl: 'public, max-age=2592000, immutable'
+      }));
 
-      const publicUrl = `${SUPABASE_URL.replace(/\/+$/, '')}/storage/v1/object/public/${SUPABASE_UPLOAD_BUCKET}/${objectPath}`;
+      const publicUrl = toPublicR2Url(r2Key);
       return sendJson(res, 200, { code: 200, url: publicUrl, path: objectPath });
     } catch (error) {
       return sendJson(res, 500, { code: 500, msg: error?.message || 'Upload error' });

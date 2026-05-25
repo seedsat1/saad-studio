@@ -1,7 +1,7 @@
 An AI SaaS built using in next 14 that makes a great boilerplate to build your own SaaS.
 
 This repo is an implementation of [next13-ai-saas](https://github.com/AntonioErdeljac/next13-ai-saas)  from Antonio Erdeljac's original tutorial.
-I have updated it to use next-14 and made some modifications, notably using local postgres rather than a cloud db.  Likely to add features as more AI models 
+I have updated it to use next-14 and made some modifications, notably using PostgreSQL for application data and Cloudflare R2 for generated media/object storage. Likely to add features as more AI models 
 get released to the community. 
 
 It is a [Next.js](https://nextjs.org/) project, bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
@@ -16,8 +16,7 @@ You will need to create accounts with the following services in order to get api
 - [Stripe](https://stripe.com/)
 - [Replicate](https://replicate.com/)
 
-This repo assumes a local postgres database. You can use that or change to another. 
-Note that prisma supports MySQL, MongoDB, PostGres, as well as some cloud db providers.
+This repo assumes a PostgreSQL database for users, credits, subscriptions, and logs, plus a Cloudflare R2 bucket for uploaded/generated assets.
 
 You need to create a .env file with the following:
 ```shell
@@ -35,14 +34,20 @@ NEXT_PUBLIC_APP_URL="http://localhost:3000"
 
 OPENAI_API_KEY=YOUR-OPENAI-API-KEY
 
+R2_ACCOUNT_ID=YOUR-CLOUDFLARE-ACCOUNT-ID
+R2_ACCESS_KEY_ID=YOUR-R2-ACCESS-KEY-ID
+R2_SECRET_ACCESS_KEY=YOUR-R2-SECRET-ACCESS-KEY
+R2_BUCKET=YOUR-R2-BUCKET
+R2_PUBLIC_BASE_URL=https://media.your-domain.com
+NEXT_PUBLIC_R2_PUBLIC_BASE_URL=https://media.your-domain.com
+
 REPLICATE_API_KEY=YOUR-REPLICATE-API-KEY
 
 STRIPE_API_KEY=YOUR-STRIPE-API-KEY
 STRIPE_WEBHOOK_SECRET=YOUR-STRIPE-WEBHOOK-SECRET
 
-# This was inserted by `prisma init`:
-# BE SURE TO CHANGE IT FOR YOUR INSTALL
 DATABASE_URL="postgresql://user:password@localhost:5432/aisaas?schema=public"
+DIRECT_URL="postgresql://user:password@localhost:5432/aisaas?schema=public"
 ```
 First, initialize the db
 

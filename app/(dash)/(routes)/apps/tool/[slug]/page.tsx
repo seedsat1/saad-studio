@@ -200,8 +200,12 @@ export default function AppToolRuntimePage({
           throw new Error("Video task ID missing from response.");
         }
         let videoUrl = await pollVideoTask(taskId);
-        // إذا كان الرابط ليس من Supabase، استدعي persist
-        if (videoUrl && !videoUrl.includes("supabase.co/storage/v1/object/public")) {
+        const durableBaseUrl = process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_R2_PUBLIC_URL || "";
+        const isDurableUrl =
+          !!videoUrl &&
+          ((durableBaseUrl && videoUrl.startsWith(durableBaseUrl)) ||
+            videoUrl.includes("supabase.co/storage/v1/object/public"));
+        if (videoUrl && !isDurableUrl) {
           try {
             const persistRes = await fetch("/api/assets/persist", {
               method: "POST",
@@ -217,8 +221,12 @@ export default function AppToolRuntimePage({
         setResult({ videoUrl, mediaUrl: videoUrl });
       } else {
         let url = json.mediaUrl || json.imageUrl || json.audioUrl;
-        // إذا كان الرابط ليس من Supabase، استدعي persist
-        if (url && !url.includes("supabase.co/storage/v1/object/public")) {
+        const durableBaseUrl = process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_R2_PUBLIC_URL || "";
+        const isDurableUrl =
+          !!url &&
+          ((durableBaseUrl && url.startsWith(durableBaseUrl)) ||
+            url.includes("supabase.co/storage/v1/object/public"));
+        if (url && !isDurableUrl) {
           try {
             const persistRes = await fetch("/api/assets/persist", {
               method: "POST",

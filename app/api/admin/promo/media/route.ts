@@ -4,44 +4,27 @@
  * PUT  → saves/updates a promo slot image/video
  * Body: { slotId: string, url: string, mediaType: "image"|"video" }
  *
- * Storage: Supabase storage JSON (admin-cms/promo-media.json)
+ * Storage: Cloudflare R2 JSON (admin-cms/promo-media.json)
  */
 import { NextRequest, NextResponse } from "next/server";
 import { isAdmin } from "@/lib/is-admin";
-import { createClient } from "@supabase/supabase-js";
+import { BUCKETS, readJsonFromStorage, writeJsonToStorage } from "@/lib/r2-storage";
 
 const MEDIA_FILE = "admin-cms/promo-media.json";
 const BUCKET = "media";
-
-function getSupabase() {
-  const url = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) throw new Error("Supabase not configured");
-  return createClient(url, key, { auth: { persistSession: false } });
-}
 
 type MediaMap = Record<string, { url: string; type: string }>;
 
 async function loadMediaMap(): Promise<MediaMap> {
   try {
-    const supabase = getSupabase();
-    const { data, error } = await supabase.storage.from(BUCKET).download(MEDIA_FILE);
-    if (error || !data) return {};
-    const text = await data.text();
-    return JSON.parse(text) as MediaMap;
+    return (await readJsonFromStorage<MediaMap>({ bucket: BUCKETS.media, path: MEDIA_FILE })) || {};
   } catch {
     return {};
   }
 }
 
 async function saveMediaMap(map: MediaMap): Promise<void> {
-  const supabase = getSupabase();
-  const blob = new Blob([JSON.stringify(map, null, 2)], { type: "application/json" });
-  const { error } = await supabase.storage.from(BUCKET).upload(MEDIA_FILE, blob, {
-    upsert: true,
-    contentType: "application/json",
-  });
-  if (error) throw new Error(`Failed to save: ${error.message}`);
+  await writeJsonToStorage({ bucket: BUCKETS.media, path: MEDIA_FILE, data: map });
 }
 
 export async function GET() {

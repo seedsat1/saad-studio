@@ -1053,8 +1053,12 @@ function VideoPageInner() {
           completedTaskRefs.current.add(taskId);
 
           let videoUrl = data.outputs[0];
-          // إذا كان الرابط ليس من Supabase، استدعي persist
-          if (videoUrl && !videoUrl.includes("supabase.co/storage/v1/object/public")) {
+          const durableBaseUrl = process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_R2_PUBLIC_URL || "";
+          const isDurableUrl =
+            !!videoUrl &&
+            ((durableBaseUrl && videoUrl.startsWith(durableBaseUrl)) ||
+              videoUrl.includes("supabase.co/storage/v1/object/public"));
+          if (videoUrl && !isDurableUrl) {
             try {
               const persistRes = await fetch("/api/assets/persist", {
                 method: "POST",

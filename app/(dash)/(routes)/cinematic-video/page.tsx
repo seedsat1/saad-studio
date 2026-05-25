@@ -1471,12 +1471,24 @@ function PresetCard({
   preset: Preset;
   onPick: (p: Preset) => void;
 }) {
-  const supaUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-  const posterUrl = supaUrl
-    ? `${supaUrl}/storage/v1/object/public/thumbnails/system-presets/${preset.id}.png`
+  const storageBaseUrl =
+    process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL ||
+    process.env.NEXT_PUBLIC_R2_PUBLIC_URL ||
+    process.env.NEXT_PUBLIC_SUPABASE_URL ||
+    "";
+  const usesLegacySupabase =
+    !process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL &&
+    !process.env.NEXT_PUBLIC_R2_PUBLIC_URL &&
+    !!process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const posterUrl = storageBaseUrl
+    ? usesLegacySupabase
+      ? `${storageBaseUrl}/storage/v1/object/public/thumbnails/system-presets/${preset.id}.png`
+      : `${storageBaseUrl}/thumbnails/system-presets/${preset.id}.png`
     : "";
-  const videoUrl = supaUrl
-    ? `${supaUrl}/storage/v1/object/public/videos/system-presets/${preset.id}.mp4`
+  const videoUrl = storageBaseUrl
+    ? usesLegacySupabase
+      ? `${storageBaseUrl}/storage/v1/object/public/videos/system-presets/${preset.id}.mp4`
+      : `${storageBaseUrl}/videos/system-presets/${preset.id}.mp4`
     : "";
 
   const [posterOk, setPosterOk] = useState<boolean>(!!posterUrl);

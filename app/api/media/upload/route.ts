@@ -1,22 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { createClient } from "@supabase/supabase-js";
-
-function getServerSupabase() {
-  const url = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!url || !key) {
-    throw new Error("Supabase storage is not configured");
-  }
-
-  return createClient(url, key, { auth: { persistSession: false } });
-}
+import { BUCKETS, createSignedUploadUrl } from "@/lib/r2-storage";
 
 function bucketForFileType(fileType: string): string {
-  if (fileType.startsWith("video/")) return "videos";
-  if (fileType.startsWith("audio/")) return "audio";
-  return "images";
+  if (fileType.startsWith("video/")) return BUCKETS.videos;
+  if (fileType.startsWith("audio/")) return BUCKETS.audio;
+  return BUCKETS.images;
 }
 
 function normalizeFileType(fileName: string, fileType: string): string {
@@ -94,20 +83,15 @@ export async function POST(req: NextRequest) {
     const bucket = bucketForFileType(effectiveFileType);
     const storagePath = `${uploadUserId}/generation-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
 
-    const supabase = getServerSupabase();
-    const { data, error } = await supabase.storage
-      .from(bucket)
-      .createSignedUploadUrl(storagePath);
-
-    if (error || !data?.signedUrl) {
-      return NextResponse.json({ error: error?.message || "Failed to create upload URL" }, { status: 500 });
-    }
-
-    const { data: publicData } = supabase.storage.from(bucket).getPublicUrl(storagePath);
+    const { signedUrl, publicUrl } = await createSignedUploadUrl({
+      bucket,
+      path: storagePath,
+      contentType: effectiveFileType,
+    });
 
     return NextResponse.json({
-      signedUrl: data.signedUrl,
-      publicUrl: publicData.publicUrl,
+      signedUrl,
+      publicUrl,
     });
   } catch (err) {
     return NextResponse.json(

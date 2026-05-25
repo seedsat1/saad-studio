@@ -2,7 +2,7 @@
  * POST /api/assets/persist
  *
  * After a generation completes on the client side, the frontend can call this
- * endpoint to permanently store the media file in Supabase Storage and update
+ * endpoint to permanently store the media file in Cloudflare R2 and update
  * the Generation record with the durable storage URL.
  *
  * This way, generation logic is NOT touched — persistence is handled separately.
@@ -12,9 +12,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
 import {
+  isStoredAssetUrl,
   uploadUrlToStorage,
   isStorageConfigured,
-} from "@/lib/supabase-storage";
+} from "@/lib/r2-storage";
 
 export async function POST(req: NextRequest) {
   try {
@@ -33,8 +34,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "generationId or mediaUrl is required" }, { status: 400 });
       }
 
-      const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-      if (supabaseUrl && mediaUrl.includes(supabaseUrl)) {
+      if (isStoredAssetUrl(mediaUrl)) {
         return NextResponse.json({ persisted: true, url: mediaUrl, skipped: true });
       }
 
@@ -78,9 +78,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No media URL to persist" }, { status: 400 });
     }
 
-    // If already a Supabase URL, nothing to do
-    const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-    if (supabaseUrl && urlToPersist.includes(supabaseUrl)) {
+    // If already stored on durable object storage, nothing to do
+    if (isStoredAssetUrl(urlToPersist)) {
       return NextResponse.json({ persisted: true, url: urlToPersist, skipped: true });
     }
 
@@ -93,7 +92,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Upload to Supabase Storage
+    // Upload to Cloudflare R2
     const permanentUrl = await uploadUrlToStorage({
       remoteUrl: urlToPersist,
       userId,
