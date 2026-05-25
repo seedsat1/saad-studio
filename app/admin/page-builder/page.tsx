@@ -349,13 +349,40 @@ async function uploadToSupabase(
     publicUrl: string;
     isVideo: boolean;
   };
-  const uploadRes = await fetch(signedUrl, {
-    method: "PUT",
-    headers: { "Content-Type": file.type },
-    body: file,
-  });
-  if (!uploadRes.ok) throw new Error("Upload to storage failed");
-  return { publicUrl, isVideo };
+
+  try {
+    const uploadRes = await fetch(signedUrl, {
+      method: "PUT",
+      headers: { "Content-Type": file.type },
+      body: file,
+    });
+    if (!uploadRes.ok) throw new Error("Upload to storage failed");
+    return { publicUrl, isVideo };
+  } catch {
+    // Fallback: route upload through server when browser->R2 CORS blocks signed PUT.
+    const form = new FormData();
+    form.append("file", file);
+
+    const directRes = await fetch("/api/admin/media/upload", {
+      method: "POST",
+      body: form,
+    });
+
+    const directData = (await directRes.json().catch(() => ({}))) as {
+      publicUrl?: string;
+      isVideo?: boolean;
+      error?: string;
+    };
+
+    if (!directRes.ok || !directData.publicUrl) {
+      throw new Error(directData.error ?? "Upload blocked by storage CORS");
+    }
+
+    return {
+      publicUrl: directData.publicUrl,
+      isVideo: Boolean(directData.isVideo),
+    };
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
