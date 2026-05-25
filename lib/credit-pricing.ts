@@ -29,6 +29,8 @@ const VIDEO_ROUTE_COST_MAP = new Map<string, number>([
   ["google/veo3.1-lite-text-to-video", 13.68],
   ["google/veo3.1-fast-text-to-video", 13.68],
   ["google/veo3.1-text-to-video", 42.56],
+  ["google/veo-3.1-generate-preview", 42.56],
+  ["google/gemini-omni-video", 42.56],
   ["bytedance/seedance-v2/text-to-video-fast", 27],
   ["bytedance/seedance-v2/text-to-video", 40],
   ["x-ai/grok-imagine-video/text-to-video", 9.24],
@@ -255,7 +257,9 @@ export function getVideoCreditsByRoute(modelRoute: string, payload?: VideoPayloa
   if (
     modelRoute === "google/veo3.1-lite-text-to-video" ||
     modelRoute === "google/veo3.1-fast-text-to-video" ||
-    modelRoute === "google/veo3.1-text-to-video"
+    modelRoute === "google/veo3.1-text-to-video" ||
+    modelRoute === "google/veo-3.1-generate-preview" ||
+    modelRoute === "google/gemini-omni-video"
   ) {
     return applySoundMultiplier(getVeo31Credits(modelRoute, payload), payload);
   }

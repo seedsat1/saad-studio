@@ -159,6 +159,8 @@ const MODEL_ALIAS_MAP: Record<string, string> = {
   "google/veo3.1-lite-text-to-video":             "veo31_lite",
   "google/veo3.1-fast-text-to-video":             "veo31_fast",
   "google/veo3.1-text-to-video":                  "veo31",
+  "google/veo-3.1-generate-preview":              "gemini_omni_video",
+  "google/gemini-omni-video":                     "gemini_omni_video",
   "bytedance/seedance-v2/text-to-video-fast":     "seedance2f",
   "bytedance/seedance-v2/text-to-video":          "seedance2",
   "bytedance/dreamina-v3.0/text-to-video-720p":   "seedance2",
@@ -254,6 +256,11 @@ const MODEL_ALIAS_MAP: Record<string, string> = {
   "tool:remove-bg":                     "tool_rmbg",
   "tool:face-swap":                     "tool_faceswap",
   "tool:instant-character":             "tool_instant_character",
+  "gemini-3-pro-image-preview":         "gemini_omni_character",
+  "gemini-omni-character":              "gemini_omni_character",
+  "tool:gemini-omni-character":         "gemini_omni_character",
+  "gemini-omni-audio":                  "gemini_omni_audio",
+  "gemini-3.1-flash-tts-preview":       "gemini_omni_audio",
   "dall-e-3":                           "dalle3",
 };
 
@@ -355,7 +362,10 @@ function isVeo31ModelRef(modelRef: string): boolean {
     modelRef === "veo31" ||
     modelRef === "veo31_gem_lite" ||
     modelRef === "veo31_gem_fast" ||
-    modelRef === "veo31_gem"
+    modelRef === "veo31_gem" ||
+    modelRef === "google/veo-3.1-generate-preview" ||
+    modelRef === "google/gemini-omni-video" ||
+    modelRef === "gemini_omni_video"
   );
 }
 
@@ -378,6 +388,9 @@ const IMAGE_MODEL_QUALITY_MULTIPLIER: Record<string, Record<string, number>> = {
   "imagen4":                      { "2k": 1.5, "4k": 2.0 },
   "google/imagen4-ultra":         { "2k": 1.5, "4k": 2.0 },
   "imagen4u":                     { "2k": 1.5, "4k": 2.0 },
+  "gemini-3-pro-image-preview":    { "2k": 1.5, "4k": 3.0 },
+  "gemini-omni-character":        { "2k": 1.5, "4k": 3.0 },
+  "gemini_omni_character":        { "2k": 1.5, "4k": 3.0 },
 };
 
 const VIDEO_MODEL_QUALITY_MULTIPLIER: Record<string, Record<string, number>> = {

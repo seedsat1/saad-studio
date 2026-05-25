@@ -5,6 +5,7 @@ import { InsufficientCreditsError, precheckGenerationPolicy, refundGenerationCha
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { getClientIp, isAllowedOrigin, isSafePublicHttpUrl, sanitizePrompt } from "@/lib/security";
 import { attachIdempotencyGeneration, beginIdempotency, completeIdempotency, getIdempotencyKey, hashRequestBody } from "@/lib/idempotency";
+import { uploadBufferToStorage } from "@/lib/supabase-storage";
 
 export const runtime = "nodejs";
 
@@ -38,6 +39,14 @@ const KIE_FROM_AUDIO_MODEL = "infinitalk/from-audio";
 const KIE_AI_AVATAR_PRO_MODEL = "kling/ai-avatar-pro";
 const KIE_SEEDANCE_2_MODEL = "bytedance/seedance-2";
 const KIE_SEEDANCE_2_FAST_MODEL = "bytedance/seedance-2-fast";
+const GEMINI_OMNI_AUDIO_ALIAS = "gemini-omni-audio";
+const GOOGLE_GEMINI_TTS_MODEL = "gemini-3.1-flash-tts-preview";
+const GOOGLE_GEMINI_TTS_VOICES = new Set([
+  "Zephyr", "Puck", "Charon", "Kore", "Fenrir", "Leda", "Orus", "Aoede", "Callirrhoe", "Autonoe",
+  "Enceladus", "Iapetus", "Umbriel", "Algieba", "Despina", "Erinome", "Algenib", "Rasalgethi",
+  "Laomedeia", "Achernar", "Alnilam", "Schedar", "Gacrux", "Pulcherrima", "Achird", "Zubenelgenubi",
+  "Vindemiatrix", "Sadachbia", "Sadaltager", "Sulafat",
+]);
 
 interface AudioRequestBody {
   actionType: "tts" | "video2audio" | "music" | "speech-to-text" | "audio-isolation" | "voice-changer" | "dubbing" | "lip-sync" | "voice-cloning";
@@ -75,6 +84,16 @@ interface AudioRequestBody {
   aspect_ratio?: "16:9" | "4:3" | "1:1" | "3:4" | "9:16" | "21:9";
   duration?: number;
   web_search?: boolean;
+}
+
+function getGoogleApiKey(): string | null {
+  return (
+    process.env.GOOGLE_AI_API_KEY ||
+    process.env.GOOGLE_API_KEY ||
+    process.env.GEMINI_API_KEY ||
+    process.env.GOOGLE_GENAI_API_KEY ||
+    null
+  );
 }
 
 type KieRecordResult = {
@@ -145,6 +164,17 @@ function resolveWaveSpeedTtsModel(model?: string): string {
   return WS_TTS_MODEL;
 }
 
+function isGeminiTtsModelSupported(model?: string): boolean {
+  const normalized = String(model || "").trim().toLowerCase();
+  return normalized === GEMINI_OMNI_AUDIO_ALIAS || normalized === GOOGLE_GEMINI_TTS_MODEL;
+}
+
+function normalizeGeminiVoice(voice?: string): string {
+  const raw = String(voice || "Sulafat").replace(/^gemini:/i, "").trim();
+  const exact = [...GOOGLE_GEMINI_TTS_VOICES].find((name) => name.toLowerCase() === raw.toLowerCase());
+  return exact || "Sulafat";
+}
+
 function resolveWaveSpeedMusicModel(model?: string): string {
   if (!model) return WS_MUSIC_MODEL;
   const normalized = model.trim().toLowerCase();
@@ -184,6 +214,7 @@ function isGoogleLyriaModel(model: string): boolean {
 
 function resolveChargeModelRef(actionType: AudioRequestBody["actionType"], body: AudioRequestBody): string {
   if (actionType === "tts") {
+    if (isGeminiTtsModelSupported(body.model)) return GOOGLE_GEMINI_TTS_MODEL;
     if (isKieTtsModelSupported(body.model)) return resolveKieTtsModel(body.model);
     return resolveWaveSpeedTtsModel(body.model);
   }
@@ -277,6 +308,102 @@ function sanitizeCustomVoiceId(raw?: string): string {
   const base = normalized || "saad_clone_voice";
   const withPrefix = /^[A-Za-z]/.test(base) ? base : `v_${base}`;
   return withPrefix.slice(0, 64);
+}
+
+function pcmToWav(pcm: Buffer, sampleRate = 24000, channels = 1, bitsPerSample = 16): Buffer {
+  const byteRate = sampleRate * channels * bitsPerSample / 8;
+  const blockAlign = channels * bitsPerSample / 8;
+  const header = Buffer.alloc(44);
+  header.write("RIFF", 0);
+  header.writeUInt32LE(36 + pcm.length, 4);
+  header.write("WAVE", 8);
+  header.write("fmt ", 12);
+  header.writeUInt32LE(16, 16);
+  header.writeUInt16LE(1, 20);
+  header.writeUInt16LE(channels, 22);
+  header.writeUInt32LE(sampleRate, 24);
+  header.writeUInt32LE(byteRate, 28);
+  header.writeUInt16LE(blockAlign, 32);
+  header.writeUInt16LE(bitsPerSample, 34);
+  header.write("data", 36);
+  header.writeUInt32LE(pcm.length, 40);
+  return Buffer.concat([header, pcm]);
+}
+
+function extractGeminiAudio(value: unknown): { data: string; mimeType: string } | null {
+  if (!value || typeof value !== "object") return null;
+  const rec = value as Record<string, unknown>;
+  const candidates = Array.isArray(rec.candidates) ? rec.candidates : [];
+  for (const candidate of candidates) {
+    const content = (candidate as Record<string, unknown>)?.content as Record<string, unknown> | undefined;
+    const parts = Array.isArray(content?.parts) ? content.parts : [];
+    for (const part of parts) {
+      const inlineData = (part as Record<string, unknown>)?.inlineData as Record<string, unknown> | undefined;
+      const data = inlineData?.data;
+      if (typeof data !== "string" || !data) continue;
+      const mimeType = typeof inlineData?.mimeType === "string" ? inlineData.mimeType : "audio/L16;rate=24000";
+      return { data, mimeType };
+    }
+  }
+  return null;
+}
+
+async function runGeminiTts(params: {
+  body: AudioRequestBody;
+  apiKey: string;
+  userId: string;
+  generationId: string;
+}): Promise<string> {
+  const text = sanitizePrompt(params.body.text || "", 5000);
+  if (!text) throw new Error("Field 'text' is required for Gemini TTS.");
+  const voiceName = normalizeGeminiVoice(params.body.voice);
+  const langHint = String((params.body as unknown as Record<string, unknown>).language_code || "").toLowerCase();
+  const prompt = langHint.startsWith("ar")
+    ? `اقرأ النص التالي بالعربية بصوت واضح وطبيعي ومناسب للجمهور العربي:\n\n${text}`
+    : text;
+
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${GOOGLE_GEMINI_TTS_MODEL}:generateContent`,
+    {
+      method: "POST",
+      headers: {
+        "x-goog-api-key": params.apiKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: {
+          responseModalities: ["AUDIO"],
+          speechConfig: {
+            voiceConfig: {
+              prebuiltVoiceConfig: { voiceName },
+            },
+          },
+        },
+      }),
+    },
+  );
+
+  const json = await res.json().catch(() => null);
+  if (!res.ok) {
+    const message = typeof json?.error?.message === "string" ? json.error.message : `Google Gemini TTS failed (${res.status})`;
+    throw new Error(message);
+  }
+
+  const audio = extractGeminiAudio(json);
+  if (!audio) throw new Error("Google Gemini TTS returned no audio.");
+  const raw = Buffer.from(audio.data, "base64");
+  const buffer = audio.mimeType.toLowerCase().includes("wav") ? raw : pcmToWav(raw);
+  const url = await uploadBufferToStorage({
+    buffer,
+    contentType: "audio/wav",
+    userId: params.userId,
+    assetType: "audio",
+    generationId: `${params.generationId}-gemini-tts`,
+    fileName: "gemini-tts.wav",
+  });
+  if (!url) throw new Error("Audio media storage is not configured.");
+  return url;
 }
 
 function buildUniqueCustomVoiceId(raw?: string): string {
@@ -739,18 +866,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Too many requests" }, { status: 429, headers: rateLimitHeaders(rate) });
     }
 
-    const wavespeedKey = process.env.WAVESPEED_API_KEY;
-    const kieKey = process.env.KIE_API_KEY || process.env.KIEAI_API_KEY;
-    if (!wavespeedKey && !kieKey) {
-      return NextResponse.json(
-        { error: "No audio provider key configured (KIE_API_KEY or WAVESPEED_API_KEY)." },
-        { status: 500 },
-      );
-    }
-
     const body: AudioRequestBody = await req.json();
     requestHash = hashRequestBody(body);
     const { actionType } = body;
+    const wavespeedKey = process.env.WAVESPEED_API_KEY;
+    const kieKey = process.env.KIE_API_KEY || process.env.KIEAI_API_KEY;
+    const googleKey = getGoogleApiKey();
+    if (!wavespeedKey && !kieKey && !googleKey) {
+      return NextResponse.json(
+        { error: "No audio provider key configured (GOOGLE_AI_API_KEY, KIE_API_KEY, or WAVESPEED_API_KEY)." },
+        { status: 500 },
+      );
+    }
 
     if (!actionType) {
       return NextResponse.json(
@@ -917,7 +1044,7 @@ export async function POST(req: NextRequest) {
         : actionType === "voice-changer"
         ? WS_VOICE_CHANGER_MODEL
         : actionType === "tts"
-          ? (isKieTtsModelSupported(body.model) ? resolveKieTtsModel(body.model) : resolveWaveSpeedTtsModel(body.model))
+          ? (isGeminiTtsModelSupported(body.model) ? GOOGLE_GEMINI_TTS_MODEL : isKieTtsModelSupported(body.model) ? resolveKieTtsModel(body.model) : resolveWaveSpeedTtsModel(body.model))
           : actionType === "video2audio"
             ? WS_VIDEO2AUDIO_MODEL
             : actionType === "speech-to-text"
@@ -978,6 +1105,26 @@ export async function POST(req: NextRequest) {
     if (actionType === "tts") {
       const { text, voice = "Aria" } = body;
       const safeText = sanitizePrompt(text ?? "", 5000);
+      if (isGeminiTtsModelSupported(body.model)) {
+        if (!googleKey) {
+          return NextResponse.json(
+            { error: "Gemini audio provider is not configured.", code: "google_key_missing" },
+            { status: 503 },
+          );
+        }
+        const audioUrl = await runGeminiTts({ body, apiKey: googleKey, userId, generationId });
+        if (generationId) {
+          await setGenerationMediaUrl(generationId, audioUrl);
+        }
+        return await finalize({
+          audioUrl,
+          provider: "google",
+          model: GOOGLE_GEMINI_TTS_MODEL,
+          voice: normalizeGeminiVoice(body.voice),
+          chargedCredits: creditsToCharge,
+        }, 200);
+      }
+
       const wsModel = resolveWaveSpeedTtsModel(body.model);
       const providerOrder = [
         kieKey && isKieTtsModelSupported(body.model) ? "kie" : null,

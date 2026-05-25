@@ -13,11 +13,24 @@ import { precheckGenerationPolicy } from "@/lib/credit-ledger";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { getClientIp, isAllowedOrigin, isSafePublicHttpUrl, sanitizePrompt } from "@/lib/security";
 import { fetchWithTimeout } from "@/lib/http";
+import { uploadBufferToStorage } from "@/lib/supabase-storage";
 
 export const maxDuration = 180;
 
 const WAVESPEED_BASE_URL = "https://api.wavespeed.ai/api/v3";
 const WAVESPEED_MODEL = "ideogram-ai/ideogram-character";
+const GOOGLE_GEMINI_CHARACTER_MODEL_ID = "gemini-3-pro-image-preview";
+const LEGACY_GEMINI_OMNI_CHARACTER_MODEL_ID = "gemini-omni-character";
+
+function getGoogleApiKey(): string | null {
+  return (
+    process.env.GOOGLE_AI_API_KEY ||
+    process.env.GOOGLE_API_KEY ||
+    process.env.GEMINI_API_KEY ||
+    process.env.GOOGLE_GENAI_API_KEY ||
+    null
+  );
+}
 
 function errorText(error: unknown): string {
   if (!error) return "";
@@ -110,6 +123,114 @@ function sizeToAspectRatio(size: string | null | undefined): string | null {
   if (r > 1.5) return "16:9";
   if (r < 0.8) return "9:16";
   return "1:1";
+}
+
+function normalizeCharacterQuality(input: unknown): string {
+  const value = typeof input === "string" ? input.trim().toUpperCase() : "1K";
+  return ["1K", "2K", "4K"].includes(value) ? value : "1K";
+}
+
+function dataUrlToInlineData(dataUrl: string): { mimeType: string; data: string } | null {
+  const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/s);
+  if (!match) return null;
+  return { mimeType: match[1], data: match[2] };
+}
+
+async function imageUrlToInlineData(url: string): Promise<{ mimeType: string; data: string }> {
+  const inline = dataUrlToInlineData(url);
+  if (inline) return inline;
+
+  const res = await fetchWithTimeout(url, { method: "GET" }, 60_000);
+  if (!res.ok) throw new Error(`Failed to fetch character reference for Google (${res.status})`);
+  const mimeType = res.headers.get("content-type")?.split(";")[0] || "image/png";
+  const buffer = Buffer.from(await res.arrayBuffer());
+  return { mimeType, data: buffer.toString("base64") };
+}
+
+function extractGoogleInlineImages(value: unknown): Array<{ data: string; mimeType: string }> {
+  if (!value || typeof value !== "object") return [];
+  const rec = value as Record<string, unknown>;
+  const candidates = Array.isArray(rec.candidates) ? rec.candidates : [];
+  return candidates.flatMap((candidate) => {
+    const content = (candidate as Record<string, unknown>)?.content as Record<string, unknown> | undefined;
+    const parts = Array.isArray(content?.parts) ? content.parts : [];
+    return parts.flatMap((part) => {
+      const inlineData = (part as Record<string, unknown>)?.inlineData as Record<string, unknown> | undefined;
+      const data = inlineData?.data;
+      if (typeof data !== "string" || !data) return [];
+      const mimeType = typeof inlineData?.mimeType === "string" ? inlineData.mimeType : "image/png";
+      return [{ data, mimeType }];
+    });
+  });
+}
+
+async function generateGoogleCharacterImages(params: {
+  apiKey: string;
+  prompt: string;
+  referenceUrls: string[];
+  aspectRatio: string;
+  quality: string;
+}): Promise<Array<{ buffer: Buffer; mimeType: string }>> {
+  const parts: Array<Record<string, unknown>> = [{ text: sanitizePrompt(params.prompt, 5000) }];
+  for (const ref of params.referenceUrls.slice(0, 8)) {
+    const inline = await imageUrlToInlineData(ref);
+    parts.push({ inline_data: inline });
+  }
+
+  const res = await fetchWithTimeout(
+    `https://generativelanguage.googleapis.com/v1beta/models/${GOOGLE_GEMINI_CHARACTER_MODEL_ID}:generateContent`,
+    {
+      method: "POST",
+      headers: {
+        "x-goog-api-key": params.apiKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        contents: [{ parts }],
+        generationConfig: {
+          responseModalities: ["IMAGE"],
+          imageConfig: {
+            aspectRatio: params.aspectRatio || "1:1",
+            imageSize: params.quality,
+          },
+        },
+      }),
+    },
+    120_000,
+  );
+
+  const json = (await res.json().catch(() => null)) as any;
+  if (!res.ok) {
+    const message = typeof json?.error?.message === "string" ? json.error.message : `Google character generation failed (${res.status})`;
+    throw new Error(message);
+  }
+
+  const images = extractGoogleInlineImages(json);
+  if (!images.length) throw new Error("Google completed but returned no character image.");
+  return images.map((image) => ({ buffer: Buffer.from(image.data, "base64"), mimeType: image.mimeType }));
+}
+
+async function uploadGoogleCharacterImages(params: {
+  userId: string;
+  generationId: string;
+  images: Array<{ buffer: Buffer; mimeType: string }>;
+}): Promise<string[]> {
+  const urls: string[] = [];
+  for (let idx = 0; idx < params.images.length; idx++) {
+    const image = params.images[idx];
+    const ext = image.mimeType.split("/")[1]?.replace("jpeg", "jpg") || "png";
+    const url = await uploadBufferToStorage({
+      buffer: image.buffer,
+      contentType: image.mimeType,
+      userId: params.userId,
+      assetType: "image",
+      generationId: `${params.generationId}-gemini-${idx}`,
+      fileName: `character.${ext}`,
+    });
+    if (url) urls.push(url);
+  }
+  if (!urls.length) throw new Error("Character media storage is not configured.");
+  return urls;
 }
 
 async function pollWaveSpeedTask(taskId: string, apiKey: string, maxAttempts = 60, intervalMs = 2500): Promise<string[]> {
@@ -215,11 +336,81 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const renderingSpeed = typeof body.rendering_speed === "string" && body.rendering_speed.trim()
       ? body.rendering_speed.trim().slice(0, 32)
       : "Quality";
+    const modelId = typeof body.modelId === "string" && body.modelId.trim()
+      ? body.modelId.trim()
+      : GOOGLE_GEMINI_CHARACTER_MODEL_ID;
+    const quality = normalizeCharacterQuality(body.quality);
 
     const fullPrompt = `Character: ${character.name}. Preserve the same identity, face, ethnicity, proportions, and recognizable features. ${character.description || ""}\n\n${userPrompt}`.trim();
     const precheck = await precheckGenerationPolicy({ prompt: fullPrompt });
     if (!precheck.allowed) {
       return NextResponse.json({ error: precheck.message, blocked: true, reason: precheck.reason }, { status: 403 });
+    }
+
+    const isGoogleGeminiCharacterModel =
+      modelId === GOOGLE_GEMINI_CHARACTER_MODEL_ID ||
+      modelId === LEGACY_GEMINI_OMNI_CHARACTER_MODEL_ID;
+
+    if (isGoogleGeminiCharacterModel) {
+      const apiKey = getGoogleApiKey();
+      if (!apiKey) {
+        return NextResponse.json(
+          { error: "Gemini Omni Character provider is not configured.", code: "google_key_missing" },
+          { status: 503 },
+        );
+      }
+
+      const creditsToCharge = await getGenerationCost(GOOGLE_GEMINI_CHARACTER_MODEL_ID, 5, 1, quality);
+      if (creditsToCharge <= 0) return NextResponse.json({ error: "No credit configuration for Gemini 3 Pro Image." }, { status: 400 });
+
+      const charge = await spendCredits({
+        userId,
+        credits: creditsToCharge,
+        prompt: sanitizePrompt(fullPrompt, 5000),
+        assetType: "IMAGE",
+        modelUsed: GOOGLE_GEMINI_CHARACTER_MODEL_ID,
+      });
+      generationId = charge.generationId;
+      chargedCredits = creditsToCharge;
+      chargedUserId = userId;
+
+      const referenceUrls = Array.from(new Set([image, ...refs].filter((url) => isSafePublicHttpUrl(url)))).slice(0, 8);
+      const generatedImages = await generateGoogleCharacterImages({
+        apiKey,
+        prompt: [
+          fullPrompt,
+          "Use the attached reference images as the locked character identity.",
+          "Keep face structure, hairline, skin tone, body proportions, wardrobe memory, and recognizable features consistent.",
+          `Render aspect ratio ${aspectRatio} at ${quality}.`,
+        ].join("\n"),
+        referenceUrls,
+        aspectRatio,
+        quality,
+      });
+      const imageUrls = await uploadGoogleCharacterImages({ userId, generationId, images: generatedImages });
+
+      if (generationId && imageUrls[0]) {
+        await setGenerationMediaUrl(generationId, imageUrls[0]).catch((err) => {
+          console.error("[gemini-3-pro-image-preview] Failed to save media URL", err);
+        });
+      }
+      if (imageUrls.length > 1) {
+        await saveAdditionalGenerationUrls(userId, sanitizePrompt(fullPrompt, 5000), GOOGLE_GEMINI_CHARACTER_MODEL_ID, "IMAGE", imageUrls.slice(1)).catch(() => null);
+      }
+
+      return NextResponse.json({
+        generationId,
+        imageUrls,
+        resultUrls: imageUrls,
+        imageUrl: imageUrls[0] ?? null,
+        mediaUrl: imageUrls[0] ?? null,
+        taskId: generationId,
+        modelId: GOOGLE_GEMINI_CHARACTER_MODEL_ID,
+        provider: "google",
+        quality,
+        aspectRatio,
+        credits: creditsToCharge,
+      });
     }
 
     const apiKey = process.env.WAVESPEED_API_KEY;
@@ -309,6 +500,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const status =
       lower.includes("timed out") ? 504 :
       lower.includes("not configured") ? 503 :
+      lower.includes("google") ? 502 :
       lower.includes("wavespeed") ? 502 :
       500;
     return NextResponse.json({ error: message }, { status });

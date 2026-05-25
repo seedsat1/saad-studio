@@ -12,11 +12,15 @@ import { getResolvedKieRoutingMaps } from "@/lib/kie-model-routing";
 import { syncKieModelCatalog } from "@/lib/kie-model-sync";
 import { attachIdempotencyGeneration, beginIdempotency, completeIdempotency, getIdempotencyKey, hashRequestBody } from "@/lib/idempotency";
 import { VIDEO_PROVIDER_BUSY_MESSAGE } from "@/lib/generation-errors";
+import { downloadVeoVideo, pollVeoOperation, startVeoGeneration, urlToImageInput, type VeoImageInput, type VeoOperationHandle, type VeoResolution } from "@/lib/gemini-veo";
+import { uploadBufferToStorage } from "@/lib/supabase-storage";
 
 const KIE_BASE = "https://api.kie.ai/api/v1";
 const WAVESPEED_BASE = "https://api.wavespeed.ai/api/v3";
 const { videoRouteToKieModelMap, wavespeedFallbackMap } = getResolvedKieRoutingMaps();
 const IDEMPOTENCY_ROUTE = "generate:video";
+const GOOGLE_VEO31_PRO_ROUTE = "google/veo-3.1-generate-preview";
+const LEGACY_GEMINI_OMNI_VIDEO_ROUTE = "google/gemini-omni-video";
 
 const LOCKED_VIDEO_ROUTE_TO_KIE_MODEL: Record<string, string> = {
   // These are high-traffic paid routes. Keep them immutable so a catalog sync or
@@ -68,6 +72,51 @@ function wavespeedHeaders() {
     "Content-Type": "application/json",
     Authorization: `Bearer ${getWaveSpeedKey()}`,
   };
+}
+
+function encodeGeminiTask(handle: VeoOperationHandle): string {
+  return `gvo:${Buffer.from(JSON.stringify(handle), "utf8").toString("base64url")}`;
+}
+
+function decodeGeminiTask(taskId: string): VeoOperationHandle | null {
+  if (!taskId.startsWith("gvo:")) return null;
+  try {
+    const decoded = JSON.parse(Buffer.from(taskId.slice(4), "base64url").toString("utf8")) as Partial<VeoOperationHandle>;
+    if (typeof decoded.name === "string" && typeof decoded.model === "string") {
+      return { name: decoded.name, model: decoded.model };
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+function dataUrlToImageInput(value: string) {
+  const parsed = extractBase64(value);
+  if (!parsed) return null;
+  return {
+    imageBytes: parsed.fileData,
+    mimeType: parsed.mime,
+  };
+}
+
+async function sourceToGoogleImageInput(value: unknown) {
+  if (typeof value !== "string" || !value.trim()) return undefined;
+  if (value.startsWith("data:")) return dataUrlToImageInput(value) ?? undefined;
+  return urlToImageInput(value);
+}
+
+function normalizeGeminiResolution(value: unknown): VeoResolution {
+  const raw = typeof value === "string" ? value.toLowerCase() : "";
+  if (raw === "4k") return "4k";
+  if (raw === "1080p" || raw === "pro") return "1080p";
+  return "720p";
+}
+
+function normalizeGeminiDuration(value: unknown, resolution: VeoResolution, hasReferences: boolean): 4 | 6 | 8 {
+  if (resolution === "1080p" || resolution === "4k" || hasReferences) return 8;
+  const raw = typeof value === "number" ? value : typeof value === "string" ? Number.parseInt(value, 10) : 8;
+  return raw === 4 || raw === 6 || raw === 8 ? raw : 8;
 }
 
 function mapToWavespeedInput(payload: Record<string, unknown>, route?: string): Record<string, unknown> {
@@ -848,7 +897,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "payload is required" }, { status: 400 });
     }
 
-    const kieModel = resolveKieVideoModel(modelRoute);
+    const isDirectGoogleVeo31ProRoute = modelRoute === GOOGLE_VEO31_PRO_ROUTE || modelRoute === LEGACY_GEMINI_OMNI_VIDEO_ROUTE;
+    const kieModel = isDirectGoogleVeo31ProRoute ? undefined : resolveKieVideoModel(modelRoute);
     const wavespeedRoute = wavespeedFallbackMap[modelRoute];
 
     if (
@@ -860,7 +910,7 @@ export async function POST(req: Request) {
       console.log("[api/video POST] resolved provider model", JSON.stringify({ modelRoute, kieModel }));
     }
 
-    if (!kieModel && !wavespeedRoute) {
+    if (!isDirectGoogleVeo31ProRoute && !kieModel && !wavespeedRoute) {
       return NextResponse.json(
         { error: `No model mapping for route: ${modelRoute}` },
         { status: 400 },
@@ -870,7 +920,8 @@ export async function POST(req: Request) {
     const isVeoModelRoute =
       modelRoute === "google/veo3.1-lite-text-to-video" ||
       modelRoute === "google/veo3.1-fast-text-to-video" ||
-      modelRoute === "google/veo3.1-text-to-video";
+      modelRoute === "google/veo3.1-text-to-video" ||
+      isDirectGoogleVeo31ProRoute;
     if (isVeoModelRoute) {
       const requestedResolution =
         typeof payload.resolution === "string"
@@ -966,6 +1017,117 @@ export async function POST(req: Request) {
       if (idem.kind === "in_progress") {
         return NextResponse.json({ status: "processing", generationId: idem.generationId }, { status: 202 });
       }
+    }
+
+    // ── Direct Google Gemini video path (no KIE, no WaveSpeed) ───────────────
+    if (isDirectGoogleVeo31ProRoute) {
+      const prompt = typeof payload.prompt === "string" ? sanitizePrompt(payload.prompt, 5000) : "";
+      if (!prompt) {
+        return NextResponse.json({ error: "Prompt is required" }, { status: 400 });
+      }
+
+      const startImage =
+        payload.first_frame_url ??
+        payload.image_url ??
+        payload.image;
+      const endImage =
+        payload.last_frame_url ??
+        payload.end_image ??
+        payload.last_image;
+      const referenceSources = Array.isArray(payload.reference_image_urls)
+        ? payload.reference_image_urls.filter((value): value is string => typeof value === "string" && value.trim().length > 0).slice(0, 3)
+        : [];
+      const hasGoogleReferences = Boolean(startImage) || Boolean(endImage) || referenceSources.length > 0;
+      const aspectRatio = payload.aspect_ratio === "9:16" || payload.aspectRatio === "9:16" ? "9:16" : "16:9";
+      const resolution = normalizeGeminiResolution(payload.resolution ?? payload.quality ?? payload.mode);
+      const durationSeconds = normalizeGeminiDuration(payload.duration, resolution, hasGoogleReferences);
+      const negativePrompt =
+        typeof payload.negative_prompt === "string" && payload.negative_prompt.trim()
+          ? sanitizePrompt(payload.negative_prompt, 1000)
+          : undefined;
+
+      const charge = await spendCredits({
+        userId,
+        credits: creditsToCharge,
+        prompt,
+        assetType: "VIDEO",
+        modelUsed: modelRoute,
+      });
+      generationId = charge.generationId;
+      chargedCredits = creditsToCharge;
+      chargedUserId = userId;
+      await attachIdempotencyGeneration({
+        userId,
+        route: IDEMPOTENCY_ROUTE,
+        key: idempotencyKey,
+        generationId,
+      }).catch(() => {});
+
+      const [image, lastFrame, referenceImages] = await Promise.all([
+        sourceToGoogleImageInput(startImage),
+        sourceToGoogleImageInput(endImage),
+        referenceSources.length
+          ? Promise.all(referenceSources.map((source) => sourceToGoogleImageInput(source))).then((items) => items.filter((item): item is VeoImageInput => Boolean(item)))
+          : Promise.resolve([]),
+      ]);
+
+      let opHandle: VeoOperationHandle;
+      try {
+        opHandle = await startVeoGeneration({
+          tier: "pro",
+          prompt,
+          aspectRatio,
+          resolution,
+          durationSeconds,
+          negativePrompt,
+          generateAudio: true,
+          image,
+          lastFrame: image ? lastFrame : undefined,
+          referenceImages: referenceImages.length ? referenceImages : undefined,
+        });
+      } catch (err) {
+        if (generationId && chargedUserId && chargedCredits > 0) {
+          await refundGenerationCharge(generationId, chargedUserId, chargedCredits, {
+            reason: "generation_refund_provider_failed",
+            clearMediaUrl: true,
+          }).catch(() => {});
+        }
+        const responseJson = {
+          generationId,
+          error: err instanceof Error ? err.message : "Google Gemini video generation failed",
+          publicError: VIDEO_PROVIDER_BUSY_MESSAGE,
+          code: "provider_submit_failed",
+          providerModel: "veo-3.1-generate-preview",
+          modelRoute,
+        };
+        await completeIdempotency({
+          userId,
+          route: IDEMPOTENCY_ROUTE,
+          key: idempotencyKey,
+          generationId,
+          responseStatus: 502,
+          responseJson,
+        }).catch(() => {});
+        return NextResponse.json(responseJson, { status: 502 });
+      }
+
+      const taskId = encodeGeminiTask(opHandle);
+      await setGenerationTaskMarker(generationId, taskId);
+
+      const responseJson = {
+        generationId,
+        taskId,
+        status: "processing",
+      };
+      await completeIdempotency({
+        userId,
+        route: IDEMPOTENCY_ROUTE,
+        key: idempotencyKey,
+        generationId,
+        responseStatus: 200,
+        responseJson,
+      }).catch(() => {});
+      return NextResponse.json(responseJson);
     }
 
     // ── WaveSpeed path ────────────────────────────────────────────────────────
@@ -1292,6 +1454,58 @@ export async function GET(req: Request) {
 
     if (!taskId || typeof taskId !== "string") {
       return NextResponse.json({ error: "taskId is required" }, { status: 400 });
+    }
+
+    // Direct Google Gemini polling. This route never touches KIE or WaveSpeed.
+    if (taskId.startsWith("gvo:")) {
+      const handle = decodeGeminiTask(taskId);
+      if (!handle) {
+        return NextResponse.json({ taskId, status: "failed", outputs: [], error: "Invalid Gemini task id" });
+      }
+
+      const linkedGeneration = await prismadb.generation.findFirst({
+        where: { userId, mediaUrl: { startsWith: `task:${taskId}` } },
+        select: { id: true, cost: true, mediaUrl: true },
+        orderBy: { createdAt: "desc" },
+      }).catch(() => null);
+
+      if (linkedGeneration?.mediaUrl && !linkedGeneration.mediaUrl.startsWith("task:")) {
+        return NextResponse.json({ taskId, status: "completed", outputs: [linkedGeneration.mediaUrl], error: null });
+      }
+
+      const poll = await pollVeoOperation(handle);
+      if (!poll.done) {
+        return NextResponse.json({ taskId, status: "processing", outputs: [], error: null });
+      }
+
+      if (!poll.videoUri) {
+        if (linkedGeneration && linkedGeneration.cost > 0) {
+          await refundGenerationCharge(linkedGeneration.id, userId, linkedGeneration.cost, {
+            reason: "generation_refund_provider_failed",
+            clearMediaUrl: true,
+          }).catch(() => {});
+        }
+        return NextResponse.json({ taskId, status: "failed", outputs: [], error: "No video returned" });
+      }
+
+      const { buffer, contentType } = await downloadVeoVideo(poll.videoUri);
+      let publicUrl = poll.videoUri;
+      if (linkedGeneration) {
+        const storedUrl = await uploadBufferToStorage({
+          buffer,
+          contentType,
+          userId,
+          assetType: "video",
+          generationId: linkedGeneration.id,
+        });
+        if (!storedUrl) {
+          return NextResponse.json({ taskId, status: "failed", outputs: [], error: "Storage upload failed" });
+        }
+        publicUrl = storedUrl;
+        await setGenerationMediaUrl(linkedGeneration.id, publicUrl);
+      }
+
+      return NextResponse.json({ taskId, status: "completed", outputs: [publicUrl], error: null });
     }
 
     // ── WaveSpeed polling ────────────────────────────────────────────────────

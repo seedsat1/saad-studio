@@ -59,6 +59,36 @@ type LocalRefImage = {
   dataUrl: string;
 };
 
+type CharacterModelId = "gemini-3-pro-image-preview" | "ideogram-character";
+
+const CHARACTER_MODELS: Array<{
+  id: CharacterModelId;
+  name: string;
+  provider: string;
+  badge: string;
+  description: string;
+}> = [
+  {
+    id: "gemini-3-pro-image-preview",
+    name: "Gemini 3 Pro Image",
+    provider: "Google",
+    badge: "TOP",
+    description: "Official Google image model for multi-reference character identity generation.",
+  },
+  {
+    id: "ideogram-character",
+    name: "Ideogram Character",
+    provider: "WaveSpeed",
+    badge: "Backup",
+    description: "Legacy character test generation path.",
+  },
+];
+
+const CHARACTER_ASPECT_RATIOS = ["1:1", "4:3", "3:4", "16:9", "9:16"];
+const CHARACTER_QUALITIES = ["1K", "2K", "4K"];
+const CHARACTER_STYLES = ["Auto", "Realistic", "Cinematic", "Editorial", "Anime"];
+const CHARACTER_SPEEDS = ["Quality", "Balanced", "Fast"];
+
 const DEFAULT_STATES: Record<CharacterStateKey, string> = {
   neutral: "Clean identity reference, relaxed face, readable front angle, no dramatic styling changes.",
   hero: "Premium hero look, confident posture, strong face readability, beauty lighting.",
@@ -200,6 +230,11 @@ export default function CharacterPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [variationPrompt, setVariationPrompt] = useState("Create a campaign-ready portrait using the saved Hero state and strict identity consistency.");
+  const [selectedModelId, setSelectedModelId] = useState<CharacterModelId>("gemini-3-pro-image-preview");
+  const [characterAspectRatio, setCharacterAspectRatio] = useState("1:1");
+  const [characterQuality, setCharacterQuality] = useState("1K");
+  const [characterStyle, setCharacterStyle] = useState("Auto");
+  const [characterRenderingSpeed, setCharacterRenderingSpeed] = useState("Quality");
   const [generatingCharacterId, setGeneratingCharacterId] = useState<string | null>(null);
   const [generatedUrls, setGeneratedUrls] = useState<Record<string, string[]>>({});
   const [error, setError] = useState<string | null>(null);
@@ -319,6 +354,11 @@ export default function CharacterPage() {
             variationPrompt,
           ].filter(Boolean).join("\n\n"),
           size: "1024*1024",
+          modelId: selectedModelId,
+          aspect_ratio: characterAspectRatio,
+          quality: characterQuality,
+          style: characterStyle,
+          rendering_speed: characterRenderingSpeed,
         }),
       });
       const data = await res.json().catch(() => null);
@@ -334,7 +374,7 @@ export default function CharacterPage() {
     } finally {
       setGeneratingCharacterId(null);
     }
-  }, [variationPrompt]);
+  }, [characterAspectRatio, characterQuality, characterRenderingSpeed, characterStyle, selectedModelId, variationPrompt]);
 
   const copyReference = useCallback(async (character: CharacterRecord) => {
     await navigator.clipboard.writeText(packageToPrompt(character)).catch(() => null);
@@ -527,6 +567,79 @@ export default function CharacterPage() {
             <div className="mb-4 rounded-2xl border border-white/10 bg-black p-3">
               <label className="text-[11px] font-black uppercase tracking-[0.16em] text-zinc-500">Test generation prompt</label>
               <textarea value={variationPrompt} onChange={(event) => setVariationPrompt(event.target.value)} rows={4} className="mt-2 w-full resize-none rounded-2xl border border-white/10 bg-[#08090b] px-4 py-3 text-sm outline-none focus:border-lime-300/60" />
+              <div className="mt-3 grid gap-3">
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {CHARACTER_MODELS.map((model) => {
+                    const active = selectedModelId === model.id;
+                    return (
+                      <button
+                        key={model.id}
+                        type="button"
+                        onClick={() => setSelectedModelId(model.id)}
+                        className={cn(
+                          "rounded-xl border p-3 text-left transition",
+                          active ? "border-lime-300 bg-lime-300/10" : "border-white/10 bg-[#08090b] hover:bg-white/5",
+                        )}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-sm font-black text-white">{model.name}</span>
+                          <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-black", active ? "bg-lime-300 text-black" : "bg-white/10 text-zinc-300")}>{model.badge}</span>
+                        </div>
+                        <div className="mt-1 text-[11px] font-bold uppercase tracking-[0.14em] text-zinc-500">{model.provider}</div>
+                        <p className="mt-2 line-clamp-2 text-xs leading-5 text-zinc-400">{model.description}</p>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <div className="mb-2 text-[10px] font-black uppercase tracking-[0.16em] text-zinc-500">Ratio</div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {CHARACTER_ASPECT_RATIOS.map((ratio) => (
+                        <button
+                          key={ratio}
+                          type="button"
+                          onClick={() => setCharacterAspectRatio(ratio)}
+                          className={cn("rounded-lg border px-2.5 py-1.5 text-xs font-bold", characterAspectRatio === ratio ? "border-lime-300 bg-lime-300 text-black" : "border-white/10 bg-[#08090b] text-zinc-300 hover:bg-white/5")}
+                        >
+                          {ratio}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="mb-2 text-[10px] font-black uppercase tracking-[0.16em] text-zinc-500">Quality</div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {CHARACTER_QUALITIES.map((quality) => (
+                        <button
+                          key={quality}
+                          type="button"
+                          onClick={() => setCharacterQuality(quality)}
+                          className={cn("rounded-lg border px-2.5 py-1.5 text-xs font-bold", characterQuality === quality ? "border-lime-300 bg-lime-300 text-black" : "border-white/10 bg-[#08090b] text-zinc-300 hover:bg-white/5")}
+                        >
+                          {quality}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <label className="block">
+                    <span className="mb-2 block text-[10px] font-black uppercase tracking-[0.16em] text-zinc-500">Style</span>
+                    <select value={characterStyle} onChange={(event) => setCharacterStyle(event.target.value)} className="h-10 w-full rounded-xl border border-white/10 bg-[#08090b] px-3 text-xs font-semibold text-zinc-200 outline-none focus:border-lime-300/60">
+                      {CHARACTER_STYLES.map((style) => <option key={style} value={style}>{style}</option>)}
+                    </select>
+                  </label>
+                  <label className="block">
+                    <span className="mb-2 block text-[10px] font-black uppercase tracking-[0.16em] text-zinc-500">Speed</span>
+                    <select value={characterRenderingSpeed} onChange={(event) => setCharacterRenderingSpeed(event.target.value)} className="h-10 w-full rounded-xl border border-white/10 bg-[#08090b] px-3 text-xs font-semibold text-zinc-200 outline-none focus:border-lime-300/60">
+                      {CHARACTER_SPEEDS.map((speed) => <option key={speed} value={speed}>{speed}</option>)}
+                    </select>
+                  </label>
+                </div>
+              </div>
             </div>
 
             {loading ? (

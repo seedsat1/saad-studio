@@ -153,6 +153,23 @@ function i2vCaps(overrides: Partial<VideoModelCapabilities> = {}): VideoModelCap
 // ── Model Definitions ─────────────────────────────────────────────────────────
 
 export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
+  {
+    id: "google-veo-3-1-generate-preview",
+    name: "Veo 3.1 Generate Preview",
+    family: "gemini", family_label: "Google Gemini", family_color: "#22c55e",
+    badge: "TOP",
+    description: "Official Google Veo 3.1 video generation. Durations: 4/6/8s, 16:9 or 9:16, 720p/1080p/4K.",
+    api_route: "google/veo-3.1-generate-preview",
+    route_confirmed: true,
+    capabilities: t2vCaps({
+      optional_image: true,
+      has_end_frame: true,
+      aspect_ratios: ["16:9", "9:16"],
+      durations: [4, 6, 8],
+      resolutions: ["720p", "1080p", "4k"],
+      max_reference_images: 3,
+    }),
+  },
 
   // ╔══════════════════════════════════════════════════════════════════════════
   // ║ Kling V3.0 Pro

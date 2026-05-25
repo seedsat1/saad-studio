@@ -328,7 +328,7 @@ function resolveVideoTool(toolId: string | null): VideoToolId | null {
 }
 
 const TOOL_DEFAULT_MODEL_ID: Record<VideoToolId, string> = {
-  "create-video": "google-veo3.1-t2v",
+  "create-video": "google-veo-3-1-generate-preview",
   "image-to-video": "kling-v2.5-turbo-i2v",
   "kling-3": "kling-v3.0-pro-t2v",
   "kling-motion": "kling-v3.0-pro-motion",
@@ -358,6 +358,7 @@ const FAMILY_GRADIENTS: Record<string, string> = {
   sora:      "from-violet-900 via-purple-800 to-slate-900",
   hailuo:    "from-amber-900  via-amber-800  to-slate-900",
   seedance:  "from-emerald-900 via-emerald-800 to-slate-900",
+  gemini:    "from-green-900 via-emerald-800 to-slate-900",
   luma:      "from-purple-900 via-purple-800 to-slate-900",
   pika:      "from-pink-900   via-pink-800   to-slate-900",
   pixverse:  "from-rose-900   via-rose-800   to-slate-900",
@@ -774,7 +775,10 @@ function VideoPageInner() {
     [selectableCharacters, selectedCharacterId, supportsCharacterReference],
   );
   const isSoraModel = selectedModel.api_route.includes("openai/sora-2");
-  const isVeo31Model = selectedModel.api_route.startsWith("google/veo3.1");
+  const isVeo31Model =
+    selectedModel.api_route.startsWith("google/veo3.1") ||
+    selectedModel.api_route === "google/veo-3.1-generate-preview" ||
+    selectedModel.api_route === "google/gemini-omni-video";
   const isVeo31LiteModel = selectedModel.api_route === "google/veo3.1-lite-text-to-video";
   const isVeo31FastModel = selectedModel.api_route === "google/veo3.1-fast-text-to-video";
   const hasVeo31ReferenceInput = isVeo31Model && (

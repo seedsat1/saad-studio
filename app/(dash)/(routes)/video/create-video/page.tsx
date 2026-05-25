@@ -16,6 +16,7 @@ import { GeneratedVideo } from "@/components/video/VideoResultCard";
 const FAMILY_GRADIENTS: Record<string, string> = {
   Kling:     "from-cyan-900 via-cyan-800 to-slate-900",
   Hailuo:    "from-amber-900 via-amber-800 to-slate-900",
+  "Google Gemini": "from-green-900 via-emerald-800 to-slate-900",
   Sora:      "from-violet-900 via-purple-800 to-slate-900",
   Runway:    "from-blue-900 via-blue-800 to-slate-900",
   Grok:      "from-rose-900 via-rose-800 to-slate-900",
@@ -28,7 +29,7 @@ function CreateVideoInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const initModelId = searchParams.get("model") ?? "kling-3.0/video";
+  const initModelId = searchParams.get("model") ?? "google/veo-3.1-generate-preview";
   const initModel = getModelById(initModelId) ?? getDefaultModel();
   const initImageUrl = searchParams.get("imageUrl") ?? "";
   const initPrompt = searchParams.get("prompt") ?? "";

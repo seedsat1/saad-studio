@@ -342,7 +342,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
       <div class="prompt-options">
         <button class="opt-voice-chip" id="voiceChipBtn" onclick="openVoiceModal()">
           <span class="opt-voice-avatar"><img id="vpAvatarImg" src="https://randomuser.me/api/portraits/women/31.jpg" alt="" loading="lazy" style="width:100%;height:100%;object-fit:cover;border-radius:50%"></span>
-          <span id="vpName">Rachel</span>
+          <span id="vpName">Gemini Sulafat</span>
           <svg style="width:10px;height:10px;color:var(--text-dim)" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5l3 3 3-3"/></svg>
         </button>
         <span class="opt-divider" id="divVoice"></span>
@@ -506,6 +506,12 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 
 <script>
 const VOICE_CATALOG=[
+  {cat:'Arabic',id:'gemini:Sulafat',name:'Gemini Sulafat',gender:'female',lang:'AR',accent:'Arabic Google TTS',emoji:'🌙',color:'#174a2a',provider:'gemini'},
+  {cat:'Arabic',id:'gemini:Kore',name:'Gemini Kore',gender:'female',lang:'AR',accent:'Firm Arabic Google TTS',emoji:'🌙',color:'#1a4a3a',provider:'gemini'},
+  {cat:'Arabic',id:'gemini:Achernar',name:'Gemini Achernar',gender:'female',lang:'AR',accent:'Soft Arabic Google TTS',emoji:'🌙',color:'#1a3a4a',provider:'gemini'},
+  {cat:'Arabic',id:'gemini:Orus',name:'Gemini Orus',gender:'male',lang:'AR',accent:'Firm Arabic Google TTS',emoji:'🌙',color:'#1a2a4a',provider:'gemini'},
+  {cat:'Arabic',id:'gemini:Puck',name:'Gemini Puck',gender:'male',lang:'AR',accent:'Upbeat Arabic Google TTS',emoji:'🌙',color:'#2a3a1a',provider:'gemini'},
+  {cat:'Arabic',id:'gemini:Charon',name:'Gemini Charon',gender:'male',lang:'AR',accent:'Informative Arabic Google TTS',emoji:'🌙',color:'#2a2a4a',provider:'gemini'},
   {cat:'Narration',id:'21m00Tcm4TlvDq8ikWAM',name:'Rachel',gender:'female',lang:'EN',accent:'American',emoji:'👩',color:'#1a2a5a'},
   {cat:'Narration',id:'XrExE9yKIg1WjnnlVkGX',name:'Matilda',gender:'female',lang:'EN',accent:'Australian',emoji:'🌺',color:'#2a1a4a'},
   {cat:'Narration',id:'nPczCjzI2devNBz1zQrb',name:'Brian (Narr.)',gender:'male',lang:'EN',accent:'Deep Resonant',emoji:'🧔',color:'#1a2a4a'},
@@ -616,7 +622,7 @@ const VOICE_CATALOG=[
 const MY_VOICES_KEY='ff_my_voices_v1';
 const VPM_FAV_KEY='ff_vpm_favs_v1';
 let _vmFavs=new Set(JSON.parse(localStorage.getItem(VPM_FAV_KEY)||'[]'));
-let _vmSelectedId='21m00Tcm4TlvDq8ikWAM';
+let _vmSelectedId='gemini:Sulafat';
 let _vmActiveCat='All';
 let _vmActiveTab='all';
 let _vmGenderFilter='';
@@ -1081,6 +1087,7 @@ async function resumeActiveAudioJob(){const tracker=(window.ActiveJobTracker&&wi
 /* GENERATE */
 function getSelectedVoiceId(){const c=(document.getElementById('customVoiceId')?.value||'').trim();if(c&&!c.startsWith('sample_')&&!c.startsWith('custom_'))return c;return _vmSelectedId||'21m00Tcm4TlvDq8ikWAM';}
 function getSelectedLangCode(){const v=VOICE_CATALOG.find(x=>x.id===_vmSelectedId);if(v&&v.lang==='AR')return'ar';const btn=document.getElementById('optLang');const t=btn?.childNodes[1]?.textContent?.trim()||'Auto';if(t==='Arabic')return'ar';if(t==='English')return'en';return'';}
+function isGeminiVoiceId(id){return String(id||'').startsWith('gemini:');}
 async function handleGenerate(){const text=(document.getElementById('promptInput')?.value||'').trim();if(!text){setStatus('Please enter a description or text.','warn');return;}if(currentMode==='voice')await generateVoice(text);else if(currentMode==='music')await generateMusic(text);else await generateSfx(text);}
 async function generateVoice(text){
   const speedBtn=document.getElementById('optSpeed');const speedTxt=speedBtn?.childNodes[1]?.textContent?.trim()||'1.0x';const speed=parseFloat(speedTxt)||1.0;
@@ -1114,10 +1121,12 @@ async function generateVoice(text){
       if(!res.ok)throw new Error(json?.error||json?.message||`Clone error (${res.status})`);
       url=json?.audioUrl||json?.url||'';
     } else {
-      /* --- Catalog voice: KIE TTS with real ElevenLabs ID --- */
+      /* --- Catalog voice: Gemini Google TTS for Gemini voices, otherwise KIE ElevenLabs --- */
       const voiceId=_vmSelectedId||'21m00Tcm4TlvDq8ikWAM';
       const lc=getSelectedLangCode();
-      const body={actionType:'tts',model:'elevenlabs/text-to-speech-multilingual-v2',text,voice:voiceId,speed:Math.max(0.7,Math.min(1.5,speed)),stability:0.5,clarity:75,use_speaker_boost:true};
+      const body=isGeminiVoiceId(voiceId)
+        ? {actionType:'tts',model:'gemini-omni-audio',text,voice:voiceId.replace(/^gemini:/,''),speed:Math.max(0.7,Math.min(1.5,speed)),language_code:lc||'ar'}
+        : {actionType:'tts',model:'elevenlabs/text-to-speech-multilingual-v2',text,voice:voiceId,speed:Math.max(0.7,Math.min(1.5,speed)),stability:0.5,clarity:75,use_speaker_boost:true};
       if(lc)body.language_code=lc;
       const res=await fetch('/api/generate/audio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
       const json=await res.json();
