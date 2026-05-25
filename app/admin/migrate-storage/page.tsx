@@ -4,8 +4,9 @@ import { Database, CheckCircle2, XCircle, Loader2, Play, BarChart3, AlertTriangl
 
 type StatsResult = { total: number; byTable: Record<string, number> };
 type BatchResult = {
-  batch: number; totalRows: number; totalBatches: number;
+  totalRows: number; totalBatches: number;
   processed: number; migrated: number; failed: number;
+  remainingBefore: number; remainingAfter: number;
   hasMore: boolean; nextBatch: number | null;
   details: {
     migrated: { table: string; id: string; field: string; oldUrl: string; newUrl: string }[];
@@ -35,16 +36,17 @@ export default function MigrateStoragePage() {
     setLog([]);
     setTotals({ migrated: 0, failed: 0, processed: 0 });
 
-    let batch = 0;
     const size = 15;
+    let round = 0;
     let cumMigrated = 0;
     let cumFailed   = 0;
     let cumProcessed = 0;
 
     while (true) {
-      const r = await fetch(`/api/admin/migrate-storage?batch=${batch}&size=${size}`);
+      round += 1;
+      const r = await fetch(`/api/admin/migrate-storage?size=${size}`);
       if (!r.ok) {
-        setLog(prev => [...prev, `❌ خطأ في الدفعة ${batch}: ${r.status}`]);
+        setLog(prev => [...prev, `❌ خطأ في الجولة ${round}: ${r.status}`]);
         break;
       }
       const d = await r.json() as BatchResult;
@@ -53,17 +55,25 @@ export default function MigrateStoragePage() {
       cumProcessed += d.processed;
       setTotals({ migrated: cumMigrated, failed: cumFailed, processed: cumProcessed });
 
-      const msg = `دفعة ${batch + 1}/${d.totalBatches} — نُقل: ${d.migrated} | فشل: ${d.failed}`;
+      const msg = `جولة ${round} — نُقل: ${d.migrated} | فشل: ${d.failed} | متبقي: ${d.remainingAfter}`;
       setLog(prev => [...prev, msg]);
 
       for (const f of d.details.failed) {
         setLog(prev => [...prev, `  ⚠ ${f.table}.${f.field} [${f.id.slice(0,8)}]: ${f.error}`]);
       }
 
-      if (!d.hasMore) break;
-      batch++;
+      if (!d.hasMore || d.remainingAfter === 0) break;
       // small delay to not overwhelm the server
       await new Promise(r => setTimeout(r, 500));
+    }
+
+    const finalRes = await fetch("/api/admin/migrate-storage?dry=true");
+    if (finalRes.ok) {
+      const finalStats = await finalRes.json() as StatsResult;
+      setStats(finalStats);
+      if (finalStats.total > 0) {
+        setLog(prev => [...prev, `⚠ متبقي ${finalStats.total} ملف، أعد التشغيل لإكمال الترحيل.`]);
+      }
     }
 
     setRunning(false);
@@ -161,14 +171,14 @@ export default function MigrateStoragePage() {
                   </div>
                 </div>
 
-                {done && totals.failed === 0 && (
+                {done && totals.failed === 0 && stats?.total === 0 && (
                   <div className="flex items-center gap-2 text-emerald-400 font-semibold">
                     <CheckCircle2 className="w-5 h-5" /> اكتمل الترحيل بنجاح! جميع الملفات على R2 الآن.
                   </div>
                 )}
-                {done && totals.failed > 0 && (
+                {done && (totals.failed > 0 || (stats?.total ?? 0) > 0) && (
                   <div className="flex items-center gap-2 text-amber-400 font-semibold">
-                    <XCircle className="w-5 h-5" /> اكتمل مع {totals.failed} فشل — راجع السجل أدناه.
+                    <XCircle className="w-5 h-5" /> اكتمل جزئياً — متبقي {(stats?.total ?? 0)} أو فشل {totals.failed}. راجع السجل أدناه.
                   </div>
                 )}
               </div>

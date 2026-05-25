@@ -176,7 +176,6 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const dry   = searchParams.has("dry");
   const stats = searchParams.has("stats");
-  const batch = parseInt(searchParams.get("batch") ?? "0", 10);
   const size  = Math.min(parseInt(searchParams.get("size") ?? "20", 10), 50);
 
   const allRows = await collectRows();
@@ -187,7 +186,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ total: allRows.length, byTable: byCounts });
   }
 
-  const slice = allRows.slice(batch * size, batch * size + size);
+  // Process the first N pending rows every call.
+  // Using batch offsets is unsafe because pending rows shrink after each update.
+  const slice = allRows.slice(0, size);
   const migrated: MigratedRecord[] = [];
   const failed:   FailedRecord[]   = [];
 
@@ -206,18 +207,20 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  const totalBatches = Math.ceil(allRows.length / size);
-  const hasMore = batch + 1 < totalBatches;
+  const remainingBefore = allRows.length;
+  const remainingAfter = Math.max(remainingBefore - migrated.length, 0);
+  const hasMore = remainingAfter > 0;
 
   return NextResponse.json({
-    batch,
-    totalRows: allRows.length,
-    totalBatches,
+    totalRows: remainingBefore,
+    totalBatches: Math.ceil(remainingBefore / size),
     processed: slice.length,
     migrated: migrated.length,
     failed: failed.length,
+    remainingBefore,
+    remainingAfter,
     hasMore,
-    nextBatch: hasMore ? batch + 1 : null,
+    nextBatch: hasMore ? 1 : null,
     details: { migrated, failed },
   });
 }
