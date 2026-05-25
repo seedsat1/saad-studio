@@ -73,6 +73,10 @@ function getR2Client(): S3Client {
       accessKeyId: getRequiredEnv("R2_ACCESS_KEY_ID"),
       secretAccessKey: getRequiredEnv("R2_SECRET_ACCESS_KEY"),
     },
+    // Disable automatic CRC32 checksums — they add x-amz-checksum-crc32
+    // headers to presigned PUT URLs which Cloudflare R2 blocks in CORS preflight.
+    requestChecksumCalculation: "WHEN_REQUIRED",
+    responseChecksumValidation: "WHEN_REQUIRED",
   });
 
   return r2Client;
