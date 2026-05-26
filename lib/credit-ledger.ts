@@ -26,7 +26,7 @@ export async function ensureUserRow(userId: string) {
 
   const clerk = await clerkClient();
   const clerkUser = await clerk.users.getUser(userId).catch(() => null);
-  const email = clerkUser?.emailAddresses?.[0]?.emailAddress ?? `${userId}@unknown`;
+  const email = clerkUser?.emailAddresses?.[0]?.emailAddress ?? null;
   const name = [clerkUser?.firstName, clerkUser?.lastName].filter(Boolean).join(" ") || null;
 
   // Welcome bonus is OFF by default. Only set creditsExpireAt when we
@@ -34,26 +34,44 @@ export async function ensureUserRow(userId: string) {
   // ticking 30-day expiry.
   const welcome = Math.max(0, Math.floor(WELCOME_SIGNUP_CREDITS));
 
-  try {
-    return await prismadb.user.create({
-      data: {
-        id: userId,
-        email,
-        name,
-        creditBalance: welcome,
-        creditsExpireAt: welcome > 0 ? new Date(Date.now() + THIRTY_DAYS_MS) : null,
-        role: "USER",
-        isBanned: false,
-      },
-    });
-  } catch {
-    // Unique-constraint race or email already used by another row
-    const retry = await prismadb.user.findUnique({ where: { id: userId } });
-    if (retry) return retry;
+  // If this email already exists under another id, reuse that row.
+  if (email) {
     const byEmail = await prismadb.user.findUnique({ where: { email } });
     if (byEmail) return byEmail;
-    throw new Error(`Cannot create DB row for user ${userId}`);
   }
+
+  const fallbackEmails = [
+    email,
+    `${userId}@unknown.local`,
+    `${userId}.${Date.now()}@unknown.local`,
+  ].filter((v): v is string => Boolean(v));
+
+  for (const candidateEmail of fallbackEmails) {
+    try {
+      return await prismadb.user.create({
+        data: {
+          id: userId,
+          email: candidateEmail,
+          name,
+          creditBalance: welcome,
+          creditsExpireAt: welcome > 0 ? new Date(Date.now() + THIRTY_DAYS_MS) : null,
+          role: "USER",
+          isBanned: false,
+        },
+      });
+    } catch {
+      // Try next candidate on unique conflicts/races.
+    }
+  }
+
+  // Last retries after races.
+  const retry = await prismadb.user.findUnique({ where: { id: userId } });
+  if (retry) return retry;
+  if (email) {
+    const byEmail = await prismadb.user.findUnique({ where: { email } });
+    if (byEmail) return byEmail;
+  }
+  throw new Error(`Cannot create DB row for user ${userId}`);
 }
 
 export async function ensureWelcomeCredits(userId: string) {
