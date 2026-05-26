@@ -144,6 +144,25 @@ async function handleCreditExpiry(userId: string): Promise<void> {
   });
 }
 
+export async function reconcileCreditExpiry(userId: string): Promise<void> {
+  if (!userId) return;
+  await handleCreditExpiry(userId);
+}
+
+export async function sweepExpiredCredits(limit = 500): Promise<number> {
+  const safeLimit = Math.max(1, Math.min(2000, Math.floor(limit || 500)));
+  const now = new Date();
+  const expiredUsers = await prismadb.user.findMany({
+    where: { creditsExpireAt: { lte: now } },
+    select: { id: true },
+    orderBy: { creditsExpireAt: "asc" },
+    take: safeLimit,
+  });
+
+  await Promise.all(expiredUsers.map((u) => handleCreditExpiry(u.id).catch(() => {})));
+  return expiredUsers.length;
+}
+
 /**
  * Return the user's existing expiry IF it is still in the future, otherwise
  * fall back to (now + 30 days). Used by topups: they MUST NOT extend the

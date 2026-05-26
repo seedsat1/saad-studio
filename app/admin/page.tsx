@@ -513,6 +513,11 @@ export default function AdminDashboard() {
 
   const refreshGenerations = useCallback(async () => {
     const res = await fetch("/api/admin/generations", { cache: "no-store" });
+    if (!res.ok) {
+      console.error("[admin] /api/admin/generations failed:", res.status);
+      setGenerations([]);
+      return;
+    }
     const data = await res.json().catch(() => []);
     console.log("[admin] /api/admin/generations:", Array.isArray(data) ? data.length : "non-array");
     setGenerations(Array.isArray(data) ? (data as AdminGenerationRow[]) : []);
@@ -826,14 +831,20 @@ export default function AdminDashboard() {
 
   const handleToggleBan = async (userId: string) => {
     const user = users.find((u) => u.id === userId);
+    const nextIsBanned = !Boolean(user?.isBanned);
     setUsers((prev) =>
-      prev.map((u) => (u.id === userId ? { ...u, isBanned: !u.isBanned } : u))
+      prev.map((u) => (u.id === userId ? { ...u, isBanned: nextIsBanned } : u))
     );
-    await fetch(`/api/admin/users/${userId}`, {
+    const res = await fetch(`/api/admin/users/${userId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "ban", isBanned: !user?.isBanned }),
+      body: JSON.stringify({ action: "ban", isBanned: nextIsBanned }),
     });
+    if (!res.ok) {
+      setUsers((prev) =>
+        prev.map((u) => (u.id === userId ? { ...u, isBanned: Boolean(user?.isBanned) } : u))
+      );
+    }
   };
 
   const handleDeleteUser = async (userId: string) => {
@@ -1397,13 +1408,17 @@ export default function AdminDashboard() {
                             <select
                               value={user.role}
                               onChange={async (e) => {
+                                const previousRole = user.role;
                                 const newRole = e.target.value;
                                 setUsers((prev) => prev.map((u) => u.id === user.id ? { ...u, role: newRole } : u));
-                                await fetch(`/api/admin/users/${user.id}`, {
+                                const res = await fetch(`/api/admin/users/${user.id}`, {
                                   method: "PATCH",
                                   headers: { "Content-Type": "application/json" },
                                   body: JSON.stringify({ action: "role", role: newRole }),
                                 });
+                                if (!res.ok) {
+                                  setUsers((prev) => prev.map((u) => u.id === user.id ? { ...u, role: previousRole } : u));
+                                }
                               }}
                               className={`px-2 py-0.5 rounded-md text-[10px] font-bold border-0 cursor-pointer focus:outline-none focus:ring-1 focus:ring-violet-500/40 ${
                                 user.role === "ENTERPRISE"
