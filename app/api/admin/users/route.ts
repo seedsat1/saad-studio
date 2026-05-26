@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { clerkClient } from "@clerk/nextjs/server";
 import { isAdmin } from "@/lib/is-admin";
 import prismadb from "@/lib/prismadb";
-import { sweepExpiredCredits } from "@/lib/credit-ledger";
 
 export async function GET() {
   if (!(await isAdmin())) {
@@ -10,9 +9,6 @@ export async function GET() {
   }
 
   try {
-    // Ensure balances shown in admin reflect the 30-day expiry policy.
-    await sweepExpiredCredits(1000).catch(() => 0);
-
     const clerk = await clerkClient();
     const { data: clerkUsers } = await clerk.users.getUserList({ limit: 200, orderBy: "-created_at" });
 

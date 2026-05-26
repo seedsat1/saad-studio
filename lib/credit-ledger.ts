@@ -126,9 +126,21 @@ async function handleCreditExpiry(userId: string): Promise<void> {
   // STRICT TIMING: subscription is active only if stripeCurrentPeriodEnd is
   // still in the future. NO grace period — not a day, not an hour.
   const isSubscriptionActive =
-    subscription?.stripePriceId &&
+    (subscription?.stripePriceId || subscription?.planId) &&
     subscription?.stripeCurrentPeriodEnd &&
     subscription.stripeCurrentPeriodEnd.getTime() > now.getTime();
+
+  // If the subscription is still active, never hard-zero here.
+  // For monthly plans we keep balance as-is and align local expiry marker.
+  if (isSubscriptionActive && subscription?.billingInterval === "monthly") {
+    await prismadb.user.update({
+      where: { id: userId },
+      data: {
+        creditsExpireAt: subscription.stripeCurrentPeriodEnd,
+      },
+    });
+    return;
+  }
 
   // Only annual subscribers get auto-renewed every 30 days.
   // Monthly subscribers must pay again — their credits expire and stay at 0.
