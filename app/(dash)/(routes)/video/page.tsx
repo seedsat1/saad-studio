@@ -50,6 +50,46 @@ function hexA(hex: string, a: number): string {
   return `rgba(${r},${g},${b},${a})`;
 }
 
+function StyleLibraryGatewayCard() {
+  return (
+    <a
+      href="/image-presets"
+      className="group mx-2 mt-4 block overflow-hidden rounded-xl border transition-all hover:shadow-lg"
+      style={{
+        background: "rgba(0,0,0,0.34)",
+        borderColor: "rgba(251,191,36,0.25)",
+        boxShadow: "0 0 0 1px rgba(0,0,0,0.18)",
+      }}
+    >
+      <div className="relative h-32 overflow-hidden">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/preset/card.webp"
+          alt="Style Library featured styles"
+          className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+          loading="lazy"
+        />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/90 via-black/5 to-transparent" />
+      </div>
+      <div className="px-3 pb-3 pt-2.5">
+        <div className="flex items-center gap-2">
+          <span className="rounded-md px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider"
+            style={{ background: "rgba(251,191,36,0.15)", color: "#fde68a", border: "1px solid rgba(251,191,36,0.35)" }}>
+            New
+          </span>
+          <span className="text-[10px] uppercase tracking-wider" style={{ color: "rgba(252,211,77,0.72)" }}>
+            18 styles
+          </span>
+        </div>
+        <h3 className="mt-1.5 text-sm font-black text-white">Style Library</h3>
+        <p className="mt-0.5 text-[11px] leading-5" style={{ color: "#94a3b8" }}>
+          Tap a curated style. The prompt, model, and aspect ratio apply instantly.
+        </p>
+      </div>
+    </a>
+  );
+}
+
 async function fileToDataURL(file: File, maxPx = 1920, quality = 0.85): Promise<string> {
   // For non-image files (video) return raw data URL without compression
   if (!file.type.startsWith("image/")) {
@@ -1729,6 +1769,7 @@ function VideoPageInner() {
             </button>
           );
         })}
+        <StyleLibraryGatewayCard />
       </aside>
 
       {/* -- Center Panel --------------------------------------------------- */}
