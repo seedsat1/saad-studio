@@ -808,13 +808,30 @@ const TopNavbar = () => {
     }
 
     let disposed = false;
+    const readBalance = (payload: unknown): number | null => {
+      const data = payload as Record<string, unknown> | null;
+      const raw = typeof data?.balance === "number"
+        ? data.balance
+        : typeof data?.credits === "number"
+          ? data.credits
+          : null;
+      return raw === null ? null : Math.max(0, Math.floor(raw));
+    };
     const loadCredits = async () => {
       try {
         const res = await fetch("/api/editor/credits", { cache: "no-store" });
-        if (!res.ok) return;
         const data = await res.json();
-        if (!disposed && typeof data?.balance === "number") {
-          setCreditBalance(Math.max(0, Math.floor(data.balance)));
+        const balance = readBalance(data);
+        if (!disposed && balance !== null) {
+          setCreditBalance(balance);
+          return;
+        }
+        const fallbackRes = await fetch("/api/profile/overview", { cache: "no-store" });
+        if (!fallbackRes.ok) return;
+        const fallbackData = await fallbackRes.json();
+        const fallbackBalance = readBalance(fallbackData);
+        if (!disposed && fallbackBalance !== null) {
+          setCreditBalance(fallbackBalance);
         }
       } catch {
         // keep previous value

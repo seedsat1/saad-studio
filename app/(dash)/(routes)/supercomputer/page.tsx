@@ -158,22 +158,6 @@ export default function SupercomputerPage() {
           <p className="mt-0.5 text-[11.5px] text-white/40">Create one to get started</p>
         </div>
 
-        {/* Bottom pricing + user */}
-        <div className="mt-auto flex flex-col gap-1.5 border-t border-white/5 p-3">
-          <button className="flex items-center justify-between rounded-lg bg-white/[0.03] px-3 py-2 text-[13px] hover:bg-white/[0.06]">
-            <span className="flex items-center gap-2">
-              <Gem className="h-4 w-4 text-cyan-300" />
-              Pricing
-            </span>
-            <span className="rounded-md bg-cyan-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-cyan-300">
-              30% OFF
-            </span>
-          </button>
-          <div className="flex items-center gap-2 rounded-lg px-2 py-1.5">
-            <div className="h-7 w-7 rounded-full bg-gradient-to-br from-lime-300 via-cyan-300 to-emerald-400 ring-1 ring-white/20" />
-            <span className="truncate text-[12.5px] text-white/70">pointillistpret…</span>
-          </div>
-        </div>
       </aside>
 
       {/* Sidebar reopen button (when closed) */}
@@ -221,28 +205,6 @@ export default function SupercomputerPage() {
         {/* Center hero + input */}
         <div className="flex flex-1 flex-col items-center justify-center px-6">
           <div className="w-full max-w-[720px]">
-            {/* Hero */}
-            <div className="mb-10 flex items-start gap-6">
-              <PixelIcon />
-              <div className="pt-3">
-                <div className="mb-2 flex items-center gap-2">
-                  {/* Tiny retro window controls (Win95 style) */}
-                  <RetroPlay />
-                  <RetroClose />
-                </div>
-                <h1
-                  className="text-[44px] font-bold leading-[1.0] text-white"
-                  style={{
-                    fontFamily: "'VT323', 'Courier New', ui-monospace, monospace",
-                    letterSpacing: "0.01em",
-                    textShadow: "0 0 24px rgba(180, 220, 255, 0.08)",
-                  }}
-                >
-                  seed, what are we<br />creating today?
-                </h1>
-              </div>
-            </div>
-
             {/* Input box */}
             <div className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] focus-within:border-white/20 focus-within:bg-white/[0.06] transition">
               <textarea
@@ -385,8 +347,8 @@ export default function SupercomputerPage() {
   );
 }
 
-/* ============== Pixel-art seed/snake icon ============== */
-function PixelIcon() {
+/* eslint-disable @typescript-eslint/no-unused-vars */
+function _PixelIcon() {
   // Snake winding pattern: top-left → right → down → left → down → right
   // Drawn on a 14x14 grid with 5px cells = 70px icon
   const snake: Array<[number, number]> = [
@@ -439,8 +401,7 @@ function PixelIcon() {
   );
 }
 
-/* ============== Retro Win95-style window controls ============== */
-function RetroPlay() {
+function _RetroPlay() {
   return (
     <svg
       viewBox="0 0 16 16"
@@ -464,7 +425,7 @@ function RetroPlay() {
   );
 }
 
-function RetroClose() {
+function _RetroClose() {
   return (
     <svg
       viewBox="0 0 16 16"
