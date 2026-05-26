@@ -49,7 +49,10 @@ export async function GET() {
 
     console.log("[admin/generations] rows:", payload.length, payload[0]?.id ?? null);
     return NextResponse.json(payload);
-  } catch {
-    return NextResponse.json([]);
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    const status = msg.toLowerCase().includes("compute time quota") ? 503 : 500;
+    console.error("[admin/generations GET]", msg, err);
+    return NextResponse.json({ error: msg }, { status });
   }
 }

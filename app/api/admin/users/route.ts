@@ -13,7 +13,7 @@ export async function GET() {
     const { data: clerkUsers } = await clerk.users.getUserList({ limit: 200, orderBy: "-created_at" });
 
     // Fetch our DB records to merge extra fields (credits, role, ban)
-    const dbUsers = await prismadb.user.findMany({ take: 500 }).catch(() => []);
+    const dbUsers = await prismadb.user.findMany({ take: 500 });
     const dbMap = new Map(dbUsers.map((u) => [u.id, u]));
 
     const users = clerkUsers.map((cu) => {
@@ -35,8 +35,10 @@ export async function GET() {
     });
 
     return NextResponse.json(users);
-  } catch (err) {
-    console.error("[admin/users GET]", err);
-    return NextResponse.json([]);
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    const status = msg.toLowerCase().includes("compute time quota") ? 503 : 500;
+    console.error("[admin/users GET]", msg, err);
+    return NextResponse.json({ error: msg }, { status });
   }
 }
