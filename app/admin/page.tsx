@@ -521,6 +521,32 @@ export default function AdminDashboard() {
     return msg;
   }, []);
 
+  const normalizeUsersPayload = useCallback((payload: unknown): typeof MOCK_USERS => {
+    if (Array.isArray(payload)) return payload as typeof MOCK_USERS;
+    if (
+      payload &&
+      typeof payload === "object" &&
+      "users" in payload &&
+      Array.isArray((payload as { users?: unknown }).users)
+    ) {
+      return (payload as { users: typeof MOCK_USERS }).users;
+    }
+    return [];
+  }, []);
+
+  const normalizeGenerationsPayload = useCallback((payload: unknown): AdminGenerationRow[] => {
+    if (Array.isArray(payload)) return payload as AdminGenerationRow[];
+    if (
+      payload &&
+      typeof payload === "object" &&
+      "generations" in payload &&
+      Array.isArray((payload as { generations?: unknown }).generations)
+    ) {
+      return (payload as { generations: AdminGenerationRow[] }).generations;
+    }
+    return [];
+  }, []);
+
   const refreshGenerations = useCallback(async () => {
     const res = await fetch("/api/admin/generations", { cache: "no-store" });
     if (!res.ok) {
@@ -530,11 +556,26 @@ export default function AdminDashboard() {
       setGenerations([]);
       return;
     }
-    setAdminApiError(null);
-    const data = await res.json().catch(() => []);
-    console.log("[admin] /api/admin/generations:", Array.isArray(data) ? data.length : "non-array");
-    setGenerations(Array.isArray(data) ? (data as AdminGenerationRow[]) : []);
-  }, [readApiError]);
+    const payload = await res.json().catch(() => []);
+    const data = normalizeGenerationsPayload(payload);
+    const degraded = Boolean(
+      payload &&
+      typeof payload === "object" &&
+      "degraded" in payload &&
+      (payload as { degraded?: boolean }).degraded
+    );
+    if (degraded) {
+      const msg =
+        payload && typeof payload === "object" && typeof (payload as { error?: unknown }).error === "string"
+          ? (payload as { error: string }).error
+          : "Database temporarily unavailable";
+      setAdminApiError(`/api/admin/generations: ${msg}`);
+    } else {
+      setAdminApiError(null);
+    }
+    console.log("[admin] /api/admin/generations:", data.length);
+    setGenerations(data);
+  }, [normalizeGenerationsPayload, readApiError]);
 
   // ── Fetch real data on mount ──────────────────────────────────────────────
   useEffect(() => {
@@ -545,8 +586,23 @@ export default function AdminDashboard() {
           setAdminApiError(`/api/admin/users: ${msg}`);
           return [];
         }
-        setAdminApiError(null);
-        return r.json();
+        const payload = await r.json().catch(() => []);
+        const degraded = Boolean(
+          payload &&
+          typeof payload === "object" &&
+          "degraded" in payload &&
+          (payload as { degraded?: boolean }).degraded
+        );
+        if (degraded) {
+          const msg =
+            payload && typeof payload === "object" && typeof (payload as { error?: unknown }).error === "string"
+              ? (payload as { error: string }).error
+              : "Database temporarily unavailable";
+          setAdminApiError(`/api/admin/users: ${msg}`);
+        } else {
+          setAdminApiError(null);
+        }
+        return normalizeUsersPayload(payload);
       })
       .then((data) => { setUsers(Array.isArray(data) ? data : []); })
       .catch(() => {
@@ -586,7 +642,7 @@ export default function AdminDashboard() {
           apiCalls: data.apiCallsTotal ?? 98430,
         });
       });
-  }, [readApiError]);
+  }, [normalizeUsersPayload, readApiError]);
 
   useEffect(() => {
     let active = true;
@@ -1361,8 +1417,23 @@ export default function AdminDashboard() {
                             setAdminApiError(`/api/admin/users: ${msg}`);
                             return [];
                           }
-                          setAdminApiError(null);
-                          return r.json();
+                          const payload = await r.json().catch(() => []);
+                          const degraded = Boolean(
+                            payload &&
+                            typeof payload === "object" &&
+                            "degraded" in payload &&
+                            (payload as { degraded?: boolean }).degraded
+                          );
+                          if (degraded) {
+                            const msg =
+                              payload && typeof payload === "object" && typeof (payload as { error?: unknown }).error === "string"
+                                ? (payload as { error: string }).error
+                                : "Database temporarily unavailable";
+                            setAdminApiError(`/api/admin/users: ${msg}`);
+                          } else {
+                            setAdminApiError(null);
+                          }
+                          return normalizeUsersPayload(payload);
                         })
                         .then((data) => setUsers(Array.isArray(data) ? data : []))
                         .catch(() => {

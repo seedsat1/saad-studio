@@ -12,9 +12,17 @@ export async function GET() {
     const clerk = await clerkClient();
     const { data: clerkUsers } = await clerk.users.getUserList({ limit: 200, orderBy: "-created_at" });
 
-    // Fetch our DB records to merge extra fields (credits, role, ban)
-    const dbUsers = await prismadb.user.findMany({ take: 500 });
-    const dbMap = new Map(dbUsers.map((u) => [u.id, u]));
+    // Fetch our DB records to merge extra fields (credits, role, ban).
+    // If DB is unavailable (quota), degrade gracefully with Clerk-only data.
+    let dbMap = new Map<string, Awaited<ReturnType<typeof prismadb.user.findMany>>[number]>();
+    let dbErrorMessage: string | null = null;
+    try {
+      const dbUsers = await prismadb.user.findMany({ take: 500 });
+      dbMap = new Map(dbUsers.map((u) => [u.id, u]));
+    } catch (dbErr: unknown) {
+      dbErrorMessage = dbErr instanceof Error ? dbErr.message : String(dbErr);
+      console.error("[admin/users GET][db-degraded]", dbErrorMessage, dbErr);
+    }
 
     const users = clerkUsers.map((cu) => {
       const db = dbMap.get(cu.id);
@@ -34,7 +42,11 @@ export async function GET() {
       };
     });
 
-    return NextResponse.json(users);
+    if (dbErrorMessage) {
+      return NextResponse.json({ users, degraded: true, error: dbErrorMessage });
+    }
+
+    return NextResponse.json({ users, degraded: false });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     const status = msg.toLowerCase().includes("compute time quota") ? 503 : 500;
