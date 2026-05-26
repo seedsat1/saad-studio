@@ -41,6 +41,11 @@ const KIE_SEEDANCE_2_MODEL = "bytedance/seedance-2";
 const KIE_SEEDANCE_2_FAST_MODEL = "bytedance/seedance-2-fast";
 const GEMINI_OMNI_AUDIO_ALIAS = "gemini-omni-audio";
 const GOOGLE_GEMINI_TTS_MODEL = "gemini-3.1-flash-tts-preview";
+const GOOGLE_GEMINI_TTS_MODELS = new Set([
+  "gemini-3.1-flash-tts-preview",
+  "gemini-2.5-flash-preview-tts",
+  "gemini-2.5-pro-preview-tts",
+]);
 const GOOGLE_GEMINI_TTS_VOICES = new Set([
   "Zephyr", "Puck", "Charon", "Kore", "Fenrir", "Leda", "Orus", "Aoede", "Callirrhoe", "Autonoe",
   "Enceladus", "Iapetus", "Umbriel", "Algieba", "Despina", "Erinome", "Algenib", "Rasalgethi",
@@ -166,7 +171,12 @@ function resolveWaveSpeedTtsModel(model?: string): string {
 
 function isGeminiTtsModelSupported(model?: string): boolean {
   const normalized = String(model || "").trim().toLowerCase();
-  return normalized === GEMINI_OMNI_AUDIO_ALIAS || normalized === GOOGLE_GEMINI_TTS_MODEL;
+  return normalized === GEMINI_OMNI_AUDIO_ALIAS || GOOGLE_GEMINI_TTS_MODELS.has(normalized);
+}
+
+function resolveGeminiTtsModel(model?: string): string {
+  const normalized = String(model || "").trim().toLowerCase();
+  return GOOGLE_GEMINI_TTS_MODELS.has(normalized) ? normalized : GOOGLE_GEMINI_TTS_MODEL;
 }
 
 function normalizeGeminiVoice(voice?: string): string {
@@ -214,7 +224,7 @@ function isGoogleLyriaModel(model: string): boolean {
 
 function resolveChargeModelRef(actionType: AudioRequestBody["actionType"], body: AudioRequestBody): string {
   if (actionType === "tts") {
-    if (isGeminiTtsModelSupported(body.model)) return GOOGLE_GEMINI_TTS_MODEL;
+    if (isGeminiTtsModelSupported(body.model)) return resolveGeminiTtsModel(body.model);
     if (isKieTtsModelSupported(body.model)) return resolveKieTtsModel(body.model);
     return resolveWaveSpeedTtsModel(body.model);
   }
@@ -363,7 +373,7 @@ async function runGeminiTts(params: {
     : text;
 
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${GOOGLE_GEMINI_TTS_MODEL}:generateContent`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${resolveGeminiTtsModel(params.body.model)}:generateContent`,
     {
       method: "POST",
       headers: {
@@ -1044,7 +1054,7 @@ export async function POST(req: NextRequest) {
         : actionType === "voice-changer"
         ? WS_VOICE_CHANGER_MODEL
         : actionType === "tts"
-          ? (isGeminiTtsModelSupported(body.model) ? GOOGLE_GEMINI_TTS_MODEL : isKieTtsModelSupported(body.model) ? resolveKieTtsModel(body.model) : resolveWaveSpeedTtsModel(body.model))
+          ? (isGeminiTtsModelSupported(body.model) ? resolveGeminiTtsModel(body.model) : isKieTtsModelSupported(body.model) ? resolveKieTtsModel(body.model) : resolveWaveSpeedTtsModel(body.model))
           : actionType === "video2audio"
             ? WS_VIDEO2AUDIO_MODEL
             : actionType === "speech-to-text"
@@ -1119,7 +1129,7 @@ export async function POST(req: NextRequest) {
         return await finalize({
           audioUrl,
           provider: "google",
-          model: GOOGLE_GEMINI_TTS_MODEL,
+          model: resolveGeminiTtsModel(body.model),
           voice: normalizeGeminiVoice(body.voice),
           chargedCredits: creditsToCharge,
         }, 200);

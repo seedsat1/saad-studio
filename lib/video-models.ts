@@ -32,8 +32,8 @@ export interface VideoModelFamily {
 
 export const VIDEO_MODELS: VideoModel[] = [
   {
-    id: "google/veo-3.1-generate-preview",
-    name: "Veo 3.1 Generate Preview",
+    id: "google/gemini-omni-video",
+    name: "Gemini Omni Video",
     family: "Google Gemini",
     familyColor: "#22c55e",
     inputType: "text-to-video",
@@ -44,7 +44,7 @@ export const VIDEO_MODELS: VideoModel[] = [
     badge: "TOP",
     creditCost: 42.56,
     maxDuration: 8,
-    description: "Official Google Veo 3.1 video generation with image guidance",
+    description: "Direct Google video generation with image guidance",
   },
   // ── KLING ──
   {
@@ -426,7 +426,7 @@ export function getModelFamilies(): VideoModelFamily[] {
 }
 
 export function getDefaultModel(): VideoModel {
-  return VIDEO_MODELS.find((m) => m.id === "google/veo-3.1-generate-preview")!;
+  return VIDEO_MODELS.find((m) => m.id === "google/gemini-omni-video")!;
 }
 
 export function getModelsByFamily(family: string): VideoModel[] {

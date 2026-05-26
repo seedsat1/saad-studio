@@ -154,12 +154,12 @@ function i2vCaps(overrides: Partial<VideoModelCapabilities> = {}): VideoModelCap
 
 export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
   {
-    id: "google-veo-3-1-generate-preview",
-    name: "Veo 3.1 Generate Preview",
+    id: "google-gemini-omni-video",
+    name: "Gemini Omni Video",
     family: "gemini", family_label: "Google Gemini", family_color: "#22c55e",
     badge: "TOP",
-    description: "Official Google Veo 3.1 video generation. Durations: 4/6/8s, 16:9 or 9:16, 720p/1080p/4K.",
-    api_route: "google/veo-3.1-generate-preview",
+    description: "Direct Google video generation. Durations: 4/6/8s, 16:9 or 9:16, 720p/1080p/4K.",
+    api_route: "google/gemini-omni-video",
     route_confirmed: true,
     capabilities: t2vCaps({
       optional_image: true,

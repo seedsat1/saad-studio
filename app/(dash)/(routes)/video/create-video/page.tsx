@@ -29,7 +29,7 @@ function CreateVideoInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const initModelId = searchParams.get("model") ?? "google/veo-3.1-generate-preview";
+  const initModelId = searchParams.get("model") ?? "google/gemini-omni-video";
   const initModel = getModelById(initModelId) ?? getDefaultModel();
   const initImageUrl = searchParams.get("imageUrl") ?? "";
   const initPrompt = searchParams.get("prompt") ?? "";

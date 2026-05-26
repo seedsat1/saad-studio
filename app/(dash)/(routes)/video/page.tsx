@@ -328,7 +328,7 @@ function resolveVideoTool(toolId: string | null): VideoToolId | null {
 }
 
 const TOOL_DEFAULT_MODEL_ID: Record<VideoToolId, string> = {
-  "create-video": "google-veo-3-1-generate-preview",
+  "create-video": "google-gemini-omni-video",
   "image-to-video": "kling-v2.5-turbo-i2v",
   "kling-3": "kling-v3.0-pro-t2v",
   "kling-motion": "kling-v3.0-pro-motion",

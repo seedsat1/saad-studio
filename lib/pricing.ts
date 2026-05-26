@@ -261,6 +261,8 @@ const MODEL_ALIAS_MAP: Record<string, string> = {
   "tool:gemini-omni-character":         "gemini_omni_character",
   "gemini-omni-audio":                  "gemini_omni_audio",
   "gemini-3.1-flash-tts-preview":       "gemini_omni_audio",
+  "gemini-2.5-flash-preview-tts":       "gemini_omni_audio",
+  "gemini-2.5-pro-preview-tts":         "gemini_omni_audio",
   "dall-e-3":                           "dalle3",
 };
 
