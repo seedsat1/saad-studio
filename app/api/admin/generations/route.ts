@@ -48,15 +48,8 @@ export async function GET() {
     });
 
     console.log("[admin/generations] rows:", payload.length, payload[0]?.id ?? null);
-    return NextResponse.json({ generations: payload, degraded: false });
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    if (msg.toLowerCase().includes("compute time quota")) {
-      console.error("[admin/generations GET][db-degraded]", msg, err);
-      return NextResponse.json({ generations: [], degraded: true, error: msg });
-    }
-    const status = 500;
-    console.error("[admin/generations GET]", msg, err);
-    return NextResponse.json({ error: msg }, { status });
+    return NextResponse.json(payload);
+  } catch {
+    return NextResponse.json([]);
   }
 }

@@ -2,7 +2,36 @@ import { NextRequest, NextResponse } from "next/server";
 import { clerkClient } from "@clerk/nextjs/server";
 import { isAdmin } from "@/lib/is-admin";
 import prismadb from "@/lib/prismadb";
-import { ensureUserRow } from "@/lib/credit-ledger";
+import { WELCOME_SIGNUP_CREDITS } from "@/lib/credits-config";
+
+// Helper: ensure user row exists in our DB — upsert to avoid unique constraint issues
+async function ensureUserRow(userId: string) {
+  const existing = await prismadb.user.findUnique({ where: { id: userId } });
+  if (existing) return existing;
+
+  const clerk = await clerkClient();
+  const cu = await clerk.users.getUser(userId).catch(() => null);
+  const email = cu?.emailAddresses[0]?.emailAddress ?? `${userId}@unknown`;
+  const name = [cu?.firstName, cu?.lastName].filter(Boolean).join(" ") || null;
+
+  // Use upsert: if email already exists under a different id, just update that row
+  return prismadb.user.upsert({
+    where: { id: userId },
+    update: { email, name },
+    create: { id: userId, email, name, creditBalance: WELCOME_SIGNUP_CREDITS, role: "USER", isBanned: false },
+  }).catch(async () => {
+    // If upsert fails (email unique constraint), find the row by email and update its id
+    const byEmail = await prismadb.user.findUnique({ where: { email } });
+    if (byEmail && byEmail.id !== userId) {
+      return prismadb.user.update({
+        where: { email },
+        data: { id: userId, name },
+      });
+    }
+    // Last resort: re-fetch by id
+    return prismadb.user.findUnique({ where: { id: userId } });
+  });
+}
 
 export async function PATCH(
   req: NextRequest,
@@ -24,91 +53,41 @@ export async function PATCH(
     const userId = params.userId;
     const clerk = await clerkClient();
 
-    if (!action || !["ban", "credits", "role"].includes(action)) {
-      return NextResponse.json({ error: "Invalid action" }, { status: 400 });
-    }
-
     if (action === "ban") {
       const newBanned = isBanned ?? true;
-      let clerkSynced = false;
-      let dbSynced = false;
-
       if (newBanned) {
-        await clerk.users.banUser(userId).then(() => { clerkSynced = true; }).catch(() => {});
+        await clerk.users.banUser(userId).catch(() => {});
       } else {
-        await clerk.users.unbanUser(userId).then(() => { clerkSynced = true; }).catch(() => {});
+        await clerk.users.unbanUser(userId).catch(() => {});
       }
-
-      try {
-        const resolvedUser = await ensureUserRow(userId);
-        await prismadb.user.update({
-          where: { id: resolvedUser.id },
-          data: { isBanned: newBanned },
-        });
-        dbSynced = true;
-      } catch (syncErr) {
-        console.error("[admin/users PATCH][ban][db-sync]", userId, syncErr);
-      }
-
-      if (!clerkSynced && !dbSynced) {
-        return NextResponse.json({ error: "Failed to update user ban state" }, { status: 500 });
-      }
-
-      return NextResponse.json({ ok: true, action: "ban", clerkSynced, dbSynced });
+      await ensureUserRow(userId);
+      await prismadb.user.update({
+        where: { id: userId },
+        data: { isBanned: newBanned },
+      });
     }
 
-    if (action === "credits" && typeof amount === "number" && Number.isFinite(amount) && amount !== 0) {
-      const resolvedUser = await ensureUserRow(userId);
+    if (action === "credits" && typeof amount === "number" && amount !== 0) {
+      await ensureUserRow(userId);
       await prismadb.user.update({
-        where: { id: resolvedUser.id },
+        where: { id: userId },
         data: { creditBalance: { increment: amount } },
       });
-      return NextResponse.json({ ok: true, action: "credits" });
     }
 
     if (action === "role" && role) {
-      let dbSynced = false;
-      let clerkSynced = false;
-
-      try {
-        const resolvedUser = await ensureUserRow(userId);
-        await prismadb.user.update({
-          where: { id: resolvedUser.id },
-          data: { role },
-        });
-        dbSynced = true;
-      } catch (dbErr) {
-        console.error("[admin/users PATCH][role][db-sync]", userId, dbErr);
-      }
-
-      if (!dbSynced) {
-        try {
-          const clerkUser = await clerk.users.getUser(userId);
-          await clerk.users.updateUser(userId, {
-            publicMetadata: {
-              ...(clerkUser.publicMetadata ?? {}),
-              role,
-            },
-          });
-          clerkSynced = true;
-        } catch (clerkErr) {
-          console.error("[admin/users PATCH][role][clerk-sync]", userId, clerkErr);
-        }
-      }
-
-      if (!dbSynced && !clerkSynced) {
-        return NextResponse.json({ error: "Failed to update user role" }, { status: 500 });
-      }
-
-      return NextResponse.json({ ok: true, action: "role", dbSynced, clerkSynced });
+      await ensureUserRow(userId);
+      await prismadb.user.update({
+        where: { id: userId },
+        data: { role },
+      });
     }
 
-    return NextResponse.json({ error: "Invalid payload for action" }, { status: 400 });
+    return NextResponse.json({ ok: true });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
-    const status = msg.toLowerCase().includes("compute time quota") ? 503 : 500;
     console.error("[admin/users PATCH]", params.userId, msg, err);
-    return NextResponse.json({ error: msg }, { status });
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
 

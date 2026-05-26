@@ -453,7 +453,6 @@ export default function AdminDashboard() {
   const [generations, setGenerations] = useState<AdminGenerationRow[]>([]);
   const [transactions, setTransactions] = useState<AdminTransactionRow[]>([]);
   const [transactionsLoading, setTransactionsLoading] = useState(true);
-  const [adminApiError, setAdminApiError] = useState<string | null>(null);
   const [transactionsRefreshing, setTransactionsRefreshing] = useState(false);
   const [updatingTxId, setUpdatingTxId] = useState<string | null>(null);
   const [proofPreview, setProofPreview] = useState<ProofPreviewState | null>(null);
@@ -512,103 +511,19 @@ export default function AdminDashboard() {
   const [invoicePreviewHtml, setInvoicePreviewHtml] = useState<string | null>(null);
   const [invoiceLoadingPreview, setInvoiceLoadingPreview] = useState(false);
 
-  const readApiError = useCallback(async (res: Response) => {
-    const payload = await res.json().catch(() => null);
-    const msg =
-      typeof payload?.error === "string" && payload.error.trim()
-        ? payload.error.trim()
-        : `Request failed (${res.status})`;
-    return msg;
-  }, []);
-
-  const normalizeUsersPayload = useCallback((payload: unknown): typeof MOCK_USERS => {
-    if (Array.isArray(payload)) return payload as typeof MOCK_USERS;
-    if (
-      payload &&
-      typeof payload === "object" &&
-      "users" in payload &&
-      Array.isArray((payload as { users?: unknown }).users)
-    ) {
-      return (payload as { users: typeof MOCK_USERS }).users;
-    }
-    return [];
-  }, []);
-
-  const normalizeGenerationsPayload = useCallback((payload: unknown): AdminGenerationRow[] => {
-    if (Array.isArray(payload)) return payload as AdminGenerationRow[];
-    if (
-      payload &&
-      typeof payload === "object" &&
-      "generations" in payload &&
-      Array.isArray((payload as { generations?: unknown }).generations)
-    ) {
-      return (payload as { generations: AdminGenerationRow[] }).generations;
-    }
-    return [];
-  }, []);
-
   const refreshGenerations = useCallback(async () => {
     const res = await fetch("/api/admin/generations", { cache: "no-store" });
-    if (!res.ok) {
-      const msg = await readApiError(res);
-      setAdminApiError(`/api/admin/generations: ${msg}`);
-      console.error("[admin] /api/admin/generations failed:", res.status, msg);
-      setGenerations([]);
-      return;
-    }
-    const payload = await res.json().catch(() => []);
-    const data = normalizeGenerationsPayload(payload);
-    const degraded = Boolean(
-      payload &&
-      typeof payload === "object" &&
-      "degraded" in payload &&
-      (payload as { degraded?: boolean }).degraded
-    );
-    if (degraded) {
-      const msg =
-        payload && typeof payload === "object" && typeof (payload as { error?: unknown }).error === "string"
-          ? (payload as { error: string }).error
-          : "Database temporarily unavailable";
-      setAdminApiError(`/api/admin/generations: ${msg}`);
-    } else {
-      setAdminApiError(null);
-    }
-    console.log("[admin] /api/admin/generations:", data.length);
-    setGenerations(data);
-  }, [normalizeGenerationsPayload, readApiError]);
+    const data = await res.json().catch(() => []);
+    console.log("[admin] /api/admin/generations:", Array.isArray(data) ? data.length : "non-array");
+    setGenerations(Array.isArray(data) ? (data as AdminGenerationRow[]) : []);
+  }, []);
 
   // ── Fetch real data on mount ──────────────────────────────────────────────
   useEffect(() => {
     fetch("/api/admin/users")
-      .then(async (r) => {
-        if (!r.ok) {
-          const msg = await readApiError(r);
-          setAdminApiError(`/api/admin/users: ${msg}`);
-          return [];
-        }
-        const payload = await r.json().catch(() => []);
-        const degraded = Boolean(
-          payload &&
-          typeof payload === "object" &&
-          "degraded" in payload &&
-          (payload as { degraded?: boolean }).degraded
-        );
-        if (degraded) {
-          const msg =
-            payload && typeof payload === "object" && typeof (payload as { error?: unknown }).error === "string"
-              ? (payload as { error: string }).error
-              : "Database temporarily unavailable";
-          setAdminApiError(`/api/admin/users: ${msg}`);
-        } else {
-          setAdminApiError(null);
-        }
-        return normalizeUsersPayload(payload);
-      })
+      .then((r) => (r.ok ? r.json() : []))
       .then((data) => { setUsers(Array.isArray(data) ? data : []); })
-      .catch(() => {
-        setAdminApiError("Failed to load /api/admin/users");
-        setUsers([]);
-      })
+      .catch(() => setUsers([]))
       .finally(() => setUsersLoading(false));
 
     refreshGenerations().catch(() => setGenerations([]));
@@ -642,7 +557,7 @@ export default function AdminDashboard() {
           apiCalls: data.apiCallsTotal ?? 98430,
         });
       });
-  }, [normalizeUsersPayload, readApiError]);
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -911,24 +826,14 @@ export default function AdminDashboard() {
 
   const handleToggleBan = async (userId: string) => {
     const user = users.find((u) => u.id === userId);
-    const nextIsBanned = !Boolean(user?.isBanned);
     setUsers((prev) =>
-      prev.map((u) => (u.id === userId ? { ...u, isBanned: nextIsBanned } : u))
+      prev.map((u) => (u.id === userId ? { ...u, isBanned: !u.isBanned } : u))
     );
-    const res = await fetch(`/api/admin/users/${userId}`, {
+    await fetch(`/api/admin/users/${userId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "ban", isBanned: nextIsBanned }),
+      body: JSON.stringify({ action: "ban", isBanned: !user?.isBanned }),
     });
-    if (!res.ok) {
-      const msg = await readApiError(res);
-      setAdminApiError(`/api/admin/users/${userId}: ${msg}`);
-      setUsers((prev) =>
-        prev.map((u) => (u.id === userId ? { ...u, isBanned: Boolean(user?.isBanned) } : u))
-      );
-      return;
-    }
-    setAdminApiError(null);
   };
 
   const handleDeleteUser = async (userId: string) => {
@@ -956,17 +861,13 @@ export default function AdminDashboard() {
       body: JSON.stringify({ action: "credits", amount }),
     });
     if (!res.ok) {
-      const msg = await readApiError(res);
-      setAdminApiError(`/api/admin/users/${userId}: ${msg}`);
       // revert on failure
       setUsers((prev) =>
         prev.map((u) =>
           u.id === userId ? { ...u, creditBalance: u.creditBalance - amount } : u
         )
       );
-      return;
     }
-    setAdminApiError(null);
   };
 
   const handleDeleteGeneration = async (genId: string) => {
@@ -1408,50 +1309,18 @@ export default function AdminDashboard() {
                     </p>
                   </div>
                   <button
-                    onClick={async () => {
+                    onClick={() => {
                       setUsersLoading(true);
                       fetch("/api/admin/users")
-                        .then(async (r) => {
-                          if (!r.ok) {
-                            const msg = await readApiError(r);
-                            setAdminApiError(`/api/admin/users: ${msg}`);
-                            return [];
-                          }
-                          const payload = await r.json().catch(() => []);
-                          const degraded = Boolean(
-                            payload &&
-                            typeof payload === "object" &&
-                            "degraded" in payload &&
-                            (payload as { degraded?: boolean }).degraded
-                          );
-                          if (degraded) {
-                            const msg =
-                              payload && typeof payload === "object" && typeof (payload as { error?: unknown }).error === "string"
-                                ? (payload as { error: string }).error
-                                : "Database temporarily unavailable";
-                            setAdminApiError(`/api/admin/users: ${msg}`);
-                          } else {
-                            setAdminApiError(null);
-                          }
-                          return normalizeUsersPayload(payload);
-                        })
+                        .then((r) => (r.ok ? r.json() : []))
                         .then((data) => setUsers(Array.isArray(data) ? data : []))
-                        .catch(() => {
-                          setAdminApiError("Failed to load /api/admin/users");
-                          setUsers([]);
-                        })
+                        .catch(() => setUsers([]))
                         .finally(() => setUsersLoading(false));
                     }}
                     className="flex items-center gap-2 text-xs text-slate-400 bg-slate-800/60 border border-slate-700 rounded-lg px-3 py-2 hover:bg-slate-800 transition-colors">
                     <RefreshCw className={`w-3 h-3 ${usersLoading ? "animate-spin" : ""}`} /> Refresh
                   </button>
                 </div>
-
-                {adminApiError && (
-                  <div className="rounded-lg border border-red-500/40 bg-red-900/20 px-4 py-3 text-xs text-red-200">
-                    Admin API Error: {adminApiError}
-                  </div>
-                )}
 
                 {usersLoading ? (
                   <div className="flex items-center justify-center py-20 text-slate-500 gap-3">
@@ -1528,21 +1397,13 @@ export default function AdminDashboard() {
                             <select
                               value={user.role}
                               onChange={async (e) => {
-                                const previousRole = user.role;
                                 const newRole = e.target.value;
                                 setUsers((prev) => prev.map((u) => u.id === user.id ? { ...u, role: newRole } : u));
-                                const res = await fetch(`/api/admin/users/${user.id}`, {
+                                await fetch(`/api/admin/users/${user.id}`, {
                                   method: "PATCH",
                                   headers: { "Content-Type": "application/json" },
                                   body: JSON.stringify({ action: "role", role: newRole }),
                                 });
-                                if (!res.ok) {
-                                  const msg = await readApiError(res);
-                                  setAdminApiError(`/api/admin/users/${user.id}: ${msg}`);
-                                  setUsers((prev) => prev.map((u) => u.id === user.id ? { ...u, role: previousRole } : u));
-                                  return;
-                                }
-                                setAdminApiError(null);
                               }}
                               className={`px-2 py-0.5 rounded-md text-[10px] font-bold border-0 cursor-pointer focus:outline-none focus:ring-1 focus:ring-violet-500/40 ${
                                 user.role === "ENTERPRISE"

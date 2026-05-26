@@ -26,7 +26,7 @@ export async function ensureUserRow(userId: string) {
 
   const clerk = await clerkClient();
   const clerkUser = await clerk.users.getUser(userId).catch(() => null);
-  const email = clerkUser?.emailAddresses?.[0]?.emailAddress ?? null;
+  const email = clerkUser?.emailAddresses?.[0]?.emailAddress ?? `${userId}@unknown`;
   const name = [clerkUser?.firstName, clerkUser?.lastName].filter(Boolean).join(" ") || null;
 
   // Welcome bonus is OFF by default. Only set creditsExpireAt when we
@@ -34,44 +34,26 @@ export async function ensureUserRow(userId: string) {
   // ticking 30-day expiry.
   const welcome = Math.max(0, Math.floor(WELCOME_SIGNUP_CREDITS));
 
-  // If this email already exists under another id, reuse that row.
-  if (email) {
+  try {
+    return await prismadb.user.create({
+      data: {
+        id: userId,
+        email,
+        name,
+        creditBalance: welcome,
+        creditsExpireAt: welcome > 0 ? new Date(Date.now() + THIRTY_DAYS_MS) : null,
+        role: "USER",
+        isBanned: false,
+      },
+    });
+  } catch {
+    // Unique-constraint race or email already used by another row
+    const retry = await prismadb.user.findUnique({ where: { id: userId } });
+    if (retry) return retry;
     const byEmail = await prismadb.user.findUnique({ where: { email } });
     if (byEmail) return byEmail;
+    throw new Error(`Cannot create DB row for user ${userId}`);
   }
-
-  const fallbackEmails = [
-    email,
-    `${userId}@unknown.local`,
-    `${userId}.${Date.now()}@unknown.local`,
-  ].filter((v): v is string => Boolean(v));
-
-  for (const candidateEmail of fallbackEmails) {
-    try {
-      return await prismadb.user.create({
-        data: {
-          id: userId,
-          email: candidateEmail,
-          name,
-          creditBalance: welcome,
-          creditsExpireAt: welcome > 0 ? new Date(Date.now() + THIRTY_DAYS_MS) : null,
-          role: "USER",
-          isBanned: false,
-        },
-      });
-    } catch {
-      // Try next candidate on unique conflicts/races.
-    }
-  }
-
-  // Last retries after races.
-  const retry = await prismadb.user.findUnique({ where: { id: userId } });
-  if (retry) return retry;
-  if (email) {
-    const byEmail = await prismadb.user.findUnique({ where: { email } });
-    if (byEmail) return byEmail;
-  }
-  throw new Error(`Cannot create DB row for user ${userId}`);
 }
 
 export async function ensureWelcomeCredits(userId: string) {
@@ -126,21 +108,9 @@ async function handleCreditExpiry(userId: string): Promise<void> {
   // STRICT TIMING: subscription is active only if stripeCurrentPeriodEnd is
   // still in the future. NO grace period — not a day, not an hour.
   const isSubscriptionActive =
-    (subscription?.stripePriceId || subscription?.planId) &&
+    subscription?.stripePriceId &&
     subscription?.stripeCurrentPeriodEnd &&
     subscription.stripeCurrentPeriodEnd.getTime() > now.getTime();
-
-  // If the subscription is still active, never hard-zero here.
-  // For monthly plans we keep balance as-is and align local expiry marker.
-  if (isSubscriptionActive && subscription?.billingInterval === "monthly") {
-    await prismadb.user.update({
-      where: { id: userId },
-      data: {
-        creditsExpireAt: subscription.stripeCurrentPeriodEnd,
-      },
-    });
-    return;
-  }
 
   // Only annual subscribers get auto-renewed every 30 days.
   // Monthly subscribers must pay again — their credits expire and stay at 0.
@@ -172,25 +142,6 @@ async function handleCreditExpiry(userId: string): Promise<void> {
       lastCreditRenewal: null,
     },
   });
-}
-
-export async function reconcileCreditExpiry(userId: string): Promise<void> {
-  if (!userId) return;
-  await handleCreditExpiry(userId);
-}
-
-export async function sweepExpiredCredits(limit = 500): Promise<number> {
-  const safeLimit = Math.max(1, Math.min(2000, Math.floor(limit || 500)));
-  const now = new Date();
-  const expiredUsers = await prismadb.user.findMany({
-    where: { creditsExpireAt: { lte: now } },
-    select: { id: true },
-    orderBy: { creditsExpireAt: "asc" },
-    take: safeLimit,
-  });
-
-  await Promise.all(expiredUsers.map((u) => handleCreditExpiry(u.id).catch(() => {})));
-  return expiredUsers.length;
 }
 
 /**
