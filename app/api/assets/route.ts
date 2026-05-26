@@ -26,6 +26,17 @@ function isRenderableAssetUrl(url: string): boolean {
   return true;
 }
 
+function resolveAssetUrl(mediaUrl: string | null, outputUrl: string | null): string {
+  const media = String(mediaUrl || "").trim();
+  const output = String(outputUrl || "").trim();
+
+  // Preserve text markers used by text/code generations.
+  if (media.startsWith("text:")) return media;
+  if (media && !media.startsWith("task:")) return media;
+  if (output) return output;
+  return "";
+}
+
 export async function GET(req: NextRequest) {
   try {
     const { userId } = await auth();
@@ -38,12 +49,16 @@ export async function GET(req: NextRequest) {
     const rows = await prismadb.generation.findMany({
       where: {
         userId,
-        mediaUrl: { not: null as string | null },
+        OR: [
+          { mediaUrl: { not: null as string | null } },
+          { outputUrl: { not: null as string | null } },
+        ],
       },
       orderBy: { createdAt: "desc" },
       select: {
         id: true,
         mediaUrl: true,
+        outputUrl: true,
         prompt: true,
         modelUsed: true,
         assetType: true,
@@ -53,10 +68,17 @@ export async function GET(req: NextRequest) {
     });
 
     const normalized = rows
-      .filter((row) => Boolean(row.mediaUrl) && isRenderableAssetUrl(String(row.mediaUrl)))
+      .map((row) => {
+        const resolvedUrl = resolveAssetUrl(row.mediaUrl, row.outputUrl);
+        return {
+          ...row,
+          resolvedUrl,
+        };
+      })
+      .filter((row) => isRenderableAssetUrl(row.resolvedUrl))
       .map((row) => {
         const type = toAssetType(row.assetType);
-        const mediaUrl = String(row.mediaUrl || "");
+        const mediaUrl = row.resolvedUrl;
         const isTextMarker = mediaUrl.startsWith("text:");
 
         return {
