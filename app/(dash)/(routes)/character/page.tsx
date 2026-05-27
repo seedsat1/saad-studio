@@ -662,21 +662,23 @@ export default function CharacterPage() {
                     <span className="text-xs font-bold uppercase tracking-[0.12em] text-zinc-400">Cinematic Meta Tags</span>
                     <input value={cinematicTags} onChange={(event) => setCinematicTags(event.target.value)} placeholder="Editorial, 85mm, Cinematic Light..." className="h-12 w-full rounded-xl border border-white/10 bg-black/50 px-3.5 text-sm outline-none focus:border-lime-300/50" />
                   </div>
+
+                  {/* Identity Compiler Preview */}
+                  <div className="rounded-xl border border-white/5 bg-black/35 p-3.5 space-y-2.5 mt-2">
+                    <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.12em] text-zinc-400">
+                      <BadgeCheck className="h-4 w-4 text-lime-300" />
+                      Live Compiled Metadata
+                    </div>
+                    <div className="grid gap-2">
+                      <MemoryBlock label="Face Model" value={packagePreview.faceMemory} />
+                      <MemoryBlock label="Outfit Model" value={packagePreview.outfitMemory} />
+                      <MemoryBlock label="Stability constraints" value={packagePreview.motionReferences} />
+                    </div>
+                  </div>
                 </div>
               )}
 
-              {/* Identity Compiler Preview */}
-              <div className="rounded-xl border border-white/5 bg-black/35 p-3.5 space-y-2.5">
-                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.12em] text-zinc-400">
-                  <BadgeCheck className="h-4 w-4 text-lime-300" />
-                  Live Compiled Metadata
-                </div>
-                <div className="grid gap-2">
-                  <MemoryBlock label="Face Model" value={packagePreview.faceMemory} />
-                  <MemoryBlock label="Outfit Model" value={packagePreview.outfitMemory} />
-                  <MemoryBlock label="Stability constraints" value={packagePreview.motionReferences} />
-                </div>
-              </div>
+
 
               {error && (
                 <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-200">
