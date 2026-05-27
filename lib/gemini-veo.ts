@@ -4,13 +4,14 @@
 //   /cinematic-video page. Exposes Veo 3.1 (all variants) plus
 //   the advanced modes: text-to-video, image-to-video, last
 //   frame control, reference images and video extension.
-// AUTH: Uses GOOGLE_AI_API_KEY from env.
+// AUTH: Uses the official Google AI API key from env.
 // ============================================================
 
 import { GoogleGenAI } from "@google/genai";
 
 const KEY =
   process.env.GOOGLE_AI_API_KEY ||
+  process.env.GOOGLE_API_KEY ||
   process.env.GEMINI_API_KEY ||
   process.env.GOOGLE_GENAI_API_KEY ||
   "";
@@ -19,7 +20,7 @@ let _client: GoogleGenAI | null = null;
 export function getGenAI(): GoogleGenAI {
   if (!KEY) {
     throw new Error(
-      "GOOGLE_AI_API_KEY is not configured. Add it to .env.local.",
+      "Google AI API key is not configured. Set GOOGLE_AI_API_KEY, GOOGLE_API_KEY, GEMINI_API_KEY, or GOOGLE_GENAI_API_KEY.",
     );
   }
   if (!_client) _client = new GoogleGenAI({ apiKey: KEY });
