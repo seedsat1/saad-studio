@@ -1797,6 +1797,20 @@ export async function GET(req: Request) {
         return NextResponse.json({ error: "BytePlus ModelArk provider is not configured. Add ARK_API_KEY.", code: "ark_key_missing" }, { status: 503 });
       }
 
+      const linkedGeneration = await prismadb.generation.findFirst({
+        where: { userId, mediaUrl: { startsWith: `task:${taskId}` } },
+        select: { id: true, cost: true, mediaUrl: true },
+        orderBy: { createdAt: "desc" },
+      }).catch(() => null);
+
+      if (linkedGeneration?.mediaUrl && !linkedGeneration.mediaUrl.startsWith("task:")) {
+        if (linkedGeneration.mediaUrl.startsWith("failed:")) {
+          const parts = linkedGeneration.mediaUrl.split(":");
+          return NextResponse.json({ taskId, status: "failed", outputs: [], error: parts.slice(2).join(":") || "Generation failed" });
+        }
+        return NextResponse.json({ taskId, status: "completed", outputs: [linkedGeneration.mediaUrl], error: null });
+      }
+
       const pollRes = await fetch(`${BYTEPLUS_CONTENT_TASKS_URL}/${encodeURIComponent(arkTaskId)}`, {
         method: "GET",
         headers: { Authorization: `Bearer ${arkKey}` },
@@ -1808,7 +1822,16 @@ export async function GET(req: Request) {
         return NextResponse.json({ taskId, status: "failed", outputs: [], error: "Task not found" });
       }
       if (!pollRes.ok || !pollJson) {
-        return NextResponse.json({ taskId, status: "processing", outputs: [], error: null });
+        const pollError = pollJson
+          ? providerFailureMessage(pollJson, pollRes.status)
+          : `BytePlus ModelArk status check failed (${pollRes.status})`;
+        if (linkedGeneration && linkedGeneration.cost > 0) {
+          await refundGenerationCharge(linkedGeneration.id, userId, linkedGeneration.cost, {
+            reason: "generation_refund_provider_failed",
+            clearMediaUrl: true,
+          }).catch(() => {});
+        }
+        return NextResponse.json({ taskId, status: "failed", outputs: [], error: pollError });
       }
 
       const data = ((pollJson.data ?? pollJson) as Record<string, unknown>) || {};
@@ -1828,20 +1851,6 @@ export async function GET(req: Request) {
           : null;
 
       try {
-        const linkedGeneration = await prismadb.generation.findFirst({
-          where: { userId, mediaUrl: { startsWith: `task:${taskId}` } },
-          select: { id: true, cost: true, mediaUrl: true },
-          orderBy: { createdAt: "desc" },
-        });
-
-        if (linkedGeneration?.mediaUrl && !linkedGeneration.mediaUrl.startsWith("task:")) {
-          if (linkedGeneration.mediaUrl.startsWith("failed:")) {
-            const parts = linkedGeneration.mediaUrl.split(":");
-            return NextResponse.json({ taskId, status: "failed", outputs: [], error: parts.slice(2).join(":") || "Generation failed" });
-          }
-          return NextResponse.json({ taskId, status: "completed", outputs: [linkedGeneration.mediaUrl], error: null });
-        }
-
         if (status === "completed" && outputs.length > 0 && linkedGeneration) {
           await setGenerationMediaUrl(linkedGeneration.id, outputs[0]);
         }
@@ -1854,6 +1863,17 @@ export async function GET(req: Request) {
         }
       } catch (dbErr) {
         console.error("[api/video GET] non-fatal BytePlus DB sync error", dbErr);
+      }
+
+      if (status === "completed" && outputs.length === 0) {
+        const missingOutputError = "BytePlus ModelArk marked the task as succeeded but returned no video_url.";
+        if (linkedGeneration && linkedGeneration.cost > 0) {
+          await refundGenerationCharge(linkedGeneration.id, userId, linkedGeneration.cost, {
+            reason: "generation_refund_provider_failed",
+            clearMediaUrl: true,
+          }).catch(() => {});
+        }
+        return NextResponse.json({ taskId, status: "failed", outputs: [], error: missingOutputError });
       }
 
       return NextResponse.json({ taskId, status, outputs, error });

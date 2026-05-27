@@ -1096,7 +1096,7 @@ function VideoPageInner() {
 
     const poll = async () => {
       try {
-        const res = await fetch(`/api/video?taskId=${taskId}`);
+        const res = await fetch(`/api/video?taskId=${encodeURIComponent(taskId)}`);
         let data: { taskId: string; status: "created" | "processing" | "completed" | "failed"; outputs: string[]; error: string | null; } | null = null;
         const cloned = res.clone();
         try { data = await res.json(); } catch {
