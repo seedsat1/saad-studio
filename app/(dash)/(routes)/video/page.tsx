@@ -321,10 +321,8 @@ type VideoToolId =
   | "kling-3"
   | "kling-motion"
   | "seedance-2"
-  | "sora-2"
   | "veo-fast"
-  | "hailuo-i2v"
-  | "grok-video";
+  | "hailuo-i2v";
 
 type VideoTool = {
   id: VideoToolId;
@@ -339,26 +337,24 @@ const TOOLS: VideoTool[] = [
   { id: "kling-3", label: "Kling 3.0", description: "Structured multi-shot generation", icon: Clapperboard },
   { id: "kling-motion", label: "Kling Motion", description: "Guided motion and camera control", icon: Zap },
   { id: "seedance-2", label: "Seedance 2", description: "Reference based cinematic video", icon: Sparkles },
-  { id: "sora-2", label: "Sora 2", description: "OpenAI Sora generation preset", icon: Film },
   { id: "veo-fast", label: "Veo 3.1 Fast", description: "Fast commercial video drafts", icon: Video },
   { id: "hailuo-i2v", label: "Hailuo I2V", description: "Image to video animation preset", icon: PenTool },
-  { id: "grok-video", label: "Grok Imagine", description: "Stylized text and image video", icon: Layers },
 ];
 
 const TOOL_ALIASES: Record<string, VideoToolId> = {
   "cinema-studio": "seedance-2",
   "mixed-media": "kling-3",
-  "edit-video": "grok-video",
+  "edit-video": "veo-fast",
   "click-to-ad": "veo-fast",
-  "sora-trends": "sora-2",
+  "sora-trends": "veo-fast",
   "lipsync": "kling-motion",
   "draw-to-video": "hailuo-i2v",
   "sketch-to-video": "hailuo-i2v",
   "ugc-factory": "veo-fast",
-  "video-upscale": "grok-video",
+  "video-upscale": "veo-fast",
   "higgsfield-animate": "seedance-2",
-  "vibe-motion": "grok-video",
-  "recast-studio": "grok-video",
+  "vibe-motion": "veo-fast",
+  "recast-studio": "veo-fast",
 };
 
 function resolveVideoTool(toolId: string | null): VideoToolId | null {
@@ -373,10 +369,8 @@ const TOOL_DEFAULT_MODEL_ID: Record<VideoToolId, string> = {
   "kling-3": "kling-v3.0-pro-t2v",
   "kling-motion": "kling-v3.0-pro-motion",
   "seedance-2": "bytedance-seedance-v2-t2v",
-  "sora-2": "openai-sora-2-pro-t2v",
   "veo-fast": "google-veo3.1-fast-t2v",
   "hailuo-i2v": "minimax-hailuo-2.3-i2v-fast",
-  "grok-video": "xai-grok-imagine-t2v",
 };
 
 const TOOL_PROMPT_PREFIX: Record<VideoToolId, string> = {
@@ -385,10 +379,8 @@ const TOOL_PROMPT_PREFIX: Record<VideoToolId, string> = {
   "kling-3": "Create a structured cinematic video with clear subject continuity and controlled composition. ",
   "kling-motion": "Use controlled camera motion and preserve subject identity across the motion. ",
   "seedance-2": "Create a cinematic reference-based video with smooth motion and strong scene consistency. ",
-  "sora-2": "Create a polished Sora-style cinematic video with clear pacing and atmosphere. ",
   "veo-fast": "Create a concise commercial-ready video with strong composition and clean motion. ",
   "hailuo-i2v": "Animate the uploaded image with natural movement, stable subject identity, and cinematic framing. ",
-  "grok-video": "Create a stylized dynamic video with clear subject readability and strong visual direction. ",
 };
 
 const FAMILY_GRADIENTS: Record<string, string> = {
@@ -925,7 +917,6 @@ function VideoPageInner() {
     if (!targetModel) return;
     selectModel(targetModel);
 
-    if (activeTool === "grok-video") setSound(true);
     if (activeTool === "kling-motion") {
       setSceneControl(true);
       setOrientation("video");
