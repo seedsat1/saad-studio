@@ -183,6 +183,31 @@ function fileToDataUrl(file: File): Promise<string> {
   });
 }
 
+async function uploadCharacterAsset(file: File): Promise<string> {
+  const urlRes = await fetch("/api/studio/upload-url", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      fileName: file.name,
+      contentType: file.type || "image/png",
+      assetType: "image",
+    }),
+  });
+  const urlData = await urlRes.json().catch(() => null);
+  if (!urlRes.ok || !urlData?.signedUrl || !urlData?.publicUrl) {
+    throw new Error(urlData?.error || "Failed to create upload URL.");
+  }
+
+  const uploadRes = await fetch(urlData.signedUrl, {
+    method: "PUT",
+    headers: { "Content-Type": file.type || "image/png" },
+    body: file,
+  });
+  if (!uploadRes.ok) throw new Error(`Failed to upload ${file.name}`);
+  return String(urlData.publicUrl);
+}
+
+
 function splitTags(value: string) {
   return value.split(",").map((item) => item.trim()).filter(Boolean).slice(0, 12);
 }
@@ -394,6 +419,12 @@ export default function CharacterPage() {
     setError(null);
     try {
       const finalName = name.trim() || `Character ${new Date().toLocaleDateString("en-CA")}`;
+      
+      // 1. Upload reference images directly to Cloudflare R2 from browser
+      const referenceUrls = await Promise.all(
+        refs.map((ref) => uploadCharacterAsset(ref.file))
+      );
+
       const characterPackage = buildCharacterPackage({
         name: finalName,
         description,
@@ -411,7 +442,8 @@ export default function CharacterPage() {
         body: JSON.stringify({
           name: finalName,
           description: description.trim(),
-          images: refs.map((ref) => ({ name: ref.file.name, dataUrl: ref.dataUrl })),
+          referenceUrls,
+          images: [],
           metadata: {
             characterPackage,
             productionEntity: "global-character-identity",

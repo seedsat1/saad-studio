@@ -25,25 +25,25 @@ body,
   animation: cine-aperture-rotate 4s linear infinite;
 }
 
-/* Cinema Studio — thin amber scrollbar for the horizontal lens picker */
+/* Cinema Studio — thin violet/cyan scrollbar (brand-aligned) */
 .cine-scroll-row {
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 179, 71, 0.5) transparent;
+  scrollbar-color: rgba(139, 92, 246, 0.5) transparent;
 }
 .cine-scroll-row::-webkit-scrollbar {
   height: 6px;
 }
 .cine-scroll-row::-webkit-scrollbar-track {
-  background: rgba(84, 71, 55, 0.15);
+  background: rgba(30, 41, 59, 0.35);
   border-radius: 999px;
 }
 .cine-scroll-row::-webkit-scrollbar-thumb {
-  background: linear-gradient(90deg, rgba(255, 179, 71, 0.6), rgba(255, 140, 66, 0.6));
+  background: linear-gradient(90deg, rgba(139, 92, 246, 0.6), rgba(6, 182, 212, 0.6));
   border-radius: 999px;
   transition: background 0.2s ease;
 }
 .cine-scroll-row::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(90deg, rgba(255, 179, 71, 0.9), rgba(255, 140, 66, 0.9));
+  background: linear-gradient(90deg, rgba(139, 92, 246, 0.9), rgba(6, 182, 212, 0.9));
 }
 
 /* ========== Cinema Studio VSO — Anamorphic Noir cinematic background ========== */
@@ -102,9 +102,9 @@ body,
 }
 .cine-bg-radial {
   background: radial-gradient(ellipse at center,
-    rgba(92, 64, 36, 0.42) 0%,
-    #17120E 65%,
-    #0E0A07 100%);
+    rgba(124, 58, 237, 0.22) 0%,
+    #060c18 60%,
+    #020617 100%);
 }
 .cine-flare {
   position: fixed;
@@ -113,22 +113,23 @@ body,
   left: -20vw;
   background: linear-gradient(90deg,
     transparent 0%,
-    rgba(233, 180, 76, 0) 20%,
-    rgba(233, 180, 76, 0.32) 50%,
-    rgba(233, 180, 76, 0) 80%,
+    rgba(139, 92, 246, 0) 20%,
+    rgba(139, 92, 246, 0.32) 50%,
+    rgba(6, 182, 212, 0.32) 65%,
+    rgba(139, 92, 246, 0) 80%,
     transparent 100%);
   filter: blur(1.5px);
   pointer-events: none;
-  box-shadow: 0 0 30px rgba(233, 180, 76, 0.22);
+  box-shadow: 0 0 30px rgba(139, 92, 246, 0.22);
 }
 .cine-flare.f1 { top: 35vh; animation: cine-flare-drift-a 60s ease-in-out infinite; }
 .cine-flare.f2 { top: 72vh; animation: cine-flare-drift-b 80s ease-in-out infinite; opacity: 0.6; }
 
 .cine-dust {
   position: absolute;
-  background: rgba(255, 248, 234, 0.45);
+  background: rgba(196, 181, 253, 0.45);
   border-radius: 50%;
-  box-shadow: 0 0 4px rgba(255, 179, 71, 0.3);
+  box-shadow: 0 0 4px rgba(139, 92, 246, 0.3);
   animation: cine-dust-float linear infinite;
   pointer-events: none;
 }
@@ -146,7 +147,7 @@ body,
 /* Render shutter button overlay */
 .cine-shutter-top, .cine-shutter-bottom {
   position: absolute; left: 0; right: 0;
-  background: #17120E;
+  background: #060c18;
   pointer-events: none;
   transition: transform 0.25s ease;
 }

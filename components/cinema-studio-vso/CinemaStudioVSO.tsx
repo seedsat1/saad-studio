@@ -387,10 +387,55 @@ const AVAILABLE_GENRES = [
   { id: "Comedy", arabicName: "Comedy", desc: "Bright saturated colors, warm daylit sets, and funny whimsical expressions.", color: "radial-gradient(circle at center, #eab308 15%, #020617 80%)" }
 ];
 
-const CINEMA_MODELS = VIDEO_MODEL_REGISTRY.filter((model) => {
-  const caps = model.capabilities;
-  return !caps.requires_image && !caps.requires_video;
-});
+// ─────────────────────────────────────────────────────────────────────────────
+// CINEMA STUDIO — CURATED FLAGSHIP LINEUP (7 models)
+// Each entry verified directly against its official source:
+//   • Gemini Omni Flash      → Google official API (announced I/O 2026-05-19)
+//   • Google Veo 3.1 (Pro)   → Google official API
+//   • Google Veo 3.1 Fast    → Google official API
+//   • Kling 3.0 Pro          → WaveSpeed (kwaivgi/kling-v3.0-pro/text-to-video)
+//   • Kling 3.0 4K           → WaveSpeed (kwaivgi/kling-v3.0-4k/text-to-video)
+//   • OpenAI Sora 2          → WaveSpeed (openai/sora-2/text-to-video)
+//   • ByteDance Seedance 2.0 → BytePlus official API
+//
+// Lower-tier / non-cinematic models (Veo Lite, Seedance Fast, Kling 2.5 Turbo,
+// Sora 2 Pro [non-existent], Grok Imagine) are intentionally excluded from
+// this page even though they remain in VIDEO_MODEL_REGISTRY for other
+// studios. This keeps the cinema dropdown short, premium and on-brand.
+// ─────────────────────────────────────────────────────────────────────────────
+const CINEMA_APPROVED_IDS: ReadonlySet<string> = new Set([
+  "google-gemini-omni-video",  // Gemini Omni Flash (Google I/O 2026)
+  "google-veo3.1-t2v",
+  "google-veo3.1-fast-t2v",
+  "kling-v3.0-pro-t2v",
+  "kling-v3.0-4k-t2v",
+  "openai-sora-2-t2v",
+  "bytedance-seedance-v2-t2v",
+]);
+
+// Preserve the curated *order* (newest flagship → premium → 4K → narrative
+// → cinematic engines → quick variant) so the dropdown reads top-down by
+// editorial priority, not by registry insertion order.
+const CINEMA_ORDER: ReadonlyArray<string> = [
+  "google-gemini-omni-video", // Gemini Omni Flash — newest Google flagship 🆕
+  "google-veo3.1-t2v",        // Hollywood-grade flagship
+  "kling-v3.0-pro-t2v",       // Kuaishou cinematic flagship
+  "kling-v3.0-4k-t2v",        // Native 4K cinema
+  "openai-sora-2-t2v",        // Narrative flagship
+  "bytedance-seedance-v2-t2v",// BytePlus Hollywood-grade
+  "google-veo3.1-fast-t2v",   // Quick cinema variant
+];
+
+const CINEMA_MODELS = CINEMA_ORDER
+  .map((id) => VIDEO_MODEL_REGISTRY.find((m) => m.id === id))
+  .filter((m): m is WaveSpeedVideoModel => {
+    if (!m) return false;
+    // Defensive: the curated set is text-to-video only — never let an
+    // image/video-required model slip in.
+    const caps = m.capabilities;
+    return !caps.requires_image && !caps.requires_video && CINEMA_APPROVED_IDS.has(m.id);
+  });
+
 const FALLBACK_CINEMA_MODEL = CINEMA_MODELS[0] ?? VIDEO_MODEL_REGISTRY[0];
 
 const getModelCategory = (model: WaveSpeedVideoModel) => model.family_label.toUpperCase();
@@ -1052,7 +1097,7 @@ export default function App() {
           cameraMovement: camMove,
           soundEffects: particles === "rain" ? "wet_ambient_rain" : "cinematic_drone_subbass",
           visualLayout: {
-            backgroundColor: "bg-[#060609]",
+            backgroundColor: "bg-[#020617]",
             foregroundElements: ["Silhouette model", "Neo-noir street lamp glow"],
             lightingGradient: moodGrad
           }
@@ -1159,7 +1204,7 @@ export default function App() {
             return (
               <motion.div
                 key={idx}
-                className="absolute bg-[#FFB347]/40"
+                className="absolute bg-[#8b5cf6]/40"
                 style={{
                   left: `${randLeft}%`,
                   top: `-20px`,
@@ -1207,7 +1252,7 @@ export default function App() {
             return (
               <motion.div
                 key={idx}
-                className="absolute bg-[#FFB347]/20 rounded-full"
+                className="absolute bg-[#8b5cf6]/20 rounded-full"
                 style={{
                   left: `${randLeft}%`,
                   top: `${Math.random() * 100}%`,
@@ -1258,7 +1303,7 @@ export default function App() {
   };
 
   return (
-    <div id="full_studio_page" className="min-h-screen bg-[#17120E] text-[#FFF8EA] flex flex-col font-sans overflow-hidden select-none selection:bg-[#FFB347]/30 relative">
+    <div id="full_studio_page" className="min-h-screen bg-[#060c18] text-[#f8fafc] flex flex-col font-sans overflow-hidden select-none selection:bg-[#8b5cf6]/30 relative">
 
       {/* CINEMATIC BACKGROUND LAYERS — Anamorphic Noir */}
       <div className="cine-bg-radial fixed inset-0 pointer-events-none z-0" aria-hidden />
@@ -1284,16 +1329,16 @@ export default function App() {
       </div>
 
       {/* 1. STATE-OF-THE-ART SLICK HEADER */}
-      <header id="top_cinema_header" className="h-14 bg-[#24201B] border-b border-[#544737] px-6 flex items-center justify-between relative z-50">
+      <header id="top_cinema_header" className="h-14 bg-[#0f172a] border-b border-[#1e293b] px-6 flex items-center justify-between relative z-50">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-[#FFB347] to-[#FF8C42] flex items-center justify-center shadow-lg shadow-black/60">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-[#8b5cf6] to-[#06b6d4] flex items-center justify-center shadow-lg shadow-black/60">
             <Film size={16} className="text-white animate-pulse" />
           </div>
           <div className="flex items-center gap-2">
-            <span className="font-extrabold text-sm tracking-wider uppercase bg-clip-text text-transparent bg-gradient-to-r from-white via-[#FFB347] to-[#FFB347]">
+            <span className="font-extrabold text-sm tracking-wider uppercase bg-clip-text text-transparent bg-gradient-to-r from-white via-[#8b5cf6] to-[#8b5cf6]">
               SAAD CINEMA STUDIO v5.0
             </span>
-            <span className="text-xs font-mono bg-[#544737] text-[#FFB347] font-bold px-2 py-0.5 rounded border border-[#D6A84F]/40">
+            <span className="text-xs font-mono bg-[#1e293b] text-[#8b5cf6] font-bold px-2 py-0.5 rounded border border-[#7c3aed]/40">
               ULTRA-ENGINE
             </span>
           </div>
@@ -1301,14 +1346,14 @@ export default function App() {
 
         {/* STATUS COUNTERS & LIVE TIMECODE IN HEADER */}
         <div className="flex items-center gap-4 text-xs font-mono">
-          <div className="hidden md:flex items-center gap-1.5 bg-[#302920]/80 border border-[#544737]/80 px-3 py-1 rounded-full text-[#F0E1C8] text-[13px]">
-            <span className="w-1.5 h-1.5 bg-[#F6D58B] rounded-full inline-block animate-ping" />
+          <div className="hidden md:flex items-center gap-1.5 bg-[#1e293b]/80 border border-[#1e293b]/80 px-3 py-1 rounded-full text-[#e2e8f0] text-[13px]">
+            <span className="w-1.5 h-1.5 bg-[#c4b5fd] rounded-full inline-block animate-ping" />
             <span>PIPELINE: ACTIVE</span>
           </div>
 
-          <div className="bg-[#302920] border border-[#544737] px-3.5 py-1 rounded-lg text-[#FFF8EA] font-mono text-[13px] flex items-center gap-2">
-            <span className="text-[#C8B89F]">ENG TIMECODE:</span>
-            <span className="text-[#FFB347] tracking-wider font-bold">{timecode}</span>
+          <div className="bg-[#1e293b] border border-[#1e293b] px-3.5 py-1 rounded-lg text-[#f8fafc] font-mono text-[13px] flex items-center gap-2">
+            <span className="text-[#94a3b8]">ENG TIMECODE:</span>
+            <span className="text-[#8b5cf6] tracking-wider font-bold">{timecode}</span>
           </div>
         </div>
       </header>
@@ -1317,7 +1362,7 @@ export default function App() {
       <div className="flex-1 flex overflow-hidden relative z-30">
         
         {/* SIDEBAR: LEFT NAV & PRESETS HISTORIES */}
-        <aside id="suite_sidebar" className="w-[280px] bg-[#24201B] border-r border-[#544737] flex flex-col justify-between hidden md:flex flex-shrink-0">
+        <aside id="suite_sidebar" className="w-[280px] bg-[#0f172a] border-r border-[#1e293b] flex flex-col justify-between hidden md:flex flex-shrink-0">
           
           <div className="p-4 flex flex-col gap-5 overflow-y-auto flex-1">
             
@@ -1331,9 +1376,9 @@ export default function App() {
                   setStatus("IDLE");
                   setIsPlaying(false);
                 }}
-                className="w-full bg-[#302920] hover:bg-[#3B3328] border border-[#544737] text-sm font-bold py-2.5 px-3 rounded-lg flex items-center gap-2 text-[#FFF8EA] transition-all duration-200 shadow-sm"
+                className="w-full bg-[#1e293b] hover:bg-[#334155] border border-[#1e293b] text-sm font-bold py-2.5 px-3 rounded-lg flex items-center gap-2 text-[#f8fafc] transition-all duration-200 shadow-sm"
               >
-                <Plus size={14} className="text-[#FFB347]" />
+                <Plus size={14} className="text-[#8b5cf6]" />
                 <span>+ New cinematic project</span>
               </button>
 
@@ -1341,58 +1386,58 @@ export default function App() {
                 onClick={() => setActiveModal(activeModal === "ai_director" ? null : "ai_director")}
                 className={`w-full text-sm font-bold py-2.5 px-3 rounded-lg flex items-center justify-between transition-all duration-200 border ${
                   activeModal === "ai_director"
-                    ? "bg-[#3B2C19] text-[#FFCB7A] border-[#FFB347]/70 shadow"
-                    : "bg-transparent text-[#F0E1C8] hover:text-[#FFF8EA] border-transparent"
+                    ? "bg-[#3730a3] text-[#a78bfa] border-[#8b5cf6]/70 shadow"
+                    : "bg-transparent text-[#e2e8f0] hover:text-[#f8fafc] border-transparent"
                 }`}
               >
                 <div className="flex items-center gap-2">
-                  <MessageSquare size={14} className="text-[#FFB347]" />
+                  <MessageSquare size={14} className="text-[#8b5cf6]" />
                   <span>AI Director Assistant</span>
                 </div>
-                <span className="bg-[#544737] text-[#FFB347] text-[13px] font-mono px-1.5 py-0.2 rounded">LIVE</span>
+                <span className="bg-[#1e293b] text-[#8b5cf6] text-[13px] font-mono px-1.5 py-0.2 rounded">LIVE</span>
               </button>
             </div>
 
             {/* Expander list Header */}
             <div>
-              <span className="text-xs font-mono font-bold tracking-wider text-[#C8B89F] block mb-2 uppercase">
+              <span className="text-xs font-mono font-bold tracking-wider text-[#94a3b8] block mb-2 uppercase">
                 Live control deck
               </span>
               <div className="flex flex-col gap-1 text-xs">
                 <button 
                   onClick={() => setActiveModal("genre")}
-                  className="flex items-center justify-between p-2 rounded-lg bg-[#24201B]/70 hover:bg-[#302920] text-[#F0E1C8] hover:text-[#FFF8EA] transition-all border border-transparent hover:border-[#544737]/60"
+                  className="flex items-center justify-between p-2 rounded-lg bg-[#0f172a]/70 hover:bg-[#1e293b] text-[#e2e8f0] hover:text-[#f8fafc] transition-all border border-transparent hover:border-[#1e293b]/60"
                 >
                   <span className="flex items-center gap-2">Scene genre</span>
-                  <span className="text-[13px] text-[#C8B89F] font-mono italic">{selectedGenre}</span>
+                  <span className="text-[13px] text-[#94a3b8] font-mono italic">{selectedGenre}</span>
                 </button>
                 <button 
                   onClick={() => setActiveModal("style")}
-                  className="flex items-center justify-between p-2 rounded-lg bg-[#24201B]/70 hover:bg-[#302920] text-[#F0E1C8] hover:text-[#FFF8EA] transition-all border border-transparent hover:border-[#544737]/60"
+                  className="flex items-center justify-between p-2 rounded-lg bg-[#0f172a]/70 hover:bg-[#1e293b] text-[#e2e8f0] hover:text-[#f8fafc] transition-all border border-transparent hover:border-[#1e293b]/60"
                 >
                   <span>Lighting and color system</span>
-                  <span className="text-[13px] text-[#FFB347] font-mono">Custom</span>
+                  <span className="text-[13px] text-[#8b5cf6] font-mono">Custom</span>
                 </button>
                 <button 
                   onClick={() => setActiveModal("camera")}
-                  className="flex items-center justify-between p-2 rounded-lg bg-[#24201B]/70 hover:bg-[#302920] text-[#F0E1C8] hover:text-[#FFF8EA] transition-all border border-transparent hover:border-[#544737]/60"
+                  className="flex items-center justify-between p-2 rounded-lg bg-[#0f172a]/70 hover:bg-[#1e293b] text-[#e2e8f0] hover:text-[#f8fafc] transition-all border border-transparent hover:border-[#1e293b]/60"
                 >
                   <span>Lens and camera setup</span>
-                  <span className="text-[13px] text-[#C8B89F] font-mono truncate max-w-28 text-left">{lensType}</span>
+                  <span className="text-[13px] text-[#94a3b8] font-mono truncate max-w-28 text-left">{lensType}</span>
                 </button>
                 <button 
                   onClick={() => setActiveModal("casting")}
-                  className="flex items-center justify-between p-2 rounded-lg bg-[#24201B]/70 hover:bg-[#302920] text-[#F0E1C8] hover:text-[#FFF8EA] transition-all border border-transparent hover:border-[#544737]/60"
+                  className="flex items-center justify-between p-2 rounded-lg bg-[#0f172a]/70 hover:bg-[#1e293b] text-[#e2e8f0] hover:text-[#f8fafc] transition-all border border-transparent hover:border-[#1e293b]/60"
                 >
                   <span>Casting and actor room</span>
-                  <span className="text-[13px] text-[#C8B89F] font-mono text-left">{currentActor.name}</span>
+                  <span className="text-[13px] text-[#94a3b8] font-mono text-left">{currentActor.name}</span>
                 </button>
               </div>
             </div>
 
             {/* Presets and History */}
             <div className="flex-1 flex flex-col min-h-[220px]">
-              <span className="text-xs font-mono font-bold tracking-wider text-[#C8B89F] block mb-2.5 uppercase">
+              <span className="text-xs font-mono font-bold tracking-wider text-[#94a3b8] block mb-2.5 uppercase">
                 Scene draft presets ({recentProjects.length})
               </span>
               <div className="space-y-2 max-h-[280px] overflow-y-auto pr-1">
@@ -1404,19 +1449,19 @@ export default function App() {
                       onClick={() => handleLoadProject(proj)}
                       className={`w-full text-right p-2.5 rounded-lg border flex flex-col gap-1 transition-all text-xs outline-none ${
                         isCur
-                          ? "bg-[#3B2C19] border-[#FFB347]/70"
-                          : "bg-[#302920] border-[#544737]/80 hover:bg-[#302920]/70 hover:border-[#D6A84F]"
+                          ? "bg-[#3730a3] border-[#8b5cf6]/70"
+                          : "bg-[#1e293b] border-[#1e293b]/80 hover:bg-[#1e293b]/70 hover:border-[#7c3aed]"
                       }`}
                     >
                       <div className="flex items-center justify-between w-full">
-                        <span className="text-[#FFF8EA] font-bold truncate block flex-1 pl-2">
+                        <span className="text-[#f8fafc] font-bold truncate block flex-1 pl-2">
                           {proj.title}
                         </span>
-                        <span className="text-[13px] bg-[#302920] text-[#FFB347] px-1.5 py-0.2 rounded font-mono uppercase">
+                        <span className="text-[13px] bg-[#1e293b] text-[#8b5cf6] px-1.5 py-0.2 rounded font-mono uppercase">
                           {proj.genre}
                         </span>
                       </div>
-                      <p className="text-xs text-[#C8B89F] line-clamp-1 truncate w-full">
+                      <p className="text-xs text-[#94a3b8] line-clamp-1 truncate w-full">
                         {proj.prompt}
                       </p>
                     </button>
@@ -1428,20 +1473,20 @@ export default function App() {
           </div>
 
           {/* Core watermark credit line according to guidelines */}
-          <div className="p-4 border-t border-[#544737] bg-[#17120E] text-center">
-            <p className="text-xs text-[#8A7964]">SAAD DIGITAL STUDIOS INC</p>
-            <p className="text-[13px] text-[#C8B89F] font-mono mt-0.5">EST. 2026 • MULTI-PROVIDER VIDEO ENGINE</p>
+          <div className="p-4 border-t border-[#1e293b] bg-[#060c18] text-center">
+            <p className="text-xs text-[#64748b]">SAAD DIGITAL STUDIOS INC</p>
+            <p className="text-[13px] text-[#94a3b8] font-mono mt-0.5">EST. 2026 • MULTI-PROVIDER VIDEO ENGINE</p>
           </div>
         </aside>
 
         {/* WORKSPACE AREA: DYNAMIC CANVAS STAGE & POPUPS */}
-        <section id="center_viewport" className="flex-1 flex flex-col justify-between p-6 relative overflow-y-auto bg-gradient-to-b from-[#0A0F1A] to-[#17120E]">
+        <section id="center_viewport" className="flex-1 flex flex-col justify-between p-6 relative overflow-y-auto bg-gradient-to-b from-[#020617] to-[#060c18]">
           
           {/* AESTHETIC CORNER MARKINGS FOR EMPTY STATE / PREVIEW */}
-          <div className="absolute top-10 left-10 w-4 h-4 border-t border-l border-[#544737] pointer-events-none" />
-          <div className="absolute top-10 right-10 w-4 h-4 border-t border-r border-[#544737] pointer-events-none" />
-          <div className="absolute bottom-10 left-10 w-4 h-4 border-b border-l border-[#544737] pointer-events-none" />
-          <div className="absolute bottom-10 right-10 w-4 h-4 border-b border-r border-[#544737] pointer-events-none" />
+          <div className="absolute top-10 left-10 w-4 h-4 border-t border-l border-[#1e293b] pointer-events-none" />
+          <div className="absolute top-10 right-10 w-4 h-4 border-t border-r border-[#1e293b] pointer-events-none" />
+          <div className="absolute bottom-10 left-10 w-4 h-4 border-b border-l border-[#1e293b] pointer-events-none" />
+          <div className="absolute bottom-10 right-10 w-4 h-4 border-b border-r border-[#1e293b] pointer-events-none" />
 
           {/* DYNAMIC CANVAS LOGIC OUTLINE */}
           <div className="flex-1 flex items-center justify-center my-auto min-h-[350px]">
@@ -1456,34 +1501,34 @@ export default function App() {
                   exit={{ opacity: 0 }}
                   className="text-center flex flex-col items-center gap-4 py-8 pointer-events-auto"
                 >
-                  <span className="text-[13px] text-[#C8B89F] font-mono tracking-[0.3em] uppercase">
+                  <span className="text-[13px] text-[#94a3b8] font-mono tracking-[0.3em] uppercase">
                     {activeModelObj.name} ULTRA ENGINE
                   </span>
                   
-                  <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-[#FFB347] to-[#FFB347] font-sans max-w-xl leading-relaxed">
+                  <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-[#8b5cf6] to-[#8b5cf6] font-sans max-w-xl leading-relaxed">
                     What would you shoot with infinite budget?
                   </h1>
 
-                  <p className="text-xs text-[#C8B89F] font-sans max-w-md leading-relaxed">
+                  <p className="text-xs text-[#94a3b8] font-sans max-w-md leading-relaxed">
                     Describe the cinematic scene below, then generate a production-style visual plan with lens, camera, lighting, subtitles, and sound direction.
                   </p>
 
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-4 max-w-xl">
                     <button 
                       onClick={() => handleLoadProject(recentProjects[0])}
-                      className="px-4 py-2 bg-[#24201B]/50 hover:bg-[#302920]/50 border border-[#544737] hover:border-[#D6A84F] text-sm text-[#F0E1C8] hover:text-white rounded-lg transition-all"
+                      className="px-4 py-2 bg-[#0f172a]/50 hover:bg-[#1e293b]/50 border border-[#1e293b] hover:border-[#7c3aed] text-sm text-[#e2e8f0] hover:text-white rounded-lg transition-all"
                     >
                       Rainy city alley
                     </button>
                     <button 
                       onClick={() => handleLoadProject(recentProjects[1])}
-                      className="px-4 py-2 bg-[#24201B]/50 hover:bg-[#302920]/50 border border-[#544737] hover:border-[#D6A84F] text-sm text-[#F0E1C8] hover:text-white rounded-lg transition-all"
+                      className="px-4 py-2 bg-[#0f172a]/50 hover:bg-[#1e293b]/50 border border-[#1e293b] hover:border-[#7c3aed] text-sm text-[#e2e8f0] hover:text-white rounded-lg transition-all"
                     >
                       Mythic castle portrait
                     </button>
                     <button 
                       onClick={() => handleLoadProject(recentProjects[2])}
-                      className="px-4 py-2 bg-[#24201B]/50 hover:bg-[#302920]/50 border border-[#544737] hover:border-[#D6A84F] text-sm text-[#F0E1C8] hover:text-white rounded-lg transition-all"
+                      className="px-4 py-2 bg-[#0f172a]/50 hover:bg-[#1e293b]/50 border border-[#1e293b] hover:border-[#7c3aed] text-sm text-[#e2e8f0] hover:text-white rounded-lg transition-all"
                     >
                       Heritage courtyard
                     </button>
@@ -1504,29 +1549,29 @@ export default function App() {
                     <motion.div 
                       animate={{ rotate: 360 }}
                       transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                      className="absolute inset-0 border-2 border-t-[#FFB347] border-[#544737] rounded-full"
+                      className="absolute inset-0 border-2 border-t-[#8b5cf6] border-[#1e293b] rounded-full"
                     />
-                    <div className="absolute inset-2 bg-[#17120E] rounded-full flex items-center justify-center">
-                      <Camera size={20} className="text-[#FFB347]" />
+                    <div className="absolute inset-2 bg-[#060c18] rounded-full flex items-center justify-center">
+                      <Camera size={20} className="text-[#8b5cf6]" />
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between text-sm text-[#F0E1C8] font-mono">
+                    <div className="flex items-center justify-between text-sm text-[#e2e8f0] font-mono">
                       <span>Rendering frame and character detail {progress}%</span>
                       <span>GEN_PIPELINE_ACTIVE</span>
                     </div>
                     {/* Progress Bar Container Grid */}
-                    <div className="h-1 w-full bg-[#302920] rounded-full overflow-hidden">
+                    <div className="h-1 w-full bg-[#1e293b] rounded-full overflow-hidden">
                       <motion.div 
-                        className="h-full bg-gradient-to-r from-[#FFB347] to-[#FF8C42] rounded-full"
+                        className="h-full bg-gradient-to-r from-[#8b5cf6] to-[#06b6d4] rounded-full"
                         style={{ width: `${progress}%` }}
                         layoutId="rendering_progress_bar"
                       />
                     </div>
                   </div>
 
-                  <p className="text-[13px] text-[#C8B89F] leading-relaxed font-mono tracking-wide animate-pulse">
+                  <p className="text-[13px] text-[#94a3b8] leading-relaxed font-mono tracking-wide animate-pulse">
                     {progress < 30 ? "» Analyzing script intent and visual tone..."
                      : progress < 60 ? "» Mapping lighting paths, camera movement, and lens behavior..."
                      : progress < 85 ? "» Simulating depth, motion, glow, and atmosphere..."
@@ -1542,7 +1587,7 @@ export default function App() {
                   initial={{ opacity: 0, scale: 0.99 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0 }}
-                  className="w-full max-w-[850px] aspect-[2.35/1] rounded-xl overflow-hidden bg-black border border-[#544737] relative shadow-2xl shadow-black/80 flex flex-col justify-between"
+                  className="w-full max-w-[850px] aspect-[2.35/1] rounded-xl overflow-hidden bg-black border border-[#1e293b] relative shadow-2xl shadow-black/80 flex flex-col justify-between"
                   style={{
                     boxShadow: `0 25px 50px -12px ${activeScenario.accentColor}08`
                   }}
@@ -1576,21 +1621,21 @@ export default function App() {
                   {/* TOP BANNER CORNER STATS OVERLAY IN MONITOR */}
                   <div className="p-4 flex items-center justify-between relative z-35 bg-gradient-to-b from-black/80 to-transparent pointer-events-none">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-mono bg-[#3B2C19]/90 border border-[#FFB347]/60 text-[#FFCB7A] px-2.5 py-0.5 rounded uppercase font-bold tracking-wider">
+                      <span className="text-xs font-mono bg-[#3730a3]/90 border border-[#8b5cf6]/60 text-[#a78bfa] px-2.5 py-0.5 rounded uppercase font-bold tracking-wider">
                         PREVIEW ACTIVE
                       </span>
-                      <span className="text-xs font-mono text-[#F0E1C8] bg-black/40 px-2 py-0.5 rounded truncate max-w-[240px] block">
+                      <span className="text-xs font-mono text-[#e2e8f0] bg-black/40 px-2 py-0.5 rounded truncate max-w-[240px] block">
                         {lensType} • {cameraMovement}
                       </span>
                     </div>
 
-                    <div className="bg-black/40 px-2 py-0.5 rounded text-xs font-mono text-[#F0E1C8]">
+                    <div className="bg-black/40 px-2 py-0.5 rounded text-xs font-mono text-[#e2e8f0]">
                       24.00 FPS • PRORES RAW
                     </div>
                   </div>
 
                   {renderNotice && (
-                    <div className="absolute top-12 left-4 right-4 z-45 rounded-lg border border-[#FF8C42]/40 bg-black/70 px-3 py-2 text-xs font-bold text-[#FF8C42] backdrop-blur-sm">
+                    <div className="absolute top-12 left-4 right-4 z-45 rounded-lg border border-[#06b6d4]/40 bg-black/70 px-3 py-2 text-xs font-bold text-[#06b6d4] backdrop-blur-sm">
                       {renderNotice}
                     </div>
                   )}
@@ -1607,14 +1652,14 @@ export default function App() {
                     
                     {/* Media Seekable Timeline Bar */}
                     <div className="flex items-center gap-3">
-                      <span className="text-[13px] font-mono text-[#C8B89F] w-10">00:00</span>
-                      <div className="flex-1 h-1 bg-[#302920] rounded-full relative overflow-hidden group hover:h-1.5 transition-all cursor-pointer">
+                      <span className="text-[13px] font-mono text-[#94a3b8] w-10">00:00</span>
+                      <div className="flex-1 h-1 bg-[#1e293b] rounded-full relative overflow-hidden group hover:h-1.5 transition-all cursor-pointer">
                         <div 
-                          className="h-full bg-[#FFB347] rounded-full transition-all"
+                          className="h-full bg-[#8b5cf6] rounded-full transition-all"
                           style={{ width: `${Math.min(100, (currentTime / playbackDuration) * 100)}%` }}
                         />
                       </div>
-                      <span className="text-[13px] font-mono text-[#C8B89F] w-10 text-right">
+                      <span className="text-[13px] font-mono text-[#94a3b8] w-10 text-right">
                         00:{String(playbackDuration).padStart(2, "0")}
                       </span>
                     </div>
@@ -1624,24 +1669,24 @@ export default function App() {
                       <div className="flex items-center gap-2">
                         <button 
                           onClick={() => setIsPlaying(!isPlaying)}
-                          className="w-7 h-7 bg-[#302920] border border-[#D6A84F] hover:bg-[#3B3328] text-[#FFF8EA] hover:text-white rounded-lg flex items-center justify-center transition-colors outline-none"
+                          className="w-7 h-7 bg-[#1e293b] border border-[#7c3aed] hover:bg-[#334155] text-[#f8fafc] hover:text-white rounded-lg flex items-center justify-center transition-colors outline-none"
                         >
                           {isPlaying ? <Pause size={11} /> : <Play size={11} className="relative left-[1px]" />}
                         </button>
                         <button 
                           onClick={() => setCurrentTime(0)}
-                          className="w-7 h-7 bg-[#302920] border border-[#D6A84F] hover:bg-[#3B3328] text-[#FFF8EA] hover:text-white rounded-lg flex items-center justify-center transition-colors outline-none"
+                          className="w-7 h-7 bg-[#1e293b] border border-[#7c3aed] hover:bg-[#334155] text-[#f8fafc] hover:text-white rounded-lg flex items-center justify-center transition-colors outline-none"
                         >
                           <RotateCcw size={11} />
                         </button>
 
-                        <div className="h-3 w-[1px] bg-[#302920] mx-1" />
+                        <div className="h-3 w-[1px] bg-[#1e293b] mx-1" />
 
                         {/* Volume settings */}
                         <div className="flex items-center gap-2">
                           <button 
                             onClick={() => setIsMuted(!isMuted)}
-                            className="text-[#F0E1C8] hover:text-white transition-colors outline-none"
+                            className="text-[#e2e8f0] hover:text-white transition-colors outline-none"
                           >
                             {isMuted ? <VolumeX size={13} /> : <Volume2 size={13} />}
                           </button>
@@ -1654,15 +1699,15 @@ export default function App() {
                               setSoundVolume(Number(e.target.value));
                               setIsMuted(false);
                             }}
-                            className="w-12 h-1 bg-[#24201B] rounded-lg appearance-none cursor-pointer accent-[#FFB347]"
+                            className="w-12 h-1 bg-[#0f172a] rounded-lg appearance-none cursor-pointer accent-[#8b5cf6]"
                           />
                         </div>
                       </div>
 
-                      <div className="text-xs font-mono text-[#C8B89F] flex items-center gap-2">
+                      <div className="text-xs font-mono text-[#94a3b8] flex items-center gap-2">
                         <span>AUDIO: {generatedAudioUrl ? "ELEVENLABS PREVIEW READY" : `PREVIEW MIX (${activeScene.soundEffects})`}</span>
                         <span>•</span>
-                        <span className="text-[#FFB347] font-bold uppercase">SEC: {currentTime.toFixed(1)}s</span>
+                        <span className="text-[#8b5cf6] font-bold uppercase">SEC: {currentTime.toFixed(1)}s</span>
                       </div>
                     </div>
 
@@ -1680,8 +1725,8 @@ export default function App() {
               onClick={() => setActiveModal("genre")}
               className={`px-3 py-1.5 rounded-full border text-[12px] font-bold flex items-center gap-1.5 transition-all duration-200 outline-none backdrop-blur-md ${
                 activeModal === "genre"
-                  ? "bg-[#3B2C19] text-[#FFCB7A] border-[#FFB347]/70 shadow-lg shadow-[#FFB347]/10"
-                  : "bg-[#302920]/70 border-[#544737] hover:bg-[#302920] hover:border-[#D6A84F] text-[#F0E1C8] hover:text-white hover:-translate-y-px"
+                  ? "bg-[#3730a3] text-[#a78bfa] border-[#8b5cf6]/70 shadow-lg shadow-[#8b5cf6]/10"
+                  : "bg-[#1e293b]/70 border-[#1e293b] hover:bg-[#1e293b] hover:border-[#7c3aed] text-[#e2e8f0] hover:text-white hover:-translate-y-px"
               }`}
             >
               <div
@@ -1695,11 +1740,11 @@ export default function App() {
               onClick={() => setActiveModal("style")}
               className={`px-3 py-1.5 rounded-full border text-[12px] font-bold flex items-center gap-1.5 transition-all duration-200 outline-none backdrop-blur-md ${
                 activeModal === "style"
-                  ? "bg-[#FF8C42]/12 text-[#FF8C42] border-[#FF8C42]/50 shadow-lg shadow-[#FF8C42]/10"
-                  : "bg-[#302920]/70 border-[#544737] hover:bg-[#302920] hover:border-[#D6A84F] text-[#F0E1C8] hover:text-white hover:-translate-y-px"
+                  ? "bg-[#06b6d4]/12 text-[#06b6d4] border-[#06b6d4]/50 shadow-lg shadow-[#06b6d4]/10"
+                  : "bg-[#1e293b]/70 border-[#1e293b] hover:bg-[#1e293b] hover:border-[#7c3aed] text-[#e2e8f0] hover:text-white hover:-translate-y-px"
               }`}
             >
-              <Sliders size={11} className="text-[#FF8C42]" />
+              <Sliders size={11} className="text-[#06b6d4]" />
               <span>Grade</span>
             </button>
 
@@ -1707,14 +1752,14 @@ export default function App() {
               onClick={() => setActiveModal("camera")}
               className={`px-3 py-1.5 rounded-full border text-[12px] font-bold flex items-center gap-1.5 transition-all duration-200 outline-none backdrop-blur-md ${
                 activeModal === "camera"
-                  ? "bg-[#3B2C19] text-[#FFB347] border-[#FFB347]/50 shadow-lg shadow-[#FFB347]/10"
-                  : "bg-[#302920]/70 border-[#544737] hover:bg-[#302920] hover:border-[#D6A84F] text-[#F0E1C8] hover:text-white hover:-translate-y-px"
+                  ? "bg-[#3730a3] text-[#8b5cf6] border-[#8b5cf6]/50 shadow-lg shadow-[#8b5cf6]/10"
+                  : "bg-[#1e293b]/70 border-[#1e293b] hover:bg-[#1e293b] hover:border-[#7c3aed] text-[#e2e8f0] hover:text-white hover:-translate-y-px"
               }`}
             >
-              <Camera size={11} className="text-[#FFB347]" />
+              <Camera size={11} className="text-[#8b5cf6]" />
               <span>
                 Rig:{" "}
-                <span className="font-mono text-[#FFB347]">
+                <span className="font-mono text-[#8b5cf6]">
                   {cameraBody.split(" ").slice(0, 2).join(" ")} · {focalLength}mm · {aperture}
                 </span>
               </span>
@@ -1724,11 +1769,11 @@ export default function App() {
               onClick={() => setActiveModal("casting")}
               className={`px-3 py-1.5 rounded-full border text-[12px] font-bold flex items-center gap-1.5 transition-all duration-200 outline-none backdrop-blur-md ${
                 activeModal === "casting"
-                  ? "bg-[#3B2C19] text-[#F6D58B] border-[#F6D58B]/50 shadow-lg shadow-[#F6D58B]/10"
-                  : "bg-[#302920]/70 border-[#544737] hover:bg-[#302920] hover:border-[#D6A84F] text-[#F0E1C8] hover:text-white hover:-translate-y-px"
+                  ? "bg-[#3730a3] text-[#c4b5fd] border-[#c4b5fd]/50 shadow-lg shadow-[#c4b5fd]/10"
+                  : "bg-[#1e293b]/70 border-[#1e293b] hover:bg-[#1e293b] hover:border-[#7c3aed] text-[#e2e8f0] hover:text-white hover:-translate-y-px"
               }`}
             >
-              <UserCheck size={11} className="text-[#F6D58B]" />
+              <UserCheck size={11} className="text-[#c4b5fd]" />
               <span>Cast</span>
             </button>
 
@@ -1736,17 +1781,17 @@ export default function App() {
               onClick={() => setActiveModal("voice")}
               className={`px-3 py-1.5 rounded-full border text-[12px] font-bold flex items-center gap-1.5 transition-all duration-200 outline-none backdrop-blur-md ${
                 activeModal === "voice"
-                  ? "bg-[#4A251D] text-[#F2A38F] border-[#D9754F]/50 shadow-lg shadow-[#D9754F]/10"
-                  : "bg-[#302920]/70 border-[#544737] hover:bg-[#302920] hover:border-[#D6A84F] text-[#F0E1C8] hover:text-white hover:-translate-y-px"
+                  ? "bg-[#831843] text-[#f9a8d4] border-[#ec4899]/50 shadow-lg shadow-[#ec4899]/10"
+                  : "bg-[#1e293b]/70 border-[#1e293b] hover:bg-[#1e293b] hover:border-[#7c3aed] text-[#e2e8f0] hover:text-white hover:-translate-y-px"
               }`}
             >
-              <span className="text-[#D9754F] text-[12px]">🎙️</span>
+              <span className="text-[#ec4899] text-[12px]">🎙️</span>
               <span>Speak</span>
             </button>
           </div>
 
           {/* 3. SLICK RUNWAY-STYLE GENERATE INPUT BAR */}
-          <div id="footer_generate_ribbon" className="max-w-[850px] mx-auto w-full bg-[#24201B] border border-[#544737] rounded-xl p-3 shadow-2xl relative z-40">
+          <div id="footer_generate_ribbon" className="max-w-[850px] mx-auto w-full bg-[#0f172a] border border-[#1e293b] rounded-xl p-3 shadow-2xl relative z-40">
             
             {/* Input Row */}
             {/* Input Row */}
@@ -1754,7 +1799,7 @@ export default function App() {
               <button 
                 onClick={() => setActiveModal("casting")}
                 title="Add or synthesize an actor"
-                className="w-10 h-10 bg-[#302920] hover:bg-[#3B3328] border border-[#544737]/70 rounded-lg flex items-center justify-center text-[#F0E1C8] hover:text-white transition-colors"
+                className="w-10 h-10 bg-[#1e293b] hover:bg-[#334155] border border-[#1e293b]/70 rounded-lg flex items-center justify-center text-[#e2e8f0] hover:text-white transition-colors"
               >
                 <Plus size={16} />
               </button>
@@ -1765,7 +1810,7 @@ export default function App() {
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                   placeholder="Describe the cinematic scene in detail... e.g., A vintage car cruising down the neon-drenched streets under heavy rain"
-                  className="w-full bg-transparent text-sm text-white focus:outline-none placeholder:text-[#8A7964] text-left font-sans"
+                  className="w-full bg-transparent text-sm text-white focus:outline-none placeholder:text-[#64748b] text-left font-sans"
                 />
               </div>
 
@@ -1774,8 +1819,8 @@ export default function App() {
                 disabled={status === "RENDERING"}
                 className={`relative overflow-hidden h-10 px-5 rounded-lg text-xs font-black flex items-center gap-1.5 transition-all duration-300 outline-none ${
                   status === "RENDERING"
-                    ? "bg-[#544737] text-[#C8B89F] cursor-not-allowed cine-shuttering"
-                    : "bg-gradient-to-br from-[#FFB347] to-[#FF8C42] hover:from-[#FFCB7A] hover:to-[#FFA460] text-black shadow-lg shadow-[#FFB347]/30 hover:shadow-[#FFB347]/50 hover:-translate-y-px font-extrabold cursor-pointer"
+                    ? "bg-[#1e293b] text-[#94a3b8] cursor-not-allowed cine-shuttering"
+                    : "bg-gradient-to-br from-[#8b5cf6] to-[#06b6d4] hover:from-[#a78bfa] hover:to-[#22d3ee] text-black shadow-lg shadow-[#8b5cf6]/30 hover:shadow-[#8b5cf6]/50 hover:-translate-y-px font-extrabold cursor-pointer"
                 }`}
               >
                 <span className="cine-shutter-top" aria-hidden />
@@ -1791,13 +1836,13 @@ export default function App() {
             <div className="mt-2.5 pt-2 border-t border-[#121322] flex flex-wrap items-center justify-between gap-2.5">
               
               <div className="flex items-center gap-1.5">
-                <Mic size={11} className="text-[#C8B89F]" />
+                <Mic size={11} className="text-[#94a3b8]" />
                 <input 
                   type="text"
                   value={dialogueText}
                   onChange={(e) => setDialogueText(e.target.value)}
                   placeholder="Voice-dub dialogue or attached subtitles..."
-                  className="bg-transparent text-sm text-[#F0E1C8] focus:outline-none placeholder:text-[#8A7964] text-left w-[200px] md:w-[320px] font-sans"
+                  className="bg-transparent text-sm text-[#e2e8f0] focus:outline-none placeholder:text-[#64748b] text-left w-[200px] md:w-[320px] font-sans"
                 />
               </div>
 
@@ -1810,26 +1855,26 @@ export default function App() {
                     onClick={() => setActiveDropdown(activeDropdown === "model" ? null : "model")}
                     className={`px-2.5 py-1.5 rounded text-[13px] font-sans font-semibold transition-all flex items-center gap-1 cursor-pointer ${
                       activeDropdown === "model" 
-                        ? "bg-[#3B2C19] border border-[#FFB347] text-[#FFCB7A] shadow-md shadow-black/30" 
-                        : "bg-[#24201B] hover:bg-[#24201B]/85 border border-[#544737] text-[#FFF8EA] hover:text-white"
+                        ? "bg-[#3730a3] border border-[#8b5cf6] text-[#a78bfa] shadow-md shadow-black/30" 
+                        : "bg-[#0f172a] hover:bg-[#0f172a]/85 border border-[#1e293b] text-[#f8fafc] hover:text-white"
                     }`}
                   >
                     <span>🎬 {activeModelObj.name}</span>
-                    <ChevronDown size={10} className={`text-[#C8B89F] transition-transform ${activeDropdown === "model" ? "rotate-180 text-[#FFB347]" : ""}`} />
+                    <ChevronDown size={10} className={`text-[#94a3b8] transition-transform ${activeDropdown === "model" ? "rotate-180 text-[#8b5cf6]" : ""}`} />
                   </button>
 
                   {activeDropdown === "model" && (
-                    <div className="cine-dd-panel cine-open absolute bottom-9 left-1/2 md:-left-12 -translate-x-[40%] md:translate-x-0 w-80 max-h-[380px] overflow-y-auto bg-[#F8F1E4] border border-[#D6A84F] rounded-xl p-2.5 shadow-2xl shadow-black/45 z-50 text-left font-sans animate-in fade-in slide-in-from-bottom-2 duration-200">
-                      <div className="text-[13px] text-[#3A2B1D] font-extrabold pb-2 border-b border-[#D9C6A7] mb-2 font-mono flex items-center justify-between px-1">
-                        <span className="text-[11px] uppercase tracking-[0.2em] text-[#FFB347] font-mono">CINEMATIC MODEL DIRECTORY</span>
-                        <span className="text-[11px] text-[#6B4D2E] uppercase tracking-wider">Select Engine</span>
+                    <div className="cine-dd-panel cine-open absolute bottom-9 left-1/2 md:-left-12 -translate-x-[40%] md:translate-x-0 w-80 max-h-[380px] overflow-y-auto bg-[#1e293b] border border-[#7c3aed] rounded-xl p-2.5 shadow-2xl shadow-black/45 z-50 text-left font-sans animate-in fade-in slide-in-from-bottom-2 duration-200">
+                      <div className="text-[13px] text-[#f8fafc] font-extrabold pb-2 border-b border-[#475569] mb-2 font-mono flex items-center justify-between px-1">
+                        <span className="text-[11px] uppercase tracking-[0.2em] text-[#8b5cf6] font-mono">CINEMATIC MODEL DIRECTORY</span>
+                        <span className="text-[11px] text-[#64748b] uppercase tracking-wider">Select Engine</span>
                       </div>
                       <div className="space-y-3">
                         {(Array.from(new Set(CINEMA_MODELS.map(getModelCategory))) as string[]).map((cat, catIdx) => {
                           const catModels = CINEMA_MODELS.filter(m => getModelCategory(m) === cat);
                           return (
                             <div key={cat} className="space-y-1">
-                              <div className="text-[10px] font-mono font-bold text-[#7C6040] tracking-[0.18em] text-left uppercase px-2 py-0.5 border-l-2 border-[#D6A84F]">
+                              <div className="text-[10px] font-mono font-bold text-[#94a3b8] tracking-[0.18em] text-left uppercase px-2 py-0.5 border-l-2 border-[#7c3aed]">
                                 • {cat}
                               </div>
                               <div className="space-y-0.5">
@@ -1846,21 +1891,21 @@ export default function App() {
                                       style={{ animationDelay: `${itemIndex * 35}ms` }}
                                       className={`cine-dd-item w-full text-right px-2.5 py-1.5 rounded-md text-[13px] transition-all flex items-center justify-between cursor-pointer ${
                                         isSelected
-                                          ? "bg-[#F1DFAE] text-[#2B2118] border border-[#D6A84F] font-bold shadow-inner shadow-[#D6A84F]/20"
-                                          : "text-[#3A2B1D] hover:text-[#17120E] hover:bg-[#EFE2CC] border border-transparent hover:border-[#D6A84F]/40"
+                                          ? "bg-[#5b21b6] text-[#ffffff] border border-[#7c3aed] font-bold shadow-inner shadow-[#7c3aed]/20"
+                                          : "text-[#f8fafc] hover:text-[#060c18] hover:bg-[#334155] border border-transparent hover:border-[#7c3aed]/40"
                                       }`}
                                     >
                                       {/* Left badges column */}
                                       <div className="flex items-center gap-1 font-mono text-[10px]" dir="ltr">
                                         {model.capabilities.max_reference_images > 0 && (
-                                          <span className="px-1.5 py-[2px] rounded bg-[#FFB347]/10 border border-[#FFB347]/30 text-[#FFB347] font-bold tracking-wider">REF×{model.capabilities.max_reference_images}</span>
+                                          <span className="px-1.5 py-[2px] rounded bg-[#8b5cf6]/10 border border-[#8b5cf6]/30 text-[#8b5cf6] font-bold tracking-wider">REF×{model.capabilities.max_reference_images}</span>
                                         )}
                                         {model.badge && (
                                           <span className={`px-1.5 py-[2px] rounded font-bold tracking-wider ${
-                                            model.badge === "TOP" ? "bg-[#FFF7DD] border border-[#D6A84F] text-[#9A5B12]" :
-                                            model.badge === "PRO" ? "bg-[#F4D8B4] border border-[#C9823B] text-[#8A3F14]" :
-                                            model.badge === "FAST" ? "bg-[#EAF1D5] border border-[#A9B86A] text-[#5B681F]" :
-                                            "bg-[#F6E7C8] border border-[#D6A84F] text-[#7C6040]"
+                                            model.badge === "TOP" ? "bg-[#1e1b4b] border border-[#7c3aed] text-[#8b5cf6]" :
+                                            model.badge === "PRO" ? "bg-[#1e3a8a] border border-[#3b82f6] text-[#60a5fa]" :
+                                            model.badge === "FAST" ? "bg-[#064e3b] border border-[#10b981] text-[#34d399]" :
+                                            "bg-[#312e81] border border-[#7c3aed] text-[#94a3b8]"
                                           }`}>
                                             {model.badge}
                                           </span>
@@ -1871,12 +1916,12 @@ export default function App() {
                                       <div className="flex items-center gap-2">
                                         <span className="text-[13px] font-medium">{model.name}</span>
                                         <span className={`w-1.5 h-1.5 rounded-full shadow-[0_0_8px_currentColor] ${
-                                          model.family === "kling" ? "bg-[#D6A84F] text-[#D6A84F]" :
-                                          model.family === "hailuo" ? "bg-[#C9823B] text-[#C9823B]" :
-                                          model.family === "sora" ? "bg-[#9A5B12] text-[#9A5B12]" :
-                                          model.family === "veo" ? "bg-[#B67C32] text-[#B67C32]" :
-                                          model.family === "seedance" ? "bg-[#A9B86A] text-[#A9B86A]" :
-                                          "bg-[#D9754F] text-[#D9754F]"
+                                          model.family === "kling" ? "bg-[#7c3aed] text-[#7c3aed]" :
+                                          model.family === "hailuo" ? "bg-[#3b82f6] text-[#3b82f6]" :
+                                          model.family === "sora" ? "bg-[#8b5cf6] text-[#8b5cf6]" :
+                                          model.family === "veo" ? "bg-[#4f46e5] text-[#4f46e5]" :
+                                          model.family === "seedance" ? "bg-[#10b981] text-[#10b981]" :
+                                          "bg-[#ec4899] text-[#ec4899]"
                                         }`} />
                                       </div>
                                     </button>
@@ -1895,15 +1940,15 @@ export default function App() {
                 <div className="relative cine-dropdown-container">
                   <button 
                     onClick={() => setActiveDropdown(activeDropdown === "duration" ? null : "duration")}
-                    className={`px-2 py-1 bg-[#24201B] border border-[#544737] rounded text-xs font-mono text-[#F0E1C8] hover:text-white transition-colors flex items-center gap-1 cursor-pointer`}
+                    className={`px-2 py-1 bg-[#0f172a] border border-[#1e293b] rounded text-xs font-mono text-[#e2e8f0] hover:text-white transition-colors flex items-center gap-1 cursor-pointer`}
                   >
                     <span>⏱️ {duration}</span>
-                    <ChevronDown size={8} className="text-[#8A7964]" />
+                    <ChevronDown size={8} className="text-[#64748b]" />
                   </button>
 
                   {activeDropdown === "duration" && (
-                    <div className="absolute bottom-9 right-0 md:-right-8 w-52 bg-[#F8F1E4] border border-[#D6A84F] rounded-lg p-1.5 shadow-2xl shadow-black/40 z-50 text-right font-sans">
-                      <div className="text-xs text-[#6B4D2E] pb-1 mb-1 border-b border-[#D9C6A7] px-1.5 font-bold">Select render duration</div>
+                    <div className="absolute bottom-9 right-0 md:-right-8 w-52 bg-[#1e293b] border border-[#7c3aed] rounded-lg p-1.5 shadow-2xl shadow-black/40 z-50 text-right font-sans">
+                      <div className="text-xs text-[#64748b] pb-1 mb-1 border-b border-[#475569] px-1.5 font-bold">Select render duration</div>
                       <div className="space-y-0.5">
                         {durationOptions.map((opt) => {
                           const isSelected = duration === opt.value;
@@ -1917,11 +1962,11 @@ export default function App() {
                               }}
                               className={`w-full text-right px-2 py-1 rounded text-[13px] transition-all flex items-center justify-between cursor-pointer ${
                                 isSelected 
-                                  ? "bg-[#F1DFAE] text-[#2B2118] font-bold" 
-                                  : "text-[#3A2B1D] hover:text-[#17120E] hover:bg-[#EFE2CC]"
+                                  ? "bg-[#5b21b6] text-[#ffffff] font-bold" 
+                                  : "text-[#f8fafc] hover:text-[#060c18] hover:bg-[#334155]"
                               }`}
                             >
-                              <span className="text-[13px] font-bold font-mono px-1 rounded bg-[#FFF7DD] text-[#9A5B12]">
+                              <span className="text-[13px] font-bold font-mono px-1 rounded bg-[#1e1b4b] text-[#8b5cf6]">
                                 OK
                               </span>
                               <span>{opt.label}</span>
@@ -1937,15 +1982,15 @@ export default function App() {
                 <div className="relative cine-dropdown-container">
                   <button 
                     onClick={() => setActiveDropdown(activeDropdown === "resolution" ? null : "resolution")}
-                    className={`px-2 py-1 bg-[#24201B] border border-[#544737] rounded text-xs font-mono text-[#F0E1C8] hover:text-white transition-colors flex items-center gap-1 cursor-pointer`}
+                    className={`px-2 py-1 bg-[#0f172a] border border-[#1e293b] rounded text-xs font-mono text-[#e2e8f0] hover:text-white transition-colors flex items-center gap-1 cursor-pointer`}
                   >
                     <span>📐 {resolution}</span>
-                    <ChevronDown size={8} className="text-[#8A7964]" />
+                    <ChevronDown size={8} className="text-[#64748b]" />
                   </button>
 
                   {activeDropdown === "resolution" && (
-                    <div className="absolute bottom-9 right-0 md:-right-8 w-44 bg-[#F8F1E4] border border-[#D6A84F] rounded-lg p-1.5 shadow-2xl shadow-black/40 z-50 text-right font-sans">
-                      <div className="text-xs text-[#6B4D2E] pb-1 mb-1 border-b border-[#D9C6A7] px-1.5 font-bold">AI output resolution</div>
+                    <div className="absolute bottom-9 right-0 md:-right-8 w-44 bg-[#1e293b] border border-[#7c3aed] rounded-lg p-1.5 shadow-2xl shadow-black/40 z-50 text-right font-sans">
+                      <div className="text-xs text-[#64748b] pb-1 mb-1 border-b border-[#475569] px-1.5 font-bold">AI output resolution</div>
                       <div className="space-y-0.5">
                         {resolutionOptions.map((opt) => {
                           const isSelected = resolution === opt.value;
@@ -1957,7 +2002,7 @@ export default function App() {
                                 setActiveDropdown(null);
                               }}
                               className={`w-full text-right px-2 py-1 rounded text-[13px] transition-all cursor-pointer ${
-                                isSelected ? "bg-[#F1DFAE] text-[#2B2118] font-bold" : "text-[#3A2B1D] hover:text-[#17120E] hover:bg-[#EFE2CC]"
+                                isSelected ? "bg-[#5b21b6] text-[#ffffff] font-bold" : "text-[#f8fafc] hover:text-[#060c18] hover:bg-[#334155]"
                               }`}
                             >
                               {opt.label}
@@ -1973,15 +2018,15 @@ export default function App() {
                 <div className="relative cine-dropdown-container">
                   <button 
                     onClick={() => setActiveDropdown(activeDropdown === "ratio" ? null : "ratio")}
-                    className={`px-2 py-1 bg-[#24201B] border border-[#544737] rounded text-xs font-mono text-[#F0E1C8] hover:text-white transition-colors flex items-center gap-1 cursor-pointer`}
+                    className={`px-2 py-1 bg-[#0f172a] border border-[#1e293b] rounded text-xs font-mono text-[#e2e8f0] hover:text-white transition-colors flex items-center gap-1 cursor-pointer`}
                   >
                     <span>🎞️ {aspectRatio}</span>
-                    <ChevronDown size={8} className="text-[#8A7964]" />
+                    <ChevronDown size={8} className="text-[#64748b]" />
                   </button>
 
                   {activeDropdown === "ratio" && (
-                    <div className="absolute bottom-9 right-0 md:-right-8 w-48 bg-[#F8F1E4] border border-[#D6A84F] rounded-lg p-1.5 shadow-2xl shadow-black/40 z-50 text-right font-sans">
-                      <div className="text-xs text-[#6B4D2E] pb-1 mb-1 border-b border-[#D9C6A7] px-1.5 font-bold">Frame and scene aspect</div>
+                    <div className="absolute bottom-9 right-0 md:-right-8 w-48 bg-[#1e293b] border border-[#7c3aed] rounded-lg p-1.5 shadow-2xl shadow-black/40 z-50 text-right font-sans">
+                      <div className="text-xs text-[#64748b] pb-1 mb-1 border-b border-[#475569] px-1.5 font-bold">Frame and scene aspect</div>
                       <div className="space-y-0.5">
                         {aspectRatioOptions.map((opt) => {
                           const isSelected = aspectRatio === opt.value;
@@ -1993,7 +2038,7 @@ export default function App() {
                                 setActiveDropdown(null);
                               }}
                               className={`w-full text-right px-2 py-1 rounded text-[13px] transition-all cursor-pointer ${
-                                isSelected ? "bg-[#F1DFAE] text-[#2B2118] font-bold" : "text-[#3A2B1D] hover:text-[#17120E] hover:bg-[#EFE2CC]"
+                                isSelected ? "bg-[#5b21b6] text-[#ffffff] font-bold" : "text-[#f8fafc] hover:text-[#060c18] hover:bg-[#334155]"
                               }`}
                             >
                               {opt.label}
@@ -2009,15 +2054,15 @@ export default function App() {
                 <div className="relative cine-dropdown-container">
                   <button 
                     onClick={() => setActiveDropdown(activeDropdown === "speed" ? null : "speed")}
-                    className={`px-2 py-1 bg-[#24201B] border border-[#544737] rounded text-xs font-mono text-[#F0E1C8] hover:text-white transition-colors flex items-center gap-1 cursor-pointer`}
+                    className={`px-2 py-1 bg-[#0f172a] border border-[#1e293b] rounded text-xs font-mono text-[#e2e8f0] hover:text-white transition-colors flex items-center gap-1 cursor-pointer`}
                   >
                     <span>⚡ Speed: {batchSize}</span>
-                    <ChevronDown size={8} className="text-[#8A7964]" />
+                    <ChevronDown size={8} className="text-[#64748b]" />
                   </button>
 
                   {activeDropdown === "speed" && (
-                    <div className="absolute bottom-9 right-0 w-52 bg-[#F8F1E4] border border-[#D6A84F] rounded-lg p-1.5 shadow-2xl shadow-black/40 z-50 text-right font-sans text-right">
-                      <div className="text-xs text-[#6B4D2E] pb-1 mb-1 border-b border-[#D9C6A7] px-1.5 font-bold">Batch and speed mode</div>
+                    <div className="absolute bottom-9 right-0 w-52 bg-[#1e293b] border border-[#7c3aed] rounded-lg p-1.5 shadow-2xl shadow-black/40 z-50 text-right font-sans text-right">
+                      <div className="text-xs text-[#64748b] pb-1 mb-1 border-b border-[#475569] px-1.5 font-bold">Batch and speed mode</div>
                       <div className="space-y-0.5">
                         {SPEED_OPTIONS.map((opt) => {
                           const isSelected = batchSize === opt.value;
@@ -2029,7 +2074,7 @@ export default function App() {
                                 setActiveDropdown(null);
                               }}
                               className={`w-full text-right px-2 py-1 rounded text-[13px] transition-all cursor-pointer ${
-                                isSelected ? "bg-[#F1DFAE] text-[#2B2118] font-bold" : "text-[#3A2B1D] hover:text-[#17120E] hover:bg-[#EFE2CC]"
+                                isSelected ? "bg-[#5b21b6] text-[#ffffff] font-bold" : "text-[#f8fafc] hover:text-[#060c18] hover:bg-[#334155]"
                               }`}
                             >
                               {opt.label}
@@ -2043,9 +2088,9 @@ export default function App() {
 
               </div>
 
-              <div className="w-full flex flex-wrap items-center gap-2 text-sm text-[#F0E1C8]">
+              <div className="w-full flex flex-wrap items-center gap-2 text-sm text-[#e2e8f0]">
                 {activeModelObj.capabilities.max_reference_images > 0 && (
-                  <label className="px-2 py-1 rounded border border-[#544737] bg-[#24201B] hover:border-[#FFB347]/70 cursor-pointer">
+                  <label className="px-2 py-1 rounded border border-[#1e293b] bg-[#0f172a] hover:border-[#8b5cf6]/70 cursor-pointer">
                     Ref images {referenceImages.length}/{activeModelObj.capabilities.max_reference_images}
                     <input
                       type="file"
@@ -2058,7 +2103,7 @@ export default function App() {
                 )}
 
                 {activeModelObj.capabilities.has_end_frame && (
-                  <label className="px-2 py-1 rounded border border-[#544737] bg-[#24201B] hover:border-[#FFB347]/70 cursor-pointer">
+                  <label className="px-2 py-1 rounded border border-[#1e293b] bg-[#0f172a] hover:border-[#8b5cf6]/70 cursor-pointer">
                     {endFrameUrl ? "End frame ready" : "End frame"}
                     <input type="file" accept="image/*" className="hidden" onChange={(e) => handleEndFrameUpload(e.target.files)} />
                   </label>
@@ -2069,12 +2114,12 @@ export default function App() {
                     value={negativePrompt}
                     onChange={(e) => setNegativePrompt(e.target.value)}
                     placeholder="Negative prompt"
-                    className="min-w-[150px] flex-1 bg-[#24201B] border border-[#544737] rounded px-2 py-1 text-sm text-[#FFF8EA] outline-none focus:border-[#D6A84F]"
+                    className="min-w-[150px] flex-1 bg-[#0f172a] border border-[#1e293b] rounded px-2 py-1 text-sm text-[#f8fafc] outline-none focus:border-[#7c3aed]"
                   />
                 )}
 
                 {activeModelObj.capabilities.has_cfg_scale && (
-                  <label className="flex items-center gap-2 px-2 py-1 rounded border border-[#544737] bg-[#24201B]">
+                  <label className="flex items-center gap-2 px-2 py-1 rounded border border-[#1e293b] bg-[#0f172a]">
                     CFG {cfgScale.toFixed(1)}
                     <input
                       type="range"
@@ -2083,7 +2128,7 @@ export default function App() {
                       step="0.1"
                       value={cfgScale}
                       onChange={(e) => setCfgScale(Number(e.target.value))}
-                      className="w-20 accent-[#FFB347]"
+                      className="w-20 accent-[#8b5cf6]"
                     />
                   </label>
                 )}
@@ -2093,7 +2138,7 @@ export default function App() {
                     value={seed}
                     onChange={(e) => setSeed(e.target.value.replace(/\D/g, "").slice(0, 10))}
                     placeholder="Seed"
-                    className="w-24 bg-[#24201B] border border-[#544737] rounded px-2 py-1 text-sm text-[#FFF8EA] outline-none focus:border-[#D6A84F]"
+                    className="w-24 bg-[#0f172a] border border-[#1e293b] rounded px-2 py-1 text-sm text-[#f8fafc] outline-none focus:border-[#7c3aed]"
                   />
                 )}
 
@@ -2101,7 +2146,7 @@ export default function App() {
                   <button
                     type="button"
                     onClick={() => setSoundEnabled((v) => !v)}
-                    className={`px-2 py-1 rounded border font-bold ${soundEnabled ? "border-[#FFB347]/50 bg-[#FFB347]/15 text-[#FFB347]" : "border-[#544737] bg-[#24201B] text-[#C8B89F]"}`}
+                    className={`px-2 py-1 rounded border font-bold ${soundEnabled ? "border-[#8b5cf6]/50 bg-[#8b5cf6]/15 text-[#8b5cf6]" : "border-[#1e293b] bg-[#0f172a] text-[#94a3b8]"}`}
                   >
                     Sound {soundEnabled ? "ON" : "OFF"}
                   </button>
@@ -2111,7 +2156,7 @@ export default function App() {
                   <select
                     value={grokMode}
                     onChange={(e) => setGrokMode(e.target.value as "fun" | "normal" | "spicy")}
-                    className="bg-[#24201B] border border-[#544737] rounded px-2 py-1 text-sm text-[#FFF8EA] outline-none"
+                    className="bg-[#0f172a] border border-[#1e293b] rounded px-2 py-1 text-sm text-[#f8fafc] outline-none"
                   >
                     <option value="normal">Grok normal</option>
                     <option value="fun">Grok fun</option>
@@ -2122,8 +2167,8 @@ export default function App() {
                 <span
                   className={`ml-auto px-2 py-1 rounded border font-mono transition-colors ${
                     estimateLoading
-                      ? "border-[#FF8C42]/20 bg-[#FF8C42]/5 text-[#FF8C42]/70 animate-pulse"
-                      : "border-[#FF8C42]/40 bg-[#FF8C42]/10 text-[#FF8C42]"
+                      ? "border-[#06b6d4]/20 bg-[#06b6d4]/5 text-[#06b6d4]/70 animate-pulse"
+                      : "border-[#06b6d4]/40 bg-[#06b6d4]/10 text-[#06b6d4]"
                   }`}
                   title={
                     serverEstimate != null
@@ -2159,13 +2204,13 @@ export default function App() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 15 }}
               transition={{ type: "spring", duration: 0.45 }}
-              className="w-full max-w-2xl bg-[#24201B]/95 border border-[#544737] rounded-2xl overflow-hidden shadow-2xl relative"
+              className="w-full max-w-2xl bg-[#0f172a]/95 border border-[#1e293b] rounded-2xl overflow-hidden shadow-2xl relative"
               onClick={(e) => e.stopPropagation()}
             >
               
               {/* Header inside popup */}
-              <div className="h-12 bg-[#24201B]/85 border-b border-[#544737] px-4 flex items-center justify-between">
-                <span className="text-xs font-bold text-[#FFF8EA] flex items-center gap-1.5 uppercase font-mono">
+              <div className="h-12 bg-[#0f172a]/85 border-b border-[#1e293b] px-4 flex items-center justify-between">
+                <span className="text-xs font-bold text-[#f8fafc] flex items-center gap-1.5 uppercase font-mono">
                   {activeModal === "genre" && "🎭 Genre Studio Settings"}
                   {activeModal === "style" && "💡 Color & Lighting presets"}
                   {activeModal === "camera" && "🎥 Professional Lens and Movement Matrix"}
@@ -2175,7 +2220,7 @@ export default function App() {
                 </span>
                 <button 
                   onClick={() => setActiveModal(null)}
-                  className="w-7 h-7 bg-[#302920] hover:bg-[#3B3328] rounded-md flex items-center justify-center text-[#F0E1C8] hover:text-white transition-colors outline-none"
+                  className="w-7 h-7 bg-[#1e293b] hover:bg-[#334155] rounded-md flex items-center justify-center text-[#e2e8f0] hover:text-white transition-colors outline-none"
                 >
                   <X size={12} />
                 </button>
@@ -2189,7 +2234,7 @@ export default function App() {
                   <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
                     
                     {/* Left artistic sphere representation */}
-                    <div className="md:col-span-5 flex flex-col items-center justify-center py-4 bg-[#24201B]/70 rounded-xl border border-[#544737]/60">
+                    <div className="md:col-span-5 flex flex-col items-center justify-center py-4 bg-[#0f172a]/70 rounded-xl border border-[#1e293b]/60">
                       <motion.div 
                         animate={{ 
                           scale: [1, 1.05, 1],
@@ -2199,8 +2244,8 @@ export default function App() {
                         className="w-32 h-32 rounded-full filter blur-[24px] opacity-80"
                         style={{ background: activeGenreObj.color }}
                       />
-                      <span className="text-[13px] font-mono text-[#C8B89F] mt-4 uppercase">Dynamic Mood Aura</span>
-                      <span className="text-xs font-bold text-center mt-1 text-[#FFF8EA]">{activeGenreObj.arabicName}</span>
+                      <span className="text-[13px] font-mono text-[#94a3b8] mt-4 uppercase">Dynamic Mood Aura</span>
+                      <span className="text-xs font-bold text-center mt-1 text-[#f8fafc]">{activeGenreObj.arabicName}</span>
                     </div>
 
                     {/* Right scrolling items selection */}
@@ -2217,19 +2262,19 @@ export default function App() {
                             }}
                             className={`w-full text-left p-3 rounded-lg border flex items-center justify-between gap-3 transition-colors outline-none ${
                               isChosen 
-                                ? "bg-[#3B2C19] border-[#FFB347]/70" 
-                                : "bg-[#24201B]/60 border-[#544737]/80 hover:bg-[#302920]/70 hover:border-[#D6A84F]"
+                                ? "bg-[#3730a3] border-[#8b5cf6]/70" 
+                                : "bg-[#0f172a]/60 border-[#1e293b]/80 hover:bg-[#1e293b]/70 hover:border-[#7c3aed]"
                             }`}
                           >
                             <div className="min-w-0 flex-1">
                               <span className="text-xs font-black text-white block leading-tight">
                                 {g.arabicName}
                               </span>
-                              <span className="text-[13px] text-[#C8B89F] block leading-tight mt-1">
+                              <span className="text-[13px] text-[#94a3b8] block leading-tight mt-1">
                                 {g.desc}
                               </span>
                             </div>
-                            {isChosen && <div className="w-2 h-2 rounded-full bg-[#FFB347]" />}
+                            {isChosen && <div className="w-2 h-2 rounded-full bg-[#8b5cf6]" />}
                           </button>
                         );
                       })}
@@ -2244,7 +2289,7 @@ export default function App() {
                     
                     {/* Column 1: COLOR PALETTE */}
                     <div className="space-y-3">
-                      <span className="text-[13px] font-bold text-[#F0E1C8] uppercase font-mono block border-b border-[#544737] pb-1.5">Palette LUTs</span>
+                      <span className="text-[13px] font-bold text-[#e2e8f0] uppercase font-mono block border-b border-[#1e293b] pb-1.5">Palette LUTs</span>
                       <div className="flex flex-col gap-2">
                         {["Auto", "Hollywood Teal-Orange", "Neo-Noir Shadow", "Warm Sun Vintage", "Cyberpunk Neon", "Desaturated Iron"].map((p) => (
                           <button
@@ -2252,8 +2297,8 @@ export default function App() {
                             onClick={() => setColorPalette(p)}
                             className={`w-full text-left p-2 rounded-lg text-xs font-bold transition-all outline-none ${
                               colorPalette === p
-                                ? "bg-[#3B2C19] text-[#FFCB7A] border border-[#FFB347]/70"
-                                : "bg-[#24201B]/60 text-[#F0E1C8] border border-[#544737]/80 hover:bg-[#302920]/70"
+                                ? "bg-[#3730a3] text-[#a78bfa] border border-[#8b5cf6]/70"
+                                : "bg-[#0f172a]/60 text-[#e2e8f0] border border-[#1e293b]/80 hover:bg-[#1e293b]/70"
                             }`}
                           >
                             {p === "Auto" ? "⚙️ Default (Auto-LUT)" : p}
@@ -2264,7 +2309,7 @@ export default function App() {
 
                     {/* Column 2: LIGHTING SYSTEM */}
                     <div className="space-y-3">
-                      <span className="text-[13px] font-bold text-[#F0E1C8] uppercase font-mono block border-b border-[#544737] pb-1.5">Ambient Lights</span>
+                      <span className="text-[13px] font-bold text-[#e2e8f0] uppercase font-mono block border-b border-[#1e293b] pb-1.5">Ambient Lights</span>
                       <div className="flex flex-col gap-2">
                         {["Auto", "Volumetric Foggy", "High-Contrast Chiaroscuro", "Golden Sunset", "Low-key Midnight"].map((l) => (
                           <button
@@ -2272,8 +2317,8 @@ export default function App() {
                             onClick={() => setLightingStyle(l)}
                             className={`w-full text-left p-2 rounded-lg text-xs font-bold transition-all outline-none ${
                               lightingStyle === l
-                                ? "bg-[#3B2C19] text-[#FFCB7A] border border-[#FFB347]/70"
-                                : "bg-[#24201B]/60 text-[#F0E1C8] border border-[#544737]/80 hover:bg-[#302920]/70"
+                                ? "bg-[#3730a3] text-[#a78bfa] border border-[#8b5cf6]/70"
+                                : "bg-[#0f172a]/60 text-[#e2e8f0] border border-[#1e293b]/80 hover:bg-[#1e293b]/70"
                             }`}
                           >
                             {l === "Auto" ? "⚙️ Default (Auto-Light)" : l}
@@ -2284,7 +2329,7 @@ export default function App() {
 
                     {/* Column 3: CAMERA MOVESET */}
                     <div className="space-y-3">
-                      <span className="text-[13px] font-bold text-[#F0E1C8] uppercase font-mono block border-b border-[#544737] pb-1.5">Cam Moveset Speed</span>
+                      <span className="text-[13px] font-bold text-[#e2e8f0] uppercase font-mono block border-b border-[#1e293b] pb-1.5">Cam Moveset Speed</span>
                       <div className="flex flex-col gap-2">
                         {["Auto", "Steady Grounded", "Documentary Jitter", "Dreamy Flying", "Suspense Snapping"].map((c) => (
                           <button
@@ -2292,8 +2337,8 @@ export default function App() {
                             onClick={() => setCameraMovesetStyle(c)}
                             className={`w-full text-left p-2 rounded-lg text-xs font-bold transition-all outline-none ${
                               cameraMovesetStyle === c
-                                ? "bg-[#3B2C19] text-[#FFCB7A] border border-[#FFB347]/70"
-                                : "bg-[#24201B]/60 text-[#F0E1C8] border border-[#544737]/80 hover:bg-[#302920]/70"
+                                ? "bg-[#3730a3] text-[#a78bfa] border border-[#8b5cf6]/70"
+                                : "bg-[#0f172a]/60 text-[#e2e8f0] border border-[#1e293b]/80 hover:bg-[#1e293b]/70"
                             }`}
                           >
                             {c === "Auto" ? "⚙️ Default (Auto-Moveset)" : c}
@@ -2310,10 +2355,10 @@ export default function App() {
                   <div className="space-y-6">
 
                     {/* C0. CAMERA RIG MATRIX — 3-column vertical pickers */}
-                    <div className="grid grid-cols-3 gap-3 bg-gradient-to-b from-[#1a1812]/70 to-[#0a0807]/70 rounded-2xl p-4 border border-[#544737]/60 shadow-inner shadow-black/40">
+                    <div className="grid grid-cols-3 gap-3 bg-gradient-to-b from-[#0f172a]/70 to-[#020617]/70 rounded-2xl p-4 border border-[#1e293b]/60 shadow-inner shadow-black/40">
                       {/* CAMERA column */}
-                      <div className="flex flex-col items-center gap-2 p-3 rounded-2xl bg-[#0a0807]/40 border border-[#544737]/30">
-                        <span className="text-[10px] font-mono text-[#C8B89F] uppercase tracking-[0.18em] font-bold">CAMERA</span>
+                      <div className="flex flex-col items-center gap-2 p-3 rounded-2xl bg-[#020617]/40 border border-[#1e293b]/30">
+                        <span className="text-[10px] font-mono text-[#94a3b8] uppercase tracking-[0.18em] font-bold">CAMERA</span>
                         <button
                           type="button"
                           onClick={() => {
@@ -2321,13 +2366,13 @@ export default function App() {
                             const next = (idx - 1 + CAMERA_BODIES.length) % CAMERA_BODIES.length;
                             setCameraBody(CAMERA_BODIES[next].name);
                           }}
-                          className="w-7 h-7 rounded-full bg-[#544737]/40 hover:bg-[#FFB347]/30 border border-[#544737] hover:border-[#FFB347] text-[#C8B89F] hover:text-[#FFB347] flex items-center justify-center transition-all"
+                          className="w-7 h-7 rounded-full bg-[#1e293b]/40 hover:bg-[#8b5cf6]/30 border border-[#1e293b] hover:border-[#8b5cf6] text-[#94a3b8] hover:text-[#8b5cf6] flex items-center justify-center transition-all"
                           aria-label="Previous camera"
                         >
                           <ChevronUp size={14} />
                         </button>
-                        <div className="my-1 w-full h-[70px] rounded-xl bg-gradient-to-b from-[#1a1812]/70 to-[#0a0807]/90 border border-[#544737]/40 flex items-center justify-center">
-                          <Camera size={32} className="text-[#FFB347] drop-shadow-[0_0_8px_rgba(255,179,71,0.45)]" />
+                        <div className="my-1 w-full h-[70px] rounded-xl bg-gradient-to-b from-[#0f172a]/70 to-[#020617]/90 border border-[#1e293b]/40 flex items-center justify-center">
+                          <Camera size={32} className="text-[#8b5cf6] drop-shadow-[0_0_8px_rgba(255,179,71,0.45)]" />
                         </div>
                         <button
                           type="button"
@@ -2336,19 +2381,19 @@ export default function App() {
                             const next = (idx + 1) % CAMERA_BODIES.length;
                             setCameraBody(CAMERA_BODIES[next].name);
                           }}
-                          className="w-7 h-7 rounded-full bg-[#544737]/40 hover:bg-[#FFB347]/30 border border-[#544737] hover:border-[#FFB347] text-[#C8B89F] hover:text-[#FFB347] flex items-center justify-center transition-all"
+                          className="w-7 h-7 rounded-full bg-[#1e293b]/40 hover:bg-[#8b5cf6]/30 border border-[#1e293b] hover:border-[#8b5cf6] text-[#94a3b8] hover:text-[#8b5cf6] flex items-center justify-center transition-all"
                           aria-label="Next camera"
                         >
                           <ChevronDown size={14} />
                         </button>
-                        <span className="text-[12px] font-bold text-[#FFF8EA] text-center truncate w-full" title={cameraBody}>
+                        <span className="text-[12px] font-bold text-[#f8fafc] text-center truncate w-full" title={cameraBody}>
                           {cameraBody}
                         </span>
                       </div>
 
                       {/* FOCAL LENGTH column */}
-                      <div className="flex flex-col items-center gap-2 p-3 rounded-2xl bg-[#0a0807]/40 border border-[#544737]/30">
-                        <span className="text-[10px] font-mono text-[#C8B89F] uppercase tracking-[0.18em] font-bold">FOCAL LENGTH</span>
+                      <div className="flex flex-col items-center gap-2 p-3 rounded-2xl bg-[#020617]/40 border border-[#1e293b]/30">
+                        <span className="text-[10px] font-mono text-[#94a3b8] uppercase tracking-[0.18em] font-bold">FOCAL LENGTH</span>
                         <button
                           type="button"
                           onClick={() => {
@@ -2356,13 +2401,13 @@ export default function App() {
                             const next = (idx - 1 + FOCAL_LENGTHS.length) % FOCAL_LENGTHS.length;
                             setFocalLength(FOCAL_LENGTHS[next]);
                           }}
-                          className="w-7 h-7 rounded-full bg-[#544737]/40 hover:bg-[#FFB347]/30 border border-[#544737] hover:border-[#FFB347] text-[#C8B89F] hover:text-[#FFB347] flex items-center justify-center transition-all"
+                          className="w-7 h-7 rounded-full bg-[#1e293b]/40 hover:bg-[#8b5cf6]/30 border border-[#1e293b] hover:border-[#8b5cf6] text-[#94a3b8] hover:text-[#8b5cf6] flex items-center justify-center transition-all"
                           aria-label="Smaller focal length"
                         >
                           <ChevronUp size={14} />
                         </button>
-                        <div className="my-1 w-full h-[70px] rounded-xl bg-gradient-to-b from-[#1a1812]/70 to-[#0a0807]/90 border border-[#544737]/40 flex items-center justify-center">
-                          <span className="text-[32px] font-extrabold text-[#FFB347] drop-shadow-[0_0_8px_rgba(255,179,71,0.5)] font-mono tabular-nums">
+                        <div className="my-1 w-full h-[70px] rounded-xl bg-gradient-to-b from-[#0f172a]/70 to-[#020617]/90 border border-[#1e293b]/40 flex items-center justify-center">
+                          <span className="text-[32px] font-extrabold text-[#8b5cf6] drop-shadow-[0_0_8px_rgba(255,179,71,0.5)] font-mono tabular-nums">
                             {focalLength}
                           </span>
                         </div>
@@ -2373,17 +2418,17 @@ export default function App() {
                             const next = (idx + 1) % FOCAL_LENGTHS.length;
                             setFocalLength(FOCAL_LENGTHS[next]);
                           }}
-                          className="w-7 h-7 rounded-full bg-[#544737]/40 hover:bg-[#FFB347]/30 border border-[#544737] hover:border-[#FFB347] text-[#C8B89F] hover:text-[#FFB347] flex items-center justify-center transition-all"
+                          className="w-7 h-7 rounded-full bg-[#1e293b]/40 hover:bg-[#8b5cf6]/30 border border-[#1e293b] hover:border-[#8b5cf6] text-[#94a3b8] hover:text-[#8b5cf6] flex items-center justify-center transition-all"
                           aria-label="Larger focal length"
                         >
                           <ChevronDown size={14} />
                         </button>
-                        <span className="text-[12px] font-bold text-[#FFF8EA]">mm</span>
+                        <span className="text-[12px] font-bold text-[#f8fafc]">mm</span>
                       </div>
 
                       {/* APERTURE column */}
-                      <div className="flex flex-col items-center gap-2 p-3 rounded-2xl bg-[#0a0807]/40 border border-[#544737]/30">
-                        <span className="text-[10px] font-mono text-[#C8B89F] uppercase tracking-[0.18em] font-bold">APERTURE</span>
+                      <div className="flex flex-col items-center gap-2 p-3 rounded-2xl bg-[#020617]/40 border border-[#1e293b]/30">
+                        <span className="text-[10px] font-mono text-[#94a3b8] uppercase tracking-[0.18em] font-bold">APERTURE</span>
                         <button
                           type="button"
                           onClick={() => {
@@ -2391,13 +2436,13 @@ export default function App() {
                             const next = (idx - 1 + APERTURES.length) % APERTURES.length;
                             setAperture(APERTURES[next]);
                           }}
-                          className="w-7 h-7 rounded-full bg-[#544737]/40 hover:bg-[#FFB347]/30 border border-[#544737] hover:border-[#FFB347] text-[#C8B89F] hover:text-[#FFB347] flex items-center justify-center transition-all"
+                          className="w-7 h-7 rounded-full bg-[#1e293b]/40 hover:bg-[#8b5cf6]/30 border border-[#1e293b] hover:border-[#8b5cf6] text-[#94a3b8] hover:text-[#8b5cf6] flex items-center justify-center transition-all"
                           aria-label="Wider aperture"
                         >
                           <ChevronUp size={14} />
                         </button>
-                        <div className="my-1 w-full h-[70px] rounded-xl bg-gradient-to-b from-[#1a1812]/70 to-[#0a0807]/90 border border-[#544737]/40 flex items-center justify-center">
-                          <Aperture size={36} className="text-[#FFB347] drop-shadow-[0_0_8px_rgba(255,179,71,0.5)] cine-aperture-spin" />
+                        <div className="my-1 w-full h-[70px] rounded-xl bg-gradient-to-b from-[#0f172a]/70 to-[#020617]/90 border border-[#1e293b]/40 flex items-center justify-center">
+                          <Aperture size={36} className="text-[#8b5cf6] drop-shadow-[0_0_8px_rgba(255,179,71,0.5)] cine-aperture-spin" />
                         </div>
                         <button
                           type="button"
@@ -2406,22 +2451,22 @@ export default function App() {
                             const next = (idx + 1) % APERTURES.length;
                             setAperture(APERTURES[next]);
                           }}
-                          className="w-7 h-7 rounded-full bg-[#544737]/40 hover:bg-[#FFB347]/30 border border-[#544737] hover:border-[#FFB347] text-[#C8B89F] hover:text-[#FFB347] flex items-center justify-center transition-all"
+                          className="w-7 h-7 rounded-full bg-[#1e293b]/40 hover:bg-[#8b5cf6]/30 border border-[#1e293b] hover:border-[#8b5cf6] text-[#94a3b8] hover:text-[#8b5cf6] flex items-center justify-center transition-all"
                           aria-label="Narrower aperture"
                         >
                           <ChevronDown size={14} />
                         </button>
-                        <span className="text-[12px] font-bold text-[#FFF8EA]">{aperture}</span>
+                        <span className="text-[12px] font-bold text-[#f8fafc]">{aperture}</span>
                       </div>
                     </div>
 
                     {/* C1. ALL LENSES SECTION — horizontal scroll, no background */}
                     <div>
-                      <div className="flex items-center justify-between border-b border-[#544737] pb-2 mb-3">
-                        <span className="text-[13px] font-bold text-[#FFB347] uppercase font-mono tracking-wider">
+                      <div className="flex items-center justify-between border-b border-[#1e293b] pb-2 mb-3">
+                        <span className="text-[13px] font-bold text-[#8b5cf6] uppercase font-mono tracking-wider">
                           🔍 Available Cinematic Lenses
                         </span>
-                        <span className="text-[10px] text-[#C8B89F] font-mono">{AVAILABLE_LENSES.length} lenses · scroll →</span>
+                        <span className="text-[10px] text-[#94a3b8] font-mono">{AVAILABLE_LENSES.length} lenses · scroll →</span>
                       </div>
 
                       <div className="flex gap-4 overflow-x-auto overflow-y-hidden pb-3 -mx-1 px-1 snap-x snap-mandatory scroll-smooth cine-scroll-row">
@@ -2452,24 +2497,24 @@ export default function App() {
                                 />
                                 <span className={`absolute top-0 left-0 text-[9px] font-mono px-1.5 py-0.5 rounded font-bold tracking-wide ${
                                   isActive
-                                    ? "bg-[#FFB347] text-black"
-                                    : "bg-black/70 text-[#FFB347] border border-[#FFB347]/30"
+                                    ? "bg-[#8b5cf6] text-black"
+                                    : "bg-black/70 text-[#8b5cf6] border border-[#8b5cf6]/30"
                                 }`}>
                                   {l.tStop.split(" ")[0]}
                                 </span>
                               </div>
                               <div className="mt-2 w-full px-1">
                                 <span className={`text-[11px] font-bold block truncate leading-tight ${
-                                  isActive ? "text-[#FFB347]" : "text-[#FFF8EA]"
+                                  isActive ? "text-[#8b5cf6]" : "text-[#f8fafc]"
                                 }`}>
                                   {l.arabicName.split("(")[0].trim()}
                                 </span>
-                                <span className="text-[9px] text-[#C8B89F] block truncate leading-tight mt-0.5 font-mono uppercase tracking-wider">
+                                <span className="text-[9px] text-[#94a3b8] block truncate leading-tight mt-0.5 font-mono uppercase tracking-wider">
                                   {l.lensCategory}
                                 </span>
                               </div>
                               {isActive && (
-                                <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-8 h-[2px] bg-[#FFB347] rounded-full shadow-[0_0_10px_#FFB347]" />
+                                <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-8 h-[2px] bg-[#8b5cf6] rounded-full shadow-[0_0_10px_#8b5cf6]" />
                               )}
                             </button>
                           );
@@ -2479,11 +2524,11 @@ export default function App() {
 
                     {/* C2. CAMERA MOVEMENTS — horizontal scroll, no background */}
                     <div>
-                      <div className="flex items-center justify-between border-b border-[#544737] pb-2 mb-3">
-                        <span className="text-[13px] font-bold text-[#FF8C42] uppercase font-mono tracking-wider">
+                      <div className="flex items-center justify-between border-b border-[#1e293b] pb-2 mb-3">
+                        <span className="text-[13px] font-bold text-[#06b6d4] uppercase font-mono tracking-wider">
                           🎥 Available Camera Movements
                         </span>
-                        <span className="text-[10px] text-[#C8B89F] font-mono">{AVAILABLE_MOVEMENTS.length} moves · scroll →</span>
+                        <span className="text-[10px] text-[#94a3b8] font-mono">{AVAILABLE_MOVEMENTS.length} moves · scroll →</span>
                       </div>
 
                       <div className="flex gap-4 overflow-x-auto overflow-y-hidden pb-3 -mx-1 px-1 snap-x snap-mandatory scroll-smooth cine-scroll-row">
@@ -2504,8 +2549,8 @@ export default function App() {
                             >
                               <div className={`relative w-full h-[90px] rounded-xl overflow-hidden transition-all duration-300 ${
                                 isActive
-                                  ? "ring-2 ring-[#FF8C42] shadow-[0_0_18px_rgba(255,140,66,0.55)]"
-                                  : "ring-1 ring-[#544737]/40 group-hover:ring-[#FF8C42]/60"
+                                  ? "ring-2 ring-[#06b6d4] shadow-[0_0_18px_rgba(255,140,66,0.55)]"
+                                  : "ring-1 ring-[#1e293b]/40 group-hover:ring-[#06b6d4]/60"
                               }`}>
                                 <img
                                   src={mv.url}
@@ -2516,23 +2561,23 @@ export default function App() {
                                 />
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
                                 {isActive && (
-                                  <span className="absolute top-1.5 right-1.5 text-[8px] font-mono px-1.5 py-0.5 rounded bg-[#FF8C42] text-black font-bold tracking-wider">
+                                  <span className="absolute top-1.5 right-1.5 text-[8px] font-mono px-1.5 py-0.5 rounded bg-[#06b6d4] text-black font-bold tracking-wider">
                                     LIVE
                                   </span>
                                 )}
                               </div>
                               <div className="mt-2 w-full px-1">
                                 <span className={`text-[11px] font-bold block truncate leading-tight ${
-                                  isActive ? "text-[#FF8C42]" : "text-[#FFF8EA]"
+                                  isActive ? "text-[#06b6d4]" : "text-[#f8fafc]"
                                 }`}>
                                   {mv.arabicName}
                                 </span>
-                                <span className="text-[9px] text-[#C8B89F] block truncate leading-tight mt-0.5 font-mono uppercase tracking-wider">
+                                <span className="text-[9px] text-[#94a3b8] block truncate leading-tight mt-0.5 font-mono uppercase tracking-wider">
                                   {mv.intensity.replace(/^Ideal for /i, "")}
                                 </span>
                               </div>
                               {isActive && (
-                                <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-8 h-[2px] bg-[#FF8C42] rounded-full shadow-[0_0_10px_#FF8C42]" />
+                                <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-8 h-[2px] bg-[#06b6d4] rounded-full shadow-[0_0_10px_#06b6d4]" />
                               )}
                             </button>
                           );
@@ -2552,7 +2597,7 @@ export default function App() {
                       
                       {/* Left: Pre-configured Active Actors roster */}
                       <div className="md:col-span-7 space-y-3">
-                        <span className="text-[13px] font-bold text-[#F0E1C8] uppercase font-mono block border-b border-[#544737] pb-1.5">
+                        <span className="text-[13px] font-bold text-[#e2e8f0] uppercase font-mono block border-b border-[#1e293b] pb-1.5">
                           Active Studio Cast Roster ({castingActors.length})
                         </span>
 
@@ -2569,8 +2614,8 @@ export default function App() {
                                 }}
                                 className={`p-1.5 rounded-xl border flex flex-col items-center text-center justify-between transition-all duration-200 h-[115px] outline-none ${
                                   isSelected
-                                    ? "border-[#FFB347] bg-[#FFB347]/8"
-                                    : "border-[#544737] bg-[#24201B]/80 hover:bg-[#302920]/70 hover:border-[#D6A84F]"
+                                    ? "border-[#8b5cf6] bg-[#8b5cf6]/8"
+                                    : "border-[#1e293b] bg-[#0f172a]/80 hover:bg-[#1e293b]/70 hover:border-[#7c3aed]"
                                 }`}
                               >
                                 <div className="relative w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
@@ -2578,10 +2623,10 @@ export default function App() {
                                 </div>
                                 <div className="text-center w-full min-w-0 mt-1">
                                   <span className="text-xs font-bold text-white block truncate leading-none">{actor.name}</span>
-                                  <span className="text-[13px] text-[#D9754F]/90 font-medium block truncate mt-1" title={actor.voice}>
+                                  <span className="text-[13px] text-[#ec4899]/90 font-medium block truncate mt-1" title={actor.voice}>
                                     🎙️ {actor.voice}
                                   </span>
-                                  {isC && <span className="text-[13px] text-[#FFB347] block mt-0.5 uppercase">AI LAB</span>}
+                                  {isC && <span className="text-[13px] text-[#8b5cf6] block mt-0.5 uppercase">AI LAB</span>}
                                 </div>
                               </button>
                             );
@@ -2589,31 +2634,31 @@ export default function App() {
                         </div>
 
                         {/* Current Actor Sound Control Sheet */}
-                        <div className="mt-4 p-3 bg-[#24201B] rounded-xl border border-[#544737]/80 space-y-2 text-left">
-                          <div className="flex items-center justify-between border-b border-[#544737] pb-1.5">
-                            <span className="text-[13px] text-[#FFB347] font-mono font-bold tracking-wider">AUDIO MIX & VOICE DUB</span>
-                            <span className="text-sm font-black text-[#FFF8EA]">🎙️ Manage & Select Actor Voices: {currentActor.name}</span>
+                        <div className="mt-4 p-3 bg-[#0f172a] rounded-xl border border-[#1e293b]/80 space-y-2 text-left">
+                          <div className="flex items-center justify-between border-b border-[#1e293b] pb-1.5">
+                            <span className="text-[13px] text-[#8b5cf6] font-mono font-bold tracking-wider">AUDIO MIX & VOICE DUB</span>
+                            <span className="text-sm font-black text-[#f8fafc]">🎙️ Manage & Select Actor Voices: {currentActor.name}</span>
                           </div>
                           
-                          <div className="text-[13px] leading-relaxed text-[#F0E1C8] space-y-1 font-sans">
+                          <div className="text-[13px] leading-relaxed text-[#e2e8f0] space-y-1 font-sans">
                             <div>
-                              <span className="text-[#C8B89F] font-semibold">Current Selected Voice:</span>{" "}
-                              <span className="text-[#FFB347] font-bold">{currentActor.voice}</span>
+                              <span className="text-[#94a3b8] font-semibold">Current Selected Voice:</span>{" "}
+                              <span className="text-[#8b5cf6] font-bold">{currentActor.voice}</span>
                             </div>
-                            <p className="text-xs text-[#C8B89F] leading-tight">
+                            <p className="text-xs text-[#94a3b8] leading-tight">
                               Choose a default cinematic voice preset or enter a custom voice description to synthesize and assign it immediately:
                             </p>
                           </div>
 
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pt-2 border-t border-[#544737]/60">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pt-2 border-t border-[#1e293b]/60">
                             <div className="space-y-1 text-left">
-                              <label className="text-xs text-[#C8B89F] block">Select Voice Preset</label>
+                              <label className="text-xs text-[#94a3b8] block">Select Voice Preset</label>
                               <select 
                                 value={currentActor.voice}
                                 onChange={(e) => {
                                   assignPresetVoiceToActor(currentActor.id, e.target.value);
                                 }}
-                                className="bg-[#24201B] border border-[#D6A84F] text-[13px] rounded p-1.5 outline-none text-[#FFF8EA] w-full font-sans text-left"
+                                className="bg-[#0f172a] border border-[#7c3aed] text-[13px] rounded p-1.5 outline-none text-[#f8fafc] w-full font-sans text-left"
                               >
                                 {VOICE_PRESETS.map((voice) => (
                                   <option key={voice.voiceId} value={voice.label}>
@@ -2624,7 +2669,7 @@ export default function App() {
                             </div>
 
                             <div className="space-y-1 text-left">
-                              <label className="text-xs text-[#C8B89F] block">Or Write Custom Voice Pattern</label>
+                              <label className="text-xs text-[#94a3b8] block">Or Write Custom Voice Pattern</label>
                               <div className="flex gap-1.5">
                                 <input 
                                   type="text"
@@ -2640,18 +2685,19 @@ export default function App() {
                                       }
                                     }
                                   }}
-                                  className="bg-[#24201B] border border-[#D6A84F] px-2 py-1 rounded text-[13px] text-white focus:border-[#FFB347] outline-none w-full font-sans text-left"
+                                  className="bg-[#0f172a] border border-[#7c3aed] px-2 py-1 rounded text-[13px] text-white focus:border-[#8b5cf6] outline-none w-full font-sans text-left"
                                 />
-                                <button 
+                                <button
                                   onClick={() => {
                                     const input = activeActorVoiceInputRef.current;
-                                    const val = input ? input.value : "";
+                                    if (!input) return;
+                                    const val = input.value;
                                     if (val.trim()) {
                                       assignCustomVoiceToActor(currentActor.id, val);
                                       input.value = "";
                                     }
                                   }}
-                                  className="px-3 bg-[#FFB347] hover:bg-[#FFCB7A] text-black text-xs rounded font-black cursor-pointer transition-colors"
+                                  className="px-3 bg-[#8b5cf6] hover:bg-[#a78bfa] text-black text-xs rounded font-black cursor-pointer transition-colors"
                                 >
                                   Apply
                                 </button>
@@ -2662,30 +2708,30 @@ export default function App() {
                       </div>
 
                       {/* Right: Modern Actor procedural builder */}
-                      <form onSubmit={buildCustomCharacterObj} className="md:col-span-12 lg:col-span-5 bg-[#24201B]/80 p-3.5 rounded-xl border border-[#544737] space-y-3 text-left">
-                        <span className="text-[13px] font-bold text-[#FFB347] uppercase font-mono block border-b border-[#544737] pb-1 flex items-center gap-1">
+                      <form onSubmit={buildCustomCharacterObj} className="md:col-span-12 lg:col-span-5 bg-[#0f172a]/80 p-3.5 rounded-xl border border-[#1e293b] space-y-3 text-left">
+                        <span className="text-[13px] font-bold text-[#8b5cf6] uppercase font-mono block border-b border-[#1e293b] pb-1 flex items-center gap-1">
                           🧪 Creator Lab (Synthetic Character Builder)
                         </span>
 
                         <div className="space-y-1">
-                          <label className="text-xs text-[#C8B89F] uppercase block">Actor Name or Code</label>
+                          <label className="text-xs text-[#94a3b8] uppercase block">Actor Name or Code</label>
                           <input 
                             type="text"
                             required
                             value={custName}
                             onChange={(e) => setCustName(e.target.value)}
                             placeholder="e.g., Sean Kenani"
-                            className="w-full bg-[#24201B] border border-[#D6A84F] px-2 py-1.5 rounded text-xs text-white focus:border-[#FFB347] outline-none"
+                            className="w-full bg-[#0f172a] border border-[#7c3aed] px-2 py-1.5 rounded text-xs text-white focus:border-[#8b5cf6] outline-none"
                           />
                         </div>
 
                         <div className="grid grid-cols-2 gap-2">
                           <div className="space-y-1">
-                            <label className="text-xs text-[#C8B89F] block">Gender Roster</label>
+                            <label className="text-xs text-[#94a3b8] block">Gender Roster</label>
                             <select 
                               value={custGender}
                               onChange={(e) => setCustGender(e.target.value)}
-                              className="w-full bg-[#24201B] border border-[#544737] text-[13px] rounded p-1 outline-none text-[#FFF8EA]"
+                              className="w-full bg-[#0f172a] border border-[#1e293b] text-[13px] rounded p-1 outline-none text-[#f8fafc]"
                             >
                               <option value="male">Male</option>
                               <option value="female">Female</option>
@@ -2693,11 +2739,11 @@ export default function App() {
                           </div>
                           
                           <div className="space-y-1">
-                            <label className="text-xs text-[#C8B89F] block">Portrait Concept</label>
+                            <label className="text-xs text-[#94a3b8] block">Portrait Concept</label>
                             <select 
                               value={custPicUrl}
                               onChange={(e) => setCustPicUrl(e.target.value)}
-                              className="w-full bg-[#24201B] border border-[#544737] text-[13px] rounded p-1 outline-none text-[#FFF8EA]"
+                              className="w-full bg-[#0f172a] border border-[#1e293b] text-[13px] rounded p-1 outline-none text-[#f8fafc]"
                             >
                               <option value="classic">Dramatic & Anticipating</option>
                               <option value="wise_old">Wise with Silver Beard</option>
@@ -2707,19 +2753,19 @@ export default function App() {
                         </div>
 
                         <div className="space-y-1">
-                          <label className="text-xs text-[#C8B89F] block">Appearance & Attire Details</label>
+                          <label className="text-xs text-[#94a3b8] block">Appearance & Attire Details</label>
                           <input 
                             type="text"
                             value={custStyle}
                             onChange={(e) => setCustStyle(e.target.value)}
                             placeholder="e.g., wet black trench coat, intense steel gaze..."
-                            className="w-full bg-[#24201B] border border-[#D6A84F] px-2 py-1.5 rounded text-xs text-white focus:border-[#FFB347] outline-none"
+                            className="w-full bg-[#0f172a] border border-[#7c3aed] px-2 py-1.5 rounded text-xs text-white focus:border-[#8b5cf6] outline-none"
                           />
                         </div>
 
                         {/* Voice Selection & Custom Addition */}
-                        <div className="space-y-1.5 pt-2 border-t border-[#544737]/60 text-left">
-                          <label className="text-xs text-[#FFB347] uppercase flex items-center gap-1 font-bold">
+                        <div className="space-y-1.5 pt-2 border-t border-[#1e293b]/60 text-left">
+                          <label className="text-xs text-[#8b5cf6] uppercase flex items-center gap-1 font-bold">
                             🎙️ Sourced Voice Pattern (Voice Synthesis)
                           </label>
                           <select 
@@ -2734,7 +2780,7 @@ export default function App() {
                                 setCustVoice("");
                               }
                             }}
-                            className="w-full bg-[#24201B] border border-[#D6A84F] text-sm rounded p-2 outline-none text-[#FFF8EA] font-sans"
+                            className="w-full bg-[#0f172a] border border-[#7c3aed] text-sm rounded p-2 outline-none text-[#f8fafc] font-sans"
                           >
                             {VOICE_PRESETS.map((voice) => (
                               <option key={voice.voiceId} value={voice.label}>
@@ -2746,14 +2792,14 @@ export default function App() {
 
                           {custVoicePreset === "custom" && (
                             <div className="space-y-1 mt-1">
-                              <label className="text-xs text-[#C8B89F] block">Write the exact customized voice detail:</label>
+                              <label className="text-xs text-[#94a3b8] block">Write the exact customized voice detail:</label>
                               <input 
                                 type="text"
                                 required
                                 value={custVoice}
                                 onChange={(e) => setCustVoice(e.target.value)}
                                 placeholder="e.g., deep raspy whispered voice with a subtle Irish accent..."
-                                className="w-full bg-[#24201B] border border-[#D6A84F] px-2 py-1.5 rounded text-xs text-white focus:border-[#FFB347] outline-none font-sans"
+                                className="w-full bg-[#0f172a] border border-[#7c3aed] px-2 py-1.5 rounded text-xs text-white focus:border-[#8b5cf6] outline-none font-sans"
                               />
                             </div>
                           )}
@@ -2761,17 +2807,17 @@ export default function App() {
 
                         {isGeneratingChar ? (
                           <div className="space-y-1.5 pt-1.5">
-                            <div className="flex items-center justify-between text-[13px] font-mono text-[#FFB347]">
+                            <div className="flex items-center justify-between text-[13px] font-mono text-[#8b5cf6]">
                               <span>AI synthesizing character profile... {charProgress}%</span>
                             </div>
-                            <div className="h-0.5 bg-[#302920] rounded overflow-hidden">
-                              <div className="h-full bg-[#FFB347]" style={{ width: `${charProgress}%` }} />
+                            <div className="h-0.5 bg-[#1e293b] rounded overflow-hidden">
+                              <div className="h-full bg-[#8b5cf6]" style={{ width: `${charProgress}%` }} />
                             </div>
                           </div>
                         ) : (
                           <button
                             type="submit"
-                            className="w-full py-2 bg-[#FFB347] hover:bg-[#FFCB7A] text-black font-bold text-xs rounded transition-colors"
+                            className="w-full py-2 bg-[#8b5cf6] hover:bg-[#a78bfa] text-black font-bold text-xs rounded transition-colors"
                           >
                             Synthesize and Add Character to Roster 🧪
                           </button>
@@ -2786,22 +2832,22 @@ export default function App() {
                 {/* VOICES SELECTION AND DUBBING STUDIO */}
                 {activeModal === "voice" && (
                   <div className="space-y-4">
-                    <p className="text-xs text-[#F0E1C8] leading-relaxed font-sans text-left">
-                      🎙️ Voice Engineering & Dubbing Studio - Customize the vocal signature for <span className="text-[#D9754F] font-bold">{currentActor.name}</span>:
+                    <p className="text-xs text-[#e2e8f0] leading-relaxed font-sans text-left">
+                      🎙️ Voice Engineering & Dubbing Studio - Customize the vocal signature for <span className="text-[#ec4899] font-bold">{currentActor.name}</span>:
                     </p>
 
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
                       {/* Left: Current Actor Status & Profile */}
-                      <div className="md:col-span-4 bg-[#24201B] border border-[#544737] rounded-xl p-4 flex flex-col items-center justify-center text-center">
-                        <div className="relative w-16 h-16 rounded-full overflow-hidden border border-[#D6A84F] mb-3">
+                      <div className="md:col-span-4 bg-[#0f172a] border border-[#1e293b] rounded-xl p-4 flex flex-col items-center justify-center text-center">
+                        <div className="relative w-16 h-16 rounded-full overflow-hidden border border-[#7c3aed] mb-3">
                           <img src={currentActor.url} alt={currentActor.name} className="w-full h-full object-cover grayscale" />
                         </div>
-                        <h4 className="text-xs font-bold text-[#FFF8EA]">{currentActor.name}</h4>
-                        <p className="text-[13px] text-[#C8B89F] mt-1">{currentActor.tagline}</p>
+                        <h4 className="text-xs font-bold text-[#f8fafc]">{currentActor.name}</h4>
+                        <p className="text-[13px] text-[#94a3b8] mt-1">{currentActor.tagline}</p>
                         
-                        <div className="mt-4 w-full bg-[#24201B] border border-[#544737] rounded-lg p-3 text-left">
-                          <span className="text-xs text-[#C8B89F] uppercase block font-sans">Active Voice Setting</span>
-                          <span className="text-sm font-bold text-[#D9754F] block mt-1 leading-tight break-all font-sans">
+                        <div className="mt-4 w-full bg-[#0f172a] border border-[#1e293b] rounded-lg p-3 text-left">
+                          <span className="text-xs text-[#94a3b8] uppercase block font-sans">Active Voice Setting</span>
+                          <span className="text-sm font-bold text-[#ec4899] block mt-1 leading-tight break-all font-sans">
                             {currentActor.voice}
                           </span>
                         </div>
@@ -2810,7 +2856,7 @@ export default function App() {
                       {/* Right: Sound presets selection grid and additions builder */}
                       <div className="md:col-span-8 space-y-4 text-left">
                         <div className="space-y-2">
-                          <span className="text-[13px] text-[#FFF8EA] font-bold block font-sans">Select a real ElevenLabs voice preset:</span>
+                          <span className="text-[13px] text-[#f8fafc] font-bold block font-sans">Select a real ElevenLabs voice preset:</span>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[160px] overflow-y-auto pr-1">
                             {VOICE_PRESETS.map((v) => {
                               const isSelected = currentActor.voice === v.label;
@@ -2822,12 +2868,12 @@ export default function App() {
                                   }}
                                   className={`p-2.5 rounded-lg border text-left transition-all duration-150 flex flex-col justify-between cursor-pointer ${
                                     isSelected
-                                      ? "border-[#D9754F] bg-[#D9754F]/8"
-                                      : "border-[#544737] bg-[#24201B]/80 hover:bg-[#302920]/70 hover:border-[#D6A84F]"
+                                      ? "border-[#ec4899] bg-[#ec4899]/8"
+                                      : "border-[#1e293b] bg-[#0f172a]/80 hover:bg-[#1e293b]/70 hover:border-[#7c3aed]"
                                   }`}
                                 >
                                   <span className="text-[13px] font-bold text-white block truncate">{v.label}</span>
-                                  <span className="text-xs text-[#C8B89F] block leading-tight mt-1">{v.lang} - {v.desc}</span>
+                                  <span className="text-xs text-[#94a3b8] block leading-tight mt-1">{v.lang} - {v.desc}</span>
                                 </button>
                               );
                             })}
@@ -2836,18 +2882,18 @@ export default function App() {
                             type="button"
                             onClick={() => previewVoice(selectedVoiceId)}
                             disabled={isPreviewingVoice || !dialogueText.trim()}
-                            className="mt-2 px-3 py-2 rounded-lg bg-[#D9754F] hover:bg-[#F2A38F] disabled:bg-[#544737] disabled:text-[#C8B89F] text-white text-sm font-bold transition-colors"
+                            className="mt-2 px-3 py-2 rounded-lg bg-[#ec4899] hover:bg-[#f9a8d4] disabled:bg-[#1e293b] disabled:text-[#94a3b8] text-white text-sm font-bold transition-colors"
                           >
                             {isPreviewingVoice ? "Previewing..." : "Preview Voice"}
                           </button>
                         </div>
 
                         {/* Custom voice descriptor input logic */}
-                        <div className="bg-[#302920] border border-[#544737] rounded-xl p-3 space-y-2">
-                          <span className="text-xs text-[#FFB347] uppercase flex items-center gap-1 font-bold">
+                        <div className="bg-[#1e293b] border border-[#1e293b] rounded-xl p-3 space-y-2">
+                          <span className="text-xs text-[#8b5cf6] uppercase flex items-center gap-1 font-bold">
                             ➕ Custom Voice Integration
                           </span>
-                          <p className="text-xs text-[#C8B89F] leading-relaxed font-sans">
+                          <p className="text-xs text-[#94a3b8] leading-relaxed font-sans">
                             Describe the voice qualities, ages, or dialects, and the dubbing system will synthesize them instantly:
                           </p>
                           <div className="flex gap-2">
@@ -2865,18 +2911,19 @@ export default function App() {
                                   }
                                 }
                               }}
-                              className="bg-[#24201B] border border-[#D6A84F] px-3 py-2 rounded-lg text-xs text-white focus:border-[#D9754F] outline-none w-full font-sans text-left placeholder:text-[#8A7964]"
+                              className="bg-[#0f172a] border border-[#7c3aed] px-3 py-2 rounded-lg text-xs text-white focus:border-[#ec4899] outline-none w-full font-sans text-left placeholder:text-[#64748b]"
                             />
-                            <button 
+                            <button
                               onClick={() => {
                                 const input = modalCustomVoiceInputRef.current;
-                                const val = input ? input.value : "";
+                                if (!input) return;
+                                const val = input.value;
                                 if (val.trim()) {
                                   assignCustomVoiceToActor(currentActor.id, val);
                                   input.value = "";
                                 }
                               }}
-                              className="px-4 bg-[#D9754F] hover:bg-[#F2A38F] text-white text-[13px] font-bold rounded-lg cursor-pointer transition-colors whitespace-nowrap"
+                              className="px-4 bg-[#ec4899] hover:bg-[#f9a8d4] text-white text-[13px] font-bold rounded-lg cursor-pointer transition-colors whitespace-nowrap"
                             >
                               Synthesize & Apply
                             </button>
@@ -2890,29 +2937,29 @@ export default function App() {
                 {/* E. AI CINEMATIC DIRECTOR ASSISTANT CHAT SIMULATOR */}
                 {activeModal === "ai_director" && (
                   <div className="space-y-4 text-left">
-                    <p className="text-xs text-[#F0E1C8] leading-relaxed font-sans">
+                    <p className="text-xs text-[#e2e8f0] leading-relaxed font-sans">
                       💬 Your smart directorial advisor provides continuous constructive evaluations to optimize rendering quality and camera kinetics based on elite cinematography standards:
                     </p>
 
-                    <div className="bg-[#24201B]/80 border border-[#544737] rounded-xl p-4 text-xs space-y-3 font-sans">
-                      <div className="flex items-start gap-2 text-[#FFF8EA]">
-                        <span className="bg-[#FFB347] text-black text-xs font-black px-1.5 py-0.2 rounded font-mono">ADVISOR</span>
+                    <div className="bg-[#0f172a]/80 border border-[#1e293b] rounded-xl p-4 text-xs space-y-3 font-sans">
+                      <div className="flex items-start gap-2 text-[#f8fafc]">
+                        <span className="bg-[#8b5cf6] text-black text-xs font-black px-1.5 py-0.2 rounded font-mono">ADVISOR</span>
                         <div>
                           <p className="font-extrabold text-white text-sm mb-1">Macro Lens & Drama Focus Recommendation</p>
-                          <p className="text-[#F0E1C8] leading-relaxed text-sm">
-                            You have chosen <span className="text-[#FFB347] font-bold">{lensType}</span>. We recommend adjusting the dialog text to include silent beats or pregnant pauses to enhance character isolation by 20%.
+                          <p className="text-[#e2e8f0] leading-relaxed text-sm">
+                            You have chosen <span className="text-[#8b5cf6] font-bold">{lensType}</span>. We recommend adjusting the dialog text to include silent beats or pregnant pauses to enhance character isolation by 20%.
                           </p>
                         </div>
                       </div>
 
-                      <div className="h-[1px] bg-[#302920]/80" />
+                      <div className="h-[1px] bg-[#1e293b]/80" />
 
-                      <div className="flex items-start gap-2 text-[#F0E1C8]">
-                        <span className="bg-[#FF8C42] text-black text-xs font-black px-1.5 py-0.2 rounded font-mono">DOP_NOTE</span>
+                      <div className="flex items-start gap-2 text-[#e2e8f0]">
+                        <span className="bg-[#06b6d4] text-black text-xs font-black px-1.5 py-0.2 rounded font-mono">DOP_NOTE</span>
                         <div>
                           <p className="font-extrabold text-white text-sm mb-1">Calculated Hydraulic Dolly Zoom Application</p>
-                          <p className="text-[#F0E1C8] leading-relaxed text-sm">
-                            When simulating the Vertigo effect, increase volumetric scattering and darken color grading to highlight the psychological shock of the actor <span className="text-[#FF8C42] font-bold">{currentActor.name}</span>.
+                          <p className="text-[#e2e8f0] leading-relaxed text-sm">
+                            When simulating the Vertigo effect, increase volumetric scattering and darken color grading to highlight the psychological shock of the actor <span className="text-[#06b6d4] font-bold">{currentActor.name}</span>.
                           </p>
                         </div>
                       </div>
@@ -2922,11 +2969,11 @@ export default function App() {
                       <input 
                         type="text"
                         placeholder="Ask another directorial or technical question..."
-                        className="flex-1 bg-[#24201B] border border-[#544737] px-3 py-2 rounded text-xs text-white focus:border-[#FFB347] outline-none font-sans text-left"
+                        className="flex-1 bg-[#0f172a] border border-[#1e293b] px-3 py-2 rounded text-xs text-white focus:border-[#8b5cf6] outline-none font-sans text-left"
                       />
                       <button 
                         onClick={() => setActiveModal(null)}
-                        className="bg-[#302920] hover:bg-[#3B3328] text-[#FFF8EA] font-bold text-xs px-4 py-2 rounded transition-colors"
+                        className="bg-[#1e293b] hover:bg-[#334155] text-[#f8fafc] font-bold text-xs px-4 py-2 rounded transition-colors"
                       >
                         Dismiss
                       </button>

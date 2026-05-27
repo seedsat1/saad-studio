@@ -153,12 +153,24 @@ function i2vCaps(overrides: Partial<VideoModelCapabilities> = {}): VideoModelCap
 // ── Model Definitions ─────────────────────────────────────────────────────────
 
 export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
+  // ╔══════════════════════════════════════════════════════════════════════════
+  // ║ Gemini Omni Flash — Announced at Google I/O 2026 (May 19, 2026)
+  // ║
+  // ║ Status (as of 2026-05-27): Public announcement complete, developer API
+  // ║ still rolling out. Google's Gemini API video docs currently route Omni
+  // ║ requests through the Veo 3.1 Pro backend, so this entry uses the
+  // ║ `google/gemini-omni-video` alias (handled in app/api/video/route.ts via
+  // ║ LEGACY_GEMINI_OMNI_VIDEO_ROUTE → direct Google Veo 3.1 path).
+  // ║
+  // ║ Once Google publishes the official Omni Flash model_id + endpoint,
+  // ║ swap `api_route` here and remove the alias mapping.
+  // ╚══════════════════════════════════════════════════════════════════════════
   {
     id: "google-gemini-omni-video",
-    name: "Gemini Omni Video",
-    family: "gemini", family_label: "Google Gemini", family_color: "#22c55e",
-    badge: "TOP",
-    description: "Direct Google video generation. Durations: 4/6/8s, 16:9 or 9:16, 720p/1080p/4K.",
+    name: "Gemini Omni Flash",
+    family: "gemini", family_label: "Google Gemini Omni", family_color: "#22c55e",
+    badge: "NEW",
+    description: "Google's newest Omni multimodal video model (I/O 2026). Direct Google API. 4/6/8s, 16:9 or 9:16, up to 4K.",
     api_route: "google/gemini-omni-video",
     route_confirmed: true,
     capabilities: t2vCaps({
@@ -194,6 +206,27 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
       has_multi_prompt:    true,
       has_element_list:    true,
       max_reference_images: 3,
+    }),
+  },
+  // ╔══════════════════════════════════════════════════════════════════════════
+  // ║ Kling V3.0 4K — Premium native 4K cinematic output
+  // ║ Confirmed via WaveSpeed search bar (screenshot verified)
+  // ║ Route: kwaivgi/kling-v3.0-4k/text-to-video  • Pricing: $2.10/gen
+  // ╚══════════════════════════════════════════════════════════════════════════
+  {
+    id: "kling-v3.0-4k-t2v",
+    name: "Kling 3.0 4K",
+    family: "kling", family_label: "Kling", family_color: "#06b6d4",
+    badge: "4K",
+    description: "Kling 3.0 native 4K text-to-video. Top cinematic resolution.",
+    api_route: "kwaivgi/kling-v3.0-4k/text-to-video",
+    route_confirmed: true,
+    capabilities: t2vCaps({
+      aspect_ratios:       ["16:9", "9:16", "1:1"],
+      // 4K endpoint locks the resolution; quality is implied by the route itself.
+      resolutions:         ["4K"],
+      durations:           [5, 10],
+      has_sound:           true,
     }),
   },
   // NOTE: Kling 3.0 Omni / Omni Edit removed — KIE does not provide these endpoints.
