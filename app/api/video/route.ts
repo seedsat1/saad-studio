@@ -70,7 +70,7 @@ function kieHeaders() {
 }
 
 function getArkApiKeyFromEnv(): string | null {
-  const key = process.env.ARK_API_KEY || process.env.BYTEPLUS_ARK_API_KEY;
+  const key = process.env.ARK_API_KEY || process.env.BYTEPLUS_ARK_API_KEY || process.env.BYTEPLUS_API_KEY;
   if (!key || !key.trim()) return null;
   return key.trim();
 }
