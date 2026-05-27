@@ -35,6 +35,7 @@ export const ANNUAL_UNLIMITED_IMAGE_MODELS = [
 ] as const;
 
 const ANNUAL_UNLIMITED_IMAGE_MODEL_SET = new Set<string>(ANNUAL_UNLIMITED_IMAGE_MODELS);
+const IMAGE_MODEL_PREFIXES: string[] = [];
 const EXCLUDED_ANNUAL_UNLIMITED_IMAGE_MODELS = new Set<string>([
   "google/imagen4-ultra",
   "flux-2/max",
@@ -86,6 +87,7 @@ export function isAnnualUnlimitedImageQuality(value?: string | null): boolean {
     "1024",
     "1024x1024",
     "basic",
+    "low",
     "medium",
     "speed",
     "standard",

@@ -94,7 +94,7 @@ const VISIBLE_IMAGE_MODELS = IMAGE_MODELS.filter((model) => !isHiddenImagePageMo
 
 function isAnnualUnlimitedImageQuality(value?: string | null) {
   const normalized = String(value ?? "1K").trim().toLowerCase();
-  return ["1k", "1024", "1024x1024", "basic", "medium", "speed", "standard"].includes(normalized);
+  return ["1k", "1024", "1024x1024", "basic", "low", "medium", "speed", "standard"].includes(normalized);
 }
 
 function isAnnualUnlimitedImageModel(modelId: string) {
@@ -1266,11 +1266,8 @@ export default function ImageWorkspacePage() {
   );
   const qualityOptions = useMemo(() => {
     const options = selectedModel.qualityParam ?? [];
-    if (!selectedModel.id.startsWith("gpt-image-2-")) return options;
-    if (aspectRatio === "auto") return options.filter((q) => q === "1K");
-    if (aspectRatio === "1:1") return options.filter((q) => q !== "4K");
     return options;
-  }, [aspectRatio, selectedModel]);
+  }, [selectedModel]);
   const selectedQuality = qualityOptions.length ? (quality || qualityOptions[0]) : undefined;
   const canUseAnnualUnlimitedCreate = activeTool === "create" &&
     hasAnnualUnlimitedImages &&

@@ -23,6 +23,10 @@ const GOOGLE_IMAGE_MODEL_MAP: Record<string, string> = {
   "nano-banana-2": "gemini-3.1-flash-image-preview",
   "nano-banana-pro": "gemini-3-pro-image-preview",
 };
+const OPENAI_IMAGE_MODEL_MAP: Record<string, string> = {
+  "gpt-image-2-text-to-image": "gpt-image-2",
+  "gpt-image-2-image-to-image": "gpt-image-2",
+};
 
 interface ImageRequestBody {
   prompt: string;
@@ -153,6 +157,34 @@ function getGoogleImageModel(modelId: string): string | null {
   return GOOGLE_IMAGE_MODEL_MAP[modelId] ?? null;
 }
 
+function getOpenAIImageModel(modelId: string): string | null {
+  return OPENAI_IMAGE_MODEL_MAP[modelId] ?? null;
+}
+
+function normalizeOpenAIImageSize(aspectRatio: string): string {
+  switch (aspectRatio) {
+    case "1:1":
+      return "1024x1024";
+    case "9:16":
+    case "3:4":
+      return "1024x1536";
+    case "16:9":
+    case "4:3":
+      return "1536x1024";
+    case "auto":
+    default:
+      return "auto";
+  }
+}
+
+function normalizeOpenAIImageQuality(value?: string | null): "low" | "medium" | "high" {
+  const normalized = String(value ?? "medium").trim().toLowerCase();
+  if (normalized === "1k" || normalized === "low") return "low";
+  if (normalized === "2k" || normalized === "medium") return "medium";
+  if (normalized === "4k" || normalized === "high") return "high";
+  return "medium";
+}
+
 function normalizeGoogleImageSize(model: string, requested?: string | null): string | null {
   if (model === "gemini-2.5-flash-image") return null;
   const normalized = String(requested ?? "1K").trim().toUpperCase();
@@ -160,7 +192,7 @@ function normalizeGoogleImageSize(model: string, requested?: string | null): str
 }
 
 function dataUrlToInlineData(dataUrl: string): { mimeType: string; data: string } | null {
-  const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/s);
+  const match = dataUrl.match(/^data:([^;]+);base64,([\s\S]+)$/);
   if (!match) return null;
   return { mimeType: match[1], data: match[2] };
 }
@@ -174,6 +206,94 @@ async function imageUrlToInlineData(url: string): Promise<{ mimeType: string; da
   const mimeType = res.headers.get("content-type")?.split(";")[0] || "image/png";
   const buffer = Buffer.from(await res.arrayBuffer());
   return { mimeType, data: buffer.toString("base64") };
+}
+
+async function imageUrlToOpenAIBlob(url: string): Promise<{ blob: Blob; fileName: string }> {
+  const inline = dataUrlToInlineData(url);
+  if (inline) {
+    const ext = inline.mimeType.split("/")[1]?.replace("jpeg", "jpg") || "png";
+    return {
+      blob: new Blob([Buffer.from(inline.data, "base64")], { type: inline.mimeType }),
+      fileName: `reference.${ext}`,
+    };
+  }
+
+  const res = await fetch(url, { signal: AbortSignal.timeout(60_000) });
+  if (!res.ok) throw new Error(`Failed to fetch reference image for OpenAI (${res.status})`);
+  const mimeType = res.headers.get("content-type")?.split(";")[0] || "image/png";
+  const buffer = Buffer.from(await res.arrayBuffer());
+  const ext = mimeType.split("/")[1]?.replace("jpeg", "jpg") || "png";
+  return {
+    blob: new Blob([buffer], { type: mimeType }),
+    fileName: `reference.${ext}`,
+  };
+}
+
+function extractOpenAIBase64Images(value: unknown): string[] {
+  if (!value || typeof value !== "object") return [];
+  const rec = value as Record<string, unknown>;
+  const data = Array.isArray(rec.data) ? rec.data : [];
+  return data.flatMap((item) => {
+    const b64 = (item as Record<string, unknown>)?.b64_json;
+    return typeof b64 === "string" && b64 ? [b64] : [];
+  });
+}
+
+async function generateOpenAIImage(params: {
+  apiKey: string;
+  openAIModel: string;
+  prompt: string;
+  referenceUrls: string[];
+  aspectRatio: string;
+  quality?: string | null;
+}): Promise<Array<{ buffer: Buffer; mimeType: string }>> {
+  const size = normalizeOpenAIImageSize(params.aspectRatio);
+  const quality = normalizeOpenAIImageQuality(params.quality);
+  const endpoint = params.referenceUrls.length > 0
+    ? "https://api.openai.com/v1/images/edits"
+    : "https://api.openai.com/v1/images/generations";
+
+  const headers = { Authorization: `Bearer ${params.apiKey}` };
+  let body: BodyInit;
+
+  if (params.referenceUrls.length > 0) {
+    const form = new FormData();
+    form.append("model", params.openAIModel);
+    form.append("prompt", sanitizePrompt(params.prompt, 5000));
+    form.append("size", size);
+    form.append("quality", quality);
+    form.append("output_format", "png");
+    for (const ref of params.referenceUrls.slice(0, 16)) {
+      const file = await imageUrlToOpenAIBlob(ref);
+      form.append("image", file.blob, file.fileName);
+    }
+    body = form;
+  } else {
+    body = JSON.stringify({
+      model: params.openAIModel,
+      prompt: sanitizePrompt(params.prompt, 5000),
+      size,
+      quality,
+      output_format: "png",
+    });
+    Object.assign(headers, { "Content-Type": "application/json" });
+  }
+
+  const res = await fetch(endpoint, {
+    method: "POST",
+    headers,
+    body,
+    signal: AbortSignal.timeout(180_000),
+  });
+  const json = await res.json().catch(() => null);
+  if (!res.ok) {
+    const message = typeof json?.error?.message === "string" ? json.error.message : `OpenAI image generation failed (${res.status})`;
+    throw new Error(message);
+  }
+
+  const images = extractOpenAIBase64Images(json);
+  if (!images.length) throw new Error("OpenAI completed but returned no image.");
+  return images.map((data) => ({ buffer: Buffer.from(data, "base64"), mimeType: "image/png" }));
 }
 
 function extractGoogleInlineImages(value: unknown): Array<{ data: string; mimeType: string }> {
@@ -250,7 +370,7 @@ async function uploadBase64ToStorage(
   genId: string,
   idx: number,
 ): Promise<string> {
-  const match = base64Data.match(/^data:([^;]+);base64,(.+)$/s);
+  const match = base64Data.match(/^data:([^;]+);base64,([\s\S]+)$/);
   if (!match) throw new Error("Invalid base64 data URL for reference image");
   const contentType = match[1];
   const buffer = Buffer.from(match[2], "base64");
@@ -441,9 +561,10 @@ export async function POST(req: NextRequest) {
     const effectiveModelId = resolveFlux2Variant(modelId, hasReferenceImages, quality);
     const { imageModelMap } = getResolvedKieRoutingMaps();
     const isWaveSpeedImageModel = false;
+    const openAIImageModel = getOpenAIImageModel(effectiveModelId);
 
-    const kieModelId = imageModelMap[effectiveModelId];
-    if (!kieModelId) {
+    const kieModelId = openAIImageModel ? null : imageModelMap[effectiveModelId];
+    if (!openAIImageModel && !kieModelId) {
       const supported = Object.keys(imageModelMap).join(", ");
       return NextResponse.json(
         { error: `Unsupported modelId: ${effectiveModelId}. Supported: ${supported}` },
@@ -451,7 +572,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const effectiveImageInputField = imageInputField ?? inferImageInputField(kieModelId);
+    const effectiveImageInputField = kieModelId ? imageInputField ?? inferImageInputField(kieModelId) : undefined;
     const googleImageModel = getGoogleImageModel(effectiveModelId);
     const googleApiKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
     if (googleImageModel && !googleApiKey) {
@@ -511,6 +632,71 @@ export async function POST(req: NextRequest) {
     }
 
     const resolvedRefs = await Promise.all(refUrls.map((r, i) => resolveRef(r, i)));
+
+    if (openAIImageModel) {
+      const openAIApiKey = process.env.OPENAI_API_KEY;
+      if (!openAIApiKey) {
+        return NextResponse.json(
+          { error: "OpenAI API key is not configured. Set OPENAI_API_KEY on the server." },
+          { status: 500 },
+        );
+      }
+
+      const images = await generateOpenAIImage({
+        apiKey: openAIApiKey,
+        openAIModel: openAIImageModel,
+        prompt,
+        referenceUrls: resolvedRefs,
+        aspectRatio,
+        quality: chargeQuality,
+      });
+
+      const imageUrls = await Promise.all(
+        images.map(async (image, index) => {
+          const stored = generationId
+            ? await uploadBufferToStorage({
+                buffer: image.buffer,
+                contentType: image.mimeType,
+                userId,
+                assetType: "IMAGE",
+                generationId: index === 0 ? generationId : `${generationId}-${index}`,
+              }).catch((err) => {
+                console.error("[generate/image] Failed to upload OpenAI image", err);
+                return null;
+              })
+            : null;
+          return stored ?? `data:${image.mimeType};base64,${image.buffer.toString("base64")}`;
+        }),
+      );
+
+      if (generationId && imageUrls[0]) {
+        await setGenerationMediaUrl(generationId, imageUrls[0]).catch((err) => {
+          console.error("[generate/image] Failed to save OpenAI media URL", err);
+        });
+      }
+
+      if (imageUrls.length > 1 && chargedUserId) {
+        await saveAdditionalGenerationUrls(
+          chargedUserId,
+          sanitizePrompt(prompt, 5000),
+          modelId,
+          "IMAGE",
+          imageUrls.slice(1),
+        ).catch((err) => {
+          console.error("[generate/image] Failed to save additional OpenAI URLs", err);
+        });
+      }
+
+      return NextResponse.json({
+        generationId,
+        imageUrls,
+        resultUrls: imageUrls,
+        imageUrl: imageUrls[0] ?? null,
+        mediaUrl: imageUrls[0] ?? null,
+        provider: "openai",
+        model: openAIImageModel,
+      }, { status: 200 });
+    }
 
     if (googleImageModel && googleApiKey) {
       const fanout = Math.max(1, Math.min(4, numImages));
@@ -640,6 +826,10 @@ export async function POST(req: NextRequest) {
     const kieApiKey = process.env.KIE_API_KEY ?? process.env.KIEAI_API_KEY;
     if (!kieApiKey) {
       throw new Error("KIE_API_KEY is not configured on the server.");
+    }
+
+    if (!kieModelId) {
+      throw new Error(`Unsupported modelId: ${effectiveModelId}`);
     }
 
     const isWanModel = kieModelId.startsWith("wan/");

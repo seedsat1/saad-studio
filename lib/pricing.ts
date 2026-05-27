@@ -374,18 +374,17 @@ function isVeo31ModelRef(modelRef: string): boolean {
 // Per-model resolution overrides. Falls back to the global
 // QUALITY_MULTIPLIER above when a model/quality combo is absent here.
 //
-// nano-banana-* and gpt-image-2 charge non-linearly at 4K because KIE
-// passes through provider-specific cost bumps for those models.
+// nano-banana-* and some image providers have provider-specific cost bumps.
 const IMAGE_MODEL_QUALITY_MULTIPLIER: Record<string, Record<string, number>> = {
   "nano-banana-pro":              { "2k": 1.5, "4k": 1.875 },
   "nano_pro":                     { "2k": 1.5, "4k": 1.875 },
   "wan/2-7-image-pro":            { "2k": 1.5, "4k": 1.875 },
   "nano-banana-2":                { "2k": 1.5, "4k": 2.25 },
   "nano2":                        { "2k": 1.5, "4k": 2.25 },
-  "gpt-image-2-text-to-image":    { "2k": 1.5, "4k": 1.875 },
-  "gpt-image-2-image-to-image":   { "2k": 1.5, "4k": 1.875 },
-  "gpt2t":                        { "2k": 1.5, "4k": 1.875 },
-  "gpt2i":                        { "2k": 1.5, "4k": 1.875 },
+  "gpt-image-2-text-to-image":    { "medium": 1.5, "high": 1.875 },
+  "gpt-image-2-image-to-image":   { "medium": 1.5, "high": 1.875 },
+  "gpt2t":                        { "medium": 1.5, "high": 1.875 },
+  "gpt2i":                        { "medium": 1.5, "high": 1.875 },
   "google/imagen4":               { "2k": 1.5, "4k": 2.0 },
   "imagen4":                      { "2k": 1.5, "4k": 2.0 },
   "google/imagen4-ultra":         { "2k": 1.5, "4k": 2.0 },
