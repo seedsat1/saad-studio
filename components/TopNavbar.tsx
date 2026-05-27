@@ -136,7 +136,6 @@ const IMAGE_MODEL_GROUPS = [
 
 const VIDEO_FEATURES = [
   { label: "Create Video",        href: "/video",           icon: VideoIcon,    color: "text-orange-400",  description: "Text-to-video generation",             badge: "" },
-  { label: "Cinematic Video",     href: "/cinematic-video", icon: Film,         color: "text-amber-300",   description: "Google Veo cinematic generation",       badge: "NEW" },
   { label: "Transitions",         href: "/apps/tool/transitions", icon: Blend, color: "text-cyan-300", description: "Generate styled scene transitions", badge: "READY" },
   { label: "Storyboard Studio",   href: "/apps/tool/storyboard-studio", icon: Clapperboard, color: "text-violet-300", description: "Create cinematic production boards", badge: "READY" },
   { label: "Cinematic Styles",    href: "/apps/tool/cinematic-styles", icon: Blend,        color: "text-cyan-300",    description: "Apply stylized motion presets to clips", badge: "READY" },
@@ -417,9 +416,7 @@ function appHref(app: string): string {
 const SHOW_EXPERIMENTAL_NAV = false;
 
 const STUDIO_LINKS = [
-  { label: "Cinema Studio VS.O", href: "/cinema-studio-vso", icon: Film, color: "text-rose-300" },
   { label: "Cinematic Styles", href: "/apps/tool/cinematic-styles", icon: Blend, color: "text-cyan-300" },
-  { label: "Cinematic Video", href: "/cinematic-video", icon: Film, color: "text-amber-300" },
   { label: "Transitions", href: "/apps/tool/transitions", icon: Blend, color: "text-cyan-300" },
   { label: "Storyboard", href: "/apps/tool/storyboard-studio", icon: Clapperboard, color: "text-violet-300" },
   { label: "AI Canvas", href: "/original-series", icon: Monitor, color: "text-purple-400" },
