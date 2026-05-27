@@ -159,10 +159,22 @@ const EDIT_TOOLS: EditTool[] = [
 
 const EDIT_MODELS: EditModel[] = [
   {
+    id: "flux-kontext-pro",
+    label: "Flux Kontext Pro",
+    sublabel: "Flux Kontext · AI Image Edit",
+    badge: "DEFAULT",
+  },
+  {
+    id: "flux-kontext-max",
+    label: "Flux Kontext Max",
+    sublabel: "Flux Kontext · High Detail Edit",
+    badge: "PRO",
+  },
+  {
     id: "google/nano-banana-edit",
     label: "Nano Banana Edit",
     sublabel: "Google · Inpainting Engine",
-    badge: "DEFAULT",
+    badge: "",
   },
   {
     id: "seedream/4.5-edit",

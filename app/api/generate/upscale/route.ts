@@ -6,19 +6,19 @@ import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { fetchWithTimeout, readErrorBody } from "@/lib/http";
 import { getClientIp, isAllowedOrigin, isSafePublicHttpUrl } from "@/lib/security";
 
-const WAVESPEED_BASE_URL = "https://api.wavespeed.ai/api/v3";
-const WAVESPEED_UPSCALE_MODEL = "wavespeed-ai/video-upscaler-pro";
+const KIE_BASE_URL = "https://api.kie.ai/api/v1";
+const KIE_UPSCALE_MODEL = "topaz/image-upscale";
 
-interface WaveSpeedJobResponse {
+interface KieJobResponse {
   code?: number;
   msg?: string;
   message?: string;
   data?: Record<string, unknown>;
 }
 
-function getWaveSpeedKey(): string {
-  const key = process.env.WAVESPEED_API_KEY;
-  if (!key) throw new Error("WAVESPEED_API_KEY is not configured.");
+function getKieKey(): string {
+  const key = process.env.KIE_API_KEY || process.env.KIEAI_API_KEY;
+  if (!key) throw new Error("KIE_API_KEY is not configured.");
   return key;
 }
 
@@ -52,68 +52,66 @@ function parseBase64DataUrl(raw: string) {
   const mime = match[1];
   const fileData = match[2];
   const ext = mime.split("/")[1]?.replace("jpeg", "jpg") || "png";
-  return { mime, fileData, ext };
+  return { fileData, ext };
 }
 
-async function uploadDataUrlToWaveSpeed(mediaDataUrl: string, apiKey: string): Promise<string> {
-  const parsed = parseBase64DataUrl(mediaDataUrl);
-  if (!parsed) return mediaDataUrl;
-
-  const buffer = Buffer.from(parsed.fileData, "base64");
-  const formData = new FormData();
-  formData.append(
-    "file",
-    new Blob([new Uint8Array(buffer)], { type: parsed.mime }),
-    `upscale-input.${parsed.ext}`,
-  );
+async function uploadDataUrlToKie(imageDataUrl: string, apiKey: string): Promise<string> {
+  const parsed = parseBase64DataUrl(imageDataUrl);
+  if (!parsed) return imageDataUrl;
 
   const uploadRes = await fetchWithTimeout(
-    `${WAVESPEED_BASE_URL}/media/upload/binary`,
+    `${KIE_BASE_URL}/files/upload/base64`,
     {
       method: "POST",
-      headers: { Authorization: `Bearer ${apiKey}` },
-      body: formData,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        fileData: parsed.fileData,
+        fileName: `upscale-input.${parsed.ext}`,
+      }),
     },
     30_000,
   );
 
-  const uploadJson = (await uploadRes.json().catch(() => null)) as WaveSpeedJobResponse | null;
+  const uploadJson = (await uploadRes.json().catch(() => null)) as KieJobResponse | null;
   const url =
-    (uploadJson?.data?.download_url as string | undefined) ||
     (uploadJson?.data?.url as string | undefined) ||
+    (uploadJson?.data?.fileUrl as string | undefined) ||
     (uploadJson?.data?.downloadUrl as string | undefined);
 
   if (!uploadRes.ok || !url) {
-    throw new Error(uploadJson?.msg || uploadJson?.message || "WaveSpeed file upload failed.");
+    throw new Error(uploadJson?.msg || uploadJson?.message || "KIE file upload failed.");
   }
 
   return url;
 }
 
-async function pollWaveSpeedTask(taskId: string, apiKey: string, maxAttempts = 80, intervalMs = 2500): Promise<string[]> {
+async function pollKieTask(taskId: string, apiKey: string, maxAttempts = 50, intervalMs = 2500): Promise<string[]> {
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     await new Promise((r) => setTimeout(r, intervalMs));
 
     const res = await fetchWithTimeout(
-      `${WAVESPEED_BASE_URL}/predictions/${encodeURIComponent(taskId)}/result`,
+      `${KIE_BASE_URL}/jobs/recordInfo?taskId=${encodeURIComponent(taskId)}`,
       { headers: { Authorization: `Bearer ${apiKey}` } },
       30_000,
     );
 
-    const json = (await res.json().catch(() => null)) as WaveSpeedJobResponse | null;
+    const json = (await res.json().catch(() => null)) as KieJobResponse | null;
     if (!res.ok || (json?.code != null && json.code !== 200)) {
-      throw new Error(json?.msg || json?.message || `WaveSpeed polling failed (${res.status})`);
+      throw new Error(json?.msg || json?.message || `KIE polling failed (${res.status})`);
     }
 
     const data = (json?.data ?? {}) as Record<string, unknown>;
-    const status = String(data.status || data.taskStatus || data.state || "").toLowerCase();
+    const status = String(data.taskStatus || data.status || data.state || "").toLowerCase();
     if (["success", "completed", "done"].includes(status)) {
-      const outputs = extractOutputs(data.outputs || data.result || data.resultJson || data.response);
-      if (!outputs.length) throw new Error("No output URL in WaveSpeed result.");
+      const outputs = extractOutputs(data.resultUrls || data.outputs || data.resultJson || data.result || data.response);
+      if (!outputs.length) throw new Error("No output URL in KIE result.");
       return outputs;
     }
     if (["fail", "failed", "error", "canceled", "cancelled"].includes(status)) {
-      throw new Error(String(data.error || data.errorMessage || data.failMsg || "Upscale failed."));
+      throw new Error(String(data.failMsg || data.errorMessage || data.error || "Upscale failed."));
     }
   }
   throw new Error("Upscale timed out.");
@@ -141,10 +139,16 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const mediaUrl = (typeof body?.videoUrl === "string" && body.videoUrl) || (typeof body?.imageUrl === "string" && body.imageUrl);
-    const scale = Number(body?.scale || 4);
+    const mediaUrl = (typeof body?.imageUrl === "string" && body.imageUrl) || (typeof body?.videoUrl === "string" && body.videoUrl);
+    
+    // Scale factor must be string enum: '1', '2', '4', '8'
+    let scaleFactor = String(body?.scale || "2");
+    if (!["1", "2", "4", "8"].includes(scaleFactor)) {
+      scaleFactor = "2";
+    }
+
     if (!mediaUrl) {
-      return NextResponse.json({ error: "videoUrl (or imageUrl) is required." }, { status: 400 });
+      return NextResponse.json({ error: "imageUrl is required." }, { status: 400 });
     }
     if (!(mediaUrl.startsWith("data:") || isSafePublicHttpUrl(mediaUrl))) {
       return NextResponse.json({ error: "Invalid media URL." }, { status: 400 });
@@ -157,30 +161,33 @@ export async function POST(req: NextRequest) {
     const charge = await spendCredits({
       userId,
       credits: creditsToCharge,
-      prompt: "Upscale video",
-      assetType: "VIDEO",
-      modelUsed: WAVESPEED_UPSCALE_MODEL,
+      prompt: "Upscale image",
+      assetType: "IMAGE",
+      modelUsed: KIE_UPSCALE_MODEL,
     });
     generationId = charge.generationId;
     chargedCredits = creditsToCharge;
     chargedUserId = userId;
 
-    const waveSpeedKey = getWaveSpeedKey();
+    const kieKey = getKieKey();
     const normalizedMediaUrl = mediaUrl.startsWith("data:")
-      ? await uploadDataUrlToWaveSpeed(mediaUrl, waveSpeedKey)
+      ? await uploadDataUrlToKie(mediaUrl, kieKey)
       : mediaUrl;
 
     const submitRes = await fetchWithTimeout(
-      `${WAVESPEED_BASE_URL}/${WAVESPEED_UPSCALE_MODEL}`,
+      `${KIE_BASE_URL}/jobs/createTask`,
       {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${waveSpeedKey}`,
+          Authorization: `Bearer ${kieKey}`,
         },
         body: JSON.stringify({
-          video: normalizedMediaUrl,
-          target_resolution: scale >= 4 ? "4k" : "1080p",
+          model: KIE_UPSCALE_MODEL,
+          input: { 
+            image_url: normalizedMediaUrl,
+            upscale_factor: scaleFactor
+          },
         }),
       },
       30_000,
@@ -188,19 +195,19 @@ export async function POST(req: NextRequest) {
 
     if (!submitRes.ok) {
       const errText = await readErrorBody(submitRes);
-      throw new Error(`WaveSpeed submit failed: ${errText}`);
+      throw new Error(`KIE submit failed: ${errText}`);
     }
 
-    const submitJson = (await submitRes.json().catch(() => null)) as WaveSpeedJobResponse | null;
+    const submitJson = (await submitRes.json().catch(() => null)) as KieJobResponse | null;
     if (submitJson?.code != null && submitJson.code !== 200) {
-      throw new Error(submitJson.msg || submitJson.message || "WaveSpeed task submission failed.");
+      throw new Error(submitJson.msg || submitJson.message || "KIE task submission failed.");
     }
-    const taskId = (submitJson?.data?.id as string | undefined) || (submitJson?.data?.taskId as string | undefined);
+    const taskId = (submitJson?.data?.taskId as string | undefined) || (submitJson?.data?.id as string | undefined);
     if (!taskId) {
       throw new Error(submitJson?.msg || submitJson?.message || "No task ID returned.");
     }
 
-    const outputs = await pollWaveSpeedTask(taskId, waveSpeedKey);
+    const outputs = await pollKieTask(taskId, kieKey);
     const url = outputs[0];
     if (generationId) {
       await setGenerationMediaUrl(generationId, url).catch((err) => {
@@ -208,7 +215,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    return NextResponse.json({ generationId, imageUrl: url, videoUrl: url, mediaUrl: url }, { status: 200 });
+    return NextResponse.json({ generationId, imageUrl: url, mediaUrl: url }, { status: 200 });
   } catch (error: unknown) {
     if (error instanceof InsufficientCreditsError) {
       return NextResponse.json(

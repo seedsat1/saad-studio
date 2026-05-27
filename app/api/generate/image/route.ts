@@ -557,14 +557,15 @@ export async function POST(req: NextRequest) {
     if (body.imageUrl) rawRefUrls.push(body.imageUrl);
     if (body.imageUrls?.length) rawRefUrls.push(...body.imageUrls);
 
+    const isFluxKontext = modelId.startsWith("flux-kontext");
     const hasReferenceImages = Boolean(imageUrl || imageUrlsParam?.length);
-    const effectiveModelId = resolveFlux2Variant(modelId, hasReferenceImages, quality);
+    const effectiveModelId = isFluxKontext ? modelId : resolveFlux2Variant(modelId, hasReferenceImages, quality);
     const { imageModelMap } = getResolvedKieRoutingMaps();
     const isWaveSpeedImageModel = false;
-    const openAIImageModel = getOpenAIImageModel(effectiveModelId);
+    const openAIImageModel = isFluxKontext ? null : getOpenAIImageModel(effectiveModelId);
 
-    const kieModelId = openAIImageModel ? null : imageModelMap[effectiveModelId];
-    if (!openAIImageModel && !kieModelId) {
+    const kieModelId = isFluxKontext ? null : (openAIImageModel ? null : imageModelMap[effectiveModelId]);
+    if (!isFluxKontext && !openAIImageModel && !kieModelId) {
       const supported = Object.keys(imageModelMap).join(", ");
       return NextResponse.json(
         { error: `Unsupported modelId: ${effectiveModelId}. Supported: ${supported}` },
@@ -632,6 +633,93 @@ export async function POST(req: NextRequest) {
     }
 
     const resolvedRefs = await Promise.all(refUrls.map((r, i) => resolveRef(r, i)));
+
+    if (isFluxKontext) {
+      const kieApiKey = process.env.KIE_API_KEY ?? process.env.KIEAI_API_KEY;
+      if (!kieApiKey) {
+        throw new Error("KIE_API_KEY is not configured on the server.");
+      }
+
+      const buildKontextInput = (): Record<string, unknown> => {
+        const input: Record<string, unknown> = {
+          prompt: sanitizePrompt(prompt, 5000),
+          enableTranslation: true,
+          uploadCn: false,
+          aspectRatio: aspectRatio === "auto" ? "16:9" : aspectRatio,
+          outputFormat: "jpeg",
+          promptUpsampling: false,
+          model: modelId,
+          safetyTolerance: 2,
+        };
+
+        if (resolvedRefs.length > 0) {
+          input.inputImage = resolvedRefs[0];
+        }
+        return input;
+      };
+
+      const createKontextTask = async (apiKey: string, body: Record<string, unknown>): Promise<string> => {
+        const res = await fetch("https://api.kie.ai/api/v1/flux/kontext/generate", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(body),
+        });
+
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok || (json.code !== undefined && json.code !== 200 && json.code !== 0)) {
+          const msg = json?.msg ?? res.statusText;
+          throw new Error(`KIE Kontext createTask failed (HTTP ${res.status}, code ${json.code}): ${msg}`);
+        }
+
+        const taskId = json?.data?.taskId;
+        if (!taskId) {
+          throw new Error(`KIE Kontext createTask did not return a taskId. Response: ${JSON.stringify(json)}`);
+        }
+        return taskId;
+      };
+
+      const taskIds = await Promise.all(
+        Array.from({ length: Math.max(1, Math.min(12, numImages)) }, () =>
+          createKontextTask(kieApiKey, buildKontextInput())
+        )
+      );
+
+      const pollResults = await Promise.all(
+        taskIds.map((tid) => pollKieTask(kieApiKey, tid))
+      );
+      const imageUrls = pollResults.flat();
+      const taskId = taskIds[0];
+
+      if (generationId && imageUrls[0]) {
+        await setGenerationMediaUrl(generationId, imageUrls[0]).catch((err) => {
+          console.error("[generate/image] Failed to save Kontext media URL", err);
+        });
+      }
+
+      if (imageUrls.length > 1 && chargedUserId) {
+        await saveAdditionalGenerationUrls(
+          chargedUserId,
+          sanitizePrompt(prompt, 5000),
+          modelId,
+          "IMAGE",
+          imageUrls.slice(1),
+        ).catch((err) => {
+          console.error("[generate/image] Failed to save additional Kontext URLs", err);
+        });
+      }
+
+      return NextResponse.json({
+        generationId,
+        imageUrls,
+        resultUrls: imageUrls,
+        imageUrl: imageUrls[0] ?? null,
+        mediaUrl: imageUrls[0] ?? null,
+        taskId,
+      }, { status: 200 });
+    }
 
     if (openAIImageModel) {
       const openAIApiKey = process.env.OPENAI_API_KEY;
