@@ -631,16 +631,25 @@ function PresetCard({
       transition={{ type: "spring", stiffness: 400, damping: 30 }}
     >
       <div className="relative overflow-hidden" style={{ aspectRatio: "16/9" }}>
-        {preset.previewVideoUrl && !videoError ? (
-          <video
-            ref={videoRef}
-            src={preset.previewVideoUrl}
-            muted
-            loop
-            playsInline
-            onError={() => setVideoError(true)}
-            className="w-full h-full object-cover"
-          />
+        {preset.previewVideoUrl ? (
+          preset.previewVideoUrl.match(/\.(mp4|webm|ogg)$/i) && !videoError ? (
+            <video
+              ref={videoRef}
+              src={preset.previewVideoUrl}
+              muted
+              loop
+              playsInline
+              onError={() => setVideoError(true)}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={preset.previewVideoUrl}
+              alt={preset.name}
+              className={cn("w-full h-full object-cover transition-transform duration-500", hovering && "scale-105")}
+            />
+          )
         ) : (
           <div className={cn("w-full h-full bg-gradient-to-br transition-transform duration-500", preset.previewGradient, hovering && "scale-105")}>
             <AnimatePresence>

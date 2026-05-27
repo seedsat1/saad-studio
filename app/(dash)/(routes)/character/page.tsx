@@ -82,6 +82,24 @@ const CHARACTER_QUALITIES = ["1K", "2K", "4K"];
 const CHARACTER_STYLES = ["Auto", "Realistic", "Cinematic", "Editorial", "Anime"];
 const CHARACTER_SPEEDS = ["Quality", "Balanced", "Fast"];
 
+const CHARACTER_GUIDE_STEPS = [
+  {
+    title: "Step 1: Upload Reference Photos",
+    subtitle: "Upload 10-24 clear photos for one person only.",
+    image: "/img/character-guide/upload_photos_illustration_1779831219486.png",
+  },
+  {
+    title: "Step 2: Configure Identity Compiler",
+    subtitle: "Fill optional identity memory fields for stable results.",
+    image: "/img/character-guide/identity_compiler_illustration_1779831239877.png",
+  },
+  {
+    title: "Step 3: Test Generation & Model Tuning",
+    subtitle: "Test output variations and tune ratio, quality, and style.",
+    image: "/img/character-guide/variation_testing_illustration_1779831260604.png",
+  },
+] as const;
+
 const DEFAULT_STATES: Record<CharacterStateKey, string> = {
   neutral: "Clean identity reference, relaxed face, readable front angle, no dramatic styling changes.",
   hero: "Premium hero look, confident posture, strong face readability, beauty lighting.",
@@ -273,6 +291,7 @@ export default function CharacterPage() {
   const nameInputRef = useRef<HTMLInputElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [guideStep, setGuideStep] = useState(0);
   const [characters, setCharacters] = useState<CharacterRecord[]>([]);
   const [refs, setRefs] = useState<LocalRefImage[]>([]);
 
@@ -481,6 +500,56 @@ export default function CharacterPage() {
             Refresh
           </button>
         </div>
+
+        <section className="mb-6 rounded-[28px] border border-white/10 bg-[#0f1012] p-4 sm:p-5">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <div className="text-xs font-black uppercase tracking-[0.16em] text-lime-300">Interactive Creation Guide</div>
+              <h2 className="mt-1 text-xl font-semibold">Quick Guide</h2>
+            </div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/50 px-3 py-1 text-xs font-semibold text-zinc-300">
+              <Sparkles className="h-3.5 w-3.5 text-lime-300" />
+              Step {guideStep + 1} of {CHARACTER_GUIDE_STEPS.length}
+            </div>
+          </div>
+
+          <div className="overflow-hidden rounded-2xl border border-white/10 bg-black/40">
+            <div className="relative aspect-[16/8] w-full bg-zinc-950">
+              <img
+                src={CHARACTER_GUIDE_STEPS[guideStep].image}
+                alt={CHARACTER_GUIDE_STEPS[guideStep].title}
+                className="h-full w-full object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/45 to-transparent" />
+              <div className="absolute bottom-4 left-4 right-4 rounded-xl border border-white/10 bg-black/65 p-3 backdrop-blur-sm sm:p-4">
+                <div className="text-sm font-black text-white sm:text-base">{CHARACTER_GUIDE_STEPS[guideStep].title}</div>
+                <div className="mt-1 text-xs text-zinc-300 sm:text-sm">{CHARACTER_GUIDE_STEPS[guideStep].subtitle}</div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-2 p-3 sm:grid-cols-3">
+              {CHARACTER_GUIDE_STEPS.map((step, index) => {
+                const active = index === guideStep;
+                return (
+                  <button
+                    key={step.title}
+                    type="button"
+                    onClick={() => setGuideStep(index)}
+                    className={cn(
+                      "rounded-xl border px-3 py-2 text-left transition",
+                      active ? "border-lime-300 bg-lime-300/10" : "border-white/10 bg-black/40 hover:bg-white/5"
+                    )}
+                  >
+                    <div className={cn("text-[10px] font-black uppercase tracking-[0.14em]", active ? "text-lime-300" : "text-zinc-500")}>
+                      Step {index + 1}
+                    </div>
+                    <div className="mt-1 text-xs font-semibold text-zinc-200">{step.title.replace(/^Step \d+:\s*/, "")}</div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </section>
 
         <section className="rounded-[28px] border border-white/10 bg-[#101113] p-3 shadow-2xl shadow-black">
           <div
