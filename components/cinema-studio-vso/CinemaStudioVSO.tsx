@@ -19,7 +19,9 @@ import {
   ChevronUp,
   Aperture,
   X,
-  MessageSquare
+  MessageSquare,
+  Download,
+  Trash2,
 } from "lucide-react";
 import { VIDEO_MODEL_REGISTRY, type WaveSpeedVideoModel } from "@/lib/video-model-registry";
 import { getVideoCreditsByRoute } from "@/lib/credit-pricing";
@@ -492,6 +494,19 @@ const SPEED_OPTIONS = [
   { value: "4/4", label: "4/4 Warp-speed (Draft draft)" }
 ];
 
+type CinemaOutputItem = {
+  id: string;
+  videoUrl: string;
+  posterUrl?: string;
+  prompt: string;
+  dialogueText: string;
+  modelName: string;
+  genre: string;
+  lensType: string;
+  cameraMovement: string;
+  createdAt: string;
+};
+
 const getShortModel = (name: string): string => {
   if (!name) return "";
   const n = name.toLowerCase();
@@ -578,6 +593,7 @@ export default function App() {
   const [generatedVideoUrl, setGeneratedVideoUrl] = useState<string | null>(null);
   const [renderNotice, setRenderNotice] = useState<string | null>(null);
   const [generatedAudioUrl, setGeneratedAudioUrl] = useState<string | null>(null);
+  const [outputHistory, setOutputHistory] = useState<CinemaOutputItem[]>([]);
   const [isPreviewingVoice, setIsPreviewingVoice] = useState(false);
   const [isCloningVoice, setIsCloningVoice] = useState(false);
   const [clonedVoiceAudioUrl, setClonedVoiceAudioUrl] = useState<string | null>(null);
@@ -778,6 +794,41 @@ export default function App() {
   }, [recentProjects]);
 
   useEffect(() => {
+    const stored = window.localStorage.getItem("cinema-studio-vso-output-history");
+    if (!stored) return;
+    try {
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed)) setOutputHistory(parsed.slice(0, 18));
+    } catch {
+      window.localStorage.removeItem("cinema-studio-vso-output-history");
+    }
+  }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem("cinema-studio-vso-output-history", JSON.stringify(outputHistory.slice(0, 18)));
+  }, [outputHistory]);
+
+  useEffect(() => {
+    if (status !== "SUCCESS" || !generatedVideoUrl) return;
+    setOutputHistory((prev) => {
+      if (prev.some((item) => item.videoUrl === generatedVideoUrl)) return prev;
+      const item: CinemaOutputItem = {
+        id: `out_${Date.now().toString(36)}`,
+        videoUrl: generatedVideoUrl,
+        posterUrl: currentActor?.url,
+        prompt,
+        dialogueText,
+        modelName: activeModelObj.name,
+        genre: selectedGenre,
+        lensType,
+        cameraMovement,
+        createdAt: new Date().toISOString(),
+      };
+      return [item, ...prev].slice(0, 18);
+    });
+  }, [activeModelObj.name, cameraMovement, currentActor?.url, dialogueText, generatedVideoUrl, lensType, prompt, selectedGenre, status]);
+
+  useEffect(() => {
     return () => {
       if (actorGenIntervalRef.current) {
         clearInterval(actorGenIntervalRef.current);
@@ -864,6 +915,26 @@ export default function App() {
 
     // Create high-detail custom visual specifications
     generateClientScene(project.prompt, project.dialogueText, project.cameraMovement, project.lensType, project.genre);
+  };
+
+  const loadOutput = (item: CinemaOutputItem) => {
+    setPrompt(item.prompt);
+    setDialogueText(item.dialogueText);
+    setSelectedGenre(item.genre);
+    setLensType(item.lensType);
+    setCameraMovement(item.cameraMovement);
+    setGeneratedVideoUrl(item.videoUrl);
+    generateClientScene(item.prompt, item.dialogueText, item.cameraMovement, item.lensType, item.genre);
+    setStatus("SUCCESS");
+    setRenderNotice(null);
+    setIsPlaying(true);
+  };
+
+  const clearStudioHistory = () => {
+    setOutputHistory([]);
+    setRecentProjects([]);
+    window.localStorage.removeItem("cinema-studio-vso-output-history");
+    window.localStorage.removeItem("cinema-studio-vso-recent-projects");
   };
 
   const compressReferenceImage = async (file: File): Promise<File> => {
@@ -1215,8 +1286,12 @@ export default function App() {
 
       // Path 2: full completion with a real video URL (synchronous path).
       if (response.ok && payload?.status === "COMPLETED" && payload?.data) {
+        const completedVideoUrl = payload.videoUrl ?? payload.data?.videoUrl ?? null;
+        if (!completedVideoUrl) {
+          throw new Error("Provider marked the job as completed but returned no video URL.");
+        }
         setActiveScenario(payload.data);
-        setGeneratedVideoUrl(payload.videoUrl ?? payload.data?.videoUrl ?? null);
+        setGeneratedVideoUrl(completedVideoUrl);
         setRenderNotice(payload.previewOnly ? (payload.providerError || "Preview mode: video provider did not start.") : null);
         setProgress(100);
         setStatus("SUCCESS");
@@ -1250,7 +1325,10 @@ export default function App() {
       countAttempts++;
       if (countAttempts > 180) {
         clearInterval(pollObj);
-        generateClientScene(prompt, dialogueText, cameraMovement, lensType, selectedGenre);
+        setRenderNotice("Render timed out before a real video URL was returned.");
+        setStatus("FAILED");
+        setProgress(0);
+        setIsPlaying(false);
         return;
       }
 
@@ -1261,15 +1339,26 @@ export default function App() {
         
         if (body.status === "COMPLETED") {
           clearInterval(pollObj);
+          const completedVideoUrl = body.videoUrl ?? body.outputs?.[0] ?? null;
+          if (!completedVideoUrl) {
+            setRenderNotice("Provider marked the job as completed but returned no video URL.");
+            setStatus("FAILED");
+            setProgress(0);
+            setIsPlaying(false);
+            return;
+          }
           if (body.data) setActiveScenario(body.data);
-          setGeneratedVideoUrl(body.videoUrl ?? body.outputs?.[0] ?? null);
+          setGeneratedVideoUrl(completedVideoUrl);
           setRenderNotice(null);
           setProgress(100);
           setStatus("SUCCESS");
           setIsPlaying(true);
         } else if (body.status === "FAILED") {
           clearInterval(pollObj);
+          setRenderNotice(body.error || body.providerError || "Video provider failed the render job.");
           setStatus("FAILED");
+          setProgress(0);
+          setIsPlaying(false);
         } else {
           setProgress(body.progress || Math.min(countAttempts * 10, 95));
         }
@@ -1707,6 +1796,42 @@ export default function App() {
               </div>
             </div>
 
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-mono font-bold tracking-wider text-[#94a3b8] uppercase">
+                  Render outputs ({outputHistory.length})
+                </span>
+                <button
+                  type="button"
+                  onClick={clearStudioHistory}
+                  className="text-[11px] text-red-300 hover:text-red-100 flex items-center gap-1"
+                >
+                  <Trash2 size={11} />
+                  Clear history
+                </button>
+              </div>
+              <div className="space-y-2 max-h-[210px] overflow-y-auto pr-1">
+                {outputHistory.length === 0 ? (
+                  <div className="rounded-lg border border-[#1e293b] bg-[#060c18] p-3 text-xs text-[#64748b]">
+                    No rendered outputs yet.
+                  </div>
+                ) : outputHistory.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => loadOutput(item)}
+                    className="w-full rounded-lg border border-[#1e293b] bg-[#060c18] hover:border-[#06b6d4]/60 text-left overflow-hidden"
+                  >
+                    <video src={item.videoUrl} className="w-full aspect-video object-cover bg-black" muted playsInline />
+                    <div className="p-2">
+                      <div className="text-xs font-bold text-[#f8fafc] truncate">{item.modelName}</div>
+                      <div className="text-[11px] text-[#94a3b8] truncate">{item.prompt}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
           </div>
 
           {/* Core watermark credit line according to guidelines */}
@@ -1860,7 +1985,7 @@ export default function App() {
                   initial={{ opacity: 0, scale: 0.99 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0 }}
-                  className="w-full max-w-[850px] aspect-[2.35/1] rounded-xl overflow-hidden bg-black border border-[#1e293b] relative shadow-2xl shadow-black/80 flex flex-col justify-between"
+                  className="w-full max-w-[980px] aspect-video rounded-xl overflow-hidden bg-black border border-[#1e293b] relative shadow-2xl shadow-black/80 flex flex-col justify-between"
                   style={{
                     boxShadow: `0 25px 50px -12px ${activeScenario.accentColor}08`
                   }}
@@ -1878,10 +2003,11 @@ export default function App() {
                     <video
                       ref={videoRef}
                       src={generatedVideoUrl}
-                      className="absolute inset-0 w-full h-full object-cover select-none pointer-events-none z-0 brightness-[0.55]"
+                      className="absolute inset-0 w-full h-full object-contain select-none z-0 bg-black"
                       muted
                       loop
                       playsInline
+                      controls
                     />
                   ) : (
                     <img 
@@ -1907,6 +2033,31 @@ export default function App() {
                     </div>
                   </div>
 
+                  {generatedVideoUrl && (
+                    <div className="absolute top-14 right-4 z-50 flex items-center gap-2">
+                      <a
+                        href={generatedVideoUrl}
+                        download
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-[#06b6d4]/60 bg-black/70 px-3 py-1.5 text-xs font-bold text-[#67e8f9] hover:bg-[#083344]"
+                      >
+                        <Download size={13} />
+                        Download
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard?.writeText(generatedVideoUrl).catch(() => null);
+                          setRenderNotice("Output video URL copied.");
+                        }}
+                        className="rounded-lg border border-[#1e293b] bg-black/70 px-3 py-1.5 text-xs font-bold text-[#e2e8f0] hover:bg-[#1e293b]"
+                      >
+                        Copy URL
+                      </button>
+                    </div>
+                  )}
+
                   {renderNotice && (
                     <div className="absolute top-12 left-4 right-4 z-45 rounded-lg border border-[#06b6d4]/40 bg-black/70 px-3 py-2 text-xs font-bold text-[#06b6d4] backdrop-blur-sm">
                       {renderNotice}
@@ -1921,7 +2072,7 @@ export default function App() {
                   </div>
 
                   {/* BOTTOM TIMELINE AND SOUND CONTEXT CONTROLLER */}
-                  <div className="p-4 relative z-45 bg-gradient-to-t from-black/95 to-transparent flex flex-col gap-3">
+                  {!generatedVideoUrl && <div className="p-4 relative z-45 bg-gradient-to-t from-black/95 to-transparent flex flex-col gap-3">
                     
                     {/* Media Seekable Timeline Bar */}
                     <div className="flex items-center gap-3">
@@ -1984,8 +2135,56 @@ export default function App() {
                       </div>
                     </div>
 
-                  </div>
+                  </div>}
 
+                </motion.div>
+              )}
+
+              {status === "SUCCESS" && outputHistory.length > 0 && (
+                <motion.div
+                  key="output_history_strip"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="w-full max-w-[980px] mx-auto mt-4"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-mono uppercase tracking-[0.2em] text-[#94a3b8]">Render history</span>
+                    <button
+                      type="button"
+                      onClick={clearStudioHistory}
+                      className="text-xs text-red-300 hover:text-red-100 flex items-center gap-1"
+                    >
+                      <Trash2 size={12} />
+                      Clear history
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    {outputHistory.slice(0, 3).map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => loadOutput(item)}
+                        className="rounded-xl border border-[#1e293b] bg-[#0f172a] overflow-hidden text-left hover:border-[#06b6d4]/70 transition-colors"
+                      >
+                        <video src={item.videoUrl} className="w-full aspect-video object-cover bg-black" muted playsInline />
+                        <div className="p-3">
+                          <div className="text-xs font-bold text-white truncate">{item.modelName}</div>
+                          <div className="text-[11px] text-[#94a3b8] truncate mt-1">{item.genre} - {item.lensType}</div>
+                          <a
+                            href={item.videoUrl}
+                            download
+                            target="_blank"
+                            rel="noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="mt-2 inline-flex items-center gap-1 text-[11px] font-bold text-[#67e8f9]"
+                          >
+                            <Download size={12} />
+                            Download clip
+                          </a>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
                 </motion.div>
               )}
 
@@ -2646,7 +2845,7 @@ export default function App() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 15 }}
               transition={{ type: "spring", duration: 0.45 }}
-              className="w-full max-w-2xl bg-[#0f172a]/95 border border-[#1e293b] rounded-2xl overflow-hidden shadow-2xl relative"
+              className="w-full max-w-5xl bg-[#0f172a]/95 border border-[#1e293b] rounded-2xl overflow-hidden shadow-2xl relative"
               onClick={(e) => e.stopPropagation()}
             >
               
@@ -2669,7 +2868,7 @@ export default function App() {
               </div>
 
               {/* Modal Contents based on type */}
-              <div className="p-6">
+              <div className="p-6 max-h-[78vh] overflow-y-auto">
                 
                 {/* A. GENRE SELECT MODAL */}
                 {activeModal === "genre" && (
@@ -2699,8 +2898,8 @@ export default function App() {
                             key={g.id}
                             onClick={() => {
                               setSelectedGenre(g.id);
-                              // Trigger procedural scenes refresh immediately for nice user feel
                               generateClientScene(prompt, dialogueText, cameraMovement, lensType, g.id);
+                              setActiveModal(null);
                             }}
                             className={`w-full text-left p-3 rounded-lg border flex items-center justify-between gap-3 transition-colors outline-none ${
                               isChosen 
@@ -2736,7 +2935,10 @@ export default function App() {
                         {["Auto", "Hollywood Teal-Orange", "Neo-Noir Shadow", "Warm Sun Vintage", "Cyberpunk Neon", "Desaturated Iron"].map((p) => (
                           <button
                             key={p}
-                            onClick={() => setColorPalette(p)}
+                            onClick={() => {
+                              setColorPalette(p);
+                              generateClientScene(prompt, dialogueText, cameraMovement, lensType, selectedGenre);
+                            }}
                             className={`w-full text-left p-2 rounded-lg text-xs font-bold transition-all outline-none ${
                               colorPalette === p
                                 ? "bg-[#3730a3] text-[#a78bfa] border border-[#8b5cf6]/70"
@@ -2756,7 +2958,10 @@ export default function App() {
                         {["Auto", "Volumetric Foggy", "High-Contrast Chiaroscuro", "Golden Sunset", "Low-key Midnight"].map((l) => (
                           <button
                             key={l}
-                            onClick={() => setLightingStyle(l)}
+                            onClick={() => {
+                              setLightingStyle(l);
+                              generateClientScene(prompt, dialogueText, cameraMovement, lensType, selectedGenre);
+                            }}
                             className={`w-full text-left p-2 rounded-lg text-xs font-bold transition-all outline-none ${
                               lightingStyle === l
                                 ? "bg-[#3730a3] text-[#a78bfa] border border-[#8b5cf6]/70"
@@ -2776,7 +2981,10 @@ export default function App() {
                         {["Auto", "Steady Grounded", "Documentary Jitter", "Dreamy Flying", "Suspense Snapping"].map((c) => (
                           <button
                             key={c}
-                            onClick={() => setCameraMovesetStyle(c)}
+                            onClick={() => {
+                              setCameraMovesetStyle(c);
+                              generateClientScene(prompt, dialogueText, cameraMovement, lensType, selectedGenre);
+                            }}
                             className={`w-full text-left p-2 rounded-lg text-xs font-bold transition-all outline-none ${
                               cameraMovesetStyle === c
                                 ? "bg-[#3730a3] text-[#a78bfa] border border-[#8b5cf6]/70"
@@ -2806,7 +3014,9 @@ export default function App() {
                           onClick={() => {
                             const idx = CAMERA_BODIES.findIndex(c => c.name === cameraBody);
                             const next = (idx - 1 + CAMERA_BODIES.length) % CAMERA_BODIES.length;
-                            setCameraBody(CAMERA_BODIES[next].name);
+                            const nextBody = CAMERA_BODIES[next].name;
+                            setCameraBody(nextBody);
+                            generateClientScene(prompt, dialogueText, cameraMovement, lensType, selectedGenre);
                           }}
                           className="w-7 h-7 rounded-full bg-[#1e293b]/40 hover:bg-[#8b5cf6]/30 border border-[#1e293b] hover:border-[#8b5cf6] text-[#94a3b8] hover:text-[#8b5cf6] flex items-center justify-center transition-all"
                           aria-label="Previous camera"
@@ -2821,7 +3031,9 @@ export default function App() {
                           onClick={() => {
                             const idx = CAMERA_BODIES.findIndex(c => c.name === cameraBody);
                             const next = (idx + 1) % CAMERA_BODIES.length;
-                            setCameraBody(CAMERA_BODIES[next].name);
+                            const nextBody = CAMERA_BODIES[next].name;
+                            setCameraBody(nextBody);
+                            generateClientScene(prompt, dialogueText, cameraMovement, lensType, selectedGenre);
                           }}
                           className="w-7 h-7 rounded-full bg-[#1e293b]/40 hover:bg-[#8b5cf6]/30 border border-[#1e293b] hover:border-[#8b5cf6] text-[#94a3b8] hover:text-[#8b5cf6] flex items-center justify-center transition-all"
                           aria-label="Next camera"
@@ -2842,6 +3054,7 @@ export default function App() {
                             const idx = FOCAL_LENGTHS.indexOf(focalLength);
                             const next = (idx - 1 + FOCAL_LENGTHS.length) % FOCAL_LENGTHS.length;
                             setFocalLength(FOCAL_LENGTHS[next]);
+                            generateClientScene(prompt, dialogueText, cameraMovement, lensType, selectedGenre);
                           }}
                           className="w-7 h-7 rounded-full bg-[#1e293b]/40 hover:bg-[#8b5cf6]/30 border border-[#1e293b] hover:border-[#8b5cf6] text-[#94a3b8] hover:text-[#8b5cf6] flex items-center justify-center transition-all"
                           aria-label="Smaller focal length"
@@ -2859,6 +3072,7 @@ export default function App() {
                             const idx = FOCAL_LENGTHS.indexOf(focalLength);
                             const next = (idx + 1) % FOCAL_LENGTHS.length;
                             setFocalLength(FOCAL_LENGTHS[next]);
+                            generateClientScene(prompt, dialogueText, cameraMovement, lensType, selectedGenre);
                           }}
                           className="w-7 h-7 rounded-full bg-[#1e293b]/40 hover:bg-[#8b5cf6]/30 border border-[#1e293b] hover:border-[#8b5cf6] text-[#94a3b8] hover:text-[#8b5cf6] flex items-center justify-center transition-all"
                           aria-label="Larger focal length"
@@ -2877,6 +3091,7 @@ export default function App() {
                             const idx = APERTURES.indexOf(aperture);
                             const next = (idx - 1 + APERTURES.length) % APERTURES.length;
                             setAperture(APERTURES[next]);
+                            generateClientScene(prompt, dialogueText, cameraMovement, lensType, selectedGenre);
                           }}
                           className="w-7 h-7 rounded-full bg-[#1e293b]/40 hover:bg-[#8b5cf6]/30 border border-[#1e293b] hover:border-[#8b5cf6] text-[#94a3b8] hover:text-[#8b5cf6] flex items-center justify-center transition-all"
                           aria-label="Wider aperture"
@@ -2892,6 +3107,7 @@ export default function App() {
                             const idx = APERTURES.indexOf(aperture);
                             const next = (idx + 1) % APERTURES.length;
                             setAperture(APERTURES[next]);
+                            generateClientScene(prompt, dialogueText, cameraMovement, lensType, selectedGenre);
                           }}
                           className="w-7 h-7 rounded-full bg-[#1e293b]/40 hover:bg-[#8b5cf6]/30 border border-[#1e293b] hover:border-[#8b5cf6] text-[#94a3b8] hover:text-[#8b5cf6] flex items-center justify-center transition-all"
                           aria-label="Narrower aperture"
@@ -3297,6 +3513,16 @@ export default function App() {
 
                       {/* Right: Sound presets selection grid and additions builder */}
                       <div className="md:col-span-8 space-y-4 text-left">
+                        <div className="bg-[#0f172a] border border-[#1e293b] rounded-xl p-3 space-y-2">
+                          <span className="text-xs text-[#f8fafc] font-bold block">Voice prompt / spoken dialogue</span>
+                          <textarea
+                            value={dialogueText}
+                            onChange={(e) => setDialogueText(e.target.value)}
+                            rows={3}
+                            placeholder="اكتب الكلام الذي تريد أن ينطقه الصوت هنا..."
+                            className="w-full resize-none bg-[#060c18] border border-[#1e293b] focus:border-[#ec4899] rounded-lg px-3 py-2 text-sm text-white outline-none placeholder:text-[#64748b]"
+                          />
+                        </div>
                         <div className="space-y-2">
                           <span className="text-[13px] text-[#f8fafc] font-bold block font-sans">Select a real voice preset: Google Arabic or ElevenLabs</span>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[160px] overflow-y-auto pr-1">
@@ -3404,6 +3630,7 @@ export default function App() {
                       </div>
                     </div>
                   </div>
+
                 )}
 
                 {/* E. AI CINEMATIC DIRECTOR ASSISTANT CHAT SIMULATOR */}
