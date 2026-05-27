@@ -406,7 +406,22 @@ const FAMILY_GRADIENTS: Record<string, string> = {
   grok:      "from-red-900    via-red-800    to-slate-900",
 };
 
-const MODEL_GROUPS = getModelGroups();
+const HIDDEN_VIDEO_PAGE_MODEL_IDS = new Set([
+  "kling-v2.5-turbo-t2v",
+  "kling-v2.5-turbo-i2v",
+  "openai-sora-2-t2v",
+  "openai-sora-2-i2v",
+  "bytedance-seedance-v2-t2v-fast",
+  "xai-grok-imagine-t2v",
+  "xai-grok-imagine-edit",
+]);
+
+const MODEL_GROUPS = getModelGroups()
+  .map((group) => ({
+    ...group,
+    models: group.models.filter((model) => !HIDDEN_VIDEO_PAGE_MODEL_IDS.has(model.id)),
+  }))
+  .filter((group) => group.models.length > 0);
 
 type CharacterReference = {
   id: string;
