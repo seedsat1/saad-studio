@@ -25,6 +25,7 @@ const isPublicRoute = createRouteMatcher([
   '/gallery(.*)',
   '/edit(.*)',
   '/cinema-studio(.*)',
+  '/cinema-studio-vso(.*)',
   '/cinematic-video(.*)',
   '/cinema-board(.*)',
   '/moodboard(.*)',
@@ -122,7 +123,11 @@ function isLocalDevRequest(req: Request) {
 }
 
 function isLocalOnlyVideoRoute(pathname: string) {
-  return pathname === "/cinema-studio-vso" || pathname.startsWith("/cinema-studio-vso/") || pathname === "/cinematic-video" || pathname.startsWith("/cinematic-video/");
+  // /cinema-studio-vso is no longer local-only: it is now reachable in
+  // production but kept out of search results via the page's noindex
+  // metadata and robots.ts disallow entry. /cinematic-video stays
+  // dev-only until it ships.
+  return pathname === "/cinematic-video" || pathname.startsWith("/cinematic-video/");
 }
 
 function smartCliOAuthMetadata(req: Request) {
