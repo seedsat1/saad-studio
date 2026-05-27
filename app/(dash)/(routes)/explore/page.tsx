@@ -1,13 +1,39 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { ArrowUpRight, Eye, Heart, Play, ScrollText, Sparkles, Star, Zap } from "lucide-react";
+import { useRouter } from "next/navigation";
+import {
+  ArrowUpRight,
+  Eye,
+  Heart,
+  Play,
+  ScrollText,
+  Sparkles,
+  Star,
+  Zap,
+  Wand2,
+  Video,
+  Layers,
+  TrendingUp,
+  Aperture,
+  Paintbrush,
+  Box,
+  Monitor,
+  LayoutGrid,
+  ChevronDown,
+  Info,
+  Copy,
+  Check,
+  Search,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePromoMedia, promoUrl } from "@/hooks/use-promo-media";
 import { usePromoContent, promoText } from "@/hooks/use-promo-content";
 import { DEFAULT_EXPLORE_MODULES, type ExploreMedia, type ExploreModule } from "@/lib/explore-cms";
+
+// ─── Types and Constants ───
 
 type ShowcaseItem = {
   id: string;
@@ -84,82 +110,161 @@ const KLING_3_SHOTS = [
   "/Kling%203.0/1%20(8).webp",
 ] as const;
 
-function GptImage2Ad() {
-  const href = `/image?tool=create&model=${encodeURIComponent(GPT_IMAGE_2_MODEL_ID)}`;
-  const heroShot = GPT_IMAGE_2_SHOTS[0];
-  const topRightShot = GPT_IMAGE_2_SHOTS[1];
-  const bottomRightShot = GPT_IMAGE_2_SHOTS[2];
+type IraqImageItem = {
+  id: string;
+  title: string;
+  imageUrl: string;
+  model: string;
+  creator: string;
+  prompt: string;
+  views: number;
+  likes: number;
+  tags: string[];
+};
 
-  return (
-    <section className="w-full px-5 pt-10 md:px-10 lg:px-14 xl:px-20">
-      <Link
-        href={href}
-        className="group relative block overflow-hidden rounded-[1.9rem] border border-white/10 bg-white/[0.03] shadow-2xl shadow-black/40"
-      >
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(34,211,238,0.22),transparent_32%),radial-gradient(circle_at_72%_18%,rgba(236,72,153,0.16),transparent_28%),linear-gradient(135deg,#050812,#070b18_45%,#111827)]" />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/45 to-black/10" />
-        <div className="relative grid gap-6 p-7 lg:grid-cols-12 lg:p-10">
-          <div className="lg:col-span-4">
-            <div className="text-[11px] font-black uppercase tracking-[0.18em] text-white/70">NEW MODEL</div>
-            <h2 className="mt-4 text-3xl font-black leading-tight text-white md:text-5xl">Meet GPT Image 2</h2>
-            <p className="mt-4 max-w-md text-sm leading-6 text-slate-200/90 md:text-base">
-              4K images with near-perfect text rendering. اضغط لتجربة الموديل مباشرة.
-            </p>
-            <div className="mt-6 inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-black text-slate-950 transition group-hover:scale-[1.02]">
-              <Sparkles className="h-4 w-4" />
-              Try Model
-            </div>
-            <div className="mt-5 flex flex-wrap gap-2">
-              <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/35 px-3 py-1 text-xs font-bold text-white/75 backdrop-blur">
-                <Play className="h-3.5 w-3.5" />
-                Demos
-              </span>
-              <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/35 px-3 py-1 text-xs font-bold text-white/75 backdrop-blur">
-                <ScrollText className="h-3.5 w-3.5" />
-                Tutorials
-              </span>
-              <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/35 px-3 py-1 text-xs font-bold text-white/75 backdrop-blur">
-                <Zap className="h-3.5 w-3.5" />
-                Best settings
-              </span>
-            </div>
-          </div>
+const IRAQ_IMAGES: IraqImageItem[] = [
+  {
+    id: "iraq-1",
+    title: "Futuristic Baghdad Skyline",
+    imageUrl: "/explore/iraq/skyline.png",
+    model: "Flux Pro",
+    creator: "Saad Studio AI",
+    prompt: "A hyper-realistic futuristic Baghdad skyline at night along the Tigris River, showcasing modern organic architecture inspired by Zaha Hadid, glowing skyscrapers with neon blue and amber lights, futuristic suspension bridges.",
+    views: 1240,
+    likes: 852,
+    tags: ["Architecture", "Sci-Fi"]
+  },
+  {
+    id: "iraq-2",
+    title: "Mesopotamian Future Museum",
+    imageUrl: "/explore/iraq/museum.png",
+    model: "Flux Pro",
+    creator: "Saad Studio AI",
+    prompt: "A hyper-modern futuristic museum in Baghdad blending ancient Mesopotamian Babylonian brickwork and ziggurat patterns with towering glass facades, holographic projections, hanging gardens.",
+    views: 942,
+    likes: 671,
+    tags: ["Architecture", "History"]
+  },
+  {
+    id: "iraq-3",
+    title: "Baghdad Metro Station",
+    imageUrl: "/explore/iraq/metro.png",
+    model: "Flux Pro",
+    creator: "Saad Studio AI",
+    prompt: "Interior of a sleek, futuristic metro station in Baghdad, modern design with arches inspired by traditional Islamic architecture, gold and white colors, glass ceilings showing skyscrapers.",
+    views: 742,
+    likes: 580,
+    tags: ["Photography", "Architecture"]
+  },
+  {
+    id: "iraq-4",
+    title: "Futuristic Babylon City",
+    imageUrl: "/explore/iraq/babylon.png",
+    model: "Flux Pro",
+    creator: "Saad Studio AI",
+    prompt: "A futuristic metropolis built around the ruins of Babylon, giant holographic Ishtar Gate shining blue and purple at night, neon ziggurats, elevated transit hyperloops, cyberpunk style.",
+    views: 1850,
+    likes: 1240,
+    tags: ["Cyberpunk", "Sci-Fi"]
+  },
+  {
+    id: "iraq-5",
+    title: "Zaha Hadid Baghdad Cultural Center",
+    imageUrl: "/explore/iraq/cultural_center.png",
+    model: "Flux Pro",
+    creator: "Saad Studio AI",
+    prompt: "A spectacular modern cultural center in Baghdad, designed in the style of Zaha Hadid, featuring sweeping white concrete curves, large glass panels, reflecting pools, landscaped gardens.",
+    views: 1105,
+    likes: 792,
+    tags: ["Architecture", "Photography"]
+  },
+  {
+    id: "iraq-6",
+    title: "Modern Tigris Riverwalk",
+    imageUrl: "/explore/iraq/riverwalk.png",
+    model: "Flux Pro",
+    creator: "Saad Studio AI",
+    prompt: "A modern riverwalk park along the Tigris River in Baghdad, high-rise skyscrapers in the background, sleek streetlights, palm trees reflecting the sunset, beautiful reflection on the water.",
+    views: 890,
+    likes: 540,
+    tags: ["Photography", "Nature"]
+  },
+  {
+    id: "iraq-7",
+    title: "Mesopotamian Eco-City Marshes",
+    imageUrl: "/explore/iraq/eco_city.png",
+    model: "Flux Pro",
+    creator: "Saad Studio AI",
+    prompt: "A futuristic Mesopotamian eco-city built in the marshes of southern Iraq, with solar-powered floating houses of high-tech design, green vegetation, clean canals with electric boats.",
+    views: 1024,
+    likes: 712,
+    tags: ["Sci-Fi", "Nature"]
+  },
+  {
+    id: "iraq-8",
+    title: "Iraq Space Center & Observatory",
+    imageUrl: "/explore/iraq/space_center.png",
+    model: "Flux Pro",
+    creator: "Saad Studio AI",
+    prompt: "A futuristic space center and observatory in the desert of Iraq, modern high-tech white domes and parabolic telescope dishes, space launch pad in the background under a night sky full of stars.",
+    views: 1530,
+    likes: 994,
+    tags: ["Sci-Fi", "Nature"]
+  }
+];
 
-          <div className="lg:col-span-8">
-            <div className="grid grid-cols-12 gap-3">
-              <div className="relative col-span-7 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] aspect-[3/4]">
-                <img
-                  src={heroShot}
-                  alt="GPT Image 2 sample"
-                  className="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-[1.02]"
-                  loading="eager"
-                />
-              </div>
-              <div className="col-span-5 flex flex-col gap-3">
-                <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] aspect-[16/10]">
-                  <img
-                    src={topRightShot}
-                    alt="GPT Image 2 sample"
-                    className="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-[1.02]"
-                    loading="eager"
-                  />
-                </div>
-                <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] aspect-[4/5]">
-                  <img
-                    src={bottomRightShot}
-                    alt="GPT Image 2 sample"
-                    className="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-[1.02]"
-                    loading="lazy"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </Link>
-    </section>
-  );
-}
+const BLUEPRINTS = [
+  {
+    id: "bp-1",
+    title: "3D Reference View Creator",
+    imageUrl: "/explore/iraq/cultural_center.png",
+    tag: "3D Model",
+    badge: "New",
+    href: "/image?tool=create&model=flux-2/pro-text-to-image&prompt=3d%20reference%20view%20of%20a%20modern%20iraqi%20monument%2C%20white%20curves%2C%20studio%20background&aspect=1:1"
+  },
+  {
+    id: "bp-2",
+    title: "Motion Product Showcase",
+    imageUrl: "/explore/iraq/metro.png",
+    tag: "Motion",
+    badge: "",
+    href: "/video?prompt=motion%20product%20showcase%20of%20a%20futuristic%20iraqi%20high-tech%20metro%20train%2C%20sleek%20cinematic%20movement"
+  },
+  {
+    id: "bp-3",
+    title: "Cinematic Scenario Product Film",
+    imageUrl: "/explore/iraq/skyline.png",
+    tag: "Cinematic",
+    badge: "Hot",
+    href: "/video?prompt=cinematic%20scenario%20product%20film%20of%20baghdad%20modern%20skyscrapers%2C%20golden%20hour%20reflections%2C%20sweeping%20camera"
+  },
+  {
+    id: "bp-4",
+    title: "Mesopotamian Cyberpunk Style",
+    imageUrl: "/explore/iraq/babylon.png",
+    tag: "Style Preset",
+    badge: "New",
+    href: "/image?tool=create&preset=cyberpunk&prompt=cyberpunk%20reborn%20babylon%2C%20neon%20gates%20and%20ziggurats%2C%20rainy%20night"
+  },
+  {
+    id: "bp-5",
+    title: "Tilt-Shift Miniature Effect",
+    imageUrl: "/explore/iraq/riverwalk.png",
+    tag: "Photography",
+    badge: "",
+    href: "/image?tool=create&preset=photography&prompt=tilt-shift%20miniature%20effect%20of%20the%20tigris%20riverwalk%20park%20in%20baghdad%2C%20tiny%20people%20and%20cars%2C%20toy-like%20depth%20of%20field"
+  },
+  {
+    id: "bp-6",
+    title: "Eco-City Architecture Render",
+    imageUrl: "/explore/iraq/eco_city.png",
+    tag: "Architecture",
+    badge: "New",
+    href: "/image?tool=create&preset=cinematic&aspect=16:9&prompt=architectural%20render%20of%20a%20floating%20eco-city%20in%20the%20iraqi%20marshes%2C%20solar%20powered%20design"
+  }
+];
+
+// ─── Sub-Components for Official Ads/Banners ───
 
 function GptImage2ModelAd() {
   const promo = usePromoMedia();
@@ -184,10 +289,10 @@ function GptImage2ModelAd() {
   ];
 
   return (
-    <section className="w-full px-5 py-8 md:px-10 lg:px-14 xl:px-20">
+    <section className="w-full px-5 py-8 md:px-10 lg:px-14 xl:px-20 max-w-[1600px] mx-auto">
       <Link
         href={href}
-        className="group relative mx-auto block max-w-[1440px] overflow-hidden rounded-[1.35rem] border border-white/10 bg-[#07090c] shadow-2xl shadow-black/50"
+        className="group relative mx-auto block overflow-hidden rounded-[1.35rem] border border-white/10 bg-[#07090c] shadow-2xl shadow-black/50"
       >
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_50%,rgba(255,255,255,0.12),transparent_26%),linear-gradient(90deg,#070707_0%,#090b10_32%,#030405_100%)]" />
         <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black via-black/75 to-transparent" />
@@ -258,10 +363,10 @@ function CanvasModelAd() {
   const cta = promoText(content, slotId, "cta", "Open");
 
   return (
-    <section className="w-full px-5 pb-8 md:px-10 lg:px-14 xl:px-20">
+    <section className="w-full px-5 pb-8 md:px-10 lg:px-14 xl:px-20 max-w-[1600px] mx-auto">
       <Link
         href={href}
-        className="group relative mx-auto block max-w-[1440px] overflow-hidden rounded-[1.35rem] border border-white/10 bg-[#08090d] shadow-2xl shadow-black/50"
+        className="group relative mx-auto block overflow-hidden rounded-[1.35rem] border border-white/10 bg-[#08090d] shadow-2xl shadow-black/50"
       >
         <div className="relative min-h-[430px]">
           <img
@@ -312,10 +417,10 @@ function Seedance2ModelAd() {
   ];
 
   return (
-    <section className="w-full px-5 pb-8 md:px-10 lg:px-14 xl:px-20">
+    <section className="w-full px-5 pb-8 md:px-10 lg:px-14 xl:px-20 max-w-[1600px] mx-auto">
       <Link
         href={href}
-        className="group relative mx-auto block max-w-[1440px] overflow-hidden rounded-[1.35rem] border border-white/10 bg-[#07090c] shadow-2xl shadow-black/50"
+        className="group relative mx-auto block overflow-hidden rounded-[1.35rem] border border-white/10 bg-[#07090c] shadow-2xl shadow-black/50"
       >
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_78%_48%,rgba(45,212,191,0.18),transparent_30%),linear-gradient(90deg,#040506_0%,#07100f_55%,#050606_100%)]" />
         <div className="relative grid min-h-[520px] gap-0 lg:grid-cols-[1fr_24rem] xl:grid-cols-[1fr_30rem]">
@@ -385,10 +490,10 @@ function NextSceneEngineAd() {
   const cta = promoText(content, slotId, "cta", "Open");
 
   return (
-    <section className="w-full px-5 pb-8 md:px-10 lg:px-14 xl:px-20">
+    <section className="w-full px-5 pb-8 md:px-10 lg:px-14 xl:px-20 max-w-[1600px] mx-auto">
       <Link
         href={href}
-        className="group relative mx-auto block max-w-[1440px] overflow-hidden rounded-[1.35rem] border border-white/10 bg-[#08090d] shadow-2xl shadow-black/50"
+        className="group relative mx-auto block overflow-hidden rounded-[1.35rem] border border-white/10 bg-[#08090d] shadow-2xl shadow-black/50"
       >
         <div className="relative min-h-[430px]">
           <img
@@ -440,10 +545,10 @@ function TransitionsModelAd() {
   ];
 
   return (
-    <section className="w-full px-5 pb-8 md:px-10 lg:px-14 xl:px-20">
+    <section className="w-full px-5 pb-8 md:px-10 lg:px-14 xl:px-20 max-w-[1600px] mx-auto">
       <Link
         href={href}
-        className="group relative mx-auto block max-w-[1440px] overflow-hidden rounded-[1.35rem] border border-white/10 bg-[#07090c] shadow-2xl shadow-black/50"
+        className="group relative mx-auto block overflow-hidden rounded-[1.35rem] border border-white/10 bg-[#07090c] shadow-2xl shadow-black/50"
       >
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_48%,rgba(59,130,246,0.16),transparent_30%),linear-gradient(90deg,#050608_0%,#070b12_45%,#050506_100%)]" />
         <div className="relative grid min-h-[520px] gap-0 lg:grid-cols-[24rem_1fr] xl:grid-cols-[30rem_1fr]">
@@ -511,10 +616,10 @@ function NanoBananaAd() {
   const cta = promoText(content, slotId, "cta", "Open");
 
   return (
-    <section className="w-full px-5 pb-8 md:px-10 lg:px-14 xl:px-20">
+    <section className="w-full px-5 pb-8 md:px-10 lg:px-14 xl:px-20 max-w-[1600px] mx-auto">
       <Link
         href={href}
-        className="group relative mx-auto block max-w-[1440px] overflow-hidden rounded-[1.35rem] border border-white/10 bg-[#08090d] shadow-2xl shadow-black/50"
+        className="group relative mx-auto block overflow-hidden rounded-[1.35rem] border border-white/10 bg-[#08090d] shadow-2xl shadow-black/50"
       >
         <div className="relative min-h-[430px]">
           <img
@@ -523,6 +628,7 @@ function NanoBananaAd() {
             className="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-[1.025]"
             loading="eager"
           />
+          .
           <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/34 to-black/10" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-black/10" />
           <div className="relative flex min-h-[430px] items-end px-7 py-10 md:px-12 lg:px-16">
@@ -565,10 +671,10 @@ function Kling3ModelAd() {
   ];
 
   return (
-    <section className="w-full px-5 pb-8 md:px-10 lg:px-14 xl:px-20">
+    <section className="w-full px-5 pb-8 md:px-10 lg:px-14 xl:px-20 max-w-[1600px] mx-auto">
       <Link
         href={href}
-        className="group relative mx-auto block max-w-[1440px] overflow-hidden rounded-[1.35rem] border border-white/10 bg-[#07090c] shadow-2xl shadow-black/50"
+        className="group relative mx-auto block overflow-hidden rounded-[1.35rem] border border-white/10 bg-[#07090c] shadow-2xl shadow-black/50"
       >
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_78%_48%,rgba(124,58,237,0.2),transparent_30%),linear-gradient(90deg,#050506_0%,#0c0813_55%,#050506_100%)]" />
         <div className="relative grid min-h-[520px] gap-0 lg:grid-cols-[1fr_24rem] xl:grid-cols-[1fr_30rem]">
@@ -725,10 +831,10 @@ function DynamicGallery({ module, reverse = false }: { module: ExploreModule; re
   );
 
   return (
-    <section className="w-full px-5 pb-8 md:px-10 lg:px-14 xl:px-20">
+    <section className="w-full px-5 pb-8 md:px-10 lg:px-14 xl:px-20 max-w-[1600px] mx-auto">
       <Link
         href={module.href || "#"}
-        className="group relative mx-auto block max-w-[1440px] overflow-hidden rounded-[1.35rem] border border-white/10 bg-[#07090c] shadow-2xl shadow-black/50"
+        className="group relative mx-auto block overflow-hidden rounded-[1.35rem] border border-white/10 bg-[#07090c] shadow-2xl shadow-black/50"
       >
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_78%_48%,rgba(124,58,237,0.16),transparent_30%),linear-gradient(90deg,#050506_0%,#0c0813_55%,#050506_100%)]" />
         <div className={cn("relative grid min-h-[520px] gap-0 lg:grid-cols-[1fr_24rem] xl:grid-cols-[1fr_30rem]", reverse && "lg:grid-cols-[24rem_1fr] xl:grid-cols-[30rem_1fr]")}>
@@ -751,10 +857,10 @@ function DynamicGallery({ module, reverse = false }: { module: ExploreModule; re
 
 function DynamicBanner({ module }: { module: ExploreModule }) {
   return (
-    <section className="w-full px-5 pb-8 md:px-10 lg:px-14 xl:px-20">
+    <section className="w-full px-5 pb-8 md:px-10 lg:px-14 xl:px-20 max-w-[1600px] mx-auto">
       <Link
         href={module.href || "#"}
-        className="group relative mx-auto block max-w-[1440px] overflow-hidden rounded-[1.35rem] border border-white/10 bg-[#08090d] shadow-2xl shadow-black/50"
+        className="group relative mx-auto block overflow-hidden rounded-[1.35rem] border border-white/10 bg-[#08090d] shadow-2xl shadow-black/50"
       >
         <div className="relative min-h-[430px]">
           <ExploreModuleMedia
@@ -788,14 +894,6 @@ function DynamicExploreModule({ module }: { module: ExploreModule }) {
   if (!module.enabled) return null;
   if (module.layout === "banner") return <DynamicBanner module={module} />;
   return <DynamicGallery module={module} reverse={module.layout === "gallery-right"} />;
-}
-
-function formatDuration(seconds: number | null) {
-  if (!seconds || !Number.isFinite(seconds)) return "—";
-  const s = Math.max(0, Math.floor(seconds));
-  const m = Math.floor(s / 60);
-  const r = s % 60;
-  return m > 0 ? `${m}:${String(r).padStart(2, "0")}` : `${r}s`;
 }
 
 function PreviewVideo({
@@ -1080,10 +1178,10 @@ function DiscoverSection({
   const gridItems = items.slice(0, 6);
 
   return (
-    <section className="w-full px-5 pb-12 md:px-10 lg:px-14 xl:px-20">
+    <section className="w-full px-5 pb-12 md:px-10 lg:px-14 xl:px-20 max-w-[1600px] mx-auto">
       <div className="grid gap-5 lg:grid-cols-12">
         <div className={cn("relative overflow-hidden rounded-[1.6rem] border border-white/10 bg-white/[0.03] p-7 shadow-2xl shadow-black/40 lg:col-span-4", accentClassName)}>
-          <div className="relative">
+          <div className="relative z-10">
             <div className="text-[11px] font-black uppercase tracking-[0.18em] text-white/70">{kicker}</div>
             <div className="mt-4 text-2xl font-black leading-tight text-white">{title}</div>
             <div className="mt-3 text-sm leading-6 text-slate-200/90">{subtitle}</div>
@@ -1140,7 +1238,12 @@ function DiscoverSection({
   );
 }
 
+// ─── Main Page Component ───
+
 export default function ExplorePage() {
+  const router = useRouter();
+
+  // CMS & API States
   const [cmsModules, setCmsModules] = useState<ExploreModule[]>(DEFAULT_EXPLORE_MODULES);
   const [items, setItems] = useState<ShowcaseItem[]>([]);
   const [itemsCursor, setItemsCursor] = useState<string | null>(null);
@@ -1148,12 +1251,49 @@ export default function ExplorePage() {
   const [featuredCursor, setFeaturedCursor] = useState<string | null>(null);
   const [trending, setTrending] = useState<ShowcaseItem[]>([]);
   const [trendingCursor, setTrendingCursor] = useState<string | null>(null);
-  const [loadingMore, setLoadingMore] = useState(false);
   const [autoplayKey, setAutoplayKey] = useState<string | null>(null);
   const [activeFeed, setActiveFeed] = useState<"latest" | "featured" | "trending">("latest");
-  const [query, setQuery] = useState("");
-  const sentinelRef = useRef<HTMLDivElement | null>(null);
 
+  // Prompt Generator states
+  const [promptText, setPromptText] = useState("");
+  const [activeMedia, setActiveMedia] = useState<"image" | "video">("image");
+  const [aspectRatio, setAspectRatio] = useState("1:1");
+  const [selectedStyle, setSelectedStyle] = useState("Dynamic");
+
+  // Dropdown states
+  const [showAspectDropdown, setShowAspectDropdown] = useState(false);
+  const [showStyleDropdown, setShowStyleDropdown] = useState(false);
+  const [showSortDropdown, setShowSortDropdown] = useState(false);
+
+  // Search & Filter states
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeCategory, setActiveCategory] = useState("All");
+  const [sortBy, setSortBy] = useState<"Trending" | "Likes" | "Views">("Trending");
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  // References
+  const aspectRef = useRef<HTMLDivElement>(null);
+  const styleRef = useRef<HTMLDivElement>(null);
+  const sortRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdowns on click outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (aspectRef.current && !aspectRef.current.contains(event.target as Node)) {
+        setShowAspectDropdown(false);
+      }
+      if (styleRef.current && !styleRef.current.contains(event.target as Node)) {
+        setShowStyleDropdown(false);
+      }
+      if (sortRef.current && !sortRef.current.contains(event.target as Node)) {
+        setShowSortDropdown(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Fetch showcase items
   const loadInitial = useCallback(async () => {
     const [latestRes, featuredRes, trendingRes] = await Promise.all([
       fetch("/api/showcase?take=30", { cache: "no-store" }),
@@ -1177,6 +1317,7 @@ export default function ExplorePage() {
     void loadInitial();
   }, [loadInitial]);
 
+  // Fetch CMS Modules configurations
   useEffect(() => {
     let cancelled = false;
     const loadCms = async () => {
@@ -1196,106 +1337,28 @@ export default function ExplorePage() {
     };
   }, []);
 
-  const loadMore = useCallback(async () => {
-    if (loadingMore) return;
-    const havePrimaryMore =
-      activeFeed === "latest"
-        ? Boolean(itemsCursor)
-        : activeFeed === "featured"
-          ? Boolean(featuredCursor)
-          : Boolean(trendingCursor);
-    if (!havePrimaryMore) return;
-
-    setLoadingMore(true);
-    try {
-      const primaryCursor = activeFeed === "latest" ? itemsCursor : activeFeed === "featured" ? featuredCursor : trendingCursor;
-      const primaryEndpoint =
-        activeFeed === "latest"
-          ? primaryCursor
-            ? `/api/showcase?take=30&cursor=${encodeURIComponent(primaryCursor)}`
-            : null
-          : activeFeed === "featured"
-            ? primaryCursor
-              ? `/api/showcase/featured?take=18&cursor=${encodeURIComponent(primaryCursor)}`
-              : null
-            : primaryCursor
-              ? `/api/showcase/trending?take=30&cursor=${encodeURIComponent(primaryCursor)}`
-              : null;
-
-      const primaryRes = primaryEndpoint ? fetch(primaryEndpoint, { cache: "no-store" }) : Promise.resolve(new Response(null, { status: 204 }));
-      const primary = await primaryRes;
-
-      if (primary.ok) {
-        const json = (await primary.json().catch(() => null)) as FeedResponse | null;
-        if (json && Array.isArray(json.items) && json.items.length > 0) {
-          if (activeFeed === "latest") {
-            setItems((prev) => [...prev, ...json.items]);
-            setItemsCursor(json.nextCursor ?? null);
-          } else if (activeFeed === "featured") {
-            setFeatured((prev) => [...prev, ...json.items]);
-            setFeaturedCursor((json as any).nextCursor ?? null);
-          } else {
-            setTrending((prev) => [...prev, ...json.items]);
-            setTrendingCursor((json as any).nextCursor ?? null);
-          }
-        } else {
-          if (activeFeed === "latest") setItemsCursor(null);
-          if (activeFeed === "featured") setFeaturedCursor(null);
-          if (activeFeed === "trending") setTrendingCursor(null);
-        }
-      }
-    } finally {
-      setLoadingMore(false);
-    }
-  }, [activeFeed, featuredCursor, itemsCursor, loadingMore, trendingCursor]);
-
   const requestAutoplay = useCallback((key: string) => {
     setAutoplayKey((prev) => (prev === key ? prev : key));
   }, []);
 
-  useEffect(() => {
-    const node = sentinelRef.current;
-    if (!node) return;
+  const handleGenerate = () => {
+    const targetUrl = activeMedia === "video"
+      ? `/video?prompt=${encodeURIComponent(promptText)}`
+      : `/image?tool=create&prompt=${encodeURIComponent(promptText)}&aspect=${aspectRatio}&preset=${selectedStyle.toLowerCase()}`;
+    router.push(targetUrl);
+  };
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const first = entries[0];
-        if (!first?.isIntersecting) return;
-        void loadMore();
-      },
-      { rootMargin: "900px 0px" },
-    );
+  const handleCopyPrompt = (id: string, text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
 
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, [loadMore]);
-
-  const feedItems = useMemo(() => {
+  // Compile Dynamic Model Showcases Section (قسم الموديلات وقسم الانتاج)
+  const modelShowcaseSections = useMemo(() => {
     const source = activeFeed === "featured" ? featured : activeFeed === "trending" ? trending : items;
-    const combined = source.map(toMediaCardItemFromShowcase);
-    const needle = query.trim().toLowerCase();
-    if (!needle) return combined;
-    return combined.filter((item) =>
-      [item.title, item.prompt, item.model, item.creator, item.tags.join(" ")].some((value) => value.toLowerCase().includes(needle))
-    );
-  }, [activeFeed, featured, items, query, trending]);
-
-  const hero = featured[0] ?? trending[0] ?? items[0] ?? null;
-  const heroReelItems = (featured.length ? featured : trending.length ? trending : items).slice(0, 6);
-
-  const sections = useMemo(() => {
-    const source = activeFeed === "featured" ? featured : activeFeed === "trending" ? trending : items;
-    const needle = query.trim().toLowerCase();
-    const filtered = !needle
-      ? source
-      : source.filter((item) =>
-          [item.title, item.prompt, item.model, item.provider, (item.tags ?? []).join(" ")].some((value) =>
-            String(value || "").toLowerCase().includes(needle),
-          ),
-        );
-
     const byModel = new Map<string, ShowcaseItem[]>();
-    for (const item of filtered) {
+    for (const item of source) {
       const key = String(item.model || "Unknown model");
       const list = byModel.get(key) ?? [];
       list.push(item);
@@ -1328,29 +1391,518 @@ export default function ExplorePage() {
         items: media,
       };
     });
-  }, [activeFeed, featured, items, query, trending]);
+  }, [activeFeed, featured, items, trending]);
+
+  // Filtered Iraq grid items
+  const filteredIraqImages = useMemo(() => {
+    let list = [...IRAQ_IMAGES];
+    if (activeCategory !== "All") {
+      list = list.filter((img) => img.tags.includes(activeCategory));
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      list = list.filter((img) =>
+        img.title.toLowerCase().includes(q) || img.prompt.toLowerCase().includes(q)
+      );
+    }
+    if (sortBy === "Likes") {
+      list.sort((a, b) => b.likes - a.likes);
+    } else if (sortBy === "Views") {
+      list.sort((a, b) => b.views - a.views);
+    }
+    return list;
+  }, [activeCategory, searchQuery, sortBy]);
+
+  // distribute Iraq items into columns
+  const iraqColumns = useMemo(() => {
+    const col1: IraqImageItem[] = [];
+    const col2: IraqImageItem[] = [];
+    const col3: IraqImageItem[] = [];
+    filteredIraqImages.forEach((item, index) => {
+      if (index % 3 === 0) col1.push(item);
+      else if (index % 3 === 1) col2.push(item);
+      else col3.push(item);
+    });
+    return [col1, col2, col3];
+  }, [filteredIraqImages]);
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[#050812] text-white">
-      {cmsModules.map((module) => (
-        <DynamicExploreModule key={module.id} module={module} />
-      ))}
+    <main className="w-full min-h-screen bg-[#02050e] text-white relative pb-20 overflow-x-hidden">
+      
+      {/* Ambient colorful glow spots */}
+      <div className="absolute top-0 left-[-10%] w-[50%] h-[600px] bg-[radial-gradient(circle_at_center,rgba(59,130,246,0.12),transparent_70%)] pointer-events-none" />
+      <div className="absolute top-[-100px] right-[-10%] w-[40%] h-[700px] bg-[radial-gradient(circle_at_center,rgba(139,92,246,0.08),transparent_70%)] pointer-events-none" />
 
-      {sections.map((section) => (
-        <DiscoverSection
-          key={section.kicker}
-          kicker={section.kicker}
-          title={section.title}
-          subtitle={section.subtitle}
-          ctaLabel={section.ctaLabel}
-          items={section.items}
-          accentClassName={section.accentClassName}
-          autoplayKey={autoplayKey}
-          onAutoplayRequest={requestAutoplay}
-        />
-      ))}
+      {/* ════════════════════════════════════════════════
+          HERO BANNER
+      ════════════════════════════════════════════════ */}
+      <section className="relative w-full h-[520px] pt-16 flex flex-col items-center justify-center overflow-hidden border-b border-white/5">
+        
+        {/* Background Image with Cinematic Overlay */}
+        <div className="absolute inset-0 z-0">
+          <img
+            src="/explore/iraq/skyline.png"
+            alt="Baghdad Skyline Backdrop"
+            className="w-full h-full object-cover opacity-35 scale-105 blur-[2px]"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#02050e] via-[#02050e]/80 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#02050e] via-transparent to-[#02050e]" />
+        </div>
 
-      <div ref={sentinelRef} className="h-px w-full" />
+        {/* Hero Content */}
+        <div className="relative z-10 w-full max-w-6xl px-4 flex flex-col items-center text-center">
+          
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+          >
+            <h1 className="text-4xl md:text-6xl font-black tracking-widest text-white uppercase drop-shadow-[0_4px_12px_rgba(0,0,0,0.6)] mb-6">
+              YOURS TO CREATE
+            </h1>
+          </motion.div>
+
+          {/* ── Prompt Generator Container ── */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.15 }}
+            className="w-full max-w-4xl bg-black/60 border border-white/10 rounded-2xl p-3 shadow-[0_12px_45px_rgba(0,0,0,0.8)] backdrop-blur-xl hover:border-white/20 transition-all duration-300"
+          >
+            {/* Input Row */}
+            <div className="flex items-center gap-3">
+              <Search className="w-5 h-5 text-zinc-500 shrink-0" />
+              <input
+                type="text"
+                placeholder="Type a prompt..."
+                value={promptText}
+                onChange={(e) => setPromptText(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") handleGenerate(); }}
+                className="flex-1 bg-transparent border-none text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-0 text-sm md:text-base py-1"
+              />
+              
+              {/* Media Switcher Pill */}
+              <div className="flex bg-white/5 rounded-xl p-1 border border-white/5 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setActiveMedia("image")}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                    activeMedia === "image" ? "bg-white/10 text-white shadow-sm" : "text-zinc-400 hover:text-zinc-200"
+                  }`}
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  Image
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveMedia("video")}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                    activeMedia === "video" ? "bg-white/10 text-white shadow-sm" : "text-zinc-400 hover:text-zinc-200"
+                  }`}
+                >
+                  <Video className="w-3.5 h-3.5" />
+                  Video
+                </button>
+              </div>
+            </div>
+
+            {/* Settings & Generate Row */}
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-white/5 mt-2.5">
+              
+              <div className="flex items-center gap-2.5">
+                {/* Aspect Ratio Selector */}
+                <div className="relative" ref={aspectRef}>
+                  <button
+                    type="button"
+                    onClick={() => setShowAspectDropdown(!showAspectDropdown)}
+                    className="flex items-center gap-1.5 px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-xs font-semibold text-zinc-300 hover:text-white hover:bg-white/10 transition"
+                  >
+                    <LayoutGrid className="w-3.5 h-3.5 text-zinc-400" />
+                    <span>Ratio: {aspectRatio}</span>
+                    <ChevronDown className={`w-3.5 h-3.5 text-zinc-500 transition-transform ${showAspectDropdown ? "rotate-180" : ""}`} />
+                  </button>
+                  
+                  <AnimatePresence>
+                    {showAspectDropdown && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 5 }}
+                        className="absolute bottom-full left-0 z-50 mb-2 w-32 bg-[#090d16] border border-white/10 rounded-xl p-1 shadow-2xl backdrop-blur-xl"
+                      >
+                        {["1:1", "16:9", "9:16", "4:3", "3:4"].map((ratio) => (
+                          <button
+                            key={ratio}
+                            type="button"
+                            onClick={() => {
+                              setAspectRatio(ratio);
+                              setShowAspectDropdown(false);
+                            }}
+                            className={`w-full text-left px-3 py-1.5 rounded-lg text-xs transition ${
+                              aspectRatio === ratio ? "bg-white/10 text-white font-bold" : "text-zinc-400 hover:bg-white/5 hover:text-white"
+                            }`}
+                          >
+                            {ratio}
+                          </button>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+
+                {/* Style Preset Selector */}
+                <div className="relative" ref={styleRef}>
+                  <button
+                    type="button"
+                    onClick={() => setShowStyleDropdown(!showStyleDropdown)}
+                    className="flex items-center gap-1.5 px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-xs font-semibold text-zinc-300 hover:text-white hover:bg-white/10 transition"
+                  >
+                    <Star className="w-3.5 h-3.5 text-zinc-400" />
+                    <span>Style: {selectedStyle}</span>
+                    <ChevronDown className={`w-3.5 h-3.5 text-zinc-500 transition-transform ${showStyleDropdown ? "rotate-180" : ""}`} />
+                  </button>
+
+                  <AnimatePresence>
+                    {showStyleDropdown && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 5 }}
+                        className="absolute bottom-full left-0 z-50 mb-2 w-40 bg-[#090d16] border border-white/10 rounded-xl p-1 shadow-2xl backdrop-blur-xl"
+                      >
+                        {["Dynamic", "Photography", "Anime", "3D Render", "Cinematic"].map((style) => (
+                          <button
+                            key={style}
+                            type="button"
+                            onClick={() => {
+                              setSelectedStyle(style);
+                              setShowStyleDropdown(false);
+                            }}
+                            className={`w-full text-left px-3 py-1.5 rounded-lg text-xs transition ${
+                              selectedStyle === style ? "bg-white/10 text-white font-bold" : "text-zinc-400 hover:bg-white/5 hover:text-white"
+                            }`}
+                          >
+                            {style}
+                          </button>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </div>
+
+              {/* Generate Trigger Button */}
+              <button
+                type="button"
+                onClick={handleGenerate}
+                className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 rounded-xl text-xs font-extrabold text-black shadow-lg shadow-cyan-500/25 transition-all duration-300 transform active:scale-95 shrink-0"
+              >
+                <Wand2 className="w-3.5 h-3.5" />
+                Generate
+              </button>
+
+            </div>
+          </motion.div>
+
+          {/* ── Quick Circles Tools Row ── */}
+          <div className="w-full max-w-4xl flex flex-wrap justify-center sm:justify-between gap-4 sm:gap-0 mt-10">
+            {[
+              { label: "Image Gen", icon: Wand2, badge: "", href: "/image" },
+              { label: "Video Gen", icon: Video, badge: "", href: "/video" },
+              { label: "3D Gen", icon: Box, badge: "", href: "/3d" },
+              { label: "Blueprints", icon: Layers, badge: "NEW", href: "/explore" },
+              { label: "Realtime", icon: Monitor, badge: "NEW", href: "/original-series" },
+              { label: "Flow", icon: TrendingUp, badge: "", href: "/video" },
+              { label: "Upscaler", icon: Aperture, badge: "NEW", href: "/edit?tool=upscale" },
+              { label: "Draw", icon: Paintbrush, badge: "", href: "/edit" }
+            ].map((tool, idx) => (
+              <Link href={tool.href} key={idx} className="flex flex-col items-center gap-2 group cursor-pointer shrink-0">
+                <div className="relative w-16 h-16 lg:w-20 lg:h-20 rounded-2xl bg-white/[0.03] border border-white/10 flex items-center justify-center shadow-lg group-hover:bg-white/[0.08] group-hover:border-white/20 group-hover:scale-105 transition-all duration-200">
+                  <tool.icon className="w-6 h-6 lg:w-8 lg:h-8 text-zinc-300 group-hover:text-white transition-colors" />
+                  {tool.badge && (
+                    <span className="absolute -top-1.5 -right-1.5 lg:-top-2 lg:-right-2 bg-emerald-500 text-[8px] lg:text-[9px] font-black text-black px-1.5 lg:px-2 py-0.5 rounded-full uppercase tracking-wider shadow-lg">
+                      {tool.badge}
+                    </span>
+                  )}
+                </div>
+                <span className="text-[10px] sm:text-xs font-bold text-zinc-400 group-hover:text-white transition-colors">
+                  {tool.label}
+                </span>
+              </Link>
+            ))}
+          </div>
+
+        </div>
+      </section>
+
+      {/* ════════════════════════════════════════════════
+          FEATURED BLUEPRINTS (Horizontal Cards Row)
+      ════════════════════════════════════════════════ */}
+      <section className="w-full px-4 md:px-8 py-10 max-w-[1600px] mx-auto">
+        
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-2">
+            <h2 className="text-xl font-bold tracking-tight text-white">Featured Blueprints</h2>
+            <span className="text-[10px] bg-white/5 border border-white/10 rounded-full px-2.5 py-0.5 font-bold text-zinc-400">
+              Templates
+            </span>
+          </div>
+          <Link href="/image-presets" className="text-xs font-semibold text-cyan-400 hover:text-cyan-300 transition flex items-center gap-1">
+            View More
+            <ArrowUpRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+
+        {/* Horizontal Slider */}
+        <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent scroll-smooth">
+          {BLUEPRINTS.map((bp) => (
+            <Link
+              key={bp.id}
+              href={bp.href}
+              className="flex-shrink-0 w-64 h-80 rounded-2xl border border-white/10 overflow-hidden relative block group cursor-pointer shadow-lg hover:border-white/20 hover:scale-[1.01] transition-all duration-300 bg-zinc-950"
+            >
+              {/* Background Preset */}
+              <img
+                src={bp.imageUrl}
+                alt={bp.title}
+                className="absolute inset-0 w-full h-full object-cover transition duration-700 group-hover:scale-105"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/35 to-transparent" />
+              
+              {/* Badges on Card */}
+              <div className="absolute left-3 top-3 flex items-center gap-2">
+                {bp.badge && (
+                  <span className="bg-emerald-500 text-[9px] font-black text-black px-2 py-0.5 rounded-md uppercase tracking-wider">
+                    {bp.badge}
+                  </span>
+                )}
+                <span className="bg-black/50 border border-white/10 text-[9px] font-black text-zinc-200 px-2 py-0.5 rounded-md uppercase backdrop-blur-md">
+                  {bp.tag}
+                </span>
+              </div>
+
+              {/* Title & Overlay button */}
+              <div className="absolute inset-x-0 bottom-0 p-4">
+                <h3 className="text-base font-bold leading-tight text-white mb-2 group-hover:text-cyan-300 transition-colors">
+                  {bp.title}
+                </h3>
+                <div className="flex items-center gap-1.5 text-[11px] font-extrabold text-cyan-400 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-1 group-hover:translate-y-0">
+                  <span>Create Preset</span>
+                  <ArrowUpRight className="w-3 h-3" />
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+
+      </section>
+
+      {/* ════════════════════════════════════════════════
+          OFFICIAL SHOWCASES & BANNER ADS (الموديلات والانتاج)
+      ════════════════════════════════════════════════ */}
+      <section className="py-4 border-t border-b border-white/5 my-6">
+        
+        {/* Dynamic explore CMS banners */}
+        {cmsModules.map((module) => (
+          <DynamicExploreModule key={module.id} module={module} />
+        ))}
+
+        {/* Dynamic model showcases sections */}
+        {modelShowcaseSections.map((section) => (
+          <DiscoverSection
+            key={section.title}
+            kicker={section.kicker}
+            title={section.title}
+            subtitle={section.subtitle}
+            ctaLabel={section.ctaLabel}
+            items={section.items}
+            accentClassName={section.accentClassName}
+            autoplayKey={autoplayKey}
+            onAutoplayRequest={requestAutoplay}
+          />
+        ))}
+
+      </section>
+
+      {/* ════════════════════════════════════════════════
+          COMMUNITY CREATIONS (Iraq Masonry & Filters)
+      ════════════════════════════════════════════════ */}
+      <section className="w-full px-4 md:px-8 py-6 max-w-[1600px] mx-auto">
+        
+        {/* Section Heading & Category Filters */}
+        <div className="flex flex-col gap-6 border-b border-white/5 pb-6 mb-8">
+          
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <h2 className="text-xl font-bold tracking-tight text-white">Community Creations (Iraq & Baghdad)</h2>
+            
+            {/* Search Input bar */}
+            <div className="relative max-w-sm w-full">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+              <input
+                type="text"
+                placeholder="Search Iraq gallery..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-white/[0.03] border border-white/10 rounded-xl pl-10 pr-4 py-2 text-xs focus:outline-none focus:border-white/20 transition text-zinc-200"
+              />
+            </div>
+          </div>
+
+          {/* Filtering Pill bars */}
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            
+            <div className="flex flex-wrap gap-2">
+              {/* Category selector pills */}
+              {["All", "Architecture", "Sci-Fi", "Photography", "History", "Nature"].map((cat) => (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => setActiveCategory(cat)}
+                  className={`px-4 py-2 rounded-xl text-xs font-semibold transition ${
+                    activeCategory === cat
+                      ? "bg-white/10 text-white border border-white/15"
+                      : "text-zinc-400 hover:text-white hover:bg-white/5 border border-transparent"
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+
+            {/* Sorting pill selection */}
+            <div className="relative" ref={sortRef}>
+              <button
+                type="button"
+                onClick={() => setShowSortDropdown(!showSortDropdown)}
+                className="flex items-center gap-1.5 px-4 py-2 bg-white/[0.03] border border-white/10 rounded-xl text-xs font-semibold text-zinc-300 hover:text-white transition"
+              >
+                <span>Sort: {sortBy}</span>
+                <ChevronDown className="w-3.5 h-3.5 text-zinc-500" />
+              </button>
+
+              <AnimatePresence>
+                {showSortDropdown && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 5 }}
+                    className="absolute right-0 top-full mt-2 w-32 bg-[#090d16] border border-white/10 rounded-xl p-1 shadow-2xl z-40 backdrop-blur-xl"
+                  >
+                    {(["Trending", "Likes", "Views"] as const).map((mode) => (
+                      <button
+                        key={mode}
+                        type="button"
+                        onClick={() => {
+                          setSortBy(mode);
+                          setShowSortDropdown(false);
+                        }}
+                        className={`w-full text-left px-3 py-1.5 rounded-lg text-xs transition ${
+                          sortBy === mode ? "bg-white/10 text-white font-bold" : "text-zinc-400 hover:bg-white/5 hover:text-white"
+                        }`}
+                      >
+                        {mode}
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+          </div>
+        </div>
+
+        {/* ── Masonry Grid Rendering ── */}
+        {filteredIraqImages.length === 0 ? (
+          <div className="w-full py-20 flex flex-col items-center justify-center border border-white/5 rounded-2xl bg-white/[0.01]">
+            <Info className="w-8 h-8 text-zinc-500 mb-3" />
+            <p className="text-sm text-zinc-400 font-medium">No results found matching your search filters.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {iraqColumns.map((columnItems, colIdx) => (
+              <div key={colIdx} className="flex flex-col gap-6">
+                {columnItems.map((item) => (
+                  <div
+                    key={item.id}
+                    className="relative rounded-2xl overflow-hidden border border-white/5 bg-white/[0.01] hover:border-white/15 transition-all duration-300 group shadow-lg"
+                  >
+                    
+                    {/* Render Image with proper tag sizing */}
+                    <div className="relative w-full overflow-hidden bg-zinc-950">
+                      <img
+                        src={item.imageUrl}
+                        alt={item.title}
+                        className="w-full h-auto object-cover transition duration-700 group-hover:scale-[1.01]"
+                        loading="lazy"
+                      />
+                      
+                      {/* Dark overlay showing on hover */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-between p-4" />
+                    </div>
+
+                    {/* Metadata & Actions inside Card */}
+                    <div className="p-4 flex flex-col gap-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold text-zinc-400">{item.creator}</span>
+                        <span className="text-[10px] bg-white/5 border border-white/10 rounded-md px-2 py-0.5 font-bold text-zinc-400">
+                          {item.model}
+                        </span>
+                      </div>
+                      
+                      <h4 className="text-sm font-bold text-zinc-100 leading-snug">{item.title}</h4>
+                      
+                      {/* Small Prompt Display box */}
+                      <p className="text-xs text-zinc-400 line-clamp-2 leading-relaxed bg-white/[0.02] border border-white/5 rounded-lg p-2 font-mono">
+                        {item.prompt}
+                      </p>
+
+                      {/* Interactive Bottom Bar */}
+                      <div className="flex items-center justify-between pt-2 border-t border-white/5 mt-1">
+                        
+                        <div className="flex items-center gap-3">
+                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-zinc-400">
+                            <Eye className="w-3.5 h-3.5" />
+                            {item.views}
+                          </span>
+                          <button
+                            type="button"
+                            className="inline-flex items-center gap-1 text-[11px] font-semibold text-zinc-400 hover:text-pink-500 transition"
+                          >
+                            <Heart className="w-3.5 h-3.5" />
+                            {item.likes}
+                          </button>
+                        </div>
+
+                        {/* Prompt copying Action button */}
+                        <button
+                          type="button"
+                          onClick={() => handleCopyPrompt(item.id, item.prompt)}
+                          className="flex items-center gap-1 text-xs font-semibold text-cyan-400 hover:text-cyan-300 transition"
+                        >
+                          {copiedId === item.id ? (
+                            <>
+                              <Check className="w-3.5 h-3.5 text-emerald-400" />
+                              <span className="text-emerald-400">Copied!</span>
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="w-3.5 h-3.5" />
+                              <span>Copy Prompt</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        )}
+
+      </section>
+
     </main>
   );
 }

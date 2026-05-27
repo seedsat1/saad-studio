@@ -255,11 +255,180 @@ export const IMAGE_PRESETS: ImagePreset[] = [
     prompt:
       "Tiny isometric 3D diorama on a circular floating island. Cute stylized buildings, soft pastel colors, miniature trees, low-poly aesthetic, soft studio lighting. Mobile-game cover art quality.",
   },
+  {
+    id: "iraq-3d-reference",
+    title: "3D Reference View Creator",
+    category: "3D",
+    iconName: "Box",
+    accent: "from-blue-600 via-indigo-600 to-violet-700",
+    model: "flux-2/pro-text-to-image",
+    aspect: "1:1",
+    quality: "4K",
+    imageFile: "/explore/iraq/cultural_center.png",
+    prompt: "3d reference view of a modern iraqi monument, white curves, studio background"
+  },
+  {
+    id: "iraq-motion-showcase",
+    title: "Motion Product Showcase",
+    category: "Photography",
+    iconName: "Camera",
+    accent: "from-zinc-700 via-zinc-800 to-black",
+    model: "flux-2/pro-text-to-image",
+    aspect: "16:9",
+    quality: "4K",
+    imageFile: "/explore/iraq/metro.png",
+    prompt: "motion product showcase of a futuristic iraqi high-tech metro train, sleek cinematic movement"
+  },
+  {
+    id: "iraq-cinematic-film",
+    title: "Cinematic Scenario Product Film",
+    category: "Photography",
+    iconName: "Camera",
+    accent: "from-amber-600 via-red-700 to-stone-900",
+    model: "flux-2/pro-text-to-image",
+    aspect: "16:9",
+    quality: "4K",
+    imageFile: "/explore/iraq/skyline.png",
+    prompt: "cinematic scenario product film of baghdad modern skyscrapers, golden hour reflections, sweeping camera"
+  },
+  {
+    id: "iraq-cyberpunk-style",
+    title: "Mesopotamian Cyberpunk Style",
+    category: "Style",
+    iconName: "Building2",
+    accent: "from-fuchsia-700 via-pink-600 to-purple-800",
+    model: "flux-2/pro-text-to-image",
+    aspect: "16:9",
+    quality: "4K",
+    imageFile: "/explore/iraq/babylon.png",
+    prompt: "cyberpunk reborn babylon, neon gates and ziggurats, rainy night"
+  },
+  {
+    id: "iraq-tilt-shift",
+    title: "Tilt-Shift Miniature Effect",
+    category: "Photography",
+    iconName: "Camera",
+    accent: "from-emerald-600 via-teal-700 to-cyan-800",
+    model: "flux-2/pro-text-to-image",
+    aspect: "4:3",
+    quality: "2K",
+    imageFile: "/explore/iraq/riverwalk.png",
+    prompt: "tilt-shift miniature effect of the tigris riverwalk park in baghdad, tiny people and cars, toy-like depth of field"
+  },
+  {
+    id: "iraq-eco-city",
+    title: "Eco-City Architecture Render",
+    category: "Architecture",
+    iconName: "Building",
+    accent: "from-green-600 via-emerald-700 to-teal-800",
+    model: "flux-2/pro-text-to-image",
+    aspect: "16:9",
+    quality: "4K",
+    imageFile: "/explore/iraq/eco_city.png",
+    prompt: "architectural render of a floating eco-city in the iraqi marshes, solar powered design"
+  },
+  {
+    id: "iraq-skyline",
+    title: "Futuristic Baghdad Skyline",
+    category: "Architecture",
+    iconName: "Building",
+    accent: "from-blue-900 via-indigo-950 to-[#02050e]",
+    model: "flux-2/pro-text-to-image",
+    aspect: "16:9",
+    quality: "4K",
+    imageFile: "/explore/iraq/skyline.png",
+    prompt: "A hyper-realistic futuristic Baghdad skyline at night along the Tigris River, showcasing modern organic architecture inspired by Zaha Hadid, glowing skyscrapers with neon blue and amber lights, futuristic suspension bridges."
+  },
+  {
+    id: "iraq-museum",
+    title: "Mesopotamian Future Museum",
+    category: "Architecture",
+    iconName: "Building2",
+    accent: "from-amber-900 via-yellow-950 to-[#02050e]",
+    model: "flux-2/pro-text-to-image",
+    aspect: "16:9",
+    quality: "4K",
+    imageFile: "/explore/iraq/museum.png",
+    prompt: "A hyper-modern futuristic museum in Baghdad blending ancient Mesopotamian Babylonian brickwork and ziggurat patterns with towering glass facades, holographic projections, hanging gardens."
+  },
+  {
+    id: "iraq-metro",
+    title: "Baghdad Metro Station",
+    category: "Photography",
+    iconName: "Camera",
+    accent: "from-slate-600 via-stone-700 to-[#02050e]",
+    model: "flux-2/pro-text-to-image",
+    aspect: "16:9",
+    quality: "4K",
+    imageFile: "/explore/iraq/metro.png",
+    prompt: "Interior of a sleek, futuristic metro station in Baghdad, modern design with arches inspired by traditional Islamic architecture, gold and white colors, glass ceilings showing skyscrapers."
+  },
+  {
+    id: "iraq-babylon",
+    title: "Futuristic Babylon City",
+    category: "Style",
+    iconName: "Sparkles",
+    accent: "from-purple-900 via-pink-900 to-[#02050e]",
+    model: "flux-2/pro-text-to-image",
+    aspect: "16:9",
+    quality: "4K",
+    imageFile: "/explore/iraq/babylon.png",
+    prompt: "A futuristic metropolis built around the ruins of Babylon, giant holographic Ishtar Gate shining blue and purple at night, neon ziggurats, elevated transit hyperloops, cyberpunk style."
+  },
+  {
+    id: "iraq-cultural-center",
+    title: "Zaha Hadid Baghdad Cultural Center",
+    category: "Architecture",
+    iconName: "Building",
+    accent: "from-cyan-900 via-sky-950 to-[#02050e]",
+    model: "flux-2/pro-text-to-image",
+    aspect: "16:9",
+    quality: "4K",
+    imageFile: "/explore/iraq/cultural_center.png",
+    prompt: "A spectacular modern cultural center in Baghdad, designed in the style of Zaha Hadid, featuring sweeping white concrete curves, large glass panels, reflecting pools, landscaped gardens."
+  },
+  {
+    id: "iraq-riverwalk",
+    title: "Modern Tigris Riverwalk",
+    category: "Photography",
+    iconName: "Camera",
+    accent: "from-orange-900 via-red-950 to-[#02050e]",
+    model: "flux-2/pro-text-to-image",
+    aspect: "16:9",
+    quality: "4K",
+    imageFile: "/explore/iraq/riverwalk.png",
+    prompt: "A modern riverwalk park along the Tigris River in Baghdad, high-rise skyscrapers in the background, sleek streetlights, palm trees reflecting the sunset, beautiful reflection on the water."
+  },
+  {
+    id: "iraq-marshes",
+    title: "Mesopotamian Eco-City Marshes",
+    category: "Nature",
+    iconName: "Trees",
+    accent: "from-green-900 via-emerald-950 to-[#02050e]",
+    model: "flux-2/pro-text-to-image",
+    aspect: "16:9",
+    quality: "4K",
+    imageFile: "/explore/iraq/eco_city.png",
+    prompt: "A futuristic Mesopotamian eco-city built in the marshes of southern Iraq, with solar-powered floating houses of high-tech design, green vegetation, clean canals with electric boats."
+  },
+  {
+    id: "iraq-space-center",
+    title: "Iraq Space Center & Observatory",
+    category: "Sci-Fi",
+    iconName: "Box",
+    accent: "from-violet-900 via-purple-950 to-[#02050e]",
+    model: "flux-2/pro-text-to-image",
+    aspect: "16:9",
+    quality: "4K",
+    imageFile: "/explore/iraq/space_center.png",
+    prompt: "A futuristic space center and observatory in the desert of Iraq, modern high-tech white domes and parabolic telescope dishes, space launch pad in the background under a night sky full of stars."
+  }
 ];
 
 /** Returns the public URL for a preset's thumbnail, properly URL-encoded. */
 export function presetImageUrl(p: ImagePreset): string | null {
   if (!p.imageFile) return null;
+  if (p.imageFile.startsWith("/")) return p.imageFile;
   return `/preset/${encodeURIComponent(p.imageFile)}`;
 }
 
