@@ -64,6 +64,27 @@ function firstString(value: unknown): string | null {
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
+function getErrorMessage(payload: unknown): string {
+  if (!payload || typeof payload !== "object") return "";
+  const record = payload as Record<string, unknown>;
+  return String(
+    record.error ??
+    record.publicError ??
+    record.message ??
+    record.msg ??
+    "",
+  ).trim();
+}
+
+function isMissingTaskResponse(status: number, payload: unknown): boolean {
+  const message = getErrorMessage(payload);
+  return (
+    status === 404 ||
+    status === 410 ||
+    /job not found|task not found|not found in cache storage|expired/i.test(message)
+  );
+}
+
 function buildFinalCinemaPrompt(params: {
   basePrompt: string;
   dialogueText: string;
@@ -505,6 +526,18 @@ export async function GET(req: Request) {
     });
     const payload = await response.json().catch(() => null);
     if (!response.ok) {
+      if (isMissingTaskResponse(response.status, payload)) {
+        return NextResponse.json({
+          taskId,
+          status: "FAILED",
+          progress: 0,
+          outputs: [],
+          videoUrl: null,
+          error: "Render job expired or was not found. Please start a new render.",
+          terminal: true,
+        });
+      }
+
       return NextResponse.json(payload ?? { error: "Failed to query video task" }, { status: response.status });
     }
 

@@ -1357,6 +1357,7 @@ export default function App() {
   // Multi-route polling
   const startPollingJob = (jobId: string) => {
     let countAttempts = 0;
+    let consecutivePollErrors = 0;
     const pollObj = setInterval(async () => {
       countAttempts++;
       if (countAttempts > 180) {
@@ -1370,8 +1371,28 @@ export default function App() {
 
       try {
         const response = await fetch(`/api/cinema/render?taskId=${encodeURIComponent(jobId)}`);
-        if (!response.ok) throw new Error("Job not found in cache storage");
-        const body = await response.json();
+        const body = await response.json().catch(() => null);
+
+        if (!response.ok) {
+          const message = body?.error || body?.message || `Polling failed with status ${response.status}.`;
+          const isTerminalMissingJob =
+            response.status === 404 ||
+            response.status === 410 ||
+            /job not found|task not found|not found in cache storage|expired/i.test(String(message));
+
+          if (isTerminalMissingJob) {
+            clearInterval(pollObj);
+            setRenderNotice("Render job expired or was not found. Please start a new render.");
+            setStatus("FAILED");
+            setProgress(0);
+            setIsPlaying(false);
+            return;
+          }
+
+          throw new Error(String(message));
+        }
+
+        consecutivePollErrors = 0;
         
         if (body.status === "COMPLETED") {
           clearInterval(pollObj);
@@ -1399,7 +1420,15 @@ export default function App() {
           setProgress(body.progress || Math.min(countAttempts * 10, 95));
         }
       } catch (err) {
+        consecutivePollErrors++;
         console.warn("Retrying state polling...", err);
+        if (consecutivePollErrors >= 5) {
+          clearInterval(pollObj);
+          setRenderNotice(err instanceof Error ? err.message : "Unable to poll render status. Please try again.");
+          setStatus("FAILED");
+          setProgress(0);
+          setIsPlaying(false);
+        }
       }
     }, 2000);
   };
