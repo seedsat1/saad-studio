@@ -1660,7 +1660,7 @@ export default function App() {
   return (
     <div
       id="full_studio_page"
-      className="min-h-screen bg-[#060c18] text-[#f8fafc] flex flex-col font-sans overflow-hidden select-none selection:bg-[#8b5cf6]/30 relative"
+      className="h-[calc(100dvh-56px)] bg-[#060c18] text-[#f8fafc] flex flex-col font-sans overflow-hidden select-none selection:bg-[#8b5cf6]/30 relative"
       // Swallow drag/drop that misses a dedicated drop-zone so the browser
       // doesn't navigate away and replace the page with the image.
       onDragOver={(e) => { e.preventDefault(); }}
@@ -1668,13 +1668,13 @@ export default function App() {
     >
 
       {/* CINEMATIC BACKGROUND LAYERS — Anamorphic Noir */}
-      <div className="cine-bg-radial fixed inset-0 pointer-events-none z-0" aria-hidden />
+      <div className="cine-bg-radial absolute inset-0 pointer-events-none z-0" aria-hidden />
       <div className="cine-flare f1" aria-hidden />
       <div className="cine-flare f2" aria-hidden />
-      <div className="cine-bg-scan fixed inset-0 pointer-events-none z-[4]" aria-hidden />
-      <div className="cine-bg-vignette fixed inset-0 pointer-events-none z-[5]" aria-hidden />
-      <div className="cine-bg-grain fixed inset-0 pointer-events-none z-[6]" aria-hidden />
-      <div className="fixed inset-0 pointer-events-none z-[3] overflow-hidden" aria-hidden>
+      <div className="cine-bg-scan absolute inset-0 pointer-events-none z-[4]" aria-hidden />
+      <div className="cine-bg-vignette absolute inset-0 pointer-events-none z-[5]" aria-hidden />
+      <div className="cine-bg-grain absolute inset-0 pointer-events-none z-[6]" aria-hidden />
+      <div className="absolute inset-0 pointer-events-none z-[3] overflow-hidden" aria-hidden>
         {Array.from({ length: 14 }).map((_, i) => (
           <span
             key={i}
@@ -1691,7 +1691,7 @@ export default function App() {
       </div>
 
       {/* 1. STATE-OF-THE-ART SLICK HEADER */}
-      <header id="top_cinema_header" className="h-14 bg-[#0f172a] border-b border-[#1e293b] px-6 flex items-center justify-between relative z-50">
+      <header id="top_cinema_header" className="h-14 shrink-0 bg-[#0f172a] border-b border-[#1e293b] px-6 flex items-center justify-between relative z-50">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-[#8b5cf6] to-[#06b6d4] flex items-center justify-center shadow-lg shadow-black/60">
             <Film size={16} className="text-white animate-pulse" />
@@ -1721,7 +1721,7 @@ export default function App() {
       </header>
 
       {/* 2. THREE-PANEL EDITORIAL WORKSPACE */}
-      <div className="flex-1 flex overflow-hidden relative z-30">
+      <div className="flex-1 min-h-0 flex overflow-hidden relative z-30">
         
         {/* SIDEBAR: LEFT NAV & PRESETS HISTORIES */}
         <aside id="suite_sidebar" className="w-[280px] bg-[#0f172a] border-r border-[#1e293b] flex flex-col justify-between hidden md:flex flex-shrink-0">
@@ -1878,7 +1878,7 @@ export default function App() {
         </aside>
 
         {/* WORKSPACE AREA: DYNAMIC CANVAS STAGE & POPUPS */}
-        <section id="center_viewport" className="flex-1 flex flex-col justify-between p-6 relative overflow-y-auto bg-gradient-to-b from-[#020617] to-[#060c18]">
+        <section id="center_viewport" className="flex-1 min-h-0 flex flex-col justify-between p-6 relative overflow-hidden bg-gradient-to-b from-[#020617] to-[#060c18]">
           
           {/* AESTHETIC CORNER MARKINGS FOR EMPTY STATE / PREVIEW */}
           <div className="absolute top-10 left-10 w-4 h-4 border-t border-l border-[#1e293b] pointer-events-none" />
@@ -1887,7 +1887,7 @@ export default function App() {
           <div className="absolute bottom-10 right-10 w-4 h-4 border-b border-r border-[#1e293b] pointer-events-none" />
 
           {/* DYNAMIC CANVAS LOGIC OUTLINE */}
-          <div className="flex-1 flex items-center justify-center my-auto min-h-[350px]">
+          <div className="flex-1 min-h-0 flex items-center justify-center overflow-hidden">
             <AnimatePresence mode="wait">
               
               {/* IDLE VIEWPORT - EXQUISITE MINIMALISM MATCHING THE SCREENSHOTS */}
@@ -2317,7 +2317,7 @@ export default function App() {
             </div>
           )}
 
-          <div id="footer_generate_ribbon" className="max-w-[850px] mx-auto w-full bg-[#0f172a] border border-[#1e293b] rounded-xl p-3 shadow-2xl relative z-40">
+          <div id="footer_generate_ribbon" className="max-w-[850px] mx-auto w-full shrink-0 bg-[#0f172a] border border-[#1e293b] rounded-xl p-3 shadow-2xl relative z-40">
 
             {/* Input Row */}
             {/* Input Row */}
