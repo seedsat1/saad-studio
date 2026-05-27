@@ -878,6 +878,9 @@ function extractOutputs(resultPayload: unknown): string[] {
   if (!resultPayload) return [];
 
   if (typeof resultPayload === "string") {
+    if (/^https?:\/\//.test(resultPayload)) return [resultPayload];
+    const urlMatches = resultPayload.match(/https?:\/\/[^\s"'<>\\]+/g);
+    if (urlMatches?.length) return urlMatches;
     try {
       const parsed = JSON.parse(resultPayload);
       return extractOutputs(parsed);
@@ -887,30 +890,12 @@ function extractOutputs(resultPayload: unknown): string[] {
   }
 
   if (Array.isArray(resultPayload)) {
-    const direct = resultPayload.filter((v): v is string => typeof v === "string" && /^https?:\/\//.test(v));
-    if (direct.length) return direct;
-    // Handle provider arrays such as [{ video_url: { url } }] or [{ url }].
-    const fromObjects: string[] = [];
+    const fromItems: string[] = [];
     for (const item of resultPayload) {
-      if (item && typeof item === "object") {
-        const obj = item as Record<string, unknown>;
-        for (const candidate of [
-          obj.url,
-          obj.videoUrl,
-          obj.video_url,
-          obj.fileUrl,
-          obj.file_url,
-          obj.imageUrl,
-          obj.image_url,
-          obj.downloadUrl,
-          obj.download_url,
-        ]) {
-          const extracted = extractOutputs(candidate);
-          if (extracted.length) fromObjects.push(...extracted);
-        }
-      }
+      const extracted = extractOutputs(item);
+      if (extracted.length) fromItems.push(...extracted);
     }
-    return fromObjects;
+    return fromItems;
   }
 
   if (typeof resultPayload === "object") {
@@ -936,6 +921,13 @@ function extractOutputs(resultPayload: unknown): string[] {
       const extracted = extractOutputs(candidate);
       if (extracted.length) return extracted;
     }
+
+    const nested: string[] = [];
+    for (const value of Object.values(data)) {
+      const extracted = extractOutputs(value);
+      if (extracted.length) nested.push(...extracted);
+    }
+    return nested;
   }
 
   return [];
@@ -1816,11 +1808,9 @@ export async function GET(req: Request) {
       }).catch(() => null);
 
       if (linkedGeneration?.mediaUrl && !linkedGeneration.mediaUrl.startsWith("task:")) {
-        if (linkedGeneration.mediaUrl.startsWith("failed:")) {
-          const parts = linkedGeneration.mediaUrl.split(":");
-          return NextResponse.json({ taskId, status: "failed", outputs: [], error: parts.slice(2).join(":") || "Generation failed" });
+        if (!linkedGeneration.mediaUrl.startsWith("failed:")) {
+          return NextResponse.json({ taskId, status: "completed", outputs: [linkedGeneration.mediaUrl], error: null });
         }
-        return NextResponse.json({ taskId, status: "completed", outputs: [linkedGeneration.mediaUrl], error: null });
       }
 
       const pollRes = await fetch(`${BYTEPLUS_CONTENT_TASKS_URL}/${encodeURIComponent(arkTaskId)}`, {
