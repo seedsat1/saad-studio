@@ -889,13 +889,25 @@ function extractOutputs(resultPayload: unknown): string[] {
   if (Array.isArray(resultPayload)) {
     const direct = resultPayload.filter((v): v is string => typeof v === "string" && /^https?:\/\//.test(v));
     if (direct.length) return direct;
-    // Handle array of objects with url/videoUrl/imageUrl fields
+    // Handle provider arrays such as [{ video_url: { url } }] or [{ url }].
     const fromObjects: string[] = [];
     for (const item of resultPayload) {
       if (item && typeof item === "object") {
         const obj = item as Record<string, unknown>;
-        const url = obj.url ?? obj.videoUrl ?? obj.imageUrl ?? obj.downloadUrl;
-        if (typeof url === "string" && /^https?:\/\//.test(url)) fromObjects.push(url);
+        for (const candidate of [
+          obj.url,
+          obj.videoUrl,
+          obj.video_url,
+          obj.fileUrl,
+          obj.file_url,
+          obj.imageUrl,
+          obj.image_url,
+          obj.downloadUrl,
+          obj.download_url,
+        ]) {
+          const extracted = extractOutputs(candidate);
+          if (extracted.length) fromObjects.push(...extracted);
+        }
       }
     }
     return fromObjects;
