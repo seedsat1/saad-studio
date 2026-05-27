@@ -34,6 +34,9 @@ type OutputItem = {
   name: string;
   url: string;
   createdAt: string;
+  prompt?: string;
+  engine?: string;
+  presetName?: string;
   fps?: number;
   resolution?: ResolutionMode;
 };
@@ -221,6 +224,7 @@ async function loadPersistedVideoOutputs() {
       name: "Saad Cloud video",
       url: String(asset.url),
       createdAt: typeof asset.date === "string" ? asset.date : "Saved",
+      engine: "Saad Cloud",
     }))
     .slice(0, 8);
 }
@@ -535,6 +539,8 @@ export default function CinematicStylesPage() {
   const [taskId, setTaskId] = useState<string | null>(null);
   const [outputUrl, setOutputUrl] = useState<string | null>(null);
   const [outputs, setOutputs] = useState<OutputItem[]>([]);
+  const [selectedOutputId, setSelectedOutputId] = useState<string | null>(null);
+  const [outputCopied, setOutputCopied] = useState(false);
   const [presetMedia, setPresetMedia] = useState<Record<string, { type: "image" | "video"; url: string; poster?: string }>>({});
   const [lightboxPresetId, setLightboxPresetId] = useState<string | null>(null);
   const [lightboxCopied, setLightboxCopied] = useState(false);
@@ -553,6 +559,10 @@ export default function CinematicStylesPage() {
     [lightboxPresetId]
   );
   const lightboxMedia = lightboxPresetId ? presetMedia[lightboxPresetId] : null;
+  const selectedOutput = useMemo(
+    () => (selectedOutputId ? outputs.find((item) => item.id === selectedOutputId) ?? null : null),
+    [outputs, selectedOutputId]
+  );
   const effectiveFps = fpsMode === "manual" ? manualFps : Number(fpsMode);
   const canGenerate = Boolean(sourceUrl) && status !== "processing" && effectiveFps > 0;
 
@@ -612,6 +622,42 @@ export default function CinematicStylesPage() {
     }
   }, [lightboxMedia, lightboxPreset]);
 
+  const closeOutputDetails = useCallback(() => {
+    setSelectedOutputId(null);
+    setOutputCopied(false);
+  }, []);
+
+  const downloadSelectedOutput = useCallback(async () => {
+    if (!selectedOutput?.url) return;
+    try {
+      const res = await fetch(selectedOutput.url, { mode: "cors" });
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = `${selectedOutput.name || "cinematic-style-output"}.mp4`
+        .replace(/[^a-z0-9._-]+/gi, "-")
+        .replace(/^-+|-+$/g, "");
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+    } catch {
+      window.open(selectedOutput.url, "_blank", "noopener,noreferrer");
+    }
+  }, [selectedOutput]);
+
+  const copySelectedOutputUrl = useCallback(async () => {
+    if (!selectedOutput?.url) return;
+    try {
+      await navigator.clipboard.writeText(selectedOutput.url);
+      setOutputCopied(true);
+      setTimeout(() => setOutputCopied(false), 2000);
+    } catch {
+      /* noop */
+    }
+  }, [selectedOutput]);
+
   useEffect(() => {
     if (!lightboxPresetId) return;
     const handler = (e: KeyboardEvent) => {
@@ -620,6 +666,15 @@ export default function CinematicStylesPage() {
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [lightboxPresetId, closeLightbox]);
+
+  useEffect(() => {
+    if (!selectedOutputId) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeOutputDetails();
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [selectedOutputId, closeOutputDetails]);
 
   useEffect(() => {
     const urls = objectUrls.current;
@@ -799,6 +854,9 @@ export default function CinematicStylesPage() {
           name: selectedPreset.name,
           url: nextOutputUrl,
           createdAt: new Date().toLocaleTimeString(),
+          prompt: buildStylePrompt(selectedPreset, colors, effectiveFps, resolution),
+          engine: "Local preview",
+          presetName: selectedPreset.name,
           fps: effectiveFps,
           resolution,
         },
@@ -940,6 +998,9 @@ export default function CinematicStylesPage() {
               name: `${selectedPreset.name} - Saad Cloud`,
               url: finalUrl,
               createdAt: new Date().toLocaleTimeString(),
+              prompt,
+              engine: "Saad Cloud",
+              presetName: selectedPreset.name,
               fps: effectiveFps,
               resolution,
             },
@@ -1322,10 +1383,16 @@ export default function CinematicStylesPage() {
                       onClick={() => {
                         setOutputUrl(item.url);
                         setStatus("completed");
+                        setSelectedOutputId(item.id);
                       }}
-                      className="overflow-hidden rounded-lg border border-white/8 bg-[#11161d] text-left transition hover:border-white/20"
+                      className="group overflow-hidden rounded-lg border border-white/8 bg-[#11161d] text-left transition hover:border-cyan-300/40"
                     >
-                      <video src={item.url} className="aspect-video w-full bg-black object-cover" muted />
+                      <div className="relative">
+                        <video src={item.url} className="aspect-video w-full bg-black object-cover" muted />
+                        <div className="absolute right-3 top-3 rounded-full border border-white/15 bg-black/60 px-2 py-1 text-[11px] font-bold text-white opacity-0 backdrop-blur-sm transition group-hover:opacity-100">
+                          Details
+                        </div>
+                      </div>
                       <div className="p-3">
                         <p className="truncate text-sm font-black text-white">{item.name}</p>
                         <p className="mt-1 text-xs text-slate-500">{outputMetaLabel(item)}</p>
@@ -1461,6 +1528,90 @@ export default function CinematicStylesPage() {
                 >
                   <Check className="h-3.5 w-3.5" />
                   Select this preset
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {selectedOutput ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm"
+          onClick={(e) => { if (e.target === e.currentTarget) closeOutputDetails(); }}
+        >
+          <button
+            type="button"
+            onClick={closeOutputDetails}
+            className="absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-white/10 transition hover:bg-white/20"
+            aria-label="Close"
+          >
+            <X className="h-5 w-5 text-white" />
+          </button>
+
+          <div className="grid max-h-[88vh] w-full max-w-6xl grid-cols-1 gap-4 overflow-y-auto px-4 md:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.75fr)]">
+            <div className="flex min-h-[320px] items-center justify-center rounded-2xl border border-white/10 bg-black/50 p-3 shadow-2xl">
+              <video
+                src={selectedOutput.url}
+                controls
+                autoPlay
+                playsInline
+                className="max-h-[76vh] max-w-full rounded-xl object-contain"
+              />
+            </div>
+
+            <div className="space-y-4 rounded-2xl border border-white/10 bg-[#0b1222] p-5">
+              <div>
+                <div className="inline-flex rounded-full border border-cyan-300/20 bg-cyan-400/10 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-cyan-200">
+                  {selectedOutput.engine || "Saad Cloud"}
+                </div>
+                <h2 className="mt-4 text-xl font-black text-white">{selectedOutput.name}</h2>
+                <p className="mt-1 text-xs text-slate-500">{selectedOutput.createdAt}</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                  <p className="text-[10px] uppercase tracking-wide text-slate-500">Preset</p>
+                  <p className="mt-1 truncate text-sm font-semibold text-white">{selectedOutput.presetName || selectedOutput.name}</p>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                  <p className="text-[10px] uppercase tracking-wide text-slate-500">Format</p>
+                  <p className="mt-1 text-sm font-semibold text-white">{selectedOutput.resolution || "Saved"}{selectedOutput.fps ? ` - ${selectedOutput.fps} FPS` : ""}</p>
+                </div>
+              </div>
+
+              <div className="max-h-72 overflow-y-auto rounded-xl border border-white/10 bg-white/[0.03] p-4">
+                <p className="text-[11px] uppercase tracking-wide text-slate-500">Prompt</p>
+                <p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-slate-200">
+                  {selectedOutput.prompt || "Prompt details were not saved for this older output."}
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => void downloadSelectedOutput()}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-400/30 bg-cyan-500/10 px-3 py-1.5 text-xs text-cyan-100 transition-colors hover:bg-cyan-500/20"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  Download
+                </button>
+                <a
+                  href={selectedOutput.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-white/5 px-3 py-1.5 text-xs text-slate-200 transition-colors hover:bg-white/10"
+                >
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  Open original
+                </a>
+                <button
+                  type="button"
+                  onClick={() => void copySelectedOutputUrl()}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-white/5 px-3 py-1.5 text-xs text-slate-200 transition-colors hover:bg-white/10"
+                >
+                  {outputCopied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
+                  {outputCopied ? "Copied!" : "Copy URL"}
                 </button>
               </div>
             </div>
