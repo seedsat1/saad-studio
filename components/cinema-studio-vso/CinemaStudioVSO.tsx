@@ -889,6 +889,31 @@ export default function App() {
   // frozen while /api/media/upload is in flight.
   const [refUploadBusy, setRefUploadBusy] = useState(false);
   const [endFrameUploadBusy, setEndFrameUploadBusy] = useState(false);
+  // Drag-over visual feedback for each drop zone.
+  const [refDragOver, setRefDragOver] = useState(false);
+  const [endFrameDragOver, setEndFrameDragOver] = useState(false);
+
+  // Convert a DataTransfer dropped on a zone into a FileList of images only.
+  // Returns null when no usable image is present so the caller can no-op.
+  const extractImagesFromDataTransfer = (dt: DataTransfer | null): FileList | null => {
+    if (!dt) return null;
+    const list = dt.files;
+    if (!list || list.length === 0) return null;
+    // Filter non-image files: rebuild a fresh FileList-like array via
+    // DataTransfer (some browsers don't construct FileList directly).
+    const imageFiles = Array.from(list).filter((f) => f.type.startsWith("image/"));
+    if (imageFiles.length === 0) return null;
+    const dataT = new DataTransfer();
+    imageFiles.forEach((f) => dataT.items.add(f));
+    return dataT.files;
+  };
+
+  // Shared drag-event preventer so the browser doesn't navigate away when
+  // a file is dropped outside the dedicated zones.
+  const preventDefaultDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
 
   const handleReferenceUpload = async (files: FileList | null) => {
     const limit = activeModelObj.capabilities.max_reference_images;
@@ -1330,7 +1355,14 @@ export default function App() {
   };
 
   return (
-    <div id="full_studio_page" className="min-h-screen bg-[#060c18] text-[#f8fafc] flex flex-col font-sans overflow-hidden select-none selection:bg-[#8b5cf6]/30 relative">
+    <div
+      id="full_studio_page"
+      className="min-h-screen bg-[#060c18] text-[#f8fafc] flex flex-col font-sans overflow-hidden select-none selection:bg-[#8b5cf6]/30 relative"
+      // Swallow drag/drop that misses a dedicated drop-zone so the browser
+      // doesn't navigate away and replace the page with the image.
+      onDragOver={(e) => { e.preventDefault(); }}
+      onDrop={(e) => { e.preventDefault(); }}
+    >
 
       {/* CINEMATIC BACKGROUND LAYERS — Anamorphic Noir */}
       <div className="cine-bg-radial fixed inset-0 pointer-events-none z-0" aria-hidden />
@@ -2117,7 +2149,39 @@ export default function App() {
 
               <div className="w-full flex flex-wrap items-center gap-2 text-sm text-[#e2e8f0]">
                 {activeModelObj.capabilities.max_reference_images > 0 && (
-                  <div className="flex items-center gap-2 flex-wrap">
+                  <div
+                    className={`flex items-center gap-2 flex-wrap p-1.5 rounded-lg border transition-all duration-150 ${
+                      refDragOver
+                        ? "border-[#8b5cf6] bg-[#8b5cf6]/10 ring-2 ring-[#8b5cf6]/40"
+                        : "border-transparent"
+                    }`}
+                    onDragEnter={(e) => {
+                      preventDefaultDrag(e);
+                      if (referenceImages.length < activeModelObj.capabilities.max_reference_images) {
+                        setRefDragOver(true);
+                      }
+                    }}
+                    onDragOver={(e) => {
+                      preventDefaultDrag(e);
+                      // Required so the drop event will fire.
+                      e.dataTransfer.dropEffect =
+                        referenceImages.length >= activeModelObj.capabilities.max_reference_images
+                          ? "none"
+                          : "copy";
+                    }}
+                    onDragLeave={(e) => {
+                      // Only clear the highlight when the cursor leaves the
+                      // wrapper itself, not when it moves over a child element.
+                      if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+                      setRefDragOver(false);
+                    }}
+                    onDrop={(e) => {
+                      preventDefaultDrag(e);
+                      setRefDragOver(false);
+                      const files = extractImagesFromDataTransfer(e.dataTransfer);
+                      if (files) handleReferenceUpload(files);
+                    }}
+                  >
                     {/* Upload button — disabled when limit reached */}
                     <label
                       className={`px-2 py-1 rounded border border-[#1e293b] bg-[#0f172a] transition-colors ${
@@ -2127,6 +2191,7 @@ export default function App() {
                             ? "opacity-50 cursor-not-allowed"
                             : "hover:border-[#8b5cf6]/70 cursor-pointer"
                       }`}
+                      title="Click to browse or drag-and-drop images here"
                     >
                       {refUploadBusy
                         ? "Uploading…"
@@ -2178,11 +2243,36 @@ export default function App() {
                 )}
 
                 {activeModelObj.capabilities.has_end_frame && (
-                  <div className="flex items-center gap-2">
+                  <div
+                    className={`flex items-center gap-2 p-1.5 rounded-lg border transition-all duration-150 ${
+                      endFrameDragOver
+                        ? "border-[#22d3ee] bg-[#22d3ee]/10 ring-2 ring-[#22d3ee]/40"
+                        : "border-transparent"
+                    }`}
+                    onDragEnter={(e) => {
+                      preventDefaultDrag(e);
+                      setEndFrameDragOver(true);
+                    }}
+                    onDragOver={(e) => {
+                      preventDefaultDrag(e);
+                      e.dataTransfer.dropEffect = "copy";
+                    }}
+                    onDragLeave={(e) => {
+                      if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+                      setEndFrameDragOver(false);
+                    }}
+                    onDrop={(e) => {
+                      preventDefaultDrag(e);
+                      setEndFrameDragOver(false);
+                      const files = extractImagesFromDataTransfer(e.dataTransfer);
+                      if (files) handleEndFrameUpload(files);
+                    }}
+                  >
                     <label
                       className={`px-2 py-1 rounded border border-[#1e293b] bg-[#0f172a] transition-colors ${
                         endFrameUploadBusy ? "opacity-60 cursor-wait" : "hover:border-[#8b5cf6]/70 cursor-pointer"
                       }`}
+                      title="Click to browse or drag-and-drop an image here"
                     >
                       {endFrameUploadBusy
                         ? "Uploading…"
