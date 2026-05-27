@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { getGenAI } from "@/lib/gemini-veo";
 import { getModelById, VIDEO_MODEL_REGISTRY } from "@/lib/video-model-registry";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
-import { getClientIp, isAllowedOrigin, sanitizePrompt } from "@/lib/security";
+import { getClientIp, isAllowedOrigin, isSafePublicHttpUrl, sanitizePrompt } from "@/lib/security";
 import {
   generateProceduralCinemaScene,
   normalizeCinemaRender,
@@ -77,6 +77,7 @@ function buildFinalCinemaPrompt(params: {
   lightingStyle: string;
   cameraMovesetStyle: string;
   voiceDirection: string;
+  clonedVoiceAudioUrl?: string | null;
   sound: boolean;
   negativePrompt?: string | null;
 }) {
@@ -93,6 +94,7 @@ function buildFinalCinemaPrompt(params: {
     lightingStyle,
     cameraMovesetStyle,
     voiceDirection,
+    clonedVoiceAudioUrl,
     sound,
     negativePrompt,
   } = params;
@@ -117,6 +119,9 @@ function buildFinalCinemaPrompt(params: {
       `- Spoken dialogue: "${dialogueText}"`,
       `- Voice direction: ${voiceDirection || "Natural cinematic voice"}. Match the delivery, accent, emotion, and pacing to this direction.`,
     );
+    if (clonedVoiceAudioUrl) {
+      lines.push("- Voice clone: use the provided reference audio URL as the target voice identity when the selected video model supports reference audio.");
+    }
   } else if (sound) {
     lines.push(`- Audio direction: generate native cinematic ambience and sound effects. Voice direction: ${voiceDirection || "Natural cinematic voice"}.`);
   }
@@ -152,6 +157,7 @@ function buildProviderPayload(
   const grokMode = firstString(raw.grokMode) ?? "normal";
   const genre = firstString(raw.genre) ?? input.genre ?? "General Cinema";
   const voiceDirection = firstString(raw.voiceDirection) ?? input.voiceDirection ?? input.voiceId ?? "Natural cinematic voice";
+  const clonedVoiceAudioUrl = firstString(raw.clonedVoiceAudioUrl);
   const colorPalette = firstString(raw.colorPalette) ?? "Auto";
   const lightingStyle = firstString(raw.lightingStyle) ?? "Auto";
   const cameraMovesetStyle = firstString(raw.cameraMovesetStyle) ?? "Auto";
@@ -172,6 +178,7 @@ function buildProviderPayload(
     lightingStyle,
     cameraMovesetStyle,
     voiceDirection,
+    clonedVoiceAudioUrl,
     sound,
     negativePrompt,
   });
@@ -201,6 +208,10 @@ function buildProviderPayload(
   if (input.dialogueText) {
     payload.dialogue = input.dialogueText;
     payload.audio_prompt = input.dialogueText;
+  }
+  if (clonedVoiceAudioUrl) {
+    payload.audio_url = clonedVoiceAudioUrl;
+    payload.reference_audio_urls = [clonedVoiceAudioUrl];
   }
   if (referenceImages.length > 0) {
     payload.reference_image_urls = referenceImages;
@@ -272,6 +283,9 @@ export async function POST(req: Request) {
     const voiceId = sanitizePrompt(typeof raw?.voiceId === "string" ? raw.voiceId : "").slice(0, 120);
     const genre = sanitizePrompt(typeof raw?.genre === "string" ? raw.genre : "General Cinema").slice(0, 80);
     const voiceDirection = sanitizePrompt(typeof raw?.voiceDirection === "string" ? raw.voiceDirection : "").slice(0, 240);
+    const clonedVoiceAudioUrl = isSafePublicHttpUrl(typeof raw?.clonedVoiceAudioUrl === "string" ? raw.clonedVoiceAudioUrl : "")
+      ? String(raw?.clonedVoiceAudioUrl)
+      : "";
     const colorPalette = sanitizePrompt(typeof raw?.colorPalette === "string" ? raw.colorPalette : "Auto").slice(0, 80);
     const lightingStyle = sanitizePrompt(typeof raw?.lightingStyle === "string" ? raw.lightingStyle : "Auto").slice(0, 80);
     const cameraMovesetStyle = sanitizePrompt(typeof raw?.cameraMovesetStyle === "string" ? raw.cameraMovesetStyle : "Auto").slice(0, 80);
@@ -334,6 +348,9 @@ ${input.voiceId || "(default)"}
 
 Voice direction:
 ${input.voiceDirection || "(natural cinematic delivery)"}
+
+Cloned voice audio:
+${clonedVoiceAudioUrl || "(none)"}
 
 Selected video model:
 ${model.name} (${model.api_route})
@@ -417,6 +434,7 @@ ${negativePrompt || "(none)"}`,
             genre,
             voiceId,
             voiceDirection,
+            clonedVoiceAudioUrl,
             colorPalette,
             lightingStyle,
             cameraMovesetStyle,
@@ -451,6 +469,7 @@ ${negativePrompt || "(none)"}`,
         genre,
         voiceId,
         voiceDirection,
+        clonedVoiceAudioUrl,
         colorPalette,
         lightingStyle,
         cameraMovesetStyle,

@@ -38,6 +38,7 @@ const INITIAL_CASTING_CHARACTERS = [
     style: "A young man with a dark leather coat and features overflowing with elegant, sharp anxiety",
     voice: "Gulf Male Narrator",
     voiceId: "pNInz6obpgDQGcFmaJgB",
+    voiceModel: "elevenlabs/multilingual-v2",
     gender: "male"
   },
   { 
@@ -48,6 +49,7 @@ const INITIAL_CASTING_CHARACTERS = [
     style: "A seventy-year-old man with a silver beard and authentic cloak telling ancient tales of human heritage",
     voice: "Documentary Narrator",
     voiceId: "DGTOOUoGpoP6UZ9uSWfA",
+    voiceModel: "elevenlabs/multilingual-v2",
     gender: "senior"
   },
   { 
@@ -58,6 +60,7 @@ const INITIAL_CASTING_CHARACTERS = [
     style: "A young woman with long black hair and classic oriental features wearing vintage gilded jewelry from the golden era of storytelling",
     voice: "Arabic Classical Female",
     voiceId: "Z3R5wn05IrDiVCyEkUrK",
+    voiceModel: "elevenlabs/multilingual-v2",
     gender: "female"
   },
   { 
@@ -68,6 +71,7 @@ const INITIAL_CASTING_CHARACTERS = [
     style: "Warm brown skin weathered by the sun with a simple rustic attire and a patient smile",
     voice: "Egyptian Male Storyteller",
     voiceId: "nPczCjzI2devNBz1zQrb",
+    voiceModel: "elevenlabs/multilingual-v2",
     gender: "male"
   },
   { 
@@ -78,6 +82,7 @@ const INITIAL_CASTING_CHARACTERS = [
     style: "A young woman wearing a sandy protective vest, carrying a notebook and a pen of sharp words with steadfast gaze",
     voice: "Classic Confident Female",
     voiceId: "21m00Tcm4TlvDq8ikWAM",
+    voiceModel: "elevenlabs/multilingual-v2",
     gender: "female"
   },
   { 
@@ -88,6 +93,7 @@ const INITIAL_CASTING_CHARACTERS = [
     style: "A Bedouin man with a dark red keffiyeh, a sharp hawk-like gaze, and a scarf wrapped with wild prestige",
     voice: "Deep Trailer Male",
     voiceId: "N2lVS1w4EtoT3dr4eOWO",
+    voiceModel: "elevenlabs/multilingual-v2",
     gender: "male"
   },
   { 
@@ -98,6 +104,7 @@ const INITIAL_CASTING_CHARACTERS = [
     style: "A teacher wearing delicate prescription glasses and relaxed soft features radiating immense warmth",
     voice: "Arabic Classical Female",
     voiceId: "Z3R5wn05IrDiVCyEkUrK",
+    voiceModel: "elevenlabs/multilingual-v2",
     gender: "female"
   },
   { 
@@ -108,6 +115,7 @@ const INITIAL_CASTING_CHARACTERS = [
     style: "A visionary tech innovator surrounded by immersive screens, blue neon lights, and a state-of-the-art cyber jacket",
     voice: "Levantine Male Dialogue",
     voiceId: "onwK4e9ZLuTAKqWW03F9",
+    voiceModel: "elevenlabs/multilingual-v2",
     gender: "cyber"
   },
   { 
@@ -118,6 +126,7 @@ const INITIAL_CASTING_CHARACTERS = [
     style: "A strong, majestic figure with features veiled in a dark cloak, sharp silent piercing eyes, and unwavering resolve",
     voice: "Documentary Narrator",
     voiceId: "DGTOOUoGpoP6UZ9uSWfA",
+    voiceModel: "elevenlabs/multilingual-v2",
     gender: "senior"
   }
 ];
@@ -459,15 +468,21 @@ const buildAspectRatioOptions = (model: WaveSpeedVideoModel) => {
   }));
 };
 
+const ELEVENLABS_TTS_MODEL = "elevenlabs/multilingual-v2";
+const GOOGLE_TTS_MODEL = "gemini-3.1-flash-tts-preview";
 const VOICE_PRESETS = [
-  { label: "Gulf Male Narrator", voiceId: "pNInz6obpgDQGcFmaJgB", desc: "Arabic Gulf male tone for confident narration", lang: "AR" },
-  { label: "Egyptian Male Storyteller", voiceId: "nPczCjzI2devNBz1zQrb", desc: "Warm Arabic/Egyptian-style storyteller", lang: "AR" },
-  { label: "Levantine Male Dialogue", voiceId: "onwK4e9ZLuTAKqWW03F9", desc: "Grounded Arabic dialogue voice", lang: "AR" },
-  { label: "Arabic Classical Female", voiceId: "Z3R5wn05IrDiVCyEkUrK", desc: "Clear modern standard Arabic female delivery", lang: "AR" },
-  { label: "Child Voice", voiceId: "pPdl9cQBQq4p6mRkZy2Z", desc: "Bright youthful child-like tone", lang: "MULTI" },
-  { label: "Documentary Narrator", voiceId: "DGTOOUoGpoP6UZ9uSWfA", desc: "Deep documentary narration voice", lang: "MULTI" },
-  { label: "Classic Confident Female", voiceId: "21m00Tcm4TlvDq8ikWAM", desc: "Crisp confident female narration", lang: "EN" },
-  { label: "Deep Trailer Male", voiceId: "N2lVS1w4EtoT3dr4eOWO", desc: "Trailer-style low cinematic presence", lang: "EN" }
+  { label: "Gulf Male Narrator", voiceId: "pNInz6obpgDQGcFmaJgB", desc: "Arabic Gulf male tone for confident narration", lang: "AR", provider: "ElevenLabs", model: ELEVENLABS_TTS_MODEL },
+  { label: "Egyptian Male Storyteller", voiceId: "nPczCjzI2devNBz1zQrb", desc: "Warm Arabic/Egyptian-style storyteller", lang: "AR", provider: "ElevenLabs", model: ELEVENLABS_TTS_MODEL },
+  { label: "Levantine Male Dialogue", voiceId: "onwK4e9ZLuTAKqWW03F9", desc: "Grounded Arabic dialogue voice", lang: "AR", provider: "ElevenLabs", model: ELEVENLABS_TTS_MODEL },
+  { label: "Arabic Classical Female", voiceId: "Z3R5wn05IrDiVCyEkUrK", desc: "Clear modern standard Arabic female delivery", lang: "AR", provider: "ElevenLabs", model: ELEVENLABS_TTS_MODEL },
+  { label: "Google Arabic Narrator - Sulafat", voiceId: "Sulafat", desc: "Official Google Arabic-friendly clear narration", lang: "AR", provider: "Google", model: GOOGLE_TTS_MODEL },
+  { label: "Google Arabic Warm - Puck", voiceId: "Puck", desc: "Official Google warm expressive voice for Arabic delivery", lang: "AR", provider: "Google", model: GOOGLE_TTS_MODEL },
+  { label: "Google Arabic Calm - Zephyr", voiceId: "Zephyr", desc: "Official Google soft calm delivery with Arabic prompt hint", lang: "AR", provider: "Google", model: GOOGLE_TTS_MODEL },
+  { label: "Google Arabic Deep - Orus", voiceId: "Orus", desc: "Official Google deeper cinematic delivery", lang: "AR", provider: "Google", model: GOOGLE_TTS_MODEL },
+  { label: "Child Voice", voiceId: "pPdl9cQBQq4p6mRkZy2Z", desc: "Bright youthful child-like tone", lang: "MULTI", provider: "ElevenLabs", model: ELEVENLABS_TTS_MODEL },
+  { label: "Documentary Narrator", voiceId: "DGTOOUoGpoP6UZ9uSWfA", desc: "Deep documentary narration voice", lang: "MULTI", provider: "ElevenLabs", model: ELEVENLABS_TTS_MODEL },
+  { label: "Classic Confident Female", voiceId: "21m00Tcm4TlvDq8ikWAM", desc: "Crisp confident female narration", lang: "EN", provider: "ElevenLabs", model: ELEVENLABS_TTS_MODEL },
+  { label: "Deep Trailer Male", voiceId: "N2lVS1w4EtoT3dr4eOWO", desc: "Trailer-style low cinematic presence", lang: "EN", provider: "ElevenLabs", model: ELEVENLABS_TTS_MODEL }
 ];
 
 const SPEED_OPTIONS = [
@@ -564,6 +579,8 @@ export default function App() {
   const [renderNotice, setRenderNotice] = useState<string | null>(null);
   const [generatedAudioUrl, setGeneratedAudioUrl] = useState<string | null>(null);
   const [isPreviewingVoice, setIsPreviewingVoice] = useState(false);
+  const [isCloningVoice, setIsCloningVoice] = useState(false);
+  const [clonedVoiceAudioUrl, setClonedVoiceAudioUrl] = useState<string | null>(null);
   const voicePreviewRef = useRef<HTMLAudioElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const actorGenIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -649,6 +666,7 @@ export default function App() {
   const playbackDuration = Number.parseInt(duration, 10) || 8;
   const selectedVoicePreset = VOICE_PRESETS.find((v) => v.label === currentActor?.voice || v.voiceId === currentActor?.voice);
   const selectedVoiceId = currentActor?.voiceId || selectedVoicePreset?.voiceId || VOICE_PRESETS[0].voiceId;
+  const selectedVoiceModel = currentActor?.voiceModel || selectedVoicePreset?.model || VOICE_PRESETS[0].model;
   const selectedVoiceDirection = currentActor?.voice || selectedVoicePreset?.label || "Natural cinematic voice";
   // Fallback estimate used until the first /api/pricing/quote response
   // returns. Same numbers as the legacy client-side estimator.
@@ -1016,7 +1034,7 @@ export default function App() {
     if (!preset) return;
     setCastingActors((prev) =>
       prev.map((actor) =>
-        actor.id === actorId ? { ...actor, voice: preset.label, voiceId: preset.voiceId } : actor,
+        actor.id === actorId ? { ...actor, voice: preset.label, voiceId: preset.voiceId, voiceModel: preset.model } : actor,
       ),
     );
   };
@@ -1031,7 +1049,7 @@ export default function App() {
     );
   };
 
-  const previewVoice = async (voiceId = selectedVoiceId) => {
+  const previewVoice = async (voiceId = selectedVoiceId, model = selectedVoiceModel) => {
     if (!dialogueText.trim()) return;
     voicePreviewRef.current?.pause();
     setIsPreviewingVoice(true);
@@ -1041,9 +1059,10 @@ export default function App() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           actionType: "tts",
-          model: "elevenlabs/text-to-speech-multilingual-v2",
+          model,
           text: dialogueText.slice(0, 1200),
           voice: voiceId,
+          language_code: "ar",
           stability: 0.5,
           clarity: 75,
           use_speaker_boost: true,
@@ -1059,6 +1078,55 @@ export default function App() {
     } catch (err) {
       console.error("Voice preview failed:", err);
       setIsPreviewingVoice(false);
+    }
+  };
+
+  const cloneVoiceFromFile = async (file: File) => {
+    if (!file || !currentActor) return;
+    setIsCloningVoice(true);
+    try {
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ""));
+        reader.onerror = () => reject(reader.error || new Error("Could not read audio file"));
+        reader.readAsDataURL(file);
+      });
+
+      const response = await fetch("/api/generate/audio", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          actionType: "voice-cloning",
+          text: dialogueText.slice(0, 1200) || "مرحبا، هذا اختبار صوت عربي من استوديو سعد.",
+          cloneName: currentActor.name,
+          sampleAudioUrls: [dataUrl],
+          remove_background_noise: true,
+        }),
+      });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok || !payload?.voiceId) throw new Error(payload?.error || "Voice cloning failed");
+
+      const label = `Cloned Voice - ${payload.voiceName || currentActor.name}`;
+      const audioUrl = typeof payload.audioUrl === "string" ? payload.audioUrl : null;
+      setCastingActors((prev) =>
+        prev.map((actor) =>
+          actor.id === currentActor.id
+            ? { ...actor, voice: label, voiceId: String(payload.voiceId), voiceModel: "voice-cloning", voiceSampleUrl: audioUrl }
+            : actor,
+        ),
+      );
+      setClonedVoiceAudioUrl(audioUrl);
+      if (audioUrl) {
+        setGeneratedAudioUrl(audioUrl);
+        const audio = new Audio(audioUrl);
+        voicePreviewRef.current = audio;
+        await audio.play().catch(() => null);
+      }
+    } catch (err) {
+      console.error("Voice cloning failed:", err);
+      setRenderNotice(err instanceof Error ? err.message : "Voice cloning failed");
+    } finally {
+      setIsCloningVoice(false);
     }
   };
 
@@ -1101,7 +1169,9 @@ export default function App() {
           cameraMovement: cameraMovement,
           lensType: lensType,
           voiceId: selectedVoiceId,
+          voiceModel: selectedVoiceModel,
           voiceDirection: selectedVoiceDirection,
+          clonedVoiceAudioUrl: (currentActor as any)?.voiceSampleUrl || clonedVoiceAudioUrl || generatedAudioUrl,
           modelId: selectedModelId,
           modelRoute: activeModelObj.api_route,
           duration: playbackDuration,
@@ -1309,6 +1379,7 @@ export default function App() {
           style: custStyle || "Classic cinematic wardrobe shaped for the scene narrative",
           voice: custVoice || customVoicePreset?.label || "Documentary Narrator",
           voiceId: customVoicePreset?.voiceId || selectedVoiceId,
+          voiceModel: customVoicePreset?.model || selectedVoiceModel,
           gender: custGender
         };
 
@@ -3033,7 +3104,7 @@ export default function App() {
                               >
                                 {VOICE_PRESETS.map((voice) => (
                                   <option key={voice.voiceId} value={voice.label}>
-                                    {voice.label} ({voice.lang})
+                                    {voice.provider} - {voice.label} ({voice.lang})
                                   </option>
                                 ))}
                               </select>
@@ -3155,7 +3226,7 @@ export default function App() {
                           >
                             {VOICE_PRESETS.map((voice) => (
                               <option key={voice.voiceId} value={voice.label}>
-                                {voice.label} ({voice.lang})
+                                {voice.provider} - {voice.label} ({voice.lang})
                               </option>
                             ))}
                             <option value="custom">✍️ Describe Custom Voice / Add Custom Description...</option>
@@ -3227,10 +3298,10 @@ export default function App() {
                       {/* Right: Sound presets selection grid and additions builder */}
                       <div className="md:col-span-8 space-y-4 text-left">
                         <div className="space-y-2">
-                          <span className="text-[13px] text-[#f8fafc] font-bold block font-sans">Select a real ElevenLabs voice preset:</span>
+                          <span className="text-[13px] text-[#f8fafc] font-bold block font-sans">Select a real voice preset: Google Arabic or ElevenLabs</span>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[160px] overflow-y-auto pr-1">
                             {VOICE_PRESETS.map((v) => {
-                              const isSelected = currentActor.voice === v.label;
+                              const isSelected = currentActor.voice === v.label || currentActor.voiceId === v.voiceId;
                               return (
                                 <button
                                   key={v.voiceId}
@@ -3244,14 +3315,14 @@ export default function App() {
                                   }`}
                                 >
                                   <span className="text-[13px] font-bold text-white block truncate">{v.label}</span>
-                                  <span className="text-xs text-[#94a3b8] block leading-tight mt-1">{v.lang} - {v.desc}</span>
+                                  <span className="text-xs text-[#94a3b8] block leading-tight mt-1">{v.provider} - {v.lang} - {v.desc}</span>
                                 </button>
                               );
                             })}
                           </div>
                           <button
                             type="button"
-                            onClick={() => previewVoice(selectedVoiceId)}
+                            onClick={() => previewVoice(selectedVoiceId, selectedVoiceModel)}
                             disabled={isPreviewingVoice || !dialogueText.trim()}
                             className="mt-2 px-3 py-2 rounded-lg bg-[#ec4899] hover:bg-[#f9a8d4] disabled:bg-[#1e293b] disabled:text-[#94a3b8] text-white text-sm font-bold transition-colors"
                           >
@@ -3299,6 +3370,36 @@ export default function App() {
                               Apply Direction
                             </button>
                           </div>
+                        </div>
+
+                        <div className="bg-[#1e293b] border border-[#1e293b] rounded-xl p-3 space-y-2">
+                          <span className="text-xs text-[#06b6d4] uppercase flex items-center gap-1 font-bold">
+                            Voice Cloning
+                          </span>
+                          <p className="text-xs text-[#94a3b8] leading-relaxed font-sans">
+                            Upload an audio sample. The cloned voice preview is saved and sent as reference audio with the final render when the selected video model supports reference audio.
+                          </p>
+                          <label className={`inline-flex items-center justify-center px-4 py-2 rounded-lg text-[13px] font-bold transition-colors ${
+                            isCloningVoice
+                              ? "bg-[#1e293b] text-[#94a3b8]"
+                              : "bg-[#06b6d4] hover:bg-[#67e8f9] text-black cursor-pointer"
+                          }`}>
+                            {isCloningVoice ? "Cloning..." : "Upload Voice Sample"}
+                            <input
+                              type="file"
+                              accept="audio/*"
+                              className="hidden"
+                              disabled={isCloningVoice}
+                              onChange={(e) => {
+                                const file = e.currentTarget.files?.[0];
+                                e.currentTarget.value = "";
+                                if (file) void cloneVoiceFromFile(file);
+                              }}
+                            />
+                          </label>
+                          {(((currentActor as any)?.voiceSampleUrl || clonedVoiceAudioUrl)) && (
+                            <audio controls src={(currentActor as any)?.voiceSampleUrl || clonedVoiceAudioUrl || undefined} className="w-full h-9" />
+                          )}
                         </div>
                       </div>
                     </div>
