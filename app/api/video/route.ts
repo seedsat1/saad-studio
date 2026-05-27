@@ -21,6 +21,14 @@ const { videoRouteToKieModelMap, wavespeedFallbackMap } = getResolvedKieRoutingM
 const IDEMPOTENCY_ROUTE = "generate:video";
 const GOOGLE_VEO31_PRO_ROUTE = "google/veo-3.1-generate-preview";
 const LEGACY_GEMINI_OMNI_VIDEO_ROUTE = "google/gemini-omni-video";
+const BYTEPLUS_ARK_BASE = (process.env.BYTEPLUS_ARK_BASE_URL || "https://ark.ap-southeast.bytepluses.com/api/v3").replace(/\/+$/, "");
+const BYTEPLUS_CONTENT_TASKS_URL = `${BYTEPLUS_ARK_BASE}/contents/generations/tasks`;
+const SEEDANCE_2_MODEL = "dreamina-seedance-2-0-260128";
+const SEEDANCE_2_FAST_MODEL = "dreamina-seedance-2-0-fast-260128";
+const SEEDANCE_2_ROUTES = new Set([
+  "bytedance/seedance-v2/text-to-video",
+  "bytedance/seedance-v2/text-to-video-fast",
+]);
 
 const LOCKED_VIDEO_ROUTE_TO_KIE_MODEL: Record<string, string> = {
   // These are high-traffic paid routes. Keep them immutable so a catalog sync or
@@ -59,6 +67,31 @@ function kieHeaders() {
     "Content-Type": "application/json",
     Authorization: `Bearer ${key}`,
   };
+}
+
+function getArkApiKeyFromEnv(): string | null {
+  const key = process.env.ARK_API_KEY || process.env.BYTEPLUS_ARK_API_KEY;
+  if (!key || !key.trim()) return null;
+  return key.trim();
+}
+
+function arkHeaders() {
+  const key = getArkApiKeyFromEnv();
+  if (!key) throw new Error("ARK_API_KEY is not configured");
+  return {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${key}`,
+  };
+}
+
+function isOfficialSeedance2Route(modelRoute: string): boolean {
+  return SEEDANCE_2_ROUTES.has(modelRoute);
+}
+
+function getOfficialSeedanceModel(modelRoute: string): string {
+  return modelRoute === "bytedance/seedance-v2/text-to-video-fast"
+    ? SEEDANCE_2_FAST_MODEL
+    : SEEDANCE_2_MODEL;
 }
 
 function getWaveSpeedKey(): string {
@@ -241,6 +274,127 @@ async function resolveMediaInInput(input: Record<string, unknown>) {
   }
 
   return resolved;
+}
+
+async function uploadDataUrlToStorage(value: string, userId: string, assetType: "image" | "video" | "audio"): Promise<string> {
+  if (!value.startsWith("data:")) return value;
+  const parsed = extractBase64(value);
+  if (!parsed) return value;
+
+  const buffer = Buffer.from(parsed.fileData, "base64");
+  const uploaded = await uploadBufferToStorage({
+    buffer,
+    contentType: parsed.mime,
+    userId,
+    assetType,
+    generationId: `seedance-input-${Date.now()}-${crypto.randomUUID()}`,
+    fileName: `input.${parsed.ext}`,
+  });
+  if (!uploaded) {
+    throw new Error("Storage upload failed for Seedance input");
+  }
+  return uploaded;
+}
+
+async function resolveOfficialSeedanceUrl(value: unknown, userId: string, assetType: "image" | "video" | "audio"): Promise<string | null> {
+  if (typeof value !== "string" || !value.trim()) return null;
+  const trimmed = value.trim();
+  if (trimmed.startsWith("data:")) return uploadDataUrlToStorage(trimmed, userId, assetType);
+  if (/^https?:\/\//.test(trimmed) || trimmed.startsWith("asset://")) return trimmed;
+  return null;
+}
+
+async function resolveOfficialSeedanceUrlList(value: unknown, userId: string, assetType: "image" | "video" | "audio", limit: number): Promise<string[]> {
+  if (!Array.isArray(value)) return [];
+  const resolved = await Promise.all(
+    value.slice(0, limit).map((item) => resolveOfficialSeedanceUrl(item, userId, assetType)),
+  );
+  return resolved.filter((item): item is string => Boolean(item));
+}
+
+function normalizeOfficialSeedanceRatio(value: unknown): string {
+  const raw = typeof value === "string" ? value.trim() : "";
+  const allowed = new Set(["21:9", "16:9", "4:3", "1:1", "3:4", "9:16"]);
+  return allowed.has(raw) ? raw : "16:9";
+}
+
+function normalizeOfficialSeedanceDuration(value: unknown): number {
+  const parsed =
+    typeof value === "number"
+      ? Math.floor(value)
+      : typeof value === "string"
+        ? Number.parseInt(value, 10)
+        : 5;
+  return Math.max(4, Math.min(15, Number.isFinite(parsed) ? parsed : 5));
+}
+
+function normalizeOfficialSeedanceResolution(modelRoute: string, value: unknown): string {
+  const raw = typeof value === "string" ? value.toLowerCase() : "";
+  if (modelRoute === "bytedance/seedance-v2/text-to-video-fast") {
+    return raw === "480p" ? "480p" : "720p";
+  }
+  if (raw === "480p" || raw === "1080p") return raw;
+  return "720p";
+}
+
+async function buildOfficialSeedancePayload(modelRoute: string, payload: Record<string, unknown>, userId: string) {
+  const prompt = typeof payload.prompt === "string" ? sanitizePrompt(payload.prompt, 20000) : "";
+  const content: Array<Record<string, unknown>> = [];
+  if (prompt) content.push({ type: "text", text: prompt });
+
+  const imageUrls = Array.isArray(payload.image_urls) ? payload.image_urls : [];
+  const firstFrame =
+    (await resolveOfficialSeedanceUrl(payload.first_frame_url, userId, "image")) ||
+    (await resolveOfficialSeedanceUrl(payload.image_url, userId, "image")) ||
+    (await resolveOfficialSeedanceUrl(payload.image, userId, "image")) ||
+    (await resolveOfficialSeedanceUrl(imageUrls[0], userId, "image"));
+  const lastFrame =
+    (await resolveOfficialSeedanceUrl(payload.last_frame_url, userId, "image")) ||
+    (await resolveOfficialSeedanceUrl(payload.end_image, userId, "image")) ||
+    (await resolveOfficialSeedanceUrl(payload.last_image, userId, "image")) ||
+    (await resolveOfficialSeedanceUrl(imageUrls[1], userId, "image"));
+
+  if (firstFrame) {
+    content.push({ type: "image_url", image_url: { url: firstFrame }, role: "first_frame" });
+  }
+  if (lastFrame) {
+    content.push({ type: "image_url", image_url: { url: lastFrame }, role: "last_frame" });
+  }
+
+  const referenceImages = await resolveOfficialSeedanceUrlList(payload.reference_image_urls, userId, "image", 9);
+  for (const url of referenceImages) {
+    content.push({ type: "image_url", image_url: { url }, role: "reference_image" });
+  }
+
+  const referenceVideos = await resolveOfficialSeedanceUrlList(payload.reference_video_urls, userId, "video", 3);
+  const singleVideo = await resolveOfficialSeedanceUrl(payload.video, userId, "video");
+  for (const url of [...referenceVideos, ...(singleVideo ? [singleVideo] : [])].slice(0, 3)) {
+    content.push({ type: "video_url", video_url: { url }, role: "reference_video" });
+  }
+
+  const referenceAudios = await resolveOfficialSeedanceUrlList(payload.reference_audio_urls, userId, "audio", 3);
+  for (const url of referenceAudios) {
+    content.push({ type: "audio_url", audio_url: { url }, role: "reference_audio" });
+  }
+
+  if (content.length === 0 || !prompt) {
+    throw new Error("Seedance 2.0 requires a prompt.");
+  }
+
+  const body: Record<string, unknown> = {
+    model: getOfficialSeedanceModel(modelRoute),
+    content,
+    generate_audio: payload.generate_audio === true || payload.sound === true,
+    ratio: normalizeOfficialSeedanceRatio(payload.ratio ?? payload.aspect_ratio ?? payload.aspectRatio),
+    duration: normalizeOfficialSeedanceDuration(payload.duration),
+    resolution: normalizeOfficialSeedanceResolution(modelRoute, payload.resolution ?? payload.quality ?? payload.mode),
+    watermark: payload.watermark === false ? false : true,
+  };
+
+  if (payload.return_last_frame === true) body.return_last_frame = true;
+  if (typeof payload.callback_url === "string" && payload.callback_url.trim()) body.callback_url = payload.callback_url.trim();
+
+  return body;
 }
 
 function normalizeInputForKie(payload: Record<string, unknown>) {
@@ -715,7 +869,7 @@ function mapToKieInput(model: string, payload: Record<string, unknown>) {
 
 function normalizeTaskState(status: string) {
   const s = (status || "").toLowerCase();
-  if (["success", "succeed", "completed", "done", "finish", "finished"].includes(s)) return "completed";
+  if (["success", "succeed", "succeeded", "completed", "done", "finish", "finished"].includes(s)) return "completed";
   if (["fail", "failed", "error", "canceled", "cancelled"].includes(s)) return "failed";
   return "processing";
 }
@@ -757,7 +911,13 @@ function extractOutputs(resultPayload: unknown): string[] {
       data.images,
       data.result,
       data.videoUrl,
+      data.video_url,
+      data.lastFrameUrl,
+      data.last_frame_url,
+      data.fileUrl,
+      data.file_url,
       data.imageUrl,
+      data.image_url,
       data.url,
     ];
     for (const candidate of candidates) {
@@ -1017,6 +1177,127 @@ export async function POST(req: Request) {
       if (idem.kind === "in_progress") {
         return NextResponse.json({ status: "processing", generationId: idem.generationId }, { status: 202 });
       }
+    }
+
+    // ── Official Seedance 2.0 path (BytePlus ModelArk, no KIE) ───────────────
+    if (isOfficialSeedance2Route(modelRoute)) {
+      const arkKey = getArkApiKeyFromEnv();
+      if (!arkKey) {
+        return NextResponse.json(
+          {
+            error: "BytePlus ModelArk provider is not configured. Add ARK_API_KEY.",
+            code: "ark_key_missing",
+            modelRoute,
+          },
+          { status: 503 },
+        );
+      }
+
+      const prompt = typeof payload.prompt === "string" ? sanitizePrompt(payload.prompt, 5000) : "Seedance 2.0 video generation";
+      const charge = await spendCredits({
+        userId,
+        credits: creditsToCharge,
+        prompt,
+        assetType: "VIDEO",
+        modelUsed: modelRoute,
+      });
+      generationId = charge.generationId;
+      chargedCredits = creditsToCharge;
+      chargedUserId = userId;
+      await attachIdempotencyGeneration({
+        userId,
+        route: IDEMPOTENCY_ROUTE,
+        key: idempotencyKey,
+        generationId,
+      }).catch(() => {});
+
+      const arkBody = await buildOfficialSeedancePayload(modelRoute, payload, userId);
+      const arkModel = String(arkBody.model || getOfficialSeedanceModel(modelRoute));
+      const createRes = await fetch(BYTEPLUS_CONTENT_TASKS_URL, {
+        method: "POST",
+        headers: arkHeaders(),
+        body: JSON.stringify(arkBody),
+      });
+
+      let createJson: Record<string, unknown> | null = null;
+      try {
+        createJson = await createRes.json();
+      } catch {
+        const text = await createRes.text().catch(() => "");
+        console.error("[api/video POST] BytePlus non-JSON response", createRes.status, text.slice(0, 300));
+        if (chargedCredits > 0 && chargedUserId && generationId) {
+          await refundGenerationCharge(generationId, chargedUserId, chargedCredits, {
+            reason: "generation_refund_provider_failed",
+            clearMediaUrl: true,
+          }).catch(() => {});
+        }
+        const responseJson = {
+          generationId,
+          error: `BytePlus ModelArk returned non-JSON (${createRes.status}): ${text.slice(0, 200)}`,
+          publicError: VIDEO_PROVIDER_BUSY_MESSAGE,
+          code: "ark_submit_failed",
+          providerStatus: createRes.status,
+          providerModel: arkModel,
+          modelRoute,
+        };
+        await completeIdempotency({
+          userId,
+          route: IDEMPOTENCY_ROUTE,
+          key: idempotencyKey,
+          generationId,
+          responseStatus: 502,
+          responseJson,
+        }).catch(() => {});
+        return NextResponse.json(responseJson, { status: 502 });
+      }
+
+      const createData = createJson?.data as Record<string, unknown> | undefined;
+      const rawTaskId = createJson?.id ?? createJson?.task_id ?? createJson?.taskId ?? createData?.id ?? createData?.task_id ?? createData?.taskId;
+      if (!createRes.ok || !rawTaskId) {
+        console.error("[api/video POST] BytePlus create task failed", createRes.status, JSON.stringify(createJson).slice(0, 500));
+        if (chargedCredits > 0 && chargedUserId && generationId) {
+          await refundGenerationCharge(generationId, chargedUserId, chargedCredits, {
+            reason: "generation_refund_provider_failed",
+            clearMediaUrl: true,
+          }).catch(() => {});
+        }
+        const responseJson = {
+          generationId,
+          error: providerFailureMessage(createJson, createRes.status),
+          publicError: VIDEO_PROVIDER_BUSY_MESSAGE,
+          code: "ark_submit_failed",
+          providerStatus: createRes.status,
+          providerModel: arkModel,
+          modelRoute,
+        };
+        await completeIdempotency({
+          userId,
+          route: IDEMPOTENCY_ROUTE,
+          key: idempotencyKey,
+          generationId,
+          responseStatus: 502,
+          responseJson,
+        }).catch(() => {});
+        return NextResponse.json(responseJson, { status: 502 });
+      }
+
+      const taskId = `ark:${String(rawTaskId)}`;
+      await setGenerationTaskMarker(generationId, taskId);
+
+      const responseJson = {
+        generationId,
+        taskId,
+        status: "processing",
+      };
+      await completeIdempotency({
+        userId,
+        route: IDEMPOTENCY_ROUTE,
+        key: idempotencyKey,
+        generationId,
+        responseStatus: 200,
+        responseJson,
+      }).catch(() => {});
+      return NextResponse.json(responseJson);
     }
 
     // ── Direct Google Gemini video path (no KIE, no WaveSpeed) ───────────────
@@ -1509,6 +1790,75 @@ export async function GET(req: Request) {
     }
 
     // ── WaveSpeed polling ────────────────────────────────────────────────────
+    if (taskId.startsWith("ark:")) {
+      const arkTaskId = taskId.slice(4);
+      const arkKey = getArkApiKeyFromEnv();
+      if (!arkKey) {
+        return NextResponse.json({ error: "BytePlus ModelArk provider is not configured. Add ARK_API_KEY.", code: "ark_key_missing" }, { status: 503 });
+      }
+
+      const pollRes = await fetch(`${BYTEPLUS_CONTENT_TASKS_URL}/${encodeURIComponent(arkTaskId)}`, {
+        method: "GET",
+        headers: { Authorization: `Bearer ${arkKey}` },
+        cache: "no-store",
+      });
+      let pollJson: Record<string, unknown> | null = null;
+      try { pollJson = await pollRes.json(); } catch { /* ignore */ }
+      if (pollRes.status === 404) {
+        return NextResponse.json({ taskId, status: "failed", outputs: [], error: "Task not found" });
+      }
+      if (!pollRes.ok || !pollJson) {
+        return NextResponse.json({ taskId, status: "processing", outputs: [], error: null });
+      }
+
+      const data = ((pollJson.data ?? pollJson) as Record<string, unknown>) || {};
+      const status = normalizeTaskState(String(data.status ?? data.task_status ?? data.state ?? pollJson.status ?? ""));
+      const outputs = (() => {
+        for (const field of [data.content, data.output, data.outputs, data.result, data.response, data.video_url, data.videoUrl]) {
+          const found = extractOutputs(field);
+          if (found.length) return found;
+        }
+        return [] as string[];
+      })();
+      const error =
+        typeof data.error === "string" ? data.error :
+        data.error && typeof data.error === "object" && typeof (data.error as Record<string, unknown>).message === "string"
+          ? String((data.error as Record<string, unknown>).message)
+          : typeof data.error_message === "string" ? data.error_message
+          : null;
+
+      try {
+        const linkedGeneration = await prismadb.generation.findFirst({
+          where: { userId, mediaUrl: { startsWith: `task:${taskId}` } },
+          select: { id: true, cost: true, mediaUrl: true },
+          orderBy: { createdAt: "desc" },
+        });
+
+        if (linkedGeneration?.mediaUrl && !linkedGeneration.mediaUrl.startsWith("task:")) {
+          if (linkedGeneration.mediaUrl.startsWith("failed:")) {
+            const parts = linkedGeneration.mediaUrl.split(":");
+            return NextResponse.json({ taskId, status: "failed", outputs: [], error: parts.slice(2).join(":") || "Generation failed" });
+          }
+          return NextResponse.json({ taskId, status: "completed", outputs: [linkedGeneration.mediaUrl], error: null });
+        }
+
+        if (status === "completed" && outputs.length > 0 && linkedGeneration) {
+          await setGenerationMediaUrl(linkedGeneration.id, outputs[0]);
+        }
+
+        if (status === "failed" && linkedGeneration && linkedGeneration.cost > 0) {
+          await refundGenerationCharge(linkedGeneration.id, userId, linkedGeneration.cost, {
+            reason: "generation_refund_provider_failed",
+            clearMediaUrl: true,
+          }).catch(() => {});
+        }
+      } catch (dbErr) {
+        console.error("[api/video GET] non-fatal BytePlus DB sync error", dbErr);
+      }
+
+      return NextResponse.json({ taskId, status, outputs, error });
+    }
+
     if (taskId.startsWith("ws:")) {
       const predictionId = taskId.slice(3);
       const wsKey = process.env.WAVESPEED_API_KEY;
