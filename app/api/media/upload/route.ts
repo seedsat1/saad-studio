@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { BUCKETS, createSignedUploadUrl } from "@/lib/r2-storage";
+import { BUCKETS, createSignedUploadUrl, putObjectToStorage } from "@/lib/r2-storage";
+
+// Allow larger uploads on this route — the default Next.js body limit is
+// ~1 MB and a single reference photo can easily exceed that. 25 MB is
+// generous for one image / short video clip without being abusive.
+export const runtime = "nodejs";
+export const maxDuration = 60;
 
 function bucketForFileType(fileType: string): string {
   if (fileType.startsWith("video/")) return BUCKETS.videos;
@@ -52,6 +58,8 @@ function getUploadUserId(req: NextRequest, clerkUserId?: string | null): string 
   return isLocalhost ? "local-dev-user" : null;
 }
 
+const MAX_DIRECT_UPLOAD_BYTES = 25 * 1024 * 1024; // 25 MB
+
 export async function POST(req: NextRequest) {
   try {
     const { userId } = await auth();
@@ -60,6 +68,63 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const contentType = req.headers.get("content-type") || "";
+
+    // ─────────────────────────────────────────────────────────────────────
+    // Path 1: multipart/form-data — the client sends the file bytes and we
+    // PUT them to R2 from THIS server. This bypasses the browser's CORS
+    // preflight against the R2 bucket, which has been the root cause of
+    // "Failed to fetch" upload errors in production.
+    // Expects a single `file` field. Returns { publicUrl }.
+    // ─────────────────────────────────────────────────────────────────────
+    if (contentType.startsWith("multipart/form-data")) {
+      const form = await req.formData();
+      const file = form.get("file");
+      if (!(file instanceof File)) {
+        return NextResponse.json({ error: "Missing 'file' field" }, { status: 400 });
+      }
+      if (file.size === 0) {
+        return NextResponse.json({ error: "Empty file" }, { status: 400 });
+      }
+      if (file.size > MAX_DIRECT_UPLOAD_BYTES) {
+        return NextResponse.json(
+          { error: `File exceeds ${MAX_DIRECT_UPLOAD_BYTES / (1024 * 1024)} MB limit` },
+          { status: 413 },
+        );
+      }
+
+      const effectiveFileType = normalizeFileType(file.name, file.type);
+      if (
+        !effectiveFileType.startsWith("image/") &&
+        !effectiveFileType.startsWith("video/") &&
+        !effectiveFileType.startsWith("audio/")
+      ) {
+        return NextResponse.json({ error: "Only image, video, or audio files are allowed" }, { status: 400 });
+      }
+
+      const ext = safeExtension(file.name, effectiveFileType);
+      const bucket = bucketForFileType(effectiveFileType);
+      const storagePath = `${uploadUserId}/generation-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+
+      const arrayBuffer = await file.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+
+      const publicUrl = await putObjectToStorage({
+        bucket,
+        path: storagePath,
+        body: buffer,
+        contentType: effectiveFileType,
+      });
+
+      return NextResponse.json({ publicUrl });
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // Path 2 (legacy): JSON body asks for a signed URL so the client can
+    // PUT directly to R2. Kept for backward compatibility with anything
+    // else in the codebase that still uses signed URLs. New callers
+    // should prefer the multipart path above to avoid R2 CORS issues.
+    // ─────────────────────────────────────────────────────────────────────
     const { fileName, fileType } = (await req.json()) as {
       fileName?: string;
       fileType?: string;

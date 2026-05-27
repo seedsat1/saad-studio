@@ -846,22 +846,25 @@ export default function App() {
     generateClientScene(project.prompt, project.dialogueText, project.cameraMovement, project.lensType, project.genre);
   };
 
+  // Upload a single file by streaming it THROUGH the Next.js API route.
+  // The browser → /api/media/upload → R2 path avoids any direct
+  // browser → R2 PUT (which fails in production until the R2 bucket has
+  // a CORS policy that allows the saadstudio.app origin).
+  // The API returns a public https URL on success.
   const uploadImageFile = async (file: File) => {
+    const form = new FormData();
+    form.append("file", file, file.name);
+
+    // NOTE: do NOT set Content-Type manually — the browser will set
+    // multipart/form-data with the correct boundary automatically.
     const response = await fetch("/api/media/upload", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ fileName: file.name, fileType: file.type || "image/jpeg" }),
+      body: form,
     });
     const payload = await response.json().catch(() => null);
-    if (!response.ok || !payload?.signedUrl || !payload?.publicUrl) {
-      throw new Error(payload?.error || "Storage upload URL failed");
+    if (!response.ok || !payload?.publicUrl) {
+      throw new Error(payload?.error || "Storage upload failed");
     }
-    const upload = await fetch(payload.signedUrl, {
-      method: "PUT",
-      headers: { "Content-Type": file.type || "image/jpeg" },
-      body: file,
-    });
-    if (!upload.ok) throw new Error("Storage upload failed");
     return String(payload.publicUrl);
   };
 
