@@ -121,6 +121,10 @@ function isLocalDevRequest(req: Request) {
   return host === "localhost" || host === "127.0.0.1" || host === "::1";
 }
 
+function isLocalOnlyVideoRoute(pathname: string) {
+  return pathname === "/cinema-studio-vso" || pathname.startsWith("/cinema-studio-vso/") || pathname === "/cinematic-video" || pathname.startsWith("/cinematic-video/");
+}
+
 function smartCliOAuthMetadata(req: Request) {
   const origin = new URL(req.url).origin;
   return NextResponse.json({
@@ -172,6 +176,14 @@ export default clerkMiddleware(async (auth, req) => {
 
   const slug = getCmsSlugFromPath(pathname);
   const isLocalDev = isLocalDevRequest(req);
+
+  if (isLocalOnlyVideoRoute(pathname) && !isLocalDev) {
+    return applySecurityHeaders(
+      new NextResponse(null, { status: 404 }),
+      req
+    );
+  }
+
   const adminId = process.env.ADMIN_USER_ID;
   const isAdmin = isLocalDev || Boolean(adminId && auth().userId && auth().userId === adminId);
 
