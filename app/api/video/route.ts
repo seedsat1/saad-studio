@@ -1365,7 +1365,6 @@ export async function POST(req: Request) {
           resolution,
           durationSeconds,
           negativePrompt,
-          generateAudio: true,
           image,
           lastFrame: image ? lastFrame : undefined,
           referenceImages: referenceImages.length ? referenceImages : undefined,

@@ -66,8 +66,6 @@ export interface StartVeoParams {
   /** seconds, 4-8 */
   durationSeconds?: number;
   negativePrompt?: string;
-  /** generate audio (Veo 3.1 native sound) — default true */
-  generateAudio?: boolean;
 
   // ── Advanced modes ──────────────────────────────────────
   /** Image-to-Video: starting frame */
@@ -115,9 +113,6 @@ export async function startVeoGeneration(
   if (params.resolution) config.resolution = params.resolution;
   if (params.durationSeconds) config.durationSeconds = params.durationSeconds;
   if (params.negativePrompt) config.negativePrompt = params.negativePrompt;
-  if (typeof params.generateAudio === "boolean") {
-    config.generateAudio = params.generateAudio;
-  }
 
   // Build the top-level request
   const request: Record<string, unknown> = {

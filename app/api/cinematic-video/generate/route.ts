@@ -48,7 +48,6 @@ interface CinematicRequestBody {
   resolution?: VeoResolution;
   durationSeconds?: number;
   negativePrompt?: string;
-  generateAudio?: boolean;
   /** Public HTTPS URLs (Supabase / uploaded) — server pulls bytes */
   startImageUrl?: string;
   endImageUrl?: string;
@@ -151,9 +150,6 @@ export async function POST(req: Request) {
         ? sanitizePrompt(raw.negativePrompt)
         : undefined;
 
-    const generateAudio =
-      typeof raw.generateAudio === "boolean" ? raw.generateAudio : true;
-
     // ── Pricing ─────────────────────────────────────────────────────────
     const pricingId = PRICING_ID[tier];
     const cost = await getGenerationCost(pricingId, durationSeconds, 1, resolution);
@@ -238,7 +234,6 @@ export async function POST(req: Request) {
         resolution,
         durationSeconds,
         negativePrompt,
-        generateAudio,
         image,
         lastFrame: image ? lastFrame : undefined, // last frame requires a start
         referenceImages: referenceImages.length ? referenceImages : undefined,
