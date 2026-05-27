@@ -17,6 +17,36 @@ const KIE_BASE_URL = "https://api.kie.ai/api/v1";
 const WAVESPEED_BASE_URL = "https://api.wavespeed.ai/api/v3";
 const { kieVideoModelMap, wavespeedFallbackMap } = getResolvedKieRoutingMaps();
 
+function resolveWaveSpeedModelRoute(modelId: string): string {
+  const clean = modelId.trim();
+  const mapping: Record<string, string> = {
+    "kling-3.0/video": "kwaivgi/kling-v3.0-pro/text-to-video",
+    "kwaivgi/kling-v3.0-pro/text-to-video": "kwaivgi/kling-v3.0-pro/text-to-video",
+    "kling-3.0/motion-control": "kwaivgi/kling-v3.0-pro/motion-control",
+    "kwaivgi/kling-v3.0-pro/motion-control": "kwaivgi/kling-v3.0-pro/motion-control",
+    "kling/v2-5-turbo-text-to-video-pro": "kling/v2-5-turbo-text-to-video-pro",
+    "kling/v2-5-turbo-image-to-video-pro": "kling/v2-5-turbo-image-to-video-pro",
+    
+    "hailuo/2-3-image-to-video-standard": "hailuo/2-3-image-to-video-standard",
+    "hailuo/2-3-image-to-video-pro": "hailuo/2-3-image-to-video-pro",
+    "minimax/hailuo-2.3/i2v-standard": "hailuo/2-3-image-to-video-standard",
+    "minimax/hailuo-2.3/i2v-pro": "hailuo/2-3-image-to-video-pro",
+    
+    "sora-2-text-to-video": "openai/sora-2/text-to-video",
+    "sora-2-image-to-video": "openai/sora-2/image-to-video",
+    "sora-2-pro-text-to-video": "openai/sora-2/text-to-video-pro",
+    "openai/sora-2/text-to-video": "openai/sora-2/text-to-video",
+    "openai/sora-2/image-to-video": "openai/sora-2/image-to-video",
+    "openai/sora-2/text-to-video-pro": "openai/sora-2/text-to-video-pro",
+    
+    "grok-imagine/text-to-video": "x-ai/grok-imagine-video/text-to-video",
+    "grok-imagine/image-to-video": "x-ai/grok-imagine-video/edit-video",
+    "x-ai/grok-imagine-video/text-to-video": "x-ai/grok-imagine-video/text-to-video",
+    "x-ai/grok-imagine-video/edit-video": "x-ai/grok-imagine-video/edit-video",
+  };
+  return mapping[clean] || wavespeedFallbackMap[clean] || clean;
+}
+
 interface VideoRequestBody {
   prompt: string;
   modelId: string;
@@ -203,9 +233,16 @@ export async function POST(req: NextRequest) {
     };
     if (imageUrl) payload.image_url = imageUrl;
 
-    // PRIMARY: KIE
-    const kieModel = kieVideoModelMap[modelId];
-    if (kieModel) {
+    const isGoogle = modelId.includes("google") || modelId.includes("veo") || modelId.includes("gemini");
+    const isSeedance2 = (modelId.includes("seedance") || modelId.includes("bytedance")) && (modelId.includes("v2") || modelId.includes("-2"));
+
+    if (isGoogle || isSeedance2) {
+      // PRIMARY: KIE for Google / Seedance v2
+      const kieModel = kieVideoModelMap[modelId];
+      if (!kieModel) {
+        throw new Error(`Unsupported Google/Seedance v2 model: ${modelId}`);
+      }
+
       const kieKey = process.env.KIE_API_KEY || process.env.KIEAI_API_KEY;
       if (!kieKey) {
         throw new Error("KIE_API_KEY is not configured.");
@@ -239,54 +276,61 @@ export async function POST(req: NextRequest) {
       if (generationId) await setGenerationMediaUrl(generationId, videoUrl);
 
       return NextResponse.json({ generationId, videoUrl, taskId: String(taskId), provider: "kie" }, { status: 200 });
-    }
+    } else {
+      // FALLBACK: WaveSpeed for all other video models
+      const wavespeedModel = resolveWaveSpeedModelRoute(modelId);
 
-    // FALLBACK: WaveSpeed (only when model is not available in KIE map)
-    const wavespeedModel = wavespeedFallbackMap[modelId];
-    if (!wavespeedModel) {
-      const supported = [...Object.keys(kieVideoModelMap), ...Object.keys(wavespeedFallbackMap)].join(", ");
-      return NextResponse.json({ error: `Unsupported modelId: ${modelId}. Supported: ${supported}` }, { status: 400 });
-    }
+      const wavespeedKey = process.env.WAVESPEED_API_KEY;
+      if (!wavespeedKey) {
+        throw new Error("WAVESPEED_API_KEY is not configured.");
+      }
 
-    const wavespeedKey = process.env.WAVESPEED_API_KEY;
-    if (!wavespeedKey) {
-      throw new Error("WAVESPEED_API_KEY is not configured.");
-    }
+      const wavespeedPayload = { ...payload };
+      if (imageUrl) {
+        if (wavespeedModel.includes("kling-v3.0") || wavespeedModel.includes("motion-control")) {
+          wavespeedPayload.image_urls = [imageUrl];
+          delete wavespeedPayload.image_url;
+        } else {
+          wavespeedPayload.image_url = imageUrl;
+          delete wavespeedPayload.image_urls;
+        }
+      }
 
-    const submitRes = await fetch(`${WAVESPEED_BASE_URL}/${wavespeedModel}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${wavespeedKey}`,
-      },
-      body: JSON.stringify(payload),
-    });
+      const submitRes = await fetch(`${WAVESPEED_BASE_URL}/${wavespeedModel}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${wavespeedKey}`,
+        },
+        body: JSON.stringify(wavespeedPayload),
+      });
 
-    if (!submitRes.ok) {
-      const errText = await submitRes.text();
-      throw new Error(`WaveSpeed submit failed: ${errText}`);
-    }
+      if (!submitRes.ok) {
+        const errText = await submitRes.text();
+        throw new Error(`WaveSpeed submit failed: ${errText}`);
+      }
 
-    const submitJson = await submitRes.json().catch(() => ({}));
-    const predictionId = submitJson?.data?.id;
-    if (!predictionId) {
-      throw new Error("No prediction ID returned from WaveSpeed.");
-    }
+      const submitJson = await submitRes.json().catch(() => ({}));
+      const predictionId = submitJson?.data?.id || submitJson?.id;
+      if (!predictionId) {
+        throw new Error("No prediction ID returned from WaveSpeed.");
+      }
 
-    const result = await pollWaveSpeed(String(predictionId), wavespeedKey);
-    if (result.status === "failed") {
-      throw new Error(result.error ?? "WaveSpeed generation failed.");
-    }
+      const result = await pollWaveSpeed(String(predictionId), wavespeedKey);
+      if (result.status === "failed") {
+        throw new Error(result.error ?? "WaveSpeed generation failed.");
+      }
 
-    const videoUrl = result.outputs?.[0];
-    if (!videoUrl) {
-      throw new Error("No output URL in WaveSpeed result.");
-    }
-    if (generationId) {
-      await setGenerationMediaUrl(generationId, videoUrl);
-    }
+      const videoUrl = result.outputs?.[0];
+      if (!videoUrl) {
+        throw new Error("No output URL in WaveSpeed result.");
+      }
+      if (generationId) {
+        await setGenerationMediaUrl(generationId, videoUrl);
+      }
 
-    return NextResponse.json({ generationId, videoUrl, predictionId, provider: "wavespeed" }, { status: 200 });
+      return NextResponse.json({ generationId, videoUrl, predictionId, provider: "wavespeed" }, { status: 200 });
+    }
   } catch (error: unknown) {
     if (error instanceof InsufficientCreditsError) {
       return NextResponse.json(

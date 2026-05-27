@@ -59,7 +59,7 @@ type LocalRefImage = {
   dataUrl: string;
 };
 
-type CharacterModelId = "gemini-3-pro-image-preview" | "ideogram-character";
+type CharacterModelId = "gemini-3-pro-image-preview";
 
 const CHARACTER_MODELS: Array<{
   id: CharacterModelId;
@@ -74,13 +74,6 @@ const CHARACTER_MODELS: Array<{
     provider: "Google",
     badge: "TOP",
     description: "Official Google image model for multi-reference character identity generation.",
-  },
-  {
-    id: "ideogram-character",
-    name: "Ideogram Character",
-    provider: "WaveSpeed",
-    badge: "Backup",
-    description: "Legacy character test generation path.",
   },
 ];
 
@@ -98,17 +91,65 @@ const DEFAULT_STATES: Record<CharacterStateKey, string> = {
 };
 
 const GOOD_RULES = [
-  "Same person only",
-  "Clear face and eyes",
-  "Multiple angles",
-  "Close-up and full body",
+  {
+    title: "Same person only",
+    titleAr: "شخص واحد فقط",
+    desc: "All photos must be of the same subject.",
+    descAr: "يجب أن تكون جميع الصور لنفس الشخص فقط.",
+    image: "/img/rules/same_person_rule_1779834409055.png",
+  },
+  {
+    title: "Clear face and eyes",
+    titleAr: "وجه وعيون واضحة",
+    desc: "Facial features and eyes must be clearly visible.",
+    descAr: "يجب أن تكون ملامح الوجه والعينين واضحة تمامًا.",
+    image: "/img/rules/clear_face_rule_1779834428922.png",
+  },
+  {
+    title: "Multiple angles",
+    titleAr: "زوايا متعددة",
+    desc: "Include front, three-quarter, and profile views.",
+    descAr: "تضمين زوايا مختلفة (أمامية، جانبية، وثلاثة أرباع).",
+    image: "/img/rules/multiple_angles_rule_1779834446838.png",
+  },
+  {
+    title: "Close-up and body",
+    titleAr: "لقطات مقربة وكاملة",
+    desc: "Mix close-up portraits with full-body shots.",
+    descAr: "امزج بين الصور الشخصية المقربة ولقطات الجسم الكامل.",
+    image: "/img/rules/body_shots_rule_1779834465500.png",
+  },
 ];
 
 const AVOID_RULES = [
-  "Group photos",
-  "Heavy filters",
-  "Face coverings",
-  "Duplicates",
+  {
+    title: "Group photos",
+    titleAr: "الصور الجماعية",
+    desc: "Avoid photos with multiple people in the frame.",
+    descAr: "تجنب الصور التي تحتوي على أشخاص آخرين في الإطار.",
+    image: "/img/rules/group_photos_avoid_1779834485633.png",
+  },
+  {
+    title: "Heavy filters",
+    titleAr: "الفلاتر القوية",
+    desc: "Do not use heavy filters, makeup, or strong editing.",
+    descAr: "تجنب الفلاتر القوية أو التعديلات الرقمية المبالغ فيها.",
+    image: "/img/rules/heavy_filters_avoid_1779834506071.png",
+  },
+  {
+    title: "Face coverings",
+    titleAr: "تغطية الوجه",
+    desc: "Avoid sunglasses, masks, hats, or hands covering the face.",
+    descAr: "تجنب النظارات الشمسية، الأقنعة، القبعات، أو تغطية الوجه باليد.",
+    image: "/img/rules/face_coverings_avoid_1779834523812.png",
+  },
+  {
+    title: "Duplicates",
+    titleAr: "الصور المتكررة",
+    desc: "Do not upload identical or near-identical images.",
+    descAr: "تجنب رفع صور متطابقة أو متشابهة للغاية.",
+    image: "/img/rules/duplicates_avoid_1779834542531.png",
+  },
 ];
 
 function uid(prefix: string) {
@@ -178,7 +219,7 @@ function packageToPrompt(character: CharacterRecord) {
   ].join("\n");
 }
 
-function RuleGroup({ type, items }: { type: "good" | "avoid"; items: string[] }) {
+function RuleGroup({ type, items }: { type: "good" | "avoid"; items: typeof GOOD_RULES }) {
   const good = type === "good";
   return (
     <div className="rounded-2xl border border-white/10 bg-[#15171b] p-5">
@@ -191,13 +232,27 @@ function RuleGroup({ type, items }: { type: "good" | "avoid"; items: string[] })
           <div className="text-sm text-zinc-500">{good ? "The system learns identity faster" : "These damage consistency"}</div>
         </div>
       </div>
-      <div className="mt-5 grid gap-2">
+      <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
         {items.map((item) => (
-          <div key={item} className={cn("flex items-center gap-3 rounded-xl border px-3 py-3 text-sm font-semibold", good ? "border-emerald-400/20 bg-emerald-400/5 text-emerald-100" : "border-red-400/20 bg-red-400/5 text-red-100")}>
-            <span className={cn("flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-black", good ? "bg-emerald-400" : "bg-red-500")}>
-              {good ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
-            </span>
-            {item}
+          <div key={item.title} className={cn("group overflow-hidden rounded-xl border bg-black/40 transition hover:border-zinc-500/30", good ? "border-emerald-500/10" : "border-red-500/10")}>
+            <div className="relative aspect-[16/10] w-full overflow-hidden bg-zinc-950">
+              <img
+                src={item.image}
+                alt={item.title}
+                className="h-full w-full object-cover transition duration-350 group-hover:scale-105"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
+              <div className="absolute bottom-2 left-2 flex items-center gap-1.5 rounded-full bg-black/60 px-2.5 py-1 text-[10px] font-bold text-white border border-white/5 backdrop-blur-sm">
+                <span className={cn("flex h-3.5 w-3.5 items-center justify-center rounded-full text-black font-black", good ? "bg-emerald-400" : "bg-red-500")}>
+                  {good ? <Check className="h-2.5 w-2.5" /> : <X className="h-2.5 w-2.5" />}
+                </span>
+                {item.title}
+              </div>
+            </div>
+            <div className="p-3">
+              <div className="text-xs font-black text-white">{item.titleAr}</div>
+              <p className="mt-1 text-[11px] leading-relaxed text-zinc-400">{item.descAr}</p>
+            </div>
           </div>
         ))}
       </div>
@@ -216,8 +271,38 @@ function MemoryBlock({ label, value }: { label: string; value: string }) {
 
 export default function CharacterPage() {
   const nameInputRef = useRef<HTMLInputElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
   const [characters, setCharacters] = useState<CharacterRecord[]>([]);
   const [refs, setRefs] = useState<LocalRefImage[]>([]);
+
+  const handleZoneClick = useCallback((e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (target.closest("button") || target.closest("img") || target.closest("article") || target.closest("a")) {
+      return;
+    }
+    fileInputRef.current?.click();
+  }, []);
+
+  const onDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  }, []);
+
+  const onDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  }, []);
+
+  const onDrop = useCallback(async (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    
+    const files = Array.from(e.dataTransfer.files || []).filter((file) => file.type.startsWith("image/")).slice(0, 24 - refs.length);
+    if (!files.length) return;
+    const mapped = await Promise.all(files.map(async (file) => ({ id: uid("ref"), file, dataUrl: await fileToDataUrl(file) })));
+    setRefs((prev) => [...prev, ...mapped].slice(0, 24));
+  }, [refs.length]);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [faceNotes, setFaceNotes] = useState("");
@@ -398,7 +483,16 @@ export default function CharacterPage() {
         </div>
 
         <section className="rounded-[28px] border border-white/10 bg-[#101113] p-3 shadow-2xl shadow-black">
-          <label className="group flex min-h-[390px] cursor-pointer flex-col items-center justify-center rounded-[23px] border border-dashed border-white/10 bg-gradient-to-b from-[#242527] to-[#17181a] text-center transition hover:border-lime-300/60">
+          <div
+            onClick={handleZoneClick}
+            onDragOver={onDragOver}
+            onDragLeave={onDragLeave}
+            onDrop={onDrop}
+            className={cn(
+              "group flex min-h-[390px] cursor-pointer flex-col items-center justify-center rounded-[23px] border border-dashed text-center transition",
+              isDragging ? "border-lime-300 bg-lime-300/10" : "border-white/10 bg-gradient-to-b from-[#242527] to-[#17181a] hover:border-lime-300/60"
+            )}
+          >
             {refs.length === 0 ? (
               <>
                 <span className="inline-flex items-center gap-2 rounded-2xl bg-lime-300 px-7 py-4 text-base font-black text-black transition group-hover:bg-lime-200">
@@ -419,15 +513,24 @@ export default function CharacterPage() {
                       type="button"
                       onClick={(event) => {
                         event.preventDefault();
+                        event.stopPropagation();
                         document.getElementById("identity-setup")?.scrollIntoView({ behavior: "smooth", block: "start" });
                       }}
                       className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white px-5 py-3 text-sm font-black text-black hover:bg-zinc-200"
                     >
                       Continue setup
                     </button>
-                    <span className="inline-flex items-center gap-2 rounded-xl bg-lime-300 px-5 py-3 text-sm font-black text-black">
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        fileInputRef.current?.click();
+                      }}
+                      className="inline-flex items-center gap-2 rounded-xl bg-lime-300 px-5 py-3 text-sm font-black text-black hover:bg-lime-200"
+                    >
                       Add more <ImagePlus className="h-5 w-5" />
-                    </span>
+                    </button>
                   </div>
                 </div>
                 <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6">
@@ -438,9 +541,10 @@ export default function CharacterPage() {
                         type="button"
                         onClick={(event) => {
                           event.preventDefault();
+                          event.stopPropagation();
                           setRefs((prev) => prev.filter((item) => item.id !== ref.id));
                         }}
-                        className="absolute right-1 top-1 hidden rounded-full bg-black/75 p-1 text-white group-hover/thumb:block"
+                        className="absolute right-1 top-1 hidden rounded-full bg-black/75 p-1 text-white group-hover/thumb:block hover:bg-red-600/80"
                       >
                         <X className="h-3 w-3" />
                       </button>
@@ -449,8 +553,8 @@ export default function CharacterPage() {
                 </div>
               </div>
             )}
-            <input type="file" accept="image/*" multiple className="hidden" onChange={onPickImages} />
-          </label>
+            <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={onPickImages} />
+          </div>
 
           <div className="grid gap-4 p-5 lg:grid-cols-2">
             <RuleGroup type="good" items={GOOD_RULES} />

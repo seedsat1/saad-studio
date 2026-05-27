@@ -39,6 +39,85 @@ function extractVideoUrls(value: unknown): string[] {
   return [];
 }
 
+function resolveWaveSpeedModelRoute(modelId: string): string {
+  const clean = modelId.trim();
+  const mapping: Record<string, string> = {
+    "kling-3.0/video": "kwaivgi/kling-v3.0-pro/text-to-video",
+    "kwaivgi/kling-v3.0-pro/text-to-video": "kwaivgi/kling-v3.0-pro/text-to-video",
+    "kling-3.0/motion-control": "kwaivgi/kling-v3.0-pro/motion-control",
+    "kwaivgi/kling-v3.0-pro/motion-control": "kwaivgi/kling-v3.0-pro/motion-control",
+    "kling/v2-5-turbo-text-to-video-pro": "kling/v2-5-turbo-text-to-video-pro",
+    "kling/v2-5-turbo-image-to-video-pro": "kling/v2-5-turbo-image-to-video-pro",
+    
+    "hailuo/2-3-image-to-video-standard": "hailuo/2-3-image-to-video-standard",
+    "hailuo/2-3-image-to-video-pro": "hailuo/2-3-image-to-video-pro",
+    "minimax/hailuo-2.3/i2v-standard": "hailuo/2-3-image-to-video-standard",
+    "minimax/hailuo-2.3/i2v-pro": "hailuo/2-3-image-to-video-pro",
+    
+    "sora-2-text-to-video": "openai/sora-2/text-to-video",
+    "sora-2-image-to-video": "openai/sora-2/image-to-video",
+    "sora-2-pro-text-to-video": "openai/sora-2/text-to-video-pro",
+    "openai/sora-2/text-to-video": "openai/sora-2/text-to-video",
+    "openai/sora-2/image-to-video": "openai/sora-2/image-to-video",
+    "openai/sora-2/text-to-video-pro": "openai/sora-2/text-to-video-pro",
+    
+    "grok-imagine/text-to-video": "x-ai/grok-imagine-video/text-to-video",
+    "grok-imagine/image-to-video": "x-ai/grok-imagine-video/edit-video",
+    "x-ai/grok-imagine-video/text-to-video": "x-ai/grok-imagine-video/text-to-video",
+    "x-ai/grok-imagine-video/edit-video": "x-ai/grok-imagine-video/edit-video",
+  };
+  return mapping[clean] || clean;
+}
+
+async function createWaveSpeedTask(apiKey: string, apiRoute: string, body: Record<string, unknown>): Promise<string> {
+  const res = await fetch(`https://api.wavespeed.ai/api/v3/${apiRoute}`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(`WaveSpeed submit failed: ${json?.error || json?.message || res.statusText}`);
+  }
+  const predictionId = json?.data?.id || json?.id;
+  if (!predictionId) {
+    throw new Error("WaveSpeed did not return a prediction/task ID.");
+  }
+  return String(predictionId);
+}
+
+async function pollWaveSpeedTask(apiKey: string, predictionId: string, maxAttempts = 80, intervalMs = 4000): Promise<string[]> {
+  for (let i = 0; i < maxAttempts; i++) {
+    await new Promise((r) => setTimeout(r, intervalMs));
+    const res = await fetch(`https://api.wavespeed.ai/api/v3/predictions/${predictionId}`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    });
+    if (!res.ok) throw new Error(`WaveSpeed polling failed: ${res.status}`);
+    const json = await res.json().catch(() => ({}));
+    const data = json?.data ?? {};
+    const status = String(data?.status || "").toLowerCase();
+    
+    if (["completed", "success", "done"].includes(status)) {
+      const resultRes = await fetch(`https://api.wavespeed.ai/api/v3/predictions/${predictionId}/result`, {
+        headers: { Authorization: `Bearer ${apiKey}` },
+      });
+      const resultJson = await resultRes.json().catch(() => ({}));
+      const resultData = resultJson?.data ?? resultJson ?? {};
+      const outputs = extractVideoUrls(resultData?.outputs ?? resultData?.result ?? resultData?.response ?? data?.outputs);
+      if (!outputs.length) throw new Error("WaveSpeed task succeeded but no video URL returned.");
+      return outputs;
+    }
+    
+    if (["failed", "fail", "error", "cancelled", "canceled"].includes(status)) {
+      throw new Error(data?.error || data?.errorMessage || "WaveSpeed generation failed.");
+    }
+  }
+  throw new Error("Video generation timed out.");
+}
+
 async function createKieTask(apiKey: string, model: string, input: Record<string, unknown>): Promise<string> {
   const res = await fetch(KIE_CREATE_URL, {
     method: "POST",
@@ -143,57 +222,92 @@ export async function POST(req: NextRequest) {
     chargedCredits = creditsToCharge;
     generationId = spent.generationId;
 
-    const kieApiKey = process.env.KIE_API_KEY ?? process.env.KIEAI_API_KEY;
-    if (!kieApiKey) throw new Error("KIE API key not configured on server.");
+    const isGoogle = modelId.includes("google") || modelId.includes("veo") || modelId.includes("gemini");
+    const isSeedance2 = (modelId.includes("seedance") || modelId.includes("bytedance")) && (modelId.includes("v2") || modelId.includes("-2"));
 
-    const isSeedance = kieModelId.includes("seedance") || kieModelId.includes("bytedance");
-    const isKling = kieModelId.includes("kling");
+    if (isGoogle || isSeedance2) {
+      const kieApiKey = process.env.KIE_API_KEY ?? process.env.KIEAI_API_KEY;
+      if (!kieApiKey) throw new Error("KIE API key not configured on server.");
 
-    const input: Record<string, unknown> = {
-      prompt: sanitizePrompt(prompt, 5000),
-      // Seedance: duration must be integer [4-15]; Kling/others: string "5"|"10"
-      duration: isSeedance
-        ? Math.max(4, Math.min(15, Number(duration) || 5))
-        : String(duration),
-      aspect_ratio: aspectRatio,
-    };
+      const isSeedance = kieModelId.includes("seedance") || kieModelId.includes("bytedance");
+      const isKling = kieModelId.includes("kling");
 
-    // Add image reference if provided (image-to-video mode)
-    if (imageUrl) {
-      if (kieModelId === "kling-3.0/video" || kieModelId === "kling-3.0/motion-control") {
-        input.image_urls = [imageUrl];
-      } else if (isKling) {
-        // Kling 2.x I2V uses image_url (single)
-        input.image_url = imageUrl;
-      } else if (isSeedance) {
-        // Seedance 2 uses first_frame_url for reference image
-        input.first_frame_url = imageUrl;
-      } else {
-        input.image_url = imageUrl;
+      const input: Record<string, unknown> = {
+        prompt: sanitizePrompt(prompt, 5000),
+        // Seedance: duration must be integer [4-15]; Kling/others: string "5"|"10"
+        duration: isSeedance
+          ? Math.max(4, Math.min(15, Number(duration) || 5))
+          : String(duration),
+        aspect_ratio: aspectRatio,
+      };
+
+      // Add image reference if provided (image-to-video mode)
+      if (imageUrl) {
+        if (kieModelId === "kling-3.0/video" || kieModelId === "kling-3.0/motion-control") {
+          input.image_urls = [imageUrl];
+        } else if (isKling) {
+          // Kling 2.x I2V uses image_url (single)
+          input.image_url = imageUrl;
+        } else if (isSeedance) {
+          // Seedance 2 uses first_frame_url for reference image
+          input.first_frame_url = imageUrl;
+        } else {
+          input.image_url = imageUrl;
+        }
       }
+
+      // Model-specific settings
+      if (isKling) {
+        const mode = resolution === "4K" ? "4K" : (resolution === "720p" ? "std" : "pro");
+        input.mode = mode;
+      }
+
+      // Seedance: generate_audio defaults to TRUE (extra cost) — always disable unless explicitly set
+      if (isSeedance) {
+        input.generate_audio = false;
+        // resolution for Seedance: 480p/720p/1080p
+        if (resolution) input.resolution = resolution.toLowerCase();
+      }
+
+      const taskId = await createKieTask(kieApiKey, kieModelId, input);
+      const videoUrls = await pollKieTask(kieApiKey, taskId);
+
+      if (generationId && videoUrls[0]) {
+        await setGenerationMediaUrl(generationId, videoUrls[0]).catch(() => {});
+      }
+
+      return NextResponse.json({ videoUrls, videoUrl: videoUrls[0] ?? null, taskId, generationId });
+    } else {
+      // WaveSpeed for all other video models
+      const wavespeedKey = process.env.WAVESPEED_API_KEY;
+      if (!wavespeedKey) throw new Error("WaveSpeed API key not configured on server.");
+
+      const wavespeedModel = resolveWaveSpeedModelRoute(modelId);
+      const isKling = wavespeedModel.includes("kling");
+
+      const payload: Record<string, unknown> = {
+        prompt: sanitizePrompt(prompt, 5000),
+        duration: isKling ? String(duration) : duration,
+        aspect_ratio: aspectRatio,
+      };
+
+      if (imageUrl) {
+        if (wavespeedModel.includes("kling-v3.0") || wavespeedModel.includes("motion-control")) {
+          payload.image_urls = [imageUrl];
+        } else {
+          payload.image_url = imageUrl;
+        }
+      }
+
+      const taskId = await createWaveSpeedTask(wavespeedKey, wavespeedModel, payload);
+      const videoUrls = await pollWaveSpeedTask(wavespeedKey, taskId);
+
+      if (generationId && videoUrls[0]) {
+        await setGenerationMediaUrl(generationId, videoUrls[0]).catch(() => {});
+      }
+
+      return NextResponse.json({ videoUrls, videoUrl: videoUrls[0] ?? null, taskId, generationId });
     }
-
-    // Model-specific settings
-    if (isKling) {
-      const mode = resolution === "4K" ? "4K" : (resolution === "720p" ? "std" : "pro");
-      input.mode = mode;
-    }
-
-    // Seedance: generate_audio defaults to TRUE (extra cost) — always disable unless explicitly set
-    if (isSeedance) {
-      input.generate_audio = false;
-      // resolution for Seedance: 480p/720p/1080p
-      if (resolution) input.resolution = resolution.toLowerCase();
-    }
-
-    const taskId = await createKieTask(kieApiKey, kieModelId, input);
-    const videoUrls = await pollKieTask(kieApiKey, taskId);
-
-    if (generationId && videoUrls[0]) {
-      await setGenerationMediaUrl(generationId, videoUrls[0]).catch(() => {});
-    }
-
-    return NextResponse.json({ videoUrls, videoUrl: videoUrls[0] ?? null, taskId, generationId });
   } catch (error) {
     if (error instanceof InsufficientCreditsError) {
       return NextResponse.json(
