@@ -53,8 +53,44 @@ const EXCLUDED_ANNUAL_UNLIMITED_IMAGE_MODEL_IDS = new Set([
   "google/imagen4-ultra",
   "flux-2/max",
 ]);
+const HIDDEN_IMAGE_PAGE_MODEL_IDS = new Set([
+  "wan/2-7-image-pro",
+  "flux-2/pro",
+  "flux-2/flex",
+  "flux-2/max",
+  "grok-imagine/text-to-image",
+  "grok-imagine/image-to-image",
+  "qwen2/text-to-image",
+  "qwen2/image-edit",
+  "qwen/image-to-image",
+  "seedream/4.5-text-to-image",
+  "seedream/4.5-edit",
+  "seedream/5-lite-text-to-image",
+  "seedream/5-lite-image-to-image",
+  "z-image",
+]);
+const HIDDEN_IMAGE_PAGE_MODEL_LABELS = new Set([
+  "wan 2.7 image pro",
+  "flux.2 pro",
+  "flux.2 flex",
+  "flux.2 max",
+  "grok imagine",
+  "grok imagine i2i",
+  "qwen image t2i",
+  "qwen2 image edit",
+  "qwen image i2i",
+  "seedream 4.5 t2i",
+  "seedream 4.5 edit",
+  "seedream 5 lite t2i",
+  "seedream 5 lite i2i",
+  "z-image",
+]);
 const isBlockedDynamicImageModel = (id: string, label: string) =>
   id.includes("kling-" + "image-o1") || label === "kling 01 image";
+const isHiddenImagePageModel = (model: Pick<ImageModel, "id" | "label">) =>
+  HIDDEN_IMAGE_PAGE_MODEL_IDS.has(model.id.toLowerCase()) ||
+  HIDDEN_IMAGE_PAGE_MODEL_LABELS.has(model.label.trim().toLowerCase());
+const VISIBLE_IMAGE_MODELS = IMAGE_MODELS.filter((model) => !isHiddenImagePageModel(model));
 
 function isAnnualUnlimitedImageQuality(value?: string | null) {
   const normalized = String(value ?? "1K").trim().toLowerCase();
@@ -181,18 +217,14 @@ const TOOLS = [
 const EDIT_MODELS = IMAGE_MODELS.filter((m) =>
   [
     "google/nano-banana-edit",
-    "seedream/4.5-edit",
     "gpt-image-2-image-to-image",
     "gpt-image/1.5-image-to-image",
-    "flux-2/pro",
-    "flux-2/flex",
-    "flux-2/max",
-  ].includes(m.id),
+  ].includes(m.id) && !isHiddenImagePageModel(m),
 );
 
 // All models that accept real image inputs (any inputType) — includes Nano Banana (up to 14 imgs), edit, and pure img2img
 const ENHANCE_MODELS = IMAGE_MODELS.filter(
-  (m) => m.imageInputField !== undefined && m.maxRefImages > 0,
+  (m) => m.imageInputField !== undefined && m.maxRefImages > 0 && !isHiddenImagePageModel(m),
 );
 
 const uid = (prefix = "id") => `${prefix}_${Math.random().toString(36).slice(2, 10)}`;
@@ -315,7 +347,8 @@ function ModelDropdown({ selected, onSelect }: { selected: ImageModel; onSelect:
         const label = dm.label.toLowerCase();
         return !knownIds.has(id) &&
           !id.startsWith("flux-2/") &&
-          !isBlockedDynamicImageModel(id, label);
+          !isBlockedDynamicImageModel(id, label) &&
+          !isHiddenImagePageModel({ id, label });
       })
       .map((dm) => {
         const isEdit = /(edit|image-to-image|i2i|inpaint)/i.test(dm.id);
@@ -333,7 +366,7 @@ function ModelDropdown({ selected, onSelect }: { selected: ImageModel; onSelect:
         } as ImageModel;
       });
 
-    const all = [...dynamicAsImage, ...IMAGE_MODELS];
+    const all = [...dynamicAsImage, ...VISIBLE_IMAGE_MODELS];
     const q = query.trim().toLowerCase();
     const list = q
       ? all.filter((m) => m.label.toLowerCase().includes(q) || m.id.toLowerCase().includes(q) || m.group.toLowerCase().includes(q))
@@ -999,7 +1032,7 @@ export default function ImageWorkspacePage() {
   const { addAsset } = useAssetStore();
 
   const [activeTool, setActiveTool] = useState<ToolId>("create");
-  const [selectedModel, setSelectedModel] = useState<ImageModel>(IMAGE_MODELS[0]);
+  const [selectedModel, setSelectedModel] = useState<ImageModel>(VISIBLE_IMAGE_MODELS[0] ?? IMAGE_MODELS[0]);
   const [hasAnnualUnlimitedImages, setHasAnnualUnlimitedImages] = useState(false);
   const [annualUnlimitedEnabled, setAnnualUnlimitedEnabled] = useState(false);
   const [aspectRatio, setAspectRatio] = useState("1:1");
@@ -1062,7 +1095,7 @@ export default function ImageWorkspacePage() {
 
     const requestedModel = searchParams.get("model");
     if (requestedModel) {
-      const model = IMAGE_MODELS.find((m) => m.id === requestedModel);
+      const model = VISIBLE_IMAGE_MODELS.find((m) => m.id === requestedModel);
       if (model) setSelectedModel(model);
     }
 
@@ -1633,8 +1666,8 @@ export default function ImageWorkspacePage() {
       const acceptsRefs = selectedModel.imageInputField !== undefined && selectedModel.maxRefImages > 0;
       const targetModel = acceptsRefs
         ? selectedModel
-        : (IMAGE_MODELS.find((m) => m.id === "google/nano-banana-edit")
-            ?? IMAGE_MODELS.find((m) => m.imageInputField !== undefined && m.maxRefImages > 0)
+        : (VISIBLE_IMAGE_MODELS.find((m) => m.id === "google/nano-banana-edit")
+            ?? VISIBLE_IMAGE_MODELS.find((m) => m.imageInputField !== undefined && m.maxRefImages > 0)
             ?? selectedModel);
 
       if (targetModel.id !== selectedModel.id) setSelectedModel(targetModel);
