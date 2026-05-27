@@ -22,6 +22,7 @@ export async function GET() {
   try {
     const generations = await prismadb.generation.findMany({
       orderBy: { createdAt: "desc" },
+      take: 500,
       include: { user: { select: { email: true } } },
     });
 
@@ -47,7 +48,6 @@ export async function GET() {
       };
     });
 
-    console.log("[admin/generations] rows:", payload.length, payload[0]?.id ?? null);
     return NextResponse.json(payload);
   } catch {
     return NextResponse.json([]);

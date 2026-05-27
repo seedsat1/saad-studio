@@ -440,15 +440,17 @@ function cn(...cls: (string | false | undefined | null)[]) {
    ═══════════════════════════════════════════════════════════════════════════════ */
 
 async function uploadFile(file: File): Promise<string> {
+  const form = new FormData();
+  form.append("file", file);
   const res = await fetch("/api/admin/media/upload", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ fileName: file.name, fileType: file.type }),
+    body: form,
   });
-  const { signedUrl, publicUrl, error } = await res.json();
-  if (!signedUrl) throw new Error(error || "Upload failed");
-  await fetch(signedUrl, { method: "PUT", headers: { "Content-Type": file.type }, body: file });
-  return publicUrl;
+  const json = await res.json().catch(() => null);
+  if (!res.ok || !json?.publicUrl) {
+    throw new Error(json?.error || "Upload failed");
+  }
+  return String(json.publicUrl);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
