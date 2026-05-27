@@ -22,12 +22,9 @@ export function AppCategorySection({ category, expanded = false, onToggleExpand 
   const hasMore = category.tools.length > VISIBLE_COUNT;
 
   return (
-    <motion.section
+    <section
       id={`section-${category.id}`}
       ref={ref}
-      initial={{ opacity: 0, y: 40 }}
-      animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 40 }}
-      transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
       className="scroll-mt-24"
     >
       <div className="flex items-start gap-4 mb-5">
@@ -86,63 +83,41 @@ export function AppCategorySection({ category, expanded = false, onToggleExpand 
       </div>
 
       <div className="grid grid-cols-2 sm:hidden gap-3">
-        {visibleTools.map((tool, index) => (
-          <motion.div
-            key={tool.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-            transition={{ duration: 0.45, delay: index * 0.06, ease: "easeOut" }}
-          >
+        {visibleTools.map((tool) => (
+          <div key={tool.id}>
             <AppToolCard tool={tool} />
-          </motion.div>
+          </div>
         ))}
         {hasMore && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-            transition={{ duration: 0.45, delay: visibleTools.length * 0.06, ease: "easeOut" }}
-          >
+          <div>
             <GhostCard
               href={category.href}
               count={category.tools.length}
               expanded={expanded}
               onClick={() => onToggleExpand?.(category.id)}
             />
-          </motion.div>
+          </div>
         )}
       </div>
 
-      <div className="hidden sm:grid grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-4">
-        {visibleTools.map((tool, index) => (
-          <motion.div
-            key={tool.id}
-            initial={{ opacity: 0, y: 24 }}
-            animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 24 }}
-            transition={{ duration: 0.45, delay: index * 0.06, ease: "easeOut" }}
-          >
+      <div className="hidden sm:grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 3xl:grid-cols-8 gap-4">
+        {visibleTools.map((tool) => (
+          <div key={tool.id}>
             <AppToolCard tool={tool} />
-          </motion.div>
+          </div>
         ))}
         {hasMore && (
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 24 }}
-            transition={{
-              duration: 0.45,
-              delay: visibleTools.length * 0.06,
-              ease: "easeOut",
-            }}
-          >
+          <div>
             <GhostCard
               href={category.href}
               count={category.tools.length}
               expanded={expanded}
               onClick={() => onToggleExpand?.(category.id)}
             />
-          </motion.div>
+          </div>
         )}
       </div>
-    </motion.section>
+    </section>
   );
 }
 

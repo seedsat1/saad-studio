@@ -885,17 +885,44 @@ export default function App() {
     return urls;
   };
 
+  // Upload status so the buttons can show "Uploading…" instead of looking
+  // frozen while /api/media/upload is in flight.
+  const [refUploadBusy, setRefUploadBusy] = useState(false);
+  const [endFrameUploadBusy, setEndFrameUploadBusy] = useState(false);
+
   const handleReferenceUpload = async (files: FileList | null) => {
     const limit = activeModelObj.capabilities.max_reference_images;
     if (!limit) return;
-    const urls = await readImageFiles(files, limit);
-    setReferenceImages(urls.slice(0, limit));
+    // Append to existing images (up to the model's limit) instead of
+    // replacing them — previously a second upload wiped the first.
+    const remaining = Math.max(0, limit - referenceImages.length);
+    if (remaining === 0) return;
+    setRefUploadBusy(true);
+    try {
+      const urls = await readImageFiles(files, remaining);
+      if (urls.length > 0) {
+        setReferenceImages((prev) => [...prev, ...urls].slice(0, limit));
+      }
+    } finally {
+      setRefUploadBusy(false);
+    }
+  };
+
+  const removeReferenceImage = (index: number) => {
+    setReferenceImages((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleEndFrameUpload = async (files: FileList | null) => {
-    const [url] = await readImageFiles(files, 1);
-    if (url) setEndFrameUrl(url);
+    setEndFrameUploadBusy(true);
+    try {
+      const [url] = await readImageFiles(files, 1);
+      if (url) setEndFrameUrl(url);
+    } finally {
+      setEndFrameUploadBusy(false);
+    }
   };
+
+  const clearEndFrame = () => setEndFrameUrl("");
 
   const assignPresetVoiceToActor = (actorId: string, presetLabel: string) => {
     const preset = VOICE_PRESETS.find((voice) => voice.label === presetLabel || voice.voiceId === presetLabel);
@@ -2090,23 +2117,116 @@ export default function App() {
 
               <div className="w-full flex flex-wrap items-center gap-2 text-sm text-[#e2e8f0]">
                 {activeModelObj.capabilities.max_reference_images > 0 && (
-                  <label className="px-2 py-1 rounded border border-[#1e293b] bg-[#0f172a] hover:border-[#8b5cf6]/70 cursor-pointer">
-                    Ref images {referenceImages.length}/{activeModelObj.capabilities.max_reference_images}
-                    <input
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      className="hidden"
-                      onChange={(e) => handleReferenceUpload(e.target.files)}
-                    />
-                  </label>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {/* Upload button — disabled when limit reached */}
+                    <label
+                      className={`px-2 py-1 rounded border border-[#1e293b] bg-[#0f172a] transition-colors ${
+                        refUploadBusy
+                          ? "opacity-60 cursor-wait"
+                          : referenceImages.length >= activeModelObj.capabilities.max_reference_images
+                            ? "opacity-50 cursor-not-allowed"
+                            : "hover:border-[#8b5cf6]/70 cursor-pointer"
+                      }`}
+                    >
+                      {refUploadBusy
+                        ? "Uploading…"
+                        : `Ref images ${referenceImages.length}/${activeModelObj.capabilities.max_reference_images}`}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        className="hidden"
+                        disabled={refUploadBusy || referenceImages.length >= activeModelObj.capabilities.max_reference_images}
+                        onChange={(e) => {
+                          handleReferenceUpload(e.target.files);
+                          // Reset the input so the same file can be re-selected
+                          // after being removed.
+                          e.target.value = "";
+                        }}
+                      />
+                    </label>
+
+                    {/* Thumbnails for already-uploaded images */}
+                    {referenceImages.map((url, idx) => (
+                      <div
+                        key={`ref-${idx}-${url.slice(-12)}`}
+                        className="relative group w-12 h-12 rounded-md overflow-hidden border border-[#1e293b] bg-[#020617]"
+                      >
+                        <img
+                          src={url}
+                          alt={`Reference ${idx + 1}`}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLImageElement).style.display = "none";
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeReferenceImage(idx)}
+                          aria-label={`Remove reference image ${idx + 1}`}
+                          title="Remove"
+                          className="absolute top-0 right-0 w-4 h-4 flex items-center justify-center bg-black/80 hover:bg-red-500 text-white text-[10px] rounded-bl-md opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X size={10} />
+                        </button>
+                        <span className="absolute bottom-0 left-0 text-[9px] font-mono px-1 bg-black/60 text-[#a78bfa]">
+                          {idx + 1}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 )}
 
                 {activeModelObj.capabilities.has_end_frame && (
-                  <label className="px-2 py-1 rounded border border-[#1e293b] bg-[#0f172a] hover:border-[#8b5cf6]/70 cursor-pointer">
-                    {endFrameUrl ? "End frame ready" : "End frame"}
-                    <input type="file" accept="image/*" className="hidden" onChange={(e) => handleEndFrameUpload(e.target.files)} />
-                  </label>
+                  <div className="flex items-center gap-2">
+                    <label
+                      className={`px-2 py-1 rounded border border-[#1e293b] bg-[#0f172a] transition-colors ${
+                        endFrameUploadBusy ? "opacity-60 cursor-wait" : "hover:border-[#8b5cf6]/70 cursor-pointer"
+                      }`}
+                    >
+                      {endFrameUploadBusy
+                        ? "Uploading…"
+                        : endFrameUrl
+                          ? "Replace end frame"
+                          : "End frame"}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        disabled={endFrameUploadBusy}
+                        onChange={(e) => {
+                          handleEndFrameUpload(e.target.files);
+                          e.target.value = "";
+                        }}
+                      />
+                    </label>
+
+                    {/* End frame thumbnail (visible only after upload) */}
+                    {endFrameUrl && (
+                      <div className="relative group w-12 h-12 rounded-md overflow-hidden border border-[#1e293b] bg-[#020617]">
+                        <img
+                          src={endFrameUrl}
+                          alt="End frame"
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLImageElement).style.display = "none";
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={clearEndFrame}
+                          aria-label="Remove end frame"
+                          title="Remove"
+                          className="absolute top-0 right-0 w-4 h-4 flex items-center justify-center bg-black/80 hover:bg-red-500 text-white text-[10px] rounded-bl-md opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X size={10} />
+                        </button>
+                        <span className="absolute bottom-0 left-0 text-[9px] font-mono px-1 bg-black/60 text-[#22d3ee]">
+                          END
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 )}
 
                 {activeModelObj.capabilities.has_negative_prompt && (

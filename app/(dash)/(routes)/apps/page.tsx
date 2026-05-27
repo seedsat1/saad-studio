@@ -128,7 +128,7 @@ export default function AppsPage() {
       <FloatingParticles />
 
       {/* Content layer */}
-      <div className="relative z-10 max-w-[1700px] mx-auto px-4 sm:px-6 lg:px-10 py-10 pb-24">
+      <div className="relative z-10 w-full px-4 sm:px-8 lg:px-12 py-10 pb-24">
 
         {/* ── PAGE HEADER ── */}
         <motion.div
