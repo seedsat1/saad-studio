@@ -519,108 +519,57 @@ export default function CharacterPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-black text-white">
-      <main className="mx-auto max-w-5xl px-5 py-10">
-        <div className="mb-8 flex items-center justify-between gap-4">
+    <div className="h-[calc(100vh-4rem)] w-full overflow-hidden flex flex-col md:flex-row bg-[#060c18] text-white">
+      {/* Left Column: Creator & Identity Settings (35% on XL) */}
+      <div className="w-full md:w-[42%] lg:w-[36%] xl:w-[32%] h-full flex flex-col border-r border-white/10 bg-[#0a0f1d] shrink-0">
+        <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
+          {/* Header Area */}
           <div>
-            <div className="text-sm font-medium text-zinc-500">Characters / <span className="text-zinc-200">New</span></div>
-            <h1 className="mt-3 text-4xl font-semibold tracking-tight">Create Character Identity</h1>
-            <p className="mt-2 max-w-2xl text-base text-zinc-500">Upload one person, build a persistent identity, then reuse it automatically across image, video, and canvas workflows.</p>
-          </div>
-          <button onClick={() => void loadCharacters()} className="inline-flex h-11 items-center gap-2 rounded-xl border border-white/10 bg-zinc-950 px-4 text-sm font-semibold text-zinc-300 hover:bg-zinc-900">
-            <RefreshCw className="h-4 w-4" />
-            Refresh
-          </button>
-        </div>
-
-        <section className="mb-6 rounded-[28px] border border-white/10 bg-[#0f1012] p-4 sm:p-5">
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <div className="text-xs font-black uppercase tracking-[0.16em] text-lime-300">Interactive Creation Guide</div>
-              <h2 className="mt-1 text-xl font-semibold">Quick Guide</h2>
-            </div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/50 px-3 py-1 text-xs font-semibold text-zinc-300">
-              <Sparkles className="h-3.5 w-3.5 text-lime-300" />
-              Step {guideStep + 1} of {CHARACTER_GUIDE_STEPS.length}
-            </div>
+            <div className="text-xs font-bold uppercase tracking-[0.16em] text-zinc-400">Characters / <span className="text-zinc-200">New Identity</span></div>
+            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white flex items-center gap-2">
+              <Fingerprint className="h-7 w-7 text-lime-300" />
+              Create Character Identity
+            </h1>
+            <p className="mt-2 text-sm text-zinc-400 leading-relaxed">
+              Upload reference photos of one subject to build a persistent, reusable identity.
+            </p>
           </div>
 
-          <div className="overflow-hidden rounded-2xl border border-white/10 bg-black/40">
-            <div className="relative aspect-[16/8] w-full bg-zinc-950">
-              <img
-                src={CHARACTER_GUIDE_STEPS[guideStep].image}
-                alt={CHARACTER_GUIDE_STEPS[guideStep].title}
-                className="h-full w-full object-cover"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/45 to-transparent" />
-              <div className="absolute bottom-4 left-4 right-4 rounded-xl border border-white/10 bg-black/65 p-3 backdrop-blur-sm sm:p-4">
-                <div className="text-sm font-black text-white sm:text-base">{CHARACTER_GUIDE_STEPS[guideStep].title}</div>
-                <div className="mt-1 text-xs text-zinc-300 sm:text-sm">{CHARACTER_GUIDE_STEPS[guideStep].subtitle}</div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 gap-2 p-3 sm:grid-cols-3">
-              {CHARACTER_GUIDE_STEPS.map((step, index) => {
-                const active = index === guideStep;
-                return (
-                  <button
-                    key={step.title}
-                    type="button"
-                    onClick={() => setGuideStep(index)}
-                    className={cn(
-                      "rounded-xl border px-3 py-2 text-left transition",
-                      active ? "border-lime-300 bg-lime-300/10" : "border-white/10 bg-black/40 hover:bg-white/5"
-                    )}
-                  >
-                    <div className={cn("text-[10px] font-black uppercase tracking-[0.14em]", active ? "text-lime-300" : "text-zinc-500")}>
-                      Step {index + 1}
-                    </div>
-                    <div className="mt-1 text-xs font-semibold text-zinc-200">{step.title.replace(/^Step \d+:\s*/, "")}</div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-
-        <section className="rounded-[28px] border border-white/10 bg-[#101113] p-3 shadow-2xl shadow-black">
-          <div
-            onClick={handleZoneClick}
-            onDragOver={onDragOver}
-            onDragLeave={onDragLeave}
-            onDrop={onDrop}
-            className={cn(
-              "group flex min-h-[390px] cursor-pointer flex-col items-center justify-center rounded-[23px] border border-dashed text-center transition",
-              isDragging ? "border-lime-300 bg-lime-300/10" : "border-white/10 bg-gradient-to-b from-[#242527] to-[#17181a] hover:border-lime-300/60"
-            )}
-          >
-            {refs.length === 0 ? (
-              <>
-                <span className="inline-flex items-center gap-2 rounded-2xl bg-lime-300 px-7 py-4 text-base font-black text-black transition group-hover:bg-lime-200">
-                  Upload character photos <Upload className="h-5 w-5" />
+          {/* Step 1: Upload Reference Photos */}
+          <div className="space-y-3.5">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold uppercase tracking-[0.12em] text-zinc-200">Step 1: Reference Photos</h3>
+              {refs.length > 0 && (
+                <span className="text-xs font-semibold text-lime-300 bg-lime-300/10 px-2.5 py-0.5 rounded-full border border-lime-300/20">
+                  {refs.length} selected
                 </span>
-                <span className="mt-6 text-lg font-semibold text-zinc-300">10-24 photos recommended</span>
-                <span className="mt-2 max-w-lg text-sm leading-6 text-zinc-500">One person, clear face, multiple angles. The system builds a persistent Character Package from these images.</span>
-              </>
-            ) : (
-              <div className="w-full p-6">
-                <div className="mb-5 flex items-center justify-between">
-                  <div className="text-left">
-                    <div className="text-lg font-bold">{refs.length} reference image{refs.length === 1 ? "" : "s"} selected</div>
-                    <div className="mt-1 text-sm text-zinc-500">Add more angles or continue to identity setup.</div>
+              )}
+            </div>
+            
+            <div
+              onClick={handleZoneClick}
+              onDragOver={onDragOver}
+              onDragLeave={onDragLeave}
+              onDrop={onDrop}
+              className={cn(
+                "group flex min-h-[170px] cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed text-center transition p-5",
+                isDragging 
+                  ? "border-lime-300 bg-lime-300/10" 
+                  : "border-white/10 bg-black/40 hover:border-lime-300/50 hover:bg-black/60"
+              )}
+            >
+              {refs.length === 0 ? (
+                <>
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-lime-300/10 text-lime-300 mb-3 group-hover:scale-105 transition">
+                    <Upload className="h-6 w-6" />
                   </div>
-                  <div className="flex flex-wrap justify-end gap-2">
-                    <button
-                      type="button"
-                      onClick={(event) => {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        document.getElementById("identity-setup")?.scrollIntoView({ behavior: "smooth", block: "start" });
-                      }}
-                      className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white px-5 py-3 text-sm font-black text-black hover:bg-zinc-200"
-                    >
-                      Continue setup
-                    </button>
+                  <span className="text-base font-bold text-white">Click or drag photos here</span>
+                  <span className="mt-1.5 text-xs text-zinc-500">10-24 photos recommended</span>
+                </>
+              ) : (
+                <div className="w-full">
+                  <div className="mb-3 flex items-center justify-between text-left">
+                    <span className="text-sm font-bold text-zinc-300">Previews</span>
                     <button
                       type="button"
                       onClick={(event) => {
@@ -628,200 +577,308 @@ export default function CharacterPage() {
                         event.stopPropagation();
                         fileInputRef.current?.click();
                       }}
-                      className="inline-flex items-center gap-2 rounded-xl bg-lime-300 px-5 py-3 text-sm font-black text-black hover:bg-lime-200"
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-lime-300 px-3 py-1.5 text-xs font-bold text-black hover:bg-lime-200"
                     >
-                      Add more <ImagePlus className="h-5 w-5" />
+                      <ImagePlus className="h-3.5 w-3.5" /> Add More
                     </button>
                   </div>
+                  <div className="grid grid-cols-4 gap-2 max-h-[180px] overflow-y-auto pr-1">
+                    {refs.map((ref) => (
+                      <div key={ref.id} className="group/thumb relative aspect-square overflow-hidden rounded-xl border border-white/10 bg-black">
+                        <img src={ref.dataUrl} alt="" className="h-full w-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            setRefs((prev) => prev.filter((item) => item.id !== ref.id));
+                          }}
+                          className="absolute right-1 top-1 rounded-full bg-black/80 p-1 text-white hover:bg-red-600/80"
+                        >
+                          <X className="h-2.5 w-2.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6">
-                  {refs.slice(0, 24).map((ref) => (
-                    <div key={ref.id} className="group/thumb relative aspect-square overflow-hidden rounded-2xl border border-white/10 bg-black">
-                      <img src={ref.dataUrl} alt="" className="h-full w-full object-cover" />
-                      <button
-                        type="button"
-                        onClick={(event) => {
-                          event.preventDefault();
-                          event.stopPropagation();
-                          setRefs((prev) => prev.filter((item) => item.id !== ref.id));
-                        }}
-                        className="absolute right-1 top-1 hidden rounded-full bg-black/75 p-1 text-white group-hover/thumb:block hover:bg-red-600/80"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-            <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={onPickImages} />
+              )}
+              <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={onPickImages} />
+            </div>
           </div>
 
-          <div className="grid gap-4 p-5 lg:grid-cols-2">
-            <RuleGroup type="good" items={GOOD_RULES} />
-            <RuleGroup type="avoid" items={AVOID_RULES} />
-          </div>
+          {/* Step 2: Identity Setup */}
+          <div className="space-y-4 pt-4 border-t border-white/5">
+            <h3 className="text-sm font-bold uppercase tracking-[0.12em] text-zinc-200">Step 2: Identity Compiler</h3>
+            
+            <div className="space-y-3.5">
+              <input 
+                ref={nameInputRef} 
+                value={name} 
+                onChange={(event) => setName(event.target.value)} 
+                placeholder="Character name (optional)" 
+                className="h-13 w-full rounded-xl border border-white/10 bg-black/40 px-4 text-base text-white placeholder-zinc-500 outline-none focus:border-lime-300/50 focus:bg-black/80 transition" 
+              />
+              
+              <textarea 
+                value={description} 
+                onChange={(event) => setDescription(event.target.value)} 
+                placeholder="Short description, role, aesthetic rules..." 
+                rows={3} 
+                className="w-full resize-none rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-base text-white placeholder-zinc-500 outline-none focus:border-lime-300/50 focus:bg-black/80 transition" 
+              />
 
-          {refs.length > 0 ? (
-            <div className="mx-5 mb-5 rounded-2xl border border-lime-300/25 bg-lime-300/10 p-4">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <div className="text-sm font-black text-lime-200">Next step</div>
-                  <div className="mt-1 text-sm text-zinc-300">Create the Character Entity now, or add a name and optional notes first.</div>
-                </div>
-                <div className="flex shrink-0 flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={createCharacter}
-                    disabled={!canCreate}
-                    className={cn(
-                      "inline-flex h-11 items-center justify-center rounded-xl px-5 text-sm font-black transition",
-                      canCreate ? "bg-lime-300 text-black hover:bg-lime-200" : "cursor-not-allowed bg-white/10 text-zinc-600",
-                    )}
-                  >
-                    {saving ? "Creating..." : "Create now"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      document.getElementById("identity-setup")?.scrollIntoView({ behavior: "smooth", block: "start" });
-                      window.setTimeout(() => nameInputRef.current?.focus(), 180);
-                    }}
-                    className="inline-flex h-11 items-center justify-center rounded-xl border border-white/10 bg-black/40 px-5 text-sm font-bold text-white hover:bg-white/10"
-                  >
-                    Add details
-                  </button>
-                </div>
-              </div>
-            </div>
-          ) : null}
-        </section>
-
-        <section className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
-          <div id="identity-setup" className="scroll-mt-8 rounded-[28px] border border-white/10 bg-[#111214] p-6">
-            <div className="mb-4 flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-lime-300 text-black">
-                <Fingerprint className="h-6 w-6" />
-              </div>
-              <div>
-                <div className="text-lg font-bold">Step 2: Identity setup</div>
-                <div className="text-sm text-zinc-500">Optional details. The uploaded images are enough to create the identity.</div>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <input ref={nameInputRef} value={name} onChange={(event) => setName(event.target.value)} placeholder="Character name (optional)" className="h-14 w-full rounded-2xl border border-white/10 bg-black px-4 text-base outline-none focus:border-lime-300/60" />
-              <textarea value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Short identity note, role, personality..." rows={4} className="w-full resize-none rounded-2xl border border-white/10 bg-black px-4 py-3 text-base outline-none focus:border-lime-300/60" />
-
-              <button onClick={() => setShowAdvanced((value) => !value)} className="flex w-full items-center justify-between rounded-2xl border border-white/10 bg-zinc-950 px-4 py-4 text-left text-sm font-semibold text-zinc-300 hover:bg-zinc-900">
-                Advanced Character Package
-                <span className="text-zinc-500">{showAdvanced ? "Hide" : "Open"}</span>
+              <button 
+                type="button"
+                onClick={() => setShowAdvanced((value) => !value)} 
+                className="flex h-12 w-full items-center justify-between rounded-xl border border-white/10 bg-black/20 hover:bg-black/40 px-4 text-sm font-semibold text-zinc-300 transition"
+              >
+                <span>Advanced Identity Memory</span>
+                <span className="text-xs text-zinc-400 bg-white/5 px-2.5 py-0.5 rounded-md">{showAdvanced ? "Hide" : "Expand"}</span>
               </button>
 
-              {showAdvanced ? (
-                <div className="space-y-2">
-                  <textarea value={faceNotes} onChange={(event) => setFaceNotes(event.target.value)} placeholder="Face Memory: face shape, eyes, nose, lips, hair, skin tone..." rows={3} className="w-full resize-none rounded-2xl border border-white/10 bg-black px-4 py-3 text-sm outline-none focus:border-lime-300/60" />
-                  <textarea value={bodyNotes} onChange={(event) => setBodyNotes(event.target.value)} placeholder="Body Profile: proportions, posture, height impression..." rows={3} className="w-full resize-none rounded-2xl border border-white/10 bg-black px-4 py-3 text-sm outline-none focus:border-lime-300/60" />
-                  <textarea value={outfitNotes} onChange={(event) => setOutfitNotes(event.target.value)} placeholder="Outfit Memory: wardrobe, colors, fabric, accessories..." rows={3} className="w-full resize-none rounded-2xl border border-white/10 bg-black px-4 py-3 text-sm outline-none focus:border-lime-300/60" />
-                  <textarea value={styleNotes} onChange={(event) => setStyleNotes(event.target.value)} placeholder="Style DNA: mood, commercial identity, lighting language..." rows={3} className="w-full resize-none rounded-2xl border border-white/10 bg-black px-4 py-3 text-sm outline-none focus:border-lime-300/60" />
-                  <textarea value={motionNotes} onChange={(event) => setMotionNotes(event.target.value)} placeholder="Motion rules: walk style, face stability, animation limits..." rows={3} className="w-full resize-none rounded-2xl border border-white/10 bg-black px-4 py-3 text-sm outline-none focus:border-lime-300/60" />
-                  <input value={cinematicTags} onChange={(event) => setCinematicTags(event.target.value)} placeholder="Cinematic tags, comma separated" className="h-12 w-full rounded-2xl border border-white/10 bg-black px-4 text-sm outline-none focus:border-lime-300/60" />
+              {showAdvanced && (
+                <div className="space-y-3 pt-1">
+                  <div className="space-y-1.5">
+                    <span className="text-xs font-bold uppercase tracking-[0.12em] text-zinc-400">Face Memory Override</span>
+                    <textarea value={faceNotes} onChange={(event) => setFaceNotes(event.target.value)} placeholder="Face shape, eye color, structure..." rows={2} className="w-full resize-none rounded-xl border border-white/10 bg-black/50 px-3.5 py-2.5 text-sm outline-none focus:border-lime-300/50" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <span className="text-xs font-bold uppercase tracking-[0.12em] text-zinc-400">Body Profile Override</span>
+                    <textarea value={bodyNotes} onChange={(event) => setBodyNotes(event.target.value)} placeholder="Height, silhouette, proportions..." rows={2} className="w-full resize-none rounded-xl border border-white/10 bg-black/50 px-3.5 py-2.5 text-sm outline-none focus:border-lime-300/50" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <span className="text-xs font-bold uppercase tracking-[0.12em] text-zinc-400">Outfit Memory Override</span>
+                    <textarea value={outfitNotes} onChange={(event) => setOutfitNotes(event.target.value)} placeholder="WARDROBE consistency, signature items..." rows={2} className="w-full resize-none rounded-xl border border-white/10 bg-black/50 px-3.5 py-2.5 text-sm outline-none focus:border-lime-300/50" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <span className="text-xs font-bold uppercase tracking-[0.12em] text-zinc-400">Style DNA Override</span>
+                    <textarea value={styleNotes} onChange={(event) => setStyleNotes(event.target.value)} placeholder="Lighting language, grading presets..." rows={2} className="w-full resize-none rounded-xl border border-white/10 bg-black/50 px-3.5 py-2.5 text-sm outline-none focus:border-lime-300/50" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <span className="text-xs font-bold uppercase tracking-[0.12em] text-zinc-400">Motion References Override</span>
+                    <textarea value={motionNotes} onChange={(event) => setMotionNotes(event.target.value)} placeholder="Animation safety boundaries, cycle limits..." rows={2} className="w-full resize-none rounded-xl border border-white/10 bg-black/50 px-3.5 py-2.5 text-sm outline-none focus:border-lime-300/50" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <span className="text-xs font-bold uppercase tracking-[0.12em] text-zinc-400">Cinematic Meta Tags</span>
+                    <input value={cinematicTags} onChange={(event) => setCinematicTags(event.target.value)} placeholder="Editorial, 85mm, Cinematic Light..." className="h-12 w-full rounded-xl border border-white/10 bg-black/50 px-3.5 text-sm outline-none focus:border-lime-300/50" />
+                  </div>
                 </div>
-              ) : null}
+              )}
 
-              <div className="rounded-2xl border border-white/10 bg-black p-3">
-                <div className="mb-2 flex items-center gap-2 text-xs font-black uppercase tracking-[0.16em] text-zinc-500">
-                  <BadgeCheck className="h-3.5 w-3.5 text-lime-300" />
-                  Package Preview
+              {/* Identity Compiler Preview */}
+              <div className="rounded-xl border border-white/5 bg-black/35 p-3.5 space-y-2.5">
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.12em] text-zinc-400">
+                  <BadgeCheck className="h-4 w-4 text-lime-300" />
+                  Live Compiled Metadata
                 </div>
                 <div className="grid gap-2">
-                  <MemoryBlock label="Face Memory" value={packagePreview.faceMemory} />
-                  <MemoryBlock label="Outfit Memory" value={packagePreview.outfitMemory} />
-                  <MemoryBlock label="Motion Rules" value={packagePreview.motionReferences} />
+                  <MemoryBlock label="Face Model" value={packagePreview.faceMemory} />
+                  <MemoryBlock label="Outfit Model" value={packagePreview.outfitMemory} />
+                  <MemoryBlock label="Stability constraints" value={packagePreview.motionReferences} />
                 </div>
               </div>
 
-              {error ? (
+              {error && (
                 <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-200">
                   {error}
                 </div>
-              ) : null}
+              )}
 
               <button
                 onClick={createCharacter}
                 disabled={!canCreate}
                 className={cn(
-                  "flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-black transition",
-                  canCreate ? "bg-lime-300 text-black hover:bg-lime-200" : "cursor-not-allowed bg-white/10 text-zinc-600",
+                  "flex h-14 w-full items-center justify-center gap-2 rounded-xl text-base font-black transition",
+                  canCreate 
+                    ? "bg-lime-300 text-black hover:bg-lime-200 shadow-lg shadow-lime-300/10" 
+                    : "cursor-not-allowed bg-white/5 text-zinc-600 border border-white/5",
                 )}
               >
-                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                Create Character Entity
+                {saving ? (
+                  <>
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    Compiling Character Package...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="h-4 w-4" />
+                    Compile Identity Entity
+                  </>
+                )}
               </button>
             </div>
           </div>
+        </div>
+      </div>
 
-          <div className="rounded-[28px] border border-white/10 bg-[#111214] p-6">
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <h2 className="text-xl font-semibold">Character library</h2>
-                <p className="text-sm text-zinc-500">Reusable identities for Image, Video, and AI Canvas.</p>
+      {/* Right Column: Library, Test Generator, Guides & Rules (Scrollable) */}
+      <div className="flex-1 h-full flex flex-col bg-[#060c18] overflow-hidden">
+        {/* Sub-Header Navbar */}
+        <div className="h-16 border-b border-white/10 px-6 flex items-center justify-between shrink-0 bg-[#070d1a]">
+          <div>
+            <h2 className="text-base font-semibold text-white flex items-center gap-2">
+              Character Library & Validation Tools
+            </h2>
+          </div>
+          <button 
+            onClick={() => void loadCharacters()} 
+            className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/10 bg-zinc-950 px-4 text-xs font-semibold text-zinc-300 hover:bg-zinc-900 transition"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            Reload Library
+          </button>
+        </div>
+
+        {/* Scrollable Contents */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
+          
+          {/* Guides and Guidelines Widgets */}
+          <div className="grid gap-4 lg:grid-cols-2">
+            
+            {/* Guide Step Slider */}
+            <div className="rounded-2xl border border-white/5 bg-[#0a0f1d] p-5 flex flex-col justify-between space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold uppercase tracking-[0.12em] text-lime-300">Interactive Guide</span>
+                <span className="text-xs text-zinc-500 font-semibold">Step {guideStep + 1} of {CHARACTER_GUIDE_STEPS.length}</span>
+              </div>
+              
+              <div className="relative aspect-[16/8] overflow-hidden rounded-xl bg-zinc-950 border border-white/5">
+                <img src={CHARACTER_GUIDE_STEPS[guideStep].image} alt="" className="h-full w-full object-cover" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
+                <div className="absolute bottom-3 left-3 right-3 rounded-xl bg-black/75 p-3 border border-white/5 backdrop-blur-sm">
+                  <div className="text-sm font-bold text-white">{CHARACTER_GUIDE_STEPS[guideStep].title}</div>
+                  <div className="text-xs text-zinc-400 mt-1 leading-relaxed">{CHARACTER_GUIDE_STEPS[guideStep].subtitle}</div>
+                </div>
+              </div>
+              
+              <div className="flex gap-2">
+                {CHARACTER_GUIDE_STEPS.map((step, idx) => (
+                  <button
+                    key={step.title}
+                    type="button"
+                    onClick={() => setGuideStep(idx)}
+                    className={cn(
+                      "flex-1 py-2 rounded-xl border text-center text-xs font-bold transition",
+                      idx === guideStep 
+                        ? "border-lime-300 bg-lime-300/10 text-lime-200" 
+                        : "border-white/5 bg-black/40 text-zinc-400 hover:bg-white/5"
+                    )}
+                  >
+                    Step {idx + 1}
+                  </button>
+                ))}
               </div>
             </div>
 
-            <div className="mb-4 rounded-2xl border border-white/10 bg-black p-3">
-              <label className="text-[11px] font-black uppercase tracking-[0.16em] text-zinc-500">Test generation prompt</label>
-              <textarea value={variationPrompt} onChange={(event) => setVariationPrompt(event.target.value)} rows={4} className="mt-2 w-full resize-none rounded-2xl border border-white/10 bg-[#08090b] px-4 py-3 text-sm outline-none focus:border-lime-300/60" />
-              <div className="mt-3 grid gap-3">
-                <div className="grid gap-2 sm:grid-cols-2">
-                  {CHARACTER_MODELS.map((model) => {
-                    const active = selectedModelId === model.id;
-                    return (
-                      <button
-                        key={model.id}
-                        type="button"
-                        onClick={() => setSelectedModelId(model.id)}
-                        className={cn(
-                          "rounded-xl border p-3 text-left transition",
-                          active ? "border-lime-300 bg-lime-300/10" : "border-white/10 bg-[#08090b] hover:bg-white/5",
-                        )}
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-sm font-black text-white">{model.name}</span>
-                          <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-black", active ? "bg-lime-300 text-black" : "bg-white/10 text-zinc-300")}>{model.badge}</span>
-                        </div>
-                        <div className="mt-1 text-[11px] font-bold uppercase tracking-[0.14em] text-zinc-500">{model.provider}</div>
-                        <p className="mt-2 line-clamp-2 text-xs leading-5 text-zinc-400">{model.description}</p>
-                      </button>
-                    );
-                  })}
+            {/* Rules Quick Checklist */}
+            <div className="rounded-2xl border border-white/5 bg-[#0a0f1d] p-5 flex flex-col justify-between space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold uppercase tracking-[0.12em] text-zinc-400">Rules & Quality Assurance</span>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-3 flex-1 min-h-[160px] text-xs">
+                <div className="p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/10 space-y-2">
+                  <div className="font-bold text-emerald-400 flex items-center gap-1.5">
+                    <Check className="h-4 w-4" /> Recommended
+                  </div>
+                  <ul className="list-disc list-inside text-zinc-300 space-y-1.5 pl-0.5">
+                    {GOOD_RULES.map(r => <li key={r.title} className="truncate" title={r.descAr}>{r.titleAr}</li>)}
+                  </ul>
                 </div>
+                
+                <div className="p-3 rounded-xl bg-red-500/5 border border-red-500/10 space-y-2">
+                  <div className="font-bold text-red-400 flex items-center gap-1.5">
+                    <X className="h-4 w-4" /> Avoid
+                  </div>
+                  <ul className="list-disc list-inside text-zinc-300 space-y-1.5 pl-0.5">
+                    {AVOID_RULES.map(r => <li key={r.title} className="truncate" title={r.descAr}>{r.titleAr}</li>)}
+                  </ul>
+                </div>
+              </div>
+            </div>
 
-                <div className="grid gap-3 sm:grid-cols-2">
+          </div>
+
+          {/* Test Generation Config Section */}
+          <div className="rounded-2xl border border-white/10 bg-[#0a0f1d] p-5 space-y-4">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-lime-300" />
+              <h3 className="text-sm font-bold uppercase tracking-[0.12em] text-zinc-200">Identity Test Generator</h3>
+            </div>
+            
+            <div className="space-y-3.5">
+              <div className="space-y-1.5">
+                <span className="text-xs font-bold uppercase tracking-[0.1em] text-zinc-400">Validation Prompt</span>
+                <textarea 
+                  value={variationPrompt} 
+                  onChange={(event) => setVariationPrompt(event.target.value)} 
+                  rows={2} 
+                  className="w-full resize-none rounded-xl border border-white/10 bg-[#08090b] px-4 py-3 text-sm text-white outline-none focus:border-lime-300/50 transition" 
+                />
+              </div>
+              
+              <div className="grid gap-4 md:grid-cols-2 text-sm">
+                
+                {/* Selector Group 1 */}
+                <div className="rounded-xl border border-white/5 bg-black/30 p-4 space-y-4">
                   <div>
-                    <div className="mb-2 text-[10px] font-black uppercase tracking-[0.16em] text-zinc-500">Ratio</div>
-                    <div className="flex flex-wrap gap-1.5">
+                    <span className="text-xs font-bold uppercase tracking-[0.1em] text-zinc-400">Refining AI Model</span>
+                    <select value={selectedModelId} onChange={(event) => setSelectedModelId(event.target.value as CharacterModelId)} className="h-10 w-full rounded-lg border border-white/10 bg-[#08090b] px-3 text-sm text-zinc-300 outline-none mt-1.5 focus:border-lime-300/50">
+                      {CHARACTER_MODELS.map((model) => <option key={model.id} value={model.id}>{model.name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold uppercase tracking-[0.1em] text-zinc-400">Output Aspect Ratio</span>
+                    <div className="flex flex-wrap gap-1.5 mt-1.5">
                       {CHARACTER_ASPECT_RATIOS.map((ratio) => (
                         <button
                           key={ratio}
                           type="button"
                           onClick={() => setCharacterAspectRatio(ratio)}
-                          className={cn("rounded-lg border px-2.5 py-1.5 text-xs font-bold", characterAspectRatio === ratio ? "border-lime-300 bg-lime-300 text-black" : "border-white/10 bg-[#08090b] text-zinc-300 hover:bg-white/5")}
+                          className={cn(
+                            "rounded-lg border px-3 py-1.5 text-xs font-bold transition", 
+                            characterAspectRatio === ratio 
+                              ? "border-lime-300 bg-lime-300 text-black font-black" 
+                              : "border-white/5 bg-[#08090b] text-zinc-400 hover:bg-white/5"
+                          )}
                         >
                           {ratio}
                         </button>
                       ))}
                     </div>
                   </div>
+                </div>
+
+                {/* Selector Group 2 */}
+                <div className="rounded-xl border border-white/5 bg-black/30 p-4 space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <label className="block">
+                      <span className="text-xs font-bold uppercase tracking-[0.1em] text-zinc-400">Aesthetic style</span>
+                      <select value={characterStyle} onChange={(event) => setCharacterStyle(event.target.value)} className="h-10 w-full rounded-lg border border-white/10 bg-[#08090b] px-3 text-sm text-zinc-300 outline-none mt-1.5 focus:border-lime-300/50">
+                        {CHARACTER_STYLES.map((style) => <option key={style} value={style}>{style}</option>)}
+                      </select>
+                    </label>
+                    <label className="block">
+                      <span className="text-xs font-bold uppercase tracking-[0.1em] text-zinc-400">Tuning Speed</span>
+                      <select value={characterRenderingSpeed} onChange={(event) => setCharacterRenderingSpeed(event.target.value)} className="h-10 w-full rounded-lg border border-white/10 bg-[#08090b] px-3 text-sm text-zinc-300 outline-none mt-1.5 focus:border-lime-300/50">
+                        {CHARACTER_SPEEDS.map((speed) => <option key={speed} value={speed}>{speed}</option>)}
+                      </select>
+                    </label>
+                  </div>
                   <div>
-                    <div className="mb-2 text-[10px] font-black uppercase tracking-[0.16em] text-zinc-500">Quality</div>
-                    <div className="flex flex-wrap gap-1.5">
+                    <span className="text-xs font-bold uppercase tracking-[0.1em] text-zinc-400">Target Quality</span>
+                    <div className="flex flex-wrap gap-1.5 mt-1.5">
                       {CHARACTER_QUALITIES.map((quality) => (
                         <button
                           key={quality}
                           type="button"
                           onClick={() => setCharacterQuality(quality)}
-                          className={cn("rounded-lg border px-2.5 py-1.5 text-xs font-bold", characterQuality === quality ? "border-lime-300 bg-lime-300 text-black" : "border-white/10 bg-[#08090b] text-zinc-300 hover:bg-white/5")}
+                          className={cn(
+                            "rounded-lg border px-3 py-1.5 text-xs font-bold transition", 
+                            characterQuality === quality 
+                              ? "border-lime-300 bg-lime-300 text-black font-black" 
+                              : "border-white/5 bg-[#08090b] text-zinc-400 hover:bg-white/5"
+                          )}
                         >
                           {quality}
                         </button>
@@ -829,82 +886,106 @@ export default function CharacterPage() {
                     </div>
                   </div>
                 </div>
-
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <label className="block">
-                    <span className="mb-2 block text-[10px] font-black uppercase tracking-[0.16em] text-zinc-500">Style</span>
-                    <select value={characterStyle} onChange={(event) => setCharacterStyle(event.target.value)} className="h-10 w-full rounded-xl border border-white/10 bg-[#08090b] px-3 text-xs font-semibold text-zinc-200 outline-none focus:border-lime-300/60">
-                      {CHARACTER_STYLES.map((style) => <option key={style} value={style}>{style}</option>)}
-                    </select>
-                  </label>
-                  <label className="block">
-                    <span className="mb-2 block text-[10px] font-black uppercase tracking-[0.16em] text-zinc-500">Speed</span>
-                    <select value={characterRenderingSpeed} onChange={(event) => setCharacterRenderingSpeed(event.target.value)} className="h-10 w-full rounded-xl border border-white/10 bg-[#08090b] px-3 text-xs font-semibold text-zinc-200 outline-none focus:border-lime-300/60">
-                      {CHARACTER_SPEEDS.map((speed) => <option key={speed} value={speed}>{speed}</option>)}
-                    </select>
-                  </label>
-                </div>
               </div>
             </div>
+          </div>
 
+          {/* Saved Characters List */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-bold uppercase tracking-[0.12em] text-zinc-200">Identity Vault ({characters.length})</h3>
+            
             {loading ? (
-              <div className="flex h-72 items-center justify-center text-zinc-500">
-                <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Loading characters
+              <div className="flex h-40 items-center justify-center text-zinc-500 border border-white/5 bg-[#0a0f1d] rounded-2xl">
+                <Loader2 className="mr-2 h-5 w-5 animate-spin text-lime-300" /> 
+                <span className="text-sm font-medium">Querying identity records...</span>
               </div>
             ) : characters.length === 0 ? (
-              <div className="flex h-72 flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 text-center">
-                <Camera className="mb-3 h-8 w-8 text-zinc-700" />
-                <p className="text-sm font-semibold text-zinc-300">No characters yet</p>
-                <p className="mt-1 max-w-sm text-xs text-zinc-500">Upload references, create a package, then reuse it across production tools.</p>
+              <div className="flex h-40 flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 text-center bg-black/10">
+                <Camera className="mb-2 h-7 w-7 text-zinc-700 animate-pulse" />
+                <p className="text-xs font-semibold text-zinc-400">Library is empty</p>
+                <p className="mt-1 text-[10px] text-zinc-600 max-w-xs">Upload your photos in the creator panel to generate your first entity.</p>
               </div>
             ) : (
-              <div className="grid gap-3 xl:grid-cols-2">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {characters.map((character) => {
                   const pkg = character.metadata?.characterPackage;
                   return (
-                    <article key={character.id} className="overflow-hidden rounded-2xl border border-white/10 bg-black">
-                      <div className="relative aspect-[4/3] bg-zinc-950">
+                    <article key={character.id} className="overflow-hidden rounded-2xl border border-white/10 bg-[#0a0f1d] hover:border-white/20 transition flex flex-col justify-between">
+                      <div className="relative aspect-[16/11] bg-zinc-950">
                         {character.coverUrl ? (
                           <img src={character.coverUrl} alt={character.name} className="h-full w-full object-cover" />
                         ) : (
-                          <div className="flex h-full items-center justify-center text-zinc-700"><UserRound className="h-10 w-10" /></div>
+                          <div className="flex h-full items-center justify-center text-zinc-700 bg-black/40"><UserRound className="h-9 w-9" /></div>
                         )}
-                        <div className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-lime-300 px-2 py-1 text-[10px] font-black text-black">
-                          <CheckCircle2 className="h-3 w-3" /> {character.status}
+                        <div className="absolute left-2.5 top-2.5 flex items-center gap-1.5 rounded-full bg-lime-300 px-2.5 py-1 text-xs font-black text-black">
+                          <CheckCircle2 className="h-3.5 w-3.5" /> {character.status}
                         </div>
                       </div>
-                      <div className="space-y-3 p-3">
-                        <div>
-                          <h3 className="line-clamp-1 text-sm font-semibold">{character.name}</h3>
-                          <p className="mt-1 line-clamp-2 min-h-8 text-xs text-zinc-500">{pkg?.mainIdentity || character.description || "Persistent character identity."}</p>
+                      
+                      <div className="p-4 space-y-4 flex-1 flex flex-col justify-between">
+                        <div className="space-y-1">
+                          <h3 className="line-clamp-1 text-sm font-bold text-white">{character.name}</h3>
+                          <p className="line-clamp-2 min-h-[36px] text-xs text-zinc-400 leading-relaxed">
+                            {pkg?.mainIdentity || character.description || "Persistent character identity."}
+                          </p>
                         </div>
+                        
                         <div className="flex flex-wrap gap-1.5">
-                          {(pkg?.cinematicMetadata?.length ? pkg.cinematicMetadata : ["Identity", "Reference"]).slice(0, 5).map((tag) => (
-                            <span key={tag} className="rounded-full border border-white/10 bg-zinc-900 px-2 py-1 text-[10px] font-semibold text-zinc-300">{tag}</span>
+                          {(pkg?.cinematicMetadata?.length ? pkg.cinematicMetadata : ["Identity"]).slice(0, 3).map((tag) => (
+                            <span key={tag} className="rounded-full border border-white/5 bg-black/35 px-2 py-0.5 text-xs font-semibold text-zinc-400">{tag}</span>
                           ))}
                         </div>
-                        {pkg ? <MemoryBlock label="Face Memory" value={pkg.faceMemory} /> : null}
-                        <div className="flex flex-wrap gap-2">
-                          <button onClick={() => void copyReference(character)} className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-white/10 px-2 py-2 text-xs text-zinc-200 hover:bg-white/5">
-                            {copiedId === character.id ? <CheckCircle2 className="h-3.5 w-3.5 text-lime-300" /> : <Copy className="h-3.5 w-3.5" />}
-                            {copiedId === character.id ? "Copied" : "Copy"}
+
+                        {pkg && (
+                          <div className="rounded-lg border border-white/5 bg-black/40 p-2.5 text-xs text-zinc-400 leading-relaxed line-clamp-2 font-mono">
+                            {pkg.faceMemory}
+                          </div>
+                        )}
+                        
+                        {/* Control Buttons */}
+                        <div className="grid grid-cols-2 gap-2 pt-3 border-t border-white/5 text-xs">
+                          <button 
+                            onClick={() => void copyReference(character)} 
+                            className="flex items-center justify-center gap-2 rounded-lg border border-white/10 bg-black/20 hover:bg-black/50 py-2.5 font-bold text-zinc-200 transition"
+                          >
+                            {copiedId === character.id ? <CheckCircle2 className="h-4 w-4 text-lime-300" /> : <Copy className="h-4 w-4" />}
+                            {copiedId === character.id ? "Copied" : "Copy Prompt"}
                           </button>
-                          <a href={`/image?characterId=${encodeURIComponent(character.id)}`} className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-lime-300 px-2 py-2 text-xs font-black text-black hover:bg-lime-200">
-                            <Wand2 className="h-3.5 w-3.5" /> Use
+                          
+                          <a 
+                            href={`/image?characterId=${encodeURIComponent(character.id)}`} 
+                            className="flex items-center justify-center gap-2 rounded-lg bg-lime-300 hover:bg-lime-200 py-2.5 font-black text-black transition"
+                          >
+                            <Wand2 className="h-4 w-4" /> 
+                            Use Identity
                           </a>
-                          <button onClick={() => void generateVariation(character)} disabled={generatingCharacterId === character.id} className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-emerald-400/20 bg-emerald-500/10 px-2 py-2 text-xs font-semibold text-emerald-200 hover:bg-emerald-500/15 disabled:opacity-60">
-                            {generatingCharacterId === character.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-                            Test
+                          
+                          <button 
+                            onClick={() => void generateVariation(character)} 
+                            disabled={generatingCharacterId === character.id} 
+                            className="flex items-center justify-center gap-2 rounded-lg border border-emerald-400/20 bg-emerald-500/10 hover:bg-emerald-500/20 py-2.5 font-semibold text-emerald-300 disabled:opacity-60 transition"
+                          >
+                            {generatingCharacterId === character.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                            Test State
                           </button>
-                          <button onClick={() => void deleteCharacter(character.id)} className="rounded-lg border border-red-500/20 px-2 py-2 text-red-300 hover:bg-red-500/10">
-                            <Trash2 className="h-3.5 w-3.5" />
+                          
+                          <button 
+                            onClick={() => void deleteCharacter(character.id)} 
+                            className="rounded-lg border border-red-500/25 bg-red-500/5 hover:bg-red-500/15 py-2.5 text-red-400 hover:text-red-300 transition flex items-center justify-center"
+                          >
+                            <Trash2 className="h-4 w-4" />
                           </button>
                         </div>
+
                         {generatedUrls[character.id]?.length ? (
-                          <div className="grid grid-cols-4 gap-2">
+                          <div className="grid grid-cols-4 gap-1.5 pt-2 border-t border-white/5">
                             {generatedUrls[character.id].slice(0, 4).map((url) => (
-                              <button key={url} onClick={() => window.open(url, "_blank", "noopener,noreferrer")} className="aspect-square overflow-hidden rounded-lg border border-white/10 bg-black">
-                                <img src={url} alt="Generated character variation" className="h-full w-full object-cover" />
+                              <button 
+                                key={url} 
+                                onClick={() => window.open(url, "_blank", "noopener,noreferrer")} 
+                                className="aspect-square overflow-hidden rounded-lg border border-white/10 bg-black hover:scale-[1.03] transition-transform duration-200"
+                              >
+                                <img src={url} alt="" className="h-full w-full object-cover" />
                               </button>
                             ))}
                           </div>
@@ -915,14 +996,18 @@ export default function CharacterPage() {
                 })}
               </div>
             )}
-
-            <div className="mt-4 flex items-start gap-2 rounded-2xl border border-amber-400/20 bg-amber-400/5 p-3 text-xs leading-5 text-amber-100/80">
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-              The character entity lives outside the node graph. Image, Video, and AI Canvas read this package automatically.
-            </div>
           </div>
-        </section>
-      </main>
+
+          {/* Footer Warnings */}
+          <div className="mt-4 flex items-start gap-2 rounded-xl border border-amber-400/20 bg-amber-400/5 p-3 text-xs leading-relaxed text-amber-200/80">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
+            <span>
+              <strong>Note:</strong> Character Identity nodes exist as global state resources outside standard local graph trees. Production rendering canvases and generative paths read and compile these definitions automatically on task execution.
+            </span>
+          </div>
+
+        </div>
+      </div>
     </div>
   );
 }
