@@ -846,14 +846,50 @@ export default function App() {
     generateClientScene(project.prompt, project.dialogueText, project.cameraMovement, project.lensType, project.genre);
   };
 
+  const compressReferenceImage = async (file: File): Promise<File> => {
+    if (!file.type.startsWith("image/") || file.size <= 2_500_000) return file;
+
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error("Image read failed"));
+      reader.onload = () => resolve(String(reader.result || ""));
+      reader.readAsDataURL(file);
+    });
+
+    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error("Image decode failed"));
+      img.src = dataUrl;
+    });
+
+    const maxSide = 1600;
+    const scale = Math.min(1, maxSide / Math.max(image.width || maxSide, image.height || maxSide));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round((image.width || maxSide) * scale));
+    canvas.height = Math.max(1, Math.round((image.height || maxSide) * scale));
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return file;
+    ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+    const blob = await new Promise<Blob | null>((resolve) => {
+      canvas.toBlob(resolve, "image/jpeg", 0.82);
+    });
+    if (!blob || blob.size >= file.size) return file;
+
+    const name = file.name.replace(/\.[^.]+$/, "") || "reference";
+    return new File([blob], `${name}.jpg`, { type: "image/jpeg" });
+  };
+
   // Upload a single file by streaming it THROUGH the Next.js API route.
   // The browser → /api/media/upload → R2 path avoids any direct
   // browser → R2 PUT (which fails in production until the R2 bucket has
   // a CORS policy that allows the saadstudio.app origin).
   // The API returns a public https URL on success.
   const uploadImageFile = async (file: File) => {
+    const uploadFile = await compressReferenceImage(file);
     const form = new FormData();
-    form.append("file", file, file.name);
+    form.append("file", uploadFile, uploadFile.name);
 
     // NOTE: do NOT set Content-Type manually — the browser will set
     // multipart/form-data with the correct boundary automatically.
@@ -863,7 +899,10 @@ export default function App() {
     });
     const payload = await response.json().catch(() => null);
     if (!response.ok || !payload?.publicUrl) {
-      throw new Error(payload?.error || "Storage upload failed");
+      const message = response.status === 413
+        ? "Image is still too large after compression"
+        : payload?.error || "Storage upload failed";
+      throw new Error(message);
     }
     return String(payload.publicUrl);
   };
@@ -894,8 +933,7 @@ export default function App() {
     if (failed.length > 0) {
       setUploadError(
         `Could not upload ${failed.length} image${failed.length === 1 ? "" : "s"} ` +
-        `(${failed.join(", ")}). Storage CORS is blocking the request. ` +
-        `Use the provider's official URL or contact the admin.`
+        `(${failed.join(", ")}). Please use a smaller image or try JPG/WebP.`
       );
     } else if (uploadError) {
       setUploadError(null);
