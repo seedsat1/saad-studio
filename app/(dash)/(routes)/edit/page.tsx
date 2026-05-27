@@ -1,9 +1,9 @@
 "use client";
 
-// ─── Unified Edit Studio ──────────────────────────────────────────────────────
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 import {
   Wand2,
   Lightbulb,
@@ -24,6 +24,12 @@ import {
   Layers,
   SlidersHorizontal,
   Check,
+  Eye,
+  Settings,
+  HelpCircle,
+  Download,
+  Info,
+  Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -37,6 +43,7 @@ type EditTool = {
   glow: string;
   hex: string;
   glowHex: string;
+  description: string;
 };
 
 type EditModel = {
@@ -57,6 +64,7 @@ const EDIT_TOOLS: EditTool[] = [
     glow: "shadow-violet-500/50",
     hex: "#8b5cf6",
     glowHex: "rgba(139,92,246,0.45)",
+    description: "Fill or restore masked areas using AI context from surrounding pixels.",
   },
   {
     id: "replace",
@@ -67,6 +75,7 @@ const EDIT_TOOLS: EditTool[] = [
     glow: "shadow-cyan-500/50",
     hex: "#06b6d4",
     glowHex: "rgba(6,182,212,0.45)",
+    description: "Replace any selected object with an AI-generated alternative.",
   },
   {
     id: "relight",
@@ -77,6 +86,7 @@ const EDIT_TOOLS: EditTool[] = [
     glow: "shadow-amber-500/50",
     hex: "#f59e0b",
     glowHex: "rgba(245,158,11,0.45)",
+    description: "Non-destructively shift light direction, color, and intensity.",
   },
   {
     id: "bgremove",
@@ -87,6 +97,7 @@ const EDIT_TOOLS: EditTool[] = [
     glow: "shadow-rose-500/50",
     hex: "#f43f5e",
     glowHex: "rgba(244,63,94,0.45)",
+    description: "Instantly isolate subjects by removing the entire background layer.",
   },
   {
     id: "outpaint",
@@ -97,6 +108,7 @@ const EDIT_TOOLS: EditTool[] = [
     glow: "shadow-emerald-500/50",
     hex: "#10b981",
     glowHex: "rgba(16,185,129,0.45)",
+    description: "Extend image boundaries beyond the original frame with AI.",
   },
   {
     id: "style",
@@ -107,6 +119,7 @@ const EDIT_TOOLS: EditTool[] = [
     glow: "shadow-pink-500/50",
     hex: "#ec4899",
     glowHex: "rgba(236,72,153,0.45)",
+    description: "Transfer a visual style or texture onto the selected region.",
   },
   {
     id: "draw",
@@ -117,6 +130,7 @@ const EDIT_TOOLS: EditTool[] = [
     glow: "shadow-blue-500/50",
     hex: "#3b82f6",
     glowHex: "rgba(59,130,246,0.45)",
+    description: "Sketch rough shapes and let AI interpret and render the result.",
   },
   {
     id: "motion",
@@ -127,6 +141,7 @@ const EDIT_TOOLS: EditTool[] = [
     glow: "shadow-orange-500/50",
     hex: "#f97316",
     glowHex: "rgba(249,115,22,0.45)",
+    description: "Track and edit objects across an animated frame sequence.",
   },
 ];
 
@@ -162,17 +177,31 @@ function ToolbarBtn({
   icon: Icon,
   label,
   shortcut,
+  onClick,
+  disabled,
+  active,
 }: {
   icon: React.ElementType;
   label: string;
   shortcut: string;
+  onClick?: () => void;
+  disabled?: boolean;
+  active?: boolean;
 }) {
   return (
     <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
       title={`${label} (${shortcut})`}
-      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-slate-500 hover:text-slate-200 hover:bg-white/[0.07] transition-all duration-150 text-xs font-medium select-none"
+      className={cn(
+        "flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all duration-150 text-xs font-semibold select-none disabled:opacity-30 disabled:pointer-events-none",
+        active
+          ? "bg-white/10 text-white border border-white/10"
+          : "text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.05] border border-transparent"
+      )}
     >
-      <Icon className="h-3.5 w-3.5 shrink-0" />
+      <Icon className="h-4 w-4 shrink-0" />
       <span className="hidden md:inline">{label}</span>
     </button>
   );
@@ -200,24 +229,24 @@ function PremiumSlider({
   return (
     <div className="space-y-2.5">
       <div className="flex justify-between items-center">
-        <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest">
+        <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest">
           {label}
         </span>
-        <span className="text-[11px] font-bold text-violet-300 tabular-nums font-mono">
+        <span className="text-[11px] font-black text-cyan-400 tabular-nums font-mono">
           {displayValue}
         </span>
       </div>
       <div className="relative h-5 flex items-center group">
         {/* Track */}
-        <div className="absolute left-0 right-0 h-1.5 rounded-full bg-slate-800 overflow-hidden">
+        <div className="absolute left-0 right-0 h-1.5 rounded-full bg-zinc-900 border border-white/5 overflow-hidden">
           <div
-            className="h-full bg-gradient-to-r from-violet-600 to-pink-500 rounded-full transition-all duration-75"
+            className="h-full bg-gradient-to-r from-cyan-500 to-violet-500 rounded-full transition-all duration-75"
             style={{ width: `${pct}%` }}
           />
         </div>
         {/* Thumb indicator */}
         <div
-          className="absolute h-3.5 w-3.5 rounded-full bg-white shadow-lg shadow-violet-500/40 border-2 border-violet-400 -translate-x-1/2 pointer-events-none transition-all duration-75"
+          className="absolute h-4 w-4 rounded-full bg-white shadow-lg shadow-cyan-500/40 border-2 border-cyan-400 -translate-x-1/2 pointer-events-none transition-all duration-75"
           style={{ left: `${pct}%` }}
         />
         {/* Range input (invisible) */}
@@ -238,17 +267,53 @@ function PremiumSlider({
 // ─── Page Component ────────────────────────────────────────────────────────────
 export default function EditPage() {
   const searchParams = useSearchParams();
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  // States
   const [activeTool, setActiveTool] = useState<string>("inpaint");
   const [selectedModel, setSelectedModel] = useState<EditModel>(EDIT_MODELS[0]);
   const [modelOpen, setModelOpen] = useState(false);
   const [brushSize, setBrushSize] = useState(32);
+  const [brushOpacity, setBrushOpacity] = useState(0.6);
   const [editStrength, setEditStrength] = useState(0.75);
   const [prompt, setPrompt] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [showResult, setShowResult] = useState(false);
 
+  // Drawing & Canvas States
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [isEraser, setIsEraser] = useState(false);
+  const [scale, setScale] = useState(1.0);
+  const [history, setHistory] = useState<string[]>([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
+  const [showInlight, setShowInlight] = useState(true);
+  const [baseImage, setBaseImage] = useState("/explore/iraq/skyline.png");
+
+  // Advanced generation parameters
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [steps, setSteps] = useState(25);
+  const [cfg, setCfg] = useState(7.5);
+  const [seed, setSeed] = useState("-1");
+
+  const lastCoordsRef = useRef<{ x: number; y: number } | null>(null);
+
   const currentTool = EDIT_TOOLS.find((t) => t.id === activeTool)!;
 
+  // Resolve base image URL from parameters
+  useEffect(() => {
+    const imgUrl = searchParams.get("image") || searchParams.get("url");
+    if (imgUrl) {
+      setBaseImage(imgUrl);
+    }
+  }, [searchParams]);
+
+  // Generate cursor preview SVG based on brushSize, scale and tool color
+  const displayBrushSize = brushSize * scale;
+  const strokeColor = currentTool.hex.replace('#', '%23');
+  const cursorSvg = `<svg xmlns='http://www.w3.org/2000/svg' width='${displayBrushSize * 2}' height='${displayBrushSize * 2}' viewBox='0 0 ${displayBrushSize * 2} ${displayBrushSize * 2}'><circle cx='${displayBrushSize}' cy='${displayBrushSize}' r='${displayBrushSize - 1}' fill='none' stroke='${strokeColor}' stroke-width='1.5' opacity='0.8'/></svg>`;
+  const cursorStyle = `url("data:image/svg+xml;utf8,${cursorSvg}") ${displayBrushSize} ${displayBrushSize}, crosshair`;
+
+  // Resolve Tool from URL parameters
   useEffect(() => {
     const requestedTool = (searchParams.get("tool") || "").trim().toLowerCase();
     if (!requestedTool) return;
@@ -263,8 +328,8 @@ export default function EditPage() {
       style: "style",
       draw: "draw",
       motion: "motion",
-      outpaint: "inpaint",
-      "expand-image": "inpaint",
+      outpaint: "outpaint",
+      "expand-image": "outpaint",
       "sketch-to-real": "draw",
       "color-grading": "relight",
       "expression-edit": "replace",
@@ -274,9 +339,166 @@ export default function EditPage() {
     if (EDIT_TOOLS.some((tool) => tool.id === resolved)) {
       setActiveTool(resolved);
       setShowResult(false);
+      handleClearMask();
     }
   }, [searchParams]);
 
+  // Initializing canvas with clear state
+  const initCanvas = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const blank = canvas.toDataURL();
+    setHistory([blank]);
+    setHistoryIndex(0);
+  }, []);
+
+  // Sync canvas dimensions and background on mount
+  useEffect(() => {
+    initCanvas();
+  }, [initCanvas]);
+
+  // Handle mask drawing events
+  const getCoords = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+    const rect = canvas.getBoundingClientRect();
+    // Translate mouse screen coordinates to internal canvas pixels
+    const x = ((e.clientX - rect.left) / rect.width) * canvas.width;
+    const y = ((e.clientY - rect.top) / rect.height) * canvas.height;
+    return { x, y };
+  };
+
+  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (showResult || isProcessing) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const { x, y } = getCoords(e);
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineWidth = brushSize;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+
+    if (isEraser) {
+      ctx.globalCompositeOperation = "destination-out";
+      ctx.strokeStyle = "rgba(0,0,0,1)";
+      ctx.globalAlpha = 1.0;
+    } else {
+      ctx.globalCompositeOperation = "source-over";
+      ctx.strokeStyle = currentTool.hex;
+      ctx.globalAlpha = brushOpacity;
+    }
+
+    ctx.lineTo(x, y);
+    ctx.stroke();
+    setIsDrawing(true);
+    lastCoordsRef.current = { x, y };
+  };
+
+  const draw = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!isDrawing || showResult || isProcessing || !lastCoordsRef.current) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const { x, y } = getCoords(e);
+    const last = lastCoordsRef.current;
+
+    ctx.beginPath();
+    ctx.moveTo(last.x, last.y);
+    ctx.lineWidth = brushSize;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+
+    if (isEraser) {
+      ctx.globalCompositeOperation = "destination-out";
+      ctx.strokeStyle = "rgba(0,0,0,1)";
+      ctx.globalAlpha = 1.0;
+    } else {
+      ctx.globalCompositeOperation = "source-over";
+      ctx.strokeStyle = currentTool.hex;
+      ctx.globalAlpha = brushOpacity;
+    }
+
+    ctx.lineTo(x, y);
+    ctx.stroke();
+    lastCoordsRef.current = { x, y };
+  };
+
+  const stopDrawing = () => {
+    if (!isDrawing) return;
+    setIsDrawing(false);
+    lastCoordsRef.current = null;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const state = canvas.toDataURL();
+    const newHistory = history.slice(0, historyIndex + 1);
+    setHistory([...newHistory, state]);
+    setHistoryIndex(newHistory.length);
+  };
+
+  // Undo stroke
+  const handleUndo = () => {
+    if (historyIndex <= 0) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const nextIndex = historyIndex - 1;
+    setHistoryIndex(nextIndex);
+    const img = new Image();
+    img.src = history[nextIndex];
+    img.onload = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.globalCompositeOperation = "source-over";
+      ctx.globalAlpha = 1.0;
+      ctx.drawImage(img, 0, 0);
+    };
+  };
+
+  // Redo stroke
+  const handleRedo = () => {
+    if (historyIndex >= history.length - 1) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const nextIndex = historyIndex + 1;
+    setHistoryIndex(nextIndex);
+    const img = new Image();
+    img.src = history[nextIndex];
+    img.onload = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.globalCompositeOperation = "source-over";
+      ctx.globalAlpha = 1.0;
+      ctx.drawImage(img, 0, 0);
+    };
+  };
+
+  // Clear Mask
+  const handleClearMask = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const state = canvas.toDataURL();
+    const newHistory = history.slice(0, historyIndex + 1);
+    setHistory([...newHistory, state]);
+    setHistoryIndex(newHistory.length);
+  };
+
+  // Run mock processing
   const handleApply = useCallback(() => {
     if (isProcessing || !prompt.trim()) return;
     setShowResult(false);
@@ -290,159 +512,128 @@ export default function EditPage() {
   const handleToolSelect = (id: string) => {
     setActiveTool(id);
     setShowResult(false);
+    handleClearMask();
   };
 
   return (
-    <div className="flex h-[calc(100vh-80px)] overflow-hidden bg-slate-950 text-white select-none">
-
+    <div className="flex h-[calc(100vh-60px)] overflow-hidden bg-[#03060d] text-white select-none">
+      
       {/* ════════════════════════════════════════════════════════════════
-          LEFT SIDEBAR — Edit Toolbelt
+          LEFT SIDEBAR — Slim Toolbar
       ════════════════════════════════════════════════════════════════ */}
-      <aside className="w-[250px] shrink-0 flex flex-col border-r border-white/[0.06] bg-slate-950/90 backdrop-blur-xl z-10">
-        {/* Header */}
-        <div className="px-4 pt-5 pb-3.5 border-b border-white/[0.06]">
-          <div className="flex items-center gap-2.5">
-            <div className="h-7 w-7 rounded-lg bg-violet-500/15 flex items-center justify-center ring-1 ring-violet-500/30">
-              <Layers className="h-3.5 w-3.5 text-violet-400" />
-            </div>
-            <div>
-              <p className="text-[11px] font-bold uppercase tracking-widest text-slate-300">
-                Edit Toolbelt
-              </p>
-              <p className="text-[9px] text-slate-600 mt-0.5">Select an editing mode</p>
-            </div>
-          </div>
-        </div>
+      <aside className="w-16 shrink-0 flex flex-col items-center py-6 border-r border-white/5 bg-[#050914] z-10 gap-6">
+        {/* Saad Studio Icon */}
+        <Link href="/explore" className="h-10 w-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-violet-500 flex items-center justify-center shadow-lg shadow-cyan-500/25 transition-transform hover:scale-105 active:scale-95">
+          <Sparkles className="h-5 w-5 text-black font-black" />
+        </Link>
 
-        {/* Tool List */}
-        <nav className="flex-1 overflow-y-auto p-3 space-y-1">
+        <div className="w-8 h-px bg-white/5" />
+
+        {/* Tools list */}
+        <nav className="flex-1 flex flex-col gap-3 w-full px-2 overflow-y-auto scrollbar-none">
           {EDIT_TOOLS.map((tool) => {
             const isActive = activeTool === tool.id;
             return (
-              <motion.button
+              <button
                 key={tool.id}
-                whileHover={{ x: isActive ? 0 : 3 }}
-                whileTap={{ scale: 0.97 }}
+                type="button"
                 onClick={() => handleToolSelect(tool.id)}
+                title={tool.label}
                 className={cn(
-                  "w-full relative flex items-center gap-3 px-3.5 py-[10px] rounded-xl text-left transition-all duration-200 border group",
+                  "w-12 h-12 rounded-xl flex items-center justify-center relative transition-all duration-300 group",
                   isActive
-                    ? cn(
-                        "bg-white/[0.07]",
-                        tool.border,
-                        `shadow-lg ${tool.glow}`
-                      )
-                    : "border-transparent text-slate-500 hover:text-slate-300 hover:bg-white/[0.04]"
+                    ? "bg-white/[0.05] border border-white/10 shadow-lg"
+                    : "border border-transparent text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.02]"
                 )}
               >
-                {/* Active side bar accent */}
+                {/* Active Indicator spot */}
                 {isActive && (
                   <motion.div
-                    layoutId="tool-accent"
-                    className="absolute left-0 top-2 bottom-2 w-0.5 rounded-full"
-                    style={{ backgroundColor: tool.hex }}
+                    layoutId="tool-glow-spot"
+                    className="absolute left-[-2px] top-3 bottom-3 w-[3px] rounded-r-md"
+                    style={{
+                      backgroundColor: tool.hex,
+                      boxShadow: `0 0 10px 1px ${tool.hex}`,
+                    }}
                   />
                 )}
 
-                <div
+                <tool.icon
                   className={cn(
-                    "h-7 w-7 rounded-lg flex items-center justify-center shrink-0 transition-all duration-200",
-                    isActive
-                      ? "bg-white/[0.08]"
-                      : "bg-transparent group-hover:bg-white/[0.04]"
+                    "h-5 w-5 transition-all duration-300",
+                    isActive ? tool.color : "text-zinc-500 group-hover:scale-105"
                   )}
-                >
-                  <tool.icon
-                    className={cn(
-                      "h-3.5 w-3.5 transition-all duration-200",
-                      isActive ? tool.color : "text-slate-600 group-hover:text-slate-400"
-                    )}
-                  />
-                </div>
+                  style={isActive ? { filter: `drop-shadow(0 0 5px ${tool.hex}80)` } : {}}
+                />
 
-                <span
-                  className={cn(
-                    "text-[13px] font-medium leading-none transition-colors duration-200",
-                    isActive ? "text-slate-100" : "text-slate-500 group-hover:text-slate-300"
-                  )}
-                >
+                {/* Hover label tooltip */}
+                <span className="absolute left-16 bg-[#080d1a] border border-white/10 text-white text-[11px] font-bold px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-2xl">
                   {tool.label}
                 </span>
-
-                {isActive && (
-                  <motion.div
-                    initial={{ scale: 0, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    className={cn("ml-auto h-1.5 w-1.5 rounded-full shrink-0")}
-                    style={{ backgroundColor: tool.hex }}
-                  />
-                )}
-              </motion.button>
+              </button>
             );
           })}
         </nav>
 
-        {/* Footer */}
-        <div className="px-4 py-3 border-t border-white/[0.06]">
-          <p className="text-[10px] text-slate-600 leading-relaxed">
-            Select a tool · paint the mask · describe the edit
-          </p>
-        </div>
+        <div className="w-8 h-px bg-white/5" />
+
+        {/* Settings button */}
+        <Link href="/settings" className="w-12 h-12 rounded-xl flex items-center justify-center text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.02] transition-colors" title="Settings">
+          <Settings className="h-5 w-5" />
+        </Link>
       </aside>
 
       {/* ════════════════════════════════════════════════════════════════
           CENTER — Masking Canvas & Prompt Engine
       ════════════════════════════════════════════════════════════════ */}
-      <main className="flex-1 flex flex-col min-w-0 relative overflow-hidden">
-
+      <main className="flex-1 flex flex-col min-w-0 relative overflow-hidden bg-[#02040a]">
+        
         {/* Canvas Toolbar */}
-        <div className="flex items-center gap-1 px-4 py-2 border-b border-white/[0.06] bg-slate-950/70 backdrop-blur-xl shrink-0 z-10">
-          <ToolbarBtn icon={RotateCcw} label="Undo"       shortcut="⌘Z" />
-          <ToolbarBtn icon={RotateCw}  label="Redo"       shortcut="⌘⇧Z" />
-          <div className="h-4 w-px bg-white/[0.08] mx-1" />
-          <ToolbarBtn icon={Eraser}    label="Clear Mask" shortcut="⌘D" />
-          <div className="h-4 w-px bg-white/[0.08] mx-1" />
-          <ToolbarBtn icon={ZoomIn}    label="Zoom In"    shortcut="+" />
-          <ToolbarBtn icon={ZoomOut}   label="Zoom Out"   shortcut="-" />
+        <div className="flex items-center gap-1.5 px-6 py-3 border-b border-white/5 bg-[#050914] shrink-0 z-10">
+          <ToolbarBtn icon={RotateCcw} label="Undo" shortcut="Ctrl+Z" onClick={handleUndo} disabled={historyIndex <= 0} />
+          <ToolbarBtn icon={RotateCw} label="Redo" shortcut="Ctrl+Y" onClick={handleRedo} disabled={historyIndex >= history.length - 1} />
+          
+          <div className="h-5 w-px bg-white/10 mx-1.5" />
+          
+          <ToolbarBtn icon={Eraser} label="Clear Mask" shortcut="Ctrl+D" onClick={handleClearMask} />
+          <ToolbarBtn
+            icon={isEraser ? PenTool : Eraser}
+            label={isEraser ? "Draw Mode" : "Eraser Mode"}
+            shortcut="E"
+            active={isEraser}
+            onClick={() => setIsEraser(!isEraser)}
+          />
+          
+          <div className="h-5 w-px bg-white/10 mx-1.5" />
+          
+          <ToolbarBtn icon={ZoomIn} label="Zoom In" shortcut="+" onClick={() => setScale((s) => Math.min(s + 0.1, 2.5))} />
+          <ToolbarBtn icon={ZoomOut} label="Zoom Out" shortcut="-" onClick={() => setScale((s) => Math.max(s - 0.1, 0.5))} />
 
           <div className="flex-1" />
 
-          {/* Status indicator */}
-          <div className="flex items-center gap-2 text-[11px] font-medium px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.06]">
+          {/* Status badge */}
+          <div className="flex items-center gap-2 text-[11px] font-bold px-3 py-1.5 rounded-full bg-white/[0.03] border border-white/5 shadow-md">
             <motion.div
-              className={cn("h-1.5 w-1.5 rounded-full")}
+              className="h-1.5 w-1.5 rounded-full"
               style={{
-                backgroundColor: isProcessing
-                  ? "#f59e0b"
-                  : showResult
-                  ? "#10b981"
-                  : "#334155",
+                backgroundColor: isProcessing ? "#eab308" : showResult ? "#10b981" : "#52525b",
               }}
-              animate={
-                isProcessing
-                  ? { opacity: [1, 0.3, 1], scale: [1, 1.4, 1] }
-                  : { opacity: 1, scale: 1 }
-              }
-              transition={
-                isProcessing ? { duration: 0.8, repeat: Infinity } : {}
-              }
+              animate={isProcessing ? { opacity: [1, 0.4, 1], scale: [1, 1.3, 1] } : { opacity: 1 }}
+              transition={isProcessing ? { duration: 0.8, repeat: Infinity } : {}}
             />
-            <span className="text-slate-500">
-              {isProcessing
-                ? "Processing…"
-                : showResult
-                ? "Edit Applied"
-                : "Ready"}
+            <span className="text-zinc-400">
+              {isProcessing ? "Applying edit..." : showResult ? "Edit Applied" : "Ready"}
             </span>
           </div>
 
-          {/* Active tool badge */}
+          {/* Active tool display */}
           <div
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-semibold ml-1"
+            className="flex items-center gap-1.5 px-3 py-1 rounded-full border text-[11px] font-black uppercase tracking-wider ml-1"
             style={{
-              borderColor: `${currentTool.hex}55`,
+              borderColor: `${currentTool.hex}40`,
               color: currentTool.hex,
-              backgroundColor: `${currentTool.hex}11`,
+              backgroundColor: `${currentTool.hex}0d`,
+              filter: `drop-shadow(0 0 4px ${currentTool.hex}20)`,
             }}
           >
             <currentTool.icon className="h-3 w-3" />
@@ -450,372 +641,187 @@ export default function EditPage() {
           </div>
         </div>
 
-        {/* Canvas Body — dot-grid background */}
+        {/* Canvas Body Area */}
         <div
-          className="flex-1 relative overflow-hidden"
+          className="flex-1 relative overflow-hidden flex items-center justify-center p-8"
           style={{
-            backgroundImage:
-              "radial-gradient(circle, rgba(148,163,184,0.065) 1px, transparent 1px)",
-            backgroundSize: "24px 24px",
-            backgroundColor: "#030712",
+            backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.015) 1px, transparent 1px)",
+            backgroundSize: "20px 20px",
           }}
         >
-          {/* Corner grid fade vignette */}
+          {/* Centered canvas wrapper card */}
           <div
-            className="absolute inset-0 pointer-events-none z-[1]"
+            className="relative rounded-2xl overflow-hidden shadow-[0_20px_80px_rgba(0,0,0,0.85)] ring-1 ring-white/10 bg-zinc-950 transition-transform duration-200 select-none cursor-crosshair"
             style={{
-              background:
-                "radial-gradient(ellipse 80% 80% at 50% 50%, transparent 40%, #030712 100%)",
+              width: "700px",
+              height: "525px",
+              transform: `scale(${scale})`,
             }}
-          />
-
-          {/* Centered canvas card */}
-          <div className="absolute inset-0 flex items-center justify-center p-6 z-[2]">
-            <div className="relative w-full max-w-[700px] aspect-[4/3] rounded-2xl overflow-hidden shadow-[0_0_80px_rgba(0,0,0,0.8)] ring-1 ring-white/[0.06]">
-
-              {/* ── Base image layers (before / after) ── */}
+          >
+            {/* ── Background Image layers ── */}
+            <div className="absolute inset-0 select-none pointer-events-none">
               <AnimatePresence mode="wait">
                 {!showResult ? (
                   <motion.div
-                    key="original"
+                    key="backdrop-original"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    exit={{ opacity: 0, scale: 1.03 }}
+                    exit={{ opacity: 0, scale: 1.02 }}
                     transition={{ duration: 0.5 }}
-                    className="absolute inset-0"
+                    className="absolute inset-0 bg-cover bg-center bg-no-repeat"
                     style={{
-                      background: `
-                        radial-gradient(ellipse 55% 65% at 28% 38%, #1e1b4b 0%, transparent 65%),
-                        radial-gradient(ellipse 45% 55% at 72% 62%, #0f172a 0%, transparent 60%),
-                        radial-gradient(ellipse 40% 40% at 55% 20%, #1a103a 0%, transparent 50%),
-                        linear-gradient(145deg, #0b0a1e 0%, #1e1a3e 45%, #0f172a 100%)
-                      `,
+                      backgroundImage: `url('${baseImage}')`,
                     }}
                   >
-                    {/* Simulated scene depth layers */}
-                    <div
-                      className="absolute inset-0 opacity-40"
-                      style={{
-                        background:
-                          "radial-gradient(ellipse 50% 70% at 25% 50%, #312e81 0%, transparent 70%)",
-                      }}
-                    />
-                    <div
-                      className="absolute inset-0 opacity-20"
-                      style={{
-                        background:
-                          "radial-gradient(ellipse 35% 35% at 70% 30%, #1d4ed8 0%, transparent 60%)",
-                      }}
-                    />
-                    <div
-                      className="absolute bottom-0 left-0 right-0 h-1/3"
-                      style={{
-                        background:
-                          "linear-gradient(to top, rgba(15,10,40,0.9), transparent)",
-                      }}
-                    />
-                    {/* Simulated objects */}
-                    <div
-                      className="absolute opacity-25"
-                      style={{
-                        top: "15%",
-                        left: "28%",
-                        width: "40%",
-                        height: "55%",
-                        background:
-                          "radial-gradient(ellipse, rgba(99,102,241,0.6) 0%, transparent 70%)",
-                        filter: "blur(8px)",
-                      }}
-                    />
-                    <div
-                      className="absolute opacity-15"
-                      style={{
-                        top: "40%",
-                        right: "15%",
-                        width: "25%",
-                        height: "35%",
-                        background:
-                          "radial-gradient(ellipse, rgba(52,211,153,0.6) 0%, transparent 70%)",
-                        filter: "blur(6px)",
-                      }}
-                    />
-                    {/* File label */}
-                    <div className="absolute top-3 left-3 flex items-center gap-1.5 bg-black/50 backdrop-blur-sm rounded-md px-2 py-1">
-                      <div className="h-1.5 w-1.5 rounded-full bg-slate-500" />
-                      <span className="text-[10px] text-slate-400 font-mono">
-                        original.png · 2048 × 1536
+                    {/* Dark gradient shadow */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                    
+                    {/* Dimension Badge label */}
+                    <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md border border-white/10 rounded-lg px-2.5 py-1 flex items-center gap-1.5 shadow-lg">
+                      <div className="h-1.5 w-1.5 rounded-full bg-zinc-500" />
+                      <span className="text-[10px] text-zinc-400 font-mono truncate max-w-[180px]">
+                        {baseImage.split('/').pop()} · 2048 × 1536
                       </span>
                     </div>
                   </motion.div>
                 ) : (
                   <motion.div
-                    key="result"
-                    initial={{ opacity: 0, scale: 1.04 }}
+                    key="backdrop-result"
+                    initial={{ opacity: 0, scale: 1.03 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-                    className="absolute inset-0"
+                    transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+                    className="absolute inset-0 bg-cover bg-center bg-no-repeat"
                     style={{
-                      background: `
-                        radial-gradient(ellipse 60% 70% at 32% 40%, #2e1065 0%, transparent 65%),
-                        radial-gradient(ellipse 50% 60% at 68% 58%, #1a0040 0%, transparent 60%),
-                        radial-gradient(ellipse 40% 45% at 55% 18%, #3b0764 0%, transparent 55%),
-                        linear-gradient(145deg, #0d0520 0%, #1f0050 45%, #0a0a1e 100%)
-                      `,
+                      backgroundImage: `url('${baseImage}')`,
+                      // Apply some CSS filters to make the edit result visually distinct!
+                      filter: currentTool.id === "relight" ? "hue-rotate(60deg) saturate(1.4)" : "hue-rotate(-45deg) brightness(1.15)",
                     }}
                   >
-                    <div
-                      className="absolute inset-0 opacity-50"
-                      style={{
-                        background:
-                          "radial-gradient(ellipse 55% 75% at 28% 50%, #4c1d95 0%, transparent 70%)",
-                      }}
-                    />
-                    {/* Enhanced glow on edited region */}
-                    <div
-                      className="absolute"
-                      style={{
-                        top: "18%",
-                        left: "22%",
-                        width: "42%",
-                        height: "52%",
-                        background:
-                          "radial-gradient(ellipse, rgba(167,139,250,0.35) 0%, transparent 70%)",
-                        filter: "blur(12px)",
-                      }}
-                    />
-                    <div
-                      className="absolute bottom-0 left-0 right-0 h-1/3"
-                      style={{
-                        background:
-                          "linear-gradient(to top, rgba(59,7,100,0.8), transparent)",
-                      }}
-                    />
-                    {/* Result label */}
-                    <div className="absolute top-3 left-3 flex items-center gap-1.5 bg-emerald-950/70 backdrop-blur-sm rounded-md px-2 py-1 border border-emerald-500/30">
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                    
+                    {/* Result Success badge */}
+                    <div className="absolute top-4 left-4 bg-emerald-950/80 backdrop-blur-md border border-emerald-500/30 rounded-lg px-2.5 py-1 flex items-center gap-1.5 shadow-lg">
                       <Check className="h-3 w-3 text-emerald-400" />
-                      <span className="text-[10px] text-emerald-300 font-mono">
-                        edit_result.png · AI Enhanced
+                      <span className="text-[10px] text-emerald-400 font-bold font-mono uppercase tracking-wider">
+                        AI EDIT APPLIED
                       </span>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {/* ── Glowing Mask Overlay (visible in idle state) ── */}
-              <AnimatePresence>
-                {!isProcessing && !showResult && (
-                  <motion.div
-                    key="mask"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.3 }}
-                    className="absolute inset-0 pointer-events-none"
-                  >
-                    {/* Organic brush stroke region */}
-                    <motion.div
-                      animate={{
-                        boxShadow: [
-                          `0 0 12px 3px ${currentTool.glowHex}, inset 0 0 20px 5px ${currentTool.glowHex}`,
-                          `0 0 22px 8px ${currentTool.glowHex}, inset 0 0 30px 10px ${currentTool.glowHex}`,
-                          `0 0 12px 3px ${currentTool.glowHex}, inset 0 0 20px 5px ${currentTool.glowHex}`,
-                        ],
-                      }}
-                      transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
-                      className="absolute"
-                      style={{
-                        top: "20%",
-                        left: "21%",
-                        width: "40%",
-                        height: "48%",
-                        borderRadius: "42% 58% 55% 45% / 48% 52% 42% 58%",
-                        border: `1.5px solid ${currentTool.hex}99`,
-                        background: `radial-gradient(ellipse, ${currentTool.hex}18 0%, transparent 70%)`,
-                      }}
-                    />
-
-                    {/* Secondary mask stroke */}
-                    <div
-                      className="absolute opacity-40"
-                      style={{
-                        top: "25%",
-                        left: "26%",
-                        width: "28%",
-                        height: "32%",
-                        borderRadius: "58% 42% 48% 52% / 52% 48% 55% 45%",
-                        border: `1px solid ${currentTool.hex}66`,
-                        background: `radial-gradient(ellipse, ${currentTool.hex}10 0%, transparent 70%)`,
-                      }}
-                    />
-
-                    {/* Brush size indicator — bottom right */}
-                    <div className="absolute bottom-4 right-4 flex items-center gap-2 bg-black/60 backdrop-blur-sm rounded-full pl-2 pr-3 py-1.5">
-                      <motion.div
-                        className="rounded-full border-2 shrink-0"
-                        animate={{ opacity: [0.6, 1, 0.6] }}
-                        transition={{ duration: 2, repeat: Infinity }}
-                        style={{
-                          borderColor: currentTool.hex,
-                          width: `${Math.max(6, Math.round(brushSize * 0.14))}px`,
-                          height: `${Math.max(6, Math.round(brushSize * 0.14))}px`,
-                          boxShadow: `0 0 6px 2px ${currentTool.glowHex}`,
-                        }}
-                      />
-                      <span className="text-[10px] text-slate-400 font-mono tabular-nums">
-                        {brushSize}px
-                      </span>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {/* ── Processing Scan Animation ── */}
-              <AnimatePresence>
-                {isProcessing && (
-                  <motion.div
-                    key="scan"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.25 }}
-                    className="absolute inset-0 z-20 overflow-hidden"
-                  >
-                    {/* Dim overlay */}
-                    <div className="absolute inset-0 bg-slate-950/50" />
-
-                    {/* Scanning line */}
-                    <motion.div
-                      className="absolute left-0 right-0 h-[2px] pointer-events-none"
-                      style={{
-                        background: `linear-gradient(90deg, transparent 0%, ${currentTool.hex} 30%, #818cf8 50%, ${currentTool.hex} 70%, transparent 100%)`,
-                        boxShadow: `0 0 24px 12px ${currentTool.glowHex}, 0 0 6px 2px ${currentTool.hex}`,
-                      }}
-                      initial={{ top: "-2px" }}
-                      animate={{ top: "calc(100% + 2px)" }}
-                      transition={{ duration: 2.6, ease: "linear" }}
-                    />
-
-                    {/* Trailing glow blur */}
-                    <motion.div
-                      className="absolute left-0 right-0 h-24 pointer-events-none"
-                      style={{
-                        background: `linear-gradient(to bottom, transparent, ${currentTool.hex}18, transparent)`,
-                      }}
-                      initial={{ top: "-96px" }}
-                      animate={{ top: "calc(100% + 2px)" }}
-                      transition={{ duration: 2.6, ease: "linear" }}
-                    />
-
-                    {/* Center status card */}
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <motion.div
-                        initial={{ scale: 0.9, opacity: 0, y: 10 }}
-                        animate={{ scale: 1, opacity: 1, y: 0 }}
-                        transition={{ delay: 0.15 }}
-                        className="bg-slate-950/90 backdrop-blur-2xl border border-white/[0.1] rounded-2xl px-6 py-4 flex flex-col items-center gap-3"
-                        style={{
-                          boxShadow: `0 0 0 1px ${currentTool.hex}33, 0 24px 48px rgba(0,0,0,0.7)`,
-                        }}
-                      >
-                        <div className="flex items-center gap-2.5">
-                          <Sparkles
-                            className="h-4 w-4 animate-pulse"
-                            style={{ color: currentTool.hex }}
-                          />
-                          <span className="text-sm font-semibold text-slate-100">
-                            Applying AI Edit...
-                          </span>
-                        </div>
-                        <div className="text-[11px] text-slate-500 font-mono max-w-[220px] text-center truncate">
-                          {selectedModel.label} · {currentTool.label}
-                        </div>
-                        {/* Animated dots */}
-                        <div className="flex gap-1.5">
-                          {[0, 1, 2, 3, 4].map((i) => (
-                            <motion.div
-                              key={i}
-                              className="h-1 w-1 rounded-full"
-                              style={{ backgroundColor: currentTool.hex }}
-                              animate={{
-                                opacity: [0.2, 1, 0.2],
-                                scaleY: [0.5, 1.5, 0.5],
-                              }}
-                              transition={{
-                                duration: 0.9,
-                                delay: i * 0.14,
-                                repeat: Infinity,
-                                ease: "easeInOut",
-                              }}
-                            />
-                          ))}
-                        </div>
-                      </motion.div>
                     </div>
                   </motion.div>
                 )}
               </AnimatePresence>
             </div>
+
+            {/* ── Interactive Drawing HTML5 Canvas ── */}
+            <canvas
+              ref={canvasRef}
+              width={700}
+              height={525}
+              onMouseDown={startDrawing}
+              onMouseMove={draw}
+              onMouseUp={stopDrawing}
+              onMouseLeave={stopDrawing}
+              style={{ cursor: cursorStyle }}
+              className={cn(
+                "absolute inset-0 z-10 w-full h-full opacity-70 transition-opacity duration-300",
+                showInlight ? "opacity-75" : "opacity-0 pointer-events-none"
+              )}
+            />
+
+            {/* ── Processing Scan Animation overlay ── */}
+            <AnimatePresence>
+              {isProcessing && (
+                <motion.div
+                  key="scan-overlay"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="absolute inset-0 z-20 overflow-hidden"
+                >
+                  <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+                  
+                  {/* Glowing Laser Scanline */}
+                  <motion.div
+                    className="absolute left-0 right-0 h-[3px] pointer-events-none"
+                    style={{
+                      background: `linear-gradient(90deg, transparent 0%, ${currentTool.hex} 30%, #a78bfa 50%, ${currentTool.hex} 70%, transparent 100%)`,
+                      boxShadow: `0 0 20px 8px ${currentTool.glowHex}, 0 0 6px 2px ${currentTool.hex}`,
+                    }}
+                    initial={{ top: "-2px" }}
+                    animate={{ top: "100%" }}
+                    transition={{ duration: 2.5, ease: "linear", repeat: Infinity }}
+                  />
+
+                  {/* Processing Status box */}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <motion.div
+                      initial={{ scale: 0.95, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      className="bg-[#090e18]/90 border border-white/10 rounded-2xl p-6 flex flex-col items-center gap-3 shadow-2xl backdrop-blur-2xl"
+                    >
+                      <Sparkles className="h-6 w-6 animate-pulse" style={{ color: currentTool.hex }} />
+                      <span className="text-sm font-bold text-slate-100">Applying AI Generation</span>
+                      <span className="text-[10px] text-zinc-500 font-mono tracking-wider uppercase">
+                        {selectedModel.label} · {currentTool.label}
+                      </span>
+                      <div className="flex gap-1 mt-1">
+                        {[0, 1, 2, 3].map((dot) => (
+                          <motion.div
+                            key={dot}
+                            className="h-1.5 w-1.5 rounded-full"
+                            style={{ backgroundColor: currentTool.hex }}
+                            animate={{ opacity: [0.2, 1, 0.2] }}
+                            transition={{ duration: 0.8, repeat: Infinity, delay: dot * 0.15 }}
+                          />
+                        ))}
+                      </div>
+                    </motion.div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
 
-        {/* ── Floating Prompt Bar ── */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 pointer-events-none z-[10]">
+        {/* ── Floating Prompt Input Bar ── */}
+        <div className="absolute bottom-0 inset-x-0 p-6 pointer-events-none z-10 flex justify-center">
           <motion.div
-            initial={{ y: 24, opacity: 0 }}
+            initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
-            className="pointer-events-auto max-w-[660px] mx-auto"
+            className="pointer-events-auto w-full max-w-2xl"
           >
-            <div
-              className="bg-slate-900/85 backdrop-blur-2xl border border-white/[0.09] rounded-2xl shadow-2xl shadow-black/70 p-2.5 flex items-center gap-2.5"
-              style={{
-                boxShadow: "0 8px 32px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.06)",
-              }}
-            >
-              {/* Tool icon pill */}
+            <div className="bg-[#050914]/85 backdrop-blur-2xl border border-white/10 rounded-2xl p-2.5 flex items-center gap-3 shadow-[0_12px_45px_rgba(0,0,0,0.85)]">
+              {/* Tool Indicator circle */}
               <div
-                className="h-9 w-9 rounded-xl flex items-center justify-center shrink-0"
+                className="h-9 w-9 rounded-xl flex items-center justify-center shrink-0 border"
                 style={{
-                  backgroundColor: `${currentTool.hex}18`,
-                  border: `1px solid ${currentTool.hex}33`,
+                  backgroundColor: `${currentTool.hex}15`,
+                  borderColor: `${currentTool.hex}30`,
                 }}
               >
-                <currentTool.icon
-                  className="h-4 w-4"
-                  style={{ color: currentTool.hex }}
-                />
+                <currentTool.icon className="h-4 w-4" style={{ color: currentTool.hex }} />
               </div>
 
-              {/* Text input */}
+              {/* Input text prompt */}
               <input
                 type="text"
+                placeholder="Describe what to add, replace, or alter in the drawn region..."
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
-                onKeyDown={(e) =>
-                  e.key === "Enter" && !e.shiftKey && handleApply()
-                }
-                placeholder="Describe what to add, remove, or change in the masked area..."
+                onKeyDown={(e) => { if (e.key === "Enter") handleApply(); }}
                 disabled={isProcessing}
-                className="flex-1 bg-transparent text-sm text-slate-200 placeholder:text-slate-600 outline-none disabled:opacity-50"
+                className="flex-1 bg-transparent border-none text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:ring-0 disabled:opacity-50"
               />
 
-              {/* Apply button (in prompt bar, lightweight) */}
-              <motion.button
+              {/* Apply trigger button */}
+              <button
+                type="button"
                 onClick={handleApply}
                 disabled={isProcessing || !prompt.trim()}
-                whileHover={
-                  !isProcessing && prompt.trim() ? { scale: 1.04 } : {}
-                }
-                whileTap={
-                  !isProcessing && prompt.trim() ? { scale: 0.95 } : {}
-                }
                 className={cn(
-                  "shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[11px] font-bold uppercase tracking-wider transition-all duration-200",
-                  isProcessing
-                    ? "bg-violet-900/40 text-violet-500 cursor-not-allowed"
-                    : prompt.trim()
-                    ? "bg-gradient-to-r from-violet-600 to-pink-600 text-white shadow-lg shadow-violet-500/40"
-                    : "bg-slate-800/80 text-slate-600 cursor-not-allowed"
+                  "flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-300 transform active:scale-95 shrink-0 select-none shadow-md",
+                  isProcessing || !prompt.trim()
+                    ? "bg-zinc-800 text-zinc-500 cursor-not-allowed border border-transparent"
+                    : "bg-gradient-to-r from-cyan-500 to-violet-500 hover:from-cyan-400 hover:to-violet-400 text-black font-extrabold"
                 )}
               >
                 {isProcessing ? (
@@ -826,322 +832,312 @@ export default function EditPage() {
                 ) : (
                   <>
                     <span>Apply</span>
-                    <Star className="h-3 w-3 fill-amber-300 text-amber-300" />
-                    <span className="text-amber-200">5</span>
+                    <Star className="h-3.5 w-3.5 fill-black text-black" />
+                    <span className="font-mono">5</span>
                   </>
                 )}
-              </motion.button>
+              </button>
             </div>
           </motion.div>
         </div>
+
       </main>
 
       {/* ════════════════════════════════════════════════════════════════
-          RIGHT SIDEBAR — Model & Brush Settings
+          RIGHT SIDEBAR — Settings Panel
       ════════════════════════════════════════════════════════════════ */}
-      <aside className="w-[320px] shrink-0 flex flex-col border-l border-white/[0.06] bg-slate-900/35 backdrop-blur-2xl z-10">
-        {/* Header */}
-        <div className="px-4 pt-5 pb-3.5 border-b border-white/[0.06]">
-          <div className="flex items-center gap-2.5">
-            <div className="h-7 w-7 rounded-lg bg-violet-500/15 flex items-center justify-center ring-1 ring-violet-500/30">
-              <SlidersHorizontal className="h-3.5 w-3.5 text-violet-400" />
+      <aside className="w-[320px] shrink-0 flex flex-col border-l border-white/5 bg-[#050914] z-10">
+        {/* Sidebar Header */}
+        <div className="px-5 py-5 border-b border-white/5">
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-8 rounded-xl bg-gradient-to-tr from-cyan-500/10 to-violet-500/10 border border-cyan-500/20 flex items-center justify-center shadow-inner">
+              <SlidersHorizontal className="h-4 w-4 text-cyan-400" />
             </div>
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-widest text-slate-300">
-                Model & Brush
+              <p className="text-xs font-black uppercase tracking-widest text-zinc-300">
+                Model & Canvas
               </p>
-              <p className="text-[9px] text-slate-600 mt-0.5">Configure edit parameters</p>
+              <p className="text-[10px] text-zinc-500 mt-0.5">Parameters & controls</p>
             </div>
           </div>
         </div>
 
-        {/* Scrollable settings */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-6">
-
-          {/* ── Edit Model Selector ── */}
+        {/* Configuration settings widgets */}
+        <div className="flex-1 overflow-y-auto p-5 space-y-6 scrollbar-thin scrollbar-thumb-white/5 scrollbar-track-transparent">
+          
+          {/* AI Model dropdown selector */}
           <div className="space-y-2">
-            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest">
-              Edit Model
+            <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest block">
+              AI Generation Model
             </span>
-
+            
             <div className="relative">
               <button
-                onClick={() => setModelOpen((o) => !o)}
-                className="w-full flex items-center justify-between gap-2 px-3.5 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] hover:border-white/[0.14] hover:bg-white/[0.06] transition-all duration-150 text-sm"
+                type="button"
+                onClick={() => setModelOpen(!modelOpen)}
+                className="w-full flex items-center justify-between gap-2.5 px-4 py-3 rounded-xl bg-white/[0.02] border border-white/10 hover:border-white/15 hover:bg-white/[0.04] transition-all text-left text-sm"
               >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="h-2 w-2 rounded-full bg-violet-400 shrink-0 shadow-[0_0_6px_rgba(139,92,246,0.8)]" />
-                  <div className="min-w-0 text-left">
-                    <div className="text-slate-100 font-medium text-[13px] truncate">
-                      {selectedModel.label}
-                    </div>
-                    <div className="text-slate-500 text-[10px] truncate mt-0.5">
-                      {selectedModel.sublabel}
-                    </div>
+                <div className="min-w-0">
+                  <div className="text-zinc-200 font-bold text-xs truncate">
+                    {selectedModel.label}
+                  </div>
+                  <div className="text-[10px] text-zinc-500 truncate mt-0.5">
+                    {selectedModel.sublabel}
                   </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   {selectedModel.badge && (
-                    <span
-                      className={cn(
-                        "rounded-full px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider ring-1",
-                        selectedModel.badge === "PRO"
-                          ? "bg-amber-500/20 text-amber-300 ring-amber-500/30"
-                          : selectedModel.badge === "NEW"
-                          ? "bg-emerald-500/20 text-emerald-300 ring-emerald-500/30"
-                          : "bg-violet-500/20 text-violet-300 ring-violet-500/30"
-                      )}
-                    >
+                    <span className="bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider">
                       {selectedModel.badge}
                     </span>
                   )}
-                  <motion.div
-                    animate={{ rotate: modelOpen ? 180 : 0 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <ChevronDown className="h-3.5 w-3.5 text-slate-500" />
-                  </motion.div>
+                  <ChevronDown className={cn("h-3.5 w-3.5 text-zinc-400 transition-transform duration-200", modelOpen && "rotate-180")} />
                 </div>
               </button>
 
-              {/* Dropdown */}
               <AnimatePresence>
                 {modelOpen && (
                   <motion.div
-                    initial={{ opacity: 0, y: -6, scale: 0.97 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: -6, scale: 0.97 }}
-                    transition={{ duration: 0.15 }}
-                    className="absolute top-full left-0 right-0 z-50 mt-1.5 rounded-xl bg-slate-900/98 backdrop-blur-2xl border border-white/[0.1] shadow-2xl shadow-black/80 overflow-hidden"
+                    initial={{ opacity: 0, y: -5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -5 }}
+                    className="absolute top-full left-0 right-0 z-50 mt-1.5 rounded-xl bg-[#090f1d] border border-white/10 shadow-2xl overflow-hidden p-1"
                   >
-                    {EDIT_MODELS.map((model, i) => {
-                      const isSelected = selectedModel.id === model.id;
-                      return (
-                        <motion.button
-                          key={model.id}
-                          initial={{ opacity: 0, x: -8 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: i * 0.04 }}
-                          onClick={() => {
-                            setSelectedModel(model);
-                            setModelOpen(false);
-                          }}
-                          className={cn(
-                            "w-full flex items-center gap-3 px-3.5 py-2.5 transition-colors text-left",
-                            isSelected
-                              ? "bg-violet-500/10"
-                              : "hover:bg-white/[0.05]"
-                          )}
-                        >
-                          <div
-                            className={cn(
-                              "h-1.5 w-1.5 rounded-full shrink-0",
-                              isSelected ? "bg-violet-400" : "bg-slate-700"
-                            )}
-                          />
-                          <div className="min-w-0 flex-1">
-                            <div
-                              className={cn(
-                                "text-[13px] font-medium",
-                                isSelected ? "text-slate-100" : "text-slate-300"
-                              )}
-                            >
-                              {model.label}
-                            </div>
-                            <div className="text-[10px] text-slate-600 mt-0.5">
-                              {model.sublabel}
-                            </div>
-                          </div>
-                          {model.badge && (
-                            <span
-                              className={cn(
-                                "shrink-0 rounded-full px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider ring-1",
-                                model.badge === "PRO"
-                                  ? "bg-amber-500/20 text-amber-300 ring-amber-500/30"
-                                  : model.badge === "NEW"
-                                  ? "bg-emerald-500/20 text-emerald-300 ring-emerald-500/30"
-                                  : "bg-violet-500/20 text-violet-300 ring-violet-500/30"
-                              )}
-                            >
-                              {model.badge}
-                            </span>
-                          )}
-                        </motion.button>
-                      );
-                    })}
+                    {EDIT_MODELS.map((model) => (
+                      <button
+                        key={model.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedModel(model);
+                          setModelOpen(false);
+                        }}
+                        className={cn(
+                          "w-full px-3.5 py-2.5 rounded-lg text-left transition-colors flex items-center justify-between gap-2",
+                          selectedModel.id === model.id ? "bg-white/[0.05] text-white" : "hover:bg-white/[0.02] text-zinc-400"
+                        )}
+                      >
+                        <div className="min-w-0">
+                          <div className="text-xs font-bold">{model.label}</div>
+                          <div className="text-[9px] text-zinc-500 mt-0.5">{model.sublabel}</div>
+                        </div>
+                        {model.badge && (
+                          <span className="bg-white/5 border border-white/10 text-[8px] font-black text-zinc-400 px-1.5 py-0.5 rounded uppercase tracking-wider">
+                            {model.badge}
+                          </span>
+                        )}
+                      </button>
+                    ))}
                   </motion.div>
                 )}
               </AnimatePresence>
             </div>
           </div>
 
-          {/* ── Brush Size ── */}
+          <div className="border-t border-white/5" />
+
+          {/* Brush Size parameters */}
           <PremiumSlider
-            label="Brush Size"
+            label="Brush Radius"
             value={brushSize}
-            min={1}
-            max={100}
+            min={4}
+            max={80}
             step={1}
             displayValue={`${brushSize}px`}
             onChange={setBrushSize}
           />
 
-          {/* ── Edit Strength ── */}
+          {/* Brush Opacity parameters */}
+          <PremiumSlider
+            label="Brush Opacity"
+            value={brushOpacity}
+            min={0.1}
+            max={1.0}
+            step={0.05}
+            displayValue={`${Math.round(brushOpacity * 100)}%`}
+            onChange={setBrushOpacity}
+          />
+
+          {/* Edit Strength slider */}
           <PremiumSlider
             label="Edit Strength"
             value={editStrength}
             min={0.1}
             max={1.0}
-            step={0.01}
+            step={0.05}
             displayValue={editStrength.toFixed(2)}
             onChange={setEditStrength}
           />
 
-          {/* Divider */}
-          <div className="border-t border-white/[0.05]" />
+          <div className="border-t border-white/5" />
 
-          {/* ── Active Tool Info Card ── */}
+          {/* Show Mask Checkbox toggle */}
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest">
+              Show Mask Overlay
+            </span>
+            <button
+              type="button"
+              onClick={() => setShowInlight(!showInlight)}
+              className={cn(
+                "w-11 h-6 rounded-full p-0.5 transition-colors relative border",
+                showInlight ? "bg-cyan-500 border-cyan-500" : "bg-zinc-900 border-white/10"
+              )}
+            >
+              <div
+                className={cn(
+                  "h-4.5 w-4.5 rounded-full bg-white shadow-md transition-transform",
+                  showInlight ? "translate-x-5" : "translate-x-0"
+                )}
+              />
+            </button>
+          </div>
+
+          <div className="border-t border-white/5" />
+
+          {/* Advanced Settings Collapsible Card */}
+          <div className="space-y-2">
+            <button
+              type="button"
+              onClick={() => setAdvancedOpen(!advancedOpen)}
+              className="w-full flex items-center justify-between py-1 text-[11px] font-bold text-zinc-400 uppercase tracking-widest hover:text-zinc-200 transition-colors"
+            >
+              <span>Advanced AI Settings</span>
+              <ChevronDown className={cn("h-3.5 w-3.5 text-zinc-400 transition-transform duration-200", advancedOpen && "rotate-180")} />
+            </button>
+            
+            <AnimatePresence initial={false}>
+              {advancedOpen && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="overflow-hidden space-y-4 pt-2 pb-1"
+                >
+                  {/* Sampling Steps */}
+                  <PremiumSlider
+                    label="Sampling Steps"
+                    value={steps}
+                    min={10}
+                    max={50}
+                    step={1}
+                    displayValue={steps.toString()}
+                    onChange={setSteps}
+                  />
+                  {/* CFG Scale */}
+                  <PremiumSlider
+                    label="CFG Scale"
+                    value={cfg}
+                    min={1.0}
+                    max={20.0}
+                    step={0.5}
+                    displayValue={cfg.toFixed(1)}
+                    onChange={setCfg}
+                  />
+                  {/* Seed */}
+                  <div className="space-y-1.5">
+                    <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block">
+                      Seed
+                    </span>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={seed}
+                        onChange={(e) => setSeed(e.target.value)}
+                        className="flex-1 bg-white/[0.02] border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-zinc-200 font-mono focus:outline-none"
+                      />
+                      <button
+                        type="button"
+                        className="px-2.5 py-1.5 bg-white/5 border border-white/10 rounded-lg text-[10px] font-bold hover:bg-white/10 transition-colors shrink-0"
+                        onClick={() => setSeed(Math.floor(Math.random() * 99999999).toString())}
+                      >
+                        Random
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          <div className="border-t border-white/5" />
+
+          {/* Tool description information card */}
           <motion.div
             key={currentTool.id}
-            initial={{ opacity: 0, y: 6 }}
+            initial={{ opacity: 0, y: 5 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.25 }}
             className="rounded-xl p-4 border"
             style={{
-              borderColor: `${currentTool.hex}33`,
-              backgroundColor: `${currentTool.hex}0a`,
+              borderColor: `${currentTool.hex}25`,
+              backgroundColor: `${currentTool.hex}08`,
             }}
           >
-            <div className="flex items-center gap-3 mb-3">
+            <div className="flex items-center gap-3 mb-2.5">
               <div
-                className="h-9 w-9 rounded-xl flex items-center justify-center shrink-0"
+                className="h-8.5 w-8.5 rounded-lg flex items-center justify-center shrink-0 border"
                 style={{
-                  backgroundColor: `${currentTool.hex}18`,
-                  boxShadow: `0 0 12px 2px ${currentTool.glowHex}`,
+                  backgroundColor: `${currentTool.hex}15`,
+                  borderColor: `${currentTool.hex}30`,
                 }}
               >
-                <currentTool.icon
-                  className="h-4 w-4"
-                  style={{ color: currentTool.hex }}
-                />
+                <currentTool.icon className="h-4.5 w-4.5" style={{ color: currentTool.hex }} />
               </div>
               <div>
-                <div
-                  className="text-[13px] font-semibold"
-                  style={{ color: currentTool.hex }}
-                >
+                <span className="text-[13px] font-extrabold block" style={{ color: currentTool.hex }}>
                   {currentTool.label}
-                </div>
-                <div className="text-[10px] text-slate-600 mt-0.5">
-                  Active mode
-                </div>
+                </span>
+                <span className="text-[9px] text-zinc-500">Selected Editing Mode</span>
               </div>
             </div>
-            <p className="text-[11px] text-slate-500 leading-relaxed">
-              {currentTool.id === "inpaint" &&
-                "Fill or restore masked areas using AI context from surrounding pixels."}
-              {currentTool.id === "replace" &&
-                "Replace any selected object with an AI-generated alternative."}
-              {currentTool.id === "relight" &&
-                "Non-destructively shift light direction, color, and intensity."}
-              {currentTool.id === "bgremove" &&
-                "Instantly isolate subjects by removing the entire background layer."}
-              {currentTool.id === "outpaint" &&
-                "Extend image boundaries beyond the original frame with AI."}
-              {currentTool.id === "style" &&
-                "Transfer a visual style or texture onto the selected region."}
-              {currentTool.id === "draw" &&
-                "Sketch rough shapes and let AI interpret and render the result."}
-              {currentTool.id === "motion" &&
-                "Track and edit objects across an animated frame sequence."}
+            <p className="text-[11px] text-zinc-400 leading-relaxed font-semibold">
+              {currentTool.description}
             </p>
           </motion.div>
 
-          {/* Current params summary */}
-          <div className="rounded-xl bg-white/[0.02] border border-white/[0.06] divide-y divide-white/[0.05]">
-            {[
-              { label: "Model", value: selectedModel.id },
-              { label: "Brush", value: `${brushSize}px` },
-              { label: "Strength", value: editStrength.toFixed(2) },
-            ].map(({ label, value }) => (
-              <div key={label} className="flex items-center justify-between px-3.5 py-2.5">
-                <span className="text-[10px] text-slate-600 uppercase tracking-widest font-semibold">
-                  {label}
-                </span>
-                <span className="text-[11px] text-slate-400 font-mono truncate max-w-[160px] text-right">
-                  {value}
-                </span>
-              </div>
-            ))}
-          </div>
         </div>
 
-        {/* ── Pinned Action Button ── */}
-        <div className="p-4 border-t border-white/[0.06] space-y-3">
-          <motion.button
+        {/* Bottom Pinned Trigger button */}
+        <div className="p-5 border-t border-white/5 bg-[#040710] space-y-3">
+          <button
+            type="button"
             onClick={handleApply}
-            disabled={isProcessing}
-            whileHover={!isProcessing ? { scale: 1.02, y: -1 } : {}}
-            whileTap={!isProcessing ? { scale: 0.97 } : {}}
+            disabled={isProcessing || !prompt.trim()}
             className={cn(
-              "w-full relative flex items-center justify-center gap-2.5 py-[18px] px-6 rounded-2xl font-bold text-[15px] tracking-wide transition-all duration-300 overflow-hidden",
-              isProcessing
-                ? "bg-violet-950/60 border border-violet-800/40 text-violet-500 cursor-not-allowed"
-                : "bg-gradient-to-r from-violet-600 via-purple-600 to-pink-600 text-white border border-violet-500/30"
+              "w-full py-4 rounded-xl font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-all duration-300 transform active:scale-[0.98] border shadow-lg",
+              isProcessing || !prompt.trim()
+                ? "bg-zinc-900 border-white/5 text-zinc-500 cursor-not-allowed"
+                : "bg-gradient-to-r from-cyan-500 to-violet-500 hover:from-cyan-400 hover:to-violet-400 text-black border-cyan-400/20 shadow-cyan-500/10"
             )}
-            style={
-              !isProcessing
-                ? {
-                    boxShadow:
-                      "0 0 0 1px rgba(139,92,246,0.35), 0 8px 32px rgba(139,92,246,0.45), 0 2px 8px rgba(0,0,0,0.4)",
-                  }
-                : {}
-            }
           >
-            {/* Shimmer sweep */}
-            {!isProcessing && (
-              <motion.div
-                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.12] to-transparent skew-x-12"
-                animate={{ x: ["-140%", "140%"] }}
-                transition={{ duration: 2.8, repeat: Infinity, ease: "linear", repeatDelay: 0.5 }}
-              />
+            <Sparkles className="h-4.5 w-4.5" />
+            <span>Apply Generation</span>
+            {!isProcessing && prompt.trim() && (
+              <span className="inline-flex items-center gap-1 text-[11px] bg-black/10 px-1.5 py-0.5 rounded font-black">
+                <Star className="h-3 w-3 fill-current" />
+                <span>5</span>
+              </span>
             )}
+          </button>
 
-            {isProcessing ? (
-              <>
-                <Sparkles className="h-5 w-5 animate-pulse" />
-                <span>Applying AI Edit...</span>
-              </>
-            ) : (
-              <>
-                <Sparkles className="h-5 w-5 drop-shadow-sm" />
-                <span>Apply Edit</span>
-                <span className="flex items-center gap-1 text-sm font-normal opacity-90 ml-1">
-                  <Star className="h-3.5 w-3.5 fill-amber-300 text-amber-300" />
-                  <span className="text-amber-200 font-bold text-sm">5</span>
-                </span>
-              </>
-            )}
-          </motion.button>
-
-          {/* Success confirmation */}
           <AnimatePresence>
             {showResult && (
               <motion.div
-                initial={{ opacity: 0, y: 6, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 4, scale: 0.97 }}
-                className="flex items-center justify-center gap-2 py-2 px-4 rounded-xl bg-emerald-500/10 border border-emerald-500/25"
+                initial={{ opacity: 0, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="flex items-center justify-center gap-2 py-2 px-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold"
               >
-                <Check className="h-3.5 w-3.5 text-emerald-400" />
-                <span className="text-[12px] text-emerald-300 font-medium">
-                  Edit applied successfully
-                </span>
+                <Check className="h-3.5 w-3.5" />
+                <span>Generation applied successfully!</span>
               </motion.div>
             )}
           </AnimatePresence>
         </div>
       </aside>
+
     </div>
   );
 }
+
+
