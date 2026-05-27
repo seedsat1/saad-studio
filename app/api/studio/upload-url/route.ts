@@ -10,7 +10,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { BUCKETS, createSignedUploadUrl, deleteObjectFromStorage } from "@/lib/r2-storage";
+import { BUCKETS, createSignedUploadUrl, deleteObjectFromStorage, putObjectToStorage } from "@/lib/r2-storage";
 
 export const dynamic = "force-dynamic";
 
@@ -50,6 +50,42 @@ export async function POST(req: NextRequest) {
   const { userId } = await auth();
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const contentTypeHeader = req.headers.get("content-type") || "";
+  if (contentTypeHeader.toLowerCase().includes("multipart/form-data")) {
+    const form = await req.formData();
+    const file = form.get("file");
+    const assetType = typeof form.get("assetType") === "string" ? String(form.get("assetType")) : "";
+    if (!(file instanceof File)) {
+      return NextResponse.json({ error: "file is required" }, { status: 400 });
+    }
+
+    const fileType = file.type || "application/octet-stream";
+    if (!fileType.startsWith("image/") && !fileType.startsWith("video/") && !fileType.startsWith("audio/")) {
+      return NextResponse.json({ error: "Unsupported file type" }, { status: 400 });
+    }
+
+    const safeName = file.name.replace(/[^a-zA-Z0-9._\-]/g, "_").slice(0, 120) || "asset";
+    const bucket = bucketForType(assetType, fileType);
+    const ext = extFromContentType(fileType) || `.${safeName.split(".").pop() || "bin"}`;
+    const uniqueId = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const path = `${userId}/${uniqueId}${ext}`;
+    const publicUrl = await putObjectToStorage({
+      bucket,
+      path,
+      body: Buffer.from(await file.arrayBuffer()),
+      contentType: fileType,
+      cacheControl: "public, max-age=2592000, immutable",
+    });
+
+    return NextResponse.json({
+      uploaded: true,
+      token: null,
+      path,
+      bucket,
+      publicUrl,
+    });
   }
 
   // 2. Parse body

@@ -260,27 +260,19 @@ async function extractKeyframe(videoSrc: string): Promise<string> {
 
 async function uploadKeyframe(dataUrl: string) {
   const file = dataUrlToFile(dataUrl, `cinematic-style-keyframe-${Date.now()}.jpg`);
-  const urlRes = await fetch("/api/studio/upload-url", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      fileName: file.name,
-      contentType: file.type,
-      assetType: "image",
-    }),
-  });
-  const urlJson = await urlRes.json().catch(() => null);
-  if (!urlRes.ok || !urlJson?.signedUrl || !urlJson?.publicUrl) {
-    throw new Error(urlJson?.error || "Could not prepare a storage upload.");
-  }
+  const form = new FormData();
+  form.append("file", file);
+  form.append("assetType", "image");
 
-  const uploadRes = await fetch(String(urlJson.signedUrl), {
-    method: "PUT",
-    headers: { "Content-Type": file.type },
-    body: file,
+  const uploadRes = await fetch("/api/studio/upload-url", {
+    method: "POST",
+    body: form,
   });
-  if (!uploadRes.ok) throw new Error("Keyframe upload failed.");
-  return String(urlJson.publicUrl);
+  const uploadJson = await uploadRes.json().catch(() => null);
+  if (!uploadRes.ok || !uploadJson?.publicUrl) {
+    throw new Error(uploadJson?.error || "Keyframe upload failed.");
+  }
+  return String(uploadJson.publicUrl);
 }
 
 async function persistOutputUrl(mediaUrl: string, generationId?: string) {
