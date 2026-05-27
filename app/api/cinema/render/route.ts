@@ -261,14 +261,40 @@ ${negativePrompt || "(none)"}`,
     });
 
     if (!videoSubmit.response.ok || !videoSubmit.payload?.taskId) {
+      // Surface the REAL error from the provider call instead of the masked
+      // "video provider is busy" message that hides the actual failure
+      // reason. The page already understands previewOnly mode and shows the
+      // scene plan as a fallback — but the user now sees what went wrong
+      // (e.g. missing API key, quota exceeded, validation rejection).
+      const rawError =
+        (typeof videoSubmit.payload?.error === "string" && videoSubmit.payload.error.trim()) ||
+        (typeof videoSubmit.payload?.publicError === "string" && videoSubmit.payload.publicError.trim()) ||
+        "Video provider did not accept the request.";
+
+      console.error(
+        "[cinema-studio-vso] Provider call failed",
+        JSON.stringify({
+          modelRoute: model.api_route,
+          modelName: model.name,
+          providerStatus: videoSubmit.response.status,
+          providerError: videoSubmit.payload?.error,
+          publicError: videoSubmit.payload?.publicError,
+          code: videoSubmit.payload?.code,
+          providerModel: videoSubmit.payload?.providerModel,
+        }),
+      );
+
       return NextResponse.json(
         {
-          success: true,
+          success: false,
           generationId: `cin_${Date.now().toString(36)}`,
-          status: "COMPLETED",
-          progress: 100,
+          status: "FAILED",
+          progress: 0,
           previewOnly: true,
-          providerError: videoSubmit.payload?.publicError || videoSubmit.payload?.error || "Video provider did not accept the request.",
+          providerError: rawError,
+          providerStatus: videoSubmit.response.status,
+          providerCode: videoSubmit.payload?.code,
+          providerModelLabel: videoSubmit.payload?.providerModel,
           model: {
             id: model.id,
             name: model.name,
@@ -287,6 +313,8 @@ ${negativePrompt || "(none)"}`,
             focalLength,
             aperture,
           },
+          // Still return the AI scene plan so the user can see the
+          // visual mockup even though the real video did not render.
           data,
         },
         { status: 200 },

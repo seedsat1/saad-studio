@@ -1122,6 +1122,24 @@ export default function App() {
 
       const payload = await response.json().catch(() => null);
 
+      // Path 1: provider call failed but server returned the AI scene plan
+      // as a "preview" mockup. We treat this as a REAL failure now (status
+      // FAILED) so the page stops pretending the render succeeded — and we
+      // surface the actual provider error to the user.
+      if (response.ok && payload?.status === "FAILED" && payload?.previewOnly) {
+        if (payload.data) setActiveScenario(payload.data);
+        const modelLabel = payload?.model?.name ? `${payload.model.name}: ` : "";
+        const providerNote = payload?.providerError
+          ? `${modelLabel}${payload.providerError}`
+          : "Video provider rejected the request. Try another model or check your provider credentials.";
+        setRenderNotice(providerNote);
+        setProgress(0);
+        setStatus("FAILED");
+        setIsPlaying(false);
+        return;
+      }
+
+      // Path 2: full completion with a real video URL (synchronous path).
       if (response.ok && payload?.status === "COMPLETED" && payload?.data) {
         setActiveScenario(payload.data);
         setGeneratedVideoUrl(payload.videoUrl ?? payload.data?.videoUrl ?? null);
@@ -1129,16 +1147,23 @@ export default function App() {
         setProgress(100);
         setStatus("SUCCESS");
         setIsPlaying(true);
-      } else if ((response.status === 202 || response.ok) && payload?.success && (payload?.taskId || payload?.generationId)) {
+        return;
+      }
+
+      // Path 3: provider accepted the job, polling will pick it up.
+      if ((response.status === 202 || response.ok) && payload?.success && (payload?.taskId || payload?.generationId)) {
         if (payload.data) setActiveScenario(payload.data);
         setRenderNotice(null);
         setProgress(payload.progress ?? 10);
         startPollingJob(payload.taskId ?? payload.generationId);
-      } else {
-        throw new Error(payload?.error || "Cinema Studio render failed");
+        return;
       }
+
+      // Path 4: anything else is an unexpected error.
+      throw new Error(payload?.error || payload?.providerError || "Cinema Studio render failed");
     } catch (err) {
       console.error("Cinema Studio render failed:", err);
+      setRenderNotice(err instanceof Error ? err.message : "Cinema Studio render failed");
       setStatus("FAILED");
       setProgress(0);
     }
@@ -1714,6 +1739,42 @@ export default function App() {
                      : progress < 85 ? "» Simulating depth, motion, glow, and atmosphere..."
                      : "» Rendering and composing the final cinematic frame plan..."}
                   </p>
+                </motion.div>
+              )}
+
+              {/* FAILED VIEWPORT — provider rejected the request */}
+              {status === "FAILED" && (
+                <motion.div
+                  key="failed_viewport"
+                  initial={{ opacity: 0, scale: 0.98 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="w-full max-w-[600px] mx-auto px-6 py-8 rounded-xl border border-red-500/40 bg-red-500/5 text-center flex flex-col items-center gap-3"
+                >
+                  <div className="w-12 h-12 rounded-full bg-red-500/15 border border-red-500/40 flex items-center justify-center">
+                    <X size={22} className="text-red-400" />
+                  </div>
+                  <h2 className="text-lg font-bold text-red-300 tracking-tight">
+                    Render Failed
+                  </h2>
+                  <p className="text-sm text-[#e2e8f0] leading-relaxed max-w-md">
+                    {renderNotice || "The video provider rejected the request."}
+                  </p>
+                  <p className="text-xs text-[#94a3b8] leading-relaxed max-w-md">
+                    Tip: try a different model from the dropdown below, simplify the prompt,
+                    or remove reference images and try again.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setStatus("IDLE");
+                      setRenderNotice(null);
+                      setProgress(0);
+                    }}
+                    className="mt-1 px-4 py-1.5 rounded-lg bg-[#8b5cf6] hover:bg-[#a78bfa] text-white text-xs font-bold transition-colors"
+                  >
+                    Dismiss
+                  </button>
                 </motion.div>
               )}
 
