@@ -30,6 +30,7 @@ import {
   Download,
   Info,
   Trash2,
+  Aperture,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -142,6 +143,17 @@ const EDIT_TOOLS: EditTool[] = [
     hex: "#f97316",
     glowHex: "rgba(249,115,22,0.45)",
     description: "Track and edit objects across an animated frame sequence.",
+  },
+  {
+    id: "upscale",
+    label: "AI Upscale & Enhance",
+    icon: Aperture,
+    color: "text-teal-400",
+    border: "border-teal-500",
+    glow: "shadow-teal-500/50",
+    hex: "#14b8a6",
+    glowHex: "rgba(20,184,166,0.45)",
+    description: "Enhance image resolution, restore clarity, and sharpen fine details using AI upscale.",
   },
 ];
 
@@ -264,6 +276,33 @@ function PremiumSlider({
   );
 }
 
+// Helper to convert any image URL (local or cross-origin) to base64 Data URL in the browser
+const imgToDataUrl = async (src: string): Promise<string> => {
+  if (src.startsWith("data:")) return src;
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        resolve(src);
+        return;
+      }
+      ctx.drawImage(img, 0, 0);
+      try {
+        resolve(canvas.toDataURL("image/png"));
+      } catch (e) {
+        resolve(src);
+      }
+    };
+    img.onerror = () => resolve(src);
+    img.src = src;
+  });
+};
+
 // ─── Page Component ────────────────────────────────────────────────────────────
 export default function EditPage() {
   const searchParams = useSearchParams();
@@ -279,6 +318,7 @@ export default function EditPage() {
   const [prompt, setPrompt] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [showResult, setShowResult] = useState(false);
+  const [simulatedWarning, setSimulatedWarning] = useState<string | null>(null);
 
   // Drawing & Canvas States
   const [isDrawing, setIsDrawing] = useState(false);
@@ -498,16 +538,82 @@ export default function EditPage() {
     setHistoryIndex(newHistory.length);
   };
 
-  // Run mock processing
-  const handleApply = useCallback(() => {
-    if (isProcessing || !prompt.trim()) return;
+  // Apply AI Generation (Attempts to call the real backend APIs, falls back to visual simulator)
+  const handleApply = useCallback(async () => {
+    if (isProcessing) return;
+    
+    // For tools that need prompts, verify prompt input
+    const isPromptOptional = ["bgremove", "upscale"].includes(activeTool);
+    if (!isPromptOptional && !prompt.trim()) return;
+
+    setSimulatedWarning(null);
     setShowResult(false);
     setIsProcessing(true);
-    setTimeout(() => {
-      setIsProcessing(false);
-      setShowResult(true);
-    }, 3000);
-  }, [isProcessing, prompt]);
+
+    try {
+      let resultUrl = "";
+      const base64Image = await imgToDataUrl(baseImage);
+
+      if (activeTool === "bgremove") {
+        const response = await fetch("/api/generate/remove-bg", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ imageUrl: base64Image }),
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Failed to remove background");
+        resultUrl = data.imageUrl;
+      } else if (activeTool === "upscale") {
+        const response = await fetch("/api/generate/upscale", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ imageUrl: base64Image, scale: 4 }),
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Failed to upscale image");
+        resultUrl = data.imageUrl || data.mediaUrl;
+      } else {
+        // Drawing tools (inpaint, replace, etc.)
+        const canvas = canvasRef.current;
+        if (!canvas) throw new Error("Canvas not initialized");
+        const maskDataUrl = canvas.toDataURL("image/png");
+
+        const response = await fetch("/api/generate/image", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            prompt,
+            modelId: selectedModel.id,
+            imageUrl: base64Image,
+            imageUrls: [maskDataUrl],
+            aspectRatio: "4:3",
+          }),
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Failed to generate image");
+        resultUrl = data.imageUrl || data.mediaUrl;
+      }
+
+      if (resultUrl) {
+        setBaseImage(resultUrl);
+        setShowResult(true);
+        handleClearMask();
+      }
+    } catch (err: any) {
+      console.warn("Real API failed, falling back to simulated generation:", err.message);
+      
+      // Fallback simulation
+      setSimulatedWarning(`Running in local demo mode (Real API: ${err.message})`);
+      
+      setTimeout(() => {
+        setIsProcessing(false);
+        setShowResult(true);
+      }, 3000);
+      return;
+    }
+
+    setIsProcessing(false);
+  }, [isProcessing, prompt, activeTool, baseImage, selectedModel]);
 
   const handleToolSelect = (id: string) => {
     setActiveTool(id);
@@ -804,11 +910,17 @@ export default function EditPage() {
               {/* Input text prompt */}
               <input
                 type="text"
-                placeholder="Describe what to add, replace, or alter in the drawn region..."
+                placeholder={
+                  activeTool === "bgremove"
+                    ? "Background removal doesn't require a prompt. Click Apply!"
+                    : activeTool === "upscale"
+                    ? "AI Upscale doesn't require a prompt. Click Apply!"
+                    : "Describe what to add, replace, or alter in the drawn region..."
+                }
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter") handleApply(); }}
-                disabled={isProcessing}
+                disabled={isProcessing || ["bgremove", "upscale"].includes(activeTool)}
                 className="flex-1 bg-transparent border-none text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:ring-0 disabled:opacity-50"
               />
 
@@ -816,10 +928,10 @@ export default function EditPage() {
               <button
                 type="button"
                 onClick={handleApply}
-                disabled={isProcessing || !prompt.trim()}
+                disabled={isProcessing || (!["bgremove", "upscale"].includes(activeTool) && !prompt.trim())}
                 className={cn(
                   "flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-300 transform active:scale-95 shrink-0 select-none shadow-md",
-                  isProcessing || !prompt.trim()
+                  isProcessing || (!["bgremove", "upscale"].includes(activeTool) && !prompt.trim())
                     ? "bg-zinc-800 text-zinc-500 cursor-not-allowed border border-transparent"
                     : "bg-gradient-to-r from-cyan-500 to-violet-500 hover:from-cyan-400 hover:to-violet-400 text-black font-extrabold"
                 )}
@@ -1102,17 +1214,17 @@ export default function EditPage() {
           <button
             type="button"
             onClick={handleApply}
-            disabled={isProcessing || !prompt.trim()}
+            disabled={isProcessing || (!["bgremove", "upscale"].includes(activeTool) && !prompt.trim())}
             className={cn(
               "w-full py-4 rounded-xl font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-all duration-300 transform active:scale-[0.98] border shadow-lg",
-              isProcessing || !prompt.trim()
+              isProcessing || (!["bgremove", "upscale"].includes(activeTool) && !prompt.trim())
                 ? "bg-zinc-900 border-white/5 text-zinc-500 cursor-not-allowed"
                 : "bg-gradient-to-r from-cyan-500 to-violet-500 hover:from-cyan-400 hover:to-violet-400 text-black border-cyan-400/20 shadow-cyan-500/10"
             )}
           >
             <Sparkles className="h-4.5 w-4.5" />
             <span>Apply Generation</span>
-            {!isProcessing && prompt.trim() && (
+            {!isProcessing && (["bgremove", "upscale"].includes(activeTool) || prompt.trim()) && (
               <span className="inline-flex items-center gap-1 text-[11px] bg-black/10 px-1.5 py-0.5 rounded font-black">
                 <Star className="h-3 w-3 fill-current" />
                 <span>5</span>
@@ -1130,6 +1242,18 @@ export default function EditPage() {
               >
                 <Check className="h-3.5 w-3.5" />
                 <span>Generation applied successfully!</span>
+              </motion.div>
+            )}
+
+            {simulatedWarning && (
+              <motion.div
+                initial={{ opacity: 0, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="flex items-start gap-2 py-2 px-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[10px] font-semibold leading-relaxed"
+              >
+                <Info className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                <span>{simulatedWarning}</span>
               </motion.div>
             )}
           </AnimatePresence>
