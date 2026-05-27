@@ -64,6 +64,71 @@ function firstString(value: unknown): string | null {
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
+function buildFinalCinemaPrompt(params: {
+  basePrompt: string;
+  dialogueText: string;
+  genre: string;
+  cameraMovement: string;
+  lensType: string;
+  cameraBody: string;
+  focalLength: number;
+  aperture: string;
+  colorPalette: string;
+  lightingStyle: string;
+  cameraMovesetStyle: string;
+  voiceDirection: string;
+  sound: boolean;
+  negativePrompt?: string | null;
+}) {
+  const {
+    basePrompt,
+    dialogueText,
+    genre,
+    cameraMovement,
+    lensType,
+    cameraBody,
+    focalLength,
+    aperture,
+    colorPalette,
+    lightingStyle,
+    cameraMovesetStyle,
+    voiceDirection,
+    sound,
+    negativePrompt,
+  } = params;
+
+  const lines = [
+    basePrompt,
+    "",
+    "Mandatory cinema controls:",
+    `- Genre / mood: ${genre}. Apply this mood visibly to atmosphere, pacing, acting tone, and production design.`,
+    `- Color palette / LUT: ${colorPalette}. This is a required grade direction, not optional UI metadata.`,
+    `- Lighting: ${lightingStyle}. Shape the scene lighting according to this preset.`,
+    `- Camera body: ${cameraBody}. Reflect its color science and texture in the image.`,
+    `- Lens: ${lensType}. Use this optical character in composition, bokeh, distortion, compression, and focus falloff.`,
+    `- Focal length: ${focalLength}mm. Frame the subject according to this focal length.`,
+    `- Aperture: ${aperture}. Use matching depth of field.`,
+    `- Camera movement: ${cameraMovement}. The shot motion must follow this movement.`,
+    `- Movement style/speed: ${cameraMovesetStyle}. Apply this motion behavior to the camera.`,
+  ];
+
+  if (dialogueText) {
+    lines.push(
+      `- Spoken dialogue: "${dialogueText}"`,
+      `- Voice direction: ${voiceDirection || "Natural cinematic voice"}. Match the delivery, accent, emotion, and pacing to this direction.`,
+    );
+  } else if (sound) {
+    lines.push(`- Audio direction: generate native cinematic ambience and sound effects. Voice direction: ${voiceDirection || "Natural cinematic voice"}.`);
+  }
+
+  if (negativePrompt) {
+    lines.push(`- Avoid: ${negativePrompt}`);
+  }
+
+  lines.push("Do not ignore any cinema control above. They are part of the render request.");
+  return lines.filter(Boolean).join("\n");
+}
+
 function buildProviderPayload(
   raw: Partial<CinemaRenderInput> & Record<string, unknown>,
   input: CinemaRenderInput,
@@ -85,9 +150,34 @@ function buildProviderPayload(
   const cfgScale = typeof raw.cfgScale === "number" ? raw.cfgScale : undefined;
   const sound = raw.sound === true;
   const grokMode = firstString(raw.grokMode) ?? "normal";
+  const genre = firstString(raw.genre) ?? input.genre ?? "General Cinema";
+  const voiceDirection = firstString(raw.voiceDirection) ?? input.voiceDirection ?? input.voiceId ?? "Natural cinematic voice";
+  const colorPalette = firstString(raw.colorPalette) ?? "Auto";
+  const lightingStyle = firstString(raw.lightingStyle) ?? "Auto";
+  const cameraMovesetStyle = firstString(raw.cameraMovesetStyle) ?? "Auto";
+  const cameraBody = firstString(raw.cameraBody) ?? "Clean Digital";
+  const focalLengthRaw = Number(raw.focalLength);
+  const focalLength = Number.isFinite(focalLengthRaw) && focalLengthRaw > 0 ? Math.min(2000, Math.max(1, Math.round(focalLengthRaw))) : 85;
+  const aperture = firstString(raw.aperture) ?? "Auto";
+  const finalPrompt = buildFinalCinemaPrompt({
+    basePrompt: input.prompt,
+    dialogueText: input.dialogueText ?? "",
+    genre,
+    cameraMovement: input.cameraMovement ?? "Dolly Zoom",
+    lensType: input.lensType ?? "85mm Anamorphic Cinema",
+    cameraBody,
+    focalLength,
+    aperture,
+    colorPalette,
+    lightingStyle,
+    cameraMovesetStyle,
+    voiceDirection,
+    sound,
+    negativePrompt,
+  });
 
   const payload: Record<string, unknown> = {
-    prompt: input.prompt,
+    prompt: finalPrompt,
     duration: safeDuration,
     resolution: resolution || caps.resolutions[0] || "720p",
     quality: resolution || caps.resolutions[0] || "720p",
@@ -96,6 +186,16 @@ function buildProviderPayload(
     aspectRatio: aspectRatio || caps.aspect_ratios[0] || "16:9",
     sound,
     generate_audio: sound,
+    genre,
+    camera_movement: input.cameraMovement,
+    lens_type: input.lensType,
+    camera_body: cameraBody,
+    focal_length: focalLength,
+    aperture,
+    color_palette: colorPalette,
+    lighting_style: lightingStyle,
+    camera_moveset_style: cameraMovesetStyle,
+    voice_direction: voiceDirection,
   };
 
   if (input.dialogueText) {
@@ -170,6 +270,8 @@ export async function POST(req: Request) {
     const resolution = sanitizePrompt(typeof raw?.resolution === "string" ? raw.resolution : "").slice(0, 20);
     const aspectRatio = sanitizePrompt(typeof raw?.aspectRatio === "string" ? raw.aspectRatio : "").slice(0, 20);
     const voiceId = sanitizePrompt(typeof raw?.voiceId === "string" ? raw.voiceId : "").slice(0, 120);
+    const genre = sanitizePrompt(typeof raw?.genre === "string" ? raw.genre : "General Cinema").slice(0, 80);
+    const voiceDirection = sanitizePrompt(typeof raw?.voiceDirection === "string" ? raw.voiceDirection : "").slice(0, 240);
     const colorPalette = sanitizePrompt(typeof raw?.colorPalette === "string" ? raw.colorPalette : "Auto").slice(0, 80);
     const lightingStyle = sanitizePrompt(typeof raw?.lightingStyle === "string" ? raw.lightingStyle : "Auto").slice(0, 80);
     const cameraMovesetStyle = sanitizePrompt(typeof raw?.cameraMovesetStyle === "string" ? raw.cameraMovesetStyle : "Auto").slice(0, 80);
@@ -186,6 +288,8 @@ export async function POST(req: Request) {
       cameraMovement: sanitizePrompt(typeof raw?.cameraMovement === "string" ? raw.cameraMovement : "Dolly Zoom").slice(0, 160),
       lensType: sanitizePrompt(typeof raw?.lensType === "string" ? raw.lensType : "85mm Anamorphic Cinema").slice(0, 160),
       voiceId,
+      genre,
+      voiceDirection,
     };
 
     let data = generateProceduralCinemaScene(input);
@@ -207,6 +311,9 @@ ${input.prompt}
 Dialogue:
 ${input.dialogueText || "(none)"}
 
+Genre / mood:
+${input.genre || "General Cinema"}
+
 Camera movement:
 ${input.cameraMovement}
 
@@ -224,6 +331,9 @@ ${aperture}
 
 Voice reference:
 ${input.voiceId || "(default)"}
+
+Voice direction:
+${input.voiceDirection || "(natural cinematic delivery)"}
 
 Selected video model:
 ${model.name} (${model.api_route})
@@ -304,7 +414,9 @@ ${negativePrompt || "(none)"}`,
             duration: safeDuration,
             resolution,
             aspectRatio,
+            genre,
             voiceId,
+            voiceDirection,
             colorPalette,
             lightingStyle,
             cameraMovesetStyle,
@@ -336,7 +448,9 @@ ${negativePrompt || "(none)"}`,
         duration: safeDuration,
         resolution,
         aspectRatio,
+        genre,
         voiceId,
+        voiceDirection,
         colorPalette,
         lightingStyle,
         cameraMovesetStyle,

@@ -647,7 +647,9 @@ export default function App() {
   const resolutionOptions = useMemo(() => buildResolutionOptions(activeModelObj), [activeModelObj]);
   const aspectRatioOptions = useMemo(() => buildAspectRatioOptions(activeModelObj), [activeModelObj]);
   const playbackDuration = Number.parseInt(duration, 10) || 8;
-  const selectedVoiceId = currentActor?.voiceId || VOICE_PRESETS.find((v) => v.label === currentActor?.voice || v.voiceId === currentActor?.voice)?.voiceId || VOICE_PRESETS[0].voiceId;
+  const selectedVoicePreset = VOICE_PRESETS.find((v) => v.label === currentActor?.voice || v.voiceId === currentActor?.voice);
+  const selectedVoiceId = currentActor?.voiceId || selectedVoicePreset?.voiceId || VOICE_PRESETS[0].voiceId;
+  const selectedVoiceDirection = currentActor?.voice || selectedVoicePreset?.label || "Natural cinematic voice";
   // Fallback estimate used until the first /api/pricing/quote response
   // returns. Same numbers as the legacy client-side estimator.
   const fallbackEstimate = useMemo(
@@ -1095,9 +1097,11 @@ export default function App() {
         body: JSON.stringify({
           prompt: prompt,
           dialogueText: dialogueText,
+          genre: selectedGenre,
           cameraMovement: cameraMovement,
           lensType: lensType,
           voiceId: selectedVoiceId,
+          voiceDirection: selectedVoiceDirection,
           modelId: selectedModelId,
           modelRoute: activeModelObj.api_route,
           duration: playbackDuration,
@@ -3013,7 +3017,7 @@ export default function App() {
                               <span className="text-[#8b5cf6] font-bold">{currentActor.voice}</span>
                             </div>
                             <p className="text-xs text-[#94a3b8] leading-tight">
-                              Choose a default cinematic voice preset or enter a custom voice description to synthesize and assign it immediately:
+                              Choose a real voice preset, or enter a custom delivery direction that is sent into the final render prompt:
                             </p>
                           </div>
 
@@ -3261,7 +3265,7 @@ export default function App() {
                             ➕ Custom Voice Integration
                           </span>
                           <p className="text-xs text-[#94a3b8] leading-relaxed font-sans">
-                            Describe the voice qualities, ages, or dialects, and the dubbing system will synthesize them instantly:
+                            Describe the delivery, accent, age, or dialect. This direction is sent into the final video prompt.
                           </p>
                           <div className="flex gap-2">
                             <input 
@@ -3292,7 +3296,7 @@ export default function App() {
                               }}
                               className="px-4 bg-[#ec4899] hover:bg-[#f9a8d4] text-white text-[13px] font-bold rounded-lg cursor-pointer transition-colors whitespace-nowrap"
                             >
-                              Synthesize & Apply
+                              Apply Direction
                             </button>
                           </div>
                         </div>

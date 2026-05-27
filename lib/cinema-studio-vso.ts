@@ -33,6 +33,8 @@ export type CinemaRenderInput = {
   cameraMovement?: string;
   lensType?: string;
   voiceId?: string;
+  genre?: string;
+  voiceDirection?: string;
 };
 
 function subtitleParts(dialogue: string): SubtitlePart[] {
@@ -49,6 +51,7 @@ export function generateProceduralCinemaScene(input: CinemaRenderInput): CinemaS
   const dialogue = input.dialogueText || "This is the voice of truth whispering in the dark.";
   const lensType = input.lensType || "85mm Anamorphic Cinema";
   const cameraMovement = input.cameraMovement || "Dolly Zoom";
+  const genre = input.genre || "General Cinema";
 
   let particlesType: CinemaStudioRender["particlesType"] = "none";
   let moodColor = "#0B0C10";
@@ -82,7 +85,7 @@ export function generateProceduralCinemaScene(input: CinemaRenderInput): CinemaS
 
   return {
     title: `Scene: ${safePrompt.slice(0, 36)}${safePrompt.length > 36 ? "..." : ""}`,
-    directorNotes: `Director setup: ${cameraMovement} paired with ${lensType}. Grade toward ${accentColor}, with atmosphere and foreground silhouettes matching the prompt's emotional pressure.`,
+    directorNotes: `Director setup: ${genre} mood, ${cameraMovement} paired with ${lensType}. Grade toward ${accentColor}, with atmosphere and foreground silhouettes matching the prompt's emotional pressure.`,
     moodColor,
     accentColor,
     particlesType,
