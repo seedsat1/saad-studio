@@ -865,24 +865,39 @@ export default function App() {
     return String(payload.publicUrl);
   };
 
+  // Upload a batch of image files to R2 and return the list of public URLs.
+  //
+  // Failures used to silently fall back to a base64 data URL, which then
+  // got POSTed to /api/cinema/render and tripped the 413 Content Too Large
+  // limit on the route. We now FAIL the failed files (skip them from the
+  // returned list), surface the error to the user via state, and keep only
+  // the files that produced a real https:// URL so the render request
+  // stays small.
   const readImageFiles = async (files: FileList | null, limit: number) => {
     const selected = Array.from(files ?? []).slice(0, Math.max(0, limit));
-    const urls = await Promise.all(
+    const results = await Promise.all(
       selected.map(async (file) => {
         try {
-          return await uploadImageFile(file);
+          const url = await uploadImageFile(file);
+          return { ok: true as const, url, name: file.name };
         } catch (err) {
-          console.warn("Reference image storage upload failed, using local preview data URL:", err);
-          return await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(String(reader.result));
-            reader.onerror = () => reject(reader.error);
-            reader.readAsDataURL(file);
-          });
+          console.warn("Reference image upload failed:", file.name, err);
+          return { ok: false as const, name: file.name, error: err };
         }
       }),
     );
-    return urls;
+    const successful = results.filter((r) => r.ok).map((r) => r.url);
+    const failed = results.filter((r) => !r.ok).map((r) => r.name);
+    if (failed.length > 0) {
+      setUploadError(
+        `Could not upload ${failed.length} image${failed.length === 1 ? "" : "s"} ` +
+        `(${failed.join(", ")}). Storage CORS is blocking the request. ` +
+        `Use the provider's official URL or contact the admin.`
+      );
+    } else if (uploadError) {
+      setUploadError(null);
+    }
+    return successful;
   };
 
   // Upload status so the buttons can show "Uploading…" instead of looking
@@ -892,6 +907,10 @@ export default function App() {
   // Drag-over visual feedback for each drop zone.
   const [refDragOver, setRefDragOver] = useState(false);
   const [endFrameDragOver, setEndFrameDragOver] = useState(false);
+  // Surface upload failures to the user instead of silently falling back to
+  // a megabyte-sized base64 data URL (which then trips the 413 limit on
+  // /api/cinema/render).
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   // Convert a DataTransfer dropped on a zone into a FileList of images only.
   // Returns null when no usable image is present so the caller can no-op.
@@ -1010,6 +1029,24 @@ export default function App() {
     setGeneratedVideoUrl(null);
     setRenderNotice(null);
 
+    // Defense in depth: only forward https:// URLs to the render API.
+    // A legacy code path used to fall back to base64 data URLs when R2
+    // upload failed, and those data URLs would balloon the JSON body past
+    // the route's body-size limit (413 Content Too Large). The upload path
+    // no longer produces data URLs, but we double-check here so that any
+    // stale data:-URI in state can never hit the network.
+    const safeReferenceImages = referenceImages.filter((u) => typeof u === "string" && /^https?:\/\//i.test(u));
+    const safeEndFrameUrl = /^https?:\/\//i.test(endFrameUrl) ? endFrameUrl : "";
+    const droppedRefs = referenceImages.length - safeReferenceImages.length;
+    const droppedEnd = endFrameUrl && !safeEndFrameUrl ? 1 : 0;
+    if (droppedRefs > 0 || droppedEnd > 0) {
+      const total = droppedRefs + droppedEnd;
+      setRenderNotice(
+        `${total} image${total === 1 ? "" : "s"} were skipped because the upload to storage failed. ` +
+        `Render is running without ${droppedRefs > 0 ? "reference images" : ""}${droppedRefs > 0 && droppedEnd > 0 ? " and " : ""}${droppedEnd > 0 ? "the end frame" : ""}.`
+      );
+    }
+
     try {
       const response = await fetch("/api/cinema/render", {
         method: "POST",
@@ -1025,8 +1062,8 @@ export default function App() {
           duration: playbackDuration,
           resolution,
           aspectRatio,
-          referenceImages,
-          endFrameUrl,
+          referenceImages: safeReferenceImages,
+          endFrameUrl: safeEndFrameUrl,
           negativePrompt,
           ...(activeModelObj.capabilities.has_cfg_scale ? { cfgScale } : {}),
           seed,
@@ -1850,8 +1887,26 @@ export default function App() {
           </div>
 
           {/* 3. SLICK RUNWAY-STYLE GENERATE INPUT BAR */}
+          {/* Upload error banner — shown when R2 storage rejects the upload */}
+          {uploadError && (
+            <div className="max-w-[850px] mx-auto w-full mb-2 px-3 py-2 rounded-lg border border-red-500/50 bg-red-500/10 text-red-200 text-xs flex items-start justify-between gap-2">
+              <div className="flex-1 min-w-0">
+                <span className="font-bold mr-1">Upload failed:</span>
+                <span>{uploadError}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setUploadError(null)}
+                className="shrink-0 p-1 rounded hover:bg-red-500/20 transition-colors"
+                aria-label="Dismiss"
+              >
+                <X size={12} />
+              </button>
+            </div>
+          )}
+
           <div id="footer_generate_ribbon" className="max-w-[850px] mx-auto w-full bg-[#0f172a] border border-[#1e293b] rounded-xl p-3 shadow-2xl relative z-40">
-            
+
             {/* Input Row */}
             {/* Input Row */}
             <div className="flex items-center gap-3">
