@@ -13,7 +13,12 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { BUCKETS, putObjectToStorage, deleteObjectFromStorage } from "@/lib/r2-storage";
+import {
+  BUCKETS,
+  createSignedUploadUrl,
+  putObjectToStorage,
+  deleteObjectFromStorage,
+} from "@/lib/r2-storage";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -58,43 +63,69 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const formData = await req.formData();
-    const file = formData.get("file") as File;
-    const assetType = (formData.get("assetType") as string) || "";
+    const contentTypeHeader = req.headers.get("content-type") || "";
 
-    if (!file) {
-      return NextResponse.json({ error: "No file provided" }, { status: 400 });
+    if (contentTypeHeader.includes("multipart/form-data")) {
+      const formData = await req.formData();
+      const file = formData.get("file") as File | null;
+      const assetType = (formData.get("assetType") as string) || "";
+
+      if (!file) {
+        return NextResponse.json({ error: "No file provided" }, { status: 400 });
+      }
+
+      const contentType = file.type || "application/octet-stream";
+      const fileName = file.name.replace(/[^a-zA-Z0-9._\-]/g, "_").slice(0, 120);
+      if (!fileName) {
+        return NextResponse.json({ error: "Invalid file name" }, { status: 400 });
+      }
+
+      const bucket = bucketForType(assetType, contentType);
+      const ext = extFromContentType(contentType) || `.${fileName.split(".").pop() || "bin"}`;
+      const uniqueId = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      const path = `${userId}/${uniqueId}${ext}`;
+
+      const buffer = await file.arrayBuffer();
+      const publicUrl = await putObjectToStorage({
+        bucket,
+        path,
+        body: Buffer.from(buffer),
+        contentType,
+      });
+
+      return NextResponse.json({ publicUrl, path, bucket });
     }
 
-    // 2. Validate file
-    const contentType = file.type || "application/octet-stream";
-    const fileName = file.name.replace(/[^a-zA-Z0-9._\-]/g, "_").slice(0, 120);
-    if (!fileName) {
-      return NextResponse.json({ error: "Invalid file name" }, { status: 400 });
+    if (contentTypeHeader.includes("application/json")) {
+      const body = await req.json().catch(() => null);
+      const fileName = typeof body?.fileName === "string" ? body.fileName.trim() : "";
+      const contentType =
+        typeof body?.contentType === "string"
+          ? body.contentType
+          : typeof body?.fileType === "string"
+            ? body.fileType
+            : "application/octet-stream";
+      const assetType = typeof body?.assetType === "string" ? body.assetType : "";
+
+      if (!fileName) {
+        return NextResponse.json({ error: "Invalid file name" }, { status: 400 });
+      }
+
+      const bucket = bucketForType(assetType, contentType);
+      const ext = extFromContentType(contentType) || `.${fileName.split(".").pop() || "bin"}`;
+      const uniqueId = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      const path = `${userId}/${uniqueId}${ext}`;
+
+      const { signedUrl, publicUrl } = await createSignedUploadUrl({
+        bucket,
+        path,
+        contentType,
+      });
+
+      return NextResponse.json({ signedUrl, publicUrl, path, bucket });
     }
 
-    // 3. Build storage path
-    const bucket = bucketForType(assetType, contentType);
-    const ext = extFromContentType(contentType) || `.${fileName.split(".").pop() || "bin"}`;
-    const uniqueId = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-    const path = `${userId}/${uniqueId}${ext}`;
-
-    // 4. Convert file to buffer
-    const buffer = await file.arrayBuffer();
-
-    // 5. Upload to R2 from server
-    const publicUrl = await putObjectToStorage({
-      bucket,
-      path,
-      body: Buffer.from(buffer),
-      contentType,
-    });
-
-    return NextResponse.json({
-      publicUrl,
-      path,
-      bucket,
-    });
+    return NextResponse.json({ error: "Unsupported content type" }, { status: 415 });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Upload failed";
     console.error("[studio/upload-url] Server upload error:", message);
