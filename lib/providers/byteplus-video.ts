@@ -61,6 +61,15 @@ export async function byteplusGenerateVideo(input: VideoGenInput): Promise<Provi
     content.push({ type: "image_url", image_url: { url: input.imageUrl } });
   }
 
+  // Official BytePlus Seedance 2.0 (non-Fast) defaults to a server-side
+  // "AI generated" watermark. Opt out explicitly. Fast variants are left
+  // on the BytePlus default per project scope.
+  const isFastVariant =
+    input.modelId === "bytedance/seedance-v2/text-to-video-fast" ||
+    input.modelId === "bytedance/seedance-2-fast";
+  const submitBody: Record<string, unknown> = { model, content };
+  if (!isFastVariant) submitBody.watermark = false;
+
   // 1) Submit task
   const submit = await fetch(`${BASE}/contents/generations/tasks`, {
     method: "POST",
@@ -68,7 +77,7 @@ export async function byteplusGenerateVideo(input: VideoGenInput): Promise<Provi
       Authorization: `Bearer ${API_KEY}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ model, content }),
+    body: JSON.stringify(submitBody),
   });
   const submitJson = (await safeJson(submit)) as CreateTaskResp;
   if (!submit.ok || !submitJson.id) {
