@@ -9,9 +9,25 @@
 
 import { getToken, clearToken } from "./auth";
 
-const DEFAULT_BASE = "https://saadstudio.app";
-export const API_BASE: string =
-  (import.meta.env.VITE_SAAD_API as string | undefined) ?? DEFAULT_BASE;
+const DEFAULT_BASE = "https://www.saadstudio.app";
+const OVERRIDE_KEY = "saadstudio.apiBase";
+
+export function getApiBase(): string {
+  try {
+    const override = localStorage.getItem(OVERRIDE_KEY);
+    if (override) return override.replace(/\/+$/, "");
+  } catch { /* noop */ }
+  const envBase = import.meta.env.VITE_SAAD_API as string | undefined;
+  return (envBase ?? DEFAULT_BASE).replace(/\/+$/, "");
+}
+
+export function setApiBase(url: string) {
+  const clean = url.trim().replace(/\/+$/, "");
+  try { localStorage.setItem(OVERRIDE_KEY, clean); } catch { /* noop */ }
+}
+
+/** Convenience for code that just needs the current base. */
+export const API_BASE = getApiBase();
 
 export interface PanelMe {
   name: string | null;
@@ -59,7 +75,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const token = getToken();
   if (!token) throw new ApiError("Not signed in", 401);
 
-  const url = path.startsWith("http") ? path : `${API_BASE}${path}`;
+  const url = path.startsWith("http") ? path : `${getApiBase()}${path}`;
   const headers = new Headers(init.headers);
   headers.set("Authorization", `Bearer ${token}`);
   if (init.body && !headers.has("Content-Type") && !(init.body instanceof FormData)) {

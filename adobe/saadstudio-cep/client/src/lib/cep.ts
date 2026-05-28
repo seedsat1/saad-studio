@@ -40,13 +40,43 @@ export function getHostApp(): "PPRO" | "AEFT" | "BROWSER" {
   }
 }
 
-/** Open a URL in the user's default browser (used for OAuth flow). */
+/** Open a URL in the user's default browser. Tries every CEP API path
+ *  because behavior varies between Premiere / AE versions; falls back to
+ *  shelling out via Node and finally to window.open. */
 export function openExternal(url: string) {
-  if (window.__adobe_cep__) {
-    window.__adobe_cep__.openURLInDefaultBrowser(url);
-  } else {
-    window.open(url, "_blank");
-  }
+  // 1) Newer wrapper exposed by some hosts.
+  try {
+    const w = window as unknown as { cep?: { util?: { openURLInDefaultBrowser?: (u: string) => void } } };
+    if (w.cep?.util?.openURLInDefaultBrowser) {
+      w.cep.util.openURLInDefaultBrowser(url);
+      return;
+    }
+  } catch { /* fall through */ }
+
+  // 2) Direct CEP low-level API.
+  try {
+    if (window.__adobe_cep__?.openURLInDefaultBrowser) {
+      window.__adobe_cep__.openURLInDefaultBrowser(url);
+      return;
+    }
+  } catch { /* fall through */ }
+
+  // 3) Node child_process (works with --enable-nodejs in the manifest).
+  try {
+    if (window.cep_node) {
+      const cp = window.cep_node.require("child_process") as typeof import("child_process");
+      const proc = window.cep_node.require("process") as NodeJS.Process;
+      const plat = proc.platform;
+      const cmd = plat === "win32" ? `start "" "${url}"`
+                : plat === "darwin" ? `open "${url}"`
+                : `xdg-open "${url}"`;
+      cp.exec(cmd);
+      return;
+    }
+  } catch { /* fall through */ }
+
+  // 4) Plain browser fallback.
+  window.open(url, "_blank");
 }
 
 /** Run an ExtendScript function under the saadstudio namespace.

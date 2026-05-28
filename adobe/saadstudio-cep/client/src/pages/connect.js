@@ -1,21 +1,99 @@
 /** Token connect screen.
  *
- * Shown when the user has no valid panel token. Walks them through the
- * three-step flow: open the website, generate a token, paste it back into
- * the plugin. The "open" button uses CEP's openURLInDefaultBrowser so the
- * user lands on saadstudio.app/panel in their normal browser session
- * (where they're already signed in via Clerk). */
+ * One-click flow:
+ *   1. User taps "Connect with Saad Studio"
+ *   2. Plugin opens the browser at `${API}/panel/connect?session={id}`
+ *      and starts polling `/api/panel/auth-session/{id}`
+ *   3. When the user signs in on the web, the server approves the
+ *      session and the next poll returns the token — plugin saves it
+ *      and navigates home automatically. No copy/paste needed.
+ *
+ * A "paste a token manually" link is kept as a fallback in case the
+ * browser handoff fails (offline, popup blocked, etc.). */
 import { el } from "../lib/dom";
 import { icon } from "../lib/icons";
-import { openExternal } from "../lib/cep";
-import { API_BASE } from "../lib/api";
+import { getApiBase, setApiBase } from "../lib/api";
 import { setToken, looksLikePanelToken } from "../lib/auth";
 import { store } from "../lib/store";
 import { navigate } from "../lib/router";
 import { toast } from "../lib/toast";
+import { startAuthFlow } from "../lib/oauth";
 export function ConnectPage() {
+    const card = el("div", {
+        style: {
+            margin: "0 auto",
+            width: "100%",
+            maxWidth: "420px",
+            background: "var(--bg-card)",
+            border: "1px solid var(--line-soft)",
+            borderRadius: "20px",
+            padding: "24px",
+        },
+    });
+    renderIdle(card);
+    return el("div.col", { style: { height: "100%", justifyContent: "center", padding: "32px 24px" } }, card);
+}
+// ─── Idle (initial) state ─────────────────────────────────────────────
+function renderIdle(card) {
+    const urlInput = el("input", {
+        type: "text",
+        value: getApiBase(),
+        placeholder: "https://www.saadstudio.app",
+        style: {
+            width: "100%",
+            padding: "8px 10px",
+            borderRadius: "8px",
+            background: "var(--bg-input)",
+            border: "1px solid var(--line-medium)",
+            color: "var(--text-primary)",
+            fontFamily: "var(--font-mono)",
+            fontSize: "11px",
+        },
+        onChange: (e) => setApiBase(e.target.value),
+        onBlur: (e) => setApiBase(e.target.value),
+    });
+    card.replaceChildren(headerRow(), el("p.dim", { style: { fontSize: "12px", margin: "0 0 16px" } }, "Sign in once on the web and we'll connect this panel automatically."), el("div.col.gap-2", { style: { marginBottom: "16px" } }, el("div", { style: { fontSize: "11px", color: "var(--text-muted)" } }, "SERVER"), urlInput), el("button.btn-primary", {
+        style: { width: "100%" },
+        onClick: () => beginFlow(card),
+    }, icon("arrow-up-right", 14), "Connect with Saad Studio"), el("div", { style: { textAlign: "center", marginTop: "14px" } }, el("button.muted", {
+        style: {
+            fontSize: "11px",
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            color: "var(--text-muted)",
+            textDecoration: "underline",
+        },
+        onClick: () => renderManual(card),
+    }, "Paste a token manually")));
+}
+// ─── Waiting (browser opened, polling) state ──────────────────────────
+function renderWaiting(card, handle, statusEl) {
+    card.replaceChildren(headerRow(), el("div", {
+        style: {
+            margin: "20px auto",
+            width: "44px",
+            height: "44px",
+            borderRadius: "50%",
+            border: "3px solid var(--line-medium)",
+            borderTopColor: "var(--brand-accent)",
+            animation: "saadstudio-spin 0.9s linear infinite",
+        },
+    }), el("div", {
+        style: { textAlign: "center", fontSize: "14px", fontWeight: "600", marginBottom: "4px" },
+    }, "Waiting for sign-in…"), statusEl, el("p.dim", { style: { fontSize: "11px", textAlign: "center", margin: "16px 0 0" } }, "A browser window opened on saadstudio.app. Sign in there to finish connecting."), el("div", { style: { textAlign: "center", marginTop: "14px" } }, el("button.btn-secondary", { onClick: () => { handle.cancel(); renderIdle(card); } }, "Cancel")));
+    // Inject keyframe once
+    if (!document.getElementById("saadstudio-spin-style")) {
+        const style = document.createElement("style");
+        style.id = "saadstudio-spin-style";
+        style.textContent = "@keyframes saadstudio-spin{to{transform:rotate(360deg)}}";
+        document.head.appendChild(style);
+    }
+}
+// ─── Manual paste fallback ────────────────────────────────────────────
+function renderManual(card) {
     const input = el("textarea", {
-        rows: "3",
+        rows: "4",
         placeholder: "Paste your panel token (ssp_…)",
         style: {
             width: "100%",
@@ -26,48 +104,65 @@ export function ConnectPage() {
             color: "var(--text-primary)",
             resize: "vertical",
             fontFamily: "var(--font-mono)",
-            fontSize: "12px",
+            fontSize: "11px",
         },
     });
-    const connectBtn = el("button.btn-primary", {
-        onClick: async () => {
-            const value = input.value.trim();
-            if (!looksLikePanelToken(value)) {
-                toast("That doesn't look like a panel token.", "error");
-                return;
-            }
-            setToken(value);
-            try {
-                await store.refreshUser();
-                if (!store.get().user)
-                    throw new Error(store.get().userError ?? "Token rejected");
-                toast("Connected to Saad Studio", "success");
-                navigate("/");
-            }
-            catch (err) {
-                toast(`Could not verify token: ${err.message}`, "error");
-            }
-        },
-    }, icon("check", 14), "Connect");
-    const step = (n, label, child) => el("div.row.gap-3", { style: { alignItems: "flex-start", padding: "10px 0" } }, el("div", {
-        style: {
-            width: "22px", height: "22px",
-            borderRadius: "11px",
-            background: "var(--brand-primary-soft)",
-            color: "var(--brand-primary)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: "11px", fontWeight: "700", flexShrink: "0",
-        },
-    }, String(n)), el("div.col.gap-2.grow", null, el("div", { style: { fontSize: "13px", color: "var(--text-primary)" } }, label), child));
-    return el("div.col", { style: { height: "100%", justifyContent: "center", padding: "32px 24px" } }, el("div", {
-        style: {
-            margin: "0 auto",
-            width: "100%",
-            maxWidth: "420px",
-            background: "var(--bg-card)",
-            border: "1px solid var(--line-soft)",
-            borderRadius: "20px",
-            padding: "24px",
-        },
-    }, el("div.row.gap-3", { style: { marginBottom: "16px" } }, el("div.app-header__logo", null, "SA"), el("div.col", null, el("div", { style: { fontSize: "16px", fontWeight: "700" } }, "Connect to Saad Studio"), el("div.dim", { style: { fontSize: "12px" } }, "Sign in once to start generating."))), step(1, "Open your account page on saadstudio.app.", el("button.btn-secondary", { onClick: () => openExternal(`${API_BASE}/panel`) }, icon("arrow-up-right", 12), "Open saadstudio.app")), step(2, "Generate a panel token and copy it."), step(3, "Paste the token below and tap Connect.", input), el("div", { style: { marginTop: "16px" } }, connectBtn)));
+    card.replaceChildren(headerRow(), el("p.dim", { style: { fontSize: "12px", margin: "0 0 12px" } }, "Generate a token at saadstudio.app/panel and paste it below."), input, el("div.row.gap-2", { style: { marginTop: "12px" } }, el("button.btn-primary", { style: { flex: "1" }, onClick: () => submitManual(card, input.value) }, icon("check", 14), "Connect"), el("button.btn-secondary", { onClick: () => renderIdle(card) }, "Back")));
+}
+async function submitManual(card, raw) {
+    if (!looksLikePanelToken(raw)) {
+        toast("That doesn't look like a panel token.", "error");
+        return;
+    }
+    setToken(raw);
+    try {
+        await store.refreshUser();
+        if (!store.get().user)
+            throw new Error(store.get().userError ?? "Token rejected");
+        toast("Connected to Saad Studio", "success");
+        navigate("/");
+    }
+    catch (err) {
+        toast(`Could not verify token: ${err.message}`, "error");
+        renderIdle(card);
+    }
+}
+// ─── Flow orchestration ───────────────────────────────────────────────
+async function beginFlow(card) {
+    const statusEl = el("div.dim", { style: { textAlign: "center", fontSize: "12px", minHeight: "16px" } }, "Opening your browser…");
+    const { handle, done } = startAuthFlow({
+        onStatus: (msg) => { statusEl.textContent = msg; },
+    });
+    renderWaiting(card, handle, statusEl);
+    const result = await done;
+    if (result.status === "approved" && result.token) {
+        setToken(result.token);
+        try {
+            await store.refreshUser();
+            if (!store.get().user)
+                throw new Error(store.get().userError ?? "Token rejected");
+            toast("Connected to Saad Studio", "success");
+            navigate("/");
+        }
+        catch (err) {
+            toast(`Sign-in succeeded but token verification failed: ${err.message}`, "error");
+            renderIdle(card);
+        }
+        return;
+    }
+    if (result.status === "expired") {
+        toast("Sign-in timed out. Try again.", "error");
+        renderIdle(card);
+        return;
+    }
+    if (result.status === "error") {
+        toast(result.error ?? "Sign-in failed.", "error");
+        renderIdle(card);
+        return;
+    }
+    // cancelled — UI already rendered idle.
+}
+// ─── Shared header ────────────────────────────────────────────────────
+function headerRow() {
+    return el("div.row.gap-3", { style: { marginBottom: "16px" } }, el("div.app-header__logo", null, "SA"), el("div.col", null, el("div", { style: { fontSize: "16px", fontWeight: "700" } }, "Connect to Saad Studio"), el("div.dim", { style: { fontSize: "12px" } }, "Sign in once to start generating.")));
 }

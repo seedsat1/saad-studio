@@ -1,14 +1,15 @@
 /**
  * POST /api/studio/upload-url
  *
- * Server-side file upload to Cloudflare R2.
- * Accepts multipart/form-data and uploads directly from server.
+ * Browser-side upload to Cloudflare R2 via presigned URLs.
+ * Accepts application/json only.
  *
- * Multipart fields:
- *   - file: binary file data
+ * Request JSON fields:
+ *   - fileName: string (required)
+ *   - contentType: string (required)
  *   - assetType: optional ('video', 'image', 'audio', etc.)
  *
- * Returns: { publicUrl: string, path: string, bucket: string }
+ * Returns: { signedUrl: string, publicUrl: string, path: string, bucket: string }
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -16,7 +17,6 @@ import { auth } from "@clerk/nextjs/server";
 import {
   BUCKETS,
   createSignedUploadUrl,
-  putObjectToStorage,
   deleteObjectFromStorage,
 } from "@/lib/r2-storage";
 
@@ -54,7 +54,6 @@ function extFromContentType(contentType: string): string {
   return map[base] || "";
 }
 
-
 // ─── Route ────────────────────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
   // 1. Auth
@@ -65,37 +64,6 @@ export async function POST(req: NextRequest) {
 
   try {
     const contentTypeHeader = req.headers.get("content-type") || "";
-
-    if (contentTypeHeader.includes("multipart/form-data")) {
-      const formData = await req.formData();
-      const file = formData.get("file") as File | null;
-      const assetType = (formData.get("assetType") as string) || "";
-
-      if (!file) {
-        return NextResponse.json({ error: "No file provided" }, { status: 400 });
-      }
-
-      const contentType = file.type || "application/octet-stream";
-      const fileName = file.name.replace(/[^a-zA-Z0-9._\-]/g, "_").slice(0, 120);
-      if (!fileName) {
-        return NextResponse.json({ error: "Invalid file name" }, { status: 400 });
-      }
-
-      const bucket = bucketForType(assetType, contentType);
-      const ext = extFromContentType(contentType) || `.${fileName.split(".").pop() || "bin"}`;
-      const uniqueId = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-      const path = `${userId}/${uniqueId}${ext}`;
-
-      const buffer = await file.arrayBuffer();
-      const publicUrl = await putObjectToStorage({
-        bucket,
-        path,
-        body: Buffer.from(buffer),
-        contentType,
-      });
-
-      return NextResponse.json({ publicUrl, path, bucket });
-    }
 
     if (contentTypeHeader.includes("application/json")) {
       const body = await req.json().catch(() => null);
@@ -117,52 +85,6 @@ export async function POST(req: NextRequest) {
       const uniqueId = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
       const path = `${userId}/${uniqueId}${ext}`;
 
-      try {
-        await import("@aws-sdk/client-s3").then(async ({ GetBucketCorsCommand, PutBucketCorsCommand, S3Client }) => {
-          const accountId = process.env.R2_ACCOUNT_ID?.trim();
-          const accessKeyId = process.env.R2_ACCESS_KEY_ID?.trim();
-          const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY?.trim();
-          const endpoint = process.env.R2_ENDPOINT?.trim() || `https://${accountId}.r2.cloudflarestorage.com`;
-          if (!accountId || !accessKeyId || !secretAccessKey) return;
-
-          const client = new S3Client({
-            region: "auto",
-            endpoint,
-            credentials: { accessKeyId, secretAccessKey },
-            requestChecksumCalculation: "WHEN_REQUIRED",
-            responseChecksumValidation: "WHEN_REQUIRED",
-          });
-
-          const { CORSRules } = await client.send(new GetBucketCorsCommand({ Bucket: bucket }));
-          const hasAllowedOrigin = (CORSRules ?? []).some((rule) =>
-            rule.AllowedOrigins?.includes("https://www.saadstudio.app") ||
-            rule.AllowedOrigins?.includes("https://saadstudio.app") ||
-            rule.AllowedOrigins?.includes("http://localhost:3000")
-          );
-
-          if (!hasAllowedOrigin) {
-            await client.send(
-              new PutBucketCorsCommand({
-                Bucket: bucket,
-                CORSConfiguration: {
-                  CORSRules: [
-                    {
-                      AllowedOrigins: ["https://www.saadstudio.app", "https://saadstudio.app", "http://localhost:3000", "http://127.0.0.1:3000"],
-                      AllowedMethods: ["GET", "HEAD", "PUT", "POST", "DELETE", "OPTIONS"],
-                      AllowedHeaders: ["*"],
-                      ExposeHeaders: ["ETag", "Content-Length"],
-                      MaxAgeSeconds: 3600,
-                    },
-                  ],
-                },
-              })
-            );
-          }
-        });
-      } catch (corsError) {
-        console.warn("[studio/upload-url] R2 CORS auto-setup skipped:", corsError instanceof Error ? corsError.message : corsError);
-      }
-
       const { signedUrl, publicUrl } = await createSignedUploadUrl({
         bucket,
         path,
@@ -172,10 +94,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ signedUrl, publicUrl, path, bucket });
     }
 
-    return NextResponse.json({ error: "Unsupported content type" }, { status: 415 });
+    return NextResponse.json({ error: "Only application/json is supported" }, { status: 415 });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Upload failed";
-    console.error("[studio/upload-url] Server upload error:", message);
+    const message = error instanceof Error ? error.message : "Upload URL generation failed";
+    console.error("[studio/upload-url] Error:", message);
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

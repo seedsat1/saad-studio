@@ -21,7 +21,9 @@ export function getToken(): string | null {
 }
 
 export function setToken(token: string) {
-  cached = token.trim();
+  // Strip ALL whitespace (including internal newlines from word-wrapped
+  // pastes). Panel tokens are base64url + underscore and contain no spaces.
+  cached = token.replace(/\s+/g, "");
   try {
     localStorage.setItem(STORAGE_KEY, cached);
   } catch {
