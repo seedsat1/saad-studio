@@ -911,7 +911,7 @@ export default function TransitionsStudioPage() {
 
   useEffect(() => {
     // Load presets
-    fetch("/api/transitions/presets")
+    fetch("/api/transitions/presets", { cache: "no-store" })
       .then((r) => { if (!r.ok) throw new Error("presets fetch failed"); return r.json(); })
       .then((d) => setPresets(Array.isArray(d.presets) ? d.presets : []))
       .catch(() => {})

@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
 import { getClientSafePresets } from "@/lib/transition-presets";
 
+export const dynamic = "force-dynamic";
+
 const PAGE_NAME = "cms-transitions-media";
 
 async function loadMediaMap(): Promise<Record<string, string>> {
@@ -33,5 +35,8 @@ export async function GET() {
     previewVideoUrl: mediaMap[p.id] || p.previewVideoUrl || "",
   }));
 
-  return NextResponse.json({ presets: merged });
+  return NextResponse.json(
+    { presets: merged },
+    { headers: { "Cache-Control": "no-store" } }
+  );
 }

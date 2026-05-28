@@ -14,6 +14,8 @@ import { isAdmin } from "@/lib/is-admin";
 import prismadb from "@/lib/prismadb";
 import { getClientSafePresets } from "@/lib/transition-presets";
 
+export const dynamic = "force-dynamic";
+
 const PAGE_NAME = "cms-transitions-media";
 
 type MediaMap = Record<string, string>; // presetId → previewVideoUrl
@@ -57,7 +59,10 @@ export async function GET() {
     ...p,
     previewVideoUrl: mediaMap[p.id] || p.previewVideoUrl || "",
   }));
-  return NextResponse.json({ presets: merged });
+  return NextResponse.json(
+    { presets: merged },
+    { headers: { "Cache-Control": "no-store" } }
+  );
 }
 
 export async function PUT(req: NextRequest) {
