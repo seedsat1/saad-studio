@@ -1,16 +1,17 @@
-# Install the plugin in CEP debug mode by symlinking it into Adobe's
-# extensions folder. Run as Administrator the first time so PowerShell
-# can create the symlink (or run with developer mode enabled in Windows).
-#
-# Before running:
-#   1. cd adobe/saadstudio-cep/client && npm install && npm run build
-#   2. Set the PlayerDebugMode flag in the registry (see README).
-#   3. From an admin PowerShell:  .\scripts\install-dev.ps1
-#   4. Restart Premiere / After Effects.
-#
-# The plugin will appear under Window → Extensions → Saad Studio.
+# Install the Saad Studio CEP panel for development.
+# - Enables PlayerDebugMode for CSXS 9..12
+# - Symlinks this folder into Adobe's CEP extensions folder
+# Run from an Administrator PowerShell.
 
 $ErrorActionPreference = "Stop"
+
+Write-Host "Enabling CEP PlayerDebugMode..."
+foreach ($v in 9, 10, 11, 12) {
+    $key = "HKCU:\Software\Adobe\CSXS.$v"
+    if (-not (Test-Path $key)) { New-Item -Path $key -Force | Out-Null }
+    Set-ItemProperty -Path $key -Name "PlayerDebugMode" -Value "1" -Type String
+    Write-Host "  CSXS.$v enabled"
+}
 
 $source = (Resolve-Path "$PSScriptRoot\..").Path
 $cepRoot = Join-Path $env:APPDATA "Adobe\CEP\extensions"
@@ -21,18 +22,14 @@ if (-not (Test-Path $cepRoot)) {
 }
 
 if (Test-Path $linkPath) {
-    Write-Host "Removing existing extension at $linkPath"
+    Write-Host "Removing existing link at $linkPath"
     Remove-Item $linkPath -Recurse -Force
 }
 
-Write-Host "Linking $source -> $linkPath"
+Write-Host "Linking $source"
+Write-Host "     -> $linkPath"
 New-Item -ItemType SymbolicLink -Path $linkPath -Target $source | Out-Null
 
 Write-Host ""
-Write-Host "Done. Make sure PlayerDebugMode is enabled for CSXS 9–12:"
-Write-Host "  reg add HKCU\Software\Adobe\CSXS.9  /v PlayerDebugMode /t REG_SZ /d 1 /f"
-Write-Host "  reg add HKCU\Software\Adobe\CSXS.10 /v PlayerDebugMode /t REG_SZ /d 1 /f"
-Write-Host "  reg add HKCU\Software\Adobe\CSXS.11 /v PlayerDebugMode /t REG_SZ /d 1 /f"
-Write-Host "  reg add HKCU\Software\Adobe\CSXS.12 /v PlayerDebugMode /t REG_SZ /d 1 /f"
-Write-Host ""
-Write-Host "Then restart Premiere Pro / After Effects."
+Write-Host "Done. Restart Premiere Pro or After Effects, then open:"
+Write-Host "  Window > Extensions > Saad Studio"
