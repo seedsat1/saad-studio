@@ -617,16 +617,8 @@ function PresetCard({
     <motion.button
       type="button"
       onClick={onClick}
-      onMouseEnter={() => {
-        setHovering(true);
-        if (videoRef.current && preset.previewVideoUrl && !videoError) {
-          videoRef.current.play().catch(() => {});
-        }
-      }}
-      onMouseLeave={() => {
-        setHovering(false);
-        if (videoRef.current) { videoRef.current.pause(); videoRef.current.currentTime = 0; }
-      }}
+      onMouseEnter={() => setHovering(true)}
+      onMouseLeave={() => setHovering(false)}
       className="w-full text-left rounded-xl overflow-hidden transition-all duration-200 group"
       style={{
         border: selected ? "1px solid rgba(124,58,237,0.6)" : "1px solid rgba(255,255,255,0.05)",
@@ -643,10 +635,16 @@ function PresetCard({
             <video
               ref={videoRef}
               src={preset.previewVideoUrl}
+              autoPlay
               muted
               loop
               playsInline
+              preload="auto"
               onError={() => setVideoError(true)}
+              onCanPlay={(e) => {
+                const el = e.currentTarget;
+                try { void el.play(); } catch {}
+              }}
               className="w-full h-full object-cover"
             />
           ) : (
