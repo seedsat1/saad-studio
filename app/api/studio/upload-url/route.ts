@@ -1,8 +1,8 @@
 /**
  * POST /api/studio/upload-url
  *
- * Uploads a multipart file through the server, or creates a Cloudflare R2
- * signed upload URL for legacy direct-browser uploads.
+ * Creates a Cloudflare R2 signed upload URL so the browser can upload
+ * directly to R2.
  *
  * Body: { fileName: string, contentType: string, assetType?: string }
  * Returns: { signedUrl: string, publicUrl: string, token: string, path: string, bucket: string }
@@ -10,7 +10,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { BUCKETS, createSignedUploadUrl, deleteObjectFromStorage, putObjectToStorage } from "@/lib/r2-storage";
+import { BUCKETS, createSignedUploadUrl, deleteObjectFromStorage } from "@/lib/r2-storage";
 import { PutBucketCorsCommand, S3Client } from "@aws-sdk/client-s3";
 
 export const dynamic = "force-dynamic";
@@ -36,7 +36,9 @@ async function ensureDirectUploadCors() {
   const secretAccessKey = getEnv("R2_SECRET_ACCESS_KEY");
   const bucket = getEnv("R2_BUCKET", "R2_BUCKET_NAME");
   const endpoint = getEnv("R2_ENDPOINT") || (accountId ? `https://${accountId}.r2.cloudflarestorage.com` : "");
-  if (!accessKeyId || !secretAccessKey || !bucket || !endpoint) return;
+  if (!accessKeyId || !secretAccessKey || !bucket || !endpoint) {
+    throw new Error("Missing R2 env vars needed to configure direct upload CORS.");
+  }
 
   const client = new S3Client({
     region: "auto",
@@ -53,12 +55,12 @@ async function ensureDirectUploadCors() {
         CORSRules: [
           {
             AllowedOrigins: [
-              "*",
               "https://www.saadstudio.app",
               "https://saadstudio.app",
               "http://localhost:3000",
+              "http://127.0.0.1:3000",
             ],
-            AllowedMethods: ["GET", "HEAD", "PUT", "POST"],
+            AllowedMethods: ["GET", "HEAD", "PUT", "POST", "DELETE"],
             AllowedHeaders: ["*"],
             ExposeHeaders: ["ETag", "Content-Length"],
             MaxAgeSeconds: 3600,
@@ -68,8 +70,9 @@ async function ensureDirectUploadCors() {
     }));
     corsAppliedAt = now;
   } catch (error) {
-    console.warn("[studio/upload-url] R2 CORS auto-apply failed:", error instanceof Error ? error.message : error);
-    corsAppliedAt = now;
+    const message = error instanceof Error ? error.message : "Unknown R2 CORS error";
+    console.error("[studio/upload-url] R2 CORS auto-apply failed:", message);
+    throw new Error(`R2 CORS setup failed: ${message}`);
   }
 }
 
@@ -111,43 +114,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const contentTypeHeader = req.headers.get("content-type") || "";
-  if (contentTypeHeader.toLowerCase().includes("multipart/form-data")) {
-    const form = await req.formData();
-    const file = form.get("file");
-    const assetType = typeof form.get("assetType") === "string" ? String(form.get("assetType")) : "";
-    if (!(file instanceof File)) {
-      return NextResponse.json({ error: "file is required" }, { status: 400 });
-    }
-
-    const fileType = file.type || "application/octet-stream";
-    if (!fileType.startsWith("image/") && !fileType.startsWith("video/") && !fileType.startsWith("audio/")) {
-      return NextResponse.json({ error: "Unsupported file type" }, { status: 400 });
-    }
-
-    const safeName = file.name.replace(/[^a-zA-Z0-9._\-]/g, "_").slice(0, 120) || "asset";
-    const bucket = bucketForType(assetType, fileType);
-    const ext = extFromContentType(fileType) || `.${safeName.split(".").pop() || "bin"}`;
-    const uniqueId = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-    const path = `${userId}/${uniqueId}${ext}`;
-    const publicUrl = await putObjectToStorage({
-      bucket,
-      path,
-      body: Buffer.from(await file.arrayBuffer()),
-      contentType: fileType,
-      cacheControl: "public, max-age=2592000, immutable",
-    });
-
-    return NextResponse.json({
-      uploaded: true,
-      token: null,
-      path,
-      bucket,
-      publicUrl,
-    });
-  }
-
-  // 2. Parse body
   let body: { fileName?: string; contentType?: string; assetType?: string };
   try {
     body = await req.json();
@@ -169,7 +135,14 @@ export async function POST(req: NextRequest) {
   const uniqueId = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   const path = `${userId}/${uniqueId}${ext}`;
 
-  await ensureDirectUploadCors();
+  try {
+    await ensureDirectUploadCors();
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "R2 CORS setup failed." },
+      { status: 500 },
+    );
+  }
 
   const { signedUrl, publicUrl } = await createSignedUploadUrl({
     bucket,
