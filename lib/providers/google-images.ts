@@ -28,8 +28,8 @@ function client(): GoogleGenAI {
 
 /** Internal id → upstream Gemini model id. */
 const MODEL_MAP: Record<string, string> = {
-  "nano-banana-pro":      "gemini-2.5-flash-image-preview",
-  "nano-banana-2":        "gemini-2.5-flash-image",
+  "nano-banana-pro":      "gemini-3-pro-image-preview",
+  "nano-banana-2":        "gemini-3.1-flash-image-preview",
   "google/nano-banana":   "gemini-2.5-flash-image",
   "google/nano-banana-edit": "gemini-2.5-flash-image",
   "google/imagen4":       "imagen-4.0-generate-001",
