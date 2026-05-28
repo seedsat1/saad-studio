@@ -11,13 +11,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { BUCKETS, createSignedUploadUrl, deleteObjectFromStorage } from "@/lib/r2-storage";
-import { PutBucketCorsCommand, S3Client } from "@aws-sdk/client-s3";
+import { GetBucketCorsCommand, PutBucketCorsCommand, S3Client } from "@aws-sdk/client-s3";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
 let corsAppliedAt = 0;
+
+const DIRECT_UPLOAD_ORIGINS = [
+  "https://www.saadstudio.app",
+  "https://saadstudio.app",
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+];
+const DIRECT_UPLOAD_METHODS = ["GET", "HEAD", "PUT", "POST", "DELETE"];
+const DIRECT_UPLOAD_HEADERS = ["*"];
+const DIRECT_UPLOAD_EXPOSE_HEADERS = ["ETag", "Content-Length"];
 
 function getEnv(...names: string[]): string {
   for (const name of names) {
@@ -32,12 +42,49 @@ async function ensureDirectUploadCors() {
   if (now - corsAppliedAt < 10 * 60 * 1000) return;
 
   const accountId = getEnv("R2_ACCOUNT_ID");
+  const cloudflareApiToken = getEnv("CLOUDFLARE_API_TOKEN", "CF_API_TOKEN");
   const accessKeyId = getEnv("R2_ACCESS_KEY_ID");
   const secretAccessKey = getEnv("R2_SECRET_ACCESS_KEY");
   const bucket = getEnv("R2_BUCKET", "R2_BUCKET_NAME");
   const endpoint = getEnv("R2_ENDPOINT") || (accountId ? `https://${accountId}.r2.cloudflarestorage.com` : "");
-  if (!accessKeyId || !secretAccessKey || !bucket || !endpoint) {
+  if (!accountId || !bucket) {
     throw new Error("Missing R2 env vars needed to configure direct upload CORS.");
+  }
+
+  if (cloudflareApiToken) {
+    const apiRes = await fetch(
+      `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(accountId)}/r2/buckets/${encodeURIComponent(bucket)}/cors`,
+      {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${cloudflareApiToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          rules: [
+            {
+              allowed: {
+                origins: DIRECT_UPLOAD_ORIGINS,
+                methods: DIRECT_UPLOAD_METHODS,
+                headers: DIRECT_UPLOAD_HEADERS,
+              },
+              exposeHeaders: DIRECT_UPLOAD_EXPOSE_HEADERS,
+              maxAgeSeconds: 3600,
+            },
+          ],
+        }),
+      },
+    );
+    if (!apiRes.ok) {
+      const text = await apiRes.text().catch(() => "");
+      throw new Error(`Cloudflare R2 CORS API failed (${apiRes.status}): ${text.slice(0, 300)}`);
+    }
+    corsAppliedAt = now;
+    return;
+  }
+
+  if (!accessKeyId || !secretAccessKey || !endpoint) {
+    throw new Error("Missing CLOUDFLARE_API_TOKEN and missing R2 S3 credentials needed to configure direct upload CORS.");
   }
 
   const client = new S3Client({
@@ -55,24 +102,41 @@ async function ensureDirectUploadCors() {
         CORSRules: [
           {
             AllowedOrigins: [
-              "https://www.saadstudio.app",
-              "https://saadstudio.app",
-              "http://localhost:3000",
-              "http://127.0.0.1:3000",
+              ...DIRECT_UPLOAD_ORIGINS,
             ],
-            AllowedMethods: ["GET", "HEAD", "PUT", "POST", "DELETE"],
-            AllowedHeaders: ["*"],
-            ExposeHeaders: ["ETag", "Content-Length"],
+            AllowedMethods: DIRECT_UPLOAD_METHODS,
+            AllowedHeaders: DIRECT_UPLOAD_HEADERS,
+            ExposeHeaders: DIRECT_UPLOAD_EXPOSE_HEADERS,
             MaxAgeSeconds: 3600,
           },
         ],
       },
     }));
+    await client.send(new GetBucketCorsCommand({ Bucket: bucket }));
     corsAppliedAt = now;
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown R2 CORS error";
     console.error("[studio/upload-url] R2 CORS auto-apply failed:", message);
     throw new Error(`R2 CORS setup failed: ${message}`);
+  }
+}
+
+async function verifySignedUrlCors(signedUrl: string): Promise<void> {
+  const res = await fetch(signedUrl, {
+    method: "OPTIONS",
+    headers: {
+      Origin: "https://www.saadstudio.app",
+      "Access-Control-Request-Method": "PUT",
+      "Access-Control-Request-Headers": "content-type",
+    },
+    cache: "no-store",
+  });
+  const allowOrigin = res.headers.get("access-control-allow-origin");
+  const allowMethods = res.headers.get("access-control-allow-methods") || "";
+  if (!res.ok || !allowOrigin || !allowMethods.toUpperCase().includes("PUT")) {
+    throw new Error(
+      `R2 bucket CORS is not active for direct browser PUT uploads. OPTIONS status=${res.status}, access-control-allow-origin=${allowOrigin || "missing"}.`,
+    );
   }
 }
 
@@ -150,6 +214,15 @@ export async function POST(req: NextRequest) {
     contentType,
     expiresIn: 300,
   });
+
+  try {
+    await verifySignedUrlCors(signedUrl);
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "R2 CORS verification failed." },
+      { status: 500 },
+    );
+  }
 
   return NextResponse.json({
     signedUrl,
