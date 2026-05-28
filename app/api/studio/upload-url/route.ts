@@ -11,8 +11,64 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { BUCKETS, createSignedUploadUrl, deleteObjectFromStorage, putObjectToStorage } from "@/lib/r2-storage";
+import { PutBucketCorsCommand, S3Client } from "@aws-sdk/client-s3";
 
 export const dynamic = "force-dynamic";
+
+let corsAppliedAt = 0;
+
+function getEnv(...names: string[]): string {
+  for (const name of names) {
+    const value = process.env[name]?.trim();
+    if (value) return value;
+  }
+  return "";
+}
+
+async function ensureDirectUploadCors() {
+  const now = Date.now();
+  if (now - corsAppliedAt < 10 * 60 * 1000) return;
+
+  const accountId = getEnv("R2_ACCOUNT_ID");
+  const accessKeyId = getEnv("R2_ACCESS_KEY_ID");
+  const secretAccessKey = getEnv("R2_SECRET_ACCESS_KEY");
+  const bucket = getEnv("R2_BUCKET", "R2_BUCKET_NAME");
+  const endpoint = getEnv("R2_ENDPOINT") || (accountId ? `https://${accountId}.r2.cloudflarestorage.com` : "");
+  if (!accessKeyId || !secretAccessKey || !bucket || !endpoint) return;
+
+  const client = new S3Client({
+    region: "auto",
+    endpoint,
+    credentials: { accessKeyId, secretAccessKey },
+    requestChecksumCalculation: "WHEN_REQUIRED",
+    responseChecksumValidation: "WHEN_REQUIRED",
+  });
+
+  try {
+    await client.send(new PutBucketCorsCommand({
+      Bucket: bucket,
+      CORSConfiguration: {
+        CORSRules: [
+          {
+            AllowedOrigins: [
+              "https://www.saadstudio.app",
+              "https://saadstudio.app",
+              "http://localhost:3000",
+            ],
+            AllowedMethods: ["GET", "HEAD", "PUT", "POST"],
+            AllowedHeaders: ["*"],
+            ExposeHeaders: ["ETag", "Content-Length"],
+            MaxAgeSeconds: 3600,
+          },
+        ],
+      },
+    }));
+    corsAppliedAt = now;
+  } catch (error) {
+    console.warn("[studio/upload-url] R2 CORS auto-apply failed:", error instanceof Error ? error.message : error);
+    corsAppliedAt = now;
+  }
+}
 
 // ─── Bucket helpers ───────────────────────────────────────────────────────────
 function bucketForType(assetType: string, contentType: string): string {
@@ -109,6 +165,8 @@ export async function POST(req: NextRequest) {
   const ext = extFromContentType(contentType) || `.${safeName.split(".").pop() || "bin"}`;
   const uniqueId = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   const path = `${userId}/${uniqueId}${ext}`;
+
+  await ensureDirectUploadCors();
 
   const { signedUrl, publicUrl } = await createSignedUploadUrl({
     bucket,
