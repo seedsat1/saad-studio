@@ -135,6 +135,7 @@ const IMAGE_MODEL_GROUPS = [
 ];
 
 const VIDEO_FEATURES = [
+  { label: "Cinema Studio VSO",   href: "/cinema-studio-vso", icon: Clapperboard, color: "text-violet-300", description: "Cinematic scene builder", badge: "NEW" },
   { label: "Create Video",        href: "/video",           icon: VideoIcon,    color: "text-orange-400",  description: "Text-to-video generation",             badge: "" },
   { label: "Transitions",         href: "/apps/tool/transitions", icon: Blend, color: "text-cyan-300", description: "Generate styled scene transitions", badge: "READY" },
   { label: "Storyboard Studio",   href: "/apps/tool/storyboard-studio", icon: Clapperboard, color: "text-violet-300", description: "Create cinematic production boards", badge: "READY" },
@@ -416,6 +417,7 @@ function appHref(app: string): string {
 const SHOW_EXPERIMENTAL_NAV = false;
 
 const STUDIO_LINKS = [
+  { label: "Cinema Studio VSO", href: "/cinema-studio-vso", icon: Clapperboard, color: "text-violet-300" },
   { label: "Cinematic Styles", href: "/apps/tool/cinematic-styles", icon: Blend, color: "text-cyan-300" },
   { label: "Transitions", href: "/apps/tool/transitions", icon: Blend, color: "text-cyan-300" },
   { label: "Storyboard", href: "/apps/tool/storyboard-studio", icon: Clapperboard, color: "text-violet-300" },

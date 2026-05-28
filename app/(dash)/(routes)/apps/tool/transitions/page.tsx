@@ -153,27 +153,19 @@ function dataUrlToFile(dataUrl: string, fileName: string): File {
 }
 
 async function uploadTransitionAsset(file: File, assetType: "image" | "video" | "thumbnail"): Promise<string> {
-  const urlRes = await fetch("/api/studio/upload-url", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      fileName: file.name,
-      contentType: file.type || "application/octet-stream",
-      assetType,
-    }),
-  });
-  const urlData = await urlRes.json().catch(() => null);
-  if (!urlRes.ok || !urlData?.signedUrl || !urlData?.publicUrl) {
-    throw new Error(urlData?.error || "Failed to create upload URL.");
-  }
+  const form = new FormData();
+  form.append("file", file);
+  form.append("assetType", assetType);
 
-  const uploadRes = await fetch(urlData.signedUrl, {
-    method: "PUT",
-    headers: { "Content-Type": file.type || "application/octet-stream" },
-    body: file,
+  const uploadRes = await fetch("/api/studio/upload-url", {
+    method: "POST",
+    body: form,
   });
-  if (!uploadRes.ok) throw new Error("Failed to upload transition asset.");
-  return String(urlData.publicUrl);
+  const uploadData = await uploadRes.json().catch(() => null);
+  if (!uploadRes.ok || !uploadData?.publicUrl) {
+    throw new Error(uploadData?.error || "Failed to upload transition asset.");
+  }
+  return String(uploadData.publicUrl);
 }
 
 function extractVideoFrame(videoSrc: string, position: "first" | "last"): Promise<string> {

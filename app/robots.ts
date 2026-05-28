@@ -7,9 +7,7 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: "*",
       allow: "/",
-      // /cinema-studio-vso is an internal staging build — kept out of the
-      // sitemap and explicitly disallowed so crawlers skip it.
-      disallow: ["/admin", "/api", "/panel", "/cinema-studio-vso"],
+      disallow: ["/admin", "/api", "/panel"],
     },
     sitemap: `${siteUrl}/sitemap.xml`,
   };

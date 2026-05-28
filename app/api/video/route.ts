@@ -54,6 +54,14 @@ function providerFailureMessage(payload: Record<string, unknown> | null, status:
   return String(raw).slice(0, 260);
 }
 
+function errorMessage(err: unknown) {
+  return err instanceof Error ? err.message : String(err || "");
+}
+
+function isMissingProviderTask(message: string) {
+  return /job not found|task not found|operation not found|not found in cache storage|expired|404|410/i.test(message);
+}
+
 function getKieKeyFromEnv(): string | null {
   const key = process.env.KIE_API_KEY || process.env.KIEAI_API_KEY;
   if (!key || !key.trim()) return null;
@@ -1757,7 +1765,35 @@ export async function GET(req: Request) {
         return NextResponse.json({ taskId, status: "completed", outputs: [linkedGeneration.mediaUrl], error: null });
       }
 
-      const poll = await pollVeoOperation(handle);
+      let poll;
+      try {
+        poll = await pollVeoOperation(handle);
+      } catch (pollErr) {
+        const message = errorMessage(pollErr);
+        console.error("[api/video GET] Gemini poll error", message);
+
+        if (isMissingProviderTask(message)) {
+          if (linkedGeneration && linkedGeneration.cost > 0) {
+            await refundGenerationCharge(linkedGeneration.id, userId, linkedGeneration.cost, {
+              reason: "generation_refund_provider_failed",
+              clearMediaUrl: true,
+            }).catch(() => {});
+          }
+          return NextResponse.json({
+            taskId,
+            status: "failed",
+            outputs: [],
+            error: "Render job expired or was not found. Please start a new render.",
+          });
+        }
+
+        return NextResponse.json({
+          taskId,
+          status: "processing",
+          outputs: [],
+          error: null,
+        });
+      }
       if (!poll.done) {
         return NextResponse.json({ taskId, status: "processing", outputs: [], error: null });
       }
@@ -1772,7 +1808,14 @@ export async function GET(req: Request) {
         return NextResponse.json({ taskId, status: "failed", outputs: [], error: "No video returned" });
       }
 
-      const { buffer, contentType } = await downloadVeoVideo(poll.videoUri);
+      let downloaded;
+      try {
+        downloaded = await downloadVeoVideo(poll.videoUri);
+      } catch (downloadErr) {
+        console.error("[api/video GET] Gemini download pending/error", errorMessage(downloadErr));
+        return NextResponse.json({ taskId, status: "processing", outputs: [], error: null });
+      }
+      const { buffer, contentType } = downloaded;
       let publicUrl = poll.videoUri;
       if (linkedGeneration) {
         const storedUrl = await uploadBufferToStorage({

@@ -45,7 +45,7 @@ const isPublicRoute = createRouteMatcher([
   '/api/webhook(.*)',
   '/api/webhooks(.*)',
   '/api/inngest(.*)',
-  '/supercomputer(.*)',
+  '/agent-studio(.*)',
   '/api/models(.*)',
   '/api/cron(.*)',
   '/api/smart-cli(.*)',
@@ -123,10 +123,7 @@ function isLocalDevRequest(req: Request) {
 }
 
 function isLocalOnlyVideoRoute(pathname: string) {
-  // /cinema-studio-vso is no longer local-only: it is now reachable in
-  // production but kept out of search results via the page's noindex
-  // metadata and robots.ts disallow entry. /cinematic-video stays
-  // dev-only until it ships.
+  // /cinema-studio-vso is public. /cinematic-video stays dev-only until it ships.
   return pathname === "/cinematic-video" || pathname.startsWith("/cinematic-video/");
 }
 

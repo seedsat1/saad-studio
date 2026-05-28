@@ -3240,7 +3240,12 @@ export default function App() {
                     </>
                   )}
                   {activeModal === "camera" && "🎥 Professional Lens and Movement Matrix"}
-                  {activeModal === "casting" && "👥 Studio Casting Room"}
+                  {activeModal === "casting" && (
+                    <>
+                      <UserCheck size={14} className="text-[#a78bfa]" />
+                      Studio Casting Room
+                    </>
+                  )}
                   {activeModal === "ai_director" && "💬 Smart AI Cinematic Director assistant"}
                   {activeModal === "voice" && (
                     <>
@@ -3802,36 +3807,55 @@ export default function App() {
                       
                       {/* Left: Pre-configured Active Actors roster */}
                       <div className="md:col-span-7 space-y-3">
-                        <span className="text-[13px] font-bold text-[#e2e8f0] uppercase font-mono block border-b border-[#1e293b] pb-1.5">
-                          Active Studio Cast Roster ({castingActors.length})
-                        </span>
+                        <div className="flex items-center justify-between border-b border-[#1e293b] pb-2">
+                          <span className="text-[13px] font-bold text-[#e2e8f0] uppercase font-mono inline-flex items-center gap-2">
+                            <UserCheck size={14} className="text-[#a78bfa]" />
+                            Active Studio Cast Roster
+                          </span>
+                          <span className="rounded-full border border-[#334155] bg-[#020617]/60 px-2.5 py-1 text-[10px] font-mono font-bold text-[#94a3b8]">
+                            {castingActors.length} Actors
+                          </span>
+                        </div>
 
-                        <div className="grid grid-cols-3 gap-2 max-h-[250px] overflow-y-auto pr-1">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2.5 max-h-[265px] overflow-y-auto pr-1">
                           {castingActors.map((actor) => {
                             const isSelected = selectedCharId === actor.id;
                             const isC = actor.id.includes("custom");
+                            const actorVoicePreset = VOICE_PRESETS.find((voice) => voice.label === actor.voice || voice.voiceId === actor.voiceId);
+                            const actorPersona = getVoicePersonaMeta(actorVoicePreset?.persona);
                             return (
                               <button
                                 key={actor.id}
+                                type="button"
                                 onClick={() => {
                                   setSelectedCharId(actor.id);
                                   generateClientScene(prompt, dialogueText, cameraMovement, lensType, selectedGenre);
                                 }}
-                                className={`p-1.5 rounded-xl border flex flex-col items-center text-center justify-between transition-all duration-200 h-[115px] outline-none ${
+                                className={`group relative overflow-hidden p-3 rounded-xl border flex flex-col items-center text-center justify-between transition-all duration-200 min-h-[138px] outline-none ${
                                   isSelected
-                                    ? "border-[#8b5cf6] bg-[#8b5cf6]/8"
-                                    : "border-[#1e293b] bg-[#0f172a]/80 hover:bg-[#1e293b]/70 hover:border-[#7c3aed]"
+                                    ? "border-[#8b5cf6] bg-[#8b5cf6]/10 shadow-lg shadow-[#8b5cf6]/10"
+                                    : "border-[#1e293b] bg-[#0f172a]/80 hover:bg-[#1e293b]/70 hover:border-[#7c3aed] hover:-translate-y-0.5"
                                 }`}
                               >
-                                <div className="relative w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
-                                  <img src={actor.url} alt={actor.name} className="w-full h-full object-cover grayscale" />
-                                </div>
-                                <div className="text-center w-full min-w-0 mt-1">
-                                  <span className="text-xs font-bold text-white block truncate leading-none">{actor.name}</span>
-                                  <span className="text-[13px] text-[#ec4899]/90 font-medium block truncate mt-1" title={actor.voice}>
-                                    <AudioLines size={12} className="inline-block mr-1 align-[-2px]" />{actor.voice}
+                                <div className="absolute -right-8 -top-8 h-20 w-20 rounded-full bg-[#8b5cf6]/20 blur-2xl opacity-0 transition-opacity group-hover:opacity-100" />
+                                {isSelected && (
+                                  <span className="absolute right-2 top-2 inline-flex h-6 w-6 items-center justify-center rounded-full border border-[#a78bfa]/60 bg-[#8b5cf6]/20 text-white">
+                                    <Check size={13} />
                                   </span>
-                                  {isC && <span className="text-[13px] text-[#8b5cf6] block mt-0.5 uppercase">AI LAB</span>}
+                                )}
+                                <div className="relative w-12 h-12 rounded-full overflow-hidden flex-shrink-0 border border-[#334155] shadow-lg shadow-black/30">
+                                  <img src={actor.url} alt={actor.name} className="w-full h-full object-cover grayscale transition-all group-hover:grayscale-0" />
+                                </div>
+                                <div className="relative z-10 text-center w-full min-w-0 mt-2">
+                                  <span className="text-[13px] font-black text-white block truncate leading-tight">{actor.name}</span>
+                                  <span className="mt-2 inline-flex max-w-full items-center gap-1 rounded-full border border-[#ec4899]/30 bg-[#ec4899]/10 px-2 py-1 text-[11px] text-[#f9a8d4] font-bold" title={actor.voice}>
+                                    <AudioLines size={11} className="shrink-0" />
+                                    <span className="truncate">{actor.voice}</span>
+                                  </span>
+                                  <span className={`mt-1.5 mx-auto inline-flex rounded-full border px-2 py-0.5 text-[10px] font-bold ${actorPersona.badgeClass}`}>
+                                    {actorPersona.label}
+                                  </span>
+                                  {isC && <span className="text-[10px] text-[#8b5cf6] block mt-1 uppercase font-mono tracking-[0.14em]">Creator Lab</span>}
                                 </div>
                               </button>
                             );
@@ -3839,12 +3863,12 @@ export default function App() {
                         </div>
 
                         {/* Current Actor Sound Control Sheet */}
-                        <div className="mt-4 p-3 bg-[#0f172a] rounded-xl border border-[#1e293b]/80 space-y-2 text-left">
-                          <div className="flex items-center justify-between border-b border-[#1e293b] pb-1.5">
-                            <span className="text-[13px] text-[#8b5cf6] font-mono font-bold tracking-wider">AUDIO MIX & VOICE DUB</span>
-                            <span className="text-sm font-black text-[#f8fafc] inline-flex items-center gap-1.5">
+                        <div className="mt-4 p-3.5 bg-[#0f172a]/80 rounded-xl border border-[#1e293b]/80 space-y-3 text-left shadow-inner shadow-black/20">
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-[#1e293b] pb-2">
+                            <span className="text-[11px] text-[#8b5cf6] font-mono font-bold tracking-[0.18em] uppercase">Audio Mix & Voice Dub</span>
+                            <span className="text-sm font-black text-[#f8fafc] inline-flex items-center gap-1.5 min-w-0">
                               <AudioLines size={14} className="text-[#ec4899]" />
-                              Manage & Select Actor Voices: {currentActor.name}
+                              <span className="truncate">Voice for {currentActor.name}</span>
                             </span>
                           </div>
                           
@@ -3866,7 +3890,7 @@ export default function App() {
                                 onChange={(e) => {
                                   assignPresetVoiceToActor(currentActor.id, e.target.value);
                                 }}
-                                className="bg-[#0f172a] border border-[#7c3aed] text-[13px] rounded p-1.5 outline-none text-[#f8fafc] w-full font-sans text-left"
+                                className="bg-[#020617] border border-[#7c3aed] text-[13px] rounded-lg px-2.5 py-2 outline-none text-[#f8fafc] w-full font-sans text-left focus:border-[#a78bfa]"
                               >
                                 {VOICE_PRESETS.map((voice) => (
                                   <option key={voice.voiceId} value={voice.label}>
@@ -3896,6 +3920,7 @@ export default function App() {
                                   className="bg-[#0f172a] border border-[#7c3aed] px-2 py-1 rounded text-[13px] text-white focus:border-[#8b5cf6] outline-none w-full font-sans text-left"
                                 />
                                 <button
+                                  type="button"
                                   onClick={() => {
                                     const input = activeActorVoiceInputRef.current;
                                     if (!input) return;
@@ -3905,7 +3930,7 @@ export default function App() {
                                       input.value = "";
                                     }
                                   }}
-                                  className="px-3 bg-[#8b5cf6] hover:bg-[#a78bfa] text-black text-xs rounded font-black cursor-pointer transition-colors"
+                                  className="px-3 bg-[#8b5cf6] hover:bg-[#a78bfa] text-white text-xs rounded-lg font-black cursor-pointer transition-colors"
                                 >
                                   Apply
                                 </button>
