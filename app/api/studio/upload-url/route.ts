@@ -13,6 +13,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
+import { GetBucketCorsCommand, PutBucketCorsCommand, S3Client } from "@aws-sdk/client-s3";
 import {
   BUCKETS,
   createSignedUploadUrl,
@@ -52,6 +53,54 @@ function extFromContentType(contentType: string): string {
   };
   const base = contentType.split(";")[0].trim().toLowerCase();
   return map[base] || "";
+}
+
+function getEnv(name: string): string {
+  return process.env[name]?.trim() || "";
+}
+
+async function ensureBucketCors(bucket: string) {
+  const accountId = getEnv("R2_ACCOUNT_ID");
+  const accessKeyId = getEnv("R2_ACCESS_KEY_ID");
+  const secretAccessKey = getEnv("R2_SECRET_ACCESS_KEY");
+  const endpoint = getEnv("R2_ENDPOINT") || `https://${accountId}.r2.cloudflarestorage.com`;
+
+  if (!accountId || !accessKeyId || !secretAccessKey || !bucket) return;
+
+  const client = new S3Client({
+    region: "auto",
+    endpoint,
+    credentials: { accessKeyId, secretAccessKey },
+    requestChecksumCalculation: "WHEN_REQUIRED",
+    responseChecksumValidation: "WHEN_REQUIRED",
+  });
+
+  const { CORSRules } = await client.send(new GetBucketCorsCommand({ Bucket: bucket }));
+  const hasOrigin = (rules?: typeof CORSRules) =>
+    rules?.some((rule) =>
+      rule.AllowedOrigins?.includes("https://www.saadstudio.app") ||
+      rule.AllowedOrigins?.includes("https://saadstudio.app") ||
+      rule.AllowedOrigins?.includes("http://localhost:3000")
+    ) ?? false;
+
+  if (hasOrigin(CORSRules)) return;
+
+  await client.send(
+    new PutBucketCorsCommand({
+      Bucket: bucket,
+      CORSConfiguration: {
+        CORSRules: [
+          {
+            AllowedOrigins: ["https://www.saadstudio.app", "https://saadstudio.app", "http://localhost:3000", "http://127.0.0.1:3000"],
+            AllowedMethods: ["GET", "HEAD", "PUT", "POST", "DELETE", "OPTIONS"],
+            AllowedHeaders: ["*"] ,
+            ExposeHeaders: ["ETag", "Content-Length"],
+            MaxAgeSeconds: 3600,
+          },
+        ],
+      },
+    })
+  );
 }
 
 // ─── Route ────────────────────────────────────────────────────────────────────
@@ -115,6 +164,8 @@ export async function POST(req: NextRequest) {
       const ext = extFromContentType(contentType) || `.${fileName.split(".").pop() || "bin"}`;
       const uniqueId = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
       const path = `${userId}/${uniqueId}${ext}`;
+
+      await ensureBucketCors(bucket);
 
       const { signedUrl, publicUrl } = await createSignedUploadUrl({
         bucket,

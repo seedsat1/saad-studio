@@ -153,20 +153,33 @@ function dataUrlToFile(dataUrl: string, fileName: string): File {
 }
 
 async function uploadTransitionAsset(file: File, assetType: "image" | "video" | "thumbnail"): Promise<string> {
-  const formData = new FormData();
-  formData.append("file", file);
-  formData.append("assetType", assetType);
-
   const urlRes = await fetch("/api/studio/upload-url", {
     method: "POST",
-    body: formData,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      fileName: file.name,
+      contentType: file.type || "application/octet-stream",
+      assetType,
+    }),
   });
   const urlData = await urlRes.json().catch(() => null);
-  if (!urlRes.ok || !urlData?.publicUrl) {
-    console.error("[transitions] Failed to upload transition asset:", urlData);
-    throw new Error(urlData?.error || "Failed to upload asset.");
+  if (!urlRes.ok || !urlData?.signedUrl || !urlData?.publicUrl) {
+    console.error("[transitions] Failed to create R2 upload URL:", urlData);
+    throw new Error(urlData?.error || "Failed to create upload URL.");
   }
 
+  const directRes = await fetch(urlData.signedUrl, {
+    method: "PUT",
+    headers: { "Content-Type": file.type || "application/octet-stream" },
+    body: file,
+  });
+  if (!directRes.ok) {
+    console.error("[transitions] Direct R2 upload failed:", {
+      status: directRes.status,
+      statusText: directRes.statusText,
+    });
+    throw new Error("Failed to upload transition asset directly to storage.");
+  }
   return String(urlData.publicUrl);
 }
 
