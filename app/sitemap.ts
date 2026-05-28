@@ -14,7 +14,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/video",
     "/apps",
     "/cinema-studio",
-    "/cinema-studio-vso",
   ];
 
   return routes.map((route) => ({

@@ -25,7 +25,6 @@ const isPublicRoute = createRouteMatcher([
   '/gallery(.*)',
   '/edit(.*)',
   '/cinema-studio(.*)',
-  '/cinema-studio-vso(.*)',
   '/cinematic-video(.*)',
   '/cinema-board(.*)',
   '/moodboard(.*)',
@@ -123,8 +122,12 @@ function isLocalDevRequest(req: Request) {
 }
 
 function isLocalOnlyVideoRoute(pathname: string) {
-  // /cinema-studio-vso is public. /cinematic-video stays dev-only until it ships.
-  return pathname === "/cinematic-video" || pathname.startsWith("/cinematic-video/");
+  return (
+    pathname === "/cinema-studio-vso" ||
+    pathname.startsWith("/cinema-studio-vso/") ||
+    pathname === "/cinematic-video" ||
+    pathname.startsWith("/cinematic-video/")
+  );
 }
 
 function smartCliOAuthMetadata(req: Request) {

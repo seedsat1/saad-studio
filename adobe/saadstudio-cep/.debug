@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ExtensionList>
+  <Extension Id="app.saadstudio.cep.main">
+    <HostList>
+      <Host Name="PPRO" Port="8870"/>
+      <Host Name="AEFT" Port="8871"/>
+    </HostList>
+  </Extension>
+  <Extension Id="app.saadstudio.cep.draw">
+    <HostList>
+      <Host Name="PPRO" Port="8872"/>
+      <Host Name="AEFT" Port="8873"/>
+    </HostList>
+  </Extension>
+</ExtensionList>

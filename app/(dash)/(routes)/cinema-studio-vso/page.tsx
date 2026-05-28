@@ -2,14 +2,16 @@ import type { Metadata } from "next";
 import CinemaStudioVSO from "@/components/cinema-studio-vso/CinemaStudioVSO";
 
 export const metadata: Metadata = {
-  title: "Cinema Studio VSO · Saad Studio",
-  description: "Create cinematic AI video scenes with scene type, mood, grade, camera, cast, voice, and render controls.",
+  title: "Cinema Studio · Saad Studio",
+  description: "Internal staging build of the cinematic video studio.",
   robots: {
-    index: true,
-    follow: true,
+    index: false,
+    follow: false,
+    nocache: true,
     googleBot: {
-      index: true,
-      follow: true,
+      index: false,
+      follow: false,
+      noimageindex: true,
     },
   },
 };

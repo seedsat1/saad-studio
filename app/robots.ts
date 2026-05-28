@@ -7,7 +7,7 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: "*",
       allow: "/",
-      disallow: ["/admin", "/api", "/panel"],
+      disallow: ["/admin", "/api", "/panel", "/cinema-studio-vso"],
     },
     sitemap: `${siteUrl}/sitemap.xml`,
   };
