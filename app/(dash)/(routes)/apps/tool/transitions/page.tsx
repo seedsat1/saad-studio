@@ -164,6 +164,7 @@ async function uploadTransitionAsset(file: File, assetType: "image" | "video" | 
   });
   const urlData = await urlRes.json().catch(() => null);
   if (!urlRes.ok || !urlData?.signedUrl || !urlData?.publicUrl) {
+    console.error("[transitions] Failed to create R2 upload URL:", urlData);
     throw new Error(urlData?.error || "Failed to create upload URL.");
   }
 
@@ -173,6 +174,10 @@ async function uploadTransitionAsset(file: File, assetType: "image" | "video" | 
     body: file,
   });
   if (!directRes.ok) {
+    console.error("[transitions] Direct R2 upload failed:", {
+      status: directRes.status,
+      statusText: directRes.statusText,
+    });
     throw new Error("Failed to upload transition asset directly to storage.");
   }
   return String(urlData.publicUrl);

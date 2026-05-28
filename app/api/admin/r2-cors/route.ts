@@ -8,9 +8,11 @@ import { NextResponse } from "next/server";
 import { isAdmin } from "@/lib/is-admin";
 import {
   S3Client,
+  PutObjectCommand,
   PutBucketCorsCommand,
   GetBucketCorsCommand,
 } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 const DIRECT_UPLOAD_ORIGINS = [
   "https://www.saadstudio.app",
@@ -30,7 +32,45 @@ function getEnv(...names: string[]): string {
   return "";
 }
 
-export async function GET() {
+async function verifyCorsWithSignedUrl(params: {
+  endpoint: string;
+  accessKeyId: string;
+  secretAccessKey: string;
+  bucket: string;
+}) {
+  const client = new S3Client({
+    region: "auto",
+    endpoint: params.endpoint,
+    credentials: { accessKeyId: params.accessKeyId, secretAccessKey: params.secretAccessKey },
+    requestChecksumCalculation: "WHEN_REQUIRED" as const,
+    responseChecksumValidation: "WHEN_REQUIRED" as const,
+  });
+  const command = new PutObjectCommand({
+    Bucket: params.bucket,
+    Key: `cors-check/${Date.now()}.txt`,
+    ContentType: "text/plain",
+  });
+  const signedUrl = await getSignedUrl(client, command, { expiresIn: 60 });
+  const res = await fetch(signedUrl, {
+    method: "OPTIONS",
+    headers: {
+      Origin: "https://www.saadstudio.app",
+      "Access-Control-Request-Method": "PUT",
+      "Access-Control-Request-Headers": "content-type",
+    },
+    cache: "no-store",
+  });
+
+  return {
+    ok: res.ok,
+    status: res.status,
+    accessControlAllowOrigin: res.headers.get("access-control-allow-origin"),
+    accessControlAllowMethods: res.headers.get("access-control-allow-methods"),
+    accessControlAllowHeaders: res.headers.get("access-control-allow-headers"),
+  };
+}
+
+export async function GET(req: Request) {
   if (!(await isAdmin())) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
@@ -41,6 +81,7 @@ export async function GET() {
   const secretAccessKey = getEnv("R2_SECRET_ACCESS_KEY");
   const bucket = getEnv("R2_BUCKET", "R2_BUCKET_NAME");
   const endpoint = getEnv("R2_ENDPOINT") || `https://${accountId}.r2.cloudflarestorage.com`;
+  const checkOnly = new URL(req.url).searchParams.get("check") === "1";
 
   if (!accountId || !accessKeyId || !secretAccessKey || !bucket) {
     return NextResponse.json(
@@ -60,6 +101,15 @@ export async function GET() {
   ];
 
   try {
+    if (checkOnly) {
+      const result = await verifyCorsWithSignedUrl({ endpoint, accessKeyId, secretAccessKey, bucket });
+      return NextResponse.json({
+        ok: Boolean(result.ok && result.accessControlAllowOrigin),
+        bucket,
+        result,
+      });
+    }
+
     if (cloudflareApiToken) {
       const apiRes = await fetch(
         `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(accountId)}/r2/buckets/${encodeURIComponent(bucket)}/cors`,
