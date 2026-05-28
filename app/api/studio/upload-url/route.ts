@@ -1,8 +1,8 @@
 /**
  * POST /api/studio/upload-url
  *
- * Creates a Cloudflare R2 signed upload URL so the browser can upload
- * a file directly to object storage without passing through Vercel.
+ * Uploads a multipart file through the server, or creates a Cloudflare R2
+ * signed upload URL for legacy direct-browser uploads.
  *
  * Body: { fileName: string, contentType: string, assetType?: string }
  * Returns: { signedUrl: string, publicUrl: string, token: string, path: string, bucket: string }
@@ -14,6 +14,8 @@ import { BUCKETS, createSignedUploadUrl, deleteObjectFromStorage, putObjectToSto
 import { PutBucketCorsCommand, S3Client } from "@aws-sdk/client-s3";
 
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+export const maxDuration = 60;
 
 let corsAppliedAt = 0;
 
