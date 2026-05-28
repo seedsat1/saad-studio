@@ -49,6 +49,7 @@ export async function GET() {
   const corsRules = [
     {
       AllowedOrigins: [
+        "*",
         "https://www.saadstudio.app",
         "https://saadstudio.app",
         "http://localhost:3000",

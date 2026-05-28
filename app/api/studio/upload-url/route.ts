@@ -53,6 +53,7 @@ async function ensureDirectUploadCors() {
         CORSRules: [
           {
             AllowedOrigins: [
+              "*",
               "https://www.saadstudio.app",
               "https://saadstudio.app",
               "http://localhost:3000",
