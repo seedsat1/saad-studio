@@ -38,7 +38,35 @@ import {
   Sliders,
   MessageSquare,
   Lock,
-  Unlock
+  Unlock,
+  BarChart3,
+  Code2,
+  Image as ImageIcon,
+  Film,
+  Compass,
+  BookOpen,
+  User,
+  Users,
+  Zap,
+  Layout,
+  BrainCircuit,
+  Megaphone,
+  Layers,
+  Palette,
+  Camera,
+  SearchCode,
+  PenTool,
+  Flame,
+  Binary,
+  Map,
+  Globe,
+  Lightbulb,
+  HeartHandshake,
+  Workflow,
+  Laptop,
+  DollarSign,
+  Mail,
+  FileText
 } from "lucide-react";
 
 // Types
@@ -93,47 +121,47 @@ interface MemoryNode {
 
 // Complete 40+ Skills matching the user list & descriptions
 const INITIAL_SKILLS: CustomSkill[] = [
-  { id: "static-ads", title: "/static-ads", desc: "Takes an uploaded reference image, derives the layout structure and copy framework internally, generates on-brand copy variations, then renders static ads via GPT Image 2 using product images.", category: "Business & Finance", prompt: "Recreate ad layouts using GPT Image 2 and product references.", isCustom: false, isActive: true, icon: "📊" },
-  { id: "b-roll-planner", title: "/b-roll-shot-planner", desc: "Cinematic B-roll shot planner. Analyzes an uploaded image or user text to produce exactly 5 cohesive, edit-ready B-roll shot outputs.", category: "Content Creation", prompt: "Analyze style anchor and output 5 detailed B-roll camera setups.", isCustom: false, isActive: true, icon: "🎥" },
-  { id: "karpathy-skill", title: "/karpathy-skill", desc: "Developer assistant focused on code generation, software architecture design, and LLM optimization.", category: "Fun & Quirky", prompt: "Expert code synthesis, python scripting, and LLM orchestration.", isCustom: false, isActive: true, icon: "🤖" },
-  { id: "cod-thumbnail", title: "/cod-ultimate-thumbnail", desc: "Transforms screenshots into 3D composite renders, and applies a heavy graphic layout stack focused on element sharpness and vibrant environments.", category: "Content Creation", prompt: "Perform 3D composite rendering and YouTube thumbnail enhancements.", isCustom: false, isActive: true, icon: "🎮" },
-  { id: "pulp-cinema", title: "/pulp-cinema-director", desc: "Direct original pulp-cinema video clips: nonlinear scenes, standoffs, trunk-level shots, spaghetti-western energy, and dialogue-heavy prompts.", category: "Content Creation", prompt: "Apply grindhouse color filters, trunk angles, and retro camera dollying.", isCustom: false, isActive: true, icon: "🎬" },
-  { id: "seedance-prompts", title: "/seedance-prompting-skills-for-cinematic-films", desc: "Generate grounded cinematic film prompts for Seedance 2.0 — shot direction, realistic body movement, camera movement, and stable photorealistic motion behavior.", category: "Content Creation", prompt: "Formulate Seedance 2.0 motion matrices and photorealistic frame scripting.", isCustom: false, isActive: true, icon: "🍿" },
-  { id: "writing-beats", title: "/writing-beats", desc: "Shape an article as a journey of beats, choose-your-own-adventure style. The user picks a starting beat, you write only that beat, then offer options for where to pivot next.", category: "Writing", prompt: "Draft article segment sequences as interactive story beats.", isCustom: false, isActive: true, icon: "📝" },
-  { id: "ip-carpetman", title: "/ip-carpetman", desc: "Handling rules and persistent media references for the custom character IP 'Carpetman'.", category: "Fun & Quirky", prompt: "Maintain visual attributes and background references for character IP Carpetman.", isCustom: false, isActive: true, icon: "🧎" },
-  { id: "ugc-swap", title: "/ugc-model-swap", desc: "Recreate any short UGC video (reaction, challenge, review, try-on) with a replaced character/model using Seedance 2.0.", category: "Content Creation", prompt: "Swap character reference models on input video layouts via Seedance.", isCustom: false, isActive: true, icon: "👤" },
-  { id: "flash-reel", title: "/flash-reel", desc: "Generates a 30s 9:16 cinematic reel. Renders 8 starting frames via GPT Image 2, animates via Kling 3.0, and stitches via FFmpeg using a 35mm flash-photography aesthetic.", category: "Content Creation", prompt: "Run Flash-Reel pipeline: GPT Image 2 + Kling 3.0 + FFmpeg assembly.", isCustom: false, isActive: true, icon: "⚡" },
-  { id: "storyboard-cheatcode", title: "/storyboard-cheatcode", desc: "Turn a one-line concept into a multi-panel previs storyboard image, then a cheap-preview video and a hero video render.", category: "Content Creation", prompt: "Render previs storyboards and draft video passes using local tools.", isCustom: false, isActive: true, icon: "📓" },
-  { id: "prompt-expert", title: "/prompt-engineering-expert", desc: "Expert prompt engineering, custom instruction, system prompt, and agent instruction design.", category: "Personal & Specialized", prompt: "Debug, evaluate, and optimize system instruction prompts.", isCustom: false, isActive: true, icon: "🧠" },
-  { id: "onboarding", title: "/agent-studio-onboarding", desc: "Interactive onboarding tour for Agent Studio — explains latest features, what you can do, and how to start exploring.", category: "Communication & Collaboration", prompt: "Execute guided walk tour explaining Agent Studio tabs and runs.", isCustom: false, isActive: true, icon: "👋" },
-  { id: "ugc-ad-prod", title: "/ugc-ad-production", desc: "Full UGC ad production pipeline: AI-generated creator face and multi-shot video. Uses image builders, video animators, and script orchestrators.", category: "Content Creation", prompt: "Execute full script-to-video UGC marketing production.", isCustom: false, isActive: true, icon: "🛍️" },
-  { id: "storyboard-gen", title: "/storyboard-generation", desc: "Rules and prompts for generating structured presentation slides and multi-panel storyboards.", category: "Content Creation", prompt: "Synthesize storyboard frames and presentation layouts.", isCustom: false, isActive: true, icon: "📐" },
-  { id: "gpt-image-dir", title: "/gpt-image-2-director", desc: "Production prompt director for GPT Image 2 — portraits, posters, character sheets, UI mockups, and images with on-screen text.", category: "Content Creation", prompt: "Generate precise prompt scripts optimized for GPT Image 2 rendering.", isCustom: false, isActive: true, icon: "🎨" },
-  { id: "kling-director", title: "/kling-3-prompt-director", desc: "Production-ready Kling 3.0 video prompt director using the canonical 9-field formula.", category: "Content Creation", prompt: "Format video prompts matching Kling 3.0 motion latents.", isCustom: false, isActive: true, icon: "🎬" },
-  { id: "seo-auditor", title: "/seo-auditor", desc: "Technical SEO audit and optimization workflow for crawlability, indexing, structured data, Core Web Vitals, and search visibility roadmaps.", category: "Data & Analytics", prompt: "Perform crawl audit and write structured optimization metrics.", isCustom: false, isActive: true, icon: "🔍" },
-  { id: "theme-factory", title: "/theme-factory", desc: "Toolkit for styling artifacts with a theme. Apply colors and fonts to documents, reportings, and HTML landing pages.", category: "Productivity", prompt: "Generate stylesheet themes and apply CSS attributes.", isCustom: false, isActive: true, icon: "🎨" },
-  { id: "cinematic-motion", title: "/cinematic-motion-language", desc: "Structured prompt vocabulary system for high-precision cinematic video generation: camera contracts, motion anchors, and lens sequences.", category: "Content Creation", prompt: "Translate scene specs into precise camera dolly, tilt, and pan cues.", isCustom: false, isActive: true, icon: "📹" },
-  { id: "edit-article", title: "/edit-article", desc: "Edit and improve articles by restructuring sections, improving clarity, and tightening prose.", category: "Writing", prompt: "Refactor article text structure for maximum clarity.", isCustom: false, isActive: true, icon: "✍️" },
-  { id: "grill-me", title: "/grill-me", desc: "Interview the user relentlessly about a plan or design until reaching shared understanding, resolving each branch of the decision tree.", category: "Personal & Specialized", prompt: "Initiate diagnostic interview sequence questioning design decisions.", isCustom: false, isActive: true, icon: "🔥" },
-  { id: "fragments", title: "/writing-fragments", desc: "Grilling session that mines the user for fragments — nuggets of writing — and appends them to a single document as raw material.", category: "Writing", prompt: "Collect writing snippets and organize them into unstructured logs.", isCustom: false, isActive: true, icon: "🧩" },
-  { id: "content-strategy", title: "/content-strategy", desc: "Plan content strategy, decide what content to create, figure out topics, outline clusters, and build editorial calendars.", category: "Writing", prompt: "Synthesize content roadmaps and keyword pillar clusters.", isCustom: false, isActive: true, icon: "🗺️" },
-  { id: "caveman", title: "/caveman", desc: "Ultra-compressed communication mode. Cuts token usage ~75% by dropping filler, articles, and pleasantries.", category: "Personal & Specialized", prompt: "Truncate system messages into brief technical outputs.", isCustom: false, isActive: true, icon: "🍖" },
-  { id: "browser-test", title: "/browser-testing-with-devtools", desc: "Tests in real browsers. Inspect the DOM, capture console errors, analyze network requests, and verify visual output.", category: "Frontend Engineer", prompt: "Analyze devtools records, find console warnings, and output layout fixes.", isCustom: false, isActive: true, icon: "🌐" },
-  { id: "social-content", title: "/social-content", desc: "Create, schedule, or optimize social media content: LinkedIn posts, Twitter threads, video scripts, hooks, and Reels.", category: "Writing", prompt: "Write hooks and format copy for social publishing queues.", isCustom: false, isActive: true, icon: "💬" },
-  { id: "marketing-ideas", title: "/marketing-ideas", desc: "Brainstorm marketing ideas, inspiration, and growth strategies for software products.", category: "Creative & Marketing", prompt: "Generate creative distribution strategies and user acquisition ideas.", isCustom: false, isActive: true, icon: "💡" },
-  { id: "copywriting", title: "/copywriting", desc: "Write, rewrite, or improve marketing copy for homepages, landing pages, pricing pages, and value propositions.", category: "Creative & Marketing", prompt: "Draft high-conversion landing page layouts and hero copy.", isCustom: false, isActive: true, icon: "✍️" },
-  { id: "humanizer", title: "/humanizer", desc: "Remove signs of AI-generated writing from text by resolving inflated symbolism, rule of three, active voice, and em dash overuse.", category: "Writing", prompt: "Rewrite sentences into natural, human-written text structures.", isCustom: false, isActive: true, icon: "🍃" },
-  { id: "writing-shape", title: "/writing-shape", desc: "Take raw material and shape it into a finished article, drafting opening options and growing the piece paragraph by paragraph.", category: "Writing", prompt: "Refine raw notes into publication-ready articles.", isCustom: false, isActive: true, icon: "✒️" },
-  { id: "ab-test", title: "/ab-test-setup", desc: "Plan, design, or implement A/B tests or split experiments, including hypothesis scoring and statistical run timelines.", category: "Creative & Marketing", prompt: "Formulate experimental backlogs and define variant metrics.", isCustom: false, isActive: true, icon: "⚖️" },
-  { id: "context-eng", title: "/context-engineering", desc: "Optimizes agent context setup. Configure rules files and system prompt context layout for projects.", category: "Productivity", prompt: "Restructure rules parameters for optimal LLM context loading.", isCustom: false, isActive: true, icon: "⚙️" },
-  { id: "perf-opt", title: "/performance-optimization", desc: "Optimizes application performance: Core Web Vitals, load times, bundle size profiling, and database indexing.", category: "Productivity", prompt: "Identify bundle bottlenecks and outline performance corrections.", isCustom: false, isActive: true, icon: "⚡" },
-  { id: "marketing-psych", title: "/marketing-psychology", desc: "Apply psychological principles and cognitive biases (anchoring, social proof, scarcity) to interface marketing layouts.", category: "Creative & Marketing", prompt: "Integrate behavioral nudges into layout wireframes.", isCustom: false, isActive: true, icon: "🧠" },
-  { id: "brand-guide", title: "/brand-guidelines", desc: "Applies official brand colors, typography, formatting, and layout standards to generated documents and pages.", category: "UI Kit", prompt: "Apply typography tokens and brand colors to asset designs.", isCustom: false, isActive: true, icon: "📐" },
-  { id: "frontend-ui", title: "/frontend-ui-engineering", desc: "Builds production-quality user interfaces, React components, state handlers, and animations.", category: "Frontend Engineer", prompt: "Write optimized React components, TypeScript models, and styled cards.", isCustom: false, isActive: true, icon: "💻" },
-  { id: "comp-patterns", title: "/vercel-composition-patterns", desc: "React composition patterns: compound components, render props, and context providers scaled for performance.", category: "Frontend Engineer", prompt: "Refactor components with flexible API states.", isCustom: false, isActive: true, icon: "🧱" },
-  { id: "paid-ads", title: "/paid-ads", desc: "Bidding, retargeting, budgeting, and optimization strategies for search and display ad networks.", category: "Marketing & Sales", prompt: "Structure PPC campaigns and ad group hierarchies.", isCustom: false, isActive: true, icon: "💰" },
-  { id: "ad-creative", title: "/ad-creative", desc: "Generate, iterate, or scale ad copy variations, headlines, descriptions, and creatives for ad platforms.", category: "Marketing & Sales", prompt: "Draft bulk ad variations and copy layouts.", isCustom: false, isActive: true, icon: "🛍️" },
-  { id: "email-sequence", title: "/email-sequence", desc: "Create onboarding email sequences, drip email funnels, welcome cadences, and lifecycle programs.", category: "Marketing & Sales", prompt: "Design transactional email sequences and drip funnels.", isCustom: false, isActive: true, icon: "✉️" }
+  { id: "static-ads", title: "/static-ads", desc: "Takes an uploaded reference image, derives the layout structure and copy framework internally, generates on-brand copy variations, then renders static ads via GPT Image 2 using product images.", category: "Business & Finance", prompt: "Recreate ad layouts using GPT Image 2 and product references.", isCustom: false, isActive: false, icon: "📊" },
+  { id: "b-roll-planner", title: "/b-roll-shot-planner", desc: "Cinematic B-roll shot planner. Analyzes an uploaded image or user text to produce exactly 5 cohesive, edit-ready B-roll shot outputs.", category: "Content Creation", prompt: "Analyze style anchor and output 5 detailed B-roll camera setups.", isCustom: false, isActive: false, icon: "🎥" },
+  { id: "karpathy-skill", title: "/karpathy-skill", desc: "Developer assistant focused on code generation, software architecture design, and LLM optimization.", category: "Fun & Quirky", prompt: "Expert code synthesis, python scripting, and LLM orchestration.", isCustom: false, isActive: false, icon: "🤖" },
+  { id: "cod-thumbnail", title: "/cod-ultimate-thumbnail", desc: "Transforms screenshots into 3D composite renders, and applies a heavy graphic layout stack focused on element sharpness and vibrant environments.", category: "Content Creation", prompt: "Perform 3D composite rendering and YouTube thumbnail enhancements.", isCustom: false, isActive: false, icon: "🎮" },
+  { id: "pulp-cinema", title: "/pulp-cinema-director", desc: "Direct original pulp-cinema video clips: nonlinear scenes, standoffs, trunk-level shots, spaghetti-western energy, and dialogue-heavy prompts.", category: "Content Creation", prompt: "Apply grindhouse color filters, trunk angles, and retro camera dollying.", isCustom: false, isActive: false, icon: "🎬" },
+  { id: "seedance-prompts", title: "/seedance-prompting-skills-for-cinematic-films", desc: "Generate grounded cinematic film prompts for Seedance 2.0 — shot direction, realistic body movement, camera movement, and stable photorealistic motion behavior.", category: "Content Creation", prompt: "Formulate Seedance 2.0 motion matrices and photorealistic frame scripting.", isCustom: false, isActive: false, icon: "🍿" },
+  { id: "writing-beats", title: "/writing-beats", desc: "Shape an article as a journey of beats, choose-your-own-adventure style. The user picks a starting beat, you write only that beat, then offer options for where to pivot next.", category: "Writing", prompt: "Draft article segment sequences as interactive story beats.", isCustom: false, isActive: false, icon: "📝" },
+  { id: "ip-carpetman", title: "/ip-carpetman", desc: "Handling rules and persistent media references for the custom character IP 'Carpetman'.", category: "Fun & Quirky", prompt: "Maintain visual attributes and background references for character IP Carpetman.", isCustom: false, isActive: false, icon: "🧎" },
+  { id: "ugc-swap", title: "/ugc-model-swap", desc: "Recreate any short UGC video (reaction, challenge, review, try-on) with a replaced character/model using Seedance 2.0.", category: "Content Creation", prompt: "Swap character reference models on input video layouts via Seedance.", isCustom: false, isActive: false, icon: "👤" },
+  { id: "flash-reel", title: "/flash-reel", desc: "Generates a 30s 9:16 cinematic reel. Renders 8 starting frames via GPT Image 2, animates via Kling 3.0, and stitches via FFmpeg using a 35mm flash-photography aesthetic.", category: "Content Creation", prompt: "Run Flash-Reel pipeline: GPT Image 2 + Kling 3.0 + FFmpeg assembly.", isCustom: false, isActive: false, icon: "⚡" },
+  { id: "storyboard-cheatcode", title: "/storyboard-cheatcode", desc: "Turn a one-line concept into a multi-panel previs storyboard image, then a cheap-preview video and a hero video render.", category: "Content Creation", prompt: "Render previs storyboards and draft video passes using local tools.", isCustom: false, isActive: false, icon: "📓" },
+  { id: "prompt-expert", title: "/prompt-engineering-expert", desc: "Expert prompt engineering, custom instruction, system prompt, and agent instruction design.", category: "Personal & Specialized", prompt: "Debug, evaluate, and optimize system instruction prompts.", isCustom: false, isActive: false, icon: "🧠" },
+  { id: "onboarding", title: "/agent-studio-onboarding", desc: "Interactive onboarding tour for Agent Studio — explains latest features, what you can do, and how to start exploring.", category: "Communication & Collaboration", prompt: "Execute guided walk tour explaining Agent Studio tabs and runs.", isCustom: false, isActive: false, icon: "👋" },
+  { id: "ugc-ad-prod", title: "/ugc-ad-production", desc: "Full UGC ad production pipeline: AI-generated creator face and multi-shot video. Uses image builders, video animators, and script orchestrators.", category: "Content Creation", prompt: "Execute full script-to-video UGC marketing production.", isCustom: false, isActive: false, icon: "🛍️" },
+  { id: "storyboard-gen", title: "/storyboard-generation", desc: "Rules and prompts for generating structured presentation slides and multi-panel storyboards.", category: "Content Creation", prompt: "Synthesize storyboard frames and presentation layouts.", isCustom: false, isActive: false, icon: "📐" },
+  { id: "gpt-image-dir", title: "/gpt-image-2-director", desc: "Production prompt director for GPT Image 2 — portraits, posters, character sheets, UI mockups, and images with on-screen text.", category: "Content Creation", prompt: "Generate precise prompt scripts optimized for GPT Image 2 rendering.", isCustom: false, isActive: false, icon: "🎨" },
+  { id: "kling-director", title: "/kling-3-prompt-director", desc: "Production-ready Kling 3.0 video prompt director using the canonical 9-field formula.", category: "Content Creation", prompt: "Format video prompts matching Kling 3.0 motion latents.", isCustom: false, isActive: false, icon: "🎬" },
+  { id: "seo-auditor", title: "/seo-auditor", desc: "Technical SEO audit and optimization workflow for crawlability, indexing, structured data, Core Web Vitals, and search visibility roadmaps.", category: "Data & Analytics", prompt: "Perform crawl audit and write structured optimization metrics.", isCustom: false, isActive: false, icon: "🔍" },
+  { id: "theme-factory", title: "/theme-factory", desc: "Toolkit for styling artifacts with a theme. Apply colors and fonts to documents, reportings, and HTML landing pages.", category: "Productivity", prompt: "Generate stylesheet themes and apply CSS attributes.", isCustom: false, isActive: false, icon: "🎨" },
+  { id: "cinematic-motion", title: "/cinematic-motion-language", desc: "Structured prompt vocabulary system for high-precision cinematic video generation: camera contracts, motion anchors, and lens sequences.", category: "Content Creation", prompt: "Translate scene specs into precise camera dolly, tilt, and pan cues.", isCustom: false, isActive: false, icon: "📹" },
+  { id: "edit-article", title: "/edit-article", desc: "Edit and improve articles by restructuring sections, improving clarity, and tightening prose.", category: "Writing", prompt: "Refactor article text structure for maximum clarity.", isCustom: false, isActive: false, icon: "✍️" },
+  { id: "grill-me", title: "/grill-me", desc: "Interview the user relentlessly about a plan or design until reaching shared understanding, resolving each branch of the decision tree.", category: "Personal & Specialized", prompt: "Initiate diagnostic interview sequence questioning design decisions.", isCustom: false, isActive: false, icon: "🔥" },
+  { id: "fragments", title: "/writing-fragments", desc: "Grilling session that mines the user for fragments — nuggets of writing — and appends them to a single document as raw material.", category: "Writing", prompt: "Collect writing snippets and organize them into unstructured logs.", isCustom: false, isActive: false, icon: "🧩" },
+  { id: "content-strategy", title: "/content-strategy", desc: "Plan content strategy, decide what content to create, figure out topics, outline clusters, and build editorial calendars.", category: "Writing", prompt: "Synthesize content roadmaps and keyword pillar clusters.", isCustom: false, isActive: false, icon: "🗺️" },
+  { id: "caveman", title: "/caveman", desc: "Ultra-compressed communication mode. Cuts token usage ~75% by dropping filler, articles, and pleasantries.", category: "Personal & Specialized", prompt: "Truncate system messages into brief technical outputs.", isCustom: false, isActive: false, icon: "🍖" },
+  { id: "browser-test", title: "/browser-testing-with-devtools", desc: "Tests in real browsers. Inspect the DOM, capture console errors, analyze network requests, and verify visual output.", category: "Frontend Engineer", prompt: "Analyze devtools records, find console warnings, and output layout fixes.", isCustom: false, isActive: false, icon: "🌐" },
+  { id: "social-content", title: "/social-content", desc: "Create, schedule, or optimize social media content: LinkedIn posts, Twitter threads, video scripts, hooks, and Reels.", category: "Writing", prompt: "Write hooks and format copy for social publishing queues.", isCustom: false, isActive: false, icon: "💬" },
+  { id: "marketing-ideas", title: "/marketing-ideas", desc: "Brainstorm marketing ideas, inspiration, and growth strategies for software products.", category: "Creative & Marketing", prompt: "Generate creative distribution strategies and user acquisition ideas.", isCustom: false, isActive: false, icon: "💡" },
+  { id: "copywriting", title: "/copywriting", desc: "Write, rewrite, or improve marketing copy for homepages, landing pages, pricing pages, and value propositions.", category: "Creative & Marketing", prompt: "Draft high-conversion landing page layouts and hero copy.", isCustom: false, isActive: false, icon: "✍️" },
+  { id: "humanizer", title: "/humanizer", desc: "Remove signs of AI-generated writing from text by resolving inflated symbolism, rule of three, active voice, and em dash overuse.", category: "Writing", prompt: "Rewrite sentences into natural, human-written text structures.", isCustom: false, isActive: false, icon: "🍃" },
+  { id: "writing-shape", title: "/writing-shape", desc: "Take raw material and shape it into a finished article, drafting opening options and growing the piece paragraph by paragraph.", category: "Writing", prompt: "Refine raw notes into publication-ready articles.", isCustom: false, isActive: false, icon: "✒️" },
+  { id: "ab-test", title: "/ab-test-setup", desc: "Plan, design, or implement A/B tests or split experiments, including hypothesis scoring and statistical run timelines.", category: "Creative & Marketing", prompt: "Formulate experimental backlogs and define variant metrics.", isCustom: false, isActive: false, icon: "⚖️" },
+  { id: "context-eng", title: "/context-engineering", desc: "Optimizes agent context setup. Configure rules files and system prompt context layout for projects.", category: "Productivity", prompt: "Restructure rules parameters for optimal LLM context loading.", isCustom: false, isActive: false, icon: "⚙️" },
+  { id: "perf-opt", title: "/performance-optimization", desc: "Optimizes application performance: Core Web Vitals, load times, bundle size profiling, and database indexing.", category: "Productivity", prompt: "Identify bundle bottlenecks and outline performance corrections.", isCustom: false, isActive: false, icon: "⚡" },
+  { id: "marketing-psych", title: "/marketing-psychology", desc: "Apply psychological principles and cognitive biases (anchoring, social proof, scarcity) to interface marketing layouts.", category: "Creative & Marketing", prompt: "Integrate behavioral nudges into layout wireframes.", isCustom: false, isActive: false, icon: "🧠" },
+  { id: "brand-guide", title: "/brand-guidelines", desc: "Applies official brand colors, typography, formatting, and layout standards to generated documents and pages.", category: "UI Kit", prompt: "Apply typography tokens and brand colors to asset designs.", isCustom: false, isActive: false, icon: "📐" },
+  { id: "frontend-ui", title: "/frontend-ui-engineering", desc: "Builds production-quality user interfaces, React components, state handlers, and animations.", category: "Frontend Engineer", prompt: "Write optimized React components, TypeScript models, and styled cards.", isCustom: false, isActive: false, icon: "💻" },
+  { id: "comp-patterns", title: "/vercel-composition-patterns", desc: "React composition patterns: compound components, render props, and context providers scaled for performance.", category: "Frontend Engineer", prompt: "Refactor components with flexible API states.", isCustom: false, isActive: false, icon: "🧱" },
+  { id: "paid-ads", title: "/paid-ads", desc: "Bidding, retargeting, budgeting, and optimization strategies for search and display ad networks.", category: "Marketing & Sales", prompt: "Structure PPC campaigns and ad group hierarchies.", isCustom: false, isActive: false, icon: "💰" },
+  { id: "ad-creative", title: "/ad-creative", desc: "Generate, iterate, or scale ad copy variations, headlines, descriptions, and creatives for ad platforms.", category: "Marketing & Sales", prompt: "Draft bulk ad variations and copy layouts.", isCustom: false, isActive: false, icon: "🛍️" },
+  { id: "email-sequence", title: "/email-sequence", desc: "Create onboarding email sequences, drip email funnels, welcome cadences, and lifecycle programs.", category: "Marketing & Sales", prompt: "Design transactional email sequences and drip funnels.", isCustom: false, isActive: false, icon: "✉️" }
 ];
 
 const SKILL_CATEGORIES = [
@@ -244,6 +272,251 @@ const EXAMPLE_PROMPTS: Record<string, string[]> = {
   ],
 };
 
+// Helper to render premium Lucide icons for skills
+function getSkillIcon(skillId: string, fallbackEmoji: string) {
+  switch (skillId) {
+    case "static-ads": return <BarChart3 className="h-5 w-5 text-violet-400" />;
+    case "b-roll-planner": return <Video className="h-5 w-5 text-cyan-400" />;
+    case "karpathy-skill": return <Code2 className="h-5 w-5 text-emerald-400" />;
+    case "cod-thumbnail": return <ImageIcon className="h-5 w-5 text-pink-400" />;
+    case "pulp-cinema": return <Film className="h-5 w-5 text-orange-400" />;
+    case "seedance-prompts": return <Compass className="h-5 w-5 text-violet-400" />;
+    case "writing-beats": return <BookOpen className="h-5 w-5 text-emerald-400" />;
+    case "ip-carpetman": return <User className="h-5 w-5 text-amber-400" />;
+    case "ugc-swap": return <Users className="h-5 w-5 text-sky-400" />;
+    case "flash-reel": return <Zap className="h-5 w-5 text-yellow-400" />;
+    case "storyboard-cheatcode": return <Layout className="h-5 w-5 text-fuchsia-400" />;
+    case "prompt-expert": return <BrainCircuit className="h-5 w-5 text-violet-400" />;
+    case "onboarding": return <HelpCircle className="h-5 w-5 text-cyan-400" />;
+    case "ugc-ad-prod": return <Megaphone className="h-5 w-5 text-orange-400" />;
+    case "storyboard-gen": return <Layers className="h-5 w-5 text-rose-400" />;
+    case "gpt-image-dir": return <Palette className="h-5 w-5 text-pink-400" />;
+    case "kling-director": return <Camera className="h-5 w-5 text-sky-400" />;
+    case "seo-auditor": return <SearchCode className="h-5 w-5 text-teal-400" />;
+    case "theme-factory": return <PenTool className="h-5 w-5 text-emerald-400" />;
+    case "cinematic-motion": return <Film className="h-5 w-5 text-violet-400" />;
+    case "edit-article": return <FileText className="h-5 w-5 text-yellow-400" />;
+    case "grill-me": return <Flame className="h-5 w-5 text-red-400" />;
+    case "fragments": return <Binary className="h-5 w-5 text-indigo-400" />;
+    case "content-strategy": return <Map className="h-5 w-5 text-emerald-400" />;
+    case "caveman": return <Terminal className="h-5 w-5 text-zinc-400" />;
+    case "browser-test": return <Globe className="h-5 w-5 text-cyan-400" />;
+    case "social-content": return <MessageSquare className="h-5 w-5 text-purple-400" />;
+    case "marketing-ideas": return <Lightbulb className="h-5 w-5 text-amber-400" />;
+    case "copywriting": return <FileText className="h-5 w-5 text-violet-400" />;
+    case "humanizer": return <HeartHandshake className="h-5 w-5 text-emerald-400" />;
+    case "writing-shape": return <PenTool className="h-5 w-5 text-pink-400" />;
+    case "ab-test": return <Sliders className="h-5 w-5 text-orange-400" />;
+    case "context-eng": return <Workflow className="h-5 w-5 text-sky-400" />;
+    case "perf-opt": return <Zap className="h-5 w-5 text-yellow-400" />;
+    case "marketing-psych": return <BrainCircuit className="h-5 w-5 text-indigo-400" />;
+    case "brand-guide": return <Palette className="h-5 w-5 text-rose-400" />;
+    case "frontend-ui": return <Laptop className="h-5 w-5 text-cyan-400" />;
+    case "comp-patterns": return <Layers className="h-5 w-5 text-indigo-400" />;
+    case "paid-ads": return <DollarSign className="h-5 w-5 text-emerald-400" />;
+    case "ad-creative": return <Megaphone className="h-5 w-5 text-orange-400" />;
+    case "email-sequence": return <Mail className="h-5 w-5 text-sky-400" />;
+    default: return <span className="text-xl shrink-0">{fallbackEmoji}</span>;
+  }
+}
+
+// Helper to render premium logo SVGs for connectors
+function getConnectorIcon(connectorId: string, fallbackEmoji?: string, customClassName?: string) {
+  const className = customClassName || "h-5 w-5 shrink-0";
+  switch (connectorId) {
+    case "instagram":
+      return (
+        <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.051.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z" fill="url(#instagram-grad)" />
+          <defs>
+            <linearGradient id="instagram-grad" x1="0%" y1="100%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#fdf497" />
+              <stop offset="5%" stopColor="#fdf497" />
+              <stop offset="45%" stopColor="#fd5949" />
+              <stop offset="60%" stopColor="#d6249f" />
+              <stop offset="100%" stopColor="#285AEB" />
+            </linearGradient>
+          </defs>
+        </svg>
+      );
+    case "threads":
+      return (
+        <svg className={`${className} text-white`} viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12.036 0C5.388 0 0 5.388 0 12.036c0 6.648 5.388 12.036 12.036 12.036 6.648 0 12.036-5.388 12.036-12.036C24.072 5.388 18.684 0 12.036 0zm4.512 16.032c-.372.588-.936 1.056-1.68 1.404-.744.348-1.584.528-2.52.528-.96 0-1.812-.192-2.556-.576-.744-.384-1.32-.936-1.728-1.656-.408-.72-.612-1.572-.612-2.556 0-.96.204-1.812.612-2.556.408-.744.984-1.32 1.728-1.728.744-.408 1.596-.612 2.556-.612.936 0 1.776.18 2.52.54.744.36 1.308.84 1.692 1.44.384.6.576 1.308.576 2.124 0 .9-.228 1.632-.684 2.196-.456.564-1.044.846-1.764.846-.408 0-.756-.12-1.044-.36-.288-.24-.432-.576-.432-1.008V11.28c0-.624-.168-1.08-.504-1.368-.336-.288-.792-.432-1.368-.432-.576 0-1.032.144-1.368.432-.336.288-.504.744-.504 1.368 0 .6.168 1.056.504 1.368.336.312.792.468 1.368.468.228 0 .444-.024.648-.072l.072.756c-.228.096-.492.144-.792.144-.912 0-1.62-.276-2.124-.828-.504-.552-.756-1.284-.756-2.196v-.072c0-.912.252-1.644.756-2.196.504-.552 1.212-.828 2.124-.828.912 0 1.776.18 2.52.54.744.36 1.308.84 1.692 1.44.384.6.576 1.308.576 2.124 0 .9-.228 1.632-.684 2.196-.456.564-1.044.846-1.764.846-.408 0-.756-.12-1.044-.36-.288-.24-.432-.576-.432-1.008V11.28c0-.624-.168-1.08-.504-1.368-.336-.288-.792-.432-1.368-.432-.576 0-1.032.144-1.368.432-.336.288-.504.744-.504 1.368 0 .6.168 1.056.504 1.368.336.312.792.468 1.368.468.228 0 .444-.024.648-.072l.072.756c-.228.096-.492.144-.792.144-.912 0-1.62-.276-2.124-.828-.504-.552-.756-1.284-.756-2.196v-.072c0-.912.252-1.644.756-2.196.504-.552 1.212-.828 2.124-.828.912 0 1.62.276 2.124.828.504.552.756 1.284.756 2.196.396-.108.792-.162 1.188-.162.624 0 1.128.18 1.512.54.384.36.576.876.576 1.548 0 .972-.252 1.74-.756 2.304z" />
+        </svg>
+      );
+    case "telegram":
+      return (
+        <svg className={`${className} text-[#0088cc]`} viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69.01-.03.01-.14-.07-.2-.08-.06-.19-.04-.27-.02-.12.02-1.96 1.25-5.54 3.67-.52.36-1 .53-1.42.52-.47-.01-1.37-.27-2.03-.49-.82-.27-1.47-.41-1.42-.87.03-.24.36-.49.99-.74 3.89-1.69 6.48-2.8 7.77-3.32 3.7-1.49 4.46-1.75 4.96-1.76.11 0 .36.03.52.16.13.11.17.26.19.37z" />
+        </svg>
+      );
+    case "docs":
+      return (
+        <svg className={`${className} text-[#4285F4]`} viewBox="0 0 24 24" fill="currentColor">
+          <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z" />
+        </svg>
+      );
+    case "notion":
+      return (
+        <svg className={`${className} text-white`} viewBox="0 0 24 24" fill="currentColor">
+          <path d="M4.223 2.143a.753.753 0 0 0-.585-.246H.8V3.53h.499c.307 0 .428.163.428.49v15.932c0 .327-.12.49-.428.49H.8V22h6.141v-1.558h-.5c-.307 0-.428-.163-.428-.49v-12.83l7.985 13.32a1.36 1.36 0 0 0 1.157.616h5.817V19.53h-.499c-.307 0-.429-.163-.429-.49V6.212c0-.327.122-.49.429-.49h.499V4.164h-5.062v1.558h.501c.307 0 .428.163.428.49v11.75L9.627 4.542a1.597 1.597 0 0 0-1.396-.706H4.223V2.143z" />
+        </svg>
+      );
+    case "gmail":
+      return (
+        <svg className={`${className} text-[#ea4335]`} viewBox="0 0 24 24" fill="currentColor">
+          <path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" />
+        </svg>
+      );
+    case "calendar":
+      return (
+        <svg className={`${className} text-[#4285F4]`} viewBox="0 0 24 24" fill="currentColor">
+          <path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11zM7 11h5v5H7z" />
+        </svg>
+      );
+    case "github":
+      return (
+        <svg className={`${className} text-white`} viewBox="0 0 24 24" fill="currentColor">
+          <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.166 6.839 9.489.5.092.682-.217.682-.483 0-.237-.008-.866-.013-1.7-2.782.603-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.464-1.11-1.464-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.137 20.162 22 16.418 22 12c0-5.523-4.477-10-10-10z" />
+        </svg>
+      );
+    case "whisper":
+      return (
+        <svg className={`${className} text-[#10a37f]`} viewBox="0 0 24 24" fill="currentColor">
+          <path d="M21.73 11.77a4.26 4.26 0 0 0-.47-2.1l1.17-.67a.46.46 0 0 0 .17-.62l-.9-1.56a.46.46 0 0 0-.62-.17l-1.17.67a4.24 4.24 0 0 0-1.63-1.63l.67-1.17a.46.46 0 0 0-.17-.62l-1.56-.9a.46.46 0 0 0-.62.17l-.67 1.17a4.24 4.24 0 0 0-2.1-.47v-1.34a.46.46 0 0 0-.46-.46h-1.8a.46.46 0 0 0-.46.46v1.34a4.24 4.24 0 0 0-2.1.47l-.67-1.17a.46.46 0 0 0-.62-.17l-1.56.9a.46.46 0 0 0-.17.62l.67 1.17a4.24 4.24 0 0 0-1.63 1.63l-1.17-.67a.46.46 0 0 0-.62.17l-.9 1.56a.46.46 0 0 0 .17.62l1.17.67a4.26 4.26 0 0 0-.47 2.1H2.46a.46.46 0 0 0-.46.46v1.8a.46.46 0 0 0 .46.46h1.34a4.26 4.26 0 0 0 .47 2.1l-1.17.67a.46.46 0 0 0-.17.62l.9 1.56a.46.46 0 0 0 .62.17l1.17-.67a4.24 4.24 0 0 0 1.63 1.63l-.67 1.17a.46.46 0 0 0 .17.62l1.56.9a.46.46 0 0 0 .62-.17l.67-1.17a4.24 4.24 0 0 0 2.1.47v1.34a.46.46 0 0 0 .46.46h1.8a.46.46 0 0 0 .46-.46v-1.34a4.24 4.24 0 0 0 2.1-.47l.67 1.17a.46.46 0 0 0 .62.17l1.56-.9a.46.46 0 0 0 .17-.62l-.67-1.17a4.24 4.24 0 0 0 1.63-1.63l1.17.67a.46.46 0 0 0 .62-.17l.9-1.56a.46.46 0 0 0-.17-.62l-1.17-.67a4.26 4.26 0 0 0 .47-2.1h1.34a.46.46 0 0 0 .46-.46v-1.8a.46.46 0 0 0-.46-.46zm-9.73 4.03a3.8 3.8 0 1 1 3.8-3.8 3.8 3.8 0 0 1-3.8 3.8z" />
+        </svg>
+      );
+    case "linear":
+      return (
+        <svg className={`${className} text-[#5e6ad2]`} viewBox="0 0 20 20" fill="currentColor">
+          <path d="M10 0a10 10 0 1010 10A10.011 10.011 0 0010 0zm0 15a5 5 0 115-5 5.006 5.006 0 01-5 5z" />
+          <path d="M10 8a2 2 0 102 2 2.006 2.006 0 00-2-2z" />
+        </svg>
+      );
+    case "twilio":
+      return (
+        <svg className={`${className} text-[#f22f46]`} viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm-4.3 6.9c.7 0 1.2.5 1.2 1.2s-.5 1.2-1.2 1.2-1.2-.5-1.2-1.2.5-1.2 1.2-1.2zm0 6c.7 0 1.2.5 1.2 1.2s-.5 1.2-1.2 1.2-1.2-.5-1.2-1.2.5-1.2 1.2-1.2zm8.6-6c.7 0 1.2.5 1.2 1.2s-.5 1.2-1.2 1.2-1.2-.5-1.2-1.2.5-1.2 1.2-1.2zm0 6c.7 0 1.2.5 1.2 1.2s-.5 1.2-1.2 1.2-1.2-.5-1.2-1.2.5-1.2 1.2-1.2z" />
+        </svg>
+      );
+    case "supabase":
+      return (
+        <svg className={`${className} text-[#3ecf8e]`} viewBox="0 0 24 24" fill="currentColor">
+          <path d="M19.13 11.23a1.51 1.51 0 0 0-1.07-.44H13.5V2.73a1.5 1.5 0 0 0-2.48-1.12L3.38 8.7a1.51 1.51 0 0 0-.25 1.9 1.5 1.5 0 0 0 1.25 6.7h4.63v8.06a1.5 1.5 0 0 0 2.48 1.12l7.64-7.09a1.5 1.5 0 0 0 0-2.13z" />
+        </svg>
+      );
+    case "dropbox":
+      return (
+        <svg className={`${className} text-[#0061ff]`} viewBox="0 0 24 24" fill="currentColor">
+          <path d="M6 2l6 4-6 4-6-4 6-4zm12 0l6 4-6 4-6-4 6-4zM6 14.5l6-4 6 4-6 4-6-4zM0 10.5l6-4 6 4-6 4-6-4zm12 0l6-4 6 4-6 4-6-4zm0 9.8l-6-3.8v-2.2l6 3.8 6-3.8v2.2l-6 3.8z" />
+        </svg>
+      );
+    case "yt-analytics":
+    case "yt-data":
+      return (
+        <svg className={`${className} text-[#FF0000]`} viewBox="0 0 24 24" fill="currentColor">
+          <path d="M23.498 6.163a3.003 3.003 0 0 0-2.11-2.11C19.53 3.545 12 3.545 12 3.545s-7.53 0-9.388.508a3.003 3.003 0 0 0-2.11 2.11C0 8.017 0 12 0 12s0 3.983.502 5.837a3.003 3.003 0 0 0 2.11 2.11c1.858.508 9.388.508 9.388.508s7.53 0 9.388-.508a3.003 3.003 0 0 0 2.11-2.11C24 15.983 24 12 24 12s0-3.983-.502-5.837zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
+        </svg>
+      );
+    case "salesforce":
+      return (
+        <svg className={`${className} text-[#009EDB]`} viewBox="0 0 24 24" fill="currentColor">
+          <path d="M23.49 12.38c-.37-.77-.92-1.42-1.61-1.92a7.1 7.1 0 0 0-5.74-3.1 7.23 7.23 0 0 0-3.14.71 5.92 5.92 0 0 0-4.9-.76 5.88 5.88 0 0 0-3.6 3.65 6.07 6.07 0 0 0 1.25 5.56 4.3 4.3 0 0 0-2.31 3.54A4.31 4.31 0 0 0 7.75 24h13.5a4.31 4.31 0 0 0 4.31-4.31c0-1.89-1.21-3.49-2.07-4.31z" />
+        </svg>
+      );
+    case "linkedin":
+      return (
+        <svg className={`${className} text-[#0a66c2]`} viewBox="0 0 24 24" fill="currentColor">
+          <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.8v8.37h2.8v-4.67c0-.25.02-.5.1-.68a1.14 1.14 0 0 1 1-.77c.76 0 1 .58 1 1.42v4.7h2.8M6.5 8.37a1.37 1.37 0 1 0 0-2.75 1.37 1.37 0 0 0 0 2.75M8 18.5V10.13H5.2v8.37H8z" />
+        </svg>
+      );
+    case "x":
+      return (
+        <svg className={`${className} text-white`} viewBox="0 0 24 24" fill="currentColor">
+          <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+        </svg>
+      );
+    case "gdrive":
+      return (
+        <svg className={className} viewBox="0 0 24 24">
+          <path d="M15.375 16.5H23.5L19.5 9.5H11.5l3.875 7z" fill="#006699" />
+          <path d="M8.625 16.5L12.5 9.5H4.5L.5 16.5h8.125z" fill="#00A859" />
+          <path d="M12.5 9.5l3.875-7h-7.75L4.75 9.5h7.75z" fill="#FFCC00" />
+        </svg>
+      );
+    case "onedrive":
+      return (
+        <svg className={`${className} text-[#0078d4]`} viewBox="0 0 24 24" fill="currentColor">
+          <path d="M19.5 9.5a5 5 0 0 0-9.5-2 4 4 0 0 0-6.5 3 4.5 4.5 0 0 0 1 8.8h15a5 5 0 0 0 0-9.8z" />
+        </svg>
+      );
+    case "whatsapp":
+      return (
+        <svg className={`${className} text-[#25D366]`} viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12.031 2c-5.502 0-9.96 4.458-9.96 9.961 0 1.761.459 3.477 1.332 4.992L2.013 22.03l5.201-1.365a9.92 9.92 0 0 0 4.817 1.25c5.502 0 9.96-4.458 9.96-9.961C21.991 6.458 17.533 2 12.031 2zm6.657 14.28c-.273.766-1.584 1.393-2.185 1.482-.54.08-1.248.145-2.002-.097a13.313 13.313 0 0 1-5.631-3.693 11.233 11.233 0 0 1-2.482-3.834c-.466-.798-.483-1.36-.08-1.801.193-.21.434-.492.652-.741.218-.25.29-.419.435-.7.145-.282.073-.524-.036-.749-.109-.226-.983-2.37-1.346-3.248-.354-.855-.717-.741-.983-.757l-.838-.008c-.29 0-.766.109-1.169.548-.403.44-1.54 1.508-1.54 3.676 0 2.169 1.58 4.265 1.8 4.57.222.307 3.109 4.747 7.532 6.66 1.052.455 1.874.726 2.513.93.642.203 1.226.174 1.688.105.513-.077 1.584-.648 1.808-1.272.224-.624.224-1.16.157-1.272-.068-.113-.25-.181-.524-.319z" />
+        </svg>
+      );
+    case "slack":
+      return (
+        <svg className={className} viewBox="0 0 24 24">
+          <rect x="2" y="2" width="20" height="20" rx="4" fill="#4a154b" />
+          <path d="M8.5 13.5a1.5 1.5 0 1 1-1.5-1.5h1.5v1.5zm1 0a1.5 1.5 0 0 1 1.5-1.5h3a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-3a1.5 1.5 0 0 1-1.5-1.5v-3zM10.5 8.5a1.5 1.5 0 1 1 1.5-1.5v1.5h-1.5zm0 1a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-3A1.5 1.5 0 0 1 6 14v-3a1.5 1.5 0 0 1 1.5-1.5h3zM15.5 10.5a1.5 1.5 0 1 1 1.5 1.5h-1.5v-1.5zm-1 0a1.5 1.5 0 0 1-1.5 1.5h-3a1.5 1.5 0 0 1-1.5-1.5v-3A1.5 1.5 0 0 1 12 6h3a1.5 1.5 0 0 1 1.5 1.5v3zM13.5 15.5a1.5 1.5 0 1 1-1.5 1.5v-1.5h1.5zm0-1a1.5 1.5 0 0 1-1.5-1.5v-3a1.5 1.5 0 0 1 1.5-1.5h3a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-3z" fill="#ffffff" />
+        </svg>
+      );
+    case "discord":
+      return (
+        <svg className={`${className} text-[#5865F2]`} viewBox="0 0 24 24" fill="currentColor">
+          <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994.021-.041.001-.09-.041-.106a13.094 13.094 0 0 1-1.873-.894.077.077 0 0 1-.008-.128c.126-.093.252-.19.372-.287a.075.075 0 0 1 .077-.011c3.92 1.793 8.18 1.793 12.061 0a.073.073 0 0 1 .078.009c.12.099.246.195.373.289a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.894.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.156-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.156 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.156-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.156 2.418z" />
+        </svg>
+      );
+    case "hubspot":
+      return (
+        <svg className={`${className} text-[#FF7A59]`} viewBox="0 0 24 24" fill="currentColor">
+          <path d="M21.9 10.3c-.4-.5-1-.8-1.7-.9v-.8c0-1.5-1-2.8-2.4-3.2v-1c0-.9-.7-1.6-1.6-1.6s-1.6.7-1.6 1.6v1.1c-1.3.4-2.2 1.6-2.2 3.1v.8c-.7.1-1.3.4-1.7.9L5.3 5.9C5 5.3 4.4 5 3.7 5s-1.3.3-1.6.9c-.4.7-.2 1.6.4 2l5.4 4.4c-.2.5-.3 1.1-.3 1.7 0 .5.1 1.1.3 1.6l-5.4 4.4c-.6.5-.8 1.4-.4 2 .3.6.9.9 1.6.9.7 0 1.3-.3 1.6-.9l5.4-4.4c.4.5 1 .8 1.7.9v.8c0 1.5 1 2.8 2.4 3.2v1c0 .9.7 1.6 1.6 1.6s1.6-.7 1.6-1.6v-1.1c1.3-.4 2.2-1.6 2.2-3.1v-.8c.7-.1 1.3-.4 1.7-.9l5.4 4.4c.3.6.9.9 1.6.9.7 0 1.3-.3 1.6-.9.4-.7.2-1.6-.4-2l-5.4-4.4c.2-.5.3-1.1.3-1.6s-.1-1.1-.3-1.7l5.4-4.4c.6-.4.8-1.3.4-2z" />
+        </svg>
+      );
+    case "jira":
+      return (
+        <svg className={`${className} text-[#0052CC]`} viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12.03 2.03L2 12.06h10.03V22.1l10.03-10.03H12.03V2.03z" />
+        </svg>
+      );
+    case "sendgrid":
+      return (
+        <svg className={`${className} text-[#009EDB]`} viewBox="0 0 24 24" fill="currentColor">
+          <path d="M2 2h20v20H2V2zm4 4v12h12V6H6zm2 2h8v8H8V8z" />
+        </svg>
+      );
+    case "todoist":
+      return (
+        <svg className={`${className} text-[#E44332]`} viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm-1-8.5l-2.5-2.5-1.4 1.4L11 16.3l6.9-6.9-1.4-1.4L11 13.5z" />
+        </svg>
+      );
+    case "outlook":
+      return (
+        <svg className={`${className} text-[#0078d4]`} viewBox="0 0 24 24" fill="currentColor">
+          <path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-1 4.25L12 13 5 8.25V6l7 4.75L19 6v2.25z" />
+        </svg>
+      );
+    case "vimeo":
+      return (
+        <svg className={`${className} text-[#1ab7ea]`} viewBox="0 0 24 24" fill="currentColor">
+          <path d="M22.396 7.42c-.076 1.626-1.206 3.858-3.39 6.697-2.275 2.955-4.214 4.432-5.818 4.432-1.002 0-1.849-.926-2.545-2.778-.47-1.724-.94-3.45-1.41-5.176-.516-1.928-1.072-2.89-1.674-2.89-.13 0-.58.27-.134.81.42.49.62.98.62 1.48 0 1.48-.942 3.904-2.825 7.27-.184.304-.37.45-.556.45-.25 0-.583-.348-.996-1.042C2.658 13.626 2 11.238 2 9.538c0-1.74.52-2.868 1.558-3.387C4.542 5.65 5.568 5.76 6.638 6.48c.84.566 1.4 1.47 1.677 2.714.3 1.83.568 3.518.804 5.062.253 1.64.57 2.458.948 2.458.29 0 .748-.48 1.374-1.442.616-.957.94-1.666.974-2.13.064-.95-.198-1.424-.784-1.424-.282 0-.573.064-.875.19 1.157-3.792 3.37-5.69 6.638-5.69 2.41 0 3.57 1.59 3.49 4.772z" />
+        </svg>
+      );
+    case "frameio":
+      return (
+        <svg className={`${className} text-[#cf2d81]`} viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15.5h-2v-6h2v6zm0-8h-2V7h2v2.5z" />
+        </svg>
+      );
+    default:
+      return <span>{fallbackEmoji || "🔌"}</span>;
+  }
+}
+
 export default function AgentStudioPage() {
   const { user } = useUser();
   const [activeTab, setActiveTab] = useState<string>("new"); // new | search | skills | connectors | files | memory
@@ -317,25 +590,25 @@ export default function AgentStudioPage() {
   // Load from localStorage
   useEffect(() => {
     try {
-      const hist = localStorage.getItem("saad_super_history_v5");
+      const hist = localStorage.getItem("saad_super_history_v6");
       setTaskHistory(hist ? JSON.parse(hist) : []);
 
-      const skills = localStorage.getItem("saad_super_skills_v5");
+      const skills = localStorage.getItem("saad_super_skills_v6");
       setSkillsList(skills ? JSON.parse(skills) : INITIAL_SKILLS);
 
-      const conn = localStorage.getItem("saad_super_connectors_v5");
+      const conn = localStorage.getItem("saad_super_connectors_v6");
       setConnectorsList(conn ? JSON.parse(conn) : INITIAL_CONNECTORS);
 
-      const files = localStorage.getItem("saad_super_files_v5");
+      const files = localStorage.getItem("saad_super_files_v6");
       setFilesList(files ? JSON.parse(files) : DEFAULT_FILES);
 
-      const mem = localStorage.getItem("saad_super_memories_v5");
+      const mem = localStorage.getItem("saad_super_memories_v6");
       setMemoriesList(mem ? JSON.parse(mem) : DEFAULT_MEMORIES);
 
-      const locked = localStorage.getItem("saad_super_locked_memories_v5");
+      const locked = localStorage.getItem("saad_super_locked_memories_v6");
       setLockedMemories(locked ? JSON.parse(locked) : ["mem-1", "mem-2", "mem-3", "mem-4", "mem-5"]);
 
-      const creds = localStorage.getItem("saad_super_credits_v5");
+      const creds = localStorage.getItem("saad_super_credits_v6");
       if (creds) setCredits(Number(creds));
     } catch (_) {
       setTaskHistory([]);
@@ -449,7 +722,7 @@ export default function AgentStudioPage() {
 
           const updatedCredits = credits - 5;
           setCredits(updatedCredits);
-          saveToStorage("saad_super_credits_v5", updatedCredits);
+          saveToStorage("saad_super_credits_v6", updatedCredits);
 
           // Save to history
           const newTask: TaskRun = {
@@ -467,7 +740,7 @@ export default function AgentStudioPage() {
           };
           const updatedHist = [newTask, ...taskHistory];
           setTaskHistory(updatedHist);
-          saveToStorage("saad_super_history_v5", updatedHist);
+          saveToStorage("saad_super_history_v6", updatedHist);
 
           // Save to files list
           const newFile: AssetFile = {
@@ -480,7 +753,7 @@ export default function AgentStudioPage() {
           };
           const updatedFiles = [newFile, ...filesList];
           setFilesList(updatedFiles);
-          saveToStorage("saad_super_files_v5", updatedFiles);
+          saveToStorage("saad_super_files_v6", updatedFiles);
         }
       }, s.delay);
       timers.push(timer);
@@ -518,7 +791,7 @@ export default function AgentStudioPage() {
 
     const updated = [newSkill, ...skillsList];
     setSkillsList(updated);
-    saveToStorage("saad_super_skills_v5", updated);
+    saveToStorage("saad_super_skills_v6", updated);
 
     // Reset Form
     setNewSkillTitle("");
@@ -534,13 +807,13 @@ export default function AgentStudioPage() {
       return s;
     });
     setSkillsList(updated);
-    saveToStorage("saad_super_skills_v5", updated);
+    saveToStorage("saad_super_skills_v6", updated);
   };
 
   const deleteSkill = (id: string) => {
     const updated = skillsList.filter((s) => s.id !== id);
     setSkillsList(updated);
-    saveToStorage("saad_super_skills_v5", updated);
+    saveToStorage("saad_super_skills_v6", updated);
   };
 
   // Save Connector Connection
@@ -557,7 +830,7 @@ export default function AgentStudioPage() {
       });
 
       setConnectorsList(updated);
-      saveToStorage("saad_super_connectors_v5", updated);
+      saveToStorage("saad_super_connectors_v6", updated);
       setActiveConnector(null);
       setConnectorToken("");
       setConnectorSaving(false);
@@ -572,7 +845,7 @@ export default function AgentStudioPage() {
       return c;
     });
     setConnectorsList(updated);
-    saveToStorage("saad_super_connectors_v5", updated);
+    saveToStorage("saad_super_connectors_v6", updated);
   };
 
   // Create Custom MCP connector
@@ -595,7 +868,7 @@ export default function AgentStudioPage() {
 
     const updated = [newMcp, ...connectorsList];
     setConnectorsList(updated);
-    saveToStorage("saad_super_connectors_v5", updated);
+    saveToStorage("saad_super_connectors_v6", updated);
     setIsCustomMcpModalOpen(false);
 
     // Reset
@@ -619,14 +892,14 @@ export default function AgentStudioPage() {
 
     const updated = [...memoriesList, newMem];
     setMemoriesList(updated);
-    saveToStorage("saad_super_memories_v5", updated);
+    saveToStorage("saad_super_memories_v6", updated);
     setNewMemoryText("");
   };
 
   const handleDeleteMemory = (id: string) => {
     const updated = memoriesList.filter((m) => m.id !== id);
     setMemoriesList(updated);
-    saveToStorage("saad_super_memories_v5", updated);
+    saveToStorage("saad_super_memories_v6", updated);
   };
 
   const processFiles = (files: FileList) => {
@@ -653,7 +926,7 @@ export default function AgentStudioPage() {
 
     const updated = [...newFiles, ...filesList];
     setFilesList(updated);
-    saveToStorage("saad_super_files_v5", updated);
+    saveToStorage("saad_super_files_v6", updated);
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -673,12 +946,12 @@ export default function AgentStudioPage() {
   const handleDeleteFile = (id: string) => {
     const updated = filesList.filter((f) => f.id !== id);
     setFilesList(updated);
-    saveToStorage("saad_super_files_v5", updated);
+    saveToStorage("saad_super_files_v6", updated);
   };
 
   const clearHistory = () => {
     setTaskHistory([]);
-    saveToStorage("saad_super_history_v5", []);
+    saveToStorage("saad_super_history_v6", []);
   };
 
   // Filters
@@ -953,7 +1226,7 @@ export default function AgentStudioPage() {
                                 }}
                                 className="w-full text-left px-2 py-1.5 rounded-lg hover:bg-violet-600/10 transition border border-transparent hover:border-violet-500/10 flex items-center gap-2"
                               >
-                                <span className="text-sm shrink-0">{s.icon}</span>
+                                {getSkillIcon(s.id, s.icon)}
                                 <div className="flex flex-col min-w-0">
                                   <span className="text-[11px] font-bold text-white font-mono">{s.title}</span>
                                   <span className="text-[9px] text-zinc-500 truncate leading-tight">{s.desc}</span>
@@ -1564,7 +1837,7 @@ export default function AgentStudioPage() {
                       <div className="space-y-1.5 text-left">
                         <div className="flex items-start justify-between">
                           <div className="flex items-center gap-2">
-                            <span className="text-xl shrink-0">{skill.icon}</span>
+                            {getSkillIcon(skill.id, skill.icon)}
                             <span className="text-xs font-extrabold text-white group-hover:text-violet-300 transition font-mono">
                               {skill.title}
                             </span>
@@ -1746,7 +2019,7 @@ export default function AgentStudioPage() {
                       <div className="flex gap-3 min-w-0">
                         {/* Icon display */}
                         <div className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/[0.02] border border-white/5 text-xl shrink-0">
-                          {conn.icon}
+                          {getConnectorIcon(conn.id, conn.icon)}
                         </div>
                         <div className="flex flex-col text-left space-y-1 min-w-0">
                           <span className="text-xs font-bold text-white truncate">{conn.title}</span>
@@ -1823,7 +2096,7 @@ export default function AgentStudioPage() {
 
                           {/* Selected Brand logo */}
                           <div className="h-14 w-14 rounded-2xl border border-white/10 bg-white/[0.02] text-3xl flex items-center justify-center shadow-lg">
-                            {activeConnector.icon}
+                            {getConnectorIcon(activeConnector.id, activeConnector.icon, "h-8 w-8 shrink-0")}
                           </div>
                         </div>
 
@@ -1845,7 +2118,7 @@ export default function AgentStudioPage() {
                         {/* Circular Brand Icon */}
                         <div className="mx-auto h-20 w-20 rounded-full border border-violet-500/30 bg-slate-900/60 p-3 flex items-center justify-center shadow-[0_0_24px_rgba(139,92,246,0.15)] relative">
                           <div className="absolute inset-0 rounded-full border border-dashed border-violet-400/40 animate-spin" />
-                          <span className="text-4xl">{activeConnector.icon}</span>
+                          {getConnectorIcon(activeConnector.id, activeConnector.icon, "h-10 w-10 shrink-0")}
                         </div>
 
                         <div>
@@ -1857,7 +2130,7 @@ export default function AgentStudioPage() {
 
                         {/* OIDC pill info */}
                         <div className="mx-auto flex items-center justify-center gap-2 p-2.5 rounded-lg border border-violet-500/20 bg-violet-950/10 text-[10.5px] text-zinc-300 font-semibold cursor-pointer max-w-[340px]">
-                          <span className="text-xs">{activeConnector.icon}</span>
+                          {getConnectorIcon(activeConnector.id, activeConnector.icon, "h-3.5 w-3.5 shrink-0")}
                           <span>Get the connected {activeConnector.title} member profile from OIDC userinfo.</span>
                         </div>
 
@@ -2140,7 +2413,7 @@ export default function AgentStudioPage() {
                           const newMem = { id: `mem-${Date.now()}`, text: memVal.trim() };
                           const updated = [...memoriesList, newMem];
                           setMemoriesList(updated);
-                          saveToStorage("saad_super_memories_v5", updated);
+                          saveToStorage("saad_super_memories_v6", updated);
                         }
                       }}
                       className="px-3.5 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs shadow-md transition"
@@ -2305,7 +2578,7 @@ export default function AgentStudioPage() {
                                 ? lockedMemories.filter((mId) => mId !== mem.id)
                                 : [...lockedMemories, mem.id];
                               setLockedMemories(updated);
-                              saveToStorage("saad_super_locked_memories_v5", updated);
+                              saveToStorage("saad_super_locked_memories_v6", updated);
                             }}
                             className={`flex h-7 w-7 items-center justify-center rounded-lg border transition ${
                               isLocked

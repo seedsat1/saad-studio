@@ -126,6 +126,7 @@ const ASPECT_RATIOS = ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9"];
 const DURATIONS = [3, 4, 5, 6, 7, 8, 10];
 const RESOLUTIONS = ["720p", "1080p", "1440p", "4K"];
 const FPS_OPTIONS = [24, 30, 60];
+const SERVER_UPLOAD_LIMIT_BYTES = 4 * 1024 * 1024;
 
 const CATEGORY_LABELS: Record<string, string> = {
   transformation: "Transformation",
@@ -153,6 +154,32 @@ function dataUrlToFile(dataUrl: string, fileName: string): File {
 }
 
 async function uploadTransitionAsset(file: File, assetType: "image" | "video" | "thumbnail"): Promise<string> {
+  if (file.size > SERVER_UPLOAD_LIMIT_BYTES) {
+    const urlRes = await fetch("/api/studio/upload-url", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        fileName: file.name,
+        contentType: file.type || "application/octet-stream",
+        assetType,
+      }),
+    });
+    const urlData = await urlRes.json().catch(() => null);
+    if (!urlRes.ok || !urlData?.signedUrl || !urlData?.publicUrl) {
+      throw new Error(urlData?.error || "Failed to create upload URL.");
+    }
+
+    const directRes = await fetch(urlData.signedUrl, {
+      method: "PUT",
+      headers: { "Content-Type": file.type || "application/octet-stream" },
+      body: file,
+    });
+    if (!directRes.ok) {
+      throw new Error("Failed to upload transition asset. Storage CORS may need to be enabled.");
+    }
+    return String(urlData.publicUrl);
+  }
+
   const form = new FormData();
   form.append("file", file);
   form.append("assetType", assetType);
