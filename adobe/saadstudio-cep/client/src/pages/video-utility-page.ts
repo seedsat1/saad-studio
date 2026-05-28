@@ -1,14 +1,16 @@
 /** Shared page shell for tools that take an existing video as input
- *  (edit, reframe, remove-bg, upscale, draw-to-video).
+ *  (edit, reframe, remove-bg, upscale).
  *
- * Renders the "Choose one video" prompt with two paths:
- *   - "Use timeline video": reads the active selection from Premiere/AE
- *     via the ExtendScript bridge.
- *   - "Upload video": opens a local file picker.
- *
- * Once a clip is picked, an options dock is shown so the user can tune
- * model / quality / etc., then the submit handler is called with the
- * clip path + options. */
+ * Behaviour mirrors the Higgsfield Edit-video flow:
+ *   • The page starts watching the Premiere/AE timeline as soon as it
+ *     mounts. The moment the user clicks a clip in the timeline, the
+ *     panel switches from the empty-state card to the options dock —
+ *     no "Use timeline video" button to press first.
+ *   • If the user trims the same clip or picks a different one, the
+ *     watcher detects it (diff on `path + inSec + outSec`) and the
+ *     panel refreshes automatically.
+ *   • "Upload video" stays available as a fallback when nothing is
+ *     selected (or when running inside the browser dev preview). */
 
 import { el } from "../lib/dom";
 import { Header } from "../components/header";
@@ -19,12 +21,14 @@ import { evalES, isInsideAdobe } from "../lib/cep";
 import { api, type JobStatus } from "../lib/api";
 import { toast } from "../lib/toast";
 import { store } from "../lib/store";
+import { watchTimelineSelection, type TimelineClip } from "../lib/timeline-watcher";
 
 export interface SourceClip {
   path: string;
   width?: number;
   height?: number;
   durationSec?: number;
+  name?: string;
 }
 
 export interface VideoUtilityConfig {
@@ -45,75 +49,111 @@ export interface VideoUtilityConfig {
 
 export function VideoUtilityPage(cfg: VideoUtilityConfig): HTMLElement {
   const body = el("div.app-main");
+  const root = el("div.col", { style: { height: "100%" } },
+    Header(),
+    PageHeader(cfg.title),
+    body,
+  );
 
-  function showPicker(noticeBelow?: string) {
+  // Track UI state so the watcher knows whether to overwrite.
+  let currentMode: "auto" | "uploaded" = "auto";
+  let currentClipKey: string | null = null;
+
+  showEmpty();
+
+  // Start watching the timeline. Auto-stops when this page is unmounted.
+  const watcher = watchTimelineSelection((clip) => {
+    if (currentMode === "uploaded") return; // user explicitly uploaded — don't override
+    const key = clip ? `${clip.path}|${clip.inSec ?? 0}|${clip.outSec ?? 0}` : null;
+    if (key === currentClipKey) return;
+    currentClipKey = key;
+    if (clip) showOptions(toSourceClip(clip));
+    else showEmpty();
+  });
+  watcher.attachTo(root);
+
+  return root;
+
+  // ─── States ──────────────────────────────────────────────────────────
+
+  function showEmpty() {
+    const insideAdobe = isInsideAdobe();
     body.replaceChildren(
       el("div.state-card",
         null,
         el("div.state-card__icon", null, icon("video", 22)),
-        el("div.state-card__title", null, "Choose one video"),
+        el("div.state-card__title", null,
+          insideAdobe ? "Select a clip on your timeline" : "Upload a video",
+        ),
         el("div.state-card__subtitle", null,
-          cfg.hint ?? "Pick a clip from your Premiere timeline, or upload a file.",
+          insideAdobe
+            ? (cfg.hint ?? "Click any clip in the Premiere timeline and it'll show up here automatically.")
+            : "Timeline auto-detect only works inside Premiere / After Effects. Upload a file to keep going.",
         ),
         el("div.state-card__actions",
           null,
-          el("button.btn-primary",
-            { onClick: useTimelineClip },
-            icon("video", 14), "Use timeline video",
-          ),
           el("button.btn-secondary",
             { onClick: uploadFile },
             icon("plus", 14), "Upload video",
           ),
         ),
-        noticeBelow
-          ? el("div.dim", { style: { marginTop: "12px", fontSize: "11px" } }, noticeBelow)
-          : null,
       ),
     );
-  }
-
-  async function useTimelineClip() {
-    if (!isInsideAdobe()) {
-      showPicker("Timeline selection is only available inside Premiere/After Effects.");
-      return;
-    }
-    try {
-      const clip = await evalES<SourceClip | null>("getSelectedClip");
-      if (!clip || !clip.path) {
-        showPicker("Nothing selected on the timeline.");
-        return;
-      }
-      showOptions(clip);
-    } catch (err) {
-      showPicker(`Could not read selection: ${(err as Error).message}`);
-    }
   }
 
   function uploadFile() {
     const input = document.createElement("input");
     input.type = "file";
     input.accept = "video/*";
-    input.addEventListener("change", async () => {
+    input.addEventListener("change", () => {
       const file = input.files?.[0];
       if (!file) return;
-      // In CEP we have a real file path via the .path property; in a plain
-      // browser preview we fall back to a blob URL so the UI still flows.
       const path = (file as File & { path?: string }).path ?? URL.createObjectURL(file);
-      showOptions({ path });
+      currentMode = "uploaded";
+      currentClipKey = `upload:${file.name}:${file.size}`;
+      showOptions({ path, name: file.name });
     });
     input.click();
   }
 
   function showOptions(clip: SourceClip) {
+    const previewSrc = pathToVideoSrc(clip.path);
+    const preview = el("video", {
+      src: previewSrc,
+      controls: "true",
+      muted: "true",
+      playsinline: "true",
+      preload: "metadata",
+      crossorigin: "anonymous",
+      style: {
+        width: "100%",
+        maxHeight: "260px",
+        background: "#000",
+        borderRadius: "10px",
+        display: "block",
+      },
+    });
+
     const status = el("div.state-card",
-      null,
-      el("div.state-card__icon", null, icon("video", 22)),
-      el("div.state-card__title", null, "Source selected"),
-      el("div.state-card__subtitle.mono", { style: { fontSize: "11px" } }, clip.path),
-      el("div.state-card__actions",
+      { style: { marginBottom: "16px", padding: "12px" } },
+      el("div.col.gap-3",
         null,
-        el("button.btn-secondary", { onClick: () => showPicker() }, "Change clip"),
+        preview,
+        el("div.row.gap-3", { style: { alignItems: "center" } },
+          el("div.state-card__icon", { style: { margin: "0", flexShrink: "0" } }, icon("video", 18)),
+          el("div.col.gap-1.grow", { style: { textAlign: "left", alignItems: "flex-start", minWidth: "0" } },
+            el("div.truncate", { style: { fontSize: "13px", fontWeight: "600", width: "100%" } },
+              clip.name ?? "Source clip",
+            ),
+            el("div.mono.muted.truncate", { style: { fontSize: "10px", width: "100%" }, title: clip.path },
+              shortenPath(clip.path),
+            ),
+          ),
+          el("button.dock-button",
+            { onClick: () => { currentMode = "auto"; currentClipKey = null; showEmpty(); } },
+            "Change",
+          ),
+        ),
       ),
     );
 
@@ -175,14 +215,39 @@ export function VideoUtilityPage(cfg: VideoUtilityConfig): HTMLElement {
 
     body.appendChild(dock);
   }
+}
 
-  showPicker();
+// ─── Helpers ───────────────────────────────────────────────────────────
 
-  return el("div.col", { style: { height: "100%" } },
-    Header(),
-    PageHeader(cfg.title),
-    body,
-  );
+function toSourceClip(c: TimelineClip): SourceClip {
+  return {
+    path: c.path,
+    name: c.name,
+    durationSec: c.durationSec,
+  };
+}
+
+function shortenPath(p: string, max = 48): string {
+  if (p.length <= max) return p;
+  const head = p.slice(0, 12);
+  const tail = p.slice(-(max - 15));
+  return `${head}…${tail}`;
+}
+
+/** Convert a host-reported path into something an HTML <video> tag can load.
+ *  Premiere returns native paths (Windows backslashes, Mac POSIX); CEP can
+ *  read them via file:// when --allow-file-access is set in the manifest.
+ *  Blob URLs from the upload picker pass through unchanged. */
+function pathToVideoSrc(p: string): string {
+  if (!p) return "";
+  if (p.startsWith("blob:") || p.startsWith("data:") || p.startsWith("http")) return p;
+  const forward = p.replace(/\\/g, "/");
+  if (forward.startsWith("file://")) return forward;
+  // Windows drive letter (C:/...) needs three slashes after the scheme.
+  if (/^[a-zA-Z]:\//.test(forward)) return `file:///${forward}`;
+  // POSIX absolute path
+  if (forward.startsWith("/")) return `file://${forward}`;
+  return `file:///${forward}`;
 }
 
 function busyCard(): HTMLElement {

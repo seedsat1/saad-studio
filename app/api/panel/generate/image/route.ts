@@ -15,6 +15,8 @@ import { getResolvedKieRoutingMaps } from "@/lib/kie-model-routing";
 import { sanitizePrompt } from "@/lib/security";
 import prismadb from "@/lib/prismadb";
 import { checkStoryboardReferenceImageSafety, UnsafeReferenceImageError } from "@/lib/storyboard-reference-safety";
+import { isDirectProviderModel } from "@/lib/provider-router";
+import { dispatchDirectImage } from "@/lib/providers/dispatch";
 
 export const maxDuration = 180;
 export const dynamic = "force-dynamic";
@@ -132,6 +134,29 @@ export async function POST(req: NextRequest) {
 
     if (!prompt?.trim()) {
       return NextResponse.json({ error: "Please enter a prompt." }, { status: 400 });
+    }
+
+    // ── Early dispatch: Google / OpenAI direct adapters.
+    //    Routes Google models (Nano Banana, Imagen) to the official
+    //    Gemini/Vertex API and OpenAI models (gpt-image, DALL·E) to
+    //    OpenAI directly. Everything else falls through to kie.ai.
+    if (isDirectProviderModel(modelId)) {
+      if (imageUrl) await checkStoryboardReferenceImageSafety(imageUrl);
+      const result = await dispatchDirectImage({
+        userId,
+        modelId,
+        prompt,
+        aspectRatio,
+        resolution,
+        numImages,
+        negativePrompt,
+        imageUrl,
+      });
+      return NextResponse.json({
+        imageUrls: result.imageUrls ?? [],
+        imageUrl: result.imageUrl ?? null,
+        generationId: result.generationId,
+      });
     }
 
     const { imageModelMap } = getResolvedKieRoutingMaps();

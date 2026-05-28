@@ -19,10 +19,12 @@ const ASPECTS = [
   { value: "4:3", label: "4:3" },
   { value: "3:4", label: "3:4" },
 ];
+// kie.ai expects uppercase resolution tokens ("1K" / "2K" / "4K").
+// Lowercase values get rejected as "not within the range of allowed options".
 const RESOLUTIONS = [
-  { value: "1k", label: "1k" },
-  { value: "2k", label: "2k" },
-  { value: "4k", label: "4k" },
+  { value: "1K", label: "1K" },
+  { value: "2K", label: "2K" },
+  { value: "4K", label: "4K" },
 ];
 
 export function ImageGenPage(): HTMLElement {
@@ -34,7 +36,7 @@ export function ImageGenPage(): HTMLElement {
       options: [
         { key: "model", label: "Model", value: "nano-banana-pro", options: MODELS },
         { key: "aspect", label: "Aspect", value: "1:1", options: ASPECTS },
-        { key: "resolution", label: "Resolution", value: "2k", options: RESOLUTIONS },
+        { key: "resolution", label: "Resolution", value: "2K", options: RESOLUTIONS },
       ],
     },
     submit: ({ prompt, options }) =>

@@ -11,6 +11,8 @@ import { getVideoCreditsByModelId } from "@/lib/credit-pricing";
 import { getResolvedKieRoutingMaps } from "@/lib/kie-model-routing";
 import { sanitizePrompt } from "@/lib/security";
 import prismadb from "@/lib/prismadb";
+import { isDirectProviderModel, getProviderFor } from "@/lib/provider-router";
+import { dispatchDirectVideo } from "@/lib/providers/dispatch";
 
 export const maxDuration = 180;
 export const dynamic = "force-dynamic";
@@ -198,6 +200,26 @@ export async function POST(req: NextRequest) {
 
     if (!prompt?.trim()) {
       return NextResponse.json({ error: "Please enter a prompt." }, { status: 400 });
+    }
+
+    // ── Early dispatch: Google Veo direct (Vertex/Gemini) and BytePlus
+    //    Seedance v2 direct. OpenAI Sora has no public direct API yet so
+    //    it falls through to the kie.ai path below.
+    if (isDirectProviderModel(modelId) && getProviderFor(modelId) !== "openai") {
+      const result = await dispatchDirectVideo({
+        userId,
+        modelId,
+        prompt,
+        aspect: aspectRatio,
+        durationSec: duration,
+        quality: resolution,
+        imageUrl,
+      });
+      return NextResponse.json({
+        videoUrl: result.videoUrl ?? null,
+        videoUrls: result.videoUrl ? [result.videoUrl] : [],
+        generationId: result.generationId,
+      });
     }
 
     // Validate the model is a known KIE video model

@@ -106,6 +106,25 @@ function safeJson(text: string): unknown {
   try { return JSON.parse(text); } catch { return text; }
 }
 
+/** Translate the panel's pretty-name fields to the backend route's expected
+ *  field names. The panel uses `model` / `aspect` / `durationSec` because
+ *  that's how the dock components are wired; the Next.js routes expect
+ *  `modelId` / `aspectRatio` / `duration`. Without this remap the backend
+ *  silently falls back to its defaults and every generation looks identical. */
+function toBackendShape(body: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(body)) {
+    if (v == null) continue;
+    switch (k) {
+      case "model":       out.modelId = v; break;
+      case "aspect":      out.aspectRatio = v; break;
+      case "durationSec": out.duration = v; break;
+      default:            out[k] = v;
+    }
+  }
+  return out;
+}
+
 export const api = {
   /** Current user + credits + subscription. */
   me: () => request<PanelMe>("/api/panel/me"),
@@ -123,12 +142,12 @@ export const api = {
     image: (body: Record<string, unknown>) =>
       request<JobStatus>("/api/panel/generate/image", {
         method: "POST",
-        body: JSON.stringify(body),
+        body: JSON.stringify(toBackendShape(body)),
       }),
     video: (body: Record<string, unknown>) =>
       request<JobStatus>("/api/panel/generate/video", {
         method: "POST",
-        body: JSON.stringify(body),
+        body: JSON.stringify(toBackendShape(body)),
       }),
     captions: (body: Record<string, unknown>) =>
       request<JobStatus>("/api/panel/generate/captions", {

@@ -396,7 +396,10 @@ async function buildOfficialSeedancePayload(modelRoute: string, payload: Record<
     ratio: normalizeOfficialSeedanceRatio(payload.ratio ?? payload.aspect_ratio ?? payload.aspectRatio),
     duration: normalizeOfficialSeedanceDuration(payload.duration),
     resolution: normalizeOfficialSeedanceResolution(modelRoute, payload.resolution ?? payload.quality ?? payload.mode),
-    watermark: payload.watermark === false ? false : true,
+    watermark:
+      modelRoute === "bytedance/seedance-v2/text-to-video"
+        ? payload.watermark === true
+        : payload.watermark === false ? false : true,
   };
 
   if (payload.return_last_frame === true) body.return_last_frame = true;
