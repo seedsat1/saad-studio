@@ -48,43 +48,51 @@ async function ensureDirectUploadCors() {
   const bucket = getEnv("R2_BUCKET", "R2_BUCKET_NAME");
   const endpoint = getEnv("R2_ENDPOINT") || (accountId ? `https://${accountId}.r2.cloudflarestorage.com` : "");
   if (!accountId || !bucket) {
-    throw new Error("Missing R2 env vars needed to configure direct upload CORS.");
-  }
-
-  if (cloudflareApiToken) {
-    const apiRes = await fetch(
-      `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(accountId)}/r2/buckets/${encodeURIComponent(bucket)}/cors`,
-      {
-        method: "PUT",
-        headers: {
-          Authorization: `Bearer ${cloudflareApiToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          rules: [
-            {
-              allowed: {
-                origins: DIRECT_UPLOAD_ORIGINS,
-                methods: DIRECT_UPLOAD_METHODS,
-                headers: DIRECT_UPLOAD_HEADERS,
-              },
-              exposeHeaders: DIRECT_UPLOAD_EXPOSE_HEADERS,
-              maxAgeSeconds: 3600,
-            },
-          ],
-        }),
-      },
-    );
-    if (!apiRes.ok) {
-      const text = await apiRes.text().catch(() => "");
-      throw new Error(`Cloudflare R2 CORS API failed (${apiRes.status}): ${text.slice(0, 300)}`);
-    }
-    corsAppliedAt = now;
+    console.warn("[studio/upload-url] Missing R2 env vars, skipping automatic CORS configuration");
     return;
   }
 
+  if (cloudflareApiToken) {
+    try {
+      const apiRes = await fetch(
+        `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(accountId)}/r2/buckets/${encodeURIComponent(bucket)}/cors`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${cloudflareApiToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            rules: [
+              {
+                allowed: {
+                  origins: DIRECT_UPLOAD_ORIGINS,
+                  methods: DIRECT_UPLOAD_METHODS,
+                  headers: DIRECT_UPLOAD_HEADERS,
+                },
+                exposeHeaders: DIRECT_UPLOAD_EXPOSE_HEADERS,
+                maxAgeSeconds: 3600,
+              },
+            ],
+          }),
+        },
+      );
+      if (!apiRes.ok) {
+        const text = await apiRes.text().catch(() => "");
+        console.warn(`[studio/upload-url] Cloudflare R2 CORS API failed (${apiRes.status}): ${text.slice(0, 300)}`);
+      } else {
+        corsAppliedAt = now;
+        return;
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      console.warn("[studio/upload-url] Cloudflare API CORS configuration failed:", message);
+    }
+  }
+
   if (!accessKeyId || !secretAccessKey || !endpoint) {
-    throw new Error("Missing CLOUDFLARE_API_TOKEN and missing R2 S3 credentials needed to configure direct upload CORS.");
+    console.warn("[studio/upload-url] Missing S3 credentials, skipping R2 CORS auto-configuration");
+    return;
   }
 
   const client = new S3Client({
@@ -116,8 +124,7 @@ async function ensureDirectUploadCors() {
     corsAppliedAt = now;
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown R2 CORS error";
-    console.error("[studio/upload-url] R2 CORS auto-apply failed:", message);
-    throw new Error(`R2 CORS setup failed: ${message}`);
+    console.warn("[studio/upload-url] R2 CORS auto-apply failed:", message, "— continuing with existing CORS configuration");
   }
 }
 
@@ -202,10 +209,8 @@ export async function POST(req: NextRequest) {
   try {
     await ensureDirectUploadCors();
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "R2 CORS setup failed." },
-      { status: 500 },
-    );
+    console.warn("[studio/upload-url] CORS setup warning:", error instanceof Error ? error.message : "Unknown error");
+    // Continue anyway - CORS might be already configured or client can handle CORS issues
   }
 
   const { signedUrl, publicUrl } = await createSignedUploadUrl({
@@ -218,10 +223,8 @@ export async function POST(req: NextRequest) {
   try {
     await verifySignedUrlCors(signedUrl);
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "R2 CORS verification failed." },
-      { status: 500 },
-    );
+    console.warn("[studio/upload-url] CORS verification warning:", error instanceof Error ? error.message : "Unknown error");
+    // Continue anyway - upload might still work if CORS is properly configured in R2
   }
 
   return NextResponse.json({

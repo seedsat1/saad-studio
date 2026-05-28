@@ -1,0 +1,110 @@
+/* Saad Studio CEP Panel — theme tokens
+ * Mirrors the brand palette from app/globals.css so the panel and the web app
+ * feel consistent. Anyone wiring this into a different Adobe theme should
+ * adjust the surface tokens here, not in component CSS. */
+
+:root {
+  /* Brand */
+  --brand-primary: #7c5cff;
+  --brand-primary-soft: rgba(124, 92, 255, 0.16);
+  --brand-accent: #22d3ee;
+  --brand-credits: #facc15;
+
+  /* Surfaces */
+  --bg-app: #08091a;
+  --bg-panel: #0c1019;
+  --bg-card: #11162a;
+  --bg-card-hover: #161c33;
+  --bg-input: #0a0e1c;
+  --bg-overlay: rgba(8, 9, 26, 0.78);
+
+  /* Lines */
+  --line-soft: rgba(255, 255, 255, 0.06);
+  --line-medium: rgba(255, 255, 255, 0.10);
+  --line-strong: rgba(255, 255, 255, 0.18);
+
+  /* Text */
+  --text-primary: #f4f5fb;
+  --text-secondary: #a2a8c2;
+  --text-muted: #6a7090;
+  --text-on-brand: #ffffff;
+
+  /* Feedback */
+  --color-success: #4ade80;
+  --color-warning: #fbbf24;
+  --color-error: #f87171;
+
+  /* Radii */
+  --r-xs: 6px;
+  --r-sm: 10px;
+  --r-md: 14px;
+  --r-lg: 20px;
+  --r-pill: 999px;
+
+  /* Shadows */
+  --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.25);
+  --shadow-floating: 0 12px 40px rgba(0, 0, 0, 0.45);
+
+  /* Typography */
+  --font-ui: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  background: var(--bg-app);
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+input, textarea, select {
+  font: inherit;
+  color: inherit;
+}
+
+/* Scrollbar — slim, fades with the panel chrome */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.16); }
+
+/* Utility helpers used by app.ts */
+.row { display: flex; align-items: center; }
+.col { display: flex; flex-direction: column; }
+.gap-1 { gap: 4px; } .gap-2 { gap: 8px; } .gap-3 { gap: 12px; } .gap-4 { gap: 16px; }
+.grow { flex: 1; }
+.hidden { display: none !important; }
+.muted { color: var(--text-muted); }
+.dim { color: var(--text-secondary); }
+.mono { font-family: var(--font-mono); }
+.truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
