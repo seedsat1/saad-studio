@@ -88,6 +88,8 @@ function isMissingTaskResponse(status: number, payload: unknown): boolean {
 function buildFinalCinemaPrompt(params: {
   basePrompt: string;
   dialogueText: string;
+  sceneType: string;
+  sceneTypeDirection: string;
   genre: string;
   cameraMovement: string;
   lensType: string;
@@ -105,6 +107,8 @@ function buildFinalCinemaPrompt(params: {
   const {
     basePrompt,
     dialogueText,
+    sceneType,
+    sceneTypeDirection,
     genre,
     cameraMovement,
     lensType,
@@ -124,6 +128,7 @@ function buildFinalCinemaPrompt(params: {
     basePrompt,
     "",
     "Mandatory cinema controls:",
+    `- Scene type: ${sceneType}. ${sceneTypeDirection || "Use the correct production grammar for this scene format."}`,
     `- Genre / mood: ${genre}. Apply this mood visibly to atmosphere, pacing, acting tone, and production design.`,
     `- Color palette / LUT: ${colorPalette}. This is a required grade direction, not optional UI metadata.`,
     `- Lighting: ${lightingStyle}. Shape the scene lighting according to this preset.`,
@@ -177,6 +182,8 @@ function buildProviderPayload(
   const sound = raw.sound === true;
   const grokMode = firstString(raw.grokMode) ?? "normal";
   const genre = firstString(raw.genre) ?? input.genre ?? "General Cinema";
+  const sceneType = firstString(raw.sceneType) ?? input.sceneType ?? "Cinematic Scene";
+  const sceneTypeDirection = firstString(raw.sceneTypeDirection) ?? input.sceneTypeDirection ?? "";
   const voiceDirection = firstString(raw.voiceDirection) ?? input.voiceDirection ?? input.voiceId ?? "Natural cinematic voice";
   const clonedVoiceAudioUrl = firstString(raw.clonedVoiceAudioUrl);
   const colorPalette = firstString(raw.colorPalette) ?? "Auto";
@@ -189,6 +196,8 @@ function buildProviderPayload(
   const finalPrompt = buildFinalCinemaPrompt({
     basePrompt: input.prompt,
     dialogueText: input.dialogueText ?? "",
+    sceneType,
+    sceneTypeDirection,
     genre,
     cameraMovement: input.cameraMovement ?? "Dolly Zoom",
     lensType: input.lensType ?? "85mm Anamorphic Cinema",
@@ -215,6 +224,8 @@ function buildProviderPayload(
     sound,
     generate_audio: sound,
     genre,
+    scene_type: sceneType,
+    scene_type_direction: sceneTypeDirection,
     camera_movement: input.cameraMovement,
     lens_type: input.lensType,
     camera_body: cameraBody,
@@ -303,6 +314,8 @@ export async function POST(req: Request) {
     const aspectRatio = sanitizePrompt(typeof raw?.aspectRatio === "string" ? raw.aspectRatio : "").slice(0, 20);
     const voiceId = sanitizePrompt(typeof raw?.voiceId === "string" ? raw.voiceId : "").slice(0, 120);
     const genre = sanitizePrompt(typeof raw?.genre === "string" ? raw.genre : "General Cinema").slice(0, 80);
+    const sceneType = sanitizePrompt(typeof raw?.sceneType === "string" ? raw.sceneType : "Cinematic Scene").slice(0, 80);
+    const sceneTypeDirection = sanitizePrompt(typeof raw?.sceneTypeDirection === "string" ? raw.sceneTypeDirection : "").slice(0, 300);
     const voiceDirection = sanitizePrompt(typeof raw?.voiceDirection === "string" ? raw.voiceDirection : "").slice(0, 240);
     const clonedVoiceAudioUrl = isSafePublicHttpUrl(typeof raw?.clonedVoiceAudioUrl === "string" ? raw.clonedVoiceAudioUrl : "")
       ? String(raw?.clonedVoiceAudioUrl)
@@ -324,6 +337,8 @@ export async function POST(req: Request) {
       lensType: sanitizePrompt(typeof raw?.lensType === "string" ? raw.lensType : "85mm Anamorphic Cinema").slice(0, 160),
       voiceId,
       genre,
+      sceneType,
+      sceneTypeDirection,
       voiceDirection,
     };
 
@@ -348,6 +363,12 @@ ${input.dialogueText || "(none)"}
 
 Genre / mood:
 ${input.genre || "General Cinema"}
+
+Scene type:
+${input.sceneType || "Cinematic Scene"}
+
+Scene type production direction:
+${input.sceneTypeDirection || "(use general cinematic production grammar)"}
 
 Camera movement:
 ${input.cameraMovement}
@@ -453,6 +474,8 @@ ${negativePrompt || "(none)"}`,
             resolution,
             aspectRatio,
             genre,
+            sceneType,
+            sceneTypeDirection,
             voiceId,
             voiceDirection,
             clonedVoiceAudioUrl,
@@ -488,6 +511,8 @@ ${negativePrompt || "(none)"}`,
         resolution,
         aspectRatio,
         genre,
+        sceneType,
+        sceneTypeDirection,
         voiceId,
         voiceDirection,
         clonedVoiceAudioUrl,

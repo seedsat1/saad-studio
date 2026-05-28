@@ -31,6 +31,11 @@ import {
   Info,
   Trash2,
   Aperture,
+  ArrowLeft,
+  ArrowRight,
+  ArrowUp,
+  ArrowDown,
+  LayoutGrid,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -347,6 +352,29 @@ export default function EditPage() {
   const [cfg, setCfg] = useState(7.5);
   const [seed, setSeed] = useState("-1");
 
+  // Tool-specific states
+  const [lightAngle, setLightAngle] = useState(180);
+  const [lightIntensity, setLightIntensity] = useState(0.7);
+  const [lightColor, setLightColor] = useState("#fcd34d");
+
+  const [bgFormat, setBgFormat] = useState("png");
+  const [bgFeather, setBgFeather] = useState(2);
+
+  const [outpaintDirection, setOutpaintDirection] = useState("all");
+  const [outpaintMargin, setOutpaintMargin] = useState(25);
+
+  const [stylePreset, setStylePreset] = useState("cyberpunk");
+  const [styleStrength, setStyleStrength] = useState(0.8);
+
+  const [drawColor, setDrawColor] = useState("#ff0000");
+
+  const [motionDirection, setMotionDirection] = useState("forward");
+  const [motionSpeed, setMotionSpeed] = useState(5);
+
+  const [upscaleFactor, setUpscaleFactor] = useState("2");
+  const [upscaleDenoise, setUpscaleDenoise] = useState(0.3);
+  const [upscaleFaceEnhance, setUpscaleFaceEnhance] = useState(true);
+
   const lastCoordsRef = useRef<{ x: number; y: number } | null>(null);
 
   const currentTool = EDIT_TOOLS.find((t) => t.id === activeTool)!;
@@ -361,7 +389,8 @@ export default function EditPage() {
 
   // Generate cursor preview SVG based on brushSize, scale and tool color
   const displayBrushSize = brushSize * scale;
-  const strokeColor = currentTool.hex.replace('#', '%23');
+  const activeColorHex = activeTool === "draw" ? drawColor : currentTool.hex;
+  const strokeColor = activeColorHex.replace('#', '%23');
   const cursorSvg = `<svg xmlns='http://www.w3.org/2000/svg' width='${displayBrushSize * 2}' height='${displayBrushSize * 2}' viewBox='0 0 ${displayBrushSize * 2} ${displayBrushSize * 2}'><circle cx='${displayBrushSize}' cy='${displayBrushSize}' r='${displayBrushSize - 1}' fill='none' stroke='${strokeColor}' stroke-width='1.5' opacity='0.8'/></svg>`;
   const cursorStyle = `url("data:image/svg+xml;utf8,${cursorSvg}") ${displayBrushSize} ${displayBrushSize}, crosshair`;
 
@@ -443,7 +472,7 @@ export default function EditPage() {
       ctx.globalAlpha = 1.0;
     } else {
       ctx.globalCompositeOperation = "source-over";
-      ctx.strokeStyle = currentTool.hex;
+      ctx.strokeStyle = activeTool === "draw" ? drawColor : currentTool.hex;
       ctx.globalAlpha = brushOpacity;
     }
 
@@ -475,7 +504,7 @@ export default function EditPage() {
       ctx.globalAlpha = 1.0;
     } else {
       ctx.globalCompositeOperation = "source-over";
-      ctx.strokeStyle = currentTool.hex;
+      ctx.strokeStyle = activeTool === "draw" ? drawColor : currentTool.hex;
       ctx.globalAlpha = brushOpacity;
     }
 
@@ -989,200 +1018,643 @@ export default function EditPage() {
         {/* Configuration settings widgets */}
         <div className="flex-1 overflow-y-auto p-5 space-y-6 scrollbar-thin scrollbar-thumb-white/5 scrollbar-track-transparent">
           
-          {/* AI Model dropdown selector */}
-          <div className="space-y-2">
-            <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest block">
-              AI Generation Model
-            </span>
-            
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setModelOpen(!modelOpen)}
-                className="w-full flex items-center justify-between gap-2.5 px-4 py-3 rounded-xl bg-white/[0.02] border border-white/10 hover:border-white/15 hover:bg-white/[0.04] transition-all text-left text-sm"
-              >
-                <div className="min-w-0">
-                  <div className="text-zinc-200 font-bold text-xs truncate">
-                    {selectedModel.label}
-                  </div>
-                  <div className="text-[10px] text-zinc-500 truncate mt-0.5">
-                    {selectedModel.sublabel}
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  {selectedModel.badge && (
-                    <span className="bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider">
-                      {selectedModel.badge}
-                    </span>
-                  )}
-                  <ChevronDown className={cn("h-3.5 w-3.5 text-zinc-400 transition-transform duration-200", modelOpen && "rotate-180")} />
-                </div>
-              </button>
-
-              <AnimatePresence>
-                {modelOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -5 }}
-                    className="absolute top-full left-0 right-0 z-50 mt-1.5 rounded-xl bg-[#090f1d] border border-white/10 shadow-2xl overflow-hidden p-1"
+          {/* ────────────────────────────────────────────────────────────
+              1. Inpaint & Replace Settings
+          ──────────────────────────────────────────────────────────── */}
+          {(activeTool === "inpaint" || activeTool === "replace") && (
+            <div className="space-y-6">
+              {/* AI Model Selection */}
+              <div className="space-y-2">
+                <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest block">
+                  AI Generation Model
+                </span>
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setModelOpen(!modelOpen)}
+                    className="w-full flex items-center justify-between gap-2.5 px-4 py-3 rounded-xl bg-white/[0.02] border border-white/10 hover:border-white/15 hover:bg-white/[0.04] transition-all text-left text-sm"
                   >
-                    {EDIT_MODELS.map((model) => (
-                      <button
-                        key={model.id}
-                        type="button"
-                        onClick={() => {
-                          setSelectedModel(model);
-                          setModelOpen(false);
-                        }}
-                        className={cn(
-                          "w-full px-3.5 py-2.5 rounded-lg text-left transition-colors flex items-center justify-between gap-2",
-                          selectedModel.id === model.id ? "bg-white/[0.05] text-white" : "hover:bg-white/[0.02] text-zinc-400"
-                        )}
-                      >
-                        <div className="min-w-0">
-                          <div className="text-xs font-bold">{model.label}</div>
-                          <div className="text-[9px] text-zinc-500 mt-0.5">{model.sublabel}</div>
-                        </div>
-                        {model.badge && (
-                          <span className="bg-white/5 border border-white/10 text-[8px] font-black text-zinc-400 px-1.5 py-0.5 rounded uppercase tracking-wider">
-                            {model.badge}
-                          </span>
-                        )}
-                      </button>
-                    ))}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          </div>
-
-          <div className="border-t border-white/5" />
-
-          {/* Brush Size parameters */}
-          <PremiumSlider
-            label="Brush Radius"
-            value={brushSize}
-            min={4}
-            max={80}
-            step={1}
-            displayValue={`${brushSize}px`}
-            onChange={setBrushSize}
-          />
-
-          {/* Brush Opacity parameters */}
-          <PremiumSlider
-            label="Brush Opacity"
-            value={brushOpacity}
-            min={0.1}
-            max={1.0}
-            step={0.05}
-            displayValue={`${Math.round(brushOpacity * 100)}%`}
-            onChange={setBrushOpacity}
-          />
-
-          {/* Edit Strength slider */}
-          <PremiumSlider
-            label="Edit Strength"
-            value={editStrength}
-            min={0.1}
-            max={1.0}
-            step={0.05}
-            displayValue={editStrength.toFixed(2)}
-            onChange={setEditStrength}
-          />
-
-          <div className="border-t border-white/5" />
-
-          {/* Show Mask Checkbox toggle */}
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest">
-              Show Mask Overlay
-            </span>
-            <button
-              type="button"
-              onClick={() => setShowInlight(!showInlight)}
-              className={cn(
-                "w-11 h-6 rounded-full p-0.5 transition-colors relative border",
-                showInlight ? "bg-cyan-500 border-cyan-500" : "bg-zinc-900 border-white/10"
-              )}
-            >
-              <div
-                className={cn(
-                  "h-4.5 w-4.5 rounded-full bg-white shadow-md transition-transform",
-                  showInlight ? "translate-x-5" : "translate-x-0"
-                )}
-              />
-            </button>
-          </div>
-
-          <div className="border-t border-white/5" />
-
-          {/* Advanced Settings Collapsible Card */}
-          <div className="space-y-2">
-            <button
-              type="button"
-              onClick={() => setAdvancedOpen(!advancedOpen)}
-              className="w-full flex items-center justify-between py-1 text-[11px] font-bold text-zinc-400 uppercase tracking-widest hover:text-zinc-200 transition-colors"
-            >
-              <span>Advanced AI Settings</span>
-              <ChevronDown className={cn("h-3.5 w-3.5 text-zinc-400 transition-transform duration-200", advancedOpen && "rotate-180")} />
-            </button>
-            
-            <AnimatePresence initial={false}>
-              {advancedOpen && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="overflow-hidden space-y-4 pt-2 pb-1"
-                >
-                  {/* Sampling Steps */}
-                  <PremiumSlider
-                    label="Sampling Steps"
-                    value={steps}
-                    min={10}
-                    max={50}
-                    step={1}
-                    displayValue={steps.toString()}
-                    onChange={setSteps}
-                  />
-                  {/* CFG Scale */}
-                  <PremiumSlider
-                    label="CFG Scale"
-                    value={cfg}
-                    min={1.0}
-                    max={20.0}
-                    step={0.5}
-                    displayValue={cfg.toFixed(1)}
-                    onChange={setCfg}
-                  />
-                  {/* Seed */}
-                  <div className="space-y-1.5">
-                    <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block">
-                      Seed
-                    </span>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={seed}
-                        onChange={(e) => setSeed(e.target.value)}
-                        className="flex-1 bg-white/[0.02] border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-zinc-200 font-mono focus:outline-none"
-                      />
-                      <button
-                        type="button"
-                        className="px-2.5 py-1.5 bg-white/5 border border-white/10 rounded-lg text-[10px] font-bold hover:bg-white/10 transition-colors shrink-0"
-                        onClick={() => setSeed(Math.floor(Math.random() * 99999999).toString())}
-                      >
-                        Random
-                      </button>
+                    <div className="min-w-0">
+                      <div className="text-zinc-200 font-bold text-xs truncate">
+                        {selectedModel.label}
+                      </div>
+                      <div className="text-[10px] text-zinc-500 truncate mt-0.5">
+                        {selectedModel.sublabel}
+                      </div>
                     </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {selectedModel.badge && (
+                        <span className="bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider">
+                          {selectedModel.badge}
+                        </span>
+                      )}
+                      <ChevronDown className={cn("h-3.5 w-3.5 text-zinc-400 transition-transform duration-200", modelOpen && "rotate-180")} />
+                    </div>
+                  </button>
+
+                  <AnimatePresence>
+                    {modelOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -5 }}
+                        className="absolute top-full left-0 right-0 z-50 mt-1.5 rounded-xl bg-[#090f1d] border border-white/10 shadow-2xl overflow-hidden p-1"
+                      >
+                        {EDIT_MODELS.map((model) => (
+                          <button
+                            key={model.id}
+                            type="button"
+                            onClick={() => {
+                              setSelectedModel(model);
+                              setModelOpen(false);
+                            }}
+                            className={cn(
+                              "w-full px-3.5 py-2.5 rounded-lg text-left transition-colors flex items-center justify-between gap-2",
+                              selectedModel.id === model.id ? "bg-white/[0.05] text-white" : "hover:bg-white/[0.02] text-zinc-400"
+                            )}
+                          >
+                            <div className="min-w-0">
+                              <div className="text-xs font-bold">{model.label}</div>
+                              <div className="text-[9px] text-zinc-500 mt-0.5">{model.sublabel}</div>
+                            </div>
+                            {model.badge && (
+                              <span className="bg-white/5 border border-white/10 text-[8px] font-black text-zinc-400 px-1.5 py-0.5 rounded uppercase tracking-wider">
+                                {model.badge}
+                              </span>
+                            )}
+                          </button>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </div>
+
+              <div className="border-t border-white/5" />
+
+              {/* Brush Settings */}
+              <PremiumSlider
+                label="Brush Radius"
+                value={brushSize}
+                min={4}
+                max={80}
+                step={1}
+                displayValue={`${brushSize}px`}
+                onChange={setBrushSize}
+              />
+
+              <PremiumSlider
+                label="Brush Opacity"
+                value={brushOpacity}
+                min={0.1}
+                max={1.0}
+                step={0.05}
+                displayValue={`${Math.round(brushOpacity * 100)}%`}
+                onChange={setBrushOpacity}
+              />
+
+              <PremiumSlider
+                label="Edit Strength"
+                value={editStrength}
+                min={0.1}
+                max={1.0}
+                step={0.05}
+                displayValue={editStrength.toFixed(2)}
+                onChange={setEditStrength}
+              />
+
+              <div className="border-t border-white/5" />
+
+              {/* Show Mask Overlay toggle */}
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest">
+                  Show Mask Overlay
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowInlight(!showInlight)}
+                  className={cn(
+                    "w-11 h-6 rounded-full p-0.5 transition-colors relative border",
+                    showInlight ? "bg-cyan-500 border-cyan-500" : "bg-zinc-900 border-white/10"
+                  )}
+                >
+                  <div
+                    className={cn(
+                      "h-4.5 w-4.5 rounded-full bg-white shadow-md transition-transform",
+                      showInlight ? "translate-x-5" : "translate-x-0"
+                    )}
+                  />
+                </button>
+              </div>
+
+              <div className="border-t border-white/5" />
+
+              {/* Advanced Settings */}
+              <div className="space-y-2">
+                <button
+                  type="button"
+                  onClick={() => setAdvancedOpen(!advancedOpen)}
+                  className="w-full flex items-center justify-between py-1 text-[11px] font-bold text-zinc-400 uppercase tracking-widest hover:text-zinc-200 transition-colors"
+                >
+                  <span>Advanced AI Settings</span>
+                  <ChevronDown className={cn("h-3.5 w-3.5 text-zinc-400 transition-transform duration-200", advancedOpen && "rotate-180")} />
+                </button>
+                
+                <AnimatePresence initial={false}>
+                  {advancedOpen && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="overflow-hidden space-y-4 pt-2 pb-1"
+                    >
+                      <PremiumSlider
+                        label="Sampling Steps"
+                        value={steps}
+                        min={10}
+                        max={50}
+                        step={1}
+                        displayValue={steps.toString()}
+                        onChange={setSteps}
+                      />
+                      <PremiumSlider
+                        label="CFG Scale"
+                        value={cfg}
+                        min={1.0}
+                        max={20.0}
+                        step={0.5}
+                        displayValue={cfg.toFixed(1)}
+                        onChange={setCfg}
+                      />
+                      <div className="space-y-1.5">
+                        <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block">
+                          Seed
+                        </span>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={seed}
+                            onChange={(e) => setSeed(e.target.value)}
+                            className="flex-1 bg-white/[0.02] border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-zinc-200 font-mono focus:outline-none"
+                          />
+                          <button
+                            type="button"
+                            className="px-2.5 py-1.5 bg-white/5 border border-white/10 rounded-lg text-[10px] font-bold hover:bg-white/10 transition-colors shrink-0"
+                            onClick={() => setSeed(Math.floor(Math.random() * 99999999).toString())}
+                          >
+                            Random
+                          </button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
+          )}
+
+          {/* ────────────────────────────────────────────────────────────
+              2. AI Relight Settings
+          ──────────────────────────────────────────────────────────── */}
+          {activeTool === "relight" && (
+            <div className="space-y-6">
+              {/* Light Source Angle */}
+              <PremiumSlider
+                label="Light Source Angle"
+                value={lightAngle}
+                min={0}
+                max={360}
+                step={5}
+                displayValue={`${lightAngle}°`}
+                onChange={setLightAngle}
+              />
+
+              {/* Light Intensity */}
+              <PremiumSlider
+                label="Light Intensity"
+                value={lightIntensity}
+                min={0.1}
+                max={2.0}
+                step={0.05}
+                displayValue={`${Math.round(lightIntensity * 100)}%`}
+                onChange={setLightIntensity}
+              />
+
+              {/* Light Color temperature */}
+              <div className="space-y-2.5">
+                <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest block">
+                  Light Color
+                </span>
+                {/* Quick Swatches */}
+                <div className="flex flex-wrap gap-2.5 items-center">
+                  {[
+                    { name: "Warm Yellow", hex: "#fcd34d" },
+                    { name: "Cool White", hex: "#f8fafc" },
+                    { name: "Neon Rose", hex: "#f43f5e" },
+                    { name: "Cyber Cyan", hex: "#06b6d4" },
+                    { name: "Lime Green", hex: "#10b981" }
+                  ].map((color) => (
+                    <button
+                      key={color.hex}
+                      type="button"
+                      onClick={() => setLightColor(color.hex)}
+                      className={cn(
+                        "h-6 w-6 rounded-full border transition-all transform active:scale-95",
+                        lightColor === color.hex ? "border-white ring-2 ring-cyan-500" : "border-transparent hover:scale-105"
+                      )}
+                      style={{ backgroundColor: color.hex }}
+                      title={color.name}
+                    />
+                  ))}
+                  {/* Custom Picker */}
+                  <input
+                    type="color"
+                    value={lightColor}
+                    onChange={(e) => setLightColor(e.target.value)}
+                    className="h-7 w-7 rounded-md cursor-pointer bg-transparent border-0"
+                    title="Custom color"
+                  />
+                </div>
+              </div>
+
+              <div className="border-t border-white/5" />
+
+              <PremiumSlider
+                label="Relight Effect Strength"
+                value={editStrength}
+                min={0.1}
+                max={1.0}
+                step={0.05}
+                displayValue={editStrength.toFixed(2)}
+                onChange={setEditStrength}
+              />
+            </div>
+          )}
+
+          {/* ────────────────────────────────────────────────────────────
+              3. Background Remove Settings
+          ──────────────────────────────────────────────────────────── */}
+          {activeTool === "bgremove" && (
+            <div className="space-y-6">
+              {/* Output Format */}
+              <div className="space-y-2">
+                <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest block">
+                  Output Format
+                </span>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { id: "png", label: "PNG", sub: "Transparent backing" },
+                    { id: "jpg", label: "JPEG", sub: "Solid back (White)" }
+                  ].map((fmt) => (
+                    <button
+                      key={fmt.id}
+                      type="button"
+                      onClick={() => setBgFormat(fmt.id)}
+                      className={cn(
+                        "rounded-xl border p-2.5 text-left transition-all text-xs flex flex-col gap-0.5",
+                        bgFormat === fmt.id
+                          ? "border-rose-500 bg-rose-500/10 text-white"
+                          : "border-white/10 bg-white/[0.02] text-zinc-400 hover:bg-white/[0.04]"
+                      )}
+                    >
+                      <span className="font-bold">{fmt.label}</span>
+                      <span className="text-[9px] text-zinc-500">{fmt.sub}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Edge Feather */}
+              <PremiumSlider
+                label="Edge Feathering"
+                value={bgFeather}
+                min={0}
+                max={10}
+                step={1}
+                displayValue={`${bgFeather}px`}
+                onChange={setBgFeather}
+              />
+            </div>
+          )}
+
+          {/* ────────────────────────────────────────────────────────────
+              4. Expand & Outpaint Settings
+          ──────────────────────────────────────────────────────────── */}
+          {activeTool === "outpaint" && (
+            <div className="space-y-6">
+              {/* Outpaint directions */}
+              <div className="space-y-2">
+                <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest block">
+                  Expansion direction
+                </span>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { id: "all", label: "All Sides", icon: LayoutGrid },
+                    { id: "top", label: "Top", icon: ArrowUp },
+                    { id: "bottom", label: "Bottom", icon: ArrowDown },
+                    { id: "left", label: "Left", icon: ArrowLeft },
+                    { id: "right", label: "Right", icon: ArrowRight }
+                  ].map((dir) => (
+                    <button
+                      key={dir.id}
+                      type="button"
+                      onClick={() => setOutpaintDirection(dir.id)}
+                      className={cn(
+                        "rounded-xl border p-2 flex flex-col items-center justify-center gap-1.5 transition-all text-xs font-semibold select-none",
+                        outpaintDirection === dir.id
+                          ? "border-emerald-500 bg-emerald-500/10 text-white"
+                          : "border-white/10 bg-white/[0.02] text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-200"
+                      )}
+                    >
+                      <dir.icon className="h-4 w-4 shrink-0" />
+                      <span className="text-[9px]">{dir.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Outpaint margin */}
+              <div className="space-y-2">
+                <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest block">
+                  Outpaint Margin
+                </span>
+                <div className="grid grid-cols-3 gap-2">
+                  {[10, 25, 50].map((margin) => (
+                    <button
+                      key={margin}
+                      type="button"
+                      onClick={() => setOutpaintMargin(margin)}
+                      className={cn(
+                        "rounded-xl border py-2 text-center text-xs font-bold transition-all",
+                        outpaintMargin === margin
+                          ? "border-emerald-500 bg-emerald-500/10 text-white"
+                          : "border-white/10 bg-white/[0.02] text-zinc-400 hover:bg-white/[0.04]"
+                      )}
+                    >
+                      +{margin}%
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="border-t border-white/5" />
+
+              <PremiumSlider
+                label="Expansion Quality"
+                value={editStrength}
+                min={0.1}
+                max={1.0}
+                step={0.05}
+                displayValue={editStrength.toFixed(2)}
+                onChange={setEditStrength}
+              />
+            </div>
+          )}
+
+          {/* ────────────────────────────────────────────────────────────
+              5. Style Transfer Settings
+          ──────────────────────────────────────────────────────────── */}
+          {activeTool === "style" && (
+            <div className="space-y-6">
+              {/* Presets Gallery */}
+              <div className="space-y-2">
+                <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest block">
+                  Artistic Style Presets
+                </span>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { id: "cyberpunk", label: "Cyberpunk 🌆" },
+                    { id: "anime", label: "Anime 🌸" },
+                    { id: "oil_painting", label: "Oil Paint 🎨" },
+                    { id: "cinematic", label: "Cinematic 🎬" },
+                    { id: "watercolor", label: "Watercolor 💧" }
+                  ].map((preset) => (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      onClick={() => setStylePreset(preset.id)}
+                      className={cn(
+                        "rounded-xl border p-3 text-center transition-all text-xs font-bold",
+                        stylePreset === preset.id
+                          ? "border-pink-500 bg-pink-500/10 text-white"
+                          : "border-white/10 bg-white/[0.02] text-zinc-400 hover:bg-white/[0.04]"
+                      )}
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Style Influence */}
+              <PremiumSlider
+                label="Style Influence"
+                value={styleStrength}
+                min={0.1}
+                max={1.0}
+                step={0.05}
+                displayValue={`${Math.round(styleStrength * 100)}%`}
+                onChange={setStyleStrength}
+              />
+            </div>
+          )}
+
+          {/* ────────────────────────────────────────────────────────────
+              6. Draw to Edit Settings
+          ──────────────────────────────────────────────────────────── */}
+          {activeTool === "draw" && (
+            <div className="space-y-6">
+              {/* Custom Brush Color Palette */}
+              <div className="space-y-2.5">
+                <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest block">
+                  Sketching Color
+                </span>
+                <div className="flex flex-wrap gap-2.5 items-center">
+                  {[
+                    "#ff0000", // Red
+                    "#f97316", // Orange
+                    "#eab308", // Yellow
+                    "#22c55e", // Green
+                    "#06b6d4", // Cyan
+                    "#3b82f6", // Blue
+                    "#a855f7", // Violet
+                    "#ffffff", // White
+                    "#000000"  // Black
+                  ].map((color) => (
+                    <button
+                      key={color}
+                      type="button"
+                      onClick={() => setDrawColor(color)}
+                      className={cn(
+                        "h-6 w-6 rounded-full border transition-all transform active:scale-95",
+                        drawColor === color ? "border-white ring-2 ring-blue-500" : "border-transparent hover:scale-105"
+                      )}
+                      style={{ backgroundColor: color }}
+                    />
+                  ))}
+                  {/* Custom Picker */}
+                  <input
+                    type="color"
+                    value={drawColor}
+                    onChange={(e) => setDrawColor(e.target.value)}
+                    className="h-7 w-7 bg-transparent border-0 cursor-pointer"
+                  />
+                </div>
+              </div>
+
+              <div className="border-t border-white/5" />
+
+              {/* Brush radius */}
+              <PremiumSlider
+                label="Sketch Pen Size"
+                value={brushSize}
+                min={4}
+                max={80}
+                step={1}
+                displayValue={`${brushSize}px`}
+                onChange={setBrushSize}
+              />
+
+              <PremiumSlider
+                label="Sketch Opacity"
+                value={brushOpacity}
+                min={0.1}
+                max={1.0}
+                step={0.05}
+                displayValue={`${Math.round(brushOpacity * 100)}%`}
+                onChange={setBrushOpacity}
+              />
+
+              {/* Edit Strength */}
+              <PremiumSlider
+                label="Drawing Influence"
+                value={editStrength}
+                min={0.1}
+                max={1.0}
+                step={0.05}
+                displayValue={editStrength.toFixed(2)}
+                onChange={setEditStrength}
+              />
+            </div>
+          )}
+
+          {/* ────────────────────────────────────────────────────────────
+              7. Motion Track Edit Settings
+          ──────────────────────────────────────────────────────────── */}
+          {activeTool === "motion" && (
+            <div className="space-y-6">
+              {/* Motion Direction */}
+              <div className="space-y-2">
+                <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest block">
+                  Motion Direction
+                </span>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { id: "forward", label: "Forward" },
+                    { id: "backward", label: "Backward" },
+                    { id: "circular", label: "Circular" }
+                  ].map((dir) => (
+                    <button
+                      key={dir.id}
+                      type="button"
+                      onClick={() => setMotionDirection(dir.id)}
+                      className={cn(
+                        "rounded-xl border py-2.5 text-center text-xs font-bold transition-all",
+                        motionDirection === dir.id
+                          ? "border-orange-500 bg-orange-500/10 text-white"
+                          : "border-white/10 bg-white/[0.02] text-zinc-400 hover:bg-white/[0.04]"
+                      )}
+                    >
+                      {dir.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Motion Speed */}
+              <PremiumSlider
+                label="Motion Speed"
+                value={motionSpeed}
+                min={1}
+                max={10}
+                step={1}
+                displayValue={motionSpeed.toString()}
+                onChange={setMotionSpeed}
+              />
+            </div>
+          )}
+
+          {/* ────────────────────────────────────────────────────────────
+              8. AI Upscale & Enhance Settings
+          ──────────────────────────────────────────────────────────── */}
+          {activeTool === "upscale" && (
+            <div className="space-y-6">
+              {/* Upscale factor */}
+              <div className="space-y-2">
+                <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest block">
+                  Upscale Factor
+                </span>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { id: "2", label: "2x", desc: "Medium detail" },
+                    { id: "4", label: "4x", desc: "HD Quality" },
+                    { id: "8", label: "8x", desc: "Ultra HD (8k)" }
+                  ].map((fac) => (
+                    <button
+                      key={fac.id}
+                      type="button"
+                      onClick={() => setUpscaleFactor(fac.id)}
+                      className={cn(
+                        "rounded-xl border p-2 flex flex-col gap-0.5 text-left transition-all",
+                        upscaleFactor === fac.id
+                          ? "border-teal-500 bg-teal-500/10 text-white"
+                          : "border-white/10 bg-white/[0.02] text-zinc-400 hover:bg-white/[0.04]"
+                      )}
+                    >
+                      <span className="text-xs font-bold">{fac.label}</span>
+                      <span className="text-[8px] text-zinc-500">{fac.desc}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Denoise Strength */}
+              <PremiumSlider
+                label="Denoise Strength"
+                value={upscaleDenoise}
+                min={0.0}
+                max={1.0}
+                step={0.05}
+                displayValue={`${Math.round(upscaleDenoise * 100)}%`}
+                onChange={setUpscaleDenoise}
+              />
+
+              <div className="border-t border-white/5" />
+
+              {/* Face enhance toggle */}
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest">
+                  Face Details Enhance
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setUpscaleFaceEnhance(!upscaleFaceEnhance)}
+                  className={cn(
+                    "w-11 h-6 rounded-full p-0.5 transition-colors relative border",
+                    upscaleFaceEnhance ? "bg-teal-500 border-teal-500" : "bg-zinc-900 border-white/10"
+                  )}
+                >
+                  <div
+                    className={cn(
+                      "h-4.5 w-4.5 rounded-full bg-white shadow-md transition-transform",
+                      upscaleFaceEnhance ? "translate-x-5" : "translate-x-0"
+                    )}
+                  />
+                </button>
+              </div>
+            </div>
+          )}
 
           <div className="border-t border-white/5" />
 

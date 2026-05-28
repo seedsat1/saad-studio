@@ -13,7 +13,7 @@ import {
   UserCheck,
   Camera,
   Plus,
-  Sliders,
+  Palette,
   Mic,
   ChevronDown,
   ChevronUp,
@@ -22,6 +22,9 @@ import {
   MessageSquare,
   Download,
   Trash2,
+  AudioLines,
+  Drama,
+  Check,
 } from "lucide-react";
 import { VIDEO_MODEL_REGISTRY, type WaveSpeedVideoModel } from "@/lib/video-model-registry";
 import { getVideoCreditsByRoute } from "@/lib/credit-pricing";
@@ -398,6 +401,202 @@ const AVAILABLE_GENRES = [
   { id: "Comedy", arabicName: "Comedy", desc: "Bright saturated colors, warm daylit sets, and funny whimsical expressions.", color: "radial-gradient(circle at center, #eab308 15%, #020617 80%)" }
 ];
 
+const SCENE_TYPES = [
+  {
+    id: "cinematic-dialogue",
+    label: "Cinematic Dialogue",
+    shortLabel: "Dialogue",
+    description: "Character-driven scene with blocking, reactions, and spoken lines.",
+    promptPlaceholder: "Describe the location, characters, conflict, and emotional beat...",
+    dialoguePlaceholder: "Write the spoken dialogue or exchange between characters...",
+    productionDirection: "Treat this as a character dialogue scene. Prioritize actor blocking, reaction shots, conversational pacing, and clear spoken performance.",
+  },
+  {
+    id: "program-host",
+    label: "TV / Program Host",
+    shortLabel: "Host",
+    description: "Presenter, studio host, explainer, interview, or direct-to-camera segment.",
+    promptPlaceholder: "Describe the studio, presenter position, topic, screen graphics, and camera setup...",
+    dialoguePlaceholder: "Write the host script or presenter narration...",
+    productionDirection: "Treat this as a host-led program segment. Prioritize direct-to-camera framing, presenter clarity, studio polish, and readable pacing.",
+  },
+  {
+    id: "documentary",
+    label: "Documentary Narration",
+    shortLabel: "Documentary",
+    description: "Narrated cinematic sequence, historical memory, reportage, or archival mood.",
+    promptPlaceholder: "Describe the documentary subject, environment, archival details, and visual evidence...",
+    dialoguePlaceholder: "Write the narrator voice-over...",
+    productionDirection: "Treat this as documentary storytelling. Prioritize factual visual rhythm, narrator-led pacing, atmospheric inserts, and credible observational detail.",
+  },
+  {
+    id: "action-fight",
+    label: "Action / Fight Scene",
+    shortLabel: "Action",
+    description: "Fight choreography, chase, impact, pursuit, or kinetic physical action.",
+    promptPlaceholder: "Describe the fighters, choreography, terrain, impacts, stakes, and movement path...",
+    dialoguePlaceholder: "Optional shouted line, command, or impact dialogue...",
+    productionDirection: "Treat this as an action sequence. Prioritize choreography clarity, kinetic camera tracking, readable impacts, and spatial continuity.",
+  },
+  {
+    id: "drama-closeup",
+    label: "Drama Close-up",
+    shortLabel: "Drama",
+    description: "Emotional close-up, silence, inner conflict, tears, or intimate performance.",
+    promptPlaceholder: "Describe the character's emotion, face, silence, light, and dramatic turning point...",
+    dialoguePlaceholder: "Write a quiet line, confession, or leave empty for silent drama...",
+    productionDirection: "Treat this as intimate drama. Prioritize close-up performance, silence, micro-expressions, shallow depth of field, and emotional restraint.",
+  },
+  {
+    id: "horror-suspense",
+    label: "Horror / Suspense",
+    shortLabel: "Suspense",
+    description: "Threat, dread, reveal, shadows, tension, or psychological fear.",
+    promptPlaceholder: "Describe the threat, darkness, sound cues, hidden movement, and suspense reveal...",
+    dialoguePlaceholder: "Optional whisper, warning, or fearful line...",
+    productionDirection: "Treat this as suspense cinema. Prioritize controlled darkness, negative space, dread pacing, sound tension, and a clear reveal or withheld threat.",
+  },
+  {
+    id: "commercial-promo",
+    label: "Commercial / Promo",
+    shortLabel: "Promo",
+    description: "Product, brand, venue, offer, trailer, or energetic promotional scene.",
+    promptPlaceholder: "Describe the product or subject, hero shot, setting, audience, and desired premium feel...",
+    dialoguePlaceholder: "Write the tagline, voice-over, or callout line...",
+    productionDirection: "Treat this as a premium promotional spot. Prioritize clean hero framing, brand clarity, polished lighting, and memorable visual beats.",
+  },
+  {
+    id: "historical-epic",
+    label: "Historical / Epic",
+    shortLabel: "Epic",
+    description: "Ancient world, heritage, mythic scale, armies, ruins, or grand storytelling.",
+    promptPlaceholder: "Describe the era, costume, architecture, scale, weather, and heroic stakes...",
+    dialoguePlaceholder: "Write an epic line, oath, narration, or ceremonial speech...",
+    productionDirection: "Treat this as historical epic cinema. Prioritize scale, costume authenticity, monumental composition, atmospheric depth, and ceremonial pacing.",
+  },
+] as const;
+
+const COLOR_PALETTE_PRESETS = [
+  {
+    value: "Auto",
+    label: "Auto-LUT",
+    description: "Balanced cinematic color chosen from the scene mood.",
+    swatch: "linear-gradient(135deg, #64748b, #06b6d4)",
+    accent: "#06b6d4",
+  },
+  {
+    value: "Hollywood Teal-Orange",
+    label: "Hollywood Teal-Orange",
+    description: "Warm skin tones against cool teal shadows.",
+    swatch: "linear-gradient(135deg, #0f766e, #f97316)",
+    accent: "#f97316",
+  },
+  {
+    value: "Neo-Noir Shadow",
+    label: "Neo-Noir Shadow",
+    description: "Dense blacks, violet edges, and night-city mystery.",
+    swatch: "linear-gradient(135deg, #111827, #7c3aed)",
+    accent: "#8b5cf6",
+  },
+  {
+    value: "Warm Sun Vintage",
+    label: "Warm Sun Vintage",
+    description: "Amber highlights with soft nostalgic contrast.",
+    swatch: "linear-gradient(135deg, #92400e, #facc15)",
+    accent: "#facc15",
+  },
+  {
+    value: "Cyberpunk Neon",
+    label: "Cyberpunk Neon",
+    description: "Electric cyan, magenta bloom, and synthetic glow.",
+    swatch: "linear-gradient(135deg, #06b6d4, #ec4899)",
+    accent: "#22d3ee",
+  },
+  {
+    value: "Desaturated Iron",
+    label: "Desaturated Iron",
+    description: "Muted steel tones for harsh realism and grit.",
+    swatch: "linear-gradient(135deg, #334155, #94a3b8)",
+    accent: "#94a3b8",
+  },
+];
+
+const LIGHTING_PRESETS = [
+  {
+    value: "Auto",
+    label: "Auto-Light",
+    description: "Scene-aware lighting that follows the selected mood.",
+    swatch: "linear-gradient(135deg, #64748b, #e2e8f0)",
+    accent: "#e2e8f0",
+  },
+  {
+    value: "Volumetric Foggy",
+    label: "Volumetric Foggy",
+    description: "Visible beams, haze layers, and atmospheric depth.",
+    swatch: "linear-gradient(135deg, #475569, #c4b5fd)",
+    accent: "#c4b5fd",
+  },
+  {
+    value: "High-Contrast Chiaroscuro",
+    label: "High-Contrast Chiaroscuro",
+    description: "Hard pools of light with sculpted dramatic shadows.",
+    swatch: "linear-gradient(135deg, #020617, #f8fafc)",
+    accent: "#f8fafc",
+  },
+  {
+    value: "Golden Sunset",
+    label: "Golden Sunset",
+    description: "Low warm light, rim glow, and cinematic dusk.",
+    swatch: "linear-gradient(135deg, #b45309, #fde68a)",
+    accent: "#fbbf24",
+  },
+  {
+    value: "Low-key Midnight",
+    label: "Low-key Midnight",
+    description: "Restrained highlights and deep night exposure.",
+    swatch: "linear-gradient(135deg, #020617, #1e3a8a)",
+    accent: "#60a5fa",
+  },
+];
+
+const CAMERA_MOVESET_PRESETS = [
+  {
+    value: "Auto",
+    label: "Auto-Moveset",
+    description: "Motion grammar selected from the scene type.",
+    swatch: "linear-gradient(135deg, #64748b, #a78bfa)",
+    accent: "#a78bfa",
+  },
+  {
+    value: "Steady Grounded",
+    label: "Steady Grounded",
+    description: "Calm controlled moves for serious cinematic staging.",
+    swatch: "linear-gradient(135deg, #0f172a, #22c55e)",
+    accent: "#22c55e",
+  },
+  {
+    value: "Documentary Jitter",
+    label: "Documentary Jitter",
+    description: "Subtle handheld realism with human camera energy.",
+    swatch: "linear-gradient(135deg, #1f2937, #f59e0b)",
+    accent: "#f59e0b",
+  },
+  {
+    value: "Dreamy Flying",
+    label: "Dreamy Flying",
+    description: "Floating movement, soft drift, and lyrical travel.",
+    swatch: "linear-gradient(135deg, #0891b2, #c084fc)",
+    accent: "#67e8f9",
+  },
+  {
+    value: "Suspense Snapping",
+    label: "Suspense Snapping",
+    description: "Tense punch-ins, sudden stops, and thriller timing.",
+    swatch: "linear-gradient(135deg, #7f1d1d, #f43f5e)",
+    accent: "#fb7185",
+  },
+];
+
 // ─────────────────────────────────────────────────────────────────────────────
 // CINEMA STUDIO — CURATED FLAGSHIP LINEUP (7 models)
 // Each entry verified directly against its official source:
@@ -504,11 +703,63 @@ const GOOGLE_TTS_VOICES = [
   ["Sadaltager", "Knowledgeable"],
   ["Sulafat", "Warm"],
 ] as const;
+
+type VoicePersona = "male" | "female" | "senior" | "child" | "neutral";
+
+const VOICE_PERSONA_META: Record<VoicePersona, {
+  label: string;
+  ageLabel: string;
+  imageUrl: string;
+  badgeClass: string;
+}> = {
+  male: {
+    label: "Male",
+    ageLabel: "Adult",
+    imageUrl: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=160&auto=format&fit=crop",
+    badgeClass: "border-sky-400/40 bg-sky-400/10 text-sky-200",
+  },
+  female: {
+    label: "Female",
+    ageLabel: "Adult",
+    imageUrl: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=160&auto=format&fit=crop",
+    badgeClass: "border-pink-400/40 bg-pink-400/10 text-pink-200",
+  },
+  senior: {
+    label: "Senior",
+    ageLabel: "Mature",
+    imageUrl: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=80&w=160&auto=format&fit=crop",
+    badgeClass: "border-amber-300/40 bg-amber-300/10 text-amber-100",
+  },
+  child: {
+    label: "Child",
+    ageLabel: "Youthful",
+    imageUrl: "https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?q=80&w=160&auto=format&fit=crop",
+    badgeClass: "border-emerald-300/40 bg-emerald-300/10 text-emerald-100",
+  },
+  neutral: {
+    label: "Neutral",
+    ageLabel: "General",
+    imageUrl: "https://images.unsplash.com/photo-1511367461989-f85a21fda167?q=80&w=160&auto=format&fit=crop",
+    badgeClass: "border-violet-300/40 bg-violet-300/10 text-violet-100",
+  },
+};
+
+const getVoicePersonaMeta = (persona?: VoicePersona) => VOICE_PERSONA_META[persona ?? "neutral"] ?? VOICE_PERSONA_META.neutral;
+
+const inferGoogleVoicePersona = (voiceId: string, tone: string): VoicePersona => {
+  const hint = `${voiceId} ${tone}`.toLowerCase();
+  if (/mature|knowledgeable|rasalgethi|gacrux|sadaltager/.test(hint)) return "senior";
+  if (/youthful|bright|upbeat|lively|leda|autonoe|laomedeia|sadachbia/.test(hint)) return "child";
+  if (/soft|gentle|breezy|smooth|easy-going|aoede|achernar|vindemiatrix|sulafat|despina|callirrhoe/.test(hint)) return "female";
+  if (/firm|gravelly|breathy|orus|algenib|alnilam|enceladus|iapetus/.test(hint)) return "male";
+  return "neutral";
+};
+
 const VOICE_PRESETS = [
-  { label: "Gulf Male Narrator", voiceId: "pNInz6obpgDQGcFmaJgB", desc: "Arabic Gulf male tone for confident narration", lang: "AR", provider: "ElevenLabs", model: ELEVENLABS_TTS_MODEL },
-  { label: "Egyptian Male Storyteller", voiceId: "nPczCjzI2devNBz1zQrb", desc: "Warm Arabic/Egyptian-style storyteller", lang: "AR", provider: "ElevenLabs", model: ELEVENLABS_TTS_MODEL },
-  { label: "Levantine Male Dialogue", voiceId: "onwK4e9ZLuTAKqWW03F9", desc: "Grounded Arabic dialogue voice", lang: "AR", provider: "ElevenLabs", model: ELEVENLABS_TTS_MODEL },
-  { label: "Arabic Classical Female", voiceId: "Z3R5wn05IrDiVCyEkUrK", desc: "Clear modern standard Arabic female delivery", lang: "AR", provider: "ElevenLabs", model: ELEVENLABS_TTS_MODEL },
+  { label: "Gulf Male Narrator", voiceId: "pNInz6obpgDQGcFmaJgB", desc: "Arabic Gulf male tone for confident narration", lang: "AR", provider: "ElevenLabs", model: ELEVENLABS_TTS_MODEL, persona: "male" as const },
+  { label: "Egyptian Male Storyteller", voiceId: "nPczCjzI2devNBz1zQrb", desc: "Warm Arabic/Egyptian-style storyteller", lang: "AR", provider: "ElevenLabs", model: ELEVENLABS_TTS_MODEL, persona: "male" as const },
+  { label: "Levantine Male Dialogue", voiceId: "onwK4e9ZLuTAKqWW03F9", desc: "Grounded Arabic dialogue voice", lang: "AR", provider: "ElevenLabs", model: ELEVENLABS_TTS_MODEL, persona: "male" as const },
+  { label: "Arabic Classical Female", voiceId: "Z3R5wn05IrDiVCyEkUrK", desc: "Clear modern standard Arabic female delivery", lang: "AR", provider: "ElevenLabs", model: ELEVENLABS_TTS_MODEL, persona: "female" as const },
   ...GOOGLE_TTS_VOICES.map(([voiceId, tone]) => ({
     label: `Google ${voiceId}`,
     voiceId,
@@ -516,11 +767,12 @@ const VOICE_PRESETS = [
     lang: "AR/MULTI",
     provider: "Google",
     model: GOOGLE_TTS_MODEL,
+    persona: inferGoogleVoicePersona(voiceId, tone),
   })),
-  { label: "Child Voice", voiceId: "pPdl9cQBQq4p6mRkZy2Z", desc: "Bright youthful child-like tone", lang: "MULTI", provider: "ElevenLabs", model: ELEVENLABS_TTS_MODEL },
-  { label: "Documentary Narrator", voiceId: "DGTOOUoGpoP6UZ9uSWfA", desc: "Deep documentary narration voice", lang: "MULTI", provider: "ElevenLabs", model: ELEVENLABS_TTS_MODEL },
-  { label: "Classic Confident Female", voiceId: "21m00Tcm4TlvDq8ikWAM", desc: "Crisp confident female narration", lang: "EN", provider: "ElevenLabs", model: ELEVENLABS_TTS_MODEL },
-  { label: "Deep Trailer Male", voiceId: "N2lVS1w4EtoT3dr4eOWO", desc: "Trailer-style low cinematic presence", lang: "EN", provider: "ElevenLabs", model: ELEVENLABS_TTS_MODEL }
+  { label: "Child Voice", voiceId: "pPdl9cQBQq4p6mRkZy2Z", desc: "Bright youthful child-like tone", lang: "MULTI", provider: "ElevenLabs", model: ELEVENLABS_TTS_MODEL, persona: "child" as const },
+  { label: "Documentary Narrator", voiceId: "DGTOOUoGpoP6UZ9uSWfA", desc: "Deep documentary narration voice", lang: "MULTI", provider: "ElevenLabs", model: ELEVENLABS_TTS_MODEL, persona: "senior" as const },
+  { label: "Classic Confident Female", voiceId: "21m00Tcm4TlvDq8ikWAM", desc: "Crisp confident female narration", lang: "EN", provider: "ElevenLabs", model: ELEVENLABS_TTS_MODEL, persona: "female" as const },
+  { label: "Deep Trailer Male", voiceId: "N2lVS1w4EtoT3dr4eOWO", desc: "Trailer-style low cinematic presence", lang: "EN", provider: "ElevenLabs", model: ELEVENLABS_TTS_MODEL, persona: "male" as const }
 ];
 
 const SPEED_OPTIONS = [
@@ -602,8 +854,9 @@ const getShortVoice = (voice: string): string => {
 export default function App() {
   const [castingActors, setCastingActors] = useState(INITIAL_CASTING_CHARACTERS);
   const [selectedModelId, setSelectedModelId] = useState(FALLBACK_CINEMA_MODEL?.id ?? "kling-v3.0-pro-t2v");
-  const [activeDropdown, setActiveDropdown] = useState<"model" | "duration" | "resolution" | "ratio" | "speed" | null>(null);
+  const [activeDropdown, setActiveDropdown] = useState<"sceneType" | "model" | "duration" | "resolution" | "ratio" | "speed" | null>(null);
   const [selectedCharId, setSelectedCharId] = useState("char_1");
+  const [selectedSceneType, setSelectedSceneType] = useState<(typeof SCENE_TYPES)[number]["id"]>("cinematic-dialogue");
   const [selectedGenre, setSelectedGenre] = useState("Noir");
   
   // Custom camera parameters states
@@ -709,8 +962,12 @@ export default function App() {
   ]);
 
   const currentActor = castingActors.find((c) => c.id === selectedCharId) || castingActors[0];
+  const activeSceneType = SCENE_TYPES.find((type) => type.id === selectedSceneType) ?? SCENE_TYPES[0];
   const activeModelObj = CINEMA_MODELS.find((m) => m.id === selectedModelId) || FALLBACK_CINEMA_MODEL;
   const activeGenreObj = AVAILABLE_GENRES.find((g) => g.id === selectedGenre) || AVAILABLE_GENRES[0];
+  const activePaletteObj = COLOR_PALETTE_PRESETS.find((item) => item.value === colorPalette) ?? COLOR_PALETTE_PRESETS[0];
+  const activeLightingObj = LIGHTING_PRESETS.find((item) => item.value === lightingStyle) ?? LIGHTING_PRESETS[0];
+  const activeMovesetObj = CAMERA_MOVESET_PRESETS.find((item) => item.value === cameraMovesetStyle) ?? CAMERA_MOVESET_PRESETS[0];
   const activeScene = activeScenario?.scenes?.[0] ?? null;
   const durationOptions = useMemo(() => buildDurationOptions(activeModelObj), [activeModelObj]);
   const resolutionOptions = useMemo(() => buildResolutionOptions(activeModelObj), [activeModelObj]);
@@ -720,6 +977,7 @@ export default function App() {
   const selectedVoiceId = currentActor?.voiceId || selectedVoicePreset?.voiceId || VOICE_PRESETS[0].voiceId;
   const selectedVoiceModel = currentActor?.voiceModel || selectedVoicePreset?.model || VOICE_PRESETS[0].model;
   const selectedVoiceDirection = currentActor?.voice || selectedVoicePreset?.label || "Natural cinematic voice";
+  const selectedVoicePersona = getVoicePersonaMeta(selectedVoicePreset?.persona);
   // Fallback estimate used until the first /api/pricing/quote response
   // returns. Same numbers as the legacy client-side estimator.
   const fallbackEstimate = useMemo(
@@ -1151,7 +1409,7 @@ export default function App() {
     if (!trimmed) return;
     setCastingActors((prev) =>
       prev.map((actor) =>
-        actor.id === actorId ? { ...actor, voice: trimmed } : actor,
+        actor.id === actorId ? { ...actor, voice: trimmed, voiceId: "", voiceModel: "" } : actor,
       ),
     );
   };
@@ -1272,6 +1530,8 @@ export default function App() {
         body: JSON.stringify({
           prompt: prompt,
           dialogueText: dialogueText,
+          sceneType: activeSceneType.label,
+          sceneTypeDirection: activeSceneType.productionDirection,
           genre: selectedGenre,
           cameraMovement: cameraMovement,
           lensType: lensType,
@@ -2258,7 +2518,59 @@ export default function App() {
 
           {/* DYNAMIC SELECTION STATUS LABELS/PILLS ROW */}
           <div className="max-w-[850px] mx-auto w-full mb-3 flex flex-wrap items-center justify-center gap-2 pointer-events-auto">
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setActiveDropdown(activeDropdown === "sceneType" ? null : "sceneType")}
+                className={`px-3 py-1.5 rounded-full border text-[12px] font-bold flex items-center gap-1.5 transition-all duration-200 outline-none backdrop-blur-md ${
+                  activeDropdown === "sceneType"
+                    ? "bg-[#1e293b] text-[#67e8f9] border-[#06b6d4]/60 shadow-lg shadow-[#06b6d4]/10"
+                    : "bg-[#1e293b]/70 border-[#1e293b] hover:bg-[#1e293b] hover:border-[#06b6d4] text-[#e2e8f0] hover:text-white hover:-translate-y-px"
+                }`}
+              >
+                <Film size={11} className="text-[#06b6d4]" />
+                <span>Scene: {activeSceneType.shortLabel}</span>
+                <ChevronDown size={10} className={`text-[#94a3b8] transition-transform ${activeDropdown === "sceneType" ? "rotate-180" : ""}`} />
+              </button>
+
+              {activeDropdown === "sceneType" && (
+                <div className="absolute bottom-9 left-1/2 -translate-x-1/2 w-80 max-h-[360px] overflow-y-auto bg-[#1e293b] border border-[#06b6d4]/60 rounded-xl p-2 shadow-2xl shadow-black/45 z-50 text-left font-sans">
+                  <div className="px-2 pb-2 mb-2 border-b border-[#334155]">
+                    <div className="text-[11px] uppercase tracking-[0.18em] text-[#06b6d4] font-mono font-bold">Scene Type</div>
+                    <div className="text-xs text-[#94a3b8] mt-1">Choose the production format before rendering.</div>
+                  </div>
+                  <div className="space-y-1">
+                    {SCENE_TYPES.map((type) => {
+                      const isSelected = selectedSceneType === type.id;
+                      return (
+                        <button
+                          key={type.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedSceneType(type.id);
+                            setActiveDropdown(null);
+                          }}
+                          className={`w-full text-left p-2 rounded-lg border transition-colors ${
+                            isSelected
+                              ? "bg-[#06b6d4]/10 border-[#06b6d4]/60 text-white"
+                              : "bg-[#0f172a]/70 border-[#334155] text-[#e2e8f0] hover:bg-[#0f172a] hover:border-[#7c3aed]/60"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-[13px] font-bold">{type.label}</span>
+                            {isSelected && <span className="text-[10px] font-mono text-[#67e8f9]">ACTIVE</span>}
+                          </div>
+                          <p className="mt-1 text-xs text-[#94a3b8] leading-snug">{type.description}</p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+
             <button
+              type="button"
               onClick={() => setActiveModal("genre")}
               className={`px-3 py-1.5 rounded-full border text-[12px] font-bold flex items-center gap-1.5 transition-all duration-200 outline-none backdrop-blur-md ${
                 activeModal === "genre"
@@ -2266,14 +2578,12 @@ export default function App() {
                   : "bg-[#1e293b]/70 border-[#1e293b] hover:bg-[#1e293b] hover:border-[#7c3aed] text-[#e2e8f0] hover:text-white hover:-translate-y-px"
               }`}
             >
-              <div
-                className="w-2 h-2 rounded-full inline-block filter blur-[1px] animate-pulse"
-                style={{ background: activeGenreObj.color }}
-              />
+              <Drama size={12} className="text-[#a78bfa]" />
               <span>Mood</span>
             </button>
 
             <button
+              type="button"
               onClick={() => setActiveModal("style")}
               className={`px-3 py-1.5 rounded-full border text-[12px] font-bold flex items-center gap-1.5 transition-all duration-200 outline-none backdrop-blur-md ${
                 activeModal === "style"
@@ -2281,7 +2591,7 @@ export default function App() {
                   : "bg-[#1e293b]/70 border-[#1e293b] hover:bg-[#1e293b] hover:border-[#7c3aed] text-[#e2e8f0] hover:text-white hover:-translate-y-px"
               }`}
             >
-              <Sliders size={11} className="text-[#06b6d4]" />
+              <Palette size={11} className="text-[#06b6d4]" />
               <span>Grade</span>
             </button>
 
@@ -2322,7 +2632,7 @@ export default function App() {
                   : "bg-[#1e293b]/70 border-[#1e293b] hover:bg-[#1e293b] hover:border-[#7c3aed] text-[#e2e8f0] hover:text-white hover:-translate-y-px"
               }`}
             >
-              <span className="text-[#ec4899] text-[12px]">🎙️</span>
+              <AudioLines size={12} className="text-[#ec4899]" />
               <span>Speak</span>
             </button>
           </div>
@@ -2364,7 +2674,7 @@ export default function App() {
                   type="text"
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
-                  placeholder="Describe the cinematic scene in detail... e.g., A vintage car cruising down the neon-drenched streets under heavy rain"
+                  placeholder={activeSceneType.promptPlaceholder}
                   className="w-full bg-transparent text-sm text-white focus:outline-none placeholder:text-[#64748b] text-left font-sans"
                 />
               </div>
@@ -2396,7 +2706,7 @@ export default function App() {
                   type="text"
                   value={dialogueText}
                   onChange={(e) => setDialogueText(e.target.value)}
-                  placeholder="Voice-dub dialogue or attached subtitles..."
+                  placeholder={activeSceneType.dialoguePlaceholder}
                   className="bg-transparent text-sm text-[#e2e8f0] focus:outline-none placeholder:text-[#64748b] text-left w-[200px] md:w-[320px] font-sans"
                 />
               </div>
@@ -2917,12 +3227,27 @@ export default function App() {
               {/* Header inside popup */}
               <div className="h-12 bg-[#0f172a]/85 border-b border-[#1e293b] px-4 flex items-center justify-between">
                 <span className="text-xs font-bold text-[#f8fafc] flex items-center gap-1.5 uppercase font-mono">
-                  {activeModal === "genre" && "🎭 Genre Studio Settings"}
-                  {activeModal === "style" && "💡 Color & Lighting presets"}
+                  {activeModal === "genre" && (
+                    <>
+                      <Drama size={14} className="text-[#a78bfa]" />
+                      Mood Direction Studio
+                    </>
+                  )}
+                  {activeModal === "style" && (
+                    <>
+                      <Palette size={14} className="text-[#06b6d4]" />
+                      Grade & Lighting Studio
+                    </>
+                  )}
                   {activeModal === "camera" && "🎥 Professional Lens and Movement Matrix"}
                   {activeModal === "casting" && "👥 Studio Casting Room"}
                   {activeModal === "ai_director" && "💬 Smart AI Cinematic Director assistant"}
-                  {activeModal === "voice" && "🎙️ Voice Studio & Dubbing Matrix"}
+                  {activeModal === "voice" && (
+                    <>
+                      <AudioLines size={14} className="text-[#ec4899]" />
+                      Voice Studio & Dubbing Matrix
+                    </>
+                  )}
                 </span>
                 <button 
                   onClick={() => setActiveModal(null)}
@@ -2937,61 +3262,217 @@ export default function App() {
                 
                 {/* A. GENRE SELECT MODAL */}
                 {activeModal === "genre" && (
-                  <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
-                    
-                    {/* Left artistic sphere representation */}
-                    <div className="md:col-span-5 flex flex-col items-center justify-center py-4 bg-[#0f172a]/70 rounded-xl border border-[#1e293b]/60">
-                      <motion.div 
-                        animate={{ 
-                          scale: [1, 1.05, 1],
-                          rotate: [0, 180, 360]
-                        }}
-                        transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-                        className="w-32 h-32 rounded-full filter blur-[24px] opacity-80"
-                        style={{ background: activeGenreObj.color }}
-                      />
-                      <span className="text-[13px] font-mono text-[#94a3b8] mt-4 uppercase">Dynamic Mood Aura</span>
-                      <span className="text-xs font-bold text-center mt-1 text-[#f8fafc]">{activeGenreObj.arabicName}</span>
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-stretch">
+                    <div className="md:col-span-5 bg-[#0f172a]/75 rounded-xl border border-[#1e293b]/70 overflow-hidden">
+                      <div className="relative min-h-[250px] p-5 flex flex-col justify-between">
+                        <div className="absolute inset-0 opacity-80" style={{ background: activeGenreObj.color }} />
+                        <div className="absolute inset-0 bg-[#020617]/75" />
+                        <motion.div
+                          key={selectedGenre}
+                          initial={{ scale: 0.82, opacity: 0.55 }}
+                          animate={{ scale: [0.96, 1.08, 0.96], opacity: 0.9 }}
+                          transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+                          className="absolute left-1/2 top-1/2 h-40 w-40 -translate-x-1/2 -translate-y-1/2 rounded-full blur-2xl"
+                          style={{ background: activeGenreObj.color }}
+                        />
+                        <div className="relative z-10 flex items-center justify-between">
+                          <div className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white shadow-lg shadow-black/30">
+                            <Drama size={20} className="text-[#f8fafc]" />
+                          </div>
+                          <span className="rounded-full border border-white/10 bg-black/30 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-[#cbd5e1]">
+                            Live Mood
+                          </span>
+                        </div>
+                        <div className="relative z-10 mt-12">
+                          <span className="text-[11px] font-mono uppercase tracking-[0.2em] text-[#94a3b8]">Mood Direction</span>
+                          <h3 className="mt-2 text-2xl font-black text-white">{activeGenreObj.arabicName}</h3>
+                          <p className="mt-2 text-sm leading-relaxed text-[#cbd5e1]">{activeGenreObj.desc}</p>
+                        </div>
+                        <div className="relative z-10 mt-5 grid grid-cols-3 gap-2 text-center">
+                          <div className="rounded-lg border border-white/10 bg-black/20 px-2 py-2">
+                            <span className="block text-[10px] uppercase text-[#94a3b8]">Tone</span>
+                            <span className="text-xs font-bold text-white">{selectedGenre}</span>
+                          </div>
+                          <div className="rounded-lg border border-white/10 bg-black/20 px-2 py-2">
+                            <span className="block text-[10px] uppercase text-[#94a3b8]">Scene</span>
+                            <span className="text-xs font-bold text-white">{activeSceneType.shortLabel}</span>
+                          </div>
+                          <div className="rounded-lg border border-white/10 bg-black/20 px-2 py-2">
+                            <span className="block text-[10px] uppercase text-[#94a3b8]">Grade</span>
+                            <span className="text-xs font-bold text-white">{colorPalette}</span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
 
-                    {/* Right scrolling items selection */}
-                    <div className="md:col-span-7 space-y-2 max-h-[290px] overflow-y-auto">
+                    <div className="md:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[330px] overflow-y-auto pr-1">
                       {AVAILABLE_GENRES.map((g) => {
                         const isChosen = selectedGenre === g.id;
                         return (
                           <button
                             key={g.id}
+                            type="button"
                             onClick={() => {
                               setSelectedGenre(g.id);
                               generateClientScene(prompt, dialogueText, cameraMovement, lensType, g.id);
-                              setActiveModal(null);
                             }}
-                            className={`w-full text-left p-3 rounded-lg border flex items-center justify-between gap-3 transition-colors outline-none ${
+                            className={`group relative overflow-hidden min-h-[104px] text-left p-3 rounded-lg border transition-all outline-none ${
                               isChosen 
-                                ? "bg-[#3730a3] border-[#8b5cf6]/70" 
-                                : "bg-[#0f172a]/60 border-[#1e293b]/80 hover:bg-[#1e293b]/70 hover:border-[#7c3aed]"
+                                ? "bg-[#3730a3]/90 border-[#8b5cf6]/80 shadow-lg shadow-[#7c3aed]/15" 
+                                : "bg-[#0f172a]/70 border-[#1e293b]/80 hover:bg-[#1e293b]/70 hover:border-[#7c3aed]/70 hover:-translate-y-0.5"
                             }`}
                           >
-                            <div className="min-w-0 flex-1">
-                              <span className="text-xs font-black text-white block leading-tight">
-                                {g.arabicName}
-                              </span>
-                              <span className="text-[13px] text-[#94a3b8] block leading-tight mt-1">
-                                {g.desc}
+                            <div className="absolute inset-y-0 left-0 w-1.5" style={{ background: g.color }} />
+                            <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full opacity-25 blur-2xl transition-opacity group-hover:opacity-50" style={{ background: g.color }} />
+                            <div className="relative z-10 flex items-start justify-between gap-3">
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="h-7 w-7 rounded-lg border border-white/10 bg-white/5" style={{ background: g.color }} />
+                                  <span className="text-sm font-black text-white block leading-tight">
+                                    {g.arabicName}
+                                  </span>
+                                </div>
+                                <span className="text-[13px] text-[#94a3b8] block leading-snug mt-2">
+                                  {g.desc}
+                                </span>
+                              </div>
+                              <span className={`mt-1 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border transition-colors ${
+                                isChosen ? "border-[#a78bfa] bg-[#a78bfa]/20 text-white" : "border-[#334155] bg-[#020617]/50 text-transparent group-hover:text-[#94a3b8]"
+                              }`}>
+                                <Check size={13} />
                               </span>
                             </div>
-                            {isChosen && <div className="w-2 h-2 rounded-full bg-[#8b5cf6]" />}
                           </button>
                         );
                       })}
                     </div>
-
                   </div>
                 )}
 
                 {/* B. STYLE SETTINGS MODAL */}
                 {activeModal === "style" && (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <>
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+                      <div className="lg:col-span-4 rounded-lg border border-[#1e293b]/80 bg-[#020617]/55 overflow-hidden min-h-[360px]">
+                        <div
+                          className="relative h-44 border-b border-[#1e293b]/80"
+                          style={{
+                            background: `${activePaletteObj.swatch}, ${activeLightingObj.swatch}`,
+                          }}
+                        >
+                          <div className="absolute inset-0 bg-[radial-gradient(circle_at_35%_30%,rgba(255,255,255,0.26),transparent_28%),linear-gradient(135deg,rgba(2,6,23,0.1),rgba(2,6,23,0.75))]" />
+                          <div className="absolute left-5 top-5 inline-flex h-12 w-12 items-center justify-center rounded-xl border border-white/15 bg-white/10 backdrop-blur-md shadow-lg shadow-black/30">
+                            <Palette size={22} className="text-white" />
+                          </div>
+                          <div className="absolute bottom-5 left-5 right-5">
+                            <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-white/65">
+                              Final Look Stack
+                            </span>
+                            <h3 className="mt-1 text-lg font-black text-white leading-tight">
+                              {activePaletteObj.label}
+                            </h3>
+                          </div>
+                        </div>
+
+                        <div className="p-4 space-y-3">
+                          {[
+                            { label: "Palette", value: activePaletteObj.label, color: activePaletteObj.accent },
+                            { label: "Lighting", value: activeLightingObj.label, color: activeLightingObj.accent },
+                            { label: "Motion", value: activeMovesetObj.label, color: activeMovesetObj.accent },
+                          ].map((item) => (
+                            <div key={item.label} className="rounded-lg border border-[#1e293b]/70 bg-[#0f172a]/70 px-3 py-2">
+                              <div className="flex items-center justify-between gap-3">
+                                <span className="text-[10px] font-mono uppercase tracking-[0.14em] text-[#94a3b8]">
+                                  {item.label}
+                                </span>
+                                <span
+                                  className="h-2.5 w-2.5 rounded-full shadow-[0_0_14px_currentColor]"
+                                  style={{ color: item.color, backgroundColor: item.color }}
+                                />
+                              </div>
+                              <span className="mt-1 block text-xs font-bold text-[#f8fafc]">
+                                {item.value}
+                              </span>
+                            </div>
+                          ))}
+                          <p className="text-xs leading-relaxed text-[#94a3b8]">
+                            These presets are sent with the final prompt as one connected visual direction: color grade, lighting behavior, and camera movement character.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="lg:col-span-8 grid grid-cols-1 md:grid-cols-3 gap-3">
+                        {[
+                          {
+                            title: "Palette LUTs",
+                            items: COLOR_PALETTE_PRESETS,
+                            activeValue: colorPalette,
+                            onSelect: setColorPalette,
+                          },
+                          {
+                            title: "Ambient Lights",
+                            items: LIGHTING_PRESETS,
+                            activeValue: lightingStyle,
+                            onSelect: setLightingStyle,
+                          },
+                          {
+                            title: "Camera Moveset",
+                            items: CAMERA_MOVESET_PRESETS,
+                            activeValue: cameraMovesetStyle,
+                            onSelect: setCameraMovesetStyle,
+                          },
+                        ].map((section) => (
+                          <div key={section.title} className="space-y-3">
+                            <span className="text-[11px] font-bold text-[#e2e8f0] uppercase font-mono tracking-[0.12em] block border-b border-[#1e293b] pb-2">
+                              {section.title}
+                            </span>
+                            <div className="flex flex-col gap-2">
+                              {section.items.map((item) => {
+                                const isSelected = section.activeValue === item.value;
+                                return (
+                                  <button
+                                    key={item.value}
+                                    type="button"
+                                    onClick={() => {
+                                      section.onSelect(item.value);
+                                      generateClientScene(prompt, dialogueText, cameraMovement, lensType, selectedGenre);
+                                    }}
+                                    className={`group relative min-h-[86px] overflow-hidden rounded-lg border p-3 text-left outline-none transition-all ${
+                                      isSelected
+                                        ? "bg-[#0f172a] border-[#06b6d4]/80 shadow-lg shadow-[#06b6d4]/10"
+                                        : "bg-[#0f172a]/60 border-[#1e293b]/80 hover:bg-[#1e293b]/70 hover:border-[#06b6d4]/50 hover:-translate-y-0.5"
+                                    }`}
+                                  >
+                                    <div className="absolute inset-y-0 left-0 w-1" style={{ background: item.swatch }} />
+                                    <div className="absolute -right-10 -top-10 h-24 w-24 rounded-full opacity-20 blur-2xl transition-opacity group-hover:opacity-45" style={{ background: item.accent }} />
+                                    <div className="relative z-10 flex items-start justify-between gap-2">
+                                      <div className="min-w-0">
+                                        <div className="flex items-center gap-2">
+                                          <span className="h-7 w-7 shrink-0 rounded-lg border border-white/10" style={{ background: item.swatch }} />
+                                          <span className="text-xs font-black text-white leading-tight">
+                                            {item.label}
+                                          </span>
+                                        </div>
+                                        <span className="mt-2 block text-[11px] leading-snug text-[#94a3b8]">
+                                          {item.description}
+                                        </span>
+                                      </div>
+                                      <span className={`mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border transition-colors ${
+                                        isSelected ? "border-[#67e8f9] bg-[#06b6d4]/20 text-[#f8fafc]" : "border-[#334155] bg-[#020617]/50 text-transparent group-hover:text-[#94a3b8]"
+                                      }`}>
+                                        <Check size={12} />
+                                      </span>
+                                    </div>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                  <div className="hidden grid-cols-1 md:grid-cols-3 gap-6">
                     
                     {/* Column 1: COLOR PALETTE */}
                     <div className="space-y-3">
@@ -3063,6 +3544,7 @@ export default function App() {
                     </div>
 
                   </div>
+                  </>
                 )}
 
                 {/* C. PROFESSIONAL LENS & MOVEMENT DIRECTIVE (EXHAUSTIVE & WITH PHOTO CARDS) */}
@@ -3347,7 +3829,7 @@ export default function App() {
                                 <div className="text-center w-full min-w-0 mt-1">
                                   <span className="text-xs font-bold text-white block truncate leading-none">{actor.name}</span>
                                   <span className="text-[13px] text-[#ec4899]/90 font-medium block truncate mt-1" title={actor.voice}>
-                                    🎙️ {actor.voice}
+                                    <AudioLines size={12} className="inline-block mr-1 align-[-2px]" />{actor.voice}
                                   </span>
                                   {isC && <span className="text-[13px] text-[#8b5cf6] block mt-0.5 uppercase">AI LAB</span>}
                                 </div>
@@ -3360,7 +3842,10 @@ export default function App() {
                         <div className="mt-4 p-3 bg-[#0f172a] rounded-xl border border-[#1e293b]/80 space-y-2 text-left">
                           <div className="flex items-center justify-between border-b border-[#1e293b] pb-1.5">
                             <span className="text-[13px] text-[#8b5cf6] font-mono font-bold tracking-wider">AUDIO MIX & VOICE DUB</span>
-                            <span className="text-sm font-black text-[#f8fafc]">🎙️ Manage & Select Actor Voices: {currentActor.name}</span>
+                            <span className="text-sm font-black text-[#f8fafc] inline-flex items-center gap-1.5">
+                              <AudioLines size={14} className="text-[#ec4899]" />
+                              Manage & Select Actor Voices: {currentActor.name}
+                            </span>
                           </div>
                           
                           <div className="text-[13px] leading-relaxed text-[#e2e8f0] space-y-1 font-sans">
@@ -3489,7 +3974,8 @@ export default function App() {
                         {/* Voice Selection & Custom Addition */}
                         <div className="space-y-1.5 pt-2 border-t border-[#1e293b]/60 text-left">
                           <label className="text-xs text-[#8b5cf6] uppercase flex items-center gap-1 font-bold">
-                            🎙️ Sourced Voice Pattern (Voice Synthesis)
+                            <AudioLines size={13} className="text-[#8b5cf6]" />
+                            Sourced Voice Pattern (Voice Synthesis)
                           </label>
                           <select 
                             value={custVoicePreset}
@@ -3556,7 +4042,10 @@ export default function App() {
                 {activeModal === "voice" && (
                   <div className="space-y-4">
                     <p className="text-xs text-[#e2e8f0] leading-relaxed font-sans text-left">
-                      🎙️ Voice Engineering & Dubbing Studio - Customize the vocal signature for <span className="text-[#ec4899] font-bold">{currentActor.name}</span>:
+                      <span className="inline-flex items-center gap-2">
+                        <AudioLines size={14} className="text-[#ec4899]" />
+                        Voice Engineering & Dubbing Studio - Customize the vocal signature for <span className="text-[#ec4899] font-bold">{currentActor.name}</span>:
+                      </span>
                     </p>
 
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
@@ -3570,9 +4059,21 @@ export default function App() {
                         
                         <div className="mt-4 w-full bg-[#0f172a] border border-[#1e293b] rounded-lg p-3 text-left">
                           <span className="text-xs text-[#94a3b8] uppercase block font-sans">Active Voice Setting</span>
-                          <span className="text-sm font-bold text-[#ec4899] block mt-1 leading-tight break-all font-sans">
-                            {currentActor.voice}
-                          </span>
+                          <div className="mt-2 flex items-center gap-3">
+                            <img
+                              src={selectedVoicePersona.imageUrl}
+                              alt={selectedVoicePersona.label}
+                              className="h-10 w-10 rounded-full object-cover border border-[#334155]"
+                            />
+                            <div className="min-w-0">
+                              <span className="text-sm font-bold text-[#ec4899] block leading-tight truncate font-sans">
+                                {currentActor.voice}
+                              </span>
+                              <span className={`mt-1 inline-flex rounded-full border px-2 py-0.5 text-[10px] font-bold ${selectedVoicePersona.badgeClass}`}>
+                                {selectedVoicePersona.label} - {selectedVoicePersona.ageLabel}
+                              </span>
+                            </div>
+                          </div>
                         </div>
                       </div>
 
@@ -3584,7 +4085,7 @@ export default function App() {
                             value={dialogueText}
                             onChange={(e) => setDialogueText(e.target.value)}
                             rows={3}
-                            placeholder="اكتب الكلام الذي تريد أن ينطقه الصوت هنا..."
+                            placeholder="Write the dialogue you want this voice to speak..."
                             className="w-full resize-none bg-[#060c18] border border-[#1e293b] focus:border-[#ec4899] rounded-lg px-3 py-2 text-sm text-white outline-none placeholder:text-[#64748b]"
                           />
                         </div>
@@ -3593,8 +4094,10 @@ export default function App() {
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[160px] overflow-y-auto pr-1">
                             {VOICE_PRESETS.map((v) => {
                               const isSelected = currentActor.voice === v.label || currentActor.voiceId === v.voiceId;
+                              const persona = getVoicePersonaMeta(v.persona);
                               return (
                                 <button
+                                  type="button"
                                   key={v.voiceId}
                                   onClick={() => {
                                     assignPresetVoiceToActor(currentActor.id, v.label);
@@ -3605,8 +4108,23 @@ export default function App() {
                                       : "border-[#1e293b] bg-[#0f172a]/80 hover:bg-[#1e293b]/70 hover:border-[#7c3aed]"
                                   }`}
                                 >
-                                  <span className="text-[13px] font-bold text-white block truncate">{v.label}</span>
-                                  <span className="text-xs text-[#94a3b8] block leading-tight mt-1">{v.provider} - {v.lang} - {v.desc}</span>
+                                  <div className="flex items-start gap-3">
+                                    <img
+                                      src={persona.imageUrl}
+                                      alt={`${persona.label} ${v.label}`}
+                                      className="h-12 w-12 shrink-0 rounded-full object-cover border border-[#334155]"
+                                    />
+                                    <div className="min-w-0 flex-1">
+                                      <div className="flex items-start justify-between gap-2">
+                                        <span className="text-[13px] font-bold text-white block truncate">{v.label}</span>
+                                        <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-bold ${persona.badgeClass}`}>
+                                          {persona.label}
+                                        </span>
+                                      </div>
+                                      <span className="text-[11px] text-[#cbd5e1] block mt-1">{persona.ageLabel} - {v.provider} - {v.lang}</span>
+                                      <span className="text-xs text-[#94a3b8] block leading-tight mt-1">{v.desc}</span>
+                                    </div>
+                                  </div>
                                 </button>
                               );
                             })}
@@ -3647,6 +4165,7 @@ export default function App() {
                               className="bg-[#0f172a] border border-[#7c3aed] px-3 py-2 rounded-lg text-xs text-white focus:border-[#ec4899] outline-none w-full font-sans text-left placeholder:text-[#64748b]"
                             />
                             <button
+                              type="button"
                               onClick={() => {
                                 const input = modalCustomVoiceInputRef.current;
                                 if (!input) return;
