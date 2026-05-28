@@ -136,6 +136,7 @@ const IMAGE_MODEL_GROUPS = [
 
 const VIDEO_FEATURES = [
   { label: "Cinema Studio VSO",   href: "/cinema-studio-vso", icon: Clapperboard, color: "text-violet-300", description: "Cinematic scene builder", badge: "NEW" },
+  { label: "Agent Studio",        href: "/agent-studio",    icon: Bot,          color: "text-violet-400",  description: "AI agent orchestrator & custom skills workflow", badge: "NEW" },
   { label: "Create Video",        href: "/video",           icon: VideoIcon,    color: "text-orange-400",  description: "Text-to-video generation",             badge: "" },
   { label: "Transitions",         href: "/apps/tool/transitions", icon: Blend, color: "text-cyan-300", description: "Generate styled scene transitions", badge: "READY" },
   { label: "Storyboard Studio",   href: "/apps/tool/storyboard-studio", icon: Clapperboard, color: "text-violet-300", description: "Create cinematic production boards", badge: "READY" },
@@ -418,6 +419,7 @@ const SHOW_EXPERIMENTAL_NAV = false;
 
 const STUDIO_LINKS = [
   { label: "Cinema Studio VSO", href: "/cinema-studio-vso", icon: Clapperboard, color: "text-violet-300" },
+  { label: "Agent Studio", href: "/agent-studio", icon: Bot, color: "text-violet-400" },
   { label: "Cinematic Styles", href: "/apps/tool/cinematic-styles", icon: Blend, color: "text-cyan-300" },
   { label: "Transitions", href: "/apps/tool/transitions", icon: Blend, color: "text-cyan-300" },
   { label: "Storyboard", href: "/apps/tool/storyboard-studio", icon: Clapperboard, color: "text-violet-300" },
@@ -944,7 +946,7 @@ const TopNavbar = () => {
                       </div>
                       <h3 className="text-sm font-semibold text-white">Video Studio</h3>
                       <span className="rounded-full bg-orange-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-orange-300 ring-1 ring-orange-500/30">
-                        16 Features
+                        {VIDEO_FEATURES.length} Features
                       </span>
                     </div>
                     <Link

@@ -37,6 +37,7 @@ const APP_CATEGORIES_RAW: AppCategory[] = [
     href: "/apps/professional",
     tools: [
       { id: "cinema-studio-vso", title: "Cinema Studio VSO", description: "Cinematic scene builder with cast, voice, mood, grade, camera, and render controls", href: "/cinema-studio-vso", badge: "NEW", gradient: "from-violet-600/30 to-cyan-900/30" },
+      { id: "agent-studio", title: "Agent Studio", description: "AI agent orchestrator & custom skills workflow builder", href: "/agent-studio", badge: "NEW", gradient: "from-violet-600/30 to-fuchsia-900/30" },
       { id: "variations-studio", title: "Next Scene Studio", description: "AI video scene generator with filmstrip timeline & camera moves", href: "/variations", badge: "NEW", gradient: "from-violet-600/30 to-indigo-900/30" },
       { id: "storyboard-studio", title: "Storyboard Studio", description: "Multi-panel storyboards with perspective control from one image", href: "/apps/tool/storyboard-studio", badge: "NEW", gradient: "from-cyan-600/30 to-violet-900/30" },
       { id: "expand-image", title: "Expand Image", description: "Expand any image beyond its edges", href: "/apps/tool/expand-image", badge: null, gradient: "from-violet-600/30 to-indigo-900/30" },
