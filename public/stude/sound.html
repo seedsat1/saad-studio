@@ -969,16 +969,10 @@ async function cvCreateVoice(){
   if(prog)prog.style.display='block';
   setStatus('Uploading voice sample...','info');
   try{
-    const ur=await fetch('/api/studio/upload-url',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fileName:file.name,contentType:file.type||'audio/mpeg',assetType:'audio'})});
-    if(!ur.ok)throw new Error('Failed to get upload URL');
-    const{signedUrl,publicUrl}=await ur.json();
-    await new Promise((res,rej)=>{
-      const xhr=new XMLHttpRequest();
-      xhr.upload.addEventListener('progress',e=>{if(!e.lengthComputable)return;const p=Math.round(e.loaded/e.total*100);if(bar)bar.style.width=p+'%';if(pct)pct.textContent=p+'%';});
-      xhr.addEventListener('load',()=>xhr.status<300?res():rej(new Error('Upload failed')));
-      xhr.addEventListener('error',()=>rej(new Error('Network error')));
-      xhr.open('PUT',signedUrl);xhr.setRequestHeader('Content-Type',file.type||'audio/mpeg');xhr.send(file);
-    });
+    const formData=new FormData();formData.append('file',file);formData.append('assetType','audio');
+    const ur=await fetch('/api/studio/upload-url',{method:'POST',body:formData});
+    if(!ur.ok)throw new Error('Failed to upload');
+    const{publicUrl}=await ur.json();
     if(bar)bar.style.width='100%';if(pct)pct.textContent='100%';if(lbl)lbl.textContent='Saving...';
     const gender=document.getElementById('cvGender')?.value||'';
     const lang=document.getElementById('cvLanguage')?.value||'';

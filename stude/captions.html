@@ -633,44 +633,30 @@ async function generateCaptions(){
         var clipFile=new File([clipBlob],clipFileName,{type:blobMime});
 
         setStep(2,'Uploading to cloud storage...');
-        setStatus('Uploading to Supabase…','info');
+        setStatus('Uploading to cloud storage…','info');
 
-        // 1) Get presigned upload URL
+        // 1) Upload file to server
+        const formData=new FormData();
+        formData.append('file',new File([blob],clipFileName,{type:blobMime}));
+        formData.append('assetType',isVid?'video':'audio');
+        
         var urlResp=await fetch('/api/studio/upload-url',{
           method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({fileName:clipFileName,contentType:blobMime,assetType:isVid?'video':'audio'}),
+          body:formData,
         });
         if(!urlResp.ok){
           var urlErr=await urlResp.json().catch(function(){return{};});
-          throw new Error((urlErr&&urlErr.error)||'Failed to get upload URL. Check login session.');
+          throw new Error((urlErr&&urlErr.error)||'Failed to upload. Check login session.');
         }
         var urlData=await urlResp.json();
-        if(!urlData.signedUrl||!urlData.publicUrl) throw new Error('Invalid upload URL response.');
-
-        // 2) Upload directly from browser → Supabase (no Vercel size limit)
-        var uploadPublicUrl=await new Promise(function(resolve,reject){
-          var xhr=new XMLHttpRequest();
-          xhr.open('PUT',urlData.signedUrl);
-          xhr.setRequestHeader('Content-Type',blobMime);
-          xhr.upload.onprogress=function(e){
-            if(e.lengthComputable){
-              var pct=Math.round((e.loaded/e.total)*100);
-              setStatus('Uploading to Supabase… '+pct+'%','info');
-            }
+        if(!urlData.publicUrl) throw new Error('Invalid upload response.');
+        var uploadPublicUrl=urlData.publicUrl;
           };
-          xhr.onload=function(){
-            if(xhr.status>=200&&xhr.status<300) resolve(urlData.publicUrl);
-            else reject(new Error('Supabase upload failed ('+xhr.status+').'));
-          };
-          xhr.onerror=function(){reject(new Error('Network error during upload.'));};
-          xhr.send(clipFile);
-        });
 
         // Remember for cleanup after transcription
         tempUpload={path:urlData.path,bucket:urlData.bucket};
 
-        // 3) Send public https: URL to WaveSpeed
+        // 2) Send public https: URL to WaveSpeed
         var blobModel=blobMime.indexOf('video/')===0?'wavespeed-ai/openai-whisper-with-video':'wavespeed-ai/openai-whisper-turbo';
         setStep(3,'Transcribing audio...');
         setStatus('Clip uploaded — transcribing…','info');
@@ -680,7 +666,7 @@ async function generateCaptions(){
           body:JSON.stringify({model:blobModel,language:state.spokenLang,outputFormat:'srt',mediaUrl:uploadPublicUrl}),
         });
       } else {
-        // https: URL (Supabase) — send URL directly, WaveSpeed fetches server-side
+        // https: URL (R2) — send URL directly, WaveSpeed fetches server-side
         var urlModel=isVid?'wavespeed-ai/openai-whisper-with-video':'wavespeed-ai/openai-whisper-turbo';
         setStep(2,'Submitting to AI...');
         setStatus('Submitting URL to AI…','info');

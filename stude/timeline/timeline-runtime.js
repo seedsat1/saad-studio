@@ -2055,35 +2055,16 @@ function TimelineEditor() {
       const fallback = () => resolve(blobUrl);
       const contentType = file.type || "application/octet-stream";
       const assetType = kind === "video" ? "video" : kind === "audio" ? "audio" : "image";
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("assetType", assetType);
       fetch("/api/studio/upload-url", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fileName: file.name, contentType, assetType })
-      }).then((r) => r.ok ? r.json() : Promise.reject(new Error("upload-url " + r.status))).then(({ signedUrl, publicUrl }) => {
-        if (!signedUrl) return fallback();
-        const xhr = new XMLHttpRequest();
-        xhr.open("PUT", signedUrl);
-        xhr.setRequestHeader("Content-Type", contentType);
-        xhr.upload.onprogress = (e) => {
-          if (e.lengthComputable) {
-            const pct = Math.round(e.loaded / e.total * 100);
-            setImportInfo(`Uploading ${file.name}: ${pct}%`);
-          }
-        };
-        xhr.onload = () => {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            URL.revokeObjectURL(blobUrl);
-            resolve(publicUrl);
-          } else {
-            console.warn("[studio-upload] PUT failed", xhr.status, "\u2014 using blob fallback");
-            resolve(blobUrl);
-          }
-        };
-        xhr.onerror = () => {
-          console.warn("[studio-upload] XHR error \u2014 using blob fallback");
-          resolve(blobUrl);
-        };
-        xhr.send(file);
+        body: formData
+      }).then((r) => r.ok ? r.json() : Promise.reject(new Error("upload-url " + r.status))).then(({ publicUrl }) => {
+        if (!publicUrl) return fallback();
+        URL.revokeObjectURL(blobUrl);
+        resolve(publicUrl);
       }).catch((err) => {
         console.warn("[studio-upload] upload-url fetch failed:", err, "\u2014 using blob fallback");
         fallback();

@@ -64,24 +64,16 @@ type ItemDto = {
 
 async function uploadToSupabase(file: File): Promise<string> {
   const assetType = file.type.startsWith("video/") ? "video" : "image";
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("assetType", assetType);
+  
   const res = await fetch("/api/studio/upload-url", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      fileName: file.name,
-      contentType: file.type || "application/octet-stream",
-      assetType,
-    }),
+    body: formData,
   });
-  if (!res.ok) throw new Error((await res.json().catch(() => ({})))?.error || "Upload URL failed");
-  const { signedUrl, publicUrl } = await res.json();
-
-  const put = await fetch(signedUrl, {
-    method: "PUT",
-    headers: { "Content-Type": file.type || "application/octet-stream" },
-    body: file,
-  });
-  if (!put.ok) throw new Error(`Upload PUT failed (${put.status})`);
+  if (!res.ok) throw new Error((await res.json().catch(() => ({})))?.error || "Upload failed");
+  const { publicUrl } = await res.json();
   return publicUrl;
 }
 
