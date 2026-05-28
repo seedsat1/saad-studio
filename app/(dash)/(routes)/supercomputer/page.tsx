@@ -115,11 +115,11 @@ export default function SupercomputerPage() {
       >
         {/* Workspace selector */}
         <div className="flex items-center justify-between px-3 pt-3">
-          <button className="group flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-1.5 text-sm hover:bg-white/[0.06] transition">
-            <span className="flex h-5 w-5 items-center justify-center rounded-md bg-gradient-to-br from-cyan-400 to-blue-500 text-[10px] font-bold">
+          <button className="group flex items-center gap-2 rounded-lg border border-white/5 bg-white/[0.02] px-2.5 py-1.5 text-sm hover:bg-white/[0.05] transition">
+            <span className="flex h-5 w-5 items-center justify-center rounded-md bg-zinc-800 text-[10px] font-bold text-zinc-400">
               ⚡
             </span>
-            <span className="font-medium">Supercomputer</span>
+            <span className="font-medium text-white/90">Supercomputer</span>
             <ChevronDown className="h-3.5 w-3.5 text-white/40 group-hover:text-white/70" />
           </button>
           <button
@@ -132,15 +132,22 @@ export default function SupercomputerPage() {
 
         {/* Nav items */}
         <nav className="mt-5 flex flex-col gap-0.5 px-2">
-          {SIDEBAR_ITEMS.map((item) => (
-            <button
-              key={item.id}
-              className="group flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[13.5px] text-white/70 hover:bg-white/5 hover:text-white"
-            >
-              <item.icon className="h-[15px] w-[15px] text-white/50 group-hover:text-white/80" />
-              <span>{item.label}</span>
-            </button>
-          ))}
+          {SIDEBAR_ITEMS.map((item) => {
+            const isSkills = item.id === "skills";
+            return (
+              <button
+                key={item.id}
+                className={`group flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[13.5px] transition ${
+                  isSkills 
+                    ? "bg-white/[0.04] text-white font-medium shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]" 
+                    : "text-white/70 hover:bg-white/5 hover:text-white"
+                }`}
+              >
+                <item.icon className={`h-[15px] w-[15px] ${isSkills ? "text-cyan-300" : "text-white/50 group-hover:text-white/80"}`} />
+                <span>{item.label}</span>
+              </button>
+            );
+          })}
         </nav>
 
         {/* Tasks section */}
@@ -152,10 +159,41 @@ export default function SupercomputerPage() {
         </div>
 
         {/* Empty state */}
-        <div className="mt-6 flex flex-1 flex-col items-center justify-start px-4">
+        <div className="mt-4 flex flex-1 flex-col items-center justify-start px-4">
           <EmptyTaskGraphic />
           <p className="mt-3 text-[13px] font-medium text-white/80">No tasks yet</p>
-          <p className="mt-0.5 text-[11.5px] text-white/40">Create one to get started</p>
+          <p className="mt-0.5 text-[11.5px] text-white/40 text-center">Create one to get started</p>
+        </div>
+
+        {/* Bottom Sidebar Controls matching screenshot */}
+        <div className="p-3 border-t border-white/5 flex flex-col gap-3">
+          {/* Pricing Button */}
+          <button className="flex items-center justify-between rounded-xl bg-cyan-950/30 border border-cyan-800/30 hover:border-cyan-700/50 px-3 py-2 text-[13px] text-cyan-300 transition w-full">
+            <div className="flex items-center gap-2">
+              <Gem className="h-4 w-4 fill-cyan-400/20" />
+              <span className="font-medium">Pricing</span>
+            </div>
+            <span className="rounded bg-cyan-400/10 border border-cyan-400/20 px-1.5 py-0.5 text-[9px] font-bold text-cyan-300">
+              30% OFF
+            </span>
+          </button>
+
+          {/* User Profile Block */}
+          <div className="flex items-center justify-between px-1">
+            <div className="flex items-center gap-2.5 min-w-0">
+              {/* Avatar circle matching color scheme */}
+              <div className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-cyan-400 bg-gradient-to-tr from-lime-400 to-yellow-300 text-[10px] font-bold text-[#0c1426] shadow-[0_0_10px_rgba(34,197,94,0.3)]">
+                <span className="absolute -inset-0.5 rounded-full border border-cyan-300 animate-ping opacity-25" />
+              </div>
+              <div className="flex flex-col min-w-0 text-left">
+                <span className="text-[13px] font-medium text-white truncate leading-tight">pointillistpret...</span>
+              </div>
+            </div>
+            {/* Sun/Light Settings Icon */}
+            <button className="text-white/40 hover:text-white transition p-1">
+              <span className="text-xs">☀️</span>
+            </button>
+          </div>
         </div>
 
       </aside>
@@ -204,7 +242,20 @@ export default function SupercomputerPage() {
 
         {/* Center hero + input */}
         <div className="flex flex-1 flex-col items-center justify-center px-6">
-          <div className="w-full max-w-[720px]">
+          <div className="w-full max-w-[720px] mb-4 flex flex-col items-center">
+            {/* Seed Pixel Title Logo Mockup */}
+            <div className="flex items-center gap-4 mb-8 select-none">
+              <_PixelIcon />
+              <div className="flex flex-col text-left">
+                <span className="font-mono text-[30px] font-bold tracking-tight text-white leading-tight uppercase" style={{ fontFamily: "'Press Start 2P', monospace", fontSize: '20px' }}>
+                  seed,
+                </span>
+                <span className="font-mono text-[22px] text-zinc-400 mt-1 font-bold tracking-wide" style={{ fontFamily: "'VT323', monospace", fontSize: '32px' }}>
+                  what are we creating today?
+                </span>
+              </div>
+            </div>
+
             {/* Input box */}
             <div className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] focus-within:border-white/20 focus-within:bg-white/[0.06] transition">
               <textarea
@@ -235,34 +286,78 @@ export default function SupercomputerPage() {
                       onClick={() => setOrchestratorOpen((o) => !o)}
                       className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-1.5 text-[12.5px] text-white/80 hover:bg-white/10"
                     >
-                      <span
-                        className="inline-block h-2 w-2 rounded-sm"
-                        style={{ background: orchestrator.color }}
-                      />
+                      <span className="flex h-3.5 w-3.5 items-center justify-center">
+                        <span className="h-2 w-2 rounded-full animate-pulse" style={{ background: orchestrator.color }} />
+                      </span>
                       <span className="text-white/50">Orchestrator</span>
                       <span className="font-medium">{orchestrator.label}</span>
                       <ChevronDown className="h-3 w-3 text-white/40" />
                     </button>
                     {orchestratorOpen && (
-                      <div className="absolute bottom-full left-0 mb-2 w-44 overflow-hidden rounded-lg border border-white/10 bg-[#0c1426] shadow-2xl">
+                      <div className="absolute bottom-full left-0 mb-2 w-64 overflow-hidden rounded-xl border border-white/10 bg-[#0f172a]/95 backdrop-blur-2xl shadow-[0_12px_40px_rgba(0,0,0,0.6)] z-50 py-1.5">
+                        <div className="px-3 py-1 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
+                          Best Match
+                        </div>
+                        <button
+                          onClick={() => {
+                            setOrchestrator({ label: "Gemini", color: "#8ab4f8" });
+                            setOrchestratorOpen(false);
+                          }}
+                          className="flex w-full flex-col px-3 py-2 text-left hover:bg-white/5 transition"
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="h-2 w-2 rounded-full bg-[#8ab4f8]" />
+                            <span className="text-sm font-semibold text-white">Orchestrator</span>
+                            <span className="text-[9px] bg-cyan-400/20 text-cyan-300 font-semibold px-1 rounded">Best</span>
+                          </div>
+                          <span className="text-[11px] text-zinc-400 mt-0.5">Powered by Gemini</span>
+                        </button>
+
+                        <div className="h-px bg-white/5 my-1" />
+
+                        <div className="px-3 py-1 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
+                          Claude
+                        </div>
                         {[
-                          { label: "Gemini", color: "#8ab4f8" },
-                          { label: "Claude", color: "#d97757" },
-                          { label: "GPT", color: "#19c37d" },
+                          { label: "Opus 4.7", color: "#d97757", desc: "Best for complex, analytical work", premium: true },
+                          { label: "Opus 4.6", color: "#e28743", desc: "Best for long-form creative work" },
+                          { label: "Sonnet 4.6", color: "#f1a340", desc: "Responsive everyday work" }
                         ].map((m) => (
                           <button
                             key={m.label}
                             onClick={() => {
-                              setOrchestrator(m);
+                              setOrchestrator({ label: m.label, color: m.color });
                               setOrchestratorOpen(false);
                             }}
-                            className="flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] text-white/80 hover:bg-white/5"
+                            className="flex w-full flex-col px-3 py-1.5 text-left hover:bg-white/5 transition"
                           >
-                            <span
-                              className="inline-block h-2 w-2 rounded-sm"
-                              style={{ background: m.color }}
-                            />
-                            {m.label}
+                            <div className="flex items-center justify-between">
+                              <span className="text-[13px] font-medium text-white">{m.label}</span>
+                              {m.premium && <span className="text-[10px] text-yellow-400/80">🪙</span>}
+                            </div>
+                            <span className="text-[11px] text-zinc-400">{m.desc}</span>
+                          </button>
+                        ))}
+
+                        <div className="h-px bg-white/5 my-1" />
+
+                        <div className="px-3 py-1 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
+                          Google
+                        </div>
+                        {[
+                          { label: "Gemini 3.5 Flash", color: "#8ab4f8", desc: "Fast, high-quality responses" },
+                          { label: "Gemini 3.1 Pro", color: "#a8c7fa", desc: "Complex multimodal reasoning" }
+                        ].map((m) => (
+                          <button
+                            key={m.label}
+                            onClick={() => {
+                              setOrchestrator({ label: m.label, color: m.color });
+                              setOrchestratorOpen(false);
+                            }}
+                            className="flex w-full flex-col px-3 py-1.5 text-left hover:bg-white/5 transition"
+                          >
+                            <span className="text-[13px] font-medium text-white">{m.label}</span>
+                            <span className="text-[11px] text-zinc-400">{m.desc}</span>
                           </button>
                         ))}
                       </div>
@@ -373,15 +468,11 @@ function _PixelIcon() {
   ];
   return (
     <div
-      className="relative flex h-[86px] w-[86px] shrink-0 items-center justify-center rounded-2xl bg-white shadow-[0_8px_24px_rgba(0,0,0,0.45),inset_0_-2px_0_rgba(15,30,60,0.07)]"
-      style={{
-        background:
-          "linear-gradient(180deg, #ffffff 0%, #f3f6fb 100%)",
-      }}
+      className="relative flex h-[72px] w-[72px] shrink-0 items-center justify-center rounded-2xl bg-[#090d16] border border-cyan-500/20 shadow-[0_4px_20px_rgba(34,211,238,0.15)]"
     >
       <svg
         viewBox="0 0 70 70"
-        className="h-[70px] w-[70px]"
+        className="h-[56px] w-[56px]"
         shapeRendering="crispEdges"
       >
         {snake.map(([x, y], i) => (
@@ -391,7 +482,7 @@ function _PixelIcon() {
             y={y * 5}
             width="5"
             height="5"
-            fill="#1d3a8a"
+            fill="#22d3ee"
           />
         ))}
         {/* Eye dot */}
