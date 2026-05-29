@@ -257,6 +257,23 @@ export const VIDEO_MODELS: VideoModel[] = [
     description: "Fast high-quality image to video",
   },
 
+  // ── WAVESPEED ──
+  {
+    id: "wavespeed-ai/cinematic-video-generator",
+    name: "Cinematic Video Generator",
+    family: "WaveSpeed",
+    familyColor: "#f97316",
+    inputType: "text-to-video",
+    accepts: ["reference-image", "multi-image"],
+    maxImages: 4,
+    aspectRatios: ["16:9", "9:16", "4:3", "3:4"],
+    durations: [5, 10, 15],
+    badge: "NEW",
+    creditCost: 8,
+    maxDuration: 15,
+    description: "Hollywood-style T2V or I2V with up to 4 reference images",
+  },
+
   // ── GROK ──
   {
     id: "grok-imagine/text-to-video",

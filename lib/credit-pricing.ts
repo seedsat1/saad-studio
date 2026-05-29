@@ -35,6 +35,7 @@ const VIDEO_ROUTE_COST_MAP = new Map<string, number>([
   ["bytedance/seedance-v2/text-to-video", 40],
   ["x-ai/grok-imagine-video/text-to-video", 9.24],
   ["x-ai/grok-imagine-video/edit-video", 9.24],
+  ["wavespeed-ai/cinematic-video-generator", 8],
 ]);
 
 const MUSIC_MODEL_BASE_COST = new Map<string, number>([
@@ -274,6 +275,10 @@ export function getVideoCreditsByRoute(modelRoute: string, payload?: VideoPayloa
   }
   if (modelRoute === "x-ai/grok-imagine-video/text-to-video" || modelRoute === "x-ai/grok-imagine-video/edit-video") {
     return applySoundMultiplier(getGrokCredits(payload), payload);
+  }
+  if (modelRoute === "wavespeed-ai/cinematic-video-generator") {
+    const duration = readDuration(payload, 5);
+    return applySoundMultiplier(parseFloat(Math.max(1, duration * 1.6).toFixed(2)), payload);
   }
 
   const base = VIDEO_ROUTE_COST_MAP.get(modelRoute) ?? 20;

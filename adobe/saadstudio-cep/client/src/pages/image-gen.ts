@@ -8,7 +8,7 @@ import { FeaturePage } from "./feature-page";
 import { api } from "../lib/api";
 
 const MODELS = [
-  { value: "imagen-4-ultra", label: "Imagen 4 Ultra" },
+  { value: "google/imagen4-ultra", label: "Imagen 4 Ultra" },
   { value: "nano-banana-pro", label: "Nano Banana Pro" },
 ];
 const ASPECTS = [
@@ -39,12 +39,25 @@ export function ImageGenPage(): HTMLElement {
         { key: "resolution", label: "Resolution", value: "2K", options: RESOLUTIONS },
       ],
     },
-    submit: ({ prompt, options }) =>
-      api.generate.image({
+    submit: async ({ prompt, attachments, options }) => {
+      if (attachments.some((file) => !file.type.startsWith("image/"))) {
+        throw new Error("Image generation accepts only an image reference attachment.");
+      }
+      if (attachments.length > 1) {
+        throw new Error("Image generation accepts only one reference image.");
+      }
+
+      const imageUrl = attachments[0]
+        ? await api.uploadFileToR2(attachments[0], "image")
+        : undefined;
+
+      return api.generate.image({
         prompt,
         model: options.model,
         aspect: options.aspect,
         resolution: options.resolution,
-      }),
+        ...(imageUrl ? { imageUrl } : {}),
+      });
+    },
   });
 }

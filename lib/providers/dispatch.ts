@@ -145,7 +145,7 @@ export async function dispatchDirectVideo(input: DispatchVideoInput): Promise<Di
 
   // 1) Credit cost
   let cost = getVideoCreditsByModelId(input.modelId, {
-    durationSec: input.durationSec,
+    duration: input.durationSec,
     quality: input.quality,
   });
   if (!cost || cost <= 0) cost = DEFAULT_VIDEO_COST;

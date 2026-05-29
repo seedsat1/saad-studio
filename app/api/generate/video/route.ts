@@ -20,6 +20,7 @@ const { kieVideoModelMap, wavespeedFallbackMap } = getResolvedKieRoutingMaps();
 function resolveWaveSpeedModelRoute(modelId: string): string {
   const clean = modelId.trim();
   const mapping: Record<string, string> = {
+    "wavespeed-ai/cinematic-video-generator": "wavespeed-ai/cinematic-video-generator",
     "kling-3.0/video": "kwaivgi/kling-v3.0-pro/text-to-video",
     "kwaivgi/kling-v3.0-pro/text-to-video": "kwaivgi/kling-v3.0-pro/text-to-video",
     "kling-3.0/motion-control": "kwaivgi/kling-v3.0-pro/motion-control",
@@ -51,6 +52,7 @@ interface VideoRequestBody {
   prompt: string;
   modelId: string;
   imageUrl?: string;
+  imageUrls?: string[];
   duration?: number;
   resolution?: string;
   quality?: string;
@@ -192,7 +194,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body: VideoRequestBody = await req.json();
-    const { prompt, modelId, imageUrl, duration = 5, resolution, quality, aspectRatio = "16:9", sound = false } = body;
+    const { prompt, modelId, imageUrl, imageUrls, duration = 5, resolution, quality, aspectRatio = "16:9", sound = false } = body;
 
     if (!prompt || !modelId) {
       return NextResponse.json({ error: "Missing required fields: prompt, modelId." }, { status: 400 });
@@ -208,6 +210,12 @@ export async function POST(req: NextRequest) {
 
     if (imageUrl && !isSafePublicHttpUrl(imageUrl) && !imageUrl.startsWith("data:")) {
       return NextResponse.json({ error: "Invalid imageUrl provided." }, { status: 400 });
+    }
+    const safeImageUrls = Array.isArray(imageUrls)
+      ? imageUrls.filter((url): url is string => typeof url === "string" && isSafePublicHttpUrl(url))
+      : [];
+    if (Array.isArray(imageUrls) && safeImageUrls.length !== imageUrls.length) {
+      return NextResponse.json({ error: "One or more imageUrls are invalid." }, { status: 400 });
     }
 
     const creditsToCharge = getVideoCreditsByModelId(modelId, { duration, resolution, quality });
@@ -286,7 +294,15 @@ export async function POST(req: NextRequest) {
       }
 
       const wavespeedPayload = { ...payload };
-      if (imageUrl) {
+      if (wavespeedModel === "wavespeed-ai/cinematic-video-generator") {
+        if (safeImageUrls.length) {
+          wavespeedPayload.images = safeImageUrls.slice(0, 4);
+          delete wavespeedPayload.image_url;
+        } else if (imageUrl) {
+          wavespeedPayload.images = [imageUrl];
+          delete wavespeedPayload.image_url;
+        }
+      } else if (imageUrl) {
         if (wavespeedModel.includes("kling-v3.0") || wavespeedModel.includes("motion-control")) {
           wavespeedPayload.image_urls = [imageUrl];
           delete wavespeedPayload.image_url;

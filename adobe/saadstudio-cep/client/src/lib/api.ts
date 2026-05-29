@@ -63,6 +63,27 @@ export interface JobStatus {
   error?: string;
 }
 
+export interface TransitionPresetItem {
+  id: string;
+  name: string;
+  category: string;
+  previewVideoUrl: string;
+  previewGradient: string;
+  supportedInputs: string[];
+  durationRange: [number, number];
+  costMultiplier: number;
+  engineType: string;
+  motionProfile: string;
+  description: string;
+}
+
+interface SignedUploadResponse {
+  signedUrl: string;
+  publicUrl: string;
+  path: string;
+  bucket: string;
+}
+
 export class ApiError extends Error {
   status: number;
   constructor(message: string, status: number) {
@@ -106,6 +127,28 @@ function safeJson(text: string): unknown {
   try { return JSON.parse(text); } catch { return text; }
 }
 
+function guessContentType(fileName: string, fallback = "application/octet-stream"): string {
+  const ext = fileName.split(".").pop()?.toLowerCase() ?? "";
+  switch (ext) {
+    case "mp4": return "video/mp4";
+    case "mov": return "video/quicktime";
+    case "webm": return "video/webm";
+    case "mkv": return "video/x-matroska";
+    case "avi": return "video/avi";
+    case "mp3": return "audio/mpeg";
+    case "wav": return "audio/wav";
+    case "m4a": return "audio/mp4";
+    case "ogg": return "audio/ogg";
+    case "aac": return "audio/aac";
+    case "jpg":
+    case "jpeg": return "image/jpeg";
+    case "png": return "image/png";
+    case "webp": return "image/webp";
+    case "gif": return "image/gif";
+    default: return fallback;
+  }
+}
+
 /** Translate the panel's pretty-name fields to the backend route's expected
  *  field names. The panel uses `model` / `aspect` / `durationSec` because
  *  that's how the dock components are wired; the Next.js routes expect
@@ -125,6 +168,117 @@ function toBackendShape(body: Record<string, unknown>): Record<string, unknown> 
   return out;
 }
 
+function normalizeVideoJob(
+  raw: unknown,
+  requestBody: Record<string, unknown>,
+): JobStatus {
+  if (raw && typeof raw === "object") {
+    const existing = raw as Partial<JobStatus>;
+    if (existing.status && typeof existing.status === "string") {
+      return existing as JobStatus;
+    }
+  }
+
+  const data = (raw && typeof raw === "object") ? raw as Record<string, unknown> : {};
+  const directUrl =
+    (typeof data.videoUrl === "string" && data.videoUrl) ||
+    (Array.isArray(data.videoUrls) && typeof data.videoUrls[0] === "string" ? data.videoUrls[0] : "") ||
+    "";
+  const baseId =
+    (typeof data.generationId === "string" && data.generationId) ||
+    (typeof data.taskId === "string" && data.taskId) ||
+    `video-${Date.now()}`;
+
+  if (directUrl) {
+    return {
+      id: baseId,
+      status: "succeeded",
+      progress: 100,
+      result: {
+        id: baseId,
+        kind: "video",
+        url: directUrl,
+        prompt: typeof requestBody.prompt === "string" ? requestBody.prompt : undefined,
+        model: typeof requestBody.model === "string" ? requestBody.model : undefined,
+        aspect: typeof requestBody.aspect === "string" ? requestBody.aspect : undefined,
+        durationSec: typeof requestBody.durationSec === "number" ? requestBody.durationSec : undefined,
+        createdAt: new Date().toISOString(),
+      },
+    };
+  }
+
+  if (typeof data.taskId === "string" && data.taskId) {
+    return {
+      id: data.taskId,
+      status: "queued",
+      progress: 0,
+      result: null,
+    };
+  }
+
+  return {
+    id: baseId,
+    status: "failed",
+    error: typeof data.error === "string" ? data.error : "Generation failed",
+    result: null,
+  };
+}
+
+function normalizeImageJob(
+  raw: unknown,
+  requestBody: Record<string, unknown>,
+): JobStatus {
+  if (raw && typeof raw === "object") {
+    const existing = raw as Partial<JobStatus>;
+    if (existing.status && typeof existing.status === "string") {
+      return existing as JobStatus;
+    }
+  }
+
+  const data = (raw && typeof raw === "object") ? raw as Record<string, unknown> : {};
+  const directUrl =
+    (typeof data.imageUrl === "string" && data.imageUrl) ||
+    (Array.isArray(data.imageUrls) && typeof data.imageUrls[0] === "string" ? data.imageUrls[0] : "") ||
+    "";
+  const baseId =
+    (typeof data.generationId === "string" && data.generationId) ||
+    (typeof data.taskId === "string" && data.taskId) ||
+    `image-${Date.now()}`;
+
+  if (directUrl) {
+    return {
+      id: baseId,
+      status: "succeeded",
+      progress: 100,
+      result: {
+        id: baseId,
+        kind: "image",
+        url: directUrl,
+        prompt: typeof requestBody.prompt === "string" ? requestBody.prompt : undefined,
+        model: typeof requestBody.model === "string" ? requestBody.model : undefined,
+        aspect: typeof requestBody.aspect === "string" ? requestBody.aspect : undefined,
+        createdAt: new Date().toISOString(),
+      },
+    };
+  }
+
+  if (typeof data.taskId === "string" && data.taskId) {
+    return {
+      id: data.taskId,
+      status: "queued",
+      progress: 0,
+      result: null,
+    };
+  }
+
+  return {
+    id: baseId,
+    status: "failed",
+    error: typeof data.error === "string" ? data.error : "Generation failed",
+    result: null,
+  };
+}
+
 export const api = {
   /** Current user + credits + subscription. */
   me: () => request<PanelMe>("/api/panel/me"),
@@ -138,16 +292,90 @@ export const api = {
     request<{ items: GenerationItem[] }>(`/api/panel/generations?limit=${limit}`)
       .catch(() => ({ items: [] })),
 
+  transitionPresets: () =>
+    request<{ presets: TransitionPresetItem[] }>("/api/transitions/presets"),
+
+  createUploadUrl: (body: { fileName: string; contentType: string; assetType?: string }) =>
+    request<SignedUploadResponse>("/api/panel/upload-url", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+
+  deleteUpload: (body: { path: string; bucket: string }) =>
+    request<{ deleted: boolean }>("/api/panel/upload-url", {
+      method: "DELETE",
+      body: JSON.stringify(body),
+    }),
+
+  uploadFileToR2: async (file: File, assetType = "video"): Promise<string> => {
+    const contentType = file.type || guessContentType(file.name);
+    const signed = await api.createUploadUrl({
+      fileName: file.name || "upload.bin",
+      contentType,
+      assetType,
+    });
+    const put = await fetch(signed.signedUrl, {
+      method: "PUT",
+      headers: { "Content-Type": contentType },
+      body: file,
+    });
+    if (!put.ok) {
+      throw new ApiError(`Direct upload failed (${put.status})`, put.status);
+    }
+    return signed.publicUrl;
+  },
+
+  uploadLocalPathToR2: async (localPath: string, assetType = "video"): Promise<string> => {
+    if (typeof window.cep === "undefined" || !window.cep_node) {
+      throw new ApiError("Local path upload works only inside Adobe.", 400);
+    }
+    const fs = window.cep_node.require("fs") as typeof import("fs");
+    const path = window.cep_node.require("path") as typeof import("path");
+    if (!fs.existsSync(localPath)) {
+      throw new ApiError("Local source file was not found.", 404);
+    }
+
+    const fileName = path.basename(localPath) || "upload.bin";
+    const contentType = guessContentType(fileName);
+    const signed = await api.createUploadUrl({ fileName, contentType, assetType });
+    const body = fs.readFileSync(localPath) as Buffer;
+    const put = await fetch(signed.signedUrl, {
+      method: "PUT",
+      headers: { "Content-Type": contentType },
+      body,
+    });
+    if (!put.ok) {
+      throw new ApiError(`Direct upload failed (${put.status})`, put.status);
+    }
+    return signed.publicUrl;
+  },
+
   generate: {
-    image: (body: Record<string, unknown>) =>
-      request<JobStatus>("/api/panel/generate/image", {
+    image: async (body: Record<string, unknown>) =>
+      normalizeImageJob(
+        await request<unknown>("/api/panel/generate/image", {
+          method: "POST",
+          body: JSON.stringify(toBackendShape(body)),
+        }),
+        body,
+      ),
+    video: async (body: Record<string, unknown>) =>
+      normalizeVideoJob(
+        await request<unknown>("/api/panel/generate/video", {
+          method: "POST",
+          body: JSON.stringify(toBackendShape(body)),
+        }),
+        body,
+      ),
+    avatarPro: (body: { imageUrl: string; audioUrl: string; prompt?: string }) =>
+      request<JobStatus>("/api/panel/generate/avatar-pro", {
         method: "POST",
-        body: JSON.stringify(toBackendShape(body)),
+        body: JSON.stringify(body),
       }),
-    video: (body: Record<string, unknown>) =>
-      request<JobStatus>("/api/panel/generate/video", {
+    transition: (body: Record<string, unknown>) =>
+      request<JobStatus>("/api/panel/generate/transition", {
         method: "POST",
-        body: JSON.stringify(toBackendShape(body)),
+        body: JSON.stringify(body),
       }),
     captions: (body: Record<string, unknown>) =>
       request<JobStatus>("/api/panel/generate/captions", {

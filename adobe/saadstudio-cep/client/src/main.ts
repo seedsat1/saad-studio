@@ -12,8 +12,9 @@ import { HomePage } from "./pages/home";
 import { ConnectPage } from "./pages/connect";
 import { ImageGenPage } from "./pages/image-gen";
 import { VideoGenPage } from "./pages/video-gen";
+import { TransitionsPage } from "./pages/transitions";
 import { EditVideoPage } from "./pages/edit-video";
-import { ReframePage } from "./pages/reframe";
+import { AvatarProPage } from "./pages/avatar-pro";
 import { RemoveBgPage } from "./pages/remove-bg";
 import { UpscalePage } from "./pages/upscale";
 import { DrawToVideoPage } from "./pages/draw-to-video";
@@ -38,8 +39,10 @@ async function bootstrap() {
       "/connect": ConnectPage,
       "/image-gen": requireAuth(ImageGenPage),
       "/video-gen": requireAuth(VideoGenPage),
+      "/transitions": requireAuth(TransitionsPage),
       "/edit-video": requireAuth(EditVideoPage),
-      "/reframe": requireAuth(ReframePage),
+      "/avatar-pro": requireAuth(AvatarProPage),
+      "/reframe": requireAuth(AvatarProPage),
       "/remove-bg": requireAuth(RemoveBgPage),
       "/upscale": requireAuth(UpscalePage),
       "/draw-to-video": requireAuth(DrawToVideoPage),

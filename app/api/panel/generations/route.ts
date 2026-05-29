@@ -12,6 +12,9 @@ function inferKind(assetType: string | null | undefined, type: string | null | u
   }
 
   const normalizedAssetType = String(assetType ?? "").toLowerCase();
+  if (normalizedAssetType.includes("transition")) {
+    return "video";
+  }
   return normalizedAssetType.includes("video") ? "video" : "image";
 }
 

@@ -18,6 +18,14 @@ export interface AppDef {
 
 export const APPS: AppDef[] = [
   {
+    id: "transitions",
+    name: "Transitions",
+    description: "Generate cinematic A/B transitions from the studio presets.",
+    route: "/transitions",
+    icon: "video",
+    badge: "NEW",
+  },
+  {
     id: "draw-to-video",
     name: "Draw to video",
     description: "Sketch on a frame, get a clip back.",
@@ -33,11 +41,12 @@ export const APPS: AppDef[] = [
     icon: "magic-wand",
   },
   {
-    id: "reframe",
-    name: "Reframe",
-    description: "Change aspect ratio, keep the subject.",
-    route: "/reframe",
-    icon: "crop",
+    id: "avatar-pro",
+    name: "Kling Avatar Pro",
+    description: "Animate one avatar image with uploaded speech.",
+    route: "/avatar-pro",
+    icon: "video",
+    badge: "NEW",
   },
   {
     id: "remove-bg",

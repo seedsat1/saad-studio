@@ -9,7 +9,7 @@ import {
 } from "@/lib/credit-ledger";
 import { getVideoCreditsByModelId } from "@/lib/credit-pricing";
 import { getResolvedKieRoutingMaps } from "@/lib/kie-model-routing";
-import { sanitizePrompt } from "@/lib/security";
+import { isSafePublicHttpUrl, sanitizePrompt } from "@/lib/security";
 import prismadb from "@/lib/prismadb";
 import { isDirectProviderModel, getProviderFor } from "@/lib/provider-router";
 import { dispatchDirectVideo } from "@/lib/providers/dispatch";
@@ -44,6 +44,7 @@ function extractVideoUrls(value: unknown): string[] {
 function resolveWaveSpeedModelRoute(modelId: string): string {
   const clean = modelId.trim();
   const mapping: Record<string, string> = {
+    "wavespeed-ai/cinematic-video-generator": "wavespeed-ai/cinematic-video-generator",
     "kling-3.0/video": "kwaivgi/kling-v3.0-pro/text-to-video",
     "kwaivgi/kling-v3.0-pro/text-to-video": "kwaivgi/kling-v3.0-pro/text-to-video",
     "kling-3.0/motion-control": "kwaivgi/kling-v3.0-pro/motion-control",
@@ -187,6 +188,7 @@ export async function POST(req: NextRequest) {
       aspectRatio?: string;
       resolution?: string;
       imageUrl?: string;
+      imageUrls?: string[];
     };
 
     const {
@@ -196,10 +198,20 @@ export async function POST(req: NextRequest) {
       aspectRatio = "16:9",
       resolution = "1080p",
       imageUrl,
+      imageUrls,
     } = body;
 
     if (!prompt?.trim()) {
       return NextResponse.json({ error: "Please enter a prompt." }, { status: 400 });
+    }
+    if (imageUrl && !isSafePublicHttpUrl(imageUrl)) {
+      return NextResponse.json({ error: "Invalid imageUrl provided." }, { status: 400 });
+    }
+    const safeImageUrls = Array.isArray(imageUrls)
+      ? imageUrls.filter((url): url is string => typeof url === "string" && isSafePublicHttpUrl(url))
+      : [];
+    if (Array.isArray(imageUrls) && safeImageUrls.length !== imageUrls.length) {
+      return NextResponse.json({ error: "One or more imageUrls are invalid." }, { status: 400 });
     }
 
     // ── Early dispatch: Google Veo direct (Vertex/Gemini) and BytePlus
@@ -313,7 +325,13 @@ export async function POST(req: NextRequest) {
         aspect_ratio: aspectRatio,
       };
 
-      if (imageUrl) {
+      if (wavespeedModel === "wavespeed-ai/cinematic-video-generator") {
+        if (safeImageUrls.length) {
+          payload.images = safeImageUrls.slice(0, 4);
+        } else if (imageUrl) {
+          payload.images = [imageUrl];
+        }
+      } else if (imageUrl) {
         if (wavespeedModel.includes("kling-v3.0") || wavespeedModel.includes("motion-control")) {
           payload.image_urls = [imageUrl];
         } else {
