@@ -41,8 +41,16 @@ function extractVideoUrls(value: unknown): string[] {
   return [];
 }
 
-function resolveWaveSpeedModelRoute(modelId: string): string {
+function resolveWaveSpeedModelRoute(modelId: string, opts?: { resolution?: string; mode?: string }): string {
   const clean = modelId.trim();
+  const normalizedResolution = String(opts?.resolution ?? "").trim().toLowerCase();
+  const normalizedMode = String(opts?.mode ?? "").trim().toLowerCase();
+  if (
+    clean === "kling-3.0/video" &&
+    (normalizedResolution === "4k" || normalizedMode === "4k")
+  ) {
+    return "kwaivgi/kling-v3.0-4k/text-to-video";
+  }
   const mapping: Record<string, string> = {
     "wavespeed-ai/cinematic-video-generator": "wavespeed-ai/cinematic-video-generator",
     "kling-3.0/video": "kwaivgi/kling-v3.0-pro/text-to-video",
@@ -98,7 +106,12 @@ async function pollWaveSpeedTask(apiKey: string, predictionId: string, maxAttemp
     const res = await fetch(`https://api.wavespeed.ai/api/v3/predictions/${predictionId}`, {
       headers: { Authorization: `Bearer ${apiKey}` },
     });
-    if (!res.ok) throw new Error(`WaveSpeed polling failed: ${res.status}`);
+    if (!res.ok) {
+      if (res.status === 404 || res.status === 425 || res.status === 409) {
+        continue;
+      }
+      throw new Error(`WaveSpeed polling failed: ${res.status}`);
+    }
     const json = await res.json().catch(() => ({}));
     const data = json?.data ?? {};
     const status = String(data?.status || "").toLowerCase();
@@ -107,6 +120,12 @@ async function pollWaveSpeedTask(apiKey: string, predictionId: string, maxAttemp
       const resultRes = await fetch(`https://api.wavespeed.ai/api/v3/predictions/${predictionId}/result`, {
         headers: { Authorization: `Bearer ${apiKey}` },
       });
+      if (!resultRes.ok) {
+        if (resultRes.status === 404 || resultRes.status === 425 || resultRes.status === 409) {
+          continue;
+        }
+        throw new Error(`WaveSpeed result polling failed: ${resultRes.status}`);
+      }
       const resultJson = await resultRes.json().catch(() => ({}));
       const resultData = resultJson?.data ?? resultJson ?? {};
       const outputs = extractVideoUrls(resultData?.outputs ?? resultData?.result ?? resultData?.response ?? data?.outputs);
@@ -320,7 +339,7 @@ export async function POST(req: NextRequest) {
       const wavespeedKey = process.env.WAVESPEED_API_KEY;
       if (!wavespeedKey) throw new Error("WaveSpeed API key not configured on server.");
 
-      const wavespeedModel = resolveWaveSpeedModelRoute(modelId);
+      const wavespeedModel = resolveWaveSpeedModelRoute(modelId, { resolution, mode });
       const isKling = wavespeedModel.includes("kling");
 
       const payload: Record<string, unknown> = {

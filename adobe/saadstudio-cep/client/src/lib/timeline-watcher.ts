@@ -26,7 +26,19 @@ export interface TimelineClip {
   durationSec?: number;
 }
 
+export interface TimelineAudio {
+  type: "audio";
+  path: string;
+  name?: string;
+  inSec?: number;
+  outSec?: number;
+  startSec?: number;
+  endSec?: number;
+  durationSec?: number;
+}
+
 export type SelectionListener = (clip: TimelineClip | null) => void;
+export type AudioSelectionListener = (clip: TimelineAudio | null) => void;
 
 export interface Watcher {
   /** Stop polling and release the interval. */
@@ -43,6 +55,21 @@ export function watchTimelineSelection(
   listener: SelectionListener,
   intervalMs: number = DEFAULT_INTERVAL_MS,
 ): Watcher {
+  return createWatcher<TimelineClip>("getSelectedClip", listener, intervalMs);
+}
+
+export function watchTimelineAudioSelection(
+  listener: AudioSelectionListener,
+  intervalMs: number = DEFAULT_INTERVAL_MS,
+): Watcher {
+  return createWatcher<TimelineAudio>("getSelectedAudio", listener, intervalMs);
+}
+
+function createWatcher<T extends { path: string; inSec?: number; outSec?: number }>(
+  fnName: string,
+  listener: (clip: T | null) => void,
+  intervalMs: number,
+): Watcher {
   let stopped = false;
   let lastKey = "__init__";
 
@@ -58,7 +85,7 @@ export function watchTimelineSelection(
       return;
     }
     try {
-      const clip = await evalES<TimelineClip | null>("getSelectedClip");
+      const clip = await evalES<T | null>(fnName);
       const key = clip ? `${clip.path}|${clip.inSec ?? 0}|${clip.outSec ?? 0}` : "null";
       if (key !== lastKey) {
         lastKey = key;

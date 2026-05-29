@@ -6,33 +6,64 @@ import { api, type JobStatus } from "../lib/api";
 import { toast } from "../lib/toast";
 import { evalES } from "../lib/cep";
 import { store } from "../lib/store";
+import {
+  watchTimelineAudioSelection,
+  watchTimelineSelection,
+  type TimelineAudio,
+  type TimelineClip,
+} from "../lib/timeline-watcher";
 
-type UploadState = {
+type VisualState = {
   file: File | null;
+  localPath: string | null;
   previewUrl: string | null;
   uploadedUrl: string | null;
   uploadedKey: string | null;
+  displayName: string | null;
+  kind: "image" | "video" | null;
+  source: "upload" | "timeline" | null;
+  selectionKey: string | null;
+};
+
+type AudioState = {
+  file: File | null;
+  localPath: string | null;
+  previewUrl: string | null;
+  uploadedUrl: string | null;
+  uploadedKey: string | null;
+  displayName: string | null;
+  source: "upload" | "timeline" | null;
+  selectionKey: string | null;
 };
 
 export function AvatarProPage(): HTMLElement {
-  const imageState: UploadState = {
+  const visualState: VisualState = {
     file: null,
+    localPath: null,
     previewUrl: null,
     uploadedUrl: null,
     uploadedKey: null,
+    displayName: null,
+    kind: null,
+    source: null,
+    selectionKey: null,
   };
-  const audioState: UploadState = {
+  const audioState: AudioState = {
     file: null,
+    localPath: null,
     previewUrl: null,
     uploadedUrl: null,
     uploadedKey: null,
+    displayName: null,
+    source: null,
+    selectionKey: null,
   };
 
   let busy = false;
 
   const promptInput = el("textarea", {
     rows: "4",
-    placeholder: "Optional: describe expression, camera feel, or delivery style…",
+    placeholder: "Optional: describe speech energy, expression, or framing…",
     style: {
       width: "100%",
       minHeight: "104px",
@@ -48,16 +79,31 @@ export function AvatarProPage(): HTMLElement {
     },
   }) as HTMLTextAreaElement;
 
-  const imagePreview = el("img", {
-    alt: "Avatar preview",
+  const visualImage = el("img", {
+    alt: "LiP sync visual preview",
     style: {
       width: "100%",
-      maxHeight: "180px",
+      maxHeight: "220px",
       objectFit: "cover",
       borderRadius: "12px",
       display: "none",
     },
   }) as HTMLImageElement;
+
+  const visualVideo = el("video", {
+    controls: "true",
+    muted: "true",
+    playsinline: "true",
+    preload: "metadata",
+    style: {
+      width: "100%",
+      maxHeight: "220px",
+      objectFit: "cover",
+      borderRadius: "12px",
+      display: "none",
+      background: "#000",
+    },
+  }) as HTMLVideoElement;
 
   const audioPreview = el("audio", {
     controls: "true",
@@ -67,67 +113,67 @@ export function AvatarProPage(): HTMLElement {
     },
   }) as HTMLAudioElement;
 
-  const imageName = el("div.mono.muted", {
+  const visualMeta = el("div.mono.muted", {
     style: { fontSize: "11px", wordBreak: "break-all" },
-  }, "No image selected");
+  }, "No image or video selected");
 
-  const audioName = el("div.mono.muted", {
+  const audioMeta = el("div.mono.muted", {
     style: { fontSize: "11px", wordBreak: "break-all" },
   }, "No audio selected");
 
   const generateBtn = el("button.btn-primary", {
     onClick: () => { void submit(); },
-  }, icon("send", 14), "Generate avatar") as HTMLButtonElement;
+  }, icon("send", 14), "Generate LiP sync") as HTMLButtonElement;
 
   const resultHost = el("div.col.gap-3", { style: { padding: "0 16px 16px" } });
 
-  const imageCard = createUploadCard({
-    title: "Avatar image",
-    subtitle: "Upload a portrait image for the talking avatar.",
-    accept: "image/png,image/jpeg,image/webp",
-    buttonLabel: "Choose image",
+  const visualCard = createUploadCard({
+    title: "Visual source",
+    subtitle: "Pick an image or video from the timeline, or upload one. Video sources use the first frame for lip sync.",
+    accept: "image/*,video/*",
+    buttonLabel: "Choose image/video",
+    preview: el("div.col.gap-3", null, visualImage, visualVideo),
+    meta: visualMeta,
     onPick: (file) => {
-      setFileState(imageState, file);
-      syncFilePreview(imageState, imagePreview, imageName);
+      applyVisualUpload(file);
+      syncVisualPreview();
       updateGenerateState();
     },
-    preview: imagePreview,
-    meta: imageName,
   });
 
   const audioCard = createUploadCard({
-    title: "Voice audio",
-    subtitle: "Upload speech audio up to 5 minutes.",
-    accept: "audio/mpeg,audio/wav,audio/x-wav,audio/aac,audio/mp4,audio/ogg",
+    title: "Speech audio",
+    subtitle: "Pick an audio clip from the timeline, or upload a speech file.",
+    accept: "audio/*",
     buttonLabel: "Choose audio",
+    preview: audioPreview,
+    meta: audioMeta,
     onPick: (file) => {
-      setFileState(audioState, file);
-      syncAudioPreview(audioState, audioPreview, audioName);
+      applyAudioUpload(file);
+      syncAudioPreview();
       updateGenerateState();
     },
-    preview: audioPreview,
-    meta: audioName,
   });
 
   const root = el("div.col", { style: { height: "100%" } },
     Header(),
-    PageHeader("Kling AI Avatar Pro"),
+    PageHeader("LiP sync"),
     el("div.app-main",
       null,
       el("div.state-card", { style: { margin: "0 16px 16px" } },
         el("div.state-card__icon", null, icon("video", 22)),
-        el("div.state-card__title", null, "Animate a portrait with voice"),
+        el("div.state-card__title", null, "Lip sync from timeline or upload"),
         el("div.state-card__subtitle", null,
-          "Upload one avatar image and one audio file. The panel sends both files to Cloudflare R2 first, then runs Kling AI Avatar Pro through KIE.",
+          "Select an image or video on the timeline for the face, select audio on the timeline for speech, or upload both manually. Video visuals are converted to a still frame before generation.",
         ),
       ),
       el("div.col.gap-3", { style: { padding: "0 16px 16px" } },
-        imageCard,
+        visualCard,
         audioCard,
         el("div.state-card", { style: { padding: "14px" } },
           el("div.state-card__title", { style: { textAlign: "left", width: "100%", marginBottom: "8px" } }, "Prompt"),
           el("div.state-card__subtitle", { style: { textAlign: "left", width: "100%", marginBottom: "12px" } },
-            "Optional guidance for expression, framing, or motion.",
+            "Optional guidance for expression, framing, or speaking style.",
           ),
           promptInput,
           el("div.row.gap-2", { style: { marginTop: "12px", justifyContent: "flex-end" } }, generateBtn),
@@ -137,30 +183,137 @@ export function AvatarProPage(): HTMLElement {
     ),
   );
 
+  const visualWatcher = watchTimelineSelection((clip) => {
+    if (!clip?.path || visualState.source === "upload") return;
+    const key = clipSelectionKey(clip);
+    if (!key || key === visualState.selectionKey) return;
+    applyTimelineVisual(clip);
+    syncVisualPreview();
+    updateGenerateState();
+  });
+  visualWatcher.attachTo(root);
+
+  const audioWatcher = watchTimelineAudioSelection((clip) => {
+    if (!clip?.path || audioState.source === "upload") return;
+    const key = audioSelectionKey(clip);
+    if (!key || key === audioState.selectionKey) return;
+    applyTimelineAudio(clip);
+    syncAudioPreview();
+    updateGenerateState();
+  });
+  audioWatcher.attachTo(root);
+
   updateGenerateState();
   return root;
 
+  function applyVisualUpload(file: File | null) {
+    revokePreviewUrl(visualState.previewUrl);
+    visualState.file = file;
+    visualState.localPath = null;
+    visualState.previewUrl = file ? URL.createObjectURL(file) : null;
+    visualState.uploadedUrl = null;
+    visualState.uploadedKey = null;
+    visualState.displayName = file?.name ?? null;
+    visualState.kind = file ? detectVisualKind(file.type, file.name) : null;
+    visualState.source = file ? "upload" : null;
+    visualState.selectionKey = file ? `upload:${file.name}:${file.size}:${file.lastModified}` : null;
+  }
+
+  function applyAudioUpload(file: File | null) {
+    revokePreviewUrl(audioState.previewUrl);
+    audioState.file = file;
+    audioState.localPath = null;
+    audioState.previewUrl = file ? URL.createObjectURL(file) : null;
+    audioState.uploadedUrl = null;
+    audioState.uploadedKey = null;
+    audioState.displayName = file?.name ?? null;
+    audioState.source = file ? "upload" : null;
+    audioState.selectionKey = file ? `upload:${file.name}:${file.size}:${file.lastModified}` : null;
+  }
+
+  function applyTimelineVisual(clip: TimelineClip) {
+    revokePreviewUrl(visualState.previewUrl);
+    visualState.file = null;
+    visualState.localPath = clip.path;
+    visualState.previewUrl = pathToMediaSrc(clip.path);
+    visualState.uploadedUrl = null;
+    visualState.uploadedKey = null;
+    visualState.displayName = clip.name ?? fileNameFromPath(clip.path);
+    visualState.kind = clip.type;
+    visualState.source = "timeline";
+    visualState.selectionKey = clipSelectionKey(clip);
+  }
+
+  function applyTimelineAudio(clip: TimelineAudio) {
+    revokePreviewUrl(audioState.previewUrl);
+    audioState.file = null;
+    audioState.localPath = clip.path;
+    audioState.previewUrl = pathToMediaSrc(clip.path);
+    audioState.uploadedUrl = null;
+    audioState.uploadedKey = null;
+    audioState.displayName = clip.name ?? fileNameFromPath(clip.path);
+    audioState.source = "timeline";
+    audioState.selectionKey = audioSelectionKey(clip);
+  }
+
+  function syncVisualPreview() {
+    visualImage.style.display = "none";
+    visualVideo.style.display = "none";
+    visualImage.removeAttribute("src");
+    visualVideo.removeAttribute("src");
+
+    if (!visualState.previewUrl || !visualState.kind) {
+      visualMeta.textContent = "No image or video selected";
+      return;
+    }
+
+    if (visualState.kind === "image") {
+      visualImage.src = visualState.previewUrl;
+      visualImage.style.display = "block";
+    } else {
+      visualVideo.src = visualState.previewUrl;
+      visualVideo.style.display = "block";
+    }
+
+    const sourceLabel = visualState.source === "timeline" ? "timeline" : "upload";
+    const kindLabel = visualState.kind === "video" ? "video -> first frame" : "image";
+    visualMeta.textContent = `${visualState.displayName ?? "Visual source"} • ${kindLabel} • ${sourceLabel}`;
+  }
+
+  function syncAudioPreview() {
+    audioPreview.style.display = "none";
+    audioPreview.removeAttribute("src");
+    if (!audioState.previewUrl) {
+      audioMeta.textContent = "No audio selected";
+      return;
+    }
+    audioPreview.src = audioState.previewUrl;
+    audioPreview.style.display = "block";
+    const sourceLabel = audioState.source === "timeline" ? "timeline" : "upload";
+    audioMeta.textContent = `${audioState.displayName ?? "Audio source"} • ${sourceLabel}`;
+  }
+
   function updateGenerateState() {
-    generateBtn.disabled = busy || !imageState.file || !audioState.file;
+    generateBtn.disabled = busy || !hasVisualSource(visualState) || !hasAudioSource(audioState);
     generateBtn.style.opacity = generateBtn.disabled ? "0.6" : "1";
     generateBtn.style.pointerEvents = generateBtn.disabled ? "none" : "auto";
   }
 
   async function submit() {
     if (busy) return;
-    if (!imageState.file || !audioState.file) {
-      toast("Select both an image and an audio file first.", "error");
+    if (!hasVisualSource(visualState) || !hasAudioSource(audioState)) {
+      toast("Select both a visual source and an audio source first.", "error");
       return;
     }
 
     try {
       busy = true;
       updateGenerateState();
-      resultHost.replaceChildren(busyCard("Uploading assets and generating avatar…"));
+      resultHost.replaceChildren(busyCard("Preparing timeline assets and generating LiP sync…"));
 
       const [imageUrl, audioUrl] = await Promise.all([
-        ensureUploaded(imageState, "image"),
-        ensureUploaded(audioState, "audio"),
+        ensureVisualUploadedAsImage(visualState),
+        ensureAudioUploaded(audioState),
       ]);
 
       const job = await api.generate.avatarPro({
@@ -168,12 +321,15 @@ export function AvatarProPage(): HTMLElement {
         audioUrl,
         prompt: promptInput.value.trim(),
       });
+      const final = (job.status === "succeeded" || job.status === "failed")
+        ? job
+        : await api.pollJob(job.id);
 
-      if (job.status === "failed" || !job.result) {
-        throw new Error(job.error ?? "Generation failed");
+      if (final.status === "failed" || !final.result) {
+        throw new Error(final.error ?? "Generation failed");
       }
 
-      resultHost.replaceChildren(resultCard(job));
+      resultHost.replaceChildren(resultCard(final));
       store.refreshCreditsOnly();
       store.refreshRecent();
     } catch (err) {
@@ -192,9 +348,9 @@ function createUploadCard(input: {
   subtitle: string;
   accept: string;
   buttonLabel: string;
-  onPick: (file: File | null) => void;
   preview: HTMLElement;
   meta: HTMLElement;
+  onPick: (file: File | null) => void;
 }): HTMLElement {
   const picker = document.createElement("input");
   picker.type = "file";
@@ -217,50 +373,161 @@ function createUploadCard(input: {
   );
 }
 
-function setFileState(state: UploadState, file: File | null) {
-  if (state.previewUrl?.startsWith("blob:")) {
-    URL.revokeObjectURL(state.previewUrl);
-  }
-  state.file = file;
-  state.previewUrl = file ? URL.createObjectURL(file) : null;
-  state.uploadedUrl = null;
-  state.uploadedKey = null;
+function hasVisualSource(state: VisualState): boolean {
+  return Boolean(state.file || state.localPath);
 }
 
-function syncFilePreview(state: UploadState, preview: HTMLImageElement, meta: HTMLElement) {
-  if (!state.file || !state.previewUrl) {
-    preview.style.display = "none";
-    preview.removeAttribute("src");
-    meta.textContent = "No image selected";
-    return;
-  }
-  preview.src = state.previewUrl;
-  preview.style.display = "block";
-  meta.textContent = state.file.name;
+function hasAudioSource(state: AudioState): boolean {
+  return Boolean(state.file || state.localPath);
 }
 
-function syncAudioPreview(state: UploadState, preview: HTMLAudioElement, meta: HTMLElement) {
-  if (!state.file || !state.previewUrl) {
-    preview.style.display = "none";
-    preview.removeAttribute("src");
-    meta.textContent = "No audio selected";
-    return;
+function revokePreviewUrl(url: string | null) {
+  if (url?.startsWith("blob:")) {
+    URL.revokeObjectURL(url);
   }
-  preview.src = state.previewUrl;
-  preview.style.display = "block";
-  meta.textContent = state.file.name;
 }
 
-async function ensureUploaded(state: UploadState, assetType: "image" | "audio"): Promise<string> {
-  if (!state.file) throw new Error(`Missing ${assetType} file.`);
-  const key = `${state.file.name}:${state.file.size}:${state.file.lastModified}`;
-  if (state.uploadedUrl && state.uploadedKey === key) {
+function detectVisualKind(type: string, fileName: string): "image" | "video" {
+  const lower = fileName.toLowerCase();
+  if (type.startsWith("image/")) return "image";
+  if (type.startsWith("video/")) return "video";
+  if (/\.(png|jpg|jpeg|webp|gif|bmp|tif|tiff|heic|heif)$/i.test(lower)) return "image";
+  return "video";
+}
+
+function fileNameFromPath(filePath: string): string {
+  const parts = filePath.replace(/\\/g, "/").split("/");
+  return parts[parts.length - 1] || filePath;
+}
+
+function baseName(fileName: string): string {
+  return fileName.replace(/\.[^.]+$/, "") || "asset";
+}
+
+function clipSelectionKey(clip: TimelineClip): string | null {
+  if (!clip.path) return null;
+  return `${clip.path}|${clip.inSec ?? 0}|${clip.outSec ?? 0}`;
+}
+
+function audioSelectionKey(clip: TimelineAudio): string | null {
+  if (!clip.path) return null;
+  return `${clip.path}|${clip.inSec ?? 0}|${clip.outSec ?? 0}`;
+}
+
+function pathToMediaSrc(p: string): string {
+  if (!p) return "";
+  if (p.startsWith("blob:") || p.startsWith("data:") || p.startsWith("http")) return p;
+  const forward = p.replace(/\\/g, "/");
+  if (forward.startsWith("file://")) return forward;
+  if (/^[a-zA-Z]:\//.test(forward)) return `file:///${forward}`;
+  if (forward.startsWith("/")) return `file://${forward}`;
+  return `file:///${forward}`;
+}
+
+async function ensureVisualUploadedAsImage(state: VisualState): Promise<string> {
+  if (!hasVisualSource(state) || !state.kind) {
+    throw new Error("Missing visual source.");
+  }
+  const uploadKey = state.file
+    ? `file:${state.file.name}:${state.file.size}:${state.file.lastModified}:${state.kind}`
+    : `path:${state.localPath}:${state.kind}`;
+  if (state.uploadedUrl && state.uploadedKey === uploadKey) {
     return state.uploadedUrl;
   }
-  const uploadedUrl = await api.uploadFileToR2(state.file, assetType);
+
+  let uploadedUrl = "";
+  if (state.kind === "image") {
+    uploadedUrl = state.file
+      ? await api.uploadFileToR2(state.file, "image")
+      : await api.uploadLocalPathToR2(state.localPath!, "image");
+  } else {
+    const frameFile = state.file
+      ? await captureFrameFromVideoFile(state.file)
+      : await captureFrameFromVideoPath(state.localPath!, state.displayName ?? "timeline-video");
+    uploadedUrl = await api.uploadFileToR2(frameFile, "image");
+  }
+
   state.uploadedUrl = uploadedUrl;
-  state.uploadedKey = key;
+  state.uploadedKey = uploadKey;
   return uploadedUrl;
+}
+
+async function ensureAudioUploaded(state: AudioState): Promise<string> {
+  if (!hasAudioSource(state)) {
+    throw new Error("Missing audio source.");
+  }
+  const uploadKey = state.file
+    ? `file:${state.file.name}:${state.file.size}:${state.file.lastModified}`
+    : `path:${state.localPath}`;
+  if (state.uploadedUrl && state.uploadedKey === uploadKey) {
+    return state.uploadedUrl;
+  }
+
+  const uploadedUrl = state.file
+    ? await api.uploadFileToR2(state.file, "audio")
+    : await api.uploadLocalPathToR2(state.localPath!, "audio");
+
+  state.uploadedUrl = uploadedUrl;
+  state.uploadedKey = uploadKey;
+  return uploadedUrl;
+}
+
+async function captureFrameFromVideoFile(file: File): Promise<File> {
+  const src = URL.createObjectURL(file);
+  try {
+    const blob = await captureFrameBlob(src);
+    return new File([blob], `${baseName(file.name)}-frame.png`, { type: "image/png" });
+  } finally {
+    URL.revokeObjectURL(src);
+  }
+}
+
+async function captureFrameFromVideoPath(localPath: string, displayName: string): Promise<File> {
+  const blob = await captureFrameBlob(pathToMediaSrc(localPath));
+  return new File([blob], `${baseName(displayName)}-frame.png`, { type: "image/png" });
+}
+
+async function captureFrameBlob(src: string): Promise<Blob> {
+  const video = document.createElement("video");
+  video.src = src;
+  video.crossOrigin = "anonymous";
+  video.muted = true;
+  video.playsInline = true;
+  video.preload = "auto";
+
+  await new Promise<void>((resolve, reject) => {
+    const onError = () => reject(new Error("Video preview could not be loaded."));
+    video.onerror = onError;
+    video.onloadedmetadata = () => {
+      const target = Number.isFinite(video.duration) && video.duration > 0.12 ? 0.1 : 0;
+      if (target <= 0) {
+        resolve();
+        return;
+      }
+      video.currentTime = target;
+    };
+    video.onseeked = () => resolve();
+    video.onloadeddata = () => {
+      if (video.currentTime <= 0.001) resolve();
+    };
+  });
+
+  const canvas = document.createElement("canvas");
+  canvas.width = video.videoWidth || 1024;
+  canvas.height = video.videoHeight || 1024;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Canvas is not available.");
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+  return await new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (!blob) {
+        reject(new Error("Frame capture failed."));
+        return;
+      }
+      resolve(blob);
+    }, "image/png");
+  });
 }
 
 function busyCard(message: string): HTMLElement {
