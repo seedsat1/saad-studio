@@ -20,6 +20,7 @@ export interface DockOption {
 export interface DockConfig {
   placeholder?: string;
   showAttach?: boolean;
+  allowEmptySubmit?: boolean;
   options: DockOption[];
   onAttach?: (files: FileList) => void;
   onSubmit: (state: DockState) => void;
@@ -91,7 +92,7 @@ export function PromptDock(cfg: DockConfig): PromptDockHandle {
 
   function submit() {
     if (busy) return;
-    if (!state.prompt.trim() && !state.attachments.length) return;
+    if (!cfg.allowEmptySubmit && !state.prompt.trim() && !state.attachments.length) return;
     cfg.onSubmit({ ...state, options: { ...state.options } });
   }
 

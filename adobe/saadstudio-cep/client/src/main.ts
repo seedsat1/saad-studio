@@ -15,6 +15,7 @@ import { VideoGenPage } from "./pages/video-gen";
 import { TransitionsPage } from "./pages/transitions";
 import { EditVideoPage } from "./pages/edit-video";
 import { AvatarProPage } from "./pages/avatar-pro";
+import { ReframePage } from "./pages/reframe";
 import { RemoveBgPage } from "./pages/remove-bg";
 import { UpscalePage } from "./pages/upscale";
 import { DrawToVideoPage } from "./pages/draw-to-video";
@@ -43,7 +44,8 @@ async function bootstrap() {
       "/edit-video": requireAuth(EditVideoPage),
       "/lip-sync": requireAuth(AvatarProPage),
       "/avatar-pro": requireAuth(AvatarProPage),
-      "/reframe": requireAuth(AvatarProPage),
+      "/reframe": requireAuth(ReframePage),
+      "/expand": requireAuth(DrawToVideoPage),
       "/remove-bg": requireAuth(RemoveBgPage),
       "/upscale": requireAuth(UpscalePage),
       "/draw-to-video": requireAuth(DrawToVideoPage),

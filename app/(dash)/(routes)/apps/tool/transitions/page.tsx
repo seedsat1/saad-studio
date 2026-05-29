@@ -189,7 +189,9 @@ function extractVideoFrame(videoSrc: string, position: "first" | "last"): Promis
     video.crossOrigin = "anonymous";
     video.muted = true;
     video.preload = "metadata";
-    video.src = videoSrc;
+    video.src = videoSrc.startsWith("http")
+      ? `/api/proxy-image?url=${encodeURIComponent(videoSrc)}`
+      : videoSrc;
     video.onloadedmetadata = () => {
       video.currentTime = position === "last" ? Math.max(0, video.duration - 0.1) : 0;
     };

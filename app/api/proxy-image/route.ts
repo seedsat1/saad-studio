@@ -85,11 +85,11 @@ export async function GET(req: NextRequest) {
       return new NextResponse("Failed to fetch upstream image", { status: upstream.status });
     }
 
-    const contentType = upstream.headers.get("content-type") || "image/jpeg";
+    const contentType = upstream.headers.get("content-type") || "";
 
-    // Only proxy image content types
-    if (!contentType.startsWith("image/")) {
-      return new NextResponse("Upstream resource is not an image", { status: 415 });
+    // Only proxy image or video content types
+    if (!contentType.startsWith("image/") && !contentType.startsWith("video/")) {
+      return new NextResponse("Upstream resource is not an image or video", { status: 415 });
     }
 
     const buffer = Buffer.from(await upstream.arrayBuffer());

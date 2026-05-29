@@ -30,6 +30,8 @@ export interface SourceClip {
   height?: number;
   durationSec?: number;
   name?: string;
+  inSec?: number;
+  outSec?: number;
 }
 
 export interface VideoUtilityConfig {
@@ -40,6 +42,8 @@ export interface VideoUtilityConfig {
   options: DockOption[];
   /** Whether to show a prompt textarea (draw-to-video does, reframe doesn't). */
   showPrompt?: boolean;
+  /** Some tools can run from presets/options even without prompt text. */
+  allowEmptySubmit?: boolean;
   /** Build + send the API request. */
   submit: (input: {
     clip: SourceClip;
@@ -165,6 +169,7 @@ export function VideoUtilityPage(cfg: VideoUtilityConfig): HTMLElement {
       placeholder: cfg.showPrompt
         ? "Optional: describe what you want to change…"
         : undefined,
+      allowEmptySubmit: cfg.allowEmptySubmit,
       options: cfg.options,
       onSubmit: async ({ prompt, options }) => {
         try {
@@ -200,6 +205,8 @@ function toSourceClip(c: TimelineClip): SourceClip {
     path: c.path,
     name: c.name,
     durationSec: c.durationSec,
+    inSec: c.inSec,
+    outSec: c.outSec,
   };
 }
 

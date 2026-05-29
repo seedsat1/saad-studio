@@ -482,7 +482,7 @@ function extractFrameFromVideo(url, when /* 'start' | 'end' */) {
       };
       try { video.currentTime = t; } catch(e) { done(e); }
     };
-    video.src = url;
+    video.src = url.startsWith('http') ? '/api/proxy-image?url=' + encodeURIComponent(url) : url;
   });
 }
 

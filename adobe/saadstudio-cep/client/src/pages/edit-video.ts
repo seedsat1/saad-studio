@@ -4,8 +4,9 @@ import { api } from "../lib/api";
 export function EditVideoPage(): HTMLElement {
   return VideoUtilityPage({
     title: "Edit video",
-    hint: "Pick a clip from the timeline or upload a video. The panel extracts a key frame and sends it to Grok Imagine Edit to create a reimagined motion shot.",
+    hint: "Pick a clip from the timeline or upload a video. Edit video uses a real Grok Edit flow: it captures a frame from your selected shot, applies your prompt and preset, then generates a new motion clip.",
     showPrompt: true,
+    allowEmptySubmit: true,
     options: [
       { key: "preset", label: "Preset", value: "cinematic", options: [
         { value: "cinematic", label: "Cinematic" },
@@ -27,13 +28,14 @@ export function EditVideoPage(): HTMLElement {
         { value: "12", label: "12s" },
         { value: "15", label: "15s" },
       ]},
-      { key: "quality", label: "Quality", value: "1080p", options: [
+      { key: "quality", label: "Quality", value: "720p", options: [
         { value: "480p", label: "480p" },
         { value: "720p", label: "720p" },
       ]},
       { key: "mode", label: "Mode", value: "normal", options: [
         { value: "normal", label: "Normal" },
         { value: "fun", label: "Fun" },
+        { value: "spicy", label: "Spicy" },
       ]},
     ],
     submit: async ({ clip, prompt, options }) => {
@@ -63,29 +65,29 @@ function buildEditPrompt(preset: string, prompt: string): string {
   return userText ? `${presetText}. ${userText}` : presetText;
 }
 
-async function uploadKeyFrame(clip: { path: string; file?: File; name?: string }): Promise<string> {
+async function uploadKeyFrame(clip: { path: string; file?: File; name?: string; inSec?: number }): Promise<string> {
   const frameFile = clip.file
-    ? await captureFrameFromVideoFile(clip.file)
-    : await captureFrameFromVideoPath(clip.path, clip.name ?? "timeline-clip");
+    ? await captureFrameFromVideoFile(clip.file, clip.inSec)
+    : await captureFrameFromVideoPath(clip.path, clip.name ?? "timeline-clip", clip.inSec);
   return api.uploadFileToR2(frameFile, "image");
 }
 
-async function captureFrameFromVideoFile(file: File): Promise<File> {
+async function captureFrameFromVideoFile(file: File, inSec?: number): Promise<File> {
   const src = URL.createObjectURL(file);
   try {
-    const blob = await captureFrameBlob(src);
+    const blob = await captureFrameBlob(src, inSec);
     return new File([blob], `${baseName(file.name)}-edit-frame.png`, { type: "image/png" });
   } finally {
     URL.revokeObjectURL(src);
   }
 }
 
-async function captureFrameFromVideoPath(localPath: string, displayName: string): Promise<File> {
-  const blob = await captureFrameBlob(pathToMediaSrc(localPath));
+async function captureFrameFromVideoPath(localPath: string, displayName: string, inSec?: number): Promise<File> {
+  const blob = await captureFrameBlob(pathToMediaSrc(localPath), inSec);
   return new File([blob], `${baseName(displayName)}-edit-frame.png`, { type: "image/png" });
 }
 
-async function captureFrameBlob(src: string): Promise<Blob> {
+async function captureFrameBlob(src: string, inSec?: number): Promise<Blob> {
   const video = document.createElement("video");
   video.src = src;
   video.crossOrigin = "anonymous";
@@ -107,7 +109,11 @@ async function captureFrameBlob(src: string): Promise<Blob> {
     };
     video.onerror = fail;
     video.onloadedmetadata = () => {
-      const target = Number.isFinite(video.duration) && video.duration > 0.12 ? 0.1 : 0;
+      const trimmedStart = typeof inSec === "number" && Number.isFinite(inSec) ? Math.max(0, inSec) : 0;
+      const fallback = Number.isFinite(video.duration) && video.duration > 0.12 ? 0.1 : 0;
+      const target = Number.isFinite(video.duration) && video.duration > 0
+        ? Math.min(trimmedStart + 0.05, Math.max(0, video.duration - 0.05))
+        : fallback;
       if (target <= 0) {
         finish();
         return;
