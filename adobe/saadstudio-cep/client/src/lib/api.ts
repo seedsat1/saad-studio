@@ -162,10 +162,77 @@ function toBackendShape(body: Record<string, unknown>): Record<string, unknown> 
       case "model":       out.modelId = v; break;
       case "aspect":      out.aspectRatio = v; break;
       case "durationSec": out.duration = v; break;
+      case "quality":     out.resolution = v; break;
       default:            out[k] = v;
     }
   }
   return out;
+}
+
+function extFromUrl(url: string): string | null {
+  try {
+    const parsed = new URL(url);
+    const name = parsed.pathname.split("/").pop() ?? "";
+    const match = /\.([a-zA-Z0-9]+)$/.exec(name);
+    return match?.[1]?.toLowerCase() ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function extFromContentType(contentType: string | null | undefined): string | null {
+  const type = String(contentType ?? "").toLowerCase().split(";")[0].trim();
+  switch (type) {
+    case "image/png": return "png";
+    case "image/jpeg": return "jpg";
+    case "image/webp": return "webp";
+    case "image/gif": return "gif";
+    case "video/mp4": return "mp4";
+    case "video/quicktime": return "mov";
+    case "video/webm": return "webm";
+    case "video/x-matroska": return "mkv";
+    case "audio/mpeg": return "mp3";
+    case "audio/wav":
+    case "audio/x-wav": return "wav";
+    case "audio/mp4": return "m4a";
+    case "audio/ogg": return "ogg";
+    default: return null;
+  }
+}
+
+function replaceExtension(fileName: string, ext: string): string {
+  const base = fileName.replace(/\.[^.]+$/, "");
+  return `${base}.${ext}`;
+}
+
+async function imageBlobToPng(blob: Blob): Promise<Blob> {
+  const url = URL.createObjectURL(blob);
+  try {
+    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const node = new Image();
+      node.onload = () => resolve(node);
+      node.onerror = () => reject(new Error("Image decode failed."));
+      node.src = url;
+    });
+    const canvas = document.createElement("canvas");
+    canvas.width = image.naturalWidth || image.width || 1024;
+    canvas.height = image.naturalHeight || image.height || 1024;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Canvas is not available.");
+    ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+    const png = await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob((out) => {
+        if (!out) {
+          reject(new Error("PNG conversion failed."));
+          return;
+        }
+        resolve(out);
+      }, "image/png");
+    });
+    return png;
+  } finally {
+    URL.revokeObjectURL(url);
+  }
 }
 
 function normalizeVideoJob(
@@ -292,8 +359,14 @@ export const api = {
     request<{ items: GenerationItem[] }>(`/api/panel/generations?limit=${limit}`)
       .catch(() => ({ items: [] })),
 
-  transitionPresets: () =>
-    request<{ presets: TransitionPresetItem[] }>("/api/transitions/presets"),
+  deleteGeneration: (id: string) =>
+    request<{ deleted: boolean }>(`/api/panel/generations/${id}`, {
+      method: "DELETE",
+    }),
+
+  transitionPresets: async () => {
+    return await request<{ presets: TransitionPresetItem[] }>("/api/panel/transitions/presets");
+  },
 
   createUploadUrl: (body: { fileName: string; contentType: string; assetType?: string }) =>
     request<SignedUploadResponse>("/api/panel/upload-url", {
@@ -373,6 +446,19 @@ export const api = {
         method: "POST",
         body: JSON.stringify(body),
       }),
+    expand: (body: {
+      inputUrl: string;
+      inputKind: "image" | "video";
+      aspectRatio: string;
+      prompt?: string;
+      width?: number;
+      height?: number;
+      outputFormat?: "png" | "jpeg" | "webp";
+    }) =>
+      request<JobStatus>("/api/panel/generate/expand", {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
     transition: (body: Record<string, unknown>) =>
       request<JobStatus>("/api/panel/generate/transition", {
         method: "POST",
@@ -425,9 +511,21 @@ export const api = {
     const os = window.cep_node.require("os") as typeof import("os");
     const dir = path.join(os.tmpdir(), "saadstudio");
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    const out = path.join(dir, `${Date.now()}-${suggestedName}`);
-    const buf = await fetch(assetUrl).then((r) => r.arrayBuffer());
-    fs.writeFileSync(out, Buffer.from(buf));
+    const response = await fetch(assetUrl);
+    if (!response.ok) {
+      throw new ApiError(`Download failed (${response.status})`, response.status);
+    }
+    const originalBlob = await response.blob();
+    const contentType = response.headers.get("content-type") || originalBlob.type || "";
+    const isImage = contentType.toLowerCase().startsWith("image/");
+    const finalBlob = isImage ? await imageBlobToPng(originalBlob) : originalBlob;
+    const finalExt = isImage
+      ? "png"
+      : extFromContentType(contentType) || extFromUrl(assetUrl) || guessContentType(suggestedName, "bin").split("/").pop() || "bin";
+    const outName = replaceExtension(suggestedName, finalExt);
+    const out = path.join(dir, `${Date.now()}-${outName}`);
+    const buf = await finalBlob.arrayBuffer();
+    fs.writeFileSync(out, new Uint8Array(buf));
     return out;
   },
 };

@@ -7,14 +7,14 @@ import { api } from "../lib/api";
 export function UpscalePage(): HTMLElement {
   return VideoUtilityPage({
     title: "Upscale",
-    hint: "Push the resolution and detail of the source clip.",
+    hint: "Boost the source clip with upscale factor controls similar to the website tool.",
     options: [
       { key: "factor", label: "Factor", value: "2x", options: [
+        { value: "1x", label: "1x" },
         { value: "2x", label: "2x" },
         { value: "4x", label: "4x" },
       ]},
-      { key: "denoise", label: "Denoise", value: "med", options: [
-        { value: "off", label: "Off" },
+      { key: "denoise", label: "Quality", value: "med", options: [
         { value: "low", label: "Low" },
         { value: "med", label: "Medium" },
         { value: "high", label: "High" },

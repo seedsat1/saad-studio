@@ -7,6 +7,10 @@ import { clearToken } from "../lib/auth";
 import { navigate } from "../lib/router";
 
 export function Header(): HTMLElement {
+  const logo = el("img", {
+    src: "https://www.saadstudio.app/logo-saad-transparent.png",
+    alt: "Saad Studio",
+  });
   const credits = el("div.credits-chip", null,
     icon("coin", 14),
     el("span.credits-chip__amount", { id: "hdr-credits" }, "—"),
@@ -58,7 +62,7 @@ export function Header(): HTMLElement {
     null,
     el("div.app-header__brand",
       { onClick: () => navigate("/"), style: { cursor: "pointer" } },
-      el("div.app-header__logo", null, "SA"),
+      el("div.app-header__logo", null, logo),
       el("div.col",
         null,
         el("span.app-header__title", null, "Saad Studio"),

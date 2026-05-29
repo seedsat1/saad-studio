@@ -9,7 +9,7 @@ export type IconName =
   | "image" | "video" | "magic-wand" | "crop" | "scissors"
   | "arrow-up-right" | "draw-pen" | "logout" | "coin"
   | "back" | "close" | "plus" | "import" | "send" | "chevron-down"
-  | "settings" | "spark" | "check";
+  | "settings" | "spark" | "check" | "trash";
 
 export function icon(name: IconName, size = 18): HTMLElement {
   const wrap = document.createElement("span");
@@ -49,4 +49,5 @@ const SHAPES: Record<IconName, string> = {
           <path d="M19 12a7 7 0 0 0-.1-1.2l2-1.5-2-3.5-2.4.9a7 7 0 0 0-2-1.2L14 3h-4l-.5 2.5a7 7 0 0 0-2 1.2l-2.4-.9-2 3.5 2 1.5A7 7 0 0 0 5 12c0 .4 0 .8.1 1.2l-2 1.5 2 3.5 2.4-.9a7 7 0 0 0 2 1.2L10 21h4l.5-2.5a7 7 0 0 0 2-1.2l2.4.9 2-3.5-2-1.5c.1-.4.1-.8.1-1.2z"/>`,
   spark: `<path d="M12 3l1.5 5.5L19 10l-5.5 1.5L12 17l-1.5-5.5L5 10l5.5-1.5z"/>`,
   check: `<path d="M5 12l5 5 9-9"/>`,
+  trash: `<path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/>`,
 };

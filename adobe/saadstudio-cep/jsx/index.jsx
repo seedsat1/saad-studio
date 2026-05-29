@@ -42,8 +42,15 @@
     }
     function pad(n) { return (n < 10 ? "0" : "") + n; }
 
+    function mediaKindFromPath(fsName) {
+        var lower = String(fsName || "").toLowerCase();
+        if (/\.(png|jpg|jpeg|webp|gif|bmp|tif|tiff|heic|heif)$/i.test(lower)) return "image";
+        if (/\.(mp3|wav|m4a|aac|ogg|flac|aif|aiff)$/i.test(lower)) return "audio";
+        return "video";
+    }
+
     // ─── getSelectedClip() ─────────────────────────────────────────────
-    // Returns the first selected video clip on the active timeline.
+    // Returns the first selected visual clip on the active timeline.
     // Premiere: walks the active sequence's video tracks.
     // After Effects: returns the selected footage layer in the active comp.
 
@@ -51,6 +58,14 @@
         return safe(function () {
             if (IS_PPRO) return pproSelectedClip();
             if (IS_AEFT) return aeftSelectedLayer();
+            return null;
+        });
+    };
+
+    host.saadstudio.getSelectedAudio = function () {
+        return safe(function () {
+            if (IS_PPRO) return pproSelectedAudio();
+            if (IS_AEFT) return aeftSelectedAudioLayer();
             return null;
         });
     };
@@ -66,7 +81,7 @@
                 if (clip.isSelected && clip.isSelected()) {
                     var pi = clip.projectItem;
                     return {
-                        type: "video",
+                        type: mediaKindFromPath(pi && pi.getMediaPath ? pi.getMediaPath() : ""),
                         path: pi && pi.getMediaPath ? pi.getMediaPath() : "",
                         name: clip.name,
                         inSec: clip.inPoint ? clip.inPoint.seconds : 0,
@@ -90,8 +105,57 @@
         if (!(layer.source instanceof FootageItem)) return null;
         var f = layer.source.mainSource && layer.source.mainSource.file;
         return {
-            type: "video",
+            type: mediaKindFromPath(f ? f.fsName : ""),
             path: f ? f.fsName : "",
+            name: layer.name,
+            inSec: layer.inPoint,
+            outSec: layer.outPoint,
+            startSec: layer.startTime,
+            durationSec: (layer.outPoint - layer.inPoint)
+        };
+    }
+
+    function pproSelectedAudio() {
+        if (!app.project || !app.project.activeSequence) return null;
+        var seq = app.project.activeSequence;
+        var tracks = seq.audioTracks;
+        for (var t = 0; t < tracks.numTracks; t++) {
+            var clips = tracks[t].clips;
+            for (var c = 0; c < clips.numItems; c++) {
+                var clip = clips[c];
+                if (clip.isSelected && clip.isSelected()) {
+                    var pi = clip.projectItem;
+                    var mediaPath = pi && pi.getMediaPath ? pi.getMediaPath() : "";
+                    if (mediaKindFromPath(mediaPath) !== "audio") continue;
+                    return {
+                        type: "audio",
+                        path: mediaPath,
+                        name: clip.name,
+                        inSec: clip.inPoint ? clip.inPoint.seconds : 0,
+                        outSec: clip.outPoint ? clip.outPoint.seconds : 0,
+                        startSec: clip.start ? clip.start.seconds : 0,
+                        endSec: clip.end ? clip.end.seconds : 0,
+                        durationSec: clip.duration ? clip.duration.seconds : 0
+                    };
+                }
+            }
+        }
+        return null;
+    }
+
+    function aeftSelectedAudioLayer() {
+        var item = app.project ? app.project.activeItem : null;
+        if (!item || !(item instanceof CompItem)) return null;
+        var sel = item.selectedLayers;
+        if (!sel || !sel.length) return null;
+        var layer = sel[0];
+        if (!(layer.source instanceof FootageItem)) return null;
+        var f = layer.source.mainSource && layer.source.mainSource.file;
+        var filePath = f ? f.fsName : "";
+        if (mediaKindFromPath(filePath) !== "audio") return null;
+        return {
+            type: "audio",
+            path: filePath,
             name: layer.name,
             inSec: layer.inPoint,
             outSec: layer.outPoint,

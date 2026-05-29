@@ -21,9 +21,9 @@ const ASPECTS = [
 // kie.ai expects uppercase resolution tokens ("1K" / "2K" / "4K").
 // Lowercase values get rejected as "not within the range of allowed options".
 const RESOLUTIONS = [
-  { value: "1K", label: "1K" },
-  { value: "2K", label: "2K" },
-  { value: "4K", label: "4K" },
+  { value: "1K", label: "1k" },
+  { value: "2K", label: "2k" },
+  { value: "4K", label: "4k" },
 ];
 
 export function ImageGenPage(): HTMLElement {

@@ -28,24 +28,20 @@ export interface FeatureConfig {
 
 export function FeaturePage(cfg: FeatureConfig): HTMLElement {
   const preview = el("div.col.gap-3", { style: { padding: "0 16px" } });
-  const gallery = RecentStrip({
-    fixedFilter: cfg.galleryKind,
-    showToolbar: false,
-    showNewTile: false,
-  });
-  const results = el("div.col.gap-4",
-    null,
-    preview,
-    el("section.section",
-      { style: { padding: "0 16px 16px" } },
-      el("div.section__head",
-        null,
-        el("h3.section__title", null, cfg.galleryKind === "video" ? "Your videos" : "Your images"),
-        el("span.section__hint", null, "From your account"),
-      ),
-      gallery,
-    ),
-  );
+  const gallery = cfg.galleryKind
+    ? el("div", { style: { padding: "0 16px 16px" } },
+        el("div.section__head", null,
+          el("h3.section__title", null, cfg.galleryKind === "image" ? "Recent images" : "Recent videos"),
+          el("span.section__hint", null, "Synced from your website account"),
+        ),
+        RecentStrip({
+          fixedFilter: cfg.galleryKind,
+          showToolbar: false,
+          showNewTile: false,
+        }),
+      )
+    : null;
+  const results = el("div.col.gap-4", null, preview, gallery);
 
   const setBusy = (busy: boolean) => {
     if (busy) {
@@ -102,16 +98,56 @@ function errorCard(message: string): HTMLElement {
 
 function resultCard(job: JobStatus, _host: HTMLElement): HTMLElement {
   const r = job.result!;
+  let dragPath: string | null = null;
+  let dragPending: Promise<string> | null = null;
   const preview = r.kind === "video"
     ? el("video", { src: r.url, controls: "true", playsinline: "true",
         style: { width: "100%", borderRadius: "12px", display: "block" } })
     : el("img", { src: r.url, alt: r.prompt ?? "",
         style: { width: "100%", borderRadius: "12px", display: "block" } });
 
+  const warmDragAsset = async () => {
+    if (dragPath) return dragPath;
+    if (dragPending) return dragPending;
+    dragPending = api.downloadAsset(r.url, `${r.id}.${r.kind === "video" ? "mp4" : "png"}`)
+      .then((local) => {
+        dragPath = local;
+        dragPending = null;
+        return local;
+      })
+      .catch((err) => {
+        dragPending = null;
+        throw err;
+      });
+    return dragPending;
+  };
+
   return el("div.col.gap-3", null,
     el("div", {
       style: { borderRadius: "14px", overflow: "hidden", background: "var(--bg-card)",
-               border: "1px solid var(--line-soft)" },
+               border: "1px solid var(--line-soft)", position: "relative" },
+      draggable: "true",
+      title: "Drag to Premiere timeline",
+      onMouseenter: () => { void warmDragAsset(); },
+      onPointerdown: () => { void warmDragAsset(); },
+      onDragstart: (ev: Event) => {
+        const e = ev as DragEvent;
+        const transfer = e.dataTransfer;
+        if (!transfer) return;
+        if (!dragPath) {
+          e.preventDefault();
+          void warmDragAsset();
+          toast("Preparing asset for drag. Drag again in a second.", "info");
+          return;
+        }
+        const fileUri = toFileUri(dragPath);
+        transfer.effectAllowed = "copy";
+        transfer.setData("com.adobe.cep.dnd.file.count", "1");
+        transfer.setData("com.adobe.cep.dnd.file.0", dragPath);
+        transfer.setData("text/plain", dragPath);
+        transfer.setData("text/uri-list", fileUri);
+        transfer.setData("DownloadURL", `${mimeFor(r.kind)}:${r.id}.${r.kind === "video" ? "mp4" : "png"}:${fileUri}`);
+      },
     }, preview),
     el("div.row.gap-2", null,
       el("button.btn-primary", {
@@ -133,4 +169,16 @@ function resultCard(job: JobStatus, _host: HTMLElement): HTMLElement {
       ? el("div.dim", { style: { fontSize: "12px", padding: "4px 4px 8px" } }, r.prompt)
       : null,
   );
+}
+
+function toFileUri(localPath: string): string {
+  const normalized = localPath.replace(/\\/g, "/");
+  if (normalized.startsWith("file://")) return normalized;
+  if (/^[a-zA-Z]:\//.test(normalized)) return `file:///${normalized}`;
+  if (normalized.startsWith("/")) return `file://${normalized}`;
+  return `file:///${normalized}`;
+}
+
+function mimeFor(kind: "image" | "video"): string {
+  return kind === "video" ? "video/mp4" : "image/png";
 }

@@ -5,6 +5,16 @@ import prismadb from "@/lib/prismadb";
 
 export const dynamic = "force-dynamic";
 
+function isSupportedGeneration(assetType: string | null | undefined, type: string | null | undefined): boolean {
+  const normalizedType = String(type ?? "").toLowerCase();
+  if (normalizedType === "image" || normalizedType === "video") return true;
+
+  const normalizedAssetType = String(assetType ?? "").toLowerCase();
+  return normalizedAssetType.includes("image")
+    || normalizedAssetType.includes("video")
+    || normalizedAssetType.includes("transition");
+}
+
 function inferKind(assetType: string | null | undefined, type: string | null | undefined): "image" | "video" {
   const normalizedType = String(type ?? "").toLowerCase();
   if (normalizedType === "video" || normalizedType === "image") {
@@ -82,6 +92,7 @@ export async function GET(req: NextRequest) {
 
     const items = generations
       .map((generation) => {
+        if (!isSupportedGeneration(generation.assetType, generation.type)) return null;
         const url = resolvePublicUrl(generation.mediaUrl, generation.outputUrl);
         if (!url) return null;
 

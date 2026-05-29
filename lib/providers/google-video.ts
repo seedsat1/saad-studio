@@ -38,9 +38,9 @@ export async function googleGenerateVideo(input: VideoGenInput): Promise<Provide
     undefined;
 
   const resolution: VeoResolution | undefined =
-    input.quality === "4k" ? "4k" :
-    input.quality === "1080p" ? "1080p" :
-    input.quality === "720p" ? "720p" :
+    input.quality === "4k" || input.quality === "4K" ? "4k" :
+    input.quality === "1080p" || input.quality === "1080P" ? "1080p" :
+    input.quality === "720p" || input.quality === "720P" ? "720p" :
     undefined;
 
   // Image-to-video flow: fetch and base64-encode the source frame.

@@ -25,6 +25,7 @@ import { watchTimelineSelection, type TimelineClip } from "../lib/timeline-watch
 
 export interface SourceClip {
   path: string;
+  file?: File;
   width?: number;
   height?: number;
   durationSec?: number;
@@ -111,7 +112,7 @@ export function VideoUtilityPage(cfg: VideoUtilityConfig): HTMLElement {
       const path = (file as File & { path?: string }).path ?? URL.createObjectURL(file);
       currentMode = "uploaded";
       currentClipKey = `upload:${file.name}:${file.size}`;
-      showOptions({ path, name: file.name });
+      showOptions({ path, name: file.name, file });
     });
     input.click();
   }
@@ -175,35 +176,7 @@ export function VideoUtilityPage(cfg: VideoUtilityConfig): HTMLElement {
             throw new Error(final.error ?? "Generation failed");
           }
           const r = final.result;
-          results.replaceChildren(
-            el("div", {
-              style: { borderRadius: "14px", overflow: "hidden",
-                       background: "var(--bg-card)",
-                       border: "1px solid var(--line-soft)" },
-            },
-              r.kind === "video"
-                ? el("video", { src: r.url, controls: "true",
-                    style: { width: "100%", display: "block" } })
-                : el("img", { src: r.url, style: { width: "100%", display: "block" } })
-            ),
-            el("div.row.gap-2", { style: { marginTop: "12px" } },
-              el("button.btn-primary",
-                {
-                  onClick: async () => {
-                    try {
-                      const local = await api.downloadAsset(r.url,
-                        `${r.id}.${r.kind === "video" ? "mp4" : "png"}`);
-                      await evalES("importMediaFromPath", local);
-                      toast("Imported to project bin", "success");
-                    } catch (err) {
-                      toast(`Import failed: ${(err as Error).message}`, "error");
-                    }
-                  },
-                },
-                icon("import", 14), "Import to project",
-              ),
-            ),
-          );
+          results.replaceChildren(buildResultCard(r));
           store.refreshCreditsOnly();
           store.refreshRecent();
         } catch (err) {
@@ -261,4 +234,90 @@ function errorCard(message: string): HTMLElement {
   return el("div.state-card", null,
     el("div.state-card__title", null, "Failed"),
     el("div.state-card__subtitle", null, message));
+}
+
+function buildResultCard(r: NonNullable<JobStatus["result"]>): HTMLElement {
+  let dragPath: string | null = null;
+  let dragPending: Promise<string> | null = null;
+
+  const warmDragAsset = async () => {
+    if (dragPath) return dragPath;
+    if (dragPending) return dragPending;
+    dragPending = api.downloadAsset(r.url, `${r.id}.${r.kind === "video" ? "mp4" : "png"}`)
+      .then((local) => {
+        dragPath = local;
+        dragPending = null;
+        return local;
+      })
+      .catch((err) => {
+        dragPending = null;
+        throw err;
+      });
+    return dragPending;
+  };
+
+  return el("div.col.gap-3", null,
+    el("div", {
+      style: {
+        borderRadius: "14px",
+        overflow: "hidden",
+        background: "var(--bg-card)",
+        border: "1px solid var(--line-soft)",
+      },
+      draggable: "true",
+      title: "Drag to Premiere timeline",
+      onMouseenter: () => { void warmDragAsset(); },
+      onPointerdown: () => { void warmDragAsset(); },
+      onDragstart: (ev: Event) => {
+        const e = ev as DragEvent;
+        const transfer = e.dataTransfer;
+        if (!transfer) return;
+        if (!dragPath) {
+          e.preventDefault();
+          void warmDragAsset();
+          toast("Preparing asset for drag. Drag again in a second.", "info");
+          return;
+        }
+        const fileUri = toFileUri(dragPath);
+        transfer.effectAllowed = "copy";
+        transfer.setData("com.adobe.cep.dnd.file.count", "1");
+        transfer.setData("com.adobe.cep.dnd.file.0", dragPath);
+        transfer.setData("text/plain", dragPath);
+        transfer.setData("text/uri-list", fileUri);
+        transfer.setData("DownloadURL", `${mimeFor(r.kind)}:${r.id}.${r.kind === "video" ? "mp4" : "png"}:${fileUri}`);
+      },
+    },
+      r.kind === "video"
+        ? el("video", { src: r.url, controls: "true", style: { width: "100%", display: "block" } })
+        : el("img", { src: r.url, style: { width: "100%", display: "block" } }),
+    ),
+    el("div.row.gap-2", { style: { marginTop: "12px" } },
+      el("button.btn-primary",
+        {
+          onClick: async () => {
+            try {
+              const local = await api.downloadAsset(r.url, `${r.id}.${r.kind === "video" ? "mp4" : "png"}`);
+              await evalES("importMediaFromPath", local);
+              toast("Imported to project bin", "success");
+            } catch (err) {
+              toast(`Import failed: ${(err as Error).message}`, "error");
+            }
+          },
+        },
+        icon("import", 14), "Import to project",
+      ),
+    ),
+  );
+}
+
+function toFileUri(localPath: string): string {
+  const normalized = localPath.replace(/\\/g, "/");
+  if (normalized.startsWith("file://")) return normalized;
+  if (/^[a-zA-Z]:\//.test(normalized)) return `file:///${normalized}`;
+  if (normalized.startsWith("/")) return `file://${normalized}`;
+  return `file:///${normalized}`;
+}
+
+function mimeFor(kind: "image" | "video"): string {
+  return kind === "video" ? "video/mp4" : "image/png";
 }

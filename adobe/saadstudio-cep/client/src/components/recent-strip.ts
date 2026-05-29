@@ -28,6 +28,8 @@ export function RecentStrip(options: RecentStripOptions = {}): HTMLElement {
   const showToolbar = options.showToolbar ?? !fixedFilter;
   const showNewTile = options.showNewTile ?? !fixedFilter;
   let filter: "image" | "video" = fixedFilter ?? "image";
+  const dragReady = new Map<string, string>();
+  const dragPending = new Map<string, Promise<string>>();
 
   let userSelectedFilter = false;
   const selectFilter = (next: "image" | "video") => {
@@ -102,8 +104,53 @@ export function RecentStrip(options: RecentStripOptions = {}): HTMLElement {
   }
   root.append(grid);
   render();
+  const unsubscribe = store.subscribe(() => render());
+  attachCleanup(root, unsubscribe);
   store.refreshRecent();
   return root;
+
+  function warmDragAsset(item: GenerationItem): Promise<string> {
+    const cached = dragReady.get(item.id);
+    if (cached) return Promise.resolve(cached);
+    const pending = dragPending.get(item.id);
+    if (pending) return pending;
+
+    const task = api.downloadAsset(item.url, fileNameFor(item))
+      .then((localPath) => {
+        dragReady.set(item.id, localPath);
+        dragPending.delete(item.id);
+        return localPath;
+      })
+      .catch((err) => {
+        dragPending.delete(item.id);
+        throw err;
+      });
+
+    dragPending.set(item.id, task);
+    return task;
+  }
+
+  async function deleteItem(item: GenerationItem) {
+    const label = item.kind === "image" ? "image" : "video";
+    const ok = window.confirm(`Delete this ${label} from your library?`);
+    if (!ok) return;
+    try {
+      await api.deleteGeneration(item.id);
+      toast(`${label === "image" ? "Image" : "Video"} deleted`, "success");
+      await store.refreshRecent();
+    } catch (err) {
+      toast(`Delete failed: ${(err as Error).message}`, "error");
+    }
+  }
+
+  function itemTile(item: GenerationItem): HTMLElement {
+    return buildItemTile({
+      item,
+      getReadyDragPath: (id) => dragReady.get(id) ?? null,
+      onWarmDrag: warmDragAsset,
+      onDelete: deleteItem,
+    });
+  }
 }
 
 function newTile(filter: "image" | "video"): HTMLElement {
@@ -134,7 +181,13 @@ function emptyHint(filter: "image" | "video"): HTMLElement {
   );
 }
 
-function itemTile(g: GenerationItem): HTMLElement {
+function buildItemTile(params: {
+  item: GenerationItem;
+  getReadyDragPath: (id: string) => string | null;
+  onWarmDrag: (item: GenerationItem) => Promise<string>;
+  onDelete: (item: GenerationItem) => Promise<void>;
+}): HTMLElement {
+  const { item: g, getReadyDragPath, onWarmDrag, onDelete } = params;
   const media: HTMLElement = g.kind === "video"
     ? el("video", {
         src: g.url,
@@ -152,7 +205,33 @@ function itemTile(g: GenerationItem): HTMLElement {
     : el("img", { src: g.thumbnailUrl || g.url, alt: g.prompt ?? "" });
 
   return el("div.library-card",
-    { title: g.prompt ?? "" },
+    {
+      title: `${g.prompt ?? ""}${g.kind === "video" ? " • Drag to Premiere timeline" : " • Drag to Premiere project/timeline"}`.trim(),
+      draggable: "true",
+      onMouseenter: () => { void onWarmDrag(g); },
+      onPointerdown: () => { void onWarmDrag(g); },
+      onDragstart: (ev: Event) => {
+        const e = ev as DragEvent;
+        const transfer = e.dataTransfer;
+        if (!transfer) return;
+
+        const cached = getReadyDragPath(g.id);
+        if (!cached) {
+          e.preventDefault();
+          void onWarmDrag(g);
+          toast("Preparing asset for drag. Drag again in a second.", "info");
+          return;
+        }
+
+        const fileUri = toFileUri(cached);
+        transfer.effectAllowed = "copy";
+        transfer.setData("com.adobe.cep.dnd.file.count", "1");
+        transfer.setData("com.adobe.cep.dnd.file.0", cached);
+        transfer.setData("text/plain", cached);
+        transfer.setData("text/uri-list", fileUri);
+        transfer.setData("DownloadURL", `${mimeFor(g)}:${fileNameFor(g)}:${fileUri}`);
+      },
+    },
     el("div.library-card__media",
       null,
       media,
@@ -172,6 +251,17 @@ function itemTile(g: GenerationItem): HTMLElement {
       },
       icon("import", 12),
     ),
+      el("button.library-card__delete",
+      {
+        onClick: async (ev: Event) => {
+          ev.stopPropagation();
+          await onDelete(g);
+        },
+        "aria-label": "Delete from library",
+      },
+      icon("trash", 12),
+    ),
+      el("div.library-card__drag-hint", null, "Drag to timeline"),
     ),
     el("div.library-card__body",
       null,
@@ -184,4 +274,27 @@ function itemTile(g: GenerationItem): HTMLElement {
 function fileNameFor(g: GenerationItem): string {
   const ext = g.kind === "video" ? "mp4" : "png";
   return `${g.id}.${ext}`;
+}
+
+function toFileUri(localPath: string): string {
+  const normalized = localPath.replace(/\\/g, "/");
+  if (normalized.startsWith("file://")) return normalized;
+  if (/^[a-zA-Z]:\//.test(normalized)) return `file:///${normalized}`;
+  if (normalized.startsWith("/")) return `file://${normalized}`;
+  return `file:///${normalized}`;
+}
+
+function mimeFor(item: GenerationItem): string {
+  return item.kind === "video" ? "video/mp4" : "image/png";
+}
+
+function attachCleanup(root: HTMLElement, cleanup: () => void) {
+  const check = () => {
+    if (!root.isConnected) {
+      cleanup();
+      return;
+    }
+    requestAnimationFrame(check);
+  };
+  requestAnimationFrame(check);
 }

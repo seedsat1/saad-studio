@@ -1,8 +1,7 @@
-/** Home page — header + account-linked gallery. */
+/** Home page — header + tools. */
 
 import { el } from "../lib/dom";
 import { Header } from "../components/header";
-import { RecentStrip } from "../components/recent-strip";
 import { AppsGrid } from "../components/apps-grid";
 
 export function HomePage(): HTMLElement {
@@ -10,7 +9,6 @@ export function HomePage(): HTMLElement {
     Header(),
     el("div.app-main.app-main--library",
       null,
-      section("Library", "Your account-linked results", RecentStrip()),
       section("Tools", "Generation and utility tools in the plugin", AppsGrid()),
     ),
   );

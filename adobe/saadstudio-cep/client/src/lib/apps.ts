@@ -18,6 +18,20 @@ export interface AppDef {
 
 export const APPS: AppDef[] = [
   {
+    id: "image-gen",
+    name: "Image generation",
+    description: "Generate images from a prompt.",
+    route: "/image-gen",
+    icon: "image",
+  },
+  {
+    id: "video-gen",
+    name: "Video generation",
+    description: "Generate video from a prompt.",
+    route: "/video-gen",
+    icon: "video",
+  },
+  {
     id: "transitions",
     name: "Transitions",
     description: "Generate cinematic A/B transitions from the studio presets.",
@@ -26,9 +40,17 @@ export const APPS: AppDef[] = [
     badge: "NEW",
   },
   {
-    id: "draw-to-video",
-    name: "Draw to video",
-    description: "Sketch on a frame, get a clip back.",
+    id: "avatar-pro",
+    name: "LiP sync",
+    description: "Animate an image or video frame with speech audio.",
+    route: "/lip-sync",
+    icon: "video",
+    badge: "NEW",
+  },
+  {
+    id: "expand",
+    name: "Expand",
+    description: "Expand any image or video beyond its frame.",
     route: "/draw-to-video",
     icon: "draw-pen",
     badge: "NEW",
@@ -39,14 +61,6 @@ export const APPS: AppDef[] = [
     description: "Clean, reframe and upscale in one pass.",
     route: "/edit-video",
     icon: "magic-wand",
-  },
-  {
-    id: "avatar-pro",
-    name: "Kling Avatar Pro",
-    description: "Animate one avatar image with uploaded speech.",
-    route: "/avatar-pro",
-    icon: "video",
-    badge: "NEW",
   },
   {
     id: "remove-bg",
@@ -61,20 +75,6 @@ export const APPS: AppDef[] = [
     description: "Push resolution and detail.",
     route: "/upscale",
     icon: "spark",
-  },
-  {
-    id: "image-gen",
-    name: "Image generation",
-    description: "Generate images from a prompt.",
-    route: "/image-gen",
-    icon: "image",
-  },
-  {
-    id: "video-gen",
-    name: "Video generation",
-    description: "Generate video from a prompt.",
-    route: "/video-gen",
-    icon: "video",
   },
 ];
 

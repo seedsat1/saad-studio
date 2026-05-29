@@ -187,6 +187,7 @@ export async function POST(req: NextRequest) {
       duration?: number;
       aspectRatio?: string;
       resolution?: string;
+      mode?: string;
       imageUrl?: string;
       imageUrls?: string[];
     };
@@ -197,6 +198,7 @@ export async function POST(req: NextRequest) {
       duration = 5,
       aspectRatio = "16:9",
       resolution = "1080p",
+      mode,
       imageUrl,
       imageUrls,
     } = body;
@@ -292,8 +294,10 @@ export async function POST(req: NextRequest) {
 
       // Model-specific settings
       if (isKling) {
-        const mode = resolution === "4K" ? "4K" : (resolution === "720p" ? "std" : "pro");
-        input.mode = mode;
+        const klingMode = typeof mode === "string" && mode.trim()
+          ? mode.trim()
+          : (resolution === "4K" ? "4K" : (resolution === "720p" ? "std" : "pro"));
+        input.mode = klingMode;
       }
 
       // Seedance: generate_audio defaults to TRUE (extra cost) — always disable unless explicitly set
@@ -324,6 +328,9 @@ export async function POST(req: NextRequest) {
         duration: isKling ? String(duration) : duration,
         aspect_ratio: aspectRatio,
       };
+      if (typeof mode === "string" && mode.trim() && isKling) {
+        payload.mode = mode.trim();
+      }
 
       if (wavespeedModel === "wavespeed-ai/cinematic-video-generator") {
         if (safeImageUrls.length) {

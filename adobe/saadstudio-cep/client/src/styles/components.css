@@ -20,14 +20,18 @@
   width: 28px;
   height: 28px;
   border-radius: var(--r-sm);
-  background: linear-gradient(135deg, var(--brand-primary), var(--brand-accent));
+  background: rgba(255, 255, 255, 0.06);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 700;
-  color: var(--text-on-brand);
-  font-size: 12px;
-  letter-spacing: 0.04em;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+.app-header__logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 .app-header__title {
   font-weight: 600;
@@ -275,6 +279,12 @@
   background: rgba(255, 255, 255, 0.07);
   transform: translateY(-1px);
 }
+.library-card[draggable="true"] {
+  cursor: grab;
+}
+.library-card[draggable="true"]:active {
+  cursor: grabbing;
+}
 .library-card--new {
   align-items: flex-start;
   justify-content: flex-end;
@@ -348,6 +358,36 @@
 }
 .library-card__import:hover {
   background: var(--brand-primary);
+}
+.library-card__delete {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.62);
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.25);
+}
+.library-card__delete:hover {
+  background: #ef4444;
+}
+.library-card__drag-hint {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.58);
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  pointer-events: none;
 }
 .library-empty {
   grid-column: 1 / -1;

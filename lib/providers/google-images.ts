@@ -51,7 +51,9 @@ export async function googleGenerateImage(input: ImageGenInput): Promise<Provide
 // ─── Nano Banana (Gemini 2.5 Flash Image) ──────────────────────────────
 
 async function nanoBananaGenerate(model: string, input: ImageGenInput): Promise<ProviderResult> {
-  const parts: Array<Record<string, unknown>> = [{ text: input.prompt }];
+  const parts: Array<Record<string, unknown>> = [{
+    text: withImageControlHints(input.prompt, input.aspectRatio, input.resolution),
+  }];
 
   // Image-to-image / edit: attach a reference image inline.
   if (input.imageUrl) {
@@ -105,11 +107,12 @@ interface ImagenResponseLike {
 
 async function imagenGenerate(model: string, input: ImageGenInput): Promise<ProviderResult> {
   const aspect = normalizeAspect(input.aspectRatio);
+  const hintedPrompt = withImageControlHints(input.prompt, input.aspectRatio, input.resolution);
   let res;
   try {
     res = await client().models.generateImages({
       model,
-      prompt: input.prompt,
+      prompt: hintedPrompt,
       config: {
         numberOfImages: clampNum(input.numImages, 1, 4),
         aspectRatio: aspect,
@@ -146,6 +149,14 @@ function normalizeAspect(a: string | undefined): string {
 function clampNum(n: number | undefined, min: number, max: number): number {
   const x = typeof n === "number" ? n : min;
   return Math.max(min, Math.min(max, Math.floor(x)));
+}
+
+function withImageControlHints(prompt: string, aspectRatio?: string, resolution?: string): string {
+  const hints: string[] = [];
+  if (aspectRatio) hints.push(`aspect ratio ${aspectRatio}`);
+  if (resolution) hints.push(`target quality ${resolution}`);
+  if (!hints.length) return prompt;
+  return `${prompt.trim()}\n\nOutput requirements: ${hints.join(", ")}.`.trim();
 }
 
 async function fetchAsInlineImage(url: string): Promise<{ inlineData: { data: string; mimeType: string } } | null> {

@@ -41,6 +41,7 @@ async function bootstrap() {
       "/video-gen": requireAuth(VideoGenPage),
       "/transitions": requireAuth(TransitionsPage),
       "/edit-video": requireAuth(EditVideoPage),
+      "/lip-sync": requireAuth(AvatarProPage),
       "/avatar-pro": requireAuth(AvatarProPage),
       "/reframe": requireAuth(AvatarProPage),
       "/remove-bg": requireAuth(RemoveBgPage),

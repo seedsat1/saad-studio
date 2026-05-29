@@ -140,6 +140,9 @@ function mockEsResult<T>(fn: string): T {
   if (fn === "getSelectedClip") {
     return { type: "video", path: "/mock/clip.mp4", in: 0, out: 5, duration: 5 } as unknown as T;
   }
+  if (fn === "getSelectedAudio") {
+    return { type: "audio", path: "/mock/audio.mp3", in: 0, out: 5, duration: 5 } as unknown as T;
+  }
   if (fn === "getActiveSequenceInfo") {
     return { name: "Mock Sequence", fps: 30, width: 1920, height: 1080 } as unknown as T;
   }

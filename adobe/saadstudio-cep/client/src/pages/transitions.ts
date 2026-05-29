@@ -1,16 +1,19 @@
 import { Header } from "../components/header";
 import { PageHeader } from "../components/page-header";
 import { el } from "../lib/dom";
-import { api, getApiBase, type GenerationItem, type JobStatus, type TransitionPresetItem } from "../lib/api";
+import { api, getApiBase, type JobStatus, type TransitionPresetItem } from "../lib/api";
 import { icon } from "../lib/icons";
 import { evalES } from "../lib/cep";
-import { store } from "../lib/store";
 import { toast } from "../lib/toast";
+import { watchTimelineSelection, type TimelineClip } from "../lib/timeline-watcher";
 
 type InputKind = "image" | "video";
 
 type InputState = {
   file: File | null;
+  localPath: string | null;
+  displayName: string | null;
+  selectionKey: string | null;
   kind: InputKind | null;
   previewUrl: string | null;
   cacheKey: string | null;
@@ -31,8 +34,8 @@ const RESOLUTIONS = ["720p", "1080p", "1440p", "4K"];
 const FPS_OPTIONS = ["24", "30", "60"];
 
 export function TransitionsPage(): HTMLElement {
-  const inputA: InputState = { file: null, kind: null, previewUrl: null, cacheKey: null, preparedUrl: null };
-  const inputB: InputState = { file: null, kind: null, previewUrl: null, cacheKey: null, preparedUrl: null };
+  const inputA: InputState = { file: null, localPath: null, displayName: null, selectionKey: null, kind: null, previewUrl: null, cacheKey: null, preparedUrl: null };
+  const inputB: InputState = { file: null, localPath: null, displayName: null, selectionKey: null, kind: null, previewUrl: null, cacheKey: null, preparedUrl: null };
 
   let busy = false;
   let presets: TransitionPresetItem[] = [];
@@ -56,13 +59,6 @@ export function TransitionsPage(): HTMLElement {
   const inputBHost = el("div");
   const categoryHost = el("div.row.gap-2", { style: { flexWrap: "wrap" } });
   const presetsHost = el("div", {
-    style: {
-      display: "grid",
-      gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-      gap: "12px",
-    },
-  });
-  const recentHost = el("div", {
     style: {
       display: "grid",
       gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
@@ -113,15 +109,12 @@ export function TransitionsPage(): HTMLElement {
           ),
         ),
       ),
-      section("Presets",
-        el("div.col.gap-3", null, categoryHost, presetsHost),
-      ),
       section("Generate",
         el("div.state-card", { style: { padding: "14px" } },
           el("div.row", { style: { justifyContent: "space-between", alignItems: "center", gap: "12px" } },
             el("div.col.gap-1", null,
               el("div.state-card__title", { style: { textAlign: "left", width: "100%" } }, "Transition output"),
-              el("div.state-card__subtitle", { style: { textAlign: "left", width: "100%" } }, "Choose one preset, prepare inputs A and B, then generate inside the panel."),
+              el("div.state-card__subtitle", { style: { textAlign: "left", width: "100%" } }, "Select a preset below, then set Start and End from the timeline or from uploaded files."),
               creditHint,
             ),
             generateBtn,
@@ -129,27 +122,32 @@ export function TransitionsPage(): HTMLElement {
           resultHost,
         ),
       ),
-      section("Recent Transitions", recentHost),
+      section("Presets",
+        el("div.col.gap-3", null, categoryHost, presetsHost),
+      ),
     ),
   );
 
-  renderInputCard(inputAHost, "Input A", "first", inputA);
-  renderInputCard(inputBHost, "Input B", "last", inputB);
+  renderInputCard(inputAHost, "Start", "first", inputA);
+  renderInputCard(inputBHost, "End", "last", inputB);
   renderCategories();
   renderPresets();
-  renderRecent();
   updateCreditHint();
   updateGenerateState();
+  durationSelect.addEventListener("change", updateCreditHint);
+  resolutionSelect.addEventListener("change", updateCreditHint);
+  const watcher = watchTimelineSelection((clip) => {
+    if (clip?.path) applyTimelineSelection(clip);
+  });
+  watcher.attachTo(root);
 
   void loadPresets();
-  void store.refreshRecent();
-  store.subscribe(() => renderRecent());
 
   return root;
 
   function renderInputCard(host: HTMLElement, title: string, framePosition: "first" | "last", state: InputState) {
     const previewHost = el("div");
-    const helper = el("div.mono.muted", { style: { fontSize: "11px", wordBreak: "break-all" } }, "No file selected");
+    const helper = el("div.mono.muted", { style: { fontSize: "11px", wordBreak: "break-all" } }, "No source selected");
     const picker = document.createElement("input");
     picker.type = "file";
     picker.accept = "image/*,video/*";
@@ -167,8 +165,8 @@ export function TransitionsPage(): HTMLElement {
       settingsCard(title,
         el("div.state-card__subtitle", { style: { textAlign: "left", width: "100%", marginBottom: "10px" } },
           framePosition === "first"
-            ? "Uses the first frame for video sources."
-            : "Uses the last frame for video sources.",
+            ? "Click a clip on the timeline to set Start, or choose a local image/video."
+            : "Click another clip on the timeline to set End, or choose a local image/video.",
         ),
         previewHost,
         helper,
@@ -177,7 +175,7 @@ export function TransitionsPage(): HTMLElement {
           state.file
             ? el("button.btn-secondary", {
                 onClick: () => {
-                  setInputState(state, null);
+                  clearInputState(state);
                   updateInputPreview(previewHost, helper, state, framePosition);
                   updateGenerateState();
                   updateCreditHint();
@@ -240,7 +238,95 @@ export function TransitionsPage(): HTMLElement {
   function presetCard(preset: TransitionPresetItem): HTMLElement {
     const selected = selectedPresetId === preset.id;
     const mediaUrl = absoluteAssetUrl(preset.previewVideoUrl);
-    const isVideo = /\.(mp4|webm|ogg)$/i.test(mediaUrl);
+    const mediaKind = inferPreviewKind(mediaUrl);
+    const mediaHost = el("div", {
+      style: {
+        aspectRatio: "16/9",
+        position: "relative",
+        overflow: "hidden",
+        background: "rgba(255,255,255,0.03)",
+      },
+    });
+    const creditBadge = el("div", {
+      style: {
+        position: "absolute",
+        bottom: "8px",
+        right: "8px",
+        padding: "4px 8px",
+        borderRadius: "999px",
+        background: "rgba(0,0,0,0.66)",
+        color: "#d8b4fe",
+        fontSize: "10px",
+        fontWeight: "700",
+      },
+    }, `${estimateCredits(preset)} cr`);
+
+    const setPreview = (node: HTMLElement) => {
+      mediaHost.replaceChildren(node, creditBadge);
+    };
+
+    const showFallback = () => {
+      setPreview(
+        el("div", {
+          style: {
+            width: "100%",
+            height: "100%",
+            background: "linear-gradient(135deg, rgba(124,92,255,0.22), rgba(20,20,48,0.92))",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "rgba(255,255,255,0.6)",
+            fontSize: "11px",
+            fontWeight: "600",
+          },
+        }, "Preview"),
+      );
+    };
+
+    const showImage = () => {
+      if (!mediaUrl) {
+        showFallback();
+        return;
+      }
+      setPreview(el("img", {
+        src: mediaUrl,
+        alt: preset.name,
+        style: { width: "100%", height: "100%", objectFit: "cover", display: "block" },
+        onError: () => showFallback(),
+      }));
+    };
+
+    const showVideo = () => {
+      if (!mediaUrl) {
+        showFallback();
+        return;
+      }
+      setPreview(el("video", {
+        src: mediaUrl,
+        muted: "true",
+        loop: "true",
+        autoplay: "true",
+        playsinline: "true",
+        preload: "metadata",
+        style: { width: "100%", height: "100%", objectFit: "cover", display: "block" },
+        onCanPlay: (ev: Event) => {
+          const node = ev.target as HTMLVideoElement;
+          void node.play().catch(() => {});
+        },
+        onError: () => {
+          if (mediaKind === "image") {
+            showFallback();
+            return;
+          }
+          showImage();
+        },
+      }));
+    };
+
+    if (!mediaUrl) showFallback();
+    else if (mediaKind === "image") showImage();
+    else showVideo();
+
     return el("button", {
       onClick: () => {
         selectedPresetId = preset.id;
@@ -256,99 +342,11 @@ export function TransitionsPage(): HTMLElement {
         background: selected ? "rgba(124,92,255,0.12)" : "rgba(255,255,255,0.03)",
       },
     },
-      el("div", {
-        style: {
-          aspectRatio: "16/9",
-          position: "relative",
-          overflow: "hidden",
-          background: "rgba(255,255,255,0.03)",
-        },
-      },
-        isVideo
-          ? el("video", {
-              src: mediaUrl,
-              muted: "true",
-              loop: "true",
-              autoplay: "true",
-              playsinline: "true",
-              preload: "metadata",
-              style: { width: "100%", height: "100%", objectFit: "cover", display: "block" },
-            })
-          : el("img", {
-              src: mediaUrl,
-              alt: preset.name,
-              style: { width: "100%", height: "100%", objectFit: "cover", display: "block" },
-            }),
-        el("div", {
-          style: {
-            position: "absolute",
-            bottom: "8px",
-            right: "8px",
-            padding: "4px 8px",
-            borderRadius: "999px",
-            background: "rgba(0,0,0,0.66)",
-            color: "#d8b4fe",
-            fontSize: "10px",
-            fontWeight: "700",
-          },
-        }, `${estimateCredits(preset)} cr`),
-      ),
+      mediaHost,
       el("div.col.gap-1", { style: { padding: "12px" } },
         el("div", { style: { fontSize: "12px", fontWeight: "700", color: "var(--text-primary)" } }, preset.name),
         el("div", { style: { fontSize: "11px", color: "var(--text-secondary)", lineHeight: "1.45" } }, preset.description),
         el("div", { style: { fontSize: "10px", color: "var(--text-muted)" } }, preset.motionProfile),
-      ),
-    );
-  }
-
-  function renderRecent() {
-    const items = store.get().recent.filter(
-      (item) => item.kind === "video" && String(item.model ?? "").startsWith("transition/"),
-    );
-
-    recentHost.replaceChildren(
-      ...items.map((item) => recentCard(item)),
-    );
-
-    if (!items.length) {
-      recentHost.replaceChildren(
-        el("div.library-empty", { style: { gridColumn: "1 / -1" } }, "No transition outputs yet."),
-      );
-    }
-  }
-
-  function recentCard(item: GenerationItem): HTMLElement {
-    return el("div.library-card",
-      null,
-      el("div.library-card__media", null,
-        el("video", {
-          src: item.url,
-          muted: "true",
-          loop: "true",
-          playsinline: "true",
-          preload: "metadata",
-          style: { width: "100%", height: "100%", objectFit: "cover", display: "block" },
-        }),
-      ),
-      el("div.library-card__body", null,
-        el("div.library-card__title", null, item.prompt ?? "Transition"),
-        el("div.library-card__meta", null, item.model ?? "transition"),
-        el("div.row.gap-2", { style: { marginTop: "8px" } },
-          el("button.btn-secondary", {
-            onClick: async () => {
-              try {
-                const local = await api.downloadAsset(item.url, `${item.id}.mp4`);
-                await evalES("importMediaFromPath", local);
-                toast("Imported to project bin", "success");
-              } catch (err) {
-                toast(`Import failed: ${(err as Error).message}`, "error");
-              }
-            },
-          }, icon("import", 12), "Import"),
-          el("button.btn-secondary", {
-            onClick: () => navigator.clipboard.writeText(item.url).then(() => toast("Link copied")),
-          }, "Copy link"),
-        ),
       ),
     );
   }
@@ -376,7 +374,7 @@ export function TransitionsPage(): HTMLElement {
       toast("Select a transition preset first.", "error");
       return;
     }
-    if (!inputA.file || !inputB.file) {
+    if (!hasInput(inputA) || !hasInput(inputB)) {
       toast("Add both Input A and Input B first.", "error");
       return;
     }
@@ -407,13 +405,15 @@ export function TransitionsPage(): HTMLElement {
         enhance: enhanceToggle.checked,
       });
 
-      if (currentJob.status !== "succeeded" || !currentJob.result) {
-        throw new Error(currentJob.error ?? "Transition generation failed");
+      const finalJob = currentJob.status === "succeeded" || currentJob.status === "failed"
+        ? currentJob
+        : await api.pollJob(currentJob.id);
+
+      if (finalJob.status !== "succeeded" || !finalJob.result) {
+        throw new Error(finalJob.error ?? "Transition generation failed");
       }
 
-      resultHost.replaceChildren(resultCard(currentJob));
-      store.refreshCreditsOnly();
-      store.refreshRecent();
+      resultHost.replaceChildren(resultCard(finalJob));
     } catch (err) {
       resultHost.replaceChildren(errorCard((err as Error).message));
       toast((err as Error).message, "error");
@@ -433,9 +433,29 @@ export function TransitionsPage(): HTMLElement {
   }
 
   function updateGenerateState() {
-    generateBtn.disabled = busy || !selectedPresetId || !inputA.file || !inputB.file;
+    generateBtn.disabled = busy || !selectedPresetId || !hasInput(inputA) || !hasInput(inputB);
     generateBtn.style.opacity = generateBtn.disabled ? "0.6" : "1";
     generateBtn.style.pointerEvents = generateBtn.disabled ? "none" : "auto";
+  }
+
+  function applyTimelineSelection(clip: TimelineClip) {
+    const key = clipSelectionKey(clip);
+    if (!key) return;
+
+    if (!hasInput(inputA) || inputA.selectionKey === key) {
+      setTimelineInputState(inputA, clip);
+      renderInputCard(inputAHost, "Start", "first", inputA);
+      updateGenerateState();
+      updateCreditHint();
+      return;
+    }
+
+    if (inputB.selectionKey === key) return;
+
+    setTimelineInputState(inputB, clip);
+    renderInputCard(inputBHost, "End", "last", inputB);
+    updateGenerateState();
+    updateCreditHint();
   }
 
   function estimateCredits(preset: TransitionPresetItem): number {
@@ -524,16 +544,41 @@ function setInputState(state: InputState, file: File | null) {
     URL.revokeObjectURL(state.previewUrl);
   }
   state.file = file;
+  state.localPath = null;
+  state.displayName = file?.name ?? null;
+  state.selectionKey = null;
   state.kind = file ? detectKind(file) : null;
   state.previewUrl = file ? URL.createObjectURL(file) : null;
   state.cacheKey = null;
   state.preparedUrl = null;
 }
 
+function clearInputState(state: InputState) {
+  setInputState(state, null);
+}
+
+function setTimelineInputState(state: InputState, clip: TimelineClip) {
+  if (state.previewUrl?.startsWith("blob:")) {
+    URL.revokeObjectURL(state.previewUrl);
+  }
+  state.file = null;
+  state.localPath = clip.path;
+  state.displayName = clip.name ?? clip.path.split(/[\\/]/).pop() ?? clip.path;
+  state.selectionKey = clipSelectionKey(clip);
+  state.kind = detectTimelineKind(clip);
+  state.previewUrl = toFileUrl(clip.path);
+  state.cacheKey = null;
+  state.preparedUrl = null;
+}
+
+function hasInput(state: InputState): boolean {
+  return Boolean(state.file || state.localPath);
+}
+
 function updateInputPreview(host: HTMLElement, helper: HTMLElement, state: InputState, framePosition: "first" | "last") {
   host.replaceChildren();
-  if (!state.file || !state.previewUrl || !state.kind) {
-    helper.textContent = "No file selected";
+  if (!hasInput(state) || !state.previewUrl || !state.kind) {
+    helper.textContent = "No source selected";
     host.appendChild(
       el("div", {
         style: {
@@ -552,7 +597,8 @@ function updateInputPreview(host: HTMLElement, helper: HTMLElement, state: Input
     return;
   }
 
-  helper.textContent = `${state.file.name} · ${state.kind}${state.kind === "video" ? ` · ${framePosition} frame` : ""}`;
+  const sourceName = state.displayName ?? state.file?.name ?? "Source";
+  helper.textContent = `${sourceName} · ${state.kind}${state.kind === "video" ? ` · ${framePosition} frame` : ""}`;
   host.appendChild(
     state.kind === "video"
       ? el("video", {
@@ -566,31 +612,39 @@ function updateInputPreview(host: HTMLElement, helper: HTMLElement, state: Input
         })
       : el("img", {
           src: state.previewUrl,
-          alt: state.file.name,
+          alt: sourceName,
           style: { width: "100%", borderRadius: "12px", display: "block", aspectRatio: "16/9", objectFit: "cover" },
         }),
   );
 }
 
 async function ensurePreparedInput(state: InputState, framePosition: "first" | "last"): Promise<string> {
-  if (!state.file || !state.kind) {
+  if (!hasInput(state) || !state.kind) {
     throw new Error("Missing transition input file.");
   }
-  const key = `${state.file.name}:${state.file.size}:${state.file.lastModified}:${framePosition}`;
+  const baseKey = state.file
+    ? `${state.file.name}:${state.file.size}:${state.file.lastModified}`
+    : `${state.localPath ?? ""}:${state.selectionKey ?? ""}`;
+  const key = `${baseKey}:${framePosition}`;
   if (state.preparedUrl && state.cacheKey === key) {
     return state.preparedUrl;
   }
 
   if (state.kind === "image") {
-    state.preparedUrl = await api.uploadFileToR2(state.file, "image");
+    state.preparedUrl = state.file
+      ? await api.uploadFileToR2(state.file, "image")
+      : await api.uploadLocalPathToR2(state.localPath!, "image");
     state.cacheKey = key;
     return state.preparedUrl;
   }
 
-  const frameBlob = await extractVideoFrameBlob(state.file, framePosition);
+  const frameBlob = await extractVideoFrameBlob(
+    state.file ? URL.createObjectURL(state.file) : toFileUrl(state.localPath!),
+    framePosition,
+  );
   const frameFile = new File(
     [frameBlob],
-    `${state.file.name.replace(/\.[^.]+$/, "")}-${framePosition}.jpg`,
+    `${(state.displayName ?? "clip").replace(/\.[^.]+$/, "")}-${framePosition}.jpg`,
     { type: "image/jpeg" },
   );
   state.preparedUrl = await api.uploadFileToR2(frameFile, "thumbnail");
@@ -602,14 +656,23 @@ function detectKind(file: File): InputKind {
   return file.type.startsWith("video/") ? "video" : "image";
 }
 
-async function extractVideoFrameBlob(file: File, framePosition: "first" | "last"): Promise<Blob> {
-  const objectUrl = URL.createObjectURL(file);
+function detectTimelineKind(clip: TimelineClip): InputKind {
+  if (clip.type === "image") return "image";
+  const lower = String(clip.path ?? "").toLowerCase();
+  return /\.(png|jpg|jpeg|webp|gif|bmp|tif|tiff|heic|heif)$/i.test(lower) ? "image" : "video";
+}
+
+function clipSelectionKey(clip: TimelineClip): string {
+  return `${clip.path}|${clip.inSec ?? 0}|${clip.outSec ?? 0}`;
+}
+
+async function extractVideoFrameBlob(sourceUrl: string, framePosition: "first" | "last"): Promise<Blob> {
   try {
     return await new Promise<Blob>((resolve, reject) => {
       const video = document.createElement("video");
       video.preload = "metadata";
       video.muted = true;
-      video.src = objectUrl;
+      video.src = sourceUrl;
       video.onloadedmetadata = () => {
         video.currentTime = framePosition === "last" ? Math.max(0, video.duration - 0.1) : 0;
       };
@@ -634,14 +697,27 @@ async function extractVideoFrameBlob(file: File, framePosition: "first" | "last"
       video.onerror = () => reject(new Error("Video preview could not be loaded."));
     });
   } finally {
-    URL.revokeObjectURL(objectUrl);
+    if (sourceUrl.startsWith("blob:")) {
+      URL.revokeObjectURL(sourceUrl);
+    }
   }
+}
+
+function toFileUrl(localPath: string): string {
+  const normalized = localPath.replace(/\\/g, "/");
+  return encodeURI(`file:///${normalized.replace(/^\/+/, "")}`);
 }
 
 function absoluteAssetUrl(path: string): string {
   if (!path) return "";
-  if (/^https?:\/\//i.test(path)) return path;
-  return `${getApiBase()}${path.startsWith("/") ? path : `/${path}`}`;
+  if (/^https?:\/\//i.test(path)) return encodeURI(path);
+  return encodeURI(`${getApiBase()}${path.startsWith("/") ? path : `/${path}`}`);
+}
+
+function inferPreviewKind(url: string): "image" | "video" {
+  const clean = url.split("#")[0]?.split("?")[0] ?? "";
+  if (/\.(png|jpe?g|webp|gif|bmp|svg)$/i.test(clean)) return "image";
+  return "video";
 }
 
 function busyCard(message: string): HTMLElement {
