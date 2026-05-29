@@ -716,8 +716,7 @@ export default function AgentStudioPage() {
           clearInterval(interval);
           setProgressVal(100);
           setRunningTaskName(null);
-
-          const finalVideo = "https://assets.mixkit.co/videos/preview/mixkit-futuristic-subway-station-with-neon-lights-44101-large.mp4";
+          const finalVideo = "https://lorem.video/720p_h264_10s";
           setOutputVideo(finalVideo);
 
           const updatedCredits = credits - 5;
