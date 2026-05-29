@@ -8,7 +8,7 @@ import { icon } from "../lib/icons";
 import { navigate } from "../lib/router";
 import { store } from "../lib/store";
 import { api, type GenerationItem } from "../lib/api";
-import { evalES } from "../lib/cep";
+import { evalES, getHostDragTargetLabel, getHostImportButtonLabel, getHostImportSuccessMessage } from "../lib/cep";
 import { toast } from "../lib/toast";
 
 export interface RecentStripOptions {
@@ -206,7 +206,7 @@ function buildItemTile(params: {
 
   return el("div.library-card",
     {
-      title: `${g.prompt ?? ""}${g.kind === "video" ? " • Drag to Premiere timeline" : " • Drag to Premiere project/timeline"}`.trim(),
+      title: `${g.prompt ?? ""}${` • Drag to ${getHostDragTargetLabel(g.kind)}`}`.trim(),
       draggable: "true",
       onMouseenter: () => { void onWarmDrag(g); },
       onPointerdown: () => { void onWarmDrag(g); },
@@ -242,12 +242,12 @@ function buildItemTile(params: {
           try {
             const local = await api.downloadAsset(g.url, fileNameFor(g));
             await evalES("importMediaFromPath", local);
-            toast("Imported to project bin", "success");
+            toast(getHostImportSuccessMessage(), "success");
           } catch (err) {
             toast(`Import failed: ${(err as Error).message}`, "error");
           }
         },
-        "aria-label": "Import to timeline",
+        "aria-label": getHostImportButtonLabel(),
       },
       icon("import", 12),
     ),
@@ -261,7 +261,7 @@ function buildItemTile(params: {
       },
       icon("trash", 12),
     ),
-      el("div.library-card__drag-hint", null, "Drag to timeline"),
+      el("div.library-card__drag-hint", null, `Drag to ${getHostDragTargetLabel(g.kind)}`),
     ),
     el("div.library-card__body",
       null,

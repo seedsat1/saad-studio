@@ -469,6 +469,92 @@
   border-radius: var(--r-lg);
   box-shadow: var(--shadow-floating);
   flex-shrink: 0;
+  position: relative;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+}
+.prompt-dock--dragover {
+  border-color: rgba(124, 92, 255, 0.55);
+  box-shadow: 0 0 0 1px rgba(124, 92, 255, 0.2), var(--shadow-floating);
+  background: linear-gradient(180deg, rgba(124, 92, 255, 0.06), transparent 55%), var(--bg-card);
+}
+.prompt-dock__attachments {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 0 0 10px;
+  align-items: center;
+}
+.prompt-dock__attachment {
+  width: 42px;
+  height: 42px;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line-soft);
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.04);
+  flex: 0 0 auto;
+}
+.prompt-dock__attachment-thumb,
+.prompt-dock__attachment-icon {
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+  flex-shrink: 0;
+  object-fit: cover;
+  background: var(--bg-input);
+}
+.prompt-dock__attachment-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+}
+.prompt-dock__attachment-remove {
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  color: #fff;
+  background: rgba(5, 10, 26, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  opacity: 0;
+  transform: scale(0.92);
+  transition: opacity 0.15s ease, transform 0.15s ease, background 0.15s ease;
+}
+.prompt-dock__attachment:hover .prompt-dock__attachment-remove,
+.prompt-dock__attachment:focus-within .prompt-dock__attachment-remove {
+  opacity: 1;
+  transform: scale(1);
+}
+.prompt-dock__attachment-remove:hover {
+  background: rgba(239, 68, 68, 0.9);
+  color: #fff;
+}
+.prompt-dock__drop-hint {
+  display: none;
+  position: absolute;
+  inset: 10px 12px 46px;
+  border: 1px dashed rgba(124, 92, 255, 0.45);
+  border-radius: 14px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #c6b8ff;
+  font-size: 12px;
+  font-weight: 600;
+  background: rgba(11, 18, 48, 0.72);
+  pointer-events: none;
+}
+.prompt-dock--dragover .prompt-dock__drop-hint {
+  display: flex;
 }
 .prompt-dock__status {
   display: flex;

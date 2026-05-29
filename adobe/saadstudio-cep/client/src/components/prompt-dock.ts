@@ -45,6 +45,70 @@ export function PromptDock(cfg: DockConfig): PromptDockHandle {
     options: Object.fromEntries(cfg.options.map((o) => [o.key, o.value])),
   };
   let busy = false;
+  let dragDepth = 0;
+  let attachmentPreviewUrls: string[] = [];
+
+  const attachmentStrip = el("div.prompt-dock__attachments", {
+    style: { display: "none" },
+  });
+
+  function revokeAttachmentPreviews() {
+    for (const url of attachmentPreviewUrls) URL.revokeObjectURL(url);
+    attachmentPreviewUrls = [];
+  }
+
+  function renderAttachments() {
+    revokeAttachmentPreviews();
+    attachmentStrip.replaceChildren();
+    attachmentStrip.style.display = state.attachments.length ? "flex" : "none";
+    for (const [index, file] of state.attachments.entries()) {
+      const isPreviewable = file.type.startsWith("image/") || file.type.startsWith("video/");
+      const previewUrl = isPreviewable ? URL.createObjectURL(file) : "";
+      if (previewUrl) attachmentPreviewUrls.push(previewUrl);
+      const thumb = previewUrl
+        ? file.type.startsWith("image/")
+          ? el("img.prompt-dock__attachment-thumb", { src: previewUrl, alt: file.name })
+          : el("video.prompt-dock__attachment-thumb", { src: previewUrl, muted: "true", playsinline: "true", preload: "metadata" })
+        : el("div.prompt-dock__attachment-icon", { "aria-hidden": "true" }, icon(iconForFile(file), 14));
+      const removeBtn = el("button.prompt-dock__attachment-remove", {
+        type: "button",
+        "aria-label": `Remove ${file.name}`,
+        onClick: () => {
+          setAttachments(state.attachments.filter((_, i) => i !== index));
+        },
+      }, icon("close", 12));
+      const card = el("div.prompt-dock__attachment",
+        { title: `${file.name} • ${formatFileSize(file.size)}` },
+        thumb,
+        removeBtn,
+      );
+      attachmentStrip.appendChild(card);
+    }
+  }
+
+  function filesToFileList(files: File[]): FileList {
+    const dt = new DataTransfer();
+    for (const file of files) dt.items.add(file);
+    return dt.files;
+  }
+
+  function setAttachments(files: File[]) {
+    state.attachments = files;
+    if (fileInput) {
+      try {
+        (fileInput as HTMLInputElement).files = filesToFileList(files);
+      } catch {
+        // Some CEP hosts treat input.files as read-only. State remains source of truth.
+      }
+    }
+    renderAttachments();
+    if (cfg.onAttach) cfg.onAttach(filesToFileList(files));
+  }
+
+  function appendAttachments(files: FileList | File[]) {
+    const next = [...state.attachments, ...Array.from(files)];
+    setAttachments(next);
+  }
 
   const textarea = el("textarea.prompt-dock__textarea", {
     rows: "2",
@@ -60,6 +124,29 @@ export function PromptDock(cfg: DockConfig): PromptDockHandle {
         submit();
       }
     },
+    onDragenter: (e: DragEvent) => {
+      if (!cfg.showAttach || busy) return;
+      e.preventDefault();
+      dragDepth += 1;
+      root.classList.add("prompt-dock--dragover");
+    },
+    onDragover: (e: DragEvent) => {
+      if (!cfg.showAttach || busy) return;
+      e.preventDefault();
+    },
+    onDragleave: () => {
+      if (!cfg.showAttach || busy) return;
+      dragDepth = Math.max(0, dragDepth - 1);
+      if (!dragDepth) root.classList.remove("prompt-dock--dragover");
+    },
+    onDrop: (e: DragEvent) => {
+      if (!cfg.showAttach || busy) return;
+      e.preventDefault();
+      dragDepth = 0;
+      root.classList.remove("prompt-dock--dragover");
+      const files = e.dataTransfer?.files;
+      if (files?.length) appendAttachments(files);
+    },
   }) as HTMLTextAreaElement;
 
   const fileInput = cfg.showAttach
@@ -69,10 +156,7 @@ export function PromptDock(cfg: DockConfig): PromptDockHandle {
         style: { display: "none" },
         onChange: (e: Event) => {
           const files = (e.target as HTMLInputElement).files;
-          if (files) {
-            state.attachments = Array.from(files);
-            cfg.onAttach?.(files);
-          }
+          if (files?.length) appendAttachments(files);
         },
       })
     : null;
@@ -159,7 +243,32 @@ export function PromptDock(cfg: DockConfig): PromptDockHandle {
   optionRow.appendChild(submitBtn);
   refreshOptionPills();
 
-  const root = el("div.prompt-dock", null, textarea, statusLine, optionRow) as PromptDockHandle;
+  const dropHint = el("div.prompt-dock__drop-hint", { "aria-hidden": "true" }, icon("plus", 14), "Drop files here");
+  const root = el("div.prompt-dock", {
+    onDragenter: (e: DragEvent) => {
+      if (!cfg.showAttach || busy) return;
+      e.preventDefault();
+      dragDepth += 1;
+      root.classList.add("prompt-dock--dragover");
+    },
+    onDragover: (e: DragEvent) => {
+      if (!cfg.showAttach || busy) return;
+      e.preventDefault();
+    },
+    onDragleave: () => {
+      if (!cfg.showAttach || busy) return;
+      dragDepth = Math.max(0, dragDepth - 1);
+      if (!dragDepth) root.classList.remove("prompt-dock--dragover");
+    },
+    onDrop: (e: DragEvent) => {
+      if (!cfg.showAttach || busy) return;
+      e.preventDefault();
+      dragDepth = 0;
+      root.classList.remove("prompt-dock--dragover");
+      const files = e.dataTransfer?.files;
+      if (files?.length) appendAttachments(files);
+    },
+  }, attachmentStrip, textarea, dropHint, statusLine, optionRow) as PromptDockHandle;
   root.setBusy = (nextBusy: boolean, message?: string) => {
     busy = nextBusy;
     if (message) statusText.textContent = message;
@@ -171,6 +280,10 @@ export function PromptDock(cfg: DockConfig): PromptDockHandle {
     submitBtn.classList.toggle("dock-submit--busy", busy);
     submitLabel.textContent = busy ? "Generating…" : "Generate";
     statusLine.style.display = busy ? "flex" : "none";
+    if (busy) {
+      dragDepth = 0;
+      root.classList.remove("prompt-dock--dragover");
+    }
   };
   return root;
 }
@@ -183,4 +296,15 @@ function labelFor(opt: DockOption, value: string, options?: Option[]): string {
 function autoResize(ta: HTMLTextAreaElement) {
   ta.style.height = "auto";
   ta.style.height = Math.min(ta.scrollHeight, 140) + "px";
+}
+
+function formatFileSize(size: number): string {
+  if (size < 1024 * 1024) return `${Math.max(1, Math.round(size / 1024))} KB`;
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function iconForFile(file: File) {
+  if (file.type.startsWith("image/")) return "image" as const;
+  if (file.type.startsWith("video/")) return "video" as const;
+  return "settings" as const;
 }

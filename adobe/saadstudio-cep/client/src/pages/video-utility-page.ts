@@ -17,7 +17,14 @@ import { Header } from "../components/header";
 import { PageHeader } from "../components/page-header";
 import { PromptDock, type DockOption, type PromptDockHandle } from "../components/prompt-dock";
 import { icon } from "../lib/icons";
-import { evalES, isInsideAdobe } from "../lib/cep";
+import {
+  evalES,
+  getHostDragTargetLabel,
+  getHostImportButtonLabel,
+  getHostImportSuccessMessage,
+  getHostSelectionLabel,
+  isInsideAdobe,
+} from "../lib/cep";
 import { api, type JobStatus } from "../lib/api";
 import { toast } from "../lib/toast";
 import { store } from "../lib/store";
@@ -95,8 +102,8 @@ export function VideoUtilityPage(cfg: VideoUtilityConfig): HTMLElement {
         ),
         el("div.state-card__subtitle", null,
           insideAdobe
-            ? (cfg.hint ?? "Click any clip in the Premiere timeline and it'll show up here automatically.")
-            : "Timeline auto-detect only works inside Premiere / After Effects. Upload a file to keep going.",
+            ? (cfg.hint ?? `Click any clip on the ${getHostSelectionLabel()} and it'll show up here automatically.`)
+            : "Timeline auto-detect only works inside Premiere Pro / After Effects. Upload a file to keep going.",
         ),
         el("div.state-card__actions",
           null,
@@ -297,7 +304,7 @@ function buildResultCard(r: NonNullable<JobStatus["result"]>): HTMLElement {
         border: "1px solid var(--line-soft)",
       },
       draggable: "true",
-      title: "Drag to Premiere timeline",
+      title: `Drag to ${getHostDragTargetLabel(r.kind)}`,
       onMouseenter: () => { void warmDragAsset(); },
       onPointerdown: () => { void warmDragAsset(); },
       onDragstart: (ev: Event) => {
@@ -330,13 +337,13 @@ function buildResultCard(r: NonNullable<JobStatus["result"]>): HTMLElement {
             try {
               const local = await api.downloadAsset(r.url, `${r.id}.${r.kind === "video" ? "mp4" : "png"}`);
               await evalES("importMediaFromPath", local);
-              toast("Imported to project bin", "success");
+              toast(getHostImportSuccessMessage(), "success");
             } catch (err) {
               toast(`Import failed: ${(err as Error).message}`, "error");
             }
           },
         },
-        icon("import", 14), "Import to project",
+        icon("import", 14), getHostImportButtonLabel(),
       ),
     ),
   );

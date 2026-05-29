@@ -10,7 +10,7 @@ import {
   type TransitionPresetItem,
 } from "../lib/api";
 import { icon } from "../lib/icons";
-import { evalES } from "../lib/cep";
+import { evalES, getHostImportButtonLabel, getHostImportSuccessMessage } from "../lib/cep";
 import { toast } from "../lib/toast";
 import { watchTimelineSelection, type TimelineClip } from "../lib/timeline-watcher";
 import { enforceVideoDurationLimit } from "../lib/media-validation";
@@ -1080,12 +1080,12 @@ function resultCard(output: TransitionOutput): HTMLElement {
           try {
             const local = await api.downloadAsset(output.url, `${output.id}.mp4`);
             await evalES("importMediaFromPath", local);
-            toast("Imported to project bin", "success");
+            toast(getHostImportSuccessMessage(), "success");
           } catch (err) {
             toast(`Import failed: ${(err as Error).message}`, "error");
           }
         },
-      }, icon("import", 14), "Import to project"),
+      }, icon("import", 14), getHostImportButtonLabel()),
       el("button.btn-secondary", {
         onClick: () => navigator.clipboard.writeText(output.url).then(() => toast("Link copied")),
       }, "Copy link"),

@@ -11,7 +11,7 @@ import { PageHeader } from "../components/page-header";
 import { PromptDock, type DockConfig, type PromptDockHandle } from "../components/prompt-dock";
 import { RecentStrip } from "../components/recent-strip";
 import { icon } from "../lib/icons";
-import { evalES } from "../lib/cep";
+import { evalES, getHostDragTargetLabel, getHostImportButtonLabel, getHostImportSuccessMessage } from "../lib/cep";
 import { api, type JobStatus } from "../lib/api";
 import { toast } from "../lib/toast";
 import { store } from "../lib/store";
@@ -130,7 +130,7 @@ function resultCard(job: JobStatus, _host: HTMLElement): HTMLElement {
       style: { borderRadius: "14px", overflow: "hidden", background: "var(--bg-card)",
                border: "1px solid var(--line-soft)", position: "relative" },
       draggable: "true",
-      title: "Drag to Premiere timeline",
+      title: `Drag to ${getHostDragTargetLabel(r.kind)}`,
       onMouseenter: () => { void warmDragAsset(); },
       onPointerdown: () => { void warmDragAsset(); },
       onDragstart: (ev: Event) => {
@@ -158,12 +158,12 @@ function resultCard(job: JobStatus, _host: HTMLElement): HTMLElement {
           try {
             const local = await api.downloadAsset(r.url, `${r.id}.${r.kind === "video" ? "mp4" : "png"}`);
             await evalES("importMediaFromPath", local);
-            toast("Imported to project bin", "success");
+            toast(getHostImportSuccessMessage(), "success");
           } catch (err) {
             toast(`Import failed: ${(err as Error).message}`, "error");
           }
         },
-      }, icon("import", 14), "Import to project"),
+      }, icon("import", 14), getHostImportButtonLabel()),
       el("button.btn-secondary", {
         onClick: () => navigator.clipboard.writeText(r.url).then(() => toast("Link copied")),
       }, "Copy link"),

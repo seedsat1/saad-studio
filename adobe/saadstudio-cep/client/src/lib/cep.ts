@@ -40,6 +40,36 @@ export function getHostApp(): "PPRO" | "AEFT" | "BROWSER" {
   }
 }
 
+export function getHostName(): string {
+  const host = getHostApp();
+  if (host === "AEFT") return "After Effects";
+  if (host === "PPRO") return "Premiere Pro";
+  return "browser";
+}
+
+export function getHostSelectionLabel(): string {
+  const host = getHostApp();
+  return host === "AEFT" ? "timeline or active comp" : "timeline";
+}
+
+export function getHostImportButtonLabel(): string {
+  const host = getHostApp();
+  return host === "AEFT" ? "Import to project/comp" : "Import to project";
+}
+
+export function getHostImportSuccessMessage(): string {
+  const host = getHostApp();
+  return host === "AEFT" ? "Imported to project and active comp" : "Imported to project bin";
+}
+
+export function getHostDragTargetLabel(kind: "image" | "video" = "video"): string {
+  const host = getHostApp();
+  if (host === "AEFT") {
+    return kind === "video" ? "After Effects project/comp" : "After Effects project/comp";
+  }
+  return kind === "video" ? "Premiere timeline" : "Premiere project/timeline";
+}
+
 /** Open a URL in the user's default browser. Tries every CEP API path
  *  because behavior varies between Premiere / AE versions; falls back to
  *  shelling out via Node and finally to window.open. */
