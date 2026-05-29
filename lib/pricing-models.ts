@@ -146,12 +146,17 @@ export const DEFAULT_MODELS: PricingModel[] = [
   { id:"tool_instant_character", name:"Instant Character", notes:"$0.10/run", type:"image",  provider:"wavespeed", billing:"flat",    kieCredits:0,     waveUsd:0.10,  userCreditsRate:3.9,  maxDuration:null, isActive:true  },
   { id:"gemini_omni_character", name:"Gemini Omni Character", notes:"direct Google", type:"image", provider:"kie", billing:"flat",    kieCredits:0,     waveUsd:0,     userCreditsRate:3.9,  maxDuration:null, isActive:true  },
   { id:"dalle3",        name:"DALL-E 3",                notes:"legacy",       type:"image",  provider:"kie",       billing:"flat",    kieCredits:5,     waveUsd:0,     userCreditsRate:0.86,  maxDuration:null, isActive:true  },
+  { id:"tool_watermark_remover", name:"Video Watermark Remover", notes:"remove logos/text", type:"video", provider:"wavespeed", billing:"per_sec", kieCredits:0, waveUsd:0.01, userCreditsRate:0.4, maxDuration:600, isActive:true },
 ];
 
 // ─── Shared cost calculation helpers ─────────────────────────────────────────
 
 export function calcProviderCost(model: PricingModel, durationSec: number, kieCostPerCredit: number): number {
-  if (model.provider === "wavespeed") return model.waveUsd;
+  if (model.provider === "wavespeed") {
+    return model.billing === "per_sec"
+      ? model.waveUsd * (model.maxDuration ? Math.min(durationSec, model.maxDuration) : durationSec)
+      : model.waveUsd;
+  }
   const effectiveDur = model.maxDuration ? Math.min(durationSec, model.maxDuration) : durationSec;
   const credits = model.billing === "per_sec" ? model.kieCredits * effectiveDur : model.kieCredits;
   return credits * kieCostPerCredit;

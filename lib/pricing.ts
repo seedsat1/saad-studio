@@ -255,6 +255,7 @@ const MODEL_ALIAS_MAP: Record<string, string> = {
   "tool:upscale":                       "tool_upscale",
   "tool:remove-bg":                     "tool_rmbg",
   "tool:face-swap":                     "tool_faceswap",
+  "tool:watermark-remover":             "tool_watermark_remover",
   "tool:instant-character":             "tool_instant_character",
   "gemini-3-pro-image-preview":         "gemini_omni_character",
   "gemini-omni-character":              "gemini_omni_character",

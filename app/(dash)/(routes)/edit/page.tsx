@@ -38,6 +38,7 @@ import {
   LayoutGrid,
   Upload,
   Smile,
+  Ban,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -172,6 +173,17 @@ const EDIT_TOOLS: EditTool[] = [
     hex: "#d946ef",
     glowHex: "rgba(217,70,239,0.45)",
     description: "Instant online AI face swap for photos, delivering realistic, watermark-free results.",
+  },
+  {
+    id: "watermark",
+    label: "Watermark Remover",
+    icon: Ban,
+    color: "text-indigo-400",
+    border: "border-indigo-500",
+    glow: "shadow-indigo-500/50",
+    hex: "#6366f1",
+    glowHex: "rgba(99,102,241,0.45)",
+    description: "Remove watermarks, logos, captions, and unwanted text from videos.",
   },
 ];
 
@@ -363,6 +375,7 @@ export default function EditPage() {
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [faceImageUrl, setFaceImageUrl] = useState("");
   const [isUploadingFace, setIsUploadingFace] = useState(false);
+  const [videoDuration, setVideoDuration] = useState<number>(0);
 
   // Advanced generation parameters
   const [advancedOpen, setAdvancedOpen] = useState(false);
@@ -584,6 +597,23 @@ export default function EditPage() {
     }
   }, [mediaType, upscaleFactor]);
 
+  // Load the video metadata dynamically to resolve duration
+  useEffect(() => {
+    if (mediaUrl && mediaType === "video") {
+      const video = document.createElement("video");
+      video.src = mediaUrl;
+      video.preload = "metadata";
+      video.onloadedmetadata = () => {
+        setVideoDuration(video.duration);
+      };
+      video.onerror = () => {
+        setVideoDuration(0);
+      };
+    } else {
+      setVideoDuration(0);
+    }
+  }, [mediaUrl, mediaType]);
+
   // Generate cursor preview SVG based on brushSize, scale and tool color
   const displayBrushSize = brushSize * scale;
   const activeColorHex = activeTool === "draw" ? drawColor : currentTool.hex;
@@ -781,11 +811,16 @@ export default function EditPage() {
     if (isProcessing) return;
     
     // For tools that need prompts, verify prompt input
-    const isPromptOptional = ["bgremove", "upscale", "faceswap"].includes(activeTool);
+    const isPromptOptional = ["bgremove", "upscale", "faceswap", "watermark"].includes(activeTool);
     if (!isPromptOptional && !prompt.trim()) return;
 
     if (activeTool === "faceswap" && !faceImageUrl) {
       setSimulatedWarning("Please upload a reference face image first.");
+      return;
+    }
+
+    if (activeTool === "watermark" && mediaType !== "video") {
+      setSimulatedWarning("Video Watermark Remover only supports video files. Please upload a video first.");
       return;
     }
 
@@ -828,6 +863,18 @@ export default function EditPage() {
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || "Failed to swap face");
         resultUrl = data.imageUrl;
+      } else if (activeTool === "watermark") {
+        const response = await fetch("/api/generate/watermark-remove", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            videoUrl: inputMedia,
+            duration: videoDuration,
+          }),
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Failed to remove watermark");
+        resultUrl = data.imageUrl || data.videoUrl;
       } else if (activeTool === "upscale") {
         const payload = mediaType === "video"
           ? { videoUrl: inputMedia, scale: upscaleFactor }
@@ -884,7 +931,7 @@ export default function EditPage() {
     }
 
     setIsProcessing(false);
-  }, [isProcessing, prompt, activeTool, mediaUrl, mediaType, selectedModel, upscaleFactor, faceImageUrl]);
+  }, [isProcessing, prompt, activeTool, mediaUrl, mediaType, selectedModel, upscaleFactor, faceImageUrl, videoDuration]);
 
   const handleToolSelect = (id: string) => {
     setActiveTool(id);
@@ -1261,12 +1308,14 @@ export default function EditPage() {
                       ? "AI Upscale doesn't require a prompt. Click Apply!"
                       : activeTool === "faceswap"
                       ? "Face Swap doesn't require a prompt. Upload a reference face & click Apply!"
+                      : activeTool === "watermark"
+                      ? "Watermark removal doesn't require a prompt. Click Apply!"
                       : "Describe what to add, replace, or alter in the drawn region..."
                   }
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter") handleApply(); }}
-                  disabled={isProcessing || ["bgremove", "upscale", "faceswap"].includes(activeTool)}
+                  disabled={isProcessing || ["bgremove", "upscale", "faceswap", "watermark"].includes(activeTool)}
                   className="flex-1 bg-transparent border-none text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:ring-0 disabled:opacity-50"
                 />
 
@@ -1274,10 +1323,10 @@ export default function EditPage() {
                 <button
                   type="button"
                   onClick={handleApply}
-                  disabled={isProcessing || (!["bgremove", "upscale", "faceswap"].includes(activeTool) && !prompt.trim())}
+                  disabled={isProcessing || (!["bgremove", "upscale", "faceswap", "watermark"].includes(activeTool) && !prompt.trim())}
                   className={cn(
                     "flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-300 transform active:scale-95 shrink-0 select-none shadow-md",
-                    isProcessing || (!["bgremove", "upscale", "faceswap"].includes(activeTool) && !prompt.trim())
+                    isProcessing || (!["bgremove", "upscale", "faceswap", "watermark"].includes(activeTool) && !prompt.trim())
                       ? "bg-zinc-800 text-zinc-500 cursor-not-allowed border border-transparent"
                       : "bg-gradient-to-r from-cyan-500 to-violet-500 hover:from-cyan-400 hover:to-violet-400 text-black font-extrabold"
                   )}
@@ -2120,6 +2169,70 @@ export default function EditPage() {
             </div>
           )}
 
+          {/* ────────────────────────────────────────────────────────────
+              10. Video Watermark Remover Settings
+          ──────────────────────────────────────────────────────────── */}
+          {activeTool === "watermark" && (
+            <div className="space-y-6">
+              {/* Media validation alert */}
+              {mediaUrl && mediaType !== "video" && (
+                <div className="bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-xl p-3.5 flex items-start gap-2.5">
+                  <Info className="h-4 w-4 shrink-0 mt-0.5" />
+                  <div className="text-xs font-semibold">
+                    <p className="font-bold">Invalid Media Type</p>
+                    <p className="text-[10px] text-rose-400/80 mt-0.5 leading-relaxed">
+                      Watermark removal only supports video files. Please clear this media or upload a video.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Dynamic Billing Estimator card */}
+              {mediaUrl && mediaType === "video" && (
+                <div className="bg-[#0c1328]/80 border border-indigo-500/20 rounded-xl p-4 space-y-3">
+                  <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest block">
+                    Duration & Pricing Cost
+                  </span>
+                  
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-zinc-400 font-semibold">Billed Duration:</span>
+                    <span className="text-slate-200 font-mono font-bold">
+                      {Math.max(5, Math.ceil(videoDuration || 5))}s
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between items-center text-xs border-t border-white/5 pt-2">
+                    <span className="text-zinc-400 font-semibold">Pricing Rate:</span>
+                    <span className="text-slate-200 font-semibold">
+                      0.4 Credits / sec
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between items-center text-xs border-t border-white/5 pt-2">
+                    <span className="text-indigo-400 font-bold">Estimated Cost:</span>
+                    <span className="text-indigo-400 font-black font-mono">
+                      {(Math.max(5, Math.ceil(videoDuration || 5)) * 0.4).toFixed(1)} Credits
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Best Practice Note / Tips for Watermark Removal */}
+              <div className="bg-[#0b101c]/60 border border-indigo-500/10 rounded-xl p-3.5 space-y-2">
+                <p className="text-[10px] font-bold text-indigo-300 uppercase tracking-wider flex items-center gap-1.5">
+                  <Info className="h-3.5 w-3.5 shrink-0" />
+                  <span>Removal Guidelines</span>
+                </p>
+                <ul className="text-[9.5px] text-zinc-400 space-y-1 list-disc pl-3 leading-relaxed font-medium">
+                  <li>Temporal-aware inpainting avoids flickering and keeps motions stable.</li>
+                  <li>Reconstructs textures, grains, and lighting beneath overlays.</li>
+                  <li>Supports removing subtitles, lower-thirds, moving corner bugs, and logos.</li>
+                  <li>Supports video files up to 10 minutes in length.</li>
+                </ul>
+              </div>
+            </div>
+          )}
+
           <div className="border-t border-white/5" />
 
           {/* Tool description information card */}
@@ -2162,20 +2275,20 @@ export default function EditPage() {
           <button
             type="button"
             onClick={handleApply}
-            disabled={isProcessing || (!["bgremove", "upscale", "faceswap"].includes(activeTool) && !prompt.trim())}
+            disabled={isProcessing || (!["bgremove", "upscale", "faceswap", "watermark"].includes(activeTool) && !prompt.trim())}
             className={cn(
               "w-full py-4 rounded-xl font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-all duration-300 transform active:scale-[0.98] border shadow-lg",
-              isProcessing || (!["bgremove", "upscale", "faceswap"].includes(activeTool) && !prompt.trim())
+              isProcessing || (!["bgremove", "upscale", "faceswap", "watermark"].includes(activeTool) && !prompt.trim())
                 ? "bg-zinc-900 border-white/5 text-zinc-500 cursor-not-allowed"
                 : "bg-gradient-to-r from-cyan-500 to-violet-500 hover:from-cyan-400 hover:to-violet-400 text-black border-cyan-400/20 shadow-cyan-500/10"
             )}
           >
             <Sparkles className="h-4.5 w-4.5" />
             <span>Apply Generation</span>
-            {!isProcessing && (["bgremove", "upscale", "faceswap"].includes(activeTool) || prompt.trim()) && (
+            {!isProcessing && (["bgremove", "upscale", "faceswap", "watermark"].includes(activeTool) || prompt.trim()) && (
               <span className="inline-flex items-center gap-1 text-[11px] bg-black/10 px-1.5 py-0.5 rounded font-black">
                 <Star className="h-3 w-3 fill-current" />
-                <span>5</span>
+                <span>{activeTool === "watermark" ? (Math.max(5, Math.ceil(videoDuration || 5)) * 0.4).toFixed(1) : "5"}</span>
               </span>
             )}
           </button>
