@@ -46,37 +46,47 @@ type VideoModelSpec = {
   aspects: string[];
   durations: number[];
   qualities: string[];
-  maxAttachments: number;
+  maxImages: number;
+  maxVideos: number;
+  maxAudios: number;
   supportsMode: boolean;
 };
 
 const MODEL_SPECS: Record<string, VideoModelSpec> = {
   "kling-3.0/video": {
     aspects: ["16:9", "9:16", "1:1"],
-    durations: [5, 10],
+    durations: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
     qualities: ["720p", "1080p", "4k"],
-    maxAttachments: 1,
+    maxImages: 2,
+    maxVideos: 0,
+    maxAudios: 0,
     supportsMode: true,
   },
   "bytedance/seedance-2": {
     aspects: ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9", "adaptive"],
     durations: [4, 5, 6, 8, 10, 12, 15],
     qualities: ["480p", "720p", "1080p"],
-    maxAttachments: 1,
+    maxImages: 9,
+    maxVideos: 3,
+    maxAudios: 3,
     supportsMode: false,
   },
   [VEO_FAST_MODEL]: {
     aspects: ["16:9", "9:16"],
     durations: [4, 6, 8],
     qualities: ["720p", "1080p", "4k"],
-    maxAttachments: 1,
+    maxImages: 3,
+    maxVideos: 0,
+    maxAudios: 0,
     supportsMode: false,
   },
   [CINEMATIC_MODEL]: {
     aspects: ["16:9", "9:16", "4:3", "3:4"],
     durations: [5, 10, 15],
     qualities: ["720p"],
-    maxAttachments: 4,
+    maxImages: 4,
+    maxVideos: 0,
+    maxAudios: 0,
     supportsMode: false,
   },
 };
@@ -94,6 +104,22 @@ function optionsFromValues(values: string[] | number[]): Array<{ value: string; 
     const text = String(value);
     return { value: text, label: typeof value === "number" ? `${text}s` : text };
   });
+}
+
+function assetTypeForFile(file: File): "image" | "video" | "audio" {
+  if (file.type.startsWith("video/")) return "video";
+  if (file.type.startsWith("audio/")) return "audio";
+  return "image";
+}
+
+function splitAttachments(files: File[]) {
+  const images = files.filter((file) => file.type.startsWith("image/"));
+  const videos = files.filter((file) => file.type.startsWith("video/"));
+  const audios = files.filter((file) => file.type.startsWith("audio/"));
+  const unsupported = files.filter(
+    (file) => !file.type.startsWith("image/") && !file.type.startsWith("video/") && !file.type.startsWith("audio/"),
+  );
+  return { images, videos, audios, unsupported };
 }
 
 export function VideoGenPage(): HTMLElement {
@@ -137,12 +163,9 @@ export function VideoGenPage(): HTMLElement {
       ],
     },
     submit: async ({ prompt, attachments, options }) => {
-      if (attachments.some((file) => !file.type.startsWith("image/"))) {
-        throw new Error("Video generation accepts only an image reference attachment.");
-      }
-
       const model = options.model;
       const spec = specFor(model);
+      const { images, videos, audios, unsupported } = splitAttachments(attachments);
       const aspect = pickAllowed(options.aspect, spec.aspects, spec.aspects[0]);
       const duration = pickAllowed(
         Math.max(1, Number.parseInt(options.duration || String(spec.durations[0]), 10) || spec.durations[0]),
@@ -151,25 +174,28 @@ export function VideoGenPage(): HTMLElement {
       );
       const quality = pickAllowed(options.quality, spec.qualities, spec.qualities[0]);
 
-      if (attachments.length > spec.maxAttachments) {
-        throw new Error(
-          spec.maxAttachments === 1
-            ? "This model accepts only one reference image."
-            : `This model accepts up to ${spec.maxAttachments} reference images.`,
-        );
+      if (unsupported.length) {
+        throw new Error("Unsupported attachment type. Use images, videos, or audio files only.");
+      }
+      if (images.length > spec.maxImages) {
+        throw new Error(`This model accepts up to ${spec.maxImages} reference image${spec.maxImages === 1 ? "" : "s"}.`);
+      }
+      if (videos.length > spec.maxVideos) {
+        throw new Error(spec.maxVideos === 0 ? "This model does not accept reference videos." : `This model accepts up to ${spec.maxVideos} reference videos.`);
+      }
+      if (audios.length > spec.maxAudios) {
+        throw new Error(spec.maxAudios === 0 ? "This model does not accept reference audio files." : `This model accepts up to ${spec.maxAudios} reference audio files.`);
       }
 
-      const imageUrls = model === CINEMATIC_MODEL
-        ? await Promise.all(
-            attachments.slice(0, spec.maxAttachments).map((file) => api.uploadFileToR2(file, "image")),
-          )
-        : [];
-
-      const imageUrl = model === CINEMATIC_MODEL
-        ? undefined
-        : attachments[0]
-          ? await api.uploadFileToR2(attachments[0], "image")
-          : undefined;
+      const uploaded = await Promise.all(
+        attachments.map(async (file) => ({
+          file,
+          url: await api.uploadFileToR2(file, assetTypeForFile(file)),
+        })),
+      );
+      const uploadedImages = uploaded.filter((item) => item.file.type.startsWith("image/")).map((item) => item.url);
+      const uploadedVideos = uploaded.filter((item) => item.file.type.startsWith("video/")).map((item) => item.url);
+      const uploadedAudios = uploaded.filter((item) => item.file.type.startsWith("audio/")).map((item) => item.url);
 
       let mode: string | undefined = undefined;
       if (model === "kling-3.0/video") {
@@ -179,16 +205,36 @@ export function VideoGenPage(): HTMLElement {
         else if (quality === "720p" && mode !== "pro" && mode !== "4K") mode = "std";
       }
 
-      return api.generate.video({
+      const body: Record<string, unknown> = {
         prompt,
         model,
         aspect,
         durationSec: duration,
         quality,
         ...(mode ? { mode } : {}),
-        ...(imageUrls.length ? { imageUrls } : {}),
-        ...(imageUrl ? { imageUrl } : {}),
-      });
+      };
+
+      if (model === "kling-3.0/video") {
+        if (uploadedImages.length) body.imageUrls = uploadedImages.slice(0, 2);
+      } else if (model === "bytedance/seedance-2") {
+        if (uploadedImages[0]) body.firstFrameUrl = uploadedImages[0];
+        if (uploadedImages[1]) body.lastFrameUrl = uploadedImages[1];
+        if (uploadedImages.length > 2) body.referenceImageUrls = uploadedImages.slice(2, 9);
+        if (uploadedVideos.length) body.referenceVideoUrls = uploadedVideos.slice(0, 3);
+        if (uploadedAudios.length) body.referenceAudioUrls = uploadedAudios.slice(0, 3);
+        body.enableAudio = uploadedAudios.length > 0;
+      } else if (model === VEO_FAST_MODEL) {
+        if (uploadedImages.length) {
+          body.imageUrls = uploadedImages.slice(0, 3);
+          body.generationType = uploadedImages.length >= 3
+            ? "REFERENCE_2_VIDEO"
+            : "FIRST_AND_LAST_FRAMES_2_VIDEO";
+        }
+      } else if (model === CINEMATIC_MODEL) {
+        if (uploadedImages.length) body.imageUrls = uploadedImages.slice(0, 4);
+      }
+
+      return api.generate.video(body);
     },
   });
 }

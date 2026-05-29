@@ -43,8 +43,37 @@ export async function googleGenerateVideo(input: VideoGenInput): Promise<Provide
     input.quality === "720p" || input.quality === "720P" ? "720p" :
     undefined;
 
-  // Image-to-video flow: fetch and base64-encode the source frame.
-  const image = input.imageUrl ? await urlToImageInput(input.imageUrl) : undefined;
+  const explicitImages = [
+    ...(Array.isArray(input.imageUrls) ? input.imageUrls : []),
+    ...(Array.isArray(input.referenceImageUrls) ? input.referenceImageUrls : []),
+  ].filter((url, index, arr): url is string => typeof url === "string" && url.trim().length > 0 && arr.indexOf(url) === index);
+  const startImageUrl = input.firstFrameUrl ?? input.imageUrl ?? explicitImages[0];
+  const endImageUrl = input.lastFrameUrl ?? explicitImages[1];
+  const requestedType = input.generationType;
+
+  const autoType =
+    requestedType ||
+    (
+      explicitImages.length >= 3 && tier === "fast"
+        ? "REFERENCE_2_VIDEO"
+        : (startImageUrl || endImageUrl)
+          ? "FIRST_AND_LAST_FRAMES_2_VIDEO"
+          : "TEXT_2_VIDEO"
+    );
+
+  if (autoType === "REFERENCE_2_VIDEO" && tier !== "fast") {
+    throw new ProviderError("google", "generationType", "REFERENCE_2_VIDEO is supported only for Veo Fast.");
+  }
+
+  const image = autoType === "TEXT_2_VIDEO" || !startImageUrl ? undefined : await urlToImageInput(startImageUrl);
+  const lastFrame =
+    autoType === "FIRST_AND_LAST_FRAMES_2_VIDEO" && endImageUrl
+      ? await urlToImageInput(endImageUrl)
+      : undefined;
+  const referenceImages =
+    autoType === "REFERENCE_2_VIDEO"
+      ? await Promise.all(explicitImages.slice(0, 3).map((url) => urlToImageInput(url)))
+      : undefined;
 
   let handle;
   try {
@@ -55,6 +84,8 @@ export async function googleGenerateVideo(input: VideoGenInput): Promise<Provide
       resolution,
       durationSeconds: clampDuration(input.durationSec),
       ...(image ? { image } : {}),
+      ...(lastFrame ? { lastFrame } : {}),
+      ...(referenceImages?.length ? { referenceImages } : {}),
     });
   } catch (err) {
     throw new ProviderError("google", "startVeoGeneration", (err as Error).message);

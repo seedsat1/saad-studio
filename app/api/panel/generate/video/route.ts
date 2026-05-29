@@ -22,6 +22,11 @@ const KIE_QUERY_URL = "https://api.kie.ai/api/v1/jobs/recordInfo";
 
 type KieApiJson = { code?: number; msg?: string; data?: { taskId?: string; state?: string; resultJson?: string; failMsg?: string; failCode?: string } };
 
+function sanitizePublicUrlList(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((url): url is string => typeof url === "string" && isSafePublicHttpUrl(url));
+}
+
 function extractVideoUrls(value: unknown): string[] {
   if (!value) return [];
   if (typeof value === "string") {
@@ -209,6 +214,16 @@ export async function POST(req: NextRequest) {
       mode?: string;
       imageUrl?: string;
       imageUrls?: string[];
+      videoUrl?: string;
+      videoUrls?: string[];
+      audioUrls?: string[];
+      firstFrameUrl?: string;
+      lastFrameUrl?: string;
+      referenceImageUrls?: string[];
+      referenceVideoUrls?: string[];
+      referenceAudioUrls?: string[];
+      generationType?: "TEXT_2_VIDEO" | "FIRST_AND_LAST_FRAMES_2_VIDEO" | "REFERENCE_2_VIDEO";
+      enableAudio?: boolean;
     };
 
     const {
@@ -220,6 +235,16 @@ export async function POST(req: NextRequest) {
       mode,
       imageUrl,
       imageUrls,
+      videoUrl,
+      videoUrls,
+      audioUrls,
+      firstFrameUrl,
+      lastFrameUrl,
+      referenceImageUrls,
+      referenceVideoUrls,
+      referenceAudioUrls,
+      generationType,
+      enableAudio,
     } = body;
 
     if (!prompt?.trim()) {
@@ -229,10 +254,39 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid imageUrl provided." }, { status: 400 });
     }
     const safeImageUrls = Array.isArray(imageUrls)
-      ? imageUrls.filter((url): url is string => typeof url === "string" && isSafePublicHttpUrl(url))
+      ? sanitizePublicUrlList(imageUrls)
       : [];
     if (Array.isArray(imageUrls) && safeImageUrls.length !== imageUrls.length) {
       return NextResponse.json({ error: "One or more imageUrls are invalid." }, { status: 400 });
+    }
+    const safeVideoUrls = sanitizePublicUrlList(videoUrls);
+    if (Array.isArray(videoUrls) && safeVideoUrls.length !== videoUrls.length) {
+      return NextResponse.json({ error: "One or more videoUrls are invalid." }, { status: 400 });
+    }
+    const safeAudioUrls = sanitizePublicUrlList(audioUrls);
+    if (Array.isArray(audioUrls) && safeAudioUrls.length !== audioUrls.length) {
+      return NextResponse.json({ error: "One or more audioUrls are invalid." }, { status: 400 });
+    }
+    const safeReferenceImageUrls = sanitizePublicUrlList(referenceImageUrls);
+    if (Array.isArray(referenceImageUrls) && safeReferenceImageUrls.length !== referenceImageUrls.length) {
+      return NextResponse.json({ error: "One or more referenceImageUrls are invalid." }, { status: 400 });
+    }
+    const safeReferenceVideoUrls = sanitizePublicUrlList(referenceVideoUrls);
+    if (Array.isArray(referenceVideoUrls) && safeReferenceVideoUrls.length !== referenceVideoUrls.length) {
+      return NextResponse.json({ error: "One or more referenceVideoUrls are invalid." }, { status: 400 });
+    }
+    const safeReferenceAudioUrls = sanitizePublicUrlList(referenceAudioUrls);
+    if (Array.isArray(referenceAudioUrls) && safeReferenceAudioUrls.length !== referenceAudioUrls.length) {
+      return NextResponse.json({ error: "One or more referenceAudioUrls are invalid." }, { status: 400 });
+    }
+    if (videoUrl && !isSafePublicHttpUrl(videoUrl)) {
+      return NextResponse.json({ error: "Invalid videoUrl provided." }, { status: 400 });
+    }
+    if (firstFrameUrl && !isSafePublicHttpUrl(firstFrameUrl)) {
+      return NextResponse.json({ error: "Invalid firstFrameUrl provided." }, { status: 400 });
+    }
+    if (lastFrameUrl && !isSafePublicHttpUrl(lastFrameUrl)) {
+      return NextResponse.json({ error: "Invalid lastFrameUrl provided." }, { status: 400 });
     }
 
     // ── Early dispatch: Google Veo direct (Vertex/Gemini) and BytePlus
@@ -247,6 +301,17 @@ export async function POST(req: NextRequest) {
         durationSec: duration,
         quality: resolution,
         imageUrl,
+        imageUrls: safeImageUrls,
+        videoUrl,
+        videoUrls: safeVideoUrls,
+        audioUrls: safeAudioUrls,
+        firstFrameUrl,
+        lastFrameUrl,
+        referenceImageUrls: safeReferenceImageUrls,
+        referenceVideoUrls: safeReferenceVideoUrls,
+        referenceAudioUrls: safeReferenceAudioUrls,
+        generationType,
+        enableAudio,
       });
       return NextResponse.json({
         videoUrl: result.videoUrl ?? null,
@@ -297,19 +362,34 @@ export async function POST(req: NextRequest) {
         aspect_ratio: aspectRatio,
       };
 
-      // Add image reference if provided (image-to-video mode)
-      if (imageUrl) {
-        if (kieModelId === "kling-3.0/video" || kieModelId === "kling-3.0/motion-control") {
-          input.image_urls = [imageUrl];
-        } else if (isKling) {
-          // Kling 2.x I2V uses image_url (single)
-          input.image_url = imageUrl;
-        } else if (isSeedance) {
-          // Seedance 2 uses first_frame_url for reference image
-          input.first_frame_url = imageUrl;
-        } else {
-          input.image_url = imageUrl;
+      const startFrameUrl = firstFrameUrl ?? imageUrl ?? safeImageUrls[0];
+      const endFrameUrl = lastFrameUrl ?? safeImageUrls[1];
+
+      // Add reference inputs
+      if (isKling) {
+        const klingFrames = [startFrameUrl, endFrameUrl].filter((url): url is string => typeof url === "string" && url.length > 0);
+        if (klingFrames.length) {
+          input.image_urls = klingFrames.slice(0, 2);
         }
+      } else if (isSeedance) {
+        if (safeReferenceImageUrls.length) {
+          input.reference_image_urls = safeReferenceImageUrls.slice(0, 9);
+        } else {
+          if (startFrameUrl) input.first_frame_url = startFrameUrl;
+          if (endFrameUrl) input.last_frame_url = endFrameUrl;
+        }
+        if (safeReferenceVideoUrls.length) {
+          input.reference_video_urls = safeReferenceVideoUrls.slice(0, 3);
+        } else if (videoUrl) {
+          input.reference_video_urls = [videoUrl];
+        }
+        if (safeReferenceAudioUrls.length) {
+          input.reference_audio_urls = safeReferenceAudioUrls.slice(0, 3);
+        } else if (safeAudioUrls.length) {
+          input.reference_audio_urls = safeAudioUrls.slice(0, 3);
+        }
+      } else if (startFrameUrl) {
+        input.image_url = startFrameUrl;
       }
 
       // Model-specific settings
@@ -327,7 +407,7 @@ export async function POST(req: NextRequest) {
 
       // Seedance: generate_audio defaults to TRUE (extra cost) — always disable unless explicitly set
       if (isSeedance) {
-        input.generate_audio = false;
+        input.generate_audio = enableAudio === true;
         // resolution for Seedance: 480p/720p/1080p
         if (resolution) input.resolution = resolution.toLowerCase();
       }

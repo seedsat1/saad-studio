@@ -47,9 +47,6 @@ export async function byteplusGenerateVideo(input: VideoGenInput): Promise<Provi
     throw new ProviderError("byteplus", "model", `Unknown BytePlus model: ${input.modelId}`);
   }
 
-  // Build the content payload. BytePlus accepts a text item + optional
-  // image_url item; resolution/duration/ratio are passed as suffix tokens
-  // on the text prompt (BytePlus convention).
   const text = appendTokens(input.prompt, {
     aspect: input.aspect,
     durationSec: input.durationSec,
@@ -57,8 +54,37 @@ export async function byteplusGenerateVideo(input: VideoGenInput): Promise<Provi
   });
 
   const content: Array<Record<string, unknown>> = [{ type: "text", text }];
-  if (input.imageUrl) {
-    content.push({ type: "image_url", image_url: { url: input.imageUrl } });
+  const firstFrameUrl =
+    input.firstFrameUrl ??
+    input.imageUrl ??
+    (Array.isArray(input.imageUrls) ? input.imageUrls[0] : undefined);
+  const lastFrameUrl =
+    input.lastFrameUrl ??
+    (Array.isArray(input.imageUrls) ? input.imageUrls[1] : undefined);
+  const referenceImageUrls = Array.isArray(input.referenceImageUrls)
+    ? input.referenceImageUrls.slice(0, 9)
+    : [];
+  const referenceVideoUrls = Array.isArray(input.referenceVideoUrls)
+    ? input.referenceVideoUrls.slice(0, 3)
+    : [];
+  const referenceAudioUrls = Array.isArray(input.referenceAudioUrls)
+    ? input.referenceAudioUrls.slice(0, 3)
+    : [];
+
+  if (firstFrameUrl) {
+    content.push({ type: "image_url", image_url: { url: firstFrameUrl }, role: "first_frame" });
+  }
+  if (lastFrameUrl) {
+    content.push({ type: "image_url", image_url: { url: lastFrameUrl }, role: "last_frame" });
+  }
+  for (const url of referenceImageUrls) {
+    content.push({ type: "image_url", image_url: { url }, role: "reference_image" });
+  }
+  for (const url of referenceVideoUrls) {
+    content.push({ type: "video_url", video_url: { url }, role: "reference_video" });
+  }
+  for (const url of referenceAudioUrls) {
+    content.push({ type: "audio_url", audio_url: { url }, role: "reference_audio" });
   }
 
   // Official BytePlus Seedance 2.0 (non-Fast) defaults to a server-side
@@ -68,6 +94,8 @@ export async function byteplusGenerateVideo(input: VideoGenInput): Promise<Provi
     input.modelId === "bytedance/seedance-v2/text-to-video-fast" ||
     input.modelId === "bytedance/seedance-2-fast";
   const submitBody: Record<string, unknown> = { model, content };
+  if (input.enableAudio === true) submitBody.generate_audio = true;
+  if (input.enableAudio === false) submitBody.generate_audio = false;
   if (!isFastVariant) submitBody.watermark = false;
 
   // 1) Submit task

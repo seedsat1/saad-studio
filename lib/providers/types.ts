@@ -26,6 +26,17 @@ export interface VideoGenInput {
   mode?: string;
   /** For image-to-video / extend flows. */
   imageUrl?: string;
+  imageUrls?: string[];
+  videoUrl?: string;
+  videoUrls?: string[];
+  audioUrls?: string[];
+  firstFrameUrl?: string;
+  lastFrameUrl?: string;
+  referenceImageUrls?: string[];
+  referenceVideoUrls?: string[];
+  referenceAudioUrls?: string[];
+  generationType?: "TEXT_2_VIDEO" | "FIRST_AND_LAST_FRAMES_2_VIDEO" | "REFERENCE_2_VIDEO";
+  enableAudio?: boolean;
 }
 
 export interface ProviderResult {

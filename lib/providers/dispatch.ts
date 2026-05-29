@@ -51,6 +51,17 @@ export interface DispatchVideoInput {
   quality?: string;
   mode?: string;
   imageUrl?: string;
+  imageUrls?: string[];
+  videoUrl?: string;
+  videoUrls?: string[];
+  audioUrls?: string[];
+  firstFrameUrl?: string;
+  lastFrameUrl?: string;
+  referenceImageUrls?: string[];
+  referenceVideoUrls?: string[];
+  referenceAudioUrls?: string[];
+  generationType?: "TEXT_2_VIDEO" | "FIRST_AND_LAST_FRAMES_2_VIDEO" | "REFERENCE_2_VIDEO";
+  enableAudio?: boolean;
 }
 
 export interface DispatchResult {
@@ -171,6 +182,17 @@ export async function dispatchDirectVideo(input: DispatchVideoInput): Promise<Di
       quality: input.quality,
       mode: input.mode,
       imageUrl: input.imageUrl,
+      imageUrls: input.imageUrls,
+      videoUrl: input.videoUrl,
+      videoUrls: input.videoUrls,
+      audioUrls: input.audioUrls,
+      firstFrameUrl: input.firstFrameUrl,
+      lastFrameUrl: input.lastFrameUrl,
+      referenceImageUrls: input.referenceImageUrls,
+      referenceVideoUrls: input.referenceVideoUrls,
+      referenceAudioUrls: input.referenceAudioUrls,
+      generationType: input.generationType,
+      enableAudio: input.enableAudio,
     });
 
     // 4) Persist to R2
