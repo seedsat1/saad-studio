@@ -18,6 +18,7 @@ import {
   BUCKETS,
   createSignedUploadUrl,
   deleteObjectFromStorage,
+  putObjectToStorage,
 } from "@/lib/r2-storage";
 
 export const dynamic = "force-dynamic";
@@ -94,7 +95,43 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ signedUrl, publicUrl, path, bucket });
     }
 
-    return NextResponse.json({ error: "Only application/json is supported" }, { status: 415 });
+    if (contentTypeHeader.includes("multipart/form-data")) {
+      const formData = await req.formData();
+      const file = formData.get("file") as File;
+      const assetType = (formData.get("assetType") as string) || "";
+
+      if (!file) {
+        return NextResponse.json({ error: "No file provided" }, { status: 400 });
+      }
+
+      const contentType = file.type || "application/octet-stream";
+      const fileName = file.name.replace(/[^a-zA-Z0-9._\-]/g, "_").slice(0, 120);
+      if (!fileName) {
+        return NextResponse.json({ error: "Invalid file name" }, { status: 400 });
+      }
+
+      const bucket = bucketForType(assetType, contentType);
+      const ext = extFromContentType(contentType) || `.${fileName.split(".").pop() || "bin"}`;
+      const uniqueId = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      const path = `${userId}/${uniqueId}${ext}`;
+
+      const buffer = await file.arrayBuffer();
+      const publicUrl = await putObjectToStorage({
+        bucket,
+        path,
+        body: Buffer.from(buffer),
+        contentType,
+      });
+
+      return NextResponse.json({
+        publicUrl,
+        path,
+        bucket,
+        signedUrl: "",
+      });
+    }
+
+    return NextResponse.json({ error: "Only application/json and multipart/form-data are supported" }, { status: 415 });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Upload URL generation failed";
     console.error("[studio/upload-url] Error:", message);

@@ -22,6 +22,7 @@ import { api, type JobStatus } from "../lib/api";
 import { toast } from "../lib/toast";
 import { store } from "../lib/store";
 import { watchTimelineSelection, type TimelineClip } from "../lib/timeline-watcher";
+import { enforceVideoDurationLimit } from "../lib/media-validation";
 
 export interface SourceClip {
   path: string;
@@ -72,7 +73,9 @@ export function VideoUtilityPage(cfg: VideoUtilityConfig): HTMLElement {
     const key = clip ? `${clip.path}|${clip.inSec ?? 0}|${clip.outSec ?? 0}` : null;
     if (key === currentClipKey) return;
     currentClipKey = key;
-    if (clip) showOptions(toSourceClip(clip));
+    if (clip) {
+      void handleTimelineClip(clip);
+    }
     else showEmpty();
   });
   watcher.attachTo(root);
@@ -113,12 +116,31 @@ export function VideoUtilityPage(cfg: VideoUtilityConfig): HTMLElement {
     input.addEventListener("change", () => {
       const file = input.files?.[0];
       if (!file) return;
+      void handleUploadedFile(file);
+    });
+    input.click();
+  }
+
+  async function handleUploadedFile(file: File) {
+    try {
+      await enforceVideoDurationLimit(file);
       const path = (file as File & { path?: string }).path ?? URL.createObjectURL(file);
       currentMode = "uploaded";
       currentClipKey = `upload:${file.name}:${file.size}`;
       showOptions({ path, name: file.name, file });
-    });
-    input.click();
+    } catch (err) {
+      toast((err as Error).message, "error");
+    }
+  }
+
+  async function handleTimelineClip(clip: TimelineClip) {
+    try {
+      await enforceVideoDurationLimit(clip.path);
+      showOptions(toSourceClip(clip));
+    } catch (err) {
+      currentClipKey = null;
+      toast((err as Error).message, "error");
+    }
   }
 
   function showOptions(clip: SourceClip) {

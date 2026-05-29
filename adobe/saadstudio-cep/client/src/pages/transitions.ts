@@ -13,6 +13,7 @@ import { icon } from "../lib/icons";
 import { evalES } from "../lib/cep";
 import { toast } from "../lib/toast";
 import { watchTimelineSelection, type TimelineClip } from "../lib/timeline-watcher";
+import { enforceVideoDurationLimit } from "../lib/media-validation";
 
 type InputKind = "image" | "video";
 
@@ -171,7 +172,9 @@ export function TransitionsPage(): HTMLElement {
     input.addEventListener("change", queueProjectAutosave);
   });
   const watcher = watchTimelineSelection((clip) => {
-    if (clip?.path) applyTimelineSelection(clip);
+    if (clip?.path) {
+      void handleTimelineClip(clip);
+    }
   });
   watcher.attachTo(root);
 
@@ -188,11 +191,7 @@ export function TransitionsPage(): HTMLElement {
     picker.style.display = "none";
     picker.addEventListener("change", () => {
       const file = picker.files?.[0] ?? null;
-      setInputState(state, file);
-      updateInputPreview(previewHost, helper, state, framePosition);
-      updateGenerateState();
-      updateCreditHint();
-      queueProjectAutosave();
+      void handlePickedFile(file, state, previewHost, helper, framePosition);
       picker.value = "";
     });
 
@@ -499,6 +498,38 @@ export function TransitionsPage(): HTMLElement {
     updateGenerateState();
     updateCreditHint();
     queueProjectAutosave();
+  }
+
+  async function handlePickedFile(
+    file: File | null,
+    state: InputState,
+    previewHost: HTMLElement,
+    helper: HTMLElement,
+    framePosition: "first" | "last",
+  ) {
+    try {
+      if (file && file.type.startsWith("video/")) {
+        await enforceVideoDurationLimit(file);
+      }
+      setInputState(state, file);
+      updateInputPreview(previewHost, helper, state, framePosition);
+      updateGenerateState();
+      updateCreditHint();
+      queueProjectAutosave();
+    } catch (err) {
+      toast((err as Error).message, "error");
+    }
+  }
+
+  async function handleTimelineClip(clip: TimelineClip) {
+    try {
+      if (detectTimelineKind(clip) === "video") {
+        await enforceVideoDurationLimit(clip.path);
+      }
+      applyTimelineSelection(clip);
+    } catch (err) {
+      toast((err as Error).message, "error");
+    }
   }
 
   function estimateCredits(preset: TransitionPresetItem): number {

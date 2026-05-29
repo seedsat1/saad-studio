@@ -12,10 +12,12 @@ import {
   type TimelineAudio,
   type TimelineClip,
 } from "../lib/timeline-watcher";
+import { enforceVideoDurationLimit } from "../lib/media-validation";
 
 type VisualState = {
   file: File | null;
   localPath: string | null;
+  frameTimeSec: number | null;
   previewUrl: string | null;
   uploadedUrl: string | null;
   uploadedKey: string | null;
@@ -40,6 +42,7 @@ export function AvatarProPage(): HTMLElement {
   const visualState: VisualState = {
     file: null,
     localPath: null,
+    frameTimeSec: null,
     previewUrl: null,
     uploadedUrl: null,
     uploadedKey: null,
@@ -141,10 +144,8 @@ export function AvatarProPage(): HTMLElement {
     buttonLabel: "Choose image/video",
     preview: el("div.col.gap-3", null, visualImage, visualVideo),
     meta: visualMeta,
-    onPick: (file) => {
-      applyVisualUpload(file);
-      syncVisualPreview();
-      updateGenerateState();
+    onPick: async (file) => {
+      await handleVisualPick(file);
     },
   });
 
@@ -195,9 +196,7 @@ export function AvatarProPage(): HTMLElement {
     if (!clip?.path || visualState.source === "upload") return;
     const key = clipSelectionKey(clip);
     if (!key || key === visualState.selectionKey) return;
-    applyTimelineVisual(clip);
-    syncVisualPreview();
-    updateGenerateState();
+    void handleTimelineVisual(clip);
   });
   visualWatcher.attachTo(root);
 
@@ -218,6 +217,7 @@ export function AvatarProPage(): HTMLElement {
     revokePreviewUrl(visualState.previewUrl);
     visualState.file = file;
     visualState.localPath = null;
+    visualState.frameTimeSec = null;
     visualState.previewUrl = file ? URL.createObjectURL(file) : null;
     visualState.uploadedUrl = null;
     visualState.uploadedKey = null;
@@ -243,6 +243,7 @@ export function AvatarProPage(): HTMLElement {
     revokePreviewUrl(visualState.previewUrl);
     visualState.file = null;
     visualState.localPath = clip.path;
+    visualState.frameTimeSec = typeof clip.inSec === "number" && Number.isFinite(clip.inSec) ? clip.inSec : 0;
     visualState.previewUrl = pathToMediaSrc(clip.path);
     visualState.uploadedUrl = null;
     visualState.uploadedKey = null;
@@ -286,6 +287,32 @@ export function AvatarProPage(): HTMLElement {
     const sourceLabel = visualState.source === "timeline" ? "timeline" : "upload";
     const kindLabel = visualState.kind === "video" ? "video -> first frame" : "image";
     visualMeta.textContent = `${visualState.displayName ?? "Visual source"} • ${kindLabel} • ${sourceLabel}`;
+  }
+
+  async function handleVisualPick(file: File | null) {
+    try {
+      if (file && detectVisualKind(file.type, file.name) === "video") {
+        await enforceVideoDurationLimit(file);
+      }
+      applyVisualUpload(file);
+      syncVisualPreview();
+      updateGenerateState();
+    } catch (err) {
+      toast((err as Error).message, "error");
+    }
+  }
+
+  async function handleTimelineVisual(clip: TimelineClip) {
+    try {
+      if (clip.type === "video") {
+        await enforceVideoDurationLimit(clip.path);
+      }
+      applyTimelineVisual(clip);
+      syncVisualPreview();
+      updateGenerateState();
+    } catch (err) {
+      toast((err as Error).message, "error");
+    }
   }
 
   function syncAudioPreview() {
@@ -361,14 +388,16 @@ function createUploadCard(input: {
   buttonLabel: string;
   preview: HTMLElement;
   meta: HTMLElement;
-  onPick: (file: File | null) => void;
+  onPick: (file: File | null) => void | Promise<void>;
 }): HTMLElement {
   const picker = document.createElement("input");
   picker.type = "file";
   picker.accept = input.accept;
   picker.style.display = "none";
   picker.addEventListener("change", () => {
-    input.onPick(picker.files?.[0] ?? null);
+    void Promise.resolve(input.onPick(picker.files?.[0] ?? null)).catch((err) => {
+      toast((err as Error).message, "error");
+    });
     picker.value = "";
   });
 
@@ -441,7 +470,7 @@ async function ensureVisualUploadedAsImage(state: VisualState): Promise<string> 
   }
   const uploadKey = state.file
     ? `file:${state.file.name}:${state.file.size}:${state.file.lastModified}:${state.kind}`
-    : `path:${state.localPath}:${state.kind}`;
+    : `path:${state.localPath}:${state.kind}:${state.frameTimeSec ?? 0}`;
   if (state.uploadedUrl && state.uploadedKey === uploadKey) {
     return state.uploadedUrl;
   }
@@ -453,8 +482,8 @@ async function ensureVisualUploadedAsImage(state: VisualState): Promise<string> 
       : await api.uploadLocalPathToR2(state.localPath!, "image");
   } else {
     const frameFile = state.file
-      ? await captureFrameFromVideoFile(state.file)
-      : await captureFrameFromVideoPath(state.localPath!, state.displayName ?? "timeline-video");
+      ? await captureFrameFromVideoFile(state.file, state.frameTimeSec)
+      : await captureFrameFromVideoPath(state.localPath!, state.displayName ?? "timeline-video", state.frameTimeSec);
     uploadedUrl = await api.uploadFileToR2(frameFile, "image");
   }
 
@@ -483,22 +512,22 @@ async function ensureAudioUploaded(state: AudioState): Promise<string> {
   return uploadedUrl;
 }
 
-async function captureFrameFromVideoFile(file: File): Promise<File> {
+async function captureFrameFromVideoFile(file: File, inSec?: number | null): Promise<File> {
   const src = URL.createObjectURL(file);
   try {
-    const blob = await captureFrameBlob(src);
+    const blob = await captureFrameBlob(src, inSec);
     return new File([blob], `${baseName(file.name)}-frame.png`, { type: "image/png" });
   } finally {
     URL.revokeObjectURL(src);
   }
 }
 
-async function captureFrameFromVideoPath(localPath: string, displayName: string): Promise<File> {
-  const blob = await captureFrameBlob(pathToMediaSrc(localPath));
+async function captureFrameFromVideoPath(localPath: string, displayName: string, inSec?: number | null): Promise<File> {
+  const blob = await captureFrameBlob(pathToMediaSrc(localPath), inSec);
   return new File([blob], `${baseName(displayName)}-frame.png`, { type: "image/png" });
 }
 
-async function captureFrameBlob(src: string): Promise<Blob> {
+async function captureFrameBlob(src: string, inSec?: number | null): Promise<Blob> {
   const video = document.createElement("video");
   video.src = src;
   video.crossOrigin = "anonymous";
@@ -510,7 +539,11 @@ async function captureFrameBlob(src: string): Promise<Blob> {
     const onError = () => reject(new Error("Video preview could not be loaded."));
     video.onerror = onError;
     video.onloadedmetadata = () => {
-      const target = Number.isFinite(video.duration) && video.duration > 0.12 ? 0.1 : 0;
+      const trimmedStart = typeof inSec === "number" && Number.isFinite(inSec) ? Math.max(0, inSec) : 0;
+      const fallback = Number.isFinite(video.duration) && video.duration > 0.12 ? 0.1 : 0;
+      const target = Number.isFinite(video.duration) && video.duration > 0
+        ? Math.min(trimmedStart + 0.05, Math.max(0, video.duration - 0.05))
+        : fallback;
       if (target <= 0) {
         resolve();
         return;

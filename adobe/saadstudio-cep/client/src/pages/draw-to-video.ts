@@ -7,6 +7,7 @@ import { toast } from "../lib/toast";
 import { evalES } from "../lib/cep";
 import { store } from "../lib/store";
 import { watchTimelineSelection, type TimelineClip } from "../lib/timeline-watcher";
+import { enforceVideoDurationLimit } from "../lib/media-validation";
 
 type ExpandState = {
   file: File | null;
@@ -83,10 +84,8 @@ export function DrawToVideoPage(): HTMLElement {
     buttonLabel: "Choose image/video",
     preview: el("div.col.gap-3", null, imagePreview, videoPreview),
     meta: sourceMeta,
-    onPick: (file) => {
-      applyUpload(file);
-      syncPreview();
-      updateGenerateState();
+    onPick: async (file) => {
+      await handlePickedFile(file);
     },
   });
 
@@ -129,9 +128,7 @@ export function DrawToVideoPage(): HTMLElement {
     if (!clip?.path || state.source === "upload") return;
     const key = clipSelectionKey(clip);
     if (!key || key === state.selectionKey) return;
-    applyTimelineSelection(clip);
-    syncPreview();
-    updateGenerateState();
+    void handleTimelineClip(clip);
   });
   watcher.attachTo(root);
 
@@ -191,6 +188,32 @@ export function DrawToVideoPage(): HTMLElement {
 
     const sourceLabel = state.source === "timeline" ? "timeline" : "upload";
     sourceMeta.textContent = `${state.displayName ?? "Source media"} • ${state.kind} • ${sourceLabel}`;
+  }
+
+  async function handlePickedFile(file: File | null) {
+    try {
+      if (file && detectKind(file.type, file.name) === "video") {
+        await enforceVideoDurationLimit(file);
+      }
+      applyUpload(file);
+      syncPreview();
+      updateGenerateState();
+    } catch (err) {
+      toast((err as Error).message, "error");
+    }
+  }
+
+  async function handleTimelineClip(clip: TimelineClip) {
+    try {
+      if (clip.type === "video") {
+        await enforceVideoDurationLimit(clip.path);
+      }
+      applyTimelineSelection(clip);
+      syncPreview();
+      updateGenerateState();
+    } catch (err) {
+      toast((err as Error).message, "error");
+    }
   }
 
   function updateGenerateState() {
@@ -262,14 +285,16 @@ function createUploadCard(input: {
   buttonLabel: string;
   preview: HTMLElement;
   meta: HTMLElement;
-  onPick: (file: File | null) => void;
+  onPick: (file: File | null) => void | Promise<void>;
 }): HTMLElement {
   const picker = document.createElement("input");
   picker.type = "file";
   picker.accept = input.accept;
   picker.style.display = "none";
   picker.addEventListener("change", () => {
-    input.onPick(picker.files?.[0] ?? null);
+    void Promise.resolve(input.onPick(picker.files?.[0] ?? null)).catch((err) => {
+      toast((err as Error).message, "error");
+    });
     picker.value = "";
   });
 
