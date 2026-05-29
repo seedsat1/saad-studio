@@ -36,6 +36,7 @@ import {
   ArrowUp,
   ArrowDown,
   LayoutGrid,
+  Upload,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -344,7 +345,10 @@ export default function EditPage() {
   const [history, setHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [showInlight, setShowInlight] = useState(true);
-  const [baseImage, setBaseImage] = useState("/explore/iraq/skyline.png");
+  const [mediaUrl, setMediaUrl] = useState("/explore/iraq/skyline.png");
+  const [mediaType, setMediaType] = useState<"image" | "video">("image");
+  const [isUploading, setIsUploading] = useState(false);
+  const [isDraggingOver, setIsDraggingOver] = useState(false);
 
   // Advanced generation parameters
   const [advancedOpen, setAdvancedOpen] = useState(false);
@@ -379,11 +383,66 @@ export default function EditPage() {
 
   const currentTool = EDIT_TOOLS.find((t) => t.id === activeTool)!;
 
+  // File Upload Handler
+  const handleFileUpload = async (file: File) => {
+    if (!file) return;
+    setIsUploading(true);
+    setSimulatedWarning(null);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch("/api/media/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to upload file");
+      }
+
+      if (data.publicUrl) {
+        setMediaUrl(data.publicUrl);
+        const isVid = file.type.startsWith("video/");
+        setMediaType(isVid ? "video" : "image");
+        setShowResult(false);
+        handleClearMask();
+      }
+    } catch (err: any) {
+      console.error("Upload error:", err);
+      setSimulatedWarning(`Upload failed: ${err.message}`);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  // Drag & Drop handlers
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDraggingOver(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDraggingOver(false);
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDraggingOver(false);
+    const file = e.dataTransfer?.files?.[0];
+    if (file) {
+      await handleFileUpload(file);
+    }
+  };
+
   // Resolve base image URL from parameters
   useEffect(() => {
     const imgUrl = searchParams.get("image") || searchParams.get("url");
     if (imgUrl) {
-      setBaseImage(imgUrl);
+      setMediaUrl(imgUrl);
+      const isVid = imgUrl.match(/\.(mp4|webm|mov|mkv|3gp|avi|ogg)/i) || searchParams.get("type") === "video";
+      setMediaType(isVid ? "video" : "image");
     }
   }, [searchParams]);
 
@@ -593,25 +652,38 @@ export default function EditPage() {
 
     try {
       let resultUrl = "";
-      const base64Image = await imgToDataUrl(baseImage);
+      
+      let finalMediaUrl = mediaUrl;
+      if (mediaUrl.startsWith("/")) {
+        if (typeof window !== "undefined") {
+          finalMediaUrl = `${window.location.origin}${mediaUrl}`;
+        }
+      }
+
+      const inputMedia = finalMediaUrl.startsWith("data:") || finalMediaUrl.startsWith("http")
+        ? finalMediaUrl
+        : await imgToDataUrl(mediaUrl);
 
       if (activeTool === "bgremove") {
         const response = await fetch("/api/generate/remove-bg", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ imageUrl: base64Image }),
+          body: JSON.stringify({ imageUrl: inputMedia }),
         });
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || "Failed to remove background");
         resultUrl = data.imageUrl;
       } else if (activeTool === "upscale") {
+        const payload = mediaType === "video"
+          ? { videoUrl: inputMedia, scale: upscaleFactor }
+          : { imageUrl: inputMedia, scale: upscaleFactor };
         const response = await fetch("/api/generate/upscale", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ imageUrl: base64Image, scale: 4 }),
+          body: JSON.stringify(payload),
         });
         const data = await response.json();
-        if (!response.ok) throw new Error(data.error || "Failed to upscale image");
+        if (!response.ok) throw new Error(data.error || "Failed to upscale");
         resultUrl = data.imageUrl || data.mediaUrl;
       } else {
         // Drawing tools (inpaint, replace, etc.)
@@ -625,7 +697,7 @@ export default function EditPage() {
           body: JSON.stringify({
             prompt,
             modelId: selectedModel.id,
-            imageUrl: base64Image,
+            imageUrl: inputMedia,
             imageUrls: [maskDataUrl],
             aspectRatio: "4:3",
           }),
@@ -636,7 +708,10 @@ export default function EditPage() {
       }
 
       if (resultUrl) {
-        setBaseImage(resultUrl);
+        setMediaUrl(resultUrl);
+        // Update type in case the resulting file format changes (e.g. video to video or image to image)
+        const isVid = resultUrl.match(/\.(mp4|webm|mov|mkv|3gp|avi|ogg)/i);
+        setMediaType(isVid ? "video" : "image");
         setShowResult(true);
         handleClearMask();
       }
@@ -654,7 +729,7 @@ export default function EditPage() {
     }
 
     setIsProcessing(false);
-  }, [isProcessing, prompt, activeTool, baseImage, selectedModel]);
+  }, [isProcessing, prompt, activeTool, mediaUrl, mediaType, selectedModel, upscaleFactor]);
 
   const handleToolSelect = (id: string) => {
     setActiveTool(id);
@@ -756,6 +831,39 @@ export default function EditPage() {
           <ToolbarBtn icon={ZoomIn} label="Zoom In" shortcut="+" onClick={() => setScale((s) => Math.min(s + 0.1, 2.5))} />
           <ToolbarBtn icon={ZoomOut} label="Zoom Out" shortcut="-" onClick={() => setScale((s) => Math.max(s - 0.1, 0.5))} />
 
+          <div className="h-5 w-px bg-white/10 mx-1.5" />
+
+          {/* Upload Button */}
+          <label className="flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all duration-150 text-xs font-semibold select-none cursor-pointer text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.05] border border-transparent">
+            <Upload className="h-4 w-4 shrink-0" />
+            <span className="hidden md:inline">Upload File</span>
+            <input
+              type="file"
+              accept="image/*,video/*"
+              className="hidden"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (file) await handleFileUpload(file);
+              }}
+            />
+          </label>
+
+          {/* Clear Media Button */}
+          {mediaUrl && (
+            <button
+              type="button"
+              onClick={() => {
+                setMediaUrl("");
+                handleClearMask();
+              }}
+              title="Remove current media"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all duration-150 text-xs font-semibold text-zinc-500 hover:text-rose-400 hover:bg-rose-950/20 border border-transparent select-none"
+            >
+              <Trash2 className="h-4 w-4 shrink-0" />
+              <span className="hidden md:inline">Clear</span>
+            </button>
+          )}
+
           <div className="flex-1" />
 
           {/* Status badge */}
@@ -795,84 +903,155 @@ export default function EditPage() {
             backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.015) 1px, transparent 1px)",
             backgroundSize: "20px 20px",
           }}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
         >
-          {/* Centered canvas wrapper card */}
-          <div
-            className="relative rounded-2xl overflow-hidden shadow-[0_20px_80px_rgba(0,0,0,0.85)] ring-1 ring-white/10 bg-zinc-950 transition-transform duration-200 select-none cursor-crosshair"
-            style={{
-              width: "700px",
-              height: "525px",
-              transform: `scale(${scale})`,
-            }}
-          >
-            {/* ── Background Image layers ── */}
-            <div className="absolute inset-0 select-none pointer-events-none">
-              <AnimatePresence mode="wait">
-                {!showResult ? (
-                  <motion.div
-                    key="backdrop-original"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0, scale: 1.02 }}
-                    transition={{ duration: 0.5 }}
-                    className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-                    style={{
-                      backgroundImage: `url('${baseImage}')`,
-                    }}
-                  >
-                    {/* Dark gradient shadow */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                    
-                    {/* Dimension Badge label */}
-                    <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md border border-white/10 rounded-lg px-2.5 py-1 flex items-center gap-1.5 shadow-lg">
-                      <div className="h-1.5 w-1.5 rounded-full bg-zinc-500" />
-                      <span className="text-[10px] text-zinc-400 font-mono truncate max-w-[180px]">
-                        {baseImage.split('/').pop()} · 2048 × 1536
-                      </span>
-                    </div>
-                  </motion.div>
-                ) : (
-                  <motion.div
-                    key="backdrop-result"
-                    initial={{ opacity: 0, scale: 1.03 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-                    className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-                    style={{
-                      backgroundImage: `url('${baseImage}')`,
-                      // Apply some CSS filters to make the edit result visually distinct!
-                      filter: currentTool.id === "relight" ? "hue-rotate(60deg) saturate(1.4)" : "hue-rotate(-45deg) brightness(1.15)",
-                    }}
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                    
-                    {/* Result Success badge */}
-                    <div className="absolute top-4 left-4 bg-emerald-950/80 backdrop-blur-md border border-emerald-500/30 rounded-lg px-2.5 py-1 flex items-center gap-1.5 shadow-lg">
-                      <Check className="h-3 w-3 text-emerald-400" />
-                      <span className="text-[10px] text-emerald-400 font-bold font-mono uppercase tracking-wider">
-                        AI EDIT APPLIED
-                      </span>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+          {isUploading && (
+            <div className="absolute inset-0 bg-[#03060d]/80 backdrop-blur-md z-30 flex flex-col items-center justify-center gap-4">
+              <div className="h-10 w-10 rounded-full border-2 border-t-cyan-500 border-r-transparent border-b-transparent border-l-transparent animate-spin" />
+              <span className="text-sm font-bold text-zinc-300">Uploading media to secure storage...</span>
             </div>
+          )}
 
-            {/* ── Interactive Drawing HTML5 Canvas ── */}
-            <canvas
-              ref={canvasRef}
-              width={700}
-              height={525}
-              onMouseDown={startDrawing}
-              onMouseMove={draw}
-              onMouseUp={stopDrawing}
-              onMouseLeave={stopDrawing}
-              style={{ cursor: cursorStyle }}
+          {!mediaUrl ? (
+            <div
               className={cn(
-                "absolute inset-0 z-10 w-full h-full opacity-70 transition-opacity duration-300",
-                showInlight ? "opacity-75" : "opacity-0 pointer-events-none"
+                "w-full max-w-lg aspect-video rounded-3xl border-2 border-dashed flex flex-col items-center justify-center p-8 text-center transition-all duration-300 backdrop-blur-xl z-20",
+                isDraggingOver
+                  ? "border-cyan-400 bg-cyan-950/20 scale-105 shadow-lg shadow-cyan-500/10"
+                  : "border-white/10 bg-white/[0.02] hover:border-white/20"
               )}
-            />
+            >
+              <label className="cursor-pointer flex flex-col items-center gap-4 group w-full h-full justify-center">
+                <input
+                  type="file"
+                  accept="image/*,video/*"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (file) await handleFileUpload(file);
+                  }}
+                />
+                <div className="h-14 w-14 rounded-2xl bg-gradient-to-tr from-cyan-500/10 to-violet-500/10 border border-cyan-500/20 flex items-center justify-center group-hover:scale-110 transition-transform shadow-inner">
+                  <Upload className="h-6 w-6 text-cyan-400" />
+                </div>
+                <div>
+                  <p className="text-sm font-extrabold text-zinc-200">
+                    Drag & drop or <span className="text-cyan-400 group-hover:underline">browse</span>
+                  </p>
+                  <p className="text-xs text-zinc-500 mt-1.5">Supports high-res Images & Videos up to 25MB</p>
+                </div>
+              </label>
+            </div>
+          ) : (
+            /* Centered canvas wrapper card */
+            <div
+              className="relative rounded-2xl overflow-hidden shadow-[0_20px_80px_rgba(0,0,0,0.85)] ring-1 ring-white/10 bg-zinc-950 transition-transform duration-200 select-none cursor-crosshair"
+              style={{
+                width: "700px",
+                height: "525px",
+                transform: `scale(${scale})`,
+              }}
+            >
+              {/* ── Background Image/Video layers ── */}
+              <div className="absolute inset-0 select-none pointer-events-none">
+                <AnimatePresence mode="wait">
+                  {!showResult ? (
+                    <motion.div
+                      key="backdrop-original"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0, scale: 1.02 }}
+                      transition={{ duration: 0.5 }}
+                      className="absolute inset-0"
+                    >
+                      {mediaType === "video" ? (
+                        <video
+                          src={mediaUrl}
+                          className="absolute inset-0 w-full h-full object-cover"
+                          autoPlay
+                          loop
+                          muted
+                          playsInline
+                        />
+                      ) : (
+                        <div
+                          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+                          style={{
+                            backgroundImage: `url('${mediaUrl}')`,
+                          }}
+                        />
+                      )}
+                      {/* Dark gradient shadow */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                      
+                      {/* Dimension Badge label */}
+                      <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md border border-white/10 rounded-lg px-2.5 py-1 flex items-center gap-1.5 shadow-lg z-20">
+                        <div className="h-1.5 w-1.5 rounded-full bg-zinc-500" />
+                        <span className="text-[10px] text-zinc-400 font-mono truncate max-w-[180px]">
+                          {mediaUrl.split('/').pop()} · {mediaType === "video" ? "Video Clip" : "2048 × 1536"}
+                        </span>
+                      </div>
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="backdrop-result"
+                      initial={{ opacity: 0, scale: 1.03 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+                      className="absolute inset-0"
+                    >
+                      {mediaType === "video" ? (
+                        <video
+                          src={mediaUrl}
+                          className="absolute inset-0 w-full h-full object-cover"
+                          autoPlay
+                          loop
+                          muted
+                          playsInline
+                          style={{
+                            filter: currentTool.id === "relight" ? "hue-rotate(60deg) saturate(1.4)" : "hue-rotate(-45deg) brightness(1.15)",
+                          }}
+                        />
+                      ) : (
+                        <div
+                          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+                          style={{
+                            backgroundImage: `url('${mediaUrl}')`,
+                            filter: currentTool.id === "relight" ? "hue-rotate(60deg) saturate(1.4)" : "hue-rotate(-45deg) brightness(1.15)",
+                          }}
+                        />
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                      
+                      {/* Result Success badge */}
+                      <div className="absolute top-4 left-4 bg-emerald-950/80 backdrop-blur-md border border-emerald-500/30 rounded-lg px-2.5 py-1 flex items-center gap-1.5 shadow-lg z-20">
+                        <Check className="h-3 w-3 text-emerald-400" />
+                        <span className="text-[10px] text-emerald-400 font-bold font-mono uppercase tracking-wider">
+                          AI EDIT APPLIED
+                        </span>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* ── Interactive Drawing HTML5 Canvas ── */}
+              <canvas
+                ref={canvasRef}
+                width={700}
+                height={525}
+                onMouseDown={startDrawing}
+                onMouseMove={draw}
+                onMouseUp={stopDrawing}
+                onMouseLeave={stopDrawing}
+                style={{ cursor: cursorStyle }}
+                className={cn(
+                  "absolute inset-0 z-10 w-full h-full opacity-70 transition-opacity duration-300",
+                  showInlight ? "opacity-75" : "opacity-0 pointer-events-none"
+                )}
+              />
 
             {/* ── Processing Scan Animation overlay ── */}
             <AnimatePresence>
@@ -927,72 +1106,75 @@ export default function EditPage() {
               )}
             </AnimatePresence>
           </div>
-        </div>
+        )}
+      </div>
 
         {/* ── Floating Prompt Input Bar ── */}
-        <div className="absolute bottom-0 inset-x-0 p-6 pointer-events-none z-10 flex justify-center">
-          <motion.div
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            className="pointer-events-auto w-full max-w-2xl"
-          >
-            <div className="bg-[#050914]/85 backdrop-blur-2xl border border-white/10 rounded-2xl p-2.5 flex items-center gap-3 shadow-[0_12px_45px_rgba(0,0,0,0.85)]">
-              {/* Tool Indicator circle */}
-              <div
-                className="h-9 w-9 rounded-xl flex items-center justify-center shrink-0 border"
-                style={{
-                  backgroundColor: `${currentTool.hex}15`,
-                  borderColor: `${currentTool.hex}30`,
-                }}
-              >
-                <currentTool.icon className="h-4 w-4" style={{ color: currentTool.hex }} />
+        {mediaUrl && (
+          <div className="absolute bottom-0 inset-x-0 p-6 pointer-events-none z-10 flex justify-center">
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              className="pointer-events-auto w-full max-w-2xl"
+            >
+              <div className="bg-[#050914]/85 backdrop-blur-2xl border border-white/10 rounded-2xl p-2.5 flex items-center gap-3 shadow-[0_12px_45px_rgba(0,0,0,0.85)]">
+                {/* Tool Indicator circle */}
+                <div
+                  className="h-9 w-9 rounded-xl flex items-center justify-center shrink-0 border"
+                  style={{
+                    backgroundColor: `${currentTool.hex}15`,
+                    borderColor: `${currentTool.hex}30`,
+                  }}
+                >
+                  <currentTool.icon className="h-4 w-4" style={{ color: currentTool.hex }} />
+                </div>
+
+                {/* Input text prompt */}
+                <input
+                  type="text"
+                  placeholder={
+                    activeTool === "bgremove"
+                      ? "Background removal doesn't require a prompt. Click Apply!"
+                      : activeTool === "upscale"
+                      ? "AI Upscale doesn't require a prompt. Click Apply!"
+                      : "Describe what to add, replace, or alter in the drawn region..."
+                  }
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") handleApply(); }}
+                  disabled={isProcessing || ["bgremove", "upscale"].includes(activeTool)}
+                  className="flex-1 bg-transparent border-none text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:ring-0 disabled:opacity-50"
+                />
+
+                {/* Apply trigger button */}
+                <button
+                  type="button"
+                  onClick={handleApply}
+                  disabled={isProcessing || (!["bgremove", "upscale"].includes(activeTool) && !prompt.trim())}
+                  className={cn(
+                    "flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-300 transform active:scale-95 shrink-0 select-none shadow-md",
+                    isProcessing || (!["bgremove", "upscale"].includes(activeTool) && !prompt.trim())
+                      ? "bg-zinc-800 text-zinc-500 cursor-not-allowed border border-transparent"
+                      : "bg-gradient-to-r from-cyan-500 to-violet-500 hover:from-cyan-400 hover:to-violet-400 text-black font-extrabold"
+                  )}
+                >
+                  {isProcessing ? (
+                    <>
+                      <Sparkles className="h-3.5 w-3.5 animate-spin" />
+                      <span>Working</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Apply</span>
+                      <Star className="h-3.5 w-3.5 fill-black text-black" />
+                      <span className="font-mono">5</span>
+                    </>
+                  )}
+                </button>
               </div>
-
-              {/* Input text prompt */}
-              <input
-                type="text"
-                placeholder={
-                  activeTool === "bgremove"
-                    ? "Background removal doesn't require a prompt. Click Apply!"
-                    : activeTool === "upscale"
-                    ? "AI Upscale doesn't require a prompt. Click Apply!"
-                    : "Describe what to add, replace, or alter in the drawn region..."
-                }
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter") handleApply(); }}
-                disabled={isProcessing || ["bgremove", "upscale"].includes(activeTool)}
-                className="flex-1 bg-transparent border-none text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:ring-0 disabled:opacity-50"
-              />
-
-              {/* Apply trigger button */}
-              <button
-                type="button"
-                onClick={handleApply}
-                disabled={isProcessing || (!["bgremove", "upscale"].includes(activeTool) && !prompt.trim())}
-                className={cn(
-                  "flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-300 transform active:scale-95 shrink-0 select-none shadow-md",
-                  isProcessing || (!["bgremove", "upscale"].includes(activeTool) && !prompt.trim())
-                    ? "bg-zinc-800 text-zinc-500 cursor-not-allowed border border-transparent"
-                    : "bg-gradient-to-r from-cyan-500 to-violet-500 hover:from-cyan-400 hover:to-violet-400 text-black font-extrabold"
-                )}
-              >
-                {isProcessing ? (
-                  <>
-                    <Sparkles className="h-3.5 w-3.5 animate-spin" />
-                    <span>Working</span>
-                  </>
-                ) : (
-                  <>
-                    <span>Apply</span>
-                    <Star className="h-3.5 w-3.5 fill-black text-black" />
-                    <span className="font-mono">5</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </motion.div>
-        </div>
+            </motion.div>
+          </div>
+        )}
 
       </main>
 
