@@ -14,6 +14,8 @@ export interface DockOption {
   label: string;
   options: Option[];
   value: string;
+  getOptions?: (state: DockState) => Option[];
+  hidden?: (state: DockState) => boolean;
   onPick?: () => Promise<string | null> | string | null;
 }
 
@@ -82,6 +84,7 @@ export function PromptDock(cfg: DockConfig): PromptDockHandle {
   ) as HTMLButtonElement;
   const submitLabel = submitBtn.querySelector("span") as HTMLSpanElement;
   const optionButtons: HTMLButtonElement[] = [];
+  const optionEntries: Array<{ opt: DockOption; pill: HTMLButtonElement }> = [];
   const statusText = el("span", null, "Generating…");
   const statusLine = el("div.prompt-dock__status", {
     style: { display: "none" },
@@ -97,6 +100,26 @@ export function PromptDock(cfg: DockConfig): PromptDockHandle {
   }
 
   const optionRow = el("div.row.gap-2", { style: { overflowX: "auto", paddingBottom: "2px" } });
+
+  const resolveOptions = (opt: DockOption): Option[] => {
+    const dynamic = opt.getOptions?.(state);
+    return dynamic?.length ? dynamic : opt.options;
+  };
+
+  const refreshOptionPills = () => {
+    for (const entry of optionEntries) {
+      const options = resolveOptions(entry.opt);
+      if (options.length && !options.some((item) => item.value === state.options[entry.opt.key])) {
+        state.options[entry.opt.key] = options[0].value;
+      }
+      const hidden = Boolean(entry.opt.hidden?.(state)) || options.length <= 1;
+      entry.pill.style.display = hidden ? "none" : "";
+      entry.pill.replaceChildren(
+        document.createTextNode(labelFor(entry.opt, state.options[entry.opt.key], options)),
+        icon("chevron-down", 12),
+      );
+    }
+  };
 
   if (cfg.showAttach && fileInput) {
     const attachButton = el("button.dock-button.dock-button--icon",
@@ -114,24 +137,27 @@ export function PromptDock(cfg: DockConfig): PromptDockHandle {
   for (const opt of cfg.options) {
     const pill = el("button.dock-button", {
       onClick: async () => {
+        const options = resolveOptions(opt);
+        if (!options.length) return;
         const next = opt.onPick
           ? await opt.onPick()
-          : await openModelPicker({ title: opt.label, options: opt.options });
+          : await openModelPicker({ title: opt.label, options });
         if (next != null) {
           state.options[opt.key] = next;
-          const found = opt.options.find((o) => o.value === next);
-          pill.replaceChildren(document.createTextNode(found?.label ?? next), icon("chevron-down", 12));
+          refreshOptionPills();
         }
       },
     },
-      labelFor(opt, state.options[opt.key]),
+      labelFor(opt, state.options[opt.key], resolveOptions(opt)),
       icon("chevron-down", 12),
     ) as HTMLButtonElement;
     optionButtons.push(pill);
+    optionEntries.push({ opt, pill });
     optionRow.appendChild(pill);
   }
 
   optionRow.appendChild(submitBtn);
+  refreshOptionPills();
 
   const root = el("div.prompt-dock", null, textarea, statusLine, optionRow) as PromptDockHandle;
   root.setBusy = (nextBusy: boolean, message?: string) => {
@@ -149,8 +175,8 @@ export function PromptDock(cfg: DockConfig): PromptDockHandle {
   return root;
 }
 
-function labelFor(opt: DockOption, value: string): string {
-  const found = opt.options.find((o) => o.value === value);
+function labelFor(opt: DockOption, value: string, options?: Option[]): string {
+  const found = (options ?? opt.options).find((o) => o.value === value);
   return found?.label ?? value ?? opt.label;
 }
 

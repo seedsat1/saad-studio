@@ -47,6 +47,7 @@ type VideoModelSpec = {
   durations: number[];
   qualities: string[];
   maxAttachments: number;
+  supportsMode: boolean;
 };
 
 const MODEL_SPECS: Record<string, VideoModelSpec> = {
@@ -55,29 +56,44 @@ const MODEL_SPECS: Record<string, VideoModelSpec> = {
     durations: [5, 10],
     qualities: ["720p", "1080p", "4k"],
     maxAttachments: 1,
+    supportsMode: true,
   },
   "bytedance/seedance-2": {
     aspects: ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9", "adaptive"],
     durations: [4, 5, 6, 8, 10, 12, 15],
     qualities: ["480p", "720p", "1080p"],
     maxAttachments: 1,
+    supportsMode: false,
   },
   [VEO_FAST_MODEL]: {
     aspects: ["16:9", "9:16"],
     durations: [4, 6, 8],
     qualities: ["720p", "1080p", "4k"],
-    maxAttachments: 3,
+    maxAttachments: 1,
+    supportsMode: false,
   },
   [CINEMATIC_MODEL]: {
     aspects: ["16:9", "9:16", "4:3", "3:4"],
     durations: [5, 10, 15],
     qualities: ["720p"],
     maxAttachments: 4,
+    supportsMode: false,
   },
 };
 
 function pickAllowed<T extends string | number>(value: T, allowed: T[], fallback: T): T {
   return allowed.includes(value) ? value : fallback;
+}
+
+function specFor(model: string): VideoModelSpec {
+  return MODEL_SPECS[model] ?? MODEL_SPECS["bytedance/seedance-2"];
+}
+
+function optionsFromValues(values: string[] | number[]): Array<{ value: string; label: string }> {
+  return values.map((value) => {
+    const text = String(value);
+    return { value: text, label: typeof value === "number" ? `${text}s` : text };
+  });
 }
 
 export function VideoGenPage(): HTMLElement {
@@ -89,10 +105,35 @@ export function VideoGenPage(): HTMLElement {
       showAttach: true,
       options: [
         { key: "model", label: "Model", value: "bytedance/seedance-2", options: MODELS },
-        { key: "aspect", label: "Aspect", value: "16:9", options: ASPECTS },
-        { key: "duration", label: "Duration", value: "5", options: DURATIONS },
-        { key: "quality", label: "Quality", value: "720p", options: QUALITIES },
-        { key: "mode", label: "Mode", value: "std", options: MODES },
+        {
+          key: "aspect",
+          label: "Aspect",
+          value: "16:9",
+          options: ASPECTS,
+          getOptions: (state) => optionsFromValues(specFor(state.options.model ?? "bytedance/seedance-2").aspects),
+        },
+        {
+          key: "duration",
+          label: "Duration",
+          value: "5",
+          options: DURATIONS,
+          getOptions: (state) => optionsFromValues(specFor(state.options.model ?? "bytedance/seedance-2").durations),
+        },
+        {
+          key: "quality",
+          label: "Quality",
+          value: "720p",
+          options: QUALITIES,
+          getOptions: (state) => optionsFromValues(specFor(state.options.model ?? "bytedance/seedance-2").qualities),
+        },
+        {
+          key: "mode",
+          label: "Mode",
+          value: "std",
+          options: MODES,
+          hidden: (state) => !specFor(state.options.model ?? "bytedance/seedance-2").supportsMode,
+          getOptions: (state) => specFor(state.options.model ?? "bytedance/seedance-2").supportsMode ? MODES : [],
+        },
       ],
     },
     submit: async ({ prompt, attachments, options }) => {
@@ -101,7 +142,7 @@ export function VideoGenPage(): HTMLElement {
       }
 
       const model = options.model;
-      const spec = MODEL_SPECS[model] ?? MODEL_SPECS["bytedance/seedance-2"];
+      const spec = specFor(model);
       const aspect = pickAllowed(options.aspect, spec.aspects, spec.aspects[0]);
       const duration = pickAllowed(
         Math.max(1, Number.parseInt(options.duration || String(spec.durations[0]), 10) || spec.durations[0]),
@@ -130,8 +171,9 @@ export function VideoGenPage(): HTMLElement {
           ? await api.uploadFileToR2(attachments[0], "image")
           : undefined;
 
-      let mode = options.mode;
+      let mode: string | undefined = undefined;
       if (model === "kling-3.0/video") {
+        mode = options.mode;
         if (quality === "4k") mode = "4K";
         else if (quality === "1080p" && mode !== "4K") mode = "pro";
         else if (quality === "720p" && mode !== "pro" && mode !== "4K") mode = "std";
@@ -143,7 +185,7 @@ export function VideoGenPage(): HTMLElement {
         aspect,
         durationSec: duration,
         quality,
-        mode,
+        ...(mode ? { mode } : {}),
         ...(imageUrls.length ? { imageUrls } : {}),
         ...(imageUrl ? { imageUrl } : {}),
       });

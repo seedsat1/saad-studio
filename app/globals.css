@@ -477,3 +477,23 @@ html.saad-light select option {
   max-height: 100vh;
   box-sizing: border-box;
 }
+
+/* Block video downloader browser extension overlay buttons */
+div[id^="vdp-"],
+div[class*="vdp-"],
+div[id*="vdp-"],
+div[class*="video-downloader-"],
+div[class*="downloader-"],
+div[class*="download-helper"],
+.fvd-download-button,
+#idm-integration-overlay,
+div[class*="idm_download"],
+div[id*="idm_download"],
+div[class*="idm-"],
+div[id*="idm-"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+

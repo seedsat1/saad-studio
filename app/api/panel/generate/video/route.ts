@@ -318,6 +318,11 @@ export async function POST(req: NextRequest) {
           ? mode.trim()
           : (resolution === "4K" ? "4K" : (resolution === "720p" ? "std" : "pro"));
         input.mode = klingMode;
+        // The plugin page uses Kling 3 as normal text-to-video or reference-to-video.
+        // Explicitly disable multi-shot so KIE does not expect a multi_shots payload.
+        input.multi_shots = false;
+        input.multi_prompt = [];
+        input.sound = false;
       }
 
       // Seedance: generate_audio defaults to TRUE (extra cost) — always disable unless explicitly set

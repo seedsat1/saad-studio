@@ -123,7 +123,7 @@ const AUTOSAVE_INTERVAL = 4000;
 const POLL_INTERVAL = 3500;
 
 const ASPECT_RATIOS = ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9"];
-const DURATIONS = [3, 4, 5, 6, 7, 8, 10];
+const DURATIONS = [3, 5];
 const RESOLUTIONS = ["720p", "1080p", "1440p", "4K"];
 const FPS_OPTIONS = [24, 30, 60];
 
@@ -244,6 +244,61 @@ function formatRelativeTime(isoStr: string): string {
   if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m ago`;
   if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}h ago`;
   return `${Math.floor(diff / 86_400_000)}d ago`;
+}
+
+function getClosestAspectRatio(width: number, height: number): string {
+  const ratio = width / height;
+  const options = [
+    { label: "16:9", val: 16 / 9 },
+    { label: "9:16", val: 9 / 16 },
+    { label: "1:1", val: 1.0 },
+    { label: "4:3", val: 4 / 3 },
+    { label: "3:4", val: 3 / 4 },
+    { label: "21:9", val: 21 / 9 },
+  ];
+  let closest = options[0];
+  let minDiff = Math.abs(ratio - closest.val);
+  for (let i = 1; i < options.length; i++) {
+    const diff = Math.abs(ratio - options[i].val);
+    if (diff < minDiff) {
+      minDiff = diff;
+      closest = options[i];
+    }
+  }
+  return closest.label;
+}
+
+function getMediaDimensions(file: File, type: "image" | "video"): Promise<{ width: number; height: number }> {
+  return new Promise((resolve) => {
+    if (type === "video") {
+      const video = document.createElement("video");
+      video.preload = "metadata";
+      video.muted = true;
+      video.playsInline = true;
+      const url = URL.createObjectURL(file);
+      video.src = url;
+      video.onloadedmetadata = () => {
+        URL.revokeObjectURL(url);
+        resolve({ width: video.videoWidth || 1920, height: video.videoHeight || 1080 });
+      };
+      video.onerror = () => {
+        URL.revokeObjectURL(url);
+        resolve({ width: 1920, height: 1080 });
+      };
+    } else {
+      const img = document.createElement("img");
+      const url = URL.createObjectURL(file);
+      img.src = url;
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        resolve({ width: img.naturalWidth || 1920, height: img.naturalHeight || 1080 });
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        resolve({ width: 1920, height: 1080 });
+      };
+    }
+  });
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -514,7 +569,7 @@ function InputSlot({
     return (
       <div className="relative rounded-xl overflow-hidden" style={{ aspectRatio: "4/3" }}>
         {isVideo ? (
-          <video src={mediaUrl} className="w-full h-full object-cover" muted loop autoPlay playsInline />
+          <video src={mediaUrl} className="w-full h-full object-cover pointer-events-none" muted loop autoPlay playsInline />
         ) : (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={mediaUrl} alt={label} className="w-full h-full object-cover" />
@@ -677,7 +732,7 @@ function PresetCard({
                 const el = e.currentTarget;
                 try { void el.play(); } catch {}
               }}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover pointer-events-none"
             />
           ) : (
             // eslint-disable-next-line @next/next/no-img-element
@@ -772,7 +827,7 @@ function OutputCard({
       transition={{ type: "spring", stiffness: 400, damping: 30 }}
     >
       <div className="relative overflow-hidden" style={{ aspectRatio: "16/9" }}>
-        <video ref={videoRef} src={output.url} muted loop playsInline className="w-full h-full object-cover" />
+        <video ref={videoRef} src={output.url} muted loop playsInline className="w-full h-full object-cover pointer-events-none" />
         <AnimatePresence>
           {hovered && (
             <motion.div
@@ -1121,6 +1176,10 @@ export default function TransitionsStudioPage() {
       if (type === "video") {
         await validateVideoDuration(file, 3, 15);
       }
+      const dims = await getMediaDimensions(file, type);
+      const closestAr = getClosestAspectRatio(dims.width, dims.height);
+      setAspectRatio(closestAr);
+
       const previewUrl = URL.createObjectURL(file);
       const uploadedUrl = await uploadTransitionAsset(file, type);
       setInputAType(type);
@@ -1154,6 +1213,10 @@ export default function TransitionsStudioPage() {
       if (type === "video") {
         await validateVideoDuration(file, 3, 15);
       }
+      const dims = await getMediaDimensions(file, type);
+      const closestAr = getClosestAspectRatio(dims.width, dims.height);
+      setAspectRatio(closestAr);
+
       const previewUrl = URL.createObjectURL(file);
       const uploadedUrl = await uploadTransitionAsset(file, type);
       setInputBType(type);
@@ -1324,12 +1387,28 @@ export default function TransitionsStudioPage() {
     }
   };
 
-  const handleDownload = (output: TransitionOutput) => {
-    const a = document.createElement("a");
-    a.href = output.url;
-    a.download = `saad-transition-${output.presetId}.mp4`;
-    a.target = "_blank";
-    a.click();
+  const handleDownload = async (output: TransitionOutput) => {
+    try {
+      const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(output.url)}`;
+      const response = await fetch(proxyUrl);
+      if (!response.ok) throw new Error("Proxy download failed");
+      const blob = await response.blob();
+      const localUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = localUrl;
+      a.download = `saad-transition-${output.presetId}.mp4`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(localUrl);
+    } catch (error) {
+      console.error("Direct download failed, falling back to new tab", error);
+      const a = document.createElement("a");
+      a.href = output.url;
+      a.download = `saad-transition-${output.presetId}.mp4`;
+      a.target = "_blank";
+      a.click();
+    }
   };
 
   // ── Filtered presets ───────────────────────────────────────────────────────
@@ -1408,16 +1487,10 @@ export default function TransitionsStudioPage() {
 
         <StatusBadge status={genStatus} />
 
-        {/* Aspect ratio picker */}
-        <CompactSelect
-          value={aspectRatio}
-          options={ASPECT_RATIOS}
-          onChange={(ar) => {
-            setAspectRatio(ar);
-            markDirty();
-          }}
-          minWidth={70}
-        />
+        {/* Automatic aspect ratio label */}
+        <div className="flex items-center gap-1.5 px-2 py-1 rounded text-[10px] font-semibold text-slate-500 bg-white/[0.02] border border-white/[0.06] select-none">
+          Ratio: <span className="text-violet-400">{aspectRatio}</span>
+        </div>
 
         {/* Duration picker */}
         <CompactSelect
@@ -1560,7 +1633,7 @@ export default function TransitionsStudioPage() {
                       whileHover={{ y: -1 }}
                     >
                       <div className="relative overflow-hidden" style={{ aspectRatio: "16/9" }}>
-                        <video src={output.url} muted loop playsInline className="w-full h-full object-cover" />
+                        <video src={output.url} muted loop playsInline className="w-full h-full object-cover pointer-events-none" />
                       </div>
                       <div className="p-1.5">
                         <p className="text-[9px] font-semibold text-slate-300 truncate">{output.presetName}</p>
@@ -1689,7 +1762,7 @@ export default function TransitionsStudioPage() {
                   >
                     {inputAUrl ? (
                       inputAType === "video"
-                        ? <video src={inputAUrl} muted loop autoPlay playsInline className="w-full h-full object-cover" />
+                        ? <video src={inputAUrl} muted loop autoPlay playsInline className="w-full h-full object-cover pointer-events-none" />
                         : <img src={inputAUrl} alt="A" className="w-full h-full object-cover" />
                     ) : (
                       <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
@@ -1729,7 +1802,7 @@ export default function TransitionsStudioPage() {
                   >
                     {inputBUrl ? (
                       inputBType === "video"
-                        ? <video src={inputBUrl} muted loop autoPlay playsInline className="w-full h-full object-cover" />
+                        ? <video src={inputBUrl} muted loop autoPlay playsInline className="w-full h-full object-cover pointer-events-none" />
                         : <img src={inputBUrl} alt="B" className="w-full h-full object-cover" />
                     ) : (
                       <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
@@ -1747,131 +1820,74 @@ export default function TransitionsStudioPage() {
 
         {/* ── RIGHT PANEL ─────────────────────────────────────────────────── */}
         <div className="w-[310px] shrink-0 flex flex-col overflow-hidden" style={{ borderLeft: "1px solid rgba(255,255,255,0.05)" }}>
-          <div className="flex" style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
-            {(["presets", "controls"] as const).map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setRightTab(tab)}
-                className={cn(
-                  "flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[9px] font-bold uppercase tracking-widest transition-colors",
-                  rightTab === tab ? "text-violet-400" : "text-slate-600 hover:text-slate-400"
-                )}
-                style={rightTab === tab ? { borderBottom: "2px solid #7c3aed" } : {}}
-              >
-                {tab === "presets" ? <Film className="h-3 w-3" /> : <Sliders className="h-3 w-3" />}
-                {tab}
-              </button>
-            ))}
+          {/* Presets header */}
+          <div className="flex items-center justify-between px-4 py-3 shrink-0" style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-violet-400">Presets</span>
+            <span className="text-[10px] text-slate-600 font-semibold">{presets.length} total</span>
           </div>
 
-          <AnimatePresence mode="wait">
-            {rightTab === "presets" ? (
-              <motion.div key="presets-panel" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex-1 flex flex-col overflow-hidden">
-                {/* Category pills */}
-                <div className="px-3 py-2.5" style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
-                  <div className="flex flex-wrap gap-1.5">
-                    <button
-                      onClick={() => setActiveCategory("all")}
-                      className={cn("px-3 py-1 rounded-lg text-[10px] font-bold whitespace-nowrap transition-all", activeCategory === "all" ? "bg-violet-700/70 text-violet-100 border border-violet-500/50" : "text-slate-500 hover:text-slate-300 border border-white/[0.06] hover:border-white/[0.12]")}
-                    >
-                      All ({presets.length})
-                    </button>
-                    {CATEGORY_ORDER.map((cat) => {
-                      const count = presets.filter((p) => p.category === cat).length;
-                      if (!count) return null;
-                      return (
-                        <button
-                          key={cat}
-                          onClick={() => setActiveCategory(cat)}
-                          className={cn("px-3 py-1 rounded-lg text-[10px] font-bold whitespace-nowrap transition-all", activeCategory === cat ? "bg-violet-700/70 text-violet-100 border border-violet-500/50" : "text-slate-500 hover:text-slate-300 border border-white/[0.06] hover:border-white/[0.12]")}
-                        >
-                          {CATEGORY_LABELS[cat]?.split(" / ")[0] ?? cat}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Grid */}
-                <div className="flex-1 overflow-y-auto p-2.5 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-slate-800">
-                  {presetsLoading ? (
-                    <div className="flex items-center justify-center py-10">
-                      <Loader2 className="h-5 w-5 text-slate-600 animate-spin" />
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-2 gap-2">
-                      {filteredPresets.map((preset) => (
-                        <PresetCard
-                          key={preset.id}
-                          preset={preset}
-                          selected={selectedPresetId === preset.id}
-                          creditEstimate={Math.ceil((controls.resolution === "720p" ? 15.0 : 22.0) * duration * preset.costMultiplier)}
-                          onClick={() => { setSelectedPresetId(preset.id); markDirty(); }}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Selected info */}
-                {selectedPreset && (
-                  <div className="px-3 py-2.5 shrink-0" style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <p className="text-[10px] font-bold text-violet-300 truncate">{selectedPreset.name}</p>
-                        <p className="text-[8px] text-slate-600 mt-0.5 leading-relaxed line-clamp-2">{selectedPreset.motionProfile}</p>
-                      </div>
-                      <div className="shrink-0 px-1.5 py-0.5 rounded text-[8px] font-bold text-violet-300 flex items-center gap-0.5" style={{ background: "rgba(124,58,237,0.15)", border: "1px solid rgba(124,58,237,0.25)" }}>
-                        <Zap className="h-2 w-2" />{creditEstimate}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </motion.div>
-            ) : (
-              <motion.div key="controls-panel" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex-1 overflow-y-auto p-3 space-y-5 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-slate-800">
-                {/* Motion */}
-                <div className="space-y-3">
-                  <p className="text-[9px] font-bold uppercase tracking-widest text-slate-600 flex items-center gap-1.5">
-                    <Sliders className="h-3 w-3" />Motion
-                  </p>
-                  <RangeSlider label="Intensity" value={controls.intensity} onChange={(v) => { setControls((c) => ({ ...c, intensity: v })); markDirty(); }} />
-                  <RangeSlider label="Smoothness" value={controls.smoothness} onChange={(v) => { setControls((c) => ({ ...c, smoothness: v })); markDirty(); }} />
-                  <RangeSlider label="Cinematic Strength" value={controls.cinematicStr} onChange={(v) => { setControls((c) => ({ ...c, cinematicStr: v })); markDirty(); }} />
-                </div>
-
-                {/* Framing */}
-                <div className="space-y-3">
-                  <p className="text-[9px] font-bold uppercase tracking-widest text-slate-600 flex items-center gap-1.5">
-                    <Settings2 className="h-3 w-3" />Framing
-                  </p>
-                  <ToggleSwitch label="Preserve Framing" description="Lock original composition" checked={controls.preserveFraming} onChange={(v) => { setControls((c) => ({ ...c, preserveFraming: v })); markDirty(); }} />
-                  <ToggleSwitch label="Subject Focus" description="Keep subject sharp throughout" checked={controls.subjectFocus} onChange={(v) => { setControls((c) => ({ ...c, subjectFocus: v })); markDirty(); }} />
-                </div>
-
-                {/* Quality */}
-                <div className="space-y-3">
-                  <p className="text-[9px] font-bold uppercase tracking-widest text-slate-600 flex items-center gap-1.5">
-                    <Sparkles className="h-3 w-3" />Quality
-                  </p>
-                  <ChipSelect label="Resolution" options={RESOLUTIONS} value={controls.resolution} onChange={(v) => { setControls((c) => ({ ...c, resolution: v })); markDirty(); }} />
-                  <ChipSelect label="FPS" options={FPS_OPTIONS.map(String)} value={String(controls.fps)} onChange={(v) => { setControls((c) => ({ ...c, fps: Number(v) })); markDirty(); }} />
-                  <ToggleSwitch label="Enhancement" description="AI quality enhancement pass" checked={controls.enhance} onChange={(v) => { setControls((c) => ({ ...c, enhance: v })); markDirty(); }} />
-                </div>
-
+          <div className="flex-1 flex flex-col overflow-hidden">
+            {/* Category pills */}
+            <div className="px-3 py-2.5" style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+              <div className="flex flex-wrap gap-1.5">
                 <button
-                  onClick={() => {
-                    setControls({ intensity: 50, smoothness: 60, cinematicStr: 65, preserveFraming: true, subjectFocus: true, resolution: "1080p", fps: 24, enhance: true });
-                    markDirty();
-                  }}
-                  className="flex w-full items-center justify-center gap-1.5 py-1.5 rounded-lg text-[10px] font-semibold text-slate-600 hover:text-slate-300 transition-colors"
-                  style={{ border: "1px solid rgba(255,255,255,0.05)" }}
+                  onClick={() => setActiveCategory("all")}
+                  className={cn("px-3 py-1 rounded-lg text-[10px] font-bold whitespace-nowrap transition-all", activeCategory === "all" ? "bg-violet-700/70 text-violet-100 border border-violet-500/50" : "text-slate-500 hover:text-slate-300 border border-white/[0.06] hover:border-white/[0.12]")}
                 >
-                  <RotateCcw className="h-3 w-3" />Reset to Defaults
+                  All ({presets.length})
                 </button>
-              </motion.div>
+                {CATEGORY_ORDER.map((cat) => {
+                  const count = presets.filter((p) => p.category === cat).length;
+                  if (!count) return null;
+                  return (
+                    <button
+                      key={cat}
+                      onClick={() => setActiveCategory(cat)}
+                      className={cn("px-3 py-1 rounded-lg text-[10px] font-bold whitespace-nowrap transition-all", activeCategory === cat ? "bg-violet-700/70 text-violet-100 border border-violet-500/50" : "text-slate-500 hover:text-slate-300 border border-white/[0.06] hover:border-white/[0.12]")}
+                    >
+                      {CATEGORY_LABELS[cat]?.split(" / ")[0] ?? cat}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Grid */}
+            <div className="flex-1 overflow-y-auto p-2.5 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-slate-800">
+              {presetsLoading ? (
+                <div className="flex items-center justify-center py-10">
+                  <Loader2 className="h-5 w-5 text-slate-600 animate-spin" />
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-2">
+                  {filteredPresets.map((preset) => (
+                    <PresetCard
+                      key={preset.id}
+                      preset={preset}
+                      selected={selectedPresetId === preset.id}
+                      creditEstimate={Math.ceil((controls.resolution === "720p" ? 15.0 : 22.0) * duration * preset.costMultiplier)}
+                      onClick={() => { setSelectedPresetId(preset.id); markDirty(); }}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Selected info */}
+            {selectedPreset && (
+              <div className="px-3 py-2.5 shrink-0" style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-bold text-violet-300 truncate">{selectedPreset.name}</p>
+                    <p className="text-[8px] text-slate-600 mt-0.5 leading-relaxed line-clamp-2">{selectedPreset.motionProfile}</p>
+                  </div>
+                  <div className="shrink-0 px-1.5 py-0.5 rounded text-[8px] font-bold text-violet-300 flex items-center gap-0.5" style={{ background: "rgba(124,58,237,0.15)", border: "1px solid rgba(124,58,237,0.25)" }}>
+                    <Zap className="h-2 w-2" />{creditEstimate}
+                  </div>
+                </div>
+              </div>
             )}
-          </AnimatePresence>
+          </div>
         </div>
       </div>
 

@@ -25,6 +25,8 @@ type InputState = {
   selectionKey: string | null;
   kind: InputKind | null;
   previewUrl: string | null;
+  previewWidth: number | null;
+  previewHeight: number | null;
   cacheKey: string | null;
   preparedUrl: string | null;
 };
@@ -38,15 +40,20 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 const ASPECTS = ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9"];
-const DURATIONS = ["3", "4", "5", "6", "7", "8", "10"];
-const RESOLUTIONS = ["720p", "1080p", "1440p", "4K"];
-const FPS_OPTIONS = ["24", "30", "60"];
+const DURATIONS = ["3", "5"];
+const RESOLUTIONS = ["720p"];
+const FPS_OPTIONS = ["24"];
 const STORAGE_KEY = "saadstudio.transitions.projectId";
 const AUTOSAVE_DELAY_MS = 1600;
+const FIXED_TRANSITION_RESOLUTION = "720p";
+const FIXED_TRANSITION_FPS = 24;
+const DEFAULT_INTENSITY = 50;
+const DEFAULT_SMOOTHNESS = 60;
+const DEFAULT_CINEMATIC = 65;
 
 export function TransitionsPage(): HTMLElement {
-  const inputA: InputState = { file: null, localPath: null, remoteUrl: null, displayName: null, selectionKey: null, kind: null, previewUrl: null, cacheKey: null, preparedUrl: null };
-  const inputB: InputState = { file: null, localPath: null, remoteUrl: null, displayName: null, selectionKey: null, kind: null, previewUrl: null, cacheKey: null, preparedUrl: null };
+  const inputA: InputState = { file: null, localPath: null, remoteUrl: null, displayName: null, selectionKey: null, kind: null, previewUrl: null, previewWidth: null, previewHeight: null, cacheKey: null, preparedUrl: null };
+  const inputB: InputState = { file: null, localPath: null, remoteUrl: null, displayName: null, selectionKey: null, kind: null, previewUrl: null, previewWidth: null, previewHeight: null, cacheKey: null, preparedUrl: null };
 
   let busy = false;
   let presets: TransitionPresetItem[] = [];
@@ -58,7 +65,7 @@ export function TransitionsPage(): HTMLElement {
 
   const aspectSelect = selectField(ASPECTS, "16:9");
   const durationSelect = selectField(DURATIONS, "5");
-  const resolutionSelect = selectField(RESOLUTIONS, "1080p");
+  const resolutionSelect = selectField(RESOLUTIONS, FIXED_TRANSITION_RESOLUTION);
   const fpsSelect = selectField(FPS_OPTIONS, "24");
 
   const intensityInput = sliderField("50");
@@ -108,23 +115,15 @@ export function TransitionsPage(): HTMLElement {
           el("div", {
             style: {
               display: "grid",
-              gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+              gridTemplateColumns: "minmax(0, 1fr)",
               gap: "12px",
             },
           },
             settingsCard("Format",
-              labelRow("Aspect ratio", aspectSelect),
               labelRow("Duration", durationSelect),
-              labelRow("Resolution", resolutionSelect),
-              labelRow("FPS", fpsSelect),
-            ),
-            settingsCard("Motion Controls",
-              sliderRow("Intensity", intensityInput),
-              sliderRow("Smoothness", smoothnessInput),
-              sliderRow("Cinematic", cinematicInput),
-              toggleRow("Preserve framing", preserveToggle),
-              toggleRow("Subject focus", subjectToggle),
-              toggleRow("Enhancement", enhanceToggle),
+              el("div.state-card__subtitle", { style: { textAlign: "left", width: "100%" } },
+                "Aspect ratio works automatically from the selected media. Resolution stays 720p automatically.",
+              ),
             ),
           ),
         ),
@@ -153,23 +152,13 @@ export function TransitionsPage(): HTMLElement {
   renderInputCard(inputBHost, "End", "last", inputB);
   renderCategories();
   renderPresets();
+  syncAutomaticSettings();
   updateCreditHint();
   updateGenerateState();
   durationSelect.addEventListener("change", () => {
+    syncAutomaticSettings();
     updateCreditHint();
     queueProjectAutosave();
-  });
-  resolutionSelect.addEventListener("change", () => {
-    updateCreditHint();
-    queueProjectAutosave();
-  });
-  aspectSelect.addEventListener("change", queueProjectAutosave);
-  fpsSelect.addEventListener("change", queueProjectAutosave);
-  [intensityInput, smoothnessInput, cinematicInput].forEach((input) => {
-    input.addEventListener("input", queueProjectAutosave);
-  });
-  [preserveToggle, subjectToggle, enhanceToggle].forEach((input) => {
-    input.addEventListener("change", queueProjectAutosave);
   });
   const watcher = watchTimelineSelection((clip) => {
     if (clip?.path) {
@@ -211,6 +200,7 @@ export function TransitionsPage(): HTMLElement {
                 onClick: () => {
                   clearInputState(state);
                   updateInputPreview(previewHost, helper, state, framePosition);
+                  syncAutomaticSettings();
                   updateGenerateState();
                   updateCreditHint();
                   queueProjectAutosave();
@@ -438,16 +428,16 @@ export function TransitionsPage(): HTMLElement {
         presetId: preset.id,
         inputAUrl,
         inputBUrl,
-        aspectRatio: aspectSelect.value,
+        aspectRatio: getAutomaticAspectRatio(),
         duration: Number(durationSelect.value),
-        intensity: Number(intensityInput.value),
-        smoothness: Number(smoothnessInput.value),
-        cinematicStr: Number(cinematicInput.value),
-        preserveFraming: preserveToggle.checked,
-        subjectFocus: subjectToggle.checked,
-        resolution: resolutionSelect.value,
-        fps: Number(fpsSelect.value),
-        enhance: enhanceToggle.checked,
+        intensity: DEFAULT_INTENSITY,
+        smoothness: DEFAULT_SMOOTHNESS,
+        cinematicStr: DEFAULT_CINEMATIC,
+        preserveFraming: true,
+        subjectFocus: true,
+        resolution: FIXED_TRANSITION_RESOLUTION,
+        fps: FIXED_TRANSITION_FPS,
+        enhance: true,
       });
 
       await monitorTransitionJob(submission.jobId, submission.status);
@@ -485,6 +475,7 @@ export function TransitionsPage(): HTMLElement {
     if (!hasInput(inputA) || inputA.selectionKey === key) {
       setTimelineInputState(inputA, clip);
       renderInputCard(inputAHost, "Start", "first", inputA);
+      syncAutomaticSettings();
       updateGenerateState();
       updateCreditHint();
       queueProjectAutosave();
@@ -495,6 +486,7 @@ export function TransitionsPage(): HTMLElement {
 
     setTimelineInputState(inputB, clip);
     renderInputCard(inputBHost, "End", "last", inputB);
+    syncAutomaticSettings();
     updateGenerateState();
     updateCreditHint();
     queueProjectAutosave();
@@ -513,6 +505,7 @@ export function TransitionsPage(): HTMLElement {
       }
       setInputState(state, file);
       updateInputPreview(previewHost, helper, state, framePosition);
+      syncAutomaticSettings();
       updateGenerateState();
       updateCreditHint();
       queueProjectAutosave();
@@ -533,8 +526,7 @@ export function TransitionsPage(): HTMLElement {
   }
 
   function estimateCredits(preset: TransitionPresetItem): number {
-    const baseRate = resolutionSelect.value === "720p" ? 15 : 22;
-    return Math.ceil(baseRate * Number(durationSelect.value) * preset.costMultiplier);
+    return Math.ceil(15 * Number(durationSelect.value) * preset.costMultiplier);
   }
 
   async function initialize() {
@@ -563,15 +555,15 @@ export function TransitionsPage(): HTMLElement {
     rememberProjectId(project.id);
     selectedPresetId = project.presetId ?? selectedPresetId;
     aspectSelect.value = project.aspectRatio || "16:9";
-    durationSelect.value = String(project.duration || 5);
-    resolutionSelect.value = project.resolution || "1080p";
-    fpsSelect.value = String(project.fps || 24);
-    intensityInput.value = String(project.intensity ?? 50);
-    smoothnessInput.value = String(project.smoothness ?? 60);
-    cinematicInput.value = String(project.cinematicStr ?? 65);
-    preserveToggle.checked = project.preserveFraming ?? true;
-    subjectToggle.checked = project.subjectFocus ?? true;
-    enhanceToggle.checked = project.enhance ?? true;
+    durationSelect.value = DURATIONS.includes(String(project.duration || 5)) ? String(project.duration || 5) : "5";
+    resolutionSelect.value = FIXED_TRANSITION_RESOLUTION;
+    fpsSelect.value = String(FIXED_TRANSITION_FPS);
+    intensityInput.value = String(DEFAULT_INTENSITY);
+    smoothnessInput.value = String(DEFAULT_SMOOTHNESS);
+    cinematicInput.value = String(DEFAULT_CINEMATIC);
+    preserveToggle.checked = true;
+    subjectToggle.checked = true;
+    enhanceToggle.checked = true;
 
     if (project.inputAUrl) {
       setRemoteInputState(inputA, project.inputAUrl, project.inputAType);
@@ -584,8 +576,29 @@ export function TransitionsPage(): HTMLElement {
     renderInputCard(inputBHost, "End", "last", inputB);
     renderCategories();
     renderPresets();
+    syncAutomaticSettings();
     updateCreditHint();
     updateGenerateState();
+  }
+
+  function syncAutomaticSettings() {
+    resolutionSelect.value = FIXED_TRANSITION_RESOLUTION;
+    fpsSelect.value = String(FIXED_TRANSITION_FPS);
+    intensityInput.value = String(DEFAULT_INTENSITY);
+    smoothnessInput.value = String(DEFAULT_SMOOTHNESS);
+    cinematicInput.value = String(DEFAULT_CINEMATIC);
+    preserveToggle.checked = true;
+    subjectToggle.checked = true;
+    enhanceToggle.checked = true;
+    aspectSelect.value = getAutomaticAspectRatio();
+  }
+
+  function getAutomaticAspectRatio(): string {
+    const source = pickAspectSource(inputA, inputB);
+    if (!source || !source.previewWidth || !source.previewHeight) {
+      return aspectSelect.value || "16:9";
+    }
+    return classifyAspectRatio(source.previewWidth, source.previewHeight);
   }
 
   function queueProjectAutosave() {
@@ -614,16 +627,16 @@ export function TransitionsPage(): HTMLElement {
       inputBUrl: inputB.remoteUrl ?? inputB.preparedUrl ?? null,
       inputBType: inputB.kind ?? "image",
       presetId: selectedPresetId || null,
-      aspectRatio: aspectSelect.value,
+      aspectRatio: getAutomaticAspectRatio(),
       duration: Number(durationSelect.value),
-      intensity: Number(intensityInput.value),
-      smoothness: Number(smoothnessInput.value),
-      cinematicStr: Number(cinematicInput.value),
-      preserveFraming: preserveToggle.checked,
-      subjectFocus: subjectToggle.checked,
-      resolution: resolutionSelect.value,
-      fps: Number(fpsSelect.value),
-      enhance: enhanceToggle.checked,
+      intensity: DEFAULT_INTENSITY,
+      smoothness: DEFAULT_SMOOTHNESS,
+      cinematicStr: DEFAULT_CINEMATIC,
+      preserveFraming: true,
+      subjectFocus: true,
+      resolution: FIXED_TRANSITION_RESOLUTION,
+      fps: FIXED_TRANSITION_FPS,
+      enhance: true,
       ...overrides,
     };
   }
@@ -686,7 +699,7 @@ export function TransitionsPage(): HTMLElement {
       url: job.resultUrl,
       presetId: job.presetId,
       presetName: preset?.name ?? job.presetId,
-      aspectRatio: aspectSelect.value,
+      aspectRatio: getAutomaticAspectRatio(),
       duration: Number(durationSelect.value),
       inputAUrl: null,
       inputBUrl: null,
@@ -742,25 +755,6 @@ function labelRow(label: string, control: HTMLElement): HTMLElement {
   );
 }
 
-function sliderRow(label: string, input: HTMLInputElement): HTMLElement {
-  const value = el("span.mono.muted", { style: { fontSize: "11px" } }, input.value);
-  input.addEventListener("input", () => { value.textContent = input.value; });
-  return el("div.col.gap-1", null,
-    el("div.row", { style: { justifyContent: "space-between", alignItems: "center" } },
-      el("span", { style: { fontSize: "11px", color: "var(--text-secondary)" } }, label),
-      value,
-    ),
-    input,
-  );
-}
-
-function toggleRow(label: string, input: HTMLInputElement): HTMLElement {
-  return el("label.row", { style: { justifyContent: "space-between", alignItems: "center", gap: "12px" } },
-    el("span", { style: { fontSize: "11px", color: "var(--text-secondary)" } }, label),
-    input,
-  );
-}
-
 function selectField(options: string[], value: string): HTMLSelectElement {
   const node = el("select", {
     style: {
@@ -805,6 +799,8 @@ function setInputState(state: InputState, file: File | null) {
   state.selectionKey = null;
   state.kind = file ? detectKind(file) : null;
   state.previewUrl = file ? URL.createObjectURL(file) : null;
+  state.previewWidth = null;
+  state.previewHeight = null;
   state.cacheKey = null;
   state.preparedUrl = null;
 }
@@ -824,6 +820,8 @@ function setTimelineInputState(state: InputState, clip: TimelineClip) {
   state.selectionKey = clipSelectionKey(clip);
   state.kind = detectTimelineKind(clip);
   state.previewUrl = toFileUrl(clip.path);
+  state.previewWidth = null;
+  state.previewHeight = null;
   state.cacheKey = null;
   state.preparedUrl = null;
 }
@@ -865,11 +863,21 @@ function updateInputPreview(host: HTMLElement, helper: HTMLElement, state: Input
           autoplay: "true",
           playsinline: "true",
           controls: "true",
+          onLoadedMetadata: (ev: Event) => {
+            const node = ev.target as HTMLVideoElement;
+            state.previewWidth = node.videoWidth || null;
+            state.previewHeight = node.videoHeight || null;
+          },
           style: { width: "100%", borderRadius: "12px", display: "block" },
         })
       : el("img", {
           src: state.previewUrl,
           alt: sourceName,
+          onLoad: (ev: Event) => {
+            const node = ev.target as HTMLImageElement;
+            state.previewWidth = node.naturalWidth || null;
+            state.previewHeight = node.naturalHeight || null;
+          },
           style: { width: "100%", borderRadius: "12px", display: "block", aspectRatio: "16/9", objectFit: "cover" },
         }),
   );
@@ -934,8 +942,32 @@ function setRemoteInputState(state: InputState, url: string, type?: string | nul
   state.selectionKey = null;
   state.kind = inferRemoteKind(url, type);
   state.previewUrl = url;
+  state.previewWidth = null;
+  state.previewHeight = null;
   state.cacheKey = null;
   state.preparedUrl = null;
+}
+
+function pickAspectSource(...states: InputState[]): InputState | null {
+  return states.find((state) => Boolean(state.previewWidth && state.previewHeight)) ?? null;
+}
+
+function classifyAspectRatio(width: number, height: number): string {
+  const targetRatio = width / Math.max(1, height);
+  let bestAspect = ASPECTS[0];
+  let bestDelta = Number.POSITIVE_INFINITY;
+
+  for (const aspect of ASPECTS) {
+    const [w, h] = aspect.split(":").map(Number);
+    const aspectRatio = w / Math.max(1, h);
+    const delta = Math.abs(aspectRatio - targetRatio);
+    if (delta < bestDelta) {
+      bestAspect = aspect;
+      bestDelta = delta;
+    }
+  }
+
+  return bestAspect;
 }
 
 function inferRemoteKind(url: string, fallback?: string | null): InputKind {

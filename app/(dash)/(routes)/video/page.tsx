@@ -4187,7 +4187,7 @@ function VideoPageInner() {
                           <video
                             src={asset.url}
                             muted
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-cover pointer-events-none"
                           />
                         ) : (
                           // eslint-disable-next-line @next/next/no-img-element
