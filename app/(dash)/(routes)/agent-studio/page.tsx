@@ -584,6 +584,9 @@ export default function AgentStudioPage() {
   const [activeLogs, setActiveLogs] = useState<string[]>([]);
   const [outputVideo, setOutputVideo] = useState<string | null>(null);
   const [activeWorkflowPrompt, setActiveWorkflowPrompt] = useState<string>("");
+  const [realAiResponse, setRealAiResponse] = useState<string | null>(null);
+  const [realAiError, setRealAiError] = useState<string | null>(null);
+  const [outputTab, setOutputTab] = useState<"video" | "response">("video");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -684,6 +687,34 @@ export default function AgentStudioPage() {
     setActiveStep("claude");
     setActiveLogs([]);
     setOutputVideo(null);
+    setRealAiResponse(null);
+    setRealAiError(null);
+    setOutputTab("video");
+
+    // Fetch real agent response in background utilizing active skills and memories
+    const activeSkillsToSend = skillsList.filter(s => s.isActive);
+    const lockedMemoriesToSend = memoriesList.filter(m => lockedMemories.includes(m.id));
+
+    fetch("/api/agent-studio/run", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        prompt: runPrompt,
+        skills: activeSkillsToSend,
+        memories: lockedMemoriesToSend
+      })
+    })
+      .then(res => {
+        if (!res.ok) throw new Error("Failed to get response");
+        return res.json();
+      })
+      .then(data => {
+        setRealAiResponse(data.content);
+      })
+      .catch(err => {
+        console.error(err);
+        setRealAiError("Could not fetch response from API. Make sure OPENAI_API_KEY is configured.");
+      });
 
     const steps = [
       { text: `[${orchestratorName}] Querying active skill guidelines for ${activeSkillTitle}...`, step: "claude" as const, delay: 0 },
@@ -1609,23 +1640,85 @@ export default function AgentStudioPage() {
                     </div>
 
                     {/* Cinematic media preview player */}
-                    <div className="md:col-span-5 flex flex-col items-center justify-center h-[280px] rounded-2xl border border-white/5 bg-[#050914] p-4 relative overflow-hidden text-center">
+                    <div className="md:col-span-5 flex flex-col h-[280px] rounded-2xl border border-white/5 bg-[#050914] p-4 relative overflow-hidden text-left">
                       {outputVideo ? (
-                        <div className="absolute inset-0 bg-black z-10 flex flex-col">
-                          <video
-                            src={outputVideo}
-                            autoPlay
-                            muted
-                            loop
-                            playsInline
-                            className="w-full h-full object-cover"
-                          />
-                          <div className="absolute top-2 left-2 z-20 rounded bg-black/60 border border-white/10 px-2 py-0.5 text-[8px] font-bold text-emerald-400 tracking-wider">
-                            R2 Storage Stream
+                        <div className="absolute inset-0 bg-[#050914] z-10 flex flex-col">
+                          {/* Tab header */}
+                          <div className="flex items-center justify-between px-3 py-2 border-b border-white/5 bg-black/40 z-20">
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => setOutputTab("video")}
+                                className={`text-[10px] font-extrabold px-2.5 py-1 rounded transition ${
+                                  outputTab === "video"
+                                    ? "bg-violet-600/20 border border-violet-500/30 text-violet-300"
+                                    : "text-zinc-500 hover:text-zinc-300"
+                                }`}
+                              >
+                                🎬 Video Stream
+                              </button>
+                              <button
+                                onClick={() => setOutputTab("response")}
+                                className={`text-[10px] font-extrabold px-2.5 py-1 rounded transition ${
+                                  outputTab === "response"
+                                    ? "bg-violet-600/20 border border-violet-500/30 text-violet-300"
+                                    : "text-zinc-500 hover:text-zinc-300"
+                                }`}
+                              >
+                                📝 Real AI Output
+                              </button>
+                            </div>
+                            <div className="rounded bg-emerald-500/10 border border-emerald-500/25 px-1.5 py-0.5 text-[8px] font-extrabold text-emerald-400 tracking-wider">
+                              ACTIVE RESULT
+                            </div>
+                          </div>
+
+                          {/* Tab Content */}
+                          <div className="flex-1 relative overflow-hidden">
+                            {outputTab === "video" ? (
+                              <div className="w-full h-full">
+                                <video
+                                  src={outputVideo}
+                                  autoPlay
+                                  muted
+                                  loop
+                                  playsInline
+                                  className="w-full h-full object-cover"
+                                />
+                                <div className="absolute top-2 left-2 z-20 rounded bg-black/60 border border-white/10 px-2 py-0.5 text-[8px] font-bold text-emerald-400 tracking-wider">
+                                  R2 Storage Stream
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="w-full h-full p-4 overflow-y-auto custom-scrollbar bg-black/20 text-xs text-zinc-300 leading-relaxed whitespace-pre-wrap font-sans">
+                                {realAiResponse ? (
+                                  <div className="space-y-2">
+                                    <div className="flex items-center justify-between border-b border-white/5 pb-2 mb-2">
+                                      <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Orchestrated Script & Code</span>
+                                      <button 
+                                        onClick={() => navigator.clipboard.writeText(realAiResponse)}
+                                        className="text-[9px] text-violet-400 hover:text-violet-300 hover:underline"
+                                      >
+                                        Copy Output
+                                      </button>
+                                    </div>
+                                    <p className="font-mono text-[11px] leading-relaxed text-zinc-300">{realAiResponse}</p>
+                                  </div>
+                                ) : realAiError ? (
+                                  <div className="text-red-400/90 text-[11px] flex items-center justify-center h-full">
+                                    {realAiError}
+                                  </div>
+                                ) : (
+                                  <div className="flex flex-col items-center justify-center h-full space-y-2">
+                                    <div className="h-4 w-4 border-2 border-t-transparent border-violet-400 rounded-full animate-spin" />
+                                    <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Fetching real agent response...</span>
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </div>
                         </div>
                       ) : (
-                        <div className="flex flex-col items-center justify-center space-y-3">
+                        <div className="flex flex-col items-center justify-center m-auto space-y-3 text-center">
                           <div className="relative h-12 w-12 flex items-center justify-center">
                             <div className="absolute inset-0 rounded-full border border-violet-500/20 border-t-violet-400 animate-spin" />
                             <HardDrive className="h-5 w-5 text-violet-400 animate-pulse" />
