@@ -113,7 +113,7 @@ export async function POST(req: NextRequest) {
     const preset = getPresetById(presetId);
     if (!preset) return NextResponse.json({ error: "Invalid preset" }, { status: 400 });
 
-    const creditsToCharge = calcTransitionCredits(presetId, duration);
+    const creditsToCharge = calcTransitionCredits(presetId, duration, controls.resolution);
 
     // Assemble hidden prompt
     const { prompt, negativePrompt } = assembleHiddenPrompt(preset, controls);
@@ -152,11 +152,12 @@ export async function POST(req: NextRequest) {
     ]);
 
     // Build KIE payload — Kling 3.0 with start+end frame (image_urls[0]=start, image_urls[1]=end)
+    const mode = controls.resolution === "720p" ? "std" : "pro";
     const kiePayload: Record<string, unknown> = {
       prompt,
       duration: String(duration),
       aspect_ratio: aspectRatio,
-      mode: "pro",
+      mode: mode,
       sound: false,
       multi_shots: false,
       multi_prompt: [],

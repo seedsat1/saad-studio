@@ -451,13 +451,14 @@ export function getPresetById(id: string): TransitionPreset | undefined {
 }
 
 /** Base credits per transition second */
-const BASE_CREDITS_PER_SECOND = 4;
+const BASE_CREDITS_PER_SECOND = 22.0;
 
-/** Calculate credits for a given preset and duration */
-export function calcTransitionCredits(presetId: string, duration: number): number {
+/** Calculate credits for a given preset, duration and resolution */
+export function calcTransitionCredits(presetId: string, duration: number, resolution?: string): number {
   const preset = TRANSITION_PRESETS.find((p) => p.id === presetId);
   const multiplier = preset?.costMultiplier ?? 1.0;
-  return Math.ceil(BASE_CREDITS_PER_SECOND * duration * multiplier);
+  const baseRate = resolution === "720p" ? 15.0 : BASE_CREDITS_PER_SECOND;
+  return Math.ceil(baseRate * duration * multiplier);
 }
 
 /** Assembles the final prompt for the backend using user controls (for server use only). */

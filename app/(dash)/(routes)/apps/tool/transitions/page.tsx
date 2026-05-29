@@ -990,8 +990,9 @@ export default function TransitionsStudioPage() {
   useEffect(() => {
     if (!selectedPresetId || !presets.length) { setCreditEstimate(0); return; }
     const preset = presets.find((p) => p.id === selectedPresetId);
-    if (preset) setCreditEstimate(Math.ceil(4 * duration * preset.costMultiplier));
-  }, [selectedPresetId, duration, presets]);
+    const baseRate = controls.resolution === "720p" ? 15.0 : 22.0;
+    if (preset) setCreditEstimate(Math.ceil(baseRate * duration * preset.costMultiplier));
+  }, [selectedPresetId, duration, presets, controls.resolution]);
 
   // ── Auto-save ──────────────────────────────────────────────────────────────
 
@@ -1768,7 +1769,7 @@ export default function TransitionsStudioPage() {
                           key={preset.id}
                           preset={preset}
                           selected={selectedPresetId === preset.id}
-                          creditEstimate={Math.ceil(4 * duration * preset.costMultiplier)}
+                          creditEstimate={Math.ceil((controls.resolution === "720p" ? 15.0 : 22.0) * duration * preset.costMultiplier)}
                           onClick={() => { setSelectedPresetId(preset.id); markDirty(); }}
                         />
                       ))}

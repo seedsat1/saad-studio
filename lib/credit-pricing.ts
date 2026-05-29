@@ -98,22 +98,20 @@ function applySoundMultiplier(baseCost: number, payload?: VideoPayload): number 
 }
 
 function getKling3Credits(payload?: VideoPayload): number {
-  // Base rate reduced 3.5 -> 2.5 per second for Kling 3.0 to bring user
-  // prices closer to Higgsfield while keeping a 28%+ margin on Pro.
   const duration = readDuration(payload, 5);
   const quality = readQuality(payload);
   const is4k = quality === "4k";
   const isPro = quality === "pro" || quality.includes("1080");
 
   if (is4k) {
-    return parseFloat(Math.max(22.5, duration * 2.5 * 3).toFixed(2));
+    return parseFloat((duration * 40.0).toFixed(2));
   }
 
   if (isPro) {
-    return parseFloat(Math.max(11.25, duration * 2.5 * 1.5).toFixed(2));
+    return parseFloat((duration * 22.0).toFixed(2));
   }
 
-  return parseFloat(Math.max(7.5, duration * 2.5).toFixed(2));
+  return parseFloat((duration * 15.0).toFixed(2));
 }
 
 function getKlingMotionCredits(payload?: VideoPayload): number {
