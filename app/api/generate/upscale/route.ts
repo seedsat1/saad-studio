@@ -148,11 +148,24 @@ export async function POST(req: NextRequest) {
     }
 
     if (!mediaUrl) {
-      return NextResponse.json({ error: "imageUrl is required." }, { status: 400 });
+      return NextResponse.json({ error: "imageUrl or videoUrl is required." }, { status: 400 });
     }
     if (!(mediaUrl.startsWith("data:") || isSafePublicHttpUrl(mediaUrl))) {
       return NextResponse.json({ error: "Invalid media URL." }, { status: 400 });
     }
+
+    const isVideo = !!(
+      (typeof body?.videoUrl === "string" && body.videoUrl) ||
+      (mediaUrl.match(/\.(mp4|webm|mov|mkv|3gp|avi|ogg)/i) || mediaUrl.startsWith("data:video/"))
+    );
+
+    const modelToUse = isVideo ? "topaz/video-upscale" : "topaz/image-upscale";
+    if (isVideo && scaleFactor === "8") {
+      scaleFactor = "4";
+    }
+
+    const promptText = isVideo ? "Upscale video" : "Upscale image";
+    const assetTypeUsed = isVideo ? "VIDEO" : "IMAGE";
 
     const creditsToCharge = await getGenerationCost("tool:upscale");
     if (creditsToCharge <= 0) {
@@ -161,9 +174,9 @@ export async function POST(req: NextRequest) {
     const charge = await spendCredits({
       userId,
       credits: creditsToCharge,
-      prompt: "Upscale image",
-      assetType: "IMAGE",
-      modelUsed: KIE_UPSCALE_MODEL,
+      prompt: promptText,
+      assetType: assetTypeUsed,
+      modelUsed: modelToUse,
     });
     generationId = charge.generationId;
     chargedCredits = creditsToCharge;
@@ -183,8 +196,11 @@ export async function POST(req: NextRequest) {
           Authorization: `Bearer ${kieKey}`,
         },
         body: JSON.stringify({
-          model: KIE_UPSCALE_MODEL,
-          input: { 
+          model: modelToUse,
+          input: isVideo ? {
+            video_url: normalizedMediaUrl,
+            upscale_factor: scaleFactor
+          } : {
             image_url: normalizedMediaUrl,
             upscale_factor: scaleFactor
           },

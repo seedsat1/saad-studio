@@ -488,6 +488,13 @@ export default function EditPage() {
     }
   }, [searchParams]);
 
+  // Adjust upscale factor for videos (max 4x)
+  useEffect(() => {
+    if (mediaType === "video" && upscaleFactor === "8") {
+      setUpscaleFactor("4");
+    }
+  }, [mediaType, upscaleFactor]);
+
   // Generate cursor preview SVG based on brushSize, scale and tool color
   const displayBrushSize = brushSize * scale;
   const activeColorHex = activeTool === "draw" ? drawColor : currentTool.hex;
@@ -1859,11 +1866,11 @@ export default function EditPage() {
                 <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest block">
                   Upscale Factor
                 </span>
-                <div className="grid grid-cols-3 gap-2">
+                <div className={cn("grid gap-2", mediaType === "video" ? "grid-cols-2" : "grid-cols-3")}>
                   {[
                     { id: "2", label: "2x", desc: "Medium detail" },
                     { id: "4", label: "4x", desc: "HD Quality" },
-                    { id: "8", label: "8x", desc: "Ultra HD (8k)" }
+                    ...(mediaType === "video" ? [] : [{ id: "8", label: "8x", desc: "Ultra HD (8k)" }])
                   ].map((fac) => (
                     <button
                       key={fac.id}
