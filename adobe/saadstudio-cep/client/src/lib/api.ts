@@ -338,7 +338,8 @@ export const api = {
     const fileName = path.basename(localPath) || "upload.bin";
     const contentType = guessContentType(fileName);
     const signed = await api.createUploadUrl({ fileName, contentType, assetType });
-    const body = fs.readFileSync(localPath) as Buffer;
+    const fileBuffer = fs.readFileSync(localPath) as Buffer;
+    const body = new Uint8Array(fileBuffer);
     const put = await fetch(signed.signedUrl, {
       method: "PUT",
       headers: { "Content-Type": contentType },

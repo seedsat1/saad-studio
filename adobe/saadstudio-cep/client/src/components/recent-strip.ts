@@ -101,10 +101,10 @@ export function RecentStrip(options: RecentStripOptions = {}): HTMLElement {
     );
   }
   root.append(grid);
-  );
   render();
   store.refreshRecent();
   return root;
+}
 
 function newTile(filter: "image" | "video"): HTMLElement {
   const route = filter === "video" ? "/video-gen" : "/image-gen";
